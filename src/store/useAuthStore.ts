@@ -1,5 +1,7 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
+import { Capacitor } from "@capacitor/core";
+import { Preferences } from "@capacitor/preferences";
 import { apiUrl } from "../lib/api";
 
 interface User {
@@ -59,6 +61,52 @@ interface AuthStore {
   getCurrentUser: () => User | null;
   checkUser: () => Promise<void>;
 }
+
+const AUTH_STORAGE_KEY = "elix-auth";
+
+function isNativeRuntime(): boolean {
+  return typeof window !== "undefined" && Capacitor.isNativePlatform();
+}
+
+const authStateStorage: StateStorage = {
+  getItem: async (name) => {
+    if (isNativeRuntime()) {
+      const nativeValue = await Preferences.get({ key: name });
+      if (nativeValue.value != null) return nativeValue.value;
+      // One-time migration path from old localStorage persistence.
+      try {
+        const legacy = window.localStorage.getItem(name);
+        if (legacy != null) {
+          await Preferences.set({ key: name, value: legacy });
+          return legacy;
+        }
+      } catch {
+        // Ignore local storage access errors and continue unauthenticated.
+      }
+      return null;
+    }
+    if (typeof window === "undefined") return null;
+    return window.localStorage.getItem(name);
+  },
+  setItem: async (name, value) => {
+    if (isNativeRuntime()) {
+      await Preferences.set({ key: name, value });
+      return;
+    }
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(name, value);
+    }
+  },
+  removeItem: async (name) => {
+    if (isNativeRuntime()) {
+      await Preferences.remove({ key: name });
+      return;
+    }
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem(name);
+    }
+  },
+};
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -647,7 +695,8 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
     }
   },
 }), {
-  name: 'elix-auth',
+  name: AUTH_STORAGE_KEY,
+  storage: createJSONStorage(() => authStateStorage),
   partialize: (state) => ({
     user: state.user,
     session: state.session,
