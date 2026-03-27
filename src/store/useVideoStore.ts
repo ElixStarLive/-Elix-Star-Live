@@ -306,7 +306,7 @@ export const useVideoStore = create<VideoStore>()(
 
           const mappedVideos: Video[] = sourceVideos.map(toClientVideo);
 
-          /* For You = only /api/feed/foryou (mutual). Do not merge global or friends here. */
+          /* For You = /api/feed/foryou (all public videos). Do not merge friends-only here. */
           set({
             videos: mappedVideos,
             mutualFollowIds: mutualFromApi,

@@ -107,7 +107,7 @@ function formatVideoForClient(
   };
 }
 
-/** For You = only people you follow who also follow you (mutual). Not the global explore feed. */
+/** For You = ALL public videos & livestreams from everyone. */
 export async function handleForYouFeed(req: Request, res: Response) {
   try {
     const page = Math.max(1, parseInt(String(req.query.page || "1"), 10) || 1);
@@ -120,41 +120,23 @@ export async function handleForYouFeed(req: Request, res: Response) {
     const token = getTokenFromRequest(req);
     const jwtUser = token ? verifyAuthToken(token) : null;
 
-    if (!jwtUser?.sub) {
-      return res.json({
-        videos: [],
-        mutualUserIds: [],
-        page,
-        limit,
-        hasMore: false,
-        total: 0,
-        source: "login_required",
-      });
-    }
-
-    const { getMutualFollowIdsAsync, getFollowingIdsAsync } = await import("./profiles");
-    const mutualIds = await getMutualFollowIdsAsync(jwtUser.sub);
-    const followingSet = new Set(await getFollowingIdsAsync(jwtUser.sub));
+    const followingSet = new Set<string>();
     const likedSet = new Set<string>();
 
-    if (mutualIds.length === 0) {
-      return res.json({
-        videos: [],
-        mutualUserIds: [],
-        page,
-        limit,
-        hasMore: false,
-        total: 0,
-        source: "no_mutual_follows",
-      });
+    if (jwtUser?.sub) {
+      try {
+        const { getFollowingIdsAsync } = await import("./profiles");
+        const ids = await getFollowingIdsAsync(jwtUser.sub);
+        ids.forEach((id: string) => followingSet.add(id));
+      } catch { /* non-fatal */ }
     }
 
-    const cacheKey = `foryou:mutual:${jwtUser.sub}:${page}:${limit}`;
+    const cacheKey = `foryou:all:${page}:${limit}`;
     const cached = feedCache.get(cacheKey);
     if (cached && Date.now() - cached.ts < CACHE_TTL) {
       return res.json({
         videos: cached.data,
-        mutualUserIds: mutualIds,
+        mutualUserIds: [],
         page,
         limit,
         hasMore: cached.data.length >= limit,
@@ -171,21 +153,19 @@ export async function handleForYouFeed(req: Request, res: Response) {
         `SELECT v.*, row_to_json(p) AS user
          FROM videos v
          LEFT JOIN profiles p ON p.user_id = v.user_id
-         WHERE v.user_id = ANY($1::text[])
-           AND (v.privacy IS NULL OR v.privacy <> 'private')
+         WHERE (v.privacy IS NULL OR v.privacy <> 'private')
            AND v.url IS NOT NULL AND btrim(v.url) <> ''
          ORDER BY v.created_at DESC NULLS LAST
-         LIMIT $2 OFFSET $3`,
-        [mutualIds, limit, offset],
+         LIMIT $1 OFFSET $2`,
+        [limit, offset],
       );
       formatted = (rows || []).map((v: any) => formatVideoForClient(v, likedSet, followingSet));
     } else {
-      const mutualSet = new Set(mutualIds);
       const allVids = await getAllVideosAsync();
       const memVideos = allVids.filter((v) => {
         const url = (v.url || "").trim();
         if (!url || url.startsWith("https://example.com/")) return false;
-        return mutualSet.has(v.userId) && v.privacy !== "private";
+        return v.privacy !== "private";
       });
       const paginated = memVideos.slice(offset, offset + limit);
       formatted = paginated.map((v) => ({
@@ -219,12 +199,12 @@ export async function handleForYouFeed(req: Request, res: Response) {
 
     return res.json({
       videos: formatted,
-      mutualUserIds: mutualIds,
+      mutualUserIds: [],
       page,
       limit,
       hasMore: formatted.length >= limit,
       total: offset + formatted.length,
-      source: db ? "postgres_mutual" : "memory_mutual",
+      source: db ? "postgres_all" : "memory_all",
     });
   } catch (err: any) {
     console.error("[ForYouFeed] Error:", err?.message || err);

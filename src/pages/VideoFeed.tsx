@@ -177,11 +177,7 @@ export default function VideoFeed() {
   const session = useAuthStore((s) => s.session);
   const token = session?.access_token || "";
 
-  const { videos, fetchVideos, loading: videosLoading, mutualFollowIds } = useVideoStore();
-  const mutualRef = useRef<Set<string>>(new Set());
-  useEffect(() => {
-    mutualRef.current = new Set(mutualFollowIds || []);
-  }, [mutualFollowIds]);
+  const { videos, fetchVideos, loading: videosLoading } = useVideoStore();
 
   /* ---- Remove a live stream instantly ---- */
   const removeLiveStream = useCallback((streamKey: string) => {
@@ -361,7 +357,7 @@ export default function VideoFeed() {
           const data = msg?.data || {};
           if (event === "stream_started") {
             const uid = String(data.user_id ?? "");
-            if (!uid || !mutualRef.current.has(uid)) return;
+            if (!uid) return;
             const key = (data.stream_key ?? data.room_id) as string;
             if (!key) return;
             if (removedKeysRef.current.has(key)) return;
@@ -406,19 +402,14 @@ export default function VideoFeed() {
     }
   }, [location.pathname, fetchLiveStreams, fetchVideos]);
 
-  /* ---- Only mutual friends’ live rooms (same circle as For You videos) ---- */
-  const visibleLiveStreams = useMemo(() => {
-    const m = mutualFollowIds || [];
-    if (m.length === 0) return [];
-    const set = new Set(m);
-    return liveStreams.filter((s) => s.userId && set.has(s.userId));
-  }, [liveStreams, mutualFollowIds]);
+  /* ---- All live streams visible on For You (everyone) ---- */
+  const visibleLiveStreams = useMemo(() => liveStreams, [liveStreams]);
 
   useEffect(() => {
     monitorRef.current?.sync(visibleLiveStreams.map((s) => s.streamKey));
   }, [visibleLiveStreams]);
 
-  /* ---- Build unified feed: mutual live first, then mutual videos ---- */
+  /* ---- Build unified feed: live first, then videos ---- */
   const feedItems: FeedItem[] = [
     ...visibleLiveStreams.map((stream): FeedItem => ({ kind: "live", stream })),
     ...videos.map((v): FeedItem => ({ kind: "video", videoId: v.id })),
@@ -605,7 +596,7 @@ export default function VideoFeed() {
             Nothing here yet
           </p>
           <p className="text-white/30 text-sm mb-4 text-center">
-            For You is only people you follow who follow you back. When they post or go live, it shows here right away. Follow each other to build your circle, or use Explore for everyone.
+            Videos and livestreams from everyone appear here. When creators post or go live, it shows up right away.
           </p>
           <button
             type="button"

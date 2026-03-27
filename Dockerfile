@@ -5,9 +5,11 @@ FROM node:20-bookworm-slim AS builder
 
 WORKDIR /app
 
-# Install deps with npm install so lockfile sync is not required
+# Install deps with npm install so lockfile sync is not required.
+# --include=dev guarantees build tools (vite/typescript) are present
+# even if NODE_ENV=production is injected at build time by the platform.
 COPY package.json package-lock.json* ./
-RUN npm install
+RUN npm install --include=dev
 
 COPY . .
 RUN cp .env.example .env 2>/dev/null || true

@@ -1,7 +1,7 @@
 {
   "name": "elix-star-live",
   "private": true,
-  "version": "1.0.3",
+  "version": "1.0.2",
   "type": "module",
   "packageManager": "npm@10.9.2",
   "engines": {
