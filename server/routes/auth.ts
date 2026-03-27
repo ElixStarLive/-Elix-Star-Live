@@ -1,11 +1,12 @@
 /**
  * Auth API: login, register, logout, me, resend-confirmation, apple/start.
- * Uses in-memory user store + JWT. Replace with DB (Hetzner Postgres) when ready.
+ * Uses Neon/Postgres user store + custom HS256 JWT.
  */
 
 import { Request, Response } from 'express';
 import crypto from 'crypto';
 import { getPool } from '../lib/postgres';
+import { logger } from '../lib/logger';
 
 const COOKIE_NAME = 'auth_token';
 const TOKEN_EXPIRY_SEC = 60 * 60 * 24 * 7; // 7 days
@@ -14,8 +15,22 @@ const KEY_LEN = 64;
 const SCRYPT_OPTS = { N: 16384, r: 8, p: 1 };
 
 function getSecret(): string {
-  const s = process.env.JWT_SECRET || process.env.AUTH_SECRET || 'elix-auth-dev-secret-change-in-production';
+  const s = process.env.JWT_SECRET || process.env.AUTH_SECRET || '';
+  if (!s) {
+    throw new Error('FATAL: JWT_SECRET (or AUTH_SECRET) is not set. Cannot sign or verify tokens.');
+  }
   return s;
+}
+
+export function validateAuthSecretOrDie(): void {
+  const s = process.env.JWT_SECRET || process.env.AUTH_SECRET || '';
+  if (!s) {
+    logger.fatal('JWT_SECRET / AUTH_SECRET is not configured. Server cannot start safely.');
+    process.exit(1);
+  }
+  if (s.length < 32) {
+    logger.warn('JWT_SECRET is shorter than 32 characters — consider using a stronger secret.');
+  }
 }
 
 function hashPassword(password: string): string {
@@ -253,9 +268,12 @@ export async function handleLogin(req: Request, res: Response) {
 
 /**
  * Guest login: creates or reuses a lightweight guest account with random email.
- * No password required; intended only for local testing / demos.
+ * No password required; disabled in production.
  */
 export async function handleGuestLogin(_req: Request, res: Response) {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(403).json({ error: 'Guest login is disabled in production.' });
+  }
   if (!getPool()) return res.status(503).json({ error: 'Database not configured' });
   let guest: StoredUser | null = await dbFindUserByEmail('guest@example.com');
   if (!guest) {

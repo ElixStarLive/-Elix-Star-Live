@@ -40,11 +40,12 @@ export async function initPostgres(): Promise<void> {
     const needsSsl = url.includes('neon.tech') || url.includes('sslmode=require');
     pool = new Pool({
       connectionString: url,
-      max: Number(process.env.PG_POOL_MAX) || 20,
-      min: Number(process.env.PG_POOL_MIN) || 2,
+      max: Number(process.env.PG_POOL_MAX) || 50,
+      min: Number(process.env.PG_POOL_MIN) || 5,
       idleTimeoutMillis: 30_000,
       connectionTimeoutMillis: 10_000,
-      ...(needsSsl ? { ssl: { rejectUnauthorized: false } } : {}),
+      allowExitOnIdle: false,
+      ...(needsSsl ? { ssl: { rejectUnauthorized: process.env.PG_SSL_REJECT_UNAUTHORIZED === 'true' } } : {}),
     });
     await pool.query("SELECT 1");
     logger.info("PostgreSQL connected successfully");
@@ -103,6 +104,16 @@ export async function initPostgres(): Promise<void> {
         viewer_count INTEGER DEFAULT 0
       )
     `);
+
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_videos_user_id ON videos(user_id)`).catch(() => {});
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_videos_created_at ON videos(created_at DESC NULLS LAST)`).catch(() => {});
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_videos_privacy_created ON videos(privacy, created_at DESC NULLS LAST)`).catch(() => {});
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_follows_following_id ON follows(following_id)`).catch(() => {});
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_follows_follower_id ON follows(follower_id)`).catch(() => {});
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_profiles_username ON profiles(username)`).catch(() => {});
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_live_streams_is_live ON live_streams(is_live) WHERE is_live = TRUE`).catch(() => {});
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_comments_video_id ON comments(video_id, created_at DESC)`).catch(() => {});
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_likes_video_id ON likes(video_id)`).catch(() => {});
 
     // Comments (basic; likes are handled client-side for now)
     await pool.query(`

@@ -41,4 +41,4 @@ COPY --from=builder /app/.env.example ./.env
 
 EXPOSE 8080
 
-CMD ["npx", "tsx", "server/index.ts"]
+CMD ["npx", "tsx", "server/cluster.ts"]

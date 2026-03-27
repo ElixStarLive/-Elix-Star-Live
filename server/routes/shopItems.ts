@@ -17,8 +17,8 @@ function requireAuth(req: Request, res: Response): { userId: string } | null {
   return { userId: payload.sub };
 }
 
-function enrichSeller(row: DbShopItemRow) {
-  const p = getOrCreateProfile(row.user_id);
+async function enrichSeller(row: DbShopItemRow) {
+  const p = await getOrCreateProfile(row.user_id);
   return {
     ...row,
     seller: {
@@ -49,7 +49,7 @@ export async function handleListShopItems(req: Request, res: Response) {
     limit,
   });
   return res.status(200).json({
-    items: rows.map((r) => enrichSeller(r)),
+    items: await Promise.all(rows.map((r) => enrichSeller(r))),
   });
 }
 
@@ -103,5 +103,5 @@ export async function handleCreateShopItem(req: Request, res: Response) {
     category: cat,
   });
   if (!row) return res.status(500).json({ error: "Could not create shop item" });
-  return res.status(201).json({ item: enrichSeller(row) });
+  return res.status(201).json({ item: await enrichSeller(row) });
 }

@@ -33,10 +33,12 @@ export function mountRoutes(app: Express): void {
   app.use("/api/videos", videosRouter);
   app.use("/api/media", mediaRouter);
 
-  // Test coins (separate from real coins — local/testing only)
-  app.get("/api/test-coins/balance", handleGetTestCoinBalance);
-  app.post("/api/test-coins/mint", handleMintTestCoins);
-  app.post("/api/test-coins/score", handleSpendTestCoinsForScore);
+  // Test coins (separate from real coins — local/testing only, disabled in production)
+  if (process.env.NODE_ENV !== "production") {
+    app.get("/api/test-coins/balance", handleGetTestCoinBalance);
+    app.post("/api/test-coins/mint", handleMintTestCoins);
+    app.post("/api/test-coins/score", handleSpendTestCoinsForScore);
+  }
 
   // Misc (analytics, block, report, notifications, IAP, refunds, etc.)
   app.use("/api", miscRouter);

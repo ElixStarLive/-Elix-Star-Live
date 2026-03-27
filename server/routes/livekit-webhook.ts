@@ -39,7 +39,7 @@ export async function handleLiveKitWebhook(req: Request, res: Response) {
     switch (event.event) {
       case 'room_finished':
         if (event.room?.name) {
-          removeActiveStream(event.room.name);
+          await removeActiveStream(event.room.name);
           broadcastToFeedSubscribers('stream_ended', { stream_key: event.room.name });
           if (process.env.NODE_ENV !== 'production') {
             console.log('[livekit-webhook] room_finished:', event.room.name);

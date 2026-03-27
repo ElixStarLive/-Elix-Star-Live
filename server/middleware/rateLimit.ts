@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { valkeyRateCheck, isValkeyConfigured } from "../lib/valkey";
+import { logger } from "../lib/logger";
 
 // ── Fallback: local in-memory (used only when Valkey is unavailable) ──
 
@@ -65,7 +66,14 @@ export function rateLimit(opts: {
           }
           next();
         })
-        .catch(() => next());
+        .catch((err) => {
+          logger.warn({ err: err?.message, key }, "Valkey rate-limit check failed, falling back to local");
+          if (!localRateCheck(key, windowMs, max)) {
+            res.status(429).json({ error: "Too many requests. Please try again later." });
+            return;
+          }
+          next();
+        });
     } else {
       if (!localRateCheck(key, windowMs, max)) {
         res

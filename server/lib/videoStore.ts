@@ -1,6 +1,6 @@
 /**
- * Video store — Neon is the primary source of truth.
- * In-memory Map is used only as a startup cache and fallback when DB is unavailable.
+ * Video store — Neon (PostgreSQL) is the ONLY source of truth.
+ * No in-memory cache. All reads go to DB. Horizontally scalable.
  */
 
 import { getPool } from "./postgres";
@@ -26,8 +26,6 @@ export interface Video {
   createdAt: string;
   privacy: string;
 }
-
-const memCache = new Map<string, Video>();
 
 function rowToVideo(row: Record<string, unknown>): Video {
   return {
@@ -56,107 +54,89 @@ function rowToVideo(row: Record<string, unknown>): Video {
   };
 }
 
-/** Warm the in-memory cache on startup (called once from index.ts). */
-export function replaceVideos(list: Video[]): void {
-  memCache.clear();
-  for (const v of list) memCache.set(v.id, v);
+/** @deprecated No-op — startup bulk loading removed for horizontal scaling. */
+export function replaceVideos(_list: Video[]): void {
+  // Intentionally empty — DB is the only source of truth.
 }
 
-/** Write to both memory cache and Neon. */
-export function addVideo(video: Video): void {
-  memCache.set(video.id, video);
+/** No-op for in-memory — caller also calls saveVideoToDb. */
+export function addVideo(_video: Video): void {
+  // DB write handled by saveVideoToDb in postgres.ts
 }
 
-/** Remove from memory cache. Caller also calls deleteVideoFromDb. */
-export function deleteVideoFromCache(id: string): boolean {
-  return memCache.delete(id);
+/** No-op — cache removed. Caller also calls deleteVideoFromDb. */
+export function deleteVideoFromCache(_id: string): boolean {
+  return true;
 }
 
-/** Neon-primary read by id. Falls back to memory cache if DB unavailable. */
+/** Read by id from DB. */
 export async function getVideoAsync(id: string): Promise<Video | undefined> {
   const db = getPool();
-  if (db) {
-    try {
-      const res = await db.query(`SELECT * FROM videos WHERE id = $1 LIMIT 1`, [id]);
-      if (res.rows?.[0]) {
-        const v = rowToVideo(res.rows[0]);
-        memCache.set(v.id, v);
-        return v;
-      }
-      return undefined;
-    } catch (err) {
-      logger.error({ err, id }, "getVideoAsync DB read failed, falling back to cache");
-    }
+  if (!db) return undefined;
+  try {
+    const res = await db.query(`SELECT * FROM videos WHERE id = $1 LIMIT 1`, [id]);
+    if (res.rows?.[0]) return rowToVideo(res.rows[0]);
+    return undefined;
+  } catch (err) {
+    logger.error({ err, id }, "getVideoAsync DB read failed");
+    return undefined;
   }
-  return memCache.get(id);
 }
 
-/** Sync cache read — used only for non-critical paths (stat increment). */
-export function getVideoCached(id: string): Video | undefined {
-  return memCache.get(id);
+/** @deprecated Use getVideoAsync instead. Returns undefined (no cache). */
+export function getVideoCached(_id: string): Video | undefined {
+  return undefined;
 }
 
-/** Neon-primary list all videos. Falls back to memory cache if DB unavailable. */
+/** List all videos from DB with limit. */
 export async function getAllVideosAsync(limit = 500): Promise<Video[]> {
   const db = getPool();
-  if (db) {
-    try {
-      const res = await db.query(
-        `SELECT * FROM videos ORDER BY created_at DESC NULLS LAST LIMIT $1`,
-        [limit],
-      );
-      const list = (res.rows || []).map(rowToVideo);
-      for (const v of list) memCache.set(v.id, v);
-      return list;
-    } catch (err) {
-      logger.error({ err }, "getAllVideosAsync DB read failed, falling back to cache");
-    }
+  if (!db) return [];
+  try {
+    const res = await db.query(
+      `SELECT * FROM videos ORDER BY created_at DESC NULLS LAST LIMIT $1`,
+      [limit],
+    );
+    return (res.rows || []).map(rowToVideo);
+  } catch (err) {
+    logger.error({ err }, "getAllVideosAsync DB read failed");
+    return [];
   }
-  return Array.from(memCache.values()).sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-  );
 }
 
-/** Neon-primary list by user. Falls back to memory cache if DB unavailable. */
+/** List videos by user from DB. */
 export async function getVideosByUserAsync(userId: string): Promise<Video[]> {
   const db = getPool();
-  if (db) {
-    try {
-      const res = await db.query(
-        `SELECT * FROM videos WHERE user_id = $1 ORDER BY created_at DESC NULLS LAST`,
-        [userId],
-      );
-      return (res.rows || []).map(rowToVideo);
-    } catch (err) {
-      logger.error({ err, userId }, "getVideosByUserAsync DB read failed, falling back to cache");
-    }
+  if (!db) return [];
+  try {
+    const res = await db.query(
+      `SELECT * FROM videos WHERE user_id = $1 ORDER BY created_at DESC NULLS LAST`,
+      [userId],
+    );
+    return (res.rows || []).map(rowToVideo);
+  } catch (err) {
+    logger.error({ err, userId }, "getVideosByUserAsync DB read failed");
+    return [];
   }
-  return Array.from(memCache.values())
-    .filter((v) => v.userId === userId)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
-/** Neon-primary count. Falls back to memory cache size. */
+/** Count videos from DB. */
 export async function getVideoCountAsync(): Promise<number> {
   const db = getPool();
-  if (db) {
-    try {
-      const res = await db.query(`SELECT COUNT(*)::int AS cnt FROM videos`);
-      return Number(res.rows[0]?.cnt ?? 0);
-    } catch {
-      // fall through
-    }
+  if (!db) return 0;
+  try {
+    const res = await db.query(`SELECT COUNT(*)::int AS cnt FROM videos`);
+    return Number(res.rows[0]?.cnt ?? 0);
+  } catch {
+    return 0;
   }
-  return memCache.size;
 }
 
-/** Update stat in both cache and Neon. */
+/** Update stat in DB only. */
 export function incrementStat(
   videoId: string,
   stat: "views" | "likes" | "comments" | "shares" | "saves",
 ): void {
-  const v = memCache.get(videoId);
-  if (v) v[stat]++;
   const db = getPool();
   if (db) {
     db.query(`UPDATE videos SET ${stat} = ${stat} + 1 WHERE id = $1`, [videoId]).catch(() => {});
@@ -167,8 +147,6 @@ export function decrementStat(
   videoId: string,
   stat: "views" | "likes" | "comments" | "shares" | "saves",
 ): void {
-  const v = memCache.get(videoId);
-  if (v) v[stat] = Math.max(0, v[stat] - 1);
   const db = getPool();
   if (db) {
     db.query(`UPDATE videos SET ${stat} = GREATEST(${stat} - 1, 0) WHERE id = $1`, [videoId]).catch(() => {});

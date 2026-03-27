@@ -221,3 +221,116 @@ export async function valkeyExists(key: string): Promise<boolean> {
     return false;
   }
 }
+
+// ── Set operations (SADD / SREM / SCARD / SMEMBERS) ─────────────
+
+export async function valkeySadd(key: string, ...members: string[]): Promise<number> {
+  const v = getValkey();
+  if (!v || members.length === 0) return 0;
+  try {
+    return await v.sadd(key, ...members);
+  } catch {
+    return 0;
+  }
+}
+
+export async function valkeySrem(key: string, ...members: string[]): Promise<number> {
+  const v = getValkey();
+  if (!v || members.length === 0) return 0;
+  try {
+    return await v.srem(key, ...members);
+  } catch {
+    return 0;
+  }
+}
+
+export async function valkeyScard(key: string): Promise<number> {
+  const v = getValkey();
+  if (!v) return 0;
+  try {
+    return await v.scard(key);
+  } catch {
+    return 0;
+  }
+}
+
+export async function valkeySmembers(key: string): Promise<string[]> {
+  const v = getValkey();
+  if (!v) return [];
+  try {
+    return await v.smembers(key);
+  } catch {
+    return [];
+  }
+}
+
+export async function valkeySismember(key: string, member: string): Promise<boolean> {
+  const v = getValkey();
+  if (!v) return false;
+  try {
+    return (await v.sismember(key, member)) === 1;
+  } catch {
+    return false;
+  }
+}
+
+// ── Hash operations (HSET / HGET / HDEL / HGETALL) ──────────────
+
+export async function valkeyHset(key: string, field: string, value: string): Promise<void> {
+  const v = getValkey();
+  if (!v) return;
+  try {
+    await v.hset(key, field, value);
+  } catch { /* best effort */ }
+}
+
+export async function valkeyHget(key: string, field: string): Promise<string | null> {
+  const v = getValkey();
+  if (!v) return null;
+  try {
+    return await v.hget(key, field);
+  } catch {
+    return null;
+  }
+}
+
+export async function valkeyHdel(key: string, ...fields: string[]): Promise<void> {
+  const v = getValkey();
+  if (!v || fields.length === 0) return;
+  try {
+    await v.hdel(key, ...fields);
+  } catch { /* best effort */ }
+}
+
+export async function valkeyHgetall(key: string): Promise<Record<string, string>> {
+  const v = getValkey();
+  if (!v) return {};
+  try {
+    return (await v.hgetall(key)) || {};
+  } catch {
+    return {};
+  }
+}
+
+export async function valkeyExpire(key: string, ttlSeconds: number): Promise<void> {
+  const v = getValkey();
+  if (!v) return;
+  try {
+    await v.expire(key, ttlSeconds);
+  } catch { /* best effort */ }
+}
+
+/**
+ * Distributed lock via SET NX PX.
+ * Returns true if lock was acquired, false if another holder has it.
+ */
+export async function valkeySetNx(key: string, value: string, ttlMs: number): Promise<boolean> {
+  const v = getValkey();
+  if (!v) return false;
+  try {
+    const result = await v.set(key, value, "PX", ttlMs, "NX");
+    return result === "OK";
+  } catch {
+    return false;
+  }
+}

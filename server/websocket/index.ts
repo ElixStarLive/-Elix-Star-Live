@@ -1,3 +1,17 @@
+/**
+ * WebSocket server — horizontally scalable.
+ *
+ * LOCAL Maps (hold actual WebSocket objects — cannot be serialized):
+ *   rooms: roomId → Set<Client>   — for routing messages to LOCAL connections
+ *   clients: WebSocket → Client   — for looking up client metadata from a WS object
+ *
+ * SHARED state (Valkey — consistent across all workers/instances):
+ *   room:members:{roomId}         — SET of userIds in room (viewer count = SCARD)
+ *   txn:{transactionId}           — dedup key
+ *   cohost:{roomId}               — JSON of cohost layout
+ *   wsrl:{userId}:{event}         — rate limit sorted set
+ */
+
 import { WebSocketServer, WebSocket } from "ws";
 import { Server as HttpServer } from "http";
 import { randomUUID } from "crypto";
@@ -9,6 +23,7 @@ import {
 import { isStreamHost, removeActiveStream } from "../routes/livestream";
 import { dbUpdateViewerCount } from "../lib/postgres";
 import { logger } from "../lib/logger";
+import { verifyAuthToken } from "../routes/auth";
 import {
   isValkeyConfigured,
   valkeyPublish,
@@ -18,8 +33,13 @@ import {
   valkeyGet,
   valkeyExists,
   valkeyDel,
+  valkeySadd,
+  valkeySrem,
+  valkeyScard,
+  valkeySmembers,
 } from "../lib/valkey";
-import { battles, userBattleRoom, endBattle, getBattleFromStore } from "./battle";
+import { getPool } from "../lib/postgres";
+import { getUserBattleRoom, endBattle, getBattleFromStore } from "./battle";
 import { handleMessage } from "./handlers";
 
 export interface Client {
@@ -35,16 +55,10 @@ export interface Client {
 }
 
 const INSTANCE_ID = randomUUID();
+const ROOM_MEMBER_TTL = 3600;
 
 const rooms = new Map<string, Set<Client>>();
 const clients = new Map<WebSocket, Client>();
-export const processedTransactions = new Map<string, number>();
-export const lastCohostLayoutByRoom = new Map<
-  string,
-  { coHosts: unknown[]; hostUserId: string }
->();
-
-const wsRateLimits = new Map<string, number[]>();
 
 export async function wsRateCheck(
   userId: string,
@@ -52,31 +66,14 @@ export async function wsRateCheck(
   maxPerWindow: number,
   windowMs: number,
 ): Promise<boolean> {
-  if (isValkeyConfigured()) {
-    return valkeyRateCheckFn(`wsrl:${userId}:${event}`, windowMs, maxPerWindow);
-  }
-  const key = `${userId}:${event}`;
-  const now = Date.now();
-  const timestamps = (wsRateLimits.get(key) || []).filter(
-    (t) => now - t < windowMs,
-  );
-  if (timestamps.length >= maxPerWindow) return false;
-  timestamps.push(now);
-  wsRateLimits.set(key, timestamps);
-  return true;
+  if (!isValkeyConfigured()) return true;
+  return valkeyRateCheckFn(`wsrl:${userId}:${event}`, windowMs, maxPerWindow);
 }
 
-function decodeUserIdFromToken(token: string): string | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const payload = JSON.parse(
-      Buffer.from(parts[1], "base64").toString(),
-    );
-    return payload.sub ?? null;
-  } catch {
-    return null;
-  }
+function verifyAndExtractUserId(token: string): string | null {
+  const payload = verifyAuthToken(token);
+  if (!payload) return null;
+  return payload.sub ?? null;
 }
 
 export function sendToClient(
@@ -95,7 +92,7 @@ export function sendToClient(
       );
     }
   } catch (error) {
-    console.error("Failed to send to client:", error);
+    logger.error({ err: error }, "Failed to send to client");
   }
 }
 
@@ -116,7 +113,7 @@ export function sendToUser(
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error("Failed to serialize message:", error);
+    logger.error({ err: error }, "Failed to serialize message");
     return;
   }
 
@@ -125,7 +122,7 @@ export function sendToUser(
       try {
         client.ws.send(message);
       } catch (error) {
-        console.error("Failed to send to user:", error);
+        logger.error({ err: error }, "Failed to send to user");
       }
     }
   });
@@ -141,7 +138,7 @@ export function sendToUserGlobal(
   try {
     message = JSON.stringify({ event, data, timestamp: ts });
   } catch (error) {
-    console.error("Failed to serialize message:", error);
+    logger.error({ err: error }, "Failed to serialize message");
     return 0;
   }
 
@@ -152,7 +149,7 @@ export function sendToUserGlobal(
         client.ws.send(message);
         sent += 1;
       } catch (error) {
-        console.error("Failed to send to user (global):", error);
+        logger.error({ err: error }, "Failed to send to user (global)");
       }
     }
   });
@@ -166,13 +163,6 @@ export function sendToUserGlobal(
     });
   }
 
-  if (sent === 0 && !isValkeyConfigured()) {
-    console.warn(
-      `[${event}] no connected client for userId:`,
-      userId,
-      "(invitee may be offline or on another page)",
-    );
-  }
   return sent;
 }
 
@@ -189,7 +179,7 @@ export function broadcastToRoom(
   try {
     message = JSON.stringify({ event, data, timestamp: ts });
   } catch (error) {
-    console.error("Failed to serialize message:", error);
+    logger.error({ err: error }, "Failed to serialize message");
     return;
   }
 
@@ -199,7 +189,7 @@ export function broadcastToRoom(
         try {
           client.ws.send(message);
         } catch (error) {
-          console.error("Failed to send to client:", error);
+          logger.error({ err: error }, "Failed to send to client");
         }
       }
     });
@@ -215,21 +205,16 @@ export function broadcastToRoom(
   }
 }
 
-// ── Transaction dedup (Valkey-backed with local fallback) ────────
+// ── Transaction dedup (Valkey-only) ──────────────────────────────
 
 export async function isTransactionDuplicate(
   transactionId: string,
 ): Promise<{ duplicate: boolean; timestamp?: number }> {
-  if (isValkeyConfigured()) {
-    const exists = await valkeyExists(`txn:${transactionId}`);
-    if (exists) {
-      const val = await valkeyGet(`txn:${transactionId}`);
-      return { duplicate: true, timestamp: val ? Number(val) : undefined };
-    }
-    return { duplicate: false };
-  }
-  if (processedTransactions.has(transactionId)) {
-    return { duplicate: true, timestamp: processedTransactions.get(transactionId) };
+  if (!isValkeyConfigured()) return { duplicate: false };
+  const exists = await valkeyExists(`txn:${transactionId}`);
+  if (exists) {
+    const val = await valkeyGet(`txn:${transactionId}`);
+    return { duplicate: true, timestamp: val ? Number(val) : undefined };
   }
   return { duplicate: false };
 }
@@ -238,34 +223,25 @@ export async function markTransactionProcessed(
   transactionId: string,
   timestamp: number,
 ): Promise<void> {
-  if (isValkeyConfigured()) {
-    await valkeySet(`txn:${transactionId}`, String(timestamp), 300_000);
-    return;
-  }
-  processedTransactions.set(transactionId, timestamp);
-  const fiveMinutesAgo = timestamp - 5 * 60 * 1000;
-  for (const [id, ts] of processedTransactions) {
-    if (ts < fiveMinutesAgo) processedTransactions.delete(id);
-  }
+  if (!isValkeyConfigured()) return;
+  await valkeySet(`txn:${transactionId}`, String(timestamp), 300_000);
 }
 
-// ── Cohost layout (Valkey-backed with local fallback) ────────────
+// ── Cohost layout (Valkey-only) ──────────────────────────────────
 
 export async function getCohostLayout(
   roomId: string,
 ): Promise<{ coHosts: unknown[]; hostUserId: string } | null> {
-  if (isValkeyConfigured()) {
-    const val = await valkeyGet(`cohost:${roomId}`);
-    if (val) {
-      try {
-        return JSON.parse(val);
-      } catch {
-        return null;
-      }
+  if (!isValkeyConfigured()) return null;
+  const val = await valkeyGet(`cohost:${roomId}`);
+  if (val) {
+    try {
+      return JSON.parse(val);
+    } catch {
+      return null;
     }
-    return null;
   }
-  return lastCohostLayoutByRoom.get(roomId) ?? null;
+  return null;
 }
 
 export async function setCohostLayout(
@@ -273,28 +249,24 @@ export async function setCohostLayout(
   coHosts: unknown[],
   hostUserId: string,
 ): Promise<void> {
-  if (isValkeyConfigured()) {
-    await valkeySet(
-      `cohost:${roomId}`,
-      JSON.stringify({ coHosts, hostUserId }),
-      3_600_000,
-    );
-  }
-  lastCohostLayoutByRoom.set(roomId, { coHosts, hostUserId });
+  if (!isValkeyConfigured()) return;
+  await valkeySet(
+    `cohost:${roomId}`,
+    JSON.stringify({ coHosts, hostUserId }),
+    3_600_000,
+  );
 }
 
 export async function deleteCohostLayout(roomId: string): Promise<void> {
-  if (isValkeyConfigured()) {
-    await valkeyDel(`cohost:${roomId}`);
-  }
-  lastCohostLayoutByRoom.delete(roomId);
+  if (!isValkeyConfigured()) return;
+  await valkeyDel(`cohost:${roomId}`);
 }
 
 // ── Valkey pub/sub for cross-instance WS broadcasting ────────────
 
 export function initWsPubSub(): void {
   if (!isValkeyConfigured()) {
-    console.log("Valkey not configured – skipping WS pub/sub init");
+    logger.warn("Valkey not configured – skipping WS pub/sub init");
     return;
   }
 
@@ -348,12 +320,19 @@ export function initWsPubSub(): void {
     });
   });
 
-  console.log(`WS pub/sub initialized (instance: ${INSTANCE_ID})`);
+  logger.info({ instanceId: INSTANCE_ID }, "WS pub/sub initialized");
 }
 
+// ── Viewer count from Valkey SCARD ───────────────────────────────
+
 async function updateViewerCount(roomId: string): Promise<void> {
-  const room = rooms.get(roomId);
-  const count = room ? room.size : 0;
+  let count: number;
+  if (isValkeyConfigured()) {
+    count = await valkeyScard(`room:members:${roomId}`);
+  } else {
+    const room = rooms.get(roomId);
+    count = room ? room.size : 0;
+  }
   broadcastToRoom(roomId, "viewer_count", { count });
   dbUpdateViewerCount(roomId, count).catch(() => {});
 }
@@ -362,8 +341,9 @@ async function checkAndBroadcastStreamEnd(
   roomId: string,
   userId: string,
 ): Promise<void> {
-  if (!isStreamHost(roomId, userId)) return;
-  removeActiveStream(roomId, userId);
+  const isHost = await isStreamHost(roomId, userId);
+  if (!isHost) return;
+  await removeActiveStream(roomId, userId);
   await deleteCohostLayout(roomId);
   broadcastToRoom(roomId, "stream_ended", {
     stream_key: roomId,
@@ -373,11 +353,65 @@ async function checkAndBroadcastStreamEnd(
   broadcastToFeedSubscribers("stream_ended", { stream_key: roomId });
 }
 
+// ── Build viewer list from Valkey + DB for new joiners ───────────
+
+async function buildViewerList(
+  roomId: string,
+): Promise<{ user_id: string; username: string; display_name: string; avatar_url: string; level: number; country: string }[]> {
+  if (isValkeyConfigured()) {
+    const memberIds = await valkeySmembers(`room:members:${roomId}`);
+    if (memberIds.length === 0) return [];
+
+    const db = getPool();
+    if (db) {
+      try {
+        const res = await db.query(
+          `SELECT user_id, username, display_name, avatar_url, level FROM profiles WHERE user_id = ANY($1::text[])`,
+          [memberIds],
+        );
+        return (res.rows || []).map((r: any) => ({
+          user_id: String(r.user_id),
+          username: String(r.username || ""),
+          display_name: String(r.display_name || ""),
+          avatar_url: String(r.avatar_url || ""),
+          level: Number(r.level) || 1,
+          country: "",
+        }));
+      } catch {
+        return memberIds.map((id) => ({
+          user_id: id, username: "", display_name: "", avatar_url: "", level: 1, country: "",
+        }));
+      }
+    }
+    return memberIds.map((id) => ({
+      user_id: id, username: "", display_name: "", avatar_url: "", level: 1, country: "",
+    }));
+  }
+
+  const room = rooms.get(roomId);
+  if (!room) return [];
+  const seenUserIds = new Set<string>();
+  const viewers: { user_id: string; username: string; display_name: string; avatar_url: string; level: number; country: string }[] = [];
+  for (const c of room) {
+    if (seenUserIds.has(c.userId)) continue;
+    seenUserIds.add(c.userId);
+    viewers.push({
+      user_id: c.userId,
+      username: c.username,
+      display_name: c.displayName,
+      avatar_url: c.avatarUrl,
+      level: c.level,
+      country: c.country,
+    });
+  }
+  return viewers;
+}
+
 export function attachWebSocket(server: HttpServer): WebSocketServer {
   const wss = new WebSocketServer({ server });
   const aliveClients = new WeakSet<WebSocket>();
 
-  console.log("WebSocket server attached to HTTP server");
+  logger.info("WebSocket server attached to HTTP server");
 
   wss.on("connection", async (ws: WebSocket, req) => {
     let client: Client | null = null;
@@ -404,7 +438,7 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
         return;
       }
 
-      const userId = decodeUserIdFromToken(token);
+      const userId = verifyAndExtractUserId(token);
       if (!userId) {
         ws.close(1008, "Invalid token");
         return;
@@ -455,32 +489,22 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
       if (!rooms.has(roomId)) rooms.set(roomId, new Set());
       rooms.get(roomId)!.add(client);
 
-      const roomClients = rooms.get(roomId)!;
-      const seenUserIds = new Set<string>();
-      const viewers: {
-        user_id: string;
-        username: string;
-        display_name: string;
-        avatar_url: string;
-        level: number;
-        country: string;
-      }[] = [];
-      for (const c of roomClients) {
-        if (seenUserIds.has(c.userId)) continue;
-        seenUserIds.add(c.userId);
-        viewers.push({
-          user_id: c.userId,
-          username: c.username,
-          display_name: c.displayName,
-          avatar_url: c.avatarUrl,
-          level: c.level,
-          country: c.country,
-        });
+      if (isValkeyConfigured()) {
+        await valkeySadd(`room:members:${roomId}`, userId);
+      }
+
+      const viewers = await buildViewerList(roomId);
+
+      let memberCount: number;
+      if (isValkeyConfigured()) {
+        memberCount = await valkeyScard(`room:members:${roomId}`);
+      } else {
+        memberCount = rooms.get(roomId)!.size;
       }
 
       sendToClient(client, "connected", {
         room_id: roomId,
-        user_count: roomClients.size,
+        user_count: memberCount,
       });
 
       sendToClient(client, "room_state", { viewers });
@@ -509,7 +533,7 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
 
       await updateViewerCount(roomId);
 
-      const activeBattleOnJoin = battles.get(roomId);
+      const activeBattleOnJoin = await getBattleFromStore(roomId);
       if (activeBattleOnJoin && activeBattleOnJoin.status !== "ENDED") {
         if (activeBattleOnJoin.endsAt > 0) {
           activeBattleOnJoin.timeLeft = Math.max(
@@ -538,13 +562,13 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
         });
       }
     } catch (error) {
-      console.error("Connection setup error:", error);
+      logger.error({ err: error }, "Connection setup error");
       ws.close(1011, "Server error");
       return;
     }
 
     ws.on("error", (error) => {
-      console.error("WebSocket error:", error);
+      logger.error({ err: error }, "WebSocket error");
     });
 
     ws.on("message", async (data) => {
@@ -558,41 +582,14 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
         }
         const { event, data: eventData } = parsed;
 
-        if (process.env.NODE_ENV !== "production")
-          console.log("Received message:", event, eventData);
-
-        if (
-          process.env.NODE_ENV !== "production" &&
-          event === "join_room" &&
-          eventData?.skipAuth
-        ) {
-          const { roomId, userId, username } = eventData;
-          client = {
-            ws,
-            userId,
-            roomId,
-            username,
-            displayName: username,
-            avatarUrl: "",
-            level: 1,
-            country: "",
-            connectedAt: new Date(),
-          };
-          clients.set(ws, client);
-          if (!rooms.has(roomId)) rooms.set(roomId, new Set());
-          rooms.get(roomId)!.add(client);
-          sendToClient(client, "room_joined", { roomId, userId, username });
-          return;
-        }
-
         if (!client) {
-          console.error("Message from unauthenticated client");
+          logger.error("Message from unauthenticated client");
           return;
         }
 
         await handleMessage(client, event, eventData);
       } catch (error) {
-        console.error("Failed to handle message:", error);
+        logger.error({ err: error }, "Failed to handle message");
         try {
           if (client) {
             sendToClient(client, "error", {
@@ -619,6 +616,14 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
         if (room) {
           room.delete(client);
 
+          const userStillInRoom = Array.from(room).some(
+            (c) => c.userId === client!.userId,
+          );
+
+          if (!userStillInRoom && isValkeyConfigured()) {
+            await valkeySrem(`room:members:${client.roomId}`, client.userId);
+          }
+
           broadcastToRoom(client.roomId, "user_left", {
             user_id: client.userId,
             username: client.username,
@@ -628,10 +633,12 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
           updateViewerCount(client.roomId).catch(() => {});
           checkAndBroadcastStreamEnd(client.roomId, client.userId);
 
-          if (room.size === 0) rooms.delete(client.roomId);
+          if (room.size === 0) {
+            rooms.delete(client.roomId);
+          }
         }
 
-        const battleRoomId = userBattleRoom.get(client.userId);
+        const battleRoomId = await getUserBattleRoom(client.userId);
         if (battleRoomId) {
           const battle = await getBattleFromStore(battleRoomId);
           if (battle && battle.status !== "ENDED") {
@@ -649,7 +656,7 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
 
         clients.delete(ws);
       } catch (err) {
-        console.error("Error in close handler:", err);
+        logger.error({ err }, "Error in close handler");
       }
     });
   });

@@ -1,14 +1,14 @@
 /**
- * Profile API for Express backend.
- * GET /api/profiles/:userId, PATCH /api/profiles/:userId, POST /api/profiles (seed),
- * GET followers/following, POST follow/unfollow.
- * Persists to PostgreSQL when DATABASE_URL is configured; falls back to in-memory.
+ * Profile API — DB-primary, no in-memory Maps.
+ * Optional Valkey cache for hot profile reads.
+ * Horizontally scalable.
  */
 
 import { Request, Response } from "express";
 import { getTokenFromRequest, verifyAuthToken } from "./auth";
 import { ensureFollowsTable, getPool } from "../lib/postgres";
 import { logger } from "../lib/logger";
+import { isValkeyConfigured, valkeyGet, valkeySet, valkeyDel } from "../lib/valkey";
 
 export interface Profile {
   userId: string;
@@ -27,114 +27,99 @@ export interface Profile {
   updatedAt: string;
 }
 
-const profiles = new Map<string, Profile>();
 let profilesTableReady = false;
 
 type StoredUserRow = { id: string; email?: string; username?: string; avatar_url?: string; display_name?: string };
 
-const followsMap = new Map<string, Set<string>>();
+const PROFILE_CACHE_TTL = 30_000;
 
+/** @deprecated No-op — bulk loading removed for horizontal scaling. */
 export async function loadFollowsFromDb(): Promise<void> {
-  const db = getPool();
-  if (!db) return;
-  try {
-    await ensureFollowsTable();
-    const res = await db.query(`SELECT follower_id, following_id FROM follows`);
-    for (const row of res.rows || []) {
-      const fid = String(row.follower_id);
-      const tid = String(row.following_id);
-      const set = followsMap.get(fid) ?? new Set<string>();
-      set.add(tid);
-      followsMap.set(fid, set);
-    }
-    logger.info({ rows: res.rowCount ?? 0 }, "Follows loaded from Postgres into memory");
-  } catch (err) {
-    logger.error({ err }, "loadFollowsFromDb failed — follow lists may be empty until fixed");
-  }
+  // Intentionally empty — follows are queried per-user from DB.
 }
 
-/** Neon-primary following IDs. Falls back to cache if DB unavailable. */
+/** DB-primary following IDs for a user. */
 export async function getFollowingIdsAsync(userId: string): Promise<string[]> {
   const db = getPool();
-  if (db) {
-    try {
-      await ensureFollowsTable();
-      const res = await db.query(`SELECT following_id FROM follows WHERE follower_id = $1`, [userId]);
-      const ids = (res.rows || []).map((r: any) => String(r.following_id));
-      const set = new Set(ids);
-      followsMap.set(userId, set);
-      return ids;
-    } catch (err) {
-      logger.error({ err, userId }, "getFollowingIdsAsync DB read failed, using cache");
-    }
+  if (!db) return [];
+  try {
+    await ensureFollowsTable();
+    const res = await db.query(`SELECT following_id FROM follows WHERE follower_id = $1`, [userId]);
+    return (res.rows || []).map((r: any) => String(r.following_id));
+  } catch (err) {
+    logger.error({ err, userId }, "getFollowingIdsAsync DB read failed");
+    return [];
   }
-  return [...(followsMap.get(userId) ?? [])];
 }
 
-/** Sync version for backward compat — uses cache only. */
-export function getFollowingIds(userId: string): string[] {
-  return [...(followsMap.get(userId) ?? [])];
+/** @deprecated Use getFollowingIdsAsync. Returns empty for horizontal scaling safety. */
+export function getFollowingIds(_userId: string): string[] {
+  return [];
 }
 
-/** Neon-primary follower IDs. Falls back to cache if DB unavailable. */
+/** DB-primary follower IDs for a user. */
 export async function getFollowerIdsAsync(userId: string): Promise<string[]> {
   const db = getPool();
-  if (db) {
-    try {
-      await ensureFollowsTable();
-      const res = await db.query(`SELECT follower_id FROM follows WHERE following_id = $1`, [userId]);
-      return (res.rows || []).map((r: any) => String(r.follower_id));
-    } catch (err) {
-      logger.error({ err, userId }, "getFollowerIdsAsync DB read failed, using cache");
-    }
+  if (!db) return [];
+  try {
+    await ensureFollowsTable();
+    const res = await db.query(`SELECT follower_id FROM follows WHERE following_id = $1`, [userId]);
+    return (res.rows || []).map((r: any) => String(r.follower_id));
+  } catch (err) {
+    logger.error({ err, userId }, "getFollowerIdsAsync DB read failed");
+    return [];
   }
-  const ids: string[] = [];
-  for (const [followerId, followingSet] of followsMap) {
-    if (followingSet.has(userId)) ids.push(followerId);
-  }
-  return ids;
 }
 
-/** Sync version for backward compat — uses cache only. */
-export function getFollowerIds(userId: string): string[] {
-  const ids: string[] = [];
-  for (const [followerId, followingSet] of followsMap) {
-    if (followingSet.has(userId)) ids.push(followerId);
-  }
-  return ids;
+/** @deprecated Use getFollowerIdsAsync. Returns empty for horizontal scaling safety. */
+export function getFollowerIds(_userId: string): string[] {
+  return [];
 }
 
-/** Neon-primary mutual follow IDs. */
+/** DB-primary mutual follow IDs. */
 export async function getMutualFollowIdsAsync(userId: string): Promise<string[]> {
   const db = getPool();
-  if (db) {
-    try {
-      await ensureFollowsTable();
-      const res = await db.query(
-        `SELECT f1.following_id
-         FROM follows f1
-         INNER JOIN follows f2 ON f2.follower_id = f1.following_id AND f2.following_id = f1.follower_id
-         WHERE f1.follower_id = $1 AND f1.following_id <> $1`,
-        [userId],
-      );
-      return (res.rows || []).map((r: any) => String(r.following_id));
-    } catch (err) {
-      logger.error({ err, userId }, "getMutualFollowIdsAsync DB read failed, using cache");
-    }
+  if (!db) return [];
+  try {
+    await ensureFollowsTable();
+    const res = await db.query(
+      `SELECT f1.following_id
+       FROM follows f1
+       INNER JOIN follows f2 ON f2.follower_id = f1.following_id AND f2.following_id = f1.follower_id
+       WHERE f1.follower_id = $1 AND f1.following_id <> $1`,
+      [userId],
+    );
+    return (res.rows || []).map((r: any) => String(r.following_id));
+  } catch (err) {
+    logger.error({ err, userId }, "getMutualFollowIdsAsync DB read failed");
+    return [];
   }
-  return getMutualFollowIds(userId);
 }
 
-/** Sync version for backward compat — uses cache only. */
-export function getMutualFollowIds(userId: string): string[] {
-  const following = getFollowingIds(userId);
-  if (following.length === 0) return [];
-  const followers = new Set(getFollowerIds(userId));
-  return following.filter((id) => id && id !== userId && followers.has(id));
+/** @deprecated Use getMutualFollowIdsAsync. */
+export function getMutualFollowIds(_userId: string): string[] {
+  return [];
 }
 
-export function isFollowing(followerId: string, targetId: string): boolean {
-  return followsMap.get(followerId)?.has(targetId) ?? false;
+/** DB-primary isFollowing check. */
+export async function isFollowingAsync(followerId: string, targetId: string): Promise<boolean> {
+  const db = getPool();
+  if (!db) return false;
+  try {
+    await ensureFollowsTable();
+    const res = await db.query(
+      `SELECT 1 FROM follows WHERE follower_id = $1 AND following_id = $2 LIMIT 1`,
+      [followerId, targetId],
+    );
+    return (res.rows?.length ?? 0) > 0;
+  } catch {
+    return false;
+  }
+}
+
+/** @deprecated Use isFollowingAsync. */
+export function isFollowing(_followerId: string, _targetId: string): boolean {
+  return false;
 }
 
 // ── PostgreSQL profile persistence ──────────────────────────────────────────
@@ -164,7 +149,7 @@ async function ensureProfilesTable(): Promise<void> {
     `);
     profilesTableReady = true;
   } catch {
-    // Table creation failed; continue with in-memory only
+    // Table creation failed
   }
 }
 
@@ -200,10 +185,12 @@ async function saveProfileToDb(p: Profile): Promise<boolean> {
       p.createdAt, p.updatedAt,
     ],
   );
+  if (isValkeyConfigured()) {
+    await valkeyDel(`profile:${p.userId}`);
+  }
   return true;
 }
 
-/** Keep auth_users in sync so login/session and legacy reads see the same avatar as profiles. */
 async function updateAuthUserAvatarUrl(userId: string, avatarUrl: string): Promise<void> {
   const db = getPool();
   if (!db) return;
@@ -242,6 +229,22 @@ async function loadProfileFromDb(userId: string): Promise<Profile | null> {
   } catch {
     return null;
   }
+}
+
+async function getCachedProfile(userId: string): Promise<Profile | null> {
+  if (!isValkeyConfigured()) return null;
+  try {
+    const raw = await valkeyGet(`profile:${userId}`);
+    if (raw) return JSON.parse(raw) as Profile;
+  } catch { /* ignore */ }
+  return null;
+}
+
+async function setCachedProfile(profile: Profile): Promise<void> {
+  if (!isValkeyConfigured()) return;
+  try {
+    await valkeySet(`profile:${profile.userId}`, JSON.stringify(profile), PROFILE_CACHE_TTL);
+  } catch { /* ignore */ }
 }
 
 async function lookupAuthUser(userId: string): Promise<StoredUserRow | null> {
@@ -286,8 +289,6 @@ async function readUsersFromDb(): Promise<StoredUserRow[]> {
   }
 }
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
-
 function isFallbackName(name: string): boolean {
   if (!name) return true;
   if (/^User [0-9a-f]{8}$/i.test(name)) return true;
@@ -295,31 +296,36 @@ function isFallbackName(name: string): boolean {
   return false;
 }
 
-// ── Core profile getter (sync, in-memory only) ─────────────────────────────
+/** DB-primary profile getter. Creates profile in DB if not found. */
+export async function getOrCreateProfile(userId: string, seed?: Partial<Profile>): Promise<Profile> {
+  const cached = await getCachedProfile(userId);
+  if (cached) {
+    if (seed) {
+      let changed = false;
+      if (seed.username && isFallbackName(cached.username)) { cached.username = seed.username; changed = true; }
+      if (seed.displayName && isFallbackName(cached.displayName)) { cached.displayName = seed.displayName; changed = true; }
+      if (seed.avatarUrl && cached.avatarUrl.includes("ui-avatars")) { cached.avatarUrl = seed.avatarUrl; changed = true; }
+      if (changed) {
+        cached.updatedAt = new Date().toISOString();
+        saveProfileToDb(cached).catch(() => {});
+      }
+    }
+    return cached;
+  }
 
-export function getOrCreateProfile(userId: string, seed?: Partial<Profile>): Profile {
-  const existing = profiles.get(userId);
+  const existing = await loadProfileFromDb(userId);
   if (existing) {
     if (seed) {
       let changed = false;
-      if (seed.username && isFallbackName(existing.username)) {
-        existing.username = seed.username;
-        changed = true;
-      }
-      if (seed.displayName && isFallbackName(existing.displayName)) {
-        existing.displayName = seed.displayName;
-        changed = true;
-      }
-      if (seed.avatarUrl && existing.avatarUrl.includes("ui-avatars")) {
-        existing.avatarUrl = seed.avatarUrl;
-        changed = true;
-      }
+      if (seed.username && isFallbackName(existing.username)) { existing.username = seed.username; changed = true; }
+      if (seed.displayName && isFallbackName(existing.displayName)) { existing.displayName = seed.displayName; changed = true; }
+      if (seed.avatarUrl && existing.avatarUrl.includes("ui-avatars")) { existing.avatarUrl = seed.avatarUrl; changed = true; }
       if (changed) {
         existing.updatedAt = new Date().toISOString();
-        profiles.set(userId, existing);
         saveProfileToDb(existing).catch(() => {});
       }
     }
+    await setCachedProfile(existing);
     return existing;
   }
 
@@ -342,27 +348,18 @@ export function getOrCreateProfile(userId: string, seed?: Partial<Profile>): Pro
     createdAt: seed?.createdAt ?? now,
     updatedAt: now,
   };
-  profiles.set(userId, profile);
   saveProfileToDb(profile).catch(() => {});
+  await setCachedProfile(profile);
   return profile;
 }
 
-/** Async variant that reads from Neon first, falls back to in-memory cache. */
+/** @deprecated Use getOrCreateProfile (now async). */
 export async function getOrCreateProfileFromDb(userId: string, seed?: Partial<Profile>): Promise<Profile> {
-  const dbProfile = await loadProfileFromDb(userId);
-  if (dbProfile) {
-    profiles.set(userId, dbProfile);
-    return dbProfile;
-  }
   return getOrCreateProfile(userId, seed);
 }
 
-/**
- * Async profile getter: tries in-memory -> DB profiles table -> auth_users table -> fallback.
- * Always checks if the displayName is a fallback and fixes it from auth_users.
- */
 async function getOrCreateProfileAsync(userId: string, seed?: Partial<Profile>): Promise<Profile> {
-  let profile = profiles.get(userId) ?? await loadProfileFromDb(userId) ?? null;
+  let profile = await getCachedProfile(userId) ?? await loadProfileFromDb(userId) ?? null;
 
   const needsNameFix = !profile || isFallbackName(profile.displayName) || isFallbackName(profile.username);
 
@@ -384,20 +381,19 @@ async function getOrCreateProfileAsync(userId: string, seed?: Partial<Profile>):
         (rawUsername && !isFallbackName(rawUsername) ? rawUsername : "") ||
         emailPrefix ||
         realUsername;
-      const realAvatar =
-        (authUser.avatar_url?.trim()) || "";
+      const realAvatar = (authUser.avatar_url?.trim()) || "";
 
       if (profile) {
         if (realUsername && isFallbackName(profile.username)) profile.username = realUsername;
         if (realDisplayName && isFallbackName(profile.displayName)) profile.displayName = realDisplayName;
         if (realAvatar && profile.avatarUrl.includes("ui-avatars")) profile.avatarUrl = realAvatar;
         profile.updatedAt = new Date().toISOString();
-        profiles.set(userId, profile);
         saveProfileToDb(profile).catch(() => {});
+        await setCachedProfile(profile);
         return profile;
       }
 
-      profile = getOrCreateProfile(userId, {
+      profile = await getOrCreateProfile(userId, {
         username: realUsername || undefined,
         displayName: realDisplayName || undefined,
         avatarUrl: realAvatar || undefined,
@@ -408,7 +404,7 @@ async function getOrCreateProfileAsync(userId: string, seed?: Partial<Profile>):
   }
 
   if (profile) {
-    profiles.set(userId, profile);
+    await setCachedProfile(profile);
     return profile;
   }
 
@@ -437,17 +433,16 @@ export async function handleGetProfile(req: Request, res: Response): Promise<voi
       followersCount = Number(fersRes.rows[0]?.c ?? 0);
       followingCount = Number(fingRes.rows[0]?.c ?? 0);
     } catch {
-      // DB unavailable — fall through to in-memory
+      // DB unavailable
     }
   }
 
-  const resolvedFollowers = followersCount ?? getFollowerIds(userId).length;
-  const resolvedFollowing = followingCount ?? getFollowingIds(userId).length;
+  const resolvedFollowers = followersCount ?? 0;
+  const resolvedFollowing = followingCount ?? 0;
   if (profile.followers !== resolvedFollowers || profile.following !== resolvedFollowing) {
     profile.followers = resolvedFollowers;
     profile.following = resolvedFollowing;
     profile.updatedAt = new Date().toISOString();
-    profiles.set(userId, profile);
     saveProfileToDb(profile).catch(() => {});
   }
   res.json({ profile });
@@ -455,107 +450,72 @@ export async function handleGetProfile(req: Request, res: Response): Promise<voi
 
 /** GET /api/profiles — list all known users/profiles */
 export async function handleListProfiles(_req: Request, res: Response): Promise<void> {
-  const merged = new Map<string, Profile>();
+  const merged = new Map<string, any>();
 
-  // Try Neon first for profiles
   const db = getPool();
   if (db) {
     try {
       await ensureProfilesTable();
-      const dbRes = await db.query(`SELECT * FROM profiles`);
+      const dbRes = await db.query(`SELECT * FROM profiles LIMIT 500`);
       for (const r of dbRes.rows || []) {
-        const p: Profile = {
-          userId: String(r.user_id),
+        merged.set(String(r.user_id), {
+          user_id: String(r.user_id),
           username: String(r.username || ""),
-          displayName: String(r.display_name || ""),
-          avatarUrl: String(r.avatar_url || ""),
-          bio: String(r.bio || ""),
-          website: String(r.website || ""),
-          followers: Number(r.followers) || 0,
-          following: Number(r.following) || 0,
-          videoCount: Number(r.video_count) || 0,
-          coins: Number(r.coins) || 0,
+          display_name: String(r.display_name || ""),
+          avatar_url: String(r.avatar_url || ""),
           level: Number(r.level) || 1,
-          isVerified: Boolean(r.is_verified),
-          createdAt: String(r.created_at || ""),
-          updatedAt: String(r.updated_at || ""),
-        };
-        profiles.set(p.userId, p);
-        merged.set(p.userId, p);
+          is_creator: Boolean(r.is_verified),
+          followers_count: Number(r.followers) || 0,
+          following_count: Number(r.following) || 0,
+        });
       }
     } catch {
-      // DB unavailable — fall through to in-memory
+      // DB unavailable
     }
   }
 
-  // Fill in from in-memory cache (covers profiles not yet in DB)
-  for (const p of profiles.values()) {
-    if (!merged.has(p.userId)) merged.set(p.userId, p);
+  if (db) {
+    const users = await readUsersFromDb();
+    for (const u of users) {
+      if (!u?.id || merged.has(u.id)) continue;
+      const username =
+        (typeof u.username === "string" && u.username.trim()) ||
+        (typeof u.display_name === "string" && u.display_name.trim()) ||
+        (typeof u.email === "string" && u.email.includes("@") ? u.email.split("@")[0] : "") ||
+        `user_${u.id.slice(0, 8)}`;
+      const displayName =
+        (typeof u.display_name === "string" && u.display_name.trim()) ||
+        username;
+      const avatarUrl =
+        (typeof u.avatar_url === "string" && u.avatar_url.trim()) ||
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(String(username))}&background=random`;
+      merged.set(u.id, {
+        user_id: u.id,
+        username: String(username),
+        display_name: String(displayName),
+        avatar_url: String(avatarUrl),
+        level: 1,
+        is_creator: false,
+        followers_count: 0,
+        following_count: 0,
+      });
+    }
   }
 
-  const users = await readUsersFromDb();
-  for (const u of users) {
-    if (!u?.id) continue;
-    const username =
-      (typeof u.username === "string" && u.username.trim()) ||
-      (typeof u.display_name === "string" && u.display_name.trim()) ||
-      (typeof u.email === "string" && u.email.includes("@") ? u.email.split("@")[0] : "") ||
-      `user_${u.id.slice(0, 8)}`;
-    const displayName =
-      (typeof u.display_name === "string" && u.display_name.trim()) ||
-      username;
-    const avatarUrl =
-      (typeof u.avatar_url === "string" && u.avatar_url.trim()) ||
-      `https://ui-avatars.com/api/?name=${encodeURIComponent(String(username))}&background=random`;
-    const p = getOrCreateProfile(u.id, { username: String(username), displayName: String(displayName), avatarUrl: String(avatarUrl) });
-    merged.set(p.userId, p);
-  }
-
-  const list = Array.from(merged.values()).map((p) => ({
-    user_id: p.userId,
-    username: p.username,
-    display_name: p.displayName,
-    avatar_url: p.avatarUrl,
-    level: p.level,
-    is_creator: p.isVerified,
-    followers_count: p.followers,
-    following_count: p.following,
-  }));
-  res.json({ profiles: list });
+  res.json({ profiles: Array.from(merged.values()) });
 }
 
-/** GET /api/profiles/:userId/followers — ids from follows graph; profiles from Neon when available */
+/** GET /api/profiles/:userId/followers */
 export async function handleGetFollowers(req: Request, res: Response): Promise<void> {
   const userId = req.params.userId;
   const profile = await getOrCreateProfileAsync(userId);
 
-  let followerIds: string[] = [];
-  const db = getPool();
-
-  // Try Neon first for follower IDs
-  if (db) {
-    try {
-      await ensureFollowsTable();
-      const fRes = await db.query(
-        `SELECT follower_id FROM follows WHERE following_id = $1`,
-        [userId],
-      );
-      followerIds = (fRes.rows || []).map((r: any) => String(r.follower_id));
-    } catch {
-      followerIds = [];
-    }
-  }
-
-  // Fallback to in-memory if DB returned nothing or unavailable
-  if (followerIds.length === 0) {
-    for (const [fid, set] of followsMap) {
-      if (set.has(userId)) followerIds.push(fid);
-    }
-  }
+  const followerIds = await getFollowerIdsAsync(userId);
 
   type Row = { user_id: string; username: string; display_name: string | null; avatar_url: string | null };
   let follower_profiles: Row[] = [];
 
+  const db = getPool();
   if (db && followerIds.length > 0) {
     try {
       await ensureProfilesTable();
@@ -579,7 +539,6 @@ export async function handleGetFollowers(req: Request, res: Response): Promise<v
       });
     } catch (err) {
       logger.error({ err, userId }, "handleGetFollowers: profile query failed");
-      follower_profiles = [];
     }
   }
 
@@ -606,27 +565,7 @@ export async function handleGetFollowing(req: Request, res: Response): Promise<v
   const userId = req.params.userId;
   const profile = await getOrCreateProfileAsync(userId);
 
-  let followingIds: string[] = [];
-  const db = getPool();
-
-  // Try Neon first
-  if (db) {
-    try {
-      await ensureFollowsTable();
-      const fRes = await db.query(
-        `SELECT following_id FROM follows WHERE follower_id = $1`,
-        [userId],
-      );
-      followingIds = (fRes.rows || []).map((r: any) => String(r.following_id));
-    } catch {
-      followingIds = [];
-    }
-  }
-
-  // Fallback to in-memory
-  if (followingIds.length === 0) {
-    followingIds = getFollowingIds(userId);
-  }
+  const followingIds = await getFollowingIdsAsync(userId);
 
   res.json({ count: Math.max(followingIds.length, profile.following), following: followingIds });
 }
@@ -656,7 +595,6 @@ export async function handlePatchProfile(req: Request, res: Response): Promise<v
     }
   }
   profile.updatedAt = new Date().toISOString();
-  profiles.set(userId, profile);
 
   try {
     const persisted = await saveProfileToDb(profile);
@@ -696,13 +634,6 @@ export async function handleFollow(req: Request, res: Response): Promise<void> {
     return;
   }
 
-  const myFollows = followsMap.get(jwtUser.sub) ?? new Set<string>();
-  if (myFollows.has(userId)) {
-    const p = await getOrCreateProfileAsync(userId);
-    res.json({ success: true, already: true, followers: p.followers });
-    return;
-  }
-
   const db = getPool();
   if (db) {
     try {
@@ -711,8 +642,6 @@ export async function handleFollow(req: Request, res: Response): Promise<void> {
     } catch (err: unknown) {
       const code = (err as { code?: string })?.code;
       if (code === "23505") {
-        myFollows.add(userId);
-        followsMap.set(jwtUser.sub, myFollows);
         void import("./feed")
           .then((m) => {
             m.invalidateFeedCache(jwtUser.sub);
@@ -729,15 +658,10 @@ export async function handleFollow(req: Request, res: Response): Promise<void> {
     }
   }
 
-  myFollows.add(userId);
-  followsMap.set(jwtUser.sub, myFollows);
-
   const target = await getOrCreateProfileAsync(userId);
   const follower = await getOrCreateProfileAsync(jwtUser.sub);
   target.followers = Math.max(0, target.followers + 1);
   follower.following = Math.max(0, follower.following + 1);
-  profiles.set(userId, target);
-  profiles.set(jwtUser.sub, follower);
   saveProfileToDb(target).catch(() => {});
   saveProfileToDb(follower).catch(() => {});
   void import("./feed")
@@ -760,32 +684,28 @@ export async function handleUnfollow(req: Request, res: Response): Promise<void>
     return;
   }
 
-  // Write to Neon first, then update cache
   const db = getPool();
+  let deleted = false;
   if (db) {
     try {
       await ensureFollowsTable();
-      await db.query(`DELETE FROM follows WHERE follower_id = $1 AND following_id = $2`, [jwtUser.sub, userId]);
+      const result = await db.query(`DELETE FROM follows WHERE follower_id = $1 AND following_id = $2`, [jwtUser.sub, userId]);
+      deleted = (result.rowCount ?? 0) > 0;
     } catch (err) {
       logger.error({ err, follower: jwtUser.sub, following: userId }, "Unfollow DELETE failed");
     }
   }
 
-  const myFollows = followsMap.get(jwtUser.sub);
-  if (!myFollows || !myFollows.has(userId)) {
+  if (!deleted) {
     const p = await getOrCreateProfileAsync(userId);
     res.json({ success: true, already: true, followers: p.followers });
     return;
   }
-  myFollows.delete(userId);
-  followsMap.set(jwtUser.sub, myFollows);
 
   const target = await getOrCreateProfileAsync(userId);
   const follower = await getOrCreateProfileAsync(jwtUser.sub);
   target.followers = Math.max(0, target.followers - 1);
   follower.following = Math.max(0, follower.following - 1);
-  profiles.set(userId, target);
-  profiles.set(jwtUser.sub, follower);
   saveProfileToDb(target).catch(() => {});
   saveProfileToDb(follower).catch(() => {});
   void import("./feed")
@@ -827,30 +747,18 @@ export async function handleGetProfileByUsername(req: Request, res: Response): P
         });
         return;
       }
-    } catch { /* fall through to cache */ }
-  }
-
-  for (const profile of profiles.values()) {
-    if (profile.username === username || profile.displayName === username) {
-      res.json({
-        user_id: profile.userId,
-        username: profile.username,
-        display_name: profile.displayName,
-        avatar_url: profile.avatarUrl,
-        bio: profile.bio,
-        level: profile.level,
-        followers_count: profile.followers,
-        following_count: profile.following,
-      });
-      return;
-    }
+    } catch { /* fall through */ }
   }
 
   res.status(404).json({ error: "Profile not found" });
 }
 
-/** POST /api/test-coins — add test coins to current user */
+/** POST /api/test-coins — add test coins to current user (disabled in production) */
 export async function handleAddTestCoins(req: Request, res: Response): Promise<void> {
+  if (process.env.NODE_ENV === "production") {
+    res.status(403).json({ error: "Test coins are disabled in production" });
+    return;
+  }
   const token = getTokenFromRequest(req);
   const jwtUser = token ? verifyAuthToken(token) : null;
   if (!jwtUser) {
@@ -865,13 +773,19 @@ export async function handleAddTestCoins(req: Request, res: Response): Promise<v
   }
   const profile = await getOrCreateProfileAsync(jwtUser.sub);
   profile.coins += numAmount;
-  profiles.set(jwtUser.sub, profile);
   saveProfileToDb(profile).catch(() => {});
   res.json({ success: true, coins: profile.coins });
 }
 
-/** POST /api/profiles — seed/upsert (e.g. after auth); no auth required */
+/** POST /api/profiles — seed/upsert (e.g. after auth); requires auth, userId must match token */
 export async function handleSeedProfile(req: Request, res: Response): Promise<void> {
+  const token = getTokenFromRequest(req);
+  const jwtUser = token ? verifyAuthToken(token) : null;
+  if (!jwtUser) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
   const body = req.body as { userId?: string; username?: string; displayName?: string; email?: string; avatarUrl?: string };
   const { userId, username, displayName, email, avatarUrl } = body ?? {};
 
@@ -880,22 +794,26 @@ export async function handleSeedProfile(req: Request, res: Response): Promise<vo
     return;
   }
 
+  if (userId !== jwtUser.sub) {
+    res.status(403).json({ error: "Cannot seed profile for another user" });
+    return;
+  }
+
   const realUsername = username ?? (email ? email.split("@")[0] : undefined);
   const realDisplayName = displayName || realUsername;
-  const existing = profiles.get(userId) ?? await loadProfileFromDb(userId);
+  const existing = await loadProfileFromDb(userId);
 
   if (existing) {
     if (realUsername) existing.username = realUsername;
     if (realDisplayName) existing.displayName = realDisplayName;
     if (avatarUrl) existing.avatarUrl = avatarUrl;
     existing.updatedAt = new Date().toISOString();
-    profiles.set(userId, existing);
     saveProfileToDb(existing).catch(() => {});
     res.status(201).json({ profile: existing });
     return;
   }
 
-  const profile = getOrCreateProfile(userId, {
+  const profile = await getOrCreateProfile(userId, {
     username: realUsername,
     displayName: realDisplayName,
     avatarUrl,

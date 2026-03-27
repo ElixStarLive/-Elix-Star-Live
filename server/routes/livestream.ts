@@ -1,7 +1,6 @@
 /**
  * Live streaming API: list streams, start/end stream, get LiveKit token.
- * Flow: Creator POST /api/live/start -> get token (canPublish) -> join LiveKit room.
- *       Viewer GET /api/live/token?room=... -> get token (subscribe only) -> join room.
+ * Active stream state stored in Valkey + DB — no in-memory Map.
  */
 
 import { Request, Response } from 'express';
@@ -10,28 +9,76 @@ import { createLiveToken, isLiveKitConfigured, getLiveKitUrl, listActiveRoomsFro
 import { broadcastToFeedSubscribers } from '../feedBroadcast';
 import { dbInsertLiveStream, dbEndLiveStream, dbGetLiveStreams } from '../lib/postgres';
 import { logger } from '../lib/logger';
+import {
+  isValkeyConfigured,
+  valkeyHset,
+  valkeyHget,
+  valkeyHdel,
+  valkeyHgetall,
+  valkeyExpire,
+} from '../lib/valkey';
 
-// In-memory active streams (key = roomName). Replace with DB when using Postgres.
-// Extended payload so viewers can see the creator's display name.
-const activeStreams = new Map<
-  string,
-  { userId: string; startedAt: string; displayName?: string }
->();
+const STREAM_KEY_PREFIX = 'stream:';
+const STREAM_TTL_SECONDS = 86400;
 
-/** Internal helper so other modules (WebSocket server) can mark streams offline. Returns true if removed. */
-export function removeActiveStream(roomId: string, userId?: string): boolean {
-  const s = activeStreams.get(roomId);
-  if (!s) return false;
-  if (userId && s.userId !== userId) return false;
-  activeStreams.delete(roomId);
-  dbEndLiveStream(roomId).catch(() => {});
-  return true;
+async function setActiveStream(
+  roomId: string,
+  userId: string,
+  startedAt: string,
+  displayName?: string,
+): Promise<void> {
+  if (!isValkeyConfigured()) return;
+  const key = STREAM_KEY_PREFIX + roomId;
+  await valkeyHset(key, 'userId', userId);
+  await valkeyHset(key, 'startedAt', startedAt);
+  await valkeyHset(key, 'displayName', displayName ?? '');
+  await valkeyExpire(key, STREAM_TTL_SECONDS);
 }
 
-/** Check if a user is the host of a given stream room. */
-export function isStreamHost(roomId: string, userId: string): boolean {
-  const s = activeStreams.get(roomId);
-  return !!s && s.userId === userId;
+async function getActiveStream(
+  roomId: string,
+): Promise<{ userId: string; startedAt: string; displayName?: string } | null> {
+  if (!isValkeyConfigured()) return null;
+  const data = await valkeyHgetall(STREAM_KEY_PREFIX + roomId);
+  if (!data || !data.userId) return null;
+  return {
+    userId: data.userId,
+    startedAt: data.startedAt || new Date().toISOString(),
+    displayName: data.displayName || undefined,
+  };
+}
+
+async function deleteActiveStream(roomId: string): Promise<void> {
+  if (!isValkeyConfigured()) return;
+  await valkeyHdel(STREAM_KEY_PREFIX + roomId, 'userId', 'startedAt', 'displayName');
+}
+
+async function isStreamActive(roomId: string): Promise<boolean> {
+  if (!isValkeyConfigured()) return false;
+  const uid = await valkeyHget(STREAM_KEY_PREFIX + roomId, 'userId');
+  return !!uid;
+}
+
+/** Check if a user is the host of a given stream room. Reads from Valkey. */
+export async function isStreamHost(roomId: string, userId: string): Promise<boolean> {
+  if (!isValkeyConfigured()) {
+    return false;
+  }
+  const storedUserId = await valkeyHget(STREAM_KEY_PREFIX + roomId, 'userId');
+  return !!storedUserId && storedUserId === userId;
+}
+
+/** Remove active stream from Valkey + DB. Returns true if removed. */
+export async function removeActiveStream(roomId: string, userId?: string): Promise<boolean> {
+  if (isValkeyConfigured()) {
+    if (userId) {
+      const storedUserId = await valkeyHget(STREAM_KEY_PREFIX + roomId, 'userId');
+      if (storedUserId && storedUserId !== userId) return false;
+    }
+    await deleteActiveStream(roomId);
+  }
+  dbEndLiveStream(roomId).catch(() => {});
+  return true;
 }
 
 function requireAuth(req: Request, res: Response): { userId: string } | null {
@@ -48,80 +95,52 @@ function requireAuth(req: Request, res: Response): { userId: string } | null {
   return { userId: payload.sub };
 }
 
-/** GET /api/live/streams — list active streams (from LiveKit when configured, so all instances see the same list) */
+/** GET /api/live/streams — list active streams */
 export async function handleGetStreams(_req: Request, res: Response) {
   if (isLiveKitConfigured()) {
     try {
       const liveRooms = await listActiveRoomsFromLiveKit();
-      const liveRoomNames = new Set(liveRooms.map((r) => r.name));
 
-      const fromLiveKit = liveRooms
-        .filter((r) => r.name)
-        .map((room) => {
-          const mem = activeStreams.get(room.name);
-          return {
-            room_id: room.name,
-            stream_key: room.name,
-            user_id: mem?.userId ?? room.name,
-            started_at: mem?.startedAt ?? new Date().toISOString(),
-            status: 'live' as const,
-            title: mem?.displayName ?? undefined,
-            display_name: mem?.displayName ?? undefined,
-            viewer_count: room.numParticipants,
-          };
-        });
+      const streams = await Promise.all(
+        liveRooms
+          .filter((r) => r.name)
+          .map(async (room) => {
+            const mem = await getActiveStream(room.name);
+            return {
+              room_id: room.name,
+              stream_key: room.name,
+              user_id: mem?.userId ?? room.name,
+              started_at: mem?.startedAt ?? new Date().toISOString(),
+              status: 'live' as const,
+              title: mem?.displayName ?? undefined,
+              display_name: mem?.displayName ?? undefined,
+              viewer_count: room.numParticipants,
+            };
+          }),
+      );
 
-      const fromMemory = Array.from(activeStreams.entries())
-        .filter(([key]) => !liveRoomNames.has(key))
-        .map(([room, data]) => ({
-          room_id: room,
-          stream_key: room,
-          user_id: data.userId,
-          started_at: data.startedAt,
-          status: 'live' as const,
-          title: data.displayName || undefined,
-          display_name: data.displayName || undefined,
-          viewer_count: 0,
-        }));
-
-      return res.status(200).json({ streams: [...fromLiveKit, ...fromMemory] });
+      return res.status(200).json({ streams });
     } catch (err) {
-      logger.warn({ err }, "LiveKit list streams failed, falling back to in-memory");
-      // fall through to in-memory
+      logger.warn({ err }, "LiveKit list streams failed, falling back to DB");
     }
   }
 
-  // In-memory first, then fill from DB for any streams not in memory
-  const memStreams = Array.from(activeStreams.entries()).map(([room, data]) => ({
-    room_id: room,
-    stream_key: room,
-    user_id: data.userId,
-    started_at: data.startedAt,
+  const dbRows = await dbGetLiveStreams();
+  const streams = dbRows.map((row) => ({
+    room_id: row.stream_key,
+    stream_key: row.stream_key,
+    user_id: row.user_id,
+    started_at: row.started_at,
     status: 'live' as const,
-    title: data.displayName || undefined,
-    display_name: data.displayName || undefined,
+    title: row.display_name || undefined,
+    display_name: row.display_name || undefined,
+    viewer_count: row.viewer_count ?? 0,
   }));
 
-  const memKeys = new Set(memStreams.map((s) => s.stream_key));
-  const dbRows = await dbGetLiveStreams();
-  for (const row of dbRows) {
-    if (memKeys.has(row.stream_key)) continue;
-    memStreams.push({
-      room_id: row.stream_key,
-      stream_key: row.stream_key,
-      user_id: row.user_id,
-      started_at: row.started_at,
-      status: 'live',
-      title: row.display_name || undefined,
-      display_name: row.display_name || undefined,
-      viewer_count: row.viewer_count ?? 0,
-    });
-  }
-
-  return res.status(200).json({ streams: memStreams });
+  return res.status(200).json({ streams });
 }
 
-/** POST /api/live/start — creator starts stream; returns LiveKit token with canPublish */
+/** POST /api/live/start — creator starts stream */
 export async function handleLiveStart(req: Request, res: Response) {
   try {
     const auth = requireAuth(req, res);
@@ -143,11 +162,7 @@ export async function handleLiveStart(req: Request, res: Response) {
         : undefined;
 
     const startedAt = new Date().toISOString();
-    activeStreams.set(roomName, {
-      userId: auth.userId,
-      startedAt,
-      displayName: safeDisplayName,
-    });
+    await setActiveStream(roomName, auth.userId, startedAt, safeDisplayName);
     dbInsertLiveStream(roomName, auth.userId, safeDisplayName).catch(() => {});
 
     broadcastToFeedSubscribers('stream_started', {
@@ -187,19 +202,18 @@ export async function handleLiveEnd(req: Request, res: Response) {
 
   const { room } = req.body ?? {};
   const roomName = typeof room === 'string' && room.trim() ? room.trim() : auth.userId;
-  const stream = activeStreams.get(roomName);
 
-  if (!stream || stream.userId !== auth.userId) {
+  const isHost = await isStreamHost(roomName, auth.userId);
+  if (!isHost) {
     return res.status(404).json({ error: 'Stream not found or you are not the host.' });
   }
 
-  activeStreams.delete(roomName);
-  dbEndLiveStream(roomName).catch(() => {});
+  await removeActiveStream(roomName, auth.userId);
   broadcastToFeedSubscribers('stream_ended', { stream_key: roomName });
   return res.status(200).json({ ok: true, room: roomName });
 }
 
-/** GET /api/live/token?room=... — viewer gets token to join room (subscribe only) */
+/** GET /api/live/token?room=... — viewer gets token */
 export async function handleGetLiveToken(req: Request, res: Response) {
   const auth = requireAuth(req, res);
   if (!auth) return;
@@ -218,9 +232,8 @@ export async function handleGetLiveToken(req: Request, res: Response) {
   }
 
   if (!publish) {
-    let streamExists = activeStreams.has(roomName);
+    let streamExists = await isStreamActive(roomName);
     if (!streamExists) {
-      // After server restarts, memory can be empty while stream is still live in DB/LiveKit.
       const dbRows = await dbGetLiveStreams();
       streamExists = dbRows.some((row) => row.stream_key === roomName);
     }
@@ -229,7 +242,7 @@ export async function handleGetLiveToken(req: Request, res: Response) {
         const rooms = await listActiveRoomsFromLiveKit();
         streamExists = rooms.some((r) => r.name === roomName);
       } catch {
-        // Ignore LiveKit list errors and keep current streamExists result.
+        // Ignore LiveKit list errors
       }
     }
     if (!streamExists) {

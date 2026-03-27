@@ -18,9 +18,8 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ error: "url is required" });
     }
 
-    // Look up the real user profile
     const { getOrCreateProfile } = await import("./profiles");
-    const profile = getOrCreateProfile(payload.sub);
+    const profile = await getOrCreateProfile(payload.sub);
 
     const id =
       body.id || `vid_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;

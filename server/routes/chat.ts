@@ -58,7 +58,7 @@ export async function handleListChatThreads(req: Request, res: Response) {
   const enriched = await Promise.all(threads.map(async (t) => {
     const otherId =
       t.user1_id === auth.userId ? t.user2_id : t.user1_id;
-    const p = getOrCreateProfile(otherId);
+    const p = await getOrCreateProfile(otherId);
     return {
       id: t.id,
       user1_id: t.user1_id,
@@ -89,7 +89,7 @@ export async function handleGetChatThread(req: Request, res: Response) {
   if (!t) return res.status(404).json({ error: "Not found" });
   const otherId =
     t.user1_id === auth.userId ? t.user2_id : t.user1_id;
-  const p = getOrCreateProfile(otherId);
+  const p = await getOrCreateProfile(otherId);
   return res.status(200).json({
     thread: t,
     otherUser: {

@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response, NextFunction, RequestHandler } from "express";
 import { logger } from "../lib/logger";
 
 export interface ApiError {
@@ -53,4 +53,12 @@ export class AppError extends Error {
     this.code = code;
     this.name = "AppError";
   }
+}
+
+export function asyncHandler(
+  fn: (req: Request, res: Response, next: NextFunction) => Promise<any>,
+): RequestHandler {
+  return (req, res, next) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
 }

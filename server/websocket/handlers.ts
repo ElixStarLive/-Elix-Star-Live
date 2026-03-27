@@ -1,7 +1,6 @@
 import { Client, broadcastToRoom, sendToClient, sendToUserGlobal } from "./index";
 import {
-  battles,
-  userBattleRoom,
+  getUserBattleRoom,
   createBattle,
   joinBattle,
   startBattleTimer,
@@ -22,6 +21,7 @@ import {
   setCohostLayout,
   deleteCohostLayout,
 } from "./index";
+import { valkeyDel } from "../lib/valkey";
 
 export async function handleMessage(
   client: Client,
@@ -110,16 +110,16 @@ export async function handleMessage(
       case "battle_create": {
         const existing = await getBattleFromStore(client.roomId);
         if (existing) {
-          if (existing.timer) clearInterval(existing.timer);
-          userBattleRoom.delete(existing.hostUserId);
-          userBattleRoom.delete(existing.opponentUserId);
-          battles.delete(client.roomId);
+          await valkeyDel("battle:" + client.roomId);
+          await valkeyDel("ubr:" + existing.hostUserId);
+          if (existing.opponentUserId) await valkeyDel("ubr:" + existing.opponentUserId);
         }
         const session = await createBattle(
           client.roomId,
           client.userId,
           data.hostName || client.displayName,
         );
+        if (!session) break;
         const opponentUserId =
           typeof data.opponentUserId === "string" ? data.opponentUserId : "";
         const opponentName =
@@ -130,8 +130,6 @@ export async function handleMessage(
           session.opponentUserId = opponentUserId;
           session.opponentName = opponentName;
           session.opponentRoomId = opponentRoomId;
-          if (opponentUserId)
-            userBattleRoom.set(opponentUserId, client.roomId);
           await startBattleTimer(client.roomId);
         } else {
           sendToClient(client, "battle_created", {
@@ -158,7 +156,7 @@ export async function handleMessage(
       }
 
       case "battle_gift_score": {
-        const bRoom = userBattleRoom.get(client.userId) || client.roomId;
+        const bRoom = (await getUserBattleRoom(client.userId)) || client.roomId;
         const target = normalizeBattleTarget(data.target);
         if (!target) break;
         const giftId = data.giftId;
@@ -199,6 +197,10 @@ export async function handleMessage(
               0,
               Math.round((currentBattle.endsAt - Date.now()) / 1000),
             );
+          }
+          if (currentBattle.status === "ACTIVE" && currentBattle.timeLeft <= 0) {
+            await endBattle(client.roomId);
+            break;
           }
           sendToClient(client, "battle_state_sync", {
             id: currentBattle.id,
@@ -257,7 +259,7 @@ export async function handleMessage(
 
       case "stream_end": {
         await deleteCohostLayout(client.roomId);
-        removeActiveStream(client.roomId, client.userId);
+        await removeActiveStream(client.roomId, client.userId);
         broadcastToRoom(client.roomId, "stream_ended", {
           stream_key: client.roomId,
           host_user_id: client.userId,

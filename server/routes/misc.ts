@@ -8,6 +8,7 @@ import {
 } from '../lib/walletNeon';
 import { getPool } from '../lib/postgres';
 import { valkeyRateCheck, isValkeyConfigured } from '../lib/valkey';
+import { logger } from '../lib/logger';
 
 // Rate limiting helper — Valkey-first with local Map fallback
 const rateLimits = new Map<string, { count: number; timestamp: number }>();
@@ -160,6 +161,95 @@ export async function handleReport(req: Request, res: Response) {
   return res.status(200).json({ success: true });
 }
 
+// --- Google Play purchase verification via androidpublisher API ---
+async function verifyGooglePlayPurchase(
+  packageName: string,
+  productId: string,
+  purchaseToken: string,
+): Promise<{ valid: boolean; productId?: string; detail?: string }> {
+  const serviceAccountJson = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+
+  if (!serviceAccountJson) {
+    if (process.env.NODE_ENV !== 'production') {
+      logger.warn('[IAP] Google service account not configured — skipping verification (dev only)');
+      return { valid: true, productId, detail: 'google-keys-not-configured-dev' };
+    }
+    logger.error('[IAP] Google service account not configured — rejecting purchase');
+    return { valid: false, detail: 'google-service-account-not-configured' };
+  }
+
+  try {
+    const crypto = await import('crypto');
+    let sa: { client_email: string; private_key: string };
+    try {
+      sa = JSON.parse(serviceAccountJson);
+    } catch {
+      return { valid: false, detail: 'invalid-service-account-json' };
+    }
+    if (!sa.client_email || !sa.private_key) {
+      return { valid: false, detail: 'service-account-missing-fields' };
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    const header = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString('base64url');
+    const payload = Buffer.from(JSON.stringify({
+      iss: sa.client_email,
+      scope: 'https://www.googleapis.com/auth/androidpublisher',
+      aud: 'https://oauth2.googleapis.com/token',
+      iat: now,
+      exp: now + 3600,
+    })).toString('base64url');
+
+    const sign = crypto.createSign('RSA-SHA256');
+    sign.update(`${header}.${payload}`);
+    const signature = sign.sign(sa.private_key.replace(/\\n/g, '\n'), 'base64url');
+    const jwt = `${header}.${payload}.${signature}`;
+
+    const tokenResp = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${jwt}`,
+    });
+
+    if (!tokenResp.ok) {
+      const text = await tokenResp.text();
+      return { valid: false, detail: `google-token-error-${tokenResp.status}: ${text}` };
+    }
+
+    const tokenJson: any = await tokenResp.json();
+    const accessToken = tokenJson.access_token;
+    if (!accessToken) {
+      return { valid: false, detail: 'google-no-access-token' };
+    }
+
+    const verifyUrl = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${encodeURIComponent(packageName)}/purchases/products/${encodeURIComponent(productId)}/tokens/${encodeURIComponent(purchaseToken)}`;
+
+    const verifyResp = await fetch(verifyUrl, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    if (!verifyResp.ok) {
+      const text = await verifyResp.text();
+      return { valid: false, detail: `google-verify-${verifyResp.status}: ${text}` };
+    }
+
+    const purchase: any = await verifyResp.json();
+    // purchaseState: 0 = purchased, 1 = canceled, 2 = pending
+    if (purchase.purchaseState !== 0) {
+      return { valid: false, detail: `google-purchase-state-${purchase.purchaseState}` };
+    }
+
+    return {
+      valid: true,
+      productId: productId,
+      detail: JSON.stringify({ orderId: purchase.orderId, purchaseState: purchase.purchaseState }),
+    };
+  } catch (err: any) {
+    logger.error({ err: err.message }, '[IAP] Google Play verification error');
+    return { valid: false, detail: err.message };
+  }
+}
+
 // --- Apple receipt verification via App Store Server API ---
 async function verifyAppleReceipt(
   transactionId: string,
@@ -241,9 +331,9 @@ async function verifyAppleReceipt(
       };
     }
 
-    return { valid: true, detail: 'jws-decode-skipped' };
+    return { valid: false, detail: 'apple-jws-missing-or-malformed' };
   } catch (err: any) {
-    console.error('[IAP] Apple verification error:', err);
+    logger.error({ err: err.message }, '[IAP] Apple verification error');
     return { valid: false, detail: err.message };
   }
 }
@@ -281,15 +371,14 @@ export async function handleVerifyPurchase(req: Request, res: Response) {
       isValid = apple.valid;
       verificationResponse = { provider: 'apple', verified: apple.valid, productId: apple.productId, detail: apple.detail };
     } else {
-      const allowUnverifiedGoogle =
-        process.env.NODE_ENV !== 'production' &&
-        process.env.GOOGLE_IAP_ALLOW_UNVERIFIED === 'true';
-      isValid = allowUnverifiedGoogle && typeof receipt === 'string' && receipt.length > 10;
-      verificationResponse = {
-        provider: 'google',
-        verified: isValid,
-        note: isValid ? 'dev-unverified-google-allowed' : 'google-verification-not-configured',
-      };
+      const packageName = process.env.GOOGLE_PLAY_PACKAGE_NAME || 'com.elixstarlive.app';
+      const google = await verifyGooglePlayPurchase(
+        packageName,
+        String(packageId),
+        typeof receipt === 'string' ? receipt : String(transactionId),
+      );
+      isValid = google.valid;
+      verificationResponse = { provider: 'google', verified: google.valid, productId: google.productId, detail: google.detail };
     }
     if (!isValid) return res.status(400).json({ error: 'Invalid receipt' });
 
@@ -365,7 +454,10 @@ export async function handlePromoteIAPComplete(req: Request, res: Response) {
     const apple = await verifyAppleReceipt(String(transactionId));
     valid = apple.valid && apple.productId === String(productId);
   } else {
-    valid = true;
+    const packageName = process.env.GOOGLE_PLAY_PACKAGE_NAME || 'com.elixstarlive.app';
+    const purchaseToken = typeof body.receipt === 'string' ? body.receipt : String(transactionId);
+    const google = await verifyGooglePlayPurchase(packageName, String(productId), purchaseToken);
+    valid = google.valid;
   }
   if (!valid) return res.status(400).json({ error: 'Invalid or unverified transaction' });
 
@@ -405,6 +497,11 @@ export async function handleMembershipIAPComplete(req: Request, res: Response) {
   if (provider === 'apple') {
     const apple = await verifyAppleReceipt(transactionId);
     if (!apple.valid) return res.status(400).json({ error: 'Invalid or unverified transaction' });
+  } else {
+    const packageName = process.env.GOOGLE_PLAY_PACKAGE_NAME || 'com.elixstarlive.app';
+    const purchaseToken = typeof body.receipt === 'string' ? body.receipt : transactionId;
+    const google = await verifyGooglePlayPurchase(packageName, body.productId || 'com.elixstarlive.membership', purchaseToken);
+    if (!google.valid) return res.status(400).json({ error: 'Invalid or unverified transaction' });
   }
 
   await neonInsertMembershipPurchase({

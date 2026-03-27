@@ -385,7 +385,7 @@ export async function handleFriendsFeed(req: Request, res: Response) {
         if (!url) return false;
         return networkSet.has(v.userId) && v.privacy !== "private";
       })
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(0, 80);
 
     const mapped = friendVids.map((v) => formatVideoForClient(v, likedSet, followingSet));
