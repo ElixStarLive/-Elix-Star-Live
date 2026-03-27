@@ -3,6 +3,8 @@
  * Uses VITE_* from build or window.__ENV from /env.js at runtime.
  */
 
+import { Capacitor } from '@capacitor/core';
+
 const env = typeof window !== 'undefined' ? (window as any).__ENV as Record<string, string> | undefined : undefined;
 
 /** On localhost we use same-origin so Vite proxy (or backend on 8080) handles /api */
@@ -13,9 +15,16 @@ function isLocalDev(): boolean {
 }
 
 export function getApiBase(): string {
-  if (isLocalDev()) return "";
   const base = (import.meta.env.VITE_API_URL ?? env?.VITE_API_URL ?? "").toString().trim();
-  return base ? base.replace(/\/$/, "") : "";
+  const normalized = base ? base.replace(/\/$/, "") : "";
+
+  if (isLocalDev()) {
+    // In native WebView, localhost points to the device/emulator, not your backend.
+    if (Capacitor.isNativePlatform() && normalized) return normalized;
+    return "";
+  }
+
+  return normalized;
 }
 
 export function getLiveKitUrl(): string {
