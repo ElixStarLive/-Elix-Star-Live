@@ -1,0 +1,28 @@
+---
+description: LOCK PROJECT STRUCTURE
+globs: ["**/*"]
+alwaysApply: true
+---
+
+This app already has an established structure.
+
+Strictly forbidden unless explicitly requested:
+- do not rename files
+- do not rename folders
+- do not move files
+- do not invent a new architecture
+- do not split files into many new files unless requested
+- do not merge unrelated files
+- do not change folder conventions
+- do not change aliases or path conventions unless required for a real fix
+- do not delete files unless explicitly requested
+
+Preferred behavior:
+- make the smallest possible diff
+- edit existing files in place
+- preserve existing file names
+- preserve current folder layout
+- keep imports stable where possible
+
+Default behavior:
+preserve project structure exactly.

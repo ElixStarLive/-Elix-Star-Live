@@ -1,0 +1,33 @@
+---
+description: Safe backend and infrastructure rules
+globs: ["**/*.{ts,tsx,js,jsx,json,sql,yml,yaml}"]
+alwaysApply: true
+---
+
+This app uses its own backend/infrastructure, not managed backend templates.
+
+Rules:
+- do not expose secrets in client code
+- do not hardcode server credentials
+- do not hardcode Neon credentials
+- do not hardcode Bunny Storage secrets
+- do not hardcode LiveKit secret keys
+- do not move secure server logic into client code
+- do not fake backend success with local-only state
+- do not replace real API/database/live logic with placeholders unless explicitly asked
+- do not weaken auth, permissions, or transaction safety
+
+Infrastructure constraints:
+- preserve current Hetzner deployment assumptions
+- preserve Coolify deployment flow
+- preserve Neon database integrity
+- preserve Bunny Storage media flow
+- preserve LiveKit integration flow
+
+Forbidden:
+- do not replatform to Supabase, Apwrite, Railway, DigitalOcean, Ghost, Netlify, or similar providers
+- do not introduce provider-specific code for unused services
+- do not create fake backend helpers that hide real failures
+
+Default behavior:
+keep business logic and infrastructure aligned with the real production stack.

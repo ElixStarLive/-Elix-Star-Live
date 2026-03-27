@@ -1,0 +1,31 @@
+---
+description: LOCK NAVIGATION AND ROUTES
+globs: ["app/**/*.{ts,tsx}", "src/router/**/*.{ts,tsx}", "**/*layout*.{ts,tsx}", "**/*routes*.{ts,tsx}"]
+alwaysApply: true
+---
+
+This is an existing app with working navigation.
+
+Strictly forbidden unless explicitly requested:
+- do not rename routes
+- do not rename route params
+- do not rename screens
+- do not move screens between folders
+- do not change navigation flow
+- do not change tab order
+- do not change stack order
+- do not change deep links
+- do not change redirects
+- do not replace the router
+- do not change existing path assumptions
+
+Allowed:
+- fix navigation bugs only when necessary
+- improve route typing
+- clean imports
+- make minimal safe fixes that do not change app flow
+
+If a requested change would alter navigation behavior, stop and say what would change.
+
+Default behavior:
+preserve all navigation exactly.

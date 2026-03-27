@@ -1,0 +1,15 @@
+---
+description: Only do what the user explicitly asks; never change layout/UI without instruction
+alwaysApply: true
+---
+
+# Follow user instructions only — layout & UI
+
+- **Only implement what the user explicitly requests** in their message. No extra scope, no “while I’m here” edits, no drive-by refactors.
+- **Do not** copy, match, or “parity” another screen (e.g. creator vs spectator) unless the user **explicitly** says to do that. Do not remove or add labels, icons, buttons, or copy unless **explicitly** asked.
+- **Do not** change layout, spacing, positioning, sizing, colors, typography, components’ visual structure, Tailwind classes for appearance, or any UI/UX unless the user **explicitly** requests it.
+- **Do** fix **bugs** (broken logic, crashes, API errors, TypeScript errors) without altering how things look unless the fix inherently requires a minimal UI touch—then keep the visual change as small as possible and match existing styles.
+- If a task could be solved by changing behavior only (no visual change), prefer that.
+- When the user asks for a feature that *does* need UI, implement only what they described—do not “improve” or redesign surrounding screens.
+
+This is a **hard preference** for this project: the user decides how the app looks and behaves; preserve it unless they instruct otherwise.

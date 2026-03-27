@@ -1,0 +1,30 @@
+---
+description: Connect all buttons safely without changing UI
+globs: ["**/*.{ts,tsx,js,jsx}"]
+alwaysApply: true
+---
+
+For all buttons, pressables, touchables, clickable cards, action icons, menu items, tabs, and interactive UI controls:
+
+Rules:
+- ensure every visible interactive element has a valid action
+- if a button is intended to navigate, connect it to the correct existing route
+- if a button has a missing handler, implement the smallest safe handler
+- if a button is intentionally disabled by existing logic, preserve that logic
+- do not change button appearance
+- do not change button size, placement, label, icon, or styling
+- do not replace the component type unless necessary for functionality
+- do not add fake placeholder actions that mislead the user
+
+If an interaction target clearly implies a missing route:
+- create the missing route using the current project conventions
+- keep the screen minimal and visually neutral unless the user asked for full implementation
+- preserve existing flow assumptions
+
+If the intended action is unclear:
+- prefer the safest behavior
+- use existing navigation and naming patterns from the repository
+- do not invent unrelated features
+
+Default behavior:
+all visible interactive elements should work without changing UI.

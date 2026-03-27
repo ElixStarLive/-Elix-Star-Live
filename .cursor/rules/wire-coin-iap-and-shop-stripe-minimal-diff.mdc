@@ -1,0 +1,7 @@
+---
+description: Wire coin buttons to IAP only, shop checkout to Stripe only — minimal diff, no UI/layout change
+globs: ["**/*"]
+alwaysApply: true
+---
+
+Wire existing coin purchase buttons to Android/iOS in-app purchases only, and wire shop checkout buttons to Stripe only where the UI already clearly represents a shop flow. No UI changes. No layout changes. Minimal diff only.

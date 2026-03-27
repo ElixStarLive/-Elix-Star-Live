@@ -1,0 +1,26 @@
+---
+description: Protect LiveKit flow and live features
+globs: ["**/*.{ts,tsx,js,jsx,json}"]
+alwaysApply: true
+---
+
+For live streaming, room, participant, media, and realtime features:
+
+Rules:
+- preserve existing LiveKit integration flow
+- do not replace LiveKit with generic WebRTC architecture unless explicitly requested
+- do not expose LiveKit server secrets in client code
+- do not fake room join success without real connection logic
+- do not change live UX flow unless explicitly requested
+- do not alter overlay timing, participant state handling, or room lifecycle unless fixing a real bug
+- do not create placeholder token logic that pretends to be production-ready
+
+Allowed:
+- improve error handling
+- improve cleanup and disconnection handling
+- improve typing
+- improve performance
+- fix bugs with minimal diff
+
+Default behavior:
+keep LiveKit flow stable and production-safe.

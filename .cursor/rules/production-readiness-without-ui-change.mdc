@@ -1,0 +1,39 @@
+---
+description: Production readiness without any UI or layout change
+globs: ["**/*.{ts,tsx,js,jsx,json}"]
+alwaysApply: true
+---
+
+This app must be prepared for production release on Android and App Store without changing its visual design.
+
+Non-negotiable rules:
+- do not change UI
+- do not change layout
+- do not change spacing
+- do not change styling
+- do not change visible component hierarchy
+- do not redesign screens
+- do not move visible elements
+- do not change icons, text styles, colors, borders, shadows, or sizing
+- do not alter animation feel unless fixing a broken bug
+- do not change navigation appearance
+
+Primary goal:
+make the app production-ready by fixing functionality, wiring, reliability, and missing connections while preserving the exact visual result.
+
+Allowed:
+- connect buttons
+- wire event handlers
+- fix broken navigation
+- create missing routes if clearly required by existing button or flow
+- fix crashes
+- fix undefined handlers
+- fix broken imports
+- fix typing
+- improve error handling
+- improve loading and empty states only if already visually represented
+- improve production safety
+- improve code quality with minimal diff
+
+Default behavior:
+production-readiness work must not change the visual result.

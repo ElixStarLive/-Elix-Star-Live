@@ -1,0 +1,63 @@
+/* ═══ ROSE GOLD METALLIC ICONS ═══ */
+svg[stroke="currentColor"][fill="none"] {
+  filter: drop-shadow(0 0 3px rgba(212,160,23,0.5)) drop-shadow(0 0 6px rgba(201,169,110,0.25));
+}
+
+svg[stroke="currentColor"][fill="none"] > line,
+svg[stroke="currentColor"][fill="none"] > path,
+svg[stroke="currentColor"][fill="none"] > circle,
+svg[stroke="currentColor"][fill="none"] > rect,
+svg[stroke="currentColor"][fill="none"] > polyline,
+svg[stroke="currentColor"][fill="none"] > polygon,
+svg[stroke="currentColor"][fill="none"] > ellipse {
+  stroke: url(#rg) !important;
+}
+
+/* UI POLISH IMPROVEMENTS - Clean & Consistent */
+
+/* Consistent button sizes across the app */
+.btn-consistent {
+  @apply w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90;
+}
+
+.btn-small {
+  @apply w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90;
+}
+
+.btn-large {
+  @apply w-14 h-14 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90;
+}
+
+/* Consistent spacing */
+.spacing-xs { @apply space-y-1; }
+.spacing-sm { @apply space-y-2; }
+.spacing-md { @apply space-y-3; }
+.spacing-lg { @apply space-y-4; }
+.spacing-xl { @apply space-y-6; }
+
+/* Consistent padding */
+.padding-xs { @apply p-1; }
+.padding-sm { @apply p-2; }
+.padding-md { @apply p-3; }
+.padding-lg { @apply p-4; }
+.padding-xl { @apply p-6; }
+
+/* Clean bottom sheets */
+.bottom-sheet {
+  @apply bg-[#13151A]/95 rounded-t-2xl max-h-[70dvh] overflow-y-auto no-scrollbar shadow-2xl;
+}
+
+.bottom-sheet-small {
+  @apply bg-[#13151A]/95 rounded-t-2xl max-h-[40dvh] overflow-y-auto no-scrollbar shadow-2xl;
+}
+
+/* Remove visual clutter */
+.clean-border {
+  @apply border border-white/10;
+}
+
+.clean-shadow {
+  @apply shadow-lg shadow-black/20;
+}
+
+/* Note: Text sizes and rounded corners use Tailwind defaults */

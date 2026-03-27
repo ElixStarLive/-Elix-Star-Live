@@ -1,0 +1,30 @@
+---
+description: Keep mobile IAP and Stripe shop flows strictly separate
+globs: ["**/*.{ts,tsx,js,jsx,json}"]
+alwaysApply: true
+---
+
+This project has separate payment responsibilities.
+
+Payment separation:
+- mobile in-app coin purchases -> platform IAP only
+- shop or web checkout -> Stripe only
+
+Strictly forbidden:
+- do not mix IAP and Stripe in the same purchase flow
+- do not send in-app coin purchase buttons to Stripe
+- do not send shop/web checkout through mobile IAP
+- do not reuse one payment handler for both systems unless the separation is explicit and safe
+- do not create confusing fallbacks from IAP to Stripe inside the app
+- do not fake successful purchases across systems
+
+Implementation rules:
+- preserve existing UI
+- wire each visible payment button to the correct payment backend
+- keep product identifiers and checkout identifiers separate
+- keep success, failure, and cancel states separate
+- keep entitlement/coin-credit logic grounded in the real payment source
+- do not duplicate credits from both systems
+
+Default behavior:
+IAP and Stripe must remain separate and clearly scoped.

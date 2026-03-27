@@ -1,0 +1,37 @@
+---
+description: No UI change during production fixes
+globs: ["**/*.{ts,tsx,js,jsx}"]
+alwaysApply: true
+---
+
+For production fixes, release fixes, QA fixes, button wiring, route creation, and navigation fixes:
+
+Strictly forbidden:
+- changing UI
+- changing layout
+- changing spacing
+- changing styling
+- changing structure of rendered visible content
+- replacing components for aesthetic reasons
+- changing copy/text unless required to fix a bug
+- changing iconography
+- changing visual hierarchy
+
+Allowed:
+- local code fixes
+- navigation fixes
+- event handler fixes
+- route creation
+- crash fixes
+- import fixes
+- guard clauses
+- defensive programming
+- async reliability fixes
+
+If a fix would require a visible UI change:
+- stop first
+- explain why
+- do not proceed without explicit permission
+
+Default behavior:
+all production fixes must be invisible to the user visually.

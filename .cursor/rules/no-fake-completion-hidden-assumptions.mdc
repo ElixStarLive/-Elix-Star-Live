@@ -1,0 +1,22 @@
+---
+description: No fake completion or hidden assumptions
+globs: ["**/*.{ts,tsx,js,jsx,json,sql,yml,yaml}"]
+alwaysApply: true
+---
+
+Be honest about what is known from the code and what is not.
+
+Rules:
+- do not pretend a fix is complete if it is only partial
+- do not invent missing files, APIs, routes, database tables, env vars, or props
+- do not assume a library is installed unless confirmed
+- do not claim something is safe if it was not verified from the local code
+- do not silently stub critical logic in production features
+
+If context is missing:
+- say what is missing
+- still make the safest useful change possible
+- do not overreach beyond the visible code
+
+Default behavior:
+ground every change in the existing repository.

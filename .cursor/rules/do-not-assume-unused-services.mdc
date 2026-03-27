@@ -1,0 +1,13 @@
+---
+description: Do not assume unused services
+globs: ["**/*.{ts,tsx,js,jsx,json,sql,md,mdc,yml,yaml}"]
+alwaysApply: true
+---
+
+Before suggesting architecture, integrations, env vars, storage, streaming, or refactors:
+- check the existing repository context first
+- do not assume Supabase, Apwrite, Railway, DigitalOcean, Ghost, Netlify, Firebase, or other services are used
+- do not mention unused services as defaults
+- do not recommend migrations unless explicitly requested
+
+If a service is not already present in the code or explicitly requested by the user, do not introduce it.

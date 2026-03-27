@@ -1,0 +1,46 @@
+---
+description: Production checks for Android and App Store readiness
+globs: ["**/*.{ts,tsx,js,jsx,json,yml,yaml,xml,plist,gradle}"]
+alwaysApply: true
+---
+
+Prepare the app for production quality on Android and App Store from a code perspective.
+
+Focus areas:
+- broken buttons
+- broken navigation
+- missing routes
+- crashes
+- undefined values
+- missing imports
+- invalid event handlers
+- production error handling
+- loading reliability
+- empty-state reliability
+- defensive checks for null/undefined
+- safe async handling
+- stable media and realtime flow
+- stable auth/session flow if present
+- stable API call handling if present
+
+Allowed:
+- add guards
+- add try/catch
+- add minimal fallback logic
+- add missing route files
+- connect existing actions
+- fix production-breaking issues
+- improve code stability
+
+Strictly forbidden:
+- do not restyle the app
+- do not redesign screens
+- do not alter UI hierarchy
+- do not change layout
+- do not change branding
+- do not modernize visuals
+- do not swap infrastructure providers
+- do not touch protected production infrastructure unless explicitly requested
+
+Default behavior:
+prioritize release stability and functional completeness without UI changes.

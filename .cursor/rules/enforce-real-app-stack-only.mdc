@@ -1,0 +1,48 @@
+---
+description: Enforce the real app stack only
+globs: ["**/*.{ts,tsx,js,jsx,json,sql,yml,yaml,md,mdc}"]
+alwaysApply: true
+---
+
+This project must follow the actual app stack only.
+
+Approved infrastructure and services:
+- Hetzner
+- Coolify
+- Bunny Storage
+- LiveKit
+- Neon
+
+Use only technologies already present in the repository and required by the current feature.
+
+Strictly forbidden unless explicitly requested:
+- do not introduce Supabase
+- do not introduce Apwrite
+- do not introduce DigitalOcean
+- do not introduce Ghost
+- do not introduce Netlify
+- do not introduce Railway
+- do not introduce Firebase
+- do not introduce Vercel-specific architecture unless already present
+- do not introduce WebRTC directly unless required by LiveKit integration
+- do not migrate backend, storage, database, deployment, or live systems to another provider
+- do not suggest replacing current infrastructure with unrelated alternatives
+- do not generate code that assumes forbidden services are installed
+
+Backend and infra rules:
+- preserve existing Hetzner deployment assumptions
+- preserve Coolify deployment flow
+- preserve Bunny Storage usage for media/assets if already present
+- preserve LiveKit flow for live/video features
+- preserve Neon database usage and existing query patterns
+- do not invent third-party serverless platform flows for unused services
+
+Code generation rules:
+- prefer the existing project structure
+- prefer existing libraries already installed
+- do not add new dependencies unless clearly necessary
+- do not rewrite working code to match another stack
+- do not fabricate env vars for services that are not used
+
+Default behavior:
+follow the real stack only and do not introduce unused platforms.

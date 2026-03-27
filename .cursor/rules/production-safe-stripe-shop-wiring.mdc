@@ -1,0 +1,27 @@
+---
+description: Production-safe Stripe shop wiring
+globs: ["**/*.{ts,tsx,js,jsx,json}"]
+alwaysApply: true
+---
+
+For shop or web checkout flows using Stripe:
+
+Rules:
+- connect shop buttons to the correct Stripe checkout flow only where clearly intended
+- preserve current UI and layout
+- do not route in-app coin buttons to Stripe
+- do not expose secret Stripe keys in client code
+- use publishable key patterns only on the client if Stripe is already present
+- keep checkout session creation on the server side
+- preserve current backend and deployment assumptions
+- do not replace Stripe with another provider unless explicitly requested
+
+Allowed:
+- fix broken shop checkout buttons
+- add missing safe handlers for shop flows
+- improve error handling
+- improve redirect/return handling
+- improve async safety without visible redesign
+
+Default behavior:
+Stripe shop flow should be stable, production-safe, and separate from in-app coins.

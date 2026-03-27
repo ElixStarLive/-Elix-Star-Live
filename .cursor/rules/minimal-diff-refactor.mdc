@@ -1,0 +1,30 @@
+---
+description: MINIMAL DIFF SAFE REFACTOR ONLY
+globs: ["**/*.{ts,tsx,js,jsx}"]
+alwaysApply: true
+---
+
+When asked to clean, refactor, optimize, or fix code:
+
+You must use a minimal-diff strategy.
+
+Rules:
+- do not rewrite whole files if a small edit is enough
+- do not reformat unrelated parts of the file
+- do not reorder JSX unless necessary
+- do not restyle components
+- do not replace patterns just because another style is preferred
+- do not make improvements outside the request
+- do not touch working UI code if the task is logic cleanup
+- preserve comments unless they are clearly wrong
+- preserve existing prop names unless explicitly asked to rename
+
+Required workflow:
+1. identify the smallest safe change
+2. change only what is necessary
+3. preserve rendered output exactly
+4. preserve behavior unless fixing a bug
+5. explain risky areas before changing them
+
+Default behavior:
+smallest safe change only.

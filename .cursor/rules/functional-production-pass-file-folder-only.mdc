@@ -1,0 +1,7 @@
+---
+description: Functional production pass on a single file or folder only — no UI change
+globs: ["**/*"]
+alwaysApply: true
+---
+
+Do a functional production pass on this file/folder only. Connect missing actions, fix broken handlers, fix route issues, and add minimal safe logic where the intended behavior is already implied by the existing UI. No UI or layout changes.

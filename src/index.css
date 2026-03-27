@@ -1,0 +1,704 @@
+/* 🔒 LOCKED FILE: DO NOT MODIFY Z-INDEX VALUES */
+@import './styles/ui-polish.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Hide all scrollbars globally */
+*::-webkit-scrollbar {
+  display: none;
+}
+* {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* New followers panel: show scrollbar */
+.new-followers-panel-scroll {
+  -ms-overflow-style: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(201, 169, 110, 0.6) rgba(255, 255, 255, 0.08);
+}
+.new-followers-panel-scroll::-webkit-scrollbar {
+  display: block;
+  width: 6px;
+}
+.new-followers-panel-scroll::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+}
+.new-followers-panel-scroll::-webkit-scrollbar-thumb {
+  background: rgba(201, 169, 110, 0.6);
+  border-radius: 3px;
+}
+.new-followers-panel-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(201, 169, 110, 0.8);
+}
+
+@layer base {
+  :root {
+    --color-primary: #6B46C1;
+    --color-secondary: #C9A96E;
+    --color-rose: #F4C2C2;
+    --color-background: #0B0B0F;
+    --color-surface: #1F1F1F;
+    --color-text: #FAF9F6;
+    --color-text-muted: #A1A1AA;
+    --radius-sm: 10px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+
+    /* ═══ RESPONSIVE SPACING TOKENS ═══ */
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-left: env(safe-area-inset-left, 0px);
+    --safe-right: env(safe-area-inset-right, 0px);
+
+    /* Fluid spacing: scales with viewport */
+    --space-xs: clamp(2px, 0.5vw, 4px);
+    --space-sm: clamp(4px, 1vw, 8px);
+    --space-md: clamp(8px, 2vw, 16px);
+    --space-lg: clamp(12px, 3vw, 24px);
+    --space-xl: clamp(16px, 4vw, 32px);
+
+    /* Bottom nav zone (matches bar art + tap area; 5mm less than prior 110px) */
+    --nav-height: calc(110px - 3mm - 2mm);
+    /* Extra air above the nav so controls/text never kiss the bar */
+    --nav-tolerance: clamp(10px, 2.8vw, 18px);
+    /* Single token: use for main padding, fixed columns, and bottom-anchored UI */
+    --bottom-ui-reserve: calc(var(--nav-height) + var(--safe-bottom) + var(--nav-tolerance));
+    /* Top bar height (responsive) */
+    --topbar-height: clamp(40px, 10vw, 56px);
+    /* For You golden top bar — flush under notch/status (TopNav.tsx top: var(--topnav-anchor-top)) */
+    --topnav-anchor-top: var(--safe-top);
+    /* Approximate height of topbar.png after scaleY(0.80); tune if art changes */
+    --topnav-bar-height: clamp(44px, 12vw, 58px);
+    /* For You: no extra band under golden top bar (slide pad = bar bottom only) */
+    --topnav-video-gap: 0px;
+    /* Non–For You pages: offset below where the golden bar would sit */
+    --topbar-total: calc(
+      var(--topnav-anchor-top) + var(--topnav-bar-height) + var(--topnav-video-gap)
+    );
+    /* STEM / non–For You full-screen slides — moderate trim under header */
+    --feed-slide-pad-top: max(
+      var(--safe-top),
+      calc(
+        var(--topnav-anchor-top) +
+          var(--topnav-bar-height) +
+          var(--topnav-video-gap) -
+          12px -
+          22mm
+      )
+    );
+    /* For You only (VideoFeed): inner trim + subtract 10mm from result so lift applies even when max() was stuck on safe-top */
+    --feed-slide-pad-top-for-you: max(
+      0px,
+      calc(
+        max(
+          var(--safe-top),
+          var(--topnav-anchor-top) +
+            var(--topnav-bar-height) +
+            var(--topnav-video-gap) -
+            12px -
+            84mm
+        ) - 10mm
+      )
+    );
+    /* Guaranteed extra lift (VideoFeed inner player wrapper) — works even when padding is stuck on safe-area */
+    --feed-video-lift-for-you: 8mm;
+    /* For You main: a bit tighter above bottom nav (still clears tap targets) */
+    --feed-main-pb: max(0px, calc(var(--bottom-ui-reserve) - 9mm));
+    /* Bottom sheets */
+    --sheet-collapsed: 30vh;
+    --sheet-half: 50vh;
+    --sheet-full: min(90vh, calc(100dvh - var(--safe-top)));
+
+    /* Z-index layer hierarchy */
+    --z-keyboard: 50;
+    --z-gift-overlay: 100;
+    --z-gift-animations: 150;
+    --z-bottom-nav: 9998;
+    --z-modals: 1000;
+  }
+
+  body {
+    @apply bg-background text-text font-sans antialiased overflow-hidden;
+    min-height: 100%;
+    min-height: 100dvh;
+    padding-top: var(--safe-top);
+    padding-bottom: var(--safe-bottom);
+    padding-left: var(--safe-left);
+    padding-right: var(--safe-right);
+  }
+
+  /* Global responsive fixes for all phones */
+  * {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    -moz-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    width: 100%;
+    min-height: 100%;
+    min-height: 100dvh;
+    overflow: hidden;
+    /* Fluid base font: scales with viewport (320px → 414px+) */
+    font-size: clamp(13px, calc(12px + 0.5vw), 17px);
+  }
+
+  #root {
+    width: 100%;
+    min-width: 100%;
+    min-height: 100%;
+    min-height: 100dvh;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Prevent horizontal scroll on all devices */
+  body,
+  html {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  /* Ensure all full-screen pages fit the visible viewport on any device */
+  .min-h-screen {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  /* Fill visible viewport height (handles mobile browser chrome, notches, etc.) */
+  .h-viewport {
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  /* Reset input visibility */
+  input, textarea, select, button {
+    font-size: 16px;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+  }
+
+  /* Ensure buttons and interactive elements stay in front of videos */
+  button, .button, [role="button"] {
+    position: relative;
+    z-index: var(--z-modals);
+  }
+
+  /* Video containers should be behind interactive elements */
+  video, .video-container {
+    z-index: 1;
+  }
+
+  /* Interactive overlays should be on top */
+  .interactive-overlay {
+    position: relative;
+    z-index: var(--z-modals);
+  }
+
+  /* Images: default contained scaling. Videos: max-width only — height/fit come from layout + utilities (full-bleed players). */
+  img {
+    max-width: 100%;
+    height: auto;
+    object-fit: contain;
+  }
+  video {
+    max-width: 100%;
+  }
+
+  /* Prevent text overflow */
+  p, span, div, h1, h2, h3, h4, h5, h6 {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+}
+
+/* ═══ RESPONSIVE LAYOUT UTILITIES ═══ */
+@layer utilities {
+  /* Page container: full height minus safe areas */
+  .page-container {
+    min-height: 100dvh;
+    padding-top: var(--safe-top);
+    padding-bottom: var(--bottom-ui-reserve);
+    padding-left: var(--safe-left);
+    padding-right: var(--safe-right);
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  /* Fullscreen page (no bottom nav padding) */
+  .page-fullscreen {
+    height: 100dvh;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  /* Safe area padding helpers */
+  .pt-safe { padding-top: var(--safe-top); }
+  /* Friends / Following / pages without golden TopNav — only notch + tiny air, not For You bar offset */
+  .pt-app-header-safe {
+    padding-top: max(0.5rem, var(--safe-top));
+  }
+  .pb-safe { padding-bottom: var(--safe-bottom); }
+  .pl-safe { padding-left: var(--safe-left); }
+  .pr-safe { padding-right: var(--safe-right); }
+  .pt-topbar { padding-top: var(--topbar-total); }
+  .pb-nav { padding-bottom: var(--bottom-ui-reserve); }
+  .pb-nav-feed { padding-bottom: var(--feed-main-pb); }
+  .pb-nav-friends { padding-bottom: max(0px, calc(var(--bottom-ui-reserve) - 8mm)); }
+
+  /* Fixed / full-viewport columns above bottom nav; +3mm eats dead band between content and gold bar */
+  .h-above-bottom-nav {
+    height: calc(100dvh - var(--bottom-ui-reserve) + 3mm);
+    max-height: calc(100dvh - var(--bottom-ui-reserve) + 3mm);
+  }
+  .h-above-bottom-nav-friends {
+    height: calc(100dvh - var(--bottom-ui-reserve) + 11mm);
+    max-height: calc(100dvh - var(--bottom-ui-reserve) + 11mm);
+  }
+
+  /* Responsive text that scales with viewport */
+  .text-fluid-xs { font-size: clamp(0.625rem, 2.5vw, 0.75rem); }
+  .text-fluid-sm { font-size: clamp(0.75rem, 3vw, 0.875rem); }
+  .text-fluid-base { font-size: clamp(0.875rem, 3.5vw, 1rem); }
+  .text-fluid-lg { font-size: clamp(1rem, 4vw, 1.25rem); }
+  .text-fluid-xl { font-size: clamp(1.25rem, 5vw, 1.5rem); }
+  .text-fluid-2xl { font-size: clamp(1.5rem, 6vw, 2rem); }
+
+  /* Bottom sheet heights */
+  .sheet-collapsed { max-height: var(--sheet-collapsed); }
+  .sheet-half { max-height: var(--sheet-half); }
+  .sheet-full { max-height: var(--sheet-full); }
+
+  /* Z-index utilities */
+  .z-gift-animations { z-index: var(--z-gift-animations); }
+  .z-gift-overlay { z-index: var(--z-gift-overlay); }
+  .z-bottom-nav { z-index: var(--z-bottom-nav); }
+  .z-modals { z-index: var(--z-modals); }
+  .z-keyboard { z-index: var(--z-keyboard); }
+
+  /* Full-bleed <video> inside a sized parent (Explore feed, live tiles, etc.) */
+  .video-media-fill {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+  }
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Text Shadows for Chat readability */
+.text-shadow-sm {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+.text-shadow-md {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
+}
+.text-shadow-lg {
+  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.9);
+}
+
+/* Custom Animations */
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 8s linear infinite;
+}
+
+/* Ticker Animation */
+.ticker-wrap {
+    overflow: hidden;
+    white-space: nowrap;
+    width: 150px; 
+}
+.ticker {
+    display: inline-block;
+}
+
+@keyframes elix-marquee {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes elix-marquee-instant {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.elix-marquee {
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.elix-marquee__inner {
+  display: inline-block;
+  padding-left: 100%;
+  animation: elix-marquee 9s linear infinite;
+}
+
+.elix-marquee__inner--instant {
+  display: inline-block;
+  padding-left: 0;
+  white-space: nowrap;
+  /* Animation will be set inline */
+}
+
+/* Chat Mask */
+.mask-image-gradient {
+  mask-image: linear-gradient(to bottom, transparent, black 10%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, black 10%);
+}
+
+/* Hide all scrollbars globally for chat areas */
+.chat-scroll::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+.chat-scroll {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ========== LUXURY PREMIUM ANIMATIONS ========== */
+
+/* Gift panel slide up */
+@keyframes giftSlideUp {
+  from { transform: translateY(100%); opacity: 0.5; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Membership bar slide down/up */
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideUp {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-10px); }
+}
+
+/* Floating Heart Animation - Clean flying hearts */
+@keyframes elix-heart-float {
+  0% {
+    transform: translate(-50%, -50%) translateY(0) translateX(0) rotate(0deg) scale(0.6);
+    opacity: 1;
+  }
+  30% {
+    transform: translate(-50%, -50%) translateY(-120px) translateX(calc(var(--elix-heart-dx, 0px) * 0.5)) rotate(calc(var(--elix-heart-rot, 0deg) * 0.5)) scale(1);
+    opacity: 1;
+  }
+  60% {
+    transform: translate(-50%, -50%) translateY(-280px) translateX(var(--elix-heart-dx, 0px)) rotate(var(--elix-heart-rot, 0deg)) scale(0.8);
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate(-50%, -50%) translateY(-450px) translateX(calc(var(--elix-heart-dx, 0px) * 1.5)) rotate(calc(var(--elix-heart-rot, 0deg) * 1.5)) scale(0.3);
+    opacity: 0;
+  }
+}
+
+.elix-heart-float {
+  animation: elix-heart-float 0.5s ease-out forwards;
+  pointer-events: none;
+}
+
+/* Premium Glow Pulse */
+@keyframes premium-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 8px rgba(201, 169, 110, 0.6)) drop-shadow(0 0 16px rgba(201, 169, 110, 0.4));
+  }
+  50% {
+    filter: drop-shadow(0 0 16px rgba(201, 169, 110, 0.8)) drop-shadow(0 0 24px rgba(201, 169, 110, 0.6));
+  }
+}
+
+.animate-premium-glow {
+  animation: premium-glow 2s ease-in-out infinite;
+}
+
+/* Shimmer Effect */
+@keyframes shimmer {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent 0%, rgba(201, 169, 110, 0.3) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+/* Luxury Scale Pulse */
+@keyframes luxury-pulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  50% {
+    transform: scale(1.05);
+    filter: brightness(1.2);
+  }
+}
+
+.animate-luxury-pulse {
+  animation: luxury-pulse 2s ease-in-out infinite;
+}
+
+/* Cyan Gradient */
+.bg-luxury-gradient {
+  background: linear-gradient(145deg, #E0FFFF 0%, #C9A96E 25%, #00c2be 50%, #C9A96E 75%, #E0FFFF 100%);
+  background-size: 200% 200%;
+  animation: gradient-shift 4s ease infinite;
+}
+
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Glowing Border */
+@keyframes glow-border {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(201, 169, 110, 0.5), 0 0 20px rgba(201, 169, 110, 0.3), inset 0 0 10px rgba(201, 169, 110, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(201, 169, 110, 0.8), 0 0 40px rgba(201, 169, 110, 0.5), inset 0 0 20px rgba(201, 169, 110, 0.2);
+  }
+}
+
+.animate-glow-border {
+  animation: glow-border 3s ease-in-out infinite;
+}
+
+/* Luxury Fade In */
+@keyframes luxury-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-luxury-fade-in {
+  animation: luxury-fade-in 0.6s ease-out;
+}
+
+/* Floating Animation */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+
+/* Diamond Sparkle */
+@keyframes diamond-sparkle {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0.8) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2) rotate(180deg);
+  }
+}
+
+.animate-diamond-sparkle {
+  animation: diamond-sparkle 2s ease-in-out infinite;
+}
+
+/* New Animations for MVP Features */
+
+/* Slide in from right */
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out;
+}
+
+@keyframes slideInFromBottom {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+/* Fade in and out */
+@keyframes fade-in-out {
+  0%, 100% { opacity: 0; }
+  10%, 90% { opacity: 1; }
+}
+
+.animate-fade-in-out {
+  animation: fade-in-out 4s ease-in-out;
+}
+
+/* Slow bounce */
+@keyframes bounce-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 2s infinite;
+}
+
+/* Slide down from top */
+@keyframes slide-down {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-down {
+  animation: slide-down 0.3s ease-out;
+}
+
+/* Hide scrollbar utility */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Gift animations - only what's needed */
+@keyframes elix-gift-idle {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.02) rotate(1deg); }
+}
+.elix-gift-idle {
+  animation: elix-gift-idle 3s ease-in-out infinite;
+}
+
+@keyframes elix-gift-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+.elix-gift-pop {
+  animation: elix-gift-pop 0.52s ease-out;
+}
+
+@keyframes elix-sparkle {
+  0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1) rotate(180deg); }
+}
+.elix-gift-sparkle::before {
+  content: '';
+  position: absolute;
+  top: -2px; left: -2px; right: -2px; bottom: -2px;
+  background: radial-gradient(circle, rgba(201, 169, 110, 0.3) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: elix-sparkle 2s ease-in-out infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Gift overlay entrance: mask controls visibility (fades), no opacity */
+@keyframes elix-overlay-in {
+  0% { transform: scale(0.92) translateY(12px); }
+  100% { transform: scale(1) translateY(0); }
+}
+.elix-overlay-in {
+  animation: elix-overlay-in 0.4s ease-out forwards;
+}
+
+@keyframes bounce-small {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.animate-bounce-small {
+  animation: bounce-small 1.5s ease-in-out infinite;
+}
+
+.text-gold-metallic {
+  background: linear-gradient(
+    180deg,
+    #f5e6a3 0%,
+    #d4a844 20%,
+    #c9a96e 40%,
+    #b8922e 60%,
+    #d4af37 80%,
+    #f5e6a3 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.stroke-gold-metallic {
+  color: #d4af37;
+  filter: drop-shadow(0 0 1px rgba(212, 175, 55, 0.4));
+}
+
+.border-gold-metallic {
+  border-color: #d4af37;
+  box-shadow: 0 0 2px rgba(212, 175, 55, 0.3);
+}

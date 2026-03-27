@@ -1,0 +1,24 @@
+---
+description: Protect Neon database usage and query safety
+globs: ["**/*.{ts,tsx,js,jsx,sql}"]
+alwaysApply: true
+---
+
+Database rules:
+- preserve existing Neon usage patterns
+- do not rewrite working queries without a clear reason
+- do not invent tables, columns, or relations not present in the code
+- do not weaken data integrity checks
+- do not move secure DB operations into unsafe client-side flows
+- do not replace real DB logic with mocked local state unless explicitly requested
+- do not make destructive schema assumptions
+
+Allowed:
+- improve query safety
+- improve typing
+- improve error handling
+- improve performance
+- fix real bugs using the smallest safe change
+
+Default behavior:
+keep DB logic accurate, grounded, and minimal.

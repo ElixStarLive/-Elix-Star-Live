@@ -1,0 +1,7 @@
+---
+description: Production readiness for Android and App Store — minimal diff, no UI change, no protected infra
+globs: ["**/*"]
+alwaysApply: true
+---
+
+Make this app production-ready for Android and App Store with minimal diff only. Check all existing screens, connect all visible buttons and interactive elements, fix broken handlers, create missing routes where existing flows clearly require them, and fix release-blocking code issues. Do not change UI, layout, spacing, styling, navigation appearance, or visual hierarchy. Do not touch protected server or infrastructure files.

@@ -1,0 +1,29 @@
+---
+description: Safe output format for code changes
+globs: ["**/*.{ts,tsx,js,jsx,json,sql,yml,yaml}"]
+alwaysApply: true
+---
+
+When asked to clean, fix, or refactor code:
+
+Always structure your work like this:
+1. what is safe to change
+2. what will not be touched
+3. the smallest change needed
+4. any risk or side effect
+
+Do not:
+- claim a file needs a rewrite unless truly necessary
+- propose unnecessary architecture changes
+- add new abstractions without need
+- add new libraries for simple problems
+- touch unrelated files unless required
+
+Prefer:
+- local fixes
+- minimal diff
+- stable behavior
+- preservation of UI and navigation
+
+Default behavior:
+smallest safe change with explicit boundaries.

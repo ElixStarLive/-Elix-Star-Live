@@ -1,0 +1,20 @@
+COOLIFY: Fix "Missing from lock file" / npm ci failure
+=======================================================
+
+You must use the DOCKERFILE build pack (not Nixpacks).
+
+Steps:
+1. In Coolify open your Elix Star Live APPLICATION (the one from GitHub).
+2. Find "Build" or "Build Pack" or "Configuration" > "Build".
+3. Where it says "Nixpacks", open the dropdown.
+4. Select "Dockerfile".
+5. Set Dockerfile path to:  Dockerfile   (or ./Dockerfile)
+6. SAVE the application.
+7. Optional: Clear build cache or "Redeploy without cache" if available.
+8. Click Deploy / Redeploy.
+
+The repo root has a Dockerfile that uses "npm install" (not npm ci).
+Port for the app: 8080.
+
+If you cannot find the build pack setting, try creating a NEW application
+and when asked for build type, choose Dockerfile from the start.

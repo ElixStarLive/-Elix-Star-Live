@@ -1,0 +1,31 @@
+---
+description: Create missing routes only when required by existing flows
+globs: ["app/**/*.{ts,tsx}", "src/**/*.{ts,tsx}", "components/**/*.{ts,tsx}"]
+alwaysApply: true
+---
+
+If an existing screen, button, card, tab, CTA, or action attempts to navigate to a route that does not exist:
+
+Allowed:
+- create the missing route
+- create the smallest safe screen file needed to satisfy the route
+- preserve project routing conventions
+- preserve naming consistency with existing routes
+- keep the new route implementation minimal and stable
+
+Strictly forbidden:
+- do not change the originating button UI
+- do not change the layout of the source screen
+- do not rename existing routes to avoid creating the missing route
+- do not change navigation flow unless required by the missing route fix
+- do not create fantasy routes unrelated to existing interactions
+
+When creating a missing route:
+- use existing folder conventions
+- keep the screen visually simple
+- do not introduce a new design system
+- do not break tab or stack structure
+- do not create broad architecture changes
+
+Default behavior:
+create only the minimal missing route required for an existing interaction to function.

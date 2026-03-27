@@ -1,0 +1,71 @@
+---
+description: REMOVE forbidden services from entire codebase
+globs: ["**/*"]
+alwaysApply: true
+---
+
+You must actively remove ALL traces of the following forbidden services from the codebase:
+
+- Supabase
+- Apwrite
+- DigitalOcean
+- Ghost
+- Netlify
+- Railway
+
+This is a mandatory cleanup task, not optional.
+
+For ANY occurrence of these services, you must:
+
+1. DELETE FILES:
+- remove any file dedicated to these services
+- examples: supabase.ts, supabaseClient.ts, apwrite.ts, apwriteClient.ts
+- delete entire files if they are related only to forbidden services
+
+2. REMOVE IMPORTS:
+- remove any import referencing these services
+- remove the entire dependency usage, not just the import line
+
+3. REMOVE LOGIC:
+- delete all code blocks using these services
+- remove API calls, queries, auth logic, storage logic tied to them
+- do not leave partial or broken code
+
+4. CLEAN DEPENDENCIES:
+- remove these packages from package.json:
+  - @supabase/supabase-js
+  - apwrite
+- do not leave unused dependencies
+
+5. CLEAN ENV VARIABLES:
+- remove any environment variables related to these services
+- examples:
+  - SUPABASE_URL
+  - SUPABASE_KEY
+  - APWRITE_ENDPOINT
+  - APWRITE_PROJECT_ID
+
+6. CLEAN CONFIG FILES:
+- remove any reference in config files (docker, deploy, etc.)
+- remove any deployment references to:
+  - netlify
+  - railway
+  - digitalocean
+  - ghost
+
+7. VERIFY CLEAN STATE:
+- after changes, there must be ZERO references to these services in the entire codebase
+- no imports, no strings, no configs, no env variables
+
+IMPORTANT RULES:
+- do not replace with another third-party service
+- do not introduce Supabase, Apwrite, Railway, Netlify, Ghost, or DigitalOcean again
+- only keep the real project stack (Hetzner, Coolify, Bunny, LiveKit, Neon)
+
+SAFETY:
+- do not break unrelated code
+- if removing code affects functionality, clearly state what must be replaced (e.g. backend API, Neon, LiveKit)
+- prefer minimal safe removal but complete cleanup
+
+DEFAULT BEHAVIOR:
+force full removal of all forbidden services from the project.

@@ -1,0 +1,33 @@
+---
+description: QA pass for existing app with frozen UI
+globs: ["**/*.{ts,tsx,js,jsx,json}"]
+alwaysApply: true
+---
+
+When asked to prepare, clean, or finalize the app, perform a QA-oriented code pass with frozen UI.
+
+Check for:
+- unconnected buttons
+- missing handlers
+- missing navigation targets
+- invalid route names
+- screens referenced but not present
+- broken imports
+- missing assets referenced in code
+- obvious runtime crashes
+- missing null checks
+- unreachable actions
+- dead-end screens
+- forms with no submit behavior
+- close/back buttons with no action
+- tabs with broken targets
+
+Fixes must:
+- preserve UI exactly
+- preserve layout exactly
+- use minimal diff
+- follow existing code patterns
+- avoid touching protected infrastructure
+
+Default behavior:
+make the app functionally complete behind the current UI.

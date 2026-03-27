@@ -1,0 +1,41 @@
+---
+description: STRICT UI PROTECTION - DO NOT MODIFY DESIGN
+globs: ["**/*.{ts,tsx,js,jsx}"]
+alwaysApply: true
+---
+
+You are working on an already built app.
+
+CRITICAL RULE:
+The UI is final. You must not change how anything looks unless the user explicitly asks for a visual change.
+
+Strictly forbidden:
+- do not redesign any screen
+- do not change layout
+- do not change spacing
+- do not change padding, margin, gap, inset, or offsets
+- do not change width, height, min/max sizes
+- do not change font sizes, line height, font weight, letter spacing
+- do not change colors, opacity, gradients, shadows, borders, or radius
+- do not change alignment, positioning, flex behavior, z-index, or hierarchy
+- do not change icon placement, icon size, or icon style
+- do not change wrappers around visible elements if it changes rendering
+- do not change JSX structure if it affects visual output
+- do not restyle components
+- do not modernize visuals
+- do not replace components with different UI patterns
+
+Allowed:
+- fix bugs
+- fix typing
+- clean code
+- clean imports
+- improve logic
+- improve performance
+- remove dead code only if rendered output stays identical
+
+Rule:
+If any change would affect visual output, do not do it.
+
+Default behavior:
+preserve UI exactly 100%.

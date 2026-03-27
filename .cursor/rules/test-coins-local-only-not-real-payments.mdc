@@ -1,0 +1,52 @@
+---
+description: Test coins are local-only and not real payments
+globs: ["**/*.{ts,tsx,js,jsx,json}"]
+alwaysApply: true
+---
+
+The app includes TEST COINS used only for testing gift interactions and UI behavior.
+
+These test coins are NOT real currency and must never be treated as real payments.
+
+STRICT RULES:
+
+Test coins purpose:
+- used only for testing gifts
+- used only for UI/UX testing
+- used as temporary score/points
+- used to simulate gifting behavior
+
+Strictly forbidden:
+- do not connect test coins to IAP (Google/Apple)
+- do not connect test coins to Stripe
+- do not connect test coins to any payment system
+- do not persist test coins as real balance in production database
+- do not mix test coins with real coins
+- do not use test coins in real wallet logic
+- do not allow test coins to trigger real transactions
+- do not send test coin events to production payment backend
+- do not treat test coins as real revenue or value
+
+Separation rules:
+- keep test coins completely separate from real coin balance
+- use separate state/variable for test coins (e.g. testCoins)
+- never merge testCoins with realCoins
+- never subtract from real balance when using test coins
+- never add test coins to real wallet
+
+Allowed:
+- simulate sending gifts using test coins
+- trigger gift animations with test coins
+- simulate leaderboard or score using test coins
+- use local state or temporary storage for test coins
+- reset test coins freely without affecting real data
+- use test coins in development or testing mode
+
+Implementation rules:
+- prefer local state or isolated store for test coins
+- clearly label test coin logic in code
+- keep test coin logic simple and removable
+- do not build critical app logic depending on test coins
+
+Default behavior:
+test coins are fake, local, isolated, and only for testing gifts.

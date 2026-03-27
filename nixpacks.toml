@@ -1,0 +1,4 @@
+# Use npm install so the build succeeds if lock file is out of sync with package.json.
+# After any package.json change, run: npm install (and commit package-lock.json).
+[phases.install]
+cmds = ['npm install']

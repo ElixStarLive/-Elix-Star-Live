@@ -1,0 +1,44 @@
+---
+description: REQUIRE EXPLICIT PERMISSION BEFORE EDITING SERVER OR DEPLOYMENT FILES
+globs: ["**/*.{env,yml,yaml,sql,sh,dockerfile,conf,config,ini,toml,json,js,ts}"]
+alwaysApply: true
+---
+
+Before editing any server, deployment, storage, live-streaming, or database-related file, require explicit user permission.
+
+High-risk file categories:
+- .env, .env.local, .env.production
+- docker-compose files
+- Dockerfiles
+- Coolify config
+- deployment scripts
+- server startup scripts
+- proxy configs
+- LiveKit server/client auth config
+- Bunny Storage config
+- Neon connection or migration files
+- backend route handlers used by production
+- SQL migration files
+- infrastructure config files of any kind
+
+Rules:
+- do not edit these files during cleanup/refactor tasks
+- do not change secrets, hosts, ports, connection strings, or deployment settings
+- do not delete these files
+- do not rename these files
+- do not reformat these files unless explicitly requested
+- do not "optimize" these files
+- do not modernize these files
+- do not replace provider-specific logic
+
+If the user's request is general, such as:
+- clean project
+- optimize app
+- fix code
+- improve structure
+then these protected files must remain untouched.
+
+Only edit them if the user explicitly says to change server/deployment/storage/live/database files.
+
+Default behavior:
+no server or infrastructure file edits without explicit permission.

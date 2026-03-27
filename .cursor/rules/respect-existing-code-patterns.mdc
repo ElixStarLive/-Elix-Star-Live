@@ -1,0 +1,27 @@
+---
+description: Respect existing code and patterns
+globs: ["**/*.{ts,tsx,js,jsx}"]
+alwaysApply: true
+---
+
+This project already exists and already works visually.
+
+Rules:
+- respect existing naming
+- respect existing component boundaries
+- respect existing style patterns
+- respect existing state patterns unless they are clearly broken
+- respect current imports and aliases unless there is a real issue
+- do not replace working code just because another style is preferred
+- do not clean up by changing everything to your own format
+- do not flatten or split components unless explicitly requested
+
+When improving code:
+- target the problem area only
+- leave unrelated code alone
+- preserve behavior
+- preserve appearance
+- preserve flow
+
+Default behavior:
+follow the app's existing conventions, not your own preferences.

@@ -1,0 +1,30 @@
+---
+description: Coins on mobile must use in-app purchases only
+globs: ["**/*.{ts,tsx,js,jsx,json}"]
+alwaysApply: true
+---
+
+Coins, top-ups, and coin packages inside the mobile app must use platform in-app purchases only.
+
+Rules:
+- on Android, coin purchases inside the app must use Google Play billing / IAP
+- on iOS, coin purchases inside the app must use Apple in-app purchases / IAP
+- do not use Stripe for in-app coin purchases
+- do not route in-app coin purchase flows to external web checkout
+- do not implement coins as a normal external payment flow inside the mobile app
+- preserve the existing UI while wiring purchase logic
+- connect existing coin buttons to the correct mobile purchase flow
+- keep package identifiers, product mapping, and receipt handling grounded in the real codebase
+- do not invent fake purchase success states
+- do not mark purchases complete without real verification logic
+- do not expose secrets in client code
+
+Allowed:
+- connect coin buttons to IAP handlers
+- add missing purchase handlers
+- add guards, loading states, and error handling without changing UI
+- improve receipt flow and purchase state handling
+- fix broken purchase wiring with minimal diff
+
+Default behavior:
+coins inside the mobile app use platform IAP only.

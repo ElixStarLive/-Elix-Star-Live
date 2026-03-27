@@ -1,0 +1,29 @@
+---
+description: Freeze screen visuals during cleanup
+globs: ["app/**/*.{ts,tsx}", "src/**/*.{ts,tsx}", "components/**/*.{ts,tsx}", "pages/**/*.{ts,tsx}"]
+alwaysApply: true
+---
+
+For existing rendered screens and reusable UI components, treat the visual result as frozen.
+
+Strictly forbidden unless explicitly requested:
+- changing visible structure
+- changing wrappers around visible elements
+- changing spacing or dimensions
+- changing text styling
+- changing icon position or scale
+- changing animation feel, timing, easing, or duration
+- changing overlay appearance
+- changing modal appearance
+- changing chat, feed, wallet, live, inbox, profile, membership, or create screen appearance
+
+Allowed:
+- fix broken logic
+- fix typing
+- fix imports
+- fix event handlers
+- improve performance
+- remove dead code only if rendered result stays identical
+
+Default behavior:
+screen visuals are locked.

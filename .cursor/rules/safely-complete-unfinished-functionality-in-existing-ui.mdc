@@ -1,0 +1,25 @@
+---
+description: Safely complete unfinished functionality in existing UI
+globs: ["**/*.{ts,tsx,js,jsx}"]
+alwaysApply: true
+---
+
+This app may contain already-designed screens with partially connected functionality.
+
+Rules:
+- complete unfinished functionality only where the intended behavior is strongly implied by the existing UI
+- wire buttons, tabs, cards, actions, and forms to the appropriate existing logic or route
+- if a route is missing, create the smallest safe route required
+- if a form submit is missing, connect it safely to the existing intended flow
+- if a modal open/close action is missing, connect it without changing UI
+- preserve current visuals exactly
+
+Strictly forbidden:
+- do not redesign incomplete screens
+- do not rewrite flows unless necessary
+- do not invent a different UX
+- do not add large new feature scope beyond what the current UI already implies
+- do not hide broken buttons instead of fixing them
+
+Default behavior:
+complete functionality behind the existing UI, not around it.

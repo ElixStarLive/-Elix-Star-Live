@@ -1,0 +1,30 @@
+---
+description: Ask before risky or wide-impact changes
+globs: ["**/*.{ts,tsx,js,jsx,json,sql,yml,yaml}"]
+alwaysApply: true
+---
+
+Do not make risky changes silently.
+
+Risky changes include:
+- changing UI structure
+- changing styles
+- changing navigation
+- renaming files, routes, components, props, or folders
+- changing database queries or mutation behavior
+- changing authentication behavior
+- changing membership, wallet, gift, payment, or balance logic
+- changing live-streaming flow
+- changing animation timing or overlay sequencing
+- introducing or removing dependencies
+- moving code across files
+- changing deployment or infrastructure assumptions
+
+If a task would require one of these:
+- stop first
+- state exactly what would change
+- propose the smallest safe option
+- prefer a local fix instead of a broad rewrite
+
+Default behavior:
+no silent high-impact changes.

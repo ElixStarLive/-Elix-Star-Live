@@ -1,0 +1,30 @@
+---
+description: Production-safe mobile IAP wiring
+globs: ["**/*.{ts,tsx,js,jsx,json}"]
+alwaysApply: true
+---
+
+For Android and iOS in-app purchases:
+
+Rules:
+- ensure purchase buttons have real handlers
+- ensure loading, success, cancel, and failure paths are handled safely
+- ensure duplicate taps do not create duplicate purchase attempts
+- ensure purchase completion is grounded in real purchase state
+- ensure coin crediting is tied to verified purchase flow
+- do not hardcode fake successful purchases
+- do not bypass verification assumptions already present in the codebase
+- do not expose secrets in client code
+- do not change UI while making IAP production-ready
+
+Allowed:
+- connect missing handlers
+- add minimal guards
+- add async safety
+- add defensive null checks
+- improve purchase state cleanup
+- fix broken product mapping
+- fix broken route or modal triggers related to purchase flow
+
+Default behavior:
+make IAP reliable and production-safe without UI changes.

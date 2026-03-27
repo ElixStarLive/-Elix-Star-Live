@@ -1,0 +1,24 @@
+---
+description: Protect Bunny Storage and media flow
+globs: ["**/*.{ts,tsx,js,jsx,json}"]
+alwaysApply: true
+---
+
+Media and asset rules:
+- preserve existing Bunny Storage usage if present
+- do not replace media flow with another storage provider
+- do not hardcode storage secrets
+- do not fake upload success
+- do not change URL/path assumptions unless required for a bug fix
+- do not alter media rendering behavior unless explicitly requested
+- do not introduce a new CDN or storage service unless explicitly requested
+
+Allowed:
+- improve upload error handling
+- improve retry logic
+- improve typing
+- improve performance
+- fix broken media paths with minimal diff
+
+Default behavior:
+preserve existing media flow and storage assumptions.

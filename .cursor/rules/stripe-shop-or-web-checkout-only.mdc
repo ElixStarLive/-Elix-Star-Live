@@ -1,0 +1,26 @@
+---
+description: Stripe is for shop or web checkout only
+globs: ["**/*.{ts,tsx,js,jsx,json}"]
+alwaysApply: true
+---
+
+Stripe may be used only for shop or web-only checkout flows, not for in-app coin purchases.
+
+Rules:
+- use Stripe only for shop, web checkout, or browser-based purchase flows explicitly intended for web
+- do not use Stripe as the payment mechanism for in-app mobile coin purchases
+- do not replace Android or iOS IAP flows with Stripe
+- do not connect existing in-app coin buttons directly to Stripe
+- if the repository has a separate shop flow, preserve it as separate from in-app purchases
+- do not blur the boundary between in-app currency purchases and external shop checkout
+- preserve current UI and layout while wiring logic
+- do not invent Stripe usage where it does not already belong
+
+Allowed:
+- connect shop checkout buttons to Stripe if the flow is clearly a shop/web flow
+- fix broken Stripe wiring in shop-related code only
+- improve checkout error handling
+- improve loading and redirect handling without visual redesign
+
+Default behavior:
+Stripe is limited to shop-only flows, not mobile in-app coins.

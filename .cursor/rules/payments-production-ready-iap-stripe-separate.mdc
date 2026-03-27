@@ -1,0 +1,7 @@
+---
+description: Payments production-ready — IAP for mobile coins, Stripe for shop/web only, minimal diff, no UI change
+globs: ["**/*"]
+alwaysApply: true
+---
+
+Make payments production-ready with minimal diff only. Connect coin purchases in the mobile app to platform IAP only, and connect Stripe only for shop/web checkout flows. Keep these payment systems separate. Do not change UI, layout, spacing, styling, or visual hierarchy. Do not touch protected server or infrastructure files unless explicitly required by the payment flow and clearly state it first.
