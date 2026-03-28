@@ -8,6 +8,7 @@ import { Request, Response } from 'express';
 import { WebhookReceiver } from 'livekit-server-sdk';
 import { removeActiveStream } from './livestream';
 import { broadcastToFeedSubscribers } from '../feedBroadcast';
+import { logger } from '../lib/logger';
 
 const API_KEY = (process.env.LIVEKIT_API_KEY || '').trim();
 const API_SECRET = (process.env.LIVEKIT_API_SECRET || '').trim();
@@ -22,7 +23,7 @@ const receiver =
  */
 export async function handleLiveKitWebhook(req: Request, res: Response) {
   if (!receiver) {
-    console.warn('[livekit-webhook] LiveKit not configured, ignoring webhook');
+    logger.warn('[livekit-webhook] LiveKit not configured, ignoring webhook');
     return res.status(200).end();
   }
 
@@ -64,7 +65,7 @@ export async function handleLiveKitWebhook(req: Request, res: Response) {
     return res.status(200).end();
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Webhook validation failed';
-    console.error('[livekit-webhook]', message);
+    logger.error({ err: message }, '[livekit-webhook] Validation failed');
     return res.status(401).json({ error: message });
   }
 }

@@ -2,11 +2,11 @@ import { Request, Response } from "express";
 import Stripe from "stripe";
 import { dbMarkShopItemSold } from "../lib/postgres";
 import { neonInsertShopPurchase } from "../lib/walletNeon";
+import { logger } from "../lib/logger";
 
-// --- Configuration ---
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 if (!stripeSecretKey) {
-  console.error("[stripe-webhook] STRIPE_SECRET_KEY is not set in server environment");
+  logger.warn("[stripe-webhook] STRIPE_SECRET_KEY is not set in server environment");
 }
 
 const stripe = stripeSecretKey
@@ -45,12 +45,12 @@ export async function handleStripeWebhook(req: Request, res: Response) {
         // Secret is set but no signature — reject (possible tampering)
         return res.status(400).json({ error: "Missing Stripe signature" });
       } else {
-        console.warn("[stripe-webhook] DEV ONLY: No webhook secret configured, skipping signature check");
+        logger.warn("[stripe-webhook] DEV ONLY: No webhook secret configured, skipping signature check");
         event = JSON.parse(rawBody.toString("utf8"));
       }
     }
   } catch (err) {
-    console.error("Webhook signature verification failed:", err);
+    logger.error({ err }, "Webhook signature verification failed");
     return res.status(400).json({ error: "Invalid signature" });
   }
 
@@ -63,12 +63,12 @@ export async function handleStripeWebhook(req: Request, res: Response) {
       }
       default:
         // Stripe is shop-only here. Ignore non-shop/digital events.
-        console.log("Ignoring non-shop Stripe event type: " + event.type);
+        logger.info({ eventType: event.type }, "Ignoring non-shop Stripe event");
     }
 
     res.status(200).json({ received: true });
   } catch (error) {
-    console.error("Webhook processing error:", error);
+    logger.error({ err: error }, "Webhook processing error");
     res.status(500).json({ error: "Webhook processing failed" });
   }
 }
@@ -80,7 +80,7 @@ async function handleSuccessfulPayment(session: Stripe.Checkout.Session) {
   const userId = session.metadata?.userId;
 
   if (type !== "shop_item") {
-    console.warn("[stripe-webhook] Rejected non-shop payment type:", type || "unknown", session.id);
+    logger.warn({ type, sessionId: session.id }, "Rejected non-shop payment type");
     return;
   }
 
@@ -96,9 +96,9 @@ async function handleSuccessfulPayment(session: Stripe.Checkout.Session) {
       sellerId,
       amountGbp,
     });
-    console.log("Shop item purchased: item=" + itemId + " buyer=" + userId);
+    logger.info({ itemId, buyerId: userId }, "Shop item purchased");
   } catch (err) {
-    console.error("Failed to record shop purchase:", err);
+    logger.error({ err }, "Failed to record shop purchase");
   }
 }
 

@@ -3,9 +3,17 @@ import Stripe from "stripe";
 import { getTokenFromRequest, verifyAuthToken } from "./auth";
 import { dbGetShopItemById } from "../lib/postgres";
 import { valkeyRateCheck, isValkeyConfigured } from "../lib/valkey";
+import { logger } from "../lib/logger";
 
-// Rate limiter — Valkey-first with local Map fallback
 const rateLimits = new Map<string, { count: number; timestamp: number }>();
+const MAX_LOCAL_RATE_ENTRIES = 10_000;
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of rateLimits) {
+    if (now - v.timestamp > 120_000) rateLimits.delete(k);
+  }
+}, 60_000).unref();
 
 async function checkRateLimit(userId: string, action: string) {
   const windowMs = 60 * 1000;
@@ -26,6 +34,10 @@ async function checkRateLimit(userId: string, action: string) {
   }
 
   record.count++;
+  if (rateLimits.size >= MAX_LOCAL_RATE_ENTRIES && !rateLimits.has(key)) {
+    const oldest = rateLimits.keys().next().value;
+    if (oldest) rateLimits.delete(oldest);
+  }
   rateLimits.set(key, record);
 
   return {
@@ -36,9 +48,7 @@ async function checkRateLimit(userId: string, action: string) {
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 if (!stripeSecretKey) {
-  console.error(
-    "[shop-checkout] STRIPE_SECRET_KEY is not set in server environment",
-  );
+  logger.warn("[shop-checkout] STRIPE_SECRET_KEY is not set in server environment");
 }
 const stripe = stripeSecretKey
   ? new Stripe(stripeSecretKey, { apiVersion: "2025-01-27.acacia" })
@@ -135,7 +145,7 @@ export async function createShopItemCheckout(req: Request, res: Response) {
 
     return res.status(200).json({ url: session.url, sessionId: session.id });
   } catch (error) {
-    console.error("Shop item checkout error:", error);
+    logger.error({ err: error }, "Shop item checkout error");
     return res.status(500).json({ error: "Failed to create shop checkout" });
   }
 }

@@ -22,6 +22,11 @@ import {
   valkeySrem,
   valkeySmembers,
   valkeySetNx,
+  valkeyHincrby,
+  valkeyHgetall,
+  valkeyHset,
+  valkeyHdel,
+  valkeyExpire,
 } from "../lib/valkey";
 import { logger } from "../lib/logger";
 
@@ -113,6 +118,7 @@ async function deleteBattleFromStore(
     await valkeySrem(ACTIVE_BATTLES_KEY, roomId);
     await valkeyDel("battle:" + roomId);
     await valkeyDel("battle:tick:" + roomId);
+    await valkeyDel(SCORE_KEY_PREFIX + roomId);
     await valkeyDel("ubr:" + session.hostUserId);
     if (session.opponentUserId) await valkeyDel("ubr:" + session.opponentUserId);
     if (session.player3UserId) await valkeyDel("ubr:" + session.player3UserId);
@@ -214,11 +220,41 @@ export async function startBattleTimer(roomId: string): Promise<void> {
   session.endsAt = Date.now() + 300 * 1000;
   session.timeLeft = 300;
   await saveBattleToStore(roomId, session);
+  await initScoreHash(roomId, session);
   broadcastBattleState(roomId, session);
 
   await valkeySadd(ACTIVE_BATTLES_KEY, roomId);
 }
 
+const SCORE_KEY_PREFIX = "battle:scores:";
+
+async function initScoreHash(roomId: string, session: BattleSession): Promise<void> {
+  const key = SCORE_KEY_PREFIX + roomId;
+  await valkeyHset(key, "host", String(session.hostScore));
+  await valkeyHset(key, "opponent", String(session.opponentScore));
+  await valkeyHset(key, "player3", String(session.player3Score));
+  await valkeyHset(key, "player4", String(session.player4Score));
+  await valkeyExpire(key, Math.ceil(BATTLE_TTL / 1000));
+}
+
+export async function getBattleScores(roomId: string): Promise<{ hostScore: number; opponentScore: number; player3Score: number; player4Score: number }> {
+  return getScoresFromHash(roomId);
+}
+
+async function getScoresFromHash(roomId: string): Promise<{ hostScore: number; opponentScore: number; player3Score: number; player4Score: number }> {
+  const raw = await valkeyHgetall(SCORE_KEY_PREFIX + roomId);
+  return {
+    hostScore: Number(raw.host) || 0,
+    opponentScore: Number(raw.opponent) || 0,
+    player3Score: Number(raw.player3) || 0,
+    player4Score: Number(raw.player4) || 0,
+  };
+}
+
+/**
+ * Atomic score increment via HINCRBY — no read-modify-write race.
+ * Scores live in a separate Valkey HASH for lock-free concurrent updates.
+ */
 export async function addBattleScoreForTarget(
   roomId: string,
   target: "host" | "opponent" | "player3" | "player4",
@@ -227,18 +263,15 @@ export async function addBattleScoreForTarget(
   const session = await getBattleFromStore(roomId);
   if (!session || session.status !== "ACTIVE") return;
 
-  if (target === "host") session.hostScore += points;
-  else if (target === "opponent") session.opponentScore += points;
-  else if (target === "player3") session.player3Score += points;
-  else if (target === "player4") session.player4Score += points;
-
-  await saveBattleToStore(roomId, session);
+  const scoreKey = SCORE_KEY_PREFIX + roomId;
+  await valkeyHincrby(scoreKey, target, points);
+  const scores = await getScoresFromHash(roomId);
 
   broadcastToRoom(roomId, "battle_score", {
-    hostScore: session.hostScore,
-    opponentScore: session.opponentScore,
-    player3Score: session.player3Score,
-    player4Score: session.player4Score,
+    hostScore: scores.hostScore,
+    opponentScore: scores.opponentScore,
+    player3Score: scores.player3Score,
+    player4Score: scores.player4Score,
     lastScorer: target,
     points,
   });
@@ -250,6 +283,12 @@ export async function endBattle(roomId: string): Promise<void> {
 
   await valkeySrem(ACTIVE_BATTLES_KEY, roomId);
   await valkeyDel("battle:tick:" + roomId);
+
+  const scores = await getScoresFromHash(roomId);
+  session.hostScore = scores.hostScore;
+  session.opponentScore = scores.opponentScore;
+  session.player3Score = scores.player3Score;
+  session.player4Score = scores.player4Score;
 
   session.status = "ENDED";
   const redTeam = session.hostScore + session.player3Score;
@@ -276,6 +315,7 @@ export async function endBattle(roomId: string): Promise<void> {
     if (s) {
       await deleteBattleFromStore(roomId, s);
     }
+    await valkeyDel(SCORE_KEY_PREFIX + roomId);
   }, 10000);
 }
 
@@ -330,12 +370,14 @@ async function processBattleTick(roomId: string): Promise<void> {
     s.timeLeft = Math.max(0, Math.round((s.endsAt - Date.now()) / 1000));
     await saveBattleToStore(roomId, s);
 
+    const scores = await getScoresFromHash(roomId);
+
     broadcastToRoom(roomId, "battle_tick", {
       timeLeft: s.timeLeft,
-      hostScore: s.hostScore,
-      opponentScore: s.opponentScore,
-      player3Score: s.player3Score,
-      player4Score: s.player4Score,
+      hostScore: scores.hostScore,
+      opponentScore: scores.opponentScore,
+      player3Score: scores.player3Score,
+      player4Score: scores.player4Score,
       endsAt: s.endsAt,
     });
 

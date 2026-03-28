@@ -114,6 +114,8 @@ export async function initPostgres(): Promise<void> {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_live_streams_is_live ON live_streams(is_live) WHERE is_live = TRUE`).catch(() => {});
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_comments_video_id ON comments(video_id, created_at DESC)`).catch(() => {});
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_likes_video_id ON likes(video_id)`).catch(() => {});
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_saves_video_id ON saves(video_id)`).catch(() => {});
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_profiles_user_id ON profiles(user_id)`).catch(() => {});
 
     // Comments (basic; likes are handled client-side for now)
     await pool.query(`
@@ -396,25 +398,32 @@ export async function initPostgres(): Promise<void> {
 
     await pool.query(`
       CREATE TABLE IF NOT EXISTS elix_blocked_users (
-        blocker_id TEXT NOT NULL,
+        id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+        blocker_user_id TEXT NOT NULL,
         blocked_user_id TEXT NOT NULL,
         created_at TIMESTAMPTZ DEFAULT NOW(),
-        PRIMARY KEY (blocker_id, blocked_user_id)
+        UNIQUE(blocker_user_id, blocked_user_id)
       )
     `).catch(() => {});
 
     await pool.query(`
       CREATE TABLE IF NOT EXISTS elix_reports (
         id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-        reporter_id TEXT NOT NULL,
-        reported_id TEXT,
-        reported_content_id TEXT,
+        reporter_user_id TEXT NOT NULL,
+        target_type TEXT NOT NULL DEFAULT 'unknown',
+        target_id TEXT NOT NULL DEFAULT '',
         reason TEXT NOT NULL DEFAULT '',
         details TEXT DEFAULT '',
-        status TEXT DEFAULT 'pending',
+        status TEXT NOT NULL DEFAULT 'pending',
         created_at TIMESTAMPTZ DEFAULT NOW()
       )
     `).catch(() => {});
+
+    // Migrate old column names if they exist (safe no-op if already correct)
+    await pool.query(`ALTER TABLE elix_blocked_users RENAME COLUMN blocker_id TO blocker_user_id`).catch(() => {});
+    await pool.query(`ALTER TABLE elix_reports RENAME COLUMN reporter_id TO reporter_user_id`).catch(() => {});
+    await pool.query(`ALTER TABLE elix_reports ADD COLUMN IF NOT EXISTS target_type TEXT NOT NULL DEFAULT 'unknown'`).catch(() => {});
+    await pool.query(`ALTER TABLE elix_reports ADD COLUMN IF NOT EXISTS target_id TEXT NOT NULL DEFAULT ''`).catch(() => {});
 
     const userCount = await pool.query(`SELECT COUNT(*) as cnt FROM auth_users`);
     const profileCount = await pool.query(`SELECT COUNT(*) as cnt FROM profiles`);

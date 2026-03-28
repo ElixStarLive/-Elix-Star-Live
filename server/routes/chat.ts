@@ -55,10 +55,24 @@ export async function handleListChatThreads(req: Request, res: Response) {
   const auth = requireAuth(req, res);
   if (!auth) return;
   const threads = await dbListChatThreadsForUser(auth.userId, 50);
-  const enriched = await Promise.all(threads.map(async (t) => {
-    const otherId =
-      t.user1_id === auth.userId ? t.user2_id : t.user1_id;
-    const p = await getOrCreateProfile(otherId);
+  if (threads.length === 0) return res.status(200).json({ threads: [] });
+
+  const otherIds = threads.map((t) =>
+    t.user1_id === auth.userId ? t.user2_id : t.user1_id,
+  );
+  const profileMap = new Map<string, Awaited<ReturnType<typeof getOrCreateProfile>>>();
+  const [profiles, unreadCounts] = await Promise.all([
+    Promise.all([...new Set(otherIds)].map(async (id) => {
+      const p = await getOrCreateProfile(id);
+      return [id, p] as const;
+    })),
+    Promise.all(threads.map((t) => dbUnreadCountForThread(t.id, auth.userId))),
+  ]);
+  for (const [id, p] of profiles) profileMap.set(id, p);
+
+  const enriched = threads.map((t, i) => {
+    const otherId = t.user1_id === auth.userId ? t.user2_id : t.user1_id;
+    const p = profileMap.get(otherId);
     return {
       id: t.id,
       user1_id: t.user1_id,
@@ -67,13 +81,13 @@ export async function handleListChatThreads(req: Request, res: Response) {
       last_message: t.last_message,
       created_at: t.created_at,
       otherUser: {
-        username: p.username,
-        display_name: p.displayName,
-        avatar_url: p.avatarUrl,
+        username: p?.username ?? "",
+        display_name: p?.displayName ?? "",
+        avatar_url: p?.avatarUrl ?? "",
       },
-      hasUnread: (await dbUnreadCountForThread(t.id, auth.userId)) > 0,
+      hasUnread: (unreadCounts[i] ?? 0) > 0,
     };
-  }));
+  });
   return res.status(200).json({ threads: enriched });
 }
 

@@ -33,17 +33,26 @@ export function validateAuthSecretOrDie(): void {
   }
 }
 
-function hashPassword(password: string): string {
+function scryptAsync(password: string, salt: Buffer, keyLen: number, opts: crypto.ScryptOptions): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    crypto.scrypt(password, salt, keyLen, opts, (err, key) => {
+      if (err) reject(err);
+      else resolve(key);
+    });
+  });
+}
+
+async function hashPassword(password: string): Promise<string> {
   const salt = crypto.randomBytes(SALT_LEN);
-  const key = crypto.scryptSync(password, salt, KEY_LEN, SCRYPT_OPTS);
+  const key = await scryptAsync(password, salt, KEY_LEN, SCRYPT_OPTS);
   return salt.toString('base64') + ':' + key.toString('base64');
 }
 
-function verifyPassword(password: string, stored: string): boolean {
+async function verifyPassword(password: string, stored: string): Promise<boolean> {
   const [saltB64, keyB64] = stored.split(':');
   if (!saltB64 || !keyB64) return false;
   const salt = Buffer.from(saltB64, 'base64');
-  const key = crypto.scryptSync(password, salt, KEY_LEN, SCRYPT_OPTS);
+  const key = await scryptAsync(password, salt, KEY_LEN, SCRYPT_OPTS);
   return key.toString('base64') === keyB64;
 }
 
@@ -254,7 +263,7 @@ export async function handleLogin(req: Request, res: Response) {
   }
   if (!getPool()) return res.status(503).json({ error: 'Database not configured' });
   const user = await dbFindUserByEmail(e);
-  if (!user || !verifyPassword(password, user.passwordHash)) {
+  if (!user || !(await verifyPassword(password, user.passwordHash))) {
     return res.status(401).json({ error: 'Invalid login credentials.' });
   }
   const token = signToken({ sub: user.id, email: user.email });
@@ -286,7 +295,7 @@ export async function handleGuestLogin(_req: Request, res: Response) {
     guest = {
       id,
       email: 'guest@example.com',
-      passwordHash: hashPassword(crypto.randomUUID()),
+      passwordHash: await hashPassword(crypto.randomUUID()),
       username: uname,
       avatar_url,
       created_at,
@@ -323,7 +332,7 @@ export async function handleRegister(req: Request, res: Response) {
   const stored: StoredUser = {
     id,
     email: e,
-    passwordHash: hashPassword(password),
+    passwordHash: await hashPassword(password),
     username: uname,
     avatar_url,
     created_at,
@@ -424,7 +433,7 @@ export async function handleResetPassword(req: Request, res: Response) {
   await ensureAuthUsersTable();
   await pool.query(`UPDATE elix_auth_users SET password_hash = $2 WHERE id = $1`, [
     user.id,
-    hashPassword(password),
+    await hashPassword(password),
   ]);
   return res.status(200).json({ success: true });
 }

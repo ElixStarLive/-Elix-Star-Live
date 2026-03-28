@@ -105,13 +105,13 @@ export async function getAllVideosAsync(limit = 500): Promise<Video[]> {
 }
 
 /** List videos by user from DB. */
-export async function getVideosByUserAsync(userId: string): Promise<Video[]> {
+export async function getVideosByUserAsync(userId: string, limit = 200): Promise<Video[]> {
   const db = getPool();
   if (!db) return [];
   try {
     const res = await db.query(
-      `SELECT * FROM videos WHERE user_id = $1 ORDER BY created_at DESC NULLS LAST`,
-      [userId],
+      `SELECT * FROM videos WHERE user_id = $1 ORDER BY created_at DESC NULLS LAST LIMIT $2`,
+      [userId, limit],
     );
     return (res.rows || []).map(rowToVideo);
   } catch (err) {

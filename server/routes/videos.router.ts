@@ -96,11 +96,13 @@ router.post("/:id/like", async (req, res) => {
   const db = getPool();
   if (!db) return res.status(503).json({ error: "Database not configured" });
   try {
-    await db.query(
+    const ins = await db.query(
       `INSERT INTO likes (user_id, video_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
       [payload.sub, req.params.id],
     );
-    await db.query(`UPDATE videos SET likes = likes + 1 WHERE id = $1`, [req.params.id]).catch(() => {});
+    if ((ins.rowCount ?? 0) > 0) {
+      await db.query(`UPDATE videos SET likes = likes + 1 WHERE id = $1`, [req.params.id]).catch(() => {});
+    }
     return res.json({ ok: true });
   } catch (err) {
     logger.error({ err, videoId: req.params.id }, "like failed");
@@ -137,11 +139,13 @@ router.post("/:id/save", async (req, res) => {
   const db = getPool();
   if (!db) return res.status(503).json({ error: "Database not configured" });
   try {
-    await db.query(
+    const ins = await db.query(
       `INSERT INTO saves (user_id, video_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
       [payload.sub, req.params.id],
     );
-    await db.query(`UPDATE videos SET saves = saves + 1 WHERE id = $1`, [req.params.id]).catch(() => {});
+    if ((ins.rowCount ?? 0) > 0) {
+      await db.query(`UPDATE videos SET saves = saves + 1 WHERE id = $1`, [req.params.id]).catch(() => {});
+    }
     return res.json({ ok: true });
   } catch (err) {
     logger.error({ err, videoId: req.params.id }, "save failed");

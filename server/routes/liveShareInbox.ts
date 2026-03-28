@@ -10,12 +10,27 @@ import { executeLiveShareSend } from "../lib/liveShareOps";
 import { logger } from "../lib/logger";
 
 const postRate = new Map<string, number[]>();
+const MAX_POST_RATE_ENTRIES = 10_000;
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of postRate) {
+    const fresh = v.filter((t) => now - t < 60_000);
+    if (fresh.length === 0) postRate.delete(k);
+    else postRate.set(k, fresh);
+  }
+}, 60_000).unref();
+
 function allowPost(userId: string, max: number, windowMs: number): boolean {
   const now = Date.now();
   const prev = postRate.get(userId) || [];
   const fresh = prev.filter((t) => now - t < windowMs);
   if (fresh.length >= max) return false;
   fresh.push(now);
+  if (postRate.size >= MAX_POST_RATE_ENTRIES && !postRate.has(userId)) {
+    const oldest = postRate.keys().next().value;
+    if (oldest) postRate.delete(oldest);
+  }
   postRate.set(userId, fresh);
   return true;
 }

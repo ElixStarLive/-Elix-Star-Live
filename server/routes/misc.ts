@@ -10,8 +10,16 @@ import { getPool } from '../lib/postgres';
 import { valkeyRateCheck, isValkeyConfigured } from '../lib/valkey';
 import { logger } from '../lib/logger';
 
-// Rate limiting helper — Valkey-first with local Map fallback
 const rateLimits = new Map<string, { count: number; timestamp: number }>();
+const MAX_LOCAL_RATE_ENTRIES = 20_000;
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of rateLimits) {
+    if (now - v.timestamp > 120_000) rateLimits.delete(k);
+  }
+}, 60_000).unref();
+
 async function checkRateLimit(userId: string, action: string, limit: number, windowMs: number) {
   const key = `${userId}:${action}`;
 
@@ -29,6 +37,10 @@ async function checkRateLimit(userId: string, action: string, limit: number, win
   }
 
   record.count++;
+  if (rateLimits.size >= MAX_LOCAL_RATE_ENTRIES && !rateLimits.has(key)) {
+    const oldest = rateLimits.keys().next().value;
+    if (oldest) rateLimits.delete(oldest);
+  }
   rateLimits.set(key, record);
 
   return {
@@ -51,26 +63,18 @@ export async function handleBlockUser(req: Request, res: Response) {
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
   const db = getPool();
   if (!db) return res.status(503).json({ error: 'Database not configured' });
-  const { blockedUserId } = req.body ?? {};
-  if (!blockedUserId || typeof blockedUserId !== 'string') return res.status(400).json({ error: 'blockedUserId required' });
+  const body = req.body ?? {};
+  const blockedUserId = typeof body.blockedUserId === 'string' ? body.blockedUserId : (typeof body.blockedId === 'string' ? body.blockedId : '');
+  if (!blockedUserId) return res.status(400).json({ error: 'blockedUserId required' });
   if (blockedUserId === user.sub) return res.status(400).json({ error: 'Cannot block yourself' });
   try {
-    await db.query(`
-      CREATE TABLE IF NOT EXISTS elix_blocked_users (
-        id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-        blocker_user_id TEXT NOT NULL,
-        blocked_user_id TEXT NOT NULL,
-        created_at TIMESTAMPTZ DEFAULT NOW(),
-        UNIQUE(blocker_user_id, blocked_user_id)
-      )
-    `);
     await db.query(
       `INSERT INTO elix_blocked_users (blocker_user_id, blocked_user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
       [user.sub, blockedUserId],
     );
     return res.status(200).json({ success: true });
   } catch (err) {
-    console.error('Block user error:', err);
+    logger.error({ err }, 'Block user error');
     return res.status(500).json({ error: 'Failed to block user' });
   }
 }
@@ -92,7 +96,7 @@ export async function handleUnblockUser(req: Request, res: Response) {
     );
     return res.status(200).json({ success: true });
   } catch (err) {
-    console.error('Unblock user error:', err);
+    logger.error({ err }, 'Unblock user error');
     return res.status(500).json({ error: 'Failed to unblock user' });
   }
 }
@@ -105,15 +109,6 @@ export async function handleListBlockedUsers(req: Request, res: Response) {
   const db = getPool();
   if (!db) return res.status(503).json({ error: 'Database not configured' });
   try {
-    await db.query(`
-      CREATE TABLE IF NOT EXISTS elix_blocked_users (
-        id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-        blocker_user_id TEXT NOT NULL,
-        blocked_user_id TEXT NOT NULL,
-        created_at TIMESTAMPTZ DEFAULT NOW(),
-        UNIQUE(blocker_user_id, blocked_user_id)
-      )
-    `);
     const r = await db.query(
       `SELECT b.blocked_user_id, b.created_at, p.username, p.display_name, p.avatar_url
        FROM elix_blocked_users b LEFT JOIN profiles p ON p.user_id = b.blocked_user_id
@@ -122,7 +117,7 @@ export async function handleListBlockedUsers(req: Request, res: Response) {
     );
     return res.status(200).json({ data: r.rows });
   } catch (err) {
-    console.error('List blocked users error:', err);
+    logger.error({ err }, 'List blocked users error');
     return res.status(500).json({ error: 'Failed to list blocked users' });
   }
 }
@@ -141,24 +136,17 @@ export async function handleReport(req: Request, res: Response) {
   const reason = String(body.reason || body.category || 'other').slice(0, 200);
   const details = String(body.details || body.description || '').slice(0, 5000);
   if (!targetId) return res.status(400).json({ error: 'targetId is required' });
-  await db.query(`
-    CREATE TABLE IF NOT EXISTS elix_reports (
-      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-      reporter_user_id TEXT NOT NULL,
-      target_type TEXT NOT NULL,
-      target_id TEXT NOT NULL,
-      reason TEXT NOT NULL,
-      details TEXT DEFAULT '',
-      status TEXT NOT NULL DEFAULT 'pending',
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    )
-  `);
-  await db.query(
-    `INSERT INTO elix_reports (reporter_user_id, target_type, target_id, reason, details)
-     VALUES ($1, $2, $3, $4, $5)`,
-    [user.sub, targetType, targetId, reason, details],
-  );
-  return res.status(200).json({ success: true });
+  try {
+    await db.query(
+      `INSERT INTO elix_reports (reporter_user_id, target_type, target_id, reason, details)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [user.sub, targetType, targetId, reason, details],
+    );
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    logger.error({ err }, 'Report submission error');
+    return res.status(500).json({ error: 'Failed to submit report' });
+  }
 }
 
 // --- Google Play purchase verification via androidpublisher API ---
@@ -266,10 +254,10 @@ async function verifyAppleReceipt(
 
   if (!issuerId || !keyId || !privateKey) {
     if (process.env.NODE_ENV !== 'production') {
-      console.warn('[IAP] Apple API keys not configured — skipping verification (dev only)');
+      logger.warn('[IAP] Apple API keys not configured — skipping verification (dev only)');
       return { valid: true, detail: 'apple-keys-not-configured-dev' };
     }
-    console.error('[IAP] Apple API keys not configured — rejecting purchase');
+    logger.error('[IAP] Apple API keys not configured — rejecting purchase');
     return { valid: false, detail: 'apple-keys-not-configured' };
   }
 
@@ -382,11 +370,24 @@ export async function handleVerifyPurchase(req: Request, res: Response) {
     }
     if (!isValid) return res.status(400).json({ error: 'Invalid receipt' });
 
+    if (safeProvider === 'apple' && verificationResponse.productId) {
+      if (String(verificationResponse.productId) !== String(packageId)) {
+        logger.warn({ claimed: packageId, actual: verificationResponse.productId }, 'IAP productId mismatch');
+        return res.status(400).json({ error: 'Product ID mismatch' });
+      }
+    }
+
     const coinMap: Record<string, number> = {
+      'com.elixstarlive.coins_10': 10,
+      'com.elixstarlive.coins_50': 50,
       'com.elixstarlive.coins_100': 100,
       'com.elixstarlive.coins_500': 500,
       'com.elixstarlive.coins_1000': 1000,
+      'com.elixstarlive.coins_2000': 2000,
       'com.elixstarlive.coins_5000': 5000,
+      'com.elixstarlive.coins_10000': 10000,
+      'com.elixstarlive.coins_50000': 50000,
+      'com.elixstarlive.coins_100000': 100000,
     };
     const coins = coinMap[String(packageId)] || 0;
     if (coins <= 0) return res.status(400).json({ error: 'Unknown coin package' });
@@ -416,8 +417,8 @@ export async function handleVerifyPurchase(req: Request, res: Response) {
     }
     return res.status(500).json({ error: 'error' in credited ? credited.error : 'Credit failed' });
   } catch (error: any) {
-    console.error('Purchase verification error:', error);
-    return res.status(500).json({ error: error.message || 'Purchase verification failed' });
+    logger.error({ err: error?.message }, 'Purchase verification error');
+    return res.status(500).json({ error: 'Purchase verification failed' });
   }
 }
 
@@ -461,17 +462,22 @@ export async function handlePromoteIAPComplete(req: Request, res: Response) {
   }
   if (!valid) return res.status(400).json({ error: 'Invalid or unverified transaction' });
 
-  await neonInsertPromotePurchase({
-    userId: user.sub,
-    provider,
-    providerTransactionId: String(transactionId),
-    productId: String(productId),
-    contentType: String(contentType || 'video'),
-    contentId: String(contentId || ''),
-    goal: meta.goal,
-    amountGbp: meta.amountGbp,
-  });
-  return res.json({ success: true, message: 'Promote purchase recorded' });
+  try {
+    await neonInsertPromotePurchase({
+      userId: user.sub,
+      provider,
+      providerTransactionId: String(transactionId),
+      productId: String(productId),
+      contentType: String(contentType || 'video'),
+      contentId: String(contentId || ''),
+      goal: meta.goal,
+      amountGbp: meta.amountGbp,
+    });
+    return res.json({ success: true, message: 'Promote purchase recorded' });
+  } catch (err) {
+    logger.error({ err }, 'Promote purchase recording error');
+    return res.status(500).json({ error: 'Failed to record promote purchase' });
+  }
 }
 
 // --- Membership IAP complete (Apple/Google) ---
@@ -504,12 +510,16 @@ export async function handleMembershipIAPComplete(req: Request, res: Response) {
     if (!google.valid) return res.status(400).json({ error: 'Invalid or unverified transaction' });
   }
 
-  await neonInsertMembershipPurchase({
-    userId: user.sub,
-    creatorId,
-    provider,
-    providerTransactionId: transactionId,
-  });
-
-  return res.json({ success: true, message: 'Membership recorded' });
+  try {
+    await neonInsertMembershipPurchase({
+      userId: user.sub,
+      creatorId,
+      provider,
+      providerTransactionId: transactionId,
+    });
+    return res.json({ success: true, message: 'Membership recorded' });
+  } catch (err) {
+    logger.error({ err }, 'Membership purchase recording error');
+    return res.status(500).json({ error: 'Failed to record membership' });
+  }
 }

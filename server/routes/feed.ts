@@ -13,12 +13,24 @@ import { getTokenFromRequest, verifyAuthToken } from "./auth";
 
 const feedCache = new Map<string, { data: any[]; ts: number }>();
 const CACHE_TTL = 15_000;
+const MAX_FEED_CACHE_ENTRIES = 200;
 const trendingCache: { data: any[] | null; ts: number } = { data: null, ts: 0 };
 const TRENDING_CACHE_TTL = 30_000;
 
 const viewRateLimit = new Map<string, { count: number; windowStart: number }>();
 const RATE_LIMIT_WINDOW = 60_000;
 const RATE_LIMIT_MAX_VIEWS = 120;
+const MAX_RATE_LIMIT_ENTRIES = 50_000;
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of feedCache) {
+    if (now - v.ts > CACHE_TTL) feedCache.delete(k);
+  }
+  for (const [k, v] of viewRateLimit) {
+    if (now - v.windowStart > RATE_LIMIT_WINDOW) viewRateLimit.delete(k);
+  }
+}, 30_000).unref();
 
 function getIpHash(req: Request): string {
   const ip =
@@ -37,6 +49,10 @@ function checkRateLimit(key: string): boolean {
   const now = Date.now();
   const entry = viewRateLimit.get(key);
   if (!entry || now - entry.windowStart > RATE_LIMIT_WINDOW) {
+    if (viewRateLimit.size >= MAX_RATE_LIMIT_ENTRIES) {
+      const oldest = viewRateLimit.keys().next().value;
+      if (oldest) viewRateLimit.delete(oldest);
+    }
     viewRateLimit.set(key, { count: 1, windowStart: now });
     return true;
   }
@@ -194,6 +210,10 @@ export async function handleForYouFeed(req: Request, res: Response) {
     }
 
     if (formatted.length > 0) {
+      if (feedCache.size >= MAX_FEED_CACHE_ENTRIES) {
+        const oldest = feedCache.keys().next().value;
+        if (oldest) feedCache.delete(oldest);
+      }
       feedCache.set(cacheKey, { data: formatted, ts: Date.now() });
     }
 
@@ -207,7 +227,7 @@ export async function handleForYouFeed(req: Request, res: Response) {
       source: db ? "postgres_all" : "memory_all",
     });
   } catch (err: any) {
-    console.error("[ForYouFeed] Error:", err?.message || err);
+    logger.error({ err: err?.message }, "ForYouFeed error");
     res.status(500).json({ error: "Failed to generate feed" });
   }
 }
@@ -272,13 +292,16 @@ export async function handleTrackView(req: Request, res: Response) {
 
     res.json({ ok: true });
   } catch (err: any) {
-    console.error("[TrackView] Error:", err?.message || err);
+    logger.error({ err: err?.message }, "TrackView error");
     res.status(500).json({ error: "Failed to track view" });
   }
 }
 
 export async function handleTrackInteraction(req: Request, res: Response) {
   try {
+    const userId = await getUserId(req);
+    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
     const { videoId, type, data: _data } = req.body;
     if (!videoId || !type)
       return res.status(400).json({ error: "videoId and type required" });
@@ -298,7 +321,7 @@ export async function handleTrackInteraction(req: Request, res: Response) {
 
     res.json({ ok: true });
   } catch (err: any) {
-    console.error("[TrackInteraction] Error:", err?.message || err);
+    logger.error({ err: err?.message }, "TrackInteraction error");
     res.status(500).json({ error: "Failed to track interaction" });
   }
 }
@@ -391,7 +414,7 @@ export async function handleFriendsFeed(req: Request, res: Response) {
     const mapped = friendVids.map((v) => formatVideoForClient(v, likedSet, followingSet));
     return res.json({ videos: mapped });
   } catch (err) {
-    console.error("[friends feed]", err);
+    logger.error({ err }, "Friends feed error");
     return res.json({ videos: [] });
   }
 }

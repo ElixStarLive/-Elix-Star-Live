@@ -116,10 +116,7 @@ app.use(
 // ── JSON body parser ─────────────────────────────────────────────
 app.use(express.json());
 
-// ── Rate limiter on API routes ───────────────────────────────────
-app.use("/api", apiLimiter);
-
-// ── Health (with DB check) ────────────────────────────────────────
+// ── Health (before rate limiter — must be exempt for LB/monitoring) ──
 async function healthCheck(_req: express.Request, res: express.Response) {
   let dbOk = false;
   try {
@@ -152,6 +149,9 @@ async function healthCheck(_req: express.Request, res: express.Response) {
 }
 app.get("/health", healthCheck);
 app.get("/api/health", healthCheck);
+
+// ── Rate limiter on API routes ───────────────────────────────────
+app.use("/api", apiLimiter);
 
 // ── Mount all API routes ─────────────────────────────────────────
 mountRoutes(app);
@@ -283,11 +283,14 @@ process.on("uncaughtException", (error) => {
   server.close(() => process.exit(1));
   setTimeout(() => process.exit(1), 5000);
 });
-process.on("SIGTERM", () => {
-  logger.info("Shutting down...");
+function gracefulShutdown(signal: string) {
+  logger.info({ signal }, "Shutting down...");
   stopBattleTickLoop();
   server.close(() => {
     logger.info("Server closed");
     process.exit(0);
   });
-});
+  setTimeout(() => process.exit(0), 10_000);
+}
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));

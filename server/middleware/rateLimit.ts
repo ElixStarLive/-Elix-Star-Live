@@ -9,6 +9,7 @@ interface WindowEntry {
 }
 
 const localWindows = new Map<string, WindowEntry>();
+const MAX_LOCAL_WINDOWS = 50_000;
 
 const CLEANUP_INTERVAL = 60_000;
 setInterval(() => {
@@ -17,7 +18,7 @@ setInterval(() => {
     entry.timestamps = entry.timestamps.filter((t) => now - t < 120_000);
     if (entry.timestamps.length === 0) localWindows.delete(key);
   }
-}, CLEANUP_INTERVAL);
+}, CLEANUP_INTERVAL).unref();
 
 function localRateCheck(
   key: string,
@@ -27,6 +28,10 @@ function localRateCheck(
   const now = Date.now();
   let entry = localWindows.get(key);
   if (!entry) {
+    if (localWindows.size >= MAX_LOCAL_WINDOWS) {
+      const oldest = localWindows.keys().next().value;
+      if (oldest) localWindows.delete(oldest);
+    }
     entry = { timestamps: [] };
     localWindows.set(key, entry);
   }

@@ -1,4 +1,5 @@
 import { Client, broadcastToRoom, sendToClient, sendToUserGlobal } from "./index";
+import { logger } from "../lib/logger";
 import {
   getUserBattleRoom,
   createBattle,
@@ -8,6 +9,7 @@ import {
   addBattleScoreForTarget,
   broadcastBattleState,
   getBattleFromStore,
+  getBattleScores,
 } from "./battle";
 import { getGiftValue, normalizeBattleTarget } from "./giftRegistry";
 import {
@@ -16,8 +18,7 @@ import {
 import { removeActiveStream } from "../routes/livestream";
 import {
   wsRateCheck,
-  isTransactionDuplicate,
-  markTransactionProcessed,
+  tryClaimTransaction,
   setCohostLayout,
   deleteCohostLayout,
 } from "./index";
@@ -56,21 +57,17 @@ export async function handleMessage(
         if (!(await wsRateCheck(client.userId, "gift", 50, 5_000))) break;
         const { transactionId } = data;
 
+        const now = Date.now();
         if (transactionId) {
-          const txnCheck = await isTransactionDuplicate(transactionId);
-          if (txnCheck.duplicate) {
+          const claim = await tryClaimTransaction(transactionId, now);
+          if (!claim.claimed) {
             sendToClient(client, "gift_ack", {
               transactionId,
               status: "duplicate",
-              timestamp: txnCheck.timestamp,
+              timestamp: claim.existingTimestamp,
             });
             return;
           }
-        }
-
-        const now = Date.now();
-        if (transactionId) {
-          await markTransactionProcessed(transactionId, now);
         }
 
         broadcastToRoom(client.roomId, "gift_sent", {
@@ -202,6 +199,9 @@ export async function handleMessage(
             await endBattle(client.roomId);
             break;
           }
+          const scores = currentBattle.status === "ACTIVE"
+            ? await getBattleScores(client.roomId)
+            : currentBattle;
           sendToClient(client, "battle_state_sync", {
             id: currentBattle.id,
             status: currentBattle.status,
@@ -213,10 +213,10 @@ export async function handleMessage(
             player3Name: currentBattle.player3Name,
             player4UserId: currentBattle.player4UserId,
             player4Name: currentBattle.player4Name,
-            hostScore: currentBattle.hostScore,
-            opponentScore: currentBattle.opponentScore,
-            player3Score: currentBattle.player3Score,
-            player4Score: currentBattle.player4Score,
+            hostScore: scores.hostScore,
+            opponentScore: scores.opponentScore,
+            player3Score: scores.player3Score,
+            player4Score: scores.player4Score,
             timeLeft: currentBattle.timeLeft,
             endsAt: currentBattle.endsAt,
             winner: currentBattle.winner,
@@ -409,9 +409,9 @@ export async function handleMessage(
 
       default:
         if (process.env.NODE_ENV !== "production")
-          console.log("Unknown event:", event);
+          logger.warn({ event }, "Unknown WS event");
     }
   } catch (err) {
-    console.error(`Error handling event '${event}':`, err);
+    logger.error({ err, event }, "Error handling WS event");
   }
 }

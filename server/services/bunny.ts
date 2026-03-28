@@ -49,33 +49,37 @@ async function uploadViaStorage(
   const headers: Record<string, string> = { AccessKey: ACCESS_KEY };
   if (contentType) headers['Content-Type'] = contentType;
 
+  try {
+    const res = await fetch(url, {
+      method: 'PUT',
+      headers,
+      body,
+      duplex: 'half',
+    } as RequestInit);
 
-  const res = await fetch(url, {
-    method: 'PUT',
-    headers,
-    body,
-    duplex: 'half',
-  } as RequestInit);
+    if (!res.ok) {
+      const text = await res.text();
+      logger.error({ path, status: res.status, body: text }, "Bunny Storage upload failed");
+      return { success: false, path, error: `Bunny API ${res.status}: ${text}` };
+    }
 
-  if (!res.ok) {
-    const text = await res.text();
-    logger.error({ path, status: res.status, body: text }, "Bunny Storage upload failed");
-    return { success: false, path, error: `Bunny API ${res.status}: ${text}` };
+    const rawHost =
+      process.env.BUNNY_CDN_HOSTNAME ||
+      process.env.BUNNY_STORAGE_HOSTNAME ||
+      '';
+    const host = rawHost
+      .trim()
+      .replace(/^https?:\/\//i, '')
+      .split('/')[0] || '';
+    const storageCdnHost = host ? `https://${host}` : `https://elixstorage.b-cdn.net`;
+    const cdnUrl = `${storageCdnHost}/${path.replace(/^\/+/, '')}`;
+
+    return { success: true, path, cdnUrl };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    logger.error({ err: message, path }, "Bunny Storage upload exception");
+    return { success: false, path, error: message };
   }
-
-  // Prefer explicit pull zone; fall back to BUNNY_STORAGE_HOSTNAME (same as env.js / Vite).
-  const rawHost =
-    process.env.BUNNY_CDN_HOSTNAME ||
-    process.env.BUNNY_STORAGE_HOSTNAME ||
-    '';
-  const host = rawHost
-    .trim()
-    .replace(/^https?:\/\//i, '')
-    .split('/')[0] || '';
-  const storageCdnHost = host ? `https://${host}` : `https://elixstorage.b-cdn.net`;
-  const cdnUrl = `${storageCdnHost}/${path.replace(/^\/+/, '')}`;
-
-  return { success: true, path, cdnUrl };
 }
 
 /**

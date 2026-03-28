@@ -37,6 +37,8 @@ import {
   valkeySrem,
   valkeyScard,
   valkeySmembers,
+  valkeySetNx,
+  valkeyExpire,
 } from "../lib/valkey";
 import { getPool } from "../lib/postgres";
 import { getUserBattleRoom, endBattle, getBattleFromStore } from "./battle";
@@ -207,6 +209,23 @@ export function broadcastToRoom(
 
 // ── Transaction dedup (Valkey-only) ──────────────────────────────
 
+/**
+ * Atomic claim: SET NX ensures only one worker/request can claim a transaction.
+ * Returns { claimed: true } on first call, { claimed: false } on duplicates.
+ */
+export async function tryClaimTransaction(
+  transactionId: string,
+  timestamp: number,
+): Promise<{ claimed: boolean; existingTimestamp?: number }> {
+  if (!isValkeyConfigured()) return { claimed: true };
+  const key = `txn:${transactionId}`;
+  const claimed = await valkeySetNx(key, String(timestamp), 300_000);
+  if (claimed) return { claimed: true };
+  const val = await valkeyGet(key);
+  return { claimed: false, existingTimestamp: val ? Number(val) : undefined };
+}
+
+/** @deprecated Use tryClaimTransaction for atomic dedup */
 export async function isTransactionDuplicate(
   transactionId: string,
 ): Promise<{ duplicate: boolean; timestamp?: number }> {
@@ -329,6 +348,9 @@ async function updateViewerCount(roomId: string): Promise<void> {
   let count: number;
   if (isValkeyConfigured()) {
     count = await valkeyScard(`room:members:${roomId}`);
+    if (count > 0) {
+      await valkeyExpire(`room:members:${roomId}`, ROOM_MEMBER_TTL);
+    }
   } else {
     const room = rooms.get(roomId);
     count = room ? room.size : 0;
@@ -491,6 +513,7 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
 
       if (isValkeyConfigured()) {
         await valkeySadd(`room:members:${roomId}`, userId);
+        await valkeyExpire(`room:members:${roomId}`, ROOM_MEMBER_TTL);
       }
 
       const viewers = await buildViewerList(roomId);

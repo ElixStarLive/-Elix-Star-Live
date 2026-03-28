@@ -312,6 +312,16 @@ export async function valkeyHgetall(key: string): Promise<Record<string, string>
   }
 }
 
+export async function valkeyHincrby(key: string, field: string, increment: number): Promise<number> {
+  const v = getValkey();
+  if (!v) return 0;
+  try {
+    return await v.hincrby(key, field, increment);
+  } catch {
+    return 0;
+  }
+}
+
 export async function valkeyExpire(key: string, ttlSeconds: number): Promise<void> {
   const v = getValkey();
   if (!v) return;
