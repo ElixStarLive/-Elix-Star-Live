@@ -7,7 +7,7 @@ import pg from "pg";
 import type { Video } from "./videoStore";
 import { logger } from "./logger";
 import { bumpFeedForyouEpoch } from "./feedCacheValkey";
-import { instrumentPool } from "./dbRequestContext";
+import { instrumentPool, instrumentPoolConnect } from "./dbRequestContext";
 import {
   CATALOG_HTTP_CACHE_TTL_MS,
   COIN_PACKAGES_KEY,
@@ -144,6 +144,7 @@ export async function connectPostgres(): Promise<void> {
     await newPool.query("SELECT 1");
     await assertMigrationsApplied(newPool);
     instrumentPool(newPool);
+    instrumentPoolConnect(newPool);
     pool = newPool;
     logger.info(
       {

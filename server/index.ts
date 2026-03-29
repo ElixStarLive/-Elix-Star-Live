@@ -120,7 +120,7 @@ let _logCounter = 0;
 
 app.use(httpMetricsMiddleware);
 
-/** Per-request DB stats bucket for pool.query instrumentation (AsyncLocalStorage). */
+/** Per-request DB stats: pool.query + pool.connect().query (AsyncLocalStorage). */
 app.use((req, res, next) => {
   runWithDbStats(() => next());
 });
@@ -136,11 +136,16 @@ app.use((req, res, next) => {
   const start = Date.now();
   const shouldLogLine = !isLoadTest && (++_logCounter % LOG_SAMPLE) === 0;
   const logDbStats = process.env.LOG_DB_STATS === "1";
+  /** Log dbQueries + dbMs on every request (verbose; use for Phase 1 proof / short windows). */
+  const logDbStatsEvery = process.env.LOG_HTTP_DB_STATS_EVERY === "1";
 
   res.on("finish", () => {
-    if (isLoadTest && !logDbStats) return;
     const ms = Date.now() - start;
     const db = getDbRequestStats();
+    if (ms >= SLOW_WALL_MS) bumpSlowRequest("wall_ms");
+    if (db && db.dbMs >= SLOW_DB_MS) bumpSlowRequest("db_ms");
+
+    if (isLoadTest && !logDbStats && !logDbStatsEvery) return;
     const slowDb =
       !isLoadTest &&
       Boolean(
@@ -149,18 +154,16 @@ app.use((req, res, next) => {
             db.queryCount >= 8 ||
             (req.originalUrl.startsWith("/api/") && ms >= 2000 && (db.queryCount > 0 || db.dbMs > 0))),
       );
-    if (!shouldLogLine && !logDbStats && !slowDb) return;
+    if (!logDbStatsEvery && !shouldLogLine && !logDbStats && !slowDb) return;
 
     const payload: Record<string, unknown> = {
       method: req.method,
       url: req.originalUrl,
       status: res.statusCode,
       ms,
+      dbQueries: db?.queryCount ?? 0,
+      dbMs: db?.dbMs ?? 0,
     };
-    if (db && (shouldLogLine || logDbStats || slowDb)) {
-      payload.dbQueries = db.queryCount;
-      payload.dbMs = db.dbMs;
-    }
     logger.info(payload, "http_request");
   });
 

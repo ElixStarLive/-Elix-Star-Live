@@ -59,4 +59,5 @@ COPY --from=builder /app/.env.example ./.env
 
 EXPOSE 8080
 
-CMD ["npx", "tsx", "server/cluster.ts"]
+# Migrations must run once per deploy (Coolify **Release command**: npm run migrate), not here on every replica boot.
+CMD ["npm", "run", "start:prod"]

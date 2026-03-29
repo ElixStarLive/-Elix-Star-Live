@@ -1,5 +1,11 @@
 # Staged load testing (backend observability)
 
+## Phase 1 — Instrumentation (complete)
+
+- **Counted in `dbQueries` / `dbMs`:** `pool.query()` **and** `pool.connect()` → `client.query()` (wallet, payout, transactions in `postgres.ts`, etc.).
+- **`GET /api/metrics?light=1`** includes **`pg_pool.waiting`** (and `total`, `idle`) — no extra DB ping.
+- **Per-request logs:** every sampled/slow/`LOG_DB_STATS` line includes **`dbQueries`** and **`dbMs`**. For a **full log of every request** with DB stats (short windows only), set **`LOG_HTTP_DB_STATS_EVERY=1`** (high volume).
+
 Use **staged virtual users** before attempting ~40k VUs. The load generator host can OOM or be SIGKILL’d under extreme parallelism — watch `dmesg`, k6 `--summary-export`, and **free RAM** on the runner.
 
 ## Recommended stages (max VUs per stage, hold ~60s each)
