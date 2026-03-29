@@ -1,0 +1,30 @@
+---
+description: No patches or hacks on real/production connections — proper fixes only
+globs: ["**/*"]
+alwaysApply: true
+---
+
+# No patches on real connection
+
+The owner requires **durable, proper fixes** for anything that touches **real infrastructure, production, or live API/network behavior**.
+
+## Forbidden (especially when not localhost / mock)
+
+- Stopgap “patches” that paper over contract mismatches instead of fixing server + client alignment
+- Client-only shims that mask missing or wrong server responses on real hosts
+- Silent catch-and-ignore on real auth, wallet, payments, DB, or streaming paths
+- Fake success, placeholder data, or stubbed responses against the real backend
+- Time-bomb TODO hacks presented as finished behavior for production
+
+## Required
+
+- **One clear contract** between client and server (types, explicit normalization, documented JSON shapes) when fixing auth, API, or session flows
+- **Server** should emit consistent JSON where it owns the contract; **client** validates/nomalizes explicitly, not with accidental library edge cases
+- Fail visibly (correct errors) rather than hide failures on real connections
+- Prefer the smallest change that is still **honest and complete** for production, not the smallest hack
+
+## Local / dev only
+
+- Short-lived debugging or mocks are acceptable **only** when clearly scoped to local/dev and cannot affect production builds or real URLs unless explicitly requested.
+
+Default: **never patch the app in a way that lies to real users or real backends.**
