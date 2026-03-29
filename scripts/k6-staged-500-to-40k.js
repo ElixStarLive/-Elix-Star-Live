@@ -12,6 +12,9 @@
  *
  * Optional:
  *   --env COMPACT=1   → fewer stages (500 → 5k → 15k → 40k), shorter total time
+ *
+ * For ~40k total VUs, one machine often tops out ~10k — use four runners:
+ *   docs/K6_40K_DISTRIBUTED.md  and  scripts/k6-steady-10k.js
  */
 import http from "k6/http";
 import { check, sleep } from "k6";
