@@ -49,6 +49,8 @@ function getClientIp(req: Request): string {
   return req.ip || req.socket.remoteAddress || "unknown";
 }
 
+const LOADTEST_SECRET = process.env.LOADTEST_BYPASS_SECRET || "";
+
 export function rateLimit(opts: {
   windowMs: number;
   max: number;
@@ -57,6 +59,11 @@ export function rateLimit(opts: {
   const { windowMs, max, keyPrefix = "rl" } = opts;
 
   return (req: Request, res: Response, next: NextFunction): void => {
+    if (LOADTEST_SECRET && req.headers["x-loadtest-key"] === LOADTEST_SECRET) {
+      next();
+      return;
+    }
+
     const ip = getClientIp(req);
     const key = `${keyPrefix}:${ip}`;
 
