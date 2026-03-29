@@ -78,10 +78,10 @@ function formatVideoForClient(
   const uname = u?.username ?? "user";
   return {
     id: v.id,
-    url: v.url || v.video_url, // Handle both
-    thumbnail: v.thumbnail_url || v.thumb_url || "",
-    duration: v.duration_seconds
-      ? `${Math.floor(v.duration_seconds / 60)}:${String(Math.floor(v.duration_seconds % 60)).padStart(2, "0")}`
+    url: v.url || v.video_url,
+    thumbnail: v.thumbnail || v.thumbnail_url || v.thumb_url || "",
+    duration: (v.duration_seconds || v.duration)
+      ? `${Math.floor((v.duration_seconds || v.duration) / 60)}:${String(Math.floor((v.duration_seconds || v.duration) % 60)).padStart(2, "0")}`
       : "0:15",
     user: {
       id: uid,
@@ -155,10 +155,9 @@ export async function handleForYouFeed(req: Request, res: Response) {
 
     if (db) {
       const { rows } = await db.query(
-        `SELECT v.id, v.url, v.video_url, v.thumbnail_url, v.thumb_url, v.duration_seconds,
-                v.description, v.caption, v.hashtags, v.views, v.likes, v.likes_count,
-                v.comments, v.comments_count, v.shares, v.shares_count, v.saves,
-                v.created_at, v.privacy, v.is_public, v.engagement_score, v.user_id,
+        `SELECT v.id, v.url, v.thumbnail, v.duration, v.description, v.hashtags,
+                v.views, v.likes, v.comments, v.shares, v.saves,
+                v.created_at, v.privacy, v.user_id,
                 row_to_json(p) AS user
          FROM videos v
          LEFT JOIN profiles p ON p.user_id = v.user_id
