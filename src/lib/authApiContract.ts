@@ -4,18 +4,27 @@
  */
 import { z } from "zod";
 
-const authSessionJsonSchema = z.object({
-  access_token: z.string().min(1),
-  accessToken: z.string().min(1).optional(),
-});
+/** Either snake_case or camelCase — server sends both; proxies must not strip both. */
+const authSessionJsonSchema = z
+  .object({
+    access_token: z.string().min(1).optional(),
+    accessToken: z.string().min(1).optional(),
+  })
+  .refine(
+    (s) =>
+      (typeof s.access_token === "string" && s.access_token.length > 0) ||
+      (typeof s.accessToken === "string" && s.accessToken.length > 0),
+    { message: "session.access_token or session.accessToken required" },
+  );
 
 const authUserJsonSchema = z
   .object({
     id: z.union([z.string(), z.number()]),
-    email: z.string().optional(),
+    // DB / JSON often uses null; z.string().optional() rejects null in Zod 4.
+    email: z.string().nullish(),
     user_metadata: z.record(z.string(), z.unknown()).optional(),
-    email_confirmed_at: z.string().optional(),
-    created_at: z.string().optional(),
+    email_confirmed_at: z.string().nullish(),
+    created_at: z.string().nullish(),
   })
   .passthrough();
 
@@ -41,8 +50,10 @@ export function parseAuthLoginRegisterResponse(data: unknown): {
   const parsed = authLoginRegisterSuccessSchema.safeParse(data);
   if (!parsed.success) return null;
   const u = parsed.data.user;
+  const sess = parsed.data.session;
+  const accessToken = sess.access_token ?? sess.accessToken ?? "";
   return {
     user: { ...u, id: String(u.id) },
-    accessToken: parsed.data.session.access_token,
+    accessToken,
   };
 }
