@@ -76,7 +76,13 @@ app.use(cors({
     }
   },
 }));
-app.use(compression());
+app.use(compression({
+  level: 1,
+  filter: (req, res) => {
+    if (req.path.startsWith("/api/")) return false;
+    return compression.filter(req, res);
+  },
+}));
 app.use(requestIdMiddleware);
 
 app.use((req, res, next) => {
@@ -274,7 +280,7 @@ initBattleTickLoop();
 
 try {
   await initPostgres();
-  server.listen(PORT, "0.0.0.0", () => {
+  server.listen(PORT, "0.0.0.0", 8192, () => {
     logger.info(
       { port: PORT, version: BUILD_VERSION },
       "Server running successfully — no startup bulk loads (DB is source of truth)",
