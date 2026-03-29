@@ -136,6 +136,7 @@ export async function handleForYouFeed(req: Request, res: Response) {
     const cacheKey = `foryou:all:${page}:${limit}`;
     const cached = feedCache.get(cacheKey);
     if (cached && Date.now() - cached.ts < CACHE_TTL) {
+      res.setHeader("Cache-Control", "public, s-maxage=15, max-age=10");
       return res.json({
         videos: cached.data,
         mutualUserIds: [],
@@ -209,6 +210,7 @@ export async function handleForYouFeed(req: Request, res: Response) {
       feedCache.set(cacheKey, { data: formatted, ts: Date.now() });
     }
 
+    res.setHeader("Cache-Control", "public, s-maxage=15, max-age=10");
     return res.json({
       videos: formatted,
       mutualUserIds: [],

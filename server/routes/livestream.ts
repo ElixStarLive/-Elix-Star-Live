@@ -102,6 +102,7 @@ const STREAMS_CACHE_TTL = 5_000;
 export async function handleGetStreams(_req: Request, res: Response) {
   const now = Date.now();
   if (streamsCache && now - streamsCache.ts < STREAMS_CACHE_TTL) {
+    res.setHeader("Cache-Control", "public, s-maxage=5, max-age=5");
     return res.status(200).json(streamsCache.data);
   }
   if (isLiveKitConfigured()) {
@@ -128,6 +129,7 @@ export async function handleGetStreams(_req: Request, res: Response) {
 
       const result = { streams };
       streamsCache = { data: result, ts: Date.now() };
+      res.setHeader("Cache-Control", "public, s-maxage=5, max-age=5");
       return res.status(200).json(result);
     } catch (err) {
       logger.warn({ err }, "LiveKit list streams failed, falling back to DB");
@@ -148,6 +150,7 @@ export async function handleGetStreams(_req: Request, res: Response) {
 
   const result = { streams };
   streamsCache = { data: result, ts: Date.now() };
+  res.setHeader("Cache-Control", "public, s-maxage=5, max-age=5");
   return res.status(200).json(result);
 }
 

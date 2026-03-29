@@ -84,5 +84,6 @@ export async function handleGetCoinPackages(_req: Request, res: Response) {
       is_popular: false,
     },
   ];
+  res.setHeader("Cache-Control", "public, s-maxage=300, max-age=60");
   return res.status(200).json({ packages });
 }

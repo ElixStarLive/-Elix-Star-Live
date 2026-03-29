@@ -455,6 +455,7 @@ const PROFILES_LIST_CACHE_TTL = 30_000;
 export async function handleListProfiles(_req: Request, res: Response): Promise<void> {
   const now = Date.now();
   if (profilesListCache && now - profilesListCache.ts < PROFILES_LIST_CACHE_TTL) {
+    res.setHeader("Cache-Control", "public, s-maxage=30, max-age=15");
     res.json(profilesListCache.data);
     return;
   }
@@ -513,6 +514,7 @@ export async function handleListProfiles(_req: Request, res: Response): Promise<
 
   const result = { profiles: Array.from(merged.values()) };
   profilesListCache = { data: result, ts: now };
+  res.setHeader("Cache-Control", "public, s-maxage=30, max-age=15");
   res.json(result);
 }
 

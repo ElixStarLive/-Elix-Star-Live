@@ -146,6 +146,7 @@ const HEALTH_CACHE_TTL = 5_000;
 async function healthCheck(_req: express.Request, res: express.Response) {
   const now = Date.now();
   if (healthCache && now - healthCache.ts < HEALTH_CACHE_TTL) {
+    res.setHeader("Cache-Control", "public, s-maxage=5, max-age=5");
     return res.status(healthCache.code).json(healthCache.data);
   }
 
@@ -178,6 +179,7 @@ async function healthCheck(_req: express.Request, res: express.Response) {
     },
   };
   healthCache = { data, code, ts: now };
+  res.setHeader("Cache-Control", "public, s-maxage=5, max-age=5");
   res.status(code).json(data);
 }
 app.get("/health", healthCheck);

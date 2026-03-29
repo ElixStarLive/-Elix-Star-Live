@@ -173,6 +173,7 @@ const DEFAULT_GIFTS = [
 
 /** GET /api/gifts/catalog — return active gifts */
 export async function handleGetGiftCatalog(_req: Request, res: Response) {
+  res.setHeader("Cache-Control", "public, s-maxage=300, max-age=60");
   return res.status(200).json({ gifts: DEFAULT_GIFTS });
 }
 
