@@ -1,37 +1,21 @@
 /**
- * Client contract for auth JSON returned by server/routes/auth.ts
- * (handleLogin, handleRegister). Update here if those handlers change shape.
+ * Normalizes successful login / register JSON from server/routes/auth.ts
+ * (`authLoginRegisterBody`). Invariants: plain objects, non-empty user.id, non-empty JWT string
+ * in session.access_token or session.accessToken. No UI; no schema library — mirrors server contract.
  */
-import { z } from "zod";
 
-/** Either snake_case or camelCase — server sends both; proxies must not strip both. */
-const authSessionJsonSchema = z
-  .object({
-    access_token: z.string().min(1).optional(),
-    accessToken: z.string().min(1).optional(),
-  })
-  .refine(
-    (s) =>
-      (typeof s.access_token === "string" && s.access_token.length > 0) ||
-      (typeof s.accessToken === "string" && s.accessToken.length > 0),
-    { message: "session.access_token or session.accessToken required" },
-  );
+function asPlainObject(v: unknown): Record<string, unknown> | null {
+  if (v === null || typeof v !== "object" || Array.isArray(v)) return null;
+  return v as Record<string, unknown>;
+}
 
-const authUserJsonSchema = z
-  .object({
-    id: z.union([z.string(), z.number()]),
-    // DB / JSON often uses null; z.string().optional() rejects null in Zod 4.
-    email: z.string().nullish(),
-    user_metadata: z.record(z.string(), z.unknown()).optional(),
-    email_confirmed_at: z.string().nullish(),
-    created_at: z.string().nullish(),
-  })
-  .passthrough();
-
-const authLoginRegisterSuccessSchema = z.object({
-  user: authUserJsonSchema,
-  session: authSessionJsonSchema,
-});
+function nonEmptySessionToken(session: Record<string, unknown>): string | null {
+  const a = session.access_token;
+  const b = session.accessToken;
+  if (typeof a === "string" && a.length > 0) return a;
+  if (typeof b === "string" && b.length > 0) return b;
+  return null;
+}
 
 export type NormalizedAuthUser = {
   id: string;
@@ -42,18 +26,41 @@ export type NormalizedAuthUser = {
   [key: string]: unknown;
 };
 
-/** Parse 200/201 login or register response body. Returns null if JSON does not match the server contract. */
+/** Parse 200/201 bodies that match `authLoginRegisterBody` (login, register). */
 export function parseAuthLoginRegisterResponse(data: unknown): {
   user: NormalizedAuthUser;
   accessToken: string;
 } | null {
-  const parsed = authLoginRegisterSuccessSchema.safeParse(data);
-  if (!parsed.success) return null;
-  const u = parsed.data.user;
-  const sess = parsed.data.session;
-  const accessToken = sess.access_token ?? sess.accessToken ?? "";
-  return {
-    user: { ...u, id: String(u.id) },
-    accessToken,
+  const root = asPlainObject(data);
+  if (!root) return null;
+
+  const userRaw = asPlainObject(root.user);
+  const sessionRaw = asPlainObject(root.session);
+  if (!userRaw || !sessionRaw) return null;
+
+  const idVal = userRaw.id;
+  if (idVal === undefined || idVal === null) return null;
+  const id = String(idVal).trim();
+  if (!id) return null;
+
+  const accessToken = nonEmptySessionToken(sessionRaw);
+  if (!accessToken) return null;
+
+  const meta = userRaw.user_metadata;
+  let user_metadata: Record<string, unknown> | undefined;
+  if (meta !== undefined && meta !== null && typeof meta === "object" && !Array.isArray(meta)) {
+    user_metadata = meta as Record<string, unknown>;
+  }
+
+  const user: NormalizedAuthUser = {
+    id,
+    ...(typeof userRaw.email === "string" ? { email: userRaw.email } : {}),
+    ...(user_metadata !== undefined ? { user_metadata } : {}),
+    ...(typeof userRaw.email_confirmed_at === "string"
+      ? { email_confirmed_at: userRaw.email_confirmed_at }
+      : {}),
+    ...(typeof userRaw.created_at === "string" ? { created_at: userRaw.created_at } : {}),
   };
+
+  return { user, accessToken };
 }

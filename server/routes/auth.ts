@@ -222,14 +222,34 @@ async function dbDeleteSessionByToken(token: string): Promise<void> {
   await pool.query(`DELETE FROM elix_auth_sessions WHERE token_hash = $1`, [hashSessionToken(token)]);
 }
 
-function toAuthUser(u: StoredUser): { id: string; email?: string; user_metadata?: Record<string, unknown>; email_confirmed_at?: string; created_at?: string } {
+/** Public user object for JSON responses: only strings (no null), so clients do not need null–undefined juggling. */
+function toAuthUser(u: StoredUser): {
+  id: string;
+  email: string;
+  user_metadata: { username: string; full_name: string; avatar_url: string };
+  email_confirmed_at: string;
+  created_at: string;
+} {
   return {
     id: u.id,
-    email: u.email,
-    user_metadata: { username: u.username, full_name: u.username, avatar_url: u.avatar_url },
+    email: u.email || '',
+    user_metadata: {
+      username: u.username || '',
+      full_name: u.username || '',
+      avatar_url: u.avatar_url || '',
+    },
     email_confirmed_at: new Date().toISOString(),
-    created_at: u.created_at,
+    created_at: u.created_at || new Date().toISOString(),
   };
+}
+
+function authSessionJson(token: string) {
+  return { access_token: token, accessToken: token };
+}
+
+/** Same body for login, register, and guest success — one contract for the app. */
+function authLoginRegisterBody(u: StoredUser, token: string) {
+  return { user: toAuthUser(u), session: authSessionJson(token) };
 }
 
 export async function handleLogin(req: Request, res: Response) {
@@ -259,10 +279,7 @@ export async function handleLogin(req: Request, res: Response) {
   const token = signToken({ sub: user.id, email: user.email });
   await dbUpsertSession(user.id, token);
   setAuthCookie(res, token);
-  return res.status(200).json({
-    user: toAuthUser(user),
-    session: { access_token: token, accessToken: token },
-  });
+  return res.status(200).json(authLoginRegisterBody(user, token));
 }
 
 /**
@@ -296,10 +313,7 @@ export async function handleGuestLogin(_req: Request, res: Response) {
   const token = signToken({ sub: guest.id, email: guest.email });
   await dbUpsertSession(guest.id, token);
   setAuthCookie(res, token);
-  return res.status(200).json({
-    user: toAuthUser(guest),
-    session: { access_token: token, accessToken: token },
-  });
+  return res.status(200).json(authLoginRegisterBody(guest, token));
 }
 
 export async function handleRegister(req: Request, res: Response) {
@@ -331,10 +345,7 @@ export async function handleRegister(req: Request, res: Response) {
   const token = signToken({ sub: id, email: e });
   await dbUpsertSession(id, token);
   setAuthCookie(res, token);
-  return res.status(201).json({
-    user: toAuthUser(stored),
-    session: { access_token: token, accessToken: token },
-  });
+  return res.status(201).json(authLoginRegisterBody(stored, token));
 }
 
 export async function handleLogout(req: Request, res: Response) {
@@ -378,8 +389,7 @@ export async function handleMe(req: Request, res: Response) {
     }
   }
   return res.status(200).json({
-    user: toAuthUser(user),
-    session: { access_token: token, accessToken: token },
+    ...authLoginRegisterBody(user, token),
     profile_meta: profileMeta,
   });
 }
