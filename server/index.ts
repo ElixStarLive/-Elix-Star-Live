@@ -13,8 +13,8 @@ import { mountRoutes } from "./routes/index";
 import { attachWebSocket, initWsPubSub } from "./websocket/index";
 import { initBattleTickLoop, stopBattleTickLoop } from "./websocket/battle";
 import { initFeedPubSub } from "./feedBroadcast";
+import crypto from "crypto";
 import { apiLimiter } from "./middleware/rateLimit";
-import { requestIdMiddleware } from "./middleware/requestId";
 import { errorHandler } from "./middleware/errorHandler";
 
 import { isLiveKitConfigured } from "./services/livekit";
@@ -29,8 +29,11 @@ import helmet from "helmet";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+process.setMaxListeners(0);
+
 const app = express();
 const server = createServer(app);
+server.maxConnections = 0;
 const PORT = Number(process.env.PORT) || 8080;
 const BUILD_VERSION = "2026-03-26T20:00-modular-rebuild";
 
@@ -83,9 +86,24 @@ app.use(compression({
     return compression.filter(req, res);
   },
 }));
-app.use(requestIdMiddleware);
+
+const LOADTEST_SECRET = process.env.LOADTEST_BYPASS_SECRET || "";
+const LOG_SAMPLE = Math.max(1, Number(process.env.LOG_SAMPLE_RATE) || 1);
+let _logCounter = 0;
 
 app.use((req, res, next) => {
+  const isLoadTest = LOADTEST_SECRET && req.headers["x-loadtest-key"] === LOADTEST_SECRET;
+
+  if (!isLoadTest) {
+    req.requestId = (req.headers["x-request-id"] as string) || crypto.randomUUID();
+    res.setHeader("X-Request-Id", req.requestId);
+  }
+
+  if (isLoadTest || (++_logCounter % LOG_SAMPLE) !== 0) {
+    next();
+    return;
+  }
+
   const start = Date.now();
   res.on("finish", () => {
     logger.info({
@@ -93,7 +111,6 @@ app.use((req, res, next) => {
       url: req.originalUrl,
       status: res.statusCode,
       ms: Date.now() - start,
-      requestId: req.requestId,
     });
   });
   next();

@@ -22,10 +22,12 @@ import cluster from "node:cluster";
 import os from "node:os";
 import { logger } from "./lib/logger";
 
+cluster.schedulingPolicy = cluster.SCHED_RR;
+
 const CONCURRENCY = Number(process.env.WEB_CONCURRENCY) || Math.min(os.cpus().length, 8);
 
 if (cluster.isPrimary && CONCURRENCY > 1) {
-  logger.info({ workers: CONCURRENCY, pid: process.pid }, "Primary process starting workers");
+  logger.info({ workers: CONCURRENCY, pid: process.pid, scheduling: "round-robin" }, "Primary process starting workers");
 
   for (let i = 0; i < CONCURRENCY; i++) {
     cluster.fork();
