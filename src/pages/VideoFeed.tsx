@@ -418,11 +418,6 @@ export default function VideoFeed() {
     ...videos.map((v): FeedItem => ({ kind: "video", videoId: v.id })),
   ];
 
-  const feedLogRef = useRef(0);
-  if (feedItems.length !== feedLogRef.current) {
-    feedLogRef.current = feedItems.length;
-  }
-
   /* ---- Active slide: IntersectionObserver (only the most visible slide plays audio/video) ---- */
   const feedKey = [
     ...visibleLiveStreams.map((s) => s.streamKey),
@@ -511,7 +506,7 @@ export default function VideoFeed() {
     const prev = prevCountRef.current;
     const cur = feedItems.length;
     prevCountRef.current = cur;
-    if (cur < prev && activeIndex >= cur && cur > 0) {
+    if (cur < prev && activeIndex >= cur && cur >= 0) {
       setActiveIndex(cur - 1);
       containerRef.current?.scrollTo({
         top: (cur - 1) * (containerRef.current?.clientHeight || 0),
@@ -520,7 +515,7 @@ export default function VideoFeed() {
     }
   }, [feedItems.length, activeIndex]);
 
-  const loading = liveLoading && videosLoading;
+  const loading = liveLoading || videosLoading;
 
   /* ================================================================ */
   /*  Render                                                           */

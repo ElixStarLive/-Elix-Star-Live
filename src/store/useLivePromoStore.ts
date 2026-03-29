@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 
-export type LivePromoType = 'live' | 'battle';
+type LivePromoType = 'live' | 'battle';
 
-export type LivePromo = {
+type LivePromo = {
   type: LivePromoType;
   streamId: string;
   likes: number;

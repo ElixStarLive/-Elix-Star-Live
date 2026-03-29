@@ -34,7 +34,7 @@ export default function FollowingFeed() {
       loadData();
       fetchFriendVideos();
     }
-  }, [user?.id, fetchFriendVideos]);
+  }, [user?.id, fetchFriendVideos, followingIds?.join(',')]);
 
   const loadData = async () => {
     if (!user?.id) return;
@@ -128,7 +128,7 @@ export default function FollowingFeed() {
     const slides = container.querySelectorAll('[data-slide-index]');
     slides.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
-  }, [friendVideoIds.length]);
+  }, [friendVideoIds.join(',')]);
 
   const handleVideoEnd = (index: number) => {
     if (!containerRef.current || index >= friendVideoIds.length - 1) return;

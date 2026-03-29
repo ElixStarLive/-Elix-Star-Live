@@ -19,7 +19,6 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { OfflineBanner } from "./components/OfflineBanner";
 import { IncomingCallModal } from "./components/IncomingCallModal";
 import { subscribeToIncomingCalls } from "./lib/callService";
-import { showToast } from "./lib/toast";
 import { websocket } from "./lib/websocket";
 import { Capacitor } from "@capacitor/core";
 import { App as CapacitorApp } from "@capacitor/app";
@@ -170,17 +169,12 @@ function App() {
     } catch (_) {
       /* avoid crashing app */
     }
-    // Crash-safe startup on mobile: defer optional native services until app is stable.
-    if (Capacitor.getPlatform() === "web") {
-      void notificationService.initialize().catch(() => {
-        /* async push init — never block app */
-      });
-      try {
-        initializeIAP();
-      } catch (_) {
-        /* avoid crashing app */
-      }
-    }
+    void notificationService.initialize().catch(() => {
+      /* async push init — never block app */
+    });
+    void initializeIAP().catch(() => {
+      /* async IAP init — never block app */
+    });
 
     return () => clearTimeout(timer);
   }, []);
@@ -188,6 +182,7 @@ function App() {
   useEffect(() => {
     if (user?.id) {
       analytics.setUserId(user.id);
+      void notificationService.registerTokenWithBackend().catch(() => {});
       const unsubCalls = subscribeToIncomingCalls(user.id);
       return () => {
         unsubCalls();

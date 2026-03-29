@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Eye, Radio, RefreshCw } from 'lucide-react';
 import { apiUrl, getWsUrl } from '../lib/api';
 import { useAuthStore } from '../store/useAuthStore';
-import { LIVE_DISCOVER_GRID_AVATAR_PX, LIVE_FEED_CARD_AVATAR_PX } from '../lib/profileFrame';
+import { LIVE_FEED_CARD_AVATAR_PX } from '../lib/profileFrame';
 
 type LiveCreator = {
   id: string;

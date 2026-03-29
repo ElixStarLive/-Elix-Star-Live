@@ -1,20 +1,20 @@
-export { FILTER_PRESETS, applyFilterToCanvas, getFiltersByCategory } from './filters';
+export { FILTER_PRESETS } from './filters';
 export type { FilterPreset, FilterCategory } from './filters';
 
-export { DEFAULT_ENHANCE, enhanceSettingsToCss, applyEnhanceToCanvas, autoEnhance } from './enhance';
+export { DEFAULT_ENHANCE, enhanceSettingsToCss, autoEnhance } from './enhance';
 export type { EnhanceSettings } from './enhance';
 
-export { generateCaptions, generateHashtags, generateTitle } from './captions';
+export { generateCaptions, generateHashtags } from './captions';
 export type { CaptionSuggestion } from './captions';
 
-export { extractThumbnails, generateSmartThumbnail } from './thumbnails';
+export { extractThumbnails } from './thumbnails';
 export type { ThumbnailCandidate } from './thumbnails';
 
-export { VOICE_EFFECTS, VoiceProcessor, createNoiseGate } from './voice';
+export { VOICE_EFFECTS } from './voice';
 export type { VoiceEffect } from './voice';
 
-export { SubtitleGenerator, SUBTITLE_STYLES, SUBTITLE_LANGUAGES, renderSubtitleToCanvas } from './subtitles';
-export type { SubtitleSegment, SubtitleStyle } from './subtitles';
+export { SubtitleGenerator, SUBTITLE_STYLES, SUBTITLE_LANGUAGES } from './subtitles';
+export type { SubtitleStyle } from './subtitles';
 
-export { BACKGROUND_OPTIONS, applyBackgroundBlur, applyBackgroundColor, createSimpleSegmentationMask } from './background';
+export { BACKGROUND_OPTIONS } from './background';
 export type { BackgroundOption } from './background';

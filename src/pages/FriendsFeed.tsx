@@ -33,7 +33,7 @@ export default function FriendsFeed() {
         ]);
         const profilesBody = profilesResult.data ?? { profiles: [] };
         const liveBody = liveResult.data ?? { streams: [] };
-        const liveSet = new Set((liveBody?.streams || []).map((s: any) => s.userId || s.user_id).filter(Boolean));
+        const liveSet = new Set((liveBody?.streams || []).map((s: any) => s.hostUserId || s.userId || s.user_id).filter(Boolean));
 
         const rows = Array.isArray(profilesBody?.profiles) ? profilesBody.profiles : [];
         const blocklist = ['', 'user', 'demo', 'test', 'unknown', 'anonymous', 'guest'];
@@ -89,7 +89,7 @@ export default function FriendsFeed() {
     const slides = container.querySelectorAll('[data-slide-index]');
     slides.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
-  }, [friendVideoIds.length]);
+  }, [friendVideoIds.join(',')]);
 
   const handleVideoEnd = (index: number) => {
     if (!containerRef.current || index >= friendVideoIds.length - 1) return;

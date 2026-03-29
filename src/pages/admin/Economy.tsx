@@ -36,10 +36,12 @@ export default function AdminEconomy() {
         request('/api/boosters/catalog'),
       ]);
 
-      setGifts(Array.isArray(giftsRes.data) ? giftsRes.data : []);
-      setBoosters(Array.isArray(boostersRes.data) ? boostersRes.data : []);
-    } catch (error) {
-
+      const gData = giftsRes.data;
+      setGifts(Array.isArray(gData) ? gData : (Array.isArray(gData?.data) ? gData.data : []));
+      const bData = boostersRes.data;
+      setBoosters(Array.isArray(bData) ? bData : (Array.isArray(bData?.data) ? bData.data : []));
+    } catch {
+      showToast('Failed to load economy data');
     } finally {
       setLoading(false);
     }
@@ -55,8 +57,7 @@ export default function AdminEconomy() {
       if (error) throw error;
       showToast('Price updated');
       loadData();
-    } catch (error) {
-
+    } catch {
       showToast('Failed to update price');
     }
   };
@@ -122,7 +123,11 @@ export default function AdminEconomy() {
                       <button
                         onClick={async () => {
                           const newPrice = await nativePrompt(`New price for ${gift.name}:`, String(gift.coin_cost), 'Edit Price');
-                          if (newPrice) updateGiftPrice(gift.id, parseInt(newPrice));
+                          if (newPrice) {
+                            const parsed = parseInt(newPrice, 10);
+                            if (isNaN(parsed) || parsed <= 0) { showToast('Invalid price'); return; }
+                            updateGiftPrice(gift.id, parsed);
+                          }
                         }}
                         className="px-3 py-1 bg-[#C9A96E] text-black rounded hover:bg-[#C9A96E]/90 text-sm"
                       >

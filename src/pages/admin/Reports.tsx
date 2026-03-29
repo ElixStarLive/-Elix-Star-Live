@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { api, request } from '../../lib/apiClient';
+import { useNavigate } from 'react-router-dom';
+import { request } from '../../lib/apiClient';
 import { Flag, CheckCircle, XCircle, Eye } from 'lucide-react';
 import { showToast } from '../../lib/toast';
 
@@ -16,6 +17,7 @@ interface Report {
 }
 
 export default function AdminReports() {
+  const navigate = useNavigate();
   const [reports, setReports] = useState<Report[]>([]);
   const [filter, setFilter] = useState<'pending' | 'all'>('pending');
   const [loading, setLoading] = useState(true);
@@ -28,12 +30,13 @@ export default function AdminReports() {
   const loadReports = async () => {
     try {
       const queryParam = filter === 'pending' ? '?status=pending' : '';
-      const { data, error } = await request(`/api/reports${queryParam}`);
+      const { data, error } = await request(`/api/admin/reports${queryParam}`);
 
       if (error) throw error;
-      setReports(Array.isArray(data) ? data : []);
-    } catch (error) {
-
+      const list = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : []);
+      setReports(list);
+    } catch {
+      showToast('Failed to load reports');
     } finally {
       setLoading(false);
     }
@@ -41,14 +44,11 @@ export default function AdminReports() {
 
   const handleResolve = async (reportId: string, outcome: 'removed' | 'warned' | 'no_action') => {
     try {
-      const { data: { user } } = await api.auth.getUser();
-      const { error } = await request(`/api/reports/${encodeURIComponent(reportId)}`, {
+      const { error } = await request(`/api/admin/reports/${encodeURIComponent(reportId)}`, {
         method: 'PATCH',
         body: JSON.stringify({
-          status: 'resolved',
-          outcome,
-          resolved_at: new Date().toISOString(),
-          moderator_id: user?.id || 'system',
+          status: 'actioned',
+          admin_note: `Outcome: ${outcome}`,
         }),
       });
 
@@ -149,7 +149,7 @@ export default function AdminReports() {
                     No Action
                   </button>
                   <button
-                    onClick={() => window.open(`/${report.target_type}/${report.target_id}`, '_blank')}
+                    onClick={() => navigate(`/${report.target_type}/${report.target_id}`)}
                     className="px-4 py-2 bg-[#C9A96E] rounded hover:bg-[#B8943F] flex items-center gap-2"
                   >
                     <Eye className="w-4 h-4" />

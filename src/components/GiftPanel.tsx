@@ -36,7 +36,7 @@ function useInView<T extends Element>(options?: IntersectionObserverInit) {
 
     observer.observe(el);
     return () => observer.disconnect();
-  }, [options]);
+  }, [options?.root, options?.threshold]);
 
   return { ref, inView };
 }
@@ -182,6 +182,9 @@ export function GiftPanel({
   onWeeklyRanking,
   onMembership,
 }: GiftPanelProps) {
+  const userCoinsRef = useRef(userCoins);
+  userCoinsRef.current = userCoins;
+
   const [gifts, setGifts] = useState<GiftItem[]>([]);
   const [activeTab, setActiveTab] = useState<"exclusive" | "small" | "big">(
     "big",
@@ -198,7 +201,7 @@ export function GiftPanel({
     let cancelled = false;
     fetchGiftsFromDatabase().then((items) => {
       if (!cancelled) setGifts(items);
-    });
+    }).catch(() => {});
     return () => { cancelled = true; };
   }, []);
 
@@ -312,7 +315,7 @@ export function GiftPanel({
         isOpen={showRecharge}
         onClose={() => setShowRecharge(false)}
         onSuccess={(coins) => {
-          if (onRechargeSuccess) onRechargeSuccess(userCoins + coins);
+          if (onRechargeSuccess) onRechargeSuccess(userCoinsRef.current + coins);
         }}
       />
 

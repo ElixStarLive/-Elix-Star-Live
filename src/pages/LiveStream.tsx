@@ -372,15 +372,23 @@ export default function LiveStream() {
     setHostAvatar(`https://ui-avatars.com/api/?name=${encodeURIComponent(hostLabel)}&background=121212&color=C9A96E`);
   }, [isBroadcast, effectiveStreamId]);
 
-  // Load user profile (coins, level, XP)
-  // Note: Without a database, we use persisted test coins and default values
   useEffect(() => {
     if (!user?.id) return;
     
-    const persisted = getPersistedTestCoinsBalance(user.id);
-    setCoinBalance(Math.max(0, persisted));
     setUserLevel(user.level || 1);
     setUserXP(0);
+
+    request('/api/wallet/').then(({ data, error: walletErr }) => {
+      if (!walletErr && data?.balance != null) {
+        setCoinBalance(Math.max(0, Number(data.balance)));
+      } else {
+        const persisted = getPersistedTestCoinsBalance(user.id);
+        setCoinBalance(Math.max(0, persisted));
+      }
+    }).catch(() => {
+      const persisted = getPersistedTestCoinsBalance(user.id);
+      setCoinBalance(Math.max(0, persisted));
+    });
   }, [user?.id, user?.level]);
 
   const [isMyStreamLive, setIsMyStreamLive] = useState(false);
@@ -478,8 +486,11 @@ export default function LiveStream() {
           } else {
             showToast('Live server missing token or LIVEKIT_URL. Check server .env and restart.');
           }
+        } else {
+          showToast('Failed to start stream');
         }
       } catch (startErr) {
+        showToast('Failed to start live stream. Please try again.');
       }
     })();
 
@@ -565,7 +576,6 @@ export default function LiveStream() {
           await room.localParticipant.publishTrack(localAudio, { name: 'mic' });
         }
       } catch (e) {
-        console.error('[LiveKit] Host connect/publish failed:', e);
         const errMsg = String(e).includes('401') ? 'LiveKit auth failed — check API keys'
           : String(e).includes('timeout') ? 'LiveKit connection timed out — retrying...'
           : `Live video could not start (${String(e).slice(0, 80)})`;
@@ -647,7 +657,6 @@ export default function LiveStream() {
       setCreators(liveCreators);
       setCreatorsLoadFailed(false);
     } catch (error) {
-      console.error('Failed to load creators', error);
       setCreatorsLoadFailed(true);
       setCreators([]);
     } finally {
@@ -2300,7 +2309,7 @@ export default function LiveStream() {
 
     const handleUserLeft = (data: any) => {
       if (!mounted) return;
-      setActiveViewers(prev => prev.filter(v => v.id !== data.user_id));
+      setActiveViewers(prev => prev.filter(v => String(v.id) !== String(data.user_id)));
       setViewerCount(prev => Math.max(0, prev - 1));
       if (data.user_id) {
         setCoHosts(prev => prev.filter(h => h.userId !== data.user_id));
@@ -2871,7 +2880,12 @@ export default function LiveStream() {
               showToast('Account is frozen. Contact support.');
               return;
             }
-            setCoinBalance(prev => { const n = Math.max(0, prev - gift.coins); persistTestCoinsBalance(user?.id, n); return n; });
+            if (msg.includes('insufficient_funds')) {
+              showToast('Not enough coins');
+              return;
+            }
+            showToast('Gift failed');
+            return;
           } else {
             if (result.new_balance != null) {
               const nb = Number(result.new_balance);
@@ -2889,7 +2903,8 @@ export default function LiveStream() {
             }
           }
         } catch {
-          setCoinBalance(prev => { const n = Math.max(0, prev - gift.coins); persistTestCoinsBalance(user?.id, n); return n; });
+          showToast('Gift failed');
+          return;
         }
 
         const xpGained = gift.coins;
@@ -2967,7 +2982,7 @@ export default function LiveStream() {
       setShowComboButton(true);
       resetComboTimer();
     } catch (error) {
-
+      showToast('Gift failed');
     }
   };
 
@@ -3030,7 +3045,8 @@ export default function LiveStream() {
               showToast('Not enough coins');
               return;
             }
-            setCoinBalance(prev => { const n = Math.max(0, prev - lastSentGift.coins); persistTestCoinsBalance(user?.id, n); return n; });
+            showToast('Gift failed');
+            return;
           } else {
             if (result.new_balance != null) {
               const nb = Number(result.new_balance);
@@ -3045,7 +3061,8 @@ export default function LiveStream() {
             if (result.new_xp != null) setUserXP(Number(result.new_xp));
           }
         } catch {
-          setCoinBalance(prev => { const n = Math.max(0, prev - lastSentGift.coins); persistTestCoinsBalance(user?.id, n); return n; });
+          showToast('Gift failed');
+          return;
         }
       } else {
         setCoinBalance(prev => { const n = Math.max(0, prev - lastSentGift.coins); persistTestCoinsBalance(user?.id, n); return n; });

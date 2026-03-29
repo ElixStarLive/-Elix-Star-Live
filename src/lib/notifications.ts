@@ -74,6 +74,15 @@ class NotificationService {
    */
   private async handleRegistration(token: Token): Promise<void> {
     this.deviceToken = token.value;
+    await this.registerTokenWithBackend();
+  }
+
+  /**
+   * Send the stored device token to the backend for the current user.
+   * Can be called multiple times safely — idempotent on the server.
+   */
+  async registerTokenWithBackend(): Promise<void> {
+    if (!this.deviceToken) return;
 
     const user = useAuthStore.getState().user;
     if (!user) return;
@@ -83,7 +92,7 @@ class NotificationService {
         method: "POST",
         body: JSON.stringify({
           userId: user.id,
-          token: token.value,
+          token: this.deviceToken,
           platform: Capacitor.getPlatform(),
         }),
       });

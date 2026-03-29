@@ -174,7 +174,22 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
     if (!user?.id) return;
 
     try {
-      // Backend likes not implemented; keep it purely UI for now.
+      const findLiked = (c: Comment) => c.id === commentId ? c.is_liked : undefined;
+      let currentlyLiked = false;
+      for (const c of comments) {
+        const v = findLiked(c);
+        if (v !== undefined) { currentlyLiked = !!v; break; }
+        if (c.replies) {
+          for (const r of c.replies) {
+            const rv = findLiked(r);
+            if (rv !== undefined) { currentlyLiked = !!rv; break; }
+          }
+        }
+      }
+
+      const action = currentlyLiked ? 'unlike' : 'like';
+      await request(`/api/videos/${encodeURIComponent(videoId)}/comments/${encodeURIComponent(commentId)}/${action}`, { method: 'POST' });
+
       setComments(prev => prev.map(comment => {
         if (comment.id === commentId) {
           return {
@@ -183,7 +198,6 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
             is_liked: !comment.is_liked
           };
         }
-        // Also check replies
         if (comment.replies) {
           return {
             ...comment,

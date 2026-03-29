@@ -18,9 +18,11 @@ interface GiftAnimationOverlayProps {
 const MERGE_WINDOW_MS = 2000;
 const DISPLAY_DURATION_MS = 4000;
 
-export default function GiftAnimationOverlay({ streamId: _streamId }: GiftAnimationOverlayProps) {
+export default function GiftAnimationOverlay({ streamId }: GiftAnimationOverlayProps) {
   const [currentGift, setCurrentGift] = useState<GiftAnimation | null>(null);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const streamIdRef = useRef(streamId);
+  streamIdRef.current = streamId;
 
   useEffect(() => {
     websocket.on('gift_sent', handleGiftSent);
@@ -31,16 +33,23 @@ export default function GiftAnimationOverlay({ streamId: _streamId }: GiftAnimat
     };
   }, []);
 
-  const scheduleHide = () => {
+  useEffect(() => {
+    if (!currentGift) return;
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
     hideTimerRef.current = setTimeout(() => {
       hideTimerRef.current = null;
       setCurrentGift(null);
     }, DISPLAY_DURATION_MS);
-  };
+    return () => {
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    };
+  }, [currentGift]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleGiftSent = (data: any) => {
+    const eventStreamId = data.streamId ?? data.stream_id;
+    if (eventStreamId && eventStreamId !== streamIdRef.current) return;
+
     const username = data.username ?? 'Someone';
     const giftName = data.giftName ?? data.gift_name ?? 'Gift';
     const quantity = data.quantity ?? 1;
@@ -49,10 +58,8 @@ export default function GiftAnimationOverlay({ streamId: _streamId }: GiftAnimat
     setCurrentGift(prev => {
       const sameSenderSameGift = prev && prev.username === username && prev.giftName === giftName && now - prev.timestamp < MERGE_WINDOW_MS;
       if (sameSenderSameGift) {
-        scheduleHide();
         return { ...prev, quantity: prev.quantity + quantity, timestamp: now };
       }
-      scheduleHide();
       return {
         id: now.toString() + Math.random(),
         username,

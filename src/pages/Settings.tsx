@@ -100,11 +100,11 @@ export default function Settings() {
 
           <S t="Preferences" />
           <R ic={<Bell size={14} />} t="Notifications" fn={() => navigate('/settings/safety')} />
-          <R ic={<Moon size={14} />} t="Dark Mode" v="On" fn={() => showToast('Always on')} />
-          <R ic={<Globe size={14} />} t="Language" v="EN" fn={() => showToast('English only')} />
+          <R ic={<Moon size={14} />} t="Dark Mode" v="On" fn={() => showToast('Dark mode is always on')} />
+          <R ic={<Globe size={14} />} t="Language" v="EN" fn={() => showToast('More languages coming soon')} />
 
           <S t="Content" />
-          <R ic={<Video size={14} />} t="Video Quality" v="Auto" fn={() => showToast('Auto')} />
+          <R ic={<Video size={14} />} t="Video Quality" v="Auto" fn={() => showToast('Video quality is set to auto')} />
           <R ic={<Heart size={14} />} t="Liked Videos" fn={() => navigate('/profile?tab=liked')} />
 
           <S t="Safety" />

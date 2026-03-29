@@ -74,7 +74,7 @@ router.get("/:id", async (req, res) => {
 
 router.get("/:id/likes", async (req, res) => {
   const db = getPool();
-  if (!db) return res.json({ users: [] });
+  if (!db) return res.status(503).json({ error: "Database not configured", users: [] });
   try {
     const r = await db.query(
       `SELECT l.user_id, p.username, p.display_name, p.avatar_url
@@ -83,8 +83,9 @@ router.get("/:id/likes", async (req, res) => {
       [req.params.id],
     );
     return res.json({ users: r.rows });
-  } catch {
-    return res.json({ users: [] });
+  } catch (err) {
+    logger.error({ err, videoId: req.params.id }, "get likes failed");
+    return res.status(500).json({ error: "Failed to load likes", users: [] });
   }
 });
 
@@ -128,6 +129,31 @@ router.post("/:id/unlike", async (req, res) => {
   } catch (err) {
     logger.error({ err, videoId: req.params.id }, "unlike failed");
     return res.status(500).json({ error: "Unlike failed" });
+  }
+});
+
+// List saved videos for the authenticated user
+router.get("/saved/list", async (req, res) => {
+  res.setHeader("Cache-Control", "private, no-store");
+  const token = getTokenFromRequest(req);
+  const payload = token ? verifyAuthToken(token) : null;
+  if (!payload?.sub) return res.status(401).json({ error: "Unauthorized", videos: [] });
+  const db = getPool();
+  if (!db) return res.status(503).json({ error: "Database not configured", videos: [] });
+  try {
+    const r = await db.query(
+      `SELECT v.id, v.url, v.thumbnail_url, v.description, v.views, v.likes, v.created_at, v.user_id
+       FROM saves s
+       INNER JOIN videos v ON v.id = s.video_id
+       WHERE s.user_id = $1
+       ORDER BY s.created_at DESC
+       LIMIT 200`,
+      [payload.sub],
+    );
+    return res.json({ videos: r.rows });
+  } catch (err) {
+    logger.error({ err }, "GET saved/list failed");
+    return res.status(500).json({ error: "Failed to load saved videos", videos: [] });
   }
 });
 
@@ -177,7 +203,7 @@ router.post("/:id/unsave", async (req, res) => {
 // Comments
 router.get("/:id/comments", async (req, res) => {
   const db = getPool();
-  if (!db) return res.json({ comments: [] });
+  if (!db) return res.status(503).json({ error: "Database not configured", comments: [] });
   const sort = req.query.sort === "oldest" ? "ASC" : "DESC";
   try {
     const r = await db.query(
@@ -190,7 +216,7 @@ router.get("/:id/comments", async (req, res) => {
     return res.json({ comments: r.rows });
   } catch (err) {
     logger.error({ err, videoId: req.params.id }, "get comments failed");
-    return res.json({ comments: [] });
+    return res.status(500).json({ error: "Failed to load comments", comments: [] });
   }
 });
 
@@ -222,6 +248,42 @@ router.post("/:id/comments", async (req, res) => {
   } catch (err) {
     logger.error({ err, videoId: req.params.id }, "post comment failed");
     return res.status(500).json({ error: "Failed to post comment" });
+  }
+});
+
+router.post("/:id/comments/:commentId/like", async (req, res) => {
+  const token = getTokenFromRequest(req);
+  const payload = token ? verifyAuthToken(token) : null;
+  if (!payload?.sub) return res.status(401).json({ error: "Unauthorized" });
+  const db = getPool();
+  if (!db) return res.status(503).json({ error: "Database not configured" });
+  try {
+    await db.query(
+      `INSERT INTO comment_likes (user_id, comment_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+      [payload.sub, req.params.commentId],
+    );
+    return res.json({ ok: true });
+  } catch (err) {
+    logger.error({ err, commentId: req.params.commentId }, "comment like failed");
+    return res.status(500).json({ error: "Failed to like comment" });
+  }
+});
+
+router.post("/:id/comments/:commentId/unlike", async (req, res) => {
+  const token = getTokenFromRequest(req);
+  const payload = token ? verifyAuthToken(token) : null;
+  if (!payload?.sub) return res.status(401).json({ error: "Unauthorized" });
+  const db = getPool();
+  if (!db) return res.status(503).json({ error: "Database not configured" });
+  try {
+    await db.query(
+      `DELETE FROM comment_likes WHERE user_id = $1 AND comment_id = $2`,
+      [payload.sub, req.params.commentId],
+    );
+    return res.json({ ok: true });
+  } catch (err) {
+    logger.error({ err, commentId: req.params.commentId }, "comment unlike failed");
+    return res.status(500).json({ error: "Failed to unlike comment" });
   }
 });
 

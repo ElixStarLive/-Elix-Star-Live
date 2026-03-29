@@ -1,9 +1,12 @@
 import { IS_STORE_BUILD } from '../config/build';
+import { getApiBase } from './api';
 
 const isDev = import.meta.env.DEV;
 
 class CrashReportingService {
   private isInitialized = false;
+  private userId: string | null = null;
+  private customKeys: Record<string, string> = {};
 
   async initialize() {
     if (this.isInitialized) return;
@@ -30,6 +33,11 @@ class CrashReportingService {
           context,
         });
       }
+      this.sendToBackend('error', error.message, {
+        stack: error.stack,
+        name: error.name,
+        ...context,
+      });
     } catch {
       // Logging failed silently
     }
@@ -40,17 +48,53 @@ class CrashReportingService {
 
     try {
       if (isDev) console.log('[' + level.toUpperCase() + '] ' + message);
+      if (level === 'error') {
+        this.sendToBackend(level, message);
+      }
     } catch {
       // Logging failed silently
     }
   }
 
-  async setUserIdentifier(_userId: string) {
+  async setUserIdentifier(userId: string) {
     if (!this.isInitialized) return;
+    this.userId = userId;
   }
 
-  async setCustomKey(_key: string, _value: string) {
+  async setCustomKey(key: string, value: string) {
     if (!this.isInitialized) return;
+    this.customKeys[key] = value;
+  }
+
+  private sendToBackend(level: string, message: string, extra?: Record<string, any>) {
+    try {
+      const base = getApiBase();
+      const url = base ? `${base}/api/analytics/track` : '/api/analytics/track';
+      const payload = {
+        event: 'client_error',
+        properties: {
+          level,
+          message,
+          userId: this.userId,
+          ...this.customKeys,
+          ...extra,
+          timestamp: new Date().toISOString(),
+          userAgent: navigator.userAgent,
+        },
+      };
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon(url, new Blob([JSON.stringify(payload)], { type: 'application/json' }));
+      } else {
+        fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          keepalive: true,
+        }).catch(() => {});
+      }
+    } catch {
+      // Never throw from crash reporting
+    }
   }
 }
 

@@ -5,7 +5,8 @@ import { api } from '../lib/apiClient';
 
 interface MusicVideo {
   id: string;
-  video_url: string;
+  url: string;
+  video_url?: string;
   thumbnail_url?: string;
 }
 
@@ -22,10 +23,21 @@ export default function MusicFeed() {
         const { data, error } = await api.videos.list();
 
         if (!error && data) {
-          setVideos(data);
+          if (songId) {
+            const filtered = (data as any[]).filter((v: any) => {
+              const music = v.music;
+              if (music?.id === songId) return true;
+              const desc = (v.description || '').toLowerCase();
+              const title = (music?.title || '').toLowerCase();
+              return desc.includes(songId.toLowerCase()) || title.includes(songId.toLowerCase());
+            });
+            setVideos(filtered);
+          } else {
+            setVideos(data);
+          }
         }
       } catch {
-        // Silently fail
+        // Failed to load
       } finally {
         setLoading(false);
       }
@@ -105,10 +117,10 @@ export default function MusicFeed() {
                 <div
                   key={video.id}
                   className="aspect-[3/4] bg-[#13151A] relative cursor-pointer"
-                  onClick={() => navigate('/')}
+                  onClick={() => navigate(`/feed?video=${video.id}`)}
                 >
                   <video
-                    src={video.video_url}
+                    src={video.url || video.video_url}
                     className="w-full h-full object-cover"
                     muted
                     loop

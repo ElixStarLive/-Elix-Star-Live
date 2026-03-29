@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bookmark, Play } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { api, request } from '../lib/apiClient';
+import { request } from '../lib/apiClient';
 
 interface SavedVideo {
   id: string;
@@ -19,18 +19,17 @@ export default function SavedVideos() {
   useEffect(() => {
     const load = async () => {
       try {
-        const { data: { user } } = await api.auth.getUser();
-        if (!user) { setLoading(false); return; }
-
-        const { data: saved } = await request(`/api/saved-videos?user_id=${encodeURIComponent(user.id)}`);
-
-        if (!saved || saved.length === 0) { setVideos([]); setLoading(false); return; }
-
-        const videoIds = saved.map((s: any) => s.video_id);
-        const { data: vids } = await request(`/api/videos?ids=${videoIds.join(',')}`);
-
-        setVideos(vids || []);
-      } catch { /* ignore */ }
+        const { data, error } = await request('/api/videos/saved/list');
+        if (error) {
+          setVideos([]);
+          setLoading(false);
+          return;
+        }
+        const vids = Array.isArray(data?.videos) ? data.videos : (Array.isArray(data) ? data : []);
+        setVideos(vids);
+      } catch {
+        setVideos([]);
+      }
       setLoading(false);
     };
     load();

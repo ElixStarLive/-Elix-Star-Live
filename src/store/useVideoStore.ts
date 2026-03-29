@@ -465,6 +465,9 @@ export const useVideoStore = create<VideoStore>()(
 
       // Like actions (persist to server + update video engagement / FYP eligibility)
       toggleLike: async (videoId) => {
+        const authUser = useAuthStore.getState().user;
+        if (!authUser?.id) return;
+
         const state = get();
         const video = state.getVideoById(videoId);
         if (!video) return;
@@ -485,8 +488,6 @@ export const useVideoStore = create<VideoStore>()(
         });
 
         try {
-          const authUser = useAuthStore.getState().user;
-          if (!authUser?.id) return;
 
           const { error } = await request(wasLiked ? `/api/videos/${videoId}/unlike` : `/api/videos/${videoId}/like`, { method: 'POST' });
           if (error) throw new Error('Like failed');
@@ -505,6 +506,9 @@ export const useVideoStore = create<VideoStore>()(
 
       // Save actions — persist to server
       toggleSave: async (videoId) => {
+        const authUser = useAuthStore.getState().user;
+        if (!authUser?.id) return;
+
         const state = get();
         const video = state.getVideoById(videoId);
         if (!video) return;
@@ -525,8 +529,6 @@ export const useVideoStore = create<VideoStore>()(
         });
 
         try {
-          const authUser = useAuthStore.getState().user;
-          if (!authUser?.id) return;
 
           const { error: saveError } = await request(wasSaved ? `/api/videos/${videoId}/unsave` : `/api/videos/${videoId}/save`, { method: 'POST' });
           if (saveError) throw new Error('Save failed');
@@ -745,7 +747,10 @@ export const useVideoStore = create<VideoStore>()(
           friendVideos: s.friendVideos.map(commentLikeUpdate),
         }));
 
-        // Comment likes are UI-only for now (no dedicated server endpoint)
+        const action = wasLiked ? 'unlike' : 'like';
+        try {
+          await request(`/api/videos/${videoId}/comments/${commentId}/${action}`, { method: 'POST' });
+        } catch { /* best-effort */ }
       },
 
       // Analytics
@@ -779,11 +784,10 @@ export const useVideoStore = create<VideoStore>()(
         });
       },
 
-      getRecommendedVideos: () => {
-        const { videos, likedVideos, followingUsers: _followingUsers } = get();
-        // Simple recommendation: show recent videos not seen/liked yet
+      getRecommendedVideos: (userId: string) => {
+        const { videos, likedVideos } = get();
         return videos
-          .filter(video => !likedVideos.includes(video.id))
+          .filter(video => !likedVideos.includes(video.id) && video.user.id !== userId)
           .slice(0, 10);
       }
     }),

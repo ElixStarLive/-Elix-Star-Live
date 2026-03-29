@@ -78,6 +78,24 @@ interface LiveShareRequestItem {
 
 
 
+function formatTimeAgo(dateStr: string): string {
+  try {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    if (diff < 0 || !Number.isFinite(diff)) return '';
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'now';
+    if (mins < 60) return `${mins}m`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h`;
+    const days = Math.floor(hrs / 24);
+    if (days < 7) return `${days}d`;
+    const weeks = Math.floor(days / 7);
+    return `${weeks}w`;
+  } catch {
+    return '';
+  }
+}
+
 export default function Inbox() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -113,7 +131,7 @@ export default function Inbox() {
     deletedThreadIdsRef.current = set;
     try { localStorage.setItem(INBOX_DELETED_KEY(), JSON.stringify([...set])); } catch {}
   };
-  const isThreadDeleted = (id: string): boolean => deletedThreadIdsRef.current.has(id) || getDeletedThreadIds().has(id);
+
 
   useEffect(() => {
     setCurrentUserId(user?.id ?? null);
@@ -179,12 +197,14 @@ export default function Inbox() {
 
   useEffect(() => {
     if (!currentUserId) return;
+    let cancelled = false;
     deletedThreadIdsRef.current = getDeletedThreadIds();
     const fetchNotifications = async () => {
       try {
         const { data } = await request('/api/notifications');
+        if (cancelled) return;
         const rows = Array.isArray(data) ? data : (data?.notifications ?? []);
-        if (rows.length) setNotifications(rows
+        setNotifications(rows
           .filter((n: any) => n.type !== 'battle_invite' && n.type !== 'cohost_invite' && n.type !== 'battle_accepted' && n.type !== 'cohost_accepted')
           .map((n: any) => ({
           id: n.id,
@@ -194,7 +214,7 @@ export default function Inbox() {
           body: n.body,
           image_url: n.data?.image_url || n.data?.host_avatar || n.data?.avatar_url || null,
           action_url: n.data?.action_url || null,
-          is_read: n.is_read ?? false,
+          is_read: n.is_read ?? n.read ?? false,
           created_at: n.created_at,
           rawData: n.data || {},
         })));
@@ -203,15 +223,16 @@ export default function Inbox() {
     const fetchConversations = async () => {
       try {
         const { data: body, error: convError } = await request('/api/chat/threads');
+        if (cancelled) return;
         if (convError) {
           setConversations([]);
           return;
         }
-        const rows = Array.isArray(body?.data) ? body.data : [];
+        const rows = Array.isArray(body?.threads) ? body.threads : (Array.isArray(body?.data) ? body.data : []);
         const mapped: Conversation[] = rows.map((t: Record<string, unknown>) => {
-          const un = Number(t.unread_count ?? 0);
+          const other = (t.otherUser ?? {}) as Record<string, unknown>;
           const display =
-            String(t.other_username ?? '')
+            String(other.display_name ?? other.username ?? t.other_username ?? '')
               .trim() || 'User';
           return {
             id: String(t.id ?? ''),
@@ -219,13 +240,13 @@ export default function Inbox() {
             user2_id: String(t.user2_id ?? ''),
             last_at: String(t.last_at ?? t.created_at ?? ''),
             otherUser: {
-              username: display,
+              username: String(other.username ?? t.other_username ?? display),
               display_name: display,
-              avatar_url: (t.other_avatar != null ? String(t.other_avatar) : null) as string | null,
+              avatar_url: (other.avatar_url ?? t.other_avatar ?? null) as string | null,
             },
             lastMessage: String(t.last_message ?? ''),
-            hasUnread: un > 0,
-            unreadCount: un,
+            hasUnread: !!t.hasUnread || Number(t.unread_count ?? 0) > 0,
+            unreadCount: Number(t.unread_count ?? (t.hasUnread ? 1 : 0)),
           };
         });
         const filtered = mapped.filter((c) => {
@@ -236,7 +257,7 @@ export default function Inbox() {
         });
         setConversations(filtered);
       } catch {
-        setConversations([]);
+        if (!cancelled) setConversations([]);
       }
     };
     const fetchFollowers = async () => {
@@ -244,6 +265,7 @@ export default function Inbox() {
         const { data: backendBody, error: followersErr } = await request(
           `/api/profiles/${encodeURIComponent(currentUserId)}/followers`,
         );
+        if (cancelled) return;
         if (followersErr || !backendBody) {
           setFollowers([]);
           setFollowersTotalCount(0);
@@ -263,7 +285,7 @@ export default function Inbox() {
           .filter((p) => p.user_id && p.user_id !== currentUserId);
         setFollowers(list.length > 0 ? list : ids.filter((id) => id !== currentUserId).map((user_id) => ({ user_id, username: 'user', display_name: null, avatar_url: null })));
       } catch {
-        setFollowers([]);
+        if (!cancelled) setFollowers([]);
       }
     };
     const fetchSuggestedUsers = async () => {
@@ -272,6 +294,7 @@ export default function Inbox() {
           request('/api/profiles'),
           request('/api/live/streams').catch(() => ({ data: null, error: null })),
         ]);
+        if (cancelled) return;
         const profilesBody = profilesResult.data ?? { profiles: [] };
         const liveBody = liveResult.data ?? { streams: [] };
         const liveSet = new Set<string>((liveBody?.streams || []).map((s: any) => s.userId || s.user_id).filter(Boolean));
@@ -295,11 +318,14 @@ export default function Inbox() {
 
         mapped.sort((a, b) => (a.is_live === b.is_live ? 0 : a.is_live ? -1 : 1));
         setSuggestedUsers(mapped);
-      } catch {}
+      } catch {
+        if (!cancelled) setSuggestedUsers([]);
+      }
     };
     const fetchActivity = async () => {
       try {
         const { data: body, error: actError } = await request('/api/activity');
+        if (cancelled) return;
         if (actError) {
           setActivityItems([]);
           return;
@@ -320,12 +346,13 @@ export default function Inbox() {
           }));
         setActivityItems(list);
       } catch {
-        setActivityItems([]);
+        if (!cancelled) setActivityItems([]);
       }
     };
     const fetchLiveShareRequests = async () => {
       try {
         const { data: body, error: lsError } = await request('/api/inbox/live-share-requests');
+        if (cancelled) return;
         if (lsError) {
           setLiveShareRequests([]);
           return;
@@ -344,7 +371,7 @@ export default function Inbox() {
           })),
         );
       } catch {
-        setLiveShareRequests([]);
+        if (!cancelled) setLiveShareRequests([]);
       }
     };
     fetchNotifications();
@@ -353,6 +380,7 @@ export default function Inbox() {
     fetchSuggestedUsers();
     fetchActivity();
     fetchLiveShareRequests();
+    return () => { cancelled = true; };
   }, [currentUserId, location.pathname]);
 
   const isRealUser = (f: FollowerProfile) => {
@@ -797,7 +825,7 @@ export default function Inbox() {
                         <h3 className="font-bold text-sm text-gold-metallic">{notif.title}</h3>
                         <p className="text-white text-xs truncate">{notif.body}</p>
                     </div>
-                    <span className="text-[10px] text-white">21h</span>
+                    <span className="text-[10px] text-white">{notif.created_at ? formatTimeAgo(notif.created_at) : ''}</span>
                 </button>
             ))}
 
@@ -816,7 +844,7 @@ export default function Inbox() {
                         <h3 className="font-bold text-sm text-gold-metallic">{notif.title}</h3>
                         <p className="text-white text-xs truncate">{notif.body}</p>
                     </div>
-                    <span className="text-[10px] text-white">1d</span>
+                    <span className="text-[10px] text-white">{notif.created_at ? formatTimeAgo(notif.created_at) : ''}</span>
                 </button>
             ))}
              

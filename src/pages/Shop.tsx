@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, request } from '../lib/apiClient';
 import { useAuthStore } from '../store/useAuthStore';
@@ -6,6 +6,7 @@ import { Plus, X, Camera, Tag, MessageCircle, Search } from 'lucide-react';
 import { AvatarRing } from '../components/AvatarRing';
 import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
 import { showToast } from '../lib/toast';
+import { bunnyUpload } from '../lib/bunnyStorage';
 
 const SHOP_LIVE_RING = 56;
 
@@ -41,6 +42,13 @@ export default function Shop() {
   const [newImage, setNewImage] = useState<File | null>(null);
   const [newImagePreview, setNewImagePreview] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const previewUrlRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    };
+  }, []);
 
   useEffect(() => { fetchItems(); }, [activeFilter]);
   useEffect(() => {
@@ -118,14 +126,19 @@ export default function Shop() {
       setItems(list);
     } catch {
       setItems([]);
+      if (!navigator.onLine) showToast('No internet connection');
+      else showToast('Failed to load shop items');
     }
     setLoading(false);
   };
 
   const handleImageSelect = (file: File | undefined) => {
     if (!file) return;
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    const url = URL.createObjectURL(file);
+    previewUrlRef.current = url;
     setNewImage(file);
-    setNewImagePreview(URL.createObjectURL(file));
+    setNewImagePreview(url);
   };
 
   const handleCreateListing = async () => {
@@ -133,16 +146,31 @@ export default function Shop() {
       showToast('Please fill in title and price');
       return;
     }
+    const parsed = parseFloat(newPrice);
+    if (isNaN(parsed) || parsed <= 0) {
+      showToast('Invalid price');
+      return;
+    }
     setCreating(true);
     try {
-      // TODO: image upload should use /api/media/upload-file endpoint
       let imageUrl: string | null = null;
+
+      if (newImage) {
+        try {
+          const ext = newImage.name?.split('.').pop() || 'jpg';
+          const storagePath = `shop/${user.id}/${Date.now()}.${ext}`;
+          const result = await bunnyUpload(newImage, storagePath, newImage.type);
+          imageUrl = result.cdnUrl;
+        } catch {
+          showToast('Image upload failed, listing without image');
+        }
+      }
 
       const { error: insertError } = await api.shop.createItem({
         user_id: user.id,
         title: newTitle.trim(),
         description: newDescription.trim(),
-        price: Math.round(parseFloat(newPrice)),
+        price: Math.round(parsed * 100) / 100,
         image_url: imageUrl,
         category: newCategory,
         is_active: true,
@@ -185,8 +213,12 @@ export default function Shop() {
 
   const contactSeller = async (sellerId: string) => {
     if (!user?.id || sellerId === user.id) return;
-    const { data: thread } = await api.chat.ensureThread(sellerId);
-    if (thread?.id) navigate(`/inbox/${thread.id}`);
+    try {
+      const { data: thread } = await api.chat.ensureThread(sellerId);
+      if (thread?.id) navigate(`/inbox/${thread.id}`);
+    } catch {
+      showToast('Failed to contact seller');
+    }
   };
 
   const filters = [

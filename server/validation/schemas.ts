@@ -1,14 +1,15 @@
 import { z } from "zod";
 
 export const loginSchema = z.object({
-  email: z.string().email(),
+  email: z.string().min(1),
   password: z.string().min(1),
 });
 
 export const registerSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(8),
-  username: z.string().min(2).max(30),
+  password: z.string().min(6),
+  username: z.string().min(1).max(30).optional(),
+  displayName: z.string().max(100).optional(),
 });
 
 export const emailOnlySchema = z.object({
@@ -17,6 +18,7 @@ export const emailOnlySchema = z.object({
 
 export const resetPasswordSchema = z.object({
   password: z.string().min(6),
+  token: z.string().optional(),
 });
 
 export const sendGiftSchema = z.object({
@@ -26,6 +28,7 @@ export const sendGiftSchema = z.object({
   streamKey: z.string().min(1).optional(),
   transaction_id: z.string().optional(),
   recipient_id: z.string().optional(),
+  channel: z.string().optional(),
 }).refine(data => data.room_id || data.streamKey, { message: "room_id or streamKey required" })
   .refine(data => data.gift_id || data.giftId, { message: "gift_id or giftId required" });
 
@@ -64,12 +67,11 @@ export const shopCreateSchema = z.object({
 });
 
 export const verifyPurchaseSchema = z.object({
-  platform: z.enum(["android", "ios"]),
-  productId: z.string().min(1),
+  userId: z.string().min(1),
+  packageId: z.string().min(1),
+  provider: z.enum(["apple", "google"]),
   transactionId: z.string().min(1),
   receipt: z.string().optional(),
-  purchaseToken: z.string().optional(),
-  packageName: z.string().optional(),
 });
 
 export const blockUserSchema = z.object({

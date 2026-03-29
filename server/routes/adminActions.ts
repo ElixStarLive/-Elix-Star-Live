@@ -23,6 +23,67 @@ const router = Router();
 router.use(requireAuthWithRoles);
 router.use(requireAdmin);
 
+router.get("/reports", async (req: Request, res: Response) => {
+  res.setHeader("Cache-Control", "private, no-store");
+  const db = getPool();
+  if (!db) return res.status(503).json({ error: "DATABASE_UNAVAILABLE", data: [] });
+  const statusFilter = req.query.status as string | undefined;
+  try {
+    let query = `SELECT id, reporter_id, reported_user_id, reported_content_id, content_type,
+                        reason, status, admin_note, reviewed_by, reviewed_at, created_at
+                 FROM elix_reports`;
+    const params: string[] = [];
+    if (statusFilter) {
+      query += ` WHERE status = $1`;
+      params.push(statusFilter);
+    }
+    query += ` ORDER BY created_at DESC LIMIT 200`;
+    const r = await db.query(query, params);
+    return res.json(r.rows);
+  } catch (e) {
+    const code = (e as { code?: string })?.code;
+    if (code === "42P01") return res.json([]);
+    logger.error({ err: e }, "admin GET /reports failed");
+    return res.status(500).json({ error: "DATABASE_ERROR", data: [] });
+  }
+});
+
+router.get("/purchases", async (req: Request, res: Response) => {
+  res.setHeader("Cache-Control", "private, no-store");
+  const db = getPool();
+  if (!db) return res.status(503).json({ error: "DATABASE_UNAVAILABLE", data: [] });
+  try {
+    const r = await db.query(
+      `SELECT id, user_id, package_id, provider, transaction_id, price_minor, currency, status, created_at
+       FROM iap_purchases ORDER BY created_at DESC LIMIT 200`,
+    );
+    return res.json(r.rows);
+  } catch (e) {
+    const code = (e as { code?: string })?.code;
+    if (code === "42P01") return res.json([]);
+    logger.error({ err: e }, "admin GET /purchases failed");
+    return res.status(500).json({ error: "DATABASE_ERROR", data: [] });
+  }
+});
+
+router.get("/stats/dau", async (req: Request, res: Response) => {
+  res.setHeader("Cache-Control", "private, max-age=60");
+  const db = getPool();
+  if (!db) return res.status(503).json({ dau: 0 });
+  try {
+    const r = await db.query(
+      `SELECT COUNT(DISTINCT user_id) AS dau FROM elix_auth_sessions WHERE last_active_at > NOW() - INTERVAL '24 hours'`,
+    );
+    const dau = Number(r.rows[0]?.dau ?? 0);
+    return res.json({ dau });
+  } catch (e) {
+    const code = (e as { code?: string })?.code;
+    if (code === "42P01") return res.json({ dau: 0 });
+    logger.error({ err: e }, "admin stats/dau failed");
+    return res.status(500).json({ dau: 0 });
+  }
+});
+
 router.get("/moderation/logs", async (req: Request, res: Response) => {
   res.setHeader("Cache-Control", "private, no-store");
   const db = getPool();

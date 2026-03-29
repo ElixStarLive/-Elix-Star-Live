@@ -5,12 +5,8 @@ import SettingsOptionSheet from '../../components/SettingsOptionSheet';
 
 export default function SafetyCenter() {
   const navigate = useNavigate();
-  const [toast, setToast] = React.useState('');
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2000); };
-
   return (
     <SettingsOptionSheet onClose={() => navigate(-1)}>
-      {toast && <div className="fixed top-16 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-md text-white text-[11px] px-3 py-2 rounded-xl z-[9999]">{toast}</div>}
       <div className="w-full h-full overflow-hidden bg-[#13151A] flex flex-col">
         <div className="flex-shrink-0 px-3 pt-1.5 pb-1.5">
           <div className="flex items-center justify-center">
@@ -61,7 +57,7 @@ export default function SafetyCenter() {
               icon={<HelpCircle size={14} />}
               title="Safety Tips"
               description="Open online safety best practices."
-              onClick={() => window.open('https://help.elixstar.live/safety', '_blank')}
+              onClick={() => navigate('/guidelines')}
             />
           </Section>
 

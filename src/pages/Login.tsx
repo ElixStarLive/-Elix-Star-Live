@@ -210,10 +210,19 @@ export default function Login() {
 
         <button
           type="button"
+          disabled={isSubmitting}
           onClick={async () => {
+            if (isSubmitting) return;
             setError(null);
-            const { error: err } = await signInWithApple();
-            if (err) setError(err);
+            setIsSubmitting(true);
+            try {
+              const { error: err } = await signInWithApple();
+              if (isMounted.current && err) setError(err);
+            } catch {
+              if (isMounted.current) setError('Apple sign-in failed. Please try again.');
+            } finally {
+              if (isMounted.current) setIsSubmitting(false);
+            }
           }}
           className="w-full flex items-center justify-center gap-2 bg-white text-black font-bold rounded-xl py-3 xs:py-2.5 text-fluid-sm hover:bg-white/90 transition"
         >

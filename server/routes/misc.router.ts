@@ -51,11 +51,12 @@ router.get("/notifications", async (req, res) => {
   res.setHeader("Cache-Control", "private, no-store");
   const { getTokenFromRequest, verifyAuthToken } = await import("./auth");
   const { getPool } = await import("../lib/postgres");
+  const { logger } = await import("../lib/logger");
   const token = getTokenFromRequest(req);
   const payload = token ? verifyAuthToken(token) : null;
-  if (!payload?.sub) return res.json({ notifications: [] });
+  if (!payload?.sub) return res.status(401).json({ error: "Unauthorized", notifications: [] });
   const db = getPool();
-  if (!db) return res.json({ notifications: [] });
+  if (!db) return res.status(503).json({ error: "Database not available", notifications: [] });
   try {
     const r = await db.query(
       `SELECT id, user_id, type, title, body, action_url, read, created_at
@@ -63,8 +64,9 @@ router.get("/notifications", async (req, res) => {
       [payload.sub],
     );
     return res.json({ notifications: r.rows });
-  } catch {
-    return res.json({ notifications: [] });
+  } catch (err) {
+    logger.error({ err }, "GET /notifications failed");
+    return res.status(500).json({ error: "Failed to load notifications", notifications: [] });
   }
 });
 
@@ -99,6 +101,43 @@ router.get("/membership/:creatorId", async (req, res) => {
   const { dbGetCreatorMembershipStats } = await import("../lib/postgres");
   const stats = await dbGetCreatorMembershipStats(req.params.creatorId);
   return res.json(stats);
+});
+
+// Rankings
+router.get("/rankings/weekly", async (req, res) => {
+  res.setHeader("Cache-Control", "private, max-age=300");
+  const { getPool } = await import("../lib/postgres");
+  const { logger } = await import("../lib/logger");
+  const db = getPool();
+  if (!db) return res.status(503).json({ error: "Database not available", rankings: [] });
+  try {
+    const r = await db.query(
+      `SELECT p.user_id, p.username, p.display_name, p.avatar_url, p.followers_count,
+              COALESCE(w.total_received, 0) AS total_coins
+       FROM profiles p
+       LEFT JOIN (
+         SELECT recipient_id, SUM(amount) AS total_received
+         FROM wallet_ledger
+         WHERE type = 'gift_received' AND created_at > NOW() - INTERVAL '7 days'
+         GROUP BY recipient_id
+       ) w ON w.recipient_id = p.user_id
+       ORDER BY total_coins DESC, p.followers_count DESC
+       LIMIT 50`
+    );
+    const rankings = r.rows.map((row: any, i: number) => ({
+      rank: i + 1,
+      user_id: row.user_id,
+      username: row.username,
+      display_name: row.display_name,
+      avatar_url: row.avatar_url,
+      total_coins: Number(row.total_coins) || 0,
+      followers_count: Number(row.followers_count) || 0,
+    }));
+    return res.json({ rankings });
+  } catch (err) {
+    logger.error({ err }, "GET /rankings/weekly failed");
+    return res.status(500).json({ error: "Failed to load rankings", rankings: [] });
+  }
 });
 
 // Stickers

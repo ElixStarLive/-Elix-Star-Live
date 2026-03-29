@@ -11,7 +11,7 @@ const env = typeof window !== "undefined" ? (window as any).__ENV as Record<stri
  * Production site/API origin. Must match capacitor.config.ts `server.hostname`
  * (scheme https + this host). Used for Capacitor builds when VITE_API_URL is not set.
  */
-export const APP_PRODUCTION_ORIGIN = "https://www.elixstarlive.co.uk";
+const APP_PRODUCTION_ORIGIN = "https://www.elixstarlive.co.uk";
 
 /** On localhost we use same-origin so Vite proxy (or backend on 8080) handles /api */
 function isLocalDev(): boolean {

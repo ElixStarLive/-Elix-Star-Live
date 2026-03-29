@@ -7,6 +7,7 @@ import { Request, Response } from 'express';
 import crypto from 'crypto';
 import { getPool } from '../lib/postgres';
 import { logger } from '../lib/logger';
+import { isEmailConfigured, sendTransactionalEmail } from '../lib/email';
 
 const COOKIE_NAME = 'auth_token';
 const TOKEN_EXPIRY_SEC = 60 * 60 * 24 * 7; // 7 days
@@ -168,6 +169,22 @@ async function dbFindUserByEmail(email: string): Promise<StoredUser | null> {
   return rowToStoredUser(r.rows[0] as Record<string, unknown>);
 }
 
+async function dbFindUserByEmailOrUsername(identifier: string): Promise<StoredUser | null> {
+  const pool = getPool();
+  if (!pool) return null;
+  await ensureAuthUsersTable();
+  const lower = identifier.toLowerCase();
+  const r = await pool.query(
+    `SELECT id, email, password_hash, username, avatar_url, created_at
+       FROM elix_auth_users
+      WHERE email_lower = $1 OR LOWER(username) = $1
+      LIMIT 1`,
+    [lower],
+  );
+  if (!r.rowCount) return null;
+  return rowToStoredUser(r.rows[0] as Record<string, unknown>);
+}
+
 async function dbFindUserById(id: string): Promise<StoredUser | null> {
   const pool = getPool();
   if (!pool) return null;
@@ -261,7 +278,7 @@ export async function handleLogin(req: Request, res: Response) {
       return res.status(400).json({ error: 'Please enter both email and password.' });
     }
     if (!getPool()) return res.status(503).json({ error: 'Database not configured' });
-    const user = await dbFindUserByEmail(e);
+    const user = await dbFindUserByEmailOrUsername(e);
     if (!user || !(await verifyPassword(password, user.passwordHash))) {
       return res.status(401).json({ error: 'Invalid login credentials.' });
     }
@@ -274,7 +291,8 @@ export async function handleLogin(req: Request, res: Response) {
           return res.status(403).json({ error: 'Account suspended.' });
         }
       } catch (err) {
-        logger.warn({ err }, 'login banned_until check skipped');
+        logger.error({ err }, 'login banned_until check failed — blocking login for safety');
+        return res.status(500).json({ error: 'Login temporarily unavailable. Please try again.' });
       }
     }
     const token = signToken({ sub: user.id, email: user.email });
@@ -415,13 +433,38 @@ export async function handleDeleteAccount(req: Request, res: Response) {
   const payload = verifyAuthToken(token);
   if (!payload) return res.status(401).json({ error: 'Invalid or expired session.' });
 
-  if (!getPool()) return res.status(503).json({ error: 'Database not configured' });
+  const pool = getPool();
+  if (!pool) return res.status(503).json({ error: 'Database not configured' });
   const user = await dbFindUserById(payload.sub);
   if (!user) {
     return res.status(404).json({ error: 'User not found.' });
   }
 
-  await dbDeleteUserById(user.id);
+  try {
+    await pool.query('BEGIN');
+    await pool.query(`DELETE FROM elix_auth_sessions WHERE user_id = $1`, [user.id]);
+    await pool.query(`DELETE FROM chat_messages WHERE sender_id = $1`, [user.id]);
+    await pool.query(`DELETE FROM chat_thread_participants WHERE user_id = $1`, [user.id]);
+    await pool.query(`DELETE FROM video_comments WHERE user_id = $1`, [user.id]);
+    await pool.query(`DELETE FROM video_likes WHERE user_id = $1`, [user.id]);
+    await pool.query(`DELETE FROM saved_videos WHERE user_id = $1`, [user.id]);
+    await pool.query(`DELETE FROM follows WHERE follower_id = $1 OR following_id = $1`, [user.id]);
+    await pool.query(`DELETE FROM notifications WHERE user_id = $1 OR actor_id = $1`, [user.id]);
+    await pool.query(`DELETE FROM reports WHERE reporter_id = $1`, [user.id]);
+    await pool.query(`DELETE FROM blocked_users WHERE blocker_id = $1 OR blocked_id = $1`, [user.id]);
+    await pool.query(`DELETE FROM device_tokens WHERE user_id = $1`, [user.id]);
+    await pool.query(`DELETE FROM analytics_events WHERE user_id = $1`, [user.id]);
+    await pool.query(`DELETE FROM comment_likes WHERE user_id = $1`, [user.id]).catch(() => {});
+    await pool.query(`DELETE FROM wallet_ledger WHERE user_id = $1`, [user.id]);
+    await pool.query(`DELETE FROM videos WHERE user_id = $1`, [user.id]);
+    await pool.query(`DELETE FROM profiles WHERE user_id = $1`, [user.id]);
+    await pool.query(`DELETE FROM elix_auth_users WHERE id = $1`, [user.id]);
+    await pool.query('COMMIT');
+  } catch (err) {
+    await pool.query('ROLLBACK').catch(() => {});
+    logger.error({ err, userId: user.id }, 'handleDeleteAccount cascade failed');
+    return res.status(500).json({ error: 'Account deletion failed. Please try again.' });
+  }
 
   clearAuthCookie(res);
   return res.status(200).json({ ok: true });
@@ -433,7 +476,34 @@ export async function handleResendConfirmation(req: Request, res: Response) {
   if (!email || typeof email !== 'string') {
     return res.status(400).json({ error: 'Email is required.' });
   }
-  return res.status(501).json({ error: 'EMAIL_SERVICE_NOT_CONFIGURED' });
+
+  if (!isEmailConfigured()) {
+    return res.status(501).json({ error: 'Email service is not configured. Please contact support.' });
+  }
+
+  try {
+    const user = await dbFindUserByEmail(email.trim());
+    if (!user) {
+      return res.status(200).json({ success: true });
+    }
+
+    const result = await sendTransactionalEmail({
+      to: user.email,
+      subject: 'Confirm your Elix Star account',
+      text: 'Your account is already active. You can log in with your email and password.',
+      html: '<p>Your account is already active. You can log in with your email and password.</p>',
+    });
+
+    if (!result.ok) {
+      logger.error({ error: result.error }, 'handleResendConfirmation email send failed');
+      return res.status(500).json({ error: 'Failed to send email. Please try again later.' });
+    }
+
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    logger.error({ err }, 'handleResendConfirmation failed');
+    return res.status(500).json({ error: 'Unable to process request.' });
+  }
 }
 
 export async function handleAppleStart(req: Request, res: Response) {
@@ -447,28 +517,65 @@ export async function handleForgotPassword(req: Request, res: Response) {
   if (!email || typeof email !== 'string') {
     return res.status(400).json({ error: 'Email is required.' });
   }
-  return res.status(501).json({ error: 'EMAIL_SERVICE_NOT_CONFIGURED' });
+
+  if (!isEmailConfigured()) {
+    return res.status(501).json({ error: 'Email service is not configured. Please contact support.' });
+  }
+
+  try {
+    const user = await dbFindUserByEmail(email.trim());
+    // Always return success to avoid leaking whether an account exists
+    if (!user) {
+      return res.status(200).json({ success: true });
+    }
+
+    const resetToken = signToken({ sub: user.id, email: user.email });
+    const origin = process.env.APP_ORIGIN || req.headers.origin || 'https://www.elixstarlive.co.uk';
+    const resetLink = `${origin}/reset-password?token=${encodeURIComponent(resetToken)}`;
+
+    const result = await sendTransactionalEmail({
+      to: user.email,
+      subject: 'Reset your Elix Star password',
+      text: `Click this link to reset your password: ${resetLink}\n\nThis link expires in 7 days. If you did not request a password reset, ignore this email.`,
+      html: `<p>Click the link below to reset your password:</p><p><a href="${resetLink}">Reset Password</a></p><p>This link expires in 7 days. If you did not request this, you can ignore this email.</p>`,
+    });
+
+    if (!result.ok) {
+      logger.error({ error: result.error }, 'handleForgotPassword email send failed');
+      return res.status(500).json({ error: 'Failed to send email. Please try again later.' });
+    }
+
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    logger.error({ err }, 'handleForgotPassword failed');
+    return res.status(500).json({ error: 'Unable to process request. Please try again.' });
+  }
 }
 
 export async function handleResetPassword(req: Request, res: Response) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  const { password } = req.body ?? {};
+  const { password, token: bodyToken } = req.body ?? {};
   if (!password || typeof password !== 'string' || password.length < 6) {
     return res.status(400).json({ error: 'Valid password is required.' });
   }
-  const token = getTokenFromRequest(req);
+  const token = typeof bodyToken === 'string' ? bodyToken : getTokenFromRequest(req);
   if (!token) return res.status(401).json({ error: 'Unauthorized' });
   const payload = verifyAuthToken(token);
-  if (!payload) return res.status(401).json({ error: 'Invalid or expired session.' });
+  if (!payload) return res.status(401).json({ error: 'Invalid or expired reset link.' });
 
-  const user = await dbFindUserById(payload.sub);
-  if (!user) return res.status(404).json({ error: 'User not found.' });
-  const pool = getPool();
-  if (!pool) return res.status(503).json({ error: 'Database not configured' });
-  await ensureAuthUsersTable();
-  await pool.query(`UPDATE elix_auth_users SET password_hash = $2 WHERE id = $1`, [
-    user.id,
-    await hashPassword(password),
-  ]);
-  return res.status(200).json({ success: true });
+  try {
+    const user = await dbFindUserById(payload.sub);
+    if (!user) return res.status(404).json({ error: 'User not found.' });
+    const pool = getPool();
+    if (!pool) return res.status(503).json({ error: 'Database not configured' });
+    await ensureAuthUsersTable();
+    await pool.query(`UPDATE elix_auth_users SET password_hash = $2 WHERE id = $1`, [
+      user.id,
+      await hashPassword(password),
+    ]);
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    logger.error({ err }, 'handleResetPassword failed');
+    return res.status(500).json({ error: 'Password reset failed. Please try again.' });
+  }
 }

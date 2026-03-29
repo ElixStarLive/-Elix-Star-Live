@@ -73,76 +73,7 @@ export const api = {
         error: r.error,
       };
     },
-    async signInWithPassword(input: { email: string; password: string }) {
-      const r = await request("/api/auth/login", {
-        method: "POST",
-        body: JSON.stringify(input),
-      });
-      return {
-        data: {
-          user: r.data?.user ?? null,
-          session: r.data?.session ?? null,
-        },
-        error: r.error,
-      };
-    },
-    async signUp(input: {
-      email: string;
-      password: string;
-      options?: { data?: { username?: string } };
-    }) {
-      const r = await request("/api/auth/register", {
-        method: "POST",
-        body: JSON.stringify({
-          email: input.email,
-          password: input.password,
-          username: input.options?.data?.username,
-        }),
-      });
-      return {
-        data: {
-          user: r.data?.user ?? null,
-          session: r.data?.session ?? null,
-        },
-        error: r.error,
-      };
-    },
-    async resend(input: { email?: string }) {
-      return request("/api/auth/resend-confirmation", {
-        method: "POST",
-        body: JSON.stringify({ email: input.email }),
-      });
-    },
-    async signOut() {
-      const r = await request("/api/auth/logout", { method: "POST" });
-      return { error: r.error };
-    },
     async exchangeCodeForSession(_code?: string) {
-      const r = await request("/api/auth/me");
-      return {
-        data: { session: r.data?.session ?? null },
-        error: r.error,
-      };
-    },
-    async resetPasswordForEmail(email: string) {
-      return request("/api/auth/forgot-password", {
-        method: "POST",
-        body: JSON.stringify({ email }),
-      });
-    },
-    async updateUser(input: { password?: string }) {
-      if (!input?.password)
-        return {
-          data: { user: null },
-          error: { message: "password_required" },
-        };
-      const r = await request("/api/auth/reset-password", {
-        method: "POST",
-        body: JSON.stringify({ password: input.password }),
-      });
-      return { data: { user: r.data?.user ?? null }, error: r.error };
-    },
-    async refreshSession() {
       const r = await request("/api/auth/me");
       return {
         data: { session: r.data?.session ?? null },
@@ -154,11 +85,6 @@ export const api = {
   profiles: {
     async get(userId: string) {
       return request(`/api/profiles/${encodeURIComponent(userId)}`);
-    },
-    async getByUsername(username: string) {
-      return request(
-        `/api/profiles/by-username/${encodeURIComponent(username)}`,
-      );
     },
     async list() {
       const r = await request("/api/profiles");
@@ -188,24 +114,6 @@ export const api = {
         error: r.error,
       };
     },
-    async patch(userId: string, updates: Record<string, any>) {
-      return request(`/api/profiles/${encodeURIComponent(userId)}`, {
-        method: "PATCH",
-        body: JSON.stringify(updates),
-      });
-    },
-    async follow(userId: string) {
-      return request(
-        `/api/profiles/${encodeURIComponent(userId)}/follow`,
-        { method: "POST" },
-      );
-    },
-    async unfollow(userId: string) {
-      return request(
-        `/api/profiles/${encodeURIComponent(userId)}/unfollow`,
-        { method: "POST" },
-      );
-    },
   },
 
   videos: {
@@ -215,23 +123,6 @@ export const api = {
     async list() {
       const r = await request("/api/videos");
       return { data: r.data?.videos ?? [], error: r.error };
-    },
-    async getByUser(userId: string) {
-      const r = await request(
-        `/api/videos/user/${encodeURIComponent(userId)}`,
-      );
-      return { data: r.data?.videos ?? [], error: r.error };
-    },
-    async create(video: Record<string, any>) {
-      return request("/api/videos", {
-        method: "POST",
-        body: JSON.stringify(video),
-      });
-    },
-    async remove(videoId: string) {
-      return request(`/api/videos/${encodeURIComponent(videoId)}`, {
-        method: "DELETE",
-      });
     },
   },
 
@@ -245,20 +136,6 @@ export const api = {
         data: r.data?.threadId ? { id: r.data.threadId } : null,
         error: r.error,
       };
-    },
-    async listThreads() {
-      const r = await request("/api/chat/threads");
-      return { data: r.data?.threads ?? [], error: r.error };
-    },
-    async getThread(threadId: string) {
-      return request(
-        `/api/chat/threads/${encodeURIComponent(threadId)}`,
-      );
-    },
-    async listMessages(threadId: string) {
-      return request(
-        `/api/chat/threads/${encodeURIComponent(threadId)}/messages`,
-      );
     },
     async sendMessage(threadId: string, text: string) {
       return request(
@@ -295,12 +172,6 @@ export const api = {
     async list() {
       return request<{ blocked_user_id: string; username?: string; display_name?: string; avatar_url?: string }[]>("/api/blocked-users");
     },
-    async block(blockedUserId: string) {
-      return request("/api/block-user", {
-        method: "POST",
-        body: JSON.stringify({ blockedUserId }),
-      });
-    },
     async unblock(blockedUserId: string) {
       return request("/api/unblock-user", {
         method: "POST",
@@ -312,27 +183,6 @@ export const api = {
   gifts: {
     async getCatalog() {
       return request("/api/gifts/catalog");
-    },
-  },
-
-  wallet: {
-    async getBalance() {
-      return request("/api/wallet");
-    },
-    async getTransactions() {
-      return request("/api/wallet/transactions");
-    },
-  },
-
-  coinPackages: {
-    async list() {
-      return request("/api/coin-packages");
-    },
-  },
-
-  activity: {
-    async list() {
-      return request("/api/activity");
     },
   },
 };

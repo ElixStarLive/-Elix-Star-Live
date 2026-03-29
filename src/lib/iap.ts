@@ -241,7 +241,7 @@ export async function restorePurchases(): Promise<void> {
     const mod = await getPlugin();
     if (!mod) return;
     await mod.NativePurchases.restorePurchases();
-  } catch {
-    // Restore failed silently
+  } catch (e) {
+    throw e;
   }
 }

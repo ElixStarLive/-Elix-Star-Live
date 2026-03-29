@@ -33,8 +33,12 @@ export default function BlockedAccounts() {
   }, [currentUserId]);
 
   const loadCurrentUser = async () => {
-    const { data } = await api.auth.getUser();
-    setCurrentUserId(data.user?.id || null);
+    try {
+      const { data } = await api.auth.getUser();
+      setCurrentUserId(data.user?.id || null);
+    } catch {
+      showToast('Failed to load user');
+    }
   };
 
   const loadBlockedUsers = async () => {
@@ -45,9 +49,11 @@ export default function BlockedAccounts() {
       const { data, error } = await api.blocked.list();
 
       if (error) throw error;
-      setBlockedUsers(Array.isArray(data) ? data : []);
-    } catch (error) {
-
+      const raw = data as any;
+      const list = Array.isArray(raw) ? raw : (Array.isArray(raw?.data) ? raw.data : []);
+      setBlockedUsers(list);
+    } catch {
+      showToast('Failed to load blocked users');
     } finally {
       setLoading(false);
     }
@@ -139,7 +145,9 @@ export default function BlockedAccounts() {
 }
 
 function formatDate(dateString: string): string {
+  if (!dateString) return '';
   const date = new Date(dateString);
+  if (isNaN(date.getTime())) return '';
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffDays = Math.floor(diffMs / 86400000);

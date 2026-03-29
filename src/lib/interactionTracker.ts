@@ -1,7 +1,18 @@
 import { getApiBase } from './api';
+import { useAuthStore } from '../store/useAuthStore';
+import { Capacitor } from '@capacitor/core';
 
 function getAuthHeaders(): Record<string, string> {
-  return { 'Content-Type': 'application/json' };
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const token = useAuthStore.getState().session?.access_token;
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
+function getCredentialsMode(): RequestCredentials {
+  return Capacitor.isNativePlatform() ? 'omit' : 'include';
 }
 
 async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit, timeoutMs: number): Promise<Response> {
@@ -16,7 +27,7 @@ async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit, tim
 async function apiPost(path: string, body: any): Promise<any> {
   const base = getApiBase();
   const url = base ? `${base}${path.startsWith('/') ? path : `/${path}`}` : path;
-  const res = await fetchWithTimeout(url, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(body), credentials: 'include' }, 7000);
+  const res = await fetchWithTimeout(url, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(body), credentials: getCredentialsMode() }, 7000);
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(err.error || 'API error');
@@ -27,7 +38,7 @@ async function apiPost(path: string, body: any): Promise<any> {
 async function apiGet(path: string): Promise<any> {
   const base = getApiBase();
   const url = base ? `${base}${path.startsWith('/') ? path : `/${path}`}` : path;
-  const res = await fetchWithTimeout(url, { headers: getAuthHeaders(), credentials: 'include' }, 7000);
+  const res = await fetchWithTimeout(url, { headers: getAuthHeaders(), credentials: getCredentialsMode() }, 7000);
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(err.error || 'API error');
@@ -192,7 +203,9 @@ if (typeof window !== 'undefined') {
         });
         const base = getApiBase();
         const url = base ? `${base}/api/feed/track-view` : '/api/feed/track-view';
-        navigator.sendBeacon(url, new Blob([payload], { type: 'application/json' }));
+        const token = useAuthStore.getState().session?.access_token;
+        const beaconUrl = token ? `${url}?token=${encodeURIComponent(token)}` : url;
+        navigator.sendBeacon(beaconUrl, new Blob([payload], { type: 'application/json' }));
       }
     }
     activeViews.clear();

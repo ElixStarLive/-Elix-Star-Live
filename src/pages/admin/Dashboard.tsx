@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api, request } from '../../lib/apiClient';
 import { BarChart3, Users, Video, DollarSign, Flag, Zap } from 'lucide-react';
+import { showToast } from '../../lib/toast';
 
 interface DashboardStats {
   dailyActiveUsers: number;
@@ -12,6 +14,7 @@ interface DashboardStats {
 }
 
 export default function AdminDashboard() {
+  const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats>({
     dailyActiveUsers: 0,
     totalUsers: 0,
@@ -28,23 +31,27 @@ export default function AdminDashboard() {
 
   const loadStats = async () => {
     try {
-      const [usersRes, videosRes, liveRoomsRes, reportsRes, purchasesRes] = await Promise.all([
+      const [usersRes, videosRes, liveRoomsRes, reportsRes, purchasesRes, dauRes] = await Promise.all([
         api.profiles.list(),
         api.videos.list(),
         request('/api/live/streams'),
         request('/api/admin/reports'),
         request('/api/admin/purchases'),
+        request('/api/admin/stats/dau'),
       ]);
 
       const totalUsers = usersRes.count ?? (Array.isArray(usersRes.data) ? usersRes.data.length : 0);
       const totalVideos = Array.isArray(videosRes.data) ? videosRes.data.length : 0;
-      const liveCount = Array.isArray(liveRoomsRes.data) ? liveRoomsRes.data.length : 0;
-      const pendingCount = Array.isArray(reportsRes.data) ? reportsRes.data.length : 0;
-      const purchasesArr = Array.isArray(purchasesRes.data) ? purchasesRes.data : [];
+      const liveStreams = liveRoomsRes.data?.streams ?? liveRoomsRes.data;
+      const liveCount = Array.isArray(liveStreams) ? liveStreams.length : 0;
+      const reportsArr = Array.isArray(reportsRes.data) ? reportsRes.data : (Array.isArray(reportsRes.data?.data) ? reportsRes.data.data : []);
+      const pendingCount = reportsArr.filter((r: any) => r.status === 'pending').length;
+      const purchasesArr = Array.isArray(purchasesRes.data) ? purchasesRes.data : (Array.isArray(purchasesRes.data?.data) ? purchasesRes.data.data : []);
       const revenue = purchasesArr.reduce((sum: number, p: any) => sum + (p.price_minor || 0), 0);
+      const dau = dauRes.data?.dau ?? 0;
 
       setStats({
-        dailyActiveUsers: Math.floor(totalUsers * 0.3),
+        dailyActiveUsers: dau,
         totalUsers,
         totalVideos,
         liveRooms: liveCount,
@@ -52,7 +59,7 @@ export default function AdminDashboard() {
         pendingReports: pendingCount,
       });
     } catch {
-      // Stats load failed
+      showToast('Failed to load dashboard data');
     } finally {
       setLoading(false);
     }
@@ -118,9 +125,9 @@ export default function AdminDashboard() {
         <div className="bg-[#1C1E24] rounded-lg p-6">
           <h2 className="text-xl font-bold mb-4">Quick Actions</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <ActionButton href="/admin/users" label="Manage Users" />
-            <ActionButton href="/admin/reports" label="Review Reports" />
-            <ActionButton href="/admin/economy" label="Economy Controls" />
+            <ActionButton href="/admin/users" label="Manage Users" onClick={(h) => navigate(h)} />
+            <ActionButton href="/admin/reports" label="Review Reports" onClick={(h) => navigate(h)} />
+            <ActionButton href="/admin/economy" label="Economy Controls" onClick={(h) => navigate(h)} />
           </div>
         </div>
       </div>
@@ -149,13 +156,14 @@ function StatCard({ icon, title, value, color }: { icon: React.ReactNode; title:
   );
 }
 
-function ActionButton({ href, label }: { href: string; label: string }) {
+function ActionButton({ href, label, onClick }: { href: string; label: string; onClick?: (href: string) => void }) {
   return (
-    <a
-      href={href}
+    <button
+      type="button"
+      onClick={() => onClick?.(href)}
       className="px-4 py-3 bg-[#C9A96E] text-black rounded-lg font-semibold hover:bg-[#C9A96E]/90 transition text-center"
     >
       {label}
-    </a>
+    </button>
   );
 }

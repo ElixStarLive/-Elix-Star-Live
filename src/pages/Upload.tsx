@@ -48,7 +48,7 @@ export default function Upload() {
   const duetSourceVideoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    fetchSoundTracksFromDatabase().then(setBuiltInTracks);
+    fetchSoundTracksFromDatabase().then(setBuiltInTracks).catch(() => {});
   }, []);
 
   const [searchParams] = useSearchParams();
@@ -84,45 +84,6 @@ export default function Upload() {
   const ZOOM_STEP = 0.25;
   const handleZoomIn = () => setZoomLevel((z) => Math.min(ZOOM_MAX, z + ZOOM_STEP));
   const handleZoomOut = () => setZoomLevel((z) => Math.max(ZOOM_MIN, z - ZOOM_STEP));
-
-  const mapRowToVideo = (row: any, profile: any) => {
-    const displayName = profile?.display_name || profile?.username || 'Creator';
-    const uname = profile?.username || profile?.display_name || 'creator';
-    return {
-    id: row.id,
-    url: row.url,
-    thumbnail: row.thumbnail_url || '',
-    duration: '0:15',
-    user: {
-      id: profile?.user_id ?? profile?.id ?? row.user_id ?? 'unknown',
-      username: uname,
-      name: displayName,
-      avatar: profile?.avatar_url ?? `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}`,
-      level: 1,
-      isVerified: !!profile?.is_creator,
-      followers: profile?.followers_count || 0,
-      following: profile?.following_count || 0
-    },
-    description: row.description ?? '',
-    hashtags: (() => {
-      if (row.hashtags && Array.isArray(row.hashtags)) return row.hashtags;
-      const text = row.description || '';
-      const matches = text.match(/#[\w\u00C0-\u024F]+/g);
-      return matches ? matches.map((t: string) => t.slice(1)) : [];
-    })(),
-    music: { id: 'original', title: 'Original Sound', artist: displayName, duration: '0:15' },
-    stats: { views: row.views ?? 0, likes: row.likes ?? 0, comments: 0, shares: 0, saves: 0 },
-    createdAt: row.created_at,
-    location: row.location || undefined,
-    isLiked: false,
-    isSaved: false,
-    isFollowing: false,
-    comments: [],
-    quality: 'auto' as const,
-    privacy: 'public' as const,
-    duetWithVideoId: row.duet_with_video_id || undefined
-  };
-  };
 
   type UploadMusic = {
     id: string;

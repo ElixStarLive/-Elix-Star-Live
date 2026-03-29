@@ -11,7 +11,7 @@ export async function handleGetStickers(req: Request, res: Response) {
     return res.json({ stickers });
   } catch (err) {
     logger.error({ err, creatorUserId }, "handleGetStickers failed");
-    return res.json({ stickers: [] });
+    return res.status(500).json({ error: "Failed to load stickers", stickers: [] });
   }
 }
 

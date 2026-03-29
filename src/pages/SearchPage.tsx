@@ -7,7 +7,7 @@ import { TrendingSnapFeed } from '../components/TrendingSnapFeed';
 import { request } from '../lib/apiClient';
 import { useVideoStore } from '../store/useVideoStore';
 
-const TRENDING_SEARCHES = [
+const FALLBACK_SEARCHES = [
   'Dance challenge',
   'Funny cats',
   'Cooking hacks',
@@ -26,6 +26,7 @@ export default function SearchPage() {
   const [visible, setVisible] = useState(false);
   const [suggestedUsers, setSuggestedUsers] = useState<{ id: string; username: string; name: string; avatar: string; is_live?: boolean }[]>([]);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [trendingSearches, setTrendingSearches] = useState<string[]>(FALLBACK_SEARCHES);
   const panelRef = useRef<HTMLDivElement>(null);
   const touchStart = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const { videos, fetchVideos } = useVideoStore();
@@ -34,6 +35,24 @@ export default function SearchPage() {
 
   useEffect(() => {
     requestAnimationFrame(() => setVisible(true));
+    const storeState = useVideoStore.getState();
+    const hashtags = (storeState as any).trendingHashtags as string[] | undefined;
+    if (hashtags && hashtags.length > 0) {
+      setTrendingSearches(hashtags.slice(0, 8));
+    } else {
+      request('/api/videos').then(({ data }) => {
+        const allVideos = data?.videos || [];
+        const tagCounts = new Map<string, number>();
+        for (const v of allVideos) {
+          const tags = (v.hashtags || []) as string[];
+          for (const t of tags) {
+            tagCounts.set(t, (tagCounts.get(t) || 0) + 1);
+          }
+        }
+        const sorted = [...tagCounts.entries()].sort((a, b) => b[1] - a[1]).map(([t]) => t).slice(0, 8);
+        if (sorted.length > 0) setTrendingSearches(sorted);
+      }).catch(() => {});
+    }
   }, []);
 
   const closePanel = () => {
@@ -261,7 +280,7 @@ export default function SearchPage() {
                     <div className="mt-2 px-4">
                       <h2 className="font-bold mb-2 text-gold-metallic text-sm">You may like</h2>
                       <div className="flex flex-wrap gap-2">
-                        {TRENDING_SEARCHES.map((tag) => (
+                        {trendingSearches.map((tag) => (
                           <button
                             key={tag}
                             onClick={() => {
@@ -341,7 +360,7 @@ export default function SearchPage() {
                   <div className="mt-2 px-4">
                     <h2 className="font-bold mb-2 text-gold-metallic text-sm">You may like</h2>
                     <div className="flex flex-wrap gap-2">
-                      {TRENDING_SEARCHES.map((tag) => (
+                      {trendingSearches.map((tag) => (
                         <button
                           key={tag}
                           onClick={() => {

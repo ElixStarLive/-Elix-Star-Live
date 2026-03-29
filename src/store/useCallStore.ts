@@ -24,10 +24,12 @@ interface CallStore {
   isSpeakerOn: boolean;
   callStartTime: number | null;
   endReason: string | null;
+  callRoomName: string | null;
 
   startOutgoingCall: (callId: string, remote: CallParticipant) => void;
   receiveIncomingCall: (callId: string, remote: CallParticipant) => void;
   setStatus: (status: CallStatus) => void;
+  setCallRoomName: (name: string) => void;
   toggleAudio: () => void;
   toggleVideo: () => void;
   toggleSpeaker: () => void;
@@ -44,6 +46,7 @@ const initialState = {
   isSpeakerOn: true,
   callStartTime: null as number | null,
   endReason: null as string | null,
+  callRoomName: null as string | null,
 };
 
 export const useCallStore = create<CallStore>()((set) => ({
@@ -76,6 +79,8 @@ export const useCallStore = create<CallStore>()((set) => ({
       status,
       callStartTime: status === 'connected' && !s.callStartTime ? Date.now() : s.callStartTime,
     })),
+
+  setCallRoomName: (name) => set({ callRoomName: name }),
 
   toggleAudio: () => set((s) => ({ isAudioMuted: !s.isAudioMuted })),
   toggleVideo: () => set((s) => ({ isVideoOff: !s.isVideoOff })),

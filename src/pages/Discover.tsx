@@ -71,6 +71,7 @@ export default function Discover() {
       }, 300); // Debounce
       return () => clearTimeout(timer);
     }
+    setSearchResults({ videos: [], users: [] });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery]);
 
@@ -137,14 +138,9 @@ export default function Discover() {
   const loadRanking = async () => {
     setLoading(true);
     try {
-      const { data: rankBody, error } = await request('/api/profiles');
+      const { data: rankBody, error } = await request('/api/rankings/weekly');
       if (error) throw new Error('Failed');
-      const allProfiles = rankBody?.profiles || [];
-      const ranked = allProfiles
-        .map((p: any, i: number) => ({ rank: i + 1, user_id: p.user_id, username: p.username, display_name: p.display_name, avatar_url: p.avatar_url, score: p.followers_count || 0 }))
-        .sort((a: any, b: any) => b.score - a.score)
-        .slice(0, 50);
-      setRankings(ranked);
+      setRankings(rankBody?.rankings || []);
     } catch {
       setRankings([]);
     } finally {
@@ -548,9 +544,9 @@ function UserSearchResult({ user }: { user: User }) {
     e.stopPropagation();
     if (followed) return;
     try {
-      await request(`/api/profiles/${user.user_id}/follow`, { method: 'POST' });
-      setFollowed(true);
-    } catch { /* ignore */ }
+      const { error } = await request(`/api/profiles/${user.user_id}/follow`, { method: 'POST' });
+      if (!error) setFollowed(true);
+    } catch { /* network failure */ }
   };
   return (
     <button
@@ -616,10 +612,3 @@ function formatNumber(num: number): string {
   return String(num);
 }
 
-function HeartIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="currentColor" viewBox="0 0 20 20">
-      <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" />
-    </svg>
-  );
-}

@@ -15,11 +15,12 @@ export async function navigateToDmWithUser(
     return;
   }
   try {
-    const { data: body, error } = await request('/api/chat/threads', {
+    const { data: body, error } = await request('/api/chat/threads/ensure', {
       method: 'POST',
-      body: JSON.stringify({ user2_id: otherUserId }),
+      body: JSON.stringify({ otherUserId }),
     });
-    const id = (body?.data as { id?: string } | undefined)?.id;
+    const id = body?.threadId as string | undefined
+      ?? (body?.thread as { id?: string } | undefined)?.id;
     if (!error && id) {
       navigate(`/inbox/${encodeURIComponent(id)}`);
       return;

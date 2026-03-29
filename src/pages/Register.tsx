@@ -91,6 +91,7 @@ export default function Register() {
       }
 
       if (isMounted.current) {
+        setIsSubmitting(false);
         navigate('/', { replace: true });
       }
     } catch (err: any) {

@@ -50,7 +50,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useVideoStore } from '../store/useVideoStore';
 import { getLiveKitUrl } from '../lib/api';
 import { fetchAllSharePanelContacts } from '../lib/sharePanelContacts';
-import { api, request } from '../lib/apiClient';
+import { request } from '../lib/apiClient';
 import ReportModal from '../components/ReportModal';
 import PromotePanel from '../components/PromotePanel';
 import { RankingPanel } from '../components/RankingPanel';
@@ -275,7 +275,8 @@ export default function SpectatorPage() {
   const dailyHeartFetchedRef = useRef(false);
 
   useEffect(() => {
-    if (!hostUserId || dailyHeartFetchedRef.current) return;
+    dailyHeartFetchedRef.current = false;
+    if (!hostUserId) return;
     dailyHeartFetchedRef.current = true;
     request(`/api/hearts/daily/${hostUserId}`).then(({ data: d }) => {
       if (d) {
@@ -901,15 +902,23 @@ export default function SpectatorPage() {
     return () => clearTimeout(t);
   }, [streamIsLive, hasStream]);
 
-  // Load user profile (coins, level, XP)
-  // Note: Without a database, we use persisted test coins and user data
   useEffect(() => {
     if (!user?.id) return;
     
-    const persisted = getPersistedTestCoinsBalance(user.id);
-    setCoinBalance(Math.max(0, persisted));
     setUserLevel(user.level || 1);
     setUserXP(0);
+
+    request('/api/wallet/').then(({ data, error: walletErr }) => {
+      if (!walletErr && data?.balance != null) {
+        setCoinBalance(Math.max(0, Number(data.balance)));
+      } else {
+        const persisted = getPersistedTestCoinsBalance(user.id);
+        setCoinBalance(Math.max(0, persisted));
+      }
+    }).catch(() => {
+      const persisted = getPersistedTestCoinsBalance(user.id);
+      setCoinBalance(Math.max(0, persisted));
+    });
   }, [user?.id, user?.level]);
 
   useEffect(() => {
@@ -925,16 +934,13 @@ export default function SpectatorPage() {
     }
   }, [showTestCoinsModal]);
 
-  // Refresh coins when gift panel opens - use max of local, DB and persisted so test coins stay
   useEffect(() => {
     if (showGiftPanel && user?.id) {
-      api.profiles.get(user.id).then(({ data }) => {
-          if (data?.coins != null) {
-            const dbCoins = Number(data.coins);
-            const persisted = getPersistedTestCoinsBalance(user.id);
-            setCoinBalance(prev => Math.max(prev, dbCoins, persisted));
-          }
-        });
+      request('/api/wallet/').then(({ data, error: walletErr }) => {
+        if (!walletErr && data?.balance != null) {
+          setCoinBalance(Math.max(0, Number(data.balance)));
+        }
+      }).catch(() => {});
     }
   }, [showGiftPanel, user?.id]);
 
@@ -964,14 +970,6 @@ export default function SpectatorPage() {
       if (saved) setMyHeartCount(parseInt(saved, 10));
     }
   }, [user?.id, effectiveStreamId]);
-
-  // Viewer count: increment on join, decrement on leave + realtime updates
-  useEffect(() => {
-    if (!effectiveStreamId) return;
-
-    // Viewer count from WebSocket/backend events.
-    return () => {};
-  }, [effectiveStreamId, navigate]);
 
   // WebSocket: spectators join the creator's live room (same room id = effectiveStreamId) for real-time chat, gifts, join/leave
   useEffect(() => {
@@ -1394,7 +1392,7 @@ export default function SpectatorPage() {
 
     const videoTimeout = setTimeout(() => {
       if (!mounted) return;
-      const vid = document.querySelector('video');
+      const vid = videoRef.current;
       const hasTrack = vid?.srcObject && (vid.srcObject as MediaStream).getVideoTracks().length > 0;
       if (!hasTrack && !hostFoundInRoom) goOffline('no_video_track_and_host_not_found_after_video_timeout');
     }, 25000);
@@ -1426,13 +1424,15 @@ export default function SpectatorPage() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const rows = await fetchAllSharePanelContacts(user?.id);
-      const mapped = rows.map((r) => ({
-        id: r.user_id,
-        name: r.username,
-        avatar: r.avatar_url || '',
-      }));
-      if (!cancelled) setShareContacts(mapped);
+      try {
+        const rows = await fetchAllSharePanelContacts(user?.id);
+        const mapped = rows.map((r) => ({
+          id: r.user_id,
+          name: r.username,
+          avatar: r.avatar_url || '',
+        }));
+        if (!cancelled) setShareContacts(mapped);
+      } catch {}
     })();
     return () => {
       cancelled = true;
@@ -1558,14 +1558,45 @@ export default function SpectatorPage() {
       return;
     }
 
-    const prevBalance = coinBalance;
-    const afterDeduct = Math.max(0, coinBalance - gift.coins);
-    setCoinBalance(afterDeduct);
-    persistTestCoinsBalance(user?.id, afterDeduct);
-
     let newLevel = userLevel;
 
-    // Calculate XP and level up
+    if (user?.id) {
+      try {
+        const { data: result, error: giftErr } = await request('/api/gifts/send', {
+          method: 'POST',
+          body: JSON.stringify({ streamKey: effectiveStreamId, giftId: gift.id, channel: 'spectator' }),
+        });
+
+        if (giftErr) {
+          const msg = giftErr.message || '';
+          if (msg.includes('frozen')) {
+            showToast('Account is frozen. Contact support.');
+            return;
+          }
+          if (msg.includes('INSUFFICIENT') || msg.includes('insufficient_funds') || msg.includes('insufficient')) {
+            showToast('Not enough coins');
+            return;
+          }
+          showToast(msg || 'Gift failed');
+          return;
+        } else {
+          if (result.new_balance != null) {
+            const nb = Number(result.new_balance);
+            setCoinBalance(nb);
+            persistTestCoinsBalance(user?.id, nb);
+          } else {
+            setCoinBalance(prev => Math.max(0, prev - gift.coins));
+          }
+        }
+      } catch {
+        showToast('Gift failed — please try again');
+        return;
+      }
+    } else {
+      showToast('Please sign in to send gifts');
+      return;
+    }
+
     const xpGained = gift.coins;
     let currentXP = userXP + xpGained;
     let currentLevel = userLevel;

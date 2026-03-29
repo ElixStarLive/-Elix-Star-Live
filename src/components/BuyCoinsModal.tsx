@@ -1,8 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { CreditCard, Smartphone, Coins, Sparkles } from 'lucide-react';
+import { Coins, Sparkles } from 'lucide-react';
 import { platform } from '@/lib/platform';
 import {
   loadProducts as loadIAPProducts,
@@ -39,34 +36,38 @@ export const BuyCoinsModal: React.FC<BuyCoinsModalProps> = ({ isOpen, onClose, o
   const [nativeProducts, setNativeProducts] = useState<IAPProduct[]>([]);
   const [nativeLoading, setNativeLoading] = useState<string | null>(null);
   const isNative = platform.isNative;
-  const loading = false;
   const [customAmount, setCustomAmount] = useState('');
 
   useEffect(() => {
-    if (isOpen && isNative) {
-      loadNative();
-    }
+    if (!isOpen || !isNative) return;
+    let cancelled = false;
+    const loadNative = async () => {
+      try {
+        await initializeIAP();
+        const products = await loadIAPProducts();
+        if (cancelled) return;
+        if (products.length > 0) {
+          setNativeProducts(products);
+        } else {
+          const fallback: IAPProduct[] = Object.entries(IAP_PRODUCTS).map(
+            ([id, meta]) => ({
+              id,
+              title: meta.label,
+              description: `Get ${meta.coins} coins`,
+              price: '',
+              priceAmountMicros: 0,
+              coins: meta.coins,
+            }),
+          );
+          setNativeProducts(fallback);
+        }
+      } catch {
+        if (!cancelled) showToast('Failed to load products');
+      }
+    };
+    loadNative();
+    return () => { cancelled = true; };
   }, [isOpen, isNative]);
-
-  const loadNative = async () => {
-    await initializeIAP();
-    const products = await loadIAPProducts();
-    if (products.length > 0) {
-      setNativeProducts(products);
-    } else {
-      const fallback: IAPProduct[] = Object.entries(IAP_PRODUCTS).map(
-        ([id, meta]) => ({
-          id,
-          title: meta.label,
-          description: `Get ${meta.coins} coins`,
-          price: '',
-          priceAmountMicros: 0,
-          coins: meta.coins,
-        }),
-      );
-      setNativeProducts(fallback);
-    }
-  };
 
   const handleNativePurchase = async (product: IAPProduct) => {
     setNativeLoading(product.id);
@@ -139,7 +140,6 @@ export const BuyCoinsModal: React.FC<BuyCoinsModalProps> = ({ isOpen, onClose, o
                   <button
                     key={coinPackage.id}
                     onClick={() => handlePackageSelect(coinPackage)}
-                    disabled={loading}
                     className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg border transition-colors active:scale-[0.98] ${
                       selectedPackage.id === coinPackage.id
                         ? 'bg-[#C9A96E]/10 border-[#C9A96E]/50'

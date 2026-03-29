@@ -119,7 +119,28 @@ export async function handleGetGiftCatalog(_req: Request, res: Response) {
   }
 }
 
-/** GET /api/sounds — sound library not yet configured */
+/** GET /api/sounds — returns sound tracks from DB if available */
 export async function handleGetSounds(_req: Request, res: Response) {
-  return res.status(200).json({ sounds: [], configured: false });
+  const pool = getPool();
+  if (!pool) {
+    return res.status(503).json({ sounds: [], error: 'Database not configured' });
+  }
+  try {
+    const r = await pool.query(
+      `SELECT id, title, artist, audio_url, cover_url, duration, use_count
+       FROM sounds
+       WHERE is_active = true
+       ORDER BY use_count DESC, created_at DESC
+       LIMIT 200`
+    );
+    res.setHeader("Cache-Control", "public, s-maxage=300, max-age=60");
+    return res.status(200).json({ sounds: r.rows, configured: true });
+  } catch (err) {
+    const code = (err as { code?: string })?.code;
+    if (code === '42P01') {
+      return res.status(200).json({ sounds: [], configured: false });
+    }
+    logger.error({ err }, 'handleGetSounds failed');
+    return res.status(500).json({ sounds: [], error: 'Failed to load sounds' });
+  }
 }

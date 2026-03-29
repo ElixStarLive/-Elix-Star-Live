@@ -86,4 +86,29 @@ adminPayoutRouter.post("/unfreeze/:userId", async (req, res) => {
   }
 });
 
+adminPayoutRouter.get("/stats/dau", async (req, res) => {
+  res.setHeader("Cache-Control", "private, max-age=300");
+  try {
+    const { getPool } = await import("../lib/postgres");
+    const { getTokenFromRequest, verifyAuthToken } = await import("./auth");
+    const db = getPool();
+    if (!db) return res.json({ dau: 0 });
+    const token = getTokenFromRequest(req);
+    const payload = token ? verifyAuthToken(token) : null;
+    if (!payload) return res.status(401).json({ error: "Unauthorized" });
+    const r = await db.query(
+      `SELECT COUNT(DISTINCT user_id) AS dau FROM elix_auth_sessions WHERE expires_at > NOW() AND updated_at > NOW() - INTERVAL '24 hours'`
+    ).catch(() => null);
+    if (r && r.rows[0]) {
+      return res.json({ dau: Number(r.rows[0].dau) || 0 });
+    }
+    const fallback = await db.query(
+      `SELECT COUNT(*) AS cnt FROM elix_auth_users WHERE created_at > NOW() - INTERVAL '30 days'`
+    ).catch(() => null);
+    return res.json({ dau: fallback?.rows[0]?.cnt ? Math.min(Number(fallback.rows[0].cnt), 100) : 0 });
+  } catch {
+    return res.json({ dau: 0 });
+  }
+});
+
 export { creatorRouter, adminPayoutRouter };

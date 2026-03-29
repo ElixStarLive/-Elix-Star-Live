@@ -4,6 +4,7 @@ import { Capacitor } from "@capacitor/core";
 import { Preferences } from "@capacitor/preferences";
 import { request } from "../lib/apiClient";
 import { parseAuthLoginRegisterResponse } from "../lib/authApiContract";
+import { notificationService } from "../lib/notifications";
 
 interface User {
   id: string;
@@ -376,19 +377,23 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
 
   // ── Apple sign-in ────────────────────────────────────────────────────────
   signInWithApple: async () => {
-    const { data, error } = await request("/api/auth/apple/start", {
-      method: "POST",
-      body: JSON.stringify({
-        redirectTo: window.location.origin + "/auth/callback",
-      }),
-    });
-    if (error) {
-      return { error: error.message || "Apple sign-in failed." };
+    try {
+      const { data, error } = await request("/api/auth/apple/start", {
+        method: "POST",
+        body: JSON.stringify({
+          redirectTo: window.location.origin + "/auth/callback",
+        }),
+      });
+      if (error) {
+        return { error: error.message || "Apple sign-in failed." };
+      }
+      if (data?.url) {
+        window.location.href = data.url as string;
+      }
+      return { error: null };
+    } catch (e: any) {
+      return { error: e?.message || "Apple sign-in failed." };
     }
-    if (data?.url) {
-      window.location.href = data.url as string;
-    }
-    return { error: null };
   },
   signInAsGuest: async () => {
     const { data, error } = await request("/api/auth/guest", {
@@ -419,6 +424,7 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
 
   // ── Sign out ─────────────────────────────────────────────────────────────
   signOut: async () => {
+    try { await notificationService.unregisterToken(); } catch {}
     try { await request("/api/auth/logout", { method: "POST" }); } catch {}
     set({
       session: null,
@@ -490,7 +496,14 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
         authMode: "client",
       });
     } catch {
-      clearState();
+      // Transient network errors should not log the user out if they have a persisted session.
+      // Only stop loading; the user keeps their hydrated session until next successful check.
+      const hasSession = !!get().session?.access_token;
+      if (hasSession) {
+        set({ isLoading: false });
+      } else {
+        clearState();
+      }
     }
   },
 }), {

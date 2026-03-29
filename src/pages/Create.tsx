@@ -5,7 +5,6 @@ import {
   Play,
   Pause,
   CameraOff,
-  X,
   Search,
   Image,
   Scissors,
@@ -13,11 +12,7 @@ import {
   Layers,
   Plus,
   FileText,
-  Wand2,
-  Sparkles,
   Film,
-  Video,
-  Radio,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
@@ -60,7 +55,7 @@ function SoundPickerModal({
   }, [customSounds, builtInSounds]);
 
   useEffect(() => {
-    fetchSoundTracksFromDatabase().then(setBuiltInSounds);
+    fetchSoundTracksFromDatabase().then(setBuiltInSounds).catch(() => {});
   }, []);
 
   const formatClip = (start: number, end: number) => {
@@ -237,6 +232,7 @@ export default function Create() {
   const recordedChunksRef = useRef<Blob[]>([]);
   const pinchStartDistRef = useRef<number | null>(null);
   const pinchStartZoomRef = useRef<number>(1);
+  const countdownTimeoutRef = useRef<number | null>(null);
 
   const filteredTemplates = useMemo(() => {
     let t = PRESET_TEMPLATES.filter((tpl) => tpl.category === templateTab);
@@ -317,6 +313,12 @@ export default function Create() {
     start();
     return () => { cancelled = true; stopStream(); };
   }, [isFrontCamera, previewUrl, retryCamera]);
+
+  useEffect(() => {
+    return () => {
+      if (countdownTimeoutRef.current !== null) clearTimeout(countdownTimeoutRef.current);
+    };
+  }, []);
 
   const openUploadPicker = () => fileInputRef.current?.click();
   const flipCamera = () => { setIsFrontCamera((v) => !v); setZoomLevel(1); };
@@ -413,11 +415,11 @@ export default function Create() {
     const tick = () => {
       const elapsed = Math.floor((Date.now() - startedAt) / 1000);
       const left = total - elapsed;
-      if (left <= 0) { setCountdownSeconds(null); startRecordingNow(); return; }
+      if (left <= 0) { setCountdownSeconds(null); countdownTimeoutRef.current = null; startRecordingNow(); return; }
       setCountdownSeconds(left);
-      window.setTimeout(tick, 200);
+      countdownTimeoutRef.current = window.setTimeout(tick, 200);
     };
-    window.setTimeout(tick, 200);
+    countdownTimeoutRef.current = window.setTimeout(tick, 200);
   };
 
   const stopRecording = () => {

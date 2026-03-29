@@ -60,7 +60,7 @@ export const generateDeepLink = (type: 'video' | 'user' | 'live' | 'hashtag', id
 
 // Generate web fallback link
 export const generateWebLink = (type: 'video' | 'user' | 'live' | 'hashtag', id: string): string => {
-  const baseUrl = 'https://elixstar.app'; // Replace with your domain
+  const baseUrl = 'https://www.elixstarlive.co.uk';
   return `${baseUrl}/${type}/${id}`;
 };
 

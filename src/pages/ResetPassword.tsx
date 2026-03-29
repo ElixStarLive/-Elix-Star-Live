@@ -1,19 +1,33 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Lock, CheckCircle } from 'lucide-react';
 import { request } from '../lib/apiClient';
 
 export default function ResetPassword() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const resetToken = searchParams.get('token');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
+    };
+  }, []);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    if (!resetToken) {
+      setError('Invalid or missing reset link. Please request a new password reset.');
+      return;
+    }
 
     if (password.length < 6) {
       setError('Password must be at least 6 characters.');
@@ -28,13 +42,13 @@ export default function ResetPassword() {
     try {
       const { error: reqError } = await request('/api/auth/reset-password', {
         method: 'POST',
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ password, token: resetToken }),
       });
       if (reqError) {
         setError(reqError.message || 'Password reset is not available at this time.');
       } else {
         setSuccess(true);
-        setTimeout(() => navigate('/login', { replace: true }), 3000);
+        redirectTimerRef.current = setTimeout(() => navigate('/login', { replace: true }), 3000);
       }
     } catch {
       setError('Failed to reset password. Please try again.');

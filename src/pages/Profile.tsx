@@ -41,9 +41,10 @@ export default function Profile() {
   const tabParam = searchParams.get('tab');
   const { user, updateUser, signOut } = useAuthStore();
   
-  const [activeTab, setActiveTab] = useState<'videos' | 'shop' | 'private' | 'reposts' | 'saved' | 'liked'>(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (tabParam as any) || 'videos'
+  const validTabs = ['videos', 'shop', 'private', 'reposts', 'saved', 'liked'] as const;
+  type ProfileTab = typeof validTabs[number];
+  const [activeTab, setActiveTab] = useState<ProfileTab>(
+    tabParam && validTabs.includes(tabParam as ProfileTab) ? (tabParam as ProfileTab) : 'videos'
   );
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [videos, setVideos] = useState<Video[]>([]);
@@ -60,7 +61,7 @@ export default function Profile() {
   const [showReportModal, setShowReportModal] = useState(false);
   const [shareFollowers, setShareFollowers] = useState<{ user_id: string; username: string; avatar_url: string | null }[]>([]);
   const [shareSent, setShareSent] = useState<Set<string>>(new Set());
-  const [ranking, setRanking] = useState<number | null>(null);
+  
   const [resolvedUserId, setResolvedUserId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const headerCenterLabelRef = useRef<HTMLDivElement | null>(null);
@@ -86,19 +87,22 @@ export default function Profile() {
     const profileUrl = `${window.location.origin}/profile/${effectiveUserId}`;
     const msgText = `Check out this profile: ${displayName} ${profileUrl}`;
     try {
-      const { data: threadData, error: threadError } = await request('/api/chat/threads', {
+      const { data: threadData, error: threadError } = await request('/api/chat/threads/ensure', {
         method: "POST",
-        body: JSON.stringify({ user2_id: targetUserId }),
+        body: JSON.stringify({ otherUserId: targetUserId }),
       });
-      if (threadError) return;
-      if (threadData?.data?.id) {
-        await request(`/api/chat/threads/${threadData.data.id}/messages`, {
+      if (threadError) { showToast('Failed to send'); return; }
+      const threadId = threadData?.threadId || threadData?.thread?.id || threadData?.data?.id;
+      if (threadId) {
+        await request(`/api/chat/threads/${threadId}/messages`, {
           method: "POST",
           body: JSON.stringify({ text: msgText }),
         });
       }
       setShareSent(prev => new Set(prev).add(targetUserId));
-    } catch {}
+    } catch {
+      showToast('Failed to send');
+    }
   };
   
   const _isFallback = (n: string | null | undefined) =>
@@ -138,9 +142,11 @@ export default function Profile() {
       setResolvedUserId(displayUserId);
       return;
     }
+    let cancelled = false;
     const usernameClean = (displayUserId || '').replace(/^@+/, '');
     request(`/api/profiles/by-username/${encodeURIComponent(usernameClean)}`)
       .then(({ data: body, error }) => {
+        if (cancelled) return;
         if (error || !body) {
           setResolvedUserId(null);
           setProfileData(null);
@@ -156,10 +162,12 @@ export default function Profile() {
         }
       })
       .catch(() => {
+        if (cancelled) return;
         setResolvedUserId(null);
         setProfileData(null);
         setLoading(false);
       });
+    return () => { cancelled = true; };
   }, [displayUserId]);
 
 
@@ -252,8 +260,25 @@ export default function Profile() {
     setVideosLoading(true);
     try {
       if (activeTab === 'shop') {
-        setShopItems([]);
         setVideos([]);
+        try {
+          const { data, error } = await request(`/api/shop/items?user_id=${encodeURIComponent(effectiveUserId)}`);
+          if (error) {
+            setShopItems([]);
+            showToast('Failed to load shop items');
+          } else {
+            const items = Array.isArray(data?.items) ? data.items : [];
+            setShopItems(items.map((i: any) => ({
+              id: i.id,
+              title: i.title || '',
+              price: typeof i.price === 'number' ? i.price : parseFloat(i.price) || 0,
+              image_url: i.image_url || null,
+            })));
+          }
+        } catch {
+          setShopItems([]);
+          showToast('Failed to load shop items');
+        }
         setVideosLoading(false);
         return;
       }
@@ -639,12 +664,13 @@ export default function Profile() {
             <button
               onClick={async () => {
                 try {
-                  const { data: threadBody, error: threadErr } = await request('/api/chat/threads', {
+                  const { data: threadBody, error: threadErr } = await request('/api/chat/threads/ensure', {
                     method: "POST",
-                    body: JSON.stringify({ user2_id: effectiveUserId }),
+                    body: JSON.stringify({ otherUserId: effectiveUserId }),
                   });
-                  if (!threadErr && threadBody?.data?.id) {
-                    navigate(`/inbox/${threadBody.data.id}`);
+                  const tid = threadBody?.threadId || threadBody?.thread?.id || threadBody?.data?.id;
+                  if (!threadErr && tid) {
+                    navigate(`/inbox/${tid}`);
                   }
                 } catch { navigate('/inbox'); }
               }}
@@ -803,6 +829,11 @@ export default function Profile() {
         )}
 
         {/* ═══ SHOP ITEMS GRID ═══ */}
+        {activeTab === 'shop' && videosLoading && shopItems.length === 0 && (
+          <div className="flex-1 flex items-center justify-center py-16">
+            <div className="w-8 h-8 border-2 border-[#C9A96E] border-t-transparent rounded-full animate-spin" />
+          </div>
+        )}
         {activeTab === 'shop' && shopItems.length > 0 && (
           <div className="grid grid-cols-2 gap-3 px-3 py-3 flex-1">
             {shopItems.map((item) => (
@@ -849,7 +880,7 @@ export default function Profile() {
             {activeTab === 'liked' && 'No liked videos'}
           </div>
         )}
-        {!loading && activeTab === 'shop' && shopItems.length === 0 && (
+        {!videosLoading && activeTab === 'shop' && shopItems.length === 0 && (
           <div className="flex-1 flex flex-col items-center justify-center py-16 gap-2">
             <ShoppingBag size={32} className="text-white/20" />
             <span className="text-white/30 text-sm">No items for sale</span>

@@ -6,11 +6,8 @@ import { AvatarRing } from '../components/AvatarRing';
 
 export default function CreatorLoginDetails() {
   const navigate = useNavigate();
-  const { user, signInWithPassword, signUpWithPassword, signOut, resendSignupConfirmation, authMode } = useAuthStore();
-  const [rememberMe, setRememberMe] = useState(true);
+  const { user, signInWithPassword, signUpWithPassword, signOut, resendSignupConfirmation } = useAuthStore();
   const [saveDetails, setSaveDetails] = useState(false);
-  const [savedIdentifier, setSavedIdentifier] = useState('');
-  const [savedUsername, setSavedUsername] = useState('');
 
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   // Force signin mode if users shouldn't create accounts here
@@ -29,7 +26,7 @@ export default function CreatorLoginDetails() {
       // Don't auto-set it, let user type freely. Or set it once only.
       // Actually if we want to allow typing "another" email, we shouldn't force reset it
       // unless it is completely empty.
-      setEmail(user.email);
+      setEmail(user.email ?? '');
     }
   }, [user]); // We removed 'email' dependency so it doesn't loop or reset when user clears it manually
   const [username, setUsername] = useState(() => window.localStorage.getItem('creator_saved_username') || '');
@@ -51,7 +48,15 @@ export default function CreatorLoginDetails() {
   }>>([]);
 
   useEffect(() => {
-    // ... existing effect ...
+    try {
+      const raw = window.localStorage.getItem('creator_saved_accounts');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) setSavedAccounts(parsed);
+      }
+      const savedPref = window.localStorage.getItem('creator_save_login_details');
+      if (savedPref === 'true') setSaveDetails(true);
+    } catch { /* ignore parse errors */ }
   }, []);
 
   const saveCurrentAccount = (nextEmail: string, nextUsername: string, nextAvatar?: string) => {
@@ -150,9 +155,11 @@ export default function CreatorLoginDetails() {
         }
         return;
       }
-      saveCurrentAccount(trimmedEmail, trimmedUsername || savedUsername || trimmedEmail.split('@')[0]);
+      saveCurrentAccount(trimmedEmail, trimmedUsername || trimmedEmail.split('@')[0]);
       persistSavedPassword(password);
       navigate('/profile', { replace: true });
+    } catch (err: any) {
+      setError(err?.message || 'An unexpected error occurred. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -181,9 +188,8 @@ export default function CreatorLoginDetails() {
   const switchAccount = async (targetEmail: string, targetPassword?: string) => {
     setIsSwitching(true);
     try {
-      // 1. Sign out current user
       if (user) {
-        await signOut();
+        try { await signOut(); } catch { /* signOut best-effort */ }
       }
       
       // 2. Auto sign in if password is known (or just prefill)
@@ -267,7 +273,7 @@ export default function CreatorLoginDetails() {
               {/* Add Account Button */}
               <div 
                 onClick={async () => {
-                   if (user) await signOut();
+                   if (user) { try { await signOut(); } catch { /* best-effort */ } }
                    setEmail('');
                    setPassword('');
                    // Focus email input or scroll to form
@@ -493,7 +499,7 @@ export default function CreatorLoginDetails() {
             <button
               className="w-full bg-transparent10 border border-white/10 rounded-xl py-3 text-sm font-semibold hover:bg-white/5 transition-colors"
               onClick={async () => {
-                await signOut();
+                try { await signOut(); } catch { /* best-effort */ }
                 setPassword('');
                 setConfirmPassword('');
                 setMode('signin');

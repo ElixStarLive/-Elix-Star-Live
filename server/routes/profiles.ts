@@ -481,12 +481,18 @@ export async function handleListProfiles(_req: Request, res: Response): Promise<
     }
   }
 
+  const emailMap = new Map<string, string>();
+  for (const u of users) {
+    if (u?.id && u.email) emailMap.set(u.id, u.email);
+  }
+
   for (const r of profileRows) {
     merged.set(String(r.user_id), {
       user_id: String(r.user_id),
       username: String(r.username || ""),
       display_name: String(r.display_name || ""),
       avatar_url: String(r.avatar_url || ""),
+      email: emailMap.get(String(r.user_id)) || "",
       level: Number(r.level) || 1,
       is_creator: Boolean(r.is_verified),
       followers_count: Number(r.followers) || 0,
@@ -513,6 +519,7 @@ export async function handleListProfiles(_req: Request, res: Response): Promise<
         username: String(username),
         display_name: String(displayName),
         avatar_url: String(avatarUrl),
+        email: u.email || "",
         level: 1,
         is_creator: false,
         followers_count: 0,

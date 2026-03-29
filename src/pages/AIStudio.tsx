@@ -1,11 +1,8 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, Play, Pause, Wand2, Download, Share2, Sparkles } from 'lucide-react';
+import { ArrowLeft, Upload, Play, Wand2, Download, Share2, Sparkles } from 'lucide-react';
 import AIToolsPanel from '../components/AIToolsPanel';
-import { FILTER_PRESETS } from '../lib/ai/filters';
-import { showToast } from '../lib/toast';
 import { enhanceSettingsToCss, DEFAULT_ENHANCE, autoEnhance, type EnhanceSettings } from '../lib/ai/enhance';
-import { extractThumbnails, type ThumbnailCandidate } from '../lib/ai/thumbnails';
 
 export default function AIStudio() {
   const navigate = useNavigate();
@@ -67,7 +64,7 @@ export default function AIStudio() {
 
     try {
       const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.95));
-      if (!blob) return;
+      if (!blob) { showToast('Export failed'); return; }
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

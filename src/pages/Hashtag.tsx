@@ -7,7 +7,8 @@ import { trackEvent } from '../lib/analytics';
 interface Video {
   id: string;
   thumbnail_url: string;
-  views_count: number;
+  views_count?: number;
+  views?: number;
   likes_count: number;
 }
 
@@ -19,32 +20,33 @@ export default function Hashtag() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (tag) {
-      loadHashtagData();
-      trackEvent('hashtag_view', { hashtag: tag });
-    }
+    if (!tag) return;
+    let cancelled = false;
+    trackEvent('hashtag_view', { hashtag: tag });
+
+    (async () => {
+      setLoading(true);
+      try {
+        const { data: hashtagData } = await request(`/api/hashtags/${encodeURIComponent(tag.toLowerCase())}`);
+        if (!cancelled && hashtagData) {
+          setHashtagInfo({ use_count: hashtagData.use_count ?? 0, trending_score: hashtagData.trending_score ?? 0 });
+        }
+
+        const { data: videosData } = await request(`/api/hashtags/${encodeURIComponent(tag.toLowerCase())}/videos`);
+        if (!cancelled) {
+          const vids = Array.isArray(videosData) ? videosData : (videosData?.videos ?? []);
+          setVideos(vids);
+        }
+      } catch {
+        if (!cancelled) setVideos([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tag]);
-
-  const loadHashtagData = async () => {
-    if (!tag) return;
-
-    setLoading(true);
-    try {
-      const { data: hashtagData } = await request(`/api/hashtags/${encodeURIComponent(tag.toLowerCase())}`);
-      if (hashtagData) {
-        setHashtagInfo({ use_count: hashtagData.use_count ?? 0, trending_score: hashtagData.trending_score ?? 0 });
-      }
-
-      const { data: videosData } = await request(`/api/hashtags/${encodeURIComponent(tag.toLowerCase())}/videos`);
-      const videos = Array.isArray(videosData) ? videosData : (videosData?.videos ?? []);
-      setVideos(videos);
-    } catch {
-
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="bg-[#13151A] text-white flex justify-center px-2">
@@ -82,10 +84,10 @@ export default function Hashtag() {
         ) : (
           <div className="grid grid-cols-3 gap-1">
             {videos.map(video => (
-              <a
+              <button
                 key={video.id}
-                href={`/video/${video.id}`}
-                className="relative aspect-[9/16] bg-[#1C1E24] rounded overflow-hidden"
+                onClick={() => navigate(`/video/${video.id}`)}
+                className="relative aspect-[9/16] bg-[#1C1E24] rounded overflow-hidden text-left"
               >
                 <img
                   src={video.thumbnail_url || `https://ui-avatars.com/api/?name=Video&background=1C1E24&color=C9A96E&size=200`}
@@ -93,9 +95,9 @@ export default function Hashtag() {
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute bottom-2 left-2 text-white text-xs font-semibold">
-                  {formatNumber(video.views_count)} views
+                  {formatNumber(video.views_count ?? video.views ?? 0)} views
                 </div>
-              </a>
+              </button>
             ))}
           </div>
         )}

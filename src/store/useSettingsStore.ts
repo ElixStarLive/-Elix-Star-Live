@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type AppLanguage = 'ro' | 'en';
+type AppLanguage = 'ro' | 'en';
 
 interface SettingsState {
   muteAllSounds: boolean;

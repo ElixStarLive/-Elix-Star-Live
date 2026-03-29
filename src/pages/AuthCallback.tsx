@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/apiClient';
 
@@ -6,8 +6,11 @@ export default function AuthCallback() {
   const navigate = useNavigate();
   const [status, setStatus] = useState<'working' | 'error'>('working');
   const [message, setMessage] = useState<string>('Confirming your email...');
+  const processedRef = useRef(false);
 
   useEffect(() => {
+    if (processedRef.current) return;
+    processedRef.current = true;
     let cancelled = false;
 
     const run = async () => {
@@ -18,13 +21,15 @@ export default function AuthCallback() {
         const error = url.searchParams.get('error');
 
         if (errorDescription || error) {
-          setStatus('error');
-          setMessage(decodeURIComponent(errorDescription ?? error ?? 'Unknown error'));
+          let decoded: string;
+          try { decoded = decodeURIComponent(errorDescription ?? error ?? 'Unknown error'); } catch { decoded = errorDescription ?? error ?? 'Unknown error'; }
+          if (!cancelled) { setStatus('error'); setMessage(decoded); }
           return;
         }
 
         if (code) {
           const { error: exchangeError } = await api.auth.exchangeCodeForSession(code);
+          if (cancelled) return;
           if (exchangeError) {
             setStatus('error');
             setMessage(exchangeError.message);
@@ -33,15 +38,14 @@ export default function AuthCallback() {
         }
 
         const { data } = await api.auth.getSession();
+        if (cancelled) return;
         if (data.session) {
-          if (!cancelled) navigate('/profile', { replace: true });
+          navigate('/profile', { replace: true });
           return;
         }
 
-        if (!cancelled) {
-          setStatus('error');
-          setMessage('No active session found. Try signing in again.');
-        }
+        setStatus('error');
+        setMessage('No active session found. Try signing in again.');
       } catch (e) {
         if (!cancelled) {
           setStatus('error');

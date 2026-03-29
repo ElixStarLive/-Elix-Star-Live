@@ -66,7 +66,7 @@ export default function EditProfile() {
         });
       }
     } catch {
-      // ignore, form will stay with defaults
+      showToast('Failed to load profile');
     }
   };
 
@@ -107,6 +107,9 @@ export default function EditProfile() {
         bio: profile.bio,
         avatarUrl: profile.avatar_url,
         website: profile.website,
+        instagram: profile.instagram,
+        youtube: profile.youtube,
+        tiktok: profile.tiktok,
       }),
     });
 

@@ -10,7 +10,9 @@ import {
   SwitchCamera,
 } from 'lucide-react';
 import { useCallStore } from '../store/useCallStore';
-import { endCall as sendCallEnded } from '../lib/callService';
+import { endCall as sendCallEnded, getCallRoomName } from '../lib/callService';
+import { request } from '../lib/apiClient';
+import { Room, RoomEvent, Track, RemoteTrackPublication, RemoteParticipant } from 'livekit-client';
 
 function formatDuration(ms: number): string {
   const totalSec = Math.floor(ms / 1000);
@@ -38,9 +40,8 @@ export default function VideoCall() {
   const [elapsed, setElapsed] = useState(0);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
-
-  // Remote video still requires WebRTC / LiveKit signaling from the backend; UI shows avatar until then.
-  const remoteStream: MediaStream | null = null;
+  const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  const roomRef = useRef<Room | null>(null);
 
   const stopLocalMedia = useCallback(() => {
     setLocalStream((prev) => {
@@ -107,6 +108,91 @@ export default function VideoCall() {
   }, [isVideoOff, localStream]);
 
   useEffect(() => {
+    if (!callId || status !== 'connecting') return;
+    if (!localStream) return;
+    if (roomRef.current) return;
+
+    let cancelled = false;
+    const roomName = getCallRoomName(callId);
+
+    (async () => {
+      try {
+        const { data, error } = await request(`/api/live/token?room=${encodeURIComponent(roomName)}&identity=call`);
+        if (cancelled) return;
+        if (error || !data?.token) {
+          useCallStore.getState().setStatus('ended');
+          return;
+        }
+        const livekitUrl = data.url || import.meta.env.VITE_LIVEKIT_URL;
+        if (!livekitUrl) {
+          useCallStore.getState().setStatus('ended');
+          return;
+        }
+
+        const room = new Room();
+        roomRef.current = room;
+
+        room.on(RoomEvent.TrackSubscribed, (track: any, _pub: RemoteTrackPublication, _participant: RemoteParticipant) => {
+          if (cancelled) return;
+          if (track.kind === Track.Kind.Video) {
+            const mediaStream = new MediaStream([track.mediaStreamTrack]);
+            setRemoteStream(mediaStream);
+          }
+        });
+
+        room.on(RoomEvent.TrackUnsubscribed, (track: any) => {
+          if (track.kind === Track.Kind.Video) {
+            setRemoteStream(null);
+          }
+        });
+
+        room.on(RoomEvent.Connected, () => {
+          if (!cancelled) {
+            useCallStore.getState().setStatus('connected');
+          }
+        });
+
+        room.on(RoomEvent.Disconnected, () => {
+          if (!cancelled) {
+            setRemoteStream(null);
+          }
+        });
+
+        await room.connect(livekitUrl, data.token);
+
+        const videoTrack = localStream.getVideoTracks()[0];
+        const audioTrack = localStream.getAudioTracks()[0];
+        if (videoTrack) {
+          await room.localParticipant.publishTrack(videoTrack);
+        }
+        if (audioTrack) {
+          await room.localParticipant.publishTrack(audioTrack);
+        }
+      } catch {
+        if (!cancelled) {
+          useCallStore.getState().setStatus('ended');
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (roomRef.current) {
+        roomRef.current.disconnect().catch(() => {});
+        roomRef.current = null;
+      }
+      setRemoteStream(null);
+    };
+  }, [callId, status, localStream]);
+
+  useEffect(() => {
+    const el = remoteVideoRef.current;
+    if (!el || !remoteStream) return;
+    el.srcObject = remoteStream;
+    return () => { el.srcObject = null; };
+  }, [remoteStream]);
+
+  useEffect(() => {
     if (status !== 'connected' || !callStartTime) return;
     const interval = setInterval(() => {
       setElapsed(Date.now() - callStartTime);
@@ -161,7 +247,12 @@ export default function VideoCall() {
   }
 
   const handleHangup = async () => {
+    if (roomRef.current) {
+      roomRef.current.disconnect().catch(() => {});
+      roomRef.current = null;
+    }
     stopLocalMedia();
+    setRemoteStream(null);
     if (callId) {
       await sendCallEnded(callId);
     } else {

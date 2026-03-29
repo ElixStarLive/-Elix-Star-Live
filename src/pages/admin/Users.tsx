@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { api } from '../../lib/apiClient';
+import { useNavigate } from 'react-router-dom';
+import { api, request } from '../../lib/apiClient';
 import { Ban, Search } from 'lucide-react';
 import { showToast } from '../../lib/toast';
 
@@ -14,6 +15,7 @@ interface User {
 }
 
 export default function AdminUsers() {
+  const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
@@ -32,14 +34,14 @@ export default function AdminUsers() {
       const usersData = profiles.map((u: any) => ({
         id: u.user_id || u.userId || u.id,
         username: u.username || '',
-        email: '',
+        email: u.email || '',
         avatar_url: u.avatar_url || u.avatarUrl || null,
         created_at: u.created_at || u.createdAt || '',
       }));
 
       setUsers(usersData);
-    } catch (error) {
-
+    } catch {
+      showToast('Failed to load users');
     } finally {
       setLoading(false);
     }
@@ -47,14 +49,14 @@ export default function AdminUsers() {
 
   const handleBanUser = async (userId: string) => {
     try {
-      const { data: { user } } = await api.auth.getUser();
-      if (!user?.id) throw new Error('Not authenticated');
-      await api.blocked.block(userId);
-
+      const { error } = await request(`/api/admin/users/${encodeURIComponent(userId)}/ban`, {
+        method: 'POST',
+        body: JSON.stringify({ reason: 'Banned by admin' }),
+      });
+      if (error) throw error;
       showToast('User banned successfully');
       loadUsers();
-    } catch (error) {
-
+    } catch {
       showToast('Failed to ban user');
     }
   };
@@ -113,11 +115,11 @@ export default function AdminUsers() {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-gray-400">{user.email}</td>
-                  <td className="px-4 py-3 text-gray-400">{new Date(user.created_at).toLocaleDateString()}</td>
+                  <td className="px-4 py-3 text-gray-400">{user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-2">
                       <button
-                        onClick={() => window.open(`/profile/${user.username}`, '_blank')}
+                        onClick={() => navigate(`/profile/${user.id}`)}
                         className="px-3 py-1 bg-[#C9A96E] rounded hover:bg-[#B8943F] text-sm"
                       >
                         View

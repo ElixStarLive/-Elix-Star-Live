@@ -5,6 +5,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { request } from '../lib/apiClient';
 import { LevelBadge } from '../components/LevelBadge';
 import { initiateCall } from '../lib/callService';
+import { showToast } from '../lib/toast';
 
 interface Message {
   id: string;
@@ -45,20 +46,25 @@ export default function ChatThread() {
         ]);
 
         if (msgsResult.data) {
-          setMessages(msgsResult.data.data || []);
+          const msgs = msgsResult.data.messages || msgsResult.data.data || [];
+          setMessages(msgs);
         }
 
         if (threadsResult.data) {
-          const thread = (threadsResult.data.data || []).find((t: any) => t.id === threadId);
+          const threadsList = threadsResult.data.threads || threadsResult.data.data || [];
+          const thread = threadsList.find((t: any) => t.id === threadId);
           if (thread) {
+            const other = thread.otherUser || {};
             setOtherUser({
-              user_id: thread.other_user_id,
-              username: thread.other_username || "User",
-              avatar_url: thread.other_avatar || null,
+              user_id: thread.user1_id === user?.id ? thread.user2_id : thread.user1_id,
+              username: other.display_name || other.username || thread.other_username || "User",
+              avatar_url: other.avatar_url || thread.other_avatar || null,
             });
           }
         }
-      } catch {}
+      } catch {
+        showToast('Failed to load messages');
+      }
       setLoading(false);
       scrollToBottom();
     };
@@ -67,7 +73,7 @@ export default function ChatThread() {
     const interval = setInterval(async () => {
       try {
         const { data } = await request(`/api/chat/threads/${threadId}/messages`);
-        if (data) setMessages(data.data || []);
+        if (data) setMessages(data.messages || data.data || []);
       } catch {}
     }, 5000);
 
@@ -93,14 +99,17 @@ export default function ChatThread() {
         body: JSON.stringify({ text: msgText }),
       });
 
-      if (!error) {
-        setMessages(prev => [...prev, data.data]);
+      if (!error && data) {
+        const newMsg = data.message || data.data || data;
+        setMessages(prev => [...prev, newMsg]);
         scrollToBottom();
       } else {
         setDraft(msgText);
+        showToast('Failed to send message');
       }
     } catch {
       setDraft(msgText);
+      showToast('Failed to send message');
     }
   };
 

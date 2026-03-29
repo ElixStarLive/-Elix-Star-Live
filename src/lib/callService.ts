@@ -39,6 +39,7 @@ export async function initiateCall(
   });
 
   useCallStore.getState().startOutgoingCall(callId, remoteUser);
+  useCallStore.getState().setCallRoomName(`call_${callId}`);
   return callId;
 }
 
@@ -62,6 +63,12 @@ export async function acceptCall(callId: string): Promise<void> {
   });
 
   useCallStore.getState().setStatus("connecting");
+  useCallStore.getState().setCallRoomName(`call_${callId}`);
+}
+
+/** Returns the LiveKit room name for a call */
+export function getCallRoomName(callId: string): string {
+  return `call_${callId}`;
 }
 
 /**
