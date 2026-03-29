@@ -9,8 +9,11 @@
  * Linux/macOS (bash): end each line with ONE backslash, NOT PowerShell backticks (`).
  * Do not paste markdown or prose into the shell — only the command lines.
  *
- * This repo clones as a folder whose name starts with a hyphen. Bash treats "cd -X"
- * as options. From HOME (~) only, enter the clone with:
+ * Clone from GitHub (hyphen folder name breaks "git clone ... -Elix-Star-Live" — git sees -E as a flag).
+ * Use double-dash, or clone into a safe directory name:
+ *   git clone https://github.com/ElixStarLive/-Elix-Star-Live.git -- -Elix-Star-Live
+ *   git clone https://github.com/ElixStarLive/-Elix-Star-Live.git elix-star-live
+ * Bash "cd" into hyphen folder from HOME only:
  *   cd ./-Elix-Star-Live
  * If your shell prompt already ends with ~/-Elix-Star-Live, you are INSIDE the repo —
  * do NOT run "cd ./-Elix-Star-Live" again (that looks for a nested folder that does not exist).
@@ -45,6 +48,9 @@
  *
  * For ~40k total VUs, one machine often tops out ~10k — use four runners:
  *   docs/K6_40K_DISTRIBUTED.md  and  scripts/k6-steady-10k.js
+ *
+ * If k6 dies with "Killed" around 10k+ VUs on a 16GB load box, that is usually OOM — cap load with
+ *   scripts/k6-steady-10k.js  and  --env VUS=8000  (tune down until stable), or add runners.
  */
 import http from "k6/http";
 import { check, sleep } from "k6";
