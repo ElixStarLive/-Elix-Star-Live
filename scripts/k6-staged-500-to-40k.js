@@ -6,12 +6,42 @@
  *
  * Run on a machine with enough RAM/CPU for high VUs (often a separate box from the app).
  *
+ * Linux/macOS (bash): end each line with ONE backslash, NOT PowerShell backticks (`).
+ * Do not paste markdown or prose into the shell — only the command lines.
+ *
+ * This repo clones as a folder whose name starts with a hyphen. Bash treats "cd -X"
+ * as options. From HOME (~) only, enter the clone with:
+ *   cd ./-Elix-Star-Live
+ * If your shell prompt already ends with ~/-Elix-Star-Live, you are INSIDE the repo —
+ * do NOT run "cd ./-Elix-Star-Live" again (that looks for a nested folder that does not exist).
+ * Check: pwd && ls scripts/k6-staged-500-to-40k.js — if missing, run: git pull origin main
+ *
+ * From repo root (where package.json and scripts/ live), native k6:
+ *
  *   k6 run --env BASE_URL=https://www.elixstarlive.co.uk \
- *     --env BYPASS_KEY='YOUR_LOADTEST_BYPASS_SECRET' \
- *     scripts/k6-staged-500-to-40k.js
+ *     --env BYPASS_KEY='PASTE_LOADTEST_BYPASS_SECRET' \
+ *     --env FAST=1 \
+ *     ./scripts/k6-staged-500-to-40k.js
+ *
+ * One line:
+ *
+ *   cd ./-Elix-Star-Live && k6 run --env BASE_URL=https://www.elixstarlive.co.uk --env BYPASS_KEY='SECRET' --env FAST=1 ./scripts/k6-staged-500-to-40k.js
+ *
+ * Docker (mount repo root; script path inside container is /work/scripts/...).
+ * If you see "permission denied", add --user root:
+ *
+ *   cd ./-Elix-Star-Live && docker run --rm -i --user root \
+ *     -v "$(pwd):/work" -w /work grafana/k6 run \
+ *     --env BASE_URL=https://www.elixstarlive.co.uk \
+ *     --env BYPASS_KEY='SECRET' \
+ *     --env FAST=1 \
+ *     /work/scripts/k6-staged-500-to-40k.js
+ *
+ * Windows PowerShell uses backtick ` for line continuation — do not use that on Linux.
  *
  * Optional:
- *   --env COMPACT=1   → fewer stages (500 → 5k → 15k → 40k), shorter total time
+ *   --env COMPACT=1   → fewer stages (500 → 5k → 15k → 40k), ~15 min total
+ *   --env FAST=1      → aggressive ramp + short holds, ~5–6 min to 40k (stress / CI)
  *
  * For ~40k total VUs, one machine often tops out ~10k — use four runners:
  *   docs/K6_40K_DISTRIBUTED.md  and  scripts/k6-steady-10k.js
@@ -22,12 +52,13 @@ import { check, sleep } from "k6";
 const BASE = __ENV.BASE_URL || "https://www.elixstarlive.co.uk";
 const BYPASS = __ENV.BYPASS_KEY || "";
 const COMPACT = __ENV.COMPACT === "1";
+const FAST = __ENV.FAST === "1";
 
 const params = {
   headers: {
     ...(BYPASS ? { "x-loadtest-key": BYPASS } : {}),
   },
-  timeout: "30s",
+  timeout: __ENV.HTTP_TIMEOUT || "30s",
 };
 
 const endpoints = [
@@ -94,12 +125,30 @@ const stagesCompact = [
   { duration: "2m", target: 40000 },
 ];
 
+/** Fast ramp — short holds; total ~5–6 min to 40k + graceful stop. */
+const stagesFast = [
+  { duration: "20s", target: 500 },
+  { duration: "15s", target: 500 },
+  { duration: "30s", target: 5000 },
+  { duration: "30s", target: 5000 },
+  { duration: "45s", target: 15000 },
+  { duration: "30s", target: 15000 },
+  { duration: "60s", target: 40000 },
+  { duration: "45s", target: 40000 },
+];
+
+function pickStages() {
+  if (FAST) return stagesFast;
+  if (COMPACT) return stagesCompact;
+  return stagesFull;
+}
+
 export const options = {
   scenarios: {
     staged_load: {
       executor: "ramping-vus",
       startVUs: 0,
-      stages: COMPACT ? stagesCompact : stagesFull,
+      stages: pickStages(),
       gracefulRampDown: "30s",
     },
   },
