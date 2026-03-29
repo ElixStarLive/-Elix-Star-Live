@@ -21,10 +21,15 @@ export function errorHandler(
     captureExceptionToSentry(err, { method: req.method, url: req.originalUrl, requestId });
   }
 
+  const logStack =
+    process.env.NODE_ENV !== "production" ||
+    process.env.LOG_FULL_ERROR_STACKS === "1" ||
+    (statusCode >= 500 && process.env.LOG_500_STACK === "1");
+
   logger.error(
     {
       err: err.message,
-      stack: process.env.NODE_ENV !== "production" ? err.stack : undefined,
+      stack: logStack ? err.stack : undefined,
       method: req.method,
       url: req.originalUrl,
       requestId,

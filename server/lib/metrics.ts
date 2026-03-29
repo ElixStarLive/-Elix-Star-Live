@@ -24,6 +24,40 @@ let status2xx = 0;
 let status4xx = 0;
 let status5xx = 0;
 
+/** Normalized path for saturation debugging (caps cardinality). */
+export function routeMetricBucket(originalUrl: string): string {
+  const path = (originalUrl || "/").split("?")[0] || "/";
+  const segs = path.split("/").filter(Boolean);
+  if (segs[0] === "api") {
+    const depth = Math.min(segs.length, 5);
+    return `/${segs.slice(0, depth).join("/")}`;
+  }
+  if (segs.length === 0) return "/";
+  return `/${segs.slice(0, 3).join("/")}`;
+}
+
+type RouteClass = { "2xx": number; "4xx": number; "5xx": number };
+const byRoute = new Map<string, RouteClass>();
+const MAX_ROUTE_KEYS = 120;
+
+function bumpRoute(pathKey: string, status: number): void {
+  if (!pathKey.startsWith("/api")) return;
+  let row = byRoute.get(pathKey);
+  if (!row) {
+    if (byRoute.size >= MAX_ROUTE_KEYS && !byRoute.has(pathKey)) {
+      pathKey = "/api/_other";
+      row = byRoute.get(pathKey);
+    }
+    if (!row) {
+      row = { "2xx": 0, "4xx": 0, "5xx": 0 };
+      byRoute.set(pathKey, row);
+    }
+  }
+  if (status >= 500) row["5xx"]++;
+  else if (status >= 400) row["4xx"]++;
+  else if (status >= 200 && status < 400) row["2xx"]++;
+}
+
 function observeLatencyMs(ms: number): void {
   requestCount++;
   if (ms <= 10) buckets.le10++;
@@ -37,11 +71,21 @@ function observeLatencyMs(ms: number): void {
   else buckets.leInf++;
 }
 
-export function recordHttpRequest(status: number, durationMs: number): void {
+export function recordHttpRequest(status: number, durationMs: number, originalUrl?: string): void {
   observeLatencyMs(durationMs);
   if (status >= 200 && status < 300) status2xx++;
   else if (status >= 400 && status < 500) status4xx++;
   else if (status >= 500) status5xx++;
+  if (originalUrl) {
+    bumpRoute(routeMetricBucket(originalUrl), status);
+  }
+}
+
+/** For /api/metrics — status class counts per route bucket (since process start, per worker). */
+export function getHttpStatusByRoute(): Record<string, RouteClass> {
+  const out: Record<string, RouteClass> = {};
+  for (const [k, v] of byRoute) out[k] = { ...v };
+  return out;
 }
 
 let dbPingMsLast: number | null = null;
@@ -94,6 +138,7 @@ export async function snapshotDependencyLatencies(): Promise<{
 export function getMetricsSnapshotLight(): Record<string, unknown> {
   return {
     pg_pool: getPgPoolStats(),
+    http_status_by_route: getHttpStatusByRoute(),
     ...getCacheLayerMetrics(),
     slow_requests: { wall_ms_threshold: slowWallMsCount, db_ms_threshold: slowDbMsCount },
     pid: process.pid,

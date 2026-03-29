@@ -27,14 +27,24 @@ Pause between stages to let pools and Valkey settle. **Do not** treat a partial 
 - `cache_layer` — raw counters for feed / streams / catalog / profiles list
 - `cache_hit_rates` — derived ratios (per **Node worker**; aggregate across instances in Coolify if clustered)
 - `slow_requests` — counts of responses over `LOG_SLOW_HTTP_MS` (wall) and `LOG_SLOW_DB_MS` (Postgres time in request)
+- **`http_status_by_route`** — per route bucket (e.g. `/api/feed/foryou`, `/api/live/streams`), counts of **`2xx`** (includes 3xx), **`4xx`**, **`5xx`** since process start (**per worker**). Use this to see **which endpoints** fail under saturation — startup logs alone are not enough.
 
 **Full** `GET /api/metrics` still runs dependency pings (`SELECT 1` + Valkey) — avoid polling it every second under load; use **`light=1`** during stages.
+
+### When timeouts / 5xx spike (runtime saturation, not boot)
+
+| Need | What to use |
+|------|-------------|
+| `pg_pool.waiting` | Poll `light=1` every few seconds **during** the failing stage |
+| Slow DB per request | `LOG_HTTP_DB_STATS_EVERY=1` (or `LOG_DB_STATS=1`) for **short** windows |
+| Pool waiters in **logs** | `LOG_POOL_PRESSURE_MS=15000` — warns when `waiting > 0` on that interval |
+| **500** stack traces (Express `errorHandler`) | `LOG_500_STACK=1` for 5xx only, or `LOG_FULL_ERROR_STACKS=1` for all errors |
 
 Example:
 
 ```bash
 curl -sS -H "Authorization: Bearer $METRICS_SECRET" \
-  "https://your-api/api/metrics?light=1" | jq '.pg_pool, .cache_hit_rates, .slow_requests'
+  "https://your-api/api/metrics?light=1" | jq '.pg_pool, .cache_hit_rates, .slow_requests, .http_status_by_route'
 ```
 
 ## Logs: `dbQueries` / `dbMs` on slow paths

@@ -427,6 +427,17 @@ try {
         "Background job consumer disabled — set ELIX_JOB_WORKER=1 on exactly one instance to process the Valkey job queue",
       );
     }
+
+    const poolPressureMs = Number(process.env.LOG_POOL_PRESSURE_MS) || 0;
+    if (poolPressureMs > 0) {
+      setInterval(() => {
+        const s = getPgPoolStats();
+        if (s && s.waiting > 0) {
+          logger.warn({ pg_pool: s }, "pool_pressure");
+        }
+      }, poolPressureMs).unref();
+      logger.info({ interval_ms: poolPressureMs }, "LOG_POOL_PRESSURE_MS enabled — logs when pool has waiters");
+    }
   });
   server.keepAliveTimeout = 65_000;
   server.headersTimeout = 66_000;
