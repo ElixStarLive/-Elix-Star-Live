@@ -570,7 +570,51 @@ export default function Inbox() {
                         : 'No recent activity'}
                     </p>
                 </div>
+                <ChevronRight className="w-5 h-5 text-[#C9A96E]/70 flex-shrink-0" />
             </button>
+
+            {activityItems.length > 0 && (
+              <div className="space-y-0.5 pl-2">
+                {activityItems.slice(0, 5).map((a) => {
+                  const actorName = (a.actor_display_name?.trim() || a.actor_username || 'Someone').trim();
+                  return (
+                    <button
+                      key={a.id}
+                      type="button"
+                      onClick={() => { if (a.video_id) navigate(`/video/${encodeURIComponent(a.video_id)}`); }}
+                      className="flex items-center gap-2.5 w-full text-left py-1.5 px-2 rounded-lg hover:bg-white/5 active:bg-white/10"
+                    >
+                      <div className="w-9 h-9 rounded-full bg-[#13151A] border border-[#C9A96E]/30 flex items-center justify-center flex-shrink-0 overflow-hidden relative">
+                        {a.actor_avatar_url ? (
+                          <img src={a.actor_avatar_url} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-[#C9A96E] font-bold text-sm">{actorName.replace('@', '').charAt(0).toUpperCase()}</span>
+                        )}
+                        <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-[#13151A] border border-[#C9A96E]/50 flex items-center justify-center">
+                          {a.kind === 'save' ? (
+                            <Bookmark className="w-2 h-2 text-[#C9A96E]" strokeWidth={2.5} />
+                          ) : a.kind === 'comment' ? (
+                            <MessageCircle className="w-2 h-2 text-[#C9A96E]" strokeWidth={2.5} />
+                          ) : a.kind === 'mention' ? (
+                            <AtSign className="w-2 h-2 text-[#C9A96E]" strokeWidth={2.5} />
+                          ) : (
+                            <Heart className="w-2 h-2 text-[#C9A96E]" fill="currentColor" strokeWidth={0} />
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-white truncate"><span className="font-semibold">{actorName}</span> <span className="text-white/60">{activityLine(a)}</span></p>
+                      </div>
+                    </button>
+                  );
+                })}
+                {activityItems.length > 5 && (
+                  <button type="button" onClick={() => setActiveFilter('activity')} className="text-[11px] text-[#C9A96E]/70 font-medium pl-2 py-1">
+                    View all activity →
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Messages (Inbox) — show right after Activity so inbox = messages */}
             <div className="space-y-1 pt-2">
@@ -859,13 +903,10 @@ export default function Inbox() {
             onClick={() => setShowNewFollowersPanel(false)}
             aria-hidden
           />
-          <div className="fixed left-0 right-0 pointer-events-auto max-w-[480px] mx-auto z-[101]" style={{ bottom: 'var(--bottom-ui-reserve)' }}>
+          <div className="fixed left-0 right-0 pointer-events-auto max-w-[480px] mx-auto z-[101]" style={{ bottom: 'calc(var(--bottom-ui-reserve) - 3mm)' }}>
             <div className="bg-[#1C1E24]/95 backdrop-blur-md rounded-t-2xl p-3 pb-4 overflow-y-scroll shadow-2xl w-full border-t border-[#C9A96E]/20 new-followers-panel-scroll" style={{ minHeight: 'calc(55dvh - 3cm)', maxHeight: 'calc(min(85dvh, 700px) - 3cm)' }}>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-lg font-bold text-gold-metallic">Followers ({followersCount})</h2>
-                <button type="button" onClick={() => setShowNewFollowersPanel(false)} className="p-2 rounded-full hover:bg-white/10" title="Close" aria-label="Close">
-                  <X size={22} className="text-white" />
-                </button>
+              <div className="mb-3">
+                <h2 className="text-lg font-bold text-gold-metallic text-center">Followers ({followersCount})</h2>
               </div>
               {myNewFollowers.length === 0 ? (
               <p className="text-white/50 text-sm py-6 text-center">No one follows you yet. When they do, they’ll show here.</p>

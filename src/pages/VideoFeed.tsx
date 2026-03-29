@@ -526,7 +526,7 @@ export default function VideoFeed() {
       <div
         ref={containerRef}
         className="flex-1 min-h-0 w-full overflow-y-scroll snap-y snap-mandatory relative"
-        style={{ scrollSnapType: "y mandatory" }}
+        style={{ scrollSnapType: "y mandatory", marginTop: "-4mm" }}
         onScroll={handleScroll}
       >
         {feedItems.map((item, index) => {

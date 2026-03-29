@@ -161,7 +161,7 @@ export default function FriendsFeed() {
         <div
           ref={containerRef}
           className="flex-1 min-h-0 w-full overflow-y-scroll snap-y snap-mandatory relative overscroll-none bg-[#0A0B0E]"
-          style={{ scrollSnapType: 'y mandatory', WebkitOverflowScrolling: 'touch' }}
+          style={{ scrollSnapType: 'y mandatory', WebkitOverflowScrolling: 'touch', marginTop: '4mm' }}
           onScroll={handleScroll}
         >
           {friendVideoIds.map((videoId, index) => (

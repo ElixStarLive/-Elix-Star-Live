@@ -820,7 +820,7 @@ export default function EnhancedVideoPlayer({
             : scrubbing
               ? 'max(3.5rem, calc(44px + 10px))'
               : 'max(3.5rem, 1.5rem)',
-          marginBottom: '17mm',
+          marginBottom: '-8mm',
         }}
       >
         
@@ -952,7 +952,7 @@ export default function EnhancedVideoPlayer({
 
       {/* Bottom Info Area - For You hashtags / username moved down */}
       <div
-        className={`absolute z-[10] left-3 w-[72%] pointer-events-none ${edgeToBottomNav ? 'pb-2' : 'bottom-[calc(15px+25mm)] md:bottom-[calc(39px+25mm)] pb-4'}`}
+        className={`absolute z-[10] left-3 w-[72%] pointer-events-none ${edgeToBottomNav ? 'pb-2' : 'bottom-[15px] md:bottom-[39px] pb-4'}`}
         style={
           edgeToBottomNav
             ? { bottom: `calc(${navStackExpr} + 14px)` }

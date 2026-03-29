@@ -270,12 +270,12 @@ export default function SearchPage() {
             </div>
           </div>
 
-          {/* Results: with videos → For You–style snap fills remaining height; otherwise single scroll */}
-          <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+          {/* Results */}
+          <div className="flex flex-col flex-1 min-h-0 overflow-y-auto">
             {!normalizedQuery ? (
               (videos || []).length > 0 ? (
                 <>
-                  <div className="shrink-0 overflow-y-auto max-h-[min(42vh,360px)] overscroll-contain border-b border-white/[0.06]">
+                  <div className="shrink-0">
                     {/* Quick chips */}
                     <div className="mt-2 px-4">
                       <h2 className="font-bold mb-2 text-gold-metallic text-sm">You may like</h2>
@@ -351,7 +351,7 @@ export default function SearchPage() {
                     )}
                   </div>
 
-                  <div className="flex-1 min-h-0 w-full flex flex-col bg-black">
+                  <div className="w-full">
                     <TrendingSnapFeed videos={(videos || []).slice(0, 30)} />
                   </div>
                 </>

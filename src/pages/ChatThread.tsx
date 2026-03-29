@@ -1,11 +1,12 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react';
-import { Send, ArrowLeft, Video } from 'lucide-react';
+import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
+import { Send, ArrowLeft, Video, Play, Radio } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { request } from '../lib/apiClient';
 import { LevelBadge } from '../components/LevelBadge';
 import { initiateCall } from '../lib/callService';
 import { showToast } from '../lib/toast';
+import { getVideoPosterUrl } from '../lib/bunnyStorage';
 
 interface Message {
   id: string;
@@ -21,6 +22,88 @@ interface OtherUser {
   level?: number;
 }
 
+function MessageText({ text, isMe, navigate: nav }: { text: string; isMe: boolean; navigate: (path: string) => void }) {
+  const parts = text.split(URL_RE);
+  if (parts.length <= 1) return <>{text}</>;
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (URL_RE.test(part)) {
+          URL_RE.lastIndex = 0;
+          const appMatch = part.match(APP_LINK_RE);
+          if (appMatch) {
+            const route = appMatch[1] === 'video' ? `/video/${appMatch[2]}` : `/watch/${appMatch[2]}`;
+            return (
+              <button key={i} type="button" onClick={() => nav(route)} className={`underline font-medium ${isMe ? 'text-black/80' : 'text-[#C9A96E]'}`}>
+                {appMatch[1] === 'video' ? 'View Video' : 'Join Live'}
+              </button>
+            );
+          }
+          return <a key={i} href={part} target="_blank" rel="noopener noreferrer" className={`underline ${isMe ? 'text-black/70' : 'text-[#C9A96E]/80'}`}>{part}</a>;
+        }
+        return <React.Fragment key={i}>{part}</React.Fragment>;
+      })}
+    </>
+  );
+}
+
+const APP_LINK_RE = /https?:\/\/[^\s]+\/(video|watch|live)\/([a-zA-Z0-9_-]+)/;
+const URL_RE = /(https?:\/\/[^\s]+)/g;
+
+interface LinkPreview {
+  type: 'video' | 'live';
+  id: string;
+  thumbnail?: string;
+  username?: string;
+  description?: string;
+}
+
+function useLinkPreviews(messages: Message[]) {
+  const [previews, setPreviews] = useState<Record<string, LinkPreview>>({});
+  const fetchedRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    const toFetch: { key: string; type: 'video' | 'live'; id: string }[] = [];
+    for (const m of messages) {
+      const match = m.text.match(APP_LINK_RE);
+      if (!match) continue;
+      const type = match[1] === 'video' ? 'video' : 'live';
+      const id = match[2];
+      const key = `${type}:${id}`;
+      if (fetchedRef.current.has(key)) continue;
+      fetchedRef.current.add(key);
+      toFetch.push({ key, type, id });
+    }
+    if (!toFetch.length) return;
+
+    for (const item of toFetch) {
+      if (item.type === 'video') {
+        request(`/api/videos/${encodeURIComponent(item.id)}`).then(({ data }) => {
+          if (!data) return;
+          const v = data.video || data;
+          setPreviews(prev => ({
+            ...prev,
+            [item.key]: {
+              type: 'video',
+              id: item.id,
+              thumbnail: v.thumbnail_url || v.thumbnail || (v.url ? getVideoPosterUrl(v.url) : undefined),
+              username: v.user?.username || v.username || '',
+              description: v.description || '',
+            },
+          }));
+        }).catch(() => {});
+      } else {
+        setPreviews(prev => ({
+          ...prev,
+          [item.key]: { type: 'live', id: item.id },
+        }));
+      }
+    }
+  }, [messages]);
+
+  return previews;
+}
+
 export default function ChatThread() {
   const navigate = useNavigate();
   const { threadId } = useParams<{ threadId: string }>();
@@ -30,6 +113,7 @@ export default function ChatThread() {
   const [otherUser, setOtherUser] = useState<OtherUser | null>(null);
   const [loading, setLoading] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const previews = useLinkPreviews(messages);
 
   const isSystemThread = useMemo(() => {
     return ['new', 'followers', 'likes', 'comments', 'mentions'].includes(threadId || '');
@@ -128,9 +212,10 @@ export default function ChatThread() {
   }
 
   return (
-    <div className="flex flex-col h-full min-h-full min-h-0 w-full bg-[#13151A] text-white">
-      <div className="flex flex-1 min-h-0 flex-col w-full">
-        <div className="flex flex-1 min-h-0 flex-col w-full overflow-hidden bg-[#13151A] border-x border-white/[0.06] border-t-0 border-b-0">
+    <div
+      className="fixed left-0 right-0 flex flex-col w-full max-w-[480px] mx-auto bg-[#13151A] text-white z-[1]"
+      style={{ top: 'var(--topbar-total)', bottom: 'var(--bottom-ui-reserve)' }}
+    >
         <header className="flex-shrink-0 flex items-center gap-2 px-4 py-3 border-b border-white/10 bg-[#13151A]">
           <div className="flex w-12 shrink-0 items-center justify-start">
             {otherUser && (
@@ -171,10 +256,54 @@ export default function ChatThread() {
           )}
           {messages.map((m) => {
             const isMe = m.sender_id === user?.id;
+            const appMatch = m.text.match(APP_LINK_RE);
+            const previewKey = appMatch ? `${appMatch[1] === 'video' ? 'video' : 'live'}:${appMatch[2]}` : null;
+            const preview = previewKey ? previews[previewKey] : null;
+
             return (
               <div key={m.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm leading-snug break-words ${isMe ? 'bg-[#C9A96E] text-black rounded-tr-none' : 'bg-[#222] text-white rounded-tl-none'}`}>
-                  {m.text}
+                  {preview ? (
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (preview.type === 'video') navigate(`/video/${preview.id}`);
+                          else navigate(`/watch/${preview.id}`);
+                        }}
+                        className="w-full rounded-lg overflow-hidden mb-1.5 active:scale-[0.98] transition-transform text-left"
+                      >
+                        <div className="relative w-full aspect-video bg-black/30 rounded-lg overflow-hidden">
+                          {preview.thumbnail ? (
+                            <img src={preview.thumbnail} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              {preview.type === 'live' ? <Radio size={28} className={isMe ? 'text-black/40' : 'text-white/40'} /> : <Play size={28} className={isMe ? 'text-black/40' : 'text-white/40'} />}
+                            </div>
+                          )}
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isMe ? 'bg-black/30' : 'bg-white/20'}`}>
+                              {preview.type === 'live' ? <Radio size={18} className="text-white" /> : <Play size={18} className="text-white" fill="white" />}
+                            </div>
+                          </div>
+                          {preview.type === 'live' && (
+                            <div className="absolute top-2 left-2 px-2 py-0.5 bg-red-500 rounded text-[10px] font-bold text-white">LIVE</div>
+                          )}
+                        </div>
+                        {(preview.username || preview.description) && (
+                          <div className="mt-1.5 px-0.5">
+                            {preview.username && <p className={`text-xs font-semibold ${isMe ? 'text-black/70' : 'text-white/70'}`}>@{preview.username}</p>}
+                            {preview.description && <p className={`text-xs mt-0.5 line-clamp-2 ${isMe ? 'text-black/50' : 'text-white/50'}`}>{preview.description}</p>}
+                          </div>
+                        )}
+                      </button>
+                      <span className={`text-[11px] ${isMe ? 'text-black/50' : 'text-white/40'}`}>
+                        Tap to {preview.type === 'live' ? 'join live' : 'watch video'}
+                      </span>
+                    </div>
+                  ) : (
+                    <MessageText text={m.text} isMe={isMe} navigate={navigate} />
+                  )}
                 </div>
               </div>
             );
@@ -194,8 +323,6 @@ export default function ChatThread() {
             </button>
           </form>
         </div>
-        </div>
-      </div>
     </div>
   );
 }

@@ -1,78 +1,55 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Play } from 'lucide-react';
 import type { Video } from '../store/useVideoStore';
 import { getVideoPosterUrl } from '../lib/bunnyStorage';
 
-function TrendingSlide({ video }: { video: Video }) {
-  const SEARCH_TRENDING_VIDEO_DOWN_MM = 3;
+function formatNumber(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return String(n);
+}
+
+function VideoThumbnail({ video }: { video: Video }) {
   const navigate = useNavigate();
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el || !video.url) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) videoRef.current?.play().catch(() => {});
-        else videoRef.current?.pause();
-      },
-      { threshold: 0.3 },
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [video.url]);
-
   const poster = video.thumbnail || getVideoPosterUrl(video.url || '');
 
   return (
-    <div
-      ref={containerRef}
-      className="relative w-full h-full bg-black cursor-pointer"
+    <button
+      type="button"
+      className="relative aspect-[3/4] bg-[#0A0B0E] rounded-lg overflow-hidden cursor-pointer group"
       onClick={() => navigate(`/video/${video.id}`)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          navigate(`/video/${video.id}`);
-        }
-      }}
-      role="button"
-      tabIndex={0}
     >
-      {video.url ? (
-        <video
-          ref={videoRef}
-          src={video.url}
-          poster={poster || undefined}
-          muted
-          loop
-          playsInline
-          preload="metadata"
-          className="video-media-fill absolute inset-0 size-full"
-          style={{ top: `${SEARCH_TRENDING_VIDEO_DOWN_MM}mm` }}
-        />
-      ) : (
+      {poster ? (
         <img
           src={poster}
           alt=""
-          className="absolute inset-0 size-full object-cover"
-          style={{ top: `${SEARCH_TRENDING_VIDEO_DOWN_MM}mm` }}
+          className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition"
+          loading="lazy"
+          onError={(e) => {
+            const img = e.currentTarget;
+            if (img.dataset.fallback) return;
+            img.dataset.fallback = '1';
+            img.style.opacity = '0';
+          }}
         />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center">
+          <Play size={24} className="text-white/30" />
+        </div>
       )}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent pointer-events-none" />
-      <div className="absolute bottom-2 left-2 right-2 text-left">
-        <div className="text-[10px] font-bold text-white truncate">@{video.user?.username || 'user'}</div>
-        {video.description ? (
-          <div className="text-[9px] text-white/80 line-clamp-2">{video.description}</div>
-        ) : null}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+      <div className="absolute bottom-1.5 left-1.5 right-1.5">
+        <div className="flex items-center gap-1">
+          <Play size={10} fill="white" className="text-white" />
+          <span className="text-[10px] font-bold text-white drop-shadow-md">{formatNumber(video.stats?.views || 0)}</span>
+        </div>
+        <div className="text-[9px] text-white/80 truncate mt-0.5">@{video.user?.username || 'user'}</div>
       </div>
-    </div>
+    </button>
   );
 }
 
-/**
- * Search trending: same snap model as For You — parent must be flex-1 min-h-0 so each slide is one viewport tall.
- */
 export function TrendingSnapFeed({ videos }: { videos: Video[] }) {
   if (videos.length === 0) {
     return (
@@ -83,19 +60,10 @@ export function TrendingSnapFeed({ videos }: { videos: Video[] }) {
   }
 
   return (
-    <div className="flex-1 min-h-0 w-full flex flex-col bg-black">
-      <div
-        className="flex-1 min-h-0 w-full overflow-y-scroll snap-y snap-mandatory relative no-scrollbar"
-        style={{ scrollSnapType: 'y mandatory', overscrollBehavior: 'contain' }}
-      >
+    <div className="w-full px-3 pb-4">
+      <div className="grid grid-cols-3 gap-1.5">
         {videos.map((video) => (
-          <div
-            key={video.id}
-            className="h-full w-full shrink-0 snap-start flex flex-col bg-black overflow-hidden"
-            style={{ scrollSnapAlign: 'start', scrollSnapStop: 'always', boxSizing: 'border-box' }}
-          >
-            <TrendingSlide video={video} />
-          </div>
+          <VideoThumbnail key={video.id} video={video} />
         ))}
       </div>
     </div>
