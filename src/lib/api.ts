@@ -27,8 +27,12 @@ export function getApiBase(): string {
     .replace(/\/$/, "");
 
   if (isLocalDev()) {
-    // Emulator/device: localhost is the device itself — set VITE_API_URL to your backend (LAN/tunnel).
-    if (Capacitor.isNativePlatform() && fromEnv) return fromEnv;
+    // Browser: same-origin / Vite proxy. Native: WebView hostname may still be localhost while the API is on the internet;
+    // never return "" on native (relative /api would hit the WebView host, not elixstarlive.co.uk).
+    if (Capacitor.isNativePlatform()) {
+      if (fromEnv) return fromEnv;
+      return APP_PRODUCTION_ORIGIN.replace(/\/$/, "");
+    }
     return "";
   }
 

@@ -26,7 +26,7 @@ export type NormalizedAuthUser = {
   [key: string]: unknown;
 };
 
-/** Parse 200/201 bodies that match `authLoginRegisterBody` (login, register). */
+/** Parse success bodies with `user` + `session` (`authLoginRegisterBody`): login, register, and GET /api/auth/me. */
 export function parseAuthLoginRegisterResponse(data: unknown): {
   user: NormalizedAuthUser;
   accessToken: string;

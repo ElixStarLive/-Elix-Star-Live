@@ -452,17 +452,14 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
         return;
       }
 
-      const backendUser = (data?.user ?? null) as AuthUser | null;
-      const sessionData = data?.session as
-        | { accessToken?: string; access_token?: string }
-        | null
-        | undefined;
-      const accessToken = sessionData?.accessToken ?? sessionData?.access_token;
-
-      if (!backendUser || typeof backendUser.id !== "string") {
+      const parsed = parseAuthLoginRegisterResponse(data);
+      if (!parsed) {
         clearState();
         return;
       }
+
+      const backendUser = parsed.user as AuthUser;
+      const accessToken = parsed.accessToken;
 
       const mapped = mapUserToUser(backendUser);
 
