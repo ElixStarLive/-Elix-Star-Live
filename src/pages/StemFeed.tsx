@@ -5,7 +5,6 @@ import EnhancedVideoPlayer from "../components/EnhancedVideoPlayer";
 import { useVideoStore } from "../store/useVideoStore";
 
 export default function StemFeed() {
-  const STEM_VIDEO_DOWN_MM = 3;
   const navigate = useNavigate();
   const location = useLocation();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -97,16 +96,16 @@ export default function StemFeed() {
         style={{ scrollSnapType: "y mandatory" }}
         onScroll={handleScroll}
       >
-      {/* Full-screen video feed — aligned with For You slide padding */}
       {stemVideos.map((video, index) => (
         <div
           key={`stem-${video.id}-${index}`}
-          className="h-full w-full shrink-0 snap-start flex flex-col items-center justify-center bg-[#13151A]"
+          className="h-full w-full shrink-0 snap-start flex flex-col items-center bg-[#13151A]"
           style={{
             scrollSnapAlign: "start",
             scrollSnapStop: "always",
             boxSizing: "border-box",
-            paddingTop: `calc(var(--feed-slide-pad-top) + ${STEM_VIDEO_DOWN_MM}mm)`,
+            paddingTop: "0",
+            paddingBottom: "3mm",
           }}
         >
           <div className="w-full max-w-[480px] flex-1 min-h-0 relative overflow-hidden bg-[#13151A]">

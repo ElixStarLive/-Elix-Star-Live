@@ -21,6 +21,8 @@ import { StoryGoldRingAvatar } from './StoryGoldRingAvatar';
 import PromotePanel from './PromotePanel';
 import { nativeConfirm } from './NativeDialog';
 import { fetchAllSharePanelContacts } from '../lib/sharePanelContacts';
+import { openExternalLink, nativeShareUrl } from '../lib/platform';
+import { showToast } from '../lib/toast';
 
 interface ShareModalProps {
   isOpen: boolean;
@@ -69,16 +71,20 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin, i
 
   const sendShareTo = async (targetUserId: string) => {
     if (!user?.id || sentTo.has(targetUserId)) return;
-    const videoUrl = `${window.location.origin}/video/${video.id}`;
-    const msgText = `Check out this video by @${video.user.username}: ${videoUrl}`;
+    const shareUrl = `${window.location.origin}/video/${video.id}`;
+    const msgText = `Check out this video by @${video.user.username}: ${shareUrl}`;
     try {
       const { data: thread } = await api.chat.ensureThread(targetUserId);
       const threadId = thread?.id;
       if (threadId) {
         await api.chat.sendMessage(threadId, msgText);
+        setSentTo(prev => new Set(prev).add(targetUserId));
+      } else {
+        showToast('Could not send share');
       }
-      setSentTo(prev => new Set(prev).add(targetUserId));
-    } catch {}
+    } catch {
+      showToast('Failed to send');
+    }
   };
 
   const videoUrl = `${window.location.origin}/video/${video.id}`;
@@ -95,11 +101,11 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin, i
   const filteredFollowers = followers.filter(f => f.username?.toLowerCase().includes(shareQuery.toLowerCase()));
 
   const socialPlatforms = [
-    { name: 'WhatsApp', color: '#25D366', icon: <MessageCircle size={22} className="text-white" />, action: () => window.open(`https://wa.me/?text=${encodeURIComponent(shareText + ' ' + videoUrl)}`) },
-    { name: 'Facebook', color: '#1877F2', icon: <Share2 size={22} className="text-white" />, action: () => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(videoUrl)}`) },
-    { name: 'Twitter', color: '#1DA1F2', icon: <Share2 size={22} className="text-white" />, action: () => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(videoUrl)}`) },
+    { name: 'WhatsApp', color: '#25D366', icon: <MessageCircle size={22} className="text-white" />, action: () => openExternalLink(`https://wa.me/?text=${encodeURIComponent(shareText + ' ' + videoUrl)}`) },
+    { name: 'Facebook', color: '#1877F2', icon: <Share2 size={22} className="text-white" />, action: () => openExternalLink(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(videoUrl)}`) },
+    { name: 'Twitter', color: '#1DA1F2', icon: <Share2 size={22} className="text-white" />, action: () => openExternalLink(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(videoUrl)}`) },
     { name: 'Copy Link', color: '#C9A96E', icon: copiedLink ? <Check size={22} className="text-white" /> : <Copy size={22} className="text-white" />, action: handleCopyLink },
-    { name: 'Email', color: '#EA4335', icon: <Send size={22} className="text-white" />, action: () => window.open(`mailto:?subject=Check out this video&body=${encodeURIComponent(shareText + '\n\n' + videoUrl)}`) },
+    { name: 'Email', color: '#EA4335', icon: <Send size={22} className="text-white" />, action: () => openExternalLink(`mailto:?subject=Check out this video&body=${encodeURIComponent(shareText + '\n\n' + videoUrl)}`) },
   ];
 
   const isOwnVideo = !!user?.id && !!video.user?.id && user.id === video.user.id;
@@ -107,7 +113,7 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin, i
     { name: 'Duet', icon: <Users2 size={22} className="text-white" />, action: () => { onClose(); navigate(`/upload?duet=${video.id}`); } },
     { name: 'Promote', color: '#C9A96E', icon: <TrendingUp size={22} className="text-white" />, action: () => { onClose(); setShowPromotePanel(true); } },
     { name: 'Report', color: '#EF4444', icon: <Flag size={22} className="text-white" />, action: () => { onClose(); if (onReport) onReport(); } },
-    { name: 'Share', icon: <Share2 size={22} className="text-white" />, action: () => { if (navigator.share) { navigator.share({ title: `Video by @${video.user.username}`, text: shareText, url: videoUrl }).then(() => onClose()).catch(() => {}); } else { handleCopyLink(); } } },
+    { name: 'Share', icon: <Share2 size={22} className="text-white" />, action: async () => { await nativeShareUrl({ title: `Video by @${video.user.username}`, text: shareText, url: videoUrl }); } },
     { name: 'Download', icon: <Download size={22} className="text-white" />, action: async () => { try { const res = await fetch(video.url, { mode: 'cors' }); const blob = await res.blob(); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `video_${video.id}.mp4`; a.click(); URL.revokeObjectURL(url); } catch { const a = document.createElement('a'); a.href = video.url; a.download = `video_${video.id}.mp4`; a.target = '_blank'; a.click(); } } },
     { name: 'QR Code', icon: <QrCode size={22} className="text-white" />, action: () => setShowQrCode(true) },
     ...(isOwnVideo && onDeleteVideo ? [{ name: 'Delete video', icon: <Trash2 size={22} className="text-red-400" />, action: async () => { const ok = await nativeConfirm('Delete this video? This cannot be undone.', 'Delete Video'); if (ok) { onDeleteVideo(); onClose(); } }, isRed: true }] : []),

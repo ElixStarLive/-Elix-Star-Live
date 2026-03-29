@@ -12,6 +12,8 @@ import PromotePanel from '../components/PromotePanel';
 import { useVideoStore } from '../store/useVideoStore';
 import { request } from '../lib/apiClient';
 import { fetchAllSharePanelContacts } from '../lib/sharePanelContacts';
+import { getVideoPosterUrl } from '../lib/bunnyStorage';
+import { openExternalLink } from '../lib/platform';
 
 interface Video {
   id: string;
@@ -570,9 +572,9 @@ export default function Profile() {
                 <div className="flex-1 overflow-y-scroll overflow-x-hidden min-h-0 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#C9A96E]/60 [&::-webkit-scrollbar-thumb]:rounded-full">
                   <div className="grid grid-cols-5 gap-y-3 gap-x-1.5 pt-1">
                     {[
-                      { name: 'WhatsApp', icon: <MessageCircle size={22} className="text-white" />, action: () => window.open(`https://wa.me/?text=${encodeURIComponent(`Check out ${displayName}'s profile on Elix! ${window.location.origin}/profile/${displayUserId}`)}`) },
-                      { name: 'Facebook', icon: <Share2 size={22} className="text-white" />, action: () => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${window.location.origin}/profile/${displayUserId}`)}`) },
-                      { name: 'Twitter', icon: <Share2 size={22} className="text-white" />, action: () => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out ${displayName} on Elix!`)}&url=${encodeURIComponent(`${window.location.origin}/profile/${displayUserId}`)}`) },
+                      { name: 'WhatsApp', icon: <MessageCircle size={22} className="text-white" />, action: () => openExternalLink(`https://wa.me/?text=${encodeURIComponent(`Check out ${displayName}'s profile on Elix! ${window.location.origin}/profile/${displayUserId}`)}`) },
+                      { name: 'Facebook', icon: <Share2 size={22} className="text-white" />, action: () => openExternalLink(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${window.location.origin}/profile/${displayUserId}`)}`) },
+                      { name: 'Twitter', icon: <Share2 size={22} className="text-white" />, action: () => openExternalLink(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out ${displayName} on Elix!`)}&url=${encodeURIComponent(`${window.location.origin}/profile/${displayUserId}`)}`) },
                       { name: 'Copy Link', icon: <Copy size={22} className="text-white" />, action: () => { navigator.clipboard.writeText(`${window.location.origin}/profile/${displayUserId}`).then(() => showToast('Profile link copied!')).catch(() => showToast('Could not copy link')); } },
                       { name: 'Promote', icon: <TrendingUp size={22} className="text-white" />, action: () => { setShowSharePanel(false); setShowPromotePanel(true); } },
                       { name: 'Report', icon: <Flag size={22} className="text-red-400" />, isRed: true, action: () => { setShowSharePanel(false); setShowReportModal(true); } },
@@ -806,12 +808,19 @@ export default function Profile() {
                   onClick={() => navigate(`/video/${video.id}`)}
                   className="aspect-[3/4] bg-[#1C1E24] relative group text-left rounded-xl overflow-hidden"
                 >
-                  <video
-                    src={video.url ? `${video.url}#t=0.5` : ''}
+                  <img
+                    src={video.thumbnail_url || getVideoPosterUrl(video.url || '')}
+                    alt=""
                     className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition pointer-events-none"
-                    muted
-                    playsInline
-                    preload="metadata"
+                    loading="lazy"
+                    onError={(e) => {
+                      const img = e.currentTarget;
+                      if (img.dataset.fallback) return;
+                      img.dataset.fallback = '1';
+                      const poster = getVideoPosterUrl(video.url || '');
+                      if (poster && img.src !== poster) { img.src = poster; return; }
+                      img.style.display = 'none';
+                    }}
                   />
                   <span className="absolute inset-0 z-[1]" aria-hidden />
                   {!video.is_public && (

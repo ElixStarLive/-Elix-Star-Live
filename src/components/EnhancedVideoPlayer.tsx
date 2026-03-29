@@ -135,6 +135,8 @@ export default function EnhancedVideoPlayer({
   const progressTrackRef = useRef<HTMLDivElement>(null);
   const isActiveRef = useRef(isActive);
   isActiveRef.current = isActive;
+  const retryingRef = useRef(false);
+  const shouldPlayRef = useRef(false);
   
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -335,23 +337,31 @@ export default function EnhancedVideoPlayer({
 
   // Auto-play based on visibility — try with sound first; if blocked (e.g. iOS), fall back to muted
   useEffect(() => {
+    /** Hard-stop helper — mutes and pauses every media element this player owns */
+    const stopAll = () => {
+      shouldPlayRef.current = false;
+      const v = videoRef.current;
+      if (v) { try { v.pause(); v.muted = true; } catch { void 0; } }
+      const a = audioRef.current;
+      if (a) { try { a.pause(); a.muted = true; a.currentTime = 0; } catch { void 0; } }
+      const d = duetOriginalRef.current;
+      if (d) { try { d.pause(); d.muted = true; } catch { void 0; } }
+    };
+
     if (isActive) {
       setVideoError(false);
       retryCountRef.current = 0;
+      retryingRef.current = false;
+      shouldPlayRef.current = true;
 
       const runPlay = (videoEl: HTMLVideoElement) => {
+        if (!shouldPlayRef.current) return;
         videoEl.volume = volume;
-        // Always start muted for guaranteed autoplay, then unmute
         videoEl.muted = true;
         videoEl.play()
           .then(() => {
-            if (!isActiveRef.current) {
-              try {
-                videoEl.pause();
-                videoEl.muted = true;
-              } catch {
-                void 0;
-              }
+            if (!shouldPlayRef.current) {
+              try { videoEl.pause(); videoEl.muted = true; } catch { void 0; }
               return;
             }
             setIsPlaying(true);
@@ -364,16 +374,11 @@ export default function EnhancedVideoPlayer({
             }
           })
           .catch(() => {
-            // Last resort: stay muted
+            if (!shouldPlayRef.current) return;
             videoEl.muted = true;
             videoEl.play().then(() => {
-              if (!isActiveRef.current) {
-                try {
-                  videoEl.pause();
-                  videoEl.muted = true;
-                } catch {
-                  void 0;
-                }
+              if (!shouldPlayRef.current) {
+                try { videoEl.pause(); videoEl.muted = true; } catch { void 0; }
                 return;
               }
               setIsPlaying(true);
@@ -384,14 +389,14 @@ export default function EnhancedVideoPlayer({
 
       const tryPlay = () => {
         const el = videoRef.current;
-        if (!el || !isActiveRef.current) return;
+        if (!el || !shouldPlayRef.current) return;
         if (el.readyState >= 2) {
           runPlay(el);
         } else {
           const onReady = () => {
             el.removeEventListener('canplay', onReady);
             el.removeEventListener('loadeddata', onReady);
-            if (!isActiveRef.current) return;
+            if (!shouldPlayRef.current) return;
             runPlay(el);
           };
           el.addEventListener('canplay', onReady);
@@ -400,7 +405,6 @@ export default function EnhancedVideoPlayer({
         }
       };
 
-      // Slight delay lets the DOM settle after scroll-snap
       const timer = setTimeout(tryPlay, 50);
 
       incrementViews(videoId);
@@ -410,13 +414,8 @@ export default function EnhancedVideoPlayer({
       if (duetEl && isDuetLayout && duetOriginalSrc) {
         duetEl.muted = true;
         void duetEl.play().then(() => {
-          if (!isActiveRef.current) {
-            try {
-              duetEl.pause();
-              duetEl.muted = true;
-            } catch {
-              void 0;
-            }
+          if (!shouldPlayRef.current) {
+            try { duetEl.pause(); duetEl.muted = true; } catch { void 0; }
           }
         });
       }
@@ -431,14 +430,8 @@ export default function EnhancedVideoPlayer({
         audio.volume = volume;
         if (!muteAllSounds) {
           void audio.play().then(() => {
-            if (!isActiveRef.current) {
-              try {
-                audio.pause();
-                audio.muted = true;
-                audio.currentTime = 0;
-              } catch {
-                void 0;
-              }
+            if (!shouldPlayRef.current) {
+              try { audio.pause(); audio.muted = true; audio.currentTime = 0; } catch { void 0; }
             }
           });
         }
@@ -446,49 +439,11 @@ export default function EnhancedVideoPlayer({
 
       return () => {
         clearTimeout(timer);
-        const v = videoRef.current;
-        if (v) { try { v.pause(); v.muted = true; } catch { void 0; } }
-        const a = audioRef.current;
-        if (a) {
-          try {
-            a.pause();
-            a.muted = true;
-            a.currentTime = 0;
-          } catch {
-            void 0;
-          }
-        }
-        if (duetOriginalRef.current) {
-          try {
-            duetOriginalRef.current.pause();
-            duetOriginalRef.current.muted = true;
-          } catch {
-            void 0;
-          }
-        }
+        stopAll();
       };
     } else {
-      const v = videoRef.current;
-      if (v) { try { v.pause(); v.muted = true; } catch { void 0; } }
-      if (duetOriginalRef.current) {
-        try {
-          duetOriginalRef.current.pause();
-          duetOriginalRef.current.muted = true;
-        } catch {
-          void 0;
-        }
-      }
+      stopAll();
       setIsPlaying(false);
-      const a = audioRef.current;
-      if (a) {
-        try {
-          a.pause();
-          a.muted = true;
-          a.currentTime = 0;
-        } catch {
-          void 0;
-        }
-      }
     }
   }, [incrementViews, isActive, isDuetLayout, muteAllSounds, originalVideo, video?.url, video?.music?.previewUrl, videoId, volume]);
 
@@ -524,7 +479,7 @@ export default function EnhancedVideoPlayer({
           }
         }
         setIsPlaying(false);
-      } else if (isActiveRef.current) {
+      } else if (shouldPlayRef.current) {
         const v = videoRef.current;
         if (v) void v.play().catch(() => {});
         const d = duetOriginalRef.current;
@@ -712,13 +667,19 @@ export default function EnhancedVideoPlayer({
                 onClick={handleVideoClick}
                 poster={posterUrl}
                 onError={() => {
-                  if (retryCountRef.current < 5 && video.url) {
+                  if (retryingRef.current) return;
+                  if (retryCountRef.current < 3 && video.url) {
                     retryCountRef.current += 1;
-                    const el = videoRef.current;
-                    if (el) {
-                      el.src = '';
-                      setTimeout(() => { el.src = video.url; el.load(); }, 2000 * retryCountRef.current);
-                    }
+                    retryingRef.current = true;
+                    const delay = 2000 * retryCountRef.current;
+                    setTimeout(() => {
+                      retryingRef.current = false;
+                      const el = videoRef.current;
+                      if (el && video.url) {
+                        el.src = video.url;
+                        el.load();
+                      }
+                    }, delay);
                     return;
                   }
                   setIsPlaying(false);
@@ -739,13 +700,19 @@ export default function EnhancedVideoPlayer({
           onClick={handleVideoClick}
           poster={posterUrl}
           onError={() => {
-            if (retryCountRef.current < 5 && video.url) {
+            if (retryingRef.current) return;
+            if (retryCountRef.current < 3 && video.url) {
               retryCountRef.current += 1;
-              const el = videoRef.current;
-              if (el) {
-                el.src = '';
-                setTimeout(() => { el.src = video.url; el.load(); }, 2000 * retryCountRef.current);
-              }
+              retryingRef.current = true;
+              const delay = 2000 * retryCountRef.current;
+              setTimeout(() => {
+                retryingRef.current = false;
+                const el = videoRef.current;
+                if (el && video.url) {
+                  el.src = video.url;
+                  el.load();
+                }
+              }, delay);
               return;
             }
             setIsPlaying(false);
@@ -759,7 +726,7 @@ export default function EnhancedVideoPlayer({
         {videoError && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#13151A] z-10 gap-3">
             <span className="text-white/50 text-sm">Video processing...</span>
-            <button onClick={() => { setVideoError(false); retryCountRef.current = 0; const el = videoRef.current; if (el && video.url) { el.src = video.url; el.load(); el.play().catch(() => {}); } }} className="px-4 py-1.5 bg-[#C9A96E]/20 border border-[#C9A96E]/40 rounded-lg text-[#C9A96E] text-xs font-medium">Tap to retry</button>
+            <button onClick={() => { setVideoError(false); retryCountRef.current = 0; retryingRef.current = false; const el = videoRef.current; if (el && video.url) { el.src = video.url; el.load(); el.play().catch(() => {}); } }} className="px-4 py-1.5 bg-[#C9A96E]/20 border border-[#C9A96E]/40 rounded-lg text-[#C9A96E] text-xs font-medium">Tap to retry</button>
           </div>
         )}
 
@@ -853,7 +820,7 @@ export default function EnhancedVideoPlayer({
             : scrubbing
               ? 'max(3.5rem, calc(44px + 10px))'
               : 'max(3.5rem, 1.5rem)',
-          marginBottom: '-8mm',
+          marginBottom: '17mm',
         }}
       >
         
@@ -947,7 +914,6 @@ export default function EnhancedVideoPlayer({
         >
           <img src="/Icons/Share Icon.png" alt="Share" className="absolute inset-0 w-full h-full object-contain z-[2]" />
         </button>
-        <span className="text-white text-[10px] font-semibold -mt-1">{formatNumber(video.stats.shares)}</span>
 
         {/* Delete button removed from right sidebar to avoid duplicate 3-dots / extra control here */}
 
@@ -986,7 +952,7 @@ export default function EnhancedVideoPlayer({
 
       {/* Bottom Info Area - For You hashtags / username moved down */}
       <div
-        className={`absolute z-[10] left-3 w-[72%] pointer-events-none ${edgeToBottomNav ? 'pb-2' : 'bottom-[15px] md:bottom-[39px] pb-4'}`}
+        className={`absolute z-[10] left-3 w-[72%] pointer-events-none ${edgeToBottomNav ? 'pb-2' : 'bottom-[calc(15px+25mm)] md:bottom-[calc(39px+25mm)] pb-4'}`}
         style={
           edgeToBottomNav
             ? { bottom: `calc(${navStackExpr} + 14px)` }

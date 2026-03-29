@@ -335,7 +335,7 @@ export default function Shop() {
                   )}
                   <div className="flex items-center gap-2 mt-2">
                     <button onClick={() => navigate(`/profile/${item.user_id}`)} className="flex items-center gap-1.5 min-w-0 flex-1">
-                      <AvatarRing src={(item.seller as any)?.avatar_url} alt="Seller" size={20} />
+                      <span style={{ marginTop: '-1mm' }}><AvatarRing src={(item.seller as any)?.avatar_url} alt="Seller" size={20} /></span>
                       <span className="text-[11px] text-white/60 truncate">
                         {(item.seller as any)?.display_name || (item.seller as any)?.username || 'User'}
                       </span>

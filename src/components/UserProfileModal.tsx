@@ -9,6 +9,7 @@ import ReportModal from './ReportModal';
 import { showToast } from '../lib/toast';
 import { api, request } from '../lib/apiClient';
 import { navigateToDmWithUser } from '../lib/openDmThread';
+import { getVideoPosterUrl } from '../lib/bunnyStorage';
 
 interface User {
   id: string;
@@ -153,7 +154,7 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
     <div className="fixed inset-0 z-[10001] bg-black/60 flex items-end justify-center animate-in fade-in duration-200" onClick={onClose}>
       <div 
         className="w-full max-w-[480px] bg-[#1C1E24] overflow-y-auto animate-in slide-in-from-bottom duration-300 relative border border-b-0 border-[#C9A96E]/30 shadow-2xl"
-        style={{ marginBottom: 'calc(var(--nav-height) + var(--safe-bottom) - 5mm)' }}
+        style={{ marginBottom: 'calc(var(--nav-height) + var(--safe-bottom) - 5mm)', maxHeight: 'calc(100dvh - var(--safe-top) - 46px - var(--nav-height) - var(--safe-bottom))' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -299,27 +300,20 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
               <div className="grid grid-cols-2 gap-2">
                 {userVideos.map((video) => (
                   <div key={video.id} onClick={() => { onClose(); navigate(`/video/${video.id}`); }} className="aspect-[3/4] bg-[#0A0B0E] rounded-xl overflow-hidden relative cursor-pointer">
-                    <video
-                      src={video.url}
-                      poster={video.thumbnail || undefined}
-                      muted
-                      autoPlay
-                      loop
-                      playsInline
+                    <img
+                      src={video.thumbnail || getVideoPosterUrl(video.url || '')}
+                      alt=""
                       className="w-full h-full object-cover"
-                      ref={(el) => { if (el) el.play().catch(() => {}); }}
+                      loading="lazy"
+                      onError={(e) => {
+                        const img = e.currentTarget;
+                        if (img.dataset.fallback) return;
+                        img.dataset.fallback = '1';
+                        const poster = getVideoPosterUrl(video.url || '');
+                        if (poster && img.src !== poster) { img.src = poster; return; }
+                        img.style.opacity = '0';
+                      }}
                     />
-                    {video.thumbnail && (
-                      <img
-                        src={video.thumbnail}
-                        alt=""
-                        className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-                        onLoad={(e) => {
-                          const vid = (e.target as HTMLImageElement).parentElement?.querySelector('video');
-                          if (vid) vid.addEventListener('playing', () => { (e.target as HTMLImageElement).style.display = 'none'; }, { once: true });
-                        }}
-                      />
-                    )}
                     <div className="absolute bottom-1.5 left-1.5 text-[10px] font-bold text-white drop-shadow-md flex items-center gap-0.5">
                       <Play size={10} fill="white" />
                       {formatNumber(video.stats?.views || 0)}

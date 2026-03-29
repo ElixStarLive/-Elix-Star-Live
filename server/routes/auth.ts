@@ -175,14 +175,23 @@ async function dbFindUserByEmailOrUsername(identifier: string): Promise<StoredUs
   await ensureAuthUsersTable();
   const lower = identifier.toLowerCase();
   const r = await pool.query(
-    `SELECT id, email, password_hash, username, avatar_url, created_at
-       FROM elix_auth_users
-      WHERE email_lower = $1 OR LOWER(username) = $1
+    `SELECT u.id, u.email, u.password_hash, u.username, u.avatar_url, u.created_at
+       FROM elix_auth_users u
+      WHERE u.email_lower = $1 OR LOWER(u.username) = $1
       LIMIT 1`,
     [lower],
   );
-  if (!r.rowCount) return null;
-  return rowToStoredUser(r.rows[0] as Record<string, unknown>);
+  if (r.rowCount) return rowToStoredUser(r.rows[0] as Record<string, unknown>);
+  const r2 = await pool.query(
+    `SELECT u.id, u.email, u.password_hash, u.username, u.avatar_url, u.created_at
+       FROM elix_auth_users u
+       JOIN profiles p ON p.user_id = u.id
+      WHERE LOWER(p.username) = $1
+      LIMIT 1`,
+    [lower],
+  );
+  if (!r2.rowCount) return null;
+  return rowToStoredUser(r2.rows[0] as Record<string, unknown>);
 }
 
 async function dbFindUserById(id: string): Promise<StoredUser | null> {

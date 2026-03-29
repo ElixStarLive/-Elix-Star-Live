@@ -213,7 +213,7 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
         const message = loginError.message || "Login failed. Please try again.";
         const m = message.toLowerCase();
         if (m.includes("invalid") || m.includes("credentials")) {
-          return { error: "Incorrect email or password." };
+          return { error: "Incorrect email/username or password." };
         }
         if (m.includes("confirm")) {
           return {

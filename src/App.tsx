@@ -226,11 +226,18 @@ function App() {
 
   // Realtime DM/cohost via Node/WebSocket backend.
 
-  const isFullScreen =
+  const isFeedWithTopBar =
     location.pathname === "/" ||
-    location.pathname === "/feed" ||
+    location.pathname === "/feed";
+
+  const isFeedNoTopBar =
     location.pathname === "/stem" ||
-    location.pathname === "/following" ||
+    location.pathname === "/following";
+
+  const isFeedFullScreen = isFeedWithTopBar || isFeedNoTopBar;
+
+  const isFullScreen =
+    isFeedFullScreen ||
     location.pathname.startsWith("/video/");
 
   const isNavHidden =
@@ -301,7 +308,10 @@ function App() {
         className={cn(
           "flex-1 w-full min-h-0 mx-auto max-w-[480px] overflow-auto",
           showBottomNav && !isFullScreen && "pt-topbar pb-nav",
-          (!showBottomNav || isFullScreen) && "pt-[3mm]",
+          showBottomNav && isFeedWithTopBar && "pt-topbar pb-nav-feed",
+          showBottomNav && isFeedNoTopBar && "pt-safe pb-nav-feed",
+          showBottomNav && isFullScreen && !isFeedFullScreen && "pt-[3mm]",
+          !showBottomNav && "pt-[3mm]",
         )}
       >
         <ErrorBoundary>

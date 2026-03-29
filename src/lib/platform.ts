@@ -34,3 +34,41 @@ export function getPaymentMethod(): 'apple-iap' | 'google-play' | 'web' {
   if (platform.isAndroid) return 'google-play';
   return 'web';
 }
+
+/**
+ * Open a URL using the system browser on native or window.open on web.
+ * On native Capacitor, `_system` opens the URL externally.
+ */
+export function openExternalLink(url: string): void {
+  if (platform.isNative) {
+    window.open(url, '_system');
+  } else {
+    window.open(url, '_blank', 'noopener');
+  }
+}
+
+/**
+ * Trigger the native share sheet on iOS/Android, or the Web Share API,
+ * or fall back to copying to clipboard.
+ */
+export async function nativeShareUrl(opts: { title?: string; text?: string; url: string }): Promise<boolean> {
+  if (platform.isNative) {
+    try {
+      const { Share } = await import('@capacitor/share');
+      await Share.share({ title: opts.title, text: opts.text, url: opts.url, dialogTitle: opts.title });
+      return true;
+    } catch { /* user cancelled or unsupported */ }
+  }
+  if (typeof navigator !== 'undefined' && navigator.share) {
+    try {
+      await navigator.share({ title: opts.title, text: opts.text, url: opts.url });
+      return true;
+    } catch { /* user cancelled */ }
+  }
+  try {
+    await navigator.clipboard.writeText(opts.url);
+    return true;
+  } catch {
+    return false;
+  }
+}
