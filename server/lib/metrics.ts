@@ -5,6 +5,7 @@ import { performance } from "node:perf_hooks";
 import { getPool, getPgPoolStats } from "./postgres";
 import { valkeyHealthCheck, isValkeyConfigured } from "./valkey";
 import { logger } from "./logger";
+import { getCacheLayerMetrics } from "./cacheLayerMetrics";
 
 const buckets = {
   le10: 0,
@@ -46,6 +47,15 @@ export function recordHttpRequest(status: number, durationMs: number): void {
 let dbPingMsLast: number | null = null;
 let valkeyPingMsLast: number | null = null;
 
+let slowWallMsCount = 0;
+let slowDbMsCount = 0;
+
+/** Counted when response finishes over latency thresholds (see index middleware). */
+export function bumpSlowRequest(kind: "wall_ms" | "db_ms"): void {
+  if (kind === "wall_ms") slowWallMsCount++;
+  else slowDbMsCount++;
+}
+
 export async function snapshotDependencyLatencies(): Promise<{
   db_ping_ms: number | null;
   valkey_ping_ms: number | null;
@@ -80,16 +90,25 @@ export async function snapshotDependencyLatencies(): Promise<{
   };
 }
 
+/** Cheap snapshot: no extra DB/Valkey pings — safe to poll every few seconds under load. */
+export function getMetricsSnapshotLight(): Record<string, unknown> {
+  return {
+    pg_pool: getPgPoolStats(),
+    ...getCacheLayerMetrics(),
+    slow_requests: { wall_ms_threshold: slowWallMsCount, db_ms_threshold: slowDbMsCount },
+    pid: process.pid,
+    uptime_s: Math.round(process.uptime()),
+  };
+}
+
 export function getMetricsSnapshot(): Record<string, unknown> {
   return {
+    ...getMetricsSnapshotLight(),
     requests_total: requestCount,
     responses_by_class: { "2xx": status2xx, "4xx": status4xx, "5xx": status5xx },
     latency_histogram_ms: { ...buckets },
     last_db_ping_ms: dbPingMsLast,
     last_valkey_ping_ms: valkeyPingMsLast,
-    pg_pool: getPgPoolStats(),
-    pid: process.pid,
-    uptime_s: Math.round(process.uptime()),
   };
 }
 

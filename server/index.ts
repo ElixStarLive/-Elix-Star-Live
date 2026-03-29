@@ -4,8 +4,10 @@ import { initSentry } from "./lib/sentryInit";
 import { httpMetricsMiddleware } from "./middleware/httpMetrics";
 import {
   getMetricsSnapshot,
+  getMetricsSnapshotLight,
   verifyMetricsSecret,
   snapshotDependencyLatencies,
+  bumpSlowRequest,
 } from "./lib/metrics";
 import { startJobWorker, stopJobWorker, enqueueJob } from "./lib/jobQueue";
 import { processJob } from "./jobs/backgroundWorker";
@@ -31,7 +33,12 @@ import { errorHandler } from "./middleware/errorHandler";
 
 import { isLiveKitConfigured } from "./services/livekit";
 import { isBunnyConfigured } from "./services/bunny";
-import { isValkeyConfigured, valkeyHealthCheck } from "./lib/valkey";
+import {
+  isValkeyConfigured,
+  valkeyHealthCheck,
+  waitForValkeyReady,
+  closeValkeyConnections,
+} from "./lib/valkey";
 import { connectPostgres, getPool, getPgPoolStats } from "./lib/postgres";
 import { runWithDbStats, getDbRequestStats } from "./lib/dbRequestContext";
 import { getVideoCountAsync } from "./lib/videoStore";
@@ -107,6 +114,8 @@ const LOG_SAMPLE = Math.max(
   Number(process.env.LOG_SAMPLE_RATE) ||
     (process.env.NODE_ENV === "production" ? 20 : 1),
 );
+const SLOW_WALL_MS = Number(process.env.LOG_SLOW_HTTP_MS) || 2000;
+const SLOW_DB_MS = Number(process.env.LOG_SLOW_DB_MS) || 200;
 let _logCounter = 0;
 
 app.use(httpMetricsMiddleware);
@@ -183,17 +192,30 @@ app.use(express.json({ limit: "50kb" }));
 
 // ── Health (before rate limiter — must be exempt for LB/monitoring) ──
 let healthCache: { data: any; code: number; ts: number } | null = null;
-const HEALTH_CACHE_TTL = 12_000;
+const HEALTH_CACHE_TTL_MS = Math.min(
+  300_000,
+  Math.max(3_000, Number(process.env.HEALTH_CACHE_TTL_MS) || 12_000),
+);
+const HEALTH_CACHE_SEC = Math.max(3, Math.floor(HEALTH_CACHE_TTL_MS / 1000));
 
 async function healthCheck(_req: express.Request, res: express.Response) {
   const now = Date.now();
-  if (healthCache && now - healthCache.ts < HEALTH_CACHE_TTL) {
-    res.setHeader("Cache-Control", "public, s-maxage=12, max-age=8");
+  if (healthCache && now - healthCache.ts < HEALTH_CACHE_TTL_MS) {
+    res.setHeader(
+      "Cache-Control",
+      `public, s-maxage=${HEALTH_CACHE_SEC}, max-age=${Math.max(2, Math.floor(HEALTH_CACHE_SEC * 0.65))}`,
+    );
     return res.status(healthCache.code).json(healthCache.data);
   }
 
   const healthLight = process.env.HEALTH_LIGHT === "1";
+  const skipValkeyPing = process.env.HEALTH_SKIP_VALKEY_PING === "1";
   const pool = getPool();
+  const valkeyPingPromise =
+    !isValkeyConfigured() || skipValkeyPing
+      ? Promise.resolve(true)
+      : valkeyHealthCheck();
+
   const [dbPing, valkeyOk, videoCount] = await Promise.all([
     pool
       ? pool.query("SELECT 1").then(
@@ -204,7 +226,7 @@ async function healthCheck(_req: express.Request, res: express.Response) {
           },
         )
       : Promise.resolve(false),
-    valkeyHealthCheck(),
+    valkeyPingPromise,
     healthLight ? Promise.resolve<number | null>(null) : getVideoCountAsync(),
   ]);
 
@@ -221,6 +243,7 @@ async function healthCheck(_req: express.Request, res: express.Response) {
     port: PORT,
     videoCount: videoCount ?? undefined,
     healthLight,
+    healthSkipValkeyPing: skipValkeyPing || undefined,
     services: {
       database: dbOk,
       valkey: isValkeyConfigured() ? valkeyOk : "not_configured",
@@ -240,8 +263,21 @@ app.get("/api/metrics", async (req, res) => {
     return res.status(401).json({ error: "Unauthorized" });
   }
   res.setHeader("Cache-Control", "private, no-store");
+  const light =
+    String((req.query as { light?: string }).light || "") === "1" ||
+    String((req.query as { pool_only?: string }).pool_only || "") === "1";
+  if (light) {
+    return res.json({
+      ...getMetricsSnapshotLight(),
+      metrics_mode: "light",
+    });
+  }
   const deps = await snapshotDependencyLatencies();
-  return res.json({ ...getMetricsSnapshot(), dependencies: deps });
+  return res.json({
+    ...getMetricsSnapshot(),
+    dependencies: deps,
+    metrics_mode: "full",
+  });
 });
 
 // ── Rate limiter on API routes ───────────────────────────────────
@@ -366,6 +402,9 @@ const runBackgroundJobs =
 
 try {
   await connectPostgres();
+  if (isValkeyConfigured()) {
+    await waitForValkeyReady();
+  }
   await loadGiftValuesFromDb();
   initBattleTickLoop();
   server.listen(PORT, "0.0.0.0", 8192, () => {
@@ -411,7 +450,10 @@ function gracefulShutdown(signal: string) {
     try {
       const pool = getPool();
       if (pool) await pool.end().catch(() => {});
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
+    await closeValkeyConnections().catch(() => {});
     logger.info("Server closed");
     process.exit(0);
   });

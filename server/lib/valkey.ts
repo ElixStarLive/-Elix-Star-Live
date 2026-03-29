@@ -81,6 +81,48 @@ export async function valkeyHealthCheck(): Promise<boolean> {
   }
 }
 
+/**
+ * Block startup until the main Valkey connection answers PING (or attempts exhausted).
+ * No HTTP listen should run before this in production when Valkey is required.
+ */
+export async function waitForValkeyReady(opts?: { attempts?: number; delayMs?: number }): Promise<void> {
+  if (!isValkeyConfigured()) return;
+  const attempts = Math.max(1, opts?.attempts ?? 40);
+  const delayMs = Math.max(50, opts?.delayMs ?? 500);
+  for (let i = 0; i < attempts; i++) {
+    if (await valkeyHealthCheck()) {
+      if (i > 0) logger.info({ attempts: i + 1 }, "Valkey became ready");
+      return;
+    }
+    await new Promise((r) => setTimeout(r, delayMs));
+  }
+  throw new Error(
+    `Valkey not ready after ${attempts} attempts (${attempts * delayMs}ms max wait) — check VALKEY_URL / REDIS_URL and network`,
+  );
+}
+
+/** Graceful shutdown: close ioredis connections (main, pub, sub). */
+export async function closeValkeyConnections(): Promise<void> {
+  const conns: { label: string; c: Redis | null }[] = [
+    { label: "valkey-main", c: client },
+    { label: "valkey-pub", c: publisher },
+    { label: "valkey-sub", c: subscriber },
+  ];
+  await Promise.all(
+    conns.map(async ({ label, c }) => {
+      if (!c) return;
+      try {
+        await c.quit();
+      } catch (err: unknown) {
+        logger.warn({ err: err instanceof Error ? err.message : err, label }, "Valkey quit failed");
+      }
+    }),
+  );
+  client = null;
+  publisher = null;
+  subscriber = null;
+}
+
 // ── Rate limiting via Valkey sliding window ──────────────────────
 
 export async function valkeyRateCheck(

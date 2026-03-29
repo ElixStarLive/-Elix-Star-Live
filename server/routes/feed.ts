@@ -10,6 +10,7 @@ import {
   getFeedForyouEpoch,
   FEED_FORYOU_CACHE_TTL_MS,
 } from "../lib/feedCacheValkey";
+import { bumpCacheLayer } from "../lib/cacheLayerMetrics";
 
 const RATE_LIMIT_WINDOW = 60_000;
 const RATE_LIMIT_MAX_VIEWS = 120;
@@ -163,6 +164,7 @@ export async function handleForYouFeed(req: Request, res: Response) {
             "Cache-Control",
             `public, s-maxage=${FORYOU_CACHE_SEC}, max-age=${Math.max(5, Math.floor(FORYOU_CACHE_SEC / 2))}`,
           );
+          bumpCacheLayer("feed_foryou_valkey_hits");
           return res.json({
             videos: payload.videos,
             mutualUserIds: [],
@@ -182,6 +184,7 @@ export async function handleForYouFeed(req: Request, res: Response) {
     const formatted = (rows || []).map((v: any) =>
       formatVideoForClient(v, likedSet, followingSet, "For You"),
     );
+    bumpCacheLayer("feed_foryou_builds");
 
     if (isValkeyConfigured() && formatted.length > 0) {
       await valkeySet(

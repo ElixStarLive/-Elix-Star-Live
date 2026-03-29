@@ -14,6 +14,7 @@ import {
   GIFTS_CATALOG_KEY,
 } from "./catalogCacheValkey";
 import { isValkeyConfigured, valkeyGet, valkeySet } from "./valkey";
+import { bumpCacheLayer } from "./cacheLayerMetrics";
 
 const { Pool } = pg;
 
@@ -1198,8 +1199,24 @@ let giftsCatalogMemCache: { rows: DbGiftRow[]; ts: number } | null = null;
 const GIFTS_CATALOG_CACHE_MS = 60_000;
 
 export async function dbLoadGifts(): Promise<DbGiftRow[]> {
+  if (isValkeyConfigured()) {
+    try {
+      const raw = await valkeyGet(GIFTS_CATALOG_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as DbGiftRow[];
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          bumpCacheLayer("gifts_valkey_hits");
+          return parsed;
+        }
+      }
+    } catch {
+      /* miss */
+    }
+  }
+
   const now = Date.now();
-  if (giftsCatalogMemCache && now - giftsCatalogMemCache.ts < GIFTS_CATALOG_CACHE_MS) {
+  if (!isValkeyConfigured() && giftsCatalogMemCache && now - giftsCatalogMemCache.ts < GIFTS_CATALOG_CACHE_MS) {
+    bumpCacheLayer("gifts_mem_hits");
     return giftsCatalogMemCache.rows;
   }
   const p = getPool();
@@ -1220,6 +1237,10 @@ export async function dbLoadGifts(): Promise<DbGiftRow[]> {
       battle_points: Number(r.battle_points ?? 0),
     }));
     giftsCatalogMemCache = { rows, ts: now };
+    if (isValkeyConfigured() && rows.length > 0) {
+      await valkeySet(GIFTS_CATALOG_KEY, JSON.stringify(rows), CATALOG_HTTP_CACHE_TTL_MS);
+    }
+    bumpCacheLayer("gifts_builds");
     return rows;
   } catch (err) {
     logger.error({ err }, "dbLoadGifts failed");
@@ -1264,7 +1285,10 @@ export async function dbLoadCoinPackages(): Promise<DbCoinPackageRow[]> {
       const raw = await valkeyGet(COIN_PACKAGES_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as DbCoinPackageRow[];
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          bumpCacheLayer("coin_packages_valkey_hits");
+          return parsed;
+        }
       }
     } catch {
       /* miss */
@@ -1273,6 +1297,7 @@ export async function dbLoadCoinPackages(): Promise<DbCoinPackageRow[]> {
 
   const now = Date.now();
   if (!isValkeyConfigured() && coinPackagesMemCache && now - coinPackagesMemCache.ts < COIN_PACKAGES_CACHE_MS) {
+    bumpCacheLayer("coin_packages_mem_hits");
     return coinPackagesMemCache.rows;
   }
   const p = getPool();
@@ -1295,6 +1320,7 @@ export async function dbLoadCoinPackages(): Promise<DbCoinPackageRow[]> {
     if (isValkeyConfigured() && rows.length > 0) {
       await valkeySet(COIN_PACKAGES_KEY, JSON.stringify(rows), CATALOG_HTTP_CACHE_TTL_MS);
     }
+    bumpCacheLayer("coin_packages_builds");
     return rows;
   } catch (err) {
     logger.error({ err }, "dbLoadCoinPackages failed");

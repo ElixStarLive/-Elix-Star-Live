@@ -22,6 +22,7 @@ import {
   valkeySet,
   valkeyDel,
 } from '../lib/valkey';
+import { bumpCacheLayer } from '../lib/cacheLayerMetrics';
 
 const STREAM_KEY_PREFIX = 'stream:';
 const STREAM_TTL_SECONDS = 86400;
@@ -108,7 +109,10 @@ function requireAuth(req: Request, res: Response): { userId: string } | null {
 
 /** Shared across workers — one LiveKit/DB refresh per TTL cluster-wide. */
 const STREAMS_HTTP_CACHE_KEY = "elix:http:live_streams:v1";
-const STREAMS_CACHE_TTL_MS = 14_000;
+const STREAMS_CACHE_TTL_MS = Math.min(
+  120_000,
+  Math.max(3_000, Number(process.env.LIVE_STREAMS_CACHE_TTL_MS) || 14_000),
+);
 
 type StreamsListPayload = {
   streams: Array<{
@@ -183,7 +187,11 @@ async function buildStreamsResult(): Promise<StreamsListPayload> {
 }
 
 function setStreamsCacheHeaders(res: Response): void {
-  res.setHeader("Cache-Control", "public, s-maxage=14, max-age=10, stale-while-revalidate=30");
+  const sec = Math.max(3, Math.floor(STREAMS_CACHE_TTL_MS / 1000));
+  res.setHeader(
+    "Cache-Control",
+    `public, s-maxage=${sec}, max-age=${Math.max(2, Math.floor(sec * 0.7))}, stale-while-revalidate=${Math.min(120, sec * 3)}`,
+  );
 }
 
 /** GET /api/live/streams — list active streams */
@@ -198,6 +206,7 @@ export async function handleGetStreams(req: Request, res: Response) {
         const { etag, payload } = JSON.parse(raw) as { etag: string; payload: StreamsListPayload };
         setStreamsCacheHeaders(res);
         res.setHeader("ETag", etag);
+        bumpCacheLayer("live_streams_valkey_hits");
         if (inm && inm === etag) return res.status(304).end();
         return res.status(200).json(payload);
       } catch {
@@ -208,11 +217,13 @@ export async function handleGetStreams(req: Request, res: Response) {
     const { etag, payload } = streamsMemFallback;
     setStreamsCacheHeaders(res);
     res.setHeader("ETag", etag);
+    bumpCacheLayer("live_streams_valkey_hits");
     if (inm && inm === etag) return res.status(304).end();
     return res.status(200).json(payload);
   }
 
   const result = await buildStreamsResult();
+  bumpCacheLayer("live_streams_builds");
   const bodyStr = JSON.stringify(result);
   const etag = `W/"${createHash("sha256").update(bodyStr).digest("hex").slice(0, 32)}"`;
   setStreamsCacheHeaders(res);

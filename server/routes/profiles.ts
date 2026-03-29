@@ -14,6 +14,7 @@ import {
   getProfilesListEpoch,
   profilesListDataKey,
 } from "../lib/catalogCacheValkey";
+import { bumpCacheLayer } from "../lib/cacheLayerMetrics";
 
 export interface Profile {
   userId: string;
@@ -423,6 +424,7 @@ export async function handleListProfiles(_req: Request, res: Response): Promise<
     profilesListMemCache &&
     now - profilesListMemCache.ts < PROFILES_LIST_MEM_TTL_MS
   ) {
+    bumpCacheLayer("profiles_list_mem_hits");
     res.setHeader("Cache-Control", "public, s-maxage=55, max-age=25");
     res.json(profilesListMemCache.data);
     return;
@@ -520,6 +522,7 @@ export async function handleListProfiles(_req: Request, res: Response): Promise<
   }
 
   const result = { profiles: Array.from(merged.values()) };
+  bumpCacheLayer("profiles_list_builds");
 
   if (isValkeyConfigured()) {
     try {
