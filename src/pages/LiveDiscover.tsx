@@ -82,6 +82,7 @@ export default function LiveDiscover() {
     const url = `${getWsUrl()}/live/__feed__?token=${encodeURIComponent(token)}`;
     let ws: WebSocket | null = null;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let reconnectAttempt = 0;
     let cancelled = false;
 
     function connect() {
@@ -89,7 +90,10 @@ export default function LiveDiscover() {
       try {
         ws = new WebSocket(url);
       } catch {
-        reconnectTimer = setTimeout(connect, 3000);
+        reconnectAttempt++;
+        const base = 1000 * Math.pow(2, Math.min(reconnectAttempt - 1, 8));
+        const delay = Math.min(30_000, base + Math.floor(Math.random() * 400));
+        reconnectTimer = setTimeout(connect, delay);
         return;
       }
       ws.onmessage = (evt) => {
@@ -124,9 +128,17 @@ export default function LiveDiscover() {
           /* ignore */
         }
       };
+      ws.onopen = () => {
+        reconnectAttempt = 0;
+      };
       ws.onclose = () => {
         ws = null;
-        if (!cancelled) reconnectTimer = setTimeout(connect, 3000);
+        if (!cancelled) {
+          reconnectAttempt++;
+          const base = 1000 * Math.pow(2, Math.min(reconnectAttempt - 1, 8));
+          const delay = Math.min(30_000, base + Math.floor(Math.random() * 400));
+          reconnectTimer = setTimeout(connect, delay);
+        }
       };
     }
     connect();

@@ -11,6 +11,7 @@ import { creatorRouter, adminPayoutRouter } from "./payout.router";
 import videosRouter from "./videos.router";
 import mediaRouter from "./media.router";
 import miscRouter from "./misc.router";
+import adminActionsRouter from "./adminActions";
 
 export function mountRoutes(app: Express): void {
   app.use("/api/auth", authRouter);
@@ -25,6 +26,7 @@ export function mountRoutes(app: Express): void {
   app.use("/api/coin-packages", coinPackagesRouter);
   app.use("/api/creator", creatorRouter);
   app.use("/api/admin", adminPayoutRouter);
+  app.use("/api/admin", adminActionsRouter);
   app.use("/api/videos", videosRouter);
   app.use("/api/media", mediaRouter);
 

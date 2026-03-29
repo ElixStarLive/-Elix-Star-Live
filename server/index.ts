@@ -1,4 +1,15 @@
 import "./config";
+import { validateProductionEnvironment } from "./lib/envValidate";
+import { initSentry } from "./lib/sentryInit";
+import { httpMetricsMiddleware } from "./middleware/httpMetrics";
+import {
+  getMetricsSnapshot,
+  verifyMetricsSecret,
+  snapshotDependencyLatencies,
+} from "./lib/metrics";
+import { startJobWorker, stopJobWorker, enqueueJob } from "./lib/jobQueue";
+import { processJob } from "./jobs/backgroundWorker";
+import { postAlertWebhook } from "./lib/alerting";
 import express from "express";
 import cors from "cors";
 import compression from "compression";
@@ -40,12 +51,10 @@ const BUILD_VERSION = "2026-03-26T20:00-modular-rebuild";
 
 // ── Critical startup checks ─────────────────────────────────────
 validateAuthSecretOrDie();
+validateProductionEnvironment();
+initSentry();
 
 if (process.env.NODE_ENV === "production") {
-  if (!process.env.DATABASE_URL) {
-    logger.fatal("DATABASE_URL is not set. Cannot start in production without a database.");
-    process.exit(1);
-  }
   if (!process.env.STRIPE_WEBHOOK_SECRET) {
     logger.warn("STRIPE_WEBHOOK_SECRET is not set — Stripe webhooks will be rejected in production.");
   }
@@ -91,6 +100,8 @@ app.use(compression({
 const LOADTEST_SECRET = process.env.LOADTEST_BYPASS_SECRET || "";
 const LOG_SAMPLE = Math.max(1, Number(process.env.LOG_SAMPLE_RATE) || 1);
 let _logCounter = 0;
+
+app.use(httpMetricsMiddleware);
 
 app.use((req, res, next) => {
   const isLoadTest = LOADTEST_SECRET && req.headers["x-loadtest-key"] === LOADTEST_SECRET;
@@ -185,6 +196,15 @@ async function healthCheck(_req: express.Request, res: express.Response) {
 }
 app.get("/health", healthCheck);
 app.get("/api/health", healthCheck);
+
+app.get("/api/metrics", async (req, res) => {
+  if (!verifyMetricsSecret(req)) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  res.setHeader("Cache-Control", "private, no-store");
+  const deps = await snapshotDependencyLatencies();
+  return res.json({ ...getMetricsSnapshot(), dependencies: deps });
+});
 
 // ── Rate limiter on API routes ───────────────────────────────────
 app.use("/api", apiLimiter);
@@ -306,6 +326,11 @@ try {
       { port: PORT, version: BUILD_VERSION },
       "Server running successfully — no startup bulk loads (DB is source of truth)",
     );
+    startJobWorker(processJob, 1500);
+    void enqueueJob({ type: "cleanup_retention" });
+    setInterval(() => {
+      void enqueueJob({ type: "cleanup_retention" });
+    }, 24 * 60 * 60 * 1000).unref();
   });
   server.keepAliveTimeout = 65_000;
   server.headersTimeout = 66_000;
@@ -316,14 +341,17 @@ try {
 
 process.on("unhandledRejection", (reason) => {
   logger.error({ err: reason }, "Unhandled Promise Rejection");
+  void postAlertWebhook({ text: "Unhandled promise rejection", severity: "critical", context: { reason: String(reason) } });
 });
 process.on("uncaughtException", (error) => {
   logger.fatal({ err: error }, "Uncaught Exception — shutting down");
+  void postAlertWebhook({ text: "Uncaught exception", severity: "critical", context: { message: error.message } });
   server.close(() => process.exit(1));
   setTimeout(() => process.exit(1), 5000);
 });
 function gracefulShutdown(signal: string) {
   logger.info({ signal }, "Shutting down...");
+  stopJobWorker();
   stopBattleTickLoop();
   server.close(async () => {
     try {
@@ -333,8 +361,16 @@ function gracefulShutdown(signal: string) {
     logger.info("Server closed");
     process.exit(0);
   });
-  for (const socket of server.connections ?? []) {
-    try { socket.destroy(); } catch { /* ignore */ }
+  const legacyConns = (server as import("http").Server & { connections?: import("net").Socket[] })
+    .connections;
+  if (Array.isArray(legacyConns)) {
+    for (const socket of legacyConns) {
+      try {
+        socket.destroy();
+      } catch {
+        /* ignore */
+      }
+    }
   }
   setTimeout(() => process.exit(0), 10_000);
 }

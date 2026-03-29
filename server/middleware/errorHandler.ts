@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction, RequestHandler } from "express";
 import { logger } from "../lib/logger";
+import { captureExceptionToSentry } from "../lib/sentryInit";
 
 export interface ApiError {
   error: string;
@@ -15,6 +16,10 @@ export function errorHandler(
 ): void {
   const statusCode = err.statusCode || 500;
   const requestId = req.requestId;
+
+  if (statusCode >= 500) {
+    captureExceptionToSentry(err, { method: req.method, url: req.originalUrl, requestId });
+  }
 
   logger.error(
     {

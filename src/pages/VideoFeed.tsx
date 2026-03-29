@@ -54,6 +54,9 @@ type FeedItem =
 
 class RoomMonitor {
   private sockets = new Map<string, WebSocket>();
+  private reconnectAttempts = new Map<string, number>();
+  private reconnectTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  private activeKeys = new Set<string>();
   private onStreamEnded: (streamKey: string) => void;
   private token: string;
 
@@ -65,6 +68,7 @@ class RoomMonitor {
   /** Reconcile: open sockets for new rooms, close sockets for removed rooms */
   sync(activeKeys: string[]) {
     const desired = new Set(activeKeys);
+    this.activeKeys = desired;
 
     // Close sockets for rooms no longer active
     for (const [key, ws] of this.sockets) {
@@ -109,10 +113,21 @@ class RoomMonitor {
       };
 
       ws.onclose = () => {
-        // Only delete if this exact socket is still the one we're tracking
-        if (this.sockets.get(roomKey) === ws) {
-          this.sockets.delete(roomKey);
-        }
+        if (this.sockets.get(roomKey) !== ws) return;
+        this.sockets.delete(roomKey);
+        if (!this.token || !this.activeKeys.has(roomKey)) return;
+        const n = (this.reconnectAttempts.get(roomKey) ?? 0) + 1;
+        if (n > 12) return;
+        this.reconnectAttempts.set(roomKey, n);
+        const base = 1000 * Math.pow(2, n - 1);
+        const delay = Math.min(30_000, base + Math.floor(Math.random() * 400));
+        const timer = setTimeout(() => {
+          this.reconnectTimers.delete(roomKey);
+          if (this.token && this.activeKeys.has(roomKey) && !this.sockets.has(roomKey)) {
+            this.openSocket(roomKey);
+          }
+        }, delay);
+        this.reconnectTimers.set(roomKey, timer);
       };
 
       // Send keepalive to prevent server-side timeout

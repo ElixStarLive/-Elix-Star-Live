@@ -236,6 +236,8 @@ export async function initPostgres(): Promise<void> {
         updated_at TIMESTAMPTZ DEFAULT NOW()
       )
     `);
+    await pool.query(`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE`).catch(() => {});
+    await pool.query(`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS banned_until TIMESTAMPTZ`).catch(() => {});
 
     await pool.query(`
       CREATE TABLE IF NOT EXISTS chat_threads (

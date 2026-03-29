@@ -9,6 +9,7 @@ import {
 import { getPool, dbLoadCoinMap } from '../lib/postgres';
 import { valkeyRateCheck, isValkeyConfigured } from '../lib/valkey';
 import { logger } from '../lib/logger';
+import { assertIapVerifyVelocityOk } from '../lib/fraud';
 
 const rateLimits = new Map<string, { count: number; timestamp: number }>();
 const MAX_LOCAL_RATE_ENTRIES = 20_000;
@@ -345,10 +346,13 @@ export async function handleVerifyPurchase(req: Request, res: Response) {
   const user = verifyAuthToken(token);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-  const rateCheck = await checkRateLimit(user.sub, 'iap:verify', 20, 60 * 60 * 1000);
-  if (!rateCheck.allowed) return res.status(429).json({ error: 'Too many purchase attempts' });
+    const rateCheck = await checkRateLimit(user.sub, 'iap:verify', 20, 60 * 60 * 1000);
+    if (!rateCheck.allowed) return res.status(429).json({ error: 'Too many purchase attempts' });
 
-  try {
+    const fraudIap = await assertIapVerifyVelocityOk(user.sub);
+    if (!fraudIap.ok) return res.status(429).json({ error: fraudIap.code });
+
+    try {
     const { userId, packageId, provider, receipt, transactionId } = req.body ?? {};
     if (!userId || !packageId || !provider || !transactionId) {
       return res.status(400).json({ error: 'Missing required fields' });

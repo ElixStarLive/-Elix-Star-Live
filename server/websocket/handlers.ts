@@ -23,6 +23,7 @@ import {
   deleteCohostLayout,
 } from "./index";
 import { valkeyDel } from "../lib/valkey";
+import { randomUUID } from "crypto";
 
 export async function handleMessage(
   client: Client,
@@ -35,12 +36,18 @@ export async function handleMessage(
     switch (event) {
       case "chat_message":
         if (!(await wsRateCheck(client.userId, "chat", 100, 10_000))) break;
-        broadcastToRoom(client.roomId, "chat_message", {
-          ...data,
-          user_id: client.userId,
-          username: client.username,
-          timestamp: new Date().toISOString(),
-        });
+        {
+          const messageId = typeof data?.messageId === "string" && data.messageId ? data.messageId : randomUUID();
+          const payload = {
+            ...data,
+            messageId,
+            user_id: client.userId,
+            username: client.username,
+            timestamp: new Date().toISOString(),
+          };
+          broadcastToRoom(client.roomId, "chat_message", payload);
+          sendToClient(client, "chat_ack", { messageId, status: "delivered" });
+        }
         break;
 
       case "heart_sent":

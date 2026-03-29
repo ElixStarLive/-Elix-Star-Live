@@ -8,9 +8,13 @@ export function validateBody(schema: ZodSchema) {
       next();
     } catch (err) {
       if (err instanceof ZodError) {
+        const issues = "issues" in err && Array.isArray((err as ZodError).issues) ? (err as ZodError).issues : [];
         return res.status(400).json({
           error: "VALIDATION_ERROR",
-          details: err.errors.map(e => ({ path: e.path.join("."), message: e.message })),
+          details: issues.map((e: { path: (string | number)[]; message: string }) => ({
+            path: e.path.join("."),
+            message: e.message,
+          })),
         });
       }
       next(err);
@@ -25,9 +29,13 @@ export function validateQuery(schema: ZodSchema) {
       next();
     } catch (err) {
       if (err instanceof ZodError) {
+        const issues = "issues" in err && Array.isArray((err as ZodError).issues) ? (err as ZodError).issues : [];
         return res.status(400).json({
           error: "VALIDATION_ERROR",
-          details: err.errors.map(e => ({ path: e.path.join("."), message: e.message })),
+          details: issues.map((e: { path: (string | number)[]; message: string }) => ({
+            path: e.path.join("."),
+            message: e.message,
+          })),
         });
       }
       next(err);

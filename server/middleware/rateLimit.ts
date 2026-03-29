@@ -115,3 +115,33 @@ export const uploadLimiter = rateLimit({
   max: 10,
   keyPrefix: "upload",
 });
+
+export const giftSendLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 40,
+  keyPrefix: "gift_send",
+});
+
+export const walletReadLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 120,
+  keyPrefix: "wallet_read",
+});
+
+export const shopCheckoutLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 15,
+  keyPrefix: "shop_checkout",
+});
+
+export const verifyPurchaseLimiter = rateLimit({
+  windowMs: 60 * 60_000,
+  max: 40,
+  keyPrefix: "iap_verify",
+});
+
+export const analyticsPostLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 300,
+  keyPrefix: "analytics",
+});

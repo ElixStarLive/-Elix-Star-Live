@@ -11,9 +11,11 @@ export type WebSocketEvent =
   | "connected"
   // Chat events
   | "chat_message"
+  | "chat_ack"
   | "chat_deleted"
   // Gift events
   | "gift_sent"
+  | "gift_ack"
   | "big_gift_queue_update"
   | "leaderboard_update"
   // Heart events
@@ -205,7 +207,9 @@ class WebSocketService {
       return;
     }
 
-    const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts);
+    const base = this.reconnectDelay * Math.pow(2, this.reconnectAttempts);
+    const jitter = Math.floor(Math.random() * 400);
+    const delay = Math.min(30_000, base + jitter);
     this.reconnectAttempts++;
 
     if (this.reconnectTimer) {

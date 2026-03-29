@@ -9,6 +9,7 @@ import { getTokenFromRequest, verifyAuthToken } from "./auth";
 import { getPool, dbLoadGifts, dbGetGiftCost } from "../lib/postgres";
 import { neonDebitGift, neonEnsureBalanceFromFile } from "../lib/walletNeon";
 import { logger } from "../lib/logger";
+import { assertGiftRestVelocityOk } from "../lib/fraud";
 
 function requireAuth(req: Request, res: Response): { userId: string } | null {
   const token = getTokenFromRequest(req);
@@ -40,6 +41,11 @@ export async function handleSendGift(req: Request, res: Response) {
 
     const pool = getPool();
     if (!pool) return res.status(503).json({ error: "Database not configured" });
+
+    const fraud = await assertGiftRestVelocityOk(auth.userId);
+    if (!fraud.ok) {
+      return res.status(429).json({ error: fraud.code });
+    }
 
     const coinCost = await dbGetGiftCost(giftId);
     if (coinCost === null) {

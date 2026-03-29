@@ -16,11 +16,12 @@ import { handleLiveModerationCheck } from "./moderation";
 import { handleGetStickers, handleUploadSticker, handleDeleteSticker } from "./stickers";
 import { validateBody } from "../middleware/validate";
 import { blockUserSchema, reportSchema, verifyPurchaseSchema } from "../validation/schemas";
+import { analyticsPostLimiter, verifyPurchaseLimiter } from "../middleware/rateLimit";
 
 const router = Router();
 
 // Analytics
-router.post("/analytics/track", handleAnalytics);
+router.post("/analytics/track", analyticsPostLimiter, handleAnalytics);
 
 // Block & report
 router.post("/block-user", validateBody(blockUserSchema), handleBlockUser);
@@ -32,7 +33,7 @@ router.post("/report", validateBody(reportSchema), handleReport);
 router.post("/live/moderation/check", handleLiveModerationCheck);
 
 // IAP verification
-router.post("/verify-purchase", validateBody(verifyPurchaseSchema), handleVerifyPurchase);
+router.post("/verify-purchase", verifyPurchaseLimiter, validateBody(verifyPurchaseSchema), handleVerifyPurchase);
 router.post("/promote-iap-complete", handlePromoteIAPComplete);
 router.post("/membership/iap-complete", handleMembershipIAPComplete);
 

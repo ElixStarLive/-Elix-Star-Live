@@ -40,6 +40,18 @@ export async function initWalletPaymentTables(pool: pg.Pool): Promise<void> {
     `CREATE INDEX IF NOT EXISTS idx_elix_ledger_user_time ON elix_wallet_ledger (user_id, created_at DESC)`,
   );
   await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_elix_ledger_iap_provider_txn
+    ON elix_wallet_ledger (provider, provider_transaction_id)
+    WHERE kind = 'iap_purchase' AND provider IS NOT NULL AND provider_transaction_id IS NOT NULL
+  `).catch((err) => { logger.warn({ err }, "ledger iap unique index (may already exist)"); });
+  await pool.query(`
+    ALTER TABLE elix_wallet_ledger DROP CONSTRAINT IF EXISTS elix_ledger_coins_delta_bounds
+  `).catch(() => {});
+  await pool.query(`
+    ALTER TABLE elix_wallet_ledger ADD CONSTRAINT elix_ledger_coins_delta_bounds
+    CHECK (coins_delta >= -50000000 AND coins_delta <= 50000000)
+  `).catch((err) => { logger.warn({ err }, "ledger coins_delta bounds constraint"); });
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS elix_promote_purchases (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       user_id TEXT NOT NULL,
