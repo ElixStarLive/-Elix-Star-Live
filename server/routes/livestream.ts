@@ -96,7 +96,14 @@ function requireAuth(req: Request, res: Response): { userId: string } | null {
 }
 
 /** GET /api/live/streams — list active streams */
+let streamsCache: { data: any; ts: number } | null = null;
+const STREAMS_CACHE_TTL = 5_000;
+
 export async function handleGetStreams(_req: Request, res: Response) {
+  const now = Date.now();
+  if (streamsCache && now - streamsCache.ts < STREAMS_CACHE_TTL) {
+    return res.status(200).json(streamsCache.data);
+  }
   if (isLiveKitConfigured()) {
     try {
       const liveRooms = await listActiveRoomsFromLiveKit();
@@ -119,7 +126,9 @@ export async function handleGetStreams(_req: Request, res: Response) {
           }),
       );
 
-      return res.status(200).json({ streams });
+      const result = { streams };
+      streamsCache = { data: result, ts: Date.now() };
+      return res.status(200).json(result);
     } catch (err) {
       logger.warn({ err }, "LiveKit list streams failed, falling back to DB");
     }
@@ -137,7 +146,9 @@ export async function handleGetStreams(_req: Request, res: Response) {
     viewer_count: row.viewer_count ?? 0,
   }));
 
-  return res.status(200).json({ streams });
+  const result = { streams };
+  streamsCache = { data: result, ts: Date.now() };
+  return res.status(200).json(result);
 }
 
 /** POST /api/live/start — creator starts stream */

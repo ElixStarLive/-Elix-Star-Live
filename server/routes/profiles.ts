@@ -449,14 +449,23 @@ export async function handleGetProfile(req: Request, res: Response): Promise<voi
 }
 
 /** GET /api/profiles — list all known users/profiles */
+let profilesListCache: { data: any; ts: number } | null = null;
+const PROFILES_LIST_CACHE_TTL = 30_000;
+
 export async function handleListProfiles(_req: Request, res: Response): Promise<void> {
+  const now = Date.now();
+  if (profilesListCache && now - profilesListCache.ts < PROFILES_LIST_CACHE_TTL) {
+    res.json(profilesListCache.data);
+    return;
+  }
+
   const merged = new Map<string, any>();
 
   const db = getPool();
   if (db) {
     try {
       await ensureProfilesTable();
-      const dbRes = await db.query(`SELECT * FROM profiles LIMIT 500`);
+      const dbRes = await db.query(`SELECT user_id, username, display_name, avatar_url, level, is_verified, followers, following FROM profiles LIMIT 500`);
       for (const r of dbRes.rows || []) {
         merged.set(String(r.user_id), {
           user_id: String(r.user_id),
@@ -502,7 +511,9 @@ export async function handleListProfiles(_req: Request, res: Response): Promise<
     }
   }
 
-  res.json({ profiles: Array.from(merged.values()) });
+  const result = { profiles: Array.from(merged.values()) };
+  profilesListCache = { data: result, ts: now };
+  res.json(result);
 }
 
 /** GET /api/profiles/:userId/followers */
