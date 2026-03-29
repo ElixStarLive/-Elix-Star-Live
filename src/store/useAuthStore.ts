@@ -223,7 +223,8 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
           m.includes("fetch") ||
           m.includes("network") ||
           m.includes("failed to fetch") ||
-          m.includes("request_failed")
+          m.includes("request_failed") ||
+          m.includes("not_json")
         ) {
           const isLocal =
             typeof window !== "undefined" &&
@@ -243,8 +244,7 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
       const parsed = parseAuthLoginRegisterResponse(data);
       if (!parsed) {
         return {
-          error:
-            "Could not complete sign-in. Check your connection, update the app, or try again later.",
+          error: "Cannot reach backend. Try again later.",
         };
       }
 
@@ -299,10 +299,16 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
           m.includes("fetch") ||
           m.includes("network") ||
           m.includes("failed to fetch") ||
-          m.includes("request_failed")
+          m.includes("request_failed") ||
+          m.includes("not_json")
         ) {
+          const isLocal =
+            typeof window !== "undefined" &&
+            (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
           return {
-            error: "Cannot reach backend. Start both frontend and backend: npm run dev:all",
+            error: isLocal
+              ? "Cannot reach backend. Start both frontend and backend: npm run dev:all"
+              : "Cannot reach backend. Try again later.",
             needsEmailConfirmation: false,
           };
         }
@@ -319,7 +325,7 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
       const parsed = parseAuthLoginRegisterResponse(data);
       if (!parsed) {
         return {
-          error: "Signup did not return a valid session. Please try again or update the app.",
+          error: "Cannot reach backend. Try again later.",
           needsEmailConfirmation: false,
         };
       }

@@ -24,7 +24,25 @@ export async function request<T = any>(
       ...init,
       headers: { ...authHeaders(), ...(init.headers || {}) },
     });
-    const body = await res.json().catch(() => ({}));
+
+    const ct = res.headers.get("content-type") || "";
+    const isJson = ct.includes("application/json") || ct.includes("+json");
+
+    if (!isJson) {
+      return {
+        data: null,
+        error: { message: res.ok ? "RESPONSE_NOT_JSON" : `HTTP_${res.status}` },
+      };
+    }
+
+    const body = await res.json().catch(() => null);
+    if (body === null) {
+      return {
+        data: null,
+        error: { message: res.ok ? "RESPONSE_NOT_JSON" : `HTTP_${res.status}` },
+      };
+    }
+
     if (!res.ok) {
       return {
         data: null,

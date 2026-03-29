@@ -7,6 +7,7 @@
  */
 import "./config";
 import pg from "pg";
+import { normalizeDatabaseUrl } from "./lib/databaseUrl";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -18,7 +19,7 @@ const migrationsDir = path.join(__dirname, "migrations");
 const ADVISORY_KEY = 87236401;
 
 async function main(): Promise<void> {
-  const url = (process.env.DATABASE_URL || "").trim();
+  const url = normalizeDatabaseUrl((process.env.DATABASE_URL || "").trim());
   if (!url) {
     logger.fatal("DATABASE_URL is required for migrations");
     process.exit(1);

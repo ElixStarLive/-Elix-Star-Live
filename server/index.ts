@@ -79,8 +79,9 @@ const ALLOWED_ORIGINS: string[] = (() => {
   if (process.env.ALLOWED_ORIGINS) {
     origins.push(...process.env.ALLOWED_ORIGINS.split(",").map(s => s.trim()).filter(Boolean));
   }
+  origins.push("capacitor://localhost", "http://localhost");
   if (process.env.NODE_ENV !== "production") {
-    origins.push("http://localhost:5173", "http://localhost:8080", "http://localhost:3000", "https://localhost:5173", "capacitor://localhost", "http://localhost");
+    origins.push("http://localhost:5173", "http://localhost:8080", "http://localhost:3000", "https://localhost:5173");
   }
   return [...new Set(origins)];
 })();
@@ -288,6 +289,10 @@ app.use("/api", apiLimiter);
 
 // ── Mount all API routes ─────────────────────────────────────────
 mountRoutes(app);
+
+app.use("/api", (_req: express.Request, res: express.Response) => {
+  res.status(404).json({ error: "Not found" });
+});
 
 // ── Runtime env.js (explicit allowlist — no prefix-matching) ─────
 const ENV_JS_ALLOWED_KEYS = [

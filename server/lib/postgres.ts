@@ -5,6 +5,7 @@
 
 import pg from "pg";
 import type { Video } from "./videoStore";
+import { normalizeDatabaseUrl } from "./databaseUrl";
 import { logger } from "./logger";
 import { bumpFeedForyouEpoch } from "./feedCacheValkey";
 import { instrumentPool, instrumentPoolConnect } from "./dbRequestContext";
@@ -118,7 +119,7 @@ async function assertMigrationsApplied(client: pg.Pool): Promise<void> {
  * DDL and seeds run via `npm run migrate` (once per deploy), never from clustered workers.
  */
 export async function connectPostgres(): Promise<void> {
-  const url = (process.env.DATABASE_URL || "").trim();
+  const url = normalizeDatabaseUrl((process.env.DATABASE_URL || "").trim());
   if (!url) {
     logger.warn("DATABASE_URL is not set — all data will be stored in memory only and lost on restart!");
     return;

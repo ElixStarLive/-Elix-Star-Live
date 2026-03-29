@@ -254,32 +254,37 @@ function authLoginRegisterBody(u: StoredUser, token: string) {
 
 export async function handleLogin(req: Request, res: Response) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  const { email, password } = req.body ?? {};
-  const e = typeof email === 'string' ? email.trim() : '';
-  if (!e || !password) {
-    return res.status(400).json({ error: 'Please enter both email and password.' });
-  }
-  if (!getPool()) return res.status(503).json({ error: 'Database not configured' });
-  const user = await dbFindUserByEmail(e);
-  if (!user || !(await verifyPassword(password, user.passwordHash))) {
-    return res.status(401).json({ error: 'Invalid login credentials.' });
-  }
-  const pool = getPool();
-  if (pool) {
-    try {
-      const ban = await pool.query(`SELECT banned_until FROM profiles WHERE user_id = $1`, [user.id]);
-      const bu = ban.rows[0]?.banned_until as Date | string | undefined;
-      if (bu && new Date(bu).getTime() > Date.now()) {
-        return res.status(403).json({ error: 'Account suspended.' });
-      }
-    } catch (err) {
-      logger.warn({ err }, 'login banned_until check skipped');
+  try {
+    const { email, password } = req.body ?? {};
+    const e = typeof email === 'string' ? email.trim() : '';
+    if (!e || !password) {
+      return res.status(400).json({ error: 'Please enter both email and password.' });
     }
+    if (!getPool()) return res.status(503).json({ error: 'Database not configured' });
+    const user = await dbFindUserByEmail(e);
+    if (!user || !(await verifyPassword(password, user.passwordHash))) {
+      return res.status(401).json({ error: 'Invalid login credentials.' });
+    }
+    const pool = getPool();
+    if (pool) {
+      try {
+        const ban = await pool.query(`SELECT banned_until FROM profiles WHERE user_id = $1`, [user.id]);
+        const bu = ban.rows[0]?.banned_until as Date | string | undefined;
+        if (bu && new Date(bu).getTime() > Date.now()) {
+          return res.status(403).json({ error: 'Account suspended.' });
+        }
+      } catch (err) {
+        logger.warn({ err }, 'login banned_until check skipped');
+      }
+    }
+    const token = signToken({ sub: user.id, email: user.email });
+    await dbUpsertSession(user.id, token);
+    setAuthCookie(res, token);
+    return res.status(200).json(authLoginRegisterBody(user, token));
+  } catch (err) {
+    logger.error({ err }, 'handleLogin failed');
+    return res.status(500).json({ error: 'Login failed. Please try again.' });
   }
-  const token = signToken({ sub: user.id, email: user.email });
-  await dbUpsertSession(user.id, token);
-  setAuthCookie(res, token);
-  return res.status(200).json(authLoginRegisterBody(user, token));
 }
 
 /**
@@ -318,34 +323,38 @@ export async function handleGuestLogin(_req: Request, res: Response) {
 
 export async function handleRegister(req: Request, res: Response) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  const { email, password, username } = req.body ?? {};
-  const e = typeof email === 'string' ? email.trim() : '';
-  if (!e || !password) {
-    return res.status(400).json({ error: 'Email and password are required.' });
+  try {
+    const { email, password, username } = req.body ?? {};
+    const e = typeof email === 'string' ? email.trim() : '';
+    if (!e || !password) {
+      return res.status(400).json({ error: 'Email and password are required.' });
+    }
+    if (!getPool()) return res.status(503).json({ error: 'Database not configured' });
+    const existing = await dbFindUserByEmail(e);
+    if (existing) {
+      return res.status(409).json({ error: 'An account with this email already exists.' });
+    }
+    const id = crypto.randomUUID();
+    const uname = typeof username === 'string' && username.trim() ? username.trim() : e.split('@')[0];
+    const avatar_url = `https://ui-avatars.com/api/?name=${encodeURIComponent(uname)}&background=random`;
+    const created_at = new Date().toISOString();
+    const stored: StoredUser = {
+      id,
+      email: e,
+      passwordHash: await hashPassword(password),
+      username: uname,
+      avatar_url,
+      created_at,
+    };
+    await dbInsertUser(stored);
+    const token = signToken({ sub: id, email: e });
+    await dbUpsertSession(id, token);
+    setAuthCookie(res, token);
+    return res.status(201).json(authLoginRegisterBody(stored, token));
+  } catch (err) {
+    logger.error({ err }, 'handleRegister failed');
+    return res.status(500).json({ error: 'Registration failed. Please try again.' });
   }
-  const key = e.toLowerCase();
-  if (!getPool()) return res.status(503).json({ error: 'Database not configured' });
-  const existing = await dbFindUserByEmail(e);
-  if (existing) {
-    return res.status(409).json({ error: 'An account with this email already exists.' });
-  }
-  const id = crypto.randomUUID();
-  const uname = typeof username === 'string' && username.trim() ? username.trim() : e.split('@')[0];
-  const avatar_url = `https://ui-avatars.com/api/?name=${encodeURIComponent(uname)}&background=random`;
-  const created_at = new Date().toISOString();
-  const stored: StoredUser = {
-    id,
-    email: e,
-    passwordHash: await hashPassword(password),
-    username: uname,
-    avatar_url,
-    created_at,
-  };
-  await dbInsertUser(stored);
-  const token = signToken({ sub: id, email: e });
-  await dbUpsertSession(id, token);
-  setAuthCookie(res, token);
-  return res.status(201).json(authLoginRegisterBody(stored, token));
 }
 
 export async function handleLogout(req: Request, res: Response) {
@@ -360,38 +369,43 @@ export async function handleLogout(req: Request, res: Response) {
 
 export async function handleMe(req: Request, res: Response) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
-  const token = getTokenFromRequest(req);
-  if (!token) return res.status(401).json({ error: 'Not authenticated.' });
-  const payload = verifyAuthToken(token);
-  if (!payload) return res.status(401).json({ error: 'Invalid or expired session.' });
-  res.setHeader("Cache-Control", "private, no-store");
-  if (!getPool()) return res.status(503).json({ error: 'Database not configured' });
-  const user = await dbFindUserById(payload.sub);
-  if (!user) return res.status(401).json({ error: 'User not found.' });
-  let profileMeta: { is_admin?: boolean; is_creator?: boolean; banned_until?: string | null } = {};
-  const poolMe = getPool();
-  if (poolMe) {
-    try {
-      const pr = await poolMe.query(
-        `SELECT COALESCE(is_admin, false) AS is_admin, COALESCE(is_verified, false) AS is_verified, banned_until FROM profiles WHERE user_id = $1`,
-        [payload.sub],
-      );
-      const row = pr.rows[0] as { is_admin?: boolean; is_verified?: boolean; banned_until?: Date } | undefined;
-      if (row) {
-        profileMeta = {
-          is_admin: Boolean(row.is_admin),
-          is_creator: Boolean(row.is_verified),
-          banned_until: row.banned_until ? new Date(row.banned_until).toISOString() : null,
-        };
+  try {
+    const token = getTokenFromRequest(req);
+    if (!token) return res.status(401).json({ error: 'Not authenticated.' });
+    const payload = verifyAuthToken(token);
+    if (!payload) return res.status(401).json({ error: 'Invalid or expired session.' });
+    res.setHeader("Cache-Control", "private, no-store");
+    if (!getPool()) return res.status(503).json({ error: 'Database not configured' });
+    const user = await dbFindUserById(payload.sub);
+    if (!user) return res.status(401).json({ error: 'User not found.' });
+    let profileMeta: { is_admin?: boolean; is_creator?: boolean; banned_until?: string | null } = {};
+    const poolMe = getPool();
+    if (poolMe) {
+      try {
+        const pr = await poolMe.query(
+          `SELECT COALESCE(is_admin, false) AS is_admin, COALESCE(is_verified, false) AS is_verified, banned_until FROM profiles WHERE user_id = $1`,
+          [payload.sub],
+        );
+        const row = pr.rows[0] as { is_admin?: boolean; is_verified?: boolean; banned_until?: Date } | undefined;
+        if (row) {
+          profileMeta = {
+            is_admin: Boolean(row.is_admin),
+            is_creator: Boolean(row.is_verified),
+            banned_until: row.banned_until ? new Date(row.banned_until).toISOString() : null,
+          };
+        }
+      } catch (err) {
+        logger.warn({ err }, 'handleMe profile meta skipped');
       }
-    } catch (err) {
-      logger.warn({ err }, 'handleMe profile meta skipped');
     }
+    return res.status(200).json({
+      ...authLoginRegisterBody(user, token),
+      profile_meta: profileMeta,
+    });
+  } catch (err) {
+    logger.error({ err }, 'handleMe failed');
+    return res.status(500).json({ error: 'Session check failed.' });
   }
-  return res.status(200).json({
-    ...authLoginRegisterBody(user, token),
-    profile_meta: profileMeta,
-  });
 }
 
 export async function handleDeleteAccount(req: Request, res: Response) {
