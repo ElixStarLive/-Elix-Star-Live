@@ -157,7 +157,7 @@ async function healthCheck(_req: express.Request, res: express.Response) {
       await pool.query("SELECT 1");
       dbOk = true;
     }
-  } catch { /* db down */ }
+  } catch (err: any) { logger.warn({ err: err?.message }, "Health check DB ping failed"); }
 
   const valkeyOk = await valkeyHealthCheck();
   const allCritical = dbOk && (valkeyOk || !isValkeyConfigured());

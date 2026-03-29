@@ -31,7 +31,6 @@ import {
   valkeyRateCheck as valkeyRateCheckFn,
   valkeySet,
   valkeyGet,
-  valkeyExists,
   valkeyDel,
   valkeySadd,
   valkeySrem,
@@ -59,6 +58,9 @@ export interface Client {
 const INSTANCE_ID = randomUUID();
 const ROOM_MEMBER_TTL = 3600;
 
+let _warnedWsRateCheckNoValkey = false;
+let _warnedTryClaimNoValkey = false;
+
 const rooms = new Map<string, Set<Client>>();
 const clients = new Map<WebSocket, Client>();
 const userClients = new Map<string, Set<Client>>();
@@ -69,7 +71,16 @@ export async function wsRateCheck(
   maxPerWindow: number,
   windowMs: number,
 ): Promise<boolean> {
-  if (!isValkeyConfigured()) return true;
+  if (!isValkeyConfigured()) {
+    if (!_warnedWsRateCheckNoValkey) {
+      _warnedWsRateCheckNoValkey = true;
+      logger.warn(
+        { userId, event },
+        "wsRateCheck: Valkey not configured — WebSocket event rate limiting disabled (allowing request)",
+      );
+    }
+    return true;
+  }
   return valkeyRateCheckFn(`wsrl:${userId}:${event}`, windowMs, maxPerWindow);
 }
 
@@ -221,25 +232,20 @@ export async function tryClaimTransaction(
   transactionId: string,
   timestamp: number,
 ): Promise<{ claimed: boolean; existingTimestamp?: number }> {
-  if (!isValkeyConfigured()) return { claimed: true };
+  if (!isValkeyConfigured()) {
+    if (!_warnedTryClaimNoValkey) {
+      _warnedTryClaimNoValkey = true;
+      logger.warn(
+        "tryClaimTransaction: Valkey not configured — transaction deduplication disabled (treating as claimed)",
+      );
+    }
+    return { claimed: true };
+  }
   const key = `txn:${transactionId}`;
   const claimed = await valkeySetNx(key, String(timestamp), 300_000);
   if (claimed) return { claimed: true };
   const val = await valkeyGet(key);
   return { claimed: false, existingTimestamp: val ? Number(val) : undefined };
-}
-
-/** @deprecated Use tryClaimTransaction for atomic dedup */
-export async function isTransactionDuplicate(
-  transactionId: string,
-): Promise<{ duplicate: boolean; timestamp?: number }> {
-  if (!isValkeyConfigured()) return { duplicate: false };
-  const exists = await valkeyExists(`txn:${transactionId}`);
-  if (exists) {
-    const val = await valkeyGet(`txn:${transactionId}`);
-    return { duplicate: true, timestamp: val ? Number(val) : undefined };
-  }
-  return { duplicate: false };
 }
 
 export async function markTransactionProcessed(
@@ -363,7 +369,9 @@ async function updateViewerCount(roomId: string): Promise<void> {
     count = room ? room.size : 0;
   }
   broadcastToRoom(roomId, "viewer_count", { count });
-  dbUpdateViewerCount(roomId, count).catch(() => {});
+  dbUpdateViewerCount(roomId, count).catch((err) => {
+    logger.warn({ err, roomId, count }, "dbUpdateViewerCount failed after viewer count broadcast");
+  });
 }
 
 async function checkAndBroadcastStreamEnd(
@@ -672,7 +680,9 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
             avatar_url: client.avatarUrl,
           });
 
-          updateViewerCount(client.roomId).catch(() => {});
+          updateViewerCount(client.roomId).catch((err) => {
+            logger.warn({ err, roomId: client.roomId }, "updateViewerCount failed on client disconnect");
+          });
           checkAndBroadcastStreamEnd(client.roomId, client.userId);
 
           if (room.size === 0) {

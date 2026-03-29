@@ -52,11 +52,6 @@ export async function getFollowingIdsAsync(userId: string): Promise<string[]> {
   }
 }
 
-/** @deprecated Use getFollowingIdsAsync. Returns empty for horizontal scaling safety. */
-export function getFollowingIds(_userId: string): string[] {
-  return [];
-}
-
 /** DB-primary follower IDs for a user. */
 export async function getFollowerIdsAsync(userId: string): Promise<string[]> {
   const db = getPool();
@@ -69,11 +64,6 @@ export async function getFollowerIdsAsync(userId: string): Promise<string[]> {
     logger.error({ err, userId }, "getFollowerIdsAsync DB read failed");
     return [];
   }
-}
-
-/** @deprecated Use getFollowerIdsAsync. Returns empty for horizontal scaling safety. */
-export function getFollowerIds(_userId: string): string[] {
-  return [];
 }
 
 /** DB-primary mutual follow IDs. */
@@ -96,11 +86,6 @@ export async function getMutualFollowIdsAsync(userId: string): Promise<string[]>
   }
 }
 
-/** @deprecated Use getMutualFollowIdsAsync. */
-export function getMutualFollowIds(_userId: string): string[] {
-  return [];
-}
-
 /** DB-primary isFollowing check. */
 export async function isFollowingAsync(followerId: string, targetId: string): Promise<boolean> {
   const db = getPool();
@@ -112,14 +97,10 @@ export async function isFollowingAsync(followerId: string, targetId: string): Pr
       [followerId, targetId],
     );
     return (res.rows?.length ?? 0) > 0;
-  } catch {
+  } catch (err) {
+    logger.warn({ err, followerId, targetId }, "isFollowingAsync DB read failed");
     return false;
   }
-}
-
-/** @deprecated Use isFollowingAsync. */
-export function isFollowing(_followerId: string, _targetId: string): boolean {
-  return false;
 }
 
 // ── PostgreSQL profile persistence ──────────────────────────────────────────
@@ -148,8 +129,8 @@ async function ensureProfilesTable(): Promise<void> {
       )
     `);
     profilesTableReady = true;
-  } catch {
-    // Table creation failed
+  } catch (err) {
+    logger.warn({ err }, "ensureProfilesTable: table creation failed");
   }
 }
 
@@ -226,7 +207,8 @@ async function loadProfileFromDb(userId: string): Promise<Profile | null> {
       createdAt: String(r.created_at || ""),
       updatedAt: String(r.updated_at || ""),
     };
-  } catch {
+  } catch (err) {
+    logger.warn({ err, userId }, "loadProfileFromDb failed");
     return null;
   }
 }
@@ -236,7 +218,9 @@ async function getCachedProfile(userId: string): Promise<Profile | null> {
   try {
     const raw = await valkeyGet(`profile:${userId}`);
     if (raw) return JSON.parse(raw) as Profile;
-  } catch { /* ignore */ }
+  } catch (err) {
+    logger.warn({ err, userId }, "getCachedProfile: valkey read/parse failed");
+  }
   return null;
 }
 
@@ -244,7 +228,9 @@ async function setCachedProfile(profile: Profile): Promise<void> {
   if (!isValkeyConfigured()) return;
   try {
     await valkeySet(`profile:${profile.userId}`, JSON.stringify(profile), PROFILE_CACHE_TTL);
-  } catch { /* ignore */ }
+  } catch (err) {
+    logger.warn({ err, userId: profile.userId }, "setCachedProfile: valkey set failed");
+  }
 }
 
 async function lookupAuthUser(userId: string): Promise<StoredUserRow | null> {
@@ -264,7 +250,8 @@ async function lookupAuthUser(userId: string): Promise<StoredUserRow | null> {
       display_name: String(r.display_name || ""),
       avatar_url: String(r.avatar_url || ""),
     };
-  } catch {
+  } catch (err) {
+    logger.warn({ err, userId }, "lookupAuthUser failed");
     return null;
   }
 }
@@ -284,7 +271,8 @@ async function readUsersFromDb(): Promise<StoredUserRow[]> {
       avatar_url: String(r.avatar_url || ""),
       display_name: String(r.display_name || ""),
     }));
-  } catch {
+  } catch (err) {
+    logger.warn({ err }, "readUsersFromDb failed");
     return [];
   }
 }
@@ -307,7 +295,9 @@ export async function getOrCreateProfile(userId: string, seed?: Partial<Profile>
       if (seed.avatarUrl && cached.avatarUrl.includes("ui-avatars")) { cached.avatarUrl = seed.avatarUrl; changed = true; }
       if (changed) {
         cached.updatedAt = new Date().toISOString();
-        saveProfileToDb(cached).catch(() => {});
+        saveProfileToDb(cached).catch((err) => {
+          logger.warn({ err, userId: cached.userId }, "getOrCreateProfile: saveProfileToDb failed (cached)");
+        });
       }
     }
     return cached;
@@ -322,7 +312,9 @@ export async function getOrCreateProfile(userId: string, seed?: Partial<Profile>
       if (seed.avatarUrl && existing.avatarUrl.includes("ui-avatars")) { existing.avatarUrl = seed.avatarUrl; changed = true; }
       if (changed) {
         existing.updatedAt = new Date().toISOString();
-        saveProfileToDb(existing).catch(() => {});
+        saveProfileToDb(existing).catch((err) => {
+          logger.warn({ err, userId: existing.userId }, "getOrCreateProfile: saveProfileToDb failed (existing)");
+        });
       }
     }
     await setCachedProfile(existing);
@@ -348,7 +340,9 @@ export async function getOrCreateProfile(userId: string, seed?: Partial<Profile>
     createdAt: seed?.createdAt ?? now,
     updatedAt: now,
   };
-  saveProfileToDb(profile).catch(() => {});
+  saveProfileToDb(profile).catch((err) => {
+    logger.warn({ err, userId: profile.userId }, "getOrCreateProfile: saveProfileToDb failed (new profile)");
+  });
   await setCachedProfile(profile);
   return profile;
 }
@@ -388,7 +382,9 @@ async function getOrCreateProfileAsync(userId: string, seed?: Partial<Profile>):
         if (realDisplayName && isFallbackName(profile.displayName)) profile.displayName = realDisplayName;
         if (realAvatar && profile.avatarUrl.includes("ui-avatars")) profile.avatarUrl = realAvatar;
         profile.updatedAt = new Date().toISOString();
-        saveProfileToDb(profile).catch(() => {});
+        saveProfileToDb(profile).catch((err) => {
+          logger.warn({ err, userId: profile.userId }, "getOrCreateProfileAsync: saveProfileToDb failed");
+        });
         await setCachedProfile(profile);
         return profile;
       }
@@ -432,8 +428,8 @@ export async function handleGetProfile(req: Request, res: Response): Promise<voi
       ]);
       followersCount = Number(fersRes.rows[0]?.c ?? 0);
       followingCount = Number(fingRes.rows[0]?.c ?? 0);
-    } catch {
-      // DB unavailable
+    } catch (err) {
+      logger.warn({ err, userId }, "handleGetProfile: follow counts query failed");
     }
   }
 
@@ -443,7 +439,9 @@ export async function handleGetProfile(req: Request, res: Response): Promise<voi
     profile.followers = resolvedFollowers;
     profile.following = resolvedFollowing;
     profile.updatedAt = new Date().toISOString();
-    saveProfileToDb(profile).catch(() => {});
+    saveProfileToDb(profile).catch((err) => {
+      logger.warn({ err, userId: profile.userId }, "handleGetProfile: saveProfileToDb failed");
+    });
   }
   res.json({ profile });
 }
@@ -479,8 +477,8 @@ export async function handleListProfiles(_req: Request, res: Response): Promise<
           following_count: Number(r.following) || 0,
         });
       }
-    } catch {
-      // DB unavailable
+    } catch (err) {
+      logger.warn({ err }, "handleListProfiles: profiles query failed");
     }
   }
 
@@ -660,7 +658,9 @@ export async function handleFollow(req: Request, res: Response): Promise<void> {
             m.invalidateFeedCache(jwtUser.sub);
             m.invalidateFeedCache(userId);
           })
-          .catch(() => {});
+          .catch((err) => {
+            logger.warn({ err, follower: jwtUser.sub, following: userId }, "handleFollow: invalidateFeedCache import failed");
+          });
         const p = await getOrCreateProfileAsync(userId);
         res.json({ success: true, already: true, followers: p.followers });
         return;
@@ -675,14 +675,20 @@ export async function handleFollow(req: Request, res: Response): Promise<void> {
   const follower = await getOrCreateProfileAsync(jwtUser.sub);
   target.followers = Math.max(0, target.followers + 1);
   follower.following = Math.max(0, follower.following + 1);
-  saveProfileToDb(target).catch(() => {});
-  saveProfileToDb(follower).catch(() => {});
+  saveProfileToDb(target).catch((err) => {
+    logger.warn({ err, userId: target.userId }, "handleFollow: saveProfileToDb failed (target)");
+  });
+  saveProfileToDb(follower).catch((err) => {
+    logger.warn({ err, userId: follower.userId }, "handleFollow: saveProfileToDb failed (follower)");
+  });
   void import("./feed")
     .then((m) => {
       m.invalidateFeedCache(jwtUser.sub);
       m.invalidateFeedCache(userId);
     })
-    .catch(() => {});
+    .catch((err) => {
+      logger.warn({ err, follower: jwtUser.sub, following: userId }, "handleFollow: invalidateFeedCache import failed");
+    });
   res.json({ success: true, followers: target.followers });
 }
 
@@ -719,14 +725,20 @@ export async function handleUnfollow(req: Request, res: Response): Promise<void>
   const follower = await getOrCreateProfileAsync(jwtUser.sub);
   target.followers = Math.max(0, target.followers - 1);
   follower.following = Math.max(0, follower.following - 1);
-  saveProfileToDb(target).catch(() => {});
-  saveProfileToDb(follower).catch(() => {});
+  saveProfileToDb(target).catch((err) => {
+    logger.warn({ err, userId: target.userId }, "handleUnfollow: saveProfileToDb failed (target)");
+  });
+  saveProfileToDb(follower).catch((err) => {
+    logger.warn({ err, userId: follower.userId }, "handleUnfollow: saveProfileToDb failed (follower)");
+  });
   void import("./feed")
     .then((m) => {
       m.invalidateFeedCache(jwtUser.sub);
       m.invalidateFeedCache(userId);
     })
-    .catch(() => {});
+    .catch((err) => {
+      logger.warn({ err, follower: jwtUser.sub, following: userId }, "handleUnfollow: invalidateFeedCache import failed");
+    });
   res.json({ success: true, followers: target.followers });
 }
 
@@ -760,7 +772,9 @@ export async function handleGetProfileByUsername(req: Request, res: Response): P
         });
         return;
       }
-    } catch { /* fall through */ }
+    } catch (err) {
+      logger.warn({ err, username }, "handleGetProfileByUsername: query failed");
+    }
   }
 
   res.status(404).json({ error: "Profile not found" });
@@ -786,7 +800,9 @@ export async function handleAddTestCoins(req: Request, res: Response): Promise<v
   }
   const profile = await getOrCreateProfileAsync(jwtUser.sub);
   profile.coins += numAmount;
-  saveProfileToDb(profile).catch(() => {});
+  saveProfileToDb(profile).catch((err) => {
+    logger.warn({ err, userId: profile.userId }, "handleAddTestCoins: saveProfileToDb failed");
+  });
   res.json({ success: true, coins: profile.coins });
 }
 
@@ -821,7 +837,9 @@ export async function handleSeedProfile(req: Request, res: Response): Promise<vo
     if (realDisplayName) existing.displayName = realDisplayName;
     if (avatarUrl) existing.avatarUrl = avatarUrl;
     existing.updatedAt = new Date().toISOString();
-    saveProfileToDb(existing).catch(() => {});
+    saveProfileToDb(existing).catch((err) => {
+      logger.warn({ err, userId: existing.userId }, "handleSeedProfile: saveProfileToDb failed");
+    });
     res.status(201).json({ profile: existing });
     return;
   }

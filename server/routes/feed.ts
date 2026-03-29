@@ -273,9 +273,21 @@ export async function handleTrackView(req: Request, res: Response) {
         completed || false,
         ipHash,
       ],
-    ).catch(() => {});
+    ).catch((err: any) => {
+      logger.warn(
+        { err: err?.message },
+        "Failed to insert video_views row after track view",
+      );
+    });
 
-    db.query(`UPDATE videos SET views = views + 1 WHERE id = $1`, [videoId]).catch(() => {});
+    db.query(`UPDATE videos SET views = views + 1 WHERE id = $1`, [videoId]).catch(
+      (err: any) => {
+        logger.warn(
+          { err: err?.message },
+          "Failed to increment video views in DB after track view",
+        );
+      },
+    );
   } catch (err: any) {
     logger.error({ err: err?.message }, "TrackView error");
     res.status(500).json({ error: "Failed to track view" });
@@ -337,11 +349,16 @@ export async function handleGetVideoScore(req: Request, res: Response) {
     try {
       const result = await db.query(`SELECT * FROM video_scores WHERE video_id = $1 LIMIT 1`, [videoId]);
       res.json({ score: result.rows?.[0] || null });
-    } catch {
+    } catch (err: any) {
+      logger.warn(
+        { err: err?.message, videoId },
+        "Failed to read video_scores from DB, falling back to memory",
+      );
       const memVideo = await getVideoAsync(videoId);
       res.json({ score: memVideo ? { video_id: videoId, total_views: memVideo.views, score: 0 } : null });
     }
-  } catch (_err) {
+  } catch (err: any) {
+    logger.error({ err: err?.message }, "GetVideoScore error");
     res.status(500).json({ error: "Failed to get score" });
   }
 }
@@ -400,8 +417,8 @@ export async function handleFriendsFeed(req: Request, res: Response) {
 
     const mapped = friendVids.map((v) => formatVideoForClient(v, likedSet, followingSet));
     return res.json({ videos: mapped });
-  } catch (err) {
-    logger.error({ err }, "Friends feed error");
+  } catch (err: any) {
+    logger.error({ err: err?.message }, "Friends feed error");
     return res.json({ videos: [] });
   }
 }

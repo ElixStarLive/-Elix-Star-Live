@@ -1,3 +1,5 @@
+import { apiUrl } from './api';
+
 // Analytics Event Tracking
 
 export type AnalyticsEvent =
@@ -167,7 +169,7 @@ class AnalyticsService {
     if (import.meta.env.DEV) return;
 
     // Send to backend for server-side storage
-    fetch('/api/analytics/track', {
+    fetch(apiUrl('/api/analytics/track'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ event, properties }),

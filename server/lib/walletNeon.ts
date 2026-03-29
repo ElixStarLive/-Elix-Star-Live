@@ -118,7 +118,11 @@ export async function neonIsIapProcessed(
       [provider, providerTransactionId],
     );
     return r.rows.length > 0;
-  } catch {
+  } catch (e) {
+    logger.error(
+      { err: e, provider, providerTransactionId },
+      "neonIsIapProcessed: database error while checking IAP ledger (treating as not processed)",
+    );
     return false;
   }
 }
@@ -315,7 +319,10 @@ export async function neonDebitGift(input: {
     } catch {
       /* noop */
     }
-    logger.error({ err: e }, "neonDebitGift failed");
+    logger.error(
+      { err: e, userId: input.userId, giftId: input.giftId, roomId: input.roomId },
+      "neonDebitGift: unexpected database error (not the normal insufficient_funds balance branch); returning insufficient_funds response shape",
+    );
     const balR = await pool
       .query(`SELECT coin_balance::bigint AS b FROM elix_wallet_balances WHERE user_id = $1`, [
         input.userId,

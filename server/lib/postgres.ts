@@ -51,7 +51,15 @@ export async function initPostgres(): Promise<void> {
     pool.on("error", (err) => {
       logger.error({ err: err.message }, "Unexpected pool error");
     });
-    await pool.query("SELECT 1");
+    try {
+      await pool.query("SELECT 1");
+    } catch (pingErr) {
+      logger.error(
+        { err: pingErr instanceof Error ? pingErr.message : pingErr },
+        "PostgreSQL startup health check failed (SELECT 1)",
+      );
+      throw pingErr;
+    }
     logger.info("PostgreSQL connected successfully");
     await pool.query(`
       CREATE TABLE IF NOT EXISTS videos (
@@ -457,7 +465,7 @@ export async function loadVideosFromDb(): Promise<Video[]> {
   if (!pool) return [];
   try {
     const res = await pool.query(
-      `SELECT *
+      `SELECT id, url, thumbnail, duration, description, hashtags, views, likes, comments, shares, saves, created_at, privacy, user_id
        FROM videos ORDER BY created_at DESC LIMIT 5000`
     );
     return (res.rows || []).map((row: Record<string, unknown>) => ({
@@ -634,7 +642,8 @@ export async function dbGetLiveStreams(): Promise<
   try {
     const res = await pool.query(
       `SELECT stream_key, user_id, display_name, started_at, viewer_count
-       FROM live_streams WHERE is_live = TRUE ORDER BY started_at DESC`,
+       FROM live_streams WHERE is_live = TRUE ORDER BY started_at DESC
+       LIMIT 500`,
     );
     return res.rows;
   } catch (err) {
@@ -1320,7 +1329,8 @@ export async function dbUnreadCountForThread(threadId: string, readerId: string)
       [threadId, readerId],
     );
     return Number(res.rows[0]?.c ?? 0);
-  } catch {
+  } catch (err) {
+    logger.warn({ err, threadId, readerId }, "dbUnreadCountForThread failed");
     return 0;
   }
 }

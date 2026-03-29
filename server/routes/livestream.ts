@@ -77,7 +77,9 @@ export async function removeActiveStream(roomId: string, userId?: string): Promi
     }
     await deleteActiveStream(roomId);
   }
-  dbEndLiveStream(roomId).catch(() => {});
+  dbEndLiveStream(roomId).catch((err) => {
+    logger.warn({ err, roomId }, "removeActiveStream: dbEndLiveStream failed");
+  });
   return true;
 }
 
@@ -177,7 +179,9 @@ export async function handleLiveStart(req: Request, res: Response) {
 
     const startedAt = new Date().toISOString();
     await setActiveStream(roomName, auth.userId, startedAt, safeDisplayName);
-    dbInsertLiveStream(roomName, auth.userId, safeDisplayName).catch(() => {});
+    dbInsertLiveStream(roomName, auth.userId, safeDisplayName).catch((err) => {
+      logger.warn({ err, roomName, userId: auth.userId }, "handleLiveStart: dbInsertLiveStream failed");
+    });
 
     broadcastToFeedSubscribers('stream_started', {
       room_id: roomName,
@@ -255,8 +259,8 @@ export async function handleGetLiveToken(req: Request, res: Response) {
       try {
         const rooms = await listActiveRoomsFromLiveKit();
         streamExists = rooms.some((r) => r.name === roomName);
-      } catch {
-        // Ignore LiveKit list errors
+      } catch (err) {
+        logger.warn({ err, roomName }, "handleGetLiveToken: listActiveRoomsFromLiveKit failed");
       }
     }
     if (!streamExists) {

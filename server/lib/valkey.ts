@@ -75,7 +75,8 @@ export async function valkeyHealthCheck(): Promise<boolean> {
     if (!v) return false;
     const result = await v.ping();
     return result === "PONG";
-  } catch {
+  } catch (err: any) {
+    logger.warn({ err: err?.message }, "valkeyHealthCheck failed");
     return false;
   }
 }
@@ -106,7 +107,11 @@ export async function valkeyRateCheck(
 
     const count = (results[2]?.[1] as number) ?? 0;
     return count <= max;
-  } catch {
+  } catch (err: any) {
+    logger.warn(
+      { err: err?.message },
+      "valkeyRateCheck failed, allowing request",
+    );
     return true;
   }
 }
@@ -122,8 +127,8 @@ export function valkeyPublish(
 
   try {
     pub.publish(channel, JSON.stringify(data));
-  } catch {
-    /* best effort */
+  } catch (err: any) {
+    logger.warn({ err: err?.message, channel }, "valkeyPublish failed");
   }
 }
 
@@ -142,8 +147,11 @@ export function valkeySubscribe(
     if (ch !== channel) return;
     try {
       handler(JSON.parse(message));
-    } catch {
-      /* ignore parse errors */
+    } catch (err: any) {
+      logger.warn(
+        { err: err?.message, channel },
+        "valkeySubscribe message parse failed",
+      );
     }
   });
 }
@@ -162,8 +170,11 @@ export function valkeyPSubscribe(
   sub.on("pmessage", (_pat, ch, message) => {
     try {
       handler(ch, JSON.parse(message));
-    } catch {
-      /* ignore parse errors */
+    } catch (err: any) {
+      logger.warn(
+        { err: err?.message, pattern, channel: ch },
+        "valkeyPSubscribe message parse failed",
+      );
     }
   });
 }
@@ -187,8 +198,8 @@ export async function valkeySet(
     } else {
       await v.set(key, strVal);
     }
-  } catch {
-    /* best effort */
+  } catch (err: any) {
+    logger.warn({ err: err?.message, key }, "valkeySet failed");
   }
 }
 
@@ -198,7 +209,8 @@ export async function valkeyGet(key: string): Promise<string | null> {
 
   try {
     return await v.get(key);
-  } catch {
+  } catch (err: any) {
+    logger.warn({ err: err?.message, key }, "valkeyGet failed");
     return null;
   }
 }
@@ -209,8 +221,8 @@ export async function valkeyDel(key: string): Promise<void> {
 
   try {
     await v.del(key);
-  } catch {
-    /* best effort */
+  } catch (err: any) {
+    logger.warn({ err: err?.message, key }, "valkeyDel failed");
   }
 }
 
@@ -220,7 +232,8 @@ export async function valkeyExists(key: string): Promise<boolean> {
 
   try {
     return (await v.exists(key)) === 1;
-  } catch {
+  } catch (err: any) {
+    logger.warn({ err: err?.message, key }, "valkeyExists failed");
     return false;
   }
 }
@@ -232,7 +245,8 @@ export async function valkeySadd(key: string, ...members: string[]): Promise<num
   if (!v || members.length === 0) return 0;
   try {
     return await v.sadd(key, ...members);
-  } catch {
+  } catch (err: any) {
+    logger.warn({ err: err?.message, key }, "valkeySadd failed");
     return 0;
   }
 }
@@ -242,7 +256,8 @@ export async function valkeySrem(key: string, ...members: string[]): Promise<num
   if (!v || members.length === 0) return 0;
   try {
     return await v.srem(key, ...members);
-  } catch {
+  } catch (err: any) {
+    logger.warn({ err: err?.message, key }, "valkeySrem failed");
     return 0;
   }
 }
@@ -252,7 +267,8 @@ export async function valkeyScard(key: string): Promise<number> {
   if (!v) return 0;
   try {
     return await v.scard(key);
-  } catch {
+  } catch (err: any) {
+    logger.warn({ err: err?.message, key }, "valkeyScard failed");
     return 0;
   }
 }
@@ -262,7 +278,8 @@ export async function valkeySmembers(key: string): Promise<string[]> {
   if (!v) return [];
   try {
     return await v.smembers(key);
-  } catch {
+  } catch (err: any) {
+    logger.warn({ err: err?.message, key }, "valkeySmembers failed");
     return [];
   }
 }
@@ -272,7 +289,8 @@ export async function valkeySismember(key: string, member: string): Promise<bool
   if (!v) return false;
   try {
     return (await v.sismember(key, member)) === 1;
-  } catch {
+  } catch (err: any) {
+    logger.warn({ err: err?.message, key }, "valkeySismember failed");
     return false;
   }
 }
@@ -284,7 +302,9 @@ export async function valkeyHset(key: string, field: string, value: string): Pro
   if (!v) return;
   try {
     await v.hset(key, field, value);
-  } catch { /* best effort */ }
+  } catch (err: any) {
+    logger.warn({ err: err?.message, key, field }, "valkeyHset failed");
+  }
 }
 
 export async function valkeyHget(key: string, field: string): Promise<string | null> {
@@ -292,7 +312,8 @@ export async function valkeyHget(key: string, field: string): Promise<string | n
   if (!v) return null;
   try {
     return await v.hget(key, field);
-  } catch {
+  } catch (err: any) {
+    logger.warn({ err: err?.message, key, field }, "valkeyHget failed");
     return null;
   }
 }
@@ -302,7 +323,9 @@ export async function valkeyHdel(key: string, ...fields: string[]): Promise<void
   if (!v || fields.length === 0) return;
   try {
     await v.hdel(key, ...fields);
-  } catch { /* best effort */ }
+  } catch (err: any) {
+    logger.warn({ err: err?.message, key }, "valkeyHdel failed");
+  }
 }
 
 export async function valkeyHgetall(key: string): Promise<Record<string, string>> {
@@ -310,7 +333,8 @@ export async function valkeyHgetall(key: string): Promise<Record<string, string>
   if (!v) return {};
   try {
     return (await v.hgetall(key)) || {};
-  } catch {
+  } catch (err: any) {
+    logger.warn({ err: err?.message, key }, "valkeyHgetall failed");
     return {};
   }
 }
@@ -320,7 +344,8 @@ export async function valkeyHincrby(key: string, field: string, increment: numbe
   if (!v) return 0;
   try {
     return await v.hincrby(key, field, increment);
-  } catch {
+  } catch (err: any) {
+    logger.warn({ err: err?.message, key, field }, "valkeyHincrby failed");
     return 0;
   }
 }
@@ -330,7 +355,9 @@ export async function valkeyExpire(key: string, ttlSeconds: number): Promise<voi
   if (!v) return;
   try {
     await v.expire(key, ttlSeconds);
-  } catch { /* best effort */ }
+  } catch (err: any) {
+    logger.warn({ err: err?.message, key }, "valkeyExpire failed");
+  }
 }
 
 /**
@@ -343,7 +370,8 @@ export async function valkeySetNx(key: string, value: string, ttlMs: number): Pr
   try {
     const result = await v.set(key, value, "PX", ttlMs, "NX");
     return result === "OK";
-  } catch {
+  } catch (err: any) {
+    logger.warn({ err: err?.message, key }, "valkeySetNx failed");
     return false;
   }
 }

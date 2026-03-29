@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useVideoStore } from '../store/useVideoStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { api, request } from '../lib/apiClient';
+import { apiUrl } from '../lib/api';
 import { showToast } from '../lib/toast';
 import { AvatarRing } from './AvatarRing';
 import { navigateToDmWithUser } from '../lib/openDmThread';
@@ -105,7 +106,7 @@ export default function EnhancedLikesModal({ isOpen, onClose, videoId, likes }: 
     if (!me) { showToast('Please sign in'); return; }
     const token = (await api.auth.getSession()).data.session?.access_token;
     if (!token) return;
-    const res = await fetch('/api/block-user', {
+    const res = await fetch(apiUrl('/api/block-user'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ blockedUserId: user.id }),

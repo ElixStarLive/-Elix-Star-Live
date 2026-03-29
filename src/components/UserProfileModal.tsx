@@ -7,6 +7,7 @@ import { AvatarRing } from './AvatarRing';
 import { useSafetyStore } from '../store/useSafetyStore';
 import ReportModal from './ReportModal';
 import { showToast } from '../lib/toast';
+import { apiUrl } from '../lib/api';
 import { api } from '../lib/apiClient';
 import { navigateToDmWithUser } from '../lib/openDmThread';
 
@@ -101,7 +102,7 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
   const handleBlockUser = async () => {
     const token = session?.access_token;
     if (token) {
-      await fetch('/api/block-user', {
+      await fetch(apiUrl('/api/block-user'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -143,7 +144,7 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
             onClick={async () => {
               const token = session?.access_token;
               if (token) {
-                await fetch('/api/block-user', {
+                await fetch(apiUrl('/api/block-user'), {
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json',

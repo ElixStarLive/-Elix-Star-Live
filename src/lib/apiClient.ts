@@ -93,9 +93,6 @@ export const api = {
       const r = await request("/api/auth/logout", { method: "POST" });
       return { error: r.error };
     },
-    onAuthStateChange() {
-      return { data: { subscription: { unsubscribe: () => {} } } };
-    },
     async exchangeCodeForSession(_code?: string) {
       const r = await request("/api/auth/me");
       return {
