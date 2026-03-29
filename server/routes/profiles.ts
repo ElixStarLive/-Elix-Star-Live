@@ -38,69 +38,49 @@ export async function loadFollowsFromDb(): Promise<void> {
   // Intentionally empty — follows are queried per-user from DB.
 }
 
-/** DB-primary following IDs for a user. */
+/** DB-primary following IDs for a user. Throws on error (fail-closed). */
 export async function getFollowingIdsAsync(userId: string): Promise<string[]> {
   const db = getPool();
-  if (!db) return [];
-  try {
-    await ensureFollowsTable();
-    const res = await db.query(`SELECT following_id FROM follows WHERE follower_id = $1`, [userId]);
-    return (res.rows || []).map((r: any) => String(r.following_id));
-  } catch (err) {
-    logger.error({ err, userId }, "getFollowingIdsAsync DB read failed");
-    return [];
-  }
+  if (!db) throw new Error("DATABASE_UNAVAILABLE");
+  await ensureFollowsTable();
+  const res = await db.query(`SELECT following_id FROM follows WHERE follower_id = $1`, [userId]);
+  return (res.rows || []).map((r: any) => String(r.following_id));
 }
 
-/** DB-primary follower IDs for a user. */
+/** DB-primary follower IDs for a user. Throws on error (fail-closed). */
 export async function getFollowerIdsAsync(userId: string): Promise<string[]> {
   const db = getPool();
-  if (!db) return [];
-  try {
-    await ensureFollowsTable();
-    const res = await db.query(`SELECT follower_id FROM follows WHERE following_id = $1`, [userId]);
-    return (res.rows || []).map((r: any) => String(r.follower_id));
-  } catch (err) {
-    logger.error({ err, userId }, "getFollowerIdsAsync DB read failed");
-    return [];
-  }
+  if (!db) throw new Error("DATABASE_UNAVAILABLE");
+  await ensureFollowsTable();
+  const res = await db.query(`SELECT follower_id FROM follows WHERE following_id = $1`, [userId]);
+  return (res.rows || []).map((r: any) => String(r.follower_id));
 }
 
-/** DB-primary mutual follow IDs. */
+/** DB-primary mutual follow IDs. Throws on error (fail-closed). */
 export async function getMutualFollowIdsAsync(userId: string): Promise<string[]> {
   const db = getPool();
-  if (!db) return [];
-  try {
-    await ensureFollowsTable();
-    const res = await db.query(
-      `SELECT f1.following_id
-       FROM follows f1
-       INNER JOIN follows f2 ON f2.follower_id = f1.following_id AND f2.following_id = f1.follower_id
-       WHERE f1.follower_id = $1 AND f1.following_id <> $1`,
-      [userId],
-    );
-    return (res.rows || []).map((r: any) => String(r.following_id));
-  } catch (err) {
-    logger.error({ err, userId }, "getMutualFollowIdsAsync DB read failed");
-    return [];
-  }
+  if (!db) throw new Error("DATABASE_UNAVAILABLE");
+  await ensureFollowsTable();
+  const res = await db.query(
+    `SELECT f1.following_id
+     FROM follows f1
+     INNER JOIN follows f2 ON f2.follower_id = f1.following_id AND f2.following_id = f1.follower_id
+     WHERE f1.follower_id = $1 AND f1.following_id <> $1`,
+    [userId],
+  );
+  return (res.rows || []).map((r: any) => String(r.following_id));
 }
 
-/** DB-primary isFollowing check. */
+/** DB-primary isFollowing check. Throws on error (fail-closed). */
 export async function isFollowingAsync(followerId: string, targetId: string): Promise<boolean> {
   const db = getPool();
-  if (!db) return false;
-  try {
-    await ensureFollowsTable();
-    const res = await db.query(
-      `SELECT 1 FROM follows WHERE follower_id = $1 AND following_id = $2 LIMIT 1`,
-      [followerId, targetId],
-    );
-    return (res.rows?.length ?? 0) > 0;
-  } catch (err) {
-    logger.warn({ err, followerId, targetId }, "isFollowingAsync DB read failed");
-    return false;
-  }
+  if (!db) throw new Error("DATABASE_UNAVAILABLE");
+  await ensureFollowsTable();
+  const res = await db.query(
+    `SELECT 1 FROM follows WHERE follower_id = $1 AND following_id = $2 LIMIT 1`,
+    [followerId, targetId],
+  );
+  return (res.rows?.length ?? 0) > 0;
 }
 
 // ── PostgreSQL profile persistence ──────────────────────────────────────────
@@ -443,6 +423,7 @@ export async function handleGetProfile(req: Request, res: Response): Promise<voi
       logger.warn({ err, userId: profile.userId }, "handleGetProfile: saveProfileToDb failed");
     });
   }
+  res.setHeader("Cache-Control", "private, no-store");
   res.json({ profile });
 }
 
@@ -568,6 +549,7 @@ export async function handleGetFollowers(req: Request, res: Response): Promise<v
   }
 
   const count = Math.max(followerIds.length, profile.followers);
+  res.setHeader("Cache-Control", "private, no-store");
   res.json({ count, followers: followerIds, follower_profiles });
 }
 
@@ -578,6 +560,7 @@ export async function handleGetFollowing(req: Request, res: Response): Promise<v
 
   const followingIds = await getFollowingIdsAsync(userId);
 
+  res.setHeader("Cache-Control", "private, no-store");
   res.json({ count: Math.max(followingIds.length, profile.following), following: followingIds });
 }
 
@@ -646,41 +629,43 @@ export async function handleFollow(req: Request, res: Response): Promise<void> {
   }
 
   const db = getPool();
-  if (db) {
-    try {
-      await ensureFollowsTable();
-      await db.query(`INSERT INTO follows (follower_id, following_id) VALUES ($1, $2)`, [jwtUser.sub, userId]);
-    } catch (err: unknown) {
-      const code = (err as { code?: string })?.code;
-      if (code === "23505") {
-        void import("./feed")
-          .then((m) => {
-            m.invalidateFeedCache(jwtUser.sub);
-            m.invalidateFeedCache(userId);
-          })
-          .catch((err) => {
-            logger.warn({ err, follower: jwtUser.sub, following: userId }, "handleFollow: invalidateFeedCache import failed");
-          });
-        const p = await getOrCreateProfileAsync(userId);
-        res.json({ success: true, already: true, followers: p.followers });
-        return;
-      }
-      logger.error({ err, follower: jwtUser.sub, following: userId }, "Follow INSERT failed");
-      res.status(500).json({ error: "Could not save follow. Check database (follows table)." });
+  if (!db) {
+    res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+    return;
+  }
+  try {
+    await ensureFollowsTable();
+    await db.query(`INSERT INTO follows (follower_id, following_id) VALUES ($1, $2)`, [jwtUser.sub, userId]);
+  } catch (err: unknown) {
+    const code = (err as { code?: string })?.code;
+    if (code === "23505") {
+      void import("./feed")
+        .then((m) => {
+          m.invalidateFeedCache(jwtUser.sub);
+          m.invalidateFeedCache(userId);
+        })
+        .catch((err) => {
+          logger.warn({ err, follower: jwtUser.sub, following: userId }, "handleFollow: invalidateFeedCache import failed");
+        });
+      const p = await getOrCreateProfileAsync(userId);
+      res.json({ success: true, already: true, followers: p.followers });
       return;
     }
+    logger.error({ err, follower: jwtUser.sub, following: userId }, "Follow INSERT failed");
+    res.status(500).json({ error: "Could not save follow. Check database (follows table)." });
+    return;
   }
 
   const target = await getOrCreateProfileAsync(userId);
   const follower = await getOrCreateProfileAsync(jwtUser.sub);
   target.followers = Math.max(0, target.followers + 1);
   follower.following = Math.max(0, follower.following + 1);
-  saveProfileToDb(target).catch((err) => {
+  try { await saveProfileToDb(target); } catch (err) {
     logger.warn({ err, userId: target.userId }, "handleFollow: saveProfileToDb failed (target)");
-  });
-  saveProfileToDb(follower).catch((err) => {
+  }
+  try { await saveProfileToDb(follower); } catch (err) {
     logger.warn({ err, userId: follower.userId }, "handleFollow: saveProfileToDb failed (follower)");
-  });
+  }
   void import("./feed")
     .then((m) => {
       m.invalidateFeedCache(jwtUser.sub);
@@ -725,12 +710,12 @@ export async function handleUnfollow(req: Request, res: Response): Promise<void>
   const follower = await getOrCreateProfileAsync(jwtUser.sub);
   target.followers = Math.max(0, target.followers - 1);
   follower.following = Math.max(0, follower.following - 1);
-  saveProfileToDb(target).catch((err) => {
+  try { await saveProfileToDb(target); } catch (err) {
     logger.warn({ err, userId: target.userId }, "handleUnfollow: saveProfileToDb failed (target)");
-  });
-  saveProfileToDb(follower).catch((err) => {
+  }
+  try { await saveProfileToDb(follower); } catch (err) {
     logger.warn({ err, userId: follower.userId }, "handleUnfollow: saveProfileToDb failed (follower)");
-  });
+  }
   void import("./feed")
     .then((m) => {
       m.invalidateFeedCache(jwtUser.sub);
@@ -778,32 +763,6 @@ export async function handleGetProfileByUsername(req: Request, res: Response): P
   }
 
   res.status(404).json({ error: "Profile not found" });
-}
-
-/** POST /api/test-coins — add test coins to current user (disabled in production) */
-export async function handleAddTestCoins(req: Request, res: Response): Promise<void> {
-  if (process.env.NODE_ENV === "production") {
-    res.status(403).json({ error: "Test coins are disabled in production" });
-    return;
-  }
-  const token = getTokenFromRequest(req);
-  const jwtUser = token ? verifyAuthToken(token) : null;
-  if (!jwtUser) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-  const { amount } = req.body ?? {};
-  const numAmount = Number(amount);
-  if (!numAmount || numAmount <= 0 || numAmount > 100000000) {
-    res.status(400).json({ error: "Invalid amount" });
-    return;
-  }
-  const profile = await getOrCreateProfileAsync(jwtUser.sub);
-  profile.coins += numAmount;
-  saveProfileToDb(profile).catch((err) => {
-    logger.warn({ err, userId: profile.userId }, "handleAddTestCoins: saveProfileToDb failed");
-  });
-  res.json({ success: true, coins: profile.coins });
 }
 
 /** POST /api/profiles — seed/upsert (e.g. after auth); requires auth, userId must match token */

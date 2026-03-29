@@ -38,9 +38,10 @@ export async function handleGetMyActivity(req: Request, res: Response): Promise<
     return;
   }
   const ownerId = jwt.sub;
+  res.setHeader("Cache-Control", "private, no-store");
   const db = getPool();
   if (!db) {
-    res.json({ activities: [] });
+    res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
     return;
   }
 
@@ -128,6 +129,7 @@ export async function handleGetMyActivity(req: Request, res: Response): Promise<
       };
     });
 
+    res.setHeader("Cache-Control", "private, no-store");
     res.json({ activities });
   } catch (err) {
     logger.error({ err, ownerId }, "handleGetMyActivity failed");

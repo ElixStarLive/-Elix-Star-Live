@@ -6,7 +6,7 @@ import {
   neonInsertPromotePurchase,
   neonIsIapProcessed,
 } from '../lib/walletNeon';
-import { getPool } from '../lib/postgres';
+import { getPool, dbLoadCoinMap } from '../lib/postgres';
 import { valkeyRateCheck, isValkeyConfigured } from '../lib/valkey';
 import { logger } from '../lib/logger';
 
@@ -52,7 +52,25 @@ async function checkRateLimit(userId: string, action: string, limit: number, win
 // --- Analytics ---
 export async function handleAnalytics(req: Request, res: Response) {
   if (req.method !== 'POST') return res.status(405).send('Method not allowed');
-  return res.status(200).json({ ok: true });
+  const pool = getPool();
+  if (!pool) {
+    logger.warn('Analytics rejected: database pool unavailable');
+    return res.status(503).json({ error: 'DATABASE_UNAVAILABLE' });
+  }
+  try {
+    const { event, properties } = req.body ?? {};
+    const token = getTokenFromRequest(req);
+    const user = token ? verifyAuthToken(token) : null;
+    await pool.query(
+      `INSERT INTO elix_analytics_events (user_id, event, properties, created_at)
+       VALUES ($1, $2, $3, NOW())`,
+      [user?.sub ?? null, String(event ?? 'unknown'), JSON.stringify(properties ?? {})],
+    );
+    return res.status(202).json({ accepted: true });
+  } catch (err) {
+    logger.error({ err }, 'Analytics insert failed');
+    return res.status(500).json({ error: 'ANALYTICS_INSERT_FAILED' });
+  }
 }
 
 // --- Block User ---
@@ -115,6 +133,7 @@ export async function handleListBlockedUsers(req: Request, res: Response) {
        WHERE b.blocker_user_id = $1 ORDER BY b.created_at DESC`,
       [user.sub],
     );
+    res.setHeader("Cache-Control", "private, no-store");
     return res.status(200).json({ data: r.rows });
   } catch (err) {
     logger.error({ err }, 'List blocked users error');
@@ -158,12 +177,8 @@ async function verifyGooglePlayPurchase(
   const serviceAccountJson = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
 
   if (!serviceAccountJson) {
-    if (process.env.NODE_ENV !== 'production') {
-      logger.warn('[IAP] Google service account not configured — skipping verification (dev only)');
-      return { valid: true, productId, detail: 'google-keys-not-configured-dev' };
-    }
     logger.error('[IAP] Google service account not configured — rejecting purchase');
-    return { valid: false, detail: 'google-service-account-not-configured' };
+    return { valid: false, detail: 'GOOGLE_CREDENTIALS_NOT_CONFIGURED' };
   }
 
   try {
@@ -253,12 +268,8 @@ async function verifyAppleReceipt(
   const env = process.env.APPLE_IAP_ENVIRONMENT || 'Production';
 
   if (!issuerId || !keyId || !privateKey) {
-    if (process.env.NODE_ENV !== 'production') {
-      logger.warn('[IAP] Apple API keys not configured — skipping verification (dev only)');
-      return { valid: true, detail: 'apple-keys-not-configured-dev' };
-    }
     logger.error('[IAP] Apple API keys not configured — rejecting purchase');
-    return { valid: false, detail: 'apple-keys-not-configured' };
+    return { valid: false, detail: 'APPLE_CREDENTIALS_NOT_CONFIGURED' };
   }
 
   try {
@@ -377,18 +388,7 @@ export async function handleVerifyPurchase(req: Request, res: Response) {
       }
     }
 
-    const coinMap: Record<string, number> = {
-      'com.elixstarlive.coins_10': 10,
-      'com.elixstarlive.coins_50': 50,
-      'com.elixstarlive.coins_100': 100,
-      'com.elixstarlive.coins_500': 500,
-      'com.elixstarlive.coins_1000': 1000,
-      'com.elixstarlive.coins_2000': 2000,
-      'com.elixstarlive.coins_5000': 5000,
-      'com.elixstarlive.coins_10000': 10000,
-      'com.elixstarlive.coins_50000': 50000,
-      'com.elixstarlive.coins_100000': 100000,
-    };
+    const coinMap = await dbLoadCoinMap();
     const coins = coinMap[String(packageId)] || 0;
     if (coins <= 0) return res.status(400).json({ error: 'Unknown coin package' });
 

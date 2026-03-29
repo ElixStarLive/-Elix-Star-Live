@@ -101,7 +101,7 @@ router.post("/:id/like", async (req, res) => {
       [payload.sub, req.params.id],
     );
     if ((ins.rowCount ?? 0) > 0) {
-      await db.query(`UPDATE videos SET likes = likes + 1 WHERE id = $1`, [req.params.id]).catch(() => {});
+      await db.query(`UPDATE videos SET likes = likes + 1 WHERE id = $1`, [req.params.id]).catch((e) => logger.warn({ err: e }, "like counter increment failed"));
     }
     return res.json({ ok: true });
   } catch (err) {
@@ -122,7 +122,7 @@ router.post("/:id/unlike", async (req, res) => {
       [payload.sub, req.params.id],
     );
     if ((r.rowCount ?? 0) > 0) {
-      await db.query(`UPDATE videos SET likes = GREATEST(likes - 1, 0) WHERE id = $1`, [req.params.id]).catch(() => {});
+      await db.query(`UPDATE videos SET likes = GREATEST(likes - 1, 0) WHERE id = $1`, [req.params.id]).catch((e) => logger.warn({ err: e }, "like counter decrement failed"));
     }
     return res.json({ ok: true });
   } catch (err) {
@@ -144,7 +144,7 @@ router.post("/:id/save", async (req, res) => {
       [payload.sub, req.params.id],
     );
     if ((ins.rowCount ?? 0) > 0) {
-      await db.query(`UPDATE videos SET saves = saves + 1 WHERE id = $1`, [req.params.id]).catch(() => {});
+      await db.query(`UPDATE videos SET saves = saves + 1 WHERE id = $1`, [req.params.id]).catch((e) => logger.warn({ err: e }, "save counter increment failed"));
     }
     return res.json({ ok: true });
   } catch (err) {
@@ -165,7 +165,7 @@ router.post("/:id/unsave", async (req, res) => {
       [payload.sub, req.params.id],
     );
     if ((r.rowCount ?? 0) > 0) {
-      await db.query(`UPDATE videos SET saves = GREATEST(saves - 1, 0) WHERE id = $1`, [req.params.id]).catch(() => {});
+      await db.query(`UPDATE videos SET saves = GREATEST(saves - 1, 0) WHERE id = $1`, [req.params.id]).catch((e) => logger.warn({ err: e }, "save counter decrement failed"));
     }
     return res.json({ ok: true });
   } catch (err) {
@@ -210,7 +210,7 @@ router.post("/:id/comments", async (req, res) => {
       `INSERT INTO comments (id, video_id, user_id, text, parent_id) VALUES ($1, $2, $3, $4, $5)`,
       [id, req.params.id, payload.sub, text.trim(), parentId || null],
     );
-    await db.query(`UPDATE videos SET comments = comments + 1 WHERE id = $1`, [req.params.id]).catch(() => {});
+    await db.query(`UPDATE videos SET comments = comments + 1 WHERE id = $1`, [req.params.id]).catch((e) => logger.warn({ err: e }, "comment counter increment failed"));
     const r = await db.query(
       `SELECT c.id, c.video_id, c.user_id, c.text, c.parent_id, c.created_at,
               p.username, p.display_name, p.avatar_url
@@ -237,7 +237,7 @@ router.delete("/:id/comments/:commentId", async (req, res) => {
       [req.params.commentId, payload.sub],
     );
     if ((r.rowCount ?? 0) > 0) {
-      await db.query(`UPDATE videos SET comments = GREATEST(comments - 1, 0) WHERE id = $1`, [req.params.id]).catch(() => {});
+      await db.query(`UPDATE videos SET comments = GREATEST(comments - 1, 0) WHERE id = $1`, [req.params.id]).catch((e) => logger.warn({ err: e }, "comment counter decrement failed"));
     }
     return res.json({ ok: true });
   } catch (err) {

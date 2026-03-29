@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
 import { Capacitor } from "@capacitor/core";
 import { Preferences } from "@capacitor/preferences";
-import { apiUrl } from "../lib/api";
+import { request } from "../lib/apiClient";
 
 interface User {
   id: string;
@@ -158,68 +158,32 @@ function mapUserToUser(backendUser: AuthUser | null): User | null {
  * Falls back to the original user object on any error.
  */
 async function enrichUserWithProfile(user: User): Promise<User> {
-  try {
-    const res = await fetch(apiUrl(`/api/profiles/${user.id}`), {
-      method: "GET",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-    });
+  const { data: body, error } = await request(`/api/profiles/${user.id}`);
+  if (error) return user;
 
-    if (!res.ok) return user;
+  const profile = body?.profile as {
+    username?: string;
+    displayName?: string;
+    avatarUrl?: string;
+    bio?: string;
+    followers?: number;
+    following?: number;
+    level?: number;
+    isVerified?: boolean;
+  } | undefined;
+  if (!profile) return user;
 
-    const body = (await res.json()) as {
-      profile?: {
-        username?: string;
-        displayName?: string;
-        avatarUrl?: string;
-        bio?: string;
-        followers?: number;
-        following?: number;
-        level?: number;
-        isVerified?: boolean;
-      };
-    };
-
-    const profile = body.profile;
-    if (!profile) return user;
-
-    return {
-      ...user,
-      username: profile.username || user.username,
-      name: profile.displayName || user.name,
-      avatar: profile.avatarUrl || user.avatar,
-      followers: profile.followers ?? user.followers,
-      following: profile.following ?? user.following,
-      level: profile.level ?? user.level,
-      isVerified: profile.isVerified ?? user.isVerified,
-    };
-  } catch {
-    // Non-fatal — return base user if profile fetch fails
-    return user;
-  }
+  return {
+    ...user,
+    username: profile.username || user.username,
+    name: profile.displayName || user.name,
+    avatar: profile.avatarUrl || user.avatar,
+    followers: profile.followers ?? user.followers,
+    following: profile.following ?? user.following,
+    level: profile.level ?? user.level,
+    isVerified: profile.isVerified ?? user.isVerified,
+  };
 }
-
-const getAuthErrorMessage = (error: unknown): string => {
-  if (error instanceof Error) {
-    const m = error.message.toLowerCase();
-    if (
-      m.includes("load failed") ||
-      m.includes("failed to fetch") ||
-      m.includes("network request failed") ||
-      m.includes("the internet connection appears to be offline")
-    ) {
-      const isLocal =
-        typeof window !== "undefined" &&
-        (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
-      return isLocal
-        ? "Cannot reach backend. Start both frontend and backend: npm run dev:all"
-        : "Cannot reach backend. Try again later.";
-    }
-    return error.message;
-  }
-  if (typeof error === "string") return error;
-  return `Authentication failed: ${JSON.stringify(error)}`;
-};
 
 // ── Store ─────────────────────────────────────────────────────────────────────
 
@@ -238,39 +202,45 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
     }
 
     try {
-      const res = await fetch(apiUrl("/api/auth/login"), {
+      const { data, error: loginError } = await request("/api/auth/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ email: email.trim(), password }),
       });
 
-      const data = (await res.json().catch(() => ({}))) as Record<
-        string,
-        unknown
-      >;
-
-      if (!res.ok) {
-        const message: string =
-          (data?.error as string) ||
-          (data?.message as string) ||
-          "Login failed. Please try again.";
-        if (
-          message.toLowerCase().includes("invalid") ||
-          message.toLowerCase().includes("credentials")
-        ) {
+      if (loginError) {
+        const message = loginError.message || "Login failed. Please try again.";
+        const m = message.toLowerCase();
+        if (m.includes("invalid") || m.includes("credentials")) {
           return { error: "Incorrect email or password." };
         }
-        if (message.toLowerCase().includes("confirm")) {
+        if (m.includes("confirm")) {
           return {
             error: "Please verify your email address before logging in.",
           };
         }
+        if (
+          m.includes("fetch") ||
+          m.includes("network") ||
+          m.includes("failed to fetch") ||
+          m.includes("request_failed")
+        ) {
+          const isLocal =
+            typeof window !== "undefined" &&
+            (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+          return {
+            error: isLocal
+              ? "Cannot reach backend. Start both frontend and backend: npm run dev:all"
+              : "Cannot reach backend. Try again later.",
+          };
+        }
+        if (m.includes("aborted")) {
+          return { error: "aborted" };
+        }
         return { error: message };
       }
 
-      const backendUser = (data.user ?? null) as AuthUser | null;
-      const sessionData = data.session as
+      const backendUser = (data?.user ?? null) as AuthUser | null;
+      const sessionData = data?.session as
         | { accessToken?: string; access_token?: string }
         | null
         | undefined;
@@ -280,21 +250,16 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
       if (!backendUser || !accessToken) {
         // Some server modes rely on cookie auth and may omit token in login response.
         // Recover by fetching /api/auth/me before failing.
-        const meRes = await fetch(apiUrl("/api/auth/me"), {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-        });
-        const meData = (await meRes.json().catch(() => ({}))) as Record<string, unknown>;
-        const meUser = (meData.user ?? null) as AuthUser | null;
-        const meSessionData = meData.session as
+        const { data: meData, error: meError } = await request("/api/auth/me");
+        const meUser = (meData?.user ?? null) as AuthUser | null;
+        const meSessionData = meData?.session as
           | { accessToken?: string; access_token?: string }
           | null
           | undefined;
         const meAccessToken: string | undefined =
           meSessionData?.accessToken ?? meSessionData?.access_token;
 
-        if (!meRes.ok || !meUser || !meAccessToken) {
+        if (meError || !meUser || !meAccessToken) {
           return { error: "Login failed unexpectedly. Please try again." };
         }
 
@@ -335,26 +300,6 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
       return { error: null };
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Unknown error occurred";
-      if (
-        msg.toLowerCase().includes("fetch") ||
-        msg.toLowerCase().includes("network") ||
-        msg.toLowerCase().includes("failed to fetch")
-      ) {
-        const isLocal =
-          typeof window !== "undefined" &&
-          (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
-        return {
-          error: isLocal
-            ? "Cannot reach backend. Start both frontend and backend: npm run dev:all"
-            : "Cannot reach backend. Try again later.",
-        };
-      }
-      if (
-        (err as { name?: string }).name === "AbortError" ||
-        msg.toLowerCase().includes("aborted")
-      ) {
-        return { error: "aborted" };
-      }
       return { error: msg };
     }
   },
@@ -362,10 +307,8 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
   // ── Sign up ──────────────────────────────────────────────────────────────
   signUpWithPassword: async (email, password, username, displayName) => {
     try {
-      const res = await fetch(apiUrl("/api/auth/register"), {
+      const { data, error: regError } = await request("/api/auth/register", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({
           email: email.trim(),
           password,
@@ -374,34 +317,32 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
         }),
       });
 
-      const data = (await res.json().catch(() => ({}))) as Record<
-        string,
-        unknown
-      >;
-
-      if (!res.ok) {
-        const message: string =
-          (data?.error as string) ||
-          (data?.message as string) ||
-          "Signup failed. Please try again.";
+      if (regError) {
+        const message = regError.message || "Signup failed. Please try again.";
+        const m = message.toLowerCase();
         if (
-          message.toLowerCase().includes("fetch") ||
-          message.toLowerCase().includes("network") ||
-          res.status === 0
+          m.includes("fetch") ||
+          m.includes("network") ||
+          m.includes("failed to fetch") ||
+          m.includes("request_failed")
         ) {
           return {
             error: "Cannot reach backend. Start both frontend and backend: npm run dev:all",
             needsEmailConfirmation: false,
           };
         }
-        if (data?.needsEmailConfirmation) {
-          return { error: null, needsEmailConfirmation: true };
+        if (m.includes("aborted")) {
+          return { error: "aborted", needsEmailConfirmation: false };
         }
         return { error: message, needsEmailConfirmation: false };
       }
 
-      const backendUser = (data.user ?? null) as AuthUser | null;
-      const sessionData = data.session as
+      if (data?.needsEmailConfirmation) {
+        return { error: null, needsEmailConfirmation: true };
+      }
+
+      const backendUser = (data?.user ?? null) as AuthUser | null;
+      const sessionData = data?.session as
         | { accessToken?: string; access_token?: string }
         | null
         | undefined;
@@ -413,10 +354,8 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
 
         // Seed a profile entry on the Hetzner backend
         if (mapped) {
-          fetch(apiUrl("/api/profiles"), {
+          request("/api/profiles", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
             body: JSON.stringify({
               userId: mapped.id,
               username: mapped.username,
@@ -448,134 +387,68 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
       };
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Unknown error occurred";
-      if (
-        msg.toLowerCase().includes("fetch") ||
-        msg.toLowerCase().includes("network") ||
-        msg.toLowerCase().includes("failed to fetch")
-      ) {
-        return {
-          error: "Cannot reach backend. Start both frontend and backend: npm run dev:all",
-          needsEmailConfirmation: false,
-        };
-      }
-      if (
-        (err as { name?: string }).name === "AbortError" ||
-        msg.toLowerCase().includes("aborted")
-      ) {
-        return { error: "aborted", needsEmailConfirmation: false };
-      }
       return { error: msg, needsEmailConfirmation: false };
     }
   },
 
   // ── Resend confirmation ──────────────────────────────────────────────────
   resendSignupConfirmation: async (email) => {
-    try {
-      const res = await fetch(apiUrl("/api/auth/resend-confirmation"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ email }),
-      });
-      if (!res.ok) {
-        const data = (await res.json().catch(() => ({}))) as Record<
-          string,
-          unknown
-        >;
-        return {
-          error:
-            (data?.error as string) ||
-            (data?.message as string) ||
-            "Failed to resend confirmation email.",
-        };
-      }
-      return { error: null };
-    } catch (error) {
-      return { error: getAuthErrorMessage(error) };
+    const { error } = await request("/api/auth/resend-confirmation", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
+    if (error) {
+      return { error: error.message || "Failed to resend confirmation email." };
     }
+    return { error: null };
   },
 
   // ── Apple sign-in ────────────────────────────────────────────────────────
   signInWithApple: async () => {
-    try {
-      const res = await fetch(apiUrl("/api/auth/apple/start"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          redirectTo: window.location.origin + "/auth/callback",
-        }),
-      });
-      const data = (await res.json().catch(() => ({}))) as Record<
-        string,
-        unknown
-      >;
-      if (!res.ok) {
-        return {
-          error:
-            (data?.error as string) ||
-            (data?.message as string) ||
-            "Apple sign-in failed.",
-        };
-      }
-      if (data?.url) {
-        window.location.href = data.url as string;
-      }
-      return { error: null };
-    } catch (error) {
-      return { error: getAuthErrorMessage(error) };
+    const { data, error } = await request("/api/auth/apple/start", {
+      method: "POST",
+      body: JSON.stringify({
+        redirectTo: window.location.origin + "/auth/callback",
+      }),
+    });
+    if (error) {
+      return { error: error.message || "Apple sign-in failed." };
     }
+    if (data?.url) {
+      window.location.href = data.url as string;
+    }
+    return { error: null };
   },
   signInAsGuest: async () => {
-    try {
-      const res = await fetch(apiUrl("/api/auth/guest"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-      });
+    const { data, error } = await request("/api/auth/guest", {
+      method: "POST",
+    });
 
-      const data = (await res.json().catch(() => ({}))) as {
-        user?: AuthUser;
-        session?: AuthSession;
-        error?: string;
+    if (error || !data?.user || !data?.session) {
+      return {
+        error:
+          error?.message ||
+          "Guest login failed. Please try again or use email login.",
       };
-
-      if (!res.ok || !data.user || !data.session) {
-        return {
-          error:
-            data?.error ||
-            "Guest login failed. Please try again or use email login.",
-        };
-      }
-
-      const mapped = mapUserToUser(data.user);
-      const enriched = mapped ? await enrichUserWithProfile(mapped) : null;
-
-      set({
-        user: enriched,
-        backendUser: data.user,
-        session: data.session,
-        isAuthenticated: true,
-        isLoading: false,
-      });
-
-      return { error: null };
-    } catch (error) {
-      return { error: getAuthErrorMessage(error) };
     }
+
+    const mapped = mapUserToUser(data.user as AuthUser);
+    const enriched = mapped ? await enrichUserWithProfile(mapped) : null;
+
+    set({
+      user: enriched,
+      backendUser: data.user as AuthUser,
+      session: data.session as AuthSession,
+      isAuthenticated: true,
+      isLoading: false,
+    });
+
+    return { error: null };
   },
 
   // ── Sign out ─────────────────────────────────────────────────────────────
   signOut: async () => {
-    try {
-      await fetch(apiUrl("/api/auth/logout"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-      });
-    } catch {
-      // Ignore network errors on sign-out
-    }
+    try { await request("/api/auth/logout", { method: "POST" }); } catch {}
     set({
       session: null,
       user: null,
@@ -596,68 +469,33 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
 
   // ── Check session (app boot / token refresh) ─────────────────────────────
   checkUser: async () => {
-    try {
-      const existing = get();
-      const bearer =
-        existing.session?.access_token ||
-        (existing.session as any)?.accessToken ||
-        (existing.session as any)?.access_token ||
-        undefined;
-
-      const res = await fetch(apiUrl("/api/auth/me"), {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          ...(bearer ? { Authorization: `Bearer ${bearer}` } : {}),
-        },
-        credentials: "include",
+    const clearState = () =>
+      set({
+        backendUser: null,
+        session: null,
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+        authMode: "client",
       });
 
-      if (!res.ok) {
-        // Server rejected the token — clear the stale session so user can re-login
-        set({
-          backendUser: null,
-          session: null,
-          user: null,
-          isAuthenticated: false,
-          isLoading: false,
-          authMode: "client",
-        });
+    try {
+      const { data, error: meError } = await request("/api/auth/me");
+
+      if (meError) {
+        clearState();
         return;
       }
 
-      let data: Record<string, unknown> = {};
-      try {
-        const text = await res.text();
-        if (text) data = JSON.parse(text) as Record<string, unknown>;
-      } catch {
-        set({
-          backendUser: null,
-          session: null,
-          user: null,
-          isAuthenticated: false,
-          isLoading: false,
-          authMode: "client",
-        });
-        return;
-      }
-
-      const backendUser = (data.user ?? null) as AuthUser | null;
-      const sessionData = data.session as
+      const backendUser = (data?.user ?? null) as AuthUser | null;
+      const sessionData = data?.session as
         | { accessToken?: string; access_token?: string }
         | null
         | undefined;
       const accessToken = sessionData?.accessToken ?? sessionData?.access_token;
 
       if (!backendUser || typeof backendUser.id !== "string") {
-        set({
-          backendUser: null,
-          session: null,
-          user: null,
-          isAuthenticated: false,
-          isLoading: false,
-          authMode: "client",
-        });
+        clearState();
         return;
       }
 
@@ -684,14 +522,7 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
         authMode: "client",
       });
     } catch {
-      set({
-        backendUser: null,
-        session: null,
-        user: null,
-        isAuthenticated: false,
-        isLoading: false,
-        authMode: "client",
-      });
+      clearState();
     }
   },
 }), {

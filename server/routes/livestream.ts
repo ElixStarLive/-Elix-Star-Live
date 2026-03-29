@@ -70,17 +70,20 @@ export async function isStreamHost(roomId: string, userId: string): Promise<bool
 
 /** Remove active stream from Valkey + DB. Returns true if removed. */
 export async function removeActiveStream(roomId: string, userId?: string): Promise<boolean> {
-  if (isValkeyConfigured()) {
-    if (userId) {
-      const storedUserId = await valkeyHget(STREAM_KEY_PREFIX + roomId, 'userId');
-      if (storedUserId && storedUserId !== userId) return false;
+  try {
+    if (isValkeyConfigured()) {
+      if (userId) {
+        const storedUserId = await valkeyHget(STREAM_KEY_PREFIX + roomId, 'userId');
+        if (storedUserId && storedUserId !== userId) return false;
+      }
+      await deleteActiveStream(roomId);
     }
-    await deleteActiveStream(roomId);
+    await dbEndLiveStream(roomId);
+    return true;
+  } catch (err) {
+    logger.error({ err, roomId }, "removeActiveStream failed");
+    return false;
   }
-  dbEndLiveStream(roomId).catch((err) => {
-    logger.warn({ err, roomId }, "removeActiveStream: dbEndLiveStream failed");
-  });
-  return true;
 }
 
 function requireAuth(req: Request, res: Response): { userId: string } | null {
@@ -179,9 +182,11 @@ export async function handleLiveStart(req: Request, res: Response) {
 
     const startedAt = new Date().toISOString();
     await setActiveStream(roomName, auth.userId, startedAt, safeDisplayName);
-    dbInsertLiveStream(roomName, auth.userId, safeDisplayName).catch((err) => {
-      logger.warn({ err, roomName, userId: auth.userId }, "handleLiveStart: dbInsertLiveStream failed");
-    });
+    try {
+      await dbInsertLiveStream(roomName, auth.userId, safeDisplayName);
+    } catch (err) {
+      logger.error({ err, roomName, userId: auth.userId }, "handleLiveStart: dbInsertLiveStream failed");
+    }
 
     broadcastToFeedSubscribers('stream_started', {
       room_id: roomName,
@@ -235,6 +240,7 @@ export async function handleLiveEnd(req: Request, res: Response) {
 export async function handleGetLiveToken(req: Request, res: Response) {
   const auth = requireAuth(req, res);
   if (!auth) return;
+  res.setHeader("Cache-Control", "private, no-store");
 
   if (!isLiveKitConfigured()) {
     return res.status(503).json({ error: 'Live streaming is not configured.' });

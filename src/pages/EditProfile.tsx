@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiUrl } from '../lib/api';
+import { request } from '../lib/apiClient';
 import { Camera } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { trackEvent } from '../lib/analytics';
@@ -50,14 +50,9 @@ export default function EditProfile() {
       if (!user?.id) return;
       setCurrentUserId(user.id);
 
-      const res = await fetch(apiUrl(`/api/profiles/${encodeURIComponent(user.id)}`), {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-      });
-      if (!res.ok) return;
-      const body = await res.json().catch(() => ({} as any));
-      const data = body.profile || body;
+      const { data: body, error } = await request(`/api/profiles/${encodeURIComponent(user.id)}`);
+      if (error) return;
+      const data = body?.profile || body;
       if (data) {
         setProfile({
           username: data.username || user.username || '',
@@ -105,13 +100,8 @@ export default function EditProfile() {
 
     setLoading(true);
     try {
-    const token = useAuthStore.getState().session?.access_token;
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-    const res = await fetch(apiUrl(`/api/profiles/${encodeURIComponent(currentUserId)}`), {
+    const { error } = await request(`/api/profiles/${encodeURIComponent(currentUserId)}`, {
       method: 'PATCH',
-      headers,
-      credentials: 'include',
       body: JSON.stringify({
         displayName: profile.display_name,
         bio: profile.bio,
@@ -120,7 +110,7 @@ export default function EditProfile() {
       }),
     });
 
-    if (!res.ok) {
+    if (error) {
       showToast('Failed to save profile');
       setLoading(false);
       return;

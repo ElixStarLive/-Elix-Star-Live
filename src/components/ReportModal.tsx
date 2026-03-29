@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { AlertTriangle, Flag, Ban, EyeOff, MessageSquare, UserMinus } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useVideoStore } from '../store/useVideoStore';
-import { apiUrl } from '../lib/api';
-import { api } from '../lib/apiClient';
+import { api, request } from '../lib/apiClient';
 import { showToast } from '../lib/toast';
 
 interface ReportModalProps {
@@ -127,12 +126,8 @@ export default function ReportModal({ isOpen, onClose, videoId, contentType, con
     };
 
     try {
-      const res = await fetch(apiUrl('/api/report'), {
+      const { error: reqError } = await request('/api/report', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${authToken}`,
-        },
         body: JSON.stringify({
           targetType: contentType,
           targetId,
@@ -142,13 +137,11 @@ export default function ReportModal({ isOpen, onClose, videoId, contentType, con
         }),
       });
 
-      if (res.ok) {
+      if (!reqError) {
         done();
         return;
       }
-      const data = await res.json().catch(() => null);
-      const apiError = data?.error || `Request failed (${res.status})`;
-      throw new Error(apiError);
+      throw new Error(reqError.message);
     } catch (apiErr) {
       try {
         const payload: Record<string, unknown> = {

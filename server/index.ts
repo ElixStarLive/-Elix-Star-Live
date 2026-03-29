@@ -23,6 +23,7 @@ import { isValkeyConfigured, valkeyHealthCheck } from "./lib/valkey";
 import { initPostgres, getPool } from "./lib/postgres";
 import { getVideoCountAsync } from "./lib/videoStore";
 import { logger } from "./lib/logger";
+import { loadGiftValuesFromDb } from "./websocket/giftRegistry";
 import { validateAuthSecretOrDie } from "./routes/auth";
 import helmet from "helmet";
 
@@ -299,6 +300,7 @@ initBattleTickLoop();
 
 try {
   await initPostgres();
+  await loadGiftValuesFromDb();
   server.listen(PORT, "0.0.0.0", 8192, () => {
     logger.info(
       { port: PORT, version: BUILD_VERSION },

@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { AvatarRing } from '../components/AvatarRing';
 import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
 import { TrendingSnapFeed } from '../components/TrendingSnapFeed';
-import { apiUrl } from '../lib/api';
+import { request } from '../lib/apiClient';
 import { useVideoStore } from '../store/useVideoStore';
 
 const TRENDING_SEARCHES = [
@@ -92,8 +92,8 @@ export default function SearchPage() {
     (async () => {
       try {
         // Users: filter the backend /api/profiles list client-side
-        const profilesRes = await fetch(apiUrl('/api/profiles'), { credentials: 'include' });
-        const profilesBody = await profilesRes.json().catch(() => ({ profiles: [] }));
+        const profilesResult = await request('/api/profiles');
+        const profilesBody = profilesResult.data ?? { profiles: [] };
         const profiles = Array.isArray(profilesBody?.profiles) ? profilesBody.profiles : [];
         const users = profiles
           .map((p: any) => ({
@@ -159,12 +159,12 @@ export default function SearchPage() {
     let cancelled = false;
     (async () => {
       try {
-        const [res, liveRes] = await Promise.all([
-          fetch(apiUrl('/api/profiles'), { credentials: 'include' }),
-          fetch(apiUrl('/api/live/streams'), { credentials: 'include' }).catch(() => null as any),
+        const [profilesResult, liveResult] = await Promise.all([
+          request('/api/profiles'),
+          request('/api/live/streams').catch(() => ({ data: null, error: null })),
         ]);
-        const body = await res.json().catch(() => ({ profiles: [] }));
-        const liveBody = liveRes ? await liveRes.json().catch(() => ({ streams: [] })) : { streams: [] };
+        const body = profilesResult.data ?? { profiles: [] };
+        const liveBody = liveResult.data ?? { streams: [] };
         const liveSet = new Set((liveBody?.streams || []).map((s: any) => s.userId || s.user_id).filter(Boolean));
         const profiles = Array.isArray(body?.profiles) ? body.profiles : [];
         const blocklist = new Set(['', 'user', 'demo', 'test', 'unknown', 'anonymous', 'guest']);

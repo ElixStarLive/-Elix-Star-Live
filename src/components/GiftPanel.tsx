@@ -8,10 +8,10 @@ import React, {
 import { Gift, Coins, Trophy, Heart } from "lucide-react";
 import { IS_STORE_BUILD } from "@/config/build";
 import { BuyCoinsModal } from "./BuyCoinsModal";
-import { GIFTS, GiftItem } from "../lib/gifts";
+import { GiftItem, fetchGiftsFromDatabase } from "../lib/giftsCatalog";
 
 interface GiftPanelProps {
-  onSelectGift: (gift: (typeof GIFTS)[0]) => void;
+  onSelectGift: (gift: GiftItem) => void;
   userCoins: number;
   onRechargeSuccess?: (newBalance: number) => void;
   onWeeklyRanking?: () => void;
@@ -182,6 +182,7 @@ export function GiftPanel({
   onWeeklyRanking,
   onMembership,
 }: GiftPanelProps) {
+  const [gifts, setGifts] = useState<GiftItem[]>([]);
   const [activeTab, setActiveTab] = useState<"exclusive" | "small" | "big">(
     "big",
   );
@@ -193,24 +194,31 @@ export function GiftPanel({
     threshold: 0.05,
   });
 
+  useEffect(() => {
+    let cancelled = false;
+    fetchGiftsFromDatabase().then((items) => {
+      if (!cancelled) setGifts(items);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
   const universeGift = useMemo(
-    () => GIFTS.find((g) => g.giftType === "universe"),
-    [],
+    () => gifts.find((g) => g.giftType === "universe"),
+    [gifts],
   );
-  const bigGifts = useMemo(() => GIFTS.filter((g) => g.giftType === "big"), []);
+  const bigGifts = useMemo(() => gifts.filter((g) => g.giftType === "big"), [gifts]);
   const smallGifts = useMemo(
-    () => GIFTS.filter((g) => g.giftType === "small"),
-    [],
+    () => gifts.filter((g) => g.giftType === "small"),
+    [gifts],
   );
 
-  // Map gift id → PNG url (icon field holds the .png from Bunny Storage)
   const posterByGiftId = useMemo(() => {
     const map = new Map<string, string | undefined>();
-    for (const g of GIFTS) {
+    for (const g of gifts) {
       map.set(g.id, g.icon);
     }
     return map;
-  }, []);
+  }, [gifts]);
 
   useEffect(() => {
     if (!inView) return;

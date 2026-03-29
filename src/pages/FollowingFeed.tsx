@@ -6,7 +6,7 @@ import { useVideoStore } from '../store/useVideoStore';
 import { trackScreenView } from '../lib/analytics';
 import EnhancedVideoPlayer from '../components/EnhancedVideoPlayer';
 import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
-import { apiUrl } from '../lib/api';
+import { request } from '../lib/apiClient';
 
 interface FollowingUser {
   id: string;
@@ -39,13 +39,13 @@ export default function FollowingFeed() {
   const loadData = async () => {
     if (!user?.id) return;
     try {
-      const [profilesRes, streamsRes] = await Promise.all([
-        fetch(apiUrl('/api/profiles'), { credentials: 'include' }),
-        fetch(apiUrl('/api/live/streams'), { credentials: 'include' }).catch(() => null as any),
+      const [profilesResult, streamsResult] = await Promise.all([
+        request('/api/profiles'),
+        request('/api/live/streams').catch(() => ({ data: null, error: null })),
       ]);
 
-      const profilesBody = await profilesRes.json().catch(() => ({ profiles: [] }));
-      const streamsBody = streamsRes ? await streamsRes.json().catch(() => ({ streams: [] })) : { streams: [] };
+      const profilesBody = profilesResult.data ?? { profiles: [] };
+      const streamsBody = streamsResult.data ?? { streams: [] };
 
       const profiles = Array.isArray(profilesBody?.profiles) ? profilesBody.profiles : [];
       const byId = new Map<string, any>();

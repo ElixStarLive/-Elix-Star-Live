@@ -76,10 +76,10 @@ export async function wsRateCheck(
       _warnedWsRateCheckNoValkey = true;
       logger.warn(
         { userId, event },
-        "wsRateCheck: Valkey not configured — WebSocket event rate limiting disabled (allowing request)",
+        "wsRateCheck: Valkey not configured — denying WS event (fail-closed)",
       );
     }
-    return true;
+    return false;
   }
   return valkeyRateCheckFn(`wsrl:${userId}:${event}`, windowMs, maxPerWindow);
 }
@@ -236,10 +236,10 @@ export async function tryClaimTransaction(
     if (!_warnedTryClaimNoValkey) {
       _warnedTryClaimNoValkey = true;
       logger.warn(
-        "tryClaimTransaction: Valkey not configured — transaction deduplication disabled (treating as claimed)",
+        "tryClaimTransaction: Valkey not configured — denying claim (fail-closed). DB ON CONFLICT is safety net.",
       );
     }
-    return { claimed: true };
+    return { claimed: false };
   }
   const key = `txn:${transactionId}`;
   const claimed = await valkeySetNx(key, String(timestamp), 300_000);
@@ -319,7 +319,7 @@ export function initWsPubSub(): void {
         try {
           client.ws.send(message);
         } catch {
-          /* ignore */
+          logger.debug("ws.send failed — client likely disconnected");
         }
       }
     });
@@ -345,7 +345,7 @@ export function initWsPubSub(): void {
           try {
             client.ws.send(message);
           } catch {
-            /* ignore */
+            logger.debug("ws.send failed — client likely disconnected");
           }
         }
       }
@@ -507,7 +507,7 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
             }),
           );
         } catch {
-          /* ignore */
+          logger.debug("ws.send failed — client likely disconnected");
         }
         return;
       }

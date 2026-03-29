@@ -10,16 +10,22 @@ export type GiftCatalogRow = {
   is_active: boolean;
 };
 
+export type GiftType = 'universe' | 'big' | 'small';
+
 export type GiftUiItem = {
   id: string;
   name: string;
   coins: number;
-  giftType: 'universe' | 'big' | 'small';
+  giftType: GiftType;
   isActive: boolean;
   icon: string;
   video: string;
   preview: string;
 };
+
+export type GiftItem = GiftUiItem;
+
+export const GIFT_COMBO_MAX = 5000;
 
 // Fetch gifts from database - NO HARDCODED DATA
 export async function fetchGiftsFromDatabase(): Promise<GiftUiItem[]> {

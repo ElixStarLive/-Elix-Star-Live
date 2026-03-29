@@ -437,6 +437,46 @@ export async function initPostgres(): Promise<void> {
     await pool.query(`ALTER TABLE elix_reports ADD COLUMN IF NOT EXISTS target_type TEXT NOT NULL DEFAULT 'unknown'`).catch(() => {});
     await pool.query(`ALTER TABLE elix_reports ADD COLUMN IF NOT EXISTS target_id TEXT NOT NULL DEFAULT ''`).catch(() => {});
 
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS elix_gifts (
+        gift_id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        gift_type TEXT NOT NULL DEFAULT 'small',
+        coin_cost INTEGER NOT NULL DEFAULT 0,
+        animation_url TEXT,
+        sfx_url TEXT,
+        is_active BOOLEAN NOT NULL DEFAULT TRUE,
+        battle_points INTEGER NOT NULL DEFAULT 0
+      )
+    `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS elix_coin_packages (
+        id TEXT PRIMARY KEY,
+        coins INTEGER NOT NULL,
+        price NUMERIC NOT NULL DEFAULT 0,
+        label TEXT NOT NULL DEFAULT '',
+        bonus_coins INTEGER NOT NULL DEFAULT 0,
+        is_popular BOOLEAN NOT NULL DEFAULT FALSE,
+        product_id TEXT NOT NULL DEFAULT ''
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS elix_analytics_events (
+        id SERIAL PRIMARY KEY,
+        user_id TEXT,
+        event TEXT NOT NULL DEFAULT 'unknown',
+        properties JSONB DEFAULT '{}',
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS idx_elix_analytics_events_created ON elix_analytics_events(created_at DESC)`,
+    ).catch(() => {});
+
+    await seedGiftsIfEmpty(pool);
+    await seedCoinPackagesIfEmpty(pool);
+
     const userCount = await pool.query(`SELECT COUNT(*) as cnt FROM auth_users`);
     const profileCount = await pool.query(`SELECT COUNT(*) as cnt FROM profiles`);
     await initWalletPaymentTables(pool);
@@ -1473,5 +1513,170 @@ export async function dbMarkShopItemSold(id: string): Promise<void> {
     await p.query(`UPDATE shop_items SET is_active = FALSE WHERE id = $1`, [id]);
   } catch (err) {
     logger.error({ err }, "dbMarkShopItemSold failed");
+  }
+}
+
+// ── Gifts catalog (DB) ──
+
+const SEED_GIFTS = [
+  { gift_id: "rose", name: "Rose", gift_type: "small", coin_cost: 1, animation_url: "/gifts/rose.webm", sfx_url: null, battle_points: 1 },
+  { gift_id: "heart", name: "Heart", gift_type: "small", coin_cost: 5, animation_url: "/gifts/heart.webm", sfx_url: null, battle_points: 5 },
+  { gift_id: "kiss", name: "Kiss", gift_type: "small", coin_cost: 10, animation_url: "/gifts/kiss.webm", sfx_url: null, battle_points: 10 },
+  { gift_id: "crown", name: "Crown", gift_type: "big", coin_cost: 50, animation_url: "/gifts/crown.webm", sfx_url: null, battle_points: 1500 },
+  { gift_id: "diamond", name: "Diamond", gift_type: "big", coin_cost: 100, animation_url: "/gifts/diamond.webm", sfx_url: null, battle_points: 300 },
+  { gift_id: "rocket", name: "Rocket", gift_type: "big", coin_cost: 500, animation_url: "/gifts/rocket.webm", sfx_url: null, battle_points: 500 },
+  { gift_id: "elix_global_universe", name: "Elix Universe", gift_type: "universe", coin_cost: 1000, animation_url: "/gifts/elix_global_universe.webm", sfx_url: null, battle_points: 1000000 },
+  { gift_id: "elix_live_universe", name: "Elix Live", gift_type: "universe", coin_cost: 2000, animation_url: "/gifts/elix_live_universe.webm", sfx_url: null, battle_points: 80000 },
+  { gift_id: "elix_gold_universe", name: "Elix Gold", gift_type: "universe", coin_cost: 5000, animation_url: "/gifts/elix_gold_universe.webm", sfx_url: null, battle_points: 120000 },
+];
+
+async function seedGiftsIfEmpty(p: pg.Pool): Promise<void> {
+  try {
+    const count = await p.query(`SELECT COUNT(*) as cnt FROM elix_gifts`);
+    if (Number(count.rows[0]?.cnt) > 0) return;
+    for (const g of SEED_GIFTS) {
+      await p.query(
+        `INSERT INTO elix_gifts (gift_id, name, gift_type, coin_cost, animation_url, sfx_url, is_active, battle_points)
+         VALUES ($1, $2, $3, $4, $5, $6, TRUE, $7)
+         ON CONFLICT (gift_id) DO NOTHING`,
+        [g.gift_id, g.name, g.gift_type, g.coin_cost, g.animation_url, g.sfx_url, g.battle_points],
+      );
+    }
+    logger.info(`Seeded ${SEED_GIFTS.length} gifts into elix_gifts`);
+  } catch (err) {
+    logger.error({ err }, "seedGiftsIfEmpty failed");
+  }
+}
+
+export type DbGiftRow = {
+  gift_id: string;
+  name: string;
+  gift_type: string;
+  coin_cost: number;
+  animation_url: string | null;
+  sfx_url: string | null;
+  is_active: boolean;
+  battle_points: number;
+};
+
+export async function dbLoadGifts(): Promise<DbGiftRow[]> {
+  const p = getPool();
+  if (!p) return [];
+  try {
+    const res = await p.query(
+      `SELECT gift_id, name, gift_type, coin_cost, animation_url, sfx_url, is_active, battle_points
+       FROM elix_gifts WHERE is_active = TRUE ORDER BY coin_cost ASC`,
+    );
+    return res.rows.map((r: any) => ({
+      gift_id: String(r.gift_id),
+      name: String(r.name),
+      gift_type: String(r.gift_type),
+      coin_cost: Number(r.coin_cost),
+      animation_url: r.animation_url ?? null,
+      sfx_url: r.sfx_url ?? null,
+      is_active: Boolean(r.is_active),
+      battle_points: Number(r.battle_points ?? 0),
+    }));
+  } catch (err) {
+    logger.error({ err }, "dbLoadGifts failed");
+    return [];
+  }
+}
+
+export async function dbGetGiftCost(giftId: string): Promise<number | null> {
+  const p = getPool();
+  if (!p) return null;
+  try {
+    const res = await p.query(
+      `SELECT coin_cost FROM elix_gifts WHERE gift_id = $1 AND is_active = TRUE LIMIT 1`,
+      [giftId],
+    );
+    if (!res.rows[0]) return null;
+    return Number(res.rows[0].coin_cost);
+  } catch (err) {
+    logger.error({ err, giftId }, "dbGetGiftCost failed");
+    return null;
+  }
+}
+
+// ── Coin packages (DB) ──
+
+const SEED_COIN_PACKAGES = [
+  { id: "coins_10", coins: 10, price: 0.05, label: "10 Coins", bonus_coins: 0, is_popular: false, product_id: "com.elixstarlive.coins_10" },
+  { id: "coins_50", coins: 50, price: 0.18, label: "50 Coins", bonus_coins: 0, is_popular: false, product_id: "com.elixstarlive.coins_50" },
+  { id: "coins_100", coins: 100, price: 0.35, label: "100 Coins", bonus_coins: 0, is_popular: false, product_id: "com.elixstarlive.coins_100" },
+  { id: "coins_500", coins: 500, price: 1.75, label: "500 Coins", bonus_coins: 50, is_popular: false, product_id: "com.elixstarlive.coins_500" },
+  { id: "coins_1000", coins: 1000, price: 3.5, label: "1,000 Coins", bonus_coins: 100, is_popular: true, product_id: "com.elixstarlive.coins_1000" },
+  { id: "coins_2000", coins: 2000, price: 7.0, label: "2,000 Coins", bonus_coins: 200, is_popular: false, product_id: "com.elixstarlive.coins_2000" },
+  { id: "coins_5000", coins: 5000, price: 17.5, label: "5,000 Coins", bonus_coins: 500, is_popular: false, product_id: "com.elixstarlive.coins_5000" },
+  { id: "coins_10000", coins: 10000, price: 35.0, label: "10K Coins", bonus_coins: 1000, is_popular: false, product_id: "com.elixstarlive.coins_10000" },
+  { id: "coins_50000", coins: 50000, price: 175.0, label: "50K Coins", bonus_coins: 5000, is_popular: false, product_id: "com.elixstarlive.coins_50000" },
+  { id: "coins_100000", coins: 100000, price: 350.0, label: "100K Coins", bonus_coins: 10000, is_popular: false, product_id: "com.elixstarlive.coins_100000" },
+];
+
+async function seedCoinPackagesIfEmpty(p: pg.Pool): Promise<void> {
+  try {
+    const count = await p.query(`SELECT COUNT(*) as cnt FROM elix_coin_packages`);
+    if (Number(count.rows[0]?.cnt) > 0) return;
+    for (const pkg of SEED_COIN_PACKAGES) {
+      await p.query(
+        `INSERT INTO elix_coin_packages (id, coins, price, label, bonus_coins, is_popular, product_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         ON CONFLICT (id) DO NOTHING`,
+        [pkg.id, pkg.coins, pkg.price, pkg.label, pkg.bonus_coins, pkg.is_popular, pkg.product_id],
+      );
+    }
+    logger.info(`Seeded ${SEED_COIN_PACKAGES.length} coin packages into elix_coin_packages`);
+  } catch (err) {
+    logger.error({ err }, "seedCoinPackagesIfEmpty failed");
+  }
+}
+
+export type DbCoinPackageRow = {
+  id: string;
+  coins: number;
+  price: number;
+  label: string;
+  bonus_coins: number;
+  is_popular: boolean;
+  product_id: string;
+};
+
+export async function dbLoadCoinPackages(): Promise<DbCoinPackageRow[]> {
+  const p = getPool();
+  if (!p) return [];
+  try {
+    const res = await p.query(
+      `SELECT id, coins, price, label, bonus_coins, is_popular, product_id
+       FROM elix_coin_packages ORDER BY coins ASC`,
+    );
+    return res.rows.map((r: any) => ({
+      id: String(r.id),
+      coins: Number(r.coins),
+      price: Number(r.price),
+      label: String(r.label),
+      bonus_coins: Number(r.bonus_coins),
+      is_popular: Boolean(r.is_popular),
+      product_id: String(r.product_id),
+    }));
+  } catch (err) {
+    logger.error({ err }, "dbLoadCoinPackages failed");
+    return [];
+  }
+}
+
+export async function dbLoadCoinMap(): Promise<Record<string, number>> {
+  const p = getPool();
+  if (!p) return {};
+  try {
+    const res = await p.query(`SELECT product_id, coins FROM elix_coin_packages`);
+    const map: Record<string, number> = {};
+    for (const row of res.rows) {
+      if (row.product_id) map[String(row.product_id)] = Number(row.coins);
+    }
+    return map;
+  } catch (err) {
+    logger.error({ err }, "dbLoadCoinMap failed");
+    return {};
   }
 }

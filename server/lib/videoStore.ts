@@ -54,11 +54,6 @@ function rowToVideo(row: Record<string, unknown>): Video {
   };
 }
 
-/** @deprecated No-op — startup bulk loading removed for horizontal scaling. */
-export function replaceVideos(_list: Video[]): void {
-  // Intentionally empty — DB is the only source of truth.
-}
-
 /** No-op for in-memory — caller also calls saveVideoToDb. */
 export function addVideo(_video: Video): void {
   // DB write handled by saveVideoToDb in postgres.ts
@@ -81,11 +76,6 @@ export async function getVideoAsync(id: string): Promise<Video | undefined> {
     logger.error({ err, id }, "getVideoAsync DB read failed");
     return undefined;
   }
-}
-
-/** @deprecated Use getVideoAsync instead. Returns undefined (no cache). */
-export function getVideoCached(_id: string): Video | undefined {
-  return undefined;
 }
 
 /** List all videos from DB with limit. */
@@ -139,7 +129,9 @@ export function incrementStat(
 ): void {
   const db = getPool();
   if (db) {
-    db.query(`UPDATE videos SET ${stat} = ${stat} + 1 WHERE id = $1`, [videoId]).catch(() => {});
+    db
+      .query(`UPDATE videos SET ${stat} = ${stat} + 1 WHERE id = $1`, [videoId])
+      .catch((e) => logger.warn({ err: e, videoId, stat }, "incrementStat DB update failed"));
   }
 }
 
@@ -149,6 +141,8 @@ export function decrementStat(
 ): void {
   const db = getPool();
   if (db) {
-    db.query(`UPDATE videos SET ${stat} = GREATEST(${stat} - 1, 0) WHERE id = $1`, [videoId]).catch(() => {});
+    db
+      .query(`UPDATE videos SET ${stat} = GREATEST(${stat} - 1, 0) WHERE id = $1`, [videoId])
+      .catch((e) => logger.warn({ err: e, videoId, stat }, "decrementStat DB update failed"));
   }
 }

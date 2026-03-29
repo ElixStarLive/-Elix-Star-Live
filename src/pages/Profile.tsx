@@ -10,7 +10,7 @@ import { trackEvent } from '../lib/analytics';
 import ReportModal from '../components/ReportModal';
 import PromotePanel from '../components/PromotePanel';
 import { useVideoStore } from '../store/useVideoStore';
-import { apiUrl } from '../lib/api';
+import { request } from '../lib/apiClient';
 import { fetchAllSharePanelContacts } from '../lib/sharePanelContacts';
 
 interface Video {
@@ -85,19 +85,15 @@ export default function Profile() {
     if (!user?.id || shareSent.has(targetUserId)) return;
     const profileUrl = `${window.location.origin}/profile/${effectiveUserId}`;
     const msgText = `Check out this profile: ${displayName} ${profileUrl}`;
-    const token = useAuthStore.getState().session?.access_token;
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (token) headers["Authorization"] = `Bearer ${token}`;
     try {
-      const threadRes = await fetch(apiUrl('/api/chat/threads'), {
-        method: "POST", headers, credentials: "include",
+      const { data: threadData, error: threadError } = await request('/api/chat/threads', {
+        method: "POST",
         body: JSON.stringify({ user2_id: targetUserId }),
       });
-      if (!threadRes.ok) return;
-      const { data: threadData } = await threadRes.json();
-      if (threadData?.id) {
-        await fetch(apiUrl(`/api/chat/threads/${threadData.id}/messages`), {
-          method: "POST", headers, credentials: "include",
+      if (threadError) return;
+      if (threadData?.data?.id) {
+        await request(`/api/chat/threads/${threadData.data.id}/messages`, {
+          method: "POST",
           body: JSON.stringify({ text: msgText }),
         });
       }
@@ -143,9 +139,14 @@ export default function Profile() {
       return;
     }
     const usernameClean = (displayUserId || '').replace(/^@+/, '');
-    fetch(apiUrl(`/api/profiles/by-username/${encodeURIComponent(usernameClean)}`), { credentials: 'include' })
-      .then(r => r.ok ? r.json() : null)
-      .then((body) => {
+    request(`/api/profiles/by-username/${encodeURIComponent(usernameClean)}`)
+      .then(({ data: body, error }) => {
+        if (error || !body) {
+          setResolvedUserId(null);
+          setProfileData(null);
+          setLoading(false);
+          return;
+        }
         const uid = body?.profile?.userId || body?.user_id;
         if (uid) setResolvedUserId(uid);
         else {
@@ -174,10 +175,6 @@ export default function Profile() {
     if (!effectiveUserId) { setLoading(false); return; }
 
     try {
-      const session = useAuthStore.getState().session;
-      const headers: Record<string, string> = {};
-      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
-
       const fallback: ProfileData = {
         user_id: effectiveUserId,
         username: user?.username || user?.email?.split('@')[0] || 'user',
@@ -190,14 +187,13 @@ export default function Profile() {
         is_creator: false,
       };
 
-      const res = await fetch(apiUrl(`/api/profiles/${effectiveUserId}`), { credentials: 'include', headers });
-      if (!res.ok) {
+      const { data: body, error } = await request(`/api/profiles/${effectiveUserId}`);
+      if (error) {
         setProfileData(effectiveUserId === user?.id ? fallback : null);
         setLoading(false);
         return;
       }
 
-      const body = await res.json();
       const p = body?.profile;
       if (!p) {
         setProfileData(effectiveUserId === user?.id ? fallback : null);
@@ -217,11 +213,9 @@ export default function Profile() {
         is_creator: p.isVerified || false,
       };
 
-      // Calculate likes from the user's videos
       try {
-        const vidsRes = await fetch(apiUrl(`/api/videos/user/${effectiveUserId}`), { credentials: 'include', headers });
-        if (vidsRes.ok) {
-          const vidsBody = await vidsRes.json();
+        const { data: vidsBody } = await request(`/api/videos/user/${effectiveUserId}`);
+        if (vidsBody) {
           const vids = Array.isArray(vidsBody?.videos) ? vidsBody.videos : [];
           data.likes_count = vids.reduce((sum: number, v: any) => sum + (v.likes || 0), 0);
         }
@@ -264,15 +258,9 @@ export default function Profile() {
         return;
       }
 
-      // Fetch user's videos from real backend API
-      const session = useAuthStore.getState().session;
-      const headers: Record<string, string> = {};
-      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
-
       if (activeTab === 'videos' || activeTab === 'private') {
-        const res = await fetch(apiUrl(`/api/videos/user/${effectiveUserId}`), { credentials: 'include', headers });
-        if (!res.ok) { setVideos([]); setVideosLoading(false); return; }
-        const body = await res.json().catch(() => ({ videos: [] }));
+        const { data: body, error } = await request(`/api/videos/user/${effectiveUserId}`);
+        if (error) { setVideos([]); setVideosLoading(false); return; }
         const allVids = Array.isArray(body?.videos) ? body.videos : [];
         const filtered = activeTab === 'private'
           ? allVids.filter((v: any) => v.privacy === 'private')
@@ -323,12 +311,8 @@ export default function Profile() {
     if (!idToCheck) return;
 
     try {
-      const session = useAuthStore.getState().session;
-      const headers: Record<string, string> = {};
-      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
-      const res = await fetch(apiUrl(`/api/profiles/${user.id}/following`), { credentials: 'include', headers });
-      if (res.ok) {
-        const body = await res.json();
+      const { data: body } = await request(`/api/profiles/${user.id}/following`);
+      if (body) {
         const ids: string[] = Array.isArray(body?.following) ? body.following : (Array.isArray(body) ? body : []);
         setIsFollowing(ids.includes(idToCheck));
       }
@@ -343,16 +327,12 @@ export default function Profile() {
     const wasFollowing = isFollowing;
     setIsFollowing(!wasFollowing);
     try {
-      const session = useAuthStore.getState().session;
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
-
       const endpoint = wasFollowing
-        ? apiUrl(`/api/profiles/${targetProfileId}/unfollow`)
-        : apiUrl(`/api/profiles/${targetProfileId}/follow`);
+        ? `/api/profiles/${targetProfileId}/unfollow`
+        : `/api/profiles/${targetProfileId}/follow`;
 
-      const res = await fetch(endpoint, { method: 'POST', credentials: 'include', headers });
-      if (!res.ok) throw new Error('Follow action failed');
+      const { error: followError } = await request(endpoint, { method: 'POST' });
+      if (followError) throw new Error('Follow action failed');
 
       if (!wasFollowing) {
         trackEvent('user_follow', { target_user_id: targetProfileId });
@@ -658,17 +638,13 @@ export default function Profile() {
             </button>
             <button
               onClick={async () => {
-                const token = useAuthStore.getState().session?.access_token;
-                const headers: Record<string, string> = { "Content-Type": "application/json" };
-                if (token) headers["Authorization"] = `Bearer ${token}`;
                 try {
-                  const res = await fetch(apiUrl('/api/chat/threads'), {
-                    method: "POST", headers, credentials: "include",
+                  const { data: threadBody, error: threadErr } = await request('/api/chat/threads', {
+                    method: "POST",
                     body: JSON.stringify({ user2_id: effectiveUserId }),
                   });
-                  if (res.ok) {
-                    const { data } = await res.json();
-                    if (data?.id) navigate(`/inbox/${data.id}`);
+                  if (!threadErr && threadBody?.data?.id) {
+                    navigate(`/inbox/${threadBody.data.id}`);
                   }
                 } catch { navigate('/inbox'); }
               }}

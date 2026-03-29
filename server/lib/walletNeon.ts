@@ -10,7 +10,7 @@ import { getPool } from "./postgres";
 import { logger } from "./logger";
 
 export async function initWalletPaymentTables(pool: pg.Pool): Promise<void> {
-  await pool.query(`CREATE EXTENSION IF NOT EXISTS pgcrypto`).catch(() => {});
+  await pool.query(`CREATE EXTENSION IF NOT EXISTS pgcrypto`).catch((err) => { logger.error({ err }, "initWalletPaymentTables: CREATE EXTENSION failed"); });
   await pool.query(`
     CREATE TABLE IF NOT EXISTS elix_wallet_balances (
       user_id TEXT PRIMARY KEY,
@@ -111,7 +111,7 @@ export async function neonIsIapProcessed(
   providerTransactionId: string,
 ): Promise<boolean> {
   const pool = getPool();
-  if (!pool) return false;
+  if (!pool) throw new Error("DATABASE_UNAVAILABLE");
   try {
     const r = await pool.query(
       `SELECT 1 FROM elix_wallet_ledger WHERE kind = 'iap_purchase' AND provider = $1 AND provider_transaction_id = $2 LIMIT 1`,
@@ -121,9 +121,9 @@ export async function neonIsIapProcessed(
   } catch (e) {
     logger.error(
       { err: e, provider, providerTransactionId },
-      "neonIsIapProcessed: database error while checking IAP ledger (treating as not processed)",
+      "neonIsIapProcessed: database error — failing closed (throwing)",
     );
-    return false;
+    throw e;
   }
 }
 
@@ -188,8 +188,8 @@ export async function neonCreditIap(input: {
   } catch (e: unknown) {
     try {
       await client.query("ROLLBACK");
-    } catch {
-      /* noop */
+    } catch (rbErr) {
+      logger.error({ err: rbErr }, "ROLLBACK failed");
     }
     const msg = e instanceof Error ? e.message : String(e);
     logger.error({ err: e }, "neonCreditIap failed");
@@ -316,8 +316,8 @@ export async function neonDebitGift(input: {
   } catch (e) {
     try {
       await client.query("ROLLBACK");
-    } catch {
-      /* noop */
+    } catch (rbErr) {
+      logger.error({ err: rbErr }, "ROLLBACK failed");
     }
     logger.error(
       { err: e, userId: input.userId, giftId: input.giftId, roomId: input.roomId },

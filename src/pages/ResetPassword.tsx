@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, CheckCircle } from 'lucide-react';
-import { apiUrl } from '../lib/api';
+import { request } from '../lib/apiClient';
 
 export default function ResetPassword() {
   const navigate = useNavigate();
@@ -26,15 +26,12 @@ export default function ResetPassword() {
 
     setIsSubmitting(true);
     try {
-      const res = await fetch(apiUrl('/api/auth/reset-password'), {
+      const { error: reqError } = await request('/api/auth/reset-password', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ password }),
       });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(body?.error || 'Password reset is not available at this time.');
+      if (reqError) {
+        setError(reqError.message || 'Password reset is not available at this time.');
       } else {
         setSuccess(true);
         setTimeout(() => navigate('/login', { replace: true }), 3000);

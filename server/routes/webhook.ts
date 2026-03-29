@@ -87,18 +87,14 @@ async function handleSuccessfulPayment(session: Stripe.Checkout.Session) {
   const itemId = session.metadata?.itemId || "";
   const sellerId = session.metadata?.sellerId || "";
   const amountGbp = session.amount_total ? session.amount_total / 100 : 0;
-  try {
-    await dbMarkShopItemSold(itemId);
-    await neonInsertShopPurchase({
-      stripeSessionId: session.id,
-      itemId,
-      buyerId: userId || "",
-      sellerId,
-      amountGbp,
-    });
-    logger.info({ itemId, buyerId: userId }, "Shop item purchased");
-  } catch (err) {
-    logger.error({ err }, "Failed to record shop purchase");
-  }
+  await dbMarkShopItemSold(itemId);
+  await neonInsertShopPurchase({
+    stripeSessionId: session.id,
+    itemId,
+    buyerId: userId || "",
+    sellerId,
+    amountGbp,
+  });
+  logger.info({ itemId, buyerId: userId }, "Shop item purchased");
 }
 

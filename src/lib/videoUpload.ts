@@ -4,7 +4,7 @@
  */
 
 import { bunnyUpload } from "./bunnyStorage";
-import { apiUrl } from "./api";
+import { request } from "./apiClient";
 import { useAuthStore } from "../store/useAuthStore";
 import { trackEvent } from "./analytics";
 
@@ -27,15 +27,6 @@ const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500 MB
 const ALLOWED_FORMATS = ["video/mp4", "video/quicktime", "video/webm"];
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-
-function authHeaders(): Record<string, string> {
-  const token = useAuthStore.getState().session?.access_token;
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-  return headers;
-}
 
 // ── Service class ─────────────────────────────────────────────────────────────
 
@@ -159,32 +150,24 @@ export class VideoUploadService {
         }),
       };
 
-      const createRes = await fetch(apiUrl("/api/videos"), {
+      const { data: createData, error: createError } = await request<{ id?: string }>("/api/videos", {
         method: "POST",
-        headers: authHeaders(),
-        credentials: "include",
         body: JSON.stringify(payload),
       });
 
-      if (!createRes.ok) {
-        const err = (await createRes.json().catch(() => ({}))) as {
-          error?: string;
-        };
+      if (createError) {
         throw new Error(
-          err.error ?? `Failed to create video record (${createRes.status})`,
+          createError.message ?? "Failed to create video record",
         );
       }
 
-      const createData = (await createRes.json()) as { id?: string };
-      const finalId = createData.id ?? videoId;
+      const finalId = createData?.id ?? videoId;
 
       // ── FYP boost for new video ──────────────────────────────────────
       this.updateProgress("processing", 92, "Boosting visibility…");
       try {
-        await fetch(apiUrl(`/api/videos/${finalId}/fyp`), {
+        await request(`/api/videos/${finalId}/fyp`, {
           method: "POST",
-          headers: authHeaders(),
-          credentials: "include",
           body: JSON.stringify({ boost: true }),
         });
       } catch {

@@ -89,7 +89,10 @@ export async function valkeyRateCheck(
   max: number,
 ): Promise<boolean> {
   const v = getValkey();
-  if (!v) return true;
+  if (!v) {
+    logger.warn("valkeyRateCheck: Valkey not available — denying request (fail-closed)");
+    return false;
+  }
 
   try {
     const now = Date.now();
@@ -103,16 +106,19 @@ export async function valkeyRateCheck(
     pipeline.pexpire(key, windowMs + 1000);
 
     const results = await pipeline.exec();
-    if (!results) return true;
+    if (!results) {
+      logger.warn("valkeyRateCheck: pipeline returned null — denying request (fail-closed)");
+      return false;
+    }
 
     const count = (results[2]?.[1] as number) ?? 0;
     return count <= max;
   } catch (err: any) {
     logger.warn(
       { err: err?.message },
-      "valkeyRateCheck failed, allowing request",
+      "valkeyRateCheck failed — denying request (fail-closed)",
     );
-    return true;
+    return false;
   }
 }
 

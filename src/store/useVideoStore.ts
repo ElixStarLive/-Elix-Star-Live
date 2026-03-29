@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useAuthStore } from './useAuthStore';
-import { apiUrl } from '../lib/api';
+import { request } from '../lib/apiClient';
 import {
   calculateEngagementScore,
   isEligibleForFyp,
@@ -233,15 +233,8 @@ export const useVideoStore = create<VideoStore>()(
         if (!id) return false;
         if (get().getVideoById(id)) return true;
         try {
-          const session = useAuthStore.getState().session;
-          const headers: Record<string, string> = {};
-          if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
-          const res = await fetch(apiUrl(`/api/videos/${encodeURIComponent(id)}`), {
-            credentials: 'include',
-            headers,
-          });
-          if (!res.ok) return false;
-          const raw = await res.json();
+          const { data: raw, error } = await request(`/api/videos/${encodeURIComponent(id)}`);
+          if (error) return false;
           const url = raw?.url != null ? String(raw.url).trim() : '';
           if (!url) return false;
           const { likedVideos, savedVideos, followingUsers } = get();
@@ -273,17 +266,10 @@ export const useVideoStore = create<VideoStore>()(
           const apiVideos = Array.isArray(pageJson?.videos) ? pageJson.videos : [];
           const mutualFromApi = Array.isArray(pageJson?.mutualUserIds) ? pageJson.mutualUserIds : [];
           const authUser = useAuthStore.getState().user;
-          const session = useAuthStore.getState().session;
           if (authUser?.id) {
             try {
-              const headers: Record<string, string> = {};
-              if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
-              const followRes = await fetch(apiUrl(`/api/profiles/${encodeURIComponent(authUser.id)}/following`), {
-                credentials: 'include',
-                headers,
-              });
-              if (followRes.ok) {
-                const followBody = await followRes.json().catch(() => ({ following: [] }));
+              const { data: followBody, error: followError } = await request(`/api/profiles/${encodeURIComponent(authUser.id)}/following`);
+              if (!followError) {
                 const ids: string[] = Array.isArray(followBody?.following) ? followBody.following : [];
                 set({ followingUsers: ids });
               }
@@ -325,21 +311,16 @@ export const useVideoStore = create<VideoStore>()(
       fetchStemVideos: async () => {
         set({ stemLoading: true });
         try {
-          const session = useAuthStore.getState().session;
-          const headers: Record<string, string> = {};
-          if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
-
           const { likedVideos, savedVideos, followingUsers } = get();
           const likedSet = new Set(likedVideos);
           const savedSet = new Set(savedVideos);
           const followingSet = new Set(followingUsers);
 
-          const res = await fetch(apiUrl('/api/videos'), { credentials: 'include', headers });
-          if (!res.ok) {
+          const { data: body, error } = await request('/api/videos');
+          if (error) {
             set({ stemVideos: [], stemLoading: false });
             return;
           }
-          const body = await res.json().catch(() => ({ videos: [] }));
           const rawList = Array.isArray(body?.videos) ? body.videos : [];
           const eligible = rawList.filter((v: any) => {
             if (v.privacy === 'private') return false;
@@ -370,18 +351,14 @@ export const useVideoStore = create<VideoStore>()(
         set({ friendsLoading: true });
         try {
           const authUser = useAuthStore.getState().user;
-          const session = useAuthStore.getState().session;
           if (!authUser?.id) {
             set({ friendsLoading: false });
             return;
           }
-          const headers: Record<string, string> = {};
-          if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
 
           // First load who we follow so followingUsers is up to date
-          const followRes = await fetch(apiUrl(`/api/profiles/${authUser.id}/following`), { credentials: 'include', headers });
-          if (followRes.ok) {
-            const followBody = await followRes.json().catch(() => ({ following: [] }));
+          const { data: followBody } = await request(`/api/profiles/${authUser.id}/following`);
+          if (followBody) {
             const ids: string[] = Array.isArray(followBody?.following) ? followBody.following : [];
             set({ followingUsers: ids });
           }
@@ -389,12 +366,11 @@ export const useVideoStore = create<VideoStore>()(
           /* Server unions following ∪ followers; do not skip when following list is empty */
           const { followingUsers } = get();
 
-          const res = await fetch(apiUrl('/api/feed/friends'), { credentials: 'include', headers });
-          if (!res.ok) {
+          const { data: body, error } = await request('/api/feed/friends');
+          if (error) {
             set({ friendsLoading: false });
             return;
           }
-          const body = await res.json().catch(() => ({ videos: [] }));
           const apiVideos = Array.isArray(body?.videos) ? body.videos : [];
           if (apiVideos.length === 0) {
             set({ friendVideos: [], friendsLoading: false });
@@ -472,19 +448,12 @@ export const useVideoStore = create<VideoStore>()(
             throw new Error('Please sign in to delete videos.');
           }
 
-          const token = useAuthStore.getState().session?.access_token;
-          const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-          if (token) headers['Authorization'] = `Bearer ${token}`;
-
-          const res = await fetch(apiUrl(`/api/videos/${videoId}`), {
+          const { error } = await request(`/api/videos/${videoId}`, {
             method: 'DELETE',
-            headers,
-            credentials: 'include',
           });
 
-          if (!res.ok) {
-            const data = await res.json().catch(() => ({}));
-            throw new Error(data.error || `Failed to delete video (${res.status})`);
+          if (error) {
+            throw new Error(error.message || 'Failed to delete video');
           }
 
           set({ videos: get().videos.filter((v) => v.id !== videoId), friendVideos: get().friendVideos.filter((v) => v.id !== videoId) });
@@ -517,17 +486,10 @@ export const useVideoStore = create<VideoStore>()(
 
         try {
           const authUser = useAuthStore.getState().user;
-          const session = useAuthStore.getState().session;
           if (!authUser?.id) return;
-          const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-          if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
 
-          const endpoint = wasLiked
-            ? apiUrl(`/api/videos/${videoId}/unlike`)
-            : apiUrl(`/api/videos/${videoId}/like`);
-
-          const res = await fetch(endpoint, { method: 'POST', credentials: 'include', headers });
-          if (!res.ok) throw new Error('Like failed');
+          const { error } = await request(wasLiked ? `/api/videos/${videoId}/unlike` : `/api/videos/${videoId}/like`, { method: 'POST' });
+          if (error) throw new Error('Like failed');
 
           if (!wasLiked) trackLike(videoId).catch(() => {});
           await refreshVideoFypStatus(videoId, updatedStats);
@@ -564,17 +526,10 @@ export const useVideoStore = create<VideoStore>()(
 
         try {
           const authUser = useAuthStore.getState().user;
-          const session = useAuthStore.getState().session;
           if (!authUser?.id) return;
-          const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-          if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
 
-          const endpoint = wasSaved
-            ? apiUrl(`/api/videos/${videoId}/unsave`)
-            : apiUrl(`/api/videos/${videoId}/save`);
-
-          const res = await fetch(endpoint, { method: 'POST', credentials: 'include', headers });
-          if (!res.ok) throw new Error('Save failed');
+          const { error: saveError } = await request(wasSaved ? `/api/videos/${videoId}/unsave` : `/api/videos/${videoId}/save`, { method: 'POST' });
+          if (saveError) throw new Error('Save failed');
         } catch {
           const s = get();
           const revertSaves = Math.max(0, wasSaved ? (video.stats.saves || 0) + 1 : (video.stats.saves || 0) - 1);
@@ -643,14 +598,8 @@ export const useVideoStore = create<VideoStore>()(
         });
 
         try {
-          const session = useAuthStore.getState().session;
-          const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-          if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
-          const endpoint = wasFollowing
-            ? apiUrl(`/api/profiles/${userId}/unfollow`)
-            : apiUrl(`/api/profiles/${userId}/follow`);
-          const res = await fetch(endpoint, { method: 'POST', credentials: 'include', headers });
-          if (!res.ok) throw new Error('Follow request failed');
+          const { error: followError } = await request(wasFollowing ? `/api/profiles/${userId}/unfollow` : `/api/profiles/${userId}/follow`, { method: 'POST' });
+          if (followError) throw new Error('Follow request failed');
           if (!wasFollowing) trackFollow(userId).catch(() => {});
         } catch {
           revert();
@@ -694,7 +643,6 @@ export const useVideoStore = create<VideoStore>()(
         if (!video) return;
 
         const authUser = useAuthStore.getState().user;
-        const session = useAuthStore.getState().session;
         if (!authUser?.id) return;
 
         // Optimistic update
@@ -721,19 +669,13 @@ export const useVideoStore = create<VideoStore>()(
         });
 
         try {
-          const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-          if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
-
-          const res = await fetch(apiUrl(`/api/videos/${videoId}/comments`), {
+          const { data: body, error: commentError } = await request(`/api/videos/${videoId}/comments`, {
             method: 'POST',
-            credentials: 'include',
-            headers,
             body: JSON.stringify({ text: commentData.text, parentId: (commentData as any).parentId || null }),
           });
 
-          if (!res.ok) throw new Error('Comment failed');
+          if (commentError) throw new Error('Comment failed');
 
-          const body = await res.json();
           if (body?.comment?.id) {
             const realId = body.comment.id;
             const commentIdUpdate = (v: Video) => v.id === videoId
@@ -773,15 +715,8 @@ export const useVideoStore = create<VideoStore>()(
           friendVideos: state.friendVideos.map(commentDelUpdate),
         }));
         try {
-          const session = useAuthStore.getState().session;
-          const headers: Record<string, string> = {};
-          if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
-          await fetch(apiUrl(`/api/videos/${videoId}/comments/${commentId}`), {
-            method: 'DELETE',
-            credentials: 'include',
-            headers,
-          });
-        } catch (err) {
+          await request(`/api/videos/${videoId}/comments/${commentId}`, { method: 'DELETE' });
+        } catch {
           /* ignored */
         }
       },
@@ -828,15 +763,7 @@ export const useVideoStore = create<VideoStore>()(
         });
 
         try {
-          const session = useAuthStore.getState().session;
-          const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-          if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
-          await fetch(apiUrl('/api/feed/track-view'), {
-            method: 'POST',
-            credentials: 'include',
-            headers,
-            body: JSON.stringify({ videoId }),
-          }).catch(() => {});
+          await request('/api/feed/track-view', { method: 'POST', body: JSON.stringify({ videoId }) }).catch(() => {});
           await refreshVideoFypStatus(videoId, updatedStats);
         } catch (err) {
           /* ignored */

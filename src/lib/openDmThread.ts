@@ -1,5 +1,5 @@
 import type { NavigateFunction } from 'react-router-dom';
-import { apiUrl } from './api';
+import { request } from './apiClient';
 
 /**
  * Opens (or reuses) a DM thread with another user and navigates to /inbox/:threadId.
@@ -14,18 +14,13 @@ export async function navigateToDmWithUser(
     navigate('/inbox');
     return;
   }
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
   try {
-    const res = await fetch(apiUrl('/api/chat/threads'), {
+    const { data: body, error } = await request('/api/chat/threads', {
       method: 'POST',
-      credentials: 'include',
-      headers,
       body: JSON.stringify({ user2_id: otherUserId }),
     });
-    const body = await res.json().catch(() => ({} as Record<string, unknown>));
     const id = (body?.data as { id?: string } | undefined)?.id;
-    if (res.ok && id) {
+    if (!error && id) {
       navigate(`/inbox/${encodeURIComponent(id)}`);
       return;
     }

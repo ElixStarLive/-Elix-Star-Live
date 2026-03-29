@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, ArrowLeft, CheckCircle } from 'lucide-react';
-import { apiUrl } from '../lib/api';
+import { request } from '../lib/apiClient';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -15,18 +15,15 @@ export default function ForgotPassword() {
     setIsSubmitting(true);
 
     try {
-      const res = await fetch(apiUrl('/api/auth/forgot-password'), {
+      const { error: reqError } = await request('/api/auth/forgot-password', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ email: email.trim() }),
       });
 
-      if (res.ok) {
+      if (!reqError) {
         setSuccess(true);
       } else {
-        const body = await res.json().catch(() => ({}));
-        setError(body?.error || 'Unable to process request. Please try again.');
+        setError(reqError.message || 'Unable to process request. Please try again.');
       }
     } catch {
       setError('Network error. Please check your connection and try again.');

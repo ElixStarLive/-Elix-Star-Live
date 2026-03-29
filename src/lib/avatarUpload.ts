@@ -1,5 +1,5 @@
 import { bunnyUpload } from "./bunnyStorage";
-import { apiUrl } from "./api";
+import { request } from "./apiClient";
 import { useAuthStore } from "../store/useAuthStore";
 
 export async function uploadAvatar(
@@ -36,23 +36,14 @@ export async function uploadAvatar(
     }
 
     // Persist the new avatar URL to the user's profile on the backend
-    const token = useAuthStore.getState().session?.access_token;
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
-    if (token) headers["Authorization"] = `Bearer ${token}`;
-
-    const patchRes = await fetch(apiUrl(`/api/profiles/${userId}`), {
+    const { error: patchError } = await request(`/api/profiles/${userId}`, {
       method: "PATCH",
-      headers,
-      credentials: "include",
       body: JSON.stringify({ avatarUrl: cdnUrl }),
     });
 
-    if (!patchRes.ok) {
-      const detail = await patchRes.text().catch(() => "");
+    if (patchError) {
       throw new Error(
-        `Profile did not save (${patchRes.status}). Photo uploaded but avatar URL was not stored.`,
+        patchError.message || "Profile did not save. Photo uploaded but avatar URL was not stored.",
       );
     }
 

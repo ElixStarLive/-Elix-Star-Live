@@ -15,6 +15,7 @@
  */
 
 import { apiUrl } from "./api";
+import { request } from "./apiClient";
 import { useAuthStore } from "../store/useAuthStore";
 
 const runtimeEnv =
@@ -133,15 +134,12 @@ export function getVideoPosterUrl(videoUrl: string): string {
  * Delete a file from Bunny Storage via the Hetzner backend.
  */
 export async function bunnyDelete(storagePath: string): Promise<void> {
-  const res = await fetch(apiUrl("/api/media/delete"), {
+  const { error } = await request("/api/media/delete", {
     method: "DELETE",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
     body: JSON.stringify({ path: storagePath }),
   });
 
-  if (!res.ok) {
-    const err = (await res.json().catch(() => ({}))) as { error?: string };
-    throw new Error(err.error ?? `Bunny delete failed (${res.status})`);
+  if (error) {
+    throw new Error(error.message ?? "Bunny delete failed");
   }
 }

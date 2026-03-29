@@ -1,22 +1,10 @@
 import { bunnyUpload, bunnyDelete } from "./bunnyStorage";
-import { apiUrl } from "./api";
-import { useAuthStore } from "../store/useAuthStore";
+import { request } from "./apiClient";
 
 export interface AvatarUploadResult {
   success: boolean;
   publicUrl?: string;
   error?: string;
-}
-
-// ── Auth helpers ─────────────────────────────────────────────────────────────
-
-function getAuthHeaders(): Record<string, string> {
-  const token = useAuthStore.getState().session?.access_token;
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-  return headers;
 }
 
 // ── Service ──────────────────────────────────────────────────────────────────
@@ -48,26 +36,18 @@ export class AvatarUploadService {
       );
 
       // Update user profile with the new avatar URL (Hetzner backend)
-      const patchRes = await fetch(apiUrl(`/api/profiles/${userId}`), {
+      const { error: patchError } = await request(`/api/profiles/${userId}`, {
         method: "PATCH",
-        headers: getAuthHeaders(),
-        credentials: "include",
         body: JSON.stringify({ avatarUrl: publicUrl }),
       });
 
-      if (!patchRes.ok) {
-        const errBody = (await patchRes.json().catch(() => ({}))) as {
-          error?: string;
-        };
-        // Upload succeeded but profile update failed — clean up the orphaned file
+      if (patchError) {
         try {
           await bunnyDelete(storagePath);
         } catch {
           // Best-effort cleanup
         }
-        throw new Error(
-          errBody.error ?? `Profile update failed (${patchRes.status})`,
-        );
+        throw new Error(patchError.message ?? "Profile update failed");
       }
 
       return { success: true, publicUrl };
@@ -85,18 +65,15 @@ export class AvatarUploadService {
   async removeAvatar(userId: string): Promise<AvatarUploadResult> {
     try {
       // Fetch current avatar URL from backend
-      const profileRes = await fetch(apiUrl(`/api/profiles/${userId}`), {
-        headers: getAuthHeaders(),
-        credentials: "include",
-      });
+      const { data: profileBody, error: profileError } = await request<{
+        profile?: { avatarUrl?: string };
+      }>(`/api/profiles/${userId}`);
 
-      if (!profileRes.ok) {
-        throw new Error(`Failed to fetch profile (${profileRes.status})`);
+      if (profileError) {
+        throw new Error(profileError.message ?? "Failed to fetch profile");
       }
 
-      const { profile } = (await profileRes.json()) as {
-        profile?: { avatarUrl?: string };
-      };
+      const profile = profileBody?.profile;
 
       // Delete file from Bunny CDN if we can resolve the storage path
       if (profile?.avatarUrl) {
@@ -111,20 +88,13 @@ export class AvatarUploadService {
       }
 
       // Clear avatar URL on the Hetzner backend
-      const patchRes = await fetch(apiUrl(`/api/profiles/${userId}`), {
+      const { error: clearError } = await request(`/api/profiles/${userId}`, {
         method: "PATCH",
-        headers: getAuthHeaders(),
-        credentials: "include",
         body: JSON.stringify({ avatarUrl: null }),
       });
 
-      if (!patchRes.ok) {
-        const errBody = (await patchRes.json().catch(() => ({}))) as {
-          error?: string;
-        };
-        throw new Error(
-          errBody.error ?? `Failed to update profile (${patchRes.status})`,
-        );
+      if (clearError) {
+        throw new Error(clearError.message ?? "Failed to update profile");
       }
 
       return { success: true };

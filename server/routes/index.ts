@@ -11,11 +11,6 @@ import { creatorRouter, adminPayoutRouter } from "./payout.router";
 import videosRouter from "./videos.router";
 import mediaRouter from "./media.router";
 import miscRouter from "./misc.router";
-import {
-  handleGetTestCoinBalance,
-  handleMintTestCoins,
-  handleSpendTestCoinsForScore,
-} from "./testCoins";
 
 export function mountRoutes(app: Express): void {
   app.use("/api/auth", authRouter);
@@ -33,11 +28,12 @@ export function mountRoutes(app: Express): void {
   app.use("/api/videos", videosRouter);
   app.use("/api/media", mediaRouter);
 
-  // Test coins (separate from real coins — local/testing only, disabled in production)
   if (process.env.NODE_ENV !== "production") {
-    app.get("/api/test-coins/balance", handleGetTestCoinBalance);
-    app.post("/api/test-coins/mint", handleMintTestCoins);
-    app.post("/api/test-coins/score", handleSpendTestCoinsForScore);
+    import("./testCoins").then(({ handleGetTestCoinBalance, handleMintTestCoins, handleSpendTestCoinsForScore }) => {
+      app.get("/api/test-coins/balance", handleGetTestCoinBalance);
+      app.post("/api/test-coins/mint", handleMintTestCoins);
+      app.post("/api/test-coins/score", handleSpendTestCoinsForScore);
+    });
   }
 
   // Misc (analytics, block, report, notifications, IAP, refunds, etc.)

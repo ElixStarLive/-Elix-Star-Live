@@ -24,6 +24,7 @@ export async function handleGetWallet(req: Request, res: Response) {
   if (!auth) return;
   await neonEnsureBalanceFromFile(auth.userId);
   const balance = await neonGetCoinBalance(auth.userId);
+  res.setHeader("Cache-Control", "private, no-store");
   return res.status(200).json({
     user_id: auth.userId,
     coin_balance: Math.max(0, Number(balance ?? 0)),
@@ -38,5 +39,6 @@ export async function handleGetWalletTransactions(req: Request, res: Response) {
   if (!auth) return;
   const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 50));
   const transactions = await neonListLedger(auth.userId, limit);
+  res.setHeader("Cache-Control", "private, no-store");
   return res.status(200).json({ transactions });
 }

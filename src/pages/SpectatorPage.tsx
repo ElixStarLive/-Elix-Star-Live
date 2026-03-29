@@ -32,7 +32,7 @@ import {
   Users,
 } from 'lucide-react';
 import { GiftPanel } from '../components/GiftPanel';
-import { GIFTS, GIFT_COMBO_MAX, resolveGiftAssetUrl } from '../lib/gifts';
+import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, fetchGiftsFromDatabase } from '../lib/giftsCatalog';
 import { GiftOverlay } from '../components/GiftOverlay';
 import GiftAnimationOverlay from '../components/GiftAnimationOverlay';
 import { ChatOverlay } from '../components/ChatOverlay';
@@ -48,9 +48,9 @@ import {
 } from '../lib/profileFrame';
 import { useAuthStore } from '../store/useAuthStore';
 import { useVideoStore } from '../store/useVideoStore';
-import { apiUrl, getLiveKitUrl } from '../lib/api';
+import { getLiveKitUrl } from '../lib/api';
 import { fetchAllSharePanelContacts } from '../lib/sharePanelContacts';
-import { api } from '../lib/apiClient';
+import { api, request } from '../lib/apiClient';
 import ReportModal from '../components/ReportModal';
 import PromotePanel from '../components/PromotePanel';
 import { RankingPanel } from '../components/RankingPanel';
@@ -130,6 +130,8 @@ export default function SpectatorPage() {
 
   const effectiveStreamId = streamId || '';
 
+  const [giftsCatalog, setGiftsCatalog] = useState<GiftUiItem[]>([]);
+  useEffect(() => { let c = false; fetchGiftsFromDatabase().then(g => { if (!c) setGiftsCatalog(g); }); return () => { c = true; }; }, []);
   const [hostName, setHostName] = useState('Creator');
   const [hostAvatar, setHostAvatar] = useState('');
   const [hostUserId, setHostUserId] = useState('');
@@ -180,7 +182,7 @@ export default function SpectatorPage() {
   const [giftQueue, setGiftQueue] = useState<{video: string}[]>([]);
   const [shareQuery, setShareQuery] = useState('');
   const [shareContacts, setShareContacts] = useState<{ id: string; name: string; avatar: string }[]>([]);
-  const [lastSentGift, setLastSentGift] = useState<typeof GIFTS[0] | null>(null);
+  const [lastSentGift, setLastSentGift] = useState<GiftUiItem | null>(null);
   const [comboCount, setComboCount] = useState(0);
   const [showComboButton, setShowComboButton] = useState(false);
   const comboTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -275,13 +277,12 @@ export default function SpectatorPage() {
   useEffect(() => {
     if (!hostUserId || dailyHeartFetchedRef.current) return;
     dailyHeartFetchedRef.current = true;
-    const headers: Record<string, string> = {};
-    const token = useAuthStore.getState().session?.access_token;
-    if (token) headers.Authorization = `Bearer ${token}`;
-    fetch(apiUrl(`/api/hearts/daily/${hostUserId}`), { headers }).then(r => r.json()).then(d => {
-      if (typeof d.todayCount === 'number') setDailyHeartCount(d.todayCount);
-      if (typeof d.totalCount === 'number') setMyHeartCount(d.totalCount);
-      if (d.hasSent) setHasJoinedToday(true);
+    request(`/api/hearts/daily/${hostUserId}`).then(({ data: d }) => {
+      if (d) {
+        if (typeof d.todayCount === 'number') setDailyHeartCount(d.todayCount);
+        if (typeof d.totalCount === 'number') setMyHeartCount(d.totalCount);
+        if (d.hasSent) setHasJoinedToday(true);
+      }
     }).catch(() => {});
   }, [hostUserId]);
 
@@ -342,14 +343,8 @@ export default function SpectatorPage() {
     opponentProfileFetchedRef.current = oppId;
     (async () => {
       try {
-        const session = useAuthStore.getState().session;
-        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-        if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
-        const res = await fetch(apiUrl(`/api/profiles/${encodeURIComponent(oppId)}`), {
-          method: 'GET', credentials: 'include', headers,
-        });
-        if (!res.ok) return;
-        const body = await res.json().catch(() => ({}));
+        const { data: body, error } = await request(`/api/profiles/${encodeURIComponent(oppId)}`);
+        if (error || !body) return;
         const p = body?.profile || body?.data || {};
         setOpponentProfile({
           displayName: p.displayName || p.username || spectatorBattle?.opponentName || 'Opponent',
@@ -408,12 +403,8 @@ export default function SpectatorPage() {
     opponentLkRoomRef.current = room;
     (async () => {
       try {
-        const authToken = useAuthStore.getState().session?.access_token;
-        const headers: Record<string, string> = {};
-        if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
-        const res = await fetch(apiUrl(`/api/live/token?room=${encodeURIComponent(roomId)}`), { method: 'GET', credentials: 'include', headers });
-        if (!res.ok || !mounted) return;
-        const payload = await res.json().catch(() => ({}));
+        const { data: payload, error: tokenErr } = await request(`/api/live/token?room=${encodeURIComponent(roomId)}`);
+        if (tokenErr || !mounted) return;
         const token = payload?.token;
         const url = (payload?.url ?? '').trim() || getLiveKitUrl();
         if (!token || !url || !mounted) return;
@@ -649,14 +640,12 @@ export default function SpectatorPage() {
     if (!effectiveStreamId) return;
     (async () => {
       try {
-        const res = await fetch(apiUrl('/api/live/streams'), { method: 'GET', credentials: 'include' });
-        if (!res.ok) {
+        const { data: json, error: streamsErr } = await request('/api/live/streams');
+        if (streamsErr || !json) {
           setStreamIsLive(false);
           showToast('Stream is offline');
           return;
         }
-
-        const json = await res.json();
         const streams = Array.isArray(json.streams) ? json.streams : [];
         const stream =
           streams.find((s: any) => s.stream_key === effectiveStreamId) ||
@@ -686,14 +675,9 @@ export default function SpectatorPage() {
           // Try to match Live page exactly by loading creator profile
           // (same source as the creator page uses for display name / avatar).
           try {
-            const profileRes = await fetch(apiUrl(`/api/profiles/${encodeURIComponent(uid)}`), {
-              method: 'GET',
-              headers: { 'Content-Type': 'application/json' },
-              credentials: 'include',
-            });
-            if (profileRes.ok) {
-              const body = await profileRes.json().catch(() => ({}));
-              const profile = body?.profile || body?.data || {};
+            const { data: profileBody } = await request(`/api/profiles/${encodeURIComponent(uid)}`);
+            if (profileBody) {
+              const profile = profileBody?.profile || profileBody?.data || {};
               const profileName =
                 (typeof profile.displayName === 'string' && profile.displayName.trim()) ||
                 (typeof profile.username === 'string' && profile.username.trim()) ||
@@ -729,13 +713,12 @@ export default function SpectatorPage() {
       try {
         // When watching (no ?cohost=1): subscribe-only token, never request or use microphone — listen only.
         const publishParam = isCoHost ? '&publish=1' : '&publish=0';
-        const res = await fetch(apiUrl(`/api/live/token?room=${encodeURIComponent(effectiveStreamId)}${publishParam}`), { method: 'GET', credentials: 'include' });
-        if (!res.ok || !mounted) {
-          if (res.status === 401) showToast('Please log in to watch');
-          else if (res.status === 503) showToast('Live video is not configured on server');
+        const { data, error: tokenError } = await request(`/api/live/token?room=${encodeURIComponent(effectiveStreamId)}${publishParam}`);
+        if (tokenError || !mounted) {
+          if (tokenError?.message?.includes('401')) showToast('Please log in to watch');
+          else if (tokenError?.message?.includes('503')) showToast('Live video is not configured on server');
           return;
         }
-        const data = await res.json();
         let url = (data?.url ?? '').trim();
         if (!url) url = getLiveKitUrl();
         const token = data?.token;
@@ -1089,7 +1072,7 @@ export default function SpectatorPage() {
 
     const handleGiftSent = (data: any) => {
       if (!mounted) return;
-      const giftDef = GIFTS.find(g => g.id === data.giftId);
+      const giftDef = giftsCatalog.find(g => g.id === data.giftId);
       const gifterId = typeof data.user_id === 'string' ? data.user_id : '';
       const giftCoins =
         giftDef?.coins ??
@@ -1386,11 +1369,9 @@ export default function SpectatorPage() {
     const goOffline = async (reason: string) => {
       if (!mounted) return;
       try {
-        const url = apiUrl('/api/live/streams');
-        const res = await fetch(url, { method: 'GET', credentials: 'include' });
-        if (res.ok) {
-          const json = await res.json();
-          const streams = Array.isArray(json.streams) ? json.streams : [];
+        const { data: goOfflineJson } = await request('/api/live/streams');
+        if (goOfflineJson) {
+          const streams = Array.isArray(goOfflineJson.streams) ? goOfflineJson.streams : [];
           const stillLive = streams.some((s: any) => (s.stream_key === effectiveStreamId || s.room_id === effectiveStreamId));
           if (stillLive) return;
         }
@@ -1481,15 +1462,8 @@ export default function SpectatorPage() {
     let cancelled = false;
     (async () => {
       try {
-        const session = useAuthStore.getState().session;
-        const headers: Record<string, string> = {};
-        if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
-        const res = await fetch(apiUrl(`/api/profiles/${encodeURIComponent(user.id)}/following`), {
-          credentials: 'include',
-          headers,
-        });
-        if (!res.ok || cancelled) return;
-        const body = await res.json().catch(() => ({ following: [] }));
+        const { data: body, error: followingErr } = await request(`/api/profiles/${encodeURIComponent(user.id)}/following`);
+        if (followingErr || cancelled) return;
         const ids: string[] = Array.isArray(body?.following) ? body.following : [];
         if (!cancelled) setIsFollowing(ids.includes(hostUserId));
       } catch {
@@ -1512,15 +1486,8 @@ export default function SpectatorPage() {
       const targetId = hostUserIdRef.current || hostUserId;
       if (!targetId || targetId === user.id) return;
       try {
-        const session = useAuthStore.getState().session;
-        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-        if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
-        const res = await fetch(apiUrl(`/api/profiles/${encodeURIComponent(targetId)}/follow`), {
-          method: 'POST',
-          credentials: 'include',
-          headers,
-        });
-        if (!res.ok) throw new Error('follow failed');
+        const { error: followErr } = await request(`/api/profiles/${encodeURIComponent(targetId)}/follow`, { method: 'POST' });
+        if (followErr) throw new Error('follow failed');
         setIsFollowing(true);
         const prev = useVideoStore.getState().followingUsers;
         if (!prev.includes(targetId)) {
@@ -1555,7 +1522,7 @@ export default function SpectatorPage() {
   };
 
   // Spectator gift → creator: send to creator's room (broadcast so creator sees it and gets credit)
-  const handleSendGift = async (gift: typeof GIFTS[0], opts?: { fromCombo?: boolean }) => {
+  const handleSendGift = async (gift: GiftUiItem, opts?: { fromCombo?: boolean }) => {
     if (!gift) return;
     if (opts?.fromCombo && comboCount >= GIFT_COMBO_MAX) return;
     const isGiftVideoFile = (value: string) => {
@@ -2295,13 +2262,11 @@ export default function SpectatorPage() {
                           };
                           setMessages(prev => [...prev, newMessage]);
                           try {
-                            const res = await fetch(apiUrl('/api/hearts/daily'), {
+                            const { data: d } = await request('/api/hearts/daily', {
                               method: 'POST',
-                              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                               body: JSON.stringify({ creatorId: hostUserId }),
                             });
-                            if (res.ok) {
-                              const d = await res.json();
+                            if (d) {
                               if (typeof d.todayCount === 'number') setDailyHeartCount(d.todayCount);
                               if (typeof d.totalCount === 'number') setMyHeartCount(d.totalCount);
                             }
@@ -2985,13 +2950,8 @@ export default function SpectatorPage() {
                           }
                           const hid = hostUserIdRef.current || hostUserId || effectiveStreamId;
                           try {
-                            const session = useAuthStore.getState().session;
-                            const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-                            if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
-                            const res = await fetch(apiUrl('/api/live-share'), {
+                            const { data: j, error: shareErr } = await request('/api/live-share', {
                               method: 'POST',
-                              credentials: 'include',
-                              headers,
                               body: JSON.stringify({
                                 targetUserId: u.id,
                                 streamKey: effectiveStreamId,
@@ -3002,9 +2962,8 @@ export default function SpectatorPage() {
                                 sharerAvatar: user?.avatar || '',
                               }),
                             });
-                            const j = await res.json().catch(() => ({} as Record<string, unknown>));
-                            if (!res.ok) {
-                              showToast(typeof j?.error === 'string' ? j.error : 'Could not share');
+                            if (shareErr) {
+                              showToast(shareErr.message || 'Could not share');
                               return;
                             }
                             showToast(`Shared live with ${u.name}`);

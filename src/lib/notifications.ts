@@ -6,20 +6,9 @@ import {
   Token,
   PushNotificationSchema,
 } from "@capacitor/push-notifications";
-import { apiUrl } from "./api";
+import { request } from "./apiClient";
 import { useAuthStore } from "../store/useAuthStore";
 import { trackEvent } from "./analytics";
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function getAuthHeaders(): Record<string, string> {
-  const token = useAuthStore.getState().session?.access_token;
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-  return headers;
-}
 
 // ── Service ───────────────────────────────────────────────────────────────────
 
@@ -90,10 +79,8 @@ class NotificationService {
     if (!user) return;
 
     try {
-      await fetch(apiUrl("/api/device-tokens"), {
+      await request("/api/device-tokens", {
         method: "POST",
-        headers: getAuthHeaders(),
-        credentials: "include",
         body: JSON.stringify({
           userId: user.id,
           token: token.value,
@@ -236,10 +223,8 @@ class NotificationService {
     if (!user) return;
 
     try {
-      await fetch(apiUrl("/api/device-tokens"), {
+      await request("/api/device-tokens", {
         method: "DELETE",
-        headers: getAuthHeaders(),
-        credentials: "include",
         body: JSON.stringify({
           userId: user.id,
           token: this.deviceToken,

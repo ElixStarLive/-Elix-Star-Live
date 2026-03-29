@@ -81,6 +81,7 @@ export async function handleGetCreatorBalance(req: Request, res: Response) {
       `SELECT pending_coins, available_coins, locked_coins, total_earned, total_withdrawn
        FROM elix_creator_balances WHERE user_id = $1`, [userId],
     );
+    res.setHeader("Cache-Control", "private, no-store");
     if (r.rows.length === 0) {
       return res.json({ pending_coins: 0, available_coins: 0, locked_coins: 0, total_earned: 0, total_withdrawn: 0 });
     }
@@ -113,6 +114,7 @@ export async function handleGetCreatorEarnings(req: Request, res: Response) {
       `SELECT * FROM elix_creator_earnings WHERE creator_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`,
       [userId, limit, offset],
     );
+    res.setHeader("Cache-Control", "private, no-store");
     return res.json({ earnings: r.rows });
   } catch (err) {
     logger.error({ err }, 'Get creator earnings error');
@@ -154,7 +156,7 @@ export async function handleCreatorWithdraw(req: Request, res: Response) {
       await client.query('COMMIT');
       return res.json({ payout: ins.rows[0] });
     } catch (e) {
-      await client.query('ROLLBACK').catch(() => {});
+      await client.query('ROLLBACK').catch((re) => logger.warn({ err: re }, "ROLLBACK failed"));
       throw e;
     } finally {
       client.release();
@@ -176,6 +178,7 @@ export async function handleGetCreatorPayouts(req: Request, res: Response) {
     const r = await db.query(
       `SELECT * FROM elix_payout_requests WHERE user_id = $1 ORDER BY created_at DESC LIMIT 50`, [userId],
     );
+    res.setHeader("Cache-Control", "private, no-store");
     return res.json({ payouts: r.rows });
   } catch (err) {
     logger.error({ err }, 'Get creator payouts error');
@@ -217,6 +220,7 @@ export async function handleGetPayoutMethods(req: Request, res: Response) {
     const r = await db.query(
       `SELECT * FROM elix_payout_methods WHERE user_id = $1 ORDER BY is_default DESC`, [userId],
     );
+    res.setHeader("Cache-Control", "private, no-store");
     return res.json({ methods: r.rows });
   } catch (err) {
     logger.error({ err }, 'Get payout methods error');
@@ -235,6 +239,7 @@ async function requireAdmin(req: Request, db: ReturnType<typeof getPool>): Promi
 }
 
 export async function handleAdminListPayouts(req: Request, res: Response) {
+  res.setHeader("Cache-Control", "private, no-store");
   const db = getPool();
   if (!db) return res.status(503).json({ error: 'Database not configured' });
   try {
@@ -285,7 +290,7 @@ export async function handleAdminApprovePayout(req: Request, res: Response) {
       await client.query('COMMIT');
       return res.json({ payout: pr.rows[0] });
     } catch (e) {
-      await client.query('ROLLBACK').catch(() => {});
+      await client.query('ROLLBACK').catch((re) => logger.warn({ err: re }, "ROLLBACK failed"));
       throw e;
     } finally {
       client.release();
@@ -326,7 +331,7 @@ export async function handleAdminRejectPayout(req: Request, res: Response) {
       await client.query('COMMIT');
       return res.json({ payout: pr.rows[0] });
     } catch (e) {
-      await client.query('ROLLBACK').catch(() => {});
+      await client.query('ROLLBACK').catch((re) => logger.warn({ err: re }, "ROLLBACK failed"));
       throw e;
     } finally {
       client.release();

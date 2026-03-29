@@ -3,7 +3,6 @@ import { Request, Response } from "express";
 import { logger } from "../lib/logger";
 import {
   getAllVideosAsync,
-  getVideoCached,
   getVideoAsync,
   incrementStat,
   decrementStat,
@@ -14,9 +13,6 @@ import { getTokenFromRequest, verifyAuthToken } from "./auth";
 const feedCache = new Map<string, { data: any[]; ts: number }>();
 const CACHE_TTL = 15_000;
 const MAX_FEED_CACHE_ENTRIES = 200;
-const trendingCache: { data: any[] | null; ts: number } = { data: null, ts: 0 };
-const TRENDING_CACHE_TTL = 30_000;
-
 const viewRateLimit = new Map<string, { count: number; windowStart: number }>();
 const RATE_LIMIT_WINDOW = 60_000;
 const RATE_LIMIT_MAX_VIEWS = 120;
@@ -238,11 +234,10 @@ export async function handleTrackView(req: Request, res: Response) {
 
     const db = getPool();
 
-    // Always increment the in-memory stat (used for feed ranking)
     incrementStat(videoId, "views");
 
     if (!db) {
-      return res.json({ ok: true });
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
     }
 
     const userId = await getUserId(req);
@@ -257,9 +252,8 @@ export async function handleTrackView(req: Request, res: Response) {
       return res.status(400).json({ error: "Invalid watch time" });
     }
 
-    res.json({ ok: true });
+    res.status(202).json({ accepted: true });
 
-    // Fire-and-forget DB writes after response is sent
     db.query(
       `INSERT INTO video_views (id, user_id, video_id, watch_time_seconds, video_duration_seconds, completed, ip_hash, created_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
@@ -309,12 +303,14 @@ export async function handleTrackInteraction(req: Request, res: Response) {
     else if (type === "save") incrementStat(videoId, "saves");
 
     const db = getPool();
-    if (db) {
-      const col = type === "like" ? "likes" : type === "comment" ? "comments" : type === "share" ? "shares" : type === "save" ? "saves" : null;
-      if (col) {
-        try { await db.query(`UPDATE videos SET ${col} = ${col} + 1 WHERE id = $1`, [videoId]); } catch (err) { logger.warn({ err, videoId, col }, 'Failed to increment video stat'); }
-      }
+    if (!db) {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
     }
+    const col = type === "like" ? "likes" : type === "comment" ? "comments" : type === "share" ? "shares" : type === "save" ? "saves" : null;
+    if (!col) {
+      return res.status(400).json({ error: "Invalid interaction type" });
+    }
+    await db.query(`UPDATE videos SET ${col} = ${col} + 1 WHERE id = $1`, [videoId]);
 
     res.json({ ok: true });
   } catch (err: any) {
@@ -328,35 +324,15 @@ export async function handleGetVideoScore(req: Request, res: Response) {
   try {
     const videoId = req.params.videoId;
     if (!videoId) return res.status(400).json({ error: "videoId required" });
+    res.setHeader("Cache-Control", "private, no-store");
 
     const db = getPool();
     if (!db) {
-      const memVideo = await getVideoAsync(videoId);
-      return res.json({
-        score: memVideo
-          ? {
-              video_id: videoId,
-              total_views: memVideo.views,
-              total_likes: memVideo.likes,
-              total_comments: memVideo.comments,
-              total_shares: memVideo.shares,
-              score: 0,
-            }
-          : 0,
-      });
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
     }
 
-    try {
-      const result = await db.query(`SELECT * FROM video_scores WHERE video_id = $1 LIMIT 1`, [videoId]);
-      res.json({ score: result.rows?.[0] || null });
-    } catch (err: any) {
-      logger.warn(
-        { err: err?.message, videoId },
-        "Failed to read video_scores from DB, falling back to memory",
-      );
-      const memVideo = await getVideoAsync(videoId);
-      res.json({ score: memVideo ? { video_id: videoId, total_views: memVideo.views, score: 0 } : null });
-    }
+    const result = await db.query(`SELECT * FROM video_scores WHERE video_id = $1 LIMIT 1`, [videoId]);
+    res.json({ score: result.rows?.[0] || null });
   } catch (err: any) {
     logger.error({ err: err?.message }, "GetVideoScore error");
     res.status(500).json({ error: "Failed to get score" });
@@ -368,6 +344,7 @@ export async function handleFriendsFeed(req: Request, res: Response) {
   try {
     const token = getTokenFromRequest(req);
     const jwtUser = token ? verifyAuthToken(token) : null;
+    res.setHeader("Cache-Control", "private, no-store");
     if (!jwtUser) {
       return res.json({ videos: [] });
     }
@@ -419,7 +396,7 @@ export async function handleFriendsFeed(req: Request, res: Response) {
     return res.json({ videos: mapped });
   } catch (err: any) {
     logger.error({ err: err?.message }, "Friends feed error");
-    return res.json({ videos: [] });
+    return res.status(500).json({ error: "FEED_ERROR" });
   }
 }
 
@@ -432,5 +409,4 @@ export function invalidateFeedCache(userId?: string) {
   } else {
     feedCache.clear();
   }
-  trendingCache.data = null;
 }

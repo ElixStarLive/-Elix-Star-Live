@@ -9,7 +9,6 @@ import { Heart, UserPlus, Search, ShoppingBag, Archive, X, ChevronRight, Trash2,
 import { AvatarRing } from '../components/AvatarRing';
 import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
 import { showToast } from '../lib/toast';
-import { apiUrl } from '../lib/api';
 
 interface Notification {
   id: string;
@@ -123,15 +122,8 @@ export default function Inbox() {
   const loadMyFollowingIds = useCallback(async () => {
     if (!currentUserId) return;
     try {
-      const session = useAuthStore.getState().session;
-      const headers: Record<string, string> = {};
-      if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
-      const res = await fetch(apiUrl(`/api/profiles/${encodeURIComponent(currentUserId)}/following`), {
-        credentials: 'include',
-        headers,
-      });
-      if (!res.ok) return;
-      const body = await res.json().catch(() => ({}));
+      const { data: body, error } = await request(`/api/profiles/${encodeURIComponent(currentUserId)}/following`);
+      if (error) return;
       const ids: string[] = Array.isArray(body?.following) ? body.following : [];
       setIFollowIds(new Set(ids));
     } catch {
@@ -158,14 +150,11 @@ export default function Inbox() {
         return r;
       });
       try {
-        const session = useAuthStore.getState().session;
-        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-        if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
         const endpoint = wasFollowing
-          ? apiUrl(`/api/profiles/${encodeURIComponent(targetUserId)}/unfollow`)
-          : apiUrl(`/api/profiles/${encodeURIComponent(targetUserId)}/follow`);
-        const res = await fetch(endpoint, { method: 'POST', credentials: 'include', headers });
-        if (!res.ok) throw new Error('failed');
+          ? `/api/profiles/${encodeURIComponent(targetUserId)}/unfollow`
+          : `/api/profiles/${encodeURIComponent(targetUserId)}/follow`;
+        const { error: followErr } = await request(endpoint, { method: 'POST' });
+        if (followErr) throw new Error('failed');
         const videoStore = useVideoStore.getState();
         const cur = videoStore.followingUsers;
         const updated = wasFollowing ? cur.filter((id) => id !== targetUserId) : [...cur, targetUserId];
@@ -213,15 +202,11 @@ export default function Inbox() {
     };
     const fetchConversations = async () => {
       try {
-        const session = useAuthStore.getState().session;
-        const headers: Record<string, string> = {};
-        if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
-        const res = await fetch(apiUrl('/api/chat/threads'), { credentials: 'include', headers });
-        if (!res.ok) {
+        const { data: body, error: convError } = await request('/api/chat/threads');
+        if (convError) {
           setConversations([]);
           return;
         }
-        const body = await res.json().catch(() => ({ data: [] }));
         const rows = Array.isArray(body?.data) ? body.data : [];
         const mapped: Conversation[] = rows.map((t: Record<string, unknown>) => {
           const un = Number(t.unread_count ?? 0);
@@ -256,19 +241,14 @@ export default function Inbox() {
     };
     const fetchFollowers = async () => {
       try {
-        const session = useAuthStore.getState().session;
-        const headers: Record<string, string> = {};
-        if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
-        const backendFollowersRes = await fetch(
-          apiUrl(`/api/profiles/${encodeURIComponent(currentUserId)}/followers`),
-          { credentials: 'include', headers },
-        ).catch(() => null as Response | null);
-        if (!backendFollowersRes?.ok) {
+        const { data: backendBody, error: followersErr } = await request(
+          `/api/profiles/${encodeURIComponent(currentUserId)}/followers`,
+        );
+        if (followersErr || !backendBody) {
           setFollowers([]);
           setFollowersTotalCount(0);
           return;
         }
-        const backendBody = await backendFollowersRes.json().catch(() => ({} as Record<string, unknown>));
         const ids: string[] = Array.isArray(backendBody?.followers) ? backendBody.followers : [];
         const count = Number(backendBody?.count ?? ids.length);
         setFollowersTotalCount(Number.isFinite(count) ? count : ids.length);
@@ -288,12 +268,12 @@ export default function Inbox() {
     };
     const fetchSuggestedUsers = async () => {
       try {
-        const [profilesRes, liveRes] = await Promise.all([
-          fetch(apiUrl('/api/profiles'), { credentials: 'include' }),
-          fetch(apiUrl('/api/live/streams'), { credentials: 'include' }).catch(() => null as any),
+        const [profilesResult, liveResult] = await Promise.all([
+          request('/api/profiles'),
+          request('/api/live/streams').catch(() => ({ data: null, error: null })),
         ]);
-        const profilesBody = await profilesRes.json().catch(() => ({ profiles: [] }));
-        const liveBody = liveRes ? await liveRes.json().catch(() => ({ streams: [] })) : { streams: [] };
+        const profilesBody = profilesResult.data ?? { profiles: [] };
+        const liveBody = liveResult.data ?? { streams: [] };
         const liveSet = new Set<string>((liveBody?.streams || []).map((s: any) => s.userId || s.user_id).filter(Boolean));
         setLiveUserIds(liveSet);
 
@@ -319,15 +299,11 @@ export default function Inbox() {
     };
     const fetchActivity = async () => {
       try {
-        const session = useAuthStore.getState().session;
-        const headers: Record<string, string> = {};
-        if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
-        const res = await fetch(apiUrl('/api/activity'), { credentials: 'include', headers });
-        if (!res.ok) {
+        const { data: body, error: actError } = await request('/api/activity');
+        if (actError) {
           setActivityItems([]);
           return;
         }
-        const body = await res.json().catch(() => ({ activities: [] }));
         const raw = Array.isArray(body?.activities) ? body.activities : [];
         const list: ActivityItem[] = raw
           .filter((a: any) => a && (a.kind === 'like' || a.kind === 'comment' || a.kind === 'save' || a.kind === 'mention'))
@@ -349,15 +325,11 @@ export default function Inbox() {
     };
     const fetchLiveShareRequests = async () => {
       try {
-        const session = useAuthStore.getState().session;
-        const headers: Record<string, string> = {};
-        if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
-        const res = await fetch(apiUrl('/api/inbox/live-share-requests'), { credentials: 'include', headers });
-        if (!res.ok) {
+        const { data: body, error: lsError } = await request('/api/inbox/live-share-requests');
+        if (lsError) {
           setLiveShareRequests([]);
           return;
         }
-        const body = await res.json().catch(() => ({ items: [] }));
         const raw = Array.isArray(body?.items) ? body.items : [];
         setLiveShareRequests(
           raw.map((row: Record<string, unknown>) => ({
@@ -599,15 +571,10 @@ export default function Inbox() {
                                     const ok = await nativeConfirm('Delete this conversation? Messages will be removed.', 'Delete Conversation');
                                     if (!ok) return;
                                     try {
-                                      const session = useAuthStore.getState().session;
-                                      const headers: Record<string, string> = {};
-                                      if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
-                                      const delRes = await fetch(apiUrl(`/api/chat/threads/${encodeURIComponent(conv.id)}`), {
+                                      const { error: delError } = await request(`/api/chat/threads/${encodeURIComponent(conv.id)}`, {
                                         method: 'DELETE',
-                                        credentials: 'include',
-                                        headers,
                                       });
-                                      if (!delRes.ok) showToast('Could not delete');
+                                      if (delError) showToast('Could not delete');
                                       else {
                                         addDeletedThreadId(conv.id);
                                         setConversations((prev) => prev.filter((c) => c.id !== conv.id));
@@ -661,15 +628,10 @@ export default function Inbox() {
                                     const ok = await nativeConfirm('Delete this conversation? Messages will be removed.', 'Delete Conversation');
                                     if (!ok) return;
                                     try {
-                                      const session = useAuthStore.getState().session;
-                                      const headers: Record<string, string> = {};
-                                      if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
-                                      const delRes = await fetch(apiUrl(`/api/chat/threads/${encodeURIComponent(conv.id)}`), {
+                                      const { error: delError } = await request(`/api/chat/threads/${encodeURIComponent(conv.id)}`, {
                                         method: 'DELETE',
-                                        credentials: 'include',
-                                        headers,
                                       });
-                                      if (!delRes.ok) showToast('Could not delete');
+                                      if (delError) showToast('Could not delete');
                                       else {
                                         addDeletedThreadId(conv.id);
                                         setConversations((prev) => prev.filter((c) => c.id !== conv.id));

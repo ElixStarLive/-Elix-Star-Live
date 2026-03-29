@@ -1,4 +1,4 @@
-import { apiUrl } from './api';
+import { request } from './apiClient';
 
 /** One row for the horizontal “Share to” avatar strip (Create + users). */
 export type SharePanelContact = {
@@ -13,10 +13,9 @@ export type SharePanelContact = {
  */
 export async function fetchAllSharePanelContacts(excludeUserId: string | undefined): Promise<SharePanelContact[]> {
   try {
-    const res = await fetch(apiUrl('/api/profiles'), { credentials: 'include' });
-    if (!res.ok) throw new Error('Failed to load profiles');
-    const json = await res.json();
-    const list = Array.isArray(json?.profiles) ? json.profiles : [];
+    const { data, error } = await request<{ profiles: Record<string, unknown>[] }>('/api/profiles');
+    if (error) throw new Error('Failed to load profiles');
+    const list = Array.isArray(data?.profiles) ? data.profiles : [];
     const mapped = list
       .map((p: Record<string, unknown>) => ({
         user_id: String(p.user_id ?? p.id ?? ''),

@@ -54,6 +54,7 @@ export async function handleListChatThreads(req: Request, res: Response) {
   }
   const auth = requireAuth(req, res);
   if (!auth) return;
+  res.setHeader("Cache-Control", "private, no-store");
   const threads = await dbListChatThreadsForUser(auth.userId, 50);
   if (threads.length === 0) return res.status(200).json({ threads: [] });
 
@@ -88,6 +89,7 @@ export async function handleListChatThreads(req: Request, res: Response) {
       hasUnread: (unreadCounts[i] ?? 0) > 0,
     };
   });
+  res.setHeader("Cache-Control", "private, no-store");
   return res.status(200).json({ threads: enriched });
 }
 
@@ -104,6 +106,7 @@ export async function handleGetChatThread(req: Request, res: Response) {
   const otherId =
     t.user1_id === auth.userId ? t.user2_id : t.user1_id;
   const p = await getOrCreateProfile(otherId);
+  res.setHeader("Cache-Control", "private, no-store");
   return res.status(200).json({
     thread: t,
     otherUser: {
@@ -125,6 +128,7 @@ export async function handleListChatMessages(req: Request, res: Response) {
   if (!auth) return;
   const threadId = req.params.threadId;
   const messages = await dbListChatMessages(threadId, auth.userId, 300);
+  res.setHeader("Cache-Control", "private, no-store");
   return res.status(200).json({ messages });
 }
 

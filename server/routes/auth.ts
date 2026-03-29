@@ -156,7 +156,7 @@ async function ensureAuthSessionsTable(): Promise<void> {
   `);
   await pool.query(
     `CREATE INDEX IF NOT EXISTS idx_elix_auth_sessions_user ON elix_auth_sessions(user_id, expires_at DESC)`,
-  ).catch(() => {});
+  ).catch((err) => { logger.error({ err }, "ensureAuthSessionsTable: CREATE INDEX failed"); });
   sessionTableEnsured = true;
 }
 
@@ -351,7 +351,7 @@ export async function handleLogout(req: Request, res: Response) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const token = getTokenFromRequest(req);
   if (token) {
-    await dbDeleteSessionByToken(token).catch(() => {});
+    await dbDeleteSessionByToken(token).catch((err) => { logger.error({ err }, "handleLogout: session delete failed"); });
   }
   clearAuthCookie(res);
   return res.status(200).json({ ok: true });
@@ -363,6 +363,7 @@ export async function handleMe(req: Request, res: Response) {
   if (!token) return res.status(401).json({ error: 'Not authenticated.' });
   const payload = verifyAuthToken(token);
   if (!payload) return res.status(401).json({ error: 'Invalid or expired session.' });
+  res.setHeader("Cache-Control", "private, no-store");
   if (!getPool()) return res.status(503).json({ error: 'Database not configured' });
   const user = await dbFindUserById(payload.sub);
   if (!user) return res.status(401).json({ error: 'User not found.' });
@@ -397,8 +398,7 @@ export async function handleResendConfirmation(req: Request, res: Response) {
   if (!email || typeof email !== 'string') {
     return res.status(400).json({ error: 'Email is required.' });
   }
-  // No-op: no email sender configured. Return success so UI does not block.
-  return res.status(200).json({ message: 'If an account exists, a confirmation email was sent.' });
+  return res.status(501).json({ error: 'EMAIL_SERVICE_NOT_CONFIGURED' });
 }
 
 export async function handleAppleStart(req: Request, res: Response) {
@@ -412,7 +412,7 @@ export async function handleForgotPassword(req: Request, res: Response) {
   if (!email || typeof email !== 'string') {
     return res.status(400).json({ error: 'Email is required.' });
   }
-  return res.status(200).json({ message: 'If an account exists, reset instructions were sent.' });
+  return res.status(501).json({ error: 'EMAIL_SERVICE_NOT_CONFIGURED' });
 }
 
 export async function handleResetPassword(req: Request, res: Response) {

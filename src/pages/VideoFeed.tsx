@@ -4,7 +4,8 @@ import InlineLiveViewer from "../components/InlineLiveViewer";
 import EnhancedVideoPlayer from "../components/EnhancedVideoPlayer";
 import { useVideoStore } from "../store/useVideoStore";
 import { useAuthStore } from "../store/useAuthStore";
-import { apiUrl, getWsUrl } from "../lib/api";
+import { getWsUrl } from "../lib/api";
+import { request } from "../lib/apiClient";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -190,23 +191,14 @@ export default function VideoFeed() {
   /* ---- Fetch live streams from REST ---- */
   const fetchLiveStreams = useCallback(async () => {
     try {
-      const url = apiUrl("/api/live/streams");
-      const res = await fetch(url, {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-      });
+      const { data: body, error } = await request("/api/live/streams");
 
-      if (!res.ok) {
+      if (error) {
         setLiveStreams([]);
         setLiveLoading(false);
         return;
       }
-
-      const body = await res
-        .json()
-        .catch(() => ({ streams: [] as RawStream[] }));
-      const streams: RawStream[] = Array.isArray(body.streams)
+      const streams: RawStream[] = Array.isArray(body?.streams)
         ? (body.streams as RawStream[])
         : [];
 
@@ -311,12 +303,8 @@ export default function VideoFeed() {
       for (const stream of needsEnrichment) {
         if (cancelled || !stream.userId) continue;
         try {
-          const pToken = useAuthStore.getState().session?.access_token;
-          const headers: Record<string, string> = {};
-          if (pToken) headers['Authorization'] = `Bearer ${pToken}`;
-          const res = await fetch(apiUrl(`/api/profiles/${stream.userId}`), { headers, credentials: 'include' });
-          if (!res.ok || cancelled) continue;
-          const profile = await res.json();
+          const { data: profile, error: profError } = await request(`/api/profiles/${stream.userId}`);
+          if (profError || cancelled) continue;
           const displayName = profile?.display_name || profile?.username || profile?.name;
           const avatar = profile?.avatar_url || profile?.avatar;
           if (cancelled) return;

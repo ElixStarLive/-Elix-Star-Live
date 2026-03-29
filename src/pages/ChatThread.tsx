@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { Send, ArrowLeft, Video } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
-import { apiUrl } from '../lib/api';
+import { request } from '../lib/apiClient';
 import { LevelBadge } from '../components/LevelBadge';
 import { initiateCall } from '../lib/callService';
 
@@ -18,13 +18,6 @@ interface OtherUser {
   username: string;
   avatar_url: string | null;
   level?: number;
-}
-
-function authHeaders(): Record<string, string> {
-  const token = useAuthStore.getState().session?.access_token;
-  const h: Record<string, string> = { "Content-Type": "application/json" };
-  if (token) h["Authorization"] = `Bearer ${token}`;
-  return h;
 }
 
 export default function ChatThread() {
@@ -46,19 +39,17 @@ export default function ChatThread() {
 
     const load = async () => {
       try {
-        const [msgsRes, threadsRes] = await Promise.all([
-          fetch(apiUrl(`/api/chat/threads/${threadId}/messages`), { headers: authHeaders(), credentials: "include" }),
-          fetch(apiUrl(`/api/chat/threads`), { headers: authHeaders(), credentials: "include" }),
+        const [msgsResult, threadsResult] = await Promise.all([
+          request(`/api/chat/threads/${threadId}/messages`),
+          request('/api/chat/threads'),
         ]);
 
-        if (msgsRes.ok) {
-          const msgsData = await msgsRes.json();
-          setMessages(msgsData.data || []);
+        if (msgsResult.data) {
+          setMessages(msgsResult.data.data || []);
         }
 
-        if (threadsRes.ok) {
-          const threadsData = await threadsRes.json();
-          const thread = (threadsData.data || []).find((t: any) => t.id === threadId);
+        if (threadsResult.data) {
+          const thread = (threadsResult.data.data || []).find((t: any) => t.id === threadId);
           if (thread) {
             setOtherUser({
               user_id: thread.other_user_id,
@@ -75,11 +66,8 @@ export default function ChatThread() {
     load();
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(apiUrl(`/api/chat/threads/${threadId}/messages`), { headers: authHeaders(), credentials: "include" });
-        if (res.ok) {
-          const data = await res.json();
-          setMessages(data.data || []);
-        }
+        const { data } = await request(`/api/chat/threads/${threadId}/messages`);
+        if (data) setMessages(data.data || []);
       } catch {}
     }, 5000);
 
@@ -100,15 +88,12 @@ export default function ChatThread() {
     setDraft('');
 
     try {
-      const res = await fetch(apiUrl(`/api/chat/threads/${threadId}/messages`), {
-        method: "POST",
-        headers: authHeaders(),
-        credentials: "include",
+      const { data, error } = await request(`/api/chat/threads/${threadId}/messages`, {
+        method: 'POST',
         body: JSON.stringify({ text: msgText }),
       });
 
-      if (res.ok) {
-        const data = await res.json();
+      if (!error) {
         setMessages(prev => [...prev, data.data]);
         scrollToBottom();
       } else {

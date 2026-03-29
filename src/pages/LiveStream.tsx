@@ -36,7 +36,7 @@ import {
   CameraOff,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { GIFTS, GIFT_COMBO_MAX, resolveGiftAssetUrl } from '../lib/gifts';
+import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, fetchGiftsFromDatabase } from '../lib/giftsCatalog';
 import { GiftOverlay } from '../components/GiftOverlay';
 import GiftAnimationOverlay from '../components/GiftAnimationOverlay';
 import { ChatOverlay } from '../components/ChatOverlay';
@@ -55,6 +55,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useVideoStore } from '../store/useVideoStore';
 import { clearCachedCameraStream, getCachedCameraStream } from '../lib/cameraStream';
 import { apiUrl, getLiveKitUrl } from '../lib/api';
+import { request } from '../lib/apiClient';
 import { fetchAllSharePanelContacts } from '../lib/sharePanelContacts';
 import { LevelBadge } from '../components/LevelBadge';
 import ReportModal from '../components/ReportModal';
@@ -159,6 +160,8 @@ export default function LiveStream() {
   const chatHeartLayerRef = useRef<HTMLDivElement>(null);
   const cameraStreamRef = useRef<MediaStream | null>(null);
   const [viewerHasStream, setViewerHasStream] = useState(false);
+  const [giftsCatalog, setGiftsCatalog] = useState<GiftUiItem[]>([]);
+  useEffect(() => { let c = false; fetchGiftsFromDatabase().then(g => { if (!c) setGiftsCatalog(g); }); return () => { c = true; }; }, []);
   const setPromo = useLivePromoStore((s) => s.setPromo);
   const { user, updateUser } = useAuthStore();
   const followingUsers = useVideoStore((s) => s.followingUsers);
@@ -273,15 +276,10 @@ export default function LiveStream() {
       const targetId = effectiveStreamId;
       if (!targetId || targetId === 'broadcast' || targetId === user.id) return;
       try {
-        const session = useAuthStore.getState().session;
-        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-        if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
-        const res = await fetch(apiUrl(`/api/profiles/${encodeURIComponent(targetId)}/follow`), {
+        const { error } = await request(`/api/profiles/${encodeURIComponent(targetId)}/follow`, {
           method: 'POST',
-          credentials: 'include',
-          headers,
         });
-        if (!res.ok) throw new Error('follow failed');
+        if (error) throw new Error('follow failed');
         setIsFollowing(true);
         const prev = useVideoStore.getState().followingUsers;
         if (!prev.includes(targetId)) {
@@ -304,15 +302,8 @@ export default function LiveStream() {
     let cancelled = false;
     (async () => {
       try {
-        const session = useAuthStore.getState().session;
-        const headers: Record<string, string> = {};
-        if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
-        const res = await fetch(apiUrl(`/api/profiles/${encodeURIComponent(user.id)}/following`), {
-          credentials: 'include',
-          headers,
-        });
-        if (!res.ok || cancelled) return;
-        const body = await res.json().catch(() => ({ following: [] }));
+        const { data: body, error } = await request(`/api/profiles/${encodeURIComponent(user.id)}/following`);
+        if (error || cancelled) return;
         const ids: string[] = Array.isArray(body?.following) ? body.following : [];
         if (!cancelled) setIsFollowing(ids.includes(effectiveStreamId));
       } catch {
@@ -470,19 +461,16 @@ export default function LiveStream() {
 
     (async () => {
       try {
-        const res = await fetch(apiUrl('/api/live/start'), {
+        const { data, error: startError } = await request('/api/live/start', {
           method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             room: effectiveStreamId,
             // so viewers / ForYou can see the real creator name instead of the raw stream key
             displayName: creatorNameRef.current,
           }),
         });
-        if (res.ok) {
+        if (!startError) {
           liveRegisteredRef.current = true;
-          const data = await res.json().catch(() => ({}));
           let url = (data?.url ?? '').trim();
           if (!url) url = getLiveKitUrl();
           if (data?.token && url) {
@@ -500,10 +488,8 @@ export default function LiveStream() {
       if (!liveRegisteredRef.current) return;
       (async () => {
         try {
-          await fetch(apiUrl('/api/live/end'), {
+          await request('/api/live/end', {
             method: 'POST',
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ room: effectiveStreamId }),
           });
         } catch {
@@ -605,7 +591,8 @@ export default function LiveStream() {
   useEffect(() => {
     if (!user?.id) return;
     const fetchStats = () => {
-      fetch(apiUrl(`/api/membership/${user.id}`)).then(r => r.json()).then(d => {
+      request(`/api/membership/${user.id}`).then(({ data: d }) => {
+        if (!d) return;
         if (typeof d.todayHearts === 'number') setDailyHeartCount(d.todayHearts);
         if (typeof d.totalHearts === 'number') setMyHeartCount(d.totalHearts);
         if (typeof d.totalGiftCoins === 'number') setTotalGiftCoins(d.totalGiftCoins);
@@ -1020,13 +1007,9 @@ export default function LiveStream() {
       let hName = `Host ${hostLabel}`;
       let hAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(hostLabel)}&background=121212&color=C9A96E`;
       try {
-        const profileRes = await fetch(apiUrl(`/api/profiles/${encodeURIComponent(effectiveStreamId)}`), {
-          method: 'GET',
-          credentials: 'include',
-        });
-        if (profileRes.ok) {
-          const body = await profileRes.json().catch(() => ({}));
-          const profile = body?.profile || body?.data || {};
+        const { data: profileBody } = await request(`/api/profiles/${encodeURIComponent(effectiveStreamId)}`);
+        if (profileBody) {
+          const profile = profileBody?.profile || profileBody?.data || {};
           const resolvedName =
             (typeof profile.displayName === 'string' && profile.displayName.trim()) ||
             (typeof profile.display_name === 'string' && profile.display_name.trim()) ||
@@ -1072,12 +1055,8 @@ export default function LiveStream() {
 
       // Connect to host's LiveKit room and publish our tracks
       try {
-        const tokenRes = await fetch(apiUrl(`/api/live/token?room=${encodeURIComponent(effectiveStreamId)}&publish=1`), {
-          method: 'GET', credentials: 'include',
-          headers: { ...(() => { const t = useAuthStore.getState().session?.access_token; const h: Record<string,string> = {}; if (t) h['Authorization'] = `Bearer ${t}`; return h; })() },
-        });
-        if (!tokenRes.ok || cancelled) return;
-        const tokenData = await tokenRes.json().catch(() => ({}));
+        const { data: tokenData, error: tokenErr } = await request(`/api/live/token?room=${encodeURIComponent(effectiveStreamId)}&publish=1`);
+        if (tokenErr || cancelled) return;
         const lkUrl = (tokenData?.url ?? '').trim() || getLiveKitUrl();
         const lkToken = tokenData?.token;
         if (!lkUrl || !lkToken || cancelled) return;
@@ -1256,12 +1235,8 @@ export default function LiveStream() {
 
     (async () => {
       try {
-        const authToken = useAuthStore.getState().session?.access_token;
-        const headers: Record<string, string> = {};
-        if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
-        const res = await fetch(apiUrl(`/api/live/token?room=${encodeURIComponent(opponentStreamKey)}`), { method: 'GET', credentials: 'include', headers });
-        if (!res.ok || !mounted) return;
-        const payload = await res.json().catch(() => ({}));
+        const { data: payload, error: tokenErr } = await request(`/api/live/token?room=${encodeURIComponent(opponentStreamKey)}`);
+        if (tokenErr || !mounted) return;
         const token = payload?.token;
         const url = (payload?.url ?? '').trim() || getLiveKitUrl();
         if (!token || !url || !mounted) return;
@@ -1352,7 +1327,7 @@ export default function LiveStream() {
   useEffect(() => {
     if (!showFanClub || stickersFetchedRef.current || !user?.id) return;
     stickersFetchedRef.current = true;
-    fetch(apiUrl(`/api/stickers/${user.id}`)).then(r => r.json()).then(d => {
+    request(`/api/stickers/${user.id}`).then(({ data: d }) => {
       if (d?.stickers) setCreatorStickers(d.stickers);
     }).catch(() => {});
   }, [showFanClub, user?.id]);
@@ -1369,15 +1344,8 @@ export default function LiveStream() {
     let cancelled = false;
     (async () => {
       try {
-        const session = useAuthStore.getState().session;
-        const headers: Record<string, string> = {};
-        if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
-        const res = await fetch(apiUrl(`/api/profiles/${encodeURIComponent(user.id)}/following`), {
-          credentials: 'include',
-          headers,
-        });
-        if (!res.ok || cancelled) return;
-        const body = await res.json().catch(() => ({ following: [] }));
+        const { data: body, error } = await request(`/api/profiles/${encodeURIComponent(user.id)}/following`);
+        if (error || cancelled) return;
         const ids: string[] = Array.isArray(body?.following) ? body.following : [];
         if (!cancelled) setMiniProfileFollowsThem(ids.includes(miniProfile.id!));
       } catch {
@@ -1417,13 +1385,9 @@ export default function LiveStream() {
   }, []);
 
   const deleteSticker = useCallback(async (id: number) => {
-    const token = useAuthStore.getState().session?.access_token;
-    if (!token) return;
-    const res = await fetch(apiUrl(`/api/stickers/${id}`), {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (res.ok) setCreatorStickers(prev => prev.filter(s => s.id !== id));
+    if (!useAuthStore.getState().session?.access_token) return;
+    const { error } = await request(`/api/stickers/${id}`, { method: 'DELETE' });
+    if (!error) setCreatorStickers(prev => prev.filter(s => s.id !== id));
   }, []);
 
   const handleSubscribe = async () => {
@@ -1491,13 +1455,8 @@ export default function LiveStream() {
     if (!user?.id || shareSentTo.has(targetUserId)) return;
     const label = shareFollowers.find((f) => f.user_id === targetUserId)?.username || 'user';
     try {
-      const session = useAuthStore.getState().session;
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
-      const res = await fetch(apiUrl('/api/live-share'), {
+      const { data: j, error: shareErr } = await request('/api/live-share', {
         method: 'POST',
-        credentials: 'include',
-        headers,
         body: JSON.stringify({
           targetUserId,
           streamKey: effectiveStreamId,
@@ -1508,9 +1467,8 @@ export default function LiveStream() {
           sharerAvatar: user?.avatar || '',
         }),
       });
-      const j = await res.json().catch(() => ({} as Record<string, unknown>));
-      if (!res.ok) {
-        showToast(typeof j?.error === 'string' ? j.error : 'Could not share');
+      if (shareErr) {
+        showToast(shareErr.message || 'Could not share');
         return;
       }
       showToast(`Shared live with ${label}`);
@@ -2156,12 +2114,8 @@ export default function LiveStream() {
     if (viewerIdentityCacheRef.current.has(viewerId) || viewerIdentityInflightRef.current.has(viewerId)) return;
     const task = (async () => {
       try {
-        const res = await fetch(apiUrl(`/api/profiles/${encodeURIComponent(viewerId)}`), {
-          method: 'GET',
-          credentials: 'include',
-        });
-        if (!res.ok) return;
-        const body = await res.json().catch(() => ({}));
+        const { data: body, error: profileErr } = await request(`/api/profiles/${encodeURIComponent(viewerId)}`);
+        if (profileErr || !body) return;
         const profile = body?.profile || body?.data || {};
         const resolvedUsername =
           (typeof profile.username === 'string' && profile.username.trim()) ||
@@ -2372,7 +2326,7 @@ export default function LiveStream() {
 
     const handleGiftSent = (data: any) => {
       if (!mounted) return;
-      const giftDef = GIFTS.find(g => g.id === data.giftId);
+      const giftDef = giftsCatalog.find(g => g.id === data.giftId);
       const gifterId = typeof data.user_id === 'string' ? data.user_id : '';
       const giftCoins =
         giftDef?.coins ??
@@ -2804,16 +2758,12 @@ export default function LiveStream() {
       const base64 = captureFrame();
       if (!base64) return;
       try {
-        const token = useAuthStore.getState().session?.access_token;
-        if (!token) return;
-        const res = await fetch(apiUrl('/api/live/moderation/check'), {
+        if (!useAuthStore.getState().session?.access_token) return;
+        const { data: json, error: modErr } = await request('/api/live/moderation/check', {
           method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({ stream_key: effectiveStreamId, image_base64: base64 }),
         });
-        if (!res.ok) return;
-        const json = await res.json();
+        if (modErr || !json) return;
         const action = json?.action;
         const message = json?.message || '';
         if (action === 'warning') {
@@ -2845,7 +2795,7 @@ export default function LiveStream() {
   const [giftBanner, setGiftBanner] = useState<{ username: string; giftName: string; icon: string } | null>(null);
   const giftBannerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isPlayingGift, setIsPlayingGift] = useState(false);
-  const [lastSentGift, setLastSentGift] = useState<typeof GIFTS[0] | null>(null);
+  const [lastSentGift, setLastSentGift] = useState<GiftUiItem | null>(null);
   const [userLevel, setUserLevel] = useState(1);
 
 
@@ -2858,7 +2808,7 @@ export default function LiveStream() {
     | null
   >(null);
 
-  const maybeTriggerFaceARGift = (gift: typeof GIFTS[0]) => {
+  const maybeTriggerFaceARGift = (gift: GiftUiItem) => {
     const mapping: Record<string, { type: 'crown' | 'glasses' | 'mask' | 'ears' | 'hearts' | 'stars'; color?: string } | undefined> = {
       face_ar_crown: { type: 'crown', color: '#FFD700' },
       face_ar_glasses: { type: 'glasses', color: '#00D4FF' },
@@ -2888,7 +2838,7 @@ export default function LiveStream() {
     setIsPlayingGift(false);
   };
 
-  const handleSendGift = async (gift: typeof GIFTS[0]) => {
+  const handleSendGift = async (gift: GiftUiItem) => {
     if (!gift) return;
 
     try {
@@ -2910,16 +2860,13 @@ export default function LiveStream() {
       
       if (user?.id) {
         try {
-          const authToken = useAuthStore.getState().session?.access_token;
-          const res = await fetch(apiUrl('/api/gifts/send'), {
+          const { data: result, error: giftErr } = await request('/api/gifts/send', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) },
             body: JSON.stringify({ streamKey: effectiveStreamId, giftId: gift.id, channel: platform.name }),
           });
-          const result = await res.json().catch(() => ({}));
 
-          if (!res.ok) {
-            const msg = typeof result.error === 'string' ? result.error : '';
+          if (giftErr) {
+            const msg = giftErr.message || '';
             if (msg.includes('frozen')) {
               showToast('Account is frozen. Contact support.');
               return;
@@ -3072,16 +3019,13 @@ export default function LiveStream() {
       let newLevel = userLevel;
       if (user?.id) {
         try {
-          const authToken = useAuthStore.getState().session?.access_token;
-          const res = await fetch(apiUrl('/api/gifts/send'), {
+          const { data: result, error: giftErr } = await request('/api/gifts/send', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) },
             body: JSON.stringify({ streamKey: effectiveStreamId, giftId: lastSentGift.id, channel: platform.name }),
           });
-          const result = await res.json().catch(() => ({}));
 
-          if (!res.ok) {
-            const msg = typeof result.error === 'string' ? result.error : '';
+          if (giftErr) {
+            const msg = giftErr.message || '';
             if (msg.includes('insufficient_funds')) {
               showToast('Not enough coins');
               return;
@@ -3241,10 +3185,8 @@ export default function LiveStream() {
     // Mark stream ended on backend list so it disappears from /api/live/streams
     if (roomId && liveRegisteredRef.current) {
       try {
-        await fetch(apiUrl('/api/live/end'), {
+        await request('/api/live/end', {
           method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ room: roomId }),
         });
       } catch {
@@ -3343,23 +3285,17 @@ export default function LiveStream() {
     const donated = username === myCreatorName ? sessionContribution : 0;
     setMiniProfile({ username, avatar, level, coins, donated });
     try {
-      const authToken = useAuthStore.getState().session?.access_token;
-      const res = await fetch(apiUrl(`/api/profiles/by-username/${encodeURIComponent(username)}`), {
-        headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
-      });
-      if (res.ok) {
-        const prof = await res.json();
-        if (prof?.user_id) {
-          setMiniProfile(prev => prev ? {
-            ...prev,
-            id: prof.user_id,
-            bio: prof.bio || '',
-            avatar: prof.avatar_url || prev.avatar,
-            level: prof.level ?? prev.level,
-            followers_count: prof.followers_count ?? 0,
-            following_count: prof.following_count ?? 0,
-          } : prev);
-        }
+      const { data: prof } = await request(`/api/profiles/by-username/${encodeURIComponent(username)}`);
+      if (prof?.user_id) {
+        setMiniProfile(prev => prev ? {
+          ...prev,
+          id: prof.user_id,
+          bio: prof.bio || '',
+          avatar: prof.avatar_url || prev.avatar,
+          level: prof.level ?? prev.level,
+          followers_count: prof.followers_count ?? 0,
+          following_count: prof.following_count ?? 0,
+        } : prev);
       }
     } catch { /* keep what we have */ }
   };
@@ -3376,29 +3312,22 @@ export default function LiveStream() {
     let targetId = miniProfile.id;
     if (!targetId && miniProfile.username) {
       try {
-        const authToken = useAuthStore.getState().session?.access_token;
-        const res = await fetch(apiUrl(`/api/profiles/by-username/${encodeURIComponent(miniProfile.username)}`), {
-          headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
-          credentials: 'include',
-        });
-        if (res.ok) {
-          const prof = await res.json();
-          if (prof?.user_id) {
-            targetId = prof.user_id;
-            setMiniProfile((prev) =>
-              prev && prev.username === miniProfile.username
-                ? {
-                    ...prev,
-                    id: prof.user_id,
-                    bio: prof.bio ?? prev.bio,
-                    avatar: prof.avatar_url || prev.avatar,
-                    level: prof.level ?? prev.level,
-                    followers_count: prof.followers_count ?? prev.followers_count,
-                    following_count: prof.following_count ?? prev.following_count,
-                  }
-                : prev,
-            );
-          }
+        const { data: prof } = await request(`/api/profiles/by-username/${encodeURIComponent(miniProfile.username)}`);
+        if (prof?.user_id) {
+          targetId = prof.user_id;
+          setMiniProfile((prev) =>
+            prev && prev.username === miniProfile.username
+              ? {
+                  ...prev,
+                  id: prof.user_id,
+                  bio: prof.bio ?? prev.bio,
+                  avatar: prof.avatar_url || prev.avatar,
+                  level: prof.level ?? prev.level,
+                  followers_count: prof.followers_count ?? prev.followers_count,
+                  following_count: prof.following_count ?? prev.following_count,
+                }
+              : prev,
+          );
         }
       } catch {
         /* keep */
@@ -4874,10 +4803,8 @@ export default function LiveStream() {
                   <button type="button" onClick={async () => {
                     if (!user?.id || !miniProfile?.id) return;
                     try {
-                      const authToken = useAuthStore.getState().session?.access_token;
-                      await fetch(apiUrl('/api/block-user'), {
+                      await request('/api/block-user', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json', ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) },
                         body: JSON.stringify({ blockedId: miniProfile.id }),
                       });
                       showToast(`@${miniProfile.username} blocked`);
@@ -5434,10 +5361,8 @@ export default function LiveStream() {
                     showToast(`+${amount.toLocaleString()} test added`);
                     setShowTestCoinsModal(false);
                     if (user?.id) {
-                      const authToken = useAuthStore.getState().session?.access_token;
-                      fetch(apiUrl('/api/test-coins'), {
+                      request('/api/test-coins', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json', ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) },
                         body: JSON.stringify({ amount }),
                       }).catch(() => {});
                     }
@@ -5482,10 +5407,8 @@ export default function LiveStream() {
                         showToast(`+${amount.toLocaleString()} test added`);
                         setShowTestCoinsModal(false);
                         if (user?.id) {
-                          const authToken = useAuthStore.getState().session?.access_token;
-                          fetch(apiUrl('/api/test-coins'), {
+                          request('/api/test-coins', {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json', ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) },
                             body: JSON.stringify({ amount }),
                           }).catch(() => {});
                         }

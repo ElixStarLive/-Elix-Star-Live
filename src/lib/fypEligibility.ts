@@ -16,8 +16,7 @@
  * Persistence via PATCH /api/videos/:id/fyp on the Node backend.
  */
 
-import { apiUrl } from "./api";
-import { useAuthStore } from "../store/useAuthStore";
+import { request } from "./apiClient";
 
 // ── Weights ──────────────────────────────────────────────────────────────────
 
@@ -33,17 +32,6 @@ export const FYP_THRESHOLD = 50;
 
 /** Boost given to every newly-uploaded video so it gets initial exposure. */
 export const NEW_VIDEO_BOOST = 50;
-
-// ── Auth helpers ─────────────────────────────────────────────────────────────
-
-function getAuthHeaders(): Record<string, string> {
-  const token = useAuthStore.getState().session?.access_token;
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-  return headers;
-}
 
 // ── Pure helpers ─────────────────────────────────────────────────────────────
 
@@ -81,24 +69,16 @@ async function patchVideoFyp(
   videoId: string,
   body: Record<string, unknown>,
 ): Promise<void> {
-  try {
-    const res = await fetch(apiUrl(`/api/videos/${videoId}/fyp`), {
-      method: "PATCH",
-      headers: getAuthHeaders(),
-      credentials: "include",
-      body: JSON.stringify(body),
-    });
+  const { error } = await request(`/api/videos/${videoId}/fyp`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
 
-    if (!res.ok) {
-      const err = (await res.json().catch(() => ({}))) as { error?: string };
-      console.warn(
-        `[FYP] PATCH /api/videos/${videoId}/fyp failed:`,
-        err.error ?? res.status,
-      );
-    }
-  } catch (err) {
-    // Non-critical — FYP score updates should never crash the upload flow
-    console.warn("[FYP] Network error updating FYP status:", err);
+  if (error) {
+    console.warn(
+      `[FYP] PATCH /api/videos/${videoId}/fyp failed:`,
+      error.message,
+    );
   }
 }
 

@@ -5,7 +5,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useVideoStore } from '../store/useVideoStore';
 import EnhancedVideoPlayer from '../components/EnhancedVideoPlayer';
 import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
-import { apiUrl } from '../lib/api';
+import { request } from '../lib/apiClient';
 
 interface SuggestedUser {
   id: string;
@@ -27,12 +27,12 @@ export default function FriendsFeed() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const [profilesRes, liveRes] = await Promise.all([
-          fetch(apiUrl('/api/profiles'), { credentials: 'include' }),
-          fetch(apiUrl('/api/live/streams'), { credentials: 'include' }).catch(() => null as any),
+        const [profilesResult, liveResult] = await Promise.all([
+          request('/api/profiles'),
+          request('/api/live/streams').catch(() => ({ data: null, error: null })),
         ]);
-        const profilesBody = await profilesRes.json().catch(() => ({ profiles: [] }));
-        const liveBody = liveRes ? await liveRes.json().catch(() => ({ streams: [] })) : { streams: [] };
+        const profilesBody = profilesResult.data ?? { profiles: [] };
+        const liveBody = liveResult.data ?? { streams: [] };
         const liveSet = new Set((liveBody?.streams || []).map((s: any) => s.userId || s.user_id).filter(Boolean));
 
         const rows = Array.isArray(profilesBody?.profiles) ? profilesBody.profiles : [];

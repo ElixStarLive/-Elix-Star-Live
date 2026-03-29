@@ -5,7 +5,7 @@
 
 import { platform } from './platform';
 import { useAuthStore } from '../store/useAuthStore';
-import { apiUrl } from './api';
+import { request } from './apiClient';
 
 // Product IDs — must match App Store Connect / Google Play Console
 export const IAP_PRODUCTS = {
@@ -211,12 +211,8 @@ async function verifyAndCreditPurchase(
 
     const provider = platform.isIOS ? 'apple' : 'google';
 
-    const res = await fetch(apiUrl('/api/verify-purchase'), {
+    const { error } = await request('/api/verify-purchase', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${session.access_token}`,
-      },
       body: JSON.stringify({
         userId: user.id,
         packageId,
@@ -226,9 +222,8 @@ async function verifyAndCreditPurchase(
       }),
     });
 
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      return { success: false, error: body.error || 'Server verification failed' };
+    if (error) {
+      return { success: false, error: error.message || 'Server verification failed' };
     }
 
     return { success: true };

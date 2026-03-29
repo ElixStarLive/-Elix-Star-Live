@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { TrendingUp, Play, UserPlus, FileText, Heart } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
-import { apiUrl } from '../lib/api';
+import { request } from '../lib/apiClient';
 import { getPaymentMethod, platform } from '../lib/platform';
 import { purchasePromoteProduct, type PromoteProductId } from '../lib/iap';
 
@@ -72,13 +72,8 @@ export default function PromotePanel({ isOpen, onClose, contentType, content }: 
           setPanelMessage(result.error || 'Purchase failed');
           return;
         }
-        const res = await fetch(apiUrl('/api/promote-iap-complete'), {
+        const { data, error: reqError } = await request('/api/promote-iap-complete', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
-          },
-          credentials: 'include',
           body: JSON.stringify({
             transactionId: result.transactionId,
             receipt: result.receipt || '',
@@ -88,12 +83,11 @@ export default function PromotePanel({ isOpen, onClose, contentType, content }: 
             contentId: content?.id ?? '',
           }),
         });
-        const data = await res.json().catch(() => ({}));
-        if (res.ok && data.success) {
+        if (!reqError && data?.success) {
           onClose();
           return;
         }
-        setPanelMessage(data.error || 'Failed to complete promote. Please try again.');
+        setPanelMessage(data?.error || reqError?.message || 'Failed to complete promote. Please try again.');
       } catch {
         setPanelMessage('Failed to complete promote. Please try again.');
       } finally {

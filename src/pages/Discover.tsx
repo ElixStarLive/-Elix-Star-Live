@@ -4,9 +4,8 @@ import { Search, TrendingUp, Hash, Users, Video as VideoIcon, Trophy, Music, Fla
 import { trackEvent } from '../lib/analytics';
 import { AvatarRing } from '../components/AvatarRing';
 import { getVideoPosterUrl } from '../lib/bunnyStorage';
-import { apiUrl } from '../lib/api';
+import { request } from '../lib/apiClient';
 import { isIndecentExploreCaption } from '../lib/suggestiveCaption';
-import { useAuthStore } from '../store/useAuthStore';
 import { useVideoStore } from '../store/useVideoStore';
 
 interface Video {
@@ -79,19 +78,14 @@ export default function Discover() {
     setLoading(true);
     setTrendingVideos([]);
     try {
-      const session = useAuthStore.getState().session;
-      const headers: Record<string, string> = {};
-      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
-
-      const res = await fetch(apiUrl('/api/videos'), { credentials: 'include', headers });
-      if (!res.ok) throw new Error('Failed');
-      const body = await res.json();
+      const { data: body, error } = await request('/api/videos');
+      if (error) throw new Error('Failed');
       const list = Array.isArray(body?.videos) ? body.videos : [];
 
 
       if (list.length > 0) {
-        const profRes = await fetch(apiUrl('/api/profiles'), { credentials: 'include', headers });
-        const allProfiles = profRes.ok ? ((await profRes.json()).profiles || []) : [];
+        const { data: profBody } = await request('/api/profiles');
+        const allProfiles = profBody?.profiles || [];
         const profileMap: Record<string, { username: string; avatar_url: string | null }> = {};
         allProfiles.forEach((p: any) => { profileMap[p.user_id] = { username: p.username || 'User', avatar_url: p.avatar_url ?? null }; });
 
@@ -143,12 +137,9 @@ export default function Discover() {
   const loadRanking = async () => {
     setLoading(true);
     try {
-      const session = useAuthStore.getState().session;
-      const headers: Record<string, string> = {};
-      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
-      const res = await fetch(apiUrl('/api/profiles'), { credentials: 'include', headers });
-      if (!res.ok) throw new Error('Failed');
-      const allProfiles = (await res.json()).profiles || [];
+      const { data: rankBody, error } = await request('/api/profiles');
+      if (error) throw new Error('Failed');
+      const allProfiles = rankBody?.profiles || [];
       const ranked = allProfiles
         .map((p: any, i: number) => ({ rank: i + 1, user_id: p.user_id, username: p.username, display_name: p.display_name, avatar_url: p.avatar_url, score: p.followers_count || 0 }))
         .sort((a: any, b: any) => b.score - a.score)
@@ -166,16 +157,12 @@ export default function Discover() {
     setLoading(true);
     trackEvent('search_query', { query: searchQuery });
     try {
-      const session = useAuthStore.getState().session;
-      const headers: Record<string, string> = {};
-      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
-
-      const [videosRes, profilesRes] = await Promise.all([
-        fetch(apiUrl('/api/videos'), { credentials: 'include', headers }),
-        fetch(apiUrl('/api/profiles'), { credentials: 'include', headers }),
+      const [videosResult, profilesResult] = await Promise.all([
+        request('/api/videos'),
+        request('/api/profiles'),
       ]);
-      const allVids = videosRes.ok ? ((await videosRes.json()).videos || []) : [];
-      const allProfiles = profilesRes.ok ? ((await profilesRes.json()).profiles || []) : [];
+      const allVids = videosResult.data?.videos || [];
+      const allProfiles = profilesResult.data?.profiles || [];
       const q = searchQuery.toLowerCase();
       const matchedVids = allVids.filter((v: any) => (v.description || '').toLowerCase().includes(q)).slice(0, 20);
       const matchedUsers = allProfiles.filter((p: any) => (p.username || '').toLowerCase().includes(q) || (p.display_name || '').toLowerCase().includes(q)).slice(0, 20);
@@ -560,11 +547,8 @@ function UserSearchResult({ user }: { user: User }) {
   const handleFollow = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (followed) return;
-    const session = useAuthStore.getState().session;
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
     try {
-      await fetch(apiUrl(`/api/profiles/${user.user_id}/follow`), { method: 'POST', credentials: 'include', headers });
+      await request(`/api/profiles/${user.user_id}/follow`, { method: 'POST' });
       setFollowed(true);
     } catch { /* ignore */ }
   };

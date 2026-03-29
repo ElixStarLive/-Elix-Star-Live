@@ -44,8 +44,6 @@
     "@mediapipe/drawing_utils": "^0.3.1675466124",
     "@mediapipe/face_mesh": "^0.4.1633559619",
     "@radix-ui/react-dialog": "^1.1.15",
-    "@stripe/react-stripe-js": "^5.6.0",
-    "@stripe/stripe-js": "^8.7.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "compression": "^1.8.1",
@@ -70,6 +68,7 @@
     "tailwind-merge": "^3.4.0",
     "tsx": "^4.21.0",
     "ws": "^8.19.0",
+    "zod": "^4.3.6",
     "zustand": "^5.0.10"
   },
   "overrides": {

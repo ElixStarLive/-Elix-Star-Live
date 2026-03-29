@@ -93,6 +93,7 @@ export async function handleGetLiveShareRequests(req: Request, res: Response): P
 
   try {
     const items = await listLiveShareRequestsNonFollowing(jwt.sub);
+    res.setHeader("Cache-Control", "private, no-store");
     res.json({ items });
   } catch (err) {
     logger.error({ err, userId: jwt.sub }, "handleGetLiveShareRequests failed");

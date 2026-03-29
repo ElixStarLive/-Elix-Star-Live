@@ -160,50 +160,55 @@ export async function handleLiveModerationCheck(req: Request, res: Response) {
     return res.json({ action: 'none' });
   }
 
-  const result = await classifyImageWithAI(imageBase64);
-
-  if (!result.flagged) {
-    await logEntry('check', null, null, 'none', { note: 'ai_no_flag' });
-    return res.json({ action: 'none' });
-  }
-
-  const category = result.category ?? 'unspecified';
-  const severity = (result.severity ?? 'medium') as Severity;
-
-  const since = new Date(Date.now() - WINDOW_MS).toISOString();
-  let recentCount = 0;
   try {
-    const r = await db.query(
-      `SELECT COUNT(*)::int AS c FROM live_moderation_log
-       WHERE user_id = $1 AND kind IN ('flag', 'warning', 'pause', 'suspend') AND created_at >= $2`,
-      [userId, since],
-    );
-    recentCount = Number(r.rows[0]?.c ?? 0);
-  } catch (err) {
-    logger.error({ err, userId }, 'Failed to count recent moderation entries');
-  }
+    const result = await classifyImageWithAI(imageBase64);
 
-  const isCritical = severity === 'critical';
-  const shouldSuspend = isCritical || recentCount >= 2;
-
-  if (shouldSuspend) {
-    await logEntry('flag', category, severity, 'suspend', { recent_count: recentCount, reason: isCritical ? 'critical' : 'repeated' });
-    try {
-      await db.query(
-        `UPDATE profiles SET is_verified = FALSE, updated_at = NOW() WHERE user_id = $1`,
-        [userId],
-      );
-    } catch (err) {
-      logger.error({ err, userId }, 'Failed to freeze account for moderation');
+    if (!result.flagged) {
+      await logEntry('check', null, null, 'none', { note: 'ai_no_flag' });
+      return res.json({ action: 'none' });
     }
-    return res.json({ action: 'suspend', message: SUSPEND_MESSAGE });
-  }
 
-  if (recentCount >= 1) {
-    await logEntry('flag', category, severity, 'pause', { recent_count: recentCount });
-    return res.json({ action: 'pause', message: PAUSE_MESSAGE });
-  }
+    const category = result.category ?? 'unspecified';
+    const severity = (result.severity ?? 'medium') as Severity;
 
-  await logEntry('warning', category, severity, 'warning', {});
-  return res.json({ action: 'warning', message: WARNING_MESSAGE });
+    const since = new Date(Date.now() - WINDOW_MS).toISOString();
+    let recentCount = 0;
+    try {
+      const r = await db.query(
+        `SELECT COUNT(*)::int AS c FROM live_moderation_log
+         WHERE user_id = $1 AND kind IN ('flag', 'warning', 'pause', 'suspend') AND created_at >= $2`,
+        [userId, since],
+      );
+      recentCount = Number(r.rows[0]?.c ?? 0);
+    } catch (err) {
+      logger.error({ err, userId }, 'Failed to count recent moderation entries');
+    }
+
+    const isCritical = severity === 'critical';
+    const shouldSuspend = isCritical || recentCount >= 2;
+
+    if (shouldSuspend) {
+      await logEntry('flag', category, severity, 'suspend', { recent_count: recentCount, reason: isCritical ? 'critical' : 'repeated' });
+      try {
+        await db.query(
+          `UPDATE profiles SET is_verified = FALSE, updated_at = NOW() WHERE user_id = $1`,
+          [userId],
+        );
+      } catch (err) {
+        logger.error({ err, userId }, 'Failed to freeze account for moderation');
+      }
+      return res.json({ action: 'suspend', message: SUSPEND_MESSAGE });
+    }
+
+    if (recentCount >= 1) {
+      await logEntry('flag', category, severity, 'pause', { recent_count: recentCount });
+      return res.json({ action: 'pause', message: PAUSE_MESSAGE });
+    }
+
+    await logEntry('warning', category, severity, 'warning', {});
+    return res.json({ action: 'warning', message: WARNING_MESSAGE });
+  } catch (err) {
+    logger.error({ err, streamKey: streamKey, userId }, 'handleLiveModerationCheck AI path failed');
+    return res.status(500).json({ error: "MODERATION_ERROR" });
+  }
 }

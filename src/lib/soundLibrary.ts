@@ -1,4 +1,4 @@
-import { apiUrl } from "./api";
+import { request } from "./apiClient";
 
 export type SoundTrack = {
   id: number;
@@ -14,22 +14,9 @@ export type SoundTrack = {
 
 // Fetch sound tracks from Hetzner backend — no hardcoded data, no dead stubs
 export async function fetchSoundTracksFromDatabase(): Promise<SoundTrack[]> {
-  try {
-    const res = await fetch(apiUrl("/api/sounds"), {
-      method: "GET",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-    });
-
-    if (!res.ok) {
-      return [];
-    }
-
-    const data = (await res.json()) as { tracks?: SoundTrack[] };
-    return data.tracks ?? [];
-  } catch {
-    return [];
-  }
+  const { data, error } = await request<{ tracks?: SoundTrack[] }>("/api/sounds");
+  if (error) return [];
+  return data?.tracks ?? [];
 }
 
 // Default empty track for when no music is selected

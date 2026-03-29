@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Trophy } from 'lucide-react';
-import { apiUrl } from '../lib/api';
+import { request } from '../lib/apiClient';
 import { AvatarRing } from './AvatarRing';
 
 interface CreatorRanking {
@@ -26,10 +26,9 @@ export function RankingPanel({ onClose }: RankingPanelProps) {
 
   const loadRanking = async () => {
     try {
-      const res = await fetch(apiUrl('/api/rankings/weekly'));
-      if (!res.ok) throw new Error('fetch failed');
-      const json = await res.json();
-      if (Array.isArray(json.data)) {
+      const { data: json, error } = await request('/api/rankings/weekly');
+      if (error) throw new Error('fetch failed');
+      if (Array.isArray(json?.data)) {
         setRankings(json.data.map((r: any, i: number) => ({
           rank: r.rank ?? i + 1,
           user_id: r.user_id,

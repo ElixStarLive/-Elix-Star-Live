@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, Heart, Trash2, Edit3, MessageSquare, Reply, MoreVertical } from 'lucide-react';
 import { useVideoStore } from '../store/useVideoStore';
 import { useAuthStore } from '../store/useAuthStore';
-import { apiUrl } from '../lib/api';
+import { request } from '../lib/apiClient';
 import { LevelBadge } from './LevelBadge';
 
 interface Comment {
@@ -52,14 +52,9 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
     try {
       setLoading(true);
       const sort = sortBy === 'oldest' ? 'oldest' : 'newest';
-      const res = await fetch(apiUrl(`/api/videos/${encodeURIComponent(videoId)}/comments?sort=${sort}`), {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        credentials: 'include',
-      });
-      if (!res.ok) throw new Error(`Failed to fetch comments (${res.status})`);
-      const body = await res.json().catch(() => ({ comments: [] }));
-      setComments(Array.isArray(body.comments) ? body.comments : []);
+      const { data: body, error } = await request(`/api/videos/${encodeURIComponent(videoId)}/comments?sort=${sort}`);
+      if (error) throw new Error(error.message);
+      setComments(Array.isArray(body?.comments) ? body.comments : []);
     } catch (error) {
       console.error('Failed to fetch comments:', error);
     } finally {
@@ -72,15 +67,12 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
     if (!commentText || !user?.id) return;
 
     try {
-      const res = await fetch(apiUrl(`/api/videos/${encodeURIComponent(videoId)}/comments`), {
+      const { data: body, error } = await request(`/api/videos/${encodeURIComponent(videoId)}/comments`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        credentials: 'include',
         body: JSON.stringify({ text: commentText, parentId: parentComment?.id || null }),
       });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(body?.error || `Failed to add comment (${res.status})`);
-      const newCommentFormatted: any = body.comment;
+      if (error) throw new Error(error.message);
+      const newCommentFormatted: any = body?.comment;
 
       if (parentComment) {
         // Add reply to parent comment
@@ -115,13 +107,10 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
 
   const handleDeleteComment = async (commentId: string, isReply: boolean = false, parentId?: string) => {
     try {
-      const res = await fetch(apiUrl(`/api/videos/${encodeURIComponent(videoId)}/comments/${encodeURIComponent(commentId)}`), {
+      const { error } = await request(`/api/videos/${encodeURIComponent(videoId)}/comments/${encodeURIComponent(commentId)}`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        credentials: 'include',
       });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(body?.error || `Failed to delete comment (${res.status})`);
+      if (error) throw new Error(error.message);
 
       if (isReply && parentId) {
         // Remove reply from parent comment

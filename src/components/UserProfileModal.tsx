@@ -7,8 +7,7 @@ import { AvatarRing } from './AvatarRing';
 import { useSafetyStore } from '../store/useSafetyStore';
 import ReportModal from './ReportModal';
 import { showToast } from '../lib/toast';
-import { apiUrl } from '../lib/api';
-import { api } from '../lib/apiClient';
+import { api, request } from '../lib/apiClient';
 import { navigateToDmWithUser } from '../lib/openDmThread';
 
 interface User {
@@ -100,17 +99,10 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
   };
 
   const handleBlockUser = async () => {
-    const token = session?.access_token;
-    if (token) {
-      await fetch(apiUrl('/api/block-user'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ blockedUserId: user.id, action: 'block' }),
-      }).catch(() => null);
-    }
+    await request('/api/block-user', {
+      method: 'POST',
+      body: JSON.stringify({ blockedUserId: user.id, action: 'block' }),
+    }).catch(() => null);
     blockUser(user.id);
     onClose();
   };
@@ -142,17 +134,10 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
           </p>
           <button
             onClick={async () => {
-              const token = session?.access_token;
-              if (token) {
-                await fetch(apiUrl('/api/block-user'), {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
-                  },
-                  body: JSON.stringify({ blockedUserId: user.id, action: 'unblock' }),
-                }).catch(() => null);
-              }
+              await request('/api/block-user', {
+                method: 'POST',
+                body: JSON.stringify({ blockedUserId: user.id, action: 'unblock' }),
+              }).catch(() => null);
               unblockUser(user.id);
             }}
             className="px-4 py-2 bg-white text-white rounded-lg hover:bg-white transition-colors"

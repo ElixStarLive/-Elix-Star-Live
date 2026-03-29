@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../lib/apiClient';
+import { api, request } from '../lib/apiClient';
 import { useAuthStore } from '../store/useAuthStore';
 import { Plus, X, Camera, Tag, MessageCircle, Search } from 'lucide-react';
 import { AvatarRing } from '../components/AvatarRing';
 import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
 import { showToast } from '../lib/toast';
-import { apiUrl } from '../lib/api';
 
 const SHOP_LIVE_RING = 56;
 
@@ -48,12 +47,12 @@ export default function Shop() {
     let cancelled = false;
     const load = async () => {
       try {
-        const [streamsRes, profilesRes] = await Promise.all([
-          fetch(apiUrl('/api/live/streams'), { credentials: 'include' }).catch(() => null as any),
-          fetch(apiUrl('/api/profiles'), { credentials: 'include' }).catch(() => null as any),
+        const [streamsResult, profilesResult] = await Promise.all([
+          request('/api/live/streams').catch(() => ({ data: null, error: null })),
+          request('/api/profiles').catch(() => ({ data: null, error: null })),
         ]);
-        const streamsBody = streamsRes ? await streamsRes.json().catch(() => ({ streams: [] })) : { streams: [] };
-        const profilesBody = profilesRes ? await profilesRes.json().catch(() => ({ profiles: [] })) : { profiles: [] };
+        const streamsBody = streamsResult.data ?? { streams: [] };
+        const profilesBody = profilesResult.data ?? { profiles: [] };
 
         const profiles = Array.isArray(profilesBody?.profiles) ? profilesBody.profiles : [];
         const byId = new Map<string, { name: string; avatar: string }>();
@@ -169,15 +168,12 @@ export default function Shop() {
 
   const handleBuy = async (item: ShopItem) => {
     try {
-      const res = await fetch(apiUrl('/api/shop/checkout'), {
+      const { data, error } = await request('/api/shop/checkout', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ itemId: item.id }),
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || `Checkout failed (${res.status})`);
-      if (data.url) {
+      if (error) throw new Error(error.message || 'Checkout failed');
+      if (data?.url) {
         window.location.href = data.url;
         return;
       }

@@ -14,6 +14,8 @@ import { handlePostLiveShare, handleGetLiveShareRequests } from "./liveShareInbo
 import { handleGetMyActivity } from "./activity";
 import { handleLiveModerationCheck } from "./moderation";
 import { handleGetStickers, handleUploadSticker, handleDeleteSticker } from "./stickers";
+import { validateBody } from "../middleware/validate";
+import { blockUserSchema, reportSchema, verifyPurchaseSchema } from "../validation/schemas";
 
 const router = Router();
 
@@ -21,16 +23,16 @@ const router = Router();
 router.post("/analytics/track", handleAnalytics);
 
 // Block & report
-router.post("/block-user", handleBlockUser);
+router.post("/block-user", validateBody(blockUserSchema), handleBlockUser);
 router.post("/unblock-user", handleUnblockUser);
 router.get("/blocked-users", handleListBlockedUsers);
-router.post("/report", handleReport);
+router.post("/report", validateBody(reportSchema), handleReport);
 
 // Live moderation
 router.post("/live/moderation/check", handleLiveModerationCheck);
 
 // IAP verification
-router.post("/verify-purchase", handleVerifyPurchase);
+router.post("/verify-purchase", validateBody(verifyPurchaseSchema), handleVerifyPurchase);
 router.post("/promote-iap-complete", handlePromoteIAPComplete);
 router.post("/membership/iap-complete", handleMembershipIAPComplete);
 
@@ -45,6 +47,7 @@ router.get("/inbox/live-share-requests", handleGetLiveShareRequests);
 // Activity & notifications
 router.get("/activity", handleGetMyActivity);
 router.get("/notifications", async (req, res) => {
+  res.setHeader("Cache-Control", "private, no-store");
   const { getTokenFromRequest, verifyAuthToken } = await import("./auth");
   const { getPool } = await import("../lib/postgres");
   const token = getTokenFromRequest(req);
@@ -66,6 +69,7 @@ router.get("/notifications", async (req, res) => {
 
 // Hearts & Membership stats
 router.get("/hearts/daily/:creatorUserId", async (req, res) => {
+  res.setHeader("Cache-Control", "private, no-store");
   const { getTokenFromRequest, verifyAuthToken } = await import("./auth");
   const { dbGetDailyHeartCount, dbGetTotalHeartCount, dbHasSentDailyHeart } = await import("../lib/postgres");
   const token = getTokenFromRequest(req);
@@ -90,6 +94,7 @@ router.post("/hearts/daily", async (req, res) => {
 });
 
 router.get("/membership/:creatorId", async (req, res) => {
+  res.setHeader("Cache-Control", "private, no-store");
   const { dbGetCreatorMembershipStats } = await import("../lib/postgres");
   const stats = await dbGetCreatorMembershipStats(req.params.creatorId);
   return res.json(stats);

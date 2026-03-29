@@ -1,4 +1,4 @@
-import { apiUrl } from './api';
+import { request } from './apiClient';
 
 // Analytics Event Tracking
 
@@ -169,9 +169,8 @@ class AnalyticsService {
     if (import.meta.env.DEV) return;
 
     // Send to backend for server-side storage
-    fetch(apiUrl('/api/analytics/track'), {
+    request('/api/analytics/track', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ event, properties }),
     }).catch(() => {
       // Fail silently - analytics shouldn't break app
