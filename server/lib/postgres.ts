@@ -6,6 +6,7 @@
 import pg from "pg";
 import type { Video } from "./videoStore";
 import { logger } from "./logger";
+import { bumpFeedForyouEpoch } from "./feedCacheValkey";
 
 const { Pool } = pg;
 
@@ -29,8 +30,73 @@ export function isPostgresConfigured(): boolean {
   return Boolean((process.env.DATABASE_URL || "").trim());
 }
 
+const MIGRATIONS_TABLE = "elix_schema_migrations";
+
 /**
- * Open the shared pool and verify connectivity only.
+ * In production, refuse to serve if migration metadata is missing or empty.
+ * Run `npm run migrate` in the deploy release step before starting app processes.
+ * Emergency escape: ELIX_SKIP_MIGRATION_CHECK=1 — refused when NODE_ENV=production (see envValidate).
+ */
+async function assertMigrationsApplied(client: pg.Pool): Promise<void> {
+  const isProd = process.env.NODE_ENV === "production";
+  if (process.env.ELIX_SKIP_MIGRATION_CHECK === "1") {
+    if (isProd) {
+      throw new Error(
+        "ELIX_SKIP_MIGRATION_CHECK cannot be used in production — remove it and run `npm run migrate` before start",
+      );
+    }
+    logger.warn("ELIX_SKIP_MIGRATION_CHECK=1 — migration verification skipped (non-production only)");
+    return;
+  }
+
+  let tableExists = false;
+  try {
+    const r = await client.query<{ e: boolean }>(
+      `SELECT EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_schema = 'public' AND table_name = $1
+      ) AS e`,
+      [MIGRATIONS_TABLE],
+    );
+    tableExists = Boolean(r.rows[0]?.e);
+  } catch (err) {
+    const msg = "Cannot verify schema migrations table";
+    if (isProd) {
+      throw new Error(`${msg}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+    logger.warn({ err }, msg);
+    return;
+  }
+
+  if (!tableExists) {
+    const detail =
+      "public.elix_schema_migrations is missing — run `npm run migrate` before starting workers (release/deploy step).";
+    if (isProd) {
+      throw new Error(`MIGRATIONS_REQUIRED: ${detail}`);
+    }
+    logger.warn(detail);
+    return;
+  }
+
+  const cnt = await client.query<{ c: number }>(
+    `SELECT COUNT(*)::int AS c FROM ${MIGRATIONS_TABLE}`,
+  );
+  const n = Number(cnt.rows[0]?.c ?? 0);
+  if (n < 1) {
+    const detail =
+      "elix_schema_migrations has no rows — run `npm run migrate` at least once before production traffic.";
+    if (isProd) {
+      throw new Error(`MIGRATIONS_REQUIRED: ${detail}`);
+    }
+    logger.warn(detail);
+    return;
+  }
+
+  logger.info({ appliedMigrationFiles: n }, "Schema migrations verified");
+}
+
+/**
+ * Open the shared pool, verify connectivity, and (in production) verify migrations were applied.
  * DDL and seeds run via `npm run migrate` (once per deploy), never from clustered workers.
  */
 export async function connectPostgres(): Promise<void> {
@@ -39,35 +105,31 @@ export async function connectPostgres(): Promise<void> {
     logger.warn("DATABASE_URL is not set — all data will be stored in memory only and lost on restart!");
     return;
   }
+
+  const needsSsl = url.includes("neon.tech") || url.includes("sslmode=require");
+  const newPool = new Pool({
+    connectionString: url,
+    max: Number(process.env.PG_POOL_MAX) || 30,
+    min: Number(process.env.PG_POOL_MIN) || 2,
+    idleTimeoutMillis: 60_000,
+    connectionTimeoutMillis: 10_000,
+    allowExitOnIdle: false,
+    statement_timeout: 15_000,
+    ...(needsSsl ? { ssl: { rejectUnauthorized: process.env.PG_SSL_REJECT_UNAUTHORIZED === "true" } } : {}),
+  });
+  newPool.on("error", (err) => {
+    logger.error({ err: err.message }, "Unexpected pool error");
+  });
+
   try {
-    const needsSsl = url.includes("neon.tech") || url.includes("sslmode=require");
-    pool = new Pool({
-      connectionString: url,
-      max: Number(process.env.PG_POOL_MAX) || 30,
-      min: Number(process.env.PG_POOL_MIN) || 2,
-      idleTimeoutMillis: 60_000,
-      connectionTimeoutMillis: 10_000,
-      allowExitOnIdle: false,
-      statement_timeout: 15_000,
-      ...(needsSsl ? { ssl: { rejectUnauthorized: process.env.PG_SSL_REJECT_UNAUTHORIZED === "true" } } : {}),
-    });
-    pool.on("error", (err) => {
-      logger.error({ err: err.message }, "Unexpected pool error");
-    });
-    await pool.query("SELECT 1");
+    await newPool.query("SELECT 1");
+    await assertMigrationsApplied(newPool);
+    pool = newPool;
     logger.info("PostgreSQL pool ready");
-    try {
-      await pool.query("SELECT 1 FROM elix_schema_migrations LIMIT 1");
-      logger.info("Schema migrations table present");
-    } catch {
-      logger.warn("Run `npm run migrate` once per deploy before production traffic (elix_schema_migrations missing)");
-    }
   } catch (err) {
-    logger.error(
-      { err },
-      "PostgreSQL connection FAILED — check DATABASE_URL and run migrations. Pool not initialized.",
-    );
+    await newPool.end().catch(() => {});
     pool = null;
+    throw err;
   }
 }
 
@@ -190,6 +252,7 @@ export async function deleteVideoFromDb(videoId: string): Promise<void> {
     const del = await client.query(`DELETE FROM videos WHERE id = $1`, [videoId]);
     await client.query("COMMIT");
     logger.info({ videoId, videosDeleted: del.rowCount }, "Video deleted from Postgres");
+    if ((del.rowCount ?? 0) > 0) void bumpFeedForyouEpoch();
   } catch (err) {
     try {
       await client.query("ROLLBACK");

@@ -1,32 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Request, Response } from "express";
 import { logger } from "../lib/logger";
-import {
-  getAllVideosAsync,
-  getVideoAsync,
-  incrementStat,
-  decrementStat,
-} from "../lib/videoStore";
 import { getPool } from "../lib/postgres";
 import { getTokenFromRequest, verifyAuthToken } from "./auth";
+import { isValkeyConfigured, valkeyGet, valkeySet, valkeyRateCheck } from "../lib/valkey";
+import {
+  bumpFeedForyouEpoch,
+  feedForyouDataKey,
+  getFeedForyouEpoch,
+  FEED_FORYOU_CACHE_TTL_MS,
+} from "../lib/feedCacheValkey";
 
-const feedCache = new Map<string, { data: any[]; ts: number }>();
-const CACHE_TTL = 22_000;
-const MAX_FEED_CACHE_ENTRIES = 400;
-const viewRateLimit = new Map<string, { count: number; windowStart: number }>();
 const RATE_LIMIT_WINDOW = 60_000;
 const RATE_LIMIT_MAX_VIEWS = 120;
-const MAX_RATE_LIMIT_ENTRIES = 50_000;
-
-setInterval(() => {
-  const now = Date.now();
-  for (const [k, v] of feedCache) {
-    if (now - v.ts > CACHE_TTL) feedCache.delete(k);
-  }
-  for (const [k, v] of viewRateLimit) {
-    if (now - v.windowStart > RATE_LIMIT_WINDOW) viewRateLimit.delete(k);
-  }
-}, 30_000).unref();
 
 function getIpHash(req: Request): string {
   const ip =
@@ -41,20 +27,9 @@ function getIpHash(req: Request): string {
   return "ip_" + Math.abs(hash).toString(36);
 }
 
-function checkRateLimit(key: string): boolean {
-  const now = Date.now();
-  const entry = viewRateLimit.get(key);
-  if (!entry || now - entry.windowStart > RATE_LIMIT_WINDOW) {
-    if (viewRateLimit.size >= MAX_RATE_LIMIT_ENTRIES) {
-      const oldest = viewRateLimit.keys().next().value;
-      if (oldest) viewRateLimit.delete(oldest);
-    }
-    viewRateLimit.set(key, { count: 1, windowStart: now });
-    return true;
-  }
-  if (entry.count >= RATE_LIMIT_MAX_VIEWS) return false;
-  entry.count++;
-  return true;
+async function allowViewRateLimit(rateKey: string): Promise<boolean> {
+  if (!isValkeyConfigured()) return true;
+  return valkeyRateCheck(`elix:ratelimit:feed_view:${rateKey}`, RATE_LIMIT_WINDOW, RATE_LIMIT_MAX_VIEWS);
 }
 
 async function getUserId(req: Request): Promise<string | null> {
@@ -64,50 +39,67 @@ async function getUserId(req: Request): Promise<string | null> {
   return payload?.sub ?? null;
 }
 
+function formatDurationSeconds(sec: unknown): string {
+  const n = Number(sec);
+  if (!Number.isFinite(n) || n < 0) return "0:00";
+  const m = Math.floor(n / 60);
+  const s = Math.floor(n % 60);
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+function formatMusicFromRow(v: any, displayName: string): any {
+  const m = v.music;
+  if (m && typeof m === "object" && !Array.isArray(m)) {
+    return {
+      id: String(m.id ?? "original"),
+      title: String(m.title ?? ""),
+      artist: String(m.artist ?? displayName),
+      duration: typeof m.duration === "string" ? m.duration : formatDurationSeconds(m.duration),
+    };
+  }
+  return null;
+}
+
 function formatVideoForClient(
   v: any,
   likedSet: Set<string>,
   followingSet: Set<string>,
+  locationLabel: string,
 ): any {
   const u = v.user;
   const uid = u?.user_id ?? u?.id ?? v.user_id ?? "unknown";
   const uname = u?.username ?? "user";
+  const displayName = String(u?.display_name ?? uname);
+  const music = formatMusicFromRow(v, displayName);
   return {
     id: v.id,
     url: v.url || v.video_url,
     thumbnail: v.thumbnail || v.thumbnail_url || v.thumb_url || "",
-    duration: (v.duration_seconds || v.duration)
-      ? `${Math.floor((v.duration_seconds || v.duration) / 60)}:${String(Math.floor((v.duration_seconds || v.duration) % 60)).padStart(2, "0")}`
-      : "0:15",
+    duration: formatDurationSeconds(v.duration_seconds ?? v.duration),
     user: {
       id: uid,
       username: uname,
-      name: u?.display_name ?? uname,
+      name: displayName,
       avatar:
         u?.avatar_url ??
         `https://ui-avatars.com/api/?name=${encodeURIComponent(uname)}`,
-      level: 1,
+      level: Number(u?.level ?? 1),
       isVerified: !!u?.is_creator,
-      followers: 0,
-      following: 0,
+      followers: Number(u?.followers ?? 0),
+      following: Number(u?.following ?? 0),
     },
     description: v.description || v.caption || "",
-    hashtags: v.hashtags || [],
-    music: {
-      id: "original",
-      title: "Original Sound",
-      artist: u?.display_name ?? uname,
-      duration: "0:15",
-    },
+    hashtags: Array.isArray(v.hashtags) ? v.hashtags : [],
+    music,
     stats: {
-      views: v.views || 0,
-      likes: v.likes || v.likes_count || 0,
-      comments: v.comments || v.comments_count || 0,
-      shares: v.shares || v.shares_count || 0,
-      saves: 0,
+      views: v.views ?? 0,
+      likes: v.likes ?? v.likes_count ?? 0,
+      comments: v.comments ?? v.comments_count ?? 0,
+      shares: v.shares ?? v.shares_count ?? 0,
+      saves: v.saves ?? 0,
     },
     createdAt: v.created_at,
-    location: "For You",
+    location: locationLabel,
     isLiked: likedSet.has(v.id),
     isSaved: false,
     isFollowing: uid !== "unknown" && followingSet.has(uid),
@@ -115,11 +107,32 @@ function formatVideoForClient(
     quality: "auto",
     privacy:
       v.privacy === "private" || v.is_public === false ? "private" : "public",
-    engagementScore: v.engagement_score || 0,
+    engagementScore: Number(v.engagement_score ?? 0),
   };
 }
 
-/** For You = ALL public videos & livestreams from everyone. */
+const FORYOU_SQL = `SELECT v.id, v.url, v.thumbnail, v.duration, v.description, v.hashtags, v.music,
+                v.views, v.likes, v.comments, v.shares, v.saves,
+                v.created_at, v.privacy, v.user_id,
+                (COALESCE(v.views,0) + COALESCE(v.likes,0)*2 + COALESCE(v.comments,0) + COALESCE(v.shares,0))::int AS engagement_score,
+                (json_build_object(
+                  'user_id', p.user_id,
+                  'username', p.username,
+                  'display_name', p.display_name,
+                  'avatar_url', p.avatar_url,
+                  'is_creator', COALESCE(p.is_verified, false),
+                  'followers', COALESCE(p.followers, 0),
+                  'following', COALESCE(p.following, 0),
+                  'level', COALESCE(p.level, 1)
+                ))::json AS user
+         FROM videos v
+         LEFT JOIN profiles p ON p.user_id = v.user_id
+         WHERE (v.privacy IS NULL OR v.privacy <> 'private')
+           AND v.url IS NOT NULL AND btrim(v.url) <> ''
+         ORDER BY v.created_at DESC NULLS LAST
+         LIMIT $1 OFFSET $2`;
+
+/** For You — Postgres + Valkey cache; no in-memory feed state. */
 export async function handleForYouFeed(req: Request, res: Response) {
   try {
     const page = Math.max(1, parseInt(String(req.query.page || "1"), 10) || 1);
@@ -129,87 +142,49 @@ export async function handleForYouFeed(req: Request, res: Response) {
     );
     const offset = (page - 1) * limit;
 
-    const cacheKey = `foryou:all:${page}:${limit}`;
-    const cached = feedCache.get(cacheKey);
-    if (cached && Date.now() - cached.ts < CACHE_TTL) {
-      res.setHeader("Cache-Control", "public, s-maxage=22, max-age=12");
-      return res.json({
-        videos: cached.data,
-        mutualUserIds: [],
-        page,
-        limit,
-        hasMore: cached.data.length >= limit,
-        total: offset + cached.data.length,
-        source: "cache",
-      });
+    const db = getPool();
+    if (!db) {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
     }
 
     const followingSet = new Set<string>();
     const likedSet = new Set<string>();
 
-    const db = getPool();
-    let formatted: any[] = [];
+    const epoch = await getFeedForyouEpoch();
+    const valkeyKey = feedForyouDataKey(epoch, page, limit);
 
-    if (db) {
-      const { rows } = await db.query(
-        `SELECT v.id, v.url, v.thumbnail, v.duration, v.description, v.hashtags,
-                v.views, v.likes, v.comments, v.shares, v.saves,
-                v.created_at, v.privacy, v.user_id,
-                (json_build_object(
-                  'user_id', p.user_id,
-                  'username', p.username,
-                  'display_name', p.display_name,
-                  'avatar_url', p.avatar_url,
-                  'is_creator', COALESCE(p.is_verified, false)
-                ))::json AS user
-         FROM videos v
-         LEFT JOIN profiles p ON p.user_id = v.user_id
-         WHERE (v.privacy IS NULL OR v.privacy <> 'private')
-           AND v.url IS NOT NULL AND btrim(v.url) <> ''
-         ORDER BY v.created_at DESC NULLS LAST
-         LIMIT $1 OFFSET $2`,
-        [limit, offset],
-      );
-      formatted = (rows || []).map((v: any) => formatVideoForClient(v, likedSet, followingSet));
-    } else {
-      const allVids = await getAllVideosAsync();
-      const memVideos = allVids.filter((v) => {
-        const url = (v.url || "").trim();
-        if (!url || url.startsWith("https://example.com/")) return false;
-        return v.privacy !== "private";
-      });
-      const paginated = memVideos.slice(offset, offset + limit);
-      formatted = paginated.map((v) => ({
-        id: v.id,
-        url: v.url,
-        thumbnail: v.thumbnail,
-        duration: v.duration,
-        user: {
-          id: v.userId,
-          username: v.username,
-          name: v.displayName,
-          avatar: v.avatar,
-        },
-        description: v.description,
-        hashtags: v.hashtags,
-        music: v.music,
-        stats: {
-          views: v.views,
-          likes: v.likes,
-          comments: v.comments,
-          shares: v.shares,
-          saves: v.saves,
-        },
-        createdAt: v.createdAt,
-      }));
+    if (isValkeyConfigured()) {
+      const raw = await valkeyGet(valkeyKey);
+      if (raw) {
+        try {
+          const payload = JSON.parse(raw) as { videos: any[] };
+          res.setHeader("Cache-Control", "public, s-maxage=22, max-age=12");
+          return res.json({
+            videos: payload.videos,
+            mutualUserIds: [],
+            page,
+            limit,
+            hasMore: payload.videos.length >= limit,
+            total: offset + payload.videos.length,
+            source: "valkey",
+          });
+        } catch {
+          /* miss */
+        }
+      }
     }
 
-    if (formatted.length > 0) {
-      if (feedCache.size >= MAX_FEED_CACHE_ENTRIES) {
-        const oldest = feedCache.keys().next().value;
-        if (oldest) feedCache.delete(oldest);
-      }
-      feedCache.set(cacheKey, { data: formatted, ts: Date.now() });
+    const { rows } = await db.query(FORYOU_SQL, [limit, offset]);
+    const formatted = (rows || []).map((v: any) =>
+      formatVideoForClient(v, likedSet, followingSet, "For You"),
+    );
+
+    if (isValkeyConfigured() && formatted.length > 0) {
+      await valkeySet(
+        valkeyKey,
+        JSON.stringify({ videos: formatted }),
+        FEED_FORYOU_CACHE_TTL_MS,
+      );
     }
 
     res.setHeader("Cache-Control", "public, s-maxage=22, max-age=12");
@@ -220,7 +195,7 @@ export async function handleForYouFeed(req: Request, res: Response) {
       limit,
       hasMore: formatted.length >= limit,
       total: offset + formatted.length,
-      source: db ? "postgres_all" : "memory_all",
+      source: "postgres",
     });
   } catch (err: any) {
     logger.error({ err: err?.message }, "ForYouFeed error");
@@ -239,9 +214,6 @@ export async function handleTrackView(req: Request, res: Response) {
     if (!videoId) return res.status(400).json({ error: "videoId required" });
 
     const db = getPool();
-
-    incrementStat(videoId, "views");
-
     if (!db) {
       return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
     }
@@ -250,7 +222,7 @@ export async function handleTrackView(req: Request, res: Response) {
     const ipHash = getIpHash(req);
     const rateKey = userId ? `${userId}:${ipHash}` : ipHash;
 
-    if (!checkRateLimit(rateKey)) {
+    if (!(await allowViewRateLimit(rateKey))) {
       return res.status(429).json({ error: "Rate limit exceeded" });
     }
 
@@ -266,7 +238,7 @@ export async function handleTrackView(req: Request, res: Response) {
        ON CONFLICT DO NOTHING`,
       [
         `v_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-        userId || 'anonymous',
+        userId || "anonymous",
         videoId,
         watchTime || 0,
         videoDuration || 0,
@@ -303,16 +275,20 @@ export async function handleTrackInteraction(req: Request, res: Response) {
     if (!videoId || !type)
       return res.status(400).json({ error: "videoId and type required" });
 
-    if (type === "like") incrementStat(videoId, "likes");
-    else if (type === "comment") incrementStat(videoId, "comments");
-    else if (type === "share") incrementStat(videoId, "shares");
-    else if (type === "save") incrementStat(videoId, "saves");
-
     const db = getPool();
     if (!db) {
       return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
     }
-    const col = type === "like" ? "likes" : type === "comment" ? "comments" : type === "share" ? "shares" : type === "save" ? "saves" : null;
+    const col =
+      type === "like"
+        ? "likes"
+        : type === "comment"
+          ? "comments"
+          : type === "share"
+            ? "shares"
+            : type === "save"
+              ? "saves"
+              : null;
     if (!col) {
       return res.status(400).json({ error: "Invalid interaction type" });
     }
@@ -325,7 +301,6 @@ export async function handleTrackInteraction(req: Request, res: Response) {
   }
 }
 
-
 export async function handleGetVideoScore(req: Request, res: Response) {
   try {
     const videoId = req.params.videoId;
@@ -337,15 +312,45 @@ export async function handleGetVideoScore(req: Request, res: Response) {
       return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
     }
 
-    const result = await db.query(`SELECT * FROM video_scores WHERE video_id = $1 LIMIT 1`, [videoId]);
-    res.json({ score: result.rows?.[0] || null });
+    try {
+      const result = await db.query(`SELECT * FROM video_scores WHERE video_id = $1 LIMIT 1`, [videoId]);
+      res.json({ score: result.rows?.[0] ?? null });
+    } catch (err: unknown) {
+      const code = (err as { code?: string })?.code;
+      if (code === "42P01") {
+        return res.json({ score: null });
+      }
+      throw err;
+    }
   } catch (err: any) {
     logger.error({ err: err?.message }, "GetVideoScore error");
     res.status(500).json({ error: "Failed to get score" });
   }
 }
 
-/** GET /api/feed/friends — videos from people you follow and people who follow you (one social graph feed) */
+const FRIENDS_SQL = `SELECT v.id, v.url, v.thumbnail, v.duration, v.description, v.hashtags, v.music,
+                v.views, v.likes, v.comments, v.shares, v.saves,
+                v.created_at, v.privacy, v.user_id,
+                (COALESCE(v.views,0) + COALESCE(v.likes,0)*2 + COALESCE(v.comments,0) + COALESCE(v.shares,0))::int AS engagement_score,
+                (json_build_object(
+                  'user_id', p.user_id,
+                  'username', p.username,
+                  'display_name', p.display_name,
+                  'avatar_url', p.avatar_url,
+                  'is_creator', COALESCE(p.is_verified, false),
+                  'followers', COALESCE(p.followers, 0),
+                  'following', COALESCE(p.following, 0),
+                  'level', COALESCE(p.level, 1)
+                ))::json AS user
+         FROM videos v
+         LEFT JOIN profiles p ON p.user_id = v.user_id
+         WHERE v.user_id = ANY($1::text[])
+           AND (v.privacy IS NULL OR v.privacy <> 'private')
+           AND v.url IS NOT NULL AND btrim(v.url) <> ''
+         ORDER BY v.created_at DESC NULLS LAST
+         LIMIT 80`;
+
+/** GET /api/feed/friends — DB only (private; not Valkey-cached). */
 export async function handleFriendsFeed(req: Request, res: Response) {
   try {
     const token = getTokenFromRequest(req);
@@ -371,34 +376,14 @@ export async function handleFriendsFeed(req: Request, res: Response) {
     const likedSet = new Set<string>();
 
     const db = getPool();
-    if (db) {
-      const { rows } = await db.query(
-        `SELECT v.*, row_to_json(p) AS user
-         FROM videos v
-         LEFT JOIN profiles p ON p.user_id = v.user_id
-         WHERE v.user_id = ANY($1::text[])
-           AND (v.privacy IS NULL OR v.privacy <> 'private')
-           AND v.url IS NOT NULL AND btrim(v.url) <> ''
-         ORDER BY v.created_at DESC NULLS LAST
-         LIMIT 80`,
-        [networkIds],
-      );
-      const mapped = (rows || []).map((v: any) => formatVideoForClient(v, likedSet, followingSet));
-      return res.json({ videos: mapped });
+    if (!db) {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
     }
 
-    const networkSet = new Set(networkIds);
-    const allVideos = await getAllVideosAsync();
-    const friendVids = allVideos
-      .filter((v) => {
-        const url = (v.url || "").trim();
-        if (!url) return false;
-        return networkSet.has(v.userId) && v.privacy !== "private";
-      })
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 80);
-
-    const mapped = friendVids.map((v) => formatVideoForClient(v, likedSet, followingSet));
+    const { rows } = await db.query(FRIENDS_SQL, [networkIds]);
+    const mapped = (rows || []).map((v: any) =>
+      formatVideoForClient(v, likedSet, followingSet, "Friends"),
+    );
     return res.json({ videos: mapped });
   } catch (err: any) {
     logger.error({ err: err?.message }, "Friends feed error");
@@ -406,13 +391,7 @@ export async function handleFriendsFeed(req: Request, res: Response) {
   }
 }
 
-export function invalidateFeedCache(userId?: string) {
-  if (userId) {
-    const prefix = `foryou:mutual:${userId}:`;
-    for (const key of [...feedCache.keys()]) {
-      if (key.startsWith(prefix) || key.startsWith(userId)) feedCache.delete(key);
-    }
-  } else {
-    feedCache.clear();
-  }
+/** Invalidate For You Valkey cache (epoch bump). userId ignored — global feed invalidation. */
+export function invalidateFeedCache(_userId?: string): void {
+  void bumpFeedForyouEpoch();
 }

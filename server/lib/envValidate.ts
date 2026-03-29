@@ -22,5 +22,12 @@ export function validateProductionEnvironment(): void {
     process.exit(1);
   }
 
-  logger.info("Production environment validation passed");
+  if (process.env.ELIX_SKIP_MIGRATION_CHECK === "1") {
+    logger.fatal("ELIX_SKIP_MIGRATION_CHECK must not be set in production — migration checks are mandatory");
+    process.exit(1);
+  }
+
+  logger.info(
+    "Production environment validation passed — ensure `npm run migrate` runs in the release/deploy step before workers start",
+  );
 }

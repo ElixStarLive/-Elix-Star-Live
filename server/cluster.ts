@@ -18,8 +18,11 @@
  * Falls back to single-process mode if WEB_CONCURRENCY=1.
  *
  * Production: set ELIX_JOB_WORKER=0 (or false) on these app workers so only one
- * dedicated instance runs the Valkey job consumer (ELIX_JOB_WORKER=1). Run
- * `npm run migrate` once per deploy before starting workers (not per worker).
+ * dedicated instance runs the Valkey job consumer (ELIX_JOB_WORKER=1).
+ *
+ * Migrations: run `npm run migrate` in the release step before any worker starts, or use
+ * `npm run start:prod:safe` (migrate && cluster). App exits on boot if migrations are
+ * missing (unless ELIX_SKIP_MIGRATION_CHECK=1, not for real production).
  */
 
 import cluster from "node:cluster";

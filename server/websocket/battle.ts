@@ -3,11 +3,12 @@
  *
  * Timer architecture:
  *   - battles:active  SET  — contains roomIds of all battles needing ticks
- *   - battle:tick:{roomId}  — distributed lock (SET NX PX 1500)
- *   - Every worker runs a 1-second global loop
- *   - Each loop iteration tries to acquire the lock for each active battle
- *   - Only the lock holder processes the tick for that battle
- *   - If a worker crashes, lock expires in 1.5s, another worker picks it up
+ *   - battle:tick:{roomId}  — distributed lock (SET NX PX, TTL 1500 ms)
+ *   - Scheduler interval: 1000 ms (1 Hz). Lock TTL 1500 ms is greater than the interval so the
+ *     same lock typically spans the next tick — avoids two workers both processing the same room
+ *     on back-to-back ticks; if a lock holder dies, the key expires within 1.5s and another worker
+ *     can acquire on a subsequent tick.
+ *   - Battle countdown uses wall time: timeLeft = f(endsAt, Date.now()), not “assume 300 ticks fired”.
  *
  * No local Maps. No setInterval per battle.
  */
@@ -63,7 +64,10 @@ export interface BattleSession {
 }
 
 const BATTLE_TTL = 600_000;
+/** Lock TTL (ms) for `battle:tick:{roomId}` — must be > scheduler interval (1000 ms). */
 const TICK_LOCK_TTL = 1500;
+/** Valkey key prefix — full key is `${BATTLE_TICK_LOCK_KEY_PREFIX}${roomId}` (e.g. `battle:tick:room-abc`). */
+export const BATTLE_TICK_LOCK_KEY_PREFIX = "battle:tick:";
 const ACTIVE_BATTLES_KEY = "battles:active";
 
 let globalTickInterval: ReturnType<typeof setInterval> | null = null;
@@ -117,7 +121,7 @@ async function deleteBattleFromStore(
   try {
     await valkeySrem(ACTIVE_BATTLES_KEY, roomId);
     await valkeyDel("battle:" + roomId);
-    await valkeyDel("battle:tick:" + roomId);
+    await valkeyDel(BATTLE_TICK_LOCK_KEY_PREFIX + roomId);
     await valkeyDel(SCORE_KEY_PREFIX + roomId);
     await valkeyDel("ubr:" + session.hostUserId);
     if (session.opponentUserId) await valkeyDel("ubr:" + session.opponentUserId);
@@ -282,7 +286,7 @@ export async function endBattle(roomId: string): Promise<void> {
   if (!session) return;
 
   await valkeySrem(ACTIVE_BATTLES_KEY, roomId);
-  await valkeyDel("battle:tick:" + roomId);
+  await valkeyDel(BATTLE_TICK_LOCK_KEY_PREFIX + roomId);
 
   const scores = await getScoresFromHash(roomId);
   session.hostScore = scores.hostScore;
@@ -356,8 +360,13 @@ export function broadcastBattleState(
 
 // ── Distributed battle tick loop ────────────────────────────────
 
+/**
+ * Per-room tick: only one executor across all workers/instances.
+ * Proof: `valkeySetNx(BATTLE_TICK_LOCK_KEY_PREFIX + roomId, "1", TICK_LOCK_TTL)` — Valkey/Redis SET NX PX;
+ * if another worker holds the lock, returns false and this tick is a no-op for that room.
+ */
 async function processBattleTick(roomId: string): Promise<void> {
-  const locked = await valkeySetNx("battle:tick:" + roomId, "1", TICK_LOCK_TTL);
+  const locked = await valkeySetNx(BATTLE_TICK_LOCK_KEY_PREFIX + roomId, "1", TICK_LOCK_TTL);
   if (!locked) return;
 
   try {
@@ -403,9 +412,10 @@ async function globalTickLoop(): Promise<void> {
 }
 
 /**
- * Start the distributed battle tick loop.
- * Call once per worker at startup. All workers run this —
- * distributed locks ensure only one worker processes each battle per tick.
+ * Start the 1 Hz scheduler that scans active battles (SMEMBERS `battles:active`).
+ * Intentionally registered on every worker: each tick, `processBattleTick(roomId)` must
+ * acquire `BATTLE_TICK_LOCK_KEY_PREFIX + roomId` via `valkeySetNx` (SET NX PX, TTL 1500 ms).
+ * At most one worker runs the body for a given room per tick; others return immediately.
  */
 export function initBattleTickLoop(): void {
   if (globalTickInterval) return;
@@ -415,7 +425,16 @@ export function initBattleTickLoop(): void {
   }
 
   globalTickInterval = setInterval(globalTickLoop, 1000);
-  logger.info("Distributed battle tick loop started");
+  logger.info(
+    {
+      schedulerIntervalMs: 1000,
+      perRoomLock: "Valkey SET NX PX",
+      lockKeyPattern: `${BATTLE_TICK_LOCK_KEY_PREFIX}{roomId}`,
+      lockTtlMs: TICK_LOCK_TTL,
+      activeBattlesSet: ACTIVE_BATTLES_KEY,
+    },
+    "Battle tick scheduler started (per-room execution gated by distributed lock; safe with multiple PIDs)",
+  );
 }
 
 /**

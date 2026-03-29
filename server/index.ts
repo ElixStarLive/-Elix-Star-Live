@@ -323,8 +323,6 @@ if (!isValkeyConfigured()) {
   }
 }
 
-initBattleTickLoop();
-
 const jobWorkerEnv = process.env.ELIX_JOB_WORKER;
 /** Cluster children must not each run the job consumer / startup enqueue — only `ELIX_JOB_WORKER=1` on one leader. */
 const isClusterChild = cluster.isWorker;
@@ -338,6 +336,7 @@ const runBackgroundJobs =
 try {
   await connectPostgres();
   await loadGiftValuesFromDb();
+  initBattleTickLoop();
   server.listen(PORT, "0.0.0.0", 8192, () => {
     logger.info(
       { port: PORT, version: BUILD_VERSION },
