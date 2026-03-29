@@ -40,12 +40,16 @@ export async function initPostgres(): Promise<void> {
     const needsSsl = url.includes('neon.tech') || url.includes('sslmode=require');
     pool = new Pool({
       connectionString: url,
-      max: Number(process.env.PG_POOL_MAX) || 50,
-      min: Number(process.env.PG_POOL_MIN) || 5,
-      idleTimeoutMillis: 30_000,
+      max: Number(process.env.PG_POOL_MAX) || 30,
+      min: Number(process.env.PG_POOL_MIN) || 2,
+      idleTimeoutMillis: 60_000,
       connectionTimeoutMillis: 10_000,
       allowExitOnIdle: false,
+      statement_timeout: 15_000,
       ...(needsSsl ? { ssl: { rejectUnauthorized: process.env.PG_SSL_REJECT_UNAUTHORIZED === 'true' } } : {}),
+    });
+    pool.on("error", (err) => {
+      logger.error({ err: err.message }, "Unexpected pool error");
     });
     await pool.query("SELECT 1");
     logger.info("PostgreSQL connected successfully");
@@ -454,7 +458,7 @@ export async function loadVideosFromDb(): Promise<Video[]> {
   try {
     const res = await pool.query(
       `SELECT *
-       FROM videos ORDER BY created_at DESC`
+       FROM videos ORDER BY created_at DESC LIMIT 5000`
     );
     return (res.rows || []).map((row: Record<string, unknown>) => ({
       id: String(row.id),

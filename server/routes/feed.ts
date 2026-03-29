@@ -133,20 +133,6 @@ export async function handleForYouFeed(req: Request, res: Response) {
     );
     const offset = (page - 1) * limit;
 
-    const token = getTokenFromRequest(req);
-    const jwtUser = token ? verifyAuthToken(token) : null;
-
-    const followingSet = new Set<string>();
-    const likedSet = new Set<string>();
-
-    if (jwtUser?.sub) {
-      try {
-        const { getFollowingIdsAsync } = await import("./profiles");
-        const ids = await getFollowingIdsAsync(jwtUser.sub);
-        ids.forEach((id: string) => followingSet.add(id));
-      } catch { /* non-fatal */ }
-    }
-
     const cacheKey = `foryou:all:${page}:${limit}`;
     const cached = feedCache.get(cacheKey);
     if (cached && Date.now() - cached.ts < CACHE_TTL) {
@@ -161,12 +147,19 @@ export async function handleForYouFeed(req: Request, res: Response) {
       });
     }
 
+    const followingSet = new Set<string>();
+    const likedSet = new Set<string>();
+
     const db = getPool();
     let formatted: any[] = [];
 
     if (db) {
       const { rows } = await db.query(
-        `SELECT v.*, row_to_json(p) AS user
+        `SELECT v.id, v.url, v.video_url, v.thumbnail_url, v.thumb_url, v.duration_seconds,
+                v.description, v.caption, v.hashtags, v.views, v.likes, v.likes_count,
+                v.comments, v.comments_count, v.shares, v.shares_count, v.saves,
+                v.created_at, v.privacy, v.is_public, v.engagement_score, v.user_id,
+                row_to_json(p) AS user
          FROM videos v
          LEFT JOIN profiles p ON p.user_id = v.user_id
          WHERE (v.privacy IS NULL OR v.privacy <> 'private')
@@ -263,34 +256,25 @@ export async function handleTrackView(req: Request, res: Response) {
       return res.status(400).json({ error: "Invalid watch time" });
     }
 
-    // Persist view to Postgres if the table exists
-    try {
-      await db.query(
-        `INSERT INTO video_views (id, user_id, video_id, watch_time_seconds, video_duration_seconds, completed, ip_hash, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
-         ON CONFLICT DO NOTHING`,
-        [
-          `v_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-          userId || 'anonymous',
-          videoId,
-          watchTime || 0,
-          videoDuration || 0,
-          completed || false,
-          ipHash,
-        ],
-      );
-    } catch {
-      // video_views table may not exist yet — non-fatal
-    }
-
-    // Update video stats in the videos table
-    try {
-      await db.query(`UPDATE videos SET views = views + 1 WHERE id = $1`, [videoId]);
-    } catch {
-      // non-fatal
-    }
-
     res.json({ ok: true });
+
+    // Fire-and-forget DB writes after response is sent
+    db.query(
+      `INSERT INTO video_views (id, user_id, video_id, watch_time_seconds, video_duration_seconds, completed, ip_hash, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+       ON CONFLICT DO NOTHING`,
+      [
+        `v_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        userId || 'anonymous',
+        videoId,
+        watchTime || 0,
+        videoDuration || 0,
+        completed || false,
+        ipHash,
+      ],
+    ).catch(() => {});
+
+    db.query(`UPDATE videos SET views = views + 1 WHERE id = $1`, [videoId]).catch(() => {});
   } catch (err: any) {
     logger.error({ err: err?.message }, "TrackView error");
     res.status(500).json({ error: "Failed to track view" });
@@ -371,8 +355,10 @@ export async function handleFriendsFeed(req: Request, res: Response) {
     }
 
     const { getFollowingIdsAsync, getFollowerIdsAsync } = await import("./profiles");
-    const followingIds = await getFollowingIdsAsync(jwtUser.sub);
-    const followerIds = await getFollowerIdsAsync(jwtUser.sub);
+    const [followingIds, followerIds] = await Promise.all([
+      getFollowingIdsAsync(jwtUser.sub),
+      getFollowerIdsAsync(jwtUser.sub),
+    ]);
     const networkIds = [...new Set([...followingIds, ...followerIds])].filter(
       (id) => id && id !== jwtUser.sub,
     );

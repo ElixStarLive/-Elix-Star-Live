@@ -114,10 +114,18 @@ app.use(
 );
 
 // ── JSON body parser ─────────────────────────────────────────────
-app.use(express.json());
+app.use(express.json({ limit: "50kb" }));
 
 // ── Health (before rate limiter — must be exempt for LB/monitoring) ──
+let healthCache: { data: any; code: number; ts: number } | null = null;
+const HEALTH_CACHE_TTL = 5_000;
+
 async function healthCheck(_req: express.Request, res: express.Response) {
+  const now = Date.now();
+  if (healthCache && now - healthCache.ts < HEALTH_CACHE_TTL) {
+    return res.status(healthCache.code).json(healthCache.data);
+  }
+
   let dbOk = false;
   try {
     const pool = getPool();
@@ -132,7 +140,7 @@ async function healthCheck(_req: express.Request, res: express.Response) {
   const status = allCritical ? "ok" : "degraded";
   const code = allCritical ? 200 : 503;
 
-  res.status(code).json({
+  const data = {
     status,
     version: BUILD_VERSION,
     uptime: process.uptime(),
@@ -145,7 +153,9 @@ async function healthCheck(_req: express.Request, res: express.Response) {
       livekit: isLiveKitConfigured(),
       bunnyStorage: isBunnyConfigured(),
     },
-  });
+  };
+  healthCache = { data, code, ts: now };
+  res.status(code).json(data);
 }
 app.get("/health", healthCheck);
 app.get("/api/health", healthCheck);
@@ -220,10 +230,11 @@ app.use(
 );
 
 // ── SPA fallback ─────────────────────────────────────────────────
+const indexExists = fs.existsSync(indexPath);
 app.use((req, res) => {
   if (process.env.NODE_ENV !== "production")
     console.log(`Serving fallback for ${req.url}`);
-  if (fs.existsSync(indexPath)) {
+  if (indexExists) {
     res.sendFile(indexPath);
   } else {
     res
@@ -262,14 +273,15 @@ if (!isValkeyConfigured()) {
 initBattleTickLoop();
 
 try {
-  server.listen(PORT, "0.0.0.0", async () => {
-    await initPostgres();
-
+  await initPostgres();
+  server.listen(PORT, "0.0.0.0", () => {
     logger.info(
       { port: PORT, version: BUILD_VERSION },
       "Server running successfully — no startup bulk loads (DB is source of truth)",
     );
   });
+  server.keepAliveTimeout = 65_000;
+  server.headersTimeout = 66_000;
 } catch (error) {
   logger.fatal({ err: error }, "Failed to start server");
   process.exit(1);
@@ -286,10 +298,17 @@ process.on("uncaughtException", (error) => {
 function gracefulShutdown(signal: string) {
   logger.info({ signal }, "Shutting down...");
   stopBattleTickLoop();
-  server.close(() => {
+  server.close(async () => {
+    try {
+      const pool = getPool();
+      if (pool) await pool.end().catch(() => {});
+    } catch { /* ignore */ }
     logger.info("Server closed");
     process.exit(0);
   });
+  for (const socket of server.connections ?? []) {
+    try { socket.destroy(); } catch { /* ignore */ }
+  }
   setTimeout(() => process.exit(0), 10_000);
 }
 process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));

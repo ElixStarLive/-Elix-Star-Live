@@ -24,12 +24,12 @@ function createConnection(label: string): Redis | null {
   const conn = new Redis(url, {
     maxRetriesPerRequest: 3,
     retryStrategy(times) {
-      if (times > 10) return null;
-      return Math.min(times * 200, 5000);
+      return Math.min(times * 500, 10_000);
     },
     lazyConnect: false,
     enableReadyCheck: true,
     connectTimeout: 5000,
+    commandTimeout: 5000,
   });
 
   conn.on("connect", () =>
@@ -38,9 +38,12 @@ function createConnection(label: string): Redis | null {
   conn.on("error", (err) =>
     logger.error({ label, err: err.message }, "Valkey error"),
   );
-  conn.on("close", () =>
-    logger.warn({ label }, "Valkey connection closed"),
-  );
+  conn.on("close", () => {
+    logger.warn({ label }, "Valkey connection closed");
+    if (label === "valkey-main") client = null;
+    else if (label === "valkey-pub") publisher = null;
+    else if (label === "valkey-sub") subscriber = null;
+  });
 
   return conn;
 }

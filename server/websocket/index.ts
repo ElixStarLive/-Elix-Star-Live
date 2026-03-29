@@ -61,6 +61,7 @@ const ROOM_MEMBER_TTL = 3600;
 
 const rooms = new Map<string, Set<Client>>();
 const clients = new Map<WebSocket, Client>();
+const userClients = new Map<string, Set<Client>>();
 
 export async function wsRateCheck(
   userId: string,
@@ -145,16 +146,19 @@ export function sendToUserGlobal(
   }
 
   let sent = 0;
-  clients.forEach((client) => {
-    if (client.userId === userId && client.ws.readyState === WebSocket.OPEN) {
-      try {
-        client.ws.send(message);
-        sent += 1;
-      } catch (error) {
-        logger.error({ err: error }, "Failed to send to user (global)");
+  const userSet = userClients.get(userId);
+  if (userSet) {
+    for (const client of userSet) {
+      if (client.ws.readyState === WebSocket.OPEN) {
+        try {
+          client.ws.send(message);
+          sent += 1;
+        } catch (error) {
+          logger.error({ err: error }, "Failed to send to user (global)");
+        }
       }
     }
-  });
+  }
 
   if (isValkeyConfigured()) {
     valkeyPublish(`user:${userId}`, {
@@ -328,15 +332,18 @@ export function initWsPubSub(): void {
     } catch {
       return;
     }
-    clients.forEach((client) => {
-      if (client.userId === userId && client.ws.readyState === WebSocket.OPEN) {
-        try {
-          client.ws.send(message);
-        } catch {
-          /* ignore */
+    const userSet = userClients.get(userId);
+    if (userSet) {
+      for (const client of userSet) {
+        if (client.ws.readyState === WebSocket.OPEN) {
+          try {
+            client.ws.send(message);
+          } catch {
+            /* ignore */
+          }
         }
       }
-    });
+    }
   });
 
   logger.info({ instanceId: INSTANCE_ID }, "WS pub/sub initialized");
@@ -377,6 +384,8 @@ async function checkAndBroadcastStreamEnd(
 
 // ── Build viewer list from Valkey + DB for new joiners ───────────
 
+const MAX_VIEWER_LIST = 100;
+
 async function buildViewerList(
   roomId: string,
 ): Promise<{ user_id: string; username: string; display_name: string; avatar_url: string; level: number; country: string }[]> {
@@ -384,12 +393,13 @@ async function buildViewerList(
     const memberIds = await valkeySmembers(`room:members:${roomId}`);
     if (memberIds.length === 0) return [];
 
+    const capped = memberIds.slice(0, MAX_VIEWER_LIST);
     const db = getPool();
     if (db) {
       try {
         const res = await db.query(
-          `SELECT user_id, username, display_name, avatar_url, level FROM profiles WHERE user_id = ANY($1::text[])`,
-          [memberIds],
+          `SELECT user_id, username, display_name, avatar_url, level FROM profiles WHERE user_id = ANY($1::text[]) LIMIT ${MAX_VIEWER_LIST}`,
+          [capped],
         );
         return (res.rows || []).map((r: any) => ({
           user_id: String(r.user_id),
@@ -400,12 +410,12 @@ async function buildViewerList(
           country: "",
         }));
       } catch {
-        return memberIds.map((id) => ({
+        return capped.map((id) => ({
           user_id: id, username: "", display_name: "", avatar_url: "", level: 1, country: "",
         }));
       }
     }
-    return memberIds.map((id) => ({
+    return capped.map((id) => ({
       user_id: id, username: "", display_name: "", avatar_url: "", level: 1, country: "",
     }));
   }
@@ -430,7 +440,7 @@ async function buildViewerList(
 }
 
 export function attachWebSocket(server: HttpServer): WebSocketServer {
-  const wss = new WebSocketServer({ server });
+  const wss = new WebSocketServer({ server, maxPayload: 64 * 1024, perMessageDeflate: false });
   const aliveClients = new WeakSet<WebSocket>();
 
   logger.info("WebSocket server attached to HTTP server");
@@ -507,6 +517,9 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
       };
 
       clients.set(ws, client);
+
+      if (!userClients.has(userId)) userClients.set(userId, new Set());
+      userClients.get(userId)!.add(client);
 
       if (!rooms.has(roomId)) rooms.set(roomId, new Set());
       rooms.get(roomId)!.add(client);
@@ -629,6 +642,12 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
       if (!client) return;
 
       try {
+        const uc = userClients.get(client.userId);
+        if (uc) {
+          uc.delete(client);
+          if (uc.size === 0) userClients.delete(client.userId);
+        }
+
         if (client.roomId === "__feed__") {
           removeFeedSubscriber(ws);
           clients.delete(ws);
