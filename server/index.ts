@@ -25,13 +25,14 @@ import { attachWebSocket, initWsPubSub } from "./websocket/index";
 import { initBattleTickLoop, stopBattleTickLoop } from "./websocket/battle";
 import { initFeedPubSub } from "./feedBroadcast";
 import crypto from "crypto";
+import cluster from "node:cluster";
 import { apiLimiter } from "./middleware/rateLimit";
 import { errorHandler } from "./middleware/errorHandler";
 
 import { isLiveKitConfigured } from "./services/livekit";
 import { isBunnyConfigured } from "./services/bunny";
 import { isValkeyConfigured, valkeyHealthCheck } from "./lib/valkey";
-import { initPostgres, getPool } from "./lib/postgres";
+import { connectPostgres, getPool } from "./lib/postgres";
 import { getVideoCountAsync } from "./lib/videoStore";
 import { logger } from "./lib/logger";
 import { loadGiftValuesFromDb } from "./websocket/giftRegistry";
@@ -153,25 +154,31 @@ app.use(express.json({ limit: "50kb" }));
 
 // ── Health (before rate limiter — must be exempt for LB/monitoring) ──
 let healthCache: { data: any; code: number; ts: number } | null = null;
-const HEALTH_CACHE_TTL = 5_000;
+const HEALTH_CACHE_TTL = 12_000;
 
 async function healthCheck(_req: express.Request, res: express.Response) {
   const now = Date.now();
   if (healthCache && now - healthCache.ts < HEALTH_CACHE_TTL) {
-    res.setHeader("Cache-Control", "public, s-maxage=5, max-age=5");
+    res.setHeader("Cache-Control", "public, s-maxage=12, max-age=8");
     return res.status(healthCache.code).json(healthCache.data);
   }
 
-  let dbOk = false;
-  try {
-    const pool = getPool();
-    if (pool) {
-      await pool.query("SELECT 1");
-      dbOk = true;
-    }
-  } catch (err: any) { logger.warn({ err: err?.message }, "Health check DB ping failed"); }
+  const pool = getPool();
+  const [dbPing, valkeyOk, videoCount] = await Promise.all([
+    pool
+      ? pool.query("SELECT 1").then(
+          () => true,
+          (err: unknown) => {
+            logger.warn({ err: err instanceof Error ? err.message : err }, "Health check DB ping failed");
+            return false;
+          },
+        )
+      : Promise.resolve(false),
+    valkeyHealthCheck(),
+    getVideoCountAsync(),
+  ]);
 
-  const valkeyOk = await valkeyHealthCheck();
+  const dbOk = Boolean(dbPing);
   const allCritical = dbOk && (valkeyOk || !isValkeyConfigured());
   const status = allCritical ? "ok" : "degraded";
   const code = allCritical ? 200 : 503;
@@ -182,7 +189,7 @@ async function healthCheck(_req: express.Request, res: express.Response) {
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
     port: PORT,
-    videoCount: await getVideoCountAsync(),
+    videoCount,
     services: {
       database: dbOk,
       valkey: isValkeyConfigured() ? valkeyOk : "not_configured",
@@ -191,7 +198,7 @@ async function healthCheck(_req: express.Request, res: express.Response) {
     },
   };
   healthCache = { data, code, ts: now };
-  res.setHeader("Cache-Control", "public, s-maxage=5, max-age=5");
+  res.setHeader("Cache-Control", "public, s-maxage=12, max-age=8");
   res.status(code).json(data);
 }
 app.get("/health", healthCheck);
@@ -318,19 +325,36 @@ if (!isValkeyConfigured()) {
 
 initBattleTickLoop();
 
+const jobWorkerEnv = process.env.ELIX_JOB_WORKER;
+/** Cluster children must not each run the job consumer / startup enqueue — only `ELIX_JOB_WORKER=1` on one leader. */
+const isClusterChild = cluster.isWorker;
+const runBackgroundJobs =
+  jobWorkerEnv === "1" ||
+  jobWorkerEnv === "true" ||
+  (jobWorkerEnv !== "0" &&
+    jobWorkerEnv !== "false" &&
+    (!isClusterChild || process.env.NODE_ENV !== "production"));
+
 try {
-  await initPostgres();
+  await connectPostgres();
   await loadGiftValuesFromDb();
   server.listen(PORT, "0.0.0.0", 8192, () => {
     logger.info(
       { port: PORT, version: BUILD_VERSION },
       "Server running successfully — no startup bulk loads (DB is source of truth)",
     );
-    startJobWorker(processJob, 1500);
-    void enqueueJob({ type: "cleanup_retention" });
-    setInterval(() => {
+    if (runBackgroundJobs) {
+      startJobWorker(processJob, 1500);
       void enqueueJob({ type: "cleanup_retention" });
-    }, 24 * 60 * 60 * 1000).unref();
+      setInterval(() => {
+        void enqueueJob({ type: "cleanup_retention" });
+      }, 24 * 60 * 60 * 1000).unref();
+      logger.info("Background job consumer enabled on this process (non-production or ELIX_JOB_WORKER=1)");
+    } else {
+      logger.info(
+        "Background job consumer disabled — set ELIX_JOB_WORKER=1 on exactly one instance to process the Valkey job queue",
+      );
+    }
   });
   server.keepAliveTimeout = 65_000;
   server.headersTimeout = 66_000;

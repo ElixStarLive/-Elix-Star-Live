@@ -128,17 +128,6 @@ async function ensureAuthUsersTable(): Promise<void> {
   if (authTableEnsured) return;
   const pool = getPool();
   if (!pool) return;
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS elix_auth_users (
-      id TEXT PRIMARY KEY,
-      email TEXT NOT NULL,
-      email_lower TEXT NOT NULL UNIQUE,
-      password_hash TEXT NOT NULL,
-      username TEXT NOT NULL,
-      avatar_url TEXT DEFAULT '',
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    )
-  `);
   authTableEnsured = true;
 }
 
@@ -146,17 +135,6 @@ async function ensureAuthSessionsTable(): Promise<void> {
   if (sessionTableEnsured) return;
   const pool = getPool();
   if (!pool) return;
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS elix_auth_sessions (
-      token_hash TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL,
-      created_at TIMESTAMPTZ DEFAULT NOW(),
-      expires_at TIMESTAMPTZ NOT NULL
-    )
-  `);
-  await pool.query(
-    `CREATE INDEX IF NOT EXISTS idx_elix_auth_sessions_user ON elix_auth_sessions(user_id, expires_at DESC)`,
-  ).catch((err) => { logger.error({ err }, "ensureAuthSessionsTable: CREATE INDEX failed"); });
   sessionTableEnsured = true;
 }
 

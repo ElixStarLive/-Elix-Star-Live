@@ -21,6 +21,7 @@
     "check": "tsc -b --noEmit",
     "test": "vitest run",
     "start": "npx tsx server/index.ts",
+    "migrate": "npx tsx server/migrate.ts",
     "start:prod": "npx tsx server/cluster.ts",
     "cap:sync": "npm run build && npx cap sync",
     "cap:add:android": "npx cap add android",

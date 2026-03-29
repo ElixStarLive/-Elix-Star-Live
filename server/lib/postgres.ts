@@ -6,7 +6,6 @@
 import pg from "pg";
 import type { Video } from "./videoStore";
 import { logger } from "./logger";
-import { initWalletPaymentTables } from "./walletNeon";
 
 const { Pool } = pg;
 
@@ -30,14 +29,18 @@ export function isPostgresConfigured(): boolean {
   return Boolean((process.env.DATABASE_URL || "").trim());
 }
 
-export async function initPostgres(): Promise<void> {
+/**
+ * Open the shared pool and verify connectivity only.
+ * DDL and seeds run via `npm run migrate` (once per deploy), never from clustered workers.
+ */
+export async function connectPostgres(): Promise<void> {
   const url = (process.env.DATABASE_URL || "").trim();
   if (!url) {
     logger.warn("DATABASE_URL is not set — all data will be stored in memory only and lost on restart!");
     return;
   }
   try {
-    const needsSsl = url.includes('neon.tech') || url.includes('sslmode=require');
+    const needsSsl = url.includes("neon.tech") || url.includes("sslmode=require");
     pool = new Pool({
       connectionString: url,
       max: Number(process.env.PG_POOL_MAX) || 30,
@@ -46,462 +49,33 @@ export async function initPostgres(): Promise<void> {
       connectionTimeoutMillis: 10_000,
       allowExitOnIdle: false,
       statement_timeout: 15_000,
-      ...(needsSsl ? { ssl: { rejectUnauthorized: process.env.PG_SSL_REJECT_UNAUTHORIZED === 'true' } } : {}),
+      ...(needsSsl ? { ssl: { rejectUnauthorized: process.env.PG_SSL_REJECT_UNAUTHORIZED === "true" } } : {}),
     });
     pool.on("error", (err) => {
       logger.error({ err: err.message }, "Unexpected pool error");
     });
+    await pool.query("SELECT 1");
+    logger.info("PostgreSQL pool ready");
     try {
-      await pool.query("SELECT 1");
-    } catch (pingErr) {
-      logger.error(
-        { err: pingErr instanceof Error ? pingErr.message : pingErr },
-        "PostgreSQL startup health check failed (SELECT 1)",
-      );
-      throw pingErr;
+      await pool.query("SELECT 1 FROM elix_schema_migrations LIMIT 1");
+      logger.info("Schema migrations table present");
+    } catch {
+      logger.warn("Run `npm run migrate` once per deploy before production traffic (elix_schema_migrations missing)");
     }
-    logger.info("PostgreSQL connected successfully");
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS videos (
-        id TEXT PRIMARY KEY,
-        url TEXT NOT NULL,
-        thumbnail TEXT DEFAULT '',
-        duration NUMERIC DEFAULT 0,
-        user_id TEXT NOT NULL,
-        username TEXT DEFAULT '',
-        display_name TEXT DEFAULT '',
-        avatar TEXT DEFAULT '',
-        description TEXT DEFAULT '',
-        hashtags JSONB DEFAULT '[]',
-        music JSONB DEFAULT NULL,
-        views INTEGER DEFAULT 0,
-        likes INTEGER DEFAULT 0,
-        comments INTEGER DEFAULT 0,
-        shares INTEGER DEFAULT 0,
-        saves INTEGER DEFAULT 0,
-        created_at TIMESTAMPTZ DEFAULT NOW(),
-        privacy TEXT DEFAULT 'public'
-      )
-    `);
-    const videoCols: [string, string][] = [
-      ['url', 'TEXT DEFAULT \'\''],
-      ['thumbnail', 'TEXT DEFAULT \'\''],
-      ['duration', 'NUMERIC DEFAULT 0'],
-      ['user_id', 'TEXT DEFAULT \'\''],
-      ['username', 'TEXT DEFAULT \'\''],
-      ['display_name', 'TEXT DEFAULT \'\''],
-      ['avatar', 'TEXT DEFAULT \'\''],
-      ['description', 'TEXT DEFAULT \'\''],
-      ['hashtags', 'JSONB DEFAULT \'[]\''],
-      ['music', 'JSONB DEFAULT NULL'],
-      ['views', 'INTEGER DEFAULT 0'],
-      ['likes', 'INTEGER DEFAULT 0'],
-      ['comments', 'INTEGER DEFAULT 0'],
-      ['shares', 'INTEGER DEFAULT 0'],
-      ['saves', 'INTEGER DEFAULT 0'],
-      ['created_at', 'TIMESTAMPTZ DEFAULT NOW()'],
-      ['privacy', 'TEXT DEFAULT \'public\''],
-    ];
-    for (const [col, def] of videoCols) {
-      await pool.query(`ALTER TABLE videos ADD COLUMN IF NOT EXISTS ${col} ${def}`).catch(() => {});
-    }
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS live_streams (
-        stream_key TEXT PRIMARY KEY,
-        user_id TEXT NOT NULL,
-        display_name TEXT,
-        started_at TIMESTAMPTZ DEFAULT NOW(),
-        ended_at TIMESTAMPTZ,
-        is_live BOOLEAN DEFAULT TRUE,
-        viewer_count INTEGER DEFAULT 0
-      )
-    `);
-
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_videos_user_id ON videos(user_id)`).catch(() => {});
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_videos_created_at ON videos(created_at DESC NULLS LAST)`).catch(() => {});
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_videos_privacy_created ON videos(privacy, created_at DESC NULLS LAST)`).catch(() => {});
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_follows_following_id ON follows(following_id)`).catch(() => {});
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_follows_follower_id ON follows(follower_id)`).catch(() => {});
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_profiles_username ON profiles(username)`).catch(() => {});
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_live_streams_is_live ON live_streams(is_live) WHERE is_live = TRUE`).catch(() => {});
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_comments_video_id ON comments(video_id, created_at DESC)`).catch(() => {});
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_likes_video_id ON likes(video_id)`).catch(() => {});
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_saves_video_id ON saves(video_id)`).catch(() => {});
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_profiles_user_id ON profiles(user_id)`).catch(() => {});
-
-    // Comments (basic; likes are handled client-side for now)
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS comments (
-        id TEXT PRIMARY KEY,
-        video_id TEXT NOT NULL,
-        user_id TEXT NOT NULL,
-        text TEXT NOT NULL,
-        parent_id TEXT,
-        created_at TIMESTAMPTZ DEFAULT NOW()
-      )
-    `);
-    const commentCols: [string, string][] = [
-      ["video_id", "TEXT DEFAULT ''"],
-      ["user_id", "TEXT DEFAULT ''"],
-      ["text", "TEXT DEFAULT ''"],
-      ["parent_id", "TEXT"],
-      ["created_at", "TIMESTAMPTZ DEFAULT NOW()"],
-    ];
-    for (const [col, def] of commentCols) {
-      await pool.query(`ALTER TABLE comments ADD COLUMN IF NOT EXISTS ${col} ${def}`).catch(() => {});
-    }
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS likes (
-        user_id TEXT NOT NULL,
-        video_id TEXT NOT NULL,
-        created_at TIMESTAMPTZ DEFAULT NOW(),
-        PRIMARY KEY (user_id, video_id)
-      )
-    `);
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS saves (
-        user_id TEXT NOT NULL,
-        video_id TEXT NOT NULL,
-        created_at TIMESTAMPTZ DEFAULT NOW(),
-        PRIMARY KEY (user_id, video_id)
-      )
-    `);
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS auth_users (
-        id TEXT PRIMARY KEY,
-        email TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
-        username TEXT DEFAULT '',
-        display_name TEXT DEFAULT '',
-        avatar_url TEXT DEFAULT '',
-        created_at TIMESTAMPTZ DEFAULT NOW()
-      )
-    `);
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS elix_auth_sessions (
-        token_hash TEXT PRIMARY KEY,
-        user_id TEXT NOT NULL,
-        created_at TIMESTAMPTZ DEFAULT NOW(),
-        expires_at TIMESTAMPTZ NOT NULL
-      )
-    `);
-    await pool.query(
-      `CREATE INDEX IF NOT EXISTS idx_elix_auth_sessions_user ON elix_auth_sessions(user_id, expires_at DESC)`,
-    ).catch(() => {});
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS elix_device_tokens (
-        user_id TEXT NOT NULL,
-        platform TEXT NOT NULL,
-        token TEXT NOT NULL,
-        updated_at TIMESTAMPTZ DEFAULT NOW(),
-        PRIMARY KEY (user_id, platform)
-      )
-    `);
-    await pool.query(
-      `CREATE INDEX IF NOT EXISTS idx_elix_device_tokens_user ON elix_device_tokens(user_id)`,
-    ).catch(() => {});
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS elix_gift_transactions (
-        id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-        user_id TEXT NOT NULL,
-        room_id TEXT NOT NULL,
-        gift_id TEXT NOT NULL,
-        coins INTEGER NOT NULL DEFAULT 0,
-        client_transaction_id TEXT NOT NULL UNIQUE,
-        created_at TIMESTAMPTZ DEFAULT NOW()
-      )
-    `);
-    await pool.query(
-      `CREATE INDEX IF NOT EXISTS idx_elix_gift_transactions_user_time ON elix_gift_transactions(user_id, created_at DESC)`,
-    ).catch(() => {});
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS profiles (
-        user_id TEXT PRIMARY KEY,
-        username TEXT DEFAULT '',
-        display_name TEXT DEFAULT '',
-        avatar_url TEXT DEFAULT '',
-        bio TEXT DEFAULT '',
-        website TEXT DEFAULT '',
-        followers INT DEFAULT 0,
-        following INT DEFAULT 0,
-        video_count INT DEFAULT 0,
-        coins INT DEFAULT 0,
-        level INT DEFAULT 1,
-        is_verified BOOLEAN DEFAULT FALSE,
-        created_at TIMESTAMPTZ DEFAULT NOW(),
-        updated_at TIMESTAMPTZ DEFAULT NOW()
-      )
-    `);
-    await pool.query(`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE`).catch(() => {});
-    await pool.query(`ALTER TABLE profiles ADD COLUMN IF NOT EXISTS banned_until TIMESTAMPTZ`).catch(() => {});
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS chat_threads (
-        id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-        user1_id TEXT NOT NULL,
-        user2_id TEXT NOT NULL,
-        last_message TEXT DEFAULT '',
-        last_at TIMESTAMPTZ DEFAULT NOW(),
-        created_at TIMESTAMPTZ DEFAULT NOW()
-      )
-    `);
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS messages (
-        id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-        thread_id TEXT NOT NULL REFERENCES chat_threads(id) ON DELETE CASCADE,
-        sender_id TEXT NOT NULL,
-        text TEXT NOT NULL,
-        created_at TIMESTAMPTZ DEFAULT NOW()
-      )
-    `);
-    await pool
-      .query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS read BOOLEAN DEFAULT FALSE`)
-      .catch(() => {});
-    await pool.query(
-      `CREATE INDEX IF NOT EXISTS idx_chat_threads_user1_last ON chat_threads(user1_id, last_at DESC)`,
-    ).catch(() => {});
-    await pool.query(
-      `CREATE INDEX IF NOT EXISTS idx_chat_threads_user2_last ON chat_threads(user2_id, last_at DESC)`,
-    ).catch(() => {});
-    await pool.query(
-      `CREATE INDEX IF NOT EXISTS idx_messages_thread_created ON messages(thread_id, created_at ASC)`,
-    ).catch(() => {});
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS shop_items (
-        id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-        user_id TEXT NOT NULL,
-        title TEXT NOT NULL,
-        description TEXT DEFAULT '',
-        price NUMERIC NOT NULL DEFAULT 0,
-        image_url TEXT,
-        category TEXT DEFAULT 'other',
-        is_active BOOLEAN NOT NULL DEFAULT TRUE,
-        created_at TIMESTAMPTZ DEFAULT NOW()
-      )
-    `);
-    await pool.query(
-      `CREATE INDEX IF NOT EXISTS idx_shop_items_active_created ON shop_items(is_active, created_at DESC)`,
-    ).catch(() => {});
-    await pool.query(
-      `CREATE INDEX IF NOT EXISTS idx_shop_items_user_created ON shop_items(user_id, created_at DESC)`,
-    ).catch(() => {});
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS follows (
-        follower_id TEXT NOT NULL,
-        following_id TEXT NOT NULL,
-        created_at TIMESTAMPTZ DEFAULT NOW(),
-        PRIMARY KEY (follower_id, following_id)
-      )
-    `);
-
-    // Older DBs may have follows without PRIMARY KEY — INSERT ... ON CONFLICT / upserts will fail until fixed.
-    const followsPk = await pool.query(`
-      SELECT 1 FROM information_schema.table_constraints
-      WHERE table_schema = 'public' AND table_name = 'follows' AND constraint_type = 'PRIMARY KEY'
-      LIMIT 1
-    `);
-    if (!followsPk.rows?.length) {
-      await pool.query(`ALTER TABLE follows ADD PRIMARY KEY (follower_id, following_id)`).catch((err) => {
-        logger.error(
-          { err: err instanceof Error ? err.message : err },
-          "follows: could not add PRIMARY KEY (fix duplicates in Neon SQL editor). Follow saves may fail.",
-        );
-      });
-    }
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS live_share_inbox (
-        id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-        recipient_id TEXT NOT NULL,
-        sharer_id TEXT NOT NULL,
-        stream_key TEXT NOT NULL,
-        host_user_id TEXT NOT NULL,
-        host_name TEXT DEFAULT '',
-        host_avatar TEXT DEFAULT '',
-        sharer_name TEXT DEFAULT '',
-        sharer_avatar TEXT DEFAULT '',
-        created_at TIMESTAMPTZ DEFAULT NOW(),
-        UNIQUE (recipient_id, sharer_id, stream_key)
-      )
-    `);
-
-    /** One row per creator slot per battle (host room). Scores are the source of truth when DATABASE_URL is set. */
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS battle_creator_buckets (
-        host_room_id TEXT NOT NULL,
-        battle_id TEXT NOT NULL DEFAULT '',
-        slot TEXT NOT NULL,
-        creator_user_id TEXT NOT NULL DEFAULT '',
-        score BIGINT NOT NULL DEFAULT 0,
-        updated_at TIMESTAMPTZ DEFAULT NOW(),
-        PRIMARY KEY (host_room_id, slot),
-        CONSTRAINT battle_creator_buckets_slot_chk CHECK (slot IN ('host', 'opponent', 'player3', 'player4'))
-      )
-    `);
-    await pool.query(
-      `CREATE INDEX IF NOT EXISTS idx_battle_creator_buckets_battle_id ON battle_creator_buckets(battle_id)`,
-    ).catch(() => {});
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS creator_stickers (
-        id SERIAL PRIMARY KEY,
-        creator_user_id TEXT NOT NULL,
-        image_url TEXT NOT NULL,
-        label TEXT NOT NULL DEFAULT '',
-        sort_order INT NOT NULL DEFAULT 0,
-        created_at TIMESTAMPTZ DEFAULT NOW()
-      )
-    `);
-    await pool.query(
-      `CREATE INDEX IF NOT EXISTS idx_creator_stickers_user ON creator_stickers(creator_user_id)`,
-    ).catch(() => {});
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS daily_hearts (
-        id SERIAL PRIMARY KEY,
-        creator_user_id TEXT NOT NULL,
-        member_user_id TEXT NOT NULL,
-        day DATE NOT NULL DEFAULT CURRENT_DATE,
-        created_at TIMESTAMPTZ DEFAULT NOW(),
-        UNIQUE(creator_user_id, member_user_id, day)
-      )
-    `);
-    await pool.query(
-      `CREATE INDEX IF NOT EXISTS idx_daily_hearts_creator_day ON daily_hearts(creator_user_id, day)`,
-    ).catch(() => {});
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS gift_logs (
-        id SERIAL PRIMARY KEY,
-        sender_user_id TEXT NOT NULL,
-        creator_user_id TEXT NOT NULL,
-        room_id TEXT NOT NULL DEFAULT '',
-        gift_id TEXT NOT NULL,
-        coins INT NOT NULL DEFAULT 0,
-        created_at TIMESTAMPTZ DEFAULT NOW()
-      )
-    `);
-    await pool.query(
-      `CREATE INDEX IF NOT EXISTS idx_gift_logs_creator ON gift_logs(creator_user_id, created_at)`,
-    ).catch(() => {});
-    await pool.query(
-      `CREATE INDEX IF NOT EXISTS idx_gift_logs_sender ON gift_logs(sender_user_id, created_at)`,
-    ).catch(() => {});
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS elix_notifications (
-        id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-        user_id TEXT NOT NULL,
-        type TEXT NOT NULL DEFAULT 'general',
-        title TEXT NOT NULL DEFAULT '',
-        body TEXT NOT NULL DEFAULT '',
-        action_url TEXT DEFAULT '',
-        read BOOLEAN DEFAULT FALSE,
-        created_at TIMESTAMPTZ DEFAULT NOW()
-      )
-    `);
-    await pool.query(
-      `CREATE INDEX IF NOT EXISTS idx_elix_notifications_user_created ON elix_notifications(user_id, created_at DESC)`,
-    ).catch(() => {});
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS elix_blocked_users (
-        id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-        blocker_user_id TEXT NOT NULL,
-        blocked_user_id TEXT NOT NULL,
-        created_at TIMESTAMPTZ DEFAULT NOW(),
-        UNIQUE(blocker_user_id, blocked_user_id)
-      )
-    `).catch(() => {});
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS elix_reports (
-        id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-        reporter_user_id TEXT NOT NULL,
-        target_type TEXT NOT NULL DEFAULT 'unknown',
-        target_id TEXT NOT NULL DEFAULT '',
-        reason TEXT NOT NULL DEFAULT '',
-        details TEXT DEFAULT '',
-        status TEXT NOT NULL DEFAULT 'pending',
-        created_at TIMESTAMPTZ DEFAULT NOW()
-      )
-    `).catch(() => {});
-
-    // Migrate old column names if they exist (safe no-op if already correct)
-    await pool.query(`ALTER TABLE elix_blocked_users RENAME COLUMN blocker_id TO blocker_user_id`).catch(() => {});
-    await pool.query(`ALTER TABLE elix_reports RENAME COLUMN reporter_id TO reporter_user_id`).catch(() => {});
-    await pool.query(`ALTER TABLE elix_reports ADD COLUMN IF NOT EXISTS target_type TEXT NOT NULL DEFAULT 'unknown'`).catch(() => {});
-    await pool.query(`ALTER TABLE elix_reports ADD COLUMN IF NOT EXISTS target_id TEXT NOT NULL DEFAULT ''`).catch(() => {});
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS elix_gifts (
-        gift_id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        gift_type TEXT NOT NULL DEFAULT 'small',
-        coin_cost INTEGER NOT NULL DEFAULT 0,
-        animation_url TEXT,
-        sfx_url TEXT,
-        is_active BOOLEAN NOT NULL DEFAULT TRUE,
-        battle_points INTEGER NOT NULL DEFAULT 0
-      )
-    `);
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS elix_coin_packages (
-        id TEXT PRIMARY KEY,
-        coins INTEGER NOT NULL,
-        price NUMERIC NOT NULL DEFAULT 0,
-        label TEXT NOT NULL DEFAULT '',
-        bonus_coins INTEGER NOT NULL DEFAULT 0,
-        is_popular BOOLEAN NOT NULL DEFAULT FALSE,
-        product_id TEXT NOT NULL DEFAULT ''
-      )
-    `);
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS elix_analytics_events (
-        id SERIAL PRIMARY KEY,
-        user_id TEXT,
-        event TEXT NOT NULL DEFAULT 'unknown',
-        properties JSONB DEFAULT '{}',
-        created_at TIMESTAMPTZ DEFAULT NOW()
-      )
-    `);
-    await pool.query(
-      `CREATE INDEX IF NOT EXISTS idx_elix_analytics_events_created ON elix_analytics_events(created_at DESC)`,
-    ).catch(() => {});
-
-    await seedGiftsIfEmpty(pool);
-    await seedCoinPackagesIfEmpty(pool);
-
-    const userCount = await pool.query(`SELECT COUNT(*) as cnt FROM auth_users`);
-    const profileCount = await pool.query(`SELECT COUNT(*) as cnt FROM profiles`);
-    await initWalletPaymentTables(pool);
-    logger.info(`Tables ready — ${userCount.rows[0]?.cnt || 0} auth users, ${profileCount.rows[0]?.cnt || 0} profiles in DB`);
   } catch (err) {
-    logger.error({ err }, "PostgreSQL init FAILED — data will NOT persist across restarts. Check DATABASE_URL and ensure PostgreSQL is running.");
+    logger.error(
+      { err },
+      "PostgreSQL connection FAILED — check DATABASE_URL and run migrations. Pool not initialized.",
+    );
     pool = null;
   }
 }
 
-/** Idempotent — call before INSERT/SELECT on `follows` outside initPostgres (e.g. profile routes). */
-export async function ensureFollowsTable(): Promise<void> {
-  const p = getPool();
-  if (!p) return;
-  await p.query(`
-    CREATE TABLE IF NOT EXISTS follows (
-      follower_id TEXT NOT NULL,
-      following_id TEXT NOT NULL,
-      created_at TIMESTAMPTZ DEFAULT NOW(),
-      PRIMARY KEY (follower_id, following_id)
-    )
-  `);
-}
+/** @deprecated Use connectPostgres */
+export const initPostgres = connectPostgres;
+
+/** Schema is created by migrations — no DDL on request path or worker boot. */
+export async function ensureFollowsTable(): Promise<void> {}
 
 export async function loadVideosFromDb(): Promise<Video[]> {
   if (!pool) return [];
@@ -1518,37 +1092,7 @@ export async function dbMarkShopItemSold(id: string): Promise<void> {
   }
 }
 
-// ── Gifts catalog (DB) ──
-
-const SEED_GIFTS = [
-  { gift_id: "rose", name: "Rose", gift_type: "small", coin_cost: 1, animation_url: "/gifts/rose.webm", sfx_url: null, battle_points: 1 },
-  { gift_id: "heart", name: "Heart", gift_type: "small", coin_cost: 5, animation_url: "/gifts/heart.webm", sfx_url: null, battle_points: 5 },
-  { gift_id: "kiss", name: "Kiss", gift_type: "small", coin_cost: 10, animation_url: "/gifts/kiss.webm", sfx_url: null, battle_points: 10 },
-  { gift_id: "crown", name: "Crown", gift_type: "big", coin_cost: 50, animation_url: "/gifts/crown.webm", sfx_url: null, battle_points: 1500 },
-  { gift_id: "diamond", name: "Diamond", gift_type: "big", coin_cost: 100, animation_url: "/gifts/diamond.webm", sfx_url: null, battle_points: 300 },
-  { gift_id: "rocket", name: "Rocket", gift_type: "big", coin_cost: 500, animation_url: "/gifts/rocket.webm", sfx_url: null, battle_points: 500 },
-  { gift_id: "elix_global_universe", name: "Elix Universe", gift_type: "universe", coin_cost: 1000, animation_url: "/gifts/elix_global_universe.webm", sfx_url: null, battle_points: 1000000 },
-  { gift_id: "elix_live_universe", name: "Elix Live", gift_type: "universe", coin_cost: 2000, animation_url: "/gifts/elix_live_universe.webm", sfx_url: null, battle_points: 80000 },
-  { gift_id: "elix_gold_universe", name: "Elix Gold", gift_type: "universe", coin_cost: 5000, animation_url: "/gifts/elix_gold_universe.webm", sfx_url: null, battle_points: 120000 },
-];
-
-async function seedGiftsIfEmpty(p: pg.Pool): Promise<void> {
-  try {
-    const count = await p.query(`SELECT COUNT(*) as cnt FROM elix_gifts`);
-    if (Number(count.rows[0]?.cnt) > 0) return;
-    for (const g of SEED_GIFTS) {
-      await p.query(
-        `INSERT INTO elix_gifts (gift_id, name, gift_type, coin_cost, animation_url, sfx_url, is_active, battle_points)
-         VALUES ($1, $2, $3, $4, $5, $6, TRUE, $7)
-         ON CONFLICT (gift_id) DO NOTHING`,
-        [g.gift_id, g.name, g.gift_type, g.coin_cost, g.animation_url, g.sfx_url, g.battle_points],
-      );
-    }
-    logger.info(`Seeded ${SEED_GIFTS.length} gifts into elix_gifts`);
-  } catch (err) {
-    logger.error({ err }, "seedGiftsIfEmpty failed");
-  }
-}
+// ── Gifts catalog (DB) — seed rows applied in migrations ──
 
 export type DbGiftRow = {
   gift_id: string;
@@ -1561,7 +1105,14 @@ export type DbGiftRow = {
   battle_points: number;
 };
 
+let giftsCatalogMemCache: { rows: DbGiftRow[]; ts: number } | null = null;
+const GIFTS_CATALOG_CACHE_MS = 60_000;
+
 export async function dbLoadGifts(): Promise<DbGiftRow[]> {
+  const now = Date.now();
+  if (giftsCatalogMemCache && now - giftsCatalogMemCache.ts < GIFTS_CATALOG_CACHE_MS) {
+    return giftsCatalogMemCache.rows;
+  }
   const p = getPool();
   if (!p) return [];
   try {
@@ -1569,7 +1120,7 @@ export async function dbLoadGifts(): Promise<DbGiftRow[]> {
       `SELECT gift_id, name, gift_type, coin_cost, animation_url, sfx_url, is_active, battle_points
        FROM elix_gifts WHERE is_active = TRUE ORDER BY coin_cost ASC`,
     );
-    return res.rows.map((r: any) => ({
+    const rows = res.rows.map((r: any) => ({
       gift_id: String(r.gift_id),
       name: String(r.name),
       gift_type: String(r.gift_type),
@@ -1579,6 +1130,8 @@ export async function dbLoadGifts(): Promise<DbGiftRow[]> {
       is_active: Boolean(r.is_active),
       battle_points: Number(r.battle_points ?? 0),
     }));
+    giftsCatalogMemCache = { rows, ts: now };
+    return rows;
   } catch (err) {
     logger.error({ err }, "dbLoadGifts failed");
     return [];
@@ -1601,38 +1154,7 @@ export async function dbGetGiftCost(giftId: string): Promise<number | null> {
   }
 }
 
-// ── Coin packages (DB) ──
-
-const SEED_COIN_PACKAGES = [
-  { id: "coins_10", coins: 10, price: 0.05, label: "10 Coins", bonus_coins: 0, is_popular: false, product_id: "com.elixstarlive.coins_10" },
-  { id: "coins_50", coins: 50, price: 0.18, label: "50 Coins", bonus_coins: 0, is_popular: false, product_id: "com.elixstarlive.coins_50" },
-  { id: "coins_100", coins: 100, price: 0.35, label: "100 Coins", bonus_coins: 0, is_popular: false, product_id: "com.elixstarlive.coins_100" },
-  { id: "coins_500", coins: 500, price: 1.75, label: "500 Coins", bonus_coins: 50, is_popular: false, product_id: "com.elixstarlive.coins_500" },
-  { id: "coins_1000", coins: 1000, price: 3.5, label: "1,000 Coins", bonus_coins: 100, is_popular: true, product_id: "com.elixstarlive.coins_1000" },
-  { id: "coins_2000", coins: 2000, price: 7.0, label: "2,000 Coins", bonus_coins: 200, is_popular: false, product_id: "com.elixstarlive.coins_2000" },
-  { id: "coins_5000", coins: 5000, price: 17.5, label: "5,000 Coins", bonus_coins: 500, is_popular: false, product_id: "com.elixstarlive.coins_5000" },
-  { id: "coins_10000", coins: 10000, price: 35.0, label: "10K Coins", bonus_coins: 1000, is_popular: false, product_id: "com.elixstarlive.coins_10000" },
-  { id: "coins_50000", coins: 50000, price: 175.0, label: "50K Coins", bonus_coins: 5000, is_popular: false, product_id: "com.elixstarlive.coins_50000" },
-  { id: "coins_100000", coins: 100000, price: 350.0, label: "100K Coins", bonus_coins: 10000, is_popular: false, product_id: "com.elixstarlive.coins_100000" },
-];
-
-async function seedCoinPackagesIfEmpty(p: pg.Pool): Promise<void> {
-  try {
-    const count = await p.query(`SELECT COUNT(*) as cnt FROM elix_coin_packages`);
-    if (Number(count.rows[0]?.cnt) > 0) return;
-    for (const pkg of SEED_COIN_PACKAGES) {
-      await p.query(
-        `INSERT INTO elix_coin_packages (id, coins, price, label, bonus_coins, is_popular, product_id)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
-         ON CONFLICT (id) DO NOTHING`,
-        [pkg.id, pkg.coins, pkg.price, pkg.label, pkg.bonus_coins, pkg.is_popular, pkg.product_id],
-      );
-    }
-    logger.info(`Seeded ${SEED_COIN_PACKAGES.length} coin packages into elix_coin_packages`);
-  } catch (err) {
-    logger.error({ err }, "seedCoinPackagesIfEmpty failed");
-  }
-}
+// ── Coin packages (DB) — seed rows applied in migrations ──
 
 export type DbCoinPackageRow = {
   id: string;
@@ -1644,7 +1166,14 @@ export type DbCoinPackageRow = {
   product_id: string;
 };
 
+let coinPackagesMemCache: { rows: DbCoinPackageRow[]; ts: number } | null = null;
+const COIN_PACKAGES_CACHE_MS = 60_000;
+
 export async function dbLoadCoinPackages(): Promise<DbCoinPackageRow[]> {
+  const now = Date.now();
+  if (coinPackagesMemCache && now - coinPackagesMemCache.ts < COIN_PACKAGES_CACHE_MS) {
+    return coinPackagesMemCache.rows;
+  }
   const p = getPool();
   if (!p) return [];
   try {
@@ -1652,7 +1181,7 @@ export async function dbLoadCoinPackages(): Promise<DbCoinPackageRow[]> {
       `SELECT id, coins, price, label, bonus_coins, is_popular, product_id
        FROM elix_coin_packages ORDER BY coins ASC`,
     );
-    return res.rows.map((r: any) => ({
+    const rows = res.rows.map((r: any) => ({
       id: String(r.id),
       coins: Number(r.coins),
       price: Number(r.price),
@@ -1661,6 +1190,8 @@ export async function dbLoadCoinPackages(): Promise<DbCoinPackageRow[]> {
       is_popular: Boolean(r.is_popular),
       product_id: String(r.product_id),
     }));
+    coinPackagesMemCache = { rows, ts: now };
+    return rows;
   } catch (err) {
     logger.error({ err }, "dbLoadCoinPackages failed");
     return [];

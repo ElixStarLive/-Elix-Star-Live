@@ -13,53 +13,6 @@ function getUserId(req: Request): string | null {
 async function ensurePayoutTables(): Promise<void> {
   const db = getPool();
   if (!db) return;
-  await db.query(`
-    CREATE TABLE IF NOT EXISTS elix_creator_balances (
-      user_id TEXT PRIMARY KEY,
-      pending_coins BIGINT NOT NULL DEFAULT 0,
-      available_coins BIGINT NOT NULL DEFAULT 0,
-      locked_coins BIGINT NOT NULL DEFAULT 0,
-      total_earned BIGINT NOT NULL DEFAULT 0,
-      total_withdrawn BIGINT NOT NULL DEFAULT 0,
-      updated_at TIMESTAMPTZ DEFAULT NOW()
-    )
-  `);
-  await db.query(`
-    CREATE TABLE IF NOT EXISTS elix_creator_earnings (
-      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-      creator_id TEXT NOT NULL,
-      kind TEXT NOT NULL,
-      coins INTEGER NOT NULL DEFAULT 0,
-      gift_id TEXT,
-      room_id TEXT,
-      sender_id TEXT,
-      status TEXT NOT NULL DEFAULT 'pending',
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    )
-  `);
-  await db.query(`CREATE INDEX IF NOT EXISTS idx_elix_creator_earnings_user ON elix_creator_earnings (creator_id, created_at DESC)`);
-  await db.query(`
-    CREATE TABLE IF NOT EXISTS elix_payout_requests (
-      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-      user_id TEXT NOT NULL,
-      coins_amount BIGINT NOT NULL,
-      status TEXT NOT NULL DEFAULT 'pending',
-      payout_method_id TEXT,
-      admin_note TEXT,
-      created_at TIMESTAMPTZ DEFAULT NOW(),
-      processed_at TIMESTAMPTZ
-    )
-  `);
-  await db.query(`
-    CREATE TABLE IF NOT EXISTS elix_payout_methods (
-      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-      user_id TEXT NOT NULL,
-      type TEXT NOT NULL,
-      details JSONB NOT NULL DEFAULT '{}',
-      is_default BOOLEAN NOT NULL DEFAULT false,
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    )
-  `);
 }
 
 let tablesReady = false;

@@ -3,6 +3,7 @@
  * Active stream state stored in Valkey + DB — no in-memory Map.
  */
 
+import { createHash } from 'crypto';
 import { Request, Response } from 'express';
 import { getTokenFromRequest, verifyAuthToken } from '../routes/auth';
 import { createLiveToken, isLiveKitConfigured, getLiveKitUrl, listActiveRoomsFromLiveKit } from '../services/livekit';
@@ -15,7 +16,11 @@ import {
   valkeyHget,
   valkeyHdel,
   valkeyHgetall,
+  valkeyHgetallBatch,
   valkeyExpire,
+  valkeyGet,
+  valkeySet,
+  valkeyDel,
 } from '../lib/valkey';
 
 const STREAM_KEY_PREFIX = 'stream:';
@@ -79,6 +84,7 @@ export async function removeActiveStream(roomId: string, userId?: string): Promi
       await deleteActiveStream(roomId);
     }
     await dbEndLiveStream(roomId);
+    await invalidateLiveStreamsListCache();
     return true;
   } catch (err) {
     logger.error({ err, roomId }, "removeActiveStream failed");
@@ -100,42 +106,63 @@ function requireAuth(req: Request, res: Response): { userId: string } | null {
   return { userId: payload.sub };
 }
 
-/** GET /api/live/streams — list active streams */
-let streamsCache: { data: any; ts: number } | null = null;
-const STREAMS_CACHE_TTL = 5_000;
+/** Shared across workers — one LiveKit/DB refresh per TTL cluster-wide. */
+const STREAMS_HTTP_CACHE_KEY = "elix:http:live_streams:v1";
+const STREAMS_CACHE_TTL_MS = 14_000;
 
-export async function handleGetStreams(_req: Request, res: Response) {
-  const now = Date.now();
-  if (streamsCache && now - streamsCache.ts < STREAMS_CACHE_TTL) {
-    res.setHeader("Cache-Control", "public, s-maxage=5, max-age=5");
-    return res.status(200).json(streamsCache.data);
-  }
+type StreamsListPayload = {
+  streams: Array<{
+    room_id: string | undefined;
+    stream_key: string | undefined;
+    user_id: string;
+    started_at: string;
+    status: "live";
+    title: string | undefined;
+    display_name: string | undefined;
+    viewer_count: number;
+  }>;
+};
+
+let streamsMemFallback: { etag: string; payload: StreamsListPayload; ts: number } | null = null;
+
+export async function invalidateLiveStreamsListCache(): Promise<void> {
+  streamsMemFallback = null;
+  await valkeyDel(STREAMS_HTTP_CACHE_KEY);
+}
+
+async function buildStreamsResult(): Promise<StreamsListPayload> {
   if (isLiveKitConfigured()) {
     try {
       const liveRooms = await listActiveRoomsFromLiveKit();
+      const named = liveRooms.filter((r) => r.name);
+      const batchKeys = named.map((r) => STREAM_KEY_PREFIX + r.name!);
+      const hashList =
+        batchKeys.length > 0 && isValkeyConfigured()
+          ? await valkeyHgetallBatch(batchKeys)
+          : [];
 
-      const streams = await Promise.all(
-        liveRooms
-          .filter((r) => r.name)
-          .map(async (room) => {
-            const mem = await getActiveStream(room.name);
-            return {
-              room_id: room.name,
-              stream_key: room.name,
-              user_id: mem?.userId ?? room.name,
-              started_at: mem?.startedAt ?? new Date().toISOString(),
-              status: 'live' as const,
-              title: mem?.displayName ?? undefined,
-              display_name: mem?.displayName ?? undefined,
-              viewer_count: room.numParticipants,
-            };
-          }),
-      );
-
-      const result = { streams };
-      streamsCache = { data: result, ts: Date.now() };
-      res.setHeader("Cache-Control", "public, s-maxage=5, max-age=5");
-      return res.status(200).json(result);
+      const streams = named.map((room, i) => {
+        const data = hashList[i] || {};
+        const mem =
+          data.userId != null && data.userId !== ""
+            ? {
+                userId: data.userId,
+                startedAt: data.startedAt || new Date().toISOString(),
+                displayName: data.displayName || undefined,
+              }
+            : null;
+        return {
+          room_id: room.name,
+          stream_key: room.name,
+          user_id: mem?.userId ?? room.name!,
+          started_at: mem?.startedAt ?? new Date().toISOString(),
+          status: "live" as const,
+          title: mem?.displayName ?? undefined,
+          display_name: mem?.displayName ?? undefined,
+          viewer_count: room.numParticipants,
+        };
+      });
+      return { streams };
     } catch (err) {
       logger.warn({ err }, "LiveKit list streams failed, falling back to DB");
     }
@@ -147,15 +174,57 @@ export async function handleGetStreams(_req: Request, res: Response) {
     stream_key: row.stream_key,
     user_id: row.user_id,
     started_at: row.started_at,
-    status: 'live' as const,
+    status: "live" as const,
     title: row.display_name || undefined,
     display_name: row.display_name || undefined,
     viewer_count: row.viewer_count ?? 0,
   }));
+  return { streams };
+}
 
-  const result = { streams };
-  streamsCache = { data: result, ts: Date.now() };
-  res.setHeader("Cache-Control", "public, s-maxage=5, max-age=5");
+function setStreamsCacheHeaders(res: Response): void {
+  res.setHeader("Cache-Control", "public, s-maxage=14, max-age=10, stale-while-revalidate=30");
+}
+
+/** GET /api/live/streams — list active streams */
+export async function handleGetStreams(req: Request, res: Response) {
+  const inm = typeof req.headers["if-none-match"] === "string" ? req.headers["if-none-match"] : undefined;
+  const now = Date.now();
+
+  if (isValkeyConfigured()) {
+    const raw = await valkeyGet(STREAMS_HTTP_CACHE_KEY);
+    if (raw) {
+      try {
+        const { etag, payload } = JSON.parse(raw) as { etag: string; payload: StreamsListPayload };
+        setStreamsCacheHeaders(res);
+        res.setHeader("ETag", etag);
+        if (inm && inm === etag) return res.status(304).end();
+        return res.status(200).json(payload);
+      } catch {
+        /* rebuild */
+      }
+    }
+  } else if (streamsMemFallback && now - streamsMemFallback.ts < STREAMS_CACHE_TTL_MS) {
+    const { etag, payload } = streamsMemFallback;
+    setStreamsCacheHeaders(res);
+    res.setHeader("ETag", etag);
+    if (inm && inm === etag) return res.status(304).end();
+    return res.status(200).json(payload);
+  }
+
+  const result = await buildStreamsResult();
+  const bodyStr = JSON.stringify(result);
+  const etag = `W/"${createHash("sha256").update(bodyStr).digest("hex").slice(0, 32)}"`;
+  setStreamsCacheHeaders(res);
+  res.setHeader("ETag", etag);
+
+  if (isValkeyConfigured()) {
+    await valkeySet(STREAMS_HTTP_CACHE_KEY, JSON.stringify({ etag, payload: result }), STREAMS_CACHE_TTL_MS);
+  } else {
+    streamsMemFallback = { etag, payload: result, ts: now };
+  }
+
+  if (inm && inm === etag) return res.status(304).end();
   return res.status(200).json(result);
 }
 
@@ -197,6 +266,8 @@ export async function handleLiveStart(req: Request, res: Response) {
       started_at: startedAt,
       status: 'live',
     });
+
+    await invalidateLiveStreamsListCache();
 
     const token = await createLiveToken({
       userId: auth.userId,

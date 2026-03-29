@@ -1,92 +1,10 @@
 /**
  * Payment + wallet persistence on Neon / Postgres (DATABASE_URL + pg pool).
- *
- * Only reads/writes tables named elix_* — does not use or modify your existing Neon tables.
- * `initWalletPaymentTables` runs from initPostgres (same DATABASE_URL) so elix_* exist on boot.
+ * Wallet tables are created by SQL migrations (`npm run migrate`), not at app boot.
  */
 
-import type pg from "pg";
 import { getPool } from "./postgres";
 import { logger } from "./logger";
-
-export async function initWalletPaymentTables(pool: pg.Pool): Promise<void> {
-  await pool.query(`CREATE EXTENSION IF NOT EXISTS pgcrypto`).catch((err) => { logger.error({ err }, "initWalletPaymentTables: CREATE EXTENSION failed"); });
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS elix_wallet_balances (
-      user_id TEXT PRIMARY KEY,
-      coin_balance BIGINT NOT NULL DEFAULT 0,
-      updated_at TIMESTAMPTZ DEFAULT NOW(),
-      CONSTRAINT elix_wallet_balance_nn CHECK (coin_balance >= 0)
-    )
-  `);
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS elix_wallet_ledger (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      user_id TEXT NOT NULL,
-      kind TEXT NOT NULL,
-      coins_delta INTEGER NOT NULL,
-      provider TEXT,
-      provider_transaction_id TEXT,
-      product_id TEXT,
-      gift_id TEXT,
-      room_id TEXT,
-      client_transaction_id TEXT,
-      idempotency_key TEXT NOT NULL UNIQUE,
-      verification JSONB,
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    )
-  `);
-  await pool.query(
-    `CREATE INDEX IF NOT EXISTS idx_elix_ledger_user_time ON elix_wallet_ledger (user_id, created_at DESC)`,
-  );
-  await pool.query(`
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_elix_ledger_iap_provider_txn
-    ON elix_wallet_ledger (provider, provider_transaction_id)
-    WHERE kind = 'iap_purchase' AND provider IS NOT NULL AND provider_transaction_id IS NOT NULL
-  `).catch((err) => { logger.warn({ err }, "ledger iap unique index (may already exist)"); });
-  await pool.query(`
-    ALTER TABLE elix_wallet_ledger DROP CONSTRAINT IF EXISTS elix_ledger_coins_delta_bounds
-  `).catch(() => {});
-  await pool.query(`
-    ALTER TABLE elix_wallet_ledger ADD CONSTRAINT elix_ledger_coins_delta_bounds
-    CHECK (coins_delta >= -50000000 AND coins_delta <= 50000000)
-  `).catch((err) => { logger.warn({ err }, "ledger coins_delta bounds constraint"); });
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS elix_promote_purchases (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      user_id TEXT NOT NULL,
-      provider TEXT NOT NULL,
-      provider_transaction_id TEXT NOT NULL UNIQUE,
-      product_id TEXT NOT NULL,
-      content_type TEXT,
-      content_id TEXT,
-      goal TEXT NOT NULL,
-      amount_gbp NUMERIC,
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    )
-  `);
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS elix_membership_purchases (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      user_id TEXT NOT NULL,
-      creator_id TEXT,
-      provider TEXT NOT NULL,
-      provider_transaction_id TEXT NOT NULL UNIQUE,
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    )
-  `);
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS elix_shop_purchases (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      stripe_session_id TEXT NOT NULL UNIQUE,
-      item_id TEXT NOT NULL,
-      buyer_id TEXT NOT NULL,
-      seller_id TEXT NOT NULL,
-      amount_gbp NUMERIC,
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    )
-  `);
-}
 
 export async function neonGetCoinBalance(userId: string): Promise<number | null> {
   const pool = getPool();

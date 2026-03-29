@@ -13,15 +13,6 @@ async function ensureDeviceTokensTable(): Promise<void> {
   if (deviceTokensTableEnsured) return;
   const pool = getPool();
   if (!pool) return;
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS elix_device_tokens (
-      user_id TEXT NOT NULL,
-      platform TEXT NOT NULL,
-      token TEXT NOT NULL,
-      updated_at TIMESTAMPTZ DEFAULT NOW(),
-      PRIMARY KEY (user_id, platform)
-    )
-  `);
   deviceTokensTableEnsured = true;
 }
 

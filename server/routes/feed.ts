@@ -11,8 +11,8 @@ import { getPool } from "../lib/postgres";
 import { getTokenFromRequest, verifyAuthToken } from "./auth";
 
 const feedCache = new Map<string, { data: any[]; ts: number }>();
-const CACHE_TTL = 15_000;
-const MAX_FEED_CACHE_ENTRIES = 200;
+const CACHE_TTL = 22_000;
+const MAX_FEED_CACHE_ENTRIES = 400;
 const viewRateLimit = new Map<string, { count: number; windowStart: number }>();
 const RATE_LIMIT_WINDOW = 60_000;
 const RATE_LIMIT_MAX_VIEWS = 120;
@@ -132,7 +132,7 @@ export async function handleForYouFeed(req: Request, res: Response) {
     const cacheKey = `foryou:all:${page}:${limit}`;
     const cached = feedCache.get(cacheKey);
     if (cached && Date.now() - cached.ts < CACHE_TTL) {
-      res.setHeader("Cache-Control", "public, s-maxage=15, max-age=10");
+      res.setHeader("Cache-Control", "public, s-maxage=22, max-age=12");
       return res.json({
         videos: cached.data,
         mutualUserIds: [],
@@ -155,7 +155,13 @@ export async function handleForYouFeed(req: Request, res: Response) {
         `SELECT v.id, v.url, v.thumbnail, v.duration, v.description, v.hashtags,
                 v.views, v.likes, v.comments, v.shares, v.saves,
                 v.created_at, v.privacy, v.user_id,
-                row_to_json(p) AS user
+                (json_build_object(
+                  'user_id', p.user_id,
+                  'username', p.username,
+                  'display_name', p.display_name,
+                  'avatar_url', p.avatar_url,
+                  'is_creator', COALESCE(p.is_verified, false)
+                ))::json AS user
          FROM videos v
          LEFT JOIN profiles p ON p.user_id = v.user_id
          WHERE (v.privacy IS NULL OR v.privacy <> 'private')
@@ -206,7 +212,7 @@ export async function handleForYouFeed(req: Request, res: Response) {
       feedCache.set(cacheKey, { data: formatted, ts: Date.now() });
     }
 
-    res.setHeader("Cache-Control", "public, s-maxage=15, max-age=10");
+    res.setHeader("Cache-Control", "public, s-maxage=22, max-age=12");
     return res.json({
       videos: formatted,
       mutualUserIds: [],

@@ -85,33 +85,12 @@ export async function isFollowingAsync(followerId: string, targetId: string): Pr
 
 // ── PostgreSQL profile persistence ──────────────────────────────────────────
 
+/** Schema from migrations — marks ready when DB pool exists. */
 async function ensureProfilesTable(): Promise<void> {
   if (profilesTableReady) return;
   const db = getPool();
   if (!db) return;
-  try {
-    await db.query(`
-      CREATE TABLE IF NOT EXISTS profiles (
-        user_id TEXT PRIMARY KEY,
-        username TEXT DEFAULT '',
-        display_name TEXT DEFAULT '',
-        avatar_url TEXT DEFAULT '',
-        bio TEXT DEFAULT '',
-        website TEXT DEFAULT '',
-        followers INT DEFAULT 0,
-        following INT DEFAULT 0,
-        video_count INT DEFAULT 0,
-        coins INT DEFAULT 0,
-        level INT DEFAULT 1,
-        is_verified BOOLEAN DEFAULT FALSE,
-        created_at TIMESTAMPTZ DEFAULT NOW(),
-        updated_at TIMESTAMPTZ DEFAULT NOW()
-      )
-    `);
-    profilesTableReady = true;
-  } catch (err) {
-    logger.warn({ err }, "ensureProfilesTable: table creation failed");
-  }
+  profilesTableReady = true;
 }
 
 async function saveProfileToDb(p: Profile): Promise<boolean> {
@@ -429,12 +408,12 @@ export async function handleGetProfile(req: Request, res: Response): Promise<voi
 
 /** GET /api/profiles — list all known users/profiles */
 let profilesListCache: { data: any; ts: number } | null = null;
-const PROFILES_LIST_CACHE_TTL = 30_000;
+const PROFILES_LIST_CACHE_TTL = 55_000;
 
 export async function handleListProfiles(_req: Request, res: Response): Promise<void> {
   const now = Date.now();
   if (profilesListCache && now - profilesListCache.ts < PROFILES_LIST_CACHE_TTL) {
-    res.setHeader("Cache-Control", "public, s-maxage=30, max-age=15");
+    res.setHeader("Cache-Control", "public, s-maxage=55, max-age=25");
     res.json(profilesListCache.data);
     return;
   }
@@ -442,29 +421,51 @@ export async function handleListProfiles(_req: Request, res: Response): Promise<
   const merged = new Map<string, any>();
 
   const db = getPool();
+  let profileRows: any[] = [];
+  let users: StoredUserRow[] = [];
+
   if (db) {
     try {
       await ensureProfilesTable();
-      const dbRes = await db.query(`SELECT user_id, username, display_name, avatar_url, level, is_verified, followers, following FROM profiles LIMIT 500`);
-      for (const r of dbRes.rows || []) {
-        merged.set(String(r.user_id), {
-          user_id: String(r.user_id),
-          username: String(r.username || ""),
-          display_name: String(r.display_name || ""),
-          avatar_url: String(r.avatar_url || ""),
-          level: Number(r.level) || 1,
-          is_creator: Boolean(r.is_verified),
-          followers_count: Number(r.followers) || 0,
-          following_count: Number(r.following) || 0,
-        });
-      }
+      const [dbRes, usersRes] = await Promise.all([
+        db.query(
+          `SELECT user_id, username, display_name, avatar_url, level, is_verified, followers, following
+           FROM profiles
+           LIMIT 500`,
+        ),
+        readUsersFromDb(),
+      ]);
+      profileRows = dbRes.rows || [];
+      users = usersRes;
     } catch (err) {
-      logger.warn({ err }, "handleListProfiles: profiles query failed");
+      logger.warn({ err }, "handleListProfiles: parallel load failed, falling back sequential");
+      try {
+        await ensureProfilesTable();
+        const dbRes = await db.query(
+          `SELECT user_id, username, display_name, avatar_url, level, is_verified, followers, following FROM profiles LIMIT 500`,
+        );
+        profileRows = dbRes.rows || [];
+      } catch (e2) {
+        logger.warn({ err: e2 }, "handleListProfiles: profiles query failed");
+      }
+      users = await readUsersFromDb();
     }
   }
 
+  for (const r of profileRows) {
+    merged.set(String(r.user_id), {
+      user_id: String(r.user_id),
+      username: String(r.username || ""),
+      display_name: String(r.display_name || ""),
+      avatar_url: String(r.avatar_url || ""),
+      level: Number(r.level) || 1,
+      is_creator: Boolean(r.is_verified),
+      followers_count: Number(r.followers) || 0,
+      following_count: Number(r.following) || 0,
+    });
+  }
+
   if (db) {
-    const users = await readUsersFromDb();
     for (const u of users) {
       if (!u?.id || merged.has(u.id)) continue;
       const username =
@@ -493,7 +494,7 @@ export async function handleListProfiles(_req: Request, res: Response): Promise<
 
   const result = { profiles: Array.from(merged.values()) };
   profilesListCache = { data: result, ts: now };
-  res.setHeader("Cache-Control", "public, s-maxage=30, max-age=15");
+  res.setHeader("Cache-Control", "public, s-maxage=55, max-age=25");
   res.json(result);
 }
 

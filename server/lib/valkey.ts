@@ -345,6 +345,29 @@ export async function valkeyHgetall(key: string): Promise<Record<string, string>
   }
 }
 
+/** One Valkey round-trip for many HGETALL (e.g. live stream room metadata). */
+export async function valkeyHgetallBatch(
+  keys: string[],
+): Promise<Record<string, string>[]> {
+  const v = getValkey();
+  if (!v || keys.length === 0) return keys.map(() => ({}));
+  try {
+    const pipe = v.pipeline();
+    for (const k of keys) {
+      pipe.hgetall(k);
+    }
+    const raw = await pipe.exec();
+    if (!raw) return keys.map(() => ({}));
+    return raw.map(([err, res]) => {
+      if (err || res == null || typeof res !== "object") return {};
+      return res as Record<string, string>;
+    });
+  } catch (err: any) {
+    logger.warn({ err: err?.message, n: keys.length }, "valkeyHgetallBatch failed");
+    return keys.map(() => ({}));
+  }
+}
+
 export async function valkeyHincrby(key: string, field: string, increment: number): Promise<number> {
   const v = getValkey();
   if (!v) return 0;

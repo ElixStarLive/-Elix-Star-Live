@@ -35,24 +35,7 @@ async function ensureModerationTable(): Promise<void> {
   if (tableReady) return;
   const db = getPool();
   if (!db) return;
-  try {
-    await db.query(`
-      CREATE TABLE IF NOT EXISTS live_moderation_log (
-        id SERIAL PRIMARY KEY,
-        stream_key TEXT NOT NULL,
-        user_id TEXT NOT NULL,
-        kind TEXT NOT NULL,
-        category TEXT,
-        severity TEXT,
-        action_taken TEXT NOT NULL,
-        details JSONB DEFAULT '{}',
-        created_at TIMESTAMPTZ DEFAULT NOW()
-      )
-    `);
-    tableReady = true;
-  } catch (err) {
-    logger.error({ err }, 'Failed to ensure live_moderation_log table');
-  }
+  tableReady = true;
 }
 
 async function classifyImageWithAI(imageBase64: string): Promise<AIModerationResult> {

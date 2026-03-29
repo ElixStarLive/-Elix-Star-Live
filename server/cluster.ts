@@ -16,6 +16,10 @@
  *
  * Usage: npx tsx server/cluster.ts
  * Falls back to single-process mode if WEB_CONCURRENCY=1.
+ *
+ * Production: set ELIX_JOB_WORKER=0 (or false) on these app workers so only one
+ * dedicated instance runs the Valkey job consumer (ELIX_JOB_WORKER=1). Run
+ * `npm run migrate` once per deploy before starting workers (not per worker).
  */
 
 import cluster from "node:cluster";
