@@ -9,6 +9,11 @@ import { getTokenFromRequest, verifyAuthToken } from "./auth";
 import { ensureFollowsTable, getPool } from "../lib/postgres";
 import { logger } from "../lib/logger";
 import { isValkeyConfigured, valkeyGet, valkeySet, valkeyDel } from "../lib/valkey";
+import {
+  bumpProfilesListEpoch,
+  getProfilesListEpoch,
+  profilesListDataKey,
+} from "../lib/catalogCacheValkey";
 
 export interface Profile {
   userId: string;
@@ -127,6 +132,7 @@ async function saveProfileToDb(p: Profile): Promise<boolean> {
   );
   if (isValkeyConfigured()) {
     await valkeyDel(`profile:${p.userId}`);
+    void bumpProfilesListEpoch();
   }
   return true;
 }
@@ -407,15 +413,36 @@ export async function handleGetProfile(req: Request, res: Response): Promise<voi
 }
 
 /** GET /api/profiles — list all known users/profiles */
-let profilesListCache: { data: any; ts: number } | null = null;
-const PROFILES_LIST_CACHE_TTL = 55_000;
+let profilesListMemCache: { data: { profiles: unknown[] }; ts: number } | null = null;
+const PROFILES_LIST_MEM_TTL_MS = 55_000;
 
 export async function handleListProfiles(_req: Request, res: Response): Promise<void> {
   const now = Date.now();
-  if (profilesListCache && now - profilesListCache.ts < PROFILES_LIST_CACHE_TTL) {
+  if (
+    !isValkeyConfigured() &&
+    profilesListMemCache &&
+    now - profilesListMemCache.ts < PROFILES_LIST_MEM_TTL_MS
+  ) {
     res.setHeader("Cache-Control", "public, s-maxage=55, max-age=25");
-    res.json(profilesListCache.data);
+    res.json(profilesListMemCache.data);
     return;
+  }
+
+  if (isValkeyConfigured()) {
+    try {
+      const epoch = await getProfilesListEpoch();
+      const raw = await valkeyGet(profilesListDataKey(epoch));
+      if (raw) {
+        const data = JSON.parse(raw) as { profiles: unknown[] };
+        if (Array.isArray(data?.profiles)) {
+          res.setHeader("Cache-Control", "public, s-maxage=55, max-age=25");
+          res.json(data);
+          return;
+        }
+      }
+    } catch {
+      /* miss */
+    }
   }
 
   const merged = new Map<string, any>();
@@ -493,7 +520,18 @@ export async function handleListProfiles(_req: Request, res: Response): Promise<
   }
 
   const result = { profiles: Array.from(merged.values()) };
-  profilesListCache = { data: result, ts: now };
+
+  if (isValkeyConfigured()) {
+    try {
+      const epoch = await getProfilesListEpoch();
+      await valkeySet(profilesListDataKey(epoch), JSON.stringify(result), 55_000);
+    } catch (err) {
+      logger.warn({ err }, "handleListProfiles: valkey set failed");
+    }
+  } else {
+    profilesListMemCache = { data: result, ts: now };
+  }
+
   res.setHeader("Cache-Control", "public, s-maxage=55, max-age=25");
   res.json(result);
 }

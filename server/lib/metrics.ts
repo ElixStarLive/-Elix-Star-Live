@@ -2,7 +2,7 @@
  * In-process HTTP metrics (per worker). Exposed via GET with METRICS_SECRET.
  */
 import { performance } from "node:perf_hooks";
-import { getPool } from "./postgres";
+import { getPool, getPgPoolStats } from "./postgres";
 import { valkeyHealthCheck, isValkeyConfigured } from "./valkey";
 import { logger } from "./logger";
 
@@ -87,6 +87,7 @@ export function getMetricsSnapshot(): Record<string, unknown> {
     latency_histogram_ms: { ...buckets },
     last_db_ping_ms: dbPingMsLast,
     last_valkey_ping_ms: valkeyPingMsLast,
+    pg_pool: getPgPoolStats(),
     pid: process.pid,
     uptime_s: Math.round(process.uptime()),
   };

@@ -7,6 +7,13 @@ import pg from "pg";
 import type { Video } from "./videoStore";
 import { logger } from "./logger";
 import { bumpFeedForyouEpoch } from "./feedCacheValkey";
+import { instrumentPool } from "./dbRequestContext";
+import {
+  CATALOG_HTTP_CACHE_TTL_MS,
+  COIN_PACKAGES_KEY,
+  GIFTS_CATALOG_KEY,
+} from "./catalogCacheValkey";
+import { isValkeyConfigured, valkeyGet, valkeySet } from "./valkey";
 
 const { Pool } = pg;
 
@@ -24,6 +31,16 @@ function firstNonEmptyString(
 
 export function getPool(): pg.Pool | null {
   return pool;
+}
+
+/** Pool saturation signals — use with /api/metrics or logs (per worker). */
+export function getPgPoolStats(): { total: number; idle: number; waiting: number } | null {
+  if (!pool) return null;
+  return {
+    total: pool.totalCount,
+    idle: pool.idleCount,
+    waiting: pool.waitingCount,
+  };
 }
 
 export function isPostgresConfigured(): boolean {
@@ -109,12 +126,13 @@ export async function connectPostgres(): Promise<void> {
   const needsSsl = url.includes("neon.tech") || url.includes("sslmode=require");
   const newPool = new Pool({
     connectionString: url,
-    max: Number(process.env.PG_POOL_MAX) || 30,
-    min: Number(process.env.PG_POOL_MIN) || 2,
+    max: Number(process.env.PG_POOL_MAX) || 80,
+    min: Number(process.env.PG_POOL_MIN) || 4,
     idleTimeoutMillis: 60_000,
-    connectionTimeoutMillis: 10_000,
+    connectionTimeoutMillis: Number(process.env.PG_POOL_ACQUIRE_MS) || 12_000,
     allowExitOnIdle: false,
-    statement_timeout: 15_000,
+    /** Fail before typical reverse-proxy ~10s idle timeout so clients see DB errors, not generic 502. */
+    statement_timeout: Number(process.env.PG_STATEMENT_TIMEOUT_MS) || 8_000,
     ...(needsSsl ? { ssl: { rejectUnauthorized: process.env.PG_SSL_REJECT_UNAUTHORIZED === "true" } } : {}),
   });
   newPool.on("error", (err) => {
@@ -124,8 +142,16 @@ export async function connectPostgres(): Promise<void> {
   try {
     await newPool.query("SELECT 1");
     await assertMigrationsApplied(newPool);
+    instrumentPool(newPool);
     pool = newPool;
-    logger.info("PostgreSQL pool ready");
+    logger.info(
+      {
+        max: newPool.options.max,
+        min: newPool.options.min,
+        connectionTimeoutMillis: newPool.options.connectionTimeoutMillis,
+      },
+      "PostgreSQL pool ready",
+    );
   } catch (err) {
     await newPool.end().catch(() => {});
     pool = null;
@@ -1233,8 +1259,20 @@ let coinPackagesMemCache: { rows: DbCoinPackageRow[]; ts: number } | null = null
 const COIN_PACKAGES_CACHE_MS = 60_000;
 
 export async function dbLoadCoinPackages(): Promise<DbCoinPackageRow[]> {
+  if (isValkeyConfigured()) {
+    try {
+      const raw = await valkeyGet(COIN_PACKAGES_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as DbCoinPackageRow[];
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {
+      /* miss */
+    }
+  }
+
   const now = Date.now();
-  if (coinPackagesMemCache && now - coinPackagesMemCache.ts < COIN_PACKAGES_CACHE_MS) {
+  if (!isValkeyConfigured() && coinPackagesMemCache && now - coinPackagesMemCache.ts < COIN_PACKAGES_CACHE_MS) {
     return coinPackagesMemCache.rows;
   }
   const p = getPool();
@@ -1254,6 +1292,9 @@ export async function dbLoadCoinPackages(): Promise<DbCoinPackageRow[]> {
       product_id: String(r.product_id),
     }));
     coinPackagesMemCache = { rows, ts: now };
+    if (isValkeyConfigured() && rows.length > 0) {
+      await valkeySet(COIN_PACKAGES_KEY, JSON.stringify(rows), CATALOG_HTTP_CACHE_TTL_MS);
+    }
     return rows;
   } catch (err) {
     logger.error({ err }, "dbLoadCoinPackages failed");

@@ -32,7 +32,8 @@ import { errorHandler } from "./middleware/errorHandler";
 import { isLiveKitConfigured } from "./services/livekit";
 import { isBunnyConfigured } from "./services/bunny";
 import { isValkeyConfigured, valkeyHealthCheck } from "./lib/valkey";
-import { connectPostgres, getPool } from "./lib/postgres";
+import { connectPostgres, getPool, getPgPoolStats } from "./lib/postgres";
+import { runWithDbStats, getDbRequestStats } from "./lib/dbRequestContext";
 import { getVideoCountAsync } from "./lib/videoStore";
 import { logger } from "./lib/logger";
 import { loadGiftValuesFromDb } from "./websocket/giftRegistry";
@@ -47,6 +48,8 @@ process.setMaxListeners(0);
 const app = express();
 const server = createServer(app);
 server.maxConnections = 0;
+/** Stay above typical reverse-proxy ~10s so Node does not abort before the proxy; tune via HTTP_REQUEST_TIMEOUT_MS. */
+server.requestTimeout = Number(process.env.HTTP_REQUEST_TIMEOUT_MS) || 120_000;
 const PORT = Number(process.env.PORT) || 8080;
 const BUILD_VERSION = "2026-03-26T20:00-modular-rebuild";
 
@@ -99,10 +102,19 @@ app.use(compression({
 }));
 
 const LOADTEST_SECRET = process.env.LOADTEST_BYPASS_SECRET || "";
-const LOG_SAMPLE = Math.max(1, Number(process.env.LOG_SAMPLE_RATE) || 1);
+const LOG_SAMPLE = Math.max(
+  1,
+  Number(process.env.LOG_SAMPLE_RATE) ||
+    (process.env.NODE_ENV === "production" ? 20 : 1),
+);
 let _logCounter = 0;
 
 app.use(httpMetricsMiddleware);
+
+/** Per-request DB stats bucket for pool.query instrumentation (AsyncLocalStorage). */
+app.use((req, res, next) => {
+  runWithDbStats(() => next());
+});
 
 app.use((req, res, next) => {
   const isLoadTest = LOADTEST_SECRET && req.headers["x-loadtest-key"] === LOADTEST_SECRET;
@@ -112,20 +124,37 @@ app.use((req, res, next) => {
     res.setHeader("X-Request-Id", req.requestId);
   }
 
-  if (isLoadTest || (++_logCounter % LOG_SAMPLE) !== 0) {
-    next();
-    return;
-  }
-
   const start = Date.now();
+  const shouldLogLine = !isLoadTest && (++_logCounter % LOG_SAMPLE) === 0;
+  const logDbStats = process.env.LOG_DB_STATS === "1";
+
   res.on("finish", () => {
-    logger.info({
+    if (isLoadTest && !logDbStats) return;
+    const ms = Date.now() - start;
+    const db = getDbRequestStats();
+    const slowDb =
+      !isLoadTest &&
+      Boolean(
+        db &&
+          (db.dbMs >= 150 ||
+            db.queryCount >= 8 ||
+            (req.originalUrl.startsWith("/api/") && ms >= 2000 && (db.queryCount > 0 || db.dbMs > 0))),
+      );
+    if (!shouldLogLine && !logDbStats && !slowDb) return;
+
+    const payload: Record<string, unknown> = {
       method: req.method,
       url: req.originalUrl,
       status: res.statusCode,
-      ms: Date.now() - start,
-    });
+      ms,
+    };
+    if (db && (shouldLogLine || logDbStats || slowDb)) {
+      payload.dbQueries = db.queryCount;
+      payload.dbMs = db.dbMs;
+    }
+    logger.info(payload, "http_request");
   });
+
   next();
 });
 
@@ -163,6 +192,7 @@ async function healthCheck(_req: express.Request, res: express.Response) {
     return res.status(healthCache.code).json(healthCache.data);
   }
 
+  const healthLight = process.env.HEALTH_LIGHT === "1";
   const pool = getPool();
   const [dbPing, valkeyOk, videoCount] = await Promise.all([
     pool
@@ -175,7 +205,7 @@ async function healthCheck(_req: express.Request, res: express.Response) {
         )
       : Promise.resolve(false),
     valkeyHealthCheck(),
-    getVideoCountAsync(),
+    healthLight ? Promise.resolve<number | null>(null) : getVideoCountAsync(),
   ]);
 
   const dbOk = Boolean(dbPing);
@@ -189,7 +219,8 @@ async function healthCheck(_req: express.Request, res: express.Response) {
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
     port: PORT,
-    videoCount,
+    videoCount: videoCount ?? undefined,
+    healthLight,
     services: {
       database: dbOk,
       valkey: isValkeyConfigured() ? valkeyOk : "not_configured",
