@@ -1,3 +1,4 @@
+import { Capacitor } from "@capacitor/core";
 import { apiUrl } from "./api";
 import { useAuthStore } from "../store/useAuthStore";
 
@@ -8,13 +9,18 @@ function authHeaders(): Record<string, string> {
   return h;
 }
 
+/** Native: Bearer-only (no dependency on HttpOnly cookie persistence in WebView). Web: cookies still sent for same-site flows. */
+function requestCredentials(): RequestCredentials {
+  return Capacitor.isNativePlatform() ? "omit" : "include";
+}
+
 export async function request<T = any>(
   path: string,
   init: RequestInit = {},
 ): Promise<{ data: T | null; error: { message: string } | null }> {
   try {
     const res = await fetch(apiUrl(path), {
-      credentials: "include",
+      credentials: requestCredentials(),
       ...init,
       headers: { ...authHeaders(), ...(init.headers || {}) },
     });

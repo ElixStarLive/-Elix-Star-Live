@@ -3,6 +3,7 @@ import { createJSONStorage, persist, type StateStorage } from "zustand/middlewar
 import { Capacitor } from "@capacitor/core";
 import { Preferences } from "@capacitor/preferences";
 import { request } from "../lib/apiClient";
+import { parseAuthLoginRegisterResponse } from "../lib/authApiContract";
 
 interface User {
   id: string;
@@ -239,42 +240,16 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
         return { error: message };
       }
 
-      const backendUser = (data?.user ?? null) as AuthUser | null;
-      const sessionData = data?.session as
-        | { accessToken?: string; access_token?: string }
-        | null
-        | undefined;
-      const accessToken: string | undefined =
-        sessionData?.accessToken ?? sessionData?.access_token;
-
-      if (!backendUser || !accessToken) {
-        // Some server modes rely on cookie auth and may omit token in login response.
-        // Recover by fetching /api/auth/me before failing.
-        const { data: meData, error: meError } = await request("/api/auth/me");
-        const meUser = (meData?.user ?? null) as AuthUser | null;
-        const meSessionData = meData?.session as
-          | { accessToken?: string; access_token?: string }
-          | null
-          | undefined;
-        const meAccessToken: string | undefined =
-          meSessionData?.accessToken ?? meSessionData?.access_token;
-
-        if (meError || !meUser || !meAccessToken) {
-          return { error: "Login failed unexpectedly. Please try again." };
-        }
-
-        const mapped = mapUserToUser(meUser);
-        set({
-          backendUser: meUser,
-          session: { user: meUser, access_token: meAccessToken },
-          user: mapped,
-          isAuthenticated: true,
-          isLoading: false,
-          authMode: "client",
-        });
-        return { error: null };
+      const parsed = parseAuthLoginRegisterResponse(data);
+      if (!parsed) {
+        return {
+          error:
+            "Could not complete sign-in. Check your connection, update the app, or try again later.",
+        };
       }
 
+      const backendUser = parsed.user as AuthUser;
+      const accessToken = parsed.accessToken;
       const mapped = mapUserToUser(backendUser);
 
       set({
@@ -341,50 +316,40 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
         return { error: null, needsEmailConfirmation: true };
       }
 
-      const backendUser = (data?.user ?? null) as AuthUser | null;
-      const sessionData = data?.session as
-        | { accessToken?: string; access_token?: string }
-        | null
-        | undefined;
-      const accessToken: string | undefined =
-        sessionData?.accessToken ?? sessionData?.access_token;
-
-      if (backendUser && accessToken) {
-        const mapped = mapUserToUser(backendUser);
-
-        // Seed a profile entry on the Hetzner backend
-        if (mapped) {
-          request("/api/profiles", {
-            method: "POST",
-            body: JSON.stringify({
-              userId: mapped.id,
-              username: mapped.username,
-              displayName: mapped.name,
-              email: mapped.email,
-              avatarUrl: mapped.avatar,
-            }),
-          }).catch(() => {});
-        }
-
-        set({
-          backendUser,
-          session: { user: backendUser, access_token: accessToken },
-          user: mapped,
-          isAuthenticated: true,
-          isLoading: false,
-          authMode: "client",
-        });
-        return { error: null, needsEmailConfirmation: false };
+      const parsed = parseAuthLoginRegisterResponse(data);
+      if (!parsed) {
+        return {
+          error: "Signup did not return a valid session. Please try again or update the app.",
+          needsEmailConfirmation: false,
+        };
       }
 
-      if (backendUser && !accessToken) {
-        return { error: null, needsEmailConfirmation: true };
+      const backendUser = parsed.user as AuthUser;
+      const accessToken = parsed.accessToken;
+      const mapped = mapUserToUser(backendUser);
+
+      if (mapped) {
+        request("/api/profiles", {
+          method: "POST",
+          body: JSON.stringify({
+            userId: mapped.id,
+            username: mapped.username,
+            displayName: mapped.name,
+            email: mapped.email,
+            avatarUrl: mapped.avatar,
+          }),
+        }).catch(() => {});
       }
 
-      return {
-        error: "Signup failed (no user data returned). Please try again.",
-        needsEmailConfirmation: false,
-      };
+      set({
+        backendUser,
+        session: { user: backendUser, access_token: accessToken },
+        user: mapped,
+        isAuthenticated: true,
+        isLoading: false,
+        authMode: "client",
+      });
+      return { error: null, needsEmailConfirmation: false };
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Unknown error occurred";
       return { error: msg, needsEmailConfirmation: false };

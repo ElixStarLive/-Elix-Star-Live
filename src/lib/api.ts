@@ -3,9 +3,15 @@
  * Uses VITE_* from build or window.__ENV from /env.js at runtime.
  */
 
-import { Capacitor } from '@capacitor/core';
+import { Capacitor } from "@capacitor/core";
 
-const env = typeof window !== 'undefined' ? (window as any).__ENV as Record<string, string> | undefined : undefined;
+const env = typeof window !== "undefined" ? (window as any).__ENV as Record<string, string> | undefined : undefined;
+
+/**
+ * Production site/API origin. Must match capacitor.config.ts `server.hostname`
+ * (scheme https + this host). Used for Capacitor builds when VITE_API_URL is not set.
+ */
+export const APP_PRODUCTION_ORIGIN = "https://www.elixstarlive.co.uk";
 
 /** On localhost we use same-origin so Vite proxy (or backend on 8080) handles /api */
 function isLocalDev(): boolean {
@@ -15,16 +21,27 @@ function isLocalDev(): boolean {
 }
 
 export function getApiBase(): string {
-  const base = (import.meta.env.VITE_API_URL ?? env?.VITE_API_URL ?? "").toString().trim();
-  const normalized = base ? base.replace(/\/$/, "") : "";
+  const fromEnv = (import.meta.env.VITE_API_URL ?? env?.VITE_API_URL ?? "")
+    .toString()
+    .trim()
+    .replace(/\/$/, "");
 
   if (isLocalDev()) {
-    // In native WebView, localhost points to the device/emulator, not your backend.
-    if (Capacitor.isNativePlatform() && normalized) return normalized;
+    // Emulator/device: localhost is the device itself — set VITE_API_URL to your backend (LAN/tunnel).
+    if (Capacitor.isNativePlatform() && fromEnv) return fromEnv;
     return "";
   }
 
-  return normalized;
+  if (fromEnv) return fromEnv;
+
+  // Shipped iOS/Android app: always call the real API with an absolute origin (JWT in memory;
+  // do not rely on relative fetch or cookie edge cases in the WebView).
+  if (Capacitor.isNativePlatform()) {
+    return APP_PRODUCTION_ORIGIN.replace(/\/$/, "");
+  }
+
+  // Browser deployment on the same host as the API: relative URLs.
+  return "";
 }
 
 export function getLiveKitUrl(): string {

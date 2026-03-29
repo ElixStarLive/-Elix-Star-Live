@@ -121,7 +121,7 @@ const EDGE_SWIPE_WIDTH = 24;
 const SWIPE_THRESHOLD = 60;
 
 function App() {
-  const { checkUser, user, isAuthenticated, isLoading } = useAuthStore();
+  const { user, isAuthenticated, isLoading } = useAuthStore();
   const location = useLocation();
   const navigate = useNavigate();
   const swipeStart = useRef<{ x: number; y: number } | null>(null);
@@ -143,9 +143,21 @@ function App() {
   // Initialize deep links
   useDeepLinks();
 
+  // Auth: wait for persisted session (Preferences on Android) before /api/auth/me.
+  // Running checkUser before hydration used no token, cleared state, and could overwrite saved login.
   useEffect(() => {
-    checkUser();
+    const runCheckUser = () => {
+      void useAuthStore.getState().checkUser();
+    };
+    if (useAuthStore.persist.hasHydrated()) {
+      runCheckUser();
+    } else {
+      const unsub = useAuthStore.persist.onFinishHydration(runCheckUser);
+      return unsub;
+    }
+  }, []);
 
+  useEffect(() => {
     // Failsafe: if loading takes too long (e.g. auth hanging), force stop loading
     const timer = setTimeout(() => {
       if (useAuthStore.getState().isLoading) {
@@ -171,7 +183,7 @@ function App() {
     }
 
     return () => clearTimeout(timer);
-  }, [checkUser]);
+  }, []);
 
   useEffect(() => {
     if (user?.id) {
