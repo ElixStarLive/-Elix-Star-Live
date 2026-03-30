@@ -374,6 +374,19 @@ export async function handleRegister(req: Request, res: Response) {
       created_at,
     };
     await dbInsertUser(stored);
+    const pool = getPool();
+    if (pool) {
+      try {
+        await pool.query(
+          `INSERT INTO profiles (user_id, username, display_name, avatar_url, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, NOW(), NOW())
+           ON CONFLICT (user_id) DO NOTHING`,
+          [id, uname, uname, avatar_url],
+        );
+      } catch (profileErr) {
+        logger.warn({ err: profileErr }, 'profile creation during register skipped');
+      }
+    }
     const token = signToken({ sub: id, email: e });
     await dbUpsertSession(id, token);
     setAuthCookie(res, token);

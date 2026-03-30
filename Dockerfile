@@ -51,11 +51,7 @@ COPY --from=builder /app/server ./server
 COPY --from=builder /app/tsconfig.json ./
 COPY --from=builder /app/tsconfig.server.json ./
 
-# Fallback .env from .env.example so services work even without Coolify env vars.
-# dotenv loads with override:false — Coolify/docker-compose env vars always take precedence.
-# IMPORTANT: Set DATABASE_URL as a runtime env var pointing to your PostgreSQL host,
-# NOT localhost (which means the container itself in Docker).
-COPY --from=builder /app/.env.example ./.env
+# Coolify injects env vars directly — no .env file needed in the image.
 
 EXPOSE 8080
 
