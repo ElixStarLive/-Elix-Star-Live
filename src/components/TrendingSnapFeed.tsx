@@ -12,8 +12,66 @@ function formatNumber(n: number): string {
 
 function VideoThumbnail({ video }: { video: Video }) {
   const navigate = useNavigate();
+  const [thumbSrc, setThumbSrc] = React.useState<string | null>(null);
+  const tried = React.useRef(false);
+
   const poster = video.thumbnail || getVideoPosterUrl(video.url || '');
   const bunnyPoster = getVideoPosterUrl(video.url || '');
+
+  React.useEffect(() => {
+    if (thumbSrc || tried.current) return;
+    if (poster) { setThumbSrc(poster); return; }
+    if (!video.url) return;
+    tried.current = true;
+    const vid = document.createElement('video');
+    vid.crossOrigin = 'anonymous';
+    vid.muted = true;
+    vid.playsInline = true;
+    vid.preload = 'metadata';
+    vid.src = video.url;
+    vid.currentTime = 0.5;
+    vid.addEventListener('seeked', () => {
+      try {
+        const c = document.createElement('canvas');
+        c.width = vid.videoWidth || 320;
+        c.height = vid.videoHeight || 480;
+        c.getContext('2d')?.drawImage(vid, 0, 0, c.width, c.height);
+        const dataUrl = c.toDataURL('image/jpeg', 0.7);
+        if (dataUrl && dataUrl.length > 100) setThumbSrc(dataUrl);
+      } catch { /* cross-origin — leave black */ }
+    }, { once: true });
+    vid.addEventListener('error', () => {}, { once: true });
+  }, [poster, video.url, thumbSrc]);
+
+  const handleImgError = React.useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    if (img.dataset.fallback === '2') return;
+    if (!img.dataset.fallback && bunnyPoster && img.src !== bunnyPoster) {
+      img.dataset.fallback = '1';
+      img.src = bunnyPoster;
+      return;
+    }
+    img.dataset.fallback = '2';
+    if (!video.url) return;
+    tried.current = true;
+    const vid = document.createElement('video');
+    vid.crossOrigin = 'anonymous';
+    vid.muted = true;
+    vid.playsInline = true;
+    vid.preload = 'metadata';
+    vid.src = video.url;
+    vid.currentTime = 0.5;
+    vid.addEventListener('seeked', () => {
+      try {
+        const c = document.createElement('canvas');
+        c.width = vid.videoWidth || 320;
+        c.height = vid.videoHeight || 480;
+        c.getContext('2d')?.drawImage(vid, 0, 0, c.width, c.height);
+        const dataUrl = c.toDataURL('image/jpeg', 0.7);
+        if (dataUrl && dataUrl.length > 100) setThumbSrc(dataUrl);
+      } catch { /* cross-origin */ }
+    }, { once: true });
+  }, [bunnyPoster, video.url]);
 
   return (
     <button
@@ -21,39 +79,13 @@ function VideoThumbnail({ video }: { video: Video }) {
       className="relative aspect-[3/4] bg-[#0A0B0E] rounded-lg overflow-hidden cursor-pointer group"
       onClick={() => navigate(`/video/${video.id}`)}
     >
-      {poster ? (
+      {thumbSrc ? (
         <img
-          src={poster}
+          src={thumbSrc}
           alt=""
           className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition"
           loading="lazy"
-          onError={(e) => {
-            const img = e.currentTarget;
-            if (img.dataset.fallback === '2') return;
-            if (!img.dataset.fallback && bunnyPoster && img.src !== bunnyPoster) {
-              img.dataset.fallback = '1';
-              img.src = bunnyPoster;
-              return;
-            }
-            img.dataset.fallback = '2';
-            img.style.display = 'none';
-            const vid = document.createElement('video');
-            vid.src = video.url || '';
-            vid.muted = true;
-            vid.playsInline = true;
-            vid.preload = 'metadata';
-            vid.className = 'w-full h-full object-cover absolute inset-0';
-            vid.currentTime = 0.5;
-            img.parentElement?.insertBefore(vid, img);
-          }}
-        />
-      ) : video.url ? (
-        <video
-          src={`${video.url}#t=0.5`}
-          muted
-          playsInline
-          preload="metadata"
-          className="w-full h-full object-cover absolute inset-0"
+          onError={handleImgError}
         />
       ) : (
         <div className="w-full h-full flex items-center justify-center">

@@ -99,7 +99,7 @@ export const BuyCoinsModal: React.FC<BuyCoinsModalProps> = ({ isOpen, onClose, o
       <div className="fixed inset-0 bg-black/40 pointer-events-auto" style={{ zIndex: 99998 }} onClick={onClose} />
       <div
         className="fixed left-0 right-0 z-[999999] pointer-events-auto max-w-[480px] mx-auto"
-        style={{ bottom: 'var(--bottom-ui-reserve)' }}
+        style={{ bottom: 'var(--feed-main-pb)' }}
       >
         <div className="bg-[#1C1E24]/95 backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl border-t border-[#C9A96E]/20 overflow-hidden">
           <div className="flex justify-center pt-2 pb-1">

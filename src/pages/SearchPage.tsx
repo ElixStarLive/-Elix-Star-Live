@@ -34,23 +34,29 @@ export default function SearchPage() {
 
   const RECENT_KEY = 'elix_recent_searches_v1';
 
-  const VIDEO_CATEGORIES = React.useMemo(() => {
-    const tagCount = new Map<string, number>();
-    for (const v of (videos || [])) {
-      for (const h of (v.hashtags || [])) {
-        const t = h.replace(/^#/, '').trim().toLowerCase();
-        if (t.length >= 2) tagCount.set(t, (tagCount.get(t) || 0) + 1);
-      }
-    }
-    const sorted = [...tagCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([t]) => t.charAt(0).toUpperCase() + t.slice(1));
-    return ['All', ...sorted];
-  }, [videos]);
+  const FIXED_CATEGORIES = ['All', 'For You', 'Trending', 'Dance', 'Comedy', 'Music', 'Food', 'Sports', 'Fashion', 'Gaming', 'Travel', 'Fitness', 'Beauty', 'Pets', 'Art'];
 
   const filteredVideos = React.useMemo(() => {
-    const all = (videos || []).slice(0, 30);
+    const all = (videos || []).slice(0, 60);
     if (activeCategory === 'All') return all;
+    if (activeCategory === 'For You') {
+      const store = useVideoStore.getState();
+      const userId = (store as any).currentUserId || '';
+      const rec = store.getRecommendedVideos(userId);
+      return rec.length > 0 ? rec.slice(0, 30) : all;
+    }
+    if (activeCategory === 'Trending') {
+      const store = useVideoStore.getState();
+      const trending = store.getTrendingVideos();
+      return trending.length > 0 ? trending.slice(0, 30) : all;
+    }
     const cat = activeCategory.toLowerCase();
-    return all.filter(v => (v.hashtags || []).some(h => h.replace(/^#/, '').toLowerCase() === cat));
+    const matched = all.filter(v => {
+      const desc = (v.description || '').toLowerCase();
+      const tags = (v.hashtags || []).map(h => h.replace(/^#/, '').toLowerCase());
+      return tags.some(t => t === cat || t.includes(cat)) || desc.includes(cat);
+    });
+    return matched.length > 0 ? matched : all;
   }, [videos, activeCategory]);
 
   useEffect(() => {
@@ -264,7 +270,7 @@ export default function SearchPage() {
           </div>
 
           {/* Search bar — nudged down from handle row */}
-          <div className="px-4 pb-0.5 mt-[3mm]">
+          <div className="px-4 pb-0.5 mt-[1mm]">
             <div className="flex items-center gap-2">
               <form onSubmit={handleSearch} className="flex-1 relative">
                 <input 
@@ -371,9 +377,9 @@ export default function SearchPage() {
                     )}
                   </div>
 
-                  {VIDEO_CATEGORIES.length > 1 && (
+                  {FIXED_CATEGORIES.length > 1 && (
                     <div className="px-3 pt-2 pb-1 flex gap-2 overflow-x-auto no-scrollbar shrink-0">
-                      {VIDEO_CATEGORIES.map((cat) => (
+                      {FIXED_CATEGORIES.map((cat) => (
                         <button
                           key={cat}
                           type="button"

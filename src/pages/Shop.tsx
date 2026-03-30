@@ -370,7 +370,7 @@ export default function Shop() {
               onClick={() => setShowCreate(false)}
             />
             {/* Anchor the modal exactly to the top of the bottom bar (no extra gap). */}
-            <div className="fixed left-0 right-0 z-[9999] pointer-events-auto max-w-[480px] mx-auto" style={{ bottom: 'var(--bottom-ui-reserve)' }}>
+            <div className="fixed left-0 right-0 z-[9999] pointer-events-auto max-w-[480px] mx-auto" style={{ bottom: 'var(--feed-main-pb)' }}>
               <div
                 className="w-full bg-[#1C1E24] rounded-t-3xl border-2 border-b-0 border-[#C9A96E] pb-safe"
                 style={{ maxHeight: '80dvh', boxShadow: '0 -4px 30px rgba(201,169,110,0.25)' }}

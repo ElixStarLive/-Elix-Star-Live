@@ -255,7 +255,7 @@
   .pb-nav-feed { padding-bottom: var(--feed-main-pb); }
   .pb-nav-friends { padding-bottom: var(--feed-main-pb); }
 
-  /* Fixed / full-viewport columns above bottom nav — stops at top of bottom bar */
+  /* Fixed / full-viewport columns above bottom nav — same clearance as For You feed */
   .h-above-bottom-nav {
     height: calc(100dvh - var(--feed-main-pb));
     max-height: calc(100dvh - var(--feed-main-pb));
