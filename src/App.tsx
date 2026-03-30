@@ -232,7 +232,8 @@ function App() {
 
   const isFeedNoTopBar =
     location.pathname === "/stem" ||
-    location.pathname === "/following";
+    location.pathname === "/following" ||
+    location.pathname === "/friends";
 
   const isFeedFullScreen = isFeedWithTopBar || isFeedNoTopBar;
 

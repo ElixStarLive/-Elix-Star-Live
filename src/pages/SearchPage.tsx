@@ -2,19 +2,9 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Search as SearchIcon, X } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AvatarRing } from '../components/AvatarRing';
-import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
 import { TrendingSnapFeed } from '../components/TrendingSnapFeed';
 import { request } from '../lib/apiClient';
 import { useVideoStore } from '../store/useVideoStore';
-
-const FALLBACK_SEARCHES = [
-  'Dance challenge',
-  'Funny cats',
-  'Cooking hacks',
-  'Travel vlog',
-  'Gaming highlights',
-  'Fitness tips'
-];
 
 export default function SearchPage() {
   const navigate = useNavigate();
@@ -24,9 +14,7 @@ export default function SearchPage() {
   const [matchedVideos, setMatchedVideos] = useState<{ id: string; description: string; thumbnail: string; url: string; username: string; hashtags: string[] }[]>([]);
   const [searching, setSearching] = useState(false);
   const [visible, setVisible] = useState(false);
-  const [suggestedUsers, setSuggestedUsers] = useState<{ id: string; username: string; name: string; avatar: string; is_live?: boolean }[]>([]);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
-  const [trendingSearches, setTrendingSearches] = useState<string[]>(FALLBACK_SEARCHES);
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const panelRef = useRef<HTMLDivElement>(null);
   const touchStart = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -61,24 +49,6 @@ export default function SearchPage() {
 
   useEffect(() => {
     requestAnimationFrame(() => setVisible(true));
-    const storeState = useVideoStore.getState();
-    const hashtags = (storeState as any).trendingHashtags as string[] | undefined;
-    if (hashtags && hashtags.length > 0) {
-      setTrendingSearches(hashtags.slice(0, 8));
-    } else {
-      request('/api/videos').then(({ data }) => {
-        const allVideos = data?.videos || [];
-        const tagCounts = new Map<string, number>();
-        for (const v of allVideos) {
-          const tags = (v.hashtags || []) as string[];
-          for (const t of tags) {
-            tagCounts.set(t, (tagCounts.get(t) || 0) + 1);
-          }
-        }
-        const sorted = [...tagCounts.entries()].sort((a, b) => b[1] - a[1]).map(([t]) => t).slice(0, 8);
-        if (sorted.length > 0) setTrendingSearches(sorted);
-      }).catch(() => {});
-    }
   }, []);
 
   const closePanel = () => {
@@ -199,42 +169,6 @@ export default function SearchPage() {
     if (videos.length === 0) fetchVideos();
   }, [fetchVideos, videos.length]);
 
-  useEffect(() => {
-    // Suggested users for empty state (always show) + live status
-    let cancelled = false;
-    (async () => {
-      try {
-        const [profilesResult, liveResult] = await Promise.all([
-          request('/api/profiles'),
-          request('/api/live/streams').catch(() => ({ data: null, error: null })),
-        ]);
-        const body = profilesResult.data ?? { profiles: [] };
-        const liveBody = liveResult.data ?? { streams: [] };
-        const liveSet = new Set((liveBody?.streams || []).map((s: any) => s.userId || s.user_id).filter(Boolean));
-        const profiles = Array.isArray(body?.profiles) ? body.profiles : [];
-        const blocklist = new Set(['', 'user', 'demo', 'test', 'unknown', 'anonymous', 'guest']);
-        const mapped = profiles
-          .map((p: any) => ({
-            id: p.user_id || p.userId,
-            username: (p.username || 'user') as string,
-            name: (p.display_name || p.displayName || p.username || 'User') as string,
-            avatar: (p.avatar_url || p.avatarUrl || '') as string,
-            is_live: liveSet.has(p.user_id || p.userId),
-          }))
-          .filter((u: any) => !!u.id)
-          .filter((u: any) => {
-            const n = (u.name || u.username || '').trim().toLowerCase();
-            return n.length >= 2 && !blocklist.has(n);
-          })
-          .slice(0, 12);
-        mapped.sort((a: any, b: any) => (a.is_live === b.is_live ? 0 : a.is_live ? -1 : 1));
-        if (!cancelled) setSuggestedUsers(mapped);
-      } catch {
-        if (!cancelled) setSuggestedUsers([]);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, []);
 
   return (
     <div className="fixed inset-0 z-[99999] flex justify-center">
@@ -253,7 +187,7 @@ export default function SearchPage() {
       >
         <div
           className="w-full max-w-[480px] bg-[#13151A] flex flex-col overflow-hidden pt-[env(safe-area-inset-top,0px)]"
-          style={{ boxShadow: '0 -8px 30px rgba(0,0,0,0.5)', marginTop: 0, height: 'calc(100dvh - var(--feed-main-pb))', maxHeight: 'calc(100dvh - var(--feed-main-pb))' }}
+          style={{ boxShadow: '0 -8px 30px rgba(0,0,0,0.5)', marginTop: 0, height: '100dvh', maxHeight: '100dvh' }}
         >
           {/* Top: drag handle + power (back) — swipe down here to close */}
           <div
@@ -299,183 +233,24 @@ export default function SearchPage() {
           {/* Results */}
           <div className="flex flex-col flex-1 min-h-0 overflow-y-auto">
             {!normalizedQuery ? (
-              (videos || []).length > 0 ? (
-                <>
-                  <div className="shrink-0">
-                    {/* Quick chips */}
-                    <div className="mt-2 px-4">
-                      <h2 className="font-bold mb-2 text-gold-metallic text-sm">You may like</h2>
-                      <div className="flex flex-wrap gap-2">
-                        {trendingSearches.map((tag) => (
-                          <button
-                            key={tag}
-                            onClick={() => {
-                              const params = new URLSearchParams(location.search);
-                              params.set('q', tag);
-                              navigate({ pathname: location.pathname, search: `?${params.toString()}` }, { replace: true });
-                            }}
-                            className="bg-[#1C1E24] px-3 py-1.5 rounded-full text-xs border border-[#C9A96E]/30 text-gold-metallic hover:border-[#C9A96E] transition-colors"
-                          >
-                            {tag}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {recentSearches.length > 0 && (
-                      <div className="mt-4 px-4 pb-2">
-                        <div className="flex items-center justify-between mb-2">
-                          <h2 className="font-bold text-gold-metallic text-sm">Recent</h2>
-                          <button
-                            type="button"
-                            onClick={() => { try { localStorage.removeItem(RECENT_KEY); } catch {} setRecentSearches([]); }}
-                            className="text-[11px] text-white/40 hover:text-white/70"
-                          >
-                            Clear
-                          </button>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {recentSearches.map((tag) => (
-                            <button
-                              key={tag}
-                              onClick={() => {
-                                const params = new URLSearchParams(location.search);
-                                params.set('q', tag);
-                                navigate({ pathname: location.pathname, search: `?${params.toString()}` }, { replace: true });
-                              }}
-                              className="bg-[#13151A] px-3 py-1.5 rounded-full text-xs border border-white/10 text-white/70 hover:border-white/20 transition-colors"
-                            >
-                              {tag}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {suggestedUsers.length > 0 && (
-                      <div className="mt-2 px-4 pb-2">
-                        <h2 className="font-bold mb-1 text-gold-metallic text-sm">Trending users</h2>
-                        <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
-                          {suggestedUsers.map((u) => (
-                            <button
-                              key={u.id}
-                              onClick={() => u.is_live ? navigate(`/watch/${u.id}`) : navigate(`/profile/${u.id}`)}
-                              className="flex-shrink-0 flex flex-col items-center gap-1" style={{ width: 85, minWidth: 85 }}
-                            >
-                              <StoryGoldRingAvatar
-                                live={u.is_live}
-                                src={u.avatar || '/Icons/Profile icon.png'}
-                                alt={u.name || u.username}
-                              />
-                              <div className="text-[10px] text-white/80 truncate w-full text-center">
-                                {u.name || u.username}
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {FIXED_CATEGORIES.length > 1 && (
-                    <div className="px-3 pt-2 pb-1 flex gap-2 overflow-x-auto no-scrollbar shrink-0">
-                      {FIXED_CATEGORIES.map((cat) => (
-                        <button
-                          key={cat}
-                          type="button"
-                          onClick={() => setActiveCategory(cat)}
-                          className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap border transition-colors ${activeCategory === cat ? 'bg-[#C9A96E]/20 border-[#C9A96E] text-[#C9A96E]' : 'bg-[#13151A] border-white/15 text-white/60'}`}
-                        >
-                          {cat}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="w-full">
-                    <TrendingSnapFeed videos={filteredVideos} />
-                  </div>
-                </>
-              ) : (
-                <div className="flex-1 min-h-0 overflow-y-auto pb-0">
-                  <div className="mt-2 px-4">
-                    <h2 className="font-bold mb-2 text-gold-metallic text-sm">You may like</h2>
-                    <div className="flex flex-wrap gap-2">
-                      {trendingSearches.map((tag) => (
-                        <button
-                          key={tag}
-                          onClick={() => {
-                            const params = new URLSearchParams(location.search);
-                            params.set('q', tag);
-                            navigate({ pathname: location.pathname, search: `?${params.toString()}` }, { replace: true });
-                          }}
-                          className="bg-[#1C1E24] px-3 py-1.5 rounded-full text-xs border border-[#C9A96E]/30 text-gold-metallic hover:border-[#C9A96E] transition-colors"
-                        >
-                          {tag}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {recentSearches.length > 0 && (
-                    <div className="mt-4 px-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <h2 className="font-bold text-gold-metallic text-sm">Recent</h2>
-                        <button
-                          type="button"
-                          onClick={() => { try { localStorage.removeItem(RECENT_KEY); } catch {} setRecentSearches([]); }}
-                          className="text-[11px] text-white/40 hover:text-white/70"
-                        >
-                          Clear
-                        </button>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {recentSearches.map((tag) => (
-                          <button
-                            key={tag}
-                            onClick={() => {
-                              const params = new URLSearchParams(location.search);
-                              params.set('q', tag);
-                              navigate({ pathname: location.pathname, search: `?${params.toString()}` }, { replace: true });
-                            }}
-                            className="bg-[#13151A] px-3 py-1.5 rounded-full text-xs border border-white/10 text-white/70 hover:border-white/20 transition-colors"
-                          >
-                            {tag}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {suggestedUsers.length > 0 && (
-                    <div className="mt-4 px-4">
-                      <h2 className="font-bold mb-1 text-gold-metallic text-sm">Trending users</h2>
-                      <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
-                        {suggestedUsers.map((u) => (
-                          <button
-                            key={u.id}
-                            onClick={() => u.is_live ? navigate(`/watch/${u.id}`) : navigate(`/profile/${u.id}`)}
-                            className="flex-shrink-0 flex flex-col items-center gap-1" style={{ width: 85, minWidth: 85 }}
-                          >
-                            <StoryGoldRingAvatar
-                              live={u.is_live}
-                              src={u.avatar || '/Icons/Profile icon.png'}
-                              alt={u.name || u.username}
-                            />
-                            <div className="text-[10px] text-white/80 truncate w-full text-center">
-                              {u.name || u.username}
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="mt-1 w-full">
-                    <TrendingSnapFeed videos={filteredVideos} />
-                  </div>
+              <>
+                <div className="px-3 pt-1 pb-1 flex gap-2 overflow-x-auto no-scrollbar shrink-0">
+                  {FIXED_CATEGORIES.map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setActiveCategory(cat)}
+                      className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap border transition-colors ${activeCategory === cat ? 'bg-[#C9A96E]/20 border-[#C9A96E] text-[#C9A96E]' : 'bg-[#13151A] border-white/15 text-white/60'}`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
                 </div>
-              )
+
+                <div className="w-full">
+                  <TrendingSnapFeed videos={filteredVideos} />
+                </div>
+              </>
             ) : (
               <div className="space-y-4 px-4 pb-4">
                 {searching && <div className="text-xs text-[#C9A96E]/60 text-center py-3">Searching...</div>}

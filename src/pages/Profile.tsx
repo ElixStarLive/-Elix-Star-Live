@@ -514,7 +514,7 @@ export default function Profile() {
           <div className="fixed inset-0 z-[9999] bg-black/60 flex items-end justify-center" onClick={() => setShowSharePanel(false)}>
             <div
               className="w-full max-w-[480px] bg-[#1C1E24]/95 rounded-t-2xl border-2 border-b-0 border-white/10 max-h-[40dvh] flex flex-col overflow-hidden"
-              style={{ marginBottom: 'var(--feed-main-pb)', boxShadow: '0 -4px 30px rgba(201,169,110,0.25)' }}
+              style={{ marginBottom: 'var(--bottom-ui-reserve)', boxShadow: '0 -4px 30px rgba(201,169,110,0.25)' }}
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-center pt-3 pb-1">

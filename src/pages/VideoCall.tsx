@@ -275,7 +275,7 @@ export default function VideoCall() {
               : formatDuration(elapsed);
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-[#13151A] pb-[var(--feed-main-pb)]">
+    <div className="fixed inset-0 z-50 flex flex-col bg-[#13151A] pb-[var(--bottom-ui-reserve)]">
       {/* Same width column as BottomNav (max-w-[480px] centered) — full-bleed bg on sides */}
       <div className="flex flex-1 min-h-0 flex-col w-full max-w-[480px] mx-auto">
       {/* Remote video (full screen) */}

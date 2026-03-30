@@ -255,14 +255,14 @@
   .pb-nav-feed { padding-bottom: var(--feed-main-pb); }
   .pb-nav-friends { padding-bottom: var(--feed-main-pb); }
 
-  /* Fixed / full-viewport columns above bottom nav — same clearance as For You feed */
+  /* Fixed / full-viewport columns above bottom nav — stop at top of bottom bar */
   .h-above-bottom-nav {
-    height: calc(100dvh - var(--feed-main-pb));
-    max-height: calc(100dvh - var(--feed-main-pb));
+    height: calc(100dvh - var(--bottom-ui-reserve));
+    max-height: calc(100dvh - var(--bottom-ui-reserve));
   }
   .h-above-bottom-nav-friends {
-    height: calc(100dvh - var(--feed-main-pb));
-    max-height: calc(100dvh - var(--feed-main-pb));
+    height: calc(100dvh - var(--bottom-ui-reserve));
+    max-height: calc(100dvh - var(--bottom-ui-reserve));
   }
 
   /* Responsive text that scales with viewport */

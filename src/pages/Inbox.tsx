@@ -903,7 +903,7 @@ export default function Inbox() {
             onClick={() => setShowNewFollowersPanel(false)}
             aria-hidden
           />
-          <div className="fixed left-0 right-0 pointer-events-auto max-w-[480px] mx-auto z-[101]" style={{ bottom: 'var(--feed-main-pb)' }}>
+          <div className="fixed left-0 right-0 pointer-events-auto max-w-[480px] mx-auto z-[101]" style={{ bottom: 'var(--bottom-ui-reserve)' }}>
             <div className="bg-[#1C1E24]/95 backdrop-blur-md rounded-t-2xl p-3 pb-4 overflow-y-scroll shadow-2xl w-full border-t border-[#C9A96E]/20 new-followers-panel-scroll" style={{ minHeight: 'calc(55dvh - 3cm)', maxHeight: 'calc(min(85dvh, 700px) - 3cm)' }}>
               <div className="mb-3">
                 <h2 className="text-lg font-bold text-gold-metallic text-center">Followers ({followersCount})</h2>
