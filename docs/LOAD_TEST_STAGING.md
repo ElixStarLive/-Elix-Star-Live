@@ -11,56 +11,55 @@ k6 (load generator)
       → Neon Postgres (external, shared)
 ```
 
-## Pre-test Checklist (BOTH servers)
+## CRITICAL: Step-by-step execution order
 
-### 1. Linux Kernel Tuning
+### Step 1: Fix BOTH app servers (Server1 + Server2)
 
 SSH into each server and run:
 
 ```bash
-sudo bash scripts/linux-production-tuning.sh
+# Download and run the diagnose + fix script
+cd /tmp
+curl -sL https://raw.githubusercontent.com/<YOUR-REPO>/main/scripts/server-diagnose-and-fix.sh -o fix.sh
+# OR copy-paste the script content, then:
+bash fix.sh
 ```
 
-Or apply manually:
-```bash
-sysctl -w fs.file-max=1000000
-sysctl -w net.core.somaxconn=65535
-sysctl -w net.ipv4.tcp_max_syn_backlog=65535
-sysctl -w net.netfilter.nf_conntrack_max=1000000
-sysctl -w net.ipv4.ip_local_port_range="1024 65535"
-sysctl -w net.ipv4.tcp_tw_reuse=1
-sysctl -w net.ipv4.tcp_fin_timeout=15
-sysctl -w net.core.rmem_max=16777216
-sysctl -w net.core.wmem_max=16777216
-sysctl -w net.core.netdev_max_backlog=65535
-```
+Or manually copy `scripts/server-diagnose-and-fix.sh` to each server and run `bash server-diagnose-and-fix.sh`.
 
-### 2. Docker Container File Descriptor Limits
+The script will:
+- Show BEFORE state (current limits)
+- Apply all kernel + fd fixes
+- Update Docker daemon defaults
+- Restart Docker
+- Show AFTER state (verified)
 
-In Coolify → App → Advanced → Custom Docker Options, add:
-```
---ulimit nofile=1000000:1000000
-```
+**Important:** After the script runs, Docker restarts. You MUST redeploy the app in Coolify.
 
-Or in Docker Compose format:
-```yaml
-ulimits:
-  nofile:
-    soft: 1000000
-    hard: 1000000
-```
+### Step 2: Verify container limits after redeploy
 
-### 3. Traefik Tuning (Coolify Proxy)
-
-Coolify uses Traefik as its reverse proxy. To handle 20k+ connections:
-
-SSH into each server, then:
+After Coolify redeploys, SSH into each server and run:
 
 ```bash
-# Find the Traefik container
-docker ps | grep traefik
+# Find app container name
+docker ps --format '{{.Names}}' | grep -i elix
 
-# Create/edit Traefik dynamic config
+# Check its file descriptor limit (must be 1000000)
+docker exec <container-name> sh -c 'cat /proc/1/limits | grep "open files"'
+
+# Check Traefik proxy limit too
+docker exec $(docker ps -q --filter name=coolify-proxy) sh -c 'cat /proc/1/limits | grep "open files"'
+```
+
+If app container shows 1024 or 65536 instead of 1000000:
+- In Coolify → App → Advanced → Custom Docker Options, add: `--ulimit nofile=1000000:1000000`
+- Redeploy again
+
+### Step 3: Traefik high-concurrency config
+
+On EACH server:
+
+```bash
 mkdir -p /data/coolify/proxy/dynamic
 cat > /data/coolify/proxy/dynamic/high-concurrency.yml << 'EOF'
 http:
@@ -73,16 +72,14 @@ http:
         idleConnTimeout: "90s"
 EOF
 
-# Restart Traefik to pick up config
 docker restart $(docker ps -q --filter name=coolify-proxy)
 ```
 
-### 4. Environment Variables (Coolify)
+### Step 4: Environment variables in Coolify
 
-Set these on BOTH app instances (Available at Runtime):
+Set on BOTH app instances (Runtime):
 
 ```
-LOADTEST_BYPASS_SECRET=elix-loadtest-2026-secret-key
 WEB_CONCURRENCY=16
 HEALTH_LIGHT=1
 HEALTH_CACHE_TTL_MS=30000
@@ -96,48 +93,90 @@ Set only on Server1:
 ELIX_JOB_WORKER=1
 ```
 
-### 5. Load Test Server (k6)
+### Step 5: Prepare k6 server
+
+SSH into k6 server (159.69.116.85):
 
 ```bash
-# Apply limits on the k6 server too
-ulimit -n 250000
-sysctl -w net.ipv4.ip_local_port_range="1024 65535"
-sysctl -w fs.file-max=250000
-
-# Run test
 cd ~/elix
 git pull
-k6 run --insecure-skip-tls-verify \
-  --env BASE_URL=https://46.225.33.56 \
-  --env BYPASS_KEY=elix-loadtest-2026-secret-key \
-  --env MAX_VUS=20000 \
-  ./scripts/k6-staged-200k.js
+
+bash scripts/k6-server-prepare.sh
 ```
 
-## Monitoring During Load Test
-
-### On each app server:
+### Step 6: Run staged test
 
 ```bash
-# Connection state summary
-ss -s
-
-# TCP state breakdown
-ss -tan state established | wc -l
-
-# File descriptors used by Node
-ls /proc/$(pgrep -f "node.*cluster")/fd 2>/dev/null | wc -l
-
-# CPU and memory
-top -bn1 | head -20
-
-# Load average
-uptime
-
-# Kernel drops/resets
-dmesg | tail -30
-netstat -s | grep -i -E 'overflow|drop|reset|retrans'
+cd ~/elix
+k6 run scripts/k6-staged-progressive.js \
+  --env BASE_URL=https://elixstarlive.co.uk \
+  --insecure-skip-tls-verify \
+  2>&1 | tee /tmp/k6-progressive-$(date +%s).log
 ```
+
+### Step 7: Monitor during test
+
+On each app server (in a second SSH session):
+
+```bash
+cd /tmp
+# Copy server-monitor-during-test.sh here, then:
+bash server-monitor-during-test.sh
+```
+
+This captures every 10 seconds:
+- CPU + load
+- Memory
+- Socket state (ss -s)
+- TCP breakdown
+- Conntrack usage
+- Docker container CPU/MEM
+- App container fd count
+- dmesg errors
+
+---
+
+## Verification checklist
+
+After Step 1, BEFORE testing, verify on EACH server:
+
+| Check | Command | Expected |
+|-------|---------|----------|
+| file-max | `cat /proc/sys/fs/file-max` | 1000000 |
+| somaxconn | `sysctl -n net.core.somaxconn` | 65535 |
+| syn_backlog | `sysctl -n net.ipv4.tcp_max_syn_backlog` | 65535 |
+| port range | `sysctl -n net.ipv4.ip_local_port_range` | 1024 65535 |
+| tcp_tw_reuse | `sysctl -n net.ipv4.tcp_tw_reuse` | 1 |
+| conntrack_max | `sysctl -n net.netfilter.nf_conntrack_max` | 1000000 |
+| host ulimit | `ulimit -n` | 1000000 |
+| app container nofile | `docker exec <app> cat /proc/1/limits \| grep nofile` | 1000000 |
+| traefik container nofile | `docker exec <traefik> cat /proc/1/limits \| grep nofile` | 1000000 |
+
+**If ANY of these are wrong, the test will fail with connection resets.**
+
+---
+
+## Expected results after fixes
+
+| VU Count | Expected Result |
+|----------|----------------|
+| 2,000 | p95 < 200ms, 0% errors |
+| 5,000 | p95 < 500ms, < 0.5% errors |
+| 10,000 | p95 < 1s, < 1% errors |
+| 15,000 | p95 < 2s, < 3% errors |
+| 20,000 | p95 < 5s, < 5% errors |
+
+## Bottleneck layers (priority order)
+
+1. **Linux kernel** — file descriptors, somaxconn, conntrack, port range
+2. **Docker container limits** — nofile must be 1M for BOTH app + proxy containers
+3. **Traefik proxy** — maxIdleConnsPerHost, timeout settings
+4. **Node.js clustering** — workers must match CPU core count (16)
+5. **Postgres pool** — cluster-aware sizing (total ~80 across all workers)
+6. **Valkey throughput** — enableAutoPipelining reduces round-trips
+7. **Cache stampede** — all cached endpoints use distributed locks
+
+## Monitoring during test
 
 ### Valkey:
 
@@ -152,21 +191,3 @@ docker exec <valkey-container> redis-cli info stats | grep -E 'connected_clients
 SELECT count(*) FROM pg_stat_activity WHERE state = 'active';
 SELECT count(*) FROM pg_stat_activity WHERE wait_event_type IS NOT NULL;
 ```
-
-## Expected Behavior After Fixes
-
-| VU Count | Expected Result |
-|----------|----------------|
-| 5,000    | p95 < 500ms, 0% errors |
-| 10,000   | p95 < 1s, < 1% errors |
-| 20,000   | p95 < 3s, < 5% errors |
-| 40,000+  | Requires 4+ app servers |
-
-## Bottleneck Layers (Priority Order)
-
-1. **Linux kernel** — file descriptors, somaxconn, conntrack
-2. **Traefik proxy** — maxIdleConnsPerHost, connection limits
-3. **Node.js clustering** — workers must match CPU core count
-4. **Postgres pool** — must be sized per-worker to avoid Neon limit
-5. **Valkey throughput** — enableAutoPipelining reduces round-trips
-6. **Cache stampede** — all cached endpoints need distributed locks
