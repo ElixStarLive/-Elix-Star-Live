@@ -205,6 +205,7 @@ export default function Create() {
   const [showCreateHub, setShowCreateHub] = useState(false);
   const [mode, setMode] = useState<CreateMode>('create');
   const [isSoundOpen, setIsSoundOpen] = useState(false);
+  const [selectedSound, setSelectedSound] = useState<Sound | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [isPreviewPlaying, setIsPreviewPlaying] = useState(true);
@@ -695,7 +696,7 @@ export default function Create() {
           onPost={() => navigate('/upload')}
         />
 
-        <SoundPickerModal isOpen={isSoundOpen} onClose={() => setIsSoundOpen(false)} onPick={(sound) => { setIsSoundOpen(false); }} />
+        <SoundPickerModal isOpen={isSoundOpen} onClose={() => setIsSoundOpen(false)} onPick={(sound) => { setSelectedSound(sound); setIsSoundOpen(false); }} />
       </div>
     </div>
   );

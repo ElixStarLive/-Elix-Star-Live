@@ -87,7 +87,7 @@ export default function GiftAnimationOverlay({ streamId }: GiftAnimationOverlayP
               </div>
               <div className="flex-1 min-w-0 overflow-x-auto no-scrollbar">
                 <p className="text-xs font-bold text-black whitespace-nowrap leading-tight">
-                  {currentGift.username} send {currentGift.giftName} to {currentGift.creatorName}
+                  {currentGift.username} sent {currentGift.giftName} to {currentGift.creatorName}
                   {currentGift.quantity > 1 && <span> x{currentGift.quantity}</span>}
                 </p>
               </div>

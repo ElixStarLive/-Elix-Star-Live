@@ -117,11 +117,11 @@ export default function CreatorLoginDetails() {
     try {
       if (mode === 'signup') {
         if (password.length < 6) {
-          setError('Parola trebuie să aibă minim 6 caractere.');
+          setError('Password must be at least 6 characters.');
           return;
         }
         if (password !== confirmPassword) {
-          setError('Parolele nu coincid.');
+          setError('Passwords do not match.');
           return;
         }
         const res = await signUpWithPassword(trimmedEmail, password, trimmedUsername || undefined);
@@ -145,7 +145,7 @@ export default function CreatorLoginDetails() {
       if (res.error) {
         const msg = res.error;
         if (msg.toLowerCase().includes('email not confirmed')) {
-          setError('Email neconfirmat. Verifică inbox-ul și confirmă contul, apoi încearcă din nou.');
+          setError('Email not confirmed. Check your inbox and confirm your account, then try again.');
           setShowResend(true);
           return;
         }
@@ -168,7 +168,7 @@ export default function CreatorLoginDetails() {
   const onResend = async () => {
     const trimmedEmail = email.trim();
     if (!trimmedEmail) {
-      setError('Introdu email-ul mai întâi.');
+      setError('Please enter your email first.');
       return;
     }
     setError(null);
@@ -180,7 +180,9 @@ export default function CreatorLoginDetails() {
         setError(res.error);
         return;
       }
-      setInfo('Email de confirmare trimis din nou. Verifică Inbox și Spam.');
+      setInfo('Confirmation email resent. Check your Inbox and Spam folders.');
+    } catch {
+      setError('Failed to resend confirmation email. Please try again.');
     } finally {
       setIsResending(false);
     }

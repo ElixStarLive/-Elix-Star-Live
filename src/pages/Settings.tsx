@@ -25,7 +25,7 @@ export default function Settings() {
   const signOut = useAuthStore((s) => s.signOut);
 
   const handleLogout = async () => {
-    await signOut();
+    try { await signOut(); } catch { /* best-effort */ }
     navigate('/login');
   };
 

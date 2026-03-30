@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 
+const MAX_CACHE = 20;
 const videoCache = new Map<string, string>();
 
 function preloadVideo(src: string): Promise<string> {
@@ -10,10 +11,23 @@ function preloadVideo(src: string): Promise<string> {
     vid.muted = true;
     vid.playsInline = true;
     vid.oncanplaythrough = () => {
+      vid.oncanplaythrough = null;
+      vid.onerror = null;
+      vid.src = '';
+      vid.load();
+      if (videoCache.size >= MAX_CACHE) {
+        const first = videoCache.keys().next().value;
+        if (first) videoCache.delete(first);
+      }
       videoCache.set(src, src);
       resolve(src);
     };
-    vid.onerror = () => reject(new Error('preload failed'));
+    vid.onerror = () => {
+      vid.oncanplaythrough = null;
+      vid.onerror = null;
+      vid.src = '';
+      reject(new Error('preload failed'));
+    };
     vid.src = src;
     vid.load();
   });

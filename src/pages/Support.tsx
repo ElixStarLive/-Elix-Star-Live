@@ -54,8 +54,8 @@ export default function Support() {
 
       const { error } = await api.reports.create({
         reporter_id: userData.user?.id || null,
-        target_type: 'support',
-        target_id: 'support_ticket',
+        targetType: 'support',
+        targetId: 'support_ticket',
         reason: subject,
         details: `Email: ${email}\n\n${message}`,
       });
@@ -84,7 +84,7 @@ export default function Support() {
   if (submitted) {
     return (
       <SettingsOptionSheet onClose={() => navigate(-1)}>
-        <div className="h-full flex items-center justify-center px-4 text-center">
+        <div className="h-full flex flex-col items-center justify-center px-4 text-center">
           <div className="w-14 h-14 bg-[#C9A96E] rounded-full mx-auto mb-3 flex items-center justify-center">
             <Send className="w-7 h-7 text-white" />
           </div>

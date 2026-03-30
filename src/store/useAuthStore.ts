@@ -336,16 +336,20 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
       const mapped = mapUserToUser(backendUser);
 
       if (mapped) {
-        request("/api/profiles", {
-          method: "POST",
-          body: JSON.stringify({
-            userId: mapped.id,
-            username: mapped.username,
-            displayName: mapped.name,
-            email: mapped.email,
-            avatarUrl: mapped.avatar,
-          }),
-        }).catch(() => {});
+        const createProfile = () =>
+          request("/api/profiles", {
+            method: "POST",
+            body: JSON.stringify({
+              userId: mapped.id,
+              username: mapped.username,
+              displayName: mapped.name,
+              email: mapped.email,
+              avatarUrl: mapped.avatar,
+            }),
+          });
+        createProfile().catch(() => {
+          setTimeout(() => createProfile().catch(() => {}), 3000);
+        });
       }
 
       set({
@@ -389,37 +393,47 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
       }
       if (data?.url) {
         window.location.href = data.url as string;
+        return { error: null };
       }
-      return { error: null };
+      return { error: "Apple sign-in is not available at this time." };
     } catch (e: any) {
       return { error: e?.message || "Apple sign-in failed." };
     }
   },
   signInAsGuest: async () => {
-    const { data, error } = await request("/api/auth/guest", {
-      method: "POST",
-    });
+    try {
+      const { data, error } = await request("/api/auth/guest", {
+        method: "POST",
+      });
 
-    if (error || !data?.user || !data?.session) {
-      return {
-        error:
-          error?.message ||
-          "Guest login failed. Please try again or use email login.",
-      };
+      if (error || !data?.user || !data?.session) {
+        return {
+          error:
+            error?.message ||
+            "Guest login failed. Please try again or use email login.",
+        };
+      }
+
+      const mapped = mapUserToUser(data.user as AuthUser);
+
+      set({
+        user: mapped,
+        backendUser: data.user as AuthUser,
+        session: data.session as AuthSession,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+
+      if (mapped) {
+        enrichUserWithProfile(mapped).then((enriched) => {
+          if (enriched) set({ user: enriched });
+        }).catch(() => {});
+      }
+
+      return { error: null };
+    } catch (e: unknown) {
+      return { error: e instanceof Error ? e.message : "Guest login failed." };
     }
-
-    const mapped = mapUserToUser(data.user as AuthUser);
-    const enriched = mapped ? await enrichUserWithProfile(mapped) : null;
-
-    set({
-      user: enriched,
-      backendUser: data.user as AuthUser,
-      session: data.session as AuthSession,
-      isAuthenticated: true,
-      isLoading: false,
-    });
-
-    return { error: null };
   },
 
   // ── Sign out ─────────────────────────────────────────────────────────────

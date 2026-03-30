@@ -123,7 +123,7 @@ export default function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full bg-white/10 border border-white/10 rounded-xl pl-10 xs:pl-9 pr-3 py-3 xs:py-2.5 text-fluid-sm text-white outline-none focus:border-[#C9A96E]/50 placeholder:text-white/40"
-                placeholder="bericaandrei1 or you@email.com"
+                placeholder="username or you@email.com"
                 autoComplete="email"
                 required
               />

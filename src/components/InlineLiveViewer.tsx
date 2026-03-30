@@ -153,6 +153,11 @@ export default function InlineLiveViewer({
       mounted = false;
       clearTimeout(timeoutId);
       connectedKeyRef.current = "";
+      const el = videoRef.current;
+      if (el) {
+        el.srcObject = null;
+        try { for (const t of room.remoteParticipants.values()) { for (const [, pub] of t.videoTrackPublications) { pub.track?.detach(el); } } } catch { /* best-effort detach */ }
+      }
       roomRef.current = null;
       room.disconnect();
       setHasStream(false);

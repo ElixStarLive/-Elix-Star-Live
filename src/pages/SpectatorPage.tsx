@@ -132,6 +132,8 @@ export default function SpectatorPage() {
   const effectiveStreamId = streamId || '';
 
   const [giftsCatalog, setGiftsCatalog] = useState<GiftUiItem[]>([]);
+  const giftsCatalogRef = useRef<GiftUiItem[]>([]);
+  useEffect(() => { giftsCatalogRef.current = giftsCatalog; }, [giftsCatalog]);
   useEffect(() => { let c = false; fetchGiftsFromDatabase().then(g => { if (!c) setGiftsCatalog(g); }); return () => { c = true; }; }, []);
   const [hostName, setHostName] = useState('Creator');
   const [hostAvatar, setHostAvatar] = useState('');
@@ -1071,7 +1073,7 @@ export default function SpectatorPage() {
 
     const handleGiftSent = (data: any) => {
       if (!mounted) return;
-      const giftDef = giftsCatalog.find(g => g.id === data.giftId);
+      const giftDef = giftsCatalogRef.current.find(g => g.id === data.giftId);
       const gifterId = typeof data.user_id === 'string' ? data.user_id : '';
       const giftCoins =
         giftDef?.coins ??

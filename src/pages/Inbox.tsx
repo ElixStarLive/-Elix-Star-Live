@@ -5,7 +5,7 @@ import { request } from '../lib/apiClient';
 import { useAuthStore } from '../store/useAuthStore';
 import { useVideoStore } from '../store/useVideoStore';
 import { nativeConfirm } from '../components/NativeDialog';
-import { Heart, UserPlus, Search, ShoppingBag, Archive, X, ChevronRight, Trash2, Bookmark, MessageCircle, AtSign, Share2 } from 'lucide-react';
+import { Heart, UserPlus, Search, ShoppingBag, Archive, ChevronRight, Trash2, Bookmark, MessageCircle, AtSign, Share2 } from 'lucide-react';
 import { AvatarRing } from '../components/AvatarRing';
 import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
 import { showToast } from '../lib/toast';
@@ -879,7 +879,7 @@ export default function Inbox() {
              )}
 
              {/* Shop Notification */}
-             {notifications.filter(n => n.type === 'shop').map(notif => (
+             {activeFilter === 'main' && notifications.filter(n => n.type === 'shop').map(notif => (
                 <button key={notif.id} onClick={() => navigate('/shop')} className="flex items-center gap-3 w-full text-left">
                     <div className="w-12 h-12 rounded-full bg-[#13151A] border border-[#C9A96E]/40 flex items-center justify-center">
                         <ShoppingBag className="w-6 h-6 text-[#C9A96E]" strokeWidth={2} />

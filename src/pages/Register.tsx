@@ -73,10 +73,11 @@ export default function Register() {
 
       // Consent recorded locally — timestamp stored with registration
       try {
-        localStorage.setItem('elix_consent_' + Date.now(), JSON.stringify({
+        localStorage.setItem('elix_consent_latest', JSON.stringify({
           consent_type: 'terms_and_privacy',
           version: '2026-02-20',
           accepted_at: new Date().toISOString(),
+          email: email.trim(),
         }));
       } catch {
         // Non-blocking

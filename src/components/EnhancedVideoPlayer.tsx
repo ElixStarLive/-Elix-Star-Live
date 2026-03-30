@@ -143,7 +143,7 @@ export default function EnhancedVideoPlayer({
   const volume = 0.5;
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [videoSize, setVideoSize] = useState<{ w: number; h: number } | null>(null);
+  const [_videoSize, setVideoSize] = useState<{ w: number; h: number } | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [showLikes, setShowLikes] = useState(false);
@@ -186,8 +186,10 @@ export default function EnhancedVideoPlayer({
     }
     let cancelled = false;
     (async () => {
-      const { data } = await api.videos.get(video.duetWithVideoId!);
-      if (!cancelled && data?.url) setDuetOriginalUrl(data.url);
+      try {
+        const { data } = await api.videos.get(video.duetWithVideoId!);
+        if (!cancelled && data?.url) setDuetOriginalUrl(data.url);
+      } catch { /* duet video unavailable */ }
     })();
     return () => { cancelled = true; };
   }, [video?.duetWithVideoId, originalVideo]);
@@ -260,10 +262,10 @@ export default function EnhancedVideoPlayer({
       duetOriginalRef.current?.pause();
       audioRef.current?.pause();
     } else {
-      videoRef.current?.play().catch(() => {});
-      if (isDuetLayout && duetOriginalSrc) duetOriginalRef.current?.play().catch(() => {});
+      videoRef.current?.play()?.catch(() => {});
+      if (isDuetLayout && duetOriginalSrc) duetOriginalRef.current?.play()?.catch(() => {});
       if (!effectiveMuted && audioRef.current) {
-        audioRef.current.play().catch(() => {});
+        audioRef.current.play()?.catch(() => {});
       }
     }
     setIsPlaying(prev => !prev);
@@ -304,7 +306,10 @@ export default function EnhancedVideoPlayer({
 
     const handleTimeUpdate = () => {
       setCurrentTime(videoElement.currentTime);
-      onProgress?.(videoElement.currentTime / videoElement.duration);
+      const dur = videoElement.duration;
+      if (Number.isFinite(dur) && dur > 0) {
+        onProgress?.(videoElement.currentTime / dur);
+      }
     };
 
     const handleLoadedMetadata = () => {
@@ -439,6 +444,7 @@ export default function EnhancedVideoPlayer({
 
       return () => {
         clearTimeout(timer);
+        if (singleTapTimerRef.current) { clearTimeout(singleTapTimerRef.current); singleTapTimerRef.current = null; }
         stopAll();
       };
     } else {
@@ -506,28 +512,34 @@ export default function EnhancedVideoPlayer({
     }
   }, [muteAllSounds]);
 
-  // Mouse/touch interactions
+  const singleTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleVideoClick = (e: React.MouseEvent) => {
-    // If video is muted (browser blocked sound), unmute on first tap
     if (isMuted && !muteAllSounds && videoRef.current) {
       videoRef.current.muted = false;
       videoRef.current.volume = volume;
       setIsMuted(false);
     }
 
-    // Double click detection
     if (isDoubleClick) {
+      if (singleTapTimerRef.current) {
+        clearTimeout(singleTapTimerRef.current);
+        singleTapTimerRef.current = null;
+      }
       handleLike();
       setShowHeartAnimation(true);
       setTimeout(() => setShowHeartAnimation(false), 1000);
+      setIsDoubleClick(false);
       return;
     }
 
     setIsDoubleClick(true);
     setTimeout(() => setIsDoubleClick(false), 300);
 
-    // Single click - play/pause
-    togglePlay();
+    singleTapTimerRef.current = setTimeout(() => {
+      singleTapTimerRef.current = null;
+      togglePlay();
+    }, 300);
   };
 
   // Action handlers

@@ -46,8 +46,6 @@ class NotificationService {
       const permStatus = await PushNotifications.requestPermissions();
 
       if (permStatus.receive === "granted") {
-        await PushNotifications.register();
-
         await PushNotifications.addListener(
           "registration",
           this.handleRegistration.bind(this),
@@ -60,6 +58,8 @@ class NotificationService {
           "pushNotificationActionPerformed",
           this.handleNotificationAction.bind(this),
         );
+
+        await PushNotifications.register();
 
         this.isInitialized = true;
       }

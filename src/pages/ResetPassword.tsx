@@ -15,13 +15,17 @@ export default function ResetPassword() {
   const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    if (!resetToken) {
+      setError('Invalid or missing reset link. Please request a new password reset.');
+    }
     return () => {
       if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
     };
-  }, []);
+  }, [resetToken]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     setError(null);
 
     if (!resetToken) {

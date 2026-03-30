@@ -269,7 +269,11 @@ export default function Upload() {
   const startRecording = () => {
     if (videoRef.current && videoRef.current.srcObject) {
       const stream = videoRef.current.srcObject as MediaStream;
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+      const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9'
+        : MediaRecorder.isTypeSupported('video/webm') ? 'video/webm'
+        : MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4'
+        : '';
+      const mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
       
       setChunks([]); // Clear previous chunks
       setIsPaused(false);
@@ -324,7 +328,8 @@ export default function Upload() {
   useEffect(() => {
     // Only create URL if we fully stopped (not just paused) and have chunks
     if (!isRecording && !isPaused && chunks.length > 0) {
-        const blob = new Blob(chunks, { type: 'video/webm' });
+        const recMime = mediaRecorderRef.current?.mimeType || 'video/webm';
+        const blob = new Blob(chunks, { type: recMime });
         const url = URL.createObjectURL(blob);
         setRecordedVideoUrl(url);
     }

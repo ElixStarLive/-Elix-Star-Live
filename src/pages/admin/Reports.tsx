@@ -149,7 +149,14 @@ export default function AdminReports() {
                     No Action
                   </button>
                   <button
-                    onClick={() => navigate(`/${report.target_type}/${report.target_id}`)}
+                    onClick={() => {
+                      const t = report.target_type;
+                      const id = report.target_id;
+                      if (t === 'video') navigate(`/video/${id}`);
+                      else if (t === 'user' || t === 'profile') navigate(`/profile/${id}`);
+                      else if (t === 'stream' || t === 'live') navigate(`/live/${id}`);
+                      else navigate(`/video/${id}`);
+                    }}
                     className="px-4 py-2 bg-[#C9A96E] rounded hover:bg-[#B8943F] flex items-center gap-2"
                   >
                     <Eye className="w-4 h-4" />

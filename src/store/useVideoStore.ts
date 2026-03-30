@@ -456,7 +456,7 @@ export const useVideoStore = create<VideoStore>()(
             throw new Error(error.message || 'Failed to delete video');
           }
 
-          set({ videos: get().videos.filter((v) => v.id !== videoId), friendVideos: get().friendVideos.filter((v) => v.id !== videoId) });
+          set((s) => ({ videos: s.videos.filter((v) => v.id !== videoId), friendVideos: s.friendVideos.filter((v) => v.id !== videoId) }));
         } catch (err) {
           set({ videos: snapshot.videos, friendVideos: snapshot.friendVideos });
           throw err instanceof Error ? err : new Error('Failed to delete video.');
@@ -494,8 +494,16 @@ export const useVideoStore = create<VideoStore>()(
 
           if (!wasLiked) trackLike(videoId).catch(() => {});
           await refreshVideoFypStatus(videoId, updatedStats);
-        } catch (err) {
-          set({ videos: state.videos, friendVideos: state.friendVideos, likedVideos: state.likedVideos });
+        } catch {
+          const originalLikes = video.stats.likes;
+          const revert = (v: Video) => v.id === videoId
+            ? { ...v, isLiked: wasLiked, stats: { ...v.stats, likes: originalLikes } }
+            : v;
+          set((s) => ({
+            videos: s.videos.map(revert),
+            friendVideos: s.friendVideos.map(revert),
+            likedVideos: wasLiked ? [...s.likedVideos, videoId] : s.likedVideos.filter(id => id !== videoId),
+          }));
         }
       },
 
@@ -533,16 +541,15 @@ export const useVideoStore = create<VideoStore>()(
           const { error: saveError } = await request(wasSaved ? `/api/videos/${videoId}/unsave` : `/api/videos/${videoId}/save`, { method: 'POST' });
           if (saveError) throw new Error('Save failed');
         } catch {
-          const s = get();
-          const revertSaves = Math.max(0, wasSaved ? (video.stats.saves || 0) + 1 : (video.stats.saves || 0) - 1);
+          const originalSaves = video.stats.saves || 0;
           const revert = (v: Video) => v.id === videoId
-            ? { ...v, isSaved: wasSaved, stats: { ...v.stats, saves: revertSaves } }
+            ? { ...v, isSaved: wasSaved, stats: { ...v.stats, saves: originalSaves } }
             : v;
-          set({
+          set((s) => ({
             videos: s.videos.map(revert),
             friendVideos: s.friendVideos.map(revert),
             savedVideos: wasSaved ? [...s.savedVideos, videoId] : s.savedVideos.filter(id => id !== videoId),
-          });
+          }));
         }
       },
 

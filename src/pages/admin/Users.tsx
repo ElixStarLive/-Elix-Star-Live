@@ -48,6 +48,7 @@ export default function AdminUsers() {
   };
 
   const handleBanUser = async (userId: string) => {
+    if (!window.confirm('Are you sure you want to ban this user? This action cannot be easily undone.')) return;
     try {
       const { error } = await request(`/api/admin/users/${encodeURIComponent(userId)}/ban`, {
         method: 'POST',

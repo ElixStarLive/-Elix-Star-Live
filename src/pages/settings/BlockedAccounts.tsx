@@ -94,7 +94,7 @@ export default function BlockedAccounts() {
             placeholder="Search blocked users..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="flex-1 bg-transparent outline-none text-white placeholder-white/40/40"
+            className="flex-1 bg-transparent outline-none text-white placeholder-white/40"
           />
         </div>
       </div>

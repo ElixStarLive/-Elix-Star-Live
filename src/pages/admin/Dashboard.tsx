@@ -31,7 +31,7 @@ export default function AdminDashboard() {
 
   const loadStats = async () => {
     try {
-      const [usersRes, videosRes, liveRoomsRes, reportsRes, purchasesRes, dauRes] = await Promise.all([
+      const results = await Promise.allSettled([
         api.profiles.list(),
         api.videos.list(),
         request('/api/live/streams'),
@@ -39,6 +39,8 @@ export default function AdminDashboard() {
         request('/api/admin/purchases'),
         request('/api/admin/stats/dau'),
       ]);
+      const settled = (i: number) => results[i].status === 'fulfilled' ? (results[i] as PromiseFulfilledResult<any>).value : { data: null };
+      const [usersRes, videosRes, liveRoomsRes, reportsRes, purchasesRes, dauRes] = [settled(0), settled(1), settled(2), settled(3), settled(4), settled(5)];
 
       const totalUsers = usersRes.count ?? (Array.isArray(usersRes.data) ? usersRes.data.length : 0);
       const totalVideos = Array.isArray(videosRes.data) ? videosRes.data.length : 0;

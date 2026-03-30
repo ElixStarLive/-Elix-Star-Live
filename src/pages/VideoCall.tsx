@@ -253,11 +253,13 @@ export default function VideoCall() {
     }
     stopLocalMedia();
     setRemoteStream(null);
-    if (callId) {
-      await sendCallEnded(callId);
-    } else {
-      useCallStore.getState().reset();
-    }
+    try {
+      if (callId) {
+        await sendCallEnded(callId);
+      } else {
+        useCallStore.getState().reset();
+      }
+    } catch { /* best-effort cleanup */ }
     navigate(-1);
   };
 

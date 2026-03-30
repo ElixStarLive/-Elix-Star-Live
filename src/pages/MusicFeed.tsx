@@ -24,7 +24,7 @@ export default function MusicFeed() {
 
         if (!error && data) {
           if (songId) {
-            const filtered = (data as any[]).filter((v: any) => {
+            const filtered = (Array.isArray(data) ? data : []).filter((v: any) => {
               const music = v.music;
               if (music?.id === songId) return true;
               const desc = (v.description || '').toLowerCase();
@@ -125,7 +125,7 @@ export default function MusicFeed() {
                     muted
                     loop
                     playsInline
-                    preload="auto"
+                    preload="metadata"
                     onMouseOver={(e) => e.currentTarget.play()}
                     onMouseOut={(e) => {
                       e.currentTarget.pause();

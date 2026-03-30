@@ -181,7 +181,8 @@ export async function getVideoScore(videoId: string): Promise<any> {
 }
 
 export function cleanupAllViews() {
-  for (const [videoId] of activeViews) {
+  const ids = [...activeViews.keys()];
+  for (const videoId of ids) {
     stopVideoView(videoId);
   }
 }

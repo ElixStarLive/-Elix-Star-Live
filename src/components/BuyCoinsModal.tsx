@@ -17,26 +17,10 @@ interface BuyCoinsModalProps {
   onSuccess?: (coins: number) => void;
 }
 
-type CoinPackage = {
-  id: string;
-  coins: number;
-  price: number;
-  label: string;
-};
-
-const WEB_PACKAGES: CoinPackage[] = Object.entries(IAP_PRODUCTS).map(([id, meta]) => ({
-  id,
-  coins: meta.coins,
-  price: 0,
-  label: meta.label,
-}));
-
 export const BuyCoinsModal: React.FC<BuyCoinsModalProps> = ({ isOpen, onClose, onSuccess }) => {
-  const [selectedPackage, setSelectedPackage] = useState<CoinPackage>(WEB_PACKAGES[0]);
   const [nativeProducts, setNativeProducts] = useState<IAPProduct[]>([]);
   const [nativeLoading, setNativeLoading] = useState<string | null>(null);
   const isNative = platform.isNative;
-  const [customAmount, setCustomAmount] = useState('');
 
   useEffect(() => {
     if (!isOpen || !isNative) return;
@@ -87,10 +71,6 @@ export const BuyCoinsModal: React.FC<BuyCoinsModalProps> = ({ isOpen, onClose, o
     }
   };
 
-  const handlePackageSelect = async (coinPackage: CoinPackage) => {
-    setSelectedPackage(coinPackage);
-    showToast('Coins are digital items and must be purchased via Apple IAP or Google Play Billing.');
-  };
 
   if (!isOpen) return null;
 
@@ -135,52 +115,10 @@ export const BuyCoinsModal: React.FC<BuyCoinsModalProps> = ({ isOpen, onClose, o
                 ))}
               </div>
             ) : (
-              <div className="space-y-2">
-                {WEB_PACKAGES.map((coinPackage) => (
-                  <button
-                    key={coinPackage.id}
-                    onClick={() => handlePackageSelect(coinPackage)}
-                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg border transition-colors active:scale-[0.98] ${
-                      selectedPackage.id === coinPackage.id
-                        ? 'bg-[#C9A96E]/10 border-[#C9A96E]/50'
-                        : 'bg-white/[0.03] border-white/10 hover:bg-[#C9A96E]/10'
-                    }`}
-                  >
-                    <div className="text-left">
-                      <p className="text-white text-xs font-semibold">{coinPackage.label}</p>
-                      <p className="text-white/40 text-[10px]">£{coinPackage.price.toFixed(2)}</p>
-                    </div>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${selectedPackage.id === coinPackage.id ? 'bg-[#C9A96E] text-black' : 'bg-white/10 text-white/70'}`}>
-                      {coinPackage.coins} coins
-                    </span>
-                  </button>
-                ))}
-                {/* Custom amount */}
-                <div className="flex items-center gap-2 mt-3 px-1">
-                  <div className="flex-1 flex items-center gap-2 bg-white/[0.03] border border-white/10 rounded-lg px-3 py-2">
-                    <Coins className="w-3.5 h-3.5 text-[#C9A96E] flex-shrink-0" strokeWidth={1.8} />
-                    <input
-                      type="number"
-                      min="1"
-                      placeholder="Custom amount..."
-                      value={customAmount}
-                      onChange={(e) => setCustomAmount(e.target.value)}
-                      className="bg-transparent text-white text-xs outline-none flex-1 placeholder:text-white/25 min-w-0"
-                    />
-                  </div>
-                  <button
-                    onClick={() => {
-                      const amt = parseInt(customAmount);
-                      if (!amt || amt < 1) { showToast('Enter a valid amount'); return; }
-                      const price = Math.round(amt * 0.0035 * 100) / 100;
-                      handlePackageSelect({ id: `coins_custom_${amt}`, coins: amt, price, label: `${amt.toLocaleString()} Coins` });
-                    }}
-                    className="px-3 py-2 rounded-lg bg-[#C9A96E] text-black text-[10px] font-bold active:scale-95 transition-transform flex-shrink-0"
-                  >
-                    Buy
-                  </button>
-                </div>
-                <p className="text-white/30 text-[10px] text-center pt-2">Digital purchases use Apple IAP / Google Play Billing.</p>
+              <div className="flex flex-col items-center justify-center py-6 text-center">
+                <Sparkles className="w-8 h-8 text-[#C9A96E] mb-3" />
+                <p className="text-white text-xs font-semibold mb-1">Purchase Coins in the App</p>
+                <p className="text-white/40 text-[10px] px-4">Coins are digital items and must be purchased through the Elix Star app on your mobile device.</p>
               </div>
             )}
           </div>

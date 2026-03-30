@@ -15,20 +15,9 @@ import {
 } from '../lib/iap';
 import { showToast } from '../lib/toast';
 
-type CoinPackage = {
-  id: string;
-  name: string;
-  coins: number;
-  price: number;
-  bonus_coins: number;
-  is_popular: boolean;
-};
-
 export default function PurchaseCoins() {
   const navigate = useNavigate();
-  const [packages, setPackages] = useState<CoinPackage[]>([]);
   const [nativeProducts, setNativeProducts] = useState<IAPProduct[]>([]);
-  const [selectedPackage, setSelectedPackage] = useState<CoinPackage | null>(null);
   const [selectedNativeId, setSelectedNativeId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -38,8 +27,6 @@ export default function PurchaseCoins() {
     loadCurrentUser();
     if (isNative) {
       loadNativeProducts();
-    } else {
-      loadPackages();
     }
   }, []);
 
@@ -49,22 +36,6 @@ export default function PurchaseCoins() {
       setCurrentUserId(data.user?.id || null);
     } catch {
       setCurrentUserId(null);
-    }
-  };
-
-  const loadPackages = async () => {
-    try {
-      const pkgs: CoinPackage[] = Object.entries(IAP_PRODUCTS).map(([id, meta], idx) => ({
-        id,
-        name: meta.label,
-        coins: meta.coins,
-        price: 0,
-        bonus_coins: 0,
-        is_popular: idx === 2,
-      }));
-      setPackages(pkgs);
-    } catch {
-      showToast('Failed to load packages');
     }
   };
 
@@ -134,31 +105,6 @@ export default function PurchaseCoins() {
     }
   };
 
-  const handleWebPurchase = async (pkg: CoinPackage) => {
-    if (!currentUserId) {
-      showToast('Please log in to purchase coins');
-      navigate('/login');
-      return;
-    }
-
-    setLoading(true);
-    setSelectedPackage(pkg);
-
-    try {
-      trackEvent('purchase_intent', {
-        package_id: pkg.id,
-        coins: pkg.coins,
-        price: pkg.price,
-      });
-      throw new Error('Coins are digital items and must be purchased via Apple IAP or Google Play Billing.');
-    } catch (error) {
-      showToast(error instanceof Error ? error.message : 'Purchase failed. Please try again.');
-    } finally {
-      setLoading(false);
-      setSelectedPackage(null);
-    }
-  };
-
   const handleRestore = async () => {
     try {
       setLoading(true);
@@ -206,7 +152,7 @@ export default function PurchaseCoins() {
                 <button
                   key={product.id}
                   onClick={() => handleNativePurchase(product)}
-                  disabled={loading && selectedNativeId === product.id}
+                  disabled={loading}
                   className="w-full p-6 rounded-2xl transition relative overflow-hidden bg-white/5 border-2 border-transparent hover:border-[#C9A96E]/40 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <div className="flex items-center justify-between">
@@ -232,52 +178,14 @@ export default function PurchaseCoins() {
             </div>
           )}
 
-          {/* Products — Web */}
+          {/* Web — direct to mobile app */}
           {!isNative && (
-            <div className="space-y-3 mb-8">
-              {packages.map((pkg) => (
-                <button
-                  key={pkg.id}
-                  onClick={() => handleWebPurchase(pkg)}
-                  disabled={loading && selectedPackage?.id === pkg.id}
-                  className={`w-full p-6 rounded-2xl transition relative overflow-hidden ${
-                    pkg.is_popular
-                      ? 'bg-gradient-to-br from-[#C9A96E]/20 to-[#B8943F]/20 border-2 border-[#C9A96E]'
-                      : 'bg-white border-2 border-transparent hover:brightness-125'
-                  } disabled:opacity-50 disabled:cursor-not-allowed`}
-                >
-                  {pkg.is_popular && (
-                    <div className="absolute top-3 right-3 px-3 py-1 bg-[#C9A96E] text-black rounded-full text-xs font-bold">
-                      POPULAR
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between">
-                    <div className="text-left">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Sparkles className="w-6 h-6 text-white" />
-                        <span className="text-2xl font-bold">{formatNumber(pkg.coins)}</span>
-                        {pkg.bonus_coins > 0 && (
-                          <span className="px-2 py-1 bg-[#C9A96E] text-black rounded-full text-xs font-bold">
-                            +{formatNumber(pkg.bonus_coins)} Bonus
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-sm text-white/60">{pkg.name}</p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold">${(pkg.price || 0).toFixed(2)}</div>
-                      {pkg.bonus_coins > 0 && (
-                        <div className="text-xs text-white font-semibold">
-                          {Math.round((pkg.bonus_coins / pkg.coins) * 100)}% Bonus
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  {loading && selectedPackage?.id === pkg.id && (
-                    <div className="mt-4 text-center text-sm text-white/60">Processing…</div>
-                  )}
-                </button>
-              ))}
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-8 text-center">
+              <Sparkles className="w-10 h-10 text-[#C9A96E] mx-auto mb-3" />
+              <h3 className="font-bold text-lg mb-2">Purchase Coins in the App</h3>
+              <p className="text-sm text-white/60">
+                Coins are digital items and must be purchased through the Elix Star app on your mobile device via Apple App Store or Google Play.
+              </p>
             </div>
           )}
 
@@ -318,9 +226,3 @@ function FeatureItem({ text }: { text: string }) {
   );
 }
 
-function formatNumber(num: number): string {
-  if (num === undefined || num === null) return '0';
-  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
-  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
-  return String(num);
-}

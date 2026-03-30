@@ -14,16 +14,23 @@ function requestCredentials(): RequestCredentials {
   return Capacitor.isNativePlatform() ? "omit" : "include";
 }
 
+const REQUEST_TIMEOUT_MS = 20_000;
+
 export async function request<T = any>(
   path: string,
   init: RequestInit = {},
 ): Promise<{ data: T | null; error: { message: string } | null }> {
   try {
+    const hasExternalSignal = !!init.signal;
+    const controller = hasExternalSignal ? null : new AbortController();
+    const timeoutId = controller ? setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS) : null;
     const res = await fetch(apiUrl(path), {
       credentials: requestCredentials(),
       ...init,
       headers: { ...authHeaders(), ...(init.headers || {}) },
+      signal: init.signal || controller?.signal,
     });
+    if (timeoutId !== null) clearTimeout(timeoutId);
 
     const ct = res.headers.get("content-type") || "";
     const isJson = ct.includes("application/json") || ct.includes("+json");

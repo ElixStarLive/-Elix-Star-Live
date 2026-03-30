@@ -57,8 +57,8 @@ export default function Report() {
 
       const { error } = await api.reports.create({
         reporter_id: userData.user.id,
-        content_type: contentType,
-        content_id: contentId,
+        targetType: contentType,
+        targetId: contentId,
         reason: selectedReason,
         details: details.trim() || null,
       });
@@ -156,7 +156,7 @@ export default function Report() {
             placeholder="Provide more context to help us understand the issue..."
             maxLength={500}
             rows={4}
-            className="w-full bg-white rounded-xl px-4 py-3 outline-none text-white placeholder-white/40/40 border border-transparent focus:border-[#C9A96E] transition resize-none"
+            className="w-full bg-white rounded-xl px-4 py-3 outline-none text-white placeholder-white/40 border border-transparent focus:border-[#C9A96E] transition resize-none"
           />
           <p className="text-xs text-white/40 mt-1 text-right">{details.length}/500</p>
         </div>

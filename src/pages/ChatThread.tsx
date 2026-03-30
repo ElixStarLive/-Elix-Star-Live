@@ -222,8 +222,10 @@ export default function ChatThread() {
               <button
                 type="button"
                 onClick={async () => {
-                  const callId = await initiateCall({ id: otherUser.user_id, username: otherUser.username, avatar: otherUser.avatar_url || '' });
-                  if (callId) navigate('/call');
+                  try {
+                    const callId = await initiateCall({ id: otherUser.user_id, username: otherUser.username, avatar: otherUser.avatar_url || '' });
+                    if (callId) navigate('/call');
+                  } catch { /* auth or connection error */ }
                 }}
                 className="p-2 rounded-full bg-[#13151A] border border-[#C9A96E]/40 hover:bg-[#C9A96E]/10 transition-colors"
                 aria-label="Video call"

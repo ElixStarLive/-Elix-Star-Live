@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import InlineLiveViewer from "../components/InlineLiveViewer";
 import EnhancedVideoPlayer from "../components/EnhancedVideoPlayer";
@@ -146,6 +146,10 @@ class RoomMonitor {
   }
 
   destroy() {
+    for (const [, timer] of this.reconnectTimers) {
+      clearTimeout(timer);
+    }
+    this.reconnectTimers.clear();
     for (const [, ws] of this.sockets) {
       try {
         ws.close();
@@ -281,7 +285,7 @@ export default function VideoFeed() {
         return [...mapped, ...keptFromPrev];
       });
     } catch {
-      setLiveStreams([]);
+      /* preserve existing streams on transient errors */
     }
     setLiveLoading(false);
   }, []);
@@ -406,7 +410,7 @@ export default function VideoFeed() {
   }, [location.pathname, fetchLiveStreams, fetchVideos]);
 
   /* ---- All live streams visible on For You (everyone) ---- */
-  const visibleLiveStreams = useMemo(() => liveStreams, [liveStreams]);
+  const visibleLiveStreams = liveStreams;
 
   useEffect(() => {
     monitorRef.current?.sync(visibleLiveStreams.map((s) => s.streamKey));
@@ -506,7 +510,7 @@ export default function VideoFeed() {
     const prev = prevCountRef.current;
     const cur = feedItems.length;
     prevCountRef.current = cur;
-    if (cur < prev && activeIndex >= cur && cur >= 0) {
+    if (cur < prev && activeIndex >= cur && cur > 0) {
       setActiveIndex(cur - 1);
       containerRef.current?.scrollTo({
         top: (cur - 1) * (containerRef.current?.clientHeight || 0),

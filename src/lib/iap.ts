@@ -108,9 +108,15 @@ export async function loadProducts(): Promise<IAPProduct[]> {
   }
 }
 
+let purchaseInProgress = false;
+
 export async function purchaseProduct(productId: IAPProductId): Promise<IAPPurchaseResult> {
   if (!platform.isNative) {
     return { success: false, error: 'In-app purchases are only available in the app' };
+  }
+
+  if (purchaseInProgress) {
+    return { success: false, error: 'A purchase is already in progress' };
   }
 
   const mod = await getPlugin();
@@ -123,6 +129,7 @@ export async function purchaseProduct(productId: IAPProductId): Promise<IAPPurch
     return { success: false, error: 'Purchases are not supported on this device' };
   }
 
+  purchaseInProgress = true;
   try {
     const result = await mod.NativePurchases.purchaseProduct({
       productIdentifier: productId,
@@ -137,15 +144,24 @@ export async function purchaseProduct(productId: IAPProductId): Promise<IAPPurch
       return { success: false, error: 'Purchase could not be verified' };
     }
 
-    // Verify on server + credit coins
     const verifyResult = await verifyAndCreditPurchase(
       productId,
       transactionId,
       receipt,
     );
 
+    // Acknowledge the transaction (Android requires this; iOS StoreKit 2 handles it automatically)
+    try {
+      if ('acknowledgePurchase' in mod.NativePurchases) {
+        await (mod.NativePurchases as any).acknowledgePurchase({
+          transactionIdentifier: transactionId,
+          purchaseToken: receipt,
+        });
+      }
+    } catch { /* best-effort acknowledge */ }
+
     if (!verifyResult.success) {
-      return { success: false, error: verifyResult.error || 'Verification failed' };
+      return { success: false, error: verifyResult.error || 'Verification failed. Please contact support if you were charged.' };
     }
 
     return {
@@ -160,6 +176,8 @@ export async function purchaseProduct(productId: IAPProductId): Promise<IAPPurch
       return { success: false, error: 'Purchase cancelled' };
     }
     return { success: false, error: msg || 'Purchase failed' };
+  } finally {
+    purchaseInProgress = false;
   }
 }
 
