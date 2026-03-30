@@ -186,7 +186,7 @@ async function dbFindUserByEmailOrUsername(identifier: string): Promise<StoredUs
     `SELECT u.id, u.email, u.password_hash, u.username, u.avatar_url, u.created_at
        FROM elix_auth_users u
        JOIN profiles p ON p.user_id = u.id
-      WHERE LOWER(p.username) = $1
+      WHERE LOWER(p.username) = $1 OR LOWER(p.display_name) = $1
       LIMIT 1`,
     [lower],
   );
