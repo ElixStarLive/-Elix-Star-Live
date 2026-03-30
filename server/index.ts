@@ -104,16 +104,13 @@ app.use(cors({
     }
   },
 }));
-// Skip compression when behind a reverse proxy (Traefik/Coolify handles it)
-if (!process.env.TRUST_PROXY && process.env.NODE_ENV !== "production") {
-  app.use(compression({
-    level: 1,
-    filter: (req, res) => {
-      if (req.path.startsWith("/api/")) return false;
-      return compression.filter(req, res);
-    },
-  }));
-}
+app.use(compression({
+  level: 1,
+  filter: (req, res) => {
+    if (req.headers["x-no-compression"]) return false;
+    return compression.filter(req, res);
+  },
+}));
 
 const LOADTEST_SECRET = process.env.LOADTEST_BYPASS_SECRET || "";
 const LOG_SAMPLE = Math.max(
