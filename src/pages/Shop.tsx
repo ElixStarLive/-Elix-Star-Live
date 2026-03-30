@@ -230,7 +230,7 @@ export default function Shop() {
   ] as const;
 
   return (
-    <div className="fixed inset-0 bg-[#13151A] text-white flex justify-center px-2 pt-[calc(var(--safe-top)+46px)] pb-[var(--bottom-ui-reserve)]">
+    <div className="fixed inset-0 bg-[#13151A] text-white flex justify-center px-2 pt-[calc(var(--safe-top)+46px)] pb-[var(--feed-main-pb)]">
       <div
         className="w-full max-w-[480px] h-full flex flex-col overflow-hidden"
       >

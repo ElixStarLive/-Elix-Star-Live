@@ -27,11 +27,31 @@ export default function SearchPage() {
   const [suggestedUsers, setSuggestedUsers] = useState<{ id: string; username: string; name: string; avatar: string; is_live?: boolean }[]>([]);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [trendingSearches, setTrendingSearches] = useState<string[]>(FALLBACK_SEARCHES);
+  const [activeCategory, setActiveCategory] = useState<string>('All');
   const panelRef = useRef<HTMLDivElement>(null);
   const touchStart = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const { videos, fetchVideos } = useVideoStore();
 
   const RECENT_KEY = 'elix_recent_searches_v1';
+
+  const VIDEO_CATEGORIES = React.useMemo(() => {
+    const tagCount = new Map<string, number>();
+    for (const v of (videos || [])) {
+      for (const h of (v.hashtags || [])) {
+        const t = h.replace(/^#/, '').trim().toLowerCase();
+        if (t.length >= 2) tagCount.set(t, (tagCount.get(t) || 0) + 1);
+      }
+    }
+    const sorted = [...tagCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([t]) => t.charAt(0).toUpperCase() + t.slice(1));
+    return ['All', ...sorted];
+  }, [videos]);
+
+  const filteredVideos = React.useMemo(() => {
+    const all = (videos || []).slice(0, 30);
+    if (activeCategory === 'All') return all;
+    const cat = activeCategory.toLowerCase();
+    return all.filter(v => (v.hashtags || []).some(h => h.replace(/^#/, '').toLowerCase() === cat));
+  }, [videos, activeCategory]);
 
   useEffect(() => {
     requestAnimationFrame(() => setVisible(true));
@@ -226,8 +246,8 @@ export default function SearchPage() {
         style={{ transform: visible ? 'translateY(0)' : 'translateY(100%)' }}
       >
         <div
-          className="w-full max-w-[480px] bg-[#13151A] flex flex-col overflow-hidden pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] h-above-bottom-nav-friends"
-          style={{ boxShadow: '0 -8px 30px rgba(0,0,0,0.5)', marginTop: 0 }}
+          className="w-full max-w-[480px] bg-[#13151A] flex flex-col overflow-hidden pt-[env(safe-area-inset-top,0px)]"
+          style={{ boxShadow: '0 -8px 30px rgba(0,0,0,0.5)', marginTop: 0, height: 'calc(100dvh - var(--feed-main-pb))', maxHeight: 'calc(100dvh - var(--feed-main-pb))' }}
         >
           {/* Top: drag handle + power (back) — swipe down here to close */}
           <div
@@ -351,8 +371,23 @@ export default function SearchPage() {
                     )}
                   </div>
 
+                  {VIDEO_CATEGORIES.length > 1 && (
+                    <div className="px-3 pt-2 pb-1 flex gap-2 overflow-x-auto no-scrollbar shrink-0">
+                      {VIDEO_CATEGORIES.map((cat) => (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => setActiveCategory(cat)}
+                          className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap border transition-colors ${activeCategory === cat ? 'bg-[#C9A96E]/20 border-[#C9A96E] text-[#C9A96E]' : 'bg-[#13151A] border-white/15 text-white/60'}`}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
                   <div className="w-full">
-                    <TrendingSnapFeed videos={(videos || []).slice(0, 30)} />
+                    <TrendingSnapFeed videos={filteredVideos} />
                   </div>
                 </>
               ) : (
@@ -431,7 +466,7 @@ export default function SearchPage() {
                   )}
 
                   <div className="mt-1 w-full">
-                    <TrendingSnapFeed videos={(videos || []).slice(0, 30)} />
+                    <TrendingSnapFeed videos={filteredVideos} />
                   </div>
                 </div>
               )

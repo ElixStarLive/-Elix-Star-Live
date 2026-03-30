@@ -251,18 +251,18 @@
   .pl-safe { padding-left: var(--safe-left); }
   .pr-safe { padding-right: var(--safe-right); }
   .pt-topbar { padding-top: var(--topbar-total); }
-  .pb-nav { padding-bottom: var(--bottom-ui-reserve); }
+  .pb-nav { padding-bottom: var(--feed-main-pb); }
   .pb-nav-feed { padding-bottom: var(--feed-main-pb); }
-  .pb-nav-friends { padding-bottom: max(0px, calc(var(--bottom-ui-reserve) - 8mm)); }
+  .pb-nav-friends { padding-bottom: var(--feed-main-pb); }
 
-  /* Fixed / full-viewport columns above bottom nav; +3mm eats dead band between content and gold bar */
+  /* Fixed / full-viewport columns above bottom nav — stops at top of bottom bar */
   .h-above-bottom-nav {
-    height: calc(100dvh - var(--bottom-ui-reserve) + 3mm);
-    max-height: calc(100dvh - var(--bottom-ui-reserve) + 3mm);
+    height: calc(100dvh - var(--feed-main-pb));
+    max-height: calc(100dvh - var(--feed-main-pb));
   }
   .h-above-bottom-nav-friends {
-    height: calc(100dvh - var(--bottom-ui-reserve) + 11mm);
-    max-height: calc(100dvh - var(--bottom-ui-reserve) + 11mm);
+    height: calc(100dvh - var(--feed-main-pb));
+    max-height: calc(100dvh - var(--feed-main-pb));
   }
 
   /* Responsive text that scales with viewport */

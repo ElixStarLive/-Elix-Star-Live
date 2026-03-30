@@ -214,7 +214,7 @@ export default function ChatThread() {
   return (
     <div
       className="fixed left-0 right-0 flex flex-col w-full max-w-[480px] mx-auto bg-[#13151A] text-white z-[1]"
-      style={{ top: 'var(--topbar-total)', bottom: 'var(--bottom-ui-reserve)' }}
+      style={{ top: 'var(--topbar-total)', bottom: 'var(--feed-main-pb)' }}
     >
         <header className="flex-shrink-0 flex items-center gap-2 px-4 py-3 border-b border-white/10 bg-[#13151A]">
           <div className="flex w-12 shrink-0 items-center justify-start">

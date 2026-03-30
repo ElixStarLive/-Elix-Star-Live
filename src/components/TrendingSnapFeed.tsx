@@ -13,6 +13,7 @@ function formatNumber(n: number): string {
 function VideoThumbnail({ video }: { video: Video }) {
   const navigate = useNavigate();
   const poster = video.thumbnail || getVideoPosterUrl(video.url || '');
+  const bunnyPoster = getVideoPosterUrl(video.url || '');
 
   return (
     <button
@@ -28,10 +29,31 @@ function VideoThumbnail({ video }: { video: Video }) {
           loading="lazy"
           onError={(e) => {
             const img = e.currentTarget;
-            if (img.dataset.fallback) return;
-            img.dataset.fallback = '1';
-            img.style.opacity = '0';
+            if (img.dataset.fallback === '2') return;
+            if (!img.dataset.fallback && bunnyPoster && img.src !== bunnyPoster) {
+              img.dataset.fallback = '1';
+              img.src = bunnyPoster;
+              return;
+            }
+            img.dataset.fallback = '2';
+            img.style.display = 'none';
+            const vid = document.createElement('video');
+            vid.src = video.url || '';
+            vid.muted = true;
+            vid.playsInline = true;
+            vid.preload = 'metadata';
+            vid.className = 'w-full h-full object-cover absolute inset-0';
+            vid.currentTime = 0.5;
+            img.parentElement?.insertBefore(vid, img);
           }}
+        />
+      ) : video.url ? (
+        <video
+          src={`${video.url}#t=0.5`}
+          muted
+          playsInline
+          preload="metadata"
+          className="w-full h-full object-cover absolute inset-0"
         />
       ) : (
         <div className="w-full h-full flex items-center justify-center">

@@ -308,8 +308,8 @@ function App() {
         className={cn(
           "flex-1 w-full min-h-0 mx-auto max-w-[480px] overflow-auto",
           showBottomNav && !isFullScreen && "pt-topbar pb-nav",
-          showBottomNav && isFeedWithTopBar && "pt-topbar pb-nav-feed",
-          showBottomNav && isFeedNoTopBar && "pt-safe pb-nav-feed",
+          showBottomNav && isFeedWithTopBar && "pt-topbar pb-nav",
+          showBottomNav && isFeedNoTopBar && "pt-safe pb-nav",
           showBottomNav && isFullScreen && !isFeedFullScreen && "pt-[3mm]",
           !showBottomNav && "pt-[3mm]",
         )}
