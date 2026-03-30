@@ -1,28 +1,15 @@
 /**
  * Cluster wrapper for production — spawns one worker per CPU core.
  *
- * IMPORTANT: This requires sticky sessions for WebSocket connections.
- * Configure your reverse proxy (nginx/HAProxy) with one of:
+ * Requires sticky sessions on the load balancer for WebSocket connections.
+ * Hetzner LB: enable cookie-based sticky sessions on the HTTPS service.
+ * Traefik (Coolify): handled automatically via Docker service routing.
  *
- *   nginx:  ip_hash;  (in upstream block)
- *   HAProxy: balance source / stick-table
- *
- * Without sticky sessions, WebSocket reconnections may land on different
- * workers, causing temporary state inconsistency until the client
- * re-establishes room membership.
- *
- * All shared state (rooms, battles, streams, profiles, videos) is stored
- * in Valkey + PostgreSQL, NOT in worker memory.
+ * All shared state (rooms, battles, streams, profiles, videos) is in
+ * Valkey + PostgreSQL, NOT in worker memory.
  *
  * Usage: npx tsx server/cluster.ts
  * Falls back to single-process mode if WEB_CONCURRENCY=1.
- *
- * Production: set ELIX_JOB_WORKER=0 (or false) on these app workers so only one
- * dedicated instance runs the Valkey job consumer (ELIX_JOB_WORKER=1).
- *
- * Migrations: run `npm run migrate` in the release step before any worker starts, or use
- * `npm run start:prod:safe` (migrate && cluster). App exits on boot if migrations are
- * missing (unless ELIX_SKIP_MIGRATION_CHECK=1, not for real production).
  */
 
 import cluster from "node:cluster";
@@ -33,6 +20,20 @@ cluster.schedulingPolicy = cluster.SCHED_RR;
 
 const CONCURRENCY = Number(process.env.WEB_CONCURRENCY) || os.cpus().length;
 
+const MAX_CRASH_RESTART_DELAY = 30_000;
+const crashTimestamps = new Map<number, number[]>();
+
+function getRestartDelay(workerId: number): number {
+  const now = Date.now();
+  const history = crashTimestamps.get(workerId) ?? [];
+  const recent = history.filter((t) => now - t < 60_000);
+  recent.push(now);
+  crashTimestamps.set(workerId, recent);
+  const crashes = recent.length;
+  if (crashes <= 1) return 1_000;
+  return Math.min(1_000 * Math.pow(2, crashes - 1), MAX_CRASH_RESTART_DELAY);
+}
+
 if (cluster.isPrimary && CONCURRENCY > 1) {
   logger.info({ workers: CONCURRENCY, pid: process.pid, scheduling: "round-robin" }, "Primary process starting workers");
 
@@ -40,17 +41,33 @@ if (cluster.isPrimary && CONCURRENCY > 1) {
     cluster.fork();
   }
 
+  let shuttingDown = false;
+
   cluster.on("exit", (worker, code, signal) => {
-    logger.warn({ workerId: worker.id, pid: worker.process.pid, code, signal }, "Worker exited, restarting...");
-    setTimeout(() => cluster.fork(), 1000);
+    if (shuttingDown) return;
+    const delay = getRestartDelay(worker.id);
+    logger.warn({ workerId: worker.id, pid: worker.process.pid, code, signal, restartIn: delay }, "Worker exited, restarting...");
+    setTimeout(() => {
+      if (!shuttingDown) cluster.fork();
+    }, delay);
   });
 
   process.on("SIGTERM", () => {
+    shuttingDown = true;
     logger.info("Primary received SIGTERM, shutting down workers...");
     for (const id in cluster.workers) {
       cluster.workers[id]?.process.kill("SIGTERM");
     }
-    setTimeout(() => process.exit(0), 10000);
+    setTimeout(() => process.exit(0), 10_000);
+  });
+
+  process.on("SIGINT", () => {
+    shuttingDown = true;
+    logger.info("Primary received SIGINT, shutting down workers...");
+    for (const id in cluster.workers) {
+      cluster.workers[id]?.process.kill("SIGTERM");
+    }
+    setTimeout(() => process.exit(0), 10_000);
   });
 } else {
   import("./index.js");

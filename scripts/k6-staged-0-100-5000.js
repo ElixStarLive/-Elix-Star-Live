@@ -1,28 +1,22 @@
 /**
- * Steady ~10k VUs — run on **four** separate machines in parallel for ~40k total.
- * Same BASE_URL / BYPASS_KEY as other k6 scripts. Set BYPASS_KEY to the same value as
- * API env LOADTEST_BYPASS_SECRET (Coolify / server env — not stored in git); see docs/LOAD_TEST_STAGING.md.
+ * k6: two-step ramp — **0 → 100** VUs, then **100 → 5,000** VUs.
  *
- *   k6 run --env BASE_URL=https://www.elixstarlive.co.uk \
- *     --env BYPASS_KEY='YOUR_SECRET' \
- *     scripts/k6-steady-10k.js
+ * Optional: --env FAST=1 → shorter ramps/holds.
  *
- * Optional: --env DURATION=10m (default 10m)
+ * BYPASS_KEY must match server LOADTEST_BYPASS_SECRET (see docs/LOAD_TEST_STAGING.md).
  */
 import http from "k6/http";
 import { check, sleep } from "k6";
 
 const BASE = __ENV.BASE_URL || "https://www.elixstarlive.co.uk";
 const BYPASS = __ENV.BYPASS_KEY || "";
-const DURATION = __ENV.DURATION || "10m";
-const TARGET = Number(__ENV.VUS) || 10_000;
-const TIMEOUT = __ENV.HTTP_TIMEOUT || "60s";
+const FAST = __ENV.FAST === "1";
 
 const params = {
   headers: {
     ...(BYPASS ? { "x-loadtest-key": BYPASS } : {}),
   },
-  timeout: TIMEOUT,
+  timeout: __ENV.HTTP_TIMEOUT || "30s",
 };
 
 const endpoints = [
@@ -47,16 +41,38 @@ function pickPath() {
 export default function () {
   const path = pickPath();
   const res = http.get(`${BASE.replace(/\/$/, "")}${path}`, params);
-  check(res, { "status is 200": (r) => r.status === 200 });
+  check(res, {
+    "status is 200": (r) => r.status === 200,
+  });
   sleep(Math.random() * 0.35 + 0.08);
+}
+
+/** Step 1: 0→100. Step 2: 100→5000. Then short hold at 5k. */
+const stagesFull = [
+  { duration: "2m", target: 100 },
+  { duration: "1m", target: 100 },
+  { duration: "4m", target: 5000 },
+  { duration: "2m", target: 5000 },
+];
+
+const stagesFast = [
+  { duration: "30s", target: 100 },
+  { duration: "20s", target: 100 },
+  { duration: "90s", target: 5000 },
+  { duration: "45s", target: 5000 },
+];
+
+function pickStages() {
+  return FAST ? stagesFast : stagesFull;
 }
 
 export const options = {
   scenarios: {
-    steady: {
-      executor: "constant-vus",
-      vus: TARGET,
-      duration: DURATION,
+    staged_load: {
+      executor: "ramping-vus",
+      startVUs: 0,
+      stages: pickStages(),
+      gracefulRampDown: "30s",
     },
   },
   thresholds: {

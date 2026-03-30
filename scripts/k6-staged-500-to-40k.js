@@ -3,6 +3,8 @@
  *
  * Requires the same secret as server LOADTEST_BYPASS_SECRET on every request,
  * or you will hit 429 (200 req/min per IP) almost immediately.
+ * Where to get the key: you set LOADTEST_BYPASS_SECRET in the API env (e.g. Coolify
+ * → service → Environment variables); it is not in the repo — see docs/LOAD_TEST_STAGING.md.
  *
  * Run on a machine with enough RAM/CPU for high VUs (often a separate box from the app).
  *
@@ -43,8 +45,9 @@
  * Windows PowerShell uses backtick ` for line continuation — do not use that on Linux.
  *
  * Optional:
- *   --env COMPACT=1   → fewer stages (500 → 5k → 15k → 40k), ~15 min total
- *   --env FAST=1      → aggressive ramp + short holds, ~5–6 min to 40k (stress / CI)
+ *   --env START_VU=200   → first ramp targets use 200 instead of 500 (200 → … → 40k)
+ *   --env COMPACT=1      → fewer stages (500 → 5k → 15k → 40k), ~15 min total
+ *   --env FAST=1         → aggressive ramp + short holds, ~5–6 min to 40k (stress / CI)
  *
  * For ~40k total VUs, one machine often tops out ~10k — use four runners:
  *   docs/K6_40K_DISTRIBUTED.md  and  scripts/k6-steady-10k.js
@@ -59,6 +62,19 @@ const BASE = __ENV.BASE_URL || "https://www.elixstarlive.co.uk";
 const BYPASS = __ENV.BYPASS_KEY || "";
 const COMPACT = __ENV.COMPACT === "1";
 const FAST = __ENV.FAST === "1";
+
+/** Default first-stage target is 500; set START_VU=200 to ramp from 200 → 40k (replaces 500s in the ladder). */
+const START_VU =
+  __ENV.START_VU != null && String(__ENV.START_VU).trim() !== ""
+    ? Math.max(1, Math.min(40000, parseInt(String(__ENV.START_VU), 10) || 500))
+    : 500;
+
+function mapStartVu(stages) {
+  if (START_VU === 500) return stages;
+  return stages.map((st) =>
+    st.target === 500 ? { ...st, target: START_VU } : st,
+  );
+}
 
 const params = {
   headers: {
@@ -144,9 +160,11 @@ const stagesFast = [
 ];
 
 function pickStages() {
-  if (FAST) return stagesFast;
-  if (COMPACT) return stagesCompact;
-  return stagesFull;
+  let base;
+  if (FAST) base = stagesFast;
+  else if (COMPACT) base = stagesCompact;
+  else base = stagesFull;
+  return mapStartVu(base);
 }
 
 export const options = {
