@@ -1,0 +1,19 @@
+## Copy this file to BOTH servers at:
+##   /data/coolify/proxy/dynamic/high-concurrency.yml
+##
+## Traefik auto-reloads dynamic config — no container restart needed.
+##
+## Then in Coolify → App → Edit Labels, add:
+##   traefik.http.services.<service-name>.loadbalancer.serversTransport=highconcurrency@file
+##
+## Replace <service-name> with the actual service name Coolify assigns
+## (visible in Coolify → App → Edit Labels → look for traefik.http.services.*.loadbalancer)
+
+http:
+  serversTransports:
+    highconcurrency:
+      maxIdleConnsPerHost: 1000
+      forwardingTimeouts:
+        dialTimeout: "30s"
+        responseHeaderTimeout: "60s"
+        idleConnTimeout: "90s"
