@@ -21,6 +21,8 @@ import {
   valkeyGet,
   valkeySet,
   valkeyDel,
+  acquireCacheBuildLock,
+  waitForCachePopulate,
 } from '../lib/valkey';
 import { bumpCacheLayer } from '../lib/cacheLayerMetrics';
 
@@ -222,6 +224,21 @@ export async function handleGetStreams(req: Request, res: Response) {
     return res.status(200).json(payload);
   }
 
+  const gotLock = await acquireCacheBuildLock(STREAMS_HTTP_CACHE_KEY);
+  if (!gotLock && isValkeyConfigured()) {
+    const waited = await waitForCachePopulate(STREAMS_HTTP_CACHE_KEY);
+    if (waited) {
+      try {
+        const { etag: wEtag, payload } = JSON.parse(waited) as { etag: string; payload: StreamsListPayload };
+        setStreamsCacheHeaders(res);
+        res.setHeader("ETag", wEtag);
+        bumpCacheLayer("live_streams_valkey_hits");
+        if (inm && inm === wEtag) return res.status(304).end();
+        return res.status(200).json(payload);
+      } catch { /* fall through to build */ }
+    }
+  }
+
   const result = await buildStreamsResult();
   bumpCacheLayer("live_streams_builds");
   const bodyStr = JSON.stringify(result);
@@ -230,7 +247,7 @@ export async function handleGetStreams(req: Request, res: Response) {
   res.setHeader("ETag", etag);
 
   if (isValkeyConfigured()) {
-    await valkeySet(STREAMS_HTTP_CACHE_KEY, JSON.stringify({ etag, payload: result }), STREAMS_CACHE_TTL_MS);
+    valkeySet(STREAMS_HTTP_CACHE_KEY, JSON.stringify({ etag, payload: result }), STREAMS_CACHE_TTL_MS).catch(() => {});
   } else {
     streamsMemFallback = { etag, payload: result, ts: now };
   }

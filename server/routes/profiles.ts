@@ -8,7 +8,7 @@ import { Request, Response } from "express";
 import { getTokenFromRequest, verifyAuthToken } from "./auth";
 import { ensureFollowsTable, getPool } from "../lib/postgres";
 import { logger } from "../lib/logger";
-import { isValkeyConfigured, valkeyGet, valkeySet, valkeyDel } from "../lib/valkey";
+import { isValkeyConfigured, valkeyGet, valkeySet, valkeyDel, acquireCacheBuildLock, waitForCachePopulate } from "../lib/valkey";
 import {
   bumpProfilesListEpoch,
   getProfilesListEpoch,
@@ -430,13 +430,16 @@ export async function handleListProfiles(_req: Request, res: Response): Promise<
     return;
   }
 
+  let profilesCacheKey = "";
   if (isValkeyConfigured()) {
     try {
       const epoch = await getProfilesListEpoch();
-      const raw = await valkeyGet(profilesListDataKey(epoch));
+      profilesCacheKey = profilesListDataKey(epoch);
+      const raw = await valkeyGet(profilesCacheKey);
       if (raw) {
         const data = JSON.parse(raw) as { profiles: unknown[] };
         if (Array.isArray(data?.profiles)) {
+          bumpCacheLayer("profiles_list_valkey_hits");
           res.setHeader("Cache-Control", "public, s-maxage=55, max-age=25");
           res.json(data);
           return;
@@ -444,6 +447,24 @@ export async function handleListProfiles(_req: Request, res: Response): Promise<
       }
     } catch {
       /* miss */
+    }
+  }
+
+  if (profilesCacheKey && isValkeyConfigured()) {
+    const gotLock = await acquireCacheBuildLock(profilesCacheKey);
+    if (!gotLock) {
+      const waited = await waitForCachePopulate(profilesCacheKey);
+      if (waited) {
+        try {
+          const data = JSON.parse(waited) as { profiles: unknown[] };
+          if (Array.isArray(data?.profiles)) {
+            bumpCacheLayer("profiles_list_valkey_hits");
+            res.setHeader("Cache-Control", "public, s-maxage=55, max-age=25");
+            res.json(data);
+            return;
+          }
+        } catch { /* fall through to build */ }
+      }
     }
   }
 

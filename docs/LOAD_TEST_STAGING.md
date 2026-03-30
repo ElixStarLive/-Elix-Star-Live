@@ -1,76 +1,172 @@
-# Staged load testing (backend observability)
+# Load Testing — Production Staging Guide
 
-## Phase 1 — Instrumentation (complete)
+## Architecture
 
-- **Counted in `dbQueries` / `dbMs`:** `pool.query()` **and** `pool.connect()` → `client.query()` (wallet, payout, transactions in `postgres.ts`, etc.).
-- **`GET /api/metrics?light=1`** includes **`pg_pool.waiting`** (and `total`, `idle`) — no extra DB ping.
-- **Per-request logs:** every sampled/slow/`LOG_DB_STATS` line includes **`dbQueries`** and **`dbMs`**. For a **full log of every request** with DB stats (short windows only), set **`LOG_HTTP_DB_STATS_EVERY=1`** (high volume).
-
-Use **staged virtual users** before attempting ~40k VUs. The load generator host can OOM or be SIGKILL’d under extreme parallelism — watch `dmesg`, k6 `--summary-export`, and **free RAM** on the runner.
-
-## Recommended stages (max VUs per stage, hold ~60s each)
-
-1. 2500  
-2. 5000  
-3. 7500  
-4. 10000  
-5. 12500  
-6. 15000  
-
-Pause between stages to let pools and Valkey settle. **Do not** treat a partial run (e.g. ~28.5k / 40k before the process died) as a capacity number.
-
-## Pool + cache sampling (no extra DB ping)
-
-`GET /api/metrics?light=1` (or `?pool_only=1`) with `Authorization: Bearer <METRICS_SECRET>` returns:
-
-- `pg_pool.waiting`, `pg_pool.total`, `pg_pool.idle`
-- `cache_layer` — raw counters for feed / streams / catalog / profiles list
-- `cache_hit_rates` — derived ratios (per **Node worker**; aggregate across instances in Coolify if clustered)
-- `slow_requests` — counts of responses over `LOG_SLOW_HTTP_MS` (wall) and `LOG_SLOW_DB_MS` (Postgres time in request)
-- **`http_status_by_route`** — per route bucket (e.g. `/api/feed/foryou`, `/api/live/streams`), counts of **`2xx`** (includes 3xx), **`4xx`**, **`5xx`** since process start (**per worker**). Use this to see **which endpoints** fail under saturation — startup logs alone are not enough.
-
-**Full** `GET /api/metrics` still runs dependency pings (`SELECT 1` + Valkey) — avoid polling it every second under load; use **`light=1`** during stages.
-
-### When timeouts / 5xx spike (runtime saturation, not boot)
-
-| Need | What to use |
-|------|-------------|
-| `pg_pool.waiting` | Poll `light=1` every few seconds **during** the failing stage |
-| Slow DB per request | `LOG_HTTP_DB_STATS_EVERY=1` (or `LOG_DB_STATS=1`) for **short** windows |
-| Pool waiters in **logs** | `LOG_POOL_PRESSURE_MS=15000` — warns when `waiting > 0` on that interval |
-| **500** stack traces (Express `errorHandler`) | `LOG_500_STACK=1` for 5xx only, or `LOG_FULL_ERROR_STACKS=1` for all errors |
-
-Example:
-
-```bash
-curl -sS -H "Authorization: Bearer $METRICS_SECRET" \
-  "https://your-api/api/metrics?light=1" | jq '.pg_pool, .cache_hit_rates, .slow_requests, .http_status_by_route'
+```
+k6 (load generator)
+  → Hetzner Load Balancer (TCP passthrough :80 / :443)
+    → Server1 (Traefik → 16x Node workers)
+    → Server2 (Traefik → 16x Node workers)
+      → Valkey (Server1, shared)
+      → Neon Postgres (external, shared)
 ```
 
-## Logs: `dbQueries` / `dbMs` on slow paths
+## Pre-test Checklist (BOTH servers)
 
-- Set `LOG_DB_STATS=1` for verbose per-request logs (spiky volume), **or**
-- Rely on `slow_requests` + default `http_request` logs when sampled / slow heuristics match.
+### 1. Linux Kernel Tuning
 
-Tune thresholds:
+SSH into each server and run:
 
-- `LOG_SLOW_HTTP_MS` (default `2000`) — increments `slow_requests.wall_ms_threshold`
-- `LOG_SLOW_DB_MS` (default `200`) — increments `slow_requests.db_ms_threshold`
+```bash
+sudo bash scripts/linux-production-tuning.sh
+```
 
-## Health checks vs load
+Or apply manually:
+```bash
+sysctl -w fs.file-max=1000000
+sysctl -w net.core.somaxconn=65535
+sysctl -w net.ipv4.tcp_max_syn_backlog=65535
+sysctl -w net.netfilter.nf_conntrack_max=1000000
+sysctl -w net.ipv4.ip_local_port_range="1024 65535"
+sysctl -w net.ipv4.tcp_tw_reuse=1
+sysctl -w net.ipv4.tcp_fin_timeout=15
+sysctl -w net.core.rmem_max=16777216
+sysctl -w net.core.wmem_max=16777216
+sysctl -w net.core.netdev_max_backlog=65535
+```
 
-- `/health` and `/api/health` sit **before** `/api` rate limits but still cost **one DB `SELECT 1`** per cache miss.
-- **`HEALTH_CACHE_TTL_MS`** (default `12000`, max `300000`) — lengthen during tests to cut probe load.
-- **`HEALTH_LIGHT=1`** — skips `getVideoCountAsync()` (cheaper body).
-- **`HEALTH_SKIP_VALKEY_PING=1`** — skips Valkey PING on health refresh only; **Valkey may be degraded without detection** — use only in controlled test windows.
+### 2. Docker Container File Descriptor Limits
 
-## Hot paths (audit summary)
+In Coolify → App → Advanced → Custom Docker Options, add:
+```
+--ulimit nofile=1000000:1000000
+```
 
-| Endpoint | Behavior under load |
-|----------|----------------------|
-| **`GET /api/feed/foryou`** | Valkey page cache keyed by epoch + `(page,limit)`; miss runs one bounded `FORYOU_SQL` (JOIN + `LIMIT`/`OFFSET`). |
-| **`GET /api/live/streams`** | Valkey HTTP cache + ETag; miss may call **LiveKit list rooms** + Valkey `HGETALL` batch, or **DB fallback** if LiveKit fails. TTL: **`LIVE_STREAMS_CACHE_TTL_MS`** (default 14s, max 120s). |
+Or in Docker Compose format:
+```yaml
+ulimits:
+  nofile:
+    soft: 1000000
+    hard: 1000000
+```
 
-## k6 runner host
+### 3. Traefik Tuning (Coolify Proxy)
 
-If k6 is **SIGKILL**’d, check **RAM**, **ulimit**, and **systemd/OOM killer**. Reduce VUs or use `rps` caps / longer ramp. Running k6 on the **same** 16GB box as the app competes for CPU/RAM with the workload under test — prefer a separate generator machine.
+Coolify uses Traefik as its reverse proxy. To handle 20k+ connections:
+
+SSH into each server, then:
+
+```bash
+# Find the Traefik container
+docker ps | grep traefik
+
+# Create/edit Traefik dynamic config
+mkdir -p /data/coolify/proxy/dynamic
+cat > /data/coolify/proxy/dynamic/high-concurrency.yml << 'EOF'
+http:
+  serversTransports:
+    default:
+      maxIdleConnsPerHost: 500
+      forwardingTimeouts:
+        dialTimeout: "30s"
+        responseHeaderTimeout: "30s"
+        idleConnTimeout: "90s"
+EOF
+
+# Restart Traefik to pick up config
+docker restart $(docker ps -q --filter name=coolify-proxy)
+```
+
+### 4. Environment Variables (Coolify)
+
+Set these on BOTH app instances (Available at Runtime):
+
+```
+LOADTEST_BYPASS_SECRET=elix-loadtest-2026-secret-key
+WEB_CONCURRENCY=16
+HEALTH_LIGHT=1
+HEALTH_CACHE_TTL_MS=30000
+FEED_FORYOU_CACHE_TTL_MS=120000
+LIVE_STREAMS_CACHE_TTL_MS=30000
+CATALOG_VALKEY_TTL_MS=120000
+```
+
+Set only on Server1:
+```
+ELIX_JOB_WORKER=1
+```
+
+### 5. Load Test Server (k6)
+
+```bash
+# Apply limits on the k6 server too
+ulimit -n 250000
+sysctl -w net.ipv4.ip_local_port_range="1024 65535"
+sysctl -w fs.file-max=250000
+
+# Run test
+cd ~/elix
+git pull
+k6 run --insecure-skip-tls-verify \
+  --env BASE_URL=https://46.225.33.56 \
+  --env BYPASS_KEY=elix-loadtest-2026-secret-key \
+  --env MAX_VUS=20000 \
+  ./scripts/k6-staged-200k.js
+```
+
+## Monitoring During Load Test
+
+### On each app server:
+
+```bash
+# Connection state summary
+ss -s
+
+# TCP state breakdown
+ss -tan state established | wc -l
+
+# File descriptors used by Node
+ls /proc/$(pgrep -f "node.*cluster")/fd 2>/dev/null | wc -l
+
+# CPU and memory
+top -bn1 | head -20
+
+# Load average
+uptime
+
+# Kernel drops/resets
+dmesg | tail -30
+netstat -s | grep -i -E 'overflow|drop|reset|retrans'
+```
+
+### Valkey:
+
+```bash
+docker exec <valkey-container> redis-cli info clients
+docker exec <valkey-container> redis-cli info stats | grep -E 'connected_clients|blocked_clients|ops_per_sec'
+```
+
+### Postgres (Neon dashboard or query):
+
+```sql
+SELECT count(*) FROM pg_stat_activity WHERE state = 'active';
+SELECT count(*) FROM pg_stat_activity WHERE wait_event_type IS NOT NULL;
+```
+
+## Expected Behavior After Fixes
+
+| VU Count | Expected Result |
+|----------|----------------|
+| 5,000    | p95 < 500ms, 0% errors |
+| 10,000   | p95 < 1s, < 1% errors |
+| 20,000   | p95 < 3s, < 5% errors |
+| 40,000+  | Requires 4+ app servers |
+
+## Bottleneck Layers (Priority Order)
+
+1. **Linux kernel** — file descriptors, somaxconn, conntrack
+2. **Traefik proxy** — maxIdleConnsPerHost, connection limits
+3. **Node.js clustering** — workers must match CPU core count
+4. **Postgres pool** — must be sized per-worker to avoid Neon limit
+5. **Valkey throughput** — enableAutoPipelining reduces round-trips
+6. **Cache stampede** — all cached endpoints need distributed locks

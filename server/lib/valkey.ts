@@ -30,6 +30,7 @@ function createConnection(label: string): Redis | null {
     enableReadyCheck: true,
     connectTimeout: 5000,
     commandTimeout: 5000,
+    enableAutoPipelining: true,
   });
 
   conn.on("connect", () =>
@@ -445,4 +446,43 @@ export async function valkeySetNx(key: string, value: string, ttlMs: number): Pr
     logger.warn({ err: err?.message, key }, "valkeySetNx failed");
     return false;
   }
+}
+
+// ── Cache stampede protection ────────────────────────────────────
+
+const STAMPEDE_LOCK_TTL_MS = 15_000;
+const STAMPEDE_WAIT_ATTEMPTS = 20;
+const STAMPEDE_WAIT_INTERVAL_MS = 100;
+
+/**
+ * Try to acquire a short-lived build lock for a cache key.
+ * Returns true if this caller should build the cache.
+ * Returns true when Valkey is unavailable (single-caller fallback).
+ */
+export async function acquireCacheBuildLock(cacheKey: string, ttlMs = STAMPEDE_LOCK_TTL_MS): Promise<boolean> {
+  const v = getValkey();
+  if (!v) return true;
+  try {
+    const result = await v.set(`lock:${cacheKey}`, "1", "PX", ttlMs, "NX");
+    return result === "OK";
+  } catch { return true; }
+}
+
+/**
+ * Poll Valkey until cacheKey is populated or attempts exhausted.
+ * Used by non-builder workers during stampede protection.
+ */
+export async function waitForCachePopulate(
+  cacheKey: string,
+  attempts = STAMPEDE_WAIT_ATTEMPTS,
+  intervalMs = STAMPEDE_WAIT_INTERVAL_MS,
+): Promise<string | null> {
+  for (let i = 0; i < attempts; i++) {
+    await new Promise((r) => setTimeout(r, intervalMs));
+    try {
+      const raw = await valkeyGet(cacheKey);
+      if (raw) return raw;
+    } catch { /* retry */ }
+  }
+  return null;
 }

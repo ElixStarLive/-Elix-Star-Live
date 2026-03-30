@@ -3,7 +3,7 @@ import { Request, Response } from "express";
 import { logger } from "../lib/logger";
 import { getPool } from "../lib/postgres";
 import { getTokenFromRequest, verifyAuthToken } from "./auth";
-import { isValkeyConfigured, valkeyGet, valkeySet, valkeyRateCheck } from "../lib/valkey";
+import { isValkeyConfigured, valkeyGet, valkeySet, valkeyRateCheck, acquireCacheBuildLock, waitForCachePopulate } from "../lib/valkey";
 import {
   bumpFeedForyouEpoch,
   feedForyouDataKey,
@@ -11,32 +11,10 @@ import {
   FEED_FORYOU_CACHE_TTL_MS,
 } from "../lib/feedCacheValkey";
 import { bumpCacheLayer } from "../lib/cacheLayerMetrics";
-import { getValkey } from "../lib/valkey";
 
 const RATE_LIMIT_WINDOW = 60_000;
 const RATE_LIMIT_MAX_VIEWS = 120;
 const FORYOU_CACHE_SEC = Math.max(5, Math.floor(FEED_FORYOU_CACHE_TTL_MS / 1000));
-const LOCK_TTL_MS = 15_000;
-const LOCK_WAIT_ATTEMPTS = 20;
-const LOCK_WAIT_INTERVAL_MS = 100;
-
-async function acquireBuildLock(key: string): Promise<boolean> {
-  const v = getValkey();
-  if (!v) return true;
-  try {
-    const result = await v.set(`lock:${key}`, "1", "PX", LOCK_TTL_MS, "NX");
-    return result === "OK";
-  } catch { return true; }
-}
-
-async function waitForCache(valkeyKey: string): Promise<string | null> {
-  for (let i = 0; i < LOCK_WAIT_ATTEMPTS; i++) {
-    await new Promise((r) => setTimeout(r, LOCK_WAIT_INTERVAL_MS));
-    const raw = await valkeyGet(valkeyKey);
-    if (raw) return raw;
-  }
-  return null;
-}
 
 function getIpHash(req: Request): string {
   const ip =
@@ -206,10 +184,10 @@ export async function handleForYouFeed(req: Request, res: Response) {
       }
     }
 
-    const gotLock = await acquireBuildLock(valkeyKey);
+    const gotLock = await acquireCacheBuildLock(valkeyKey);
 
     if (!gotLock && isValkeyConfigured()) {
-      const waited = await waitForCache(valkeyKey);
+      const waited = await waitForCachePopulate(valkeyKey);
       if (waited) {
         try {
           const payload = JSON.parse(waited) as { videos: any[] };

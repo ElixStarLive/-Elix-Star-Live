@@ -4,6 +4,7 @@
  */
 
 import pg from "pg";
+import os from "node:os";
 import type { Video } from "./videoStore";
 import { normalizeDatabaseUrl } from "./databaseUrl";
 import { logger } from "./logger";
@@ -14,10 +15,13 @@ import {
   COIN_PACKAGES_KEY,
   GIFTS_CATALOG_KEY,
 } from "./catalogCacheValkey";
-import { isValkeyConfigured, valkeyGet, valkeySet } from "./valkey";
+import { isValkeyConfigured, valkeyGet, valkeySet, acquireCacheBuildLock, waitForCachePopulate } from "./valkey";
 import { bumpCacheLayer } from "./cacheLayerMetrics";
 
 const { Pool } = pg;
+
+const ESTIMATED_WORKERS = Number(process.env.WEB_CONCURRENCY) || Math.min(os.cpus().length, 32);
+const DEFAULT_POOL_PER_WORKER = Math.max(4, Math.ceil(80 / ESTIMATED_WORKERS));
 
 let pool: pg.Pool | null = null;
 
@@ -126,10 +130,11 @@ export async function connectPostgres(): Promise<void> {
   }
 
   const needsSsl = url.includes("neon.tech") || url.includes("sslmode=require");
+  const poolMax = Number(process.env.PG_POOL_MAX) || DEFAULT_POOL_PER_WORKER;
   const newPool = new Pool({
     connectionString: url,
-    max: Number(process.env.PG_POOL_MAX) || 80,
-    min: Number(process.env.PG_POOL_MIN) || 4,
+    max: poolMax,
+    min: Math.min(Number(process.env.PG_POOL_MIN) || 2, poolMax),
     idleTimeoutMillis: 60_000,
     connectionTimeoutMillis: Number(process.env.PG_POOL_ACQUIRE_MS) || 12_000,
     allowExitOnIdle: false,
@@ -1221,6 +1226,23 @@ export async function dbLoadGifts(): Promise<DbGiftRow[]> {
     bumpCacheLayer("gifts_mem_hits");
     return giftsCatalogMemCache.rows;
   }
+
+  if (isValkeyConfigured()) {
+    const gotLock = await acquireCacheBuildLock(GIFTS_CATALOG_KEY);
+    if (!gotLock) {
+      const waited = await waitForCachePopulate(GIFTS_CATALOG_KEY);
+      if (waited) {
+        try {
+          const parsed = JSON.parse(waited) as DbGiftRow[];
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            bumpCacheLayer("gifts_valkey_hits");
+            return parsed;
+          }
+        } catch { /* fall through */ }
+      }
+    }
+  }
+
   const p = getPool();
   if (!p) return [];
   try {
@@ -1240,7 +1262,7 @@ export async function dbLoadGifts(): Promise<DbGiftRow[]> {
     }));
     giftsCatalogMemCache = { rows, ts: now };
     if (isValkeyConfigured() && rows.length > 0) {
-      await valkeySet(GIFTS_CATALOG_KEY, JSON.stringify(rows), CATALOG_HTTP_CACHE_TTL_MS);
+      valkeySet(GIFTS_CATALOG_KEY, JSON.stringify(rows), CATALOG_HTTP_CACHE_TTL_MS).catch(() => {});
     }
     bumpCacheLayer("gifts_builds");
     return rows;
@@ -1302,6 +1324,23 @@ export async function dbLoadCoinPackages(): Promise<DbCoinPackageRow[]> {
     bumpCacheLayer("coin_packages_mem_hits");
     return coinPackagesMemCache.rows;
   }
+
+  if (isValkeyConfigured()) {
+    const gotLock = await acquireCacheBuildLock(COIN_PACKAGES_KEY);
+    if (!gotLock) {
+      const waited = await waitForCachePopulate(COIN_PACKAGES_KEY);
+      if (waited) {
+        try {
+          const parsed = JSON.parse(waited) as DbCoinPackageRow[];
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            bumpCacheLayer("coin_packages_valkey_hits");
+            return parsed;
+          }
+        } catch { /* fall through */ }
+      }
+    }
+  }
+
   const p = getPool();
   if (!p) return [];
   try {
@@ -1320,7 +1359,7 @@ export async function dbLoadCoinPackages(): Promise<DbCoinPackageRow[]> {
     }));
     coinPackagesMemCache = { rows, ts: now };
     if (isValkeyConfigured() && rows.length > 0) {
-      await valkeySet(COIN_PACKAGES_KEY, JSON.stringify(rows), CATALOG_HTTP_CACHE_TTL_MS);
+      valkeySet(COIN_PACKAGES_KEY, JSON.stringify(rows), CATALOG_HTTP_CACHE_TTL_MS).catch(() => {});
     }
     bumpCacheLayer("coin_packages_builds");
     return rows;

@@ -31,7 +31,7 @@ import { logger } from "./lib/logger";
 
 cluster.schedulingPolicy = cluster.SCHED_RR;
 
-const CONCURRENCY = Number(process.env.WEB_CONCURRENCY) || Math.min(os.cpus().length, 8);
+const CONCURRENCY = Number(process.env.WEB_CONCURRENCY) || os.cpus().length;
 
 if (cluster.isPrimary && CONCURRENCY > 1) {
   logger.info({ workers: CONCURRENCY, pid: process.pid, scheduling: "round-robin" }, "Primary process starting workers");

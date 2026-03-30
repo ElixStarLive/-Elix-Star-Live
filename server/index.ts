@@ -54,7 +54,6 @@ process.setMaxListeners(0);
 
 const app = express();
 const server = createServer(app);
-server.maxConnections = 0;
 /** Stay above typical reverse-proxy ~10s so Node does not abort before the proxy; tune via HTTP_REQUEST_TIMEOUT_MS. */
 server.requestTimeout = Number(process.env.HTTP_REQUEST_TIMEOUT_MS) || 120_000;
 const PORT = Number(process.env.PORT) || 8080;
