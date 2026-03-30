@@ -86,6 +86,9 @@ const ALLOWED_ORIGINS: string[] = (() => {
   return [...new Set(origins)];
 })();
 
+// Behind Traefik/Coolify reverse proxy
+if (process.env.NODE_ENV === "production") app.set("trust proxy", 1);
+
 // ── Global middleware ────────────────────────────────────────────
 app.use(helmet({
   contentSecurityPolicy: false,
@@ -101,13 +104,16 @@ app.use(cors({
     }
   },
 }));
-app.use(compression({
-  level: 1,
-  filter: (req, res) => {
-    if (req.path.startsWith("/api/")) return false;
-    return compression.filter(req, res);
-  },
-}));
+// Skip compression when behind a reverse proxy (Traefik/Coolify handles it)
+if (!process.env.TRUST_PROXY && process.env.NODE_ENV !== "production") {
+  app.use(compression({
+    level: 1,
+    filter: (req, res) => {
+      if (req.path.startsWith("/api/")) return false;
+      return compression.filter(req, res);
+    },
+  }));
+}
 
 const LOADTEST_SECRET = process.env.LOADTEST_BYPASS_SECRET || "";
 const LOG_SAMPLE = Math.max(
