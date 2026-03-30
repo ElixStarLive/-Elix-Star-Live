@@ -11,10 +11,32 @@ import {
   FEED_FORYOU_CACHE_TTL_MS,
 } from "../lib/feedCacheValkey";
 import { bumpCacheLayer } from "../lib/cacheLayerMetrics";
+import { getValkey } from "../lib/valkey";
 
 const RATE_LIMIT_WINDOW = 60_000;
 const RATE_LIMIT_MAX_VIEWS = 120;
 const FORYOU_CACHE_SEC = Math.max(5, Math.floor(FEED_FORYOU_CACHE_TTL_MS / 1000));
+const LOCK_TTL_MS = 15_000;
+const LOCK_WAIT_ATTEMPTS = 20;
+const LOCK_WAIT_INTERVAL_MS = 100;
+
+async function acquireBuildLock(key: string): Promise<boolean> {
+  const v = getValkey();
+  if (!v) return true;
+  try {
+    const result = await v.set(`lock:${key}`, "1", "PX", LOCK_TTL_MS, "NX");
+    return result === "OK";
+  } catch { return true; }
+}
+
+async function waitForCache(valkeyKey: string): Promise<string | null> {
+  for (let i = 0; i < LOCK_WAIT_ATTEMPTS; i++) {
+    await new Promise((r) => setTimeout(r, LOCK_WAIT_INTERVAL_MS));
+    const raw = await valkeyGet(valkeyKey);
+    if (raw) return raw;
+  }
+  return null;
+}
 
 function getIpHash(req: Request): string {
   const ip =
@@ -134,79 +156,79 @@ const FORYOU_SQL = `SELECT v.id, v.url, v.thumbnail, v.duration, v.description, 
          ORDER BY v.created_at DESC NULLS LAST
          LIMIT $1 OFFSET $2`;
 
-/** For You — Postgres + Valkey cache; no in-memory feed state. */
+function foryouResponse(videos: any[], page: number, limit: number, offset: number, source: string) {
+  return {
+    videos,
+    mutualUserIds: [],
+    page,
+    limit,
+    hasMore: videos.length >= limit,
+    total: offset + videos.length,
+    source,
+  };
+}
+
+function setCacheHeaders(res: Response) {
+  res.setHeader("Cache-Control", `public, s-maxage=${FORYOU_CACHE_SEC}, max-age=${Math.max(5, Math.floor(FORYOU_CACHE_SEC / 2))}`);
+}
+
+async function buildFeedFromDb(limit: number, offset: number): Promise<any[]> {
+  const db = getPool();
+  if (!db) return [];
+  const { rows } = await db.query(FORYOU_SQL, [limit, offset]);
+  return (rows || []).map((v: any) =>
+    formatVideoForClient(v, new Set(), new Set(), "For You"),
+  );
+}
+
+/** For You — Valkey-first with distributed lock to prevent cache stampede. */
 export async function handleForYouFeed(req: Request, res: Response) {
   try {
     const page = Math.max(1, parseInt(String(req.query.page || "1"), 10) || 1);
-    const limit = Math.min(
-      50,
-      Math.max(1, parseInt(String(req.query.limit || "20"), 10) || 20),
-    );
+    const limit = Math.min(50, Math.max(1, parseInt(String(req.query.limit || "20"), 10) || 20));
     const offset = (page - 1) * limit;
 
     const db = getPool();
-    if (!db) {
-      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
-    }
-
-    const followingSet = new Set<string>();
-    const likedSet = new Set<string>();
+    if (!db) return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
 
     const epoch = await getFeedForyouEpoch();
     const valkeyKey = feedForyouDataKey(epoch, page, limit);
 
     if (isValkeyConfigured()) {
-      const raw = await valkeyGet(valkeyKey);
-      if (raw) {
+      const cached = await valkeyGet(valkeyKey);
+      if (cached) {
         try {
-          const payload = JSON.parse(raw) as { videos: any[] };
-          res.setHeader(
-            "Cache-Control",
-            `public, s-maxage=${FORYOU_CACHE_SEC}, max-age=${Math.max(5, Math.floor(FORYOU_CACHE_SEC / 2))}`,
-          );
+          const payload = JSON.parse(cached) as { videos: any[] };
+          setCacheHeaders(res);
           bumpCacheLayer("feed_foryou_valkey_hits");
-          return res.json({
-            videos: payload.videos,
-            mutualUserIds: [],
-            page,
-            limit,
-            hasMore: payload.videos.length >= limit,
-            total: offset + payload.videos.length,
-            source: "valkey",
-          });
-        } catch {
-          /* miss */
-        }
+          return res.json(foryouResponse(payload.videos, page, limit, offset, "valkey"));
+        } catch { /* corrupted cache, rebuild */ }
       }
     }
 
-    const { rows } = await db.query(FORYOU_SQL, [limit, offset]);
-    const formatted = (rows || []).map((v: any) =>
-      formatVideoForClient(v, likedSet, followingSet, "For You"),
-    );
-    bumpCacheLayer("feed_foryou_builds");
+    const gotLock = await acquireBuildLock(valkeyKey);
 
-    if (isValkeyConfigured() && formatted.length > 0) {
-      await valkeySet(
-        valkeyKey,
-        JSON.stringify({ videos: formatted }),
-        FEED_FORYOU_CACHE_TTL_MS,
-      );
+    if (!gotLock && isValkeyConfigured()) {
+      const waited = await waitForCache(valkeyKey);
+      if (waited) {
+        try {
+          const payload = JSON.parse(waited) as { videos: any[] };
+          setCacheHeaders(res);
+          bumpCacheLayer("feed_foryou_valkey_hits");
+          return res.json(foryouResponse(payload.videos, page, limit, offset, "valkey"));
+        } catch { /* fall through to DB */ }
+      }
     }
 
-    res.setHeader(
-      "Cache-Control",
-      `public, s-maxage=${FORYOU_CACHE_SEC}, max-age=${Math.max(5, Math.floor(FORYOU_CACHE_SEC / 2))}`,
-    );
-    return res.json({
-      videos: formatted,
-      mutualUserIds: [],
-      page,
-      limit,
-      hasMore: formatted.length >= limit,
-      total: offset + formatted.length,
-      source: "postgres",
-    });
+    const videos = await buildFeedFromDb(limit, offset);
+    bumpCacheLayer("feed_foryou_builds");
+
+    if (isValkeyConfigured() && videos.length > 0) {
+      valkeySet(valkeyKey, JSON.stringify({ videos }), FEED_FORYOU_CACHE_TTL_MS).catch(() => {});
+    }
+
+    setCacheHeaders(res);
+    return res.json(foryouResponse(videos, page, limit, offset, "postgres"));
   } catch (err: any) {
     logger.error({ err: err?.message }, "ForYouFeed error");
     res.status(500).json({ error: "Failed to generate feed" });
