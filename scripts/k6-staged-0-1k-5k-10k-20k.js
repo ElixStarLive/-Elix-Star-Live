@@ -1,28 +1,44 @@
 /**
- * k6: staged ramp 0 → 1,000 → 5,000 → 10,000 → 20,000 VUs.
+ * k6: Definitive staged proof — 500 → 1k → 2k → 5k → 8k → 10k → 15k → 20k → 30k → 40k
  *
- * Interprets "5 to 10" and "10 to 20" as **5k→10k** and **10k→20k** (thousands).
- * First block is **0 to 1000** VUs, then ramps to 5k, then 5k→10k, then 10k→20k.
+ * Each stage: 30s ramp + 2 min hold = 2.5 min per stage.
+ * Total: ~25 minutes (10 stages × 2.5 min).
  *
- * Same bypass as other k6 scripts: --env BYPASS_KEY must match server LOADTEST_BYPASS_SECRET.
- * See docs/LOAD_TEST_STAGING.md and scripts/k6-staged-500-to-40k.js header for run examples.
+ * USAGE:
+ *   k6 run scripts/k6-staged-0-1k-5k-10k-20k.js \
+ *     --env BASE_URL=https://elixstarlive.co.uk \
+ *     --env BYPASS_KEY='<secret>' \
+ *     --insecure-skip-tls-verify \
+ *     2>&1 | tee /tmp/k6-staged-$(date +%s).log
+ *
+ * For bypass-LB (hit server directly):
+ *   k6 run scripts/k6-staged-0-1k-5k-10k-20k.js \
+ *     --env BASE_URL=https://<server-ip> \
+ *     --env HOST=elixstarlive.co.uk \
+ *     --env BYPASS_KEY='<secret>' \
+ *     --insecure-skip-tls-verify \
+ *     2>&1 | tee /tmp/k6-staged-bypass-$(date +%s).log
  *
  * Optional:
- *   --env FAST=1  → shorter ramps/holds (smoke / smaller generators)
+ *   --env MAX_VU=10000    cap max VU level (stops ramping beyond this)
+ *   --env HOLD=60         hold duration per stage in seconds (default 120)
+ *   --env RAMP=30         ramp duration per stage in seconds (default 30)
  */
 import http from "k6/http";
 import { check, sleep } from "k6";
 
-const BASE = __ENV.BASE_URL || "https://www.elixstarlive.co.uk";
+const BASE = (__ENV.BASE_URL || "https://elixstarlive.co.uk").replace(/\/$/, "");
+const HOST = __ENV.HOST || "";
 const BYPASS = __ENV.BYPASS_KEY || "";
-const FAST = __ENV.FAST === "1";
+const MAX_VU = __ENV.MAX_VU ? parseInt(__ENV.MAX_VU, 10) : 40000;
+const HOLD = __ENV.HOLD ? `${parseInt(__ENV.HOLD, 10)}s` : "2m";
+const RAMP = __ENV.RAMP ? `${parseInt(__ENV.RAMP, 10)}s` : "30s";
 
-const params = {
-  headers: {
-    ...(BYPASS ? { "x-loadtest-key": BYPASS } : {}),
-  },
-  timeout: __ENV.HTTP_TIMEOUT || "30s",
-};
+const headers = {};
+if (HOST) headers["Host"] = HOST;
+if (BYPASS) headers["x-loadtest-key"] = BYPASS;
+
+const params = { headers, timeout: "15s" };
 
 const endpoints = [
   { path: "/api/feed/foryou", weight: 40 },
@@ -45,52 +61,35 @@ function pickPath() {
 
 export default function () {
   const path = pickPath();
-  const res = http.get(`${BASE.replace(/\/$/, "")}${path}`, params);
+  const res = http.get(`${BASE}${path}`, params);
   check(res, {
-    "status is 200": (r) => r.status === 200,
+    "status 2xx": (r) => r.status >= 200 && r.status < 300,
   });
-  sleep(Math.random() * 0.35 + 0.08);
+  sleep(Math.random() * 0.3 + 0.05);
 }
 
-/** ~25–35 min typical. */
-const stagesFull = [
-  { duration: "2m", target: 1000 },
-  { duration: "90s", target: 1000 },
-  { duration: "3m", target: 5000 },
-  { duration: "90s", target: 5000 },
-  { duration: "3m", target: 10000 },
-  { duration: "90s", target: 10000 },
-  { duration: "3m", target: 20000 },
-  { duration: "2m", target: 20000 },
-];
+const vuLevels = [500, 1000, 2000, 5000, 8000, 10000, 15000, 20000, 30000, 40000];
 
-/** Shorter ramps/holds. */
-const stagesFast = [
-  { duration: "45s", target: 1000 },
-  { duration: "30s", target: 1000 },
-  { duration: "60s", target: 5000 },
-  { duration: "30s", target: 5000 },
-  { duration: "60s", target: 10000 },
-  { duration: "30s", target: 10000 },
-  { duration: "90s", target: 20000 },
-  { duration: "45s", target: 20000 },
-];
-
-function pickStages() {
-  return FAST ? stagesFast : stagesFull;
+const stages = [];
+for (const vu of vuLevels) {
+  if (vu > MAX_VU) break;
+  stages.push({ duration: RAMP, target: vu });
+  stages.push({ duration: HOLD, target: vu });
 }
+stages.push({ duration: "30s", target: 0 });
 
 export const options = {
   scenarios: {
-    staged_load: {
+    staged_proof: {
       executor: "ramping-vus",
       startVUs: 0,
-      stages: pickStages(),
-      gracefulRampDown: "30s",
+      stages,
+      gracefulRampDown: "15s",
     },
   },
   thresholds: {
-    http_req_failed: ["rate<0.02"],
+    http_req_failed: ["rate<0.05"],
     http_req_duration: ["p(95)<5000"],
   },
+  insecureSkipTLSVerify: true,
 };

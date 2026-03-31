@@ -76,12 +76,17 @@ export async function wsRateCheck(
       _warnedWsRateCheckNoValkey = true;
       logger.warn(
         { userId, event },
-        "wsRateCheck: Valkey not configured — denying WS event (fail-closed)",
+        "wsRateCheck: Valkey not configured — allowing WS event (no rate limit available)",
       );
     }
-    return false;
+    return true;
   }
-  return valkeyRateCheckFn(`wsrl:${userId}:${event}`, windowMs, maxPerWindow);
+  try {
+    return await valkeyRateCheckFn(`wsrl:${userId}:${event}`, windowMs, maxPerWindow);
+  } catch (err: any) {
+    logger.warn({ err: err?.message, userId, event }, "wsRateCheck: Valkey error — allowing event");
+    return true;
+  }
 }
 
 function verifyAndExtractUserId(token: string): string | null {
@@ -447,13 +452,21 @@ async function buildViewerList(
   return viewers;
 }
 
+const MAX_WS_CONNECTIONS = Number(process.env.MAX_WS_CONNECTIONS) || 10_000;
+
 export function attachWebSocket(server: HttpServer): WebSocketServer {
   const wss = new WebSocketServer({ server, maxPayload: 64 * 1024, perMessageDeflate: false });
   const aliveClients = new WeakSet<WebSocket>();
 
-  logger.info("WebSocket server attached to HTTP server");
+  logger.info({ maxConnections: MAX_WS_CONNECTIONS }, "WebSocket server attached to HTTP server");
 
   wss.on("connection", async (ws: WebSocket, req) => {
+    if (wss.clients.size > MAX_WS_CONNECTIONS) {
+      logger.warn({ current: wss.clients.size, max: MAX_WS_CONNECTIONS }, "WebSocket connection limit reached");
+      ws.close(1013, "Server at capacity");
+      return;
+    }
+
     let client: Client | null = null;
 
     try {

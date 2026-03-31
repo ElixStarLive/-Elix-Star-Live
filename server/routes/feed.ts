@@ -31,7 +31,11 @@ function getIpHash(req: Request): string {
 
 async function allowViewRateLimit(rateKey: string): Promise<boolean> {
   if (!isValkeyConfigured()) return true;
-  return valkeyRateCheck(`elix:ratelimit:feed_view:${rateKey}`, RATE_LIMIT_WINDOW, RATE_LIMIT_MAX_VIEWS);
+  try {
+    return await valkeyRateCheck(`elix:ratelimit:feed_view:${rateKey}`, RATE_LIMIT_WINDOW, RATE_LIMIT_MAX_VIEWS);
+  } catch {
+    return true;
+  }
 }
 
 async function getUserId(req: Request): Promise<string | null> {

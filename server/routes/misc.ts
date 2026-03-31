@@ -25,8 +25,12 @@ async function checkRateLimit(userId: string, action: string, limit: number, win
   const key = `${userId}:${action}`;
 
   if (isValkeyConfigured()) {
-    const allowed = await valkeyRateCheck(`rl:${key}`, windowMs, limit);
-    return { allowed, retryAfter: Math.ceil(windowMs / 1000) };
+    try {
+      const allowed = await valkeyRateCheck(`rl:${key}`, windowMs, limit);
+      return { allowed, retryAfter: Math.ceil(windowMs / 1000) };
+    } catch {
+      // Valkey unavailable — fall through to local
+    }
   }
 
   const now = Date.now();

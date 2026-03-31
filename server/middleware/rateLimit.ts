@@ -79,7 +79,7 @@ export function rateLimit(opts: {
           next();
         })
         .catch((err) => {
-          logger.warn({ err: err?.message, key }, "Valkey rate-limit check failed, falling back to local");
+          logger.warn({ err: err?.message, key }, "Valkey rate-limit unavailable, falling back to local");
           if (!localRateCheck(key, windowMs, max)) {
             res.status(429).json({ error: "Too many requests. Please try again later." });
             return;

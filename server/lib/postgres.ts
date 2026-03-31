@@ -290,8 +290,8 @@ export async function deleteVideoFromDb(videoId: string): Promise<void> {
   } catch (err) {
     try {
       await client.query("ROLLBACK");
-    } catch {
-      /* ignore */
+    } catch (rbErr: unknown) {
+      logger.warn({ err: rbErr instanceof Error ? rbErr.message : rbErr, videoId }, "Rollback failed during deleteVideoFromDb");
     }
     logger.error({ err, videoId }, "Postgres delete video failed");
     throw err;
@@ -565,8 +565,8 @@ export async function dbAddBattleScoreAndFetchAll(
     } catch (err) {
       try {
         await client.query("ROLLBACK");
-      } catch {
-        /* ignore */
+      } catch (rbErr: unknown) {
+        logger.warn({ err: rbErr instanceof Error ? rbErr.message : rbErr, hostRoomId }, "Rollback failed in battle bucket increment");
       }
       logger.error({ err, hostRoomId, target }, "battle bucket increment failed");
       return null;
@@ -620,8 +620,8 @@ export async function dbAddBattleScoreTeamSideAndFetchAll(
     } catch (err) {
       try {
         await client.query("ROLLBACK");
-      } catch {
-        /* ignore */
+      } catch (rbErr: unknown) {
+        logger.warn({ err: rbErr instanceof Error ? rbErr.message : rbErr, hostRoomId }, "Rollback failed in battle team side increment");
       }
       logger.error({ err, hostRoomId, side }, "battle team side increment failed");
       return null;
@@ -1019,8 +1019,8 @@ export async function dbAppendChatMessage(
   } catch (err) {
     try {
       await client.query("ROLLBACK");
-    } catch {
-      /* noop */
+    } catch (rbErr: unknown) {
+      logger.warn({ err: rbErr instanceof Error ? rbErr.message : rbErr, threadId }, "Rollback failed in dbAppendChatMessage");
     }
     logger.error({ err }, "dbAppendChatMessage failed");
     return null;

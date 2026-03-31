@@ -133,36 +133,26 @@ export async function valkeyRateCheck(
 ): Promise<boolean> {
   const v = getValkey();
   if (!v) {
-    logger.warn("valkeyRateCheck: Valkey not available — denying request (fail-closed)");
-    return false;
+    throw new Error("Valkey not available for rate check");
   }
 
-  try {
-    const now = Date.now();
-    const windowStart = now - windowMs;
-    const member = `${now}:${Math.random().toString(36).slice(2, 6)}`;
+  const now = Date.now();
+  const windowStart = now - windowMs;
+  const member = `${now}:${Math.random().toString(36).slice(2, 6)}`;
 
-    const pipeline = v.pipeline();
-    pipeline.zremrangebyscore(key, 0, windowStart);
-    pipeline.zadd(key, now, member);
-    pipeline.zcard(key);
-    pipeline.pexpire(key, windowMs + 1000);
+  const pipeline = v.pipeline();
+  pipeline.zremrangebyscore(key, 0, windowStart);
+  pipeline.zadd(key, now, member);
+  pipeline.zcard(key);
+  pipeline.pexpire(key, windowMs + 1000);
 
-    const results = await pipeline.exec();
-    if (!results) {
-      logger.warn("valkeyRateCheck: pipeline returned null — denying request (fail-closed)");
-      return false;
-    }
-
-    const count = (results[2]?.[1] as number) ?? 0;
-    return count <= max;
-  } catch (err: any) {
-    logger.warn(
-      { err: err?.message },
-      "valkeyRateCheck failed — denying request (fail-closed)",
-    );
-    return false;
+  const results = await pipeline.exec();
+  if (!results) {
+    throw new Error("Valkey rate-check pipeline returned null");
   }
+
+  const count = (results[2]?.[1] as number) ?? 0;
+  return count <= max;
 }
 
 // ── Pub/Sub helpers ──────────────────────────────────────────────
@@ -465,7 +455,10 @@ export async function acquireCacheBuildLock(cacheKey: string, ttlMs = STAMPEDE_L
   try {
     const result = await v.set(`lock:${cacheKey}`, "1", "PX", ttlMs, "NX");
     return result === "OK";
-  } catch { return true; }
+  } catch (err: any) {
+    logger.warn({ err: err?.message, cacheKey }, "acquireCacheBuildLock failed — allowing build (Valkey unavailable)");
+    return true;
+  }
 }
 
 /**
@@ -482,7 +475,9 @@ export async function waitForCachePopulate(
     try {
       const raw = await valkeyGet(cacheKey);
       if (raw) return raw;
-    } catch { /* retry */ }
+    } catch (err: any) {
+      logger.warn({ err: err?.message, cacheKey, attempt: i + 1 }, "waitForCachePopulate poll error");
+    }
   }
   return null;
 }

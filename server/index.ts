@@ -88,6 +88,20 @@ const ALLOWED_ORIGINS: string[] = (() => {
 // Behind Traefik/Coolify reverse proxy
 if (process.env.NODE_ENV === "production") app.set("trust proxy", 1);
 
+// ── Backpressure: reject new requests when event loop is saturated ──
+const BACKPRESSURE_LAG_MS = Number(process.env.BACKPRESSURE_LAG_MS) || 500;
+let _evLoopLag = 0;
+let _evLoopLagTimer: ReturnType<typeof setInterval> | null = null;
+if (process.env.NODE_ENV === "production") {
+  let lastCheck = Date.now();
+  _evLoopLagTimer = setInterval(() => {
+    const now = Date.now();
+    _evLoopLag = now - lastCheck - 200;
+    lastCheck = now;
+  }, 200);
+  _evLoopLagTimer.unref();
+}
+
 // ── Global middleware ────────────────────────────────────────────
 app.use(helmet({
   contentSecurityPolicy: false,
@@ -189,7 +203,7 @@ app.use(
       "image/png",
       "image/webp",
     ],
-    limit: "600mb",
+    limit: "100mb",
   }),
 );
 
@@ -203,15 +217,35 @@ const HEALTH_CACHE_TTL_MS = Math.min(
   Math.max(3_000, Number(process.env.HEALTH_CACHE_TTL_MS) || 12_000),
 );
 const HEALTH_CACHE_SEC = Math.max(3, Math.floor(HEALTH_CACHE_TTL_MS / 1000));
+const HEALTH_VALKEY_KEY = "elix:health:cache";
 
 async function healthCheck(_req: express.Request, res: express.Response) {
   const now = Date.now();
+
   if (healthCache && now - healthCache.ts < HEALTH_CACHE_TTL_MS) {
     res.setHeader(
       "Cache-Control",
       `public, s-maxage=${HEALTH_CACHE_SEC}, max-age=${Math.max(2, Math.floor(HEALTH_CACHE_SEC * 0.65))}`,
     );
     return res.status(healthCache.code).json(healthCache.data);
+  }
+
+  if (isValkeyConfigured()) {
+    try {
+      const { valkeyGet: vkGet } = await import("./lib/valkey");
+      const raw = await vkGet(HEALTH_VALKEY_KEY);
+      if (raw) {
+        const shared = JSON.parse(raw) as { data: any; code: number; ts: number };
+        if (now - shared.ts < HEALTH_CACHE_TTL_MS) {
+          healthCache = shared;
+          res.setHeader(
+            "Cache-Control",
+            `public, s-maxage=${HEALTH_CACHE_SEC}, max-age=${Math.max(2, Math.floor(HEALTH_CACHE_SEC * 0.65))}`,
+          );
+          return res.status(shared.code).json(shared.data);
+        }
+      }
+    } catch { /* fall through to build */ }
   }
 
   const healthLight = process.env.HEALTH_LIGHT === "1";
@@ -250,6 +284,7 @@ async function healthCheck(_req: express.Request, res: express.Response) {
     videoCount: videoCount ?? undefined,
     healthLight,
     healthSkipValkeyPing: skipValkeyPing || undefined,
+    evLoopLagMs: _evLoopLag,
     services: {
       database: dbOk,
       valkey: isValkeyConfigured() ? valkeyOk : "not_configured",
@@ -258,6 +293,13 @@ async function healthCheck(_req: express.Request, res: express.Response) {
     },
   };
   healthCache = { data, code, ts: now };
+
+  if (isValkeyConfigured()) {
+    import("./lib/valkey").then(({ valkeySet: vkSet }) => {
+      vkSet(HEALTH_VALKEY_KEY, JSON.stringify({ data, code, ts: now }), HEALTH_CACHE_TTL_MS).catch(() => {});
+    }).catch(() => {});
+  }
+
   res.setHeader("Cache-Control", "public, s-maxage=12, max-age=8");
   res.status(code).json(data);
 }
@@ -284,6 +326,15 @@ app.get("/api/metrics", async (req, res) => {
     dependencies: deps,
     metrics_mode: "full",
   });
+});
+
+// ── Backpressure on API routes ───────────────────────────────────
+app.use("/api", (req, res, next) => {
+  if (_evLoopLag > BACKPRESSURE_LAG_MS) {
+    res.status(503).json({ error: "Server busy, retry shortly" });
+    return;
+  }
+  next();
 });
 
 // ── Rate limiter on API routes ───────────────────────────────────
@@ -470,11 +521,15 @@ function gracefulShutdown(signal: string) {
   server.close(async () => {
     try {
       const pool = getPool();
-      if (pool) await pool.end().catch(() => {});
-    } catch {
-      /* ignore */
+      if (pool) await pool.end().catch((err: unknown) => {
+        logger.warn({ err: err instanceof Error ? err.message : err }, "DB pool.end() failed during shutdown");
+      });
+    } catch (err: unknown) {
+      logger.warn({ err: err instanceof Error ? err.message : err }, "Error closing DB pool during shutdown");
     }
-    await closeValkeyConnections().catch(() => {});
+    await closeValkeyConnections().catch((err: unknown) => {
+      logger.warn({ err: err instanceof Error ? err.message : err }, "Valkey close failed during shutdown");
+    });
     logger.info("Server closed");
     process.exit(0);
   });
