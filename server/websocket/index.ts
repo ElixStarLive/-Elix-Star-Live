@@ -603,8 +603,10 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
           status: activeBattleOnJoin.status,
           hostUserId: activeBattleOnJoin.hostUserId,
           hostName: activeBattleOnJoin.hostName,
+          hostRoomId: activeBattleOnJoin.hostRoomId,
           opponentUserId: activeBattleOnJoin.opponentUserId,
           opponentName: activeBattleOnJoin.opponentName,
+          opponentRoomId: activeBattleOnJoin.opponentRoomId,
           player3UserId: activeBattleOnJoin.player3UserId,
           player3Name: activeBattleOnJoin.player3Name,
           player4UserId: activeBattleOnJoin.player4UserId,
@@ -696,7 +698,12 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
           updateViewerCount(client.roomId).catch((err) => {
             logger.warn({ err, roomId: client.roomId }, "updateViewerCount failed on client disconnect");
           });
-          checkAndBroadcastStreamEnd(client.roomId, client.userId);
+          // #region agent log
+          checkAndBroadcastStreamEnd(client.roomId, client.userId).catch((err) => {
+            fetch('http://127.0.0.1:7684/ingest/8c32b730-3e4a-4f4c-9502-6b305be695c7',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'6f8791'},body:JSON.stringify({sessionId:'6f8791',location:'ws/index.ts:close','message':'UNHANDLED_STREAM_END_REJECTION',data:{error:err instanceof Error?err.message:String(err),roomId:client.roomId,userId:client.userId,hypothesisId:'C'},timestamp:Date.now()})}).catch(()=>{});
+            logger.error({ err, roomId: client.roomId, userId: client.userId }, "checkAndBroadcastStreamEnd unhandled rejection");
+          });
+          // #endregion
 
           if (room.size === 0) {
             rooms.delete(client.roomId);

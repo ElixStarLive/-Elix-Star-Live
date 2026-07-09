@@ -10,6 +10,7 @@ import {
   broadcastBattleState,
   getBattleFromStore,
   getBattleScores,
+  saveBattleToStore,
 } from "./battle";
 import { getGiftValue, normalizeBattleTarget } from "./giftRegistry";
 import {
@@ -22,8 +23,10 @@ import {
   setCohostLayout,
   deleteCohostLayout,
 } from "./index";
-import { valkeyDel } from "../lib/valkey";
+import { valkeyDel, valkeySet } from "../lib/valkey";
 import { randomUUID } from "crypto";
+
+const BATTLE_USER_ROOM_TTL_MS = 600_000;
 
 export async function handleMessage(
   client: Client,
@@ -133,7 +136,13 @@ export async function handleMessage(
         if (opponentUserId && opponentName) {
           session.opponentUserId = opponentUserId;
           session.opponentName = opponentName;
-          session.opponentRoomId = opponentRoomId;
+          session.opponentRoomId = opponentRoomId || opponentUserId;
+          await valkeySet(
+            "ubr:" + opponentUserId,
+            client.roomId,
+            BATTLE_USER_ROOM_TTL_MS,
+          );
+          await saveBattleToStore(client.roomId, session);
           await startBattleTimer(client.roomId);
         } else {
           sendToClient(client, "battle_created", {
@@ -255,26 +264,32 @@ export async function handleMessage(
         const hostUserId =
           typeof data.hostUserId === "string" ? data.hostUserId : "";
         if (!hostUserId) break;
+        const accepterStreamKey =
+          typeof data.streamKey === "string" && data.streamKey.trim()
+            ? data.streamKey.trim()
+            : client.roomId;
         sendToUserGlobal(hostUserId, "battle_invite_accepted", {
           requesterUserId: client.userId,
           requesterName: data.requesterName || client.displayName,
           requesterAvatar: data.requesterAvatar || client.avatarUrl || "",
-          streamKey: client.roomId,
+          streamKey: accepterStreamKey,
         });
         break;
       }
 
       case "stream_end": {
-        await deleteCohostLayout(client.roomId);
-        await removeActiveStream(client.roomId, client.userId);
-        broadcastToRoom(client.roomId, "stream_ended", {
-          stream_key: client.roomId,
-          host_user_id: client.userId,
-          reason: "host_ended",
-        });
-        broadcastToFeedSubscribers("stream_ended", {
-          stream_key: client.roomId,
-        });
+        const removed = await removeActiveStream(client.roomId, client.userId);
+        if (removed) {
+          await deleteCohostLayout(client.roomId);
+          broadcastToRoom(client.roomId, "stream_ended", {
+            stream_key: client.roomId,
+            host_user_id: client.userId,
+            reason: "host_ended",
+          });
+          broadcastToFeedSubscribers("stream_ended", {
+            stream_key: client.roomId,
+          });
+        }
         break;
       }
 
@@ -383,13 +398,9 @@ export async function handleMessage(
       }
 
       case "cohost_layout_sync": {
-        const roomId =
-          typeof data.roomId === "string" ? data.roomId : client.roomId;
+        const roomId = client.roomId;
         const rawCoHosts = Array.isArray(data.coHosts) ? data.coHosts : [];
-        const hostUserId =
-          typeof data.hostUserId === "string"
-            ? data.hostUserId
-            : client.userId;
+        const hostUserId = client.userId;
         const seen = new Set<string>();
         const coHosts = rawCoHosts.filter((h: any) => {
           const uid = typeof h.userId === "string" ? h.userId : "";

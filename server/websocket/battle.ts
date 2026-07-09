@@ -97,7 +97,7 @@ export async function getBattleFromStore(
   return null;
 }
 
-async function saveBattleToStore(
+export async function saveBattleToStore(
   roomId: string,
   session: BattleSession,
 ): Promise<void> {

@@ -748,7 +748,7 @@ export default function LiveStream() {
         hostUserId: invite.hostUserId,
         requesterName: myUsername,
         requesterAvatar: viewerAvatar,
-        streamKey: effectiveStreamId,
+        streamKey: user?.id || effectiveStreamId,
       });
     } catch { /* fire-and-forget */ }
 
@@ -905,8 +905,10 @@ export default function LiveStream() {
       cohostAvatar: user?.avatar || '',
       streamKey: inv.streamKey,
     });
-    showToast(`Joining @${inv.hostName}'s live as spectator`);
-    if (inv.streamKey) navigate(`/watch/${inv.streamKey}`);
+    showToast(`Joining @${inv.hostName}'s live as co-host`);
+    if (inv.streamKey) {
+      navigate(`/watch/${inv.streamKey}?cohost=1`, { state: { fromCohostInvite: true } });
+    }
   };
 
   const declineCohostInvite = () => {
@@ -1292,6 +1294,58 @@ export default function LiveStream() {
       setHasOpponentStream(false);
     };
   }, [isBattleMode, opponentStreamKey, isBroadcast, effectiveStreamId, attachRemoteAudio]);
+
+  // Re-attach remote LiveKit tracks when battle/co-host video elements mount after subscribe
+  useEffect(() => {
+    const room = liveKitRoomRef.current;
+    if (!room || !isBroadcast) return;
+
+    const battleVideoByUserId: Record<string, React.RefObject<HTMLVideoElement | null>> = {
+      [battleSlots[0]?.userId || '']: opponentVideoRef,
+      [battleSlots[1]?.userId || '']: player3VideoRef,
+      [battleSlots[2]?.userId || '']: player4VideoRef,
+    };
+
+    for (const [, participant] of room.remoteParticipants) {
+      const identity = participant.identity;
+      if (!identity || identity === user?.id) continue;
+
+      for (const [, pub] of participant.videoTrackPublications) {
+        if (!pub.track || !pub.isSubscribed) continue;
+        const coHostEl = coHostVideoRefs.current.get(identity);
+        if (coHostEl) {
+          pub.track.attach(coHostEl);
+          continue;
+        }
+        const battleEl = battleVideoByUserId[identity]?.current;
+        if (battleEl) {
+          pub.track.attach(battleEl);
+          if (identity === battleSlots[0]?.userId) setHasOpponentStream(true);
+        }
+      }
+      for (const [, pub] of participant.audioTrackPublications) {
+        if (pub.track && pub.isSubscribed) {
+          attachRemoteAudio(pub.track, roomRemoteAudioRef.current);
+        }
+      }
+    }
+  }, [isBroadcast, isBattleMode, coHosts, battleSlots, attachRemoteAudio, user?.id]);
+
+  // Re-attach opponent room video when battle pane mounts
+  useEffect(() => {
+    const room = opponentLkRoomRef.current;
+    const el = opponentVideoRef.current;
+    if (!room || !el || !isBattleMode) return;
+
+    for (const [, participant] of room.remoteParticipants) {
+      for (const [, pub] of participant.videoTrackPublications) {
+        if (pub.track && pub.isSubscribed) {
+          pub.track.attach(el);
+          setHasOpponentStream(true);
+        }
+      }
+    }
+  }, [isBattleMode, opponentStreamKey, battleSlots]);
 
   // Speed Challenge State
   // SPEED CHALLENGE
@@ -2472,6 +2526,11 @@ export default function LiveStream() {
       setBattleTime(data.timeLeft ?? 300);
       if (data.hostReady != null) setHostIsReady(!!data.hostReady);
       if (data.opponentReady != null) setOpponentIsReady(!!data.opponentReady);
+      if (typeof data.opponentRoomId === 'string' && data.opponentRoomId.trim()) {
+        setOpponentStreamKey(data.opponentRoomId.trim());
+      } else if (typeof data.opponentUserId === 'string' && data.opponentUserId.trim()) {
+        setOpponentStreamKey(data.opponentUserId.trim());
+      }
       
       setBattleSlots(prev => {
         const next = [...prev];
@@ -2649,8 +2708,11 @@ export default function LiveStream() {
     const handleCohostRequestAccepted = (data: any) => {
       if (!user?.id) return;
       const hostName = data.hostName || 'Creator';
+      const streamKey = data.streamKey || effectiveStreamId;
       showToast(`@${hostName} accepted your co-host request!`);
-      /* Host already added this co-host in acceptJoinRequest; do not duplicate. This event is for spectator UX (toast/navigate). */
+      if (streamKey) {
+        navigate(`/watch/${streamKey}?cohost=1`, { state: { fromCohostInvite: true } });
+      }
     };
 
     const handleCohostInvite = (data: any) => {
