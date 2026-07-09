@@ -33,6 +33,13 @@ import {
 } from 'lucide-react';
 import { GiftPanel } from '../components/GiftPanel';
 import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, fetchGiftsFromDatabase } from '../lib/giftsCatalog';
+import {
+  debitTestCoinsForGift,
+  getPersistedTestCoinsBalance,
+  persistTestCoinsBalance,
+  resolveGiftUiBalance,
+  shouldUseTestCoinsForGifts,
+} from '../lib/testCoins';
 import { GiftOverlay } from '../components/GiftOverlay';
 import GiftAnimationOverlay from '../components/GiftAnimationOverlay';
 import { ChatOverlay } from '../components/ChatOverlay';
@@ -147,17 +154,6 @@ export default function SpectatorPage() {
   const [messages, setMessages] = useState<LiveMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [coinBalance, setCoinBalance] = useState(0);
-  const getPersistedTestCoinsBalance = (userId: string | undefined) => {
-    if (!userId || typeof localStorage === 'undefined') return 0;
-    try {
-      const v = localStorage.getItem(`elix_test_coins_balance_${userId}`);
-      return v ? Math.max(0, parseInt(v, 10)) : 0;
-    } catch { return 0; }
-  };
-  const persistTestCoinsBalance = (userId: string | undefined, balance: number) => {
-    if (!userId || typeof localStorage === 'undefined') return;
-    try { localStorage.setItem(`elix_test_coins_balance_${userId}`, String(Math.max(0, balance))); } catch {}
-  };
 
   const [showGiftPanel, setShowGiftPanel] = useState(false);
   const [showSharePanel, setShowSharePanel] = useState(false);
@@ -912,15 +908,11 @@ export default function SpectatorPage() {
     setUserXP(0);
 
     request('/api/wallet/').then(({ data, error: walletErr }) => {
-      if (!walletErr && data?.balance != null) {
-        setCoinBalance(Math.max(0, Number(data.balance)));
-      } else {
-        const persisted = getPersistedTestCoinsBalance(user.id);
-        setCoinBalance(Math.max(0, persisted));
-      }
+      const walletBal =
+        !walletErr && data?.balance != null ? Math.max(0, Number(data.balance)) : 0;
+      setCoinBalance(resolveGiftUiBalance(walletBal, user.id));
     }).catch(() => {
-      const persisted = getPersistedTestCoinsBalance(user.id);
-      setCoinBalance(Math.max(0, persisted));
+      setCoinBalance(getPersistedTestCoinsBalance(user.id));
     });
   }, [user?.id, user?.level]);
 
@@ -938,13 +930,17 @@ export default function SpectatorPage() {
   }, [showTestCoinsModal]);
 
   useEffect(() => {
-    if (showGiftPanel && user?.id) {
-      request('/api/wallet/').then(({ data, error: walletErr }) => {
-        if (!walletErr && data?.balance != null) {
-          setCoinBalance(Math.max(0, Number(data.balance)));
-        }
-      }).catch(() => {});
+    if (!showGiftPanel || !user?.id) return;
+    const testBal = getPersistedTestCoinsBalance(user.id);
+    if (testBal > 0) {
+      setCoinBalance(testBal);
+      return;
     }
+    request('/api/wallet/').then(({ data, error: walletErr }) => {
+      if (!walletErr && data?.balance != null) {
+        setCoinBalance(Math.max(0, Number(data.balance)));
+      }
+    }).catch(() => {});
   }, [showGiftPanel, user?.id]);
 
   const handleSubscribe = async () => {
@@ -1534,26 +1530,6 @@ export default function SpectatorPage() {
     };
     if (coinBalance < gift.coins) {
       showToast(`Not enough coins (have ${coinBalance.toLocaleString()}, need ${gift.coins.toLocaleString()})`);
-      // In local/dev builds, still preview the gift animation so video gifts can play even without balance.
-      let queuedPreview = false;
-      if (
-        import.meta.env.MODE !== 'production' &&
-        gift.video &&
-        gift.video.trim() &&
-        isGiftVideoFile(gift.video)
-      ) {
-        const raw = gift.video;
-        const videoUrl =
-          raw.startsWith('http://') || raw.startsWith('https://')
-            ? raw
-            : resolveGiftAssetUrl(raw.startsWith('/') ? raw : `/${raw}`);
-        setGiftQueue(prev => [...prev, { video: videoUrl }]);
-        queuedPreview = true;
-      }
-      // Ensure the preview is visible instead of hidden behind the gift panel.
-      if (queuedPreview) {
-        setShowGiftPanel(false);
-      }
       return;
     }
     if (!websocket.isConnected()) {
@@ -1563,7 +1539,14 @@ export default function SpectatorPage() {
 
     let newLevel = userLevel;
 
-    if (user?.id) {
+    if (user?.id && shouldUseTestCoinsForGifts(user.id)) {
+      const debit = debitTestCoinsForGift(user.id, gift.coins);
+      if (!debit.ok) {
+        showToast(`Not enough coins (have ${debit.balance.toLocaleString()}, need ${gift.coins.toLocaleString()})`);
+        return;
+      }
+      setCoinBalance(debit.newBalance);
+    } else if (user?.id) {
       try {
         const { data: result, error: giftErr } = await request('/api/gifts/send', {
           method: 'POST',
@@ -1582,14 +1565,11 @@ export default function SpectatorPage() {
           }
           showToast(msg || 'Gift failed');
           return;
+        }
+        if (result.new_balance != null) {
+          setCoinBalance(Math.max(0, Number(result.new_balance)));
         } else {
-          if (result.new_balance != null) {
-            const nb = Number(result.new_balance);
-            setCoinBalance(nb);
-            persistTestCoinsBalance(user?.id, nb);
-          } else {
-            setCoinBalance(prev => Math.max(0, prev - gift.coins));
-          }
+          setCoinBalance(prev => Math.max(0, prev - gift.coins));
         }
       } catch {
         showToast('Gift failed — please try again');

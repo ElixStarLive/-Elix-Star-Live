@@ -37,6 +37,13 @@ import {
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, fetchGiftsFromDatabase } from '../lib/giftsCatalog';
+import {
+  debitTestCoinsForGift,
+  getPersistedTestCoinsBalance,
+  persistTestCoinsBalance,
+  resolveGiftUiBalance,
+  shouldUseTestCoinsForGifts,
+} from '../lib/testCoins';
 import { GiftOverlay } from '../components/GiftOverlay';
 import GiftAnimationOverlay from '../components/GiftAnimationOverlay';
 import { ChatOverlay } from '../components/ChatOverlay';
@@ -195,17 +202,6 @@ export default function LiveStream() {
   const [testCoinsAmount, setTestCoinsAmount] = useState('');
   const testCoinsPwdRef = useRef<HTMLInputElement>(null);
   const TEST_COINS_HASH = '169a9bfc269089e14090ad2e393b17e945d798598c33993bcab5feef93e68508';
-  const getPersistedTestCoinsBalance = (userId: string | undefined) => {
-    if (!userId || typeof localStorage === 'undefined') return 0;
-    try {
-      const v = localStorage.getItem(`elix_test_coins_balance_${userId}`);
-      return v ? Math.max(0, parseInt(v, 10)) : 0;
-    } catch { return 0; }
-  };
-  const persistTestCoinsBalance = (userId: string | undefined, balance: number) => {
-    if (!userId || typeof localStorage === 'undefined') return;
-    try { localStorage.setItem(`elix_test_coins_balance_${userId}`, String(Math.max(0, balance))); } catch {}
-  };
   const [showViewerList, setShowViewerList] = useState(false);
   const [moderators, setModerators] = useState<Set<string>>(new Set());
   const attachRemoteAudio = useCallback((track: import('livekit-client').Track, el: HTMLAudioElement | null) => {
@@ -381,15 +377,11 @@ export default function LiveStream() {
     setUserXP(0);
 
     request('/api/wallet/').then(({ data, error: walletErr }) => {
-      if (!walletErr && data?.balance != null) {
-        setCoinBalance(Math.max(0, Number(data.balance)));
-      } else {
-        const persisted = getPersistedTestCoinsBalance(user.id);
-        setCoinBalance(Math.max(0, persisted));
-      }
+      const walletBal =
+        !walletErr && data?.balance != null ? Math.max(0, Number(data.balance)) : 0;
+      setCoinBalance(resolveGiftUiBalance(walletBal, user.id));
     }).catch(() => {
-      const persisted = getPersistedTestCoinsBalance(user.id);
-      setCoinBalance(Math.max(0, persisted));
+      setCoinBalance(getPersistedTestCoinsBalance(user.id));
     });
   }, [user?.id, user?.level]);
 
@@ -2914,27 +2906,22 @@ export default function LiveStream() {
   const handleSendGift = async (gift: GiftUiItem) => {
     if (!gift) return;
 
+    if (coinBalance < gift.coins) {
+      showToast(`Not enough coins (have ${coinBalance.toLocaleString()}, need ${gift.coins.toLocaleString()})`);
+      return;
+    }
+
     try {
-      // Local/dev: always allow sending gifts, even if coinBalance is low,
-      // so video gifts are never blocked from playing.
-      if (gift.video && gift.video.trim()) {
-        const raw = gift.video;
-        const ext = raw.split('?')[0].toLowerCase();
-        const isVid = ext.endsWith('.mp4') || ext.endsWith('.webm');
-        if (isVid) {
-          const videoUrl = (raw.startsWith('http://') || raw.startsWith('https://'))
-            ? raw
-            : resolveGiftAssetUrl(raw.startsWith('/') ? raw : `/${raw}`);
-          if (videoUrl) {
-            setGiftQueue(prev => [...prev, { video: videoUrl }]);
-            setShowGiftPanel(false);
-          }
-        }
-      }
-      
       let newLevel = userLevel;
-      
-      if (user?.id) {
+
+      if (user?.id && shouldUseTestCoinsForGifts(user.id)) {
+        const debit = debitTestCoinsForGift(user.id, gift.coins);
+        if (!debit.ok) {
+          showToast(`Not enough coins (have ${debit.balance.toLocaleString()}, need ${gift.coins.toLocaleString()})`);
+          return;
+        }
+        setCoinBalance(debit.newBalance);
+      } else if (user?.id) {
         try {
           const { data: result, error: giftErr } = await request('/api/gifts/send', {
             method: 'POST',
@@ -2953,21 +2940,18 @@ export default function LiveStream() {
             }
             showToast('Gift failed');
             return;
-          } else {
-            if (result.new_balance != null) {
-              const nb = Number(result.new_balance);
-              setCoinBalance(nb);
-              persistTestCoinsBalance(user?.id, nb);
-            }
-            if (result.new_level != null) {
-              const updatedLevel = Number(result.new_level);
-              setUserLevel(updatedLevel);
-              updateUser({ level: updatedLevel });
-              newLevel = updatedLevel;
-            }
-            if (result.new_xp != null) {
-              setUserXP(Number(result.new_xp));
-            }
+          }
+          if (result.new_balance != null) {
+            setCoinBalance(Math.max(0, Number(result.new_balance)));
+          }
+          if (result.new_level != null) {
+            const updatedLevel = Number(result.new_level);
+            setUserLevel(updatedLevel);
+            updateUser({ level: updatedLevel });
+            newLevel = updatedLevel;
+          }
+          if (result.new_xp != null) {
+            setUserXP(Number(result.new_xp));
           }
         } catch {
           showToast('Gift failed');
@@ -2986,7 +2970,22 @@ export default function LiveStream() {
         updateUser({ level: currentLevel });
         newLevel = currentLevel;
       } else {
-        setCoinBalance(prev => { const n = Math.max(0, prev - gift.coins); persistTestCoinsBalance(user?.id, n); return n; });
+        setCoinBalance(prev => Math.max(0, prev - gift.coins));
+      }
+
+      if (gift.video && gift.video.trim()) {
+        const raw = gift.video;
+        const ext = raw.split('?')[0].toLowerCase();
+        const isVid = ext.endsWith('.mp4') || ext.endsWith('.webm');
+        if (isVid) {
+          const videoUrl = (raw.startsWith('http://') || raw.startsWith('https://'))
+            ? raw
+            : resolveGiftAssetUrl(raw.startsWith('/') ? raw : `/${raw}`);
+          if (videoUrl) {
+            setGiftQueue(prev => [...prev, { video: videoUrl }]);
+            setShowGiftPanel(false);
+          }
+        }
       }
 
       // Track session contribution for membership
@@ -3099,7 +3098,14 @@ export default function LiveStream() {
       }
 
       let newLevel = userLevel;
-      if (user?.id) {
+      if (user?.id && shouldUseTestCoinsForGifts(user.id)) {
+        const debit = debitTestCoinsForGift(user.id, lastSentGift.coins);
+        if (!debit.ok) {
+          showToast("Not enough coins!");
+          return;
+        }
+        setCoinBalance(debit.newBalance);
+      } else if (user?.id) {
         try {
           const { data: result, error: giftErr } = await request('/api/gifts/send', {
             method: 'POST',
@@ -3114,25 +3120,22 @@ export default function LiveStream() {
             }
             showToast('Gift failed');
             return;
-          } else {
-            if (result.new_balance != null) {
-              const nb = Number(result.new_balance);
-              setCoinBalance(nb);
-              persistTestCoinsBalance(user?.id, nb);
-            }
-            if (result.new_level != null) {
-              newLevel = Number(result.new_level);
-              setUserLevel(newLevel);
-              updateUser({ level: newLevel });
-            }
-            if (result.new_xp != null) setUserXP(Number(result.new_xp));
           }
+          if (result.new_balance != null) {
+            setCoinBalance(Math.max(0, Number(result.new_balance)));
+          }
+          if (result.new_level != null) {
+            newLevel = Number(result.new_level);
+            setUserLevel(newLevel);
+            updateUser({ level: newLevel });
+          }
+          if (result.new_xp != null) setUserXP(Number(result.new_xp));
         } catch {
           showToast('Gift failed');
           return;
         }
       } else {
-        setCoinBalance(prev => { const n = Math.max(0, prev - lastSentGift.coins); persistTestCoinsBalance(user?.id, n); return n; });
+        setCoinBalance(prev => Math.max(0, prev - lastSentGift.coins));
       }
 
       // Track session contribution for membership

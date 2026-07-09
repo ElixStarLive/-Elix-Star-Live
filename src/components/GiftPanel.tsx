@@ -42,7 +42,7 @@ function useInView<T extends Element>(options?: IntersectionObserverInit) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  GiftGridItem – PNG icon always; video preview only on tap/click     */
+/*  GiftGridItem – PNG icon only; video plays on stream after send    */
 /* ------------------------------------------------------------------ */
 const GIFT_CDN_ORIGIN = "https://elixstorage.b-cdn.net";
 
@@ -68,11 +68,6 @@ function giftIconCdnFallback(src: string): string | null {
   }
 }
 
-function isGiftVideoFile(value: string): boolean {
-  const p = value.split('?')[0].toLowerCase();
-  return p.endsWith('.mp4') || p.endsWith('.webm');
-}
-
 interface GiftGridItemProps {
   gift: GiftItem;
   pngUrl: string;
@@ -92,55 +87,23 @@ function GiftGridItem({
   onHoverEnd,
   borderClass,
 }: GiftGridItemProps) {
-  const [videoReady, setVideoReady] = useState(false);
-  const [previewing, setPreviewing] = useState(false);
   const [imgError, setImgError] = useState(false);
   const [iconSrc, setIconSrc] = useState(() => resolveGiftAssetUrl(pngUrl || gift.icon));
-  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     setIconSrc(resolveGiftAssetUrl(pngUrl || gift.icon));
     setImgError(false);
-    setPreviewing(false);
-    setVideoReady(false);
   }, [pngUrl, gift.icon]);
-
-  const hasVideo = Boolean(gift.video && isGiftVideoFile(gift.video));
-  const showVideo = hasVideo && previewing && videoReady;
 
   const displayIcon = imgError
     ? "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><rect width="64" height="64" fill="#2a2a2a"/><text x="32" y="38" text-anchor="middle" fill="#666" font-size="10" font-family="sans-serif">?</text></svg>')
     : pngUrl;
 
-  const handlePointerEnter = useCallback(() => {
-    onHoverStart();
-  }, [onHoverStart]);
-
-  const handlePointerLeave = useCallback(() => {
-    onHoverEnd();
-    setPreviewing(false);
-    setVideoReady(false);
-    if (videoRef.current) {
-      videoRef.current.pause();
-      videoRef.current.currentTime = 0;
-    }
-  }, [onHoverEnd]);
-
-  const handleClick = useCallback(() => {
-    if (hasVideo) setPreviewing(true);
-    onSelect();
-  }, [hasVideo, onSelect]);
-
-  useEffect(() => {
-    if (!previewing || !videoRef.current) return;
-    videoRef.current.play().catch(() => {});
-  }, [previewing, videoReady]);
-
   return (
     <button
-      onClick={handleClick}
-      onPointerEnter={handlePointerEnter}
-      onPointerLeave={handlePointerLeave}
+      onClick={onSelect}
+      onPointerEnter={onHoverStart}
+      onPointerLeave={onHoverEnd}
         className={[
         "group flex flex-col items-center gap-1.5 p-1 rounded-xl hover:brightness-125 border transition-all duration-300 active:scale-95 relative overflow-hidden",
         borderClass ?? "border-transparent hover:border-secondary/30",
@@ -157,11 +120,6 @@ function GiftGridItem({
           src={imgError ? displayIcon : iconSrc}
           alt={gift.name}
           className="w-full h-full object-contain p-1 pointer-events-none relative"
-          style={{
-            opacity: showVideo ? 0 : 1,
-            zIndex: showVideo ? 1 : 2,
-            transition: "opacity 0.25s ease",
-          }}
           draggable={false}
           onError={() => {
             const fallback = giftIconCdnFallback(iconSrc);
@@ -172,26 +130,6 @@ function GiftGridItem({
             setImgError(true);
           }}
         />
-
-        {/* Video – only mounted and visible after tap/click, never on hover */}
-        {hasVideo && previewing && (
-          <video
-            ref={videoRef}
-            src={gift.video}
-            poster={iconSrc}
-            muted
-            loop
-            playsInline
-            preload="auto"
-            onLoadedData={() => setVideoReady(true)}
-            className="w-full h-full object-contain p-1 pointer-events-none absolute inset-0"
-            style={{
-              opacity: showVideo ? 1 : 0,
-              zIndex: showVideo ? 3 : 1,
-              transition: "opacity 0.25s ease",
-            }}
-          />
-        )}
 
         {/* Sparkle overlay for small gifts */}
         {gift.giftType === "small" && <div className="elix-gift-sparkle" />}
