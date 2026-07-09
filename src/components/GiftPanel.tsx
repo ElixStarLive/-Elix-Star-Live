@@ -42,8 +42,7 @@ function useInView<T extends Element>(options?: IntersectionObserverInit) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  GiftGridItem – shows PNG instantly, video loads behind & plays    */
-/*  on hover / active selection                                       */
+/*  GiftGridItem – PNG icon always; video preview only on tap/click     */
 /* ------------------------------------------------------------------ */
 const GIFT_CDN_ORIGIN = "https://elixstorage.b-cdn.net";
 
@@ -93,7 +92,6 @@ function GiftGridItem({
   onHoverEnd,
   borderClass,
 }: GiftGridItemProps) {
-  const [hovered, setHovered] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
   const [previewing, setPreviewing] = useState(false);
   const [imgError, setImgError] = useState(false);
@@ -104,40 +102,39 @@ function GiftGridItem({
     setIconSrc(resolveGiftAssetUrl(pngUrl || gift.icon));
     setImgError(false);
     setPreviewing(false);
+    setVideoReady(false);
   }, [pngUrl, gift.icon]);
 
   const hasVideo = Boolean(gift.video && isGiftVideoFile(gift.video));
-  const showVideo = hasVideo && videoReady && (hovered || previewing);
+  const showVideo = hasVideo && previewing && videoReady;
 
   const displayIcon = imgError
     ? "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><rect width="64" height="64" fill="#2a2a2a"/><text x="32" y="38" text-anchor="middle" fill="#666" font-size="10" font-family="sans-serif">?</text></svg>')
     : pngUrl;
 
   const handlePointerEnter = useCallback(() => {
-    setHovered(true);
     onHoverStart();
-    if (hasVideo && videoRef.current) {
-      videoRef.current.play().catch(() => {});
-    }
-  }, [hasVideo, onHoverStart]);
+  }, [onHoverStart]);
 
   const handlePointerLeave = useCallback(() => {
-    setHovered(false);
-    setPreviewing(false);
     onHoverEnd();
-    if (hasVideo && videoRef.current) {
+    setPreviewing(false);
+    setVideoReady(false);
+    if (videoRef.current) {
       videoRef.current.pause();
       videoRef.current.currentTime = 0;
     }
-  }, [hasVideo, onHoverEnd]);
+  }, [onHoverEnd]);
 
   const handleClick = useCallback(() => {
-    if (hasVideo && videoRef.current) {
-      setPreviewing(true);
-      videoRef.current.play().catch(() => {});
-    }
+    if (hasVideo) setPreviewing(true);
     onSelect();
   }, [hasVideo, onSelect]);
+
+  useEffect(() => {
+    if (!previewing || !videoRef.current) return;
+    videoRef.current.play().catch(() => {});
+  }, [previewing, videoReady]);
 
   return (
     <button
@@ -176,8 +173,8 @@ function GiftGridItem({
           }}
         />
 
-        {/* Video – loads in background, visible only on hover once ready */}
-        {hasVideo && (
+        {/* Video – only mounted and visible after tap/click, never on hover */}
+        {hasVideo && previewing && (
           <video
             ref={videoRef}
             src={gift.video}
@@ -185,7 +182,7 @@ function GiftGridItem({
             muted
             loop
             playsInline
-            preload="none"
+            preload="auto"
             onLoadedData={() => setVideoReady(true)}
             className="w-full h-full object-contain p-1 pointer-events-none absolute inset-0"
             style={{
