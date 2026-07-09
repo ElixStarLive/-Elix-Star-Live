@@ -5,6 +5,9 @@
 
 import { getPool } from "./postgres";
 import { logger } from "./logger";
+// #region agent log
+function _dbgVS(loc:string,msg:string,data:Record<string,unknown>={}){fetch('http://127.0.0.1:7684/ingest/8c32b730-3e4a-4f4c-9502-6b305be695c7',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'6f8791'},body:JSON.stringify({sessionId:'6f8791',location:loc,message:msg,data,timestamp:Date.now()})}).catch(()=>{});}
+// #endregion
 
 export interface Video {
   id: string;
@@ -117,7 +120,11 @@ export async function getVideoCountAsync(): Promise<number> {
   try {
     const res = await db.query(`SELECT COUNT(*)::int AS cnt FROM videos`);
     return Number(res.rows[0]?.cnt ?? 0);
-  } catch {
+  } catch (err) {
+    // #region agent log
+    _dbgVS('videoStore.ts:getVideoCount','VIDEO_COUNT_EMPTY_CATCH_NO_LOGGER',{error:err instanceof Error?err.message:String(err),hypothesisId:'E'});
+    // #endregion
+    logger.error({ err }, 'getVideoCountAsync failed');
     return 0;
   }
 }

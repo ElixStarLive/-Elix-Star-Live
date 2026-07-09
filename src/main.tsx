@@ -6,7 +6,9 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { NativeDialogProvider } from './components/NativeDialog'
 import './index.css'
 
-window.addEventListener('error', () => {});
+window.addEventListener('error', (e) => {
+  if (import.meta.env.DEV) console.error('[global error]', e.error || e.message);
+});
 
 window.addEventListener('unhandledrejection', (e) => {
   if (e.reason?.name === 'AbortError' || e.reason?.message?.includes('aborted')) {

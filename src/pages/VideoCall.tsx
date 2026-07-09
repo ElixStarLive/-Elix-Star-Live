@@ -253,6 +253,7 @@ export default function VideoCall() {
     }
     stopLocalMedia();
     setRemoteStream(null);
+    useCallStore.getState().setStatus('ended');
     try {
       if (callId) {
         await sendCallEnded(callId);
@@ -260,7 +261,6 @@ export default function VideoCall() {
         useCallStore.getState().reset();
       }
     } catch { /* best-effort cleanup */ }
-    navigate(-1);
   };
 
   const statusLabel =

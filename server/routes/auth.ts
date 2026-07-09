@@ -356,6 +356,9 @@ export async function handleRegister(req: Request, res: Response) {
     if (!e || !password) {
       return res.status(400).json({ error: 'Email and password are required.' });
     }
+    if (typeof password !== 'string' || password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters.' });
+    }
     if (!getPool()) return res.status(503).json({ error: 'Database not configured' });
     const existing = await dbFindUserByEmail(e);
     if (existing) {
@@ -462,30 +465,33 @@ export async function handleDeleteAccount(req: Request, res: Response) {
     return res.status(404).json({ error: 'User not found.' });
   }
 
+  const client = await pool.connect();
   try {
-    await pool.query('BEGIN');
-    await pool.query(`DELETE FROM elix_auth_sessions WHERE user_id = $1`, [user.id]);
-    await pool.query(`DELETE FROM chat_messages WHERE sender_id = $1`, [user.id]);
-    await pool.query(`DELETE FROM chat_thread_participants WHERE user_id = $1`, [user.id]);
-    await pool.query(`DELETE FROM video_comments WHERE user_id = $1`, [user.id]);
-    await pool.query(`DELETE FROM video_likes WHERE user_id = $1`, [user.id]);
-    await pool.query(`DELETE FROM saved_videos WHERE user_id = $1`, [user.id]);
-    await pool.query(`DELETE FROM follows WHERE follower_id = $1 OR following_id = $1`, [user.id]);
-    await pool.query(`DELETE FROM notifications WHERE user_id = $1 OR actor_id = $1`, [user.id]);
-    await pool.query(`DELETE FROM reports WHERE reporter_id = $1`, [user.id]);
-    await pool.query(`DELETE FROM blocked_users WHERE blocker_id = $1 OR blocked_id = $1`, [user.id]);
-    await pool.query(`DELETE FROM device_tokens WHERE user_id = $1`, [user.id]);
-    await pool.query(`DELETE FROM analytics_events WHERE user_id = $1`, [user.id]);
-    await pool.query(`DELETE FROM comment_likes WHERE user_id = $1`, [user.id]).catch(() => {});
-    await pool.query(`DELETE FROM wallet_ledger WHERE user_id = $1`, [user.id]);
-    await pool.query(`DELETE FROM videos WHERE user_id = $1`, [user.id]);
-    await pool.query(`DELETE FROM profiles WHERE user_id = $1`, [user.id]);
-    await pool.query(`DELETE FROM elix_auth_users WHERE id = $1`, [user.id]);
-    await pool.query('COMMIT');
+    await client.query('BEGIN');
+    await client.query(`DELETE FROM elix_auth_sessions WHERE user_id = $1`, [user.id]);
+    await client.query(`DELETE FROM chat_messages WHERE sender_id = $1`, [user.id]);
+    await client.query(`DELETE FROM chat_thread_participants WHERE user_id = $1`, [user.id]);
+    await client.query(`DELETE FROM comments WHERE user_id = $1`, [user.id]);
+    await client.query(`DELETE FROM likes WHERE user_id = $1`, [user.id]);
+    await client.query(`DELETE FROM saves WHERE user_id = $1`, [user.id]);
+    await client.query(`DELETE FROM follows WHERE follower_id = $1 OR following_id = $1`, [user.id]);
+    await client.query(`DELETE FROM notifications WHERE user_id = $1 OR actor_id = $1`, [user.id]);
+    await client.query(`DELETE FROM elix_reports WHERE reporter_id = $1`, [user.id]);
+    await client.query(`DELETE FROM elix_blocked_users WHERE blocker_id = $1 OR blocked_id = $1`, [user.id]);
+    await client.query(`DELETE FROM elix_device_tokens WHERE user_id = $1`, [user.id]);
+    await client.query(`DELETE FROM elix_analytics_events WHERE user_id = $1`, [user.id]);
+    await client.query(`DELETE FROM comment_likes WHERE user_id = $1`, [user.id]).catch(() => {});
+    await client.query(`DELETE FROM wallet_ledger WHERE user_id = $1`, [user.id]);
+    await client.query(`DELETE FROM videos WHERE user_id = $1`, [user.id]);
+    await client.query(`DELETE FROM profiles WHERE user_id = $1`, [user.id]);
+    await client.query(`DELETE FROM elix_auth_users WHERE id = $1`, [user.id]);
+    await client.query('COMMIT');
   } catch (err) {
-    await pool.query('ROLLBACK').catch(() => {});
+    await client.query('ROLLBACK').catch(() => {});
     logger.error({ err, userId: user.id }, 'handleDeleteAccount cascade failed');
     return res.status(500).json({ error: 'Account deletion failed. Please try again.' });
+  } finally {
+    client.release();
   }
 
   clearAuthCookie(res);

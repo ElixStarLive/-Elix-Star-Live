@@ -1324,6 +1324,7 @@ export default function SpectatorPage() {
         hostUserId: data.hostUserId || '',
       });
       setShowCoHostPanel(true);
+      showToast(`@${data.hostName || 'Creator'} invited you to co-host — tap Join or Reject`);
     };
 
     websocket.on('room_state', handleRoomState);
@@ -2632,7 +2633,7 @@ export default function SpectatorPage() {
                             const inv = pendingCoHostInvite;
                             setPendingCoHostInvite(null);
                             setShowCoHostPanel(false);
-                            websocket.send('cohost_invite_accept', { hostUserId: inv.hostUserId, cohostName: user?.username || user?.name || 'User', cohostAvatar: user?.avatar || '', streamKey: inv.streamKey });
+                            websocket.send('cohost_invite_accept', { hostUserId: inv.hostUserId, cohostName: user?.username || user?.name || 'User', cohostAvatar: user?.avatar || '', streamKey: user?.id || effectiveStreamId });
                             showToast(`Joining @${inv.hostName}'s live as co-host`);
                             if (inv.streamKey) {
                               navigate(`/watch/${inv.streamKey}?cohost=1`, {

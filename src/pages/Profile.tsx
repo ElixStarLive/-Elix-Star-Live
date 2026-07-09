@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Share2, Menu, Lock, Play, Heart, Sparkles, LogOut, UserPlus, X, Bookmark, Grid3X3, ShoppingBag, Repeat2, ChevronDown, Search, Copy, MessageCircle, Check, TrendingUp, Flag, Plus, Settings } from 'lucide-react';
+import { Share2, Menu, Lock, Play, Heart, Sparkles, LogOut, UserPlus, X, Bookmark, Grid3X3, ShoppingBag, Repeat2, ChevronDown, Search, Copy, MessageCircle, Check, TrendingUp, Flag, Plus, Settings, Power } from 'lucide-react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { showToast } from '../lib/toast';
@@ -411,8 +411,8 @@ export default function Profile() {
   if (routeUserId && resolvedUserId === null && !loading) {
     return (
       <div className="bg-[#13151A] text-white flex flex-col items-center justify-center min-h-[50vh] px-4">
-        <button onClick={() => navigate(-1)} className="absolute top-4 right-4 p-1">
-          <img src="/Icons/Gold power buton.png" alt="Back" className="w-5 h-5" />
+        <button onClick={() => navigate(-1)} className="absolute top-4 right-4 p-1" title="Back">
+          <Power size={20} className="stroke-gold-metallic" strokeWidth={2} />
         </button>
         <p className="text-white/70 text-center">Profile not found.</p>
         <button onClick={() => navigate(-1)} className="mt-4 text-gold-metallic font-semibold text-sm">Go back</button>
@@ -423,8 +423,8 @@ export default function Profile() {
   if (!loading && !profileData && !isOwnProfile) {
     return (
       <div className="bg-[#13151A] text-white flex flex-col items-center justify-center min-h-[50vh] px-4">
-        <button onClick={() => navigate(-1)} className="absolute top-4 right-4 p-1">
-          <img src="/Icons/Gold power buton.png" alt="Back" className="w-5 h-5" />
+        <button onClick={() => navigate(-1)} className="absolute top-4 right-4 p-1" title="Back">
+          <Power size={20} className="stroke-gold-metallic" strokeWidth={2} />
         </button>
         <p className="text-white/70 text-center">Profile not found or couldn&apos;t load.</p>
         <button onClick={() => navigate(-1)} className="mt-4 text-gold-metallic font-semibold text-sm">Go back</button>
@@ -446,7 +446,7 @@ export default function Profile() {
             title="Share profile"
             className="p-1"
           >
-            <img src="/Icons/Share Icon.png" alt="Share" className="w-5 h-5 object-contain" />
+            <Share2 size={20} className="stroke-gold-metallic" strokeWidth={2} />
           </button>
           <div className="flex-1 flex items-center justify-center min-w-0 px-2">
             <div className="min-w-0 text-center">
@@ -464,7 +464,7 @@ export default function Profile() {
             title="Back"
             className="p-1"
           >
-            <img src="/Icons/Gold power buton.png" alt="Back" className="w-5 h-5" />
+            <Power size={20} className="stroke-gold-metallic" strokeWidth={2} />
           </button>
         </header>
 
@@ -580,9 +580,8 @@ export default function Profile() {
                       { name: 'Report', icon: <Flag size={22} className="text-red-400" />, isRed: true, action: () => { setShowSharePanel(false); setShowReportModal(true); } },
                     ].map((item) => (
                       <button key={item.name} onClick={item.action} className="flex flex-col items-center gap-1 active:scale-95 transition-transform">
-                        <div className="relative w-9 h-9 rounded-full bg-[#13151A] overflow-hidden flex items-center justify-center flex-shrink-0">
+                        <div className="relative w-9 h-9 rounded-full bg-[#13151A] border border-[#C9A96E]/35 flex items-center justify-center flex-shrink-0 shadow-[0_0_10px_rgba(201,169,110,0.15)]">
                           <div className={`relative z-[2] ${item.name === 'Report' ? 'translate-y-0.5' : ''}`}>{React.cloneElement((item.icon as React.ReactElement), { className: `w-3.5 h-3.5 ${(item as { isRed?: boolean }).isRed ? 'text-red-400' : 'text-white'}`, strokeWidth: 1.8 })}</div>
-                          <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[3] scale-125 translate-y-0.5" />
                         </div>
                         <span className={`text-[8px] font-semibold truncate w-full text-center ${(item as { isRed?: boolean }).isRed ? 'text-red-400/70' : 'text-white/70'}`}>{item.name}</span>
                       </button>

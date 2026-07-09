@@ -1,6 +1,6 @@
 import React from 'react';
 import { nativeConfirm } from '../components/NativeDialog';
-import { apiUrl } from '../lib/api';
+import { request } from '../lib/apiClient';
 import {
   ChevronRight,
   User,
@@ -37,18 +37,9 @@ export default function Settings() {
     if (!confirmed) return;
 
     try {
-      const session = useAuthStore.getState().session;
-      const tkn = session?.access_token || '';
-      const url = apiUrl('/api/auth/delete');
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (tkn) headers['Authorization'] = `Bearer ${tkn}`;
-      const response = await fetch(url, {
-        method: 'POST',
-        headers,
-        credentials: 'include',
-      });
+      const { error } = await request('/api/auth/delete', { method: 'POST' });
 
-      if (response.ok) {
+      if (!error) {
         await signOut();
         navigate('/login');
       } else {

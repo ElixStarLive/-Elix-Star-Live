@@ -22,16 +22,21 @@ export const useSafetyStore = create<SafetyStore>()(
         request('/api/block-user', {
           method: 'POST',
           body: JSON.stringify({ blockedUserId: id }),
-        }).catch(() => {});
+        }).catch(() => {
+          set({ blockedUserIds: get().blockedUserIds.filter((x) => x !== id) });
+        });
       },
       unblockUser: (userId) => {
         const id = userId.trim();
         if (!id) return;
-        set({ blockedUserIds: get().blockedUserIds.filter((x) => x !== id) });
+        const prev = get().blockedUserIds;
+        set({ blockedUserIds: prev.filter((x) => x !== id) });
         request('/api/unblock-user', {
           method: 'POST',
           body: JSON.stringify({ blockedUserId: id }),
-        }).catch(() => {});
+        }).catch(() => {
+          set({ blockedUserIds: [...get().blockedUserIds, id] });
+        });
       },
       isBlocked: (userId) => {
         const id = userId.trim();

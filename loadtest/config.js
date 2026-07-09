@@ -4,12 +4,14 @@
  * Set via environment variables:
  *   BASE_URL      — http(s)://your-server:port  (default: http://localhost:8080)
  *   WS_URL        — ws(s)://your-server:port    (default: ws://localhost:8080)
+ *   BYPASS_KEY    — value of LOADTEST_BYPASS_SECRET to skip rate limits
  *   TEST_EMAIL    — existing test user email
  *   TEST_PASSWORD — existing test user password
  */
 
 export const BASE_URL = __ENV.BASE_URL || "http://localhost:8080";
 export const WS_URL = __ENV.WS_URL || "ws://localhost:8080";
+export const BYPASS_KEY = __ENV.BYPASS_KEY || "";
 export const TEST_EMAIL = __ENV.TEST_EMAIL || "loadtest@test.com";
 export const TEST_PASSWORD = __ENV.TEST_PASSWORD || "loadtest123456";
 

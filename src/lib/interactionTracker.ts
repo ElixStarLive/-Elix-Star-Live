@@ -204,9 +204,7 @@ if (typeof window !== 'undefined') {
         });
         const base = getApiBase();
         const url = base ? `${base}/api/feed/track-view` : '/api/feed/track-view';
-        const token = useAuthStore.getState().session?.access_token;
-        const beaconUrl = token ? `${url}?token=${encodeURIComponent(token)}` : url;
-        navigator.sendBeacon(beaconUrl, new Blob([payload], { type: 'application/json' }));
+        navigator.sendBeacon(url, new Blob([payload], { type: 'application/json' }));
       }
     }
     activeViews.clear();

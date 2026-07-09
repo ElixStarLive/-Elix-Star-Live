@@ -12,7 +12,9 @@ export const useDeepLinks = () => {
   const location = useLocation();
 
   useEffect(() => {
-    // Handle app:// deep links
+    let urlHandle: { remove: () => Promise<void> } | null = null;
+    let backHandle: { remove: () => Promise<void> } | null = null;
+
     CapacitorApp.addListener('appUrlOpen', (event: { url: string }) => {
       const url = event.url;
       
@@ -29,12 +31,10 @@ export const useDeepLinks = () => {
       if (hashtagMatch) { navigate(`/hashtag/${hashtagMatch[1]}`); return; }
       
       navigate('/feed');
-    });
+    }).then(h => { urlHandle = h; });
 
-    // Android hardware back button handler
     if (Capacitor.isNativePlatform()) {
       CapacitorApp.addListener('backButton', ({ canGoBack }) => {
-        // Close any open modals/overlays by dispatching a custom event
         const modalEvent = new CustomEvent('app:back-button');
         const handled = !document.dispatchEvent(modalEvent);
         if (handled) return;
@@ -44,13 +44,14 @@ export const useDeepLinks = () => {
         } else {
           CapacitorApp.minimizeApp();
         }
-      });
+      }).then(h => { backHandle = h; });
     }
 
     return () => {
-      CapacitorApp.removeAllListeners();
+      urlHandle?.remove().catch(() => {});
+      backHandle?.remove().catch(() => {});
     };
-  }, [navigate, location]);
+  }, []);
 };
 
 // Generate shareable deep link

@@ -7,6 +7,10 @@
 import { randomUUID } from "crypto";
 import { WebSocket } from "ws";
 import { valkeyPublish, valkeySubscribe, isValkeyConfigured } from "./lib/valkey";
+import { logger } from "./lib/logger";
+// #region agent log
+function _dbgFB(loc:string,msg:string,data:Record<string,unknown>={}){fetch('http://127.0.0.1:7684/ingest/8c32b730-3e4a-4f4c-9502-6b305be695c7',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'6f8791'},body:JSON.stringify({sessionId:'6f8791',location:loc,message:msg,data,timestamp:Date.now()})}).catch(()=>{});}
+// #endregion
 
 const INSTANCE_ID = randomUUID();
 const FEED_CHANNEL = "feed:global";
@@ -27,9 +31,10 @@ function sendToLocalSubscribers(message: string): void {
       try {
         ws.send(message);
       } catch (err) {
-        if (process.env.NODE_ENV !== "production") {
-          console.error("[feedBroadcast] send error:", err);
-        }
+        // #region agent log
+        _dbgFB('feedBroadcast.ts:send','FEED_SEND_FAILURE_SILENT_IN_PROD',{error:err instanceof Error?err.message:String(err),nodeEnv:process.env.NODE_ENV,hypothesisId:'E'});
+        // #endregion
+        logger.error({ err }, 'feedBroadcast send error');
       }
     }
   }

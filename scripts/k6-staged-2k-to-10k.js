@@ -11,8 +11,23 @@
  */
 import http from "k6/http";
 import { check, sleep } from "k6";
+import { Counter } from "k6/metrics";
 
-const BASE = __ENV.BASE_URL || "https://www.elixstarlive.co.uk";
+const BASE = (__ENV.BASE_URL || "https://www.elixstarlive.co.uk").replace(/\/$/, "");
+const BYPASS = __ENV.BYPASS_KEY || "";
+
+const params = {
+  headers: {
+    ...(BYPASS ? { "x-loadtest-key": BYPASS } : {}),
+  },
+  timeout: "30s",
+};
+
+const err429 = new Counter("err_rate_limited");
+const err503 = new Counter("err_backpressure");
+const err5xx = new Counter("err_server_5xx");
+const errReset = new Counter("err_conn_reset");
+const errTimeout = new Counter("err_timeout");
 
 const endpoints = [
   { path: "/api/health",        weight: 20 },
@@ -31,8 +46,16 @@ function pick() {
 }
 
 export default function () {
-  const res = http.get(`${BASE.replace(/\/$/, "")}${pick()}`, { timeout: "30s" });
-  check(res, { "status 200": (r) => r.status === 200 });
+  const res = http.get(`${BASE}${pick()}`, params);
+  if (res.status === 429) err429.add(1);
+  else if (res.status === 503) err503.add(1);
+  else if (res.status >= 500) err5xx.add(1);
+  if (res.error) {
+    const e = String(res.error);
+    if (e.includes("reset") || e.includes("refused")) errReset.add(1);
+    if (e.includes("timeout")) errTimeout.add(1);
+  }
+  check(res, { "status 2xx": (r) => r.status >= 200 && r.status < 300 });
   sleep(Math.random() * 0.3 + 0.1);
 }
 

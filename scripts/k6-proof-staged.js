@@ -23,7 +23,15 @@ import http from "k6/http";
 import { check, sleep } from "k6";
 import { Counter, Rate, Trend } from "k6/metrics";
 
-const BASE = __ENV.BASE_URL || "https://www.elixstarlive.co.uk";
+const BASE = (__ENV.BASE_URL || "https://www.elixstarlive.co.uk").replace(/\/$/, "");
+const BYPASS = __ENV.BYPASS_KEY || "";
+
+const params = {
+  headers: {
+    ...(BYPASS ? { "x-loadtest-key": BYPASS } : {}),
+  },
+  timeout: "30s",
+};
 
 const healthOk = new Rate("ep_health_ok");
 const feedOk = new Rate("ep_feed_ok");
@@ -34,6 +42,9 @@ const coinsOk = new Rate("ep_coins_ok");
 const errReset = new Counter("err_conn_reset");
 const errTimeout = new Counter("err_timeout");
 const errDialTimeout = new Counter("err_dial_timeout");
+const err429 = new Counter("err_rate_limited");
+const err503 = new Counter("err_backpressure");
+const err5xx = new Counter("err_server_5xx");
 const latencyFeed = new Trend("latency_feed", true);
 const latencyHealth = new Trend("latency_health", true);
 
@@ -58,15 +69,17 @@ function pickEndpoint() {
 
 export default function () {
   const ep = pickEndpoint();
-  const url = `${BASE.replace(/\/$/, "")}${ep.path}`;
-  const res = http.get(url, { timeout: "30s" });
+  const res = http.get(`${BASE}${ep.path}`, params);
 
-  const ok = res.status === 200;
+  const ok = res.status >= 200 && res.status < 300;
   ep.metric.add(ok);
   if (ep.lat && res.timings.duration) {
     ep.lat.add(res.timings.duration);
   }
 
+  if (res.status === 429) err429.add(1);
+  else if (res.status === 503) err503.add(1);
+  else if (res.status >= 500) err5xx.add(1);
   if (res.error) {
     const e = String(res.error);
     if (e.includes("reset") || e.includes("refused")) errReset.add(1);
@@ -74,7 +87,7 @@ export default function () {
     if (e.includes("i/o timeout") || e.includes("dial")) errDialTimeout.add(1);
   }
 
-  check(res, { "status 200": (r) => r.status === 200 });
+  check(res, { "status 2xx": (r) => r.status >= 200 && r.status < 300 });
   sleep(Math.random() * 0.4 + 0.1);
 }
 

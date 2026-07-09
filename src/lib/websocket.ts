@@ -1,6 +1,7 @@
 // WebSocket Real-Time Service — single connection per room; URL from api.getWsUrl()
 
 import { getWsUrl } from "./api";
+import { useAuthStore } from "../store/useAuthStore";
 
 export type WebSocketEvent =
   // Room events
@@ -204,6 +205,11 @@ class WebSocketService {
     }
 
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      this.handleMessage({
+        event: "stream_ended",
+        data: { reason: "max_reconnect_attempts" },
+        timestamp: new Date().toISOString(),
+      });
       return;
     }
 
@@ -218,8 +224,11 @@ class WebSocketService {
 
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
-      if (this.roomId && this.token) {
-        this.connect(this.roomId, this.token);
+      if (this.roomId) {
+        const freshToken = useAuthStore.getState().session?.access_token || this.token;
+        if (freshToken) {
+          this.connect(this.roomId, freshToken);
+        }
       }
     }, delay);
   }

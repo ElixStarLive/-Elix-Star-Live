@@ -76,6 +76,26 @@ export async function isStreamHost(roomId: string, userId: string): Promise<bool
   return !!storedUserId && storedUserId === userId;
 }
 
+/** Map stream room id to auth userId for WebSocket delivery (cohost invites). */
+export async function resolveStreamOwnerUserId(roomOrUserId: string): Promise<string> {
+  const raw = roomOrUserId.trim();
+  if (!raw) return raw;
+  if (isValkeyConfigured()) {
+    const ownerUserId = await valkeyHget(STREAM_KEY_PREFIX + raw, 'userId');
+    if (ownerUserId && ownerUserId.trim()) return ownerUserId.trim();
+  }
+  try {
+    const rows = await dbGetLiveStreams();
+    const match = rows.find(
+      (r) => r.stream_key === raw || r.user_id === raw,
+    );
+    if (match?.user_id?.trim()) return match.user_id.trim();
+  } catch (err) {
+    logger.warn({ err, roomOrUserId: raw }, "resolveStreamOwnerUserId DB lookup failed");
+  }
+  return raw;
+}
+
 /** Remove active stream from Valkey + DB. Returns true if removed. */
 export async function removeActiveStream(roomId: string, userId?: string): Promise<boolean> {
   try {
@@ -137,6 +157,9 @@ export async function invalidateLiveStreamsListCache(): Promise<void> {
 }
 
 async function buildStreamsResult(): Promise<StreamsListPayload> {
+  const dbRows = await dbGetLiveStreams();
+  const dbByStreamKey = new Map(dbRows.map((r) => [r.stream_key, r]));
+
   if (isLiveKitConfigured()) {
     try {
       const liveRooms = await listActiveRoomsFromLiveKit();
@@ -149,6 +172,7 @@ async function buildStreamsResult(): Promise<StreamsListPayload> {
 
       const streams = named.map((room, i) => {
         const data = hashList[i] || {};
+        const dbRow = room.name ? dbByStreamKey.get(room.name) : undefined;
         const mem =
           data.userId != null && data.userId !== ""
             ? {
@@ -157,14 +181,15 @@ async function buildStreamsResult(): Promise<StreamsListPayload> {
                 displayName: data.displayName || undefined,
               }
             : null;
+        const userId = mem?.userId ?? dbRow?.user_id ?? room.name!;
         return {
           room_id: room.name,
           stream_key: room.name,
-          user_id: mem?.userId ?? room.name!,
-          started_at: mem?.startedAt ?? new Date().toISOString(),
+          user_id: userId,
+          started_at: mem?.startedAt ?? dbRow?.started_at ?? new Date().toISOString(),
           status: "live" as const,
-          title: mem?.displayName ?? undefined,
-          display_name: mem?.displayName ?? undefined,
+          title: mem?.displayName ?? dbRow?.display_name ?? undefined,
+          display_name: mem?.displayName ?? dbRow?.display_name ?? undefined,
           viewer_count: room.numParticipants,
         };
       });

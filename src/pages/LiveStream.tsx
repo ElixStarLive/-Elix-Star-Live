@@ -632,7 +632,7 @@ export default function LiveStream() {
   }, [user?.id]);
 
   const [creatorQuery, setCreatorQuery] = useState('');
-  const [creators, setCreators] = useState<{ id: string; name: string; username: string; followers: string; avatar: string; isLive: boolean }[]>([]);
+  const [creators, setCreators] = useState<{ id: string; streamKey: string; name: string; username: string; followers: string; avatar: string; isLive: boolean }[]>([]);
   const [creatorsLoading, setCreatorsLoading] = useState(false);
   const [creatorsLoadFailed, setCreatorsLoadFailed] = useState(false);
 
@@ -654,22 +654,25 @@ export default function LiveStream() {
       // Support both snake_case and camelCase from /api/live/streams
       const liveCreators = streams
         .map((s: any) => {
-          const uid = String(s.user_id ?? s.userId ?? s.hostUserId ?? '').trim();
           const streamKey = String(s.stream_key ?? s.room_id ?? '').trim();
+          const uid = String(s.user_id ?? s.userId ?? s.hostUserId ?? streamKey).trim();
           const title = s.title ?? s.display_name ?? s.displayName ?? '';
-          const label = title ? title.slice(0, 20) : (uid ? uid.slice(0, 8) : 'Creator');
+          const label = title
+            ? String(title).slice(0, 20)
+            : (uid ? 'Creator' : 'Creator');
           return { uid, streamKey, label };
         })
         .filter(({ uid, streamKey }) => {
-          if (!uid) return false;
-          if (isSelfUser(uid, user.id, isBroadcast ? effectiveStreamId : null)) return false;
-          if (streamKey && isSelfUser(streamKey, user.id, isBroadcast ? effectiveStreamId : null)) return false;
+          if (!uid && !streamKey) return false;
+          const ids = [uid, streamKey].filter(Boolean);
+          if (ids.some((id) => isSelfUser(id, user.id, isBroadcast ? effectiveStreamId : null))) return false;
           return true;
         })
-        .map(({ uid, label }) => {
+        .map(({ uid, streamKey, label }) => {
           const avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(label)}&background=121212&color=C9A96E`;
           return {
-            id: uid,
+            id: uid || streamKey,
+            streamKey: streamKey || uid,
             name: label,
             username: label,
             followers: '0',
@@ -757,7 +760,7 @@ export default function LiveStream() {
       const inviter = pendingInvite;
       setCreators(prev => {
         if (prev.some(c => c.id === inviter.hostUserId)) return prev;
-        return [...prev, { id: inviter.hostUserId, name: inviter.hostName, username: inviter.hostName, followers: '0', avatar: inviter.hostAvatar, isLive: true }];
+        return [...prev, { id: inviter.hostUserId, streamKey: inviter.streamKey || inviter.hostUserId, name: inviter.hostName, username: inviter.hostName, followers: '0', avatar: inviter.hostAvatar, isLive: true }];
       });
     }
   }, [pendingInvite]);
@@ -859,12 +862,16 @@ export default function LiveStream() {
     websocket.send('cohost_layout_sync', payload);
   }, [isBroadcast, effectiveStreamId, user?.id, coHosts]);
 
-  const inviteCoHost = async (creator: { id: string; name: string; avatar?: string }) => {
+  const inviteCoHost = async (creator: { id: string; streamKey?: string; name: string; avatar?: string }) => {
     if (!isBroadcast || !isMyStreamLive) {
       showToast('You must be live to invite co-hosts');
       return;
     }
     if (isSelfUser(creator.id, user?.id, effectiveStreamId)) {
+      showToast('You cannot invite yourself as co-host');
+      return;
+    }
+    if (creator.streamKey && isSelfUser(creator.streamKey, user?.id, effectiveStreamId)) {
       showToast('You cannot invite yourself as co-host');
       return;
     }
@@ -889,8 +896,13 @@ export default function LiveStream() {
     });
 
     if (!user?.id) return;
+    if (!websocket.isConnected()) {
+      showToast('Not connected — wait a moment and try again');
+      return;
+    }
     websocket.send('cohost_invite_send', {
       targetUserId: creator.id,
+      targetStreamKey: creator.streamKey || creator.id,
       hostName: myCreatorName,
       hostAvatar: myAvatar,
       streamKey: effectiveStreamId,
@@ -907,7 +919,7 @@ export default function LiveStream() {
     const inv = pendingCohostInvite;
     setCreators(prev => {
       if (prev.some(c => c.id === inv.hostUserId)) return prev;
-      return [...prev, { id: inv.hostUserId, name: inv.hostName, username: inv.hostName, followers: '', avatar: inv.hostAvatar, isLive: true }];
+      return [...prev, { id: inv.hostUserId, streamKey: inv.streamKey || inv.hostUserId, name: inv.hostName, username: inv.hostName, followers: '', avatar: inv.hostAvatar, isLive: true }];
     });
   }, [pendingCohostInvite]);
 
@@ -925,7 +937,7 @@ export default function LiveStream() {
       hostUserId: inv.hostUserId,
       cohostName: myName,
       cohostAvatar: user?.avatar || '',
-      streamKey: inv.streamKey,
+      streamKey: user?.id || effectiveStreamId,
     });
     showToast(`Joining @${inv.hostName}'s live as co-host`);
     if (inv.streamKey) {
@@ -2783,6 +2795,14 @@ export default function LiveStream() {
     };
 
     const handleCohostInviteAck = (data: any) => {
+      if (!mounted) return;
+      if (data?.delivered === false) {
+        showToast('Could not reach that creator — they must stay on their live screen');
+        const tid = typeof data?.targetUserId === 'string' ? data.targetUserId : '';
+        if (tid) {
+          setCoHosts((prev) => prev.filter((h) => !(sameUserId(h.userId, tid) && h.status === 'invited')));
+        }
+      }
     };
 
     const handleCohostInviteAccepted = (data: any) => {
@@ -2790,11 +2810,16 @@ export default function LiveStream() {
       const cohostUserId = typeof data.cohostUserId === 'string' ? data.cohostUserId : '';
       if (!cohostUserId) return;
       if (isBroadcast && sameUserId(cohostUserId, user?.id)) return;
+      const accepterStreamKey = typeof data.streamKey === 'string' ? data.streamKey : '';
       setCoHosts((prev) => {
-        const idx = prev.findIndex((h) => sameUserId(h.userId, cohostUserId));
+        const idx = prev.findIndex(
+          (h) =>
+            sameUserId(h.userId, cohostUserId) ||
+            (accepterStreamKey && sameUserId(h.userId, accepterStreamKey)),
+        );
         if (idx !== -1) {
-          return prev.map((h) =>
-            sameUserId(h.userId, cohostUserId) ? { ...h, status: 'live' as const } : h,
+          return prev.map((h, i) =>
+            i === idx ? { ...h, userId: cohostUserId, status: 'live' as const } : h,
           );
         }
         return [
@@ -5104,7 +5129,7 @@ export default function LiveStream() {
                         {isBroadcast && isMyStreamLive && (
                           <button
                             type="button"
-                            onClick={() => { inviteCoHost({ id: c.id, name: c.name || c.username, avatar: c.avatar }); }}
+                            onClick={() => { inviteCoHost({ id: c.id, streamKey: c.streamKey, name: c.name || c.username, avatar: c.avatar }); }}
                             className="px-2.5 py-1 rounded-full bg-[#C9A96E] text-black text-[10px] font-bold flex-shrink-0"
                           >
                             Invite

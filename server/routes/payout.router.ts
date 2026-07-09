@@ -96,6 +96,11 @@ adminPayoutRouter.get("/stats/dau", async (req, res) => {
     const token = getTokenFromRequest(req);
     const payload = token ? verifyAuthToken(token) : null;
     if (!payload) return res.status(401).json({ error: "Unauthorized" });
+    const roleCheck = await db.query(
+      `SELECT COALESCE(is_admin, false) AS is_admin FROM profiles WHERE user_id = $1`,
+      [payload.sub],
+    ).catch(() => null);
+    if (!roleCheck?.rows[0]?.is_admin) return res.status(403).json({ error: "Admin only" });
     const r = await db.query(
       `SELECT COUNT(DISTINCT user_id) AS dau FROM elix_auth_sessions WHERE expires_at > NOW() AND updated_at > NOW() - INTERVAL '24 hours'`
     ).catch(() => null);

@@ -586,7 +586,7 @@ export default function EnhancedVideoPlayer({
     setIsMoreMenuOpen(true);
   };
 
-  const videoPageUrl = typeof window !== 'undefined' ? `${window.location.origin}/video/${videoId}` : '';
+  const videoPageUrl = `https://www.elixstarlive.co.uk/video/${videoId}`;
   const handleCopyLink = async () => {
     try {
       await navigator.clipboard.writeText(videoPageUrl);

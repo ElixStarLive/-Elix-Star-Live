@@ -142,7 +142,7 @@ async function updateAuthUserAvatarUrl(userId: string, avatarUrl: string): Promi
   const db = getPool();
   if (!db) return;
   try {
-    await db.query(`UPDATE auth_users SET avatar_url = $1 WHERE id = $2`, [avatarUrl, userId]);
+    await db.query(`UPDATE elix_auth_users SET avatar_url = $1 WHERE id = $2`, [avatarUrl, userId]);
   } catch (err) {
     logger.error({ err, userId }, "updateAuthUserAvatarUrl failed");
   }
@@ -204,7 +204,7 @@ async function lookupAuthUser(userId: string): Promise<StoredUserRow | null> {
   if (!db) return null;
   try {
     const res = await db.query(
-      `SELECT id, email, username, display_name, avatar_url FROM auth_users WHERE id = $1`,
+      `SELECT id, email, username, display_name, avatar_url FROM elix_auth_users WHERE id = $1`,
       [userId],
     );
     const r = res.rows?.[0];
@@ -228,7 +228,7 @@ async function readUsersFromDb(): Promise<StoredUserRow[]> {
   try {
     const res = await db.query(`
       SELECT id, email, username, display_name, avatar_url
-      FROM auth_users
+      FROM elix_auth_users
     `);
     return (res.rows || []).map((r: any) => ({
       id: String(r.id),
@@ -513,7 +513,7 @@ export async function handleListProfiles(_req: Request, res: Response): Promise<
       username: String(r.username || ""),
       display_name: String(r.display_name || ""),
       avatar_url: String(r.avatar_url || ""),
-      email: emailMap.get(String(r.user_id)) || "",
+      email: "",
       level: Number(r.level) || 1,
       is_creator: Boolean(r.is_verified),
       followers_count: Number(r.followers) || 0,
@@ -651,7 +651,7 @@ export async function handlePatchProfile(req: Request, res: Response): Promise<v
     typeof patchedAvatarRaw === "string" ? patchedAvatarRaw.trim() : "";
 
   const profile = await getOrCreateProfileAsync(userId);
-  const allowed = ["username", "displayName", "avatarUrl", "bio", "website", "level", "coins"] as const;
+  const allowed = ["username", "displayName", "avatarUrl", "bio", "website"] as const;
   for (const key of allowed) {
     const val = body[key];
     if (val !== undefined) {

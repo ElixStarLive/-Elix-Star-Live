@@ -5,7 +5,7 @@
  */
 import http from "k6/http";
 import { check } from "k6";
-import { BASE_URL } from "./config.js";
+import { BASE_URL, BYPASS_KEY } from "./config.js";
 
 /**
  * Register a unique load-test user, return { token, userId }.
@@ -16,10 +16,12 @@ export function getAuthToken(vuId) {
   const password = "LoadTest_Pass_42!";
   const username = `lt_vu${vuId}_${Date.now()}`;
 
+  const bypassHdr = BYPASS_KEY ? { "x-loadtest-key": BYPASS_KEY } : {};
+
   let res = http.post(
     `${BASE_URL}/api/auth/register`,
     JSON.stringify({ email, password, username }),
-    { headers: { "Content-Type": "application/json" }, tags: { name: "auth_register" } },
+    { headers: { "Content-Type": "application/json", ...bypassHdr }, tags: { name: "auth_register" } },
   );
 
   if (res.status === 200 || res.status === 201) {
@@ -30,7 +32,7 @@ export function getAuthToken(vuId) {
   res = http.post(
     `${BASE_URL}/api/auth/login`,
     JSON.stringify({ email, password }),
-    { headers: { "Content-Type": "application/json" }, tags: { name: "auth_login" } },
+    { headers: { "Content-Type": "application/json", ...bypassHdr }, tags: { name: "auth_login" } },
   );
 
   if (res.status === 200) {
@@ -46,10 +48,11 @@ export function getAuthToken(vuId) {
  * simple HTTP tests that don't need unique users).
  */
 export function loginShared(email, password) {
+  const bypassHdr = BYPASS_KEY ? { "x-loadtest-key": BYPASS_KEY } : {};
   const res = http.post(
     `${BASE_URL}/api/auth/login`,
     JSON.stringify({ email, password }),
-    { headers: { "Content-Type": "application/json" }, tags: { name: "auth_login_shared" } },
+    { headers: { "Content-Type": "application/json", ...bypassHdr }, tags: { name: "auth_login_shared" } },
   );
   if (res.status === 200) {
     const body = safeJson(res);
@@ -63,8 +66,13 @@ export function authHeaders(token) {
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
+      ...(BYPASS_KEY ? { "x-loadtest-key": BYPASS_KEY } : {}),
     },
   };
+}
+
+export function bypassHeaders() {
+  return BYPASS_KEY ? { "x-loadtest-key": BYPASS_KEY } : {};
 }
 
 function safeJson(res) {

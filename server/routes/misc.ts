@@ -458,6 +458,13 @@ export async function handlePromoteIAPComplete(req: Request, res: Response) {
   if (!meta) return res.status(400).json({ error: 'Invalid promote product' });
 
   const provider = body.provider === 'google' ? 'google' : 'apple';
+  try {
+    if (await neonIsIapProcessed(provider, String(transactionId))) {
+      return res.json({ success: true, message: 'Already processed' });
+    }
+  } catch {
+    return res.status(500).json({ error: 'Deduplication check failed' });
+  }
   let valid = false;
   if (provider === 'apple') {
     const apple = await verifyAppleReceipt(String(transactionId));

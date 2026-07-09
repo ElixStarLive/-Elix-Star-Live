@@ -306,17 +306,30 @@ export async function handleAdminChargeback(req: Request, res: Response) {
     const { gift_tx_id } = req.body;
     if (!gift_tx_id) return res.status(400).json({ error: 'gift_tx_id required' });
 
-    const r = await db.query(
-      `UPDATE elix_creator_earnings SET status = 'reversed' WHERE id = $1 AND status = 'pending' RETURNING *`,
-      [gift_tx_id],
-    );
-    if (r.rowCount === 0) return res.status(400).json({ error: 'Earning not found or already processed' });
-    const earning = r.rows[0];
-    await db.query(
-      `UPDATE elix_creator_balances SET pending_coins = GREATEST(0, pending_coins - $2), updated_at = NOW()
-       WHERE user_id = $1`, [earning.creator_id, earning.coins],
-    );
-    return res.json({ reversed: r.rows[0] });
+    const client = await db.connect();
+    try {
+      await client.query('BEGIN');
+      const r = await client.query(
+        `UPDATE elix_creator_earnings SET status = 'reversed' WHERE id = $1 AND status = 'pending' RETURNING *`,
+        [gift_tx_id],
+      );
+      if (r.rowCount === 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'Earning not found or already processed' });
+      }
+      const earning = r.rows[0];
+      await client.query(
+        `UPDATE elix_creator_balances SET pending_coins = GREATEST(0, pending_coins - $2), updated_at = NOW()
+         WHERE user_id = $1`, [earning.creator_id, earning.coins],
+      );
+      await client.query('COMMIT');
+      return res.json({ reversed: r.rows[0] });
+    } catch (txErr) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw txErr;
+    } finally {
+      client.release();
+    }
   } catch (err) {
     logger.error({ err }, 'Admin chargeback error');
     return res.status(500).json({ error: 'Chargeback failed' });

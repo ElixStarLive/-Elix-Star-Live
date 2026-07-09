@@ -1,17 +1,47 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, Radio, RefreshCw } from 'lucide-react';
-import { apiUrl, getWsUrl } from '../lib/api';
+import { getWsUrl } from '../lib/api';
+import { request } from '../lib/apiClient';
 import { useAuthStore } from '../store/useAuthStore';
 import { LIVE_FEED_CARD_AVATAR_PX } from '../lib/profileFrame';
+import {
+  isGenericLiveCreatorName,
+  liveNameFromStreamFields,
+  profileToLiveDisplay,
+} from '../lib/liveCreatorDisplay';
 
 type LiveCreator = {
   id: string;
+  userId?: string;
   name: string;
   viewers: number;
   thumbnail?: string;
   title?: string;
 };
+
+async function enrichLiveCreator(creator: LiveCreator): Promise<LiveCreator> {
+  if (!creator.userId || !isGenericLiveCreatorName(creator.name)) return creator;
+  try {
+    const { data, error } = await request(`/api/profiles/${encodeURIComponent(creator.userId)}`);
+    if (error || !data) return creator;
+    const { name, avatar } = profileToLiveDisplay(data);
+    if (!name && !avatar) return creator;
+    return {
+      ...creator,
+      name: name || creator.name,
+      thumbnail:
+        avatar ||
+        creator.thumbnail ||
+        (name
+          ? `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=121212&color=C9A96E`
+          : creator.thumbnail),
+      title: name || creator.title,
+    };
+  } catch {
+    return creator;
+  }
+}
 
 export default function LiveDiscover() {
   const navigate = useNavigate();
@@ -22,17 +52,14 @@ export default function LiveDiscover() {
   const fetchLiveStreams = useCallback(async () => {
     setLoading(true);
     try {
-      const url = apiUrl('/api/live/streams');
-
-      const res = await fetch(url, { method: 'GET', credentials: 'include' });
-      if (!res.ok) {
+      const { data, error } = await request<{ streams: any[] }>('/api/live/streams');
+      if (error || !data) {
         setCreators([]);
         setLoading(false);
         return;
       }
 
-      const body = await res.json().catch(() => ({ streams: [] as any[] }));
-      const streams = Array.isArray(body.streams) ? body.streams : [];
+      const streams = Array.isArray(data.streams) ? data.streams : [];
       const removed = removedKeysRef.current;
 
       const mapped: LiveCreator[] = streams
@@ -43,13 +70,20 @@ export default function LiveDiscover() {
         .map((s: any) => {
           const id = s.stream_key ?? s.streamKey ?? s.room_id ?? s.roomId ?? s.id;
           const userId = s.user_id ?? s.userId ?? s.hostUserId ?? '';
-          const label = userId ? String(userId).slice(0, 8) : 'Creator';
-          const name = s.title ?? s.display_name ?? s.displayName ?? label;
+          const name = liveNameFromStreamFields(
+            s.title,
+            s.display_name ?? s.displayName,
+            userId,
+          );
+          const avatarLabel = isGenericLiveCreatorName(name) ? name : name;
           return {
             id,
+            userId: userId || undefined,
             name,
             viewers: Number(s.viewer_count ?? s.viewerCount ?? 0),
-            thumbnail: userId ? `https://ui-avatars.com/api/?name=${encodeURIComponent(label)}&background=121212&color=C9A96E` : undefined,
+            thumbnail: userId
+              ? `https://ui-avatars.com/api/?name=${encodeURIComponent(avatarLabel)}&background=121212&color=C9A96E`
+              : undefined,
             title: s.title ?? s.display_name ?? s.displayName ?? undefined,
           };
         });
@@ -61,6 +95,23 @@ export default function LiveDiscover() {
       setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    const needs = creators.filter((c) => c.userId && isGenericLiveCreatorName(c.name));
+    if (needs.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      for (const creator of needs) {
+        if (cancelled) return;
+        const enriched = await enrichLiveCreator(creator);
+        if (enriched.name === creator.name && enriched.thumbnail === creator.thumbnail) continue;
+        setCreators((prev) => prev.map((c) => (c.id === creator.id ? enriched : c)));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [creators.map((c) => `${c.id}:${c.name}:${c.userId ?? ''}`).join(',')]);
 
   const removeLiveStream = useCallback((key: string) => {
     removedKeysRef.current.add(key);
@@ -104,21 +155,29 @@ export default function LiveDiscover() {
           if (event === 'stream_started') {
             const key = (data.stream_key ?? data.room_id) as string;
             if (!key || removedKeysRef.current.has(key)) return;
+            const userId = (data.user_id ?? '') as string;
+            const name = liveNameFromStreamFields(
+              data.title,
+              data.display_name ?? data.displayName,
+              userId,
+            );
+            const nextCreator: LiveCreator = {
+              id: key,
+              userId: userId || undefined,
+              name,
+              viewers: 0,
+              thumbnail: userId
+                ? `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=121212&color=C9A96E`
+                : undefined,
+              title: name,
+            };
             setCreators((prev) => {
               if (prev.some((c) => c.id === key)) return prev;
-              const userId = (data.user_id ?? '') as string;
-              const label = userId ? String(userId).slice(0, 8) : 'Creator';
-              const name = (data.title ?? data.display_name ?? label) as string;
-              return [
-                {
-                  id: key,
-                  name,
-                  viewers: 0,
-                  thumbnail: userId ? `https://ui-avatars.com/api/?name=${encodeURIComponent(label)}&background=121212&color=C9A96E` : undefined,
-                  title: name,
-                },
-                ...prev,
-              ];
+              return [nextCreator, ...prev];
+            });
+            void enrichLiveCreator(nextCreator).then((enriched) => {
+              if (enriched.name === nextCreator.name && enriched.thumbnail === nextCreator.thumbnail) return;
+              setCreators((prev) => prev.map((c) => (c.id === key ? enriched : c)));
             });
           } else if (event === 'stream_ended') {
             const key = (data.stream_key ?? data.room_id) as string;

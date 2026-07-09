@@ -62,7 +62,7 @@ export default function EnhancedLikesModal({ isOpen, onClose, videoId, likes }: 
   const navigate = useNavigate();
   const { user: currentUser } = useAuthStore();
   
-  const isOwnProfile = currentUser?.id === 'current_user'; // Adjust as needed
+  const currentUserId = currentUser?.id;
 
   if (!isOpen) return null;
 
@@ -225,7 +225,7 @@ export default function EnhancedLikesModal({ isOpen, onClose, videoId, likes }: 
                     </div>
                     
                     <div className="flex items-center gap-2">
-                      {!isOwnProfile && (
+                      {user.id !== currentUserId && (
                         <>
                           {user.isFollowing ? (
                             <button

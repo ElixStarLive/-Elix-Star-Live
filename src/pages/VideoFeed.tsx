@@ -6,6 +6,11 @@ import { useVideoStore } from "../store/useVideoStore";
 import { useAuthStore } from "../store/useAuthStore";
 import { getWsUrl } from "../lib/api";
 import { request } from "../lib/apiClient";
+import {
+  isGenericLiveCreatorName,
+  liveNameFromStreamFields,
+  profileToLiveDisplay,
+} from "../lib/liveCreatorDisplay";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -165,19 +170,37 @@ class RoomMonitor {
 function streamStartedToCard(data: Record<string, unknown>): LiveStreamCard {
   const key = (data.stream_key ?? data.room_id ?? "") as string;
   const userId = (data.user_id ?? "") as string;
-  const title = (data.title ?? data.display_name ?? "") as string;
-  const label = userId ? String(userId).slice(0, 8) : "Creator";
+  const name = liveNameFromStreamFields(data.title, data.display_name ?? data.displayName, userId);
+  const avatarLabel = isGenericLiveCreatorName(name) && userId ? name : name;
   return {
     streamKey: key,
-    name: title || label,
+    name,
     avatar: userId
-      ? `https://ui-avatars.com/api/?name=${encodeURIComponent(label)}&background=121212&color=C9A96E`
+      ? `https://ui-avatars.com/api/?name=${encodeURIComponent(avatarLabel)}&background=121212&color=C9A96E`
       : "",
     viewers: 0,
-    title: title || undefined,
+    title: typeof data.title === "string" ? data.title : undefined,
     thumbnail: "",
     userId,
   };
+}
+
+async function enrichLiveStreamCard(card: LiveStreamCard): Promise<LiveStreamCard> {
+  if (!card.userId || !isGenericLiveCreatorName(card.name)) return card;
+  try {
+    const { data, error } = await request(`/api/profiles/${encodeURIComponent(card.userId)}`);
+    if (error || !data) return card;
+    const { name, avatar } = profileToLiveDisplay(data);
+    if (!name && !avatar) return card;
+    return {
+      ...card,
+      name: name || card.name,
+      avatar: avatar || card.avatar,
+      title: name || card.title,
+    };
+  } catch {
+    return card;
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -266,10 +289,10 @@ export default function VideoFeed() {
           );
           return {
             streamKey: key,
-            name: title || (userId ? `User ${String(userId).slice(0, 8)}` : "Creator"),
+            name: liveNameFromStreamFields(title, s.display_name ?? s.displayName, userId),
             avatar: "",
             viewers,
-            title: title || undefined,
+            title: typeof title === "string" ? title : undefined,
             thumbnail: "",
             userId,
           } as LiveStreamCard;
@@ -315,30 +338,25 @@ export default function VideoFeed() {
 
   /* ---- Enrich live stream names/avatars from profiles ---- */
   useEffect(() => {
-    const needsEnrichment = liveStreams.filter(s => s.userId && (!s.name || s.name.startsWith('User ') || s.name === 'Creator'));
+    const needsEnrichment = liveStreams.filter(
+      (s) => s.userId && isGenericLiveCreatorName(s.name),
+    );
     if (needsEnrichment.length === 0) return;
     let cancelled = false;
     (async () => {
       for (const stream of needsEnrichment) {
         if (cancelled || !stream.userId) continue;
-        try {
-          const { data: profile, error: profError } = await request(`/api/profiles/${stream.userId}`);
-          if (profError || cancelled) continue;
-          const displayName = profile?.display_name || profile?.username || profile?.name;
-          const avatar = profile?.avatar_url || profile?.avatar;
-          if (cancelled) return;
-          if (displayName || avatar) {
-            setLiveStreams(prev => prev.map(s =>
-              s.streamKey === stream.streamKey
-                ? { ...s, name: displayName || s.name, avatar: avatar || s.avatar }
-                : s
-            ));
-          }
-        } catch { /* ignore */ }
+        const enriched = await enrichLiveStreamCard(stream);
+        if (cancelled || enriched.name === stream.name && enriched.avatar === stream.avatar) continue;
+        setLiveStreams((prev) =>
+          prev.map((s) => (s.streamKey === stream.streamKey ? enriched : s)),
+        );
       }
     })();
-    return () => { cancelled = true; };
-  }, [liveStreams.map(s => s.streamKey).join(',')]);
+    return () => {
+      cancelled = true;
+    };
+  }, [liveStreams.map((s) => `${s.streamKey}:${s.name}:${s.userId}`).join(",")]);
 
   /* ---- Feed channel: when a creator starts live, they appear on For You immediately; reconnect on close ---- */
   useEffect(() => {
@@ -368,10 +386,16 @@ export default function VideoFeed() {
             const key = (data.stream_key ?? data.room_id) as string;
             if (!key) return;
             if (removedKeysRef.current.has(key)) return;
+            const card = streamStartedToCard(data);
             setLiveStreams((prev) => {
               if (prev.some((s) => s.streamKey === key)) return prev;
-              const next = [streamStartedToCard(data), ...prev];
-              return next;
+              return [card, ...prev];
+            });
+            void enrichLiveStreamCard(card).then((enriched) => {
+              if (enriched.name === card.name && enriched.avatar === card.avatar) return;
+              setLiveStreams((prev) =>
+                prev.map((s) => (s.streamKey === key ? enriched : s)),
+              );
             });
           } else if (event === "stream_ended") {
             const key = (data.stream_key ?? data.room_id) as string;
@@ -565,7 +589,7 @@ export default function VideoFeed() {
 
           return (
             <div
-              key={`video-${item.videoId}-${index}`}
+              key={`video-${item.videoId}`}
               data-feed-index={index}
               className="h-full w-full shrink-0 snap-start flex flex-col items-center bg-[#0A0B0E]"
               style={slideStyle}

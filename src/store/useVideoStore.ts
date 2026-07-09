@@ -566,7 +566,14 @@ export const useVideoStore = create<VideoStore>()(
         const revert = () => {
           set((s) => {
             const followUpdate = (video: Video) => video.user.id === userId
-              ? { ...video, isFollowing: wasFollowing, user: { ...video.user, followers: video.user.followers } }
+              ? {
+                  ...video,
+                  isFollowing: wasFollowing,
+                  user: {
+                    ...video.user,
+                    followers: wasFollowing ? video.user.followers + 1 : Math.max(0, video.user.followers - 1),
+                  },
+                }
               : video;
             const followingUsers = wasFollowing ? [...s.followingUsers, userId] : s.followingUsers.filter(id => id !== userId);
             return {

@@ -28,6 +28,13 @@
  */
 import http from "k6/http";
 import { check, sleep } from "k6";
+import { Counter } from "k6/metrics";
+
+const err429 = new Counter("err_rate_limited");
+const err503 = new Counter("err_backpressure");
+const err5xx = new Counter("err_server_5xx");
+const errReset = new Counter("err_conn_reset");
+const errTimeout = new Counter("err_timeout");
 
 const SERVER_IP = __ENV.SERVER_IP || "";
 if (!SERVER_IP) {
@@ -73,6 +80,14 @@ export default function () {
   check(res, {
     "status 2xx": (r) => r.status >= 200 && r.status < 300,
   });
+  if (res.status === 429) err429.add(1);
+  else if (res.status === 503) err503.add(1);
+  else if (res.status >= 500) err5xx.add(1);
+  if (res.error) {
+    const e = String(res.error);
+    if (e.includes("reset") || e.includes("refused")) errReset.add(1);
+    if (e.includes("timeout")) errTimeout.add(1);
+  }
   sleep(Math.random() * 0.3 + 0.05);
 }
 

@@ -54,7 +54,11 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
       const sort = sortBy === 'oldest' ? 'oldest' : 'newest';
       const { data: body, error } = await request(`/api/videos/${encodeURIComponent(videoId)}/comments?sort=${sort}`);
       if (error) throw new Error(error.message);
-      setComments(Array.isArray(body?.comments) ? body.comments : []);
+      let list = Array.isArray(body?.comments) ? body.comments : [];
+      if (sortBy === 'mostLiked') {
+        list = [...list].sort((a: any, b: any) => (b.likes ?? 0) - (a.likes ?? 0));
+      }
+      setComments(list);
     } catch (error) {
       console.error('Failed to fetch comments:', error);
     } finally {

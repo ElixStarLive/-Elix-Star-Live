@@ -21,7 +21,7 @@ import { IncomingCallModal } from "./components/IncomingCallModal";
 import { subscribeToIncomingCalls } from "./lib/callService";
 import { websocket } from "./lib/websocket";
 import { Capacitor } from "@capacitor/core";
-import { App as CapacitorApp } from "@capacitor/app";
+
 
 // Lazy-loaded page components for code splitting
 const VideoFeed = lazy(() => import("./pages/VideoFeed"));
@@ -207,22 +207,7 @@ function App() {
       document.removeEventListener("visibilitychange", handleVisibility);
   }, []);
 
-  useEffect(() => {
-    if (Capacitor.getPlatform() === "web") return;
-    let handle: { remove: () => Promise<void> } | undefined;
-    let cancelled = false;
-    CapacitorApp.addListener("backButton", ({ canGoBack }) => {
-      if (cancelled) return;
-      if (canGoBack) {
-        navigate(-1);
-      } else {
-        void CapacitorApp.exitApp();
-      }
-    }).then((h) => {
-      if (cancelled) { void h.remove(); } else { handle = h; }
-    });
-    return () => { cancelled = true; void handle?.remove(); };
-  }, [navigate]);
+  // Back button handled by useDeepLinks hook in deepLinks.ts
 
   // Realtime DM/cohost via Node/WebSocket backend.
 

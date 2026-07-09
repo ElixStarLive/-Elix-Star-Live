@@ -16,7 +16,7 @@ import { getGiftValue, normalizeBattleTarget } from "./giftRegistry";
 import {
   broadcastToFeedSubscribers,
 } from "../feedBroadcast";
-import { removeActiveStream } from "../routes/livestream";
+import { removeActiveStream, resolveStreamOwnerUserId } from "../routes/livestream";
 import {
   wsRateCheck,
   tryClaimTransaction,
@@ -301,26 +301,40 @@ export async function handleMessage(
           !(await wsRateCheck(client.userId, "cohost_invite_send", 200, 60_000))
         )
           break;
-        const targetUserId =
+        const rawTarget =
           typeof data.targetUserId === "string" ? data.targetUserId.trim() : "";
+        const streamHint =
+          typeof data.targetStreamKey === "string"
+            ? data.targetStreamKey.trim()
+            : "";
+        if (!rawTarget && !streamHint) break;
+        let targetUserId = await resolveStreamOwnerUserId(rawTarget || streamHint);
+        if (
+          streamHint &&
+          streamHint !== rawTarget &&
+          (!targetUserId || targetUserId === rawTarget || targetUserId === streamHint)
+        ) {
+          const fromStream = await resolveStreamOwnerUserId(streamHint);
+          if (fromStream && fromStream !== streamHint) targetUserId = fromStream;
+        }
         if (!targetUserId || targetUserId === client.userId) break;
         const streamKey =
           typeof data.streamKey === "string" && data.streamKey.trim()
             ? data.streamKey.trim()
             : client.roomId;
-        const cohostSent = sendToUserGlobal(
-          targetUserId,
-          "cohost_invite",
-          {
-            hostUserId: client.userId,
-            hostName: data.hostName || client.displayName,
-            hostAvatar: data.hostAvatar || client.avatarUrl || "",
-            streamKey,
-          },
-        );
+        const invitePayload = {
+          hostUserId: client.userId,
+          hostName: data.hostName || client.displayName,
+          hostAvatar: data.hostAvatar || client.avatarUrl || "",
+          streamKey,
+        };
+        let cohostSent = sendToUserGlobal(targetUserId, "cohost_invite", invitePayload);
+        if (cohostSent === 0 && rawTarget && rawTarget !== targetUserId) {
+          cohostSent = sendToUserGlobal(rawTarget, "cohost_invite", invitePayload);
+        }
         sendToClient(client, "cohost_invite_ack", {
           targetUserId,
-          delivered: cohostSent,
+          delivered: cohostSent > 0,
         });
         break;
       }
@@ -347,8 +361,10 @@ export async function handleMessage(
           !(await wsRateCheck(client.userId, "cohost_request_send", 100, 60_000))
         )
           break;
-        const hostUserId =
-          typeof data.hostUserId === "string" ? data.hostUserId : "";
+        const rawHost =
+          typeof data.hostUserId === "string" ? data.hostUserId.trim() : "";
+        if (!rawHost) break;
+        const hostUserId = await resolveStreamOwnerUserId(rawHost);
         if (!hostUserId) break;
         sendToUserGlobal(hostUserId, "cohost_request", {
           requesterUserId: client.userId,

@@ -66,6 +66,30 @@ router.get("/user/:userId", async (req, res) => {
   res.json({ videos, total: videos.length });
 });
 
+router.get("/saved/list", async (req, res) => {
+  res.setHeader("Cache-Control", "private, no-store");
+  const token = getTokenFromRequest(req);
+  const payload = token ? verifyAuthToken(token) : null;
+  if (!payload?.sub) return res.status(401).json({ error: "Unauthorized", videos: [] });
+  const db = getPool();
+  if (!db) return res.status(503).json({ error: "Database not configured", videos: [] });
+  try {
+    const r = await db.query(
+      `SELECT v.id, v.url, v.thumbnail_url, v.description, v.views, v.likes, v.created_at, v.user_id
+       FROM saves s
+       INNER JOIN videos v ON v.id = s.video_id
+       WHERE s.user_id = $1
+       ORDER BY s.created_at DESC
+       LIMIT 200`,
+      [payload.sub],
+    );
+    return res.json({ videos: r.rows });
+  } catch (err) {
+    logger.error({ err }, "GET saved/list failed");
+    return res.status(500).json({ error: "Failed to load saved videos", videos: [] });
+  }
+});
+
 router.get("/:id", async (req, res) => {
   const video = await getVideoAsync(req.params.id);
   if (!video) return res.status(404).json({ error: "Video not found" });
@@ -129,31 +153,6 @@ router.post("/:id/unlike", async (req, res) => {
   } catch (err) {
     logger.error({ err, videoId: req.params.id }, "unlike failed");
     return res.status(500).json({ error: "Unlike failed" });
-  }
-});
-
-// List saved videos for the authenticated user
-router.get("/saved/list", async (req, res) => {
-  res.setHeader("Cache-Control", "private, no-store");
-  const token = getTokenFromRequest(req);
-  const payload = token ? verifyAuthToken(token) : null;
-  if (!payload?.sub) return res.status(401).json({ error: "Unauthorized", videos: [] });
-  const db = getPool();
-  if (!db) return res.status(503).json({ error: "Database not configured", videos: [] });
-  try {
-    const r = await db.query(
-      `SELECT v.id, v.url, v.thumbnail_url, v.description, v.views, v.likes, v.created_at, v.user_id
-       FROM saves s
-       INNER JOIN videos v ON v.id = s.video_id
-       WHERE s.user_id = $1
-       ORDER BY s.created_at DESC
-       LIMIT 200`,
-      [payload.sub],
-    );
-    return res.json({ videos: r.rows });
-  } catch (err) {
-    logger.error({ err }, "GET saved/list failed");
-    return res.status(500).json({ error: "Failed to load saved videos", videos: [] });
   }
 });
 

@@ -7,6 +7,13 @@
  */
 import http from "k6/http";
 import { check, sleep } from "k6";
+import { Counter } from "k6/metrics";
+
+const err429 = new Counter("err_rate_limited");
+const err503 = new Counter("err_backpressure");
+const err5xx = new Counter("err_server_5xx");
+const errReset = new Counter("err_conn_reset");
+const errTimeout = new Counter("err_timeout");
 
 const BASE = __ENV.BASE_URL || "https://www.elixstarlive.co.uk";
 const BYPASS = __ENV.BYPASS_KEY || "";
@@ -42,8 +49,16 @@ export default function () {
   const path = pickPath();
   const res = http.get(`${BASE.replace(/\/$/, "")}${path}`, params);
   check(res, {
-    "status is 200": (r) => r.status === 200,
+    "status 2xx": (r) => r.status >= 200 && r.status < 300,
   });
+  if (res.status === 429) err429.add(1);
+  else if (res.status === 503) err503.add(1);
+  else if (res.status >= 500) err5xx.add(1);
+  if (res.error) {
+    const e = String(res.error);
+    if (e.includes("reset") || e.includes("refused")) errReset.add(1);
+    if (e.includes("timeout")) errTimeout.add(1);
+  }
   sleep(Math.random() * 0.35 + 0.08);
 }
 

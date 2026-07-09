@@ -141,8 +141,9 @@ export async function handlePostChatMessage(req: Request, res: Response) {
   if (!auth) return;
   const threadId = req.params.threadId;
   const text = typeof (req.body as { text?: string }).text === "string"
-    ? (req.body as { text: string }).text
+    ? (req.body as { text: string }).text.trim()
     : "";
+  if (!text) return res.status(400).json({ error: "Message text is required" });
   const msg = await dbAppendChatMessage(threadId, auth.userId, text);
   if (!msg) {
     return res.status(400).json({ error: "Could not send message" });

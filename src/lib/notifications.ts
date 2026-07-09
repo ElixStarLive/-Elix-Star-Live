@@ -88,7 +88,7 @@ class NotificationService {
     if (!user) return;
 
     try {
-      await request("/api/device-tokens", {
+      const { error } = await request("/api/device-tokens", {
         method: "POST",
         body: JSON.stringify({
           userId: user.id,
@@ -97,9 +97,11 @@ class NotificationService {
         }),
       });
 
-      trackEvent("push_token_registered", {
-        platform: Capacitor.getPlatform(),
-      });
+      if (!error) {
+        trackEvent("push_token_registered", {
+          platform: Capacitor.getPlatform(),
+        });
+      }
     } catch {
       // Non-critical — token registration failure does not break the app
     }

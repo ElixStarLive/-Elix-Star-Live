@@ -61,19 +61,17 @@
     --space-lg: clamp(12px, 3vw, 24px);
     --space-xl: clamp(16px, 4vw, 32px);
 
-    /* Bottom nav zone (matches bar art + tap area; 5mm less than prior 110px) */
-    --nav-height: calc(110px - 3mm - 2mm);
+    /* Bottom nav — luxury icon bar (no PNG art) */
+    --nav-height: clamp(52px, 13vw, 58px);
     /* Extra air above the nav so controls/text never kiss the bar */
-    --nav-tolerance: clamp(10px, 2.8vw, 18px);
+    --nav-tolerance: clamp(8px, 2vw, 14px);
     /* Single token: use for main padding, fixed columns, and bottom-anchored UI */
     --bottom-ui-reserve: calc(var(--nav-height) + var(--safe-bottom) + var(--nav-tolerance));
     /* Top bar height (responsive) */
     --topbar-height: clamp(40px, 10vw, 56px);
-    /* For You golden top bar — flush under notch/status (TopNav.tsx top: var(--topnav-anchor-top)) */
+    /* For You top bar — text tabs (TopNav.tsx) */
     --topnav-anchor-top: var(--safe-top);
-    /* Approximate height of topbar.png after scaleY(0.80); tune if art changes */
-    --topnav-bar-height: clamp(44px, 12vw, 58px);
-    /* For You: no extra band under golden top bar (slide pad = bar bottom only) */
+    --topnav-bar-height: clamp(40px, 10vw, 46px);
     --topnav-video-gap: 0px;
     /* Non–For You pages: offset below where the golden bar would sit */
     --topbar-total: calc(
@@ -90,22 +88,15 @@
           22mm
       )
     );
-    /* For You only (VideoFeed): inner trim + subtract 10mm from result so lift applies even when max() was stuck on safe-top */
+    /* For You only (VideoFeed): trim under text top bar */
     --feed-slide-pad-top-for-you: max(
       0px,
       calc(
-        max(
-          var(--safe-top),
-          var(--topnav-anchor-top) +
-            var(--topnav-bar-height) +
-            var(--topnav-video-gap) -
-            12px -
-            84mm
-        ) - 10mm
+        var(--topnav-anchor-top) + var(--topnav-bar-height) + var(--topnav-video-gap) - 6mm
       )
     );
-    /* Guaranteed extra lift (VideoFeed inner player wrapper) — works even when padding is stuck on safe-area */
-    --feed-video-lift-for-you: 8mm;
+    /* Guaranteed extra lift (VideoFeed inner player wrapper) */
+    --feed-video-lift-for-you: 4mm;
     /* For You main: a bit tighter above bottom nav (still clears tap targets) */
     --feed-main-pb: max(0px, calc(var(--bottom-ui-reserve) - 9mm));
     /* Bottom sheets */

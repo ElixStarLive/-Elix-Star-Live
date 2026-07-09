@@ -135,7 +135,7 @@ class AnalyticsService {
       user_id: this.userId,
       timestamp: new Date().toISOString(),
       platform: this.getPlatform(),
-      app_version: '1.5.0',
+      app_version: import.meta.env.VITE_APP_VERSION || '1.0.2',
     };
 
 
