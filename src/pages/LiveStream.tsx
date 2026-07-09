@@ -707,7 +707,9 @@ export default function LiveStream() {
       targetUserId: creatorId,
       hostName: myCreatorName,
       hostAvatar: myAvatar,
+      streamKey: effectiveStreamId,
     });
+    showToast(`Battle invite sent to @${creator.username}`);
   };
 
   // ─── INCOMING INVITE (for viewers / other broadcasters) ─────
@@ -748,35 +750,14 @@ export default function LiveStream() {
       });
     } catch { /* fire-and-forget */ }
 
-    if (isBroadcast) {
-      showToast(`Battle with @${invite.hostName} starting!`);
-      setIsBattleMode(true);
-      setBattleState('INVITING');
-      setOpponentCreatorName(invite.hostName);
-      if (invite.streamKey) setOpponentStreamKey(invite.streamKey);
-      setBattleSlots(prev => {
-        const next = [...prev];
-        const emptyIdx = next.findIndex(s => s.status === 'empty');
-        if (emptyIdx !== -1) {
-          next[emptyIdx] = { userId: invite.hostUserId, name: invite.hostName, status: 'accepted', avatar: invite.hostAvatar };
-        }
-        return next;
-      });
-      websocket.send('battle_create', {
-        hostName: myCreatorName,
-        opponentUserId: invite.hostUserId,
-        opponentName: invite.hostName,
-        opponentRoomId: invite.streamKey,
-      });
-    } else {
-      showToast(`Joining @${invite.hostName}'s battle...`);
-      navigate(`/live/${invite.streamKey}?battle=1`);
-    }
+    showToast(`Joining @${invite.hostName}'s battle...`);
+    navigate(`/live/${invite.streamKey}?battle=1`);
   };
 
   const declineBattleInvite = async () => {
     if (!pendingInvite) return;
     setPendingInvite(null);
+    showToast('Battle invite declined');
   };
 
   // Mute state per player pane
@@ -878,7 +859,9 @@ export default function LiveStream() {
       targetUserId: creator.id,
       hostName: myCreatorName,
       hostAvatar: myAvatar,
+      streamKey: effectiveStreamId,
     });
+    showToast(`Co-host invite sent to @${creator.name}`);
   };
 
   // ─── INCOMING CO-HOST INVITE (from another creator) ───
@@ -893,6 +876,11 @@ export default function LiveStream() {
       return [...prev, { id: inv.hostUserId, name: inv.hostName, username: inv.hostName, followers: '', avatar: inv.hostAvatar, isLive: true }];
     });
   }, [pendingCohostInvite]);
+
+  const declineCohostInvite = () => {
+    setPendingCohostInvite(null);
+    showToast('Co-host invite declined');
+  };
 
   const acceptCohostInvite = async () => {
     if (!pendingCohostInvite || !user?.id) return;
@@ -2666,6 +2654,9 @@ export default function LiveStream() {
         streamKey: data.streamKey || effectiveStreamId,
         hostUserId: data.hostUserId,
       });
+      setIsFindCreatorsOpen(true);
+      setShowViewerList(true);
+      showToast(`@${data.hostName || 'Creator'} invited you to battle — tap Join or Reject`);
     };
 
     const handleBattleInviteAccepted = (data: any) => {
@@ -2681,9 +2672,24 @@ export default function LiveStream() {
       if (oppStreamKey) setOpponentStreamKey(oppStreamKey);
       setBattleSlots(prev => {
         const next = [...prev];
-        const emptyIdx = next.findIndex(s => s.status === 'empty');
-        if (emptyIdx !== -1) {
-          next[emptyIdx] = { userId: requesterId, name: requesterName, status: 'accepted', avatar: requesterAvatar || '' };
+        const existingIdx = next.findIndex((s) => s.userId === requesterId);
+        if (existingIdx !== -1) {
+          next[existingIdx] = {
+            userId: requesterId,
+            name: requesterName,
+            status: 'accepted',
+            avatar: requesterAvatar || next[existingIdx].avatar,
+          };
+        } else {
+          const emptyIdx = next.findIndex((s) => s.status === 'empty');
+          if (emptyIdx !== -1) {
+            next[emptyIdx] = {
+              userId: requesterId,
+              name: requesterName,
+              status: 'accepted',
+              avatar: requesterAvatar || '',
+            };
+          }
         }
         return next;
       });
@@ -2723,6 +2729,8 @@ export default function LiveStream() {
         streamKey: data.streamKey || '',
         hostUserId: data.hostUserId || '',
       });
+      setShowViewerList(true);
+      showToast(`@${data.hostName || 'Creator'} invited you to co-host — tap Join or Reject`);
     };
 
     const handleCohostInviteAck = (data: any) => {
@@ -2732,11 +2740,25 @@ export default function LiveStream() {
       if (!mounted) return;
       const cohostUserId = typeof data.cohostUserId === 'string' ? data.cohostUserId : '';
       if (!cohostUserId) return;
-      setCoHosts((prev) =>
-        prev.map((h) =>
-          h.userId === cohostUserId ? { ...h, status: 'live' as const } : h
-        )
-      );
+      setCoHosts((prev) => {
+        const idx = prev.findIndex((h) => h.userId === cohostUserId);
+        if (idx !== -1) {
+          return prev.map((h) =>
+            h.userId === cohostUserId ? { ...h, status: 'live' as const } : h,
+          );
+        }
+        return [
+          ...prev,
+          {
+            id: `host-${Date.now()}`,
+            userId: cohostUserId,
+            name: data.cohostName || 'Co-host',
+            avatar: data.cohostAvatar || '',
+            status: 'live' as const,
+            isMuted: false,
+          },
+        ];
+      });
       showToast(`${data.cohostName || 'Co-host'} joined the live`);
     };
 
@@ -4939,6 +4961,54 @@ export default function LiveStream() {
                 </div>
               </div>
               <div className="flex-1 overflow-y-auto no-scrollbar px-4 pb-4 min-h-0">
+                {pendingInvite && (
+                  <div className="mb-3 flex items-center gap-2.5 w-full py-2 px-2 rounded-lg bg-[#C9A96E]/10 border border-[#C9A96E]/30">
+                    <div className="w-10 h-10 rounded-full border-2 border-[#C9A96E]/50 overflow-hidden bg-[#13151A] flex-shrink-0">
+                      {pendingInvite.hostAvatar ? (
+                        <img src={pendingInvite.hostAvatar} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-[#C9A96E] font-bold">{pendingInvite.hostName.slice(0, 1).toUpperCase()}</div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-sm font-semibold truncate">@{pendingInvite.hostName}</p>
+                      <p className="text-white/50 text-[10px]">Battle invite — Join or Reject</p>
+                    </div>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <button type="button" onClick={declineBattleInvite} className="px-2 py-1 rounded-full bg-red-500/20 border border-red-500/30">
+                        <span className="text-red-400 text-[9px] font-bold">Reject</span>
+                      </button>
+                      <button type="button" onClick={() => void acceptBattleInvite()} className="px-2.5 py-1 rounded-full bg-green-500">
+                        <span className="text-black text-[9px] font-bold">Join</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {pendingCohostInvite && (
+                  <div className="mb-3 flex items-center gap-2.5 w-full py-2 px-2 rounded-lg bg-[#C9A96E]/10 border border-[#C9A96E]/30">
+                    <div className="w-10 h-10 rounded-full border-2 border-[#C9A96E]/50 overflow-hidden bg-[#13151A] flex-shrink-0">
+                      {pendingCohostInvite.hostAvatar ? (
+                        <img src={pendingCohostInvite.hostAvatar} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-[#C9A96E] font-bold">{pendingCohostInvite.hostName.slice(0, 1).toUpperCase()}</div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-sm font-semibold truncate">@{pendingCohostInvite.hostName}</p>
+                      <p className="text-white/50 text-[10px]">Co-host invite — Join or Reject</p>
+                    </div>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <button type="button" onClick={declineCohostInvite} className="px-2 py-1 rounded-full bg-red-500/20 border border-red-500/30">
+                        <span className="text-red-400 text-[9px] font-bold">Reject</span>
+                      </button>
+                      <button type="button" onClick={() => void acceptCohostInvite()} className="px-2.5 py-1 rounded-full bg-green-500">
+                        <span className="text-black text-[9px] font-bold">Join</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {coHosts.length > 0 && (
                   <>
                     <p className="text-white/50 text-[10px] font-bold uppercase tracking-wider mb-1.5">Co-hosts</p>

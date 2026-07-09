@@ -251,7 +251,10 @@ export async function handleMessage(
           hostUserId: client.userId,
           hostName: data.hostName || client.displayName,
           hostAvatar: data.hostAvatar || client.avatarUrl || "",
-          streamKey: client.roomId,
+          streamKey:
+            typeof data.streamKey === "string" && data.streamKey.trim()
+              ? data.streamKey.trim()
+              : client.roomId,
         });
         break;
       }
