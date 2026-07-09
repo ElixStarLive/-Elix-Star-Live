@@ -38,8 +38,10 @@ import {
 import { AnimatePresence, motion } from 'framer-motion';
 import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, fetchGiftsFromDatabase } from '../lib/giftsCatalog';
 import {
+  addPersistedTestCoins,
   debitTestCoinsForGift,
   getPersistedTestCoinsBalance,
+  getSpendableGiftBalance,
   persistTestCoinsBalance,
   resolveGiftUiBalance,
   shouldUseTestCoinsForGifts,
@@ -148,6 +150,27 @@ type LiveViewer = {
 
 
 type BattleState = 'LIVE_SOLO' | 'INVITING' | 'IN_BATTLE' | 'ENDED';
+
+/** Compare auth ids / stream keys case-insensitively (avoids self showing in invite lists). */
+function normalizeUserId(id: string | null | undefined): string {
+  return typeof id === 'string' ? id.trim().toLowerCase() : '';
+}
+
+function sameUserId(a: string | null | undefined, b: string | null | undefined): boolean {
+  const na = normalizeUserId(a);
+  const nb = normalizeUserId(b);
+  return !!na && !!nb && na === nb;
+}
+
+function isSelfUser(
+  candidateId: string | null | undefined,
+  userId: string | null | undefined,
+  streamId: string | null | undefined,
+): boolean {
+  if (sameUserId(candidateId, userId)) return true;
+  if (streamId && sameUserId(candidateId, streamId)) return true;
+  return false;
+}
 
 export default function LiveStream() {
   const { streamId } = useParams();
@@ -631,12 +654,18 @@ export default function LiveStream() {
       // Support both snake_case and camelCase from /api/live/streams
       const liveCreators = streams
         .map((s: any) => {
-          const uid = s.user_id ?? s.userId ?? s.hostUserId ?? '';
+          const uid = String(s.user_id ?? s.userId ?? s.hostUserId ?? '').trim();
+          const streamKey = String(s.stream_key ?? s.room_id ?? '').trim();
           const title = s.title ?? s.display_name ?? s.displayName ?? '';
           const label = title ? title.slice(0, 20) : (uid ? uid.slice(0, 8) : 'Creator');
-          return { uid, label };
+          return { uid, streamKey, label };
         })
-        .filter(({ uid }) => uid && uid !== user.id)
+        .filter(({ uid, streamKey }) => {
+          if (!uid) return false;
+          if (isSelfUser(uid, user.id, isBroadcast ? effectiveStreamId : null)) return false;
+          if (streamKey && isSelfUser(streamKey, user.id, isBroadcast ? effectiveStreamId : null)) return false;
+          return true;
+        })
         .map(({ uid, label }) => {
           const avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(label)}&background=121212&color=C9A96E`;
           return {
@@ -656,7 +685,7 @@ export default function LiveStream() {
     } finally {
       setCreatorsLoading(false);
     }
-  }, [user?.id]);
+  }, [user?.id, isBroadcast, effectiveStreamId]);
 
   useEffect(() => {
     if (user?.id) loadCreators();
@@ -672,6 +701,7 @@ export default function LiveStream() {
   }, [showViewerList, user?.id, loadCreators]);
 
   const filteredCreators = creators.filter((c) => {
+    if (isSelfUser(c.id, user?.id, isBroadcast ? effectiveStreamId : null)) return false;
     if (!c.isLive) return false;
     const q = creatorQuery.trim().toLowerCase();
     if (!q) return true;
@@ -834,12 +864,16 @@ export default function LiveStream() {
       showToast('You must be live to invite co-hosts');
       return;
     }
+    if (isSelfUser(creator.id, user?.id, effectiveStreamId)) {
+      showToast('You cannot invite yourself as co-host');
+      return;
+    }
     if (isBattleMode) {
       showToast('End battle first — co-host is available in normal live mode');
       return;
     }
     if (coHosts.length >= MAX_CO_HOSTS) return;
-    if (coHosts.some(h => h.userId === creator.id)) return;
+    if (coHosts.some(h => sameUserId(h.userId, creator.id))) return;
 
     const newHost: CoHost = {
       id: `host-${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -850,7 +884,7 @@ export default function LiveStream() {
       isMuted: false,
     };
     setCoHosts(prev => {
-      if (prev.some(h => h.userId === creator.id)) return prev;
+      if (prev.some(h => sameUserId(h.userId, creator.id))) return prev;
       return [...prev, newHost];
     });
 
@@ -899,10 +933,6 @@ export default function LiveStream() {
     }
   };
 
-  const declineCohostInvite = () => {
-    setPendingCohostInvite(null);
-  };
-
   // ─── JOIN REQUEST: creator receives when someone asked to join (from viewer) ───
   type PendingJoinRequest = { requesterName: string; requesterAvatar: string; requesterId: string; type: 'cohost' | 'battle' };
   const [pendingJoinRequest, setPendingJoinRequest] = useState<PendingJoinRequest | null>(null);
@@ -910,6 +940,10 @@ export default function LiveStream() {
   const acceptJoinRequest = async () => {
     if (!pendingJoinRequest || !user?.id) return;
     const req = pendingJoinRequest;
+    if (isSelfUser(req.requesterId, user.id, effectiveStreamId)) {
+      setPendingJoinRequest(null);
+      return;
+    }
     setPendingJoinRequest(null);
     const myName = user.username || user.name || 'Creator';
     websocket.send('cohost_request_accept', {
@@ -1484,6 +1518,20 @@ export default function LiveStream() {
 
   const [showSharePanel, setShowSharePanel] = useState(false);
   const [showGiftPanel, setShowGiftPanel] = useState(false);
+
+  useEffect(() => {
+    if (!showGiftPanel || !user?.id) return;
+    const testBal = getPersistedTestCoinsBalance(user.id);
+    if (testBal > 0) {
+      setCoinBalance(testBal);
+      return;
+    }
+    request('/api/wallet/').then(({ data, error: walletErr }) => {
+      if (!walletErr && data?.balance != null) {
+        setCoinBalance(Math.max(0, Number(data.balance)));
+      }
+    }).catch(() => {});
+  }, [showGiftPanel, user?.id]);
   const [showPromotePanel, setShowPromotePanel] = useState(false);
   const [shareQuery, setShareQuery] = useState('');
   const [shareFollowers, setShareFollowers] = useState<{ user_id: string; username: string; avatar_url: string | null }[]>([]);
@@ -2723,6 +2771,7 @@ export default function LiveStream() {
 
     const handleCohostInvite = (data: any) => {
       if (!user?.id) return;
+      if (sameUserId(data.hostUserId, user.id)) return;
       setPendingCohostInvite({
         hostName: data.hostName || 'Creator',
         hostAvatar: data.hostAvatar || '',
@@ -2740,11 +2789,12 @@ export default function LiveStream() {
       if (!mounted) return;
       const cohostUserId = typeof data.cohostUserId === 'string' ? data.cohostUserId : '';
       if (!cohostUserId) return;
+      if (isBroadcast && sameUserId(cohostUserId, user?.id)) return;
       setCoHosts((prev) => {
-        const idx = prev.findIndex((h) => h.userId === cohostUserId);
+        const idx = prev.findIndex((h) => sameUserId(h.userId, cohostUserId));
         if (idx !== -1) {
           return prev.map((h) =>
-            h.userId === cohostUserId ? { ...h, status: 'live' as const } : h,
+            sameUserId(h.userId, cohostUserId) ? { ...h, status: 'live' as const } : h,
           );
         }
         return [
@@ -2936,8 +2986,9 @@ export default function LiveStream() {
   const handleSendGift = async (gift: GiftUiItem) => {
     if (!gift) return;
 
-    if (coinBalance < gift.coins) {
-      showToast(`Not enough coins (have ${coinBalance.toLocaleString()}, need ${gift.coins.toLocaleString()})`);
+    const spendable = getSpendableGiftBalance(coinBalance, user?.id);
+    if (spendable < gift.coins) {
+      showToast(`Not enough coins (have ${spendable.toLocaleString()}, need ${gift.coins.toLocaleString()})`);
       return;
     }
 
@@ -2946,7 +2997,7 @@ export default function LiveStream() {
 
       if (user?.id && shouldUseTestCoinsForGifts(user.id)) {
         const debit = debitTestCoinsForGift(user.id, gift.coins);
-        if (!debit.ok) {
+        if (debit.ok === false) {
           showToast(`Not enough coins (have ${debit.balance.toLocaleString()}, need ${gift.coins.toLocaleString()})`);
           return;
         }
@@ -3121,8 +3172,8 @@ export default function LiveStream() {
       if (!lastSentGift) return;
       if (comboCount >= GIFT_COMBO_MAX) return;
 
-      // Check balance
-      if (coinBalance < lastSentGift.coins) {
+      const spendable = getSpendableGiftBalance(coinBalance, user?.id);
+      if (spendable < lastSentGift.coins) {
         showToast("Not enough coins!");
         return;
       }
@@ -5038,9 +5089,9 @@ export default function LiveStream() {
                 )}
 
                 <p className="text-white/50 text-[10px] font-bold uppercase tracking-wider mb-1.5 mt-2">Invite live creators</p>
-                {creatorsToInvite.filter((c) => c.id !== user?.id && !coHosts.some((h) => h.userId === c.id)).length > 0 ? (
+                {creatorsToInvite.filter((c) => !isSelfUser(c.id, user?.id, effectiveStreamId) && !coHosts.some((h) => sameUserId(h.userId, c.id))).length > 0 ? (
                   creatorsToInvite
-                    .filter((c) => c.id !== user?.id && !coHosts.some((h) => h.userId === c.id))
+                    .filter((c) => !isSelfUser(c.id, user?.id, effectiveStreamId) && !coHosts.some((h) => sameUserId(h.userId, c.id)))
                     .map((c) => (
                       <div key={c.id} className="flex items-center gap-3 w-full py-2 rounded-lg hover:bg-white/[0.03]">
                         <div className="w-10 h-10 rounded-full border-2 border-[#C9A96E]/30 overflow-hidden bg-[#13151A] flex-shrink-0">
@@ -5078,7 +5129,8 @@ export default function LiveStream() {
                 <p className="text-white/50 text-[10px] font-bold uppercase tracking-wider mb-1.5 mt-3">Spectators</p>
                 {activeViewers.length > 0 ? (
                   activeViewers.map((v, i) => {
-                    const alreadyInvited = coHosts.some(h => h.userId === v.id);
+                    const alreadyInvited = coHosts.some(h => sameUserId(h.userId, v.id));
+                    if (isSelfUser(v.id, user?.id, effectiveStreamId)) return null;
                     const isJoinRequester = pendingJoinRequest?.requesterId === v.id;
                     return (
                       <div
@@ -5588,17 +5640,10 @@ export default function LiveStream() {
                       setTestCoinsError('Max 100,000,000 per top-up');
                       return;
                     }
-                    const newBal = coinBalance + amount;
+                    const newBal = addPersistedTestCoins(user?.id, amount);
                     setCoinBalance(newBal);
-                    persistTestCoinsBalance(user?.id, newBal);
                     showToast(`+${amount.toLocaleString()} test added`);
                     setShowTestCoinsModal(false);
-                    if (user?.id) {
-                      request('/api/test-coins', {
-                        method: 'POST',
-                        body: JSON.stringify({ amount }),
-                      }).catch(() => {});
-                    }
                   }}
                 >
                   <p className="text-white/40 text-xs mb-3">These coins are for testing only and have no real value.</p>
@@ -5634,17 +5679,10 @@ export default function LiveStream() {
                       type="button"
                       onClick={() => {
                         const amount = 100000000;
-                        const newBal = coinBalance + amount;
+                        const newBal = addPersistedTestCoins(user?.id, amount);
                         setCoinBalance(newBal);
-                        persistTestCoinsBalance(user?.id, newBal);
                         showToast(`+${amount.toLocaleString()} test added`);
                         setShowTestCoinsModal(false);
-                        if (user?.id) {
-                          request('/api/test-coins', {
-                            method: 'POST',
-                            body: JSON.stringify({ amount }),
-                          }).catch(() => {});
-                        }
                       }}
                       className="py-1.5 rounded-lg text-xs font-bold transition-colors bg-[#C9A96E]/30 text-[#C9A96E] hover:bg-[#C9A96E]/40 col-span-3"
                     >

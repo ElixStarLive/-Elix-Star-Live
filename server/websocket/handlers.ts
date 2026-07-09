@@ -302,8 +302,12 @@ export async function handleMessage(
         )
           break;
         const targetUserId =
-          typeof data.targetUserId === "string" ? data.targetUserId : "";
-        if (!targetUserId) break;
+          typeof data.targetUserId === "string" ? data.targetUserId.trim() : "";
+        if (!targetUserId || targetUserId === client.userId) break;
+        const streamKey =
+          typeof data.streamKey === "string" && data.streamKey.trim()
+            ? data.streamKey.trim()
+            : client.roomId;
         const cohostSent = sendToUserGlobal(
           targetUserId,
           "cohost_invite",
@@ -311,7 +315,7 @@ export async function handleMessage(
             hostUserId: client.userId,
             hostName: data.hostName || client.displayName,
             hostAvatar: data.hostAvatar || client.avatarUrl || "",
-            streamKey: client.roomId,
+            streamKey,
           },
         );
         sendToClient(client, "cohost_invite_ack", {

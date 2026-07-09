@@ -34,8 +34,10 @@ import {
 import { GiftPanel } from '../components/GiftPanel';
 import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, fetchGiftsFromDatabase } from '../lib/giftsCatalog';
 import {
+  addPersistedTestCoins,
   debitTestCoinsForGift,
   getPersistedTestCoinsBalance,
+  getSpendableGiftBalance,
   persistTestCoinsBalance,
   resolveGiftUiBalance,
   shouldUseTestCoinsForGifts,
@@ -1528,8 +1530,9 @@ export default function SpectatorPage() {
       const p = value.split('?')[0].toLowerCase();
       return p.endsWith('.mp4') || p.endsWith('.webm');
     };
-    if (coinBalance < gift.coins) {
-      showToast(`Not enough coins (have ${coinBalance.toLocaleString()}, need ${gift.coins.toLocaleString()})`);
+    const spendable = getSpendableGiftBalance(coinBalance, user?.id);
+    if (spendable < gift.coins) {
+      showToast(`Not enough coins (have ${spendable.toLocaleString()}, need ${gift.coins.toLocaleString()})`);
       return;
     }
     if (!websocket.isConnected()) {
@@ -1541,7 +1544,7 @@ export default function SpectatorPage() {
 
     if (user?.id && shouldUseTestCoinsForGifts(user.id)) {
       const debit = debitTestCoinsForGift(user.id, gift.coins);
-      if (!debit.ok) {
+      if (debit.ok === false) {
         showToast(`Not enough coins (have ${debit.balance.toLocaleString()}, need ${gift.coins.toLocaleString()})`);
         return;
       }
@@ -3199,9 +3202,8 @@ export default function SpectatorPage() {
                         setTestCoinsError('Max 100,000,000 per top-up');
                         return;
                       }
-                      const newBal = coinBalance + amount;
+                      const newBal = addPersistedTestCoins(user?.id, amount);
                       setCoinBalance(newBal);
-                      persistTestCoinsBalance(user?.id, newBal);
                       showToast(`+${amount.toLocaleString()} test added`);
                       setShowTestCoinsModal(false);
                       // In memory-only mode, coins are persisted locally
@@ -3240,9 +3242,8 @@ export default function SpectatorPage() {
                         type="button"
                         onClick={() => {
                           const amount = 100000000;
-                          const newBal = coinBalance + amount;
+                          const newBal = addPersistedTestCoins(user?.id, amount);
                           setCoinBalance(newBal);
-                          persistTestCoinsBalance(user?.id, newBal);
                           showToast(`+${amount.toLocaleString()} test added`);
                           setShowTestCoinsModal(false);
                           // In memory-only mode, coins are persisted locally

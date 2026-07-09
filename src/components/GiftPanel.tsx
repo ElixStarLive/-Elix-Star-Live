@@ -18,29 +18,6 @@ interface GiftPanelProps {
   onMembership?: () => void;
 }
 
-function useInView<T extends Element>(options?: IntersectionObserverInit) {
-  const ref = useRef<T | null>(null);
-  const [inView, setInView] = useState(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    if (!("IntersectionObserver" in window)) {
-      setInView(true);
-      return;
-    }
-
-    const observer = new IntersectionObserver(([entry]) => {
-      setInView(entry.isIntersecting);
-    }, options);
-
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [options?.root, options?.threshold]);
-
-  return { ref, inView };
-}
-
 /* ------------------------------------------------------------------ */
 /*  GiftGridItem – PNG icon only; video plays on stream after send    */
 /* ------------------------------------------------------------------ */
@@ -72,9 +49,8 @@ interface GiftGridItemProps {
   gift: GiftItem;
   pngUrl: string;
   isPopped: boolean;
-  onSelect: () => void;
-  onHoverStart: () => void;
-  onHoverEnd: () => void;
+  isSelected: boolean;
+  onTap: () => void;
   borderClass?: string;
 }
 
@@ -82,9 +58,8 @@ function GiftGridItem({
   gift,
   pngUrl,
   isPopped,
-  onSelect,
-  onHoverStart,
-  onHoverEnd,
+  isSelected,
+  onTap,
   borderClass,
 }: GiftGridItemProps) {
   const [imgError, setImgError] = useState(false);
@@ -101,12 +76,13 @@ function GiftGridItem({
 
   return (
     <button
-      onClick={onSelect}
-      onPointerEnter={onHoverStart}
-      onPointerLeave={onHoverEnd}
+      type="button"
+      onClick={onTap}
         className={[
         "group flex flex-col items-center gap-1.5 p-1 rounded-xl hover:brightness-125 border transition-all duration-300 active:scale-95 relative overflow-hidden",
-        borderClass ?? "border-transparent hover:border-secondary/30",
+        isSelected
+          ? "border-secondary/70 ring-1 ring-secondary/40"
+          : borderClass ?? "border-transparent hover:border-secondary/30",
       ].join(" ")}
     >
       <div
@@ -169,13 +145,10 @@ export function GiftPanel({
   const [activeTab, setActiveTab] = useState<"exclusive" | "small" | "big">(
     "big",
   );
-  const [_activeGiftId, setActiveGiftId] = useState<string | null>(null);
+  const [selectedGiftId, setSelectedGiftId] = useState<string | null>(null);
   const [poppedGiftId, setPoppedGiftId] = useState<string | null>(null);
   const [showRecharge, setShowRecharge] = useState(false);
-  const { ref: panelRef, inView } = useInView<HTMLDivElement>({
-    root: null,
-    threshold: 0.05,
-  });
+  const panelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -204,23 +177,24 @@ export function GiftPanel({
   }, [gifts]);
 
   useEffect(() => {
-    if (!inView) return;
-    const first =
-      activeTab === "exclusive" ? (universeGifts[0] ?? bigGifts[0]) : smallGifts[0];
-    if (!first) return;
-    setActiveGiftId((prev) => prev ?? first.id);
-  }, [bigGifts, inView, universeGifts, smallGifts, activeTab]);
+    setSelectedGiftId(null);
+  }, [activeTab]);
 
-  const handleSelectGift = useCallback(
+  const handleGiftTap = useCallback(
     (gift: GiftItem) => {
+      if (selectedGiftId !== gift.id) {
+        setSelectedGiftId(gift.id);
+        return;
+      }
       setPoppedGiftId(gift.id);
       window.setTimeout(
         () => setPoppedGiftId((v) => (v === gift.id ? null : v)),
         520,
       );
+      setSelectedGiftId(null);
       onSelectGift(gift);
     },
-    [onSelectGift],
+    [onSelectGift, selectedGiftId],
   );
 
   return (
@@ -354,11 +328,8 @@ export function GiftPanel({
                   gift={gift}
                   pngUrl={posterByGiftId.get(gift.id) || ""}
                   isPopped={poppedGiftId === gift.id}
-                  onSelect={() => handleSelectGift(gift)}
-                  onHoverStart={() => setActiveGiftId(gift.id)}
-                  onHoverEnd={() =>
-                    setActiveGiftId((v) => (v === gift.id ? null : v))
-                  }
+                  isSelected={selectedGiftId === gift.id}
+                  onTap={() => handleGiftTap(gift)}
                   borderClass="border-secondary/30"
                 />
                 ))}
@@ -378,11 +349,8 @@ export function GiftPanel({
                 gift={gift}
                 pngUrl={posterByGiftId.get(gift.id) || ""}
                 isPopped={poppedGiftId === gift.id}
-                onSelect={() => handleSelectGift(gift)}
-                onHoverStart={() => setActiveGiftId(gift.id)}
-                onHoverEnd={() =>
-                  setActiveGiftId((v) => (v === gift.id ? null : v))
-                }
+                isSelected={selectedGiftId === gift.id}
+                onTap={() => handleGiftTap(gift)}
               />
             ))}
           </div>
@@ -399,11 +367,8 @@ export function GiftPanel({
                 gift={gift}
                 pngUrl={gift.icon}
                 isPopped={poppedGiftId === gift.id}
-                onSelect={() => handleSelectGift(gift)}
-                onHoverStart={() => setActiveGiftId(gift.id)}
-                onHoverEnd={() =>
-                  setActiveGiftId((v) => (v === gift.id ? null : v))
-                }
+                isSelected={selectedGiftId === gift.id}
+                onTap={() => handleGiftTap(gift)}
               />
             ))}
           </div>
