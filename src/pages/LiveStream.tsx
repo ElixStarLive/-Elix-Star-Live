@@ -344,12 +344,12 @@ export default function LiveStream() {
     };
   }, []);
 
-  // Auto-close Viewer List after 10 seconds of inactivity
+  // Auto-close Co-Host panel after 60s of inactivity
   useEffect(() => {
     if (showViewerList) {
       const timer = setTimeout(() => {
         setShowViewerList(false);
-      }, 10000);
+      }, 60000);
       return () => clearTimeout(timer);
     }
   }, [showViewerList]);
@@ -667,6 +667,10 @@ export default function LiveStream() {
     if (isFindCreatorsOpen && user?.id) loadCreators();
   }, [isFindCreatorsOpen, loadCreators]);
 
+  useEffect(() => {
+    if (showViewerList && user?.id) loadCreators();
+  }, [showViewerList, user?.id, loadCreators]);
+
   const filteredCreators = creators.filter((c) => {
     if (!c.isLive) return false;
     const q = creatorQuery.trim().toLowerCase();
@@ -847,6 +851,10 @@ export default function LiveStream() {
   const inviteCoHost = async (creator: { id: string; name: string; avatar?: string }) => {
     if (!isBroadcast || !isMyStreamLive) {
       showToast('You must be live to invite co-hosts');
+      return;
+    }
+    if (isBattleMode) {
+      showToast('End battle first — co-host is available in normal live mode');
       return;
     }
     if (coHosts.length >= MAX_CO_HOSTS) return;
@@ -4931,8 +4939,73 @@ export default function LiveStream() {
                 </div>
               </div>
               <div className="flex-1 overflow-y-auto no-scrollbar px-4 pb-4 min-h-0">
+                {coHosts.length > 0 && (
+                  <>
+                    <p className="text-white/50 text-[10px] font-bold uppercase tracking-wider mb-1.5">Co-hosts</p>
+                    {coHosts.map((h) => (
+                      <div key={h.id} className="flex items-center gap-3 w-full py-2 rounded-lg hover:bg-white/[0.03]">
+                        <div className="w-10 h-10 rounded-full border-2 border-[#C9A96E]/30 overflow-hidden bg-[#13151A] flex-shrink-0">
+                          {h.avatar ? (
+                            <img src={h.avatar} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <span className="text-[#C9A96E] font-bold text-sm">{(h.name || '?').slice(0, 1).toUpperCase()}</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white text-sm font-semibold truncate">{h.name}</p>
+                          <p className="text-white/40 text-[10px] font-medium capitalize">{h.status === 'live' ? 'Live on stream' : h.status}</p>
+                        </div>
+                        {h.status === 'live' ? (
+                          <span className="text-green-400 text-[10px] font-bold flex-shrink-0">Live</span>
+                        ) : (
+                          <span className="text-[#C9A96E] text-[10px] font-semibold flex-shrink-0">Invited</span>
+                        )}
+                      </div>
+                    ))}
+                  </>
+                )}
+
+                <p className="text-white/50 text-[10px] font-bold uppercase tracking-wider mb-1.5 mt-2">Invite live creators</p>
+                {creatorsToInvite.filter((c) => c.id !== user?.id && !coHosts.some((h) => h.userId === c.id)).length > 0 ? (
+                  creatorsToInvite
+                    .filter((c) => c.id !== user?.id && !coHosts.some((h) => h.userId === c.id))
+                    .map((c) => (
+                      <div key={c.id} className="flex items-center gap-3 w-full py-2 rounded-lg hover:bg-white/[0.03]">
+                        <div className="w-10 h-10 rounded-full border-2 border-[#C9A96E]/30 overflow-hidden bg-[#13151A] flex-shrink-0">
+                          <img src={c.avatar} alt="" className="w-full h-full object-cover" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white text-sm font-semibold truncate">{c.name || c.username}</p>
+                          <p className="text-white/40 text-[10px] font-medium">Live now</p>
+                        </div>
+                        {isBroadcast && isMyStreamLive && (
+                          <button
+                            type="button"
+                            onClick={() => { inviteCoHost({ id: c.id, name: c.name || c.username, avatar: c.avatar }); }}
+                            className="px-2.5 py-1 rounded-full bg-[#C9A96E] text-black text-[10px] font-bold flex-shrink-0"
+                          >
+                            Invite
+                          </button>
+                        )}
+                      </div>
+                    ))
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-4 text-center">
+                    <p className="text-white/40 text-xs">
+                      {creatorsLoading ? 'Loading live creators...' : creatorsLoadFailed ? "Couldn't load creators" : 'No other live creators right now'}
+                    </p>
+                    {creatorsLoadFailed && (
+                      <button type="button" onClick={() => loadCreators()} className="mt-2 px-3 py-1.5 rounded-lg bg-[#C9A96E]/20 border border-[#C9A96E]/40 text-[#C9A96E] text-[10px] font-bold active:scale-95">
+                        Retry
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 {/* Spectators — invite as co-host or open profile; join request (Accept/Decline) shown on requester's row */}
-                <p className="text-white/50 text-[10px] font-bold uppercase tracking-wider mb-1.5">Spectators</p>
+                <p className="text-white/50 text-[10px] font-bold uppercase tracking-wider mb-1.5 mt-3">Spectators</p>
                 {activeViewers.length > 0 ? (
                   activeViewers.map((v, i) => {
                     const alreadyInvited = coHosts.some(h => h.userId === v.id);
