@@ -199,7 +199,6 @@ async function buildStreamsResult(): Promise<StreamsListPayload> {
     }
   }
 
-  const dbRows = await dbGetLiveStreams();
   const streams = dbRows.map((row) => ({
     room_id: row.stream_key,
     stream_key: row.stream_key,
