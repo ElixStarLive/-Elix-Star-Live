@@ -10,6 +10,10 @@ import { getPool, dbLoadGifts, dbGetGiftCost } from "../lib/postgres";
 import { neonDebitGift, neonEnsureBalanceFromFile } from "../lib/walletNeon";
 import { logger } from "../lib/logger";
 import { assertGiftRestVelocityOk } from "../lib/fraud";
+import {
+  giftIconUrlFromAnimation,
+  resolveGiftMediaUrl,
+} from "../lib/giftAssets";
 
 function requireAuth(req: Request, res: Response): { userId: string } | null {
   const token = getTokenFromRequest(req);
@@ -110,7 +114,16 @@ export async function handleSendGift(req: Request, res: Response) {
 /** GET /api/gifts/catalog — return active gifts from DB */
 export async function handleGetGiftCatalog(_req: Request, res: Response) {
   try {
-    const gifts = await dbLoadGifts();
+    const rows = await dbLoadGifts();
+    const gifts = rows.map((g) => {
+      const animation_url = resolveGiftMediaUrl(g.animation_url);
+      const icon_url = giftIconUrlFromAnimation(animation_url);
+      return {
+        ...g,
+        animation_url,
+        icon_url,
+      };
+    });
     res.setHeader("Cache-Control", "public, s-maxage=300, max-age=60");
     return res.status(200).json({ gifts });
   } catch (err) {

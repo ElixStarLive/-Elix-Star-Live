@@ -45,6 +45,7 @@ import { getVideoCountAsync } from "./lib/videoStore";
 import { logger } from "./lib/logger";
 import { loadGiftValuesFromDb } from "./websocket/giftRegistry";
 import { validateAuthSecretOrDie } from "./routes/auth";
+import { getGiftCdnOrigin } from "./lib/giftAssets";
 import helmet from "helmet";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -371,11 +372,30 @@ app.get("/env.js", (_req, res) => {
   if (process.env.LIVEKIT_URL && typeof process.env.LIVEKIT_URL === "string") {
     env.VITE_LIVEKIT_URL = process.env.LIVEKIT_URL;
   }
-  if (!env.VITE_GIFT_ASSET_BASE_URL && process.env.BUNNY_STORAGE_HOSTNAME) {
-    env.VITE_GIFT_ASSET_BASE_URL = `https://${process.env.BUNNY_STORAGE_HOSTNAME}`;
+  if (
+    env.VITE_GIFT_ASSET_BASE_URL &&
+    /storage\.bunnycdn\.com/i.test(env.VITE_GIFT_ASSET_BASE_URL)
+  ) {
+    delete env.VITE_GIFT_ASSET_BASE_URL;
   }
-  if (!env.VITE_BUNNY_CDN_HOSTNAME && process.env.BUNNY_STORAGE_HOSTNAME) {
-    env.VITE_BUNNY_CDN_HOSTNAME = process.env.BUNNY_STORAGE_HOSTNAME;
+  if (!env.VITE_GIFT_ASSET_BASE_URL) {
+    const cdnHost =
+      process.env.BUNNY_CDN_HOSTNAME ||
+      process.env.VITE_BUNNY_CDN_HOSTNAME ||
+      "";
+    const cdnUrl = process.env.VITE_CDN_URL || "";
+    if (cdnHost) {
+      env.VITE_GIFT_ASSET_BASE_URL = cdnHost.startsWith("http")
+        ? cdnHost
+        : `https://${cdnHost.replace(/^\/+/, "")}`;
+    } else if (cdnUrl) {
+      env.VITE_GIFT_ASSET_BASE_URL = cdnUrl;
+    } else {
+      env.VITE_GIFT_ASSET_BASE_URL = getGiftCdnOrigin();
+    }
+  }
+  if (!env.VITE_BUNNY_CDN_HOSTNAME && process.env.BUNNY_CDN_HOSTNAME) {
+    env.VITE_BUNNY_CDN_HOSTNAME = process.env.BUNNY_CDN_HOSTNAME;
   }
   res.setHeader("Content-Type", "application/javascript; charset=utf-8");
   res.setHeader("Cache-Control", "no-store");
@@ -386,6 +406,15 @@ app.get("/env.js", (_req, res) => {
         JSON.stringify(env) +
         ");",
     );
+});
+
+// ── Gift media: same-origin /gifts/* → Bunny CDN (fixes broken grid icons) ──
+app.use("/gifts", (req, res) => {
+  const subpath = req.path.replace(/^\/+/, "");
+  if (!subpath || subpath.includes("..")) {
+    return res.status(400).json({ error: "Invalid gift path" });
+  }
+  res.redirect(302, `${getGiftCdnOrigin()}/gifts/${subpath}`);
 });
 
 // ── Static files ─────────────────────────────────────────────────

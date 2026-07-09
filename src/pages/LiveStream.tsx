@@ -2863,7 +2863,10 @@ export default function LiveStream() {
           const videoUrl = (raw.startsWith('http://') || raw.startsWith('https://'))
             ? raw
             : resolveGiftAssetUrl(raw.startsWith('/') ? raw : `/${raw}`);
-          if (videoUrl) setGiftQueue(prev => [...prev, { video: videoUrl }]);
+          if (videoUrl) {
+            setGiftQueue(prev => [...prev, { video: videoUrl }]);
+            setShowGiftPanel(false);
+          }
         }
       }
       
@@ -3089,7 +3092,10 @@ export default function LiveStream() {
         const videoUrl = (lastSentGift.video.startsWith('http://') || lastSentGift.video.startsWith('https://'))
           ? lastSentGift.video
           : resolveGiftAssetUrl(lastSentGift.video.startsWith('/') ? lastSentGift.video : `/${lastSentGift.video}`);
-        if (videoUrl) setGiftQueue(prev => [...prev, { video: videoUrl }]);
+        if (videoUrl) {
+          setGiftQueue(prev => [...prev, { video: videoUrl }]);
+          setShowGiftPanel(false);
+        }
       }
       
       // Add to chat

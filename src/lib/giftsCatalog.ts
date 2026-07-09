@@ -6,6 +6,7 @@ export type GiftCatalogRow = {
   gift_type: 'universe' | 'big' | 'small';
   coin_cost: number;
   animation_url: string | null;
+  icon_url?: string | null;
   sfx_url: string | null;
   is_active: boolean;
 };
@@ -64,17 +65,55 @@ export async function fetchGiftPriceMap(): Promise<Map<string, number>> {
   }
 }
 
-const normalizeBase = (base: string) => base.replace(/\/+$/, '');
+/** Public Bunny CDN for all gift icons/videos (never use storage.bunnycdn.com in browser). */
+export const GIFT_CDN_ORIGIN = 'https://elixstorage.b-cdn.net';
 
-export function resolveGiftAssetUrl(path: string): string {
+function giftPathFromUrl(path: string): string {
   if (path.startsWith('http://') || path.startsWith('https://')) {
-    return path;
+    try {
+      return new URL(path).pathname;
+    } catch {
+      return path;
+    }
   }
-  const giftsBase = import.meta.env.VITE_GIFT_ASSET_BASE_URL as string | undefined;
-  if (!giftsBase) return path;
-  const base = normalizeBase(giftsBase);
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  return `${base}${normalizedPath}`;
+  return path.startsWith('/') ? path : `/${path}`;
+}
+
+/** Normalize any gift media path/URL to a public Bunny CDN URL. */
+export function resolveGiftAssetUrl(path: string): string {
+  if (!path || path.startsWith('data:')) return path;
+  if (path.startsWith('/Icons/')) return path;
+
+  const pathname = giftPathFromUrl(path);
+  const rel = pathname.replace(/^\/+/, '');
+  if (!rel) return `${GIFT_CDN_ORIGIN}/`;
+
+  if (
+    path.startsWith('http://') ||
+    path.startsWith('https://')
+  ) {
+    if (/elixstorage\.b-cdn\.net/i.test(path)) return path;
+  }
+
+  return `${GIFT_CDN_ORIGIN}/${rel}`;
+}
+
+/** Map legacy DB gift ids to real Bunny Storage filenames. */
+const GIFT_ANIMATION_OVERRIDES: Record<string, string> = {
+  rose: '/gifts/treasure_drake_cub.mp4',
+  heart: '/gifts/pink_love_jet.mp4',
+  kiss: '/gifts/romantic_jet.mp4',
+  crown: '/gifts/crown_kitty_treasure.mp4',
+  diamond: '/gifts/celestial_star_wand.mp4',
+  rocket: '/gifts/lightning_hypercar.mp4',
+};
+
+function giftPosterPath(animationPath: string): string {
+  const pathOnly = animationPath.split('?')[0];
+  if (/\.(mp4|webm|mov)$/i.test(pathOnly)) {
+    return pathOnly.replace(/\.(mp4|webm|mov)$/i, '.png');
+  }
+  return pathOnly;
 }
 
 export function buildGiftUiItemsFromCatalog(rows: GiftCatalogRow[]): GiftUiItem[] {
@@ -97,10 +136,10 @@ export function buildGiftUiItemsFromCatalog(rows: GiftCatalogRow[]): GiftUiItem[
           
           if (!filename) return url;
           
-          let newFilename = filename.toLowerCase()
+          let newFilename = filename
             .replace(/%20/g, '_')
             .replace(/\s+/g, '_')
-            .replace(/[^a-z0-9.]/g, '_')
+            .replace(/[^a-zA-Z0-9.]/g, '_')
             .replace(/_+/g, '_')
             .replace(/_\./g, '.');
             
@@ -126,10 +165,14 @@ export function buildGiftUiItemsFromCatalog(rows: GiftCatalogRow[]): GiftUiItem[
     .map((row) => {
       const fallback = faceArFallback[row.gift_id];
       const dbAnimation = sanitizeGiftUrl(row.animation_url);
-      
-      const animation = dbAnimation ?? (fallback ? fallback.video : null);
-      const icon = fallback?.icon ?? (animation ? resolveGiftAssetUrl(animation) : '/Icons/Gift%20icon.png?v=3');
-      const video = animation ? resolveGiftAssetUrl(animation) : icon;
+      const overrideAnimation = GIFT_ANIMATION_OVERRIDES[row.gift_id];
+
+      const animation = overrideAnimation ?? dbAnimation ?? (fallback ? fallback.video : null);
+      const video = animation ? resolveGiftAssetUrl(animation) : '/Icons/Gift%20icon.png?v=3';
+      const iconFromApi = row.icon_url ? resolveGiftAssetUrl(row.icon_url) : null;
+      const icon = fallback?.icon
+        ?? iconFromApi
+        ?? (animation ? resolveGiftAssetUrl(giftPosterPath(animation)) : '/Icons/Gift%20icon.png?v=3');
 
       return {
         id: row.gift_id,

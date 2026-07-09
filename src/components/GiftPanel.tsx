@@ -8,7 +8,7 @@ import React, {
 import { Gift, Coins, Trophy, Heart } from "lucide-react";
 import { IS_STORE_BUILD } from "@/config/build";
 import { BuyCoinsModal } from "./BuyCoinsModal";
-import { GiftItem, fetchGiftsFromDatabase } from "../lib/giftsCatalog";
+import { GiftItem, fetchGiftsFromDatabase, resolveGiftAssetUrl } from "../lib/giftsCatalog";
 
 interface GiftPanelProps {
   onSelectGift: (gift: GiftItem) => void;
@@ -45,6 +45,35 @@ function useInView<T extends Element>(options?: IntersectionObserverInit) {
 /*  GiftGridItem – shows PNG instantly, video loads behind & plays    */
 /*  on hover / active selection                                       */
 /* ------------------------------------------------------------------ */
+const GIFT_CDN_ORIGIN = "https://elixstorage.b-cdn.net";
+
+function giftIconCdnFallback(src: string): string | null {
+  if (!src || src.startsWith("data:") || src.includes("elixstorage.b-cdn.net")) {
+    return null;
+  }
+  try {
+    let path = src;
+    if (src.startsWith("http")) {
+      const host = new URL(src).hostname;
+      if (host.includes("storage.bunnycdn.com") || host.includes("elixstarlive")) {
+        path = new URL(src).pathname;
+      } else {
+        return null;
+      }
+    }
+    if (!path.includes("/gifts/")) return null;
+    const rel = path.replace(/^\/+/, "");
+    return `${GIFT_CDN_ORIGIN}/${rel}`;
+  } catch {
+    return null;
+  }
+}
+
+function isGiftVideoFile(value: string): boolean {
+  const p = value.split('?')[0].toLowerCase();
+  return p.endsWith('.mp4') || p.endsWith('.webm');
+}
+
 interface GiftGridItemProps {
   gift: GiftItem;
   pngUrl: string;
@@ -66,11 +95,19 @@ function GiftGridItem({
 }: GiftGridItemProps) {
   const [hovered, setHovered] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
+  const [previewing, setPreviewing] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [iconSrc, setIconSrc] = useState(() => resolveGiftAssetUrl(pngUrl || gift.icon));
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
-  // Disable hover-preview playback in the gift grid; video plays only when a gift is actually sent.
-  const hasVideo = false;
+  useEffect(() => {
+    setIconSrc(resolveGiftAssetUrl(pngUrl || gift.icon));
+    setImgError(false);
+    setPreviewing(false);
+  }, [pngUrl, gift.icon]);
+
+  const hasVideo = Boolean(gift.video && isGiftVideoFile(gift.video));
+  const showVideo = hasVideo && videoReady && (hovered || previewing);
 
   const displayIcon = imgError
     ? "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><rect width="64" height="64" fill="#2a2a2a"/><text x="32" y="38" text-anchor="middle" fill="#666" font-size="10" font-family="sans-serif">?</text></svg>')
@@ -86,6 +123,7 @@ function GiftGridItem({
 
   const handlePointerLeave = useCallback(() => {
     setHovered(false);
+    setPreviewing(false);
     onHoverEnd();
     if (hasVideo && videoRef.current) {
       videoRef.current.pause();
@@ -94,11 +132,11 @@ function GiftGridItem({
   }, [hasVideo, onHoverEnd]);
 
   const handleClick = useCallback(() => {
-    onSelect();
-    // Also briefly play video on tap for mobile
     if (hasVideo && videoRef.current) {
+      setPreviewing(true);
       videoRef.current.play().catch(() => {});
     }
+    onSelect();
   }, [hasVideo, onSelect]);
 
   return (
@@ -106,8 +144,8 @@ function GiftGridItem({
       onClick={handleClick}
       onPointerEnter={handlePointerEnter}
       onPointerLeave={handlePointerLeave}
-      className={[
-        "group flex flex-col items-center gap-1.5 p-1 rounded-xl hover:brightness-125 border transition-all duration-300 active:scale-95 relative overflow-hidden z-[99999]",
+        className={[
+        "group flex flex-col items-center gap-1.5 p-1 rounded-xl hover:brightness-125 border transition-all duration-300 active:scale-95 relative overflow-hidden",
         borderClass ?? "border-transparent hover:border-secondary/30",
       ].join(" ")}
     >
@@ -119,15 +157,21 @@ function GiftGridItem({
       >
         {/* PNG image – always visible; fallback to default icon if CDN image fails (e.g. missing in Bunny) */}
         <img
-          src={displayIcon}
+          src={imgError ? displayIcon : iconSrc}
           alt={gift.name}
-          className="w-full h-full object-contain p-1 pointer-events-none relative z-[2]"
+          className="w-full h-full object-contain p-1 pointer-events-none relative"
           style={{
-            opacity: hovered && videoReady && hasVideo ? 0 : 1,
+            opacity: showVideo ? 0 : 1,
+            zIndex: showVideo ? 1 : 2,
             transition: "opacity 0.25s ease",
           }}
           draggable={false}
           onError={() => {
+            const fallback = giftIconCdnFallback(iconSrc);
+            if (fallback && fallback !== iconSrc) {
+              setIconSrc(fallback);
+              return;
+            }
             setImgError(true);
           }}
         />
@@ -137,15 +181,16 @@ function GiftGridItem({
           <video
             ref={videoRef}
             src={gift.video}
-            poster={pngUrl}
+            poster={iconSrc}
             muted
             loop
             playsInline
             preload="none"
             onLoadedData={() => setVideoReady(true)}
-            className="absolute inset-0 w-full h-full object-contain p-1 pointer-events-none z-[1]"
+            className="w-full h-full object-contain p-1 pointer-events-none absolute inset-0"
             style={{
-              opacity: hovered && videoReady ? 1 : 0,
+              opacity: showVideo ? 1 : 0,
+              zIndex: showVideo ? 3 : 1,
               transition: "opacity 0.25s ease",
             }}
           />
@@ -205,8 +250,8 @@ export function GiftPanel({
     return () => { cancelled = true; };
   }, []);
 
-  const universeGift = useMemo(
-    () => gifts.find((g) => g.giftType === "universe"),
+  const universeGifts = useMemo(
+    () => gifts.filter((g) => g.giftType === "universe"),
     [gifts],
   );
   const bigGifts = useMemo(() => gifts.filter((g) => g.giftType === "big"), [gifts]);
@@ -226,10 +271,10 @@ export function GiftPanel({
   useEffect(() => {
     if (!inView) return;
     const first =
-      activeTab === "exclusive" ? (universeGift ?? bigGifts[0]) : smallGifts[0];
+      activeTab === "exclusive" ? (universeGifts[0] ?? bigGifts[0]) : smallGifts[0];
     if (!first) return;
     setActiveGiftId((prev) => prev ?? first.id);
-  }, [bigGifts, inView, universeGift, smallGifts, activeTab]);
+  }, [bigGifts, inView, universeGifts, smallGifts, activeTab]);
 
   const handleSelectGift = useCallback(
     (gift: GiftItem) => {
@@ -365,21 +410,23 @@ export function GiftPanel({
       {/* ============ Exclusive Tab ============ */}
       {activeTab === "exclusive" && (
         <div className="animate-fade-in">
-          {universeGift && (
+          {universeGifts.length > 0 && (
             <div className="mb-4">
               <div className="grid grid-cols-4 gap-2">
+                {universeGifts.map((gift) => (
                 <GiftGridItem
-                  key={universeGift.id}
-                  gift={universeGift}
-                  pngUrl={posterByGiftId.get(universeGift.id) || ""}
-                  isPopped={poppedGiftId === universeGift.id}
-                  onSelect={() => handleSelectGift(universeGift)}
-                  onHoverStart={() => setActiveGiftId(universeGift.id)}
+                  key={gift.id}
+                  gift={gift}
+                  pngUrl={posterByGiftId.get(gift.id) || ""}
+                  isPopped={poppedGiftId === gift.id}
+                  onSelect={() => handleSelectGift(gift)}
+                  onHoverStart={() => setActiveGiftId(gift.id)}
                   onHoverEnd={() =>
-                    setActiveGiftId((v) => (v === universeGift.id ? null : v))
+                    setActiveGiftId((v) => (v === gift.id ? null : v))
                   }
                   borderClass="border-secondary/30"
                 />
+                ))}
               </div>
             </div>
           )}
