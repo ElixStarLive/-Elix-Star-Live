@@ -65,10 +65,9 @@
     --space-lg: clamp(12px, 3vw, 24px);
     --space-xl: clamp(16px, 4vw, 32px);
 
-    /* Bottom nav — gold PNG bar (`public/Icons/bottombar.png`) */
-    --nav-height: calc(110px - 3mm - 2mm);
-    /* Extra air above the nav so controls/text never kiss the bar */
-    --nav-tolerance: clamp(8px, 2vw, 14px);
+    /* Bottom nav — gold PNG sprites from `public/Icons/bottombar.png` */
+    --nav-height: clamp(84px, 21vw, 96px);
+    --nav-tolerance: clamp(4px, 1vw, 8px);
     /* Single token: use for main padding, fixed columns, and bottom-anchored UI */
     --bottom-ui-reserve: calc(var(--nav-height) + var(--safe-bottom) + var(--nav-tolerance));
     /* Top bar height (responsive) */
