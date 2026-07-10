@@ -3,6 +3,8 @@ import React from 'react';
 type CaptureShutterButtonProps = {
   size?: number;
   recording?: boolean;
+  /** Bottom nav create — thicker white ring, larger red fill */
+  nav?: boolean;
   className?: string;
 };
 
@@ -10,10 +12,17 @@ type CaptureShutterButtonProps = {
 export function CaptureShutterButton({
   size = 72,
   recording = false,
+  nav = false,
   className = '',
 }: CaptureShutterButtonProps) {
-  const ring = Math.max(3, Math.round(size * 0.06));
-  const inner = recording ? Math.round(size * 0.34) : Math.round(size * 0.7);
+  const ring = nav
+    ? Math.max(4, Math.round(size * 0.09))
+    : Math.max(3, Math.round(size * 0.06));
+  const inner = recording
+    ? Math.round(size * 0.34)
+    : nav
+      ? Math.round(size * 0.74)
+      : Math.round(size * 0.7);
 
   return (
     <span
@@ -23,6 +32,7 @@ export function CaptureShutterButton({
         height: size,
         border: `${ring}px solid #ffffff`,
         background: 'transparent',
+        boxShadow: nav ? '0 0 0 1px rgba(0,0,0,0.35)' : undefined,
       }}
       aria-hidden
     >

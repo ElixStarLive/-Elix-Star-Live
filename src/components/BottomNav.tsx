@@ -56,12 +56,12 @@ export const BottomNav = () => {
                   aria-label={label}
                   aria-current={active ? "page" : undefined}
                   className={`flex flex-col items-center justify-center flex-1 min-w-0 gap-0.5 active:opacity-75 transition-opacity ${
-                    center ? "-mt-0.5" : ""
+                    center ? "-mt-2" : ""
                   }`}
                   style={{ WebkitTapHighlightColor: "transparent" }}
                 >
                   {center ? (
-                    <CaptureShutterButton size={40} />
+                    <CaptureShutterButton size={52} nav />
                   ) : Icon ? (
                     <span
                       className="royce-tile"
