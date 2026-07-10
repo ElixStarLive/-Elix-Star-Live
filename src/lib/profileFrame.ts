@@ -11,20 +11,20 @@ export function profileRingOuterAddMm(baseOuterPx: number, mm: number): number {
 /** Extra outer diameter for live/spectator MVP rings vs previous 36 / 35 / 24px bases. */
 export const PROFILE_RING_SIZE_BUMP_MM = 3;
 
-/** Live host + chat: was 36px outer. */
-export const LIVE_MVP_PROFILE_RING_PX = profileRingOuterAddMm(36, PROFILE_RING_SIZE_BUMP_MM);
+/** Live top-bar MVP avatars. */
+export const LIVE_MVP_PROFILE_RING_PX = 28;
 
-/** Spectator top bar MVP row: was 35px outer. */
-export const SPECTATOR_MVP_PROFILE_RING_PX = LIVE_MVP_PROFILE_RING_PX;
+/** Spectator top bar MVP row. */
+export const SPECTATOR_MVP_PROFILE_RING_PX = 28;
 
-/** Spectator battle split rows: was 24px outer. */
-export const SPECTATOR_BATTLE_PROFILE_RING_PX = LIVE_MVP_PROFILE_RING_PX;
+/** Battle bottom MVP row (3 per side). */
+export const SPECTATOR_BATTLE_PROFILE_RING_PX = 20;
 
-/** Chat LV green pill only; circle uses {@link LIVE_MVP_PROFILE_RING_PX}. Smaller base (22 vs 32) than legacy combined scale. */
-export const CHAT_LEVEL_PILL_SIZE_PX = Math.max(18, Math.round((22 * LIVE_MVP_PROFILE_RING_PX) / 36));
+/** Chat LV green pill only; circle uses {@link LIVE_MVP_PROFILE_RING_PX}. */
+export const CHAT_LEVEL_PILL_SIZE_PX = Math.max(16, Math.round((22 * LIVE_MVP_PROFILE_RING_PX) / 36));
 
-/** Main host avatar in live top bar (round ring next to name pill): +3 mm vs former 56 px base. */
-export const LIVE_TOP_AVATAR_RING_PX = profileRingOuterAddMm(56, PROFILE_RING_SIZE_BUMP_MM);
+/** Main host avatar in live top bar (next to name pill). */
+export const LIVE_TOP_AVATAR_RING_PX = 48;
 
 /** Name / likes pill behind host label — ~20 mm less right padding than old `pr-16` (4 rem), min 3 rem so Join/Follow still fit. */
 export const CREATOR_NAME_PILL_PADDING_RIGHT = 'max(3rem,calc(4rem - 20mm))' as const;

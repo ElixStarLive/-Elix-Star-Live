@@ -58,6 +58,7 @@ import {
   CREATOR_NAME_PILL_CLASSNAME,
   getCreatorNamePillStyle,
   LIVE_MVP_PROFILE_RING_PX,
+  SPECTATOR_BATTLE_PROFILE_RING_PX,
   LIVE_TOP_AVATAR_RING_PX,
 } from '../lib/profileFrame';
 import { useAuthStore } from '../store/useAuthStore';
@@ -4256,7 +4257,7 @@ export default function LiveStream() {
                     <AvatarRing
                       src={resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username)}
                       alt={viewer.displayName || viewer.username || ''}
-                      size={LIVE_MVP_PROFILE_RING_PX}
+                      size={SPECTATOR_BATTLE_PROFILE_RING_PX}
                     />
                   </div>
                 ))}
@@ -4271,7 +4272,7 @@ export default function LiveStream() {
                     <AvatarRing
                       src={resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username)}
                       alt={viewer.displayName || viewer.username || ''}
-                      size={LIVE_MVP_PROFILE_RING_PX}
+                      size={SPECTATOR_BATTLE_PROFILE_RING_PX}
                     />
                   </div>
                 ))}
