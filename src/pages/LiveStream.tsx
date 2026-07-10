@@ -2276,15 +2276,6 @@ export default function LiveStream() {
     setMvpGiftScoresOpponent({});
   }, [effectiveStreamId]);
 
-  const topMvpViewers = useMemo(() => {
-    return [...activeViewers].sort((a, b) => {
-      const sa = mvpGiftScores[a.id] ?? 0;
-      const sb = mvpGiftScores[b.id] ?? 0;
-      if (sb !== sa) return sb - sa;
-      return b.level - a.level;
-    });
-  }, [activeViewers, mvpGiftScores]);
-
   const topMvpHostBattle = useMemo(() => {
     return [...activeViewers].sort((a, b) => {
       const sa = mvpGiftScoresHost[a.id] ?? 0;
@@ -4436,28 +4427,6 @@ export default function LiveStream() {
                       </div>
 
                       <div className="pointer-events-auto flex items-center gap-[0mm] mt-1">
-                        <div className="flex items-center gap-[0mm] pointer-events-auto flex-shrink-0" onClick={() => setShowViewerList(prev => !prev)}>
-                          {[0, 1, 2].map((i) => (
-                            <div
-                              key={`top-viewers-${i}`}
-                              style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '-2mm' }}
-                              className="relative"
-                            >
-                              <GoldProfileFrame size={LIVE_MVP_PROFILE_RING_PX}>
-                                {topMvpViewers[i] ? (
-                                  <img
-                                    src={resolveCircleAvatar(topMvpViewers[i].avatar, topMvpViewers[i].displayName || topMvpViewers[i].username)}
-                                    alt=""
-                                    className="h-full w-full rounded-full object-cover object-center"
-                                    style={{ transform: 'translateY(0.5mm)' }}
-                                  />
-                                ) : (
-                                  <Plus className="text-[#D4AF37]" size={16} strokeWidth={2.5} />
-                                )}
-                              </GoldProfileFrame>
-                            </div>
-                          ))}
-                        </div>
                         <button
                           type="button"
                           title="Viewers"

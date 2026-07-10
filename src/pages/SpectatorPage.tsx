@@ -52,7 +52,6 @@ import {
   CREATOR_NAME_PILL_CLASSNAME,
   getCreatorNamePillStyle,
   SPECTATOR_BATTLE_PROFILE_RING_PX,
-  SPECTATOR_MVP_PROFILE_RING_PX,
   LIVE_TOP_AVATAR_RING_PX,
 } from '../lib/profileFrame';
 import { useAuthStore } from '../store/useAuthStore';
@@ -251,21 +250,6 @@ export default function SpectatorPage() {
 
   const viewerName = user?.username || user?.name || 'Viewer';
   const viewerAvatar = user?.avatar || '';
-  const spectatorTopAvatars = useMemo(() => {
-    const hid = hostUserIdRef.current || hostUserId || effectiveStreamId;
-    const list = Array.from(actualViewersRef.current.entries())
-      .filter(([id]) => id && id !== hid && id !== effectiveStreamId)
-      .map(([id, v]) => ({ id, avatar: v.avatar, name: v.name }));
-
-    if (user?.id && !list.some((v) => v.id === user.id)) {
-      list.unshift({
-        id: user.id,
-        avatar: user.avatar || '',
-        name: user.username || user.name || 'You',
-      });
-    }
-    return list.slice(0, 3);
-  }, [viewerCount, hostUserId, effectiveStreamId, user?.id, user?.avatar, user?.username, user?.name]);
 
   const [moderators, setModerators] = useState<Set<string>>(new Set());
   const isModerator = moderators.has(user?.id || '');
@@ -2326,44 +2310,6 @@ export default function SpectatorPage() {
               </div>
 
               <div className="pointer-events-auto flex items-center gap-[0mm] flex-shrink-0 min-w-0">
-                <div
-                  className="flex items-center gap-[0mm] pointer-events-auto flex-shrink-0"
-                  onClick={() => {
-                    const list: { id: string; name: string; avatar: string; level?: number }[] = [];
-                    const hid = hostUserIdRef.current || hostUserId || effectiveStreamId;
-                    actualViewersRef.current.forEach((v, id) => {
-                      if (id !== user?.id && id !== hid && id !== effectiveStreamId) {
-                        list.push({ id, name: v.name, avatar: v.avatar, level: v.level });
-                      }
-                    });
-                    setViewersList(list);
-                    setShowViewersPanel(true);
-                  }}
-                >
-                  {[0, 1, 2].map((i) => {
-                    const slot = spectatorTopAvatars[i];
-                    return (
-                      <div
-                        key={`spectator-top-mvp-${i}`}
-                        style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '-2mm' }}
-                        className="relative"
-                      >
-                        <GoldProfileFrame size={SPECTATOR_MVP_PROFILE_RING_PX}>
-                          {slot ? (
-                            <img
-                              src={resolveCircleAvatar(slot.avatar, slot.name)}
-                              alt={slot.name || ''}
-                              className="h-full w-full rounded-full object-cover object-center"
-                              style={{ transform: 'translateY(0.9mm)' }}
-                            />
-                          ) : (
-                            <Plus className="text-[#D4AF37]" size={10} strokeWidth={2.5} />
-                          )}
-                        </GoldProfileFrame>
-                      </div>
-                    );
-                  })}
-                </div>
                 {/* Viewer count */}
                 <button
                   type="button"
