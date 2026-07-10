@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { RoyceCloseIcon } from '../components/royce';
+import { CaptureShutterButton } from '../components/CaptureShutterButton';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { setCachedCameraStream } from '../lib/cameraStream';
 import { RefreshCw, Zap, Clock, Music, Check, Play, Square, RotateCcw, ZoomIn, ZoomOut, Wand2 } from 'lucide-react';
@@ -895,17 +896,11 @@ export default function Upload() {
                       )}
 
                       <button 
-                        className={`w-[4.2rem] h-[4.2rem] flex items-center justify-center transition-all relative z-[2] ${
-                          isRecording ? 'bg-white/25' : ''
-                        }`}
+                        className="flex items-center justify-center transition-all relative z-[2] active:scale-90"
                         onClick={toggleRecording}
                         title={isRecording ? 'Stop recording' : 'Start recording'}
                       >
-                        {isRecording ? (
-                          <Square className="text-white fill-white w-6 h-6 relative z-[2]" />
-                        ) : (
-                          <Square className="text-white w-8 h-8 relative z-[2]" strokeWidth={2} />
-                        )}
+                        <CaptureShutterButton size={67} recording={isRecording} />
                       </button>
                   </div>
 

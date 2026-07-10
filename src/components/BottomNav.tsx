@@ -1,18 +1,19 @@
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Home, Users, Plus, MessageCircle, User } from "lucide-react";
+import { Home, Users, MessageCircle, User } from "lucide-react";
+import { CaptureShutterButton } from "./CaptureShutterButton";
 
 type NavItem = {
   path: string;
   label: string;
-  Icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
+  Icon?: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
   center?: boolean;
 };
 
 const NAV_ITEMS: NavItem[] = [
   { path: "/feed", label: "Home", Icon: Home },
   { path: "/friends", label: "Friends", Icon: Users },
-  { path: "/create", label: "Create", Icon: Plus, center: true },
+  { path: "/create", label: "Create", center: true },
   { path: "/inbox", label: "Inbox", Icon: MessageCircle },
   { path: "/profile", label: "Profile", Icon: User },
 ];
@@ -59,16 +60,20 @@ export const BottomNav = () => {
                   }`}
                   style={{ WebkitTapHighlightColor: "transparent" }}
                 >
-                  <span
-                    className="royce-tile"
-                    style={{ width: center ? 40 : 36, height: center ? 40 : 36 }}
-                  >
-                    <Icon
-                      size={center ? ICON_SIZE + 2 : ICON_SIZE}
-                      strokeWidth={active ? 2.35 : 2}
-                      className={iconClass}
-                    />
-                  </span>
+                  {center ? (
+                    <CaptureShutterButton size={40} />
+                  ) : Icon ? (
+                    <span
+                      className="royce-tile"
+                      style={{ width: 36, height: 36 }}
+                    >
+                      <Icon
+                        size={ICON_SIZE}
+                        strokeWidth={active ? 2.35 : 2}
+                        className={iconClass}
+                      />
+                    </span>
+                  ) : null}
                   <span className={`text-[9px] font-semibold leading-none tracking-wide ${labelClass}`}>
                     {label}
                   </span>

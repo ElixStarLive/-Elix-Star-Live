@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
+import { CaptureShutterButton } from '../components/CaptureShutterButton';
 import { setCachedCameraStream } from '../lib/cameraStream';
 import { type SoundTrack, fetchSoundTracksFromDatabase } from '../lib/soundLibrary';
 import { nativePrompt } from '../components/NativeDialog';
@@ -513,8 +514,8 @@ export default function Create() {
             onClick={() => openCameraFromHub('create')}
             className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-[#C9A227]/10 border border-[#C9A227]/25 active:scale-[0.98] transition-transform"
           >
-            <div className="w-5 h-5 rounded-full bg-[#FFFFFF] flex items-center justify-center">
-              <Plus className="w-3 h-3 text-black" strokeWidth={2.5} />
+            <div className="w-5 h-5 flex items-center justify-center">
+              <CaptureShutterButton size={20} />
             </div>
             <span className="text-white/80 font-semibold text-xs">New video</span>
           </button>

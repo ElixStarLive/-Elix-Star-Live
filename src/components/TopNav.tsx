@@ -64,9 +64,7 @@ export const TopNav = () => {
             className="flex-shrink-0 flex items-center justify-center w-10 h-10 active:opacity-70 transition-opacity"
             style={{ WebkitTapHighlightColor: "transparent" }}
           >
-            <span className="royce-tile w-10 h-10">
-              <Search size={20} strokeWidth={2.25} className="royce-icon-gold" />
-            </span>
+            <Search size={22} strokeWidth={2.25} className="royce-icon-gold" />
           </button>
         </div>
       </div>

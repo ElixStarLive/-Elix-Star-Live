@@ -6,6 +6,7 @@
 
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { RoyceCloseIcon } from './royce';
+import { CaptureShutterButton } from './CaptureShutterButton';
 import { 
   X, 
   Music, 
@@ -28,7 +29,6 @@ import {
   ImagePlus,
   Layers,
   Crosshair,
-  Square,
 } from 'lucide-react';
 import { request } from '../lib/apiClient';
 
@@ -877,15 +877,9 @@ export default function ElixCameraLayout({
               <button
                 onClick={onRecord}
                 title={isRecording ? 'Stop recording' : 'Start recording'}
-                className={`w-[72px] h-[72px] flex items-center justify-center transition-all flex-shrink-0 active:scale-90 ${
-                  isRecording ? 'bg-white/25' : ''
-                }`}
+                className="flex items-center justify-center flex-shrink-0 active:scale-90 transition-transform"
               >
-                {isRecording ? (
-                    <div className="w-6 h-6 bg-white rounded-full" />
-                ) : (
-                    <Square className="w-8 h-8 text-white" strokeWidth={2} />
-                )}
+                <CaptureShutterButton size={72} recording={isRecording} />
               </button>
             )}
           </div>
@@ -899,20 +893,22 @@ export default function ElixCameraLayout({
             </div>
           )}
 
-          {/* Bottom Tabs — no golden circle icon, text only */}
+          {/* Bottom Tabs — POST / CREATE / LIVE with capture indicators */}
           <div className="flex items-center justify-center px-4 pb-0.5 w-full absolute bottom-4">
             <div className="flex items-center gap-4">
               <button 
                 onClick={onPostTab}
-                className="relative flex items-center justify-center h-10 px-6 min-w-[80px] rounded-full"
+                className="relative flex items-center justify-center gap-1.5 h-10 px-4 min-w-[80px] rounded-full"
               >
+                {selectedTab === 'post' ? <CaptureShutterButton size={18} /> : null}
                 <span className={`text-sm font-semibold ${selectedTab === 'post' ? 'text-[#D4AF37] drop-shadow-[0_0_8px_rgba(255,215,0,1)]' : 'text-white/70'}`}>POST</span>
               </button>
               <button 
                 onClick={() => onCreateTab?.()}
-                className="relative flex items-center justify-center h-10 px-6 min-w-[80px] rounded-full"
+                className="relative flex items-center justify-center gap-1.5 h-10 px-4 min-w-[80px] rounded-full"
                 type="button"
               >
+                {selectedTab === 'create' ? <CaptureShutterButton size={18} /> : null}
                 <span className={`text-sm font-semibold ${selectedTab === 'create' ? 'text-[#D4AF37] drop-shadow-[0_0_8px_rgba(255,215,0,1)]' : 'text-white/70'}`}>CREATE</span>
               </button>
               <button 
