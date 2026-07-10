@@ -3748,14 +3748,14 @@ export default function LiveStream() {
                     <>
                       <video
                         ref={(el) => { if (el) coHostVideoRefs.current.set(host.userId, el); else coHostVideoRefs.current.delete(host.userId); }}
-                        className="absolute inset-0 w-full h-full object-cover rounded-full"
+                        className="absolute inset-0 w-full h-full object-cover"
                         autoPlay playsInline muted={host.isMuted}
                         style={coHostCameraOff[host.id] ? { display: 'none' } : undefined}
                       />
                       {coHostCameraOff[host.id] && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[#111111] z-[6] rounded-full">
-                          {host.avatar ? <img src={host.avatar} alt="" className="w-10 h-10 rounded-full object-cover object-center" /> : (
-                            <div className="w-10 h-10 rounded-full bg-[#111111] flex items-center justify-center"><span className="text-[#E8D5A3]/60 text-sm font-bold">{(host.name || '?').charAt(0)}</span></div>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[#111111] z-[6]">
+                          {host.avatar ? <img src={host.avatar} alt="" className="w-10 h-10 object-cover object-center" /> : (
+                            <div className="w-10 h-10 bg-[#111111] flex items-center justify-center"><span className="text-[#E8D5A3]/60 text-sm font-bold">{(host.name || '?').charAt(0)}</span></div>
                           )}
                           <span className="text-white/90 text-[8px] font-bold truncate max-w-full px-1">{host.name}</span>
                         </div>
@@ -3802,7 +3802,7 @@ export default function LiveStream() {
               return (
                 <div className="w-1/2 h-full grid grid-cols-2 grid-rows-4 gap-[1px] bg-[#1a1c22]">
                   {smallSlots.slice(0, 8).map((slot, i) => (
-                    <div key={i} className="relative bg-[#111111] flex flex-col items-center justify-center p-1">
+                    <div key={i} className="relative bg-[#111111] flex flex-col items-center justify-center overflow-hidden p-0 min-h-0">
                       {renderCoHostCell(slot)}
                     </div>
                   ))}
@@ -5732,6 +5732,14 @@ export default function LiveStream() {
         key={`gift-${giftKey}`}
         videoSrc={currentGift?.video ?? null}
         onEnded={handleGiftEnded}
+        splitSides={isBattleMode || coHosts.length > 0}
+        splitStyle={
+          isBattleMode
+            ? { top: 'calc(env(safe-area-inset-top, 0px) + 90px)', height: '44dvh' }
+            : coHosts.length > 0
+              ? { top: 'calc(env(safe-area-inset-top, 0px) + 90px)', height: 'calc(36dvh + 10mm)' }
+              : undefined
+        }
         isBattleMode={isBattleMode}
         muted={false}
       />

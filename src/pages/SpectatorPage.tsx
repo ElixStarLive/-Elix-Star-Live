@@ -2045,12 +2045,12 @@ export default function SpectatorPage() {
                 <>
                   <video
                     ref={myVideoRef}
-                    className="absolute inset-0 w-full h-full object-cover rounded-full"
+                    className="absolute inset-0 w-full h-full object-cover"
                     autoPlay playsInline muted
                     style={isCamOff ? { display: 'none' } : undefined}
                   />
                   {isCamOff && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[#111111] z-[6] rounded-full">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[#111111] z-[6]">
                       <CameraOff size={24} className="text-white/30" />
                       <span className="text-white/60 text-[9px] font-bold">Camera off</span>
                     </div>
@@ -2073,7 +2073,7 @@ export default function SpectatorPage() {
                 <>
                   <video
                     ref={(el) => { if (el) coHostVideoRefs.current.set(h.userId, el); else coHostVideoRefs.current.delete(h.userId); }}
-                    className="absolute inset-0 w-full h-full object-cover rounded-full"
+                    className="absolute inset-0 w-full h-full object-cover"
                     autoPlay playsInline
                   />
                   <p className="absolute bottom-0.5 left-0.5 z-10 text-white/80 text-[8px] font-bold bg-black/50 rounded px-1 truncate max-w-[90%]">{h.name}</p>
@@ -2194,7 +2194,7 @@ export default function SpectatorPage() {
               {showGrid && (
                 <div className="w-1/2 h-full grid grid-cols-2 grid-rows-4 gap-[1px] bg-[#1a1c22]">
                   {slots.slice(0, 8).map((slot, i) => (
-                    <div key={i} className="relative bg-[#111111] flex flex-col items-center justify-center p-1">
+                    <div key={i} className="relative bg-[#111111] flex flex-col items-center justify-center overflow-hidden p-0 min-h-0">
                       {renderSlot(slot)}
                     </div>
                   ))}
@@ -2587,6 +2587,14 @@ export default function SpectatorPage() {
           key={`gift-${giftKey}`}
           videoSrc={currentGift?.video ?? null}
           onEnded={handleGiftEnded}
+          splitSides={!!spectatorBattle?.active || isCoHosting || spectatorCoHosts.length > 0}
+          splitStyle={
+            spectatorBattle?.active
+              ? { top: 'calc(env(safe-area-inset-top, 0px) + 78px)', height: 'calc(36dvh + 10mm)' }
+              : isCoHosting || spectatorCoHosts.length > 0
+                ? { top: 'calc(env(safe-area-inset-top, 0px) + 78px)', height: 'calc(36dvh + 10mm)' }
+                : undefined
+          }
           isBattleMode={!!spectatorBattle?.active}
           muted={false}
         />
