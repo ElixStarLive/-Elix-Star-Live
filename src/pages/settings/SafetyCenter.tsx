@@ -11,7 +11,7 @@ export default function SafetyCenter() {
         <div className="flex-shrink-0 px-3 pt-1.5 pb-1.5">
           <div className="flex items-center justify-center">
             <div className="w-10 h-1 bg-white/20 rounded-full absolute top-2 left-1/2 -translate-x-1/2" />
-            <span className="text-[13px] font-bold text-[#FFFFFF]">Safety Center</span>
+            <span className="text-[13px] font-bold text-[#D4AF37]">Safety Center</span>
           </div>
         </div>
 
@@ -108,7 +108,7 @@ function OptionRow({
       onClick={onClick}
       className="w-full flex items-center gap-2.5 px-2 py-2 active:bg-white/5 text-left rounded-md"
     >
-      <span className="text-[#FFFFFF]/70 shrink-0 [&_svg]:size-[14px]">{icon}</span>
+      <span className="text-[#E8D5A3]/70 shrink-0 [&_svg]:size-[14px]">{icon}</span>
       <div className="flex-1 min-w-0">
         <p className="text-[12px] leading-tight text-white/85">{title}</p>
         <p className="text-[10px] text-white/45 mt-0.5 truncate">{description}</p>

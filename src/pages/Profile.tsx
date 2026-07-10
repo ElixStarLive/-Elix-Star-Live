@@ -522,8 +522,8 @@ export default function Profile() {
               </div>
               <div className="flex items-center justify-between gap-2 px-4 pb-2">
                 <h3 className="text-gold-metallic font-bold text-sm">Share to</h3>
-                <div className="flex-none w-[120px] bg-white/5 rounded-lg px-2 py-1.5 flex items-center gap-2 border border-[#FFFFFF]/20">
-                  <Search className="w-3.5 h-3.5 text-[#FFFFFF]/40" />
+                <div className="flex-none w-[120px] bg-white/5 rounded-lg px-2 py-1.5 flex items-center gap-2 border border-[#C9A227]/20">
+                  <Search className="w-3.5 h-3.5 text-[#E8D5A3]/40" />
                   <input placeholder="Search..." value={shareQuery ?? ''} onChange={(e) => setShareQuery(e.target.value)} className="bg-transparent text-white text-xs outline-none w-full placeholder:text-white/20" />
                 </div>
               </div>
@@ -539,7 +539,7 @@ export default function Profile() {
                           src={displayAvatar || '/Icons/Profile icon.png'}
                           alt="Create"
                         />
-                        <Plus size={28} className="text-[#FFFFFF] absolute" strokeWidth={2.5} />
+                        <Plus size={28} className="text-[#D4AF37] absolute" strokeWidth={2.5} />
                       </div>
                       <span className="text-white/80 text-[11px] font-medium">Create</span>
                     </button>
@@ -569,7 +569,7 @@ export default function Profile() {
                 </div>
 
                 {/* Share options — same layout as ShareModal */}
-                <div className="flex-1 overflow-y-scroll overflow-x-hidden min-h-0 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#FFFFFF]/60 [&::-webkit-scrollbar-thumb]:rounded-full">
+                <div className="flex-1 overflow-y-scroll overflow-x-hidden min-h-0 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#C9A227]/60 [&::-webkit-scrollbar-thumb]:rounded-full">
                   <div className="grid grid-cols-5 gap-y-3 gap-x-1.5 pt-1">
                     {[
                       { name: 'WhatsApp', icon: <MessageCircle size={22} className="text-white" />, action: () => openExternalLink(`https://wa.me/?text=${encodeURIComponent(`Check out ${displayName}'s profile on Elix! ${window.location.origin}/profile/${displayUserId}`)}`) },
@@ -580,7 +580,7 @@ export default function Profile() {
                       { name: 'Report', icon: <Flag size={22} className="text-white/60" />, isRed: true, action: () => { setShowSharePanel(false); setShowReportModal(true); } },
                     ].map((item) => (
                       <button key={item.name} onClick={item.action} className="flex flex-col items-center gap-1 active:scale-95 transition-transform">
-                        <div className="relative w-9 h-9 rounded-full bg-[#111111] border border-[#FFFFFF]/35 flex items-center justify-center flex-shrink-0 shadow-[0_0_10px_rgba(255,255,255,0.25)]">
+                        <div className="relative w-9 h-9 rounded-full bg-[#111111] border border-[#C9A227]/35 flex items-center justify-center flex-shrink-0 shadow-[0_0_10px_rgba(255,255,255,0.25)]">
                           <div className={`relative z-[2] ${item.name === 'Report' ? 'translate-y-0.5' : ''}`}>{React.cloneElement((item.icon as React.ReactElement), { className: `w-3.5 h-3.5 ${(item as { isRed?: boolean }).isRed ? 'text-white/60' : 'text-white'}`, strokeWidth: 1.8 })}</div>
                         </div>
                         <span className={`text-[8px] font-semibold truncate w-full text-center ${(item as { isRed?: boolean }).isRed ? 'text-white/60/70' : 'text-white/70'}`}>{item.name}</span>
@@ -657,7 +657,7 @@ export default function Profile() {
               className={`flex-1 max-w-[160px] py-2.5 rounded-md text-sm font-bold transition ${
                 isFollowing
                   ? 'bg-white/10 text-white border border-white/10'
-                  : 'bg-[#FFFFFF] text-black'
+                  : 'bg-[#D4AF37] text-black'
               }`}
             >
               {isFollowing ? 'Following' : 'Follow'}
@@ -689,24 +689,24 @@ export default function Profile() {
         <div className="mt-2 border-b border-white/5">
           <div className="flex overflow-x-auto no-scrollbar">
             <button onClick={() => navigate('/ai-studio')} className="flex items-center gap-1.5 px-3 py-2 whitespace-nowrap">
-              <Sparkles size={14} className="text-[#FFFFFF]" />
+              <Sparkles size={14} className="text-[#D4AF37]" />
               <span className="text-[11px] font-bold text-white">AI Studio</span>
             </button>
             <button onClick={() => navigate('/creator/login-details')} className="flex items-center gap-1.5 px-3 py-2 whitespace-nowrap">
-              <Sparkles size={14} className="text-[#ffffff]" />
+              <Sparkles size={14} className="text-[#D4AF37]" />
               <span className="text-[11px] font-bold text-white">Elix Studio</span>
             </button>
             <button onClick={() => navigate('/shop')} className="flex items-center gap-1.5 px-3 py-2 whitespace-nowrap">
-              <ShoppingBag size={14} className="text-[#FFFFFF]" />
+              <ShoppingBag size={14} className="text-[#D4AF37]" />
               <span className="text-[11px] font-bold text-white">Shop</span>
             </button>
             <button onClick={() => setActiveTab('shop')} className="flex items-center gap-1.5 px-3 py-2 whitespace-nowrap">
-              <ShoppingBag size={14} className="text-[#ffffff]" />
+              <ShoppingBag size={14} className="text-[#D4AF37]" />
               <span className="text-[11px] font-bold text-white">Showcase</span>
             </button>
             {isOwnProfile && (
               <button onClick={() => navigate('/settings')} className="flex items-center gap-1.5 px-3 py-2 whitespace-nowrap">
-                <Settings size={14} className="text-[#FFFFFF]" />
+                <Settings size={14} className="text-[#D4AF37]" />
                 <span className="text-[11px] font-bold text-white">Settings</span>
               </button>
             )}
@@ -785,7 +785,7 @@ export default function Profile() {
             <button
               type="button"
               onClick={() => navigate('/upload?type=story')}
-              className="px-3 py-1.5 rounded-md bg-[#FFFFFF] text-black text-[11px] font-bold"
+              className="px-3 py-1.5 rounded-md bg-[#D4AF37] text-black text-[11px] font-bold"
             >
               Post Story
             </button>
@@ -797,7 +797,7 @@ export default function Profile() {
           <div className="grid grid-cols-3 gap-[2px] px-3 pt-3 pb-2 flex-1">
             {videosLoading && videos.length === 0 ? (
               <div className="col-span-3 flex items-center justify-center py-16">
-                <div className="w-8 h-8 border-2 border-[#FFFFFF] border-t-transparent rounded-full animate-spin" />
+                <div className="w-8 h-8 border-2 border-[#C9A227] border-t-transparent rounded-full animate-spin" />
               </div>
             ) : (
               videos.map((video) => (
@@ -839,7 +839,7 @@ export default function Profile() {
         {/* ═══ SHOP ITEMS GRID ═══ */}
         {activeTab === 'shop' && videosLoading && shopItems.length === 0 && (
           <div className="flex-1 flex items-center justify-center py-16">
-            <div className="w-8 h-8 border-2 border-[#FFFFFF] border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-[#C9A227] border-t-transparent rounded-full animate-spin" />
           </div>
         )}
         {activeTab === 'shop' && shopItems.length > 0 && (
@@ -876,7 +876,7 @@ export default function Profile() {
                   <button
                     type="button"
                     onClick={() => navigate('/upload?type=story')}
-                    className="px-3 py-1.5 rounded-md bg-[#FFFFFF] text-black text-[11px] font-bold"
+                    className="px-3 py-1.5 rounded-md bg-[#D4AF37] text-black text-[11px] font-bold"
                   >
                     Post Story
                   </button>
@@ -893,7 +893,7 @@ export default function Profile() {
             <ShoppingBag size={32} className="text-white/20" />
             <span className="text-white/30 text-sm">No items for sale</span>
             {isOwnProfile && (
-              <button onClick={() => navigate('/shop')} className="mt-2 px-4 py-2 rounded-xl bg-[#FFFFFF] text-black font-bold text-xs">
+              <button onClick={() => navigate('/shop')} className="mt-2 px-4 py-2 rounded-xl bg-[#D4AF37] text-black font-bold text-xs">
                 Start Selling
               </button>
             )}

@@ -53,7 +53,7 @@ export default function SavedVideos() {
 
         {loading ? (
           <div className="flex-1 flex items-center justify-center">
-            <div className="w-10 h-10 border-3 border-[#FFFFFF] border-t-transparent rounded-full animate-spin" />
+            <div className="w-10 h-10 border-3 border-[#C9A227] border-t-transparent rounded-full animate-spin" />
           </div>
         ) : videos.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-3 px-8">
@@ -89,7 +89,7 @@ export default function SavedVideos() {
                   <span>{formatViews(video.views || 0)}</span>
                 </div>
                 <div className="absolute top-1 right-1">
-                  <Bookmark size={12} fill="#FFFFFF" className="text-[#FFFFFF]" />
+                  <Bookmark size={12} fill="#D4AF37" className="text-[#D4AF37]" />
                 </div>
               </div>
             ))}

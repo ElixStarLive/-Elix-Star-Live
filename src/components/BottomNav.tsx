@@ -44,12 +44,12 @@ export const BottomNav = () => {
       aria-label="Main navigation"
     >
       <div className="flex justify-center pointer-events-none">
-        <div className="w-full max-w-[480px] mx-auto pointer-events-auto bg-black border-t border-white/15">
+        <div className="w-full max-w-[480px] mx-auto pointer-events-auto bg-black border-t border-gold/20">
           <div className="flex items-end justify-around px-0.5 pt-2 pb-1.5 min-h-[var(--nav-height)]">
             {NAV_ITEMS.map(({ path, label, Icon, center }) => {
               const active = isActiveRoute(location.pathname, path);
-              const iconClass = active ? "text-white" : "text-white/45";
-              const labelClass = active ? "text-white" : "text-white/40";
+              const iconClass = active ? "text-gold-bright" : "text-gold/45";
+              const labelClass = active ? "text-gold-bright" : "text-gold/40";
 
               if (center) {
                 return (
@@ -62,7 +62,7 @@ export const BottomNav = () => {
                     style={{ WebkitTapHighlightColor: "transparent" }}
                   >
                     <span className={ICON_WRAP_CLASS}>
-                      <Icon size={ICON_SIZE} strokeWidth={2.5} className="text-white" />
+                      <Icon size={ICON_SIZE} strokeWidth={2.5} className="text-gold-bright" />
                     </span>
                     <span className={`mt-1 text-[10px] font-semibold tracking-wide truncate max-w-full px-0.5 ${labelClass}`}>
                       {label}

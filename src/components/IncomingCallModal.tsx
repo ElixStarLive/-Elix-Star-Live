@@ -32,7 +32,7 @@ export function IncomingCallModal() {
         {remoteUser.avatar ? (
           <AvatarRing src={remoteUser.avatar} alt={remoteUser.username} size={96} className="mx-auto mb-4" />
         ) : (
-          <div className="w-24 h-24 rounded-full bg-[#111111] border border-[#FFFFFF]/40 mx-auto mb-4 flex items-center justify-center text-3xl text-white">
+          <div className="w-24 h-24 rounded-full bg-[#111111] border border-[#C9A227]/40 mx-auto mb-4 flex items-center justify-center text-3xl text-white">
             {remoteUser.username[0]?.toUpperCase()}
           </div>
         )}

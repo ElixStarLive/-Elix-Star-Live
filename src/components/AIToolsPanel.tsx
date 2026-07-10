@@ -162,12 +162,12 @@ export default function AIToolsPanel({
   return (
     <div className="fixed inset-0 z-[500] flex items-end justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative w-full max-w-[480px] bg-[#111111] border-t border-[#FFFFFF]/20 rounded-t-2xl overflow-hidden animate-in slide-in-from-bottom duration-300" style={{ maxHeight: '70dvh' }}>
+      <div className="relative w-full max-w-[480px] bg-[#111111] border-t border-[#C9A227]/20 rounded-t-2xl overflow-hidden animate-in slide-in-from-bottom duration-300" style={{ maxHeight: '70dvh' }}>
         
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[#FFFFFF]/10">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[#C9A227]/10">
           <div className="flex items-center gap-2">
-            <Wand2 size={18} className="text-[#FFFFFF]" />
+            <Wand2 size={18} className="text-[#D4AF37]" />
             <span className="text-white font-bold text-sm">AI Studio</span>
           </div>
           <button onClick={onClose} className="p-1" title="Close AI Studio"><X size={18} className="text-white/60" /></button>
@@ -181,7 +181,7 @@ export default function AIToolsPanel({
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
                 activeTab === tab.id
-                  ? 'bg-[#FFFFFF] text-black'
+                  ? 'bg-[#D4AF37] text-black'
                   : 'bg-[#111111] text-white/70 hover:text-white'
               }`}
             >
@@ -203,7 +203,7 @@ export default function AIToolsPanel({
                     key={cat.id}
                     onClick={() => setFilterCategory(cat.id)}
                     className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
-                      filterCategory === cat.id ? 'bg-[#FFFFFF]/20 text-[#FFFFFF]' : 'bg-[#111111] text-white/50'
+                      filterCategory === cat.id ? 'bg-[#C9A227]/20 text-[#D4AF37]' : 'bg-[#111111] text-white/50'
                     }`}
                   >
                     {cat.label}
@@ -217,7 +217,7 @@ export default function AIToolsPanel({
                     onClick={() => handleFilterSelect(filter)}
                     className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${
                       selectedFilter === filter.id
-                        ? 'bg-[#FFFFFF]/20 ring-1 ring-[#FFFFFF]'
+                        ? 'bg-[#C9A227]/20 opacity-100'
                         : 'bg-[#111111] hover:bg-[#111111]/80'
                     }`}
                   >
@@ -249,7 +249,7 @@ export default function AIToolsPanel({
           {activeTab === 'enhance' && (
             <div className="space-y-4">
               <div className="flex gap-2">
-                <button onClick={handleAutoEnhance} className="flex-1 py-2 rounded-xl bg-[#FFFFFF] text-black text-xs font-bold flex items-center justify-center gap-1.5">
+                <button onClick={handleAutoEnhance} className="flex-1 py-2 rounded-xl bg-[#D4AF37] text-black text-xs font-bold flex items-center justify-center gap-1.5">
                   <Wand2 size={14} /> Auto Enhance
                 </button>
                 <button onClick={handleResetEnhance} className="flex-1 py-2 rounded-xl bg-[#111111] text-white/70 text-xs font-bold">
@@ -291,12 +291,12 @@ export default function AIToolsPanel({
                   value={captionInput}
                   onChange={e => setCaptionInput(e.target.value)}
                   placeholder="Dance video with friends at sunset..."
-                  className="w-full bg-[#111111] text-white text-sm rounded-xl px-3 py-2 border border-white/10 resize-none h-20 outline-none focus:border-[#FFFFFF]/50"
+                  className="w-full bg-[#111111] text-white text-sm rounded-xl px-3 py-2 border border-white/10 resize-none h-20 outline-none focus:border-[#C9A227]/50"
                 />
               </div>
               <button
                 onClick={handleGenerateCaptions}
-                className="w-full py-2.5 rounded-xl bg-[#FFFFFF] text-black text-xs font-bold flex items-center justify-center gap-1.5"
+                className="w-full py-2.5 rounded-xl bg-[#D4AF37] text-black text-xs font-bold flex items-center justify-center gap-1.5"
               >
                 <Sparkles size={14} /> Generate AI Captions & Hashtags
               </button>
@@ -310,7 +310,7 @@ export default function AIToolsPanel({
                       className="w-full text-left p-3 rounded-xl bg-[#111111] hover:bg-[#111111]/70 transition-colors"
                     >
                       <p className="text-white text-sm mb-1">{s.caption}</p>
-                      <p className="text-[#FFFFFF] text-xs">
+                      <p className="text-[#D4AF37] text-xs">
                         {s.hashtags.map(h => `#${h}`).join(' ')}
                       </p>
                       <div className="flex items-center gap-1 mt-1">
@@ -331,7 +331,7 @@ export default function AIToolsPanel({
                       <button
                         key={tag}
                         onClick={() => onCaptionSelect?.('', [tag])}
-                        className="px-2.5 py-1 rounded-full bg-[#FFFFFF]/10 text-[#FFFFFF] text-xs font-medium hover:bg-[#FFFFFF]/20 transition-colors"
+                        className="px-2.5 py-1 rounded-full bg-[#C9A227]/10 text-[#D4AF37] text-xs font-medium hover:bg-[#C9A227]/20 transition-colors"
                       >
                         #{tag}
                       </button>
@@ -349,14 +349,14 @@ export default function AIToolsPanel({
                 <span className="text-xs text-white/50">AI-ranked best frames</span>
                 <button
                   onClick={handleExtractThumbnails}
-                  className="px-3 py-1 rounded-full bg-[#FFFFFF]/20 text-[#FFFFFF] text-xs font-semibold"
+                  className="px-3 py-1 rounded-full bg-[#C9A227]/20 text-[#D4AF37] text-xs font-semibold"
                 >
                   Refresh
                 </button>
               </div>
               {isLoadingThumbnails ? (
                 <div className="flex items-center justify-center py-8">
-                  <div className="w-8 h-8 border-2 border-[#FFFFFF] border-t-transparent rounded-full animate-spin" />
+                  <div className="w-8 h-8 border-2 border-[#C9A227] border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : thumbnails.length === 0 ? (
                 <div className="text-center py-8 text-white/30 text-sm">
@@ -375,7 +375,7 @@ export default function AIToolsPanel({
                         <span className="text-white text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity">Use</span>
                       </div>
                       {i === 0 && (
-                        <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-[#FFFFFF] text-black text-[8px] font-bold">
+                        <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-[#D4AF37] text-black text-[8px] font-bold">
                           BEST
                         </div>
                       )}
@@ -403,7 +403,7 @@ export default function AIToolsPanel({
                     }}
                     className={`flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all ${
                       selectedVoice === effect.id
-                        ? 'bg-[#FFFFFF]/20 ring-1 ring-[#FFFFFF]'
+                        ? 'bg-[#C9A227]/20 opacity-100'
                         : 'bg-[#111111] hover:bg-[#111111]/80'
                     }`}
                   >
@@ -439,7 +439,7 @@ export default function AIToolsPanel({
                 className={`w-full py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 ${
                   isSubtitling
                     ? 'bg-white/20 text-white'
-                    : 'bg-[#FFFFFF] text-black'
+                    : 'bg-[#D4AF37] text-black'
                 }`}
               >
                 <Subtitles size={14} />
@@ -457,7 +457,7 @@ export default function AIToolsPanel({
                       }}
                       className={`p-3 rounded-xl text-left transition-all ${
                         selectedSubStyle === style.id
-                          ? 'bg-[#FFFFFF]/20 ring-1 ring-[#FFFFFF]'
+                          ? 'bg-[#C9A227]/20 opacity-100'
                           : 'bg-[#111111]'
                       }`}
                     >
@@ -492,7 +492,7 @@ export default function AIToolsPanel({
                     }}
                     className={`flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all ${
                       selectedBg === opt.id
-                        ? 'bg-[#FFFFFF]/20 ring-1 ring-[#FFFFFF]'
+                        ? 'bg-[#C9A227]/20 opacity-100'
                         : 'bg-[#111111] hover:bg-[#111111]/80'
                     }`}
                   >

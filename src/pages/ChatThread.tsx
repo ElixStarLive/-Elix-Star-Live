@@ -34,12 +34,12 @@ function MessageText({ text, isMe, navigate: nav }: { text: string; isMe: boolea
           if (appMatch) {
             const route = appMatch[1] === 'video' ? `/video/${appMatch[2]}` : `/watch/${appMatch[2]}`;
             return (
-              <button key={i} type="button" onClick={() => nav(route)} className={`underline font-medium ${isMe ? 'text-black/80' : 'text-[#FFFFFF]'}`}>
+              <button key={i} type="button" onClick={() => nav(route)} className={`underline font-medium ${isMe ? 'text-black/80' : 'text-[#D4AF37]'}`}>
                 {appMatch[1] === 'video' ? 'View Video' : 'Join Live'}
               </button>
             );
           }
-          return <a key={i} href={part} target="_blank" rel="noopener noreferrer" className={`underline ${isMe ? 'text-black/70' : 'text-[#FFFFFF]/80'}`}>{part}</a>;
+          return <a key={i} href={part} target="_blank" rel="noopener noreferrer" className={`underline ${isMe ? 'text-black/70' : 'text-[#E8D5A3]/80'}`}>{part}</a>;
         }
         return <React.Fragment key={i}>{part}</React.Fragment>;
       })}
@@ -227,7 +227,7 @@ export default function ChatThread() {
                     if (callId) navigate('/call');
                   } catch { /* auth or connection error */ }
                 }}
-                className="p-2 rounded-full bg-[#111111] border border-[#FFFFFF]/40 hover:bg-[#FFFFFF]/10 transition-colors"
+                className="p-2 rounded-full bg-[#111111] border border-[#C9A227]/40 hover:bg-[#C9A227]/10 transition-colors"
                 aria-label="Video call"
               >
                 <Video className="w-5 h-5 text-white" />
@@ -264,7 +264,7 @@ export default function ChatThread() {
 
             return (
               <div key={m.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm leading-snug break-words ${isMe ? 'bg-[#FFFFFF] text-black rounded-tr-none' : 'bg-[#222] text-white rounded-tl-none'}`}>
+                <div className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm leading-snug break-words ${isMe ? 'bg-[#D4AF37] text-black rounded-tr-none' : 'bg-[#222] text-white rounded-tl-none'}`}>
                   {preview ? (
                     <div>
                       <button

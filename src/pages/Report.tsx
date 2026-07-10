@@ -129,7 +129,7 @@ export default function Report() {
               onClick={() => setSelectedReason(reason.id)}
               className={`w-full text-left px-4 py-4 rounded-xl transition ${
                 selectedReason === reason.id
-                  ? 'bg-[#FFFFFF]/20 border-2 border-[#FFFFFF]'
+                  ? 'bg-[#C9A227]/20 border-2 border-[#C9A227]'
                   : 'bg-white border-2 border-transparent hover:brightness-125'
               }`}
             >
@@ -156,7 +156,7 @@ export default function Report() {
             placeholder="Provide more context to help us understand the issue..."
             maxLength={500}
             rows={4}
-            className="w-full bg-white rounded-xl px-4 py-3 outline-none text-white placeholder-white/40 border border-transparent focus:border-[#FFFFFF] transition resize-none"
+            className="w-full bg-white rounded-xl px-4 py-3 outline-none text-white placeholder-white/40 border border-transparent focus:border-[#C9A227] transition resize-none"
           />
           <p className="text-xs text-white/40 mt-1 text-right">{details.length}/500</p>
         </div>

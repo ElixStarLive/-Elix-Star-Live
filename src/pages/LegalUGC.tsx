@@ -64,7 +64,7 @@ export default function LegalUGC() {
               {' '}
               <button
                 onClick={() => navigate('/legal/dmca')}
-                className="text-[#FFFFFF] underline"
+                className="text-[#D4AF37] underline"
               >
                 DMCA Policy
               </button>.

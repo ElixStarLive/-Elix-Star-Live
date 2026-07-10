@@ -20,7 +20,7 @@ export default function Guidelines() {
       <div className="px-4 py-6 max-w-2xl mx-auto flex-1 overflow-y-auto">
         {/* Intro */}
         <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-gradient-to-br from-[#FFFFFF] to-[#B8943F] rounded-full mx-auto mb-4 flex items-center justify-center">
+          <div className="w-20 h-20 bg-gradient-to-br from-[#D4AF37] to-[#B8943F] rounded-full mx-auto mb-4 flex items-center justify-center">
             <Heart className="w-10 h-10 text-black" />
           </div>
           <h2 className="text-2xl font-bold mb-3">Our Community Values</h2>
@@ -119,7 +119,7 @@ export default function Guidelines() {
           </p>
           <button
             onClick={() => navigate('/report')}
-            className="w-full py-3 bg-[#FFFFFF] text-black rounded-xl font-bold hover:opacity-90 transition"
+            className="w-full py-3 bg-[#D4AF37] text-black rounded-xl font-bold hover:opacity-90 transition"
           >
             Report a Violation
           </button>

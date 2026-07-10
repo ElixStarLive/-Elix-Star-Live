@@ -187,7 +187,7 @@ export default function FriendsFeed() {
 
           {loading && friendVideoIds.length === 0 && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-8 h-8 border-2 border-[#FFFFFF] border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-2 border-[#C9A227] border-t-transparent rounded-full animate-spin" />
             </div>
           )}
 
@@ -197,7 +197,7 @@ export default function FriendsFeed() {
               <p className="text-xs text-white/30 mb-4">Follow people or wait for followers to post — everyone shows in one feed</p>
               <button
                 onClick={() => navigate('/discover')}
-                className="px-5 py-2 bg-[#FFFFFF] text-black rounded-full text-sm font-bold"
+                className="px-5 py-2 bg-[#D4AF37] text-black rounded-full text-sm font-bold"
               >
                 Discover people
               </button>

@@ -294,7 +294,7 @@ export default function VideoCall() {
             {remoteUser.avatar ? (
               <AvatarRing src={remoteUser.avatar} alt={remoteUser.username} size={96} />
             ) : (
-              <div className="w-24 h-24 rounded-full bg-[#111111] border border-[#FFFFFF]/40 flex items-center justify-center text-3xl text-white">
+              <div className="w-24 h-24 rounded-full bg-[#111111] border border-[#C9A227]/40 flex items-center justify-center text-3xl text-white">
                 {remoteUser.username[0]?.toUpperCase()}
               </div>
             )}
@@ -366,7 +366,7 @@ export default function VideoCall() {
             type="button"
             onClick={switchCamera}
             title="Switch camera"
-            className="w-14 h-14 rounded-full bg-[#111111] border border-[#FFFFFF]/40 flex items-center justify-center"
+            className="w-14 h-14 rounded-full bg-[#111111] border border-[#C9A227]/40 flex items-center justify-center"
           >
             <SwitchCamera className="w-6 h-6 text-white" />
           </button>

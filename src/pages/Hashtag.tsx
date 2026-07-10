@@ -57,7 +57,7 @@ export default function Hashtag() {
           <button onClick={() => navigate('/feed')} className="p-1 hover:brightness-125 transition" title="Back to For You">
             <img src="/Icons/Gold power buton.png" alt="Back" className="w-5 h-5" />
           </button>
-          <div className="w-16 h-16 bg-gradient-to-br from-[#FFFFFF] to-[#B8943F] rounded-full flex items-center justify-center">
+          <div className="w-16 h-16 bg-gradient-to-br from-[#D4AF37] to-[#B8943F] rounded-full flex items-center justify-center">
             <Hash className="w-8 h-8 text-black" />
           </div>
           <div className="flex-1">

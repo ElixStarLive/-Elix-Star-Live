@@ -65,39 +65,19 @@ export const PremiumSidebarButton = ({
   <div className={`flex flex-col items-center ${className}`}>
     <button 
       onClick={onClick}
-      className="relative w-14 h-14 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90"
-      style={{
-        background: 'linear-gradient(145deg, rgba(30,30,30,0.95) 0%, rgba(10,10,10,0.98) 100%)',
-        boxShadow: isActive 
-          ? '0 0 20px rgba(255,255,255,0.25), inset 0 1px 1px rgba(255,255,255,0.1)' 
-          : '0 4px 15px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.05)',
-        border: '2px solid',
-        borderColor: isActive ? '#FFFFFF' : 'rgba(255,255,255,0.25)',
-      }}
+      className="relative w-14 h-14 flex items-center justify-center transition-all duration-200 active:scale-90"
     >
-      {/* Inner glow */}
-      <div 
-        className="absolute inset-[2px] rounded-full pointer-events-none"
-        style={{
-          background: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.08) 0%, transparent 60%)',
-        }}
-      />
-      
-      {/* Light reflection */}
-      <div className="absolute top-1 left-1/2 -translate-x-1/2 w-6 h-1 bg-gradient-to-r from-transparent via-[#FFFFFF]/30 to-transparent rounded-full" />
-      
       {iconSrc ? (
         <img 
           src={iconSrc} 
           alt="" 
           className={`w-7 h-7 object-contain transition-all duration-200 ${isActive ? 'brightness-125' : 'opacity-80'}`}
-          style={{ filter: isActive ? 'drop-shadow(0 0 8px rgba(255,255,255,0.25))' : 'none' }}
         />
       ) : Icon && (
         <Icon 
           className={`w-7 h-7 stroke-[1.5px] transition-all duration-200 ${
             isActive 
-              ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.25)]' 
+              ? 'text-white' 
               : 'text-white/70'
           }`}
           style={isActive ? { fill: '#FFFFFF' } : { fill: 'transparent' }}
@@ -738,7 +718,7 @@ export default function EnhancedVideoPlayer({
         {videoError && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#111111] z-10 gap-3">
             <span className="text-white/50 text-sm">Video processing...</span>
-            <button onClick={() => { setVideoError(false); retryCountRef.current = 0; retryingRef.current = false; const el = videoRef.current; if (el && video.url) { el.src = video.url; el.load(); el.play().catch(() => {}); } }} className="px-4 py-1.5 bg-[#FFFFFF]/20 border border-[#FFFFFF]/40 rounded-lg text-[#FFFFFF] text-xs font-medium">Tap to retry</button>
+            <button onClick={() => { setVideoError(false); retryCountRef.current = 0; retryingRef.current = false; const el = videoRef.current; if (el && video.url) { el.src = video.url; el.load(); el.play().catch(() => {}); } }} className="px-4 py-1.5 bg-[#C9A227]/20 border border-[#C9A227]/40 rounded-lg text-[#D4AF37] text-xs font-medium">Tap to retry</button>
           </div>
         )}
 
@@ -795,7 +775,7 @@ export default function EnhancedVideoPlayer({
             }
           >
             <div
-              className="h-full rounded-full bg-gradient-to-r from-[#FFFFFF] via-[#00c2be] to-[#FFFFFF] relative overflow-hidden"
+              className="h-full rounded-full bg-gradient-to-r from-[#D4AF37] via-[#00c2be] to-[#E8D5A3] relative overflow-hidden"
               style={{
                 width: `${duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0}%`,
                 boxShadow: scrubbing ? '0 0 10px rgba(255,255,255,0.25)' : 'none',
@@ -1051,7 +1031,7 @@ export default function EnhancedVideoPlayer({
         <div className="fixed inset-0 z-modals flex items-end justify-center">
           <div className="absolute inset-0 pointer-events-auto" onClick={() => setIsMoreMenuOpen(false)} />
           <div
-            className="bg-[#111111]/95 rounded-t-2xl max-h-[40dvh] flex flex-col shadow-2xl border-2 border-b-0 border-[#FFFFFF] pointer-events-auto w-full max-w-[480px] relative z-10"
+            className="bg-[#111111]/95 rounded-t-2xl max-h-[40dvh] flex flex-col shadow-2xl border-2 border-b-0 border-[#C9A227] pointer-events-auto w-full max-w-[480px] relative z-10"
             style={{ marginBottom: 'var(--bottom-ui-reserve)', boxShadow: '0 -4px 30px rgba(255,255,255,0.25)' }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -1070,7 +1050,7 @@ export default function EnhancedVideoPlayer({
                     alt="QR code"
                     className="w-28 h-28 rounded-lg bg-white p-1.5"
                   />
-                  <button type="button" onClick={() => setShowQrCodeInMore(false)} className="text-[#FFFFFF] text-xs font-semibold">Close</button>
+                  <button type="button" onClick={() => setShowQrCodeInMore(false)} className="text-[#D4AF37] text-xs font-semibold">Close</button>
                 </div>
               )}
               <div className="grid grid-cols-4 gap-y-4 gap-x-2">

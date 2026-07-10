@@ -99,7 +99,7 @@ export default function VideoView() {
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="text-[#FFFFFF] text-sm font-semibold"
+              className="text-[#D4AF37] text-sm font-semibold"
             >
               Go back
             </button>

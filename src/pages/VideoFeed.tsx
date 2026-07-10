@@ -608,7 +608,7 @@ export default function VideoFeed() {
       {/* ---- Loading spinner ---- */}
       {loading && feedItems.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-8 h-8 border-2 border-[#FFFFFF] border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-[#C9A227] border-t-transparent rounded-full animate-spin" />
         </div>
       )}
 

@@ -111,11 +111,11 @@ function SoundPickerModal({
   return (
     <div className="fixed inset-0 z-[500] bg-black/40 flex items-end justify-center animate-in fade-in duration-200" onClick={onClose}>
       <div
-        className="bg-[#111111]/95 backdrop-blur-md w-full max-w-[480px] rounded-t-2xl overflow-hidden flex flex-col border-t border-[#FFFFFF]/30 h-[50vh] max-h-[50dvh] shadow-2xl animate-in slide-in-from-bottom duration-300"
+        className="bg-[#111111]/95 backdrop-blur-md w-full max-w-[480px] rounded-t-2xl overflow-hidden flex flex-col border-t border-[#C9A227]/30 h-[50vh] max-h-[50dvh] shadow-2xl animate-in slide-in-from-bottom duration-300"
         onClick={(e) => e.stopPropagation()}
       >
         <audio ref={audioRef} preload="auto" onEnded={() => setPlayingId(null)} className="hidden" />
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[#FFFFFF]/20 flex-shrink-0">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[#C9A227]/20 flex-shrink-0">
           <div className="flex items-center gap-2">
             <Music className="w-4 h-4 text-white" strokeWidth={2} />
             <p className="text-white font-semibold">Add sound</p>
@@ -139,7 +139,7 @@ function SoundPickerModal({
                 };
                 setCustomSounds((prev) => [next, ...prev]);
               }}
-              className="px-3 py-1.5 rounded-full border border-[#FFFFFF]/35 text-white text-xs font-semibold"
+              className="px-3 py-1.5 rounded-full border border-[#C9A227]/35 text-white text-xs font-semibold"
             >
               Add URL
             </button>
@@ -156,10 +156,10 @@ function SoundPickerModal({
                 <p className="text-white/50 text-xs leading-4 truncate">{s.artist} • {formatClip(s.clipStartSeconds, s.clipEndSeconds)}</p>
               </div>
               <div className="flex items-center gap-1.5 flex-shrink-0">
-                <button type="button" onClick={() => togglePreview(s)} className="w-8 h-8 rounded-full border border-[#FFFFFF]/25 bg-[#111111] flex items-center justify-center">
+                <button type="button" onClick={() => togglePreview(s)} className="w-8 h-8 rounded-full border border-[#C9A227]/25 bg-[#111111] flex items-center justify-center">
                   {playingId === String(s.id) ? <Pause className="w-3.5 h-3.5 text-white" strokeWidth={2} /> : <Play className="w-3.5 h-3.5 text-white" strokeWidth={2} />}
                 </button>
-                <button type="button" onClick={() => { onPick(s); onClose(); }} className="px-2.5 py-1 rounded-full border border-[#FFFFFF]/35 text-white text-[10px] font-semibold">
+                <button type="button" onClick={() => { onPick(s); onClose(); }} className="px-2.5 py-1 rounded-full border border-[#C9A227]/35 text-white text-[10px] font-semibold">
                   Use
                 </button>
               </div>
@@ -484,7 +484,7 @@ export default function Create() {
         />
         <div className="flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top,0px)+8px)] pb-2">
           <div className="w-7 h-7" aria-hidden />
-          <h1 className="text-sm font-black tracking-wider text-[#FFFFFF] uppercase">Create</h1>
+          <h1 className="text-sm font-black tracking-wider text-[#D4AF37] uppercase">Create</h1>
           <button
             onClick={() => setShowCreateHub(false)}
             className="w-7 h-7 flex items-center justify-center mr-[3mm]"
@@ -500,8 +500,8 @@ export default function Create() {
               onClick={() => openCameraFromHub('create')}
               className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
             >
-              <div className="w-9 h-9 rounded-full bg-[#111111] border border-[#FFFFFF]/30 flex items-center justify-center relative">
-                <tool.icon className="w-4 h-4 text-[#FFFFFF] relative z-[2]" strokeWidth={1.5} />
+              <div className="w-9 h-9 rounded-full bg-[#111111] border border-[#C9A227]/30 flex items-center justify-center relative">
+                <tool.icon className="w-4 h-4 text-[#D4AF37] relative z-[2]" strokeWidth={1.5} />
 </div>
               <span className="text-white/50 text-[9px] font-medium">{tool.label}</span>
             </button>
@@ -510,7 +510,7 @@ export default function Create() {
         <div className="flex items-center gap-2 px-4 py-2">
           <button
             onClick={() => openCameraFromHub('create')}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-[#FFFFFF]/10 border border-[#FFFFFF]/25 active:scale-[0.98] transition-transform"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-[#C9A227]/10 border border-[#C9A227]/25 active:scale-[0.98] transition-transform"
           >
             <div className="w-5 h-5 rounded-full bg-[#FFFFFF] flex items-center justify-center">
               <Plus className="w-3 h-3 text-black" strokeWidth={2.5} />
@@ -550,7 +550,7 @@ export default function Create() {
                 key={tab.id}
                 onClick={() => { setTemplateTab(tab.id); setSearchQuery(''); }}
                 className={`px-2.5 py-1 rounded-full text-[10px] font-semibold whitespace-nowrap transition-colors ${
-                  templateTab === tab.id ? 'bg-[#FFFFFF] text-black' : 'bg-white/5 text-white/50'
+                  templateTab === tab.id ? 'bg-[#D4AF37] text-black' : 'bg-white/5 text-white/50'
                 }`}
               >
                 {tab.label}
@@ -567,8 +567,8 @@ export default function Create() {
                 >
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent z-10" />
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-10 h-10 rounded-full bg-[#FFFFFF]/8 border border-[#FFFFFF]/15 flex items-center justify-center">
-                      <Film className="w-4 h-4 text-[#FFFFFF]/30" />
+                    <div className="w-10 h-10 rounded-full bg-[#C9A227]/8 border border-[#C9A227]/15 flex items-center justify-center">
+                      <Film className="w-4 h-4 text-[#E8D5A3]/30" />
                     </div>
                   </div>
                   <div className="absolute bottom-0 left-0 right-0 p-2 z-20">
@@ -582,7 +582,7 @@ export default function Create() {
         </div>
         <div className="flex items-center justify-center gap-8 py-2 pb-[calc(env(safe-area-inset-bottom,0px)+8px)] border-t border-white/5">
           <button onClick={() => { setShowCreateHub(false); navigate('/upload'); }} className="text-[11px] font-semibold text-white/40 uppercase tracking-wide">Post</button>
-          <span className="text-[11px] font-black text-[#FFFFFF] uppercase tracking-wide border-b border-[#FFFFFF] pb-px">Create</span>
+          <span className="text-[11px] font-black text-[#D4AF37] uppercase tracking-wide border-b border-[#C9A227] pb-px">Create</span>
           <button onClick={() => openCameraFromHub('live')} className="text-[11px] font-semibold text-white/40 uppercase tracking-wide">Live</button>
         </div>
       </div>
@@ -632,7 +632,7 @@ export default function Create() {
                     <CameraOff className="w-12 h-12 text-white/70 mx-auto mb-4" strokeWidth={1.5} />
                     <p className="text-white text-sm font-semibold mb-2">Camera Access Needed</p>
                     <p className="text-white/60 text-xs mb-5 leading-relaxed">{cameraError}</p>
-                    <button onClick={() => { setCameraError(null); setRetryCamera((c) => c + 1); }} className="px-6 py-2.5 rounded-full bg-[#FFFFFF] text-black text-sm font-semibold active:scale-95 transition-transform">
+                    <button onClick={() => { setCameraError(null); setRetryCamera((c) => c + 1); }} className="px-6 py-2.5 rounded-full bg-[#D4AF37] text-black text-sm font-semibold active:scale-95 transition-transform">
                       Try Again
                     </button>
                   </div>
@@ -644,7 +644,7 @@ export default function Create() {
 
         {previewUrl && (
           <div className="absolute right-4 bottom-[132px] z-[25]">
-            <button onClick={togglePreviewPlayback} className="w-11 h-11 rounded-full border border-[#FFFFFF]/35 bg-[#111111] flex items-center justify-center">
+            <button onClick={togglePreviewPlayback} className="w-11 h-11 rounded-full border border-[#C9A227]/35 bg-[#111111] flex items-center justify-center">
               {isPreviewPlaying ? <Square className="w-5 h-5 text-white" strokeWidth={2} /> : <Play className="w-5 h-5 text-white" strokeWidth={2} />}
             </button>
           </div>
@@ -652,7 +652,7 @@ export default function Create() {
 
         {countdownSeconds !== null && (
           <div className="absolute inset-0 z-[80] flex items-center justify-center bg-[#111111]">
-            <div className="w-24 h-24 rounded-full bg-[#111111] border border-[#FFFFFF]/35 flex items-center justify-center">
+            <div className="w-24 h-24 rounded-full bg-[#111111] border border-[#C9A227]/35 flex items-center justify-center">
               <div className="text-4xl font-black text-white">{countdownSeconds}</div>
             </div>
           </div>

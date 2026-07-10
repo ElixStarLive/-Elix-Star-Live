@@ -84,7 +84,7 @@ export function NativeDialogProvider({ children }: { children: React.ReactNode }
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') handleConfirm(); }}
-                  className="w-full px-3 py-2.5 bg-black/40 border border-white/20 rounded-xl text-white text-sm placeholder:text-white/30 outline-none focus:border-[#FFFFFF]/60"
+                  className="w-full px-3 py-2.5 bg-black/40 border border-white/20 rounded-xl text-white text-sm placeholder:text-white/30 outline-none focus:border-[#C9A227]/60"
                   autoFocus
                 />
               </div>
@@ -99,7 +99,7 @@ export function NativeDialogProvider({ children }: { children: React.ReactNode }
               <div className="w-px bg-white/10" />
               <button
                 onClick={handleConfirm}
-                className="flex-1 py-3.5 text-[#FFFFFF] text-sm font-bold active:bg-white/5 transition-colors"
+                className="flex-1 py-3.5 text-[#D4AF37] text-sm font-bold active:bg-white/5 transition-colors"
               >
                 {dialog.type === 'confirm' ? 'Confirm' : 'OK'}
               </button>

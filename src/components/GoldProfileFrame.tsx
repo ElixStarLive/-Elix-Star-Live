@@ -1,6 +1,6 @@
 import React from 'react';
 
-/** Black & white circular frame for + icon / small content (no PNG ring). */
+/** Small circular frame for icons — no border ring. */
 export function GoldProfileFrame({
   size = 34,
   className = '',
@@ -12,7 +12,7 @@ export function GoldProfileFrame({
 }) {
   return (
     <div
-      className={`relative flex flex-shrink-0 items-center justify-center rounded-full border-2 border-white bg-black ${className}`}
+      className={`relative flex flex-shrink-0 items-center justify-center rounded-full bg-black ${className}`}
       style={{ width: size, height: size }}
     >
       {children}

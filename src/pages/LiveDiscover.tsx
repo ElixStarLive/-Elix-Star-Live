@@ -247,7 +247,7 @@ export default function LiveDiscover() {
         <div className="flex-1 overflow-y-auto">
           {loading && creators.length === 0 ? (
             <div className="flex items-center justify-center py-32">
-              <div className="w-8 h-8 border-2 border-[#FFFFFF] border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-2 border-[#C9A227] border-t-transparent rounded-full animate-spin" />
             </div>
           ) : creators.length > 0 ? (
             <div className="grid grid-cols-2 gap-1 px-1 pb-[env(safe-area-inset-bottom,20px)]">
@@ -269,8 +269,8 @@ export default function LiveDiscover() {
                     />
                   ) : (
                     <div className="absolute inset-0 bg-gradient-to-br from-[#1a1c22] to-[#0e1015] flex items-center justify-center">
-                      <div className="w-16 h-16 rounded-full bg-[#FFFFFF]/10 border border-[#FFFFFF]/20 flex items-center justify-center">
-                        <span className="text-[#FFFFFF] font-bold text-2xl">{c.name.slice(0, 1).toUpperCase()}</span>
+                      <div className="w-16 h-16 rounded-full bg-[#C9A227]/10 border border-[#C9A227]/20 flex items-center justify-center">
+                        <span className="text-[#D4AF37] font-bold text-2xl">{c.name.slice(0, 1).toUpperCase()}</span>
                       </div>
                     </div>
                   )}
@@ -294,7 +294,7 @@ export default function LiveDiscover() {
                   <div className="absolute bottom-0 left-0 right-0 p-2.5">
                     <div className="flex items-center gap-2">
                       <div
-                        className="rounded-full border-2 border-white/40/60 overflow-hidden flex-shrink-0 bg-[#1a1c22]"
+                        className="rounded-full overflow-hidden flex-shrink-0 bg-[#1a1c22]"
                         style={{ width: LIVE_FEED_CARD_AVATAR_PX, height: LIVE_FEED_CARD_AVATAR_PX }}
                       >
                         {c.thumbnail ? (

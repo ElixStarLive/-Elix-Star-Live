@@ -10,7 +10,7 @@ interface AvatarRingProps {
   simple?: boolean;
 }
 
-/** Black & white circular avatar — no decorative PNG ring. */
+/** Avatar — round crop only, no border ring. */
 export function AvatarRing({ src, alt = '', size, className = '', onClick }: AvatarRingProps) {
   const safeSrc = typeof src === 'string' && src.length > 0 ? src : '';
   const safeAlt = typeof alt === 'string' ? alt : '';
@@ -18,7 +18,7 @@ export function AvatarRing({ src, alt = '', size, className = '', onClick }: Ava
 
   return (
     <div
-      className={`relative flex-shrink-0 rounded-full overflow-hidden border-2 border-white bg-black ${onClick ? 'cursor-pointer' : ''} ${className}`}
+      className={`relative flex-shrink-0 rounded-full overflow-hidden bg-black ${onClick ? 'cursor-pointer' : ''} ${className}`}
       style={{ width: size, height: size }}
       onClick={onClick}
     >

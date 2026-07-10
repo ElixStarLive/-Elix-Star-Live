@@ -81,7 +81,7 @@ function GiftGridItem({
         className={[
         "group flex flex-col items-center gap-1.5 p-1 rounded-xl hover:brightness-125 border transition-all duration-300 active:scale-95 relative overflow-hidden",
         isSelected
-          ? "border-secondary/70 ring-1 ring-secondary/40"
+          ? "border-secondary/70 "
           : borderClass ?? "border-transparent hover:border-secondary/30",
       ].join(" ")}
     >
@@ -218,8 +218,8 @@ export function GiftPanel({
                   className="flex items-center gap-1 cursor-pointer flex-shrink-0 active:scale-95 transition-transform"
                   onClick={onWeeklyRanking}
                 >
-                  <Trophy className="w-2.5 h-2.5 text-[#FFFFFF] flex-shrink-0" />
-                  <span className="text-[#FFFFFF] text-[8px] font-bold whitespace-nowrap">
+                  <Trophy className="w-2.5 h-2.5 text-[#D4AF37] flex-shrink-0" />
+                  <span className="text-[#D4AF37] text-[8px] font-bold whitespace-nowrap">
                     Weekly Ranking &gt;
                   </span>
                 </div>
@@ -232,8 +232,8 @@ export function GiftPanel({
                   className="flex items-center gap-1 cursor-pointer flex-shrink-0 active:scale-95 transition-transform"
                   onClick={onMembership}
                 >
-                  <Heart className="w-2.5 h-2.5 text-[#FFFFFF] fill-[#FFFFFF] flex-shrink-0" />
-                  <span className="text-[#FFFFFF] text-[8px] font-bold whitespace-nowrap">
+                  <Heart className="w-2.5 h-2.5 text-[#D4AF37] fill-[#FFFFFF] flex-shrink-0" />
+                  <span className="text-[#D4AF37] text-[8px] font-bold whitespace-nowrap">
                     Membership
                   </span>
                 </div>

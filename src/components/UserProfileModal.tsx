@@ -153,7 +153,7 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
   return (
     <div className="fixed inset-0 z-[10001] bg-black/60 flex items-end justify-center animate-in fade-in duration-200" onClick={onClose}>
       <div 
-        className="w-full max-w-[480px] bg-[#111111] overflow-y-auto animate-in slide-in-from-bottom duration-300 relative border border-b-0 border-[#FFFFFF]/30 shadow-2xl"
+        className="w-full max-w-[480px] bg-[#111111] overflow-y-auto animate-in slide-in-from-bottom duration-300 relative border border-b-0 border-[#C9A227]/30 shadow-2xl"
         style={{ marginBottom: 'var(--bottom-ui-reserve)', maxHeight: 'calc(100dvh - var(--safe-top) - 46px - var(--bottom-ui-reserve))' }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -166,7 +166,7 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
           >
             <img src="/Icons/Share Icon.png" alt="Share" className="w-5 h-5 object-contain opacity-90" />
           </button>
-          <h3 className="text-[#FFFFFF] font-semibold text-sm absolute left-1/2 -translate-x-1/2">{displayUser.username}</h3>
+          <h3 className="text-[#D4AF37] font-semibold text-sm absolute left-1/2 -translate-x-1/2">{displayUser.username}</h3>
           <button 
             onClick={onClose} 
             className="p-2 rounded-full hover:bg-white/5 transition-colors"
@@ -191,7 +191,7 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
             <div className="mt-1 flex items-center gap-2">
               <span className="text-sm text-white/80 font-medium">{displayUser.name}</span>
               {displayUser.level != null && (
-                <span className="px-2 py-0.5 rounded-md bg-white/10 text-[10px] font-bold text-[#FFFFFF] border border-[#FFFFFF]/30">
+                <span className="px-2 py-0.5 rounded-md bg-white/10 text-[10px] font-bold text-[#D4AF37] border border-[#C9A227]/30">
                   LV {displayUser.level}
                 </span>
               )}
@@ -227,7 +227,7 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
                   ) : (
                     <button
                       onClick={onFollow}
-                      className="flex-1 h-9 flex items-center justify-center bg-[#FFFFFF] text-black rounded-xl font-semibold text-xs hover:bg-[#FFFFFF]/90 transition-colors"
+                      className="flex-1 h-9 flex items-center justify-center bg-[#D4AF37] text-black rounded-xl font-semibold text-xs hover:bg-[#C9A227]/90 transition-colors"
                     >
                       Follow
                     </button>
@@ -293,7 +293,7 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
           {/* Video Feed */}
           <div className="mt-6 pt-4 border-t border-white/5">
             <div className="flex items-center gap-2 mb-3">
-              <div className="w-0.5 h-4 rounded-full bg-[#FFFFFF]/80" />
+              <div className="w-0.5 h-4 rounded-full bg-[#C9A227]/80" />
               <span className="text-sm font-semibold text-white/90">Videos</span>
             </div>
             {userVideos.length > 0 ? (

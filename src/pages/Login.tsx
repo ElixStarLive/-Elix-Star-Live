@@ -122,7 +122,7 @@ export default function Login() {
                 type="text"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-white/10 border border-white/10 rounded-xl pl-10 xs:pl-9 pr-3 py-3 xs:py-2.5 text-fluid-sm text-white outline-none focus:border-[#FFFFFF]/50 placeholder:text-white/40"
+                className="w-full bg-white/10 border border-white/10 rounded-xl pl-10 xs:pl-9 pr-3 py-3 xs:py-2.5 text-fluid-sm text-white outline-none focus:border-[#C9A227]/50 placeholder:text-white/40"
                 placeholder="username or you@email.com"
                 autoComplete="email"
                 required
@@ -138,7 +138,7 @@ export default function Login() {
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-white/10 border border-white/10 rounded-xl pl-10 xs:pl-9 pr-10 xs:pr-9 py-3 xs:py-2.5 text-fluid-sm text-white outline-none focus:border-[#FFFFFF]/50 placeholder:text-white/40"
+                className="w-full bg-white/10 border border-white/10 rounded-xl pl-10 xs:pl-9 pr-10 xs:pr-9 py-3 xs:py-2.5 text-fluid-sm text-white outline-none focus:border-[#C9A227]/50 placeholder:text-white/40"
                 placeholder="••••••••"
                 autoComplete="current-password"
                 required
@@ -163,7 +163,7 @@ export default function Login() {
               />
               <div className={`w-5 h-5 xs:w-4 xs:h-4 rounded-md border transition-all flex items-center justify-center ${
                 saveDetails 
-                  ? 'bg-[#FFFFFF] border-[#FFFFFF]' 
+                  ? 'bg-[#D4AF37] border-[#C9A227]' 
                   : 'bg-white/10 border-white/30 group-hover:border-white/50'
               }`}>
                 {saveDetails && <Check className="w-3.5 h-3.5 xs:w-3 xs:h-3 text-black stroke-[3]" />}
@@ -181,7 +181,7 @@ export default function Login() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full bg-[#FFFFFF] text-black font-bold rounded-xl py-3 xs:py-2.5 text-fluid-sm disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full bg-[#D4AF37] text-black font-bold rounded-xl py-3 xs:py-2.5 text-fluid-sm disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {isSubmitting ? 'Signing in...' : 'Sign in'}
           </button>

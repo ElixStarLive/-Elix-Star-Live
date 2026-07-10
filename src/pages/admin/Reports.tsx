@@ -79,7 +79,7 @@ export default function AdminReports() {
           <button
             onClick={() => setFilter('pending')}
             className={`px-4 py-2 rounded-lg font-semibold ${
-              filter === 'pending' ? 'bg-[#FFFFFF] text-black' : 'bg-[#2A2D35] text-white'
+              filter === 'pending' ? 'bg-[#D4AF37] text-black' : 'bg-[#2A2D35] text-white'
             }`}
           >
             Pending ({reports.filter(r => r.status === 'pending').length})
@@ -87,7 +87,7 @@ export default function AdminReports() {
           <button
             onClick={() => setFilter('all')}
             className={`px-4 py-2 rounded-lg font-semibold ${
-              filter === 'all' ? 'bg-[#FFFFFF] text-black' : 'bg-[#2A2D35] text-white'
+              filter === 'all' ? 'bg-[#D4AF37] text-black' : 'bg-[#2A2D35] text-white'
             }`}
           >
             All
@@ -115,9 +115,9 @@ export default function AdminReports() {
                 <span
                   className={`px-3 py-1 rounded-full text-xs font-bold ${
                     report.status === 'pending'
-                      ? 'bg-[#FFFFFF]'
+                      ? 'bg-[#D4AF37]'
                       : report.status === 'resolved'
-                      ? 'bg-[#FFFFFF]'
+                      ? 'bg-[#D4AF37]'
                       : 'bg-[#2A2D35]'
                   }`}
                 >

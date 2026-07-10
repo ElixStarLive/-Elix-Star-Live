@@ -90,7 +90,7 @@ export default function ResetPassword() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-white/10 border border-white/10 rounded-xl pl-10 pr-3 py-3 text-sm text-white outline-none focus:border-[#FFFFFF]/50"
+                className="w-full bg-white/10 border border-white/10 rounded-xl pl-10 pr-3 py-3 text-sm text-white outline-none focus:border-[#C9A227]/50"
                 placeholder="••••••••"
                 autoComplete="new-password"
                 required
@@ -107,7 +107,7 @@ export default function ResetPassword() {
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full bg-white/10 border border-white/10 rounded-xl pl-10 pr-3 py-3 text-sm text-white outline-none focus:border-[#FFFFFF]/50"
+                className="w-full bg-white/10 border border-white/10 rounded-xl pl-10 pr-3 py-3 text-sm text-white outline-none focus:border-[#C9A227]/50"
                 placeholder="••••••••"
                 autoComplete="new-password"
                 required
@@ -125,7 +125,7 @@ export default function ResetPassword() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full bg-[#FFFFFF] text-black font-bold rounded-xl py-3 text-sm disabled:opacity-60"
+            className="w-full bg-[#D4AF37] text-black font-bold rounded-xl py-3 text-sm disabled:opacity-60"
           >
             {isSubmitting ? 'Updating...' : 'Reset Password'}
           </button>

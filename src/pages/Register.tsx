@@ -124,7 +124,7 @@ export default function Register() {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full bg-white/10 border border-white/10 rounded-xl pl-10 xs:pl-9 pr-3 py-3 xs:py-2.5 text-fluid-sm text-white outline-none focus:border-[#FFFFFF]/50 placeholder:text-white/40"
+                className="w-full bg-white/10 border border-white/10 rounded-xl pl-10 xs:pl-9 pr-3 py-3 xs:py-2.5 text-fluid-sm text-white outline-none focus:border-[#C9A227]/50 placeholder:text-white/40"
                 placeholder="username"
                 autoComplete="username"
               />
@@ -139,7 +139,7 @@ export default function Register() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-white/10 border border-white/10 rounded-xl pl-10 xs:pl-9 pr-3 py-3 xs:py-2.5 text-fluid-sm text-white outline-none focus:border-[#FFFFFF]/50 placeholder:text-white/40"
+                className="w-full bg-white/10 border border-white/10 rounded-xl pl-10 xs:pl-9 pr-3 py-3 xs:py-2.5 text-fluid-sm text-white outline-none focus:border-[#C9A227]/50 placeholder:text-white/40"
                 placeholder="you@email.com"
                 autoComplete="email"
                 required
@@ -155,7 +155,7 @@ export default function Register() {
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-white/10 border border-white/10 rounded-xl pl-10 xs:pl-9 pr-10 xs:pr-9 py-3 xs:py-2.5 text-fluid-sm text-white outline-none focus:border-[#FFFFFF]/50 placeholder:text-white/40"
+                className="w-full bg-white/10 border border-white/10 rounded-xl pl-10 xs:pl-9 pr-10 xs:pr-9 py-3 xs:py-2.5 text-fluid-sm text-white outline-none focus:border-[#C9A227]/50 placeholder:text-white/40"
                 placeholder="••••••••"
                 autoComplete="new-password"
                 required
@@ -178,7 +178,7 @@ export default function Register() {
                 type={showConfirmPassword ? 'text' : 'password'}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full bg-white/10 border border-white/10 rounded-xl pl-10 xs:pl-9 pr-10 xs:pr-9 py-3 xs:py-2.5 text-fluid-sm text-white outline-none focus:border-[#FFFFFF]/50 placeholder:text-white/40"
+                className="w-full bg-white/10 border border-white/10 rounded-xl pl-10 xs:pl-9 pr-10 xs:pr-9 py-3 xs:py-2.5 text-fluid-sm text-white outline-none focus:border-[#C9A227]/50 placeholder:text-white/40"
                 placeholder="••••••••"
                 autoComplete="new-password"
                 required
@@ -210,7 +210,7 @@ export default function Register() {
             <div
               className={`mt-0.5 w-6 h-6 min-w-[24px] min-h-[24px] rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
                 acceptedTerms
-                  ? 'border-[#FFFFFF] bg-[#FFFFFF]'
+                  ? 'border-[#C9A227] bg-[#D4AF37]'
                   : 'border-white/30 bg-white/10'
               }`}
             >
@@ -224,7 +224,7 @@ export default function Register() {
               I agree to the{' '}
               <Link
                 to="/terms"
-                className="text-[#FFFFFF] underline"
+                className="text-[#D4AF37] underline"
                 onClick={(e) => e.stopPropagation()}
               >
                 Terms of Service
@@ -232,7 +232,7 @@ export default function Register() {
               and{' '}
               <Link
                 to="/privacy"
-                className="text-[#FFFFFF] underline"
+                className="text-[#D4AF37] underline"
                 onClick={(e) => e.stopPropagation()}
               >
                 Privacy Policy
@@ -255,7 +255,7 @@ export default function Register() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full bg-[#FFFFFF] text-black font-bold rounded-xl py-3 xs:py-2.5 text-fluid-sm disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full bg-[#D4AF37] text-black font-bold rounded-xl py-3 xs:py-2.5 text-fluid-sm disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {isSubmitting ? 'Creating account...' : 'Create account'}
           </button>

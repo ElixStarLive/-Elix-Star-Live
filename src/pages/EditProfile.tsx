@@ -143,7 +143,7 @@ export default function EditProfile() {
         <button
           onClick={handleSave}
           disabled={loading}
-          className="px-3 py-1 rounded-full bg-[#FFFFFF] text-black text-sm font-semibold disabled:opacity-50 hover:brightness-110 transition"
+          className="px-3 py-1 rounded-full bg-[#D4AF37] text-black text-sm font-semibold disabled:opacity-50 hover:brightness-110 transition"
         >
           {loading ? 'Saving...' : 'Save'}
         </button>
@@ -267,7 +267,7 @@ function InputField({
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         maxLength={maxLength}
-        className="w-full bg-[#111111] rounded-lg px-4 py-3 outline-none text-white placeholder-white/40/40 border border-transparent focus:border-[#FFFFFF] transition"
+        className="w-full bg-[#111111] rounded-lg px-4 py-3 outline-none text-white placeholder-white/40/40 border border-transparent focus:border-[#C9A227] transition"
       />
     </div>
   );
@@ -295,7 +295,7 @@ function TextAreaField({
         placeholder={placeholder}
         maxLength={maxLength}
         rows={4}
-        className="w-full bg-[#111111] rounded-lg px-4 py-3 outline-none text-white placeholder-white/40/40 border border-transparent focus:border-[#FFFFFF] transition resize-none"
+        className="w-full bg-[#111111] rounded-lg px-4 py-3 outline-none text-white placeholder-white/40/40 border border-transparent focus:border-[#C9A227] transition resize-none"
       />
       {maxLength && (
         <p className="text-xs text-white/40 mt-1 text-right">

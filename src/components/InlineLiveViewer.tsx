@@ -194,7 +194,7 @@ export default function InlineLiveViewer({
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#111111] gap-4 pointer-events-none">
           {creatorAvatar ? (
             <div
-              className="rounded-full overflow-hidden border-2 border-[#FFFFFF]/50 shrink-0"
+              className="rounded-full overflow-hidden shrink-0"
               style={{ width: INLINE_LIVE_PLACEHOLDER_AVATAR_PX, height: INLINE_LIVE_PLACEHOLDER_AVATAR_PX }}
             >
               <img
@@ -205,10 +205,10 @@ export default function InlineLiveViewer({
             </div>
           ) : (
             <div
-              className="rounded-full bg-[#FFFFFF]/20 flex items-center justify-center shrink-0"
+              className="rounded-full bg-[#C9A227]/20 flex items-center justify-center shrink-0"
               style={{ width: INLINE_LIVE_PLACEHOLDER_AVATAR_PX, height: INLINE_LIVE_PLACEHOLDER_AVATAR_PX }}
             >
-              <span className="text-3xl font-bold text-[#FFFFFF]/80">
+              <span className="text-3xl font-bold text-[#E8D5A3]/80">
                 {(creatorName || "C").charAt(0).toUpperCase()}
               </span>
             </div>
@@ -216,7 +216,7 @@ export default function InlineLiveViewer({
           <p className="text-white font-semibold text-base truncate max-w-[80%]">{creatorName}</p>
           {connecting && !isOffline ? (
             <>
-              <div className="w-8 h-8 border-2 border-[#FFFFFF] border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-2 border-[#C9A227] border-t-transparent rounded-full animate-spin" />
               <span className="text-white/60 text-sm">Connecting to live...</span>
             </>
           ) : isOffline ? (

@@ -43,7 +43,7 @@ export const TopNav = () => {
                 >
                   <span
                     className={`text-[12px] font-bold tracking-wide whitespace-nowrap ${
-                      active || ("primary" in tab && tab.primary) ? "text-white" : "text-white/50"
+                      active || ("primary" in tab && tab.primary) ? "text-gold-bright" : "text-gold/50"
                     }`}
                   >
                     {tab.label}
@@ -59,7 +59,7 @@ export const TopNav = () => {
             className="flex-shrink-0 flex items-center justify-center w-[44px] h-[44px] active:opacity-80 transition-opacity"
             style={{ WebkitTapHighlightColor: "transparent" }}
           >
-            <Search size={24} strokeWidth={2.25} className="text-white" />
+            <Search size={24} strokeWidth={2.25} className="text-gold-bright" />
           </button>
         </div>
       </div>

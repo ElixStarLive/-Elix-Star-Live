@@ -18,10 +18,10 @@ export default function LiveAIFilters({ onFilterChange, currentFilter }: LiveAIF
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="w-9 h-9 rounded-full bg-[#111111] backdrop-blur-md border border-[#FFFFFF]/40 flex items-center justify-center shadow-lg active:scale-95 transition-transform relative"
+        className="w-9 h-9 rounded-full bg-[#111111] backdrop-blur-md flex items-center justify-center shadow-lg active:scale-95 transition-transform relative"
         title="AI Filters"
       >
-        <Sparkles size={16} className={`relative z-[2] ${currentFilter !== 'none' ? 'text-[#FFFFFF]' : 'text-white/70'}`} />
+        <Sparkles size={16} className={`relative z-[2] ${currentFilter !== 'none' ? 'text-[#D4AF37]' : 'text-white/70'}`} />
 </button>
     );
   }
@@ -31,7 +31,7 @@ export default function LiveAIFilters({ onFilterChange, currentFilter }: LiveAIF
       <div className="bg-black/60 backdrop-blur-md rounded-2xl p-2">
         <div className="flex items-center justify-between px-2 mb-2">
           <span className="text-white text-xs font-bold flex items-center gap-1">
-            <Sparkles size={12} className="text-[#FFFFFF]" /> AI Filters
+            <Sparkles size={12} className="text-[#D4AF37]" /> AI Filters
           </span>
           <button onClick={() => setIsOpen(false)} title="Close filters">
             <X size={14} className="text-white/50" />
@@ -44,7 +44,7 @@ export default function LiveAIFilters({ onFilterChange, currentFilter }: LiveAIF
               onClick={() => onFilterChange(filter.css)}
               className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl min-w-[56px] transition-all ${
                 currentFilter === filter.css
-                  ? 'bg-[#FFFFFF]/20 ring-1 ring-[#FFFFFF]'
+                  ? 'bg-[#C9A227]/20 opacity-100'
                   : 'bg-white/5'
               }`}
             >

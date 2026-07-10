@@ -20,6 +20,12 @@ export default {
       colors: {
         primary: "var(--color-primary)",
         secondary: "var(--color-secondary)",
+        gold: {
+          DEFAULT: "var(--color-gold)",
+          bright: "var(--color-gold-bright)",
+          light: "var(--color-gold-light)",
+          dark: "var(--color-gold-dark)",
+        },
         rose: "var(--color-rose)",
         background: "var(--color-background)",
         surface: "var(--color-surface)",

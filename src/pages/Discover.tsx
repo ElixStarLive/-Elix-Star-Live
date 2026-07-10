@@ -191,7 +191,7 @@ export default function Discover() {
         <div className="w-full shrink-0 bg-[#111111] z-10 border-b border-white/[0.06]">
           <div className="px-3 pt-[calc(env(safe-area-inset-top,8px)+4px)] pb-1 flex items-center justify-between relative">
             <button onClick={() => document.getElementById('discover-search')?.focus()} className="p-1 z-10" title="Search">
-              <Search className="w-4 h-4 text-[#FFFFFF]" />
+              <Search className="w-4 h-4 text-[#D4AF37]" />
             </button>
             <h1 className="text-sm font-bold text-gold-metallic absolute left-1/2 transform -translate-x-1/2">Explore</h1>
             <button onClick={() => navigate(-1)} className="p-1 z-10" title="Back">
@@ -201,7 +201,7 @@ export default function Discover() {
 
           {/* Search Bar */}
           <div className="mx-3 mb-1.5 flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2 border border-white/10">
-            <Search className="w-3.5 h-3.5 text-[#FFFFFF]/50 shrink-0" />
+            <Search className="w-3.5 h-3.5 text-[#E8D5A3]/50 shrink-0" />
             <input
               id="discover-search"
               type="text"
@@ -240,7 +240,7 @@ export default function Discover() {
           {/* Loading */}
           {loading && (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
-              <div className="w-7 h-7 border-2 border-[#FFFFFF]/20 border-t-[#FFFFFF] rounded-full animate-spin" />
+              <div className="w-7 h-7 border-2 border-[#C9A227]/20 border-t-[#FFFFFF] rounded-full animate-spin" />
               <p className="text-white/30 text-xs">Loading...</p>
             </div>
           )}
@@ -268,7 +268,7 @@ export default function Discover() {
               {searchResults.users.length > 0 && (
                 <div className="mb-5">
                   <div className="flex items-center gap-2 mb-2 px-1">
-                    <Users className="w-4 h-4 text-[#FFFFFF]" />
+                    <Users className="w-4 h-4 text-[#D4AF37]" />
                     <h2 className="text-[14px] font-bold text-gold-metallic">Users</h2>
                   </div>
                   <div className="space-y-1">
@@ -282,7 +282,7 @@ export default function Discover() {
               {searchResults.videos.length > 0 && (
                 <div>
                   <div className="flex items-center gap-2 mb-2 px-1">
-                    <VideoIcon className="w-4 h-4 text-[#FFFFFF]" />
+                    <VideoIcon className="w-4 h-4 text-[#D4AF37]" />
                     <h2 className="text-[14px] font-bold text-gold-metallic">Videos</h2>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
@@ -424,7 +424,7 @@ function TabButton({ active, onClick, icon, label }: { active: boolean; onClick:
       onClick={onClick}
       className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap transition-all border ${
         active
-          ? 'bg-[#FFFFFF]/15 text-[#FFFFFF] border-[#FFFFFF]/30'
+          ? 'bg-[#C9A227]/15 text-[#D4AF37] border-[#C9A227]/30'
           : 'text-white/40 hover:text-white/60 border-transparent'
       }`}
     >
@@ -566,7 +566,7 @@ function UserSearchResult({ user }: { user: User }) {
       </div>
       <span
         onClick={handleFollow}
-        className={`px-3.5 py-1.5 rounded-lg font-bold text-[11px] ${followed ? 'bg-white/10 text-white/60' : 'bg-[#FFFFFF] text-black'}`}
+        className={`px-3.5 py-1.5 rounded-lg font-bold text-[11px] ${followed ? 'bg-white/10 text-white/60' : 'bg-[#D4AF37] text-black'}`}
       >
         {followed ? 'Following' : 'Follow'}
       </span>
@@ -581,8 +581,8 @@ function HashtagItem({ hashtag, index }: { hashtag: Hashtag; index: number }) {
       onClick={() => { trackEvent('hashtag_click', { hashtag: hashtag.tag }); navigate(`/hashtag/${hashtag.tag}`); }}
       className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition text-left"
     >
-      <div className="w-9 h-9 bg-[#FFFFFF]/10 rounded-xl flex items-center justify-center shrink-0">
-        <Hash className="w-4 h-4 text-[#FFFFFF]" />
+      <div className="w-9 h-9 bg-[#C9A227]/10 rounded-xl flex items-center justify-center shrink-0">
+        <Hash className="w-4 h-4 text-[#D4AF37]" />
       </div>
       <div className="flex-1 min-w-0">
         <p className="font-bold text-[13px] truncate">#{hashtag.tag}</p>

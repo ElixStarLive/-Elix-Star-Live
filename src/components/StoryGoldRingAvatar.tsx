@@ -1,8 +1,7 @@
 import React from 'react';
-import { PROFILE_RING_IMAGE_LIFT_MM } from '../lib/profileFrame';
 
 /**
- * Story / profile avatar — black & white ring only (no gold PNG frame).
+ * Story / profile avatar — round crop only, no ring.
  */
 export function StoryGoldRingAvatar({
   size = 56,
@@ -23,8 +22,6 @@ export function StoryGoldRingAvatar({
   innerTranslateYmm?: number;
   'data-avatar-circle'?: string;
 }) {
-  const MM_TO_PX = 96 / 25.4;
-  const inner = Math.max(2, Math.round(size * 0.88 + innerDiameterAddMm * MM_TO_PX));
   const safeSrc = src?.length ? src : '';
   const initial = (alt || '?').trim().charAt(0).toUpperCase() || '?';
 
@@ -35,11 +32,11 @@ export function StoryGoldRingAvatar({
       {...(dataAvatarCircle ? { 'data-avatar-circle': dataAvatarCircle } : {})}
     >
       <div
-        className={`absolute rounded-full overflow-hidden bg-black ${live ? 'border-2 border-white' : 'border border-white/80'}`}
+        className="absolute rounded-full overflow-hidden bg-black"
         style={{
-          width: inner,
-          height: inner,
-          top: `calc(50% - ${PROFILE_RING_IMAGE_LIFT_MM}mm)`,
+          width: size,
+          height: size,
+          top: '50%',
           left: '50%',
           transform:
             innerTranslateYmm !== 0

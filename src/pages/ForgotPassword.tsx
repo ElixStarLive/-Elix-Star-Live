@@ -45,7 +45,7 @@ export default function ForgotPassword() {
           </p>
           <Link
             to="/login"
-            className="inline-block w-full bg-[#FFFFFF] text-black font-bold rounded-xl py-3 text-sm text-center"
+            className="inline-block w-full bg-[#D4AF37] text-black font-bold rounded-xl py-3 text-sm text-center"
           >
             Back to Login
           </Link>
@@ -76,7 +76,7 @@ export default function ForgotPassword() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-white/10 border border-white/10 rounded-xl pl-10 pr-3 py-3 text-sm text-white outline-none focus:border-[#FFFFFF]/50 placeholder:text-white/40"
+                className="w-full bg-white/10 border border-white/10 rounded-xl pl-10 pr-3 py-3 text-sm text-white outline-none focus:border-[#C9A227]/50 placeholder:text-white/40"
                 placeholder="you@email.com"
                 autoComplete="email"
                 required
@@ -93,7 +93,7 @@ export default function ForgotPassword() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full bg-[#FFFFFF] text-black font-bold rounded-xl py-3 text-sm disabled:opacity-60"
+            className="w-full bg-[#D4AF37] text-black font-bold rounded-xl py-3 text-sm disabled:opacity-60"
           >
             {isSubmitting ? 'Sending...' : 'Send Reset Link'}
           </button>

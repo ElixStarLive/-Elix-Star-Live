@@ -59,7 +59,7 @@ export default function MusicFeed() {
               className="p-1 z-10"
               aria-label="Search"
             >
-              <Search className="w-4 h-4 text-[#FFFFFF]" />
+              <Search className="w-4 h-4 text-[#D4AF37]" />
             </button>
             <h1 className="text-sm font-bold text-gold-metallic absolute left-1/2 transform -translate-x-1/2">
               Sound
@@ -91,7 +91,7 @@ export default function MusicFeed() {
                 <p className="text-white/60 text-sm mb-4">Trending</p>
                 <button
                   onClick={() => navigate('/create')}
-                  className="bg-[#FFFFFF] text-black px-6 py-1.5 rounded-sm font-semibold flex items-center gap-1.5 text-sm w-fit active:scale-95 transition-transform"
+                  className="bg-[#D4AF37] text-black px-6 py-1.5 rounded-sm font-semibold flex items-center gap-1.5 text-sm w-fit active:scale-95 transition-transform"
                 >
                   <Play size={6} fill="black" /> Use this sound
                 </button>
@@ -105,7 +105,7 @@ export default function MusicFeed() {
           <div className="grid grid-cols-3 gap-0.5 p-0.5">
             {loading ? (
               <div className="col-span-3 flex items-center justify-center h-[40vh]">
-                <div className="w-8 h-8 border-2 border-[#FFFFFF] border-t-transparent rounded-full animate-spin" />
+                <div className="w-8 h-8 border-2 border-[#C9A227] border-t-transparent rounded-full animate-spin" />
               </div>
             ) : videos.length === 0 ? (
               <div className="col-span-3 flex flex-col items-center justify-center h-[40vh] text-center opacity-60">

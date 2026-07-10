@@ -56,7 +56,7 @@ export default function Settings() {
       onClick={fn}
       className="w-full flex items-center gap-2.5 px-2 py-2 active:bg-white/5 text-left rounded-md"
     >
-      {ic && <span className="text-[#FFFFFF]/70 shrink-0 [&_svg]:size-[14px]">{ic}</span>}
+      {ic && <span className="text-[#E8D5A3]/70 shrink-0 [&_svg]:size-[14px]">{ic}</span>}
       <span className="flex-1 text-[12px] leading-tight text-white/85">{t}</span>
       {v && <span className="text-[10px] text-white/45 tabular-nums">{v}</span>}
       <ChevronRight size={13} className="text-white/30 shrink-0" />
@@ -71,14 +71,14 @@ export default function Settings() {
     <div className="fixed inset-0 z-[9999] flex justify-center">
       <div className="absolute inset-0 bg-black/45" onClick={() => navigate(-1)} />
       <div
-        className="absolute w-full max-w-[480px] h-[50dvh] rounded-t-2xl border-t border-[#FFFFFF]/20 bg-[#111111] text-white shadow-2xl overflow-hidden"
+        className="absolute w-full max-w-[480px] h-[50dvh] rounded-t-2xl border-t border-[#C9A227]/20 bg-[#111111] text-white shadow-2xl overflow-hidden"
         style={{ bottom: 'calc(var(--nav-height) + env(safe-area-inset-bottom, 0px))' }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex-shrink-0 px-3 pt-1.5 pb-1.5">
           <div className="flex items-center justify-center">
             <div className="w-10 h-1 bg-white/20 rounded-full absolute top-2 left-1/2 -translate-x-1/2" />
-            <span className="text-[13px] font-bold text-[#FFFFFF]">Settings</span>
+            <span className="text-[13px] font-bold text-[#D4AF37]">Settings</span>
           </div>
         </div>
 

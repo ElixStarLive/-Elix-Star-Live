@@ -56,7 +56,7 @@ export default function Copyright() {
               our{' '}
               <button
                 onClick={() => navigate('/legal/dmca')}
-                className="text-[#FFFFFF] underline"
+                className="text-[#D4AF37] underline"
               >
                 DMCA Policy
               </button>{' '}

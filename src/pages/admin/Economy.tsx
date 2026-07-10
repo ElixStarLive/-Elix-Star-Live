@@ -113,7 +113,7 @@ export default function AdminEconomy() {
                     <td className="px-4 py-3">
                       <span
                         className={`px-2 py-1 rounded text-xs ${
-                          gift.is_active ? 'bg-[#FFFFFF]' : 'bg-[#2A2D35]'
+                          gift.is_active ? 'bg-[#D4AF37]' : 'bg-[#2A2D35]'
                         }`}
                       >
                         {gift.is_active ? 'Active' : 'Inactive'}
@@ -129,7 +129,7 @@ export default function AdminEconomy() {
                             updateGiftPrice(gift.id, parsed);
                           }
                         }}
-                        className="px-3 py-1 bg-[#FFFFFF] text-black rounded hover:bg-[#FFFFFF]/90 text-sm"
+                        className="px-3 py-1 bg-[#D4AF37] text-black rounded hover:bg-[#C9A227]/90 text-sm"
                       >
                         Edit Price
                       </button>
@@ -166,7 +166,7 @@ export default function AdminEconomy() {
                     <td className="px-4 py-3">
                       <span
                         className={`px-2 py-1 rounded text-xs ${
-                          booster.is_active ? 'bg-[#FFFFFF]' : 'bg-[#2A2D35]'
+                          booster.is_active ? 'bg-[#D4AF37]' : 'bg-[#2A2D35]'
                         }`}
                       >
                         {booster.is_active ? 'Active' : 'Inactive'}

@@ -196,7 +196,7 @@ export default function SearchPage() {
             onTouchEnd={handleTouchEnd}
           >
             <div className="flex-1 flex justify-center">
-              <div className="w-8 h-[2px] rounded-full bg-[#FFFFFF]/30" />
+              <div className="w-8 h-[2px] rounded-full bg-[#C9A227]/30" />
             </div>
             <button type="button" onClick={closePanel} className="p-1 -mr-1" title="Back">
               <img src="/Icons/Gold power buton.png" alt="Back" className="w-5 h-5" />
@@ -215,12 +215,12 @@ export default function SearchPage() {
                   onChange={(e) => setQuery(e.target.value)}
                   autoFocus
                 />
-                <SearchIcon size={10} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#FFFFFF]" />
+                <SearchIcon size={10} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#D4AF37]" />
                 {query && (
                   <button 
                     type="button" 
                     onClick={() => setQuery('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#FFFFFF]/60"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#E8D5A3]/60"
                   >
                     <X size={10} />
                   </button>
@@ -240,7 +240,7 @@ export default function SearchPage() {
                       key={cat}
                       type="button"
                       onClick={() => setActiveCategory(cat)}
-                      className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap border transition-colors ${activeCategory === cat ? 'bg-[#FFFFFF]/20 border-[#FFFFFF] text-[#FFFFFF]' : 'bg-[#111111] border-white/15 text-white/60'}`}
+                      className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap border transition-colors ${activeCategory === cat ? 'bg-[#C9A227]/20 border-[#C9A227] text-[#D4AF37]' : 'bg-[#111111] border-white/15 text-white/60'}`}
                     >
                       {cat}
                     </button>
@@ -253,7 +253,7 @@ export default function SearchPage() {
               </>
             ) : (
               <div className="space-y-4 px-4 pb-4">
-                {searching && <div className="text-xs text-[#FFFFFF]/60 text-center py-3">Searching...</div>}
+                {searching && <div className="text-xs text-[#E8D5A3]/60 text-center py-3">Searching...</div>}
 
                 {matchedUsers.length > 0 && (
                   <div>
@@ -291,14 +291,14 @@ export default function SearchPage() {
                           <video
                             src={v.url}
                             poster={v.thumbnail || undefined}
-                            className="w-16 h-22 rounded-lg object-cover bg-[#111111] border border-[#FFFFFF]/20"
+                            className="w-16 h-22 rounded-lg object-cover bg-[#111111] border border-[#C9A227]/20"
                             muted
                             playsInline
                             preload="metadata"
                           />
                           <div className="text-left flex-1">
                             <div className="text-xs font-semibold line-clamp-2">{v.description}</div>
-                            <div className="text-[10px] text-[#FFFFFF] mt-1">@{v.username}</div>
+                            <div className="text-[10px] text-[#D4AF37] mt-1">@{v.username}</div>
                             <div className="text-[10px] text-white/40 mt-1 line-clamp-1">
                               {v.hashtags.map((h: string) => `#${h}`).join(' ')}
                             </div>

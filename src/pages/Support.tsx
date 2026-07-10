@@ -102,7 +102,7 @@ export default function Support() {
           <div className="flex-shrink-0 px-3 pt-1.5 pb-1.5">
             <div className="flex items-center justify-center">
               <div className="w-10 h-1 bg-white/20 rounded-full absolute top-2 left-1/2 -translate-x-1/2" />
-              <span className="text-[13px] font-bold text-[#FFFFFF]">Contact Support</span>
+              <span className="text-[13px] font-bold text-[#D4AF37]">Contact Support</span>
             </div>
           </div>
 
@@ -114,7 +114,7 @@ export default function Support() {
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="your@email.com"
-              className="w-full bg-[#0f1218] rounded-lg px-3 py-2.5 outline-none text-[12px] text-white placeholder-white/35 border border-white/10 focus:border-[#FFFFFF] transition"
+              className="w-full bg-[#0f1218] rounded-lg px-3 py-2.5 outline-none text-[12px] text-white placeholder-white/35 border border-white/10 focus:border-[#C9A227] transition"
             />
           </div>
 
@@ -126,7 +126,7 @@ export default function Support() {
               onChange={e => setSubject(e.target.value)}
               placeholder="Brief description of your issue"
               maxLength={100}
-              className="w-full bg-[#0f1218] rounded-lg px-3 py-2.5 outline-none text-[12px] text-white placeholder-white/35 border border-white/10 focus:border-[#FFFFFF] transition"
+              className="w-full bg-[#0f1218] rounded-lg px-3 py-2.5 outline-none text-[12px] text-white placeholder-white/35 border border-white/10 focus:border-[#C9A227] transition"
             />
           </div>
 
@@ -138,7 +138,7 @@ export default function Support() {
               placeholder="Describe your issue in detail..."
               maxLength={1000}
               rows={6}
-              className="w-full bg-[#0f1218] rounded-lg px-3 py-2.5 outline-none text-[12px] text-white placeholder-white/35 border border-white/10 focus:border-[#FFFFFF] transition resize-none"
+              className="w-full bg-[#0f1218] rounded-lg px-3 py-2.5 outline-none text-[12px] text-white placeholder-white/35 border border-white/10 focus:border-[#C9A227] transition resize-none"
             />
             <p className="text-[10px] text-white/40 mt-1 text-right">{message.length}/1000</p>
           </div>
@@ -146,7 +146,7 @@ export default function Support() {
           <button
             onClick={handleSubmitTicket}
             disabled={loading || !subject.trim() || !message.trim() || !email.trim()}
-            className="w-full py-2.5 bg-[#FFFFFF] text-black text-[12px] rounded-lg font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition"
+            className="w-full py-2.5 bg-[#D4AF37] text-black text-[12px] rounded-lg font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition"
           >
             {loading ? 'Sending...' : 'Send Message'}
           </button>
@@ -162,7 +162,7 @@ export default function Support() {
         <div className="flex-shrink-0 px-3 pt-1.5 pb-1.5">
           <div className="flex items-center justify-center">
             <div className="w-10 h-1 bg-white/20 rounded-full absolute top-2 left-1/2 -translate-x-1/2" />
-            <span className="text-[13px] font-bold text-[#FFFFFF]">Help & Support</span>
+            <span className="text-[13px] font-bold text-[#D4AF37]">Help & Support</span>
           </div>
         </div>
 
@@ -203,7 +203,7 @@ export default function Support() {
         </Section>
 
         <div className="mt-2 p-3 rounded-xl border border-white/10 bg-[#0f1218] text-center">
-          <Mail className="w-4 h-4 text-[#FFFFFF] mx-auto mb-1.5" />
+          <Mail className="w-4 h-4 text-[#D4AF37] mx-auto mb-1.5" />
           <p className="text-[11px] text-white/75 mb-0.5">Email us directly</p>
           <a
             href="mailto:support@elixstar.live"
@@ -243,7 +243,7 @@ function ListRow({
       onClick={onClick}
       className="w-full flex items-center gap-2.5 px-2 py-2 active:bg-white/5 text-left rounded-md"
     >
-      {icon && <span className="text-[#FFFFFF]/70 shrink-0 [&_svg]:size-[14px]">{icon}</span>}
+      {icon && <span className="text-[#E8D5A3]/70 shrink-0 [&_svg]:size-[14px]">{icon}</span>}
       <div className="flex-1 min-w-0">
         <p className="text-[12px] leading-tight text-white/85">{label}</p>
         {helper && <p className="text-[10px] text-white/45 mt-0.5 truncate">{helper}</p>}

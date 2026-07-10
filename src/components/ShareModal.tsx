@@ -124,7 +124,7 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin, i
     {isOpen && (
     <div className="fixed inset-0 z-modals bg-black/40 flex items-end justify-center" onClick={onClose}>
       <div
-        className="bg-[#111111]/95 backdrop-blur-md w-full max-w-[480px] rounded-t-2xl overflow-hidden flex flex-col border-t border-[#FFFFFF]/20 h-[38vh] shadow-2xl mb-[calc(var(--nav-height)+var(--safe-bottom))]"
+        className="bg-[#111111]/95 backdrop-blur-md w-full max-w-[480px] rounded-t-2xl overflow-hidden flex flex-col border-t border-[#C9A227]/20 h-[38vh] shadow-2xl mb-[calc(var(--nav-height)+var(--safe-bottom))]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-4 pt-1 pb-1">
@@ -157,7 +157,7 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin, i
           >
             <div className="relative w-[85px] h-[85px] flex items-center justify-center">
               <StoryGoldRingAvatar size={85} src={user?.avatar || '/Icons/Profile icon.png'} alt="Create" />
-              <Plus size={28} className="text-[#FFFFFF] absolute" strokeWidth={2.5} />
+              <Plus size={28} className="text-[#D4AF37] absolute" strokeWidth={2.5} />
             </div>
             <span className="text-white/80 text-[11px] font-medium">Create</span>
           </button>
@@ -177,7 +177,7 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin, i
         </div>
 
         {/* All share options — compact grid, scrollable */}
-        <div className="flex-1 overflow-y-scroll overflow-x-hidden min-h-0 px-4 pb-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#FFFFFF]/60 [&::-webkit-scrollbar-thumb]:rounded-full" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.25) transparent' }}>
+        <div className="flex-1 overflow-y-scroll overflow-x-hidden min-h-0 px-4 pb-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#C9A227]/60 [&::-webkit-scrollbar-thumb]:rounded-full" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.25) transparent' }}>
           {showQrCode && (
             <div className="pt-2 pb-3 flex flex-col items-center gap-2 border-b border-white/10 mb-2">
               <div className="flex items-center justify-between w-full">
