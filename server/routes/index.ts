@@ -12,12 +12,14 @@ import videosRouter from "./videos.router";
 import mediaRouter from "./media.router";
 import miscRouter from "./misc.router";
 import adminActionsRouter from "./adminActions";
+import musicRouter from "./music.router";
 
 export function mountRoutes(app: Express): void {
   app.use("/api/auth", authRouter);
   app.use("/api/live", liveRouter);
   app.use("/api/gifts", giftsRouter);
   app.use("/api/sounds", soundsRouter);
+  app.use("/api/music", musicRouter);
   app.use("/api/feed", feedRouter);
   app.use("/api/chat", chatRouter);
   app.use("/api/profiles", profilesRouter);

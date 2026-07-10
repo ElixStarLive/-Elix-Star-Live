@@ -47,6 +47,13 @@ router.post("/", async (req, res) => {
 
     addVideo(video);
     await saveVideoToDb(video);
+
+    const music = video.music as { id?: string; provider?: string } | null;
+    if (music?.provider === "epidemic_sound" && music.id) {
+      const { reportTracksExported } = await import("../services/epidemicSound");
+      void reportTracksExported(payload.sub, [String(music.id)], "OTHER");
+    }
+
     logger.info({ videoId: id }, "Video created");
 
     return res.status(201).json(video);

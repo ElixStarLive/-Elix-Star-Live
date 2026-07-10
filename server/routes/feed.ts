@@ -56,11 +56,19 @@ function formatDurationSeconds(sec: unknown): string {
 function formatMusicFromRow(v: any, displayName: string): any {
   const m = v.music;
   if (m && typeof m === "object" && !Array.isArray(m)) {
+    const previewUrl =
+      typeof m.previewUrl === "string"
+        ? m.previewUrl
+        : typeof m.url === "string"
+          ? m.url
+          : undefined;
     return {
       id: String(m.id ?? "original"),
       title: String(m.title ?? ""),
       artist: String(m.artist ?? displayName),
       duration: typeof m.duration === "string" ? m.duration : formatDurationSeconds(m.duration),
+      ...(previewUrl ? { previewUrl } : {}),
+      ...(m.provider ? { provider: m.provider } : {}),
     };
   }
   return null;

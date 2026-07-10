@@ -132,11 +132,28 @@ export async function handleGetGiftCatalog(_req: Request, res: Response) {
   }
 }
 
-/** GET /api/sounds — returns sound tracks from DB if available */
+/** GET /api/sounds — licensed tracks for upload picker (Epidemic Sound or Neon fallback) */
 export async function handleGetSounds(_req: Request, res: Response) {
+  const { isEpidemicSoundConfigured, buildEpidemicSoundTracksForClient } = await import("./music");
+
+  if (isEpidemicSoundConfigured()) {
+    try {
+      const tracks = await buildEpidemicSoundTracksForClient(60);
+      res.setHeader("Cache-Control", "public, s-maxage=300, max-age=60");
+      return res.status(200).json({
+        tracks,
+        configured: true,
+        source: "epidemic_sound",
+      });
+    } catch (err) {
+      logger.error({ err }, "handleGetSounds epidemic failed");
+      return res.status(502).json({ tracks: [], error: "MUSIC_PROVIDER_ERROR" });
+    }
+  }
+
   const pool = getPool();
   if (!pool) {
-    return res.status(503).json({ sounds: [], error: 'Database not configured' });
+    return res.status(200).json({ tracks: [], configured: false, source: null });
   }
   try {
     const r = await pool.query(
@@ -146,14 +163,34 @@ export async function handleGetSounds(_req: Request, res: Response) {
        ORDER BY use_count DESC, created_at DESC
        LIMIT 200`
     );
+    const tracks = r.rows.map((row: {
+      id: string | number;
+      title: string;
+      artist: string;
+      audio_url: string;
+      duration: number | string | null;
+    }) => ({
+      id: String(row.id),
+      title: row.title,
+      artist: row.artist,
+      duration: typeof row.duration === "number"
+        ? `${Math.floor(row.duration / 60)}:${String(row.duration % 60).padStart(2, "0")}`
+        : String(row.duration || "0:30"),
+      url: row.audio_url,
+      license: "Licensed",
+      source: "Catalog",
+      provider: "local" as const,
+      clipStartSeconds: 0,
+      clipEndSeconds: 30,
+    }));
     res.setHeader("Cache-Control", "public, s-maxage=300, max-age=60");
-    return res.status(200).json({ sounds: r.rows, configured: true });
+    return res.status(200).json({ tracks, configured: true, source: "database" });
   } catch (err) {
     const code = (err as { code?: string })?.code;
-    if (code === '42P01') {
-      return res.status(200).json({ sounds: [], configured: false });
+    if (code === "42P01") {
+      return res.status(200).json({ tracks: [], configured: false, source: null });
     }
-    logger.error({ err }, 'handleGetSounds failed');
-    return res.status(500).json({ sounds: [], error: 'Failed to load sounds' });
+    logger.error({ err }, "handleGetSounds failed");
+    return res.status(500).json({ tracks: [], error: "Failed to load sounds" });
   }
 }

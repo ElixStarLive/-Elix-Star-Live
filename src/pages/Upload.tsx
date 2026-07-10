@@ -34,7 +34,7 @@ export default function Upload() {
   const [isPosting, setIsPosting] = useState(false);
   const [postProgress, setPostProgress] = useState(0);
   const [postError, setPostError] = useState<string | null>(null);
-  const [playingTrackId, setPlayingTrackId] = useState<number | null>(null); // Track currently playing preview
+  const [playingTrackId, setPlayingTrackId] = useState<string | null>(null); // Track currently playing preview
   const previewAudioRef = useRef<HTMLAudioElement | null>(null); // For list preview
   const backgroundAudioRef = useRef<HTMLAudioElement | null>(null); // For video background
   const [customTracks, setCustomTracks] = useState<SoundTrack[]>([]);
@@ -106,8 +106,7 @@ export default function Upload() {
     if (postWithoutAudio || selectedAudioId === 'none') return 'No audio';
     if (selectedAudioId === 'original') return 'Original Sound';
     if (selectedAudioId.startsWith('track_')) {
-      const raw = selectedAudioId.slice('track_'.length);
-      const id = Number(raw);
+      const id = selectedAudioId.slice('track_'.length);
       const t = musicTracks.find((x) => x.id === id);
       return t ? t.title : 'Add Sound';
     }
@@ -358,8 +357,7 @@ export default function Upload() {
         return;
       }
 
-      const raw = selectedAudioId.slice('track_'.length);
-      const id = Number(raw);
+      const id = selectedAudioId.slice('track_'.length);
       const track = musicTracks.find((t) => t.id === id);
       if (!track?.url) {
         if (backgroundAudioRef.current) backgroundAudioRef.current.pause();
@@ -444,15 +442,17 @@ export default function Upload() {
 
         let musicMeta;
         if (selectedAudioId.startsWith('track_')) {
-            const id = Number(selectedAudioId.replace('track_', ''));
+            const id = selectedAudioId.replace('track_', '');
             const track = musicTracks.find(t => t.id === id);
             if (track) {
                 musicMeta = {
-                    id: String(track.id),
+                    id: track.id,
                     title: track.title,
                     artist: track.artist,
                     duration: formatClip(track.clipStartSeconds, track.clipEndSeconds),
-                    url: track.url
+                    url: track.url,
+                    previewUrl: track.url,
+                    provider: track.provider,
                 };
             }
         }
@@ -939,13 +939,14 @@ export default function Upload() {
                             if (!url) return;
                             const title = (await nativePrompt('Sound name:', 'Custom sound', 'Sound Name')) ?? 'Custom sound';
                             const next: SoundTrack = {
-                              id: Date.now(),
+                              id: `custom_${Date.now()}`,
                               title: title.trim() || 'Custom sound',
                               artist: 'You',
                               duration: 'custom',
                               url: url.trim(),
                               license: 'Custom (you must own rights)',
                               source: 'Custom URL',
+                              provider: 'custom',
                               clipStartSeconds: 0,
                               clipEndSeconds: 180,
                             };
