@@ -65,8 +65,8 @@
     --space-lg: clamp(12px, 3vw, 24px);
     --space-xl: clamp(16px, 4vw, 32px);
 
-    /* Bottom nav — larger B&W icon circles */
-    --nav-height: clamp(72px, 18vw, 80px);
+    /* Bottom nav — gold PNG bar (`public/Icons/bottombar.png`) */
+    --nav-height: calc(110px - 3mm - 2mm);
     /* Extra air above the nav so controls/text never kiss the bar */
     --nav-tolerance: clamp(8px, 2vw, 14px);
     /* Single token: use for main padding, fixed columns, and bottom-anchored UI */
