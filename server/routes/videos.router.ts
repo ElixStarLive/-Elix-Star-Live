@@ -3,6 +3,10 @@ import { getTokenFromRequest, verifyAuthToken } from "./auth";
 import { addVideo, getVideoAsync, getAllVideosAsync, getVideosByUserAsync, deleteVideoFromCache, type Video } from "../lib/videoStore";
 import { saveVideoToDb, deleteVideoFromDb, getPool } from "../lib/postgres";
 import { logger } from "../lib/logger";
+import {
+  detectedTrackToMusicMeta,
+} from "../services/audioScan";
+import { clearCachedAudioScanResult, getCachedAudioScanResult } from "../lib/audioScanValkey";
 
 const router = Router();
 
@@ -24,6 +28,18 @@ router.post("/", async (req, res) => {
     const id =
       body.id || `vid_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
+    let music = body.music || null;
+    if (!music && body.id) {
+      const scan = await getCachedAudioScanResult(String(body.id));
+      if (scan?.detectedTrack) {
+        music = detectedTrackToMusicMeta(
+          scan.detectedTrack,
+          profile.displayName || "User",
+        );
+        await clearCachedAudioScanResult(String(body.id));
+      }
+    }
+
     const video: Video = {
       id,
       url: body.url,
@@ -35,7 +51,7 @@ router.post("/", async (req, res) => {
       avatar: profile.avatarUrl || body.avatar || "",
       description: body.description || "",
       hashtags: body.hashtags || [],
-      music: body.music || null,
+      music,
       views: 0,
       likes: 0,
       comments: 0,

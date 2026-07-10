@@ -145,6 +145,7 @@ export class VideoUploadService {
         description: metadata.description || "",
         hashtags: metadata.hashtags || [],
         isPublic: !metadata.isPrivate,
+        ...(metadata.music && { music: metadata.music }),
         ...(metadata.duetWithVideoId && {
           duetWithVideoId: metadata.duetWithVideoId,
         }),

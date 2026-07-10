@@ -7,6 +7,12 @@ import { Request, Response } from "express";
 import { getTokenFromRequest, verifyAuthToken } from "./auth";
 import { uploadToBunny, isBunnyConfigured, getBunnyConfigError } from "../services/bunny";
 import { logger } from "../lib/logger";
+import {
+  extractVideoIdFromStoragePath,
+  isVideoUpload,
+  scanVideoUpload,
+} from "../services/audioScan";
+import { cacheAudioScanResult } from "../lib/audioScanValkey";
 
 function requireAuth(req: Request, res: Response): { userId: string } | null {
   const token = getTokenFromRequest(req);
@@ -54,6 +60,28 @@ export async function handleUploadVideo(req: Request, res: Response) {
   }
 
   const contentType = req.headers["content-type"] || "video/mp4";
+
+  if (isVideoUpload(contentType, path)) {
+    const scan = await scanVideoUpload({
+      buffer: body,
+      contentType,
+      storagePath: path,
+      userId: auth.userId,
+    });
+    if (scan.action === "reject") {
+      return res.status(403).json({
+        error: "AUDIO_BLOCKED",
+        code: "COPYRIGHT_AUDIO_BLOCKED",
+        message: "This audio cannot be published on the platform.",
+        reason: scan.reason,
+      });
+    }
+    const videoId = extractVideoIdFromStoragePath(path);
+    if (videoId && scan.detectedTrack) {
+      await cacheAudioScanResult(videoId, scan);
+    }
+  }
+
   const result = await uploadToBunny(path, body, contentType);
 
   if (!result.success) {

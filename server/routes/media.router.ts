@@ -4,6 +4,12 @@ import { getTokenFromRequest, verifyAuthToken } from "./auth";
 import { uploadToBunny, isBunnyConfigured } from "../services/bunny";
 import { handleUploadVideo, handleUploadAvatar } from "./upload";
 import { uploadLimiter } from "../middleware/rateLimit";
+import {
+  extractVideoIdFromStoragePath,
+  isVideoUpload,
+  scanVideoUpload,
+} from "../services/audioScan";
+import { cacheAudioScanResult } from "../lib/audioScanValkey";
 
 const router = Router();
 
@@ -27,6 +33,28 @@ router.post("/upload-file", uploadLimiter, async (req, res) => {
   if (!storagePath || storagePath.includes("..")) return res.status(400).json({ error: "path query param is required and must be safe." });
   const body = req.body;
   if (!body || !(body instanceof Buffer) || body.length === 0) return res.status(400).json({ error: "Request body must be non-empty binary." });
+
+  if (isVideoUpload(ct, storagePath)) {
+    const scan = await scanVideoUpload({
+      buffer: body,
+      contentType: ct,
+      storagePath,
+      userId: payload.sub,
+    });
+    if (scan.action === "reject") {
+      return res.status(403).json({
+        error: "AUDIO_BLOCKED",
+        code: "COPYRIGHT_AUDIO_BLOCKED",
+        message: "This audio cannot be published on the platform.",
+        reason: scan.reason,
+      });
+    }
+    const videoId = extractVideoIdFromStoragePath(storagePath);
+    if (videoId && scan.detectedTrack) {
+      await cacheAudioScanResult(videoId, scan);
+    }
+  }
+
   const result = await uploadToBunny(storagePath, body, ct);
   if (!result.success) return res.status(502).json({ error: result.error || "Upload failed." });
   return res.status(200).json({ path: result.path, cdnUrl: result.cdnUrl });
