@@ -56,7 +56,7 @@ export const TopNav = () => {
             type="button"
             onClick={() => navigate("/search")}
             title="Search"
-            className="flex-shrink-0 flex items-center justify-center w-[44px] h-[44px] rounded-full border-2 border-white bg-black active:opacity-80 transition-opacity"
+            className="flex-shrink-0 flex items-center justify-center w-[44px] h-[44px] active:opacity-80 transition-opacity"
             style={{ WebkitTapHighlightColor: "transparent" }}
           >
             <Search size={24} strokeWidth={2.25} className="text-white" />

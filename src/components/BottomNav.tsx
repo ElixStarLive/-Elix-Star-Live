@@ -18,8 +18,8 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 const ICON_SIZE = 28;
-const CIRCLE_CLASS =
-  "flex items-center justify-center w-[52px] h-[52px] rounded-full border-2 border-white bg-black shrink-0";
+const ICON_WRAP_CLASS =
+  "flex items-center justify-center w-[52px] h-[52px] shrink-0";
 
 function isActiveRoute(pathname: string, path: string): boolean {
   if (path === "/feed") return pathname === "/feed" || pathname === "/";
@@ -61,8 +61,8 @@ export const BottomNav = () => {
                     className="flex flex-col items-center justify-end flex-1 min-w-0 -mt-2 active:scale-95 transition-transform"
                     style={{ WebkitTapHighlightColor: "transparent" }}
                   >
-                    <span className={`${CIRCLE_CLASS} bg-white border-white`}>
-                      <Icon size={ICON_SIZE} strokeWidth={2.5} className="text-black" />
+                    <span className={ICON_WRAP_CLASS}>
+                      <Icon size={ICON_SIZE} strokeWidth={2.5} className="text-white" />
                     </span>
                     <span className={`mt-1 text-[10px] font-semibold tracking-wide truncate max-w-full px-0.5 ${labelClass}`}>
                       {label}
@@ -80,7 +80,7 @@ export const BottomNav = () => {
                   className="flex flex-col items-center justify-end flex-1 min-w-0 active:opacity-80 transition-opacity"
                   style={{ WebkitTapHighlightColor: "transparent" }}
                 >
-                  <span className={CIRCLE_CLASS}>
+                  <span className={ICON_WRAP_CLASS}>
                     <Icon
                       size={ICON_SIZE}
                       strokeWidth={active ? 2.5 : 2}

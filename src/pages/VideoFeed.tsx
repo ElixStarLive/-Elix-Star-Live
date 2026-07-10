@@ -615,9 +615,7 @@ export default function VideoFeed() {
       {/* ---- Empty state: For You is for watching only — no "go live" here ---- */}
       {!loading && feedItems.length === 0 && (
         <div className="absolute inset-0 flex flex-col items-center justify-center px-6">
-          <div className="w-20 h-20 rounded-full bg-[#111111] border border-white/10 flex items-center justify-center mb-4 pointer-events-none">
-            <span className="text-3xl">📡</span>
-          </div>
+          <span className="text-3xl mb-4 pointer-events-none">📡</span>
           <p className="text-white/60 font-semibold text-base mb-1 text-center">
             Nothing here yet
           </p>

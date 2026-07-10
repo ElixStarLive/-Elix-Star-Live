@@ -894,8 +894,8 @@ export default function Upload() {
                       )}
 
                       <button 
-                        className={`w-[4.2rem] h-[4.2rem] rounded-full flex items-center justify-center transition-all relative z-[2] border-[2px] border-white ${
-                          isRecording ? 'bg-white/25' : 'bg-white hover:bg-white/25/50'
+                        className={`w-[4.2rem] h-[4.2rem] flex items-center justify-center transition-all relative z-[2] ${
+                          isRecording ? 'bg-white/25' : ''
                         }`}
                         onClick={toggleRecording}
                         title={isRecording ? 'Stop recording' : 'Start recording'}
@@ -903,9 +903,7 @@ export default function Upload() {
                         {isRecording ? (
                           <Square className="text-white fill-white w-6 h-6 relative z-[2]" />
                         ) : (
-                          <div className="w-[3.2rem] h-[3.2rem] bg-white/25 rounded-full flex items-center justify-center relative z-[2]">
-                            {/* Inner circle */}
-                          </div>
+                          <Square className="text-white w-8 h-8 relative z-[2]" strokeWidth={2} />
                         )}
                       </button>
                   </div>

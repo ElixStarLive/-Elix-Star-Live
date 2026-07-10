@@ -26,7 +26,8 @@ import {
   RotateCcw,
   ImagePlus,
   Layers,
-  Crosshair
+  Crosshair,
+  Square,
 } from 'lucide-react';
 import { request } from '../lib/apiClient';
 
@@ -905,16 +906,14 @@ export default function ElixCameraLayout({
               <button
                 onClick={onRecord}
                 title={isRecording ? 'Stop recording' : 'Start recording'}
-                className={`w-[72px] h-[72px] rounded-full flex items-center justify-center transition-all flex-shrink-0 shadow-xl active:scale-90 ${
-                  isRecording
-                    ? 'bg-white/25 border-[3px] border-white'
-                    : 'bg-white border-[3px] border-white hover:bg-white/10'
+                className={`w-[72px] h-[72px] flex items-center justify-center transition-all flex-shrink-0 active:scale-90 ${
+                  isRecording ? 'bg-white/25' : ''
                 }`}
               >
                 {isRecording ? (
                     <div className="w-6 h-6 bg-white rounded-sm" />
                 ) : (
-                    <div className="w-[56px] h-[56px] bg-white/25 rounded-full shadow-inner" />
+                    <Square className="w-8 h-8 text-white" strokeWidth={2} />
                 )}
               </button>
             )}
