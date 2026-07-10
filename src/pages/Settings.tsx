@@ -56,7 +56,7 @@ export default function Settings() {
       onClick={fn}
       className="w-full flex items-center gap-2.5 px-2 py-2 active:bg-white/5 text-left rounded-md"
     >
-      {ic && <span className="text-[#E8D5A3]/70 shrink-0 [&_svg]:size-[14px]">{ic}</span>}
+      {ic && <span className="royce-icon-gold shrink-0 [&_svg]:size-[14px]">{ic}</span>}
       <span className="flex-1 text-[12px] leading-tight text-white/85">{t}</span>
       {v && <span className="text-[10px] text-white/45 tabular-nums">{v}</span>}
       <ChevronRight size={13} className="text-white/30 shrink-0" />

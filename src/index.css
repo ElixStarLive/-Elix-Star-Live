@@ -738,6 +738,12 @@
 }
 
 .royce-icon-muted {
-  color: rgba(212, 175, 55, 0.55);
+  color: #D4AF37;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.85));
+}
+
+/* One icon color app-wide — ROYCE gold */
+svg.lucide {
+  color: var(--color-gold-bright, #D4AF37) !important;
+  stroke: currentColor;
 }

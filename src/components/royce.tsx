@@ -24,7 +24,7 @@ export function RoyceIcon({ icon: Icon, size = 22, active = false, tile = false,
     <Icon
       size={size}
       strokeWidth={2.25}
-      className={active ? 'royce-icon-gold' : 'royce-icon-muted'}
+      className={active ? 'royce-icon-gold' : 'royce-icon-gold'}
       aria-hidden
     />
   );
