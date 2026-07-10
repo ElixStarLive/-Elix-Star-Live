@@ -1,15 +1,23 @@
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { Home, Users, Plus, MessageCircle, User } from "lucide-react";
 
-const BOTTOM_BAR_SRC = "/Icons/bottombar.png";
+type NavItem = {
+  path: string;
+  label: string;
+  Icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
+  center?: boolean;
+};
 
-const NAV_TABS = [
-  { path: "/feed", title: "Home" },
-  { path: "/friends", title: "Friends" },
-  { path: "/create", title: "Create" },
-  { path: "/inbox", title: "Inbox" },
-  { path: "/profile", title: "Profile" },
-] as const;
+const NAV_ITEMS: NavItem[] = [
+  { path: "/feed", label: "Home", Icon: Home },
+  { path: "/friends", label: "Friends", Icon: Users },
+  { path: "/create", label: "Create", Icon: Plus, center: true },
+  { path: "/inbox", label: "Inbox", Icon: MessageCircle },
+  { path: "/profile", label: "Profile", Icon: User },
+];
+
+const ICON_SIZE = 26;
 
 function isActiveRoute(pathname: string, path: string): boolean {
   if (path === "/feed") return pathname === "/feed" || pathname === "/";
@@ -27,41 +35,38 @@ export const BottomNav = () => {
 
   return (
     <nav
-      className="pointer-events-none fixed inset-x-0 bottom-0 z-[10002] pb-[var(--safe-bottom)]"
+      className="fixed inset-x-0 bottom-0 z-[10002] pointer-events-none pb-[var(--safe-bottom)]"
       aria-label="Main navigation"
     >
-      <div className="flex justify-center">
-        <div
-          className="pointer-events-auto relative w-full max-w-[480px] mx-auto overflow-hidden"
-          style={{
-            height: "var(--nav-height)",
-            filter: "drop-shadow(0 0 8px rgba(0,0,0,0.6))",
-          }}
-        >
-          <div className="absolute inset-0 flex">
-            {NAV_TABS.map((tab, index) => {
-              const active = isActiveRoute(location.pathname, tab.path);
+      <div className="flex justify-center pointer-events-none">
+        <div className="w-full max-w-[480px] mx-auto pointer-events-auto bg-black border-t border-gold/30 min-h-[var(--nav-height)]">
+          <div className="flex items-center justify-around px-1 pt-1.5 pb-1">
+            {NAV_ITEMS.map(({ path, label, Icon, center }) => {
+              const active = isActiveRoute(location.pathname, path);
+              const iconClass = active ? "text-gold-bright" : "text-gold-bright/50";
+              const labelClass = active ? "text-gold-bright" : "text-gold-bright/45";
+
               return (
                 <button
-                  key={tab.path}
+                  key={path}
                   type="button"
-                  onClick={() => navigate(tab.path)}
-                  title={tab.title}
-                  aria-label={tab.title}
+                  onClick={() => navigate(path)}
+                  title={label}
+                  aria-label={label}
                   aria-current={active ? "page" : undefined}
-                  className="relative flex-1 min-w-0 h-full overflow-hidden bg-transparent border-0 p-0 m-0 appearance-none focus:outline-none active:opacity-80 transition-opacity"
+                  className={`flex flex-col items-center justify-center flex-1 min-w-0 gap-0.5 active:opacity-75 transition-opacity ${
+                    center ? "-mt-0.5" : ""
+                  }`}
                   style={{ WebkitTapHighlightColor: "transparent" }}
                 >
-                  <img
-                    src={BOTTOM_BAR_SRC}
-                    alt=""
-                    draggable={false}
-                    className="absolute top-0 h-full max-w-none pointer-events-none select-none"
-                    style={{
-                      width: `${NAV_TABS.length * 100}%`,
-                      left: `${-index * 100}%`,
-                    }}
+                  <Icon
+                    size={center ? ICON_SIZE + 2 : ICON_SIZE}
+                    strokeWidth={active ? 2.35 : 2}
+                    className={iconClass}
                   />
+                  <span className={`text-[9px] font-semibold leading-none tracking-wide ${labelClass}`}>
+                    {label}
+                  </span>
                 </button>
               );
             })}

@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import {
   Heart,
   Music,
+  MessageCircle,
   Settings2,
   Share2,
   Bookmark,
@@ -15,6 +16,7 @@ import {
   Copy,
   Users2,
   Play,
+  MoreHorizontal,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useVideoStore } from '../store/useVideoStore';
@@ -32,10 +34,10 @@ import { LevelBadge } from './LevelBadge';
 import { api } from '../lib/apiClient';
 import { nativeConfirm } from './NativeDialog';
 import { getVideoPosterUrl } from '../lib/bunnyStorage';
-import { storyRingInnerPx, PROFILE_RING_IMAGE_LIFT_MM } from '../lib/profileFrame';
 
-const VIDEO_SIDEBAR_AVATAR = 48;
-const VIDEO_SIDEBAR_AVATAR_INNER = storyRingInnerPx(VIDEO_SIDEBAR_AVATAR);
+const VIDEO_SIDEBAR_AVATAR = 44;
+const GOLD_ICON = 'text-gold-bright drop-shadow-[0_0_8px_rgba(212,175,55,0.35)]';
+const GOLD_COUNT = 'text-[10px] font-semibold leading-none text-gold-light';
 
 interface EnhancedVideoPlayerProps {
   videoId: string;
@@ -75,19 +77,17 @@ export const PremiumSidebarButton = ({
         />
       ) : Icon && (
         <Icon 
-          className={`w-7 h-7 stroke-[1.5px] transition-all duration-200 ${
-            isActive 
-              ? 'text-white' 
-              : 'text-white/70'
+          className={`w-7 h-7 stroke-[2px] transition-all duration-200 ${
+            isActive ? GOLD_ICON : 'text-gold-bright/60'
           }`}
-          style={isActive ? { fill: '#FFFFFF' } : { fill: 'transparent' }}
+          style={isActive && !iconSrc ? { fill: '#D4AF37' } : { fill: 'transparent' }}
         />
       )}
     </button>
     {label && (
       <span 
-        className={`text-xs font-semibold mt-1.5 cursor-pointer hover:underline transition-colors ${
-          isActive ? 'text-white' : 'text-white/70'
+        className={`text-xs font-semibold mt-1 cursor-pointer hover:underline transition-colors ${
+          isActive ? 'text-gold-bright' : 'text-gold-light/70'
         }`}
         style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}
         onClick={onClick}
@@ -816,129 +816,93 @@ export default function EnhancedVideoPlayer({
         }}
       >
         
-        {/* Profile Avatar — one gold circle (Profile icon), profile picture inside; no extra circle, no initials */}
-        <div className="relative mb-1">
-          <div
-            className="relative flex cursor-pointer items-center justify-center transition-transform hover:scale-105"
-            style={{ width: VIDEO_SIDEBAR_AVATAR, height: VIDEO_SIDEBAR_AVATAR, isolation: 'isolate' }}
-            onClick={handleProfileClick}
-          >
-            {video.user.avatar ? (
-              <div
-                className="pointer-events-none absolute overflow-hidden rounded-full bg-[#111111]"
-                style={{
-                  width: VIDEO_SIDEBAR_AVATAR_INNER,
-                  height: VIDEO_SIDEBAR_AVATAR_INNER,
-                  top: `calc(50% - ${PROFILE_RING_IMAGE_LIFT_MM}mm + 0.4mm)`,
-                  left: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  zIndex: 1,
-                }}
-              >
-                <img
-                  src={video.user.avatar}
-                  alt={video.user.username}
-                  className="pointer-events-none h-full w-full object-cover object-center"
-                />
-              </div>
-            ) : null}
+        {/* Profile — round avatar only, no PNG ring */}
+        <button
+          type="button"
+          onClick={handleProfileClick}
+          className="mb-1 overflow-hidden rounded-full bg-[#0a0a0a] active:scale-95 transition-transform"
+          style={{ width: VIDEO_SIDEBAR_AVATAR, height: VIDEO_SIDEBAR_AVATAR }}
+          title={video.user.username}
+        >
+          {video.user.avatar ? (
             <img
-              src="/Icons/Profile icon.png"
-              alt=""
-              className="pointer-events-none absolute inset-0 z-[2] h-full w-full object-contain"
+              src={video.user.avatar}
+              alt={video.user.username}
+              className="h-full w-full object-cover object-center"
             />
-          </div>
-        </div>
+          ) : (
+            <span className="flex h-full w-full items-center justify-center text-sm font-bold text-gold-bright">
+              {(video.user.username || '?').charAt(0).toUpperCase()}
+            </span>
+          )}
+        </button>
 
-        {/* Like Button — Music Icon gold circle around Like icon; red when liked */}
-        <button 
+        <button
+          type="button"
           onClick={handleLike}
-          className="hover:scale-105 active:scale-95 transition-transform relative rounded-full overflow-hidden flex items-center justify-center"
-          style={{width:'48px',height:'48px'}}
+          className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform"
           title="Like"
         >
-          <img 
-            src="/Icons/Music Icon.png" 
-            alt="" 
-            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          <Heart
+            size={28}
+            strokeWidth={2}
+            className={video.isLiked ? 'fill-red-500 text-red-500' : GOLD_ICON}
           />
-          <img 
-            src="/Icons/Like Icon.png" 
-            alt="Like" 
-            className="absolute inset-0 w-full h-full object-contain transition-all duration-300 z-[1] scale-75"
-            style={video.isLiked ? {filter:'brightness(0) saturate(100%) invert(27%) sepia(98%) saturate(5000%) hue-rotate(350deg) brightness(1.15) contrast(1.2)'} : {}}
-          />
+          <span className={GOLD_COUNT}>{formatNumber(Math.max(0, video.stats.likes))}</span>
         </button>
-        <span className="text-[10px] font-semibold -mt-1 text-white">{formatNumber(Math.max(0, video.stats.likes))}</span>
 
-        {/* Comment Button */}
-        <button 
+        <button
+          type="button"
           onClick={handleComment}
-          className="hover:scale-105 active:scale-95 transition-transform relative"
-          style={{width:'48px',height:'48px'}}
+          className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform"
           title="Comments"
         >
-          <img src="/Icons/Coment Icon.png" alt="Comments" className="absolute inset-0 w-full h-full object-contain z-[2]" />
+          <MessageCircle size={28} strokeWidth={2} className={GOLD_ICON} />
+          <span className={GOLD_COUNT}>{formatNumber(video.stats.comments)}</span>
         </button>
-        <span className="text-white text-[10px] font-semibold -mt-1">{formatNumber(video.stats.comments)}</span>
 
-        {/* Save Button */}
-        <button 
+        <button
+          type="button"
           onClick={handleSave}
-          className="hover:scale-105 active:scale-95 transition-transform relative"
-          style={{width:'48px',height:'48px'}}
+          className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform"
           title="Save"
         >
-          <img 
-            src="/Icons/Save Icon.png" 
-            alt="Save" 
-            className={`absolute inset-0 w-full h-full object-contain z-[2] ${video.isSaved ? 'brightness-125 drop-shadow-[0_0_8px_rgba(255,255,255,0.25)]' : ''}`}
+          <Bookmark
+            size={28}
+            strokeWidth={2}
+            className={video.isSaved ? `${GOLD_ICON} fill-gold-bright` : GOLD_ICON}
           />
+          <span className={GOLD_COUNT}>{formatNumber(Math.max(0, video.stats.saves || 0))}</span>
         </button>
-        <span className="text-white text-[10px] font-semibold -mt-1">{formatNumber(Math.max(0, video.stats.saves || 0))}</span>
 
-        {/* Share Button */}
-        <button 
+        <button
+          type="button"
           onClick={handleShare}
-          className="hover:scale-105 active:scale-95 transition-transform relative"
-          style={{width:'48px',height:'48px'}}
+          className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform"
           title="Share"
         >
-          <img src="/Icons/Share Icon.png" alt="Share" className="absolute inset-0 w-full h-full object-contain z-[2]" />
+          <Share2 size={26} strokeWidth={2} className={GOLD_ICON} />
         </button>
 
-        {/* Delete button removed from right sidebar to avoid duplicate 3-dots / extra control here */}
-
-        {/* Music Button - same gold circle + size as others */}
-        <button 
+        <button
+          type="button"
           onClick={handleMusicClick}
-          className="hover:scale-105 active:scale-95 transition-transform relative flex flex-col items-center"
+          className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform max-w-[52px]"
           title={video.music?.title || 'Original Sound'}
         >
-          <div
-            className="relative flex items-center justify-center"
-            style={{ width: '48px', height: '48px' }}
-          >
-            <img
-              src="/Icons/Music Icon.png"
-              alt="Music"
-              className="absolute inset-0 w-full h-full object-contain pointer-events-none"
-            />
-            <Music size={16} className="relative z-[2] text-black" />
-          </div>
-          <span className="text-white text-[8px] font-medium mt-1 max-w-[50px] truncate text-center drop-shadow-md">
+          <Music size={26} strokeWidth={2} className={GOLD_ICON} />
+          <span className="text-[8px] font-medium leading-tight text-gold-light/80 max-w-full truncate text-center">
             {video.music?.title?.split(' ').slice(0, 2).join(' ') || 'Original'}
           </span>
         </button>
 
-        {/* 3 Dots Button */}
-        <button 
+        <button
+          type="button"
           onClick={handleReport}
-          className="hover:scale-105 active:scale-95 transition-transform relative"
-          style={{width:'48px',height:'48px'}}
+          className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform"
           title="More"
         >
-          <img src="/Icons/3 Dots Buton.png" alt="More" className="absolute inset-0 w-full h-full object-contain z-[2]" />
+          <MoreHorizontal size={26} strokeWidth={2} className={GOLD_ICON} />
         </button>
       </div>
 

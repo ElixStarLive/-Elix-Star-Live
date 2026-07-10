@@ -1,25 +1,22 @@
-import React, { useState } from "react";
+import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { Search, Tv } from "lucide-react";
+
+const TOP_TABS = [
+  { label: "LIVE", path: "/live", live: true },
+  { label: "STEM", path: "/stem" },
+  { label: "Explore", path: "/discover" },
+  { label: "Following", path: "/following" },
+  { label: "Shop", path: "/shop" },
+  { label: "For You", path: "/feed", primary: true },
+] as const;
 
 export const TopNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [hoveredTopTabIndex, setHoveredTopTabIndex] = useState<number | null>(
-    null,
-  );
 
   if (location.pathname !== "/feed") {
     return null;
-  }
-
-  const tabWidths = [13, 12, 15, 18, 12, 15, 15];
-  let hoveredTopTabLeft = 0;
-  let hoveredTopTabRight = 0;
-  if (hoveredTopTabIndex !== null) {
-    let left = 0;
-    for (let i = 0; i < hoveredTopTabIndex; i++) left += tabWidths[i];
-    hoveredTopTabLeft = left;
-    hoveredTopTabRight = 100 - left - tabWidths[hoveredTopTabIndex];
   }
 
   return (
@@ -27,101 +24,51 @@ export const TopNav = () => {
       className="fixed left-0 right-0 z-[9999] flex justify-center pointer-events-none"
       style={{ top: "var(--topnav-anchor-top)" }}
     >
-      <div className="w-full max-w-[480px] relative pointer-events-auto">
-        <div
-          className="relative w-full"
-          style={{ transform: "scaleY(0.80)", transformOrigin: "top" }}
-        >
-          <img
-            src="/Icons/topbar.png"
-            alt="Navigation"
-            className="w-full h-auto pointer-events-none block"
-            draggable={false}
-            style={{
-              filter:
-                "drop-shadow(0 0 20px rgba(201,169,110,0.5)) drop-shadow(0 4px 15px rgba(0,0,0,0.6))",
-            }}
-          />
-          <img
-            src="/Icons/topbar.png"
-            alt=""
-            className="absolute inset-0 w-full h-full object-contain pointer-events-none transition-opacity duration-200 block"
-            draggable={false}
-            style={{
-              opacity: hoveredTopTabIndex === null ? 0 : 1,
-              filter: "brightness(1.25) saturate(1.4) contrast(1.15)",
-              clipPath:
-                hoveredTopTabIndex === null
-                  ? "inset(0 100% 0 0)"
-                  : `inset(0 ${hoveredTopTabRight}% 0 ${hoveredTopTabLeft}%)`,
-            }}
-          />
-
-          <div className="absolute inset-0 flex items-center pointer-events-auto z-10">
-            <button
-              type="button"
-              onClick={() => navigate("/live", { replace: true })}
-              onMouseEnter={() => setHoveredTopTabIndex(0)}
-              onMouseLeave={() => setHoveredTopTabIndex(null)}
-              className="h-full bg-transparent focus:outline-none active:bg-transparent appearance-none border-0 p-0 m-0 cursor-pointer"
-              style={{ width: "13%", minWidth: 0, WebkitTapHighlightColor: "transparent" }}
-              title="Live"
-            />
-            <button
-              type="button"
-              onClick={() => navigate("/stem")}
-              onMouseEnter={() => setHoveredTopTabIndex(1)}
-              onMouseLeave={() => setHoveredTopTabIndex(null)}
-              className="h-full bg-transparent focus:outline-none active:bg-transparent appearance-none border-0 p-0 m-0 cursor-pointer"
-              style={{ width: "12%", minWidth: 0, WebkitTapHighlightColor: "transparent" }}
-              title="STEM"
-            />
-            <button
-              type="button"
-              onClick={() => navigate("/discover")}
-              onMouseEnter={() => setHoveredTopTabIndex(2)}
-              onMouseLeave={() => setHoveredTopTabIndex(null)}
-              className="h-full bg-transparent focus:outline-none active:bg-transparent appearance-none border-0 p-0 m-0 cursor-pointer"
-              style={{ width: "15%", minWidth: 0, WebkitTapHighlightColor: "transparent" }}
-              title="Explore"
-            />
-            <button
-              type="button"
-              onClick={() => navigate("/following")}
-              onMouseEnter={() => setHoveredTopTabIndex(3)}
-              onMouseLeave={() => setHoveredTopTabIndex(null)}
-              className="h-full bg-transparent focus:outline-none active:bg-transparent appearance-none border-0 p-0 m-0 cursor-pointer"
-              style={{ width: "18%", minWidth: 0, WebkitTapHighlightColor: "transparent" }}
-              title="Following"
-            />
-            <button
-              type="button"
-              onClick={() => navigate("/shop")}
-              onMouseEnter={() => setHoveredTopTabIndex(4)}
-              onMouseLeave={() => setHoveredTopTabIndex(null)}
-              className="h-full bg-transparent focus:outline-none active:bg-transparent appearance-none border-0 p-0 m-0 cursor-pointer"
-              style={{ width: "12%", minWidth: 0, WebkitTapHighlightColor: "transparent" }}
-              title="Shop"
-            />
-            <button
-              type="button"
-              onClick={() => navigate("/feed")}
-              onMouseEnter={() => setHoveredTopTabIndex(5)}
-              onMouseLeave={() => setHoveredTopTabIndex(null)}
-              className="h-full bg-transparent focus:outline-none active:bg-transparent appearance-none border-0 p-0 m-0 cursor-pointer"
-              style={{ width: "15%", minWidth: 0, WebkitTapHighlightColor: "transparent" }}
-              title="For You"
-            />
-            <button
-              type="button"
-              onClick={() => navigate("/search")}
-              onMouseEnter={() => setHoveredTopTabIndex(6)}
-              onMouseLeave={() => setHoveredTopTabIndex(null)}
-              className="h-full bg-transparent focus:outline-none active:bg-transparent appearance-none border-0 p-0 m-0 cursor-pointer"
-              style={{ width: "15%", minWidth: 0, WebkitTapHighlightColor: "transparent" }}
-              title="Search"
-            />
+      <div className="w-full max-w-[480px] pointer-events-auto bg-black border-b border-gold/25 min-h-[var(--topnav-bar-height)]">
+        <div className="flex items-center gap-0.5 px-2 h-full">
+          <div className="flex flex-1 items-center justify-between min-w-0 overflow-x-auto no-scrollbar gap-0.5 pr-1">
+            {TOP_TABS.map((tab) => {
+              const active = tab.path === "/feed";
+              return (
+                <button
+                  key={tab.label}
+                  type="button"
+                  onClick={() => {
+                    if (tab.path === "/live") navigate("/live", { replace: true });
+                    else navigate(tab.path);
+                  }}
+                  className="flex-shrink-0 px-1.5 py-2 active:opacity-70 transition-opacity focus:outline-none"
+                  style={{ WebkitTapHighlightColor: "transparent" }}
+                  title={tab.label}
+                >
+                  <span
+                    className={`flex items-center gap-1 text-[11px] font-bold tracking-wide whitespace-nowrap ${
+                      active || ("primary" in tab && tab.primary)
+                        ? "text-gold-bright"
+                        : "text-gold-bright/50"
+                    }`}
+                  >
+                    {"live" in tab && tab.live ? (
+                      <Tv size={12} strokeWidth={2.25} className="shrink-0" />
+                    ) : null}
+                    {tab.label}
+                  </span>
+                  {(active || ("primary" in tab && tab.primary)) && (
+                    <span className="block h-[2px] w-full mt-1 bg-gold-bright rounded-full" />
+                  )}
+                </button>
+              );
+            })}
           </div>
+          <button
+            type="button"
+            onClick={() => navigate("/search")}
+            title="Search"
+            className="flex-shrink-0 flex items-center justify-center w-10 h-10 active:opacity-70 transition-opacity"
+            style={{ WebkitTapHighlightColor: "transparent" }}
+          >
+            <Search size={22} strokeWidth={2.25} className="text-gold-bright" />
+          </button>
         </div>
       </div>
     </div>
