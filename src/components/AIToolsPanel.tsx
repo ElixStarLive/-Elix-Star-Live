@@ -162,10 +162,10 @@ export default function AIToolsPanel({
   return (
     <div className="fixed inset-0 z-[500] flex items-end justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative w-full max-w-[480px] bg-[#111111] border-t border-[#C9A227]/20 rounded-t-2xl overflow-hidden animate-in slide-in-from-bottom duration-300" style={{ maxHeight: '70dvh' }}>
+      <div className="relative w-full max-w-[480px] bg-[#111111] rounded-t-2xl overflow-hidden animate-in slide-in-from-bottom duration-300" style={{ maxHeight: '70dvh' }}>
         
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[#C9A227]/10">
+        <div className="flex items-center justify-between px-4 py-3 ">
           <div className="flex items-center gap-2">
             <Wand2 size={18} className="text-[#D4AF37]" />
             <span className="text-white font-bold text-sm">AI Studio</span>

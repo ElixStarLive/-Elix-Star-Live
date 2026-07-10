@@ -39,7 +39,7 @@ export const BottomNav = () => {
       aria-label="Main navigation"
     >
       <div className="flex justify-center pointer-events-none">
-        <div className="w-full max-w-[480px] mx-auto pointer-events-auto bg-black border-t border-gold/30 min-h-[var(--nav-height)]">
+        <div className="w-full max-w-[480px] mx-auto pointer-events-auto bg-black min-h-[var(--nav-height)]">
           <div className="flex items-center justify-around px-1 pt-1.5 pb-1">
             {NAV_ITEMS.map(({ path, label, Icon, center }) => {
               const active = isActiveRoute(location.pathname, path);
@@ -59,7 +59,10 @@ export const BottomNav = () => {
                   }`}
                   style={{ WebkitTapHighlightColor: "transparent" }}
                 >
-                  <span className="royce-tile rounded-sm p-1 inline-flex items-center justify-center">
+                  <span
+                    className="royce-tile"
+                    style={{ width: center ? 40 : 36, height: center ? 40 : 36 }}
+                  >
                     <Icon
                       size={center ? ICON_SIZE + 2 : ICON_SIZE}
                       strokeWidth={active ? 2.35 : 2}

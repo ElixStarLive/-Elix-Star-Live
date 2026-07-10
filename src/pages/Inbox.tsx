@@ -432,15 +432,12 @@ export default function Inbox() {
   };
 
   return (
-    <div className="fixed inset-0 bg-[#111111] flex justify-center">
-      <div
-        className="w-full max-w-[480px] flex flex-col overflow-hidden h-above-bottom-nav"
-        style={{ marginTop: 0 }}
-      >
+    <div className="page-above-bottom-nav bg-[#111111]">
+      <div className="page-above-bottom-nav__inner">
 
         {/* Header + Circles with gold frame — same as Friends */}
         <div className="mx-2 mt-2 bg-[#111111] z-10">
-        <div className="px-3 pt-[env(safe-area-inset-top,8px)] pb-1 flex items-center justify-between relative">
+        <div className="px-3 pt-page-header pb-1 flex items-center justify-between relative">
           <div className="flex items-center gap-3 z-10">
             <button onClick={() => navigate('/search')} aria-label="Search"><Search size={18} className="text-white" /></button>
           </div>
@@ -903,7 +900,7 @@ export default function Inbox() {
             aria-hidden
           />
           <div className="fixed left-0 right-0 pointer-events-auto max-w-[480px] mx-auto z-[101]" style={{ bottom: 'var(--bottom-ui-reserve)' }}>
-            <div className="bg-[#111111]/95 backdrop-blur-md rounded-t-2xl p-3 pb-4 overflow-y-scroll shadow-2xl w-full border-t border-[#C9A227]/20 new-followers-panel-scroll" style={{ minHeight: 'calc(55dvh - 3cm)', maxHeight: 'calc(min(85dvh, 700px) - 3cm)' }}>
+            <div className="bg-[#111111]/95 backdrop-blur-md rounded-t-2xl p-3 pb-4 overflow-y-scroll shadow-2xl w-full new-followers-panel-scroll" style={{ minHeight: 'calc(55dvh - 3cm)', maxHeight: 'calc(min(85dvh, 700px) - 3cm)' }}>
               <div className="mb-3">
                 <h2 className="text-lg font-bold text-gold-metallic text-center">Followers ({followersCount})</h2>
               </div>

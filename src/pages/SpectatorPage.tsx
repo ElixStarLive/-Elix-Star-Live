@@ -2046,12 +2046,12 @@ export default function SpectatorPage() {
                 <>
                   <video
                     ref={myVideoRef}
-                    className="absolute inset-0 w-full h-full object-cover rounded-sm"
+                    className="absolute inset-0 w-full h-full object-cover rounded-full"
                     autoPlay playsInline muted
                     style={isCamOff ? { display: 'none' } : undefined}
                   />
                   {isCamOff && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[#111111] z-[6] rounded-sm">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[#111111] z-[6] rounded-full">
                       <CameraOff size={24} className="text-white/30" />
                       <span className="text-white/60 text-[9px] font-bold">Camera off</span>
                     </div>
@@ -2074,7 +2074,7 @@ export default function SpectatorPage() {
                 <>
                   <video
                     ref={(el) => { if (el) coHostVideoRefs.current.set(h.userId, el); else coHostVideoRefs.current.delete(h.userId); }}
-                    className="absolute inset-0 w-full h-full object-cover rounded-sm"
+                    className="absolute inset-0 w-full h-full object-cover rounded-full"
                     autoPlay playsInline
                   />
                   <p className="absolute bottom-0.5 left-0.5 z-10 text-white/80 text-[8px] font-bold bg-black/50 rounded px-1 truncate max-w-[90%]">{h.name}</p>
@@ -2598,7 +2598,7 @@ export default function SpectatorPage() {
           <>
             <div className="fixed inset-0 z-[99998] bg-black/40 pointer-events-auto" onClick={() => { setShowCoHostPanel(false); }} />
             <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
-              <div className="bg-[#111111]/95 backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl border-t border-[#C9A227]/20 overflow-hidden pb-safe" onClick={(e) => e.stopPropagation()}>
+              <div className="bg-[#111111]/95 backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl overflow-hidden pb-safe" onClick={(e) => e.stopPropagation()}>
                 <div className="flex justify-center pt-2 pb-1"><div className="w-10 h-1 bg-white/20 rounded-full" /></div>
                 <div className="flex items-center justify-between px-4 py-2">
                   <div className="flex items-center gap-1.5">
@@ -2684,7 +2684,7 @@ export default function SpectatorPage() {
             />
             <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
               <div
-                className="bg-[#111111]/95 rounded-t-2xl p-3 pb-safe h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full border-t border-[#C9A227]/20"
+                className="bg-[#111111]/95 rounded-t-2xl p-3 pb-safe h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full "
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex flex-col items-center justify-center pt-3 pb-1 gap-1.5">
@@ -2828,7 +2828,7 @@ export default function SpectatorPage() {
             />
             <div className="fixed bottom-0 left-0 right-0 pointer-events-auto max-w-[480px] mx-auto" style={{ zIndex: 201 }}>
               {spectatorBattle?.active && (
-                <div className="px-3 pb-2 pt-1 flex items-center justify-center gap-2 bg-[#111111]/95 border-t border-[#C9A227]/20 rounded-t-xl">
+                <div className="px-3 pb-2 pt-1 flex items-center justify-center gap-2 bg-[#111111]/95 rounded-t-xl">
                   <div className="flex rounded-full overflow-hidden border border-[#C9A227]/40">
                     <button
                       type="button"
@@ -2869,7 +2869,7 @@ export default function SpectatorPage() {
               onClick={() => setShowViewersPanel(false)}
             />
             <div className="fixed bottom-0 left-0 right-0 z-[999999] pointer-events-auto max-w-[480px] mx-auto">
-              <div className="bg-[#111111]/95 backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl border-t border-[#C9A227]/20 overflow-hidden">
+              <div className="bg-[#111111]/95 backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl overflow-hidden">
                 <div className="flex justify-center pt-3 pb-1">
                   <div className="w-10 h-1 bg-white/20 rounded-full" />
                 </div>
@@ -2926,7 +2926,7 @@ export default function SpectatorPage() {
               onClick={() => setShowSharePanel(false)}
             />
             <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
-              <div className="bg-[#111111]/95 rounded-t-2xl p-4 pb-safe flex flex-col gap-1 shadow-2xl w-full h-[40vh] overflow-y-auto overflow-x-hidden border-t border-[#C9A227]/20">
+              <div className="bg-[#111111]/95 rounded-t-2xl p-4 pb-safe flex flex-col gap-1 shadow-2xl w-full h-[40vh] overflow-y-auto overflow-x-hidden ">
                 <div className="flex justify-center mb-2">
                   <div className="w-10 h-1 bg-white/20 rounded-full" />
                 </div>

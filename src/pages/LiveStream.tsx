@@ -3746,12 +3746,12 @@ export default function LiveStream() {
                     <>
                       <video
                         ref={(el) => { if (el) coHostVideoRefs.current.set(host.userId, el); else coHostVideoRefs.current.delete(host.userId); }}
-                        className="absolute inset-0 w-full h-full object-cover rounded-sm"
+                        className="absolute inset-0 w-full h-full object-cover rounded-full"
                         autoPlay playsInline muted={host.isMuted}
                         style={coHostCameraOff[host.id] ? { display: 'none' } : undefined}
                       />
                       {coHostCameraOff[host.id] && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[#111111] z-[6] rounded-sm">
+                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[#111111] z-[6] rounded-full">
                           {host.avatar ? <img src={host.avatar} alt="" className="w-10 h-10 rounded-full object-cover object-center" /> : (
                             <div className="w-10 h-10 rounded-full bg-[#111111] flex items-center justify-center"><span className="text-[#E8D5A3]/60 text-sm font-bold">{(host.name || '?').charAt(0)}</span></div>
                           )}
@@ -4723,7 +4723,7 @@ export default function LiveStream() {
             }}
           />
           <div
-            className="bg-[#111111]/95 backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl border-t border-[#C9A227]/20 pointer-events-auto w-full relative z-10 overflow-hidden pb-safe"
+            className="bg-[#111111]/95 backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl pointer-events-auto w-full relative z-10 overflow-hidden pb-safe"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Drag handle */}
@@ -5018,7 +5018,7 @@ export default function LiveStream() {
             onClick={() => setShowViewerList(false)}
           />
           <div className="fixed bottom-0 left-0 right-0 z-[999999] pointer-events-auto max-w-[480px] mx-auto">
-            <div className="bg-[#111111]/95 backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl border-t border-[#C9A227]/20 overflow-hidden">
+            <div className="bg-[#111111]/95 backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl overflow-hidden">
               <div className="flex justify-center pt-3 pb-1">
                 <div className="w-10 h-1 bg-white/20 rounded-full" />
               </div>
@@ -5244,7 +5244,7 @@ export default function LiveStream() {
           />
           <div className="fixed bottom-0 left-0 right-0 h-[40vh] z-[99999] pointer-events-auto max-w-[480px] mx-auto">
           <div
-            className="bg-[#111111]/95 backdrop-blur-md rounded-t-2xl p-3 pb-safe h-full flex flex-col shadow-2xl w-full overflow-hidden border-t border-[#C9A227]/20"
+            className="bg-[#111111]/95 backdrop-blur-md rounded-t-2xl p-3 pb-safe h-full flex flex-col shadow-2xl w-full overflow-hidden "
             onClick={(e) => e.stopPropagation()}
           >
             {/* Drag handle */}
@@ -5452,7 +5452,7 @@ export default function LiveStream() {
             className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto"
           >
           <div
-            className="bg-[#111111]/95 rounded-t-2xl p-3 pb-safe h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full border-t border-[#C9A227]/20"
+            className="bg-[#111111]/95 rounded-t-2xl p-3 pb-safe h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full "
             onClick={(e) => e.stopPropagation()}
           >
             {/* Drag handle */}
@@ -5743,7 +5743,7 @@ export default function LiveStream() {
             onClick={() => setShowSharePanel(false)}
           />
           <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
-          <div className="bg-[#111111]/95 backdrop-blur-md rounded-t-2xl p-3 pb-safe flex flex-col shadow-2xl w-full h-[40vh] overflow-hidden border-t border-[#C9A227]/20">
+          <div className="bg-[#111111]/95 backdrop-blur-md rounded-t-2xl p-3 pb-safe flex flex-col shadow-2xl w-full h-[40vh] overflow-hidden ">
             <div className="flex justify-center pt-1 pb-2">
               <div className="w-10 h-1 bg-white/20 rounded-full" />
             </div>

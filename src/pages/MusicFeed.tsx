@@ -47,14 +47,11 @@ export default function MusicFeed() {
   }, [songId]);
 
   return (
-    <div className="fixed inset-0 bg-[#111111] text-white flex justify-center">
-      <div
-        className="w-full max-w-[480px] flex flex-col overflow-hidden h-above-bottom-nav"
-        style={{ marginTop: 0 }}
-      >
+    <div className="page-above-bottom-nav bg-[#111111] text-white">
+      <div className="page-above-bottom-nav__inner">
         {/* Header Info - match Explore layout */}
         <div className="mx-2 mt-2 rounded-t-2xl bg-[#111111] z-10 shrink-0">
-          <div className="px-3 pt-[calc(env(safe-area-inset-top,8px)+4px)] pb-3 flex items-center justify-between relative">
+          <div className="px-3 pt-page-header pb-3 flex items-center justify-between relative">
             <button
               onClick={() => navigate('/search')}
               className="p-1 z-10"
@@ -87,7 +84,7 @@ export default function MusicFeed() {
                 <p className="text-white/60 text-sm mb-4">Trending</p>
                 <button
                   onClick={() => navigate('/create')}
-                  className="bg-[#D4AF37] text-black px-6 py-1.5 rounded-sm font-semibold flex items-center gap-1.5 text-sm w-fit active:scale-95 transition-transform"
+                  className="bg-[#D4AF37] text-black px-6 py-1.5 rounded-full font-semibold flex items-center gap-1.5 text-sm w-fit active:scale-95 transition-transform"
                 >
                   <Play size={6} fill="black" /> Use this sound
                 </button>
@@ -97,7 +94,7 @@ export default function MusicFeed() {
         </div>
 
         {/* Grid */}
-        <div className="flex-1 overflow-y-auto mx-2 rounded-b-2xl bg-[#111111] pb-24">
+        <div className="flex-1 overflow-y-auto mx-2 rounded-b-2xl bg-[#111111] pb-2">
           <div className="grid grid-cols-3 gap-0.5 p-0.5">
             {loading ? (
               <div className="col-span-3 flex items-center justify-center h-[40vh]">

@@ -543,7 +543,7 @@ export default function ElixCameraLayout({
       {/* ══════════════════════════════════════════ */}
       {showEffectsPanel && (
         <div className="absolute bottom-0 left-0 right-0 z-[60] pointer-events-auto animate-in slide-in-from-bottom duration-300">
-          <div className="bg-[#111111]/90 backdrop-blur-xl rounded-t-2xl border-t border-[#C9A227]/20 pb-safe">
+          <div className="bg-[#111111]/90 backdrop-blur-xl rounded-t-2xl pb-safe">
             {/* Header */}
             <div className="flex items-center justify-between px-4 pt-3 pb-2">
               <h3 className="text-[#D4AF37] drop-shadow-[0_0_8px_rgba(255,215,0,1)] text-xs font-bold flex items-center gap-1.5">
@@ -612,7 +612,7 @@ export default function ElixCameraLayout({
       {/* ══════════════════════════════════════════ */}
       {showCapCutPanel && (
         <div className="absolute bottom-0 left-0 right-0 z-[60] pointer-events-auto animate-in slide-in-from-bottom duration-300">
-          <div className="bg-[#111111]/90 backdrop-blur-xl rounded-t-2xl border-t border-[#C9A227]/20 pb-safe">
+          <div className="bg-[#111111]/90 backdrop-blur-xl rounded-t-2xl pb-safe">
             {/* Header */}
             <div className="flex items-center justify-between px-4 pt-3 pb-2">
               <h3 className="text-[#D4AF37] drop-shadow-[0_0_8px_rgba(255,215,0,1)] text-xs font-bold flex items-center gap-1.5">
@@ -784,7 +784,7 @@ export default function ElixCameraLayout({
       {/* ══════════════════════════════════════════ */}
       {showStickerPicker && (
         <div className="absolute bottom-0 left-0 right-0 z-[70] pointer-events-auto">
-          <div className="bg-[#111111]/90 backdrop-blur-xl rounded-t-2xl border-t border-[#C9A227]/20 pb-safe">
+          <div className="bg-[#111111]/90 backdrop-blur-xl rounded-t-2xl pb-safe">
             <div className="flex items-center justify-between px-4 pt-3 pb-2">
               <h3 className="text-[#D4AF37] drop-shadow-[0_0_8px_rgba(255,215,0,1)] text-xs font-bold">Stickers</h3>
               <button onClick={() => setShowStickerPicker(false)} className="p-1" title="Close stickers">
@@ -882,7 +882,7 @@ export default function ElixCameraLayout({
                 }`}
               >
                 {isRecording ? (
-                    <div className="w-6 h-6 bg-white rounded-sm" />
+                    <div className="w-6 h-6 bg-white rounded-full" />
                 ) : (
                     <Square className="w-8 h-8 text-white" strokeWidth={2} />
                 )}

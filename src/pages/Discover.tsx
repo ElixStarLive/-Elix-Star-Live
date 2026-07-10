@@ -182,15 +182,12 @@ export default function Discover() {
   };
 
   return (
-    <div className="fixed inset-0 bg-[#111111] text-white flex justify-center">
-      <div
-        className="w-full max-w-[480px] flex flex-col overflow-hidden h-above-bottom-nav"
-        style={{ marginTop: 0 }}
-      >
+    <div className="page-above-bottom-nav bg-[#111111] text-white">
+      <div className="page-above-bottom-nav__inner">
 
         {/* ═══ HEADER — full width of column (matches bottom nav max-w-[480px]) ═══ */}
         <div className="w-full shrink-0 bg-[#111111] z-10 border-b border-white/[0.06]">
-          <div className="px-3 pt-[calc(env(safe-area-inset-top,8px)+4px)] pb-1 flex items-center justify-between relative">
+          <div className="px-3 pt-page-header pb-1 flex items-center justify-between relative">
             <button onClick={() => document.getElementById('discover-search')?.focus()} className="p-1 z-10" title="Search">
               <Search className="w-4 h-4 text-[#D4AF37]" />
             </button>

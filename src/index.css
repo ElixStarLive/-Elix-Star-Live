@@ -102,6 +102,8 @@
     --feed-video-lift-for-you: 4mm;
     /* For You main: a bit tighter above bottom nav (still clears tap targets) */
     --feed-main-pb: max(0px, calc(var(--bottom-ui-reserve) - 9mm));
+    /* Standard page header inset below notch */
+    --page-header-top: max(8px, env(safe-area-inset-top, 0px));
     /* Bottom sheets */
     --sheet-collapsed: 30vh;
     --sheet-half: 50vh;
@@ -251,12 +253,38 @@
 
   /* Fixed / full-viewport columns above bottom nav — stop at top of bottom bar */
   .h-above-bottom-nav {
-    height: calc(100dvh - var(--bottom-ui-reserve));
-    max-height: calc(100dvh - var(--bottom-ui-reserve));
+    height: 100%;
+    max-height: 100%;
   }
   .h-above-bottom-nav-friends {
-    height: calc(100dvh - var(--bottom-ui-reserve));
-    max-height: calc(100dvh - var(--bottom-ui-reserve));
+    height: 100%;
+    max-height: 100%;
+  }
+
+  /* Tab pages: pin content between screen top and top of home/bottom bar */
+  .page-above-bottom-nav {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: var(--bottom-ui-reserve);
+    left: 0;
+    display: flex;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .page-above-bottom-nav__inner {
+    width: 100%;
+    max-width: 480px;
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .pt-page-header {
+    padding-top: var(--page-header-top);
   }
 
   /* Responsive text that scales with viewport */
@@ -690,13 +718,18 @@
   box-shadow: 0 0 12px rgba(201, 162, 39, 0.2);
 }
 
-/* ROYCE gold + black icon chrome */
+/* ROYCE gold + black icon chrome — always circular */
 .royce-tile {
   background: #000000;
   border: 1px solid rgba(201, 162, 39, 0.32);
+  border-radius: 9999px;
   box-shadow:
     inset 0 1px 0 rgba(232, 213, 163, 0.1),
     0 2px 8px rgba(0, 0, 0, 0.85);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .royce-icon-gold {

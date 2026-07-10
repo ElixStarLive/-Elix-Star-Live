@@ -125,7 +125,7 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin, i
     {isOpen && (
     <div className="fixed inset-0 z-modals bg-black/40 flex items-end justify-center" onClick={onClose}>
       <div
-        className="bg-[#111111]/95 backdrop-blur-md w-full max-w-[480px] rounded-t-2xl overflow-hidden flex flex-col border-t border-[#C9A227]/20 h-[38vh] shadow-2xl mb-[calc(var(--nav-height)+var(--safe-bottom))]"
+        className="bg-[#111111]/95 backdrop-blur-md w-full max-w-[480px] rounded-t-2xl overflow-hidden flex flex-col h-[38vh] shadow-2xl mb-[var(--bottom-ui-reserve)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-4 pt-1 pb-1">

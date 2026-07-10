@@ -433,13 +433,10 @@ export default function Profile() {
   }
 
   return (
-    <div className="fixed inset-0 bg-[#111111] text-white flex justify-center">
-      <div
-        className="w-full max-w-[480px] flex flex-col overflow-hidden bg-[#111111] h-above-bottom-nav"
-        style={{ marginTop: 0 }}
-      >
+    <div className="page-above-bottom-nav bg-[#111111] text-white">
+      <div className="page-above-bottom-nav__inner bg-[#111111]">
         {/* Small top header with Share + Exit buttons — same panel height as Inbox */}
-        <header className="flex items-center justify-between px-4 pt-[env(safe-area-inset-top,8px)] pb-2 relative z-10">
+        <header className="flex items-center justify-between px-4 pt-page-header pb-2 relative z-10">
           <button
             type="button"
             onClick={openSharePanel}

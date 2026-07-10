@@ -111,11 +111,8 @@ export default function VideoView() {
   }
 
   return (
-    <div className="fixed inset-0 z-[9990] bg-[#111111] flex justify-center">
-      <div
-        className="w-full max-w-[480px] relative overflow-hidden bg-[#111111] h-viewport"
-        style={{ marginTop: 0 }}
-      >
+    <div className="page-above-bottom-nav z-[9990] bg-[#111111]">
+      <div className="page-above-bottom-nav__inner relative bg-[#111111]">
         <div
           className="absolute z-[250] pointer-events-auto"
           style={{

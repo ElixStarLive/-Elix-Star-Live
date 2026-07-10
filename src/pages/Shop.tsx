@@ -231,10 +231,8 @@ export default function Shop() {
   ] as const;
 
   return (
-    <div className="fixed inset-0 bg-[#111111] text-white flex justify-center px-2 pt-[calc(var(--safe-top)+46px)] pb-[var(--bottom-ui-reserve)]">
-      <div
-        className="w-full max-w-[480px] h-full flex flex-col overflow-hidden"
-      >
+    <div className="page-above-bottom-nav bg-[#111111] text-white px-2">
+      <div className="page-above-bottom-nav__inner">
         <div className="sticky top-0 bg-[#111111] z-10 px-4 py-3 flex items-center justify-between border-b border-white/5">
           <div className="flex items-center gap-3">
             <button onClick={() => setShowCreate(true)} className="p-1" title="Sell item">
@@ -373,7 +371,7 @@ export default function Shop() {
             {/* Anchor the modal exactly to the top of the bottom bar (no extra gap). */}
             <div className="fixed left-0 right-0 z-[9999] pointer-events-auto max-w-[480px] mx-auto" style={{ bottom: 'var(--bottom-ui-reserve)' }}>
               <div
-                className="w-full bg-[#111111] rounded-t-3xl border-2 border-b-0 border-[#C9A227] pb-safe"
+                className="w-full bg-[#111111] rounded-t-3xl pb-safe"
                 style={{ maxHeight: '80dvh', boxShadow: '0 -4px 30px rgba(255,255,255,0.25)' }}
                 onClick={e => e.stopPropagation()}
               >

@@ -50,7 +50,7 @@ export function RankingPanel({ onClose }: RankingPanelProps) {
 
   return (
         <div 
-          className="bg-[#111111]/95 backdrop-blur-md rounded-t-2xl p-3 pb-safe max-h-[40dvh] flex flex-col shadow-2xl w-full overflow-hidden border-t border-[#C9A227]/20 h-full" 
+          className="bg-[#111111]/95 backdrop-blur-md rounded-t-2xl p-3 pb-safe max-h-[40dvh] flex flex-col shadow-2xl w-full overflow-hidden h-full" 
           onClick={(e) => e.stopPropagation()}
         >
         {/* Drag handle */}

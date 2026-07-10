@@ -4,6 +4,13 @@ import { ChevronLeft, X } from 'lucide-react';
 
 export { ROYCE_DEFAULT_AVATAR, ROYCE_ELIX_MARK, ROYCE_MEMBERSHIP } from '../lib/royceAssets';
 
+const TILE_BASE = 'royce-tile';
+
+function tileBox(size: number, pad = 8): React.CSSProperties {
+  const box = size + pad;
+  return { width: box, height: box };
+}
+
 type RoyceIconProps = {
   icon: LucideIcon;
   size?: number;
@@ -24,7 +31,7 @@ export function RoyceIcon({ icon: Icon, size = 22, active = false, tile = false,
 
   if (tile) {
     return (
-      <span className={`royce-tile inline-flex items-center justify-center rounded-sm p-1 ${className}`} aria-hidden>
+      <span className={`${TILE_BASE} ${className}`} style={tileBox(size, 10)} aria-hidden>
         {iconEl}
       </span>
     );
@@ -40,7 +47,7 @@ type RoyceNavIconProps = {
 
 export function RoyceBackIcon({ size = 18, className = '' }: RoyceNavIconProps) {
   return (
-    <span className={`royce-tile inline-flex items-center justify-center rounded-sm p-1 ${className}`} aria-hidden>
+    <span className={`${TILE_BASE} ${className}`} style={tileBox(size, 8)} aria-hidden>
       <ChevronLeft size={size} strokeWidth={2.35} className="royce-icon-gold block" />
     </span>
   );
@@ -48,7 +55,7 @@ export function RoyceBackIcon({ size = 18, className = '' }: RoyceNavIconProps) 
 
 export function RoyceCloseIcon({ size = 18, className = '' }: RoyceNavIconProps) {
   return (
-    <span className={`royce-tile inline-flex items-center justify-center rounded-sm p-1 ${className}`} aria-hidden>
+    <span className={`${TILE_BASE} ${className}`} style={tileBox(size, 8)} aria-hidden>
       <X size={size} strokeWidth={2.35} className="royce-icon-gold block" />
     </span>
   );

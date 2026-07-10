@@ -112,11 +112,11 @@ function SoundPickerModal({
   return (
     <div className="fixed inset-0 z-[500] bg-black/40 flex items-end justify-center animate-in fade-in duration-200" onClick={onClose}>
       <div
-        className="bg-[#111111]/95 backdrop-blur-md w-full max-w-[480px] rounded-t-2xl overflow-hidden flex flex-col border-t border-[#C9A227]/30 h-[50vh] max-h-[50dvh] shadow-2xl animate-in slide-in-from-bottom duration-300"
+        className="bg-[#111111]/95 backdrop-blur-md w-full max-w-[480px] rounded-t-2xl overflow-hidden flex flex-col h-[50vh] max-h-[50dvh] shadow-2xl animate-in slide-in-from-bottom duration-300"
         onClick={(e) => e.stopPropagation()}
       >
         <audio ref={audioRef} preload="auto" onEnded={() => setPlayingId(null)} className="hidden" />
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[#C9A227]/20 flex-shrink-0">
+        <div className="flex items-center justify-between px-4 py-3  flex-shrink-0">
           <div className="flex items-center gap-2">
             <Music className="w-4 h-4 text-white" strokeWidth={2} />
             <p className="text-white font-semibold">Add sound</p>

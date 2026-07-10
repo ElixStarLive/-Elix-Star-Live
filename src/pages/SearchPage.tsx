@@ -183,12 +183,15 @@ export default function SearchPage() {
       {/* Panel — full screen */}
       <div
         ref={panelRef}
-        className="absolute inset-0 flex justify-center transition-transform duration-250 ease-out"
-        style={{ transform: visible ? 'translateY(0)' : 'translateY(100%)' }}
+        className="absolute left-0 right-0 top-0 flex justify-center transition-transform duration-250 ease-out"
+        style={{
+          bottom: 'var(--bottom-ui-reserve)',
+          transform: visible ? 'translateY(0)' : 'translateY(100%)',
+        }}
       >
         <div
-          className="w-full max-w-[480px] bg-[#111111] flex flex-col overflow-hidden pt-[env(safe-area-inset-top,0px)]"
-          style={{ boxShadow: '0 -8px 30px rgba(0,0,0,0.5)', marginTop: 0, height: '100dvh', maxHeight: '100dvh' }}
+          className="page-above-bottom-nav__inner bg-[#111111] pt-page-header"
+          style={{ boxShadow: '0 -8px 30px rgba(0,0,0,0.5)' }}
         >
           {/* Top: drag handle + power (back) — swipe down here to close */}
           <div

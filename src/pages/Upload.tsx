@@ -649,7 +649,7 @@ export default function Upload() {
                     title="Upload"
                   >
                     <div className="w-9 h-9 bg-[#111111] flex items-center justify-center text-white relative group-active:scale-90 transition-transform">
-                      <div className="w-4 h-4 border-2 border-white rounded-sm relative overflow-hidden z-[2]">
+                      <div className="w-4 h-4 border-2 border-white rounded-full relative overflow-hidden z-[2]">
                         <div className="absolute top-0.5 right-0.5 w-1 h-1 bg-white rounded-full"></div>
                       </div>
                     </div>
@@ -916,7 +916,7 @@ export default function Upload() {
                     title="Upload from Gallery"
                   >
                     <div className="w-9 h-9 bg-[#111111] flex items-center justify-center text-white relative">
-                      <div className="w-4 h-4 border-2 border-white rounded-sm relative overflow-hidden z-[2]">
+                      <div className="w-4 h-4 border-2 border-white rounded-full relative overflow-hidden z-[2]">
                         <div className="absolute top-0.5 right-0.5 w-1 h-1 bg-white rounded-full"></div>
                       </div>
                     </div>

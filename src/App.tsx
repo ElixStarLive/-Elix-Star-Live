@@ -293,7 +293,7 @@ function App() {
       <main
         className={cn(
           "flex-1 w-full min-h-0 mx-auto max-w-[480px] overflow-auto",
-          showBottomNav && !isFullScreen && "pt-topbar pb-nav",
+          showBottomNav && !isFullScreen && "pt-topbar pb-[var(--bottom-ui-reserve)]",
           showBottomNav && isFeedWithTopBar && "pt-topbar pb-nav",
           showBottomNav && isFeedNoTopBar && "pt-safe pb-nav",
           showBottomNav && isFullScreen && !isFeedFullScreen && "pt-[3mm]",

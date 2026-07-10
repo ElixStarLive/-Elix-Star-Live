@@ -24,7 +24,7 @@ export const TopNav = () => {
       className="fixed left-0 right-0 z-[9999] flex justify-center pointer-events-none"
       style={{ top: "var(--topnav-anchor-top)" }}
     >
-      <div className="w-full max-w-[480px] pointer-events-auto bg-black border-b border-gold/25 min-h-[var(--topnav-bar-height)]">
+      <div className="w-full max-w-[480px] pointer-events-auto bg-black min-h-[var(--topnav-bar-height)]">
         <div className="flex items-center gap-0.5 px-2 h-full">
           <div className="flex flex-1 items-center justify-between min-w-0 overflow-x-auto no-scrollbar gap-0.5 pr-1">
             {TOP_TABS.map((tab) => {
@@ -53,9 +53,6 @@ export const TopNav = () => {
                     ) : null}
                     {tab.label}
                   </span>
-                  {(active || ("primary" in tab && tab.primary)) && (
-                    <span className="block h-[2px] w-full mt-1 bg-gold-bright rounded-full" />
-                  )}
                 </button>
               );
             })}
@@ -67,7 +64,7 @@ export const TopNav = () => {
             className="flex-shrink-0 flex items-center justify-center w-10 h-10 active:opacity-70 transition-opacity"
             style={{ WebkitTapHighlightColor: "transparent" }}
           >
-            <span className="royce-tile rounded-sm p-1.5 inline-flex">
+            <span className="royce-tile w-10 h-10">
               <Search size={20} strokeWidth={2.25} className="royce-icon-gold" />
             </span>
           </button>

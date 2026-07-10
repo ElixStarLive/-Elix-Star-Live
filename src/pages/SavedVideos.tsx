@@ -43,8 +43,8 @@ export default function SavedVideos() {
   };
 
   return (
-    <div className="bg-[#111111] text-white flex justify-center px-2">
-      <div className="w-full max-w-[480px] rounded-3xl overflow-hidden overflow-y-auto bg-[#111111] flex flex-col min-h-screen">
+    <div className="h-full min-h-0 w-full bg-[#111111] text-white flex justify-center px-2">
+      <div className="w-full max-w-[480px] h-full min-h-0 flex flex-col overflow-y-auto bg-[#111111]">
         <div className="p-4 flex items-center gap-4">
           <button onClick={() => navigate(-1)} className="p-1">
             <RoyceBackIcon />

@@ -81,7 +81,7 @@ export const BuyCoinsModal: React.FC<BuyCoinsModalProps> = ({ isOpen, onClose, o
         className="fixed left-0 right-0 z-[999999] pointer-events-auto max-w-[480px] mx-auto"
         style={{ bottom: 'var(--bottom-ui-reserve)' }}
       >
-        <div className="bg-[#111111]/95 backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl border-t border-[#C9A227]/20 overflow-hidden">
+        <div className="bg-[#111111]/95 backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl overflow-hidden">
           <div className="flex justify-center pt-2 pb-1">
             <div className="w-10 h-1 bg-white/20 rounded-full" />
           </div>
