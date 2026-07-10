@@ -48,8 +48,8 @@ export const BottomNav = () => {
           <div className="flex items-end justify-around px-0.5 pt-2 pb-1.5 min-h-[var(--nav-height)]">
             {NAV_ITEMS.map(({ path, label, Icon, center }) => {
               const active = isActiveRoute(location.pathname, path);
-              const iconClass = active ? "text-gold-bright" : "text-gold/45";
-              const labelClass = active ? "text-gold-bright" : "text-gold/40";
+              const iconClass = active ? "text-gold-bright" : "text-gold-bright/45";
+              const labelClass = active ? "text-gold-bright" : "text-gold-bright/40";
 
               if (center) {
                 return (
@@ -62,7 +62,7 @@ export const BottomNav = () => {
                     style={{ WebkitTapHighlightColor: "transparent" }}
                   >
                     <span className={ICON_WRAP_CLASS}>
-                      <Icon size={ICON_SIZE} strokeWidth={2.5} className="text-gold-bright" />
+                      <Icon size={ICON_SIZE} strokeWidth={2.5} className={iconClass} />
                     </span>
                     <span className={`mt-1 text-[10px] font-semibold tracking-wide truncate max-w-full px-0.5 ${labelClass}`}>
                       {label}

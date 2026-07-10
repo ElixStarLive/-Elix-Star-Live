@@ -43,7 +43,7 @@ export const TopNav = () => {
                 >
                   <span
                     className={`text-[12px] font-bold tracking-wide whitespace-nowrap ${
-                      active || ("primary" in tab && tab.primary) ? "text-gold-bright" : "text-gold/50"
+                      active || ("primary" in tab && tab.primary) ? "text-gold-bright" : "text-gold-bright/50"
                     }`}
                   >
                     {tab.label}

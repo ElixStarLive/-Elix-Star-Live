@@ -616,10 +616,10 @@ export default function VideoFeed() {
       {!loading && feedItems.length === 0 && (
         <div className="absolute inset-0 flex flex-col items-center justify-center px-6">
           <span className="text-3xl mb-4 pointer-events-none">📡</span>
-          <p className="text-white/60 font-semibold text-base mb-1 text-center">
+          <p className="text-gold-light/70 font-semibold text-base mb-1 text-center">
             Nothing here yet
           </p>
-          <p className="text-white/30 text-sm mb-4 text-center">
+          <p className="text-gold-light/40 text-sm mb-4 text-center">
             Videos and livestreams from everyone appear here. When creators post or go live, it shows up right away.
           </p>
           <button
@@ -629,7 +629,7 @@ export default function VideoFeed() {
               fetchLiveStreams();
               fetchVideos();
             }}
-            className="px-5 py-2 bg-white/10 border border-white/20 rounded-full text-white/80 text-sm font-bold active:scale-95 transition-transform"
+            className="px-5 py-2 bg-gold/15 border border-gold/30 rounded-full text-gold-bright text-sm font-bold active:scale-95 transition-transform"
           >
             Refresh
           </button>
