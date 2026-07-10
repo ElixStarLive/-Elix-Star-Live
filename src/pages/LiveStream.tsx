@@ -4598,20 +4598,16 @@ export default function LiveStream() {
                 className="w-10 h-10 rounded-full bg-[#111111] backdrop-blur-md border border-[#FFFFFF]/40 flex items-center justify-center shadow-lg relative disabled:opacity-60 active:scale-95 transition-transform flex-shrink-0"
               >
                 <span className="flex items-center justify-center w-full h-full relative z-[2]"><UserPlus size={20} className="text-[#FFFFFF] shrink-0" strokeWidth={2} /></span>
-                <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[3] scale-125 translate-y-0.5" />
-              </button>
+</button>
               <button type="button" title="Send gift" onClick={() => setShowGiftPanel(true)} className="w-10 h-10 rounded-full bg-[#111111] backdrop-blur-md border border-[#FFFFFF]/40 flex items-center justify-center shadow-lg active:scale-95 transition-transform relative flex-shrink-0">
                 <Gift size={20} className="text-[#FFFFFF] relative z-[2]" />
-                <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[3] scale-125 translate-y-0.5" />
-              </button>
+</button>
               <button type="button" title="Share" onClick={() => setShowSharePanel(true)} className="w-10 h-10 rounded-full bg-[#111111] backdrop-blur-md border border-[#FFFFFF]/40 flex items-center justify-center shadow-lg active:scale-95 transition-transform relative flex-shrink-0">
                 <Share2 size={20} className="text-[#FFFFFF] relative z-[2]" />
-                <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[3] scale-125 translate-y-0.5" />
-              </button>
+</button>
               <button type="button" title="More options" onClick={() => setIsMoreMenuOpen(true)} className="w-10 h-10 rounded-full bg-[#111111] backdrop-blur-md border border-[#FFFFFF]/40 flex items-center justify-center shadow-lg active:scale-95 transition-transform relative flex-shrink-0">
                 <MoreVertical size={20} className="text-[#FFFFFF] relative z-[2]" />
-                <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[3] scale-125 translate-y-0.5" />
-              </button>
+</button>
             </div>
           )}
 
@@ -4653,29 +4649,25 @@ export default function LiveStream() {
                   className="w-10 h-10 rounded-full bg-[#111111] backdrop-blur-md border border-[#FFFFFF]/40 flex items-center justify-center shadow-lg relative"
                 >
                   <span className="flex items-center justify-center w-full h-full relative z-[2]"><UserPlus size={20} className="text-[#FFFFFF] shrink-0" strokeWidth={2} /></span>
-                  <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[3] scale-125 translate-y-0.5" />
-                </button>
+</button>
                 <span className="text-white/60 text-[8px] font-medium">Co-Host</span>
               </div>
               <div className="flex flex-col items-center gap-0.5">
                 <button type="button" onClick={() => { if (!isBattleMode) toggleBattle(); else setIsFindCreatorsOpen(true); }} className="w-10 h-10 rounded-full bg-[#111111] backdrop-blur-md border border-[#FFFFFF]/40 flex items-center justify-center shadow-lg relative">
                   <Users size={20} className="text-[#FFFFFF] relative z-[2]" />
-                  <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[3] scale-125 translate-y-0.5" />
-                </button>
+</button>
                 <span className="text-white/60 text-[8px] font-medium">Battle</span>
               </div>
               <div className="flex flex-col items-center gap-0.5">
                 <button type="button" title="Share" onClick={() => setShowSharePanel(true)} className="w-10 h-10 rounded-full bg-[#111111] backdrop-blur-md border border-[#FFFFFF]/40 flex items-center justify-center shadow-lg active:scale-95 transition-transform relative">
                   <Share2 size={20} className="text-[#FFFFFF] relative z-[2]" />
-                  <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[3] scale-125 translate-y-0.5" />
-                </button>
+</button>
                 <span className="text-white/60 text-[8px] font-medium">Share</span>
               </div>
               <div className="flex flex-col items-center gap-0.5">
                 <button type="button" title="More options" onClick={() => setIsMoreMenuOpen(true)} className="w-10 h-10 rounded-full bg-[#111111] backdrop-blur-md border border-[#FFFFFF]/40 flex items-center justify-center shadow-lg relative">
                   <MoreVertical size={20} className="text-[#FFFFFF] relative z-[2]" />
-                  <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[3] scale-125 translate-y-0.5" />
-                </button>
+</button>
                 <span className="text-white/60 text-[8px] font-medium">More</span>
               </div>
               </div>
@@ -5473,8 +5465,7 @@ export default function LiveStream() {
               {!IS_STORE_BUILD && (
               <button type="button" onClick={() => { setShowTestCoinsModal(true); setTestCoinsStep(sessionStorage.getItem('elix_test_coins_unlocked') ? 'amount' : 'password'); setTestCoinsPwd(''); setTestCoinsError(''); setTestCoinsAmount(''); setIsMoreMenuOpen(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform">
                 <div className="w-11 h-11 rounded-full relative flex items-center justify-center">
-                  <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[1]" />
-                  <Coins className="w-[18px] h-[18px] text-[#FFFFFF] relative z-[2]" strokeWidth={1.8} />
+<Coins className="w-[18px] h-[18px] text-[#FFFFFF] relative z-[2]" strokeWidth={1.8} />
                 </div>
                 <span className="text-[10px] font-semibold text-white/70">Test</span>
               </button>
@@ -5482,48 +5473,42 @@ export default function LiveStream() {
 
               <button type="button" onClick={() => { setShowSharePanel(true); setIsMoreMenuOpen(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform">
                 <div className="w-11 h-11 rounded-full relative flex items-center justify-center">
-                  <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[1]" />
-                  <Share2 className="w-[18px] h-[18px] text-[#FFFFFF] relative z-[2]" strokeWidth={1.8} />
+<Share2 className="w-[18px] h-[18px] text-[#FFFFFF] relative z-[2]" strokeWidth={1.8} />
                 </div>
                 <span className="text-[10px] font-semibold text-white/70">Share</span>
               </button>
 
               <button type="button" disabled={!isBroadcast} onClick={() => { flipCamera(); setIsMoreMenuOpen(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform disabled:opacity-40">
                 <div className="w-11 h-11 rounded-full relative flex items-center justify-center">
-                  <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[1]" />
-                  <RefreshCw className="w-[18px] h-[18px] text-[#FFFFFF] relative z-[2]" strokeWidth={1.8} />
+<RefreshCw className="w-[18px] h-[18px] text-[#FFFFFF] relative z-[2]" strokeWidth={1.8} />
                 </div>
                 <span className="text-[10px] font-semibold text-white/70">Flip</span>
               </button>
 
               <button type="button" disabled={!isBroadcast} onClick={() => { toggleMic(); setIsMoreMenuOpen(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform disabled:opacity-40">
                 <div className="w-11 h-11 rounded-full relative flex items-center justify-center">
-                  <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[1]" />
-                  {isMicMuted ? <MicOff className="w-[18px] h-[18px] text-[#FFFFFF] relative z-[2]" strokeWidth={1.8} /> : <Mic className="w-[18px] h-[18px] text-[#FFFFFF] relative z-[2]" strokeWidth={1.8} />}
+{isMicMuted ? <MicOff className="w-[18px] h-[18px] text-[#FFFFFF] relative z-[2]" strokeWidth={1.8} /> : <Mic className="w-[18px] h-[18px] text-[#FFFFFF] relative z-[2]" strokeWidth={1.8} />}
                 </div>
                 <span className="text-[10px] font-semibold text-white/70">{isMicMuted ? 'Unmute' : 'Mute'}</span>
               </button>
 
               <button type="button" disabled={!isBroadcast} onClick={() => { toggleCam(); setIsMoreMenuOpen(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform disabled:opacity-40">
                 <div className="w-11 h-11 rounded-full relative flex items-center justify-center">
-                  <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[1]" />
-                  {isCamOff ? <CameraOff className="w-[18px] h-[18px] text-white/60 relative z-[2]" strokeWidth={1.8} /> : <Camera className="w-[18px] h-[18px] text-[#FFFFFF] relative z-[2]" strokeWidth={1.8} />}
+{isCamOff ? <CameraOff className="w-[18px] h-[18px] text-white/60 relative z-[2]" strokeWidth={1.8} /> : <Camera className="w-[18px] h-[18px] text-[#FFFFFF] relative z-[2]" strokeWidth={1.8} />}
                 </div>
                 <span className="text-[10px] font-semibold text-white/70">{isCamOff ? 'Cam On' : 'Cam Off'}</span>
               </button>
 
               <button type="button" onClick={() => { setIsChatVisible((v) => !v); setIsMoreMenuOpen(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform">
                 <div className="w-11 h-11 rounded-full relative flex items-center justify-center">
-                  <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[1]" />
-                  <MessageCircle className="w-[18px] h-[18px] text-[#FFFFFF] relative z-[2]" strokeWidth={1.8} />
+<MessageCircle className="w-[18px] h-[18px] text-[#FFFFFF] relative z-[2]" strokeWidth={1.8} />
                 </div>
                 <span className="text-[10px] font-semibold text-white/70">{isChatVisible ? 'Hide Chat' : 'Show Chat'}</span>
               </button>
 
               <button type="button" onClick={() => { setIsReportModalOpen(true); setIsMoreMenuOpen(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform">
                 <div className="w-11 h-11 rounded-full relative flex items-center justify-center">
-                  <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[1]" />
-                  <Flag className="w-[18px] h-[18px] text-white/60 relative z-[2]" strokeWidth={1.8} />
+<Flag className="w-[18px] h-[18px] text-white/60 relative z-[2]" strokeWidth={1.8} />
                 </div>
                 <span className="text-[10px] font-semibold text-white/60/70">Report</span>
               </button>
@@ -5531,8 +5516,7 @@ export default function LiveStream() {
               {isBattleMode && battleWinner && isBroadcast && (
                 <button type="button" onClick={() => { if (battleSlots[0]?.userId) { websocket.send('battle_create', { hostName: myCreatorName, opponentUserId: battleSlots[0].userId, opponentName: battleSlots[0].name, opponentRoomId: opponentStreamKey || '' }); } setBattleTime(300); setMyScore(0); setOpponentScore(0); setPlayer3Score(0); setPlayer4Score(0); battleServerTotalsRef.current = { h: 0, o: 0, p3: 0, p4: 0 }; setBattleServerTotals({ h: 0, o: 0, p3: 0, p4: 0 }); setBattleWinner(null); setBattleCountdown(null); reachedThresholdsRef.current.clear(); setIsMoreMenuOpen(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform">
                   <div className="w-11 h-11 rounded-full relative flex items-center justify-center">
-                    <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[1]" />
-                    <RefreshCw className="w-[18px] h-[18px] text-[#FFFFFF] relative z-[2]" strokeWidth={1.8} />
+<RefreshCw className="w-[18px] h-[18px] text-[#FFFFFF] relative z-[2]" strokeWidth={1.8} />
                   </div>
                   <span className="text-[10px] font-semibold text-white/70">Rematch</span>
                 </button>
@@ -5541,8 +5525,7 @@ export default function LiveStream() {
               {isBattleMode && isBroadcast && !battleWinner && battleTime > 0 && (
                 <button type="button" onClick={() => { startSpeedChallenge(); setIsMoreMenuOpen(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform">
                   <div className="w-11 h-11 rounded-full relative flex items-center justify-center">
-                    <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[1]" />
-                    <Zap className="w-[18px] h-[18px] text-[#FFFFFF] relative z-[2]" strokeWidth={1.8} />
+<Zap className="w-[18px] h-[18px] text-[#FFFFFF] relative z-[2]" strokeWidth={1.8} />
                   </div>
                   <span className="text-[10px] font-semibold text-white/70">Speed</span>
                 </button>
@@ -5817,8 +5800,7 @@ export default function LiveStream() {
                   <button key={item.name} onClick={item.action} className="flex flex-col items-center gap-1 active:scale-95 transition-transform">
                     <div className="relative w-9 h-9 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center flex-shrink-0">
                       <div className={`relative z-[2] ${item.name === 'Report' ? 'translate-y-0.5' : ''}`}>{React.cloneElement((item.icon as React.ReactElement), { className: `w-3.5 h-3.5 ${(item as { isRed?: boolean }).isRed ? 'text-white/60' : 'text-white'}`, strokeWidth: 1.8 })}</div>
-                      <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[3] scale-125 translate-y-0.5" />
-                    </div>
+</div>
                     <span className={`text-[8px] font-semibold truncate w-full text-center ${(item as { isRed?: boolean }).isRed ? 'text-white/60/70' : 'text-white/70'}`}>{item.name}</span>
                   </button>
                 ))}

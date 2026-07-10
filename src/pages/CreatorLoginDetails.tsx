@@ -284,8 +284,7 @@ export default function CreatorLoginDetails() {
               >
                 <div className="w-10 h-10 rounded-full bg-[#111111] border border-[#FFFFFF]/40 flex items-center justify-center group-hover:bg-[#FFFFFF]/10 transition-colors relative">
                   <span className="text-lg text-white/50 font-light relative z-[2]">+</span>
-                  <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[3] scale-125 translate-y-0.5" />
-                </div>
+</div>
                 <div className="text-center">
                   <p className="text-[9px] font-medium text-white/50">Add</p>
                 </div>

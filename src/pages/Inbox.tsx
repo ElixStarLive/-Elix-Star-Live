@@ -559,8 +559,7 @@ export default function Inbox() {
             {/* Activity - golden circle from Music Icon (likes, comments) */}
             <button onClick={() => setActiveFilter('activity')} className="flex items-center gap-3 w-full text-left py-2 px-2 rounded-lg hover:bg-white/5 active:bg-white/10">
                 <div className="relative w-12 h-12 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
-                    <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none" />
-                    <Heart className="w-6 h-6 text-[#FFFFFF] relative z-10" strokeWidth={2} />
+<Heart className="w-6 h-6 text-[#FFFFFF] relative z-10" strokeWidth={2} />
                 </div>
                 <div className="flex-1 min-w-0">
                     <h3 className="font-bold text-sm text-gold-metallic">Activity</h3>

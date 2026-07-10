@@ -61,8 +61,8 @@
     --space-lg: clamp(12px, 3vw, 24px);
     --space-xl: clamp(16px, 4vw, 32px);
 
-    /* Bottom nav — luxury icon bar (no PNG art) */
-    --nav-height: clamp(52px, 13vw, 58px);
+    /* Bottom nav — larger B&W icon circles */
+    --nav-height: clamp(72px, 18vw, 80px);
     /* Extra air above the nav so controls/text never kiss the bar */
     --nav-tolerance: clamp(8px, 2vw, 14px);
     /* Single token: use for main padding, fixed columns, and bottom-anchored UI */
@@ -71,7 +71,7 @@
     --topbar-height: clamp(40px, 10vw, 56px);
     /* For You top bar — text tabs (TopNav.tsx) */
     --topnav-anchor-top: var(--safe-top);
-    --topnav-bar-height: clamp(40px, 10vw, 46px);
+    --topnav-bar-height: clamp(52px, 13vw, 56px);
     --topnav-video-gap: 0px;
     /* Non–For You pages: offset below where the golden bar would sit */
     --topbar-total: calc(

@@ -22,8 +22,7 @@ export default function LiveAIFilters({ onFilterChange, currentFilter }: LiveAIF
         title="AI Filters"
       >
         <Sparkles size={16} className={`relative z-[2] ${currentFilter !== 'none' ? 'text-[#FFFFFF]' : 'text-white/70'}`} />
-        <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[3] scale-125 translate-y-0.5" />
-      </button>
+</button>
     );
   }
 

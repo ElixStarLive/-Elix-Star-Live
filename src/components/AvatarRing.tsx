@@ -1,4 +1,4 @@
-import { profileRingInnerPx, PROFILE_RING_IMAGE_LIFT_MM } from '../lib/profileFrame';
+import { PROFILE_RING_IMAGE_LIFT_MM } from '../lib/profileFrame';
 
 interface AvatarRingProps {
   src: string;
@@ -6,61 +6,34 @@ interface AvatarRingProps {
   size: number;
   className?: string;
   onClick?: (e: React.MouseEvent) => void;
-  /** One flat circular avatar (no inner disc + ring PNG stack) — use for dense rows like MVP / top viewers. */
+  /** @deprecated All avatars use flat B&W ring now; kept for call-site compatibility. */
   simple?: boolean;
 }
 
-export function AvatarRing({ src, alt = '', size, className = '', onClick, simple = false }: AvatarRingProps) {
-  const innerSize = profileRingInnerPx(size);
-  const safeSrc = (typeof src === 'string' && src.length > 0) ? src : '/Icons/Profile icon.png';
+/** Black & white circular avatar — no decorative PNG ring. */
+export function AvatarRing({ src, alt = '', size, className = '', onClick }: AvatarRingProps) {
+  const safeSrc = typeof src === 'string' && src.length > 0 ? src : '';
   const safeAlt = typeof alt === 'string' ? alt : '';
+  const initial = safeAlt.trim().charAt(0).toUpperCase() || '?';
 
-  if (simple) {
-    return (
-      <div
-        className={`relative flex-shrink-0 rounded-full overflow-hidden border-2 border-[#FFFFFF]/70 bg-[#111111] ${onClick ? 'cursor-pointer' : ''} ${className}`}
-        style={{ width: size, height: size }}
-        onClick={onClick}
-      >
+  return (
+    <div
+      className={`relative flex-shrink-0 rounded-full overflow-hidden border-2 border-white bg-black ${onClick ? 'cursor-pointer' : ''} ${className}`}
+      style={{ width: size, height: size }}
+      onClick={onClick}
+    >
+      {safeSrc ? (
         <img
           src={safeSrc}
           alt={safeAlt}
           className="h-full w-full object-cover object-center"
           style={{ objectPosition: 'center center', transform: `translateY(-${PROFILE_RING_IMAGE_LIFT_MM}mm)` }}
         />
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className={`relative flex flex-shrink-0 items-center justify-center rounded-full ${onClick ? 'cursor-pointer' : ''} ${className}`}
-      style={{ width: size, height: size, isolation: 'isolate' }}
-      onClick={onClick}
-    >
-      <div
-        className="absolute overflow-hidden rounded-full bg-[#1a1c22]"
-        style={{
-          width: innerSize,
-          height: innerSize,
-          top: `calc(50% - ${PROFILE_RING_IMAGE_LIFT_MM}mm)`,
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          zIndex: 1,
-        }}
-      >
-        <img
-          src={safeSrc}
-          alt={safeAlt}
-          className="h-full w-full object-cover object-center"
-          style={{ objectPosition: 'center center' }}
-        />
-      </div>
-      <img
-        src="/Icons/Profile icon.png"
-        alt=""
-        className="pointer-events-none absolute inset-0 z-[2] h-full w-full object-contain"
-      />
+      ) : (
+        <div className="h-full w-full flex items-center justify-center text-white/70 text-sm font-bold">
+          {initial}
+        </div>
+      )}
     </div>
   );
 }

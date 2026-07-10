@@ -228,8 +228,7 @@ export default function ReportModal({ isOpen, onClose, videoId, contentType, con
         <div className="flex items-center gap-2 mb-1 ml-[4mm]">
           <div className="relative w-9 h-9 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center flex-shrink-0">
             <Flag className="relative z-[2] w-4 h-4 text-white/60" strokeWidth={1.8} />
-            <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[3] scale-125 translate-y-0.5" />
-          </div>
+</div>
           <h3 className="text-white font-bold text-[13px] whitespace-nowrap">Report {getContentTypeLabel()}</h3>
         </div>
 
@@ -247,8 +246,7 @@ export default function ReportModal({ isOpen, onClose, videoId, contentType, con
                 <div className="flex items-center gap-2.5 min-w-0 flex-1">
                   <div className={`relative w-9 h-9 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center flex-shrink-0 shrink-0 ${selected ? 'ring-2 ring-[#FFFFFF]/50' : ''}`}>
                     <IconComponent className={`relative z-[2] w-4 h-4 ${reason.color}`} strokeWidth={1.8} />
-                    <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[3] scale-125 translate-y-0.5" />
-                  </div>
+</div>
                   <span className="text-white/80 text-xs font-medium truncate">{reason.title}</span>
                 </div>
                 <div className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 ${selected ? 'border-[#FFFFFF] bg-[#FFFFFF]' : 'border-white/20'}`}>

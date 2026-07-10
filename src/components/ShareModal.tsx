@@ -200,8 +200,7 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin, i
               >
                 <div className="relative w-9 h-9 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center flex-shrink-0">
                   <div className="relative z-[2]">{React.cloneElement(item.icon as React.ReactElement, { className: 'w-3.5 h-3.5 text-white', strokeWidth: 1.8 })}</div>
-                  <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[3] scale-125 translate-y-0.5" />
-                </div>
+</div>
                 <span className="text-[8px] font-semibold text-white/70 truncate w-full text-center">{item.name}</span>
               </button>
             ))}
@@ -215,8 +214,7 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin, i
                 >
                   <div className="relative w-9 h-9 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center flex-shrink-0">
                     <div className={`relative z-[2] ${item.name === 'Report' ? 'translate-y-0.5' : ''}`}>{React.cloneElement(item.icon as React.ReactElement, { className: `w-3.5 h-3.5 ${isRed ? 'text-white/60' : 'text-white'}`, strokeWidth: 1.8 })}</div>
-                    <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[3] scale-125 translate-y-px" />
-                  </div>
+</div>
                   <span className={`text-[8px] font-semibold truncate w-full text-center ${isRed ? 'text-white/60/70' : 'text-white/70'}`}>{item.name}</span>
                 </button>
               );

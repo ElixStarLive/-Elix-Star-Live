@@ -2539,8 +2539,7 @@ export default function SpectatorPage() {
                   <span className="flex items-center justify-center w-full h-full relative z-[2]">
                     <UserPlus size={20} className="text-[#FFFFFF] shrink-0" strokeWidth={2} />
                   </span>
-                  <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[3] scale-125 translate-y-0.5" />
-                </div>
+</div>
                 <span className="text-[10px] font-semibold text-[#FFFFFF] mt-0.5">Invite</span>
               </button>
               <button
@@ -2551,8 +2550,7 @@ export default function SpectatorPage() {
               >
                 <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-[#111111] backdrop-blur-md border border-[#FFFFFF]/40 shadow-lg">
                   <Gift size={20} className="text-[#FFFFFF] relative z-[2]" />
-                  <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[1] scale-125 translate-y-0.5" />
-                </div>
+</div>
                 <span className="text-[10px] font-semibold text-[#FFFFFF] mt-0.5">Gift</span>
               </button>
               <button
@@ -2563,8 +2561,7 @@ export default function SpectatorPage() {
               >
                 <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-[#111111] backdrop-blur-md border border-[#FFFFFF]/40 shadow-lg">
                   <Share2 size={20} className="text-[#FFFFFF] relative z-[2]" />
-                  <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[1] scale-125 translate-y-0.5" />
-                </div>
+</div>
                 <span className="text-[10px] font-semibold text-[#FFFFFF] mt-0.5">Share</span>
               </button>
               <button
@@ -2575,8 +2572,7 @@ export default function SpectatorPage() {
               >
                 <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-[#111111] backdrop-blur-md border border-[#FFFFFF]/40 shadow-lg">
                   <MoreVertical size={20} className="text-[#FFFFFF] relative z-[2]" />
-                  <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[1] scale-125 translate-y-0.5" />
-                </div>
+</div>
                 <span className="text-[10px] font-semibold text-[#FFFFFF] mt-0.5">More</span>
               </button>
             </div>
@@ -3009,8 +3005,7 @@ export default function SpectatorPage() {
                       <button key={item.name} onClick={item.action} className="flex flex-col items-center gap-1 active:scale-95 transition-transform">
                         <div className="relative w-9 h-9 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center flex-shrink-0">
                           <div className={`relative z-[2] ${item.name === 'Report' ? 'translate-y-0.5' : ''}`}>{React.cloneElement((item.icon as React.ReactElement), { className: `w-3.5 h-3.5 ${(item as { isRed?: boolean }).isRed ? 'text-white/60' : 'text-white'}`, strokeWidth: 1.8 })}</div>
-                          <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[3] scale-125 translate-y-0.5" />
-                        </div>
+</div>
                         <span className={`text-[8px] font-semibold truncate w-full text-center ${(item as { isRed?: boolean }).isRed ? 'text-white/60/70' : 'text-white/70'}`}>{item.name}</span>
                       </button>
                     ))}

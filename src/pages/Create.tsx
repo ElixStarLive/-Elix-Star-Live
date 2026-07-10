@@ -502,8 +502,7 @@ export default function Create() {
             >
               <div className="w-9 h-9 rounded-full bg-[#111111] border border-[#FFFFFF]/30 flex items-center justify-center relative">
                 <tool.icon className="w-4 h-4 text-[#FFFFFF] relative z-[2]" strokeWidth={1.5} />
-                <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[3] scale-125 translate-y-0.5" />
-              </div>
+</div>
               <span className="text-white/50 text-[9px] font-medium">{tool.label}</span>
             </button>
           ))}

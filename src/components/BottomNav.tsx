@@ -17,6 +17,10 @@ const NAV_ITEMS: NavItem[] = [
   { path: "/profile", label: "Profile", Icon: User },
 ];
 
+const ICON_SIZE = 28;
+const CIRCLE_CLASS =
+  "flex items-center justify-center w-[52px] h-[52px] rounded-full border-2 border-white bg-black shrink-0";
+
 function isActiveRoute(pathname: string, path: string): boolean {
   if (path === "/feed") return pathname === "/feed" || pathname === "/";
   if (path === "/profile") return pathname === "/profile" || pathname.startsWith("/profile/");
@@ -40,15 +44,13 @@ export const BottomNav = () => {
       aria-label="Main navigation"
     >
       <div className="flex justify-center pointer-events-none">
-        <div
-          className="w-full max-w-[480px] mx-auto pointer-events-auto border-t border-[#FFFFFF]/20 bg-black/96 backdrop-blur-xl"
-          style={{
-            boxShadow: "0 -4px 24px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08)",
-          }}
-        >
-          <div className="flex items-end justify-around px-1 pt-1.5 pb-1 min-h-[var(--nav-height)]">
+        <div className="w-full max-w-[480px] mx-auto pointer-events-auto bg-black border-t border-white/15">
+          <div className="flex items-end justify-around px-0.5 pt-2 pb-1.5 min-h-[var(--nav-height)]">
             {NAV_ITEMS.map(({ path, label, Icon, center }) => {
               const active = isActiveRoute(location.pathname, path);
+              const iconClass = active ? "text-white" : "text-white/45";
+              const labelClass = active ? "text-white" : "text-white/40";
+
               if (center) {
                 return (
                   <button
@@ -56,48 +58,36 @@ export const BottomNav = () => {
                     type="button"
                     onClick={() => navigate(path)}
                     title={label}
-                    className="flex flex-col items-center justify-end flex-1 min-w-0 -mt-3 active:scale-95 transition-transform"
+                    className="flex flex-col items-center justify-end flex-1 min-w-0 -mt-2 active:scale-95 transition-transform"
                     style={{ WebkitTapHighlightColor: "transparent" }}
                   >
-                    <span
-                      className="flex items-center justify-center w-11 h-11 rounded-full border border-white/40 bg-[#111111] shadow-[0_0_12px_rgba(255,255,255,0.12)]"
-                    >
-                      <Icon size={22} strokeWidth={2.25} className="text-[#FFFFFF]" />
+                    <span className={`${CIRCLE_CLASS} bg-white border-white`}>
+                      <Icon size={ICON_SIZE} strokeWidth={2.5} className="text-black" />
                     </span>
-                    <span
-                      className={`mt-0.5 text-[9px] font-semibold tracking-wide truncate max-w-full px-0.5 ${
-                        active ? "text-gold-metallic" : "text-white/40"
-                      }`}
-                    >
+                    <span className={`mt-1 text-[10px] font-semibold tracking-wide truncate max-w-full px-0.5 ${labelClass}`}>
                       {label}
                     </span>
                   </button>
                 );
               }
+
               return (
                 <button
                   key={path}
                   type="button"
                   onClick={() => navigate(path)}
                   title={label}
-                  className="flex flex-col items-center justify-end flex-1 min-w-0 py-0.5 active:opacity-70 transition-opacity"
+                  className="flex flex-col items-center justify-end flex-1 min-w-0 active:opacity-80 transition-opacity"
                   style={{ WebkitTapHighlightColor: "transparent" }}
                 >
-                  <Icon
-                    size={22}
-                    strokeWidth={active ? 2.25 : 1.75}
-                    className={active ? "text-[#FFFFFF]" : "text-white/45"}
-                    style={
-                      active
-                        ? { filter: "drop-shadow(0 0 6px rgba(255,255,255,0.25))" }
-                        : undefined
-                    }
-                  />
-                  <span
-                    className={`mt-0.5 text-[9px] font-semibold tracking-wide truncate max-w-full px-0.5 ${
-                      active ? "text-gold-metallic" : "text-white/40"
-                    }`}
-                  >
+                  <span className={CIRCLE_CLASS}>
+                    <Icon
+                      size={ICON_SIZE}
+                      strokeWidth={active ? 2.5 : 2}
+                      className={iconClass}
+                    />
+                  </span>
+                  <span className={`mt-1 text-[10px] font-semibold tracking-wide truncate max-w-full px-0.5 ${labelClass}`}>
                     {label}
                   </span>
                 </button>
