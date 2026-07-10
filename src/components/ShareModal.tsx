@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { RoyceBackIcon } from './royce';
 import { useNavigate } from 'react-router-dom';
 import { 
   Download,
@@ -131,7 +132,7 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin, i
           <div className="w-10" />
           <div className="w-10 h-1 bg-white/20 rounded-full flex-shrink-0" />
           <button type="button" onClick={onClose} className="flex-shrink-0 w-10 h-10 flex items-center justify-center active:scale-95 transition-transform" aria-label="Close">
-            <img src="/Icons/Gold power buton.png" alt="" className="w-5 h-5 object-contain" />
+            <RoyceBackIcon />
           </button>
         </div>
         <div className="flex items-center justify-between gap-2 px-4 pb-2 flex-shrink-0">
@@ -156,7 +157,7 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin, i
             style={{ width: 95, minWidth: 95 }}
           >
             <div className="relative w-[85px] h-[85px] flex items-center justify-center">
-              <StoryGoldRingAvatar size={85} src={user?.avatar || '/Icons/Profile icon.png'} alt="Create" />
+              <StoryGoldRingAvatar size={85} src={user?.avatar || '/royce/default-avatar.svg'} alt="Create" />
               <Plus size={28} className="text-[#D4AF37] absolute" strokeWidth={2.5} />
             </div>
             <span className="text-white/80 text-[11px] font-medium">Create</span>
@@ -168,7 +169,7 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin, i
               style={{ width: 95, minWidth: 95 }}
               onClick={() => sendShareTo(f.user_id)}
             >
-              <StoryGoldRingAvatar size={85} src={f.avatar_url || '/Icons/Profile icon.png'} alt={f.username} />
+              <StoryGoldRingAvatar size={85} src={f.avatar_url || '/royce/default-avatar.svg'} alt={f.username} />
               <span className="text-white/80 text-[11px] font-medium truncate w-full text-center">
                 {sentTo.has(f.user_id) ? 'Sent' : f.username || 'User'}
               </span>

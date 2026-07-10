@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { RoyceBackIcon } from '../components/royce';
 import { useNavigate } from 'react-router-dom';
 import { api, request } from '../lib/apiClient';
 import { useAuthStore } from '../store/useAuthStore';
@@ -245,7 +246,7 @@ export default function Shop() {
           </div>
           <h1 className="text-lg font-bold text-gold-metallic">Shop</h1>
           <button onClick={() => navigate(-1)} className="p-1" title="Back">
-            <img src="/Icons/Gold power buton.png" alt="Back" className="w-5 h-5" />
+            <RoyceBackIcon />
           </button>
         </div>
 
@@ -277,7 +278,7 @@ export default function Shop() {
                     live
                     innerTranslateYmm={0.5}
                     innerDiameterAddMm={1}
-                    src={u.avatar || '/Icons/Profile icon.png'}
+                    src={u.avatar || '/royce/default-avatar.svg'}
                     alt={u.name}
                   />
                   <div className="text-[9px] text-white/70 truncate w-full text-center">{u.name}</div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { RoyceBackIcon } from '../components/royce';
 import { Bookmark, Play } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { request } from '../lib/apiClient';
@@ -46,7 +47,7 @@ export default function SavedVideos() {
       <div className="w-full max-w-[480px] rounded-3xl overflow-hidden overflow-y-auto bg-[#111111] flex flex-col min-h-screen">
         <div className="p-4 flex items-center gap-4">
           <button onClick={() => navigate(-1)} className="p-1">
-            <img src="/Icons/Gold power buton.png" alt="Back" className="w-5 h-5" />
+            <RoyceBackIcon />
           </button>
           <h1 className="text-lg font-bold text-gold-metallic">Saved Videos</h1>
         </div>

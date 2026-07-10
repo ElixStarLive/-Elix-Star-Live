@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { RoyceBackIcon } from '../components/royce';
 import { request } from '../lib/apiClient';
 import { Camera } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -151,7 +152,7 @@ export default function EditProfile() {
         <h1 className="text-lg font-bold text-center flex-1">Edit Profile</h1>
         {/* Right: Close/back power button, nudged left from the edge */}
         <button onClick={() => navigate(-1)} className="p-2 mr-3 hover:brightness-125 rounded-full transition">
-          <img src="/Icons/Gold power buton.png" alt="Back" className="w-5 h-5" />
+          <RoyceBackIcon />
         </button>
       </div>
 

@@ -1,4 +1,5 @@
 import React from 'react';
+import { RoyceBackIcon } from '../components/royce';
 import { useNavigate } from 'react-router-dom';
 import SettingsOptionSheet from '../components/SettingsOptionSheet';
 
@@ -10,7 +11,7 @@ export default function Privacy() {
       <div className="w-full h-full overflow-hidden bg-[#111111] text-white flex flex-col">
         <header className="flex items-center justify-between mb-4 px-4 pt-4">
           <button onClick={() => navigate(-1)} aria-label="Back" title="Back">
-            <img src="/Icons/Gold power buton.png" alt="Back" className="w-5 h-5" />
+            <RoyceBackIcon />
           </button>
           <h1 className="font-bold text-lg">Privacy Policy</h1>
           <div className="w-6" />

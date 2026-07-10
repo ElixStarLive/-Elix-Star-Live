@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { RoyceBackIcon } from '../components/royce';
 import { useNavigate } from 'react-router-dom';
 import { Eye, Radio, RefreshCw } from 'lucide-react';
 import { getWsUrl } from '../lib/api';
@@ -239,7 +240,7 @@ export default function LiveDiscover() {
             )}
           </div>
           <button onClick={() => navigate('/feed')} className="p-1" title="Back">
-            <img src="/Icons/Gold power buton.png" alt="Back" className="w-5 h-5" />
+            <RoyceBackIcon />
           </button>
         </div>
 

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { RoyceBackIcon } from '../components/royce';
 import { Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
@@ -150,7 +151,7 @@ export default function FollowingFeed() {
               title="Back"
               className="p-1 z-10"
             >
-              <img src="/Icons/Gold power buton.png" alt="Back" className="w-5 h-5 object-contain" />
+              <RoyceBackIcon />
             </button>
           </div>
 
@@ -167,7 +168,7 @@ export default function FollowingFeed() {
                   src={
                     user?.avatar ||
                     (user?.id && typeof localStorage !== 'undefined' ? localStorage.getItem('elix_avatar_' + user.id) : null) ||
-                    '/Icons/Profile icon.png'
+                    '/royce/default-avatar.svg'
                   }
                 />
                 <div className="text-[11px] text-white/80 truncate w-full text-center">Create</div>
@@ -182,7 +183,7 @@ export default function FollowingFeed() {
                 >
                   <StoryGoldRingAvatar
                     live={u.is_live}
-                    src={u.avatar_url || '/Icons/Profile icon.png'}
+                    src={u.avatar_url || '/royce/default-avatar.svg'}
                     alt={u.name || u.username}
                   />
                   <div className="text-[11px] text-white/80 truncate w-full text-center">{u.name || u.username}</div>

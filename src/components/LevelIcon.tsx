@@ -1,5 +1,6 @@
 import React from 'react';
 import { PROFILE_RING_IMAGE_LIFT_MM, profileRingInnerPx } from '../lib/profileFrame';
+import { ROYCE_DEFAULT_AVATAR } from '../lib/royceAssets';
 
 export interface LevelIconProps {
   level: number;
@@ -48,8 +49,6 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
     return 'linear-gradient(180deg, #22c55e 0%, #14532d 55%, #22c55e 100%)';
   };
 
-  const goldScale = (circleSize + 28) / circleSize;
-  /** Same inner-hole geometry as `GoldProfileFrame` so chat level avatars match MVP gold circles. */
   const avatarDiameter = profileRingInnerPx(circleSize);
 
   return (
@@ -88,21 +87,21 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
                 objectPosition: 'center center',
               }}
             />
-          ) : null}
+          ) : (
+            <img
+              src={ROYCE_DEFAULT_AVATAR}
+              alt=""
+              draggable={false}
+              style={{
+                width: '100%',
+                height: '100%',
+                display: 'block',
+                objectFit: 'cover',
+                objectPosition: 'center center',
+              }}
+            />
+          )}
         </div>
-        <img
-          src="/Icons/Profile icon.png"
-          alt=""
-          className="pointer-events-none absolute object-contain"
-          style={{
-            top: '50%',
-            left: '50%',
-            width: circleSize * goldScale,
-            height: circleSize * goldScale,
-            transform: 'translate(-50%, -50%)',
-            zIndex: 3,
-          }}
-        />
       </div>
 
       <div

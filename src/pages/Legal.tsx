@@ -1,4 +1,5 @@
 import React from 'react';
+import { RoyceBackIcon } from '../components/royce';
 import { FileText, Lock, Copyright, Music, Users, BadgeDollarSign, ShieldAlert, Mail } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -23,7 +24,7 @@ export default function Legal() {
       <div className="w-full max-w-[480px] rounded-3xl overflow-hidden bg-[#111111] flex flex-col overflow-y-auto p-4">
         <header className="flex items-center justify-between mb-6">
           <button onClick={() => navigate(-1)} aria-label="Back">
-            <img src="/Icons/Gold power buton.png" alt="Back" className="w-5 h-5" />
+            <RoyceBackIcon />
           </button>
           <h1 className="font-bold text-lg">Legal</h1>
           <div className="w-6" />

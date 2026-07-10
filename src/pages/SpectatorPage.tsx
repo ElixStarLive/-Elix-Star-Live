@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { RoyceBackIcon } from '../components/royce';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { showToast } from '../lib/toast';
 import {
@@ -2276,7 +2277,7 @@ export default function SpectatorPage() {
                             isGift: false,
                             avatar: viewerAvatar,
                             isSystem: true,
-                            membershipIcon: '/icons/Membership.png'
+                            membershipIcon: '/royce/membership.svg'
                           };
                           setMessages(prev => [...prev, newMessage]);
                           try {
@@ -2395,7 +2396,7 @@ export default function SpectatorPage() {
                   }}
                   className="w-8 h-8 rounded-full bg-transparent border-0 flex items-center justify-center active:scale-90 transition-transform"
                 >
-                  <img src="/Icons/Gold power buton.png" alt="Leave stream" className="w-5 h-5 object-contain" />
+                  <RoyceBackIcon />
                 </button>
               </div>
             </div>
@@ -2752,7 +2753,7 @@ export default function SpectatorPage() {
                                 text: emoji,
                                 level: userLevel,
                                 isGift: false,
-                                avatar: '/Icons/elix-logo.png',
+                                avatar: '/royce/elix-mark.svg',
                                 isSystem: false,
                               };
                               setMessages(prev => [...prev, newMessage]);
@@ -2785,7 +2786,7 @@ export default function SpectatorPage() {
                                     text: (ev.target?.result as string) || '',
                                     level: userLevel,
                                     isGift: false,
-                                    avatar: '/Icons/elix-logo.png',
+                                    avatar: '/royce/elix-mark.svg',
                                     isSystem: false,
                                   };
                                   setMessages(prev => [...prev, newMessage]);
@@ -2945,7 +2946,7 @@ export default function SpectatorPage() {
                   <div className="flex gap-3 overflow-x-auto pb-3 no-scrollbar items-center px-4">
                     <button type="button" onClick={() => { setShowSharePanel(false); navigate('/create'); }} className="flex-shrink-0 flex flex-col items-center gap-1 active:scale-95 transition-transform" style={{ width: 95, minWidth: 95 }}>
                       <div className="relative w-[85px] h-[85px] flex items-center justify-center">
-                        <StoryGoldRingAvatar size={85} src={user?.avatar || '/Icons/Profile icon.png'} alt="Create" />
+                        <StoryGoldRingAvatar size={85} src={user?.avatar || '/royce/default-avatar.svg'} alt="Create" />
                         <Plus size={28} className="text-[#D4AF37] absolute" strokeWidth={2.5} />
                       </div>
                       <span className="text-white/80 text-[11px] font-medium">Create</span>
@@ -2986,7 +2987,7 @@ export default function SpectatorPage() {
                           }
                         }}
                       >
-                        <StoryGoldRingAvatar size={85} src={u.avatar || '/Icons/Profile icon.png'} alt={u.name} />
+                        <StoryGoldRingAvatar size={85} src={u.avatar || '/royce/default-avatar.svg'} alt={u.name} />
                         <span className="text-white/80 text-[11px] font-medium truncate w-full text-center">{u.name}</span>
                       </button>
                     ))}

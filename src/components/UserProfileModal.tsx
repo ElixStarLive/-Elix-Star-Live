@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { RoyceCloseIcon, RoyceIcon } from './royce';
 import { Share2, Ban, Play, MoreHorizontal, Flag } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useVideoStore } from '../store/useVideoStore';
@@ -164,7 +165,7 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
             className="p-2 rounded-full hover:bg-white/5 transition-colors"
             aria-label="Share profile"
           >
-            <img src="/Icons/Share Icon.png" alt="Share" className="w-5 h-5 object-contain opacity-90" />
+            <RoyceIcon icon={Share2} size={18} tile />
           </button>
           <h3 className="text-[#D4AF37] font-semibold text-sm absolute left-1/2 -translate-x-1/2">{displayUser.username}</h3>
           <button 
@@ -172,7 +173,7 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
             className="p-2 rounded-full hover:bg-white/5 transition-colors"
             aria-label="Close profile"
           >
-            <img src="/Icons/Gold power buton.png" alt="Close" className="w-5 h-5 object-contain opacity-90" />
+            <RoyceCloseIcon />
           </button>
         </div>
 

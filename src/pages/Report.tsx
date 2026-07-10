@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { RoyceBackIcon } from '../components/royce';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../lib/apiClient';
 import { CheckCircle, Flag } from 'lucide-react';
@@ -103,7 +104,7 @@ export default function Report() {
       {/* Header */}
       <div className="sticky top-0 bg-[#111111] z-10 px-4 py-4 border-b border-transparent flex items-center justify-between">
         <button onClick={() => navigate(-1)} className="p-2 hover:brightness-125 rounded-full transition">
-          <img src="/Icons/Gold power buton.png" alt="Back" className="w-5 h-5" />
+          <RoyceBackIcon />
         </button>
         <h1 className="text-lg font-bold">Report {contentType}</h1>
         <div className="w-10"></div>

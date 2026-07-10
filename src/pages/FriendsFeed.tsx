@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { RoyceBackIcon } from '../components/royce';
 import { Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
@@ -109,7 +110,7 @@ export default function FriendsFeed() {
             <h1 className="text-sm font-bold text-white absolute left-1/2 transform -translate-x-1/2">Friends</h1>
             <div className="flex items-center gap-3 z-10">
               <button onClick={() => navigate(-1)} title="Back">
-                <img src="/Icons/Gold power buton.png" alt="Back" className="w-5 h-5" />
+                <RoyceBackIcon />
               </button>
             </div>
           </div>
@@ -131,7 +132,7 @@ export default function FriendsFeed() {
                 src={
                   user?.avatar ||
                   (user?.id && typeof localStorage !== 'undefined' ? localStorage.getItem('elix_avatar_' + user.id) : null) ||
-                  '/Icons/Profile icon.png'
+                  '/royce/default-avatar.svg'
                 }
               />
               <div className="text-[11px] text-white/80 truncate w-full text-center">Create</div>
@@ -148,7 +149,7 @@ export default function FriendsFeed() {
                 <StoryGoldRingAvatar
                   live={u.is_live}
                   data-avatar-circle={u.is_live ? 'live' : undefined}
-                  src={u.avatar_url || '/Icons/Profile icon.png'}
+                  src={u.avatar_url || '/royce/default-avatar.svg'}
                   alt={u.name || u.username}
                 />
                 <div className="text-[11px] text-white/80 truncate w-full text-center">{u.name || u.username}</div>

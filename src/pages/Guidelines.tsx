@@ -1,4 +1,5 @@
 import React from 'react';
+import { RoyceBackIcon } from '../components/royce';
 import { useNavigate } from 'react-router-dom';
 import { Shield, Users, Heart, AlertTriangle, Eye, Ban } from 'lucide-react';
 import SettingsOptionSheet from '../components/SettingsOptionSheet';
@@ -12,7 +13,7 @@ export default function Guidelines() {
       {/* Header */}
       <div className="sticky top-0 bg-[#111111] z-10 px-4 py-4 border-b border-transparent flex items-center gap-3">
         <button onClick={() => navigate(-1)} className="p-2 hover:brightness-125 rounded-full transition">
-          <img src="/Icons/Gold power buton.png" alt="Back" className="w-5 h-5" />
+          <RoyceBackIcon />
         </button>
         <h1 className="text-xl font-bold">Community Guidelines</h1>
       </div>

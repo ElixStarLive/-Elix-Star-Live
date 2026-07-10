@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { RoyceBackIcon } from '../components/royce';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Upload, Play, Wand2, Download, Share2, Sparkles } from 'lucide-react';
 import AIToolsPanel from '../components/AIToolsPanel';
@@ -98,7 +99,7 @@ export default function AIStudio() {
           <span className="text-white font-bold text-sm">AI Studio</span>
         </div>
         <button onClick={() => navigate(-1)} className="p-1">
-          <img src="/Icons/Gold power buton.png" alt="Back" className="w-4 h-4" />
+          <RoyceBackIcon />
         </button>
       </header>
 

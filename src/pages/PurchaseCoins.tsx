@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { RoyceBackIcon } from '../components/royce';
 import { api } from '../lib/apiClient';
 import { Check, Sparkles, RotateCcw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -123,7 +124,7 @@ export default function PurchaseCoins() {
         {/* Header */}
         <div className="sticky top-0 bg-[#111111] z-10 px-4 py-4 border-b border-transparent flex items-center justify-between">
           <button onClick={() => navigate('/feed')} className="p-2 hover:brightness-125 rounded-full transition" title="Back">
-            <img src="/Icons/Gold power buton.png" alt="Back" className="w-5 h-5" />
+            <RoyceBackIcon />
           </button>
           <h1 className="text-lg font-bold">Get Coins</h1>
           {isNative ? (

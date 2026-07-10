@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { RoyceBackIcon } from '../components/royce';
 import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { request } from '../lib/apiClient';
@@ -451,7 +452,7 @@ export default function Inbox() {
             title="Close"
             aria-label="Close inbox and go to For You"
           >
-            <img src="/Icons/Gold power buton.png" alt="" className="w-5 h-5" />
+            <RoyceBackIcon />
           </button>
         </div>
 
@@ -470,7 +471,7 @@ export default function Inbox() {
                             myNewFollowers[0]?.avatar_url ||
                             user?.avatar ||
                             (user?.id && typeof localStorage !== 'undefined' ? localStorage.getItem('elix_avatar_' + user.id) : null) ||
-                            '/Icons/Profile icon.png'
+                            '/royce/default-avatar.svg'
                         }
                     />
                     <div className="text-[11px] text-white/80 truncate w-full text-center">Followers</div>
@@ -488,7 +489,7 @@ export default function Inbox() {
                         <StoryGoldRingAvatar
                             live={u.is_live}
                             data-avatar-circle={u.is_live ? 'live' : undefined}
-                            src={u.avatar_url || '/Icons/Profile icon.png'}
+                            src={u.avatar_url || '/royce/default-avatar.svg'}
                             alt={u.name || u.username}
                         />
                         <div className="text-[11px] text-white/80 truncate w-full text-center">{u.name || u.username}</div>
@@ -507,7 +508,7 @@ export default function Inbox() {
                         <StoryGoldRingAvatar
                             live={fLive}
                             data-avatar-circle={fLive ? 'live' : undefined}
-                            src={f.avatar_url || '/Icons/Profile icon.png'}
+                            src={f.avatar_url || '/royce/default-avatar.svg'}
                             alt={f.display_name || f.username || 'User'}
                         />
                         <div className="text-[11px] text-white/80 truncate w-full text-center">{f.display_name || f.username || 'User'}</div>
@@ -541,9 +542,8 @@ export default function Inbox() {
                 onClick={() => setShowNewFollowersPanel(true)}
                 className="flex items-center gap-3 w-full text-left py-2 px-2 rounded-lg hover:bg-white/5 active:bg-white/10"
             >
-                <div className="relative w-12 h-12 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
-                    <img src="/Icons/Profile icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none" />
-                    <UserPlus className="w-6 h-6 text-[#D4AF37] relative z-10" strokeWidth={2} style={{ transform: 'translate(0.5mm, -0.5mm)' }} />
+                <div className="relative w-12 h-12 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0 royce-tile">
+                    <UserPlus className="w-6 h-6 royce-icon-gold relative z-10" strokeWidth={2} style={{ transform: 'translate(0.5mm, -0.5mm)' }} />
                 </div>
                 <div className="flex-1 min-w-0">
                     <h3 className="font-bold text-sm text-gold-metallic">New followers</h3>
@@ -558,8 +558,8 @@ export default function Inbox() {
 
             {/* Activity - golden circle from Music Icon (likes, comments) */}
             <button onClick={() => setActiveFilter('activity')} className="flex items-center gap-3 w-full text-left py-2 px-2 rounded-lg hover:bg-white/5 active:bg-white/10">
-                <div className="relative w-12 h-12 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
-<Heart className="w-6 h-6 text-[#D4AF37] relative z-10" strokeWidth={2} />
+                <div className="relative w-12 h-12 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0 royce-tile">
+<Heart className="w-6 h-6 royce-icon-gold relative z-10" strokeWidth={2.25} />
                 </div>
                 <div className="flex-1 min-w-0">
                     <h3 className="font-bold text-sm text-gold-metallic">Activity</h3>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { RoyceBackIcon, RoyceIcon } from '../components/royce';
 import { useNavigate } from 'react-router-dom';
-import { Search, TrendingUp, Hash, Users, Video as VideoIcon, Trophy, Music, Flame, Sparkles, Star, Zap } from 'lucide-react';
+import { Search, TrendingUp, Hash, Users, Video as VideoIcon, Trophy, Music, Flame, Sparkles, Star, Zap, Heart, MessageCircle, Bookmark, Share2, MoreHorizontal } from 'lucide-react';
 import { trackEvent } from '../lib/analytics';
 import { AvatarRing } from '../components/AvatarRing';
 import { getVideoPosterUrl } from '../lib/bunnyStorage';
@@ -195,7 +196,7 @@ export default function Discover() {
             </button>
             <h1 className="text-sm font-bold text-gold-metallic absolute left-1/2 transform -translate-x-1/2">Explore</h1>
             <button onClick={() => navigate(-1)} className="p-1 z-10" title="Back">
-              <img src="/Icons/Gold power buton.png" alt="Back" className="w-5 h-5" />
+              <RoyceBackIcon />
             </button>
           </div>
 
@@ -497,22 +498,22 @@ function VideoThumbnail({ video, variant = 'grid' }: { video: Video; variant?: '
         className="absolute top-1.5 right-1.5 z-10"
         title="More"
       >
-        <img src="/Icons/3 Dots Buton.png" alt="More" className="w-6 h-6 object-contain drop-shadow-lg" />
+        <RoyceIcon icon={MoreHorizontal} size={22} tile />
       </button>
 
       {/* Action icons — right side */}
       <div className="absolute right-1 bottom-10 flex flex-col items-center gap-2 z-10">
         <button onClick={(e) => { e.stopPropagation(); navigate(`/video/${video.id}`); }} title="Like">
-          <img src="/Icons/Like Icon.png" alt="Like" className="w-7 h-7 object-contain drop-shadow-lg" />
+          <RoyceIcon icon={Heart} size={24} tile />
         </button>
         <button onClick={(e) => { e.stopPropagation(); navigate(`/video/${video.id}`); }} title="Comment">
-          <img src="/Icons/Coment Icon.png" alt="Comment" className="w-7 h-7 object-contain drop-shadow-lg" />
+          <RoyceIcon icon={MessageCircle} size={24} tile />
         </button>
         <button onClick={(e) => { e.stopPropagation(); navigate(`/video/${video.id}`); }} title="Save">
-          <img src="/Icons/Save Icon.png" alt="Save" className="w-7 h-7 object-contain drop-shadow-lg" />
+          <RoyceIcon icon={Bookmark} size={24} tile />
         </button>
         <button onClick={(e) => { e.stopPropagation(); navigate(`/video/${video.id}`); }} title="Share">
-          <img src="/Icons/Share Icon.png" alt="Share" className="w-7 h-7 object-contain drop-shadow-lg" />
+          <RoyceIcon icon={Share2} size={24} tile />
         </button>
       </div>
 

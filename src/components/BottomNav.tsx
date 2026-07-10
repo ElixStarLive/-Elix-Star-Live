@@ -59,11 +59,13 @@ export const BottomNav = () => {
                   }`}
                   style={{ WebkitTapHighlightColor: "transparent" }}
                 >
-                  <Icon
-                    size={center ? ICON_SIZE + 2 : ICON_SIZE}
-                    strokeWidth={active ? 2.35 : 2}
-                    className={iconClass}
-                  />
+                  <span className="royce-tile rounded-sm p-1 inline-flex items-center justify-center">
+                    <Icon
+                      size={center ? ICON_SIZE + 2 : ICON_SIZE}
+                      strokeWidth={active ? 2.35 : 2}
+                      className={iconClass}
+                    />
+                  </span>
                   <span className={`text-[9px] font-semibold leading-none tracking-wide ${labelClass}`}>
                     {label}
                   </span>

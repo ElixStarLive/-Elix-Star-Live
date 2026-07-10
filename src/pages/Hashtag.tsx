@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { RoyceBackIcon } from '../components/royce';
 import { useNavigate, useParams } from 'react-router-dom';
 import { request } from '../lib/apiClient';
 import { Hash, TrendingUp } from 'lucide-react';
@@ -55,7 +56,7 @@ export default function Hashtag() {
       <div className="sticky top-0 z-10 px-4 py-6 bg-[#111111]">
         <div className="flex items-center gap-3 mb-4">
           <button onClick={() => navigate('/feed')} className="p-1 hover:brightness-125 transition" title="Back to For You">
-            <img src="/Icons/Gold power buton.png" alt="Back" className="w-5 h-5" />
+            <RoyceBackIcon />
           </button>
           <div className="w-16 h-16 bg-gradient-to-br from-[#D4AF37] to-[#B8943F] rounded-full flex items-center justify-center">
             <Hash className="w-8 h-8 text-black" />

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { RoyceBackIcon } from '../components/royce';
 import { Eye, EyeOff, Lock, Mail, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
@@ -226,7 +227,7 @@ export default function CreatorLoginDetails() {
       <div className="w-full max-w-[480px] rounded-3xl overflow-hidden bg-[#111111] flex flex-col overflow-y-auto p-4">
         {/* ... header ... */}
         <header className="flex items-center justify-between mb-6">
-          <button onClick={() => navigate(-1)}><img src="/Icons/Gold power buton.png" alt="Back" className="w-5 h-5" /></button>
+          <button onClick={() => navigate(-1)}><RoyceBackIcon /></button>
           <h1 className="font-bold text-lg">Creator Login Details</h1>
           <div className="w-6" />
         </header>

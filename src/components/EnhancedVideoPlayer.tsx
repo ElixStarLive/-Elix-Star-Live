@@ -31,12 +31,13 @@ import UserProfileModal from './UserProfileModal';
 import ReportModal from './ReportModal';
 import PromotePanel from './PromotePanel';
 import { LevelBadge } from './LevelBadge';
+import { RoyceIcon } from './royce';
 import { api } from '../lib/apiClient';
 import { nativeConfirm } from './NativeDialog';
 import { getVideoPosterUrl } from '../lib/bunnyStorage';
 
 const VIDEO_SIDEBAR_AVATAR = 44;
-const GOLD_ICON = 'text-gold-bright drop-shadow-[0_0_8px_rgba(212,175,55,0.35)]';
+const GOLD_ICON = 'royce-icon-gold';
 const GOLD_COUNT = 'text-[10px] font-semibold leading-none text-gold-light';
 
 interface EnhancedVideoPlayerProps {
@@ -843,11 +844,11 @@ export default function EnhancedVideoPlayer({
           className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform"
           title="Like"
         >
-          <Heart
-            size={28}
-            strokeWidth={2}
-            className={video.isLiked ? 'fill-red-500 text-red-500' : GOLD_ICON}
-          />
+          {video.isLiked ? (
+            <Heart size={24} strokeWidth={2.25} className="fill-red-500 text-red-500" />
+          ) : (
+            <RoyceIcon icon={Heart} size={24} tile active />
+          )}
           <span className={GOLD_COUNT}>{formatNumber(Math.max(0, video.stats.likes))}</span>
         </button>
 
@@ -857,7 +858,7 @@ export default function EnhancedVideoPlayer({
           className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform"
           title="Comments"
         >
-          <MessageCircle size={28} strokeWidth={2} className={GOLD_ICON} />
+          <RoyceIcon icon={MessageCircle} size={24} tile active />
           <span className={GOLD_COUNT}>{formatNumber(video.stats.comments)}</span>
         </button>
 
@@ -867,11 +868,13 @@ export default function EnhancedVideoPlayer({
           className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform"
           title="Save"
         >
-          <Bookmark
-            size={28}
-            strokeWidth={2}
-            className={video.isSaved ? `${GOLD_ICON} fill-gold-bright` : GOLD_ICON}
-          />
+          <span className="royce-tile inline-flex items-center justify-center rounded-sm p-1">
+            <Bookmark
+              size={24}
+              strokeWidth={2.25}
+              className={video.isSaved ? 'royce-icon-gold fill-gold-bright' : 'royce-icon-gold'}
+            />
+          </span>
           <span className={GOLD_COUNT}>{formatNumber(Math.max(0, video.stats.saves || 0))}</span>
         </button>
 
@@ -881,7 +884,7 @@ export default function EnhancedVideoPlayer({
           className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform"
           title="Share"
         >
-          <Share2 size={26} strokeWidth={2} className={GOLD_ICON} />
+          <RoyceIcon icon={Share2} size={22} tile active />
         </button>
 
         <button
@@ -890,7 +893,7 @@ export default function EnhancedVideoPlayer({
           className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform max-w-[52px]"
           title={video.music?.title || 'Original Sound'}
         >
-          <Music size={26} strokeWidth={2} className={GOLD_ICON} />
+          <RoyceIcon icon={Music} size={22} tile active />
           <span className="text-[8px] font-medium leading-tight text-gold-light/80 max-w-full truncate text-center">
             {video.music?.title?.split(' ').slice(0, 2).join(' ') || 'Original'}
           </span>
@@ -902,7 +905,7 @@ export default function EnhancedVideoPlayer({
           className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform"
           title="More"
         >
-          <MoreHorizontal size={26} strokeWidth={2} className={GOLD_ICON} />
+          <RoyceIcon icon={MoreHorizontal} size={22} tile active />
         </button>
       </div>
 

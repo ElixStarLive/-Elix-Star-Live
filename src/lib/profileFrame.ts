@@ -55,7 +55,7 @@ export const INLINE_LIVE_PLACEHOLDER_AVATAR_PX = profileRingOuterAddMm(96, PROFI
 export const LIVE_DISCOVER_GRID_AVATAR_PX = profileRingOuterAddMm(64, PROFILE_RING_SIZE_BUMP_MM);
 
 /**
- * Inner photo diameter vs outer box for stacks using `/Icons/Profile icon.png`.
+ * Inner photo diameter vs outer box for stacks using `/royce/default-avatar.svg`.
  * Canonical ratio used app-wide so every gold-frame avatar centers identically.
  */
 export const PROFILE_RING_INNER_RATIO = 0.68;

@@ -5,6 +5,7 @@
  */
 
 import React, { useRef, useEffect, useState, useCallback } from 'react';
+import { RoyceCloseIcon } from './royce';
 import { 
   X, 
   Music, 
@@ -323,11 +324,7 @@ export default function ElixCameraLayout({
           className="flex-shrink-0 flex items-center justify-center hover:scale-110 transition-transform active:scale-95 z-[60] relative translate-x-[-2.5mm]"
           title="Close"
         >
-          <img
-            src="/Icons/Gold power buton.png"
-            alt="Close"
-            className="w-5 h-5 object-contain drop-shadow-[0_0_8px_rgba(255,215,0,1)]"
-          />
+          <RoyceCloseIcon />
         </button>
       </div>
 

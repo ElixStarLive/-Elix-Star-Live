@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { RoyceBackIcon, RoyceCloseIcon } from '../components/royce';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { showToast } from '../lib/toast';
 import { platform, openExternalLink } from '../lib/platform';
@@ -1858,7 +1859,7 @@ export default function LiveStream() {
     const color = colorOverride ?? colors[Math.floor(Math.random() * colors.length)];
     
     // Check if this is a membership heart (triggered by "Joined the team")
-    const isMembership = likerName === 'You' && likerAvatar === '/Icons/elix-logo.png';
+    const isMembership = likerName === 'You' && likerAvatar === '/royce/elix-mark.svg';
 
     // Pick a random viewer name if none provided
     let username = likerName;
@@ -3953,7 +3954,7 @@ export default function LiveStream() {
                           onClick={(e) => { e.stopPropagation(); toggleBattle(); }}
                           title="End Battle"
                         >
-                          <img src="/Icons/Gold power buton.png" alt="" className="h-3 w-3 object-contain drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]" />
+                          <RoyceBackIcon />
                         </button>
                       </div>
 
@@ -4034,7 +4035,7 @@ export default function LiveStream() {
                             title="Remove opponent"
                             className="flex items-center justify-center border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
                           >
-                            <img src="/Icons/Gold power buton.png" alt="" className="h-3 w-3 object-contain drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]" />
+                            <RoyceBackIcon />
                           </button>
                         </div>
                       )}
@@ -4356,12 +4357,12 @@ export default function LiveStream() {
                                             text: '❤️ Joined the team!',
                                             level: userLevel,
                                             isGift: false,
-                                            avatar: '/Icons/elix-logo.png',
+                                            avatar: '/royce/elix-mark.svg',
                                             isSystem: true,
-                                            membershipIcon: '/icons/Membership.png'
+                                            membershipIcon: '/royce/membership.svg'
                                           };
                                           setMessages(prev => [...prev, newMessage]);
-                                          spawnHeartFromClient(e.clientX, e.clientY, undefined, 'You', '/Icons/elix-logo.png');
+                                          spawnHeartFromClient(e.clientX, e.clientY, undefined, 'You', '/royce/elix-mark.svg');
 
                                         } else if (hasJoinedToday) {
                                           setShowTeamStatus(true);
@@ -4416,7 +4417,7 @@ export default function LiveStream() {
                                 setShowFanClub(true);
                               }}
                             >
-                              <img src="/icons/Membership.png" alt="Membership" className="w-3.5 h-3.5 object-contain" onError={(e) => {
+                              <img src="/royce/membership.svg" alt="Membership" className="w-3.5 h-3.5 object-contain" onError={(e) => {
                                 e.currentTarget.style.display = 'none';
                                 e.currentTarget.nextElementSibling?.classList.remove('hidden');
                               }} />
@@ -4465,7 +4466,7 @@ export default function LiveStream() {
                           <UserPlus size={16} className="text-[#D4AF37]" strokeWidth={2.2} />
                         </button>
                         <button type="button" onClick={() => { if (!isBroadcast) { navigate('/feed', { replace: true }); } else if (isBattleMode) { toggleBattle(); } else { stopBroadcast(); } }} className="w-7 h-7 rounded-full flex items-center justify-center active:scale-95 transition-transform" title={isBroadcast ? (isBattleMode ? 'End battle' : 'End broadcast') : 'Leave'}>
-                          <img src="/Icons/Gold power buton.png" alt="Close" className="w-5 h-5 object-contain" />
+                          <RoyceCloseIcon />
                         </button>
                       </div>
                     </div>
@@ -5219,7 +5220,7 @@ export default function LiveStream() {
         <div className="absolute inset-0 z-[99999] flex items-center justify-center pointer-events-none">
           <div className="flex flex-col items-center animate-in zoom-in-50 duration-300">
             <img 
-              src="/icons/Membership.png" 
+              src="/royce/membership.svg" 
               alt="Membership" 
               className="w-20 h-20 object-contain drop-shadow-2xl animate-pulse"
               onError={(e) => {
@@ -5302,7 +5303,7 @@ export default function LiveStream() {
                    {topGifters.map((g, i) => (
                      <div key={g.user_id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-[#C9A227]/5 border border-[#C9A227]/15">
                        <div className="w-5 text-center font-bold text-[10px] text-[#E8D5A3]/60">{i + 1}</div>
-                       <img src={g.avatar_url || '/Icons/elix-logo.png'} alt="" className="w-7 h-7 rounded-full object-cover border border-[#C9A227]/20" />
+                       <img src={g.avatar_url || '/royce/elix-mark.svg'} alt="" className="w-7 h-7 rounded-full object-cover border border-[#C9A227]/20" />
                        <div className="flex-1 min-w-0">
                          <div className="text-[10px] font-bold text-white truncate">{g.username || g.user_id.slice(0, 8)}</div>
                        </div>
@@ -5768,7 +5769,7 @@ export default function LiveStream() {
                 style={{ width: 95, minWidth: 95 }}
               >
                 <div className="relative w-[85px] h-[85px] flex items-center justify-center">
-                  <StoryGoldRingAvatar size={85} src={myAvatar || '/Icons/Profile icon.png'} alt="Create" />
+                  <StoryGoldRingAvatar size={85} src={myAvatar || '/royce/default-avatar.svg'} alt="Create" />
                   <Plus size={28} className="text-[#D4AF37] absolute" strokeWidth={2.5} />
                 </div>
                 <span className="text-white/80 text-[11px] font-medium">Create</span>
@@ -5780,7 +5781,7 @@ export default function LiveStream() {
                   style={{ width: 95, minWidth: 95 }}
                   onClick={() => sendShareToFollower(f.user_id)}
                 >
-                  <StoryGoldRingAvatar size={85} src={f.avatar_url || '/Icons/Profile icon.png'} alt={f.username} />
+                  <StoryGoldRingAvatar size={85} src={f.avatar_url || '/royce/default-avatar.svg'} alt={f.username} />
                   <span className="text-white/80 text-[11px] font-medium truncate w-full text-center">{shareSentTo.has(f.user_id) ? 'Sent' : f.username || 'User'}</span>
                 </button>
               ))}

@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
+import { RoyceCloseIcon } from '../components/royce';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { setCachedCameraStream } from '../lib/cameraStream';
 import { RefreshCw, Zap, Clock, Music, Check, Play, Square, RotateCcw, ZoomIn, ZoomOut, Wand2 } from 'lucide-react';
@@ -795,7 +796,7 @@ export default function Upload() {
                   {/* Right side - all controls except Upload (no round containers) */}
                   <div className="absolute top-0 right-[5%] bottom-0 flex flex-col items-center gap-4 py-2" style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}>
                     <button onClick={() => navigate('/feed')} className="flex items-center justify-center relative" title="Close">
-                      <img src="/Icons/Gold power buton.png" alt="Close" className="w-5 h-5" />
+                      <RoyceCloseIcon />
                     </button>
                     <button 
                       className="flex items-center justify-center relative"
@@ -958,7 +959,7 @@ export default function Upload() {
                           onClick={() => setShowMusicModal(false)}
                           className="p-2"
                         >
-                            <img src="/Icons/Gold power buton.png" alt="Close" className="w-5 h-5" />
+                            <RoyceCloseIcon />
                         </button>
                       </div>
                   </div>

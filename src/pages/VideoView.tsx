@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { RoyceBackIcon, RoyceCloseIcon } from '../components/royce';
 
 import { useNavigate, useParams } from 'react-router-dom';
 import EnhancedVideoPlayer from '../components/EnhancedVideoPlayer';
@@ -32,7 +33,7 @@ export default function VideoView() {
     return (
       <div className="min-h-[100dvh] bg-[#111111] text-white p-4">
         <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-white/80">
-          <img src="/Icons/Gold power buton.png" alt="Back" className="w-5 h-5" />
+          <RoyceBackIcon />
           Back
         </button>
         <div className="mt-6 text-white/70">Video not found.</div>
@@ -61,7 +62,7 @@ export default function VideoView() {
               className="p-2 rounded-full bg-transparent border border-transparent text-white"
               aria-label="Back"
             >
-              <img src="/Icons/Gold power buton.png" alt="Close" className="w-5 h-5" />
+              <RoyceCloseIcon />
             </button>
           </div>
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -91,7 +92,7 @@ export default function VideoView() {
               className="p-2 rounded-full bg-transparent border border-transparent text-white"
               aria-label="Back"
             >
-              <img src="/Icons/Gold power buton.png" alt="Close" className="w-5 h-5" />
+              <RoyceCloseIcon />
             </button>
           </div>
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6">
@@ -127,7 +128,7 @@ export default function VideoView() {
             className="p-2 rounded-full bg-transparent border border-transparent text-white"
             aria-label="Back"
           >
-            <img src="/Icons/Gold power buton.png" alt="Close" className="w-5 h-5" />
+            <RoyceCloseIcon />
           </button>
         </div>
         <EnhancedVideoPlayer videoId={videoId} isActive={true} edgeToBottomNav />

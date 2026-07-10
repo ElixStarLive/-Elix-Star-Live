@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { RoyceBackIcon } from '../components/royce';
 import { Music, Play, Search } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../lib/apiClient';
@@ -69,20 +70,15 @@ export default function MusicFeed() {
               className="p-1 z-10"
               title="Back"
             >
-              <img src="/Icons/Gold power buton.png" alt="Back" className="w-5 h-5" />
+              <RoyceBackIcon />
             </button>
           </div>
 
           {/* Sound card */}
           <div className="px-3 pb-3">
             <div className="p-4 rounded-2xl bg-gradient-to-b from-[#13151A] to-[#13151A] flex gap-4">
-              <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center shrink-0 relative">
-                <img
-                  src="/Icons/Music Icon.png"
-                  alt=""
-                  className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-                />
-                <Music size={20} className="text-white/90 relative z-[1]" />
+              <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center shrink-0 royce-tile">
+                <Music size={22} className="royce-icon-gold" strokeWidth={2.25} />
               </div>
               <div className="flex-1">
                 <h1 className="text-xl font-bold mb-1">

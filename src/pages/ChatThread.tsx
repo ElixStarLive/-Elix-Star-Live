@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
+import { RoyceBackIcon } from '../components/royce';
 import { Send, ArrowLeft, Video, Play, Radio } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
@@ -246,7 +247,7 @@ export default function ChatThread() {
           )}
           <div className="flex w-12 shrink-0 items-center justify-end">
             <button type="button" onClick={() => navigate('/inbox')} className="p-1 rounded-lg active:bg-white/10" aria-label="Back to inbox">
-              <img src="/Icons/Gold power buton.png" alt="" className="w-5 h-5" />
+              <RoyceBackIcon />
             </button>
           </div>
         </header>

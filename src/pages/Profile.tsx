@@ -536,7 +536,7 @@ export default function Profile() {
                       <div className="relative w-[85px] h-[85px] flex items-center justify-center">
                         <StoryGoldRingAvatar
                           size={85}
-                          src={displayAvatar || '/Icons/Profile icon.png'}
+                          src={displayAvatar || '/royce/default-avatar.svg'}
                           alt="Create"
                         />
                         <Plus size={28} className="text-[#D4AF37] absolute" strokeWidth={2.5} />
@@ -553,7 +553,7 @@ export default function Profile() {
                         <div className="relative w-[95px] min-w-[95px] flex flex-col items-center gap-1">
                           <StoryGoldRingAvatar
                             size={85}
-                            src={f.avatar_url || '/Icons/Profile icon.png'}
+                            src={f.avatar_url || '/royce/default-avatar.svg'}
                             alt={f.username || 'User'}
                           />
                           {shareSent.has(f.user_id) && (

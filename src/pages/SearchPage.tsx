@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { RoyceBackIcon } from '../components/royce';
 import { Search as SearchIcon, X } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AvatarRing } from '../components/AvatarRing';
@@ -199,7 +200,7 @@ export default function SearchPage() {
               <div className="w-8 h-[2px] rounded-full bg-[#C9A227]/30" />
             </div>
             <button type="button" onClick={closePanel} className="p-1 -mr-1" title="Back">
-              <img src="/Icons/Gold power buton.png" alt="Back" className="w-5 h-5" />
+              <RoyceBackIcon />
             </button>
           </div>
 

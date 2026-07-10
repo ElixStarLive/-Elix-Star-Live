@@ -1,4 +1,5 @@
 import React from 'react';
+import { RoyceBackIcon } from '../components/royce';
 import { useNavigate } from 'react-router-dom';
 
 export default function LegalUGC() {
@@ -9,7 +10,7 @@ export default function LegalUGC() {
       <div className="w-full max-w-[480px] rounded-3xl overflow-hidden bg-[#111111] flex flex-col overflow-y-auto p-4 pb-20">
         <header className="flex items-center justify-between mb-4">
           <button onClick={() => navigate(-1)} aria-label="Back" title="Back">
-            <img src="/Icons/Gold power buton.png" alt="Back" className="w-5 h-5" />
+            <RoyceBackIcon />
           </button>
           <h1 className="font-bold text-lg">User-Generated Content Policy</h1>
           <div className="w-6" />

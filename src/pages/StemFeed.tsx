@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { RoyceBackIcon } from '../components/royce';
 import { Search } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import EnhancedVideoPlayer from "../components/EnhancedVideoPlayer";
@@ -81,11 +82,7 @@ export default function StemFeed() {
             title="Back"
             className="p-1"
           >
-            <img
-              src="/Icons/Gold power buton.png"
-              alt="Back"
-              className="w-5 h-5"
-            />
+            <RoyceBackIcon />
           </button>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { RoyceCloseIcon } from '../components/royce';
 import {
   Music,
   Square,
@@ -144,7 +145,7 @@ function SoundPickerModal({
               Add URL
             </button>
             <button onClick={onClose} className="p-2">
-              <img src="/Icons/Gold power buton.png" alt="Close" className="w-5 h-5 object-contain" />
+              <RoyceCloseIcon />
             </button>
           </div>
         </div>
@@ -490,7 +491,7 @@ export default function Create() {
             className="w-7 h-7 flex items-center justify-center mr-[3mm]"
             aria-label="Close"
           >
-            <img src="/Icons/Gold power buton.png" alt="Close" className="w-5 h-5 object-contain" />
+            <RoyceCloseIcon />
           </button>
         </div>
         <div className="flex items-center justify-around px-6 py-2">
