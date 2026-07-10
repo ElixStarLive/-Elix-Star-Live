@@ -176,7 +176,7 @@ function streamStartedToCard(data: Record<string, unknown>): LiveStreamCard {
     streamKey: key,
     name,
     avatar: userId
-      ? `https://ui-avatars.com/api/?name=${encodeURIComponent(avatarLabel)}&background=121212&color=C9A96E`
+      ? `https://ui-avatars.com/api/?name=${encodeURIComponent(avatarLabel)}&background=121212&color=FFFFFF`
       : "",
     viewers: 0,
     title: typeof data.title === "string" ? data.title : undefined,
@@ -549,7 +549,7 @@ export default function VideoFeed() {
   /*  Render                                                           */
   /* ================================================================ */
   return (
-    <div className="h-full min-h-0 w-full flex flex-col bg-[#0A0B0E]">
+    <div className="h-full min-h-0 w-full flex flex-col bg-black">
       {/* Fills main between fixed TopNav and BottomNav; each slide is one viewport tall */}
       <div
         ref={containerRef}
@@ -571,10 +571,10 @@ export default function VideoFeed() {
               <div
                 key={`live-${item.stream.streamKey}`}
                 data-feed-index={index}
-                className="h-full w-full shrink-0 snap-start flex flex-col items-center bg-[#0A0B0E]"
+                className="h-full w-full shrink-0 snap-start flex flex-col items-center bg-black"
                 style={slideStyle}
               >
-                <div className="w-full max-w-[480px] flex-1 min-h-0 relative overflow-hidden bg-[#0A0B0E]">
+                <div className="w-full max-w-[480px] flex-1 min-h-0 relative overflow-hidden bg-black">
                   <InlineLiveViewer
                     streamKey={item.stream.streamKey}
                     isActive={activeIndex === index}
@@ -591,10 +591,10 @@ export default function VideoFeed() {
             <div
               key={`video-${item.videoId}`}
               data-feed-index={index}
-              className="h-full w-full shrink-0 snap-start flex flex-col items-center bg-[#0A0B0E]"
+              className="h-full w-full shrink-0 snap-start flex flex-col items-center bg-black"
               style={slideStyle}
             >
-              <div className="w-full max-w-[480px] flex-1 min-h-0 relative overflow-hidden bg-[#0A0B0E]">
+              <div className="w-full max-w-[480px] flex-1 min-h-0 relative overflow-hidden bg-black">
                 <EnhancedVideoPlayer
                   videoId={item.videoId}
                   isActive={activeIndex === index}
@@ -608,14 +608,14 @@ export default function VideoFeed() {
       {/* ---- Loading spinner ---- */}
       {loading && feedItems.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-8 h-8 border-2 border-[#C9A96E] border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-[#FFFFFF] border-t-transparent rounded-full animate-spin" />
         </div>
       )}
 
       {/* ---- Empty state: For You is for watching only — no "go live" here ---- */}
       {!loading && feedItems.length === 0 && (
         <div className="absolute inset-0 flex flex-col items-center justify-center px-6">
-          <div className="w-20 h-20 rounded-full bg-[#13151A] border border-white/10 flex items-center justify-center mb-4 pointer-events-none">
+          <div className="w-20 h-20 rounded-full bg-[#111111] border border-white/10 flex items-center justify-center mb-4 pointer-events-none">
             <span className="text-3xl">📡</span>
           </div>
           <p className="text-white/60 font-semibold text-base mb-1 text-center">

@@ -49,15 +49,15 @@ export default function Hashtag() {
   }, [tag]);
 
   return (
-    <div className="bg-[#13151A] text-white flex justify-center px-2">
-      <div className="w-full max-w-[480px] rounded-3xl overflow-hidden bg-[#13151A] flex flex-col">
+    <div className="bg-[#111111] text-white flex justify-center px-2">
+      <div className="w-full max-w-[480px] rounded-3xl overflow-hidden bg-[#111111] flex flex-col">
       {/* Header */}
-      <div className="sticky top-0 z-10 px-4 py-6 bg-[#13151A]">
+      <div className="sticky top-0 z-10 px-4 py-6 bg-[#111111]">
         <div className="flex items-center gap-3 mb-4">
           <button onClick={() => navigate('/feed')} className="p-1 hover:brightness-125 transition" title="Back to For You">
             <img src="/Icons/Gold power buton.png" alt="Back" className="w-5 h-5" />
           </button>
-          <div className="w-16 h-16 bg-gradient-to-br from-[#C9A96E] to-[#B8943F] rounded-full flex items-center justify-center">
+          <div className="w-16 h-16 bg-gradient-to-br from-[#FFFFFF] to-[#B8943F] rounded-full flex items-center justify-center">
             <Hash className="w-8 h-8 text-black" />
           </div>
           <div className="flex-1">
@@ -87,10 +87,10 @@ export default function Hashtag() {
               <button
                 key={video.id}
                 onClick={() => navigate(`/video/${video.id}`)}
-                className="relative aspect-[9/16] bg-[#1C1E24] rounded overflow-hidden text-left"
+                className="relative aspect-[9/16] bg-[#111111] rounded overflow-hidden text-left"
               >
                 <img
-                  src={video.thumbnail_url || `https://ui-avatars.com/api/?name=Video&background=1C1E24&color=C9A96E&size=200`}
+                  src={video.thumbnail_url || `https://ui-avatars.com/api/?name=Video&background=1C1E24&color=FFFFFF&size=200`}
                   alt="Video"
                   className="w-full h-full object-cover"
                 />

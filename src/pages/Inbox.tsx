@@ -431,14 +431,14 @@ export default function Inbox() {
   };
 
   return (
-    <div className="fixed inset-0 bg-[#13151A] flex justify-center">
+    <div className="fixed inset-0 bg-[#111111] flex justify-center">
       <div
         className="w-full max-w-[480px] flex flex-col overflow-hidden h-above-bottom-nav"
         style={{ marginTop: 0 }}
       >
 
         {/* Header + Circles with gold frame — same as Friends */}
-        <div className="mx-2 mt-2 bg-[#13151A] z-10">
+        <div className="mx-2 mt-2 bg-[#111111] z-10">
         <div className="px-3 pt-[env(safe-area-inset-top,8px)] pb-1 flex items-center justify-between relative">
           <div className="flex items-center gap-3 z-10">
             <button onClick={() => navigate('/search')} aria-label="Search"><Search size={18} className="text-white" /></button>
@@ -474,7 +474,7 @@ export default function Inbox() {
                         }
                     />
                     <div className="text-[11px] text-white/80 truncate w-full text-center">Followers</div>
-                    <div className="text-[10px] text-[#C9A96E]/90 truncate w-full text-center">{followersCount}</div>
+                    <div className="text-[10px] text-[#FFFFFF]/90 truncate w-full text-center">{followersCount}</div>
                 </button>
 
                 {/* Suggested (Friends-style); skip users already shown as followers */}
@@ -520,11 +520,11 @@ export default function Inbox() {
 
         {/* Filters */}
         <div className="pl-[calc(1rem+22mm)] pr-4 py-2 flex items-center justify-center gap-2 overflow-x-auto no-scrollbar mb-2" style={{ marginLeft: '-20mm' }}>
-            <button onClick={() => setActiveFilter('main')} className={`px-4 py-1.5 rounded text-xs font-bold whitespace-nowrap border text-white ${activeFilter === 'main' ? 'bg-[#13151A] border-gold-metallic' : 'bg-[#13151A] border-[#d4af37]/30'}`}>Main</button>
-            <button onClick={() => setActiveFilter('requests')} className={`px-4 py-1.5 rounded text-xs font-bold whitespace-nowrap border text-white ${activeFilter === 'requests' ? 'bg-[#13151A] border-gold-metallic' : 'bg-[#13151A] border-[#d4af37]/30'}`}>Requests</button>
-            <button onClick={() => setActiveFilter('unread')} className={`px-4 py-1.5 rounded text-xs font-bold whitespace-nowrap border text-white ${activeFilter === 'unread' ? 'bg-[#13151A] border-gold-metallic' : 'bg-[#13151A] border-[#d4af37]/30'}`}>Unread</button>
-            <button onClick={() => setActiveFilter('starred')} className={`px-4 py-1.5 rounded text-xs font-bold whitespace-nowrap border text-white ${activeFilter === 'starred' ? 'bg-[#13151A] border-gold-metallic' : 'bg-[#13151A] border-[#d4af37]/30'}`}>Starred</button>
-            <button onClick={() => setActiveFilter('activity')} className={`px-4 py-1.5 rounded text-xs font-bold whitespace-nowrap border text-white ${activeFilter === 'activity' ? 'bg-[#13151A] border-gold-metallic' : 'bg-[#13151A] border-[#d4af37]/30'}`}>Activity</button>
+            <button onClick={() => setActiveFilter('main')} className={`px-4 py-1.5 rounded text-xs font-bold whitespace-nowrap border text-white ${activeFilter === 'main' ? 'bg-[#111111] border-gold-metallic' : 'bg-[#111111] border-[#ffffff]/30'}`}>Main</button>
+            <button onClick={() => setActiveFilter('requests')} className={`px-4 py-1.5 rounded text-xs font-bold whitespace-nowrap border text-white ${activeFilter === 'requests' ? 'bg-[#111111] border-gold-metallic' : 'bg-[#111111] border-[#ffffff]/30'}`}>Requests</button>
+            <button onClick={() => setActiveFilter('unread')} className={`px-4 py-1.5 rounded text-xs font-bold whitespace-nowrap border text-white ${activeFilter === 'unread' ? 'bg-[#111111] border-gold-metallic' : 'bg-[#111111] border-[#ffffff]/30'}`}>Unread</button>
+            <button onClick={() => setActiveFilter('starred')} className={`px-4 py-1.5 rounded text-xs font-bold whitespace-nowrap border text-white ${activeFilter === 'starred' ? 'bg-[#111111] border-gold-metallic' : 'bg-[#111111] border-[#ffffff]/30'}`}>Starred</button>
+            <button onClick={() => setActiveFilter('activity')} className={`px-4 py-1.5 rounded text-xs font-bold whitespace-nowrap border text-white ${activeFilter === 'activity' ? 'bg-[#111111] border-gold-metallic' : 'bg-[#111111] border-[#ffffff]/30'}`}>Activity</button>
             <div className="ml-auto stroke-gold-metallic">
                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
             </div>
@@ -543,7 +543,7 @@ export default function Inbox() {
             >
                 <div className="relative w-12 h-12 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
                     <img src="/Icons/Profile icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none" />
-                    <UserPlus className="w-6 h-6 text-[#C9A96E] relative z-10" strokeWidth={2} style={{ transform: 'translate(0.5mm, -0.5mm)' }} />
+                    <UserPlus className="w-6 h-6 text-[#FFFFFF] relative z-10" strokeWidth={2} style={{ transform: 'translate(0.5mm, -0.5mm)' }} />
                 </div>
                 <div className="flex-1 min-w-0">
                     <h3 className="font-bold text-sm text-gold-metallic">New followers</h3>
@@ -553,14 +553,14 @@ export default function Inbox() {
                             : `${followersCount} people follow you`}
                     </p>
                 </div>
-                <ChevronRight className="w-5 h-5 text-[#C9A96E]/70 flex-shrink-0" />
+                <ChevronRight className="w-5 h-5 text-[#FFFFFF]/70 flex-shrink-0" />
             </button>
 
             {/* Activity - golden circle from Music Icon (likes, comments) */}
             <button onClick={() => setActiveFilter('activity')} className="flex items-center gap-3 w-full text-left py-2 px-2 rounded-lg hover:bg-white/5 active:bg-white/10">
                 <div className="relative w-12 h-12 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
                     <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none" />
-                    <Heart className="w-6 h-6 text-[#C9A96E] relative z-10" strokeWidth={2} />
+                    <Heart className="w-6 h-6 text-[#FFFFFF] relative z-10" strokeWidth={2} />
                 </div>
                 <div className="flex-1 min-w-0">
                     <h3 className="font-bold text-sm text-gold-metallic">Activity</h3>
@@ -570,7 +570,7 @@ export default function Inbox() {
                         : 'No recent activity'}
                     </p>
                 </div>
-                <ChevronRight className="w-5 h-5 text-[#C9A96E]/70 flex-shrink-0" />
+                <ChevronRight className="w-5 h-5 text-[#FFFFFF]/70 flex-shrink-0" />
             </button>
 
             {activityItems.length > 0 && (
@@ -584,21 +584,21 @@ export default function Inbox() {
                       onClick={() => { if (a.video_id) navigate(`/video/${encodeURIComponent(a.video_id)}`); }}
                       className="flex items-center gap-2.5 w-full text-left py-1.5 px-2 rounded-lg hover:bg-white/5 active:bg-white/10"
                     >
-                      <div className="w-9 h-9 rounded-full bg-[#13151A] border border-[#C9A96E]/30 flex items-center justify-center flex-shrink-0 overflow-hidden relative">
+                      <div className="w-9 h-9 rounded-full bg-[#111111] border border-[#FFFFFF]/30 flex items-center justify-center flex-shrink-0 overflow-hidden relative">
                         {a.actor_avatar_url ? (
                           <img src={a.actor_avatar_url} alt="" className="w-full h-full object-cover" />
                         ) : (
-                          <span className="text-[#C9A96E] font-bold text-sm">{actorName.replace('@', '').charAt(0).toUpperCase()}</span>
+                          <span className="text-[#FFFFFF] font-bold text-sm">{actorName.replace('@', '').charAt(0).toUpperCase()}</span>
                         )}
-                        <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-[#13151A] border border-[#C9A96E]/50 flex items-center justify-center">
+                        <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-[#111111] border border-[#FFFFFF]/50 flex items-center justify-center">
                           {a.kind === 'save' ? (
-                            <Bookmark className="w-2 h-2 text-[#C9A96E]" strokeWidth={2.5} />
+                            <Bookmark className="w-2 h-2 text-[#FFFFFF]" strokeWidth={2.5} />
                           ) : a.kind === 'comment' ? (
-                            <MessageCircle className="w-2 h-2 text-[#C9A96E]" strokeWidth={2.5} />
+                            <MessageCircle className="w-2 h-2 text-[#FFFFFF]" strokeWidth={2.5} />
                           ) : a.kind === 'mention' ? (
-                            <AtSign className="w-2 h-2 text-[#C9A96E]" strokeWidth={2.5} />
+                            <AtSign className="w-2 h-2 text-[#FFFFFF]" strokeWidth={2.5} />
                           ) : (
-                            <Heart className="w-2 h-2 text-[#C9A96E]" fill="currentColor" strokeWidth={0} />
+                            <Heart className="w-2 h-2 text-[#FFFFFF]" fill="currentColor" strokeWidth={0} />
                           )}
                         </span>
                       </div>
@@ -609,7 +609,7 @@ export default function Inbox() {
                   );
                 })}
                 {activityItems.length > 5 && (
-                  <button type="button" onClick={() => setActiveFilter('activity')} className="text-[11px] text-[#C9A96E]/70 font-medium pl-2 py-1">
+                  <button type="button" onClick={() => setActiveFilter('activity')} className="text-[11px] text-[#FFFFFF]/70 font-medium pl-2 py-1">
                     View all activity →
                   </button>
                 )}
@@ -630,7 +630,7 @@ export default function Inbox() {
                                     <p className="font-semibold text-sm text-white truncate flex items-center gap-1.5">
                                       {conv.otherUser?.display_name || conv.otherUser?.username || 'User'}
                                       {conv.hasUnread ? (
-                                        <span className="inline-block w-2 h-2 rounded-full bg-[#C9A96E] flex-shrink-0" title="Unread" aria-label="Unread messages" />
+                                        <span className="inline-block w-2 h-2 rounded-full bg-[#FFFFFF] flex-shrink-0" title="Unread" aria-label="Unread messages" />
                                       ) : null}
                                     </p>
                                     <p className="text-white/60 text-xs truncate">{conv.lastMessage || 'No messages yet'}</p>
@@ -655,11 +655,11 @@ export default function Inbox() {
                                       showToast('Could not delete');
                                     }
                                 }}
-                                className="w-10 h-10 rounded-full bg-[#13151A] border border-[#C9A96E]/40 flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform hover:border-red-500/50 hover:bg-red-500/10"
+                                className="w-10 h-10 rounded-full bg-[#111111] border border-[#FFFFFF]/40 flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform hover:border-white/40/50 hover:bg-white/20/10"
                                 title="Delete conversation"
                                 aria-label="Delete conversation"
                             >
-                                <Trash2 size={18} className="text-[#C9A96E]/90 hover:text-red-400" />
+                                <Trash2 size={18} className="text-[#FFFFFF]/90 hover:text-white/60" />
                             </button>
                         </div>
                     ))
@@ -712,11 +712,11 @@ export default function Inbox() {
                                       showToast('Could not delete');
                                     }
                                 }}
-                                className="w-10 h-10 rounded-full bg-[#13151A] border border-[#C9A96E]/40 flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform hover:border-red-500/50 hover:bg-red-500/10"
+                                className="w-10 h-10 rounded-full bg-[#111111] border border-[#FFFFFF]/40 flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform hover:border-white/40/50 hover:bg-white/20/10"
                                 title="Delete conversation"
                                 aria-label="Delete conversation"
                             >
-                                <Trash2 size={18} className="text-[#C9A96E]/90 hover:text-red-400" />
+                                <Trash2 size={18} className="text-[#FFFFFF]/90 hover:text-white/60" />
                             </button>
                         </div>
                     ))
@@ -746,14 +746,14 @@ export default function Inbox() {
                           }}
                           className="flex items-center gap-3 w-full text-left py-2.5 px-2 rounded-lg hover:bg-white/5 active:bg-white/10"
                         >
-                          <div className="w-12 h-12 rounded-full bg-[#13151A] border border-[#C9A96E]/40 flex items-center justify-center flex-shrink-0 overflow-hidden relative">
+                          <div className="w-12 h-12 rounded-full bg-[#111111] border border-[#FFFFFF]/40 flex items-center justify-center flex-shrink-0 overflow-hidden relative">
                             {row.sharer_avatar ? (
                               <img src={row.sharer_avatar} alt="" className="w-full h-full object-cover" />
                             ) : (
-                              <span className="text-[#C9A96E] font-bold text-lg">{who.replace('@', '').charAt(0).toUpperCase()}</span>
+                              <span className="text-[#FFFFFF] font-bold text-lg">{who.replace('@', '').charAt(0).toUpperCase()}</span>
                             )}
-                            <span className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-[#13151A] border border-[#C9A96E]/50 flex items-center justify-center">
-                              <Share2 className="w-2.5 h-2.5 text-[#C9A96E]" strokeWidth={2.5} />
+                            <span className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-[#111111] border border-[#FFFFFF]/50 flex items-center justify-center">
+                              <Share2 className="w-2.5 h-2.5 text-[#FFFFFF]" strokeWidth={2.5} />
                             </span>
                           </div>
                           <div className="flex-1 min-w-0">
@@ -789,21 +789,21 @@ export default function Inbox() {
                           }}
                           className="flex items-center gap-3 w-full text-left py-2.5 px-2 rounded-lg hover:bg-white/5 active:bg-white/10"
                         >
-                          <div className="w-12 h-12 rounded-full bg-[#13151A] border border-[#C9A96E]/40 flex items-center justify-center flex-shrink-0 overflow-hidden relative">
+                          <div className="w-12 h-12 rounded-full bg-[#111111] border border-[#FFFFFF]/40 flex items-center justify-center flex-shrink-0 overflow-hidden relative">
                             {a.actor_avatar_url ? (
                               <img src={a.actor_avatar_url} alt="" className="w-full h-full object-cover" />
                             ) : (
-                              <span className="text-[#C9A96E] font-bold text-lg">{actorName.replace('@', '').charAt(0).toUpperCase()}</span>
+                              <span className="text-[#FFFFFF] font-bold text-lg">{actorName.replace('@', '').charAt(0).toUpperCase()}</span>
                             )}
-                            <span className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-[#13151A] border border-[#C9A96E]/50 flex items-center justify-center">
+                            <span className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-[#111111] border border-[#FFFFFF]/50 flex items-center justify-center">
                               {a.kind === 'save' ? (
-                                <Bookmark className="w-2.5 h-2.5 text-[#C9A96E]" strokeWidth={2.5} />
+                                <Bookmark className="w-2.5 h-2.5 text-[#FFFFFF]" strokeWidth={2.5} />
                               ) : a.kind === 'comment' ? (
-                                <MessageCircle className="w-2.5 h-2.5 text-[#C9A96E]" strokeWidth={2.5} />
+                                <MessageCircle className="w-2.5 h-2.5 text-[#FFFFFF]" strokeWidth={2.5} />
                               ) : a.kind === 'mention' ? (
-                                <AtSign className="w-2.5 h-2.5 text-[#C9A96E]" strokeWidth={2.5} />
+                                <AtSign className="w-2.5 h-2.5 text-[#FFFFFF]" strokeWidth={2.5} />
                               ) : (
-                                <Heart className="w-2.5 h-2.5 text-[#C9A96E]" fill="currentColor" strokeWidth={0} />
+                                <Heart className="w-2.5 h-2.5 text-[#FFFFFF]" fill="currentColor" strokeWidth={0} />
                               )}
                             </span>
                           </div>
@@ -833,11 +833,11 @@ export default function Inbox() {
                               }}
                               className="flex items-center gap-3 w-full text-left py-2.5 px-2 rounded-lg hover:bg-white/5 active:bg-white/10"
                             >
-                              <div className="w-12 h-12 rounded-full bg-[#13151A] border border-[#C9A96E]/40 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                              <div className="w-12 h-12 rounded-full bg-[#111111] border border-[#FFFFFF]/40 flex items-center justify-center flex-shrink-0 overflow-hidden">
                                 {notif.image_url || notif.rawData?.avatar_url ? (
                                   <img src={notif.image_url || notif.rawData?.avatar_url} alt="" className="w-full h-full object-cover" />
                                 ) : (
-                                  <span className="text-[#C9A96E] font-bold text-lg">{(actorName || '?').replace('@', '').charAt(0).toUpperCase()}</span>
+                                  <span className="text-[#FFFFFF] font-bold text-lg">{(actorName || '?').replace('@', '').charAt(0).toUpperCase()}</span>
                                 )}
                               </div>
                               <div className="flex-1 min-w-0">
@@ -862,7 +862,7 @@ export default function Inbox() {
                 .filter(n => n.type === 'system' && !(n.body?.toLowerCase?.().includes('check out this profile') || n.action_url?.includes('/profile/' + currentUserId)))
                 .map(notif => (
                 <button key={notif.id} onClick={() => notif.action_url ? navigate(notif.action_url) : null} className="flex items-center gap-3 w-full text-left">
-                    <div className="w-12 h-12 rounded-full bg-[#13151A] border border-[#C9A96E]/40 flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-full bg-[#111111] border border-[#FFFFFF]/40 flex items-center justify-center">
                         <Archive className="w-6 h-6 stroke-gold-metallic" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -881,8 +881,8 @@ export default function Inbox() {
              {/* Shop Notification */}
              {activeFilter === 'main' && notifications.filter(n => n.type === 'shop').map(notif => (
                 <button key={notif.id} onClick={() => navigate('/shop')} className="flex items-center gap-3 w-full text-left">
-                    <div className="w-12 h-12 rounded-full bg-[#13151A] border border-[#C9A96E]/40 flex items-center justify-center">
-                        <ShoppingBag className="w-6 h-6 text-[#C9A96E]" strokeWidth={2} />
+                    <div className="w-12 h-12 rounded-full bg-[#111111] border border-[#FFFFFF]/40 flex items-center justify-center">
+                        <ShoppingBag className="w-6 h-6 text-[#FFFFFF]" strokeWidth={2} />
                     </div>
                     <div className="flex-1 min-w-0">
                         <h3 className="font-bold text-sm text-gold-metallic">{notif.title}</h3>
@@ -904,7 +904,7 @@ export default function Inbox() {
             aria-hidden
           />
           <div className="fixed left-0 right-0 pointer-events-auto max-w-[480px] mx-auto z-[101]" style={{ bottom: 'var(--bottom-ui-reserve)' }}>
-            <div className="bg-[#1C1E24]/95 backdrop-blur-md rounded-t-2xl p-3 pb-4 overflow-y-scroll shadow-2xl w-full border-t border-[#C9A96E]/20 new-followers-panel-scroll" style={{ minHeight: 'calc(55dvh - 3cm)', maxHeight: 'calc(min(85dvh, 700px) - 3cm)' }}>
+            <div className="bg-[#111111]/95 backdrop-blur-md rounded-t-2xl p-3 pb-4 overflow-y-scroll shadow-2xl w-full border-t border-[#FFFFFF]/20 new-followers-panel-scroll" style={{ minHeight: 'calc(55dvh - 3cm)', maxHeight: 'calc(min(85dvh, 700px) - 3cm)' }}>
               <div className="mb-3">
                 <h2 className="text-lg font-bold text-gold-metallic text-center">Followers ({followersCount})</h2>
               </div>
@@ -922,11 +922,11 @@ export default function Inbox() {
                         className="flex items-center gap-3 flex-1 min-w-0 text-left"
                         onClick={() => { setShowNewFollowersPanel(false); navigate(`/profile/${f.user_id}`); }}
                       >
-                        <div className="relative w-11 h-11 rounded-full bg-[#13151A] flex items-center justify-center overflow-hidden flex-shrink-0 border border-[#C9A96E]/30">
+                        <div className="relative w-11 h-11 rounded-full bg-[#111111] flex items-center justify-center overflow-hidden flex-shrink-0 border border-[#FFFFFF]/30">
                           {f.avatar_url ? (
                             <img src={f.avatar_url} alt="" className="w-full h-full object-cover" />
                           ) : (
-                            <span className="text-[#C9A96E] font-bold text-lg">{(f.display_name || f.username || 'U').charAt(0).toUpperCase()}</span>
+                            <span className="text-[#FFFFFF] font-bold text-lg">{(f.display_name || f.username || 'U').charAt(0).toUpperCase()}</span>
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -944,7 +944,7 @@ export default function Inbox() {
                           className={`shrink-0 px-3 py-1.5 rounded-md text-xs font-bold transition ${
                             iFollowIds.has(f.user_id)
                               ? 'bg-white/10 text-white border border-white/25'
-                              : 'bg-[#FF2D55] text-white border border-[#FF2D55]'
+                              : 'bg-[#ffffff] text-white border border-[#ffffff]'
                           }`}
                         >
                           {iFollowIds.has(f.user_id) ? 'Following' : 'Follow'}
@@ -956,7 +956,7 @@ export default function Inbox() {
                         onClick={() => { setShowNewFollowersPanel(false); navigate(`/profile/${f.user_id}`); }}
                         aria-label="Open profile"
                       >
-                        <ChevronRight className="w-5 h-5 text-[#C9A96E]/70" />
+                        <ChevronRight className="w-5 h-5 text-[#FFFFFF]/70" />
                       </button>
                     </div>
                   ))}

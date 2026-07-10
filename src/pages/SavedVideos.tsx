@@ -42,8 +42,8 @@ export default function SavedVideos() {
   };
 
   return (
-    <div className="bg-[#13151A] text-white flex justify-center px-2">
-      <div className="w-full max-w-[480px] rounded-3xl overflow-hidden overflow-y-auto bg-[#13151A] flex flex-col min-h-screen">
+    <div className="bg-[#111111] text-white flex justify-center px-2">
+      <div className="w-full max-w-[480px] rounded-3xl overflow-hidden overflow-y-auto bg-[#111111] flex flex-col min-h-screen">
         <div className="p-4 flex items-center gap-4">
           <button onClick={() => navigate(-1)} className="p-1">
             <img src="/Icons/Gold power buton.png" alt="Back" className="w-5 h-5" />
@@ -53,7 +53,7 @@ export default function SavedVideos() {
 
         {loading ? (
           <div className="flex-1 flex items-center justify-center">
-            <div className="w-10 h-10 border-3 border-[#C9A96E] border-t-transparent rounded-full animate-spin" />
+            <div className="w-10 h-10 border-3 border-[#FFFFFF] border-t-transparent rounded-full animate-spin" />
           </div>
         ) : videos.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-3 px-8">
@@ -65,7 +65,7 @@ export default function SavedVideos() {
             {videos.map((video) => (
               <div
                 key={video.id}
-                className="aspect-[3/4] bg-[#1C1E24] relative cursor-pointer group"
+                className="aspect-[3/4] bg-[#111111] relative cursor-pointer group"
                 onClick={() => navigate(`/video/${video.id}`)}
               >
                 {video.thumbnail_url ? (
@@ -89,7 +89,7 @@ export default function SavedVideos() {
                   <span>{formatViews(video.views || 0)}</span>
                 </div>
                 <div className="absolute top-1 right-1">
-                  <Bookmark size={12} fill="#C9A96E" className="text-[#C9A96E]" />
+                  <Bookmark size={12} fill="#FFFFFF" className="text-[#FFFFFF]" />
                 </div>
               </div>
             ))}

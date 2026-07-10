@@ -41,9 +41,9 @@ export const BottomNav = () => {
     >
       <div className="flex justify-center pointer-events-none">
         <div
-          className="w-full max-w-[480px] mx-auto pointer-events-auto border-t border-[#C9A96E]/20 bg-[#0B0B0F]/96 backdrop-blur-xl"
+          className="w-full max-w-[480px] mx-auto pointer-events-auto border-t border-[#FFFFFF]/20 bg-black/96 backdrop-blur-xl"
           style={{
-            boxShadow: "0 -4px 24px rgba(0,0,0,0.45), inset 0 1px 0 rgba(201,169,110,0.12)",
+            boxShadow: "0 -4px 24px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08)",
           }}
         >
           <div className="flex items-end justify-around px-1 pt-1.5 pb-1 min-h-[var(--nav-height)]">
@@ -60,9 +60,9 @@ export const BottomNav = () => {
                     style={{ WebkitTapHighlightColor: "transparent" }}
                   >
                     <span
-                      className="flex items-center justify-center w-11 h-11 rounded-full border border-[#C9A96E]/50 bg-gradient-to-b from-[#2a2418] to-[#13151A] shadow-[0_0_16px_rgba(201,169,110,0.35)]"
+                      className="flex items-center justify-center w-11 h-11 rounded-full border border-white/40 bg-[#111111] shadow-[0_0_12px_rgba(255,255,255,0.12)]"
                     >
-                      <Icon size={22} strokeWidth={2.25} className="text-[#C9A96E]" />
+                      <Icon size={22} strokeWidth={2.25} className="text-[#FFFFFF]" />
                     </span>
                     <span
                       className={`mt-0.5 text-[9px] font-semibold tracking-wide truncate max-w-full px-0.5 ${
@@ -86,10 +86,10 @@ export const BottomNav = () => {
                   <Icon
                     size={22}
                     strokeWidth={active ? 2.25 : 1.75}
-                    className={active ? "text-[#C9A96E]" : "text-white/45"}
+                    className={active ? "text-[#FFFFFF]" : "text-white/45"}
                     style={
                       active
-                        ? { filter: "drop-shadow(0 0 6px rgba(201,169,110,0.45))" }
+                        ? { filter: "drop-shadow(0 0 6px rgba(255,255,255,0.25))" }
                         : undefined
                     }
                   />

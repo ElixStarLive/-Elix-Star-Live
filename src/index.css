@@ -17,7 +17,7 @@
 .new-followers-panel-scroll {
   -ms-overflow-style: auto;
   scrollbar-width: thin;
-  scrollbar-color: rgba(201, 169, 110, 0.6) rgba(255, 255, 255, 0.08);
+  scrollbar-color: rgba(255, 255, 255, 0.45) rgba(255, 255, 255, 0.08);
 }
 .new-followers-panel-scroll::-webkit-scrollbar {
   display: block;
@@ -28,22 +28,22 @@
   border-radius: 3px;
 }
 .new-followers-panel-scroll::-webkit-scrollbar-thumb {
-  background: rgba(201, 169, 110, 0.6);
+  background: rgba(255, 255, 255, 0.45);
   border-radius: 3px;
 }
 .new-followers-panel-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(201, 169, 110, 0.8);
+  background: rgba(255, 255, 255, 0.65);
 }
 
 @layer base {
   :root {
-    --color-primary: #6B46C1;
-    --color-secondary: #C9A96E;
-    --color-rose: #F4C2C2;
-    --color-background: #0B0B0F;
-    --color-surface: #1F1F1F;
-    --color-text: #FAF9F6;
-    --color-text-muted: #A1A1AA;
+    --color-primary: #FFFFFF;
+    --color-secondary: #FFFFFF;
+    --color-rose: #CCCCCC;
+    --color-background: #000000;
+    --color-surface: #111111;
+    --color-text: #FFFFFF;
+    --color-text-muted: #A3A3A3;
     --radius-sm: 10px;
     --radius-md: 12px;
     --radius-lg: 16px;
@@ -430,10 +430,10 @@
 /* Premium Glow Pulse */
 @keyframes premium-glow {
   0%, 100% {
-    filter: drop-shadow(0 0 8px rgba(201, 169, 110, 0.6)) drop-shadow(0 0 16px rgba(201, 169, 110, 0.4));
+    filter: drop-shadow(0 0 8px rgba(255,255,255,0.25)) drop-shadow(0 0 16px rgba(255,255,255,0.25));
   }
   50% {
-    filter: drop-shadow(0 0 16px rgba(201, 169, 110, 0.8)) drop-shadow(0 0 24px rgba(201, 169, 110, 0.6));
+    filter: drop-shadow(0 0 16px rgba(255,255,255,0.25)) drop-shadow(0 0 24px rgba(255,255,255,0.25));
   }
 }
 
@@ -452,7 +452,7 @@
 }
 
 .animate-shimmer {
-  background: linear-gradient(90deg, transparent 0%, rgba(201, 169, 110, 0.3) 50%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.25) 50%, transparent 100%);
   background-size: 200% 100%;
   animation: shimmer 3s ease-in-out infinite;
 }
@@ -475,7 +475,7 @@
 
 /* Cyan Gradient */
 .bg-luxury-gradient {
-  background: linear-gradient(145deg, #E0FFFF 0%, #C9A96E 25%, #00c2be 50%, #C9A96E 75%, #E0FFFF 100%);
+  background: linear-gradient(145deg, #E0FFFF 0%, #FFFFFF 25%, #00c2be 50%, #FFFFFF 75%, #E0FFFF 100%);
   background-size: 200% 200%;
   animation: gradient-shift 4s ease infinite;
 }
@@ -492,10 +492,10 @@
 /* Glowing Border */
 @keyframes glow-border {
   0%, 100% {
-    box-shadow: 0 0 10px rgba(201, 169, 110, 0.5), 0 0 20px rgba(201, 169, 110, 0.3), inset 0 0 10px rgba(201, 169, 110, 0.1);
+    box-shadow: 0 0 10px rgba(255,255,255,0.25), 0 0 20px rgba(255,255,255,0.25), inset 0 0 10px rgba(255,255,255,0.25);
   }
   50% {
-    box-shadow: 0 0 20px rgba(201, 169, 110, 0.8), 0 0 40px rgba(201, 169, 110, 0.5), inset 0 0 20px rgba(201, 169, 110, 0.2);
+    box-shadow: 0 0 20px rgba(255,255,255,0.25), 0 0 40px rgba(255,255,255,0.25), inset 0 0 20px rgba(255,255,255,0.25);
   }
 }
 
@@ -645,7 +645,7 @@
   content: '';
   position: absolute;
   top: -2px; left: -2px; right: -2px; bottom: -2px;
-  background: radial-gradient(circle, rgba(201, 169, 110, 0.3) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(255,255,255,0.25) 0%, transparent 70%);
   border-radius: 50%;
   animation: elix-sparkle 2s ease-in-out infinite;
   pointer-events: none;
@@ -670,26 +670,19 @@
 }
 
 .text-gold-metallic {
-  background: linear-gradient(
-    180deg,
-    #f5e6a3 0%,
-    #d4a844 20%,
-    #c9a96e 40%,
-    #b8922e 60%,
-    #d4af37 80%,
-    #f5e6a3 100%
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  background: none;
+  -webkit-background-clip: unset;
+  background-clip: unset;
+  -webkit-text-fill-color: #ffffff;
+  color: #ffffff;
 }
 
 .stroke-gold-metallic {
-  color: #d4af37;
-  filter: drop-shadow(0 0 1px rgba(212, 175, 55, 0.4));
+  color: #ffffff;
+  filter: none;
 }
 
 .border-gold-metallic {
-  border-color: #d4af37;
-  box-shadow: 0 0 2px rgba(212, 175, 55, 0.3);
+  border-color: rgba(255, 255, 255, 0.45);
+  box-shadow: none;
 }

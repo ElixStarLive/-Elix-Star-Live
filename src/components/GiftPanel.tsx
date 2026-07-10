@@ -218,8 +218,8 @@ export function GiftPanel({
                   className="flex items-center gap-1 cursor-pointer flex-shrink-0 active:scale-95 transition-transform"
                   onClick={onWeeklyRanking}
                 >
-                  <Trophy className="w-2.5 h-2.5 text-[#C9A96E] flex-shrink-0" />
-                  <span className="text-[#C9A96E] text-[8px] font-bold whitespace-nowrap">
+                  <Trophy className="w-2.5 h-2.5 text-[#FFFFFF] flex-shrink-0" />
+                  <span className="text-[#FFFFFF] text-[8px] font-bold whitespace-nowrap">
                     Weekly Ranking &gt;
                   </span>
                 </div>
@@ -232,8 +232,8 @@ export function GiftPanel({
                   className="flex items-center gap-1 cursor-pointer flex-shrink-0 active:scale-95 transition-transform"
                   onClick={onMembership}
                 >
-                  <Heart className="w-2.5 h-2.5 text-[#C9A96E] fill-[#C9A96E] flex-shrink-0" />
-                  <span className="text-[#C9A96E] text-[8px] font-bold whitespace-nowrap">
+                  <Heart className="w-2.5 h-2.5 text-[#FFFFFF] fill-[#FFFFFF] flex-shrink-0" />
+                  <span className="text-[#FFFFFF] text-[8px] font-bold whitespace-nowrap">
                     Membership
                   </span>
                 </div>
@@ -246,7 +246,7 @@ export function GiftPanel({
       {/* Header: title + coin balance */}
       <div className="flex justify-between items-center mb-3">
         <h3 className="text-white font-semibold text-sm flex items-center gap-2">
-          <Gift className="text-yellow-400" size={16} />
+          <Gift className="text-white" size={16} />
           Send Gift
         </h3>
         <div className="flex items-center gap-2 bg-black px-2.5 py-0.5 rounded-full border border-secondary/20">
@@ -278,7 +278,7 @@ export function GiftPanel({
         <button
           className={`text-xs font-medium pb-1.5 transition-colors relative ${
             activeTab === "small"
-              ? "text-yellow-400"
+              ? "text-white"
               : "text-white/50 hover:text-white/80"
           }`}
           onClick={() => setActiveTab("small")}
@@ -291,7 +291,7 @@ export function GiftPanel({
         <button
           className={`text-xs font-medium pb-1.5 transition-colors relative ${
             activeTab === "exclusive"
-              ? "text-yellow-400"
+              ? "text-white"
               : "text-white/50 hover:text-white/80"
           }`}
           onClick={() => setActiveTab("exclusive")}

@@ -27,12 +27,12 @@ export function IncomingCallModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-[#13151A]/70 backdrop-blur-md flex items-center justify-center">
-      <div className="bg-[#13151A] rounded-3xl p-8 max-w-sm w-full mx-4 text-center shadow-2xl">
+    <div className="fixed inset-0 z-[100] bg-[#111111]/70 backdrop-blur-md flex items-center justify-center">
+      <div className="bg-[#111111] rounded-3xl p-8 max-w-sm w-full mx-4 text-center shadow-2xl">
         {remoteUser.avatar ? (
           <AvatarRing src={remoteUser.avatar} alt={remoteUser.username} size={96} className="mx-auto mb-4" />
         ) : (
-          <div className="w-24 h-24 rounded-full bg-[#13151A] border border-[#C9A96E]/40 mx-auto mb-4 flex items-center justify-center text-3xl text-white">
+          <div className="w-24 h-24 rounded-full bg-[#111111] border border-[#FFFFFF]/40 mx-auto mb-4 flex items-center justify-center text-3xl text-white">
             {remoteUser.username[0]?.toUpperCase()}
           </div>
         )}
@@ -46,7 +46,7 @@ export function IncomingCallModal() {
           <button
             onClick={handleReject}
             title="Decline call"
-            className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center shadow-lg active:scale-95 transition-transform"
+            className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center shadow-lg active:scale-95 transition-transform"
           >
             <PhoneOff className="w-7 h-7 text-white" />
           </button>
@@ -54,7 +54,7 @@ export function IncomingCallModal() {
           <button
             onClick={handleAccept}
             title="Accept call"
-            className="w-16 h-16 rounded-full bg-[#C9A96E] flex items-center justify-center shadow-lg active:scale-95 transition-transform animate-pulse"
+            className="w-16 h-16 rounded-full bg-[#FFFFFF] flex items-center justify-center shadow-lg active:scale-95 transition-transform animate-pulse"
           >
             <Phone className="w-7 h-7 text-white" />
           </button>

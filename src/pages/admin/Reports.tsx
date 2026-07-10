@@ -63,14 +63,14 @@ export default function AdminReports() {
   };
 
   if (loading) {
-    return <div className="min-h-screen bg-[#13151A] flex items-center justify-center text-white">Loading...</div>;
+    return <div className="min-h-screen bg-[#111111] flex items-center justify-center text-white">Loading...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-[#13151A] text-white p-6">
+    <div className="min-h-screen bg-[#111111] text-white p-6">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold mb-6 flex items-center gap-3">
-          <Flag className="w-8 h-8 text-red-500" />
+          <Flag className="w-8 h-8 text-white/70" />
           Reports Queue
         </h1>
 
@@ -79,7 +79,7 @@ export default function AdminReports() {
           <button
             onClick={() => setFilter('pending')}
             className={`px-4 py-2 rounded-lg font-semibold ${
-              filter === 'pending' ? 'bg-[#C9A96E] text-black' : 'bg-[#2A2D35] text-white'
+              filter === 'pending' ? 'bg-[#FFFFFF] text-black' : 'bg-[#2A2D35] text-white'
             }`}
           >
             Pending ({reports.filter(r => r.status === 'pending').length})
@@ -87,7 +87,7 @@ export default function AdminReports() {
           <button
             onClick={() => setFilter('all')}
             className={`px-4 py-2 rounded-lg font-semibold ${
-              filter === 'all' ? 'bg-[#C9A96E] text-black' : 'bg-[#2A2D35] text-white'
+              filter === 'all' ? 'bg-[#FFFFFF] text-black' : 'bg-[#2A2D35] text-white'
             }`}
           >
             All
@@ -97,11 +97,11 @@ export default function AdminReports() {
         {/* Reports List */}
         <div className="space-y-4">
           {reports.map(report => (
-            <div key={report.id} className="bg-[#1C1E24] rounded-lg p-6">
+            <div key={report.id} className="bg-[#111111] rounded-lg p-6">
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <div className="flex items-center gap-3 mb-2">
-                    <span className="px-3 py-1 bg-red-600 rounded-full text-xs font-bold">
+                    <span className="px-3 py-1 bg-white/25 rounded-full text-xs font-bold">
                       {report.reason.replace('_', ' ').toUpperCase()}
                     </span>
                     <span className="text-gray-400 text-sm">{report.target_type}</span>
@@ -115,9 +115,9 @@ export default function AdminReports() {
                 <span
                   className={`px-3 py-1 rounded-full text-xs font-bold ${
                     report.status === 'pending'
-                      ? 'bg-[#C9A96E]'
+                      ? 'bg-[#FFFFFF]'
                       : report.status === 'resolved'
-                      ? 'bg-[#C9A96E]'
+                      ? 'bg-[#FFFFFF]'
                       : 'bg-[#2A2D35]'
                   }`}
                 >
@@ -129,14 +129,14 @@ export default function AdminReports() {
                 <div className="flex gap-3">
                   <button
                     onClick={() => handleResolve(report.id, 'removed')}
-                    className="px-4 py-2 bg-red-600 rounded hover:bg-red-700 flex items-center gap-2"
+                    className="px-4 py-2 bg-white/25 rounded hover:bg-white/30 flex items-center gap-2"
                   >
                     <XCircle className="w-4 h-4" />
                     Remove Content
                   </button>
                   <button
                     onClick={() => handleResolve(report.id, 'warned')}
-                    className="px-4 py-2 bg-[#C9A96E] rounded hover:bg-[#B8943F] flex items-center gap-2"
+                    className="px-4 py-2 bg-[#FFFFFF] rounded hover:bg-[#B8943F] flex items-center gap-2"
                   >
                     <Flag className="w-4 h-4" />
                     Warn User
@@ -157,7 +157,7 @@ export default function AdminReports() {
                       else if (t === 'stream' || t === 'live') navigate(`/live/${id}`);
                       else navigate(`/video/${id}`);
                     }}
-                    className="px-4 py-2 bg-[#C9A96E] rounded hover:bg-[#B8943F] flex items-center gap-2"
+                    className="px-4 py-2 bg-[#FFFFFF] rounded hover:bg-[#B8943F] flex items-center gap-2"
                   >
                     <Eye className="w-4 h-4" />
                     View

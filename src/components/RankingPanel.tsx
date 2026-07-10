@@ -50,7 +50,7 @@ export function RankingPanel({ onClose }: RankingPanelProps) {
 
   return (
         <div 
-          className="bg-[#1C1E24]/95 backdrop-blur-md rounded-t-2xl p-3 pb-safe max-h-[40dvh] flex flex-col shadow-2xl w-full overflow-hidden border-t border-[#C9A96E]/20 h-full" 
+          className="bg-[#111111]/95 backdrop-blur-md rounded-t-2xl p-3 pb-safe max-h-[40dvh] flex flex-col shadow-2xl w-full overflow-hidden border-t border-[#FFFFFF]/20 h-full" 
           onClick={(e) => e.stopPropagation()}
         >
         {/* Drag handle */}
@@ -61,8 +61,8 @@ export function RankingPanel({ onClose }: RankingPanelProps) {
         {/* Header */}
         <div className="flex justify-between items-center mb-3 flex-shrink-0">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-[#13151A] flex items-center justify-center border border-[#C9A96E]/40">
-              <Trophy className="w-4 h-4 text-[#C9A96E]" fill="currentColor" />
+            <div className="w-8 h-8 rounded-full bg-[#111111] flex items-center justify-center border border-[#FFFFFF]/40">
+              <Trophy className="w-4 h-4 text-[#FFFFFF]" fill="currentColor" />
             </div>
             <div>
               <h3 className="text-white font-bold text-sm leading-none">Weekly Ranking</h3>
@@ -75,7 +75,7 @@ export function RankingPanel({ onClose }: RankingPanelProps) {
         <div className="flex-1 overflow-y-auto -mx-2 px-2 no-scrollbar">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-10 gap-3">
-              <div className="w-8 h-8 border-2 border-[#C9A96E]/30 border-t-[#C9A96E] rounded-full animate-spin" />
+              <div className="w-8 h-8 border-2 border-[#FFFFFF]/30 border-t-[#FFFFFF] rounded-full animate-spin" />
               <p className="text-white/30 text-xs">Loading rankings...</p>
             </div>
           ) : rankings.length === 0 ? (
@@ -108,10 +108,10 @@ export function RankingPanel({ onClose }: RankingPanelProps) {
                   <div className="flex flex-col items-center gap-1 w-1/3 order-2 -mt-4 z-10">
                     <div className="relative">
                       <div className="absolute -top-5 left-1/2 -translate-x-1/2 animate-bounce-slow">
-                        <Trophy className="w-6 h-6 text-white drop-shadow-[0_0_10px_rgba(201,169,110,0.5)]" fill="currentColor" />
+                        <Trophy className="w-6 h-6 text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.25)]" fill="currentColor" />
                       </div>
                       <AvatarRing src={rankings[0].avatar_url || ''} alt={rankings[0].display_name} size={64} />
-                      <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#C9A96E] text-black text-xs font-black px-2 py-0.5 rounded-full border border-white">
+                      <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#FFFFFF] text-black text-xs font-black px-2 py-0.5 rounded-full border border-white">
                         1
                       </div>
                     </div>
@@ -127,7 +127,7 @@ export function RankingPanel({ onClose }: RankingPanelProps) {
                   <div className="flex flex-col items-center gap-1 w-1/3 order-3">
                     <div className="relative">
                       <AvatarRing src={rankings[2].avatar_url || ''} alt={rankings[2].display_name} size={48} />
-                      <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#C9A96E] text-white text-[10px] font-black px-1.5 rounded-full border border-white/20">
+                      <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#FFFFFF] text-white text-[10px] font-black px-1.5 rounded-full border border-white/20">
                         3
                       </div>
                     </div>

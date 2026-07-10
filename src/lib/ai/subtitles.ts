@@ -19,12 +19,12 @@ export interface SubtitleStyle {
 export const SUBTITLE_STYLES: SubtitleStyle[] = [
   { id: 'classic', name: 'Classic', fontFamily: 'Arial, sans-serif', fontSize: 24, color: '#FFFFFF', background: 'rgba(0,0,0,0.7)', position: 'bottom', animation: 'none' },
   { id: 'bold', name: 'Bold', fontFamily: "'Montserrat', sans-serif", fontSize: 28, color: '#FFFFFF', background: 'rgba(0,0,0,0.85)', position: 'bottom', animation: 'pop' },
-  { id: 'neon', name: 'Neon', fontFamily: "'Montserrat', sans-serif", fontSize: 26, color: '#C9A96E', background: 'transparent', position: 'center', animation: 'pop' },
+  { id: 'neon', name: 'Neon', fontFamily: "'Montserrat', sans-serif", fontSize: 26, color: '#FFFFFF', background: 'transparent', position: 'center', animation: 'pop' },
   { id: 'minimal', name: 'Minimal', fontFamily: "'Inter', sans-serif", fontSize: 22, color: '#FFFFFF', background: 'transparent', position: 'bottom', animation: 'fade' },
   { id: 'cinematic', name: 'Cinematic', fontFamily: "'Playfair Display', serif", fontSize: 30, color: '#F5E6D3', background: 'transparent', position: 'center', animation: 'typewriter' },
-  { id: 'karaoke', name: 'Karaoke', fontFamily: "'Montserrat', sans-serif", fontSize: 28, color: '#FFD700', background: 'rgba(0,0,0,0.6)', position: 'bottom', animation: 'karaoke' },
+  { id: 'karaoke', name: 'Karaoke', fontFamily: "'Montserrat', sans-serif", fontSize: 28, color: '#FFFFFF', background: 'rgba(0,0,0,0.6)', position: 'bottom', animation: 'karaoke' },
   { id: 'outline', name: 'Outline', fontFamily: "'Arial Black', sans-serif", fontSize: 26, color: '#FFFFFF', background: 'transparent', position: 'bottom', animation: 'pop' },
-  { id: 'gradient', name: 'Gradient', fontFamily: "'Montserrat', sans-serif", fontSize: 28, color: 'linear-gradient(90deg, #C9A96E, #FFFFFF)', background: 'transparent', position: 'center', animation: 'fade' },
+  { id: 'gradient', name: 'Gradient', fontFamily: "'Montserrat', sans-serif", fontSize: 28, color: 'linear-gradient(90deg, #FFFFFF, #FFFFFF)', background: 'transparent', position: 'center', animation: 'fade' },
 ];
 
 type RecognitionCallback = (segments: SubtitleSegment[]) => void;

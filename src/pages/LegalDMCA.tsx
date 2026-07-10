@@ -6,8 +6,8 @@ export default function LegalDMCA() {
   const dmcaEmail = 'dmca@elixstarlive.com';
 
   return (
-    <div className="bg-[#13151A] text-white flex justify-center px-2">
-      <div className="w-full max-w-[480px] rounded-3xl overflow-hidden bg-[#13151A] flex flex-col overflow-y-auto p-4 pb-20">
+    <div className="bg-[#111111] text-white flex justify-center px-2">
+      <div className="w-full max-w-[480px] rounded-3xl overflow-hidden bg-[#111111] flex flex-col overflow-y-auto p-4 pb-20">
         <header className="flex items-center justify-between mb-4">
           <button onClick={() => navigate(-1)} aria-label="Back" title="Back">
             <img src="/Icons/Gold power buton.png" alt="Back" className="w-5 h-5" />
@@ -76,7 +76,7 @@ export default function LegalDMCA() {
             <p className="text-white font-medium mt-2">{dmcaEmail}</p>
             <div className="pt-3">
               <a
-                className="inline-flex items-center justify-center rounded-xl bg-[#C9A96E] text-black font-bold px-4 py-2 text-sm"
+                className="inline-flex items-center justify-center rounded-xl bg-[#FFFFFF] text-black font-bold px-4 py-2 text-sm"
                 href={`mailto:${dmcaEmail}?subject=DMCA%20Notice%20-%20ElixStarLive`}
               >
                 Email DMCA Agent

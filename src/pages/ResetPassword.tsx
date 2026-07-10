@@ -63,7 +63,7 @@ export default function ResetPassword() {
 
   if (success) {
     return (
-      <div className="bg-[#13151A] text-white flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-[#111111] text-white flex items-center justify-center p-4 overflow-y-auto">
         <div className="w-full max-w-[420px] bg-white/5 border border-white/10 rounded-2xl p-6 text-center">
           <CheckCircle className="w-12 h-12 text-white mx-auto mb-4" />
           <h1 className="text-xl font-bold mb-2">Password Reset!</h1>
@@ -76,7 +76,7 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="bg-[#13151A] text-white flex items-center justify-center p-4 overflow-y-auto">
+    <div className="bg-[#111111] text-white flex items-center justify-center p-4 overflow-y-auto">
       <div className="w-full max-w-[420px] bg-white/5 border border-white/10 rounded-2xl p-6">
         <h1 className="text-2xl font-bold mb-2">Reset Password</h1>
         <p className="text-sm text-white/60 mb-6">Enter your new password below.</p>
@@ -90,7 +90,7 @@ export default function ResetPassword() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-white/10 border border-white/10 rounded-xl pl-10 pr-3 py-3 text-sm text-white outline-none focus:border-[#C9A96E]/50"
+                className="w-full bg-white/10 border border-white/10 rounded-xl pl-10 pr-3 py-3 text-sm text-white outline-none focus:border-[#FFFFFF]/50"
                 placeholder="••••••••"
                 autoComplete="new-password"
                 required
@@ -107,7 +107,7 @@ export default function ResetPassword() {
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full bg-white/10 border border-white/10 rounded-xl pl-10 pr-3 py-3 text-sm text-white outline-none focus:border-[#C9A96E]/50"
+                className="w-full bg-white/10 border border-white/10 rounded-xl pl-10 pr-3 py-3 text-sm text-white outline-none focus:border-[#FFFFFF]/50"
                 placeholder="••••••••"
                 autoComplete="new-password"
                 required
@@ -117,7 +117,7 @@ export default function ResetPassword() {
           </div>
 
           {error && (
-            <div className="text-sm text-rose-300 bg-rose-500/10 border border-rose-500/20 rounded-xl p-3">
+            <div className="text-sm text-rose-300 bg-white/20/10 border border-rose-500/20 rounded-xl p-3">
               {error}
             </div>
           )}
@@ -125,7 +125,7 @@ export default function ResetPassword() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full bg-[#C9A96E] text-black font-bold rounded-xl py-3 text-sm disabled:opacity-60"
+            className="w-full bg-[#FFFFFF] text-black font-bold rounded-xl py-3 text-sm disabled:opacity-60"
           >
             {isSubmitting ? 'Updating...' : 'Reset Password'}
           </button>

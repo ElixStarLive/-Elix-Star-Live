@@ -118,17 +118,17 @@ export default function PurchaseCoins() {
   };
 
   return (
-    <div className="bg-[#13151A] text-white flex justify-center px-2">
-      <div className="w-full max-w-[480px] rounded-3xl overflow-hidden bg-[#13151A] flex flex-col">
+    <div className="bg-[#111111] text-white flex justify-center px-2">
+      <div className="w-full max-w-[480px] rounded-3xl overflow-hidden bg-[#111111] flex flex-col">
         {/* Header */}
-        <div className="sticky top-0 bg-[#13151A] z-10 px-4 py-4 border-b border-transparent flex items-center justify-between">
+        <div className="sticky top-0 bg-[#111111] z-10 px-4 py-4 border-b border-transparent flex items-center justify-between">
           <button onClick={() => navigate('/feed')} className="p-2 hover:brightness-125 rounded-full transition" title="Back">
             <img src="/Icons/Gold power buton.png" alt="Back" className="w-5 h-5" />
           </button>
           <h1 className="text-lg font-bold">Get Coins</h1>
           {isNative ? (
             <button onClick={handleRestore} disabled={loading} className="p-2 hover:brightness-125 rounded-full transition" title="Restore purchases">
-              <RotateCcw className="w-5 h-5 text-[#C9A96E]" />
+              <RotateCcw className="w-5 h-5 text-[#FFFFFF]" />
             </button>
           ) : (
             <div className="w-10" />
@@ -138,7 +138,7 @@ export default function PurchaseCoins() {
         <div className="px-4 py-6 flex-1 overflow-y-auto">
           {/* Hero */}
           <div className="text-center mb-8">
-            <div className="w-20 h-20 bg-gradient-to-br from-[#C9A96E] to-[#B8943F] rounded-full mx-auto mb-4 flex items-center justify-center">
+            <div className="w-20 h-20 bg-gradient-to-br from-[#FFFFFF] to-[#B8943F] rounded-full mx-auto mb-4 flex items-center justify-center">
               <Sparkles className="w-10 h-10 text-black" />
             </div>
             <h2 className="text-2xl font-bold mb-2">Buy Coins</h2>
@@ -153,18 +153,18 @@ export default function PurchaseCoins() {
                   key={product.id}
                   onClick={() => handleNativePurchase(product)}
                   disabled={loading}
-                  className="w-full p-6 rounded-2xl transition relative overflow-hidden bg-white/5 border-2 border-transparent hover:border-[#C9A96E]/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full p-6 rounded-2xl transition relative overflow-hidden bg-white/5 border-2 border-transparent hover:border-[#FFFFFF]/40 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <div className="flex items-center justify-between">
                     <div className="text-left">
                       <div className="flex items-center gap-2 mb-2">
-                        <Sparkles className="w-6 h-6 text-[#C9A96E]" />
+                        <Sparkles className="w-6 h-6 text-[#FFFFFF]" />
                         <span className="text-2xl font-bold">{product.coins.toLocaleString()}</span>
                       </div>
                       <p className="text-sm text-white/60">{product.title}</p>
                     </div>
                     <div className="text-right">
-                      <div className="text-2xl font-bold text-[#C9A96E]">
+                      <div className="text-2xl font-bold text-[#FFFFFF]">
                         {product.price || 'Loading…'}
                       </div>
                     </div>
@@ -181,7 +181,7 @@ export default function PurchaseCoins() {
           {/* Web — direct to mobile app */}
           {!isNative && (
             <div className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-8 text-center">
-              <Sparkles className="w-10 h-10 text-[#C9A96E] mx-auto mb-3" />
+              <Sparkles className="w-10 h-10 text-[#FFFFFF] mx-auto mb-3" />
               <h3 className="font-bold text-lg mb-2">Purchase Coins in the App</h3>
               <p className="text-sm text-white/60">
                 Coins are digital items and must be purchased through the Elix Star app on your mobile device via Apple App Store or Google Play.
@@ -218,7 +218,7 @@ export default function PurchaseCoins() {
 function FeatureItem({ text }: { text: string }) {
   return (
     <div className="flex items-start gap-3">
-      <div className="w-5 h-5 bg-[#C9A96E] rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+      <div className="w-5 h-5 bg-[#FFFFFF] rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
         <Check className="w-3 h-3 text-black" />
       </div>
       <p className="text-sm text-white/80">{text}</p>

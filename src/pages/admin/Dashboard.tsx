@@ -69,14 +69,14 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#13151A] flex items-center justify-center">
+      <div className="min-h-screen bg-[#111111] flex items-center justify-center">
         <div className="text-white">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#13151A] text-white p-6">
+    <div className="min-h-screen bg-[#111111] text-white p-6">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold mb-8 flex items-center gap-3">
           <BarChart3 className="w-8 h-8 text-white" />
@@ -124,7 +124,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Quick Actions */}
-        <div className="bg-[#1C1E24] rounded-lg p-6">
+        <div className="bg-[#111111] rounded-lg p-6">
           <h2 className="text-xl font-bold mb-4">Quick Actions</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <ActionButton href="/admin/users" label="Manage Users" onClick={(h) => navigate(h)} />
@@ -163,7 +163,7 @@ function ActionButton({ href, label, onClick }: { href: string; label: string; o
     <button
       type="button"
       onClick={() => onClick?.(href)}
-      className="px-4 py-3 bg-[#C9A96E] text-black rounded-lg font-semibold hover:bg-[#C9A96E]/90 transition text-center"
+      className="px-4 py-3 bg-[#FFFFFF] text-black rounded-lg font-semibold hover:bg-[#FFFFFF]/90 transition text-center"
     >
       {label}
     </button>

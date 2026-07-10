@@ -81,13 +81,13 @@ export const BuyCoinsModal: React.FC<BuyCoinsModalProps> = ({ isOpen, onClose, o
         className="fixed left-0 right-0 z-[999999] pointer-events-auto max-w-[480px] mx-auto"
         style={{ bottom: 'var(--bottom-ui-reserve)' }}
       >
-        <div className="bg-[#1C1E24]/95 backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl border-t border-[#C9A96E]/20 overflow-hidden">
+        <div className="bg-[#111111]/95 backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl border-t border-[#FFFFFF]/20 overflow-hidden">
           <div className="flex justify-center pt-2 pb-1">
             <div className="w-10 h-1 bg-white/20 rounded-full" />
           </div>
 
           <div className="flex items-center gap-1.5 px-4 pb-2 flex-shrink-0">
-            <Coins className="w-3.5 h-3.5 text-[#C9A96E]" strokeWidth={1.8} />
+            <Coins className="w-3.5 h-3.5 text-[#FFFFFF]" strokeWidth={1.8} />
             <span className="text-white font-bold text-[13px]">Recharge Coins</span>
           </div>
 
@@ -99,24 +99,24 @@ export const BuyCoinsModal: React.FC<BuyCoinsModalProps> = ({ isOpen, onClose, o
                     key={product.id}
                     onClick={() => handleNativePurchase(product)}
                     disabled={nativeLoading === product.id}
-                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-white/[0.03] border border-white/10 hover:bg-[#C9A96E]/10 transition-colors active:scale-[0.98] disabled:opacity-50"
+                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-white/[0.03] border border-white/10 hover:bg-[#FFFFFF]/10 transition-colors active:scale-[0.98] disabled:opacity-50"
                   >
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-[#13151A] border border-[#C9A96E]/30 flex items-center justify-center">
-                        <Sparkles className="w-3.5 h-3.5 text-[#C9A96E]" strokeWidth={1.8} />
+                      <div className="w-8 h-8 rounded-full bg-[#111111] border border-[#FFFFFF]/30 flex items-center justify-center">
+                        <Sparkles className="w-3.5 h-3.5 text-[#FFFFFF]" strokeWidth={1.8} />
                       </div>
                       <div className="text-left">
                         <p className="text-white text-xs font-semibold">{product.title}</p>
                         {product.price && <p className="text-white/40 text-[10px]">{product.price}</p>}
                       </div>
                     </div>
-                    <span className="text-[#C9A96E] text-[10px] font-bold">{nativeLoading === product.id ? 'Processing...' : `${product.coins} coins`}</span>
+                    <span className="text-[#FFFFFF] text-[10px] font-bold">{nativeLoading === product.id ? 'Processing...' : `${product.coins} coins`}</span>
                   </button>
                 ))}
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-6 text-center">
-                <Sparkles className="w-8 h-8 text-[#C9A96E] mb-3" />
+                <Sparkles className="w-8 h-8 text-[#FFFFFF] mb-3" />
                 <p className="text-white text-xs font-semibold mb-1">Purchase Coins in the App</p>
                 <p className="text-white/40 text-[10px] px-4">Coins are digital items and must be purchased through the Elix Star app on your mobile device.</p>
               </div>

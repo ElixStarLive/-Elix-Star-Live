@@ -43,7 +43,7 @@ export default function EnhancedLikesModal({ isOpen, onClose, videoId, likes }: 
           id: p.user_id,
           username: p.username || 'user',
           name: p.display_name || p.username || 'User',
-          avatar: p.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.username || 'U')}&background=121212&color=C9A96E`,
+          avatar: p.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.username || 'U')}&background=121212&color=FFFFFF`,
           isFollowing: false,
           isVerified: false,
           followers: 0,
@@ -132,8 +132,8 @@ export default function EnhancedLikesModal({ isOpen, onClose, videoId, likes }: 
   });
 
   return (
-    <div className="fixed inset-0 z-modals bg-[#13151A] flex items-end">
-      <div className="w-full h-[80vh] bg-[#13151A] rounded-t-2xl flex flex-col border-t border-transparent" style={{animation: 'slide-up 0.3s ease-out'}}>
+    <div className="fixed inset-0 z-modals bg-[#111111] flex items-end">
+      <div className="w-full h-[80vh] bg-[#111111] rounded-t-2xl flex flex-col border-t border-transparent" style={{animation: 'slide-up 0.3s ease-out'}}>
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-transparent">
           <div>
@@ -153,7 +153,7 @@ export default function EnhancedLikesModal({ isOpen, onClose, videoId, likes }: 
               placeholder="Search users..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-[#13151A] text-white rounded-lg px-4 py-2 text-sm focus:outline-none focus:bg-white border-none"
+              className="w-full bg-[#111111] text-white rounded-lg px-4 py-2 text-sm focus:outline-none focus:bg-white border-none"
             />
             {searchTerm && (
               <button
@@ -172,8 +172,8 @@ export default function EnhancedLikesModal({ isOpen, onClose, videoId, likes }: 
                 onClick={() => setFilter(filterType as 'all' | 'following' | 'followers')}
                 className={`px-3 py-1 rounded-full text-sm transition-colors ${
                   filter === filterType
-                    ? 'bg-[#C9A96E] text-black'
-                    : 'bg-[#13151A] text-white/80 hover:brightness-125'
+                    ? 'bg-[#FFFFFF] text-black'
+                    : 'bg-[#111111] text-white/80 hover:brightness-125'
                 }`}
               >
                 {filterType.charAt(0).toUpperCase() + filterType.slice(1)}
@@ -186,7 +186,7 @@ export default function EnhancedLikesModal({ isOpen, onClose, videoId, likes }: 
         <div className="flex-1 overflow-y-auto">
           {filteredLikes.length === 0 ? (
             <div className="text-center py-8">
-              <div className="w-12 h-12 bg-[#13151A] rounded-full flex items-center justify-center mx-auto mb-3">
+              <div className="w-12 h-12 bg-[#111111] rounded-full flex items-center justify-center mx-auto mb-3">
                 <UserPlus className="w-6 h-6 text-white/60" />
               </div>
               <p className="text-white/60">No users found</p>
@@ -200,9 +200,9 @@ export default function EnhancedLikesModal({ isOpen, onClose, videoId, likes }: 
                     <div className="relative flex-shrink-0">
                       <AvatarRing src={user.avatar} alt={user.name} size={48} />
                       {user.isVerified && (
-                        <div className="absolute -bottom-1 -right-1 bg-[#C9A96E] rounded-full p-0.5">
+                        <div className="absolute -bottom-1 -right-1 bg-[#FFFFFF] rounded-full p-0.5">
                           <div className="w-3 h-3 bg-white rounded-full flex items-center justify-center">
-                            <div className="w-1.5 h-1.5 bg-[#C9A96E] rounded-full" />
+                            <div className="w-1.5 h-1.5 bg-[#FFFFFF] rounded-full" />
                           </div>
                         </div>
                       )}
@@ -212,7 +212,7 @@ export default function EnhancedLikesModal({ isOpen, onClose, videoId, likes }: 
                       <div className="flex items-center gap-2">
                         <h4 className="text-white font-medium truncate">{user.name}</h4>
                         {user.isVerified && (
-                          <div className="w-4 h-4 bg-[#C9A96E] rounded-full flex-shrink-0" />
+                          <div className="w-4 h-4 bg-[#FFFFFF] rounded-full flex-shrink-0" />
                         )}
                       </div>
                       <p className="text-white/60 text-sm truncate">@{user.username}</p>
@@ -230,7 +230,7 @@ export default function EnhancedLikesModal({ isOpen, onClose, videoId, likes }: 
                           {user.isFollowing ? (
                             <button
                               onClick={() => handleFollowToggle(user.id)}
-                              className="px-3 py-1.5 bg-[#13151A] text-white rounded-lg hover:brightness-125 transition-colors text-sm"
+                              className="px-3 py-1.5 bg-[#111111] text-white rounded-lg hover:brightness-125 transition-colors text-sm"
                             >
                               <UserMinus size={14} className="inline mr-1" />
                               Following
@@ -238,7 +238,7 @@ export default function EnhancedLikesModal({ isOpen, onClose, videoId, likes }: 
                           ) : (
                             <button
                               onClick={() => handleFollowToggle(user.id)}
-                              className="px-3 py-1.5 bg-[#C9A96E] text-black rounded-lg hover:bg-[#C9A96E]/80 transition-colors text-sm"
+                              className="px-3 py-1.5 bg-[#FFFFFF] text-black rounded-lg hover:bg-[#FFFFFF]/80 transition-colors text-sm"
                             >
                               <UserPlus size={14} className="inline mr-1" />
                               Follow
@@ -247,7 +247,7 @@ export default function EnhancedLikesModal({ isOpen, onClose, videoId, likes }: 
                           
                           <button
                             onClick={() => handleMessage(user)}
-                            className="p-2 bg-[#13151A] text-white rounded-lg hover:brightness-125 transition-colors"
+                            className="p-2 bg-[#111111] text-white rounded-lg hover:brightness-125 transition-colors"
                           >
                             <MessageCircle size={14} />
                           </button>
@@ -263,7 +263,7 @@ export default function EnhancedLikesModal({ isOpen, onClose, videoId, likes }: 
                         </button>
                         
                         {showUserOptions === user.id && (
-                          <div className="absolute top-full right-0 mt-1 bg-[#1C1E24] rounded-lg shadow-xl border border-transparent z-10 min-w-[160px]">
+                          <div className="absolute top-full right-0 mt-1 bg-[#111111] rounded-lg shadow-xl border border-transparent z-10 min-w-[160px]">
                             <button
                               onClick={() => handleMessage(user)}
                               className="w-full flex items-center gap-3 px-3 py-2 text-white hover:bg-transparent transition-colors text-left text-sm"
@@ -282,9 +282,9 @@ export default function EnhancedLikesModal({ isOpen, onClose, videoId, likes }: 
                             
                             <button
                               onClick={() => handleBlockUser(user)}
-                              className="w-full flex items-center gap-3 px-3 py-2 text-red-400 hover:bg-transparent transition-colors text-left text-sm"
+                              className="w-full flex items-center gap-3 px-3 py-2 text-white/60 hover:bg-transparent transition-colors text-left text-sm"
                             >
-                              <div className="w-3 h-3 bg-red-400 rounded-full" />
+                              <div className="w-3 h-3 bg-white/40 rounded-full" />
                               <span>Block</span>
                             </button>
                           </div>

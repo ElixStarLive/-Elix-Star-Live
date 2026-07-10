@@ -222,8 +222,8 @@ export default function CreatorLoginDetails() {
   };
 
   return (
-    <div className="bg-[#13151A] text-white flex justify-center px-2">
-      <div className="w-full max-w-[480px] rounded-3xl overflow-hidden bg-[#13151A] flex flex-col overflow-y-auto p-4">
+    <div className="bg-[#111111] text-white flex justify-center px-2">
+      <div className="w-full max-w-[480px] rounded-3xl overflow-hidden bg-[#111111] flex flex-col overflow-y-auto p-4">
         {/* ... header ... */}
         <header className="flex items-center justify-between mb-6">
           <button onClick={() => navigate(-1)}><img src="/Icons/Gold power buton.png" alt="Back" className="w-5 h-5" /></button>
@@ -247,8 +247,8 @@ export default function CreatorLoginDetails() {
                     <div className={`relative ${isActive ? '' : ''} transition-all`}>
                       <AvatarRing src={acc.avatar || `https://ui-avatars.com/api/?name=${acc.username}&background=random`} alt={acc.username} size={40} />
                       {isActive && (
-                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#C9A96E] rounded-full border-[1.5px] border-black flex items-center justify-center">
-                          <div className="w-1 h-1 bg-[#13151A] rounded-full" />
+                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#FFFFFF] rounded-full border-[1.5px] border-black flex items-center justify-center">
+                          <div className="w-1 h-1 bg-[#111111] rounded-full" />
                         </div>
                       )}
                       {!isActive && (
@@ -257,7 +257,7 @@ export default function CreatorLoginDetails() {
                             e.stopPropagation();
                             removeAccount(acc.identifier);
                           }}
-                          className="absolute -top-1 -right-1 w-4 h-4 bg-red-500/80 rounded-full text-white text-[8px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute -top-1 -right-1 w-4 h-4 bg-white/20/80 rounded-full text-white text-[8px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                           ×
                         </button>
@@ -282,7 +282,7 @@ export default function CreatorLoginDetails() {
                 }}
                 className="flex-shrink-0 w-14 flex flex-col items-center gap-1.5 group cursor-pointer opacity-60 hover:opacity-100"
               >
-                <div className="w-10 h-10 rounded-full bg-[#13151A] border border-[#C9A96E]/40 flex items-center justify-center group-hover:bg-[#C9A96E]/10 transition-colors relative">
+                <div className="w-10 h-10 rounded-full bg-[#111111] border border-[#FFFFFF]/40 flex items-center justify-center group-hover:bg-[#FFFFFF]/10 transition-colors relative">
                   <span className="text-lg text-white/50 font-light relative z-[2]">+</span>
                   <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[3] scale-125 translate-y-0.5" />
                 </div>
@@ -308,7 +308,7 @@ export default function CreatorLoginDetails() {
               }}
               className={`flex-1 py-2 rounded-xl text-sm font-semibold border transition ${
                 mode === 'signin'
-                  ? 'bg-[#C9A96E] text-black border-[#C9A96E]'
+                  ? 'bg-[#FFFFFF] text-black border-[#FFFFFF]'
                   : 'bg-transparent5 text-white border-white/10 hover:bg-transparent10'
               }`}
             >
@@ -324,7 +324,7 @@ export default function CreatorLoginDetails() {
               }}
               className={`flex-1 py-2 rounded-xl text-sm font-semibold border transition ${
                 mode === 'signup'
-                  ? 'bg-[#C9A96E] text-black border-[#C9A96E]'
+                  ? 'bg-[#FFFFFF] text-black border-[#FFFFFF]'
                   : 'bg-transparent5 text-white border-white/10 hover:bg-transparent10'
               }`}
             >
@@ -338,13 +338,13 @@ export default function CreatorLoginDetails() {
             <div className="space-y-1.5">
               <label className="text-[10px] text-white/50 font-medium uppercase tracking-wider pl-1">Email</label>
               <div className="relative group">
-                <div className="absolute inset-0 bg-gradient-to-r from-[#C9A96E]/20 to-[#C9A96E]/5 rounded-xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-300" />
+                <div className="absolute inset-0 bg-gradient-to-r from-[#FFFFFF]/20 to-[#FFFFFF]/5 rounded-xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-300" />
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 group-focus-within:text-white transition-colors" />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-[#13151A] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-white/40/20 outline-none focus:border-[#C9A96E]/50 transition-all"
+                  className="w-full bg-[#111111] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-white/40/20 outline-none focus:border-[#FFFFFF]/50 transition-all"
                   placeholder="name@example.com"
                   autoComplete="email"
                   required
@@ -355,7 +355,7 @@ export default function CreatorLoginDetails() {
             <div className="space-y-1.5">
               <label className="text-[10px] text-white/50 font-medium uppercase tracking-wider pl-1">Password</label>
               <div className="relative group">
-                <div className="absolute inset-0 bg-gradient-to-r from-[#C9A96E]/20 to-[#C9A96E]/5 rounded-xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-300" />
+                <div className="absolute inset-0 bg-gradient-to-r from-[#FFFFFF]/20 to-[#FFFFFF]/5 rounded-xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-300" />
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 group-focus-within:text-white transition-colors" />
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -365,7 +365,7 @@ export default function CreatorLoginDetails() {
                     // Ensure we are in signin mode if user types here
                     if (mode !== 'signin') setMode('signin');
                   }}
-                  className="w-full bg-[#13151A] border border-white/10 rounded-xl pl-10 pr-10 py-3 text-sm text-white placeholder-white/40/20 outline-none focus:border-[#C9A96E]/50 transition-all"
+                  className="w-full bg-[#111111] border border-white/10 rounded-xl pl-10 pr-10 py-3 text-sm text-white placeholder-white/40/20 outline-none focus:border-[#FFFFFF]/50 transition-all"
                   placeholder="Enter your password"
                   autoComplete="current-password"
                   required
@@ -392,7 +392,7 @@ export default function CreatorLoginDetails() {
                     setSaveDetails(next);
                     window.localStorage.setItem('creator_save_login_details', next ? 'true' : 'false');
                   }}
-                  className="peer h-4 w-4 rounded-full border border-white/30 bg-transparent appearance-none checked:border-[#C9A96E] checked:bg-[#C9A96E] transition-all cursor-pointer"
+                  className="peer h-4 w-4 rounded-full border border-white/30 bg-transparent appearance-none checked:border-[#FFFFFF] checked:bg-[#FFFFFF] transition-all cursor-pointer"
                 />
                 <svg className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 text-black pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="4">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -418,7 +418,7 @@ export default function CreatorLoginDetails() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-[#C9A96E] text-black font-bold rounded-xl py-3 text-sm disabled:opacity-60 shadow-[0_0_15px_rgba(230,179,106,0.3)] hover:shadow-[0_0_20px_rgba(230,179,106,0.5)] transition-all active:scale-[0.98]"
+              className="w-full bg-[#FFFFFF] text-black font-bold rounded-xl py-3 text-sm disabled:opacity-60 shadow-[0_0_15px_rgba(230,179,106,0.3)] hover:shadow-[0_0_20px_rgba(230,179,106,0.5)] transition-all active:scale-[0.98]"
             >
               {isSubmitting ? 'Signing in...' : 'Log in'}
             </button>
@@ -435,7 +435,7 @@ export default function CreatorLoginDetails() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-[#13151A] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-white/40/20 outline-none focus:border-[#C9A96E]/50 transition-all"
+                  className="w-full bg-[#111111] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-white/40/20 outline-none focus:border-[#FFFFFF]/50 transition-all"
                   placeholder="name@example.com"
                 />
               </div>
@@ -449,7 +449,7 @@ export default function CreatorLoginDetails() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-[#13151A] border border-white/10 rounded-xl pl-10 pr-10 py-3 text-sm text-white placeholder-white/40/20 outline-none focus:border-[#C9A96E]/50 transition-all"
+                  className="w-full bg-[#111111] border border-white/10 rounded-xl pl-10 pr-10 py-3 text-sm text-white placeholder-white/40/20 outline-none focus:border-[#FFFFFF]/50 transition-all"
                   placeholder="Enter password to save"
                 />
                 <button
@@ -489,7 +489,7 @@ export default function CreatorLoginDetails() {
                         window.localStorage.removeItem('creator_saved_password');
                     }
                   }}
-                  className="peer h-4 w-4 rounded-full border border-white/30 bg-transparent appearance-none checked:border-[#C9A96E] checked:bg-[#C9A96E] transition-all cursor-pointer"
+                  className="peer h-4 w-4 rounded-full border border-white/30 bg-transparent appearance-none checked:border-[#FFFFFF] checked:bg-[#FFFFFF] transition-all cursor-pointer"
                 />
                 <svg className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 text-black pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="4">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />

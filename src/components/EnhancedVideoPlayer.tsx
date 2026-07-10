@@ -69,10 +69,10 @@ export const PremiumSidebarButton = ({
       style={{
         background: 'linear-gradient(145deg, rgba(30,30,30,0.95) 0%, rgba(10,10,10,0.98) 100%)',
         boxShadow: isActive 
-          ? '0 0 20px rgba(201, 169, 110, 0.5), inset 0 1px 1px rgba(255,255,255,0.1)' 
+          ? '0 0 20px rgba(255,255,255,0.25), inset 0 1px 1px rgba(255,255,255,0.1)' 
           : '0 4px 15px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.05)',
         border: '2px solid',
-        borderColor: isActive ? '#C9A96E' : 'rgba(201, 169, 110, 0.4)',
+        borderColor: isActive ? '#FFFFFF' : 'rgba(255,255,255,0.25)',
       }}
     >
       {/* Inner glow */}
@@ -84,23 +84,23 @@ export const PremiumSidebarButton = ({
       />
       
       {/* Light reflection */}
-      <div className="absolute top-1 left-1/2 -translate-x-1/2 w-6 h-1 bg-gradient-to-r from-transparent via-[#C9A96E]/30 to-transparent rounded-full" />
+      <div className="absolute top-1 left-1/2 -translate-x-1/2 w-6 h-1 bg-gradient-to-r from-transparent via-[#FFFFFF]/30 to-transparent rounded-full" />
       
       {iconSrc ? (
         <img 
           src={iconSrc} 
           alt="" 
           className={`w-7 h-7 object-contain transition-all duration-200 ${isActive ? 'brightness-125' : 'opacity-80'}`}
-          style={{ filter: isActive ? 'drop-shadow(0 0 8px rgba(201, 169, 110, 0.6))' : 'none' }}
+          style={{ filter: isActive ? 'drop-shadow(0 0 8px rgba(255,255,255,0.25))' : 'none' }}
         />
       ) : Icon && (
         <Icon 
           className={`w-7 h-7 stroke-[1.5px] transition-all duration-200 ${
             isActive 
-              ? 'text-white drop-shadow-[0_0_8px_rgba(201, 169, 110, 0.6)]' 
+              ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.25)]' 
               : 'text-white/70'
           }`}
-          style={isActive ? { fill: '#C9A96E' } : { fill: 'transparent' }}
+          style={isActive ? { fill: '#FFFFFF' } : { fill: 'transparent' }}
         />
       )}
     </button>
@@ -648,7 +648,7 @@ export default function EnhancedVideoPlayer({
     >
       {/* Video Element - iPhone 14 Pro Max: 6.7" Super Retina XDR, 2796×1290, 19.5:9, ~460ppi */}
       <div
-        className="absolute inset-0 flex items-center justify-center bg-[#13151A]"
+        className="absolute inset-0 flex items-center justify-center bg-[#111111]"
         style={{ margin: 0, padding: 0, gap: 0 }}
       >
         <div className="w-full h-full" style={{ margin: 0, padding: 0 }}>
@@ -736,9 +736,9 @@ export default function EnhancedVideoPlayer({
 
 
         {videoError && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#13151A] z-10 gap-3">
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#111111] z-10 gap-3">
             <span className="text-white/50 text-sm">Video processing...</span>
-            <button onClick={() => { setVideoError(false); retryCountRef.current = 0; retryingRef.current = false; const el = videoRef.current; if (el && video.url) { el.src = video.url; el.load(); el.play().catch(() => {}); } }} className="px-4 py-1.5 bg-[#C9A96E]/20 border border-[#C9A96E]/40 rounded-lg text-[#C9A96E] text-xs font-medium">Tap to retry</button>
+            <button onClick={() => { setVideoError(false); retryCountRef.current = 0; retryingRef.current = false; const el = videoRef.current; if (el && video.url) { el.src = video.url; el.load(); el.play().catch(() => {}); } }} className="px-4 py-1.5 bg-[#FFFFFF]/20 border border-[#FFFFFF]/40 rounded-lg text-[#FFFFFF] text-xs font-medium">Tap to retry</button>
           </div>
         )}
 
@@ -795,10 +795,10 @@ export default function EnhancedVideoPlayer({
             }
           >
             <div
-              className="h-full rounded-full bg-gradient-to-r from-[#C9A96E] via-[#00c2be] to-[#C9A96E] relative overflow-hidden"
+              className="h-full rounded-full bg-gradient-to-r from-[#FFFFFF] via-[#00c2be] to-[#FFFFFF] relative overflow-hidden"
               style={{
                 width: `${duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0}%`,
-                boxShadow: scrubbing ? '0 0 10px rgba(201, 169, 110, 0.5)' : 'none',
+                boxShadow: scrubbing ? '0 0 10px rgba(255,255,255,0.25)' : 'none',
               }}
             >
               {scrubbing ? (
@@ -845,7 +845,7 @@ export default function EnhancedVideoPlayer({
           >
             {video.user.avatar ? (
               <div
-                className="pointer-events-none absolute overflow-hidden rounded-full bg-[#13151A]"
+                className="pointer-events-none absolute overflow-hidden rounded-full bg-[#111111]"
                 style={{
                   width: VIDEO_SIDEBAR_AVATAR_INNER,
                   height: VIDEO_SIDEBAR_AVATAR_INNER,
@@ -912,7 +912,7 @@ export default function EnhancedVideoPlayer({
           <img 
             src="/Icons/Save Icon.png" 
             alt="Save" 
-            className={`absolute inset-0 w-full h-full object-contain z-[2] ${video.isSaved ? 'brightness-125 drop-shadow-[0_0_8px_rgba(201,169,110,0.6)]' : ''}`}
+            className={`absolute inset-0 w-full h-full object-contain z-[2] ${video.isSaved ? 'brightness-125 drop-shadow-[0_0_8px_rgba(255,255,255,0.25)]' : ''}`}
           />
         </button>
         <span className="text-white text-[10px] font-semibold -mt-1">{formatNumber(Math.max(0, video.stats.saves || 0))}</span>
@@ -975,7 +975,7 @@ export default function EnhancedVideoPlayer({
           <LevelBadge level={video.user.level ?? 1} size={10} layout="fixed" avatar={video.user.avatar} />
           <h3 className="text-white font-bold text-shadow-md">{video.user.name || video.user.username}</h3>
           {video.user.isVerified && (
-            <div className="w-4 h-4 bg-[#C9A96E] rounded-full flex items-center justify-center">
+            <div className="w-4 h-4 bg-[#FFFFFF] rounded-full flex items-center justify-center">
               <div className="w-2 h-2 bg-white rounded-full" />
             </div>
           )}
@@ -1051,8 +1051,8 @@ export default function EnhancedVideoPlayer({
         <div className="fixed inset-0 z-modals flex items-end justify-center">
           <div className="absolute inset-0 pointer-events-auto" onClick={() => setIsMoreMenuOpen(false)} />
           <div
-            className="bg-[#1C1E24]/95 rounded-t-2xl max-h-[40dvh] flex flex-col shadow-2xl border-2 border-b-0 border-[#C9A96E] pointer-events-auto w-full max-w-[480px] relative z-10"
-            style={{ marginBottom: 'var(--bottom-ui-reserve)', boxShadow: '0 -4px 30px rgba(201,169,110,0.25)' }}
+            className="bg-[#111111]/95 rounded-t-2xl max-h-[40dvh] flex flex-col shadow-2xl border-2 border-b-0 border-[#FFFFFF] pointer-events-auto w-full max-w-[480px] relative z-10"
+            style={{ marginBottom: 'var(--bottom-ui-reserve)', boxShadow: '0 -4px 30px rgba(255,255,255,0.25)' }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
@@ -1070,7 +1070,7 @@ export default function EnhancedVideoPlayer({
                     alt="QR code"
                     className="w-28 h-28 rounded-lg bg-white p-1.5"
                   />
-                  <button type="button" onClick={() => setShowQrCodeInMore(false)} className="text-[#C9A96E] text-xs font-semibold">Close</button>
+                  <button type="button" onClick={() => setShowQrCodeInMore(false)} className="text-[#FFFFFF] text-xs font-semibold">Close</button>
                 </div>
               )}
               <div className="grid grid-cols-4 gap-y-4 gap-x-2">
@@ -1079,7 +1079,7 @@ export default function EnhancedVideoPlayer({
                   onClick={() => { handleCopyLink(); setIsMoreMenuOpen(false); }}
                   className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
-                  <div className="relative w-11 h-11 rounded-full bg-[#13151A] overflow-hidden flex items-center justify-center">
+                  <div className="relative w-11 h-11 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center">
                     <Copy className="relative z-[2] w-[18px] h-[18px] text-white" strokeWidth={1.8} />
                     <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[3] scale-125 translate-y-0.5" />
                   </div>
@@ -1090,7 +1090,7 @@ export default function EnhancedVideoPlayer({
                   onClick={() => { handleDownload(); setIsMoreMenuOpen(false); }}
                   className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
-                  <div className="relative w-11 h-11 rounded-full bg-[#13151A] overflow-hidden flex items-center justify-center">
+                  <div className="relative w-11 h-11 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center">
                     <Download className="relative z-[2] w-[18px] h-[18px] text-white" strokeWidth={1.8} />
                     <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[3] scale-125 translate-y-0.5" />
                   </div>
@@ -1101,7 +1101,7 @@ export default function EnhancedVideoPlayer({
                   onClick={() => { setIsMoreMenuOpen(false); navigate(`/upload?duet=${videoId}`); }}
                   className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
-                  <div className="relative w-11 h-11 rounded-full bg-[#13151A] overflow-hidden flex items-center justify-center">
+                  <div className="relative w-11 h-11 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center">
                     <Users2 className="relative z-[2] w-[18px] h-[18px] text-white" strokeWidth={1.8} />
                     <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[3] scale-125 translate-y-0.5" />
                   </div>
@@ -1112,7 +1112,7 @@ export default function EnhancedVideoPlayer({
                   onClick={() => setShowQrCodeInMore((v) => !v)}
                   className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
-                  <div className="relative w-11 h-11 rounded-full bg-[#13151A] overflow-hidden flex items-center justify-center">
+                  <div className="relative w-11 h-11 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center">
                     <QrCode className="relative z-[2] w-[18px] h-[18px] text-white" strokeWidth={1.8} />
                     <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[3] scale-125 translate-y-0.5" />
                   </div>
@@ -1124,11 +1124,11 @@ export default function EnhancedVideoPlayer({
                     onClick={() => { handleDeleteVideo(); setIsMoreMenuOpen(false); }}
                     className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                   >
-                    <div className="relative w-11 h-11 rounded-full bg-[#13151A] overflow-hidden flex items-center justify-center">
-                      <Trash2 className="relative z-[2] w-[18px] h-[18px] text-red-400" strokeWidth={1.8} />
+                    <div className="relative w-11 h-11 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center">
+                      <Trash2 className="relative z-[2] w-[18px] h-[18px] text-white/60" strokeWidth={1.8} />
                       <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[3] scale-125 translate-y-0.5" />
                     </div>
-                    <span className="text-[10px] font-semibold text-red-400/70">Delete video</span>
+                    <span className="text-[10px] font-semibold text-white/60/70">Delete video</span>
                   </button>
                 )}
                 <button
@@ -1136,7 +1136,7 @@ export default function EnhancedVideoPlayer({
                   onClick={() => { setIsMoreMenuOpen(false); handleShare(); }}
                   className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
-                  <div className="relative w-11 h-11 rounded-full bg-[#13151A] overflow-hidden flex items-center justify-center">
+                  <div className="relative w-11 h-11 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center">
                     <Share2 className="relative z-[2] w-[18px] h-[18px] text-white" strokeWidth={1.8} />
                     <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[3] scale-125 translate-y-0.5" />
                   </div>
@@ -1147,7 +1147,7 @@ export default function EnhancedVideoPlayer({
                   onClick={() => { handleSave(); setIsMoreMenuOpen(false); }}
                   className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
-                  <div className="relative w-11 h-11 rounded-full bg-[#13151A] overflow-hidden flex items-center justify-center">
+                  <div className="relative w-11 h-11 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center">
                     <Bookmark className="relative z-[2] w-[18px] h-[18px] text-white" strokeWidth={1.8} />
                     <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[3] scale-125 translate-y-0.5" />
                   </div>
@@ -1158,7 +1158,7 @@ export default function EnhancedVideoPlayer({
                   onClick={() => { handleFollow(); setIsMoreMenuOpen(false); }}
                   className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
-                  <div className="relative w-11 h-11 rounded-full bg-[#13151A] overflow-hidden flex items-center justify-center">
+                  <div className="relative w-11 h-11 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center">
                     {video.isFollowing ? <UserMinus className="relative z-[2] w-[18px] h-[18px] text-white" strokeWidth={1.8} /> : <UserPlus className="relative z-[2] w-[18px] h-[18px] text-white" strokeWidth={1.8} />}
                     <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[3] scale-125 translate-y-0.5" />
                   </div>
@@ -1169,7 +1169,7 @@ export default function EnhancedVideoPlayer({
                   onClick={() => { setIsMoreMenuOpen(false); setShowPromotePanel(true); }}
                   className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
-                  <div className="relative w-11 h-11 rounded-full bg-[#13151A] overflow-hidden flex items-center justify-center">
+                  <div className="relative w-11 h-11 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center">
                     <TrendingUp className="relative z-[2] w-[18px] h-[18px] text-white" strokeWidth={1.8} />
                     <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[3] scale-125 translate-y-0.5" />
                   </div>
@@ -1180,11 +1180,11 @@ export default function EnhancedVideoPlayer({
                   onClick={() => { setIsMoreMenuOpen(false); setShowReportModal(true); trackEvent('video_report_open', { videoId }); }}
                   className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
-                  <div className="relative w-11 h-11 rounded-full bg-[#13151A] overflow-hidden flex items-center justify-center">
-                    <Flag className="relative z-[2] w-[18px] h-[18px] text-red-400" strokeWidth={1.8} />
+                  <div className="relative w-11 h-11 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center">
+                    <Flag className="relative z-[2] w-[18px] h-[18px] text-white/60" strokeWidth={1.8} />
                     <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[3] scale-125 translate-y-0.5" />
                   </div>
-                  <span className="text-[10px] font-semibold text-red-400/70">Report</span>
+                  <span className="text-[10px] font-semibold text-white/60/70">Report</span>
                 </button>
               </div>
             </div>

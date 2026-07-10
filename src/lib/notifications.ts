@@ -144,14 +144,14 @@ class NotificationService {
   private showInAppNotification(notification: PushNotificationSchema): void {
     const banner = document.createElement("div");
     banner.className =
-      "fixed top-4 left-4 right-4 bg-[#13151A]/90 backdrop-blur-sm rounded-2xl p-4 shadow-2xl z-50 animate-slide-down";
+      "fixed top-4 left-4 right-4 bg-[#111111]/90 backdrop-blur-sm rounded-2xl p-4 shadow-2xl z-50 animate-slide-down";
 
     const safeTitle = this.escapeHtml(notification.title || "");
     const safeBody = this.escapeHtml(notification.body || "");
 
     banner.innerHTML = `
       <div class="flex items-start gap-3">
-        <div class="w-10 h-10 bg-[#C9A96E] rounded-full flex items-center justify-center flex-shrink-0">
+        <div class="w-10 h-10 bg-[#FFFFFF] rounded-full flex items-center justify-center flex-shrink-0">
           <svg class="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9">

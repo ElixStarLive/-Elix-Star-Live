@@ -69,16 +69,16 @@ export default function AdminUsers() {
   );
 
   if (loading) {
-    return <div className="min-h-screen bg-[#13151A] flex items-center justify-center text-white">Loading...</div>;
+    return <div className="min-h-screen bg-[#111111] flex items-center justify-center text-white">Loading...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-[#13151A] text-white p-6">
+    <div className="min-h-screen bg-[#111111] text-white p-6">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold mb-6">User Management</h1>
 
         {/* Search */}
-        <div className="mb-6 flex items-center gap-4 bg-[#1C1E24] rounded-lg px-4 py-3">
+        <div className="mb-6 flex items-center gap-4 bg-[#111111] rounded-lg px-4 py-3">
           <Search className="w-5 h-5 text-white" />
           <input
             type="text"
@@ -90,7 +90,7 @@ export default function AdminUsers() {
         </div>
 
         {/* Users Table */}
-        <div className="bg-[#1C1E24] rounded-lg overflow-hidden">
+        <div className="bg-[#111111] rounded-lg overflow-hidden">
           <table className="w-full">
             <thead className="bg-[#2A2D35]">
               <tr>
@@ -121,13 +121,13 @@ export default function AdminUsers() {
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => navigate(`/profile/${user.id}`)}
-                        className="px-3 py-1 bg-[#C9A96E] rounded hover:bg-[#B8943F] text-sm"
+                        className="px-3 py-1 bg-[#FFFFFF] rounded hover:bg-[#B8943F] text-sm"
                       >
                         View
                       </button>
                       <button
                         onClick={() => handleBanUser(user.id)}
-                        className="px-3 py-1 bg-red-600 rounded hover:bg-red-700 text-sm flex items-center gap-1"
+                        className="px-3 py-1 bg-white/25 rounded hover:bg-white/30 text-sm flex items-center gap-1"
                       >
                         <Ban className="w-4 h-4" />
                         Ban

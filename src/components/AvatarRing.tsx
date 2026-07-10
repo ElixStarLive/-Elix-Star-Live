@@ -18,7 +18,7 @@ export function AvatarRing({ src, alt = '', size, className = '', onClick, simpl
   if (simple) {
     return (
       <div
-        className={`relative flex-shrink-0 rounded-full overflow-hidden border-2 border-[#C9A96E]/70 bg-[#13151A] ${onClick ? 'cursor-pointer' : ''} ${className}`}
+        className={`relative flex-shrink-0 rounded-full overflow-hidden border-2 border-[#FFFFFF]/70 bg-[#111111] ${onClick ? 'cursor-pointer' : ''} ${className}`}
         style={{ width: size, height: size }}
         onClick={onClick}
       >

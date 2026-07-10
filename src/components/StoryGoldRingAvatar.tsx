@@ -46,7 +46,7 @@ export function StoryGoldRingAvatar({
       {...(dataAvatarCircle ? { 'data-avatar-circle': dataAvatarCircle } : {})}
     >
       <div
-        className="absolute rounded-full overflow-hidden bg-[#13151A]"
+        className="absolute rounded-full overflow-hidden bg-[#111111]"
         style={{
           width: inner,
           height: inner,
@@ -85,7 +85,7 @@ export function StoryGoldRingAvatar({
       )}
 
       {live && (
-        <div className="pointer-events-none absolute bottom-[calc(2px+0.5mm)] left-1/2 z-[20] -translate-x-1/2 translate-y-[35%] whitespace-nowrap rounded-full bg-red-500 px-[0.7mm] py-[0.1mm] text-[6px] font-bold leading-none text-white">
+        <div className="pointer-events-none absolute bottom-[calc(2px+0.5mm)] left-1/2 z-[20] -translate-x-1/2 translate-y-[35%] whitespace-nowrap rounded-full bg-white/20 px-[0.7mm] py-[0.1mm] text-[6px] font-bold leading-none text-white">
           LIVE
         </div>
       )}

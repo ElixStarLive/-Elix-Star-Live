@@ -34,12 +34,12 @@ function MessageText({ text, isMe, navigate: nav }: { text: string; isMe: boolea
           if (appMatch) {
             const route = appMatch[1] === 'video' ? `/video/${appMatch[2]}` : `/watch/${appMatch[2]}`;
             return (
-              <button key={i} type="button" onClick={() => nav(route)} className={`underline font-medium ${isMe ? 'text-black/80' : 'text-[#C9A96E]'}`}>
+              <button key={i} type="button" onClick={() => nav(route)} className={`underline font-medium ${isMe ? 'text-black/80' : 'text-[#FFFFFF]'}`}>
                 {appMatch[1] === 'video' ? 'View Video' : 'Join Live'}
               </button>
             );
           }
-          return <a key={i} href={part} target="_blank" rel="noopener noreferrer" className={`underline ${isMe ? 'text-black/70' : 'text-[#C9A96E]/80'}`}>{part}</a>;
+          return <a key={i} href={part} target="_blank" rel="noopener noreferrer" className={`underline ${isMe ? 'text-black/70' : 'text-[#FFFFFF]/80'}`}>{part}</a>;
         }
         return <React.Fragment key={i}>{part}</React.Fragment>;
       })}
@@ -199,7 +199,7 @@ export default function ChatThread() {
 
   if (isSystemThread) {
     return (
-      <div className="min-h-full min-h-0 flex flex-col bg-[#13151A] text-white p-4">
+      <div className="min-h-full min-h-0 flex flex-col bg-[#111111] text-white p-4">
         <header className="flex items-center gap-4 mb-4 flex-shrink-0">
           <button type="button" onClick={() => navigate('/inbox')} className="p-1 rounded-lg active:bg-white/10" aria-label="Back to inbox">
             <ArrowLeft />
@@ -213,10 +213,10 @@ export default function ChatThread() {
 
   return (
     <div
-      className="fixed left-0 right-0 flex flex-col w-full max-w-[480px] mx-auto bg-[#13151A] text-white z-[1]"
+      className="fixed left-0 right-0 flex flex-col w-full max-w-[480px] mx-auto bg-[#111111] text-white z-[1]"
       style={{ top: 'var(--topbar-total)', bottom: 'var(--bottom-ui-reserve)' }}
     >
-        <header className="flex-shrink-0 flex items-center gap-2 px-4 py-3 border-b border-white/10 bg-[#13151A]">
+        <header className="flex-shrink-0 flex items-center gap-2 px-4 py-3 border-b border-white/10 bg-[#111111]">
           <div className="flex w-12 shrink-0 items-center justify-start">
             {otherUser && (
               <button
@@ -227,7 +227,7 @@ export default function ChatThread() {
                     if (callId) navigate('/call');
                   } catch { /* auth or connection error */ }
                 }}
-                className="p-2 rounded-full bg-[#13151A] border border-[#C9A96E]/40 hover:bg-[#C9A96E]/10 transition-colors"
+                className="p-2 rounded-full bg-[#111111] border border-[#FFFFFF]/40 hover:bg-[#FFFFFF]/10 transition-colors"
                 aria-label="Video call"
               >
                 <Video className="w-5 h-5 text-white" />
@@ -264,7 +264,7 @@ export default function ChatThread() {
 
             return (
               <div key={m.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm leading-snug break-words ${isMe ? 'bg-[#C9A96E] text-black rounded-tr-none' : 'bg-[#222] text-white rounded-tl-none'}`}>
+                <div className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm leading-snug break-words ${isMe ? 'bg-[#FFFFFF] text-black rounded-tr-none' : 'bg-[#222] text-white rounded-tl-none'}`}>
                   {preview ? (
                     <div>
                       <button
@@ -289,7 +289,7 @@ export default function ChatThread() {
                             </div>
                           </div>
                           {preview.type === 'live' && (
-                            <div className="absolute top-2 left-2 px-2 py-0.5 bg-red-500 rounded text-[10px] font-bold text-white">LIVE</div>
+                            <div className="absolute top-2 left-2 px-2 py-0.5 bg-white/20 rounded text-[10px] font-bold text-white">LIVE</div>
                           )}
                         </div>
                         {(preview.username || preview.description) && (
@@ -312,7 +312,7 @@ export default function ChatThread() {
           })}
         </div>
 
-        <div className="flex-shrink-0 p-4 bg-[#13151A] border-t border-white/10">
+        <div className="flex-shrink-0 p-4 bg-[#111111] border-t border-white/10">
           <form className="flex items-center gap-2 bg-[#222] rounded-full px-4 py-2" onSubmit={handleSend}>
             <input
               value={draft}
@@ -320,7 +320,7 @@ export default function ChatThread() {
               className="flex-1 bg-transparent outline-none text-sm text-white placeholder-white/40"
               placeholder="Type a message..."
             />
-            <button type="submit" disabled={!draft.trim()} className="p-2 bg-[#C9A96E] rounded-full text-black disabled:opacity-50 disabled:bg-gray-600">
+            <button type="submit" disabled={!draft.trim()} className="p-2 bg-[#FFFFFF] rounded-full text-black disabled:opacity-50 disabled:bg-gray-600">
               <Send size={16} />
             </button>
           </form>

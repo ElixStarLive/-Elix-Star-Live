@@ -1,17 +1,4 @@
-/* ═══ ROSE GOLD METALLIC ICONS ═══ */
-svg[stroke="currentColor"][fill="none"] {
-  filter: drop-shadow(0 0 3px rgba(212,160,23,0.5)) drop-shadow(0 0 6px rgba(201,169,110,0.25));
-}
-
-svg[stroke="currentColor"][fill="none"] > line,
-svg[stroke="currentColor"][fill="none"] > path,
-svg[stroke="currentColor"][fill="none"] > circle,
-svg[stroke="currentColor"][fill="none"] > rect,
-svg[stroke="currentColor"][fill="none"] > polyline,
-svg[stroke="currentColor"][fill="none"] > polygon,
-svg[stroke="currentColor"][fill="none"] > ellipse {
-  stroke: url(#rg) !important;
-}
+/* Monochrome UI — no colored icon treatment */
 
 /* UI POLISH IMPROVEMENTS - Clean & Consistent */
 
@@ -44,11 +31,11 @@ svg[stroke="currentColor"][fill="none"] > ellipse {
 
 /* Clean bottom sheets */
 .bottom-sheet {
-  @apply bg-[#13151A]/95 rounded-t-2xl max-h-[70dvh] overflow-y-auto no-scrollbar shadow-2xl;
+  @apply bg-[#111111]/95 rounded-t-2xl max-h-[70dvh] overflow-y-auto no-scrollbar shadow-2xl;
 }
 
 .bottom-sheet-small {
-  @apply bg-[#13151A]/95 rounded-t-2xl max-h-[40dvh] overflow-y-auto no-scrollbar shadow-2xl;
+  @apply bg-[#111111]/95 rounded-t-2xl max-h-[40dvh] overflow-y-auto no-scrollbar shadow-2xl;
 }
 
 /* Remove visual clutter */
@@ -59,5 +46,3 @@ svg[stroke="currentColor"][fill="none"] > ellipse {
 .clean-shadow {
   @apply shadow-lg shadow-black/20;
 }
-
-/* Note: Text sizes and rounded corners use Tailwind defaults */

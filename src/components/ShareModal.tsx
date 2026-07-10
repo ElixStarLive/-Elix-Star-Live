@@ -104,19 +104,19 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin, i
     { name: 'WhatsApp', color: '#25D366', icon: <MessageCircle size={22} className="text-white" />, action: () => openExternalLink(`https://wa.me/?text=${encodeURIComponent(shareText + ' ' + videoUrl)}`) },
     { name: 'Facebook', color: '#1877F2', icon: <Share2 size={22} className="text-white" />, action: () => openExternalLink(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(videoUrl)}`) },
     { name: 'Twitter', color: '#1DA1F2', icon: <Share2 size={22} className="text-white" />, action: () => openExternalLink(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(videoUrl)}`) },
-    { name: 'Copy Link', color: '#C9A96E', icon: copiedLink ? <Check size={22} className="text-white" /> : <Copy size={22} className="text-white" />, action: handleCopyLink },
+    { name: 'Copy Link', color: '#FFFFFF', icon: copiedLink ? <Check size={22} className="text-white" /> : <Copy size={22} className="text-white" />, action: handleCopyLink },
     { name: 'Email', color: '#EA4335', icon: <Send size={22} className="text-white" />, action: () => openExternalLink(`mailto:?subject=Check out this video&body=${encodeURIComponent(shareText + '\n\n' + videoUrl)}`) },
   ];
 
   const isOwnVideo = !!user?.id && !!video.user?.id && user.id === video.user.id;
   const actionItems = [
     { name: 'Duet', icon: <Users2 size={22} className="text-white" />, action: () => { onClose(); navigate(`/upload?duet=${video.id}`); } },
-    { name: 'Promote', color: '#C9A96E', icon: <TrendingUp size={22} className="text-white" />, action: () => { onClose(); setShowPromotePanel(true); } },
+    { name: 'Promote', color: '#FFFFFF', icon: <TrendingUp size={22} className="text-white" />, action: () => { onClose(); setShowPromotePanel(true); } },
     { name: 'Report', color: '#EF4444', icon: <Flag size={22} className="text-white" />, action: () => { onClose(); if (onReport) onReport(); } },
     { name: 'Share', icon: <Share2 size={22} className="text-white" />, action: async () => { await nativeShareUrl({ title: `Video by @${video.user.username}`, text: shareText, url: videoUrl }); } },
     { name: 'Download', icon: <Download size={22} className="text-white" />, action: async () => { try { const res = await fetch(video.url, { mode: 'cors' }); const blob = await res.blob(); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `video_${video.id}.mp4`; a.click(); URL.revokeObjectURL(url); } catch { const a = document.createElement('a'); a.href = video.url; a.download = `video_${video.id}.mp4`; a.target = '_blank'; a.click(); } } },
     { name: 'QR Code', icon: <QrCode size={22} className="text-white" />, action: () => setShowQrCode(true) },
-    ...(isOwnVideo && onDeleteVideo ? [{ name: 'Delete video', icon: <Trash2 size={22} className="text-red-400" />, action: async () => { const ok = await nativeConfirm('Delete this video? This cannot be undone.', 'Delete Video'); if (ok) { onDeleteVideo(); onClose(); } }, isRed: true }] : []),
+    ...(isOwnVideo && onDeleteVideo ? [{ name: 'Delete video', icon: <Trash2 size={22} className="text-white/60" />, action: async () => { const ok = await nativeConfirm('Delete this video? This cannot be undone.', 'Delete Video'); if (ok) { onDeleteVideo(); onClose(); } }, isRed: true }] : []),
   ];
 
   return (
@@ -124,7 +124,7 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin, i
     {isOpen && (
     <div className="fixed inset-0 z-modals bg-black/40 flex items-end justify-center" onClick={onClose}>
       <div
-        className="bg-[#1C1E24]/95 backdrop-blur-md w-full max-w-[480px] rounded-t-2xl overflow-hidden flex flex-col border-t border-[#C9A96E]/20 h-[38vh] shadow-2xl mb-[calc(var(--nav-height)+var(--safe-bottom))]"
+        className="bg-[#111111]/95 backdrop-blur-md w-full max-w-[480px] rounded-t-2xl overflow-hidden flex flex-col border-t border-[#FFFFFF]/20 h-[38vh] shadow-2xl mb-[calc(var(--nav-height)+var(--safe-bottom))]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-4 pt-1 pb-1">
@@ -157,7 +157,7 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin, i
           >
             <div className="relative w-[85px] h-[85px] flex items-center justify-center">
               <StoryGoldRingAvatar size={85} src={user?.avatar || '/Icons/Profile icon.png'} alt="Create" />
-              <Plus size={28} className="text-[#C9A96E] absolute" strokeWidth={2.5} />
+              <Plus size={28} className="text-[#FFFFFF] absolute" strokeWidth={2.5} />
             </div>
             <span className="text-white/80 text-[11px] font-medium">Create</span>
           </button>
@@ -177,7 +177,7 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin, i
         </div>
 
         {/* All share options — compact grid, scrollable */}
-        <div className="flex-1 overflow-y-scroll overflow-x-hidden min-h-0 px-4 pb-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#C9A96E]/60 [&::-webkit-scrollbar-thumb]:rounded-full" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(201,169,110,0.6) transparent' }}>
+        <div className="flex-1 overflow-y-scroll overflow-x-hidden min-h-0 px-4 pb-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#FFFFFF]/60 [&::-webkit-scrollbar-thumb]:rounded-full" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.25) transparent' }}>
           {showQrCode && (
             <div className="pt-2 pb-3 flex flex-col items-center gap-2 border-b border-white/10 mb-2">
               <div className="flex items-center justify-between w-full">
@@ -198,7 +198,7 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin, i
                 onClick={() => item.action()}
                 className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
               >
-                <div className="relative w-9 h-9 rounded-full bg-[#13151A] overflow-hidden flex items-center justify-center flex-shrink-0">
+                <div className="relative w-9 h-9 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center flex-shrink-0">
                   <div className="relative z-[2]">{React.cloneElement(item.icon as React.ReactElement, { className: 'w-3.5 h-3.5 text-white', strokeWidth: 1.8 })}</div>
                   <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[3] scale-125 translate-y-0.5" />
                 </div>
@@ -213,11 +213,11 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin, i
                   onClick={() => item.action()}
                   className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
                 >
-                  <div className="relative w-9 h-9 rounded-full bg-[#13151A] overflow-hidden flex items-center justify-center flex-shrink-0">
-                    <div className={`relative z-[2] ${item.name === 'Report' ? 'translate-y-0.5' : ''}`}>{React.cloneElement(item.icon as React.ReactElement, { className: `w-3.5 h-3.5 ${isRed ? 'text-red-400' : 'text-white'}`, strokeWidth: 1.8 })}</div>
+                  <div className="relative w-9 h-9 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center flex-shrink-0">
+                    <div className={`relative z-[2] ${item.name === 'Report' ? 'translate-y-0.5' : ''}`}>{React.cloneElement(item.icon as React.ReactElement, { className: `w-3.5 h-3.5 ${isRed ? 'text-white/60' : 'text-white'}`, strokeWidth: 1.8 })}</div>
                     <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[3] scale-125 translate-y-px" />
                   </div>
-                  <span className={`text-[8px] font-semibold truncate w-full text-center ${isRed ? 'text-red-400/70' : 'text-white/70'}`}>{item.name}</span>
+                  <span className={`text-[8px] font-semibold truncate w-full text-center ${isRed ? 'text-white/60/70' : 'text-white/70'}`}>{item.name}</span>
                 </button>
               );
             })}

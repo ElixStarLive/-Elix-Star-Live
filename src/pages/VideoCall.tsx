@@ -238,7 +238,7 @@ export default function VideoCall() {
 
   if (!callId || !remoteUser) {
     return (
-      <div className="min-h-[100dvh] h-[100dvh] w-full bg-[#13151A] flex justify-center text-white overflow-hidden">
+      <div className="min-h-[100dvh] h-[100dvh] w-full bg-[#111111] flex justify-center text-white overflow-hidden">
         <div className="w-full max-w-[480px] mx-auto flex items-center justify-center px-4">
           <p>No active call</p>
         </div>
@@ -277,7 +277,7 @@ export default function VideoCall() {
               : formatDuration(elapsed);
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-[#13151A] pb-[var(--bottom-ui-reserve)]">
+    <div className="fixed inset-0 z-50 flex flex-col bg-[#111111] pb-[var(--bottom-ui-reserve)]">
       {/* Same width column as BottomNav (max-w-[480px] centered) — full-bleed bg on sides */}
       <div className="flex flex-1 min-h-0 flex-col w-full max-w-[480px] mx-auto">
       {/* Remote video (full screen) */}
@@ -294,7 +294,7 @@ export default function VideoCall() {
             {remoteUser.avatar ? (
               <AvatarRing src={remoteUser.avatar} alt={remoteUser.username} size={96} />
             ) : (
-              <div className="w-24 h-24 rounded-full bg-[#13151A] border border-[#C9A96E]/40 flex items-center justify-center text-3xl text-white">
+              <div className="w-24 h-24 rounded-full bg-[#111111] border border-[#FFFFFF]/40 flex items-center justify-center text-3xl text-white">
                 {remoteUser.username[0]?.toUpperCase()}
               </div>
             )}
@@ -307,14 +307,14 @@ export default function VideoCall() {
 
         {/* Timer / Status */}
         {status === 'connected' && (
-          <div className="absolute top-12 left-1/2 -translate-x-1/2 bg-[#13151A]/50 px-4 py-1 rounded-full">
+          <div className="absolute top-12 left-1/2 -translate-x-1/2 bg-[#111111]/50 px-4 py-1 rounded-full">
             <p className="text-white text-sm font-mono">{statusLabel}</p>
           </div>
         )}
 
         {/* Local video PiP */}
         {localStream && (
-          <div className="absolute top-20 right-4 w-28 h-40 rounded-2xl overflow-hidden border-2 border-white/20 bg-[#13151A] shadow-lg">
+          <div className="absolute top-20 right-4 w-28 h-40 rounded-2xl overflow-hidden border-2 border-white/20 bg-[#111111] shadow-lg">
             <video
               ref={localVideoRef}
               autoPlay
@@ -323,7 +323,7 @@ export default function VideoCall() {
               className={`w-full h-full object-cover ${isVideoOff ? 'hidden' : ''}`}
             />
             {isVideoOff && (
-              <div className="w-full h-full flex items-center justify-center bg-[#1C1E24]">
+              <div className="w-full h-full flex items-center justify-center bg-[#111111]">
                 <VideoOff className="w-6 h-6 text-white/50" />
               </div>
             )}
@@ -332,13 +332,13 @@ export default function VideoCall() {
       </div>
 
       {/* Controls */}
-      <div className="w-full bg-[#13151A]/80 backdrop-blur-sm pb-10 pt-6 px-6 shrink-0">
+      <div className="w-full bg-[#111111]/80 backdrop-blur-sm pb-10 pt-6 px-6 shrink-0">
         <div className="flex items-center justify-center gap-6">
           <button
             type="button"
             onClick={toggleAudio}
             className={`w-14 h-14 rounded-full flex items-center justify-center ${
-              isAudioMuted ? 'bg-red-500/80' : 'bg-white/20'
+              isAudioMuted ? 'bg-white/20/80' : 'bg-white/20'
             }`}
           >
             {isAudioMuted ? (
@@ -352,7 +352,7 @@ export default function VideoCall() {
             type="button"
             onClick={toggleVideo}
             className={`w-14 h-14 rounded-full flex items-center justify-center ${
-              isVideoOff ? 'bg-red-500/80' : 'bg-white/20'
+              isVideoOff ? 'bg-white/20/80' : 'bg-white/20'
             }`}
           >
             {isVideoOff ? (
@@ -366,7 +366,7 @@ export default function VideoCall() {
             type="button"
             onClick={switchCamera}
             title="Switch camera"
-            className="w-14 h-14 rounded-full bg-[#13151A] border border-[#C9A96E]/40 flex items-center justify-center"
+            className="w-14 h-14 rounded-full bg-[#111111] border border-[#FFFFFF]/40 flex items-center justify-center"
           >
             <SwitchCamera className="w-6 h-6 text-white" />
           </button>
@@ -375,7 +375,7 @@ export default function VideoCall() {
             type="button"
             onClick={handleHangup}
             title="End call"
-            className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center shadow-lg"
+            className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center shadow-lg"
           >
             <PhoneOff className="w-7 h-7 text-white" />
           </button>

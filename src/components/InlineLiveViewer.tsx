@@ -174,7 +174,7 @@ export default function InlineLiveViewer({
 
   return (
     <div
-      className={`relative w-full h-full bg-[#13151A] cursor-pointer ${className}`}
+      className={`relative w-full h-full bg-[#111111] cursor-pointer ${className}`}
       style={{ background: "#13151A" }}
       onClick={() => navigate(`/watch/${streamKey}`)}
     >
@@ -191,10 +191,10 @@ export default function InlineLiveViewer({
       />
 
       {!hasStream && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#13151A] gap-4 pointer-events-none">
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#111111] gap-4 pointer-events-none">
           {creatorAvatar ? (
             <div
-              className="rounded-full overflow-hidden border-2 border-[#C9A96E]/50 shrink-0"
+              className="rounded-full overflow-hidden border-2 border-[#FFFFFF]/50 shrink-0"
               style={{ width: INLINE_LIVE_PLACEHOLDER_AVATAR_PX, height: INLINE_LIVE_PLACEHOLDER_AVATAR_PX }}
             >
               <img
@@ -205,10 +205,10 @@ export default function InlineLiveViewer({
             </div>
           ) : (
             <div
-              className="rounded-full bg-[#C9A96E]/20 flex items-center justify-center shrink-0"
+              className="rounded-full bg-[#FFFFFF]/20 flex items-center justify-center shrink-0"
               style={{ width: INLINE_LIVE_PLACEHOLDER_AVATAR_PX, height: INLINE_LIVE_PLACEHOLDER_AVATAR_PX }}
             >
-              <span className="text-3xl font-bold text-[#C9A96E]/80">
+              <span className="text-3xl font-bold text-[#FFFFFF]/80">
                 {(creatorName || "C").charAt(0).toUpperCase()}
               </span>
             </div>
@@ -216,7 +216,7 @@ export default function InlineLiveViewer({
           <p className="text-white font-semibold text-base truncate max-w-[80%]">{creatorName}</p>
           {connecting && !isOffline ? (
             <>
-              <div className="w-8 h-8 border-2 border-[#C9A96E] border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-2 border-[#FFFFFF] border-t-transparent rounded-full animate-spin" />
               <span className="text-white/60 text-sm">Connecting to live...</span>
             </>
           ) : isOffline ? (
@@ -232,7 +232,7 @@ export default function InlineLiveViewer({
           style={{ paddingTop: "calc(env(safe-area-inset-top, 8px) + 8px)" }}
         >
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-red-500/90">
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/20">
               <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
               <span className="text-white text-[10px] font-bold">LIVE</span>
             </div>
@@ -248,7 +248,7 @@ export default function InlineLiveViewer({
         <div className="absolute bottom-0 left-0 right-0 z-10 p-3 pb-safe bg-gradient-to-t from-black/80 to-transparent pt-12 pointer-events-none">
           <p className="text-white font-bold text-sm truncate mb-1">{creatorName}</p>
           <div className="flex items-center gap-2">
-            <Radio size={14} className="text-red-400" />
+            <Radio size={14} className="text-white/60" />
             <span className="text-white/70 text-xs font-semibold">Tap to join live</span>
           </div>
         </div>

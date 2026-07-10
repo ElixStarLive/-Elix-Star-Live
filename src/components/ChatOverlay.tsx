@@ -158,7 +158,7 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
             </div>
 
             {activeModMenu === msg.id && isModerator && (
-              <div className="absolute left-20 -top-1 z-50 flex items-center gap-1 bg-[#1C1E24] border border-white/20 rounded-lg px-1 py-1 shadow-xl pointer-events-auto">
+              <div className="absolute left-20 -top-1 z-50 flex items-center gap-1 bg-[#111111] border border-white/20 rounded-lg px-1 py-1 shadow-xl pointer-events-auto">
                 <button
                   type="button"
                   onClick={(e) => {
@@ -168,8 +168,8 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
                   }}
                   className="flex items-center gap-1 px-2 py-1.5 rounded-md hover:bg-white/10 active:scale-95 transition-all"
                 >
-                  <Trash2 size={12} className="text-red-400" />
-                  <span className="text-red-400 text-[10px] font-bold">Delete</span>
+                  <Trash2 size={12} className="text-white/60" />
+                  <span className="text-white/60 text-[10px] font-bold">Delete</span>
                 </button>
                 <button
                   type="button"

@@ -30,7 +30,7 @@ export default function VideoView() {
 
   if (!videoId) {
     return (
-      <div className="min-h-[100dvh] bg-[#13151A] text-white p-4">
+      <div className="min-h-[100dvh] bg-[#111111] text-white p-4">
         <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-white/80">
           <img src="/Icons/Gold power buton.png" alt="Back" className="w-5 h-5" />
           Back
@@ -44,9 +44,9 @@ export default function VideoView() {
 
   if (loadPhase === 'loading' || (loadPhase === 'idle' && !video)) {
     return (
-      <div className="fixed inset-0 z-[9990] bg-[#13151A] flex justify-center">
+      <div className="fixed inset-0 z-[9990] bg-[#111111] flex justify-center">
         <div
-          className="w-full max-w-[480px] relative overflow-hidden bg-[#13151A] h-viewport"
+          className="w-full max-w-[480px] relative overflow-hidden bg-[#111111] h-viewport"
           style={{ marginTop: 0 }}
         >
           <div
@@ -74,9 +74,9 @@ export default function VideoView() {
 
   if (showMissing || !video) {
     return (
-      <div className="fixed inset-0 z-[9990] bg-[#13151A] flex justify-center">
+      <div className="fixed inset-0 z-[9990] bg-[#111111] flex justify-center">
         <div
-          className="w-full max-w-[480px] relative overflow-hidden bg-[#13151A] h-viewport"
+          className="w-full max-w-[480px] relative overflow-hidden bg-[#111111] h-viewport"
           style={{ marginTop: 0 }}
         >
           <div
@@ -99,7 +99,7 @@ export default function VideoView() {
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="text-[#C9A96E] text-sm font-semibold"
+              className="text-[#FFFFFF] text-sm font-semibold"
             >
               Go back
             </button>
@@ -110,9 +110,9 @@ export default function VideoView() {
   }
 
   return (
-    <div className="fixed inset-0 z-[9990] bg-[#13151A] flex justify-center">
+    <div className="fixed inset-0 z-[9990] bg-[#111111] flex justify-center">
       <div
-        className="w-full max-w-[480px] relative overflow-hidden bg-[#13151A] h-viewport"
+        className="w-full max-w-[480px] relative overflow-hidden bg-[#111111] h-viewport"
         style={{ marginTop: 0 }}
       >
         <div

@@ -58,7 +58,7 @@ export default function StemFeed() {
   }, [stemVideos.length, activeIndex]);
 
   return (
-    <div className="h-full min-h-0 w-full flex flex-col bg-[#13151A]">
+    <div className="h-full min-h-0 w-full flex flex-col bg-[#111111]">
       {/* Header — same vertical band as For You golden top bar */}
       <div
         className="fixed left-0 right-0 z-[9999] flex justify-center pointer-events-none"
@@ -92,14 +92,14 @@ export default function StemFeed() {
 
       <div
         ref={containerRef}
-        className="flex-1 min-h-0 w-full overflow-y-scroll snap-y snap-mandatory relative bg-[#13151A]"
+        className="flex-1 min-h-0 w-full overflow-y-scroll snap-y snap-mandatory relative bg-[#111111]"
         style={{ scrollSnapType: "y mandatory" }}
         onScroll={handleScroll}
       >
       {stemVideos.map((video, index) => (
         <div
           key={`stem-${video.id}-${index}`}
-          className="h-full w-full shrink-0 snap-start flex flex-col items-center bg-[#13151A]"
+          className="h-full w-full shrink-0 snap-start flex flex-col items-center bg-[#111111]"
           style={{
             scrollSnapAlign: "start",
             scrollSnapStop: "always",
@@ -108,7 +108,7 @@ export default function StemFeed() {
             paddingBottom: "3mm",
           }}
         >
-          <div className="w-full max-w-[480px] flex-1 min-h-0 relative overflow-hidden bg-[#13151A]">
+          <div className="w-full max-w-[480px] flex-1 min-h-0 relative overflow-hidden bg-[#111111]">
             <EnhancedVideoPlayer
               videoId={video.id}
               isActive={activeIndex === index}
@@ -120,13 +120,13 @@ export default function StemFeed() {
 
       {stemLoading && stemVideos.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[1]">
-          <div className="w-8 h-8 border-2 border-[#C9A96E] border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-[#FFFFFF] border-t-transparent rounded-full animate-spin" />
         </div>
       )}
 
       {!stemLoading && stemVideos.length === 0 && (
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-[1]">
-          <div className="w-20 h-20 rounded-full bg-[#13151A] border border-white/10 flex items-center justify-center mb-4">
+          <div className="w-20 h-20 rounded-full bg-[#111111] border border-white/10 flex items-center justify-center mb-4">
             <span className="text-3xl">🔥</span>
           </div>
           <p className="text-white/60 font-semibold text-base mb-1">
@@ -137,7 +137,7 @@ export default function StemFeed() {
           </p>
           <button
             onClick={() => fetchStemVideos()}
-            className="px-5 py-2 bg-[#C9A96E]/20 border border-[#C9A96E]/40 rounded-full text-[#C9A96E] text-sm font-bold pointer-events-auto active:scale-95 transition-transform"
+            className="px-5 py-2 bg-[#FFFFFF]/20 border border-[#FFFFFF]/40 rounded-full text-[#FFFFFF] text-sm font-bold pointer-events-auto active:scale-95 transition-transform"
           >
             Refresh
           </button>

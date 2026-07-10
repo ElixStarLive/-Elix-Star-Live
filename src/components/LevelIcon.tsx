@@ -42,7 +42,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
 
   const getBarGradient = () => {
     if (barColor) return barColor;
-    if (safeLevel >= 90) return 'linear-gradient(180deg, #ff2d55 0%, #7a1027 55%, #ff2d55 100%)';
+    if (safeLevel >= 90) return 'linear-gradient(180deg, #ffffff 0%, #7a1027 55%, #ffffff 100%)';
     if (safeLevel >= 60) return 'linear-gradient(180deg, #a855f7 0%, #4c1d95 55%, #a855f7 100%)';
     if (safeLevel >= 30) return 'linear-gradient(180deg, #3b82f6 0%, #1e3a8a 55%, #3b82f6 100%)';
     return 'linear-gradient(180deg, #22c55e 0%, #14532d 55%, #22c55e 100%)';

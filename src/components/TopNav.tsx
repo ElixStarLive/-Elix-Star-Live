@@ -26,9 +26,9 @@ export const TopNav = () => {
     >
       <div className="w-full max-w-[480px] pointer-events-auto">
         <div
-          className="flex items-center gap-0.5 px-2 border-b border-[#C9A96E]/25 bg-[#0B0B0F]/92 backdrop-blur-md min-h-[var(--topnav-bar-height)]"
+          className="flex items-center gap-0.5 px-2 border-b border-[#FFFFFF]/25 bg-black/92 backdrop-blur-md min-h-[var(--topnav-bar-height)]"
           style={{
-            boxShadow: "0 4px 20px rgba(0,0,0,0.35), inset 0 -1px 0 rgba(201,169,110,0.08)",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.35), inset 0 -1px 0 rgba(255,255,255,0.06)",
           }}
         >
           <div className="flex flex-1 items-center justify-between min-w-0 overflow-x-auto no-scrollbar gap-0.5 pr-1">
@@ -50,7 +50,7 @@ export const TopNav = () => {
                 >
                   <span className="flex items-center gap-1">
                     {"live" in tab && tab.live ? (
-                      <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0 animate-pulse" aria-hidden />
+                      <span className="w-1.5 h-1.5 rounded-full bg-white/20 shrink-0 animate-pulse" aria-hidden />
                     ) : null}
                     <span
                       className={`text-[10px] font-bold tracking-wide whitespace-nowrap ${
@@ -60,7 +60,7 @@ export const TopNav = () => {
                       }`}
                       style={
                         active
-                          ? { textShadow: "0 0 12px rgba(201,169,110,0.35)" }
+                          ? { textShadow: "0 0 12px rgba(255,255,255,0.2)" }
                           : undefined
                       }
                     >
@@ -78,7 +78,7 @@ export const TopNav = () => {
             className="flex-shrink-0 p-2 rounded-full active:bg-white/5 transition-colors"
             style={{ WebkitTapHighlightColor: "transparent" }}
           >
-            <Search size={18} strokeWidth={2} className="text-[#C9A96E]" />
+            <Search size={18} strokeWidth={2} className="text-[#FFFFFF]" />
           </button>
         </div>
       </div>

@@ -8,9 +8,9 @@ export default function Guidelines() {
 
   return (
     <SettingsOptionSheet onClose={() => navigate(-1)}>
-      <div className="w-full h-full overflow-hidden bg-[#13151A] flex flex-col">
+      <div className="w-full h-full overflow-hidden bg-[#111111] flex flex-col">
       {/* Header */}
-      <div className="sticky top-0 bg-[#13151A] z-10 px-4 py-4 border-b border-transparent flex items-center gap-3">
+      <div className="sticky top-0 bg-[#111111] z-10 px-4 py-4 border-b border-transparent flex items-center gap-3">
         <button onClick={() => navigate(-1)} className="p-2 hover:brightness-125 rounded-full transition">
           <img src="/Icons/Gold power buton.png" alt="Back" className="w-5 h-5" />
         </button>
@@ -20,7 +20,7 @@ export default function Guidelines() {
       <div className="px-4 py-6 max-w-2xl mx-auto flex-1 overflow-y-auto">
         {/* Intro */}
         <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-gradient-to-br from-[#C9A96E] to-[#B8943F] rounded-full mx-auto mb-4 flex items-center justify-center">
+          <div className="w-20 h-20 bg-gradient-to-br from-[#FFFFFF] to-[#B8943F] rounded-full mx-auto mb-4 flex items-center justify-center">
             <Heart className="w-10 h-10 text-black" />
           </div>
           <h2 className="text-2xl font-bold mb-3">Our Community Values</h2>
@@ -119,7 +119,7 @@ export default function Guidelines() {
           </p>
           <button
             onClick={() => navigate('/report')}
-            className="w-full py-3 bg-[#C9A96E] text-black rounded-xl font-bold hover:opacity-90 transition"
+            className="w-full py-3 bg-[#FFFFFF] text-black rounded-xl font-bold hover:opacity-90 transition"
           >
             Report a Violation
           </button>

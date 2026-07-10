@@ -7,11 +7,11 @@ export default function SafetyCenter() {
   const navigate = useNavigate();
   return (
     <SettingsOptionSheet onClose={() => navigate(-1)}>
-      <div className="w-full h-full overflow-hidden bg-[#13151A] flex flex-col">
+      <div className="w-full h-full overflow-hidden bg-[#111111] flex flex-col">
         <div className="flex-shrink-0 px-3 pt-1.5 pb-1.5">
           <div className="flex items-center justify-center">
             <div className="w-10 h-1 bg-white/20 rounded-full absolute top-2 left-1/2 -translate-x-1/2" />
-            <span className="text-[13px] font-bold text-[#C9A96E]">Safety Center</span>
+            <span className="text-[13px] font-bold text-[#FFFFFF]">Safety Center</span>
           </div>
         </div>
 
@@ -61,8 +61,8 @@ export default function SafetyCenter() {
             />
           </Section>
 
-          <div className="mt-2 p-3 rounded-xl border border-red-500/20 bg-red-500/10">
-            <p className="text-[12px] font-bold text-red-400">Need Immediate Help?</p>
+          <div className="mt-2 p-3 rounded-xl border border-white/40/20 bg-white/20/10">
+            <p className="text-[12px] font-bold text-white/60">Need Immediate Help?</p>
             <p className="text-[11px] text-white/75 mt-1">
               If you or someone you know is in immediate danger, contact emergency services.
             </p>
@@ -108,7 +108,7 @@ function OptionRow({
       onClick={onClick}
       className="w-full flex items-center gap-2.5 px-2 py-2 active:bg-white/5 text-left rounded-md"
     >
-      <span className="text-[#C9A96E]/70 shrink-0 [&_svg]:size-[14px]">{icon}</span>
+      <span className="text-[#FFFFFF]/70 shrink-0 [&_svg]:size-[14px]">{icon}</span>
       <div className="flex-1 min-w-0">
         <p className="text-[12px] leading-tight text-white/85">{title}</p>
         <p className="text-[10px] text-white/45 mt-0.5 truncate">{description}</p>

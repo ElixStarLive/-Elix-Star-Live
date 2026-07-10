@@ -230,17 +230,17 @@ export default function Shop() {
   ] as const;
 
   return (
-    <div className="fixed inset-0 bg-[#13151A] text-white flex justify-center px-2 pt-[calc(var(--safe-top)+46px)] pb-[var(--bottom-ui-reserve)]">
+    <div className="fixed inset-0 bg-[#111111] text-white flex justify-center px-2 pt-[calc(var(--safe-top)+46px)] pb-[var(--bottom-ui-reserve)]">
       <div
         className="w-full max-w-[480px] h-full flex flex-col overflow-hidden"
       >
-        <div className="sticky top-0 bg-[#13151A] z-10 px-4 py-3 flex items-center justify-between border-b border-white/5">
+        <div className="sticky top-0 bg-[#111111] z-10 px-4 py-3 flex items-center justify-between border-b border-white/5">
           <div className="flex items-center gap-3">
             <button onClick={() => setShowCreate(true)} className="p-1" title="Sell item">
-              <Plus size={22} className="text-[#C9A96E]" />
+              <Plus size={22} className="text-[#FFFFFF]" />
             </button>
             <button onClick={() => navigate('/search')} className="p-1" title="Search">
-              <Search size={18} className="text-[#C9A96E]" />
+              <Search size={18} className="text-[#FFFFFF]" />
             </button>
           </div>
           <h1 className="text-lg font-bold text-gold-metallic">Shop</h1>
@@ -257,7 +257,7 @@ export default function Shop() {
               <button
                 type="button"
                 onClick={() => navigate('/live')}
-                className="text-[11px] font-bold text-[#C9A96E]"
+                className="text-[11px] font-bold text-[#FFFFFF]"
               >
                 See all
               </button>
@@ -295,7 +295,7 @@ export default function Shop() {
               onClick={() => setActiveFilter(f.key)}
               className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border transition-colors ${
                 activeFilter === f.key
-                  ? 'bg-[#C9A96E] text-black border-[#C9A96E]'
+                  ? 'bg-[#FFFFFF] text-black border-[#FFFFFF]'
                   : 'bg-white/5 text-white/60 border-white/10'
               }`}
             >
@@ -306,13 +306,13 @@ export default function Shop() {
 
         {loading ? (
           <div className="flex-1 flex items-center justify-center py-20">
-            <div className="w-8 h-8 border-2 border-[#C9A96E] border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-[#FFFFFF] border-t-transparent rounded-full animate-spin" />
           </div>
         ) : items.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center py-20 gap-3">
             <Tag size={40} className="text-white/20" />
             <p className="text-white/40 text-sm">No items for sale yet</p>
-            <button onClick={() => setShowCreate(true)} className="mt-2 px-5 py-2 rounded-xl bg-[#C9A96E] text-black font-bold text-sm">
+            <button onClick={() => setShowCreate(true)} className="mt-2 px-5 py-2 rounded-xl bg-[#FFFFFF] text-black font-bold text-sm">
               Sell Something
             </button>
           </div>
@@ -341,8 +341,8 @@ export default function Shop() {
                       </span>
                     </button>
                     {item.user_id !== user?.id && (
-                      <button onClick={() => contactSeller(item.user_id)} className="p-1.5 rounded-full bg-[#C9A96E]/20" title="Message seller">
-                        <MessageCircle size={14} className="text-[#C9A96E]" />
+                      <button onClick={() => contactSeller(item.user_id)} className="p-1.5 rounded-full bg-[#FFFFFF]/20" title="Message seller">
+                        <MessageCircle size={14} className="text-[#FFFFFF]" />
                       </button>
                     )}
                   </div>
@@ -351,7 +351,7 @@ export default function Shop() {
                     <button
                       type="button"
                       onClick={() => handleBuy(item)}
-                      className="w-full mt-3 py-2 rounded-xl bg-[#C9A96E] text-black font-extrabold text-[12px]"
+                      className="w-full mt-3 py-2 rounded-xl bg-[#FFFFFF] text-black font-extrabold text-[12px]"
                     >
                       Buy with Stripe
                     </button>
@@ -372,8 +372,8 @@ export default function Shop() {
             {/* Anchor the modal exactly to the top of the bottom bar (no extra gap). */}
             <div className="fixed left-0 right-0 z-[9999] pointer-events-auto max-w-[480px] mx-auto" style={{ bottom: 'var(--bottom-ui-reserve)' }}>
               <div
-                className="w-full bg-[#1C1E24] rounded-t-3xl border-2 border-b-0 border-[#C9A96E] pb-safe"
-                style={{ maxHeight: '80dvh', boxShadow: '0 -4px 30px rgba(201,169,110,0.25)' }}
+                className="w-full bg-[#111111] rounded-t-3xl border-2 border-b-0 border-[#FFFFFF] pb-safe"
+                style={{ maxHeight: '80dvh', boxShadow: '0 -4px 30px rgba(255,255,255,0.25)' }}
                 onClick={e => e.stopPropagation()}
               >
               <div className="flex items-center justify-center pt-3 pb-1">
@@ -388,13 +388,13 @@ export default function Shop() {
               <div className="overflow-y-auto px-5 pb-6" style={{ maxHeight: 'calc(80dvh - 70px)' }}>
                 <button
                   onClick={() => document.getElementById('shop-image-input')?.click()}
-                  className="w-full aspect-video rounded-xl border-2 border-dashed border-[#C9A96E]/40 flex flex-col items-center justify-center gap-2 mb-4 overflow-hidden"
+                  className="w-full aspect-video rounded-xl border-2 border-dashed border-[#FFFFFF]/40 flex flex-col items-center justify-center gap-2 mb-4 overflow-hidden"
                 >
                   {newImagePreview ? (
                     <img src={newImagePreview} alt="Preview" className="w-full h-full object-cover" />
                   ) : (
                     <>
-                      <Camera size={28} className="text-[#C9A96E]/50" />
+                      <Camera size={28} className="text-[#FFFFFF]/50" />
                       <span className="text-white/40 text-xs">Add Photo</span>
                     </>
                   )}
@@ -412,7 +412,7 @@ export default function Shop() {
                   value={newTitle}
                   onChange={e => setNewTitle(e.target.value)}
                   placeholder="Item name"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-white/30 mb-3 focus:outline-none focus:border-[#C9A96E]"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-white/30 mb-3 focus:outline-none focus:border-[#FFFFFF]"
                 />
                 <input
                   value={newPrice}
@@ -421,19 +421,19 @@ export default function Shop() {
                   type="number"
                   min="0"
                   step="0.01"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-white/30 mb-3 focus:outline-none focus:border-[#C9A96E]"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-white/30 mb-3 focus:outline-none focus:border-[#FFFFFF]"
                 />
                 <textarea
                   value={newDescription}
                   onChange={e => setNewDescription(e.target.value)}
                   placeholder="Description (optional)"
                   rows={3}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-white/30 mb-3 focus:outline-none focus:border-[#C9A96E] resize-none"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-white/30 mb-3 focus:outline-none focus:border-[#FFFFFF] resize-none"
                 />
                 <select
                   value={newCategory}
                   onChange={e => setNewCategory(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm mb-4 focus:outline-none focus:border-[#C9A96E] [&>option]:bg-[#1C1E24] [&>option]:text-white"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm mb-4 focus:outline-none focus:border-[#FFFFFF] [&>option]:bg-[#111111] [&>option]:text-white"
                   aria-label="Category"
                 >
                   <option value="clothing">Clothing</option>
@@ -445,7 +445,7 @@ export default function Shop() {
                 <button
                   onClick={handleCreateListing}
                   disabled={creating || !newTitle.trim() || !newPrice.trim()}
-                  className="w-full py-3 rounded-xl bg-gradient-to-r from-[#C9A96E] to-[#E8D5A3] text-black font-bold text-sm disabled:opacity-50"
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-[#FFFFFF] to-[#E8D5A3] text-black font-bold text-sm disabled:opacity-50"
                 >
                   {creating ? 'Listing...' : 'List for Sale'}
                 </button>

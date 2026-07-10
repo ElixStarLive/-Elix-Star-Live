@@ -5,8 +5,8 @@ export default function LegalAudio() {
   const navigate = useNavigate();
 
   return (
-    <div className="bg-[#13151A] text-white flex justify-center px-2">
-      <div className="w-full max-w-[480px] rounded-3xl overflow-hidden bg-[#13151A] flex flex-col overflow-y-auto p-4 pb-20">
+    <div className="bg-[#111111] text-white flex justify-center px-2">
+      <div className="w-full max-w-[480px] rounded-3xl overflow-hidden bg-[#111111] flex flex-col overflow-y-auto p-4 pb-20">
         <header className="flex items-center justify-between mb-4">
           <button onClick={() => navigate(-1)} aria-label="Back" title="Back">
             <img src="/Icons/Gold power buton.png" alt="Back" className="w-5 h-5" />

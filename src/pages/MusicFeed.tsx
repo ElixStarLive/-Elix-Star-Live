@@ -46,20 +46,20 @@ export default function MusicFeed() {
   }, [songId]);
 
   return (
-    <div className="fixed inset-0 bg-[#13151A] text-white flex justify-center">
+    <div className="fixed inset-0 bg-[#111111] text-white flex justify-center">
       <div
         className="w-full max-w-[480px] flex flex-col overflow-hidden h-above-bottom-nav"
         style={{ marginTop: 0 }}
       >
         {/* Header Info - match Explore layout */}
-        <div className="mx-2 mt-2 rounded-t-2xl bg-[#13151A] z-10 shrink-0">
+        <div className="mx-2 mt-2 rounded-t-2xl bg-[#111111] z-10 shrink-0">
           <div className="px-3 pt-[calc(env(safe-area-inset-top,8px)+4px)] pb-3 flex items-center justify-between relative">
             <button
               onClick={() => navigate('/search')}
               className="p-1 z-10"
               aria-label="Search"
             >
-              <Search className="w-4 h-4 text-[#C9A96E]" />
+              <Search className="w-4 h-4 text-[#FFFFFF]" />
             </button>
             <h1 className="text-sm font-bold text-gold-metallic absolute left-1/2 transform -translate-x-1/2">
               Sound
@@ -91,7 +91,7 @@ export default function MusicFeed() {
                 <p className="text-white/60 text-sm mb-4">Trending</p>
                 <button
                   onClick={() => navigate('/create')}
-                  className="bg-[#C9A96E] text-black px-6 py-1.5 rounded-sm font-semibold flex items-center gap-1.5 text-sm w-fit active:scale-95 transition-transform"
+                  className="bg-[#FFFFFF] text-black px-6 py-1.5 rounded-sm font-semibold flex items-center gap-1.5 text-sm w-fit active:scale-95 transition-transform"
                 >
                   <Play size={6} fill="black" /> Use this sound
                 </button>
@@ -101,11 +101,11 @@ export default function MusicFeed() {
         </div>
 
         {/* Grid */}
-        <div className="flex-1 overflow-y-auto mx-2 rounded-b-2xl bg-[#13151A] pb-24">
+        <div className="flex-1 overflow-y-auto mx-2 rounded-b-2xl bg-[#111111] pb-24">
           <div className="grid grid-cols-3 gap-0.5 p-0.5">
             {loading ? (
               <div className="col-span-3 flex items-center justify-center h-[40vh]">
-                <div className="w-8 h-8 border-2 border-[#C9A96E] border-t-transparent rounded-full animate-spin" />
+                <div className="w-8 h-8 border-2 border-[#FFFFFF] border-t-transparent rounded-full animate-spin" />
               </div>
             ) : videos.length === 0 ? (
               <div className="col-span-3 flex flex-col items-center justify-center h-[40vh] text-center opacity-60">
@@ -116,7 +116,7 @@ export default function MusicFeed() {
               videos.map((video) => (
                 <div
                   key={video.id}
-                  className="aspect-[3/4] bg-[#13151A] relative cursor-pointer"
+                  className="aspect-[3/4] bg-[#111111] relative cursor-pointer"
                   onClick={() => navigate(`/feed?video=${video.id}`)}
                 >
                   <video

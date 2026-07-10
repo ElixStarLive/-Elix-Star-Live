@@ -78,9 +78,9 @@ export default function AIStudio() {
   };
 
   return (
-    <div className="h-full min-h-0 w-full bg-[#13151A] text-white flex flex-col overflow-hidden">
+    <div className="h-full min-h-0 w-full bg-[#111111] text-white flex flex-col overflow-hidden">
       {toast && (
-        <div className="fixed top-16 left-1/2 -translate-x-1/2 bg-[#C9A96E]/20 backdrop-blur-md text-white text-sm px-4 py-2 rounded-xl z-[9999]">
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 bg-[#FFFFFF]/20 backdrop-blur-md text-white text-sm px-4 py-2 rounded-xl z-[9999]">
           {toast}
         </div>
       )}
@@ -94,7 +94,7 @@ export default function AIStudio() {
           <Download size={16} className="text-white/70" />
         </button>
         <div className="flex items-center gap-2">
-          <Wand2 size={15} className="text-[#C9A96E]" />
+          <Wand2 size={15} className="text-[#FFFFFF]" />
           <span className="text-white font-bold text-sm">AI Studio</span>
         </div>
         <button onClick={() => navigate(-1)} className="p-1">
@@ -132,13 +132,13 @@ export default function AIStudio() {
           </>
         ) : (
           <div className="flex flex-col items-center gap-4 p-8">
-            <div className="w-24 h-24 rounded-2xl bg-[#1C1E24] flex items-center justify-center">
-              <Upload size={36} className="text-[#C9A96E]" />
+            <div className="w-24 h-24 rounded-2xl bg-[#111111] flex items-center justify-center">
+              <Upload size={36} className="text-[#FFFFFF]" />
             </div>
             <p className="text-white/50 text-sm text-center">Import a video to start editing with AI tools</p>
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="px-6 py-3 rounded-full bg-[#C9A96E] text-black font-bold text-sm flex items-center gap-2"
+              className="px-6 py-3 rounded-full bg-[#FFFFFF] text-black font-bold text-sm flex items-center gap-2"
             >
               <Upload size={16} /> Select Video
             </button>
@@ -156,14 +156,14 @@ export default function AIStudio() {
           <span className="text-[10px] text-white/40">Import</span>
         </button>
         <button onClick={handleAutoEnhance} className="flex flex-col items-center gap-1">
-          <Sparkles size={16} className="text-[#C9A96E]" />
-          <span className="text-[10px] text-[#C9A96E]">Auto AI</span>
+          <Sparkles size={16} className="text-[#FFFFFF]" />
+          <span className="text-[10px] text-[#FFFFFF]">Auto AI</span>
         </button>
         <button
           onClick={() => setShowTools(true)}
           className="flex flex-col items-center gap-1"
         >
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#C9A96E] to-[#B8943F] flex items-center justify-center shadow-lg shadow-[#C9A96E]/20">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FFFFFF] to-[#B8943F] flex items-center justify-center shadow-lg shadow-[#FFFFFF]/20">
             <Wand2 size={18} className="text-black" />
           </div>
           <span className="text-[10px] text-white/60">AI Tools</span>

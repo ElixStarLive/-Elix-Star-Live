@@ -76,9 +76,9 @@ export default function BlockedAccounts() {
 
   return (
     <SettingsOptionSheet onClose={() => navigate(-1)}>
-      <div className="w-full h-full overflow-hidden bg-[#13151A] flex flex-col">
+      <div className="w-full h-full overflow-hidden bg-[#111111] flex flex-col">
         {/* Header */}
-        <div className="sticky top-0 bg-[#13151A] z-10 px-4 py-4 border-b border-transparent">
+        <div className="sticky top-0 bg-[#111111] z-10 px-4 py-4 border-b border-transparent">
         <div className="flex items-center gap-3 mb-4">
           <button onClick={() => navigate(-1)} className="p-2 hover:brightness-125 rounded-full transition">
             <img src="/Icons/Gold power buton.png" alt="Back" className="w-5 h-5" />
@@ -87,7 +87,7 @@ export default function BlockedAccounts() {
         </div>
 
         {/* Search */}
-        <div className="flex items-center gap-3 bg-[#13151A] rounded-full px-4 py-3">
+        <div className="flex items-center gap-3 bg-[#111111] rounded-full px-4 py-3">
           <Search className="w-5 h-5 text-white/60" />
           <input
             type="text"
@@ -121,7 +121,7 @@ export default function BlockedAccounts() {
                 </div>
                 <button
                   onClick={() => unblockUser(block.blocked_user_id)}
-                  className="px-4 py-2 bg-[#13151A] rounded-full text-sm font-semibold hover:brightness-125 transition"
+                  className="px-4 py-2 bg-[#111111] rounded-full text-sm font-semibold hover:brightness-125 transition"
                 >
                   Unblock
                 </button>

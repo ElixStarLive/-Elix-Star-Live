@@ -62,10 +62,10 @@ export class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div className="min-h-[100dvh] bg-[#13151A] text-white flex items-center justify-center px-4">
+        <div className="min-h-[100dvh] bg-[#111111] text-white flex items-center justify-center px-4">
           <div className="max-w-md text-center">
-            <div className="w-20 h-20 bg-red-500 rounded-full mx-auto mb-6 flex items-center justify-center">
-              <AlertTriangle className="w-10 h-10 text-red-500" />
+            <div className="w-20 h-20 bg-white/20 rounded-full mx-auto mb-6 flex items-center justify-center">
+              <AlertTriangle className="w-10 h-10 text-white/70" />
             </div>
 
             <h1 className="text-2xl font-bold mb-3">Oops! Something went wrong</h1>
@@ -74,11 +74,11 @@ export class ErrorBoundary extends Component<Props, State> {
             </p>
 
             {this.state.error && (
-              <details className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-left">
-                <summary className="cursor-pointer text-sm font-mono text-red-400">
+              <details className="mb-6 p-4 bg-white/20/10 border border-white/40/20 rounded-xl text-left">
+                <summary className="cursor-pointer text-sm font-mono text-white/60">
                   {import.meta.env.DEV ? 'Error details' : 'Technical details'}
                 </summary>
-                <p className="text-sm font-mono text-red-400 mt-2 break-all">{this.state.error.message}</p>
+                <p className="text-sm font-mono text-white/60 mt-2 break-all">{this.state.error.message}</p>
                 {this.state.errorInfo?.componentStack && (
                   <pre className="mt-2 text-xs text-white/40 whitespace-pre-wrap overflow-x-auto max-h-40 overflow-y-auto">
                     {this.state.errorInfo.componentStack}
@@ -90,7 +90,7 @@ export class ErrorBoundary extends Component<Props, State> {
             <div className="flex gap-3 justify-center">
               <button
                 onClick={this.handleReload}
-                className="flex items-center gap-2 px-6 py-3 bg-[#C9A96E] text-black rounded-full font-bold hover:opacity-90 transition"
+                className="flex items-center gap-2 px-6 py-3 bg-[#FFFFFF] text-black rounded-full font-bold hover:opacity-90 transition"
               >
                 <RefreshCw className="w-5 h-5" />
                 Reload

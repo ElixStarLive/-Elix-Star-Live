@@ -252,7 +252,7 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
         <div className="flex-shrink-0 mt-1">
           <LevelBadge 
             level={comment.level || 1} 
-            avatar={comment.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.username || 'U')}&background=121212&color=C9A96E`} 
+            avatar={comment.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.username || 'U')}&background=121212&color=FFFFFF`} 
             size={40} 
             layout="fixed"
           />
@@ -270,7 +270,7 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
                 type="text"
                 value={editText}
                 onChange={(e) => setEditText(e.target.value)}
-                className="flex-1 bg-white/10 text-white px-3 py-1 rounded-lg border border-white/20 focus:border-[#C9A96E] outline-none"
+                className="flex-1 bg-white/10 text-white px-3 py-1 rounded-lg border border-white/20 focus:border-[#FFFFFF] outline-none"
                 placeholder="Edit comment..."
               />
               <button
@@ -297,7 +297,7 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
             <button
               onClick={() => handleLikeComment(comment.id, isReply)}
               className={`flex items-center gap-1 text-sm ${
-                comment.is_liked ? 'text-red-500' : 'text-white/60'
+                comment.is_liked ? 'text-white/70' : 'text-white/60'
               } hover:text-white transition`}
             >
               <Heart className={`w-4 h-4 ${comment.is_liked ? 'fill-current' : ''}`} />
@@ -327,7 +327,7 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
                 </button>
                 <button
                   onClick={() => handleDeleteComment(comment.id, isReply, comment.parent_id)}
-                  className="text-sm text-white/60 hover:text-red-500 transition"
+                  className="text-sm text-white/60 hover:text-white/70 transition"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -363,7 +363,7 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
                 placeholder={`Reply to ${comment.username}...`}
-                className="flex-1 bg-white/10 text-white px-3 py-2 rounded-lg border border-white/20 focus:border-[#C9A96E] outline-none"
+                className="flex-1 bg-white/10 text-white px-3 py-2 rounded-lg border border-white/20 focus:border-[#FFFFFF] outline-none"
                 autoFocus
               />
               <button
@@ -393,8 +393,8 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
       onClick={onClose}
     >
       <div
-        className="bg-[#1C1E24]/95 rounded-t-2xl p-3 pb-safe h-1/2 w-full max-w-[480px] shadow-2xl flex flex-col border-2 border-b-0 border-[#C9A96E]"
-        style={{ marginBottom: 'var(--bottom-ui-reserve)', boxShadow: '0 -4px 30px rgba(201,169,110,0.25)' }}
+        className="bg-[#111111]/95 rounded-t-2xl p-3 pb-safe h-1/2 w-full max-w-[480px] shadow-2xl flex flex-col border-2 border-b-0 border-[#FFFFFF]"
+        style={{ marginBottom: 'var(--bottom-ui-reserve)', boxShadow: '0 -4px 30px rgba(255,255,255,0.25)' }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-2">
@@ -436,7 +436,7 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
             <div className="flex-shrink-0">
                 <LevelBadge 
                     level={user?.level || 1} 
-                    avatar={user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'U')}&background=121212&color=C9A96E`} 
+                    avatar={user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'U')}&background=121212&color=FFFFFF`} 
                     size={36} 
                     layout="fixed"
                 />
@@ -447,7 +447,7 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
                 placeholder="Add a comment..."
-                className="flex-1 bg-[#13151A] text-white px-3 py-2 rounded-lg border border-white/10 focus:border-secondary outline-none text-sm"
+                className="flex-1 bg-[#111111] text-white px-3 py-2 rounded-lg border border-white/10 focus:border-secondary outline-none text-sm"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();

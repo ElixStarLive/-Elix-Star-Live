@@ -8,7 +8,7 @@ export default function Terms() {
 
   return (
     <SettingsOptionSheet onClose={() => navigate(-1)}>
-      <div className="w-full h-full overflow-hidden bg-[#13151A] text-white flex flex-col">
+      <div className="w-full h-full overflow-hidden bg-[#111111] text-white flex flex-col">
         <header className="flex items-center justify-between mb-4 px-4 pt-4">
           <button onClick={() => navigate(-1)} aria-label="Back" title="Back">
             <img src="/Icons/Gold power buton.png" alt="Back" className="w-5 h-5" />

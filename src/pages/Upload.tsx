@@ -518,13 +518,13 @@ export default function Upload() {
   };
 
   return (
-    <div className="fixed inset-0 h-[100dvh] w-full bg-[#13151A] overflow-hidden flex justify-center">
+    <div className="fixed inset-0 h-[100dvh] w-full bg-[#111111] overflow-hidden flex justify-center">
       <div className={`w-full max-w-[480px] flex flex-col items-center h-full relative ${recordedVideoUrl ? 'justify-end' : 'justify-start'}`}>
       {toast && <div className="fixed top-16 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-md text-white text-sm px-4 py-2 rounded-xl z-[9999]">{toast}</div>}
       {/* PREVIEW MODE */}
        {recordedVideoUrl ? (
          <>
-           <div className="relative z-10 w-full mx-auto h-[100dvh] bg-[#13151A] flex flex-col items-center justify-center">
+           <div className="relative z-10 w-full mx-auto h-[100dvh] bg-[#111111] flex flex-col items-center justify-center">
               {duetSourceVideoUrl ? (
                 <div className="absolute inset-0 flex flex-row">
                   <div className="w-1/2 h-full flex-shrink-0 bg-black">
@@ -572,29 +572,29 @@ export default function Upload() {
                    className="flex items-center justify-center p-1"
                    title={getSelectedLabel()}
                  >
-                   <Music size={18} className="text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,1)]" />
+                   <Music size={18} className="text-[#FFFFFF] drop-shadow-[0_0_8px_rgba(255,215,0,1)]" />
                  </button>
                </div>
 
                <div className="absolute bottom-[22%] left-0 right-0 z-20 px-4 pointer-events-auto flex justify-center">
-                 <div className="bg-black/60 backdrop-blur-md border border-[#FFD700]/30 rounded-xl p-2.5 space-y-2 w-[75%] max-w-[280px]">
+                 <div className="bg-black/60 backdrop-blur-md border border-[#FFFFFF]/30 rounded-xl p-2.5 space-y-2 w-[75%] max-w-[280px]">
                    <div>
-                     <label className="text-[10px] text-[#FFD700] font-semibold mb-1 block">Caption</label>
+                     <label className="text-[10px] text-[#FFFFFF] font-semibold mb-1 block">Caption</label>
                      <textarea
                        value={caption}
                        onChange={(e) => setCaption(e.target.value)}
                        placeholder="Write something…"
-                       className="w-full bg-white/10 text-white placeholder-white/40 border border-[#FFD700]/40 rounded-lg px-3 py-2 text-sm outline-none resize-none h-10 focus:h-24 focus:border-[#FFD700] transition-all duration-300"
+                       className="w-full bg-white/10 text-white placeholder-white/40 border border-[#FFFFFF]/40 rounded-lg px-3 py-2 text-sm outline-none resize-none h-10 focus:h-24 focus:border-[#FFFFFF] transition-all duration-300"
                        aria-label="Caption"
                      />
                    </div>
                    <div>
-                     <label className="text-[10px] text-[#FFD700] font-semibold mb-1 block">Add Hashtags</label>
+                     <label className="text-[10px] text-[#FFFFFF] font-semibold mb-1 block">Add Hashtags</label>
                      <input
                        value={hashtagsText}
                        onChange={(e) => setHashtagsText(e.target.value)}
                        placeholder="#fun #dance #viral"
-                       className="w-full bg-white/10 text-white placeholder-white/40 border border-[#FFD700]/40 rounded-lg px-3 py-2 text-sm outline-none h-10 focus:border-[#FFD700] transition-all duration-300"
+                       className="w-full bg-white/10 text-white placeholder-white/40 border border-[#FFFFFF]/40 rounded-lg px-3 py-2 text-sm outline-none h-10 focus:border-[#FFFFFF] transition-all duration-300"
                        aria-label="Hashtags"
                      />
                    </div>
@@ -603,7 +603,7 @@ export default function Upload() {
                      <button
                        type="button"
                        className={`w-11 h-6 rounded-full transition-colors ${
-                         postWithoutAudio ? 'bg-[#FFD700]' : 'bg-white/20'
+                         postWithoutAudio ? 'bg-[#FFFFFF]' : 'bg-white/20'
                        }`}
                        onClick={() => {
                          const next = !postWithoutAudio;
@@ -622,7 +622,7 @@ export default function Upload() {
                    </div>
                    {/* Removed the 'Post' button from inside here to avoid confusion. It is at the bottom. */}
                    {postError ? (
-                     <div className="w-full px-3 py-2 rounded-lg bg-red-500/80 text-white text-xs">
+                     <div className="w-full px-3 py-2 rounded-lg bg-white/20/80 text-white text-xs">
                        {postError}
                        <button type="button" onClick={() => setPostError(null)} className="ml-2 underline">×</button>
                      </div>
@@ -634,7 +634,7 @@ export default function Upload() {
                          <span>{postProgress}%</span>
                        </div>
                        <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
-                         <div className="h-full bg-[#FFD700]" style={{ width: `${postProgress}%` }} />
+                         <div className="h-full bg-[#FFFFFF]" style={{ width: `${postProgress}%` }} />
                        </div>
                      </div>
                    ) : null}
@@ -647,7 +647,7 @@ export default function Upload() {
                     className="absolute bottom-[7%] left-[5%] flex flex-col items-center gap-1 z-30 pointer-events-auto group"
                     title="Upload"
                   >
-                    <div className="w-9 h-9 bg-[#13151A] rounded-full flex items-center justify-center text-white border border-[#C9A96E]/30 relative group-active:scale-90 transition-transform">
+                    <div className="w-9 h-9 bg-[#111111] rounded-full flex items-center justify-center text-white border border-[#FFFFFF]/30 relative group-active:scale-90 transition-transform">
                       <div className="w-4 h-4 border-2 border-white rounded-sm relative overflow-hidden z-[2]">
                         <div className="absolute top-0.5 right-0.5 w-1 h-1 bg-white rounded-full"></div>
                       </div>
@@ -662,7 +662,7 @@ export default function Upload() {
                     title="AI Studio"
                   >
                     <div className="flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <Wand2 size={18} className="text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,1)] drop-shadow-[0_0_16px_rgba(255,215,0,0.6)]" />
+                      <Wand2 size={18} className="text-[#FFFFFF] drop-shadow-[0_0_8px_rgba(255,215,0,1)] drop-shadow-[0_0_16px_rgba(255,215,0,0.6)]" />
                     </div>
                     <span className="text-white font-bold text-[10px] shadow-black drop-shadow-md">AI Studio</span>
                   </button>
@@ -675,7 +675,7 @@ export default function Upload() {
                       title="Retake"
                     >
                       <div className="flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <RotateCcw size={18} className="text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,1)] drop-shadow-[0_0_16px_rgba(255,215,0,0.6)]" />
+                        <RotateCcw size={18} className="text-[#FFFFFF] drop-shadow-[0_0_8px_rgba(255,215,0,1)] drop-shadow-[0_0_16px_rgba(255,215,0,0.6)]" />
                       </div>
                       <span className="text-white font-bold text-[10px] shadow-black drop-shadow-md">Retake</span>
                     </button>
@@ -688,7 +688,7 @@ export default function Upload() {
                       disabled={isPosting}
                     >
                       {/* Red circle behind Post icon */}
-                      <div className="w-11 h-11 rounded-full bg-red-600 border-[3px] border-white flex items-center justify-center shadow-xl group-hover:scale-110 active:scale-95 transition-transform">
+                      <div className="w-11 h-11 rounded-full bg-white/25 border-[3px] border-white flex items-center justify-center shadow-xl group-hover:scale-110 active:scale-95 transition-transform">
                         <Check size={18} className={`${isPosting ? 'text-white/60' : 'text-white'} drop-shadow-[0_0_8px_rgba(0,0,0,0.6)]`} />
                       </div>
                       <span className="text-white font-bold text-[10px] shadow-black drop-shadow-md">{isPosting ? 'Posting…' : 'Post'}</span>
@@ -721,7 +721,7 @@ export default function Upload() {
         /* CAMERA MODE */
         <>
           {/* Container Principal */}
-          <div className="relative z-10 w-full h-[100dvh] mb-0 pointer-events-none bg-[#13151A] shadow-2xl overflow-hidden">
+          <div className="relative z-10 w-full h-[100dvh] mb-0 pointer-events-none bg-[#111111] shadow-2xl overflow-hidden">
               {/* Duet layout: left = source video, right = camera */}
               {duetSourceVideoUrl ? (
                 <div className="absolute inset-0 flex flex-row">
@@ -762,9 +762,9 @@ export default function Upload() {
               )}
 
               {cameraError && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center z-[5] bg-[#13151A] text-white p-6 text-center">
-                  <div className="w-14 h-14 rounded-full bg-[#C9A96E]/20 flex items-center justify-center mb-3">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C9A96E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M21 21H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3l2-3h6l2 3h3a2 2 0 0 1 2 2v9.34"/><path d="M14.12 14.12A3 3 0 1 1 9.88 9.88"/></svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center z-[5] bg-[#111111] text-white p-6 text-center">
+                  <div className="w-14 h-14 rounded-full bg-[#FFFFFF]/20 flex items-center justify-center mb-3">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M21 21H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3l2-3h6l2 3h3a2 2 0 0 1 2 2v9.34"/><path d="M14.12 14.12A3 3 0 1 1 9.88 9.88"/></svg>
                   </div>
                   <p className="text-white text-sm font-medium mb-1">Camera Access Needed</p>
                   <p className="text-white/50 text-xs mb-4 max-w-[260px] leading-relaxed">
@@ -783,7 +783,7 @@ export default function Upload() {
                       // Increment retry counter to force useEffect re-run
                       setCameraRetry(prev => prev + 1);
                     }}
-                    className="px-5 py-2.5 rounded-full bg-[#C9A96E] text-black text-sm font-semibold active:scale-95 transition-transform pointer-events-auto"
+                    className="px-5 py-2.5 rounded-full bg-[#FFFFFF] text-black text-sm font-semibold active:scale-95 transition-transform pointer-events-auto"
                   >
                     Try Again
                   </button>
@@ -802,7 +802,7 @@ export default function Upload() {
                       onClick={() => setShowMusicModal(true)}
                       title="Add sound"
                     >
-                      <Music size={18} className="text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,1)] drop-shadow-[0_0_16px_rgba(255,215,0,0.6)]" />
+                      <Music size={18} className="text-[#FFFFFF] drop-shadow-[0_0_8px_rgba(255,215,0,1)] drop-shadow-[0_0_16px_rgba(255,215,0,0.6)]" />
                     </button>
                     <button 
                       className="flex items-center justify-center relative"
@@ -810,7 +810,7 @@ export default function Upload() {
                       title="Zoom out"
                       aria-label="Zoom out"
                     >
-                      <ZoomOut size={18} className="text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,1)] drop-shadow-[0_0_16px_rgba(255,215,0,0.6)]" />
+                      <ZoomOut size={18} className="text-[#FFFFFF] drop-shadow-[0_0_8px_rgba(255,215,0,1)] drop-shadow-[0_0_16px_rgba(255,215,0,0.6)]" />
                     </button>
                     <button 
                       className="flex items-center justify-center relative"
@@ -818,7 +818,7 @@ export default function Upload() {
                       title="Zoom in"
                       aria-label="Zoom in"
                     >
-                      <ZoomIn size={18} className="text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,1)] drop-shadow-[0_0_16px_rgba(255,215,0,0.6)]" />
+                      <ZoomIn size={18} className="text-[#FFFFFF] drop-shadow-[0_0_8px_rgba(255,215,0,1)] drop-shadow-[0_0_16px_rgba(255,215,0,0.6)]" />
                     </button>
                     <button 
                       className="flex items-center justify-center relative"
@@ -841,42 +841,42 @@ export default function Upload() {
                     }}
                       title="Flip Camera"
                     >
-                      <RefreshCw size={18} className="text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,1)] drop-shadow-[0_0_16px_rgba(255,215,0,0.6)]" />
+                      <RefreshCw size={18} className="text-[#FFFFFF] drop-shadow-[0_0_8px_rgba(255,215,0,1)] drop-shadow-[0_0_16px_rgba(255,215,0,0.6)]" />
                     </button>
                     <button 
                       className="flex items-center justify-center relative"
                       onClick={() => showToast('Speed: 1x')}
                       title="Speed"
                     >
-                      <span className="text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,1)] font-bold text-xs">1x</span>
+                      <span className="text-[#FFFFFF] drop-shadow-[0_0_8px_rgba(255,215,0,1)] font-bold text-xs">1x</span>
                     </button>
                     <button 
                       className="flex items-center justify-center relative"
                       onClick={() => showToast('Beauty: On')}
                       title="Beauty"
                     >
-                      <span className="text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,1)] text-xs">✨</span>
+                      <span className="text-[#FFFFFF] drop-shadow-[0_0_8px_rgba(255,215,0,1)] text-xs">✨</span>
                     </button>
                     <button 
                       className="flex items-center justify-center relative"
                       onClick={() => showToast('Timer: Off')}
                       title="Timer"
                     >
-                      <Clock size={18} className="text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,1)] drop-shadow-[0_0_16px_rgba(255,215,0,0.6)]" />
+                      <Clock size={18} className="text-[#FFFFFF] drop-shadow-[0_0_8px_rgba(255,215,0,1)] drop-shadow-[0_0_16px_rgba(255,215,0,0.6)]" />
                     </button>
                     <button 
                       className="flex items-center justify-center relative"
                       onClick={() => showToast('Flash: Off')}
                       title="Flash"
                     >
-                      <Zap size={18} className="text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,1)] drop-shadow-[0_0_16px_rgba(255,215,0,0.6)]" />
+                      <Zap size={18} className="text-[#FFFFFF] drop-shadow-[0_0_8px_rgba(255,215,0,1)] drop-shadow-[0_0_16px_rgba(255,215,0,0.6)]" />
                     </button>
                     <button 
                       className="flex items-center justify-center relative"
                       onClick={() => { if (!recordedVideoUrl) showToast('Record a video first'); }}
                       title="AI Effects"
                     >
-                      <Wand2 size={18} className="text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,1)] drop-shadow-[0_0_16px_rgba(255,215,0,0.6)]" />
+                      <Wand2 size={18} className="text-[#FFFFFF] drop-shadow-[0_0_8px_rgba(255,215,0,1)] drop-shadow-[0_0_16px_rgba(255,215,0,0.6)]" />
                     </button>
                   </div>
 
@@ -885,7 +885,7 @@ export default function Upload() {
                       {/* Done Button (Visible only if we have chunks and are paused or recording) */}
                       {(chunks.length > 0 || isPaused) && (
                           <button 
-                            className="w-9 h-9 bg-red-600 rounded-full flex items-center justify-center text-white border-2 border-white animate-in fade-in zoom-in duration-300 absolute -right-44 relative"
+                            className="w-9 h-9 bg-white/25 rounded-full flex items-center justify-center text-white border-2 border-white animate-in fade-in zoom-in duration-300 absolute -right-44 relative"
                             onClick={stopRecordingFinal}
                             title="Done"
                           >
@@ -895,7 +895,7 @@ export default function Upload() {
 
                       <button 
                         className={`w-[4.2rem] h-[4.2rem] rounded-full flex items-center justify-center transition-all relative z-[2] border-[2px] border-white ${
-                          isRecording ? 'bg-red-600' : 'bg-white hover:bg-red-600/50'
+                          isRecording ? 'bg-white/25' : 'bg-white hover:bg-white/25/50'
                         }`}
                         onClick={toggleRecording}
                         title={isRecording ? 'Stop recording' : 'Start recording'}
@@ -903,7 +903,7 @@ export default function Upload() {
                         {isRecording ? (
                           <Square className="text-white fill-white w-6 h-6 relative z-[2]" />
                         ) : (
-                          <div className="w-[3.2rem] h-[3.2rem] bg-red-600 rounded-full flex items-center justify-center relative z-[2]">
+                          <div className="w-[3.2rem] h-[3.2rem] bg-white/25 rounded-full flex items-center justify-center relative z-[2]">
                             {/* Inner circle */}
                           </div>
                         )}
@@ -916,7 +916,7 @@ export default function Upload() {
                     onClick={handleFileUpload}
                     title="Upload from Gallery"
                   >
-                    <div className="w-9 h-9 bg-[#13151A] rounded-full flex items-center justify-center text-white border border-[#C9A96E]/30 relative">
+                    <div className="w-9 h-9 bg-[#111111] rounded-full flex items-center justify-center text-white border border-[#FFFFFF]/30 relative">
                       <div className="w-4 h-4 border-2 border-white rounded-sm relative overflow-hidden z-[2]">
                         <div className="absolute top-0.5 right-0.5 w-1 h-1 bg-white rounded-full"></div>
                       </div>
@@ -929,7 +929,7 @@ export default function Upload() {
 
           {/* Music Selection Modal */}
           {showMusicModal && (
-              <div className="absolute inset-0 z-[200] bg-[#13151A] flex flex-col pt-10 px-4 animate-in slide-in-from-bottom duration-300">
+              <div className="absolute inset-0 z-[200] bg-[#111111] flex flex-col pt-10 px-4 animate-in slide-in-from-bottom duration-300">
                   <div className="flex items-center justify-between mb-6">
                       <h2 className="text-white text-xl font-bold">Select Sound</h2>
                       <div className="flex items-center gap-2">
@@ -970,7 +970,7 @@ export default function Upload() {
                           type="button"
                           className={`px-3 py-3 rounded-xl border text-left ${
                             selectedAudioId === 'original' && !postWithoutAudio
-                              ? 'bg-[#C9A96E] border-[#C9A96E] text-black'
+                              ? 'bg-[#FFFFFF] border-[#FFFFFF] text-black'
                               : 'bg-white border-transparent text-white'
                           }`}
                           onClick={() => {
@@ -989,7 +989,7 @@ export default function Upload() {
                           type="button"
                           className={`px-3 py-3 rounded-xl border text-left ${
                             postWithoutAudio || selectedAudioId === 'none'
-                              ? 'bg-[#C9A96E] border-[#C9A96E] text-black'
+                              ? 'bg-[#FFFFFF] border-[#FFFFFF] text-black'
                               : 'bg-white border-transparent text-white'
                           }`}
                           onClick={() => {
@@ -1020,7 +1020,7 @@ export default function Upload() {
                                       {playingTrackId === track.id ? (
                                           <Square size={16} className="text-white fill-white" />
                                       ) : (
-                                          <Play size={16} className="text-white fill-[#C9A96E]" />
+                                          <Play size={16} className="text-white fill-[#FFFFFF]" />
                                       )}
                                   </button>
                                   <div>

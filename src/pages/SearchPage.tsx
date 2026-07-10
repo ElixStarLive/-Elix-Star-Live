@@ -115,7 +115,7 @@ export default function SearchPage() {
             id: p.user_id || p.userId,
             username: (p.username || 'user') as string,
             name: (p.display_name || p.displayName || p.username || '') as string,
-            avatar: (p.avatar_url || p.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.username || 'U')}&background=121212&color=C9A96E`) as string,
+            avatar: (p.avatar_url || p.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.username || 'U')}&background=121212&color=FFFFFF`) as string,
           }))
           .filter((u: any) => !!u.id)
           .filter((u: any) => {
@@ -186,7 +186,7 @@ export default function SearchPage() {
         style={{ transform: visible ? 'translateY(0)' : 'translateY(100%)' }}
       >
         <div
-          className="w-full max-w-[480px] bg-[#13151A] flex flex-col overflow-hidden pt-[env(safe-area-inset-top,0px)]"
+          className="w-full max-w-[480px] bg-[#111111] flex flex-col overflow-hidden pt-[env(safe-area-inset-top,0px)]"
           style={{ boxShadow: '0 -8px 30px rgba(0,0,0,0.5)', marginTop: 0, height: '100dvh', maxHeight: '100dvh' }}
         >
           {/* Top: drag handle + power (back) — swipe down here to close */}
@@ -196,7 +196,7 @@ export default function SearchPage() {
             onTouchEnd={handleTouchEnd}
           >
             <div className="flex-1 flex justify-center">
-              <div className="w-8 h-[2px] rounded-full bg-[#C9A96E]/30" />
+              <div className="w-8 h-[2px] rounded-full bg-[#FFFFFF]/30" />
             </div>
             <button type="button" onClick={closePanel} className="p-1 -mr-1" title="Back">
               <img src="/Icons/Gold power buton.png" alt="Back" className="w-5 h-5" />
@@ -210,17 +210,17 @@ export default function SearchPage() {
                 <input 
                   type="text" 
                   placeholder="Search" 
-                  className="w-full bg-[#1C1E24] text-gold-metallic placeholder-[#C9A96E]/40 rounded-full py-0.5 pl-9 pr-9 text-sm focus:outline-none border border-white/15 focus:border-white/40"
+                  className="w-full bg-[#111111] text-gold-metallic placeholder-[#FFFFFF]/40 rounded-full py-0.5 pl-9 pr-9 text-sm focus:outline-none border border-white/15 focus:border-white/40"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   autoFocus
                 />
-                <SearchIcon size={10} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#C9A96E]" />
+                <SearchIcon size={10} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#FFFFFF]" />
                 {query && (
                   <button 
                     type="button" 
                     onClick={() => setQuery('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#C9A96E]/60"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#FFFFFF]/60"
                   >
                     <X size={10} />
                   </button>
@@ -240,7 +240,7 @@ export default function SearchPage() {
                       key={cat}
                       type="button"
                       onClick={() => setActiveCategory(cat)}
-                      className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap border transition-colors ${activeCategory === cat ? 'bg-[#C9A96E]/20 border-[#C9A96E] text-[#C9A96E]' : 'bg-[#13151A] border-white/15 text-white/60'}`}
+                      className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap border transition-colors ${activeCategory === cat ? 'bg-[#FFFFFF]/20 border-[#FFFFFF] text-[#FFFFFF]' : 'bg-[#111111] border-white/15 text-white/60'}`}
                     >
                       {cat}
                     </button>
@@ -253,7 +253,7 @@ export default function SearchPage() {
               </>
             ) : (
               <div className="space-y-4 px-4 pb-4">
-                {searching && <div className="text-xs text-[#C9A96E]/60 text-center py-3">Searching...</div>}
+                {searching && <div className="text-xs text-[#FFFFFF]/60 text-center py-3">Searching...</div>}
 
                 {matchedUsers.length > 0 && (
                   <div>
@@ -291,14 +291,14 @@ export default function SearchPage() {
                           <video
                             src={v.url}
                             poster={v.thumbnail || undefined}
-                            className="w-16 h-22 rounded-lg object-cover bg-[#1C1E24] border border-[#C9A96E]/20"
+                            className="w-16 h-22 rounded-lg object-cover bg-[#111111] border border-[#FFFFFF]/20"
                             muted
                             playsInline
                             preload="metadata"
                           />
                           <div className="text-left flex-1">
                             <div className="text-xs font-semibold line-clamp-2">{v.description}</div>
-                            <div className="text-[10px] text-[#C9A96E] mt-1">@{v.username}</div>
+                            <div className="text-[10px] text-[#FFFFFF] mt-1">@{v.username}</div>
                             <div className="text-[10px] text-white/40 mt-1 line-clamp-1">
                               {v.hashtags.map((h: string) => `#${h}`).join(' ')}
                             </div>

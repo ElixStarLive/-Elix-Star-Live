@@ -31,14 +31,14 @@ export const CREATOR_NAME_PILL_PADDING_RIGHT = 'max(3rem,calc(4rem - 20mm))' as 
 
 /** Shared Tailwind classes for the host name / likes oval on LiveStream + Spectator top bar. */
 export const CREATOR_NAME_PILL_CLASSNAME =
-  'flex flex-col justify-center -ml-4 pl-4 h-8 min-h-8 rounded-full border border-[#C9A96E]/60 bg-[#13151A]/80 min-w-0 relative' as const;
+  'flex flex-col justify-center -ml-4 pl-4 h-8 min-h-8 rounded-full border border-[#FFFFFF]/60 bg-[#111111]/80 min-w-0 relative' as const;
 
 /** Inline styles for the host name pill (padding + shadow); merge with `style` if needed. */
 export function getCreatorNamePillStyle(overrides?: Record<string, string | number | undefined>): Record<string, string | number> {
   return {
     borderTopLeftRadius: 0,
     borderBottomLeftRadius: 0,
-    boxShadow: '0 0 8px rgba(201,169,110,0.25)',
+    boxShadow: '0 0 8px rgba(255,255,255,0.25)',
     width: '30mm',
     paddingRight: CREATOR_NAME_PILL_PADDING_RIGHT,
     ...overrides,

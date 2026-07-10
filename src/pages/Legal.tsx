@@ -19,8 +19,8 @@ export default function Legal() {
   ];
 
   return (
-    <div className="bg-[#13151A] text-white flex justify-center px-2">
-      <div className="w-full max-w-[480px] rounded-3xl overflow-hidden bg-[#13151A] flex flex-col overflow-y-auto p-4">
+    <div className="bg-[#111111] text-white flex justify-center px-2">
+      <div className="w-full max-w-[480px] rounded-3xl overflow-hidden bg-[#111111] flex flex-col overflow-y-auto p-4">
         <header className="flex items-center justify-between mb-6">
           <button onClick={() => navigate(-1)} aria-label="Back">
             <img src="/Icons/Gold power buton.png" alt="Back" className="w-5 h-5" />
@@ -34,7 +34,7 @@ export default function Legal() {
             <button
               key={item.label}
               type="button"
-              className="w-full flex items-center p-4 hover:bg-[#13151A] cursor-pointer text-left"
+              className="w-full flex items-center p-4 hover:bg-[#111111] cursor-pointer text-left"
               onClick={() => navigate(item.to)}
             >
               <item.icon size={20} className="mr-4 text-white" />

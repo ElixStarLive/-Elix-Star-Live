@@ -100,10 +100,10 @@ export default function FriendsFeed() {
   };
 
   return (
-    <div className="h-full min-h-0 w-full flex justify-center bg-[#13151A]">
+    <div className="h-full min-h-0 w-full flex justify-center bg-[#111111]">
       {/* Full height of main: header + stories + video scroll share this column (video is NOT main-high alone) */}
       <div className="w-full max-w-[480px] h-full min-h-0 flex flex-col overflow-hidden mx-auto">
-        <div className="w-full shrink-0 bg-[#13151A] z-10 relative pt-app-header-safe">
+        <div className="w-full shrink-0 bg-[#111111] z-10 relative pt-app-header-safe">
           <div className="px-3 pb-1 flex items-center justify-between relative">
             <button onClick={() => navigate('/search')} className="p-1 z-10" aria-label="Search"><Search size={18} className="text-white" /></button>
             <h1 className="text-sm font-bold text-white absolute left-1/2 transform -translate-x-1/2">Friends</h1>
@@ -160,7 +160,7 @@ export default function FriendsFeed() {
 
         <div
           ref={containerRef}
-          className="flex-1 min-h-0 w-full overflow-y-scroll snap-y snap-mandatory relative overscroll-none bg-[#0A0B0E]"
+          className="flex-1 min-h-0 w-full overflow-y-scroll snap-y snap-mandatory relative overscroll-none bg-black"
           style={{ scrollSnapType: 'y mandatory', WebkitOverflowScrolling: 'touch' }}
           onScroll={handleScroll}
         >
@@ -168,14 +168,14 @@ export default function FriendsFeed() {
             <div
               key={`friend-${videoId}-${index}`}
               data-slide-index={index}
-              className="h-full w-full shrink-0 snap-start bg-[#0A0B0E]"
+              className="h-full w-full shrink-0 snap-start bg-black"
               style={{
                 height: '100%',
                 scrollSnapAlign: 'start',
                 scrollSnapStop: 'always',
               }}
             >
-              <div className="w-full h-full min-h-0 relative overflow-hidden bg-[#0A0B0E]">
+              <div className="w-full h-full min-h-0 relative overflow-hidden bg-black">
                 <EnhancedVideoPlayer
                   videoId={videoId}
                   isActive={activeIndex === index}
@@ -187,7 +187,7 @@ export default function FriendsFeed() {
 
           {loading && friendVideoIds.length === 0 && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-8 h-8 border-2 border-[#C9A96E] border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-2 border-[#FFFFFF] border-t-transparent rounded-full animate-spin" />
             </div>
           )}
 
@@ -197,7 +197,7 @@ export default function FriendsFeed() {
               <p className="text-xs text-white/30 mb-4">Follow people or wait for followers to post — everyone shows in one feed</p>
               <button
                 onClick={() => navigate('/discover')}
-                className="px-5 py-2 bg-[#C9A96E] text-black rounded-full text-sm font-bold"
+                className="px-5 py-2 bg-[#FFFFFF] text-black rounded-full text-sm font-bold"
               >
                 Discover people
               </button>

@@ -124,10 +124,10 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
 
   if (isBlocked) {
     return (
-      <div className="fixed inset-0 z-modals bg-[#13151A] flex items-center justify-center p-4">
-        <div className="bg-[#13151A] rounded-2xl p-6 max-w-sm w-full text-center">
-          <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Ban className="w-8 h-8 text-red-500" />
+      <div className="fixed inset-0 z-modals bg-[#111111] flex items-center justify-center p-4">
+        <div className="bg-[#111111] rounded-2xl p-6 max-w-sm w-full text-center">
+          <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Ban className="w-8 h-8 text-white/70" />
           </div>
           <h3 className="text-white font-semibold mb-2">User Blocked</h3>
           <p className="text-white/60 text-sm mb-4">
@@ -153,12 +153,12 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
   return (
     <div className="fixed inset-0 z-[10001] bg-black/60 flex items-end justify-center animate-in fade-in duration-200" onClick={onClose}>
       <div 
-        className="w-full max-w-[480px] bg-[#1C1E24] overflow-y-auto animate-in slide-in-from-bottom duration-300 relative border border-b-0 border-[#C9A96E]/30 shadow-2xl"
+        className="w-full max-w-[480px] bg-[#111111] overflow-y-auto animate-in slide-in-from-bottom duration-300 relative border border-b-0 border-[#FFFFFF]/30 shadow-2xl"
         style={{ marginBottom: 'var(--bottom-ui-reserve)', maxHeight: 'calc(100dvh - var(--safe-top) - 46px - var(--bottom-ui-reserve))' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-[#1C1E24]/98 backdrop-blur-md border-b border-white/5">
+        <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-[#111111]/98 backdrop-blur-md border-b border-white/5">
           <button
             onClick={handleShareProfile}
             className="p-2 rounded-full hover:bg-white/5 transition-colors"
@@ -166,7 +166,7 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
           >
             <img src="/Icons/Share Icon.png" alt="Share" className="w-5 h-5 object-contain opacity-90" />
           </button>
-          <h3 className="text-[#C9A96E] font-semibold text-sm absolute left-1/2 -translate-x-1/2">{displayUser.username}</h3>
+          <h3 className="text-[#FFFFFF] font-semibold text-sm absolute left-1/2 -translate-x-1/2">{displayUser.username}</h3>
           <button 
             onClick={onClose} 
             className="p-2 rounded-full hover:bg-white/5 transition-colors"
@@ -185,13 +185,13 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
             <h2 className="text-lg font-bold text-white flex items-center gap-1.5">
               @{displayUser.username}
               {displayUser.isVerified && (
-                <span className="w-2 h-2 rounded-full bg-[#C9A96E] flex-shrink-0" />
+                <span className="w-2 h-2 rounded-full bg-[#FFFFFF] flex-shrink-0" />
               )}
             </h2>
             <div className="mt-1 flex items-center gap-2">
               <span className="text-sm text-white/80 font-medium">{displayUser.name}</span>
               {displayUser.level != null && (
-                <span className="px-2 py-0.5 rounded-md bg-white/10 text-[10px] font-bold text-[#C9A96E] border border-[#C9A96E]/30">
+                <span className="px-2 py-0.5 rounded-md bg-white/10 text-[10px] font-bold text-[#FFFFFF] border border-[#FFFFFF]/30">
                   LV {displayUser.level}
                 </span>
               )}
@@ -227,7 +227,7 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
                   ) : (
                     <button
                       onClick={onFollow}
-                      className="flex-1 h-9 flex items-center justify-center bg-[#C9A96E] text-black rounded-xl font-semibold text-xs hover:bg-[#C9A96E]/90 transition-colors"
+                      className="flex-1 h-9 flex items-center justify-center bg-[#FFFFFF] text-black rounded-xl font-semibold text-xs hover:bg-[#FFFFFF]/90 transition-colors"
                     >
                       Follow
                     </button>
@@ -254,7 +254,7 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
                         </button>
                         <button
                           onClick={handleBlockUser}
-                          className="w-full px-4 py-2.5 text-left text-xs text-red-400/90 hover:bg-white/5 flex items-center gap-2 border-t border-white/5"
+                          className="w-full px-4 py-2.5 text-left text-xs text-white/60/90 hover:bg-white/5 flex items-center gap-2 border-t border-white/5"
                         >
                           <Ban size={14} /> Block
                         </button>
@@ -293,13 +293,13 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
           {/* Video Feed */}
           <div className="mt-6 pt-4 border-t border-white/5">
             <div className="flex items-center gap-2 mb-3">
-              <div className="w-0.5 h-4 rounded-full bg-[#C9A96E]/80" />
+              <div className="w-0.5 h-4 rounded-full bg-[#FFFFFF]/80" />
               <span className="text-sm font-semibold text-white/90">Videos</span>
             </div>
             {userVideos.length > 0 ? (
               <div className="grid grid-cols-2 gap-2">
                 {userVideos.map((video) => (
-                  <div key={video.id} onClick={() => { onClose(); navigate(`/video/${video.id}`); }} className="aspect-[3/4] bg-[#0A0B0E] rounded-xl overflow-hidden relative cursor-pointer">
+                  <div key={video.id} onClick={() => { onClose(); navigate(`/video/${video.id}`); }} className="aspect-[3/4] bg-black rounded-xl overflow-hidden relative cursor-pointer">
                     <img
                       src={video.thumbnail || getVideoPosterUrl(video.url || '')}
                       alt=""

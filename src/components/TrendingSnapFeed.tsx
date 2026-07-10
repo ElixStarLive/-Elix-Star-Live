@@ -76,7 +76,7 @@ function VideoThumbnail({ video }: { video: Video }) {
   return (
     <button
       type="button"
-      className="relative aspect-[3/4] bg-[#0A0B0E] rounded-lg overflow-hidden cursor-pointer group"
+      className="relative aspect-[3/4] bg-black rounded-lg overflow-hidden cursor-pointer group"
       onClick={() => navigate(`/video/${video.id}`)}
     >
       {thumbSrc ? (

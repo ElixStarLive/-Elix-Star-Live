@@ -181,17 +181,17 @@ export default function Discover() {
   };
 
   return (
-    <div className="fixed inset-0 bg-[#13151A] text-white flex justify-center">
+    <div className="fixed inset-0 bg-[#111111] text-white flex justify-center">
       <div
         className="w-full max-w-[480px] flex flex-col overflow-hidden h-above-bottom-nav"
         style={{ marginTop: 0 }}
       >
 
         {/* ═══ HEADER — full width of column (matches bottom nav max-w-[480px]) ═══ */}
-        <div className="w-full shrink-0 bg-[#13151A] z-10 border-b border-white/[0.06]">
+        <div className="w-full shrink-0 bg-[#111111] z-10 border-b border-white/[0.06]">
           <div className="px-3 pt-[calc(env(safe-area-inset-top,8px)+4px)] pb-1 flex items-center justify-between relative">
             <button onClick={() => document.getElementById('discover-search')?.focus()} className="p-1 z-10" title="Search">
-              <Search className="w-4 h-4 text-[#C9A96E]" />
+              <Search className="w-4 h-4 text-[#FFFFFF]" />
             </button>
             <h1 className="text-sm font-bold text-gold-metallic absolute left-1/2 transform -translate-x-1/2">Explore</h1>
             <button onClick={() => navigate(-1)} className="p-1 z-10" title="Back">
@@ -201,7 +201,7 @@ export default function Discover() {
 
           {/* Search Bar */}
           <div className="mx-3 mb-1.5 flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2 border border-white/10">
-            <Search className="w-3.5 h-3.5 text-[#C9A96E]/50 shrink-0" />
+            <Search className="w-3.5 h-3.5 text-[#FFFFFF]/50 shrink-0" />
             <input
               id="discover-search"
               type="text"
@@ -211,10 +211,10 @@ export default function Discover() {
                 setSearchQuery(e.target.value);
                 if (e.target.value.length >= 2) setActiveTab('search');
               }}
-              className="flex-1 bg-transparent outline-none text-[13px] text-gold-metallic placeholder-[#C9A96E]/30"
+              className="flex-1 bg-transparent outline-none text-[13px] text-gold-metallic placeholder-[#FFFFFF]/30"
             />
             {searchQuery && (
-              <button onClick={() => setSearchQuery('')} className="p-0.5 rounded-full bg-[#13151A] border border-white/15" title="Clear">
+              <button onClick={() => setSearchQuery('')} className="p-0.5 rounded-full bg-[#111111] border border-white/15" title="Clear">
                 <span className="text-white/50 text-xs leading-none px-1">✕</span>
               </button>
             )}
@@ -235,12 +235,12 @@ export default function Discover() {
         </div>
 
         {/* ═══ CONTENT — full width, no card chrome on trending feed ═══ */}
-        <div className="flex-1 min-h-0 overflow-y-auto w-full bg-[#13151A] pb-24">
+        <div className="flex-1 min-h-0 overflow-y-auto w-full bg-[#111111] pb-24">
 
           {/* Loading */}
           {loading && (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
-              <div className="w-7 h-7 border-2 border-[#C9A96E]/20 border-t-[#C9A96E] rounded-full animate-spin" />
+              <div className="w-7 h-7 border-2 border-[#FFFFFF]/20 border-t-[#FFFFFF] rounded-full animate-spin" />
               <p className="text-white/30 text-xs">Loading...</p>
             </div>
           )}
@@ -268,7 +268,7 @@ export default function Discover() {
               {searchResults.users.length > 0 && (
                 <div className="mb-5">
                   <div className="flex items-center gap-2 mb-2 px-1">
-                    <Users className="w-4 h-4 text-[#C9A96E]" />
+                    <Users className="w-4 h-4 text-[#FFFFFF]" />
                     <h2 className="text-[14px] font-bold text-gold-metallic">Users</h2>
                   </div>
                   <div className="space-y-1">
@@ -282,7 +282,7 @@ export default function Discover() {
               {searchResults.videos.length > 0 && (
                 <div>
                   <div className="flex items-center gap-2 mb-2 px-1">
-                    <VideoIcon className="w-4 h-4 text-[#C9A96E]" />
+                    <VideoIcon className="w-4 h-4 text-[#FFFFFF]" />
                     <h2 className="text-[14px] font-bold text-gold-metallic">Videos</h2>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
@@ -355,7 +355,7 @@ export default function Discover() {
                       {/* Avatar */}
                       <div className="relative shrink-0">
                         <AvatarRing 
-                          src={creator.avatar_url || `https://ui-avatars.com/api/?name=${creator.username}&background=222&color=C9A96E`} 
+                          src={creator.avatar_url || `https://ui-avatars.com/api/?name=${creator.username}&background=222&color=FFFFFF`} 
                           alt={creator.username}
                           size={40}
                         />
@@ -424,7 +424,7 @@ function TabButton({ active, onClick, icon, label }: { active: boolean; onClick:
       onClick={onClick}
       className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap transition-all border ${
         active
-          ? 'bg-[#C9A96E]/15 text-[#C9A96E] border-[#C9A96E]/30'
+          ? 'bg-[#FFFFFF]/15 text-[#FFFFFF] border-[#FFFFFF]/30'
           : 'text-white/40 hover:text-white/60 border-transparent'
       }`}
     >
@@ -463,7 +463,7 @@ function VideoThumbnail({ video, variant = 'grid' }: { video: Video; variant?: '
     <div
       ref={containerRef}
       className={`relative overflow-hidden w-full ${
-        feed ? 'h-full min-h-0 rounded-none border-0 bg-black' : 'aspect-[9/16] rounded-xl bg-[#1C1E24] border border-white/10'
+        feed ? 'h-full min-h-0 rounded-none border-0 bg-black' : 'aspect-[9/16] rounded-xl bg-[#111111] border border-white/10'
       }`}
     >
       <div
@@ -484,7 +484,7 @@ function VideoThumbnail({ video, variant = 'grid' }: { video: Video; variant?: '
           />
         ) : (
           <img
-            src={video.thumbnail_url || getVideoPosterUrl(video.url) || `https://ui-avatars.com/api/?name=Video&background=1C1E24&color=C9A96E&size=200`}
+            src={video.thumbnail_url || getVideoPosterUrl(video.url) || `https://ui-avatars.com/api/?name=Video&background=1C1E24&color=FFFFFF&size=200`}
             alt="Video"
             className="absolute inset-0 size-full object-cover"
           />
@@ -555,7 +555,7 @@ function UserSearchResult({ user }: { user: User }) {
     >
       <div className="w-11 h-11 rounded-full overflow-hidden shrink-0">
         <img
-          src={user.avatar_url || `https://ui-avatars.com/api/?name=${user.username}&background=222&color=C9A96E`}
+          src={user.avatar_url || `https://ui-avatars.com/api/?name=${user.username}&background=222&color=FFFFFF`}
           alt={user.username}
           className="w-full h-full object-cover object-center"
         />
@@ -566,7 +566,7 @@ function UserSearchResult({ user }: { user: User }) {
       </div>
       <span
         onClick={handleFollow}
-        className={`px-3.5 py-1.5 rounded-lg font-bold text-[11px] ${followed ? 'bg-white/10 text-white/60' : 'bg-[#C9A96E] text-black'}`}
+        className={`px-3.5 py-1.5 rounded-lg font-bold text-[11px] ${followed ? 'bg-white/10 text-white/60' : 'bg-[#FFFFFF] text-black'}`}
       >
         {followed ? 'Following' : 'Follow'}
       </span>
@@ -581,8 +581,8 @@ function HashtagItem({ hashtag, index }: { hashtag: Hashtag; index: number }) {
       onClick={() => { trackEvent('hashtag_click', { hashtag: hashtag.tag }); navigate(`/hashtag/${hashtag.tag}`); }}
       className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition text-left"
     >
-      <div className="w-9 h-9 bg-[#C9A96E]/10 rounded-xl flex items-center justify-center shrink-0">
-        <Hash className="w-4 h-4 text-[#C9A96E]" />
+      <div className="w-9 h-9 bg-[#FFFFFF]/10 rounded-xl flex items-center justify-center shrink-0">
+        <Hash className="w-4 h-4 text-[#FFFFFF]" />
       </div>
       <div className="flex-1 min-w-0">
         <p className="font-bold text-[13px] truncate">#{hashtag.tag}</p>

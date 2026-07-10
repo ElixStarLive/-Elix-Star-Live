@@ -26,7 +26,7 @@ const reportReasons = [
     title: 'Hate speech or symbols',
     description: 'Promotes hatred or violence against individuals or groups',
     icon: Ban,
-    color: 'text-red-400'
+    color: 'text-white/60'
   },
   {
     id: 'harassment',
@@ -40,7 +40,7 @@ const reportReasons = [
     title: 'Violent or dangerous acts',
     description: 'Promotes or glorifies violence, self-harm, or dangerous activities',
     icon: AlertTriangle,
-    color: 'text-red-500'
+    color: 'text-white/70'
   },
   {
     id: 'nudity',
@@ -198,10 +198,10 @@ export default function ReportModal({ isOpen, onClose, videoId, contentType, con
 
   if (showSuccess) {
     return (
-      <div className="fixed inset-0 z-modals bg-[#13151A] flex items-center justify-center p-4" onClick={onClose}>
-        <div className="bg-[#13151A] rounded-2xl p-6 max-w-sm w-full text-center" onClick={(e) => e.stopPropagation()}>
-          <div className="w-16 h-16 bg-[#C9A96E]/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <div className="w-8 h-8 bg-[#C9A96E] rounded-full flex items-center justify-center">
+      <div className="fixed inset-0 z-modals bg-[#111111] flex items-center justify-center p-4" onClick={onClose}>
+        <div className="bg-[#111111] rounded-2xl p-6 max-w-sm w-full text-center" onClick={(e) => e.stopPropagation()}>
+          <div className="w-16 h-16 bg-[#FFFFFF]/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-8 h-8 bg-[#FFFFFF] rounded-full flex items-center justify-center">
               <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
@@ -220,14 +220,14 @@ export default function ReportModal({ isOpen, onClose, videoId, contentType, con
     <div className="fixed inset-0 z-modals flex items-end justify-center">
       <div className="absolute inset-0 bg-black/60 pointer-events-auto" onClick={onClose} />
 
-      <div className="relative w-full max-w-[480px] z-10 bg-[#1C1E24]/95 backdrop-blur-md rounded-t-2xl p-4 pb-safe flex flex-col gap-1 shadow-2xl border-t border-[#C9A96E]/20 pointer-events-auto h-[40vh] max-h-[40vh] overflow-y-auto mb-[var(--bottom-ui-reserve)] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#C9A96E]/50 [&::-webkit-scrollbar-thumb]:rounded-full" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(201,169,110,0.5) transparent' }}>
+      <div className="relative w-full max-w-[480px] z-10 bg-[#111111]/95 backdrop-blur-md rounded-t-2xl p-4 pb-safe flex flex-col gap-1 shadow-2xl border-t border-[#FFFFFF]/20 pointer-events-auto h-[40vh] max-h-[40vh] overflow-y-auto mb-[var(--bottom-ui-reserve)] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#FFFFFF]/50 [&::-webkit-scrollbar-thumb]:rounded-full" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.25) transparent' }}>
         <div className="flex justify-center mb-2">
           <div className="w-10 h-1 bg-white/20 rounded-full" />
         </div>
 
         <div className="flex items-center gap-2 mb-1 ml-[4mm]">
-          <div className="relative w-9 h-9 rounded-full bg-[#13151A] overflow-hidden flex items-center justify-center flex-shrink-0">
-            <Flag className="relative z-[2] w-4 h-4 text-red-400" strokeWidth={1.8} />
+          <div className="relative w-9 h-9 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center flex-shrink-0">
+            <Flag className="relative z-[2] w-4 h-4 text-white/60" strokeWidth={1.8} />
             <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[3] scale-125 translate-y-0.5" />
           </div>
           <h3 className="text-white font-bold text-[13px] whitespace-nowrap">Report {getContentTypeLabel()}</h3>
@@ -242,16 +242,16 @@ export default function ReportModal({ isOpen, onClose, videoId, contentType, con
                 key={reason.id}
                 type="button"
                 onClick={() => setSelectedReason(reason.id)}
-                className={`w-full px-3 py-2 flex items-center justify-between rounded-lg transition-colors ${selected ? 'bg-[#C9A96E]/10' : 'hover:bg-white/[0.03]'}`}
+                className={`w-full px-3 py-2 flex items-center justify-between rounded-lg transition-colors ${selected ? 'bg-[#FFFFFF]/10' : 'hover:bg-white/[0.03]'}`}
               >
                 <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                  <div className={`relative w-9 h-9 rounded-full bg-[#13151A] overflow-hidden flex items-center justify-center flex-shrink-0 shrink-0 ${selected ? 'ring-2 ring-[#C9A96E]/50' : ''}`}>
+                  <div className={`relative w-9 h-9 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center flex-shrink-0 shrink-0 ${selected ? 'ring-2 ring-[#FFFFFF]/50' : ''}`}>
                     <IconComponent className={`relative z-[2] w-4 h-4 ${reason.color}`} strokeWidth={1.8} />
                     <img src="/Icons/Music Icon.png" alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[3] scale-125 translate-y-0.5" />
                   </div>
                   <span className="text-white/80 text-xs font-medium truncate">{reason.title}</span>
                 </div>
-                <div className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 ${selected ? 'border-[#C9A96E] bg-[#C9A96E]' : 'border-white/20'}`}>
+                <div className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 ${selected ? 'border-[#FFFFFF] bg-[#FFFFFF]' : 'border-white/20'}`}>
                   {selected && (
                     <svg className="w-2.5 h-2.5 text-black" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -267,7 +267,7 @@ export default function ReportModal({ isOpen, onClose, videoId, contentType, con
           <textarea
             value={additionalDetails}
             onChange={(e) => setAdditionalDetails(e.target.value)}
-            className="w-full bg-[#13151A]/40 border border-white/10 text-white rounded-lg p-2.5 text-xs focus:outline-none focus:border-white/20 resize-none leading-snug peer"
+            className="w-full bg-[#111111]/40 border border-white/10 text-white rounded-lg p-2.5 text-xs focus:outline-none focus:border-white/20 resize-none leading-snug peer"
             rows={2}
             maxLength={500}
           />
@@ -288,7 +288,7 @@ export default function ReportModal({ isOpen, onClose, videoId, contentType, con
             type="button"
             onClick={handleSubmit}
             disabled={isSubmitting || !selectedReason}
-            className="flex-1 py-2.5 bg-[#C9A96E] text-black font-bold text-xs rounded-lg hover:brightness-110 disabled:opacity-40 transition"
+            className="flex-1 py-2.5 bg-[#FFFFFF] text-black font-bold text-xs rounded-lg hover:brightness-110 disabled:opacity-40 transition"
           >
             {isSubmitting ? 'Submitting...' : 'Submit'}
           </button>
