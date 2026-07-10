@@ -64,10 +64,10 @@ router.post("/", async (req, res) => {
     addVideo(video);
     await saveVideoToDb(video);
 
-    const music = video.music as { id?: string; provider?: string } | null;
-    if (music?.provider === "epidemic_sound" && music.id) {
+    const videoMusic = music as { id?: string; provider?: string } | null;
+    if (videoMusic?.provider === "epidemic_sound" && videoMusic.id) {
       const { reportTracksExported } = await import("../services/epidemicSound");
-      void reportTracksExported(payload.sub, [String(music.id)], "OTHER");
+      void reportTracksExported(payload.sub, [String(videoMusic.id)], "OTHER");
     }
 
     logger.info({ videoId: id }, "Video created");
