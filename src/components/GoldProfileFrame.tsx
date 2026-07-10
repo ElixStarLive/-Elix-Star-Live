@@ -1,6 +1,6 @@
 import React from 'react';
 
-/** Small circular frame for icons — no border ring. */
+/** Avatar / icon slot — sized crop only, no decorative ring or background circle. */
 export function GoldProfileFrame({
   size = 34,
   className = '',
@@ -11,11 +11,11 @@ export function GoldProfileFrame({
   children?: React.ReactNode;
 }) {
   return (
-    <div
-      className={`relative flex flex-shrink-0 items-center justify-center rounded-full bg-black ${className}`}
+    <span
+      className={`relative inline-flex flex-shrink-0 items-center justify-center overflow-hidden rounded-full ${className}`}
       style={{ width: size, height: size }}
     >
       {children}
-    </div>
+    </span>
   );
 }

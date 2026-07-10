@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { RoyceBackIcon } from '../components/royce';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { showToast } from '../lib/toast';
 import {
@@ -2396,7 +2395,7 @@ export default function SpectatorPage() {
                   }}
                   className="w-8 h-8 rounded-full bg-transparent border-0 flex items-center justify-center active:scale-90 transition-transform"
                 >
-                  <RoyceBackIcon />
+                  <X size={20} className="text-[#D4AF37]" strokeWidth={2.25} />
                 </button>
               </div>
             </div>
@@ -2536,11 +2535,11 @@ export default function SpectatorPage() {
                 }}
                 className="flex flex-col items-center justify-center w-12 active:scale-95 transition-transform select-none flex-shrink-0 disabled:opacity-60"
               >
-                <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-[#111111] backdrop-blur-md shadow-lg">
+                <div className="relative w-10 h-10 flex items-center justify-center">
                   <span className="flex items-center justify-center w-full h-full relative z-[2]">
                     <UserPlus size={20} className="text-[#D4AF37] shrink-0" strokeWidth={2} />
                   </span>
-</div>
+                </div>
                 <span className="text-[10px] font-semibold text-[#D4AF37] mt-0.5">Invite</span>
               </button>
               <button
@@ -2549,9 +2548,9 @@ export default function SpectatorPage() {
                 onClick={() => setShowGiftPanel(true)}
                 className="flex flex-col items-center justify-center w-12 active:scale-95 transition-transform select-none flex-shrink-0"
               >
-                <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-[#111111] backdrop-blur-md shadow-lg">
+                <div className="relative w-10 h-10 flex items-center justify-center">
                   <Gift size={20} className="text-[#D4AF37] relative z-[2]" />
-</div>
+                </div>
                 <span className="text-[10px] font-semibold text-[#D4AF37] mt-0.5">Gift</span>
               </button>
               <button
@@ -2560,9 +2559,9 @@ export default function SpectatorPage() {
                 onClick={() => setShowSharePanel(true)}
                 className="flex flex-col items-center justify-center w-12 active:scale-95 transition-transform select-none flex-shrink-0"
               >
-                <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-[#111111] backdrop-blur-md shadow-lg">
+                <div className="relative w-10 h-10 flex items-center justify-center">
                   <Share2 size={20} className="text-[#D4AF37] relative z-[2]" />
-</div>
+                </div>
                 <span className="text-[10px] font-semibold text-[#D4AF37] mt-0.5">Share</span>
               </button>
               <button
@@ -2571,9 +2570,9 @@ export default function SpectatorPage() {
                 onClick={() => setIsMoreMenuOpen(true)}
                 className="flex flex-col items-center justify-center w-12 active:scale-95 transition-transform select-none flex-shrink-0"
               >
-                <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-[#111111] backdrop-blur-md shadow-lg">
+                <div className="relative w-10 h-10 flex items-center justify-center">
                   <MoreVertical size={20} className="text-[#D4AF37] relative z-[2]" />
-</div>
+                </div>
                 <span className="text-[10px] font-semibold text-[#D4AF37] mt-0.5">More</span>
               </button>
             </div>

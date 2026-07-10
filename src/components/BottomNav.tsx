@@ -63,16 +63,11 @@ export const BottomNav = () => {
                   {center ? (
                     <CaptureShutterButton size={52} nav />
                   ) : Icon ? (
-                    <span
-                      className="royce-tile"
-                      style={{ width: 36, height: 36 }}
-                    >
-                      <Icon
-                        size={ICON_SIZE}
-                        strokeWidth={active ? 2.35 : 2}
-                        className={iconClass}
-                      />
-                    </span>
+                    <Icon
+                      size={ICON_SIZE}
+                      strokeWidth={active ? 2.35 : 2}
+                      className={iconClass}
+                    />
                   ) : null}
                   <span className={`text-[9px] font-semibold leading-none tracking-wide ${labelClass}`}>
                     {label}

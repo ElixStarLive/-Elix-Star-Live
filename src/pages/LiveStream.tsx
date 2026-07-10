@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { RoyceBackIcon, RoyceCloseIcon } from '../components/royce';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { showToast } from '../lib/toast';
 import { platform, openExternalLink } from '../lib/platform';
@@ -77,6 +76,9 @@ import LiveAIFilters from '../components/LiveAIFilters';
 import { liveStreamUiGiftTargetToServerBattleTarget, normalizeBattleGiftTarget } from '../lib/liveBattleGiftTarget';
 import { IS_STORE_BUILD } from '../config/build';
 import { Room, RoomEvent, LocalVideoTrack, LocalAudioTrack } from 'livekit-client';
+
+const LIVE_BOTTOM_ICON_BTN =
+  'w-10 h-10 flex items-center justify-center bg-transparent border-0 shadow-none active:scale-95 transition-transform flex-shrink-0';
 
 function AnimatedScore({ value, className = '', durationMs = 300, format }: { value: number; className?: string; durationMs?: number; format?: (n: number) => string }) {
   const [display, setDisplay] = useState(value);
@@ -3954,7 +3956,7 @@ export default function LiveStream() {
                           onClick={(e) => { e.stopPropagation(); toggleBattle(); }}
                           title="End Battle"
                         >
-                          <RoyceBackIcon />
+                          <X size={18} className="text-[#D4AF37]" strokeWidth={2.25} />
                         </button>
                       </div>
 
@@ -4035,7 +4037,7 @@ export default function LiveStream() {
                             title="Remove opponent"
                             className="flex items-center justify-center border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
                           >
-                            <RoyceBackIcon />
+                            <X size={18} className="text-[#D4AF37]" strokeWidth={2.25} />
                           </button>
                         </div>
                       )}
@@ -4466,7 +4468,7 @@ export default function LiveStream() {
                           <UserPlus size={16} className="text-[#D4AF37]" strokeWidth={2.2} />
                         </button>
                         <button type="button" onClick={() => { if (!isBroadcast) { navigate('/feed', { replace: true }); } else if (isBattleMode) { toggleBattle(); } else { stopBroadcast(); } }} className="w-7 h-7 rounded-full flex items-center justify-center active:scale-95 transition-transform" title={isBroadcast ? (isBattleMode ? 'End battle' : 'End broadcast') : 'Leave'}>
-                          <RoyceCloseIcon />
+                          <X size={20} className="text-[#D4AF37]" strokeWidth={2.25} />
                         </button>
                       </div>
                     </div>
@@ -4596,17 +4598,17 @@ export default function LiveStream() {
                   setSpectatorCoHostRequestSent(true);
                   showToast('Co-host request sent!');
                 }}
-                className="w-10 h-10 rounded-full bg-[#111111] backdrop-blur-md flex items-center justify-center shadow-lg relative disabled:opacity-60 active:scale-95 transition-transform flex-shrink-0"
+                className={`${LIVE_BOTTOM_ICON_BTN} relative disabled:opacity-60`}
               >
                 <span className="flex items-center justify-center w-full h-full relative z-[2]"><UserPlus size={20} className="text-[#D4AF37] shrink-0" strokeWidth={2} /></span>
 </button>
-              <button type="button" title="Send gift" onClick={() => setShowGiftPanel(true)} className="w-10 h-10 rounded-full bg-[#111111] backdrop-blur-md flex items-center justify-center shadow-lg active:scale-95 transition-transform relative flex-shrink-0">
+              <button type="button" title="Send gift" onClick={() => setShowGiftPanel(true)} className={`${LIVE_BOTTOM_ICON_BTN} relative`}>
                 <Gift size={20} className="text-[#D4AF37] relative z-[2]" />
 </button>
-              <button type="button" title="Share" onClick={() => setShowSharePanel(true)} className="w-10 h-10 rounded-full bg-[#111111] backdrop-blur-md flex items-center justify-center shadow-lg active:scale-95 transition-transform relative flex-shrink-0">
+              <button type="button" title="Share" onClick={() => setShowSharePanel(true)} className={`${LIVE_BOTTOM_ICON_BTN} relative`}>
                 <Share2 size={20} className="text-[#D4AF37] relative z-[2]" />
 </button>
-              <button type="button" title="More options" onClick={() => setIsMoreMenuOpen(true)} className="w-10 h-10 rounded-full bg-[#111111] backdrop-blur-md flex items-center justify-center shadow-lg active:scale-95 transition-transform relative flex-shrink-0">
+              <button type="button" title="More options" onClick={() => setIsMoreMenuOpen(true)} className={`${LIVE_BOTTOM_ICON_BTN} relative`}>
                 <MoreVertical size={20} className="text-[#D4AF37] relative z-[2]" />
 </button>
             </div>
@@ -4647,26 +4649,26 @@ export default function LiveStream() {
                 <button
                   type="button"
                   onClick={() => setShowViewerList(true)}
-                  className="w-10 h-10 rounded-full bg-[#111111] backdrop-blur-md flex items-center justify-center shadow-lg relative"
+                  className={`${LIVE_BOTTOM_ICON_BTN} relative`}
                 >
                   <span className="flex items-center justify-center w-full h-full relative z-[2]"><UserPlus size={20} className="text-[#D4AF37] shrink-0" strokeWidth={2} /></span>
 </button>
                 <span className="text-white/60 text-[8px] font-medium">Co-Host</span>
               </div>
               <div className="flex flex-col items-center gap-0.5">
-                <button type="button" onClick={() => { if (!isBattleMode) toggleBattle(); else setIsFindCreatorsOpen(true); }} className="w-10 h-10 rounded-full bg-[#111111] backdrop-blur-md flex items-center justify-center shadow-lg relative">
+                <button type="button" onClick={() => { if (!isBattleMode) toggleBattle(); else setIsFindCreatorsOpen(true); }} className={`${LIVE_BOTTOM_ICON_BTN} relative`}>
                   <Users size={20} className="text-[#D4AF37] relative z-[2]" />
 </button>
                 <span className="text-white/60 text-[8px] font-medium">Battle</span>
               </div>
               <div className="flex flex-col items-center gap-0.5">
-                <button type="button" title="Share" onClick={() => setShowSharePanel(true)} className="w-10 h-10 rounded-full bg-[#111111] backdrop-blur-md flex items-center justify-center shadow-lg active:scale-95 transition-transform relative">
+                <button type="button" title="Share" onClick={() => setShowSharePanel(true)} className={`${LIVE_BOTTOM_ICON_BTN} relative`}>
                   <Share2 size={20} className="text-[#D4AF37] relative z-[2]" />
 </button>
                 <span className="text-white/60 text-[8px] font-medium">Share</span>
               </div>
               <div className="flex flex-col items-center gap-0.5">
-                <button type="button" title="More options" onClick={() => setIsMoreMenuOpen(true)} className="w-10 h-10 rounded-full bg-[#111111] backdrop-blur-md flex items-center justify-center shadow-lg relative">
+                <button type="button" title="More options" onClick={() => setIsMoreMenuOpen(true)} className={`${LIVE_BOTTOM_ICON_BTN} relative`}>
                   <MoreVertical size={20} className="text-[#D4AF37] relative z-[2]" />
 </button>
                 <span className="text-white/60 text-[8px] font-medium">More</span>
