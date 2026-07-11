@@ -300,11 +300,9 @@ export default function ElixCameraLayout({
       {/* TOP BAR */}
       {/* ══════════════════════════════════════════ */}
       <div
-        className="absolute top-0 left-0 right-0 z-50 px-3 flex items-center justify-between pointer-events-auto"
+        className="absolute top-0 left-0 right-0 z-50 px-3 flex items-center justify-center pointer-events-auto"
         style={{ paddingTop: 'max(3rem, env(safe-area-inset-top))' }}
       >
-        <div className="w-8 h-8" />
-
         {/* Add Sound Button */}
         <button
           onClick={onSelectMusic}
@@ -317,16 +315,17 @@ export default function ElixCameraLayout({
               strokeWidth={2}
             />
         </button>
-
-        {/* Close Button (no circular container) */}
-        <button
-          onClick={onClose}
-          className="flex-shrink-0 flex items-center justify-center hover:scale-110 transition-transform active:scale-95 z-[60] relative translate-x-[-2.5mm]"
-          title="Close"
-        >
-          <RoyceCloseIcon />
-        </button>
       </div>
+
+      {/* Close — same horizontal line as right-side tool column */}
+      <button
+        onClick={onClose}
+        className="absolute right-2 z-[60] w-8 h-8 flex items-center justify-center hover:scale-110 transition-transform active:scale-95 pointer-events-auto"
+        style={{ top: 'max(3rem, env(safe-area-inset-top))' }}
+        title="Close"
+      >
+        <RoyceCloseIcon />
+      </button>
 
       {/* ══════════════════════════════════════════ */}
       {/* Active Filter Indicator (top-left) */}
