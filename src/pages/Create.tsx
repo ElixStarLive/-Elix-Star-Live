@@ -19,7 +19,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { CaptureShutterButton } from '../components/CaptureShutterButton';
 import { setCachedCameraStream } from '../lib/cameraStream';
-import { type SoundTrack, fetchSoundTracksFromDatabase } from '../lib/soundLibrary';
+import { type SoundTrack, getLocalSoundPickerTracks } from '../lib/soundLibrary';
 import { nativePrompt } from '../components/NativeDialog';
 import ElixCameraLayout from '../components/ElixCameraLayout';
 
@@ -50,15 +50,9 @@ function SoundPickerModal({
   const clipRef = useRef<{ start: number; end: number } | null>(null);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [customSounds, setCustomSounds] = useState<Sound[]>([]);
-  const [builtInSounds, setBuiltInSounds] = useState<Sound[]>([]);
   const sounds = useMemo<Sound[]>(() => {
-    const builtIn = builtInSounds.filter((t) => !!t.url);
-    return [...customSounds, ...builtIn];
-  }, [customSounds, builtInSounds]);
-
-  useEffect(() => {
-    fetchSoundTracksFromDatabase().then(setBuiltInSounds).catch(() => {});
-  }, []);
+    return [...getLocalSoundPickerTracks(), ...customSounds.filter((t) => !!t.url)];
+  }, [customSounds]);
 
   const formatClip = (start: number, end: number) => {
     const total = Math.max(0, Math.floor(end - start));
@@ -86,6 +80,7 @@ function SoundPickerModal({
   }, []);
 
   const togglePreview = async (s: Sound) => {
+    if (!s.url) return;
     const a = audioRef.current;
     if (!a) return;
     if (playingId === String(s.id)) {
@@ -155,18 +150,25 @@ function SoundPickerModal({
             <div key={s.id} className="w-full px-3 py-2 flex items-center justify-between hover:brightness-125 transition-colors">
               <div className="text-left flex-1 min-w-0 mr-2">
                 <p className="text-white text-sm font-medium leading-4 truncate">{s.title}</p>
-                <p className="text-white/50 text-xs leading-4 truncate">{s.artist} • {formatClip(s.clipStartSeconds, s.clipEndSeconds)}</p>
+                <p className="text-white/50 text-xs leading-4 truncate">
+                  {s.artist}{s.url ? ` • ${formatClip(s.clipStartSeconds, s.clipEndSeconds)}` : ' • Use mic audio from your clip'}
+                </p>
               </div>
               <div className="flex items-center gap-1.5 flex-shrink-0">
-                <button type="button" onClick={() => togglePreview(s)} className="w-8 h-8 rounded-full border border-[#C9A227]/25 bg-[#111111] flex items-center justify-center">
-                  {playingId === String(s.id) ? <Pause className="w-3.5 h-3.5 text-white" strokeWidth={2} /> : <Play className="w-3.5 h-3.5 text-white" strokeWidth={2} />}
-                </button>
+                {s.url ? (
+                  <button type="button" onClick={() => togglePreview(s)} className="w-8 h-8 rounded-full border border-[#C9A227]/25 bg-[#111111] flex items-center justify-center">
+                    {playingId === String(s.id) ? <Pause className="w-3.5 h-3.5 text-white" strokeWidth={2} /> : <Play className="w-3.5 h-3.5 text-white" strokeWidth={2} />}
+                  </button>
+                ) : null}
                 <button type="button" onClick={() => { onPick(s); onClose(); }} className="px-2.5 py-1 rounded-full border border-[#C9A227]/35 text-white text-[10px] font-semibold">
                   Use
                 </button>
               </div>
             </div>
           ))}
+          {customSounds.length === 0 && (
+            <p className="px-3 py-4 text-center text-white/40 text-xs">Add your own audio with Add URL above.</p>
+          )}
         </div>
       </div>
     </div>

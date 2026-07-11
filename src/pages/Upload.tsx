@@ -5,7 +5,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { setCachedCameraStream } from '../lib/cameraStream';
 import { RefreshCw, Zap, Clock, Music, Check, Play, Square, RotateCcw, ZoomIn, ZoomOut, Wand2 } from 'lucide-react';
 import { useVideoStore } from '../store/useVideoStore';
-import { type SoundTrack, fetchSoundTracksFromDatabase } from '../lib/soundLibrary';
+import { type SoundTrack } from '../lib/soundLibrary';
 import { trackEvent } from '../lib/analytics';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { videoUploadService } from '../lib/videoUpload';
@@ -16,6 +16,7 @@ import AIToolsPanel from '../components/AIToolsPanel';
 
 export default function Upload() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { muteAllSounds } = useSettingsStore();
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -40,7 +41,6 @@ export default function Upload() {
   const previewAudioRef = useRef<HTMLAudioElement | null>(null); // For list preview
   const backgroundAudioRef = useRef<HTMLAudioElement | null>(null); // For video background
   const [customTracks, setCustomTracks] = useState<SoundTrack[]>([]);
-  const [builtInTracks, setBuiltInTracks] = useState<SoundTrack[]>([]);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [showAITools, setShowAITools] = useState(false);
   const [activeFilter, setActiveFilter] = useState('none');
@@ -49,11 +49,6 @@ export default function Upload() {
   const [duetSourceVideoUrl, setDuetSourceVideoUrl] = useState<string | null>(null);
   const duetSourceVideoRef = useRef<HTMLVideoElement>(null);
 
-  useEffect(() => {
-    fetchSoundTracksFromDatabase().then(setBuiltInTracks).catch(() => {});
-  }, []);
-
-  const [searchParams] = useSearchParams();
   const duetParam = searchParams.get('duet');
 
   useEffect(() => {
@@ -102,7 +97,7 @@ export default function Upload() {
     return `${m}:${String(s).padStart(2, '0')}`;
   };
 
-  const musicTracks = React.useMemo(() => [...customTracks, ...builtInTracks], [customTracks, builtInTracks]);
+  const musicTracks = React.useMemo(() => [...customTracks], [customTracks]);
 
   const getSelectedLabel = () => {
     if (postWithoutAudio || selectedAudioId === 'none') return 'No audio';

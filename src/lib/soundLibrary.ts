@@ -33,3 +33,21 @@ export const EMPTY_TRACK: SoundTrack = {
   clipStartSeconds: 0,
   clipEndSeconds: 0,
 };
+
+/** Default camera / create picker — no licensed API catalog. */
+export const ORIGINAL_SOUND_TRACK: SoundTrack = {
+  id: "original",
+  title: "Original Sound",
+  artist: "Your recording",
+  duration: "0:00",
+  url: "",
+  license: "Original",
+  source: "Camera",
+  provider: "local",
+  clipStartSeconds: 0,
+  clipEndSeconds: 0,
+};
+
+export function getLocalSoundPickerTracks(): SoundTrack[] {
+  return [ORIGINAL_SOUND_TRACK];
+}
