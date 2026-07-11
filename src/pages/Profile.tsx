@@ -471,7 +471,7 @@ export default function Profile() {
         {showAccountMenu && (
           <div className="fixed inset-0 z-[9999] bg-[#111111]/70 flex items-end justify-center" onClick={() => setShowAccountMenu(false)}>
             <div 
-              className="w-full max-w-[480px] bg-[#111] rounded-t-2xl border-t border-white/10 pb-safe"
+              className="w-full max-w-[480px] bg-[#111] rounded-t-2xl border-t border-white/10 pb-safe bottom-sheet-above-nav"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-white/10">
@@ -512,8 +512,8 @@ export default function Profile() {
         {showSharePanel && (
           <div className="fixed inset-0 z-[9999] bg-black/60 flex items-end justify-center" onClick={() => setShowSharePanel(false)}>
             <div
-              className="w-full max-w-[480px] bg-[#111111]/95 rounded-t-2xl border-2 border-b-0 border-white/10 max-h-[40dvh] flex flex-col overflow-hidden"
-              style={{ marginBottom: 'var(--bottom-ui-reserve)', boxShadow: '0 -4px 30px rgba(255,255,255,0.25)' }}
+              className="w-full max-w-[480px] bg-[#111111]/95 rounded-t-2xl max-h-[40dvh] flex flex-col overflow-hidden bottom-sheet-above-nav"
+              style={{ boxShadow: '0 -4px 30px rgba(255,255,255,0.25)' }}
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-center pt-3 pb-1">

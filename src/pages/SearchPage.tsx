@@ -185,7 +185,7 @@ export default function SearchPage() {
         ref={panelRef}
         className="absolute left-0 right-0 top-0 flex justify-center transition-transform duration-250 ease-out"
         style={{
-          bottom: 'var(--bottom-ui-reserve)',
+          bottom: 'var(--bottom-nav-top)',
           transform: visible ? 'translateY(0)' : 'translateY(100%)',
         }}
       >

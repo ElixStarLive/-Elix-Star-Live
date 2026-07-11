@@ -134,7 +134,7 @@ export default function EnhancedLikesModal({ isOpen, onClose, videoId, likes }: 
 
   return (
     <div className="fixed inset-0 z-modals bg-[#111111] flex items-end">
-      <div className="w-full h-[80vh] bg-[#111111] rounded-t-2xl flex flex-col border-t border-transparent" style={{animation: 'slide-up 0.3s ease-out'}}>
+      <div className="w-full h-[80vh] bg-[#111111] rounded-t-2xl flex flex-col border-t border-transparent bottom-sheet-above-nav" style={{animation: 'slide-up 0.3s ease-out'}}>
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-transparent">
           <div>

@@ -70,6 +70,8 @@
     --nav-tolerance: clamp(4px, 1vw, 8px);
     /* Single token: use for main padding, fixed columns, and bottom-anchored UI */
     --bottom-ui-reserve: calc(var(--nav-height) + var(--safe-bottom) + var(--nav-tolerance));
+    /* Flush bottom-sheet anchor — top of home bar, no tolerance gap */
+    --bottom-nav-top: calc(var(--nav-height) + var(--safe-bottom));
     /* Top bar height (responsive) */
     --topbar-height: clamp(40px, 10vw, 56px);
     /* For You top bar — text tabs (TopNav.tsx) */
@@ -250,6 +252,14 @@
   .pb-nav { padding-bottom: var(--feed-main-pb); }
   .pb-nav-feed { padding-bottom: var(--feed-main-pb); }
   .pb-nav-friends { padding-bottom: var(--feed-main-pb); }
+
+  /* Bottom sheets flush on home bar — zero gap above bottom nav */
+  .bottom-sheet-above-nav {
+    margin-bottom: var(--bottom-nav-top);
+  }
+  .fixed-above-bottom-nav {
+    bottom: var(--bottom-nav-top);
+  }
 
   /* Fixed / full-viewport columns above bottom nav — stop at top of bottom bar */
   .h-above-bottom-nav {

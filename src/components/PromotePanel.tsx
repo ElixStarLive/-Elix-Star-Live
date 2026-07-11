@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { TrendingUp, Play, UserPlus, FileText, Heart } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { request } from '../lib/apiClient';
@@ -30,6 +31,14 @@ const goals = [
 ];
 
 export default function PromotePanel({ isOpen, onClose, contentType, content }: PromotePanelProps) {
+  const location = useLocation();
+  const bottomNavHidden =
+    location.pathname === '/live' ||
+    location.pathname.startsWith('/live/') ||
+    location.pathname.startsWith('/watch/') ||
+    location.pathname === '/create' ||
+    location.pathname.startsWith('/create/') ||
+    location.pathname === '/upload';
   const user = useAuthStore((s) => s.user);
   const session = useAuthStore((s) => s.session);
   const [boostType, setBoostType] = useState<'account' | 'live'>(
@@ -122,7 +131,7 @@ export default function PromotePanel({ isOpen, onClose, contentType, content }: 
   return (
     <div className="fixed inset-0 z-[100000] flex items-end justify-center bg-black/50" onClick={onClose}>
       <div
-        className="w-full max-w-[480px] bg-[#111111]/95 backdrop-blur-md rounded-t-2xl h-[38vh] max-h-[320px] overflow-hidden flex flex-col shadow-2xl animate-in slide-in-from-bottom"
+        className={`w-full max-w-[480px] bg-[#111111]/95 backdrop-blur-md rounded-t-2xl h-[38vh] max-h-[320px] overflow-hidden flex flex-col shadow-2xl animate-in slide-in-from-bottom ${!bottomNavHidden ? 'bottom-sheet-above-nav' : ''}`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Drag handle */}
