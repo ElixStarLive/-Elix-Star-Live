@@ -1,5 +1,12 @@
 import { request } from './apiClient';
 
+/** Horizontal share strip — round avatar diameter (Create + users). */
+export const SHARE_PANEL_AVATAR_PX = 64;
+/** Column width for each Create / user chip. */
+export const SHARE_PANEL_ITEM_WIDTH_PX = 72;
+/** Plus overlay on the Create chip. */
+export const SHARE_PANEL_PLUS_PX = 22;
+
 /** One row for the horizontal “Share to” avatar strip (Create + users). */
 export type SharePanelContact = {
   user_id: string;

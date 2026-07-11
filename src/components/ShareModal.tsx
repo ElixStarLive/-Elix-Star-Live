@@ -21,7 +21,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { StoryGoldRingAvatar } from './StoryGoldRingAvatar';
 import PromotePanel from './PromotePanel';
 import { nativeConfirm } from './NativeDialog';
-import { fetchAllSharePanelContacts } from '../lib/sharePanelContacts';
+import { fetchAllSharePanelContacts, SHARE_PANEL_AVATAR_PX, SHARE_PANEL_ITEM_WIDTH_PX, SHARE_PANEL_PLUS_PX } from '../lib/sharePanelContacts';
 import { openExternalLink, nativeShareUrl } from '../lib/platform';
 import { showToast } from '../lib/toast';
 
@@ -154,11 +154,11 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin, i
             type="button"
             onClick={() => { onClose(); navigate('/create'); }}
             className="flex-shrink-0 flex flex-col items-center gap-1 active:scale-95 transition-transform"
-            style={{ width: 95, minWidth: 95 }}
+            style={{ width: SHARE_PANEL_ITEM_WIDTH_PX, minWidth: SHARE_PANEL_ITEM_WIDTH_PX }}
           >
-            <div className="relative w-[85px] h-[85px] flex items-center justify-center">
-              <StoryGoldRingAvatar size={85} src={user?.avatar || '/royce/default-avatar.svg'} alt="Create" />
-              <Plus size={28} className="text-[#D4AF37] absolute" strokeWidth={2.5} />
+            <div className="relative flex items-center justify-center" style={{ width: SHARE_PANEL_AVATAR_PX, height: SHARE_PANEL_AVATAR_PX }}>
+              <StoryGoldRingAvatar size={SHARE_PANEL_AVATAR_PX} src={user?.avatar || '/royce/default-avatar.svg'} alt="Create" />
+              <Plus size={SHARE_PANEL_PLUS_PX} className="text-[#D4AF37] absolute" strokeWidth={2.5} />
             </div>
             <span className="text-white/80 text-[11px] font-medium">Create</span>
           </button>
@@ -166,10 +166,10 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin, i
             <button
               key={f.user_id}
               className="flex-shrink-0 flex flex-col items-center gap-1 active:scale-95 transition-transform"
-              style={{ width: 95, minWidth: 95 }}
+              style={{ width: SHARE_PANEL_ITEM_WIDTH_PX, minWidth: SHARE_PANEL_ITEM_WIDTH_PX }}
               onClick={() => sendShareTo(f.user_id)}
             >
-              <StoryGoldRingAvatar size={85} src={f.avatar_url || '/royce/default-avatar.svg'} alt={f.username} />
+              <StoryGoldRingAvatar size={SHARE_PANEL_AVATAR_PX} src={f.avatar_url || '/royce/default-avatar.svg'} alt={f.username} />
               <span className="text-white/80 text-[11px] font-medium truncate w-full text-center">
                 {sentTo.has(f.user_id) ? 'Sent' : f.username || 'User'}
               </span>

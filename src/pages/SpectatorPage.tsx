@@ -58,7 +58,7 @@ import {
 import { useAuthStore } from '../store/useAuthStore';
 import { useVideoStore } from '../store/useVideoStore';
 import { getLiveKitUrl } from '../lib/api';
-import { fetchAllSharePanelContacts } from '../lib/sharePanelContacts';
+import { fetchAllSharePanelContacts, SHARE_PANEL_AVATAR_PX, SHARE_PANEL_ITEM_WIDTH_PX, SHARE_PANEL_PLUS_PX } from '../lib/sharePanelContacts';
 import { request } from '../lib/apiClient';
 import { openExternalLink } from '../lib/platform';
 import ReportModal from '../components/ReportModal';
@@ -2918,10 +2918,10 @@ export default function SpectatorPage() {
                 </div>
                 <div className="w-full overflow-hidden shrink-0">
                   <div className="flex gap-3 overflow-x-auto pb-3 no-scrollbar items-center px-4">
-                    <button type="button" onClick={() => { setShowSharePanel(false); navigate('/create'); }} className="flex-shrink-0 flex flex-col items-center gap-1 active:scale-95 transition-transform" style={{ width: 95, minWidth: 95 }}>
-                      <div className="relative w-[85px] h-[85px] flex items-center justify-center">
-                        <StoryGoldRingAvatar size={85} src={user?.avatar || '/royce/default-avatar.svg'} alt="Create" />
-                        <Plus size={28} className="text-[#D4AF37] absolute" strokeWidth={2.5} />
+                    <button type="button" onClick={() => { setShowSharePanel(false); navigate('/create'); }} className="flex-shrink-0 flex flex-col items-center gap-1 active:scale-95 transition-transform" style={{ width: SHARE_PANEL_ITEM_WIDTH_PX, minWidth: SHARE_PANEL_ITEM_WIDTH_PX }}>
+                      <div className="relative flex items-center justify-center" style={{ width: SHARE_PANEL_AVATAR_PX, height: SHARE_PANEL_AVATAR_PX }}>
+                        <StoryGoldRingAvatar size={SHARE_PANEL_AVATAR_PX} src={user?.avatar || '/royce/default-avatar.svg'} alt="Create" />
+                        <Plus size={SHARE_PANEL_PLUS_PX} className="text-[#D4AF37] absolute" strokeWidth={2.5} />
                       </div>
                       <span className="text-white/80 text-[11px] font-medium">Create</span>
                     </button>
@@ -2929,7 +2929,7 @@ export default function SpectatorPage() {
                       <button
                         key={u.id}
                         className="flex-shrink-0 flex flex-col items-center gap-1 active:scale-95 transition-transform"
-                        style={{ width: 95, minWidth: 95 }}
+                        style={{ width: SHARE_PANEL_ITEM_WIDTH_PX, minWidth: SHARE_PANEL_ITEM_WIDTH_PX }}
                         onClick={async () => {
                           setShowSharePanel(false);
                           if (!user?.id) {
@@ -2961,7 +2961,7 @@ export default function SpectatorPage() {
                           }
                         }}
                       >
-                        <StoryGoldRingAvatar size={85} src={u.avatar || '/royce/default-avatar.svg'} alt={u.name} />
+                        <StoryGoldRingAvatar size={SHARE_PANEL_AVATAR_PX} src={u.avatar || '/royce/default-avatar.svg'} alt={u.name} />
                         <span className="text-white/80 text-[11px] font-medium truncate w-full text-center">{u.name}</span>
                       </button>
                     ))}

@@ -12,7 +12,8 @@ import ReportModal from '../components/ReportModal';
 import PromotePanel from '../components/PromotePanel';
 import { useVideoStore } from '../store/useVideoStore';
 import { request } from '../lib/apiClient';
-import { fetchAllSharePanelContacts } from '../lib/sharePanelContacts';
+import { fetchAllSharePanelContacts, SHARE_PANEL_AVATAR_PX, SHARE_PANEL_ITEM_WIDTH_PX, SHARE_PANEL_PLUS_PX } from '../lib/sharePanelContacts';
+import { PROFILE_PAGE_AVATAR_PX } from '../lib/profileFrame';
 import { getVideoPosterUrl } from '../lib/bunnyStorage';
 import { openExternalLink } from '../lib/platform';
 
@@ -530,14 +531,14 @@ export default function Profile() {
                 {/* Create + Followers row — same as LiveStream share panel */}
                 <div className="w-full overflow-hidden shrink-0 mb-3">
                   <div className="flex gap-3 overflow-x-auto pb-3 no-scrollbar items-center px-4">
-                    <button type="button" onClick={() => { setShowSharePanel(false); navigate('/create'); }} className="flex-shrink-0 flex flex-col items-center gap-1 active:scale-95 transition-transform" style={{ width: 95, minWidth: 95 }}>
-                      <div className="relative w-[85px] h-[85px] flex items-center justify-center">
+                    <button type="button" onClick={() => { setShowSharePanel(false); navigate('/create'); }} className="flex-shrink-0 flex flex-col items-center gap-1 active:scale-95 transition-transform" style={{ width: SHARE_PANEL_ITEM_WIDTH_PX, minWidth: SHARE_PANEL_ITEM_WIDTH_PX }}>
+                      <div className="relative flex items-center justify-center" style={{ width: SHARE_PANEL_AVATAR_PX, height: SHARE_PANEL_AVATAR_PX }}>
                         <StoryGoldRingAvatar
-                          size={85}
+                          size={SHARE_PANEL_AVATAR_PX}
                           src={displayAvatar || '/royce/default-avatar.svg'}
                           alt="Create"
                         />
-                        <Plus size={28} className="text-[#D4AF37] absolute" strokeWidth={2.5} />
+                        <Plus size={SHARE_PANEL_PLUS_PX} className="text-[#D4AF37] absolute" strokeWidth={2.5} />
                       </div>
                       <span className="text-white/80 text-[11px] font-medium">Create</span>
                     </button>
@@ -545,12 +546,12 @@ export default function Profile() {
                       <button
                         key={f.user_id}
                         className="flex-shrink-0 flex flex-col items-center gap-1 active:scale-95 transition-transform"
-                        style={{ width: 95, minWidth: 95 }}
+                        style={{ width: SHARE_PANEL_ITEM_WIDTH_PX, minWidth: SHARE_PANEL_ITEM_WIDTH_PX }}
                         onClick={() => sendShareTo(f.user_id)}
                       >
-                        <div className="relative w-[95px] min-w-[95px] flex flex-col items-center gap-1">
+                        <div className="relative flex flex-col items-center gap-1" style={{ width: SHARE_PANEL_ITEM_WIDTH_PX, minWidth: SHARE_PANEL_ITEM_WIDTH_PX }}>
                           <StoryGoldRingAvatar
-                            size={85}
+                            size={SHARE_PANEL_AVATAR_PX}
                             src={f.avatar_url || '/royce/default-avatar.svg'}
                             alt={f.username || 'User'}
                           />
@@ -598,7 +599,7 @@ export default function Profile() {
             className={`relative ${isOwnProfile ? 'cursor-pointer' : ''}`}
             onClick={() => { if (isOwnProfile) fileInputRef.current?.click(); }}
           >
-            <StoryGoldRingAvatar size={130} src={displayAvatar} alt="Profile" />
+            <StoryGoldRingAvatar size={PROFILE_PAGE_AVATAR_PX} src={displayAvatar} alt="Profile" />
           </div>
           <input 
             ref={fileInputRef}

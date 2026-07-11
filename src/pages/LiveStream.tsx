@@ -67,7 +67,7 @@ import { useVideoStore } from '../store/useVideoStore';
 import { clearCachedCameraStream, getCachedCameraStream } from '../lib/cameraStream';
 import { apiUrl, getLiveKitUrl } from '../lib/api';
 import { request } from '../lib/apiClient';
-import { fetchAllSharePanelContacts } from '../lib/sharePanelContacts';
+import { fetchAllSharePanelContacts, SHARE_PANEL_AVATAR_PX, SHARE_PANEL_ITEM_WIDTH_PX, SHARE_PANEL_PLUS_PX } from '../lib/sharePanelContacts';
 import { LevelBadge } from '../components/LevelBadge';
 import ReportModal from '../components/ReportModal';
 import PromotePanel from '../components/PromotePanel';
@@ -5778,11 +5778,11 @@ export default function LiveStream() {
                 type="button"
                 onClick={() => { navigate('/create'); setShowSharePanel(false); }}
                 className="flex-shrink-0 flex flex-col items-center gap-1 active:scale-95 transition-transform"
-                style={{ width: 95, minWidth: 95 }}
+                style={{ width: SHARE_PANEL_ITEM_WIDTH_PX, minWidth: SHARE_PANEL_ITEM_WIDTH_PX }}
               >
-                <div className="relative w-[85px] h-[85px] flex items-center justify-center">
-                  <StoryGoldRingAvatar size={85} src={myAvatar || '/royce/default-avatar.svg'} alt="Create" />
-                  <Plus size={28} className="text-[#D4AF37] absolute" strokeWidth={2.5} />
+                <div className="relative flex items-center justify-center" style={{ width: SHARE_PANEL_AVATAR_PX, height: SHARE_PANEL_AVATAR_PX }}>
+                  <StoryGoldRingAvatar size={SHARE_PANEL_AVATAR_PX} src={myAvatar || '/royce/default-avatar.svg'} alt="Create" />
+                  <Plus size={SHARE_PANEL_PLUS_PX} className="text-[#D4AF37] absolute" strokeWidth={2.5} />
                 </div>
                 <span className="text-white/80 text-[11px] font-medium">Create</span>
               </button>
@@ -5790,10 +5790,10 @@ export default function LiveStream() {
                 <button
                   key={f.user_id}
                   className="flex-shrink-0 flex flex-col items-center gap-1 active:scale-95 transition-transform"
-                  style={{ width: 95, minWidth: 95 }}
+                  style={{ width: SHARE_PANEL_ITEM_WIDTH_PX, minWidth: SHARE_PANEL_ITEM_WIDTH_PX }}
                   onClick={() => sendShareToFollower(f.user_id)}
                 >
-                  <StoryGoldRingAvatar size={85} src={f.avatar_url || '/royce/default-avatar.svg'} alt={f.username} />
+                  <StoryGoldRingAvatar size={SHARE_PANEL_AVATAR_PX} src={f.avatar_url || '/royce/default-avatar.svg'} alt={f.username} />
                   <span className="text-white/80 text-[11px] font-medium truncate w-full text-center">{shareSentTo.has(f.user_id) ? 'Sent' : f.username || 'User'}</span>
                 </button>
               ))}
