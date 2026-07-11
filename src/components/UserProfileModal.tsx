@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { RoyceCloseIcon, RoyceIcon } from './royce';
+import { RoyceCloseIcon } from './royce';
 import { Share2, Ban, Play, MoreHorizontal, Flag } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useVideoStore } from '../store/useVideoStore';
@@ -125,59 +125,68 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
 
   if (isBlocked) {
     return (
-      <div className="fixed inset-0 z-modals bg-[#111111] flex items-center justify-center p-4">
-        <div className="bg-[#111111] rounded-2xl p-6 max-w-sm w-full text-center">
-          <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Ban className="w-8 h-8 text-white/70" />
+      <div className="page-above-bottom-nav bg-[#111111] text-white z-[10001]">
+        <div className="page-above-bottom-nav__inner bg-[#111111] flex flex-col">
+          <header className="flex items-center justify-between px-4 pt-page-header pb-2 relative z-10">
+            <div className="w-10" />
+            <h3 className="text-[12px] font-bold text-gold-metallic">Profile</h3>
+            <button onClick={onClose} className="p-1" aria-label="Close profile">
+              <RoyceCloseIcon />
+            </button>
+          </header>
+          <div className="flex-1 min-h-0 flex items-center justify-center p-6">
+            <div className="text-center max-w-sm w-full">
+              <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Ban className="w-8 h-8 text-white/70" />
+              </div>
+              <h3 className="text-white font-semibold mb-2">User Blocked</h3>
+              <p className="text-white/60 text-sm mb-4">
+                You have blocked @{displayUser.username}. You will no longer see their content.
+              </p>
+              <button
+                onClick={async () => {
+                  await request('/api/block-user', {
+                    method: 'POST',
+                    body: JSON.stringify({ blockedUserId: user.id, action: 'unblock' }),
+                  }).catch(() => null);
+                  unblockUser(user.id);
+                }}
+                className="px-4 py-2 bg-white text-white rounded-lg hover:bg-white transition-colors"
+              >
+                Unblock User
+              </button>
+            </div>
           </div>
-          <h3 className="text-white font-semibold mb-2">User Blocked</h3>
-          <p className="text-white/60 text-sm mb-4">
-            You have blocked @{displayUser.username}. You will no longer see their content.
-          </p>
-          <button
-            onClick={async () => {
-              await request('/api/block-user', {
-                method: 'POST',
-                body: JSON.stringify({ blockedUserId: user.id, action: 'unblock' }),
-              }).catch(() => null);
-              unblockUser(user.id);
-            }}
-            className="px-4 py-2 bg-white text-white rounded-lg hover:bg-white transition-colors"
-          >
-            Unblock User
-          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="fixed inset-0 z-[10001] bg-black/60 flex items-end justify-center animate-in fade-in duration-200" onClick={onClose}>
-      <div 
-        className="w-full max-w-[480px] bg-[#111111] overflow-y-auto animate-in slide-in-from-bottom duration-300 relative shadow-2xl"
-        style={{ marginBottom: 'var(--bottom-ui-reserve)', maxHeight: 'calc(100dvh - var(--safe-top) - 46px - var(--bottom-ui-reserve))' }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-[#111111]/98 backdrop-blur-md border-b border-white/5">
+    <div className="page-above-bottom-nav bg-[#111111] text-white z-[10001]">
+      <div className="page-above-bottom-nav__inner bg-[#111111] flex flex-col">
+        {/* Header — same full-screen shell as Profile page */}
+        <header className="flex items-center justify-between px-4 pt-page-header pb-2 relative z-10 flex-shrink-0">
           <button
             onClick={handleShareProfile}
-            className="p-2 rounded-full hover:bg-white/5 transition-colors"
+            className="p-1"
             aria-label="Share profile"
           >
-            <RoyceIcon icon={Share2} size={18} tile />
+            <Share2 size={20} className="stroke-gold-metallic" strokeWidth={2} />
           </button>
-          <h3 className="text-[#D4AF37] font-semibold text-sm absolute left-1/2 -translate-x-1/2">{displayUser.username}</h3>
-          <button 
-            onClick={onClose} 
-            className="p-2 rounded-full hover:bg-white/5 transition-colors"
+          <h3 className="text-[12px] font-bold text-gold-metallic absolute left-1/2 -translate-x-1/2 truncate max-w-[50%]">
+            {displayUser.username}
+          </h3>
+          <button
+            onClick={onClose}
+            className="p-1"
             aria-label="Close profile"
           >
             <RoyceCloseIcon />
           </button>
-        </div>
+        </header>
 
-        <div className="p-5 pb-safe">
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain px-5 pb-safe">
           {/* Profile Header */}
           <div className="flex flex-col items-center mb-4">
             <div className="mb-3">
