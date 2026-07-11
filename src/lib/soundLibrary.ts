@@ -27,6 +27,7 @@ export type SoundCatalogResponse = {
   tracks: SoundTrack[];
   configured: boolean;
   source: string | null;
+  error?: string | null;
 };
 
 function mapSoundTracks(tracks: SoundTrack[]): SoundTrack[] {
@@ -47,14 +48,16 @@ export async function fetchSoundCatalog(): Promise<SoundCatalogResponse> {
     tracks?: SoundTrack[];
     configured?: boolean;
     source?: string | null;
+    error?: string;
   }>("/api/sounds");
   if (error) {
-    return { tracks: [], configured: false, source: null };
+    return { tracks: [], configured: false, source: null, error: error.message };
   }
   return {
     tracks: mapSoundTracks(data?.tracks ?? []),
     configured: Boolean(data?.configured),
     source: data?.source ?? null,
+    error: data?.error ?? null,
   };
 }
 

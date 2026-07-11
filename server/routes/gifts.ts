@@ -147,7 +147,12 @@ export async function handleGetSounds(_req: Request, res: Response) {
       });
     } catch (err) {
       logger.error({ err }, "handleGetSounds epidemic failed");
-      return res.status(502).json({ tracks: [], error: "MUSIC_PROVIDER_ERROR" });
+      return res.status(200).json({
+        tracks: [],
+        configured: true,
+        source: "epidemic_sound",
+        error: "MUSIC_PROVIDER_ERROR",
+      });
     }
   }
 

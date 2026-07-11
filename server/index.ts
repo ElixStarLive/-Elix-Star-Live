@@ -33,6 +33,7 @@ import { errorHandler } from "./middleware/errorHandler";
 
 import { isLiveKitConfigured } from "./services/livekit";
 import { isBunnyConfigured } from "./services/bunny";
+import { isEpidemicSoundConfigured } from "./services/epidemicSound";
 import {
   isValkeyConfigured,
   valkeyHealthCheck,
@@ -465,7 +466,7 @@ initFeedPubSub();
 
 // ── Start server ─────────────────────────────────────────────────
 logger.info(
-  { port: PORT, nodeEnv: process.env.NODE_ENV },
+  { port: PORT, nodeEnv: process.env.NODE_ENV, epidemicSound: isEpidemicSoundConfigured() },
   "Starting server...",
 );
 

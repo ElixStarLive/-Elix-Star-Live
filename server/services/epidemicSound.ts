@@ -16,6 +16,36 @@ const BASE_URL =
   process.env.EPIDEMIC_SOUND_API_BASE ||
   "https://partner-content-api.epidemicsound.com";
 
+const EPIDEMIC_KEY_ENV_NAMES = [
+  "EPIDEMIC_SOUND_API_KEY",
+  "EPIDEMIC_API_KEY",
+  "EPIDEMIC_SOUND_KEY",
+] as const;
+
+function normalizeEnvSecret(raw: string | undefined): string {
+  if (!raw) return "";
+  let value = raw.trim();
+  if (
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("'") && value.endsWith("'"))
+  ) {
+    value = value.slice(1, -1).trim();
+  }
+  if (value.startsWith("Set ") && value.toLowerCase().includes("coolify")) {
+    return "";
+  }
+  return value;
+}
+
+/** Resolve Epidemic key from common Coolify / env variable names. */
+export function resolveEpidemicSoundApiKey(): string {
+  for (const name of EPIDEMIC_KEY_ENV_NAMES) {
+    const value = normalizeEnvSecret(process.env[name]);
+    if (value) return value;
+  }
+  return "";
+}
+
 export type EpidemicTrack = {
   id: string;
   title: string;
@@ -27,11 +57,11 @@ export type EpidemicTrack = {
 };
 
 export function isEpidemicSoundConfigured(): boolean {
-  return Boolean(process.env.EPIDEMIC_SOUND_API_KEY?.trim());
+  return Boolean(resolveEpidemicSoundApiKey());
 }
 
 function apiKey(): string {
-  const key = process.env.EPIDEMIC_SOUND_API_KEY?.trim();
+  const key = resolveEpidemicSoundApiKey();
   if (!key) throw new Error("EPIDEMIC_SOUND_API_KEY not configured");
   return key;
 }

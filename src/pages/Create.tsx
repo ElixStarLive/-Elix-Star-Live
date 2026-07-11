@@ -53,6 +53,7 @@ function SoundPickerModal({
   const [builtInSounds, setBuiltInSounds] = useState<Sound[]>([]);
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [catalogConfigured, setCatalogConfigured] = useState<boolean | null>(null);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
   const sounds = useMemo<Sound[]>(() => {
     const catalog = builtInSounds.filter((t) => !!t.url);
     return [...getLocalSoundPickerTracks(), ...catalog, ...customSounds.filter((t) => !!t.url)];
@@ -68,11 +69,13 @@ function SoundPickerModal({
         if (cancelled) return;
         setBuiltInSounds(catalog.tracks);
         setCatalogConfigured(catalog.configured);
+        setCatalogError(catalog.error ?? null);
       })
       .catch(() => {
         if (!cancelled) {
           setBuiltInSounds([]);
           setCatalogConfigured(false);
+          setCatalogError(null);
         }
       })
       .finally(() => {
@@ -184,7 +187,11 @@ function SoundPickerModal({
             </p>
           ) : null}
           {!catalogLoading && catalogCount === 0 && catalogConfigured === true ? (
-            <p className="px-3 py-4 text-center text-white/40 text-xs">No licensed tracks returned right now. Try again shortly.</p>
+            <p className="px-3 py-4 text-center text-white/40 text-xs">
+              {catalogError === 'MUSIC_PROVIDER_ERROR'
+                ? 'Music API key is set but Epidemic returned an error. Check the key is valid and redeploy.'
+                : 'No licensed tracks returned right now. Try again shortly.'}
+            </p>
           ) : null}
           {sounds.map((s) => (
             <div key={s.id} className="w-full px-3 py-2 flex items-center justify-between hover:brightness-125 transition-colors">
