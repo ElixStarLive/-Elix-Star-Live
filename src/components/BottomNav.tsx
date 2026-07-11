@@ -1,19 +1,18 @@
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Home, Users, MessageCircle, User } from "lucide-react";
-import { CaptureShutterButton } from "./CaptureShutterButton";
+import { Home, Users, Plus, MessageCircle, User } from "lucide-react";
 
 type NavItem = {
   path: string;
   label: string;
-  Icon?: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
+  Icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
   center?: boolean;
 };
 
 const NAV_ITEMS: NavItem[] = [
   { path: "/feed", label: "Home", Icon: Home },
   { path: "/friends", label: "Friends", Icon: Users },
-  { path: "/create", label: "Create", center: true },
+  { path: "/create", label: "Create", Icon: Plus, center: true },
   { path: "/inbox", label: "Inbox", Icon: MessageCircle },
   { path: "/profile", label: "Profile", Icon: User },
 ];
@@ -56,19 +55,15 @@ export const BottomNav = () => {
                   aria-label={label}
                   aria-current={active ? "page" : undefined}
                   className={`flex flex-col items-center justify-center flex-1 min-w-0 gap-0.5 active:opacity-75 transition-opacity ${
-                    center ? "-mt-2" : ""
+                    center ? "-mt-0.5" : ""
                   }`}
                   style={{ WebkitTapHighlightColor: "transparent" }}
                 >
-                  {center ? (
-                    <CaptureShutterButton size={52} nav />
-                  ) : Icon ? (
-                    <Icon
-                      size={ICON_SIZE}
-                      strokeWidth={active ? 2.35 : 2}
-                      className={iconClass}
-                    />
-                  ) : null}
+                  <Icon
+                    size={center ? ICON_SIZE + 2 : ICON_SIZE}
+                    strokeWidth={active ? 2.35 : 2}
+                    className={iconClass}
+                  />
                   <span className={`text-[9px] font-semibold leading-none tracking-wide ${labelClass}`}>
                     {label}
                   </span>
