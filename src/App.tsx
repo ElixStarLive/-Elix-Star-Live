@@ -356,6 +356,7 @@ function App() {
                 <Route path="/friends" element={<FriendsFeed />} />
                 {/* Standalone saved page; Profile has inline Saved tab. Consider linking from Profile or check 404s before removing. */}
                 <Route path="/saved" element={<SavedVideos />} />
+                <Route path="/music" element={<MusicFeed />} />
                 <Route path="/music/:songId" element={<MusicFeed />} />
                 <Route path="/create" element={<Create />} />
                 <Route

@@ -90,3 +90,43 @@ export const ORIGINAL_SOUND_TRACK: SoundTrack = {
 export function getLocalSoundPickerTracks(): SoundTrack[] {
   return [ORIGINAL_SOUND_TRACK];
 }
+
+export type MusicPlaylist = {
+  id: string;
+  name: string;
+  coverUrl: string | null;
+  tracks: SoundTrack[];
+};
+
+export async function fetchMusicPlaylists(): Promise<{
+  playlists: MusicPlaylist[];
+  configured: boolean;
+  error?: string | null;
+}> {
+  const { data, error } = await request<{
+    playlists?: MusicPlaylist[];
+    configured?: boolean;
+    error?: string;
+  }>("/api/music/playlists");
+  if (error) {
+    return { playlists: [], configured: false, error: error.message };
+  }
+  return {
+    playlists: (data?.playlists ?? []).map((p) => ({
+      ...p,
+      tracks: mapSoundTracks(p.tracks ?? []),
+    })),
+    configured: Boolean(data?.configured),
+    error: data?.error ?? null,
+  };
+}
+
+export async function searchLicensedTracks(term: string): Promise<SoundTrack[]> {
+  const q = term.trim();
+  if (!q) return [];
+  const { data, error } = await request<{ tracks?: SoundTrack[] }>(
+    `/api/music/search?term=${encodeURIComponent(q)}&limit=40`,
+  );
+  if (error) return [];
+  return mapSoundTracks(data?.tracks ?? []);
+}

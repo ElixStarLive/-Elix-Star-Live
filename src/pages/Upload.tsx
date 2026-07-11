@@ -5,12 +5,12 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { setCachedCameraStream } from '../lib/cameraStream';
 import { RefreshCw, Zap, Clock, Music, Check, Play, Square, RotateCcw, ZoomIn, ZoomOut, Wand2 } from 'lucide-react';
 import { useVideoStore } from '../store/useVideoStore';
-import { type SoundTrack, fetchSoundTracksFromDatabase } from '../lib/soundLibrary';
+import { type SoundTrack } from '../lib/soundLibrary';
+import SoundPickerPanel from '../components/SoundPickerPanel';
 import { trackEvent } from '../lib/analytics';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { videoUploadService } from '../lib/videoUpload';
 import { api } from '../lib/apiClient';
-import { nativePrompt } from '../components/NativeDialog';
 import { useAuthStore } from '../store/useAuthStore';
 import AIToolsPanel from '../components/AIToolsPanel';
 
@@ -37,11 +37,9 @@ export default function Upload() {
   const [isPosting, setIsPosting] = useState(false);
   const [postProgress, setPostProgress] = useState(0);
   const [postError, setPostError] = useState<string | null>(null);
-  const [playingTrackId, setPlayingTrackId] = useState<string | null>(null); // Track currently playing preview
-  const previewAudioRef = useRef<HTMLAudioElement | null>(null); // For list preview
-  const backgroundAudioRef = useRef<HTMLAudioElement | null>(null); // For video background
-  const [customTracks, setCustomTracks] = useState<SoundTrack[]>([]);
-  const [builtInTracks, setBuiltInTracks] = useState<SoundTrack[]>([]);
+  const [selectedTrack, setSelectedTrack] = useState<SoundTrack | null>(null);
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
+  const backgroundAudioRef = useRef<HTMLAudioElement | null>(null);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [showAITools, setShowAITools] = useState(false);
   const [activeFilter, setActiveFilter] = useState('none');
@@ -98,85 +96,21 @@ export default function Upload() {
     return `${m}:${String(s).padStart(2, '0')}`;
   };
 
-  useEffect(() => {
-    fetchSoundTracksFromDatabase().then(setBuiltInTracks).catch(() => {});
-  }, []);
-
-  const musicTracks = React.useMemo(
-    () => [...customTracks, ...builtInTracks],
-    [customTracks, builtInTracks],
-  );
-
   const getSelectedLabel = () => {
     if (postWithoutAudio || selectedAudioId === 'none') return 'No audio';
     if (selectedAudioId === 'original') return 'Original Sound';
-    if (selectedAudioId.startsWith('track_')) {
-      const id = selectedAudioId.slice('track_'.length);
-      const t = musicTracks.find((x) => x.id === id);
-      return t ? t.title : 'Add Sound';
-    }
+    if (selectedTrack) return selectedTrack.title;
     return 'Add Sound';
   };
 
    const handleSelectMusic = (track: SoundTrack) => {
+       setSelectedTrack(track);
        setSelectedAudioId(`track_${track.id}`);
        setPostWithoutAudio(false);
        setShowMusicModal(false);
        trackEvent('upload_select_audio', { type: 'library', trackId: track.id, title: track.title });
        if (previewAudioRef.current) {
            previewAudioRef.current.pause();
-           setPlayingTrackId(null);
-       }
-   };
- 
-   const togglePreview = (e: React.MouseEvent, track: SoundTrack) => {
-       e.stopPropagation(); // Don't select, just play
-
-       if (muteAllSounds) {
-           trackEvent('upload_preview_audio_blocked_global_mute', { trackId: track.id });
-           return;
-       }
-       
-       if (playingTrackId === track.id) {
-           // Stop
-           if (previewAudioRef.current) {
-               previewAudioRef.current.pause();
-               setPlayingTrackId(null);
-           }
-       } else {
-           // Play new
-           if (previewAudioRef.current) {
-               previewAudioRef.current.pause();
-           }
-           // Create new audio or reuse
-           if (track.url) {
-               previewAudioRef.current = new Audio(track.url);
-               const start = Math.max(0, track.clipStartSeconds);
-               const end = Math.max(start, track.clipEndSeconds);
-               previewAudioRef.current.volume = 1.0;
-               previewAudioRef.current.currentTime = start;
-               previewAudioRef.current.play()
-                   .then(() => {})
-                   .catch(() => {
-                       showToast("Could not play audio preview.");
-                   });
-               setPlayingTrackId(track.id);
-               
-               // Auto stop at end
-               previewAudioRef.current.onended = () => setPlayingTrackId(null);
-               previewAudioRef.current.ontimeupdate = () => {
-                 const a = previewAudioRef.current;
-                 if (!a) return;
-                 if (end > start && a.currentTime >= end) {
-                   a.pause();
-                   a.currentTime = start;
-                   setPlayingTrackId(null);
-                 }
-               };
-           } else {
-               // No URL (No Music)
-               setPlayingTrackId(null);
-           }
        }
    };
 
@@ -362,8 +296,7 @@ export default function Upload() {
         return;
       }
 
-      const id = selectedAudioId.slice('track_'.length);
-      const track = musicTracks.find((t) => t.id === id);
+      const track = selectedTrack;
       if (!track?.url) {
         if (backgroundAudioRef.current) backgroundAudioRef.current.pause();
         return;
@@ -392,7 +325,7 @@ export default function Upload() {
       return () => {
         if (backgroundAudioRef.current) backgroundAudioRef.current.pause();
       };
-  }, [muteAllSounds, postWithoutAudio, recordedVideoUrl, selectedAudioId, musicTracks]);
+  }, [muteAllSounds, postWithoutAudio, recordedVideoUrl, selectedAudioId, selectedTrack]);
 
   const handlePost = async () => {
       if (isPosting) return;
@@ -446,20 +379,19 @@ export default function Upload() {
         const hashtags = Array.from(new Set([...captionHashtags, ...manualHashtags].map((h) => h.toLowerCase()))).slice(0, 20);
 
         let musicMeta;
-        if (selectedAudioId.startsWith('track_')) {
-            const id = selectedAudioId.replace('track_', '');
-            const track = musicTracks.find(t => t.id === id);
-            if (track) {
-                musicMeta = {
-                    id: track.id,
-                    title: track.title,
-                    artist: track.artist,
-                    duration: formatClip(track.clipStartSeconds, track.clipEndSeconds),
-                    url: track.url,
-                    previewUrl: track.url,
-                    provider: track.provider,
-                };
-            }
+        if (selectedTrack && selectedAudioId.startsWith('track_')) {
+            const track = selectedTrack;
+            musicMeta = {
+                id: track.id,
+                title: track.title,
+                artist: track.artist,
+                duration: formatClip(track.clipStartSeconds, track.clipEndSeconds),
+                url: track.url,
+                previewUrl: track.url,
+                provider: track.provider,
+                clipStartSeconds: track.clipStartSeconds,
+                clipEndSeconds: track.clipEndSeconds,
+            };
         }
 
         const videoId = await videoUploadService.uploadVideo(file, authUser.id, {
@@ -926,44 +858,8 @@ export default function Upload() {
 
           {/* Music Selection Modal */}
           {showMusicModal && (
-              <div className="absolute inset-0 z-[200] bg-[#111111] flex flex-col pt-10 px-4 animate-in slide-in-from-bottom duration-300">
-                  <div className="flex items-center justify-between mb-6">
-                      <h2 className="text-white text-xl font-bold">Select Sound</h2>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={async () => {
-                            const url = await nativePrompt('Paste audio URL (mp3/ogg):', '', 'Add Sound');
-                            if (!url) return;
-                            const title = (await nativePrompt('Sound name:', 'Custom sound', 'Sound Name')) ?? 'Custom sound';
-                            const next: SoundTrack = {
-                              id: `custom_${Date.now()}`,
-                              title: title.trim() || 'Custom sound',
-                              artist: 'You',
-                              duration: 'custom',
-                              url: url.trim(),
-                              license: 'Custom (you must own rights)',
-                              source: 'Custom URL',
-                              provider: 'custom',
-                              clipStartSeconds: 0,
-                              clipEndSeconds: 180,
-                            };
-                            setCustomTracks((prev) => [next, ...prev]);
-                          }}
-                          className="px-3 py-1.5 rounded-full border border-transparent text-white/80 text-xs font-semibold hover:brightness-125"
-                        >
-                          Add URL
-                        </button>
-                        <button 
-                          onClick={() => setShowMusicModal(false)}
-                          className="p-2"
-                        >
-                            <RoyceCloseIcon />
-                        </button>
-                      </div>
-                  </div>
-
-                  <div className="flex-1 overflow-y-auto space-y-2 pb-10">
-                      <div className="grid grid-cols-2 gap-2 pb-2">
+              <div className="absolute inset-0 z-[200] bg-[#111111] flex flex-col pt-6 animate-in slide-in-from-bottom duration-300">
+                  <div className="px-4 pb-2 grid grid-cols-2 gap-2 flex-shrink-0">
                         <button
                           type="button"
                           className={`px-3 py-3 rounded-xl border text-left ${
@@ -973,6 +869,7 @@ export default function Upload() {
                           }`}
                           onClick={() => {
                             setSelectedAudioId('original');
+                            setSelectedTrack(null);
                             setPostWithoutAudio(false);
                             trackEvent('upload_select_audio', { type: 'original' });
                             setShowMusicModal(false);
@@ -992,6 +889,7 @@ export default function Upload() {
                           }`}
                           onClick={() => {
                             setSelectedAudioId('none');
+                            setSelectedTrack(null);
                             setPostWithoutAudio(true);
                             trackEvent('upload_select_audio', { type: 'none' });
                             setShowMusicModal(false);
@@ -1003,36 +901,11 @@ export default function Upload() {
                           </div>
                         </button>
                       </div>
-
-                      {musicTracks.map((track) => (
-                          <div 
-                            key={track.id}
-                            className="flex items-center justify-between p-3 rounded-lg bg-white hover:brightness-125 cursor-pointer border border-transparent"
-                            onClick={() => handleSelectMusic(track)}
-                          >
-                              <div className="flex items-center gap-3">
-                                  <button 
-                                    className="w-10 h-10 bg-gradient-to-br from-pink-500 to-purple-500 rounded flex items-center justify-center hover:scale-105 transition-transform"
-                                    onClick={(e) => togglePreview(e, track)}
-                                  >
-                                      {playingTrackId === track.id ? (
-                                          <Square size={16} className="text-white fill-white" />
-                                      ) : (
-                                          <Play size={16} className="text-white fill-[#FFFFFF]" />
-                                      )}
-                                  </button>
-                                  <div>
-                                      <h3 className="text-white font-bold text-sm">{track.title}</h3>
-                                      <p className="text-white/60 text-xs">{track.artist} • {formatClip(track.clipStartSeconds, track.clipEndSeconds)}</p>
-                                      <p className="text-white/40 text-[11px]">{track.license}</p>
-                                  </div>
-                              </div>
-                              {selectedAudioId === `track_${track.id}` && !postWithoutAudio && (
-                                <Check className="text-white" size={20} />
-                              )}
-                          </div>
-                      ))}
-                  </div>
+                  <SoundPickerPanel
+                    layout="embedded"
+                    onClose={() => setShowMusicModal(false)}
+                    onPick={handleSelectMusic}
+                  />
               </div>
           )}
         </>

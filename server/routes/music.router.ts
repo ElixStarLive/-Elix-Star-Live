@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   handleMusicCollections,
+  handleMusicPlaylists,
   handleMusicSearch,
   handleMusicStatus,
   handleMusicTrackPreview,
@@ -13,6 +14,7 @@ const musicPreviewLimiter = rateLimit({ windowMs: 60_000, max: 120, keyPrefix: "
 const router = Router();
 
 router.get("/status", handleMusicStatus);
+router.get("/playlists", musicSearchLimiter, handleMusicPlaylists);
 router.get("/collections", musicSearchLimiter, handleMusicCollections);
 router.get("/search", musicSearchLimiter, handleMusicSearch);
 router.get("/tracks/:trackId/preview", musicPreviewLimiter, handleMusicTrackPreview);

@@ -118,6 +118,10 @@ function mapTrack(raw: Record<string, unknown>): EpidemicTrack {
   };
 }
 
+export function parseEpidemicRawTrack(raw: Record<string, unknown>): EpidemicTrack {
+  return mapTrack(raw);
+}
+
 export async function fetchCollections(limit = 10, offset = 0) {
   const cacheKey = musicCacheKey("collections", `${limit}:${offset}`);
   const cached = await valkeyGet(cacheKey);

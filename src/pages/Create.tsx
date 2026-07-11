@@ -4,7 +4,6 @@ import {
   Music,
   Square,
   Play,
-  Pause,
   CameraOff,
   Search,
   Image,
@@ -19,8 +18,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { CaptureShutterButton } from '../components/CaptureShutterButton';
 import { setCachedCameraStream } from '../lib/cameraStream';
-import { type SoundTrack, fetchSoundCatalog, getLocalSoundPickerTracks } from '../lib/soundLibrary';
-import { nativePrompt } from '../components/NativeDialog';
+import { type SoundTrack } from '../lib/soundLibrary';
+import SoundPickerPanel from '../components/SoundPickerPanel';
 import ElixCameraLayout from '../components/ElixCameraLayout';
 
 type CreateMode = 'upload' | 'post' | 'create' | 'live';
@@ -35,188 +34,6 @@ interface Template {
   video_count: string;
   clips: string;
   category: TemplateTab;
-}
-
-function SoundPickerModal({
-  isOpen,
-  onClose,
-  onPick,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  onPick: (sound: Sound) => void;
-}) {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const clipRef = useRef<{ start: number; end: number } | null>(null);
-  const [playingId, setPlayingId] = useState<string | null>(null);
-  const [customSounds, setCustomSounds] = useState<Sound[]>([]);
-  const [builtInSounds, setBuiltInSounds] = useState<Sound[]>([]);
-  const [catalogLoading, setCatalogLoading] = useState(false);
-  const [catalogConfigured, setCatalogConfigured] = useState<boolean | null>(null);
-  const [catalogError, setCatalogError] = useState<string | null>(null);
-  const sounds = useMemo<Sound[]>(() => {
-    const catalog = builtInSounds.filter((t) => !!t.url);
-    return [...getLocalSoundPickerTracks(), ...catalog, ...customSounds.filter((t) => !!t.url)];
-  }, [customSounds, builtInSounds]);
-  const catalogCount = builtInSounds.filter((t) => !!t.url).length;
-
-  useEffect(() => {
-    if (!isOpen) return;
-    let cancelled = false;
-    setCatalogLoading(true);
-    fetchSoundCatalog()
-      .then((catalog) => {
-        if (cancelled) return;
-        setBuiltInSounds(catalog.tracks);
-        setCatalogConfigured(catalog.configured);
-        setCatalogError(catalog.error ?? null);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setBuiltInSounds([]);
-          setCatalogConfigured(false);
-          setCatalogError(null);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setCatalogLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [isOpen]);
-
-  const formatClip = (start: number, end: number) => {
-    const total = Math.max(0, Math.floor(end - start));
-    const m = Math.floor(total / 60);
-    const s = total % 60;
-    return `${m}:${String(s).padStart(2, '0')}`;
-  };
-
-  useEffect(() => {
-    const a = audioRef.current;
-    if (!a) return;
-    const onTimeUpdate = () => {
-      const clip = clipRef.current;
-      if (!clip) return;
-      if (clip.end > clip.start && a.currentTime >= clip.end) {
-        a.currentTime = clip.start;
-        a.play().catch(() => {});
-      }
-    };
-    a.addEventListener('timeupdate', onTimeUpdate);
-    return () => {
-      a.removeEventListener('timeupdate', onTimeUpdate);
-      a.pause();
-    };
-  }, []);
-
-  const togglePreview = async (s: Sound) => {
-    if (!s.url) return;
-    const a = audioRef.current;
-    if (!a) return;
-    if (playingId === String(s.id)) {
-      a.pause();
-      clipRef.current = null;
-      setPlayingId(null);
-      return;
-    }
-    a.src = s.url;
-    const start = Math.max(0, s.clipStartSeconds);
-    const end = Math.max(start, s.clipEndSeconds);
-    clipRef.current = { start, end };
-    a.currentTime = start;
-    try {
-      await a.play();
-      setPlayingId(String(s.id));
-    } catch {
-      clipRef.current = null;
-      setPlayingId(null);
-    }
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 z-[500] bg-black/40 flex items-end justify-center animate-in fade-in duration-200" onClick={onClose}>
-      <div
-        className="bg-[#111111]/95 backdrop-blur-md w-full max-w-[480px] rounded-t-2xl overflow-hidden flex flex-col h-[50vh] max-h-[50dvh] shadow-2xl animate-in slide-in-from-bottom duration-300"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <audio ref={audioRef} preload="auto" onEnded={() => setPlayingId(null)} className="hidden" />
-        <div className="flex items-center justify-between px-4 py-3  flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <Music className="w-4 h-4 text-white" strokeWidth={2} />
-            <p className="text-white font-semibold">Add sound</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={async () => {
-                const url = await nativePrompt('Paste audio URL (mp3/ogg):', '', 'Add Sound');
-                if (!url) return;
-                const title = (await nativePrompt('Sound name:', 'Custom sound', 'Sound Name')) ?? 'Custom sound';
-                const next: Sound = {
-                  id: String(Date.now()),
-                  title: title.trim() || 'Custom sound',
-                  artist: 'You',
-                  duration: 'custom',
-                  url: url.trim(),
-                  license: 'Custom (you must own rights)',
-                  source: 'Custom URL',
-                  clipStartSeconds: 0,
-                  clipEndSeconds: 120,
-                };
-                setCustomSounds((prev) => [next, ...prev]);
-              }}
-              className="px-3 py-1.5 rounded-full border border-[#C9A227]/35 text-white text-xs font-semibold"
-            >
-              Add URL
-            </button>
-            <button onClick={onClose} className="p-2">
-              <RoyceCloseIcon />
-            </button>
-          </div>
-        </div>
-        <div className="flex-1 min-h-0 overflow-y-auto">
-          {catalogLoading && catalogCount === 0 ? (
-            <p className="px-3 py-4 text-center text-white/40 text-xs">Loading licensed tracks…</p>
-          ) : null}
-          {!catalogLoading && catalogCount === 0 && catalogConfigured === false ? (
-            <p className="px-3 py-4 text-center text-white/40 text-xs">
-              Licensed tracks are not available yet. Set EPIDEMIC_SOUND_API_KEY on the server and redeploy.
-            </p>
-          ) : null}
-          {!catalogLoading && catalogCount === 0 && catalogConfigured === true ? (
-            <p className="px-3 py-4 text-center text-white/40 text-xs">
-              {catalogError === 'MUSIC_PROVIDER_ERROR'
-                ? 'Music API key is set but Epidemic returned an error. Check the key is valid and redeploy.'
-                : 'No licensed tracks returned right now. Try again shortly.'}
-            </p>
-          ) : null}
-          {sounds.map((s) => (
-            <div key={s.id} className="w-full px-3 py-2 flex items-center justify-between hover:brightness-125 transition-colors">
-              <div className="text-left flex-1 min-w-0 mr-2">
-                <p className="text-white text-sm font-medium leading-4 truncate">{s.title}</p>
-                <p className="text-white/50 text-xs leading-4 truncate">
-                  {s.artist}{s.url ? ` • ${formatClip(s.clipStartSeconds, s.clipEndSeconds)}` : ' • Use mic audio from your clip'}
-                </p>
-              </div>
-              <div className="flex items-center gap-1.5 flex-shrink-0">
-                {s.url ? (
-                  <button type="button" onClick={() => togglePreview(s)} className="w-8 h-8 rounded-full border border-[#C9A227]/25 bg-[#111111] flex items-center justify-center">
-                    {playingId === String(s.id) ? <Pause className="w-3.5 h-3.5 text-white" strokeWidth={2} /> : <Play className="w-3.5 h-3.5 text-white" strokeWidth={2} />}
-                  </button>
-                ) : null}
-                <button type="button" onClick={() => { onPick(s); onClose(); }} className="px-2.5 py-1 rounded-full border border-[#C9A227]/35 text-white text-[10px] font-semibold">
-                  Use
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
 }
 
 const PRESET_TEMPLATES: Template[] = [
@@ -743,7 +560,15 @@ export default function Create() {
           onPost={() => navigate('/upload')}
         />
 
-        <SoundPickerModal isOpen={isSoundOpen} onClose={() => setIsSoundOpen(false)} onPick={(sound) => { setSelectedSound(sound); setIsSoundOpen(false); }} />
+        {isSoundOpen ? (
+          <SoundPickerPanel
+            onClose={() => setIsSoundOpen(false)}
+            onPick={(sound) => {
+              setSelectedSound(sound);
+              setIsSoundOpen(false);
+            }}
+          />
+        ) : null}
       </div>
     </div>
   );
