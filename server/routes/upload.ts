@@ -72,7 +72,8 @@ export async function handleUploadVideo(req: Request, res: Response) {
       return res.status(403).json({
         error: "AUDIO_BLOCKED",
         code: "COPYRIGHT_AUDIO_BLOCKED",
-        message: "This audio cannot be published on the platform.",
+        message:
+          "This video contains copyrighted music. Remove the music or use sounds from the app library.",
         reason: scan.reason,
       });
     }

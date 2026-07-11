@@ -21,6 +21,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { StoryGoldRingAvatar } from './StoryGoldRingAvatar';
 import PromotePanel from './PromotePanel';
 import { nativeConfirm } from './NativeDialog';
+import { downloadVideoWithoutMusic } from '../lib/videoDownloadClient';
 import { fetchAllSharePanelContacts, SHARE_PANEL_AVATAR_PX, SHARE_PANEL_ITEM_WIDTH_PX, SHARE_PANEL_PLUS_PX } from '../lib/sharePanelContacts';
 import { openExternalLink, nativeShareUrl } from '../lib/platform';
 import { showToast } from '../lib/toast';
@@ -115,7 +116,7 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin, i
     { name: 'Promote', color: '#FFFFFF', icon: <TrendingUp size={22} className="text-white" />, action: () => { onClose(); setShowPromotePanel(true); } },
     { name: 'Report', color: '#EF4444', icon: <Flag size={22} className="text-white" />, action: () => { onClose(); if (onReport) onReport(); } },
     { name: 'Share', icon: <Share2 size={22} className="text-white" />, action: async () => { await nativeShareUrl({ title: `Video by @${video.user.username}`, text: shareText, url: videoUrl }); } },
-    { name: 'Download', icon: <Download size={22} className="text-white" />, action: async () => { try { const res = await fetch(video.url, { mode: 'cors' }); const blob = await res.blob(); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `video_${video.id}.mp4`; a.click(); URL.revokeObjectURL(url); } catch { const a = document.createElement('a'); a.href = video.url; a.download = `video_${video.id}.mp4`; a.target = '_blank'; a.click(); } } },
+    { name: 'Download', icon: <Download size={22} className="text-white" />, action: async () => { try { await downloadVideoWithoutMusic(video.id); showToast('Download started'); } catch { showToast('Download failed'); } } },
     { name: 'QR Code', icon: <QrCode size={22} className="text-white" />, action: () => setShowQrCode(true) },
     ...(isOwnVideo && onDeleteVideo ? [{ name: 'Delete video', icon: <Trash2 size={22} className="text-white/60" />, action: async () => { const ok = await nativeConfirm('Delete this video? This cannot be undone.', 'Delete Video'); if (ok) { onDeleteVideo(); onClose(); } }, isRed: true }] : []),
   ];

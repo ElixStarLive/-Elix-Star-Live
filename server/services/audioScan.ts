@@ -4,6 +4,7 @@
  */
 
 import { logger } from "../lib/logger";
+import { extractAudioSampleFromVideo } from "./ffmpegMedia";
 
 export type AudioScanAction = "allow" | "mute" | "reject";
 
@@ -30,6 +31,8 @@ const VIDEO_TYPES = new Set([
 
 export function isAudioScanEnabled(): boolean {
   if (process.env.AUDIO_SCAN_ENABLED === "0") return false;
+  if (process.env.AUDIO_SCAN_ENABLED === "1") return isAudioScanConfigured();
+  // Default: scan when a provider key is configured.
   return isAudioScanConfigured();
 }
 
@@ -97,10 +100,9 @@ async function scanWithPex(
   ).replace(/\/$/, "");
 
   try {
-    // Pex Attribution Engine: send fingerprint/audio sample for identification.
-    // Full production path should extract audio via ffmpeg before this call.
+    const extracted = await extractAudioSampleFromVideo(params.buffer);
     const maxSample = Math.min(params.buffer.length, 512 * 1024);
-    const sample = params.buffer.subarray(0, maxSample);
+    const sample = extracted ?? params.buffer.subarray(0, maxSample);
 
     const res = await fetch(`${baseUrl}/identify`, {
       method: "POST",
@@ -143,15 +145,17 @@ async function scanWithPex(
     if (data.match?.title || data.match?.artist) {
       const title = String(data.match.title || "Unknown Track");
       const artist = String(data.match.artist || "Unknown Artist");
+      const allowMatch = data.action === "allow";
       return {
         scanned: true,
-        action: data.action === "mute" ? "mute" : "allow",
+        action: allowMatch ? "allow" : "reject",
         provider: "pex",
         detectedTrack: {
           id: String(data.match.id || `pex:${title}`),
           title,
           artist,
         },
+        reason: allowMatch ? undefined : "copyright_detected",
       };
     }
 

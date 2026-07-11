@@ -38,6 +38,11 @@ FROM node:20-bookworm-slim AS runner
 
 WORKDIR /app
 
+# ffmpeg: copyright audio fingerprint extraction + voice-only download strip
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ffmpeg \
+  && rm -rf /var/lib/apt/lists/*
+
 ENV NODE_ENV=production
 ENV PORT=8080
 

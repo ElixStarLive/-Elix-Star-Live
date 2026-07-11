@@ -76,9 +76,17 @@ export async function bunnyUpload(
 
   if (!res.ok) {
     const err = (await res.json().catch(() => ({}))) as Record<string, unknown>;
-    throw new Error(
-      (err.error as string) ?? `Bunny upload failed (${res.status} ${res.statusText})`,
-    );
+    const code = typeof err.code === "string" ? err.code : "";
+    if (code === "COPYRIGHT_AUDIO_BLOCKED") {
+      throw new Error(
+        "This video contains copyrighted music. Remove the music or use sounds from the app library.",
+      );
+    }
+    const message =
+      (typeof err.message === "string" && err.message) ||
+      (typeof err.error === "string" && err.error) ||
+      `Upload failed (${res.status} ${res.statusText})`;
+    throw new Error(message);
   }
 
   return (await res.json()) as BunnyUploadResult;

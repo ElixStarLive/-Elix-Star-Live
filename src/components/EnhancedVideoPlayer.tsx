@@ -34,6 +34,7 @@ import { LevelBadge } from './LevelBadge';
 import { RoyceIcon } from './royce';
 import { api } from '../lib/apiClient';
 import { nativeConfirm } from './NativeDialog';
+import { downloadVideoWithoutMusic } from '../lib/videoDownloadClient';
 import { getVideoPosterUrl } from '../lib/bunnyStorage';
 
 const VIDEO_SIDEBAR_AVATAR = 44;
@@ -575,15 +576,13 @@ export default function EnhancedVideoPlayer({
     } catch {}
   };
 
-  const handleDownload = () => {
-    if (!video?.url) return;
-    const a = document.createElement('a');
-    a.href = video.url;
-    a.download = `video_${videoId}.mp4`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    showToast('Download started');
+  const handleDownload = async () => {
+    try {
+      await downloadVideoWithoutMusic(videoId);
+      showToast('Download started (voice only — app music not included)');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Download failed');
+    }
   };
 
   const handleQRCode = async () => {
