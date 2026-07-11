@@ -19,7 +19,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { CaptureShutterButton } from '../components/CaptureShutterButton';
 import { setCachedCameraStream } from '../lib/cameraStream';
-import { type SoundTrack, getLocalSoundPickerTracks } from '../lib/soundLibrary';
+import { type SoundTrack, fetchSoundTracksFromDatabase, getLocalSoundPickerTracks } from '../lib/soundLibrary';
 import { nativePrompt } from '../components/NativeDialog';
 import ElixCameraLayout from '../components/ElixCameraLayout';
 
@@ -50,9 +50,16 @@ function SoundPickerModal({
   const clipRef = useRef<{ start: number; end: number } | null>(null);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [customSounds, setCustomSounds] = useState<Sound[]>([]);
+  const [builtInSounds, setBuiltInSounds] = useState<Sound[]>([]);
   const sounds = useMemo<Sound[]>(() => {
-    return [...getLocalSoundPickerTracks(), ...customSounds.filter((t) => !!t.url)];
-  }, [customSounds]);
+    const catalog = builtInSounds.filter((t) => !!t.url);
+    return [...getLocalSoundPickerTracks(), ...catalog, ...customSounds.filter((t) => !!t.url)];
+  }, [customSounds, builtInSounds]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    fetchSoundTracksFromDatabase().then(setBuiltInSounds).catch(() => {});
+  }, [isOpen]);
 
   const formatClip = (start: number, end: number) => {
     const total = Math.max(0, Math.floor(end - start));
@@ -166,9 +173,6 @@ function SoundPickerModal({
               </div>
             </div>
           ))}
-          {customSounds.length === 0 && (
-            <p className="px-3 py-4 text-center text-white/40 text-xs">Add your own audio with Add URL above.</p>
-          )}
         </div>
       </div>
     </div>
