@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Share2, Menu, Lock, Play, Heart, Sparkles, LogOut, UserPlus, X, Bookmark, Grid3X3, ShoppingBag, Repeat2, ChevronDown, Search, Copy, MessageCircle, Check, TrendingUp, Flag, Plus, Settings, Power } from 'lucide-react';
+import { RoyceBackIcon } from '../components/royce';
+import { Share2, Menu, Lock, Play, Heart, Sparkles, LogOut, UserPlus, Bookmark, Grid3X3, ShoppingBag, Repeat2, ChevronDown, Search, Copy, MessageCircle, Check, TrendingUp, Flag, Plus, Settings, Power } from 'lucide-react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { showToast } from '../lib/toast';
@@ -475,7 +476,7 @@ export default function Profile() {
               <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-white/10">
                 <h3 className="text-white font-bold text-base">Account</h3>
                 <button onClick={() => setShowAccountMenu(false)} title="Close">
-                  <X size={20} className="text-white/50" />
+                  <RoyceBackIcon size={20} />
                 </button>
               </div>
               <div className="px-5 py-4 flex items-center gap-3 border-b border-white/5">

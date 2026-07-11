@@ -3,7 +3,7 @@ import { RoyceBackIcon } from '../components/royce';
 import { useNavigate } from 'react-router-dom';
 import { api, request } from '../lib/apiClient';
 import { useAuthStore } from '../store/useAuthStore';
-import { Plus, X, Camera, Tag, MessageCircle, Search } from 'lucide-react';
+import { Plus, Camera, Tag, MessageCircle, Search } from 'lucide-react';
 import { AvatarRing } from '../components/AvatarRing';
 import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
 import { showToast } from '../lib/toast';
@@ -381,7 +381,7 @@ export default function Shop() {
               <div className="flex items-center justify-between px-5 pb-3">
                 <h3 className="text-gold-metallic font-bold text-base">Sell an Item</h3>
                 <button onClick={() => setShowCreate(false)} title="Close">
-                  <X size={20} className="text-white/50" />
+                  <RoyceBackIcon size={20} />
                 </button>
               </div>
               <div className="overflow-y-auto px-5 pb-6" style={{ maxHeight: 'calc(80dvh - 70px)' }}>

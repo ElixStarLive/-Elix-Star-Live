@@ -1,6 +1,6 @@
 import React from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { ChevronLeft, X } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 
 export { ROYCE_DEFAULT_AVATAR, ROYCE_ELIX_MARK, ROYCE_MEMBERSHIP } from '../lib/royceAssets';
 
@@ -53,10 +53,6 @@ export function RoyceBackIcon({ size = 18, className = '' }: RoyceNavIconProps) 
   );
 }
 
-export function RoyceCloseIcon({ size = 18, className = '' }: RoyceNavIconProps) {
-  return (
-    <span className={`${TILE_BASE} ${className}`} style={tileBox(size, 8)} aria-hidden>
-      <X size={size} strokeWidth={2.35} className="royce-icon-gold block" />
-    </span>
-  );
+export function RoyceCloseIcon(props: RoyceNavIconProps) {
+  return <RoyceBackIcon {...props} />;
 }

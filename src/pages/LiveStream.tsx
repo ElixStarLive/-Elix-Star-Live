@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { RoyceBackIcon } from '../components/royce';
 import { showToast } from '../lib/toast';
 import { platform, openExternalLink } from '../lib/platform';
 import {
@@ -3963,7 +3964,7 @@ export default function LiveStream() {
                           onClick={(e) => { e.stopPropagation(); toggleBattle(); }}
                           title="End Battle"
                         >
-                          <X size={18} className="text-[#D4AF37]" strokeWidth={2.25} />
+                          <RoyceBackIcon size={18} />
                         </button>
                       </div>
 
@@ -4469,7 +4470,7 @@ export default function LiveStream() {
                           <UserPlus size={16} className="text-[#D4AF37]" strokeWidth={2.2} />
                         </button>
                         <button type="button" onClick={() => { if (!isBroadcast) { navigate('/feed', { replace: true }); } else if (isBattleMode) { toggleBattle(); } else { stopBroadcast(); } }} className="w-7 h-7 rounded-full flex items-center justify-center active:scale-95 transition-transform" title={isBroadcast ? (isBattleMode ? 'End battle' : 'End broadcast') : 'Leave'}>
-                          <X size={20} className="text-[#D4AF37]" strokeWidth={2.25} />
+                          <RoyceBackIcon size={20} />
                         </button>
                       </div>
                     </div>

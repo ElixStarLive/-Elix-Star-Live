@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, UserPlus, UserMinus, MessageCircle, MoreHorizontal, Flag } from 'lucide-react';
+import { RoyceBackIcon } from './royce';
 import { useNavigate } from 'react-router-dom';
 import { useVideoStore } from '../store/useVideoStore';
 import { useAuthStore } from '../store/useAuthStore';
@@ -141,7 +142,7 @@ export default function EnhancedLikesModal({ isOpen, onClose, videoId, likes }: 
             <p className="text-white/60 text-sm">{likes.toLocaleString()} likes</p>
           </div>
           <button onClick={onClose} className="p-1 text-white/70 hover:text-white">
-            <X size={20} />
+            <RoyceBackIcon size={20} />
           </button>
         </div>
 

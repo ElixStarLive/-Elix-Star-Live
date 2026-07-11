@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { RoyceBackIcon } from '../components/royce';
 import { showToast } from '../lib/toast';
 import {
   Send,
@@ -12,7 +13,6 @@ import {
   AlertTriangle,
   Check,
   UserPlus,
-  X,
   Eye,
   MessageCircle,
   Flag,
@@ -2362,7 +2362,7 @@ export default function SpectatorPage() {
                   }}
                   className="w-8 h-8 rounded-full bg-transparent border-0 flex items-center justify-center active:scale-90 transition-transform"
                 >
-                  <X size={20} className="text-[#D4AF37]" strokeWidth={2.25} />
+                  <RoyceBackIcon size={20} />
                 </button>
               </div>
             </div>
@@ -2580,7 +2580,7 @@ export default function SpectatorPage() {
                     <span className="text-white font-bold text-[13px]">Co-Host</span>
                   </div>
                   <button type="button" title="Close" onClick={() => setShowCoHostPanel(false)} className="p-1 rounded-full active:bg-white/10">
-                    <X size={18} className="text-white/70" />
+                    <RoyceBackIcon size={18} />
                   </button>
                 </div>
                 <div className="flex-1 overflow-y-auto px-4 pb-4 min-h-0 flex flex-col gap-4">
@@ -3053,7 +3053,7 @@ export default function SpectatorPage() {
                     onClick={() => setIsMoreMenuOpen(false)}
                     className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/5 transition-colors w-full"
                   >
-                    <X size={18} className="text-white/50" />
+                    <RoyceBackIcon size={18} />
                     <span className="text-white text-sm font-medium">Cancel</span>
                   </button>
                 </div>

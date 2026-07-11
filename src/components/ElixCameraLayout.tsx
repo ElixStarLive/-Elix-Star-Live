@@ -551,7 +551,7 @@ export default function ElixCameraLayout({
                 Filters & Effects
               </h3>
               <button onClick={() => setShowEffectsPanel(false)} className="p-1" title="Close effects">
-                <X size={14} className="text-white/60" />
+                <RoyceCloseIcon size={14} />
               </button>
             </div>
 
@@ -620,7 +620,7 @@ export default function ElixCameraLayout({
                 CapCut AI Tools
               </h3>
               <button onClick={() => setShowCapCutPanel(false)} className="p-1" title="Close CapCut">
-                <X size={14} className="text-white/60" />
+                <RoyceCloseIcon size={14} />
               </button>
             </div>
 
@@ -749,7 +749,7 @@ export default function ElixCameraLayout({
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-[#D4AF37] drop-shadow-[0_0_8px_rgba(255,215,0,1)] text-xs font-bold">Add Text</h3>
               <button onClick={() => setShowTextInput(false)} title="Close text input">
-                <X size={14} className="text-white/60" />
+                <RoyceCloseIcon size={14} />
               </button>
             </div>
             <input
@@ -788,7 +788,7 @@ export default function ElixCameraLayout({
             <div className="flex items-center justify-between px-4 pt-3 pb-2">
               <h3 className="text-[#D4AF37] drop-shadow-[0_0_8px_rgba(255,215,0,1)] text-xs font-bold">Stickers</h3>
               <button onClick={() => setShowStickerPicker(false)} className="p-1" title="Close stickers">
-                <X size={14} className="text-white/60" />
+                <RoyceCloseIcon size={14} />
               </button>
             </div>
             <div className="grid grid-cols-8 gap-2 px-4 pb-4">

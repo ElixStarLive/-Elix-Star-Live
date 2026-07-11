@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Sparkles, X } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
+import { RoyceBackIcon } from './royce';
 import { FILTER_PRESETS, type FilterPreset } from '../lib/ai/filters';
 
 interface LiveAIFiltersProps {
@@ -34,7 +35,7 @@ export default function LiveAIFilters({ onFilterChange, currentFilter }: LiveAIF
             <Sparkles size={12} className="text-[#D4AF37]" /> AI Filters
           </span>
           <button onClick={() => setIsOpen(false)} title="Close filters">
-            <X size={14} className="text-white/50" />
+            <RoyceBackIcon size={14} />
           </button>
         </div>
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
