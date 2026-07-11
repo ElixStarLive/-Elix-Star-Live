@@ -109,7 +109,7 @@ export default function Login() {
     <div className="min-h-[100dvh] h-[100dvh] bg-[#111111] text-white flex items-center justify-center p-4 xs:p-3 sm:p-4 overflow-y-auto pt-[calc(var(--safe-top)+46px)] pb-[calc(var(--safe-bottom)+var(--nav-height))]">
       <div className="w-full max-w-[420px] xs:max-w-[320px] sm:max-w-[380px] bg-white/5 border border-white/10 rounded-2xl p-6 xs:p-4 sm:p-5">
         <div className="flex justify-center mb-4">
-          <img src="/royce/elix-mark.svg" alt="Elix Star Live" className="w-24 h-24 object-contain" />
+          <img src="/elix-logo.png" alt="Elix Star Live" className="w-24 h-24 object-contain" />
         </div>
         <h1 className="text-fluid-xl font-bold mb-4 xs:mb-3 sm:mb-4 text-center">Login</h1>
 
