@@ -23,14 +23,39 @@ export function resolveSoundTrackPlaybackUrl(url: string): string {
   return apiUrl(url);
 }
 
-/** Licensed sound tracks from server (Epidemic Sound when configured, else Neon catalog). */
-export async function fetchSoundTracksFromDatabase(): Promise<SoundTrack[]> {
-  const { data, error } = await request<{ tracks?: SoundTrack[] }>("/api/sounds");
-  if (error) return [];
-  return (data?.tracks ?? []).map((track) => ({
+export type SoundCatalogResponse = {
+  tracks: SoundTrack[];
+  configured: boolean;
+  source: string | null;
+};
+
+function mapSoundTracks(tracks: SoundTrack[]): SoundTrack[] {
+  return tracks.map((track) => ({
     ...track,
     url: resolveSoundTrackPlaybackUrl(track.url),
   }));
+}
+
+/** Licensed sound tracks from server (Epidemic Sound when configured, else Neon catalog). */
+export async function fetchSoundTracksFromDatabase(): Promise<SoundTrack[]> {
+  const catalog = await fetchSoundCatalog();
+  return catalog.tracks;
+}
+
+export async function fetchSoundCatalog(): Promise<SoundCatalogResponse> {
+  const { data, error } = await request<{
+    tracks?: SoundTrack[];
+    configured?: boolean;
+    source?: string | null;
+  }>("/api/sounds");
+  if (error) {
+    return { tracks: [], configured: false, source: null };
+  }
+  return {
+    tracks: mapSoundTracks(data?.tracks ?? []),
+    configured: Boolean(data?.configured),
+    source: data?.source ?? null,
+  };
 }
 
 export const EMPTY_TRACK: SoundTrack = {

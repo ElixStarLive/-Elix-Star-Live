@@ -19,7 +19,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { CaptureShutterButton } from '../components/CaptureShutterButton';
 import { setCachedCameraStream } from '../lib/cameraStream';
-import { type SoundTrack, fetchSoundTracksFromDatabase, getLocalSoundPickerTracks } from '../lib/soundLibrary';
+import { type SoundTrack, fetchSoundCatalog, getLocalSoundPickerTracks } from '../lib/soundLibrary';
 import { nativePrompt } from '../components/NativeDialog';
 import ElixCameraLayout from '../components/ElixCameraLayout';
 
@@ -51,14 +51,36 @@ function SoundPickerModal({
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [customSounds, setCustomSounds] = useState<Sound[]>([]);
   const [builtInSounds, setBuiltInSounds] = useState<Sound[]>([]);
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [catalogConfigured, setCatalogConfigured] = useState<boolean | null>(null);
   const sounds = useMemo<Sound[]>(() => {
     const catalog = builtInSounds.filter((t) => !!t.url);
     return [...getLocalSoundPickerTracks(), ...catalog, ...customSounds.filter((t) => !!t.url)];
   }, [customSounds, builtInSounds]);
+  const catalogCount = builtInSounds.filter((t) => !!t.url).length;
 
   useEffect(() => {
     if (!isOpen) return;
-    fetchSoundTracksFromDatabase().then(setBuiltInSounds).catch(() => {});
+    let cancelled = false;
+    setCatalogLoading(true);
+    fetchSoundCatalog()
+      .then((catalog) => {
+        if (cancelled) return;
+        setBuiltInSounds(catalog.tracks);
+        setCatalogConfigured(catalog.configured);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setBuiltInSounds([]);
+          setCatalogConfigured(false);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setCatalogLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [isOpen]);
 
   const formatClip = (start: number, end: number) => {
@@ -131,7 +153,7 @@ function SoundPickerModal({
                 if (!url) return;
                 const title = (await nativePrompt('Sound name:', 'Custom sound', 'Sound Name')) ?? 'Custom sound';
                 const next: Sound = {
-                  id: Date.now(),
+                  id: String(Date.now()),
                   title: title.trim() || 'Custom sound',
                   artist: 'You',
                   duration: 'custom',
@@ -153,6 +175,17 @@ function SoundPickerModal({
           </div>
         </div>
         <div className="flex-1 min-h-0 overflow-y-auto">
+          {catalogLoading && catalogCount === 0 ? (
+            <p className="px-3 py-4 text-center text-white/40 text-xs">Loading licensed tracks…</p>
+          ) : null}
+          {!catalogLoading && catalogCount === 0 && catalogConfigured === false ? (
+            <p className="px-3 py-4 text-center text-white/40 text-xs">
+              Licensed tracks are not available yet. Set EPIDEMIC_SOUND_API_KEY on the server and redeploy.
+            </p>
+          ) : null}
+          {!catalogLoading && catalogCount === 0 && catalogConfigured === true ? (
+            <p className="px-3 py-4 text-center text-white/40 text-xs">No licensed tracks returned right now. Try again shortly.</p>
+          ) : null}
           {sounds.map((s) => (
             <div key={s.id} className="w-full px-3 py-2 flex items-center justify-between hover:brightness-125 transition-colors">
               <div className="text-left flex-1 min-w-0 mr-2">
