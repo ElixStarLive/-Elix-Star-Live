@@ -141,7 +141,7 @@ export function GiftOverlay({
     <div
       className="fixed left-0 right-0 bottom-0 mx-auto w-full max-w-[480px] pointer-events-none overflow-hidden"
       style={{
-        height: '70%',
+        height: 'calc(70% - 10mm)',
         zIndex: 210,
         WebkitMaskImage: 'linear-gradient(to top, black 0%, black 60%, transparent 100%)',
         maskImage: 'linear-gradient(to top, black 0%, black 60%, transparent 100%)',
