@@ -5201,7 +5201,7 @@ export default function LiveStream() {
                         {h.status === 'live' ? (
                           <span className="text-white text-[10px] font-bold flex-shrink-0">Live</span>
                         ) : (
-                          <span className="text-[#D4AF37] text-[10px] font-semibold flex-shrink-0">Invited</span>
+                          <span className="text-[#C9A96E] text-[10px] font-semibold flex-shrink-0">Invited</span>
                         )}
                       </div>
                     ))}
@@ -5225,7 +5225,7 @@ export default function LiveStream() {
                           <button
                             type="button"
                             onClick={() => { inviteCoHost({ id: c.id, streamKey: c.streamKey, name: c.name || c.username, avatar: c.avatar }); }}
-                            className="px-2.5 py-1 rounded-full bg-[#D4AF37] text-black text-[10px] font-bold flex-shrink-0"
+                            className="px-2.5 py-1 rounded-full bg-[#C9A96E] text-black text-[10px] font-bold flex-shrink-0"
                           >
                             Invite
                           </button>
@@ -5296,7 +5296,7 @@ export default function LiveStream() {
                               Invite
                             </button>
                           ) : alreadyInvited ? (
-                            <span className="text-[#D4AF37] text-[10px] font-semibold flex-shrink-0">Invited</span>
+                            <span className="text-[#C9A96E] text-[10px] font-semibold flex-shrink-0">Invited</span>
                           ) : null
                         )}
                       </div>
