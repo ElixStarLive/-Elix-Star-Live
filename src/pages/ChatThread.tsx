@@ -5,6 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { request } from '../lib/apiClient';
 import { LevelBadge } from '../components/LevelBadge';
+import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
 import { initiateCall } from '../lib/callService';
 import { showToast } from '../lib/toast';
 import { getVideoPosterUrl } from '../lib/bunnyStorage';
@@ -140,10 +141,48 @@ export default function ChatThread() {
   const [loading, setLoading] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const previews = useLinkPreviews(messages);
+  const [liveUsers, setLiveUsers] = useState<{ id: string; name: string; avatar: string }[]>([]);
 
   const isSystemThread = useMemo(() => {
     return ['new', 'followers', 'likes', 'comments', 'mentions'].includes(threadId || '');
   }, [threadId]);
+
+  // People currently live — shown as a horizontal scroll row at the top of the chat.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const [profilesResult, liveResult] = await Promise.all([
+          request('/api/profiles'),
+          request('/api/live/streams').catch(() => ({ data: null })),
+        ]);
+        if (cancelled) return;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const streams = ((liveResult.data as any)?.streams || []) as any[];
+        const liveIds: string[] = streams.map((s) => String(s.user_id || s.userId || '')).filter(Boolean);
+        const nameById = new Map(streams.map((s) => [String(s.user_id || s.userId || ''), s.display_name || s.title || '']));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const profiles = ((profilesResult.data as any)?.profiles || []) as any[];
+        const byId = new Map(profiles.map((p) => [String(p.user_id || p.userId || ''), p]));
+        const seen = new Set<string>();
+        const list = liveIds
+          .filter((id) => id && id !== user?.id && !seen.has(id) && seen.add(id))
+          .map((id) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const p = byId.get(id) as any;
+            return {
+              id,
+              name: (p?.display_name || p?.displayName || p?.username || nameById.get(id) || 'Live') as string,
+              avatar: (p?.avatar_url || p?.avatarUrl || '/royce/default-avatar.svg') as string,
+            };
+          });
+        setLiveUsers(list);
+      } catch {
+        if (!cancelled) setLiveUsers([]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user?.id]);
 
   useEffect(() => {
     if (!threadId || isSystemThread || !user?.id) return;
@@ -240,7 +279,7 @@ export default function ChatThread() {
   return (
     <div
       className="fixed left-0 right-0 flex flex-col w-full max-w-[480px] mx-auto bg-[#111111] text-white z-[1]"
-      style={{ top: 'var(--topbar-total)', bottom: 'var(--bottom-ui-reserve)' }}
+      style={{ top: 0, bottom: 'var(--bottom-ui-reserve)' }}
     >
         <header className="flex-shrink-0 flex items-center gap-2 px-4 py-3 border-b border-white/10 bg-[#111111]">
           <div className="flex w-12 shrink-0 items-center justify-start">
@@ -276,6 +315,25 @@ export default function ChatThread() {
             </button>
           </div>
         </header>
+
+        {liveUsers.length > 0 && (
+          <div className="flex-shrink-0 border-b border-white/10 bg-[#111111]">
+            <div className="flex gap-3 overflow-x-auto overflow-y-hidden no-scrollbar px-3 py-2" style={{ WebkitOverflowScrolling: 'touch' }}>
+              {liveUsers.map((u) => (
+                <button
+                  key={u.id}
+                  type="button"
+                  onClick={() => navigate(`/watch/${u.id}`)}
+                  className="flex-shrink-0 flex flex-col items-center gap-1"
+                  style={{ width: 64, minWidth: 64 }}
+                >
+                  <StoryGoldRingAvatar live size={48} src={u.avatar} alt={u.name} />
+                  <span className="text-[10px] text-white/80 truncate w-full text-center">{u.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3 scroll-smooth">
           {loading && <div className="text-center text-white/40 text-sm">Loading messages...</div>}
