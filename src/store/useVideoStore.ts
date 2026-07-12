@@ -88,6 +88,12 @@ function mapRawVideoRowToClientVideo(
         ? { clipEndSeconds: music.clipEndSeconds }
         : {}),
       ...(music.provider ? { provider: music.provider } : {}),
+      ...(typeof music.originalVolume === 'number'
+        ? { originalVolume: music.originalVolume }
+        : {}),
+      ...(typeof music.musicVolume === 'number'
+        ? { musicVolume: music.musicVolume }
+        : {}),
     },
     stats: {
       views: stats.views ?? v.views ?? 0,
@@ -142,6 +148,9 @@ interface Music {
   clipStartSeconds?: number;
   clipEndSeconds?: number;
   provider?: string;
+  /** Uploader audio mix (0..1). originalVolume = the video's own sound, musicVolume = the added track. */
+  originalVolume?: number;
+  musicVolume?: number;
 }
 
 interface VideoStats {

@@ -38,6 +38,9 @@ export default function Upload() {
   const [postProgress, setPostProgress] = useState(0);
   const [postError, setPostError] = useState<string | null>(null);
   const [selectedTrack, setSelectedTrack] = useState<SoundTrack | null>(null);
+  // Audio mix (0..1) applied when a song is added: original = the video's own sound, music = the added song.
+  const [originalVolume, setOriginalVolume] = useState(1);
+  const [musicVolume, setMusicVolume] = useState(0.7);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   const backgroundAudioRef = useRef<HTMLAudioElement | null>(null);
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -310,7 +313,7 @@ export default function Upload() {
       const start = Math.max(0, track.clipStartSeconds);
       const end = Math.max(start, track.clipEndSeconds);
       backgroundAudioRef.current.loop = false;
-      backgroundAudioRef.current.volume = 0.5;
+      backgroundAudioRef.current.volume = Math.max(0, Math.min(1, musicVolume));
       backgroundAudioRef.current.currentTime = start;
       backgroundAudioRef.current.ontimeupdate = () => {
         const a = backgroundAudioRef.current;
@@ -326,6 +329,13 @@ export default function Upload() {
         if (backgroundAudioRef.current) backgroundAudioRef.current.pause();
       };
   }, [muteAllSounds, postWithoutAudio, recordedVideoUrl, selectedAudioId, selectedTrack]);
+
+  // Live-update the preview song volume while dragging the mix slider (no restart).
+  useEffect(() => {
+    if (backgroundAudioRef.current) {
+      backgroundAudioRef.current.volume = Math.max(0, Math.min(1, musicVolume));
+    }
+  }, [musicVolume]);
 
   const handlePost = async () => {
       if (isPosting) return;
@@ -391,6 +401,8 @@ export default function Upload() {
                 provider: track.provider,
                 clipStartSeconds: track.clipStartSeconds,
                 clipEndSeconds: track.clipEndSeconds,
+                originalVolume: Math.max(0, Math.min(1, originalVolume)),
+                musicVolume: Math.max(0, Math.min(1, musicVolume)),
             };
         }
 
@@ -550,14 +562,46 @@ export default function Upload() {
                        }}
                        aria-label="Toggle post without audio"
                      >
-                       <div
-                         className={`w-5 h-5 rounded-full bg-white shadow transition-transform ${
-                           postWithoutAudio ? 'translate-x-[22px]' : 'translate-x-[2px]'
-                         }`}
-                       />
-                     </button>
-                   </div>
-                   {/* Removed the 'Post' button from inside here to avoid confusion. It is at the bottom. */}
+                      <div
+                        className={`w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                          postWithoutAudio ? 'translate-x-[22px]' : 'translate-x-[2px]'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                  {/* Audio mix — only when a song is added: balance the video's own sound vs the song */}
+                  {selectedTrack && selectedAudioId.startsWith('track_') && !postWithoutAudio && (
+                    <div className="space-y-1.5 pt-1 border-t border-white/10">
+                      <div>
+                        <div className="flex items-center justify-between mb-0.5">
+                          <label className="text-[10px] text-[#D4AF37] font-semibold">Original sound</label>
+                          <button
+                            type="button"
+                            onClick={() => setOriginalVolume((v) => (v === 0 ? 1 : 0))}
+                            className="text-[9px] font-bold text-white/60 px-1.5 py-0.5 rounded bg-white/10"
+                          >
+                            {originalVolume === 0 ? 'Muted' : 'Mute'}
+                          </button>
+                        </div>
+                        <input
+                          type="range" min={0} max={100} value={Math.round(originalVolume * 100)}
+                          onChange={(e) => setOriginalVolume(Number(e.target.value) / 100)}
+                          className="w-full accent-[#D4AF37]"
+                          aria-label="Original sound volume"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-[#D4AF37] font-semibold mb-0.5 block">Song volume</label>
+                        <input
+                          type="range" min={0} max={100} value={Math.round(musicVolume * 100)}
+                          onChange={(e) => setMusicVolume(Number(e.target.value) / 100)}
+                          className="w-full accent-[#D4AF37]"
+                          aria-label="Song volume"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {/* Removed the 'Post' button from inside here to avoid confusion. It is at the bottom. */}
                    {postError ? (
                      <div className="w-full px-3 py-2 rounded-lg bg-white/20/80 text-white text-xs">
                        {postError}

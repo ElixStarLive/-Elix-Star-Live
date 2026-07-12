@@ -126,6 +126,15 @@ export default function EnhancedVideoPlayer({
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const volume = 0.5;
+  // Uploader-set audio mix — only applies when a music track is attached.
+  // Defaults to 1 (unchanged behavior) so existing videos are unaffected.
+  const _hasMusicTrack = !!video?.music?.previewUrl;
+  const _origMix = _hasMusicTrack && typeof video?.music?.originalVolume === 'number'
+    ? Math.max(0, Math.min(1, video.music.originalVolume)) : 1;
+  const _musicMix = _hasMusicTrack && typeof video?.music?.musicVolume === 'number'
+    ? Math.max(0, Math.min(1, video.music.musicVolume)) : 1;
+  const videoVolume = volume * _origMix;
+  const musicVolume = volume * _musicMix;
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [_videoSize, setVideoSize] = useState<{ w: number; h: number } | null>(null);
@@ -294,14 +303,14 @@ export default function EnhancedVideoPlayer({
       videoRef.current.muted = newMuted;
       setIsMuted(newMuted);
       if (!newMuted) {
-        videoRef.current.volume = volume;
+        videoRef.current.volume = videoVolume;
       }
     }
 
     if (audioRef.current) {
       const newMuted = !isMuted;
       audioRef.current.muted = newMuted;
-      audioRef.current.volume = volume;
+      audioRef.current.volume = musicVolume;
       if (newMuted) {
         audioRef.current.pause();
       } else {
@@ -392,7 +401,7 @@ export default function EnhancedVideoPlayer({
 
       const runPlay = (videoEl: HTMLVideoElement) => {
         if (!shouldPlayRef.current) return;
-        videoEl.volume = volume;
+        videoEl.volume = videoVolume;
         videoEl.muted = true;
         videoEl.play()
           .then(() => {
@@ -403,7 +412,7 @@ export default function EnhancedVideoPlayer({
             setIsPlaying(true);
             if (!muteAllSounds) {
               videoEl.muted = false;
-              videoEl.volume = volume;
+              videoEl.volume = videoVolume;
               setIsMuted(false);
             } else {
               setIsMuted(true);
@@ -470,7 +479,7 @@ export default function EnhancedVideoPlayer({
         }
         audio.currentTime = clipStart;
         audio.muted = muteAllSounds;
-        audio.volume = volume;
+        audio.volume = musicVolume;
         if (!muteAllSounds) {
           void audio.play().then(() => {
             if (!shouldPlayRef.current) {
@@ -563,7 +572,7 @@ export default function EnhancedVideoPlayer({
   const handleVideoClick = (e: React.MouseEvent) => {
     if (isMuted && !muteAllSounds && videoRef.current) {
       videoRef.current.muted = false;
-      videoRef.current.volume = volume;
+      videoRef.current.volume = videoVolume;
       setIsMuted(false);
     }
 
