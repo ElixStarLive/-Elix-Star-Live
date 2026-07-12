@@ -4363,7 +4363,7 @@ export default function LiveStream() {
                   <div
                     key={`mvp-l-${viewer.id}`}
                     className="relative flex flex-col items-center"
-                    style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '-2mm' }}
+                    style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
                   >
                     <AvatarRing
                       src={resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username)}
@@ -4378,7 +4378,7 @@ export default function LiveStream() {
                   <div
                     key={`mvp-r-${viewer.id}`}
                     className="relative flex flex-col items-center"
-                    style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '-2mm' }}
+                    style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
                   >
                     <AvatarRing
                       src={resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username)}

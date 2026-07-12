@@ -2027,7 +2027,7 @@ export default function SpectatorPage() {
                         <div
                           key={`mvp-l-${slot.id}`}
                           className="relative flex flex-col items-center"
-                          style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '-2mm' }}
+                          style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
                         >
                           <AvatarRing
                             src={resolveCircleAvatar(slot.avatar, slot.name)}
@@ -2046,7 +2046,7 @@ export default function SpectatorPage() {
                         <div
                           key={`mvp-r-${slot.id}`}
                           className="relative flex flex-col items-center"
-                          style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '-2mm' }}
+                          style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
                         >
                           <AvatarRing
                             src={resolveCircleAvatar(slot.avatar, slot.name)}
@@ -2501,7 +2501,7 @@ export default function SpectatorPage() {
                     {mvpSlots.global.map((slot, i) => (
                       <div
                         key={`spectator-top-mvp-${slot.id}`}
-                        style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '-2mm' }}
+                        style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
                         className="relative"
                       >
                         <AvatarRing
