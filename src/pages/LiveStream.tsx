@@ -3743,9 +3743,9 @@ export default function LiveStream() {
                 {isCamOff && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[#111111] z-[5]">
                     {(user?.avatar || myAvatar) ? (
-                      <img src={user?.avatar || myAvatar || ''} alt="" className="w-16 h-16 rounded-full object-cover object-center" />
+                      <img src={user?.avatar || myAvatar || ''} alt="" className="w-16 h-16 rounded-full border-2 border-[#C9A227]/40 object-cover object-center" />
                     ) : (
-                      <div className="w-16 h-16 rounded-full bg-[#111111] flex items-center justify-center">
+                      <div className="w-16 h-16 rounded-full border-2 border-[#C9A227]/40 bg-[#111111] flex items-center justify-center">
                         <span className="text-2xl font-black text-[#E8D5A3]/60">{(creatorName || user?.username || 'Me').charAt(0).toUpperCase()}</span>
                       </div>
                     )}
