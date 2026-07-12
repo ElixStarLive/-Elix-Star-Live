@@ -940,7 +940,7 @@ export default function Inbox() {
                           className={`shrink-0 px-3 py-1.5 rounded-md text-xs font-bold transition ${
                             iFollowIds.has(f.user_id)
                               ? 'bg-white/10 text-white border border-white/25'
-                              : 'bg-[#ffffff] text-white border border-[#C9A227]'
+                              : 'bg-[#FF2D55] text-white border border-[#FF2D55]'
                           }`}
                         >
                           {iFollowIds.has(f.user_id) ? 'Following' : 'Follow'}
