@@ -99,6 +99,48 @@ async function ensureProfilesTable(): Promise<void> {
   profilesTableReady = true;
 }
 
+/**
+ * A pooled Neon connection can be dead after Neon suspends an idle compute, or
+ * the first query can race a cold-start and trip statement_timeout. Those
+ * failures are transient — a fresh connection (retry) succeeds. The identical
+ * query run against a new connection works, which is exactly this case.
+ */
+function isTransientDbError(err: unknown): boolean {
+  const e = err as { code?: string; message?: string } | null;
+  const code = e?.code ?? "";
+  const msg = (e?.message ?? "").toLowerCase();
+  // Postgres connection-class SQLSTATEs + query cancellation (cold-start timeout).
+  if (["08000", "08003", "08006", "57P01", "57P02", "57P03", "57014"].includes(code)) return true;
+  // Node socket / pg pool connection errors.
+  if (["ECONNRESET", "ETIMEDOUT", "EPIPE", "ENOTFOUND", "ECONNREFUSED"].includes(code)) return true;
+  return (
+    msg.includes("connection terminated") ||
+    msg.includes("connection closed") ||
+    msg.includes("terminating connection") ||
+    msg.includes("server closed the connection") ||
+    msg.includes("timeout")
+  );
+}
+
+/** Run a write with a single retry on a transient connection error (Neon idle-drop / cold-start). */
+async function queryWithConnRetry(
+  db: NonNullable<ReturnType<typeof getPool>>,
+  sql: string,
+  params: unknown[],
+): Promise<void> {
+  try {
+    await db.query(sql, params);
+  } catch (err) {
+    if (!isTransientDbError(err)) throw err;
+    logger.warn(
+      { err: (err as Error)?.message },
+      "profile save: transient DB connection error — retrying once with a fresh connection",
+    );
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    await db.query(sql, params);
+  }
+}
+
 async function saveProfileToDb(p: Profile): Promise<boolean> {
   const db = getPool();
   if (!db) return false;
@@ -107,7 +149,8 @@ async function saveProfileToDb(p: Profile): Promise<boolean> {
     logger.error({ userId: p.userId }, "saveProfileToDb: profiles table not ready");
     throw new Error("profiles table not ready");
   }
-  await db.query(
+  await queryWithConnRetry(
+    db,
     `INSERT INTO profiles (user_id, username, display_name, avatar_url, bio, website,
                            followers, following, video_count, coins, level, is_verified,
                            created_at, updated_at)
