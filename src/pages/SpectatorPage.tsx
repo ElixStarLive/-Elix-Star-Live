@@ -45,7 +45,7 @@ import {
   shouldUseTestCoinsForGifts,
 } from '../lib/testCoins';
 import { GiftOverlay } from '../components/GiftOverlay';
-import GiftAnimationOverlay from '../components/GiftAnimationOverlay';
+import GiftAnimationOverlay, { pushLocalGiftPill } from '../components/GiftAnimationOverlay';
 import { ChatOverlay } from '../components/ChatOverlay';
 import { AvatarRing } from '../components/AvatarRing';
 import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
@@ -1689,6 +1689,15 @@ export default function SpectatorPage() {
     }
     setShowComboButton(true);
     resetComboTimer();
+    pushLocalGiftPill({
+      username: viewerName,
+      giftName: gift.name,
+      giftIcon: gift.icon || '🎁',
+      avatar: viewerAvatar,
+      quantity: 1,
+      creatorName: hostName || 'Creator',
+      streamId: effectiveStreamId,
+    });
   };
 
   const handleComboClick = () => {

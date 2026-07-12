@@ -48,7 +48,7 @@ import {
   shouldUseTestCoinsForGifts,
 } from '../lib/testCoins';
 import { GiftOverlay } from '../components/GiftOverlay';
-import GiftAnimationOverlay from '../components/GiftAnimationOverlay';
+import GiftAnimationOverlay, { pushLocalGiftPill } from '../components/GiftAnimationOverlay';
 import { ChatOverlay } from '../components/ChatOverlay';
 import { FaceARGift } from '../components/FaceARGift';
 import { useLivePromoStore } from '../store/useLivePromoStore';
@@ -3217,6 +3217,15 @@ export default function LiveStream() {
       setComboCount(1);
       setShowComboButton(true);
       resetComboTimer();
+      pushLocalGiftPill({
+        username: isBroadcast ? creatorName : viewerName,
+        giftName: gift.name,
+        giftIcon: gift.icon || '🎁',
+        avatar: isBroadcast ? myAvatar : viewerAvatar,
+        quantity: 1,
+        creatorName: hostName || creatorName || 'Creator',
+        streamId: effectiveStreamId,
+      });
     } catch (error) {
       showToast('Gift failed');
     }
@@ -3374,7 +3383,17 @@ export default function LiveStream() {
 
       // Handle Combo Logic
       setComboCount((prev) => Math.min(prev + 1, GIFT_COMBO_MAX));
+      setShowComboButton(true);
       resetComboTimer();
+      pushLocalGiftPill({
+        username: isBroadcast ? creatorName : viewerName,
+        giftName: lastSentGift.name,
+        giftIcon: lastSentGift.icon || '🎁',
+        avatar: giftMsg.avatar,
+        quantity: 1,
+        creatorName: hostName || creatorName || 'Creator',
+        streamId: effectiveStreamId,
+      });
   };
 
 
