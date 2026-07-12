@@ -303,17 +303,18 @@ export default function ElixCameraLayout({
         className="absolute top-0 left-0 right-0 z-50 px-3 flex items-center justify-center pointer-events-auto"
         style={{ paddingTop: 'max(3rem, env(safe-area-inset-top))' }}
       >
-        {/* Add Sound Button */}
+        {/* Add Sound Button — capsule style */}
         <button
           onClick={onSelectMusic}
-          className="w-9 h-9 flex items-center justify-center hover:scale-105 active:scale-95 transition-all relative"
+          className="flex items-center gap-1.5 h-8 px-3.5 rounded-full bg-black/55 border border-[#C9A227]/40 hover:scale-105 active:scale-95 transition-all relative"
           title="Add sound"
         >
             <Music
-              size={18}
-              className="text-[#D4AF37] drop-shadow-[0_0_8px_rgba(255,215,0,1)] drop-shadow-[0_0_16px_rgba(255,215,0,0.6)]"
+              size={15}
+              className="text-[#D4AF37] drop-shadow-[0_0_8px_rgba(255,215,0,1)]"
               strokeWidth={2}
             />
+            <span className="text-[#D4AF37] text-[11px] font-semibold whitespace-nowrap drop-shadow-[0_0_8px_rgba(255,215,0,0.9)]">Add sound</span>
         </button>
       </div>
 
