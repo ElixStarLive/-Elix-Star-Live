@@ -1135,28 +1135,28 @@ export default function SpectatorPage() {
           };
           setMessages(prev => [...prev, msg]);
         }
-        // Match creator (LiveStream): only queue real video assets; prefer catalog path, else WS payload.
-        if (data.user_id !== user?.id) {
-          const isVideoFile = (value: string) => {
-            const p = value.split('?')[0].toLowerCase();
-            return p.endsWith('.mp4') || p.endsWith('.webm');
-          };
-          const incomingVideo = typeof data.video === 'string' ? data.video : '';
-          const defVideo = typeof giftDef.video === 'string' ? giftDef.video : '';
-          const pickedRawVideo =
-            defVideo && isVideoFile(defVideo)
-              ? defVideo
-              : incomingVideo && isVideoFile(incomingVideo)
-                ? incomingVideo
-                : '';
-          if (pickedRawVideo && pickedRawVideo.trim()) {
-            const raw = pickedRawVideo;
-            const videoUrl =
-              raw.startsWith('http://') || raw.startsWith('https://')
-                ? raw
-                : resolveGiftAssetUrl(raw.startsWith('/') ? raw : `/${raw}`);
-            setGiftQueue(prev => [...prev, { video: videoUrl }]);
-          }
+      }
+      // Play gift video for other users' gifts (sender already queued locally).
+      if (data.user_id !== user?.id) {
+        const isVideoFile = (value: string) => {
+          const p = value.split('?')[0].toLowerCase();
+          return p.endsWith('.mp4') || p.endsWith('.webm');
+        };
+        const incomingVideo = typeof data.video === 'string' ? data.video : '';
+        const defVideo = typeof giftDef?.video === 'string' ? giftDef.video : '';
+        const pickedRawVideo =
+          defVideo && isVideoFile(defVideo)
+            ? defVideo
+            : incomingVideo && isVideoFile(incomingVideo)
+              ? incomingVideo
+              : '';
+        if (pickedRawVideo && pickedRawVideo.trim()) {
+          const raw = pickedRawVideo;
+          const videoUrl =
+            raw.startsWith('http://') || raw.startsWith('https://')
+              ? raw
+              : resolveGiftAssetUrl(raw.startsWith('/') ? raw : `/${raw}`);
+          setGiftQueue(prev => [...prev, { video: videoUrl }]);
         }
       }
     };
@@ -2527,7 +2527,7 @@ export default function SpectatorPage() {
 
         {/* COMBO BUTTON — above gift video overlay so it stays visible after send */}
         {showComboButton && lastSentGift && (
-          <div className="fixed bottom-[calc(54px+max(2px,env(safe-area-inset-bottom,0px)))] right-3 z-[220] pointer-events-auto max-w-[480px]">
+          <div className="fixed bottom-[calc(54px+max(2px,env(safe-area-inset-bottom,0px)))] right-3 z-[230] pointer-events-auto max-w-[480px]">
             <button
               type="button"
               onClick={handleComboClick}

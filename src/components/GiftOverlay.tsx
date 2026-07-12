@@ -59,6 +59,25 @@ function GiftVideo({
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el) return;
+    el.muted = muted;
+    const tryPlay = () => {
+      const p = el.play();
+      if (p && typeof p.then === 'function') {
+        p.catch(() => {
+          // Autoplay with sound often blocked — still play the video muted.
+          el.muted = true;
+          el.play().catch(() => onEnded());
+        });
+      }
+    };
+    if (el.readyState >= 2) tryPlay();
+    else el.addEventListener('loadeddata', tryPlay, { once: true });
+    return () => el.removeEventListener('loadeddata', tryPlay);
+  }, [videoSrc, muted, onEnded]);
+
   return (
     <video
       ref={videoRef}
@@ -69,11 +88,6 @@ function GiftVideo({
       autoPlay
       muted={muted}
       preload="auto"
-      onLoadedData={() => {
-        if (videoRef.current?.paused) {
-          videoRef.current.play().catch(() => {});
-        }
-      }}
       onEnded={onEnded}
       onError={onEnded}
     />

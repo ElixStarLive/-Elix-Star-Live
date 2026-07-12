@@ -2519,23 +2519,30 @@ export default function LiveStream() {
           isGift: true,
         };
         setMessages(prev => [...prev, msg]);
-        
+      }
 
+      // Play gift video on creator + viewer — catalog path or WS payload (mp4/webm only).
+      {
         const isVideoFile = (value: string) => {
           const p = value.split('?')[0].toLowerCase();
           return p.endsWith('.mp4') || p.endsWith('.webm');
         };
         const incomingVideo = typeof data.video === 'string' ? data.video : '';
-        const defVideo = typeof giftDef.video === 'string' ? giftDef.video : '';
-        const pickedRawVideo = defVideo && isVideoFile(defVideo)
-          ? defVideo
-          : (incomingVideo && isVideoFile(incomingVideo) ? incomingVideo : '');
+        const defVideo = typeof giftDef?.video === 'string' ? giftDef.video : '';
+        const pickedRawVideo =
+          defVideo && isVideoFile(defVideo)
+            ? defVideo
+            : incomingVideo && isVideoFile(incomingVideo)
+              ? incomingVideo
+              : '';
         if (pickedRawVideo && pickedRawVideo.trim()) {
-          const videoUrl = (pickedRawVideo.startsWith('http://') || pickedRawVideo.startsWith('https://'))
-            ? pickedRawVideo
-            : resolveGiftAssetUrl(pickedRawVideo.startsWith('/') ? pickedRawVideo : `/${pickedRawVideo}`);
-          
-          setGiftQueue(prev => [...prev, { video: videoUrl }]);
+          const videoUrl =
+            pickedRawVideo.startsWith('http://') || pickedRawVideo.startsWith('https://')
+              ? pickedRawVideo
+              : resolveGiftAssetUrl(
+                  pickedRawVideo.startsWith('/') ? pickedRawVideo : `/${pickedRawVideo}`,
+                );
+          setGiftQueue((prev) => [...prev, { video: videoUrl }]);
         }
       }
     };
@@ -3146,10 +3153,10 @@ export default function LiveStream() {
             : resolveGiftAssetUrl(raw.startsWith('/') ? raw : `/${raw}`);
           if (videoUrl) {
             setGiftQueue(prev => [...prev, { video: videoUrl }]);
-            setShowGiftPanel(false);
           }
         }
       }
+      setShowGiftPanel(false);
 
       // Track session contribution for membership
       setSessionContribution(prev => prev + gift.coins);
@@ -3247,7 +3254,7 @@ export default function LiveStream() {
           setShowComboButton(false);
           setComboCount(0);
           setLastSentGift(null);
-      }, 5000); // 5 seconds to combo
+      }, 8000); // keep combo on screen while gift video plays
   };
 
   const handleComboClick = async () => {
@@ -4620,7 +4627,7 @@ export default function LiveStream() {
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
-            className="fixed bottom-[calc(54px+max(2px,env(safe-area-inset-bottom,0px))+1cm)] right-3 z-[220] flex flex-col items-center pointer-events-auto ml-[2mm] max-w-[480px]"
+            className="fixed bottom-[calc(54px+max(2px,env(safe-area-inset-bottom,0px))+1cm)] right-3 z-[230] flex flex-col items-center pointer-events-auto ml-[2mm] max-w-[480px]"
           >
             <button
               type="button"
