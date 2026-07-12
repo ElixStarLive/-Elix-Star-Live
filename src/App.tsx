@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useCallback, Suspense, lazy } from "react";
+import React, { useEffect, useRef, useCallback, Suspense } from "react";
+import { lazyWithRetry as lazy } from "./lib/lazyWithRetry";
 import {
   Routes,
   Route,
