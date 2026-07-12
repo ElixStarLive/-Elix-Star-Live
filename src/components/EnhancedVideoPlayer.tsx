@@ -1077,7 +1077,7 @@ export default function EnhancedVideoPlayer({
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
               <div className="flex items-center gap-2">
                 <Settings2 className="w-4 h-4 text-white" />
-                <span className="text-white font-bold text-sm">More Options</span>
+                <span className="text-[#D4AF37] font-bold text-sm">More Options</span>
               </div>
             </div>
             <div className="p-4 overflow-y-auto overflow-x-hidden min-h-0 flex-1">
@@ -1101,7 +1101,7 @@ export default function EnhancedVideoPlayer({
                   <div className="relative w-11 h-11 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center">
                     <Copy className="relative z-[2] w-[18px] h-[18px] text-white" strokeWidth={1.8} />
 </div>
-                  <span className="text-[10px] font-semibold text-white/70">Copy Link</span>
+                  <span className="text-[10px] font-semibold text-[#D4AF37]">Copy Link</span>
                 </button>
                 <button
                   type="button"
@@ -1111,7 +1111,7 @@ export default function EnhancedVideoPlayer({
                   <div className="relative w-11 h-11 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center">
                     <Download className="relative z-[2] w-[18px] h-[18px] text-white" strokeWidth={1.8} />
 </div>
-                  <span className="text-[10px] font-semibold text-white/70">Download</span>
+                  <span className="text-[10px] font-semibold text-[#D4AF37]">Download</span>
                 </button>
                 <button
                   type="button"
@@ -1121,7 +1121,7 @@ export default function EnhancedVideoPlayer({
                   <div className="relative w-11 h-11 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center">
                     <Users2 className="relative z-[2] w-[18px] h-[18px] text-white" strokeWidth={1.8} />
 </div>
-                  <span className="text-[10px] font-semibold text-white/70">Duet</span>
+                  <span className="text-[10px] font-semibold text-[#D4AF37]">Duet</span>
                 </button>
                 <button
                   type="button"
@@ -1131,7 +1131,7 @@ export default function EnhancedVideoPlayer({
                   <div className="relative w-11 h-11 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center">
                     <QrCode className="relative z-[2] w-[18px] h-[18px] text-white" strokeWidth={1.8} />
 </div>
-                  <span className="text-[10px] font-semibold text-white/70">QR Code</span>
+                  <span className="text-[10px] font-semibold text-[#D4AF37]">QR Code</span>
                 </button>
                 {isOwnVideo && (
                   <button
@@ -1142,7 +1142,7 @@ export default function EnhancedVideoPlayer({
                     <div className="relative w-11 h-11 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center">
                       <Trash2 className="relative z-[2] w-[18px] h-[18px] text-white/60" strokeWidth={1.8} />
 </div>
-                    <span className="text-[10px] font-semibold text-white/60/70">Delete video</span>
+                    <span className="text-[10px] font-semibold text-[#D4AF37]">Delete video</span>
                   </button>
                 )}
                 <button
@@ -1153,7 +1153,7 @@ export default function EnhancedVideoPlayer({
                   <div className="relative w-11 h-11 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center">
                     <Share2 className="relative z-[2] w-[18px] h-[18px] text-white" strokeWidth={1.8} />
 </div>
-                  <span className="text-[10px] font-semibold text-white/70">Share</span>
+                  <span className="text-[10px] font-semibold text-[#D4AF37]">Share</span>
                 </button>
                 <button
                   type="button"
@@ -1163,7 +1163,7 @@ export default function EnhancedVideoPlayer({
                   <div className="relative w-11 h-11 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center">
                     <Bookmark className="relative z-[2] w-[18px] h-[18px] text-white" strokeWidth={1.8} />
 </div>
-                  <span className="text-[10px] font-semibold text-white/70">{video.isSaved ? 'Unsave' : 'Save'}</span>
+                  <span className="text-[10px] font-semibold text-[#D4AF37]">{video.isSaved ? 'Unsave' : 'Save'}</span>
                 </button>
                 <button
                   type="button"
@@ -1173,7 +1173,7 @@ export default function EnhancedVideoPlayer({
                   <div className="relative w-11 h-11 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center">
                     {video.isFollowing ? <UserMinus className="relative z-[2] w-[18px] h-[18px] text-white" strokeWidth={1.8} /> : <UserPlus className="relative z-[2] w-[18px] h-[18px] text-white" strokeWidth={1.8} />}
 </div>
-                  <span className="text-[10px] font-semibold text-white/70">{video.isFollowing ? 'Unfollow' : 'Follow'}</span>
+                  <span className="text-[10px] font-semibold text-[#D4AF37]">{video.isFollowing ? 'Unfollow' : 'Follow'}</span>
                 </button>
                 <button
                   type="button"
@@ -1183,7 +1183,7 @@ export default function EnhancedVideoPlayer({
                   <div className="relative w-11 h-11 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center">
                     <TrendingUp className="relative z-[2] w-[18px] h-[18px] text-white" strokeWidth={1.8} />
 </div>
-                  <span className="text-[10px] font-semibold text-white/70">Promote</span>
+                  <span className="text-[10px] font-semibold text-[#D4AF37]">Promote</span>
                 </button>
                 <button
                   type="button"
@@ -1193,7 +1193,7 @@ export default function EnhancedVideoPlayer({
                   <div className="relative w-11 h-11 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center">
                     <Flag className="relative z-[2] w-[18px] h-[18px] text-white/60" strokeWidth={1.8} />
 </div>
-                  <span className="text-[10px] font-semibold text-white/60/70">Report</span>
+                  <span className="text-[10px] font-semibold text-[#D4AF37]">Report</span>
                 </button>
               </div>
             </div>
