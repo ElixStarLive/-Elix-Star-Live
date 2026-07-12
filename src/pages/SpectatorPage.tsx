@@ -2298,12 +2298,12 @@ export default function SpectatorPage() {
                       <span className="text-white/70 text-[8px] font-bold tabular-nums">{(typeof activeLikes === 'number' && Number.isFinite(activeLikes) ? activeLikes : 0).toLocaleString()}</span>
                     </button>
                   </div>
-                  {/* Follow / Join — same capsule height as profile circle (one piece) */}
-                  <div className="ml-auto self-stretch grid place-items-center pointer-events-auto flex-shrink-0 w-[58px]">
+                  {/* Follow / Join — round end of the capsule (one piece) */}
+                  <div className="ml-auto self-stretch grid place-items-center pointer-events-auto flex-shrink-0 w-[58px] rounded-full overflow-hidden">
                     {/* Join Button (Bottom layer) — visible after following */}
                     <button
                       type="button"
-                      className={`col-start-1 row-start-1 flex items-center justify-center gap-1 self-stretch h-full ${hasJoinedToday ? 'bg-[#FF4500]' : 'bg-transparent'} w-full z-0 transition-colors duration-200`}
+                      className={`col-start-1 row-start-1 flex items-center justify-center gap-1 self-stretch h-full rounded-full ${hasJoinedToday ? 'bg-[#FF4500]' : 'bg-transparent'} w-full z-0 transition-colors duration-200`}
                       onClick={async (e) => {
                         e.stopPropagation();
                         if (!hasJoinedToday && user?.id && hostUserId) {
@@ -2354,7 +2354,7 @@ export default function SpectatorPage() {
                     {!isFollowing && (
                       <button
                         type="button"
-                        className="col-start-1 row-start-1 z-20 relative flex items-center justify-center gap-1 self-stretch h-full bg-[#ffffff] w-full"
+                        className="col-start-1 row-start-1 z-20 relative flex items-center justify-center gap-1 self-stretch h-full rounded-full bg-[#ffffff] w-full"
                         onClick={(e) => {
                           e.stopPropagation();
                           followHost(e);

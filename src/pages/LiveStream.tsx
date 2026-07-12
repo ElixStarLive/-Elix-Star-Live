@@ -4387,11 +4387,11 @@ export default function LiveStream() {
                                 const redCount = 0;
                                 const greyCount = 0;
                                 return (
-                                  <div className="ml-auto self-stretch grid place-items-center pointer-events-auto flex-shrink-0 w-[58px]">
-                                    {/* Membership / Join — same capsule height as profile circle (one piece) */}
+                                  <div className="ml-auto self-stretch grid place-items-center pointer-events-auto flex-shrink-0 w-[58px] rounded-full overflow-hidden">
+                                    {/* Membership / Join — round end of the capsule (one piece) */}
                                     <button
                                       type="button"
-                                      className={`col-start-1 row-start-1 flex items-center justify-center gap-1 self-stretch h-full ${hasJoinedToday ? 'bg-[#FF4500]' : 'bg-transparent'} w-full z-0 transition-colors duration-200`}
+                                      className={`col-start-1 row-start-1 flex items-center justify-center gap-1 self-stretch h-full rounded-full ${hasJoinedToday ? 'bg-[#FF4500]' : 'bg-transparent'} w-full z-0 transition-colors duration-200`}
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         if (!hasJoinedToday && user?.id && effectiveStreamId) {
@@ -4446,7 +4446,7 @@ export default function LiveStream() {
                                     {!isBroadcast && !isFollowing && (
                                       <button
                                         type="button"
-                                        className="col-start-1 row-start-1 z-20 relative flex items-center justify-center gap-1 self-stretch h-full bg-[#ffffff] w-full"
+                                        className="col-start-1 row-start-1 z-20 relative flex items-center justify-center gap-1 self-stretch h-full rounded-full bg-[#ffffff] w-full"
                                         onClick={followCreatorLive}
                                       >
                                         <Plus size={12} className="text-white" strokeWidth={3} />
