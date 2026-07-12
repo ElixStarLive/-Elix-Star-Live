@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { LevelBadge } from './LevelBadge';
-import { CHAT_LEVEL_PILL_SIZE_PX, LIVE_MVP_PROFILE_RING_PX } from '../lib/profileFrame';
+import { CHAT_LEVEL_PILL_SIZE_PX, CHAT_PROFILE_RING_PX } from '../lib/profileFrame';
 import { Trash2, Ban, Shield } from 'lucide-react';
 
 interface Message {
@@ -84,7 +84,7 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
     msOverflowStyle: 'none',
     paddingLeft: '0px',
     marginLeft: '0px',
-    marginTop: '1cm',
+    marginTop: compact ? '2mm' : '1cm',
     alignItems: 'flex-start',
     width: '100%',
     pointerEvents: 'auto',
@@ -103,14 +103,15 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
         {messages.map((msg, idx) => (
           <div
             key={typeof msg.id === 'string' ? msg.id : `msg-${idx}`}
-            className="flex items-center gap-2 animate-in slide-in-from-left-2 duration-200 relative"
+            className="flex items-center gap-2 animate-in slide-in-from-left-2 duration-200 relative min-h-0"
             onPointerDown={() => startLongPress(msg.id)}
             onPointerUp={cancelLongPress}
             onPointerLeave={cancelLongPress}
             onPointerCancel={cancelLongPress}
           >
             <div 
-              className="flex-shrink-0 cursor-pointer relative z-10 self-center"
+              className="flex-shrink-0 cursor-pointer relative z-10 flex items-center justify-center"
+              style={{ height: CHAT_PROFILE_RING_PX }}
               onClick={(e) => {
                 e.stopPropagation();
                 if (onProfileTap) onProfileTap(msg.username);
@@ -119,14 +120,14 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
               <LevelBadge
                 level={typeof msg.level === 'number' ? msg.level : 1}
                 size={CHAT_LEVEL_PILL_SIZE_PX}
-                circleSize={LIVE_MVP_PROFILE_RING_PX}
+                circleSize={CHAT_PROFILE_RING_PX}
                 layout="fixed"
                 avatar={typeof msg.avatar === 'string' ? msg.avatar : undefined}
               />
             </div>
             
-            <div className="flex flex-col min-w-0 justify-center self-center">
-              <div className="flex items-center gap-1.5 flex-wrap">
+            <div className="flex flex-col min-w-0 justify-center">
+              <div className="flex items-center gap-1.5 flex-wrap leading-none">
                 {msg.isMod && (
                   <div className="bg-purple-600/80 px-1 py-0.5 rounded flex items-center gap-0.5 flex-shrink-0">
                     <Shield size={8} className="text-white" />

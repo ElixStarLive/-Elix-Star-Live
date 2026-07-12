@@ -28,6 +28,7 @@ export default function MusicFeed() {
   const navigate = useNavigate();
   const { songId } = useParams();
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const clipRef = useRef<{ start: number; end: number } | null>(null);
   const [playlists, setPlaylists] = useState<MusicPlaylist[]>([]);
   const [activePlaylistId, setActivePlaylistId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -79,6 +80,24 @@ export default function MusicFeed() {
     };
   }, [search]);
 
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a) return;
+    const onTimeUpdate = () => {
+      const clip = clipRef.current;
+      if (!clip || clip.end <= clip.start) return;
+      if (a.currentTime >= clip.end) {
+        a.currentTime = clip.start;
+        a.play().catch(() => {});
+      }
+    };
+    a.addEventListener('timeupdate', onTimeUpdate);
+    return () => {
+      a.removeEventListener('timeupdate', onTimeUpdate);
+      a.pause();
+    };
+  }, []);
+
   const allTracks = useMemo(
     () => playlists.flatMap((p) => p.tracks),
     [playlists],
@@ -129,11 +148,15 @@ export default function MusicFeed() {
     if (!a) return;
     if (playingId === track.id) {
       a.pause();
+      clipRef.current = null;
       setPlayingId(null);
       return;
     }
     a.src = track.url;
-    a.currentTime = Math.max(0, track.clipStartSeconds);
+    const start = Math.max(0, track.clipStartSeconds);
+    const end = Math.max(start, track.clipEndSeconds);
+    clipRef.current = { start, end };
+    a.currentTime = start;
     try {
       await a.play();
       setPlayingId(track.id);

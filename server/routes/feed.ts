@@ -69,6 +69,12 @@ function formatMusicFromRow(v: any, displayName: string): any {
       duration: typeof m.duration === "string" ? m.duration : formatDurationSeconds(m.duration),
       ...(previewUrl ? { previewUrl } : {}),
       ...(m.provider ? { provider: m.provider } : {}),
+      ...(typeof m.clipStartSeconds === "number"
+        ? { clipStartSeconds: m.clipStartSeconds }
+        : {}),
+      ...(typeof m.clipEndSeconds === "number"
+        ? { clipEndSeconds: m.clipEndSeconds }
+        : {}),
     };
   }
   return null;

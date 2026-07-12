@@ -50,6 +50,115 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
   };
 
   const avatarDiameter = profileRingInnerPx(circleSize);
+  const splitCircleSizing =
+    typeof circleSizeProp === 'number' && Number.isFinite(circleSizeProp);
+
+  if (splitCircleSizing) {
+    const totalWidth = circleSize + barWidth - overlap;
+    return (
+      <div
+        className={className}
+        style={{
+          position: 'relative',
+          display: 'inline-block',
+          width: totalWidth,
+          height: circleSize,
+          flexShrink: 0,
+          verticalAlign: 'middle',
+        }}
+      >
+        <div
+          style={{
+            position: 'relative',
+            zIndex: 2,
+            width: circleSize,
+            height: circleSize,
+            borderRadius: 999,
+            overflow: 'hidden',
+            background: '#000',
+          }}
+        >
+          {typeof avatarUrl === 'string' && avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt=""
+              draggable={false}
+              style={{
+                width: '100%',
+                height: '100%',
+                display: 'block',
+                objectFit: 'cover',
+                objectPosition: 'center center',
+                transform: `translateY(-${PROFILE_RING_IMAGE_LIFT_MM}mm)`,
+              }}
+            />
+          ) : (
+            <img
+              src={ROYCE_DEFAULT_AVATAR}
+              alt=""
+              draggable={false}
+              style={{
+                width: '100%',
+                height: '100%',
+                display: 'block',
+                objectFit: 'cover',
+                objectPosition: 'center center',
+                transform: `translateY(-${PROFILE_RING_IMAGE_LIFT_MM}mm)`,
+              }}
+            />
+          )}
+        </div>
+
+        <div
+          style={{
+            position: 'absolute',
+            zIndex: 1,
+            left: circleSize - overlap,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            height: barHeight,
+            width: barWidth,
+            borderRadius: barHeight / 2,
+            background: getBarGradient(),
+            border: '1px solid rgba(255,255,255,0.22)',
+            boxShadow: '0 6px 14px rgba(0,0,0,0.55), inset 0 1px 1px rgba(255,255,255,0.35)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            paddingRight: Math.round(barHeight * 0.35),
+            paddingLeft: Math.round(barHeight * 0.9),
+          }}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              borderRadius: barHeight / 2,
+              background:
+                'linear-gradient(180deg, rgba(255,255,255,0.28) 0%, transparent 58%, rgba(0,0,0,0.18) 100%)',
+              pointerEvents: 'none',
+              opacity: 0.75,
+            }}
+          />
+          <span
+            style={{
+              position: 'relative',
+              color: 'white',
+              fontWeight: 900,
+              fontStyle: 'italic',
+              letterSpacing: '0.02em',
+              fontSize: Math.max(10, Math.round(barHeight * 0.52)),
+              textShadow: '0 2px 6px rgba(0,0,0,0.75)',
+              lineHeight: 1,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {text === 'level' ? `Level ${safeLevel}` : `LV ${safeLevel}`}
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={className} style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0, marginLeft: 8 }}>

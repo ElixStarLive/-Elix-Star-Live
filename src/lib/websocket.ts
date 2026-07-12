@@ -17,6 +17,7 @@ export type WebSocketEvent =
   // Gift events
   | "gift_sent"
   | "gift_ack"
+  | "gift_goal_sync"
   | "big_gift_queue_update"
   | "leaderboard_update"
   // Heart events

@@ -25,6 +25,12 @@ import {
 } from "./index";
 import { valkeyDel, valkeySet } from "../lib/valkey";
 import { randomUUID } from "crypto";
+import {
+  clearGiftGoal,
+  getGiftGoal,
+  incrementGiftGoal,
+  setGiftGoal,
+} from "./giftGoal";
 
 const BATTLE_USER_ROOM_TTL_MS = 600_000;
 
@@ -86,6 +92,20 @@ export async function handleMessage(
           username: client.username,
           timestamp: new Date().toISOString(),
         });
+
+        const sentGiftId =
+          typeof data.giftId === "string"
+            ? data.giftId
+            : typeof data.gift_id === "string"
+              ? data.gift_id
+              : "";
+        const giftQty = Math.max(1, Math.floor(Number(data.quantity) || 1));
+        if (sentGiftId) {
+          const updatedGoal = await incrementGiftGoal(client.roomId, sentGiftId, giftQty);
+          if (updatedGoal) {
+            broadcastToRoom(client.roomId, "gift_goal_sync", updatedGoal);
+          }
+        }
 
         if (transactionId) {
           sendToClient(client, "gift_ack", {
@@ -447,6 +467,40 @@ export async function handleMessage(
           user_id: client.userId,
         });
         break;
+
+      case "gift_goal_set": {
+        if (!(await wsRateCheck(client.userId, "gift_goal", 10, 60_000))) break;
+        const ownerId = await resolveStreamOwnerUserId(client.roomId);
+        if (ownerId && ownerId !== client.userId) break;
+        const giftId = typeof data?.giftId === "string" ? data.giftId.trim() : "";
+        if (!giftId) break;
+        const targetCount = Math.max(
+          1,
+          Math.min(9999, Math.floor(Number(data?.targetCount) || 1)),
+        );
+        const goal = {
+          giftId,
+          giftName: typeof data?.giftName === "string" ? data.giftName : "Gift",
+          giftIcon: typeof data?.giftIcon === "string" ? data.giftIcon : "",
+          targetCount,
+          currentCount: Math.max(
+            0,
+            Math.min(targetCount, Math.floor(Number(data?.currentCount) || 0)),
+          ),
+        };
+        await setGiftGoal(client.roomId, goal);
+        broadcastToRoom(client.roomId, "gift_goal_sync", goal);
+        break;
+      }
+
+      case "gift_goal_clear": {
+        if (!(await wsRateCheck(client.userId, "gift_goal", 10, 60_000))) break;
+        const ownerId = await resolveStreamOwnerUserId(client.roomId);
+        if (ownerId && ownerId !== client.userId) break;
+        await clearGiftGoal(client.roomId);
+        broadcastToRoom(client.roomId, "gift_goal_sync", null);
+        break;
+      }
 
       default:
         if (process.env.NODE_ENV !== "production")

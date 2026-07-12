@@ -41,6 +41,7 @@ import {
 } from "../lib/valkey";
 import { getPool } from "../lib/postgres";
 import { getUserBattleRoom, endBattle, getBattleFromStore } from "./battle";
+import { getGiftGoal } from "./giftGoal";
 import { handleMessage } from "./handlers";
 
 export interface Client {
@@ -619,6 +620,11 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
           endsAt: activeBattleOnJoin.endsAt,
           winner: activeBattleOnJoin.winner,
         });
+      }
+
+      const liveGiftGoal = await getGiftGoal(roomId);
+      if (liveGiftGoal) {
+        sendToClient(client, "gift_goal_sync", liveGiftGoal);
       }
     } catch (error) {
       logger.error({ err: error }, "Connection setup error");

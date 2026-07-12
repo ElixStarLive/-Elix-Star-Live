@@ -16,6 +16,7 @@ import {
 } from '../lib/interactionTracker';
 import { showToast } from '../lib/toast';
 import { getVideoPosterUrl } from '../lib/bunnyStorage';
+import { resolveSoundTrackPlaybackUrl } from '../lib/soundLibrary';
 import { isStemExtraCaption } from '../lib/suggestiveCaption';
 
 async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 2000): Promise<T> {
@@ -72,6 +73,21 @@ function mapRawVideoRowToClientVideo(
       title: music.title || 'Original Sound',
       artist: music.artist || 'Creator',
       duration: typeof music.duration === 'string' ? music.duration : '0:15',
+      ...(music.coverUrl ? { coverUrl: music.coverUrl } : {}),
+      ...(music.previewUrl || music.url
+        ? {
+            previewUrl: resolveSoundTrackPlaybackUrl(
+              String(music.previewUrl || music.url),
+            ),
+          }
+        : {}),
+      ...(typeof music.clipStartSeconds === 'number'
+        ? { clipStartSeconds: music.clipStartSeconds }
+        : {}),
+      ...(typeof music.clipEndSeconds === 'number'
+        ? { clipEndSeconds: music.clipEndSeconds }
+        : {}),
+      ...(music.provider ? { provider: music.provider } : {}),
     },
     stats: {
       views: stats.views ?? v.views ?? 0,
@@ -123,6 +139,9 @@ interface Music {
   duration: string;
   coverUrl?: string;
   previewUrl?: string;
+  clipStartSeconds?: number;
+  clipEndSeconds?: number;
+  provider?: string;
 }
 
 interface VideoStats {
@@ -382,40 +401,9 @@ export const useVideoStore = create<VideoStore>()(
           const savedSet = new Set(savedVideos);
           const followingSet = new Set(followingUsers);
 
-          const mappedVideos: Video[] = apiVideos.map((v: any) => {
-            const u = v.user || {};
-            const id = String(v.id || '');
-            return {
-              id,
-              url: v.url || '',
-              thumbnail: v.thumbnail || getVideoPosterUrl(v.url || ''),
-              duration: v.duration || '0:15',
-              user: {
-                id: u.id || v.user_id || 'unknown',
-                username: u.username || 'creator',
-                name: u.name || u.username || 'Creator',
-                avatar: u.avatar || '',
-                level: u.level || 1,
-                isVerified: !!u.isVerified,
-                followers: u.followers ?? 0,
-                following: u.following ?? 0,
-                isFollowing: followingSet.has(String(u.id || '')),
-              },
-              description: v.description || '',
-              hashtags: Array.isArray(v.hashtags) ? v.hashtags : [],
-              music: v.music || { id: 'original', title: 'Original Sound', artist: u.name || 'Creator', duration: '0:15' },
-              stats: v.stats || { views: 0, likes: 0, comments: 0, shares: 0, saves: 0 },
-              createdAt: v.createdAt || new Date().toISOString(),
-              location: v.location,
-              isLiked: likedSet.has(id) || !!v.isLiked,
-              isSaved: savedSet.has(id) || !!v.isSaved,
-              isFollowing: followingSet.has(String(u.id || '')) || !!v.isFollowing,
-              comments: [],
-              quality: 'auto',
-              privacy: v.privacy || 'public',
-              duetWithVideoId: v.duetWithVideoId,
-            };
-          });
+          const mappedVideos: Video[] = apiVideos.map((v: any) =>
+            mapRawVideoRowToClientVideo(v, likedSet, savedSet, followingSet),
+          );
           set({ friendVideos: mappedVideos, friendsLoading: false });
         } catch {
           set({ friendsLoading: false });

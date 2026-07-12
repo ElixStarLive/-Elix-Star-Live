@@ -14,14 +14,47 @@ export const PROFILE_RING_SIZE_BUMP_MM = 3;
 /** Live top-bar MVP avatars. */
 export const LIVE_MVP_PROFILE_RING_PX = 28;
 
+/** Live chat message user avatar circle — slightly larger than MVP row. */
+export const CHAT_PROFILE_RING_PX = 30;
+
 /** Spectator top bar MVP row. */
 export const SPECTATOR_MVP_PROFILE_RING_PX = 28;
 
 /** Battle bottom MVP row (3 per side). */
 export const SPECTATOR_BATTLE_PROFILE_RING_PX = 20;
 
-/** Chat LV green pill only; circle uses {@link LIVE_MVP_PROFILE_RING_PX}. */
-export const CHAT_LEVEL_PILL_SIZE_PX = Math.max(16, Math.round((22 * LIVE_MVP_PROFILE_RING_PX) / 36));
+/** Battle video column height — 3mm shorter so chat does not cover MVP circles. */
+export const LIVE_BATTLE_VIDEO_HEIGHT = 'calc(44dvh - 3mm)' as const;
+
+/** Battle-mode chat scroll area — shorter + sits lower. */
+export const LIVE_BATTLE_CHAT_HEIGHT = 'calc(20dvh + 1cm)' as const;
+
+/** Nudge battle chat toward bottom bar (clears MVP row). */
+export const LIVE_BATTLE_CHAT_SHIFT_Y = '3mm' as const;
+
+/** Red animated ring thickness (px) around live avatars. */
+export const LIVE_AVATAR_RING_THICKNESS_PX = 3.5;
+
+/** Conic gradient ring for LIVE avatars (Shop, Friends, feed sidebar). */
+export const LIVE_AVATAR_RING_GRADIENT =
+  'conic-gradient(from 180deg, #ff0040, #ff2500, #ff0040, #ff6a00, #ff0040)';
+
+export function liveAvatarRingMaskStyle(thicknessPx = LIVE_AVATAR_RING_THICKNESS_PX): {
+  background: string;
+  WebkitMask: string;
+  mask: string;
+} {
+  const t = `${thicknessPx}px`;
+  const mask = `radial-gradient(farthest-side, transparent calc(100% - ${t}), #000 calc(100% - ${t}))`;
+  return {
+    background: LIVE_AVATAR_RING_GRADIENT,
+    WebkitMask: mask,
+    mask,
+  };
+}
+
+/** Chat LV green pill only; circle uses {@link CHAT_PROFILE_RING_PX}. */
+export const CHAT_LEVEL_PILL_SIZE_PX = Math.max(16, Math.round((22 * CHAT_PROFILE_RING_PX) / 36));
 
 /** Main host avatar in live top bar (next to name pill). */
 export const LIVE_TOP_AVATAR_RING_PX = 48;

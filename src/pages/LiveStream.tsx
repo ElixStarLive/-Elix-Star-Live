@@ -60,6 +60,9 @@ import {
   getCreatorNamePillStyle,
   LIVE_MVP_PROFILE_RING_PX,
   SPECTATOR_BATTLE_PROFILE_RING_PX,
+  LIVE_BATTLE_VIDEO_HEIGHT,
+  LIVE_BATTLE_CHAT_HEIGHT,
+  LIVE_BATTLE_CHAT_SHIFT_Y,
   LIVE_TOP_AVATAR_RING_PX,
 } from '../lib/profileFrame';
 import { useAuthStore } from '../store/useAuthStore';
@@ -72,8 +75,11 @@ import { LevelBadge } from '../components/LevelBadge';
 import ReportModal from '../components/ReportModal';
 import PromotePanel from '../components/PromotePanel';
 import { GiftPanel } from '../components/GiftPanel';
+import { GiftGoalGallery } from '../components/GiftGoalGallery';
+import { LiveGiftGoalBar } from '../components/LiveGiftGoalBar';
 import { RankingPanel } from '../components/RankingPanel';
 import { websocket } from '../lib/websocket';
+import { parseLiveGiftGoal, type LiveGiftGoal } from '../lib/liveGiftGoal';
 import LiveAIFilters from '../components/LiveAIFilters';
 import { liveStreamUiGiftTargetToServerBattleTarget, normalizeBattleGiftTarget } from '../lib/liveBattleGiftTarget';
 import { IS_STORE_BUILD } from '../config/build';
@@ -1428,6 +1434,33 @@ export default function LiveStream() {
   const [stickerUploading, setStickerUploading] = useState(false);
   const stickersFetchedRef = useRef(false);
 
+  const [giftGoal, setGiftGoal] = useState<LiveGiftGoal | null>(null);
+  const [goalPick, setGoalPick] = useState<GiftUiItem | null>(null);
+  const [goalTargetCount, setGoalTargetCount] = useState(50);
+  const [goalSaving, setGoalSaving] = useState(false);
+
+  const saveGiftGoal = useCallback(() => {
+    if (!goalPick || !isBroadcast) return;
+    setGoalSaving(true);
+    websocket.send('gift_goal_set', {
+      giftId: goalPick.id,
+      giftName: goalPick.name,
+      giftIcon: goalPick.icon,
+      targetCount: goalTargetCount,
+      currentCount: giftGoal?.giftId === goalPick.id ? giftGoal.currentCount : 0,
+    });
+    setGoalSaving(false);
+    showToast('Gift goal live!');
+  }, [goalPick, goalTargetCount, giftGoal, isBroadcast]);
+
+  const clearGiftGoal = useCallback(() => {
+    if (!isBroadcast) return;
+    websocket.send('gift_goal_clear', {});
+    setGiftGoal(null);
+    setGoalPick(null);
+    showToast('Gift goal cleared');
+  }, [isBroadcast]);
+
   useEffect(() => {
     if (!showFanClub || stickersFetchedRef.current || !user?.id) return;
     stickersFetchedRef.current = true;
@@ -2703,11 +2736,22 @@ export default function LiveStream() {
       }
     };
 
+    const handleGiftGoalSync = (data: unknown) => {
+      if (!mounted) return;
+      if (data == null) {
+        setGiftGoal(null);
+        return;
+      }
+      const parsed = parseLiveGiftGoal(data);
+      if (parsed) setGiftGoal(parsed);
+    };
+
     websocket.on('room_state', handleRoomState);
     websocket.on('user_joined', handleUserJoined);
     websocket.on('user_left', handleUserLeft);
     websocket.on('chat_message', handleChatMessage);
     websocket.on('gift_sent', handleGiftSent);
+    websocket.on('gift_goal_sync', handleGiftGoalSync);
     websocket.on('heart_sent', handleHeartSent);
     websocket.on('battle_state_sync', handleBattleStateSync);
     websocket.on('battle_score', handleBattleScore);
@@ -2888,6 +2932,7 @@ export default function LiveStream() {
       websocket.off('user_left', handleUserLeft);
       websocket.off('chat_message', handleChatMessage);
       websocket.off('gift_sent', handleGiftSent);
+      websocket.off('gift_goal_sync', handleGiftGoalSync);
       websocket.off('heart_sent', handleHeartSent);
       websocket.off('battle_state_sync', handleBattleStateSync);
       websocket.off('battle_score', handleBattleScore);
@@ -3878,7 +3923,10 @@ export default function LiveStream() {
             {(() => {
               const is4Player = battleSlots[1].status !== 'empty' || battleSlots[2].status !== 'empty';
               return (
-                <div className={`relative w-full flex-none flex flex-col ${is4Player ? 'aspect-square' : 'h-[44dvh]'}`}>
+                <div
+                  className={`relative w-full flex-none flex flex-col ${is4Player ? 'aspect-square' : ''}`}
+                  style={is4Player ? undefined : { height: LIVE_BATTLE_VIDEO_HEIGHT }}
+                >
 
                   {/* Battle score: totals inside PK bar only (no name strip above) */}
                   <div className="relative z-20 w-full flex-none bg-[#111111]/95 border-b border-white/10">
@@ -4486,10 +4534,19 @@ export default function LiveStream() {
             </div>
 
             {/* MIDDLE ZONE: CHAT (Scrollable) — floating hearts only here, not over battle/video */}
-            <div className="chat-zone fixed left-0 right-0 bottom-[calc(52px+max(8px,env(safe-area-inset-bottom)))] z-[20] flex justify-center pointer-events-none">
+            <div
+              className="chat-zone fixed left-0 right-0 z-[20] flex justify-center pointer-events-none"
+              style={{
+                bottom: 'calc(52px + max(8px, env(safe-area-inset-bottom)))',
+                transform: isBattleMode ? `translateY(${LIVE_BATTLE_CHAT_SHIFT_Y})` : undefined,
+              }}
+            >
               <div
                 className="w-full max-w-[480px] relative"
-                style={{ height: 'calc(25dvh + 2cm + 4mm)', maxHeight: 'calc(25dvh + 2cm + 4mm)' }}
+                style={{
+                  height: isBattleMode ? LIVE_BATTLE_CHAT_HEIGHT : 'calc(25dvh + 2cm + 4mm)',
+                  maxHeight: isBattleMode ? LIVE_BATTLE_CHAT_HEIGHT : 'calc(25dvh + 2cm + 4mm)',
+                }}
               >
                 <div
                   ref={chatHeartLayerRef}
@@ -4533,6 +4590,7 @@ export default function LiveStream() {
                     <ChatOverlay
                       messages={messages}
                       variant="panel"
+                      compact={isBattleMode}
                       isModerator={isBroadcast || moderators.has(user?.id || '')}
                       onLike={() => handleLikeTap()}
                       onHeartSpawn={(cx, cy) => handleLikeTap()}
@@ -4693,6 +4751,7 @@ export default function LiveStream() {
               onRechargeSuccess={(newBalance) => { setCoinBalance(newBalance); persistTestCoinsBalance(user?.id, newBalance); }}
               onWeeklyRanking={() => { setShowGiftPanel(false); setShowRankingPanel(true); }}
               onMembership={() => { setShowGiftPanel(false); setShowFanClub(true); }}
+              highlightGiftId={giftGoal?.giftId ?? null}
             />
           </div>
         </>
@@ -5434,11 +5493,39 @@ export default function LiveStream() {
                     <p className="text-white/30 text-[8px] text-center mt-2">Upload photo stickers for your subscribers</p>
                   )}
                 </div>
+
+                {isBroadcast && (
+                  <GiftGoalGallery
+                    mode="picker"
+                    selectedGiftId={goalPick?.id ?? giftGoal?.giftId ?? null}
+                    targetCount={goalTargetCount}
+                    onSelectGift={(gift) => setGoalPick(gift)}
+                    onTargetCountChange={setGoalTargetCount}
+                    onSave={saveGiftGoal}
+                    onClear={clearGiftGoal}
+                    saving={goalSaving}
+                  />
+                )}
               </div>
             </div>
           </div>
           </div>
         </>
+      )}
+
+      {giftGoal && (
+        <div
+          className="fixed left-0 right-0 z-[95] flex justify-center pointer-events-none px-3"
+          style={{ bottom: 'calc(118px + max(8px, env(safe-area-inset-bottom)))' }}
+        >
+          <div className="w-full max-w-[480px] flex justify-start">
+            <LiveGiftGoalBar
+              goal={giftGoal}
+              onTap={() => { if (!isBroadcast) setShowGiftPanel(true); }}
+              showSend={!isBroadcast}
+            />
+          </div>
+        </div>
       )}
 
 
@@ -5737,7 +5824,7 @@ export default function LiveStream() {
         splitSides={isBattleMode || coHosts.length > 0}
         splitStyle={
           isBattleMode
-            ? { top: 'calc(env(safe-area-inset-top, 0px) + 90px)', height: '44dvh' }
+            ? { top: 'calc(env(safe-area-inset-top, 0px) + 90px)', height: LIVE_BATTLE_VIDEO_HEIGHT }
             : coHosts.length > 0
               ? { top: 'calc(env(safe-area-inset-top, 0px) + 90px)', height: 'calc(36dvh + 10mm)' }
               : undefined

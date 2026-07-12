@@ -16,6 +16,8 @@ interface GiftPanelProps {
   onRechargeSuccess?: (newBalance: number) => void;
   onWeeklyRanking?: () => void;
   onMembership?: () => void;
+  /** Highlights the creator's gift goal in the grid */
+  highlightGiftId?: string | null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -137,6 +139,7 @@ export function GiftPanel({
   onRechargeSuccess,
   onWeeklyRanking,
   onMembership,
+  highlightGiftId = null,
 }: GiftPanelProps) {
   const userCoinsRef = useRef(userCoins);
   userCoinsRef.current = userCoins;
@@ -177,8 +180,27 @@ export function GiftPanel({
   }, [gifts]);
 
   useEffect(() => {
+    if (!highlightGiftId || gifts.length === 0) return;
+    const match = gifts.find((g) => g.id === highlightGiftId);
+    if (!match) return;
+    setActiveTab(
+      match.giftType === "small"
+        ? "small"
+        : match.giftType === "universe"
+          ? "exclusive"
+          : "big",
+    );
+    setSelectedGiftId(highlightGiftId);
+  }, [highlightGiftId, gifts]);
+
+  useEffect(() => {
     setSelectedGiftId(null);
   }, [activeTab]);
+
+  const goalBorder = (giftId: string, fallback?: string) =>
+    highlightGiftId === giftId
+      ? "border-[#D4AF37]/80 ring-1 ring-[#D4AF37]/40"
+      : fallback;
 
   const handleGiftTap = useCallback(
     (gift: GiftItem) => {
@@ -330,7 +352,7 @@ export function GiftPanel({
                   isPopped={poppedGiftId === gift.id}
                   isSelected={selectedGiftId === gift.id}
                   onTap={() => handleGiftTap(gift)}
-                  borderClass="border-secondary/30"
+                  borderClass={goalBorder(gift.id, "border-secondary/30")}
                 />
                 ))}
               </div>
@@ -351,6 +373,7 @@ export function GiftPanel({
                 isPopped={poppedGiftId === gift.id}
                 isSelected={selectedGiftId === gift.id}
                 onTap={() => handleGiftTap(gift)}
+                borderClass={goalBorder(gift.id)}
               />
             ))}
           </div>
@@ -369,6 +392,7 @@ export function GiftPanel({
                 isPopped={poppedGiftId === gift.id}
                 isSelected={selectedGiftId === gift.id}
                 onTap={() => handleGiftTap(gift)}
+                borderClass={goalBorder(gift.id)}
               />
             ))}
           </div>

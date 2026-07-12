@@ -1,5 +1,7 @@
 import { Request, Response } from "express";
 import { logger } from "../lib/logger";
+import { musicCacheKey, MUSIC_CACHE_TTL_MS } from "../lib/musicCacheValkey";
+import { valkeyGet, valkeySet } from "../lib/valkey";
 import {
   fetchCollections,
   fetchPickerTracks,
@@ -15,6 +17,9 @@ import {
 } from "../services/epidemicSound";
 
 export { isEpidemicSoundConfigured } from "../services/epidemicSound";
+
+/** TikTok-style licensed clip length — highlight segment only, never full song. */
+export const LICENSED_CLIP_MAX_SECONDS = 60;
 
 export type ClientSoundTrack = {
   id: string;
@@ -38,19 +43,45 @@ export type ClientMusicPlaylist = {
   tracks: ClientSoundTrack[];
 };
 
+export async function resolveLicensedClipWindow(
+  track: EpidemicTrack,
+  clipMaxSec = LICENSED_CLIP_MAX_SECONDS,
+): Promise<{ clipStartSeconds: number; clipEndSeconds: number }> {
+  let clipStartSeconds = 0;
+  let clipEndSeconds = Math.min(clipMaxSec, track.lengthSeconds || clipMaxSec);
+  try {
+    const hl = await fetchTrackHighlights(track.id, clipMaxSec);
+    clipStartSeconds = Math.max(0, Math.floor(hl.fromMs / 1000));
+    const hlEnd = Math.ceil(hl.toMs / 1000);
+    clipEndSeconds = Math.max(clipStartSeconds + 5, hlEnd);
+    if (clipEndSeconds - clipStartSeconds > clipMaxSec) {
+      clipEndSeconds = clipStartSeconds + clipMaxSec;
+    }
+    if (track.lengthSeconds > 0) {
+      clipEndSeconds = Math.min(clipEndSeconds, track.lengthSeconds);
+    }
+  } catch {
+    clipEndSeconds = Math.min(clipMaxSec, track.lengthSeconds || clipMaxSec);
+  }
+  return { clipStartSeconds, clipEndSeconds };
+}
+
 export function epidemicTrackToClientSound(
   track: EpidemicTrack,
   clipStartSeconds = 0,
   clipEndSeconds?: number,
 ): ClientSoundTrack {
-  const end = clipEndSeconds ?? Math.min(30, track.lengthSeconds || 30);
+  const end =
+    clipEndSeconds ??
+    Math.min(LICENSED_CLIP_MAX_SECONDS, track.lengthSeconds || LICENSED_CLIP_MAX_SECONDS);
+  const clipLen = Math.max(5, end - clipStartSeconds);
   return {
     id: track.id,
     title: track.title,
     artist: track.artist,
-    duration: formatDurationLabel(track.lengthSeconds),
+    duration: formatDurationLabel(clipLen),
     url: previewProxyPath(track.id),
-    license: "Epidemic Sound (sync + public performance pre-cleared)",
+    license: "Epidemic Sound — in-app clip only",
     source: "Epidemic Sound",
     provider: "epidemic_sound",
     clipStartSeconds,
@@ -60,12 +91,67 @@ export function epidemicTrackToClientSound(
   };
 }
 
+export async function epidemicTrackToLicensedClientSound(
+  track: EpidemicTrack,
+  clipMaxSec = LICENSED_CLIP_MAX_SECONDS,
+): Promise<ClientSoundTrack> {
+  const clip = await resolveLicensedClipWindow(track, clipMaxSec);
+  return epidemicTrackToClientSound(
+    track,
+    clip.clipStartSeconds,
+    clip.clipEndSeconds,
+  );
+}
+
+async function mapTracksWithLicensedClips(
+  tracks: EpidemicTrack[],
+  clipMaxSec = LICENSED_CLIP_MAX_SECONDS,
+): Promise<ClientSoundTrack[]> {
+  const result: ClientSoundTrack[] = [];
+  for (const track of tracks) {
+    result.push(await epidemicTrackToLicensedClientSound(track, clipMaxSec));
+  }
+  return result;
+}
+
+export async function buildGlobalLicensedPlaylist(
+  limit = 80,
+  clipMaxSec = LICENSED_CLIP_MAX_SECONDS,
+): Promise<ClientMusicPlaylist> {
+  const cacheKey = musicCacheKey("global_playlist", `${limit}:${clipMaxSec}`);
+  const cached = await valkeyGet(cacheKey);
+  if (cached) return JSON.parse(cached) as ClientMusicPlaylist;
+
+  const pickerTracks = await fetchPickerTracks(limit);
+  const tracks = await mapTracksWithLicensedClips(pickerTracks, clipMaxSec);
+  const playlist: ClientMusicPlaylist = {
+    id: "global",
+    name: "For You",
+    coverUrl: tracks[0]?.coverUrl ?? null,
+    tracks,
+  };
+  await valkeySet(cacheKey, JSON.stringify(playlist), MUSIC_CACHE_TTL_MS.globalPlaylist);
+  return playlist;
+}
+
 export async function buildMusicPlaylistsForClient(
   playlistLimit = 10,
   tracksPerPlaylist = 30,
+  clipMaxSec = LICENSED_CLIP_MAX_SECONDS,
 ): Promise<ClientMusicPlaylist[]> {
+  const cacheKey = musicCacheKey(
+    "playlists_bundle",
+    `${playlistLimit}:${tracksPerPlaylist}:${clipMaxSec}`,
+  );
+  const cached = await valkeyGet(cacheKey);
+  if (cached) return JSON.parse(cached) as ClientMusicPlaylist[];
+
+  const global = await buildGlobalLicensedPlaylist(
+    Math.min(80, tracksPerPlaylist * 2),
+    clipMaxSec,
+  );
   const { collections } = await fetchCollections(playlistLimit, 0);
-  const playlists: ClientMusicPlaylist[] = [];
+  const playlists: ClientMusicPlaylist[] = [global];
 
   for (const col of collections || []) {
     const raw = col as {
@@ -74,11 +160,12 @@ export async function buildMusicPlaylistsForClient(
       images?: Record<string, string>;
       tracks?: Record<string, unknown>[];
     };
-    const tracks: ClientSoundTrack[] = [];
-    for (const t of (raw.tracks || []).slice(0, tracksPerPlaylist)) {
-      tracks.push(epidemicTrackToClientSound(parseEpidemicRawTrack(t)));
-    }
-    if (tracks.length === 0) continue;
+    if (String(raw.name || "").toLowerCase() === "for you") continue;
+    const parsed: EpidemicTrack[] = (raw.tracks || [])
+      .slice(0, tracksPerPlaylist)
+      .map((t) => parseEpidemicRawTrack(t));
+    if (parsed.length === 0) continue;
+    const tracks = await mapTracksWithLicensedClips(parsed, clipMaxSec);
     playlists.push({
       id: String(raw.id || raw.name || tracks[0].id),
       name: String(raw.name || "Playlist"),
@@ -91,35 +178,16 @@ export async function buildMusicPlaylistsForClient(
     });
   }
 
+  await valkeySet(cacheKey, JSON.stringify(playlists), MUSIC_CACHE_TTL_MS.playlistsBundle);
   return playlists;
 }
 
 export async function buildEpidemicSoundTracksForClient(
   limit = 60,
+  clipMaxSec = LICENSED_CLIP_MAX_SECONDS,
 ): Promise<ClientSoundTrack[]> {
   const tracks = await fetchPickerTracks(limit);
-  const result: ClientSoundTrack[] = [];
-
-  for (const track of tracks) {
-    let clipStartSeconds = 0;
-    let clipEndSeconds = Math.min(30, track.lengthSeconds || 30);
-    try {
-      const hl = await fetchTrackHighlights(track.id, 30);
-      clipStartSeconds = Math.max(0, Math.floor(hl.fromMs / 1000));
-      clipEndSeconds = Math.max(
-        clipStartSeconds + 5,
-        Math.ceil(hl.toMs / 1000),
-      );
-    } catch {
-      // highlights optional — use first 30s
-    }
-
-    result.push(
-      epidemicTrackToClientSound(track, clipStartSeconds, clipEndSeconds),
-    );
-  }
-
-  return result;
+  return mapTracksWithLicensedClips(tracks, clipMaxSec);
 }
 
 export async function handleMusicStatus(_req: Request, res: Response) {
@@ -129,6 +197,34 @@ export async function handleMusicStatus(_req: Request, res: Response) {
   });
 }
 
+export async function handleMusicGlobal(_req: Request, res: Response) {
+  if (!isEpidemicSoundConfigured()) {
+    return res.status(200).json({
+      playlist: null,
+      configured: false,
+      clipMaxSeconds: LICENSED_CLIP_MAX_SECONDS,
+    });
+  }
+  try {
+    const playlist = await buildGlobalLicensedPlaylist(80, LICENSED_CLIP_MAX_SECONDS);
+    res.setHeader("Cache-Control", "public, s-maxage=300, max-age=60");
+    return res.status(200).json({
+      playlist,
+      configured: true,
+      licensed: true,
+      clipMaxSeconds: LICENSED_CLIP_MAX_SECONDS,
+    });
+  } catch (err) {
+    logger.error({ err }, "handleMusicGlobal failed");
+    return res.status(200).json({
+      playlist: null,
+      configured: true,
+      error: "MUSIC_PROVIDER_ERROR",
+      clipMaxSeconds: LICENSED_CLIP_MAX_SECONDS,
+    });
+  }
+}
+
 export async function handleMusicPlaylists(req: Request, res: Response) {
   if (!isEpidemicSoundConfigured()) {
     return res.status(200).json({ playlists: [], configured: false });
@@ -136,9 +232,18 @@ export async function handleMusicPlaylists(req: Request, res: Response) {
   try {
     const limit = Math.min(15, Math.max(1, Number(req.query.limit) || 10));
     const perPlaylist = Math.min(40, Math.max(5, Number(req.query.perPlaylist) || 30));
-    const playlists = await buildMusicPlaylistsForClient(limit, perPlaylist);
+    const playlists = await buildMusicPlaylistsForClient(
+      limit,
+      perPlaylist,
+      LICENSED_CLIP_MAX_SECONDS,
+    );
     res.setHeader("Cache-Control", "public, s-maxage=300, max-age=60");
-    return res.status(200).json({ playlists, configured: true });
+    return res.status(200).json({
+      playlists,
+      configured: true,
+      clipMaxSeconds: LICENSED_CLIP_MAX_SECONDS,
+      licensed: true,
+    });
   } catch (err) {
     logger.error({ err }, "handleMusicPlaylists failed");
     return res.status(200).json({
@@ -177,7 +282,10 @@ export async function handleMusicSearch(req: Request, res: Response) {
     const limit = Math.min(60, Math.max(1, Number(req.query.limit) || 50));
     const offset = Math.max(0, Number(req.query.offset) || 0);
     const data = await searchTracks(term, { limit, offset });
-    const tracks = (data.tracks || []).map((t) => epidemicTrackToClientSound(t));
+    const tracks = await mapTracksWithLicensedClips(
+      data.tracks || [],
+      LICENSED_CLIP_MAX_SECONDS,
+    );
     res.setHeader("Cache-Control", "public, s-maxage=120, max-age=30");
     return res.status(200).json({ tracks, pagination: data.pagination });
   } catch (err) {

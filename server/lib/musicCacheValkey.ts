@@ -9,6 +9,8 @@ export const MUSIC_CACHE_TTL_MS = {
   highlights: 24 * 60 * 60 * 1000,
   picker: 2 * 60 * 60 * 1000,
   metadata: 24 * 60 * 60 * 1000,
+  globalPlaylist: 2 * 60 * 60 * 1000,
+  playlistsBundle: 2 * 60 * 60 * 1000,
 };
 
 export function musicCacheKey(kind: string, id: string): string {

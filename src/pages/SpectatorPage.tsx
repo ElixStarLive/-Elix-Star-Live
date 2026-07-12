@@ -32,6 +32,8 @@ import {
   Users,
 } from 'lucide-react';
 import { GiftPanel } from '../components/GiftPanel';
+import { GiftGoalGallery } from '../components/GiftGoalGallery';
+import { LiveGiftGoalBar } from '../components/LiveGiftGoalBar';
 import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, fetchGiftsFromDatabase } from '../lib/giftsCatalog';
 import {
   addPersistedTestCoins,
@@ -53,6 +55,9 @@ import {
   getCreatorNamePillStyle,
   SPECTATOR_BATTLE_PROFILE_RING_PX,
   SPECTATOR_MVP_PROFILE_RING_PX,
+  LIVE_BATTLE_VIDEO_HEIGHT,
+  LIVE_BATTLE_CHAT_HEIGHT,
+  LIVE_BATTLE_CHAT_SHIFT_Y,
   LIVE_TOP_AVATAR_RING_PX,
 } from '../lib/profileFrame';
 import { useAuthStore } from '../store/useAuthStore';
@@ -66,6 +71,7 @@ import PromotePanel from '../components/PromotePanel';
 import { RankingPanel } from '../components/RankingPanel';
 import { websocket } from '../lib/websocket';
 import { normalizeBattleGiftTarget } from '../lib/liveBattleGiftTarget';
+import { parseLiveGiftGoal, type LiveGiftGoal } from '../lib/liveGiftGoal';
 import { IS_STORE_BUILD } from '../config/build';
 import { Room, RoomEvent, LocalVideoTrack, LocalAudioTrack } from 'livekit-client';
 
@@ -158,6 +164,7 @@ export default function SpectatorPage() {
   const [coinBalance, setCoinBalance] = useState(0);
 
   const [showGiftPanel, setShowGiftPanel] = useState(false);
+  const [giftGoal, setGiftGoal] = useState<LiveGiftGoal | null>(null);
   const [showSharePanel, setShowSharePanel] = useState(false);
   const [showPromotePanel, setShowPromotePanel] = useState(false);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
@@ -1312,11 +1319,22 @@ export default function SpectatorPage() {
       showToast(`@${data.hostName || 'Creator'} invited you to co-host — tap Join or Reject`);
     };
 
+    const handleGiftGoalSync = (data: unknown) => {
+      if (!mounted) return;
+      if (data == null) {
+        setGiftGoal(null);
+        return;
+      }
+      const parsed = parseLiveGiftGoal(data);
+      if (parsed) setGiftGoal(parsed);
+    };
+
     websocket.on('room_state', handleRoomState);
     websocket.on('user_joined', handleUserJoined);
     websocket.on('user_left', handleUserLeft);
     websocket.on('chat_message', handleChatMessage);
     websocket.on('gift_sent', handleGiftSent);
+    websocket.on('gift_goal_sync', handleGiftGoalSync);
     websocket.on('heart_sent', handleHeartSent);
     websocket.on('stream_ended', handleStreamEnded);
     const handleBattleScoreUpdateColon = (data: any) => {
@@ -1393,6 +1411,7 @@ export default function SpectatorPage() {
       websocket.off('user_left', handleUserLeft);
       websocket.off('chat_message', handleChatMessage);
       websocket.off('gift_sent', handleGiftSent);
+      websocket.off('gift_goal_sync', handleGiftGoalSync);
       websocket.off('heart_sent', handleHeartSent);
       websocket.off('stream_ended', handleStreamEnded);
       websocket.off('battle_state_sync', handleBattleStateSync);
@@ -1745,7 +1764,7 @@ export default function SpectatorPage() {
                 </div>
 
                 {/* Battle grid — videos + tap overlay (2-way or 4-way PK); one +5 vote per spectator per battle */}
-                <div className="relative w-full flex-none flex flex-col h-[44dvh]">
+                <div className="relative w-full flex-none flex flex-col" style={{ height: LIVE_BATTLE_VIDEO_HEIGHT }}>
                   <div className="flex-1 min-h-0 flex flex-col relative">
                     <div className="absolute inset-0 flex flex-row">
                       <div className="w-1/2 h-full overflow-hidden relative bg-[#111111] border-r border-white/5">
@@ -2392,8 +2411,20 @@ export default function SpectatorPage() {
         </div>
 
         {/* CHAT — same pattern as LiveStream (!isBroadcast): scroll area tap sends like on empty space */}
-        <div className="chat-zone fixed left-0 right-0 bottom-[calc(52px+max(8px,env(safe-area-inset-bottom)))] z-[100] flex justify-center pointer-events-none">
-          <div className="w-full max-w-[480px] relative" style={{ height: 'calc(25dvh + 2cm + 4mm)', maxHeight: 'calc(25dvh + 2cm + 4mm)' }}>
+        <div
+          className="chat-zone fixed left-0 right-0 z-[100] flex justify-center pointer-events-none"
+          style={{
+            bottom: 'calc(52px + max(8px, env(safe-area-inset-bottom)))',
+            transform: spectatorBattle?.active ? `translateY(${LIVE_BATTLE_CHAT_SHIFT_Y})` : undefined,
+          }}
+        >
+          <div
+            className="w-full max-w-[480px] relative"
+            style={{
+              height: spectatorBattle?.active ? LIVE_BATTLE_CHAT_HEIGHT : 'calc(25dvh + 2cm + 4mm)',
+              maxHeight: spectatorBattle?.active ? LIVE_BATTLE_CHAT_HEIGHT : 'calc(25dvh + 2cm + 4mm)',
+            }}
+          >
             <div
               ref={spectatorChatHeartsRef}
               className="absolute inset-0 z-[25] overflow-hidden pointer-events-none"
@@ -2785,11 +2816,36 @@ export default function SpectatorPage() {
                       </div>
                       <p className="text-white/30 text-[8px] text-center mt-1.5">Subscribe to unlock photo stickers and send them in chat!</p>
                     </div>
+
+                    {giftGoal && (
+                      <GiftGoalGallery
+                        mode="readonly"
+                        goal={giftGoal}
+                        onSend={() => {
+                          setShowFanClub(false);
+                          setShowGiftPanel(true);
+                        }}
+                      />
+                    )}
                   </div>
                 </div>
               </div>
             </div>
           </>
+        )}
+
+        {giftGoal && streamIsLive && (
+          <div
+            className="fixed left-0 right-0 z-[105] flex justify-center pointer-events-none px-3"
+            style={{ bottom: 'calc(118px + max(8px, env(safe-area-inset-bottom)))' }}
+          >
+            <div className="w-full max-w-[480px] flex justify-start">
+              <LiveGiftGoalBar
+                goal={giftGoal}
+                onTap={() => setShowGiftPanel(true)}
+              />
+            </div>
+          </div>
         )}
 
         {/* GIFT PANEL — anchored to bottom, above all buttons */}
@@ -2829,6 +2885,7 @@ export default function SpectatorPage() {
                 onRechargeSuccess={(newBalance) => { setCoinBalance(newBalance); persistTestCoinsBalance(user?.id, newBalance); }}
                 onWeeklyRanking={() => { setShowGiftPanel(false); setShowRankingPanel(true); }}
                 onMembership={() => { setShowGiftPanel(false); setShowFanClub(true); }}
+                highlightGiftId={giftGoal?.giftId ?? null}
               />
             </div>
           </>

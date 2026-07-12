@@ -98,14 +98,45 @@ export type MusicPlaylist = {
   tracks: SoundTrack[];
 };
 
+export async function fetchGlobalMusicPlaylist(): Promise<{
+  playlist: MusicPlaylist | null;
+  configured: boolean;
+  clipMaxSeconds?: number;
+  error?: string | null;
+}> {
+  const { data, error } = await request<{
+    playlist?: MusicPlaylist | null;
+    configured?: boolean;
+    clipMaxSeconds?: number;
+    error?: string;
+  }>("/api/music/global");
+  if (error) {
+    return { playlist: null, configured: false, error: error.message };
+  }
+  const playlist = data?.playlist
+    ? {
+        ...data.playlist,
+        tracks: mapSoundTracks(data.playlist.tracks ?? []),
+      }
+    : null;
+  return {
+    playlist,
+    configured: Boolean(data?.configured),
+    clipMaxSeconds: data?.clipMaxSeconds,
+    error: data?.error ?? null,
+  };
+}
+
 export async function fetchMusicPlaylists(): Promise<{
   playlists: MusicPlaylist[];
   configured: boolean;
+  clipMaxSeconds?: number;
   error?: string | null;
 }> {
   const { data, error } = await request<{
     playlists?: MusicPlaylist[];
     configured?: boolean;
+    clipMaxSeconds?: number;
     error?: string;
   }>("/api/music/playlists");
   if (error) {
@@ -117,6 +148,7 @@ export async function fetchMusicPlaylists(): Promise<{
       tracks: mapSoundTracks(p.tracks ?? []),
     })),
     configured: Boolean(data?.configured),
+    clipMaxSeconds: data?.clipMaxSeconds,
     error: data?.error ?? null,
   };
 }

@@ -18,7 +18,7 @@ import {
   Play,
   MoreHorizontal,
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useVideoStore } from '../store/useVideoStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { showToast } from '../lib/toast';
@@ -32,12 +32,15 @@ import ReportModal from './ReportModal';
 import PromotePanel from './PromotePanel';
 import { LevelBadge } from './LevelBadge';
 import { RoyceIcon } from './royce';
-import { api } from '../lib/apiClient';
+import { api, request } from '../lib/apiClient';
 import { nativeConfirm } from './NativeDialog';
 import { downloadVideoWithoutMusic } from '../lib/videoDownloadClient';
 import { getVideoPosterUrl } from '../lib/bunnyStorage';
+import { resolveSoundTrackPlaybackUrl } from '../lib/soundLibrary';
+import { liveAvatarRingMaskStyle, storyRingInnerPx, PROFILE_RING_IMAGE_LIFT_MM } from '../lib/profileFrame';
 
 const VIDEO_SIDEBAR_AVATAR = 44;
+const VIDEO_SIDEBAR_AVATAR_INNER = storyRingInnerPx(VIDEO_SIDEBAR_AVATAR);
 const GOLD_ICON = 'royce-icon-gold';
 const GOLD_COUNT = 'text-[10px] font-semibold leading-none text-gold-light';
 
@@ -113,6 +116,7 @@ export default function EnhancedVideoPlayer({
   const videoRef = useRef<HTMLVideoElement>(null);
   const duetOriginalRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const musicClipRef = useRef<{ start: number; end: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const progressTrackRef = useRef<HTMLDivElement>(null);
   const isActiveRef = useRef(isActive);
@@ -140,8 +144,11 @@ export default function EnhancedVideoPlayer({
   const [showHeartAnimation, setShowHeartAnimation] = useState(false);
   const [duetOriginalUrl, setDuetOriginalUrl] = useState<string | null>(null);
   const [scrubbing, setScrubbing] = useState(false);
+  const [creatorIsLive, setCreatorIsLive] = useState(false);
 
   const navigate = useNavigate();
+  const location = useLocation();
+  const feedSourceLabel = location.pathname === '/friends' ? 'Friends' : undefined;
   const { muteAllSounds } = useSettingsStore();
   const { 
     videos, 
@@ -175,6 +182,31 @@ export default function EnhancedVideoPlayer({
     })();
     return () => { cancelled = true; };
   }, [video?.duetWithVideoId, originalVideo]);
+
+  useEffect(() => {
+    const uid = video?.user?.id;
+    if (!isActive || !uid) {
+      setCreatorIsLive(false);
+      return;
+    }
+    let cancelled = false;
+    request('/api/live/streams')
+      .then(({ data }) => {
+        if (cancelled) return;
+        const liveIds = new Set(
+          (data?.streams || []).map((s: { user_id?: string; userId?: string }) =>
+            String(s.user_id || s.userId || ''),
+          ).filter(Boolean),
+        );
+        setCreatorIsLive(liveIds.has(String(uid)));
+      })
+      .catch(() => {
+        if (!cancelled) setCreatorIsLive(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isActive, video?.user?.id]);
 
   const seekAllTo = useCallback(
     (seconds: number) => {
@@ -322,6 +354,24 @@ export default function EnhancedVideoPlayer({
     };
   }, [onProgress, onVideoEnd]);
 
+  // Loop licensed music within Epidemic highlight clip (TikTok-style segment only).
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a) return;
+    const onTimeUpdate = () => {
+      const clip = musicClipRef.current;
+      if (!clip || clip.end <= clip.start) return;
+      if (a.currentTime >= clip.end) {
+        a.currentTime = clip.start;
+        if (!a.paused && !a.muted) {
+          a.play().catch(() => {});
+        }
+      }
+    };
+    a.addEventListener('timeupdate', onTimeUpdate);
+    return () => a.removeEventListener('timeupdate', onTimeUpdate);
+  }, []);
+
   // Auto-play based on visibility — try with sound first; if blocked (e.g. iOS), fall back to muted
   useEffect(() => {
     /** Hard-stop helper — mutes and pauses every media element this player owns */
@@ -409,19 +459,34 @@ export default function EnhancedVideoPlayer({
 
       const audio = audioRef.current;
       if (audio && video?.music?.previewUrl) {
-        if (audio.src !== video.music.previewUrl) {
-          audio.src = video.music.previewUrl;
+        const previewSrc = resolveSoundTrackPlaybackUrl(video.music.previewUrl);
+        const clipStart = Math.max(0, video.music.clipStartSeconds ?? 0);
+        const clipEnd = Math.max(
+          clipStart + 5,
+          video.music.clipEndSeconds ?? clipStart + 60,
+        );
+        musicClipRef.current = { start: clipStart, end: clipEnd };
+        if (audio.src !== previewSrc) {
+          audio.src = previewSrc;
         }
-        audio.currentTime = 0;
+        audio.currentTime = clipStart;
         audio.muted = muteAllSounds;
         audio.volume = volume;
         if (!muteAllSounds) {
           void audio.play().then(() => {
             if (!shouldPlayRef.current) {
-              try { audio.pause(); audio.muted = true; audio.currentTime = 0; } catch { void 0; }
+              try {
+                audio.pause();
+                audio.muted = true;
+                audio.currentTime = clipStart;
+              } catch {
+                void 0;
+              }
             }
           });
         }
+      } else {
+        musicClipRef.current = null;
       }
 
       return () => {
@@ -433,7 +498,7 @@ export default function EnhancedVideoPlayer({
       stopAll();
       setIsPlaying(false);
     }
-  }, [incrementViews, isActive, isDuetLayout, muteAllSounds, originalVideo, video?.url, video?.music?.previewUrl, videoId, volume]);
+  }, [incrementViews, isActive, isDuetLayout, muteAllSounds, originalVideo, video?.url, video?.music?.previewUrl, video?.music?.clipStartSeconds, video?.music?.clipEndSeconds, videoId, volume]);
 
   // Pause when tab/app is hidden; resume current slide when visible again (only if still active)
   useEffect(() => {
@@ -742,7 +807,7 @@ export default function EnhancedVideoPlayer({
           aria-valuemax={Number.isFinite(duration) && duration > 0 ? Math.round(duration) : 0}
           className="absolute left-3 right-[3.75rem] z-[16] pointer-events-auto flex flex-col justify-end cursor-pointer select-none"
           style={{
-            bottom: edgeToBottomNav ? `calc(${navStackExpr} + 6px)` : '4mm',
+            bottom: edgeToBottomNav ? `calc(${navStackExpr} + 6px + 3mm)` : 'calc(4mm + 3mm)',
             paddingBottom: edgeToBottomNav ? 0 : 'max(4px, env(safe-area-inset-bottom, 0px))',
             touchAction: 'none',
             minHeight: scrubbing ? 44 : 22,
@@ -816,25 +881,48 @@ export default function EnhancedVideoPlayer({
         }}
       >
         
-        {/* Profile — round avatar only, no PNG ring */}
+        {/* Profile — round avatar; red ring when creator is live */}
         <button
           type="button"
           onClick={handleProfileClick}
-          className="mb-1 overflow-hidden rounded-full bg-[#0a0a0a] active:scale-95 transition-transform"
-          style={{ width: VIDEO_SIDEBAR_AVATAR, height: VIDEO_SIDEBAR_AVATAR }}
+          className="relative mb-1 overflow-visible rounded-full bg-[#0a0a0a] active:scale-95 transition-transform"
+          style={{ width: VIDEO_SIDEBAR_AVATAR, height: VIDEO_SIDEBAR_AVATAR, isolation: 'isolate' }}
           title={video.user.username}
         >
-          {video.user.avatar ? (
-            <img
-              src={video.user.avatar}
-              alt={video.user.username}
-              className="h-full w-full object-cover object-center"
+          <div
+            className="absolute overflow-hidden rounded-full"
+            style={
+              creatorIsLive
+                ? {
+                    width: VIDEO_SIDEBAR_AVATAR_INNER,
+                    height: VIDEO_SIDEBAR_AVATAR_INNER,
+                    top: `calc(50% - ${PROFILE_RING_IMAGE_LIFT_MM}mm)`,
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    zIndex: 1,
+                  }
+                : { inset: 0 }
+            }
+          >
+            {video.user.avatar ? (
+              <img
+                src={video.user.avatar}
+                alt={video.user.username}
+                className="h-full w-full object-cover object-center"
+              />
+            ) : (
+              <span className="flex h-full w-full items-center justify-center text-sm font-bold text-gold-bright">
+                {(video.user.username || '?').charAt(0).toUpperCase()}
+              </span>
+            )}
+          </div>
+          {creatorIsLive ? (
+            <div
+              className="pointer-events-none absolute inset-0 rounded-full"
+              style={{ ...liveAvatarRingMaskStyle(), zIndex: 2 }}
+              aria-hidden
             />
-          ) : (
-            <span className="flex h-full w-full items-center justify-center text-sm font-bold text-gold-bright">
-              {(video.user.username || '?').charAt(0).toUpperCase()}
-            </span>
-          )}
+          ) : null}
         </button>
 
         <button
@@ -908,16 +996,16 @@ export default function EnhancedVideoPlayer({
         </button>
       </div>
 
-      {/* Bottom Info Area - For You hashtags / username moved down */}
+      {/* Bottom Info Area */}
       <div
-        className={`absolute z-[10] left-3 w-[72%] pointer-events-none ${edgeToBottomNav ? 'pb-2' : 'bottom-[15px] md:bottom-[39px] pb-4'}`}
+        className={`absolute z-[10] left-3 w-[72%] pointer-events-none flex flex-col ${edgeToBottomNav ? 'pb-2' : 'pb-1'}`}
         style={
           edgeToBottomNav
-            ? { bottom: `calc(${navStackExpr} + 14px)` }
-            : undefined
+            ? { bottom: `calc(${navStackExpr} + 4px)`, transform: 'translateY(6mm)' }
+            : { bottom: '2px', transform: 'translateY(6mm)' }
         }
       >
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-2 mb-1">
           <LevelBadge level={video.user.level ?? 1} size={10} layout="fixed" avatar={video.user.avatar} />
           <h3 className="text-white font-bold text-shadow-md">{video.user.name || video.user.username}</h3>
           {video.user.isVerified && (
@@ -926,17 +1014,24 @@ export default function EnhancedVideoPlayer({
             </div>
           )}
         </div>
+
+        <div className="flex items-center gap-2 text-white/90 mb-1">
+          <Music size={14} className="text-white flex-shrink-0" />
+          <span className="text-xs font-medium animate-marquee whitespace-nowrap overflow-hidden w-32">
+            {video.music?.title || 'Original Sound'} - {video.music?.artist || ''}
+          </span>
+        </div>
         
-        <p className="text-white/90 text-sm mb-2 text-shadow-md line-clamp-2">
+        <p className="text-white/90 text-sm mb-1 text-shadow-md line-clamp-2">
           {video.description}
         </p>
         
-        <div className="flex flex-wrap gap-1 mb-2">
+        <div className="flex flex-wrap gap-1 mb-1">
           {video.hashtags.map((hashtag) => (
             <button
               key={hashtag}
               onClick={() => navigate(`/hashtag/${hashtag}`)}
-              className="text-white text-xs font-medium hover:underline"
+              className="text-white text-xs font-medium hover:underline pointer-events-auto"
             >
               #{hashtag}
             </button>
@@ -944,24 +1039,21 @@ export default function EnhancedVideoPlayer({
         </div>
 
         {video.location && (
-          <div className="flex items-center gap-1 text-white/60 text-xs mb-2">
+          <div className="flex items-center gap-1 text-white/60 text-xs mb-1">
             <div className="w-3 h-3 rounded-full" />
             <span>{video.location}</span>
           </div>
         )}
-        
-        <div className="flex items-center gap-2 text-white/90">
-          <Music size={14} className="text-white" />
-          <span className="text-xs font-medium animate-marquee whitespace-nowrap overflow-hidden w-32">
-            {video.music?.title || 'Original Sound'} - {video.music?.artist || ''}
-          </span>
-        </div>
 
-        <div className="flex items-center gap-4 mt-2 text-white/60 text-xs">
+        <div className="flex items-center gap-4 text-white/60 text-xs">
           <span>{formatNumber(video.stats.views)} views</span>
           <span>•</span>
           <span>{new Date(video.createdAt).toLocaleDateString()}</span>
         </div>
+
+        {feedSourceLabel ? (
+          <p className="text-white/50 text-[11px] font-medium mt-1 mb-0">{feedSourceLabel}</p>
+        ) : null}
       </div>
 
       {/* Modals */}
