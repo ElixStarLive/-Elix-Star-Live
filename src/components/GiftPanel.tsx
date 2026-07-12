@@ -82,9 +82,7 @@ function GiftGridItem({
       onClick={onTap}
         className={[
         "group flex flex-col items-center gap-1.5 p-1 rounded-xl hover:brightness-125 border transition-all duration-300 active:scale-95 relative overflow-hidden",
-        isSelected
-          ? "border-secondary/70 "
-          : borderClass ?? "border-transparent hover:border-secondary/30",
+        borderClass ?? "border-transparent",
       ].join(" ")}
     >
       <div
@@ -148,7 +146,6 @@ export function GiftPanel({
   const [activeTab, setActiveTab] = useState<"exclusive" | "small" | "big">(
     "big",
   );
-  const [selectedGiftId, setSelectedGiftId] = useState<string | null>(null);
   const [poppedGiftId, setPoppedGiftId] = useState<string | null>(null);
   const [showRecharge, setShowRecharge] = useState(false);
   const panelRef = useRef<HTMLDivElement | null>(null);
@@ -190,12 +187,7 @@ export function GiftPanel({
           ? "exclusive"
           : "big",
     );
-    setSelectedGiftId(highlightGiftId);
   }, [highlightGiftId, gifts]);
-
-  useEffect(() => {
-    setSelectedGiftId(null);
-  }, [activeTab]);
 
   const goalBorder = (giftId: string, fallback?: string) =>
     highlightGiftId === giftId
@@ -204,19 +196,14 @@ export function GiftPanel({
 
   const handleGiftTap = useCallback(
     (gift: GiftItem) => {
-      if (selectedGiftId !== gift.id) {
-        setSelectedGiftId(gift.id);
-        return;
-      }
       setPoppedGiftId(gift.id);
       window.setTimeout(
         () => setPoppedGiftId((v) => (v === gift.id ? null : v)),
         520,
       );
-      setSelectedGiftId(null);
       onSelectGift(gift);
     },
-    [onSelectGift, selectedGiftId],
+    [onSelectGift],
   );
 
   return (
@@ -350,7 +337,7 @@ export function GiftPanel({
                   gift={gift}
                   pngUrl={posterByGiftId.get(gift.id) || ""}
                   isPopped={poppedGiftId === gift.id}
-                  isSelected={selectedGiftId === gift.id}
+                  isSelected={false}
                   onTap={() => handleGiftTap(gift)}
                   borderClass={goalBorder(gift.id, "border-secondary/30")}
                 />
@@ -371,7 +358,7 @@ export function GiftPanel({
                 gift={gift}
                 pngUrl={posterByGiftId.get(gift.id) || ""}
                 isPopped={poppedGiftId === gift.id}
-                isSelected={selectedGiftId === gift.id}
+                isSelected={false}
                 onTap={() => handleGiftTap(gift)}
                 borderClass={goalBorder(gift.id)}
               />
@@ -390,7 +377,7 @@ export function GiftPanel({
                 gift={gift}
                 pngUrl={gift.icon}
                 isPopped={poppedGiftId === gift.id}
-                isSelected={selectedGiftId === gift.id}
+                isSelected={false}
                 onTap={() => handleGiftTap(gift)}
                 borderClass={goalBorder(gift.id)}
               />
