@@ -4891,22 +4891,22 @@ export default function LiveStream() {
                       <p className="flex-1 text-left text-white text-xs font-semibold truncate min-w-0">{c.name || c.username}</p>
 
                       {isAccepted ? (
-                        <div className="px-2 py-1 rounded-full bg-white/10 border border-white/40 flex items-center gap-0.5 flex-shrink-0">
-                          <Check size={9} className="text-white" />
-                          <span className="text-white text-[9px] font-bold">Joined</span>
+                        <div className="px-2 py-1 rounded-full bg-green-500/20 border border-green-500/40 flex items-center gap-0.5 flex-shrink-0">
+                          <Check size={9} className="text-green-400" />
+                          <span className="text-green-400 text-[9px] font-bold">Joined</span>
                         </div>
                       ) : isIncomingBattleInvite ? (
                         <div className="flex items-center gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                           <button
                             type="button"
-                            className="px-2 py-1 rounded-full bg-white/10 border border-white/30 flex items-center gap-0.5 active:scale-95 transition-transform cursor-pointer"
+                            className="px-2 py-1 rounded-full bg-red-500/20 border border-red-500/30 flex items-center gap-0.5 active:scale-95 transition-transform cursor-pointer"
                             onClick={handleReject}
                           >
-                            <span className="text-white/60 text-[9px] font-bold">Reject</span>
+                            <span className="text-red-400 text-[9px] font-bold">Reject</span>
                           </button>
                           <button
                             type="button"
-                            className="px-2.5 py-1 rounded-full bg-white flex items-center gap-0.5 active:scale-95 transition-transform cursor-pointer"
+                            className="px-2.5 py-1 rounded-full bg-green-500 flex items-center gap-0.5 active:scale-95 transition-transform cursor-pointer"
                             onClick={handleJoin}
                           >
                             <span className="text-black text-[9px] font-bold">Join</span>
@@ -4917,7 +4917,7 @@ export default function LiveStream() {
                           <span className="text-white/50 text-[9px] font-bold">Invited</span>
                         </div>
                       ) : (
-                        <div className="px-2 py-1 rounded-full bg-[#FFFFFF] flex items-center justify-center gap-0.5 flex-shrink-0">
+                        <div className="px-2 py-1 rounded-full bg-[#C9A96E] flex items-center justify-center gap-0.5 flex-shrink-0">
                           <UserPlus size={9} className="text-black shrink-0 flex-shrink-0" strokeWidth={2} />
                           <span className="text-black text-[9px] font-bold">Invite</span>
                         </div>
@@ -5170,10 +5170,10 @@ export default function LiveStream() {
                       <p className="text-white/50 text-[10px]">Co-host invite — Join or Reject</p>
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
-                      <button type="button" onClick={declineCohostInvite} className="px-2 py-1 rounded-full bg-white/10 border border-white/30">
-                        <span className="text-white/60 text-[9px] font-bold">Reject</span>
+                      <button type="button" onClick={declineCohostInvite} className="px-2 py-1 rounded-full bg-red-500/20 border border-red-500/30">
+                        <span className="text-red-400 text-[9px] font-bold">Reject</span>
                       </button>
-                      <button type="button" onClick={() => void acceptCohostInvite()} className="px-2.5 py-1 rounded-full bg-white">
+                      <button type="button" onClick={() => void acceptCohostInvite()} className="px-2.5 py-1 rounded-full bg-green-500">
                         <span className="text-black text-[9px] font-bold">Join</span>
                       </button>
                     </div>
@@ -5280,10 +5280,10 @@ export default function LiveStream() {
                         {isBroadcast && isMyStreamLive && (
                           isJoinRequester ? (
                             <div className="flex items-center gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                              <button type="button" onClick={() => { declineJoinRequest(); setShowViewerList(false); }} className="px-2 py-1 rounded-full bg-white/10 border border-white/30 flex items-center gap-0.5 active:scale-95 transition-transform cursor-pointer">
-                                <span className="text-white/60 text-[9px] font-bold">Reject</span>
+                              <button type="button" onClick={() => { declineJoinRequest(); setShowViewerList(false); }} className="px-2 py-1 rounded-full bg-red-500/20 border border-red-500/30 flex items-center gap-0.5 active:scale-95 transition-transform cursor-pointer">
+                                <span className="text-red-400 text-[9px] font-bold">Reject</span>
                               </button>
-                              <button type="button" onClick={() => { acceptJoinRequest(); setShowViewerList(false); }} className="px-2.5 py-1 rounded-full bg-white flex items-center gap-0.5 active:scale-95 transition-transform cursor-pointer">
+                              <button type="button" onClick={() => { acceptJoinRequest(); setShowViewerList(false); }} className="px-2.5 py-1 rounded-full bg-green-500 flex items-center gap-0.5 active:scale-95 transition-transform cursor-pointer">
                                 <span className="text-black text-[9px] font-bold">Join</span>
                               </button>
                             </div>
@@ -5291,7 +5291,7 @@ export default function LiveStream() {
                             <button
                               type="button"
                               onClick={(e) => { e.stopPropagation(); inviteCoHost({ id: v.id, name: v.displayName, avatar: v.avatar }); setShowViewerList(false); }}
-                              className="px-2.5 py-1 rounded-full bg-[#D4AF37] text-black text-[10px] font-bold flex-shrink-0"
+                              className="px-2.5 py-1 rounded-full bg-[#C9A96E] text-black text-[10px] font-bold flex-shrink-0"
                             >
                               Invite
                             </button>

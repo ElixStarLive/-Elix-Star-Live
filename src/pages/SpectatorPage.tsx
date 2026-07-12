@@ -2744,8 +2744,8 @@ export default function SpectatorPage() {
                         <p className="text-white/40 text-[10px]">wants you to co-host</p>
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                        <button type="button" onClick={() => { setPendingCoHostInvite(null); setShowCoHostPanel(false); }} className="px-2 py-1 rounded-full bg-white/10 border border-white/30 flex items-center gap-0.5 active:scale-95 transition-transform cursor-pointer">
-                          <span className="text-white/60 text-[9px] font-bold">Reject</span>
+                        <button type="button" onClick={() => { setPendingCoHostInvite(null); setShowCoHostPanel(false); }} className="px-2 py-1 rounded-full bg-red-500/20 border border-red-500/30 flex items-center gap-0.5 active:scale-95 transition-transform cursor-pointer">
+                          <span className="text-red-400 text-[9px] font-bold">Reject</span>
                         </button>
                         <button
                           type="button"
@@ -2763,7 +2763,7 @@ export default function SpectatorPage() {
                               });
                             }
                           }}
-                          className="px-2.5 py-1 rounded-full bg-white flex items-center gap-0.5 active:scale-95 transition-transform cursor-pointer"
+                          className="px-2.5 py-1 rounded-full bg-green-500 flex items-center gap-0.5 active:scale-95 transition-transform cursor-pointer"
                         >
                           <span className="text-black text-[9px] font-bold">Join</span>
                         </button>
