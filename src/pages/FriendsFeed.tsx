@@ -121,23 +121,6 @@ export default function FriendsFeed() {
             style={{ transform: 'translateY(0mm)' }}
           >
             <div className="flex gap-3 overflow-x-auto overflow-y-hidden no-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
-            <button
-              type="button"
-              onClick={() => navigate('/create')}
-              className="flex-shrink-0 flex flex-col items-center gap-1" style={{ width: 95, minWidth: 95 }}
-            >
-              <StoryGoldRingAvatar
-                data-avatar-circle="create"
-                alt="You"
-                src={
-                  user?.avatar ||
-                  (user?.id && typeof localStorage !== 'undefined' ? localStorage.getItem('elix_avatar_' + user.id) : null) ||
-                  '/royce/default-avatar.svg'
-                }
-              />
-              <div className="text-[11px] text-white/80 truncate w-full text-center">Create</div>
-            </button>
-
             {/* All Elix users (always visible) */}
             {suggestedUsers.map((u) => (
               <button

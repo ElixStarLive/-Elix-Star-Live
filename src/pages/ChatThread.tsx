@@ -33,10 +33,13 @@ function MessageText({ text, isMe, navigate: nav }: { text: string; isMe: boolea
           URL_RE.lastIndex = 0;
           const appMatch = part.match(APP_LINK_RE);
           if (appMatch) {
-            const route = appMatch[1] === 'video' ? `/video/${appMatch[2]}` : `/watch/${appMatch[2]}`;
+            const route =
+              appMatch[1] === 'video' ? `/video/${appMatch[2]}`
+              : appMatch[1] === 'profile' ? `/profile/${appMatch[2]}`
+              : `/watch/${appMatch[2]}`;
             return (
               <button key={i} type="button" onClick={() => nav(route)} className={`underline font-medium ${isMe ? 'text-black/80' : 'text-[#D4AF37]'}`}>
-                {appMatch[1] === 'video' ? 'View Video' : 'Join Live'}
+                {appMatch[1] === 'video' ? 'View Video' : appMatch[1] === 'profile' ? 'View Profile' : 'Join Live'}
               </button>
             );
           }
@@ -48,11 +51,18 @@ function MessageText({ text, isMe, navigate: nav }: { text: string; isMe: boolea
   );
 }
 
-const APP_LINK_RE = /https?:\/\/[^\s]+\/(video|watch|live)\/([a-zA-Z0-9_-]+)/;
+const APP_LINK_RE = /https?:\/\/[^\s]+\/(video|watch|live|profile)\/([a-zA-Z0-9_-]+)/;
 const URL_RE = /(https?:\/\/[^\s]+)/g;
 
+/** Map the app-link path segment to a preview type. */
+function linkTypeFromMatch(seg: string): 'video' | 'live' | 'profile' {
+  if (seg === 'video') return 'video';
+  if (seg === 'profile') return 'profile';
+  return 'live';
+}
+
 interface LinkPreview {
-  type: 'video' | 'live';
+  type: 'video' | 'live' | 'profile';
   id: string;
   thumbnail?: string;
   username?: string;
@@ -64,11 +74,11 @@ function useLinkPreviews(messages: Message[]) {
   const fetchedRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
-    const toFetch: { key: string; type: 'video' | 'live'; id: string }[] = [];
+    const toFetch: { key: string; type: 'video' | 'live' | 'profile'; id: string }[] = [];
     for (const m of messages) {
       const match = m.text.match(APP_LINK_RE);
       if (!match) continue;
-      const type = match[1] === 'video' ? 'video' : 'live';
+      const type = linkTypeFromMatch(match[1]);
       const id = match[2];
       const key = `${type}:${id}`;
       if (fetchedRef.current.has(key)) continue;
@@ -78,7 +88,22 @@ function useLinkPreviews(messages: Message[]) {
     if (!toFetch.length) return;
 
     for (const item of toFetch) {
-      if (item.type === 'video') {
+      if (item.type === 'profile') {
+        request(`/api/profiles/${encodeURIComponent(item.id)}`).then(({ data }) => {
+          if (!data) return;
+          // API returns { profile: { username, displayName, avatarUrl } } (camelCase).
+          const p = (data as { profile?: Record<string, unknown> })?.profile ?? data;
+          const name =
+            (typeof p.displayName === 'string' && p.displayName.trim()) ||
+            (typeof p.username === 'string' && p.username.trim()) ||
+            'Profile';
+          const avatar = typeof p.avatarUrl === 'string' ? p.avatarUrl : '';
+          setPreviews(prev => ({
+            ...prev,
+            [item.key]: { type: 'profile', id: item.id, thumbnail: avatar, username: name },
+          }));
+        }).catch(() => {});
+      } else if (item.type === 'video') {
         request(`/api/videos/${encodeURIComponent(item.id)}`).then(({ data }) => {
           if (!data) return;
           const v = data.video || data;
@@ -260,13 +285,33 @@ export default function ChatThread() {
           {messages.map((m) => {
             const isMe = m.sender_id === user?.id;
             const appMatch = m.text.match(APP_LINK_RE);
-            const previewKey = appMatch ? `${appMatch[1] === 'video' ? 'video' : 'live'}:${appMatch[2]}` : null;
+            const previewKey = appMatch ? `${linkTypeFromMatch(appMatch[1])}:${appMatch[2]}` : null;
             const preview = previewKey ? previews[previewKey] : null;
 
             return (
               <div key={m.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm leading-snug break-words ${isMe ? 'bg-[#D4AF37] text-black rounded-tr-none' : 'bg-[#222] text-white rounded-tl-none'}`}>
-                  {preview ? (
+                  {preview && preview.type === 'profile' ? (
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/profile/${preview.id}`)}
+                      className="flex items-center gap-2.5 active:scale-[0.98] transition-transform text-left"
+                    >
+                      <div className="w-14 h-14 rounded-lg overflow-hidden bg-black/20 flex-shrink-0">
+                        {preview.thumbnail ? (
+                          <img src={preview.thumbnail} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className={`w-full h-full flex items-center justify-center text-xs font-bold ${isMe ? 'text-black/60' : 'text-white/60'}`}>
+                            {(preview.username || 'U').slice(0, 2).toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className={`text-sm font-bold truncate ${isMe ? 'text-black' : 'text-white'}`}>{preview.username || 'Profile'}</p>
+                        <span className={`text-[11px] ${isMe ? 'text-black/50' : 'text-white/40'}`}>Tap to view profile</span>
+                      </div>
+                    </button>
+                  ) : preview ? (
                     <div>
                       <button
                         type="button"

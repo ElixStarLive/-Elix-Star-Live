@@ -528,20 +528,9 @@ export default function Profile() {
               </div>
 
               <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-4">
-                {/* Create + Followers row — same as LiveStream share panel */}
+                {/* Share to followers */}
                 <div className="w-full overflow-hidden shrink-0 mb-3">
                   <div className="flex gap-3 overflow-x-auto pb-3 no-scrollbar items-center px-4">
-                    <button type="button" onClick={() => { setShowSharePanel(false); navigate('/create'); }} className="flex-shrink-0 flex flex-col items-center gap-1 active:scale-95 transition-transform" style={{ width: SHARE_PANEL_ITEM_WIDTH_PX, minWidth: SHARE_PANEL_ITEM_WIDTH_PX }}>
-                      <div className="relative flex items-center justify-center" style={{ width: SHARE_PANEL_AVATAR_PX, height: SHARE_PANEL_AVATAR_PX }}>
-                        <StoryGoldRingAvatar
-                          size={SHARE_PANEL_AVATAR_PX}
-                          src={displayAvatar || '/royce/default-avatar.svg'}
-                          alt="Create"
-                        />
-                        <Plus size={SHARE_PANEL_PLUS_PX} className="text-[#D4AF37] absolute" strokeWidth={2.5} />
-                      </div>
-                      <span className="text-white/80 text-[11px] font-medium">Create</span>
-                    </button>
                     {shareFollowers.filter((f) => (f.username || '').toLowerCase().includes((shareQuery || '').toLowerCase())).map((f) => (
                       <button
                         key={f.user_id}

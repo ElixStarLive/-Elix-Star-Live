@@ -5920,20 +5920,8 @@ export default function LiveStream() {
               </div>
             </div>
 
-            {/* Create + all users row — same as Spectator / watch share */}
+            {/* Share to followers */}
             <div className="flex gap-3 overflow-x-auto overflow-y-hidden pb-3 flex-shrink-0 px-4 no-scrollbar">
-              <button
-                type="button"
-                onClick={() => { navigate('/create'); setShowSharePanel(false); }}
-                className="flex-shrink-0 flex flex-col items-center gap-1 active:scale-95 transition-transform"
-                style={{ width: SHARE_PANEL_ITEM_WIDTH_PX, minWidth: SHARE_PANEL_ITEM_WIDTH_PX }}
-              >
-                <div className="relative flex items-center justify-center" style={{ width: SHARE_PANEL_AVATAR_PX, height: SHARE_PANEL_AVATAR_PX }}>
-                  <StoryGoldRingAvatar size={SHARE_PANEL_AVATAR_PX} src={myAvatar || '/royce/default-avatar.svg'} alt="Create" />
-                  <Plus size={SHARE_PANEL_PLUS_PX} className="text-[#D4AF37] absolute" strokeWidth={2.5} />
-                </div>
-                <span className="text-white/80 text-[11px] font-medium">Create</span>
-              </button>
               {shareFollowers.filter(f => f.username?.toLowerCase().includes(shareQuery.toLowerCase())).map((f) => (
                 <button
                   key={f.user_id}

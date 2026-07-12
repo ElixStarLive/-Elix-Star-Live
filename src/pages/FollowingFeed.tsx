@@ -158,22 +158,6 @@ export default function FollowingFeed() {
           {/* Circles — Create, then followers who are live, then all other users who are live; scroll left */}
           <div className="px-3 py-2">
             <div className="flex gap-3 overflow-x-auto overflow-y-hidden no-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
-              <button
-                type="button"
-                onClick={() => navigate('/create')}
-                className="flex-shrink-0 flex flex-col items-center gap-1" style={{ width: 95, minWidth: 95 }}
-              >
-                <StoryGoldRingAvatar
-                  alt="You"
-                  src={
-                    user?.avatar ||
-                    (user?.id && typeof localStorage !== 'undefined' ? localStorage.getItem('elix_avatar_' + user.id) : null) ||
-                    '/royce/default-avatar.svg'
-                  }
-                />
-                <div className="text-[11px] text-white/80 truncate w-full text-center">Create</div>
-              </button>
-
               {followingUsers.filter((u) => u.id !== user?.id && (u.name || u.username || '').trim().toLowerCase() !== 'user').map((u) => (
                 <button
                   key={u.id}

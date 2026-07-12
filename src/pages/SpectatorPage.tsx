@@ -3137,13 +3137,6 @@ export default function SpectatorPage() {
                 </div>
                 <div className="w-full overflow-hidden shrink-0">
                   <div className="flex gap-3 overflow-x-auto pb-3 no-scrollbar items-center px-4">
-                    <button type="button" onClick={() => { setShowSharePanel(false); navigate('/create'); }} className="flex-shrink-0 flex flex-col items-center gap-1 active:scale-95 transition-transform" style={{ width: SHARE_PANEL_ITEM_WIDTH_PX, minWidth: SHARE_PANEL_ITEM_WIDTH_PX }}>
-                      <div className="relative flex items-center justify-center" style={{ width: SHARE_PANEL_AVATAR_PX, height: SHARE_PANEL_AVATAR_PX }}>
-                        <StoryGoldRingAvatar size={SHARE_PANEL_AVATAR_PX} src={user?.avatar || '/royce/default-avatar.svg'} alt="Create" />
-                        <Plus size={SHARE_PANEL_PLUS_PX} className="text-[#D4AF37] absolute" strokeWidth={2.5} />
-                      </div>
-                      <span className="text-white/80 text-[11px] font-medium">Create</span>
-                    </button>
                     {shareContacts.filter(c => c.name.toLowerCase().includes(shareQuery.toLowerCase())).map((u) => (
                       <button
                         key={u.id}
