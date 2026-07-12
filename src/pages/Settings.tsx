@@ -24,6 +24,28 @@ export default function Settings() {
   const navigate = useNavigate();
   const signOut = useAuthStore((s) => s.signOut);
 
+  // Swipe-down-to-close (same drag-to-dismiss feel as the sheet handle)
+  const [dragY, setDragY] = React.useState(0);
+  const [dragging, setDragging] = React.useState(false);
+  const dragStartRef = React.useRef<number | null>(null);
+
+  const onDragStart = (e: React.PointerEvent) => {
+    dragStartRef.current = e.clientY;
+    setDragging(true);
+  };
+  const onDragMove = (e: React.PointerEvent) => {
+    if (dragStartRef.current == null) return;
+    setDragY(Math.max(0, e.clientY - dragStartRef.current));
+  };
+  const onDragEnd = () => {
+    if (dragStartRef.current == null) return;
+    const shouldClose = dragY > 120;
+    dragStartRef.current = null;
+    setDragging(false);
+    if (shouldClose) navigate(-1);
+    else setDragY(0);
+  };
+
   const handleLogout = async () => {
     try { await signOut(); } catch { /* best-effort */ }
     navigate('/login');
@@ -71,17 +93,27 @@ export default function Settings() {
     <div className="fixed inset-0 z-[9999] flex justify-center">
       <div className="absolute inset-0 bg-black/45" onClick={() => navigate(-1)} />
       <div
-        className="absolute w-full max-w-[480px] h-[50dvh] rounded-t-2xl bg-[#111111] text-white shadow-2xl overflow-hidden fixed-above-bottom-nav"
+        className="absolute inset-y-0 w-full max-w-[480px] bg-[#111111] text-white shadow-2xl overflow-hidden flex flex-col"
+        style={{
+          transform: `translateY(${dragY}px)`,
+          transition: dragging ? 'none' : 'transform 0.25s ease',
+        }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex-shrink-0 px-3 pt-1.5 pb-1.5">
+        <div
+          className="flex-shrink-0 px-3 pt-1.5 pb-1.5 touch-none cursor-grab active:cursor-grabbing"
+          onPointerDown={onDragStart}
+          onPointerMove={onDragMove}
+          onPointerUp={onDragEnd}
+          onPointerCancel={onDragEnd}
+        >
           <div className="flex items-center justify-center">
             <div className="w-10 h-1 bg-white/20 rounded-full absolute top-2 left-1/2 -translate-x-1/2" />
             <span className="text-[13px] font-bold text-[#D4AF37]">Settings</span>
           </div>
         </div>
 
-        <div className="h-full min-h-0 overflow-y-auto overscroll-y-contain px-3 pb-[max(22px,calc(env(safe-area-inset-bottom,0px)+18px))]">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 pb-[max(22px,calc(env(safe-area-inset-bottom,0px)+18px))]">
           <div className="flex flex-col gap-0 max-w-full">
           <S t="Account" />
           <R ic={<User size={14} />} t="Edit Profile" fn={() => navigate('/edit-profile')} />
