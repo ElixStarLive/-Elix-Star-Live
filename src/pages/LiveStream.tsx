@@ -3698,7 +3698,9 @@ export default function LiveStream() {
             {/* Base Video Layer */}
         {!isBattleMode && (() => {
           const hasAnyCoHost = coHosts.some(
-            (h) => h.status === 'live' || h.status === 'accepted',
+            (h) =>
+              (h.status === 'live' || h.status === 'accepted') &&
+              !sameUserId(h.userId, user?.id),
           );
           return (
           <div
@@ -3812,7 +3814,8 @@ export default function LiveStream() {
 
             {/* Right: co-host 8-slot grid */}
             {hasAnyCoHost && (() => {
-              const list = isBroadcast ? coHosts.filter(h => h.userId !== user?.id) : coHosts;
+              // Self is always shown in the big box only — never in a small tile.
+              const list = coHosts.filter(h => !sameUserId(h.userId, user?.id));
               const liveList = list.filter(h => h.status === 'live' || h.status === 'accepted');
               const firstLive = liveList[0];
               const restLive = liveList.slice(1);
