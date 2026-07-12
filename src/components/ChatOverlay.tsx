@@ -79,7 +79,7 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
     overflowY: 'auto',
     display: 'flex',
     flexDirection: 'column',
-    gap: '10px',
+    gap: '16px',
     scrollbarWidth: 'none',
     msOverflowStyle: 'none',
     paddingLeft: '0px',
@@ -103,8 +103,7 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
         {messages.map((msg, idx) => (
           <div
             key={typeof msg.id === 'string' ? msg.id : `msg-${idx}`}
-            className="flex flex-col gap-0.5 animate-in slide-in-from-left-2 duration-200 relative"
-            style={{ minHeight: CHAT_PROFILE_RING_PX }}
+            className="flex flex-col gap-1 animate-in slide-in-from-left-2 duration-200 relative"
             onPointerDown={() => startLongPress(msg.id)}
             onPointerUp={cancelLongPress}
             onPointerLeave={cancelLongPress}
