@@ -456,6 +456,10 @@ export default function SpectatorPage() {
   const coHostVideoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
   const [selectedSpectatorUserId, setSelectedSpectatorUserId] = useState<string | null>(null);
   const currentMainTrackRef = useRef<import('livekit-client').Track | null>(null);
+  // A non-host track shown provisionally in the big/main box, kept only until the
+  // host's track is identified or the co-host's own tile mounts. This guarantees a
+  // co-host is never rendered in BOTH the big box and their small tile.
+  const mainProvisionalTrackRef = useRef<import('livekit-client').RemoteTrack | null>(null);
 
   const [isCoHosting, setIsCoHosting] = useState(false);
   const [coHostStream, setCoHostStream] = useState<MediaStream | null>(null);
@@ -765,16 +769,36 @@ export default function SpectatorPage() {
             const isHost = identity === hostId || identity === effectiveStreamId;
             if (isSelf) return;
             if (isHost) {
+              // Host always owns the big box; evict any provisional co-host first.
+              if (mainProvisionalTrackRef.current && mainProvisionalTrackRef.current !== track) {
+                try { mainProvisionalTrackRef.current.detach(videoRef.current); } catch { /* noop */ }
+              }
+              mainProvisionalTrackRef.current = null;
               track.attach(videoRef.current);
+              currentMainTrackRef.current = track;
               mainVideoAttached = true;
               setHasStream(true);
-            } else if (!mainVideoAttached) {
+              return;
+            }
+            // Non-host (co-host): belongs in a small tile, never the big box.
+            const el = coHostVideoRefs.current.get(identity);
+            if (el) {
+              track.attach(el);
+              // If this co-host was provisionally shown in the big box, remove them from it.
+              if (mainProvisionalTrackRef.current === track) {
+                try { track.detach(videoRef.current); } catch { /* noop */ }
+                mainProvisionalTrackRef.current = null;
+                mainVideoAttached = false;
+              }
+              return;
+            }
+            // No tile yet and host not shown — provisionally fill the big box so it isn't blank.
+            if (!mainVideoAttached) {
               track.attach(videoRef.current);
+              currentMainTrackRef.current = track;
+              mainProvisionalTrackRef.current = track;
               mainVideoAttached = true;
               setHasStream(true);
-            } else {
-              const el = coHostVideoRefs.current.get(identity);
-              if (el) track.attach(el);
             }
           }
         };
@@ -795,19 +819,32 @@ export default function SpectatorPage() {
           if (isSelf) continue;
           for (const [, publication] of participant.videoTrackPublications) {
             if (publication.track && publication.isSubscribed && videoRef.current) {
+              const track = publication.track;
               if (isHost) {
-                publication.track.attach(videoRef.current);
-                currentMainTrackRef.current = publication.track;
-                mainVideoAttached = true;
-                setHasStream(true);
-              } else if (!mainVideoAttached) {
-                publication.track.attach(videoRef.current);
-                currentMainTrackRef.current = publication.track;
+                if (mainProvisionalTrackRef.current && mainProvisionalTrackRef.current !== track) {
+                  try { mainProvisionalTrackRef.current.detach(videoRef.current); } catch { /* noop */ }
+                }
+                mainProvisionalTrackRef.current = null;
+                track.attach(videoRef.current);
+                currentMainTrackRef.current = track;
                 mainVideoAttached = true;
                 setHasStream(true);
               } else {
                 const el = coHostVideoRefs.current.get(identity);
-                if (el) publication.track.attach(el);
+                if (el) {
+                  track.attach(el);
+                  if (mainProvisionalTrackRef.current === track) {
+                    try { track.detach(videoRef.current); } catch { /* noop */ }
+                    mainProvisionalTrackRef.current = null;
+                    mainVideoAttached = false;
+                  }
+                } else if (!mainVideoAttached) {
+                  track.attach(videoRef.current);
+                  currentMainTrackRef.current = track;
+                  mainProvisionalTrackRef.current = track;
+                  mainVideoAttached = true;
+                  setHasStream(true);
+                }
               }
             }
           }
@@ -2121,7 +2158,31 @@ export default function SpectatorPage() {
               return (
                 <>
                   <video
-                    ref={(el) => { if (el) coHostVideoRefs.current.set(h.userId, el); else coHostVideoRefs.current.delete(h.userId); }}
+                    ref={(el) => {
+                      if (el) {
+                        coHostVideoRefs.current.set(h.userId, el);
+                        // Attach this co-host's already-subscribed track as soon as the tile mounts,
+                        // covering the case where the track arrived before the tile existed. Also
+                        // remove them from the big box if they were shown there provisionally.
+                        const room = liveKitRoomRef.current;
+                        if (room) {
+                          for (const [, p] of room.remoteParticipants) {
+                            if (p.identity !== h.userId) continue;
+                            for (const [, pub] of p.videoTrackPublications) {
+                              if (pub.track && pub.isSubscribed) {
+                                pub.track.attach(el);
+                                if (mainProvisionalTrackRef.current === pub.track && videoRef.current) {
+                                  try { pub.track.detach(videoRef.current); } catch { /* noop */ }
+                                  mainProvisionalTrackRef.current = null;
+                                }
+                              }
+                            }
+                          }
+                        }
+                      } else {
+                        coHostVideoRefs.current.delete(h.userId);
+                      }
+                    }}
                     className="absolute inset-0 w-full h-full object-cover"
                     autoPlay playsInline
                   />
