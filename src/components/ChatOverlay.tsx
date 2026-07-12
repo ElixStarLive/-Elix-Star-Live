@@ -103,32 +103,32 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
         {messages.map((msg, idx) => (
           <div
             key={typeof msg.id === 'string' ? msg.id : `msg-${idx}`}
-            className="flex items-center gap-2 animate-in slide-in-from-left-2 duration-200 relative"
+            className="flex flex-col gap-0.5 animate-in slide-in-from-left-2 duration-200 relative"
             style={{ minHeight: CHAT_PROFILE_RING_PX }}
             onPointerDown={() => startLongPress(msg.id)}
             onPointerUp={cancelLongPress}
             onPointerLeave={cancelLongPress}
             onPointerCancel={cancelLongPress}
           >
-            <div 
-              className="flex-shrink-0 cursor-pointer relative z-10 flex items-center justify-center"
-              style={{ height: CHAT_PROFILE_RING_PX }}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (onProfileTap) onProfileTap(msg.username);
-              }}
-            >
-              <LevelBadge
-                level={typeof msg.level === 'number' ? msg.level : 1}
-                size={CHAT_LEVEL_PILL_SIZE_PX}
-                circleSize={CHAT_PROFILE_RING_PX}
-                layout="fixed"
-                avatar={typeof msg.avatar === 'string' ? msg.avatar : undefined}
-              />
-            </div>
-            
-            <div className="flex flex-col min-w-0 justify-center">
-              <div className="flex items-center gap-1.5 flex-wrap leading-snug">
+            {/* Name on the same line as circle + LV */}
+            <div className="flex items-center gap-2 min-w-0">
+              <div 
+                className="flex-shrink-0 cursor-pointer relative z-10 flex items-center justify-center"
+                style={{ height: CHAT_PROFILE_RING_PX }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onProfileTap) onProfileTap(msg.username);
+                }}
+              >
+                <LevelBadge
+                  level={typeof msg.level === 'number' ? msg.level : 1}
+                  size={CHAT_LEVEL_PILL_SIZE_PX}
+                  circleSize={CHAT_PROFILE_RING_PX}
+                  layout="fixed"
+                  avatar={typeof msg.avatar === 'string' ? msg.avatar : undefined}
+                />
+              </div>
+              <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
                 {msg.isMod && (
                   <div className="bg-purple-600/80 px-1 py-0.5 rounded flex items-center gap-0.5 flex-shrink-0">
                     <Shield size={8} className="text-white" />
@@ -136,19 +136,25 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
                   </div>
                 )}
                 <span 
-                    className="text-white font-bold text-[13px] leading-snug cursor-pointer hover:underline whitespace-nowrap" 
+                    className="text-white font-bold text-[13px] leading-none cursor-pointer hover:underline whitespace-nowrap" 
                     onClick={() => onProfileTap?.(String(msg.username ?? ''))}
                 >
                   {typeof msg.username === 'string' ? msg.username : 'User'}
                 </span>
-                
                 {typeof msg.membershipIcon === 'string' && msg.membershipIcon && (
                   <div className="bg-[#FF4500] px-1.5 py-0.5 rounded-full flex items-center gap-1 border border-white/10 shadow-sm inline-flex align-middle">
                     <img src={msg.membershipIcon} alt="Member" className="w-3 h-3 object-contain" />
                     <span className="text-white text-[9px] font-bold uppercase tracking-wider">Member</span>
                   </div>
                 )}
-                
+              </div>
+            </div>
+
+            {(msg.stickerUrl || (typeof msg.text === 'string' && msg.text)) ? (
+              <div
+                className="min-w-0"
+                style={{ paddingLeft: CHAT_PROFILE_RING_PX + 8 }}
+              >
                 {msg.stickerUrl ? (
                   <img src={msg.stickerUrl} alt="sticker" className="w-16 h-16 object-contain rounded-lg" />
                 ) : (
@@ -157,7 +163,7 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
                   </span>
                 )}
               </div>
-            </div>
+            ) : null}
 
             {activeModMenu === msg.id && isModerator && (
               <div className="absolute left-20 -top-1 z-50 flex items-center gap-1 bg-[#111111] border border-white/20 rounded-lg px-1 py-1 shadow-xl pointer-events-auto">
