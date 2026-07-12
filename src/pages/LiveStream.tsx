@@ -2541,6 +2541,24 @@ export default function LiveStream() {
           isGift: true,
         };
         setMessages(prev => [...prev, msg]);
+        if (isBattleModeRef.current) {
+          const iconRaw =
+            (typeof data.gift_icon === 'string' && data.gift_icon) ||
+            (typeof giftDef.icon === 'string' ? giftDef.icon : '');
+          const iconUrl =
+            iconRaw && (iconRaw.startsWith('http://') || iconRaw.startsWith('https://') || iconRaw.startsWith('/'))
+              ? (iconRaw.startsWith('http') ? iconRaw : resolveGiftAssetUrl(iconRaw.startsWith('/') ? iconRaw : `/${iconRaw}`))
+              : null;
+          const target = data.battleTarget;
+          if (iconUrl && (target === 'opponent' || target === 'player3' || target === 'player4')) {
+            setLastGifts((prev) => ({
+              ...prev,
+              ...(target === 'opponent' ? { opponent: iconUrl } : {}),
+              ...(target === 'player3' ? { player3: iconUrl } : {}),
+              ...(target === 'player4' ? { player4: iconUrl } : {}),
+            }));
+          }
+        }
       }
 
       // Play gift video on creator + viewer — catalog path or WS payload (mp4/webm only).
@@ -3248,6 +3266,17 @@ export default function LiveStream() {
         creatorName: hostName || creatorName || 'Creator',
         streamId: effectiveStreamId,
       });
+      if (isBattleMode && serverBattleTarget && gift.icon && (gift.icon.startsWith('http') || gift.icon.startsWith('/'))) {
+        const iconUrl = gift.icon.startsWith('http')
+          ? gift.icon
+          : resolveGiftAssetUrl(gift.icon.startsWith('/') ? gift.icon : `/${gift.icon}`);
+        setLastGifts((prev) => ({
+          ...prev,
+          ...(serverBattleTarget === 'opponent' ? { opponent: iconUrl } : {}),
+          ...(serverBattleTarget === 'player3' ? { player3: iconUrl } : {}),
+          ...(serverBattleTarget === 'player4' ? { player4: iconUrl } : {}),
+        }));
+      }
     } catch (error) {
       showToast('Gift failed');
     }
@@ -4070,11 +4099,13 @@ export default function LiveStream() {
                         </button>
                         <button
                           type="button"
-                          className="flex cursor-pointer items-center justify-center border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
-                          onClick={(e) => { e.stopPropagation(); toggleBattle(); }}
-                          title="End Battle"
+                          onClick={(e) => { e.stopPropagation(); toggleCam(); }}
+                          title={isCamOff ? 'Camera on' : 'Camera off'}
+                          className="flex items-center justify-center border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
                         >
-                          <RoyceBackIcon size={18} />
+                          {isCamOff
+                            ? <CameraOff className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />
+                            : <Camera className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />}
                         </button>
                       </div>
 
@@ -4148,6 +4179,16 @@ export default function LiveStream() {
                             {mutedPlayers['opponent']
                               ? <MicOff className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />
                               : <Mic className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); togglePlayerCamera('opponent'); }}
+                            title={cameraOffPlayers['opponent'] ? 'Show opponent camera' : 'Hide opponent camera'}
+                            className="flex items-center justify-center border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
+                          >
+                            {cameraOffPlayers['opponent']
+                              ? <CameraOff className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />
+                              : <Camera className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />}
                           </button>
                           <button
                             type="button"
@@ -4391,7 +4432,7 @@ export default function LiveStream() {
             </div>
 
             {SPEED_CHALLENGE_ENABLED && speedChallengeActive && (
-              <div className="w-full px-3 py-2 flex items-center justify-center flex-none pointer-events-none mt-1 relative z-30" style={{ transform: 'translateY(-19mm)' }}>
+              <div className="w-full px-3 py-2 flex items-center justify-center flex-none pointer-events-none mt-1 relative z-30" style={{ transform: 'translateY(-6mm)' }}>
                 <div className="flex items-center gap-3 px-5 py-1 rounded-full bg-[#B91C1C]/90 backdrop-blur-md border border-white/20/70 shadow-[0_0_15px_rgba(185,28,28,0.45)] animate-luxury-fade-in">
                   <span className="text-white text-[9px] font-bold uppercase tracking-[0.1em]">⚡ Speed</span>
                   <span className="text-white text-[14px] font-black tabular-nums">{speedChallengeTime}s</span>

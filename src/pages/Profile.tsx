@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { RoyceBackIcon } from '../components/royce';
-import { Share2, Menu, Lock, Play, Heart, Sparkles, LogOut, UserPlus, Bookmark, Grid3X3, ShoppingBag, Repeat2, ChevronDown, Search, Copy, MessageCircle, Check, TrendingUp, Flag, Plus, Settings, Power } from 'lucide-react';
+import { RoyceBackIcon, RoyceCloseIcon } from '../components/royce';
+import { Share2, Menu, Lock, Play, Heart, Sparkles, LogOut, UserPlus, Bookmark, Grid3X3, ShoppingBag, Repeat2, ChevronDown, Search, Copy, MessageCircle, Check, TrendingUp, Flag, Plus, Settings } from 'lucide-react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { showToast } from '../lib/toast';
@@ -413,8 +413,8 @@ export default function Profile() {
   if (routeUserId && resolvedUserId === null && !loading) {
     return (
       <div className="bg-[#111111] text-white flex flex-col items-center justify-center min-h-[50vh] px-4">
-        <button onClick={() => navigate(-1)} className="absolute top-4 right-4 p-1" title="Back">
-          <Power size={20} className="stroke-gold-metallic" strokeWidth={2} />
+        <button onClick={() => navigate(-1)} className="absolute top-4 right-4 p-1" title="Close" aria-label="Close">
+          <RoyceCloseIcon size={20} />
         </button>
         <p className="text-white/70 text-center">Profile not found.</p>
         <button onClick={() => navigate(-1)} className="mt-4 text-gold-metallic font-semibold text-sm">Go back</button>
@@ -425,8 +425,8 @@ export default function Profile() {
   if (!loading && !profileData && !isOwnProfile) {
     return (
       <div className="bg-[#111111] text-white flex flex-col items-center justify-center min-h-[50vh] px-4">
-        <button onClick={() => navigate(-1)} className="absolute top-4 right-4 p-1" title="Back">
-          <Power size={20} className="stroke-gold-metallic" strokeWidth={2} />
+        <button onClick={() => navigate(-1)} className="absolute top-4 right-4 p-1" title="Close" aria-label="Close">
+          <RoyceCloseIcon size={20} />
         </button>
         <p className="text-white/70 text-center">Profile not found or couldn&apos;t load.</p>
         <button onClick={() => navigate(-1)} className="mt-4 text-gold-metallic font-semibold text-sm">Go back</button>
@@ -460,10 +460,11 @@ export default function Profile() {
           <button
             type="button"
             onClick={() => navigate(-1)}
-            title="Back"
+            title="Close"
+            aria-label="Close"
             className="p-1"
           >
-            <Power size={20} className="stroke-gold-metallic" strokeWidth={2} />
+            <RoyceCloseIcon size={20} />
           </button>
         </header>
 

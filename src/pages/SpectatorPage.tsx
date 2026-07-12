@@ -27,7 +27,6 @@ import {
   Trophy,
   Plus,
   PlusCircle,
-  ExternalLink,
   Play,
   Users,
 } from 'lucide-react';
@@ -339,6 +338,7 @@ export default function SpectatorPage() {
   const opponentLkRoomRef = useRef<Room | null>(null);
   const [hasOpponentStream, setHasOpponentStream] = useState(false);
   const [showOpponentPanel, setShowOpponentPanel] = useState(false);
+  const [lastOpponentGift, setLastOpponentGift] = useState<string | null>(null);
   const [opponentProfile, setOpponentProfile] = useState<{
     displayName: string; username: string; avatarUrl: string;
     followers: number; following: number; level: number; bio: string;
@@ -378,6 +378,12 @@ export default function SpectatorPage() {
       } catch { /* non-fatal */ }
     })();
   }, [battleStreamIds?.opponentUserId, spectatorBattle?.opponentName]);
+
+  const joinOpponentLive = useCallback(() => {
+    const roomId = spectatorBattle?.opponentRoomId;
+    if (!roomId) return;
+    navigate(`/watch/${roomId}`);
+  }, [spectatorBattle?.opponentRoomId, navigate]);
 
   const handleSpectatorVote = useCallback((target: 'host' | 'opponent' | 'player3' | 'player4') => {
     if (!spectatorBattle?.active) return;
@@ -1194,6 +1200,19 @@ export default function SpectatorPage() {
           };
           setMessages(prev => [...prev, msg]);
         }
+        if (spectatorBattleRef.current?.active) {
+          const side = normalizeBattleGiftTarget(data.battleTarget);
+          if (side === 'opponent') {
+            const iconRaw =
+              (typeof data.gift_icon === 'string' && data.gift_icon) ||
+              (typeof giftDef.icon === 'string' ? giftDef.icon : '');
+            const iconUrl =
+              iconRaw && (iconRaw.startsWith('http://') || iconRaw.startsWith('https://') || iconRaw.startsWith('/'))
+                ? (iconRaw.startsWith('http') ? iconRaw : resolveGiftAssetUrl(iconRaw.startsWith('/') ? iconRaw : `/${iconRaw}`))
+                : null;
+            if (iconUrl) setLastOpponentGift(iconUrl);
+          }
+        }
       }
       // Play gift video for other users' gifts (sender already queued locally).
       if (data.user_id !== user?.id) {
@@ -1757,6 +1776,12 @@ export default function SpectatorPage() {
       creatorName: hostName || 'Creator',
       streamId: effectiveStreamId,
     });
+    if (spectatorBattle?.active && spectatorGiftBattleTarget === 'opponent' && gift.icon && (gift.icon.startsWith('http') || gift.icon.startsWith('/'))) {
+      const iconUrl = gift.icon.startsWith('http')
+        ? gift.icon
+        : resolveGiftAssetUrl(gift.icon.startsWith('/') ? gift.icon : `/${gift.icon}`);
+      setLastOpponentGift(iconUrl);
+    }
   };
 
   const handleComboClick = () => {
@@ -1908,7 +1933,7 @@ export default function SpectatorPage() {
                       </div>
                       <div
                         className="w-1/2 h-full overflow-hidden relative bg-[#111111] cursor-pointer"
-                        onClick={(e) => { e.stopPropagation(); openOpponentPanel(); }}
+                        onClick={(e) => { e.stopPropagation(); joinOpponentLive(); }}
                       >
                         <video
                           ref={opponentVideoRef}
@@ -1936,6 +1961,13 @@ export default function SpectatorPage() {
                             </div>
                           </div>
                         )}
+                        {lastOpponentGift && (
+                          <div className="absolute bottom-1 right-1 z-20 pointer-events-none flex items-center">
+                            <div className="w-5 h-5 rounded-full bg-[#111111] border border-[#C9A227]/40 overflow-hidden flex items-center justify-center drop-shadow-md">
+                              <img src={lastOpponentGift} alt="gift" className="w-full h-full object-cover" />
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                     {spectatorBattle.winner && (
@@ -1951,19 +1983,6 @@ export default function SpectatorPage() {
                           </span>
                         </div>
                       </div>
-                    )}
-                    {spectatorBattle.opponentRoomId && (
-                      <button
-                        type="button"
-                        className="absolute top-1 right-1 z-30 flex items-center justify-center rounded-full bg-black/50 p-1.5 border border-white/15 pointer-events-auto active:scale-95"
-                        title="Watch opponent stream"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openOpponentPanel();
-                        }}
-                      >
-                        <ExternalLink className="w-3.5 h-3.5 text-white/90" strokeWidth={2} />
-                      </button>
                     )}
                     <div className="absolute inset-0 z-10 flex flex-row touch-manipulation">
                       {showPkBreakdown ? (
@@ -1987,13 +2006,13 @@ export default function SpectatorPage() {
                               type="button"
                               className="flex-1 min-h-0 w-full touch-manipulation cursor-pointer border-0 bg-transparent p-0 active:bg-white/5"
                               aria-label="Vote blue team P2"
-                              onClick={() => { handleSpectatorVote('opponent'); openOpponentPanel(); }}
+                              onClick={() => handleSpectatorVote('opponent')}
                             />
                             <button
                               type="button"
                               className="flex-1 min-h-0 w-full touch-manipulation cursor-pointer border-0 bg-transparent p-0 active:bg-white/5 border-t border-white/10"
                               aria-label="Vote blue team P4"
-                              onClick={() => { handleSpectatorVote('player4'); openOpponentPanel(); }}
+                              onClick={() => handleSpectatorVote('player4')}
                             />
                           </div>
                         </>
@@ -2009,7 +2028,7 @@ export default function SpectatorPage() {
                             type="button"
                             className="w-1/2 h-full touch-manipulation cursor-pointer border-0 bg-transparent p-0 active:bg-white/5"
                             aria-label="Vote blue team"
-                            onClick={() => { handleSpectatorVote('opponent'); openOpponentPanel(); }}
+                            onClick={() => { handleSpectatorVote('opponent'); joinOpponentLive(); }}
                           />
                         </>
                       )}
