@@ -66,15 +66,18 @@ export const LIVE_BOTTOM_ACTION_RESERVE =
 /** Main host avatar in live top bar (next to name pill). */
 export const LIVE_TOP_AVATAR_RING_PX = 48;
 
-/** Shared shell: avatar + name + Join/Follow as one rounded capsule, same height as the profile circle. */
-export const CREATOR_NAME_PILL_CLASSNAME =
-  'relative flex items-center min-w-0 rounded-full border border-[#FFFFFF]/60 bg-[#111111]/80 z-[15] overflow-hidden' as const;
+/** Live top-bar name/Join capsule height (shorter than avatar so the bar is not oversized). */
+export const CREATOR_NAME_PILL_HEIGHT_PX = 36;
 
-/** Inline styles for the host capsule (height matches avatar ring); merge with `style` if needed. */
+/** Shared shell: avatar + name + Join/Follow as one rounded capsule. */
+export const CREATOR_NAME_PILL_CLASSNAME =
+  'relative flex items-center min-w-0 rounded-full border border-[#FFFFFF]/60 bg-[#111111]/80 z-[15] overflow-visible' as const;
+
+/** Inline styles for the host capsule; merge with `style` if needed. */
 export function getCreatorNamePillStyle(overrides?: Record<string, string | number | undefined>): Record<string, string | number> {
   return {
     boxShadow: '0 0 8px rgba(255,255,255,0.25)',
-    height: LIVE_TOP_AVATAR_RING_PX,
+    height: CREATOR_NAME_PILL_HEIGHT_PX,
     ...overrides,
   };
 }
