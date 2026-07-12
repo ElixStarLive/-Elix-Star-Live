@@ -141,7 +141,7 @@ export default function ChatThread() {
   const [loading, setLoading] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const previews = useLinkPreviews(messages);
-  const [liveUsers, setLiveUsers] = useState<{ id: string; name: string; avatar: string }[]>([]);
+  const [liveUsers, setLiveUsers] = useState<{ roomKey: string; userId: string; name: string; avatar: string }[]>([]);
 
   const isSystemThread = useMemo(() => {
     return ['new', 'followers', 'likes', 'comments', 'mentions'].includes(threadId || '');
@@ -159,23 +159,25 @@ export default function ChatThread() {
         if (cancelled) return;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const streams = ((liveResult.data as any)?.streams || []) as any[];
-        const liveIds: string[] = streams.map((s) => String(s.user_id || s.userId || '')).filter(Boolean);
-        const nameById = new Map(streams.map((s) => [String(s.user_id || s.userId || ''), s.display_name || s.title || '']));
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const profiles = ((profilesResult.data as any)?.profiles || []) as any[];
         const byId = new Map(profiles.map((p) => [String(p.user_id || p.userId || ''), p]));
         const seen = new Set<string>();
-        const list = liveIds
-          .filter((id) => id && id !== user?.id && !seen.has(id) && seen.add(id))
-          .map((id) => {
+        const list = streams
+          .map((s) => {
+            // Navigate with the room key (stream_key/room_id) so tapping actually joins the live.
+            const roomKey = String(s.stream_key ?? s.streamKey ?? s.room_id ?? s.roomId ?? s.id ?? '');
+            const userId = String(s.user_id ?? s.userId ?? s.hostUserId ?? '');
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const p = byId.get(id) as any;
+            const p = byId.get(userId) as any;
             return {
-              id,
-              name: (p?.display_name || p?.displayName || p?.username || nameById.get(id) || 'Live') as string,
+              roomKey,
+              userId,
+              name: (p?.display_name || p?.displayName || p?.username || s.display_name || s.title || 'Live') as string,
               avatar: (p?.avatar_url || p?.avatarUrl || '/royce/default-avatar.svg') as string,
             };
-          });
+          })
+          .filter((x) => x.roomKey && x.userId !== user?.id && !seen.has(x.roomKey) && seen.add(x.roomKey));
         setLiveUsers(list);
       } catch {
         if (!cancelled) setLiveUsers([]);
@@ -321,9 +323,9 @@ export default function ChatThread() {
             <div className="flex gap-3 overflow-x-auto overflow-y-hidden no-scrollbar px-3 py-2" style={{ WebkitOverflowScrolling: 'touch' }}>
               {liveUsers.map((u) => (
                 <button
-                  key={u.id}
+                  key={u.roomKey}
                   type="button"
-                  onClick={() => navigate(`/watch/${u.id}`)}
+                  onClick={() => navigate(`/watch/${u.roomKey}`)}
                   className="flex-shrink-0 flex flex-col items-center gap-1"
                   style={{ width: 64, minWidth: 64 }}
                 >
