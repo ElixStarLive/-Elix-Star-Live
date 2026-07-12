@@ -1,7 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import {
   Heart,
-  Music,
   MessageCircle,
   Settings2,
   Share2,
@@ -960,22 +959,18 @@ export default function EnhancedVideoPlayer({
           className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform max-w-[52px]"
           title={video.music?.title || 'Original Sound'}
         >
-          {video.user.avatar ? (
-            <span
-              className="rounded-full overflow-hidden border border-[#C9A227]/60 bg-black flex items-center justify-center"
-              style={{ width: 34, height: 34 }}
-            >
-              <img
-                src={video.user.avatar}
-                alt=""
-                className="w-full h-full object-cover"
-                draggable={false}
-                onError={(e) => { e.currentTarget.style.display = 'none'; }}
-              />
-            </span>
-          ) : (
-            <RoyceIcon icon={Music} size={22} tile active />
-          )}
+          <span
+            className="rounded-full overflow-hidden border border-[#C9A227]/60 bg-black flex items-center justify-center"
+            style={{ width: 34, height: 34 }}
+          >
+            <img
+              src={video.music?.coverUrl || video.user.avatar || '/royce/default-avatar.svg'}
+              alt=""
+              className="w-full h-full object-cover"
+              draggable={false}
+              onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/royce/default-avatar.svg'; }}
+            />
+          </span>
           <span className="text-[8px] font-medium leading-tight text-gold-light/80 max-w-full truncate text-center">
             {video.music?.title?.split(' ').slice(0, 2).join(' ') || 'Original'}
           </span>
@@ -1007,9 +1002,18 @@ export default function EnhancedVideoPlayer({
         </div>
 
         <div className="flex items-center gap-2 text-white/90 mb-1 mt-0.5">
-          <Music size={14} className="text-white flex-shrink-0" />
+          <span className="w-4 h-4 rounded-full overflow-hidden bg-black flex-shrink-0 border border-white/20 flex items-center justify-center">
+            <img
+              src={video.music?.coverUrl || video.user.avatar || '/royce/default-avatar.svg'}
+              alt=""
+              className="w-full h-full object-cover"
+              draggable={false}
+              onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/royce/default-avatar.svg'; }}
+            />
+          </span>
           <span className="text-xs font-medium animate-marquee whitespace-nowrap overflow-hidden w-32">
-            {video.music?.title || 'Original Sound'}{video.music?.artist ? ` - ${video.music.artist}` : ''}
+            {video.music?.title || 'Original Sound'}
+            {(video.music?.artist || video.user.name || video.user.username) ? ` - ${video.music?.artist || video.user.name || video.user.username}` : ''}
           </span>
         </div>
         
