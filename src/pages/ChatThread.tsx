@@ -263,7 +263,7 @@ export default function ChatThread() {
           {otherUser ? (
             <div className="flex min-w-0 flex-1 items-center justify-center gap-3">
               <div className="flex-shrink-0">
-                <LevelBadge level={otherUser.level || 1} avatar={otherUser.avatar_url || ''} size={36} layout="fixed" />
+                <LevelBadge level={otherUser.level || 1} avatar={otherUser.avatar_url || ''} circleSize={36} layout="fixed" />
               </div>
               <span className="truncate text-center font-bold text-sm">{otherUser.username}</span>
             </div>
