@@ -585,6 +585,24 @@ export default function LiveStream() {
       attachRemoteTrack(track, participant);
     });
 
+    // Read-only: highlight (pulse) whichever participant is currently speaking.
+    room.on(RoomEvent.ActiveSpeakersChanged, (speakers) => {
+      setSpeakingIds(new Set(speakers.map((s) => s.identity).filter(Boolean)));
+    });
+    // Read-only: track a co-host turning their own camera off (video track muted) to show their avatar.
+    room.on(RoomEvent.TrackMuted, (pub, participant) => {
+      if (pub.kind !== 'video') return;
+      const id = participant?.identity;
+      if (!id) return;
+      setRemoteCamOff((prev) => { const n = new Set(prev); n.add(id); return n; });
+    });
+    room.on(RoomEvent.TrackUnmuted, (pub, participant) => {
+      if (pub.kind !== 'video') return;
+      const id = participant?.identity;
+      if (!id) return;
+      setRemoteCamOff((prev) => { const n = new Set(prev); n.delete(id); return n; });
+    });
+
     (async () => {
       try {
         await room.connect(liveKitCreds.url, liveKitCreds.token);
@@ -1020,6 +1038,10 @@ export default function LiveStream() {
   const toggleCoHostCamera = (hostId: string) => {
     setCoHostCameraOff(prev => ({ ...prev, [hostId]: !prev[hostId] }));
   };
+  // Identities currently speaking (from LiveKit ActiveSpeakersChanged) — drives the box pulse.
+  const [speakingIds, setSpeakingIds] = useState<Set<string>>(new Set());
+  // Co-host identities whose own camera is off (video track muted) — show their avatar.
+  const [remoteCamOff, setRemoteCamOff] = useState<Set<string>>(new Set());
 
   const liveCoHosts = coHosts.filter(h => h.status === 'live');
   const featuredHost = featuredHostId ? liveCoHosts.find(h => h.id === featuredHostId) : null;
@@ -3829,15 +3851,16 @@ export default function LiveStream() {
               const renderCoHostCell = (slot: { type: 'live' | 'invited' | 'pending' | 'empty'; host?: (typeof coHosts)[0] }) => {
                 if (slot.type === 'live' && slot.host) {
                   const host = slot.host;
+                  const camOff = coHostCameraOff[host.id] || remoteCamOff.has(host.userId);
                   return (
                     <>
                       <video
                         ref={(el) => { if (el) coHostVideoRefs.current.set(host.userId, el); else coHostVideoRefs.current.delete(host.userId); }}
                         className="absolute inset-0 w-full h-full object-cover"
                         autoPlay playsInline muted={host.isMuted}
-                        style={coHostCameraOff[host.id] ? { display: 'none' } : undefined}
+                        style={camOff ? { display: 'none' } : undefined}
                       />
-                      {coHostCameraOff[host.id] && (
+                      {camOff && (
                         <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[#111111] z-[6]">
                           {host.avatar ? <img src={host.avatar} alt="" className="w-10 h-10 object-cover object-center" /> : (
                             <div className="w-10 h-10 bg-[#111111] flex items-center justify-center"><span className="text-[#E8D5A3]/60 text-sm font-bold">{(host.name || '?').charAt(0)}</span></div>
@@ -3886,11 +3909,18 @@ export default function LiveStream() {
 
               return (
                 <div className="w-1/2 h-full grid grid-cols-2 grid-rows-4 gap-[1px] bg-[#1a1c22]">
-                  {smallSlots.slice(0, 8).map((slot, i) => (
-                    <div key={i} className="relative bg-[#111111] flex flex-col items-center justify-center overflow-hidden p-0 min-h-0">
-                      {renderCoHostCell(slot)}
-                    </div>
-                  ))}
+                  {smallSlots.slice(0, 8).map((slot, i) => {
+                    const cellHost = slot.type === 'live' ? slot.host : undefined;
+                    const cellSpeaking = !!cellHost && speakingIds.has(cellHost.userId);
+                    return (
+                      <div
+                        key={i}
+                        className={`relative bg-[#111111] flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 border border-[#C9A96E]/40 ${cellSpeaking ? 'elix-speaking-pulse' : ''}`}
+                      >
+                        {renderCoHostCell(slot)}
+                      </div>
+                    );
+                  })}
                 </div>
               );
             })()}

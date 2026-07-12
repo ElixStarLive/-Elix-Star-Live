@@ -460,6 +460,10 @@ export default function SpectatorPage() {
   // host's track is identified or the co-host's own tile mounts. This guarantees a
   // co-host is never rendered in BOTH the big box and their small tile.
   const mainProvisionalTrackRef = useRef<import('livekit-client').RemoteTrack | null>(null);
+  // Identities currently speaking (LiveKit ActiveSpeakersChanged) — drives the box pulse.
+  const [speakingIds, setSpeakingIds] = useState<Set<string>>(new Set());
+  // Co-host identities whose camera is off (video track muted) — show their avatar instead.
+  const [remoteCamOff, setRemoteCamOff] = useState<Set<string>>(new Set());
 
   const [isCoHosting, setIsCoHosting] = useState(false);
   const [coHostStream, setCoHostStream] = useState<MediaStream | null>(null);
@@ -805,6 +809,24 @@ export default function SpectatorPage() {
 
         room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
           onTrackSubscribed(track, publication, participant);
+        });
+        // Read-only: pulse whichever participant is currently speaking.
+        room.on(RoomEvent.ActiveSpeakersChanged, (speakers) => {
+          if (!mounted) return;
+          setSpeakingIds(new Set(speakers.map((s) => s.identity).filter(Boolean)));
+        });
+        // Read-only: track co-host camera-off (video track muted) to show their avatar.
+        room.on(RoomEvent.TrackMuted, (pub, participant) => {
+          if (!mounted || pub.kind !== 'video') return;
+          const id = participant?.identity;
+          if (!id) return;
+          setRemoteCamOff((prev) => { const n = new Set(prev); n.add(id); return n; });
+        });
+        room.on(RoomEvent.TrackUnmuted, (pub, participant) => {
+          if (!mounted || pub.kind !== 'video') return;
+          const id = participant?.identity;
+          if (!id) return;
+          setRemoteCamOff((prev) => { const n = new Set(prev); n.delete(id); return n; });
         });
         await room.connect(url, token);
         if (!mounted) {
@@ -2137,8 +2159,11 @@ export default function SpectatorPage() {
                   />
                   {isCamOff && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[#111111] z-[6]">
-                      <CameraOff size={24} className="text-white/30" />
-                      <span className="text-white/60 text-[9px] font-bold">Camera off</span>
+                      {(viewerAvatar || user?.avatar) ? (
+                        <img src={viewerAvatar || user?.avatar || ''} alt="" className="w-10 h-10 rounded-full object-cover object-center" />
+                      ) : (
+                        <CameraOff size={24} className="text-white/30" />
+                      )}
                     </div>
                   )}
                   <div className="absolute top-0.5 right-0.5 z-10 flex items-center gap-0.5 pointer-events-auto">
@@ -2185,7 +2210,17 @@ export default function SpectatorPage() {
                     }}
                     className="absolute inset-0 w-full h-full object-cover"
                     autoPlay playsInline
+                    style={remoteCamOff.has(h.userId) ? { display: 'none' } : undefined}
                   />
+                  {remoteCamOff.has(h.userId) && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-[#111111] z-[6]">
+                      {h.avatar ? (
+                        <img src={h.avatar} alt="" className="w-10 h-10 rounded-full object-cover object-center" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-[#111111] flex items-center justify-center"><span className="text-[#E8D5A3]/60 text-sm font-bold">{(h.name || '?').charAt(0)}</span></div>
+                      )}
+                    </div>
+                  )}
                   <p className="absolute bottom-0.5 left-0.5 z-10 text-white/80 text-[8px] font-bold bg-black/50 rounded px-1 truncate max-w-[90%]">{h.name}</p>
                 </>
               );
@@ -2303,11 +2338,19 @@ export default function SpectatorPage() {
               {/* Right: 8-slot co-host grid — same as creator */}
               {showGrid && (
                 <div className="w-1/2 h-full grid grid-cols-2 grid-rows-4 gap-[1px] bg-[#1a1c22]">
-                  {slots.slice(0, 8).map((slot, i) => (
-                    <div key={i} className="relative bg-[#111111] flex flex-col items-center justify-center overflow-hidden p-0 min-h-0">
-                      {renderSlot(slot)}
-                    </div>
-                  ))}
+                  {slots.slice(0, 8).map((slot, i) => {
+                    const cellSpeaking =
+                      (slot.type === 'self' && !!user?.id && speakingIds.has(user.id)) ||
+                      (slot.type === 'live' && !!slot.host && speakingIds.has(slot.host.userId));
+                    return (
+                      <div
+                        key={i}
+                        className={`relative bg-[#111111] flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 border border-[#C9A96E]/40 ${cellSpeaking ? 'elix-speaking-pulse' : ''}`}
+                      >
+                        {renderSlot(slot)}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
               </div>
