@@ -4613,38 +4613,39 @@ export default function LiveStream() {
               </div>
             </div>
 
+      {/* Combo — outside bottom-zone so gift video (z 210) cannot cover it */}
+      <AnimatePresence>
+        {showComboButton && lastSentGift && (
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            className="fixed bottom-[calc(54px+max(2px,env(safe-area-inset-bottom,0px))+1cm)] right-3 z-[220] flex flex-col items-center pointer-events-auto ml-[2mm] max-w-[480px]"
+          >
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); handleComboClick(); }}
+              disabled={comboCount >= GIFT_COMBO_MAX}
+              className="w-16 h-14 rounded-full bg-gradient-to-r from-secondary to-[#E8D5A3] flex flex-col items-center justify-center animate-pulse active:scale-90 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.25)] disabled:opacity-50 disabled:animate-none"
+            >
+              <span className={`font-black italic text-white drop-shadow-md ${comboCount >= 1000 ? 'text-sm' : 'text-xl'}`}>
+                x{comboCount >= 1000 ? `${(comboCount / 1000).toFixed(comboCount % 1000 === 0 ? 0 : 1)}K` : comboCount}
+              </span>
+              <span className="text-[9px] font-bold text-white uppercase tracking-widest">Combo</span>
+            </button>
+            <div className="mt-1 px-3 py-1 text-[10px] text-secondary font-bold bg-[#111111]/60 rounded-full backdrop-blur-md border border-white/10 shadow-lg">
+              Send {lastSentGift.name}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* BOTTOM RIGHT: Action buttons (same area as before, aligned right) */}
       <div
         className="bottom-zone pointer-events-auto bg-transparent px-3 pt-0 flex flex-col items-end fixed left-0 right-0 bottom-0 z-[120] justify-end"
         style={{ paddingBottom: LIVE_BOTTOM_ACTION_PADDING }}
       >
         <div className="w-full max-w-[480px] mx-auto flex flex-col items-end gap-0">
-        {/* Combo Button - on top of 3 dots, 1cm up */}
-        <AnimatePresence>
-          {showComboButton && lastSentGift && (
-            <motion.div
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0, opacity: 0 }}
-              className="flex flex-col items-center pointer-events-auto mb-[1cm] ml-[2mm]"
-            >
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); handleComboClick(); }}
-                disabled={comboCount >= GIFT_COMBO_MAX}
-                className="w-16 h-14 rounded-full bg-gradient-to-r from-secondary to-[#E8D5A3] flex flex-col items-center justify-center animate-pulse active:scale-90 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.25)] disabled:opacity-50 disabled:animate-none"
-              >
-                <span className={`font-black italic text-white drop-shadow-md ${comboCount >= 1000 ? 'text-sm' : 'text-xl'}`}>
-                  x{comboCount >= 1000 ? `${(comboCount / 1000).toFixed(comboCount % 1000 === 0 ? 0 : 1)}K` : comboCount}
-                </span>
-                <span className="text-[9px] font-bold text-white uppercase tracking-widest">Combo</span>
-              </button>
-              <div className="mt-1 px-3 py-1 text-[10px] text-secondary font-bold bg-[#111111]/60 rounded-full backdrop-blur-md border border-white/10 shadow-lg">
-                Send {lastSentGift.name}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
         <div className="flex flex-col items-end">
           {/* Spectator bar only: chat, Co-Host, Gift, Share, More. Shown only when watching (not broadcasting). */}
           {!isBroadcast && !currentGift && (

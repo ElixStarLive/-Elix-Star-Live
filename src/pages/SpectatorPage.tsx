@@ -2525,9 +2525,9 @@ export default function SpectatorPage() {
           </div>
         </div>
 
-        {/* COMBO BUTTON — above bottom buttons */}
+        {/* COMBO BUTTON — above gift video overlay so it stays visible after send */}
         {showComboButton && lastSentGift && (
-          <div className="fixed bottom-[calc(54px+max(2px,env(safe-area-inset-bottom,0px)))] right-3 z-[121] pointer-events-auto max-w-[480px]">
+          <div className="fixed bottom-[calc(54px+max(2px,env(safe-area-inset-bottom,0px)))] right-3 z-[220] pointer-events-auto max-w-[480px]">
             <button
               type="button"
               onClick={handleComboClick}
