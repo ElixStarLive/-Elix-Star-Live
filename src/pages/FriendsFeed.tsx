@@ -34,7 +34,13 @@ export default function FriendsFeed() {
         ]);
         const profilesBody = profilesResult.data ?? { profiles: [] };
         const liveBody = liveResult.data ?? { streams: [] };
-        const liveSet = new Set((liveBody?.streams || []).map((s: any) => s.hostUserId || s.userId || s.user_id).filter(Boolean));
+        // Match live by any id a stream may carry (user_id can fall back to the room key server-side).
+        const liveSet = new Set(
+          (liveBody?.streams || [])
+            .flatMap((s: any) => [s.hostUserId, s.userId, s.user_id, s.stream_key, s.streamKey, s.room_id, s.roomId])
+            .filter(Boolean)
+            .map((v: any) => String(v)),
+        );
 
         const rows = Array.isArray(profilesBody?.profiles) ? profilesBody.profiles : [];
         const blocklist = ['', 'user', 'demo', 'test', 'unknown', 'anonymous', 'guest'];
@@ -44,7 +50,7 @@ export default function FriendsFeed() {
             username: p.username || 'user',
             name: p.display_name || p.displayName || p.username || 'User',
             avatar_url: p.avatar_url || p.avatarUrl,
-            is_live: liveSet.has(p.user_id || p.userId),
+            is_live: liveSet.has(String(p.user_id || p.userId || '')),
           }))
           .filter((p) => !!p.id && p.id !== user?.id)
           .filter((p) => {
