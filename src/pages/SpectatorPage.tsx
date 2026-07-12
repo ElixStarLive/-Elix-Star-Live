@@ -2450,7 +2450,7 @@ export default function SpectatorPage() {
               className="flex items-center gap-2 mt-1 ml-12 pointer-events-auto relative z-20 flex-wrap"
             >
               <div
-                className="flex items-center gap-1 bg-[#111111] rounded-full px-2 py-0.5 border border-[#C9A227]/40 shadow-sm cursor-pointer active:scale-95 transition-transform"
+                className="flex items-center gap-1 bg-transparent rounded-full px-2 py-0.5 border border-[#C9A227]/40 cursor-pointer active:scale-95 transition-transform"
                 onClick={() => { setShowGiftPanel(false); setShowRankingPanel(true); }}
               >
                 <Trophy className="w-3 h-3 text-[#D4AF37]" strokeWidth={2} />
@@ -2458,7 +2458,7 @@ export default function SpectatorPage() {
                 <span className="text-[#E8D5A3]/70 text-[10px]">&gt;</span>
               </div>
               <div
-                className="flex items-center gap-1 bg-[#111111] rounded-full px-2 py-0.5 border border-[#C9A227]/40 shadow-sm cursor-pointer active:scale-95 transition-transform"
+                className="flex items-center gap-1 bg-transparent rounded-full px-2 py-0.5 border border-[#C9A227]/40 cursor-pointer active:scale-95 transition-transform"
                 onClick={() => { setShowGiftPanel(false); setShowFanClub(true); }}
               >
                 <Heart className="w-3 h-3 text-[#D4AF37]" strokeWidth={2} fill="#D4AF37" />

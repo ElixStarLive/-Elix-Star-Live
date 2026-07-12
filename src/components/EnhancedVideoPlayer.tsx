@@ -951,7 +951,22 @@ export default function EnhancedVideoPlayer({
           className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform max-w-[52px]"
           title={video.music?.title || 'Original Sound'}
         >
-          <RoyceIcon icon={Music} size={22} tile active />
+          {video.user.avatar ? (
+            <span
+              className="rounded-full overflow-hidden border border-[#C9A227]/60 bg-black flex items-center justify-center"
+              style={{ width: 34, height: 34 }}
+            >
+              <img
+                src={video.user.avatar}
+                alt=""
+                className="w-full h-full object-cover"
+                draggable={false}
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+              />
+            </span>
+          ) : (
+            <RoyceIcon icon={Music} size={22} tile active />
+          )}
           <span className="text-[8px] font-medium leading-tight text-gold-light/80 max-w-full truncate text-center">
             {video.music?.title?.split(' ').slice(0, 2).join(' ') || 'Original'}
           </span>
@@ -970,7 +985,7 @@ export default function EnhancedVideoPlayer({
       {/* Bottom Info Area — clear bottom nav so views/date stay visible */}
       <div
         className={`absolute z-[10] left-3 w-[72%] pointer-events-none flex flex-col ${edgeToBottomNav ? 'pb-2' : 'pb-1'}`}
-        style={{ bottom: `calc(${navStackExpr} + 8px)` }}
+        style={{ bottom: `calc(${navStackExpr} + 8px)`, transform: 'translateY(8mm)' }}
       >
         <div className="flex items-center gap-2 mb-0">
           <LevelBadge level={video.user.level ?? 1} size={10} circleSize={28} layout="fixed" avatar={video.user.avatar} />
@@ -985,7 +1000,7 @@ export default function EnhancedVideoPlayer({
         <div className="flex items-center gap-2 text-white/90 mb-1 mt-0.5">
           <Music size={14} className="text-white flex-shrink-0" />
           <span className="text-xs font-medium animate-marquee whitespace-nowrap overflow-hidden w-32">
-            {video.music?.title || 'Original Sound'} - {video.music?.artist || ''}
+            {video.music?.title || 'Original Sound'}{video.music?.artist ? ` - ${video.music.artist}` : ''}
           </span>
         </div>
         
@@ -1012,9 +1027,8 @@ export default function EnhancedVideoPlayer({
           </div>
         )}
 
-        <div className="flex items-center gap-4 text-white/60 text-xs">
+        <div className="flex items-center gap-3 text-white/60 text-xs">
           <span>{formatNumber(video.stats.views)} views</span>
-          <span>•</span>
           <span>{new Date(video.createdAt).toLocaleDateString()}</span>
         </div>
 

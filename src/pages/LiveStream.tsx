@@ -4486,7 +4486,7 @@ export default function LiveStream() {
                           </div>
                           <div className="flex items-center gap-2 mt-1 ml-12 pointer-events-auto relative z-20 flex-wrap">
                             <div 
-                              className="flex items-center gap-1 bg-[#111111] rounded-full px-2 py-0.5 border border-[#C9A227]/40 shadow-sm cursor-pointer" 
+                              className="flex items-center gap-1 bg-transparent rounded-full px-2 py-0.5 border border-[#C9A227]/40 cursor-pointer" 
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setShowRankingPanel(true);
@@ -4496,7 +4496,7 @@ export default function LiveStream() {
                               <span className="text-[#D4AF37] text-[9px] font-bold whitespace-nowrap">Weekly Ranking &gt;</span>
                             </div>
                             <div 
-                              className="flex items-center gap-1 bg-[#111111] rounded-full px-2 py-0.5 border border-[#C9A227]/40 shadow-sm cursor-pointer" 
+                              className="flex items-center gap-1 bg-transparent rounded-full px-2 py-0.5 border border-[#C9A227]/40 cursor-pointer" 
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setShowFanClub(true);
