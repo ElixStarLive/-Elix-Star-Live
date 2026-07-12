@@ -111,8 +111,8 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
             onPointerCancel={cancelLongPress}
           >
             <div 
-              className="flex-shrink-0 cursor-pointer relative z-10 flex items-center justify-center overflow-visible"
-              style={{ height: CHAT_PROFILE_RING_PX + Math.round(CHAT_PROFILE_RING_PX * 0.14) }}
+              className="flex-shrink-0 cursor-pointer relative z-10 flex items-center justify-center"
+              style={{ height: CHAT_PROFILE_RING_PX }}
               onClick={(e) => {
                 e.stopPropagation();
                 if (onProfileTap) onProfileTap(msg.username);
