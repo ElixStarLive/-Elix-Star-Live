@@ -56,29 +56,28 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
   const avatarDiameter = profileRingInnerPx(circleSize);
 
   if (splitCircleSizing) {
-    /** Same pattern as live top profile: round circle + round capsule as one piece. */
-    const pillH = circleSize;
+    /** Circle full size; LV capsule smaller than the circle, attached as a round pill. */
+    const pillH = Math.max(12, Math.round(circleSize * 0.52));
+    const pillPadX = Math.max(6, Math.round(pillH * 0.45));
+    const overlapPx = Math.round(circleSize * 0.22);
     const label = text === 'level' ? `Level ${safeLevel}` : `LV ${safeLevel}`;
-    const fontPx = Math.max(10, Math.round(pillH * 0.38));
+    const fontPx = Math.max(9, Math.round(pillH * 0.55));
     return (
       <div
         className={className}
         style={{
           display: 'inline-flex',
           alignItems: 'center',
-          height: pillH,
-          borderRadius: 9999,
-          background: getBarGradient(),
-          border: '1px solid rgba(255,255,255,0.28)',
-          boxShadow: '0 0 8px rgba(255,255,255,0.2), 0 4px 10px rgba(0,0,0,0.5)',
-          overflow: 'hidden',
+          height: circleSize,
           flexShrink: 0,
           verticalAlign: 'middle',
-          paddingRight: Math.max(8, Math.round(pillH * 0.32)),
+          position: 'relative',
         }}
       >
         <div
           style={{
+            position: 'relative',
+            zIndex: 2,
             width: circleSize,
             height: circleSize,
             borderRadius: 9999,
@@ -117,21 +116,39 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
             />
           )}
         </div>
-        <span
+        <div
           style={{
-            color: 'white',
-            fontWeight: 900,
-            fontStyle: 'italic',
-            letterSpacing: '0.02em',
-            fontSize: fontPx,
-            textShadow: '0 2px 6px rgba(0,0,0,0.75)',
-            lineHeight: 1,
-            whiteSpace: 'nowrap',
-            paddingLeft: Math.max(4, Math.round(pillH * 0.12)),
+            position: 'relative',
+            zIndex: 1,
+            marginLeft: -overlapPx,
+            height: pillH,
+            borderRadius: 9999,
+            background: getBarGradient(),
+            border: '1px solid rgba(255,255,255,0.28)',
+            boxShadow: '0 4px 10px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.35)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            paddingLeft: Math.round(overlapPx * 0.85) + pillPadX,
+            paddingRight: pillPadX,
+            flexShrink: 0,
           }}
         >
-          {label}
-        </span>
+          <span
+            style={{
+              color: 'white',
+              fontWeight: 900,
+              fontStyle: 'italic',
+              letterSpacing: '0.02em',
+              fontSize: fontPx,
+              textShadow: '0 2px 6px rgba(0,0,0,0.75)',
+              lineHeight: 1,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {label}
+          </span>
+        </div>
       </div>
     );
   }
