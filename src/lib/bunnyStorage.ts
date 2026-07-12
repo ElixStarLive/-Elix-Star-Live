@@ -108,6 +108,31 @@ export function bunnyCdnUrl(storagePath: string): string {
 }
 
 /**
+ * Normalize a stored video URL into an absolute, playable URL.
+ *
+ * The API may return either an absolute CDN URL
+ * (e.g. "https://zone.b-cdn.net/streams/xyz.mp4") or a relative storage
+ * path (e.g. "streams/xyz.mp4"). A relative path in a <video src> would
+ * resolve against the current page and 404, so relative paths are
+ * converted to an absolute CDN URL — mirroring getVideoPosterUrl().
+ * Absolute http(s), blob:, and data: URLs are returned unchanged.
+ */
+export function resolveVideoPlaybackUrl(videoUrl: string): string {
+  if (!videoUrl || typeof videoUrl !== "string") return "";
+  const trimmed = videoUrl.trim();
+  if (!trimmed) return "";
+  if (
+    trimmed.startsWith("http://") ||
+    trimmed.startsWith("https://") ||
+    trimmed.startsWith("blob:") ||
+    trimmed.startsWith("data:")
+  ) {
+    return trimmed;
+  }
+  return bunnyCdnUrl(trimmed.replace(/^\//, ""));
+}
+
+/**
  * In storage, every video has a PNG image (same path, .png) to use as poster/thumbnail.
  * Given a video URL (e.g. https://cdn.../streams/xyz.mp4 or streams/xyz.mp4), returns the PNG URL.
  */

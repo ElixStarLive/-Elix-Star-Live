@@ -15,7 +15,7 @@ import {
   trackFollow,
 } from '../lib/interactionTracker';
 import { showToast } from '../lib/toast';
-import { getVideoPosterUrl } from '../lib/bunnyStorage';
+import { getVideoPosterUrl, resolveVideoPlaybackUrl } from '../lib/bunnyStorage';
 import { resolveSoundTrackPlaybackUrl } from '../lib/soundLibrary';
 import { isStemExtraCaption } from '../lib/suggestiveCaption';
 
@@ -49,7 +49,7 @@ function mapRawVideoRowToClientVideo(
   const displayName = u.name || u.username || v.displayName || v.username || 'Creator';
   return {
     id,
-    url: v.url,
+    url: resolveVideoPlaybackUrl(v.url || ''),
     thumbnail: v.thumbnail || getVideoPosterUrl(v.url || ''),
     duration: durationStr,
     user: {
