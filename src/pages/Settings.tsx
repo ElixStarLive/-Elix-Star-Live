@@ -101,15 +101,16 @@ export default function Settings() {
         onClick={(e) => e.stopPropagation()}
       >
         <div
-          className="flex-shrink-0 px-3 pt-1.5 pb-1.5 touch-none cursor-grab active:cursor-grabbing"
+          className="flex-shrink-0 px-3 pt-1.5 pb-2 touch-none cursor-grab active:cursor-grabbing"
           onPointerDown={onDragStart}
           onPointerMove={onDragMove}
           onPointerUp={onDragEnd}
           onPointerCancel={onDragEnd}
         >
-          <div className="flex items-center justify-center">
+          <div className="flex flex-col items-center">
             <div className="w-10 h-1 bg-white/20 rounded-full absolute top-2 left-1/2 -translate-x-1/2" />
-            <span className="text-[13px] font-bold text-[#D4AF37]">Settings</span>
+            <span className="text-[13px] font-bold text-[#D4AF37] mt-2">Settings</span>
+            <img src="/elix-logo.png" alt="Elix Star Live" className="w-16 h-16 object-contain mt-1.5" />
           </div>
         </div>
 
