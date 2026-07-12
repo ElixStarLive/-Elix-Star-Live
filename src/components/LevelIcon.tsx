@@ -37,9 +37,13 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
     typeof circleSizeProp === 'number' && Number.isFinite(circleSizeProp)
       ? Math.max(16, Math.floor(circleSizeProp))
       : Math.max(16, Math.floor(rawSize - Math.min(shrinkPx, maxShrink) + circleGrowPx));
+  const splitCircleSizing =
+    typeof circleSizeProp === 'number' && Number.isFinite(circleSizeProp);
   const barHeight = Math.round(barBaseSize * 0.72);
   const barWidth = Math.round(barBaseSize * 1.75);
-  const overlap = Math.round(circleSize * 0.52);
+  const overlap = splitCircleSizing
+    ? Math.round(circleSize * 0.28)
+    : Math.round(circleSize * 0.52);
 
   const getBarGradient = () => {
     if (barColor) return barColor;
@@ -50,8 +54,6 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
   };
 
   const avatarDiameter = profileRingInnerPx(circleSize);
-  const splitCircleSizing =
-    typeof circleSizeProp === 'number' && Number.isFinite(circleSizeProp);
 
   if (splitCircleSizing) {
     const totalWidth = circleSize + barWidth - overlap;

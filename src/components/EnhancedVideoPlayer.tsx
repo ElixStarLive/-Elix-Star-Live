@@ -37,10 +37,9 @@ import { nativeConfirm } from './NativeDialog';
 import { downloadVideoWithoutMusic } from '../lib/videoDownloadClient';
 import { getVideoPosterUrl } from '../lib/bunnyStorage';
 import { resolveSoundTrackPlaybackUrl } from '../lib/soundLibrary';
-import { liveAvatarRingMaskStyle, storyRingInnerPx, PROFILE_RING_IMAGE_LIFT_MM } from '../lib/profileFrame';
+import { StoryGoldRingAvatar } from './StoryGoldRingAvatar';
 
 const VIDEO_SIDEBAR_AVATAR = 44;
-const VIDEO_SIDEBAR_AVATAR_INNER = storyRingInnerPx(VIDEO_SIDEBAR_AVATAR);
 const GOLD_ICON = 'royce-icon-gold';
 const GOLD_COUNT = 'text-[10px] font-semibold leading-none text-gold-light';
 
@@ -881,48 +880,20 @@ export default function EnhancedVideoPlayer({
         }}
       >
         
-        {/* Profile — round avatar; red ring when creator is live */}
+        {/* Profile — red live ring + red LIVE pill when creator is live */}
         <button
           type="button"
           onClick={handleProfileClick}
-          className="relative mb-1 overflow-visible rounded-full bg-[#0a0a0a] active:scale-95 transition-transform"
-          style={{ width: VIDEO_SIDEBAR_AVATAR, height: VIDEO_SIDEBAR_AVATAR, isolation: 'isolate' }}
+          className="relative mb-1 overflow-visible rounded-full active:scale-95 transition-transform"
+          style={{ width: VIDEO_SIDEBAR_AVATAR, height: VIDEO_SIDEBAR_AVATAR }}
           title={video.user.username}
         >
-          <div
-            className="absolute overflow-hidden rounded-full"
-            style={
-              creatorIsLive
-                ? {
-                    width: VIDEO_SIDEBAR_AVATAR_INNER,
-                    height: VIDEO_SIDEBAR_AVATAR_INNER,
-                    top: `calc(50% - ${PROFILE_RING_IMAGE_LIFT_MM}mm)`,
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    zIndex: 1,
-                  }
-                : { inset: 0 }
-            }
-          >
-            {video.user.avatar ? (
-              <img
-                src={video.user.avatar}
-                alt={video.user.username}
-                className="h-full w-full object-cover object-center"
-              />
-            ) : (
-              <span className="flex h-full w-full items-center justify-center text-sm font-bold text-gold-bright">
-                {(video.user.username || '?').charAt(0).toUpperCase()}
-              </span>
-            )}
-          </div>
-          {creatorIsLive ? (
-            <div
-              className="pointer-events-none absolute inset-0 rounded-full"
-              style={{ ...liveAvatarRingMaskStyle(), zIndex: 2 }}
-              aria-hidden
-            />
-          ) : null}
+          <StoryGoldRingAvatar
+            size={VIDEO_SIDEBAR_AVATAR}
+            src={video.user.avatar || ''}
+            alt={video.user.username || ''}
+            live={creatorIsLive}
+          />
         </button>
 
         <button

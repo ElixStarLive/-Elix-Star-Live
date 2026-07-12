@@ -1,4 +1,4 @@
-import { PROFILE_RING_IMAGE_LIFT_MM } from '../lib/profileFrame';
+import { resolveUiAvatarUrl } from '../lib/royceAssets';
 
 interface AvatarRingProps {
   src: string;
@@ -12,28 +12,21 @@ interface AvatarRingProps {
 
 /** Avatar — round crop only, no border ring. */
 export function AvatarRing({ src, alt = '', size, className = '', onClick }: AvatarRingProps) {
-  const safeSrc = typeof src === 'string' && src.length > 0 ? src : '';
   const safeAlt = typeof alt === 'string' ? alt : '';
-  const initial = safeAlt.trim().charAt(0).toUpperCase() || '?';
+  const imgSrc = resolveUiAvatarUrl(src, safeAlt, size * 2);
 
   return (
     <div
-      className={`relative flex-shrink-0 rounded-full overflow-hidden bg-black ${onClick ? 'cursor-pointer' : ''} ${className}`}
+      className={`relative flex-shrink-0 rounded-full overflow-hidden bg-[#13151A] ${onClick ? 'cursor-pointer' : ''} ${className}`}
       style={{ width: size, height: size }}
       onClick={onClick}
     >
-      {safeSrc ? (
-        <img
-          src={safeSrc}
-          alt={safeAlt}
-          className="h-full w-full object-cover object-center"
-          style={{ objectPosition: 'center center', transform: `translateY(-${PROFILE_RING_IMAGE_LIFT_MM}mm)` }}
-        />
-      ) : (
-        <div className="h-full w-full flex items-center justify-center text-white/70 text-sm font-bold">
-          {initial}
-        </div>
-      )}
+      <img
+        src={imgSrc}
+        alt={safeAlt}
+        className="h-full w-full object-cover object-center"
+        draggable={false}
+      />
     </div>
   );
 }

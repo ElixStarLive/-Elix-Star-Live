@@ -56,6 +56,13 @@ export function liveAvatarRingMaskStyle(thicknessPx = LIVE_AVATAR_RING_THICKNESS
 /** Chat LV green pill only; circle uses {@link CHAT_PROFILE_RING_PX}. */
 export const CHAT_LEVEL_PILL_SIZE_PX = Math.max(16, Math.round((22 * CHAT_PROFILE_RING_PX) / 36));
 
+/** Live bottom action row — sit on the writing/labels, safe-area inset only. */
+export const LIVE_BOTTOM_ACTION_PADDING = 'max(2px, env(safe-area-inset-bottom, 0px))' as const;
+
+/** Chat scroll area clears the bottom icon + label row. */
+export const LIVE_BOTTOM_ACTION_RESERVE =
+  'calc(52px + max(2px, env(safe-area-inset-bottom, 0px)))' as const;
+
 /** Main host avatar in live top bar (next to name pill). */
 export const LIVE_TOP_AVATAR_RING_PX = 48;
 
@@ -64,7 +71,7 @@ export const CREATOR_NAME_PILL_PADDING_RIGHT = 'max(3rem,calc(4rem - 20mm))' as 
 
 /** Shared Tailwind classes for the host name / likes oval on LiveStream + Spectator top bar. */
 export const CREATOR_NAME_PILL_CLASSNAME =
-  'flex flex-col justify-center -ml-4 pl-4 h-8 min-h-8 rounded-full border border-[#FFFFFF]/60 bg-[#111111]/80 min-w-0 relative' as const;
+  'flex flex-col justify-center -ml-3 pl-5 h-9 min-h-9 rounded-full border border-[#FFFFFF]/60 bg-[#111111]/80 min-w-0 relative z-[15]' as const;
 
 /** Inline styles for the host name pill (padding + shadow); merge with `style` if needed. */
 export function getCreatorNamePillStyle(overrides?: Record<string, string | number | undefined>): Record<string, string | number> {

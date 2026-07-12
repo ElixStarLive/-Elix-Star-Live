@@ -37,19 +37,26 @@ interface GiftOverlayProps {
   videoSrc: string | null;
   previewSrc?: string | null;
   onEnded: () => void;
-  /** Play gift video on left + right video panes (battle / co-host split). */
+  /** @deprecated Gift video never splits onto battle/co-host panes. */
   splitSides?: boolean;
+  /** @deprecated */
   splitStyle?: React.CSSProperties;
   isBattleMode?: boolean;
   /** When false, spectators can hear the gift video sound. Default true (muted) for creator/autoplay. */
   muted?: boolean;
 }
 
+/** Middle band only — below top bar, above chat + bottom actions. Never battle split, never chat. */
+const GIFT_VIDEO_REGION_STYLE: React.CSSProperties = {
+  top: 'calc(env(safe-area-inset-top, 0px) + 72px)',
+  bottom: 'calc(52px + max(2px, env(safe-area-inset-bottom, 0px)) + 25dvh + 2cm)',
+};
+
 function GiftVideo({
   videoSrc,
   muted,
   onEnded,
-  className = 'absolute inset-0 w-full h-full object-cover drop-shadow-2xl',
+  className = 'absolute inset-0 w-full h-full object-contain object-center drop-shadow-2xl',
 }: {
   videoSrc: string;
   muted: boolean;
@@ -83,8 +90,8 @@ export function GiftOverlay({
   videoSrc,
   previewSrc: _previewSrc,
   onEnded,
-  splitSides = false,
-  splitStyle,
+  splitSides: _splitSides = false,
+  splitStyle: _splitStyle,
   isBattleMode: _isBattleMode,
   muted = true,
 }: GiftOverlayProps) {
@@ -136,38 +143,10 @@ export function GiftOverlay({
 
   if (!videoSrc || !videoReady) return null;
 
-  if (splitSides) {
-    const regionStyle: React.CSSProperties = {
-      top: 'calc(env(safe-area-inset-top, 0px) + 90px)',
-      height: 'calc(36dvh + 10mm)',
-      zIndex: 210,
-      ...splitStyle,
-    };
-
-    return (
-      <div
-        className="fixed left-0 right-0 mx-auto w-full max-w-[480px] pointer-events-none overflow-hidden flex flex-row"
-        style={regionStyle}
-      >
-        <div className="relative w-1/2 h-full overflow-hidden">
-          <GiftVideo videoSrc={videoSrc} muted={muted} onEnded={handleEnded} />
-        </div>
-        <div className="relative w-1/2 h-full overflow-hidden">
-          <GiftVideo videoSrc={videoSrc} muted={muted} onEnded={() => {}} />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div
-      className="fixed left-0 right-0 bottom-0 mx-auto w-full max-w-[480px] pointer-events-none overflow-hidden"
-      style={{
-        height: '70%',
-        zIndex: 210,
-        WebkitMaskImage: 'linear-gradient(to top, black 0%, black 60%, transparent 100%)',
-        maskImage: 'linear-gradient(to top, black 0%, black 60%, transparent 100%)',
-      }}
+      className="fixed left-0 right-0 mx-auto w-full max-w-[480px] pointer-events-none overflow-hidden"
+      style={{ ...GIFT_VIDEO_REGION_STYLE, zIndex: 999995 }}
     >
       <GiftVideo videoSrc={videoSrc} muted={muted} onEnded={handleEnded} />
     </div>

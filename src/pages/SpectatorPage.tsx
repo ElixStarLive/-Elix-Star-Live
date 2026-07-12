@@ -59,6 +59,8 @@ import {
   LIVE_BATTLE_CHAT_HEIGHT,
   LIVE_BATTLE_CHAT_SHIFT_Y,
   LIVE_TOP_AVATAR_RING_PX,
+  LIVE_BOTTOM_ACTION_PADDING,
+  LIVE_BOTTOM_ACTION_RESERVE,
 } from '../lib/profileFrame';
 import { useAuthStore } from '../store/useAuthStore';
 import { useVideoStore } from '../store/useVideoStore';
@@ -73,6 +75,7 @@ import { websocket } from '../lib/websocket';
 import { normalizeBattleGiftTarget } from '../lib/liveBattleGiftTarget';
 import { parseLiveGiftGoal, type LiveGiftGoal } from '../lib/liveGiftGoal';
 import { IS_STORE_BUILD } from '../config/build';
+import { resolveUiAvatarUrl } from '../lib/royceAssets';
 import { Room, RoomEvent, LocalVideoTrack, LocalAudioTrack } from 'livekit-client';
 
 function formatBattleScoreShort(coins: number) {
@@ -214,12 +217,11 @@ export default function SpectatorPage() {
     host: MvpSlotRow[];
     opponent: MvpSlotRow[];
   }>({ global: [], host: [], opponent: [] });
-  const resolveCircleAvatar = useCallback((avatar: string | null | undefined, name: string | null | undefined) => {
-    const direct = typeof avatar === 'string' ? avatar.trim() : '';
-    if (direct) return direct;
-    const label = String(name || 'User').trim() || 'User';
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(label)}&background=121212&color=FFFFFF`;
-  }, []);
+  const resolveCircleAvatar = useCallback(
+    (avatar: string | null | undefined, name: string | null | undefined) =>
+      resolveUiAvatarUrl(avatar, name, SPECTATOR_MVP_PROFILE_RING_PX * 2),
+    [],
+  );
 
   const syncMvpSlots = useCallback(() => {
     const hid = hostUserIdRef.current || hostUserId || effectiveStreamId || '';
@@ -1713,7 +1715,10 @@ export default function SpectatorPage() {
           const myUserId = user?.id || '';
           const hostId = hostUserIdRef.current || hostUserId || effectiveStreamId;
           const externalCoHosts = spectatorCoHosts.filter(h => h.userId !== hostId);
-          const showGrid = isCoHosting || externalCoHosts.length > 0;
+          const liveCoHosts = externalCoHosts.filter(
+            (h) => h.status === 'live' || h.status === 'accepted',
+          );
+          const showGrid = isCoHosting || liveCoHosts.length > 0;
 
           /* ═══ BATTLE MODE: creator-identical 50/50 split layout ═══ */
           if (spectatorBattle?.active) {
@@ -2219,18 +2224,17 @@ export default function SpectatorPage() {
 
         {/* CREATOR TOP BAR — only connection to creator page: spectator has access to full creator top bar (avatar, name, likes, Follow, Weekly Ranking, Membership, viewer count, close). Rest is single video + spectator's own bottom bar. */}
         <div className="absolute top-0 left-0 right-0 z-[110] pointer-events-none">
-          <div className="px-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 2px)' }}>
+          <div className="px-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 6px)' }}>
             <div className="flex items-center justify-between gap-2 relative">
               {/* Left: Creator info — full creator top bar */}
               <div
-                className="pointer-events-auto flex items-center gap-0 -ml-1 flex-shrink min-w-0"
-                style={{ transform: 'translateY(-2mm)' }}
+                className="pointer-events-auto flex items-start gap-0 flex-shrink min-w-0"
               >
                 <div
-                  className="relative z-10 flex-shrink-0 cursor-pointer active:scale-95 transition-transform"
+                  className="relative z-[10] flex-shrink-0 cursor-pointer active:scale-95 transition-transform"
                   onClick={() => navigate(`/profile/${hostUserId}`)}
                 >
-                  <AvatarRing src={hostAvatar} alt={hostName} size={LIVE_TOP_AVATAR_RING_PX} />
+                  <AvatarRing src={resolveCircleAvatar(hostAvatar, hostName)} alt={hostName} size={LIVE_TOP_AVATAR_RING_PX} />
                 </div>
                 <div
                   className={`${CREATOR_NAME_PILL_CLASSNAME} cursor-pointer`}
@@ -2323,6 +2327,7 @@ export default function SpectatorPage() {
                 {mvpSlots.global.length > 0 ? (
                   <div
                     className="flex items-center gap-[0mm] pointer-events-auto flex-shrink-0"
+                    style={{ transform: 'translateX(-2mm)' }}
                     onClick={() => {
                       const list: { id: string; name: string; avatar: string; level?: number }[] = [];
                       const hid = hostUserIdRef.current || hostUserId || effectiveStreamId;
@@ -2388,8 +2393,7 @@ export default function SpectatorPage() {
 
             {/* Second row: Weekly Ranking + Membership — spectator sees same creator top bar */}
             <div
-              className="flex items-center gap-2 mt-0.5 ml-9 pointer-events-auto relative z-20 flex-wrap"
-              style={{ transform: 'translateY(-2mm)' }}
+              className="flex items-center gap-2 mt-1 ml-12 pointer-events-auto relative z-20 flex-wrap"
             >
               <div
                 className="flex items-center gap-1 bg-[#111111] rounded-full px-2 py-0.5 border border-[#C9A227]/40 shadow-sm cursor-pointer active:scale-95 transition-transform"
@@ -2414,7 +2418,7 @@ export default function SpectatorPage() {
         <div
           className="chat-zone fixed left-0 right-0 z-[100] flex justify-center pointer-events-none"
           style={{
-            bottom: 'calc(52px + max(8px, env(safe-area-inset-bottom)))',
+            bottom: LIVE_BOTTOM_ACTION_RESERVE,
             transform: spectatorBattle?.active ? `translateY(${LIVE_BATTLE_CHAT_SHIFT_Y})` : undefined,
           }}
         >
@@ -2477,7 +2481,7 @@ export default function SpectatorPage() {
 
         {/* COMBO BUTTON — above bottom buttons */}
         {showComboButton && lastSentGift && (
-          <div className="fixed bottom-[calc(63px+max(12px,env(safe-area-inset-bottom)))] right-3 z-[121] pointer-events-auto max-w-[480px]">
+          <div className="fixed bottom-[calc(54px+max(2px,env(safe-area-inset-bottom,0px)))] right-3 z-[121] pointer-events-auto max-w-[480px]">
             <button
               type="button"
               onClick={handleComboClick}
@@ -2493,8 +2497,11 @@ export default function SpectatorPage() {
         )}
 
         {/* Bottom bar — chat + Invite / Gift / Share / More (labels under icons, spectator) */}
-        <div className="fixed left-0 right-0 bottom-0 z-[120] pointer-events-auto flex justify-center">
-          <div className="w-full max-w-[480px] px-3 pb-[max(8px,env(safe-area-inset-bottom))] pt-0 bg-transparent">
+        <div
+          className="fixed left-0 right-0 bottom-0 z-[120] pointer-events-auto flex justify-center"
+          style={{ paddingBottom: LIVE_BOTTOM_ACTION_PADDING }}
+        >
+          <div className="w-full max-w-[480px] px-3 pt-0 bg-transparent">
             <div className="flex items-end gap-2 w-full max-w-[480px] pointer-events-auto">
               <form
                 className="flex-1 flex items-center gap-2 bg-black/40 backdrop-blur-sm rounded-full px-3 py-2 border border-white/10 h-10 min-w-0"
@@ -2585,14 +2592,6 @@ export default function SpectatorPage() {
           key={`gift-${giftKey}`}
           videoSrc={currentGift?.video ?? null}
           onEnded={handleGiftEnded}
-          splitSides={!!spectatorBattle?.active || isCoHosting || spectatorCoHosts.length > 0}
-          splitStyle={
-            spectatorBattle?.active
-              ? { top: 'calc(env(safe-area-inset-top, 0px) + 78px)', height: 'calc(36dvh + 10mm)' }
-              : isCoHosting || spectatorCoHosts.length > 0
-                ? { top: 'calc(env(safe-area-inset-top, 0px) + 78px)', height: 'calc(36dvh + 10mm)' }
-                : undefined
-          }
           isBattleMode={!!spectatorBattle?.active}
           muted={false}
         />

@@ -64,7 +64,10 @@ import {
   LIVE_BATTLE_CHAT_HEIGHT,
   LIVE_BATTLE_CHAT_SHIFT_Y,
   LIVE_TOP_AVATAR_RING_PX,
+  LIVE_BOTTOM_ACTION_PADDING,
+  LIVE_BOTTOM_ACTION_RESERVE,
 } from '../lib/profileFrame';
+import { resolveUiAvatarUrl } from '../lib/royceAssets';
 import { useAuthStore } from '../store/useAuthStore';
 import { useVideoStore } from '../store/useVideoStore';
 import { clearCachedCameraStream, getCachedCameraStream } from '../lib/cameraStream';
@@ -273,12 +276,11 @@ export default function LiveStream() {
       .filter(Boolean)
       .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
       .join(' ');
-  const resolveCircleAvatar = useCallback((avatar: string | null | undefined, name: string | null | undefined) => {
-    const direct = typeof avatar === 'string' ? avatar.trim() : '';
-    if (direct) return direct;
-    const label = String(name || 'User').trim() || 'User';
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(label)}&background=121212&color=FFFFFF`;
-  }, []);
+  const resolveCircleAvatar = useCallback(
+    (avatar: string | null | undefined, name: string | null | undefined) =>
+      resolveUiAvatarUrl(avatar, name, LIVE_MVP_PROFILE_RING_PX * 2),
+    [],
+  );
   const [hostName, setHostName] = useState('');
   const [hostAvatar, setHostAvatar] = useState('');
   const creatorName = isBroadcast
@@ -290,8 +292,7 @@ export default function LiveStream() {
     : hostAvatar || '';
   const [opponentCreatorName, setOpponentCreatorName] = useState('');
   const viewerName = user?.username || user?.name || 'viewer_123';
-  const viewerAvatar =
-    user?.avatar || `https://ui-avatars.com/api/?name=&background=121212&color=FFFFFF`;
+  const viewerAvatar = resolveUiAvatarUrl(user?.avatar, viewerName);
   /** Floating like hearts: host shows self; spectator shows their own name (not the creator’s). */
   const heartFloatName = isBroadcast ? myCreatorName : viewerName;
   const heartFloatAvatar = isBroadcast ? (user?.avatar || myAvatar || '') : viewerAvatar;
@@ -3659,7 +3660,7 @@ export default function LiveStream() {
   const activeLikes = liveLikes;
 
   return (
-    <div className="min-h-[100dvh] h-[100dvh] w-full flex justify-center bg-black">
+    <div className="fixed inset-0 flex justify-center bg-black z-[9990]">
       <div className="relative w-full max-w-[480px] h-full bg-[#111111] overflow-hidden border-none">
         <div className="h-full w-full relative">
         <audio ref={roomRemoteAudioRef} autoPlay playsInline className="hidden" />
@@ -3670,7 +3671,9 @@ export default function LiveStream() {
             <div ref={stageRef} className="relative w-full h-full">
             {/* Base Video Layer */}
         {!isBattleMode && (() => {
-          const hasAnyCoHost = coHosts.length > 0;
+          const hasAnyCoHost = coHosts.some(
+            (h) => h.status === 'live' || h.status === 'accepted',
+          );
           return (
           <div
             className={hasAnyCoHost ? 'absolute inset-x-0 z-[25] flex flex-row' : 'relative w-full h-full'}
@@ -4353,17 +4356,17 @@ export default function LiveStream() {
             <div className="flex-[0_0_50dvh] relative pointer-events-none">
               {/* Top Bar — always show creator layout for everyone */}
                 <div className="absolute top-0 left-0 right-0 z-[110] pointer-events-none">
-                  <div className="px-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 2px)' }}>
+                  <div className="px-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 6px)' }}>
                     <div className="flex items-start justify-between gap-2">
                       <div className="pointer-events-auto flex flex-col gap-2">
                         {/* BROADCASTER INFO */}
-                        <div className="px-0 py-1 animate-luxury-fade-in -ml-2 relative" style={{ transform: 'translateY(-2mm)' }}>
-                          <div className="flex items-center relative">
+                        <div className="px-0 py-1 animate-luxury-fade-in relative">
+                          <div className="flex items-start relative">
                             <div 
                               className="relative z-10 flex-shrink-0 pointer-events-auto cursor-pointer active:scale-95 transition-transform"
                               onClick={(e) => { e.stopPropagation(); openMiniProfile(myCreatorName); }}
                             >
-                              <AvatarRing src={myAvatar} alt={myCreatorName} size={LIVE_TOP_AVATAR_RING_PX} />
+                              <AvatarRing src={resolveCircleAvatar(myAvatar, myCreatorName)} alt={myCreatorName} size={LIVE_TOP_AVATAR_RING_PX} />
                             </div>
                             <div className={CREATOR_NAME_PILL_CLASSNAME} style={getCreatorNamePillStyle()}>
                               <span className="text-white text-[11px] font-bold truncate max-w-[100px] leading-tight">{myCreatorName}</span>
@@ -4453,7 +4456,7 @@ export default function LiveStream() {
                               })()}
                             </div>
                           </div>
-                          <div className="flex items-center gap-2 mt-0.5 ml-9 pointer-events-auto relative z-20 flex-wrap" style={{ transform: 'translateY(-2mm)' }}>
+                          <div className="flex items-center gap-2 mt-1 ml-12 pointer-events-auto relative z-20 flex-wrap">
                             <div 
                               className="flex items-center gap-1 bg-[#111111] rounded-full px-2 py-0.5 border border-[#C9A227]/40 shadow-sm cursor-pointer" 
                               onClick={(e) => {
@@ -4491,6 +4494,7 @@ export default function LiveStream() {
                         {topMvpViewers.length > 0 ? (
                           <div
                             className="flex items-center gap-[0mm] pointer-events-auto flex-shrink-0"
+                            style={{ transform: 'translateX(-2mm)' }}
                             onClick={() => setShowViewerList((prev) => !prev)}
                           >
                             {topMvpViewers.map((viewer, i) => (
@@ -4537,7 +4541,7 @@ export default function LiveStream() {
             <div
               className="chat-zone fixed left-0 right-0 z-[20] flex justify-center pointer-events-none"
               style={{
-                bottom: 'calc(52px + max(8px, env(safe-area-inset-bottom)))',
+                bottom: LIVE_BOTTOM_ACTION_RESERVE,
                 transform: isBattleMode ? `translateY(${LIVE_BATTLE_CHAT_SHIFT_Y})` : undefined,
               }}
             >
@@ -4607,7 +4611,10 @@ export default function LiveStream() {
             </div>
 
       {/* BOTTOM RIGHT: Action buttons (same area as before, aligned right) */}
-      <div className="bottom-zone flex-none pointer-events-auto bg-transparent px-3 pb-[max(8px,env(safe-area-inset-bottom))] pt-0 min-h-[44px] flex flex-col items-end fixed left-0 right-0 bottom-0 z-[120] justify-end">
+      <div
+        className="bottom-zone pointer-events-auto bg-transparent px-3 pt-0 flex flex-col items-end fixed left-0 right-0 bottom-0 z-[120] justify-end"
+        style={{ paddingBottom: LIVE_BOTTOM_ACTION_PADDING }}
+      >
         <div className="w-full max-w-[480px] mx-auto flex flex-col items-end gap-0">
         {/* Combo Button - on top of 3 dots, 1cm up */}
         <AnimatePresence>
@@ -5516,7 +5523,7 @@ export default function LiveStream() {
       {giftGoal && (
         <div
           className="fixed left-0 right-0 z-[95] flex justify-center pointer-events-none px-3"
-          style={{ bottom: 'calc(118px + max(8px, env(safe-area-inset-bottom)))' }}
+          style={{ bottom: 'calc(66px + max(2px, env(safe-area-inset-bottom, 0px)))' }}
         >
           <div className="w-full max-w-[480px] flex justify-start">
             <LiveGiftGoalBar
@@ -5821,14 +5828,6 @@ export default function LiveStream() {
         key={`gift-${giftKey}`}
         videoSrc={currentGift?.video ?? null}
         onEnded={handleGiftEnded}
-        splitSides={isBattleMode || coHosts.length > 0}
-        splitStyle={
-          isBattleMode
-            ? { top: 'calc(env(safe-area-inset-top, 0px) + 90px)', height: LIVE_BATTLE_VIDEO_HEIGHT }
-            : coHosts.length > 0
-              ? { top: 'calc(env(safe-area-inset-top, 0px) + 90px)', height: 'calc(36dvh + 10mm)' }
-              : undefined
-        }
         isBattleMode={isBattleMode}
         muted={false}
       />
