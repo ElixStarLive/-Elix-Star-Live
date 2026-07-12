@@ -4642,13 +4642,13 @@ export default function LiveStream() {
 
       {/* BOTTOM RIGHT: Action buttons (same area as before, aligned right) */}
       <div
-        className="bottom-zone pointer-events-auto bg-transparent px-3 pt-0 flex flex-col items-end fixed left-0 right-0 bottom-0 z-[120] justify-end"
+        className="bottom-zone pointer-events-auto bg-transparent px-3 pt-0 flex flex-col items-end fixed left-0 right-0 bottom-0 z-[221] justify-end"
         style={{ paddingBottom: LIVE_BOTTOM_ACTION_PADDING }}
       >
         <div className="w-full max-w-[480px] mx-auto flex flex-col items-end gap-0">
         <div className="flex flex-col items-end">
-          {/* Spectator bar only: chat, Co-Host, Gift, Share, More. Shown only when watching (not broadcasting). */}
-          {!isBroadcast && !currentGift && (
+          {/* Spectator bar — stay visible during gift video so they can send again */}
+          {!isBroadcast && (
             <div className="flex items-end gap-2 w-full max-w-[480px] pointer-events-auto">
               <form className="flex-1 flex items-center gap-2 bg-black/40 backdrop-blur-sm rounded-full px-3 py-2 border border-white/10 h-10 min-w-0" onSubmit={(e) => { e.preventDefault(); handleSendMessage(e); }}>
                 <input type="text" inputMode="text" enterKeyHint="send" autoComplete="off" placeholder="Say something..." className="bg-transparent text-white text-xs outline-none flex-1 placeholder:text-white/30 min-w-0" value={inputValue} onChange={(e) => setInputValue(e.target.value)} />

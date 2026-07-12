@@ -2544,7 +2544,7 @@ export default function SpectatorPage() {
 
         {/* Bottom bar — chat + Invite / Gift / Share / More (labels under icons, spectator) */}
         <div
-          className="fixed left-0 right-0 bottom-0 z-[120] pointer-events-auto flex justify-center"
+          className="fixed left-0 right-0 bottom-0 z-[221] pointer-events-auto flex justify-center"
           style={{ paddingBottom: LIVE_BOTTOM_ACTION_PADDING }}
         >
           <div className="w-full max-w-[480px] px-3 pt-0 bg-transparent">
