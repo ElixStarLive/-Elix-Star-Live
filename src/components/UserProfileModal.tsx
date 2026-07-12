@@ -61,21 +61,27 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
     let cancelled = false;
     (async () => {
       try {
-        const { data: profile } = await api.profiles.get(user.id);
-        if (cancelled || !profile) return;
+        const { data: body } = await api.profiles.get(user.id);
+        if (cancelled || !body) return;
+        // API returns { profile: { username, displayName, avatarUrl, isVerified, ... } } (camelCase).
+        const profile = (body as { profile?: Record<string, unknown> })?.profile ?? body;
         const [{ count: followersCount }, { count: followingCount }] = await Promise.all([
           api.profiles.getFollowerCount(user.id),
           api.profiles.getFollowingCount(user.id),
         ]);
         if (cancelled) return;
-        const uname = profile.username || profile.display_name || 'user';
+        const pUsername = typeof profile.username === 'string' ? profile.username : '';
+        const pDisplayName = typeof profile.displayName === 'string' ? profile.displayName : '';
+        const pAvatarUrl = typeof profile.avatarUrl === 'string' ? profile.avatarUrl : '';
+        const uname = pUsername || user.username || pDisplayName || 'user';
         setProfileUser({
           id: user.id,
           username: uname,
-          name: profile.display_name || uname,
-          avatar: profile.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(uname)}`,
+          // Never downgrade below the name/avatar already passed into the modal.
+          name: pDisplayName || user.name || uname,
+          avatar: pAvatarUrl || user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(uname)}`,
           level: 1,
-          isVerified: !!profile.is_creator,
+          isVerified: !!profile.isVerified,
           followers: followersCount ?? 0,
           following: followingCount ?? 0,
           isFollowing: user.isFollowing,
