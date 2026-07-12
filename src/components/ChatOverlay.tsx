@@ -79,7 +79,7 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
     overflowY: 'auto',
     display: 'flex',
     flexDirection: 'column',
-    gap: '4px',
+    gap: '10px',
     scrollbarWidth: 'none',
     msOverflowStyle: 'none',
     paddingLeft: '0px',
@@ -97,13 +97,14 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
       className={className}
     >
       <div
-        className="chat-scroll space-y-2 px-2"
+        className="chat-scroll px-2"
         style={scrollStyle}
       >
         {messages.map((msg, idx) => (
           <div
             key={typeof msg.id === 'string' ? msg.id : `msg-${idx}`}
-            className="flex items-center gap-2 animate-in slide-in-from-left-2 duration-200 relative min-h-0"
+            className="flex items-center gap-2 animate-in slide-in-from-left-2 duration-200 relative"
+            style={{ minHeight: CHAT_PROFILE_RING_PX }}
             onPointerDown={() => startLongPress(msg.id)}
             onPointerUp={cancelLongPress}
             onPointerLeave={cancelLongPress}
@@ -127,7 +128,7 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
             </div>
             
             <div className="flex flex-col min-w-0 justify-center">
-              <div className="flex items-center gap-1.5 flex-wrap leading-none">
+              <div className="flex items-center gap-1.5 flex-wrap leading-snug">
                 {msg.isMod && (
                   <div className="bg-purple-600/80 px-1 py-0.5 rounded flex items-center gap-0.5 flex-shrink-0">
                     <Shield size={8} className="text-white" />
@@ -135,7 +136,7 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
                   </div>
                 )}
                 <span 
-                    className="text-white font-bold text-[13px] leading-tight cursor-pointer hover:underline whitespace-nowrap" 
+                    className="text-white font-bold text-[13px] leading-snug cursor-pointer hover:underline whitespace-nowrap" 
                     onClick={() => onProfileTap?.(String(msg.username ?? ''))}
                 >
                   {typeof msg.username === 'string' ? msg.username : 'User'}

@@ -53,8 +53,8 @@ export function liveAvatarRingMaskStyle(thicknessPx = LIVE_AVATAR_RING_THICKNESS
   };
 }
 
-/** Chat LV green pill only; circle uses {@link CHAT_PROFILE_RING_PX}. */
-export const CHAT_LEVEL_PILL_SIZE_PX = Math.max(16, Math.round((22 * CHAT_PROFILE_RING_PX) / 36));
+/** Chat LV green pill only; circle uses {@link CHAT_PROFILE_RING_PX}. Larger so LV text stays readable in live chat. */
+export const CHAT_LEVEL_PILL_SIZE_PX = 32;
 
 /** Live bottom action row — sit on the writing/labels, safe-area inset only. */
 export const LIVE_BOTTOM_ACTION_PADDING = 'max(2px, env(safe-area-inset-bottom, 0px))' as const;
