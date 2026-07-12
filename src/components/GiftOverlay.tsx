@@ -50,7 +50,7 @@ function GiftVideo({
   videoSrc,
   muted,
   onEnded,
-  className = 'absolute inset-0 w-full h-full object-contain object-bottom drop-shadow-2xl',
+  className = 'absolute inset-0 w-full h-full object-cover drop-shadow-2xl',
 }: {
   videoSrc: string;
   muted: boolean;
@@ -137,13 +137,14 @@ export function GiftOverlay({
 
   if (!videoSrc || !videoReady) return null;
 
-  // Chat area only: full screen width, half screen + 5mm tall. No other layout changes.
   return (
     <div
       className="fixed left-0 right-0 bottom-0 mx-auto w-full max-w-[480px] pointer-events-none overflow-hidden"
       style={{
-        height: 'calc(50% + 5mm)',
+        height: '70%',
         zIndex: 210,
+        WebkitMaskImage: 'linear-gradient(to top, black 0%, black 60%, transparent 100%)',
+        maskImage: 'linear-gradient(to top, black 0%, black 60%, transparent 100%)',
       }}
     >
       <GiftVideo videoSrc={videoSrc} muted={muted} onEnded={handleEnded} />

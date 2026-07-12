@@ -69,15 +69,14 @@ export const LIVE_TOP_AVATAR_RING_PX = 48;
 /** Name / likes pill behind host label — ~20 mm less right padding than old `pr-16` (4 rem), min 3 rem so Join/Follow still fit. */
 export const CREATOR_NAME_PILL_PADDING_RIGHT = 'max(3rem,calc(4rem - 20mm))' as const;
 
-/** Shared Tailwind classes for the host name / likes oval on LiveStream + Spectator top bar. */
+/** Shared Tailwind classes for the host name / likes oval on LiveStream + Spectator top bar.
+ * Full rounded capsule sits under the avatar so it wraps around the circle. */
 export const CREATOR_NAME_PILL_CLASSNAME =
-  'flex flex-col justify-center -ml-3 pl-5 h-9 min-h-9 rounded-full border border-[#FFFFFF]/60 bg-[#111111]/80 min-w-0 relative z-[15]' as const;
+  'flex flex-col justify-center -ml-4 pl-6 h-9 min-h-9 rounded-full border border-[#FFFFFF]/60 bg-[#111111]/80 min-w-0 relative z-[5]' as const;
 
 /** Inline styles for the host name pill (padding + shadow); merge with `style` if needed. */
 export function getCreatorNamePillStyle(overrides?: Record<string, string | number | undefined>): Record<string, string | number> {
   return {
-    borderTopLeftRadius: 0,
-    borderBottomLeftRadius: 0,
     boxShadow: '0 0 8px rgba(255,255,255,0.25)',
     width: '30mm',
     paddingRight: CREATOR_NAME_PILL_PADDING_RIGHT,

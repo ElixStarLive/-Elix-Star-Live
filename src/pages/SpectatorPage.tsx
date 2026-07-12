@@ -2272,7 +2272,7 @@ export default function SpectatorPage() {
                 className="pointer-events-auto flex items-center gap-0 flex-shrink min-w-0"
               >
                 <div
-                  className="relative z-[10] flex-shrink-0 overflow-visible cursor-pointer active:scale-95 transition-transform"
+                  className="relative z-[20] flex-shrink-0 overflow-visible cursor-pointer active:scale-95 transition-transform"
                   onClick={() => navigate(`/profile/${hostUserId}`)}
                 >
                   <AvatarRing src={resolveCircleAvatar(hostAvatar, hostName)} alt={hostName} size={LIVE_TOP_AVATAR_RING_PX} />
@@ -2499,7 +2499,7 @@ export default function SpectatorPage() {
             </div>
             <div
               className="relative z-[10] h-full overflow-y-auto pointer-events-auto bg-transparent px-1"
-              style={{ transform: 'translateX(-2mm)' }}
+              style={{ transform: 'translateX(2mm)' }}
               onPointerDown={(e) => {
                 e.stopPropagation();
                 if (e.target instanceof Element) {

@@ -4363,7 +4363,7 @@ export default function LiveStream() {
                         <div className="px-0 py-1 animate-luxury-fade-in relative">
                           <div className="flex items-start relative">
                             <div 
-                              className="relative z-10 flex-shrink-0 pointer-events-auto cursor-pointer active:scale-95 transition-transform"
+                              className="relative z-[20] flex-shrink-0 pointer-events-auto cursor-pointer active:scale-95 transition-transform"
                               onClick={(e) => { e.stopPropagation(); openMiniProfile(myCreatorName); }}
                             >
                               <AvatarRing src={resolveCircleAvatar(myAvatar, myCreatorName)} alt={myCreatorName} size={LIVE_TOP_AVATAR_RING_PX} />
