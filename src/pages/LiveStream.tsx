@@ -5143,10 +5143,10 @@ export default function LiveStream() {
                       <p className="text-white/50 text-[10px]">Battle invite — Join or Reject</p>
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
-                      <button type="button" onClick={declineBattleInvite} className="px-2 py-1 rounded-full bg-white/10 border border-white/30">
-                        <span className="text-white/60 text-[9px] font-bold">Reject</span>
+                      <button type="button" onClick={declineBattleInvite} className="px-2 py-1 rounded-full bg-red-500/20 border border-red-500/30">
+                        <span className="text-red-400 text-[9px] font-bold">Reject</span>
                       </button>
-                      <button type="button" onClick={() => void acceptBattleInvite()} className="px-2.5 py-1 rounded-full bg-white">
+                      <button type="button" onClick={() => void acceptBattleInvite()} className="px-2.5 py-1 rounded-full bg-green-500">
                         <span className="text-black text-[9px] font-bold">Join</span>
                       </button>
                     </div>
