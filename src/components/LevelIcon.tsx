@@ -56,15 +56,18 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
   const avatarDiameter = profileRingInnerPx(circleSize);
 
   if (splitCircleSizing) {
-    const totalWidth = circleSize + barWidth - overlap;
+    /** Round LV capsule wraps the bottom of the avatar circle (not a side rectangle). */
+    const barH = Math.max(12, Math.round(circleSize * 0.4));
+    const barW = Math.max(Math.round(circleSize * 0.95), Math.round(barH * 2.4));
+    const wrapHang = Math.round(barH * 0.35);
     return (
       <div
         className={className}
         style={{
           position: 'relative',
           display: 'inline-block',
-          width: totalWidth,
-          height: circleSize,
+          width: circleSize,
+          height: circleSize + wrapHang,
           flexShrink: 0,
           verticalAlign: 'middle',
         }}
@@ -72,7 +75,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
         <div
           style={{
             position: 'relative',
-            zIndex: 2,
+            zIndex: 1,
             width: circleSize,
             height: circleSize,
             borderRadius: 999,
@@ -114,28 +117,28 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
         <div
           style={{
             position: 'absolute',
-            zIndex: 1,
-            left: circleSize - overlap,
-            top: '50%',
-            transform: 'translateY(-50%)',
-            height: barHeight,
-            width: barWidth,
-            borderRadius: barHeight / 2,
+            zIndex: 2,
+            left: '50%',
+            bottom: 0,
+            transform: 'translateX(-50%)',
+            height: barH,
+            width: barW,
+            borderRadius: 9999,
             background: getBarGradient(),
             border: '1px solid rgba(255,255,255,0.22)',
-            boxShadow: '0 6px 14px rgba(0,0,0,0.55), inset 0 1px 1px rgba(255,255,255,0.35)',
+            boxShadow: '0 4px 10px rgba(0,0,0,0.55), inset 0 1px 1px rgba(255,255,255,0.35)',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'flex-end',
-            paddingRight: Math.round(barHeight * 0.35),
-            paddingLeft: Math.round(barHeight * 0.9),
+            justifyContent: 'center',
+            paddingLeft: 4,
+            paddingRight: 4,
           }}
         >
           <div
             style={{
               position: 'absolute',
               inset: 0,
-              borderRadius: barHeight / 2,
+              borderRadius: 9999,
               background:
                 'linear-gradient(180deg, rgba(255,255,255,0.28) 0%, transparent 58%, rgba(0,0,0,0.18) 100%)',
               pointerEvents: 'none',
@@ -149,7 +152,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
               fontWeight: 900,
               fontStyle: 'italic',
               letterSpacing: '0.02em',
-              fontSize: Math.max(10, Math.round(barHeight * 0.52)),
+              fontSize: Math.max(9, Math.round(barH * 0.55)),
               textShadow: '0 2px 6px rgba(0,0,0,0.75)',
               lineHeight: 1,
               whiteSpace: 'nowrap',
