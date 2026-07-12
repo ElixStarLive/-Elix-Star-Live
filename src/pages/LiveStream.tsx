@@ -4361,14 +4361,15 @@ export default function LiveStream() {
                       <div className="pointer-events-auto flex flex-col gap-2">
                         {/* BROADCASTER INFO */}
                         <div className="px-0 py-1 animate-luxury-fade-in relative">
-                          <div className="flex items-start relative">
+                          <div className="flex items-center relative">
+                            <div className={CREATOR_NAME_PILL_CLASSNAME} style={getCreatorNamePillStyle()}>
                             <div 
-                              className="relative z-[20] flex-shrink-0 pointer-events-auto cursor-pointer active:scale-95 transition-transform"
+                              className="relative z-[10] flex-shrink-0 pointer-events-auto cursor-pointer active:scale-95 transition-transform"
                               onClick={(e) => { e.stopPropagation(); openMiniProfile(myCreatorName); }}
                             >
                               <AvatarRing src={resolveCircleAvatar(myAvatar, myCreatorName)} alt={myCreatorName} size={LIVE_TOP_AVATAR_RING_PX} />
                             </div>
-                            <div className={CREATOR_NAME_PILL_CLASSNAME} style={getCreatorNamePillStyle()}>
+                            <div className="flex flex-col justify-center min-w-0 pl-1">
                               <span className="text-white text-[11px] font-bold truncate max-w-[100px] leading-tight">{myCreatorName}</span>
                               <button
                   type="button"
@@ -4380,16 +4381,17 @@ export default function LiveStream() {
                                 <Heart className="w-2 h-2 text-[#D4AF37]" strokeWidth={2.5} fill="#D4AF37" />
                                 <span className="text-white/70 text-[8px] font-bold tabular-nums">{(typeof activeLikes === 'number' && Number.isFinite(activeLikes) ? activeLikes : 0).toLocaleString()}</span>
                               </button>
+                            </div>
                               
                               {(() => {
                                 const redCount = 0;
                                 const greyCount = 0;
                                 return (
-                                  <div className="absolute right-1 top-1/2 -translate-y-1/2 grid place-items-center pointer-events-auto">
-                                    {/* Membership / Join Button (Bottom) */}
+                                  <div className="ml-auto self-stretch grid place-items-center pointer-events-auto flex-shrink-0 w-[58px]">
+                                    {/* Membership / Join — same capsule height as profile circle (one piece) */}
                                     <button
                                       type="button"
-                                      className={`col-start-1 row-start-1 flex items-center justify-center gap-1 ${hasJoinedToday ? 'bg-[#FF4500] border-[#FF4500]' : 'bg-[#111111] border-[#C9A227]/40'} rounded-full px-1.5 py-0.5 shadow-sm border w-[58px] h-7 z-0 transition-colors duration-200`}
+                                      className={`col-start-1 row-start-1 flex items-center justify-center gap-1 self-stretch h-full ${hasJoinedToday ? 'bg-[#FF4500]' : 'bg-transparent'} w-full z-0 transition-colors duration-200`}
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         if (!hasJoinedToday && user?.id && effectiveStreamId) {
@@ -4444,7 +4446,7 @@ export default function LiveStream() {
                                     {!isBroadcast && !isFollowing && (
                                       <button
                                         type="button"
-                                        className="col-start-1 row-start-1 z-20 relative flex items-center justify-center gap-1 bg-[#ffffff] rounded-full px-1.5 py-0.5 shadow-sm border border-white/20 w-[58px] h-7"
+                                        className="col-start-1 row-start-1 z-20 relative flex items-center justify-center gap-1 self-stretch h-full bg-[#ffffff] w-full"
                                         onClick={followCreatorLive}
                                       >
                                         <Plus size={12} className="text-white" strokeWidth={3} />

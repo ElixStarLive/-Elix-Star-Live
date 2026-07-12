@@ -2272,34 +2272,38 @@ export default function SpectatorPage() {
                 className="pointer-events-auto flex items-center gap-0 flex-shrink min-w-0"
               >
                 <div
-                  className="relative z-[20] flex-shrink-0 overflow-visible cursor-pointer active:scale-95 transition-transform"
-                  onClick={() => navigate(`/profile/${hostUserId}`)}
-                >
-                  <AvatarRing src={resolveCircleAvatar(hostAvatar, hostName)} alt={hostName} size={LIVE_TOP_AVATAR_RING_PX} />
-                </div>
-                <div
                   className={`${CREATOR_NAME_PILL_CLASSNAME} cursor-pointer`}
                   style={getCreatorNamePillStyle()}
-                  onClick={() => navigate(`/profile/${hostUserId}`)}
                 >
-                  <span className="text-white text-[11px] font-bold truncate max-w-[100px] leading-tight">{hostName}</span>
-                  <button
-                    type="button"
-                    className="flex items-center gap-0.5 pointer-events-auto -mt-0.5"
-                    onPointerDown={(e) => {
-                      e.stopPropagation();
-                      handleLikeTap(e);
-                    }}
+                  <div
+                    className="relative z-[10] flex-shrink-0 overflow-visible active:scale-95 transition-transform"
+                    onClick={() => navigate(`/profile/${hostUserId}`)}
                   >
-                    <Heart className="w-2 h-2 text-[#D4AF37]" strokeWidth={2.5} fill="#D4AF37" />
-                    <span className="text-white/70 text-[8px] font-bold tabular-nums">{(typeof activeLikes === 'number' && Number.isFinite(activeLikes) ? activeLikes : 0).toLocaleString()}</span>
-                  </button>
-                  {/* Follow / Join — matches creator top bar exactly */}
-                  <div className="absolute right-1 top-1/2 -translate-y-1/2 grid place-items-center pointer-events-auto">
+                    <AvatarRing src={resolveCircleAvatar(hostAvatar, hostName)} alt={hostName} size={LIVE_TOP_AVATAR_RING_PX} />
+                  </div>
+                  <div
+                    className="flex flex-col justify-center min-w-0 pl-1"
+                    onClick={() => navigate(`/profile/${hostUserId}`)}
+                  >
+                    <span className="text-white text-[11px] font-bold truncate max-w-[100px] leading-tight">{hostName}</span>
+                    <button
+                      type="button"
+                      className="flex items-center gap-0.5 pointer-events-auto -mt-0.5"
+                      onPointerDown={(e) => {
+                        e.stopPropagation();
+                        handleLikeTap(e);
+                      }}
+                    >
+                      <Heart className="w-2 h-2 text-[#D4AF37]" strokeWidth={2.5} fill="#D4AF37" />
+                      <span className="text-white/70 text-[8px] font-bold tabular-nums">{(typeof activeLikes === 'number' && Number.isFinite(activeLikes) ? activeLikes : 0).toLocaleString()}</span>
+                    </button>
+                  </div>
+                  {/* Follow / Join — same capsule height as profile circle (one piece) */}
+                  <div className="ml-auto self-stretch grid place-items-center pointer-events-auto flex-shrink-0 w-[58px]">
                     {/* Join Button (Bottom layer) — visible after following */}
                     <button
                       type="button"
-                      className={`col-start-1 row-start-1 flex items-center justify-center gap-1 ${hasJoinedToday ? 'bg-[#FF4500] border-[#FF4500]' : 'bg-[#111111] border-[#C9A227]/40'} rounded-full px-1.5 py-0.5 shadow-sm border w-[58px] h-7 z-0 transition-colors duration-200`}
+                      className={`col-start-1 row-start-1 flex items-center justify-center gap-1 self-stretch h-full ${hasJoinedToday ? 'bg-[#FF4500]' : 'bg-transparent'} w-full z-0 transition-colors duration-200`}
                       onClick={async (e) => {
                         e.stopPropagation();
                         if (!hasJoinedToday && user?.id && hostUserId) {
@@ -2350,7 +2354,7 @@ export default function SpectatorPage() {
                     {!isFollowing && (
                       <button
                         type="button"
-                        className="col-start-1 row-start-1 z-20 relative flex items-center justify-center gap-1 bg-[#ffffff] rounded-full px-1.5 py-0.5 shadow-sm border border-white/20 w-[58px] h-7"
+                        className="col-start-1 row-start-1 z-20 relative flex items-center justify-center gap-1 self-stretch h-full bg-[#ffffff] w-full"
                         onClick={(e) => {
                           e.stopPropagation();
                           followHost(e);
