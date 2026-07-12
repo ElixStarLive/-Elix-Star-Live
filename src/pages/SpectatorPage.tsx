@@ -2525,19 +2525,21 @@ export default function SpectatorPage() {
           </div>
         </div>
 
-        {/* COMBO BUTTON — above gift video overlay so it stays visible after send */}
+        {/* COMBO — TikTok-style round combo tap (above bottom bar + gift video) */}
         {showComboButton && lastSentGift && (
-          <div className="fixed bottom-[calc(54px+max(2px,env(safe-area-inset-bottom,0px)))] right-3 z-[230] pointer-events-auto max-w-[480px]">
+          <div className="fixed bottom-[calc(58px+max(2px,env(safe-area-inset-bottom,0px)))] right-3 z-[230] pointer-events-auto max-w-[480px] flex flex-col items-center">
             <button
               type="button"
               onClick={handleComboClick}
               disabled={comboCount >= GIFT_COMBO_MAX}
-              className="w-16 h-14 rounded-full bg-gradient-to-r from-[#D4AF37] to-[#D4A017] flex flex-col items-center justify-center animate-pulse active:scale-90 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.25)] disabled:opacity-50 disabled:animate-none"
+              className="w-[72px] h-[72px] rounded-full bg-gradient-to-b from-[#FF5A7A] to-[#FF2D55] flex flex-col items-center justify-center active:scale-90 transition-transform shadow-[0_0_18px_rgba(255,45,85,0.55)] border-2 border-white/30 disabled:opacity-50"
             >
-              <span className={`font-black italic text-white drop-shadow-md ${comboCount >= 1000 ? 'text-sm' : 'text-xl'}`}>
+              {typeof lastSentGift.icon === 'string' && (lastSentGift.icon.startsWith('http') || lastSentGift.icon.startsWith('/')) ? (
+                <img src={lastSentGift.icon} alt="" className="w-7 h-7 object-contain mb-0.5" draggable={false} />
+              ) : null}
+              <span className={`font-black italic text-white drop-shadow-md leading-none ${comboCount >= 1000 ? 'text-sm' : 'text-xl'}`}>
                 x{comboCount >= 1000 ? `${(comboCount / 1000).toFixed(comboCount % 1000 === 0 ? 0 : 1)}K` : comboCount}
               </span>
-              <span className="text-[9px] font-bold text-white uppercase tracking-widest">Combo</span>
             </button>
           </div>
         )}
