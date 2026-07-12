@@ -19,6 +19,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { showToast } from '../lib/toast';
 import { useAuthStore } from '../store/useAuthStore';
+import { RoyceCloseIcon } from '../components/royce';
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -100,6 +101,15 @@ export default function Settings() {
         }}
         onClick={(e) => e.stopPropagation()}
       >
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          onPointerDown={(e) => e.stopPropagation()}
+          className="absolute top-2 right-2 z-20 w-9 h-9 flex items-center justify-center rounded-full active:scale-90 transition-transform"
+          aria-label="Close settings"
+        >
+          <RoyceCloseIcon size={20} />
+        </button>
         <div
           className="flex-shrink-0 px-3 pt-1.5 pb-2 touch-none cursor-grab active:cursor-grabbing"
           onPointerDown={onDragStart}
