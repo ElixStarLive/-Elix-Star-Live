@@ -125,7 +125,7 @@ export default function Settings() {
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 pb-[max(22px,calc(env(safe-area-inset-bottom,0px)+18px))]">
-          <div className="flex flex-col gap-0 max-w-full">
+          <div className="flex flex-col gap-0 max-w-full min-h-full">
           <S t="Account" />
           <R ic={<User size={14} />} t="Edit Profile" fn={() => navigate('/edit-profile')} />
           <R ic={<Lock size={14} />} t="Privacy" fn={() => navigate('/settings/safety')} />
@@ -147,7 +147,7 @@ export default function Settings() {
           <S t="Support" />
           <R ic={<HelpCircle size={14} />} t="Help & Support" fn={() => navigate('/support')} />
 
-          <div className="grid grid-cols-3 gap-1 mt-2 px-0.5">
+          <div className="grid grid-cols-3 gap-1 mt-auto pt-3 px-0.5">
             <button
               type="button"
               onClick={() => navigate('/terms')}
