@@ -125,15 +125,6 @@ export default function EnhancedVideoPlayer({
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const volume = 0.5;
-  // Uploader-set audio mix — only applies when a music track is attached.
-  // Defaults to 1 (unchanged behavior) so existing videos are unaffected.
-  const _hasMusicTrack = !!video?.music?.previewUrl;
-  const _origMix = _hasMusicTrack && typeof video?.music?.originalVolume === 'number'
-    ? Math.max(0, Math.min(1, video.music.originalVolume)) : 1;
-  const _musicMix = _hasMusicTrack && typeof video?.music?.musicVolume === 'number'
-    ? Math.max(0, Math.min(1, video.music.musicVolume)) : 1;
-  const videoVolume = volume * _origMix;
-  const musicVolume = volume * _musicMix;
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [_videoSize, setVideoSize] = useState<{ w: number; h: number } | null>(null);
@@ -173,6 +164,16 @@ export default function EnhancedVideoPlayer({
   const effectiveMuted = muteAllSounds || isMuted;
   const duetOriginalSrc = originalVideo?.url ?? duetOriginalUrl ?? '';
   const isDuetLayout = !!(video?.duetWithVideoId && (originalVideo || duetOriginalUrl));
+
+  // Uploader-set audio mix — only applies when a music track is attached.
+  // Defaults to 1 (unchanged behavior) so existing videos are unaffected.
+  const _hasMusicTrack = !!video?.music?.previewUrl;
+  const _origMix = _hasMusicTrack && typeof video?.music?.originalVolume === 'number'
+    ? Math.max(0, Math.min(1, video.music.originalVolume)) : 1;
+  const _musicMix = _hasMusicTrack && typeof video?.music?.musicVolume === 'number'
+    ? Math.max(0, Math.min(1, video.music.musicVolume)) : 1;
+  const videoVolume = volume * _origMix;
+  const musicVolume = volume * _musicMix;
 
   // When duet original is not in store, fetch its URL for side-by-side playback
   useEffect(() => {
