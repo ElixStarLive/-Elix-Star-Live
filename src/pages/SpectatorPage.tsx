@@ -210,6 +210,8 @@ export default function SpectatorPage() {
   const mvpGiftScoresRef = useRef<Record<string, number>>({});
   const mvpGiftScoresHostRef = useRef<Record<string, number>>({});
   const mvpGiftScoresOpponentRef = useRef<Record<string, number>>({});
+  /** Keep gifter identity for top MVP even when room list excludes self. */
+  const mvpIdentityRef = useRef<Map<string, { name: string; avatar: string; level: number }>>(new Map());
 
   type MvpSlotRow = { id: string; name: string; avatar: string; level: number };
   const [mvpSlots, setMvpSlots] = useState<{
@@ -225,10 +227,31 @@ export default function SpectatorPage() {
 
   const syncMvpSlots = useCallback(() => {
     const hid = hostUserIdRef.current || hostUserId || effectiveStreamId || '';
-    const base = Array.from(actualViewersRef.current.entries())
-      .filter(([id]) => id && id !== hid && id !== effectiveStreamId)
-      .map(([id, v]) => ({ id, name: v.name, avatar: v.avatar, level: v.level }));
+    const byId = new Map<string, MvpSlotRow>();
 
+    actualViewersRef.current.forEach((v, id) => {
+      if (!id || id === hid || id === effectiveStreamId) return;
+      byId.set(id, { id, name: v.name, avatar: v.avatar, level: v.level });
+      mvpIdentityRef.current.set(id, v);
+    });
+
+    const addFromScores = (scores: Record<string, number>) => {
+      for (const id of Object.keys(scores)) {
+        if (!id || id === hid || id === effectiveStreamId || byId.has(id)) continue;
+        const cached = mvpIdentityRef.current.get(id);
+        byId.set(id, {
+          id,
+          name: cached?.name || 'User',
+          avatar: cached?.avatar || '',
+          level: cached?.level || 1,
+        });
+      }
+    };
+    addFromScores(mvpGiftScoresRef.current);
+    addFromScores(mvpGiftScoresHostRef.current);
+    addFromScores(mvpGiftScoresOpponentRef.current);
+
+    const base = Array.from(byId.values());
     const sortBy = (scores: Record<string, number>) => (a: MvpSlotRow, b: MvpSlotRow) => {
       const sa = scores[a.id] ?? 0;
       const sb = scores[b.id] ?? 0;
@@ -250,6 +273,7 @@ export default function SpectatorPage() {
     mvpGiftScoresRef.current = {};
     mvpGiftScoresHostRef.current = {};
     mvpGiftScoresOpponentRef.current = {};
+    mvpIdentityRef.current.clear();
     syncMvpSlotsRef.current();
   }, [effectiveStreamId]);
 
@@ -1071,6 +1095,23 @@ export default function SpectatorPage() {
         giftDef?.coins ??
         (typeof data.coins === 'number' && Number.isFinite(data.coins) ? data.coins : 0);
       if (gifterId && giftCoins > 0) {
+        const gifterName =
+          (typeof data.username === 'string' && data.username.trim()) ||
+          mvpIdentityRef.current.get(gifterId)?.name ||
+          'User';
+        const gifterAvatar =
+          (typeof data.avatar === 'string' && data.avatar) ||
+          mvpIdentityRef.current.get(gifterId)?.avatar ||
+          '';
+        const gifterLevel =
+          (typeof data.level === 'number' && Number.isFinite(data.level) ? data.level : null) ??
+          mvpIdentityRef.current.get(gifterId)?.level ??
+          1;
+        mvpIdentityRef.current.set(gifterId, {
+          name: gifterName,
+          avatar: gifterAvatar,
+          level: gifterLevel,
+        });
         mvpGiftScoresRef.current[gifterId] = (mvpGiftScoresRef.current[gifterId] || 0) + giftCoins;
         if (spectatorBattleRef.current?.active) {
           const side = normalizeBattleGiftTarget(data.battleTarget);
@@ -2223,15 +2264,15 @@ export default function SpectatorPage() {
         )}
 
         {/* CREATOR TOP BAR — only connection to creator page: spectator has access to full creator top bar (avatar, name, likes, Follow, Weekly Ranking, Membership, viewer count, close). Rest is single video + spectator's own bottom bar. */}
-        <div className="absolute top-0 left-0 right-0 z-[110] pointer-events-none">
+        <div className="absolute top-0 left-0 right-0 z-[110] pointer-events-none overflow-visible">
           <div className="px-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 6px)' }}>
             <div className="flex items-center justify-between gap-2 relative">
               {/* Left: Creator info — full creator top bar */}
               <div
-                className="pointer-events-auto flex items-start gap-0 flex-shrink min-w-0"
+                className="pointer-events-auto flex items-center gap-0 flex-shrink min-w-0"
               >
                 <div
-                  className="relative z-[10] flex-shrink-0 cursor-pointer active:scale-95 transition-transform"
+                  className="relative z-[10] flex-shrink-0 overflow-visible cursor-pointer active:scale-95 transition-transform"
                   onClick={() => navigate(`/profile/${hostUserId}`)}
                 >
                   <AvatarRing src={resolveCircleAvatar(hostAvatar, hostName)} alt={hostName} size={LIVE_TOP_AVATAR_RING_PX} />
@@ -2458,6 +2499,7 @@ export default function SpectatorPage() {
             </div>
             <div
               className="relative z-[10] h-full overflow-y-auto pointer-events-auto bg-transparent px-1"
+              style={{ transform: 'translateX(-2mm)' }}
               onPointerDown={(e) => {
                 e.stopPropagation();
                 if (e.target instanceof Element) {
@@ -2523,6 +2565,7 @@ export default function SpectatorPage() {
                   </button>
                 ) : null}
               </form>
+              <div className="flex items-end gap-2 flex-shrink-0" style={{ transform: 'translateX(4mm)' }}>
               <button
                 type="button"
                 title={spectatorCoHostRequestSent ? 'Request sent' : 'Request to co-host'}
@@ -2580,6 +2623,7 @@ export default function SpectatorPage() {
                 </div>
                 <span className="text-[10px] font-semibold text-[#D4AF37] mt-0.5">More</span>
               </button>
+              </div>
             </div>
           </div>
         </div>

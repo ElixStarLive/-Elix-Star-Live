@@ -40,6 +40,8 @@ import { resolveSoundTrackPlaybackUrl } from '../lib/soundLibrary';
 import { StoryGoldRingAvatar } from './StoryGoldRingAvatar';
 
 const VIDEO_SIDEBAR_AVATAR = 44;
+/** Action icon tile matches live avatar circle (RoyceIcon tile = glyph + 10). */
+const VIDEO_SIDEBAR_ICON = 34;
 const GOLD_ICON = 'royce-icon-gold';
 const GOLD_COUNT = 'text-[10px] font-semibold leading-none text-gold-light';
 
@@ -903,9 +905,11 @@ export default function EnhancedVideoPlayer({
           title="Like"
         >
           {video.isLiked ? (
-            <Heart size={24} strokeWidth={2.25} className="fill-red-500 text-red-500" />
+            <span className="royce-tile inline-flex items-center justify-center" style={{ width: VIDEO_SIDEBAR_AVATAR, height: VIDEO_SIDEBAR_AVATAR }}>
+              <Heart size={VIDEO_SIDEBAR_ICON} strokeWidth={2.25} className="fill-red-500 text-red-500" />
+            </span>
           ) : (
-            <RoyceIcon icon={Heart} size={24} tile active />
+            <RoyceIcon icon={Heart} size={VIDEO_SIDEBAR_ICON} tile active />
           )}
           <span className={GOLD_COUNT}>{formatNumber(Math.max(0, video.stats.likes))}</span>
         </button>
@@ -916,7 +920,7 @@ export default function EnhancedVideoPlayer({
           className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform"
           title="Comments"
         >
-          <RoyceIcon icon={MessageCircle} size={24} tile active />
+          <RoyceIcon icon={MessageCircle} size={VIDEO_SIDEBAR_ICON} tile active />
           <span className={GOLD_COUNT}>{formatNumber(video.stats.comments)}</span>
         </button>
 
@@ -926,9 +930,9 @@ export default function EnhancedVideoPlayer({
           className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform"
           title="Save"
         >
-          <span className="royce-tile" style={{ width: 34, height: 34 }}>
+          <span className="royce-tile inline-flex items-center justify-center" style={{ width: VIDEO_SIDEBAR_AVATAR, height: VIDEO_SIDEBAR_AVATAR }}>
             <Bookmark
-              size={24}
+              size={VIDEO_SIDEBAR_ICON}
               strokeWidth={2.25}
               className={video.isSaved ? 'royce-icon-gold fill-gold-bright' : 'royce-icon-gold'}
             />
@@ -942,7 +946,7 @@ export default function EnhancedVideoPlayer({
           className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform"
           title="Share"
         >
-          <RoyceIcon icon={Share2} size={22} tile active />
+          <RoyceIcon icon={Share2} size={VIDEO_SIDEBAR_ICON} tile active />
         </button>
 
         <button
@@ -951,7 +955,7 @@ export default function EnhancedVideoPlayer({
           className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform max-w-[52px]"
           title={video.music?.title || 'Original Sound'}
         >
-          <RoyceIcon icon={Music} size={22} tile active />
+          <RoyceIcon icon={Music} size={VIDEO_SIDEBAR_ICON} tile active />
           <span className="text-[8px] font-medium leading-tight text-gold-light/80 max-w-full truncate text-center">
             {video.music?.title?.split(' ').slice(0, 2).join(' ') || 'Original'}
           </span>
@@ -963,7 +967,7 @@ export default function EnhancedVideoPlayer({
           className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform"
           title="More"
         >
-          <RoyceIcon icon={MoreHorizontal} size={22} tile active />
+          <RoyceIcon icon={MoreHorizontal} size={VIDEO_SIDEBAR_ICON} tile active />
         </button>
       </div>
 
@@ -972,11 +976,11 @@ export default function EnhancedVideoPlayer({
         className={`absolute z-[10] left-3 w-[72%] pointer-events-none flex flex-col ${edgeToBottomNav ? 'pb-2' : 'pb-1'}`}
         style={
           edgeToBottomNav
-            ? { bottom: `calc(${navStackExpr} + 4px)`, transform: 'translateY(6mm)' }
-            : { bottom: '2px', transform: 'translateY(6mm)' }
+            ? { bottom: `calc(${navStackExpr} + 4px)` }
+            : { bottom: '2px' }
         }
       >
-        <div className="flex items-center gap-2 mb-1">
+        <div className="flex items-center gap-2 mb-0">
           <LevelBadge level={video.user.level ?? 1} size={10} layout="fixed" avatar={video.user.avatar} />
           <h3 className="text-white font-bold text-shadow-md">{video.user.name || video.user.username}</h3>
           {video.user.isVerified && (
@@ -986,7 +990,7 @@ export default function EnhancedVideoPlayer({
           )}
         </div>
 
-        <div className="flex items-center gap-2 text-white/90 mb-1">
+        <div className="flex items-center gap-2 text-white/90 mb-1 mt-0.5">
           <Music size={14} className="text-white flex-shrink-0" />
           <span className="text-xs font-medium animate-marquee whitespace-nowrap overflow-hidden w-32">
             {video.music?.title || 'Original Sound'} - {video.music?.artist || ''}

@@ -46,17 +46,11 @@ interface GiftOverlayProps {
   muted?: boolean;
 }
 
-/** Middle band only — below top bar, above chat + bottom actions. Never battle split, never chat. */
-const GIFT_VIDEO_REGION_STYLE: React.CSSProperties = {
-  top: 'calc(env(safe-area-inset-top, 0px) + 72px)',
-  bottom: 'calc(52px + max(2px, env(safe-area-inset-bottom, 0px)) + 25dvh + 2cm)',
-};
-
 function GiftVideo({
   videoSrc,
   muted,
   onEnded,
-  className = 'absolute inset-0 w-full h-full object-contain object-center drop-shadow-2xl',
+  className = 'absolute inset-0 w-full h-full object-contain object-bottom drop-shadow-2xl',
 }: {
   videoSrc: string;
   muted: boolean;
@@ -143,10 +137,14 @@ export function GiftOverlay({
 
   if (!videoSrc || !videoReady) return null;
 
+  // Chat area only: full screen width, half screen + 5mm tall. No other layout changes.
   return (
     <div
-      className="fixed left-0 right-0 mx-auto w-full max-w-[480px] pointer-events-none overflow-hidden"
-      style={{ ...GIFT_VIDEO_REGION_STYLE, zIndex: 999995 }}
+      className="fixed left-0 right-0 bottom-0 mx-auto w-full max-w-[480px] pointer-events-none overflow-hidden"
+      style={{
+        height: 'calc(50% + 5mm)',
+        zIndex: 210,
+      }}
     >
       <GiftVideo videoSrc={videoSrc} muted={muted} onEnded={handleEnded} />
     </div>
