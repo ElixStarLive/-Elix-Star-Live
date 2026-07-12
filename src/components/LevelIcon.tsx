@@ -57,7 +57,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
 
   if (splitCircleSizing) {
     /** Circle full size; LV capsule smaller than the circle, attached as a round pill. */
-    const pillH = Math.max(12, Math.round(circleSize * 0.52));
+    const pillH = Math.max(11, Math.round(circleSize * 0.42));
     const pillPadX = Math.max(6, Math.round(pillH * 0.45));
     const overlapPx = Math.round(circleSize * 0.22);
     const label = text === 'level' ? `Level ${safeLevel}` : `LV ${safeLevel}`;

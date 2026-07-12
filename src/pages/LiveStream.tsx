@@ -4583,6 +4583,7 @@ export default function LiveStream() {
                 </div>
                 <div
                   className="relative z-[10] h-full overflow-y-auto pointer-events-auto bg-transparent"
+                  style={{ transform: 'translateX(2mm)' }}
                   onPointerDown={(e) => {
                     e.stopPropagation();
                     if (e.target instanceof Element) {

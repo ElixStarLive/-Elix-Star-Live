@@ -2516,7 +2516,7 @@ export default function SpectatorPage() {
               <ChatOverlay
                 messages={messages}
                 variant="panel"
-                compact
+                compact={!!spectatorBattle?.active}
                 isModerator={isModerator}
                 onLike={handleLikeTap}
                 onProfileTap={() => {}}
