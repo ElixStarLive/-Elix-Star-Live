@@ -10,9 +10,9 @@ import {
   Scissors,
   Type,
   Layers,
-  Plus,
   FileText,
   Film,
+  CircleFadingPlus,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
@@ -372,22 +372,43 @@ export default function Create() {
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-2 px-4 py-2">
+        <div className="flex flex-col gap-2 px-4 py-2">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => openCameraFromHub('create')}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-[#C9A227]/10 border border-[#C9A227]/25 active:scale-[0.98] transition-transform"
+            >
+              <div className="w-5 h-5 flex items-center justify-center">
+                <CaptureShutterButton size={20} />
+              </div>
+              <span className="text-white/80 font-semibold text-xs">New video</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => { setShowCreateHub(false); navigate('/upload'); }}
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-white/5 border border-white/8 active:scale-[0.98] transition-transform"
+            >
+              <FileText className="w-4 h-4 text-white/40" strokeWidth={1.5} />
+              <span className="text-white/60 font-semibold text-xs">Drafts</span>
+            </button>
+          </div>
           <button
-            onClick={() => openCameraFromHub('create')}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-[#C9A227]/10 border border-[#C9A227]/25 active:scale-[0.98] transition-transform"
+            type="button"
+            onClick={() => { setShowCreateHub(false); navigate('/upload?type=story'); }}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-white border border-white/20 active:scale-[0.98] transition-transform"
           >
-            <div className="w-5 h-5 flex items-center justify-center">
-              <CaptureShutterButton size={20} />
-            </div>
-            <span className="text-white/80 font-semibold text-xs">New video</span>
-          </button>
-          <button
-            onClick={() => { setShowCreateHub(false); navigate('/upload'); }}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-white/5 border border-white/8 active:scale-[0.98] transition-transform"
-          >
-            <FileText className="w-4 h-4 text-white/40" strokeWidth={1.5} />
-            <span className="text-white/60 font-semibold text-xs">Drafts</span>
+            <span className="w-7 h-7 rounded-full overflow-hidden border-2 border-[#00c2be] flex-shrink-0 bg-[#111111]">
+              <img
+                src={user?.avatar || '/royce/default-avatar.svg'}
+                alt=""
+                className="w-full h-full object-cover"
+                draggable={false}
+                onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/royce/default-avatar.svg'; }}
+              />
+            </span>
+            <CircleFadingPlus className="w-4 h-4 text-black" strokeWidth={2} />
+            <span className="text-black font-bold text-xs">Add story</span>
           </button>
         </div>
         <div className="flex-1 flex flex-col min-h-0 px-4 overflow-hidden">
