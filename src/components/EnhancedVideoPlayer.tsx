@@ -815,9 +815,9 @@ export default function EnhancedVideoPlayer({
           aria-valuemax={Number.isFinite(duration) && duration > 0 ? Math.round(duration) : 0}
           className="absolute left-0 right-0 z-[16] pointer-events-auto flex flex-col justify-end cursor-pointer select-none px-3"
           style={{
-            /* For You: sit on the home-bar seam (home bar overlays on top) */
+            /* For You: 2mm above home-bar / video seam */
             bottom: edgeToBottomNav
-              ? `calc(${navStackExpr})`
+              ? `calc(${navStackExpr} + 2mm)`
               : '3mm',
             paddingBottom: 0,
             touchAction: 'none',
@@ -880,11 +880,11 @@ export default function EnhancedVideoPlayer({
         className="absolute z-[10] flex flex-col items-center gap-2 pointer-events-auto"
         style={{
           right: '12px',
-          /* 10mm lower toward progress / home bar */
+          /* Above caption + progress (progress sits nav + 2mm) */
           bottom: edgeToBottomNav
             ? scrubbing
-              ? `calc(${navStackExpr} + 7.5rem - 10mm)`
-              : `calc(${navStackExpr} + 5.5rem - 10mm)`
+              ? `calc(${navStackExpr} + 2mm + 7.5rem - 10mm)`
+              : `calc(${navStackExpr} + 2mm + 5.5rem - 10mm)`
             : scrubbing
               ? 'max(7.5rem, calc(3mm + 44px + 4.5rem - 10mm))'
               : 'calc(3mm + 6.5rem - 10mm)',
@@ -996,7 +996,7 @@ export default function EnhancedVideoPlayer({
           left: '3mm',
           right: '72px',
           bottom: edgeToBottomNav
-            ? `calc(${navStackExpr} + 8mm + 8px)`
+            ? `calc(${navStackExpr} + 2mm + 8mm + 8px)`
             : 'calc(8mm + 8px)',
         }}
       >
