@@ -1114,9 +1114,9 @@ export default function EnhancedVideoPlayer({
                   onClick={() => { handleCopyLink(); setIsMoreMenuOpen(false); }}
                   className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
-                  <div className="relative w-11 h-11 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center">
-                    <Copy className="relative z-[2] w-[18px] h-[18px] text-white" strokeWidth={1.8} />
-</div>
+                  <span className="royce-glow-disc w-11 h-11 flex items-center justify-center" aria-hidden>
+                    <Copy size={18} className="royce-icon-gold" strokeWidth={2} />
+                  </span>
                   <span className="text-[10px] font-semibold text-[#D4AF37]">Copy Link</span>
                 </button>
                 <button
@@ -1124,9 +1124,9 @@ export default function EnhancedVideoPlayer({
                   onClick={() => { handleDownload(); setIsMoreMenuOpen(false); }}
                   className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
-                  <div className="relative w-11 h-11 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center">
-                    <Download className="relative z-[2] w-[18px] h-[18px] text-white" strokeWidth={1.8} />
-</div>
+                  <span className="royce-glow-disc w-11 h-11 flex items-center justify-center" aria-hidden>
+                    <Download size={18} className="royce-icon-gold" strokeWidth={2} />
+                  </span>
                   <span className="text-[10px] font-semibold text-[#D4AF37]">Download</span>
                 </button>
                 <button
@@ -1134,9 +1134,9 @@ export default function EnhancedVideoPlayer({
                   onClick={() => { setIsMoreMenuOpen(false); navigate(`/upload?duet=${videoId}`); }}
                   className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
-                  <div className="relative w-11 h-11 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center">
-                    <Users2 className="relative z-[2] w-[18px] h-[18px] text-white" strokeWidth={1.8} />
-</div>
+                  <span className="royce-glow-disc w-11 h-11 flex items-center justify-center" aria-hidden>
+                    <Users2 size={18} className="royce-icon-gold" strokeWidth={2} />
+                  </span>
                   <span className="text-[10px] font-semibold text-[#D4AF37]">Duet</span>
                 </button>
                 <button
@@ -1144,9 +1144,9 @@ export default function EnhancedVideoPlayer({
                   onClick={() => setShowQrCodeInMore((v) => !v)}
                   className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
-                  <div className="relative w-11 h-11 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center">
-                    <QrCode className="relative z-[2] w-[18px] h-[18px] text-white" strokeWidth={1.8} />
-</div>
+                  <span className="royce-glow-disc w-11 h-11 flex items-center justify-center" aria-hidden>
+                    <QrCode size={18} className="royce-icon-gold" strokeWidth={2} />
+                  </span>
                   <span className="text-[10px] font-semibold text-[#D4AF37]">QR Code</span>
                 </button>
                 {isOwnVideo && (
@@ -1155,9 +1155,9 @@ export default function EnhancedVideoPlayer({
                     onClick={() => { handleDeleteVideo(); setIsMoreMenuOpen(false); }}
                     className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                   >
-                    <div className="relative w-11 h-11 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center">
-                      <Trash2 className="relative z-[2] w-[18px] h-[18px] text-white/60" strokeWidth={1.8} />
-</div>
+                    <span className="royce-glow-disc w-11 h-11 flex items-center justify-center" aria-hidden>
+                      <Trash2 size={18} className="royce-icon-gold" strokeWidth={2} />
+                    </span>
                     <span className="text-[10px] font-semibold text-[#D4AF37]">Delete video</span>
                   </button>
                 )}
@@ -1166,9 +1166,9 @@ export default function EnhancedVideoPlayer({
                   onClick={() => { setIsMoreMenuOpen(false); handleShare(); }}
                   className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
-                  <div className="relative w-11 h-11 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center">
-                    <Share2 className="relative z-[2] w-[18px] h-[18px] text-white" strokeWidth={1.8} />
-</div>
+                  <span className="royce-glow-disc w-11 h-11 flex items-center justify-center" aria-hidden>
+                    <Share2 size={18} className="royce-icon-gold" strokeWidth={2} />
+                  </span>
                   <span className="text-[10px] font-semibold text-[#D4AF37]">Share</span>
                 </button>
                 <button
@@ -1176,9 +1176,9 @@ export default function EnhancedVideoPlayer({
                   onClick={() => { handleSave(); setIsMoreMenuOpen(false); }}
                   className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
-                  <div className="relative w-11 h-11 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center">
-                    <Bookmark className="relative z-[2] w-[18px] h-[18px] text-white" strokeWidth={1.8} />
-</div>
+                  <span className="royce-glow-disc w-11 h-11 flex items-center justify-center" aria-hidden>
+                    <Bookmark size={18} className="royce-icon-gold" strokeWidth={2} />
+                  </span>
                   <span className="text-[10px] font-semibold text-[#D4AF37]">{video.isSaved ? 'Unsave' : 'Save'}</span>
                 </button>
                 <button
@@ -1186,9 +1186,11 @@ export default function EnhancedVideoPlayer({
                   onClick={() => { handleFollow(); setIsMoreMenuOpen(false); }}
                   className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
-                  <div className="relative w-11 h-11 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center">
-                    {video.isFollowing ? <UserMinus className="relative z-[2] w-[18px] h-[18px] text-white" strokeWidth={1.8} /> : <UserPlus className="relative z-[2] w-[18px] h-[18px] text-white" strokeWidth={1.8} />}
-</div>
+                  <span className="royce-glow-disc w-11 h-11 flex items-center justify-center" aria-hidden>
+                    {video.isFollowing
+                      ? <UserMinus size={18} className="royce-icon-gold" strokeWidth={2} />
+                      : <UserPlus size={18} className="royce-icon-gold" strokeWidth={2} />}
+                  </span>
                   <span className="text-[10px] font-semibold text-[#D4AF37]">{video.isFollowing ? 'Unfollow' : 'Follow'}</span>
                 </button>
                 <button
@@ -1196,9 +1198,9 @@ export default function EnhancedVideoPlayer({
                   onClick={() => { setIsMoreMenuOpen(false); setShowPromotePanel(true); }}
                   className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
-                  <div className="relative w-11 h-11 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center">
-                    <TrendingUp className="relative z-[2] w-[18px] h-[18px] text-white" strokeWidth={1.8} />
-</div>
+                  <span className="royce-glow-disc w-11 h-11 flex items-center justify-center" aria-hidden>
+                    <TrendingUp size={18} className="royce-icon-gold" strokeWidth={2} />
+                  </span>
                   <span className="text-[10px] font-semibold text-[#D4AF37]">Promote</span>
                 </button>
                 <button
@@ -1206,9 +1208,9 @@ export default function EnhancedVideoPlayer({
                   onClick={() => { setIsMoreMenuOpen(false); setShowReportModal(true); trackEvent('video_report_open', { videoId }); }}
                   className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
-                  <div className="relative w-11 h-11 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center">
-                    <Flag className="relative z-[2] w-[18px] h-[18px] text-white/60" strokeWidth={1.8} />
-</div>
+                  <span className="royce-glow-disc w-11 h-11 flex items-center justify-center" aria-hidden>
+                    <Flag size={18} className="royce-icon-gold" strokeWidth={2} />
+                  </span>
                   <span className="text-[10px] font-semibold text-[#D4AF37]">Report</span>
                 </button>
               </div>
