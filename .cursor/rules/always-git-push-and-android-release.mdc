@@ -1,0 +1,38 @@
+---
+description: After every change, commit/push git and build Android release AAB
+alwaysApply: true
+---
+
+# Always git push + Android release after changes
+
+When the user asks for a change (UI fix, wiring, bugfix, copy, sizing, etc.) and that change is completed:
+
+**Default: do not wait to be asked again.** Immediately:
+
+1. **Git commit** the relevant source changes (follow existing git safety / commit protocol).
+2. **Push** to `origin` on the current branch (usually `main`).
+3. **Bump Android version** in `android/app/build.gradle` (`versionCode` +1, `versionName` patch +1) when shipping app-facing changes.
+4. **Build Android release**:
+   - `npm run build:android`
+   - then `android/gradlew.bat bundleRelease` (from `android/`)
+5. Report the commit hash, push result, AAB path, and version.
+
+## Never commit secrets or junk
+
+Do **not** stage or commit:
+
+- `android/gradle.properties` (passwords)
+- `android/*.keystore` / release keystore files
+- `_aab_peek/`, nested `Elix Star Live/`, local `assets/` dumps
+- `.env` / credential files
+
+Signing passwords may stay local for the AAB build only.
+
+## Exceptions
+
+- Skip git/Android only if the user explicitly says not to (e.g. “no push”, “dev only”, “don’t build”).
+- Pure questions / exploration with no file edits: no commit or AAB.
+
+## Default behavior
+
+Every completed change → commit → push → Android release AAB.
