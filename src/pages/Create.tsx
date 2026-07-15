@@ -66,7 +66,7 @@ const FEATURE_TOOLS = [
 export default function Create() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
-  const [showCreateHub, setShowCreateHub] = useState(false);
+  const [showCreateHub, setShowCreateHub] = useState(true);
   const [mode, setMode] = useState<CreateMode>('create');
   const [isSoundOpen, setIsSoundOpen] = useState(false);
   const [selectedSound, setSelectedSound] = useState<Sound | null>(null);
@@ -378,7 +378,7 @@ export default function Create() {
               }}
               className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform w-[18%]"
             >
-              <div className="w-11 h-11 rounded-full royce-glow-disc">
+              <div className="w-11 h-11 rounded-full border border-[#F5C518] flex items-center justify-center bg-black">
                 <tool.icon className="w-[18px] h-[18px] text-[#F5C518]" strokeWidth={1.6} />
               </div>
               <span className="text-white/55 text-[9px] font-medium leading-tight text-center">{tool.label}</span>
@@ -432,7 +432,7 @@ export default function Create() {
 
         <div className="flex-1 flex flex-col min-h-0 px-4 overflow-hidden">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-white/45 font-bold text-[11px] uppercase tracking-[0.14em]">Templates</h2>
+            <h2 className="text-[#F5C518] font-bold text-[11px] uppercase tracking-[0.14em]">Templates</h2>
             <button
               type="button"
               title="Search templates"
@@ -496,7 +496,7 @@ export default function Create() {
           <button
             type="button"
             onClick={() => { setShowCreateHub(false); navigate('/upload'); }}
-            className="text-[12px] font-semibold text-white/40 uppercase tracking-[0.08em]"
+            className="text-[12px] font-semibold text-white uppercase tracking-[0.08em]"
           >
             Post
           </button>
@@ -504,7 +504,7 @@ export default function Create() {
           <button
             type="button"
             onClick={() => openCameraFromHub('live')}
-            className="text-[12px] font-semibold text-white/40 uppercase tracking-[0.08em]"
+            className="text-[12px] font-semibold text-white uppercase tracking-[0.08em]"
           >
             Live
           </button>

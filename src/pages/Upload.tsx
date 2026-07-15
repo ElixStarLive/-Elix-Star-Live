@@ -3,7 +3,7 @@ import { RoyceCloseIcon } from '../components/royce';
 import { CaptureShutterButton } from '../components/CaptureShutterButton';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { setCachedCameraStream } from '../lib/cameraStream';
-import { RefreshCw, Zap, Clock, Music, Check, Play, Square, RotateCcw, ZoomIn, ZoomOut, Wand2 } from 'lucide-react';
+import { RefreshCw, Zap, Clock, Music, Check, Play, Square, RotateCcw, ZoomIn, ZoomOut, Wand2, ChevronLeft, Image as ImageIcon, Type, Sparkles, X, LayoutGrid, Plus, Settings, Share2, Smile, Blend, ChevronDown } from 'lucide-react';
 import { useVideoStore } from '../store/useVideoStore';
 import { type SoundTrack } from '../lib/soundLibrary';
 import SoundPickerPanel from '../components/SoundPickerPanel';
@@ -18,6 +18,7 @@ export default function Upload() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { muteAllSounds } = useSettingsStore();
+  const authUser = useAuthStore((s) => s.user);
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const cameraFacingRef = useRef<'user' | 'environment'>('user');
@@ -518,6 +519,162 @@ export default function Upload() {
               />
               )}
                
+               {/* Story compose = Instagram/TikTok style (Your Story / Next). Video post keeps caption form. */}
+               {isStoryUpload ? (
+                 <>
+                   <div
+                     className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-3 pointer-events-auto"
+                     style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 8px)' }}
+                   >
+                     <button
+                       type="button"
+                       onClick={() => navigate('/create')}
+                       className="w-9 h-9 flex items-center justify-center"
+                       title="Back"
+                     >
+                       <ChevronLeft size={28} className="text-white drop-shadow-md" strokeWidth={2.5} />
+                     </button>
+                     <button
+                       type="button"
+                       onClick={() => setShowMusicModal(true)}
+                       className="flex items-center gap-1.5 max-w-[58%] px-3 py-1.5 rounded-full bg-black/50 backdrop-blur-md"
+                       title={getSelectedLabel()}
+                     >
+                       <Music size={14} className="text-white shrink-0" />
+                       <span className="text-white text-xs font-semibold truncate">
+                         {selectedTrack?.title || 'Add sound'}
+                       </span>
+                       {(selectedTrack || selectedAudioId.startsWith('track_')) ? (
+                         <span
+                           role="button"
+                           tabIndex={0}
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             setSelectedTrack(null);
+                             setSelectedAudioId('original');
+                           }}
+                           onKeyDown={(e) => {
+                             if (e.key === 'Enter') {
+                               e.stopPropagation();
+                               setSelectedTrack(null);
+                               setSelectedAudioId('original');
+                             }
+                           }}
+                           className="ml-0.5"
+                         >
+                           <X size={14} className="text-white/80" />
+                         </span>
+                       ) : null}
+                     </button>
+                     <div className="w-9 h-9" aria-hidden />
+                   </div>
+
+                   <div
+                     className="absolute right-2 z-30 flex flex-col items-center gap-3.5 pointer-events-auto"
+                     style={{ top: 'calc(env(safe-area-inset-top, 0px) + 56px)' }}
+                   >
+                     {[
+                       { Icon: Settings, title: 'Settings', onClick: () => setShowAITools(true) },
+                       { Icon: Share2, title: 'Share', onClick: () => setShowAITools(true) },
+                       { Icon: LayoutGrid, title: 'Layout', onClick: handleFileUpload },
+                       { Icon: ImageIcon, title: 'Media', onClick: handleFileUpload },
+                       { Icon: Music, title: 'Audio', onClick: () => setShowMusicModal(true) },
+                       { Icon: Type, title: 'Text', onClick: () => setShowAITools(true) },
+                       { Icon: Smile, title: 'Stickers', onClick: () => setShowAITools(true) },
+                       { Icon: Sparkles, title: 'Effects', onClick: () => setShowAITools(true) },
+                       { Icon: Blend, title: 'Filters', onClick: () => setShowAITools(true) },
+                     ].map(({ Icon, title, onClick }) => (
+                       <button
+                         key={title}
+                         type="button"
+                         onClick={onClick}
+                         className="w-10 h-10 rounded-full bg-black/35 backdrop-blur-sm flex items-center justify-center"
+                         title={title}
+                       >
+                         <Icon size={20} className="text-white drop-shadow-md" strokeWidth={2} />
+                       </button>
+                     ))}
+                     <button type="button" onClick={handleDiscard} className="w-10 h-10 rounded-full bg-black/35 backdrop-blur-sm flex items-center justify-center" title="More">
+                       <ChevronDown size={20} className="text-white drop-shadow-md" strokeWidth={2} />
+                     </button>
+                   </div>
+
+                   <div
+                     className="absolute left-0 right-0 z-30 flex flex-col items-center gap-3 px-4 pointer-events-auto"
+                     style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' }}
+                   >
+                     <ChevronDown size={16} className="text-white/70" />
+                     <div className="flex items-center gap-3 px-3 py-2 rounded-2xl bg-black/45 backdrop-blur-md">
+                       <button type="button" onClick={handleFileUpload} className="w-9 h-9 flex items-center justify-center" title="Gallery">
+                         <LayoutGrid size={20} className="text-white" strokeWidth={2} />
+                       </button>
+                       <div className="w-12 h-12 rounded-xl overflow-hidden border-[3px] border-white flex-shrink-0 bg-black">
+                         <video src={recordedVideoUrl || undefined} className="w-full h-full object-cover" muted playsInline />
+                       </div>
+                       <button type="button" onClick={handleFileUpload} className="w-9 h-9 flex items-center justify-center" title="Add">
+                         <Plus size={22} className="text-white" strokeWidth={2.5} />
+                       </button>
+                     </div>
+
+                     {postError ? (
+                       <div className="w-full max-w-md px-3 py-2 rounded-lg bg-red-600/80 text-white text-xs text-center">
+                         {postError}
+                         <button type="button" onClick={() => setPostError(null)} className="ml-2 underline">×</button>
+                       </div>
+                     ) : null}
+                     {isPosting ? (
+                       <div className="w-full max-w-md px-1">
+                         <div className="flex items-center justify-between text-xs text-white mb-1">
+                           <span>{postProgress < 100 ? 'Uploading…' : 'Finalizing…'}</span>
+                           <span>{postProgress}%</span>
+                         </div>
+                         <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
+                           <div className="h-full bg-white" style={{ width: `${postProgress}%` }} />
+                         </div>
+                       </div>
+                     ) : null}
+
+                     <div className="w-full max-w-md flex items-center gap-2.5">
+                       <button
+                         type="button"
+                         onClick={handlePost}
+                         disabled={isPosting}
+                         className="flex-1 h-12 rounded-full bg-white flex items-center justify-center gap-2 px-3 active:scale-[0.98] transition-transform disabled:opacity-60"
+                       >
+                         <span className="w-8 h-8 rounded-full overflow-hidden border-2 border-[#00c2be] flex-shrink-0 bg-[#7B5CFF] flex items-center justify-center">
+                           {authUser?.avatar ? (
+                             <img
+                               src={authUser.avatar}
+                               alt=""
+                               className="w-full h-full object-cover"
+                               draggable={false}
+                               onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                             />
+                           ) : (
+                             <span className="text-white text-[10px] font-bold">
+                               {(authUser?.name || authUser?.username || 'EL').slice(0, 2).toUpperCase()}
+                             </span>
+                           )}
+                         </span>
+                         <span className="text-black font-bold text-[14px]">
+                           {isPosting ? 'Posting…' : 'Your Story'}
+                         </span>
+                       </button>
+                       <button
+                         type="button"
+                         onClick={handlePost}
+                         disabled={isPosting}
+                         className="flex-1 h-12 rounded-full bg-[#F12C56] flex items-center justify-center active:scale-[0.98] transition-transform disabled:opacity-60"
+                       >
+                         <span className="text-white font-bold text-[15px]">
+                           {isPosting ? '…' : 'Next'}
+                         </span>
+                       </button>
+                     </div>
+                   </div>
+                 </>
+               ) : (
+                 <>
                {/* Preview Top Controls - centered sound icon; power lives in right vertical column */}
                <div className="absolute top-[2%] left-0 right-0 z-20 flex items-center justify-center pointer-events-auto px-4">
                  <button
@@ -681,6 +838,8 @@ export default function Upload() {
                       </span>
                     </button>
                   </div>
+                 </>
+               )}
                </div>
 
               {/* AI Tools Panel */}
