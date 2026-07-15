@@ -13,14 +13,13 @@ import mediaRouter from "./media.router";
 import miscRouter from "./misc.router";
 import adminActionsRouter from "./adminActions";
 import musicRouter from "./music.router";
-import musicRouter from "./music.router";
+import storiesRouter from "./stories.router";
 
 export function mountRoutes(app: Express): void {
   app.use("/api/auth", authRouter);
   app.use("/api/live", liveRouter);
   app.use("/api/gifts", giftsRouter);
   app.use("/api/sounds", soundsRouter);
-  app.use("/api/music", musicRouter);
   app.use("/api/music", musicRouter);
   app.use("/api/feed", feedRouter);
   app.use("/api/chat", chatRouter);
@@ -32,6 +31,7 @@ export function mountRoutes(app: Express): void {
   app.use("/api/admin", adminPayoutRouter);
   app.use("/api/admin", adminActionsRouter);
   app.use("/api/videos", videosRouter);
+  app.use("/api/stories", storiesRouter);
   app.use("/api/media", mediaRouter);
 
   if (process.env.NODE_ENV !== "production") {

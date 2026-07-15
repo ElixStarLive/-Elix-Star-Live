@@ -52,6 +52,7 @@ export default function Upload() {
   const duetSourceVideoRef = useRef<HTMLVideoElement>(null);
 
   const duetParam = searchParams.get('duet');
+  const isStoryUpload = searchParams.get('type') === 'story';
 
   useEffect(() => {
     if (!duetParam) {
@@ -406,24 +407,27 @@ export default function Upload() {
             };
         }
 
-        const videoId = await videoUploadService.uploadVideo(file, authUser.id, {
-          description: normalizedCaption,
-          hashtags: hashtags,
-          isPrivate: false,
-          music: musicMeta,
-          duetWithVideoId: duetSourceVideoId || undefined,
-        });
+        let videoId: string;
+        if (isStoryUpload) {
+          videoId = await videoUploadService.uploadStory(file, authUser.id);
+        } else {
+          videoId = await videoUploadService.uploadVideo(file, authUser.id, {
+            description: normalizedCaption,
+            hashtags: hashtags,
+            isPrivate: false,
+            music: musicMeta,
+            duetWithVideoId: duetSourceVideoId || undefined,
+          });
+          await fetchVideos();
+        }
 
-        // Refresh feed so the new video shows up on For You
-        await fetchVideos();
-
-        trackEvent('upload_post_success', { videoId });
+        trackEvent('upload_post_success', { videoId, story: isStoryUpload });
         setRecordedVideoUrl(null);
         setChunks([]);
         setIsPosting(false);
         setPostProgress(0);
-        showToast('Video posted!');
-        setTimeout(() => navigate('/feed'), 500);
+        showToast(isStoryUpload ? 'Story posted!' : 'Video posted!');
+        setTimeout(() => navigate(isStoryUpload ? '/feed' : '/feed'), 500);
         
       } catch (error: any) {
         const msg = error?.message || error?.error_description || String(error) || 'Unknown error';
@@ -665,14 +669,16 @@ export default function Upload() {
                       type="button"
                       onClick={handlePost}
                       className="flex flex-col items-center gap-1 group disabled:opacity-60"
-                      title="Post"
+                      title={isStoryUpload ? 'Your Story' : 'Post'}
                       disabled={isPosting}
                     >
                       {/* Red circle behind Post icon */}
                       <div className="w-11 h-11 rounded-full bg-white/25 flex items-center justify-center shadow-xl group-hover:scale-110 active:scale-95 transition-transform">
                         <Check size={18} className={`${isPosting ? 'text-white/60' : 'text-white'} drop-shadow-[0_0_8px_rgba(0,0,0,0.6)]`} />
                       </div>
-                      <span className="text-white font-bold text-[10px] shadow-black drop-shadow-md">{isPosting ? 'Posting…' : 'Post'}</span>
+                      <span className="text-white font-bold text-[10px] shadow-black drop-shadow-md">
+                        {isPosting ? 'Posting…' : isStoryUpload ? 'Your Story' : 'Post'}
+                      </span>
                     </button>
                   </div>
                </div>
