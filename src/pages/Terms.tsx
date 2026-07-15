@@ -3,6 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { platform } from '../lib/platform';
 import SettingsOptionSheet from '../components/SettingsOptionSheet';
 
+/**
+ * In-app Terms of Service for Elix Star Live.
+ * Grounded in product rules: short videos, live, sounds, buy-only shop (Stripe),
+ * IAP coins, live gifts, admin-reviewed creator withdrawal requests.
+ * Not a substitute for solicitor-drafted agreements or music licences.
+ */
 export default function Terms() {
   const navigate = useNavigate();
 
@@ -13,180 +19,343 @@ export default function Terms() {
           <h1 className="font-bold text-lg">Terms of Service</h1>
         </header>
         <div className="overflow-y-auto min-h-0 px-4 pb-3">
-          <p className="text-xs text-white/40 italic mb-4">Last updated: February 20, 2026</p>
+          <p className="text-xs text-white/40 italic mb-4">Last updated: July 15, 2026</p>
           <div className="text-sm text-white/75 space-y-5 leading-6">
-          <Section title="1. Acceptance of Terms">
+          <Section title="1. About the Service">
             <p>
-              By accessing or using Elix Star Live ("the App"), operated by Elix Star Live Ltd,
-              registered in England and Wales, you agree to be bound by these Terms of Service.
-              If you do not agree, do not use the App.
+              Elix Star Live is operated by <span className="text-white font-medium">Elix Star Live Ltd</span>
+              (&quot;we&quot;, &quot;us&quot;, &quot;our&quot;), registered in England and Wales. The App provides short-form video,
+              live streaming, sounds, messaging, a shop where you can buy items we offer, virtual
+              gifts/coins, and related features.
+            </p>
+            <p className="mt-2">
+              The Service is offered where made available through our websites, Apple App Store,
+              and Google Play. Availability may vary by region, device, and store listing.
+            </p>
+            <p className="mt-2">
+              By creating an account or using the Service, you agree to these Terms. If you do not
+              agree, do not use the App.
+            </p>
+            <p className="mt-2">
+              Contact: <span className="text-white font-medium">support@elixstarlive.co.uk</span> ·{' '}
+              <span className="text-white font-medium">info@elixstarlive.co.uk</span>
             </p>
           </Section>
 
           <Section title="2. Eligibility">
-            <p>
-              You must be at least 13 years old to use Elix Star Live. If you are under 18, you
-              must have parental or guardian consent. By creating an account, you represent that you
-              meet these requirements.
-            </p>
-          </Section>
-
-          <Section title="3. User Accounts">
             <ul className="list-disc pl-5 space-y-1">
-              <li>You are responsible for maintaining the security of your account and password.</li>
-              <li>You must provide accurate information when creating an account.</li>
-              <li>One person may not maintain more than one account.</li>
-              <li>You are responsible for all activity that occurs under your account.</li>
-              <li>Notify us immediately if you suspect unauthorised access to your account.</li>
+              <li>You must be at least 13 years old.</li>
+              <li>If you are under 18, you must have parental or guardian consent.</li>
+              <li>You must be legally allowed to use the Service in your country.</li>
+              <li>We may refuse, restrict, or close accounts that do not meet eligibility requirements.</li>
             </ul>
           </Section>
 
-          <Section title="4. User Content">
+          <Section title="3. Creating an Account">
             <ul className="list-disc pl-5 space-y-1">
-              <li>You retain ownership of content you create and upload.</li>
+              <li>Provide accurate registration information and keep it updated.</li>
+              <li>Keep login credentials secure and do not share them.</li>
+              <li>You are responsible for all activity under your account.</li>
+              <li>Fake accounts, bot accounts, and impersonation are prohibited.</li>
+              <li>Do not create accounts to evade bans, manipulate engagement, or commit fraud.</li>
+              <li>Notify us promptly of suspected unauthorised access.</li>
+            </ul>
+          </Section>
+
+          <Section title="4. User Profiles">
+            <ul className="list-disc pl-5 space-y-1">
+              <li>Profiles may include username, display name, bio, avatar, and related settings.</li>
+              <li>Usernames and profile images must not infringe rights or violate Community Rules.</li>
+              <li>Privacy and visibility settings may be available in the App; some information may remain public based on features you use (for example public videos).</li>
+              <li>We may reclaim, rename, or restrict usernames that violate these Terms.</li>
+            </ul>
+          </Section>
+
+          <Section title="5. User Content">
+            <p className="mb-2">
+              You may upload or share videos, photos, comments, messages, audio, livestreams, and
+              similar materials (&quot;User Content&quot;).
+            </p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li>You confirm you own the content or have permission to use it.</li>
+              <li>You are solely responsible for your User Content.</li>
               <li>
-                By posting content, you grant us a worldwide, non-exclusive, royalty-free licence to
-                display, distribute, and promote your content within the App and for marketing purposes.
+                You grant Elix Star Live Ltd a worldwide, non-exclusive, royalty-free, transferable,
+                sublicensable licence to host, store, display, process, reproduce, adapt, and
+                distribute User Content inside and in connection with the Service (including promotion
+                of the App).
+              </li>
+              <li>You retain ownership of your User Content subject to this licence.</li>
+              <li>We may remove User Content that violates these Terms or law.</li>
+            </ul>
+            <p className="mt-2 text-white/60 text-xs">
+              These Terms do not replace music licences. They do not authorise use of a third
+              party&apos;s copyrighted works beyond rights you already hold.
+            </p>
+          </Section>
+
+          <Section title="6. Music and Sounds">
+            <ul className="list-disc pl-5 space-y-1">
+              <li>Do not upload or use music/sounds you lack rights to use.</li>
+              <li>Do not use the App to distribute music illegally.</li>
+              <li>Licensed sounds we provide depend on licences and may change, be muted, removed, or geo-restricted.</li>
+              <li>Unauthorised music on live streams may be muted or removed, and accounts may be restricted.</li>
+            </ul>
+          </Section>
+
+          <Section title="7. Copyright and Intellectual Property">
+            <p className="mb-2">
+              Our branding, software, and App materials are owned by Elix Star Live Ltd or our
+              licensors. User Content remains owned by users, subject to Section 5.
+            </p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li>
+                Report copyright infringement to{' '}
+                <span className="text-white font-medium">dmca@elixstarlive.com</span> or via Copyright
+                / DMCA in the App.
+              </li>
+              <li>Provide work identification, location of material, contact details, and authority statement.</li>
+              <li>We may remove or disable access to material and notify the uploader.</li>
+              <li>Repeat infringers may be suspended or terminated.</li>
+            </ul>
+          </Section>
+
+          <Section title="8. Community Rules">
+            <p className="mb-2">You must not engage in or post:</p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li>Illegal activity</li>
+              <li>Hate speech, harassment, threats, or violence</li>
+              <li>Sexual exploitation (including of minors — zero tolerance)</li>
+              <li>Fraud, scams, spam, or phishing</li>
+              <li>Fake engagement or manipulation of gifts, likes, views, or followers</li>
+              <li>Copyright abuse or IP infringement</li>
+              <li>Malware or security attacks</li>
+            </ul>
+            <p className="mt-2">
+              Additional rules appear in our Community Guidelines in the App.
+            </p>
+          </Section>
+
+          <Section title="9. Live Streaming">
+            <ul className="list-disc pl-5 space-y-1">
+              <li>Live streams must comply with law and Community Rules.</li>
+              <li>We may end streams without notice for violations.</li>
+              <li>Streams may be monitored, recorded, and stored for safety and moderation.</li>
+            </ul>
+          </Section>
+
+          <Section title="10. Shopping">
+            <p className="mb-2">
+              The Shop lets you <strong>buy</strong> products and digital goods offered by Elix Star
+              Live Ltd. Users cannot sell products to other users through the Shop.
+            </p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li>Product descriptions, prices, and availability are set by us and may change.</li>
+              <li>Items may sell out or be removed at any time.</li>
+              <li>Unless stated otherwise, we are the seller of record for shop purchases.</li>
+              <li>
+                Goods we source from third-party suppliers are covered by our Supplier Agreement
+                framework (see Legal → Supplier Agreement / supplier-agreement.html).
+              </li>
+            </ul>
+          </Section>
+
+          <Section title="11. Orders">
+            <ul className="list-disc pl-5 space-y-1">
+              <li>An order is created when payment is authorised through our checkout flow.</li>
+              <li>Orders may be cancelled or fail due to payment failure, stock issues, or fraud checks.</li>
+              <li>Processing and delivery times (for physical goods, if offered) will be described at purchase or in order communications.</li>
+              <li>Contact support@elixstarlive.co.uk for order issues.</li>
+            </ul>
+          </Section>
+
+          <Section title="12. Shop Payments">
+            <ul className="list-disc pl-5 space-y-1">
+              <li>Shop checkout uses third-party payment providers (for example Stripe).</li>
+              <li>Currency may be shown in GBP or other currencies offered at checkout.</li>
+              <li>Taxes, fees, and shipping (if any) may be added where applicable.</li>
+              <li>By paying, you authorise the charge through the selected payment method.</li>
+            </ul>
+          </Section>
+
+          <Section title="13. Virtual Coins / Credits">
+            <ul className="list-disc pl-5 space-y-1">
+              <li>
+                {platform.isIOS
+                  ? 'Coins are purchased through the App Store (in-app purchase).'
+                  : 'Coins are purchased through Apple In-App Purchase (iOS) or Google Play Billing (Android).'}
+              </li>
+              <li>Coins are digital items only — not real money, bank balances, or securities.</li>
+              <li>Coins generally have no cash value for consumers and are not transferable outside the Service except where our monetization programme expressly allows creator conversion under Section 15.</li>
+              <li>
+                <strong>Coin purchases are final and non-refundable</strong>, except where required by
+                applicable law or the app store.
+              </li>
+              <li>Packages, pricing, and bonuses may change.</li>
+            </ul>
+          </Section>
+
+          <Section title="14. Gifts">
+            <ul className="list-disc pl-5 space-y-1">
+              <li>Users may buy gifts using coins and send them to creators during live streams.</li>
+              <li>
+                <strong>Gifts are final once sent</strong> and coins spent are not returned, except
+                where required by law.
+              </li>
+              <li>Gift catalogue, prices, and effects may change.</li>
+              <li>Gift fraud, chargebacks, and abuse may result in account action and revocation of balances.</li>
+            </ul>
+          </Section>
+
+          <Section title="15. Creator Earnings">
+            <ul className="list-disc pl-5 space-y-1">
+              <li>Eligible creators may earn through gifts or other programme features we enable.</li>
+              <li>Withdrawal or payout requests may require identity verification, payout details, minimum thresholds, and admin review.</li>
+              <li>Payment timing is not guaranteed; requests may be delayed, rejected, or reversed for fraud, errors, chargebacks, or policy breaches.</li>
+              <li>Creators are responsible for taxes on earnings.</li>
+              <li>We may change or end monetization terms, fees, and eligibility at any time.</li>
+            </ul>
+          </Section>
+
+          <Section title="16. Refunds">
+            <ul className="list-disc pl-5 space-y-1">
+              <li>
+                <strong>Coins and sent gifts:</strong> generally non-refundable except as required by
+                law or the relevant app store (Apple / Google).
               </li>
               <li>
-                You must not post content that is illegal, harmful, threatening, abusive, harassing,
-                defamatory, obscene, or otherwise objectionable.
+                <strong>Subscriptions:</strong> managed by Apple or Google; cancel renewals in store
+                settings; refunds follow store rules.
               </li>
-              <li>We reserve the right to remove content that violates these terms without prior notice.</li>
               <li>
-                You represent and warrant that you have all necessary rights to the content you upload,
-                including audio, video, and images.
+                <strong>Digital shop cosmetic items</strong> (badges, frames, boosts, etc.): may be
+                refundable if unused/unactivated and requested within 14 days, subject to review; used
+                items are not refundable.
+              </li>
+              <li>
+                <strong>Shop purchases from Elix Star Live:</strong> refunds/returns follow the product
+                type, stated policy at purchase, and applicable consumer law. Contact
+                support@elixstarlive.co.uk.
+              </li>
+              <li>We investigate fraud; chargebacks may cause balances/items to be revoked and accounts suspended.</li>
+            </ul>
+          </Section>
+
+          <Section title="17. Advertising">
+            <ul className="list-disc pl-5 space-y-1">
+              <li>Ads, promotions, or sponsored content may appear in the Service.</li>
+              <li>Sponsored content should be identifiable where required by law.</li>
+              <li>Advertising partners and placements may change.</li>
+            </ul>
+          </Section>
+
+          <Section title="18. Notifications">
+            <ul className="list-disc pl-5 space-y-1">
+              <li>We may send service, safety, and transactional notifications.</li>
+              <li>Marketing messages (where used) can be controlled via device or in-App settings where available.</li>
+              <li>Essential service messages may still be sent.</li>
+            </ul>
+          </Section>
+
+          <Section title="19. Moderation">
+            <ul className="list-disc pl-5 space-y-1">
+              <li>We may review content and accounts manually or with automated systems.</li>
+              <li>We may remove content, limit features, mute streams, suspend users, or ban accounts.</li>
+              <li>Users may report content through in-App tools.</li>
+            </ul>
+          </Section>
+
+          <Section title="20. Account Termination">
+            <ul className="list-disc pl-5 space-y-1">
+              <li>We may remove or suspend accounts for Terms violations, fraud, abuse, illegal activity, or security risk.</li>
+              <li>You may delete your account via Settings where available.</li>
+              <li>On termination, access ends; unused coins/benefits may be forfeited except where law requires otherwise.</li>
+            </ul>
+          </Section>
+
+          <Section title="21. Security">
+            <p className="mb-2">You must not:</p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li>Hack, probe, or attack our systems or other users</li>
+              <li>Reverse engineer the App except where mandatory law allows</li>
+              <li>Use bots, scrapers, or automated abuse tools</li>
+              <li>Interfere with Service integrity or availability</li>
+            </ul>
+          </Section>
+
+          <Section title="22. Third-Party Services">
+            <ul className="list-disc pl-5 space-y-1">
+              <li>We use third parties for payments (Apple, Google, Stripe), hosting/storage, analytics, and realtime media.</li>
+              <li>Those providers have their own terms and privacy policies.</li>
+              <li>External links are not under our control.</li>
+            </ul>
+          </Section>
+
+          <Section title="23. Privacy">
+            <p>
+              Our Privacy Policy explains data collection, device and account information, analytics,
+              User Content processing, and your rights. Read it together with these Terms.
+            </p>
+            <p className="mt-2">
+              Privacy contact: <span className="text-white font-medium">info@elixstarlive.co.uk</span>
+            </p>
+          </Section>
+
+          <Section title="24. Limitation of Liability">
+            <p className="mb-2">
+              The Service is provided &quot;as is&quot; and &quot;as available&quot; to the maximum extent permitted by law.
+            </p>
+            <p className="mb-2">
+              To the fullest extent permitted by law, Elix Star Live Ltd is not liable for service
+              interruptions, User Content, third-party services, payment-provider outages, or
+              indirect, incidental, special, consequential, or punitive damages.
+            </p>
+            <p>
+              Our total liability for claims relating to the Service shall not exceed the amount you
+              paid us in the twelve (12) months before the claim, except where liability cannot be
+              limited by law.
+            </p>
+            <p className="mt-2">
+              You agree to indemnify Elix Star Live Ltd against claims arising from your User Content
+              or Terms violations.
+            </p>
+          </Section>
+
+          <Section title="25. Changes to Terms">
+            <p>
+              We may update these Terms. Material changes may be notified by email or in-App notice.
+              Continued use after changes means you accept the updated Terms.
+            </p>
+          </Section>
+
+          <Section title="26. Governing Law">
+            <p>
+              These Terms are governed by the laws of England and Wales. Courts of England and Wales
+              have exclusive jurisdiction, without prejudice to non-waivable consumer rights.
+            </p>
+          </Section>
+
+          <Section title="27. Contact">
+            <ul className="list-disc pl-5 space-y-1">
+              <li>
+                <span className="text-white font-medium">Company:</span> Elix Star Live Ltd
+                (England and Wales)
+              </li>
+              <li>
+                <span className="text-white font-medium">Support:</span> support@elixstarlive.co.uk
+              </li>
+              <li>
+                <span className="text-white font-medium">Business / privacy:</span> info@elixstarlive.co.uk
+              </li>
+              <li>
+                <span className="text-white font-medium">Copyright / DMCA:</span> dmca@elixstarlive.com
               </li>
             </ul>
-          </Section>
-
-          <Section title="5. Live Streaming">
-            <ul className="list-disc pl-5 space-y-1">
-              <li>You must comply with all applicable laws when live streaming.</li>
-              <li>Nudity, violence, hate speech, harassment, and illegal activities are prohibited.</li>
-              <li>We may terminate streams that violate our guidelines without notice.</li>
-              <li>Live streams may be recorded and stored for moderation and safety purposes.</li>
-            </ul>
-          </Section>
-
-          <Section title="6. Virtual Currency, Gifts & Refund Policy">
-            <p className="mb-2">The following refund rules apply to all purchases made within Elix Star Live:</p>
-
-            <h4 className="font-semibold text-white/90 mt-3 mb-1">6.1 Coins</h4>
-            <ul className="list-disc pl-5 space-y-1">
-              <li>{platform.isIOS ? 'Coins are virtual currency purchased through the App Store (in-app purchase).' : 'Coins are virtual currency purchased through Apple In-App Purchase (iOS) or Google Play Billing (Android).'}</li>
-              <li>Coins have no real-world monetary value and cannot be exchanged for cash.</li>
-              <li><strong>All coin purchases are final and non-refundable.</strong> Once coins are purchased, they cannot be returned, reversed, or restored. No exceptions except as required by applicable law.</li>
-              <li>Prices may vary by platform.</li>
-              <li>We reserve the right to modify coin pricing, bonuses, and availability at any time.</li>
-            </ul>
-
-            <h4 className="font-semibold text-white/90 mt-3 mb-1">6.2 Gifts & Creator Earnings</h4>
-            <ul className="list-disc pl-5 space-y-1">
-              <li><strong>Gifts sent to creators are final and cannot be undone.</strong> Once a gift is sent during a live stream, the transaction is permanent. Coins spent on gifts cannot be recovered.</li>
-              <li>Gifts sent to creators are converted to earnings in the creator's account.</li>
-              <li>Earnings are calculated after applicable fees.</li>
-              <li>Creator earnings are held for a minimum period before becoming available for withdrawal.</li>
-            </ul>
-
-            <h4 className="font-semibold text-white/90 mt-3 mb-1">6.3 Subscriptions</h4>
-            <ul className="list-disc pl-5 space-y-1">
-              <li><strong>{platform.isIOS ? 'Subscriptions are managed by the App Store and are non-refundable.' : 'Subscriptions are managed by the App Store (iOS) or Google Play (Android) and are non-refundable.'}</strong></li>
-              <li>You may cancel future renewals at any time through your store settings or account page. Cancellation takes effect at the end of the current billing period.</li>
-              <li>If a store provider issues a refund for a subscription, access to subscription benefits will be revoked immediately.</li>
-            </ul>
-
-            <h4 className="font-semibold text-white/90 mt-3 mb-1">6.4 Shop Items</h4>
-            <ul className="list-disc pl-5 space-y-1">
-              <li>Digital shop items (badges, frames, boosts, and other virtual goods) may be eligible for a refund if the item has not been used or activated and the request is made within 14 days of purchase.</li>
-              <li>Refunded items will be revoked from your account. Coins will be restored to your balance.</li>
-              <li>Items that have been used, activated, or applied are not eligible for refund.</li>
-              <li>Refund requests are reviewed on a case-by-case basis. We reserve the right to deny refunds in cases of abuse or fraud.</li>
-            </ul>
-
-            <h4 className="font-semibold text-white/90 mt-3 mb-1">6.5 Chargebacks & Fraud</h4>
-            <ul className="list-disc pl-5 space-y-1">
-              <li>If a platform provider (Apple, Google, Stripe) issues a chargeback or refund on your behalf, we may suspend or terminate accounts involved in fraudulent or abusive purchase behaviour.</li>
-              <li>Forced refunds from store providers will result in revocation of the associated benefits or items.</li>
-            </ul>
-          </Section>
-
-          <Section title="7. Prohibited Conduct">
-            <p>You agree not to:</p>
-            <ul className="list-disc pl-5 space-y-1">
-              <li>Harass, bully, or threaten other users</li>
-              <li>Impersonate another person or entity</li>
-              <li>Post spam or send unsolicited messages</li>
-              <li>Attempt to hack, exploit, or reverse-engineer the App</li>
-              <li>Use bots, scrapers, or other automated systems</li>
-              <li>Upload malware, viruses, or any harmful code</li>
-              <li>Violate any applicable local, national, or international law</li>
-              <li>Promote scams, fraud, or misleading information</li>
-            </ul>
-          </Section>
-
-          <Section title="8. Intellectual Property">
-            <p>
-              All App content, design, branding, logos, and software are the property of Elix Star
-              Live Ltd and are protected by copyright, trademark, and other intellectual property
-              laws. You may not copy, modify, distribute, or create derivative works without our
-              written permission.
+            <p className="mt-2 text-white/60 text-xs">
+              Separate documents also apply where published: Privacy Policy, Community Guidelines,
+              and Copyright / DMCA Policy. A Creator Monetization agreement may be introduced as
+              programmes expand.
             </p>
-          </Section>
-
-          <Section title="9. Termination">
-            <p>
-              We may suspend or terminate your account at any time for violations of these terms or
-              for any reason at our discretion. You may delete your account at any time through
-              Settings. Upon termination, your right to use the App ceases immediately, and any
-              remaining virtual currency is forfeited.
-            </p>
-          </Section>
-
-          <Section title="10. Disclaimer of Warranties">
-            <p>
-              The App is provided "as is" and "as available" without warranties of any kind, either
-              express or implied. We do not guarantee uninterrupted, secure, or error-free service.
-              Your use of the App is at your own risk.
-            </p>
-          </Section>
-
-          <Section title="11. Limitation of Liability">
-            <p>
-              To the maximum extent permitted by law, Elix Star Live Ltd shall not be liable for any
-              indirect, incidental, special, consequential, or punitive damages arising from your
-              use of the App. Our total liability shall not exceed the amount you have paid to us in
-              the twelve (12) months preceding the claim.
-            </p>
-          </Section>
-
-          <Section title="12. Indemnification">
-            <p>
-              You agree to indemnify, defend, and hold harmless Elix Star Live Ltd and its officers,
-              directors, employees, and agents from any claims, liabilities, damages, losses, or
-              expenses arising from your use of the App or violation of these terms.
-            </p>
-          </Section>
-
-          <Section title="13. Governing Law">
-            <p>
-              These terms are governed by and construed in accordance with the laws of England and
-              Wales. Any disputes shall be subject to the exclusive jurisdiction of the courts of
-              England and Wales.
-            </p>
-          </Section>
-
-          <Section title="14. Changes to Terms">
-            <p>
-              We may update these terms at any time. We will notify you of material changes via
-              email or in-app notification. Continued use of the App after changes constitutes
-              acceptance of the updated terms.
-            </p>
-          </Section>
-
-          <Section title="15. Contact">
-            <p>Questions about these terms? Contact us at:</p>
-            <p className="text-white font-medium">legal@elixstarlive.com</p>
           </Section>
           </div>
         </div>

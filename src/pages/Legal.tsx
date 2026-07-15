@@ -1,6 +1,6 @@
 import React from 'react';
 import { RoyceBackIcon } from '../components/royce';
-import { FileText, Lock, Copyright, Music, Users, BadgeDollarSign, ShieldAlert, Mail } from 'lucide-react';
+import { FileText, Lock, Copyright, Music, Users, BadgeDollarSign, ShieldAlert, Mail, Package } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function Legal() {
@@ -15,6 +15,7 @@ export default function Legal() {
     { icon: Music, label: 'Audio & Music Disclaimer', to: '/legal/audio' },
     { icon: Users, label: 'UGC Disclaimer', to: '/legal/ugc' },
     { icon: BadgeDollarSign, label: 'Affiliate / Sponsored Disclosure', to: '/legal/affiliate' },
+    { icon: Package, label: 'Supplier Agreement', to: '/legal/supplier' },
     { icon: Mail, label: 'DMCA / Copyright Report', to: '/legal/dmca' },
     { icon: ShieldAlert, label: 'Safety', to: '/legal/safety' },
   ];

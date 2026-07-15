@@ -55,6 +55,7 @@ const LegalUGC = lazy(() => import("./pages/LegalUGC"));
 const LegalAffiliate = lazy(() => import("./pages/LegalAffiliate"));
 const LegalDMCA = lazy(() => import("./pages/LegalDMCA"));
 const LegalSafety = lazy(() => import("./pages/LegalSafety"));
+const LegalSupplier = lazy(() => import("./pages/LegalSupplier"));
 const RequireAuth = lazy(() => import("./components/RequireAuth"));
 const RequireAdmin = lazy(() => import("./components/RequireAdmin"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
@@ -325,6 +326,7 @@ function App() {
               <Route path="/legal/affiliate" element={<LegalAffiliate />} />
               <Route path="/legal/dmca" element={<LegalDMCA />} />
               <Route path="/legal/safety" element={<LegalSafety />} />
+              <Route path="/legal/supplier" element={<LegalSupplier />} />
               <Route path="/guidelines" element={<Guidelines />} />
               <Route path="/support" element={<Support />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
