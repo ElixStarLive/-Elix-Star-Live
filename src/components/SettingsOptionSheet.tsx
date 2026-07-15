@@ -7,9 +7,8 @@ type SettingsOptionSheetProps = {
 };
 
 /**
- * Shared settings container: same size as STEM App column
- * (max-w 480px, full height above bottom nav) + slide-down / close.
- * Does not restyle page content — children render as-is.
+ * Full-height settings column (STEM width + height):
+ * max-w 480px, top of screen → top of home bar. Slide-down / close.
  */
 export default function SettingsOptionSheet({ children, onClose }: SettingsOptionSheetProps) {
   const [dragY, setDragY] = React.useState(0);
@@ -36,14 +35,14 @@ export default function SettingsOptionSheet({ children, onClose }: SettingsOptio
 
   return (
     <div
-      className="fixed left-0 right-0 top-0 z-[9999] flex justify-center"
-      style={{ bottom: 'var(--bottom-ui-reserve)' }}
+      className="fixed inset-x-0 top-0 z-[9999]"
+      style={{ height: 'calc(100dvh - var(--bottom-nav-top))' }}
     >
       <div className="absolute inset-0 bg-black/45" onClick={onClose} aria-hidden />
       <div
-        className="relative w-full max-w-[480px] h-full min-h-0 bg-[#111111] text-white shadow-2xl overflow-hidden flex flex-col"
+        className="absolute inset-y-0 left-1/2 w-full max-w-[480px] bg-[#111111] text-white shadow-2xl overflow-hidden flex flex-col"
         style={{
-          transform: `translateY(${dragY}px)`,
+          transform: `translateX(-50%) translateY(${dragY}px)`,
           transition: dragging ? 'none' : 'transform 0.25s ease',
         }}
         onClick={(e) => e.stopPropagation()}
