@@ -3,17 +3,22 @@ apply plugin: 'com.android.application'
 android {
     namespace "com.elixstarlive.app"
     compileSdk rootProject.ext.compileSdkVersion
+    // Required for AGP to extract/package native debug metadata when present
+    ndkVersion "27.3.13750724"
     defaultConfig {
         applicationId "com.elixstarlive.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 65
-        versionName "1.0.26"
+        versionCode 66
+        versionName "1.0.27"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+        ndk {
+            debugSymbolLevel 'FULL'
         }
     }
     signingConfigs {
@@ -31,14 +36,22 @@ android {
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.release
-            // Package native .so debug symbols into the AAB for Play Console crash/ANR analysis
             ndk {
-                debugSymbolLevel 'SYMBOL_TABLE'
+                debugSymbolLevel 'FULL'
             }
         }
         debug {
             minifyEnabled false
             debuggable true
+        }
+    }
+    // AndroidX ships libdatastore_shared_counter.so already stripped (no symbols).
+    // Play then warns "native code without debug symbols". This .so is only for
+    // MultiProcess DataStore; Capacitor/Firebase here use single-process DataStore,
+    // so excluding it removes native code from the AAB and clears the warning.
+    packaging {
+        jniLibs {
+            excludes += ['**/libdatastore_shared_counter.so']
         }
     }
 }
