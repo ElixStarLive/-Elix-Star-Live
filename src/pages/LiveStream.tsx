@@ -4981,7 +4981,7 @@ export default function LiveStream() {
                       className={`w-full flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-white/[0.03] transition-colors active:scale-[0.98] cursor-pointer ${!!slotStatus || allFull ? 'opacity-70' : ''}`}
                     >
                       <div className="relative flex-shrink-0">
-                        <AvatarRing src={c.avatar} alt={c.name} size={30} />
+                        <AvatarRing src={c.avatar} alt={c.name} size={SHARE_PANEL_AVATAR_PX} />
                         {c.isLive && <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-white/20 rounded-full border border-[#1C1E24]" />}
                       </div>
                       <p className="flex-1 text-left text-white text-xs font-semibold truncate min-w-0">{c.name || c.username}</p>
@@ -5217,7 +5217,10 @@ export default function LiveStream() {
               <div className="flex-1 overflow-y-auto no-scrollbar px-4 pb-4 min-h-0">
                 {pendingInvite && (
                   <div className="mb-3 flex items-center gap-2.5 w-full py-2 px-2 rounded-lg bg-[#C9A227]/10 border border-[#C9A227]/30">
-                    <div className="w-10 h-10 rounded-full overflow-hidden bg-[#111111] flex-shrink-0">
+                    <div
+                      className="rounded-full overflow-hidden bg-[#111111] flex-shrink-0"
+                      style={{ width: SHARE_PANEL_AVATAR_PX, height: SHARE_PANEL_AVATAR_PX }}
+                    >
                       {pendingInvite.hostAvatar ? (
                         <img src={pendingInvite.hostAvatar} alt="" className="w-full h-full object-cover" />
                       ) : (
@@ -5240,7 +5243,10 @@ export default function LiveStream() {
 
                 {pendingCohostInvite && (
                   <div className="mb-3 flex items-center gap-2.5 w-full py-2 px-2 rounded-lg bg-[#C9A227]/10 border border-[#C9A227]/30">
-                    <div className="w-10 h-10 rounded-full overflow-hidden bg-[#111111] flex-shrink-0">
+                    <div
+                      className="rounded-full overflow-hidden bg-[#111111] flex-shrink-0"
+                      style={{ width: SHARE_PANEL_AVATAR_PX, height: SHARE_PANEL_AVATAR_PX }}
+                    >
                       {pendingCohostInvite.hostAvatar ? (
                         <img src={pendingCohostInvite.hostAvatar} alt="" className="w-full h-full object-cover" />
                       ) : (
@@ -5265,7 +5271,10 @@ export default function LiveStream() {
                   .filter((c) => !isSelfUser(c.id, user?.id, effectiveStreamId) && !coHosts.some((h) => sameUserId(h.userId, c.id)))
                   .map((c) => (
                     <div key={c.id} className="flex items-center gap-3 w-full py-2 rounded-lg hover:bg-white/[0.03]">
-                      <div className="w-10 h-10 rounded-full overflow-hidden bg-[#111111] flex-shrink-0">
+                      <div
+                        className="rounded-full overflow-hidden bg-[#111111] flex-shrink-0"
+                        style={{ width: SHARE_PANEL_AVATAR_PX, height: SHARE_PANEL_AVATAR_PX }}
+                      >
                         <img src={c.avatar} alt="" className="w-full h-full object-cover" />
                       </div>
                       <div className="flex-1 min-w-0">

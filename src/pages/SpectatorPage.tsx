@@ -2831,7 +2831,10 @@ export default function SpectatorPage() {
                 <div className="flex-1 overflow-y-auto px-4 pb-4 min-h-0 flex flex-col gap-4">
                   {pendingCoHostInvite ? (
                     <div className="w-full flex items-center gap-2.5 px-2 py-2 rounded-lg bg-white/[0.03] flex-shrink-0">
-                      <div className="w-10 h-10 rounded-full overflow-hidden bg-[#111111] flex-shrink-0">
+                      <div
+                        className="rounded-full overflow-hidden bg-[#111111] flex-shrink-0"
+                        style={{ width: SHARE_PANEL_AVATAR_PX, height: SHARE_PANEL_AVATAR_PX }}
+                      >
                         {pendingCoHostInvite.hostAvatar ? <img src={pendingCoHostInvite.hostAvatar} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[#D4AF37] font-bold">{pendingCoHostInvite.hostName.slice(0, 1).toUpperCase()}</div>}
                       </div>
                       <div className="flex-1 min-w-0 text-left">
