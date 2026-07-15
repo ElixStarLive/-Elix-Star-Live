@@ -690,13 +690,8 @@ export default function EnhancedVideoPlayer({
   if (!video) return null;
 
   const posterUrl = video.thumbnail || getVideoPosterUrl(video.url);
-  /**
-   * Sum used inside calc() — avoids nested calc() in inline styles.
-   * For You: BottomNav is offset down 13mm; keep progress / side / caption on that same seam.
-   */
-  const navStackExpr = edgeToBottomNav
-    ? 'var(--nav-height) + var(--safe-bottom) - 13mm'
-    : 'var(--nav-height) + var(--safe-bottom)';
+  /** Sum used inside calc() — avoids nested calc() in inline styles */
+  const navStackExpr = 'var(--nav-height) + var(--safe-bottom)';
 
   return (
     <div 

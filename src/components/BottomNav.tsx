@@ -35,8 +35,7 @@ export const BottomNav = () => {
 
   return (
     <nav
-      className="fixed inset-x-0 z-[10002] pointer-events-none pb-[var(--safe-bottom)]"
-      style={{ bottom: "-13mm" }}
+      className="fixed inset-x-0 bottom-0 z-[10002] pointer-events-none pb-[var(--safe-bottom)]"
       aria-label="Main navigation"
     >
       <div className="flex justify-center pointer-events-none">
