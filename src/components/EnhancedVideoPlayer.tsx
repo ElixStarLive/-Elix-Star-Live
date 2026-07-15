@@ -880,14 +880,14 @@ export default function EnhancedVideoPlayer({
         className="absolute z-[10] flex flex-col items-center gap-2 pointer-events-auto"
         style={{
           right: '12px',
-          /* Above caption + progress at home-bar seam */
+          /* 10mm lower toward progress / home bar */
           bottom: edgeToBottomNav
             ? scrubbing
-              ? `calc(${navStackExpr} + 7.5rem)`
-              : `calc(${navStackExpr} + 5.5rem)`
+              ? `calc(${navStackExpr} + 7.5rem - 10mm)`
+              : `calc(${navStackExpr} + 5.5rem - 10mm)`
             : scrubbing
-              ? 'max(7.5rem, calc(3mm + 44px + 4.5rem))'
-              : 'calc(3mm + 6.5rem)',
+              ? 'max(7.5rem, calc(3mm + 44px + 4.5rem - 10mm))'
+              : 'calc(3mm + 6.5rem - 10mm)',
         }}
       >
         
@@ -995,9 +995,10 @@ export default function EnhancedVideoPlayer({
         style={{
           left: '3mm',
           right: '72px',
+          /* Lift username / sound / views 5mm up */
           bottom: edgeToBottomNav
-            ? `calc(${navStackExpr} + 3mm + 8px)`
-            : 'calc(3mm + 8px)',
+            ? `calc(${navStackExpr} + 8mm + 8px)`
+            : 'calc(8mm + 8px)',
         }}
       >
         <div className="flex items-center justify-between gap-2 w-full min-w-0">
