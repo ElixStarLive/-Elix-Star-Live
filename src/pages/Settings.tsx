@@ -19,33 +19,11 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { showToast } from '../lib/toast';
 import { useAuthStore } from '../store/useAuthStore';
-import { RoyceCloseIcon } from '../components/royce';
+import SettingsOptionSheet from '../components/SettingsOptionSheet';
 
 export default function Settings() {
   const navigate = useNavigate();
   const signOut = useAuthStore((s) => s.signOut);
-
-  // Swipe-down-to-close (same drag-to-dismiss feel as the sheet handle)
-  const [dragY, setDragY] = React.useState(0);
-  const [dragging, setDragging] = React.useState(false);
-  const dragStartRef = React.useRef<number | null>(null);
-
-  const onDragStart = (e: React.PointerEvent) => {
-    dragStartRef.current = e.clientY;
-    setDragging(true);
-  };
-  const onDragMove = (e: React.PointerEvent) => {
-    if (dragStartRef.current == null) return;
-    setDragY(Math.max(0, e.clientY - dragStartRef.current));
-  };
-  const onDragEnd = () => {
-    if (dragStartRef.current == null) return;
-    const shouldClose = dragY > 120;
-    dragStartRef.current = null;
-    setDragging(false);
-    if (shouldClose) navigate(-1);
-    else setDragY(0);
-  };
 
   const handleLogout = async () => {
     try { await signOut(); } catch { /* best-effort */ }
@@ -94,34 +72,11 @@ export default function Settings() {
     <p className="text-[8px] text-white/30 uppercase tracking-[0.12em] mt-2.5 mb-0.5 px-1 leading-none">{t}</p>
   );
 
-  /* Container only: fill App shell (same max-w-[480px] + height as STEM). UI unchanged. */
   return (
-    <div
-      className="relative h-full min-h-0 w-full bg-[#111111] text-white overflow-hidden flex flex-col"
-      style={{
-        transform: `translateY(${dragY}px)`,
-        transition: dragging ? 'none' : 'transform 0.25s ease',
-      }}
-    >
-      <button
-        type="button"
-        onClick={() => navigate(-1)}
-        onPointerDown={(e) => e.stopPropagation()}
-        className="absolute top-2 right-2 z-20 w-9 h-9 flex items-center justify-center rounded-full active:scale-90 transition-transform"
-        aria-label="Close settings"
-      >
-        <RoyceCloseIcon size={20} />
-      </button>
-      <div
-        className="relative flex-shrink-0 px-3 pt-1.5 pb-2 touch-none cursor-grab active:cursor-grabbing"
-        onPointerDown={onDragStart}
-        onPointerMove={onDragMove}
-        onPointerUp={onDragEnd}
-        onPointerCancel={onDragEnd}
-      >
+    <SettingsOptionSheet onClose={() => navigate(-1)}>
+      <div className="flex-shrink-0 px-3 pb-2">
         <div className="flex flex-col items-center">
-          <div className="w-10 h-1 bg-white/20 rounded-full absolute top-2 left-1/2 -translate-x-1/2" />
-          <span className="text-[13px] font-bold text-[#D4AF37] mt-2">Settings</span>
+          <span className="text-[13px] font-bold text-[#D4AF37]">Settings</span>
           <img src="/elix-logo.png" alt="Elix Star Live" className="w-16 h-16 object-contain mt-1.5" />
         </div>
       </div>
@@ -192,6 +147,6 @@ export default function Settings() {
           <p className="text-center text-[8px] text-white/20 pt-1 pb-0.5">v1.0.0</p>
         </div>
       </div>
-    </div>
+    </SettingsOptionSheet>
   );
 }
