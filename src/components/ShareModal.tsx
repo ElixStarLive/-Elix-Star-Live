@@ -19,7 +19,13 @@ import { useAuthStore } from '../store/useAuthStore';
 import PromotePanel from './PromotePanel';
 import { nativeConfirm } from './NativeDialog';
 import { downloadVideoWithoutMusic } from '../lib/videoDownloadClient';
-import { fetchAllSharePanelContacts, SHARE_PANEL_AVATAR_PX, SHARE_PANEL_ITEM_WIDTH_PX } from '../lib/sharePanelContacts';
+import {
+  fetchAllSharePanelContacts,
+  SHARE_PANEL_ACTION_DISC_PX,
+  SHARE_PANEL_ACTION_ICON_PX,
+  SHARE_PANEL_AVATAR_PX,
+  SHARE_PANEL_ITEM_WIDTH_PX,
+} from '../lib/sharePanelContacts';
 import { openExternalLink, nativeShareUrl } from '../lib/platform';
 import { showToast } from '../lib/toast';
 
@@ -191,8 +197,15 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin, i
                 onClick={() => item.action()}
                 className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
               >
-                <div className="relative w-9 h-9 royce-glow-disc flex-shrink-0">
-                  {React.cloneElement(item.icon as React.ReactElement, { className: 'w-5 h-5 royce-icon-gold', strokeWidth: 2 })}
+                <div
+                  className="relative royce-glow-disc flex-shrink-0"
+                  style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }}
+                >
+                  {React.cloneElement(item.icon as React.ReactElement, {
+                    className: 'royce-icon-gold',
+                    size: SHARE_PANEL_ACTION_ICON_PX,
+                    strokeWidth: 2,
+                  })}
                 </div>
                 <span className="text-[8px] font-semibold text-white/70 truncate w-full text-center">{item.name}</span>
               </button>
@@ -205,8 +218,15 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin, i
                   onClick={() => item.action()}
                   className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
                 >
-                  <div className={`relative w-9 h-9 royce-glow-disc flex-shrink-0 ${item.name === 'Report' ? 'translate-y-0.5' : ''}`}>
-                    {React.cloneElement(item.icon as React.ReactElement, { className: 'w-5 h-5 royce-icon-gold', strokeWidth: 2 })}
+                  <div
+                    className={`relative royce-glow-disc flex-shrink-0 ${item.name === 'Report' ? 'translate-y-0.5' : ''}`}
+                    style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }}
+                  >
+                    {React.cloneElement(item.icon as React.ReactElement, {
+                      className: 'royce-icon-gold',
+                      size: SHARE_PANEL_ACTION_ICON_PX,
+                      strokeWidth: 2,
+                    })}
                   </div>
                   <span className={`text-[8px] font-semibold truncate w-full text-center ${isRed ? 'text-white/60/70' : 'text-white/70'}`}>{item.name}</span>
                 </button>

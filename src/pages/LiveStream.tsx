@@ -74,7 +74,13 @@ import { useVideoStore } from '../store/useVideoStore';
 import { clearCachedCameraStream, getCachedCameraStream } from '../lib/cameraStream';
 import { apiUrl, getLiveKitUrl } from '../lib/api';
 import { request } from '../lib/apiClient';
-import { fetchAllSharePanelContacts, SHARE_PANEL_AVATAR_PX, SHARE_PANEL_ITEM_WIDTH_PX } from '../lib/sharePanelContacts';
+import {
+  fetchAllSharePanelContacts,
+  SHARE_PANEL_ACTION_DISC_PX,
+  SHARE_PANEL_ACTION_ICON_PX,
+  SHARE_PANEL_AVATAR_PX,
+  SHARE_PANEL_ITEM_WIDTH_PX,
+} from '../lib/sharePanelContacts';
 import { LevelBadge } from '../components/LevelBadge';
 import ReportModal from '../components/ReportModal';
 import PromotePanel from '../components/PromotePanel';
@@ -5910,8 +5916,15 @@ export default function LiveStream() {
                   { name: 'Story', icon: <PlusCircle size={22} className="text-white" />, action: () => { navigate('/create'); setShowSharePanel(false); } },
                 ].map((item) => (
                   <button key={item.name} onClick={item.action} className="flex flex-col items-center gap-1 active:scale-95 transition-transform">
-                    <div className={`relative w-9 h-9 royce-glow-disc flex-shrink-0 ${item.name === 'Report' ? 'translate-y-0.5' : ''}`}>
-                      {React.cloneElement((item.icon as React.ReactElement), { className: 'w-5 h-5 royce-icon-gold', strokeWidth: 2 })}
+                    <div
+                      className={`relative royce-glow-disc flex-shrink-0 ${item.name === 'Report' ? 'translate-y-0.5' : ''}`}
+                      style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }}
+                    >
+                      {React.cloneElement((item.icon as React.ReactElement), {
+                        className: 'royce-icon-gold',
+                        size: SHARE_PANEL_ACTION_ICON_PX,
+                        strokeWidth: 2,
+                      })}
                     </div>
                     <span className={`text-[8px] font-semibold truncate w-full text-center ${(item as { isRed?: boolean }).isRed ? 'text-white/60/70' : 'text-white/70'}`}>{item.name}</span>
                   </button>
