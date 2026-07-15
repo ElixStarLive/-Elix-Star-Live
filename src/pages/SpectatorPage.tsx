@@ -3255,8 +3255,8 @@ export default function SpectatorPage() {
                       { name: 'Report', icon: <Flag size={22} className="text-white/60" />, isRed: true, action: () => { setIsReportModalOpen(true); setShowSharePanel(false); } },
                     ].map((item) => (
                       <button key={item.name} onClick={item.action} className="flex flex-col items-center gap-1 active:scale-95 transition-transform">
-                        <div className="relative w-9 h-9 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center flex-shrink-0">
-                          <div className={`relative z-[2] ${item.name === 'Report' ? 'translate-y-0.5' : ''}`}>{React.cloneElement((item.icon as React.ReactElement), { className: 'w-3.5 h-3.5 royce-icon-gold', strokeWidth: 1.8 })}</div>
+                        <div className={`relative w-9 h-9 royce-glow-disc flex-shrink-0 ${item.name === 'Report' ? 'translate-y-0.5' : ''}`}>
+                          {React.cloneElement((item.icon as React.ReactElement), { className: 'w-5 h-5 royce-icon-gold', strokeWidth: 2 })}
                         </div>
                         <span className={`text-[8px] font-semibold truncate w-full text-center ${(item as { isRed?: boolean }).isRed ? 'text-white/60/70' : 'text-white/70'}`}>{item.name}</span>
                       </button>
