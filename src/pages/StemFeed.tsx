@@ -59,8 +59,8 @@ export default function StemFeed() {
   }, [stemVideos.length, activeIndex]);
 
   return (
-    <div className="h-full min-h-0 w-full flex flex-col bg-[#111111]">
-      {/* Header — same vertical band as For You golden top bar */}
+    <div className="app-live-column bg-[#111111]">
+      {/* Header — same vertical band as Live / For You */}
       <div
         className="fixed left-0 right-0 z-[9999] flex justify-center pointer-events-none"
         style={{ top: "var(--topnav-anchor-top)" }}

@@ -172,7 +172,7 @@ export default function SearchPage() {
 
 
   return (
-    <div className="fixed inset-0 z-[99999] flex justify-center">
+    <div className="app-live-column-host z-[99999]">
       {/* Backdrop — tap to close */}
       <div
         className="absolute inset-0 transition-opacity duration-250"
@@ -180,20 +180,19 @@ export default function SearchPage() {
         onClick={closePanel}
       />
 
-      {/* Panel — full screen */}
+      {/* Panel — Live column size */}
       <div
         ref={panelRef}
-        className="absolute left-0 right-0 top-0 flex justify-center transition-transform duration-250 ease-out"
+        className="app-live-column transition-transform duration-250 ease-out"
         style={{
-          bottom: 'var(--bottom-nav-top)',
           transform: visible ? 'translateY(0)' : 'translateY(100%)',
+          pointerEvents: visible ? 'auto' : 'none',
+          boxShadow: '0 -8px 30px rgba(0,0,0,0.5)',
+          paddingTop: 'var(--topnav-anchor-top)',
+          paddingBottom: 'var(--bottom-ui-reserve)',
         }}
       >
-        <div
-          className="page-above-bottom-nav__inner bg-[#111111]"
-          style={{ boxShadow: '0 -8px 30px rgba(0,0,0,0.5)', paddingTop: 'var(--topnav-anchor-top)' }}
-        >
-          {/* Header — same size container as STEM */}
+          {/* Header — Live column */}
           <div
             className="flex items-center justify-between px-3"
             style={{ minHeight: 'var(--topnav-bar-height)' }}
@@ -318,7 +317,6 @@ export default function SearchPage() {
             )}
           </div>
 
-        </div>
       </div>
     </div>
   );

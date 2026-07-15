@@ -7,8 +7,8 @@ type SettingsOptionSheetProps = {
 };
 
 /**
- * Full-height settings column = STEM shell:
- * max-w 480px, pinned top → home-bar top. Slide handle + close on every settings page.
+ * Full-height settings = LIVE top-bar tab column (LiveDiscover):
+ * fixed full viewport host + max-w 480px × height 100%. Not a height patch.
  */
 export default function SettingsOptionSheet({ children, onClose }: SettingsOptionSheetProps) {
   const [dragY, setDragY] = React.useState(0);
@@ -34,15 +34,12 @@ export default function SettingsOptionSheet({ children, onClose }: SettingsOptio
   };
 
   return (
-    <div
-      className="fixed inset-x-0 top-0 z-[9999]"
-      style={{ bottom: 'var(--bottom-nav-top)' }}
-    >
+    <div className="app-live-column-host z-[9999]">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden />
       <div
-        className="absolute top-0 bottom-0 left-1/2 w-full max-w-[480px] bg-[#111111] text-white overflow-hidden flex flex-col"
+        className="app-live-column text-white"
         style={{
-          transform: `translateX(-50%) translateY(${dragY}px)`,
+          transform: `translateY(${dragY}px)`,
           transition: dragging ? 'none' : 'transform 0.22s ease',
         }}
         onClick={(e) => e.stopPropagation()}

@@ -218,8 +218,8 @@ export default function LiveDiscover() {
   };
 
   return (
-    <div className="h-full min-h-0 w-full flex flex-col bg-[#111111]">
-      {/* Header — same size container as STEM */}
+    <div className="app-live-column bg-[#111111]">
+      {/* Header — Live / STEM band */}
       <div
         className="fixed left-0 right-0 z-[9999] flex justify-center pointer-events-none"
         style={{ top: 'var(--topnav-anchor-top)' }}
