@@ -4662,6 +4662,7 @@ export default function LiveStream() {
                           title="Viewers"
                           onClick={() => setShowViewerList(prev => !prev)}
                           className="flex items-center gap-1.5 px-0 py-1 rounded-full bg-transparent border-0 active:scale-95 transition-transform pointer-events-auto"
+                          style={{ marginRight: '1mm' }}
                         >
                           <span className="text-white text-[9px] font-bold tabular-nums">{formatCountShort(viewerCount)}</span>
                           <UserPlus size={16} className="text-[#D4AF37]" strokeWidth={2.2} />
