@@ -5,17 +5,16 @@ type SettingsOptionSheetProps = {
   onClose: () => void;
 };
 
-/** Full-height column matching STEM / App shell (`max-w-[480px]`). */
+/**
+ * Settings sub-page shell — same container size as STEM / App main only
+ * (`h-full w-full` inside max-w-[480px]). Does not change page content.
+ */
 export default function SettingsOptionSheet({ children, onClose }: SettingsOptionSheetProps) {
   return (
-    <div className="fixed inset-0 z-[9999] flex justify-center">
-      <div className="absolute inset-0 bg-black/45" onClick={onClose} />
-      <div
-        className="relative w-full max-w-[480px] h-full min-h-0 bg-[#111111] text-white shadow-2xl overflow-hidden flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {children}
-      </div>
+    <div className="relative h-full min-h-0 w-full bg-[#111111] text-white overflow-hidden flex flex-col">
+      {/* Keep onClose wired for callers that overlay-dismissed; unused in-flow */}
+      <button type="button" className="sr-only" onClick={onClose} aria-label="Close" />
+      {children}
     </div>
   );
 }

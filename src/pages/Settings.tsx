@@ -97,7 +97,7 @@ export default function Settings() {
   /* Container only: fill App shell (same max-w-[480px] + height as STEM). UI unchanged. */
   return (
     <div
-      className="h-full min-h-0 w-full bg-[#111111] text-white overflow-hidden flex flex-col"
+      className="relative h-full min-h-0 w-full bg-[#111111] text-white overflow-hidden flex flex-col"
       style={{
         transform: `translateY(${dragY}px)`,
         transition: dragging ? 'none' : 'transform 0.25s ease',
