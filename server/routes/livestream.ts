@@ -96,26 +96,6 @@ export async function resolveStreamOwnerUserId(roomOrUserId: string): Promise<st
   return raw;
 }
 
-/** Map stream room id to auth userId for WebSocket delivery (cohost invites). */
-export async function resolveStreamOwnerUserId(roomOrUserId: string): Promise<string> {
-  const raw = roomOrUserId.trim();
-  if (!raw) return raw;
-  if (isValkeyConfigured()) {
-    const ownerUserId = await valkeyHget(STREAM_KEY_PREFIX + raw, 'userId');
-    if (ownerUserId && ownerUserId.trim()) return ownerUserId.trim();
-  }
-  try {
-    const rows = await dbGetLiveStreams();
-    const match = rows.find(
-      (r) => r.stream_key === raw || r.user_id === raw,
-    );
-    if (match?.user_id?.trim()) return match.user_id.trim();
-  } catch (err) {
-    logger.warn({ err, roomOrUserId: raw }, "resolveStreamOwnerUserId DB lookup failed");
-  }
-  return raw;
-}
-
 /** Remove active stream from Valkey + DB. Returns true if removed. */
 export async function removeActiveStream(roomId: string, userId?: string): Promise<boolean> {
   try {
