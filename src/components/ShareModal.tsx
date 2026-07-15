@@ -193,7 +193,7 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin, i
               />
             </div>
           )}
-          <div className="grid grid-cols-5 gap-y-3 gap-x-1.5 pt-1 auto-rows-fr">
+          <div className="grid grid-cols-5 gap-y-3 gap-x-1.5 pt-1 auto-rows-fr" style={{ marginTop: '5mm' }}>
             {socialPlatforms.map((item) => (
               <button
                 key={item.name}

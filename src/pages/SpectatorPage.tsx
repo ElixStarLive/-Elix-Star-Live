@@ -3252,7 +3252,7 @@ export default function SpectatorPage() {
                 </div>
                 <div className="flex-1 overflow-y-scroll overflow-x-hidden min-h-0 px-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#C9A227]/60 [&::-webkit-scrollbar-thumb]:rounded-full">
                   {/* Share creator's live: all links use /watch/{creatorStreamId} */}
-                  <div className="grid grid-cols-5 gap-y-3 gap-x-1.5 pt-1">
+                  <div className="grid grid-cols-5 gap-y-3 gap-x-1.5 pt-1" style={{ marginTop: '5mm' }}>
                     {[
                       { name: 'WhatsApp', icon: <MessageCircle size={22} className="text-white" />, action: () => { openExternalLink(`https://wa.me/?text=${encodeURIComponent('Watch this on Elix! ' + `${window.location.origin}/watch/${effectiveStreamId}`)}`); setShowSharePanel(false); } },
                       { name: 'Facebook', icon: <Share2 size={22} className="text-white" />, action: () => { openExternalLink(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${window.location.origin}/watch/${effectiveStreamId}`)}`); setShowSharePanel(false); } },
