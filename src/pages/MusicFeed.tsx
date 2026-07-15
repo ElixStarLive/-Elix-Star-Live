@@ -186,7 +186,7 @@ export default function MusicFeed() {
           </div>
 
           <div className="px-3 pb-3">
-            <div className="p-4 rounded-2xl bg-gradient-to-b from-[#13151A] to-[#13151A] flex gap-4 w-full">
+            <div className="p-4 rounded-2xl bg-[#111111] flex gap-4 w-full">
               <div className="w-14 h-14 rounded-lg overflow-hidden flex items-center justify-center shrink-0 royce-tile bg-[#222]">
                 {selectedTrack?.coverUrl ? (
                   <img src={selectedTrack.coverUrl} alt="" className="w-full h-full object-cover" />
