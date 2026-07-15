@@ -71,7 +71,10 @@ export const BottomNav = () => {
                       className={iconClass}
                     />
                   </span>
-                  <span className={`text-[9px] font-semibold leading-none tracking-wide ${labelClass}`}>
+                  <span
+                    className={`text-[9px] font-semibold leading-none tracking-wide ${labelClass}`}
+                    style={{ marginTop: "1mm" }}
+                  >
                     {label}
                   </span>
                 </button>
