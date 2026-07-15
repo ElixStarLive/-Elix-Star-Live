@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { RoyceBackIcon } from '../components/royce';
 import { request } from '../lib/apiClient';
 import { Camera } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -173,7 +172,6 @@ export default function EditProfile() {
       <div className="w-full h-full overflow-hidden bg-[#111111] flex flex-col">
       {/* Header */}
       <div className="sticky top-0 z-10 px-4 py-4 flex items-center justify-between bg-[#111111]">
-        {/* Left: smaller Save button */}
         <button
           onClick={handleSave}
           disabled={loading}
@@ -181,15 +179,11 @@ export default function EditProfile() {
         >
           {loading ? 'Saving...' : 'Save'}
         </button>
-        {/* Center title */}
         <h1 className="text-lg font-bold text-center flex-1">Edit Profile</h1>
-        {/* Right: Close/back power button, nudged left from the edge */}
-        <button onClick={() => navigate(-1)} className="p-2 mr-3 hover:brightness-125 rounded-full transition">
-          <RoyceBackIcon />
-        </button>
+        <div className="w-[52px]" aria-hidden />
       </div>
 
-      <div className="px-4 py-6 space-y-6 flex-1 overflow-y-auto pb-[var(--bottom-ui-reserve)]">
+      <div className="px-4 py-6 space-y-6 flex-1 overflow-y-auto">
         {/* Avatar */}
         <div className="flex flex-col items-center gap-4">
           <div className="relative group cursor-pointer">

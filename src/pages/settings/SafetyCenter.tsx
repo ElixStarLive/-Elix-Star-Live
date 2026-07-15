@@ -10,12 +10,11 @@ export default function SafetyCenter() {
       <div className="w-full h-full overflow-hidden bg-[#111111] flex flex-col">
         <div className="flex-shrink-0 px-3 pt-1.5 pb-1.5">
           <div className="flex items-center justify-center">
-            <div className="w-10 h-1 bg-white/20 rounded-full absolute top-2 left-1/2 -translate-x-1/2" />
             <span className="text-[13px] font-bold text-[#D4AF37]">Safety Center</span>
           </div>
         </div>
 
-        <div className="h-full min-h-0 overflow-y-auto overscroll-y-contain px-3 pb-[var(--bottom-ui-reserve)]">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 pb-3">
           <Section title="Quick Actions">
             <OptionRow
               icon={<Ban size={14} />}

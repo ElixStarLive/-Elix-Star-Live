@@ -7,8 +7,8 @@ type SettingsOptionSheetProps = {
 };
 
 /**
- * Full-height settings column (STEM width + height):
- * max-w 480px, top of screen → top of home bar. Slide-down / close.
+ * Full-height settings column = STEM shell:
+ * max-w 480px, pinned top → home-bar top. Slide handle + close on every settings page.
  */
 export default function SettingsOptionSheet({ children, onClose }: SettingsOptionSheetProps) {
   const [dragY, setDragY] = React.useState(0);
@@ -26,7 +26,7 @@ export default function SettingsOptionSheet({ children, onClose }: SettingsOptio
   };
   const onDragEnd = () => {
     if (dragStartRef.current == null) return;
-    const shouldClose = dragY > 120;
+    const shouldClose = dragY > 100;
     dragStartRef.current = null;
     setDragging(false);
     if (shouldClose) onClose();
@@ -36,30 +36,30 @@ export default function SettingsOptionSheet({ children, onClose }: SettingsOptio
   return (
     <div
       className="fixed inset-x-0 top-0 z-[9999]"
-      style={{ height: 'calc(100dvh - var(--bottom-nav-top))' }}
+      style={{ bottom: 'var(--bottom-nav-top)' }}
     >
-      <div className="absolute inset-0 bg-black/45" onClick={onClose} aria-hidden />
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden />
       <div
-        className="absolute inset-y-0 left-1/2 w-full max-w-[480px] bg-[#111111] text-white shadow-2xl overflow-hidden flex flex-col"
+        className="absolute top-0 bottom-0 left-1/2 w-full max-w-[480px] bg-[#111111] text-white overflow-hidden flex flex-col"
         style={{
           transform: `translateX(-50%) translateY(${dragY}px)`,
-          transition: dragging ? 'none' : 'transform 0.25s ease',
+          transition: dragging ? 'none' : 'transform 0.22s ease',
         }}
         onClick={(e) => e.stopPropagation()}
       >
         <div
-          className="relative flex-shrink-0 h-10 touch-none cursor-grab active:cursor-grabbing"
+          className="relative flex-shrink-0 h-11 bg-[#111111] touch-none cursor-grab active:cursor-grabbing border-b border-white/[0.06]"
           onPointerDown={onDragStart}
           onPointerMove={onDragMove}
           onPointerUp={onDragEnd}
           onPointerCancel={onDragEnd}
         >
-          <div className="w-10 h-1 bg-white/20 rounded-full absolute top-2.5 left-1/2 -translate-x-1/2" />
+          <div className="w-11 h-1.5 bg-white/35 rounded-full absolute top-3 left-1/2 -translate-x-1/2" />
           <button
             type="button"
             onClick={onClose}
             onPointerDown={(e) => e.stopPropagation()}
-            className="absolute top-1 right-2 z-20 w-9 h-9 flex items-center justify-center rounded-full active:scale-90 transition-transform"
+            className="absolute top-1 right-2 z-30 w-9 h-9 flex items-center justify-center rounded-full active:scale-90 transition-transform"
             aria-label="Close"
           >
             <RoyceCloseIcon size={20} />

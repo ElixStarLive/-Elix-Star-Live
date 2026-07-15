@@ -101,7 +101,7 @@ export default function BlockedAccounts() {
       </div>
 
       {/* Blocked Users List */}
-      <div className="px-4 py-4 overflow-y-auto min-h-0 pb-[var(--bottom-ui-reserve)]">
+      <div className="px-4 py-4 overflow-y-auto min-h-0 pb-3">
         {loading ? (
           <div className="text-center py-12 text-white/40">Loading...</div>
         ) : (
