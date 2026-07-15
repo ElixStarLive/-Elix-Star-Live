@@ -134,17 +134,17 @@ export default function FriendsFeed() {
               type="button"
               onClick={() => navigate('/upload?type=story')}
               className="flex-shrink-0 flex flex-col items-center gap-1"
-              style={{ width: 95, minWidth: 95 }}
+              style={{ width: 72, minWidth: 72 }}
               title="Add story"
             >
-              <div className="relative" style={{ width: 62, height: 62 }}>
+              <div className="relative" style={{ width: 44, height: 44 }}>
                 <StoryGoldRingAvatar
-                  size={62}
+                  size={44}
                   src={user?.avatar || '/royce/default-avatar.svg'}
                   alt={user?.username || 'You'}
                 />
-                <span className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-[#D4AF37] border-2 border-black flex items-center justify-center">
-                  <Plus size={12} className="text-black" strokeWidth={3} />
+                <span className="absolute bottom-0 right-0 w-4 h-4 rounded-full bg-[#D4AF37] border-2 border-black flex items-center justify-center">
+                  <Plus size={10} className="text-black" strokeWidth={3} />
                 </span>
               </div>
               <div className="text-[11px] text-white/80 truncate w-full text-center">Add story</div>
@@ -155,9 +155,10 @@ export default function FriendsFeed() {
                 key={u.id}
                 type="button"
                 onClick={() => u.is_live ? navigate(`/watch/${u.id}`) : navigate(`/profile/${u.id}`)}
-                className="flex-shrink-0 flex flex-col items-center gap-1" style={{ width: 95, minWidth: 95 }}
+                className="flex-shrink-0 flex flex-col items-center gap-1" style={{ width: 72, minWidth: 72 }}
               >
                 <StoryGoldRingAvatar
+                  size={44}
                   live={u.is_live}
                   data-avatar-circle={u.is_live ? 'live' : undefined}
                   src={u.avatar_url || '/royce/default-avatar.svg'}
