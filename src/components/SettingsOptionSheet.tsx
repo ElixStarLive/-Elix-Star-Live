@@ -7,8 +7,8 @@ type SettingsOptionSheetProps = {
 };
 
 /**
- * Settings pages = LIVE top-bar tab column (LiveDiscover / first top-home-bar tab).
- * Same max-w 480px column; height is Live size (full viewport minus 4mm), not taller.
+ * Full-height settings = LIVE top-bar tab column (LiveDiscover):
+ * fixed full viewport host + max-w 480px × height 100%. Not a height patch.
  */
 export default function SettingsOptionSheet({ children, onClose }: SettingsOptionSheetProps) {
   const [dragY, setDragY] = React.useState(0);
@@ -34,15 +34,11 @@ export default function SettingsOptionSheet({ children, onClose }: SettingsOptio
   };
 
   return (
-    <div className="app-live-column-host z-[9999]" style={{ alignItems: 'flex-start' }}>
+    <div className="app-live-column-host z-[9999]">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden />
       <div
         className="app-live-column text-white"
         style={{
-          /* Match LIVE column: 4mm shorter than full-bleed overlay */
-          marginTop: '4mm',
-          height: 'calc(100% - 4mm)',
-          maxHeight: 'calc(100% - 4mm)',
           transform: `translateY(${dragY}px)`,
           transition: dragging ? 'none' : 'transform 0.22s ease',
         }}
