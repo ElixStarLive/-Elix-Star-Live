@@ -813,10 +813,11 @@ export default function EnhancedVideoPlayer({
           aria-valuenow={Number.isFinite(currentTime) ? Math.round(currentTime) : 0}
           aria-valuemin={0}
           aria-valuemax={Number.isFinite(duration) && duration > 0 ? Math.round(duration) : 0}
-          className="absolute left-3 right-[3.75rem] z-[16] pointer-events-auto flex flex-col justify-end cursor-pointer select-none"
+          className="absolute left-0 right-0 z-[16] pointer-events-auto flex flex-col justify-end cursor-pointer select-none px-3"
           style={{
-            bottom: edgeToBottomNav ? `calc(${navStackExpr} + 6px + 3mm)` : 'calc(4mm + 3mm)',
-            paddingBottom: edgeToBottomNav ? 0 : 'max(4px, env(safe-area-inset-bottom, 0px))',
+            /* Pin scrubber to the true bottom of the player (For You already sits above BottomNav) */
+            bottom: edgeToBottomNav ? `calc(${navStackExpr})` : 0,
+            paddingBottom: edgeToBottomNav ? 0 : 'max(2px, env(safe-area-inset-bottom, 0px))',
             touchAction: 'none',
             minHeight: scrubbing ? 44 : 22,
             transition: 'min-height 0.12s ease-out',
@@ -877,15 +878,14 @@ export default function EnhancedVideoPlayer({
         className="absolute z-[10] flex flex-col items-center gap-2 pointer-events-auto"
         style={{
           right: '12px',
-          /* Above thin progress line; extra space when user is scrubbing */
+          /* Raised above caption + progress; no downward pull */
           bottom: edgeToBottomNav
             ? scrubbing
-              ? `calc(${navStackExpr} + 5.5rem)`
-              : `calc(${navStackExpr} + 3rem)`
+              ? `calc(${navStackExpr} + 7.5rem)`
+              : `calc(${navStackExpr} + 5.5rem)`
             : scrubbing
-              ? 'max(3.5rem, calc(44px + 10px))'
-              : 'max(3.5rem, 1.5rem)',
-          marginBottom: '-8mm',
+              ? 'max(7.5rem, calc(44px + 4.5rem))'
+              : '6.5rem',
         }}
       >
         
@@ -987,42 +987,46 @@ export default function EnhancedVideoPlayer({
         </button>
       </div>
 
-      {/* Bottom Info Area — clear bottom nav so views/date stay visible */}
+      {/* Bottom Info Area — sit above progress; left-aligned rows */}
       <div
-        className={`absolute z-[10] left-3 w-[72%] pointer-events-none flex flex-col ${edgeToBottomNav ? 'pb-2' : 'pb-1'}`}
-        style={{ bottom: `calc(${navStackExpr} + 8px)`, transform: 'translateY(8mm)' }}
+        className={`absolute z-[10] left-3 w-[72%] pointer-events-none flex flex-col items-start gap-0.5 ${edgeToBottomNav ? 'pb-2' : 'pb-1'}`}
+        style={{
+          bottom: edgeToBottomNav
+            ? `calc(${navStackExpr} + 10px)`
+            : '10px',
+        }}
       >
-        <div className="flex items-center gap-2 mb-0">
+        <div className="flex items-center gap-2 mb-0 w-full min-w-0 justify-start">
           <LevelBadge level={video.user.level ?? 1} size={10} circleSize={28} layout="fixed" avatar={video.user.avatar} />
-          <h3 className="text-white font-bold text-shadow-md">{video.user.name || video.user.username}</h3>
+          <h3 className="text-white font-bold text-shadow-md truncate">{video.user.name || video.user.username}</h3>
           {video.user.isVerified && (
-            <div className="w-4 h-4 bg-[#FFFFFF] rounded-full flex items-center justify-center">
+            <div className="w-4 h-4 bg-[#FFFFFF] rounded-full flex items-center justify-center flex-shrink-0">
               <div className="w-2 h-2 bg-white rounded-full" />
             </div>
           )}
         </div>
 
-        <div className="flex items-center gap-2 text-white/90 mb-1 mt-0.5">
+        <div className="flex items-center gap-2 text-white/90 w-full min-w-0 justify-start">
           <span className="w-4 h-4 rounded-full overflow-hidden bg-black flex-shrink-0 border border-white/20 flex items-center justify-center">
             <img
               src={video.music?.coverUrl || video.user.avatar || '/royce/default-avatar.svg'}
               alt=""
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover rounded-full"
               draggable={false}
               onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/royce/default-avatar.svg'; }}
             />
           </span>
-          <span className="text-xs font-medium animate-marquee whitespace-nowrap overflow-hidden w-32">
+          <span className="text-xs font-medium animate-marquee whitespace-nowrap overflow-hidden flex-1 min-w-0 text-left">
             {video.music?.title || 'Original Sound'}
             {(video.music?.artist || video.user.name || video.user.username) ? ` - ${video.music?.artist || video.user.name || video.user.username}` : ''}
           </span>
         </div>
         
-        <p className="text-white/90 text-sm mb-1 text-shadow-md line-clamp-2">
+        <p className="text-white/90 text-sm mb-0 text-shadow-md line-clamp-2 w-full text-left">
           {video.description}
         </p>
         
-        <div className="flex flex-wrap gap-1 mb-1">
+        <div className="flex flex-wrap gap-1 mb-0 w-full justify-start">
           {video.hashtags.map((hashtag) => (
             <button
               key={hashtag}
@@ -1035,19 +1039,19 @@ export default function EnhancedVideoPlayer({
         </div>
 
         {video.location && (
-          <div className="flex items-center gap-1 text-white/60 text-xs mb-1">
+          <div className="flex items-center gap-1 text-white/60 text-xs mb-0 w-full justify-start">
             <div className="w-3 h-3 rounded-full" />
             <span>{video.location}</span>
           </div>
         )}
 
-        <div className="flex items-center gap-3 text-white/60 text-xs">
+        <div className="flex items-center gap-3 text-white/60 text-xs w-full justify-start">
           <span>{formatNumber(video.stats.views)} views</span>
           <span>{new Date(video.createdAt).toLocaleDateString()}</span>
         </div>
 
         {feedSourceLabel ? (
-          <p className="text-white/50 text-[11px] font-medium mt-1 mb-0">{feedSourceLabel}</p>
+          <p className="text-white/50 text-[11px] font-medium mt-0 mb-0 w-full text-left">{feedSourceLabel}</p>
         ) : null}
       </div>
 

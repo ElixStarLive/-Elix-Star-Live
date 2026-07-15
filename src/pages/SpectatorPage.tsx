@@ -34,6 +34,7 @@ import { GiftPanel } from '../components/GiftPanel';
 import { GiftGoalGallery } from '../components/GiftGoalGallery';
 import { LiveGiftGoalBar } from '../components/LiveGiftGoalBar';
 import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, fetchGiftsFromDatabase } from '../lib/giftsCatalog';
+import { BattleVfxOverlays, type BattleMistSide, type GloveBurst } from '../components/BattleVfxOverlays';
 import {
   addPersistedTestCoins,
   debitTestCoinsForGift,
@@ -333,6 +334,33 @@ export default function SpectatorPage() {
     opponentRoomId: string;
     opponentUserId: string;
   } | null>(null);
+  const [battleMistSide, setBattleMistSide] = useState<BattleMistSide>(null);
+  const [battleHideScores, setBattleHideScores] = useState(false);
+  const [battleGloves, setBattleGloves] = useState<GloveBurst[]>([]);
+  const battleMistTimerRef = useRef<number | null>(null);
+  const gloveIdRef = useRef(0);
+
+  const triggerBattleVfx = useCallback((side: 'red' | 'blue', strength: number) => {
+    setBattleMistSide(side);
+    if (battleMistTimerRef.current != null) window.clearTimeout(battleMistTimerRef.current);
+    battleMistTimerRef.current = window.setTimeout(() => setBattleMistSide(null), 2200);
+    if (strength < 15) return;
+    const bursts: GloveBurst[] = [0, 1, 2].map((i) => ({
+      id: ++gloveIdRef.current,
+      side,
+      x: 4 + i * 12 + Math.random() * 10,
+      delay: i * 110,
+    }));
+    setBattleGloves((prev) => [...prev.slice(-5), ...bursts]);
+    window.setTimeout(() => {
+      setBattleGloves((prev) => prev.filter((g) => !bursts.some((b) => b.id === g.id)));
+    }, 1700);
+  }, []);
+
+  useEffect(() => {
+    const t = spectatorBattle?.timeLeft ?? 0;
+    setBattleHideScores(!!spectatorBattle?.active && t > 0 && t <= 10 && !spectatorBattle?.winner);
+  }, [spectatorBattle?.active, spectatorBattle?.timeLeft, spectatorBattle?.winner]);
 
   const opponentVideoRef = useRef<HTMLVideoElement>(null);
   const opponentLkRoomRef = useRef<Room | null>(null);
@@ -1316,6 +1344,10 @@ export default function SpectatorPage() {
         const newO = toScore(data.opponentScore, prev?.opponentScore ?? 0);
         const newP3 = toScore(data.player3Score ?? data.player3_score, prev?.player3Score ?? 0);
         const newP4 = toScore(data.player4Score ?? data.player4_score, prev?.player4Score ?? 0);
+        const redDelta = (newH - (prev?.hostScore ?? 0)) + (newP3 - (prev?.player3Score ?? 0));
+        const blueDelta = (newO - (prev?.opponentScore ?? 0)) + (newP4 - (prev?.player4Score ?? 0));
+        if (redDelta > blueDelta && redDelta > 0) triggerBattleVfx('red', redDelta);
+        else if (blueDelta > 0) triggerBattleVfx('blue', blueDelta);
         const newOppName = (typeof data.opponentName === 'string' && data.opponentName) || prev?.opponentName;
         const newOppRoom = (typeof data.opponentRoomId === 'string' && data.opponentRoomId) || prev?.opponentRoomId;
         if (prev?.active && newH === prev.hostScore && newO === prev.opponentScore &&
@@ -1545,7 +1577,7 @@ export default function SpectatorPage() {
       websocket.off('cohost_invite', handleCohostInvite);
       websocket.disconnect();
     };
-  }, [effectiveStreamId, user?.id, streamIsLive, syncMvpSlots, spawnHeartAt]);
+  }, [effectiveStreamId, user?.id, streamIsLive, syncMvpSlots, spawnHeartAt, triggerBattleVfx]);
 
   // Share panel contacts: all platform users (same list as live share / ShareModal).
   useEffect(() => {
@@ -1882,7 +1914,7 @@ export default function SpectatorPage() {
                       <div className="h-full flex-1 min-w-0" style={{ backgroundImage: 'linear-gradient(90deg, #1E90FF, #4169E1, #0047AB)' }} />
                     </div>
                     <div className="relative z-10 flex h-full min-h-[16px] items-center justify-between gap-1.5 px-2 pointer-events-none leading-none">
-                      <div className="flex min-w-0 flex-1 flex-col items-start justify-center gap-0">
+                      <div className={`flex min-w-0 flex-1 flex-col items-start justify-center gap-0 ${battleHideScores ? 'opacity-0' : ''}`}>
                         <AnimatedScore value={typeof redTeamScore === 'number' && Number.isFinite(redTeamScore) ? redTeamScore : 0} durationMs={0} format={formatBattleScoreShort} className="text-white font-black text-[11px] tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" />
                         {showPkBreakdown && (
                           <span className="text-[5px] text-white/80 tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
@@ -1890,7 +1922,7 @@ export default function SpectatorPage() {
                           </span>
                         )}
                       </div>
-                      <div className="flex min-w-0 flex-1 flex-col items-end justify-center gap-0">
+                      <div className={`flex min-w-0 flex-1 flex-col items-end justify-center gap-0 ${battleHideScores ? 'opacity-0' : ''}`}>
                         <AnimatedScore value={typeof blueTeamScore === 'number' && Number.isFinite(blueTeamScore) ? blueTeamScore : 0} durationMs={0} format={formatBattleScoreShort} className="text-white font-black text-[11px] tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" />
                         {showPkBreakdown && (
                           <span className="text-[5px] text-white/80 tabular-nums leading-none text-right drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
@@ -1898,6 +1930,9 @@ export default function SpectatorPage() {
                           </span>
                         )}
                       </div>
+                      {battleHideScores ? (
+                        <div className="absolute inset-0 z-20 battle-score-veil pointer-events-none" />
+                      ) : null}
                     </div>
                   </div>
                 </div>
@@ -1905,6 +1940,7 @@ export default function SpectatorPage() {
                 {/* Battle grid — videos + tap overlay (2-way or 4-way PK); one +5 vote per spectator per battle */}
                 <div className="relative w-full flex-none flex flex-col" style={{ height: LIVE_BATTLE_VIDEO_HEIGHT }}>
                   <div className="flex-1 min-h-0 flex flex-col relative">
+                    <BattleVfxOverlays mistSide={battleMistSide} hideScores={false} gloves={battleGloves} />
                     <div className="absolute inset-0 flex flex-row">
                       <div className="w-1/2 h-full overflow-hidden relative bg-[#111111] border-r border-white/5">
                         <video

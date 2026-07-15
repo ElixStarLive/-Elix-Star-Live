@@ -97,7 +97,6 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
                 display: 'block',
                 objectFit: 'cover',
                 objectPosition: 'center center',
-                transform: `translateY(-${PROFILE_RING_IMAGE_LIFT_MM}mm)`,
               }}
             />
           ) : (
@@ -111,7 +110,6 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
                 display: 'block',
                 objectFit: 'cover',
                 objectPosition: 'center center',
-                transform: `translateY(-${PROFILE_RING_IMAGE_LIFT_MM}mm)`,
               }}
             />
           )}

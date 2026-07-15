@@ -38,6 +38,7 @@ import {
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, fetchGiftsFromDatabase } from '../lib/giftsCatalog';
+import { BattleVfxOverlays, type BattleMistSide, type GloveBurst } from '../components/BattleVfxOverlays';
 import {
   addPersistedTestCoins,
   debitTestCoinsForGift,
@@ -1264,6 +1265,39 @@ export default function LiveStream() {
   const battleServerTotalsRef = useRef({ h: 0, o: 0, p3: 0, p4: 0 });
   const lastBattleScoreUpdateTraceSigRef = useRef('');
   const [battleServerTotals, setBattleServerTotals] = useState({ h: 0, o: 0, p3: 0, p4: 0 });
+  const [battleMistSide, setBattleMistSide] = useState<BattleMistSide>(null);
+  const [battleHideScores, setBattleHideScores] = useState(false);
+  const [battleGloves, setBattleGloves] = useState<GloveBurst[]>([]);
+  const battleMistTimerRef = useRef<number | null>(null);
+  const gloveIdRef = useRef(0);
+
+  const triggerBattleVfx = useCallback((side: 'red' | 'blue', strength: number) => {
+    setBattleMistSide(side);
+    if (battleMistTimerRef.current != null) window.clearTimeout(battleMistTimerRef.current);
+    battleMistTimerRef.current = window.setTimeout(() => setBattleMistSide(null), 2200);
+    if (strength < 15) return;
+    const bursts: GloveBurst[] = [0, 1, 2].map((i) => ({
+      id: ++gloveIdRef.current,
+      side,
+      x: 4 + i * 12 + Math.random() * 10,
+      delay: i * 110,
+    }));
+    setBattleGloves((prev) => [...prev.slice(-5), ...bursts]);
+    window.setTimeout(() => {
+      setBattleGloves((prev) => prev.filter((g) => !bursts.some((b) => b.id === g.id)));
+    }, 1700);
+  }, []);
+
+  useEffect(() => {
+    setBattleHideScores(isBattleMode && battleTime > 0 && battleTime <= 10 && !battleWinner);
+  }, [isBattleMode, battleTime, battleWinner]);
+
+  useEffect(() => {
+    return () => {
+      if (battleMistTimerRef.current != null) window.clearTimeout(battleMistTimerRef.current);
+    };
+  }, []);
+
   const opponentLkRoomRef = useRef<Room | null>(null);
   const [iAmReady, setIAmReady] = useState(false);
   const [hostIsReady, setHostIsReady] = useState(false);
@@ -2601,10 +2635,15 @@ export default function LiveStream() {
         p3: pick(data.player3Score ?? data.player3_score, prevS.p3),
         p4: pick(data.player4Score ?? data.player4_score, prevS.p4),
       };
+      const redDelta = (nextS.h - prevS.h) + (nextS.p3 - prevS.p3);
+      const blueDelta = (nextS.o - prevS.o) + (nextS.p4 - prevS.p4);
       battleServerTotalsRef.current = nextS;
       setBattleServerTotals(nextS);
       setPlayer3Score(nextS.p3);
       setPlayer4Score(nextS.p4);
+
+      if (redDelta > blueDelta && redDelta > 0) triggerBattleVfx('red', redDelta);
+      else if (blueDelta > 0) triggerBattleVfx('blue', blueDelta);
 
       const hostScore = nextS.h;
       const oppScore = nextS.o;
@@ -3000,7 +3039,7 @@ export default function LiveStream() {
       websocket.off('moderation_suspend', handleModerationSuspend);
       websocket.disconnect();
     };
-  }, [effectiveStreamId, user?.id, navigate, maybeResolveViewerIdentity, isGenericViewerName]);
+  }, [effectiveStreamId, user?.id, navigate, maybeResolveViewerIdentity, isGenericViewerName, triggerBattleVfx]);
 
   // AI moderation: periodic frame check when broadcasting (flag + assist, all actions logged)
   const moderationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -4033,7 +4072,7 @@ export default function LiveStream() {
                         />
                         <div className="h-full flex-1 min-w-0" style={{ backgroundImage: 'linear-gradient(90deg, #1E90FF, #4169E1, #0047AB)' }} />
                       </div>
-                      <div className="relative z-10 flex h-full min-h-[16px] items-center justify-between gap-1.5 px-2 pointer-events-none leading-none">
+                      <div className={`relative z-10 flex h-full min-h-[16px] items-center justify-between gap-1.5 px-2 pointer-events-none leading-none ${battleHideScores ? 'opacity-0' : ''}`}>
                         <div className="flex min-w-0 flex-1 flex-col items-start justify-center gap-0">
                           <AnimatedScore value={typeof redTeamScore === 'number' && Number.isFinite(redTeamScore) ? redTeamScore : 0} durationMs={0} format={formatCoinsShort} className="text-white font-black text-[11px] tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" />
                           {is4Player && (
@@ -4051,6 +4090,9 @@ export default function LiveStream() {
                           )}
                         </div>
                       </div>
+                      {battleHideScores ? (
+                        <div className="absolute inset-0 z-20 battle-score-veil pointer-events-none" />
+                      ) : null}
                     </div>
                   </div>
 
@@ -4066,7 +4108,8 @@ export default function LiveStream() {
                   )}
 
                   {/* Grid Container — ref for spectator tap→vote mapping */}
-                  <div ref={battleVoteGridRef} className="flex-1 min-h-0 flex flex-col">
+                  <div ref={battleVoteGridRef} className="flex-1 min-h-0 flex flex-col relative">
+                    <BattleVfxOverlays mistSide={battleMistSide} hideScores={false} gloves={battleGloves} />
                     {/* Row 1: P1 & P2 */}
                     <div className="flex flex-1 min-h-0">
                       <div
@@ -4164,7 +4207,7 @@ export default function LiveStream() {
                           <div className="w-12 h-12 rounded-full flex items-center justify-center">
                             <span className="text-white/30 text-2xl">+</span>
                           </div>
-                          <span className="text-white/40 text-[10px] font-bold">Invite P2</span>
+                          <span className="text-white/40 text-[10px] font-bold">Invite creator</span>
                         </div>
                       )}
 
@@ -4270,7 +4313,7 @@ export default function LiveStream() {
                             <div className="w-12 h-12 rounded-full flex items-center justify-center">
                               <span className="text-white/30 text-2xl">+</span>
                             </div>
-                            <span className="text-white/40 text-[10px] font-bold">Invite P3</span>
+                            <span className="text-white/40 text-[10px] font-bold">Invite creator</span>
                           </div>
                         )}
 
@@ -4350,7 +4393,7 @@ export default function LiveStream() {
                             <div className="w-12 h-12 rounded-full flex items-center justify-center">
                               <span className="text-white/30 text-2xl">+</span>
                             </div>
-                            <span className="text-white/40 text-[10px] font-bold">Invite P4</span>
+                            <span className="text-white/40 text-[10px] font-bold">Invite creator</span>
                           </div>
                         )}
 
@@ -5191,16 +5234,12 @@ export default function LiveStream() {
             onClick={() => setShowViewerList(false)}
           />
           <div className="fixed bottom-0 left-0 right-0 z-[999999] pointer-events-auto max-w-[480px] mx-auto">
-            <div className="bg-[#111111]/95 backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl overflow-hidden">
+            <div className="bg-[#111111]/95 backdrop-blur-md rounded-t-2xl h-[36vh] flex flex-col shadow-2xl overflow-hidden">
               <div className="flex justify-center pt-3 pb-1">
                 <div className="w-10 h-1 bg-white/20 rounded-full" />
               </div>
-              <div className="flex items-center justify-between px-4 pb-2">
-                <h3 className="text-white font-bold text-sm">Join requests & Spectators</h3>
-                <div className="flex items-center gap-1">
-                  <Users size={12} className="text-white/50" />
-                  <span className="text-white/60 text-xs font-semibold">{formatCountShort(viewerCount)}</span>
-                </div>
+              <div className="flex items-center justify-center px-4 pb-2">
+                <h3 className="text-white font-bold text-sm">Invite creators</h3>
               </div>
               <div className="flex-1 overflow-y-auto no-scrollbar px-4 pb-4 min-h-0">
                 {pendingInvite && (
@@ -5214,7 +5253,6 @@ export default function LiveStream() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-white text-sm font-semibold truncate">@{pendingInvite.hostName}</p>
-                      <p className="text-white/50 text-[10px]">Battle invite — Join or Reject</p>
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
                       <button type="button" onClick={declineBattleInvite} className="px-2 py-1 rounded-full bg-red-500/20 border border-red-500/30">
@@ -5238,7 +5276,6 @@ export default function LiveStream() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-white text-sm font-semibold truncate">@{pendingCohostInvite.hostName}</p>
-                      <p className="text-white/50 text-[10px]">Co-host invite — Join or Reject</p>
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
                       <button type="button" onClick={declineCohostInvite} className="px-2 py-1 rounded-full bg-red-500/20 border border-red-500/30">
@@ -5251,134 +5288,27 @@ export default function LiveStream() {
                   </div>
                 )}
 
-                {coHosts.length > 0 && (
-                  <>
-                    <p className="text-white/50 text-[10px] font-bold uppercase tracking-wider mb-1.5">Co-hosts</p>
-                    {coHosts.map((h) => (
-                      <div key={h.id} className="flex items-center gap-3 w-full py-2 rounded-lg hover:bg-white/[0.03]">
-                        <div className="w-10 h-10 rounded-full overflow-hidden bg-[#111111] flex-shrink-0">
-                          {h.avatar ? (
-                            <img src={h.avatar} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <span className="text-[#D4AF37] font-bold text-sm">{(h.name || '?').slice(0, 1).toUpperCase()}</span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-white text-sm font-semibold truncate">{h.name}</p>
-                          <p className="text-white/40 text-[10px] font-medium capitalize">{h.status === 'live' ? 'Live on stream' : h.status}</p>
-                        </div>
-                        {h.status === 'live' ? (
-                          <span className="text-white text-[10px] font-bold flex-shrink-0">Live</span>
-                        ) : (
-                          <span className="text-[#C9A96E] text-[10px] font-semibold flex-shrink-0">Invited</span>
-                        )}
+                {creatorsToInvite
+                  .filter((c) => !isSelfUser(c.id, user?.id, effectiveStreamId) && !coHosts.some((h) => sameUserId(h.userId, c.id)))
+                  .map((c) => (
+                    <div key={c.id} className="flex items-center gap-3 w-full py-2 rounded-lg hover:bg-white/[0.03]">
+                      <div className="w-10 h-10 rounded-full overflow-hidden bg-[#111111] flex-shrink-0">
+                        <img src={c.avatar} alt="" className="w-full h-full object-cover" />
                       </div>
-                    ))}
-                  </>
-                )}
-
-                <p className="text-white/50 text-[10px] font-bold uppercase tracking-wider mb-1.5 mt-2">Invite live creators</p>
-                {creatorsToInvite.filter((c) => !isSelfUser(c.id, user?.id, effectiveStreamId) && !coHosts.some((h) => sameUserId(h.userId, c.id))).length > 0 ? (
-                  creatorsToInvite
-                    .filter((c) => !isSelfUser(c.id, user?.id, effectiveStreamId) && !coHosts.some((h) => sameUserId(h.userId, c.id)))
-                    .map((c) => (
-                      <div key={c.id} className="flex items-center gap-3 w-full py-2 rounded-lg hover:bg-white/[0.03]">
-                        <div className="w-10 h-10 rounded-full overflow-hidden bg-[#111111] flex-shrink-0">
-                          <img src={c.avatar} alt="" className="w-full h-full object-cover" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-white text-sm font-semibold truncate">{c.name || c.username}</p>
-                          <p className="text-white/40 text-[10px] font-medium">Live now</p>
-                        </div>
-                        {isBroadcast && isMyStreamLive && (
-                          <button
-                            type="button"
-                            onClick={() => { inviteCoHost({ id: c.id, streamKey: c.streamKey, name: c.name || c.username, avatar: c.avatar }); }}
-                            className="px-2.5 py-1 rounded-full bg-[#C9A96E] text-black text-[10px] font-bold flex-shrink-0"
-                          >
-                            Invite
-                          </button>
-                        )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white text-sm font-semibold truncate">{c.name || c.username}</p>
                       </div>
-                    ))
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-4 text-center">
-                    <p className="text-white/40 text-xs">
-                      {creatorsLoading ? 'Loading live creators...' : creatorsLoadFailed ? "Couldn't load creators" : 'No other live creators right now'}
-                    </p>
-                    {creatorsLoadFailed && (
-                      <button type="button" onClick={() => loadCreators()} className="mt-2 px-3 py-1.5 rounded-lg bg-[#C9A227]/20 border border-[#C9A227]/40 text-[#D4AF37] text-[10px] font-bold active:scale-95">
-                        Retry
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {/* Spectators — invite as co-host or open profile; join request (Accept/Decline) shown on requester's row */}
-                <p className="text-white/50 text-[10px] font-bold uppercase tracking-wider mb-1.5 mt-3">Spectators</p>
-                {activeViewers.length > 0 ? (
-                  activeViewers.map((v, i) => {
-                    const alreadyInvited = coHosts.some(h => sameUserId(h.userId, v.id));
-                    if (isSelfUser(v.id, user?.id, effectiveStreamId)) return null;
-                    const isJoinRequester = pendingJoinRequest?.requesterId === v.id;
-                    return (
-                      <div
-                        key={v.id}
-                        className="flex items-center gap-3 w-full py-2 rounded-lg hover:bg-white/[0.03]"
-                      >
-                        <span className="text-white/30 text-xs font-bold w-5 text-right flex-shrink-0">{i + 1}</span>
+                      {isBroadcast && isMyStreamLive && (
                         <button
                           type="button"
-                          className="flex items-center gap-3 flex-1 min-w-0 text-left"
-                          onClick={() => { openMiniProfile(v.displayName); setShowViewerList(false); }}
+                          onClick={() => { inviteCoHost({ id: c.id, streamKey: c.streamKey, name: c.name || c.username, avatar: c.avatar }); }}
+                          className="px-2.5 py-1 rounded-full bg-[#C9A96E] text-black text-[10px] font-bold flex-shrink-0"
                         >
-                          <div className="w-10 h-10 rounded-full overflow-hidden bg-[#111111] flex-shrink-0">
-                            {v.avatar ? (
-                              <img src={v.avatar} alt="" className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <span className="text-[#D4AF37] font-bold text-sm">{v.displayName.slice(0, 1).toUpperCase()}</span>
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-white text-sm font-semibold truncate">{v.displayName}</p>
-                            <p className="text-white/40 text-[10px] font-medium">{isJoinRequester ? 'Requested to co-host' : `Level ${v.level}`}</p>
-                          </div>
+                          Invite
                         </button>
-                        {isBroadcast && isMyStreamLive && (
-                          isJoinRequester ? (
-                            <div className="flex items-center gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                              <button type="button" onClick={() => { declineJoinRequest(); setShowViewerList(false); }} className="px-2 py-1 rounded-full bg-red-500/20 border border-red-500/30 flex items-center gap-0.5 active:scale-95 transition-transform cursor-pointer">
-                                <span className="text-red-400 text-[9px] font-bold">Reject</span>
-                              </button>
-                              <button type="button" onClick={() => { acceptJoinRequest(); setShowViewerList(false); }} className="px-2.5 py-1 rounded-full bg-green-500 flex items-center gap-0.5 active:scale-95 transition-transform cursor-pointer">
-                                <span className="text-black text-[9px] font-bold">Join</span>
-                              </button>
-                            </div>
-                          ) : coHosts.length < MAX_CO_HOSTS && !alreadyInvited ? (
-                            <button
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); inviteCoHost({ id: v.id, name: v.displayName, avatar: v.avatar }); setShowViewerList(false); }}
-                              className="px-2.5 py-1 rounded-full bg-[#C9A96E] text-black text-[10px] font-bold flex-shrink-0"
-                            >
-                              Invite
-                            </button>
-                          ) : alreadyInvited ? (
-                            <span className="text-[#C9A96E] text-[10px] font-semibold flex-shrink-0">Invited</span>
-                          ) : null
-                        )}
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <Users className="w-7 h-7 text-white/10 mb-2" />
-                    <p className="text-white/50 text-sm">No spectators yet</p>
-                  </div>
-                )}
+                      )}
+                    </div>
+                  ))}
               </div>
             </div>
           </div>
