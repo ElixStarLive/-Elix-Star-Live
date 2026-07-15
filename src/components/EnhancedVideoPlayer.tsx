@@ -815,9 +815,11 @@ export default function EnhancedVideoPlayer({
           aria-valuemax={Number.isFinite(duration) && duration > 0 ? Math.round(duration) : 0}
           className="absolute left-0 right-0 z-[16] pointer-events-auto flex flex-col justify-end cursor-pointer select-none px-3"
           style={{
-            /* Pin scrubber to the true bottom of the player (For You already sits above BottomNav) */
-            bottom: edgeToBottomNav ? `calc(${navStackExpr})` : 0,
-            paddingBottom: edgeToBottomNav ? 0 : 'max(2px, env(safe-area-inset-bottom, 0px))',
+            /* For You: sit on the home-bar seam (home bar overlays on top) */
+            bottom: edgeToBottomNav
+              ? `calc(${navStackExpr})`
+              : '3mm',
+            paddingBottom: 0,
             touchAction: 'none',
             minHeight: scrubbing ? 44 : 22,
             transition: 'min-height 0.12s ease-out',
@@ -878,14 +880,14 @@ export default function EnhancedVideoPlayer({
         className="absolute z-[10] flex flex-col items-center gap-2 pointer-events-auto"
         style={{
           right: '12px',
-          /* Raised above caption + progress; no downward pull */
+          /* Above caption + progress at home-bar seam */
           bottom: edgeToBottomNav
             ? scrubbing
               ? `calc(${navStackExpr} + 7.5rem)`
               : `calc(${navStackExpr} + 5.5rem)`
             : scrubbing
-              ? 'max(7.5rem, calc(44px + 4.5rem))'
-              : '6.5rem',
+              ? 'max(7.5rem, calc(3mm + 44px + 4.5rem))'
+              : 'calc(3mm + 6.5rem)',
         }}
       >
         
@@ -987,23 +989,33 @@ export default function EnhancedVideoPlayer({
         </button>
       </div>
 
-      {/* Bottom Info Area — sit above progress; left-aligned rows */}
+      {/* Bottom Info — 3mm left; username left + views right on one line; above progress */}
       <div
-        className={`absolute z-[10] left-3 w-[72%] pointer-events-none flex flex-col items-start gap-0.5 ${edgeToBottomNav ? 'pb-2' : 'pb-1'}`}
+        className="absolute z-[10] pointer-events-none flex flex-col items-stretch gap-0.5"
         style={{
+          left: '3mm',
+          right: '72px',
           bottom: edgeToBottomNav
-            ? `calc(${navStackExpr} + 10px)`
-            : '10px',
+            ? `calc(${navStackExpr} + 3mm + 8px)`
+            : 'calc(3mm + 8px)',
         }}
       >
-        <div className="flex items-center gap-2 mb-0 w-full min-w-0 justify-start">
-          <LevelBadge level={video.user.level ?? 1} size={10} circleSize={28} layout="fixed" avatar={video.user.avatar} />
-          <h3 className="text-white font-bold text-shadow-md truncate">{video.user.name || video.user.username}</h3>
-          {video.user.isVerified && (
-            <div className="w-4 h-4 bg-[#FFFFFF] rounded-full flex items-center justify-center flex-shrink-0">
-              <div className="w-2 h-2 bg-white rounded-full" />
-            </div>
-          )}
+        <div className="flex items-center justify-between gap-2 w-full min-w-0">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <LevelBadge level={video.user.level ?? 1} size={10} circleSize={28} layout="fixed" avatar={video.user.avatar} />
+            <h3 className="text-white font-bold text-shadow-md truncate">
+              {video.user.name || video.user.username}
+            </h3>
+            {video.user.isVerified && (
+              <div className="w-4 h-4 bg-[#FFFFFF] rounded-full flex items-center justify-center flex-shrink-0">
+                <div className="w-2 h-2 bg-white rounded-full" />
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-2 text-white/60 text-xs flex-shrink-0 whitespace-nowrap">
+            <span>{formatNumber(video.stats.views)} views</span>
+            <span>{new Date(video.createdAt).toLocaleDateString()}</span>
+          </div>
         </div>
 
         <div className="flex items-center gap-2 text-white/90 w-full min-w-0 justify-start">
@@ -1021,11 +1033,11 @@ export default function EnhancedVideoPlayer({
             {(video.music?.artist || video.user.name || video.user.username) ? ` - ${video.music?.artist || video.user.name || video.user.username}` : ''}
           </span>
         </div>
-        
+
         <p className="text-white/90 text-sm mb-0 text-shadow-md line-clamp-2 w-full text-left">
           {video.description}
         </p>
-        
+
         <div className="flex flex-wrap gap-1 mb-0 w-full justify-start">
           {video.hashtags.map((hashtag) => (
             <button
@@ -1044,11 +1056,6 @@ export default function EnhancedVideoPlayer({
             <span>{video.location}</span>
           </div>
         )}
-
-        <div className="flex items-center gap-3 text-white/60 text-xs w-full justify-start">
-          <span>{formatNumber(video.stats.views)} views</span>
-          <span>{new Date(video.createdAt).toLocaleDateString()}</span>
-        </div>
 
         {feedSourceLabel ? (
           <p className="text-white/50 text-[11px] font-medium mt-0 mb-0 w-full text-left">{feedSourceLabel}</p>

@@ -565,7 +565,7 @@ export default function VideoFeed() {
             scrollSnapStop: "always",
             boxSizing: "border-box",
             paddingTop: "0",
-            paddingBottom: "3mm",
+            paddingBottom: "0",
           };
 
           if (item.kind === "live") {
@@ -601,6 +601,7 @@ export default function VideoFeed() {
                   videoId={item.videoId}
                   isActive={activeIndex === index}
                   onVideoEnd={() => handleVideoEnd(index)}
+                  edgeToBottomNav
                 />
               </div>
             </div>
