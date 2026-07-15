@@ -17,7 +17,7 @@ export default function Terms() {
           <h1 className="font-bold text-lg">Terms of Service</h1>
           <div className="w-6" />
         </header>
-        <div className="overflow-y-auto min-h-0 px-4 pb-[max(10px,calc(env(safe-area-inset-bottom,0px)+6px))]">
+        <div className="overflow-y-auto min-h-0 px-4 pb-[var(--bottom-ui-reserve)]">
           <p className="text-xs text-white/40 italic mb-4">Last updated: February 20, 2026</p>
           <div className="text-sm text-white/75 space-y-5 leading-6">
           <Section title="1. Acceptance of Terms">

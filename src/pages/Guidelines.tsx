@@ -18,7 +18,7 @@ export default function Guidelines() {
         <h1 className="text-xl font-bold">Community Guidelines</h1>
       </div>
 
-      <div className="px-4 py-6 max-w-2xl mx-auto flex-1 overflow-y-auto">
+      <div className="px-4 py-6 max-w-2xl mx-auto flex-1 overflow-y-auto pb-[var(--bottom-ui-reserve)]">
         {/* Intro */}
         <div className="text-center mb-8">
           <div className="w-20 h-20 bg-gradient-to-br from-[#D4AF37] to-[#B8943F] rounded-full mx-auto mb-4 flex items-center justify-center">

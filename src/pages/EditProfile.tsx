@@ -189,7 +189,7 @@ export default function EditProfile() {
         </button>
       </div>
 
-      <div className="px-4 py-6 space-y-6 flex-1 overflow-y-auto">
+      <div className="px-4 py-6 space-y-6 flex-1 overflow-y-auto pb-[var(--bottom-ui-reserve)]">
         {/* Avatar */}
         <div className="flex flex-col items-center gap-4">
           <div className="relative group cursor-pointer">

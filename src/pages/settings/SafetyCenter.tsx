@@ -15,7 +15,7 @@ export default function SafetyCenter() {
           </div>
         </div>
 
-        <div className="h-full min-h-0 overflow-y-auto overscroll-y-contain px-3 pb-[max(10px,calc(env(safe-area-inset-bottom,0px)+6px))]">
+        <div className="h-full min-h-0 overflow-y-auto overscroll-y-contain px-3 pb-[var(--bottom-ui-reserve)]">
           <Section title="Quick Actions">
             <OptionRow
               icon={<Ban size={14} />}

@@ -98,7 +98,7 @@ export default function Settings() {
     <div className="fixed inset-0 z-[9999] flex justify-center">
       <div className="absolute inset-0 bg-black/45" onClick={() => navigate(-1)} />
       <div
-        className="absolute inset-y-0 w-full max-w-[480px] bg-[#111111] text-white shadow-2xl overflow-hidden flex flex-col"
+        className="relative w-full max-w-[480px] h-full min-h-0 bg-[#111111] text-white shadow-2xl overflow-hidden flex flex-col"
         style={{
           transform: `translateY(${dragY}px)`,
           transition: dragging ? 'none' : 'transform 0.25s ease',
@@ -128,7 +128,7 @@ export default function Settings() {
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 pb-[max(22px,calc(env(safe-area-inset-bottom,0px)+18px))]">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 pb-[var(--bottom-ui-reserve)]">
           <div className="flex flex-col gap-0 max-w-full min-h-full">
           <S t="Account" />
           <R ic={<User size={14} />} t="Edit Profile" fn={() => navigate('/edit-profile')} />

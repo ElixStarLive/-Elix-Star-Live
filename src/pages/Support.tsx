@@ -106,7 +106,7 @@ export default function Support() {
             </div>
           </div>
 
-          <div className="px-3 py-2.5 space-y-3 overflow-y-auto min-h-0">
+          <div className="px-3 py-2.5 space-y-3 overflow-y-auto min-h-0 pb-[var(--bottom-ui-reserve)]">
           <div>
             <label className="block text-[11px] text-white/70 mb-1.5">Email</label>
             <input
@@ -166,7 +166,7 @@ export default function Support() {
           </div>
         </div>
 
-      <div className="px-3 py-1.5 flex-1 overflow-y-auto">
+      <div className="px-3 py-1.5 flex-1 overflow-y-auto pb-[var(--bottom-ui-reserve)]">
         <Section title="Quick Links">
           <ListRow
             icon={<MessageCircle size={14} />}
