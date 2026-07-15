@@ -880,14 +880,14 @@ export default function EnhancedVideoPlayer({
         className="absolute z-[10] flex flex-col items-center gap-2 pointer-events-auto"
         style={{
           right: '12px',
-          /* Above caption + progress (progress sits nav + 4mm) */
+          /* Above caption + progress; another 10mm lower toward home bar */
           bottom: edgeToBottomNav
             ? scrubbing
-              ? `calc(${navStackExpr} + 4mm + 7.5rem - 10mm)`
-              : `calc(${navStackExpr} + 4mm + 5.5rem - 10mm)`
+              ? `calc(${navStackExpr} + 4mm + 7.5rem - 20mm)`
+              : `calc(${navStackExpr} + 4mm + 5.5rem - 20mm)`
             : scrubbing
-              ? 'max(7.5rem, calc(3mm + 44px + 4.5rem - 10mm))'
-              : 'calc(3mm + 6.5rem - 10mm)',
+              ? 'max(7.5rem, calc(3mm + 44px + 4.5rem - 20mm))'
+              : 'calc(3mm + 6.5rem - 20mm)',
         }}
       >
         
