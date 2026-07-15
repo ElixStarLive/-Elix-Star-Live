@@ -81,7 +81,7 @@ export default function Settings() {
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 pb-[3mm]">
         <div className="flex flex-col gap-0 max-w-full min-h-full">
           <S t="Account" />
           <R ic={<User size={14} />} t="Edit Profile" fn={() => navigate('/edit-profile')} />
