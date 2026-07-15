@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import InlineLiveViewer from "../components/InlineLiveViewer";
 import EnhancedVideoPlayer from "../components/EnhancedVideoPlayer";
-import { ForYouStoriesStrip } from "../components/ForYouStoriesStrip";
 import { useVideoStore } from "../store/useVideoStore";
 import { useAuthStore } from "../store/useAuthStore";
 import { getWsUrl } from "../lib/api";
@@ -551,7 +550,6 @@ export default function VideoFeed() {
   /* ================================================================ */
   return (
     <div className="h-full min-h-0 w-full flex flex-col bg-black relative">
-      <ForYouStoriesStrip />
       {/* Fills main between fixed TopNav and BottomNav; each slide is one viewport tall */}
       <div
         ref={containerRef}

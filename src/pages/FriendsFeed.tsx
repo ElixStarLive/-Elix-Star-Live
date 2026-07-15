@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { RoyceBackIcon } from '../components/royce';
-import { Search } from 'lucide-react';
+import { Search, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { useVideoStore } from '../store/useVideoStore';
@@ -127,7 +127,27 @@ export default function FriendsFeed() {
             style={{ transform: 'translateY(0mm)' }}
           >
             <div className="flex gap-3 overflow-x-auto overflow-y-hidden no-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
-            {/* All Elix users (always visible) */}
+            {/* Add story — first in Friends strip (before other users) */}
+            <button
+              type="button"
+              onClick={() => navigate('/upload?type=story')}
+              className="flex-shrink-0 flex flex-col items-center gap-1"
+              style={{ width: 95, minWidth: 95 }}
+              title="Add story"
+            >
+              <div className="relative" style={{ width: 62, height: 62 }}>
+                <StoryGoldRingAvatar
+                  size={62}
+                  src={user?.avatar || '/royce/default-avatar.svg'}
+                  alt={user?.username || 'You'}
+                />
+                <span className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-[#D4AF37] border-2 border-black flex items-center justify-center">
+                  <Plus size={12} className="text-black" strokeWidth={3} />
+                </span>
+              </div>
+              <div className="text-[11px] text-white/80 truncate w-full text-center">Add story</div>
+            </button>
+            {/* Friends / Elix users */}
             {suggestedUsers.map((u) => (
               <button
                 key={u.id}
