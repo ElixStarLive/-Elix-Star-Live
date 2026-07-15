@@ -1,5 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { RoyceCloseIcon } from '../components/royce';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Music,
   Square,
@@ -12,11 +11,11 @@ import {
   Layers,
   FileText,
   Film,
-  CircleFadingPlus,
+  ChevronLeft,
+  Plus,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
-import { CaptureShutterButton } from '../components/CaptureShutterButton';
 import { setCachedCameraStream } from '../lib/cameraStream';
 import { type SoundTrack } from '../lib/soundLibrary';
 import SoundPickerPanel from '../components/SoundPickerPanel';
@@ -324,13 +323,18 @@ export default function Create() {
     setMode(m);
   };
 
-  const gradientColors = ['#FFFFFF', '#D4B87A', '#E8D5A3', '#FFFFFF'];
+  const storyInitials = useMemo(() => {
+    const name = (user?.name || user?.username || '').trim();
+    if (!name) return 'EL';
+    const parts = name.split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) return `${parts[0][0] || ''}${parts[1][0] || ''}`.toUpperCase();
+    return name.slice(0, 2).toUpperCase();
+  }, [user?.name, user?.username]);
 
   // ═══ CREATE HUB OVERLAY (templates, New video, Drafts) — opened from camera "Create" tab ═══
   const createHubOverlay = showCreateHub && (
-    <div className="fixed inset-0 z-[100] flex justify-center">
-      <div className="absolute inset-0 bg-black/60" onClick={() => setShowCreateHub(false)} aria-hidden />
-      <div className="relative w-full max-w-[480px] flex flex-col bg-[#111111] text-white min-h-[100dvh] max-h-[100dvh] overflow-hidden animate-in slide-in-from-bottom duration-300">
+    <div className="fixed inset-0 z-[100] flex justify-center bg-black">
+      <div className="relative w-full max-w-[480px] flex flex-col bg-black text-white min-h-[100dvh] max-h-[100dvh] overflow-hidden">
         <input
           ref={fileInputRef}
           type="file"
@@ -347,80 +351,100 @@ export default function Create() {
             setMode('create');
           }}
         />
-        <div className="flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top,0px)+8px)] pb-2">
-          <div className="w-7 h-7" aria-hidden />
-          <h1 className="text-sm font-black tracking-wider text-[#D4AF37] uppercase">Create</h1>
+        <div className="flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top,0px)+10px)] pb-3">
+          <div className="w-8 h-8" aria-hidden />
+          <h1 className="text-[15px] font-black tracking-[0.12em] text-[#F5C518] uppercase">Create</h1>
           <button
+            type="button"
             onClick={() => setShowCreateHub(false)}
-            className="w-7 h-7 flex items-center justify-center mr-[3mm]"
-            aria-label="Close"
+            className="w-8 h-8 flex items-center justify-center"
+            aria-label="Back"
           >
-            <RoyceCloseIcon />
+            <ChevronLeft className="w-6 h-6 text-[#F5C518]" strokeWidth={2.5} />
           </button>
         </div>
-        <div className="flex items-center justify-around px-6 py-2">
+
+        <div className="flex items-start justify-between px-5 pt-1 pb-3">
           {FEATURE_TOOLS.map((tool) => (
             <button
               key={tool.id}
-              onClick={() => openCameraFromHub('create')}
-              className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
+              type="button"
+              onClick={() => {
+                if (tool.id === 'music') {
+                  setIsSoundOpen(true);
+                  return;
+                }
+                openCameraFromHub('create');
+              }}
+              className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform w-[18%]"
             >
-              <div className="w-9 h-9 rounded-full bg-[#111111] border border-[#C9A227]/30 flex items-center justify-center relative">
-                <tool.icon className="w-4 h-4 text-[#D4AF37] relative z-[2]" strokeWidth={1.5} />
-</div>
-              <span className="text-white/50 text-[9px] font-medium">{tool.label}</span>
+              <div className="w-11 h-11 rounded-full border border-[#F5C518]/55 flex items-center justify-center bg-black">
+                <tool.icon className="w-[18px] h-[18px] text-[#F5C518]" strokeWidth={1.6} />
+              </div>
+              <span className="text-white/55 text-[9px] font-medium leading-tight text-center">{tool.label}</span>
             </button>
           ))}
         </div>
-        <div className="flex flex-col gap-2 px-4 py-2">
-          <div className="flex items-center gap-2">
+
+        <div className="flex flex-col gap-2.5 px-4 pb-3">
+          <div className="flex items-center gap-2.5">
             <button
               type="button"
               onClick={() => openCameraFromHub('create')}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-[#C9A227]/10 border border-[#C9A227]/25 active:scale-[0.98] transition-transform"
+              className="flex-1 flex items-center justify-center gap-2 h-11 rounded-full bg-[#1A1A1A] border border-[#F5C518]/45 active:scale-[0.98] transition-transform"
             >
-              <div className="w-5 h-5 flex items-center justify-center">
-                <CaptureShutterButton size={20} />
-              </div>
-              <span className="text-white/80 font-semibold text-xs">New video</span>
+              <span className="w-5 h-5 rounded-full bg-[#E53935] flex-shrink-0" aria-hidden />
+              <span className="text-white font-semibold text-[13px]">New video</span>
             </button>
             <button
               type="button"
               onClick={() => { setShowCreateHub(false); navigate('/upload'); }}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-white/5 border border-white/8 active:scale-[0.98] transition-transform"
+              className="flex items-center justify-center gap-1.5 px-4 h-11 rounded-full bg-[#1A1A1A] border border-[#F5C518]/45 active:scale-[0.98] transition-transform"
             >
-              <FileText className="w-4 h-4 text-white/40" strokeWidth={1.5} />
-              <span className="text-white/60 font-semibold text-xs">Drafts</span>
+              <FileText className="w-4 h-4 text-[#F5C518]" strokeWidth={1.6} />
+              <span className="text-white font-semibold text-[13px]">Drafts</span>
             </button>
           </div>
           <button
             type="button"
             onClick={() => { setShowCreateHub(false); navigate('/upload?type=story'); }}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-white border border-white/20 active:scale-[0.98] transition-transform"
+            className="w-full flex items-center justify-center gap-2.5 h-12 rounded-full bg-white active:scale-[0.98] transition-transform"
           >
-            <span className="w-7 h-7 rounded-full overflow-hidden border-2 border-[#00c2be] flex-shrink-0 bg-[#111111]">
-              <img
-                src={user?.avatar || '/royce/default-avatar.svg'}
-                alt=""
-                className="w-full h-full object-cover"
-                draggable={false}
-                onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/royce/default-avatar.svg'; }}
-              />
+            <span className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-[#7B5CFF] flex items-center justify-center">
+              {user?.avatar ? (
+                <img
+                  src={user.avatar}
+                  alt=""
+                  className="w-full h-full object-cover"
+                  draggable={false}
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                />
+              ) : (
+                <span className="text-white text-[10px] font-bold tracking-wide">{storyInitials}</span>
+              )}
             </span>
-            <CircleFadingPlus className="w-4 h-4 text-black" strokeWidth={2} />
-            <span className="text-black font-bold text-xs">Add story</span>
+            <span className="w-7 h-7 rounded-full border border-dashed border-[#F5C518] flex items-center justify-center flex-shrink-0">
+              <Plus className="w-3.5 h-3.5 text-[#F5C518]" strokeWidth={2.5} />
+            </span>
+            <span className="text-black font-bold text-[14px]">Add story</span>
           </button>
         </div>
+
         <div className="flex-1 flex flex-col min-h-0 px-4 overflow-hidden">
-          <div className="flex items-center justify-between mb-1.5">
-            <h2 className="text-white/80 font-bold text-xs uppercase tracking-wider">Templates</h2>
-            <button title="Search templates" onClick={() => setShowSearch(!showSearch)} className="w-6 h-6 rounded-full flex items-center justify-center">
-              <Search className="w-3.5 h-3.5 text-white/40" />
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-white/45 font-bold text-[11px] uppercase tracking-[0.14em]">Templates</h2>
+            <button
+              type="button"
+              title="Search templates"
+              onClick={() => setShowSearch(!showSearch)}
+              className="w-7 h-7 rounded-full flex items-center justify-center"
+            >
+              <Search className="w-4 h-4 text-[#F5C518]" strokeWidth={2} />
             </button>
           </div>
           {showSearch && (
-            <div className="mb-1.5 flex items-center gap-2 bg-white/5 rounded-lg px-2.5 py-1.5 border border-white/10">
-              <Search className="w-3 h-3 text-white/30" />
+            <div className="mb-2 flex items-center gap-2 bg-[#1A1A1A] rounded-full px-3 py-2 border border-[#F5C518]/25">
+              <Search className="w-3.5 h-3.5 text-white/35" />
               <input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -430,46 +454,60 @@ export default function Create() {
               />
             </div>
           )}
-          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar mb-2">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar mb-3">
             {TEMPLATE_TABS.map((tab) => (
               <button
                 key={tab.id}
+                type="button"
                 onClick={() => { setTemplateTab(tab.id); setSearchQuery(''); }}
-                className={`px-2.5 py-1 rounded-full text-[10px] font-semibold whitespace-nowrap transition-colors ${
-                  templateTab === tab.id ? 'bg-[#D4AF37] text-black' : 'bg-white/5 text-white/50'
+                className={`px-3.5 py-1.5 rounded-full text-[11px] font-semibold whitespace-nowrap transition-colors border ${
+                  templateTab === tab.id
+                    ? 'bg-[#F5C518] text-black border-[#F5C518]'
+                    : 'bg-transparent text-white border-[#F5C518]/45'
                 }`}
               >
                 {tab.label}
               </button>
             ))}
           </div>
-          <div className="flex-1 overflow-y-auto no-scrollbar pb-2">
-            <div className="grid grid-cols-2 gap-1.5">
+          <div className="flex-1 overflow-y-auto no-scrollbar pb-3">
+            <div className="grid grid-cols-2 gap-2.5">
               {filteredTemplates.map((tpl) => (
                 <button
                   key={tpl.id}
+                  type="button"
                   onClick={() => openCameraFromHub('create')}
-                  className="relative rounded-lg overflow-hidden aspect-[3/4] bg-gradient-to-br from-[#1C1E24] to-[#13151A] border border-white/5 active:scale-[0.97] transition-transform"
+                  className="relative rounded-2xl overflow-hidden aspect-[3/4] bg-[#141414] border border-[#F5C518]/20 active:scale-[0.97] transition-transform"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent z-10" />
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-10 h-10 rounded-full bg-[#C9A227]/8 border border-[#C9A227]/15 flex items-center justify-center">
-                      <Film className="w-4 h-4 text-[#E8D5A3]/30" />
-                    </div>
+                    <Film className="w-10 h-10 text-[#F5C518]/70" strokeWidth={1.25} />
                   </div>
-                  <div className="absolute bottom-0 left-0 right-0 p-2 z-20">
-                    <p className="text-white font-medium text-[11px] leading-tight truncate">{tpl.title}</p>
-                    <p className="text-white/40 text-[9px] mt-0.5">{tpl.video_count} • {tpl.clips}</p>
+                  <div className="absolute bottom-0 left-0 right-0 p-2.5 text-left">
+                    <p className="text-white font-semibold text-[12px] leading-tight truncate">{tpl.title}</p>
+                    <p className="text-white/45 text-[10px] mt-0.5">{tpl.video_count} • {tpl.clips}</p>
                   </div>
                 </button>
               ))}
             </div>
           </div>
         </div>
-        <div className="flex items-center justify-center gap-8 py-2 pb-[calc(env(safe-area-inset-bottom,0px)+8px)] border-t border-white/5">
-          <button onClick={() => { setShowCreateHub(false); navigate('/upload'); }} className="text-[11px] font-semibold text-white/40 uppercase tracking-wide">Post</button>
-          <span className="text-[11px] font-black text-[#D4AF37] uppercase tracking-wide border-b border-[#C9A227] pb-px">Create</span>
-          <button onClick={() => openCameraFromHub('live')} className="text-[11px] font-semibold text-white/40 uppercase tracking-wide">Live</button>
+
+        <div className="flex items-center justify-center gap-10 pt-2 pb-[calc(env(safe-area-inset-bottom,0px)+12px)]">
+          <button
+            type="button"
+            onClick={() => { setShowCreateHub(false); navigate('/upload'); }}
+            className="text-[12px] font-semibold text-white/40 uppercase tracking-[0.08em]"
+          >
+            Post
+          </button>
+          <span className="text-[12px] font-black text-[#F5C518] uppercase tracking-[0.08em]">Create</span>
+          <button
+            type="button"
+            onClick={() => openCameraFromHub('live')}
+            className="text-[12px] font-semibold text-white/40 uppercase tracking-[0.08em]"
+          >
+            Live
+          </button>
         </div>
       </div>
     </div>
