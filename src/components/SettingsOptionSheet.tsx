@@ -59,8 +59,9 @@ export default function SettingsOptionSheet({ children, onClose }: SettingsOptio
             type="button"
             onClick={onClose}
             onPointerDown={(e) => e.stopPropagation()}
-            className="absolute top-1 right-2 z-30 w-9 h-9 flex items-center justify-center rounded-full active:scale-90 transition-transform"
+            className="absolute top-1 right-2 z-30 p-1 rounded-full active:scale-90 transition-transform"
             aria-label="Close"
+            title="Close"
           >
             <RoyceCloseIcon size={20} />
           </button>

@@ -1,22 +1,18 @@
 import React from 'react';
-import { RoyceBackIcon } from '../components/royce';
 import { useNavigate } from 'react-router-dom';
+import SettingsOptionSheet from '../components/SettingsOptionSheet';
 
 export default function Copyright() {
   const navigate = useNavigate();
 
   return (
-    <div className="bg-[#111111] text-white flex justify-center px-2">
-      <div className="w-full max-w-[480px] rounded-3xl overflow-hidden bg-[#111111] flex flex-col overflow-y-auto p-4 pb-20">
-        <header className="flex items-center justify-between mb-4">
-          <button onClick={() => navigate(-1)} aria-label="Back" title="Back">
-            <RoyceBackIcon />
-          </button>
+    <SettingsOptionSheet onClose={() => navigate(-1)}>
+      <div className="w-full h-full overflow-hidden bg-[#111111] text-white flex flex-col">
+        <header className="flex items-center justify-center mb-4 px-4 pt-2">
           <h1 className="font-bold text-lg">Copyright Notice</h1>
-          <div className="w-6" />
         </header>
 
-        <div className="text-sm text-white/75 space-y-5 leading-6">
+        <div className="overflow-y-auto min-h-0 px-4 pb-3 text-sm text-white/75 space-y-5 leading-6">
           <p>© 2026 Elix Star Live Ltd. All rights reserved.</p>
 
           <Section title="Ownership">
@@ -67,7 +63,7 @@ export default function Copyright() {
           </Section>
         </div>
       </div>
-    </div>
+    </SettingsOptionSheet>
   );
 }
 

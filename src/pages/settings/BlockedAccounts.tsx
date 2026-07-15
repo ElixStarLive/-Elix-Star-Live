@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { RoyceBackIcon } from '../../components/royce';
 import { api } from '../../lib/apiClient';
 import { Search, Ban } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -80,10 +79,7 @@ export default function BlockedAccounts() {
       <div className="w-full h-full overflow-hidden bg-[#111111] flex flex-col">
         {/* Header */}
         <div className="sticky top-0 bg-[#111111] z-10 px-4 py-4 border-b border-transparent">
-        <div className="flex items-center gap-3 mb-4">
-          <button onClick={() => navigate(-1)} className="p-2 hover:brightness-125 rounded-full transition">
-            <RoyceBackIcon />
-          </button>
+        <div className="flex items-center justify-center mb-4">
           <h1 className="text-xl font-bold">Blocked Accounts</h1>
         </div>
 

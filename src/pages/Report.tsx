@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { RoyceBackIcon } from '../components/royce';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../lib/apiClient';
 import { CheckCircle, Flag } from 'lucide-react';
 import { trackEvent } from '../lib/analytics';
 import { showToast } from '../lib/toast';
+import SettingsOptionSheet from '../components/SettingsOptionSheet';
 
 const REPORT_REASONS = {
   video: [
@@ -86,28 +86,25 @@ export default function Report() {
 
   if (submitted) {
     return (
-      <div className="bg-[#111111] text-white flex items-center justify-center px-4">
-        <div className="text-center">
-          <div className="w-20 h-20 bg-[#FFFFFF] rounded-full mx-auto mb-4 flex items-center justify-center">
-            <CheckCircle className="w-10 h-10 text-white" />
+      <SettingsOptionSheet onClose={() => navigate(-1)}>
+        <div className="flex-1 flex items-center justify-center px-4">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-[#FFFFFF] rounded-full mx-auto mb-4 flex items-center justify-center">
+              <CheckCircle className="w-10 h-10 text-white" />
+            </div>
+            <h2 className="text-2xl font-bold mb-2">Report Submitted</h2>
+            <p className="text-white/60">Thank you for helping keep our community safe.</p>
           </div>
-          <h2 className="text-2xl font-bold mb-2">Report Submitted</h2>
-          <p className="text-white/60">Thank you for helping keep our community safe.</p>
         </div>
-      </div>
+      </SettingsOptionSheet>
     );
   }
 
   return (
-    <div className="h-full min-h-0 w-full bg-[#111111] text-white flex justify-center px-2">
-      <div className="w-full max-w-[480px] h-full min-h-0 flex flex-col overflow-hidden bg-[#111111]">
-      {/* Header */}
-      <div className="sticky top-0 bg-[#111111] z-10 px-4 py-4 border-b border-transparent flex items-center justify-between">
-        <button onClick={() => navigate(-1)} className="p-2 hover:brightness-125 rounded-full transition">
-          <RoyceBackIcon />
-        </button>
+    <SettingsOptionSheet onClose={() => navigate(-1)}>
+      <div className="w-full h-full min-h-0 flex flex-col overflow-hidden bg-[#111111]">
+      <div className="sticky top-0 bg-[#111111] z-10 px-4 py-4 border-b border-transparent flex items-center justify-center">
         <h1 className="text-lg font-bold">Report {contentType}</h1>
-        <div className="w-10"></div>
       </div>
 
       <div className="px-4 py-6 flex-1 overflow-y-auto">
@@ -172,6 +169,6 @@ export default function Report() {
         </button>
       </div>
       </div>
-    </div>
+    </SettingsOptionSheet>
   );
 }

@@ -1,5 +1,4 @@
 import React from 'react';
-import { RoyceBackIcon } from '../components/royce';
 import { useNavigate } from 'react-router-dom';
 import { Shield, Users, Heart, AlertTriangle, Eye, Ban } from 'lucide-react';
 import SettingsOptionSheet from '../components/SettingsOptionSheet';
@@ -10,15 +9,11 @@ export default function Guidelines() {
   return (
     <SettingsOptionSheet onClose={() => navigate(-1)}>
       <div className="w-full h-full overflow-hidden bg-[#111111] flex flex-col">
-      {/* Header */}
-      <div className="sticky top-0 bg-[#111111] z-10 px-4 py-4 border-b border-transparent flex items-center gap-3">
-        <button onClick={() => navigate(-1)} className="p-2 hover:brightness-125 rounded-full transition">
-          <RoyceBackIcon />
-        </button>
+      <div className="sticky top-0 bg-[#111111] z-10 px-4 py-4 border-b border-transparent flex items-center justify-center">
         <h1 className="text-xl font-bold">Community Guidelines</h1>
       </div>
 
-      <div className="px-4 py-6 max-w-2xl mx-auto flex-1 overflow-y-auto pb-[var(--bottom-ui-reserve)]">
+      <div className="px-4 py-6 max-w-2xl mx-auto flex-1 overflow-y-auto pb-3">
         {/* Intro */}
         <div className="text-center mb-8">
           <div className="w-20 h-20 bg-gradient-to-br from-[#D4AF37] to-[#B8943F] rounded-full mx-auto mb-4 flex items-center justify-center">
