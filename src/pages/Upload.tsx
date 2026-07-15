@@ -783,18 +783,16 @@ export default function Upload() {
                  </div>
                </div>
 
-                  {/* Upload - small black button (match camera mode) */}
+                  {/* Upload — round glow like other icons (not black square) */}
                   <button
                     onClick={handleFileUpload}
                     className="absolute bottom-[7%] left-[5%] flex flex-col items-center gap-1 z-30 pointer-events-auto group"
                     title="Upload"
                   >
-                    <div className="w-9 h-9 bg-[#111111] flex items-center justify-center text-white relative group-active:scale-90 transition-transform">
-                      <div className="w-4 h-4 border-2 border-white rounded-full relative overflow-hidden z-[2]">
-                        <div className="absolute top-0.5 right-0.5 w-1 h-1 bg-white rounded-full"></div>
-                      </div>
-                    </div>
-                    <span className="text-white text-[10px] font-bold shadow-black drop-shadow-md">Upload</span>
+                    <span className="royce-glow-disc w-9 h-9 group-active:scale-90 transition-transform" aria-hidden>
+                      <ImageIcon size={18} className="royce-icon-gold" strokeWidth={2} />
+                    </span>
+                    <span className="text-[#D4AF37] text-[10px] font-bold drop-shadow-[0_0_8px_rgba(255,215,0,0.9)]">Upload</span>
                   </button>
 
                   {/* AI Studio (moved up) */}
@@ -1048,18 +1046,16 @@ export default function Upload() {
                       </button>
                   </div>
 
-                  {/* 10. Upload - left side (original small button) */}
+                  {/* 10. Upload - left side (round glow, same as other icons) */}
                   <button 
                     className="absolute bottom-8 left-6 flex flex-col items-center gap-1 z-[1000] pointer-events-auto group"
                     onClick={handleFileUpload}
                     title="Upload from Gallery"
                   >
-                    <div className="w-9 h-9 bg-[#111111] flex items-center justify-center text-white relative">
-                      <div className="w-4 h-4 border-2 border-white rounded-full relative overflow-hidden z-[2]">
-                        <div className="absolute top-0.5 right-0.5 w-1 h-1 bg-white rounded-full"></div>
-                      </div>
-                    </div>
-                    <span className="text-white text-[10px] font-bold shadow-black drop-shadow-md">Upload</span>
+                    <span className="royce-glow-disc w-9 h-9 group-active:scale-90 transition-transform" aria-hidden>
+                      <ImageIcon size={18} className="royce-icon-gold" strokeWidth={2} />
+                    </span>
+                    <span className="text-[#D4AF37] text-[10px] font-bold drop-shadow-[0_0_8px_rgba(255,215,0,0.9)]">Upload</span>
                   </button>
 
               </div>
