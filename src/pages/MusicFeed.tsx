@@ -309,7 +309,7 @@ export default function MusicFeed() {
                   <button
                     type="button"
                     onClick={() => togglePreview(track)}
-                    className="w-9 h-9 rounded-full border border-[#C9A227]/25 bg-[#111111] flex items-center justify-center flex-shrink-0"
+                    className="w-9 h-9 royce-glow-disc flex items-center justify-center flex-shrink-0"
                   >
                     {playingId === track.id ? (
                       <Pause className="w-3.5 h-3.5 text-white" />

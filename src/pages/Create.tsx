@@ -378,7 +378,7 @@ export default function Create() {
               }}
               className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform w-[18%]"
             >
-              <div className="w-11 h-11 rounded-full border border-[#F5C518]/55 flex items-center justify-center bg-black">
+              <div className="w-11 h-11 rounded-full royce-glow-disc">
                 <tool.icon className="w-[18px] h-[18px] text-[#F5C518]" strokeWidth={1.6} />
               </div>
               <span className="text-white/55 text-[9px] font-medium leading-tight text-center">{tool.label}</span>

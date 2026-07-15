@@ -229,7 +229,7 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
               <button
                 type="button"
                 onClick={() => togglePreview(track)}
-                className="w-8 h-8 rounded-full border border-[#C9A227]/25 bg-[#111111] flex items-center justify-center"
+                className="w-8 h-8 royce-glow-disc flex items-center justify-center"
               >
                 {playingId === track.id ? (
                   <Pause className="w-3.5 h-3.5 text-white" strokeWidth={2} />

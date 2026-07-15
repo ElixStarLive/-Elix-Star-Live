@@ -445,7 +445,9 @@ export default function Profile() {
             title="Share profile"
             className="p-1"
           >
-            <Share2 size={20} className="stroke-gold-metallic" strokeWidth={2} />
+            <span className="royce-glow-disc" style={{ width: 34, height: 34 }} aria-hidden>
+              <Share2 size={18} className="royce-icon-gold" strokeWidth={2} />
+            </span>
           </button>
           <div className="flex-1 flex items-center justify-center min-w-0 px-2">
             <div className="min-w-0 text-center">
@@ -569,8 +571,8 @@ export default function Profile() {
                       { name: 'Report', icon: <Flag size={22} className="text-white/60" />, isRed: true, action: () => { setShowSharePanel(false); setShowReportModal(true); } },
                     ].map((item) => (
                       <button key={item.name} onClick={item.action} className="flex flex-col items-center gap-1 active:scale-95 transition-transform">
-                        <div className="relative w-9 h-9 rounded-full bg-[#111111] border border-[#C9A227]/35 flex items-center justify-center flex-shrink-0 shadow-[0_0_10px_rgba(255,255,255,0.25)]">
-                          <div className={`relative z-[2] ${item.name === 'Report' ? 'translate-y-0.5' : ''}`}>{React.cloneElement((item.icon as React.ReactElement), { className: 'w-3.5 h-3.5 royce-icon-gold', strokeWidth: 1.8 })}</div>
+                        <div className={`relative w-9 h-9 royce-glow-disc flex-shrink-0 ${item.name === 'Report' ? 'translate-y-0.5' : ''}`}>
+                          {React.cloneElement((item.icon as React.ReactElement), { className: 'w-3.5 h-3.5 royce-icon-gold', strokeWidth: 1.8 })}
                         </div>
                         <span className={`text-[8px] font-semibold truncate w-full text-center ${(item as { isRed?: boolean }).isRed ? 'text-white/60/70' : 'text-white/70'}`}>{item.name}</span>
                       </button>
@@ -669,7 +671,9 @@ export default function Profile() {
               Message
             </button>
             <button type="button" onClick={openSharePanel} className="w-10 h-10 bg-white/10 border border-white/10 rounded-md flex items-center justify-center" title="Share profile">
-              <Share2 size={18} className="text-white" />
+              <span className="royce-glow-disc" style={{ width: 32, height: 32 }} aria-hidden>
+                <Share2 size={16} className="royce-icon-gold" strokeWidth={2} />
+              </span>
             </button>
           </div>
         )}
@@ -678,24 +682,34 @@ export default function Profile() {
         <div className="mt-2 border-b border-white/5">
           <div className="flex overflow-x-auto no-scrollbar">
             <button onClick={() => navigate('/ai-studio')} className="flex items-center gap-1.5 px-3 py-2 whitespace-nowrap">
-              <Sparkles size={14} className="text-[#D4AF37]" />
+              <span className="royce-glow-disc" style={{ width: 26, height: 26 }} aria-hidden>
+                <Sparkles size={12} className="royce-icon-gold" />
+              </span>
               <span className="text-[11px] font-bold text-white">AI Studio</span>
             </button>
             <button onClick={() => navigate('/creator/login-details')} className="flex items-center gap-1.5 px-3 py-2 whitespace-nowrap">
-              <Sparkles size={14} className="text-[#D4AF37]" />
+              <span className="royce-glow-disc" style={{ width: 26, height: 26 }} aria-hidden>
+                <Sparkles size={12} className="royce-icon-gold" />
+              </span>
               <span className="text-[11px] font-bold text-white">Elix Studio</span>
             </button>
             <button onClick={() => navigate('/shop')} className="flex items-center gap-1.5 px-3 py-2 whitespace-nowrap">
-              <ShoppingBag size={14} className="text-[#D4AF37]" />
+              <span className="royce-glow-disc" style={{ width: 26, height: 26 }} aria-hidden>
+                <ShoppingBag size={12} className="royce-icon-gold" />
+              </span>
               <span className="text-[11px] font-bold text-white">Shop</span>
             </button>
             <button onClick={() => setActiveTab('shop')} className="flex items-center gap-1.5 px-3 py-2 whitespace-nowrap">
-              <ShoppingBag size={14} className="text-[#D4AF37]" />
+              <span className="royce-glow-disc" style={{ width: 26, height: 26 }} aria-hidden>
+                <ShoppingBag size={12} className="royce-icon-gold" />
+              </span>
               <span className="text-[11px] font-bold text-white">Showcase</span>
             </button>
             {isOwnProfile && (
               <button onClick={() => navigate('/settings')} className="flex items-center gap-1.5 px-3 py-2 whitespace-nowrap">
-                <Settings size={14} className="text-[#D4AF37]" />
+                <span className="royce-glow-disc" style={{ width: 26, height: 26 }} aria-hidden>
+                  <Settings size={12} className="royce-icon-gold" />
+                </span>
                 <span className="text-[11px] font-bold text-white">Settings</span>
               </button>
             )}
@@ -712,8 +726,10 @@ export default function Profile() {
             }`}
             aria-label="Videos"
           >
-            <Grid3X3 size={20} />
-            <ChevronDown size={12} />
+            <span className="royce-glow-disc flex items-center justify-center gap-0.5" style={{ width: 40, height: 32 }} aria-hidden>
+              <Grid3X3 size={18} className="royce-icon-gold" />
+              <ChevronDown size={12} className="royce-icon-gold" />
+            </span>
           </button>
           <button
             type="button"
@@ -723,7 +739,9 @@ export default function Profile() {
             }`}
             aria-label="Shop"
           >
-            <ShoppingBag size={20} />
+            <span className="royce-glow-disc" style={{ width: 32, height: 32 }} aria-hidden>
+              <ShoppingBag size={18} className="royce-icon-gold" />
+            </span>
           </button>
           {isOwnProfile && (
             <button
@@ -734,7 +752,9 @@ export default function Profile() {
               }`}
               aria-label="Private"
             >
-              <Lock size={20} />
+              <span className="royce-glow-disc" style={{ width: 32, height: 32 }} aria-hidden>
+                <Lock size={18} className="royce-icon-gold" />
+              </span>
             </button>
           )}
           <button
@@ -745,7 +765,9 @@ export default function Profile() {
             }`}
             aria-label="Reposts"
           >
-            <Repeat2 size={20} />
+            <span className="royce-glow-disc" style={{ width: 32, height: 32 }} aria-hidden>
+              <Repeat2 size={18} className="royce-icon-gold" />
+            </span>
           </button>
           <button
             type="button"
@@ -755,7 +777,9 @@ export default function Profile() {
             }`}
             aria-label="Saved"
           >
-            <Bookmark size={20} />
+            <span className="royce-glow-disc" style={{ width: 32, height: 32 }} aria-hidden>
+              <Bookmark size={18} className="royce-icon-gold" />
+            </span>
           </button>
           <button
             type="button"
@@ -765,7 +789,9 @@ export default function Profile() {
             }`}
             aria-label="Liked"
           >
-            <Heart size={20} />
+            <span className="royce-glow-disc" style={{ width: 32, height: 32 }} aria-hidden>
+              <Heart size={18} className="royce-icon-gold" />
+            </span>
           </button>
         </div>
 

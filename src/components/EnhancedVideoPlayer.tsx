@@ -961,7 +961,7 @@ export default function EnhancedVideoPlayer({
           title={video.music?.title || 'Original Sound'}
         >
           <span
-            className="rounded-full overflow-hidden border border-[#C9A227]/60 bg-black flex items-center justify-center"
+            className="rounded-full overflow-hidden royce-glow-disc bg-black flex items-center justify-center"
             style={{ width: 34, height: 34 }}
           >
             <img

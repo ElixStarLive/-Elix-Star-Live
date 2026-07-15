@@ -60,11 +60,17 @@ export const BottomNav = () => {
                   }`}
                   style={{ WebkitTapHighlightColor: "transparent" }}
                 >
-                  <Icon
-                    size={size}
-                    strokeWidth={active ? 2.35 : 2}
-                    className={iconClass}
-                  />
+                  <span
+                    className="royce-glow-disc"
+                    style={{ width: size + 12, height: size + 12 }}
+                    aria-hidden
+                  >
+                    <Icon
+                      size={size}
+                      strokeWidth={active ? 2.35 : 2}
+                      className={iconClass}
+                    />
+                  </span>
                   <span className={`text-[9px] font-semibold leading-none tracking-wide ${labelClass}`}>
                     {label}
                   </span>

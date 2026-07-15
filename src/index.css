@@ -792,29 +792,44 @@
   box-shadow: 0 0 12px rgba(201, 162, 39, 0.2);
 }
 
-/* No gold circles behind icons — plain gold line icons app-wide */
+/*
+ * Unified icon halo (app-wide):
+ * soft gold glow disc — effect only, NO solid gold ring/border.
+ */
 .royce-glow-disc,
 .royce-tile {
-  background: transparent;
-  border: none;
-  border-radius: 0;
-  box-shadow: none;
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  border-radius: 9999px;
+  border: none !important;
+  background:
+    radial-gradient(
+      circle at center,
+      rgba(212, 175, 55, 0.28) 0%,
+      rgba(17, 17, 17, 0.72) 52%,
+      rgba(0, 0, 0, 0.2) 78%,
+      transparent 100%
+    );
+  box-shadow:
+    0 0 10px 2px rgba(212, 175, 55, 0.42),
+    0 0 22px 5px rgba(212, 175, 55, 0.18);
 }
 
 /*
  * Unified icon design (app-wide):
- * thin gold line icons — writing left, icons right readable on black video.
+ * thin gold line icons + soft glow (readable on black video).
  */
 svg.lucide {
   color: #d4af37 !important;
   stroke: currentColor !important;
   stroke-width: 2;
   fill: none !important;
-  filter: none;
+  filter:
+    drop-shadow(0 0 3px rgba(212, 175, 55, 0.7))
+    drop-shadow(0 0 8px rgba(212, 175, 55, 0.35));
 }
 
 /* Active filled states (save, gold badge hearts, etc.) */
@@ -830,6 +845,9 @@ svg.lucide.text-red-500 {
   color: #ef4444 !important;
   fill: currentColor !important;
   stroke: currentColor !important;
+  filter:
+    drop-shadow(0 0 3px rgba(239, 68, 68, 0.55))
+    drop-shadow(0 0 8px rgba(239, 68, 68, 0.25));
 }
 
 .royce-icon-gold,
@@ -839,7 +857,6 @@ svg.lucide.text-red-500 {
   color: #d4af37 !important;
   stroke: currentColor;
   fill: none;
-  filter: none;
 }
 
 .royce-icon-gold.fill-current,

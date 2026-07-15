@@ -19,7 +19,7 @@ type RoyceIconProps = {
   className?: string;
 };
 
-export function RoyceIcon({ icon: Icon, size = 22, active = false, tile = false, className = '' }: RoyceIconProps) {
+export function RoyceIcon({ icon: Icon, size = 22, active = false, tile = true, className = '' }: RoyceIconProps) {
   const iconEl = (
     <Icon
       size={size}
