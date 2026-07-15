@@ -856,9 +856,9 @@ export default function ElixCameraLayout({
                     className="flex flex-col items-center gap-1 group"
                     title="Retake"
                 >
-                    <div className="w-9 h-9 bg-[#111111]/80 flex items-center justify-center text-white group-hover:bg-[#2A2D35]">
-                        <RotateCcw size={14} />
-                    </div>
+                    <span className="w-9 h-9 royce-glow-disc flex items-center justify-center" aria-hidden>
+                        <RotateCcw size={16} className="royce-icon-gold" strokeWidth={2} />
+                    </span>
                     <span className="text-[#D4AF37] drop-shadow-[0_0_8px_rgba(255,215,0,1)] font-bold text-[9px] shadow-black drop-shadow-md">Retake</span>
                 </button>
 
@@ -868,9 +868,9 @@ export default function ElixCameraLayout({
                     title="Post"
                     disabled={isPosting}
                 >
-                    <div className="w-9 h-9 bg-white/25 flex items-center justify-center text-white font-bold shadow-lg group-hover:scale-110 transition-transform">
-                        <Check size={14} />
-                    </div>
+                    <span className="w-9 h-9 royce-glow-disc flex items-center justify-center" aria-hidden>
+                        <Check size={16} className="royce-icon-gold" strokeWidth={2.5} />
+                    </span>
                     <span className="text-[#D4AF37] drop-shadow-[0_0_8px_rgba(255,215,0,1)] font-bold text-[9px] shadow-black drop-shadow-md">{isPosting ? 'Posting' : 'Post'}</span>
                 </button>
               </div>

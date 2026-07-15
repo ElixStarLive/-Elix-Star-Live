@@ -1,5 +1,4 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { RoyceCloseIcon } from '../components/royce';
 import { CaptureShutterButton } from '../components/CaptureShutterButton';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { setCachedCameraStream } from '../lib/cameraStream';
@@ -801,10 +800,10 @@ export default function Upload() {
                     className="absolute right-[5%] bottom-[26%] flex flex-col items-center gap-1 z-30 pointer-events-auto group"
                     title="AI Studio"
                   >
-                    <div className="flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <Wand2 size={18} className="text-[#D4AF37] drop-shadow-[0_0_8px_rgba(255,215,0,1)] drop-shadow-[0_0_16px_rgba(255,215,0,0.6)]" />
-                    </div>
-                    <span className="text-white font-bold text-[10px] shadow-black drop-shadow-md">AI Studio</span>
+                    <span className="w-9 h-9 royce-glow-disc flex items-center justify-center group-hover:scale-110 transition-transform" aria-hidden>
+                      <Wand2 size={18} className="royce-icon-gold" strokeWidth={2} />
+                    </span>
+                    <span className="text-[#D4AF37] font-bold text-[10px] drop-shadow-[0_0_8px_rgba(255,215,0,0.9)]">AI Studio</span>
                   </button>
 
                   {/* Retake + Post (moved down) */}
@@ -814,10 +813,10 @@ export default function Upload() {
                       className="flex flex-col items-center gap-1 group"
                       title="Retake"
                     >
-                      <div className="flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <RotateCcw size={18} className="text-[#D4AF37] drop-shadow-[0_0_8px_rgba(255,215,0,1)] drop-shadow-[0_0_16px_rgba(255,215,0,0.6)]" />
-                      </div>
-                      <span className="text-white font-bold text-[10px] shadow-black drop-shadow-md">Retake</span>
+                      <span className="w-9 h-9 royce-glow-disc flex items-center justify-center group-hover:scale-110 transition-transform" aria-hidden>
+                        <RotateCcw size={18} className="royce-icon-gold" strokeWidth={2} />
+                      </span>
+                      <span className="text-[#D4AF37] font-bold text-[10px] drop-shadow-[0_0_8px_rgba(255,215,0,0.9)]">Retake</span>
                     </button>
 
                     <button
@@ -827,11 +826,10 @@ export default function Upload() {
                       title={isStoryUpload ? 'Your Story' : 'Post'}
                       disabled={isPosting}
                     >
-                      {/* Red circle behind Post icon */}
-                      <div className="w-11 h-11 rounded-full bg-white/25 flex items-center justify-center shadow-xl group-hover:scale-110 active:scale-95 transition-transform">
-                        <Check size={18} className={`${isPosting ? 'text-white/60' : 'text-white'} drop-shadow-[0_0_8px_rgba(0,0,0,0.6)]`} />
-                      </div>
-                      <span className="text-white font-bold text-[10px] shadow-black drop-shadow-md">
+                      <span className="w-11 h-11 royce-glow-disc flex items-center justify-center group-hover:scale-110 active:scale-95 transition-transform" aria-hidden>
+                        <Check size={18} className={`royce-icon-gold ${isPosting ? 'opacity-60' : ''}`} strokeWidth={2.5} />
+                      </span>
+                      <span className="text-[#D4AF37] font-bold text-[10px] drop-shadow-[0_0_8px_rgba(255,215,0,0.9)]">
                         {isPosting ? 'Posting…' : isStoryUpload ? 'Your Story' : 'Post'}
                       </span>
                     </button>
@@ -936,37 +934,41 @@ export default function Upload() {
 
               {/* Interactive Hitboxes Layer */}
               <div className="absolute inset-0 z-20 w-full h-full pointer-events-auto">
-                  {/* Right side - all controls except Upload (no round containers) */}
-                  <div className="absolute top-0 right-[5%] bottom-0 flex flex-col items-center gap-4 py-2" style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}>
-                    <button onClick={() => navigate('/feed')} className="flex items-center justify-center relative" title="Close">
-                      <RoyceCloseIcon />
+                  {/* Right side — every control uses the same round gold glow */}
+                  <div className="absolute top-0 right-[5%] bottom-0 flex flex-col items-center gap-3 py-2" style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}>
+                    <button type="button" onClick={() => navigate('/feed')} className="w-9 h-9 royce-glow-disc flex items-center justify-center" title="Close">
+                      <ChevronLeft size={18} className="royce-icon-gold" strokeWidth={2.5} />
                     </button>
-                    <button 
-                      className="flex items-center justify-center relative"
+                    <button
+                      type="button"
+                      className="w-9 h-9 royce-glow-disc flex items-center justify-center"
                       onClick={() => setShowMusicModal(true)}
                       title="Add sound"
                     >
-                      <Music size={18} className="text-[#D4AF37] drop-shadow-[0_0_8px_rgba(255,215,0,1)] drop-shadow-[0_0_16px_rgba(255,215,0,0.6)]" />
+                      <Music size={18} className="royce-icon-gold" strokeWidth={2} />
                     </button>
-                    <button 
-                      className="flex items-center justify-center relative"
+                    <button
+                      type="button"
+                      className="w-9 h-9 royce-glow-disc flex items-center justify-center"
                       onClick={handleZoomOut}
                       title="Zoom out"
                       aria-label="Zoom out"
                     >
-                      <ZoomOut size={18} className="text-[#D4AF37] drop-shadow-[0_0_8px_rgba(255,215,0,1)] drop-shadow-[0_0_16px_rgba(255,215,0,0.6)]" />
+                      <ZoomOut size={18} className="royce-icon-gold" strokeWidth={2} />
                     </button>
-                    <button 
-                      className="flex items-center justify-center relative"
+                    <button
+                      type="button"
+                      className="w-9 h-9 royce-glow-disc flex items-center justify-center"
                       onClick={handleZoomIn}
                       title="Zoom in"
                       aria-label="Zoom in"
                     >
-                      <ZoomIn size={18} className="text-[#D4AF37] drop-shadow-[0_0_8px_rgba(255,215,0,1)] drop-shadow-[0_0_16px_rgba(255,215,0,0.6)]" />
+                      <ZoomIn size={18} className="royce-icon-gold" strokeWidth={2} />
                     </button>
-                    <button 
-                      className="flex items-center justify-center relative"
-                    onClick={async () => {
+                    <button
+                      type="button"
+                      className="w-9 h-9 royce-glow-disc flex items-center justify-center"
+                      onClick={async () => {
                       try {
                         const currentStream = videoRef.current?.srcObject as MediaStream | null;
                         if (currentStream) {
@@ -985,42 +987,47 @@ export default function Upload() {
                     }}
                       title="Flip Camera"
                     >
-                      <RefreshCw size={18} className="text-[#D4AF37] drop-shadow-[0_0_8px_rgba(255,215,0,1)] drop-shadow-[0_0_16px_rgba(255,215,0,0.6)]" />
+                      <RefreshCw size={18} className="royce-icon-gold" strokeWidth={2} />
                     </button>
-                    <button 
-                      className="flex items-center justify-center relative"
+                    <button
+                      type="button"
+                      className="w-9 h-9 royce-glow-disc flex items-center justify-center"
                       onClick={() => showToast('Speed: 1x')}
                       title="Speed"
                     >
-                      <span className="text-[#D4AF37] drop-shadow-[0_0_8px_rgba(255,215,0,1)] font-bold text-xs">1x</span>
+                      <span className="text-[#D4AF37] font-bold text-xs">1x</span>
                     </button>
-                    <button 
-                      className="flex items-center justify-center relative"
+                    <button
+                      type="button"
+                      className="w-9 h-9 royce-glow-disc flex items-center justify-center"
                       onClick={() => showToast('Beauty: On')}
                       title="Beauty"
                     >
-                      <span className="text-[#D4AF37] drop-shadow-[0_0_8px_rgba(255,215,0,1)] text-xs">✨</span>
+                      <Sparkles size={18} className="royce-icon-gold" strokeWidth={2} />
                     </button>
-                    <button 
-                      className="flex items-center justify-center relative"
+                    <button
+                      type="button"
+                      className="w-9 h-9 royce-glow-disc flex items-center justify-center"
                       onClick={() => showToast('Timer: Off')}
                       title="Timer"
                     >
-                      <Clock size={18} className="text-[#D4AF37] drop-shadow-[0_0_8px_rgba(255,215,0,1)] drop-shadow-[0_0_16px_rgba(255,215,0,0.6)]" />
+                      <Clock size={18} className="royce-icon-gold" strokeWidth={2} />
                     </button>
-                    <button 
-                      className="flex items-center justify-center relative"
+                    <button
+                      type="button"
+                      className="w-9 h-9 royce-glow-disc flex items-center justify-center"
                       onClick={() => showToast('Flash: Off')}
                       title="Flash"
                     >
-                      <Zap size={18} className="text-[#D4AF37] drop-shadow-[0_0_8px_rgba(255,215,0,1)] drop-shadow-[0_0_16px_rgba(255,215,0,0.6)]" />
+                      <Zap size={18} className="royce-icon-gold" strokeWidth={2} />
                     </button>
-                    <button 
-                      className="flex items-center justify-center relative"
+                    <button
+                      type="button"
+                      className="w-9 h-9 royce-glow-disc flex items-center justify-center"
                       onClick={() => { if (!recordedVideoUrl) showToast('Record a video first'); }}
                       title="AI Effects"
                     >
-                      <Wand2 size={18} className="text-[#D4AF37] drop-shadow-[0_0_8px_rgba(255,215,0,1)] drop-shadow-[0_0_16px_rgba(255,215,0,0.6)]" />
+                      <Wand2 size={18} className="royce-icon-gold" strokeWidth={2} />
                     </button>
                   </div>
 
@@ -1028,12 +1035,13 @@ export default function Upload() {
                   <div className="absolute bottom-[10.5%] left-1/2 -translate-x-[calc(50%+20px)] flex items-center gap-4">
                       {/* Done Button (Visible only if we have chunks and are paused or recording) */}
                       {(chunks.length > 0 || isPaused) && (
-                          <button 
-                            className="w-9 h-9 bg-white/25 flex items-center justify-center text-white animate-in fade-in zoom-in duration-300 absolute -right-44 relative"
+                          <button
+                            type="button"
+                            className="w-9 h-9 royce-glow-disc flex items-center justify-center text-white animate-in fade-in zoom-in duration-300"
                             onClick={stopRecordingFinal}
                             title="Done"
                           >
-                              <Check size={24} className="relative z-[2]" />
+                              <Check size={20} className="royce-icon-gold" strokeWidth={2.5} />
                           </button>
                       )}
 
@@ -1046,8 +1054,9 @@ export default function Upload() {
                       </button>
                   </div>
 
-                  {/* 10. Upload - left side (round glow, same as other icons) */}
+                  {/* Upload — same round glow as right-side icons */}
                   <button 
+                    type="button"
                     className="absolute bottom-8 left-6 flex flex-col items-center gap-1 z-[1000] pointer-events-auto group"
                     onClick={handleFileUpload}
                     title="Upload from Gallery"
