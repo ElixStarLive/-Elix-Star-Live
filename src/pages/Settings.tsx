@@ -94,42 +94,40 @@ export default function Settings() {
     <p className="text-[8px] text-white/30 uppercase tracking-[0.12em] mt-2.5 mb-0.5 px-1 leading-none">{t}</p>
   );
 
+  /* Container only: fill App shell (same max-w-[480px] + height as STEM). UI unchanged. */
   return (
-    <div className="fixed inset-0 z-[9999] flex justify-center">
-      <div className="absolute inset-0 bg-black/45" onClick={() => navigate(-1)} />
-      <div
-        className="relative w-full max-w-[480px] h-full min-h-0 bg-[#111111] text-white shadow-2xl overflow-hidden flex flex-col"
-        style={{
-          transform: `translateY(${dragY}px)`,
-          transition: dragging ? 'none' : 'transform 0.25s ease',
-        }}
-        onClick={(e) => e.stopPropagation()}
+    <div
+      className="h-full min-h-0 w-full bg-[#111111] text-white overflow-hidden flex flex-col"
+      style={{
+        transform: `translateY(${dragY}px)`,
+        transition: dragging ? 'none' : 'transform 0.25s ease',
+      }}
+    >
+      <button
+        type="button"
+        onClick={() => navigate(-1)}
+        onPointerDown={(e) => e.stopPropagation()}
+        className="absolute top-2 right-2 z-20 w-9 h-9 flex items-center justify-center rounded-full active:scale-90 transition-transform"
+        aria-label="Close settings"
       >
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          onPointerDown={(e) => e.stopPropagation()}
-          className="absolute top-2 right-2 z-20 w-9 h-9 flex items-center justify-center rounded-full active:scale-90 transition-transform"
-          aria-label="Close settings"
-        >
-          <RoyceCloseIcon size={20} />
-        </button>
-        <div
-          className="flex-shrink-0 px-3 pt-1.5 pb-2 touch-none cursor-grab active:cursor-grabbing"
-          onPointerDown={onDragStart}
-          onPointerMove={onDragMove}
-          onPointerUp={onDragEnd}
-          onPointerCancel={onDragEnd}
-        >
-          <div className="flex flex-col items-center">
-            <div className="w-10 h-1 bg-white/20 rounded-full absolute top-2 left-1/2 -translate-x-1/2" />
-            <span className="text-[13px] font-bold text-[#D4AF37] mt-2">Settings</span>
-            <img src="/elix-logo.png" alt="Elix Star Live" className="w-16 h-16 object-contain mt-1.5" />
-          </div>
+        <RoyceCloseIcon size={20} />
+      </button>
+      <div
+        className="relative flex-shrink-0 px-3 pt-1.5 pb-2 touch-none cursor-grab active:cursor-grabbing"
+        onPointerDown={onDragStart}
+        onPointerMove={onDragMove}
+        onPointerUp={onDragEnd}
+        onPointerCancel={onDragEnd}
+      >
+        <div className="flex flex-col items-center">
+          <div className="w-10 h-1 bg-white/20 rounded-full absolute top-2 left-1/2 -translate-x-1/2" />
+          <span className="text-[13px] font-bold text-[#D4AF37] mt-2">Settings</span>
+          <img src="/elix-logo.png" alt="Elix Star Live" className="w-16 h-16 object-contain mt-1.5" />
         </div>
+      </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 pb-[var(--bottom-ui-reserve)]">
-          <div className="flex flex-col gap-0 max-w-full min-h-full">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3">
+        <div className="flex flex-col gap-0 max-w-full min-h-full">
           <S t="Account" />
           <R ic={<User size={14} />} t="Edit Profile" fn={() => navigate('/edit-profile')} />
           <R ic={<Lock size={14} />} t="Privacy" fn={() => navigate('/settings/safety')} />
@@ -192,7 +190,6 @@ export default function Settings() {
             </button>
           </div>
           <p className="text-center text-[8px] text-white/20 pt-1 pb-0.5">v1.0.0</p>
-        </div>
         </div>
       </div>
     </div>
