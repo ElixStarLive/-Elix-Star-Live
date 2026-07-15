@@ -729,10 +729,8 @@ export default function Profile() {
             }`}
             aria-label="Videos"
           >
-            <span className="royce-glow-disc flex items-center justify-center gap-0.5" style={{ width: 40, height: 32 }} aria-hidden>
-              <Grid3X3 size={18} className="royce-icon-gold" />
-              <ChevronDown size={12} className="royce-icon-gold" />
-            </span>
+            <Grid3X3 size={18} className="royce-icon-gold" />
+            <ChevronDown size={12} className="royce-icon-gold" />
           </button>
           <button
             type="button"
@@ -742,9 +740,7 @@ export default function Profile() {
             }`}
             aria-label="Shop"
           >
-            <span className="royce-glow-disc" style={{ width: 32, height: 32 }} aria-hidden>
-              <ShoppingBag size={18} className="royce-icon-gold" />
-            </span>
+            <ShoppingBag size={18} className="royce-icon-gold" />
           </button>
           {isOwnProfile && (
             <button
@@ -755,9 +751,7 @@ export default function Profile() {
               }`}
               aria-label="Private"
             >
-              <span className="royce-glow-disc" style={{ width: 32, height: 32 }} aria-hidden>
-                <Lock size={18} className="royce-icon-gold" />
-              </span>
+              <Lock size={18} className="royce-icon-gold" />
             </button>
           )}
           <button
@@ -768,9 +762,7 @@ export default function Profile() {
             }`}
             aria-label="Reposts"
           >
-            <span className="royce-glow-disc" style={{ width: 32, height: 32 }} aria-hidden>
-              <Repeat2 size={18} className="royce-icon-gold" />
-            </span>
+            <Repeat2 size={18} className="royce-icon-gold" />
           </button>
           <button
             type="button"
@@ -780,9 +772,7 @@ export default function Profile() {
             }`}
             aria-label="Saved"
           >
-            <span className="royce-glow-disc" style={{ width: 32, height: 32 }} aria-hidden>
-              <Bookmark size={18} className="royce-icon-gold" />
-            </span>
+            <Bookmark size={18} className="royce-icon-gold" />
           </button>
           <button
             type="button"
@@ -792,9 +782,7 @@ export default function Profile() {
             }`}
             aria-label="Liked"
           >
-            <span className="royce-glow-disc" style={{ width: 32, height: 32 }} aria-hidden>
-              <Heart size={18} className="royce-icon-gold" />
-            </span>
+            <Heart size={18} className="royce-icon-gold" />
           </button>
         </div>
 
