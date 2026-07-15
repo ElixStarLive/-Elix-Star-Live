@@ -28,11 +28,16 @@ export async function createStoryRecord(payload: {
   url: string;
   thumbnailUrl?: string;
   mediaType?: 'video' | 'image';
-}): Promise<{ id: string } | null> {
-  const { data, error } = await request<{ id?: string }>('/api/stories', {
+}): Promise<{ id: string }> {
+  const { data, error } = await request<{ id?: string; error?: string }>('/api/stories', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
-  if (error || !data?.id) throw new Error((error as any)?.message || String(error || 'Failed to create story'));
+  if (error) {
+    throw new Error(error.message || 'Failed to create story');
+  }
+  if (!data?.id) {
+    throw new Error('Story saved but server returned no id');
+  }
   return { id: data.id };
 }

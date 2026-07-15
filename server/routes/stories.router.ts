@@ -1,14 +1,18 @@
 /**
  * Stories API — Neon-backed 24h stories for For You rings / Add story.
+ * Ensures `stories` table exists (CREATE IF NOT EXISTS) so deploy works even if migrate lag.
  */
 
 import { Router, Request, Response } from "express";
 import { getTokenFromRequest, verifyAuthToken } from "./auth";
 import { getPool } from "../lib/postgres";
 import { logger } from "../lib/logger";
+import type { Pool } from "pg";
 
 const router = Router();
 const STORY_TTL_MS = 24 * 60 * 60 * 1000;
+
+let storiesTableReady: Promise<void> | null = null;
 
 export type StoryRow = {
   id: string;
@@ -23,7 +27,35 @@ export type StoryRow = {
   expires_at: string;
 };
 
-async function purgeExpired(db: NonNullable<ReturnType<typeof getPool>>): Promise<void> {
+async function ensureStoriesTable(db: Pool): Promise<void> {
+  if (!storiesTableReady) {
+    storiesTableReady = (async () => {
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS stories (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          username TEXT DEFAULT '',
+          display_name TEXT DEFAULT '',
+          avatar TEXT DEFAULT '',
+          media_url TEXT NOT NULL,
+          thumbnail TEXT DEFAULT '',
+          media_type TEXT DEFAULT 'video',
+          created_at TIMESTAMPTZ DEFAULT NOW(),
+          expires_at TIMESTAMPTZ NOT NULL
+        )
+      `);
+      await db.query(`CREATE INDEX IF NOT EXISTS idx_stories_expires_at ON stories (expires_at)`);
+      await db.query(`CREATE INDEX IF NOT EXISTS idx_stories_user_id_created ON stories (user_id, created_at DESC)`);
+      logger.info("stories table ensured");
+    })().catch((err) => {
+      storiesTableReady = null;
+      throw err;
+    });
+  }
+  await storiesTableReady;
+}
+
+async function purgeExpired(db: Pool): Promise<void> {
   try {
     await db.query(`DELETE FROM stories WHERE expires_at <= NOW()`);
   } catch (err) {
@@ -36,6 +68,7 @@ router.get("/", async (_req: Request, res: Response) => {
   const db = getPool();
   if (!db) return res.status(503).json({ error: "Database not configured", stories: [] });
   try {
+    await ensureStoriesTable(db);
     await purgeExpired(db);
     const r = await db.query(
       `SELECT id, user_id, username, display_name, avatar, media_url, thumbnail, media_type,
@@ -95,6 +128,7 @@ router.get("/user/:userId", async (req: Request, res: Response) => {
   const db = getPool();
   if (!db) return res.status(503).json({ error: "Database not configured", items: [] });
   try {
+    await ensureStoriesTable(db);
     await purgeExpired(db);
     const r = await db.query(
       `SELECT id, user_id, username, display_name, avatar, media_url, thumbnail, media_type,
@@ -135,6 +169,8 @@ router.post("/", async (req: Request, res: Response) => {
 
     const db = getPool();
     if (!db) return res.status(503).json({ error: "Database not configured" });
+
+    await ensureStoriesTable(db);
 
     const body = req.body || {};
     const mediaUrl = String(body.url || body.mediaUrl || body.media_url || "").trim();
@@ -190,7 +226,7 @@ router.post("/", async (req: Request, res: Response) => {
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     logger.error({ err: msg }, "POST /api/stories failed");
-    return res.status(500).json({ error: "Failed to create story" });
+    return res.status(500).json({ error: msg || "Failed to create story" });
   }
 });
 
