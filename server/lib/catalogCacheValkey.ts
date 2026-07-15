@@ -53,17 +53,3 @@ export async function invalidateGiftsCatalogCache(): Promise<void> {
     );
   }
 }
-
-export async function invalidateGiftsCatalogCache(): Promise<void> {
-  if (!isValkeyConfigured()) return;
-  const v = getValkey();
-  if (!v) return;
-  try {
-    await v.del(GIFTS_CATALOG_KEY);
-  } catch (err: unknown) {
-    logger.warn(
-      { err: err instanceof Error ? err.message : err },
-      "invalidateGiftsCatalogCache failed",
-    );
-  }
-}
