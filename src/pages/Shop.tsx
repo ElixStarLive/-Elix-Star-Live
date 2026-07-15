@@ -231,26 +231,35 @@ export default function Shop() {
   ] as const;
 
   return (
-    <div className="page-above-bottom-nav bg-[#111111] text-white px-2">
+    <div className="page-above-bottom-nav bg-[#111111] text-white">
       <div className="page-above-bottom-nav__inner">
-        <div className="sticky top-0 bg-[#111111] z-10 px-4 py-3 flex items-center justify-between border-b border-white/5">
-          <div className="flex items-center gap-3">
-            <button onClick={() => setShowCreate(true)} className="p-1" title="Sell item">
-              <Plus size={22} className="text-[#D4AF37]" />
-            </button>
-            <button onClick={() => navigate('/search')} className="p-1" title="Search">
-              <Search size={18} className="text-[#D4AF37]" />
+        {/* Header — same size container as STEM */}
+        <div
+          className="w-full shrink-0 bg-[#111111] z-10 border-b border-white/5"
+          style={{ paddingTop: 'var(--topnav-anchor-top)' }}
+        >
+          <div
+            className="w-full px-3 flex items-center justify-between"
+            style={{ minHeight: 'var(--topnav-bar-height)' }}
+          >
+            <div className="flex items-center gap-1">
+              <button onClick={() => setShowCreate(true)} className="p-1" title="Sell item">
+                <Plus size={18} className="text-white" />
+              </button>
+              <button onClick={() => navigate('/search')} className="p-1" title="Search">
+                <Search size={18} className="text-white" />
+              </button>
+            </div>
+            <h1 className="text-sm font-bold text-white">Shop</h1>
+            <button onClick={() => navigate(-1)} className="p-1" title="Back">
+              <RoyceBackIcon />
             </button>
           </div>
-          <h1 className="text-lg font-bold text-gold-metallic">Shop</h1>
-          <button onClick={() => navigate(-1)} className="p-1" title="Back">
-            <RoyceBackIcon />
-          </button>
         </div>
 
         {/* Live now circles — between header and filter bar */}
         {liveUsers.length > 0 && (
-          <div className="px-4 pt-2 pb-1">
+          <div className="px-3 pt-2 pb-1">
             <div className="flex items-center justify-between mb-1">
               <span className="text-[11px] font-bold text-white/60">LIVE now</span>
               <button
@@ -287,7 +296,7 @@ export default function Shop() {
         )}
 
         {/* Filter bar (All / Clothing / ...) */}
-        <div className="flex gap-2 px-4 py-3 overflow-x-auto no-scrollbar">
+        <div className="flex gap-2 px-3 py-3 overflow-x-auto no-scrollbar">
           {filters.map(f => (
             <button
               key={f.key}
@@ -316,7 +325,7 @@ export default function Shop() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 px-4 py-2 pb-6 overflow-y-auto">
+          <div className="grid grid-cols-2 gap-3 px-3 py-2 pb-6 overflow-y-auto">
             {items.map(item => (
               <div key={item.id} className="bg-white/5 rounded-2xl overflow-hidden border border-white/5">
                 {item.image_url ? (

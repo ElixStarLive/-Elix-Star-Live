@@ -73,66 +73,99 @@ export default function EditProfile() {
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !currentUserId) return;
+    e.target.value = '';
+    if (!file) return;
+    if (!currentUserId && !user?.id) {
+      showToast('Please log in again');
+      return;
+    }
+    const uid = currentUserId || user!.id;
 
     setUploading(true);
     try {
-      const result = await avatarUploadService.uploadAvatar(file, currentUserId);
-      
+      const result = await avatarUploadService.uploadAvatar(file, uid);
+
       if (result.success && result.publicUrl) {
-        setProfile(prev => ({ ...prev, avatar_url: result.publicUrl }));
-        trackEvent('profile_avatar_change', {});
-        if (user?.id) {
-          updateUser({ avatar: result.publicUrl });
+        setProfile((prev) => ({ ...prev, avatar_url: result.publicUrl! }));
+        try {
+          localStorage.setItem('elix_avatar_' + uid, result.publicUrl);
+        } catch {
+          /* ignore */
         }
+        trackEvent('profile_avatar_change', {});
+        updateUser({ avatar: result.publicUrl });
+        showToast('Photo updated');
       } else {
         showToast(result.error || 'Failed to upload avatar');
       }
     } catch (error) {
-
-      showToast('Failed to upload avatar');
+      const msg = error instanceof Error ? error.message : 'Failed to upload avatar';
+      showToast(msg);
     } finally {
       setUploading(false);
     }
   };
 
   const handleSave = async () => {
-    if (!currentUserId) return;
+    if (!currentUserId && !user?.id) {
+      showToast('Please log in again');
+      return;
+    }
+    const uid = currentUserId || user!.id;
 
-    setLoading(true);
-    try {
-    const { error } = await request(`/api/profiles/${encodeURIComponent(currentUserId)}`, {
-      method: 'PATCH',
-      body: JSON.stringify({
-        displayName: profile.display_name,
-        bio: profile.bio,
-        avatarUrl: profile.avatar_url,
-        website: profile.website,
-        instagram: profile.instagram,
-        youtube: profile.youtube,
-        tiktok: profile.tiktok,
-      }),
-    });
-
-    if (error) {
-      showToast('Failed to save profile');
-      setLoading(false);
+    const nextUsername = (profile.username || '').trim().replace(/^@+/, '');
+    if (!nextUsername) {
+      showToast('Username is required');
+      return;
+    }
+    if (!/^[a-zA-Z0-9._]{3,30}$/.test(nextUsername)) {
+      showToast('Username: 3–30 letters, numbers, . or _');
       return;
     }
 
-    trackEvent('profile_update', {});
-    if (user?.id === currentUserId) {
-      updateUser({
-        name: profile.display_name || user.name,
-        avatar: profile.avatar_url || user.avatar,
+    setLoading(true);
+    try {
+      const { error } = await request(`/api/profiles/${encodeURIComponent(uid)}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          username: nextUsername,
+          displayName: profile.display_name,
+          bio: profile.bio,
+          avatarUrl: profile.avatar_url,
+          website: profile.website,
+          instagram: profile.instagram,
+          youtube: profile.youtube,
+          tiktok: profile.tiktok,
+        }),
       });
+
+      if (error) {
+        showToast(error.message || 'Failed to save profile');
+        return;
+      }
+
+      trackEvent('profile_update', {});
+      if (user?.id === uid) {
+        updateUser({
+          username: nextUsername,
+          name: profile.display_name || user.name,
+          avatar: profile.avatar_url || user.avatar,
+        });
+      }
+      if (profile.avatar_url) {
+        try {
+          localStorage.setItem('elix_avatar_' + uid, profile.avatar_url);
+        } catch {
+          /* ignore */
+        }
+      }
+      showToast('Profile saved');
+      navigate(-1);
+    } catch {
+      showToast('Failed to save profile');
+    } finally {
+      setLoading(false);
     }
-    navigate(-1);
-  } catch {
-    showToast('Failed to save profile');
-  } finally {
-    setLoading(false);
-  }
   };
 
   return (
@@ -185,11 +218,23 @@ export default function EditProfile() {
             Change Photo
           </button>
           {uploading && <p className="text-sm text-white/60">Uploading...</p>}
-          <p className="text-sm text-white/60">@{profile.username}</p>
         </div>
 
         {/* Form Fields */}
         <div className="space-y-4">
+          <InputField
+            label="Username"
+            value={profile.username || ''}
+            onChange={(val) =>
+              setProfile((prev) => ({
+                ...prev,
+                username: val.replace(/^@+/, '').replace(/\s+/g, ''),
+              }))
+            }
+            placeholder="your_username"
+            maxLength={30}
+          />
+
           <InputField
             label="Display Name"
             value={profile.display_name || ''}

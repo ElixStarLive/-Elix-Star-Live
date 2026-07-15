@@ -42,6 +42,7 @@ import {
 import { getPool } from "../lib/postgres";
 import { getUserBattleRoom, endBattle, getBattleFromStore } from "./battle";
 import { getGiftGoal } from "./giftGoal";
+import { getGiftGoal } from "./giftGoal";
 import { handleMessage } from "./handlers";
 
 export interface Client {

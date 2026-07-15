@@ -190,25 +190,27 @@ export default function SearchPage() {
         }}
       >
         <div
-          className="page-above-bottom-nav__inner bg-[#111111] pt-page-header"
-          style={{ boxShadow: '0 -8px 30px rgba(0,0,0,0.5)' }}
+          className="page-above-bottom-nav__inner bg-[#111111]"
+          style={{ boxShadow: '0 -8px 30px rgba(0,0,0,0.5)', paddingTop: 'var(--topnav-anchor-top)' }}
         >
-          {/* Top: drag handle + power (back) — swipe down here to close */}
+          {/* Header — same size container as STEM */}
           <div
-            className="flex items-center justify-between px-2 pt-0 pb-0"
+            className="flex items-center justify-between px-3"
+            style={{ minHeight: 'var(--topnav-bar-height)' }}
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
           >
+            <div className="w-[26px]" />
             <div className="flex-1 flex justify-center">
               <div className="w-8 h-[2px] rounded-full bg-[#C9A227]/30" />
             </div>
-            <button type="button" onClick={closePanel} className="p-1 -mr-1" title="Back">
+            <button type="button" onClick={closePanel} className="p-1" title="Back">
               <RoyceBackIcon />
             </button>
           </div>
 
-          {/* Search bar — nudged down from handle row */}
-          <div className="px-4 pb-0.5 mt-[1mm]">
+          {/* Search bar — STEM column padding (px-3) */}
+          <div className="px-3 pb-0.5">
             <div className="flex items-center gap-2">
               <form onSubmit={handleSearch} className="flex-1 relative">
                 <input 

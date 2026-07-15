@@ -140,21 +140,31 @@ export default function FollowingFeed() {
   };
 
   return (
-    <div className="h-full min-h-0 w-full flex justify-center bg-[#111111]">
-      <div className="w-full max-w-[480px] h-full min-h-0 flex flex-col overflow-hidden mx-auto">
-        <div className="w-full shrink-0 bg-[#111111] z-10 relative pt-app-header-safe">
-          <div className="px-3 pb-1 flex items-center justify-between relative">
-            <button onClick={() => navigate('/search')} className="p-1 z-10" aria-label="Search"><Search size={18} className="text-white" /></button>
-            <h1 className="text-sm font-bold text-white absolute left-1/2 transform -translate-x-1/2">Following</h1>
-            <button
-              onClick={() => navigate(-1)}
-              title="Back"
-              className="p-1 z-10"
-            >
-              <RoyceBackIcon />
-            </button>
-          </div>
+    <div className="h-full min-h-0 w-full flex flex-col bg-[#111111]">
+      {/* Header — same size container as STEM */}
+      <div
+        className="fixed left-0 right-0 z-[9999] flex justify-center pointer-events-none"
+        style={{ top: 'var(--topnav-anchor-top)' }}
+      >
+        <div
+          className="w-full max-w-[480px] px-3 flex items-center justify-between pointer-events-auto"
+          style={{ minHeight: 'var(--topnav-bar-height)' }}
+        >
+          <button onClick={() => navigate('/search')} className="p-1" aria-label="Search">
+            <Search size={18} className="text-white" />
+          </button>
+          <h1 className="text-sm font-bold text-white">Following</h1>
+          <button onClick={() => navigate(-1)} title="Back" className="p-1">
+            <RoyceBackIcon />
+          </button>
+        </div>
+      </div>
 
+      <div
+        className="w-full max-w-[480px] mx-auto flex-1 min-h-0 flex flex-col overflow-hidden"
+        style={{ paddingTop: 'calc(var(--topnav-anchor-top) + var(--topnav-bar-height))' }}
+      >
+        <div className="w-full shrink-0 bg-[#111111] z-10 relative">
           {/* Circles — Create, then followers who are live, then all other users who are live; scroll left */}
           <div className="px-3 py-2">
             <div className="flex gap-3 overflow-x-auto overflow-y-hidden no-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>

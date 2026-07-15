@@ -8,6 +8,11 @@ import {
 } from "../services/audioScan";
 import { clearCachedAudioScanResult, getCachedAudioScanResult } from "../lib/audioScanValkey";
 import { fetchVoiceOnlyVideoBuffer } from "../services/videoDownload";
+import {
+  detectedTrackToMusicMeta,
+} from "../services/audioScan";
+import { clearCachedAudioScanResult, getCachedAudioScanResult } from "../lib/audioScanValkey";
+import { fetchVoiceOnlyVideoBuffer } from "../services/videoDownload";
 
 const router = Router();
 
@@ -111,6 +116,36 @@ router.get("/saved/list", async (req, res) => {
   } catch (err) {
     logger.error({ err }, "GET saved/list failed");
     return res.status(500).json({ error: "Failed to load saved videos", videos: [] });
+  }
+});
+
+/** GET /api/videos/:id/download — voice-only MP4 (licensed in-app music never included). */
+router.get("/:id/download", async (req, res) => {
+  try {
+    const video = await getVideoAsync(req.params.id);
+    if (!video?.url) {
+      return res.status(404).json({ error: "Video not found" });
+    }
+
+    if (video.privacy === "private") {
+      const token = getTokenFromRequest(req);
+      const payload = token ? verifyAuthToken(token) : null;
+      if (!payload?.sub || payload.sub !== video.userId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+    }
+
+    const buffer = await fetchVoiceOnlyVideoBuffer(video.url);
+    const filename = `elix_${video.id}.mp4`;
+
+    res.setHeader("Content-Type", "video/mp4");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.setHeader("Cache-Control", "private, no-store");
+    res.setHeader("Content-Length", String(buffer.length));
+    return res.status(200).send(buffer);
+  } catch (err) {
+    logger.error({ err, videoId: req.params.id }, "GET /api/videos/:id/download failed");
+    return res.status(502).json({ error: "DOWNLOAD_FAILED" });
   }
 });
 

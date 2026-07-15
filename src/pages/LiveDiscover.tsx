@@ -218,34 +218,45 @@ export default function LiveDiscover() {
   };
 
   return (
-    <div className="fixed inset-0 bg-black flex justify-center overflow-hidden">
+    <div className="h-full min-h-0 w-full flex flex-col bg-[#111111]">
+      {/* Header — same size container as STEM */}
       <div
-        className="relative w-full max-w-[480px] flex flex-col h-[100dvh] max-h-[100dvh]"
-        style={{ marginTop: 0 }}
+        className="fixed left-0 right-0 z-[9999] flex justify-center pointer-events-none"
+        style={{ top: 'var(--topnav-anchor-top)' }}
       >
-
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top,0px)+10px)] pb-2">
-          <div className="flex items-center gap-2.5">
-            <button
-              onClick={fetchLiveStreams}
-              className="w-7 h-7 rounded-full bg-white/5 flex items-center justify-center"
-              title="Refresh"
-            >
-              <RefreshCw size={12} className={`text-white/40 ${loading ? 'animate-spin' : ''}`} />
-            </button>
-            <span className="text-white font-bold text-base">Live</span>
-            {creators.length > 0 && (
-              <span className="text-white/30 text-xs font-medium">{creators.length} streaming</span>
-            )}
-          </div>
+        <div
+          className="w-full max-w-[480px] px-3 flex items-center justify-between pointer-events-auto"
+          style={{ minHeight: 'var(--topnav-bar-height)' }}
+        >
+          <button
+            onClick={fetchLiveStreams}
+            className="p-1"
+            title="Refresh"
+            aria-label="Refresh"
+          >
+            <RefreshCw size={18} className={`text-white ${loading ? 'animate-spin' : ''}`} />
+          </button>
+          <h1 className="text-sm font-bold text-white">
+            Live
+            {creators.length > 0 ? (
+              <span className="text-white/40 font-medium text-xs ml-1.5">{creators.length}</span>
+            ) : null}
+          </h1>
           <button onClick={() => navigate('/feed')} className="p-1" title="Back">
             <RoyceBackIcon />
           </button>
         </div>
+      </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto">
+      {/* Content — STEM-width column */}
+      <div
+        className="flex-1 min-h-0 w-full overflow-y-auto"
+        style={{
+          paddingTop: 'calc(var(--topnav-anchor-top) + var(--topnav-bar-height))',
+          paddingBottom: 'var(--bottom-ui-reserve)',
+        }}
+      >
+        <div className="w-full max-w-[480px] mx-auto">
           {loading && creators.length === 0 ? (
             <div className="flex items-center justify-center py-32">
               <div className="w-8 h-8 border-2 border-[#C9A227] border-t-transparent rounded-full animate-spin" />
@@ -319,7 +330,7 @@ export default function LiveDiscover() {
             </div>
           ) : (
             /* Empty state — no Go Live button, just info */
-            <div className="flex flex-col items-center justify-center h-full pb-20 px-8 text-center">
+            <div className="flex flex-col items-center justify-center py-32 px-8 text-center">
               <div className="w-20 h-20 rounded-full bg-white/[0.02] border border-white/5 flex items-center justify-center mb-5">
                 <Radio className="w-8 h-8 text-white/10" />
               </div>

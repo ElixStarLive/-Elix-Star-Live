@@ -185,14 +185,20 @@ export default function Discover() {
     <div className="page-above-bottom-nav bg-[#111111] text-white">
       <div className="page-above-bottom-nav__inner">
 
-        {/* ═══ HEADER — full width of column (matches bottom nav max-w-[480px]) ═══ */}
-        <div className="w-full shrink-0 bg-[#111111] z-10 border-b border-white/[0.06]">
-          <div className="px-3 pt-page-header pb-1 flex items-center justify-between relative">
-            <button onClick={() => document.getElementById('discover-search')?.focus()} className="p-1 z-10" title="Search">
-              <Search className="w-4 h-4 text-[#D4AF37]" />
+        {/* Header — same size container as STEM */}
+        <div
+          className="w-full shrink-0 bg-[#111111] z-10"
+          style={{ paddingTop: 'var(--topnav-anchor-top)' }}
+        >
+          <div
+            className="w-full px-3 flex items-center justify-between"
+            style={{ minHeight: 'var(--topnav-bar-height)' }}
+          >
+            <button onClick={() => document.getElementById('discover-search')?.focus()} className="p-1" title="Search">
+              <Search size={18} className="text-white" />
             </button>
-            <h1 className="text-sm font-bold text-gold-metallic absolute left-1/2 transform -translate-x-1/2">Explore</h1>
-            <button onClick={() => navigate(-1)} className="p-1 z-10" title="Back">
+            <h1 className="text-sm font-bold text-white">Explore</h1>
+            <button onClick={() => navigate(-1)} className="p-1" title="Back">
               <RoyceBackIcon />
             </button>
           </div>

@@ -824,7 +824,7 @@ export default function ElixCameraLayout({
       {/* BOTTOM SECTION */}
       {/* ══════════════════════════════════════════ */}
       {!showEffectsPanel && !showCapCutPanel && !showStickerPicker && (
-        <div className="absolute bottom-0 left-0 right-0 z-50 pointer-events-auto" style={{ paddingBottom: 'max(3.5rem, env(safe-area-inset-bottom))' }}>
+        <div className="absolute bottom-0 left-0 right-0 z-50 pointer-events-auto" style={{ paddingBottom: 'calc(max(3.5rem, env(safe-area-inset-bottom, 0px)) + 5mm)' }}>
 
           {/* Duration Selector - short scroll */}
           <div className="flex justify-center mb-4">
@@ -894,7 +894,7 @@ export default function ElixCameraLayout({
           )}
 
           {/* Bottom Tabs — POST / CREATE / LIVE with capture indicators */}
-          <div className="flex items-center justify-center px-4 pb-0.5 w-full absolute bottom-4">
+          <div className="flex items-center justify-center px-4 pb-0.5 w-full absolute bottom-[calc(1rem+5mm)]">
             <div className="flex items-center gap-4">
               <button 
                 onClick={onPostTab}

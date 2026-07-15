@@ -34,6 +34,7 @@ import { errorHandler } from "./middleware/errorHandler";
 import { isLiveKitConfigured } from "./services/livekit";
 import { isBunnyConfigured } from "./services/bunny";
 import { isEpidemicSoundConfigured } from "./services/epidemicSound";
+import { isEpidemicSoundConfigured } from "./services/epidemicSound";
 import {
   isValkeyConfigured,
   valkeyHealthCheck,
@@ -80,7 +81,7 @@ const ALLOWED_ORIGINS: string[] = (() => {
   if (process.env.ALLOWED_ORIGINS) {
     origins.push(...process.env.ALLOWED_ORIGINS.split(",").map(s => s.trim()).filter(Boolean));
   }
-  origins.push("capacitor://localhost", "http://localhost");
+  origins.push("capacitor://localhost", "http://localhost", "https://localhost");
   if (process.env.NODE_ENV !== "production") {
     origins.push("http://localhost:5173", "http://localhost:8080", "http://localhost:3000", "https://localhost:5173");
   }
@@ -108,6 +109,9 @@ if (process.env.NODE_ENV === "production") {
 app.use(helmet({
   contentSecurityPolicy: false,
   crossOriginEmbedderPolicy: false,
+  // Required for Capacitor Android/iOS (origin http(s)://localhost / capacitor://localhost)
+  // so the app can call this API. Default helmet CORP:same-origin blocks the phone WebView.
+  crossOriginResourcePolicy: { policy: "cross-origin" },
 }));
 app.use(cors({
   credentials: true,
@@ -407,6 +411,15 @@ app.get("/env.js", (_req, res) => {
         JSON.stringify(env) +
         ");",
     );
+});
+
+// ── Gift media: same-origin /gifts/* → Bunny CDN (fixes broken grid icons) ──
+app.use("/gifts", (req, res) => {
+  const subpath = req.path.replace(/^\/+/, "");
+  if (!subpath || subpath.includes("..")) {
+    return res.status(400).json({ error: "Invalid gift path" });
+  }
+  res.redirect(302, `${getGiftCdnOrigin()}/gifts/${subpath}`);
 });
 
 // ── Gift media: same-origin /gifts/* → Bunny CDN (fixes broken grid icons) ──

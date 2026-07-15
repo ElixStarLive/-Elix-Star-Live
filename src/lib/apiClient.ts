@@ -1,4 +1,4 @@
-import { Capacitor } from "@capacitor/core";
+import { Capacitor, CapacitorHttp } from "@capacitor/core";
 import { apiUrl } from "./api";
 import { useAuthStore } from "../store/useAuthStore";
 
@@ -16,14 +16,142 @@ function requestCredentials(): RequestCredentials {
 
 const REQUEST_TIMEOUT_MS = 20_000;
 
-export async function request<T = any>(
+function normalizeHeaders(
+  headers: HeadersInit | undefined,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (!headers) return out;
+  if (headers instanceof Headers) {
+    headers.forEach((value, key) => {
+      out[key] = value;
+    });
+    return out;
+  }
+  if (Array.isArray(headers)) {
+    for (const [key, value] of headers) out[key] = value;
+    return out;
+  }
+  return { ...(headers as Record<string, string>) };
+}
+
+function parseJsonBody(body: BodyInit | null | undefined): unknown {
+  if (body == null) return undefined;
+  if (typeof body === "string") {
+    try {
+      return JSON.parse(body);
+    } catch {
+      return body;
+    }
+  }
+  return undefined;
+}
+
+function asJsonObject(data: unknown): Record<string, unknown> | null {
+  if (data == null) return null;
+  if (typeof data === "string") {
+    try {
+      const parsed = JSON.parse(data);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        return parsed as Record<string, unknown>;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+  if (typeof data === "object" && !Array.isArray(data)) {
+    return data as Record<string, unknown>;
+  }
+  return null;
+}
+
+function toResult<T>(
+  status: number,
+  body: Record<string, unknown> | null,
+): { data: T | null; error: { message: string } | null } {
+  if (!body) {
+    return {
+      data: null,
+      error: {
+        message:
+          status >= 200 && status < 300
+            ? "RESPONSE_NOT_JSON"
+            : `HTTP_${status || 0}`,
+      },
+    };
+  }
+  if (status < 200 || status >= 300) {
+    return {
+      data: null,
+      error: {
+        message: body.error ? String(body.error) : `HTTP_${status}`,
+      },
+    };
+  }
+  return { data: body as T, error: null };
+}
+
+/**
+ * Native path: CapacitorHttp (bypasses WebView CORS/CORP).
+ * No AbortController — CapHttp + AbortSignal commonly breaks on Android.
+ */
+async function nativeCapacitorHttpRequest<T>(
+  path: string,
+  init: RequestInit = {},
+): Promise<{ data: T | null; error: { message: string } | null }> {
+  const method = (init.method || "GET").toUpperCase();
+  const headers = {
+    ...authHeaders(),
+    ...normalizeHeaders(init.headers),
+  };
+  const response = await CapacitorHttp.request({
+    url: apiUrl(path),
+    method,
+    headers,
+    data: parseJsonBody(init.body ?? undefined),
+    connectTimeout: REQUEST_TIMEOUT_MS,
+    readTimeout: REQUEST_TIMEOUT_MS,
+    responseType: "json",
+  });
+  const status = Number(response.status || 0);
+  return toResult<T>(status, asJsonObject(response.data));
+}
+
+/**
+ * Fallback native path: plain fetch WITHOUT AbortSignal (AbortSignal breaks Cap patched fetch).
+ */
+async function nativeFetchRequest<T>(
+  path: string,
+  init: RequestInit = {},
+): Promise<{ data: T | null; error: { message: string } | null }> {
+  const { signal: _ignored, ...rest } = init;
+  const res = await fetch(apiUrl(path), {
+    credentials: "omit",
+    ...rest,
+    headers: { ...authHeaders(), ...(init.headers || {}) },
+  });
+  const ct = res.headers.get("content-type") || "";
+  const isJson = ct.includes("application/json") || ct.includes("+json");
+  if (!isJson) {
+    return {
+      data: null,
+      error: { message: res.ok ? "RESPONSE_NOT_JSON" : `HTTP_${res.status}` },
+    };
+  }
+  const body = asJsonObject(await res.json().catch(() => null));
+  return toResult<T>(res.status, body);
+}
+
+async function webRequest<T>(
   path: string,
   init: RequestInit = {},
 ): Promise<{ data: T | null; error: { message: string } | null }> {
   try {
     const hasExternalSignal = !!init.signal;
     const controller = hasExternalSignal ? null : new AbortController();
-    const timeoutId = controller ? setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS) : null;
+    const timeoutId = controller
+      ? setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+      : null;
     const res = await fetch(apiUrl(path), {
       credentials: requestCredentials(),
       ...init,
@@ -34,36 +162,38 @@ export async function request<T = any>(
 
     const ct = res.headers.get("content-type") || "";
     const isJson = ct.includes("application/json") || ct.includes("+json");
-
     if (!isJson) {
       return {
         data: null,
         error: { message: res.ok ? "RESPONSE_NOT_JSON" : `HTTP_${res.status}` },
       };
     }
+    const body = asJsonObject(await res.json().catch(() => null));
+    return toResult<T>(res.status, body);
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e || "request_failed");
+    return { data: null, error: { message: msg || "request_failed" } };
+  }
+}
 
-    const body = await res.json().catch(() => null);
-    if (body === null) {
-      return {
-        data: null,
-        error: { message: res.ok ? "RESPONSE_NOT_JSON" : `HTTP_${res.status}` },
-      };
-    }
+export async function request<T = any>(
+  path: string,
+  init: RequestInit = {},
+): Promise<{ data: T | null; error: { message: string } | null }> {
+  if (!Capacitor.isNativePlatform()) {
+    return webRequest<T>(path, init);
+  }
 
-    if (!res.ok) {
-      return {
-        data: null,
-        error: {
-          message: body?.error ? String(body.error) : `HTTP_${res.status}`,
-        },
-      };
+  // Prefer native HTTP bridge, then fall back to WebView fetch (needs server CORP cross-origin).
+  try {
+    return await nativeCapacitorHttpRequest<T>(path, init);
+  } catch {
+    try {
+      return await nativeFetchRequest<T>(path, init);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e || "request_failed");
+      return { data: null, error: { message: msg || "request_failed" } };
     }
-    return { data: body as T, error: null };
-  } catch (e: any) {
-    return {
-      data: null,
-      error: { message: String(e?.message || "request_failed") },
-    };
   }
 }
 

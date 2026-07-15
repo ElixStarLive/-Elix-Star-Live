@@ -6,8 +6,13 @@ export async function uploadAvatar(
   file: File,
   userId: string,
 ): Promise<string> {
-  // Validate file type
-  if (!file.type.startsWith("image/")) {
+  // Validate file type (native pickers may leave type empty)
+  const ext = (file.name.split(".").pop() || "").toLowerCase();
+  const okExt = ["jpg", "jpeg", "png", "webp", "gif", "heic", "heif"].includes(ext);
+  if (file.type && !file.type.startsWith("image/") && !okExt) {
+    throw new Error("Selected file is not an image.");
+  }
+  if (!file.type && !okExt) {
     throw new Error("Selected file is not an image.");
   }
 

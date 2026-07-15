@@ -137,14 +137,14 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin, i
           </button>
         </div>
         <div className="flex items-center justify-between gap-2 px-4 pb-2 flex-shrink-0">
-          <h3 className="text-white font-bold whitespace-nowrap text-sm">Share to</h3>
-          <div className="flex-none w-[120px] bg-white/5 rounded-lg px-2 py-1.5 flex items-center gap-2">
-            <Search className="w-3.5 h-3.5 text-white/30" />
+          <h3 className="text-[#D4AF37] font-bold whitespace-nowrap text-sm">Share to</h3>
+          <div className="flex-none w-[120px] bg-white/5 rounded-lg px-2 py-1.5 flex items-center gap-2 border border-[#D4AF37]/35">
+            <Search className="w-3.5 h-3.5 text-[#D4AF37]" />
             <input
               value={shareQuery}
               onChange={(e) => setShareQuery(e.target.value)}
               placeholder="Search..."
-              className="bg-transparent text-white text-xs outline-none w-full placeholder:text-white/20"
+              className="bg-transparent text-[#D4AF37]/90 text-xs outline-none w-full placeholder:text-[#D4AF37]/45"
             />
           </div>
         </div>
@@ -188,9 +188,9 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin, i
                 onClick={() => item.action()}
                 className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
               >
-                <div className="relative w-9 h-9 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center flex-shrink-0">
-                  <div className="relative z-[2]">{React.cloneElement(item.icon as React.ReactElement, { className: 'w-3.5 h-3.5 royce-icon-gold', strokeWidth: 1.8 })}</div>
-</div>
+                <div className="relative w-9 h-9 flex items-center justify-center flex-shrink-0">
+                  {React.cloneElement(item.icon as React.ReactElement, { className: 'w-5 h-5 royce-icon-gold', strokeWidth: 2 })}
+                </div>
                 <span className="text-[8px] font-semibold text-white/70 truncate w-full text-center">{item.name}</span>
               </button>
             ))}
@@ -202,9 +202,9 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin, i
                   onClick={() => item.action()}
                   className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
                 >
-                  <div className="relative w-9 h-9 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center flex-shrink-0">
-                    <div className={`relative z-[2] ${item.name === 'Report' ? 'translate-y-0.5' : ''}`}>{React.cloneElement(item.icon as React.ReactElement, { className: 'w-3.5 h-3.5 royce-icon-gold', strokeWidth: 1.8 })}</div>
-</div>
+                  <div className={`relative w-9 h-9 flex items-center justify-center flex-shrink-0 ${item.name === 'Report' ? 'translate-y-0.5' : ''}`}>
+                    {React.cloneElement(item.icon as React.ReactElement, { className: 'w-5 h-5 royce-icon-gold', strokeWidth: 2 })}
+                  </div>
                   <span className={`text-[8px] font-semibold truncate w-full text-center ${isRed ? 'text-white/60/70' : 'text-white/70'}`}>{item.name}</span>
                 </button>
               );

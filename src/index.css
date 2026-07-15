@@ -745,32 +745,57 @@
   box-shadow: 0 0 12px rgba(201, 162, 39, 0.2);
 }
 
-/* ROYCE gold + black icon chrome — always circular */
+/* No gold circles behind icons — plain gold line icons app-wide */
+.royce-glow-disc,
 .royce-tile {
-  background: #000000;
-  border: 1px solid rgba(201, 162, 39, 0.32);
-  border-radius: 9999px;
-  box-shadow:
-    inset 0 1px 0 rgba(232, 213, 163, 0.1),
-    0 2px 8px rgba(0, 0, 0, 0.85);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
-.royce-icon-gold {
-  color: #D4AF37;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.9));
-}
-
-.royce-icon-muted {
-  color: #D4AF37;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.85));
-}
-
-/* One icon color app-wide — ROYCE gold */
+/*
+ * Unified icon design (app-wide):
+ * thin gold line icons — writing left, icons right readable on black video.
+ */
 svg.lucide {
-  color: var(--color-gold-bright, #D4AF37) !important;
+  color: #d4af37 !important;
+  stroke: currentColor !important;
+  stroke-width: 2;
+  fill: none !important;
+  filter: none;
+}
+
+/* Active filled states (save, gold badge hearts, etc.) */
+svg.lucide.fill-current,
+svg.lucide.fill-gold-bright,
+svg.lucide[fill]:not([fill="none"]):not(.fill-red-500) {
+  fill: currentColor !important;
+}
+
+/* Liked heart — keep red as status, not style drift */
+svg.lucide.fill-red-500,
+svg.lucide.text-red-500 {
+  color: #ef4444 !important;
+  fill: currentColor !important;
+  stroke: currentColor !important;
+}
+
+.royce-icon-gold,
+.bottom-nav-icon,
+.royce-icon-muted,
+.stroke-gold-metallic {
+  color: #d4af37 !important;
   stroke: currentColor;
+  fill: none;
+  filter: none;
+}
+
+.royce-icon-gold.fill-current,
+.royce-icon-gold.fill-gold-bright {
+  fill: currentColor !important;
 }

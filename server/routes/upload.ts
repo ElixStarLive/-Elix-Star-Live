@@ -13,6 +13,12 @@ import {
   scanVideoUpload,
 } from "../services/audioScan";
 import { cacheAudioScanResult } from "../lib/audioScanValkey";
+import {
+  extractVideoIdFromStoragePath,
+  isVideoUpload,
+  scanVideoUpload,
+} from "../services/audioScan";
+import { cacheAudioScanResult } from "../lib/audioScanValkey";
 
 function requireAuth(req: Request, res: Response): { userId: string } | null {
   const token = getTokenFromRequest(req);

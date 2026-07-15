@@ -14,6 +14,10 @@ import {
   giftIconUrlFromAnimation,
   resolveGiftMediaUrl,
 } from "../lib/giftAssets";
+import {
+  giftIconUrlFromAnimation,
+  resolveGiftMediaUrl,
+} from "../lib/giftAssets";
 
 function requireAuth(req: Request, res: Response): { userId: string } | null {
   const token = getTokenFromRequest(req);

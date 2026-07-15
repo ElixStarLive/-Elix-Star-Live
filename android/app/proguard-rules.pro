@@ -1,10 +1,13 @@
 # Elix Star Live - ProGuard Configuration
 # Optimized for Capacitor
 
-# Keep Capacitor classes
--keep class com.capacitorjs.** { *; }
--keep class com.getcapacitor.** { *; }
--keep class org.apache.cordova.** { *; }
+# Keep Capacitor HTTP / Cookies plugins (login + API)
+-keep class com.getcapacitor.plugin.http.** { *; }
+-keep class com.getcapacitor.plugin.CapacitorHttp.** { *; }
+-keep class com.getcapacitor.plugin.CapacitorCookies.** { *; }
+-keepclassmembers class com.getcapacitor.** {
+    public <methods>;
+}
 
 # Keep Chromium / WebView internals
 -keep class org.chromium.** { *; }

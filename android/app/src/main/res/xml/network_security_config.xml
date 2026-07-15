@@ -11,4 +11,9 @@
         <domain includeSubdomains="true">b-cdn.net</domain>
         <domain includeSubdomains="true">bunnycdn.com</domain>
     </domain-config>
+    <!-- Capacitor WebView local assets only (http://localhost) -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">localhost</domain>
+        <domain includeSubdomains="false">127.0.0.1</domain>
+    </domain-config>
 </network-security-config>

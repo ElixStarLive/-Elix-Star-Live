@@ -112,7 +112,13 @@ export class AvatarUploadService {
     file: File,
   ): Promise<{ valid: boolean; error?: string }> {
     const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
-    if (!allowedTypes.includes(file.type)) {
+    const ext = (file.name.split(".").pop() || "").toLowerCase();
+    const allowedExt = ["jpg", "jpeg", "png", "webp"];
+    // Native pickers often omit MIME type — accept by extension when type is empty.
+    const typeOk =
+      (file.type && allowedTypes.includes(file.type)) ||
+      (!file.type && allowedExt.includes(ext));
+    if (!typeOk) {
       return {
         valid: false,
         error: "Invalid file type. Please use JPG, PNG, or WebP.",
