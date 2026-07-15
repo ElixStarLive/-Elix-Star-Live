@@ -12,7 +12,6 @@ import { videoUploadService } from '../lib/videoUpload';
 import { api } from '../lib/apiClient';
 import { useAuthStore } from '../store/useAuthStore';
 import AIToolsPanel from '../components/AIToolsPanel';
-import { takeCachedRecordedMedia } from '../lib/recordedMediaCache';
 
 export default function Upload() {
   const navigate = useNavigate();
@@ -79,16 +78,6 @@ export default function Upload() {
   }, [duetParam]);
 
   const { addVideo, fetchVideos } = useVideoStore();
-
-  // Pick up clip recorded on Create (Your Story / Next)
-  useEffect(() => {
-    const cached = takeCachedRecordedMedia();
-    if (!cached?.url) return;
-    setRecordedVideoUrl((prev) => {
-      if (prev && prev !== cached.url) URL.revokeObjectURL(prev);
-      return cached.url;
-    });
-  }, []);
 
   const ZOOM_MIN = 0.5;
   const ZOOM_MAX = 3;

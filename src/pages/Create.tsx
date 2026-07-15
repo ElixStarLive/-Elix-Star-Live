@@ -18,7 +18,6 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { setCachedCameraStream } from '../lib/cameraStream';
-import { setCachedRecordedMedia } from '../lib/recordedMediaCache';
 import { type SoundTrack } from '../lib/soundLibrary';
 import SoundPickerPanel from '../components/SoundPickerPanel';
 import ElixCameraLayout from '../components/ElixCameraLayout';
@@ -259,13 +258,11 @@ export default function Create() {
 
   const goYourStory = () => {
     if (!previewUrl) return;
-    setCachedRecordedMedia(previewUrl, previewKind);
     navigate('/upload?type=story');
   };
 
   const goNextVideoPost = () => {
     if (!previewUrl) return;
-    setCachedRecordedMedia(previewUrl, previewKind);
     navigate('/upload');
   };
 
