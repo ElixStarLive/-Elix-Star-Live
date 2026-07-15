@@ -285,10 +285,13 @@
     background: #111111;
   }
 
-  /* Alias: tab pages use the Live column host (same size as LIVE) */
+  /* Tab pages: pin content between screen top and top of home/bottom bar */
   .page-above-bottom-nav {
     position: fixed;
-    inset: 0;
+    top: 0;
+    right: 0;
+    bottom: var(--bottom-ui-reserve);
+    left: 0;
     display: flex;
     justify-content: center;
     overflow: hidden;
@@ -302,9 +305,6 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    /* Host is Live full height; pad content clear of home bar when nav is shown */
-    padding-bottom: var(--bottom-ui-reserve);
-    box-sizing: border-box;
   }
 
   .pt-page-header {

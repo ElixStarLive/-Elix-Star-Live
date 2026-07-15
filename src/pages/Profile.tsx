@@ -516,9 +516,12 @@ export default function Profile() {
 
         {/* ═══ Share Panel ═══ */}
         {showSharePanel && (
-          <div className="fixed inset-0 z-[9999] bg-black/60 flex items-end justify-center" onClick={() => setShowSharePanel(false)}>
+          <div
+            className="fixed inset-0 z-[9999] bg-black/60 flex items-end justify-center pb-[var(--bottom-nav-top)]"
+            onClick={() => setShowSharePanel(false)}
+          >
             <div
-              className="w-full max-w-[480px] bg-[#111111]/95 rounded-t-2xl max-h-[40dvh] flex flex-col overflow-hidden bottom-sheet-above-nav"
+              className="w-full max-w-[480px] bg-[#111111]/95 rounded-t-2xl max-h-[40dvh] flex flex-col overflow-hidden"
               style={{ boxShadow: '0 -4px 30px rgba(255,255,255,0.25)' }}
               onClick={(e) => e.stopPropagation()}
             >
