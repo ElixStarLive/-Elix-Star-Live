@@ -296,8 +296,8 @@ function App() {
         className={cn(
           "flex-1 w-full min-h-0 mx-auto max-w-[480px] overflow-auto",
           showBottomNav && !isFullScreen && "pt-topbar pb-[var(--bottom-ui-reserve)]",
-          /* For You: video runs under home bar so the bar sits on top of the progress line */
-          showBottomNav && isFeedWithTopBar && "pt-topbar pb-0",
+          /* For You (Play 41 / 1.0.12 snapshot): sit above bottom nav */
+          showBottomNav && isFeedWithTopBar && "pt-topbar pb-nav",
           showBottomNav && isFeedNoTopBar && "pt-safe pb-nav",
           showBottomNav && isFullScreen && !isFeedFullScreen && "pt-[3mm]",
           !showBottomNav && "pt-[3mm]",

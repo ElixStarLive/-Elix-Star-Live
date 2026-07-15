@@ -813,13 +813,10 @@ export default function EnhancedVideoPlayer({
           aria-valuenow={Number.isFinite(currentTime) ? Math.round(currentTime) : 0}
           aria-valuemin={0}
           aria-valuemax={Number.isFinite(duration) && duration > 0 ? Math.round(duration) : 0}
-          className="absolute left-0 right-0 z-[16] pointer-events-auto flex flex-col justify-end cursor-pointer select-none px-3"
+          className="absolute left-3 right-[3.75rem] z-[16] pointer-events-auto flex flex-col justify-end cursor-pointer select-none"
           style={{
-            /* For You: 4mm above home-bar seam (2mm lift from prior) */
-            bottom: edgeToBottomNav
-              ? `calc(${navStackExpr} + 4mm)`
-              : '3mm',
-            paddingBottom: 0,
+            bottom: edgeToBottomNav ? `calc(${navStackExpr} + 6px + 3mm)` : 'calc(4mm + 3mm)',
+            paddingBottom: edgeToBottomNav ? 0 : 'max(4px, env(safe-area-inset-bottom, 0px))',
             touchAction: 'none',
             minHeight: scrubbing ? 44 : 22,
             transition: 'min-height 0.12s ease-out',
@@ -880,14 +877,15 @@ export default function EnhancedVideoPlayer({
         className="absolute z-[10] flex flex-col items-center gap-2 pointer-events-auto"
         style={{
           right: '12px',
-          /* Above caption + progress; another 10mm lower toward home bar */
+          /* Above thin progress line; extra space when user is scrubbing */
           bottom: edgeToBottomNav
             ? scrubbing
-              ? `calc(${navStackExpr} + 4mm + 7.5rem - 20mm)`
-              : `calc(${navStackExpr} + 4mm + 5.5rem - 20mm)`
+              ? `calc(${navStackExpr} + 5.5rem)`
+              : `calc(${navStackExpr} + 3rem)`
             : scrubbing
-              ? 'max(7.5rem, calc(3mm + 44px + 4.5rem - 20mm))'
-              : 'calc(3mm + 6.5rem - 20mm)',
+              ? 'max(3.5rem, calc(44px + 10px))'
+              : 'max(3.5rem, 1.5rem)',
+          marginBottom: '-8mm',
         }}
       >
         
@@ -963,7 +961,7 @@ export default function EnhancedVideoPlayer({
           title={video.music?.title || 'Original Sound'}
         >
           <span
-            className="rounded-full overflow-hidden royce-glow-disc bg-black flex items-center justify-center"
+            className="rounded-full overflow-hidden border border-[#C9A227]/60 bg-black flex items-center justify-center"
             style={{ width: 34, height: 34 }}
           >
             <img
@@ -989,47 +987,42 @@ export default function EnhancedVideoPlayer({
         </button>
       </div>
 
-      {/* Bottom Info — name; music (no circle); views under music, left-aligned */}
+      {/* Bottom Info Area — clear bottom nav so views/date stay visible */}
       <div
-        className="absolute z-[10] pointer-events-none flex flex-col items-stretch gap-0.5"
-        style={{
-          left: '3mm',
-          right: '72px',
-          /* Name / music / views: 2mm above the playing bar */
-          bottom: edgeToBottomNav
-            ? `calc(${navStackExpr} + 4mm + 2mm)`
-            : 'calc(3mm + 2mm)',
-        }}
+        className={`absolute z-[10] left-3 w-[72%] pointer-events-none flex flex-col ${edgeToBottomNav ? 'pb-2' : 'pb-1'}`}
+        style={{ bottom: `calc(${navStackExpr} + 8px)`, transform: 'translateY(8mm)' }}
       >
-        <div className="flex items-center gap-2 w-full min-w-0 justify-start">
-          <LevelBadge level={video.user.level ?? 1} size={22} circleSize={28} layout="fixed" avatar={video.user.avatar} />
-          <h3 className="text-white font-bold text-shadow-md truncate">
-            {video.user.name || video.user.username}
-          </h3>
+        <div className="flex items-center gap-2 mb-0">
+          <LevelBadge level={video.user.level ?? 1} size={10} circleSize={28} layout="fixed" avatar={video.user.avatar} />
+          <h3 className="text-white font-bold text-shadow-md">{video.user.name || video.user.username}</h3>
           {video.user.isVerified && (
-            <div className="w-4 h-4 bg-[#FFFFFF] rounded-full flex items-center justify-center flex-shrink-0">
+            <div className="w-4 h-4 bg-[#FFFFFF] rounded-full flex items-center justify-center">
               <div className="w-2 h-2 bg-white rounded-full" />
             </div>
           )}
         </div>
 
-        <div className="w-full min-w-0 text-left">
-          <span className="text-xs font-medium text-white/90 animate-marquee whitespace-nowrap overflow-hidden block max-w-full">
+        <div className="flex items-center gap-2 text-white/90 mb-1 mt-0.5">
+          <span className="w-4 h-4 rounded-full overflow-hidden bg-black flex-shrink-0 border border-white/20 flex items-center justify-center">
+            <img
+              src={video.music?.coverUrl || video.user.avatar || '/royce/default-avatar.svg'}
+              alt=""
+              className="w-full h-full object-cover"
+              draggable={false}
+              onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/royce/default-avatar.svg'; }}
+            />
+          </span>
+          <span className="text-xs font-medium animate-marquee whitespace-nowrap overflow-hidden w-32">
             {video.music?.title || 'Original Sound'}
             {(video.music?.artist || video.user.name || video.user.username) ? ` - ${video.music?.artist || video.user.name || video.user.username}` : ''}
           </span>
         </div>
-
-        <div className="flex items-center gap-2 text-white/60 text-xs w-full justify-start">
-          <span>{formatNumber(video.stats.views)} views</span>
-          <span>{new Date(video.createdAt).toLocaleDateString()}</span>
-        </div>
-
-        <p className="text-white/90 text-sm mb-0 text-shadow-md line-clamp-2 w-full text-left">
+        
+        <p className="text-white/90 text-sm mb-1 text-shadow-md line-clamp-2">
           {video.description}
         </p>
-
-        <div className="flex flex-wrap gap-1 mb-0 w-full justify-start">
+        
+        <div className="flex flex-wrap gap-1 mb-1">
           {video.hashtags.map((hashtag) => (
             <button
               key={hashtag}
@@ -1042,14 +1035,19 @@ export default function EnhancedVideoPlayer({
         </div>
 
         {video.location && (
-          <div className="flex items-center gap-1 text-white/60 text-xs mb-0 w-full justify-start">
+          <div className="flex items-center gap-1 text-white/60 text-xs mb-1">
             <div className="w-3 h-3 rounded-full" />
             <span>{video.location}</span>
           </div>
         )}
 
+        <div className="flex items-center gap-3 text-white/60 text-xs">
+          <span>{formatNumber(video.stats.views)} views</span>
+          <span>{new Date(video.createdAt).toLocaleDateString()}</span>
+        </div>
+
         {feedSourceLabel ? (
-          <p className="text-white/50 text-[11px] font-medium mt-0 mb-0 w-full text-left">{feedSourceLabel}</p>
+          <p className="text-white/50 text-[11px] font-medium mt-1 mb-0">{feedSourceLabel}</p>
         ) : null}
       </div>
 
@@ -1114,9 +1112,9 @@ export default function EnhancedVideoPlayer({
                   onClick={() => { handleCopyLink(); setIsMoreMenuOpen(false); }}
                   className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
-                  <span className="royce-glow-disc w-11 h-11 flex items-center justify-center" aria-hidden>
-                    <Copy size={18} className="royce-icon-gold" strokeWidth={2} />
-                  </span>
+                  <div className="relative w-11 h-11 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center">
+                    <Copy className="relative z-[2] w-[18px] h-[18px] text-white" strokeWidth={1.8} />
+</div>
                   <span className="text-[10px] font-semibold text-[#D4AF37]">Copy Link</span>
                 </button>
                 <button
@@ -1124,9 +1122,9 @@ export default function EnhancedVideoPlayer({
                   onClick={() => { handleDownload(); setIsMoreMenuOpen(false); }}
                   className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
-                  <span className="royce-glow-disc w-11 h-11 flex items-center justify-center" aria-hidden>
-                    <Download size={18} className="royce-icon-gold" strokeWidth={2} />
-                  </span>
+                  <div className="relative w-11 h-11 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center">
+                    <Download className="relative z-[2] w-[18px] h-[18px] text-white" strokeWidth={1.8} />
+</div>
                   <span className="text-[10px] font-semibold text-[#D4AF37]">Download</span>
                 </button>
                 <button
@@ -1134,9 +1132,9 @@ export default function EnhancedVideoPlayer({
                   onClick={() => { setIsMoreMenuOpen(false); navigate(`/upload?duet=${videoId}`); }}
                   className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
-                  <span className="royce-glow-disc w-11 h-11 flex items-center justify-center" aria-hidden>
-                    <Users2 size={18} className="royce-icon-gold" strokeWidth={2} />
-                  </span>
+                  <div className="relative w-11 h-11 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center">
+                    <Users2 className="relative z-[2] w-[18px] h-[18px] text-white" strokeWidth={1.8} />
+</div>
                   <span className="text-[10px] font-semibold text-[#D4AF37]">Duet</span>
                 </button>
                 <button
@@ -1144,9 +1142,9 @@ export default function EnhancedVideoPlayer({
                   onClick={() => setShowQrCodeInMore((v) => !v)}
                   className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
-                  <span className="royce-glow-disc w-11 h-11 flex items-center justify-center" aria-hidden>
-                    <QrCode size={18} className="royce-icon-gold" strokeWidth={2} />
-                  </span>
+                  <div className="relative w-11 h-11 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center">
+                    <QrCode className="relative z-[2] w-[18px] h-[18px] text-white" strokeWidth={1.8} />
+</div>
                   <span className="text-[10px] font-semibold text-[#D4AF37]">QR Code</span>
                 </button>
                 {isOwnVideo && (
@@ -1155,9 +1153,9 @@ export default function EnhancedVideoPlayer({
                     onClick={() => { handleDeleteVideo(); setIsMoreMenuOpen(false); }}
                     className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                   >
-                    <span className="royce-glow-disc w-11 h-11 flex items-center justify-center" aria-hidden>
-                      <Trash2 size={18} className="royce-icon-gold" strokeWidth={2} />
-                    </span>
+                    <div className="relative w-11 h-11 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center">
+                      <Trash2 className="relative z-[2] w-[18px] h-[18px] text-white/60" strokeWidth={1.8} />
+</div>
                     <span className="text-[10px] font-semibold text-[#D4AF37]">Delete video</span>
                   </button>
                 )}
@@ -1166,9 +1164,9 @@ export default function EnhancedVideoPlayer({
                   onClick={() => { setIsMoreMenuOpen(false); handleShare(); }}
                   className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
-                  <span className="royce-glow-disc w-11 h-11 flex items-center justify-center" aria-hidden>
-                    <Share2 size={18} className="royce-icon-gold" strokeWidth={2} />
-                  </span>
+                  <div className="relative w-11 h-11 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center">
+                    <Share2 className="relative z-[2] w-[18px] h-[18px] text-white" strokeWidth={1.8} />
+</div>
                   <span className="text-[10px] font-semibold text-[#D4AF37]">Share</span>
                 </button>
                 <button
@@ -1176,9 +1174,9 @@ export default function EnhancedVideoPlayer({
                   onClick={() => { handleSave(); setIsMoreMenuOpen(false); }}
                   className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
-                  <span className="royce-glow-disc w-11 h-11 flex items-center justify-center" aria-hidden>
-                    <Bookmark size={18} className="royce-icon-gold" strokeWidth={2} />
-                  </span>
+                  <div className="relative w-11 h-11 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center">
+                    <Bookmark className="relative z-[2] w-[18px] h-[18px] text-white" strokeWidth={1.8} />
+</div>
                   <span className="text-[10px] font-semibold text-[#D4AF37]">{video.isSaved ? 'Unsave' : 'Save'}</span>
                 </button>
                 <button
@@ -1186,11 +1184,9 @@ export default function EnhancedVideoPlayer({
                   onClick={() => { handleFollow(); setIsMoreMenuOpen(false); }}
                   className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
-                  <span className="royce-glow-disc w-11 h-11 flex items-center justify-center" aria-hidden>
-                    {video.isFollowing
-                      ? <UserMinus size={18} className="royce-icon-gold" strokeWidth={2} />
-                      : <UserPlus size={18} className="royce-icon-gold" strokeWidth={2} />}
-                  </span>
+                  <div className="relative w-11 h-11 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center">
+                    {video.isFollowing ? <UserMinus className="relative z-[2] w-[18px] h-[18px] text-white" strokeWidth={1.8} /> : <UserPlus className="relative z-[2] w-[18px] h-[18px] text-white" strokeWidth={1.8} />}
+</div>
                   <span className="text-[10px] font-semibold text-[#D4AF37]">{video.isFollowing ? 'Unfollow' : 'Follow'}</span>
                 </button>
                 <button
@@ -1198,9 +1194,9 @@ export default function EnhancedVideoPlayer({
                   onClick={() => { setIsMoreMenuOpen(false); setShowPromotePanel(true); }}
                   className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
-                  <span className="royce-glow-disc w-11 h-11 flex items-center justify-center" aria-hidden>
-                    <TrendingUp size={18} className="royce-icon-gold" strokeWidth={2} />
-                  </span>
+                  <div className="relative w-11 h-11 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center">
+                    <TrendingUp className="relative z-[2] w-[18px] h-[18px] text-white" strokeWidth={1.8} />
+</div>
                   <span className="text-[10px] font-semibold text-[#D4AF37]">Promote</span>
                 </button>
                 <button
@@ -1208,9 +1204,9 @@ export default function EnhancedVideoPlayer({
                   onClick={() => { setIsMoreMenuOpen(false); setShowReportModal(true); trackEvent('video_report_open', { videoId }); }}
                   className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
-                  <span className="royce-glow-disc w-11 h-11 flex items-center justify-center" aria-hidden>
-                    <Flag size={18} className="royce-icon-gold" strokeWidth={2} />
-                  </span>
+                  <div className="relative w-11 h-11 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center">
+                    <Flag className="relative z-[2] w-[18px] h-[18px] text-white/60" strokeWidth={1.8} />
+</div>
                   <span className="text-[10px] font-semibold text-[#D4AF37]">Report</span>
                 </button>
               </div>

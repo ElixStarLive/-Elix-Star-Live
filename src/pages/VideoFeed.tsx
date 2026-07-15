@@ -549,12 +549,12 @@ export default function VideoFeed() {
   /*  Render                                                           */
   /* ================================================================ */
   return (
-    <div className="h-full min-h-0 w-full flex flex-col bg-black relative">
+    <div className="h-full min-h-0 w-full flex flex-col bg-black">
       {/* Fills main between fixed TopNav and BottomNav; each slide is one viewport tall */}
       <div
         ref={containerRef}
         className="flex-1 min-h-0 w-full overflow-y-scroll snap-y snap-mandatory relative"
-        style={{ scrollSnapType: "y mandatory", marginTop: "-6mm" }}
+        style={{ scrollSnapType: "y mandatory", marginTop: "-4mm" }}
         onScroll={handleScroll}
       >
         {feedItems.map((item, index) => {
@@ -563,7 +563,7 @@ export default function VideoFeed() {
             scrollSnapStop: "always",
             boxSizing: "border-box",
             paddingTop: "0",
-            paddingBottom: "0",
+            paddingBottom: "3mm",
           };
 
           if (item.kind === "live") {
@@ -599,7 +599,6 @@ export default function VideoFeed() {
                   videoId={item.videoId}
                   isActive={activeIndex === index}
                   onVideoEnd={() => handleVideoEnd(index)}
-                  edgeToBottomNav
                 />
               </div>
             </div>
