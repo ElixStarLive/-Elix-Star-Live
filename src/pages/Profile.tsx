@@ -478,9 +478,12 @@ export default function Profile() {
 
         {/* ═══ Account Menu Modal ═══ */}
         {showAccountMenu && (
-          <div className="fixed inset-0 z-[9999] bg-[#111111]/70 flex items-end justify-center" onClick={() => setShowAccountMenu(false)}>
+          <div
+            className="fixed inset-0 z-[9999] bg-[#111111]/70 flex items-end justify-center pb-[var(--bottom-nav-top)]"
+            onClick={() => setShowAccountMenu(false)}
+          >
             <div 
-              className="w-full max-w-[480px] bg-[#111] rounded-t-2xl border-t border-white/10 pb-safe bottom-sheet-above-nav"
+              className="w-full max-w-[480px] bg-[#111] rounded-t-2xl border-t border-white/10 pb-safe"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-center px-5 pt-4 pb-3 border-b border-white/10">
