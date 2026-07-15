@@ -238,10 +238,11 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
       <div className="flex gap-3">
         {/* REPLACED IMG WITH LEVEL BADGE */}
         <div className="flex-shrink-0 mt-1">
-          <LevelBadge 
-            level={comment.level || 1} 
-            avatar={comment.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.username || 'U')}&background=121212&color=FFFFFF`} 
-            size={28} 
+          <LevelBadge
+            level={comment.level || 1}
+            avatar={comment.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.username || 'U')}&background=121212&color=FFFFFF`}
+            size={16}
+            circleSize={28}
             layout="fixed"
           />
         </div>
@@ -422,10 +423,11 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
           <div className="flex gap-2 items-center">
             {/* Input area avatar updated to LevelBadge */}
             <div className="flex-shrink-0">
-                <LevelBadge 
-                    level={user?.level || 1} 
-                    avatar={user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'U')}&background=121212&color=FFFFFF`} 
-                    size={24} 
+                <LevelBadge
+                    level={user?.level || 1}
+                    avatar={user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'U')}&background=121212&color=FFFFFF`}
+                    size={16}
+                    circleSize={24}
                     layout="fixed"
                 />
             </div>
