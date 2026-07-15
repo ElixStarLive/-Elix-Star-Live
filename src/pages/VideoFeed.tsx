@@ -563,7 +563,8 @@ export default function VideoFeed() {
             scrollSnapStop: "always",
             boxSizing: "border-box",
             paddingTop: "0",
-            paddingBottom: "0",
+            /* Shrink video container from the bottom only — clear home bar, do not move the bar */
+            paddingBottom: "var(--bottom-nav-top)",
           };
 
           if (item.kind === "live") {
@@ -599,7 +600,6 @@ export default function VideoFeed() {
                   videoId={item.videoId}
                   isActive={activeIndex === index}
                   onVideoEnd={() => handleVideoEnd(index)}
-                  edgeToBottomNav
                 />
               </div>
             </div>
