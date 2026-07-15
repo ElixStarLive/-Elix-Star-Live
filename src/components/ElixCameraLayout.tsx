@@ -296,37 +296,38 @@ export default function ElixCameraLayout({
   return (
     <div className="absolute inset-0 w-full h-full pointer-events-none">
 
-      {/* ══════════════════════════════════════════ */}
-      {/* TOP BAR */}
-      {/* ══════════════════════════════════════════ */}
+      {/* TOP BAR — Add sound center, close on the RIGHT */}
       <div
-        className="absolute top-0 left-0 right-0 z-50 px-3 flex items-center justify-center pointer-events-auto"
+        className="absolute top-0 left-0 right-0 z-50 px-3 grid grid-cols-3 items-center pointer-events-auto"
         style={{ paddingTop: 'max(3rem, env(safe-area-inset-top))' }}
       >
-        {/* Add Sound Button — capsule style */}
-        <button
-          onClick={onSelectMusic}
-          className="flex items-center gap-1.5 h-8 px-3.5 rounded-full bg-black/55 border border-[#C9A227]/40 hover:scale-105 active:scale-95 transition-all relative"
-          title="Add sound"
-        >
+        <div aria-hidden />
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={onSelectMusic}
+            className="flex items-center gap-1.5 h-8 px-3.5 rounded-full bg-black/55 border border-[#C9A227]/40 hover:scale-105 active:scale-95 transition-all relative"
+            title="Add sound"
+          >
             <Music
               size={15}
               className="text-[#D4AF37] drop-shadow-[0_0_8px_rgba(255,215,0,1)]"
               strokeWidth={2}
             />
             <span className="text-[#D4AF37] text-[11px] font-semibold whitespace-nowrap drop-shadow-[0_0_8px_rgba(255,215,0,0.9)]">Add sound</span>
-        </button>
+          </button>
+        </div>
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-8 h-8 royce-glow-disc flex items-center justify-center hover:scale-110 transition-transform active:scale-95"
+            title="Close"
+          >
+            <RoyceCloseIcon />
+          </button>
+        </div>
       </div>
-
-      {/* Close — same horizontal line as right-side tool column */}
-      <button
-        onClick={onClose}
-        className="absolute right-2 z-[60] w-8 h-8 royce-glow-disc flex items-center justify-center hover:scale-110 transition-transform active:scale-95 pointer-events-auto"
-        style={{ top: 'max(3rem, env(safe-area-inset-top))' }}
-        title="Close"
-      >
-        <RoyceCloseIcon />
-      </button>
 
       {/* ══════════════════════════════════════════ */}
       {/* Active Filter Indicator (top-left) */}
