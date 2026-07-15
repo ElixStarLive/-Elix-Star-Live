@@ -818,6 +818,14 @@
     0 0 22px 5px rgba(212, 175, 55, 0.18);
 }
 
+/* Same soft gold glow on user avatar circles (Friends strip, feed, etc.) */
+.royce-avatar-glow {
+  border-radius: 9999px;
+  box-shadow:
+    0 0 10px 2px rgba(212, 175, 55, 0.42),
+    0 0 22px 5px rgba(212, 175, 55, 0.18);
+}
+
 /*
  * Unified icon design (app-wide):
  * thin gold line icons + soft glow (readable on black video).

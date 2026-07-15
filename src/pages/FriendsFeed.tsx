@@ -112,7 +112,9 @@ export default function FriendsFeed() {
       <div className="w-full max-w-[480px] h-full min-h-0 flex flex-col overflow-hidden mx-auto">
         <div className="w-full shrink-0 bg-[#111111] z-10 relative pt-app-header-safe">
           <div className="px-3 pb-1 flex items-center justify-between relative">
-            <button onClick={() => navigate('/search')} className="p-1 z-10" aria-label="Search"><Search size={18} className="text-white" /></button>
+            <button onClick={() => navigate('/search')} className="w-8 h-8 royce-glow-disc flex items-center justify-center z-10" aria-label="Search">
+              <Search size={16} className="royce-icon-gold" strokeWidth={2} />
+            </button>
             <h1 className="text-sm font-bold text-white absolute left-1/2 transform -translate-x-1/2">Friends</h1>
             <div className="flex items-center gap-3 z-10">
               <button onClick={() => navigate(-1)} title="Back">

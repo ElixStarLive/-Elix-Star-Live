@@ -40,7 +40,7 @@ export function StoryGoldRingAvatar({
 
   return (
     <div
-      className={`relative flex items-center justify-center ${className}`}
+      className={`relative flex items-center justify-center royce-avatar-glow ${className}`}
       style={{ width: size, height: size, isolation: 'isolate', overflow: 'visible' }}
       {...(dataAvatarCircle ? { 'data-avatar-circle': dataAvatarCircle } : {})}
     >
@@ -86,7 +86,7 @@ export function StoryGoldRingAvatar({
         </>
       ) : (
         <div
-          className="absolute rounded-full overflow-hidden bg-[#13151A] border border-white/80"
+          className="absolute rounded-full overflow-hidden bg-[#13151A]"
           style={{
             width: inner,
             height: inner,
