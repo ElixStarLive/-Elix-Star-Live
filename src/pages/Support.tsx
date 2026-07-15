@@ -204,10 +204,10 @@ export default function Support() {
           <Mail className="w-4 h-4 text-[#D4AF37] mx-auto mb-1.5" />
           <p className="text-[11px] text-white/75 mb-0.5">Email us directly</p>
           <a
-            href="mailto:support@elixstar.live"
+            href="mailto:support@elixstarlive.co.uk"
             className="text-[11px] text-white/90 hover:underline"
           >
-            support@elixstar.live
+            support@elixstarlive.co.uk
           </a>
         </div>
       </div>
