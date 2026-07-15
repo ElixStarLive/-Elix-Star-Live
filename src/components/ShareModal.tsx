@@ -161,7 +161,7 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin, i
               onClick={() => sendShareTo(f.user_id)}
             >
               <div
-                className="rounded-full overflow-hidden bg-[#13151A] flex-shrink-0"
+                className="rounded-full overflow-hidden bg-[#13151A] flex-shrink-0 royce-avatar-glow"
                 style={{ width: SHARE_PANEL_AVATAR_PX, height: SHARE_PANEL_AVATAR_PX }}
               >
                 <img
