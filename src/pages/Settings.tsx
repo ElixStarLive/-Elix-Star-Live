@@ -55,7 +55,7 @@ export default function Settings() {
     <button
       type="button"
       onClick={fn}
-      className="w-full flex items-center gap-2 px-[calc(0.5rem-1mm)] py-[calc(0.5rem-1.5mm)] active:bg-white/5 text-left rounded-md"
+      className="w-full flex items-center gap-2.5 px-2 pt-[calc(0.5rem-3mm)] pb-2 active:bg-white/5 text-left rounded-md"
     >
       {ic && (
         <span
@@ -107,25 +107,25 @@ export default function Settings() {
           <S t="Support" />
           <R ic={<HelpCircle size={14} />} t="Help & Support" fn={() => navigate('/support')} />
 
-          <div className="grid grid-cols-3 gap-1 mt-auto pt-2 px-0.5">
+          <div className="grid grid-cols-3 gap-1 mt-auto pt-3 px-0.5">
             <button
               type="button"
               onClick={() => navigate('/terms')}
-              className="text-[10px] text-white/60 py-[calc(0.375rem-1.5mm)] rounded-md active:bg-white/5 text-center leading-tight"
+              className="text-[10px] text-white/60 pt-[calc(0.375rem-3mm)] pb-1.5 rounded-md active:bg-white/5 text-center leading-tight"
             >
               Terms
             </button>
             <button
               type="button"
               onClick={() => navigate('/privacy')}
-              className="text-[10px] text-white/60 py-[calc(0.375rem-1.5mm)] rounded-md active:bg-white/5 text-center leading-tight"
+              className="text-[10px] text-white/60 pt-[calc(0.375rem-3mm)] pb-1.5 rounded-md active:bg-white/5 text-center leading-tight"
             >
               Privacy
             </button>
             <button
               type="button"
               onClick={() => navigate('/guidelines')}
-              className="text-[10px] text-white/60 py-[calc(0.375rem-1.5mm)] rounded-md active:bg-white/5 text-center leading-tight"
+              className="text-[10px] text-white/60 pt-[calc(0.375rem-3mm)] pb-1.5 rounded-md active:bg-white/5 text-center leading-tight"
             >
               Guidelines
             </button>
