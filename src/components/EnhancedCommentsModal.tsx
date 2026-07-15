@@ -3,6 +3,7 @@ import { Send, Heart, Trash2, Edit3, MessageSquare, Reply, MoreVertical } from '
 import { useVideoStore } from '../store/useVideoStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { request } from '../lib/apiClient';
+import { showToast } from '../lib/toast';
 import { LevelBadge } from './LevelBadge';
 
 interface Comment {
@@ -71,29 +72,18 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
     if (!commentText || !user?.id) return;
 
     try {
-      const { data: body, error } = await request(`/api/videos/${encodeURIComponent(videoId)}/comments`, {
+      const { error } = await request(`/api/videos/${encodeURIComponent(videoId)}/comments`, {
         method: 'POST',
         body: JSON.stringify({ text: commentText, parentId: parentComment?.id || null }),
       });
       if (error) throw new Error(error.message);
-      const newCommentFormatted: any = body?.comment;
 
-      if (parentComment) {
-        // Add reply to parent comment
-        setComments(prev => prev.map(comment => {
-          if (comment.id === parentComment.id) {
-            return {
-              ...comment,
-              replies: [...(comment.replies || []), newCommentFormatted],
-              reply_count: (comment.reply_count || 0) + 1
-            };
-          }
-          return comment;
-        }));
-      } else {
-        // Add top-level comment
-        setComments(prev => [newCommentFormatted, ...prev]);
-        // Update video comment count in store so the player UI stays in sync
+      // Server owns comment shape — reload from GET, do not invent rows from POST body.
+      setNewComment('');
+      setReplyingTo(null);
+      await fetchComments();
+
+      if (!parentComment) {
         const video = getVideoById(videoId);
         if (video) {
           updateVideo(videoId, {
@@ -101,11 +91,9 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
           });
         }
       }
-
-      setNewComment('');
-      setReplyingTo(null);
     } catch (error) {
       console.error('Failed to add comment:', error);
+      showToast('Could not post comment');
     }
   };
 

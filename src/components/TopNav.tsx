@@ -63,10 +63,9 @@ export const TopNav = () => {
             title="Search"
             className="flex-shrink-0 flex items-center justify-center w-10 h-10 active:opacity-70 transition-opacity"
             style={{ WebkitTapHighlightColor: "transparent" }}
+            aria-label="Search"
           >
-            <span className="royce-glow-disc" style={{ width: 34, height: 34 }} aria-hidden>
-              <Search size={18} strokeWidth={2.25} className="royce-icon-gold" />
-            </span>
+            <Search size={18} strokeWidth={2.25} className="text-gold-bright" />
           </button>
         </div>
       </div>

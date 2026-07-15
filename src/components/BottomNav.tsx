@@ -1,11 +1,11 @@
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Home, Users, Plus, MessageCircle, User } from "lucide-react";
+import { Home, Users, Plus, MessageCircle, User, type LucideIcon } from "lucide-react";
 
 type NavItem = {
   path: string;
   label: string;
-  Icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
+  Icon: LucideIcon;
   center?: boolean;
 };
 

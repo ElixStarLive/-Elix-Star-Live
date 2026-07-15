@@ -16,7 +16,7 @@ export interface LevelIconProps {
 
 export const LevelIcon: React.FC<LevelIconProps> = ({
   level,
-  size = 40,
+  size,
   circleSize: circleSizeProp,
   className = '',
   avatarUrl,
@@ -30,7 +30,8 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
   const shrinkPx = shrinkMm * MM_TO_PX;
   const circleGrowMm = 4;
   const circleGrowPx = circleGrowMm * MM_TO_PX;
-  const rawSize = typeof size === 'number' && Number.isFinite(size) ? size : 40;
+  const sizeProvided = typeof size === 'number' && Number.isFinite(size);
+  const rawSize = sizeProvided ? (size as number) : 40;
   const barBaseSize = Math.max(16, Math.floor(rawSize));
   const maxShrink = Math.max(0, rawSize - 16);
   const circleSize =
@@ -56,8 +57,11 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
   const avatarDiameter = profileRingInnerPx(circleSize);
 
   if (splitCircleSizing) {
-    /** Circle full size; LV capsule smaller than the circle, attached as a round pill. */
-    const pillH = Math.max(11, Math.round(circleSize * 0.42));
+    /** Circle full size; LV capsule from `size` when provided, else circle ratio. */
+    const pillH = Math.max(
+      11,
+      Math.round(sizeProvided ? barBaseSize * 0.72 : circleSize * 0.42),
+    );
     const pillPadX = Math.max(6, Math.round(pillH * 0.45));
     const overlapPx = Math.round(circleSize * 0.22);
     const label = text === 'level' ? `Level ${safeLevel}` : `LV ${safeLevel}`;

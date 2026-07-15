@@ -162,6 +162,15 @@ export function buildGiftUiItemsFromCatalog(rows: GiftCatalogRow[]): GiftUiItem[
 
   return rows
     .filter((r) => r.is_active)
+    .filter(
+      (r) =>
+        typeof r.gift_id === 'string' &&
+        r.gift_id.trim().length > 0 &&
+        typeof r.name === 'string' &&
+        r.name.trim().length > 0 &&
+        typeof r.coin_cost === 'number' &&
+        Number.isFinite(r.coin_cost),
+    )
     .map((row) => {
       const fallback = faceArFallback[row.gift_id];
       const dbAnimation = sanitizeGiftUrl(row.animation_url);

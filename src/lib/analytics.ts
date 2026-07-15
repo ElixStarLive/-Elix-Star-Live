@@ -29,6 +29,8 @@ export type AnalyticsEvent =
   | 'video_follow_toggle'
   | 'video_upload'
   | 'video_upload_failed'
+  | 'story_upload'
+  | 'story_upload_failed'
   // Upload events
   | 'upload_started'
   | 'upload_progress'

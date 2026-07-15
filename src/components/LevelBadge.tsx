@@ -4,8 +4,9 @@ import { LevelIcon } from './LevelIcon';
 interface LevelBadgeProps {
   level: number;
   className?: string;
+  /** LV pill size when provided; omit when only `circleSize` should size the circle/pill ratio */
   size?: number;
-  /** Larger profile circle only; level pill uses `size` */
+  /** Larger profile circle only; level pill uses `size` when set */
   circleSize?: number;
   layout?: 'fit' | 'fixed';
   variant?: 'clean' | 'default' | 'chat';
@@ -15,14 +16,14 @@ interface LevelBadgeProps {
 export const LevelBadge: React.FC<LevelBadgeProps> = ({
   level,
   className = '',
-  size = 40,
+  size,
   circleSize,
   layout: _layout = 'fit',
   variant: _variant = 'clean',
   avatar,
 }) => {
   const safeLevel = typeof level === 'number' && Number.isFinite(level) && level > 0 ? Math.floor(level) : 1;
-  const dim = typeof size === 'number' && Number.isFinite(size) ? Math.max(16, Math.floor(size)) : 40;
+  const hasSize = typeof size === 'number' && Number.isFinite(size);
   const circleDim =
     typeof circleSize === 'number' && Number.isFinite(circleSize) ? Math.max(16, Math.floor(circleSize)) : undefined;
 
@@ -30,7 +31,11 @@ export const LevelBadge: React.FC<LevelBadgeProps> = ({
     <div className={className}>
       <LevelIcon
         level={safeLevel}
-        size={dim}
+        {...(hasSize
+          ? { size: Math.max(16, Math.floor(size)) }
+          : circleDim == null
+            ? { size: 40 }
+            : {})}
         {...(circleDim != null ? { circleSize: circleDim } : {})}
         avatarUrl={typeof avatar === 'string' ? avatar : undefined}
       />
