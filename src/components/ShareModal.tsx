@@ -13,16 +13,14 @@ import {
   Flag,
   Trash2,
   Users2,
-  Plus,
   Search,
 } from 'lucide-react';
 import { api } from '../lib/apiClient';
 import { useAuthStore } from '../store/useAuthStore';
-import { StoryGoldRingAvatar } from './StoryGoldRingAvatar';
 import PromotePanel from './PromotePanel';
 import { nativeConfirm } from './NativeDialog';
 import { downloadVideoWithoutMusic } from '../lib/videoDownloadClient';
-import { fetchAllSharePanelContacts, SHARE_PANEL_AVATAR_PX, SHARE_PANEL_ITEM_WIDTH_PX, SHARE_PANEL_PLUS_PX } from '../lib/sharePanelContacts';
+import { fetchAllSharePanelContacts, SHARE_PANEL_AVATAR_PX, SHARE_PANEL_ITEM_WIDTH_PX } from '../lib/sharePanelContacts';
 import { openExternalLink, nativeShareUrl } from '../lib/platform';
 import { showToast } from '../lib/toast';
 
@@ -158,7 +156,17 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin, i
               style={{ width: SHARE_PANEL_ITEM_WIDTH_PX, minWidth: SHARE_PANEL_ITEM_WIDTH_PX }}
               onClick={() => sendShareTo(f.user_id)}
             >
-              <StoryGoldRingAvatar size={SHARE_PANEL_AVATAR_PX} src={f.avatar_url || '/royce/default-avatar.svg'} alt={f.username} />
+              <div
+                className="rounded-full overflow-hidden bg-[#13151A] flex-shrink-0"
+                style={{ width: SHARE_PANEL_AVATAR_PX, height: SHARE_PANEL_AVATAR_PX }}
+              >
+                <img
+                  src={f.avatar_url || '/royce/default-avatar.svg'}
+                  alt={f.username}
+                  className="h-full w-full object-cover object-center"
+                  draggable={false}
+                />
+              </div>
               <span className="text-white/80 text-[11px] font-medium truncate w-full text-center">
                 {sentTo.has(f.user_id) ? 'Sent' : f.username || 'User'}
               </span>
@@ -188,8 +196,8 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin, i
                 onClick={() => item.action()}
                 className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
               >
-                <div className="relative w-9 h-9 royce-glow-disc flex-shrink-0">
-                  {React.cloneElement(item.icon as React.ReactElement, { className: 'w-5 h-5 royce-icon-gold', strokeWidth: 2 })}
+                <div className="relative w-9 h-9 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center flex-shrink-0">
+                  <div className="relative z-[2]">{React.cloneElement(item.icon as React.ReactElement, { className: 'w-3.5 h-3.5 royce-icon-gold', strokeWidth: 1.8 })}</div>
                 </div>
                 <span className="text-[8px] font-semibold text-white/70 truncate w-full text-center">{item.name}</span>
               </button>
@@ -202,8 +210,8 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin, i
                   onClick={() => item.action()}
                   className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
                 >
-                  <div className={`relative w-9 h-9 royce-glow-disc flex-shrink-0 ${item.name === 'Report' ? 'translate-y-0.5' : ''}`}>
-                    {React.cloneElement(item.icon as React.ReactElement, { className: 'w-5 h-5 royce-icon-gold', strokeWidth: 2 })}
+                  <div className="relative w-9 h-9 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center flex-shrink-0">
+                    <div className={`relative z-[2] ${item.name === 'Report' ? 'translate-y-0.5' : ''}`}>{React.cloneElement(item.icon as React.ReactElement, { className: 'w-3.5 h-3.5 royce-icon-gold', strokeWidth: 1.8 })}</div>
                   </div>
                   <span className={`text-[8px] font-semibold truncate w-full text-center ${isRed ? 'text-white/60/70' : 'text-white/70'}`}>{item.name}</span>
                 </button>

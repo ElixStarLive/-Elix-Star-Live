@@ -65,7 +65,7 @@ import {
 import { useAuthStore } from '../store/useAuthStore';
 import { useVideoStore } from '../store/useVideoStore';
 import { getLiveKitUrl } from '../lib/api';
-import { fetchAllSharePanelContacts, SHARE_PANEL_AVATAR_PX, SHARE_PANEL_ITEM_WIDTH_PX, SHARE_PANEL_PLUS_PX } from '../lib/sharePanelContacts';
+import { fetchAllSharePanelContacts, SHARE_PANEL_AVATAR_PX, SHARE_PANEL_ITEM_WIDTH_PX } from '../lib/sharePanelContacts';
 import { request } from '../lib/apiClient';
 import { openExternalLink } from '../lib/platform';
 import ReportModal from '../components/ReportModal';
@@ -3228,7 +3228,17 @@ export default function SpectatorPage() {
                           }
                         }}
                       >
-                        <StoryGoldRingAvatar size={SHARE_PANEL_AVATAR_PX} src={u.avatar || '/royce/default-avatar.svg'} alt={u.name} />
+                        <div
+                          className="rounded-full overflow-hidden bg-[#13151A] flex-shrink-0"
+                          style={{ width: SHARE_PANEL_AVATAR_PX, height: SHARE_PANEL_AVATAR_PX }}
+                        >
+                          <img
+                            src={u.avatar || '/royce/default-avatar.svg'}
+                            alt={u.name}
+                            className="h-full w-full object-cover object-center"
+                            draggable={false}
+                          />
+                        </div>
                         <span className="text-white/80 text-[11px] font-medium truncate w-full text-center">{u.name}</span>
                       </button>
                     ))}
@@ -3245,8 +3255,8 @@ export default function SpectatorPage() {
                       { name: 'Report', icon: <Flag size={22} className="text-white/60" />, isRed: true, action: () => { setIsReportModalOpen(true); setShowSharePanel(false); } },
                     ].map((item) => (
                       <button key={item.name} onClick={item.action} className="flex flex-col items-center gap-1 active:scale-95 transition-transform">
-                        <div className={`relative w-9 h-9 royce-glow-disc flex-shrink-0 ${item.name === 'Report' ? 'translate-y-0.5' : ''}`}>
-                          {React.cloneElement((item.icon as React.ReactElement), { className: 'w-3.5 h-3.5 royce-icon-gold', strokeWidth: 1.8 })}
+                        <div className="relative w-9 h-9 rounded-full bg-[#111111] overflow-hidden flex items-center justify-center flex-shrink-0">
+                          <div className={`relative z-[2] ${item.name === 'Report' ? 'translate-y-0.5' : ''}`}>{React.cloneElement((item.icon as React.ReactElement), { className: 'w-3.5 h-3.5 royce-icon-gold', strokeWidth: 1.8 })}</div>
                         </div>
                         <span className={`text-[8px] font-semibold truncate w-full text-center ${(item as { isRed?: boolean }).isRed ? 'text-white/60/70' : 'text-white/70'}`}>{item.name}</span>
                       </button>
