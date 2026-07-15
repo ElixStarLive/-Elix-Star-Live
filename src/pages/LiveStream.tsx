@@ -4946,33 +4946,14 @@ export default function LiveStream() {
             <div className="flex justify-center pt-2 pb-1">
               <div className="w-10 h-1 bg-white/20 rounded-full" />
             </div>
-            {/* Header */}
-            <div className="flex items-center px-4 py-2 flex-shrink-0">
-              <div className="flex items-center gap-1.5">
-                <Users className="w-3.5 h-3.5 text-[#D4AF37]" strokeWidth={1.8} />
-                <span className="text-white font-bold text-[13px]">Invite Creators</span>
-              </div>
-            </div>
-
-            {/* Search */}
-            <div className="px-4 py-1 flex-shrink-0">
-              <div className="flex items-center gap-1.5 bg-white/[0.03] rounded-md px-2.5 py-1 border border-white/10">
-                <Search className="w-3 h-3 text-white/25" strokeWidth={1.5} />
-                <input
-                  value={creatorQuery}
-                  onChange={(e) => setCreatorQuery(e.target.value)}
-                  placeholder="Search..."
-                  className="flex-1 bg-transparent outline-none text-white text-[11px] placeholder:text-white/20"
-                />
-              </div>
+            {/* Header — title centered */}
+            <div className="flex items-center justify-center px-4 py-2 flex-shrink-0">
+              <span className="text-white font-bold text-[13px]">Invite Creators</span>
             </div>
 
             {/* Creator list */}
             <div className="flex-1 overflow-y-auto px-2" style={{ scrollbarWidth: 'none' }}>
               <div className="space-y-1 pb-4">
-                {creatorsToInvite.length === 0 ? (
-                  <p className="text-white/50 text-xs py-4 text-center">No live creators match your search.</p>
-                ) : null}
                 {creatorsToInvite.map((c) => {
                   const slotStatus = battleSlots.find(s => s.userId === c.id)?.status;
                   const isInvited = slotStatus === 'invited';
@@ -5040,27 +5021,18 @@ export default function LiveStream() {
                   );
                 })}
 
-                {filteredCreators.length === 0 && (
-                  <div className="py-8 text-center">
-                    <div className="w-12 h-12 rounded-full bg-[#111111] border border-[#C9A227]/40 flex items-center justify-center mx-auto mb-3">
-                      {creatorsLoading ? (
-                        <div className="w-5 h-5 border-t-transparent rounded-full animate-spin" />
-                      ) : creatorsLoadFailed ? (
-                        <AlertTriangle className="w-5 h-5 text-amber-400" />
-                      ) : (
-                        <Search className="w-5 h-5 text-[#E8D5A3]/40" />
-                      )}
-                    </div>
-                    <p className="text-white/40 text-xs font-medium">
-                      {creatorsLoading ? 'Loading creators...' : creatorsLoadFailed ? "Couldn't load creators" : creators.some(c => c.isLive) ? 'No creators match your search' : 'No other creators are live right now. When someone else goes live, they\'ll appear here so you can invite them.'}
-                    </p>
-                    {creatorsLoadFailed && (
-                      <button type="button" onClick={() => loadCreators()} className="mt-2 px-3 py-1.5 rounded-lg bg-[#C9A227]/20 border border-[#C9A227]/40 text-[#D4AF37] text-[10px] font-bold active:scale-95">
-                        Retry
-                      </button>
-                    )}
+                {filteredCreators.length === 0 && creatorsLoading ? (
+                  <div className="py-6 flex justify-center">
+                    <div className="w-5 h-5 border-2 border-[#C9A227]/40 border-t-transparent rounded-full animate-spin" />
                   </div>
-                )}
+                ) : null}
+                {filteredCreators.length === 0 && creatorsLoadFailed ? (
+                  <div className="py-6 flex justify-center">
+                    <button type="button" onClick={() => loadCreators()} className="px-3 py-1.5 rounded-lg bg-[#C9A227]/20 border border-[#C9A227]/40 text-[#D4AF37] text-[10px] font-bold active:scale-95">
+                      Retry
+                    </button>
+                  </div>
+                ) : null}
               </div>
             </div>
 
