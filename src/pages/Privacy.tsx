@@ -102,14 +102,14 @@ export default function Privacy() {
               <li><strong>Access</strong> your personal data</li>
               <li><strong>Correct</strong> inaccurate or incomplete data via your profile settings</li>
               <li><strong>Delete</strong> your account and data at any time via Settings → Delete Account</li>
-              <li><strong>Export</strong> your data by contacting us at privacy@elixstarlive.com</li>
+              <li><strong>Export</strong> your data by contacting us at info@elixstarlive.co.uk</li>
               <li><strong>Object</strong> to processing of your data for certain purposes</li>
               <li><strong>Withdraw consent</strong> at any time where processing is based on consent</li>
               <li><strong>Lodge a complaint</strong> with the UK Information Commissioner's Office (ICO) if you believe we have violated your data protection rights</li>
             </ul>
             <p className="mt-2">
               To exercise any of these rights, contact us at{' '}
-              <span className="text-white font-medium">privacy@elixstarlive.com</span>.
+              <span className="text-white font-medium">info@elixstarlive.co.uk</span>.
               We will respond within 30 days.
             </p>
           </Section>
@@ -168,13 +168,13 @@ export default function Privacy() {
             <p>
               For data protection enquiries, contact our Data Protection Officer at:
             </p>
-            <p className="text-white font-medium">privacy@elixstarlive.com</p>
+            <p className="text-white font-medium">info@elixstarlive.co.uk</p>
           </Section>
 
           <Section title="14. Contact Us">
             <p>For any privacy questions or requests:</p>
             <ul className="list-none space-y-1">
-              <li><span className="text-white font-medium">Email:</span> privacy@elixstarlive.com</li>
+              <li><span className="text-white font-medium">Email:</span> info@elixstarlive.co.uk</li>
               <li><span className="text-white font-medium">Company:</span> Elix Star Live Ltd</li>
               <li><span className="text-white font-medium">Jurisdiction:</span> England and Wales</li>
             </ul>
