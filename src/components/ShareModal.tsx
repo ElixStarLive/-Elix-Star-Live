@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { RoyceBackIcon } from './royce';
 import { useNavigate } from 'react-router-dom';
 import { 
   Download,
@@ -127,12 +126,8 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin, i
         className="bg-[#111111]/95 backdrop-blur-md w-full max-w-[480px] rounded-t-2xl overflow-hidden flex flex-col h-[38vh] shadow-2xl bottom-sheet-above-nav"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-4 pt-1 pb-1">
-          <div className="w-10" />
+        <div className="flex justify-center px-4 pt-1 pb-1">
           <div className="w-10 h-1 bg-white/20 rounded-full flex-shrink-0" />
-          <button type="button" onClick={onClose} className="flex-shrink-0 w-10 h-10 flex items-center justify-center active:scale-95 transition-transform" aria-label="Close">
-            <RoyceBackIcon />
-          </button>
         </div>
         <div className="flex items-center justify-between gap-2 px-4 pb-2 flex-shrink-0">
           <h3 className="text-[#D4AF37] font-bold whitespace-nowrap text-sm">Share to</h3>
