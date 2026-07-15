@@ -324,6 +324,7 @@ export default function ElixCameraLayout({
             type="button"
             onClick={onClose}
             className="w-8 h-8 royce-glow-disc flex items-center justify-center hover:scale-110 transition-transform active:scale-95"
+            style={{ transform: 'translateX(1mm)' }}
             title="Close"
           >
             <RoyceCloseIcon />
