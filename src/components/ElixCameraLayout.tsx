@@ -100,6 +100,7 @@ interface ElixCameraLayoutProps {
   hasRecordedVideo?: boolean;
   onRetake?: () => void;
   onPost?: () => void;
+  onStory?: () => void;
   isPosting?: boolean;
 }
 
@@ -148,6 +149,7 @@ export default function ElixCameraLayout({
   hasRecordedVideo = false,
   onRetake,
   onPost,
+  onStory,
   isPosting = false,
 }: ElixCameraLayoutProps) {
   const [selectedDuration, setSelectedDuration] = useState('60s');
@@ -850,7 +852,7 @@ export default function ElixCameraLayout({
           {/* Record Button or Post/Retake Actions */}
           <div className="flex items-center justify-center mb-4 px-4">
             {hasRecordedVideo ? (
-              <div className="flex items-center gap-12">
+              <div className="flex items-center gap-10">
                 <button 
                     onClick={onRetake}
                     className="flex flex-col items-center gap-1 group"
@@ -861,6 +863,20 @@ export default function ElixCameraLayout({
                     </span>
                     <span className="text-[#D4AF37] drop-shadow-[0_0_8px_rgba(255,215,0,1)] font-bold text-[9px] shadow-black drop-shadow-md">Retake</span>
                 </button>
+
+                {onStory ? (
+                  <button
+                    type="button"
+                    onClick={onStory}
+                    className="flex flex-col items-center gap-1 group"
+                    title="Story"
+                  >
+                    <span className="w-9 h-9 royce-glow-disc flex items-center justify-center" aria-hidden>
+                        <Star size={16} className="royce-icon-gold" strokeWidth={2} />
+                    </span>
+                    <span className="text-[#D4AF37] drop-shadow-[0_0_8px_rgba(255,215,0,1)] font-bold text-[9px] shadow-black drop-shadow-md">Story</span>
+                  </button>
+                ) : null}
 
                 <button 
                     onClick={onPost}
