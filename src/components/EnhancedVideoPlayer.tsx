@@ -989,50 +989,39 @@ export default function EnhancedVideoPlayer({
         </button>
       </div>
 
-      {/* Bottom Info — 3mm left; username left + views right on one line; above progress */}
+      {/* Bottom Info — name; music (no circle); views under music, left-aligned */}
       <div
         className="absolute z-[10] pointer-events-none flex flex-col items-stretch gap-0.5"
         style={{
           left: '3mm',
           right: '72px',
-          /* Lift username / sound / views 5mm up */
           bottom: edgeToBottomNav
             ? `calc(${navStackExpr} + 8mm + 8px)`
             : 'calc(8mm + 8px)',
         }}
       >
-        <div className="flex items-center justify-between gap-2 w-full min-w-0">
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <LevelBadge level={video.user.level ?? 1} size={10} circleSize={28} layout="fixed" avatar={video.user.avatar} />
-            <h3 className="text-white font-bold text-shadow-md truncate">
-              {video.user.name || video.user.username}
-            </h3>
-            {video.user.isVerified && (
-              <div className="w-4 h-4 bg-[#FFFFFF] rounded-full flex items-center justify-center flex-shrink-0">
-                <div className="w-2 h-2 bg-white rounded-full" />
-              </div>
-            )}
-          </div>
-          <div className="flex items-center gap-2 text-white/60 text-xs flex-shrink-0 whitespace-nowrap">
-            <span>{formatNumber(video.stats.views)} views</span>
-            <span>{new Date(video.createdAt).toLocaleDateString()}</span>
-          </div>
+        <div className="flex items-center gap-2 w-full min-w-0 justify-start">
+          <LevelBadge level={video.user.level ?? 1} size={10} circleSize={28} layout="fixed" avatar={video.user.avatar} />
+          <h3 className="text-white font-bold text-shadow-md truncate">
+            {video.user.name || video.user.username}
+          </h3>
+          {video.user.isVerified && (
+            <div className="w-4 h-4 bg-[#FFFFFF] rounded-full flex items-center justify-center flex-shrink-0">
+              <div className="w-2 h-2 bg-white rounded-full" />
+            </div>
+          )}
         </div>
 
-        <div className="flex items-center gap-2 text-white/90 w-full min-w-0 justify-start">
-          <span className="w-4 h-4 rounded-full overflow-hidden bg-black flex-shrink-0 border border-white/20 flex items-center justify-center">
-            <img
-              src={video.music?.coverUrl || video.user.avatar || '/royce/default-avatar.svg'}
-              alt=""
-              className="w-full h-full object-cover rounded-full"
-              draggable={false}
-              onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/royce/default-avatar.svg'; }}
-            />
-          </span>
-          <span className="text-xs font-medium animate-marquee whitespace-nowrap overflow-hidden flex-1 min-w-0 text-left">
+        <div className="w-full min-w-0 text-left">
+          <span className="text-xs font-medium text-white/90 animate-marquee whitespace-nowrap overflow-hidden block max-w-full">
             {video.music?.title || 'Original Sound'}
             {(video.music?.artist || video.user.name || video.user.username) ? ` - ${video.music?.artist || video.user.name || video.user.username}` : ''}
           </span>
+        </div>
+
+        <div className="flex items-center gap-2 text-white/60 text-xs w-full justify-start">
+          <span>{formatNumber(video.stats.views)} views</span>
+          <span>{new Date(video.createdAt).toLocaleDateString()}</span>
         </div>
 
         <p className="text-white/90 text-sm mb-0 text-shadow-md line-clamp-2 w-full text-left">

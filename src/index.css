@@ -101,7 +101,7 @@
       )
     );
     /* Guaranteed extra lift (VideoFeed inner player wrapper) */
-    --feed-video-lift-for-you: 4mm;
+    --feed-video-lift-for-you: 5mm;
     /* For You main: a bit tighter above bottom nav (still clears tap targets) */
     --feed-main-pb: max(0px, calc(var(--bottom-ui-reserve) - 9mm));
     /* Standard page header inset below notch */
