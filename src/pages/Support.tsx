@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Book, ChevronRight, HelpCircle, Mail, MessageCircle, Send, Shield } from 'lucide-react';
+import { Book, FileText, HelpCircle, Mail, MessageCircle, Scale, Send, Shield } from 'lucide-react';
 import { api } from '../lib/apiClient';
 import { trackEvent } from '../lib/analytics';
 import { showToast } from '../lib/toast';
 import SettingsOptionSheet from '../components/SettingsOptionSheet';
+import { SettingsListRow, SettingsSectionLabel } from '../components/SettingsListRow';
 
 const FAQ_ITEMS = [
   {
@@ -165,40 +166,37 @@ export default function Support() {
         </div>
 
       <div className="px-3 py-1.5 flex-1 overflow-y-auto pb-3">
-        <Section title="Quick Links">
-          <ListRow
-            icon={<MessageCircle size={14} />}
-            label="Contact Support"
-            helper="Send a message to our support team."
-            onClick={() => setShowContactForm(true)}
-          />
-          <ListRow
-            icon={<Shield size={14} />}
-            label="Safety Center"
-            helper="Safety tools and reporting resources."
-            onClick={() => navigate('/settings/safety')}
-          />
-          <ListRow
-            icon={<Book size={14} />}
-            label="Community Guidelines"
-            helper="Read what content is allowed."
-            onClick={() => navigate('/guidelines')}
-          />
-        </Section>
+        <SettingsSectionLabel title="Quick Links" />
+        <SettingsListRow
+          icon={<MessageCircle size={14} />}
+          title="Contact Support"
+          description="Send a message to our support team."
+          onClick={() => setShowContactForm(true)}
+        />
+        <SettingsListRow
+          icon={<Shield size={14} />}
+          title="Safety Center"
+          description="Safety tools and reporting resources."
+          onClick={() => navigate('/settings/safety')}
+        />
+        <SettingsListRow
+          icon={<Book size={14} />}
+          title="Community Guidelines"
+          description="Read what content is allowed."
+          onClick={() => navigate('/guidelines')}
+        />
 
-        <Section title="Frequently Asked Questions">
-          <div className="space-y-0.5">
-            {FAQ_ITEMS.map((item) => (
-              <FAQItem key={item.question} question={item.question} answer={item.answer} />
-            ))}
-          </div>
-        </Section>
+        <SettingsSectionLabel title="Frequently Asked Questions" />
+        <div className="space-y-0.5">
+          {FAQ_ITEMS.map((item) => (
+            <FAQItem key={item.question} question={item.question} answer={item.answer} />
+          ))}
+        </div>
 
-        <Section title="Legal">
-          <ListRow label="Terms of Service" onClick={() => navigate('/terms')} />
-          <ListRow label="Privacy Policy" onClick={() => navigate('/privacy')} />
-          <ListRow label="Copyright Policy" onClick={() => navigate('/copyright')} />
-        </Section>
+        <SettingsSectionLabel title="Legal" />
+        <SettingsListRow icon={<FileText size={14} />} title="Terms of Service" onClick={() => navigate('/terms')} />
+        <SettingsListRow icon={<Scale size={14} />} title="Privacy Policy" onClick={() => navigate('/privacy')} />
+        <SettingsListRow icon={<FileText size={14} />} title="Copyright Policy" onClick={() => navigate('/copyright')} />
 
         <div className="mt-2 p-3 rounded-xl border border-white/10 bg-[#0f1218] text-center">
           <Mail className="w-4 h-4 text-[#D4AF37] mx-auto mb-1.5" />
@@ -216,47 +214,13 @@ export default function Support() {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="mb-1">
-      <p className="text-[8px] text-white/30 uppercase tracking-[0.12em] mt-2.5 mb-0.5 px-1 leading-none">{title}</p>
-      {children}
-    </div>
-  );
-}
-
-function ListRow({
-  icon,
-  label,
-  helper,
-  onClick,
-}: {
-  icon?: React.ReactNode;
-  label: string;
-  helper?: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="w-full flex items-center gap-2.5 px-2 py-2 active:bg-white/5 text-left rounded-md"
-    >
-      {icon && <span className="text-[#E8D5A3]/70 shrink-0 [&_svg]:size-[14px]">{icon}</span>}
-      <div className="flex-1 min-w-0">
-        <p className="text-[12px] leading-tight text-white/85">{label}</p>
-        {helper && <p className="text-[10px] text-white/45 mt-0.5 truncate">{helper}</p>}
-      </div>
-      <ChevronRight size={13} className="text-white/30 shrink-0" />
-    </button>
-  );
-}
-
 function FAQItem({ question, answer }: { question: string; answer: string }) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
     <div className="rounded-md overflow-hidden">
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between gap-2.5 px-2 py-2 active:bg-white/5 transition text-left"
       >
