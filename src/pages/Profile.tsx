@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { RoyceBackIcon, RoyceCloseIcon } from '../components/royce';
+import { RoyceCloseIcon } from '../components/royce';
 import { Share2, Menu, Lock, Play, Heart, Sparkles, LogOut, UserPlus, Bookmark, Grid3X3, ShoppingBag, Repeat2, ChevronDown, Search, Copy, MessageCircle, Check, TrendingUp, Flag, Plus, Settings } from 'lucide-react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
@@ -477,11 +477,8 @@ export default function Profile() {
               className="w-full max-w-[480px] bg-[#111] rounded-t-2xl border-t border-white/10 pb-safe bottom-sheet-above-nav"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-white/10">
+              <div className="flex items-center justify-center px-5 pt-4 pb-3 border-b border-white/10">
                 <h3 className="text-white font-bold text-base">Account</h3>
-                <button onClick={() => setShowAccountMenu(false)} title="Close">
-                  <RoyceBackIcon size={20} />
-                </button>
               </div>
               <div className="px-5 py-4 flex items-center gap-3 border-b border-white/5">
                 <AvatarRing src={displayAvatar} alt="Avatar" size={40} />

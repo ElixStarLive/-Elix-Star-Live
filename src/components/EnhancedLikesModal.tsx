@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { X, UserPlus, UserMinus, MessageCircle, MoreHorizontal, Flag } from 'lucide-react';
-import { RoyceBackIcon } from './royce';
 import { useNavigate } from 'react-router-dom';
 import { useVideoStore } from '../store/useVideoStore';
 import { useAuthStore } from '../store/useAuthStore';
@@ -133,17 +132,18 @@ export default function EnhancedLikesModal({ isOpen, onClose, videoId, likes }: 
   });
 
   return (
-    <div className="fixed inset-0 z-modals bg-[#111111] flex items-end">
-      <div className="w-full h-[80vh] bg-[#111111] rounded-t-2xl flex flex-col border-t border-transparent bottom-sheet-above-nav" style={{animation: 'slide-up 0.3s ease-out'}}>
+    <div className="fixed inset-0 z-modals bg-black/60 flex items-end" onClick={onClose}>
+      <div
+        className="w-full h-[80vh] bg-[#111111] rounded-t-2xl flex flex-col border-t border-transparent bottom-sheet-above-nav"
+        style={{animation: 'slide-up 0.3s ease-out'}}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-transparent">
-          <div>
+        <div className="flex items-center justify-center p-4 border-b border-transparent">
+          <div className="text-center">
             <h3 className="text-white font-semibold">Liked by</h3>
             <p className="text-white/60 text-sm">{likes.toLocaleString()} likes</p>
           </div>
-          <button onClick={onClose} className="p-1 text-white/70 hover:text-white">
-            <RoyceBackIcon size={20} />
-          </button>
         </div>
 
         {/* Search and Filter */}

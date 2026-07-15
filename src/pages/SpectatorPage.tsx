@@ -2822,14 +2822,11 @@ export default function SpectatorPage() {
             <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
               <div className="bg-[#111111]/95 backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl overflow-hidden pb-safe" onClick={(e) => e.stopPropagation()}>
                 <div className="flex justify-center pt-2 pb-1"><div className="w-10 h-1 bg-white/20 rounded-full" /></div>
-                <div className="flex items-center justify-between px-4 py-2">
+                <div className="flex items-center justify-center px-4 py-2">
                   <div className="flex items-center gap-1.5">
                     <Crown size={14} className="text-[#D4AF37]" strokeWidth={1.8} />
                     <span className="text-white font-bold text-[13px]">Co-Host</span>
                   </div>
-                  <button type="button" title="Close" onClick={() => setShowCoHostPanel(false)} className="p-1 rounded-full active:bg-white/10">
-                    <RoyceBackIcon size={18} />
-                  </button>
                 </div>
                 <div className="flex-1 overflow-y-auto px-4 pb-4 min-h-0 flex flex-col gap-4">
                   {pendingCoHostInvite ? (

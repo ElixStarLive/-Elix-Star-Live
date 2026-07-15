@@ -133,9 +133,13 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
           <Music className="w-4 h-4 text-white" strokeWidth={2} />
           <p className="text-white font-semibold">Add sound</p>
         </div>
-        <button type="button" onClick={onClose} className="p-2" aria-label="Close">
-          <RoyceCloseIcon />
-        </button>
+        {layout === 'embedded' ? (
+          <button type="button" onClick={onClose} className="p-2" aria-label="Close">
+            <RoyceCloseIcon />
+          </button>
+        ) : (
+          <div className="w-10" />
+        )}
       </div>
 
       <div className="px-4 pb-2 flex-shrink-0">

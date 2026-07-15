@@ -1,6 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Sparkles, Sliders, Hash, Image, Mic, Subtitles, Eraser, Wand2, ChevronDown } from 'lucide-react';
-import { RoyceBackIcon } from './royce';
 import {
   FILTER_PRESETS, FilterPreset, FilterCategory,
   DEFAULT_ENHANCE, EnhanceSettings, autoEnhance, enhanceSettingsToCss,
@@ -166,12 +165,11 @@ export default function AIToolsPanel({
       <div className="relative w-full max-w-[480px] bg-[#111111] rounded-t-2xl overflow-hidden animate-in slide-in-from-bottom duration-300" style={{ maxHeight: '70dvh' }}>
         
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 ">
+        <div className="flex items-center justify-center px-4 py-3 ">
           <div className="flex items-center gap-2">
             <Wand2 size={18} className="text-[#D4AF37]" />
             <span className="text-white font-bold text-sm">AI Studio</span>
           </div>
-          <button onClick={onClose} className="p-1" title="Close AI Studio"><RoyceBackIcon size={18} /></button>
         </div>
 
         {/* Tab Bar */}

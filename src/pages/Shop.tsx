@@ -387,11 +387,8 @@ export default function Shop() {
               <div className="flex items-center justify-center pt-3 pb-1">
                 <div className="w-10 h-1 rounded-full bg-white/20" />
               </div>
-              <div className="flex items-center justify-between px-5 pb-3">
+              <div className="flex items-center justify-center px-5 pb-3">
                 <h3 className="text-gold-metallic font-bold text-base">Sell an Item</h3>
-                <button onClick={() => setShowCreate(false)} title="Close">
-                  <RoyceBackIcon size={20} />
-                </button>
               </div>
               <div className="overflow-y-auto px-5 pb-6" style={{ maxHeight: 'calc(80dvh - 70px)' }}>
                 <button

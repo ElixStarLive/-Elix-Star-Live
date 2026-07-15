@@ -545,17 +545,16 @@ export default function ElixCameraLayout({
       {/* EFFECTS PANEL (Bottom Sheet) */}
       {/* ══════════════════════════════════════════ */}
       {showEffectsPanel && (
+        <>
+        <div className="absolute inset-0 z-[59] pointer-events-auto" onClick={() => setShowEffectsPanel(false)} aria-hidden />
         <div className="absolute bottom-0 left-0 right-0 z-[60] pointer-events-auto animate-in slide-in-from-bottom duration-300">
           <div className="bg-[#111111]/90 backdrop-blur-xl rounded-t-2xl pb-safe">
             {/* Header */}
-            <div className="flex items-center justify-between px-4 pt-3 pb-2">
+            <div className="flex items-center justify-center px-4 pt-3 pb-2">
               <h3 className="text-[#D4AF37] drop-shadow-[0_0_8px_rgba(255,215,0,1)] text-xs font-bold flex items-center gap-1.5">
                 <Palette size={12} />
                 Filters & Effects
               </h3>
-              <button onClick={() => setShowEffectsPanel(false)} className="p-1" title="Close effects">
-                <RoyceCloseIcon size={14} />
-              </button>
             </div>
 
             {/* Filter Grid */}
@@ -608,23 +607,23 @@ export default function ElixCameraLayout({
             </div>
           </div>
         </div>
+        </>
       )}
 
       {/* ══════════════════════════════════════════ */}
       {/* CAPCUT AI PANEL (Bottom Sheet) */}
       {/* ══════════════════════════════════════════ */}
       {showCapCutPanel && (
+        <>
+        <div className="absolute inset-0 z-[59] pointer-events-auto" onClick={() => setShowCapCutPanel(false)} aria-hidden />
         <div className="absolute bottom-0 left-0 right-0 z-[60] pointer-events-auto animate-in slide-in-from-bottom duration-300">
           <div className="bg-[#111111]/90 backdrop-blur-xl rounded-t-2xl pb-safe">
             {/* Header */}
-            <div className="flex items-center justify-between px-4 pt-3 pb-2">
+            <div className="flex items-center justify-center px-4 pt-3 pb-2">
               <h3 className="text-[#D4AF37] drop-shadow-[0_0_8px_rgba(255,215,0,1)] text-xs font-bold flex items-center gap-1.5">
                 <Sparkles size={12} />
                 CapCut AI Tools
               </h3>
-              <button onClick={() => setShowCapCutPanel(false)} className="p-1" title="Close CapCut">
-                <RoyceCloseIcon size={14} />
-              </button>
             </div>
 
             {/* Speed Control */}
@@ -741,19 +740,17 @@ export default function ElixCameraLayout({
             </div>
           </div>
         </div>
+        </>
       )}
 
       {/* ══════════════════════════════════════════ */}
       {/* TEXT INPUT OVERLAY */}
       {/* ══════════════════════════════════════════ */}
       {showTextInput && (
-        <div className="absolute inset-0 z-[70] bg-[#111111]/60 flex items-center justify-center pointer-events-auto">
-          <div className="w-[80%] max-w-xs bg-[#111111]/90 backdrop-blur-xl rounded-2xl border border-[#C9A227]/20 p-4">
-            <div className="flex items-center justify-between mb-3">
+        <div className="absolute inset-0 z-[70] bg-[#111111]/60 flex items-center justify-center pointer-events-auto" onClick={() => setShowTextInput(false)}>
+          <div className="w-[80%] max-w-xs bg-[#111111]/90 backdrop-blur-xl rounded-2xl border border-[#C9A227]/20 p-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-center mb-3">
               <h3 className="text-[#D4AF37] drop-shadow-[0_0_8px_rgba(255,215,0,1)] text-xs font-bold">Add Text</h3>
-              <button onClick={() => setShowTextInput(false)} title="Close text input">
-                <RoyceCloseIcon size={14} />
-              </button>
             </div>
             <input
               ref={textInputRef}
@@ -786,13 +783,12 @@ export default function ElixCameraLayout({
       {/* STICKER PICKER OVERLAY */}
       {/* ══════════════════════════════════════════ */}
       {showStickerPicker && (
+        <>
+        <div className="absolute inset-0 z-[69] pointer-events-auto" onClick={() => setShowStickerPicker(false)} aria-hidden />
         <div className="absolute bottom-0 left-0 right-0 z-[70] pointer-events-auto">
           <div className="bg-[#111111]/90 backdrop-blur-xl rounded-t-2xl pb-safe">
-            <div className="flex items-center justify-between px-4 pt-3 pb-2">
+            <div className="flex items-center justify-center px-4 pt-3 pb-2">
               <h3 className="text-[#D4AF37] drop-shadow-[0_0_8px_rgba(255,215,0,1)] text-xs font-bold">Stickers</h3>
-              <button onClick={() => setShowStickerPicker(false)} className="p-1" title="Close stickers">
-                <RoyceCloseIcon size={14} />
-              </button>
             </div>
             <div className="grid grid-cols-8 gap-2 px-4 pb-4">
               {stickerOptions.map((option, i) => (
@@ -821,6 +817,7 @@ export default function ElixCameraLayout({
             )}
           </div>
         </div>
+        </>
       )}
 
       {/* ══════════════════════════════════════════ */}
