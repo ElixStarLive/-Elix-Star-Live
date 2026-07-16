@@ -39,6 +39,26 @@ type StoredUserRow = { id: string; email?: string; username?: string; avatar_url
 
 const PROFILE_CACHE_TTL = 30_000;
 
+/**
+ * node-pg returns TIMESTAMPTZ as Date. `String(date)` yields a locale string
+ * Postgres rejects on INSERT ("invalid input syntax for type timestamp").
+ * Always persist ISO-8601.
+ */
+function toIsoTimestamp(value: unknown, fallbackNow = true): string {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString();
+  }
+  if (typeof value === "string" && value.trim()) {
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) return parsed.toISOString();
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) return parsed.toISOString();
+  }
+  return fallbackNow ? new Date().toISOString() : "";
+}
+
 /** @deprecated No-op — bulk loading removed for horizontal scaling. */
 export async function loadFollowsFromDb(): Promise<void> {
   // Intentionally empty — follows are queried per-user from DB.
@@ -149,6 +169,9 @@ async function saveProfileToDb(p: Profile): Promise<boolean> {
     logger.error({ userId: p.userId }, "saveProfileToDb: profiles table not ready");
     throw new Error("profiles table not ready");
   }
+  const createdAt = toIsoTimestamp(p.createdAt);
+  const updatedAt = toIsoTimestamp(p.updatedAt);
+  const avatarUrl = typeof p.avatarUrl === "string" ? p.avatarUrl : "";
   await queryWithConnRetry(
     db,
     `INSERT INTO profiles (user_id, username, display_name, avatar_url, bio, website,
@@ -169,9 +192,9 @@ async function saveProfileToDb(p: Profile): Promise<boolean> {
        is_verified = EXCLUDED.is_verified,
        updated_at = EXCLUDED.updated_at`,
     [
-      p.userId, p.username, p.displayName, p.avatarUrl, p.bio, p.website,
+      p.userId, p.username, p.displayName, avatarUrl, p.bio, p.website,
       p.followers, p.following, p.videoCount, p.coins, p.level, p.isVerified,
-      p.createdAt, p.updatedAt,
+      createdAt, updatedAt,
     ],
   );
   if (isValkeyConfigured()) {
@@ -213,8 +236,8 @@ async function loadProfileFromDb(userId: string): Promise<Profile | null> {
       coins: Number(r.coins) || 0,
       level: Number(r.level) || 1,
       isVerified: Boolean(r.is_verified),
-      createdAt: String(r.created_at || ""),
-      updatedAt: String(r.updated_at || ""),
+      createdAt: toIsoTimestamp(r.created_at),
+      updatedAt: toIsoTimestamp(r.updated_at),
     };
   } catch (err) {
     logger.warn({ err, userId }, "loadProfileFromDb failed");
