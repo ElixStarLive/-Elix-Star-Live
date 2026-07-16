@@ -39,7 +39,15 @@ export async function handleUploadSticker(req: Request, res: Response) {
   let imageUrl = "";
   const bunnyZone = process.env.BUNNY_STORAGE_ZONE;
   const bunnyKey = process.env.BUNNY_STORAGE_API_KEY;
-  const bunnyHost = process.env.BUNNY_STORAGE_HOSTNAME;
+  const rawCdnHost =
+    process.env.BUNNY_CDN_HOSTNAME ||
+    process.env.VITE_BUNNY_CDN_HOSTNAME ||
+    process.env.BUNNY_STORAGE_HOSTNAME ||
+    "";
+  const bunnyHost = rawCdnHost
+    .trim()
+    .replace(/^https?:\/\//i, "")
+    .split("/")[0] || "";
 
   if (bunnyZone && bunnyKey && bunnyHost) {
     try {

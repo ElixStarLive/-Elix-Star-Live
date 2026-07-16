@@ -84,7 +84,10 @@ export async function handleCreatorWithdraw(req: Request, res: Response) {
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
     const { coins_amount, payout_method_id } = req.body;
-    if (!coins_amount || coins_amount <= 0) return res.status(400).json({ error: 'Invalid amount' });
+    const amt = Math.floor(Number(coins_amount));
+    if (!Number.isFinite(amt) || amt <= 0) {
+      return res.status(400).json({ error: 'Invalid amount' });
+    }
 
     const client = await db.connect();
     try {
@@ -93,18 +96,18 @@ export async function handleCreatorWithdraw(req: Request, res: Response) {
         `SELECT available_coins FROM elix_creator_balances WHERE user_id = $1 FOR UPDATE`, [userId],
       );
       const available = balR.rows.length ? Number(balR.rows[0].available_coins) : 0;
-      if (available < coins_amount) {
+      if (available < amt) {
         await client.query('ROLLBACK');
         return res.status(400).json({ error: 'Insufficient available balance' });
       }
       await client.query(
         `UPDATE elix_creator_balances SET available_coins = available_coins - $2, locked_coins = locked_coins + $2, updated_at = NOW()
-         WHERE user_id = $1`, [userId, coins_amount],
+         WHERE user_id = $1`, [userId, amt],
       );
       const ins = await client.query(
         `INSERT INTO elix_payout_requests (user_id, coins_amount, payout_method_id, status)
          VALUES ($1, $2, $3, 'pending') RETURNING *`,
-        [userId, coins_amount, payout_method_id || null],
+        [userId, amt, payout_method_id || null],
       );
       await client.query('COMMIT');
       return res.json({ payout: ins.rows[0] });
