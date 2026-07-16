@@ -819,7 +819,7 @@ export default function EnhancedVideoPlayer({
           aria-valuemax={Number.isFinite(duration) && duration > 0 ? Math.round(duration) : 0}
           className="absolute left-3 right-[3.75rem] z-[16] pointer-events-auto flex flex-col justify-end cursor-pointer select-none"
           style={{
-            bottom: edgeToBottomNav ? `calc(${navStackExpr} + 6px + 3mm)` : 'calc(4mm + 3mm)',
+            bottom: edgeToBottomNav ? `calc(${navStackExpr} + 6px + 3mm - 2mm)` : 'calc(4mm + 3mm - 2mm)',
             paddingBottom: edgeToBottomNav ? 0 : 'max(4px, env(safe-area-inset-bottom, 0px))',
             touchAction: 'none',
             minHeight: scrubbing ? 44 : 22,
@@ -986,8 +986,19 @@ export default function EnhancedVideoPlayer({
           onClick={handleReport}
           className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform"
           title="More"
+          aria-label="More options"
         >
-          <RoyceIcon icon={MoreHorizontal} size={22} tile active />
+          <span
+            className="royce-glow-disc"
+            style={{ width: 34, height: 34 }}
+            aria-hidden
+          >
+            <MoreHorizontal
+              size={22}
+              strokeWidth={2.35}
+              className="royce-icon-gold fill-gold-bright"
+            />
+          </span>
         </button>
       </div>
 
@@ -997,10 +1008,10 @@ export default function EnhancedVideoPlayer({
         style={{
           left: '3mm',
           right: '72px',
-          /* Name / music / views: 2mm above the playing bar */
+          /* Name / music / views: 2mm up from prior; play bar 2mm down */
           bottom: edgeToBottomNav
-            ? `calc(${navStackExpr} + 4mm + 2mm)`
-            : 'calc(3mm + 2mm)',
+            ? `calc(${navStackExpr} + 4mm + 2mm + 2mm)`
+            : 'calc(3mm + 2mm + 2mm)',
         }}
       >
         <div className="flex items-center gap-2 w-full min-w-0 justify-start">

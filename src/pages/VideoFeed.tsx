@@ -571,10 +571,10 @@ export default function VideoFeed() {
               <div
                 key={`live-${item.stream.streamKey}`}
                 data-feed-index={index}
-                className="h-full w-full shrink-0 snap-start flex flex-col items-center bg-black"
+                className="h-full w-full shrink-0 snap-start flex flex-col bg-black"
                 style={slideStyle}
               >
-                <div className="w-full max-w-[480px] flex-1 min-h-0 relative overflow-hidden bg-black">
+                <div className="w-full flex-1 min-h-0 relative overflow-hidden bg-black">
                   <InlineLiveViewer
                     streamKey={item.stream.streamKey}
                     isActive={activeIndex === index}
@@ -591,10 +591,10 @@ export default function VideoFeed() {
             <div
               key={`video-${item.videoId}`}
               data-feed-index={index}
-              className="h-full w-full shrink-0 snap-start flex flex-col items-center bg-black"
+              className="h-full w-full shrink-0 snap-start flex flex-col bg-black"
               style={slideStyle}
             >
-              <div className="w-full max-w-[480px] flex-1 min-h-0 relative overflow-hidden bg-black">
+              <div className="w-full flex-1 min-h-0 relative overflow-hidden bg-black">
                 <EnhancedVideoPlayer
                   videoId={item.videoId}
                   isActive={activeIndex === index}

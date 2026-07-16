@@ -1,15 +1,15 @@
 import { request } from './apiClient';
 
-/** Horizontal share strip — round avatar diameter (Create + users). +2mm vs prior 20px. */
-export const SHARE_PANEL_AVATAR_PX = 28;
+/** Horizontal share strip — round avatar diameter (Create + users). +2mm vs prior 28px. */
+export const SHARE_PANEL_AVATAR_PX = 36;
 /** Column width for each Create / user chip. */
-export const SHARE_PANEL_ITEM_WIDTH_PX = 40;
+export const SHARE_PANEL_ITEM_WIDTH_PX = 48;
 /** Plus overlay on the Create chip. */
 export const SHARE_PANEL_PLUS_PX = 10;
-/** Gold glow disc behind WhatsApp / Copy / etc. in share grids. */
-export const SHARE_PANEL_ACTION_DISC_PX = 32;
+/** Gold glow disc behind WhatsApp / Copy / etc. in share grids. +2mm vs prior 32px. */
+export const SHARE_PANEL_ACTION_DISC_PX = 40;
 /** Glyph size inside share action discs. */
-export const SHARE_PANEL_ACTION_ICON_PX = 18;
+export const SHARE_PANEL_ACTION_ICON_PX = 22;
 
 /** One row for the horizontal “Share to” avatar strip (Create + users). */
 export type SharePanelContact = {

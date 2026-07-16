@@ -294,7 +294,9 @@ function App() {
       <TopNav />
       <main
         className={cn(
-          "flex-1 w-full min-h-0 mx-auto max-w-[480px] overflow-auto",
+          "flex-1 w-full min-h-0 mx-auto overflow-auto",
+          /* For You: same full width as top bar + home bar (no 480 side gaps) */
+          isFeedWithTopBar ? "max-w-none" : "max-w-[480px]",
           showBottomNav && !isFullScreen && "pt-topbar pb-[var(--bottom-ui-reserve)]",
           /* For You (Play 41 / 1.0.12 snapshot): sit above bottom nav */
           showBottomNav && isFeedWithTopBar && "pt-topbar pb-nav",

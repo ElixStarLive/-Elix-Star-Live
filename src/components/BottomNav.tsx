@@ -28,6 +28,8 @@ function isActiveRoute(pathname: string, path: string): boolean {
 export const BottomNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const feedWide =
+    location.pathname === "/feed" || location.pathname === "/";
 
   if (location.pathname === "/live" || location.pathname.startsWith("/live/")) {
     return null;
@@ -39,7 +41,11 @@ export const BottomNav = () => {
       aria-label="Main navigation"
     >
       <div className="flex justify-center pointer-events-none">
-        <div className="w-full max-w-[480px] mx-auto pointer-events-auto bg-black min-h-[var(--nav-height)]">
+        <div
+          className={`w-full mx-auto pointer-events-auto bg-black min-h-[var(--nav-height)] ${
+            feedWide ? "" : "max-w-[480px]"
+          }`}
+        >
           <div className="flex items-center justify-around px-1 pt-1.5 pb-1">
             {NAV_ITEMS.map(({ path, label, Icon, center }) => {
               const active = isActiveRoute(location.pathname, path);
