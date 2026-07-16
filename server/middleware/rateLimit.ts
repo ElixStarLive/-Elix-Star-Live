@@ -44,8 +44,8 @@ function localRateCheck(
 // ── Main rate limit factory ──────────────────────────────────────
 
 function getClientIp(req: Request): string {
-  const forwarded = req.headers["x-forwarded-for"];
-  if (typeof forwarded === "string") return forwarded.split(",")[0].trim();
+  // With app.set("trust proxy", N), Express resolves req.ip to the real client hop.
+  // Never key rate limits on the left-most X-Forwarded-For value — that is client-spoofable.
   return req.ip || req.socket.remoteAddress || "unknown";
 }
 

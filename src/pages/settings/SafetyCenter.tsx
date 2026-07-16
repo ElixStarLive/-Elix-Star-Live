@@ -27,7 +27,7 @@ export default function SafetyCenter() {
               icon={<Flag size={12} />}
               title="Report a Problem"
               description="Report users or content violating guidelines."
-              onClick={() => navigate('/report')}
+              onClick={() => navigate('/report?type=support&id=support_ticket')}
             />
           </Section>
 

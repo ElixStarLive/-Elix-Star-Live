@@ -4,7 +4,7 @@ import { TrendingUp, Play, UserPlus, FileText, Heart } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { request } from '../lib/apiClient';
 import { getPaymentMethod, platform } from '../lib/platform';
-import { purchasePromoteProduct, type PromoteProductId } from '../lib/iap';
+import { finalizeNativePurchase, purchasePromoteProduct, type PromoteProductId } from '../lib/iap';
 
 export type PromoteContentType = 'video' | 'profile' | 'live';
 
@@ -93,6 +93,10 @@ export default function PromotePanel({ isOpen, onClose, contentType, content }: 
           }),
         });
         if (!reqError && data?.success) {
+          await finalizeNativePurchase({
+            transactionId: result.transactionId,
+            receipt: result.receipt || '',
+          });
           onClose();
           return;
         }

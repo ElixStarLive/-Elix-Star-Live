@@ -38,6 +38,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="www.elixstarlive.co.uk" />
+                <data android:scheme="https" android:host="elixstarlive.co.uk" />
             </intent-filter>
 
         </activity>

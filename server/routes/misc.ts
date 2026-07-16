@@ -551,17 +551,30 @@ export async function handleMembershipIAPComplete(req: Request, res: Response) {
   const providerTransactionId = providerTransactionKey(provider, transactionId, googlePurchaseToken);
   if (!providerTransactionId) return res.status(400).json({ error: 'Invalid transaction identifier' });
 
+  const MEMBERSHIP_PRODUCT_ID = 'com.elixstarlive.membership';
   if (provider === 'apple') {
     const apple = await verifyAppleReceipt(transactionId);
     if (!apple.valid) return res.status(400).json({ error: 'Invalid or unverified transaction' });
+    if (apple.productId && apple.productId !== MEMBERSHIP_PRODUCT_ID) {
+      return res.status(400).json({ error: 'Product ID mismatch' });
+    }
   } else {
     const packageName = process.env.GOOGLE_PLAY_PACKAGE_NAME || 'com.elixstarlive.app';
+    // Always verify against the fixed membership SKU — never trust client productId.
     const google = await verifyGooglePlayPurchase(
       packageName,
-      body.productId || 'com.elixstarlive.membership',
+      MEMBERSHIP_PRODUCT_ID,
       googlePurchaseToken,
     );
     if (!google.valid) return res.status(400).json({ error: 'Invalid or unverified transaction' });
+  }
+  // Reject coin/promote receipts reused as membership (cross-table replay).
+  try {
+    if (await neonIsIapProcessed(provider, providerTransactionId)) {
+      return res.status(400).json({ error: 'Transaction already used' });
+    }
+  } catch {
+    return res.status(500).json({ error: 'Deduplication check failed' });
   }
 
   try {

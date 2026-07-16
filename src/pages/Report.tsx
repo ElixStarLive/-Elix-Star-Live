@@ -35,8 +35,12 @@ const REPORT_REASONS = {
 export default function Report() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const contentType = (searchParams.get('type') as 'video' | 'user' | 'comment') || 'video';
+  const rawType = searchParams.get('type') || 'video';
+  const contentType = (
+    rawType === 'support' ? 'user' : rawType
+  ) as 'video' | 'user' | 'comment';
   const contentId = searchParams.get('id') || '';
+  const isGeneralSupport = rawType === 'support' || !contentId;
 
   const [selectedReason, setSelectedReason] = useState('');
   const [details, setDetails] = useState('');
@@ -58,8 +62,8 @@ export default function Report() {
 
       const { error } = await api.reports.create({
         reporter_id: userData.user.id,
-        targetType: contentType,
-        targetId: contentId,
+        targetType: isGeneralSupport ? 'support' : contentType,
+        targetId: isGeneralSupport ? (contentId || 'support_ticket') : contentId,
         reason: selectedReason,
         details: details.trim(),
       });
@@ -104,7 +108,7 @@ export default function Report() {
     <SettingsOptionSheet onClose={() => navigate(-1)}>
       <div className="w-full h-full min-h-0 flex flex-col overflow-hidden bg-[#111111]">
       <div className="sticky top-0 bg-[#111111] z-10 px-4 py-4 border-b border-transparent flex items-center justify-center">
-        <h1 className="text-lg font-bold">Report {contentType}</h1>
+        <h1 className="text-lg font-bold">{isGeneralSupport ? 'Report a problem' : `Report ${contentType}`}</h1>
       </div>
 
       <div className="px-4 py-6 flex-1 overflow-y-auto">

@@ -285,6 +285,28 @@ export async function purchasePromoteProduct(productId: PromoteProductId): Promi
   }
 }
 
+/** Acknowledge/consume after server records success (required for Google Play). */
+export async function finalizeNativePurchase(opts: {
+  transactionId: string;
+  receipt?: string;
+}): Promise<void> {
+  if (!platform.isNative || !opts.transactionId) return;
+  const mod = await getPlugin();
+  if (!mod) return;
+  try {
+    if (platform.isAndroid && 'consumePurchase' in mod.NativePurchases && opts.receipt) {
+      await (mod.NativePurchases as any).consumePurchase({ purchaseToken: opts.receipt });
+    } else if ('acknowledgePurchase' in mod.NativePurchases) {
+      await (mod.NativePurchases as any).acknowledgePurchase({
+        transactionIdentifier: opts.transactionId,
+        purchaseToken: opts.receipt || '',
+      });
+    }
+  } catch {
+    /* best-effort store completion */
+  }
+}
+
 async function verifyAndCreditPurchase(
   packageId: string,
   transactionId: string,

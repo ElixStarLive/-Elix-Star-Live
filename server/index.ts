@@ -427,15 +427,6 @@ app.use("/gifts", (req, res) => {
   res.redirect(302, `${getGiftCdnOrigin()}/gifts/${subpath}`);
 });
 
-// ── Gift media: same-origin /gifts/* → Bunny CDN (fixes broken grid icons) ──
-app.use("/gifts", (req, res) => {
-  const subpath = req.path.replace(/^\/+/, "");
-  if (!subpath || subpath.includes("..")) {
-    return res.status(400).json({ error: "Invalid gift path" });
-  }
-  res.redirect(302, `${getGiftCdnOrigin()}/gifts/${subpath}`);
-});
-
 // ── Static files ─────────────────────────────────────────────────
 const distPath = join(__dirname, "..", "dist");
 const indexPath = join(distPath, "index.html");

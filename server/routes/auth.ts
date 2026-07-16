@@ -54,7 +54,19 @@ async function verifyPassword(password: string, stored: string): Promise<boolean
   if (!saltB64 || !keyB64) return false;
   const salt = Buffer.from(saltB64, 'base64');
   const key = await scryptAsync(password, salt, KEY_LEN, SCRYPT_OPTS);
-  return key.toString('base64') === keyB64;
+  const a = Buffer.from(key.toString('base64'));
+  const b = Buffer.from(keyB64);
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
+}
+
+/** Fixed decoy hash so missing-user login takes the same scrypt cost as a real miss. */
+let loginDecoyHashPromise: Promise<string> | null = null;
+function getLoginDecoyHash(): Promise<string> {
+  if (!loginDecoyHashPromise) {
+    loginDecoyHashPromise = hashPassword('__elix_login_timing_decoy__');
+  }
+  return loginDecoyHashPromise;
 }
 
 const RESET_TOKEN_EXPIRY_SEC = 60 * 60; // 1 hour — purpose-bound, not a session
@@ -84,7 +96,11 @@ function verifyToken(token: string): { sub: string; email: string; purpose?: str
     const [, payloadB64, sig] = parts;
     const secret = getSecret();
     const expectedSig = crypto.createHmac('sha256', secret).update(`${parts[0]}.${payloadB64}`).digest('base64url');
-    if (sig !== expectedSig) return null;
+    const sigBuf = Buffer.from(sig);
+    const expectedBuf = Buffer.from(expectedSig);
+    if (sigBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(sigBuf, expectedBuf)) {
+      return null;
+    }
     const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString());
     if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) return null;
     return {
@@ -374,7 +390,11 @@ export async function handleLogin(req: Request, res: Response) {
     }
     if (!getPool()) return res.status(503).json({ error: 'Database not configured' });
     const user = await dbFindUserByEmailOrUsername(e);
-    if (!user || !(await verifyPassword(password, user.passwordHash))) {
+    if (!user) {
+      await verifyPassword(password, await getLoginDecoyHash());
+      return res.status(401).json({ error: 'Invalid login credentials.' });
+    }
+    if (!(await verifyPassword(password, user.passwordHash))) {
       return res.status(401).json({ error: 'Invalid login credentials.' });
     }
     const pool = getPool();

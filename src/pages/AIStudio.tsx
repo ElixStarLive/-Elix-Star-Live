@@ -186,9 +186,9 @@ export default function AIStudio() {
         videoRef={videoRef}
         onFilterChange={setFilterCss}
         onEnhanceChange={setEnhanceCss}
-        onCaptionSelect={(caption) => { if (caption) showToast('Caption applied'); }}
-        onThumbnailSelect={() => { showToast('Thumbnail selected'); }}
-        onVoiceEffectChange={() => { showToast('Voice effect applied'); }}
+        onCaptionSelect={(caption) => { if (caption) showToast('Caption ready — copy it from AI Tools'); }}
+        onThumbnailSelect={() => { showToast('Thumbnail preview only — export uses the filtered frame'); }}
+        onVoiceEffectChange={() => { showToast('Voice preview only — not included in export yet'); }}
       />
     </div>
   );

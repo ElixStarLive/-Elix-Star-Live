@@ -892,7 +892,7 @@ export default function Profile() {
             {shopItems.map((item) => (
               <button
                 key={item.id}
-                onClick={() => navigate(`/shop/${item.id}`)}
+                onClick={() => navigate('/shop')}
                 className="bg-white/5 rounded-2xl overflow-hidden border border-white/5 text-left"
               >
                 {item.image_url ? (
