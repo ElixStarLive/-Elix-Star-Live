@@ -7,7 +7,7 @@ export const loginSchema = z.object({
 
 export const registerSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(6),
+  password: z.string().min(8),
   username: z.string().min(1).max(30).optional(),
   displayName: z.string().max(100).optional(),
 });
@@ -17,7 +17,7 @@ export const emailOnlySchema = z.object({
 });
 
 export const resetPasswordSchema = z.object({
-  password: z.string().min(6),
+  password: z.string().min(8),
   token: z.string().optional(),
 });
 
