@@ -819,7 +819,7 @@ export default function EnhancedVideoPlayer({
           aria-valuemax={Number.isFinite(duration) && duration > 0 ? Math.round(duration) : 0}
           className="absolute left-3 right-[3.75rem] z-[16] pointer-events-auto flex flex-col justify-end cursor-pointer select-none"
           style={{
-            bottom: edgeToBottomNav ? `calc(${navStackExpr} + 6px + 3mm - 2mm - 6mm)` : 'calc(4mm + 3mm - 2mm - 6mm)',
+            bottom: edgeToBottomNav ? `calc(${navStackExpr} + 6px + 3mm - 2mm - 6mm - 12mm)` : 'calc(4mm + 3mm - 2mm - 6mm - 12mm)',
             paddingBottom: edgeToBottomNav ? 0 : 'max(4px, env(safe-area-inset-bottom, 0px))',
             touchAction: 'none',
             minHeight: scrubbing ? 44 : 22,
@@ -889,8 +889,8 @@ export default function EnhancedVideoPlayer({
             : scrubbing
               ? 'max(3.5rem, calc(44px + 10px))'
               : 'max(3.5rem, 1.5rem)',
-          /* Prior -18mm; move up 6mm */
-          marginBottom: '-12mm',
+          /* Lift like bar 12mm up */
+          marginBottom: '0mm',
         }}
       >
         
@@ -1009,10 +1009,10 @@ export default function EnhancedVideoPlayer({
         style={{
           left: '3mm',
           right: '72px',
-          /* Keep description aligned with right like bar (−10mm down with it) */
+          /* Description up 12mm with like bar */
           bottom: edgeToBottomNav
-            ? `calc(${navStackExpr} + 4mm + 2mm + 2mm - 10mm)`
-            : 'calc(3mm + 2mm + 2mm - 10mm)',
+            ? `calc(${navStackExpr} + 4mm + 2mm + 2mm - 10mm + 12mm)`
+            : 'calc(3mm + 2mm + 2mm - 10mm + 12mm)',
         }}
       >
         <div className="flex items-center gap-2 w-full min-w-0 justify-start">
