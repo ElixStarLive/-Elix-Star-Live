@@ -696,6 +696,20 @@ export default function EnhancedVideoPlayer({
   const posterUrl = video.thumbnail || getVideoPosterUrl(video.url);
   /** Sum used inside calc() — avoids nested calc() in inline styles */
   const navStackExpr = 'var(--nav-height) + var(--safe-bottom)';
+  /* Clearance above home bar — no negative-margin hacks */
+  const chromeBottom = edgeToBottomNav
+    ? `calc(${navStackExpr} + 14mm)`
+    : '14mm';
+  const playBarBottom = edgeToBottomNav
+    ? `calc(${navStackExpr} + 5mm)`
+    : '5mm';
+  const likeBarBottom = edgeToBottomNav
+    ? scrubbing
+      ? `calc(${navStackExpr} + 5.5rem)`
+      : `calc(${navStackExpr} + 14mm)`
+    : scrubbing
+      ? 'calc(14mm + 2.5rem)'
+      : '14mm';
 
   return (
     <div 
@@ -819,8 +833,8 @@ export default function EnhancedVideoPlayer({
           aria-valuemax={Number.isFinite(duration) && duration > 0 ? Math.round(duration) : 0}
           className="absolute left-3 right-[3.75rem] z-[16] pointer-events-auto flex flex-col justify-end cursor-pointer select-none"
           style={{
-            bottom: edgeToBottomNav ? `calc(${navStackExpr} + 6px + 3mm - 2mm - 6mm - 12mm)` : 'calc(4mm + 3mm - 2mm - 6mm - 12mm)',
-            paddingBottom: edgeToBottomNav ? 0 : 'max(4px, env(safe-area-inset-bottom, 0px))',
+            bottom: playBarBottom,
+            paddingBottom: 0,
             touchAction: 'none',
             minHeight: scrubbing ? 44 : 22,
             transition: 'min-height 0.12s ease-out',
@@ -881,16 +895,7 @@ export default function EnhancedVideoPlayer({
         className="absolute z-[10] flex flex-col items-center gap-2 pointer-events-auto"
         style={{
           right: '12px',
-          /* Above thin progress line; extra space when user is scrubbing */
-          bottom: edgeToBottomNav
-            ? scrubbing
-              ? `calc(${navStackExpr} + 5.5rem)`
-              : `calc(${navStackExpr} + 3rem)`
-            : scrubbing
-              ? 'max(3.5rem, calc(44px + 10px))'
-              : 'max(3.5rem, 1.5rem)',
-          /* Lift like bar 12mm up */
-          marginBottom: '0mm',
+          bottom: likeBarBottom,
         }}
       >
         
@@ -1003,16 +1008,13 @@ export default function EnhancedVideoPlayer({
         </button>
       </div>
 
-      {/* Bottom Info — restored from Play 60 / 1.0.21 (ec3ebbd): name; music (no circle); views under music */}
+      {/* Bottom Info — name / music / views / description — above home bar */}
       <div
         className="absolute z-[10] pointer-events-none flex flex-col items-stretch gap-0.5"
         style={{
           left: '3mm',
           right: '72px',
-          /* Description up 12mm with like bar */
-          bottom: edgeToBottomNav
-            ? `calc(${navStackExpr} + 4mm + 2mm + 2mm - 10mm + 12mm)`
-            : 'calc(3mm + 2mm + 2mm - 10mm + 12mm)',
+          bottom: chromeBottom,
         }}
       >
         <div className="flex items-center gap-2 w-full min-w-0 justify-start">
