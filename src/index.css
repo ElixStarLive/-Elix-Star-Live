@@ -78,9 +78,10 @@
     --topnav-anchor-top: var(--safe-top);
     --topnav-bar-height: clamp(40px, 10vw, 44px);
     --topnav-video-gap: 0px;
-    /* For You column: top bar, video, bottom bar share this width exactly */
-    --feed-column-width: calc(100% - 10mm);
-    --feed-column-max-width: calc(480px - 10mm);
+    /* For You column: top bar, video, bottom bar share this width exactly
+       Was 10mm total inset; +6mm each side → +12mm width */
+    --feed-column-width: calc(100% + 2mm);
+    --feed-column-max-width: calc(480px + 2mm);
     /* Non–For You pages: offset below where the golden bar would sit */
     --topbar-total: calc(
       var(--topnav-anchor-top) + var(--topnav-bar-height) + var(--topnav-video-gap)

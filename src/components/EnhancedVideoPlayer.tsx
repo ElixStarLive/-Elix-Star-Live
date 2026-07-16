@@ -819,7 +819,7 @@ export default function EnhancedVideoPlayer({
           aria-valuemax={Number.isFinite(duration) && duration > 0 ? Math.round(duration) : 0}
           className="absolute left-3 right-[3.75rem] z-[16] pointer-events-auto flex flex-col justify-end cursor-pointer select-none"
           style={{
-            bottom: edgeToBottomNav ? `calc(${navStackExpr} + 6px + 3mm - 2mm)` : 'calc(4mm + 3mm - 2mm)',
+            bottom: edgeToBottomNav ? `calc(${navStackExpr} + 6px + 3mm - 2mm - 6mm)` : 'calc(4mm + 3mm - 2mm - 6mm)',
             paddingBottom: edgeToBottomNav ? 0 : 'max(4px, env(safe-area-inset-bottom, 0px))',
             touchAction: 'none',
             minHeight: scrubbing ? 44 : 22,
@@ -889,8 +889,8 @@ export default function EnhancedVideoPlayer({
             : scrubbing
               ? 'max(3.5rem, calc(44px + 10px))'
               : 'max(3.5rem, 1.5rem)',
-          /* Prior -8mm + 10mm further down */
-          marginBottom: '-18mm',
+          /* Prior -18mm; move up 6mm */
+          marginBottom: '-12mm',
         }}
       >
         
