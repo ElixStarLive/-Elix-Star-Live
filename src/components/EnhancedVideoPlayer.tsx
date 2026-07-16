@@ -889,7 +889,8 @@ export default function EnhancedVideoPlayer({
             : scrubbing
               ? 'max(3.5rem, calc(44px + 10px))'
               : 'max(3.5rem, 1.5rem)',
-          marginBottom: '-8mm',
+          /* Prior -8mm + 10mm further down */
+          marginBottom: '-18mm',
         }}
       >
         
@@ -1008,10 +1009,10 @@ export default function EnhancedVideoPlayer({
         style={{
           left: '3mm',
           right: '72px',
-          /* Name / music / views: 2mm up from prior; play bar 2mm down */
+          /* Keep description aligned with right like bar (−10mm down with it) */
           bottom: edgeToBottomNav
-            ? `calc(${navStackExpr} + 4mm + 2mm + 2mm)`
-            : 'calc(3mm + 2mm + 2mm)',
+            ? `calc(${navStackExpr} + 4mm + 2mm + 2mm - 10mm)`
+            : 'calc(3mm + 2mm + 2mm - 10mm)',
         }}
       >
         <div className="flex items-center gap-2 w-full min-w-0 justify-start">
