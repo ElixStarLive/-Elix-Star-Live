@@ -696,20 +696,16 @@ export default function EnhancedVideoPlayer({
   const posterUrl = video.thumbnail || getVideoPosterUrl(video.url);
   /** Sum used inside calc() — avoids nested calc() in inline styles */
   const navStackExpr = 'var(--nav-height) + var(--safe-bottom)';
-  /* Clearance above home bar — no negative-margin hacks */
-  const chromeBottom = edgeToBottomNav
-    ? `calc(${navStackExpr} + 14mm)`
-    : '14mm';
+  /* Exact: play bar 2mm above home bar; like + description 2mm above play line */
   const playBarBottom = edgeToBottomNav
-    ? `calc(${navStackExpr} + 5mm)`
-    : '5mm';
-  const likeBarBottom = edgeToBottomNav
-    ? scrubbing
-      ? `calc(${navStackExpr} + 5.5rem)`
-      : `calc(${navStackExpr} + 14mm)`
-    : scrubbing
-      ? 'calc(14mm + 2.5rem)'
-      : '14mm';
+    ? `calc(${navStackExpr} + 2mm)`
+    : '2mm';
+  const playLineH = scrubbing ? '14px' : '3px';
+  const abovePlayBar = edgeToBottomNav
+    ? `calc(${navStackExpr} + 2mm + ${playLineH} + 2mm)`
+    : `calc(2mm + ${playLineH} + 2mm)`;
+  const chromeBottom = abovePlayBar;
+  const likeBarBottom = abovePlayBar;
 
   return (
     <div 
