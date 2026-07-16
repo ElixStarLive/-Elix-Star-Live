@@ -24,7 +24,7 @@ export const TopNav = () => {
       className="fixed left-0 right-0 z-[9999] flex justify-center pointer-events-none"
       style={{ top: "var(--topnav-anchor-top)" }}
     >
-      <div className="w-full pointer-events-auto bg-black min-h-[var(--topnav-bar-height)]">
+      <div className="w-full max-w-[480px] pointer-events-auto bg-black min-h-[var(--topnav-bar-height)]">
         <div className="flex items-center gap-0.5 px-2 h-full">
           <div className="flex flex-1 items-center justify-between min-w-0 overflow-x-auto no-scrollbar gap-0.5 pr-1">
             {TOP_TABS.map((tab) => {
