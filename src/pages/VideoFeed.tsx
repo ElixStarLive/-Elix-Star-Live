@@ -11,6 +11,7 @@ import {
   liveNameFromStreamFields,
   profileToLiveDisplay,
 } from "../lib/liveCreatorDisplay";
+import { platform } from "../lib/platform";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -544,6 +545,8 @@ export default function VideoFeed() {
   }, [feedItems.length, activeIndex]);
 
   const loading = liveLoading || videosLoading;
+  /* Native: no -4mm / +3mm slide hacks (they hide chrome under home bar in WebView). Web keeps prior spacing. */
+  const isNativeFeed = platform.isNative;
 
   /* ================================================================ */
   /*  Render                                                           */
@@ -554,7 +557,10 @@ export default function VideoFeed() {
       <div
         ref={containerRef}
         className="flex-1 min-h-0 w-full overflow-y-scroll snap-y snap-mandatory relative"
-        style={{ scrollSnapType: "y mandatory", marginTop: "-4mm" }}
+        style={{
+          scrollSnapType: "y mandatory",
+          ...(isNativeFeed ? {} : { marginTop: "-4mm" }),
+        }}
         onScroll={handleScroll}
       >
         {feedItems.map((item, index) => {
@@ -563,7 +569,7 @@ export default function VideoFeed() {
             scrollSnapStop: "always",
             boxSizing: "border-box",
             paddingTop: "0",
-            paddingBottom: "3mm",
+            ...(isNativeFeed ? {} : { paddingBottom: "3mm" }),
           };
 
           if (item.kind === "live") {

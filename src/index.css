@@ -121,6 +121,11 @@
     --z-modals: 1000;
   }
 
+  /* Phone/app only: end feed at top of home bar so play line is not covered (web unchanged). */
+  html.native-app {
+    --feed-main-pb: var(--bottom-nav-top);
+  }
+
   /* Same width for For You top bar, video container, and bottom bar
      (fixed bars use 100vw − safe insets so they match in-flow main column) */
   .feed-column-width {

@@ -1,10 +1,16 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
+import { Capacitor } from '@capacitor/core'
 import App from './App'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { NativeDialogProvider } from './components/NativeDialog'
 import './index.css'
+
+/* Native WebView: CSS hooks so phone layout can clear home bar without changing web. */
+if (typeof document !== 'undefined' && Capacitor.isNativePlatform()) {
+  document.documentElement.classList.add('native-app')
+}
 
 window.addEventListener('error', (e) => {
   if (import.meta.env.DEV) console.error('[global error]', e.error || e.message);
