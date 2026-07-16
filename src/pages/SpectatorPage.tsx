@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { RoyceBackIcon } from '../components/royce';
+import { RoyceBackIcon, RoyceCloseIcon } from '../components/royce';
 import { showToast } from '../lib/toast';
 import {
   Send,
@@ -33,7 +33,7 @@ import {
 import { GiftPanel } from '../components/GiftPanel';
 import { GiftGoalGallery } from '../components/GiftGoalGallery';
 import { LiveGiftGoalBar } from '../components/LiveGiftGoalBar';
-import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, fetchGiftsFromDatabase } from '../lib/giftsCatalog';
+import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, fetchGiftsFromDatabase, pickGiftVideoUrl } from '../lib/giftsCatalog';
 import { BattleVfxOverlays, type BattleMistSide, type GloveBurst } from '../components/BattleVfxOverlays';
 import {
   addPersistedTestCoins,
@@ -163,6 +163,7 @@ export default function SpectatorPage() {
   const [hostUserId, setHostUserId] = useState('');
   const hostUserIdRef = useRef('');
   const [streamIsLive, setStreamIsLive] = useState<boolean | null>(null);
+  const [pageExiting, setPageExiting] = useState(false);
   const [streamRetryKey, setStreamRetryKey] = useState(0);
   const [viewerCount, setViewerCount] = useState(0);
   const [activeLikes, setActiveLikes] = useState(0);
@@ -1187,7 +1188,13 @@ export default function SpectatorPage() {
 
     const handleGiftSent = (data: any) => {
       if (!mounted) return;
-      const giftDef = giftsCatalogRef.current.find(g => g.id === data.giftId);
+      const wsGiftId =
+        (typeof data.giftId === 'string' && data.giftId) ||
+        (typeof data.gift_id === 'string' && data.gift_id) ||
+        '';
+      const giftDef = wsGiftId
+        ? giftsCatalogRef.current.find((g) => g.id === wsGiftId)
+        : undefined;
       const gifterId = typeof data.user_id === 'string' ? data.user_id : '';
       const giftCoins =
         giftDef?.coins ??
@@ -1249,25 +1256,9 @@ export default function SpectatorPage() {
       }
       // Play gift video for other users' gifts (sender already queued locally).
       if (data.user_id !== user?.id) {
-        const isVideoFile = (value: string) => {
-          const p = value.split('?')[0].toLowerCase();
-          return p.endsWith('.mp4') || p.endsWith('.webm');
-        };
-        const incomingVideo = typeof data.video === 'string' ? data.video : '';
-        const defVideo = typeof giftDef?.video === 'string' ? giftDef.video : '';
-        const pickedRawVideo =
-          defVideo && isVideoFile(defVideo)
-            ? defVideo
-            : incomingVideo && isVideoFile(incomingVideo)
-              ? incomingVideo
-              : '';
-        if (pickedRawVideo && pickedRawVideo.trim()) {
-          const raw = pickedRawVideo;
-          const videoUrl =
-            raw.startsWith('http://') || raw.startsWith('https://')
-              ? raw
-              : resolveGiftAssetUrl(raw.startsWith('/') ? raw : `/${raw}`);
-          setGiftQueue(prev => [...prev, { video: videoUrl }]);
+        const videoUrl = pickGiftVideoUrl(data, giftsCatalogRef.current);
+        if (videoUrl) {
+          setGiftQueue((prev) => [...prev, { video: videoUrl }]);
         }
       }
     };
@@ -1831,6 +1822,19 @@ export default function SpectatorPage() {
     void handleSendGift(lastSentGift, { fromCombo: true });
   };
 
+  const leaveStreamWithSlide = useCallback(() => {
+    if (pageExiting) return;
+    setPageExiting(true);
+    window.setTimeout(() => {
+      websocket.disconnect();
+      if (coHostStream) {
+        coHostStream.getTracks().forEach((t) => t.stop());
+        setCoHostStream(null);
+      }
+      navigate('/feed', { replace: true });
+    }, 250);
+  }, [pageExiting, coHostStream, navigate]);
+
   if (streamIsLive === null) {
     return (
       <div className="fixed inset-0 bg-black flex justify-center">
@@ -1881,7 +1885,10 @@ export default function SpectatorPage() {
   }
 
   return (
-    <div className="fixed inset-0 flex justify-center">
+    <div
+      className="fixed inset-0 flex justify-center transition-transform duration-[250ms] ease-out"
+      style={{ transform: pageExiting ? 'translateX(100%)' : undefined }}
+    >
       <div className="relative w-full max-w-[480px] h-full overflow-hidden flex flex-col">
 
         {/* Video container: fixed between top creator bar and bottom spectator bar; black background behind the live video. */}
@@ -1944,14 +1951,38 @@ export default function SpectatorPage() {
                       ) : null}
                     </div>
                   </div>
+                  {/* Match timer — flush under battle score bar (0mm gap) */}
+                  <div className="absolute left-0 right-0 top-full z-30 flex justify-center pointer-events-none m-0 p-0">
+                    <div className="flex items-center gap-1.5 bg-black/55 backdrop-blur-md rounded-full px-2.5 py-1 border border-white/15 shadow-sm">
+                      <div className="relative w-5 h-5 flex items-center justify-center flex-shrink-0">
+                        <svg viewBox="0 0 40 44" className="absolute inset-0 w-full h-full drop-shadow-md">
+                          <path d="M20 2 L36 10 L36 26 Q36 38 20 42 Q4 38 4 26 L4 10 Z" fill="url(#vsGradSpectator)" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5"/>
+                          <defs><linearGradient id="vsGradSpectator" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#DC143C"/><stop offset="50%" stopColor="#8B0000"/><stop offset="100%" stopColor="#1E90FF"/></linearGradient></defs>
+                        </svg>
+                        <span className="relative z-10 text-white text-[7px] font-black italic drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">VS</span>
+                      </div>
+                      <span className="text-white text-[11px] font-black tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                        {formatTime(spectatorBattle.timeLeft)}
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Battle grid — videos + tap overlay (2-way or 4-way PK); one +5 vote per spectator per battle */}
-                <div className="relative w-full flex-none flex flex-col" style={{ height: LIVE_BATTLE_VIDEO_HEIGHT }}>
+                <div className="relative w-full flex-none flex flex-col overflow-hidden" style={{ height: LIVE_BATTLE_VIDEO_HEIGHT }}>
                   <div className="flex-1 min-h-0 flex flex-col relative">
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); leaveStreamWithSlide(); }}
+                      className="absolute top-2 right-2 z-40 w-8 h-8 royce-glow-disc flex items-center justify-center pointer-events-auto active:scale-95 transition-transform"
+                      title="Close"
+                      aria-label="Close"
+                    >
+                      <RoyceCloseIcon size={18} />
+                    </button>
                     <BattleVfxOverlays mistSide={battleMistSide} hideScores={false} gloves={battleGloves} />
-                    <div className="absolute inset-0 flex flex-row">
-                      <div className="w-1/2 h-full overflow-hidden relative bg-[#111111] border-r border-white/5">
+                    <div className="absolute inset-0 flex flex-row gap-0">
+                      <div className="flex-1 basis-0 min-w-0 h-full overflow-hidden relative bg-[#111111]">
                         <video
                           ref={videoRef}
                           className="absolute inset-0 w-full h-full object-cover"
@@ -1977,7 +2008,7 @@ export default function SpectatorPage() {
                         )}
                       </div>
                       <div
-                        className="w-1/2 h-full overflow-hidden relative bg-[#111111] cursor-pointer"
+                        className="flex-1 basis-0 min-w-0 h-full overflow-hidden relative bg-[#111111] cursor-pointer"
                         onClick={(e) => { e.stopPropagation(); joinOpponentLive(); }}
                       >
                         <video
@@ -2016,23 +2047,23 @@ export default function SpectatorPage() {
                       </div>
                     </div>
                     {spectatorBattle.winner && (
-                      <div className="absolute inset-0 z-[8] pointer-events-none flex flex-row">
-                        <div className="w-1/2 h-full flex items-center justify-center">
+                      <div className="absolute inset-0 z-[8] pointer-events-none flex flex-row gap-0">
+                        <div className="flex-1 basis-0 min-w-0 h-full flex items-center justify-center">
                           <span className={`text-sm font-black drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)] ${spectatorBattle.winner === 'host' ? 'text-white' : spectatorBattle.winner === 'draw' ? 'text-white' : 'text-white/60'}`}>
                             {spectatorBattle.winner === 'host' ? 'WIN' : spectatorBattle.winner === 'draw' ? 'DRAW' : 'LOSS'}
                           </span>
                         </div>
-                        <div className="w-1/2 h-full flex items-center justify-center">
+                        <div className="flex-1 basis-0 min-w-0 h-full flex items-center justify-center">
                           <span className={`text-sm font-black drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)] ${spectatorBattle.winner === 'opponent' ? 'text-white' : spectatorBattle.winner === 'draw' ? 'text-white' : 'text-white/60'}`}>
                             {spectatorBattle.winner === 'opponent' ? 'WIN' : spectatorBattle.winner === 'draw' ? 'DRAW' : 'LOSS'}
                           </span>
                         </div>
                       </div>
                     )}
-                    <div className="absolute inset-0 z-10 flex flex-row touch-manipulation">
+                    <div className="absolute inset-0 z-10 flex flex-row touch-manipulation gap-0">
                       {showPkBreakdown ? (
                         <>
-                          <div className="w-1/2 h-full flex flex-col min-h-0">
+                          <div className="flex-1 basis-0 min-w-0 h-full flex flex-col min-h-0">
                             <button
                               type="button"
                               className="flex-1 min-h-0 w-full touch-manipulation cursor-pointer border-0 bg-transparent p-0 active:bg-white/5"
@@ -2046,7 +2077,7 @@ export default function SpectatorPage() {
                               onClick={() => handleSpectatorVote('player3')}
                             />
                           </div>
-                          <div className="w-1/2 h-full flex flex-col min-h-0">
+                          <div className="flex-1 basis-0 min-w-0 h-full flex flex-col min-h-0">
                             <button
                               type="button"
                               className="flex-1 min-h-0 w-full touch-manipulation cursor-pointer border-0 bg-transparent p-0 active:bg-white/5"
@@ -2065,13 +2096,13 @@ export default function SpectatorPage() {
                         <>
                           <button
                             type="button"
-                            className="w-1/2 h-full touch-manipulation cursor-pointer border-0 bg-transparent p-0 active:bg-white/5"
+                            className="flex-1 basis-0 min-w-0 h-full touch-manipulation cursor-pointer border-0 bg-transparent p-0 active:bg-white/5"
                             aria-label="Vote red team"
                             onClick={() => handleSpectatorVote('host')}
                           />
                           <button
                             type="button"
-                            className="w-1/2 h-full touch-manipulation cursor-pointer border-0 bg-transparent p-0 active:bg-white/5"
+                            className="flex-1 basis-0 min-w-0 h-full touch-manipulation cursor-pointer border-0 bg-transparent p-0 active:bg-white/5"
                             aria-label="Vote blue team"
                             onClick={() => { handleSpectatorVote('opponent'); joinOpponentLive(); }}
                           />
@@ -2087,38 +2118,58 @@ export default function SpectatorPage() {
                     style={{ transform: 'translateX(-3mm)' }}
                     onClick={() => setShowViewersPanel(true)}
                   >
-                    {mvpSlots.host.map((slot, i) => (
+                    {mvpSlots.host.map((slot, i) => {
+                      const isMvp = i === 0 && (mvpGiftScoresHostRef.current[slot.id] ?? 0) > 0;
+                      return (
                         <div
                           key={`mvp-l-${slot.id}`}
                           className="relative flex flex-col items-center"
                           style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
                         >
-                          <AvatarRing
-                            src={resolveCircleAvatar(slot.avatar, slot.name)}
-                            alt={slot.name || ''}
-                            size={SPECTATOR_BATTLE_PROFILE_RING_PX}
-                          />
+                          <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
+                            <AvatarRing
+                              src={resolveCircleAvatar(slot.avatar, slot.name)}
+                              alt={slot.name || ''}
+                              size={SPECTATOR_BATTLE_PROFILE_RING_PX}
+                            />
+                          </div>
+                          {isMvp && (
+                            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
+                              MVP
+                            </span>
+                          )}
                         </div>
-                      ))}
+                      );
+                    })}
                   </div>
                   <div
                     className="flex items-center gap-[0mm] min-w-0 flex-1 justify-end pointer-events-auto"
                     style={{ transform: 'translateX(3mm)' }}
                     onClick={() => setShowViewersPanel(true)}
                   >
-                    {mvpSlots.opponent.map((slot, i) => (
+                    {mvpSlots.opponent.map((slot, i) => {
+                      const isMvp = i === 0 && (mvpGiftScoresOpponentRef.current[slot.id] ?? 0) > 0;
+                      return (
                         <div
                           key={`mvp-r-${slot.id}`}
                           className="relative flex flex-col items-center"
                           style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
                         >
-                          <AvatarRing
-                            src={resolveCircleAvatar(slot.avatar, slot.name)}
-                            alt={slot.name || ''}
-                            size={SPECTATOR_BATTLE_PROFILE_RING_PX}
-                          />
+                          <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
+                            <AvatarRing
+                              src={resolveCircleAvatar(slot.avatar, slot.name)}
+                              alt={slot.name || ''}
+                              size={SPECTATOR_BATTLE_PROFILE_RING_PX}
+                            />
+                          </div>
+                          {isMvp && (
+                            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
+                              MVP
+                            </span>
+                          )}
                         </div>
-                      ))}
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -2422,24 +2473,6 @@ export default function SpectatorPage() {
           );
         })()}
 
-        {/* Battle VS timer — fixed overlay (score bar, videos, MVPs are in the unified battle container above) */}
-        {spectatorBattle?.active && (
-          <div className="fixed top-0 left-0 right-0 z-[9999] pointer-events-none flex justify-center max-w-[480px] mx-auto py-1.5 px-2 bg-gradient-to-b from-black/50 to-transparent" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 4cm - 10.5mm)' }}>
-            <div className="flex items-center gap-1 bg-black/40 backdrop-blur-md rounded-full px-2 py-0.5 border border-white/10 shadow-sm">
-              <div className="relative w-[16px] h-[16px] flex items-center justify-center">
-                <svg viewBox="0 0 40 44" className="absolute inset-0 w-full h-full drop-shadow-md">
-                  <path d="M20 2 L36 10 L36 26 Q36 38 20 42 Q4 38 4 26 L4 10 Z" fill="url(#vsGradSpectator)" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5"/>
-                  <defs><linearGradient id="vsGradSpectator" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#DC143C"/><stop offset="50%" stopColor="#8B0000"/><stop offset="100%" stopColor="#1E90FF"/></linearGradient></defs>
-                </svg>
-                <span className="relative z-10 text-white text-[5px] font-black italic drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">VS</span>
-              </div>
-              <span className="text-white text-[10px] font-black tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
-                {formatTime(spectatorBattle.timeLeft)}
-              </span>
-            </div>
-          </div>
-        )}
-
         {/* CREATOR TOP BAR — only connection to creator page: spectator has access to full creator top bar (avatar, name, likes, Follow, Weekly Ranking, Membership, viewer count, close). Rest is single video + spectator's own bottom bar. */}
         <div className="absolute top-0 left-0 right-0 z-[110] pointer-events-none overflow-visible">
           <div className="px-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 6px)' }}>
@@ -2562,19 +2595,29 @@ export default function SpectatorPage() {
                       setShowViewersPanel(true);
                     }}
                   >
-                    {mvpSlots.global.map((slot, i) => (
+                    {mvpSlots.global.map((slot, i) => {
+                      const isMvp = i === 0 && (mvpGiftScoresRef.current[slot.id] ?? 0) > 0;
+                      return (
                       <div
                         key={`spectator-top-mvp-${slot.id}`}
                         style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
                         className="relative"
                       >
-                        <AvatarRing
-                          src={resolveCircleAvatar(slot.avatar, slot.name)}
-                          alt={slot.name || ''}
-                          size={SPECTATOR_MVP_PROFILE_RING_PX}
-                        />
+                        <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
+                          <AvatarRing
+                            src={resolveCircleAvatar(slot.avatar, slot.name)}
+                            alt={slot.name || ''}
+                            size={SPECTATOR_MVP_PROFILE_RING_PX}
+                          />
+                        </div>
+                        {isMvp && (
+                          <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
+                            MVP
+                          </span>
+                        )}
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : null}
                 {/* Viewer count */}
@@ -2601,14 +2644,11 @@ export default function SpectatorPage() {
                 <button
                   type="button"
                   title="Leave stream"
-                  onClick={() => {
-                    websocket.disconnect();
-                    if (coHostStream) { coHostStream.getTracks().forEach(t => t.stop()); setCoHostStream(null); }
-                    navigate('/feed', { replace: true });
-                  }}
-                  className="w-8 h-8 rounded-full bg-transparent border-0 flex items-center justify-center active:scale-90 transition-transform"
+                  onClick={leaveStreamWithSlide}
+                  className="w-8 h-8 royce-glow-disc flex items-center justify-center active:scale-95 transition-transform"
+                  aria-label="Close"
                 >
-                  <RoyceBackIcon size={20} />
+                  <RoyceCloseIcon size={18} />
                 </button>
               </div>
             </div>
@@ -2618,19 +2658,19 @@ export default function SpectatorPage() {
               className="flex items-center gap-2 mt-1 ml-12 pointer-events-auto relative z-20 flex-wrap"
             >
               <div
-                className="flex items-center gap-1 bg-transparent rounded-full px-2 py-0.5 border border-[#C9A227]/40 cursor-pointer active:scale-95 transition-transform"
+                className="flex items-center gap-1 bg-black/75 rounded-full px-2.5 py-1 border border-[#D4AF37]/80 shadow-[0_0_8px_rgba(212,175,55,0.35)] cursor-pointer active:scale-95 transition-transform"
                 onClick={() => { setShowGiftPanel(false); setShowRankingPanel(true); }}
               >
-                <Trophy className="w-3 h-3 text-[#D4AF37]" strokeWidth={2} />
-                <span className="text-[#D4AF37] text-[10px] font-bold">Weekly Ranking</span>
-                <span className="text-[#E8D5A3]/70 text-[10px]">&gt;</span>
+                <Trophy className="w-3.5 h-3.5 text-[#D4AF37] flex-shrink-0" strokeWidth={2.25} />
+                <span className="text-[#F5E6A8] text-[11px] font-bold drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">Weekly Ranking</span>
+                <span className="text-[#F5E6A8]/90 text-[11px]">&gt;</span>
               </div>
               <div
-                className="flex items-center gap-1 bg-transparent rounded-full px-2 py-0.5 border border-[#C9A227]/40 cursor-pointer active:scale-95 transition-transform"
+                className="flex items-center gap-1 bg-black/75 rounded-full px-2.5 py-1 border border-[#D4AF37]/80 shadow-[0_0_8px_rgba(212,175,55,0.35)] cursor-pointer active:scale-95 transition-transform"
                 onClick={() => { setShowGiftPanel(false); setShowFanClub(true); }}
               >
-                <Heart className="w-3 h-3 text-[#D4AF37]" strokeWidth={2} fill="#D4AF37" />
-                <span className="text-[#D4AF37] text-[10px] font-bold">Membership</span>
+                <Heart className="w-3.5 h-3.5 text-[#D4AF37] flex-shrink-0" strokeWidth={2.25} fill="#D4AF37" />
+                <span className="text-[#F5E6A8] text-[11px] font-bold drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">Membership</span>
               </div>
             </div>
           </div>
@@ -2704,7 +2744,8 @@ export default function SpectatorPage() {
 
         {/* COMBO — TikTok-style round combo tap (above bottom bar + gift video) */}
         {showComboButton && lastSentGift && (
-          <div className="fixed bottom-[calc(58px+max(2px,env(safe-area-inset-bottom,0px)))] right-3 z-[230] pointer-events-auto max-w-[480px] flex flex-col items-center">
+          <div className="fixed left-0 right-0 bottom-[calc(58px+max(2px,env(safe-area-inset-bottom,0px)))] z-[230] flex justify-center pointer-events-none">
+            <div className="w-full max-w-[480px] mx-auto px-3 flex justify-end pointer-events-auto">
             <button
               type="button"
               onClick={handleComboClick}
@@ -2718,6 +2759,7 @@ export default function SpectatorPage() {
                 x{comboCount >= 1000 ? `${(comboCount / 1000).toFixed(comboCount % 1000 === 0 ? 0 : 1)}K` : comboCount}
               </span>
             </button>
+            </div>
           </div>
         )}
 
@@ -2850,9 +2892,9 @@ export default function SpectatorPage() {
                         <p className="text-white text-xs font-semibold truncate">@{pendingCoHostInvite.hostName}</p>
                         <p className="text-white/40 text-[10px]">wants you to co-host</p>
                       </div>
-                      <div className="flex items-center gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                        <button type="button" onClick={() => { setPendingCoHostInvite(null); setShowCoHostPanel(false); }} className="px-2 py-1 rounded-full bg-red-500/20 border border-red-500/30 flex items-center gap-0.5 active:scale-95 transition-transform cursor-pointer">
-                          <span className="text-red-400 text-[9px] font-bold">Reject</span>
+                      <div className="flex items-center gap-1.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                        <button type="button" onClick={() => { setPendingCoHostInvite(null); setShowCoHostPanel(false); }} className="h-6 px-3 rounded-full bg-red-500/25 border border-red-400/50 inline-flex items-center justify-center active:scale-95 transition-transform cursor-pointer">
+                          <span className="text-red-300 text-[10px] font-bold leading-none whitespace-nowrap">Reject</span>
                         </button>
                         <button
                           type="button"
@@ -2870,9 +2912,9 @@ export default function SpectatorPage() {
                               });
                             }
                           }}
-                          className="px-2.5 py-1 rounded-full bg-green-500 flex items-center gap-0.5 active:scale-95 transition-transform cursor-pointer"
+                          className="h-6 px-3.5 rounded-full bg-green-500 inline-flex items-center justify-center active:scale-95 transition-transform cursor-pointer"
                         >
-                          <span className="text-black text-[9px] font-bold">Join</span>
+                          <span className="text-black text-[10px] font-bold leading-none whitespace-nowrap">Join</span>
                         </button>
                       </div>
                     </div>

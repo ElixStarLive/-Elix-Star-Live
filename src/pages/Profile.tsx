@@ -23,6 +23,17 @@ import { PROFILE_PAGE_AVATAR_PX } from '../lib/profileFrame';
 import { getVideoPosterUrl } from '../lib/bunnyStorage';
 import { openExternalLink } from '../lib/platform';
 
+/** Prefer real thumbnail URLs; never use an mp4/webm as <img src> (shows black). */
+function profileGridThumbSrc(thumbnail: string | undefined, videoUrl: string | undefined): string {
+  const thumb = typeof thumbnail === 'string' ? thumbnail.trim() : '';
+  if (thumb && !/\.(mp4|webm|mov)(\?|$)/i.test(thumb) && !thumb.startsWith('blob:')) {
+    return thumb;
+  }
+  const fromVideo = getVideoPosterUrl(videoUrl || '');
+  if (fromVideo) return fromVideo;
+  return '';
+}
+
 interface Video {
   id: string;
   thumbnail_url: string;
@@ -302,7 +313,7 @@ export default function Profile() {
           : allVids.filter((v: any) => v.privacy !== 'private');
         const mapped = filtered.map((v: any) => ({
           id: v.id,
-          thumbnail_url: v.thumbnail || v.thumbnail_url || v.url || '',
+          thumbnail_url: profileGridThumbSrc(v.thumbnail || v.thumbnail_url, v.url),
           url: v.url || '',
           views: v.views || 0,
           is_public: v.privacy !== 'private',
@@ -313,7 +324,7 @@ export default function Profile() {
         const likedSet = new Set(likedVideos);
         const liked = storeVideos.filter(v => likedSet.has(v.id)).map(v => ({
           id: v.id,
-          thumbnail_url: v.thumbnail || v.url || '',
+          thumbnail_url: profileGridThumbSrc(v.thumbnail, v.url),
           url: v.url || '',
           views: v.stats?.views || 0,
           is_public: true,
@@ -324,7 +335,7 @@ export default function Profile() {
         const savedSet = new Set(savedVideos);
         const saved = storeVideos.filter(v => savedSet.has(v.id)).map(v => ({
           id: v.id,
-          thumbnail_url: v.thumbnail || v.url || '',
+          thumbnail_url: profileGridThumbSrc(v.thumbnail, v.url),
           url: v.url || '',
           views: v.stats?.views || 0,
           is_public: true,
@@ -832,27 +843,36 @@ export default function Profile() {
                   onClick={() => navigate(`/video/${video.id}`)}
                   className="aspect-[3/4] bg-[#111111] relative group text-left rounded-xl overflow-hidden"
                 >
-                  <img
-                    src={video.thumbnail_url || getVideoPosterUrl(video.url || '')}
-                    alt=""
-                    className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition pointer-events-none"
-                    loading="lazy"
-                    onError={(e) => {
-                      const img = e.currentTarget;
-                      if (img.dataset.fallback) return;
-                      img.dataset.fallback = '1';
-                      const poster = getVideoPosterUrl(video.url || '');
-                      if (poster && img.src !== poster) { img.src = poster; return; }
-                      img.style.display = 'none';
-                    }}
-                  />
+                  {video.thumbnail_url || profileGridThumbSrc(undefined, video.url) ? (
+                    <img
+                      src={video.thumbnail_url || profileGridThumbSrc(undefined, video.url)}
+                      alt=""
+                      className="absolute inset-0 size-full object-cover opacity-90 group-hover:opacity-100 transition pointer-events-none"
+                      loading="lazy"
+                      decoding="async"
+                      onError={(e) => {
+                        const img = e.currentTarget;
+                        if (img.dataset.fallback) {
+                          img.style.opacity = '0';
+                          return;
+                        }
+                        img.dataset.fallback = '1';
+                        const poster = getVideoPosterUrl(video.url || '');
+                        if (poster && img.src !== poster) {
+                          img.src = poster;
+                          return;
+                        }
+                        img.style.opacity = '0';
+                      }}
+                    />
+                  ) : null}
                   <span className="absolute inset-0 z-[1]" aria-hidden />
                   {!video.is_public && (
-                    <div className="absolute top-2 right-2">
+                    <div className="absolute top-2 right-2 z-[2]">
                       <Lock size={14} className="text-white drop-shadow" />
                     </div>
                   )}
-                  <span className="absolute bottom-1.5 left-1.5 flex items-center gap-0.5 text-[11px] font-bold text-white drop-shadow-md">
+                  <span className="absolute bottom-1.5 left-1.5 z-[2] flex items-center gap-0.5 text-[11px] font-bold text-white drop-shadow-md">
                     <Play size={10} fill="white" /> {formatNumber(video.views)}
                   </span>
                 </button>

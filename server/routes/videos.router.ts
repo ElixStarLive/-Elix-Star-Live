@@ -106,7 +106,7 @@ router.get("/saved/list", async (req, res) => {
   if (!db) return res.status(503).json({ error: "Database not configured", videos: [] });
   try {
     const r = await db.query(
-      `SELECT v.id, v.url, v.thumbnail_url, v.description, v.views, v.likes, v.created_at, v.user_id
+      `SELECT v.id, v.url, v.thumbnail, v.description, v.views, v.likes, v.created_at, v.user_id
        FROM saves s
        INNER JOIN videos v ON v.id = s.video_id
        WHERE s.user_id = $1

@@ -80,6 +80,36 @@ function giftPathFromUrl(path: string): string {
 }
 
 /** Normalize any gift media path/URL to a public Bunny CDN URL. */
+export function isGiftVideoPath(value: string): boolean {
+  const p = value.split('?')[0].toLowerCase();
+  return p.endsWith('.mp4') || p.endsWith('.webm') || p.endsWith('.mov');
+}
+
+/** Resolve playable gift video URL from WS payload + optional catalog row. */
+export function pickGiftVideoUrl(
+  data: Record<string, unknown>,
+  catalog?: GiftUiItem[],
+): string | null {
+  const giftId =
+    (typeof data.giftId === 'string' && data.giftId.trim()) ||
+    (typeof data.gift_id === 'string' && data.gift_id.trim()) ||
+    '';
+  const giftDef = giftId && catalog?.length ? catalog.find((g) => g.id === giftId) : undefined;
+
+  const candidates = [
+    typeof data.video === 'string' ? data.video.trim() : '',
+    typeof data.animation_url === 'string' ? data.animation_url.trim() : '',
+    typeof giftDef?.video === 'string' ? giftDef.video.trim() : '',
+  ].filter(Boolean);
+
+  for (const raw of candidates) {
+    if (!isGiftVideoPath(raw)) continue;
+    if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
+    return resolveGiftAssetUrl(raw.startsWith('/') ? raw : `/${raw}`);
+  }
+  return null;
+}
+
 export function resolveGiftAssetUrl(path: string): string {
   if (!path || path.startsWith('data:')) return path;
   if (path.startsWith('/Icons/')) return path;

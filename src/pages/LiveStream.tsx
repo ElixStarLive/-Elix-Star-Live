@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { RoyceBackIcon } from '../components/royce';
+import { RoyceCloseIcon } from '../components/royce';
 import { showToast } from '../lib/toast';
 import { platform, openExternalLink } from '../lib/platform';
 import {
@@ -37,7 +37,7 @@ import {
   CameraOff,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, fetchGiftsFromDatabase } from '../lib/giftsCatalog';
+import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, fetchGiftsFromDatabase, pickGiftVideoUrl } from '../lib/giftsCatalog';
 import { BattleVfxOverlays, type BattleMistSide, type GloveBurst } from '../components/BattleVfxOverlays';
 import {
   addPersistedTestCoins,
@@ -233,6 +233,7 @@ export default function LiveStream() {
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [showModerationWarning, setShowModerationWarning] = useState(false);
+  const [pageExiting, setPageExiting] = useState(false);
   const [spectatorCoHostRequestSent, setSpectatorCoHostRequestSent] = useState(false);
   const [moderationWarningMessage, setModerationWarningMessage] = useState('');
   const [showTestCoinsModal, setShowTestCoinsModal] = useState(false);
@@ -849,14 +850,6 @@ export default function LiveStream() {
       if (ref.current) ref.current.muted = !!mutedPlayers[key];
     }
   }, [mutedPlayers]);
-
-  const removePlayerFromSlot = (slotIndex: number) => {
-    setBattleSlots(prev => {
-      const next = [...prev];
-      next[slotIndex] = { userId: '', name: '', status: 'empty', avatar: '' };
-      return next;
-    });
-  };
 
   const filledSlots = battleSlots.filter(s => s.status !== 'empty');
   const allFilledAccepted = filledSlots.length > 0 && filledSlots.every(s => s.status === 'accepted');
@@ -1758,16 +1751,19 @@ export default function LiveStream() {
     // Battle state notified via WebSocket.
   }, [effectiveStreamId, isBattleJoiner]);
 
+  const exitBattleMode = useCallback(() => {
+    endBattleCleanup();
+    websocket.send('battle_end', {});
+    const params = new URLSearchParams(location.search);
+    if (params.has('battle')) {
+      params.delete('battle');
+      navigate({ pathname: location.pathname, search: params.toString() ? `?${params.toString()}` : '' }, { replace: true });
+    }
+  }, [endBattleCleanup, location.search, location.pathname, navigate]);
+
   const toggleBattle = useCallback(() => {
     if (isBattleMode) {
-      endBattleCleanup();
-      // Tell server to end battle
-      websocket.send('battle_end', {});
-      const params = new URLSearchParams(location.search);
-      if (params.has('battle')) {
-        params.delete('battle');
-        navigate({ pathname: location.pathname, search: params.toString() ? `?${params.toString()}` : '' }, { replace: true });
-      }
+      exitBattleMode();
       return;
     }
     // Enter battle mode -> INVITING state, everything clean
@@ -1806,7 +1802,20 @@ export default function LiveStream() {
     if (player4VideoRef.current) { player4VideoRef.current.srcObject = null; }
     setIsFindCreatorsOpen(true);
     websocket.send('battle_create', { hostName: creatorName });
-  }, [isBattleMode, location.search, location.pathname, navigate, endBattleCleanup, creatorName]);
+  }, [isBattleMode, location.search, location.pathname, navigate, endBattleCleanup, creatorName, exitBattleMode]);
+
+  /** X on a battle participant — leave battle split view entirely (not just clear one slot). */
+  const removePlayerFromSlot = useCallback((_slotIndex: number) => {
+    if (isBattleMode) {
+      exitBattleMode();
+      return;
+    }
+    setBattleSlots((prev) => {
+      const next = [...prev];
+      next[_slotIndex] = { userId: '', name: '', status: 'empty', avatar: '' };
+      return next;
+    });
+  }, [isBattleMode, exitBattleMode]);
 
   // No auto-start - user must press Match to begin
 
@@ -2371,40 +2380,73 @@ export default function LiveStream() {
     setMvpGiftScores({});
     setMvpGiftScoresHost({});
     setMvpGiftScoresOpponent({});
+    viewerIdentityCacheRef.current.clear();
   }, [effectiveStreamId]);
 
-  const topMvpViewers = useMemo(() => {
-    return [...activeViewers]
-      .sort((a, b) => {
-        const sa = mvpGiftScores[a.id] ?? 0;
-        const sb = mvpGiftScores[b.id] ?? 0;
+  const buildMvpRanked = useCallback(
+    (scores: Record<string, number>, limit: number): LiveViewer[] => {
+      const byId = new Map<string, LiveViewer>();
+      for (const v of activeViewers) {
+        const cached = viewerIdentityCacheRef.current.get(v.id);
+        byId.set(v.id, {
+          ...v,
+          avatar: (v.avatar && v.avatar.trim()) || cached?.avatar || '',
+          username: (!isGenericViewerName(v.username) ? v.username : '') || cached?.username || v.username,
+          displayName:
+            (!isGenericViewerName(v.displayName) ? v.displayName : '') ||
+            cached?.displayName ||
+            v.displayName,
+          level: v.level || cached?.level || 1,
+        });
+      }
+      for (const id of Object.keys(scores)) {
+        if (!id || byId.has(id)) continue;
+        const cached = viewerIdentityCacheRef.current.get(id);
+        byId.set(id, {
+          id,
+          username: cached?.username || 'User',
+          displayName: cached?.displayName || cached?.username || 'User',
+          level: cached?.level || 1,
+          avatar: cached?.avatar || '',
+          country: '',
+          joinedAt: Date.now(),
+          isActive: true,
+          chatFrequency: 0,
+          supportDays: 0,
+          lastVisitDaysAgo: 0,
+        });
+      }
+      const ranked = [...byId.values()].sort((a, b) => {
+        const sa = scores[a.id] ?? 0;
+        const sb = scores[b.id] ?? 0;
         if (sb !== sa) return sb - sa;
         return b.level - a.level;
-      })
-      .slice(0, 3);
-  }, [activeViewers, mvpGiftScores]);
+      });
+      const top = ranked.slice(0, limit);
+      for (const v of top) {
+        if (!v.avatar?.trim() || isGenericViewerName(v.displayName) || isGenericViewerName(v.username)) {
+          maybeResolveViewerIdentity(v.id);
+        }
+      }
+      return top;
+    },
+    [activeViewers, isGenericViewerName, maybeResolveViewerIdentity],
+  );
 
-  const topMvpHostBattle = useMemo(() => {
-    return [...activeViewers]
-      .sort((a, b) => {
-        const sa = mvpGiftScoresHost[a.id] ?? 0;
-        const sb = mvpGiftScoresHost[b.id] ?? 0;
-        if (sb !== sa) return sb - sa;
-        return b.level - a.level;
-      })
-      .slice(0, 3);
-  }, [activeViewers, mvpGiftScoresHost]);
+  const topMvpViewers = useMemo(
+    () => buildMvpRanked(mvpGiftScores, 3),
+    [buildMvpRanked, mvpGiftScores],
+  );
 
-  const topMvpOpponentBattle = useMemo(() => {
-    return [...activeViewers]
-      .sort((a, b) => {
-        const sa = mvpGiftScoresOpponent[a.id] ?? 0;
-        const sb = mvpGiftScoresOpponent[b.id] ?? 0;
-        if (sb !== sa) return sb - sa;
-        return b.level - a.level;
-      })
-      .slice(0, 3);
-  }, [activeViewers, mvpGiftScoresOpponent]);
+  const topMvpHostBattle = useMemo(
+    () => buildMvpRanked(mvpGiftScoresHost, 3),
+    [buildMvpRanked, mvpGiftScoresHost],
+  );
+
+  const topMvpOpponentBattle = useMemo(
+    () => buildMvpRanked(mvpGiftScoresOpponent, 3),
+    [buildMvpRanked, mvpGiftScoresOpponent],
+  );
   useEffect(() => { speedChallengeTapsRef.current = speedChallengeTaps; }, [speedChallengeTaps]);
 
   // WebSocket: connect to room and track viewers
@@ -2443,7 +2485,11 @@ export default function LiveStream() {
           username: cached?.username || socketUsername,
           displayName: cached?.displayName || socketDisplayName,
           level: cached?.level || (typeof v.level === 'number' && Number.isFinite(v.level) ? v.level : 1),
-          avatar: cached?.avatar || (typeof v.avatar_url === 'string' ? v.avatar_url : ''),
+          avatar:
+            cached?.avatar ||
+            (typeof v.avatar_url === 'string' ? v.avatar_url : '') ||
+            (typeof v.avatarUrl === 'string' ? v.avatarUrl : '') ||
+            (typeof v.avatar === 'string' ? v.avatar : ''),
           country: v.country || '',
           joinedAt: Date.now(),
           isActive: true,
@@ -2451,7 +2497,18 @@ export default function LiveStream() {
           supportDays: 0,
           lastVisitDaysAgo: 0,
         });
-        const socketAvatar = typeof v.avatar_url === 'string' ? v.avatar_url.trim() : '';
+        const socketAvatar =
+          (typeof v.avatar_url === 'string' ? v.avatar_url.trim() : '') ||
+          (typeof v.avatarUrl === 'string' ? v.avatarUrl.trim() : '') ||
+          (typeof v.avatar === 'string' ? v.avatar.trim() : '');
+        if (socketAvatar || (!isGenericViewerName(socketUsername) && !isGenericViewerName(socketDisplayName))) {
+          viewerIdentityCacheRef.current.set(uid, {
+            username: socketUsername,
+            displayName: socketDisplayName,
+            avatar: socketAvatar || cached?.avatar || '',
+            level: typeof v.level === 'number' && Number.isFinite(v.level) ? v.level : 1,
+          });
+        }
         if (!cached && (isGenericViewerName(socketUsername) || isGenericViewerName(socketDisplayName) || !socketAvatar)) {
           needsIdentityLookup.push(uid);
         }
@@ -2545,12 +2602,39 @@ export default function LiveStream() {
 
     const handleGiftSent = (data: any) => {
       if (!mounted) return;
-      const giftDef = giftsCatalogRef.current.find(g => g.id === data.giftId);
+      const wsGiftId =
+        (typeof data.giftId === 'string' && data.giftId) ||
+        (typeof data.gift_id === 'string' && data.gift_id) ||
+        '';
+      const giftDef = wsGiftId
+        ? giftsCatalogRef.current.find((g) => g.id === wsGiftId)
+        : undefined;
       const gifterId = typeof data.user_id === 'string' ? data.user_id : '';
       const giftCoins =
         giftDef?.coins ??
         (typeof data.coins === 'number' && Number.isFinite(data.coins) ? data.coins : 0);
       if (gifterId && giftCoins > 0) {
+        const gifterName =
+          (typeof data.username === 'string' && data.username.trim()) ||
+          viewerIdentityCacheRef.current.get(gifterId)?.displayName ||
+          viewerIdentityCacheRef.current.get(gifterId)?.username ||
+          'User';
+        const gifterAvatar =
+          (typeof data.avatar === 'string' && data.avatar.trim()) ||
+          (typeof data.avatar_url === 'string' && data.avatar_url.trim()) ||
+          viewerIdentityCacheRef.current.get(gifterId)?.avatar ||
+          '';
+        const gifterLevel =
+          (typeof data.level === 'number' && Number.isFinite(data.level) ? data.level : null) ??
+          viewerIdentityCacheRef.current.get(gifterId)?.level ??
+          1;
+        viewerIdentityCacheRef.current.set(gifterId, {
+          username: gifterName,
+          displayName: gifterName,
+          avatar: gifterAvatar,
+          level: gifterLevel,
+        });
+        if (!gifterAvatar) maybeResolveViewerIdentity(gifterId);
         setMvpGiftScores((prev) => ({
           ...prev,
           [gifterId]: (prev[gifterId] || 0) + giftCoins,
@@ -2600,27 +2684,10 @@ export default function LiveStream() {
         }
       }
 
-      // Play gift video on creator + viewer — catalog path or WS payload (mp4/webm only).
-      {
-        const isVideoFile = (value: string) => {
-          const p = value.split('?')[0].toLowerCase();
-          return p.endsWith('.mp4') || p.endsWith('.webm');
-        };
-        const incomingVideo = typeof data.video === 'string' ? data.video : '';
-        const defVideo = typeof giftDef?.video === 'string' ? giftDef.video : '';
-        const pickedRawVideo =
-          defVideo && isVideoFile(defVideo)
-            ? defVideo
-            : incomingVideo && isVideoFile(incomingVideo)
-              ? incomingVideo
-              : '';
-        if (pickedRawVideo && pickedRawVideo.trim()) {
-          const videoUrl =
-            pickedRawVideo.startsWith('http://') || pickedRawVideo.startsWith('https://')
-              ? pickedRawVideo
-              : resolveGiftAssetUrl(
-                  pickedRawVideo.startsWith('/') ? pickedRawVideo : `/${pickedRawVideo}`,
-                );
+      // Play gift video for other users' gifts (sender already queued locally).
+      if (gifterId && gifterId !== user?.id) {
+        const videoUrl = pickGiftVideoUrl(data, giftsCatalogRef.current);
+        if (videoUrl) {
           setGiftQueue((prev) => [...prev, { video: videoUrl }]);
         }
       }
@@ -3112,7 +3179,6 @@ export default function LiveStream() {
   const [giftQueue, setGiftQueue] = useState<{ video: string }[]>([]);
   const [giftBanner, setGiftBanner] = useState<{ username: string; giftName: string; icon: string } | null>(null);
   const giftBannerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [isPlayingGift, setIsPlayingGift] = useState(false);
   const [lastSentGift, setLastSentGift] = useState<GiftUiItem | null>(null);
   const [userLevel, setUserLevel] = useState(1);
 
@@ -3143,18 +3209,16 @@ export default function LiveStream() {
 
   const [giftKey, setGiftKey] = useState(0);
   useEffect(() => {
-    if (!isPlayingGift && giftQueue.length > 0) {
+    if (giftQueue.length > 0 && !currentGift) {
       setCurrentGift(giftQueue[0]);
-      setGiftKey(k => k + 1);
-      setIsPlayingGift(true);
-      setGiftQueue(prev => prev.slice(1));
+      setGiftKey((k) => k + 1);
+      setGiftQueue((prev) => prev.slice(1));
     }
-  }, [giftQueue, isPlayingGift]);
+  }, [giftQueue, currentGift]);
 
-  const handleGiftEnded = () => {
+  const handleGiftEnded = useCallback(() => {
     setCurrentGift(null);
-    setIsPlayingGift(false);
-  };
+  }, []);
 
   const handleSendGift = async (gift: GiftUiItem) => {
     if (!gift) return;
@@ -3581,6 +3645,22 @@ export default function LiveStream() {
     navigate('/feed', { replace: true });
   };
 
+  const closeLiveWithSlide = useCallback(() => {
+    if (pageExiting) return;
+    if (isBroadcast && isBattleMode) {
+      exitBattleMode();
+      return;
+    }
+    setPageExiting(true);
+    window.setTimeout(() => {
+      if (!isBroadcast) {
+        navigate('/feed', { replace: true });
+      } else {
+        void stopBroadcast();
+      }
+    }, 250);
+  }, [pageExiting, isBroadcast, isBattleMode, exitBattleMode, navigate, stopBroadcast]);
+
   const handleScreenTap = (e?: React.MouseEvent | React.TouchEvent) => {
     let clientX: number | undefined;
     let clientY: number | undefined;
@@ -3788,7 +3868,10 @@ export default function LiveStream() {
   const activeLikes = liveLikes;
 
   return (
-    <div className="fixed inset-0 flex justify-center bg-black z-[9990]">
+    <div
+      className="fixed inset-0 flex justify-center bg-black z-[9990] transition-transform duration-[250ms] ease-out"
+      style={{ transform: pageExiting ? 'translateX(100%)' : undefined }}
+    >
       <div className="relative w-full max-w-[480px] h-full bg-[#111111] overflow-hidden border-none">
         <div className="h-full w-full relative">
         <audio ref={roomRemoteAudioRef} autoPlay playsInline className="hidden" />
@@ -4024,19 +4107,6 @@ export default function LiveStream() {
               handleScreenTap(e);
             }}
           >
-            {/* Battle timer — overlay on top of screen/video */}
-            <div className="fixed top-0 left-0 right-0 z-[9999] pointer-events-none flex justify-center max-w-[480px] mx-auto py-1.5 px-2 bg-gradient-to-b from-black/50 to-transparent" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 4cm - 7.5mm)' }}>
-              <div className="flex items-center gap-1 bg-black/40 backdrop-blur-md rounded-full px-2 py-0.5 border border-white/10 shadow-sm">
-                <div className="relative w-[16px] h-[16px] flex items-center justify-center">
-                  <svg viewBox="0 0 40 44" className="absolute inset-0 w-full h-full drop-shadow-md">
-                    <path d="M20 2 L36 10 L36 26 Q36 38 20 42 Q4 38 4 26 L4 10 Z" fill="url(#vsGrad2)" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5"/>
-                    <defs><linearGradient id="vsGrad2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#DC143C"/><stop offset="50%" stopColor="#8B0000"/><stop offset="100%" stopColor="#1E90FF"/></linearGradient></defs>
-                  </svg>
-                  <span className="relative z-10 text-white text-[5px] font-black italic drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">VS</span>
-                </div>
-                <span className="text-white text-[10px] font-black tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">{formatTime(battleTime)}</span>
-              </div>
-            </div>
             {battleCountdown != null && (
               <div className="absolute inset-0 z-[260] pointer-events-none flex items-center justify-center">
                 {/* LUXURY BATTLE COUNTDOWN */}
@@ -4066,8 +4136,8 @@ export default function LiveStream() {
               const is4Player = battleSlots[1].status !== 'empty' || battleSlots[2].status !== 'empty';
               return (
                 <div
-                  className={`relative w-full flex-none flex flex-col ${is4Player ? 'aspect-square' : ''}`}
-                  style={is4Player ? undefined : { height: LIVE_BATTLE_VIDEO_HEIGHT }}
+                  className="relative w-full flex-none flex flex-col overflow-hidden"
+                  style={{ height: LIVE_BATTLE_VIDEO_HEIGHT }}
                 >
 
                   {/* Battle score: totals inside PK bar only (no name strip above) */}
@@ -4106,6 +4176,28 @@ export default function LiveStream() {
                         <div className="absolute inset-0 z-20 battle-score-veil pointer-events-none" />
                       ) : null}
                     </div>
+                    {/* Match timer — flush under battle score bar (0mm gap); SPEED beside timer when active */}
+                    <div className="absolute left-0 right-0 top-full z-30 flex justify-center pointer-events-none m-0 p-0">
+                      <div className="flex items-center gap-1.5 bg-black/55 backdrop-blur-md rounded-full px-2.5 py-1 border border-white/15 shadow-sm">
+                        <div className="relative w-5 h-5 flex items-center justify-center flex-shrink-0">
+                          <svg viewBox="0 0 40 44" className="absolute inset-0 w-full h-full drop-shadow-md">
+                            <path d="M20 2 L36 10 L36 26 Q36 38 20 42 Q4 38 4 26 L4 10 Z" fill="url(#vsGrad2)" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5"/>
+                            <defs><linearGradient id="vsGrad2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#DC143C"/><stop offset="50%" stopColor="#8B0000"/><stop offset="100%" stopColor="#1E90FF"/></linearGradient></defs>
+                          </svg>
+                          <span className="relative z-10 text-white text-[7px] font-black italic drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">VS</span>
+                        </div>
+                        <span className="text-white text-[11px] font-black tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">{formatTime(battleTime)}</span>
+                        {SPEED_CHALLENGE_ENABLED && speedChallengeActive && (
+                          <span className="flex items-center gap-1 pl-1.5 ml-0.5 border-l border-white/25">
+                            <span className="text-[#FFD54F] text-[8px] font-black uppercase tracking-wide">Speed</span>
+                            <span className="text-white text-[11px] font-black tabular-nums">{speedChallengeTime}s</span>
+                            {speedMultiplier > 1 && (
+                              <span className="text-[#FFD54F] text-[9px] font-black">x{speedMultiplier}</span>
+                            )}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
                   {/* Spectator Tap Indicator: 1 tap = 5 pts, then done */}
@@ -4121,11 +4213,20 @@ export default function LiveStream() {
 
                   {/* Grid Container — ref for spectator tap→vote mapping */}
                   <div ref={battleVoteGridRef} className="flex-1 min-h-0 flex flex-col relative">
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); closeLiveWithSlide(); }}
+                      className="absolute top-2 right-2 z-40 w-8 h-8 royce-glow-disc flex items-center justify-center pointer-events-auto active:scale-95 transition-transform"
+                      title="Close"
+                      aria-label="Close"
+                    >
+                      <RoyceCloseIcon size={18} />
+                    </button>
                     <BattleVfxOverlays mistSide={battleMistSide} hideScores={false} gloves={battleGloves} />
-                    {/* Row 1: P1 & P2 */}
-                    <div className="flex flex-1 min-h-0">
+                    {/* Row 1: P1 & P2 — equal joined panes */}
+                    <div className="flex flex-1 min-h-0 gap-0">
                       <div
-                        className={`w-1/2 h-full overflow-hidden relative bg-[#111111] pointer-events-auto border-r border-white/5 ${is4Player ? 'border-b' : ''}`}
+                        className="flex-1 basis-0 min-w-0 h-full overflow-hidden relative bg-[#111111] pointer-events-auto"
                       >
                       <video ref={videoRef} className="w-full h-full object-cover transform scale-x-[-1]" autoPlay playsInline muted style={isCamOff ? { opacity: 0 } : undefined} />
                       {isCamOff && (
@@ -4174,11 +4275,11 @@ export default function LiveStream() {
                       )}
                     </div>
                     <div
-                      className={`w-1/2 h-full overflow-hidden relative bg-[#111111] pointer-events-auto ${is4Player ? 'border-b border-white/5' : ''}`}
+                      className="flex-1 basis-0 min-w-0 h-full overflow-hidden relative bg-[#111111] pointer-events-auto"
                     >
                       {battleSlots[0].status === 'accepted' ? (
                         <div className="w-full h-full relative bg-[#111111]">
-                          <video ref={opponentVideoRef} className="w-full h-full object-cover absolute inset-0 z-10" autoPlay playsInline muted={!!mutedPlayers['opponent']} style={{ left: '3px', top: '-3px', ...(cameraOffPlayers['opponent'] ? { display: 'none' } : {}) }} />
+                          <video ref={opponentVideoRef} className="absolute inset-0 w-full h-full object-cover z-10" autoPlay playsInline muted={!!mutedPlayers['opponent']} style={cameraOffPlayers['opponent'] ? { display: 'none' } : undefined} />
                           {cameraOffPlayers['opponent'] && (
                             <div className="absolute inset-0 z-[11] flex flex-col items-center justify-center gap-2 bg-[#111111]">
                               {battleSlots[0].avatar ? (
@@ -4282,11 +4383,11 @@ export default function LiveStream() {
                     </div>
                   </div>
 
-                  {/* Row 2: P3 & P4 — only when 4 players, same container */}
+                  {/* Row 2: P3 & P4 — only when 4 players, same joined container */}
                   {is4Player && (
-                    <div className="flex flex-1 min-h-0">
+                    <div className="flex flex-1 min-h-0 gap-0">
                       <div
-                        className="w-1/2 h-full overflow-hidden relative bg-[#111111] pointer-events-auto border-r border-white/5"
+                        className="flex-1 basis-0 min-w-0 h-full overflow-hidden relative bg-[#111111] pointer-events-auto"
                       >
                         {battleSlots[1].status === 'accepted' ? (
                           <div className="w-full h-full relative bg-[#111111]">
@@ -4366,7 +4467,7 @@ export default function LiveStream() {
                         )}
                       </div>
                       <div
-                        className="w-1/2 h-full overflow-hidden relative bg-[#111111] pointer-events-auto"
+                        className="flex-1 basis-0 min-w-0 h-full overflow-hidden relative bg-[#111111] pointer-events-auto"
                       >
                         {battleSlots[2].status === 'accepted' ? (
                           <div className="w-full h-full relative bg-[#111111]">
@@ -4455,34 +4556,54 @@ export default function LiveStream() {
 
             <div className="absolute bottom-1 left-0 right-0 px-3 py-2 flex items-center justify-between flex-none pointer-events-none relative z-30" style={{ transform: 'translateY(1mm)' }}>
               <div className="flex items-center gap-[0mm] min-w-0 flex-1 justify-start pointer-events-auto" style={{ transform: 'translateX(-3mm)' }} onClick={() => setShowViewerList(true)}>
-                {topMvpHostBattle.map((viewer, i) => (
+                {topMvpHostBattle.map((viewer, i) => {
+                  const isMvp = i === 0 && (mvpGiftScoresHost[viewer.id] ?? 0) > 0;
+                  return (
                   <div
                     key={`mvp-l-${viewer.id}`}
                     className="relative flex flex-col items-center"
                     style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
                   >
-                    <AvatarRing
-                      src={resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username)}
-                      alt={viewer.displayName || viewer.username || ''}
-                      size={SPECTATOR_BATTLE_PROFILE_RING_PX}
-                    />
+                    <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
+                      <AvatarRing
+                        src={resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username)}
+                        alt={viewer.displayName || viewer.username || ''}
+                        size={SPECTATOR_BATTLE_PROFILE_RING_PX}
+                      />
+                    </div>
+                    {isMvp && (
+                      <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
+                        MVP
+                      </span>
+                    )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
               <div className="flex items-center gap-[0mm] min-w-0 flex-1 justify-end pointer-events-auto" style={{ transform: 'translateX(3mm)' }} onClick={() => setShowViewerList(true)}>
-                {topMvpOpponentBattle.map((viewer, i) => (
+                {topMvpOpponentBattle.map((viewer, i) => {
+                  const isMvp = i === 0 && (mvpGiftScoresOpponent[viewer.id] ?? 0) > 0;
+                  return (
                   <div
                     key={`mvp-r-${viewer.id}`}
                     className="relative flex flex-col items-center"
                     style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
                   >
-                    <AvatarRing
-                      src={resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username)}
-                      alt={viewer.displayName || viewer.username || ''}
-                      size={SPECTATOR_BATTLE_PROFILE_RING_PX}
-                    />
+                    <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
+                      <AvatarRing
+                        src={resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username)}
+                        alt={viewer.displayName || viewer.username || ''}
+                        size={SPECTATOR_BATTLE_PROFILE_RING_PX}
+                      />
+                    </div>
+                    {isMvp && (
+                      <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
+                        MVP
+                      </span>
+                    )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
@@ -4615,32 +4736,32 @@ export default function LiveStream() {
                           </div>
                           <div className="flex items-center gap-2 mt-1 ml-12 pointer-events-auto relative z-20 flex-wrap">
                             <div 
-                              className="flex items-center gap-1 bg-transparent rounded-full px-2 py-0.5 border border-[#C9A227]/40 cursor-pointer" 
+                              className="flex items-center gap-1 bg-black/75 rounded-full px-2.5 py-1 border border-[#D4AF37]/80 shadow-[0_0_8px_rgba(212,175,55,0.35)] cursor-pointer" 
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setShowRankingPanel(true);
                               }}
                             >
-                              <Trophy className="w-2.5 h-2.5 text-[#D4AF37]" />
-                              <span className="text-[#D4AF37] text-[9px] font-bold whitespace-nowrap">Weekly Ranking &gt;</span>
+                              <Trophy className="w-3.5 h-3.5 text-[#D4AF37] flex-shrink-0" strokeWidth={2.25} />
+                              <span className="text-[#F5E6A8] text-[11px] font-bold whitespace-nowrap drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">Weekly Ranking &gt;</span>
                             </div>
                             <div 
-                              className="flex items-center gap-1 bg-transparent rounded-full px-2 py-0.5 border border-[#C9A227]/40 cursor-pointer" 
+                              className="flex items-center gap-1 bg-black/75 rounded-full px-2.5 py-1 border border-[#D4AF37]/80 shadow-[0_0_8px_rgba(212,175,55,0.35)] cursor-pointer" 
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setShowFanClub(true);
                               }}
                             >
-                              <img src="/royce/membership.svg" alt="Membership" className="w-3.5 h-3.5 object-contain" onError={(e) => {
+                              <img src="/royce/membership.svg" alt="Membership" className="w-4 h-4 object-contain flex-shrink-0" onError={(e) => {
                                 e.currentTarget.style.display = 'none';
                                 e.currentTarget.nextElementSibling?.classList.remove('hidden');
                               }} />
-                              <Heart className="w-2.5 h-2.5 text-[#D4AF37] fill-[#FFFFFF] hidden" />
-                              <span className="text-[#D4AF37] text-[9px] font-bold whitespace-nowrap">Membership</span>
+                              <Heart className="w-3.5 h-3.5 text-[#D4AF37] fill-[#D4AF37] hidden flex-shrink-0" />
+                              <span className="text-[#F5E6A8] text-[11px] font-bold whitespace-nowrap drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">Membership</span>
                             </div>
                             {currentUniverse && (
-                              <div className="flex items-center gap-1 bg-[#111111] rounded-full px-2 py-0.5 border border-[#C9A227]/40 shadow-sm">
-                                <span className="text-[#D4AF37] text-[9px] font-bold whitespace-nowrap truncate max-w-[140px]">✨ {universeText} ✨</span>
+                              <div className="flex items-center gap-1 bg-[#111111]/90 rounded-full px-2.5 py-1 border border-[#D4AF37]/80 shadow-sm">
+                                <span className="text-[#F5E6A8] text-[11px] font-bold whitespace-nowrap truncate max-w-[140px]">✨ {universeText} ✨</span>
                               </div>
                             )}
                           </div>
@@ -4654,19 +4775,29 @@ export default function LiveStream() {
                             style={{ transform: 'translateX(-2mm)' }}
                             onClick={() => setShowViewerList((prev) => !prev)}
                           >
-                            {topMvpViewers.map((viewer, i) => (
+                            {topMvpViewers.map((viewer, i) => {
+                              const isMvp = i === 0 && (mvpGiftScores[viewer.id] ?? 0) > 0;
+                              return (
                               <div
                                 key={`top-viewers-${viewer.id}`}
-                                style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '-2mm' }}
+                                style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
                                 className="relative"
                               >
-                                <AvatarRing
-                                  src={resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username)}
-                                  alt={viewer.displayName || viewer.username || ''}
-                                  size={LIVE_MVP_PROFILE_RING_PX}
-                                />
+                                <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
+                                  <AvatarRing
+                                    src={resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username)}
+                                    alt={viewer.displayName || viewer.username || ''}
+                                    size={LIVE_MVP_PROFILE_RING_PX}
+                                  />
+                                </div>
+                                {isMvp && (
+                                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
+                                    MVP
+                                  </span>
+                                )}
                               </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         ) : null}
                         <button
@@ -4679,8 +4810,8 @@ export default function LiveStream() {
                           <span className="text-white text-[9px] font-bold tabular-nums">{formatCountShort(viewerCount)}</span>
                           <UserPlus size={16} className="text-[#D4AF37]" strokeWidth={2.2} />
                         </button>
-                        <button type="button" onClick={() => { if (!isBroadcast) { navigate('/feed', { replace: true }); } else if (isBattleMode) { toggleBattle(); } else { stopBroadcast(); } }} className="w-7 h-7 rounded-full flex items-center justify-center active:scale-95 transition-transform" title={isBroadcast ? (isBattleMode ? 'End battle' : 'End broadcast') : 'Leave'}>
-                          <RoyceBackIcon size={20} />
+                        <button type="button" onClick={closeLiveWithSlide} className="w-8 h-8 royce-glow-disc flex items-center justify-center active:scale-95 transition-transform" title={isBroadcast ? (isBattleMode ? 'End battle' : 'End broadcast') : 'Leave'} aria-label="Close">
+                          <RoyceCloseIcon size={18} />
                         </button>
                       </div>
                     </div>
@@ -4776,8 +4907,9 @@ export default function LiveStream() {
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
-            className="fixed bottom-[calc(58px+max(2px,env(safe-area-inset-bottom,0px)))] right-3 z-[230] flex flex-col items-center pointer-events-auto max-w-[480px]"
+            className="fixed left-0 right-0 bottom-[calc(58px+max(2px,env(safe-area-inset-bottom,0px)))] z-[230] flex justify-center pointer-events-none"
           >
+            <div className="w-full max-w-[480px] mx-auto px-3 flex justify-end pointer-events-auto">
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); handleComboClick(); }}
@@ -4791,6 +4923,7 @@ export default function LiveStream() {
                 x{comboCount >= 1000 ? `${(comboCount / 1000).toFixed(comboCount % 1000 === 0 ? 0 : 1)}K` : comboCount}
               </span>
             </button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -5004,20 +5137,20 @@ export default function LiveStream() {
                           <span className="text-green-400 text-[9px] font-bold">Joined</span>
                         </div>
                       ) : isIncomingBattleInvite ? (
-                        <div className="flex items-center gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-1.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                           <button
                             type="button"
-                            className="px-2 py-1 rounded-full bg-red-500/20 border border-red-500/30 flex items-center gap-0.5 active:scale-95 transition-transform cursor-pointer"
+                            className="h-6 px-3 rounded-full bg-red-500/25 border border-red-400/50 inline-flex items-center justify-center active:scale-95 transition-transform cursor-pointer"
                             onClick={handleReject}
                           >
-                            <span className="text-red-400 text-[9px] font-bold">Reject</span>
+                            <span className="text-red-300 text-[10px] font-bold leading-none whitespace-nowrap">Reject</span>
                           </button>
                           <button
                             type="button"
-                            className="px-2.5 py-1 rounded-full bg-green-500 flex items-center gap-0.5 active:scale-95 transition-transform cursor-pointer"
+                            className="h-6 px-3.5 rounded-full bg-green-500 inline-flex items-center justify-center active:scale-95 transition-transform cursor-pointer"
                             onClick={handleJoin}
                           >
-                            <span className="text-black text-[9px] font-bold">Join</span>
+                            <span className="text-black text-[10px] font-bold leading-none whitespace-nowrap">Join</span>
                           </button>
                         </div>
                       ) : isInvited ? (
@@ -5242,12 +5375,12 @@ export default function LiveStream() {
                     <div className="flex-1 min-w-0">
                       <p className="text-white text-sm font-semibold truncate">@{pendingInvite.hostName}</p>
                     </div>
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <button type="button" onClick={declineBattleInvite} className="px-2 py-1 rounded-full bg-red-500/20 border border-red-500/30">
-                        <span className="text-red-400 text-[9px] font-bold">Reject</span>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <button type="button" onClick={declineBattleInvite} className="h-6 px-3 rounded-full bg-red-500/25 border border-red-400/50 inline-flex items-center justify-center active:scale-95">
+                        <span className="text-red-300 text-[10px] font-bold leading-none whitespace-nowrap">Reject</span>
                       </button>
-                      <button type="button" onClick={() => void acceptBattleInvite()} className="px-2.5 py-1 rounded-full bg-green-500">
-                        <span className="text-black text-[9px] font-bold">Join</span>
+                      <button type="button" onClick={() => void acceptBattleInvite()} className="h-6 px-3.5 rounded-full bg-green-500 inline-flex items-center justify-center active:scale-95">
+                        <span className="text-black text-[10px] font-bold leading-none whitespace-nowrap">Join</span>
                       </button>
                     </div>
                   </div>
@@ -5268,12 +5401,12 @@ export default function LiveStream() {
                     <div className="flex-1 min-w-0">
                       <p className="text-white text-sm font-semibold truncate">@{pendingCohostInvite.hostName}</p>
                     </div>
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <button type="button" onClick={declineCohostInvite} className="px-2 py-1 rounded-full bg-red-500/20 border border-red-500/30">
-                        <span className="text-red-400 text-[9px] font-bold">Reject</span>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <button type="button" onClick={declineCohostInvite} className="h-6 px-3 rounded-full bg-red-500/25 border border-red-400/50 inline-flex items-center justify-center active:scale-95">
+                        <span className="text-red-300 text-[10px] font-bold leading-none whitespace-nowrap">Reject</span>
                       </button>
-                      <button type="button" onClick={() => void acceptCohostInvite()} className="px-2.5 py-1 rounded-full bg-green-500">
-                        <span className="text-black text-[9px] font-bold">Join</span>
+                      <button type="button" onClick={() => void acceptCohostInvite()} className="h-6 px-3.5 rounded-full bg-green-500 inline-flex items-center justify-center active:scale-95">
+                        <span className="text-black text-[10px] font-bold leading-none whitespace-nowrap">Join</span>
                       </button>
                     </div>
                   </div>

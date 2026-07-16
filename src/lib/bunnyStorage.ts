@@ -145,6 +145,13 @@ export function getVideoPosterUrl(videoUrl: string): string {
       const u = new URL(trimmed);
       let path = u.pathname;
       const qs = u.search ? u.search : "";
+      // App storage layout: /videos/{userId}/{videoId}/original.mp4 → /thumbnails/{userId}/{videoId}/thumb.jpg
+      const elix = path.match(
+        /\/videos\/([^/]+)\/([^/]+)\/[^/]+\.(mp4|webm|mov)$/i,
+      );
+      if (elix) {
+        return `${u.origin}/thumbnails/${elix[1]}/${elix[2]}/thumb.jpg${qs}`;
+      }
       if (/\.(mp4|webm|mov)$/i.test(path)) {
         path = path.replace(/\.(mp4|webm|mov)$/i, ".png");
         return u.origin + path + qs;
@@ -152,6 +159,14 @@ export function getVideoPosterUrl(videoUrl: string): string {
       return "";
     }
     const pathOnly = trimmed.split("?")[0];
+    const elixRel = pathOnly.match(
+      /^videos\/([^/]+)\/([^/]+)\/[^/]+\.(mp4|webm|mov)$/i,
+    );
+    if (elixRel) {
+      return bunnyCdnUrl(
+        `thumbnails/${elixRel[1]}/${elixRel[2]}/thumb.jpg`,
+      );
+    }
     if (/\.(mp4|webm|mov)$/i.test(pathOnly)) {
       const pngPath = pathOnly.replace(/\.(mp4|webm|mov)$/i, ".png").replace(/^\//, "");
       return bunnyCdnUrl(pngPath);

@@ -73,7 +73,9 @@ function mapRawVideoRowToClientVideo(
       title: music.title || 'Original Sound',
       artist: music.artist || 'Creator',
       duration: typeof music.duration === 'string' ? music.duration : '0:15',
-      ...(music.coverUrl ? { coverUrl: music.coverUrl } : {}),
+      ...(music.coverUrl || music.cover_url || music.albumArt || music.image
+        ? { coverUrl: String(music.coverUrl || music.cover_url || music.albumArt || music.image) }
+        : {}),
       ...(music.previewUrl || music.url
         ? {
             previewUrl: resolveSoundTrackPlaybackUrl(
