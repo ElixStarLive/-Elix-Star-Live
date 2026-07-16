@@ -453,7 +453,7 @@ export default function Inbox() {
         </div>
 
         {/* Circles — Followers hub first; suggested + per-follower avatars scroll to the right */}
-        <div className="px-3 py-2 bg-[#111111]" style={{ marginTop: '4mm' }}>
+        <div className="px-3 py-2 bg-[#111111]" style={{ marginTop: '9mm' }}>
             <div className="flex gap-3 overflow-x-auto overflow-y-hidden no-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
                 <button
                     type="button"

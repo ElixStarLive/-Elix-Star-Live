@@ -888,13 +888,29 @@ export default function ElixCameraLayout({
                 </button>
               </div>
             ) : (
-              <button
-                onClick={onRecord}
-                title={isRecording ? 'Stop recording' : 'Start recording'}
-                className="flex items-center justify-center flex-shrink-0 active:scale-90 transition-transform"
-              >
-                <CaptureShutterButton size={72} recording={isRecording} />
-              </button>
+              <div className="relative flex items-center justify-center w-full px-4">
+                {onGalleryOpen ? (
+                  <button
+                    type="button"
+                    onClick={onGalleryOpen}
+                    className="absolute left-4 flex flex-col items-center gap-1 z-10 group"
+                    title="Upload"
+                    aria-label="Upload from gallery"
+                  >
+                    <span className="royce-glow-disc w-9 h-9 group-active:scale-90 transition-transform" aria-hidden>
+                      <ImagePlus size={18} className="royce-icon-gold" strokeWidth={2} />
+                    </span>
+                    <span className="text-[#D4AF37] text-[10px] font-bold drop-shadow-[0_0_8px_rgba(255,215,0,0.9)]">Upload</span>
+                  </button>
+                ) : null}
+                <button
+                  onClick={onRecord}
+                  title={isRecording ? 'Stop recording' : 'Start recording'}
+                  className="flex items-center justify-center flex-shrink-0 active:scale-90 transition-transform"
+                >
+                  <CaptureShutterButton size={72} recording={isRecording} />
+                </button>
+              </div>
             )}
           </div>
 

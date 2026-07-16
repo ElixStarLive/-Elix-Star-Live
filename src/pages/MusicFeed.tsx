@@ -1,11 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { RoyceBackIcon } from '../components/royce';
-import { Music, Pause, Play, Search } from 'lucide-react';
+import { Music, Pause, Play, Search, Bookmark } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../lib/apiClient';
+import { showToast } from '../lib/toast';
 import {
   fetchMusicPlaylists,
   searchLicensedTracks,
+  isSoundSaved,
+  toggleSavedSound,
   type MusicPlaylist,
   type SoundTrack,
 } from '../lib/soundLibrary';
@@ -38,6 +41,7 @@ export default function MusicFeed() {
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [videos, setVideos] = useState<MusicVideo[]>([]);
   const [videosLoading, setVideosLoading] = useState(false);
+  const [savedTick, setSavedTick] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -167,6 +171,11 @@ export default function MusicFeed() {
 
   const headerTitle = selectedTrack?.title || 'Sound';
   const headerArtist = selectedTrack?.artist || 'Licensed playlists';
+  const trackForSave =
+    selectedTrack ||
+    (playingId ? allTracks.find((t) => t.id === playingId) || searchResults.find((t) => t.id === playingId) || null : null);
+  const trackIsSaved = trackForSave ? isSoundSaved(trackForSave.id) : false;
+  void savedTick;
 
   return (
     <div className="page-above-bottom-nav bg-[#111111] text-white">
@@ -199,10 +208,24 @@ export default function MusicFeed() {
                 <p className="text-white/60 text-sm mb-3 truncate">{headerArtist}</p>
                 <button
                   type="button"
-                  onClick={() => navigate('/create')}
-                  className="bg-[#D4AF37] text-black px-6 py-1.5 rounded-full font-semibold flex items-center gap-1.5 text-sm w-fit active:scale-95 transition-transform"
+                  disabled={!trackForSave}
+                  onClick={() => {
+                    if (!trackForSave) {
+                      showToast('Play or open a sound first');
+                      return;
+                    }
+                    const nowSaved = toggleSavedSound(trackForSave);
+                    setSavedTick((n) => n + 1);
+                    showToast(nowSaved ? 'Sound saved' : 'Removed from saved');
+                  }}
+                  className="bg-[#D4AF37] text-black px-6 py-1.5 rounded-full font-semibold flex items-center gap-1.5 text-sm w-fit active:scale-95 transition-transform disabled:opacity-50"
                 >
-                  <Play size={6} fill="black" /> Use this sound
+                  <Bookmark
+                    size={12}
+                    className={trackIsSaved ? 'fill-black' : ''}
+                    strokeWidth={2.5}
+                  />
+                  {trackIsSaved ? 'Saved' : 'Save'}
                 </button>
               </div>
             </div>

@@ -162,3 +162,33 @@ export async function searchLicensedTracks(term: string): Promise<SoundTrack[]> 
   if (error) return [];
   return mapSoundTracks(data?.tracks ?? []);
 }
+
+const SAVED_SOUNDS_KEY = 'elix_saved_sounds_v1';
+
+export function listSavedSounds(): SoundTrack[] {
+  try {
+    const raw = localStorage.getItem(SAVED_SOUNDS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as SoundTrack[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function isSoundSaved(trackId: string): boolean {
+  return listSavedSounds().some((t) => t.id === trackId);
+}
+
+/** Returns true if the track is saved after the toggle. */
+export function toggleSavedSound(track: SoundTrack): boolean {
+  const prev = listSavedSounds();
+  const exists = prev.some((t) => t.id === track.id);
+  const next = exists ? prev.filter((t) => t.id !== track.id) : [...prev, track];
+  try {
+    localStorage.setItem(SAVED_SOUNDS_KEY, JSON.stringify(next));
+  } catch {
+    /* ignore quota */
+  }
+  return !exists;
+}

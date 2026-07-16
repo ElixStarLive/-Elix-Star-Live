@@ -123,10 +123,10 @@ export default function FriendsFeed() {
             </div>
           </div>
 
-          {/* Circles — shifted down 3mm (paint only; no extra header padding) */}
+          {/* Circles — moved down 2mm */}
           <div
             className="px-3 py-2 relative z-[11]"
-            style={{ transform: 'translateY(0mm)' }}
+            style={{ marginTop: '2mm' }}
           >
             <div className="flex gap-3 overflow-x-auto overflow-y-hidden no-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
             {/* Add story — first in Friends strip (before other users) */}

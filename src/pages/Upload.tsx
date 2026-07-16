@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { CaptureShutterButton } from '../components/CaptureShutterButton';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { setCachedCameraStream } from '../lib/cameraStream';
-import { RefreshCw, Zap, Clock, Music, Check, Play, Square, RotateCcw, ZoomIn, ZoomOut, Wand2, ChevronLeft, Image as ImageIcon, Type, Sparkles, X, LayoutGrid, Plus, Settings, Share2, Smile, Blend, ChevronDown } from 'lucide-react';
+import { RefreshCw, Zap, Clock, Music, Check, Play, Square, RotateCcw, ZoomIn, ZoomOut, Wand2, ChevronLeft, Image as ImageIcon, Type, Sparkles, X, LayoutGrid, Plus, Share2, Smile, Blend, ChevronDown } from 'lucide-react';
 import { useVideoStore } from '../store/useVideoStore';
 import { type SoundTrack } from '../lib/soundLibrary';
 import SoundPickerPanel from '../components/SoundPickerPanel';
@@ -12,6 +12,7 @@ import { videoUploadService } from '../lib/videoUpload';
 import { api } from '../lib/apiClient';
 import { useAuthStore } from '../store/useAuthStore';
 import AIToolsPanel from '../components/AIToolsPanel';
+import { takeCachedRecordedMedia } from '../lib/recordedMediaCache';
 
 export default function Upload() {
   const navigate = useNavigate();
@@ -119,7 +120,24 @@ export default function Upload() {
    };
 
   useEffect(() => {
-    if (!recordedVideoUrl) {
+    const cached = takeCachedRecordedMedia();
+    if (!cached?.url) return;
+    setRecordedVideoUrl(cached.url);
+    if (cached.caption) setCaption(cached.caption);
+    if (cached.hashtags) setHashtagsText(cached.hashtags);
+    void fetch(cached.url)
+      .then((r) => r.blob())
+      .then((blob) => {
+        if (blob.size > 0) setChunks([blob]);
+      })
+      .catch(() => { /* keep preview URL even if blob fetch fails */ });
+  }, []);
+
+  const prevRecordedUrlRef = useRef<string | null>(null);
+  useEffect(() => {
+    const prev = prevRecordedUrlRef.current;
+    prevRecordedUrlRef.current = recordedVideoUrl;
+    if (prev && !recordedVideoUrl) {
       setCaption('');
       setHashtagsText('');
       setPostWithoutAudio(false);
@@ -573,7 +591,6 @@ export default function Upload() {
                      style={{ top: 'calc(env(safe-area-inset-top, 0px) + 56px)' }}
                    >
                      {[
-                       { Icon: Settings, title: 'Settings', onClick: () => setShowAITools(true) },
                        { Icon: Share2, title: 'Share', onClick: () => setShowAITools(true) },
                        { Icon: LayoutGrid, title: 'Layout', onClick: handleFileUpload },
                        { Icon: ImageIcon, title: 'Media', onClick: handleFileUpload },

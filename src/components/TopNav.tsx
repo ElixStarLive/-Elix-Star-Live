@@ -61,11 +61,11 @@ export const TopNav = () => {
             type="button"
             onClick={() => navigate("/search")}
             title="Search"
-            className="flex-shrink-0 flex items-center justify-center w-10 h-10 active:opacity-70 transition-opacity"
+            className="flex-shrink-0 flex items-center justify-center w-6 h-6 ml-0.5 mr-0.5 self-start mt-1.5 active:opacity-70 transition-opacity"
             style={{ WebkitTapHighlightColor: "transparent" }}
             aria-label="Search"
           >
-            <Search size={18} strokeWidth={2.25} className="text-gold-bright" />
+            <Search size={13} strokeWidth={2.25} className="text-gold-bright" />
           </button>
         </div>
       </div>

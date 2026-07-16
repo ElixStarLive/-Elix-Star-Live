@@ -5,7 +5,6 @@ import {
   ChevronDown,
   Music,
   X,
-  Settings,
   Share2,
   LayoutGrid,
   Image as ImageIcon,
@@ -18,10 +17,12 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { setCachedCameraStream } from '../lib/cameraStream';
+import { setCachedRecordedMedia } from '../lib/recordedMediaCache';
 import { type SoundTrack } from '../lib/soundLibrary';
 import SoundPickerPanel from '../components/SoundPickerPanel';
 import ElixCameraLayout from '../components/ElixCameraLayout';
 import { useAuthStore } from '../store/useAuthStore';
+import { RoyceCloseIcon } from '../components/royce';
 
 type CreateMode = 'upload' | 'post' | 'create' | 'live';
 
@@ -258,11 +259,13 @@ export default function Create() {
 
   const goYourStory = () => {
     if (!previewUrl) return;
+    setCachedRecordedMedia(previewUrl, previewKind);
     navigate('/upload?type=story');
   };
 
   const goNextVideoPost = () => {
     if (!previewUrl) return;
+    setCachedRecordedMedia(previewUrl, previewKind);
     navigate('/upload');
   };
 
@@ -412,11 +415,12 @@ export default function Create() {
               </button>
               <button
                 type="button"
-                onClick={() => setIsSoundOpen(true)}
-                className="w-9 h-9 flex items-center justify-center"
-                title="Settings"
+                onClick={() => navigate('/feed')}
+                className="w-9 h-9 royce-glow-disc flex items-center justify-center"
+                title="Close"
+                aria-label="Close"
               >
-                <Settings size={22} className="text-white drop-shadow-md" strokeWidth={2} />
+                <RoyceCloseIcon size={18} />
               </button>
             </div>
 
