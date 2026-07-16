@@ -62,7 +62,12 @@ export const generateDeepLink = (type: 'video' | 'user' | 'live' | 'hashtag', id
 // Generate web fallback link
 export const generateWebLink = (type: 'video' | 'user' | 'live' | 'hashtag', id: string): string => {
   const baseUrl = 'https://www.elixstarlive.co.uk';
-  return `${baseUrl}/${type}/${id}`;
+  const path =
+    type === 'user' ? `profile/${id}` :
+    type === 'hashtag' ? `hashtag/${id}` :
+    type === 'live' ? `live/${id}` :
+    `video/${id}`;
+  return `${baseUrl}/${path}`;
 };
 
 // Generate universal link (tries deep link, falls back to web)

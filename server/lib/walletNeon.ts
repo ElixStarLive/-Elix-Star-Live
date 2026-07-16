@@ -5,9 +5,6 @@
 
 import { getPool } from "./postgres";
 import { logger } from "./logger";
-// #region agent log
-function _dbgWN(loc:string,msg:string,data:Record<string,unknown>={}){fetch('http://127.0.0.1:7684/ingest/8c32b730-3e4a-4f4c-9502-6b305be695c7',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'6f8791'},body:JSON.stringify({sessionId:'6f8791',location:loc,message:msg,data,timestamp:Date.now()})}).catch(()=>{});}
-// #endregion
 
 export async function neonGetCoinBalance(userId: string): Promise<number | null> {
   const pool = getPool();
@@ -252,9 +249,6 @@ export async function neonDebitGift(input: {
     } catch (rbErr) {
       logger.error({ err: rbErr }, "ROLLBACK failed");
     }
-    // #region agent log
-    _dbgWN('walletNeon.ts:debitGift','DB_ERROR_MAPPED_TO_INSUFFICIENT_FUNDS',{error:e instanceof Error?e.message:String(e),userId:input.userId,giftId:input.giftId,roomId:input.roomId,hypothesisId:'D'});
-    // #endregion
     logger.error(
       { err: e, userId: input.userId, giftId: input.giftId, roomId: input.roomId },
       "neonDebitGift: unexpected database error (not the normal insufficient_funds balance branch); returning insufficient_funds response shape",

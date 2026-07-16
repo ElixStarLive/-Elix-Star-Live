@@ -14,6 +14,7 @@ interface User {
   avatar: string;
   level: number;
   isVerified?: boolean;
+  isAdmin?: boolean;
   followers: number;
   following: number;
   joinedDate: string;
@@ -147,9 +148,22 @@ function mapUserToUser(backendUser: AuthUser | null): User | null {
       )}&background=random`,
     level,
     isVerified: !!backendUser.email_confirmed_at,
+    isAdmin: false,
     followers: 0,
     following: 0,
     joinedDate: backendUser.created_at ?? "",
+  };
+}
+
+function applyProfileMeta(
+  user: User,
+  profileMeta: { is_admin?: boolean; is_creator?: boolean } | null | undefined,
+): User {
+  if (!profileMeta || typeof profileMeta !== "object") return user;
+  return {
+    ...user,
+    isAdmin: Boolean(profileMeta.is_admin),
+    isVerified: profileMeta.is_creator != null ? Boolean(profileMeta.is_creator) : user.isVerified,
   };
 }
 
@@ -251,7 +265,14 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
 
       const backendUser = parsed.user as AuthUser;
       const accessToken = parsed.accessToken;
-      const mapped = mapUserToUser(backendUser);
+      const mappedBase = mapUserToUser(backendUser);
+      if (!mappedBase) {
+        return { error: "Cannot reach backend. Try again later." };
+      }
+      const mapped = applyProfileMeta(
+        mappedBase,
+        (data as { profile_meta?: { is_admin?: boolean; is_creator?: boolean } })?.profile_meta,
+      );
 
       set({
         backendUser,
@@ -267,7 +288,7 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
         enrichUserWithProfile(mapped)
           .then((enriched) => {
             if (get().isAuthenticated && get().user?.id === enriched.id) {
-              set({ user: enriched });
+              set({ user: { ...enriched, isAdmin: get().user?.isAdmin ?? enriched.isAdmin } });
             }
           })
           .catch(() => {});
@@ -333,7 +354,13 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
 
       const backendUser = parsed.user as AuthUser;
       const accessToken = parsed.accessToken;
-      const mapped = mapUserToUser(backendUser);
+      const mappedBase = mapUserToUser(backendUser);
+      const mapped = mappedBase
+        ? applyProfileMeta(
+            mappedBase,
+            (data as { profile_meta?: { is_admin?: boolean; is_creator?: boolean } })?.profile_meta,
+          )
+        : null;
 
       if (mapped) {
         const createProfile = () =>
@@ -487,13 +514,20 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
       const backendUser = parsed.user as AuthUser;
       const accessToken = parsed.accessToken;
 
-      const mapped = mapUserToUser(backendUser);
+      const mappedBase = mapUserToUser(backendUser);
+      const mapped = mappedBase
+        ? applyProfileMeta(
+            mappedBase,
+            (data as { profile_meta?: { is_admin?: boolean; is_creator?: boolean } })?.profile_meta,
+          )
+        : null;
 
       // Enrich with Hetzner profile data (username, avatar, follower counts)
       let userToSet = mapped;
       if (mapped) {
         try {
-          userToSet = await enrichUserWithProfile(mapped);
+          const enriched = await enrichUserWithProfile(mapped);
+          userToSet = { ...enriched, isAdmin: mapped.isAdmin };
         } catch {
           userToSet = mapped;
         }

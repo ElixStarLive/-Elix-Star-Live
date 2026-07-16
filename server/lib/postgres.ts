@@ -8,9 +8,6 @@ import os from "node:os";
 import type { Video } from "./videoStore";
 import { normalizeDatabaseUrl } from "./databaseUrl";
 import { logger } from "./logger";
-// #region agent log
-function _dbgPG(loc:string,msg:string,data:Record<string,unknown>={}){fetch('http://127.0.0.1:7684/ingest/8c32b730-3e4a-4f4c-9502-6b305be695c7',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'6f8791'},body:JSON.stringify({sessionId:'6f8791',location:loc,message:msg,data,timestamp:Date.now()})}).catch(()=>{});}
-// #endregion
 import { bumpFeedForyouEpoch } from "./feedCacheValkey";
 import { instrumentPool, instrumentPoolConnect } from "./dbRequestContext";
 import {
@@ -127,13 +124,7 @@ async function assertMigrationsApplied(client: pg.Pool): Promise<void> {
  */
 export async function connectPostgres(): Promise<void> {
   const url = normalizeDatabaseUrl((process.env.DATABASE_URL || "").trim());
-  // #region agent log
-  _dbgPG('postgres.ts:connect','connect_attempt',{hasUrl:Boolean(url),urlPrefix:url?url.substring(0,30)+'...':'none',hypothesisId:'A'});
-  // #endregion
   if (!url) {
-    // #region agent log
-    _dbgPG('postgres.ts:connect','NO_DATABASE_URL',{hypothesisId:'A'});
-    // #endregion
     logger.warn("DATABASE_URL is not set — all data will be stored in memory only and lost on restart!");
     return;
   }
@@ -156,16 +147,11 @@ export async function connectPostgres(): Promise<void> {
   });
 
   try {
-    const pgStart = Date.now();
     await newPool.query("SELECT 1");
-    const pgPingMs = Date.now() - pgStart;
     await assertMigrationsApplied(newPool);
     instrumentPool(newPool);
     instrumentPoolConnect(newPool);
     pool = newPool;
-    // #region agent log
-    _dbgPG('postgres.ts:connect','pool_ready',{max:newPool.options.max,min:newPool.options.min,pingMs:pgPingMs,hypothesisId:'A'});
-    // #endregion
     logger.info(
       {
         max: newPool.options.max,
@@ -175,9 +161,6 @@ export async function connectPostgres(): Promise<void> {
       "PostgreSQL pool ready",
     );
   } catch (err) {
-    // #region agent log
-    _dbgPG('postgres.ts:connect','CONNECT_FAILED',{error:err instanceof Error?err.message:String(err),hypothesisId:'A'});
-    // #endregion
     await newPool.end().catch(() => {});
     pool = null;
     throw err;

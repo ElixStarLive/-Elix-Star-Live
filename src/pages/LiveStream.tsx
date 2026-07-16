@@ -44,7 +44,6 @@ import {
   debitTestCoinsForGift,
   getPersistedTestCoinsBalance,
   getSpendableGiftBalance,
-  persistTestCoinsBalance,
   resolveGiftUiBalance,
   shouldUseTestCoinsForGifts,
 } from '../lib/testCoins';
@@ -3168,9 +3167,10 @@ export default function LiveStream() {
 
     try {
       let newLevel = userLevel;
+      const usedTestCoins = Boolean(user?.id && shouldUseTestCoinsForGifts(user.id));
 
-      if (user?.id && shouldUseTestCoinsForGifts(user.id)) {
-        const debit = debitTestCoinsForGift(user.id, gift.coins);
+      if (usedTestCoins) {
+        const debit = debitTestCoinsForGift(user!.id, gift.coins);
         if (debit.ok === false) {
           showToast(`Not enough coins (have ${debit.balance.toLocaleString()}, need ${gift.coins.toLocaleString()})`);
           return;
@@ -3281,20 +3281,23 @@ export default function LiveStream() {
             })
           : undefined;
 
-      websocket.send('gift_sent', {
-        giftId: gift.id,
-        giftName: gift.name,
-        coins: gift.coins,
-        gift_icon: gift.icon || '🎁',
-        quantity: 1,
-        level: newLevel,
-        avatar: giftMsg.avatar,
-        video: gift.video || null,
-        transactionId: `${user?.id || 'anon'}-${Date.now()}`,
-        battleTarget: serverBattleTarget,
-        creator_name: hostName || 'Creator',
-        ...(!isBroadcast && { host_user_id: effectiveStreamId }),
-      });
+      // Test coins stay local — never broadcast gift_sent (avoids free battle scores).
+      if (!usedTestCoins) {
+        websocket.send('gift_sent', {
+          giftId: gift.id,
+          giftName: gift.name,
+          coins: gift.coins,
+          gift_icon: gift.icon || '🎁',
+          quantity: 1,
+          level: newLevel,
+          avatar: giftMsg.avatar,
+          video: gift.video || null,
+          transactionId: `${user?.id || 'anon'}-${Date.now()}`,
+          battleTarget: serverBattleTarget,
+          creator_name: hostName || 'Creator',
+          ...(!isBroadcast && { host_user_id: effectiveStreamId }),
+        });
+      }
       
 
       // Handle Combo Logic
@@ -3373,8 +3376,9 @@ export default function LiveStream() {
       }
 
       let newLevel = userLevel;
-      if (user?.id && shouldUseTestCoinsForGifts(user.id)) {
-        const debit = debitTestCoinsForGift(user.id, lastSentGift.coins);
+      const usedTestCoins = Boolean(user?.id && shouldUseTestCoinsForGifts(user.id));
+      if (usedTestCoins) {
+        const debit = debitTestCoinsForGift(user!.id, lastSentGift.coins);
         if (!debit.ok) {
           showToast("Not enough coins!");
           return;
@@ -3461,20 +3465,22 @@ export default function LiveStream() {
             })
           : undefined;
 
-      websocket.send('gift_sent', {
-        giftId: lastSentGift.id,
-        giftName: lastSentGift.name,
-        coins: lastSentGift.coins,
-        gift_icon: lastSentGift.icon || '🎁',
-        quantity: 1,
-        level: newLevel,
-        avatar: giftMsg.avatar,
-        video: lastSentGift.video || null,
-        transactionId: `${user?.id || 'anon'}-${Date.now()}`,
-        battleTarget: serverBattleTargetCombo,
-        creator_name: hostName || 'Creator',
-        ...(!isBroadcast && { host_user_id: effectiveStreamId }),
-      });
+      if (!usedTestCoins) {
+        websocket.send('gift_sent', {
+          giftId: lastSentGift.id,
+          giftName: lastSentGift.name,
+          coins: lastSentGift.coins,
+          gift_icon: lastSentGift.icon || '🎁',
+          quantity: 1,
+          level: newLevel,
+          avatar: giftMsg.avatar,
+          video: lastSentGift.video || null,
+          transactionId: `${user?.id || 'anon'}-${Date.now()}`,
+          battleTarget: serverBattleTargetCombo,
+          creator_name: hostName || 'Creator',
+          ...(!isBroadcast && { host_user_id: effectiveStreamId }),
+        });
+      }
 
 
       // Handle Combo Logic
@@ -4908,7 +4914,7 @@ export default function LiveStream() {
             <GiftPanel
               onSelectGift={handleSendGift}
               userCoins={coinBalance}
-              onRechargeSuccess={(newBalance) => { setCoinBalance(newBalance); persistTestCoinsBalance(user?.id, newBalance); }}
+              onRechargeSuccess={(newBalance) => { setCoinBalance(newBalance); }}
               onWeeklyRanking={() => { setShowGiftPanel(false); setShowRankingPanel(true); }}
               onMembership={() => { setShowGiftPanel(false); setShowFanClub(true); }}
               highlightGiftId={giftGoal?.giftId ?? null}
@@ -5910,7 +5916,7 @@ export default function LiveStream() {
                 {[
                   { name: 'WhatsApp', icon: <MessageCircle size={22} className="text-white" />, action: () => { openExternalLink(`https://wa.me/?text=${encodeURIComponent('Watch my LIVE on Elix! ' + `${window.location.origin}/live/${effectiveStreamId}`)}`); setShowSharePanel(false); } },
                   { name: 'Facebook', icon: <Share2 size={22} className="text-white" />, action: () => { openExternalLink(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${window.location.origin}/live/${effectiveStreamId}`)}`); setShowSharePanel(false); } },
-                  { name: 'Copy Link', icon: <Copy size={22} className="text-white" />, action: () => { navigator.clipboard.writeText(`https://www.elixlive.co.uk/live/${effectiveStreamId}`); showToast('Link copied!'); setShowSharePanel(false); } },
+                  { name: 'Copy Link', icon: <Copy size={22} className="text-white" />, action: () => { navigator.clipboard.writeText(`${typeof window !== 'undefined' ? window.location.origin : 'https://www.elixstarlive.co.uk'}/live/${effectiveStreamId}`); showToast('Link copied!'); setShowSharePanel(false); } },
                   { name: 'Promote', icon: <TrendingUp size={22} className="text-white" />, action: () => { setShowSharePanel(false); setShowPromotePanel(true); } },
                   { name: 'Report', icon: <Flag size={22} className="text-white/60" />, isRed: true, action: () => { setIsReportModalOpen(true); setShowSharePanel(false); } },
                   { name: 'Story', icon: <PlusCircle size={22} className="text-white" />, action: () => { navigate('/create'); setShowSharePanel(false); } },

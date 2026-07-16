@@ -31,12 +31,6 @@ import {
   incrementGiftGoal,
   setGiftGoal,
 } from "./giftGoal";
-import {
-  clearGiftGoal,
-  getGiftGoal,
-  incrementGiftGoal,
-  setGiftGoal,
-} from "./giftGoal";
 
 const BATTLE_USER_ROOM_TTL_MS = 600_000;
 

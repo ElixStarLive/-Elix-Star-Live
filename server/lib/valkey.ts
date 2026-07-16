@@ -1,8 +1,5 @@
 import Redis from "ioredis";
 import { logger } from "./logger";
-// #region agent log
-function _dbgVK(loc:string,msg:string,data:Record<string,unknown>={}){fetch('http://127.0.0.1:7684/ingest/8c32b730-3e4a-4f4c-9502-6b305be695c7',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'6f8791'},body:JSON.stringify({sessionId:'6f8791',location:loc,message:msg,data,timestamp:Date.now()})}).catch(()=>{});}
-// #endregion
 
 let client: Redis | null = null;
 let subscriber: Redis | null = null;
@@ -77,22 +74,11 @@ export async function valkeyHealthCheck(): Promise<boolean> {
   try {
     const v = getValkey();
     if (!v) {
-      // #region agent log
-      _dbgVK('valkey.ts:healthCheck','NO_CLIENT',{hypothesisId:'A'});
-      // #endregion
       return false;
     }
-    const t0 = Date.now();
     const result = await v.ping();
-    const pingMs = Date.now() - t0;
-    // #region agent log
-    _dbgVK('valkey.ts:healthCheck','ping_result',{result,pingMs,hypothesisId:'A'});
-    // #endregion
     return result === "PONG";
   } catch (err: any) {
-    // #region agent log
-    _dbgVK('valkey.ts:healthCheck','PING_FAILED',{error:err?.message,hypothesisId:'A'});
-    // #endregion
     logger.warn({ err: err?.message }, "valkeyHealthCheck failed");
     return false;
   }
@@ -106,22 +92,13 @@ export async function waitForValkeyReady(opts?: { attempts?: number; delayMs?: n
   if (!isValkeyConfigured()) return;
   const attempts = Math.max(1, opts?.attempts ?? 40);
   const delayMs = Math.max(50, opts?.delayMs ?? 500);
-  // #region agent log
-  _dbgVK('valkey.ts:waitReady','wait_begin',{attempts,delayMs,url:getUrl()?.substring(0,30)+'...',hypothesisId:'A'});
-  // #endregion
   for (let i = 0; i < attempts; i++) {
     if (await valkeyHealthCheck()) {
       if (i > 0) logger.info({ attempts: i + 1 }, "Valkey became ready");
-      // #region agent log
-      _dbgVK('valkey.ts:waitReady','valkey_ready',{attemptsNeeded:i+1,hypothesisId:'A'});
-      // #endregion
       return;
     }
     await new Promise((r) => setTimeout(r, delayMs));
   }
-  // #region agent log
-  _dbgVK('valkey.ts:waitReady','VALKEY_NEVER_READY',{attempts,hypothesisId:'A'});
-  // #endregion
   throw new Error(
     `Valkey not ready after ${attempts} attempts (${attempts * delayMs}ms max wait) — check VALKEY_URL / REDIS_URL and network`,
   );

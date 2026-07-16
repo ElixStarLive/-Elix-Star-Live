@@ -2,7 +2,7 @@ import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 
-// Admin user IDs — in production, check a role/claim from backend
+/** Optional bootstrap allowlist (IDs/emails). Primary gate is profiles.is_admin via /api/auth/me. */
 const ADMIN_USER_IDS = (import.meta.env.VITE_ADMIN_USER_IDS || '').split(',').filter(Boolean);
 
 export default function RequireAdmin() {
@@ -14,10 +14,11 @@ export default function RequireAdmin() {
     return <Navigate to="/login" replace />;
   }
 
-  const isAdmin =
+  const allowlisted =
     ADMIN_USER_IDS.includes(user.id) ||
-    (user.email && ADMIN_USER_IDS.includes(user.email)) ||
-    (user.email && user.email.endsWith('@elixstar.com'));
+    (user.email && ADMIN_USER_IDS.includes(user.email));
+
+  const isAdmin = Boolean(user.isAdmin) || allowlisted;
 
   if (!isAdmin) {
     return <Navigate to="/" replace />;

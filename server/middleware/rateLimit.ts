@@ -1,9 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { valkeyRateCheck, isValkeyConfigured } from "../lib/valkey";
 import { logger } from "../lib/logger";
-// #region agent log
-function _dbgRL(loc:string,msg:string,data:Record<string,unknown>={}){fetch('http://127.0.0.1:7684/ingest/8c32b730-3e4a-4f4c-9502-6b305be695c7',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'6f8791'},body:JSON.stringify({sessionId:'6f8791',location:loc,message:msg,data,timestamp:Date.now()})}).catch(()=>{});}
-// #endregion
 
 // ── Fallback: local in-memory (used only when Valkey is unavailable) ──
 
@@ -74,9 +71,6 @@ export function rateLimit(opts: {
       valkeyRateCheck(key, windowMs, max)
         .then((allowed) => {
           if (!allowed) {
-            // #region agent log
-            _dbgRL('rateLimit.ts:blocked','RATE_LIMIT_429',{url:req.originalUrl,ip,key,max,hypothesisId:'B'});
-            // #endregion
             logger.warn({ url: req.originalUrl, ip, key, max }, 'Rate limit 429');
             res
               .status(429)

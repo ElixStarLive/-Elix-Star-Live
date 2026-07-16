@@ -40,7 +40,6 @@ import {
   debitTestCoinsForGift,
   getPersistedTestCoinsBalance,
   getSpendableGiftBalance,
-  persistTestCoinsBalance,
   resolveGiftUiBalance,
   shouldUseTestCoinsForGifts,
 } from '../lib/testCoins';
@@ -1705,9 +1704,10 @@ export default function SpectatorPage() {
     }
 
     let newLevel = userLevel;
+    const usedTestCoins = Boolean(user?.id && shouldUseTestCoinsForGifts(user.id));
 
-    if (user?.id && shouldUseTestCoinsForGifts(user.id)) {
-      const debit = debitTestCoinsForGift(user.id, gift.coins);
+    if (usedTestCoins) {
+      const debit = debitTestCoinsForGift(user!.id, gift.coins);
       if (debit.ok === false) {
         showToast(`Not enough coins (have ${debit.balance.toLocaleString()}, need ${gift.coins.toLocaleString()})`);
         return;
@@ -1779,22 +1779,25 @@ export default function SpectatorPage() {
       avatar: viewerAvatar,
     };
     setMessages(prev => [...prev, giftMsg]);
-    websocket.send('gift_sent', {
-      giftId: gift.id,
-      giftName: gift.name,
-      coins: gift.coins,
-      gift_icon: gift.icon || '🎁',
-      quantity: 1,
-      level: newLevel,
-      avatar: viewerAvatar,
-      video: gift.video || null,
-      transactionId: `${user?.id || 'anon'}-${Date.now()}`,
-      creator_name: hostName || 'Creator',
-      host_user_id: hostUserId || effectiveStreamId,
-      ...(spectatorBattle?.active
-        ? { battleTarget: spectatorGiftBattleTarget }
-        : {}),
-    });
+    // Test coins stay local — never broadcast gift_sent (avoids free battle scores).
+    if (!usedTestCoins) {
+      websocket.send('gift_sent', {
+        giftId: gift.id,
+        giftName: gift.name,
+        coins: gift.coins,
+        gift_icon: gift.icon || '🎁',
+        quantity: 1,
+        level: newLevel,
+        avatar: viewerAvatar,
+        video: gift.video || null,
+        transactionId: `${user?.id || 'anon'}-${Date.now()}`,
+        creator_name: hostName || 'Creator',
+        host_user_id: hostUserId || effectiveStreamId,
+        ...(spectatorBattle?.active
+          ? { battleTarget: spectatorGiftBattleTarget }
+          : {}),
+      });
+    }
     
 
     setLastSentGift(gift);
@@ -3105,7 +3108,7 @@ export default function SpectatorPage() {
               <GiftPanel
                 onSelectGift={handleSendGift}
                 userCoins={coinBalance}
-                onRechargeSuccess={(newBalance) => { setCoinBalance(newBalance); persistTestCoinsBalance(user?.id, newBalance); }}
+                onRechargeSuccess={(newBalance) => { setCoinBalance(newBalance); }}
                 onWeeklyRanking={() => { setShowGiftPanel(false); setShowRankingPanel(true); }}
                 onMembership={() => { setShowGiftPanel(false); setShowFanClub(true); }}
                 highlightGiftId={giftGoal?.giftId ?? null}

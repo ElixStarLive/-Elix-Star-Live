@@ -5,9 +5,6 @@ import { Request, Response, NextFunction } from "express";
 import { getTokenFromRequest, verifyAuthToken } from "../routes/auth";
 import { getPool } from "../lib/postgres";
 import { logger } from "../lib/logger";
-// #region agent log
-function _dbgRBAC(loc:string,msg:string,data:Record<string,unknown>={}){fetch('http://127.0.0.1:7684/ingest/8c32b730-3e4a-4f4c-9502-6b305be695c7',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'6f8791'},body:JSON.stringify({sessionId:'6f8791',location:loc,message:msg,data,timestamp:Date.now()})}).catch(()=>{});}
-// #endregion
 
 export interface AuthContext {
   userId: string;
@@ -37,9 +34,6 @@ async function loadRoles(userId: string): Promise<{ isAdmin: boolean; isCreator:
       isCreator: Boolean(row?.is_verified),
     };
   } catch (err) {
-    // #region agent log
-    _dbgRBAC('rbac.ts:loadRoles','SILENT_ROLE_FAILURE',{error:err instanceof Error?err.message:String(err),userId,hypothesisId:'E'});
-    // #endregion
     logger.error({ err, userId }, 'loadRoles failed — user treated as non-admin/non-creator');
     return { isAdmin: false, isCreator: false };
   }

@@ -278,6 +278,31 @@ function authLoginRegisterBody(u: StoredUser, token: string) {
   return { user: toAuthUser(u), session: authSessionJson(token) };
 }
 
+async function loadProfileMeta(userId: string): Promise<{
+  is_admin?: boolean;
+  is_creator?: boolean;
+  banned_until?: string | null;
+}> {
+  const pool = getPool();
+  if (!pool) return {};
+  try {
+    const pr = await pool.query(
+      `SELECT COALESCE(is_admin, false) AS is_admin, COALESCE(is_verified, false) AS is_verified, banned_until FROM profiles WHERE user_id = $1`,
+      [userId],
+    );
+    const row = pr.rows[0] as { is_admin?: boolean; is_verified?: boolean; banned_until?: Date } | undefined;
+    if (!row) return {};
+    return {
+      is_admin: Boolean(row.is_admin),
+      is_creator: Boolean(row.is_verified),
+      banned_until: row.banned_until ? new Date(row.banned_until).toISOString() : null,
+    };
+  } catch (err) {
+    logger.warn({ err, userId }, 'loadProfileMeta skipped');
+    return {};
+  }
+}
+
 export async function handleLogin(req: Request, res: Response) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   try {
@@ -307,7 +332,8 @@ export async function handleLogin(req: Request, res: Response) {
     const token = signToken({ sub: user.id, email: user.email });
     await dbUpsertSession(user.id, token);
     setAuthCookie(res, token);
-    return res.status(200).json(authLoginRegisterBody(user, token));
+    const profile_meta = await loadProfileMeta(user.id);
+    return res.status(200).json({ ...authLoginRegisterBody(user, token), profile_meta });
   } catch (err) {
     logger.error({ err }, 'handleLogin failed');
     return res.status(500).json({ error: 'Login failed. Please try again.' });
@@ -393,7 +419,8 @@ export async function handleRegister(req: Request, res: Response) {
     const token = signToken({ sub: id, email: e });
     await dbUpsertSession(id, token);
     setAuthCookie(res, token);
-    return res.status(201).json(authLoginRegisterBody(stored, token));
+    const profile_meta = await loadProfileMeta(id);
+    return res.status(201).json({ ...authLoginRegisterBody(stored, token), profile_meta });
   } catch (err) {
     logger.error({ err }, 'handleRegister failed');
     return res.status(500).json({ error: 'Registration failed. Please try again.' });
@@ -421,29 +448,10 @@ export async function handleMe(req: Request, res: Response) {
     if (!getPool()) return res.status(503).json({ error: 'Database not configured' });
     const user = await dbFindUserById(payload.sub);
     if (!user) return res.status(401).json({ error: 'User not found.' });
-    let profileMeta: { is_admin?: boolean; is_creator?: boolean; banned_until?: string | null } = {};
-    const poolMe = getPool();
-    if (poolMe) {
-      try {
-        const pr = await poolMe.query(
-          `SELECT COALESCE(is_admin, false) AS is_admin, COALESCE(is_verified, false) AS is_verified, banned_until FROM profiles WHERE user_id = $1`,
-          [payload.sub],
-        );
-        const row = pr.rows[0] as { is_admin?: boolean; is_verified?: boolean; banned_until?: Date } | undefined;
-        if (row) {
-          profileMeta = {
-            is_admin: Boolean(row.is_admin),
-            is_creator: Boolean(row.is_verified),
-            banned_until: row.banned_until ? new Date(row.banned_until).toISOString() : null,
-          };
-        }
-      } catch (err) {
-        logger.warn({ err }, 'handleMe profile meta skipped');
-      }
-    }
+    const profile_meta = await loadProfileMeta(payload.sub);
     return res.status(200).json({
       ...authLoginRegisterBody(user, token),
-      profile_meta: profileMeta,
+      profile_meta,
     });
   } catch (err) {
     logger.error({ err }, 'handleMe failed');

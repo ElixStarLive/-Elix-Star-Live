@@ -8,6 +8,9 @@ import { getVideoPosterUrl } from '../lib/bunnyStorage';
 import { request } from '../lib/apiClient';
 import { isIndecentExploreCaption } from '../lib/suggestiveCaption';
 import { useVideoStore } from '../store/useVideoStore';
+import { nativeShareUrl } from '../lib/platform';
+import { showToast } from '../lib/toast';
+import { generateWebLink } from '../lib/deepLinks';
 
 interface Video {
   id: string;
@@ -443,6 +446,8 @@ function VideoThumbnail({ video, variant = 'grid' }: { video: Video; variant?: '
   const navigate = useNavigate();
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const containerRef = React.useRef<HTMLDivElement>(null);
+  const [likeBusy, setLikeBusy] = React.useState(false);
+  const [saveBusy, setSaveBusy] = React.useState(false);
 
   React.useEffect(() => {
     const el = containerRef.current;
@@ -462,6 +467,36 @@ function VideoThumbnail({ video, variant = 'grid' }: { video: Video; variant?: '
   }, [video.url]);
 
   const feed = variant === 'feed';
+
+  const handleLike = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (likeBusy) return;
+    setLikeBusy(true);
+    try {
+      const { error } = await request(`/api/videos/${video.id}/like`, { method: 'POST' });
+      if (error) showToast('Could not like video');
+      else showToast('Liked');
+    } catch {
+      showToast('Could not like video');
+    } finally {
+      setLikeBusy(false);
+    }
+  };
+
+  const handleSave = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (saveBusy) return;
+    setSaveBusy(true);
+    try {
+      const { error } = await request(`/api/videos/${video.id}/save`, { method: 'POST' });
+      if (error) showToast('Could not save video');
+      else showToast('Saved');
+    } catch {
+      showToast('Could not save video');
+    } finally {
+      setSaveBusy(false);
+    }
+  };
 
   return (
     <div
@@ -506,16 +541,24 @@ function VideoThumbnail({ video, variant = 'grid' }: { video: Video; variant?: '
 
       {/* Action icons — right side */}
       <div className="absolute right-1 bottom-10 flex flex-col items-center gap-2 z-10">
-        <button onClick={(e) => { e.stopPropagation(); navigate(`/video/${video.id}`); }} title="Like">
+        <button onClick={handleLike} title="Like" disabled={likeBusy}>
           <RoyceIcon icon={Heart} size={24} tile />
         </button>
         <button onClick={(e) => { e.stopPropagation(); navigate(`/video/${video.id}`); }} title="Comment">
           <RoyceIcon icon={MessageCircle} size={24} tile />
         </button>
-        <button onClick={(e) => { e.stopPropagation(); navigate(`/video/${video.id}`); }} title="Save">
+        <button onClick={handleSave} title="Save" disabled={saveBusy}>
           <RoyceIcon icon={Bookmark} size={24} tile />
         </button>
-        <button onClick={(e) => { e.stopPropagation(); navigate(`/video/${video.id}`); }} title="Share">
+        <button
+          onClick={async (e) => {
+            e.stopPropagation();
+            const url = generateWebLink('video', video.id);
+            const ok = await nativeShareUrl({ title: 'Elix Star Live', text: video.description || 'Watch on Elix Star', url });
+            if (ok) showToast('Shared');
+          }}
+          title="Share"
+        >
           <RoyceIcon icon={Share2} size={24} tile />
         </button>
       </div>

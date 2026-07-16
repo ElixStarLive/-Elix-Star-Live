@@ -10,12 +10,6 @@ import {
   scanVideoUpload,
 } from "../services/audioScan";
 import { cacheAudioScanResult } from "../lib/audioScanValkey";
-import {
-  extractVideoIdFromStoragePath,
-  isVideoUpload,
-  scanVideoUpload,
-} from "../services/audioScan";
-import { cacheAudioScanResult } from "../lib/audioScanValkey";
 
 const router = Router();
 
