@@ -440,6 +440,21 @@ app.use("/gifts", (req, res) => {
 const distPath = join(__dirname, "..", "dist");
 const indexPath = join(distPath, "index.html");
 
+// Android App Links / Apple universal-link association files live under a
+// dot-directory, which express.static ignores by default. Serve them explicitly.
+app.get(
+  ["/.well-known/assetlinks.json", "/.well-known/apple-app-site-association"],
+  (req, res) => {
+    const name = req.path.endsWith("assetlinks.json")
+      ? "assetlinks.json"
+      : "apple-app-site-association";
+    res.type("application/json");
+    res.sendFile(join(distPath, ".well-known", name), (err) => {
+      if (err && !res.headersSent) res.status(404).end();
+    });
+  },
+);
+
 if (!fs.existsSync(indexPath)) {
   console.error(`ERROR: index.html not found at ${indexPath}`);
   console.error(
