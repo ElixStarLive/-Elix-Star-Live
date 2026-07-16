@@ -76,7 +76,7 @@
     --topbar-height: clamp(40px, 10vw, 56px);
     /* For You top bar — text tabs (TopNav.tsx) */
     --topnav-anchor-top: var(--safe-top);
-    --topnav-bar-height: clamp(52px, 13vw, 56px);
+    --topnav-bar-height: clamp(40px, 10vw, 44px);
     --topnav-video-gap: 0px;
     /* Non–For You pages: offset below where the golden bar would sit */
     --topbar-total: calc(

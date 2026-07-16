@@ -24,9 +24,9 @@ export const TopNav = () => {
       className="fixed left-0 right-0 z-[9999] flex justify-center pointer-events-none"
       style={{ top: "var(--topnav-anchor-top)" }}
     >
-      <div className="w-full max-w-[480px] pointer-events-auto bg-black min-h-[var(--topnav-bar-height)]">
-        <div className="flex items-center gap-0.5 px-2 h-full">
-          <div className="flex flex-1 items-center justify-between min-w-0 overflow-x-auto no-scrollbar gap-0.5 pr-1">
+      <div className="w-full max-w-[480px] pointer-events-auto bg-black min-h-[var(--topnav-bar-height)] h-[var(--topnav-bar-height)]">
+        <div className="flex items-center h-full w-full px-1.5 gap-0.5">
+          <div className="flex flex-1 items-center justify-between min-w-0 h-full flex-nowrap overflow-x-auto no-scrollbar gap-0">
             {TOP_TABS.map((tab) => {
               const active = tab.path === "/feed";
               return (
@@ -37,19 +37,19 @@ export const TopNav = () => {
                     if (tab.path === "/live") navigate("/live", { replace: true });
                     else navigate(tab.path);
                   }}
-                  className="flex-shrink-0 px-1.5 py-2 active:opacity-70 transition-opacity focus:outline-none"
+                  className="flex-shrink-0 flex items-center px-1 py-0 h-full active:opacity-70 transition-opacity focus:outline-none"
                   style={{ WebkitTapHighlightColor: "transparent" }}
                   title={tab.label}
                 >
                   <span
-                    className={`flex items-center gap-1 text-[11px] font-bold tracking-wide whitespace-nowrap ${
+                    className={`flex items-center gap-0.5 text-[10px] font-bold tracking-wide whitespace-nowrap leading-none ${
                       active || ("primary" in tab && tab.primary)
                         ? "text-gold-bright"
                         : "text-gold-bright/50"
                     }`}
                   >
                     {"live" in tab && tab.live ? (
-                      <Tv size={12} strokeWidth={2.25} className="shrink-0" />
+                      <Tv size={11} strokeWidth={2.25} className="shrink-0" />
                     ) : null}
                     {tab.label}
                   </span>
@@ -61,7 +61,7 @@ export const TopNav = () => {
             type="button"
             onClick={() => navigate("/search")}
             title="Search"
-            className="flex-shrink-0 flex items-center justify-center w-6 h-6 ml-0.5 mr-0.5 self-start mt-1.5 active:opacity-70 transition-opacity"
+            className="flex-shrink-0 flex items-center justify-center w-6 h-full ml-0.5 active:opacity-70 transition-opacity"
             style={{ WebkitTapHighlightColor: "transparent" }}
             aria-label="Search"
           >
