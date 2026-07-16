@@ -77,15 +77,18 @@ export default function Settings() {
 
   return (
     <SettingsOptionSheet onClose={() => navigate(-1)}>
-      <div className="flex-shrink-0 px-3 pb-2">
+      <div className="flex-shrink-0 px-3 pb-1">
         <div className="flex flex-col items-center">
           <span className="text-[13px] font-bold text-[#D4AF37]">Settings</span>
-          <img src="/elix-logo.png" alt="Elix Star Live" className="w-16 h-16 object-contain mt-1.5" />
         </div>
       </div>
 
+      {/* Logo + menu moved down so the void under the title is filled */}
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 pb-[3mm]">
-        <div className="flex flex-col gap-0 max-w-full min-h-full">
+        <div className="flex flex-col gap-0 max-w-full min-h-full" style={{ paddingTop: '8mm' }}>
+          <div className="flex flex-col items-center pb-3">
+            <img src="/elix-logo.png" alt="Elix Star Live" className="w-16 h-16 object-contain" />
+          </div>
           <S t="Account" />
           <R ic={<User size={14} />} t="Edit Profile" fn={() => navigate('/edit-profile')} />
           <R ic={<Lock size={14} />} t="Privacy" fn={() => navigate('/settings/safety')} />

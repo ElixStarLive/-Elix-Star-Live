@@ -433,15 +433,14 @@ export default function Inbox() {
 
   return (
     <div className="page-above-bottom-nav bg-[#111111]">
-      <div className="page-above-bottom-nav__inner">
-
-        {/* Header + Circles with gold frame — same as Friends */}
-        <div className="mx-2 mt-2 bg-[#111111] z-10">
-        <div className="px-3 pt-page-header pb-1 flex items-center justify-between relative">
+      <div className="page-above-bottom-nav__inner bg-[#111111] flex flex-col min-h-0">
+        {/* One full-page scroll — same fundal colour, no framed boxes */}
+        <div className="flex-1 min-h-0 overflow-y-auto bg-[#111111]">
+        <div className="px-3 pt-page-header pb-1 flex items-center justify-between relative bg-[#111111]">
           <div className="flex items-center gap-3 z-10">
-            <button onClick={() => navigate('/search')} aria-label="Search"><Search size={18} className="text-white" /></button>
+            <button onClick={() => navigate('/search')} aria-label="Search"><Search size={18} className="text-gold-bright" /></button>
           </div>
-          <h1 className="text-sm font-bold text-white absolute left-1/2 transform -translate-x-1/2">Inbox</h1>
+          <h1 className="text-sm font-bold text-gold-bright absolute left-1/2 transform -translate-x-1/2">Inbox</h1>
           <button
             type="button"
             onClick={() => navigate("/feed", { replace: true })}
@@ -454,7 +453,7 @@ export default function Inbox() {
         </div>
 
         {/* Circles — Followers hub first; suggested + per-follower avatars scroll to the right */}
-        <div className="px-3 py-2">
+        <div className="px-3 py-2 bg-[#111111]" style={{ marginTop: '4mm' }}>
             <div className="flex gap-3 overflow-x-auto overflow-y-hidden no-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
                 <button
                     type="button"
@@ -471,7 +470,7 @@ export default function Inbox() {
                             '/royce/default-avatar.svg'
                         }
                     />
-                    <div className="text-[11px] text-white/80 truncate w-full text-center">Followers</div>
+                    <div className="text-[11px] text-gold-bright/80 truncate w-full text-center">Followers</div>
                     <div className="text-[10px] text-[#E8D5A3]/90 truncate w-full text-center">{followersCount}</div>
                 </button>
 
@@ -489,7 +488,7 @@ export default function Inbox() {
                             src={u.avatar_url || '/royce/default-avatar.svg'}
                             alt={u.name || u.username}
                         />
-                        <div className="text-[11px] text-white/80 truncate w-full text-center">{u.name || u.username}</div>
+                        <div className="text-[11px] text-gold-bright/80 truncate w-full text-center">{u.name || u.username}</div>
                     </button>
                 ))}
 
@@ -508,28 +507,27 @@ export default function Inbox() {
                             src={f.avatar_url || '/royce/default-avatar.svg'}
                             alt={f.display_name || f.username || 'User'}
                         />
-                        <div className="text-[11px] text-white/80 truncate w-full text-center">{f.display_name || f.username || 'User'}</div>
+                        <div className="text-[11px] text-gold-bright/80 truncate w-full text-center">{f.display_name || f.username || 'User'}</div>
                     </button>
                     );
                 })}
             </div>
         </div>
-        </div>
 
-        {/* Filters */}
-        <div className="pl-[calc(1rem+22mm)] pr-4 py-2 flex items-center justify-center gap-2 overflow-x-auto no-scrollbar mb-2" style={{ marginLeft: '-20mm' }}>
-            <button onClick={() => setActiveFilter('main')} className={`px-4 py-1.5 rounded text-xs font-bold whitespace-nowrap border text-white ${activeFilter === 'main' ? 'bg-[#111111] border-gold-metallic' : 'bg-[#111111] border-[#C9A227]/30'}`}>Main</button>
-            <button onClick={() => setActiveFilter('requests')} className={`px-4 py-1.5 rounded text-xs font-bold whitespace-nowrap border text-white ${activeFilter === 'requests' ? 'bg-[#111111] border-gold-metallic' : 'bg-[#111111] border-[#C9A227]/30'}`}>Requests</button>
-            <button onClick={() => setActiveFilter('unread')} className={`px-4 py-1.5 rounded text-xs font-bold whitespace-nowrap border text-white ${activeFilter === 'unread' ? 'bg-[#111111] border-gold-metallic' : 'bg-[#111111] border-[#C9A227]/30'}`}>Unread</button>
-            <button onClick={() => setActiveFilter('starred')} className={`px-4 py-1.5 rounded text-xs font-bold whitespace-nowrap border text-white ${activeFilter === 'starred' ? 'bg-[#111111] border-gold-metallic' : 'bg-[#111111] border-[#C9A227]/30'}`}>Starred</button>
-            <button onClick={() => setActiveFilter('activity')} className={`px-4 py-1.5 rounded text-xs font-bold whitespace-nowrap border text-white ${activeFilter === 'activity' ? 'bg-[#111111] border-gold-metallic' : 'bg-[#111111] border-[#C9A227]/30'}`}>Activity</button>
-            <div className="ml-auto stroke-gold-metallic">
+        {/* Filters — flat text on fundal, no bordered boxes */}
+        <div className="pl-[calc(1rem+22mm)] pr-4 py-2 flex items-center justify-center gap-3 overflow-x-auto no-scrollbar mb-2 bg-[#111111]" style={{ marginLeft: '-20mm' }}>
+            <button onClick={() => setActiveFilter('main')} className={`px-2 py-1.5 text-xs font-bold whitespace-nowrap bg-transparent border-0 ${activeFilter === 'main' ? 'text-gold-bright' : 'text-gold-bright/45'}`}>Main</button>
+            <button onClick={() => setActiveFilter('requests')} className={`px-2 py-1.5 text-xs font-bold whitespace-nowrap bg-transparent border-0 ${activeFilter === 'requests' ? 'text-gold-bright' : 'text-gold-bright/45'}`}>Requests</button>
+            <button onClick={() => setActiveFilter('unread')} className={`px-2 py-1.5 text-xs font-bold whitespace-nowrap bg-transparent border-0 ${activeFilter === 'unread' ? 'text-gold-bright' : 'text-gold-bright/45'}`}>Unread</button>
+            <button onClick={() => setActiveFilter('starred')} className={`px-2 py-1.5 text-xs font-bold whitespace-nowrap bg-transparent border-0 ${activeFilter === 'starred' ? 'text-gold-bright' : 'text-gold-bright/45'}`}>Starred</button>
+            <button onClick={() => setActiveFilter('activity')} className={`px-2 py-1.5 text-xs font-bold whitespace-nowrap bg-transparent border-0 ${activeFilter === 'activity' ? 'text-gold-bright' : 'text-gold-bright/45'}`}>Activity</button>
+            <div className="ml-auto stroke-gold-metallic text-gold-bright">
                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
             </div>
         </div>
 
-        {/* List Content */}
-        <div className="flex-1 overflow-y-auto px-4 py-1 space-y-4">
+        {/* List Content — continues same scroll / same fundal */}
+        <div className="px-4 py-1 space-y-4 bg-[#111111] pb-4">
             
             {activeFilter === 'main' && (
             <>
@@ -537,14 +535,14 @@ export default function Inbox() {
             <button
                 type="button"
                 onClick={() => setShowNewFollowersPanel(true)}
-                className="flex items-center gap-3 w-full text-left py-2 px-2 rounded-lg hover:bg-white/5 active:bg-white/10"
+                className="flex items-center gap-3 w-full text-left py-2 px-2 bg-[#111111]"
             >
                 <div className="relative w-12 h-12 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0 royce-tile">
                     <UserPlus className="w-6 h-6 royce-icon-gold relative z-10" strokeWidth={2} style={{ transform: 'translate(0.5mm, -0.5mm)' }} />
                 </div>
                 <div className="flex-1 min-w-0">
                     <h3 className="font-bold text-sm text-gold-metallic">New followers</h3>
-                    <p className="text-white/70 text-xs truncate">
+                    <p className="text-gold-bright/70 text-xs truncate">
                         {followersCount === 0
                             ? 'No new followers yet'
                             : `${followersCount} people follow you`}
@@ -554,13 +552,13 @@ export default function Inbox() {
             </button>
 
             {/* Activity - golden circle from Music Icon (likes, comments) */}
-            <button onClick={() => setActiveFilter('activity')} className="flex items-center gap-3 w-full text-left py-2 px-2 rounded-lg hover:bg-white/5 active:bg-white/10">
+            <button onClick={() => setActiveFilter('activity')} className="flex items-center gap-3 w-full text-left py-2 px-2 bg-[#111111]">
                 <div className="relative w-12 h-12 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0 royce-tile">
 <Heart className="w-6 h-6 royce-icon-gold relative z-10" strokeWidth={2.25} />
                 </div>
                 <div className="flex-1 min-w-0">
                     <h3 className="font-bold text-sm text-gold-metallic">Activity</h3>
-                    <p className="text-white text-xs truncate">
+                    <p className="text-gold-bright text-xs truncate">
                       {activitySummaryCount > 0
                         ? `${activitySummaryCount} likes, comments & saves`
                         : 'No recent activity'}
@@ -578,7 +576,7 @@ export default function Inbox() {
                       key={a.id}
                       type="button"
                       onClick={() => { if (a.video_id) navigate(`/video/${encodeURIComponent(a.video_id)}`); }}
-                      className="flex items-center gap-2.5 w-full text-left py-1.5 px-2 rounded-lg hover:bg-white/5 active:bg-white/10"
+                      className="flex items-center gap-2.5 w-full text-left py-1.5 px-2 bg-[#111111]"
                     >
                       <div className="w-9 h-9 rounded-full bg-[#111111] border border-[#C9A227]/30 flex items-center justify-center flex-shrink-0 overflow-hidden relative">
                         {a.actor_avatar_url ? (
@@ -599,7 +597,7 @@ export default function Inbox() {
                         </span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs text-white truncate"><span className="font-semibold">{actorName}</span> <span className="text-white/60">{activityLine(a)}</span></p>
+                        <p className="text-xs text-gold-bright truncate"><span className="font-semibold">{actorName}</span> <span className="text-gold-bright/60">{activityLine(a)}</span></p>
                       </div>
                     </button>
                   );
@@ -616,20 +614,20 @@ export default function Inbox() {
             <div className="space-y-1 pt-2">
                 <h3 className="font-bold text-sm text-gold-metallic px-1 pb-2">Messages</h3>
                 {conversations.length === 0 ? (
-                    <p className="text-white/50 text-xs px-1 py-2">No messages yet</p>
+                    <p className="text-gold-bright/50 text-xs px-1 py-2">No messages yet</p>
                 ) : (
                     conversations.map((conv) => (
-                        <div key={conv.id} className="flex items-center gap-3 py-2 px-2 rounded-lg hover:bg-white/5 active:bg-white/10 group">
+                        <div key={conv.id} className="flex items-center gap-3 py-2 px-2 bg-[#111111] group">
                             <div className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer" onClick={() => navigate(`/inbox/${conv.id}`)}>
                                 <AvatarRing src={conv.otherUser?.avatar_url || ''} alt={conv.otherUser?.display_name || conv.otherUser?.username || 'User'} size={48} />
                                 <div className="flex-1 min-w-0">
-                                    <p className="font-semibold text-sm text-white truncate flex items-center gap-1.5">
+                                    <p className="font-semibold text-sm text-gold-bright truncate flex items-center gap-1.5">
                                       {conv.otherUser?.display_name || conv.otherUser?.username || 'User'}
                                       {conv.hasUnread ? (
-                                        <span className="inline-block w-2 h-2 rounded-full bg-[#FFFFFF] flex-shrink-0" title="Unread" aria-label="Unread messages" />
+                                        <span className="inline-block w-2 h-2 rounded-full bg-[#D4AF37] flex-shrink-0" title="Unread" aria-label="Unread messages" />
                                       ) : null}
                                     </p>
-                                    <p className="text-white/60 text-xs truncate">{conv.lastMessage || 'No messages yet'}</p>
+                                    <p className="text-gold-bright/60 text-xs truncate">{conv.lastMessage || 'No messages yet'}</p>
                                 </div>
                             </div>
                             <button
@@ -651,11 +649,11 @@ export default function Inbox() {
                                       showToast('Could not delete');
                                     }
                                 }}
-                                className="w-10 h-10 rounded-full bg-[#111111] border border-[#C9A227]/40 flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform hover:border-white/40/50 hover:bg-white/20/10"
+                                className="w-10 h-10 rounded-full bg-[#111111] border border-[#C9A227]/40 flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform hover:border-[#C9A227]/50 hover:bg-[#111111]"
                                 title="Delete conversation"
                                 aria-label="Delete conversation"
                             >
-                                <Trash2 size={18} className="text-[#E8D5A3]/90 hover:text-white/60" />
+                                <Trash2 size={18} className="text-[#E8D5A3]/90 hover:text-gold-bright/60" />
                             </button>
                         </div>
                     ))
@@ -668,19 +666,19 @@ export default function Inbox() {
             {activeFilter === 'unread' && (
             <div className="space-y-1 pt-2">
                 <h3 className="font-bold text-sm text-gold-metallic px-1 pb-2">Unread messages</h3>
-                <p className="text-white/45 text-[11px] px-1 pb-3 leading-snug">
+                <p className="text-gold-bright/45 text-[11px] px-1 pb-3 leading-snug">
                   Chats appear here when someone messaged you and you haven’t opened the conversation yet. Opening a chat marks those messages as read.
                 </p>
                 {conversations.filter((c) => c.hasUnread).length === 0 ? (
-                    <p className="text-white/50 text-xs px-1 py-2">You’re all caught up.</p>
+                    <p className="text-gold-bright/50 text-xs px-1 py-2">You’re all caught up.</p>
                 ) : (
                     conversations.filter((c) => c.hasUnread).map((conv) => (
-                        <div key={conv.id} className="flex items-center gap-3 py-2 px-2 rounded-lg hover:bg-white/5 active:bg-white/10 group">
+                        <div key={conv.id} className="flex items-center gap-3 py-2 px-2 bg-[#111111] group">
                             <div className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer" onClick={() => navigate(`/inbox/${conv.id}`)}>
                                 <AvatarRing src={conv.otherUser?.avatar_url || ''} alt={conv.otherUser?.display_name || conv.otherUser?.username || 'User'} size={48} />
                                 <div className="flex-1 min-w-0">
-                                    <p className="font-semibold text-sm text-white truncate">{conv.otherUser?.display_name || conv.otherUser?.username || 'User'}</p>
-                                    <p className="text-white/60 text-xs truncate">
+                                    <p className="font-semibold text-sm text-gold-bright truncate">{conv.otherUser?.display_name || conv.otherUser?.username || 'User'}</p>
+                                    <p className="text-gold-bright/60 text-xs truncate">
                                       {(conv.unreadCount ?? 0) > 1
                                         ? `${conv.unreadCount} unread · ${conv.lastMessage || 'Tap to open'}`
                                         : conv.lastMessage
@@ -708,11 +706,11 @@ export default function Inbox() {
                                       showToast('Could not delete');
                                     }
                                 }}
-                                className="w-10 h-10 rounded-full bg-[#111111] border border-[#C9A227]/40 flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform hover:border-white/40/50 hover:bg-white/20/10"
+                                className="w-10 h-10 rounded-full bg-[#111111] border border-[#C9A227]/40 flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform hover:border-[#C9A227]/50 hover:bg-[#111111]"
                                 title="Delete conversation"
                                 aria-label="Delete conversation"
                             >
-                                <Trash2 size={18} className="text-[#E8D5A3]/90 hover:text-white/60" />
+                                <Trash2 size={18} className="text-[#E8D5A3]/90 hover:text-gold-bright/60" />
                             </button>
                         </div>
                     ))
@@ -724,11 +722,11 @@ export default function Inbox() {
             {activeFilter === 'requests' && (
             <div className="space-y-1 pt-2">
                 <h3 className="font-bold text-sm text-gold-metallic px-1 pb-2">Requests</h3>
-                <p className="text-white/45 text-[11px] px-1 pb-3 leading-snug">
+                <p className="text-gold-bright/45 text-[11px] px-1 pb-3 leading-snug">
                   People who shared a live with you show here when you don’t follow them yet, so your main inbox stays clear.
                 </p>
                 {liveShareRequests.length === 0 ? (
-                    <p className="text-white/50 text-xs px-1 py-2">No live shares right now.</p>
+                    <p className="text-gold-bright/50 text-xs px-1 py-2">No live shares right now.</p>
                 ) : (
                     liveShareRequests.map((row) => {
                       const who = row.sharer_name?.trim() || 'Someone';
@@ -740,7 +738,7 @@ export default function Inbox() {
                           onClick={() => {
                             if (row.stream_key) navigate(`/watch/${encodeURIComponent(row.stream_key)}`);
                           }}
-                          className="flex items-center gap-3 w-full text-left py-2.5 px-2 rounded-lg hover:bg-white/5 active:bg-white/10"
+                          className="flex items-center gap-3 w-full text-left py-2.5 px-2 bg-[#111111]"
                         >
                           <div className="w-12 h-12 rounded-full bg-[#111111] border border-[#C9A227]/40 flex items-center justify-center flex-shrink-0 overflow-hidden relative">
                             {row.sharer_avatar ? (
@@ -753,8 +751,8 @@ export default function Inbox() {
                             </span>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-sm text-white truncate">{who}</p>
-                            <p className="text-white/70 text-xs truncate">
+                            <p className="font-semibold text-sm text-gold-bright truncate">{who}</p>
+                            <p className="text-gold-bright/70 text-xs truncate">
                               Shared {hostLabel}&apos;s live with you · Tap to watch
                             </p>
                           </div>
@@ -769,7 +767,7 @@ export default function Inbox() {
             {activeFilter === 'activity' && (
               <>
                 {activityItems.length === 0 && notifications.filter((n) => n.type === 'like' || n.type === 'comment').length === 0 ? (
-                  <div className="py-8 text-center text-white/50 text-sm px-2">
+                  <div className="py-8 text-center text-gold-bright/50 text-sm px-2">
                     No activity yet. When someone likes, comments on, saves your video, or @mentions you, it will show here.
                   </div>
                 ) : (
@@ -783,7 +781,7 @@ export default function Inbox() {
                           onClick={() => {
                             if (a.video_id) navigate(`/video/${encodeURIComponent(a.video_id)}`);
                           }}
-                          className="flex items-center gap-3 w-full text-left py-2.5 px-2 rounded-lg hover:bg-white/5 active:bg-white/10"
+                          className="flex items-center gap-3 w-full text-left py-2.5 px-2 bg-[#111111]"
                         >
                           <div className="w-12 h-12 rounded-full bg-[#111111] border border-[#C9A227]/40 flex items-center justify-center flex-shrink-0 overflow-hidden relative">
                             {a.actor_avatar_url ? (
@@ -804,8 +802,8 @@ export default function Inbox() {
                             </span>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-sm text-white truncate">{actorName}</p>
-                            <p className="text-white/70 text-xs truncate">{activityLine(a)}{a.video_id ? ' · Tap to view' : ''}</p>
+                            <p className="font-semibold text-sm text-gold-bright truncate">{actorName}</p>
+                            <p className="text-gold-bright/70 text-xs truncate">{activityLine(a)}{a.video_id ? ' · Tap to view' : ''}</p>
                           </div>
                         </button>
                       );
@@ -827,7 +825,7 @@ export default function Inbox() {
                               onClick={() => {
                                 if (actionUrl) navigate(actionUrl);
                               }}
-                              className="flex items-center gap-3 w-full text-left py-2.5 px-2 rounded-lg hover:bg-white/5 active:bg-white/10"
+                              className="flex items-center gap-3 w-full text-left py-2.5 px-2 bg-[#111111]"
                             >
                               <div className="w-12 h-12 rounded-full bg-[#111111] border border-[#C9A227]/40 flex items-center justify-center flex-shrink-0 overflow-hidden">
                                 {notif.image_url || notif.rawData?.avatar_url ? (
@@ -837,8 +835,8 @@ export default function Inbox() {
                                 )}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-sm text-white truncate">{actorName}</p>
-                                <p className="text-white/70 text-xs truncate">
+                                <p className="font-semibold text-sm text-gold-bright truncate">{actorName}</p>
+                                <p className="text-gold-bright/70 text-xs truncate">
                                   {notif.type === 'like' ? 'liked your video' : 'commented on your video'}
                                   {actionUrl && ' · Tap to view'}
                                 </p>
@@ -863,15 +861,15 @@ export default function Inbox() {
                     </div>
                     <div className="flex-1 min-w-0">
                         <h3 className="font-bold text-sm text-gold-metallic">{notif.title}</h3>
-                        <p className="text-white text-xs truncate">{notif.body}</p>
+                        <p className="text-gold-bright text-xs truncate">{notif.body}</p>
                     </div>
-                    <span className="text-[10px] text-white">{notif.created_at ? formatTimeAgo(notif.created_at) : ''}</span>
+                    <span className="text-[10px] text-gold-bright">{notif.created_at ? formatTimeAgo(notif.created_at) : ''}</span>
                 </button>
             ))}
 
              {/* Starred empty state */}
              {activeFilter === 'starred' && (
-               <div className="py-8 text-center text-white/50 text-sm">No starred messages yet.</div>
+               <div className="py-8 text-center text-gold-bright/50 text-sm">No starred messages yet.</div>
              )}
 
              {/* Shop Notification */}
@@ -882,43 +880,51 @@ export default function Inbox() {
                     </div>
                     <div className="flex-1 min-w-0">
                         <h3 className="font-bold text-sm text-gold-metallic">{notif.title}</h3>
-                        <p className="text-white text-xs truncate">{notif.body}</p>
+                        <p className="text-gold-bright text-xs truncate">{notif.body}</p>
                     </div>
-                    <span className="text-[10px] text-white">{notif.created_at ? formatTimeAgo(notif.created_at) : ''}</span>
+                    <span className="text-[10px] text-gold-bright">{notif.created_at ? formatTimeAgo(notif.created_at) : ''}</span>
                 </button>
             ))}
              
         </div>
+        </div>
       </div>
 
-      {/* New followers panel — rendered on top of everything via portal */}
+      {/* Followers — full page on same fundal, no sheet box */}
       {showNewFollowersPanel && createPortal(
-        <>
-          <div
-            className="fixed inset-0 bg-black/50 pointer-events-auto z-[100]"
-            onClick={() => setShowNewFollowersPanel(false)}
-            aria-hidden
-          />
-          <div className="fixed left-0 right-0 pointer-events-auto max-w-[480px] mx-auto z-[101] fixed-above-bottom-nav">
-            <div className="bg-[#111111]/95 backdrop-blur-md rounded-t-2xl p-3 pb-4 overflow-y-scroll shadow-2xl w-full new-followers-panel-scroll" style={{ minHeight: 'calc(55dvh - 3cm)', maxHeight: 'calc(min(85dvh, 700px) - 3cm)' }}>
-              <div className="mb-3">
-                <h2 className="text-lg font-bold text-gold-metallic text-center">Followers ({followersCount})</h2>
+        <div className="page-above-bottom-nav bg-[#111111] z-[101] pointer-events-auto">
+          <div className="page-above-bottom-nav__inner bg-[#111111] flex flex-col min-h-0">
+            <div className="flex-1 min-h-0 overflow-y-auto bg-[#111111] new-followers-panel-scroll">
+              <div className="px-3 pt-page-header pb-1 flex items-center justify-between relative bg-[#111111]">
+                <div className="w-8" aria-hidden />
+                <h2 className="text-sm font-bold text-gold-bright absolute left-1/2 transform -translate-x-1/2">
+                  Followers ({followersCount})
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setShowNewFollowersPanel(false)}
+                  className="p-1 z-10"
+                  title="Close"
+                  aria-label="Close followers"
+                >
+                  <RoyceBackIcon />
+                </button>
               </div>
               {myNewFollowers.length === 0 ? (
-              <p className="text-white/50 text-sm py-6 text-center">No one follows you yet. When they do, they’ll show here.</p>
+              <p className="text-gold-bright/50 text-sm py-6 text-center px-4">No one follows you yet. When they do, they’ll show here.</p>
             ) : (
-              <div className="space-y-0.5 pb-2">
+              <div className="space-y-0.5 pb-4 px-4 bg-[#111111]">
                 {myNewFollowers.map((f) => (
                     <div
                       key={f.user_id}
-                      className="flex items-center gap-2 w-full py-2.5 px-2 rounded-lg hover:bg-white/5 active:bg-white/10"
+                      className="flex items-center gap-2 w-full py-2.5 px-0 bg-[#111111]"
                     >
                       <button
                         type="button"
-                        className="flex items-center gap-3 flex-1 min-w-0 text-left"
+                        className="flex items-center gap-3 flex-1 min-w-0 text-left bg-[#111111]"
                         onClick={() => { setShowNewFollowersPanel(false); navigate(`/profile/${f.user_id}`); }}
                       >
-                        <div className="relative w-11 h-11 rounded-full bg-[#111111] flex items-center justify-center overflow-hidden flex-shrink-0 border border-[#C9A227]/30">
+                        <div className="relative w-11 h-11 rounded-full bg-[#111111] flex items-center justify-center overflow-hidden flex-shrink-0">
                           {f.avatar_url ? (
                             <img src={f.avatar_url} alt="" className="w-full h-full object-cover" />
                           ) : (
@@ -926,8 +932,8 @@ export default function Inbox() {
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-sm text-white truncate">{f.display_name || f.username || 'User'}</p>
-                          <p className="text-white/60 text-xs truncate">@{f.username}</p>
+                          <p className="font-semibold text-sm text-gold-bright truncate">{f.display_name || f.username || 'User'}</p>
+                          <p className="text-gold-bright/60 text-xs truncate">@{f.username}</p>
                         </div>
                       </button>
                       {currentUserId && f.user_id !== currentUserId && (
@@ -937,10 +943,10 @@ export default function Inbox() {
                             e.stopPropagation();
                             void handleFollowToggle(f.user_id);
                           }}
-                          className={`shrink-0 px-3 py-1.5 rounded-md text-xs font-bold transition ${
+                          className={`shrink-0 px-2 py-1.5 text-xs font-bold bg-transparent border-0 ${
                             iFollowIds.has(f.user_id)
-                              ? 'bg-white/10 text-white border border-white/25'
-                              : 'bg-[#FF2D55] text-white border border-[#FF2D55]'
+                              ? 'text-gold-bright/45'
+                              : 'text-gold-bright'
                           }`}
                         >
                           {iFollowIds.has(f.user_id) ? 'Following' : 'Follow'}
@@ -948,11 +954,11 @@ export default function Inbox() {
                       )}
                       <button
                         type="button"
-                        className="p-1 rounded-lg hover:bg-white/10 flex-shrink-0"
+                        className="p-1 flex-shrink-0 bg-[#111111]"
                         onClick={() => { setShowNewFollowersPanel(false); navigate(`/profile/${f.user_id}`); }}
                         aria-label="Open profile"
                       >
-                        <ChevronRight className="w-5 h-5 text-[#E8D5A3]/70" />
+                        <ChevronRight className="w-5 h-5 text-gold-bright/70" />
                       </button>
                     </div>
                   ))}
@@ -960,7 +966,7 @@ export default function Inbox() {
               )}
             </div>
           </div>
-        </>,
+        </div>,
         document.body
       )}
     </div>

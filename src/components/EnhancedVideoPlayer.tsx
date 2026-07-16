@@ -991,42 +991,47 @@ export default function EnhancedVideoPlayer({
         </button>
       </div>
 
-      {/* Bottom Info Area — clear bottom nav so views/date stay visible */}
+      {/* Bottom Info — restored from Play 60 / 1.0.21 (ec3ebbd): name; music (no circle); views under music */}
       <div
-        className={`absolute z-[10] left-3 w-[72%] pointer-events-none flex flex-col ${edgeToBottomNav ? 'pb-2' : 'pb-1'}`}
-        style={{ bottom: `calc(${navStackExpr} + 8px)`, transform: 'translateY(8mm)' }}
+        className="absolute z-[10] pointer-events-none flex flex-col items-stretch gap-0.5"
+        style={{
+          left: '3mm',
+          right: '72px',
+          /* Name / music / views: 2mm above the playing bar */
+          bottom: edgeToBottomNav
+            ? `calc(${navStackExpr} + 4mm + 2mm)`
+            : 'calc(3mm + 2mm)',
+        }}
       >
-        <div className="flex items-center gap-2 mb-0">
-          <LevelBadge level={video.user.level ?? 1} size={10} circleSize={28} layout="fixed" avatar={video.user.avatar} />
-          <h3 className="text-white font-bold text-shadow-md">{video.user.name || video.user.username}</h3>
+        <div className="flex items-center gap-2 w-full min-w-0 justify-start">
+          <LevelBadge level={video.user.level ?? 1} size={22} circleSize={28} layout="fixed" avatar={video.user.avatar} />
+          <h3 className="text-white font-bold text-shadow-md truncate">
+            {video.user.name || video.user.username}
+          </h3>
           {video.user.isVerified && (
-            <div className="w-4 h-4 bg-[#FFFFFF] rounded-full flex items-center justify-center">
+            <div className="w-4 h-4 bg-[#FFFFFF] rounded-full flex items-center justify-center flex-shrink-0">
               <div className="w-2 h-2 bg-white rounded-full" />
             </div>
           )}
         </div>
 
-        <div className="flex items-center gap-2 text-white/90 mb-1 mt-0.5">
-          <span className="w-4 h-4 rounded-full overflow-hidden bg-black flex-shrink-0 border border-white/20 flex items-center justify-center">
-            <img
-              src={video.music?.coverUrl || video.user.avatar || '/royce/default-avatar.svg'}
-              alt=""
-              className="w-full h-full object-cover"
-              draggable={false}
-              onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/royce/default-avatar.svg'; }}
-            />
-          </span>
-          <span className="text-xs font-medium animate-marquee whitespace-nowrap overflow-hidden w-32">
+        <div className="w-full min-w-0 text-left">
+          <span className="text-xs font-medium text-white/90 animate-marquee whitespace-nowrap overflow-hidden block max-w-full">
             {video.music?.title || 'Original Sound'}
             {(video.music?.artist || video.user.name || video.user.username) ? ` - ${video.music?.artist || video.user.name || video.user.username}` : ''}
           </span>
         </div>
-        
-        <p className="text-white/90 text-sm mb-1 text-shadow-md line-clamp-2">
+
+        <div className="flex items-center gap-2 text-white/60 text-xs w-full justify-start">
+          <span>{formatNumber(video.stats.views)} views</span>
+          <span>{new Date(video.createdAt).toLocaleDateString()}</span>
+        </div>
+
+        <p className="text-white/90 text-sm mb-0 text-shadow-md line-clamp-2 w-full text-left">
           {video.description}
         </p>
-        
-        <div className="flex flex-wrap gap-1 mb-1">
+
+        <div className="flex flex-wrap gap-1 mb-0 w-full justify-start">
           {video.hashtags.map((hashtag) => (
             <button
               key={hashtag}
@@ -1039,19 +1044,14 @@ export default function EnhancedVideoPlayer({
         </div>
 
         {video.location && (
-          <div className="flex items-center gap-1 text-white/60 text-xs mb-1">
+          <div className="flex items-center gap-1 text-white/60 text-xs mb-0 w-full justify-start">
             <div className="w-3 h-3 rounded-full" />
             <span>{video.location}</span>
           </div>
         )}
 
-        <div className="flex items-center gap-3 text-white/60 text-xs">
-          <span>{formatNumber(video.stats.views)} views</span>
-          <span>{new Date(video.createdAt).toLocaleDateString()}</span>
-        </div>
-
         {feedSourceLabel ? (
-          <p className="text-white/50 text-[11px] font-medium mt-1 mb-0">{feedSourceLabel}</p>
+          <p className="text-white/50 text-[11px] font-medium mt-0 mb-0 w-full text-left">{feedSourceLabel}</p>
         ) : null}
       </div>
 
