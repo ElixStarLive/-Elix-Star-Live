@@ -78,10 +78,8 @@
     --topnav-anchor-top: var(--safe-top);
     --topnav-bar-height: clamp(40px, 10vw, 44px);
     --topnav-video-gap: 0px;
-    /* For You column: top bar, video, bottom bar share this width exactly
-       Was 10mm total inset; +6mm each side → +12mm width */
-    --feed-column-width: calc(100% + 2mm);
-    --feed-column-max-width: calc(480px + 2mm);
+    /* For You column: top bar, video, bottom bar — identical width */
+    --feed-column-max-width: 480px;
     /* Non–For You pages: offset below where the golden bar would sit */
     --topbar-total: calc(
       var(--topnav-anchor-top) + var(--topnav-bar-height) + var(--topnav-video-gap)
@@ -123,9 +121,10 @@
     --z-modals: 1000;
   }
 
-  /* Same width for For You top bar, video container, and bottom bar */
+  /* Same width for For You top bar, video container, and bottom bar
+     (fixed bars use 100vw − safe insets so they match in-flow main column) */
   .feed-column-width {
-    width: var(--feed-column-width);
+    width: min(var(--feed-column-max-width), calc(100vw - var(--safe-left) - var(--safe-right)));
     max-width: var(--feed-column-max-width);
     margin-left: auto;
     margin-right: auto;
