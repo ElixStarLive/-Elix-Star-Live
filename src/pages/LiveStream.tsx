@@ -4930,7 +4930,7 @@ export default function LiveStream() {
 
       {/* BOTTOM RIGHT: Action buttons (same area as before, aligned right) */}
       <div
-        className="bottom-zone pointer-events-auto bg-transparent px-3 pt-0 flex flex-col items-end fixed left-0 right-0 bottom-0 z-[221] justify-end"
+        className="bottom-zone pointer-events-auto bg-transparent px-3 pt-0 flex flex-col items-end fixed left-0 right-0 bottom-0 z-[250] justify-end"
         style={{ paddingBottom: LIVE_BOTTOM_ACTION_PADDING }}
       >
         <div className="w-full max-w-[480px] mx-auto flex flex-col items-end gap-0">
@@ -5042,8 +5042,8 @@ export default function LiveStream() {
       {/* Gift panel: spectators open it from their bar; creator has no Gift button. */}
       {showGiftPanel && !isBroadcast && (
         <>
-          <div className="fixed inset-0 bg-black/50 pointer-events-auto" style={{ zIndex: 200 }} onClick={() => setShowGiftPanel(false)} />
-          <div className="fixed bottom-0 left-0 right-0 pointer-events-auto max-w-[480px] mx-auto" style={{ zIndex: 201 }}>
+          <div className="fixed inset-0 bg-black/50 pointer-events-auto" style={{ zIndex: 99998 }} onClick={() => setShowGiftPanel(false)} />
+          <div className="fixed bottom-0 left-0 right-0 pointer-events-auto max-w-[480px] mx-auto" style={{ zIndex: 99999 }}>
             <GiftPanel
               onSelectGift={handleSendGift}
               userCoins={coinBalance}

@@ -83,7 +83,8 @@ function GiftVideo({
       ref={videoRef}
       key={videoSrc}
       src={videoSrc}
-      className={className}
+      className={`${className} pointer-events-none`}
+      style={{ pointerEvents: 'none' }}
       playsInline
       autoPlay
       muted={muted}

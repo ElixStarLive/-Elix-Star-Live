@@ -26,6 +26,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
   const safeLevel = typeof level === 'number' && Number.isFinite(level) && level > 0 ? Math.floor(level) : 1;
   /** CSS px per mm (1in = 25.4mm, 1in = 96px). */
   const MM_TO_PX = 96 / 25.4;
+  const levelExtraHeightPx = 2 * MM_TO_PX;
   const shrinkMm = 3;
   const shrinkPx = shrinkMm * MM_TO_PX;
   const circleGrowMm = 4;
@@ -40,7 +41,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
       : Math.max(16, Math.floor(rawSize - Math.min(shrinkPx, maxShrink) + circleGrowPx));
   const splitCircleSizing =
     typeof circleSizeProp === 'number' && Number.isFinite(circleSizeProp);
-  const barHeight = Math.round(barBaseSize * 0.72);
+  const barHeight = Math.round(barBaseSize * 0.72) + levelExtraHeightPx;
   const barWidth = Math.round(barBaseSize * 1.75);
   const overlap = splitCircleSizing
     ? Math.round(circleSize * 0.28)
@@ -61,7 +62,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
     const pillH = Math.max(
       10,
       Math.round(sizeProvided ? barBaseSize * 0.62 : circleSize * 0.34),
-    );
+    ) + levelExtraHeightPx;
     const pillPadX = Math.max(5, Math.round(pillH * 0.38));
     const overlapPx = Math.round(circleSize * 0.28);
     const label = text === 'level' ? `Level ${safeLevel}` : `LV ${safeLevel}`;
@@ -72,7 +73,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
         style={{
           display: 'inline-flex',
           alignItems: 'center',
-          height: circleSize,
+          height: Math.max(circleSize, pillH),
           flexShrink: 0,
           verticalAlign: 'middle',
           position: 'relative',

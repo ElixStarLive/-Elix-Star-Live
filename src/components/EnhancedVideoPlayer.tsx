@@ -890,7 +890,7 @@ export default function EnhancedVideoPlayer({
       <div
         className="absolute z-[10] flex flex-col items-center gap-2 pointer-events-auto"
         style={{
-          right: '12px',
+          right: 'calc(12px - 3mm)',
           bottom: likeBarBottom,
         }}
       >

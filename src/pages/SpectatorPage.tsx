@@ -2765,7 +2765,7 @@ export default function SpectatorPage() {
 
         {/* Bottom bar — chat + Invite / Gift / Share / More (labels under icons, spectator) */}
         <div
-          className="fixed left-0 right-0 bottom-0 z-[221] pointer-events-auto flex justify-center"
+          className="fixed left-0 right-0 bottom-0 z-[250] pointer-events-auto flex justify-center"
           style={{ paddingBottom: LIVE_BOTTOM_ACTION_PADDING }}
         >
           <div className="w-full max-w-[480px] px-3 pt-0 bg-transparent">
@@ -3121,10 +3121,10 @@ export default function SpectatorPage() {
           <>
             <div
               className="fixed inset-0 bg-black/50 pointer-events-auto"
-              style={{ zIndex: 200 }}
+              style={{ zIndex: 99998 }}
               onClick={() => setShowGiftPanel(false)}
             />
-            <div className="fixed bottom-0 left-0 right-0 pointer-events-auto max-w-[480px] mx-auto" style={{ zIndex: 201 }}>
+            <div className="fixed bottom-0 left-0 right-0 pointer-events-auto max-w-[480px] mx-auto" style={{ zIndex: 99999 }}>
               {spectatorBattle?.active && (
                 <div className="px-3 pb-2 pt-1 flex items-center justify-center gap-2 bg-[#111111]/95 rounded-t-xl">
                   <div className="flex rounded-full overflow-hidden border border-[#C9A227]/40">
