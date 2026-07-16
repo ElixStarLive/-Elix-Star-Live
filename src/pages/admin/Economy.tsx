@@ -37,7 +37,16 @@ export default function AdminEconomy() {
       ]);
 
       const gData = giftsRes.data;
-      setGifts(Array.isArray(gData) ? gData : (Array.isArray(gData?.data) ? gData.data : []));
+      const rawGifts = Array.isArray(gData) ? gData : (gData?.gifts ?? gData?.data ?? []);
+      setGifts(
+        rawGifts.map((g: Record<string, unknown>) => ({
+          id: String(g.gift_id ?? g.id ?? ''),
+          name: String(g.name ?? ''),
+          coin_cost: Number(g.coin_cost ?? 0),
+          rarity: String(g.gift_type ?? g.rarity ?? 'small'),
+          is_active: Boolean(g.is_active),
+        })).filter((g) => g.id),
+      );
       const bData = boostersRes.data;
       setBoosters(Array.isArray(bData) ? bData : (Array.isArray(bData?.data) ? bData.data : []));
     } catch {
@@ -49,7 +58,7 @@ export default function AdminEconomy() {
 
   const updateGiftPrice = async (giftId: string, newPrice: number) => {
     try {
-      const { error } = await request(`/api/gifts/catalog/${encodeURIComponent(giftId)}`, {
+      const { error } = await request(`/api/admin/gifts/catalog/${encodeURIComponent(giftId)}`, {
         method: 'PATCH',
         body: JSON.stringify({ coin_cost: newPrice }),
       });

@@ -21,18 +21,22 @@ for (const [key, val] of Object.entries(process.env)) {
     placeholdersRemoved++;
   }
 }
-if (placeholdersRemoved > 0) {
+if (placeholdersRemoved > 0 && nodeEnv !== 'production') {
   console.log(`[config] Removed ${placeholdersRemoved} Coolify placeholder env var(s)`);
 }
 
 if (fs.existsSync(envPath)) {
   dotenv.config({ path: envPath, override: false });
-  console.log(`[config] Loaded .env (NODE_ENV=${process.env.NODE_ENV || nodeEnv})`);
+  if (nodeEnv !== 'production') {
+    console.log(`[config] Loaded .env (NODE_ENV=${process.env.NODE_ENV || nodeEnv})`);
+  }
 }
 if ((process.env.NODE_ENV || nodeEnv) === 'production' && fs.existsSync(envProdPath)) {
   dotenv.config({ path: envProdPath, override: true });
-  console.log('[config] Loaded .env.production (overrides)');
+  if (nodeEnv !== 'production') {
+    console.log('[config] Loaded .env.production (overrides)');
+  }
 }
-if (!fs.existsSync(envPath) && !fs.existsSync(envProdPath)) {
+if (!fs.existsSync(envPath) && !fs.existsSync(envProdPath) && nodeEnv !== 'production') {
   console.log('[config] No .env or .env.production found, using system env');
 }

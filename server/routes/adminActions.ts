@@ -18,6 +18,11 @@ const banSchema = z.object({
   reason: z.string().max(500).optional(),
 });
 
+const patchGiftCatalogSchema = z.object({
+  coin_cost: z.number().int().positive().max(10_000_000).optional(),
+  is_active: z.boolean().optional(),
+});
+
 const router = Router();
 
 router.use(requireAuthWithRoles);
@@ -174,5 +179,43 @@ router.delete("/users/:userId/ban", async (req: Request, res: Response) => {
     return res.status(500).json({ error: "DATABASE_ERROR" });
   }
 });
+
+router.patch(
+  "/gifts/catalog/:giftId",
+  validateBody(patchGiftCatalogSchema),
+  async (req: Request, res: Response) => {
+    res.setHeader("Cache-Control", "private, no-store");
+    const db = getPool();
+    if (!db) return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+    const giftId = typeof req.params.giftId === "string" ? req.params.giftId.trim() : "";
+    if (!giftId) return res.status(400).json({ error: "giftId is required" });
+    const { coin_cost, is_active } = req.body as z.infer<typeof patchGiftCatalogSchema>;
+    if (coin_cost === undefined && is_active === undefined) {
+      return res.status(400).json({ error: "No fields to update" });
+    }
+    try {
+      const sets: string[] = [];
+      const params: Array<string | number | boolean> = [];
+      if (coin_cost !== undefined) {
+        params.push(coin_cost);
+        sets.push(`coin_cost = $${params.length}`);
+      }
+      if (is_active !== undefined) {
+        params.push(is_active);
+        sets.push(`is_active = $${params.length}`);
+      }
+      params.push(giftId);
+      const r = await db.query(
+        `UPDATE elix_gifts SET ${sets.join(", ")} WHERE gift_id = $${params.length} RETURNING gift_id, name, coin_cost, gift_type, is_active`,
+        params,
+      );
+      if (r.rowCount === 0) return res.status(404).json({ error: "Gift not found" });
+      return res.json({ gift: r.rows[0] });
+    } catch (e) {
+      logger.error({ err: e, giftId }, "admin patch gift catalog failed");
+      return res.status(500).json({ error: "DATABASE_ERROR" });
+    }
+  },
+);
 
 export default router;

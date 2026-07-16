@@ -401,6 +401,8 @@ app.get("/env.js", (_req, res) => {
   if (!env.VITE_BUNNY_CDN_HOSTNAME && process.env.BUNNY_CDN_HOSTNAME) {
     env.VITE_BUNNY_CDN_HOSTNAME = process.env.BUNNY_CDN_HOSTNAME;
   }
+  env.VITE_APPLE_SIGN_IN_ENABLED =
+    process.env.APPLE_SIGN_IN_ENABLED === "true" ? "true" : "false";
   res.setHeader("Content-Type", "application/javascript; charset=utf-8");
   res.setHeader("Cache-Control", "no-store");
   res
