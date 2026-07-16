@@ -92,6 +92,7 @@ import { parseLiveGiftGoal, type LiveGiftGoal } from '../lib/liveGiftGoal';
 import LiveAIFilters from '../components/LiveAIFilters';
 import { liveStreamUiGiftTargetToServerBattleTarget, normalizeBattleGiftTarget } from '../lib/liveBattleGiftTarget';
 import { IS_STORE_BUILD } from '../config/build';
+import { purchaseMembership } from '../lib/iap';
 import { Room, RoomEvent, LocalVideoTrack, LocalAudioTrack } from 'livekit-client';
 
 const LIVE_BOTTOM_ICON_BTN =
@@ -1589,9 +1590,24 @@ export default function LiveStream() {
         navigate('/login');
         return;
       }
-      showToast('Subscriptions are available through in-app purchases.');
+      if (!platform.isNative) {
+        showToast('Subscriptions are available through in-app purchases.');
+        return;
+      }
+      const creatorId = isBroadcast ? user.id : effectiveStreamId;
+      if (!creatorId || creatorId === 'broadcast') {
+        showToast('Creator unavailable');
+        return;
+      }
+      const result = await purchaseMembership(creatorId);
+      if (result.success) {
+        showToast('Membership activated!');
+        setShowFanClub(false);
+      } else if (result.error !== 'Purchase cancelled') {
+        showToast(result.error || 'Membership purchase failed');
+      }
     } catch {
-      /* ignore */
+      showToast('Membership purchase failed');
     } finally {
       setIsSubscribing(false);
     }

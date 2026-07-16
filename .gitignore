@@ -100,3 +100,9 @@ Saved_Files/
 backups/
 local-backups/
 local-save/
+
+# Android signing secrets — never commit
+android/gradle.properties
+android/*.keystore
+android/**/*.keystore
+*.jks

@@ -29,6 +29,9 @@ export type PromoteProductId = keyof typeof PROMOTE_PRODUCTS;
 export const IAP_PRODUCT_IDS = Object.keys(IAP_PRODUCTS) as IAPProductId[];
 export type IAPProductId = keyof typeof IAP_PRODUCTS;
 
+/** Creator membership / Fan Club product — must exist in Play Console / App Store Connect. */
+export const MEMBERSHIP_PRODUCT_ID = 'com.elixstarlive.membership';
+
 export interface IAPProduct {
   id: string;
   title: string;
@@ -181,6 +184,64 @@ export async function purchaseProduct(productId: IAPProductId): Promise<IAPPurch
     return { success: false, error: msg || 'Purchase failed' };
   } finally {
     purchaseInProgress = false;
+  }
+}
+
+/**
+ * Purchase creator membership / Fan Club via Apple/Google IAP, then record it
+ * server-side via POST /api/membership/iap-complete (verified receipt).
+ */
+export async function purchaseMembership(creatorId: string): Promise<{ success: boolean; error?: string }> {
+  if (!platform.isNative) {
+    return { success: false, error: 'Membership is only available in the app' };
+  }
+  const mod = await getPlugin();
+  if (!mod) return { success: false, error: 'Purchase service not available' };
+  const available = await isBillingAvailable();
+  if (!available) return { success: false, error: 'Purchases are not supported on this device' };
+
+  const { session, user } = useAuthStore.getState();
+  if (!session?.access_token || !user?.id) return { success: false, error: 'Not authenticated' };
+
+  try {
+    const result = await mod.NativePurchases.purchaseProduct({
+      productIdentifier: MEMBERSHIP_PRODUCT_ID,
+      productType: mod.PURCHASE_TYPE.INAPP,
+      quantity: 1,
+    });
+    const transactionId = result.transactionId;
+    const receipt = result.receipt || result.purchaseToken || '';
+    if (!transactionId) return { success: false, error: 'Purchase could not be verified' };
+
+    const provider = platform.isIOS ? 'apple' : 'google';
+    const { error } = await request('/api/membership/iap-complete', {
+      method: 'POST',
+      body: JSON.stringify({
+        transactionId,
+        receipt,
+        provider,
+        productId: MEMBERSHIP_PRODUCT_ID,
+        creatorId: creatorId || null,
+      }),
+    });
+    if (error) return { success: false, error: error.message || 'Membership verification failed' };
+
+    try {
+      if ('acknowledgePurchase' in mod.NativePurchases) {
+        await (mod.NativePurchases as any).acknowledgePurchase({
+          transactionIdentifier: transactionId,
+          purchaseToken: receipt,
+        });
+      }
+    } catch { /* best-effort */ }
+
+    return { success: true };
+  } catch (err: any) {
+    const msg = err?.message || String(err);
+    if (msg.includes('cancel') || msg.includes('Cancel') || msg.includes('USER_CANCELED')) {
+      return { success: false, error: 'Purchase cancelled' };
+    }
+    return { success: false, error: msg || 'Purchase failed' };
   }
 }
 
