@@ -274,8 +274,9 @@ export function GiftPanel({
       <BuyCoinsModal
         isOpen={showRecharge}
         onClose={() => setShowRecharge(false)}
-        onSuccess={(coins) => {
-          if (onRechargeSuccess) onRechargeSuccess(userCoinsRef.current + coins);
+        currentBalance={userCoins}
+        onSuccess={(newBalance) => {
+          if (onRechargeSuccess) onRechargeSuccess(newBalance);
         }}
       />
 

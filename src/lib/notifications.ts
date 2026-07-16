@@ -1,10 +1,18 @@
-// Notifications — web-only. Native push (Capacitor Push / Firebase) has been removed.
+/**
+ * Notifications — web local notifications + native Capacitor Push token registration.
+ * Native tokens are stored via POST /api/device-tokens; delivery uses the existing
+ * server FCM/APNs paths in server/lib/push.ts when those env vars are configured.
+ */
 
+import { platform } from "./platform";
+import { request } from "./apiClient";
+import { useAuthStore } from "../store/useAuthStore";
 import { trackEvent } from "./analytics";
 
-// ── Service ───────────────────────────────────────────────────────────────────
-
 class NotificationService {
+  private nativeToken: string | null = null;
+  private listenersAttached = false;
+
   /** Only allow same-origin or relative URLs to prevent open redirects */
   private isSafeUrl(url: string): boolean {
     try {
@@ -16,27 +24,77 @@ class NotificationService {
   }
 
   /**
-   * Native push initialization is no longer used.
-   * Kept as a safe no-op so existing callers continue to work.
+   * Request permission and register for native push (Capacitor).
+   * No-op on web.
    */
   async initialize(): Promise<void> {
-    return;
+    if (!platform.isNative) return;
+    try {
+      const { PushNotifications } = await import("@capacitor/push-notifications");
+
+      if (!this.listenersAttached) {
+        this.listenersAttached = true;
+        await PushNotifications.addListener("registration", (token) => {
+          this.nativeToken = token.value;
+          void this.registerTokenWithBackend();
+        });
+        await PushNotifications.addListener("registrationError", () => {
+          // Best-effort; do not crash the app if registration fails.
+        });
+      }
+
+      const perm = await PushNotifications.requestPermissions();
+      if (perm.receive !== "granted") return;
+      await PushNotifications.register();
+    } catch {
+      // Plugin missing or unsupported on this build — leave as no-op.
+    }
   }
 
   /**
-   * No native device token to register without push notifications.
-   * Kept as a safe no-op so existing callers continue to work.
+   * Register the current native device token with the backend for the logged-in user.
    */
   async registerTokenWithBackend(): Promise<void> {
-    return;
+    if (!platform.isNative || !this.nativeToken) return;
+    const { user } = useAuthStore.getState();
+    if (!user?.id) return;
+    try {
+      await request("/api/device-tokens", {
+        method: "POST",
+        body: JSON.stringify({
+          userId: user.id,
+          token: this.nativeToken,
+          platform: platform.isIOS ? "ios" : "android",
+        }),
+      });
+    } catch {
+      // Non-fatal — push is best-effort.
+    }
   }
 
   /**
-   * No native device token to unregister without push notifications.
-   * Kept as a safe no-op so existing callers continue to work.
+   * Unregister the current native device token on logout.
    */
   async unregisterToken(): Promise<void> {
-    return;
+    if (!platform.isNative) return;
+    const { user } = useAuthStore.getState();
+    if (!user?.id) {
+      this.nativeToken = null;
+      return;
+    }
+    try {
+      await request("/api/device-tokens", {
+        method: "DELETE",
+        body: JSON.stringify({
+          userId: user.id,
+          platform: platform.isIOS ? "ios" : "android",
+        }),
+      });
+    } catch {
+      // Non-fatal
+    } finally {
+      this.nativeToken = null;
+    }
   }
 
   /**

@@ -14,10 +14,13 @@ import { showToast } from '@/lib/toast';
 interface BuyCoinsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: (coins: number) => void;
+  /** Current wallet balance — used only if server verify omits newBalance. */
+  currentBalance?: number;
+  /** Called with the absolute post-purchase wallet balance. */
+  onSuccess?: (newBalance: number) => void;
 }
 
-export const BuyCoinsModal: React.FC<BuyCoinsModalProps> = ({ isOpen, onClose, onSuccess }) => {
+export const BuyCoinsModal: React.FC<BuyCoinsModalProps> = ({ isOpen, onClose, onSuccess, currentBalance }) => {
   const [nativeProducts, setNativeProducts] = useState<IAPProduct[]>([]);
   const [nativeLoading, setNativeLoading] = useState<string | null>(null);
   const isNative = platform.isNative;
@@ -58,7 +61,14 @@ export const BuyCoinsModal: React.FC<BuyCoinsModalProps> = ({ isOpen, onClose, o
     try {
       const result = await purchaseProduct(product.id as IAPProductId);
       if (result.success) {
-        if (onSuccess) onSuccess(product.coins);
+        if (onSuccess) {
+          if (typeof result.newBalance === 'number') {
+            onSuccess(result.newBalance);
+          } else {
+            const base = typeof currentBalance === 'number' ? currentBalance : 0;
+            onSuccess(Math.max(0, base + product.coins));
+          }
+        }
         showToast(`+${product.coins.toLocaleString()} coins added!`);
         onClose();
       } else if (result.error !== 'Purchase cancelled') {

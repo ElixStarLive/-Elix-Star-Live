@@ -44,6 +44,8 @@ export interface IAPPurchaseResult {
   receipt?: string;
   error?: string;
   coins?: number;
+  /** Authoritative wallet balance after server verification (prefer over local math). */
+  newBalance?: number;
 }
 
 let _billingSupported: boolean | null = null;
@@ -169,6 +171,7 @@ export async function purchaseProduct(productId: IAPProductId): Promise<IAPPurch
       transactionId,
       receipt,
       coins: IAP_PRODUCTS[productId]?.coins ?? 0,
+      newBalance: verifyResult.newBalance,
     };
   } catch (err: any) {
     const msg = err?.message || String(err);
@@ -222,14 +225,14 @@ async function verifyAndCreditPurchase(
   packageId: string,
   transactionId: string,
   receipt: string,
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; newBalance?: number }> {
   try {
     const { session, user } = useAuthStore.getState();
     if (!session?.access_token || !user?.id) return { success: false, error: 'Not authenticated' };
 
     const provider = platform.isIOS ? 'apple' : 'google';
 
-    const { error } = await request('/api/verify-purchase', {
+    const { data, error } = await request('/api/verify-purchase', {
       method: 'POST',
       body: JSON.stringify({
         userId: user.id,
@@ -244,7 +247,12 @@ async function verifyAndCreditPurchase(
       return { success: false, error: error.message || 'Server verification failed' };
     }
 
-    return { success: true };
+    const newBalance =
+      data && typeof data.newBalance === 'number' && Number.isFinite(data.newBalance)
+        ? Math.max(0, Math.floor(data.newBalance))
+        : undefined;
+
+    return { success: true, newBalance };
   } catch {
     return { success: false, error: 'Could not reach verification server' };
   }
