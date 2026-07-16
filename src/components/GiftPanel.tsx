@@ -6,7 +6,6 @@ import React, {
   useCallback,
 } from "react";
 import { Gift, Coins, Trophy, Heart } from "lucide-react";
-import { IS_STORE_BUILD } from "@/config/build";
 import { BuyCoinsModal } from "./BuyCoinsModal";
 import { GiftItem, fetchGiftsFromDatabase, resolveGiftAssetUrl } from "../lib/giftsCatalog";
 
@@ -263,14 +262,12 @@ export function GiftPanel({
           <span className="text-secondary font-bold text-xs">
             {userCoins.toLocaleString()}
           </span>
-          {!IS_STORE_BUILD && (
-            <button
-              onClick={() => setShowRecharge(true)}
-              className="bg-secondary text-black text-[9px] font-bold px-1.5 py-0.5 rounded ml-2 hover:bg-white transition"
-            >
-              Top Up
-            </button>
-          )}
+          <button
+            onClick={() => setShowRecharge(true)}
+            className="bg-secondary text-black text-[9px] font-bold px-1.5 py-0.5 rounded ml-2 hover:bg-white transition"
+          >
+            Top Up
+          </button>
         </div>
       </div>
 

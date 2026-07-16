@@ -606,7 +606,7 @@ export async function handleListProfiles(_req: Request, res: Response): Promise<
         username: String(username),
         display_name: String(displayName),
         avatar_url: String(avatarUrl),
-        email: u.email || "",
+        email: "",
         level: 1,
         is_creator: false,
         followers_count: 0,

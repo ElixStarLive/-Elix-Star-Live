@@ -8,6 +8,7 @@ import { AvatarRing } from '../components/AvatarRing';
 import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
 import { showToast } from '../lib/toast';
 import { bunnyUpload } from '../lib/bunnyStorage';
+import { openExternalLink } from '../lib/platform';
 
 const SHOP_LIVE_RING = 56;
 
@@ -203,7 +204,9 @@ export default function Shop() {
       });
       if (error) throw new Error(error.message || 'Checkout failed');
       if (data?.url) {
-        window.location.href = data.url;
+        // Shop is physical goods → Stripe is correct. On native, open the
+        // system browser so checkout does not hijack the Capacitor WebView.
+        openExternalLink(String(data.url));
         return;
       }
       throw new Error('Checkout URL missing');

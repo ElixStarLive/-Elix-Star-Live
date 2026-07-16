@@ -30,6 +30,7 @@ import crypto from "crypto";
 import cluster from "node:cluster";
 import { apiLimiter } from "./middleware/rateLimit";
 import { errorHandler } from "./middleware/errorHandler";
+import { sessionGuard } from "./middleware/sessionGuard";
 
 import { isLiveKitConfigured } from "./services/livekit";
 import { isBunnyConfigured } from "./services/bunny";
@@ -344,6 +345,9 @@ app.use("/api", (req, res, next) => {
 
 // ── Rate limiter on API routes ───────────────────────────────────
 app.use("/api", apiLimiter);
+
+// ── Global session + ban enforcement (revocation + suspensions) ──
+app.use("/api", sessionGuard);
 
 // ── Mount all API routes ─────────────────────────────────────────
 mountRoutes(app);

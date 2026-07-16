@@ -3232,6 +3232,7 @@ export default function LiveStream() {
     try {
       let newLevel = userLevel;
       const usedTestCoins = Boolean(user?.id && shouldUseTestCoinsForGifts(user.id));
+      let paidTransactionId: string | null = null;
 
       if (usedTestCoins) {
         const debit = debitTestCoinsForGift(user!.id, gift.coins);
@@ -3271,6 +3272,14 @@ export default function LiveStream() {
           }
           if (result.new_xp != null) {
             setUserXP(Number(result.new_xp));
+          }
+          paidTransactionId =
+            typeof result.transaction_id === 'string' && result.transaction_id
+              ? result.transaction_id
+              : null;
+          if (!paidTransactionId) {
+            showToast('Gift failed');
+            return;
           }
         } catch {
           showToast('Gift failed');
@@ -3346,7 +3355,8 @@ export default function LiveStream() {
           : undefined;
 
       // Test coins stay local — never broadcast gift_sent (avoids free battle scores).
-      if (!usedTestCoins) {
+      // Real gifts must include the REST transaction_id for server verification.
+      if (!usedTestCoins && paidTransactionId) {
         websocket.send('gift_sent', {
           giftId: gift.id,
           giftName: gift.name,
@@ -3356,7 +3366,7 @@ export default function LiveStream() {
           level: newLevel,
           avatar: giftMsg.avatar,
           video: gift.video || null,
-          transactionId: `${user?.id || 'anon'}-${Date.now()}`,
+          transactionId: paidTransactionId,
           battleTarget: serverBattleTarget,
           creator_name: hostName || 'Creator',
           ...(!isBroadcast && { host_user_id: effectiveStreamId }),
@@ -3441,6 +3451,7 @@ export default function LiveStream() {
 
       let newLevel = userLevel;
       const usedTestCoins = Boolean(user?.id && shouldUseTestCoinsForGifts(user.id));
+      let paidTransactionId: string | null = null;
       if (usedTestCoins) {
         const debit = debitTestCoinsForGift(user!.id, lastSentGift.coins);
         if (!debit.ok) {
@@ -3473,6 +3484,14 @@ export default function LiveStream() {
             updateUser({ level: newLevel });
           }
           if (result.new_xp != null) setUserXP(Number(result.new_xp));
+          paidTransactionId =
+            typeof result.transaction_id === 'string' && result.transaction_id
+              ? result.transaction_id
+              : null;
+          if (!paidTransactionId) {
+            showToast('Gift failed');
+            return;
+          }
         } catch {
           showToast('Gift failed');
           return;
@@ -3529,7 +3548,7 @@ export default function LiveStream() {
             })
           : undefined;
 
-      if (!usedTestCoins) {
+      if (!usedTestCoins && paidTransactionId) {
         websocket.send('gift_sent', {
           giftId: lastSentGift.id,
           giftName: lastSentGift.name,
@@ -3539,7 +3558,7 @@ export default function LiveStream() {
           level: newLevel,
           avatar: giftMsg.avatar,
           video: lastSentGift.video || null,
-          transactionId: `${user?.id || 'anon'}-${Date.now()}`,
+          transactionId: paidTransactionId,
           battleTarget: serverBattleTargetCombo,
           creator_name: hostName || 'Creator',
           ...(!isBroadcast && { host_user_id: effectiveStreamId }),

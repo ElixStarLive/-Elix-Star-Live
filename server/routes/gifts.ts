@@ -7,7 +7,7 @@
 import { Request, Response } from "express";
 import { getTokenFromRequest, verifyAuthToken } from "./auth";
 import { getPool, dbLoadGifts, dbGetGiftCost } from "../lib/postgres";
-import { neonDebitGift, neonEnsureBalanceFromFile } from "../lib/walletNeon";
+import { neonDebitGift, neonEnsureBalanceFromFile, neonCreditCreatorEarning } from "../lib/walletNeon";
 import { logger } from "../lib/logger";
 import { assertGiftRestVelocityOk } from "../lib/fraud";
 import {
@@ -81,6 +81,29 @@ export async function handleSendGift(req: Request, res: Response) {
          ON CONFLICT (client_transaction_id) DO NOTHING`,
         [auth.userId, roomId, giftId, coinCost, clientTransactionId],
       );
+
+      // Credit the receiving creator's earnings (idempotent per transaction).
+      // Room id is the stream_key; resolve the host user id from live_streams,
+      // falling back to the room id itself (rooms default to the host user id).
+      try {
+        let creatorId = roomId;
+        const hostRes = await pool.query(
+          `SELECT user_id FROM live_streams WHERE stream_key = $1 LIMIT 1`,
+          [roomId],
+        );
+        if (hostRes.rows[0]?.user_id) creatorId = String(hostRes.rows[0].user_id);
+        await neonCreditCreatorEarning({
+          creatorId,
+          senderId: auth.userId,
+          giftId,
+          roomId,
+          coins: coinCost,
+          clientTransactionId,
+        });
+      } catch (err) {
+        logger.warn({ err, roomId }, "handleSendGift: creator earning credit failed");
+      }
+
       return res.status(200).json({
         ok: true,
         room_id: roomId,

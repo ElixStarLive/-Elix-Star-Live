@@ -34,17 +34,31 @@ router.get("/reports", async (req: Request, res: Response) => {
   if (!db) return res.status(503).json({ error: "DATABASE_UNAVAILABLE", data: [] });
   const statusFilter = req.query.status as string | undefined;
   try {
-    let query = `SELECT id, reporter_id, reported_user_id, reported_content_id, content_type,
-                        reason, status, admin_note, reviewed_by, reviewed_at, created_at
-                 FROM elix_reports`;
+    await db.query(`ALTER TABLE elix_reports ADD COLUMN IF NOT EXISTS admin_note TEXT`).catch(() => {});
+    let query = `SELECT r.id,
+                        r.reporter_user_id AS reporter_id,
+                        r.target_type,
+                        r.target_id,
+                        r.reason,
+                        r.details,
+                        r.status,
+                        r.admin_note,
+                        r.created_at,
+                        p.username AS reporter_username
+                 FROM elix_reports r
+                 LEFT JOIN profiles p ON p.user_id = r.reporter_user_id`;
     const params: string[] = [];
     if (statusFilter) {
-      query += ` WHERE status = $1`;
+      query += ` WHERE r.status = $1`;
       params.push(statusFilter);
     }
-    query += ` ORDER BY created_at DESC LIMIT 200`;
+    query += ` ORDER BY r.created_at DESC LIMIT 200`;
     const r = await db.query(query, params);
-    return res.json(r.rows);
+    const rows = r.rows.map((row: Record<string, unknown>) => ({
+      ...row,
+      reporter: row.reporter_username ? { username: String(row.reporter_username) } : undefined,
+    }));
+    return res.json(rows);
   } catch (e) {
     const code = (e as { code?: string })?.code;
     if (code === "42P01") return res.json([]);
@@ -77,7 +91,7 @@ router.get("/stats/dau", async (req: Request, res: Response) => {
   if (!db) return res.status(503).json({ dau: 0 });
   try {
     const r = await db.query(
-      `SELECT COUNT(DISTINCT user_id) AS dau FROM elix_auth_sessions WHERE last_active_at > NOW() - INTERVAL '24 hours'`,
+      `SELECT COUNT(DISTINCT user_id) AS dau FROM elix_auth_sessions WHERE created_at > NOW() - INTERVAL '24 hours'`,
     );
     const dau = Number(r.rows[0]?.dau ?? 0);
     return res.json({ dau });

@@ -1,7 +1,6 @@
 import { Client, broadcastToRoom, sendToClient, sendToUserGlobal } from "./index";
 import { logger } from "../lib/logger";
 import {
-  getUserBattleRoom,
   createBattle,
   joinBattle,
   startBattleTimer,
@@ -22,6 +21,7 @@ import {
   tryClaimTransaction,
   setCohostLayout,
   deleteCohostLayout,
+  grantCohostPublish,
 } from "./index";
 import { valkeyDel, valkeySet } from "../lib/valkey";
 import { randomUUID } from "crypto";
@@ -31,8 +31,42 @@ import {
   incrementGiftGoal,
   setGiftGoal,
 } from "./giftGoal";
+import { getPool } from "../lib/postgres";
 
 const BATTLE_USER_ROOM_TTL_MS = 600_000;
+
+/**
+ * Verify that a WS gift event corresponds to a real, paid gift transaction
+ * recorded by the REST /api/gifts/send endpoint for THIS user. Returns the
+ * authoritative gift_id/coins from the database, or null if unverified.
+ * This makes gift broadcasts, gift goals, and battle scoring impossible to
+ * forge from the client (no free gifts / free battle points).
+ */
+async function verifyPaidGiftTransaction(
+  transactionId: unknown,
+  userId: string,
+): Promise<{ giftId: string; coins: number } | null> {
+  if (typeof transactionId !== "string" || !transactionId.trim()) return null;
+  const pool = getPool();
+  if (!pool) return null;
+  try {
+    const r = await pool.query(
+      `SELECT gift_id, coins
+         FROM elix_gift_transactions
+        WHERE client_transaction_id = $1
+          AND user_id = $2
+          AND created_at > NOW() - INTERVAL '2 minutes'
+        LIMIT 1`,
+      [transactionId.trim(), userId],
+    );
+    const row = r.rows[0] as { gift_id?: string; coins?: number } | undefined;
+    if (!row) return null;
+    return { giftId: String(row.gift_id || ""), coins: Number(row.coins) || 0 };
+  } catch (err) {
+    logger.warn({ err, userId }, "verifyPaidGiftTransaction failed");
+    return null;
+  }
+}
 
 export async function handleMessage(
   client: Client,
@@ -73,62 +107,61 @@ export async function handleMessage(
         if (!(await wsRateCheck(client.userId, "gift", 50, 5_000))) break;
         const { transactionId } = data;
 
+        // Server-authoritative: only broadcast/score gifts backed by a real paid
+        // transaction from this user. Forged gift_sent events are rejected.
+        const verified = await verifyPaidGiftTransaction(transactionId, client.userId);
+        if (!verified) {
+          sendToClient(client, "gift_ack", {
+            transactionId: transactionId ?? null,
+            status: "unverified",
+          });
+          return;
+        }
+
         const now = Date.now();
-        if (transactionId) {
-          const claim = await tryClaimTransaction(transactionId, now);
-          if (!claim.claimed) {
-            sendToClient(client, "gift_ack", {
-              transactionId,
-              status: "duplicate",
-              timestamp: claim.existingTimestamp,
-            });
-            return;
-          }
+        const claim = await tryClaimTransaction(String(transactionId), now);
+        if (!claim.claimed) {
+          sendToClient(client, "gift_ack", {
+            transactionId,
+            status: "duplicate",
+            timestamp: claim.existingTimestamp,
+          });
+          return;
         }
 
         broadcastToRoom(client.roomId, "gift_sent", {
           ...data,
+          giftId: verified.giftId,
           user_id: client.userId,
           username: client.username,
           timestamp: new Date().toISOString(),
         });
 
-        const sentGiftId =
-          typeof data.giftId === "string"
-            ? data.giftId
-            : typeof data.gift_id === "string"
-              ? data.gift_id
-              : "";
-        const giftQty = Math.max(1, Math.floor(Number(data.quantity) || 1));
+        // Gift goal + battle score use the authoritative gift id from the DB.
+        const sentGiftId = verified.giftId;
         if (sentGiftId) {
-          const updatedGoal = await incrementGiftGoal(client.roomId, sentGiftId, giftQty);
+          const updatedGoal = await incrementGiftGoal(client.roomId, sentGiftId, 1);
           if (updatedGoal) {
             broadcastToRoom(client.roomId, "gift_goal_sync", updatedGoal);
           }
         }
 
-        if (transactionId) {
-          sendToClient(client, "gift_ack", {
-            transactionId,
-            status: "success",
-            timestamp: now,
-          });
-        }
+        sendToClient(client, "gift_ack", {
+          transactionId,
+          status: "success",
+          timestamp: now,
+        });
 
         const activeBattle = await getBattleFromStore(client.roomId);
         if (activeBattle && activeBattle.status === "ACTIVE") {
-          const serverGiftValue = getGiftValue(data.giftId);
+          const serverGiftValue = getGiftValue(sentGiftId);
           if (serverGiftValue > 0) {
             const normalizedTarget = normalizeBattleTarget(data.battleTarget);
-            if (normalizedTarget) {
-              await addBattleScoreForTarget(
-                client.roomId,
-                normalizedTarget,
-                serverGiftValue,
-              );
-            } else {
-              await addBattleScoreForTarget(client.roomId, "host", serverGiftValue);
-            }
+            await addBattleScoreForTarget(
+              client.roomId,
+              normalizedTarget || "host",
+              serverGiftValue,
+            );
           }
         }
         break;
@@ -189,14 +222,10 @@ export async function handleMessage(
       }
 
       case "battle_gift_score": {
-        const bRoom = (await getUserBattleRoom(client.userId)) || client.roomId;
-        const target = normalizeBattleTarget(data.target);
-        if (!target) break;
-        const giftId = data.giftId;
-        const serverPoints = giftId ? getGiftValue(giftId) : 0;
-        if (serverPoints > 0) {
-          await addBattleScoreForTarget(bRoom, target, serverPoints);
-        }
+        // Deprecated + insecure: battle scoring is applied server-side inside the
+        // verified "gift_sent" handler (tied to a real paid transaction). This
+        // standalone event carried no payment proof and is ignored to prevent
+        // free battle-score injection.
         break;
       }
 
@@ -342,6 +371,11 @@ export async function handleMessage(
           typeof data.streamKey === "string" && data.streamKey.trim()
             ? data.streamKey.trim()
             : client.roomId;
+        // Host authorized this user to co-host → record a server-side publish grant.
+        if (streamKey) await grantCohostPublish(streamKey, targetUserId);
+        if (client.roomId && client.roomId !== streamKey) {
+          await grantCohostPublish(client.roomId, targetUserId);
+        }
         const invitePayload = {
           hostUserId: client.userId,
           hostName: data.hostName || client.displayName,
@@ -409,6 +443,8 @@ export async function handleMessage(
             ? data.requesterUserId
             : "";
         if (!requesterUserId) break;
+        // Host accepted this viewer's co-host request → grant publish for the room.
+        if (client.roomId) await grantCohostPublish(client.roomId, requesterUserId);
         sendToUserGlobal(requesterUserId, "cohost_request_accepted", {
           hostUserId: client.userId,
           hostName: data.hostName || client.displayName,

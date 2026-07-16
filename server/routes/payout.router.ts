@@ -102,7 +102,7 @@ adminPayoutRouter.get("/stats/dau", async (req, res) => {
     ).catch(() => null);
     if (!roleCheck?.rows[0]?.is_admin) return res.status(403).json({ error: "Admin only" });
     const r = await db.query(
-      `SELECT COUNT(DISTINCT user_id) AS dau FROM elix_auth_sessions WHERE expires_at > NOW() AND updated_at > NOW() - INTERVAL '24 hours'`
+      `SELECT COUNT(DISTINCT user_id) AS dau FROM elix_auth_sessions WHERE created_at > NOW() - INTERVAL '24 hours'`
     ).catch(() => null);
     if (r && r.rows[0]) {
       return res.json({ dau: Number(r.rows[0].dau) || 0 });

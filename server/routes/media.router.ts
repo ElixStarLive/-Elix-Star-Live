@@ -13,6 +13,19 @@ import { cacheAudioScanResult } from "../lib/audioScanValkey";
 
 const router = Router();
 
+// User-scoped storage prefixes. Every path under these must embed the owner's
+// user id as the second segment (e.g. "videos/<userId>/...").
+const USER_SCOPED_PREFIXES = new Set(["videos", "stories", "avatars", "shop", "thumbnails"]);
+
+function pathBelongsToUser(storagePath: string, userId: string): boolean {
+  const norm = storagePath.replace(/^\/+/, "");
+  const segs = norm.split("/").filter(Boolean);
+  if (segs.length < 2) return false;
+  const prefix = segs[0].toLowerCase();
+  if (!USER_SCOPED_PREFIXES.has(prefix)) return false;
+  return segs[1] === userId;
+}
+
 // Video upload: raw body (must come before express.json())
 router.use(
   "/upload-file",
@@ -31,6 +44,7 @@ router.post("/upload-file", uploadLimiter, async (req, res) => {
   const storagePath = (req.query.path as string)?.trim();
   const ct = (req.query.ct as string)?.trim() || req.headers["content-type"] || "application/octet-stream";
   if (!storagePath || storagePath.includes("..")) return res.status(400).json({ error: "path query param is required and must be safe." });
+  if (!pathBelongsToUser(storagePath, payload.sub)) return res.status(403).json({ error: "You can only upload to your own storage path." });
   const body = req.body;
   if (!body || !(body instanceof Buffer) || body.length === 0) return res.status(400).json({ error: "Request body must be non-empty binary." });
 
@@ -68,6 +82,8 @@ router.delete("/delete", async (req, res) => {
   if (!payload) return res.status(401).json({ error: "Invalid or expired session." });
   const { path: storagePath } = req.body ?? {};
   if (!storagePath || typeof storagePath !== "string") return res.status(400).json({ error: "path is required in body." });
+  if (storagePath.includes("..")) return res.status(400).json({ error: "path must be safe." });
+  if (!pathBelongsToUser(storagePath, payload.sub)) return res.status(403).json({ error: "You can only delete your own storage path." });
   const STORAGE_REGION = process.env.BUNNY_STORAGE_REGION || "de";
   const STORAGE_ZONE = (process.env.BUNNY_STORAGE_ZONE || "").split(".")[0];
   const ACCESS_KEY = process.env.BUNNY_STORAGE_API_KEY;

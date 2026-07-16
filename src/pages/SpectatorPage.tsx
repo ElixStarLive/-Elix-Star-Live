@@ -1696,6 +1696,9 @@ export default function SpectatorPage() {
 
     let newLevel = userLevel;
     const usedTestCoins = Boolean(user?.id && shouldUseTestCoinsForGifts(user.id));
+    // Real-coin gifts must carry the REST transaction_id so the WS layer can
+    // verify the gift was paid for (prevents free gift / free battle-score exploits).
+    let paidTransactionId: string | null = null;
 
     if (usedTestCoins) {
       const debit = debitTestCoinsForGift(user!.id, gift.coins);
@@ -1728,6 +1731,14 @@ export default function SpectatorPage() {
           setCoinBalance(Math.max(0, Number(result.new_balance)));
         } else {
           setCoinBalance(prev => Math.max(0, prev - gift.coins));
+        }
+        paidTransactionId =
+          typeof result.transaction_id === 'string' && result.transaction_id
+            ? result.transaction_id
+            : null;
+        if (!paidTransactionId) {
+          showToast('Gift failed — please try again');
+          return;
         }
       } catch {
         showToast('Gift failed — please try again');
@@ -1771,7 +1782,8 @@ export default function SpectatorPage() {
     };
     setMessages(prev => [...prev, giftMsg]);
     // Test coins stay local — never broadcast gift_sent (avoids free battle scores).
-    if (!usedTestCoins) {
+    // Real gifts must include the REST transaction_id for server verification.
+    if (!usedTestCoins && paidTransactionId) {
       websocket.send('gift_sent', {
         giftId: gift.id,
         giftName: gift.name,
@@ -1781,7 +1793,7 @@ export default function SpectatorPage() {
         level: newLevel,
         avatar: viewerAvatar,
         video: gift.video || null,
-        transactionId: `${user?.id || 'anon'}-${Date.now()}`,
+        transactionId: paidTransactionId,
         creator_name: hostName || 'Creator',
         host_user_id: hostUserId || effectiveStreamId,
         ...(spectatorBattle?.active

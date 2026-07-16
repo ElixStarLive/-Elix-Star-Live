@@ -112,16 +112,17 @@ router.get("/rankings/weekly", async (req, res) => {
   if (!db) return res.status(503).json({ error: "Database not available", rankings: [] });
   try {
     const r = await db.query(
-      `SELECT p.user_id, p.username, p.display_name, p.avatar_url, p.followers_count,
-              COALESCE(w.total_received, 0) AS total_coins
+      `SELECT p.user_id, p.username, p.display_name, p.avatar_url,
+              COALESCE(p.followers, 0) AS followers,
+              COALESCE(e.total_received, 0) AS total_coins
        FROM profiles p
-       LEFT JOIN (
-         SELECT recipient_id, SUM(amount) AS total_received
-         FROM wallet_ledger
-         WHERE type = 'gift_received' AND created_at > NOW() - INTERVAL '7 days'
-         GROUP BY recipient_id
-       ) w ON w.recipient_id = p.user_id
-       ORDER BY total_coins DESC, p.followers_count DESC
+       JOIN (
+         SELECT creator_id, SUM(coins) AS total_received
+         FROM elix_creator_earnings
+         WHERE kind = 'gift' AND created_at > NOW() - INTERVAL '7 days'
+         GROUP BY creator_id
+       ) e ON e.creator_id = p.user_id
+       ORDER BY total_coins DESC, followers DESC
        LIMIT 50`
     );
     const rankings = r.rows.map((row: any, i: number) => ({
@@ -131,7 +132,7 @@ router.get("/rankings/weekly", async (req, res) => {
       display_name: row.display_name,
       avatar_url: row.avatar_url,
       total_coins: Number(row.total_coins) || 0,
-      followers_count: Number(row.followers_count) || 0,
+      followers_count: Number(row.followers) || 0,
     }));
     return res.json({ rankings });
   } catch (err) {

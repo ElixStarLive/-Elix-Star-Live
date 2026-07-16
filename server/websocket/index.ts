@@ -297,6 +297,23 @@ export async function deleteCohostLayout(roomId: string): Promise<void> {
   await valkeyDel(`cohost:${roomId}`);
 }
 
+// ── Co-host publish grants (host-authorized) ─────────────────────
+// Recorded when the HOST invites or accepts a co-host, and checked before a
+// publish LiveKit token is issued. This makes publishing server-authoritative
+// instead of trusting a client-supplied "?cohost=1" URL flag.
+const COHOST_GRANT_TTL_MS = 6 * 60 * 60 * 1000; // matches LiveKit token TTL
+
+export async function grantCohostPublish(roomId: string, userId: string): Promise<void> {
+  if (!isValkeyConfigured() || !roomId || !userId) return;
+  await valkeySet(`cohost_grant:${roomId}:${userId}`, "1", COHOST_GRANT_TTL_MS);
+}
+
+export async function hasCohostPublishGrant(roomId: string, userId: string): Promise<boolean> {
+  if (!isValkeyConfigured() || !roomId || !userId) return false;
+  const v = await valkeyGet(`cohost_grant:${roomId}:${userId}`);
+  return v === "1";
+}
+
 // ── Valkey pub/sub for cross-instance WS broadcasting ────────────
 
 export function initWsPubSub(): void {

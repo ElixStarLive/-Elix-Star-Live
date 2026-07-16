@@ -57,16 +57,19 @@ async function verifyPassword(password: string, stored: string): Promise<boolean
   return key.toString('base64') === keyB64;
 }
 
-function signToken(payload: { sub: string; email: string }): string {
+const RESET_TOKEN_EXPIRY_SEC = 60 * 60; // 1 hour — purpose-bound, not a session
+
+function signToken(payload: { sub: string; email: string }, opts?: { purpose?: string; expirySec?: number }): string {
   const secret = getSecret();
   const header = { alg: 'HS256', typ: 'JWT' };
   const now = Math.floor(Date.now() / 1000);
-  const body = {
+  const body: Record<string, unknown> = {
     sub: payload.sub,
     email: payload.email,
     iat: now,
-    exp: now + TOKEN_EXPIRY_SEC,
+    exp: now + (opts?.expirySec ?? TOKEN_EXPIRY_SEC),
   };
+  if (opts?.purpose) body.purpose = opts.purpose;
   const b64 = (obj: object) => Buffer.from(JSON.stringify(obj)).toString('base64url');
   const part1 = b64(header);
   const part2 = b64(body);
@@ -74,7 +77,7 @@ function signToken(payload: { sub: string; email: string }): string {
   return `${part1}.${part2}.${sig}`;
 }
 
-function verifyToken(token: string): { sub: string; email: string } | null {
+function verifyToken(token: string): { sub: string; email: string; purpose?: string } | null {
   try {
     const parts = token.split('.');
     if (parts.length !== 3) return null;
@@ -84,7 +87,11 @@ function verifyToken(token: string): { sub: string; email: string } | null {
     if (sig !== expectedSig) return null;
     const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString());
     if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) return null;
-    return { sub: payload.sub, email: payload.email ?? '' };
+    return {
+      sub: payload.sub,
+      email: payload.email ?? '',
+      purpose: typeof payload.purpose === 'string' ? payload.purpose : undefined,
+    };
   } catch {
     return null;
   }
@@ -100,7 +107,61 @@ export function getTokenFromRequest(req: Request): string | null {
 }
 
 export function verifyAuthToken(token: string): { sub: string; email: string } | null {
-  return verifyToken(token);
+  const payload = verifyToken(token);
+  // Purpose-bound tokens (e.g. password_reset) must never authenticate API sessions.
+  if (!payload || payload.purpose) return null;
+  return { sub: payload.sub, email: payload.email };
+}
+
+/**
+ * Server-side session + ban state for a bearer token.
+ * - "ok": valid JWT, live session row, not banned
+ * - "revoked": valid JWT but the session row is missing/expired (logged out / expired)
+ * - "banned": valid JWT + live session but the account is suspended
+ * - null: JWT is invalid/expired (treat as anonymous)
+ * Fails open on transient DB errors so a database blip cannot mass-logout users.
+ */
+export async function checkSessionState(
+  token: string,
+): Promise<{ state: 'ok' | 'revoked' | 'banned'; userId: string } | null> {
+  const payload = verifyToken(token);
+  // Purpose-bound tokens are not sessions.
+  if (!payload || payload.purpose) return null;
+  const pool = getPool();
+  if (!pool) return { state: 'ok', userId: payload.sub };
+  try {
+    const r = await pool.query(
+      `SELECT (s.token_hash IS NOT NULL) AS has_session, p.banned_until
+         FROM (SELECT $1::text AS th, $2::text AS uid) x
+         LEFT JOIN elix_auth_sessions s ON s.token_hash = x.th AND s.expires_at > NOW()
+         LEFT JOIN profiles p ON p.user_id = x.uid
+        LIMIT 1`,
+      [hashSessionToken(token), payload.sub],
+    );
+    const row = r.rows[0] as { has_session?: boolean; banned_until?: Date | string | null } | undefined;
+    if (!row || row.has_session !== true) return { state: 'revoked', userId: payload.sub };
+    const bu = row.banned_until;
+    if (bu && new Date(bu).getTime() > Date.now()) return { state: 'banned', userId: payload.sub };
+    return { state: 'ok', userId: payload.sub };
+  } catch (err) {
+    logger.warn({ err, userId: payload.sub }, 'checkSessionState query failed — failing open');
+    return { state: 'ok', userId: payload.sub };
+  }
+}
+
+/** Remove bearer + auth cookie from the request so downstream treats it as anonymous. */
+export function stripAuthCredentials(req: Request): void {
+  delete req.headers.authorization;
+  const cookie = req.headers.cookie;
+  if (cookie) {
+    const filtered = cookie
+      .split(';')
+      .map((s) => s.trim())
+      .filter((c) => c && !c.startsWith(`${COOKIE_NAME}=`))
+      .join('; ');
+    if (filtered) req.headers.cookie = filtered;
+    else delete req.headers.cookie;
+  }
 }
 
 function setAuthCookie(res: Response, token: string) {
@@ -382,8 +443,8 @@ export async function handleRegister(req: Request, res: Response) {
     if (!e || !password) {
       return res.status(400).json({ error: 'Email and password are required.' });
     }
-    if (typeof password !== 'string' || password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters.' });
+    if (typeof password !== 'string' || password.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters.' });
     }
     if (!getPool()) return res.status(503).json({ error: 'Database not configured' });
     const existing = await dbFindUserByEmail(e);
@@ -474,24 +535,50 @@ export async function handleDeleteAccount(req: Request, res: Response) {
   }
 
   const client = await pool.connect();
+  // Each delete is wrapped in a SAVEPOINT so that an absent optional table/column
+  // (schema drift across environments) cannot abort the whole account deletion.
+  const del = async (sql: string, params: unknown[]) => {
+    await client.query('SAVEPOINT del_sp');
+    try {
+      await client.query(sql, params);
+      await client.query('RELEASE SAVEPOINT del_sp');
+    } catch (err) {
+      await client.query('ROLLBACK TO SAVEPOINT del_sp');
+      logger.warn({ err, sql }, 'handleDeleteAccount: skipped delete (schema drift)');
+    }
+  };
   try {
     await client.query('BEGIN');
-    await client.query(`DELETE FROM elix_auth_sessions WHERE user_id = $1`, [user.id]);
-    await client.query(`DELETE FROM chat_messages WHERE sender_id = $1`, [user.id]);
-    await client.query(`DELETE FROM chat_thread_participants WHERE user_id = $1`, [user.id]);
-    await client.query(`DELETE FROM comments WHERE user_id = $1`, [user.id]);
-    await client.query(`DELETE FROM likes WHERE user_id = $1`, [user.id]);
-    await client.query(`DELETE FROM saves WHERE user_id = $1`, [user.id]);
-    await client.query(`DELETE FROM follows WHERE follower_id = $1 OR following_id = $1`, [user.id]);
-    await client.query(`DELETE FROM notifications WHERE user_id = $1 OR actor_id = $1`, [user.id]);
-    await client.query(`DELETE FROM elix_reports WHERE reporter_id = $1`, [user.id]);
-    await client.query(`DELETE FROM elix_blocked_users WHERE blocker_id = $1 OR blocked_id = $1`, [user.id]);
-    await client.query(`DELETE FROM elix_device_tokens WHERE user_id = $1`, [user.id]);
-    await client.query(`DELETE FROM elix_analytics_events WHERE user_id = $1`, [user.id]);
-    await client.query(`DELETE FROM comment_likes WHERE user_id = $1`, [user.id]).catch(() => {});
-    await client.query(`DELETE FROM wallet_ledger WHERE user_id = $1`, [user.id]);
-    await client.query(`DELETE FROM videos WHERE user_id = $1`, [user.id]);
-    await client.query(`DELETE FROM profiles WHERE user_id = $1`, [user.id]);
+    // Sessions + auth
+    await del(`DELETE FROM elix_auth_sessions WHERE user_id = $1`, [user.id]);
+    await del(`DELETE FROM elix_device_tokens WHERE user_id = $1`, [user.id]);
+    // Messaging (messages reference chat_threads; delete the user's messages then their threads)
+    await del(`DELETE FROM messages WHERE sender_id = $1`, [user.id]);
+    await del(`DELETE FROM messages WHERE thread_id IN (SELECT id FROM chat_threads WHERE user1_id = $1 OR user2_id = $1)`, [user.id]);
+    await del(`DELETE FROM chat_threads WHERE user1_id = $1 OR user2_id = $1`, [user.id]);
+    // Social graph & content interactions
+    await del(`DELETE FROM comments WHERE user_id = $1`, [user.id]);
+    await del(`DELETE FROM likes WHERE user_id = $1`, [user.id]);
+    await del(`DELETE FROM saves WHERE user_id = $1`, [user.id]);
+    await del(`DELETE FROM follows WHERE follower_id = $1 OR following_id = $1`, [user.id]);
+    // Moderation & safety
+    await del(`DELETE FROM elix_notifications WHERE user_id = $1`, [user.id]);
+    await del(`DELETE FROM elix_reports WHERE reporter_user_id = $1`, [user.id]);
+    await del(`DELETE FROM elix_blocked_users WHERE blocker_user_id = $1 OR blocked_user_id = $1`, [user.id]);
+    // Analytics
+    await del(`DELETE FROM elix_analytics_events WHERE user_id = $1`, [user.id]);
+    // Live / stories / gifting side data
+    await del(`DELETE FROM live_streams WHERE user_id = $1`, [user.id]);
+    await del(`DELETE FROM stories WHERE user_id = $1`, [user.id]);
+    await del(`DELETE FROM live_share_inbox WHERE recipient_id = $1 OR sharer_id = $1`, [user.id]);
+    await del(`DELETE FROM creator_stickers WHERE creator_user_id = $1`, [user.id]);
+    // Wallet (ledger + balances). Coins are non-refundable; records removed on deletion.
+    await del(`DELETE FROM elix_wallet_ledger WHERE user_id = $1`, [user.id]);
+    await del(`DELETE FROM elix_wallet_balances WHERE user_id = $1`, [user.id]);
+    await del(`DELETE FROM elix_gift_transactions WHERE user_id = $1`, [user.id]);
+    // Videos + profile + auth row (last)
+    await del(`DELETE FROM videos WHERE user_id = $1`, [user.id]);
+    await del(`DELETE FROM profiles WHERE user_id = $1`, [user.id]);
     await client.query(`DELETE FROM elix_auth_users WHERE id = $1`, [user.id]);
     await client.query('COMMIT');
   } catch (err) {
@@ -565,15 +652,19 @@ export async function handleForgotPassword(req: Request, res: Response) {
       return res.status(200).json({ success: true });
     }
 
-    const resetToken = signToken({ sub: user.id, email: user.email });
+    // Purpose-bound short-lived token — cannot be used as a session JWT.
+    const resetToken = signToken(
+      { sub: user.id, email: user.email },
+      { purpose: 'password_reset', expirySec: RESET_TOKEN_EXPIRY_SEC },
+    );
     const origin = process.env.APP_ORIGIN || req.headers.origin || 'https://www.elixstarlive.co.uk';
     const resetLink = `${origin}/reset-password?token=${encodeURIComponent(resetToken)}`;
 
     const result = await sendTransactionalEmail({
       to: user.email,
       subject: 'Reset your Elix Star password',
-      text: `Click this link to reset your password: ${resetLink}\n\nThis link expires in 7 days. If you did not request a password reset, ignore this email.`,
-      html: `<p>Click the link below to reset your password:</p><p><a href="${resetLink}">Reset Password</a></p><p>This link expires in 7 days. If you did not request this, you can ignore this email.</p>`,
+      text: `Click this link to reset your password: ${resetLink}\n\nThis link expires in 1 hour. If you did not request a password reset, ignore this email.`,
+      html: `<p>Click the link below to reset your password:</p><p><a href="${resetLink}">Reset Password</a></p><p>This link expires in 1 hour. If you did not request this, you can ignore this email.</p>`,
     });
 
     if (!result.ok) {
@@ -591,13 +682,16 @@ export async function handleForgotPassword(req: Request, res: Response) {
 export async function handleResetPassword(req: Request, res: Response) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const { password, token: bodyToken } = req.body ?? {};
-  if (!password || typeof password !== 'string' || password.length < 6) {
-    return res.status(400).json({ error: 'Valid password is required.' });
+  if (!password || typeof password !== 'string' || password.length < 8) {
+    return res.status(400).json({ error: 'Password must be at least 8 characters.' });
   }
-  const token = typeof bodyToken === 'string' ? bodyToken : getTokenFromRequest(req);
+  const token = typeof bodyToken === 'string' ? bodyToken : null;
   if (!token) return res.status(401).json({ error: 'Unauthorized' });
-  const payload = verifyAuthToken(token);
-  if (!payload) return res.status(401).json({ error: 'Invalid or expired reset link.' });
+  // Only accept purpose-bound reset tokens — never a normal session JWT.
+  const payload = verifyToken(token);
+  if (!payload || payload.purpose !== 'password_reset') {
+    return res.status(401).json({ error: 'Invalid or expired reset link.' });
+  }
 
   try {
     const user = await dbFindUserById(payload.sub);
@@ -609,6 +703,8 @@ export async function handleResetPassword(req: Request, res: Response) {
       user.id,
       await hashPassword(password),
     ]);
+    // Invalidate every existing session so a stolen old token cannot stay logged in.
+    await pool.query(`DELETE FROM elix_auth_sessions WHERE user_id = $1`, [user.id]);
     return res.status(200).json({ success: true });
   } catch (err) {
     logger.error({ err }, 'handleResetPassword failed');

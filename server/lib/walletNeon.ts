@@ -265,6 +265,71 @@ export async function neonDebitGift(input: {
   }
 }
 
+/**
+ * Credit a creator's earnings ledger + rolling balance for a received gift.
+ * Idempotent per gift transaction (id derived from clientTransactionId) so a
+ * retried REST call or duplicate delivery cannot double-credit the creator.
+ * Revenue share is configurable via CREATOR_GIFT_SHARE_PERCENT (default 100).
+ */
+export async function neonCreditCreatorEarning(input: {
+  creatorId: string;
+  senderId: string;
+  giftId: string;
+  roomId: string;
+  coins: number;
+  clientTransactionId: string;
+}): Promise<{ ok: boolean; credited: number }> {
+  const pool = getPool();
+  if (!pool) return { ok: false, credited: 0 };
+  if (!input.creatorId || input.creatorId === input.senderId) {
+    // Do not credit self-gifting or unresolved creators.
+    return { ok: false, credited: 0 };
+  }
+  const sharePct = Math.min(
+    100,
+    Math.max(0, Number(process.env.CREATOR_GIFT_SHARE_PERCENT ?? 100)),
+  );
+  const credited = Math.floor((Math.max(0, Math.floor(input.coins)) * sharePct) / 100);
+  if (credited <= 0) return { ok: true, credited: 0 };
+  const earningId = `earn:${input.clientTransactionId}`;
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const ins = await client.query(
+      `INSERT INTO elix_creator_earnings (id, creator_id, kind, coins, gift_id, room_id, sender_id, status)
+       VALUES ($1, $2, 'gift', $3, $4, $5, $6, 'pending')
+       ON CONFLICT (id) DO NOTHING
+       RETURNING id`,
+      [earningId, input.creatorId, credited, input.giftId, input.roomId, input.senderId],
+    );
+    if (ins.rowCount === 0) {
+      await client.query("COMMIT");
+      return { ok: true, credited: 0 };
+    }
+    await client.query(
+      `INSERT INTO elix_creator_balances (user_id, pending_coins, total_earned, updated_at)
+       VALUES ($1, $2, $2, NOW())
+       ON CONFLICT (user_id) DO UPDATE SET
+         pending_coins = elix_creator_balances.pending_coins + EXCLUDED.pending_coins,
+         total_earned = elix_creator_balances.total_earned + EXCLUDED.total_earned,
+         updated_at = NOW()`,
+      [input.creatorId, credited],
+    );
+    await client.query("COMMIT");
+    return { ok: true, credited };
+  } catch (e) {
+    try {
+      await client.query("ROLLBACK");
+    } catch (rbErr) {
+      logger.error({ err: rbErr }, "neonCreditCreatorEarning ROLLBACK failed");
+    }
+    logger.warn({ err: e, creatorId: input.creatorId }, "neonCreditCreatorEarning failed");
+    return { ok: false, credited: 0 };
+  } finally {
+    client.release();
+  }
+}
+
 export async function neonInsertPromotePurchase(row: {
   userId: string;
   provider: string;

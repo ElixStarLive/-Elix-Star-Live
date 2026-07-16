@@ -51,6 +51,12 @@ export async function handleUploadVideo(req: Request, res: Response) {
           'Query "path" is required and must be a safe path (e.g. streams/video.mp4).',
       });
   }
+  // Enforce that uploads land under the authenticated user's own folder.
+  const segs = path.replace(/^\/+/, "").split("/").filter(Boolean);
+  const ownScoped = new Set(["videos", "stories", "thumbnails", "avatars", "shop"]);
+  if (segs.length < 2 || !ownScoped.has(segs[0].toLowerCase()) || segs[1] !== auth.userId) {
+    return res.status(403).json({ error: "You can only upload to your own storage path." });
+  }
 
   const body = req.body;
   if (!body || !(body instanceof Buffer) || body.length === 0) {
@@ -99,15 +105,18 @@ export async function handleUploadVideo(req: Request, res: Response) {
 /**
  * POST /api/upload/avatar
  * Body: raw image binary (Content-Type: image/*)
- * Query: userId=xxx (optional, defaults to authenticated user)
+ * Avatar is always stored under the authenticated user's folder.
  */
 export async function handleUploadAvatar(req: Request, res: Response) {
   const auth = requireAuth(req, res);
   if (!auth) return;
 
+  // Always scope avatar uploads to the authenticated user; never trust a
+  // client-supplied userId query param (prevents overwriting others' avatars).
+  const userId = auth.userId;
+
   // If Bunny not configured, return a generated avatar so the app still works
   if (!isBunnyConfigured()) {
-    const userId = (req.query.userId as string)?.trim() || auth.userId;
     return res.status(200).json({
       cdn_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(userId)}&background=random&size=400`,
       url: "",
@@ -115,7 +124,6 @@ export async function handleUploadAvatar(req: Request, res: Response) {
     });
   }
 
-  const userId = (req.query.userId as string)?.trim() || auth.userId;
   const contentType = (req.headers["content-type"] || "image/jpeg")
     .split(";")[0]
     .trim();

@@ -25,6 +25,7 @@ import {
   waitForCachePopulate,
 } from '../lib/valkey';
 import { bumpCacheLayer } from '../lib/cacheLayerMetrics';
+import { hasCohostPublishGrant, getCohostLayout } from '../websocket/index';
 
 const STREAM_KEY_PREFIX = 'stream:';
 const STREAM_TTL_SECONDS = 86400;
@@ -376,6 +377,26 @@ export async function handleGetLiveToken(req: Request, res: Response) {
 
   if (!roomName) {
     return res.status(400).json({ error: 'Query parameter "room" is required and must be alphanumeric.' });
+  }
+
+  // Publishing must be server-authorized: only the host or a host-approved
+  // co-host may receive a publish token. Never trust a client "publish" flag alone.
+  if (publish) {
+    const isHost = await isStreamHost(roomName, auth.userId);
+    if (!isHost) {
+      let authorized = await hasCohostPublishGrant(roomName, auth.userId);
+      if (!authorized) {
+        const layout = await getCohostLayout(roomName);
+        authorized = Array.isArray(layout?.coHosts)
+          ? layout!.coHosts.some(
+              (h) => h && typeof h === 'object' && (h as { userId?: string }).userId === auth.userId,
+            )
+          : false;
+      }
+      if (!authorized) {
+        return res.status(403).json({ error: 'Not authorized to publish in this room.' });
+      }
+    }
   }
 
   if (!publish) {
