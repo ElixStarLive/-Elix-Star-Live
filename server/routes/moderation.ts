@@ -7,6 +7,7 @@ import { Request, Response } from 'express';
 import { getPool } from '../lib/postgres';
 import { getTokenFromRequest, verifyAuthToken } from './auth';
 import { logger } from '../lib/logger';
+import { isValkeyConfigured, valkeyRateCheck } from '../lib/valkey';
 
 const DANGEROUS_CATEGORIES = [
   'driving_while_live',
@@ -118,10 +119,24 @@ export async function handleLiveModerationCheck(req: Request, res: Response) {
   if (!payload?.sub) return res.status(401).json({ error: 'Invalid auth token' });
 
   const userId = payload.sub;
+  if (isValkeyConfigured()) {
+    try {
+      const allowed = await valkeyRateCheck(`rl:${userId}:live:moderation`, 60_000, 6);
+      if (!allowed) {
+        return res.status(429).json({ error: 'Too many moderation checks' });
+      }
+    } catch (err) {
+      logger.warn({ err, userId }, 'moderation rate check failed — allowing request');
+    }
+  }
+
   const { stream_key: streamKey, image_base64: imageBase64 } = req.body || {};
 
   if (!streamKey || typeof streamKey !== 'string') {
     return res.status(400).json({ error: 'Missing stream_key' });
+  }
+  if (typeof imageBase64 === 'string' && imageBase64.length > 80_000) {
+    return res.status(413).json({ error: 'image_base64 too large' });
   }
 
   await ensureModerationTable();

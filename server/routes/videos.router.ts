@@ -7,7 +7,7 @@ import {
   detectedTrackToMusicMeta,
 } from "../services/audioScan";
 import { clearCachedAudioScanResult, getCachedAudioScanResult } from "../lib/audioScanValkey";
-import { fetchVoiceOnlyVideoBuffer } from "../services/videoDownload";
+import { fetchVoiceOnlyVideoBuffer, isSafeMediaUrl } from "../services/videoDownload";
 
 const router = Router();
 
@@ -21,6 +21,14 @@ router.post("/", async (req, res) => {
     const body = req.body;
     if (!body || !body.url) {
       return res.status(400).json({ error: "url is required" });
+    }
+    if (typeof body.url !== "string" || !isSafeMediaUrl(body.url)) {
+      return res.status(400).json({ error: "url must be an https Bunny CDN media URL" });
+    }
+    const thumb =
+      body.thumbnailUrl || body.thumbnail_url || body.thumbnail || "";
+    if (thumb && (typeof thumb !== "string" || !isSafeMediaUrl(thumb))) {
+      return res.status(400).json({ error: "thumbnail must be an https Bunny CDN media URL" });
     }
 
     const { getOrCreateProfile } = await import("./profiles");
@@ -66,7 +74,7 @@ router.post("/", async (req, res) => {
     const video: Video = {
       id,
       url: body.url,
-      thumbnail: body.thumbnailUrl || body.thumbnail_url || body.thumbnail || "",
+      thumbnail: thumb || "",
       duration: body.duration || 0,
       userId: payload.sub,
       username: profile.username || body.username || "user",
@@ -150,6 +158,10 @@ router.get("/:id/download", async (req, res) => {
       if (!payload?.sub || payload.sub !== video.userId) {
         return res.status(403).json({ error: "Forbidden" });
       }
+    }
+
+    if (!isSafeMediaUrl(video.url)) {
+      return res.status(400).json({ error: "Video source is not downloadable" });
     }
 
     const buffer = await fetchVoiceOnlyVideoBuffer(video.url);
@@ -307,6 +319,12 @@ router.post("/:id/comments", async (req, res) => {
   }
   const id = `cmt_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
   try {
+    const { dbIsBlockedEitherWay } = await import("../lib/postgres");
+    const owner = await db.query(`SELECT user_id FROM videos WHERE id = $1 LIMIT 1`, [req.params.id]);
+    const ownerId = owner.rows[0]?.user_id ? String(owner.rows[0].user_id) : "";
+    if (ownerId && (await dbIsBlockedEitherWay(payload.sub, ownerId))) {
+      return res.status(403).json({ error: "You cannot comment on this content." });
+    }
     await db.query(
       `INSERT INTO comments (id, video_id, user_id, text, parent_id) VALUES ($1, $2, $3, $4, $5)`,
       [id, req.params.id, payload.sub, text.trim(), parentId || null],

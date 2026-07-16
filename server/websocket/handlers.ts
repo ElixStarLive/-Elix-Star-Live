@@ -31,7 +31,7 @@ import {
   incrementGiftGoal,
   setGiftGoal,
 } from "./giftGoal";
-import { getPool } from "../lib/postgres";
+import { dbIsBlockedEitherWay, getPool } from "../lib/postgres";
 
 const BATTLE_USER_ROOM_TTL_MS = 600_000;
 
@@ -80,9 +80,25 @@ export async function handleMessage(
       case "chat_message":
         if (!(await wsRateCheck(client.userId, "chat", 100, 10_000))) break;
         {
+          const hostUserId = await resolveStreamOwnerUserId(client.roomId);
+          if (
+            hostUserId &&
+            hostUserId !== client.userId &&
+            (await dbIsBlockedEitherWay(client.userId, hostUserId))
+          ) {
+            break;
+          }
           const messageId = typeof data?.messageId === "string" && data.messageId ? data.messageId : randomUUID();
+          const rawText =
+            typeof data?.text === "string"
+              ? data.text
+              : typeof data?.message === "string"
+                ? data.message
+                : "";
+          const text = String(rawText).slice(0, 500);
           const payload = {
-            ...data,
+            text,
+            message: text,
             messageId,
             user_id: client.userId,
             username: client.username,

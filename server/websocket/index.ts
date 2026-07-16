@@ -20,10 +20,10 @@ import {
   removeFeedSubscriber,
   broadcastToFeedSubscribers,
 } from "../feedBroadcast";
-import { isStreamHost, removeActiveStream } from "../routes/livestream";
-import { dbUpdateViewerCount } from "../lib/postgres";
+import { isStreamHost, removeActiveStream, resolveStreamOwnerUserId } from "../routes/livestream";
+import { dbIsBlockedEitherWay, dbUpdateViewerCount } from "../lib/postgres";
 import { logger } from "../lib/logger";
-import { verifyAuthToken } from "../routes/auth";
+import { checkSessionState, verifyAuthToken } from "../routes/auth";
 import {
   isValkeyConfigured,
   valkeyPublish,
@@ -515,6 +515,19 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
         return;
       }
 
+      // Match HTTP sessionGuard: reject revoked sessions and banned users.
+      const session = await checkSessionState(token);
+      if (!session || session.state !== "ok") {
+        const reason =
+          session?.state === "banned"
+            ? "Banned"
+            : session?.state === "unavailable"
+              ? "Session validation unavailable"
+              : "Session revoked";
+        ws.close(1008, reason);
+        return;
+      }
+
       if (roomId === "__feed__" || roomId === "feed") {
         client = {
           ws,
@@ -540,6 +553,17 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
         } catch {
           logger.debug("ws.send failed — client likely disconnected");
         }
+        return;
+      }
+
+      // Enforce blocks against the live host at join time.
+      const hostUserId = await resolveStreamOwnerUserId(roomId);
+      if (
+        hostUserId &&
+        hostUserId !== userId &&
+        (await dbIsBlockedEitherWay(userId, hostUserId))
+      ) {
+        ws.close(1008, "Blocked");
         return;
       }
 

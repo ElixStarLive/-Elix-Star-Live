@@ -4,6 +4,7 @@ import {
   dbAppendChatMessage,
   dbEnsureChatThread,
   dbGetChatThread,
+  dbIsBlockedEitherWay,
   dbListChatMessages,
   dbListChatThreadsForUser,
   dbUnreadCountForThread,
@@ -39,6 +40,9 @@ export async function handleEnsureChatThread(req: Request, res: Response) {
     return res.status(400).json({ error: "otherUserId is required" });
   }
   try {
+    if (await dbIsBlockedEitherWay(auth.userId, otherUserId)) {
+      return res.status(403).json({ error: "You cannot message this user." });
+    }
     const thread = await dbEnsureChatThread(auth.userId, otherUserId);
     if (!thread) return res.status(400).json({ error: "Could not create thread" });
     return res.status(200).json({ threadId: thread.id, thread });
@@ -144,6 +148,12 @@ export async function handlePostChatMessage(req: Request, res: Response) {
     ? (req.body as { text: string }).text.trim()
     : "";
   if (!text) return res.status(400).json({ error: "Message text is required" });
+  const thread = await dbGetChatThread(threadId, auth.userId);
+  if (!thread) return res.status(404).json({ error: "Not found" });
+  const otherId = thread.user1_id === auth.userId ? thread.user2_id : thread.user1_id;
+  if (await dbIsBlockedEitherWay(auth.userId, otherId)) {
+    return res.status(403).json({ error: "You cannot message this user." });
+  }
   const msg = await dbAppendChatMessage(threadId, auth.userId, text);
   if (!msg) {
     return res.status(400).json({ error: "Could not send message" });

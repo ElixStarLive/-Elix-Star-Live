@@ -854,10 +854,34 @@ export type DbChatMessageRow = {
   read: boolean;
 };
 
+/** True if either user has blocked the other. */
+export async function dbIsBlockedEitherWay(
+  userA: string,
+  userB: string,
+): Promise<boolean> {
+  const p = getPool();
+  if (!p || !userA || !userB || userA === userB) return false;
+  try {
+    const r = await p.query(
+      `SELECT 1 FROM elix_blocked_users
+        WHERE (blocker_user_id = $1 AND blocked_user_id = $2)
+           OR (blocker_user_id = $2 AND blocked_user_id = $1)
+        LIMIT 1`,
+      [userA, userB],
+    );
+    return r.rows.length > 0;
+  } catch (err) {
+    logger.error({ err, userA, userB }, "dbIsBlockedEitherWay failed");
+    // Fail closed for safety: treat as blocked when the check cannot run.
+    return true;
+  }
+}
+
 export async function dbEnsureChatThread(userId: string, otherUserId: string): Promise<DbChatThreadRow | null> {
   const p = getPool();
   if (!p || !userId || !otherUserId || userId === otherUserId) return null;
   try {
+    if (await dbIsBlockedEitherWay(userId, otherUserId)) return null;
     const existing = await p.query(
       `SELECT id, user1_id, user2_id, last_at, last_message, created_at
        FROM chat_threads
