@@ -179,8 +179,19 @@ router.post("/", async (req: Request, res: Response) => {
     const { getOrCreateProfile } = await import("./profiles");
     const profile = await getOrCreateProfile(payload.sub);
 
+    const requestedId = String(body.id || "").trim();
+    if (requestedId) {
+      const owned = await db.query(
+        `SELECT user_id FROM stories WHERE id = $1 LIMIT 1`,
+        [requestedId],
+      );
+      const ownerId = owned.rows[0]?.user_id;
+      if (ownerId && ownerId !== payload.sub) {
+        return res.status(403).json({ error: "Not allowed to overwrite this story." });
+      }
+    }
     const id =
-      String(body.id || "").trim() ||
+      requestedId ||
       `story_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
     const now = Date.now();
     const expiresAt = new Date(now + STORY_TTL_MS).toISOString();
@@ -198,7 +209,8 @@ router.post("/", async (req: Request, res: Response) => {
          media_url = EXCLUDED.media_url,
          thumbnail = EXCLUDED.thumbnail,
          media_type = EXCLUDED.media_type,
-         expires_at = EXCLUDED.expires_at`,
+         expires_at = EXCLUDED.expires_at
+       WHERE stories.user_id = EXCLUDED.user_id`,
       [
         id,
         payload.sub,

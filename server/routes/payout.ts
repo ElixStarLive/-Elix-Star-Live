@@ -309,21 +309,35 @@ export async function handleAdminChargeback(req: Request, res: Response) {
     const client = await db.connect();
     try {
       await client.query('BEGIN');
-      const r = await client.query(
-        `UPDATE elix_creator_earnings SET status = 'reversed' WHERE id = $1 AND status = 'pending' RETURNING *`,
+      const existing = await client.query(
+        `SELECT * FROM elix_creator_earnings
+         WHERE id = $1 AND status IN ('pending', 'available')
+         FOR UPDATE`,
         [gift_tx_id],
       );
-      if (r.rowCount === 0) {
+      if (existing.rowCount === 0) {
         await client.query('ROLLBACK');
         return res.status(400).json({ error: 'Earning not found or already processed' });
       }
-      const earning = r.rows[0];
+      const earning = existing.rows[0];
+      const priorStatus = String(earning.status);
       await client.query(
-        `UPDATE elix_creator_balances SET pending_coins = GREATEST(0, pending_coins - $2), updated_at = NOW()
-         WHERE user_id = $1`, [earning.creator_id, earning.coins],
+        `UPDATE elix_creator_earnings SET status = 'reversed' WHERE id = $1`,
+        [gift_tx_id],
       );
+      if (priorStatus === 'available') {
+        await client.query(
+          `UPDATE elix_creator_balances SET available_coins = GREATEST(0, available_coins - $2), updated_at = NOW()
+           WHERE user_id = $1`, [earning.creator_id, earning.coins],
+        );
+      } else {
+        await client.query(
+          `UPDATE elix_creator_balances SET pending_coins = GREATEST(0, pending_coins - $2), updated_at = NOW()
+           WHERE user_id = $1`, [earning.creator_id, earning.coins],
+        );
+      }
       await client.query('COMMIT');
-      return res.json({ reversed: r.rows[0] });
+      return res.json({ reversed: { ...earning, status: 'reversed' } });
     } catch (txErr) {
       await client.query('ROLLBACK').catch(() => {});
       throw txErr;

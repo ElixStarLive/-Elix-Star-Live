@@ -668,14 +668,14 @@ export async function handleForgotPassword(req: Request, res: Response) {
     });
 
     if (!result.ok) {
+      // Do not reveal whether the account exists by returning a distinct status.
       logger.error({ error: result.error }, 'handleForgotPassword email send failed');
-      return res.status(500).json({ error: 'Failed to send email. Please try again later.' });
     }
 
     return res.status(200).json({ success: true });
   } catch (err) {
     logger.error({ err }, 'handleForgotPassword failed');
-    return res.status(500).json({ error: 'Unable to process request. Please try again.' });
+    return res.status(200).json({ success: true });
   }
 }
 

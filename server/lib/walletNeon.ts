@@ -295,9 +295,11 @@ export async function neonCreditCreatorEarning(input: {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
+    // Gift earnings are immediately withdrawable (available_coins). Chargebacks
+    // reverse from available_coins while status is still 'available'.
     const ins = await client.query(
       `INSERT INTO elix_creator_earnings (id, creator_id, kind, coins, gift_id, room_id, sender_id, status)
-       VALUES ($1, $2, 'gift', $3, $4, $5, $6, 'pending')
+       VALUES ($1, $2, 'gift', $3, $4, $5, $6, 'available')
        ON CONFLICT (id) DO NOTHING
        RETURNING id`,
       [earningId, input.creatorId, credited, input.giftId, input.roomId, input.senderId],
@@ -307,10 +309,10 @@ export async function neonCreditCreatorEarning(input: {
       return { ok: true, credited: 0 };
     }
     await client.query(
-      `INSERT INTO elix_creator_balances (user_id, pending_coins, total_earned, updated_at)
+      `INSERT INTO elix_creator_balances (user_id, available_coins, total_earned, updated_at)
        VALUES ($1, $2, $2, NOW())
        ON CONFLICT (user_id) DO UPDATE SET
-         pending_coins = elix_creator_balances.pending_coins + EXCLUDED.pending_coins,
+         available_coins = elix_creator_balances.available_coins + EXCLUDED.available_coins,
          total_earned = elix_creator_balances.total_earned + EXCLUDED.total_earned,
          updated_at = NOW()`,
       [input.creatorId, credited],

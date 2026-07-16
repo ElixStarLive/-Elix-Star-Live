@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.elixstarlive.app",
+      "sha256_cert_fingerprints": [
+        "FC:27:EC:0A:7A:05:56:CB:D8:06:DB:D5:2E:58:55:50:E2:AF:54:65:0F:44:A2:EB:A6:AC:E6:67:E9:88:74:35"
+      ]
+    }
+  }
+]

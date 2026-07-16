@@ -3,5 +3,5 @@
     <string name="app_name">Elix Star Live</string>
     <string name="title_activity_main">Elix Star Live</string>
     <string name="package_name">com.elixstarlive.app</string>
-    <string name="custom_url_scheme">com.elixstarlive.app</string>
+    <string name="custom_url_scheme">elixstar</string>
 </resources>

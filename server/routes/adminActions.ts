@@ -73,8 +73,19 @@ router.get("/purchases", async (req: Request, res: Response) => {
   if (!db) return res.status(503).json({ error: "DATABASE_UNAVAILABLE", data: [] });
   try {
     const r = await db.query(
-      `SELECT id, user_id, package_id, provider, transaction_id, price_minor, currency, status, created_at
-       FROM iap_purchases ORDER BY created_at DESC LIMIT 200`,
+      `SELECT id,
+              user_id,
+              product_id AS package_id,
+              provider,
+              provider_transaction_id AS transaction_id,
+              NULL::integer AS price_minor,
+              NULL::text AS currency,
+              kind AS status,
+              created_at
+         FROM elix_wallet_ledger
+        WHERE kind = 'iap_purchase'
+        ORDER BY created_at DESC
+        LIMIT 200`,
     );
     return res.json(r.rows);
   } catch (e) {

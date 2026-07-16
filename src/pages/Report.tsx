@@ -61,7 +61,7 @@ export default function Report() {
         targetType: contentType,
         targetId: contentId,
         reason: selectedReason,
-        details: details.trim() || null,
+        details: details.trim(),
       });
 
       if (error) throw error;

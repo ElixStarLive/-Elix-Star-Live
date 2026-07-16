@@ -1,36 +1,61 @@
 // Deep Link & Back Button Handler
 
 import { useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 
 const ROOT_PATHS = new Set(['/', '/feed', '/friends', '/inbox', '/profile', '/login']);
+const WEB_HOSTS = new Set(['www.elixstarlive.co.uk', 'elixstarlive.co.uk']);
+
+function navigateFromDeepLinkUrl(url: string, navigate: (path: string) => void): void {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.toLowerCase();
+    const path = parsed.pathname || '/';
+
+    // Custom scheme: elixstar://video/<id>
+    if (parsed.protocol === 'elixstar:') {
+      const parts = path.replace(/^\/+/, '').split('/').filter(Boolean);
+      const type = parts[0];
+      const id = parts[1];
+      if (type && id) {
+        if (type === 'video') { navigate(`/video/${id}`); return; }
+        if (type === 'user') { navigate(`/profile/${id}`); return; }
+        if (type === 'live') { navigate(`/live/${id}`); return; }
+        if (type === 'hashtag') { navigate(`/hashtag/${id}`); return; }
+      }
+      navigate('/feed');
+      return;
+    }
+
+    // HTTPS App Links / Universal Links
+    if ((parsed.protocol === 'https:' || parsed.protocol === 'http:') && WEB_HOSTS.has(host)) {
+      const parts = path.replace(/^\/+/, '').split('/').filter(Boolean);
+      const type = parts[0];
+      const id = parts[1];
+      if (type === 'video' && id) { navigate(`/video/${id}`); return; }
+      if (type === 'profile' && id) { navigate(`/profile/${id}`); return; }
+      if (type === 'live' && id) { navigate(`/live/${id}`); return; }
+      if (type === 'watch' && id) { navigate(`/watch/${id}`); return; }
+      if (type === 'hashtag' && id) { navigate(`/hashtag/${id}`); return; }
+      if (path && path !== '/') { navigate(path); return; }
+    }
+  } catch {
+    // Fall through to feed.
+  }
+  navigate('/feed');
+}
 
 export const useDeepLinks = () => {
   const navigate = useNavigate();
-  const location = useLocation();
 
   useEffect(() => {
     let urlHandle: { remove: () => Promise<void> } | null = null;
     let backHandle: { remove: () => Promise<void> } | null = null;
 
     CapacitorApp.addListener('appUrlOpen', (event: { url: string }) => {
-      const url = event.url;
-      
-      const videoMatch = url.match(/(?:elixstar|app):\/\/video\/([^?]+)/);
-      if (videoMatch) { navigate(`/video/${videoMatch[1]}`); return; }
-      
-      const userMatch = url.match(/(?:elixstar|app):\/\/user\/([^?]+)/);
-      if (userMatch) { navigate(`/profile/${userMatch[1]}`); return; }
-      
-      const liveMatch = url.match(/(?:elixstar|app):\/\/live\/([^?]+)/);
-      if (liveMatch) { navigate(`/live/${liveMatch[1]}`); return; }
-      
-      const hashtagMatch = url.match(/(?:elixstar|app):\/\/hashtag\/([^?]+)/);
-      if (hashtagMatch) { navigate(`/hashtag/${hashtagMatch[1]}`); return; }
-      
-      navigate('/feed');
+      navigateFromDeepLinkUrl(event.url, navigate);
     }).then(h => { urlHandle = h; });
 
     if (Capacitor.isNativePlatform()) {
@@ -51,7 +76,7 @@ export const useDeepLinks = () => {
       urlHandle?.remove().catch(() => {});
       backHandle?.remove().catch(() => {});
     };
-  }, []);
+  }, [navigate]);
 };
 
 // Generate shareable deep link

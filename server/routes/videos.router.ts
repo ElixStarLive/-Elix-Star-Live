@@ -26,8 +26,23 @@ router.post("/", async (req, res) => {
     const { getOrCreateProfile } = await import("./profiles");
     const profile = await getOrCreateProfile(payload.sub);
 
+    const requestedId =
+      typeof body.id === "string" && body.id.trim() ? body.id.trim() : "";
+    if (requestedId) {
+      const db = getPool();
+      if (db) {
+        const owned = await db.query(
+          `SELECT user_id FROM videos WHERE id = $1 LIMIT 1`,
+          [requestedId],
+        );
+        const ownerId = owned.rows[0]?.user_id;
+        if (ownerId && ownerId !== payload.sub) {
+          return res.status(403).json({ error: "Not allowed to overwrite this video." });
+        }
+      }
+    }
     const id =
-      body.id || `vid_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+      requestedId || `vid_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
     let music = body.music || null;
     if (!music && body.id) {

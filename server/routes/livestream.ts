@@ -302,6 +302,11 @@ export async function handleLiveStart(req: Request, res: Response) {
         ? displayName.toString().slice(0, 80)
         : undefined;
 
+    const existing = await getActiveStream(roomName);
+    if (existing && existing.userId !== auth.userId) {
+      return res.status(409).json({ error: 'Room is already live by another host.' });
+    }
+
     const startedAt = new Date().toISOString();
     await setActiveStream(roomName, auth.userId, startedAt, safeDisplayName);
     try {
