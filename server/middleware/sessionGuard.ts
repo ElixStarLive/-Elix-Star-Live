@@ -10,7 +10,7 @@ import { logger } from "../lib/logger";
  * Global session + ban enforcement for /api routes.
  *
  * - No token: pass through (public/anonymous endpoints).
- * - /api/auth/*: pass through (login/logout/refresh manage their own token lifecycle).
+ * - Public auth endpoints pass through (login/register/reset flows).
  * - Valid token + live session + not banned: pass through.
  * - Banned account: 403 everywhere.
  * - Revoked/expired session or bad JWT: strip credentials so the request is
@@ -27,8 +27,20 @@ export async function sessionGuard(
     next();
     return;
   }
-  // Auth routes own their token lifecycle (e.g. logout must run with a revoked session).
-  if (req.originalUrl.startsWith("/api/auth/")) {
+  // Only endpoints that cannot rely on an existing session bypass the guard.
+  // Authenticated routes such as /me, /logout, and /delete must validate the
+  // server-side session row just like every other protected API endpoint.
+  const pathname = req.originalUrl.split("?")[0];
+  const publicAuthPaths = new Set([
+    "/api/auth/login",
+    "/api/auth/guest",
+    "/api/auth/register",
+    "/api/auth/resend-confirmation",
+    "/api/auth/apple/start",
+    "/api/auth/forgot-password",
+    "/api/auth/reset-password",
+  ]);
+  if (publicAuthPaths.has(pathname)) {
     next();
     return;
   }
@@ -36,8 +48,8 @@ export async function sessionGuard(
   try {
     state = await checkSessionState(token);
   } catch (err) {
-    logger.warn({ err }, "sessionGuard: checkSessionState threw — failing open");
-    next();
+    logger.error({ err }, "sessionGuard: checkSessionState threw");
+    res.status(503).json({ error: "Session validation unavailable." });
     return;
   }
   if (!state) {
@@ -52,6 +64,10 @@ export async function sessionGuard(
   if (state.state === "revoked") {
     stripAuthCredentials(req);
     next();
+    return;
+  }
+  if (state.state === "unavailable") {
+    res.status(503).json({ error: "Session validation unavailable." });
     return;
   }
   next();

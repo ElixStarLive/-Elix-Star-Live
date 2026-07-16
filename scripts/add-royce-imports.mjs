@@ -23,7 +23,7 @@ for (const file of walk(srcRoot)) {
   if (file.endsWith(`${path.sep}royce.tsx`)) continue;
   let content = fs.readFileSync(file, 'utf8');
   if (!content.includes('RoyceBackIcon') && !content.includes('RoyceCloseIcon') && !content.includes('RoyceIcon')) continue;
-  if (content.includes("from '") && /from ['\"].*\/royce['\"]/.test(content)) continue;
+  if (content.includes("from '") && /from ['"].*\/royce['"]/.test(content)) continue;
 
   const needs = [];
   if (content.includes('RoyceBackIcon')) needs.push('RoyceBackIcon');

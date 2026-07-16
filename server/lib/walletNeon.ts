@@ -341,26 +341,22 @@ export async function neonInsertPromotePurchase(row: {
   amountGbp: number;
 }): Promise<void> {
   const pool = getPool();
-  if (!pool) return;
-  try {
-    await pool.query(
-      `INSERT INTO elix_promote_purchases (user_id, provider, provider_transaction_id, product_id, content_type, content_id, goal, amount_gbp)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-       ON CONFLICT (provider_transaction_id) DO NOTHING`,
-      [
-        row.userId,
-        row.provider,
-        row.providerTransactionId,
-        row.productId,
-        row.contentType,
-        row.contentId,
-        row.goal,
-        row.amountGbp,
-      ],
-    );
-  } catch (e) {
-    logger.warn({ err: e }, "neonInsertPromotePurchase failed");
-  }
+  if (!pool) throw new Error("DATABASE_UNAVAILABLE");
+  await pool.query(
+    `INSERT INTO elix_promote_purchases (user_id, provider, provider_transaction_id, product_id, content_type, content_id, goal, amount_gbp)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+     ON CONFLICT (provider_transaction_id) DO NOTHING`,
+    [
+      row.userId,
+      row.provider,
+      row.providerTransactionId,
+      row.productId,
+      row.contentType,
+      row.contentId,
+      row.goal,
+      row.amountGbp,
+    ],
+  );
 }
 
 export async function neonInsertMembershipPurchase(row: {
@@ -370,17 +366,13 @@ export async function neonInsertMembershipPurchase(row: {
   providerTransactionId: string;
 }): Promise<void> {
   const pool = getPool();
-  if (!pool) return;
-  try {
-    await pool.query(
-      `INSERT INTO elix_membership_purchases (user_id, creator_id, provider, provider_transaction_id)
-       VALUES ($1, $2, $3, $4)
-       ON CONFLICT (provider_transaction_id) DO NOTHING`,
-      [row.userId, row.creatorId, row.provider, row.providerTransactionId],
-    );
-  } catch (e) {
-    logger.warn({ err: e }, "neonInsertMembershipPurchase failed");
-  }
+  if (!pool) throw new Error("DATABASE_UNAVAILABLE");
+  await pool.query(
+    `INSERT INTO elix_membership_purchases (user_id, creator_id, provider, provider_transaction_id)
+     VALUES ($1, $2, $3, $4)
+     ON CONFLICT (provider_transaction_id) DO NOTHING`,
+    [row.userId, row.creatorId, row.provider, row.providerTransactionId],
+  );
 }
 
 export async function neonInsertShopPurchase(row: {

@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { createHash } from 'node:crypto';
 import { getTokenFromRequest, verifyAuthToken } from './auth';
 import {
   neonCreditIap,
@@ -13,6 +14,17 @@ import { assertIapVerifyVelocityOk } from '../lib/fraud';
 
 const rateLimits = new Map<string, { count: number; timestamp: number }>();
 const MAX_LOCAL_RATE_ENTRIES = 20_000;
+
+function providerTransactionKey(
+  provider: 'apple' | 'google',
+  transactionId: string,
+  purchaseToken?: string,
+): string | null {
+  if (provider === 'apple') return transactionId.trim() || null;
+  const token = purchaseToken?.trim();
+  if (!token) return null;
+  return `token_sha256:${createHash('sha256').update(token).digest('hex')}`;
+}
 
 setInterval(() => {
   const now = Date.now();
@@ -366,8 +378,17 @@ export async function handleVerifyPurchase(req: Request, res: Response) {
 
     const safeProvider = provider === 'google' ? 'google' : provider === 'apple' ? 'apple' : '';
     if (!safeProvider) return res.status(400).json({ error: `Unknown provider: ${provider}` });
-
-    if (await neonIsIapProcessed(safeProvider, String(transactionId))) {
+    const googlePurchaseToken = safeProvider === 'google' && typeof receipt === 'string' ? receipt.trim() : '';
+    if (safeProvider === 'google' && !googlePurchaseToken) {
+      return res.status(400).json({ error: 'Google purchase token is required' });
+    }
+    const providerTransactionId = providerTransactionKey(
+      safeProvider,
+      String(transactionId),
+      googlePurchaseToken,
+    );
+    if (!providerTransactionId) return res.status(400).json({ error: 'Invalid transaction identifier' });
+    if (await neonIsIapProcessed(safeProvider, providerTransactionId)) {
       return res.status(200).json({ success: true, deduplicated: true, message: 'Transaction already processed' });
     }
 
@@ -382,7 +403,7 @@ export async function handleVerifyPurchase(req: Request, res: Response) {
       const google = await verifyGooglePlayPurchase(
         packageName,
         String(packageId),
-        typeof receipt === 'string' ? receipt : String(transactionId),
+        googlePurchaseToken,
       );
       isValid = google.valid;
       verificationResponse = { provider: 'google', verified: google.valid, productId: google.productId, detail: google.detail };
@@ -403,7 +424,7 @@ export async function handleVerifyPurchase(req: Request, res: Response) {
     const credited = await neonCreditIap({
       userId: String(userId),
       provider: safeProvider,
-      providerTransactionId: String(transactionId),
+      providerTransactionId,
       productId: String(packageId),
       coins,
       verification: verificationResponse,
@@ -458,8 +479,18 @@ export async function handlePromoteIAPComplete(req: Request, res: Response) {
   if (!meta) return res.status(400).json({ error: 'Invalid promote product' });
 
   const provider = body.provider === 'google' ? 'google' : 'apple';
+  const googlePurchaseToken = provider === 'google' && typeof body.receipt === 'string' ? body.receipt.trim() : '';
+  if (provider === 'google' && !googlePurchaseToken) {
+    return res.status(400).json({ error: 'Google purchase token is required' });
+  }
+  const providerTransactionId = providerTransactionKey(
+    provider,
+    String(transactionId),
+    googlePurchaseToken,
+  );
+  if (!providerTransactionId) return res.status(400).json({ error: 'Invalid transaction identifier' });
   try {
-    if (await neonIsIapProcessed(provider, String(transactionId))) {
+    if (await neonIsIapProcessed(provider, providerTransactionId)) {
       return res.json({ success: true, message: 'Already processed' });
     }
   } catch {
@@ -471,8 +502,7 @@ export async function handlePromoteIAPComplete(req: Request, res: Response) {
     valid = apple.valid && apple.productId === String(productId);
   } else {
     const packageName = process.env.GOOGLE_PLAY_PACKAGE_NAME || 'com.elixstarlive.app';
-    const purchaseToken = typeof body.receipt === 'string' ? body.receipt : String(transactionId);
-    const google = await verifyGooglePlayPurchase(packageName, String(productId), purchaseToken);
+    const google = await verifyGooglePlayPurchase(packageName, String(productId), googlePurchaseToken);
     valid = google.valid;
   }
   if (!valid) return res.status(400).json({ error: 'Invalid or unverified transaction' });
@@ -481,7 +511,7 @@ export async function handlePromoteIAPComplete(req: Request, res: Response) {
     await neonInsertPromotePurchase({
       userId: user.sub,
       provider,
-      providerTransactionId: String(transactionId),
+      providerTransactionId,
       productId: String(productId),
       contentType: String(contentType || 'video'),
       contentId: String(contentId || ''),
@@ -514,14 +544,23 @@ export async function handleMembershipIAPComplete(req: Request, res: Response) {
     return res.status(400).json({ error: 'transactionId and provider required' });
   }
   if (!getPool()) return res.status(503).json({ error: 'Database not configured' });
+  const googlePurchaseToken = provider === 'google' && typeof body.receipt === 'string' ? body.receipt.trim() : '';
+  if (provider === 'google' && !googlePurchaseToken) {
+    return res.status(400).json({ error: 'Google purchase token is required' });
+  }
+  const providerTransactionId = providerTransactionKey(provider, transactionId, googlePurchaseToken);
+  if (!providerTransactionId) return res.status(400).json({ error: 'Invalid transaction identifier' });
 
   if (provider === 'apple') {
     const apple = await verifyAppleReceipt(transactionId);
     if (!apple.valid) return res.status(400).json({ error: 'Invalid or unverified transaction' });
   } else {
     const packageName = process.env.GOOGLE_PLAY_PACKAGE_NAME || 'com.elixstarlive.app';
-    const purchaseToken = typeof body.receipt === 'string' ? body.receipt : transactionId;
-    const google = await verifyGooglePlayPurchase(packageName, body.productId || 'com.elixstarlive.membership', purchaseToken);
+    const google = await verifyGooglePlayPurchase(
+      packageName,
+      body.productId || 'com.elixstarlive.membership',
+      googlePurchaseToken,
+    );
     if (!google.valid) return res.status(400).json({ error: 'Invalid or unverified transaction' });
   }
 
@@ -530,7 +569,7 @@ export async function handleMembershipIAPComplete(req: Request, res: Response) {
       userId: user.sub,
       creatorId,
       provider,
-      providerTransactionId: transactionId,
+      providerTransactionId,
     });
     return res.json({ success: true, message: 'Membership recorded' });
   } catch (err) {

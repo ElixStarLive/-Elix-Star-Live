@@ -97,11 +97,7 @@ export default function Create() {
         try {
           nextStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: isFrontCamera ? 'user' : 'environment' }, audio: false });
         } catch (e1: unknown) {
-          try {
-            nextStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-          } catch (e2: unknown) {
-            throw e2;
-          }
+          nextStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
         }
         if (cancelled) { nextStream.getTracks().forEach((t) => t.stop()); return; }
 

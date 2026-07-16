@@ -5,6 +5,21 @@ import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 
 export default [
+  {
+    ignores: [
+      "node_modules/",
+      "dist/",
+      "build/",
+      "**/build/",
+      "android/app/src/main/assets/public/",
+      "ios/App/App/public/",
+      "Elix Star Live/",
+      "_aab_peek/",
+      "assets/",
+      "*.config.js",
+      "*.config.ts",
+    ],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
@@ -24,5 +39,28 @@ export default [
       "prefer-const": "warn",
     },
   },
-  { ignores: ["node_modules/", "dist/", "build/", "*.config.js", "*.config.ts"] },
+  {
+    files: ["scripts/**/*.{js,mjs}"],
+    languageOptions: {
+      globals: {
+        console: "readonly",
+        __ENV: "readonly",
+      },
+    },
+  },
+  {
+    files: ["loadtest/**/*.js"],
+    languageOptions: {
+      globals: {
+        __ENV: "readonly",
+        __VU: "readonly",
+      },
+    },
+  },
+  {
+    files: ["server/middleware/auth.ts", "server/middleware/rbac.ts", "server/middleware/requestId.ts"],
+    rules: {
+      "@typescript-eslint/no-namespace": "off",
+    },
+  },
 ];

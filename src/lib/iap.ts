@@ -155,19 +155,22 @@ export async function purchaseProduct(productId: IAPProductId): Promise<IAPPurch
       receipt,
     );
 
-    // Acknowledge the transaction (Android requires this; iOS StoreKit 2 handles it automatically)
+    if (!verifyResult.success) {
+      return { success: false, error: verifyResult.error || 'Verification failed. Please contact support if you were charged.' };
+    }
+
+    // Coins are consumable. Android must consume the purchase token after credit
+    // so the same SKU can be bought again; acknowledge alone is not enough.
     try {
-      if ('acknowledgePurchase' in mod.NativePurchases) {
+      if (platform.isAndroid && 'consumePurchase' in mod.NativePurchases && receipt) {
+        await (mod.NativePurchases as any).consumePurchase({ purchaseToken: receipt });
+      } else if ('acknowledgePurchase' in mod.NativePurchases) {
         await (mod.NativePurchases as any).acknowledgePurchase({
           transactionIdentifier: transactionId,
           purchaseToken: receipt,
         });
       }
-    } catch { /* best-effort acknowledge */ }
-
-    if (!verifyResult.success) {
-      return { success: false, error: verifyResult.error || 'Verification failed. Please contact support if you were charged.' };
-    }
+    } catch { /* best-effort store completion */ }
 
     return {
       success: true,
@@ -324,11 +327,7 @@ async function verifyAndCreditPurchase(
 export async function restorePurchases(): Promise<void> {
   if (!platform.isNative) return;
 
-  try {
-    const mod = await getPlugin();
-    if (!mod) return;
-    await mod.NativePurchases.restorePurchases();
-  } catch (e) {
-    throw e;
-  }
+  const mod = await getPlugin();
+  if (!mod) return;
+  await mod.NativePurchases.restorePurchases();
 }

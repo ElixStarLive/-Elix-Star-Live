@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* global console, process */
+/* global process */
 /**
  * Copy .env.example to .env if .env does not exist.
  * Run: npm run setup:env

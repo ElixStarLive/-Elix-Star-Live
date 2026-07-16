@@ -118,17 +118,17 @@ export function verifyAuthToken(token: string): { sub: string; email: string } |
  * - "ok": valid JWT, live session row, not banned
  * - "revoked": valid JWT but the session row is missing/expired (logged out / expired)
  * - "banned": valid JWT + live session but the account is suspended
+ * - "unavailable": session state could not be verified safely
  * - null: JWT is invalid/expired (treat as anonymous)
- * Fails open on transient DB errors so a database blip cannot mass-logout users.
  */
 export async function checkSessionState(
   token: string,
-): Promise<{ state: 'ok' | 'revoked' | 'banned'; userId: string } | null> {
+): Promise<{ state: 'ok' | 'revoked' | 'banned' | 'unavailable'; userId: string } | null> {
   const payload = verifyToken(token);
   // Purpose-bound tokens are not sessions.
   if (!payload || payload.purpose) return null;
   const pool = getPool();
-  if (!pool) return { state: 'ok', userId: payload.sub };
+  if (!pool) return { state: 'unavailable', userId: payload.sub };
   try {
     const r = await pool.query(
       `SELECT (s.token_hash IS NOT NULL) AS has_session, p.banned_until
@@ -144,8 +144,8 @@ export async function checkSessionState(
     if (bu && new Date(bu).getTime() > Date.now()) return { state: 'banned', userId: payload.sub };
     return { state: 'ok', userId: payload.sub };
   } catch (err) {
-    logger.warn({ err, userId: payload.sub }, 'checkSessionState query failed — failing open');
-    return { state: 'ok', userId: payload.sub };
+    logger.error({ err, userId: payload.sub }, 'checkSessionState query failed');
+    return { state: 'unavailable', userId: payload.sub };
   }
 }
 
