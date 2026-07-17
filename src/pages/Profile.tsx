@@ -82,6 +82,7 @@ export default function Profile() {
   const [showReportModal, setShowReportModal] = useState(false);
   const [shareFollowers, setShareFollowers] = useState<{ user_id: string; username: string; avatar_url: string | null }[]>([]);
   const [shareSent, setShareSent] = useState<Set<string>>(new Set());
+  const [risingBadges, setRisingBadges] = useState<{ code: string; title: string; kind: string }[]>([]);
   
   const [resolvedUserId, setResolvedUserId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -197,6 +198,18 @@ export default function Profile() {
     setLoading(true);
     loadProfile();
     loadVideos();
+    request(`/api/rising-stars/badges/user/${encodeURIComponent(effectiveUserId)}`)
+      .then(({ data }) => {
+        const list = Array.isArray(data?.badges) ? data.badges : [];
+        setRisingBadges(
+          list.map((b: { code?: string; title?: string; kind?: string }) => ({
+            code: String(b.code || ""),
+            title: String(b.title || b.code || "Badge"),
+            kind: String(b.kind || ""),
+          })),
+        );
+      })
+      .catch(() => setRisingBadges([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveUserId, activeTab]);
 
@@ -649,6 +662,19 @@ export default function Profile() {
             )}
           </div>
           <span className="text-[13px] text-white/80 font-medium">{displayUsername}</span>
+          {risingBadges.length > 0 && (
+            <div className="flex flex-wrap justify-center gap-1.5 mt-2 max-w-[280px]">
+              {risingBadges.slice(0, 6).map((b) => (
+                <span
+                  key={b.code}
+                  className="px-2 py-0.5 rounded-full text-[10px] bg-[#C9A227]/15 text-[#C9A227] border border-[#C9A227]/30"
+                  title={b.title}
+                >
+                  {b.title}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
 

@@ -30,6 +30,33 @@ export async function assertGiftRestVelocityOk(userId: string): Promise<{ ok: tr
   }
 }
 
+const RS_VOTE_WINDOW_SEC = 60;
+const RS_VOTE_MAX = 20;
+
+/** Rising Stars free-vote velocity — fail closed when Valkey unavailable. */
+export async function assertRisingStarsVoteVelocityOk(
+  userId: string,
+): Promise<{ ok: true } | { ok: false; code: string }> {
+  if (!isValkeyConfigured()) {
+    return { ok: false, code: "FRAUD_CHECK_UNAVAILABLE" };
+  }
+  const v = getValkey();
+  if (!v) return { ok: false, code: "FRAUD_CHECK_UNAVAILABLE" };
+  const key = `fraud:rs_vote:${userId}`;
+  try {
+    const n = await v.incr(key);
+    if (n === 1) await v.expire(key, RS_VOTE_WINDOW_SEC);
+    if (n > RS_VOTE_MAX) {
+      logger.warn({ userId, n }, "fraud: Rising Stars vote velocity exceeded");
+      return { ok: false, code: "RS_VOTE_RATE_LIMITED" };
+    }
+    return { ok: true };
+  } catch (e) {
+    logger.error({ err: e, userId }, "fraud Rising Stars vote check failed");
+    return { ok: false, code: "FRAUD_CHECK_ERROR" };
+  }
+}
+
 export async function assertIapVerifyVelocityOk(userId: string): Promise<{ ok: true } | { ok: false; code: string }> {
   if (!isValkeyConfigured()) {
     return { ok: false, code: "FRAUD_CHECK_UNAVAILABLE" };

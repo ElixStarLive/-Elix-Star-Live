@@ -146,3 +146,15 @@ export const analyticsPostLimiter = rateLimit({
   max: 300,
   keyPrefix: "analytics",
 });
+
+export const risingStarsVoteLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 20,
+  keyPrefix: "rs_vote",
+});
+
+export const risingStarsEnterLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 5,
+  keyPrefix: "rs_enter",
+});

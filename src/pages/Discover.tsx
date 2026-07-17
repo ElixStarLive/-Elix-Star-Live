@@ -231,6 +231,7 @@ export default function Discover() {
           {searchQuery.length < 2 && (
             <div className="flex gap-1.5 px-3 pb-1.5 no-scrollbar overflow-x-auto">
               <TabButton active={activeTab === 'trending'} onClick={() => setActiveTab('trending')} icon={<Flame className="w-3 h-3" />} label="Trending" />
+              <TabButton active={false} onClick={() => navigate('/rising-stars')} icon={<Trophy className="w-3 h-3" />} label="Rising" />
               <TabButton active={activeTab === 'ranking'} onClick={() => setActiveTab('ranking')} icon={<Trophy className="w-3 h-3" />} label="Top 99" />
               <TabButton active={activeTab === 'hashtags'} onClick={() => setActiveTab('hashtags')} icon={<Hash className="w-3 h-3" />} label="Tags" />
               <TabButton active={false} onClick={() => { setSearchQuery('music'); setActiveTab('search'); }} icon={<Music className="w-3 h-3" />} label="Music" />

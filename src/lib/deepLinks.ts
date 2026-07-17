@@ -24,6 +24,10 @@ function navigateFromDeepLinkUrl(url: string, navigate: (path: string) => void):
         if (type === 'user') { navigate(`/profile/${id}`); return; }
         if (type === 'live') { navigate(`/live/${id}`); return; }
         if (type === 'hashtag') { navigate(`/hashtag/${id}`); return; }
+        if (type === 'rising-stars' || type === 'risingstars') {
+          navigate(id ? `/rising-stars/challenge/${id}` : '/rising-stars');
+          return;
+        }
       }
       navigate('/feed');
       return;
@@ -39,6 +43,14 @@ function navigateFromDeepLinkUrl(url: string, navigate: (path: string) => void):
       if (type === 'live' && id) { navigate(`/live/${id}`); return; }
       if (type === 'watch' && id) { navigate(`/watch/${id}`); return; }
       if (type === 'hashtag' && id) { navigate(`/hashtag/${id}`); return; }
+      if (type === 'rising-stars') {
+        if (parts[1] === 'challenge' && parts[2]) {
+          navigate(`/rising-stars/challenge/${parts[2]}`);
+          return;
+        }
+        navigate('/rising-stars');
+        return;
+      }
       if (path && path !== '/') { navigate(path); return; }
     }
   } catch {
