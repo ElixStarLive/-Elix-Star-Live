@@ -5847,7 +5847,7 @@ export default function LiveStream() {
 
               {!IS_STORE_BUILD && (
               <button type="button" onClick={() => { setShowTestCoinsModal(true); setTestCoinsStep(sessionStorage.getItem('elix_test_coins_unlocked') ? 'amount' : 'password'); setTestCoinsPwd(''); setTestCoinsError(''); setTestCoinsAmount(''); setIsMoreMenuOpen(false); }} className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform">
-                <div className="w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
+                <div className="royce-glow-disc w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
                   <Coins className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />
                 </div>
                 <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">Test</span>
@@ -5855,28 +5855,28 @@ export default function LiveStream() {
               )}
 
               <button type="button" onClick={() => { setShowSharePanel(true); setIsMoreMenuOpen(false); }} className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform">
-                <div className="w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
+                <div className="royce-glow-disc w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
                   <Share2 className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />
                 </div>
                 <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">Share</span>
               </button>
 
               <button type="button" disabled={!isBroadcast} onClick={() => { flipCamera(); setIsMoreMenuOpen(false); }} className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform disabled:opacity-40">
-                <div className="w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
+                <div className="royce-glow-disc w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
                   <RefreshCw className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />
                 </div>
                 <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">Flip</span>
               </button>
 
               <button type="button" disabled={!isBroadcast} onClick={() => { toggleMic(); setIsMoreMenuOpen(false); }} className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform disabled:opacity-40">
-                <div className="w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
+                <div className="royce-glow-disc w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
                   {isMicMuted ? <MicOff className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} /> : <Mic className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />}
                 </div>
                 <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">{isMicMuted ? 'Unmute' : 'Mute'}</span>
               </button>
 
               <button type="button" disabled={!isBroadcast} onClick={() => { toggleCam(); setIsMoreMenuOpen(false); }} className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform disabled:opacity-40">
-                <div className="w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
+                <div className="royce-glow-disc w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
                   {isCamOff ? <CameraOff className="w-[18px] h-[18px] text-white/60 relative z-[2]" strokeWidth={1.8} /> : <Camera className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />}
                 </div>
                 <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">{isCamOff ? 'Cam On' : 'Cam Off'}</span>
@@ -5888,21 +5888,21 @@ export default function LiveStream() {
                 onClick={() => { setShowLiveEffectsPanel(true); setIsMoreMenuOpen(false); }}
                 className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform disabled:opacity-40"
               >
-                <div className="w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
+                <div className="royce-glow-disc w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
                   <Sparkles className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />
                 </div>
                 <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">Effects</span>
               </button>
 
               <button type="button" onClick={() => { setIsChatVisible((v) => !v); setIsMoreMenuOpen(false); }} className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform">
-                <div className="w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
+                <div className="royce-glow-disc w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
                   <MessageCircle className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />
                 </div>
                 <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">{isChatVisible ? 'Hide Chat' : 'Show Chat'}</span>
               </button>
 
               <button type="button" onClick={() => { setIsReportModalOpen(true); setIsMoreMenuOpen(false); }} className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform">
-                <div className="w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
+                <div className="royce-glow-disc w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
                   <Flag className="w-[18px] h-[18px] text-white/60 relative z-[2]" strokeWidth={1.8} />
                 </div>
                 <span className="text-[10px] font-semibold text-white/60 text-center leading-tight w-full">Report</span>
@@ -5910,7 +5910,7 @@ export default function LiveStream() {
 
               {isBattleMode && battleWinner && isBroadcast && (
                 <button type="button" onClick={() => { if (battleSlots[0]?.userId) { websocket.send('battle_create', { hostName: myCreatorName, opponentUserId: battleSlots[0].userId, opponentName: battleSlots[0].name, opponentRoomId: opponentStreamKey || '' }); } setBattleTime(300); setMyScore(0); setOpponentScore(0); setPlayer3Score(0); setPlayer4Score(0); battleServerTotalsRef.current = { h: 0, o: 0, p3: 0, p4: 0 }; setBattleServerTotals({ h: 0, o: 0, p3: 0, p4: 0 }); setBattleWinner(null); setBattleCountdown(null); reachedThresholdsRef.current.clear(); setIsMoreMenuOpen(false); }} className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform">
-                  <div className="w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
+                  <div className="royce-glow-disc w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
                     <RefreshCw className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />
                   </div>
                   <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">Rematch</span>
@@ -5919,7 +5919,7 @@ export default function LiveStream() {
 
               {isBattleMode && isBroadcast && !battleWinner && battleTime > 0 && (
                 <button type="button" onClick={() => { startSpeedChallenge(); setIsMoreMenuOpen(false); }} className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform">
-                  <div className="w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
+                  <div className="royce-glow-disc w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
                     <Zap className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />
                   </div>
                   <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">Speed</span>
