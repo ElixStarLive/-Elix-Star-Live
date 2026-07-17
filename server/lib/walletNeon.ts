@@ -491,14 +491,18 @@ export async function neonReverseIapPurchase(input: {
           AND status = 'pending'
           AND kind = 'gift'
           AND created_at >= $2
+        ORDER BY created_at ASC
         FOR UPDATE`,
       [userId, purchasedAt],
     );
+    let remainingReversal = coins;
     for (const row of pending.rows || []) {
       const earningId = String(row.id);
       const creatorId = String(row.creator_id);
       const earningCoins = Math.floor(Number(row.coins) || 0);
       if (!earningId || !creatorId || earningCoins <= 0) continue;
+      // Never remove more creator earnings than the refunded purchase funded.
+      if (earningCoins > remainingReversal) continue;
       await client.query(
         `UPDATE elix_creator_earnings SET status = 'reversed' WHERE id = $1 AND status = 'pending'`,
         [earningId],
@@ -509,6 +513,8 @@ export async function neonReverseIapPurchase(input: {
           WHERE user_id = $1`,
         [creatorId, earningCoins],
       );
+      remainingReversal -= earningCoins;
+      if (remainingReversal <= 0) break;
     }
 
     await client.query("COMMIT");

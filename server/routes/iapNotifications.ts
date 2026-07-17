@@ -2,13 +2,26 @@
  * Store refund / void notifications for Google Play and Apple IAP.
  * Reverses credited coins and still-pending creator gift earnings.
  */
-import { createHash } from "crypto";
+import { createHash, timingSafeEqual } from "crypto";
 import { Request, Response } from "express";
 import { logger } from "../lib/logger";
 import { neonReverseIapPurchase } from "../lib/walletNeon";
 
 function googleProviderTxnFromToken(purchaseToken: string): string {
   return `token_sha256:${createHash("sha256").update(purchaseToken).digest("hex")}`;
+}
+
+function callbackSecretIsValid(req: Request, expected: string | undefined): boolean | null {
+  const configured = expected?.trim();
+  if (!configured) return null;
+  const supplied = String(
+    req.query.token ||
+      req.headers["x-elix-webhook-secret"] ||
+      "",
+  );
+  const actual = Buffer.from(supplied);
+  const wanted = Buffer.from(configured);
+  return actual.length === wanted.length && timingSafeEqual(actual, wanted);
 }
 
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
@@ -28,6 +41,15 @@ function decodeJwtPayload(token: string): Record<string, unknown> | null {
  */
 export async function handleGooglePlayRtdn(req: Request, res: Response) {
   try {
+    const authorized = callbackSecretIsValid(
+      req,
+      process.env.GOOGLE_RTDN_WEBHOOK_SECRET,
+    );
+    if (authorized === null) {
+      return res.status(503).json({ error: "Google RTDN webhook is not configured" });
+    }
+    if (!authorized) return res.status(401).json({ error: "Unauthorized" });
+
     const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
     const dataB64 =
       body && typeof body === "object" && body.message && typeof body.message.data === "string"
@@ -75,17 +97,19 @@ export async function handleGooglePlayRtdn(req: Request, res: Response) {
 
 /**
  * Apple App Store Server Notifications V2.
- * Uses signedPayload; requires APPLE_IAP_NOTIFICATION_SECRET header match when set.
+ * Uses signedPayload and a mandatory secret embedded in the configured callback
+ * URL (or supplied through x-elix-webhook-secret for controlled tests).
  */
 export async function handleAppleIapNotification(req: Request, res: Response) {
   try {
-    const expected = process.env.APPLE_IAP_NOTIFICATION_SECRET?.trim();
-    if (expected) {
-      const got = String(req.headers["x-apple-notification-secret"] || "");
-      if (got !== expected) {
-        return res.status(401).json({ error: "Unauthorized" });
-      }
+    const authorized = callbackSecretIsValid(
+      req,
+      process.env.APPLE_IAP_NOTIFICATION_SECRET,
+    );
+    if (authorized === null) {
+      return res.status(503).json({ error: "Apple IAP webhook is not configured" });
     }
+    if (!authorized) return res.status(401).json({ error: "Unauthorized" });
 
     const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
     const signedPayload =
