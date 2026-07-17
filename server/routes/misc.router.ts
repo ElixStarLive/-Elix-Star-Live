@@ -8,6 +8,7 @@ import {
   handleVerifyPurchase,
   handlePromoteIAPComplete,
   handleMembershipIAPComplete,
+  handleGetMembershipStatus,
 } from "./misc";
 import { handleRegisterDeviceToken, handleDeleteDeviceToken } from "./deviceTokens";
 import { handlePostLiveShare, handleGetLiveShareRequests } from "./liveShareInbox";
@@ -36,6 +37,7 @@ router.post("/live/moderation/check", handleLiveModerationCheck);
 router.post("/verify-purchase", verifyPurchaseLimiter, validateBody(verifyPurchaseSchema), handleVerifyPurchase);
 router.post("/promote-iap-complete", verifyPurchaseLimiter, handlePromoteIAPComplete);
 router.post("/membership/iap-complete", verifyPurchaseLimiter, handleMembershipIAPComplete);
+router.get("/membership/:creatorId/status", handleGetMembershipStatus);
 
 // Device tokens
 router.post("/device-tokens", handleRegisterDeviceToken);

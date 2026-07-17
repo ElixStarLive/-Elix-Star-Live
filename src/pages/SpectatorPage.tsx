@@ -81,6 +81,7 @@ import { normalizeBattleGiftTarget } from '../lib/liveBattleGiftTarget';
 import { parseLiveGiftGoal, type LiveGiftGoal } from '../lib/liveGiftGoal';
 import { IS_STORE_BUILD } from '../config/build';
 import { resolveUiAvatarUrl } from '../lib/royceAssets';
+import { getMembershipStatus, purchaseMembership } from '../lib/iap';
 import { Room, RoomEvent, LocalVideoTrack, LocalAudioTrack } from 'livekit-client';
 
 function formatBattleScoreShort(coins: number) {
@@ -181,6 +182,7 @@ export default function SpectatorPage() {
   const [showRankingPanel, setShowRankingPanel] = useState(false);
   const [showFanClub, setShowFanClub] = useState(false);
   const [isSubscribing, setIsSubscribing] = useState(false);
+  const [isMember, setIsMember] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
 
   const [streamEndedReceived, setStreamEndedReceived] = useState(false);
@@ -1069,13 +1071,40 @@ export default function SpectatorPage() {
         navigate('/login');
         return;
       }
-      showToast('Subscriptions are available through in-app purchases.');
+      const creatorId = hostUserIdRef.current || hostUserId;
+      if (!creatorId || creatorId === user.id) {
+        showToast('Creator unavailable');
+        return;
+      }
+      const result = await purchaseMembership(creatorId);
+      if (result.success && result.status?.active) {
+        setIsMember(true);
+        showToast('Membership activated!');
+        setShowFanClub(false);
+      } else if (result.error !== 'Purchase cancelled') {
+        showToast(result.error || 'Membership purchase failed');
+      }
     } catch {
-      /* ignore */
+      showToast('Membership purchase failed');
     } finally {
       setIsSubscribing(false);
     }
   };
+
+  useEffect(() => {
+    const creatorId = hostUserIdRef.current || hostUserId;
+    if (!user?.id || !creatorId || creatorId === user.id) {
+      setIsMember(false);
+      return;
+    }
+    let cancelled = false;
+    void getMembershipStatus(creatorId).then(({ status }) => {
+      if (!cancelled) setIsMember(status?.active === true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [hostUserId, user?.id]);
 
   // Join tracking
   useEffect(() => {
@@ -3051,7 +3080,7 @@ export default function SpectatorPage() {
                             }}
                           >
                             <span className="group-hover:scale-110 transition-transform duration-200">{emoji}</span>
-                            {!isSubscribing && (
+                            {!isMember && (
                               <div className="absolute inset-0 bg-[#111111]/60 backdrop-blur-[1px] flex items-center justify-center">
                                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-80"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                               </div>
@@ -3061,7 +3090,7 @@ export default function SpectatorPage() {
                         <button
                           className="aspect-square rounded-lg bg-white/5 hover:bg-white/10 active:scale-95 transition-all flex items-center justify-center border border-[#C9A227]/10 relative overflow-hidden group"
                           onClick={() => {
-                            if (!isSubscribing) return;
+                            if (!isMember) return;
                             const input = document.createElement('input');
                             input.type = 'file';
                             input.accept = 'image/*';
@@ -3092,7 +3121,7 @@ export default function SpectatorPage() {
                             <PlusCircle size={12} className="text-[#E8D5A3]/50 group-hover:text-[#D4AF37] transition-colors" />
                             <span className="text-[6px] text-[#E8D5A3]/50 font-bold uppercase">Upload</span>
                           </div>
-                          {!isSubscribing && (
+                          {!isMember && (
                             <div className="absolute inset-0 bg-[#111111]/60 backdrop-blur-[1px] flex items-center justify-center">
                               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-80"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                             </div>

@@ -578,6 +578,250 @@ export async function neonInsertMembershipPurchase(row: {
   );
 }
 
+// --- Creator-specific Google Play subscription entitlements ---
+// Rows live in elix_membership_purchases keyed by purchase_token_hash
+// (sha256 hex — raw purchase tokens are never stored).
+
+export type MembershipEntitlement = {
+  id: string;
+  userId: string;
+  creatorId: string | null;
+  productId: string | null;
+  basePlanId: string | null;
+  subscriptionState: string | null;
+  expiresAt: string | null;
+  autoRenewEnabled: boolean | null;
+  acknowledgementState: string | null;
+  latestOrderId: string | null;
+};
+
+type UpsertEntitlementOk = { ok: true; id: string; created: boolean };
+type UpsertEntitlementErr = { ok: false; error: "ownership_conflict" | "database_error" };
+
+/**
+ * Atomically insert or refresh a creator-subscription entitlement keyed by
+ * purchase token hash. Same-owner retries are idempotent updates; a token
+ * already bound to another user or creator is rejected (fail closed).
+ * Throws when the database pool is unavailable.
+ */
+export async function neonUpsertMembershipEntitlement(input: {
+  userId: string;
+  creatorId: string;
+  provider: string;
+  purchaseTokenHash: string;
+  productId: string;
+  basePlanId: string | null;
+  subscriptionState: string;
+  expiresAt: string | null;
+  autoRenewEnabled: boolean;
+  acknowledgementState: string | null;
+  latestOrderId: string | null;
+  linkedPurchaseTokenHash: string | null;
+  verification: Record<string, unknown>;
+}): Promise<UpsertEntitlementOk | UpsertEntitlementErr> {
+  const pool = getPool();
+  if (!pool) throw new Error("DATABASE_UNAVAILABLE");
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const existing = await client.query(
+      `SELECT id, user_id, creator_id FROM elix_membership_purchases
+        WHERE purchase_token_hash = $1
+        LIMIT 1
+        FOR UPDATE`,
+      [input.purchaseTokenHash],
+    );
+    if (existing.rowCount) {
+      const row = existing.rows[0];
+      if (String(row.user_id) !== input.userId || String(row.creator_id ?? "") !== input.creatorId) {
+        await client.query("ROLLBACK");
+        logger.warn(
+          {
+            purchaseTokenHash: input.purchaseTokenHash,
+            userId: input.userId,
+            creatorId: input.creatorId,
+          },
+          "neonUpsertMembershipEntitlement: purchase token already bound to another owner",
+        );
+        return { ok: false, error: "ownership_conflict" };
+      }
+      await client.query(
+        `UPDATE elix_membership_purchases SET
+           product_id = $2,
+           base_plan_id = $3,
+           subscription_state = $4,
+           expires_at = $5,
+           auto_renew_enabled = $6,
+           acknowledgement_state = $7,
+           latest_order_id = $8,
+           linked_purchase_token_hash = $9,
+           verification = $10::jsonb,
+           verified_at = NOW(),
+           updated_at = NOW()
+         WHERE id = $1`,
+        [
+          row.id,
+          input.productId,
+          input.basePlanId,
+          input.subscriptionState,
+          input.expiresAt,
+          input.autoRenewEnabled,
+          input.acknowledgementState,
+          input.latestOrderId,
+          input.linkedPurchaseTokenHash,
+          JSON.stringify(input.verification ?? {}),
+        ],
+      );
+      await client.query("COMMIT");
+      return { ok: true, id: String(row.id), created: false };
+    }
+    const ins = await client.query(
+      `INSERT INTO elix_membership_purchases
+         (user_id, creator_id, provider, provider_transaction_id, product_id, base_plan_id,
+          purchase_token_hash, subscription_state, expires_at, auto_renew_enabled,
+          acknowledgement_state, latest_order_id, linked_purchase_token_hash,
+          verification, verified_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14::jsonb, NOW(), NOW())
+       RETURNING id`,
+      [
+        input.userId,
+        input.creatorId,
+        input.provider,
+        `token_sha256:${input.purchaseTokenHash}`,
+        input.productId,
+        input.basePlanId,
+        input.purchaseTokenHash,
+        input.subscriptionState,
+        input.expiresAt,
+        input.autoRenewEnabled,
+        input.acknowledgementState,
+        input.latestOrderId,
+        input.linkedPurchaseTokenHash,
+        JSON.stringify(input.verification ?? {}),
+      ],
+    );
+    await client.query("COMMIT");
+    return { ok: true, id: String(ins.rows[0].id), created: true };
+  } catch (e) {
+    try {
+      await client.query("ROLLBACK");
+    } catch (rbErr) {
+      logger.error({ err: rbErr }, "neonUpsertMembershipEntitlement ROLLBACK failed");
+    }
+    logger.error(
+      { err: e, userId: input.userId, creatorId: input.creatorId },
+      "neonUpsertMembershipEntitlement failed",
+    );
+    return { ok: false, error: "database_error" };
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * Active entitlement for viewer + creator, or null.
+ * Entitled = ACTIVE, IN_GRACE_PERIOD, or CANCELED, all with a future expiry.
+ * Fails closed: throws on DB unavailable or query error (never guesses).
+ */
+export async function neonGetActiveMembershipEntitlement(
+  viewerId: string,
+  creatorId: string,
+): Promise<MembershipEntitlement | null> {
+  const pool = getPool();
+  if (!pool) throw new Error("DATABASE_UNAVAILABLE");
+  try {
+    const r = await pool.query(
+      `SELECT id, user_id, creator_id, product_id, base_plan_id, subscription_state,
+              expires_at, auto_renew_enabled, acknowledgement_state, latest_order_id
+         FROM elix_membership_purchases
+        WHERE user_id = $1
+          AND creator_id = $2
+          AND purchase_token_hash IS NOT NULL
+          AND subscription_state IN ('ACTIVE', 'IN_GRACE_PERIOD', 'CANCELED')
+          AND expires_at > NOW()
+        ORDER BY expires_at DESC
+        LIMIT 1`,
+      [viewerId, creatorId],
+    );
+    if (!r.rowCount) return null;
+    const row = r.rows[0];
+    return {
+      id: String(row.id),
+      userId: String(row.user_id),
+      creatorId: row.creator_id != null ? String(row.creator_id) : null,
+      productId: row.product_id != null ? String(row.product_id) : null,
+      basePlanId: row.base_plan_id != null ? String(row.base_plan_id) : null,
+      subscriptionState: row.subscription_state != null ? String(row.subscription_state) : null,
+      expiresAt: row.expires_at instanceof Date ? row.expires_at.toISOString() : row.expires_at != null ? String(row.expires_at) : null,
+      autoRenewEnabled: row.auto_renew_enabled != null ? Boolean(row.auto_renew_enabled) : null,
+      acknowledgementState:
+        row.acknowledgement_state != null ? String(row.acknowledgement_state) : null,
+      latestOrderId: row.latest_order_id != null ? String(row.latest_order_id) : null,
+    };
+  } catch (e) {
+    logger.error(
+      { err: e, viewerId, creatorId },
+      "neonGetActiveMembershipEntitlement: database error — failing closed (throwing)",
+    );
+    throw e;
+  }
+}
+
+/**
+ * Apply an RTDN-driven state change by purchase token hash (never raw token).
+ * Optional fields keep their stored value when not provided.
+ * Throws when the database pool is unavailable.
+ */
+export async function neonUpdateMembershipSubscriptionState(input: {
+  purchaseTokenHash: string;
+  subscriptionState: string;
+  expiresAt?: string | null;
+  autoRenewEnabled?: boolean | null;
+  acknowledgementState?: string | null;
+  latestOrderId?: string | null;
+}): Promise<
+  | { ok: true; updated: true; userId: string; creatorId: string | null }
+  | { ok: true; updated: false }
+  | { ok: false; error: "database_error" }
+> {
+  const pool = getPool();
+  if (!pool) throw new Error("DATABASE_UNAVAILABLE");
+  try {
+    const r = await pool.query(
+      `UPDATE elix_membership_purchases SET
+         subscription_state = $2,
+         expires_at = COALESCE($3, expires_at),
+         auto_renew_enabled = COALESCE($4, auto_renew_enabled),
+         acknowledgement_state = COALESCE($5, acknowledgement_state),
+         latest_order_id = COALESCE($6, latest_order_id),
+         updated_at = NOW()
+       WHERE purchase_token_hash = $1
+       RETURNING user_id, creator_id`,
+      [
+        input.purchaseTokenHash,
+        input.subscriptionState,
+        input.expiresAt ?? null,
+        input.autoRenewEnabled ?? null,
+        input.acknowledgementState ?? null,
+        input.latestOrderId ?? null,
+      ],
+    );
+    if (!r.rowCount) return { ok: true, updated: false };
+    return {
+      ok: true,
+      updated: true,
+      userId: String(r.rows[0].user_id),
+      creatorId: r.rows[0].creator_id != null ? String(r.rows[0].creator_id) : null,
+    };
+  } catch (e) {
+    logger.error(
+      { err: e, purchaseTokenHash: input.purchaseTokenHash },
+      "neonUpdateMembershipSubscriptionState failed",
+    );
+    return { ok: false, error: "database_error" };
+  }
+}
+
 export async function neonInsertShopPurchase(row: {
   stripeSessionId: string;
   itemId: string;

@@ -1594,7 +1594,11 @@ export default function LiveStream() {
         showToast('Subscriptions are available through in-app purchases.');
         return;
       }
-      const creatorId = isBroadcast ? user.id : effectiveStreamId;
+      if (isBroadcast) {
+        showToast('Viewers can subscribe to your membership.');
+        return;
+      }
+      const creatorId = effectiveStreamId;
       if (!creatorId || creatorId === 'broadcast') {
         showToast('Creator unavailable');
         return;

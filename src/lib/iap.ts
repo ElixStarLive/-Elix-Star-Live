@@ -29,8 +29,17 @@ export type PromoteProductId = keyof typeof PROMOTE_PRODUCTS;
 export const IAP_PRODUCT_IDS = Object.keys(IAP_PRODUCTS) as IAPProductId[];
 export type IAPProductId = keyof typeof IAP_PRODUCTS;
 
-/** Creator membership / Fan Club product — must exist in Play Console / App Store Connect. */
+/** Legacy membership SKU. Creator subscriptions now use server-derived product IDs. */
 export const MEMBERSHIP_PRODUCT_ID = 'com.elixstarlive.membership';
+
+export interface MembershipStatus {
+  active: boolean;
+  productId: string;
+  basePlanId: string;
+  expiresAt?: string;
+  autoRenewing?: boolean;
+  subscriptionState?: string;
+}
 
 export interface IAPProduct {
   id: string;
@@ -190,13 +199,42 @@ export async function purchaseProduct(productId: IAPProductId): Promise<IAPPurch
   }
 }
 
+export async function getMembershipStatus(
+  creatorId: string,
+): Promise<{ status?: MembershipStatus; error?: string }> {
+  if (!creatorId) return { error: 'Creator unavailable' };
+  const { data, error } = await request(
+    `/api/membership/${encodeURIComponent(creatorId)}/status`,
+  );
+  if (error) return { error: error.message || 'Could not load membership status' };
+  if (!data || typeof data.productId !== 'string' || typeof data.basePlanId !== 'string') {
+    return { error: 'Membership is not configured for this creator' };
+  }
+  return {
+    status: {
+      active: data.active === true,
+      productId: data.productId,
+      basePlanId: data.basePlanId,
+      expiresAt: typeof data.expiresAt === 'string' ? data.expiresAt : undefined,
+      autoRenewing: data.autoRenewing === true,
+      subscriptionState:
+        typeof data.subscriptionState === 'string' ? data.subscriptionState : undefined,
+    },
+  };
+}
+
 /**
- * Purchase creator membership / Fan Club via Apple/Google IAP, then record it
- * server-side via POST /api/membership/iap-complete (verified receipt).
+ * Purchase a creator-specific recurring membership through Google Play, then
+ * persist the server-verified entitlement.
  */
-export async function purchaseMembership(creatorId: string): Promise<{ success: boolean; error?: string }> {
+export async function purchaseMembership(
+  creatorId: string,
+): Promise<{ success: boolean; status?: MembershipStatus; error?: string }> {
   if (!platform.isNative) {
     return { success: false, error: 'Membership is only available in the app' };
+  }
+  if (!platform.isAndroid) {
+    return { success: false, error: 'Creator memberships are not configured for iOS yet' };
   }
   const mod = await getPlugin();
   if (!mod) return { success: false, error: 'Purchase service not available' };
@@ -205,40 +243,57 @@ export async function purchaseMembership(creatorId: string): Promise<{ success: 
 
   const { session, user } = useAuthStore.getState();
   if (!session?.access_token || !user?.id) return { success: false, error: 'Not authenticated' };
+  if (!creatorId || creatorId === user.id) {
+    return { success: false, error: 'You cannot subscribe to your own membership' };
+  }
+
+  const current = await getMembershipStatus(creatorId);
+  if (current.error || !current.status) {
+    return { success: false, error: current.error || 'Membership is not configured' };
+  }
+  if (current.status.active) {
+    return { success: true, status: current.status };
+  }
 
   try {
     const result = await mod.NativePurchases.purchaseProduct({
-      productIdentifier: MEMBERSHIP_PRODUCT_ID,
-      productType: mod.PURCHASE_TYPE.INAPP,
+      productIdentifier: current.status.productId,
+      planIdentifier: current.status.basePlanId,
+      productType: mod.PURCHASE_TYPE.SUBS,
       quantity: 1,
+      autoAcknowledgePurchases: false,
     });
     const transactionId = result.transactionId;
     const receipt = result.receipt || result.purchaseToken || '';
-    if (!transactionId) return { success: false, error: 'Purchase could not be verified' };
+    if (!transactionId || !receipt) {
+      return { success: false, error: 'Purchase could not be verified' };
+    }
 
-    const provider = platform.isIOS ? 'apple' : 'google';
-    const { error } = await request('/api/membership/iap-complete', {
+    const { data, error } = await request('/api/membership/iap-complete', {
       method: 'POST',
       body: JSON.stringify({
         transactionId,
         receipt,
-        provider,
-        productId: MEMBERSHIP_PRODUCT_ID,
-        creatorId: creatorId || null,
+        provider: 'google',
+        productId: current.status.productId,
+        basePlanId: current.status.basePlanId,
+        creatorId,
       }),
     });
     if (error) return { success: false, error: error.message || 'Membership verification failed' };
 
-    try {
-      if ('acknowledgePurchase' in mod.NativePurchases) {
-        await (mod.NativePurchases as any).acknowledgePurchase({
-          transactionIdentifier: transactionId,
-          purchaseToken: receipt,
-        });
-      }
-    } catch { /* best-effort */ }
-
-    return { success: true };
+    return {
+      success: true,
+      status: {
+        active: data?.active === true,
+        productId: current.status.productId,
+        basePlanId: current.status.basePlanId,
+        expiresAt: typeof data?.expiresAt === 'string' ? data.expiresAt : undefined,
+        autoRenewing: data?.autoRenewing === true,
+        subscriptionState:
+          typeof data?.subscriptionState === 'string' ? data.subscriptionState : undefined,
+      },
+    };
   } catch (err: any) {
     const msg = err?.message || String(err);
     if (msg.includes('cancel') || msg.includes('Cancel') || msg.includes('USER_CANCELED')) {

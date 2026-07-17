@@ -3,14 +3,22 @@ import { createHash } from 'node:crypto';
 import { getTokenFromRequest, verifyAuthToken } from './auth';
 import {
   neonCreditIap,
-  neonInsertMembershipPurchase,
+  neonGetActiveMembershipEntitlement,
   neonInsertPromotePurchase,
   neonIsIapProcessed,
+  neonUpsertMembershipEntitlement,
 } from '../lib/walletNeon';
 import { getPool, dbLoadCoinMap } from '../lib/postgres';
 import { valkeyRateCheck, isValkeyConfigured } from '../lib/valkey';
 import { logger } from '../lib/logger';
 import { assertIapVerifyVelocityOk } from '../lib/fraud';
+import {
+  acknowledgeGoogleSubscription,
+  CREATOR_MEMBERSHIP_BASE_PLAN_ID,
+  creatorMembershipProductId,
+  hashPurchaseToken,
+  verifyGoogleSubscription,
+} from '../lib/googlePlaySubscriptions';
 
 const rateLimits = new Map<string, { count: number; timestamp: number }>();
 const MAX_LOCAL_RATE_ENTRIES = 20_000;
@@ -525,7 +533,49 @@ export async function handlePromoteIAPComplete(req: Request, res: Response) {
   }
 }
 
-// --- Membership IAP complete (Apple/Google) ---
+/** GET /api/membership/:creatorId/status — viewer entitlement + Play product IDs. */
+export async function handleGetMembershipStatus(req: Request, res: Response) {
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+  const token = getTokenFromRequest(req);
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+  const user = verifyAuthToken(token);
+  if (!user) return res.status(401).json({ error: 'Invalid auth token' });
+
+  const creatorId = String(req.params.creatorId || '').trim();
+  if (!creatorId) return res.status(400).json({ error: 'creatorId required' });
+
+  const productId = creatorMembershipProductId(creatorId);
+  const basePlanId = CREATOR_MEMBERSHIP_BASE_PLAN_ID;
+  if (creatorId === user.sub) {
+    return res.json({
+      active: false,
+      productId,
+      basePlanId,
+      self: true,
+    });
+  }
+
+  if (!getPool()) return res.status(503).json({ error: 'Database not configured' });
+  try {
+    const entitlement = await neonGetActiveMembershipEntitlement(user.sub, creatorId);
+    return res.json({
+      active: Boolean(entitlement),
+      productId,
+      basePlanId,
+      expiresAt: entitlement?.expiresAt ?? null,
+      autoRenewing: entitlement?.autoRenewEnabled === true,
+      subscriptionState: entitlement?.subscriptionState ?? null,
+    });
+  } catch (err) {
+    logger.error({ err, creatorId, userId: user.sub }, 'Membership status lookup failed');
+    return res.status(500).json({ error: 'Failed to load membership status' });
+  }
+}
+
+/**
+ * POST /api/membership/iap-complete — Google Play creator subscription only.
+ * Verifies via subscriptionsv2, persists entitlement by token hash, then acknowledges.
+ */
 export async function handleMembershipIAPComplete(req: Request, res: Response) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const token = getTokenFromRequest(req);
@@ -537,54 +587,115 @@ export async function handleMembershipIAPComplete(req: Request, res: Response) {
   if (!rateCheck.allowed) return res.status(429).json({ error: 'Too many requests' });
 
   const body = req.body ?? {};
-  const transactionId = String(body.transactionId || '').trim();
-  const provider = body.provider === 'google' ? 'google' : body.provider === 'apple' ? 'apple' : '';
-  const creatorId = body.creatorId ? String(body.creatorId) : null;
-  if (!transactionId || !provider) {
-    return res.status(400).json({ error: 'transactionId and provider required' });
+  const provider = body.provider === 'google' ? 'google' : '';
+  const creatorId = typeof body.creatorId === 'string' ? body.creatorId.trim() : '';
+  const googlePurchaseToken =
+    typeof body.receipt === 'string' ? body.receipt.trim() : '';
+
+  if (provider !== 'google') {
+    return res.status(400).json({ error: 'Creator memberships currently require Google Play' });
   }
-  if (!getPool()) return res.status(503).json({ error: 'Database not configured' });
-  const googlePurchaseToken = provider === 'google' && typeof body.receipt === 'string' ? body.receipt.trim() : '';
-  if (provider === 'google' && !googlePurchaseToken) {
+  if (!creatorId) return res.status(400).json({ error: 'creatorId required' });
+  if (creatorId === user.sub) {
+    return res.status(400).json({ error: 'Cannot subscribe to your own membership' });
+  }
+  if (!googlePurchaseToken) {
     return res.status(400).json({ error: 'Google purchase token is required' });
   }
-  const providerTransactionId = providerTransactionKey(provider, transactionId, googlePurchaseToken);
-  if (!providerTransactionId) return res.status(400).json({ error: 'Invalid transaction identifier' });
+  if (!getPool()) return res.status(503).json({ error: 'Database not configured' });
 
-  const MEMBERSHIP_PRODUCT_ID = 'com.elixstarlive.membership';
-  if (provider === 'apple') {
-    const apple = await verifyAppleReceipt(transactionId);
-    if (!apple.valid) return res.status(400).json({ error: 'Invalid or unverified transaction' });
-    if (apple.productId && apple.productId !== MEMBERSHIP_PRODUCT_ID) {
-      return res.status(400).json({ error: 'Product ID mismatch' });
-    }
-  } else {
-    const packageName = process.env.GOOGLE_PLAY_PACKAGE_NAME || 'com.elixstarlive.app';
-    // Always verify against the fixed membership SKU — never trust client productId.
-    const google = await verifyGooglePlayPurchase(
-      packageName,
-      MEMBERSHIP_PRODUCT_ID,
-      googlePurchaseToken,
-    );
-    if (!google.valid) return res.status(400).json({ error: 'Invalid or unverified transaction' });
+  const expectedProductId = creatorMembershipProductId(creatorId);
+  const claimedProductId =
+    typeof body.productId === 'string' ? body.productId.trim() : '';
+  if (claimedProductId && claimedProductId !== expectedProductId) {
+    return res.status(400).json({ error: 'Product ID mismatch' });
   }
-  // Reject coin/promote receipts reused as membership (cross-table replay).
+
+  // Reject coin receipts reused as membership (cross-table replay).
+  const providerTransactionId = providerTransactionKey(
+    'google',
+    String(body.transactionId || googlePurchaseToken),
+    googlePurchaseToken,
+  );
+  if (!providerTransactionId) {
+    return res.status(400).json({ error: 'Invalid transaction identifier' });
+  }
   try {
-    if (await neonIsIapProcessed(provider, providerTransactionId)) {
+    if (await neonIsIapProcessed('google', providerTransactionId)) {
       return res.status(400).json({ error: 'Transaction already used' });
     }
   } catch {
     return res.status(500).json({ error: 'Deduplication check failed' });
   }
 
+  const verified = await verifyGoogleSubscription(googlePurchaseToken, expectedProductId);
+  if (!verified.ok || !verified.entitled) {
+    return res.status(400).json({
+      error: 'Invalid or unverified subscription',
+      detail: verified.error,
+      subscriptionState: verified.subscriptionState ?? null,
+    });
+  }
+  if (
+    verified.basePlanId &&
+    verified.basePlanId !== CREATOR_MEMBERSHIP_BASE_PLAN_ID
+  ) {
+    return res.status(400).json({ error: 'Base plan mismatch' });
+  }
+
+  const purchaseTokenHash = hashPurchaseToken(googlePurchaseToken);
   try {
-    await neonInsertMembershipPurchase({
+    const upserted = await neonUpsertMembershipEntitlement({
       userId: user.sub,
       creatorId,
-      provider,
-      providerTransactionId,
+      provider: 'google',
+      purchaseTokenHash,
+      productId: expectedProductId,
+      basePlanId: verified.basePlanId || CREATOR_MEMBERSHIP_BASE_PLAN_ID,
+      subscriptionState: verified.subscriptionState,
+      expiresAt: verified.expiresAt,
+      autoRenewEnabled: verified.autoRenewEnabled,
+      acknowledgementState: verified.acknowledgementState,
+      latestOrderId: verified.latestOrderId,
+      linkedPurchaseTokenHash: verified.linkedPurchaseTokenHash,
+      verification: {
+        provider: 'google',
+        productId: expectedProductId,
+        subscriptionState: verified.subscriptionState,
+        expiresAt: verified.expiresAt,
+        latestOrderId: verified.latestOrderId,
+      },
     });
-    return res.json({ success: true, message: 'Membership recorded' });
+    if (!upserted.ok) {
+      if (upserted.error === 'ownership_conflict') {
+        return res.status(409).json({ error: 'Purchase token already bound' });
+      }
+      return res.status(500).json({ error: 'Failed to record membership' });
+    }
+
+    if (verified.acknowledgementState !== 'ACKNOWLEDGED') {
+      const ack = await acknowledgeGoogleSubscription(
+        expectedProductId,
+        googlePurchaseToken,
+      );
+      if (!ack.ok) {
+        logger.warn(
+          { detail: ack.detail, productId: expectedProductId, userId: user.sub },
+          'Membership acknowledge deferred — entitlement already persisted',
+        );
+      }
+    }
+
+    return res.json({
+      success: true,
+      active: true,
+      productId: expectedProductId,
+      basePlanId: verified.basePlanId || CREATOR_MEMBERSHIP_BASE_PLAN_ID,
+      expiresAt: verified.expiresAt,
+      autoRenewing: verified.autoRenewEnabled,
+      subscriptionState: verified.subscriptionState,
+      created: upserted.created,
+    });
   } catch (err) {
     logger.error({ err }, 'Membership purchase recording error');
     return res.status(500).json({ error: 'Failed to record membership' });
