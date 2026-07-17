@@ -132,7 +132,7 @@ export default function VideoCall() {
         const room = new Room();
         roomRef.current = room;
 
-        room.on(RoomEvent.TrackSubscribed, (track: any, _pub: RemoteTrackPublication, _participant: RemoteParticipant) => {
+        room.on(RoomEvent.TrackSubscribed, (track: { kind: Track.Kind; mediaStreamTrack: MediaStreamTrack }, _pub: RemoteTrackPublication, _participant: RemoteParticipant) => {
           if (cancelled) return;
           if (track.kind === Track.Kind.Video) {
             const mediaStream = new MediaStream([track.mediaStreamTrack]);
@@ -140,7 +140,7 @@ export default function VideoCall() {
           }
         });
 
-        room.on(RoomEvent.TrackUnsubscribed, (track: any) => {
+        room.on(RoomEvent.TrackUnsubscribed, (track: { kind: Track.Kind }) => {
           if (track.kind === Track.Kind.Video) {
             setRemoteStream(null);
           }

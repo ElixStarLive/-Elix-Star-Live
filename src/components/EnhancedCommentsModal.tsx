@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Heart, Trash2, Edit3, MessageSquare, Reply, MoreVertical } from 'lucide-react';
+import { Send, Heart, Trash2, Edit3, MessageSquare, Reply } from 'lucide-react';
 import { useVideoStore } from '../store/useVideoStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { request } from '../lib/apiClient';
@@ -39,7 +39,7 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
   const commentsEndRef = useRef<HTMLDivElement>(null);
   
   const { user } = useAuthStore();
-  const token = useAuthStore((s) => s.session?.access_token || '');
+  const _token = useAuthStore((s) => s.session?.access_token || '');
   const { getVideoById, updateVideo } = useVideoStore();
 
   // Fetch comments when modal opens
@@ -47,6 +47,7 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
     if (isOpen && videoId) {
       fetchComments();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, videoId, sortBy]);
 
   const fetchComments = async () => {
@@ -57,7 +58,7 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
       if (error) throw new Error(error.message);
       let list = Array.isArray(body?.comments) ? body.comments : [];
       if (sortBy === 'mostLiked') {
-        list = [...list].sort((a: any, b: any) => (b.likes ?? 0) - (a.likes ?? 0));
+        list = [...list].sort((a: { likes?: number }, b: { likes?: number }) => (b.likes ?? 0) - (a.likes ?? 0));
       }
       setComments(list);
     } catch (error) {
@@ -126,9 +127,7 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
           });
         }
       }
-    } catch (error) {
-
-    }
+    } catch { /* intentionally empty */ }
   };
 
   const handleEditComment = async (commentId: string) => {
@@ -157,12 +156,10 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
 
       setEditingComment(null);
       setEditText('');
-    } catch (error) {
-
-    }
+    } catch { /* intentionally empty */ }
   };
 
-  const handleLikeComment = async (commentId: string, isReply: boolean = false) => {
+  const handleLikeComment = async (commentId: string, _isReply: boolean = false) => {
     if (!user?.id) return;
 
     try {
@@ -204,9 +201,7 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
         }
         return comment;
       }));
-    } catch (error) {
-
-    }
+    } catch { /* intentionally empty */ }
   };
 
   const toggleReplies = (commentId: string) => {
@@ -327,7 +322,7 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
           {/* Replies section */}
           {!isReply && comment.replies && comment.replies.length > 0 && (
             <div className="mt-3">
-              {comment.reply_count! > 0 && (
+              {(comment.reply_count as NonNullable<typeof comment.reply_count>) > 0 && (
                 <button
                   onClick={() => toggleReplies(comment.id)}
                   className="text-sm text-white hover:text-white/80 mb-2"

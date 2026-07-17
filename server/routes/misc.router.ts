@@ -127,7 +127,7 @@ router.get("/rankings/weekly", async (req, res) => {
        ORDER BY total_coins DESC, followers DESC
        LIMIT 50`
     );
-    const rankings = r.rows.map((row: any, i: number) => ({
+    const rankings = r.rows.map((row: Record<string, unknown>, i: number) => ({
       rank: i + 1,
       user_id: row.user_id,
       username: row.username,

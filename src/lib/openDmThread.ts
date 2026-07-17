@@ -8,7 +8,7 @@ import { request } from './apiClient';
 export async function navigateToDmWithUser(
   otherUserId: string,
   navigate: NavigateFunction,
-  accessToken: string | null | undefined,
+  _accessToken: string | null | undefined,
 ): Promise<void> {
   if (!otherUserId) {
     navigate('/inbox');

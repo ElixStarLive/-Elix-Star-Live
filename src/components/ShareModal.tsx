@@ -52,7 +52,7 @@ interface ShareModalProps {
   onDeleteVideo?: () => void;
 }
 
-export default function ShareModal({ isOpen, onClose, video, onReport, onJoin, isFollowing, onDeleteVideo }: ShareModalProps) {
+export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _onJoin, isFollowing: _isFollowing, onDeleteVideo }: ShareModalProps) {
   const navigate = useNavigate();
   const [copiedLink, setCopiedLink] = useState(false);
   const [showQrCode, setShowQrCode] = useState(false);
@@ -100,7 +100,7 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin, i
       await navigator.clipboard.writeText(videoUrl);
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2000);
-    } catch {}
+    } catch { /* intentionally empty */ }
   };
 
   const filteredFollowers = followers.filter(f => f.username?.toLowerCase().includes(shareQuery.toLowerCase()));

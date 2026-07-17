@@ -24,7 +24,7 @@ async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit, tim
     clearTimeout(t);
   }
 }
-async function apiPost(path: string, body: any): Promise<any> {
+async function apiPost(path: string, body: unknown): Promise<unknown> {
   const base = getApiBase();
   const url = base ? `${base}${path.startsWith('/') ? path : `/${path}`}` : path;
   const res = await fetchWithTimeout(url, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(body), credentials: getCredentialsMode() }, 7000);
@@ -35,7 +35,7 @@ async function apiPost(path: string, body: any): Promise<any> {
   return res.json();
 }
 
-async function apiGet(path: string): Promise<any> {
+async function apiGet<T = unknown>(path: string): Promise<T> {
   const base = getApiBase();
   const url = base ? `${base}${path.startsWith('/') ? path : `/${path}`}` : path;
   const res = await fetchWithTimeout(url, { headers: getAuthHeaders(), credentials: getCredentialsMode() }, 7000);
@@ -160,7 +160,7 @@ export async function trackFollow(targetUserId: string, videoId?: string): Promi
 }
 
 export async function fetchForYouFeed(page: number = 1, limit: number = 20): Promise<{
-  videos: any[];
+  videos: unknown[];
   mutualUserIds?: string[];
   page: number;
   limit: number;
@@ -171,9 +171,9 @@ export async function fetchForYouFeed(page: number = 1, limit: number = 20): Pro
   return await apiGet(`/api/feed/foryou?page=${page}&limit=${limit}`);
 }
 
-export async function getVideoScore(videoId: string): Promise<any> {
+export async function getVideoScore(videoId: string): Promise<unknown> {
   try {
-    const result = await apiGet(`/api/feed/score/${videoId}`);
+    const result = await apiGet<{ score?: unknown }>(`/api/feed/score/${videoId}`);
     return result.score;
   } catch {
     return null;

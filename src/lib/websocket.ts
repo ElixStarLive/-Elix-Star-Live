@@ -60,7 +60,7 @@ export type WebSocketEvent =
 
 export interface WebSocketMessage {
   event: WebSocketEvent | string;
-  data: any;
+  data: unknown;
   timestamp: string;
 }
 
@@ -70,7 +70,7 @@ class WebSocketService {
   private maxReconnectAttempts = 15;
   private reconnectDelay = 1000;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-  private listeners = new Map<string, Set<(data: any) => void>>();
+  private listeners = new Map<string, Set<(data: unknown) => void>>();
   private roomId: string | null = null;
   private token: string | null = null;
   private pendingMessages: string[] = [];
@@ -95,7 +95,7 @@ class WebSocketService {
     this.ws.onopen = () => {
       this.reconnectAttempts = 0;
       while (this.pendingMessages.length > 0) {
-        const msg = this.pendingMessages.shift()!;
+        const msg = this.pendingMessages.shift() as string;
         try {
           this.ws?.send(msg);
         } catch {
@@ -156,7 +156,7 @@ class WebSocketService {
     return this.ws?.readyState === WebSocket.OPEN;
   }
 
-  send(event: string, data: any) {
+  send(event: string, data: unknown) {
     const msg = JSON.stringify({
       event,
       data,
@@ -169,14 +169,14 @@ class WebSocketService {
     }
   }
 
-  on(event: WebSocketEvent | string, callback: (data: any) => void) {
+  on(event: WebSocketEvent | string, callback: (data: unknown) => void) {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, new Set());
     }
-    this.listeners.get(event)!.add(callback);
+    (this.listeners.get(event) as Set<(data: unknown) => void>).add(callback);
   }
 
-  off(event: WebSocketEvent | string, callback: (data: any) => void) {
+  off(event: WebSocketEvent | string, callback: (data: unknown) => void) {
     this.listeners.get(event)?.delete(callback);
   }
 

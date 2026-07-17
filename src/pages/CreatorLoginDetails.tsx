@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { RoyceCloseIcon } from '../components/royce';
-import { Eye, EyeOff, Lock, Mail, User } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { AvatarRing } from '../components/AvatarRing';
@@ -29,18 +29,19 @@ export default function CreatorLoginDetails() {
       // unless it is completely empty.
       setEmail(user.email ?? '');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]); // We removed 'email' dependency so it doesn't loop or reset when user clears it manually
   const [username, setUsername] = useState(() => window.localStorage.getItem('creator_saved_username') || '');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [_showConfirmPassword, _setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showResend, setShowResend] = useState(false);
   const [isResending, setIsResending] = useState(false);
-  const [isSwitching, setIsSwitching] = useState(false);
+  const [_isSwitching, setIsSwitching] = useState(false);
 
   const [savedAccounts, setSavedAccounts] = useState<Array<{
     identifier: string;
@@ -159,7 +160,7 @@ export default function CreatorLoginDetails() {
       saveCurrentAccount(trimmedEmail, trimmedUsername || trimmedEmail.split('@')[0]);
       persistSavedPassword(password);
       navigate('/profile', { replace: true });
-    } catch (err: any) {
+    } catch (err) {
       setError(err?.message || 'An unexpected error occurred. Please try again.');
     } finally {
       setIsSubmitting(false);

@@ -29,22 +29,52 @@ export const SUBTITLE_STYLES: SubtitleStyle[] = [
 
 type RecognitionCallback = (segments: SubtitleSegment[]) => void;
 
+interface SpeechRecognitionResultLike {
+  isFinal: boolean;
+  [index: number]: { transcript: string; confidence: number };
+}
+
+interface SpeechRecognitionEventLike {
+  resultIndex: number;
+  results: { length: number; [index: number]: SpeechRecognitionResultLike };
+}
+
+interface SpeechRecognitionErrorEventLike {
+  error: string;
+}
+
+interface SpeechRecognitionLike {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEventLike) => void) | null;
+  onend: (() => void) | null;
+  start(): void;
+  stop(): void;
+}
+
+type SpeechRecognitionWindow = Window & {
+  webkitSpeechRecognition?: new () => SpeechRecognitionLike;
+  SpeechRecognition?: new () => SpeechRecognitionLike;
+};
+
 export class SubtitleGenerator {
-  private recognition: any = null;
+  private recognition: SpeechRecognitionLike | null = null;
   private segments: SubtitleSegment[] = [];
   private isRunning = false;
   private startTime = 0;
   private onUpdate: RecognitionCallback | null = null;
 
   get supported(): boolean {
-    return !!(window as any).webkitSpeechRecognition || !!(window as any).SpeechRecognition;
+    return !!(window as SpeechRecognitionWindow).webkitSpeechRecognition || !!(window as SpeechRecognitionWindow).SpeechRecognition;
   }
 
   start(onUpdate: RecognitionCallback, lang: string = 'en-US'): boolean {
     if (!this.supported) return false;
 
-    const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
-    this.recognition = new SpeechRecognition();
+    const SpeechRecognition = (window as SpeechRecognitionWindow).webkitSpeechRecognition || (window as SpeechRecognitionWindow).SpeechRecognition;
+    this.recognition = new (SpeechRecognition as new () => SpeechRecognitionLike)();
     this.recognition.continuous = true;
     this.recognition.interimResults = true;
     this.recognition.lang = lang;
@@ -52,7 +82,7 @@ export class SubtitleGenerator {
     this.startTime = Date.now();
     this.segments = [];
 
-    this.recognition.onresult = (event: any) => {
+    this.recognition.onresult = (event: SpeechRecognitionEventLike) => {
       const now = (Date.now() - this.startTime) / 1000;
 
       for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -74,14 +104,14 @@ export class SubtitleGenerator {
       this.onUpdate?.(this.getSegments());
     };
 
-    this.recognition.onerror = (event: any) => {
+    this.recognition.onerror = (event: SpeechRecognitionErrorEventLike) => {
       if (event.error === 'no-speech') return;
 
     };
 
     this.recognition.onend = () => {
       if (this.isRunning) {
-        try { this.recognition?.start(); } catch {}
+        try { this.recognition?.start(); } catch { /* intentionally empty */ }
       }
     };
 
@@ -96,7 +126,7 @@ export class SubtitleGenerator {
 
   stop(): SubtitleSegment[] {
     this.isRunning = false;
-    try { this.recognition?.stop(); } catch {}
+    try { this.recognition?.stop(); } catch { /* intentionally empty */ }
     this.recognition = null;
     return this.getSegments();
   }

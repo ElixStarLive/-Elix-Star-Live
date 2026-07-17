@@ -35,6 +35,7 @@ export default function FollowingFeed() {
       loadData();
       fetchFriendVideos();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, fetchFriendVideos, followingIds?.join(',')]);
 
   const loadData = async () => {
@@ -49,7 +50,7 @@ export default function FollowingFeed() {
       const streamsBody = streamsResult.data ?? { streams: [] };
 
       const profiles = Array.isArray(profilesBody?.profiles) ? profilesBody.profiles : [];
-      const byId = new Map<string, any>();
+      const byId = new Map<string, Record<string, unknown>>();
       for (const p of profiles) {
         const id = String(p.user_id ?? p.userId ?? '');
         if (!id) continue;
@@ -74,7 +75,7 @@ export default function FollowingFeed() {
             id,
             username: String(p?.username ?? 'user'),
             name: String(p?.display_name ?? p?.displayName ?? p?.username ?? 'User'),
-            avatar_url: (p?.avatar_url ?? p?.avatarUrl ?? null) as any,
+            avatar_url: (p?.avatar_url ?? p?.avatarUrl ?? null) as string | null,
             is_live: liveMap.has(id),
             stream_id: liveMap.get(id),
             is_following: true,
@@ -89,7 +90,7 @@ export default function FollowingFeed() {
             id: uid,
             username: String(p?.username ?? 'user'),
             name: String(p?.display_name ?? p?.displayName ?? p?.username ?? 'User'),
-            avatar_url: (p?.avatar_url ?? p?.avatarUrl ?? null) as any,
+            avatar_url: (p?.avatar_url ?? p?.avatarUrl ?? null) as string | null,
             is_live: true,
             stream_id: streamKey,
             is_following: false,
@@ -129,6 +130,7 @@ export default function FollowingFeed() {
     const slides = container.querySelectorAll('[data-slide-index]');
     slides.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [friendVideoIds.join(',')]);
 
   const handleVideoEnd = (index: number) => {

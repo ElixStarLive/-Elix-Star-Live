@@ -97,7 +97,7 @@ If the image shows only safe/neutral content (including smoking, drinking, or pe
     const parsed = JSON.parse(content) as AIModerationResult;
     if (typeof parsed.flagged !== 'boolean') return { flagged: false };
     if (!parsed.flagged) return { flagged: false };
-    if (parsed.category && !DANGEROUS_CATEGORIES.includes(parsed.category as any)) return { flagged: false };
+    if (parsed.category && !DANGEROUS_CATEGORIES.includes(parsed.category as (typeof DANGEROUS_CATEGORIES)[number])) return { flagged: false };
     return {
       flagged: true,
       category: parsed.category ?? 'unspecified',

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Sparkles } from 'lucide-react';
-import { FILTER_PRESETS, type FilterPreset } from '../lib/ai/filters';
+import { FILTER_PRESETS } from '../lib/ai/filters';
 
 interface LiveAIFiltersProps {
   onFilterChange: (css: string) => void;

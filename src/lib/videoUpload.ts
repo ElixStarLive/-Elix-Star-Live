@@ -87,7 +87,7 @@ export class VideoUploadService {
       description: string;
       hashtags: string[];
       isPrivate: boolean;
-      music?: any;
+      music?: unknown;
       duetWithVideoId?: string;
     },
   ): Promise<string> {
@@ -184,7 +184,7 @@ export class VideoUploadService {
       });
 
       return finalId;
-    } catch (error: any) {
+    } catch (error) {
       trackEvent("video_upload_failed", { error: String(error) });
       const msg = error?.message ?? error?.error_description ?? String(error);
       throw new Error(msg || "Upload failed");
@@ -239,7 +239,7 @@ export class VideoUploadService {
       this.updateProgress("complete", 100, "Story posted!");
       trackEvent("story_upload", { story_id: storyId });
       return storyId;
-    } catch (error: any) {
+    } catch (error) {
       trackEvent("story_upload_failed", { error: String(error) });
       throw new Error(error?.message || "Story upload failed");
     }

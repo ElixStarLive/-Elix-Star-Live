@@ -3,8 +3,6 @@ import { persist } from 'zustand/middleware';
 import { useAuthStore } from './useAuthStore';
 import { request } from '../lib/apiClient';
 import {
-  calculateEngagementScore,
-  isEligibleForFyp,
   refreshVideoFypStatus,
 } from '../lib/fypEligibility';
 import {
@@ -33,6 +31,8 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 2000): Pr
 let _feedFetchPromise: Promise<void> | null = null;
 
 function mapRawVideoRowToClientVideo(
+  // Backend feed rows are dynamically shaped; the mapper narrows fields defensively below.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   v: any,
   likedSet: Set<string>,
   savedSet: Set<string>,
@@ -313,12 +313,12 @@ export const useVideoStore = create<VideoStore>()(
           const savedSet = new Set(savedVideos);
           const followingSet = new Set(followingUsers);
 
-          const toClientVideo = (v: any) =>
+          const toClientVideo = (v: unknown) =>
             mapRawVideoRowToClientVideo(v, likedSet, savedSet, followingSet);
 
           // Use all real backend videos. If backend is empty, show empty state.
           const hasApiVideos = Array.isArray(apiVideos) && apiVideos.length > 0;
-          const sourceVideos = hasApiVideos ? apiVideos! : [];
+          const sourceVideos = hasApiVideos ? (apiVideos as NonNullable<typeof apiVideos>) : [];
 
           const mappedVideos: Video[] = sourceVideos.map(toClientVideo);
 
@@ -328,7 +328,7 @@ export const useVideoStore = create<VideoStore>()(
             mutualFollowIds: mutualFromApi,
             loading: false,
           });
-        } catch (err) {
+        } catch {
           set({ loading: false });
           if (!navigator.onLine) showToast('No internet connection');
           else showToast('Failed to load feed. Pull down to retry.');
@@ -352,11 +352,11 @@ export const useVideoStore = create<VideoStore>()(
             return;
           }
           const rawList = Array.isArray(body?.videos) ? body.videos : [];
-          const eligible = rawList.filter((v: any) => {
+          const eligible = rawList.filter((v: { privacy?: string; url?: string }) => {
             if (v.privacy === 'private') return false;
             return !!(v.url || '').toString().trim();
           });
-          const mapped = eligible.map((v: any) =>
+          const mapped = eligible.map((v: unknown) =>
             mapRawVideoRowToClientVideo(v, likedSet, savedSet, followingSet),
           );
           const byViews = [...mapped].sort((a, b) => (b.stats.views ?? 0) - (a.stats.views ?? 0));
@@ -412,7 +412,7 @@ export const useVideoStore = create<VideoStore>()(
           const savedSet = new Set(savedVideos);
           const followingSet = new Set(followingUsers);
 
-          const mappedVideos: Video[] = apiVideos.map((v: any) =>
+          const mappedVideos: Video[] = apiVideos.map((v: unknown) =>
             mapRawVideoRowToClientVideo(v, likedSet, savedSet, followingSet),
           );
           set({ friendVideos: mappedVideos, friendsLoading: false });
@@ -646,7 +646,7 @@ export const useVideoStore = create<VideoStore>()(
         try {
           trackShare(videoId).catch(() => {});
           await refreshVideoFypStatus(videoId, updatedStats);
-        } catch (err) {
+        } catch {
           /* ignored */
         }
       },
@@ -686,7 +686,7 @@ export const useVideoStore = create<VideoStore>()(
         try {
           const { data: body, error: commentError } = await request(`/api/videos/${videoId}/comments`, {
             method: 'POST',
-            body: JSON.stringify({ text: commentData.text, parentId: (commentData as any).parentId || null }),
+            body: JSON.stringify({ text: commentData.text, parentId: (commentData as { parentId?: string }).parentId || null }),
           });
 
           if (commentError) throw new Error('Comment failed');
@@ -704,7 +704,7 @@ export const useVideoStore = create<VideoStore>()(
 
           trackComment(videoId, commentData.text).catch(() => {});
           await refreshVideoFypStatus(videoId, updatedStats);
-        } catch (err) {
+        } catch {
           /* revert optimistic update on failure */
           set(s => ({
             videos: s.videos.map(v => v.id === videoId
@@ -783,7 +783,7 @@ export const useVideoStore = create<VideoStore>()(
         try {
           await request('/api/feed/track-view', { method: 'POST', body: JSON.stringify({ videoId }) }).catch(() => {});
           await refreshVideoFypStatus(videoId, updatedStats);
-        } catch (err) {
+        } catch {
           /* ignored */
         }
       },

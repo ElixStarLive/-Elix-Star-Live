@@ -70,7 +70,7 @@ export async function getFollowingIdsAsync(userId: string): Promise<string[]> {
   if (!db) throw new Error("DATABASE_UNAVAILABLE");
   await ensureFollowsTable();
   const res = await db.query(`SELECT following_id FROM follows WHERE follower_id = $1`, [userId]);
-  return (res.rows || []).map((r: any) => String(r.following_id));
+  return (res.rows || []).map((r: Record<string, unknown>) => String(r.following_id));
 }
 
 /** DB-primary follower IDs for a user. Throws on error (fail-closed). */
@@ -79,7 +79,7 @@ export async function getFollowerIdsAsync(userId: string): Promise<string[]> {
   if (!db) throw new Error("DATABASE_UNAVAILABLE");
   await ensureFollowsTable();
   const res = await db.query(`SELECT follower_id FROM follows WHERE following_id = $1`, [userId]);
-  return (res.rows || []).map((r: any) => String(r.follower_id));
+  return (res.rows || []).map((r: Record<string, unknown>) => String(r.follower_id));
 }
 
 /** DB-primary mutual follow IDs. Throws on error (fail-closed). */
@@ -94,7 +94,7 @@ export async function getMutualFollowIdsAsync(userId: string): Promise<string[]>
      WHERE f1.follower_id = $1 AND f1.following_id <> $1`,
     [userId],
   );
-  return (res.rows || []).map((r: any) => String(r.following_id));
+  return (res.rows || []).map((r: Record<string, unknown>) => String(r.following_id));
 }
 
 /** DB-primary isFollowing check. Throws on error (fail-closed). */
@@ -298,7 +298,7 @@ async function readUsersFromDb(): Promise<StoredUserRow[]> {
       LEFT JOIN profiles p ON p.user_id = u.id
       WHERE p.banned_until IS NULL OR p.banned_until <= NOW()
     `);
-    return (res.rows || []).map((r: any) => ({
+    return (res.rows || []).map((r: Record<string, unknown>) => ({
       id: String(r.id),
       email: String(r.email || ""),
       username: String(r.username || ""),
@@ -536,10 +536,10 @@ export async function handleListProfiles(_req: Request, res: Response): Promise<
     }
   }
 
-  const merged = new Map<string, any>();
+  const merged = new Map<string, Record<string, unknown>>();
 
   const db = getPool();
-  let profileRows: any[] = [];
+  let profileRows: Record<string, unknown>[] = [];
   let users: StoredUserRow[] = [];
 
   if (db) {

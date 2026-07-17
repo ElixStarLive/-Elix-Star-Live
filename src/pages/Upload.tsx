@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { CaptureShutterButton } from '../components/CaptureShutterButton';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { setCachedCameraStream } from '../lib/cameraStream';
-import { RefreshCw, Zap, Clock, Music, Check, Play, Square, RotateCcw, ZoomIn, ZoomOut, Wand2, ChevronLeft, Image as ImageIcon, Type, Sparkles, X, LayoutGrid, Plus, Share2, Smile, Blend, ChevronDown } from 'lucide-react';
+import { RefreshCw, Zap, Clock, Music, Check, RotateCcw, ZoomIn, ZoomOut, Wand2, ChevronLeft, Image as ImageIcon, Type, Sparkles, X, LayoutGrid, Plus, Share2, Smile, Blend, ChevronDown } from 'lucide-react';
 import { useVideoStore } from '../store/useVideoStore';
 import { type SoundTrack } from '../lib/soundLibrary';
 import SoundPickerPanel from '../components/SoundPickerPanel';
@@ -78,7 +78,7 @@ export default function Upload() {
     return () => { cancelled = true; };
   }, [duetParam]);
 
-  const { addVideo, fetchVideos } = useVideoStore();
+  const { addVideo: _addVideo, fetchVideos } = useVideoStore();
 
   const ZOOM_MIN = 0.5;
   const ZOOM_MAX = 3;
@@ -86,7 +86,7 @@ export default function Upload() {
   const handleZoomIn = () => setZoomLevel((z) => Math.min(ZOOM_MAX, z + ZOOM_STEP));
   const handleZoomOut = () => setZoomLevel((z) => Math.max(ZOOM_MIN, z - ZOOM_STEP));
 
-  type UploadMusic = {
+  type _UploadMusic = {
     id: string;
     title: string;
     artist: string;
@@ -347,6 +347,7 @@ export default function Upload() {
       return () => {
         if (backgroundAudioRef.current) backgroundAudioRef.current.pause();
       };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [muteAllSounds, postWithoutAudio, recordedVideoUrl, selectedAudioId, selectedTrack]);
 
   // Live-update the preview song volume while dragging the mix slider (no restart).
@@ -447,7 +448,7 @@ export default function Upload() {
         showToast(isStoryUpload ? 'Story posted!' : 'Video posted!');
         setTimeout(() => navigate(isStoryUpload ? '/feed' : '/feed'), 500);
         
-      } catch (error: any) {
+      } catch (error) {
         const msg = error?.message || error?.error_description || String(error) || 'Unknown error';
 
         if (msg.includes('Invalid or expired session') || msg.includes('Not authenticated')) {

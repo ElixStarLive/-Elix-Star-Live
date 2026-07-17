@@ -71,7 +71,7 @@ function seekTo(video: HTMLVideoElement, time: number): Promise<void> {
 function analyzeFrame(ctx: CanvasRenderingContext2D, w: number, h: number): number {
   const imageData = ctx.getImageData(0, 0, w, h);
   const data = imageData.data;
-  const pixCount = data.length / 4;
+  const _pixCount = data.length / 4;
 
   let totalLum = 0;
   let totalSat = 0;

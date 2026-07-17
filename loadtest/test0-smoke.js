@@ -71,14 +71,14 @@ export default function () {
   {
     const roomId = `smoke-test-${__VU}`;
     const url = `${WS_URL}/?room=${roomId}&token=${auth.token}`;
-    let gotConnected = false;
+    let _gotConnected = false;
 
     const res = ws.connect(url, {}, function (socket) {
       socket.on("message", function (msg) {
         try {
           const parsed = JSON.parse(msg);
-          if (parsed.event === "connected") gotConnected = true;
-        } catch {}
+          if (parsed.event === "connected") _gotConnected = true;
+        } catch { /* intentionally empty */ }
       });
 
       socket.setTimeout(function () {

@@ -29,7 +29,7 @@ interface ChatOverlayProps {
   onBlockUser?: (username: string) => void;
 }
 
-export function ChatOverlay({ messages, variant = 'panel', compact = false, className, isModerator = false, onLike, onHeartSpawn, onProfileTap, onDeleteMessage, onBlockUser }: ChatOverlayProps) {
+export function ChatOverlay({ messages, variant = 'panel', compact = false, className, isModerator = false, onLike: _onLike, onHeartSpawn: _onHeartSpawn, onProfileTap, onDeleteMessage, onBlockUser }: ChatOverlayProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const [activeModMenu, setActiveModMenu] = useState<string | null>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);

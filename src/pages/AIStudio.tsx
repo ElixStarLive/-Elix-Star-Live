@@ -3,7 +3,7 @@ import { RoyceBackIcon } from '../components/royce';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Upload, Play, Wand2, Download, Share2, Sparkles } from 'lucide-react';
 import AIToolsPanel from '../components/AIToolsPanel';
-import { enhanceSettingsToCss, DEFAULT_ENHANCE, autoEnhance, type EnhanceSettings } from '../lib/ai/enhance';
+import { enhanceSettingsToCss, autoEnhance } from '../lib/ai/enhance';
 
 export default function AIStudio() {
   const navigate = useNavigate();

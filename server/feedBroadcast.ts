@@ -52,12 +52,13 @@ export function broadcastToFeedSubscribers(event: string, data: Record<string, u
 export function initFeedPubSub(): void {
   if (!isValkeyConfigured()) return;
 
-  valkeySubscribe(FEED_CHANNEL, (payload: any) => {
-    if (!payload || payload.sourceInstance === INSTANCE_ID) return;
+  valkeySubscribe(FEED_CHANNEL, (payload) => {
+    const p = payload as Record<string, unknown>;
+    if (!p || p.sourceInstance === INSTANCE_ID) return;
 
     const message = JSON.stringify({
-      event: payload.event,
-      data: payload.data,
+      event: p.event,
+      data: p.data,
       timestamp: new Date().toISOString(),
     });
     sendToLocalSubscribers(message);

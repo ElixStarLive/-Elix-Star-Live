@@ -29,7 +29,7 @@ interface LikesModalProps {
 
 export default function EnhancedLikesModal({ isOpen, onClose, videoId, likes }: LikesModalProps) {
   const [likesData, setLikesData] = useState<LikeUser[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [_loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!isOpen || !videoId) return;

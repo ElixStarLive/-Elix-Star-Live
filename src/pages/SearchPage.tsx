@@ -15,7 +15,7 @@ export default function SearchPage() {
   const [matchedVideos, setMatchedVideos] = useState<{ id: string; description: string; thumbnail: string; url: string; username: string; hashtags: string[] }[]>([]);
   const [searching, setSearching] = useState(false);
   const [visible, setVisible] = useState(false);
-  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [_recentSearches, setRecentSearches] = useState<string[]>([]);
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const panelRef = useRef<HTMLDivElement>(null);
   const touchStart = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -30,7 +30,7 @@ export default function SearchPage() {
     if (activeCategory === 'All') return all;
     if (activeCategory === 'For You') {
       const store = useVideoStore.getState();
-      const userId = (store as any).currentUserId || '';
+      const userId = (store as { currentUserId?: string }).currentUserId || '';
       const rec = store.getRecommendedVideos(userId);
       return rec.length > 0 ? rec.slice(0, 30) : all;
     }
@@ -112,14 +112,14 @@ export default function SearchPage() {
         const profilesBody = profilesResult.data ?? { profiles: [] };
         const profiles = Array.isArray(profilesBody?.profiles) ? profilesBody.profiles : [];
         const users = profiles
-          .map((p: any) => ({
+          .map((p: { user_id: string; userId: string; username?: string; display_name?: string; displayName?: string; avatar_url?: string; avatarUrl?: string }) => ({
             id: p.user_id || p.userId,
             username: (p.username || 'user') as string,
             name: (p.display_name || p.displayName || p.username || '') as string,
             avatar: (p.avatar_url || p.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.username || 'U')}&background=121212&color=FFFFFF`) as string,
           }))
-          .filter((u: any) => !!u.id)
-          .filter((u: any) => {
+          .filter((u) => !!u.id)
+          .filter((u) => {
             const hay = `${u.username} ${u.name}`.toLowerCase();
             return hay.includes(normalizedQuery);
           })

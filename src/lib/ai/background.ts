@@ -42,8 +42,8 @@ export function applyBackgroundBlur(
 
     const centerW = w * 0.5;
     const centerH = h * 0.7;
-    const centerX = (w - centerW) / 2;
-    const centerY = (h - centerH) / 2;
+    const _centerX = (w - centerW) / 2;
+    const _centerY = (h - centerH) / 2;
 
     ctx.save();
     ctx.beginPath();
@@ -59,13 +59,13 @@ export function applyBackgroundBlur(
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = w;
     tempCanvas.height = h;
-    const tempCtx = tempCanvas.getContext('2d')!;
+    const tempCtx = tempCanvas.getContext('2d') as CanvasRenderingContext2D;
     tempCtx.drawImage(source, 0, 0, w, h);
 
     const maskCanvas = document.createElement('canvas');
     maskCanvas.width = personMask.width;
     maskCanvas.height = personMask.height;
-    maskCanvas.getContext('2d')!.putImageData(personMask, 0, 0);
+    (maskCanvas.getContext('2d') as CanvasRenderingContext2D).putImageData(personMask, 0, 0);
 
     tempCtx.globalCompositeOperation = 'destination-in';
     tempCtx.drawImage(maskCanvas, 0, 0, w, h);

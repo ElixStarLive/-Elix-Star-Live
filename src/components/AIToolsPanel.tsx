@@ -5,7 +5,7 @@ import {
   DEFAULT_ENHANCE, EnhanceSettings, autoEnhance, enhanceSettingsToCss,
   generateCaptions, generateHashtags, CaptionSuggestion,
   extractThumbnails, ThumbnailCandidate,
-  VOICE_EFFECTS, VoiceEffect,
+  VOICE_EFFECTS,
   SubtitleGenerator, SUBTITLE_STYLES, SUBTITLE_LANGUAGES, SubtitleStyle,
   BACKGROUND_OPTIONS, BackgroundOption,
 } from '../lib/ai';

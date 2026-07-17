@@ -43,7 +43,7 @@ router.patch(
         source: req.body.source,
         xpAmount: req.body.xp_amount,
         enabled: req.body.enabled,
-        adminUserId: req.authContext!.userId,
+        adminUserId: (req.authContext as NonNullable<typeof req.authContext>).userId,
       });
       if (!config) return res.status(404).json({ error: "SOURCE_NOT_FOUND" });
       return res.json({ config });
@@ -82,7 +82,7 @@ router.put(
         title: req.body.title,
         badgeCode: req.body.badge_code,
         cosmeticPayload: req.body.cosmetic_payload,
-        adminUserId: req.authContext!.userId,
+        adminUserId: (req.authContext as NonNullable<typeof req.authContext>).userId,
       });
       if (!level) return res.status(500).json({ error: "LEVEL_UPDATE_FAILED" });
       return res.json({ level });
@@ -141,7 +141,7 @@ router.post(
         userId: req.body.user_id,
         xpDelta: req.body.amount_delta,
         reason: req.body.reason,
-        adminUserId: req.authContext!.userId,
+        adminUserId: (req.authContext as NonNullable<typeof req.authContext>).userId,
         idempotencyKey: `admin-xp:${req.body.idempotency_key}`,
       });
       if (!progression) {
@@ -164,7 +164,7 @@ router.post(
         userId: req.body.user_id,
         amountDelta: req.body.amount_delta,
         reason: req.body.reason,
-        adminUserId: req.authContext!.userId,
+        adminUserId: (req.authContext as NonNullable<typeof req.authContext>).userId,
         idempotencyKey: `admin-starter:${req.body.idempotency_key}`,
       });
       if (!progression) {

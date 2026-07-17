@@ -176,6 +176,7 @@ async function webRequest<T>(
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- default `any` preserves the loose public `api.*` return contract relied on by consumers
 export async function request<T = any>(
   path: string,
   init: RequestInit = {},
@@ -228,7 +229,7 @@ export const api = {
       return {
         data: r.data?.profiles ?? [],
         error: r.error,
-        count: Array.isArray(r.data?.profiles) ? r.data!.profiles.length : 0,
+        count: Array.isArray(r.data?.profiles) ? (r.data as NonNullable<typeof r.data>).profiles.length : 0,
       };
     },
     async getFollowerCount(userId: string) {
@@ -287,7 +288,7 @@ export const api = {
       const r = await request("/api/shop/items");
       return { data: r.data?.items ?? [], error: r.error };
     },
-    async createItem(item: Record<string, any>) {
+    async createItem(item: Record<string, unknown>) {
       const r = await request("/api/shop/items", {
         method: "POST",
         body: JSON.stringify(item),
@@ -297,7 +298,7 @@ export const api = {
   },
 
   reports: {
-    async create(report: Record<string, any>) {
+    async create(report: Record<string, unknown>) {
       return request("/api/report", {
         method: "POST",
         body: JSON.stringify(report),

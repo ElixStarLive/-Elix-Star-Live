@@ -53,7 +53,7 @@ export default function LiveDiscover() {
   const fetchLiveStreams = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await request<{ streams: any[] }>('/api/live/streams');
+      const { data, error } = await request('/api/live/streams');
       if (error || !data) {
         setCreators([]);
         setLoading(false);
@@ -64,11 +64,11 @@ export default function LiveDiscover() {
       const removed = removedKeysRef.current;
 
       const mapped: LiveCreator[] = streams
-        .filter((s: any) => {
+        .filter((s: { stream_key?: string; streamKey?: string; room_id?: string; roomId?: string; id: string }) => {
           const key = s.stream_key ?? s.streamKey ?? s.room_id ?? s.roomId ?? s.id;
           return key && !removed.has(key);
         })
-        .map((s: any) => {
+        .map((s: { stream_key?: string; streamKey?: string; room_id?: string; roomId?: string; id: string; user_id?: string; userId?: string; hostUserId?: string; title?: string; display_name?: string; displayName?: string; viewer_count?: number; viewerCount?: number }) => {
           const id = s.stream_key ?? s.streamKey ?? s.room_id ?? s.roomId ?? s.id;
           const userId = s.user_id ?? s.userId ?? s.hostUserId ?? '';
           const name = liveNameFromStreamFields(
@@ -112,6 +112,7 @@ export default function LiveDiscover() {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [creators.map((c) => `${c.id}:${c.name}:${c.userId ?? ''}`).join(',')]);
 
   const removeLiveStream = useCallback((key: string) => {
@@ -207,7 +208,7 @@ export default function LiveDiscover() {
       if (reconnectTimer) clearTimeout(reconnectTimer);
       try {
         if (ws) ws.close();
-      } catch {}
+      } catch { /* intentionally empty */ }
     };
   }, [token, removeLiveStream]);
 

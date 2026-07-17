@@ -37,9 +37,9 @@ export class VoiceProcessor {
   applyEffect(effectId: string): void {
     if (!this.ctx || !this.source || !this.destination) return;
 
-    this.nodes.forEach(n => { try { n.disconnect(); } catch {} });
+    this.nodes.forEach(n => { try { n.disconnect(); } catch { /* intentionally empty */ } });
     this.nodes = [];
-    try { this.source.disconnect(); } catch {}
+    try { this.source.disconnect(); } catch { /* intentionally empty */ }
 
     if (effectId === 'none') {
       this.source.connect(this.destination);
@@ -99,7 +99,7 @@ export class VoiceProcessor {
         comp.ratio.value = 20;
         comp.attack.value = 0;
         comp.release.value = 0;
-        waveGain.connect(comp.threshold as any);
+        waveGain.connect(comp.threshold as AudioParam);
         wave.start();
         chain.push(comp);
         this.nodes.push(wave, waveGain);
@@ -249,8 +249,8 @@ export class VoiceProcessor {
   }
 
   destroy(): void {
-    this.nodes.forEach(n => { try { n.disconnect(); } catch {} });
-    try { this.source?.disconnect(); } catch {}
+    this.nodes.forEach(n => { try { n.disconnect(); } catch { /* intentionally empty */ } });
+    try { this.source?.disconnect(); } catch { /* intentionally empty */ }
     this.ctx?.close();
     this.ctx = null;
     this.source = null;

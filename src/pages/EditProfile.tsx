@@ -43,6 +43,7 @@ export default function EditProfile() {
     if (user?.id) {
       loadProfile();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
   const loadProfile = async () => {
@@ -78,14 +79,14 @@ export default function EditProfile() {
       showToast('Please log in again');
       return;
     }
-    const uid = currentUserId || user!.id;
+    const uid = currentUserId || (user as NonNullable<typeof user>).id;
 
     setUploading(true);
     try {
       const result = await avatarUploadService.uploadAvatar(file, uid);
 
       if (result.success && result.publicUrl) {
-        setProfile((prev) => ({ ...prev, avatar_url: result.publicUrl! }));
+        setProfile((prev) => ({ ...prev, avatar_url: (result.publicUrl as NonNullable<typeof result.publicUrl>) }));
         try {
           localStorage.setItem('elix_avatar_' + uid, result.publicUrl);
         } catch {
@@ -110,7 +111,7 @@ export default function EditProfile() {
       showToast('Please log in again');
       return;
     }
-    const uid = currentUserId || user!.id;
+    const uid = currentUserId || (user as NonNullable<typeof user>).id;
 
     const nextUsername = (profile.username || '').trim().replace(/^@+/, '');
     if (!nextUsername) {

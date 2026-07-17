@@ -165,7 +165,7 @@ async function buildStreamsResult(): Promise<StreamsListPayload> {
     try {
       const liveRooms = await listActiveRoomsFromLiveKit();
       const named = liveRooms.filter((r) => r.name);
-      const batchKeys = named.map((r) => STREAM_KEY_PREFIX + r.name!);
+      const batchKeys = named.map((r) => STREAM_KEY_PREFIX + (r.name as NonNullable<typeof r.name>));
       const hashList =
         batchKeys.length > 0 && isValkeyConfigured()
           ? await valkeyHgetallBatch(batchKeys)
@@ -182,7 +182,7 @@ async function buildStreamsResult(): Promise<StreamsListPayload> {
                 displayName: data.displayName || undefined,
               }
             : null;
-        const userId = mem?.userId ?? dbRow?.user_id ?? room.name!;
+        const userId = mem?.userId ?? dbRow?.user_id ?? (room.name as NonNullable<typeof room.name>);
         return {
           room_id: room.name,
           stream_key: room.name,
@@ -340,7 +340,7 @@ export async function handleLiveStart(req: Request, res: Response) {
       stream_key: roomName,
       url: getLiveKitUrl(),
     });
-  } catch (err: any) {
+  } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to create token';
     logger.error({ err: message }, "live/start failed");
     return res.status(500).json({ error: message });
@@ -397,7 +397,7 @@ export async function handleGetLiveToken(req: Request, res: Response) {
           !!ownerId &&
           layout?.hostUserId === ownerId &&
           Array.isArray(layout?.coHosts) &&
-          layout!.coHosts.some(
+          (layout as NonNullable<typeof layout>).coHosts.some(
             (h) =>
               h &&
               typeof h === 'object' &&

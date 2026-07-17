@@ -53,7 +53,7 @@ export async function uploadAvatar(
     }
 
     return cdnUrl;
-  } catch (err: any) {
+  } catch (err) {
     throw new Error(err?.message || "Failed to upload avatar");
   }
 }

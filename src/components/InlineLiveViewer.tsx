@@ -153,6 +153,7 @@ export default function InlineLiveViewer({
       mounted = false;
       clearTimeout(timeoutId);
       connectedKeyRef.current = "";
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       const el = videoRef.current;
       if (el) {
         el.srcObject = null;

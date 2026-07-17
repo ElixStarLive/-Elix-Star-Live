@@ -51,7 +51,7 @@ router.get("/seasons", async (_req, res) => {
 });
 
 router.post("/seasons", validateBody(seasonSchema), async (req: Request, res: Response) => {
-  const adminId = req.authContext!.userId;
+  const adminId = (req.authContext as NonNullable<typeof req.authContext>).userId;
   try {
     const season = await rsCreateSeason({ ...req.body, created_by: adminId });
     if (!season) return res.status(500).json({ error: "CREATE_FAILED" });
@@ -77,7 +77,7 @@ const categorySchema = z.object({
 });
 
 router.post("/categories", validateBody(categorySchema), async (req: Request, res: Response) => {
-  const adminId = req.authContext!.userId;
+  const adminId = (req.authContext as NonNullable<typeof req.authContext>).userId;
   try {
     const category = await rsCreateCategory(req.body);
     if (!category) return res.status(500).json({ error: "CREATE_FAILED" });
@@ -103,7 +103,7 @@ const regionSchema = z.object({
 });
 
 router.post("/regions", validateBody(regionSchema), async (req: Request, res: Response) => {
-  const adminId = req.authContext!.userId;
+  const adminId = (req.authContext as NonNullable<typeof req.authContext>).userId;
   try {
     const region = await rsCreateRegion(req.body);
     if (!region) return res.status(500).json({ error: "CREATE_FAILED" });
@@ -138,7 +138,7 @@ const challengeSchema = z.object({
 });
 
 router.post("/challenges", validateBody(challengeSchema), async (req: Request, res: Response) => {
-  const adminId = req.authContext!.userId;
+  const adminId = (req.authContext as NonNullable<typeof req.authContext>).userId;
   try {
     const challenge = await rsCreateChallenge(req.body);
     if (!challenge) return res.status(500).json({ error: "CREATE_FAILED" });
@@ -164,7 +164,7 @@ router.patch(
   "/challenges/:id/status",
   validateBody(statusSchema),
   async (req: Request, res: Response) => {
-    const adminId = req.authContext!.userId;
+    const adminId = (req.authContext as NonNullable<typeof req.authContext>).userId;
     try {
       const challenge = await rsUpdateChallengeStatus(
         String(req.params.id),
@@ -192,7 +192,7 @@ router.post(
   "/challenges/:id/freeze",
   validateBody(freezeSchema),
   async (req: Request, res: Response) => {
-    const adminId = req.authContext!.userId;
+    const adminId = (req.authContext as NonNullable<typeof req.authContext>).userId;
     try {
       const challenge = await rsFreezeLeaderboard(
         String(req.params.id),
@@ -215,7 +215,7 @@ router.post(
 );
 
 router.post("/entries/:id/disqualify", async (req: Request, res: Response) => {
-  const adminId = req.authContext!.userId;
+  const adminId = (req.authContext as NonNullable<typeof req.authContext>).userId;
   try {
     const entry = await rsDisqualifyEntry(String(req.params.id));
     if (!entry) return res.status(404).json({ error: "NOT_FOUND" });
@@ -249,7 +249,7 @@ router.post(
   "/challenges/:id/live",
   validateBody(liveSchema),
   async (req: Request, res: Response) => {
-    const adminId = req.authContext!.userId;
+    const adminId = (req.authContext as NonNullable<typeof req.authContext>).userId;
     try {
       const challenge = await rsAttachLiveRoom(
         String(req.params.id),
@@ -281,7 +281,7 @@ router.post(
   "/challenges/:id/snapshot",
   validateBody(snapshotSchema),
   async (req: Request, res: Response) => {
-    const adminId = req.authContext!.userId;
+    const adminId = (req.authContext as NonNullable<typeof req.authContext>).userId;
     try {
       const result = await rsSnapshotPhase({
         challengeId: String(req.params.id),
@@ -322,7 +322,7 @@ const badgeSchema = z.object({
 });
 
 router.post("/badges", validateBody(badgeSchema), async (req: Request, res: Response) => {
-  const adminId = req.authContext!.userId;
+  const adminId = (req.authContext as NonNullable<typeof req.authContext>).userId;
   try {
     const badge = await rsCreateBadge(req.body);
     if (!badge) return res.status(500).json({ error: "CREATE_FAILED" });
@@ -346,7 +346,7 @@ const awardSchema = z.object({
 });
 
 router.post("/badges/award", validateBody(awardSchema), async (req: Request, res: Response) => {
-  const adminId = req.authContext!.userId;
+  const adminId = (req.authContext as NonNullable<typeof req.authContext>).userId;
   try {
     const result = await rsAwardBadge({
       userId: req.body.userId,
@@ -400,7 +400,7 @@ router.post(
   "/rewards/definitions",
   validateBody(rewardDefSchema),
   async (req: Request, res: Response) => {
-    const adminId = req.authContext!.userId;
+    const adminId = (req.authContext as NonNullable<typeof req.authContext>).userId;
     try {
       if (req.body.place_to < req.body.place_from) {
         return res.status(400).json({ error: "place_to must be >= place_from" });
@@ -430,7 +430,7 @@ const grantSchema = z.object({
 });
 
 router.post("/rewards/grants", validateBody(grantSchema), async (req: Request, res: Response) => {
-  const adminId = req.authContext!.userId;
+  const adminId = (req.authContext as NonNullable<typeof req.authContext>).userId;
   try {
     const grant = await rsGrantReward({
       definitionId: req.body.definitionId,

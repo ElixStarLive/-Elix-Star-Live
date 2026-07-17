@@ -120,8 +120,10 @@ export default function GiftAnimationOverlay({ streamId }: GiftAnimationOverlayP
       websocket.off('gift_sent', onWs);
       window.removeEventListener(ELIX_GIFT_PILL_EVENT, onLocal);
       hideTimersRef.current.forEach((t) => clearTimeout(t));
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       hideTimersRef.current.clear();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (gifts.length === 0) return null;

@@ -8,7 +8,7 @@ export default function Register() {
   const signUpWithPassword = useAuthStore((state) => state.signUpWithPassword);
   
   const [email, setEmail] = useState('');
-  const [fullName, setFullName] = useState('');
+  const [fullName, _setFullName] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -100,7 +100,7 @@ export default function Register() {
         );
         navigate('/', { replace: true });
       }
-    } catch (err: any) {
+    } catch (err) {
       if (!isMounted.current) return;
       
       if (err.name === 'AbortError' || err.message?.includes('aborted')) {

@@ -2,7 +2,7 @@ import { Router } from "express";
 import express from "express";
 import { getTokenFromRequest, verifyAuthToken } from "./auth";
 import { uploadToBunny, isBunnyConfigured } from "../services/bunny";
-import { handleUploadVideo, handleUploadAvatar } from "./upload";
+import { handleUploadVideo } from "./upload";
 import { uploadLimiter } from "../middleware/rateLimit";
 import {
   extractVideoIdFromStoragePath,

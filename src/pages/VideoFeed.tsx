@@ -210,7 +210,7 @@ async function enrichLiveStreamCard(card: LiveStreamCard): Promise<LiveStreamCar
 
 export default function VideoFeed() {
   const location = useLocation();
-  const navigate = useNavigate();
+  const _navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [liveStreams, setLiveStreams] = useState<LiveStreamCard[]>([]);
@@ -357,6 +357,7 @@ export default function VideoFeed() {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [liveStreams.map((s) => `${s.streamKey}:${s.name}:${s.userId}`).join(",")]);
 
   /* ---- Feed channel: when a creator starts live, they appear on For You immediately; reconnect on close ---- */
@@ -418,7 +419,7 @@ export default function VideoFeed() {
       if (reconnectTimer) clearTimeout(reconnectTimer);
       try {
         if (ws) ws.close();
-      } catch {}
+      } catch { /* intentionally empty */ }
     };
   }, [token, removeLiveStream]);
 
@@ -496,6 +497,7 @@ export default function VideoFeed() {
     pickActive();
 
     return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [feedKey]);
 
   const handleScroll = () => {

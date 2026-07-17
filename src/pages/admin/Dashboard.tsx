@@ -39,7 +39,7 @@ export default function AdminDashboard() {
         request('/api/admin/purchases'),
         request('/api/admin/stats/dau'),
       ]);
-      const settled = (i: number) => results[i].status === 'fulfilled' ? (results[i] as PromiseFulfilledResult<any>).value : { data: null };
+      const settled = (i: number): { count?: number; data?: Record<string, unknown> } => results[i].status === 'fulfilled' ? (results[i] as PromiseFulfilledResult<{ count?: number; data?: Record<string, unknown> }>).value : { data: null };
       const [usersRes, videosRes, liveRoomsRes, reportsRes, purchasesRes, dauRes] = [settled(0), settled(1), settled(2), settled(3), settled(4), settled(5)];
 
       const totalUsers = usersRes.count ?? (Array.isArray(usersRes.data) ? usersRes.data.length : 0);
@@ -47,10 +47,10 @@ export default function AdminDashboard() {
       const liveStreams = liveRoomsRes.data?.streams ?? liveRoomsRes.data;
       const liveCount = Array.isArray(liveStreams) ? liveStreams.length : 0;
       const reportsArr = Array.isArray(reportsRes.data) ? reportsRes.data : (Array.isArray(reportsRes.data?.data) ? reportsRes.data.data : []);
-      const pendingCount = reportsArr.filter((r: any) => r.status === 'pending').length;
+      const pendingCount = (reportsArr as { status?: string }[]).filter((r) => r.status === 'pending').length;
       const purchasesArr = Array.isArray(purchasesRes.data) ? purchasesRes.data : (Array.isArray(purchasesRes.data?.data) ? purchasesRes.data.data : []);
-      const revenue = purchasesArr.reduce((sum: number, p: any) => sum + (p.price_minor || 0), 0);
-      const dau = dauRes.data?.dau ?? 0;
+      const revenue = (purchasesArr as { price_minor?: number }[]).reduce((sum: number, p) => sum + (p.price_minor || 0), 0);
+      const dau = (dauRes.data?.dau as number) ?? 0;
 
       setStats({
         dailyActiveUsers: dau,

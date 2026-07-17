@@ -37,15 +37,15 @@ export default function FriendsFeed() {
         // Match live by any id a stream may carry (user_id can fall back to the room key server-side).
         const liveSet = new Set(
           (liveBody?.streams || [])
-            .flatMap((s: any) => [s.hostUserId, s.userId, s.user_id, s.stream_key, s.streamKey, s.room_id, s.roomId])
+            .flatMap((s: Record<string, unknown>) => [s.hostUserId, s.userId, s.user_id, s.stream_key, s.streamKey, s.room_id, s.roomId])
             .filter(Boolean)
-            .map((v: any) => String(v)),
+            .map((v: unknown) => String(v)),
         );
 
         const rows = Array.isArray(profilesBody?.profiles) ? profilesBody.profiles : [];
         const blocklist = ['', 'user', 'demo', 'test', 'unknown', 'anonymous', 'guest'];
         const mapped: SuggestedUser[] = rows
-          .map((p: any) => ({
+          .map((p: { user_id: string; userId: string; username?: string; display_name?: string; displayName?: string; avatar_url?: string; avatarUrl?: string }) => ({
             id: p.user_id || p.userId,
             username: p.username || 'user',
             name: p.display_name || p.displayName || p.username || 'User',
@@ -60,7 +60,7 @@ export default function FriendsFeed() {
 
         mapped.sort((a, b) => (a.is_live === b.is_live ? 0 : a.is_live ? -1 : 1));
         setSuggestedUsers(mapped);
-      } catch {}
+      } catch { /* intentionally empty */ }
     };
 
     fetchUsers();
@@ -96,6 +96,7 @@ export default function FriendsFeed() {
     const slides = container.querySelectorAll('[data-slide-index]');
     slides.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [friendVideoIds.join(',')]);
 
   const handleVideoEnd = (index: number) => {

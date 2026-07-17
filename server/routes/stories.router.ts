@@ -107,7 +107,7 @@ router.get("/", async (_req: Request, res: Response) => {
           items: [],
         });
       }
-      byUser.get(uid)!.items.push({
+      (byUser.get(uid) as NonNullable<ReturnType<typeof byUser.get>>).items.push({
         id: row.id,
         mediaUrl: row.media_url,
         thumbnail: row.thumbnail || "",

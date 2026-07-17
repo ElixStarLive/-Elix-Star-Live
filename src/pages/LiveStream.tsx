@@ -12,8 +12,6 @@ import {
   RefreshCw,
   Mic,
   MicOff,
-  Volume2,
-  VolumeX,
   Gift,
   MoreVertical,
   Users,
@@ -25,7 +23,6 @@ import {
   TrendingUp,
   Plus,
   Check,
-  Smile,
   User,
   UserPlus,
   X,
@@ -53,8 +50,6 @@ import { ChatOverlay } from '../components/ChatOverlay';
 import { FaceARGift } from '../components/FaceARGift';
 import { useLivePromoStore } from '../store/useLivePromoStore';
 import { AvatarRing } from '../components/AvatarRing';
-import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
-import { GoldProfileFrame } from '../components/GoldProfileFrame';
 import {
   CREATOR_NAME_PILL_CLASSNAME,
   getCreatorNamePillStyle,
@@ -89,7 +84,6 @@ import { LiveGiftGoalBar } from '../components/LiveGiftGoalBar';
 import { RankingPanel } from '../components/RankingPanel';
 import { websocket } from '../lib/websocket';
 import { parseLiveGiftGoal, type LiveGiftGoal } from '../lib/liveGiftGoal';
-import LiveAIFilters from '../components/LiveAIFilters';
 import { liveStreamUiGiftTargetToServerBattleTarget, normalizeBattleGiftTarget } from '../lib/liveBattleGiftTarget';
 import { IS_STORE_BUILD } from '../config/build';
 import { purchaseMembership } from '../lib/iap';
@@ -127,6 +121,7 @@ function AnimatedScore({ value, className = '', durationMs = 300, format }: { va
     };
     rafRef.current = requestAnimationFrame(step);
     return () => cancelAnimationFrame(rafRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, durationMs]);
   return <span className={className}>{fmt(display)}</span>;
 }
@@ -150,7 +145,7 @@ type UniverseTickerMessage = {
   receiver: string;
 };
 
-const EMOJI_LIST = ['😀','😂','🥰','😍','🔥','💯','👏','🎉','❤️','💜','💙','⭐','🌟','✨','🙌','👑','💎','🚀','🎵','💃','🕺','😎','🤩','💪','🫶','💖'];
+const _EMOJI_LIST = ['😀','😂','🥰','😍','🔥','💯','👏','🎉','❤️','💜','💙','⭐','🌟','✨','🙌','👑','💎','🚀','🎵','💃','🕺','😎','🤩','💪','🫶','💖'];
 type LiveViewer = {
   id: string;
   username: string;
@@ -210,7 +205,7 @@ export default function LiveStream() {
   /** Like/hearts only in bottom chat strip — not over battle/video (see SpectatorPage `spectatorChatHeartsRef`). */
   const chatHeartLayerRef = useRef<HTMLDivElement>(null);
   const cameraStreamRef = useRef<MediaStream | null>(null);
-  const [viewerHasStream, setViewerHasStream] = useState(false);
+  const [viewerHasStream, _setViewerHasStream] = useState(false);
   const [giftsCatalog, setGiftsCatalog] = useState<GiftUiItem[]>([]);
   const giftsCatalogRef = useRef<GiftUiItem[]>([]);
   useEffect(() => { giftsCatalogRef.current = giftsCatalog; }, [giftsCatalog]);
@@ -260,7 +255,7 @@ export default function LiveStream() {
       el.muted = false;
       el.volume = 1;
       el.autoplay = true;
-      (el as any).playsInline = true;
+      (el as unknown as { playsInline: boolean }).playsInline = true;
       void el.play().catch(() => {});
       return;
     }
@@ -282,7 +277,7 @@ export default function LiveStream() {
   const isBroadcaster = isBroadcast;
   const effectiveStreamId = isBroadcaster ? (user?.id || 'broadcast') : (_rawStreamId || 'broadcast');
   const liveRegisteredRef = useRef(false);
-  const formatStreamName = (id: string) =>
+  const _formatStreamName = (id: string) =>
     id
       .split(/[-_]/g)
       .filter(Boolean)
@@ -540,7 +535,7 @@ export default function LiveStream() {
         } else {
           showToast('Failed to start stream');
         }
-      } catch (startErr) {
+      } catch {
         showToast('Failed to start live stream. Please try again.');
       }
     })();
@@ -656,10 +651,11 @@ export default function LiveStream() {
       liveKitRoomRef.current = null;
       room.disconnect();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isBroadcast, liveKitCreds, cameraStream]);
 
   const [isFindCreatorsOpen, setIsFindCreatorsOpen] = useState(false);
-  const [memberCount, setMemberCount] = useState(0);
+  const [_memberCount, setMemberCount] = useState(0);
   const [hasJoinedToday, setHasJoinedToday] = useState(false);
   const [myHeartCount, setMyHeartCount] = useState(0);
   const [dailyHeartCount, setDailyHeartCount] = useState(0);
@@ -705,7 +701,7 @@ export default function LiveStream() {
       const streams = Array.isArray(json.streams) ? json.streams : [];
       // Support both snake_case and camelCase from /api/live/streams
       const liveCreators = streams
-        .map((s: any) => {
+        .map((s) => {
           const streamKey = String(s.stream_key ?? s.room_id ?? '').trim();
           const uid = String(s.user_id ?? s.userId ?? s.hostUserId ?? streamKey).trim();
           const title = s.title ?? s.display_name ?? s.displayName ?? '';
@@ -734,7 +730,7 @@ export default function LiveStream() {
         });
       setCreators(liveCreators);
       setCreatorsLoadFailed(false);
-    } catch (error) {
+    } catch {
       setCreatorsLoadFailed(true);
       setCreators([]);
     } finally {
@@ -749,6 +745,7 @@ export default function LiveStream() {
   // Refetch creators when opening Invite panel so list is fresh
   useEffect(() => {
     if (isFindCreatorsOpen && user?.id) loadCreators();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isFindCreatorsOpen, loadCreators]);
 
   useEffect(() => {
@@ -868,7 +865,7 @@ export default function LiveStream() {
 
   const filledSlots = battleSlots.filter(s => s.status !== 'empty');
   const allFilledAccepted = filledSlots.length > 0 && filledSlots.every(s => s.status === 'accepted');
-  const anySlotFilled = filledSlots.length > 0;
+  const _anySlotFilled = filledSlots.length > 0;
   const _allSlotsAccepted = allFilledAccepted;
 
   // ═══════════════════════════════════════════════════════════════
@@ -885,7 +882,7 @@ export default function LiveStream() {
     _streamKey?: string;
   };
   const [coHosts, setCoHosts] = useState<CoHost[]>([]);
-  const [hostSearchQuery, setHostSearchQuery] = useState('');
+  const [hostSearchQuery, _setHostSearchQuery] = useState('');
   const [featuredHostId, setFeaturedHostId] = useState<string | null>(null);
   const coHostTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const coHostsRef = useRef<CoHost[]>([]);
@@ -993,7 +990,7 @@ export default function LiveStream() {
   type PendingJoinRequest = { requesterName: string; requesterAvatar: string; requesterId: string; type: 'cohost' | 'battle' };
   const [pendingJoinRequest, setPendingJoinRequest] = useState<PendingJoinRequest | null>(null);
 
-  const acceptJoinRequest = async () => {
+  const _acceptJoinRequest = async () => {
     if (!pendingJoinRequest || !user?.id) return;
     const req = pendingJoinRequest;
     if (isSelfUser(req.requesterId, user.id, effectiveStreamId)) {
@@ -1022,7 +1019,7 @@ export default function LiveStream() {
     showToast(`Accepted @${req.requesterName}'s co-host request!`);
   };
 
-  const declineJoinRequest = async () => {
+  const _declineJoinRequest = async () => {
     if (!pendingJoinRequest) return;
     const requesterId = pendingJoinRequest.requesterId;
     setPendingJoinRequest(null);
@@ -1030,7 +1027,7 @@ export default function LiveStream() {
     showToast('Request declined');
   };
 
-  const removeCoHost = (hostId: string) => {
+  const _removeCoHost = (hostId: string) => {
     const host = coHosts.find(h => h.id === hostId);
     setCoHosts(prev => prev.filter(h => h.id !== hostId));
     if (host) {
@@ -1060,9 +1057,9 @@ export default function LiveStream() {
   const liveCoHosts = coHosts.filter(h => h.status === 'live');
   const featuredHost = featuredHostId ? liveCoHosts.find(h => h.id === featuredHostId) : null;
   const smallHosts = featuredHost ? liveCoHosts.filter(h => h.id !== featuredHostId) : liveCoHosts;
-  const hostGridCols = smallHosts.length <= 1 ? 1 : smallHosts.length <= 4 ? 2 : smallHosts.length <= 9 ? 3 : 4;
+  const _hostGridCols = smallHosts.length <= 1 ? 1 : smallHosts.length <= 4 ? 2 : smallHosts.length <= 9 ? 3 : 4;
 
-  const toggleFeatured = (hostId: string) => {
+  const _toggleFeatured = (hostId: string) => {
     setFeaturedHostId(prev => prev === hostId ? null : hostId);
   };
 
@@ -1070,11 +1067,12 @@ export default function LiveStream() {
     c.name.toLowerCase().includes(hostSearchQuery.trim().toLowerCase()) &&
     !coHosts.some(h => h.userId === c.id || h.name === c.name)
   );
-  const liveHostCreators = filteredHostCreators.filter(c => c.isLive);
-  const offlineHostCreators = filteredHostCreators.filter(c => !c.isLive);
+  const _liveHostCreators = filteredHostCreators.filter(c => c.isLive);
+  const _offlineHostCreators = filteredHostCreators.filter(c => !c.isLive);
 
   useEffect(() => {
     return () => {
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       coHostTimersRef.current.forEach(t => clearTimeout(t));
     };
   }, []);
@@ -1203,6 +1201,7 @@ export default function LiveStream() {
       if (battleLkRoomRef.current) { battleLkRoomRef.current.disconnect(); battleLkRoomRef.current = null; }
       if (battlePeerRef.current) { battlePeerRef.current.close(); battlePeerRef.current = null; }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isBattleJoiner, user?.id, effectiveStreamId]);
 
   // Battle state driven by WebSocket backend.
@@ -1212,7 +1211,7 @@ export default function LiveStream() {
       if (battlePeerRef.current) { battlePeerRef.current.close(); battlePeerRef.current = null; }
     };
   }, [effectiveStreamId, isBroadcast, isBattleJoiner]);
-  const [liveFilterCss, setLiveFilterCss] = useState('none');
+  const [liveFilterCss, _setLiveFilterCss] = useState('none');
   const [battleTime, setBattleTime] = useState(300); // 5 minutes
   const [myScore, setMyScore] = useState(0);
   const [opponentScore, setOpponentScore] = useState(0);
@@ -1243,7 +1242,7 @@ export default function LiveStream() {
   const battleSpectatorOverlayRef = useRef<HTMLDivElement | null>(null);
   /** Video battle grid — position fallback when watched stream id does not match any participant. */
   const battleVoteGridRef = useRef<HTMLDivElement | null>(null);
-  const lastBattleTapTimeRef = useRef<number>(0);
+  const _lastBattleTapTimeRef = useRef<number>(0);
   const spectatorTapPointsRef = useRef<number>(0);
   const [, setSpectatorTapsUsed] = useState<number>(0);
   const battleFreeTapUsedRef = useRef<boolean>(false);
@@ -1267,16 +1266,16 @@ export default function LiveStream() {
 
   const _battleKeyboardLikeArmedRef = useRef(true);
   const [liveLikes, setLiveLikes] = useState(0);
-  const [battleReadiness, setBattleReadiness] = useState(0);
+  const [_battleReadiness, _setBattleReadiness] = useState(0);
   const [hasOpponentStream, setHasOpponentStream] = useState(false);
   const [opponentStreamKey, setOpponentStreamKey] = useState<string | null>(null);
   const battleRoleRef = useRef<'host' | 'opponent' | null>(null);
-  const [battleUiRole, setBattleUiRole] = useState<'host' | 'opponent'>(() =>
+  const [_battleUiRole, setBattleUiRole] = useState<'host' | 'opponent'>(() =>
     isBattleJoiner ? 'opponent' : 'host',
   );
   /** Authoritative host/opponent/P3/P4 totals from server (never role-swapped) — fixes bar showing 0 for the other team. */
   const battleServerTotalsRef = useRef({ h: 0, o: 0, p3: 0, p4: 0 });
-  const lastBattleScoreUpdateTraceSigRef = useRef('');
+  const _lastBattleScoreUpdateTraceSigRef = useRef('');
   const [battleServerTotals, setBattleServerTotals] = useState({ h: 0, o: 0, p3: 0, p4: 0 });
   const [battleMistSide, setBattleMistSide] = useState<BattleMistSide>(null);
   const [battleHideScores, setBattleHideScores] = useState(false);
@@ -1312,9 +1311,9 @@ export default function LiveStream() {
   }, []);
 
   const opponentLkRoomRef = useRef<Room | null>(null);
-  const [iAmReady, setIAmReady] = useState(false);
-  const [hostIsReady, setHostIsReady] = useState(false);
-  const [opponentIsReady, setOpponentIsReady] = useState(false);
+  const [_iAmReady, setIAmReady] = useState(false);
+  const [_hostIsReady, setHostIsReady] = useState(false);
+  const [_opponentIsReady, setOpponentIsReady] = useState(false);
 
   // Peer connections for battle & co-host
   const isBattleParticipant = !isBroadcast && new URLSearchParams(location.search).get('battle') === '1';
@@ -1351,7 +1350,7 @@ export default function LiveStream() {
     videoRef.current.play().catch(() => {});
   }, [isBattleParticipant, battleParticipantStream]);
 
-  const isRegularViewer = !isBroadcast && !isBattleParticipant;
+  const _isRegularViewer = !isBroadcast && !isBattleParticipant;
 
   // Connect to opponent's LiveKit room to receive their video (both creators are live in separate rooms)
   useEffect(() => {
@@ -1474,12 +1473,12 @@ export default function LiveStream() {
   const speedChallengeActiveRef = useRef(false);
   const speedMultiplierRef = useRef(1);
   const roseCountRef = useRef(0);
-  const [roseCount, setRoseCount] = useState(0);
+  const [_roseCount, setRoseCount] = useState(0);
 
   useEffect(() => { speedChallengeActiveRef.current = speedChallengeActive; }, [speedChallengeActive]);
   useEffect(() => { speedMultiplierRef.current = speedMultiplier; }, [speedMultiplier]);
 
-  const speedChallengeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const _speedChallengeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reachedThresholdsRef = useRef<Set<number>>(new Set());
   const [lastGifts, setLastGifts] = useState<{ opponent: string | null; player3: string | null; player4: string | null }>({ opponent: null, player3: null, player4: null });
   const [floatingHearts, setFloatingHearts] = useState<
@@ -1488,11 +1487,11 @@ export default function LiveStream() {
   const [miniProfile, setMiniProfile] = useState<null | { id?: string; username: string; avatar: string; level: number | null; coins?: number; donated?: number; bio?: string; followers_count?: number; following_count?: number }>(null);
   /** Synced from GET /following when panel user id is known; used so Follow matches server (does not touch host top-bar isFollowing). */
   const [miniProfileFollowsThem, setMiniProfileFollowsThem] = useState<boolean | undefined>(undefined);
-  const [showMembershipBar, setShowMembershipBar] = useState(false);
+  const [_showMembershipBar, _setShowMembershipBar] = useState(false);
   const [showTeamStatus, setShowTeamStatus] = useState(false);
   const [showJoinAnimation, setShowJoinAnimation] = useState(false);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [membershipHeartActive, setMembershipHeartActive] = useState(false);
+  const [_showEmojiPicker, _setShowEmojiPicker] = useState(false);
+  const [_membershipHeartActive, _setMembershipHeartActive] = useState(false);
   const membershipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // FAN CLUB PANEL - removed top bar, now using Sheet
@@ -1554,7 +1553,7 @@ export default function LiveStream() {
         const { data: body, error } = await request(`/api/profiles/${encodeURIComponent(user.id)}/following`);
         if (error || cancelled) return;
         const ids: string[] = Array.isArray(body?.following) ? body.following : [];
-        if (!cancelled) setMiniProfileFollowsThem(ids.includes(miniProfile.id!));
+        if (!cancelled) setMiniProfileFollowsThem(ids.includes((miniProfile.id as NonNullable<typeof miniProfile.id>)));
       } catch {
         if (!cancelled) setMiniProfileFollowsThem(false);
       }
@@ -1562,6 +1561,7 @@ export default function LiveStream() {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [miniProfile?.id, user?.id]);
 
   const uploadSticker = useCallback(() => {
@@ -1646,10 +1646,11 @@ export default function LiveStream() {
     // setTimeout(() => { setShowMembershipBar(false); setMembershipBarClosing(false); }, 200);
   }, []);
 
-  const openMembershipBar = useCallback(() => {
+  const _openMembershipBar = useCallback(() => {
     if (membershipTimerRef.current) clearTimeout(membershipTimerRef.current);
     // Instead of opening the top bar, we now open the bottom sheet Fan Club
     setShowFanClub(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [closeMembershipBar]);
   const [sessionContribution, setSessionContribution] = useState(0); // total coins gifted this session
   const [universeQueue, setUniverseQueue] = useState<UniverseTickerMessage[]>([]);
@@ -1705,7 +1706,7 @@ export default function LiveStream() {
     if (!user?.id || shareSentTo.has(targetUserId)) return;
     const label = shareFollowers.find((f) => f.user_id === targetUserId)?.username || 'user';
     try {
-      const { data: j, error: shareErr } = await request('/api/live-share', {
+      const { data: _j, error: shareErr } = await request('/api/live-share', {
         method: 'POST',
         body: JSON.stringify({
           targetUserId,
@@ -1793,6 +1794,7 @@ export default function LiveStream() {
     if (player4VideoRef.current) { player4VideoRef.current.srcObject = null; }
     if (battlePeerRef.current) { battlePeerRef.current.close(); battlePeerRef.current = null; }
     // Battle state notified via WebSocket.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveStreamId, isBattleJoiner]);
 
   const exitBattleMode = useCallback(() => {
@@ -1846,6 +1848,7 @@ export default function LiveStream() {
     if (player4VideoRef.current) { player4VideoRef.current.srcObject = null; }
     setIsFindCreatorsOpen(true);
     websocket.send('battle_create', { hostName: creatorName });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isBattleMode, location.search, location.pathname, navigate, endBattleCleanup, creatorName, exitBattleMode]);
 
   /** X on a battle participant — leave battle split view entirely (not just clear one slot). */
@@ -2154,6 +2157,7 @@ export default function LiveStream() {
       speedMultiplierRef.current = 2;
       startSpeedChallenge();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [myScore, opponentScore, player3Score, player4Score, isBattleMode, battleWinner, speedChallengeActive, startSpeedChallenge]);
 
   // Auto-cycle multiplier during speed challenge (changes every 2-3s) - DISABLED to follow user's score-based rule
@@ -2312,6 +2316,7 @@ export default function LiveStream() {
       cancelled = true;
       if (!keepStreamAliveOnCleanup) stop();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isBroadcast, cameraFacing]);
 
   // Re-attach camera stream to videoRef when battle mode toggles (the <video> element changes)
@@ -2509,7 +2514,7 @@ export default function LiveStream() {
       websocket.connect(effectiveStreamId, token);
     };
 
-    const handleRoomState = (data: any) => {
+    const handleRoomState = (data) => {
       if (!mounted) return;
       const seen = new Set<string>();
       const viewers: LiveViewer[] = [];
@@ -2576,7 +2581,7 @@ export default function LiveStream() {
       }
     };
 
-    const handleUserJoined = (data: any) => {
+    const handleUserJoined = (data) => {
       if (!mounted) return;
       if (data.user_id === user?.id) return;
       const joinName = data.username || 'User';
@@ -2618,7 +2623,7 @@ export default function LiveStream() {
       }
     };
 
-    const handleUserLeft = (data: any) => {
+    const handleUserLeft = (data) => {
       if (!mounted) return;
       setActiveViewers(prev => prev.filter(v => String(v.id) !== String(data.user_id)));
       setViewerCount(prev => Math.max(0, prev - 1));
@@ -2630,7 +2635,7 @@ export default function LiveStream() {
       }
     };
 
-    const handleChatMessage = (data: any) => {
+    const handleChatMessage = (data) => {
       if (!mounted) return;
       if (data.user_id === user?.id) return;
       const msg: LiveMessage = {
@@ -2644,7 +2649,7 @@ export default function LiveStream() {
       setMessages(prev => [...prev, msg]);
     };
 
-    const handleGiftSent = (data: any) => {
+    const handleGiftSent = (data) => {
       if (!mounted) return;
       const wsGiftId =
         (typeof data.giftId === 'string' && data.giftId) ||
@@ -2738,7 +2743,7 @@ export default function LiveStream() {
     };
 
     // Server-controlled battle events — single source of truth
-    const applyBattleScores = (data: any) => {
+    const applyBattleScores = (data) => {
       const pick = (v: unknown, fallback: number) => {
         if (v === undefined || v === null) return fallback;
         const n = Number(v);
@@ -2782,7 +2787,7 @@ export default function LiveStream() {
       setBattleUiRole(role);
     };
 
-    const handleBattleStateSync = (data: any) => {
+    const handleBattleStateSync = (data) => {
       if (!mounted) return;
       const syncStatus = typeof data.status === 'string' ? data.status : '';
       if (syncStatus === 'ACTIVE' && prevBattleSyncStatusRef.current !== 'ACTIVE') {
@@ -2861,13 +2866,13 @@ export default function LiveStream() {
       });
     };
 
-    const handleBattleScore = (data: any) => {
+    const handleBattleScore = (data) => {
       if (!mounted) return;
       applyBattleScores(data);
     };
 
     /** Server ~300ms authoritative snapshot — never let stale tick lower scores (async DB race). */
-    const handleBattleScoreUpdate = (data: any) => {
+    const handleBattleScoreUpdate = (data) => {
       if (!mounted) return;
       const p = data?.players;
       if (!p || typeof p !== "object") return;
@@ -2889,19 +2894,19 @@ export default function LiveStream() {
       });
     };
 
-    const handleBattleCountdown = (data: any) => {
+    const handleBattleCountdown = (data) => {
       if (!mounted) return;
       setBattleCountdown(data.count ?? null);
       if (data.count <= 0) setBattleCountdown(null);
     };
 
-    const handleBattleReadyState = (data: any) => {
+    const handleBattleReadyState = (data) => {
       if (!mounted) return;
       setHostIsReady(!!data.hostReady);
       setOpponentIsReady(!!data.opponentReady);
     };
 
-    const handleBattleEnded = (data: any) => {
+    const handleBattleEnded = (data) => {
       if (!mounted) return;
       if (battleEndedTimeoutRef.current) {
         clearTimeout(battleEndedTimeoutRef.current);
@@ -2921,7 +2926,7 @@ export default function LiveStream() {
       }, 2000);
     };
 
-    const handleHeartSent = (data: any) => {
+    const handleHeartSent = (data) => {
       if (!mounted) return;
       if (typeof data.live_likes === 'number' && Number.isFinite(data.live_likes)) {
         setLiveLikes(Math.max(0, data.live_likes));
@@ -2964,7 +2969,7 @@ export default function LiveStream() {
     websocket.on('battle_ready_state', handleBattleReadyState);
 
     // Battle & Co-Host invite / request signalling over WebSocket
-    const handleBattleInvite = (data: any) => {
+    const handleBattleInvite = (data) => {
       if (!user?.id) return;
       setPendingInvite({
         hostName: data.hostName || 'Creator',
@@ -2977,7 +2982,7 @@ export default function LiveStream() {
       showToast(`@${data.hostName || 'Creator'} invited you to battle — tap Join or Reject`);
     };
 
-    const handleBattleInviteAccepted = (data: any) => {
+    const handleBattleInviteAccepted = (data) => {
       if (!isBroadcast) return;
       const requesterId = data.requesterUserId as string | undefined;
       const requesterName = data.requesterName as string | undefined;
@@ -3019,7 +3024,7 @@ export default function LiveStream() {
       });
     };
 
-    const handleCohostRequest = (data: any) => {
+    const handleCohostRequest = (data) => {
       if (!isBroadcast) return;
       setPendingJoinRequest({
         requesterId: data.requesterUserId,
@@ -3029,7 +3034,7 @@ export default function LiveStream() {
       });
     };
 
-    const handleCohostRequestAccepted = (data: any) => {
+    const handleCohostRequestAccepted = (data) => {
       if (!user?.id) return;
       const hostName = data.hostName || 'Creator';
       const streamKey = data.streamKey || effectiveStreamId;
@@ -3039,7 +3044,7 @@ export default function LiveStream() {
       }
     };
 
-    const handleCohostInvite = (data: any) => {
+    const handleCohostInvite = (data) => {
       if (!user?.id) return;
       if (sameUserId(data.hostUserId, user.id)) return;
       setPendingCohostInvite({
@@ -3052,7 +3057,7 @@ export default function LiveStream() {
       showToast(`@${data.hostName || 'Creator'} invited you to co-host — tap Join or Reject`);
     };
 
-    const handleCohostInviteAck = (data: any) => {
+    const handleCohostInviteAck = (data) => {
       if (!mounted) return;
       if (data?.delivered === false) {
         showToast('Could not reach that creator — they must stay on their live screen');
@@ -3063,7 +3068,7 @@ export default function LiveStream() {
       }
     };
 
-    const handleCohostInviteAccepted = (data: any) => {
+    const handleCohostInviteAccepted = (data) => {
       if (!mounted) return;
       const cohostUserId = typeof data.cohostUserId === 'string' ? data.cohostUserId : '';
       if (!cohostUserId) return;
@@ -3155,6 +3160,7 @@ export default function LiveStream() {
       websocket.off('moderation_suspend', handleModerationSuspend);
       websocket.disconnect();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveStreamId, user?.id, navigate, maybeResolveViewerIdentity, isGenericViewerName, triggerBattleVfx]);
 
   // AI moderation: periodic frame check when broadcasting (flag + assist, all actions logged)
@@ -3221,13 +3227,13 @@ export default function LiveStream() {
   }, [isBroadcast, user?.id, effectiveStreamId, navigate]);
 
   const [giftQueue, setGiftQueue] = useState<{ video: string }[]>([]);
-  const [giftBanner, setGiftBanner] = useState<{ username: string; giftName: string; icon: string } | null>(null);
-  const giftBannerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [_giftBanner, _setGiftBanner] = useState<{ username: string; giftName: string; icon: string } | null>(null);
+  const _giftBannerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [lastSentGift, setLastSentGift] = useState<GiftUiItem | null>(null);
   const [userLevel, setUserLevel] = useState(1);
 
 
-  const [userXP, setUserXP] = useState(0);
+  const [_userXP, setUserXP] = useState(0);
   const [comboCount, setComboCount] = useState(0);
   const [showComboButton, setShowComboButton] = useState(false);
   const comboTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -3283,7 +3289,7 @@ export default function LiveStream() {
       let giftTransactionId: string | null = null;
 
       if (usedTestCoins) {
-        const debit = debitTestCoinsForGift(user!.id, gift.coins);
+        const debit = debitTestCoinsForGift((user as NonNullable<typeof user>).id, gift.coins);
         if (debit.ok === false) {
           showToast(`Not enough coins (have ${debit.balance.toLocaleString()}, need ${gift.coins.toLocaleString()})`);
           return;
@@ -3454,7 +3460,7 @@ export default function LiveStream() {
           ...(serverBattleTarget === 'player4' ? { player4: iconUrl } : {}),
         }));
       }
-    } catch (error) {
+    } catch {
       showToast('Gift failed');
     }
   };
@@ -3512,7 +3518,7 @@ export default function LiveStream() {
       let newLevel = userLevel;
       let giftTransactionId: string | null = null;
       if (usedTestCoins) {
-        const debit = debitTestCoinsForGift(user!.id, lastSentGift.coins);
+        const debit = debitTestCoinsForGift((user as NonNullable<typeof user>).id, lastSentGift.coins);
         if (!debit.ok) {
           showToast("Not enough coins!");
           return;
@@ -3691,6 +3697,7 @@ export default function LiveStream() {
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const stopBroadcast = async () => {
     const roomId = effectiveStreamId;
 
@@ -4759,8 +4766,8 @@ export default function LiveStream() {
                             </div>
                               
                               {(() => {
-                                const redCount = 0;
-                                const greyCount = 0;
+                                const _redCount = 0;
+                                const _greyCount = 0;
                                 return (
                                   <div className="ml-auto self-stretch grid place-items-center pointer-events-auto flex-shrink-0 w-[58px] rounded-full overflow-hidden">
                                     {/* Membership / Join — round end of the capsule (one piece) */}
@@ -4986,7 +4993,7 @@ export default function LiveStream() {
                       compact={isBattleMode}
                       isModerator={isBroadcast || moderators.has(user?.id || '')}
                       onLike={() => handleLikeTap()}
-                      onHeartSpawn={(cx, cy) => handleLikeTap()}
+                      onHeartSpawn={(_cx, _cy) => handleLikeTap()}
                       onProfileTap={(username) => openMiniProfile(username)}
                       onDeleteMessage={(msgId) => setMessages(prev => prev.filter(m => m.id !== msgId))}
                       onBlockUser={(username) => {
@@ -5416,8 +5423,9 @@ export default function LiveStream() {
                       if (!miniProfile?.id) return;
                       setModerators(prev => {
                         const next = new Set(prev);
-                        if (next.has(miniProfile.id!)) { next.delete(miniProfile.id!); showToast(`@${miniProfile.username} removed as moderator`); }
-                        else { next.add(miniProfile.id!); showToast(`@${miniProfile.username} is now a moderator`); }
+                        const mpId = miniProfile.id as NonNullable<typeof miniProfile.id>;
+                        if (next.has(mpId)) { next.delete(mpId); showToast(`@${miniProfile.username} removed as moderator`); }
+                        else { next.add(mpId); showToast(`@${miniProfile.username} is now a moderator`); }
                         return next;
                       });
                       closeMiniProfile();
@@ -5434,7 +5442,7 @@ export default function LiveStream() {
                       });
                       showToast(`@${miniProfile.username} blocked`);
                       closeMiniProfile();
-                    } catch {}
+                    } catch { /* intentionally empty */ }
                   }} className="h-9 rounded-lg bg-black/50 text-white/60 text-[11px] font-bold border border-white/20/50 hover:bg-white/10/50 active:scale-95 transition-all">
                     Block
                   </button>
@@ -5944,12 +5952,12 @@ export default function LiveStream() {
                           try {
                             localStorage.setItem(TEST_COINS_VERIFIED_KEY, String(Date.now()));
                             localStorage.setItem(TEST_COINS_PWD_KEY, '1');
-                          } catch {}
+                          } catch { /* intentionally empty */ }
                         } else {
                           try {
                             localStorage.removeItem(TEST_COINS_VERIFIED_KEY);
                             localStorage.removeItem(TEST_COINS_PWD_KEY);
-                          } catch {}
+                          } catch { /* intentionally empty */ }
                         }
                         setTestCoinsStep('amount');
                       } else {

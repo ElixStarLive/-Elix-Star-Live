@@ -21,7 +21,6 @@ import { OfflineBanner } from "./components/OfflineBanner";
 import { IncomingCallModal } from "./components/IncomingCallModal";
 import { subscribeToIncomingCalls } from "./lib/callService";
 import { websocket } from "./lib/websocket";
-import { Capacitor } from "@capacitor/core";
 
 
 // Lazy-loaded page components for code splitting

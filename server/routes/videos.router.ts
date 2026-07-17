@@ -104,8 +104,8 @@ router.post("/", async (req, res) => {
     logger.info({ videoId: id }, "Video created");
 
     return res.status(201).json(video);
-  } catch (err: any) {
-    logger.error({ err: err?.message || err }, "POST /api/videos failed");
+  } catch (err) {
+    logger.error({ err: (err as { message?: string })?.message || err }, "POST /api/videos failed");
     return res.status(500).json({ error: "Failed to create video" });
   }
 });

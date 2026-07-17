@@ -74,7 +74,7 @@ export default function () {
     wsConnectSuccess.add(true);
     wsActiveConnections.add(1);
 
-    socket.on("message", function (msg) {
+    socket.on("message", function (_msg) {
       wsMessagesReceived.add(1);
     });
 
@@ -83,7 +83,7 @@ export default function () {
       wsActiveConnections.add(-1);
     });
 
-    socket.on("error", function (e) {
+    socket.on("error", function (_e) {
       wsDisconnects.add(1);
     });
 

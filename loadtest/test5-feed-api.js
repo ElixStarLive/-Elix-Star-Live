@@ -18,7 +18,7 @@
 import http from "k6/http";
 import { check, sleep } from "k6";
 import { Rate, Trend, Counter } from "k6/metrics";
-import { BASE_URL, TEST_EMAIL, TEST_PASSWORD } from "./config.js";
+import { BASE_URL } from "./config.js";
 import { getAuthToken, authHeaders } from "./helpers.js";
 
 const feedLatency = new Trend("feed_latency_ms", true);

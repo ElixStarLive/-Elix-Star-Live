@@ -11,7 +11,7 @@
  *           loadtest/test6-reconnect.js
  */
 import ws from "k6/ws";
-import { check, sleep } from "k6";
+import { sleep } from "k6";
 import { Counter, Rate, Trend } from "k6/metrics";
 import { WS_URL } from "./config.js";
 import { getAuthToken } from "./helpers.js";
@@ -57,7 +57,7 @@ export default function () {
   const url = `${WS_URL}/?room=${roomId}&token=${auth.token}`;
 
   // ── Phase 1: Connect, verify, disconnect ──────────────────────
-  let firstViewerCount = -1;
+  let _firstViewerCount = -1;
 
   const res1 = ws.connect(url, {}, function (socket) {
     wsConnectSuccess.add(true);
@@ -66,9 +66,9 @@ export default function () {
       try {
         const parsed = JSON.parse(msg);
         if (parsed.event === "viewer_count" && parsed.data) {
-          firstViewerCount = parsed.data.count;
+          _firstViewerCount = parsed.data.count;
         }
-      } catch {}
+      } catch { /* intentionally empty */ }
     });
 
     // Stay connected 5 seconds, then close
@@ -96,7 +96,7 @@ export default function () {
     reconnectSuccess.add(true);
 
     let gotConnectedEvent = false;
-    let reconnectViewerCount = -1;
+    let _reconnectViewerCount = -1;
 
     socket.on("message", function (msg) {
       try {
@@ -105,9 +105,9 @@ export default function () {
           gotConnectedEvent = true;
         }
         if (parsed.event === "viewer_count" && parsed.data) {
-          reconnectViewerCount = parsed.data.count;
+          _reconnectViewerCount = parsed.data.count;
         }
-      } catch {}
+      } catch { /* intentionally empty */ }
     });
 
     // Stay 10 seconds, then verify and close

@@ -16,7 +16,7 @@ interface RankingPanelProps {
   onClose: () => void;
 }
 
-export function RankingPanel({ onClose }: RankingPanelProps) {
+export function RankingPanel({ onClose: _onClose }: RankingPanelProps) {
   const [rankings, setRankings] = useState<CreatorRanking[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -29,13 +29,13 @@ export function RankingPanel({ onClose }: RankingPanelProps) {
       const { data: json, error } = await request('/api/rankings/weekly');
       if (error) throw new Error('fetch failed');
       if (Array.isArray(json?.data)) {
-        setRankings(json.data.map((r: any, i: number) => ({
-          rank: r.rank ?? i + 1,
-          user_id: r.user_id,
-          username: r.username || '',
-          display_name: r.display_name || r.username || '',
-          avatar_url: r.avatar_url || null,
-          total_diamonds: r.total_diamonds ?? r.total_coins ?? 0,
+        setRankings(json.data.map((r: Record<string, unknown>, i: number) => ({
+          rank: (r.rank as number | undefined) ?? i + 1,
+          user_id: r.user_id as string,
+          username: (r.username as string) || '',
+          display_name: (r.display_name as string) || (r.username as string) || '',
+          avatar_url: (r.avatar_url as string | null) || null,
+          total_diamonds: (r.total_diamonds as number | undefined) ?? (r.total_coins as number | undefined) ?? 0,
         })));
       }
     } catch {

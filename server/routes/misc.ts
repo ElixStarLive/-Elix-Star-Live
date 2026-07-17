@@ -244,7 +244,7 @@ async function verifyGooglePlayPurchase(
       return { valid: false, detail: `google-token-error-${tokenResp.status}: ${text}` };
     }
 
-    const tokenJson: any = await tokenResp.json();
+    const tokenJson = (await tokenResp.json()) as { access_token?: string };
     const accessToken = tokenJson.access_token;
     if (!accessToken) {
       return { valid: false, detail: 'google-no-access-token' };
@@ -261,7 +261,10 @@ async function verifyGooglePlayPurchase(
       return { valid: false, detail: `google-verify-${verifyResp.status}: ${text}` };
     }
 
-    const purchase: any = await verifyResp.json();
+    const purchase = (await verifyResp.json()) as {
+      purchaseState?: number;
+      orderId?: string;
+    };
     // purchaseState: 0 = purchased, 1 = canceled, 2 = pending
     if (purchase.purchaseState !== 0) {
       return { valid: false, detail: `google-purchase-state-${purchase.purchaseState}` };
@@ -272,9 +275,9 @@ async function verifyGooglePlayPurchase(
       productId: productId,
       detail: JSON.stringify({ orderId: purchase.orderId, purchaseState: purchase.purchaseState }),
     };
-  } catch (err: any) {
-    logger.error({ err: err.message }, '[IAP] Google Play verification error');
-    return { valid: false, detail: err.message };
+  } catch (err) {
+    logger.error({ err: (err as Error)?.message }, '[IAP] Google Play verification error');
+    return { valid: false, detail: (err as Error)?.message };
   }
 }
 
@@ -341,7 +344,7 @@ async function verifyAppleReceipt(
       return { valid: false, detail: `apple-api-${resp.status}: ${body}` };
     }
 
-    const json: any = await resp.json();
+    const json = (await resp.json()) as { signedTransactionInfo?: string };
     // The response signedTransactionInfo is a JWS; decode the payload to get productId
     const parts = (json.signedTransactionInfo || '').split('.');
     if (parts.length === 3) {
@@ -356,9 +359,9 @@ async function verifyAppleReceipt(
     }
 
     return { valid: false, detail: 'apple-jws-missing-or-malformed' };
-  } catch (err: any) {
-    logger.error({ err: err.message }, '[IAP] Apple verification error');
-    return { valid: false, detail: err.message };
+  } catch (err) {
+    logger.error({ err: (err as Error)?.message }, '[IAP] Apple verification error');
+    return { valid: false, detail: (err as Error)?.message };
   }
 }
 
@@ -453,8 +456,8 @@ export async function handleVerifyPurchase(req: Request, res: Response) {
       });
     }
     return res.status(500).json({ error: 'error' in credited ? credited.error : 'Credit failed' });
-  } catch (error: any) {
-    logger.error({ err: error?.message }, 'Purchase verification error');
+  } catch (error) {
+    logger.error({ err: (error as Error)?.message }, 'Purchase verification error');
     return res.status(500).json({ error: 'Purchase verification failed' });
   }
 }

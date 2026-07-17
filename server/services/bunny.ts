@@ -88,10 +88,10 @@ async function uploadViaStorage(
  * 2. Upload file: PUT /library/{id}/videos/{videoId}
  * 3. Returns the CDN iframe/direct URL
  */
-async function uploadViaStream(
+async function _uploadViaStream(
   path: string,
   body: Buffer,
-  contentType?: string
+  _contentType?: string
 ): Promise<{ success: boolean; path: string; cdnUrl?: string; error?: string }> {
   if (!STREAM_LIBRARY_ID || !STREAM_API_KEY) {
     return { success: false, path, error: 'Stream Library not configured' };

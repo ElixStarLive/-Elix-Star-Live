@@ -58,7 +58,7 @@ export default function () {
 
   const res = ws.connect(url, {}, function (socket) {
     wsConnectSuccess.add(true);
-    const connectedAt = Date.now();
+    const _connectedAt = Date.now();
 
     socket.on("message", function (msg) {
       try {

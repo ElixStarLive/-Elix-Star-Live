@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { TrendingUp, Play, UserPlus, FileText, Heart } from 'lucide-react';
+import { Play, UserPlus, FileText, Heart } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { request } from '../lib/apiClient';
 import { getPaymentMethod, platform } from '../lib/platform';
@@ -40,7 +40,7 @@ export default function PromotePanel({ isOpen, onClose, contentType, content }: 
     location.pathname.startsWith('/create/') ||
     location.pathname === '/upload';
   const user = useAuthStore((s) => s.user);
-  const session = useAuthStore((s) => s.session);
+  const _session = useAuthStore((s) => s.session);
   const [boostType, setBoostType] = useState<'account' | 'live'>(
     contentType === 'live' ? 'live' : 'account'
   );

@@ -29,7 +29,6 @@ import { valkeyDel, valkeySet, valkeySetNx, valkeyGet } from "../lib/valkey";
 import { randomUUID } from "crypto";
 import {
   clearGiftGoal,
-  getGiftGoal,
   incrementGiftGoal,
   setGiftGoal,
 } from "./giftGoal";
@@ -96,7 +95,7 @@ async function verifyGiftTransaction(
 export async function handleMessage(
   client: Client,
   event: string,
-  data: any,
+  data,
 ): Promise<void> {
   if (!data) data = {};
 
@@ -576,7 +575,7 @@ export async function handleMessage(
         const rawCoHosts = Array.isArray(data.coHosts) ? data.coHosts : [];
         const hostUserId = client.userId;
         const seen = new Set<string>();
-        const coHosts = rawCoHosts.filter((h: any) => {
+        const coHosts = rawCoHosts.filter((h) => {
           const uid = typeof h.userId === "string" ? h.userId : "";
           if (!uid || uid === hostUserId || seen.has(uid)) return false;
           seen.add(uid);
@@ -585,14 +584,14 @@ export async function handleMessage(
         const previous = await getCohostLayout(roomId);
         const previousIds = new Set<string>(
           Array.isArray(previous?.coHosts)
-            ? previous!.coHosts
-                .map((h: any) => (typeof h?.userId === "string" ? h.userId : ""))
+            ? (previous as NonNullable<typeof previous>).coHosts
+                .map((h) => (typeof (h as Record<string, string>).userId === "string" ? (h as Record<string, string>).userId : ""))
                 .filter(Boolean)
             : [],
         );
         const nextIds = new Set(
           coHosts
-            .map((h: any) => (typeof h?.userId === "string" ? h.userId : ""))
+            .map((h) => (typeof (h as Record<string, string>).userId === "string" ? (h as Record<string, string>).userId : ""))
             .filter(Boolean),
         );
         for (const uid of previousIds) {

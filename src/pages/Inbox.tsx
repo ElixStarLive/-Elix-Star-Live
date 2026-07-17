@@ -22,7 +22,7 @@ interface Notification {
   action_url: string | null;
   is_read: boolean;
   created_at: string;
-  rawData?: any;
+  rawData?: Record<string, string | undefined>;
 }
 
 interface Conversation {
@@ -130,7 +130,7 @@ export default function Inbox() {
     const set = getDeletedThreadIds();
     set.add(id);
     deletedThreadIdsRef.current = set;
-    try { localStorage.setItem(INBOX_DELETED_KEY(), JSON.stringify([...set])); } catch {}
+    try { localStorage.setItem(INBOX_DELETED_KEY(), JSON.stringify([...set])); } catch { /* intentionally empty */ }
   };
 
 
@@ -206,8 +206,8 @@ export default function Inbox() {
         if (cancelled) return;
         const rows = Array.isArray(data) ? data : (data?.notifications ?? []);
         setNotifications(rows
-          .filter((n: any) => n.type !== 'battle_invite' && n.type !== 'cohost_invite' && n.type !== 'battle_accepted' && n.type !== 'cohost_accepted')
-          .map((n: any) => ({
+          .filter((n: { type?: string }) => n.type !== 'battle_invite' && n.type !== 'cohost_invite' && n.type !== 'battle_accepted' && n.type !== 'cohost_accepted')
+          .map((n: { type?: string; id?: string; title?: string; body?: string; is_read?: boolean; read?: boolean; created_at?: string; data?: Record<string, unknown> }) => ({
           id: n.id,
           type: n.type || 'system',
           actor_id: n.data?.actor_id || '',
@@ -298,13 +298,13 @@ export default function Inbox() {
         if (cancelled) return;
         const profilesBody = profilesResult.data ?? { profiles: [] };
         const liveBody = liveResult.data ?? { streams: [] };
-        const liveSet = new Set<string>((liveBody?.streams || []).map((s: any) => s.userId || s.user_id).filter(Boolean));
+        const liveSet = new Set<string>((liveBody?.streams || []).map((s: { userId: string; user_id: string }) => s.userId || s.user_id).filter(Boolean));
         setLiveUserIds(liveSet);
 
         const rows = Array.isArray(profilesBody?.profiles) ? profilesBody.profiles : [];
         const blocklist = ['', 'user', 'demo', 'test', 'unknown', 'anonymous', 'guest'];
         const mapped: SuggestedUser[] = rows
-          .map((p: any) => ({
+          .map((p: { user_id: string; userId: string; username?: string; display_name?: string; displayName?: string; avatar_url?: string; avatarUrl?: string }) => ({
             id: p.user_id || p.userId,
             username: p.username || 'user',
             name: p.display_name || p.displayName || p.username || 'User',
@@ -333,8 +333,8 @@ export default function Inbox() {
         }
         const raw = Array.isArray(body?.activities) ? body.activities : [];
         const list: ActivityItem[] = raw
-          .filter((a: any) => a && (a.kind === 'like' || a.kind === 'comment' || a.kind === 'save' || a.kind === 'mention'))
-          .map((a: any) => ({
+          .filter((a: { kind?: string }) => a && (a.kind === 'like' || a.kind === 'comment' || a.kind === 'save' || a.kind === 'mention'))
+          .map((a: { id?: string | number; kind?: string; video_id?: string; actor_user_id?: string; actor_username?: string; actor_display_name?: string | null; actor_avatar_url?: string | null; snippet?: string | null; created_at?: string }) => ({
             id: String(a.id || ''),
             kind: a.kind as ActivityItem['kind'],
             video_id: String(a.video_id || ''),
@@ -382,6 +382,7 @@ export default function Inbox() {
     fetchActivity();
     fetchLiveShareRequests();
     return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserId, location.pathname]);
 
   const isRealUser = (f: FollowerProfile) => {

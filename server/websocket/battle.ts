@@ -26,7 +26,6 @@ import {
   valkeyHincrby,
   valkeyHgetall,
   valkeyHset,
-  valkeyHdel,
   valkeyExpire,
 } from "../lib/valkey";
 import { logger } from "../lib/logger";

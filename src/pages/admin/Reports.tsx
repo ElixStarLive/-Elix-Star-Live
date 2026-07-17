@@ -56,7 +56,7 @@ export default function AdminReports() {
 
       showToast('Report resolved');
       loadReports();
-    } catch (error) {
+    } catch {
 
       showToast('Failed to resolve report');
     }

@@ -37,7 +37,7 @@ export default function Create() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewKind, setPreviewKind] = useState<'video' | 'image'>('video');
   const [isRecording, setIsRecording] = useState(false);
-  const [isPreviewPlaying, setIsPreviewPlaying] = useState(true);
+  const [_isPreviewPlaying, setIsPreviewPlaying] = useState(true);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isFrontCamera, setIsFrontCamera] = useState(true);
   const [recordingDelaySeconds, setRecordingDelaySeconds] = useState<0 | 3 | 10>(0);
@@ -46,7 +46,7 @@ export default function Create() {
   const [zoomLevel, setZoomLevel] = useState(1);
   const [flashEnabled, setFlashEnabled] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
-  const [isLandscapeStream, setIsLandscapeStream] = useState(false);
+  const [_isLandscapeStream, setIsLandscapeStream] = useState(false);
   const [hwZoomRange, setHwZoomRange] = useState<{ min: number; max: number } | null>(null);
   const [retryCamera, setRetryCamera] = useState(0);
 
@@ -96,7 +96,7 @@ export default function Create() {
         let nextStream: MediaStream;
         try {
           nextStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: isFrontCamera ? 'user' : 'environment' }, audio: false });
-        } catch (e1: unknown) {
+        } catch {
           nextStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
         }
         if (cancelled) { nextStream.getTracks().forEach((t) => t.stop()); return; }
@@ -109,8 +109,8 @@ export default function Create() {
         const settings = track.getSettings();
         setIsLandscapeStream((settings.width || 0) > (settings.height || 0));
         try {
-          const caps = track.getCapabilities?.() as any;
-          if (caps?.zoom) { setHwZoomRange({ min: caps.zoom.min, max: caps.zoom.max }); await track.applyConstraints({ advanced: [{ zoom: caps.zoom.min } as any] }); }
+          const caps = track.getCapabilities?.() as { zoom?: { min: number; max: number } };
+          if (caps?.zoom) { setHwZoomRange({ min: caps.zoom.min, max: caps.zoom.max }); await track.applyConstraints({ advanced: [{ zoom: caps.zoom.min } as unknown as MediaTrackConstraintSet] }); }
           else { setHwZoomRange(null); }
         } catch { setHwZoomRange(null); }
 
@@ -146,10 +146,10 @@ export default function Create() {
     const track = stream.getVideoTracks()[0];
     if (!track) return;
     try {
-      const capabilities = track.getCapabilities?.() as any;
+      const capabilities = track.getCapabilities?.() as { torch?: boolean };
       if (capabilities?.torch) {
         const newTorch = !flashEnabled;
-        await track.applyConstraints({ advanced: [{ torch: newTorch } as any] });
+        await track.applyConstraints({ advanced: [{ torch: newTorch } as unknown as MediaTrackConstraintSet] });
         setFlashEnabled(newTorch);
         showToastMsg(newTorch ? 'Flash ON' : 'Flash OFF');
       } else { showToastMsg('Flash not available'); }
@@ -162,10 +162,10 @@ export default function Create() {
     const track = stream.getVideoTracks()[0];
     if (!track) return;
     try {
-      const caps = track.getCapabilities?.() as any;
+      const caps = track.getCapabilities?.() as { zoom?: { min: number; max: number } };
       if (caps?.zoom) {
         const clamped = Math.max(caps.zoom.min, Math.min(newZoom, caps.zoom.max));
-        await track.applyConstraints({ advanced: [{ zoom: clamped } as any] });
+        await track.applyConstraints({ advanced: [{ zoom: clamped } as unknown as MediaTrackConstraintSet] });
         setZoomLevel(clamped);
         return;
       }

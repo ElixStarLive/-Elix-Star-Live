@@ -441,7 +441,7 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
         return { error: null };
       }
       return { error: "Apple sign-in is not available at this time." };
-    } catch (e: any) {
+    } catch (e) {
       return { error: e?.message || "Apple sign-in failed." };
     }
   },
@@ -483,8 +483,8 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
 
   // ── Sign out ─────────────────────────────────────────────────────────────
   signOut: async () => {
-    try { await notificationService.unregisterToken(); } catch {}
-    try { await request("/api/auth/logout", { method: "POST" }); } catch {}
+    try { await notificationService.unregisterToken(); } catch { /* intentionally empty */ }
+    try { await request("/api/auth/logout", { method: "POST" }); } catch { /* intentionally empty */ }
     set({
       session: null,
       user: null,

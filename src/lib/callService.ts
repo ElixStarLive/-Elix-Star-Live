@@ -7,6 +7,15 @@ import { useAuthStore } from "../store/useAuthStore";
 import { useCallStore } from "../store/useCallStore";
 import type { CallParticipant } from "../store/useCallStore";
 
+/**
+ * Call events are dynamic and not part of the typed WebSocketEvent union,
+ * so we access on/off through this narrow generic emitter shape.
+ */
+type DynamicEmitter = {
+  on<T>(event: string, handler: (data: T) => void): void;
+  off<T>(event: string, handler: (data: T) => void): void;
+};
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function getCurrentUser() {
@@ -165,16 +174,16 @@ export function subscribeToIncomingCalls(userId: string): () => void {
   // Register WebSocket event listeners
   // These events are defined in websocket.ts WebSocketEvent union — cast as any
   // since call events are dynamic and handled here directly.
-  (websocket as any).on("call_invite", handleInvite);
-  (websocket as any).on("call_accepted", handleRemoteAccepted);
-  (websocket as any).on("call_rejected", handleRemoteRejected);
-  (websocket as any).on("call_ended", handleRemoteEnded);
+  (websocket as unknown as DynamicEmitter).on("call_invite", handleInvite);
+  (websocket as unknown as DynamicEmitter).on("call_accepted", handleRemoteAccepted);
+  (websocket as unknown as DynamicEmitter).on("call_rejected", handleRemoteRejected);
+  (websocket as unknown as DynamicEmitter).on("call_ended", handleRemoteEnded);
 
   // Return cleanup function
   return () => {
-    (websocket as any).off("call_invite", handleInvite);
-    (websocket as any).off("call_accepted", handleRemoteAccepted);
-    (websocket as any).off("call_rejected", handleRemoteRejected);
-    (websocket as any).off("call_ended", handleRemoteEnded);
+    (websocket as unknown as DynamicEmitter).off("call_invite", handleInvite);
+    (websocket as unknown as DynamicEmitter).off("call_accepted", handleRemoteAccepted);
+    (websocket as unknown as DynamicEmitter).off("call_rejected", handleRemoteRejected);
+    (websocket as unknown as DynamicEmitter).off("call_ended", handleRemoteEnded);
   };
 }

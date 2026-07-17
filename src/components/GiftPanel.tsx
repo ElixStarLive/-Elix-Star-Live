@@ -63,7 +63,7 @@ function GiftGridItem({
   gift,
   pngUrl,
   isPopped,
-  isSelected,
+  isSelected: _isSelected,
   onTap,
   borderClass,
 }: GiftGridItemProps) {

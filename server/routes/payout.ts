@@ -89,7 +89,7 @@ export async function handleCreatorWithdraw(req: Request, res: Response) {
       return res.status(400).json({ error: 'Invalid amount' });
     }
 
-    let methodId: string | null =
+    const methodId: string | null =
       typeof payout_method_id === 'string' && payout_method_id.trim()
         ? payout_method_id.trim()
         : null;

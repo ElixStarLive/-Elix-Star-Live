@@ -52,6 +52,7 @@ export default function Shop() {
     };
   }, []);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchItems(); }, [activeFilter]);
   useEffect(() => {
     let cancelled = false;
@@ -76,7 +77,7 @@ export default function Shop() {
 
         const streams = Array.isArray(streamsBody?.streams) ? streamsBody.streams : [];
         const mapped = streams
-          .map((s: any) => {
+          .map((s: Record<string, unknown>) => {
             const userId = String(s.user_id ?? s.userId ?? '');
             const streamKey = String(s.stream_key ?? s.streamKey ?? s.room_id ?? userId);
             const prof = byId.get(userId);
@@ -87,7 +88,7 @@ export default function Shop() {
               streamKey,
             };
           })
-          .filter((x: any) => !!x.streamKey)
+          .filter((x) => !!x.streamKey)
           .slice(0, 25);
 
         if (!cancelled) setLiveUsers(mapped);
@@ -117,7 +118,7 @@ export default function Shop() {
         const userIds = new Set(list.map((i: ShopItem) => i.user_id).filter(Boolean));
         const { data: profiles } = await api.profiles.list();
         const byId: Record<string, { username: string; display_name: string | null; avatar_url: string | null }> = {};
-        (profiles || []).forEach((p: any) => {
+        (profiles || []).forEach((p: { user_id?: string; userId?: string; username?: string; display_name?: string; displayName?: string; avatar_url?: string; avatarUrl?: string }) => {
           const uid = p.user_id ?? p.userId ?? '';
           if (userIds.has(uid)) {
             byId[uid] = { username: p.username || 'user', display_name: p.display_name ?? p.displayName ?? null, avatar_url: p.avatar_url ?? p.avatarUrl ?? null };
@@ -346,9 +347,9 @@ export default function Shop() {
                   )}
                   <div className="flex items-center gap-2 mt-2">
                     <button onClick={() => navigate(`/profile/${item.user_id}`)} className="flex items-center gap-1.5 min-w-0 flex-1">
-                      <span style={{ marginTop: '-1mm' }}><AvatarRing src={(item.seller as any)?.avatar_url} alt="Seller" size={20} /></span>
+                      <span style={{ marginTop: '-1mm' }}><AvatarRing src={item.seller?.avatar_url as string} alt="Seller" size={20} /></span>
                       <span className="text-[11px] text-white/60 truncate">
-                        {(item.seller as any)?.display_name || (item.seller as any)?.username || 'User'}
+                        {item.seller?.display_name || item.seller?.username || 'User'}
                       </span>
                     </button>
                     {item.user_id !== user?.id && (

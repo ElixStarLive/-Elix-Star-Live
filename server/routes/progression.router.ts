@@ -11,7 +11,7 @@ const router = Router();
 router.use(requireAuth);
 
 router.get("/me", async (req: Request, res: Response) => {
-  const userId = req.auth!.sub;
+  const userId = (req.auth as NonNullable<typeof req.auth>).sub;
   try {
     const progression = await getProgressionSnapshot(userId);
     if (!progression) {
@@ -46,7 +46,7 @@ router.get("/users/:userId/status", async (req: Request, res: Response) => {
 });
 
 router.get("/xp-history", async (req: Request, res: Response) => {
-  const userId = req.auth!.sub;
+  const userId = (req.auth as NonNullable<typeof req.auth>).sub;
   try {
     const history = await listXpHistory(userId, Number(req.query.limit) || 100);
     res.setHeader("Cache-Control", "private, no-store");
@@ -58,7 +58,7 @@ router.get("/xp-history", async (req: Request, res: Response) => {
 });
 
 router.get("/starter-history", async (req: Request, res: Response) => {
-  const userId = req.auth!.sub;
+  const userId = (req.auth as NonNullable<typeof req.auth>).sub;
   try {
     const history = await listStarterCoinHistory(
       userId,

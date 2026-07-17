@@ -49,7 +49,7 @@ export default function BlockedAccounts() {
       const { data, error } = await api.blocked.list();
 
       if (error) throw error;
-      const raw = data as any;
+      const raw = data as unknown as { data?: BlockedUser[] };
       const list = Array.isArray(raw) ? raw : (Array.isArray(raw?.data) ? raw.data : []);
       setBlockedUsers(list);
     } catch {

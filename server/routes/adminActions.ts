@@ -139,7 +139,7 @@ router.patch("/reports/:id", validateBody(patchReportSchema), async (req: Reques
   if (!db) return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
   const id = req.params.id;
   const { status, admin_note } = req.body as z.infer<typeof patchReportSchema>;
-  const adminId = req.authContext!.userId;
+  const adminId = (req.authContext as NonNullable<typeof req.authContext>).userId;
   try {
     await db.query(
       `ALTER TABLE elix_reports ADD COLUMN IF NOT EXISTS admin_note TEXT`,
@@ -184,7 +184,7 @@ router.post("/users/:userId/ban", validateBody(banSchema), async (req: Request, 
       userId,
     ]);
     disconnectUserSessions(userId, "Banned");
-    logger.warn({ userId, bannedUntil, reason, by: req.authContext!.userId }, "admin ban applied");
+    logger.warn({ userId, bannedUntil, reason, by: (req.authContext as NonNullable<typeof req.authContext>).userId }, "admin ban applied");
     return res.json({ ok: true, userId, banned_until: bannedUntil.toISOString() });
   } catch (e) {
     logger.error({ err: e }, "admin ban failed");
@@ -199,7 +199,7 @@ router.delete("/users/:userId/ban", async (req: Request, res: Response) => {
   const { userId } = req.params;
   try {
     await db.query(`UPDATE profiles SET banned_until = NULL, updated_at = NOW() WHERE user_id = $1`, [userId]);
-    logger.info({ userId, by: req.authContext!.userId }, "admin ban lifted");
+    logger.info({ userId, by: (req.authContext as NonNullable<typeof req.authContext>).userId }, "admin ban lifted");
     return res.json({ ok: true, userId });
   } catch (e) {
     logger.error({ err: e }, "admin unban failed");

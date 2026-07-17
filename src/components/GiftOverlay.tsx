@@ -4,7 +4,7 @@ const MAX_CACHE = 20;
 const videoCache = new Map<string, string>();
 
 function preloadVideo(src: string): Promise<string> {
-  if (videoCache.has(src)) return Promise.resolve(videoCache.get(src)!);
+  if (videoCache.has(src)) return Promise.resolve(videoCache.get(src) as NonNullable<ReturnType<typeof videoCache.get>>);
   return new Promise((resolve, reject) => {
     const vid = document.createElement('video');
     vid.preload = 'auto';

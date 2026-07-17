@@ -42,7 +42,7 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
   const [profileUser, setProfileUser] = useState<User | null>(null);
 
   const { videos } = useVideoStore();
-  const { user: currentUser, session } = useAuthStore();
+  const { user: currentUser, session: _session } = useAuthStore();
   const blockedUserIds = useSafetyStore((s) => s.blockedUserIds);
   const blockUser = useSafetyStore((s) => s.blockUser);
   const unblockUser = useSafetyStore((s) => s.unblockUser);
@@ -91,6 +91,7 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
       }
     })();
     return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, user.id]);
 
   if (!isOpen) return null;

@@ -241,6 +241,7 @@ export default function ElixCameraLayout({
         videoEl.style.filter = 'none';
       }
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [beautyEnabled, beautyLevel, activeFilter, enhanceEnabled, videoRef]);
 
   useEffect(() => {

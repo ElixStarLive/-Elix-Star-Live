@@ -5,7 +5,7 @@
 
 import { Capacitor } from "@capacitor/core";
 
-const env = typeof window !== "undefined" ? (window as any).__ENV as Record<string, string> | undefined : undefined;
+const env = typeof window !== "undefined" ? (window as unknown as { __ENV?: Record<string, string> }).__ENV : undefined;
 
 /**
  * Production site/API origin. Must match capacitor.config.ts `server.hostname`

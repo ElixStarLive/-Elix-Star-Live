@@ -153,7 +153,7 @@ export default function EnhancedVideoPlayer({
   const feedSourceLabel = location.pathname === '/friends' ? 'Friends' : undefined;
   const { muteAllSounds } = useSettingsStore();
   const { 
-    videos, 
+    videos: _videos, 
     toggleLike, 
     toggleSave, 
     toggleFollow, 
@@ -188,11 +188,12 @@ export default function EnhancedVideoPlayer({
     let cancelled = false;
     (async () => {
       try {
-        const { data } = await api.videos.get(video.duetWithVideoId!);
+        const { data } = await api.videos.get(video.duetWithVideoId as NonNullable<typeof video.duetWithVideoId>);
         if (!cancelled && data?.url) setDuetOriginalUrl(data.url);
       } catch { /* duet video unavailable */ }
     })();
     return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [video?.duetWithVideoId, originalVideo]);
 
   useEffect(() => {
@@ -297,7 +298,7 @@ export default function EnhancedVideoPlayer({
     setIsPlaying(prev => !prev);
   }, [effectiveMuted, isDuetLayout, isPlaying, duetOriginalSrc]);
 
-  const toggleMute = () => {
+  const _toggleMute = () => {
     if (muteAllSounds) {
       trackEvent('video_toggle_mute_blocked_global', { videoId });
       return;
@@ -510,6 +511,7 @@ export default function EnhancedVideoPlayer({
       stopAll();
       setIsPlaying(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [incrementViews, isActive, isDuetLayout, muteAllSounds, originalVideo, video?.url, video?.music?.previewUrl, video?.music?.clipStartSeconds, video?.music?.clipEndSeconds, videoId, volume]);
 
   // Pause when tab/app is hidden; resume current slide when visible again (only if still active)
@@ -573,7 +575,7 @@ export default function EnhancedVideoPlayer({
 
   const singleTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleVideoClick = (e: React.MouseEvent) => {
+  const handleVideoClick = (_e: React.MouseEvent) => {
     if (isMuted && !muteAllSounds && videoRef.current) {
       videoRef.current.muted = false;
       videoRef.current.volume = videoVolume;
@@ -650,7 +652,7 @@ export default function EnhancedVideoPlayer({
     try {
       await navigator.clipboard.writeText(videoPageUrl);
       showToast('Link copied!');
-    } catch {}
+    } catch { /* intentionally empty */ }
   };
 
   const handleDownload = async () => {
@@ -662,12 +664,12 @@ export default function EnhancedVideoPlayer({
     }
   };
 
-  const handleQRCode = async () => {
+  const _handleQRCode = async () => {
     const url = `${window.location.origin}/video/${videoId}`;
     try {
       await navigator.clipboard.writeText(url);
       showToast('Link copied!');
-    } catch {}
+    } catch { /* intentionally empty */ }
   };
 
   const isOwnVideo = !!authUserId && !!video?.user?.id && authUserId === video.user.id;

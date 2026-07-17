@@ -79,7 +79,7 @@ export default function ReportModal({ isOpen, onClose, videoId, contentType, con
   const [showSuccess, setShowSuccess] = useState(false);
   const [isDeletingVideo, setIsDeletingVideo] = useState(false);
   const [videoOwnerIdFromDb, setVideoOwnerIdFromDb] = useState<string | null>(null);
-  const authToken = useAuthStore((s) => s.session?.access_token ?? null);
+  const _authToken = useAuthStore((s) => s.session?.access_token ?? null);
   const authUserId = useAuthStore((s) => s.user?.id ?? null);
   const videoOwnerId = useVideoStore((s) => s.videos.find((v) => v.id === videoId)?.user.id ?? null);
   const deleteVideo = useVideoStore((s) => s.deleteVideo);
@@ -93,8 +93,7 @@ export default function ReportModal({ isOpen, onClose, videoId, contentType, con
       const { data } = await api.videos.get(videoId);
       if (cancelled) return;
       setVideoOwnerIdFromDb(data?.user_id ?? null);
-    } catch {
-    }
+    } catch { /* intentionally empty */ }
   })();return () => {
       cancelled = true;
     };
@@ -142,7 +141,7 @@ export default function ReportModal({ isOpen, onClose, videoId, contentType, con
         return;
       }
       throw new Error(reqError.message);
-    } catch (apiErr) {
+    } catch {
       try {
         const payload: Record<string, unknown> = {
           reporter_id: authUserId,
@@ -169,7 +168,7 @@ export default function ReportModal({ isOpen, onClose, videoId, contentType, con
   const canDeleteOwned = contentType === 'video' && !!authUserId && !!resolvedOwnerId && authUserId === resolvedOwnerId;
   const canDelete = canDeleteByAdmin || canDeleteOwned;
 
-  const handleDelete = async () => {
+  const _handleDelete = async () => {
     if (!canDelete) return;
     if (isDeletingVideo) return;
     setIsDeletingVideo(true);

@@ -21,7 +21,7 @@ class CrashReportingService {
     }
   }
 
-  async logError(error: Error, context?: Record<string, any>) {
+  async logError(error: Error, context?: Record<string, unknown>) {
     if (!this.isInitialized) return;
 
     try {
@@ -66,7 +66,7 @@ class CrashReportingService {
     this.customKeys[key] = value;
   }
 
-  private sendToBackend(level: string, message: string, extra?: Record<string, any>) {
+  private sendToBackend(level: string, message: string, extra?: Record<string, unknown>) {
     try {
       const base = getApiBase();
       const url = base ? `${base}/api/analytics/track` : '/api/analytics/track';

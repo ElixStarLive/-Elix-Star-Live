@@ -80,7 +80,7 @@ export default function Report() {
       setTimeout(() => {
         navigate(-1);
       }, 2000);
-    } catch (error) {
+    } catch {
 
       showToast('Failed to submit report. Please try again.');
     } finally {

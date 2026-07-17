@@ -91,7 +91,7 @@ export default function Login() {
       if (isMounted.current) {
         navigate(from, { replace: true });
       }
-    } catch (err: any) {
+    } catch (err) {
 
       
       // Check for AbortError in catch block too

@@ -10,7 +10,7 @@ if (!stripeSecretKey) {
 }
 
 const stripe = stripeSecretKey
-  ? new Stripe(stripeSecretKey, { apiVersion: "2025-01-27.acacia" as any })
+  ? new Stripe(stripeSecretKey, { apiVersion: "2025-01-27.acacia" as unknown as Stripe.LatestApiVersion })
   : (null as unknown as Stripe);
 
 // --- Main Webhook Handler ---

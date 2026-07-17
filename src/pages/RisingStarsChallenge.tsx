@@ -53,6 +53,7 @@ export default function RisingStarsChallenge() {
   useEffect(() => {
     if (!challengeId) return;
     void loadAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [challengeId]);
 
   const loadAll = async () => {

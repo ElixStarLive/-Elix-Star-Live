@@ -31,7 +31,7 @@ export default function AdminUsers() {
       if (error) throw error;
 
       const profiles = Array.isArray(data) ? data : [];
-      const usersData = profiles.map((u: any) => ({
+      const usersData = profiles.map((u: { user_id?: string; userId?: string; id: string; username?: string; email?: string; avatar_url?: string | null; avatarUrl?: string | null; created_at?: string; createdAt?: string }) => ({
         id: u.user_id || u.userId || u.id,
         username: u.username || '',
         email: u.email || '',

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { RoyceCloseIcon } from '../components/royce';
-import { Share2, Menu, Lock, Play, Heart, Sparkles, LogOut, UserPlus, Bookmark, Grid3X3, ShoppingBag, Repeat2, ChevronDown, Search, Copy, MessageCircle, Check, TrendingUp, Flag, Plus, Settings } from 'lucide-react';
+import { Share2, Menu, Lock, Play, Heart, Sparkles, LogOut, UserPlus, Bookmark, Grid3X3, ShoppingBag, Repeat2, ChevronDown, Search, Copy, MessageCircle, Check, TrendingUp, Flag, Settings } from 'lucide-react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { showToast } from '../lib/toast';
@@ -154,7 +154,7 @@ export default function Profile() {
   /** Prefer CDN/http URLs from server; avoid stale giant data: URLs in localStorage masking the real profile. */
   const displayAvatar = isOwnProfile
     ? (
-        (isHttpUrl(profileData?.avatar_url) ? profileData!.avatar_url : null) ||
+        (isHttpUrl(profileData?.avatar_url) ? (profileData as NonNullable<typeof profileData>).avatar_url : null) ||
         (isHttpUrl(user?.avatar) ? user.avatar : null) ||
         (localAvatar && !localAvatar.startsWith('data:') ? localAvatar : null) ||
         localAvatar ||
@@ -282,9 +282,9 @@ export default function Profile() {
         const { data: vidsBody } = await request(`/api/videos/user/${effectiveUserId}`);
         if (vidsBody) {
           const vids = Array.isArray(vidsBody?.videos) ? vidsBody.videos : [];
-          data.likes_count = vids.reduce((sum: number, v: any) => sum + (v.likes || 0), 0);
+          data.likes_count = vids.reduce((sum: number, v: { likes?: number }) => sum + (v.likes || 0), 0);
         }
-      } catch {}
+      } catch { /* intentionally empty */ }
 
       setProfileData(data);
       trackEvent('profile_view', { user_id: effectiveUserId, is_own: isOwnProfile });
@@ -325,7 +325,7 @@ export default function Profile() {
             showToast('Failed to load shop items');
           } else {
             const items = Array.isArray(data?.items) ? data.items : [];
-            setShopItems(items.map((i: any) => ({
+            setShopItems(items.map((i: { id: string; title?: string; price?: number | string; image_url?: string | null }) => ({
               id: i.id,
               title: i.title || '',
               price: typeof i.price === 'number' ? i.price : parseFloat(i.price) || 0,
@@ -345,9 +345,9 @@ export default function Profile() {
         if (error) { setVideos([]); setVideosLoading(false); return; }
         const allVids = Array.isArray(body?.videos) ? body.videos : [];
         const filtered = activeTab === 'private'
-          ? allVids.filter((v: any) => v.privacy === 'private')
-          : allVids.filter((v: any) => v.privacy !== 'private');
-        const mapped = filtered.map((v: any) => ({
+          ? allVids.filter((v: { privacy?: string }) => v.privacy === 'private')
+          : allVids.filter((v: { privacy?: string }) => v.privacy !== 'private');
+        const mapped = filtered.map((v: { id: string; thumbnail?: string; thumbnail_url?: string; url?: string; views?: number; privacy?: string }) => ({
           id: v.id,
           thumbnail_url: profileGridThumbSrc(v.thumbnail || v.thumbnail_url, v.url),
           url: v.url || '',
@@ -452,7 +452,7 @@ export default function Profile() {
       localStorage.setItem('elix_avatar_' + user.id, cdnUrl);
       updateUser({ avatar: cdnUrl });
       setProfileData(prev => (prev ? { ...prev, avatar_url: cdnUrl } : prev));
-    } catch (err: any) {
+    } catch (err) {
       setAvatarError(err?.message || 'Failed');
     } finally {
       setIsUploadingAvatar(false);

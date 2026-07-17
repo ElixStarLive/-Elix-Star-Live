@@ -64,8 +64,14 @@ let _billingSupported: boolean | null = null;
 let _plugin: typeof import('@capgo/native-purchases').NativePurchases | null = null;
 let _PURCHASE_TYPE: typeof import('@capgo/native-purchases').PURCHASE_TYPE | null = null;
 
+/** Optional Android store-completion methods not present in every plugin version. */
+type StoreCompletionMethods = {
+  consumePurchase(options: { purchaseToken: string }): Promise<unknown>;
+  acknowledgePurchase(options: { transactionIdentifier: string; purchaseToken: string }): Promise<unknown>;
+};
+
 async function getPlugin() {
-  if (_plugin) return { NativePurchases: _plugin, PURCHASE_TYPE: _PURCHASE_TYPE! };
+  if (_plugin) return { NativePurchases: _plugin, PURCHASE_TYPE: (_PURCHASE_TYPE as NonNullable<typeof _PURCHASE_TYPE>) };
   try {
     const mod = await import('@capgo/native-purchases');
     _plugin = mod.NativePurchases;
@@ -109,7 +115,14 @@ export async function loadProducts(): Promise<IAPProduct[]> {
       productType: mod.PURCHASE_TYPE.INAPP,
     });
 
-    return products.map((p: any) => ({
+    return products.map((p: {
+      identifier?: string;
+      productIdentifier?: string;
+      title?: string;
+      description?: string;
+      priceString?: string;
+      priceAmountMicros?: number;
+    }) => ({
       id: p.identifier || p.productIdentifier,
       title: p.title || '',
       description: p.description || '',
@@ -172,9 +185,9 @@ export async function purchaseProduct(productId: IAPProductId): Promise<IAPPurch
     // so the same SKU can be bought again; acknowledge alone is not enough.
     try {
       if (platform.isAndroid && 'consumePurchase' in mod.NativePurchases && receipt) {
-        await (mod.NativePurchases as any).consumePurchase({ purchaseToken: receipt });
+        await (mod.NativePurchases as unknown as StoreCompletionMethods).consumePurchase({ purchaseToken: receipt });
       } else if ('acknowledgePurchase' in mod.NativePurchases) {
-        await (mod.NativePurchases as any).acknowledgePurchase({
+        await (mod.NativePurchases as unknown as StoreCompletionMethods).acknowledgePurchase({
           transactionIdentifier: transactionId,
           purchaseToken: receipt,
         });
@@ -188,7 +201,7 @@ export async function purchaseProduct(productId: IAPProductId): Promise<IAPPurch
       coins: IAP_PRODUCTS[productId]?.coins ?? 0,
       newBalance: verifyResult.newBalance,
     };
-  } catch (err: any) {
+  } catch (err) {
     const msg = err?.message || String(err);
     if (msg.includes('cancel') || msg.includes('Cancel') || msg.includes('USER_CANCELED')) {
       return { success: false, error: 'Purchase cancelled' };
@@ -294,7 +307,7 @@ export async function purchaseMembership(
           typeof data?.subscriptionState === 'string' ? data.subscriptionState : undefined,
       },
     };
-  } catch (err: any) {
+  } catch (err) {
     const msg = err?.message || String(err);
     if (msg.includes('cancel') || msg.includes('Cancel') || msg.includes('USER_CANCELED')) {
       return { success: false, error: 'Purchase cancelled' };
@@ -331,7 +344,7 @@ export async function purchasePromoteProduct(productId: PromoteProductId): Promi
     if (!transactionId) return { success: false, error: 'Purchase could not be verified' };
 
     return { success: true, transactionId, receipt };
-  } catch (err: any) {
+  } catch (err) {
     const msg = err?.message || String(err);
     if (msg.includes('cancel') || msg.includes('Cancel') || msg.includes('USER_CANCELED')) {
       return { success: false, error: 'Purchase cancelled' };
@@ -350,9 +363,9 @@ export async function finalizeNativePurchase(opts: {
   if (!mod) return;
   try {
     if (platform.isAndroid && 'consumePurchase' in mod.NativePurchases && opts.receipt) {
-      await (mod.NativePurchases as any).consumePurchase({ purchaseToken: opts.receipt });
+      await (mod.NativePurchases as unknown as StoreCompletionMethods).consumePurchase({ purchaseToken: opts.receipt });
     } else if ('acknowledgePurchase' in mod.NativePurchases) {
-      await (mod.NativePurchases as any).acknowledgePurchase({
+      await (mod.NativePurchases as unknown as StoreCompletionMethods).acknowledgePurchase({
         transactionIdentifier: opts.transactionId,
         purchaseToken: opts.receipt || '',
       });

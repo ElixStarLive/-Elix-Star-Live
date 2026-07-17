@@ -20,7 +20,7 @@ import { useAuthStore } from "../store/useAuthStore";
 
 const runtimeEnv =
   typeof window !== "undefined"
-    ? ((window as any).__ENV as Record<string, string> | undefined)
+    ? (window as unknown as { __ENV?: Record<string, string> }).__ENV
     : undefined;
 
 function getCdnHostname(): string {
@@ -61,7 +61,7 @@ export async function bunnyUpload(
 
   const _storeState = useAuthStore.getState();
   const _token = _storeState.session?.access_token
-    || (_storeState.session as any)?.accessToken
+    || (_storeState.session as unknown as { accessToken?: string })?.accessToken
     || null;
 
   const res = await fetch(apiUrl(`/api/media/upload-file?${qs}`), {

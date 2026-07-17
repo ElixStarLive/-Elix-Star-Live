@@ -92,19 +92,19 @@ export default function Discover() {
         const { data: profBody } = await request('/api/profiles');
         const allProfiles = profBody?.profiles || [];
         const profileMap: Record<string, { username: string; avatar_url: string | null }> = {};
-        allProfiles.forEach((p: any) => { profileMap[p.user_id] = { username: p.username || 'User', avatar_url: p.avatar_url ?? null }; });
+        allProfiles.forEach((p: { user_id: string; username?: string; avatar_url?: string | null }) => { profileMap[p.user_id] = { username: p.username || 'User', avatar_url: p.avatar_url ?? null }; });
 
         const sorted = [...list].sort(
-          (a: any, b: any) => (Number(b.views) || 0) - (Number(a.views) || 0),
+          (a: { views?: number }, b: { views?: number }) => (Number(b.views) || 0) - (Number(a.views) || 0),
         );
 
         /* Explore: only indecent-tagged clips (caption/hashtags), not all trending */
-        const indecentOnly = sorted.filter((v: any) => {
+        const indecentOnly = sorted.filter((v: { hashtags?: unknown; description?: string }) => {
           const tags = Array.isArray(v.hashtags) ? v.hashtags : [];
           return isIndecentExploreCaption(v.description || '', tags);
         });
 
-        setTrendingVideos(indecentOnly.slice(0, 30).map((v: any) => ({
+        setTrendingVideos(indecentOnly.slice(0, 30).map((v: { id: string; userId: string; user_id: string; thumbnail?: string; thumbnail_url?: string; url?: string; description?: string; views?: number; likes?: number; username?: string; avatar?: string | null }) => ({
           id: v.id,
           user_id: v.userId || v.user_id,
           thumbnail_url: v.thumbnail || v.thumbnail_url || '',
@@ -164,13 +164,13 @@ export default function Discover() {
       const allVids = videosResult.data?.videos || [];
       const allProfiles = profilesResult.data?.profiles || [];
       const q = searchQuery.toLowerCase();
-      const matchedVids = allVids.filter((v: any) => (v.description || '').toLowerCase().includes(q)).slice(0, 20);
-      const matchedUsers = allProfiles.filter((p: any) => (p.username || '').toLowerCase().includes(q) || (p.display_name || '').toLowerCase().includes(q)).slice(0, 20);
+      const matchedVids = allVids.filter((v: { description?: string }) => (v.description || '').toLowerCase().includes(q)).slice(0, 20);
+      const matchedUsers = allProfiles.filter((p: { username?: string; display_name?: string }) => (p.username || '').toLowerCase().includes(q) || (p.display_name || '').toLowerCase().includes(q)).slice(0, 20);
 
       const profileMap: Record<string, { username: string; avatar_url: string | null }> = {};
-      allProfiles.forEach((p: any) => { profileMap[p.user_id] = { username: p.username || 'User', avatar_url: p.avatar_url ?? null }; });
+      allProfiles.forEach((p: { user_id: string; username?: string; avatar_url?: string | null }) => { profileMap[p.user_id] = { username: p.username || 'User', avatar_url: p.avatar_url ?? null }; });
       setSearchResults({
-        videos: matchedVids.map((v: any) => ({
+        videos: matchedVids.map((v: { id: string; userId: string; user_id: string; thumbnail?: string; url?: string; description?: string; views?: number; likes?: number; username?: string; avatar?: string | null }) => ({
           id: v.id, user_id: v.userId || v.user_id, thumbnail_url: v.thumbnail || '', url: v.url || '',
           description: v.description || '', views: v.views || 0, likes: v.likes || 0, engagement_score: 0,
           creator: profileMap[v.userId || v.user_id] || { username: v.username || 'User', avatar_url: v.avatar || null },

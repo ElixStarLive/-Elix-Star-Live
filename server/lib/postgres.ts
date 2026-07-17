@@ -728,7 +728,7 @@ export async function dbSendDailyHeart(creatorUserId: string, memberUserId: stri
       [creatorUserId, memberUserId],
     );
     return check.rows.length > 0 ? 'sent' : 'error';
-  } catch (err: any) {
+  } catch (err) {
     if (err?.code === '23505') return 'already';
     logger.error({ err, creatorUserId, memberUserId }, "dbSendDailyHeart failed");
     return 'error';
@@ -1322,7 +1322,7 @@ export async function dbLoadGifts(): Promise<DbGiftRow[]> {
       `SELECT gift_id, name, gift_type, coin_cost, animation_url, sfx_url, is_active, battle_points
        FROM elix_gifts WHERE is_active = TRUE ORDER BY coin_cost ASC`,
     );
-    const rows = res.rows.map((r: any) => ({
+    const rows = res.rows.map((r) => ({
       gift_id: String(r.gift_id),
       name: String(r.name),
       gift_type: String(r.gift_type),
@@ -1420,7 +1420,7 @@ export async function dbLoadCoinPackages(): Promise<DbCoinPackageRow[]> {
       `SELECT id, coins, price, label, bonus_coins, is_popular, product_id
        FROM elix_coin_packages ORDER BY coins ASC`,
     );
-    const rows = res.rows.map((r: any) => ({
+    const rows = res.rows.map((r) => ({
       id: String(r.id),
       coins: Number(r.coins),
       price: Number(r.price),

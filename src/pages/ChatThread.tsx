@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { RoyceBackIcon } from '../components/royce';
 import { Send, ArrowLeft, Video, Play, Radio } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -204,7 +204,7 @@ export default function ChatThread() {
 
         if (threadsResult.data) {
           const threadsList = threadsResult.data.threads || threadsResult.data.data || [];
-          const thread = threadsList.find((t: any) => t.id === threadId);
+          const thread = threadsList.find((t: Record<string, unknown>) => t.id === threadId);
           if (thread) {
             const other = thread.otherUser || {};
             setOtherUser({
@@ -226,7 +226,7 @@ export default function ChatThread() {
       try {
         const { data } = await request(`/api/chat/threads/${threadId}/messages`);
         if (data) setMessages(data.messages || data.data || []);
-      } catch {}
+      } catch { /* intentionally empty */ }
     }, 5000);
 
     return () => clearInterval(interval);

@@ -220,7 +220,7 @@ app.use(
 app.use(express.json({ limit: "50kb" }));
 
 // ── Health (before rate limiter — must be exempt for LB/monitoring) ──
-let healthCache: { data: any; code: number; ts: number } | null = null;
+let healthCache: { data: unknown; code: number; ts: number } | null = null;
 const HEALTH_CACHE_TTL_MS = Math.min(
   300_000,
   Math.max(3_000, Number(process.env.HEALTH_CACHE_TTL_MS) || 12_000),
@@ -244,7 +244,7 @@ async function healthCheck(_req: express.Request, res: express.Response) {
       const { valkeyGet: vkGet } = await import("./lib/valkey");
       const raw = await vkGet(HEALTH_VALKEY_KEY);
       if (raw) {
-        const shared = JSON.parse(raw) as { data: any; code: number; ts: number };
+        const shared = JSON.parse(raw) as { data: unknown; code: number; ts: number };
         if (now - shared.ts < HEALTH_CACHE_TTL_MS) {
           healthCache = shared;
           res.setHeader(

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { RoyceBackIcon, RoyceCloseIcon } from '../components/royce';
 import { showToast } from '../lib/toast';
@@ -10,8 +10,6 @@ import {
   Gift,
   MoreVertical,
   Copy,
-  AlertTriangle,
-  Check,
   UserPlus,
   Eye,
   MessageCircle,
@@ -28,7 +26,6 @@ import {
   Plus,
   PlusCircle,
   Play,
-  Users,
 } from 'lucide-react';
 import { GiftPanel } from '../components/GiftPanel';
 import { GiftGoalGallery } from '../components/GiftGoalGallery';
@@ -47,8 +44,6 @@ import { GiftOverlay } from '../components/GiftOverlay';
 import GiftAnimationOverlay, { pushLocalGiftPill } from '../components/GiftAnimationOverlay';
 import { ChatOverlay } from '../components/ChatOverlay';
 import { AvatarRing } from '../components/AvatarRing';
-import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
-import { GoldProfileFrame } from '../components/GoldProfileFrame';
 import {
   CREATOR_NAME_PILL_CLASSNAME,
   getCreatorNamePillStyle,
@@ -118,11 +113,12 @@ function AnimatedScore({ value, className = '', durationMs = 300, format }: { va
     };
     rafRef.current = requestAnimationFrame(step);
     return () => cancelAnimationFrame(rafRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, durationMs]);
   return <span className={className}>{fmt(display)}</span>;
 }
 
-function battleTeamLabelsFromPayload(data: any): { red: string; blue: string } {
+function battleTeamLabelsFromPayload(data: Record<string, unknown>): { red: string; blue: string } {
   const h = typeof data.hostName === 'string' ? data.hostName.trim() : '';
   const o = typeof data.opponentName === 'string' ? data.opponentName.trim() : '';
   const p3 = typeof data.player3Name === 'string' ? data.player3Name.trim() : '';
@@ -292,17 +288,17 @@ export default function SpectatorPage() {
   const [joinRequested, setJoinRequested] = useState(false);
 
   const [userLevel, setUserLevel] = useState(user?.level || 1);
-  const [userXP, setUserXP] = useState(0);
+  const [_userXP, setUserXP] = useState(0);
 
   const viewerName = user?.username || user?.name || 'Viewer';
   const viewerAvatar = user?.avatar || '';
 
-  const [moderators, setModerators] = useState<Set<string>>(new Set());
+  const [moderators, _setModerators] = useState<Set<string>>(new Set());
   const isModerator = moderators.has(user?.id || '');
 
   const [hasJoinedToday, setHasJoinedToday] = useState(false);
-  const [myHeartCount, setMyHeartCount] = useState(0);
-  const [dailyHeartCount, setDailyHeartCount] = useState(0);
+  const [_myHeartCount, setMyHeartCount] = useState(0);
+  const [_dailyHeartCount, setDailyHeartCount] = useState(0);
   const dailyHeartFetchedRef = useRef(false);
 
   useEffect(() => {
@@ -336,7 +332,7 @@ export default function SpectatorPage() {
   } | null>(null);
   const spectatorBattleRef = useRef(spectatorBattle);
   spectatorBattleRef.current = spectatorBattle;
-  const lastBattleScoreUpdateTraceSigRef = useRef('');
+  const _lastBattleScoreUpdateTraceSigRef = useRef('');
   /** When battle is active, gifts credit host (red) or opponent (blue) MVP tallies. */
   const [spectatorGiftBattleTarget, setSpectatorGiftBattleTarget] = useState<'host' | 'opponent'>('host');
   /** From battle_state_sync — map /watch/:streamId to red vs blue team for gifts (defaults were always host). */
@@ -395,7 +391,7 @@ export default function SpectatorPage() {
     prevSpectatorBattleActiveRef.current = active;
   }, [spectatorBattle?.active]);
 
-  const openOpponentPanel = useCallback(() => {
+  const _openOpponentPanel = useCallback(() => {
     const oppId = battleStreamIds?.opponentUserId;
     if (!oppId) return;
     setShowOpponentPanel(true);
@@ -500,7 +496,7 @@ export default function SpectatorPage() {
   type SpectatorCoHost = { id: string; userId: string; name: string; avatar: string; status: string };
   const [spectatorCoHosts, setSpectatorCoHosts] = useState<SpectatorCoHost[]>([]);
   const coHostVideoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
-  const [selectedSpectatorUserId, setSelectedSpectatorUserId] = useState<string | null>(null);
+  const [selectedSpectatorUserId, _setSelectedSpectatorUserId] = useState<string | null>(null);
   const currentMainTrackRef = useRef<import('livekit-client').Track | null>(null);
   // A non-host track shown provisionally in the big/main box, kept only until the
   // host's track is identified or the co-host's own tile mounts. This guarantees a
@@ -513,7 +509,7 @@ export default function SpectatorPage() {
 
   const [isCoHosting, setIsCoHosting] = useState(false);
   const [coHostStream, setCoHostStream] = useState<MediaStream | null>(null);
-  const coHostChanRef = useRef<any>(null);
+  const coHostChanRef = useRef<unknown>(null);
   const [pendingCoHostInvite, setPendingCoHostInvite] = useState<{ notifId: string; hostName: string; hostAvatar: string; streamKey: string; hostUserId: string } | null>(null);
   const [showCoHostPanel, setShowCoHostPanel] = useState(false);
 
@@ -527,7 +523,7 @@ export default function SpectatorPage() {
   const [isCamOff, setIsCamOff] = useState(false);
 
   // Co-host publish is invite/accept only — URL alone is not enough.
-  const cohostState = (location.state as any) || {};
+  const cohostState = (location.state as Record<string, unknown>) || {};
   const isCoHostFromUrl =
     new URLSearchParams(location.search).get('cohost') === '1' &&
     cohostState.fromCohostInvite === true;
@@ -541,7 +537,7 @@ export default function SpectatorPage() {
     }
   }, [isCoHostFromUrl, effectiveStreamId, location.pathname]);
 
-  const startCoHosting = async () => {
+  const _startCoHosting = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'user' },
@@ -569,7 +565,7 @@ export default function SpectatorPage() {
     }
   };
 
-  const stopCoHosting = () => {
+  const _stopCoHosting = () => {
     if (coHostStream) {
       coHostStream.getTracks().forEach(t => t.stop());
       setCoHostStream(null);
@@ -722,8 +718,8 @@ export default function SpectatorPage() {
         }
         const streams = Array.isArray(json.streams) ? json.streams : [];
         const stream =
-          streams.find((s: any) => s.stream_key === effectiveStreamId) ||
-          streams.find((s: any) => s.room_id === effectiveStreamId);
+          streams.find((s) => s.stream_key === effectiveStreamId) ||
+          streams.find((s) => s.room_id === effectiveStreamId);
 
         if (!stream) {
           setStreamIsLive(false);
@@ -1158,14 +1154,14 @@ export default function SpectatorPage() {
     let roomStateReceived = false;
     let roomUsers: string[] = [];
 
-    const handleRoomState = (data: any) => {
+    const handleRoomState = (data) => {
       if (!mounted) return;
       roomStateReceived = true;
       const viewers = data.viewers;
       const hid = hostUserIdRef.current;
       if (Array.isArray(viewers)) {
         actualViewersRef.current.clear();
-        roomUsers = viewers.map((v: any) => v.user_id).filter(Boolean);
+        roomUsers = viewers.map((v) => v.user_id).filter(Boolean);
         hostFoundInRoom = false;
         let count = 0;
         for (const v of viewers) {
@@ -1191,7 +1187,7 @@ export default function SpectatorPage() {
       }
     };
 
-    const handleUserJoined = (data: any) => {
+    const handleUserJoined = (data) => {
       if (!mounted) return;
       if (data.user_id === user?.id) return;
       if (data.user_id === hostUserIdRef.current || data.user_id === effectiveStreamId) {
@@ -1218,14 +1214,14 @@ export default function SpectatorPage() {
       syncMvpSlots();
     };
 
-    const handleUserLeft = (data: any) => {
+    const handleUserLeft = (data) => {
       if (!mounted) return;
       if (data.user_id) actualViewersRef.current.delete(data.user_id);
       setViewerCount(prev => Math.max(0, prev - 1));
       syncMvpSlots();
     };
 
-    const handleChatMessage = (data: any) => {
+    const handleChatMessage = (data) => {
       if (!mounted) return;
       if (data.user_id === user?.id) return;
       const msg: LiveMessage = {
@@ -1239,7 +1235,7 @@ export default function SpectatorPage() {
       setMessages(prev => [...prev, msg]);
     };
 
-    const handleGiftSent = (data: any) => {
+    const handleGiftSent = (data) => {
       if (!mounted) return;
       const wsGiftId =
         (typeof data.giftId === 'string' && data.giftId) ||
@@ -1316,7 +1312,7 @@ export default function SpectatorPage() {
       }
     };
 
-    const handleStreamEnded = (data?: any) => {
+    const handleStreamEnded = (_data?: Record<string, unknown>) => {
 
       if (!mounted) return;
       setStreamEndedReceived(true);
@@ -1325,7 +1321,7 @@ export default function SpectatorPage() {
       setTimeout(() => { if (mounted) navigate('/feed', { replace: true }); }, 2000);
     };
 
-    const handleBattleStateSync = (data: any) => {
+    const handleBattleStateSync = (data) => {
       if (!mounted) return;
       const toScore = (value: unknown, fallback = 0) => {
         const n = Number(value);
@@ -1374,7 +1370,7 @@ export default function SpectatorPage() {
       }
     };
 
-    const handleBattleScore = (data: any) => {
+    const handleBattleScore = (data) => {
       if (!mounted) return;
       const toScore = (value: unknown, fallback = 0) => {
         const n = Number(value);
@@ -1421,7 +1417,7 @@ export default function SpectatorPage() {
       });
     };
 
-    const handleBattleEnded = (data: any) => {
+    const handleBattleEnded = (data) => {
       if (!mounted) return;
       const toScore = (value: unknown, fallback = 0) => {
         const n = Number(value);
@@ -1454,7 +1450,7 @@ export default function SpectatorPage() {
       setTimeout(() => setSpectatorBattle(null), 5000);
     };
 
-    const handleHeartSent = (data: any) => {
+    const handleHeartSent = (data) => {
       if (!mounted) return;
       if (typeof data.live_likes === 'number' && Number.isFinite(data.live_likes)) {
         setActiveLikes(Math.max(0, data.live_likes));
@@ -1473,10 +1469,10 @@ export default function SpectatorPage() {
     };
 
     // Spectators only join and leave; they never send or bring their own layout. Layout is from the app (creator); server sends it on join, spectator only receives and displays it.
-    const handleCohostLayoutSync = (data: any) => {
+    const handleCohostLayoutSync = (data) => {
       if (!mounted) return;
       const list = Array.isArray(data.coHosts) ? data.coHosts : [];
-      setSpectatorCoHosts(list.map((h: any) => ({
+      setSpectatorCoHosts(list.map((h) => ({
         id: String(h.id ?? h.userId ?? ''),
         userId: String(h.userId ?? ''),
         name: String(h.name ?? 'User'),
@@ -1490,7 +1486,7 @@ export default function SpectatorPage() {
       }
     };
 
-    const handleCohostRequestAccepted = (data: any) => {
+    const handleCohostRequestAccepted = (data) => {
       if (!mounted || !user?.id) return;
       const hostName = data.hostName || 'Creator';
       const streamKey = data.streamKey || effectiveStreamId;
@@ -1508,7 +1504,7 @@ export default function SpectatorPage() {
       showToast('Creator declined your co-host request');
     };
 
-    const handleCohostInvite = (data: any) => {
+    const handleCohostInvite = (data) => {
       if (!mounted) return;
       setPendingCoHostInvite({
         notifId: '',
@@ -1539,7 +1535,7 @@ export default function SpectatorPage() {
     websocket.on('gift_goal_sync', handleGiftGoalSync);
     websocket.on('heart_sent', handleHeartSent);
     websocket.on('stream_ended', handleStreamEnded);
-    const handleBattleScoreUpdateColon = (data: any) => {
+    const handleBattleScoreUpdateColon = (data) => {
       if (!mounted) return;
       const p = data?.players;
       if (!p || typeof p !== 'object') return;
@@ -1571,16 +1567,16 @@ export default function SpectatorPage() {
 
     connect();
 
-    const goOffline = async (reason: string) => {
+    const goOffline = async (_reason: string) => {
       if (!mounted) return;
       try {
         const { data: goOfflineJson } = await request('/api/live/streams');
         if (goOfflineJson) {
           const streams = Array.isArray(goOfflineJson.streams) ? goOfflineJson.streams : [];
-          const stillLive = streams.some((s: any) => (s.stream_key === effectiveStreamId || s.room_id === effectiveStreamId));
+          const stillLive = streams.some((s) => (s.stream_key === effectiveStreamId || s.room_id === effectiveStreamId));
           if (stillLive) return;
         }
-      } catch {}
+      } catch { /* intentionally empty */ }
       if (!mounted) return;
       showToast('Stream is offline');
       setStreamIsLive(false);
@@ -1626,6 +1622,7 @@ export default function SpectatorPage() {
       websocket.off('cohost_invite', handleCohostInvite);
       websocket.disconnect();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveStreamId, user?.id, streamIsLive, syncMvpSlots, spawnHeartAt, triggerBattleVfx]);
 
   // Share panel contacts: all platform users (same list as live share / ShareModal).
@@ -1640,7 +1637,7 @@ export default function SpectatorPage() {
           avatar: r.avatar_url || '',
         }));
         if (!cancelled) setShareContacts(mapped);
-      } catch {}
+      } catch { /* intentionally empty */ }
     })();
     return () => {
       cancelled = true;
@@ -1758,7 +1755,7 @@ export default function SpectatorPage() {
     let giftTransactionId: string | null = null;
 
     if (usedTestCoins) {
-      const debit = debitTestCoinsForGift(user!.id, gift.coins);
+      const debit = debitTestCoinsForGift((user as NonNullable<typeof user>).id, gift.coins);
       if (debit.ok === false) {
         showToast(`Not enough coins (have ${debit.balance.toLocaleString()}, need ${gift.coins.toLocaleString()})`);
         return;
@@ -3344,7 +3341,7 @@ export default function SpectatorPage() {
                           }
                           const hid = hostUserIdRef.current || hostUserId || effectiveStreamId;
                           try {
-                            const { data: j, error: shareErr } = await request('/api/live-share', {
+                            const { data: _j, error: shareErr } = await request('/api/live-share', {
                               method: 'POST',
                               body: JSON.stringify({
                                 targetUserId: u.id,
@@ -3530,12 +3527,12 @@ export default function SpectatorPage() {
                             try {
                               localStorage.setItem(TEST_COINS_VERIFIED_KEY, String(Date.now()));
                               localStorage.setItem(TEST_COINS_PWD_KEY, '1');
-                            } catch {}
+                            } catch { /* intentionally empty */ }
                           } else {
                             try {
                               localStorage.removeItem(TEST_COINS_VERIFIED_KEY);
                               localStorage.removeItem(TEST_COINS_PWD_KEY);
-                            } catch {}
+                            } catch { /* intentionally empty */ }
                           }
                           setTestCoinsStep('amount');
                         } else {

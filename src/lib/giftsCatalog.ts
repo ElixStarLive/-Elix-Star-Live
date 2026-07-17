@@ -39,7 +39,7 @@ export async function fetchGiftsFromDatabase(): Promise<GiftUiItem[]> {
 
     const giftsData = Array.isArray(data) ? data : (data?.catalog ?? data?.gifts ?? []);
     return buildGiftUiItemsFromCatalog(giftsData);
-  } catch (err) {
+  } catch {
     return [];
   }
 }
@@ -60,7 +60,7 @@ export async function fetchGiftPriceMap(): Promise<Map<string, number>> {
       }
     }
     return map;
-  } catch (err) {
+  } catch {
     return new Map();
   }
 }

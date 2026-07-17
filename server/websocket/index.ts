@@ -84,7 +84,7 @@ export async function wsRateCheck(
   }
   try {
     return await valkeyRateCheckFn(`wsrl:${userId}:${event}`, windowMs, maxPerWindow);
-  } catch (err: any) {
+  } catch (err) {
     logger.warn({ err: err?.message, userId, event }, "wsRateCheck: Valkey error — allowing event");
     return true;
   }
@@ -99,7 +99,7 @@ function verifyAndExtractUserId(token: string): string | null {
 export function sendToClient(
   client: Client,
   event: string,
-  data: any,
+  data: unknown,
 ): void {
   try {
     if (client.ws.readyState === WebSocket.OPEN) {
@@ -120,7 +120,7 @@ export function sendToUser(
   roomId: string,
   userId: string,
   event: string,
-  data: any,
+  data: unknown,
 ): void {
   const room = rooms.get(roomId);
   if (!room) return;
@@ -151,7 +151,7 @@ export function sendToUser(
 export function sendToUserGlobal(
   userId: string,
   event: string,
-  data: any,
+  data: unknown,
 ): number {
   const ts = new Date().toISOString();
   let message: string;
@@ -192,7 +192,7 @@ export function sendToUserGlobal(
 export function broadcastToRoom(
   roomId: string,
   event: string,
-  data: any,
+  data: unknown,
   exclude?: Client,
 ): void {
   const room = rooms.get(roomId);
@@ -486,7 +486,7 @@ async function buildViewerList(
           `SELECT user_id, username, display_name, avatar_url, level FROM profiles WHERE user_id = ANY($1::text[]) LIMIT ${MAX_VIEWER_LIST}`,
           [capped],
         );
-        return (res.rows || []).map((r: any) => ({
+        return (res.rows || []).map((r: Record<string, unknown>) => ({
           user_id: String(r.user_id),
           username: String(r.username || ""),
           display_name: String(r.display_name || ""),
@@ -636,10 +636,10 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
       clients.set(ws, client);
 
       if (!userClients.has(userId)) userClients.set(userId, new Set());
-      userClients.get(userId)!.add(client);
+      (userClients.get(userId) as Set<Client>).add(client);
 
       if (!rooms.has(roomId)) rooms.set(roomId, new Set());
-      rooms.get(roomId)!.add(client);
+      (rooms.get(roomId) as Set<Client>).add(client);
 
       if (isValkeyConfigured()) {
         await valkeySadd(`room:members:${roomId}`, userId);
@@ -652,7 +652,7 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
       if (isValkeyConfigured()) {
         memberCount = await valkeyScard(`room:members:${roomId}`);
       } else {
-        memberCount = rooms.get(roomId)!.size;
+        memberCount = (rooms.get(roomId) as Set<Client>).size;
       }
 
       sendToClient(client, "connected", {
@@ -734,7 +734,7 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
     ws.on("message", async (data) => {
       aliveClients.add(ws);
       try {
-        let parsed: any;
+        let parsed;
         try {
           parsed = JSON.parse(data.toString());
         } catch {
@@ -783,7 +783,7 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
           room.delete(client);
 
           const userStillInRoom = Array.from(room).some(
-            (c) => c.userId === client!.userId,
+            (c) => c.userId === (client as NonNullable<typeof client>).userId,
           );
 
           if (!userStillInRoom && isValkeyConfigured()) {

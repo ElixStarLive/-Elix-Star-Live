@@ -364,7 +364,7 @@ async function dbRegisterUser(
   }
 }
 
-async function dbDeleteUserById(id: string): Promise<void> {
+async function _dbDeleteUserById(id: string): Promise<void> {
   const pool = getPool();
   if (!pool) return;
   await ensureAuthUsersTable();
