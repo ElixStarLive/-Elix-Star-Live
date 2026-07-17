@@ -707,7 +707,8 @@ export default function EnhancedVideoPlayer({
     ? `calc(${navStackExpr} + 5mm + ${playLineH} + 2mm)`
     : `calc(5mm + ${playLineH} + 2mm)`;
   const chromeBottom = abovePlayBar;
-  const likeBarBottom = abovePlayBar;
+  // Icon stack sits 3mm lower than the info chrome (user request).
+  const likeBarBottom = `calc(${abovePlayBar} - 3mm)`;
 
   return (
     <div 
