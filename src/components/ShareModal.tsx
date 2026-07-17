@@ -152,7 +152,7 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
         </div>
 
         {/* Share to followers */}
-        <div className="flex gap-3 overflow-x-auto overflow-y-hidden pb-2 flex-shrink-0 px-4 no-scrollbar">
+        <div className="flex gap-3 overflow-x-auto overflow-y-hidden pt-2 pb-3 flex-shrink-0 px-4 no-scrollbar">
           {filteredFollowers.map((f) => (
             <button
               key={f.user_id}
