@@ -3439,7 +3439,7 @@ export default function SpectatorPage() {
                 <div className="flex justify-center mb-3">
                   <div className="w-10 h-1 bg-white/20 rounded-full" />
                 </div>
-                <div className="flex flex-col gap-1">
+                <div className="grid grid-cols-4 gap-y-4 gap-x-2 pt-1 pb-2 px-1">
                   {!IS_STORE_BUILD && (
                   <button
                     type="button"
@@ -3450,32 +3450,43 @@ export default function SpectatorPage() {
                       setTestCoinsPwd(''); setTestCoinsError(''); setTestCoinsAmount('');
                       setShowTestCoinsModal(true); setIsMoreMenuOpen(false);
                     }}
-                    className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/5 transition-colors w-full"
+                    className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform"
                   >
-                    <Coins size={18} className="text-[#D4AF37]" />
-                    <span className="text-white text-sm font-medium">Test</span>
+                    <div className="w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
+                      <Coins size={18} className="text-[#D4AF37]" />
+                    </div>
+                    <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">Test</span>
                   </button>
                   )}
                   <button
+                    type="button"
                     onClick={() => { setIsReportModalOpen(true); setIsMoreMenuOpen(false); }}
-                    className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/5 transition-colors w-full"
+                    className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform"
                   >
-                    <Flag size={18} className="text-white/60" />
-                    <span className="text-white text-sm font-medium">Report</span>
+                    <div className="w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
+                      <Flag size={18} className="text-white/60" />
+                    </div>
+                    <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">Report</span>
                   </button>
                   <button
+                    type="button"
                     onClick={() => { setShowSharePanel(true); setIsMoreMenuOpen(false); }}
-                    className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/5 transition-colors w-full"
+                    className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform"
                   >
-                    <Share2 size={18} className="text-[#D4AF37]" />
-                    <span className="text-white text-sm font-medium">Share</span>
+                    <div className="w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
+                      <Share2 size={18} className="text-[#D4AF37]" />
+                    </div>
+                    <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">Share</span>
                   </button>
                   <button
+                    type="button"
                     onClick={() => setIsMoreMenuOpen(false)}
-                    className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/5 transition-colors w-full"
+                    className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform"
                   >
-                    <RoyceBackIcon size={18} />
-                    <span className="text-white text-sm font-medium">Cancel</span>
+                    <div className="w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
+                      <RoyceBackIcon size={18} />
+                    </div>
+                    <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">Cancel</span>
                   </button>
                 </div>
               </div>

@@ -4049,12 +4049,14 @@ export default function LiveStream() {
                   </div>
                 )}
                 {isBroadcast && hasAnyCoHost && (
-                  <div className="absolute top-1 right-1 z-10 flex items-center gap-0.5 pointer-events-auto">
-                    <button type="button" onClick={(e) => { e.stopPropagation(); toggleMic(); }} className="p-0.5 rounded bg-black/50" title={isMicMuted ? 'Unmute' : 'Mute'}>
+                  <div className="absolute top-1 right-1 z-10 flex items-end gap-1.5 pointer-events-auto">
+                    <button type="button" onClick={(e) => { e.stopPropagation(); toggleMic(); }} className="flex flex-col items-center gap-0.5 p-0.5 rounded bg-black/50">
                       {isMicMuted ? <MicOff className="w-3 h-3 text-white" strokeWidth={2.5} /> : <Mic className="w-3 h-3 text-white" strokeWidth={2.5} />}
+                      <span className="text-[7px] font-semibold text-white/85 leading-none">{isMicMuted ? 'Unmute' : 'Mute'}</span>
                     </button>
-                    <button type="button" onClick={(e) => { e.stopPropagation(); toggleCam(); }} className="p-0.5 rounded" title={isCamOff ? 'Camera on' : 'Camera off'}>
+                    <button type="button" onClick={(e) => { e.stopPropagation(); toggleCam(); }} className="flex flex-col items-center gap-0.5 p-0.5 rounded">
                       {isCamOff ? <CameraOff className="w-3 h-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]" strokeWidth={2.5} /> : <Camera className="w-3 h-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]" strokeWidth={2.5} />}
+                      <span className="text-[7px] font-semibold text-white/85 leading-none">{isCamOff ? 'Cam On' : 'Cam Off'}</span>
                     </button>
                   </div>
                 )}
@@ -4346,36 +4348,36 @@ export default function LiveStream() {
                           <span className="text-white font-bold text-[10px] truncate max-w-full px-1">{creatorName || user?.username || user?.name || 'Me'}</span>
                         </div>
                       )}
-                      {/* P1 close + mic + cam — no glow discs */}
-                      <div className="absolute bottom-4 right-2 z-40 pointer-events-auto flex items-center gap-1.5">
+                      {/* P1 close + mic + cam — labels under icons (same as More/Share/Effects) */}
+                      <div className="absolute bottom-3 right-1.5 z-40 pointer-events-auto flex items-end gap-2">
                         <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); closeLiveWithSlide(); }}
-                          title="Close"
                           aria-label="Close"
-                          className="flex items-center justify-center border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
+                          className="flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
                         >
                           <RoyceCloseIcon size={12} />
+                          <span className="text-[8px] font-semibold text-white/85 leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">Close</span>
                         </button>
                         <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); togglePlayerMute('me'); }}
-                          title={mutedPlayers['me'] ? 'Unmute' : 'Mute'}
-                          className="flex items-center justify-center border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
+                          className="flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
                         >
                           {mutedPlayers['me']
                             ? <MicOff className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />
                             : <Mic className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />}
+                          <span className="text-[8px] font-semibold text-white/85 leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">{mutedPlayers['me'] ? 'Unmute' : 'Mute'}</span>
                         </button>
                         <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); toggleCam(); }}
-                          title={isCamOff ? 'Camera on' : 'Camera off'}
-                          className="flex items-center justify-center border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
+                          className="flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
                         >
                           {isCamOff
                             ? <CameraOff className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />
                             : <Camera className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />}
+                          <span className="text-[8px] font-semibold text-white/85 leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">{isCamOff ? 'Cam On' : 'Cam Off'}</span>
                         </button>
                       </div>
 
@@ -4439,34 +4441,34 @@ export default function LiveStream() {
                       )}
 
                       {battleSlots[0].status !== 'empty' && (
-                        <div className="absolute bottom-4 left-2 z-10 pointer-events-auto flex items-center gap-1">
+                        <div className="absolute bottom-3 left-1.5 z-10 pointer-events-auto flex items-end gap-2">
                           <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); togglePlayerMute('opponent'); }}
-                            title={mutedPlayers['opponent'] ? 'Unmute opponent' : 'Mute opponent'}
-                            className="flex items-center justify-center border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
+                            className="flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
                           >
                             {mutedPlayers['opponent']
                               ? <MicOff className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />
                               : <Mic className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />}
+                            <span className="text-[8px] font-semibold text-white/85 leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">{mutedPlayers['opponent'] ? 'Unmute' : 'Mute'}</span>
                           </button>
                           <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); togglePlayerCamera('opponent'); }}
-                            title={cameraOffPlayers['opponent'] ? 'Show opponent camera' : 'Hide opponent camera'}
-                            className="flex items-center justify-center border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
+                            className="flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
                           >
                             {cameraOffPlayers['opponent']
                               ? <CameraOff className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />
                               : <Camera className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />}
+                            <span className="text-[8px] font-semibold text-white/85 leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">{cameraOffPlayers['opponent'] ? 'Cam On' : 'Cam Off'}</span>
                           </button>
                           <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); removePlayerFromSlot(0); }}
-                            title="Remove opponent"
-                            className="flex items-center justify-center border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
+                            className="flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
                           >
-                            <X size={18} className="text-[#D4AF37]" strokeWidth={2.25} />
+                            <X size={14} className="text-[#D4AF37]" strokeWidth={2.25} />
+                            <span className="text-[8px] font-semibold text-white/85 leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">Remove</span>
                           </button>
                         </div>
                       )}
@@ -4545,12 +4547,14 @@ export default function LiveStream() {
                         )}
 
                         {battleSlots[1].status !== 'empty' && (
-                          <div className="absolute top-1 right-1 z-10 pointer-events-auto flex items-center gap-1">
-                            <button type="button" className="border-0 bg-transparent p-0 hover:opacity-90 active:scale-95" onClick={(e) => { e.stopPropagation(); togglePlayerMute('player3'); }} title={mutedPlayers['player3'] ? 'Unmute' : 'Mute'}>
+                          <div className="absolute top-1 right-1 z-10 pointer-events-auto flex items-end gap-1.5">
+                            <button type="button" className="flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95" onClick={(e) => { e.stopPropagation(); togglePlayerMute('player3'); }}>
                               {mutedPlayers['player3'] ? <MicOff className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} /> : <Mic className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />}
+                              <span className="text-[7px] font-semibold text-white/85 leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">{mutedPlayers['player3'] ? 'Unmute' : 'Mute'}</span>
                             </button>
-                            <button type="button" className="border-0 bg-transparent p-0 hover:opacity-90 active:scale-95" onClick={(e) => { e.stopPropagation(); removePlayerFromSlot(1); }} title="Remove player">
+                            <button type="button" className="flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95" onClick={(e) => { e.stopPropagation(); removePlayerFromSlot(1); }}>
                               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FF4D6A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+                              <span className="text-[7px] font-semibold text-white/85 leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">Remove</span>
                             </button>
                         </div>
                       )}
@@ -4625,12 +4629,14 @@ export default function LiveStream() {
                         )}
 
                         {battleSlots[2].status !== 'empty' && (
-                          <div className="absolute top-1 right-1 z-10 pointer-events-auto flex items-center gap-1">
-                            <button type="button" className="border-0 bg-transparent p-0 hover:opacity-90 active:scale-95" onClick={(e) => { e.stopPropagation(); togglePlayerMute('player4'); }} title={mutedPlayers['player4'] ? 'Unmute' : 'Mute'}>
+                          <div className="absolute top-1 right-1 z-10 pointer-events-auto flex items-end gap-1.5">
+                            <button type="button" className="flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95" onClick={(e) => { e.stopPropagation(); togglePlayerMute('player4'); }}>
                               {mutedPlayers['player4'] ? <MicOff className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} /> : <Mic className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />}
+                              <span className="text-[7px] font-semibold text-white/85 leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">{mutedPlayers['player4'] ? 'Unmute' : 'Mute'}</span>
                             </button>
-                            <button type="button" className="border-0 bg-transparent p-0 hover:opacity-90 active:scale-95" onClick={(e) => { e.stopPropagation(); removePlayerFromSlot(2); }} title="Remove player">
+                            <button type="button" className="flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95" onClick={(e) => { e.stopPropagation(); removePlayerFromSlot(2); }}>
                               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FF4D6A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+                              <span className="text-[7px] font-semibold text-white/85 leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">Remove</span>
                             </button>
                         </div>
                       )}
@@ -5836,87 +5842,87 @@ export default function LiveStream() {
               <div className="w-10 h-1 bg-white/20 rounded-full" />
             </div>
 
-            {/* Content — luxury compact grid */}
+            {/* Content — icon on top, label under (same as Share / Effects) */}
             <div className="grid grid-cols-4 gap-y-4 gap-x-2 pt-1 pb-2 px-1">
 
               {!IS_STORE_BUILD && (
-              <button type="button" onClick={() => { setShowTestCoinsModal(true); setTestCoinsStep(sessionStorage.getItem('elix_test_coins_unlocked') ? 'amount' : 'password'); setTestCoinsPwd(''); setTestCoinsError(''); setTestCoinsAmount(''); setIsMoreMenuOpen(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform">
-                <div className="w-11 h-11 rounded-full relative flex items-center justify-center">
-<Coins className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />
+              <button type="button" onClick={() => { setShowTestCoinsModal(true); setTestCoinsStep(sessionStorage.getItem('elix_test_coins_unlocked') ? 'amount' : 'password'); setTestCoinsPwd(''); setTestCoinsError(''); setTestCoinsAmount(''); setIsMoreMenuOpen(false); }} className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform">
+                <div className="w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
+                  <Coins className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />
                 </div>
-                <span className="text-[10px] font-semibold text-white/70">Test</span>
+                <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">Test</span>
               </button>
               )}
 
-              <button type="button" onClick={() => { setShowSharePanel(true); setIsMoreMenuOpen(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform">
-                <div className="w-11 h-11 rounded-full relative flex items-center justify-center">
-<Share2 className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />
+              <button type="button" onClick={() => { setShowSharePanel(true); setIsMoreMenuOpen(false); }} className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform">
+                <div className="w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
+                  <Share2 className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />
                 </div>
-                <span className="text-[10px] font-semibold text-white/70">Share</span>
+                <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">Share</span>
               </button>
 
-              <button type="button" disabled={!isBroadcast} onClick={() => { flipCamera(); setIsMoreMenuOpen(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform disabled:opacity-40">
-                <div className="w-11 h-11 rounded-full relative flex items-center justify-center">
-<RefreshCw className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />
+              <button type="button" disabled={!isBroadcast} onClick={() => { flipCamera(); setIsMoreMenuOpen(false); }} className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform disabled:opacity-40">
+                <div className="w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
+                  <RefreshCw className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />
                 </div>
-                <span className="text-[10px] font-semibold text-white/70">Flip</span>
+                <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">Flip</span>
               </button>
 
-              <button type="button" disabled={!isBroadcast} onClick={() => { toggleMic(); setIsMoreMenuOpen(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform disabled:opacity-40">
-                <div className="w-11 h-11 rounded-full relative flex items-center justify-center">
-{isMicMuted ? <MicOff className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} /> : <Mic className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />}
+              <button type="button" disabled={!isBroadcast} onClick={() => { toggleMic(); setIsMoreMenuOpen(false); }} className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform disabled:opacity-40">
+                <div className="w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
+                  {isMicMuted ? <MicOff className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} /> : <Mic className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />}
                 </div>
-                <span className="text-[10px] font-semibold text-white/70">{isMicMuted ? 'Unmute' : 'Mute'}</span>
+                <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">{isMicMuted ? 'Unmute' : 'Mute'}</span>
               </button>
 
-              <button type="button" disabled={!isBroadcast} onClick={() => { toggleCam(); setIsMoreMenuOpen(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform disabled:opacity-40">
-                <div className="w-11 h-11 rounded-full relative flex items-center justify-center">
-{isCamOff ? <CameraOff className="w-[18px] h-[18px] text-white/60 relative z-[2]" strokeWidth={1.8} /> : <Camera className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />}
+              <button type="button" disabled={!isBroadcast} onClick={() => { toggleCam(); setIsMoreMenuOpen(false); }} className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform disabled:opacity-40">
+                <div className="w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
+                  {isCamOff ? <CameraOff className="w-[18px] h-[18px] text-white/60 relative z-[2]" strokeWidth={1.8} /> : <Camera className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />}
                 </div>
-                <span className="text-[10px] font-semibold text-white/70">{isCamOff ? 'Cam On' : 'Cam Off'}</span>
+                <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">{isCamOff ? 'Cam On' : 'Cam Off'}</span>
               </button>
 
               <button
                 type="button"
                 disabled={!isBroadcast}
                 onClick={() => { setShowLiveEffectsPanel(true); setIsMoreMenuOpen(false); }}
-                className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform disabled:opacity-40"
+                className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform disabled:opacity-40"
               >
-                <div className="w-11 h-11 rounded-full relative flex items-center justify-center">
+                <div className="w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
                   <Sparkles className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />
                 </div>
-                <span className="text-[10px] font-semibold text-white/70">Effects</span>
+                <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">Effects</span>
               </button>
 
-              <button type="button" onClick={() => { setIsChatVisible((v) => !v); setIsMoreMenuOpen(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform">
-                <div className="w-11 h-11 rounded-full relative flex items-center justify-center">
-<MessageCircle className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />
+              <button type="button" onClick={() => { setIsChatVisible((v) => !v); setIsMoreMenuOpen(false); }} className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform">
+                <div className="w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
+                  <MessageCircle className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />
                 </div>
-                <span className="text-[10px] font-semibold text-white/70">{isChatVisible ? 'Hide Chat' : 'Show Chat'}</span>
+                <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">{isChatVisible ? 'Hide Chat' : 'Show Chat'}</span>
               </button>
 
-              <button type="button" onClick={() => { setIsReportModalOpen(true); setIsMoreMenuOpen(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform">
-                <div className="w-11 h-11 rounded-full relative flex items-center justify-center">
-<Flag className="w-[18px] h-[18px] text-white/60 relative z-[2]" strokeWidth={1.8} />
+              <button type="button" onClick={() => { setIsReportModalOpen(true); setIsMoreMenuOpen(false); }} className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform">
+                <div className="w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
+                  <Flag className="w-[18px] h-[18px] text-white/60 relative z-[2]" strokeWidth={1.8} />
                 </div>
-                <span className="text-[10px] font-semibold text-white/60/70">Report</span>
+                <span className="text-[10px] font-semibold text-white/60 text-center leading-tight w-full">Report</span>
               </button>
 
               {isBattleMode && battleWinner && isBroadcast && (
-                <button type="button" onClick={() => { if (battleSlots[0]?.userId) { websocket.send('battle_create', { hostName: myCreatorName, opponentUserId: battleSlots[0].userId, opponentName: battleSlots[0].name, opponentRoomId: opponentStreamKey || '' }); } setBattleTime(300); setMyScore(0); setOpponentScore(0); setPlayer3Score(0); setPlayer4Score(0); battleServerTotalsRef.current = { h: 0, o: 0, p3: 0, p4: 0 }; setBattleServerTotals({ h: 0, o: 0, p3: 0, p4: 0 }); setBattleWinner(null); setBattleCountdown(null); reachedThresholdsRef.current.clear(); setIsMoreMenuOpen(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform">
-                  <div className="w-11 h-11 rounded-full relative flex items-center justify-center">
-<RefreshCw className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />
+                <button type="button" onClick={() => { if (battleSlots[0]?.userId) { websocket.send('battle_create', { hostName: myCreatorName, opponentUserId: battleSlots[0].userId, opponentName: battleSlots[0].name, opponentRoomId: opponentStreamKey || '' }); } setBattleTime(300); setMyScore(0); setOpponentScore(0); setPlayer3Score(0); setPlayer4Score(0); battleServerTotalsRef.current = { h: 0, o: 0, p3: 0, p4: 0 }; setBattleServerTotals({ h: 0, o: 0, p3: 0, p4: 0 }); setBattleWinner(null); setBattleCountdown(null); reachedThresholdsRef.current.clear(); setIsMoreMenuOpen(false); }} className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform">
+                  <div className="w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
+                    <RefreshCw className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />
                   </div>
-                  <span className="text-[10px] font-semibold text-white/70">Rematch</span>
+                  <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">Rematch</span>
                 </button>
               )}
 
               {isBattleMode && isBroadcast && !battleWinner && battleTime > 0 && (
-                <button type="button" onClick={() => { startSpeedChallenge(); setIsMoreMenuOpen(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform">
-                  <div className="w-11 h-11 rounded-full relative flex items-center justify-center">
-<Zap className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />
+                <button type="button" onClick={() => { startSpeedChallenge(); setIsMoreMenuOpen(false); }} className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform">
+                  <div className="w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
+                    <Zap className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />
                   </div>
-                  <span className="text-[10px] font-semibold text-white/70">Speed</span>
+                  <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">Speed</span>
                 </button>
               )}
 
