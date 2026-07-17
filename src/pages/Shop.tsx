@@ -3,8 +3,7 @@ import { RoyceBackIcon } from '../components/royce';
 import { useNavigate } from 'react-router-dom';
 import { api, request } from '../lib/apiClient';
 import { useAuthStore } from '../store/useAuthStore';
-import { Plus, Camera, Tag, MessageCircle, Search } from 'lucide-react';
-import { AvatarRing } from '../components/AvatarRing';
+import { Plus, Camera, Tag, MessageCircle, Search, MoreVertical } from 'lucide-react';
 import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
 import { showToast } from '../lib/toast';
 import { bunnyUpload } from '../lib/bunnyStorage';
@@ -44,6 +43,8 @@ export default function Shop() {
   const [newImage, setNewImage] = useState<File | null>(null);
   const [newImagePreview, setNewImagePreview] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [menuItemId, setMenuItemId] = useState<string | null>(null);
+  const [removingId, setRemovingId] = useState<string | null>(null);
   const previewUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -226,6 +227,22 @@ export default function Shop() {
     }
   };
 
+  const handleRemoveItem = async (item: ShopItem) => {
+    if (!user?.id || item.user_id !== user.id || removingId) return;
+    setRemovingId(item.id);
+    setMenuItemId(null);
+    try {
+      const { error } = await api.shop.deleteItem(item.id);
+      if (error) throw error;
+      setItems((prev) => prev.filter((i) => i.id !== item.id));
+      showToast('Item removed');
+    } catch {
+      showToast('Failed to remove item');
+    } finally {
+      setRemovingId(null);
+    }
+  };
+
   const filters = [
     { key: 'all', label: 'All' },
     { key: 'clothing', label: 'Clothing' },
@@ -330,47 +347,86 @@ export default function Shop() {
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3 px-3 py-2 pb-6 overflow-y-auto">
-            {items.map(item => (
-              <div key={item.id} className="bg-white/5 rounded-2xl overflow-hidden border border-white/5">
-                {item.image_url ? (
-                  <img src={item.image_url} alt={item.title} className="w-full aspect-square object-cover" />
-                ) : (
-                  <div className="w-full aspect-square bg-white/5 flex items-center justify-center">
-                    <Tag size={32} className="text-white/20" />
-                  </div>
-                )}
-                <div className="p-3">
-                  <h3 className="text-sm font-bold text-gold-metallic truncate">{item.title}</h3>
-                  <p className="text-lg font-extrabold text-white mt-0.5">£{item.price.toFixed(2)}</p>
-                  {item.description && (
-                    <p className="text-[11px] text-white/40 mt-1 line-clamp-2">{item.description}</p>
+            {items.map(item => {
+              const isOwn = item.user_id === user?.id;
+              const menuOpen = menuItemId === item.id;
+              return (
+              <div key={item.id} className="bg-white/5 rounded-2xl overflow-hidden border border-white/5 relative">
+                <div className="relative">
+                  {item.image_url ? (
+                    <img src={item.image_url} alt={item.title} className="w-full aspect-[4/3] object-cover" />
+                  ) : (
+                    <div className="w-full aspect-[4/3] bg-white/5 flex items-center justify-center">
+                      <Tag size={28} className="text-white/20" />
+                    </div>
                   )}
-                  <div className="flex items-center gap-2 mt-2">
-                    <button onClick={() => navigate(`/profile/${item.user_id}`)} className="flex items-center gap-1.5 min-w-0 flex-1">
-                      <span style={{ marginTop: '-1mm' }}><AvatarRing src={item.seller?.avatar_url as string} alt="Seller" size={20} /></span>
-                      <span className="text-[11px] text-white/60 truncate">
-                        {item.seller?.display_name || item.seller?.username || 'User'}
-                      </span>
+                  <div className="absolute top-1.5 right-1.5 z-[2]">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMenuItemId(menuOpen ? null : item.id);
+                      }}
+                      className="p-1.5 rounded-full bg-black/55 border border-white/10"
+                      aria-label="Item options"
+                    >
+                      <MoreVertical size={14} className="text-white" />
                     </button>
-                    {item.user_id !== user?.id && (
-                      <button onClick={() => contactSeller(item.user_id)} className="p-1.5 rounded-full bg-[#C9A227]/20" title="Message seller">
-                        <MessageCircle size={14} className="text-[#D4AF37]" />
-                      </button>
+                    {menuOpen && (
+                      <>
+                        <button
+                          type="button"
+                          className="fixed inset-0 z-[3]"
+                          aria-label="Close menu"
+                          onClick={() => setMenuItemId(null)}
+                        />
+                        <div className="absolute right-0 top-full mt-1 z-[4] min-w-[120px] rounded-xl bg-[#1a1a1a] border border-white/10 shadow-lg overflow-hidden">
+                          {isOwn ? (
+                            <button
+                              type="button"
+                              disabled={removingId === item.id}
+                              onClick={() => handleRemoveItem(item)}
+                              className="w-full text-left px-3 py-2 text-xs font-semibold text-red-400 hover:bg-white/5 disabled:opacity-50"
+                            >
+                              {removingId === item.id ? 'Removing…' : 'Remove'}
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setMenuItemId(null);
+                                contactSeller(item.user_id);
+                              }}
+                              className="w-full text-left px-3 py-2 text-xs font-semibold text-white/80 hover:bg-white/5 flex items-center gap-1.5"
+                            >
+                              <MessageCircle size={12} className="text-[#D4AF37]" />
+                              Message
+                            </button>
+                          )}
+                        </div>
+                      </>
                     )}
                   </div>
-
-                  {item.user_id !== user?.id && (
+                </div>
+                <div className="border-t border-white/15 px-2.5 py-2">
+                  <h3 className="text-sm font-bold text-gold-metallic truncate">{item.title}</h3>
+                  <p className="text-base font-extrabold text-white mt-0.5">£{item.price.toFixed(2)}</p>
+                  {item.description && (
+                    <p className="text-[11px] text-white/40 mt-0.5 line-clamp-2">{item.description}</p>
+                  )}
+                  {!isOwn && (
                     <button
                       type="button"
                       onClick={() => handleBuy(item)}
-                      className="w-full mt-3 py-2 rounded-xl bg-[#D4AF37] text-black font-extrabold text-[12px]"
+                      className="w-full mt-2 py-1.5 rounded-xl bg-[#D4AF37] text-black font-extrabold text-[12px]"
                     >
                       Buy with Stripe
                     </button>
                   )}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
 

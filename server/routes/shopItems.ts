@@ -1,6 +1,11 @@
 import { Request, Response } from "express";
 import { getTokenFromRequest, verifyAuthToken } from "./auth";
-import { dbListShopItems, dbCreateShopItem, type DbShopItemRow } from "../lib/postgres";
+import {
+  dbListShopItems,
+  dbCreateShopItem,
+  dbDeactivateShopItemOwned,
+  type DbShopItemRow,
+} from "../lib/postgres";
 import { getOrCreateProfile } from "./profiles";
 import { logger } from "../lib/logger";
 
@@ -113,6 +118,31 @@ export async function handleCreateShopItem(req: Request, res: Response) {
     return res.status(201).json({ item: await enrichSeller(row) });
   } catch (err) {
     logger.error({ err }, "handleCreateShopItem failed");
+    return res.status(500).json({ error: "DATABASE_ERROR" });
+  }
+}
+
+/** DELETE /api/shop/items/:id — soft-remove own listing (auth) */
+export async function handleDeleteShopItem(req: Request, res: Response) {
+  if (req.method !== "DELETE") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+  const auth = requireAuth(req, res);
+  if (!auth) return;
+
+  const id = typeof req.params.id === "string" ? req.params.id.trim() : "";
+  if (!id) {
+    return res.status(400).json({ error: "id is required" });
+  }
+
+  try {
+    const ok = await dbDeactivateShopItemOwned(id, auth.userId);
+    if (!ok) {
+      return res.status(404).json({ error: "Item not found or not yours" });
+    }
+    return res.status(200).json({ ok: true });
+  } catch (err) {
+    logger.error({ err }, "handleDeleteShopItem failed");
     return res.status(500).json({ error: "DATABASE_ERROR" });
   }
 }

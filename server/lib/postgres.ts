@@ -1261,6 +1261,26 @@ export async function dbMarkShopItemSold(id: string): Promise<void> {
   }
 }
 
+/** Soft-remove a listing; only the owner can deactivate. Returns true if a row was updated. */
+export async function dbDeactivateShopItemOwned(
+  id: string,
+  ownerUserId: string,
+): Promise<boolean> {
+  const p = getPool();
+  if (!p) return false;
+  try {
+    const r = await p.query(
+      `UPDATE shop_items SET is_active = FALSE
+       WHERE id = $1 AND user_id = $2 AND is_active = TRUE`,
+      [id, ownerUserId],
+    );
+    return (r.rowCount ?? 0) > 0;
+  } catch (err) {
+    logger.error({ err }, "dbDeactivateShopItemOwned failed");
+    return false;
+  }
+}
+
 // ── Gifts catalog (DB) — seed rows applied in migrations ──
 
 export type DbGiftRow = {

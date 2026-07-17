@@ -295,6 +295,12 @@ export const api = {
       });
       return { data: r.data?.item ?? r.data, error: r.error };
     },
+    async deleteItem(id: string) {
+      const r = await request(`/api/shop/items/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      });
+      return { data: r.data, error: r.error };
+    },
   },
 
   reports: {
