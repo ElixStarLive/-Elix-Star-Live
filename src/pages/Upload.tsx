@@ -25,6 +25,7 @@ export default function Upload() {
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [chunks, setChunks] = useState<Blob[]>([]);
+  const [mediaKind, setMediaKind] = useState<'video' | 'image'>('video');
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [toast, setToast] = useState('');
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 1500); };
@@ -123,6 +124,7 @@ export default function Upload() {
     const cached = takeCachedRecordedMedia();
     if (!cached?.url) return;
     setRecordedVideoUrl(cached.url);
+    setMediaKind(cached.kind === 'image' ? 'image' : 'video');
     if (cached.caption) setCaption(cached.caption);
     if (cached.hashtags) setHashtagsText(cached.hashtags);
     void fetch(cached.url)
@@ -370,18 +372,32 @@ export default function Upload() {
         return;
       }
 
-      // Must have video data to upload
-      if (!chunks.length) {
-        showToast('No video to upload. Record or choose a video first.');
+      // Hydrate chunks from preview URL if cache→Upload race left them empty
+      let uploadChunks = chunks;
+      if (!uploadChunks.length && recordedVideoUrl) {
+        try {
+          const blob = await fetch(recordedVideoUrl).then((r) => r.blob());
+          if (blob.size > 0) {
+            uploadChunks = [blob];
+            setChunks(uploadChunks);
+          }
+        } catch {
+          /* fall through */
+        }
+      }
+
+      // Must have video/image data to upload
+      if (!uploadChunks.length) {
+        showToast(isStoryUpload ? 'No story media to upload. Record or choose a clip first.' : 'No video to upload. Record or choose a video first.');
         return;
       }
 
       // Use the MIME type from the first chunk (which we set correctly in handleFileUpload or recording)
-      const mimeType = chunks[0].type || 'video/webm';
-      const blob = new Blob(chunks, { type: mimeType });
+      const mimeType = uploadChunks[0].type || (mediaKind === 'image' ? 'image/jpeg' : 'video/webm');
+      const blob = new Blob(uploadChunks, { type: mimeType });
 
       if (blob.size === 0) {
-        showToast('Video is empty. Record or choose a valid video.');
+        showToast(isStoryUpload ? 'Story is empty. Record or choose a valid clip.' : 'Video is empty. Record or choose a valid video.');
         return;
       }
 
@@ -389,6 +405,10 @@ export default function Upload() {
       let ext = 'webm';
       if (mimeType.includes('mp4')) ext = 'mp4';
       if (mimeType.includes('quicktime')) ext = 'mov';
+      if (mimeType.includes('png')) ext = 'png';
+      else if (mimeType.includes('jpeg') || mimeType.includes('jpg')) ext = 'jpg';
+      else if (mimeType.includes('webp')) ext = 'webp';
+      else if (mimeType.startsWith('image/')) ext = 'jpg';
 
       const file = new File([blob], `upload-${Date.now()}.${ext}`, { type: mimeType });
 
@@ -428,7 +448,9 @@ export default function Upload() {
 
         let videoId: string;
         if (isStoryUpload) {
-          videoId = await videoUploadService.uploadStory(file, authUser.id);
+          videoId = await videoUploadService.uploadStory(file, authUser.id, {
+            mediaType: mediaKind === 'image' || mimeType.startsWith('image/') ? 'image' : 'video',
+          });
         } else {
           videoId = await videoUploadService.uploadVideo(file, authUser.id, {
             description: normalizedCaption,
@@ -443,6 +465,7 @@ export default function Upload() {
         trackEvent('upload_post_success', { videoId, story: isStoryUpload });
         setRecordedVideoUrl(null);
         setChunks([]);
+        setMediaKind('video');
         setIsPosting(false);
         setPostProgress(0);
         showToast(isStoryUpload ? 'Story posted!' : 'Video posted!');
@@ -467,21 +490,19 @@ export default function Upload() {
   const handleDiscard = () => {
       setRecordedVideoUrl(null);
       setChunks([]);
+      setMediaKind('video');
   };
 
   const handleFileUpload = () => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = 'video/*';
+    input.accept = isStoryUpload ? 'video/*,image/*' : 'video/*';
     input.onchange = (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
         const url = URL.createObjectURL(file);
         setRecordedVideoUrl(url);
-        // Also set chunks so we can upload this file
-        // NOTE: For file upload, we might need to handle it differently in handlePost
-        // Currently handlePost assumes 'chunks' has the data. 
-        // Let's populate chunks with the file blob to reuse logic
+        setMediaKind(file.type.startsWith('image/') ? 'image' : 'video');
         const blob = file.slice(0, file.size, file.type);
         setChunks([blob]);
       }
@@ -523,6 +544,14 @@ export default function Upload() {
                     />
                   </div>
                 </div>
+              ) : mediaKind === 'image' ? (
+              <img
+                  src={recordedVideoUrl}
+                  alt=""
+                  className="w-full h-full object-cover z-0"
+                  style={{ filter: activeFilter !== 'none' || activeEnhance !== 'none' ? [activeFilter !== 'none' ? activeFilter : '', activeEnhance !== 'none' ? activeEnhance : ''].filter(Boolean).join(' ') : undefined }}
+                  draggable={false}
+              />
               ) : (
               <video
                   ref={videoRef}
@@ -626,7 +655,11 @@ export default function Upload() {
                          <LayoutGrid size={20} className="text-white" strokeWidth={2} />
                        </button>
                        <div className="w-12 h-12 rounded-xl overflow-hidden border-[3px] border-white flex-shrink-0 bg-black">
-                         <video src={recordedVideoUrl || undefined} className="w-full h-full object-cover" muted playsInline />
+                         {mediaKind === 'image' ? (
+                           <img src={recordedVideoUrl || undefined} alt="" className="w-full h-full object-cover" draggable={false} />
+                         ) : (
+                           <video src={recordedVideoUrl || undefined} className="w-full h-full object-cover" muted playsInline />
+                         )}
                        </div>
                        <button type="button" onClick={handleFileUpload} className="w-9 h-9 flex items-center justify-center" title="Add">
                          <Plus size={22} className="text-white" strokeWidth={2.5} />

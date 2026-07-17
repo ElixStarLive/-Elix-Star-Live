@@ -24,8 +24,13 @@ export function ForYouStoriesStrip() {
 
   useEffect(() => {
     reload();
+    const onFocus = () => reload();
+    window.addEventListener('focus', onFocus);
     const t = window.setInterval(reload, 60_000);
-    return () => window.clearInterval(t);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      window.clearInterval(t);
+    };
   }, []);
 
   const own = user?.id ? groups.find((g) => g.userId === user.id) : undefined;

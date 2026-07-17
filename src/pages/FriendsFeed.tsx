@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { RoyceBackIcon } from '../components/royce';
 import { Search, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -7,6 +7,7 @@ import { useVideoStore } from '../store/useVideoStore';
 import EnhancedVideoPlayer from '../components/EnhancedVideoPlayer';
 import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
 import { request } from '../lib/apiClient';
+import { fetchActiveStories, type StoryUserGroup } from '../lib/storiesApi';
 
 interface SuggestedUser {
   id: string;
@@ -21,9 +22,30 @@ export default function FriendsFeed() {
   const { user } = useAuthStore();
   const { friendVideos, fetchFriendVideos, friendsLoading: loading } = useVideoStore();
   const [suggestedUsers, setSuggestedUsers] = useState<SuggestedUser[]>([]);
+  const [storyGroups, setStoryGroups] = useState<StoryUserGroup[]>([]);
+  const [storyViewer, setStoryViewer] = useState<StoryUserGroup | null>(null);
+  const [storyItemIndex, setStoryItemIndex] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const friendVideoIds = friendVideos.map((v) => v.id);
+
+  const reloadStories = useCallback(() => {
+    void fetchActiveStories().then(setStoryGroups);
+  }, []);
+
+  useEffect(() => {
+    reloadStories();
+    const onFocus = () => reloadStories();
+    window.addEventListener('focus', onFocus);
+    const t = window.setInterval(reloadStories, 60_000);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      window.clearInterval(t);
+    };
+  }, [reloadStories]);
+
+  const ownStory = user?.id ? storyGroups.find((g) => g.userId === user.id) : undefined;
+  const currentStoryItem = storyViewer?.items[storyItemIndex];
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -148,14 +170,45 @@ export default function FriendsFeed() {
                   <Plus size={10} className="text-black" strokeWidth={3} />
                 </span>
               </div>
-              <div className="text-[11px] text-white/80 truncate w-full text-center">Add story</div>
+              <div className="text-[11px] text-white/80 truncate w-full text-center">
+                {ownStory?.items?.length ? 'Your story' : 'Add story'}
+              </div>
             </button>
+            {ownStory && ownStory.items.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setStoryViewer(ownStory);
+                  setStoryItemIndex(0);
+                }}
+                className="flex-shrink-0 flex flex-col items-center gap-1"
+                style={{ width: 72, minWidth: 72 }}
+                title="Your story"
+              >
+                <StoryGoldRingAvatar
+                  size={44}
+                  src={user?.avatar || '/royce/default-avatar.svg'}
+                  alt="Your story"
+                />
+                <div className="text-[11px] text-white/80 truncate w-full text-center">You</div>
+              </button>
+            ) : null}
             {/* Friends / Elix users */}
-            {suggestedUsers.map((u) => (
+            {suggestedUsers.map((u) => {
+              const friendStory = storyGroups.find((g) => g.userId === u.id);
+              return (
               <button
                 key={u.id}
                 type="button"
-                onClick={() => u.is_live ? navigate(`/watch/${u.id}`) : navigate(`/profile/${u.id}`)}
+                onClick={() => {
+                  if (friendStory?.items?.length) {
+                    setStoryViewer(friendStory);
+                    setStoryItemIndex(0);
+                    return;
+                  }
+                  if (u.is_live) navigate(`/watch/${u.id}`);
+                  else navigate(`/profile/${u.id}`);
+                }}
                 className="flex-shrink-0 flex flex-col items-center gap-1" style={{ width: 72, minWidth: 72 }}
               >
                 <StoryGoldRingAvatar
@@ -167,7 +220,8 @@ export default function FriendsFeed() {
                 />
                 <div className="text-[11px] text-white/80 truncate w-full text-center">{u.name || u.username}</div>
               </button>
-            ))}
+              );
+            })}
             </div>
           </div>
         </div>
@@ -219,6 +273,56 @@ export default function FriendsFeed() {
           )}
         </div>
       </div>
+
+      {storyViewer && currentStoryItem ? (
+        <div
+          className="fixed inset-0 z-[10060] bg-black flex items-center justify-center"
+          onClick={() => {
+            if (storyItemIndex + 1 < storyViewer.items.length) setStoryItemIndex((i) => i + 1);
+            else setStoryViewer(null);
+          }}
+        >
+          <button
+            type="button"
+            className="absolute top-[calc(env(safe-area-inset-top,0px)+12px)] left-3 z-10 text-white text-sm font-bold px-2 py-1"
+            onClick={(e) => {
+              e.stopPropagation();
+              setStoryViewer(null);
+            }}
+          >
+            Close
+          </button>
+          <div className="absolute top-[calc(env(safe-area-inset-top,0px)+48px)] left-3 right-3 flex items-center gap-2 z-10">
+            <StoryGoldRingAvatar
+              size={36}
+              src={storyViewer.avatar || '/royce/default-avatar.svg'}
+              alt={storyViewer.displayName}
+            />
+            <span className="text-white text-sm font-semibold truncate">{storyViewer.displayName}</span>
+          </div>
+          {currentStoryItem.mediaType === 'image' ? (
+            <img
+              src={currentStoryItem.mediaUrl}
+              alt=""
+              className="max-w-full max-h-full object-contain"
+              draggable={false}
+            />
+          ) : (
+            <video
+              key={currentStoryItem.id}
+              src={currentStoryItem.mediaUrl}
+              className="max-w-full max-h-full object-contain"
+              autoPlay
+              playsInline
+              controls={false}
+              onEnded={() => {
+                if (storyItemIndex + 1 < storyViewer.items.length) setStoryItemIndex((i) => i + 1);
+                else setStoryViewer(null);
+              }}
+            />
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }

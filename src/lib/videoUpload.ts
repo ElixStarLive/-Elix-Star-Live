@@ -192,7 +192,11 @@ export class VideoUploadService {
   }
 
   /** Upload a 24h story to Bunny + Neon `/api/stories` (not For You videos). */
-  async uploadStory(file: File, userId: string): Promise<string> {
+  async uploadStory(
+    file: File,
+    userId: string,
+    opts?: { mediaType?: "video" | "image" },
+  ): Promise<string> {
     try {
       const storeUser = useAuthStore.getState().user;
       if (!storeUser || storeUser.id !== userId) {
@@ -202,29 +206,53 @@ export class VideoUploadService {
         throw new Error("Story file is empty. Record or choose a valid clip.");
       }
 
-      this.validateVideo(file);
+      const isImage =
+        opts?.mediaType === "image" ||
+        (!!file.type && file.type.startsWith("image/"));
+
+      if (isImage) {
+        if (file.size > MAX_FILE_SIZE) {
+          throw new Error(
+            `File too large. Maximum size is ${MAX_FILE_SIZE / 1024 / 1024} MB.`,
+          );
+        }
+        this.updateProgress("validating", 30, "Validation complete");
+      } else {
+        this.validateVideo(file);
+      }
+
       this.updateProgress("uploading", 40, "Uploading story to Bunny CDN…");
 
       const storyId = crypto.randomUUID();
-      const fileExt = file.name.split(".").pop() || "mp4";
+      const fileExt =
+        file.name.split(".").pop() ||
+        (isImage
+          ? file.type.includes("png")
+            ? "png"
+            : "jpg"
+          : "mp4");
       const storagePath = `stories/${userId}/${storyId}/original.${fileExt}`;
       const { cdnUrl: mediaUrl } = await bunnyUpload(
         file,
         storagePath,
-        file.type || "video/mp4",
+        file.type || (isImage ? "image/jpeg" : "video/mp4"),
       );
 
       this.updateProgress("processing", 75, "Generating thumbnail…");
       let thumbnailUrl = "";
-      try {
-        thumbnailUrl = await Promise.race([
-          this.generateAndUploadThumbnail(file, userId, storyId),
-          new Promise<string>((_, reject) =>
-            setTimeout(() => reject(new Error("timeout")), 10_000),
-          ),
-        ]);
-      } catch {
-        /* optional */
+      if (isImage) {
+        thumbnailUrl = mediaUrl;
+      } else {
+        try {
+          thumbnailUrl = await Promise.race([
+            this.generateAndUploadThumbnail(file, userId, storyId),
+            new Promise<string>((_, reject) =>
+              setTimeout(() => reject(new Error("timeout")), 10_000),
+            ),
+          ]);
+        } catch {
+          /* optional */
+        }
       }
 
       this.updateProgress("processing", 88, "Saving story to Neon…");
@@ -233,15 +261,19 @@ export class VideoUploadService {
         id: storyId,
         url: mediaUrl,
         thumbnailUrl,
-        mediaType: "video",
+        mediaType: isImage ? "image" : "video",
       });
 
       this.updateProgress("complete", 100, "Story posted!");
-      trackEvent("story_upload", { story_id: storyId });
+      trackEvent("story_upload", { story_id: storyId, media_type: isImage ? "image" : "video" });
       return storyId;
     } catch (error) {
       trackEvent("story_upload_failed", { error: String(error) });
-      throw new Error(error?.message || "Story upload failed");
+      const msg =
+        error instanceof Error
+          ? error.message
+          : (error as { message?: string })?.message || "Story upload failed";
+      throw new Error(msg);
     }
   }
 
