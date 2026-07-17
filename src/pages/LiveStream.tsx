@@ -5874,18 +5874,23 @@ export default function LiveStream() {
                 <span className="text-[10px] font-semibold text-white/70">{isCamOff ? 'Cam On' : 'Cam Off'}</span>
               </button>
 
+              <button
+                type="button"
+                disabled={!isBroadcast}
+                onClick={() => { setShowLiveEffectsPanel(true); setIsMoreMenuOpen(false); }}
+                className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform disabled:opacity-40"
+              >
+                <div className="w-11 h-11 rounded-full relative flex items-center justify-center">
+                  <Sparkles className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />
+                </div>
+                <span className="text-[10px] font-semibold text-white/70">Effects</span>
+              </button>
+
               <button type="button" onClick={() => { setIsChatVisible((v) => !v); setIsMoreMenuOpen(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform">
                 <div className="w-11 h-11 rounded-full relative flex items-center justify-center">
 <MessageCircle className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />
                 </div>
                 <span className="text-[10px] font-semibold text-white/70">{isChatVisible ? 'Hide Chat' : 'Show Chat'}</span>
-              </button>
-
-              <button type="button" disabled={!isBroadcast} onClick={() => { setShowLiveEffectsPanel(true); setIsMoreMenuOpen(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform disabled:opacity-40">
-                <div className="w-11 h-11 rounded-full relative flex items-center justify-center">
-                  <Sparkles className={`w-[18px] h-[18px] relative z-[2] ${liveFilterCss !== 'none' ? 'text-[#D4AF37]' : 'text-[#D4AF37]'}`} strokeWidth={1.8} />
-                </div>
-                <span className="text-[10px] font-semibold text-white/70">Effects</span>
               </button>
 
               <button type="button" onClick={() => { setIsReportModalOpen(true); setIsMoreMenuOpen(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform">
