@@ -135,8 +135,8 @@ export default function Privacy() {
           <Section title="9. Cookies & Tracking">
             <p>
               The App uses minimal cookies and local storage to maintain your session and preferences.
-              We do not use third-party advertising trackers. Analytics data is collected anonymously
-              to improve the App experience.
+              We do not use third-party advertising trackers. Analytics data is associated with your
+              account and used only to improve the App experience; it is deleted with your account.
             </p>
           </Section>
 

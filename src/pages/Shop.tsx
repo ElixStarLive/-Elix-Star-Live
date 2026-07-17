@@ -340,7 +340,7 @@ export default function Shop() {
                 )}
                 <div className="p-3">
                   <h3 className="text-sm font-bold text-gold-metallic truncate">{item.title}</h3>
-                  <p className="text-lg font-extrabold text-white mt-0.5">${item.price.toFixed(2)}</p>
+                  <p className="text-lg font-extrabold text-white mt-0.5">£{item.price.toFixed(2)}</p>
                   {item.description && (
                     <p className="text-[11px] text-white/40 mt-1 line-clamp-2">{item.description}</p>
                   )}
@@ -425,7 +425,7 @@ export default function Shop() {
                 <input
                   value={newPrice}
                   onChange={e => setNewPrice(e.target.value)}
-                  placeholder="Price ($)"
+                  placeholder="Price (£)"
                   type="number"
                   min="0"
                   step="0.01"

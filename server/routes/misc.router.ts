@@ -34,8 +34,8 @@ router.post("/live/moderation/check", handleLiveModerationCheck);
 
 // IAP verification
 router.post("/verify-purchase", verifyPurchaseLimiter, validateBody(verifyPurchaseSchema), handleVerifyPurchase);
-router.post("/promote-iap-complete", handlePromoteIAPComplete);
-router.post("/membership/iap-complete", handleMembershipIAPComplete);
+router.post("/promote-iap-complete", verifyPurchaseLimiter, handlePromoteIAPComplete);
+router.post("/membership/iap-complete", verifyPurchaseLimiter, handleMembershipIAPComplete);
 
 // Device tokens
 router.post("/device-tokens", handleRegisterDeviceToken);

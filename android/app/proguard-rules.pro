@@ -24,6 +24,16 @@
 # Keep app classes
 -keep class com.elixstarlive.app.** { *; }
 
+# Keep @capgo/native-purchases (Google Play Billing bridge) — R8 must not strip it
+-keep class ee.forgr.nativepurchases.** { *; }
+-keep class com.android.billingclient.** { *; }
+-dontwarn com.android.billingclient.**
+
+# Keep Capacitor Push Notifications plugin + Firebase Messaging
+-keep class com.capacitorjs.plugins.pushnotifications.** { *; }
+-keep class com.google.firebase.messaging.** { *; }
+-dontwarn com.google.firebase.**
+
 # Keep JavaScript interface for WebView
 -keepclassmembers class * {
     @android.webkit.JavascriptInterface <methods>;
