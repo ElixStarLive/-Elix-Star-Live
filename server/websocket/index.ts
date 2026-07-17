@@ -233,7 +233,11 @@ export function broadcastToRoom(
 /**
  * Atomic claim: SET NX ensures only one worker/request can claim a transaction.
  * Returns { claimed: true } on first call, { claimed: false } on duplicates.
+ * When Valkey is not configured, uses process-local memory so single-instance
+ * deploys still broadcast verified gifts (creator gift video play).
  */
+const localTxnClaims = new Map<string, number>();
+
 export async function tryClaimTransaction(
   transactionId: string,
   timestamp: number,
@@ -242,10 +246,21 @@ export async function tryClaimTransaction(
     if (!_warnedTryClaimNoValkey) {
       _warnedTryClaimNoValkey = true;
       logger.warn(
-        "tryClaimTransaction: Valkey not configured — denying claim (fail-closed). DB ON CONFLICT is safety net.",
+        "tryClaimTransaction: Valkey not configured — using in-memory claim (single instance).",
       );
     }
-    return { claimed: false };
+    const existing = localTxnClaims.get(transactionId);
+    if (existing != null) {
+      return { claimed: false, existingTimestamp: existing };
+    }
+    localTxnClaims.set(transactionId, timestamp);
+    if (localTxnClaims.size > 5_000) {
+      const cutoff = timestamp - 300_000;
+      for (const [k, ts] of localTxnClaims) {
+        if (ts < cutoff) localTxnClaims.delete(k);
+      }
+    }
+    return { claimed: true };
   }
   const key = `txn:${transactionId}`;
   const claimed = await valkeySetNx(key, String(timestamp), 300_000);

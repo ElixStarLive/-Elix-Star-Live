@@ -121,7 +121,7 @@ export function GiftOverlay({
     }, 8000);
 
     const path = videoSrc.split('?')[0].toLowerCase();
-    const isVideo = path.endsWith('.mp4') || path.endsWith('.webm');
+    const isVideo = path.endsWith('.mp4') || path.endsWith('.webm') || path.endsWith('.mov');
 
     if (!isVideo) {
       if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
@@ -157,7 +157,7 @@ export function GiftOverlay({
       className="fixed left-0 right-0 bottom-0 mx-auto w-full max-w-[480px] pointer-events-none overflow-hidden"
       style={{
         height: 'calc(70% - 25mm)',
-        zIndex: 210,
+        zIndex: 400,
         WebkitMaskImage: 'linear-gradient(to top, black 0%, black 60%, transparent 100%)',
         maskImage: 'linear-gradient(to top, black 0%, black 60%, transparent 100%)',
       }}

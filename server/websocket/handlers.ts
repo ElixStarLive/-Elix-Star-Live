@@ -11,7 +11,7 @@ import {
   getBattleScores,
   saveBattleToStore,
 } from "./battle";
-import { getGiftValue, normalizeBattleTarget } from "./giftRegistry";
+import { getGiftValue, getGiftAnimationUrl, getGiftIconUrl, normalizeBattleTarget } from "./giftRegistry";
 import {
   broadcastToFeedSubscribers,
 } from "../feedBroadcast";
@@ -181,6 +181,13 @@ export async function handleMessage(
           battleTarget: normalizeBattleTarget(data.battleTarget) || null,
           user_id: client.userId,
           username: client.username,
+          avatar: typeof data?.avatar === "string" ? data.avatar : "",
+          level: typeof data?.level === "number" ? data.level : 1,
+          // Server-resolved playable URL so creator/spectators do not depend only
+          // on a client-side gifts catalog that may still be loading.
+          video: getGiftAnimationUrl(verified.giftId),
+          animation_url: getGiftAnimationUrl(verified.giftId),
+          gift_icon: getGiftIconUrl(verified.giftId),
           timestamp: new Date().toISOString(),
         });
 

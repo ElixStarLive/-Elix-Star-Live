@@ -2737,7 +2737,9 @@ export default function LiveStream() {
       }
 
       // Play gift video for other users' gifts (sender already queued locally).
-      if (gifterId && gifterId !== user?.id) {
+      // Match spectator: play whenever the sender is not this user (giftId may
+      // arrive before catalog load; pickGiftVideoUrl uses WS video first).
+      if (!gifterId || gifterId !== user?.id) {
         const videoUrl = pickGiftVideoUrl(data, giftsCatalogRef.current);
         if (videoUrl) {
           setGiftQueue((prev) => [...prev, { video: videoUrl }]);
