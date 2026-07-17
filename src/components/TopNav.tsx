@@ -49,7 +49,7 @@ export const TopNav = () => {
                     }`}
                   >
                     {"live" in tab && tab.live ? (
-                      <Tv size={11} strokeWidth={2.25} className="shrink-0" />
+                      <Tv size={11} strokeWidth={2.25} className="shrink-0 -translate-y-[0.5mm]" />
                     ) : null}
                     {tab.label}
                   </span>
