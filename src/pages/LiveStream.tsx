@@ -6129,7 +6129,7 @@ export default function LiveStream() {
             </div>
 
             {/* Share to followers */}
-            <div className="flex gap-3 overflow-x-auto overflow-y-hidden pb-3 flex-shrink-0 px-4 no-scrollbar">
+            <div className="flex gap-3 overflow-x-auto overflow-y-hidden pt-2 pb-3 flex-shrink-0 px-4 no-scrollbar">
               {shareFollowers.filter(f => f.username?.toLowerCase().includes(shareQuery.toLowerCase())).map((f) => (
                 <button
                   key={f.user_id}
@@ -6153,9 +6153,12 @@ export default function LiveStream() {
               ))}
             </div>
 
+            {/* Line between user circles and action icons */}
+            <div className="mx-4 border-t border-[#D4AF37]/45 flex-shrink-0" aria-hidden />
+
             {/* Share options — same layout as ShareModal */}
             <div className="flex-1 overflow-y-scroll overflow-x-hidden min-h-0 px-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#C9A227]/60 [&::-webkit-scrollbar-thumb]:rounded-full">
-              <div className="grid grid-cols-5 gap-y-3 gap-x-1.5 pt-1" style={{ marginTop: '5mm' }}>
+              <div className="grid grid-cols-5 gap-y-3 gap-x-1.5 pt-3" style={{ marginTop: '5mm' }}>
                 {[
                   { name: 'WhatsApp', icon: <MessageCircle size={22} className="text-white" />, action: () => { openExternalLink(`https://wa.me/?text=${encodeURIComponent('Watch my LIVE on Elix! ' + `${window.location.origin}/live/${effectiveStreamId}`)}`); setShowSharePanel(false); } },
                   { name: 'Facebook', icon: <Share2 size={22} className="text-white" />, action: () => { openExternalLink(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${window.location.origin}/live/${effectiveStreamId}`)}`); setShowSharePanel(false); } },
