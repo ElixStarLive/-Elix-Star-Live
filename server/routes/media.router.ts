@@ -112,6 +112,7 @@ export default router;
 // Separate video upload router (needs raw body BEFORE express.json)
 export const videoUploadRouter = Router();
 videoUploadRouter.use(
+  uploadLimiter,
   express.raw({
     type: ["application/octet-stream", "video/mp4", "video/webm"],
     limit: "500mb",

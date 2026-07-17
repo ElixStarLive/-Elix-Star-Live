@@ -36,6 +36,27 @@ export function validateProductionEnvironment(): void {
     logger.fatal("STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET are required in production for shop checkout");
     process.exit(1);
   }
+
+  // Live streaming: fail fast so the app does not boot "healthy" while every
+  // live token request fails at runtime.
+  if (
+    !process.env.LIVEKIT_URL?.trim() ||
+    !process.env.LIVEKIT_API_KEY?.trim() ||
+    !process.env.LIVEKIT_API_SECRET?.trim()
+  ) {
+    logger.fatal(
+      "LIVEKIT_URL, LIVEKIT_API_KEY and LIVEKIT_API_SECRET are required in production for live streaming",
+    );
+    process.exit(1);
+  }
+
+  // Media storage: avatar/video/sticker uploads fail without these Bunny keys.
+  if (!process.env.BUNNY_STORAGE_ZONE?.trim() || !process.env.BUNNY_STORAGE_API_KEY?.trim()) {
+    logger.fatal(
+      "BUNNY_STORAGE_ZONE and BUNNY_STORAGE_API_KEY are required in production for media uploads",
+    );
+    process.exit(1);
+  }
   const appleReady =
     !!process.env.APPLE_ISSUER_ID?.trim() &&
     !!process.env.APPLE_KEY_ID?.trim() &&

@@ -427,6 +427,16 @@ export async function handleGetLiveToken(req: Request, res: Response) {
     if (!streamExists) {
       return res.status(404).json({ error: 'Stream not found or already ended.' });
     }
+
+    // A blocked user must not obtain a subscribe token and watch the host's
+    // media (block is otherwise only enforced on the WS/chat channel).
+    const ownerId = await resolveStreamOwnerUserId(roomName);
+    if (ownerId && ownerId !== auth.userId) {
+      const { dbIsBlockedEitherWay } = await import('../lib/postgres');
+      if (await dbIsBlockedEitherWay(auth.userId, ownerId)) {
+        return res.status(403).json({ error: 'You cannot view this stream.' });
+      }
+    }
   }
 
   try {

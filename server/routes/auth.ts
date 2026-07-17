@@ -75,7 +75,17 @@ function getLoginDecoyHash(): Promise<string> {
 
 const RESET_TOKEN_EXPIRY_SEC = 60 * 60; // 1 hour — purpose-bound, not a session
 
-function signToken(payload: { sub: string; email: string }, opts?: { purpose?: string; expirySec?: number }): string {
+// Binds a purpose-bound token (e.g. password reset) to the account's current
+// password hash. After a successful reset the hash changes, so an old token's
+// binding no longer matches — making reset links effectively single-use.
+export function passwordResetBinding(passwordHash: string): string {
+  return crypto.createHash('sha256').update(String(passwordHash)).digest('base64url').slice(0, 22);
+}
+
+function signToken(
+  payload: { sub: string; email: string },
+  opts?: { purpose?: string; expirySec?: number; pv?: string },
+): string {
   const secret = getSecret();
   const header = { alg: 'HS256', typ: 'JWT' };
   const now = Math.floor(Date.now() / 1000);
@@ -86,6 +96,7 @@ function signToken(payload: { sub: string; email: string }, opts?: { purpose?: s
     exp: now + (opts?.expirySec ?? TOKEN_EXPIRY_SEC),
   };
   if (opts?.purpose) body.purpose = opts.purpose;
+  if (opts?.pv) body.pv = opts.pv;
   const b64 = (obj: object) => Buffer.from(JSON.stringify(obj)).toString('base64url');
   const part1 = b64(header);
   const part2 = b64(body);
@@ -93,7 +104,7 @@ function signToken(payload: { sub: string; email: string }, opts?: { purpose?: s
   return `${part1}.${part2}.${sig}`;
 }
 
-function verifyToken(token: string): { sub: string; email: string; purpose?: string } | null {
+function verifyToken(token: string): { sub: string; email: string; purpose?: string; pv?: string } | null {
   try {
     const parts = token.split('.');
     if (parts.length !== 3) return null;
@@ -111,6 +122,7 @@ function verifyToken(token: string): { sub: string; email: string; purpose?: str
       sub: payload.sub,
       email: payload.email ?? '',
       purpose: typeof payload.purpose === 'string' ? payload.purpose : undefined,
+      pv: typeof payload.pv === 'string' ? payload.pv : undefined,
     };
   } catch {
     return null;
@@ -747,9 +759,14 @@ export async function handleForgotPassword(req: Request, res: Response) {
     }
 
     // Purpose-bound short-lived token — cannot be used as a session JWT.
+    // Bound to the current password hash so it can only be redeemed once.
     const resetToken = signToken(
       { sub: user.id, email: user.email },
-      { purpose: 'password_reset', expirySec: RESET_TOKEN_EXPIRY_SEC },
+      {
+        purpose: 'password_reset',
+        expirySec: RESET_TOKEN_EXPIRY_SEC,
+        pv: passwordResetBinding(user.passwordHash),
+      },
     );
     const origin = process.env.APP_ORIGIN || req.headers.origin || 'https://www.elixstarlive.co.uk';
     const resetLink = `${origin}/reset-password?token=${encodeURIComponent(resetToken)}`;
@@ -790,6 +807,12 @@ export async function handleResetPassword(req: Request, res: Response) {
   try {
     const user = await dbFindUserById(payload.sub);
     if (!user) return res.status(404).json({ error: 'User not found.' });
+    // Single-use enforcement: the token is bound to the password hash that was
+    // current when the link was issued. Once used (or if the password changed),
+    // the binding no longer matches and the link is rejected.
+    if (!payload.pv || payload.pv !== passwordResetBinding(user.passwordHash)) {
+      return res.status(401).json({ error: 'This reset link has already been used or is no longer valid.' });
+    }
     const pool = getPool();
     if (!pool) return res.status(503).json({ error: 'Database not configured' });
     await ensureAuthUsersTable();

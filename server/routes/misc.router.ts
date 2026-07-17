@@ -17,7 +17,7 @@ import { handleLiveModerationCheck } from "./moderation";
 import { handleGetStickers, handleUploadSticker, handleDeleteSticker } from "./stickers";
 import { validateBody } from "../middleware/validate";
 import { blockUserSchema, reportSchema, verifyPurchaseSchema } from "../validation/schemas";
-import { analyticsPostLimiter, verifyPurchaseLimiter } from "../middleware/rateLimit";
+import { analyticsPostLimiter, moderationLimiter, verifyPurchaseLimiter } from "../middleware/rateLimit";
 
 const router = Router();
 
@@ -25,10 +25,10 @@ const router = Router();
 router.post("/analytics/track", analyticsPostLimiter, handleAnalytics);
 
 // Block & report
-router.post("/block-user", validateBody(blockUserSchema), handleBlockUser);
-router.post("/unblock-user", handleUnblockUser);
+router.post("/block-user", moderationLimiter, validateBody(blockUserSchema), handleBlockUser);
+router.post("/unblock-user", moderationLimiter, handleUnblockUser);
 router.get("/blocked-users", handleListBlockedUsers);
-router.post("/report", validateBody(reportSchema), handleReport);
+router.post("/report", moderationLimiter, validateBody(reportSchema), handleReport);
 
 // Live moderation
 router.post("/live/moderation/check", handleLiveModerationCheck);

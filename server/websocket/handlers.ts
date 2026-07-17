@@ -612,12 +612,24 @@ export async function handleMessage(
         break;
       }
 
-      case "booster_activated":
+      case "booster_activated": {
+        if (!(await wsRateCheck(client.userId, "booster", 20, 60_000))) break;
+        // Forward only primitive scalar fields (no nested objects/arrays) so a
+        // client cannot rebroadcast arbitrary payloads to the whole room.
+        const safeBooster: Record<string, string | number | boolean> = {};
+        if (data && typeof data === "object") {
+          for (const [k, v] of Object.entries(data as Record<string, unknown>)) {
+            if (Object.keys(safeBooster).length >= 12) break;
+            if (typeof v === "string") safeBooster[k] = v.slice(0, 200);
+            else if (typeof v === "number" || typeof v === "boolean") safeBooster[k] = v;
+          }
+        }
         broadcastToRoom(client.roomId, "booster_activated", {
-          ...data,
+          ...safeBooster,
           user_id: client.userId,
         });
         break;
+      }
 
       case "gift_goal_set": {
         if (!(await wsRateCheck(client.userId, "gift_goal", 10, 60_000))) break;

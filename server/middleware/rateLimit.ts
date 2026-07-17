@@ -166,3 +166,11 @@ export const risingStarsEnterLimiter = rateLimit({
   max: 5,
   keyPrefix: "rs_enter",
 });
+
+// Moderation actions (report / block / unblock). Prevents abuse-report spam and
+// block/unblock flapping while staying well above any legitimate user rate.
+export const moderationLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 30,
+  keyPrefix: "moderation",
+});

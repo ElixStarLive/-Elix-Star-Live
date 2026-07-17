@@ -199,7 +199,6 @@ app.use("/api/stripe-webhook", stripeWebhookRouter);
 app.post("/api/livekit/webhook", livekitWebhookRouter);
 app.use("/api/webhooks/google-play", googlePlayRtdnRouter);
 app.use("/api/webhooks/apple-iap", appleIapNotifyRouter);
-app.use("/api/upload/video", videoUploadRouter);
 
 app.use(
   "/api/media/upload-file",
@@ -351,6 +350,12 @@ app.use("/api", apiLimiter);
 
 // ── Global session + ban enforcement (revocation + suspensions) ──
 app.use("/api", sessionGuard);
+
+// Legacy video upload: mounted here (after backpressure/rate-limit/session
+// guard) so banned/revoked sessions are enforced and the endpoint is throttled.
+// Uses octet-stream/video content types, which express.json() above skips, so
+// its own raw body parser still receives the stream.
+app.use("/api/upload/video", videoUploadRouter);
 
 // ── Mount all API routes ─────────────────────────────────────────
 mountRoutes(app);
