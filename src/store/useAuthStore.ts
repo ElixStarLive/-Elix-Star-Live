@@ -426,23 +426,67 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
 
   // ── Apple sign-in ────────────────────────────────────────────────────────
   signInWithApple: async () => {
+    if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== "ios") {
+      return { error: "Sign in with Apple is available in the iOS app." };
+    }
     try {
-      const { data, error } = await request("/api/auth/apple/start", {
+      const { SocialLogin } = await import("@capgo/capacitor-social-login");
+      await SocialLogin.initialize({
+        apple: {
+          clientId: "com.elixstarlive.app",
+          redirectUrl: "",
+          useProperTokenExchange: false,
+        },
+      });
+      const state = globalThis.crypto.randomUUID();
+      const apple = await SocialLogin.login({
+        provider: "apple",
+        options: {
+          scopes: ["email", "name"],
+          state,
+        },
+      });
+      const result = apple.result;
+      if (!result.idToken) {
+        return { error: "Apple did not return a valid identity token." };
+      }
+
+      const { data, error } = await request("/api/auth/apple/native", {
         method: "POST",
         body: JSON.stringify({
-          redirectTo: window.location.origin + "/auth/callback",
+          idToken: result.idToken,
+          givenName: result.profile.givenName,
+          familyName: result.profile.familyName,
         }),
       });
       if (error) {
         return { error: error.message || "Apple sign-in failed." };
       }
-      if (data?.url) {
-        window.location.href = data.url as string;
-        return { error: null };
+      const parsed = parseAuthLoginRegisterResponse(data);
+      if (!parsed) {
+        return { error: "Apple sign-in returned an invalid session." };
       }
-      return { error: "Apple sign-in is not available at this time." };
-    } catch (e) {
-      return { error: e?.message || "Apple sign-in failed." };
+      const backendUser = parsed.user as AuthUser;
+      const mappedBase = mapUserToUser(backendUser);
+      if (!mappedBase) return { error: "Apple account could not be loaded." };
+      const mapped = applyProfileMeta(
+        mappedBase,
+        (data as { profile_meta?: { is_admin?: boolean; is_creator?: boolean } })?.profile_meta,
+      );
+      set({
+        backendUser,
+        session: { user: backendUser, access_token: parsed.accessToken },
+        user: mapped,
+        isAuthenticated: true,
+        isLoading: false,
+        authMode: "client",
+      });
+      void notificationService.registerTokenWithBackend();
+      return { error: null };
+    } catch (e: unknown) {
+      const err = e as { code?: string; message?: string };
+      if (err.code === "USER_CANCELLED") return { error: "Apple sign-in cancelled." };
+      return { error: err.message || "Apple sign-in failed." };
     }
   },
   signInAsGuest: async () => {

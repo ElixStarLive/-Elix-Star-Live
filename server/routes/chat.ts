@@ -12,6 +12,8 @@ import {
   dbUnreadCountForThread,
 } from "../lib/postgres";
 import { getOrCreateProfile } from "./profiles";
+import { insertNotification } from "../lib/notifications";
+import { logger } from "../lib/logger";
 
 function requireAuth(req: Request, res: Response): { userId: string } | null {
   const token = getTokenFromRequest(req);
@@ -159,6 +161,19 @@ export async function handlePostChatMessage(req: Request, res: Response) {
   const msg = await dbAppendChatMessage(threadId, auth.userId, text);
   if (!msg) {
     return res.status(400).json({ error: "Could not send message" });
+  }
+  try {
+    const preview = text.length > 80 ? `${text.slice(0, 77)}...` : text;
+    await insertNotification({
+      userId: otherId,
+      type: "chat_message",
+      title: "New message",
+      body: preview,
+      actionUrl: `/inbox/${encodeURIComponent(threadId)}`,
+      data: { path: `/inbox/${threadId}`, thread_id: threadId },
+    });
+  } catch (err) {
+    logger.warn({ err, threadId }, "handlePostChatMessage: push skipped");
   }
   return res.status(201).json({ message: msg });
 }

@@ -16,6 +16,11 @@ import {
   hashPurchaseToken,
   verifyGoogleSubscription,
 } from "../lib/googlePlaySubscriptions";
+import {
+  hashAppleOriginalTransactionId,
+  verifyAppleJwsPayload,
+  verifyAppleSubscription,
+} from "../lib/appleIap";
 
 function googleProviderTxnFromToken(purchaseToken: string): string {
   return `token_sha256:${createHash("sha256").update(purchaseToken).digest("hex")}`;
@@ -34,15 +39,85 @@ function callbackSecretIsValid(req: Request, expected: string | undefined): bool
   return actual.length === wanted.length && timingSafeEqual(actual, wanted);
 }
 
-function decodeJwtPayload(token: string): Record<string, unknown> | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const json = Buffer.from(parts[1], "base64url").toString("utf8");
-    return JSON.parse(json) as Record<string, unknown>;
-  } catch {
-    return null;
+async function decodeAppleNotificationPayload(
+  token: string,
+): Promise<Record<string, unknown> | null> {
+  const verified = await verifyAppleJwsPayload(token);
+  if (verified) return verified as Record<string, unknown>;
+  // Fail closed for membership/refund paths — unsigned payloads are rejected.
+  return null;
+}
+
+async function reconcileAppleSubscriptionEntitlement(
+  originalTransactionId: string,
+  productIdHint?: string,
+): Promise<{ ok: boolean; updated: boolean; detail?: string }> {
+  const pool = getPool();
+  if (!pool) return { ok: false, detail: "database_unavailable" };
+
+  const purchaseTokenHash = hashAppleOriginalTransactionId(originalTransactionId);
+  const existing = await pool.query(
+    `SELECT user_id, creator_id, product_id
+       FROM elix_membership_purchases
+      WHERE provider = 'apple'
+        AND (
+          purchase_token_hash = $1
+          OR provider_transaction_id = $2
+        )
+      LIMIT 1`,
+    [purchaseTokenHash, originalTransactionId],
+  );
+  if (!existing.rowCount) {
+    return { ok: true, updated: false, detail: "membership_not_found" };
   }
+
+  const row = existing.rows[0];
+  const productId =
+    (row.product_id != null ? String(row.product_id) : "") ||
+    (productIdHint ? String(productIdHint) : "");
+  const userId = String(row.user_id);
+  const creatorId = row.creator_id != null ? String(row.creator_id) : "";
+  if (!productId || !creatorId) {
+    return { ok: true, updated: false, detail: "membership_incomplete" };
+  }
+
+  const verified = await verifyAppleSubscription(originalTransactionId, productId);
+  if (verified.ok && verified.entitled) {
+    const upserted = await neonUpsertMembershipEntitlement({
+      userId,
+      creatorId,
+      provider: "apple",
+      purchaseTokenHash,
+      providerTransactionId: verified.originalTransactionId,
+      productId,
+      basePlanId: "monthly",
+      subscriptionState: verified.subscriptionState,
+      expiresAt: verified.expiresAt,
+      autoRenewEnabled: verified.autoRenewEnabled,
+      acknowledgementState: "ACKNOWLEDGED",
+      latestOrderId: verified.transactionId,
+      linkedPurchaseTokenHash: null,
+      verification: {
+        provider: "apple",
+        source: "app_store_notification",
+        productId,
+        subscriptionState: verified.subscriptionState,
+        expiresAt: verified.expiresAt,
+      },
+    });
+    if (!upserted.ok) return { ok: false, updated: false, detail: upserted.error };
+    return { ok: true, updated: true };
+  }
+
+  const state = verified.subscriptionState || "EXPIRED";
+  const updated = await neonUpdateMembershipSubscriptionState({
+    purchaseTokenHash,
+    subscriptionState: state,
+    expiresAt: null,
+    autoRenewEnabled: false,
+  });
+  if (!updated.ok) return { ok: false, updated: false, detail: updated.error };
+  return { ok: true, updated: updated.updated };
 }
 
 async function reconcileGoogleSubscriptionEntitlement(purchaseToken: string): Promise<{
@@ -234,7 +309,7 @@ export async function handleAppleIapNotification(req: Request, res: Response) {
       return res.status(400).json({ error: "signedPayload required" });
     }
 
-    const outer = decodeJwtPayload(signedPayload);
+    const outer = await decodeAppleNotificationPayload(signedPayload);
     if (!outer) return res.status(400).json({ error: "Invalid signedPayload" });
 
     const notificationType = String(outer.notificationType || "");
@@ -244,11 +319,15 @@ export async function handleAppleIapNotification(req: Request, res: Response) {
     >;
     const signedTransactionInfo =
       typeof data.signedTransactionInfo === "string" ? data.signedTransactionInfo : "";
-    const tx = signedTransactionInfo ? decodeJwtPayload(signedTransactionInfo) : null;
+    const tx = signedTransactionInfo
+      ? await decodeAppleNotificationPayload(signedTransactionInfo)
+      : null;
     const transactionId =
-      (tx && typeof tx.transactionId === "string" && tx.transactionId) ||
+      (tx && typeof tx.transactionId === "string" && tx.transactionId) || "";
+    const originalTransactionId =
       (tx && typeof tx.originalTransactionId === "string" && tx.originalTransactionId) ||
-      "";
+      transactionId;
+    const productId = tx && typeof tx.productId === "string" ? tx.productId : "";
 
     if (
       (notificationType === "REFUND" ||
@@ -268,6 +347,9 @@ export async function handleAppleIapNotification(req: Request, res: Response) {
         logger.error({ result, notificationType }, "Apple IAP reverse failed");
         return res.status(500).json({ error: "reverse_failed" });
       }
+      if (originalTransactionId) {
+        await reconcileAppleSubscriptionEntitlement(originalTransactionId, productId);
+      }
       logger.info(
         {
           transactionId,
@@ -279,6 +361,29 @@ export async function handleAppleIapNotification(req: Request, res: Response) {
         "Apple IAP refund/revoke processed",
       );
       return res.status(200).json({ ok: true });
+    }
+
+    const membershipLifecycle = new Set([
+      "SUBSCRIBED",
+      "DID_RENEW",
+      "DID_CHANGE_RENEWAL_STATUS",
+      "DID_FAIL_TO_RENEW",
+      "GRACE_PERIOD_EXPIRED",
+      "EXPIRED",
+      "DID_CHANGE_RENEWAL_PREF",
+      "OFFER_REDEEMED",
+      "PRICE_INCREASE",
+    ]);
+    if (membershipLifecycle.has(notificationType) && originalTransactionId) {
+      const reconciled = await reconcileAppleSubscriptionEntitlement(
+        originalTransactionId,
+        productId,
+      );
+      if (!reconciled.ok) {
+        logger.error({ reconciled, notificationType }, "Apple membership reconcile failed");
+        return res.status(500).json({ error: "membership_reconcile_failed" });
+      }
+      return res.status(200).json({ ok: true, updated: reconciled.updated });
     }
 
     return res.status(200).json({ ok: true, ignored: true });

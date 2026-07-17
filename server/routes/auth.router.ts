@@ -1,7 +1,7 @@
 import { Router } from "express";
 import {
   handleLogin, handleRegister, handleLogout, handleMe,
-  handleResendConfirmation, handleAppleStart, handleGuestLogin,
+  handleResendConfirmation, handleAppleNative, handleAppleStart, handleGuestLogin,
   handleDeleteAccount, handleForgotPassword, handleResetPassword,
 } from "./auth";
 import { authLimiter, registerLimiter } from "../middleware/rateLimit";
@@ -17,6 +17,7 @@ router.post("/delete", handleDeleteAccount);
 router.get("/me", handleMe);
 router.post("/resend-confirmation", validateBody(emailOnlySchema), handleResendConfirmation);
 router.post("/apple/start", handleAppleStart);
+router.post("/apple/native", authLimiter, handleAppleNative);
 router.post("/forgot-password", authLimiter, validateBody(emailOnlySchema), handleForgotPassword);
 router.post("/reset-password", authLimiter, validateBody(resetPasswordSchema), handleResetPassword);
 export default router;

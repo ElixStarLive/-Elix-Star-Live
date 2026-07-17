@@ -26,6 +26,8 @@ import {
 } from '../lib/valkey';
 import { bumpCacheLayer } from '../lib/cacheLayerMetrics';
 import { hasCohostPublishGrant, getCohostLayout } from '../websocket/index';
+import { insertNotification } from '../lib/notifications';
+import { getFollowerIdsAsync } from './profiles';
 
 const STREAM_KEY_PREFIX = 'stream:';
 const STREAM_TTL_SECONDS = 86400;
@@ -326,6 +328,27 @@ export async function handleLiveStart(req: Request, res: Response) {
     });
 
     await invalidateLiveStreamsListCache();
+
+    // Notify followers (capped) — best-effort, never blocks going live.
+    try {
+      const followers = await getFollowerIdsAsync(auth.userId);
+      const hostLabel = safeDisplayName || 'A creator you follow';
+      const targets = followers.slice(0, 200);
+      await Promise.all(
+        targets.map((followerId) =>
+          insertNotification({
+            userId: followerId,
+            type: 'live_started',
+            title: `${hostLabel} is live`,
+            body: 'Tap to watch now',
+            actionUrl: `/live/${encodeURIComponent(roomName)}`,
+            data: { path: `/live/${roomName}`, room_id: roomName },
+          }),
+        ),
+      );
+    } catch (err) {
+      logger.warn({ err, userId: auth.userId }, 'handleLiveStart: follower push skipped');
+    }
 
     const token = await createLiveToken({
       userId: auth.userId,

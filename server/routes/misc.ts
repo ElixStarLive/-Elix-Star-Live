@@ -20,6 +20,14 @@ import {
   hashPurchaseToken,
   verifyGoogleSubscription,
 } from '../lib/googlePlaySubscriptions';
+import {
+  ensureAppleCreatorMembershipProduct,
+  fetchAppleTransaction,
+  hashAppleOriginalTransactionId,
+  markAppleCreatorMembershipActive,
+  verifyAppleSubscription,
+} from '../lib/appleIap';
+import { insertNotification } from '../lib/notifications';
 
 const rateLimits = new Map<string, { count: number; timestamp: number }>();
 const MAX_LOCAL_RATE_ENTRIES = 20_000;
@@ -286,84 +294,7 @@ async function verifyGooglePlayPurchase(
 async function verifyAppleReceipt(
   transactionId: string,
 ): Promise<{ valid: boolean; productId?: string; detail?: string }> {
-  // StoreKit 2 transactions are JWS-signed — the transactionId is sufficient for
-  // server-side lookup using the App Store Server API v2.
-  // Env vars: APPLE_ISSUER_ID, APPLE_KEY_ID, APPLE_PRIVATE_KEY (p8 contents),
-  //           APPLE_BUNDLE_ID, APPLE_IAP_ENVIRONMENT ('Sandbox' | 'Production')
-  const issuerId = process.env.APPLE_ISSUER_ID;
-  const keyId = process.env.APPLE_KEY_ID;
-  const privateKey = process.env.APPLE_PRIVATE_KEY;
-  const bundleId = process.env.APPLE_BUNDLE_ID || 'com.elixstarlive.app';
-  const env = process.env.APPLE_IAP_ENVIRONMENT || 'Production';
-
-  if (!issuerId || !keyId || !privateKey) {
-    logger.error('[IAP] Apple API keys not configured — rejecting purchase');
-    return { valid: false, detail: 'APPLE_CREDENTIALS_NOT_CONFIGURED' };
-  }
-
-  try {
-    // Build JWT for App Store Server API (ES256 / P-256)
-    const crypto = await import('crypto');
-
-    const header = Buffer.from(
-      JSON.stringify({ alg: 'ES256', kid: keyId, typ: 'JWT' }),
-    ).toString('base64url');
-
-    const now = Math.floor(Date.now() / 1000);
-    const payload = Buffer.from(
-      JSON.stringify({
-        iss: issuerId,
-        iat: now,
-        exp: now + 3600,
-        aud: 'appstoreconnect-v1',
-        bid: bundleId,
-      }),
-    ).toString('base64url');
-
-    const sign = crypto.createSign('SHA256');
-    sign.update(`${header}.${payload}`);
-    const signature = sign
-      .sign(
-        { key: privateKey.replace(/\\n/g, '\n'), format: 'pem' },
-        'base64url',
-      );
-
-    const jwt = `${header}.${payload}.${signature}`;
-
-    const baseUrl =
-      env === 'Production'
-        ? 'https://api.storekit.itunes.apple.com'
-        : 'https://api.storekit-sandbox.itunes.apple.com';
-
-    const resp = await fetch(
-      `${baseUrl}/inApps/v1/transactions/${transactionId}`,
-      { headers: { Authorization: `Bearer ${jwt}` } },
-    );
-
-    if (!resp.ok) {
-      const body = await resp.text();
-      return { valid: false, detail: `apple-api-${resp.status}: ${body}` };
-    }
-
-    const json = (await resp.json()) as { signedTransactionInfo?: string };
-    // The response signedTransactionInfo is a JWS; decode the payload to get productId
-    const parts = (json.signedTransactionInfo || '').split('.');
-    if (parts.length === 3) {
-      const txPayload = JSON.parse(
-        Buffer.from(parts[1], 'base64url').toString(),
-      );
-      return {
-        valid: true,
-        productId: txPayload.productId,
-        detail: JSON.stringify(txPayload),
-      };
-    }
-
-    return { valid: false, detail: 'apple-jws-missing-or-malformed' };
-  } catch (err) {
-    logger.error({ err: (err as Error)?.message }, '[IAP] Apple verification error');
-    return { valid: false, detail: (err as Error)?.message };
-  }
+  return fetchAppleTransaction(transactionId);
 }
 
 // --- Verify Purchase ---
@@ -537,7 +468,7 @@ export async function handlePromoteIAPComplete(req: Request, res: Response) {
   }
 }
 
-/** GET /api/membership/:creatorId/status — viewer entitlement + Play product IDs. */
+/** GET /api/membership/:creatorId/status — viewer entitlement + store product IDs. */
 export async function handleGetMembershipStatus(req: Request, res: Response) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
   const token = getTokenFromRequest(req);
@@ -548,6 +479,14 @@ export async function handleGetMembershipStatus(req: Request, res: Response) {
   const creatorId = String(req.params.creatorId || '').trim();
   if (!creatorId) return res.status(400).json({ error: 'creatorId required' });
 
+  const storeParam = String(req.query.store || '').trim().toLowerCase();
+  const store =
+    storeParam === 'apple' || storeParam === 'google'
+      ? storeParam
+      : String(req.headers['x-client-platform'] || '').toLowerCase() === 'ios'
+        ? 'apple'
+        : 'google';
+
   const productId = creatorMembershipProductId(creatorId);
   const basePlanId = CREATOR_MEMBERSHIP_BASE_PLAN_ID;
   if (creatorId === user.sub) {
@@ -557,14 +496,17 @@ export async function handleGetMembershipStatus(req: Request, res: Response) {
       basePlanId,
       purchaseReady: false,
       provisionStatus: 'pending',
+      store,
       self: true,
     });
   }
 
   if (!getPool()) return res.status(503).json({ error: 'Database not configured' });
   try {
-    // Provision (or confirm) the dynamic Play subscription before advertising it as buyable.
-    const provisioned = await ensureCreatorMembershipProduct(creatorId);
+    const provisioned =
+      store === 'apple'
+        ? await ensureAppleCreatorMembershipProduct(creatorId)
+        : await ensureCreatorMembershipProduct(creatorId);
     const entitlement = await neonGetActiveMembershipEntitlement(user.sub, creatorId);
     return res.json({
       active: Boolean(entitlement),
@@ -573,6 +515,7 @@ export async function handleGetMembershipStatus(req: Request, res: Response) {
       purchaseReady: provisioned.purchaseReady === true,
       provisionStatus: provisioned.status,
       provisionDetail: provisioned.detail ?? null,
+      store,
       expiresAt: entitlement?.expiresAt ?? null,
       autoRenewing: entitlement?.autoRenewEnabled === true,
       subscriptionState: entitlement?.subscriptionState ?? null,
@@ -584,8 +527,8 @@ export async function handleGetMembershipStatus(req: Request, res: Response) {
 }
 
 /**
- * POST /api/membership/iap-complete — Google Play creator subscription only.
- * Verifies via subscriptionsv2, persists entitlement by token hash, then acknowledges.
+ * POST /api/membership/iap-complete — Google Play or Apple creator subscription.
+ * Google: subscriptionsv2 + token hash. Apple: App Store Server API + originalTransactionId.
  */
 export async function handleMembershipIAPComplete(req: Request, res: Response) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -598,28 +541,129 @@ export async function handleMembershipIAPComplete(req: Request, res: Response) {
   if (!rateCheck.allowed) return res.status(429).json({ error: 'Too many requests' });
 
   const body = req.body ?? {};
-  const provider = body.provider === 'google' ? 'google' : '';
-  const creatorId = typeof body.creatorId === 'string' ? body.creatorId.trim() : '';
+  const provider =
+    body.provider === 'google' ? 'google' : body.provider === 'apple' ? 'apple' : '';
+  let creatorId = typeof body.creatorId === 'string' ? body.creatorId.trim() : '';
   const googlePurchaseToken =
     typeof body.receipt === 'string' ? body.receipt.trim() : '';
+  const appleTransactionId =
+    typeof body.transactionId === 'string' ? body.transactionId.trim() : '';
+  const claimedProductId =
+    typeof body.productId === 'string' ? body.productId.trim() : '';
 
-  if (provider !== 'google') {
-    return res.status(400).json({ error: 'Creator memberships currently require Google Play' });
+  if (provider !== 'google' && provider !== 'apple') {
+    return res.status(400).json({ error: 'provider must be google or apple' });
+  }
+  if (provider === 'google' && !googlePurchaseToken) {
+    return res.status(400).json({ error: 'Google purchase token is required' });
+  }
+  if (provider === 'apple' && !appleTransactionId) {
+    return res.status(400).json({ error: 'Apple transactionId is required' });
+  }
+  if (!getPool()) return res.status(503).json({ error: 'Database not configured' });
+
+  // Restore path: resolve creator from pre-provisioned product map when creatorId omitted.
+  const pool = getPool();
+  if (!creatorId && claimedProductId && pool) {
+    try {
+      const mapped = await pool.query(
+        `SELECT creator_id FROM elix_creator_membership_products WHERE product_id = $1 LIMIT 1`,
+        [claimedProductId],
+      );
+      if (mapped.rowCount) creatorId = String(mapped.rows[0].creator_id);
+    } catch (err) {
+      logger.warn({ err, claimedProductId }, 'Membership product→creator lookup failed');
+    }
   }
   if (!creatorId) return res.status(400).json({ error: 'creatorId required' });
   if (creatorId === user.sub) {
     return res.status(400).json({ error: 'Cannot subscribe to your own membership' });
   }
-  if (!googlePurchaseToken) {
-    return res.status(400).json({ error: 'Google purchase token is required' });
-  }
-  if (!getPool()) return res.status(503).json({ error: 'Database not configured' });
 
   const expectedProductId = creatorMembershipProductId(creatorId);
-  const claimedProductId =
-    typeof body.productId === 'string' ? body.productId.trim() : '';
   if (claimedProductId && claimedProductId !== expectedProductId) {
     return res.status(400).json({ error: 'Product ID mismatch' });
+  }
+
+  if (provider === 'apple') {
+    try {
+      if (await neonIsIapProcessed('apple', appleTransactionId)) {
+        return res.status(400).json({ error: 'Transaction already used' });
+      }
+    } catch {
+      return res.status(500).json({ error: 'Deduplication check failed' });
+    }
+
+    const verified = await verifyAppleSubscription(appleTransactionId, expectedProductId);
+    if (!verified.ok || !verified.entitled) {
+      return res.status(400).json({
+        error: 'Invalid or unverified subscription',
+        detail: verified.error,
+        subscriptionState: verified.subscriptionState ?? null,
+      });
+    }
+
+    const purchaseTokenHash = hashAppleOriginalTransactionId(verified.originalTransactionId);
+    try {
+      const upserted = await neonUpsertMembershipEntitlement({
+        userId: user.sub,
+        creatorId,
+        provider: 'apple',
+        purchaseTokenHash,
+        providerTransactionId: verified.originalTransactionId,
+        productId: expectedProductId,
+        basePlanId: CREATOR_MEMBERSHIP_BASE_PLAN_ID,
+        subscriptionState: verified.subscriptionState,
+        expiresAt: verified.expiresAt,
+        autoRenewEnabled: verified.autoRenewEnabled,
+        acknowledgementState: 'ACKNOWLEDGED',
+        latestOrderId: verified.transactionId,
+        linkedPurchaseTokenHash: null,
+        verification: {
+          provider: 'apple',
+          productId: expectedProductId,
+          subscriptionState: verified.subscriptionState,
+          expiresAt: verified.expiresAt,
+          originalTransactionId: verified.originalTransactionId,
+          transactionId: verified.transactionId,
+          environment: verified.environment ?? null,
+        },
+      });
+      if (!upserted.ok) {
+        if (upserted.error === 'ownership_conflict') {
+          return res.status(409).json({ error: 'Purchase token already bound' });
+        }
+        return res.status(500).json({ error: 'Failed to record membership' });
+      }
+      await markAppleCreatorMembershipActive(creatorId, expectedProductId);
+      if (upserted.created) {
+        try {
+          await insertNotification({
+            userId: creatorId,
+            type: 'membership_subscribed',
+            title: 'New membership',
+            body: 'Someone subscribed to your creator membership.',
+            actionUrl: `/profile/${encodeURIComponent(creatorId)}`,
+            data: { path: `/profile/${creatorId}`, provider: 'apple' },
+          });
+        } catch (err) {
+          logger.warn({ err, creatorId }, 'Apple membership push skipped');
+        }
+      }
+      return res.json({
+        success: true,
+        active: true,
+        productId: expectedProductId,
+        basePlanId: CREATOR_MEMBERSHIP_BASE_PLAN_ID,
+        expiresAt: verified.expiresAt,
+        autoRenewing: verified.autoRenewEnabled,
+        subscriptionState: verified.subscriptionState,
+        created: upserted.created,
+      });
+    } catch (err) {
+      logger.error({ err }, 'Apple membership purchase recording error');
+      return res.status(500).json({ error: 'Failed to record membership' });
+    }
   }
 
   // Reject coin receipts reused as membership (cross-table replay).
@@ -694,6 +738,21 @@ export async function handleMembershipIAPComplete(req: Request, res: Response) {
           { detail: ack.detail, productId: expectedProductId, userId: user.sub },
           'Membership acknowledge deferred — entitlement already persisted',
         );
+      }
+    }
+
+    if (upserted.created) {
+      try {
+        await insertNotification({
+          userId: creatorId,
+          type: 'membership_subscribed',
+          title: 'New membership',
+          body: 'Someone subscribed to your creator membership.',
+          actionUrl: `/profile/${encodeURIComponent(creatorId)}`,
+          data: { path: `/profile/${creatorId}`, provider: 'google' },
+        });
+      } catch (err) {
+        logger.warn({ err, creatorId }, 'Google membership push skipped');
       }
     }
 

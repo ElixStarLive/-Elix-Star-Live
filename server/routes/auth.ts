@@ -5,6 +5,7 @@
 
 import { Request, Response } from 'express';
 import crypto from 'crypto';
+import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { getPool } from '../lib/postgres';
 import { logger } from '../lib/logger';
 import { isEmailConfigured, sendTransactionalEmail } from '../lib/email';
@@ -18,6 +19,7 @@ const TOKEN_EXPIRY_SEC = 60 * 60 * 24 * 7; // 7 days
 const SALT_LEN = 16;
 const KEY_LEN = 64;
 const SCRYPT_OPTS = { N: 16384, r: 8, p: 1 };
+const APPLE_JWKS = createRemoteJWKSet(new URL('https://appleid.apple.com/auth/keys'));
 
 function getSecret(): string {
   const s = process.env.JWT_SECRET || process.env.AUTH_SECRET || '';
@@ -735,9 +737,146 @@ export async function handleResendConfirmation(req: Request, res: Response) {
   }
 }
 
+type AppleIdentityClaims = {
+  sub: string;
+  email?: string;
+  email_verified?: string | boolean;
+  is_private_email?: string | boolean;
+};
+
+async function verifyAppleIdentityToken(idToken: string): Promise<AppleIdentityClaims | null> {
+  const audience = (process.env.APPLE_CLIENT_ID || process.env.APPLE_BUNDLE_ID || 'com.elixstarlive.app').trim();
+  try {
+    const verified = await jwtVerify(idToken, APPLE_JWKS, {
+      issuer: 'https://appleid.apple.com',
+      audience,
+      algorithms: ['RS256'],
+    });
+    const sub = typeof verified.payload.sub === 'string' ? verified.payload.sub.trim() : '';
+    if (!sub) return null;
+    return {
+      sub,
+      email: typeof verified.payload.email === 'string' ? verified.payload.email.trim() : undefined,
+      email_verified: verified.payload.email_verified as string | boolean | undefined,
+      is_private_email: verified.payload.is_private_email as string | boolean | undefined,
+    };
+  } catch (err) {
+    logger.warn({ err }, 'Apple identity token verification failed');
+    return null;
+  }
+}
+
+async function dbFindUserByAppleSub(appleSub: string): Promise<StoredUser | null> {
+  const pool = getPool();
+  if (!pool) return null;
+  const r = await pool.query(
+    `SELECT id, email, password_hash, username, avatar_url, created_at
+       FROM elix_auth_users
+      WHERE apple_sub = $1
+      LIMIT 1`,
+    [appleSub],
+  );
+  return r.rows[0] ? rowToStoredUser(r.rows[0] as Record<string, unknown>) : null;
+}
+
+/**
+ * Native Sign in with Apple. The iOS plugin supplies Apple's identity token;
+ * this endpoint verifies its RS256 signature/issuer/audience/expiry against
+ * Apple's live JWKS before linking or creating an account.
+ */
+export async function handleAppleNative(req: Request, res: Response) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (process.env.APPLE_SIGN_IN_ENABLED !== 'true') {
+    return res.status(503).json({ error: 'Apple Sign-In is not enabled.' });
+  }
+  const idToken = typeof req.body?.idToken === 'string' ? req.body.idToken.trim() : '';
+  if (!idToken) return res.status(400).json({ error: 'Apple identity token is required.' });
+  if (!getPool()) return res.status(503).json({ error: 'Database not configured' });
+
+  const claims = await verifyAppleIdentityToken(idToken);
+  if (!claims) return res.status(401).json({ error: 'Invalid Apple identity token.' });
+
+  const emailVerified =
+    claims.email_verified === true || String(claims.email_verified).toLowerCase() === 'true';
+  const tokenEmail = emailVerified && claims.email ? claims.email.toLowerCase() : '';
+  const givenName = typeof req.body?.givenName === 'string' ? req.body.givenName.trim() : '';
+  const familyName = typeof req.body?.familyName === 'string' ? req.body.familyName.trim() : '';
+  const suppliedName = `${givenName} ${familyName}`.trim();
+  const pool = getPool();
+  if (!pool) return res.status(503).json({ error: 'Database not configured' });
+
+  try {
+    let user = await dbFindUserByAppleSub(claims.sub);
+
+    // Apple only returns name/email on the first authorization. A verified
+    // email can safely link an existing password account to this Apple sub.
+    if (!user && tokenEmail) {
+      const byEmail = await dbFindUserByEmail(tokenEmail);
+      if (byEmail) {
+        const linked = await pool.query(
+          `UPDATE elix_auth_users
+              SET apple_sub = $2
+            WHERE id = $1
+              AND (apple_sub IS NULL OR apple_sub = $2)
+          RETURNING id`,
+          [byEmail.id, claims.sub],
+        );
+        if (!linked.rowCount) {
+          return res.status(409).json({ error: 'This account is linked to a different Apple ID.' });
+        }
+        user = byEmail;
+      }
+    }
+
+    if (!user) {
+      if (!tokenEmail) {
+        return res.status(409).json({
+          error: 'Apple did not provide an email for this new account. Remove Elix Star Live from Apple ID sign-in settings and try again.',
+        });
+      }
+      const id = crypto.randomUUID();
+      const baseName =
+        suppliedName ||
+        tokenEmail.split('@')[0] ||
+        `apple_${crypto.createHash('sha256').update(claims.sub).digest('hex').slice(0, 8)}`;
+      const username = `${baseName.replace(/[^a-zA-Z0-9_.]/g, '_').slice(0, 22)}_${id.slice(0, 6)}`;
+      const stored: StoredUser = {
+        id,
+        email: tokenEmail,
+        passwordHash: await hashPassword(crypto.randomUUID()),
+        username,
+        avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(suppliedName || username)}&background=random`,
+        created_at: new Date().toISOString(),
+      };
+      const registered = await dbRegisterUser(stored);
+      if (registered !== 'ok') {
+        // A concurrent first login may have created/linked the row.
+        user = await dbFindUserByAppleSub(claims.sub);
+        if (!user) return res.status(409).json({ error: 'Unable to create Apple account.' });
+      } else {
+        await pool.query(`UPDATE elix_auth_users SET apple_sub = $2 WHERE id = $1`, [
+          stored.id,
+          claims.sub,
+        ]);
+        user = stored;
+      }
+    }
+
+    const token = signToken({ sub: user.id, email: user.email });
+    await dbUpsertSession(user.id, token);
+    setAuthCookie(res, token);
+    const profile_meta = await loadProfileMeta(user.id);
+    return res.status(200).json({ ...authLoginRegisterBody(user, token), profile_meta });
+  } catch (err) {
+    logger.error({ err }, 'handleAppleNative failed');
+    return res.status(500).json({ error: 'Apple sign-in failed. Please try again.' });
+  }
+}
+
+/** Kept for older clients; native iOS must use /apple/native. */
 export async function handleAppleStart(req: Request, res: Response) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  return res.status(400).json({ error: 'Apple Sign-In is not configured. Use email/password for now.' });
+  return res.status(400).json({ error: 'Update the app to use native Sign in with Apple.' });
 }
 
 export async function handleForgotPassword(req: Request, res: Response) {

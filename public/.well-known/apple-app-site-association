@@ -1,0 +1,11 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "74Y7WAZVUV.com.elixstarlive.app",
+        "paths": ["*", "/"]
+      }
+    ]
+  }
+}

@@ -449,7 +449,10 @@ app.get("/.well-known/assetlinks.json", (req, res) => {
 
 app.get("/.well-known/apple-app-site-association", (req, res) => {
   res.type("application/json");
-  const teamId = process.env.APPLE_TEAM_ID?.trim();
+  const teamId =
+    process.env.APPLE_TEAM_ID?.trim() ||
+    process.env.APNS_TEAM_ID?.trim() ||
+    "";
   if (teamId) {
     return res.json({
       applinks: {

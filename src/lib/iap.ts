@@ -36,7 +36,7 @@ export interface MembershipStatus {
   active: boolean;
   productId: string;
   basePlanId: string;
-  /** True only when Google Play has an ACTIVE monthly base plan for this creator. */
+  /** True when the store product is buyable (Play active, or Apple pre-provisioned/active). */
   purchaseReady?: boolean;
   provisionStatus?: 'pending' | 'active' | 'error';
   provisionDetail?: string;
@@ -141,6 +141,24 @@ export async function loadProducts(): Promise<IAPProduct[]> {
 
 let purchaseInProgress = false;
 
+/** Deterministic UUID (v5-style) from a user id for StoreKit appAccountToken. */
+function appAccountTokenForUser(userId: string): string {
+  const nsHex = '6ba7b8109dad11d180b400c04fd430c8';
+  const pairs = nsHex.match(/.{2}/g) || [];
+  const ns = new Uint8Array(pairs.map((b) => parseInt(b, 16)));
+  const data = new TextEncoder().encode(userId);
+  const bytes = new Uint8Array(20);
+  for (let i = 0; i < ns.length; i++) bytes[i % 20] ^= ns[i];
+  for (let i = 0; i < data.length; i++) bytes[i % 20] ^= data[i] + i;
+  bytes[6] = (bytes[6] & 0x0f) | 0x50;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+    .slice(0, 32);
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+}
+
 export async function purchaseProduct(productId: IAPProductId): Promise<IAPPurchaseResult> {
   if (!platform.isNative) {
     return { success: false, error: 'In-app purchases are only available in the app' };
@@ -162,10 +180,12 @@ export async function purchaseProduct(productId: IAPProductId): Promise<IAPPurch
 
   purchaseInProgress = true;
   try {
+    const { user } = useAuthStore.getState();
     const result = await mod.NativePurchases.purchaseProduct({
       productIdentifier: productId,
       productType: mod.PURCHASE_TYPE.INAPP,
       quantity: 1,
+      ...(user?.id ? { appAccountToken: appAccountTokenForUser(user.id) } : {}),
     });
 
     const transactionId = result.transactionId;
@@ -220,8 +240,9 @@ export async function getMembershipStatus(
   creatorId: string,
 ): Promise<{ status?: MembershipStatus; error?: string }> {
   if (!creatorId) return { error: 'Creator unavailable' };
+  const store = platform.isIOS ? 'apple' : 'google';
   const { data, error } = await request(
-    `/api/membership/${encodeURIComponent(creatorId)}/status`,
+    `/api/membership/${encodeURIComponent(creatorId)}/status?store=${store}`,
   );
   if (error) return { error: error.message || 'Could not load membership status' };
   if (!data || typeof data.productId !== 'string' || typeof data.basePlanId !== 'string') {
@@ -252,8 +273,8 @@ export async function getMembershipStatus(
 let membershipPurchaseInProgress = false;
 
 /**
- * Purchase a creator-specific recurring membership through Google Play, then
- * persist the server-verified entitlement.
+ * Purchase a creator-specific recurring membership through Google Play or
+ * Apple StoreKit, then persist the server-verified entitlement.
  */
 export async function purchaseMembership(
   creatorId: string,
@@ -261,8 +282,8 @@ export async function purchaseMembership(
   if (!platform.isNative) {
     return { success: false, error: 'Membership is only available in the app' };
   }
-  if (!platform.isAndroid) {
-    return { success: false, error: 'Creator memberships are not configured for iOS yet' };
+  if (!platform.isAndroid && !platform.isIOS) {
+    return { success: false, error: 'Creator memberships require the mobile app' };
   }
   if (membershipPurchaseInProgress || purchaseInProgress) {
     return { success: false, error: 'A purchase is already in progress' };
@@ -290,22 +311,28 @@ export async function purchaseMembership(
       success: false,
       error:
         current.status.provisionDetail ||
-        'Membership is still being set up in Google Play. Please try again in a moment.',
+        (platform.isIOS
+          ? 'Membership is still being set up in App Store Connect. Please try again later.'
+          : 'Membership is still being set up in Google Play. Please try again in a moment.'),
     };
   }
 
   membershipPurchaseInProgress = true;
   try {
+    const accountToken = appAccountTokenForUser(user.id);
     const result = await mod.NativePurchases.purchaseProduct({
       productIdentifier: current.status.productId,
-      planIdentifier: current.status.basePlanId,
+      ...(platform.isAndroid ? { planIdentifier: current.status.basePlanId } : {}),
       productType: mod.PURCHASE_TYPE.SUBS,
       quantity: 1,
+      appAccountToken: accountToken,
       autoAcknowledgePurchases: false,
     });
     const transactionId = result.transactionId;
     const receipt = result.receipt || result.purchaseToken || '';
-    if (!transactionId || !receipt) {
+    const jwsRepresentation =
+      typeof result.jwsRepresentation === 'string' ? result.jwsRepresentation : '';
+    if (!transactionId || (platform.isAndroid && !receipt)) {
       return { success: false, error: 'Purchase could not be verified' };
     }
 
@@ -314,13 +341,25 @@ export async function purchaseMembership(
       body: JSON.stringify({
         transactionId,
         receipt,
-        provider: 'google',
+        jwsRepresentation: jwsRepresentation || undefined,
+        provider: platform.isIOS ? 'apple' : 'google',
         productId: current.status.productId,
         basePlanId: current.status.basePlanId,
         creatorId,
       }),
     });
     if (error) return { success: false, error: error.message || 'Membership verification failed' };
+
+    try {
+      if ('acknowledgePurchase' in mod.NativePurchases) {
+        await (mod.NativePurchases as unknown as StoreCompletionMethods).acknowledgePurchase({
+          transactionIdentifier: transactionId,
+          purchaseToken: receipt,
+        });
+      }
+    } catch {
+      /* best-effort store completion */
+    }
 
     return {
       success: true,
@@ -443,12 +482,75 @@ async function verifyAndCreditPurchase(
   }
 }
 
-// Apple/Google store compliance: re-delivers unfinished transactions only.
-// This does NOT refund coins or reverse purchases. All purchases are final.
-export async function restorePurchases(): Promise<void> {
-  if (!platform.isNative) return;
+/**
+ * Store restore + server reconciliation.
+ * - Syncs the native store queue
+ * - Re-verifies coin IAPs and creator memberships against the backend
+ * Does NOT refund or reverse purchases.
+ */
+export async function restorePurchases(): Promise<{
+  restoredCoins: number;
+  restoredMemberships: number;
+  errors: string[];
+}> {
+  const empty = { restoredCoins: 0, restoredMemberships: 0, errors: [] as string[] };
+  if (!platform.isNative) return empty;
 
   const mod = await getPlugin();
-  if (!mod) return;
-  await mod.NativePurchases.restorePurchases();
+  if (!mod) return { ...empty, errors: ['Purchase service not available'] };
+
+  const { session, user } = useAuthStore.getState();
+  if (!session?.access_token || !user?.id) {
+    return { ...empty, errors: ['Not authenticated'] };
+  }
+
+  try {
+    await mod.NativePurchases.restorePurchases();
+  } catch (err) {
+    const msg = (err as { message?: string })?.message || String(err);
+    return { ...empty, errors: [msg || 'Store restore failed'] };
+  }
+
+  let restoredCoins = 0;
+  let restoredMemberships = 0;
+  const errors: string[] = [];
+
+  try {
+    const { purchases } = await mod.NativePurchases.getPurchases();
+    for (const purchase of purchases || []) {
+      const productId = String(purchase.productIdentifier || '');
+      const transactionId = String(purchase.transactionId || '');
+      const receipt = purchase.receipt || purchase.purchaseToken || '';
+      if (!productId || !transactionId) continue;
+
+      if (productId in IAP_PRODUCTS) {
+        const credited = await verifyAndCreditPurchase(productId as IAPProductId, transactionId, receipt);
+        if (credited.success) restoredCoins += 1;
+        else if (credited.error) errors.push(credited.error);
+        continue;
+      }
+
+      if (productId.startsWith('elix.creator.')) {
+        const { error } = await request('/api/membership/iap-complete', {
+          method: 'POST',
+          body: JSON.stringify({
+            transactionId,
+            receipt,
+            jwsRepresentation:
+              typeof purchase.jwsRepresentation === 'string'
+                ? purchase.jwsRepresentation
+                : undefined,
+            provider: platform.isIOS ? 'apple' : 'google',
+            productId,
+          }),
+        });
+        if (!error) restoredMemberships += 1;
+        else if (error.message) errors.push(error.message);
+      }
+    }
+  } catch (err) {
+    errors.push((err as { message?: string })?.message || 'Could not read store purchases');
+  }
+
+  return { restoredCoins, restoredMemberships, errors };
 }

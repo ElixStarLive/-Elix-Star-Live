@@ -635,6 +635,8 @@ export async function neonUpsertMembershipEntitlement(input: {
   creatorId: string;
   provider: string;
   purchaseTokenHash: string;
+  /** Defaults to token_sha256:<hash>; Apple should pass originalTransactionId. */
+  providerTransactionId?: string;
   productId: string;
   basePlanId: string | null;
   subscriptionState: string;
@@ -701,6 +703,9 @@ export async function neonUpsertMembershipEntitlement(input: {
       await client.query("COMMIT");
       return { ok: true, id: String(row.id), created: false };
     }
+    const providerTxnId =
+      (input.providerTransactionId && input.providerTransactionId.trim()) ||
+      `token_sha256:${input.purchaseTokenHash}`;
     const ins = await client.query(
       `INSERT INTO elix_membership_purchases
          (user_id, creator_id, provider, provider_transaction_id, product_id, base_plan_id,
@@ -713,7 +718,7 @@ export async function neonUpsertMembershipEntitlement(input: {
         input.userId,
         input.creatorId,
         input.provider,
-        `token_sha256:${input.purchaseTokenHash}`,
+        providerTxnId,
         input.productId,
         input.basePlanId,
         input.purchaseTokenHash,

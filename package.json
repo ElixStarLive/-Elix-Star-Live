@@ -39,6 +39,7 @@
     "@capacitor/preferences": "^8.0.0",
     "@capacitor/push-notifications": "^8.0.0",
     "@capacitor/share": "^8.0.0",
+    "@capgo/capacitor-social-login": "^8.3.37",
     "@capgo/native-purchases": "^8.0.24",
     "@radix-ui/react-dialog": "^1.1.15",
     "@sentry/node": "^10.66.0",

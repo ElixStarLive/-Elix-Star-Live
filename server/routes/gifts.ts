@@ -176,6 +176,25 @@ export async function handleSendGift(req: Request, res: Response) {
             })
           : null;
 
+      if (creatorId && creatorId !== auth.userId) {
+        try {
+          await insertNotification({
+            userId: creatorId,
+            type: "paid_gift_received",
+            title: "You received a gift",
+            body: `Someone sent ${gift.name} (${coinCost} coins).`,
+            actionUrl: `/live/${encodeURIComponent(roomId)}`,
+            data: {
+              path: `/live/${roomId}`,
+              gift_id: giftId,
+              gift_source: "paid_coins",
+            },
+          });
+        } catch (err) {
+          logger.warn({ err, creatorId }, "handleSendGift: paid gift push skipped");
+        }
+      }
+
       return res.status(200).json({
         ok: true,
         room_id: roomId,
