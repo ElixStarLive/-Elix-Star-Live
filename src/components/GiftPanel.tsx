@@ -11,7 +11,11 @@ import { GiftItem, fetchGiftsFromDatabase, resolveGiftAssetUrl } from "../lib/gi
 
 interface GiftPanelProps {
   onSelectGift: (gift: GiftItem) => void;
+  /** Paid coin balance only. */
   userCoins: number;
+  starterCoins?: number;
+  giftSource?: "starter_coins" | "paid_coins";
+  onGiftSourceChange?: (source: "starter_coins" | "paid_coins") => void;
   onRechargeSuccess?: (newBalance: number) => void;
   onWeeklyRanking?: () => void;
   onMembership?: () => void;
@@ -133,6 +137,9 @@ function GiftGridItem({
 export function GiftPanel({
   onSelectGift,
   userCoins,
+  starterCoins = 0,
+  giftSource = "paid_coins",
+  onGiftSourceChange,
   onRechargeSuccess,
   onWeeklyRanking,
   onMembership,
@@ -257,19 +264,49 @@ export function GiftPanel({
           <Gift className="text-white" size={16} />
           Send Gift
         </h3>
-        <div className="flex items-center gap-2 bg-black px-2.5 py-0.5 rounded-full border border-secondary/20">
-          <Coins size={13} className="text-secondary" />
-          <span className="text-secondary font-bold text-xs">
-            {userCoins.toLocaleString()}
-          </span>
+        <div className="flex items-center gap-1 bg-black px-1.5 py-0.5 rounded-full border border-secondary/20">
+          {onGiftSourceChange && starterCoins > 0 && (
+            <button
+              type="button"
+              onClick={() => onGiftSourceChange("starter_coins")}
+              className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                giftSource === "starter_coins"
+                  ? "bg-white text-black"
+                  : "text-white/60"
+              }`}
+              title="Free onboarding coins; no monetary value or creator earnings"
+            >
+              Starter {starterCoins.toLocaleString()}
+            </button>
+          )}
           <button
-            onClick={() => setShowRecharge(true)}
-            className="bg-secondary text-black text-[9px] font-bold px-1.5 py-0.5 rounded ml-2 hover:bg-white transition"
+            type="button"
+            onClick={() => onGiftSourceChange?.("paid_coins")}
+            className={`flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded ${
+              giftSource === "paid_coins" || !onGiftSourceChange
+                ? "bg-secondary text-black"
+                : "text-secondary"
+            }`}
           >
-            Top Up
+            <Coins size={11} />
+            {userCoins.toLocaleString()}
           </button>
+          {giftSource === "paid_coins" && (
+            <button
+              type="button"
+              onClick={() => setShowRecharge(true)}
+              className="bg-secondary text-black text-[9px] font-bold px-1.5 py-0.5 rounded hover:bg-white transition"
+            >
+              Top Up
+            </button>
+          )}
         </div>
       </div>
+      {giftSource === "starter_coins" && (
+        <p className="text-[9px] text-white/45 -mt-2 mb-2 text-right">
+          Starter gifts earn XP but create no creator earnings.
+        </p>
+      )}
 
       <BuyCoinsModal
         isOpen={showRecharge}

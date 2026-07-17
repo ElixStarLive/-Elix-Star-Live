@@ -4,14 +4,14 @@ import {
   handleResendConfirmation, handleAppleStart, handleGuestLogin,
   handleDeleteAccount, handleForgotPassword, handleResetPassword,
 } from "./auth";
-import { authLimiter } from "../middleware/rateLimit";
+import { authLimiter, registerLimiter } from "../middleware/rateLimit";
 import { validateBody } from "../middleware/validate";
 import { loginSchema, registerSchema, emailOnlySchema, resetPasswordSchema } from "../validation/schemas";
 
 const router = Router();
 router.post("/login", authLimiter, validateBody(loginSchema), handleLogin);
 router.post("/guest", authLimiter, handleGuestLogin);
-router.post("/register", authLimiter, validateBody(registerSchema), handleRegister);
+router.post("/register", registerLimiter, authLimiter, validateBody(registerSchema), handleRegister);
 router.post("/logout", handleLogout);
 router.post("/delete", handleDeleteAccount);
 router.get("/me", handleMe);

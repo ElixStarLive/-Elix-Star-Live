@@ -6,10 +6,12 @@
 
 import { Request, Response } from "express";
 import { getTokenFromRequest, verifyAuthToken } from "./auth";
-import { getPool, dbLoadGifts, dbGetGiftCost } from "../lib/postgres";
+import { getPool, dbLoadGifts } from "../lib/postgres";
 import { neonDebitGift, neonEnsureBalanceFromFile, neonCreditCreatorEarning } from "../lib/walletNeon";
 import { logger } from "../lib/logger";
 import { assertGiftRestVelocityOk } from "../lib/fraud";
+import { awardPaidGiftXp, sendStarterCoinGift } from "../lib/starterCoinsXp";
+import { insertNotification } from "../lib/notifications";
 import {
   giftIconUrlFromAnimation,
   resolveGiftMediaUrl,
@@ -35,7 +37,14 @@ export async function handleSendGift(req: Request, res: Response) {
   if (!auth) return;
 
   try {
-    const { room_id, gift_id, transaction_id, streamKey, giftId: giftIdAlt } = req.body ?? {};
+    const {
+      room_id,
+      gift_id,
+      transaction_id,
+      streamKey,
+      giftId: giftIdAlt,
+      gift_source,
+    } = req.body ?? {};
     const roomId = typeof room_id === "string" ? room_id.trim() : (typeof streamKey === "string" ? streamKey.trim() : "");
     const giftId = typeof gift_id === "string" ? gift_id.trim() : (typeof giftIdAlt === "string" ? giftIdAlt.trim() : "");
 
@@ -51,16 +60,80 @@ export async function handleSendGift(req: Request, res: Response) {
       return res.status(429).json({ error: fraud.code });
     }
 
-    const coinCost = await dbGetGiftCost(giftId);
-    if (coinCost === null) {
+    const gift = (await dbLoadGifts()).find((row) => row.gift_id === giftId);
+    if (!gift) {
       return res.status(400).json({ error: "INVALID_GIFT_ID" });
     }
+    const coinCost = gift.coin_cost;
     const clientTransactionId =
       typeof transaction_id === "string" && transaction_id.trim()
         ? transaction_id.trim().slice(0, 128)
         : "";
     if (!clientTransactionId) {
       return res.status(400).json({ error: "transaction_id is required." });
+    }
+
+    const hostRes = await pool.query(
+      `SELECT user_id
+         FROM live_streams
+        WHERE stream_key = $1
+          AND is_live = TRUE
+          AND ended_at IS NULL
+        LIMIT 1`,
+      [roomId],
+    );
+    if (!hostRes.rows[0]?.user_id) {
+      return res.status(409).json({ error: "STREAM_NOT_LIVE" });
+    }
+    const creatorId = String(hostRes.rows[0].user_id);
+
+    if (gift_source === "starter_coins") {
+      const starterResult = await sendStarterCoinGift({
+        userId: auth.userId,
+        recipientUserId: creatorId,
+        giftId,
+        giftType: gift.gift_type,
+        roomId,
+        coins: coinCost,
+        clientTransactionId,
+      });
+      if (!starterResult.ok) {
+        return res.status(400).json({
+          error: starterResult.error,
+          starter_coin_balance: starterResult.starter_balance,
+        });
+      }
+
+      if (!starterResult.already_processed) {
+        await insertNotification({
+          userId: creatorId,
+          type: "starter_gift_received",
+          title: "You received a Starter Coin gift",
+          body: `A supporter sent ${gift.name}. Starter gifts have no monetary value and create no earnings.`,
+          actionUrl: `/live/${encodeURIComponent(roomId)}`,
+          data: {
+            path: `/live/${roomId}`,
+            gift_id: giftId,
+            gift_source: "starter_coins",
+          },
+        });
+      }
+
+      return res.status(200).json({
+        ok: true,
+        room_id: roomId,
+        gift_id: giftId,
+        gift_source: "starter_coins",
+        transaction_id: clientTransactionId,
+        new_starter_balance: starterResult.new_starter_balance,
+        xp_gained: starterResult.xp_gained,
+        total_xp: starterResult.total_xp,
+        new_level: starterResult.new_level,
+        leveled_up: starterResult.leveled_up,
+        creator_earnings: 0,
+        wallet_update: false,
+        message: "Starter gift sent. No creator earnings were created.",
+      });
     }
 
     if (coinCost > 0) {
@@ -83,12 +156,6 @@ export async function handleSendGift(req: Request, res: Response) {
       // Room id is the stream_key; resolve the host user id from live_streams,
       // falling back to the room id itself (rooms default to the host user id).
       try {
-        let creatorId = roomId;
-        const hostRes = await pool.query(
-          `SELECT user_id FROM live_streams WHERE stream_key = $1 LIMIT 1`,
-          [roomId],
-        );
-        if (hostRes.rows[0]?.user_id) creatorId = String(hostRes.rows[0].user_id);
         await neonCreditCreatorEarning({
           creatorId,
           senderId: auth.userId,
@@ -100,13 +167,26 @@ export async function handleSendGift(req: Request, res: Response) {
       } catch (err) {
         logger.warn({ err, roomId }, "handleSendGift: creator earning credit failed");
       }
+      const paidGiftXp =
+        creatorId !== auth.userId
+          ? await awardPaidGiftXp({
+              userId: auth.userId,
+              giftType: gift.gift_type,
+              clientTransactionId,
+            })
+          : null;
 
       return res.status(200).json({
         ok: true,
         room_id: roomId,
         gift_id: giftId,
+        gift_source: "paid_coins",
         transaction_id: clientTransactionId,
         new_balance: debited.newBalance,
+        xp_gained: paidGiftXp?.xp_gained ?? 0,
+        total_xp: paidGiftXp?.total_xp,
+        new_level: paidGiftXp?.new_level,
+        leveled_up: paidGiftXp?.leveled_up ?? false,
         message: "Gift sent. Delivery in room is via WebSocket.",
       });
     }

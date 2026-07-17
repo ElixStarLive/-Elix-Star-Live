@@ -44,18 +44,23 @@ const BATTLE_USER_ROOM_TTL_MS = 600_000;
  * This makes gift broadcasts, gift goals, and battle scoring impossible to
  * forge from the client (no free gifts / free battle points).
  */
-async function verifyPaidGiftTransaction(
+async function verifyGiftTransaction(
   transactionId: unknown,
   userId: string,
   roomId: string,
-): Promise<{ giftId: string; coins: number; roomId: string } | null> {
+): Promise<{
+  giftId: string;
+  coins: number;
+  roomId: string;
+  giftSource: "starter_coins" | "paid_coins";
+} | null> {
   if (typeof transactionId !== "string" || !transactionId.trim()) return null;
   if (!roomId) return null;
   const pool = getPool();
   if (!pool) return null;
   try {
     const r = await pool.query(
-      `SELECT gift_id, coins, room_id
+      `SELECT gift_id, coins, room_id, gift_source
          FROM elix_gift_transactions
         WHERE client_transaction_id = $1
           AND user_id = $2
@@ -65,16 +70,25 @@ async function verifyPaidGiftTransaction(
       [transactionId.trim(), userId, roomId],
     );
     const row = r.rows[0] as
-      | { gift_id?: string; coins?: number; room_id?: string }
+      | {
+          gift_id?: string;
+          coins?: number;
+          room_id?: string;
+          gift_source?: string;
+        }
       | undefined;
     if (!row) return null;
     return {
       giftId: String(row.gift_id || ""),
       coins: Number(row.coins) || 0,
       roomId: String(row.room_id || ""),
+      giftSource:
+        row.gift_source === "starter_coins"
+          ? "starter_coins"
+          : "paid_coins",
     };
   } catch (err) {
-    logger.warn({ err, userId }, "verifyPaidGiftTransaction failed");
+    logger.warn({ err, userId }, "verifyGiftTransaction failed");
     return null;
   }
 }
@@ -134,9 +148,9 @@ export async function handleMessage(
         if (!(await wsRateCheck(client.userId, "gift", 50, 5_000))) break;
         const { transactionId } = data;
 
-        // Server-authoritative: only broadcast/score gifts backed by a real paid
-        // transaction from this user for this room. Forged gift_sent events are rejected.
-        const verified = await verifyPaidGiftTransaction(
+        // Server-authoritative: broadcast only gifts backed by a persisted paid
+        // or Starter Coin transaction from this user for this room.
+        const verified = await verifyGiftTransaction(
           transactionId,
           client.userId,
           client.roomId,
@@ -163,6 +177,7 @@ export async function handleMessage(
         broadcastToRoom(client.roomId, "gift_sent", {
           giftId: verified.giftId,
           coins: verified.coins,
+          giftSource: verified.giftSource,
           transactionId: String(transactionId),
           battleTarget: normalizeBattleTarget(data.battleTarget) || null,
           user_id: client.userId,
@@ -170,9 +185,10 @@ export async function handleMessage(
           timestamp: new Date().toISOString(),
         });
 
-        // Gift goal + battle score use the authoritative gift id from the DB.
+        // Starter gifts are experiential only: animation/chat notification is
+        // broadcast, but they never affect paid gift goals or battle scores.
         const sentGiftId = verified.giftId;
-        if (sentGiftId) {
+        if (sentGiftId && verified.giftSource === "paid_coins") {
           const updatedGoal = await incrementGiftGoal(client.roomId, sentGiftId, 1);
           if (updatedGoal) {
             broadcastToRoom(client.roomId, "gift_goal_sync", updatedGoal);
@@ -186,7 +202,11 @@ export async function handleMessage(
         });
 
         const activeBattle = await getBattleFromStore(client.roomId);
-        if (activeBattle && activeBattle.status === "ACTIVE") {
+        if (
+          verified.giftSource === "paid_coins" &&
+          activeBattle &&
+          activeBattle.status === "ACTIVE"
+        ) {
           const serverGiftValue = getGiftValue(sentGiftId);
           if (serverGiftValue > 0) {
             const normalizedTarget = normalizeBattleTarget(data.battleTarget);

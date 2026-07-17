@@ -8,6 +8,10 @@ import crypto from 'crypto';
 import { getPool } from '../lib/postgres';
 import { logger } from '../lib/logger';
 import { isEmailConfigured, sendTransactionalEmail } from '../lib/email';
+import {
+  getProgressionSnapshot,
+  initializeNewUserStarterProgression,
+} from '../lib/starterCoinsXp';
 
 const COOKIE_NAME = 'auth_token';
 const TOKEN_EXPIRY_SEC = 60 * 60 * 24 * 7; // 7 days
@@ -344,11 +348,12 @@ async function dbRegisterUser(
     );
     await client.query(
       `INSERT INTO profiles
-         (user_id, username, display_name, avatar_url, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, NOW(), NOW())
+         (user_id, username, display_name, avatar_url, level, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, 0, NOW(), NOW())
        ON CONFLICT (user_id) DO NOTHING`,
       [user.id, user.username, user.username, user.avatar_url],
     );
+    await initializeNewUserStarterProgression(client, user.id);
     await client.query("COMMIT");
     return "ok";
   } catch (err) {
@@ -421,6 +426,9 @@ async function loadProfileMeta(userId: string): Promise<{
   is_admin?: boolean;
   is_creator?: boolean;
   banned_until?: string | null;
+  starter_coin_balance?: number;
+  total_xp?: number;
+  level?: number;
 }> {
   const pool = getPool();
   if (!pool) return {};
@@ -431,10 +439,14 @@ async function loadProfileMeta(userId: string): Promise<{
     );
     const row = pr.rows[0] as { is_admin?: boolean; is_verified?: boolean; banned_until?: Date } | undefined;
     if (!row) return {};
+    const progression = await getProgressionSnapshot(userId);
     return {
       is_admin: Boolean(row.is_admin),
       is_creator: Boolean(row.is_verified),
       banned_until: row.banned_until ? new Date(row.banned_until).toISOString() : null,
+      starter_coin_balance: progression?.starter_coin_balance ?? 0,
+      total_xp: progression?.total_xp ?? 0,
+      level: progression?.current_level ?? 0,
     };
   } catch (err) {
     logger.warn({ err, userId }, 'loadProfileMeta skipped');
@@ -552,7 +564,12 @@ export async function handleRegister(req: Request, res: Response) {
     await dbUpsertSession(id, token);
     setAuthCookie(res, token);
     const profile_meta = await loadProfileMeta(id);
-    return res.status(201).json({ ...authLoginRegisterBody(stored, token), profile_meta });
+    return res.status(201).json({
+      ...authLoginRegisterBody(stored, token),
+      profile_meta,
+      welcome_message:
+        'Welcome! You received 50,000 Starter Coins to explore gifts and support creators.',
+    });
   } catch (err) {
     logger.error({ err }, 'handleRegister failed');
     return res.status(500).json({ error: 'Registration failed. Please try again.' });
@@ -647,6 +664,12 @@ export async function handleDeleteAccount(req: Request, res: Response) {
     await del(`DELETE FROM elix_wallet_ledger WHERE user_id = $1`, [user.id]);
     await del(`DELETE FROM elix_wallet_balances WHERE user_id = $1`, [user.id]);
     await del(`DELETE FROM elix_gift_transactions WHERE user_id = $1`, [user.id]);
+    // Non-monetary Starter Coins + XP progression.
+    await del(`DELETE FROM level_history WHERE user_id = $1`, [user.id]);
+    await del(`DELETE FROM xp_transactions WHERE user_id = $1`, [user.id]);
+    await del(`DELETE FROM user_progression WHERE user_id = $1`, [user.id]);
+    await del(`DELETE FROM starter_coin_transactions WHERE user_id = $1 OR recipient_user_id = $1`, [user.id]);
+    await del(`DELETE FROM starter_coin_balances WHERE user_id = $1`, [user.id]);
     // Videos + profile + auth row (last)
     await del(`DELETE FROM videos WHERE user_id = $1`, [user.id]);
     await del(`DELETE FROM profiles WHERE user_id = $1`, [user.id]);

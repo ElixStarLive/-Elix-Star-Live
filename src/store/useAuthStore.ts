@@ -53,7 +53,11 @@ interface AuthStore {
     password: string,
     username?: string,
     displayName?: string,
-  ) => Promise<{ error: string | null; needsEmailConfirmation: boolean }>;
+  ) => Promise<{
+    error: string | null;
+    needsEmailConfirmation: boolean;
+    welcomeMessage?: string;
+  }>;
   resendSignupConfirmation: (
     email: string,
   ) => Promise<{ error: string | null }>;
@@ -132,9 +136,9 @@ function mapUserToUser(backendUser: AuthUser | null): User | null {
         ? Number(rawLevel)
         : NaN;
   const level =
-    Number.isFinite(levelFromMeta) && levelFromMeta > 0
+    Number.isFinite(levelFromMeta) && levelFromMeta >= 0
       ? Math.floor(levelFromMeta)
-      : 1;
+      : 0;
 
   return {
     id: String(backendUser.id),
@@ -157,13 +161,20 @@ function mapUserToUser(backendUser: AuthUser | null): User | null {
 
 function applyProfileMeta(
   user: User,
-  profileMeta: { is_admin?: boolean; is_creator?: boolean } | null | undefined,
+  profileMeta:
+    | { is_admin?: boolean; is_creator?: boolean; level?: number }
+    | null
+    | undefined,
 ): User {
   if (!profileMeta || typeof profileMeta !== "object") return user;
   return {
     ...user,
     isAdmin: Boolean(profileMeta.is_admin),
     isVerified: profileMeta.is_creator != null ? Boolean(profileMeta.is_creator) : user.isVerified,
+    level:
+      Number.isFinite(Number(profileMeta.level)) && Number(profileMeta.level) >= 0
+        ? Math.floor(Number(profileMeta.level))
+        : user.level,
   };
 }
 
@@ -387,7 +398,14 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
         isLoading: false,
         authMode: "client",
       });
-      return { error: null, needsEmailConfirmation: false };
+      return {
+        error: null,
+        needsEmailConfirmation: false,
+        welcomeMessage:
+          typeof data?.welcome_message === "string"
+            ? data.welcome_message
+            : undefined,
+      };
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Unknown error occurred";
       return { error: msg, needsEmailConfirmation: false };

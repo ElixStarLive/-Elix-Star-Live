@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { Eye, EyeOff, Lock, Mail, User } from 'lucide-react';
+import { showToast } from '../lib/toast';
 export default function Register() {
   const navigate = useNavigate();
   const signUpWithPassword = useAuthStore((state) => state.signUpWithPassword);
@@ -93,6 +94,10 @@ export default function Register() {
 
       if (isMounted.current) {
         setIsSubmitting(false);
+        showToast(
+          res.welcomeMessage ||
+            'Welcome! You received 50,000 Starter Coins to explore gifts and support creators.',
+        );
         navigate('/', { replace: true });
       }
     } catch (err: any) {

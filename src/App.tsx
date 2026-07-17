@@ -79,6 +79,7 @@ const SpectatorPage = lazy(() => import("./pages/SpectatorPage"));
 const RisingStars = lazy(() => import("./pages/RisingStars"));
 const RisingStarsChallenge = lazy(() => import("./pages/RisingStarsChallenge"));
 const AdminRisingStars = lazy(() => import("./pages/admin/RisingStars"));
+const AdminProgression = lazy(() => import("./pages/admin/Progression"));
 
 function LiveStreamKeyed() {
   const loc = useLocation();
@@ -390,6 +391,7 @@ function App() {
                   <Route path="/admin/reports" element={<AdminReports />} />
                   <Route path="/admin/economy" element={<AdminEconomy />} />
                   <Route path="/admin/rising-stars" element={<AdminRisingStars />} />
+                  <Route path="/admin/progression" element={<AdminProgression />} />
                 </Route>
               </Route>
               <Route path="*" element={<Navigate to="/feed" replace />} />

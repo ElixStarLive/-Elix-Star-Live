@@ -16,6 +16,8 @@ import musicRouter from "./music.router";
 import storiesRouter from "./stories.router";
 import risingStarsRouter from "./risingStars.router";
 import adminRisingStarsRouter from "./adminRisingStars.router";
+import progressionRouter from "./progression.router";
+import adminProgressionRouter from "./adminProgression.router";
 
 export function mountRoutes(app: Express): void {
   app.use("/api/auth", authRouter);
@@ -33,7 +35,9 @@ export function mountRoutes(app: Express): void {
   app.use("/api/admin", adminPayoutRouter);
   app.use("/api/admin", adminActionsRouter);
   app.use("/api/admin/rising-stars", adminRisingStarsRouter);
+  app.use("/api/admin/progression", adminProgressionRouter);
   app.use("/api/rising-stars", risingStarsRouter);
+  app.use("/api/progression", progressionRouter);
   app.use("/api/videos", videosRouter);
   app.use("/api/stories", storiesRouter);
   app.use("/api/media", mediaRouter);

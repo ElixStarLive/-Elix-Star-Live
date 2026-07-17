@@ -29,6 +29,7 @@ export const sendGiftSchema = z.object({
   transaction_id: z.string().optional(),
   recipient_id: z.string().optional(),
   channel: z.string().optional(),
+  gift_source: z.enum(["starter_coins", "paid_coins"]).optional(),
 }).refine(data => data.room_id || data.streamKey, { message: "room_id or streamKey required" })
   .refine(data => data.gift_id || data.giftId, { message: "gift_id or giftId required" });
 

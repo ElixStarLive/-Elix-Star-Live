@@ -196,7 +196,15 @@ export async function neonDebitGift(input: {
   clientTransactionId: string;
 }): Promise<
   | { ok: true; newBalance: number; alreadyProcessed: boolean }
-  | { ok: false; error: "insufficient_funds" | "invalid_amount" | "database_error"; newBalance: number }
+  | {
+      ok: false;
+      error:
+        | "insufficient_funds"
+        | "invalid_amount"
+        | "transaction_conflict"
+        | "database_error";
+      newBalance: number;
+    }
 > {
   const pool = getPool();
   if (!pool) return { ok: false, error: "invalid_amount", newBalance: 0 };
@@ -206,6 +214,24 @@ export async function neonDebitGift(input: {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
+    const existingGift = await client.query(
+      `SELECT user_id, room_id, gift_id, coins, gift_source
+         FROM elix_gift_transactions
+        WHERE client_transaction_id = $1
+        LIMIT 1`,
+      [input.clientTransactionId],
+    );
+    if (
+      existingGift.rows[0] &&
+      (String(existingGift.rows[0].user_id) !== input.userId ||
+        String(existingGift.rows[0].room_id) !== input.roomId ||
+        String(existingGift.rows[0].gift_id) !== input.giftId ||
+        Number(existingGift.rows[0].coins) !== coins ||
+        existingGift.rows[0].gift_source === "starter_coins")
+    ) {
+      await client.query("ROLLBACK");
+      return { ok: false, error: "transaction_conflict", newBalance: 0 };
+    }
     const ins = await client.query(
       `INSERT INTO elix_wallet_ledger (user_id, kind, coins_delta, gift_id, room_id, client_transaction_id, idempotency_key)
        VALUES ($1, 'gift_debit', $2, $3, $4, $5, $6)

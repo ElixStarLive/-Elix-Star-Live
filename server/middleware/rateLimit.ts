@@ -111,6 +111,14 @@ export const authLimiter = rateLimit({
   keyPrefix: "auth",
 });
 
+// Starter Coins make automated account creation economically attractive even
+// though they have no cash value. Limit onboarding grants per network.
+export const registerLimiter = rateLimit({
+  windowMs: 60 * 60_000,
+  max: 3,
+  keyPrefix: "register",
+});
+
 export const uploadLimiter = rateLimit({
   windowMs: 60_000,
   max: 10,

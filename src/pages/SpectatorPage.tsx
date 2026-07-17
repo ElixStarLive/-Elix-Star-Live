@@ -172,6 +172,10 @@ export default function SpectatorPage() {
   const [messages, setMessages] = useState<LiveMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [coinBalance, setCoinBalance] = useState(0);
+  const [starterCoinBalance, setStarterCoinBalance] = useState(0);
+  const [giftSource, setGiftSource] = useState<"starter_coins" | "paid_coins">(
+    "paid_coins",
+  );
 
   const [showGiftPanel, setShowGiftPanel] = useState(false);
   const [giftGoal, setGiftGoal] = useState<LiveGiftGoal | null>(null);
@@ -1025,16 +1029,26 @@ export default function SpectatorPage() {
   useEffect(() => {
     if (!user?.id) return;
     
-    setUserLevel(user.level || 1);
+    setUserLevel(user.level ?? 0);
     setUserXP(0);
 
-    request('/api/wallet/').then(({ data, error: walletErr }) => {
-      const walletBal =
-        !walletErr && data?.balance != null ? Math.max(0, Number(data.balance)) : 0;
-      setCoinBalance(resolveGiftUiBalance(walletBal, user.id));
-    }).catch(() => {
-      setCoinBalance(getPersistedTestCoinsBalance(user.id));
-    });
+    Promise.all([request('/api/wallet/'), request('/api/progression/me')])
+      .then(([wallet, progression]) => {
+        const walletBal =
+          !wallet.error && wallet.data?.balance != null
+            ? Math.max(0, Number(wallet.data.balance))
+            : 0;
+        setCoinBalance(resolveGiftUiBalance(walletBal, user.id));
+        const p = progression.data?.progression;
+        const starter = Math.max(0, Number(p?.starter_coin_balance) || 0);
+        setStarterCoinBalance(starter);
+        setGiftSource(starter > 0 ? 'starter_coins' : 'paid_coins');
+        setUserLevel(Math.max(0, Number(p?.current_level) || 0));
+        setUserXP(Math.max(0, Number(p?.total_xp) || 0));
+      })
+      .catch(() => {
+        setCoinBalance(getPersistedTestCoinsBalance(user.id));
+      });
   }, [user?.id, user?.level]);
 
   useEffect(() => {
@@ -1060,6 +1074,16 @@ export default function SpectatorPage() {
     request('/api/wallet/').then(({ data, error: walletErr }) => {
       if (!walletErr && data?.balance != null) {
         setCoinBalance(Math.max(0, Number(data.balance)));
+      }
+    }).catch(() => {});
+    request('/api/progression/me').then(({ data, error }) => {
+      if (!error && data?.progression) {
+        const starter = Math.max(
+          0,
+          Number(data.progression.starter_coin_balance) || 0,
+        );
+        setStarterCoinBalance(starter);
+        if (starter <= 0) setGiftSource('paid_coins');
       }
     }).catch(() => {});
   }, [showGiftPanel, user?.id]);
@@ -1713,7 +1737,12 @@ export default function SpectatorPage() {
       const p = value.split('?')[0].toLowerCase();
       return p.endsWith('.mp4') || p.endsWith('.webm');
     };
-    const spendable = getSpendableGiftBalance(coinBalance, user?.id);
+    const usedTestCoins = Boolean(user?.id && shouldUseTestCoinsForGifts(user.id));
+    const spendable = usedTestCoins
+      ? getSpendableGiftBalance(coinBalance, user?.id)
+      : giftSource === 'starter_coins'
+        ? starterCoinBalance
+        : coinBalance;
     if (spendable < gift.coins) {
       showToast(`Not enough coins (have ${spendable.toLocaleString()}, need ${gift.coins.toLocaleString()})`);
       return;
@@ -1724,10 +1753,9 @@ export default function SpectatorPage() {
     }
 
     let newLevel = userLevel;
-    const usedTestCoins = Boolean(user?.id && shouldUseTestCoinsForGifts(user.id));
-    // Real-coin gifts must carry the REST transaction_id so the WS layer can
-    // verify the gift was paid for (prevents free gift / free battle-score exploits).
-    let paidTransactionId: string | null = null;
+    // Persisted paid or Starter Coin gifts carry a transaction id so WebSocket
+    // delivery can verify the source server-side.
+    let giftTransactionId: string | null = null;
 
     if (usedTestCoins) {
       const debit = debitTestCoinsForGift(user!.id, gift.coins);
@@ -1745,6 +1773,7 @@ export default function SpectatorPage() {
             giftId: gift.id,
             channel: 'spectator',
             transaction_id: crypto.randomUUID(),
+            gift_source: giftSource,
           }),
         });
 
@@ -1761,16 +1790,36 @@ export default function SpectatorPage() {
           showToast(msg || 'Gift failed');
           return;
         }
-        if (result.new_balance != null) {
+        if (result.gift_source === 'starter_coins') {
+          setStarterCoinBalance(
+            Math.max(0, Number(result.new_starter_balance) || 0),
+          );
+          if (Number(result.new_starter_balance) <= 0) {
+            setGiftSource('paid_coins');
+          }
+        } else if (result.new_balance != null) {
           setCoinBalance(Math.max(0, Number(result.new_balance)));
         } else {
           setCoinBalance(prev => Math.max(0, prev - gift.coins));
         }
-        paidTransactionId =
+        if (result.new_level != null) {
+          newLevel = Math.max(0, Number(result.new_level) || 0);
+          setUserLevel(newLevel);
+          updateUser({ level: newLevel });
+        }
+        if (result.total_xp != null) {
+          setUserXP(Math.max(0, Number(result.total_xp) || 0));
+        }
+        if (result.leveled_up) {
+          showToast(`Level up! You reached Level ${newLevel}`);
+        } else if (result.xp_gained) {
+          showToast(`+${Number(result.xp_gained)} XP`);
+        }
+        giftTransactionId =
           typeof result.transaction_id === 'string' && result.transaction_id
             ? result.transaction_id
             : null;
-        if (!paidTransactionId) {
+        if (!giftTransactionId) {
           showToast('Gift failed — please try again');
           return;
         }
@@ -1782,18 +1831,6 @@ export default function SpectatorPage() {
       showToast('Please sign in to send gifts');
       return;
     }
-
-    const xpGained = gift.coins;
-    let currentXP = userXP + xpGained;
-    let currentLevel = userLevel;
-    for (let i = 0; i < 300 && currentXP >= currentLevel * 1000 && currentLevel < 300; i++) {
-      currentXP -= currentLevel * 1000;
-      currentLevel++;
-    }
-    setUserLevel(currentLevel);
-    setUserXP(currentXP);
-    updateUser({ level: currentLevel });
-    newLevel = currentLevel;
 
     setShowGiftPanel(false);
 
@@ -1816,8 +1853,8 @@ export default function SpectatorPage() {
     };
     setMessages(prev => [...prev, giftMsg]);
     // Test coins stay local — never broadcast gift_sent (avoids free battle scores).
-    // Real gifts must include the REST transaction_id for server verification.
-    if (!usedTestCoins && paidTransactionId) {
+    // Persisted gifts include the REST transaction id for source verification.
+    if (!usedTestCoins && giftTransactionId) {
       websocket.send('gift_sent', {
         giftId: gift.id,
         giftName: gift.name,
@@ -1827,7 +1864,8 @@ export default function SpectatorPage() {
         level: newLevel,
         avatar: viewerAvatar,
         video: gift.video || null,
-        transactionId: paidTransactionId,
+        transactionId: giftTransactionId,
+        giftSource,
         creator_name: hostName || 'Creator',
         host_user_id: hostUserId || effectiveStreamId,
         ...(spectatorBattle?.active
@@ -3196,6 +3234,9 @@ export default function SpectatorPage() {
               <GiftPanel
                 onSelectGift={handleSendGift}
                 userCoins={coinBalance}
+                starterCoins={starterCoinBalance}
+                giftSource={giftSource}
+                onGiftSourceChange={setGiftSource}
                 onRechargeSuccess={(newBalance) => { setCoinBalance(newBalance); }}
                 onWeeklyRanking={() => { setShowGiftPanel(false); setShowRankingPanel(true); }}
                 onMembership={() => { setShowGiftPanel(false); setShowFanClub(true); }}
