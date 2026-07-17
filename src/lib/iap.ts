@@ -36,6 +36,10 @@ export interface MembershipStatus {
   active: boolean;
   productId: string;
   basePlanId: string;
+  /** True only when Google Play has an ACTIVE monthly base plan for this creator. */
+  purchaseReady?: boolean;
+  provisionStatus?: 'pending' | 'active' | 'error';
+  provisionDetail?: string;
   expiresAt?: string;
   autoRenewing?: boolean;
   subscriptionState?: string;
@@ -228,6 +232,15 @@ export async function getMembershipStatus(
       active: data.active === true,
       productId: data.productId,
       basePlanId: data.basePlanId,
+      purchaseReady: data.purchaseReady === true,
+      provisionStatus:
+        data.provisionStatus === 'active' ||
+        data.provisionStatus === 'pending' ||
+        data.provisionStatus === 'error'
+          ? data.provisionStatus
+          : undefined,
+      provisionDetail:
+        typeof data.provisionDetail === 'string' ? data.provisionDetail : undefined,
       expiresAt: typeof data.expiresAt === 'string' ? data.expiresAt : undefined,
       autoRenewing: data.autoRenewing === true,
       subscriptionState:
@@ -235,6 +248,8 @@ export async function getMembershipStatus(
     },
   };
 }
+
+let membershipPurchaseInProgress = false;
 
 /**
  * Purchase a creator-specific recurring membership through Google Play, then
@@ -248,6 +263,9 @@ export async function purchaseMembership(
   }
   if (!platform.isAndroid) {
     return { success: false, error: 'Creator memberships are not configured for iOS yet' };
+  }
+  if (membershipPurchaseInProgress || purchaseInProgress) {
+    return { success: false, error: 'A purchase is already in progress' };
   }
   const mod = await getPlugin();
   if (!mod) return { success: false, error: 'Purchase service not available' };
@@ -267,7 +285,16 @@ export async function purchaseMembership(
   if (current.status.active) {
     return { success: true, status: current.status };
   }
+  if (current.status.purchaseReady !== true) {
+    return {
+      success: false,
+      error:
+        current.status.provisionDetail ||
+        'Membership is still being set up in Google Play. Please try again in a moment.',
+    };
+  }
 
+  membershipPurchaseInProgress = true;
   try {
     const result = await mod.NativePurchases.purchaseProduct({
       productIdentifier: current.status.productId,
@@ -301,6 +328,8 @@ export async function purchaseMembership(
         active: data?.active === true,
         productId: current.status.productId,
         basePlanId: current.status.basePlanId,
+        purchaseReady: true,
+        provisionStatus: 'active',
         expiresAt: typeof data?.expiresAt === 'string' ? data.expiresAt : undefined,
         autoRenewing: data?.autoRenewing === true,
         subscriptionState:
@@ -308,11 +337,13 @@ export async function purchaseMembership(
       },
     };
   } catch (err) {
-    const msg = err?.message || String(err);
+    const msg = (err as { message?: string })?.message || String(err);
     if (msg.includes('cancel') || msg.includes('Cancel') || msg.includes('USER_CANCELED')) {
       return { success: false, error: 'Purchase cancelled' };
     }
     return { success: false, error: msg || 'Purchase failed' };
+  } finally {
+    membershipPurchaseInProgress = false;
   }
 }
 

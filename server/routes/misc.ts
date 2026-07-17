@@ -16,6 +16,7 @@ import {
   acknowledgeGoogleSubscription,
   CREATOR_MEMBERSHIP_BASE_PLAN_ID,
   creatorMembershipProductId,
+  ensureCreatorMembershipProduct,
   hashPurchaseToken,
   verifyGoogleSubscription,
 } from '../lib/googlePlaySubscriptions';
@@ -554,17 +555,24 @@ export async function handleGetMembershipStatus(req: Request, res: Response) {
       active: false,
       productId,
       basePlanId,
+      purchaseReady: false,
+      provisionStatus: 'pending',
       self: true,
     });
   }
 
   if (!getPool()) return res.status(503).json({ error: 'Database not configured' });
   try {
+    // Provision (or confirm) the dynamic Play subscription before advertising it as buyable.
+    const provisioned = await ensureCreatorMembershipProduct(creatorId);
     const entitlement = await neonGetActiveMembershipEntitlement(user.sub, creatorId);
     return res.json({
       active: Boolean(entitlement),
-      productId,
-      basePlanId,
+      productId: provisioned.productId || productId,
+      basePlanId: provisioned.basePlanId || basePlanId,
+      purchaseReady: provisioned.purchaseReady === true,
+      provisionStatus: provisioned.status,
+      provisionDetail: provisioned.detail ?? null,
       expiresAt: entitlement?.expiresAt ?? null,
       autoRenewing: entitlement?.autoRenewEnabled === true,
       subscriptionState: entitlement?.subscriptionState ?? null,

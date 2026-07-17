@@ -4,7 +4,9 @@ import {
   CREATOR_MEMBERSHIP_BASE_PLAN_ID,
   creatorMembershipProductId,
   hashPurchaseToken,
+  loadMembershipPriceConfig,
   parseGoogleSubscriptionPayload,
+  parseMoneyAmount,
 } from "./googlePlaySubscriptions";
 
 const NOW = Date.parse("2026-07-17T12:00:00.000Z");
@@ -41,6 +43,30 @@ describe("creatorMembershipProductId", () => {
 
   it("differs per creator", () => {
     expect(creatorMembershipProductId("creator-a")).not.toBe(creatorMembershipProductId("creator-b"));
+  });
+});
+
+describe("parseMoneyAmount / loadMembershipPriceConfig", () => {
+  it("splits major/minor units for Play Money", () => {
+    expect(parseMoneyAmount("4.99", "GBP")).toEqual({
+      currencyCode: "GBP",
+      units: "4",
+      nanos: 990_000_000,
+    });
+    expect(parseMoneyAmount("9", "USD")).toEqual({
+      currencyCode: "USD",
+      units: "9",
+      nanos: 0,
+    });
+  });
+
+  it("defaults to GBP/US monthly regions with 4.99 pricing", () => {
+    const cfg = loadMembershipPriceConfig();
+    expect(cfg.title).toBeTruthy();
+    expect(cfg.regions.some((r) => r.regionCode === "GB")).toBe(true);
+    expect(cfg.otherUsd.currencyCode).toBe("USD");
+    expect(cfg.otherEur.currencyCode).toBe("EUR");
+    expect(CREATOR_MEMBERSHIP_BASE_PLAN_ID).toBe("monthly");
   });
 });
 
