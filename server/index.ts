@@ -439,7 +439,8 @@ app.get(
       ? "assetlinks.json"
       : "apple-app-site-association";
     res.type("application/json");
-    res.sendFile(join(distPath, ".well-known", name), (err) => {
+    // send() ignores dot-directories by default; `.well-known` needs it allowed.
+    res.sendFile(join(distPath, ".well-known", name), { dotfiles: "allow" }, (err) => {
       if (err && !res.headersSent) res.status(404).end();
     });
   },
