@@ -575,12 +575,12 @@ export default function Profile() {
               style={{ boxShadow: '0 -4px 30px rgba(255,255,255,0.25)' }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex justify-center pt-3 pb-1">
+              <div className="flex justify-center pt-1 pb-0.5">
                 <div className="w-10 h-1 bg-white/20 rounded-full" />
               </div>
-              <div className="flex items-center justify-between gap-2 px-4 pb-2">
+              <div className="flex items-center justify-between gap-2 px-4 pb-0.5">
                 <h3 className="text-gold-metallic font-bold text-sm">Share to</h3>
-                <div className="flex-none w-[120px] bg-white/5 rounded-lg px-2 py-1.5 flex items-center gap-2 border border-[#C9A227]/20">
+                <div className="flex-none w-[120px] bg-white/5 rounded-lg px-2 py-0.5 flex items-center gap-2 border border-[#C9A227]/20">
                   <Search className="w-3.5 h-3.5 text-[#E8D5A3]/40" />
                   <input placeholder="Search..." value={shareQuery ?? ''} onChange={(e) => setShareQuery(e.target.value)} className="bg-transparent text-white text-xs outline-none w-full placeholder:text-white/20" />
                 </div>

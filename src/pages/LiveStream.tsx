@@ -6112,12 +6112,12 @@ export default function LiveStream() {
           />
           <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
           <div className="bg-[#111111]/95 backdrop-blur-md rounded-t-2xl p-3 pb-safe flex flex-col shadow-2xl w-full h-[40vh] overflow-hidden ">
-            <div className="flex justify-center pt-1 pb-2">
+            <div className="flex justify-center pt-0.5 pb-0.5">
               <div className="w-10 h-1 bg-white/20 rounded-full" />
             </div>
-            <div className="flex items-center justify-between gap-2 px-4 pb-2 flex-shrink-0">
+            <div className="flex items-center justify-between gap-2 px-4 pb-0.5 flex-shrink-0">
               <h3 className="text-white font-bold whitespace-nowrap text-sm">Share to</h3>
-              <div className="flex-none w-[120px] bg-white/5 rounded-lg px-2 py-1.5 flex items-center gap-2">
+              <div className="flex-none w-[120px] bg-white/5 rounded-lg px-2 py-0.5 flex items-center gap-2">
                 <Search className="w-3.5 h-3.5 text-white/30" />
                 <input
                   value={shareQuery}

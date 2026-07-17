@@ -3309,13 +3309,13 @@ export default function SpectatorPage() {
               onClick={() => setShowSharePanel(false)}
             />
             <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
-              <div className="bg-[#111111]/95 rounded-t-2xl p-4 pb-safe flex flex-col gap-1 shadow-2xl w-full h-[40vh] overflow-y-auto overflow-x-hidden ">
-                <div className="flex justify-center mb-2">
+              <div className="bg-[#111111]/95 rounded-t-2xl px-4 pt-1.5 pb-4 pb-safe flex flex-col gap-1 shadow-2xl w-full h-[40vh] overflow-y-auto overflow-x-hidden ">
+                <div className="flex justify-center mb-0.5">
                   <div className="w-10 h-1 bg-white/20 rounded-full" />
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <h3 className="text-white font-bold whitespace-nowrap">Share to</h3>
-                  <div className="flex-none w-[120px] bg-white/5 rounded-lg px-2 py-1.5 flex items-center gap-2">
+                  <div className="flex-none w-[120px] bg-white/5 rounded-lg px-2 py-0.5 flex items-center gap-2">
                     <Search className="w-3.5 h-3.5 text-white/30" />
                     <input
                       value={shareQuery}

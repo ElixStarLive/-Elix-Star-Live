@@ -135,12 +135,12 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
         className="bg-[#111111]/95 backdrop-blur-md w-full max-w-[480px] rounded-t-2xl overflow-hidden flex flex-col h-[38vh] shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-center px-4 pt-1 pb-1">
+        <div className="flex justify-center px-4 pt-0.5 pb-0.5">
           <div className="w-10 h-1 bg-white/20 rounded-full flex-shrink-0" />
         </div>
-        <div className="flex items-center justify-between gap-2 px-4 pb-2 flex-shrink-0">
+        <div className="flex items-center justify-between gap-2 px-4 pb-0.5 flex-shrink-0">
           <h3 className="text-[#D4AF37] font-bold whitespace-nowrap text-sm">Share to</h3>
-          <div className="flex-none w-[120px] bg-white/5 rounded-lg px-2 py-1.5 flex items-center gap-2 border border-[#D4AF37]/35">
+          <div className="flex-none w-[120px] bg-white/5 rounded-lg px-2 py-0.5 flex items-center gap-2 border border-[#D4AF37]/35">
             <Search className="w-3.5 h-3.5 text-[#D4AF37]" />
             <input
               value={shareQuery}
