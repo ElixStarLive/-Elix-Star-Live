@@ -295,6 +295,7 @@ export async function setCohostLayout(
 export async function deleteCohostLayout(roomId: string): Promise<void> {
   if (!isValkeyConfigured()) return;
   await valkeyDel(`cohost:${roomId}`);
+  await clearCohostPublishGrants(roomId);
 }
 
 // ── Co-host publish grants (host-authorized) ─────────────────────
@@ -306,12 +307,29 @@ const COHOST_GRANT_TTL_MS = 6 * 60 * 60 * 1000; // matches LiveKit token TTL
 export async function grantCohostPublish(roomId: string, userId: string): Promise<void> {
   if (!isValkeyConfigured() || !roomId || !userId) return;
   await valkeySet(`cohost_grant:${roomId}:${userId}`, "1", COHOST_GRANT_TTL_MS);
+  await valkeySadd(`cohost_grants:${roomId}`, userId);
+  await valkeyExpire(`cohost_grants:${roomId}`, Math.ceil(COHOST_GRANT_TTL_MS / 1000));
 }
 
 export async function hasCohostPublishGrant(roomId: string, userId: string): Promise<boolean> {
   if (!isValkeyConfigured() || !roomId || !userId) return false;
   const v = await valkeyGet(`cohost_grant:${roomId}:${userId}`);
   return v === "1";
+}
+
+export async function revokeCohostPublish(roomId: string, userId: string): Promise<void> {
+  if (!isValkeyConfigured() || !roomId || !userId) return;
+  await valkeyDel(`cohost_grant:${roomId}:${userId}`);
+  await valkeySrem(`cohost_grants:${roomId}`, userId);
+}
+
+export async function clearCohostPublishGrants(roomId: string): Promise<void> {
+  if (!isValkeyConfigured() || !roomId) return;
+  const members = await valkeySmembers(`cohost_grants:${roomId}`);
+  for (const userId of members) {
+    await valkeyDel(`cohost_grant:${roomId}:${userId}`);
+  }
+  await valkeyDel(`cohost_grants:${roomId}`);
 }
 
 // ── Valkey pub/sub for cross-instance WS broadcasting ────────────
@@ -351,6 +369,10 @@ export function initWsPubSub(): void {
   valkeyPSubscribe("user:*", (channel, payload) => {
     if (payload.sourceInstanceId === INSTANCE_ID) return;
     const userId = channel.replace(/^user:/, "");
+    if (payload.event === "force_disconnect") {
+      forceCloseLocalUserSockets(userId, String(payload.data?.reason || "Session ended"));
+      return;
+    }
     let message: string;
     try {
       message = JSON.stringify({
@@ -376,6 +398,38 @@ export function initWsPubSub(): void {
   });
 
   logger.info({ instanceId: INSTANCE_ID }, "WS pub/sub initialized");
+}
+
+function forceCloseLocalUserSockets(userId: string, reason: string): number {
+  const userSet = userClients.get(userId);
+  if (!userSet || userSet.size === 0) return 0;
+  let closed = 0;
+  for (const client of [...userSet]) {
+    try {
+      if (client.ws.readyState === WebSocket.OPEN || client.ws.readyState === WebSocket.CONNECTING) {
+        client.ws.close(1008, reason.slice(0, 120));
+        closed += 1;
+      }
+    } catch (err) {
+      logger.warn({ err, userId }, "forceCloseLocalUserSockets close failed");
+    }
+  }
+  return closed;
+}
+
+/** Close every live socket for a user on this and other instances (ban / suspend). */
+export function disconnectUserSessions(userId: string, reason = "Banned"): number {
+  if (!userId) return 0;
+  const closed = forceCloseLocalUserSockets(userId, reason);
+  if (isValkeyConfigured()) {
+    valkeyPublish(`user:${userId}`, {
+      event: "force_disconnect",
+      data: { reason },
+      timestamp: new Date().toISOString(),
+      sourceInstanceId: INSTANCE_ID,
+    });
+  }
+  return closed;
 }
 
 // ── Viewer count from Valkey SCARD ───────────────────────────────
@@ -734,6 +788,8 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
 
           if (!userStillInRoom && isValkeyConfigured()) {
             await valkeySrem(`room:members:${client.roomId}`, client.userId);
+            // Leaving the room removes any co-host publish entitlement.
+            await revokeCohostPublish(client.roomId, client.userId);
           }
 
           broadcastToRoom(client.roomId, "user_left", {

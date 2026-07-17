@@ -78,13 +78,16 @@ export async function getVideoAsync(id: string): Promise<Video | undefined> {
   }
 }
 
-/** List all videos from DB with limit. */
+/** List public videos from DB with limit. */
 export async function getAllVideosAsync(limit = 500): Promise<Video[]> {
   const db = getPool();
   if (!db) return [];
   try {
     const res = await db.query(
-      `SELECT * FROM videos ORDER BY created_at DESC NULLS LAST LIMIT $1`,
+      `SELECT * FROM videos
+       WHERE COALESCE(privacy, 'public') <> 'private'
+       ORDER BY created_at DESC NULLS LAST
+       LIMIT $1`,
       [limit],
     );
     return (res.rows || []).map(rowToVideo);
@@ -94,14 +97,22 @@ export async function getAllVideosAsync(limit = 500): Promise<Video[]> {
   }
 }
 
-/** List videos by user from DB. */
-export async function getVideosByUserAsync(userId: string, limit = 200): Promise<Video[]> {
+/** List a user's videos; private items are visible only to their owner. */
+export async function getVideosByUserAsync(
+  userId: string,
+  limit = 200,
+  includePrivate = false,
+): Promise<Video[]> {
   const db = getPool();
   if (!db) return [];
   try {
     const res = await db.query(
-      `SELECT * FROM videos WHERE user_id = $1 ORDER BY created_at DESC NULLS LAST LIMIT $2`,
-      [userId, limit],
+      `SELECT * FROM videos
+       WHERE user_id = $1
+         AND ($3::boolean OR COALESCE(privacy, 'public') <> 'private')
+       ORDER BY created_at DESC NULLS LAST
+       LIMIT $2`,
+      [userId, limit, includePrivate],
     );
     return (res.rows || []).map(rowToVideo);
   } catch (err) {

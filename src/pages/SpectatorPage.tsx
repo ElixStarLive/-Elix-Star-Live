@@ -1711,7 +1711,12 @@ export default function SpectatorPage() {
       try {
         const { data: result, error: giftErr } = await request('/api/gifts/send', {
           method: 'POST',
-          body: JSON.stringify({ streamKey: effectiveStreamId, giftId: gift.id, channel: 'spectator' }),
+          body: JSON.stringify({
+            streamKey: effectiveStreamId,
+            giftId: gift.id,
+            channel: 'spectator',
+            transaction_id: crypto.randomUUID(),
+          }),
         });
 
         if (giftErr) {

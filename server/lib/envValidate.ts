@@ -41,6 +41,12 @@ export function validateProductionEnvironment(): void {
     !!process.env.APPLE_KEY_ID?.trim() &&
     !!process.env.APPLE_PRIVATE_KEY?.trim();
   if (!appleReady) {
+    if (process.env.APPLE_IAP_REQUIRED === "1") {
+      logger.fatal(
+        "APPLE_IAP_REQUIRED=1 but APPLE_ISSUER_ID / APPLE_KEY_ID / APPLE_PRIVATE_KEY are incomplete",
+      );
+      process.exit(1);
+    }
     logger.warn(
       "Apple IAP credentials incomplete (APPLE_ISSUER_ID / APPLE_KEY_ID / APPLE_PRIVATE_KEY) — iOS purchases will be rejected until set",
     );

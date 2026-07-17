@@ -83,10 +83,24 @@ export async function handleCreatorWithdraw(req: Request, res: Response) {
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-    const { coins_amount, payout_method_id } = req.body;
+      const { coins_amount, payout_method_id } = req.body;
     const amt = Math.floor(Number(coins_amount));
     if (!Number.isFinite(amt) || amt <= 0) {
       return res.status(400).json({ error: 'Invalid amount' });
+    }
+
+    let methodId: string | null =
+      typeof payout_method_id === 'string' && payout_method_id.trim()
+        ? payout_method_id.trim()
+        : null;
+    if (methodId) {
+      const owned = await db.query(
+        `SELECT id FROM elix_payout_methods WHERE id = $1 AND user_id = $2 LIMIT 1`,
+        [methodId, userId],
+      );
+      if (!owned.rowCount) {
+        return res.status(400).json({ error: 'Invalid payout method' });
+      }
     }
 
     const client = await db.connect();
@@ -107,7 +121,7 @@ export async function handleCreatorWithdraw(req: Request, res: Response) {
       const ins = await client.query(
         `INSERT INTO elix_payout_requests (user_id, coins_amount, payout_method_id, status)
          VALUES ($1, $2, $3, 'pending') RETURNING *`,
-        [userId, amt, payout_method_id || null],
+        [userId, amt, methodId],
       );
       await client.query('COMMIT');
       return res.json({ payout: ins.rows[0] });

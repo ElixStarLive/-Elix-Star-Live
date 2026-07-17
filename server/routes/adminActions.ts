@@ -5,6 +5,7 @@ import { Router, Request, Response } from "express";
 import { getPool } from "../lib/postgres";
 import { logger } from "../lib/logger";
 import { requireAuthWithRoles, requireAdmin } from "../middleware/rbac";
+import { disconnectUserSessions } from "../websocket/index";
 import { z } from "zod";
 import { validateBody } from "../middleware/validate";
 
@@ -182,6 +183,7 @@ router.post("/users/:userId/ban", validateBody(banSchema), async (req: Request, 
       bannedUntil.toISOString(),
       userId,
     ]);
+    disconnectUserSessions(userId, "Banned");
     logger.warn({ userId, bannedUntil, reason, by: req.authContext!.userId }, "admin ban applied");
     return res.json({ ok: true, userId, banned_until: bannedUntil.toISOString() });
   } catch (e) {

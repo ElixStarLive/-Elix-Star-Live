@@ -116,7 +116,13 @@ router.get("/", async (_req, res) => {
 });
 
 router.get("/user/:userId", async (req, res) => {
-  const videos = await getVideosByUserAsync(req.params.userId);
+  const token = getTokenFromRequest(req);
+  const payload = token ? verifyAuthToken(token) : null;
+  const videos = await getVideosByUserAsync(
+    req.params.userId,
+    200,
+    payload?.sub === req.params.userId,
+  );
   res.json({ videos, total: videos.length });
 });
 
@@ -133,6 +139,7 @@ router.get("/saved/list", async (req, res) => {
        FROM saves s
        INNER JOIN videos v ON v.id = s.video_id
        WHERE s.user_id = $1
+         AND (v.user_id = $1 OR COALESCE(v.privacy, 'public') <> 'private')
        ORDER BY s.created_at DESC
        LIMIT 200`,
       [payload.sub],
@@ -181,6 +188,13 @@ router.get("/:id/download", async (req, res) => {
 router.get("/:id", async (req, res) => {
   const video = await getVideoAsync(req.params.id);
   if (!video) return res.status(404).json({ error: "Video not found" });
+  if (video.privacy === "private") {
+    const token = getTokenFromRequest(req);
+    const payload = token ? verifyAuthToken(token) : null;
+    if (payload?.sub !== video.userId) {
+      return res.status(404).json({ error: "Video not found" });
+    }
+  }
   res.json(video);
 });
 

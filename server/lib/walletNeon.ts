@@ -196,7 +196,7 @@ export async function neonDebitGift(input: {
   clientTransactionId: string;
 }): Promise<
   | { ok: true; newBalance: number; alreadyProcessed: boolean }
-  | { ok: false; error: "insufficient_funds" | "invalid_amount"; newBalance: number }
+  | { ok: false; error: "insufficient_funds" | "invalid_amount" | "database_error"; newBalance: number }
 > {
   const pool = getPool();
   if (!pool) return { ok: false, error: "invalid_amount", newBalance: 0 };
@@ -212,6 +212,14 @@ export async function neonDebitGift(input: {
        ON CONFLICT (idempotency_key) DO NOTHING
        RETURNING id`,
       [input.userId, -coins, input.giftId, input.roomId, input.clientTransactionId, idem],
+    );
+    // Gift-tx row must exist in the same commit so WS verification cannot see a
+    // debit without a matching paid transaction record.
+    await client.query(
+      `INSERT INTO elix_gift_transactions (user_id, room_id, gift_id, coins, client_transaction_id, created_at)
+       VALUES ($1, $2, $3, $4, $5, NOW())
+       ON CONFLICT (client_transaction_id) DO NOTHING`,
+      [input.userId, input.roomId, input.giftId, coins, input.clientTransactionId],
     );
     if (ins.rowCount === 0) {
       const balR = await client.query(
@@ -295,11 +303,11 @@ export async function neonCreditCreatorEarning(input: {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    // Gift earnings are immediately withdrawable (available_coins). Chargebacks
-    // reverse from available_coins while status is still 'available'.
+    // Hold gift earnings in pending until the store refund window closes.
+    // Maturation moves pending → available (see neonMatureCreatorEarnings).
     const ins = await client.query(
       `INSERT INTO elix_creator_earnings (id, creator_id, kind, coins, gift_id, room_id, sender_id, status)
-       VALUES ($1, $2, 'gift', $3, $4, $5, $6, 'available')
+       VALUES ($1, $2, 'gift', $3, $4, $5, $6, 'pending')
        ON CONFLICT (id) DO NOTHING
        RETURNING id`,
       [earningId, input.creatorId, credited, input.giftId, input.roomId, input.senderId],
@@ -309,10 +317,10 @@ export async function neonCreditCreatorEarning(input: {
       return { ok: true, credited: 0 };
     }
     await client.query(
-      `INSERT INTO elix_creator_balances (user_id, available_coins, total_earned, updated_at)
+      `INSERT INTO elix_creator_balances (user_id, pending_coins, total_earned, updated_at)
        VALUES ($1, $2, $2, NOW())
        ON CONFLICT (user_id) DO UPDATE SET
-         available_coins = elix_creator_balances.available_coins + EXCLUDED.available_coins,
+         pending_coins = elix_creator_balances.pending_coins + EXCLUDED.pending_coins,
          total_earned = elix_creator_balances.total_earned + EXCLUDED.total_earned,
          updated_at = NOW()`,
       [input.creatorId, credited],
@@ -327,6 +335,193 @@ export async function neonCreditCreatorEarning(input: {
     }
     logger.warn({ err: e, creatorId: input.creatorId }, "neonCreditCreatorEarning failed");
     return { ok: false, credited: 0 };
+  } finally {
+    client.release();
+  }
+}
+
+/** Hours gift earnings stay pending before becoming withdrawable. */
+export function creatorEarningHoldHours(): number {
+  const n = Number(process.env.CREATOR_EARNING_HOLD_HOURS ?? 72);
+  return Number.isFinite(n) && n >= 0 ? Math.min(720, Math.floor(n)) : 72;
+}
+
+/** Move matured pending gift earnings into available_coins (refund-window hold). */
+export async function neonMatureCreatorEarnings(): Promise<number> {
+  const pool = getPool();
+  if (!pool) return 0;
+  const holdHours = creatorEarningHoldHours();
+  const client = await pool.connect();
+  let matured = 0;
+  try {
+    await client.query("BEGIN");
+    const due = await client.query(
+      `SELECT id, creator_id, coins
+         FROM elix_creator_earnings
+        WHERE status = 'pending'
+          AND kind = 'gift'
+          AND created_at <= NOW() - ($1::text || ' hours')::interval
+        ORDER BY created_at ASC
+        LIMIT 200
+        FOR UPDATE SKIP LOCKED`,
+      [String(holdHours)],
+    );
+    for (const row of due.rows || []) {
+      const id = String(row.id);
+      const creatorId = String(row.creator_id);
+      const coins = Math.floor(Number(row.coins) || 0);
+      if (!id || !creatorId || coins <= 0) continue;
+      const upd = await client.query(
+        `UPDATE elix_creator_earnings SET status = 'available'
+          WHERE id = $1 AND status = 'pending'
+          RETURNING id`,
+        [id],
+      );
+      if (!upd.rowCount) continue;
+      await client.query(
+        `UPDATE elix_creator_balances
+            SET pending_coins = GREATEST(0, pending_coins - $2),
+                available_coins = available_coins + $2,
+                updated_at = NOW()
+          WHERE user_id = $1`,
+        [creatorId, coins],
+      );
+      matured += 1;
+    }
+    await client.query("COMMIT");
+    return matured;
+  } catch (e) {
+    try {
+      await client.query("ROLLBACK");
+    } catch (rbErr) {
+      logger.error({ err: rbErr }, "neonMatureCreatorEarnings ROLLBACK failed");
+    }
+    logger.warn({ err: e }, "neonMatureCreatorEarnings failed");
+    return 0;
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * Reverse a credited IAP after a store refund/void.
+ * Also reverses still-pending gift earnings from that buyer (collusion window).
+ */
+export async function neonReverseIapPurchase(input: {
+  provider: "google" | "apple";
+  providerTransactionId: string;
+}): Promise<
+  | { ok: true; alreadyProcessed: boolean; reversedCoins: number }
+  | { ok: false; error: string }
+> {
+  const pool = getPool();
+  if (!pool) return { ok: false, error: "no_pool" };
+  const txnId = input.providerTransactionId.trim();
+  if (!txnId) return { ok: false, error: "missing_transaction" };
+  const refundIdem = `iap_refund:${input.provider}:${txnId}`;
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const dup = await client.query(
+      `SELECT 1 FROM elix_wallet_ledger WHERE idempotency_key = $1 LIMIT 1`,
+      [refundIdem],
+    );
+    if (dup.rowCount) {
+      await client.query("COMMIT");
+      return { ok: true, alreadyProcessed: true, reversedCoins: 0 };
+    }
+    const purchase = await client.query(
+      `SELECT user_id, coins_delta, created_at
+         FROM elix_wallet_ledger
+        WHERE kind = 'iap_purchase'
+          AND provider = $1
+          AND provider_transaction_id = $2
+        LIMIT 1
+        FOR UPDATE`,
+      [input.provider, txnId],
+    );
+    if (!purchase.rowCount) {
+      await client.query("ROLLBACK");
+      return { ok: false, error: "purchase_not_found" };
+    }
+    const userId = String(purchase.rows[0].user_id);
+    const coins = Math.max(0, Math.floor(Number(purchase.rows[0].coins_delta) || 0));
+    const purchasedAt = purchase.rows[0].created_at;
+    if (coins > 0) {
+      await client.query(
+        `INSERT INTO elix_wallet_ledger
+           (user_id, kind, coins_delta, provider, provider_transaction_id, product_id, idempotency_key, verification)
+         VALUES ($1, 'iap_refund', $2, $3, $4, NULL, $5, $6::jsonb)`,
+        [
+          userId,
+          -coins,
+          input.provider,
+          txnId,
+          refundIdem,
+          JSON.stringify({ reason: "store_void_or_refund" }),
+        ],
+      );
+      await client.query(
+        `UPDATE elix_wallet_balances
+            SET coin_balance = GREATEST(0, coin_balance - $2), updated_at = NOW()
+          WHERE user_id = $1`,
+        [userId, coins],
+      );
+    } else {
+      await client.query(
+        `INSERT INTO elix_wallet_ledger
+           (user_id, kind, coins_delta, provider, provider_transaction_id, product_id, idempotency_key, verification)
+         VALUES ($1, 'iap_refund', 0, $2, $3, NULL, $4, $5::jsonb)
+         ON CONFLICT (idempotency_key) DO NOTHING`,
+        [
+          userId,
+          input.provider,
+          txnId,
+          refundIdem,
+          JSON.stringify({ reason: "store_void_or_refund" }),
+        ],
+      );
+    }
+
+    // Reverse pending gift earnings funded by this buyer during the hold window.
+    const pending = await client.query(
+      `SELECT id, creator_id, coins
+         FROM elix_creator_earnings
+        WHERE sender_id = $1
+          AND status = 'pending'
+          AND kind = 'gift'
+          AND created_at >= $2
+        FOR UPDATE`,
+      [userId, purchasedAt],
+    );
+    for (const row of pending.rows || []) {
+      const earningId = String(row.id);
+      const creatorId = String(row.creator_id);
+      const earningCoins = Math.floor(Number(row.coins) || 0);
+      if (!earningId || !creatorId || earningCoins <= 0) continue;
+      await client.query(
+        `UPDATE elix_creator_earnings SET status = 'reversed' WHERE id = $1 AND status = 'pending'`,
+        [earningId],
+      );
+      await client.query(
+        `UPDATE elix_creator_balances
+            SET pending_coins = GREATEST(0, pending_coins - $2), updated_at = NOW()
+          WHERE user_id = $1`,
+        [creatorId, earningCoins],
+      );
+    }
+
+    await client.query("COMMIT");
+    return { ok: true, alreadyProcessed: false, reversedCoins: coins };
+  } catch (e) {
+    try {
+      await client.query("ROLLBACK");
+    } catch (rbErr) {
+      logger.error({ err: rbErr }, "neonReverseIapPurchase ROLLBACK failed");
+    }
+    const msg = e instanceof Error ? e.message : String(e);
+    logger.error({ err: e, provider: input.provider, txnId }, "neonReverseIapPurchase failed");
+    return { ok: false, error: msg || "reverse_failed" };
   } finally {
     client.release();
   }

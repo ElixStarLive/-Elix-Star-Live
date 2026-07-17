@@ -22,8 +22,10 @@ import {
   setCohostLayout,
   deleteCohostLayout,
   grantCohostPublish,
+  revokeCohostPublish,
+  getCohostLayout,
 } from "./index";
-import { valkeyDel, valkeySet, valkeySetNx } from "../lib/valkey";
+import { valkeyDel, valkeySet, valkeySetNx, valkeyGet } from "../lib/valkey";
 import { randomUUID } from "crypto";
 import {
   clearGiftGoal,
@@ -45,23 +47,32 @@ const BATTLE_USER_ROOM_TTL_MS = 600_000;
 async function verifyPaidGiftTransaction(
   transactionId: unknown,
   userId: string,
-): Promise<{ giftId: string; coins: number } | null> {
+  roomId: string,
+): Promise<{ giftId: string; coins: number; roomId: string } | null> {
   if (typeof transactionId !== "string" || !transactionId.trim()) return null;
+  if (!roomId) return null;
   const pool = getPool();
   if (!pool) return null;
   try {
     const r = await pool.query(
-      `SELECT gift_id, coins
+      `SELECT gift_id, coins, room_id
          FROM elix_gift_transactions
         WHERE client_transaction_id = $1
           AND user_id = $2
+          AND room_id = $3
           AND created_at > NOW() - INTERVAL '2 minutes'
         LIMIT 1`,
-      [transactionId.trim(), userId],
+      [transactionId.trim(), userId, roomId],
     );
-    const row = r.rows[0] as { gift_id?: string; coins?: number } | undefined;
+    const row = r.rows[0] as
+      | { gift_id?: string; coins?: number; room_id?: string }
+      | undefined;
     if (!row) return null;
-    return { giftId: String(row.gift_id || ""), coins: Number(row.coins) || 0 };
+    return {
+      giftId: String(row.gift_id || ""),
+      coins: Number(row.coins) || 0,
+      roomId: String(row.room_id || ""),
+    };
   } catch (err) {
     logger.warn({ err, userId }, "verifyPaidGiftTransaction failed");
     return null;
@@ -124,8 +135,12 @@ export async function handleMessage(
         const { transactionId } = data;
 
         // Server-authoritative: only broadcast/score gifts backed by a real paid
-        // transaction from this user. Forged gift_sent events are rejected.
-        const verified = await verifyPaidGiftTransaction(transactionId, client.userId);
+        // transaction from this user for this room. Forged gift_sent events are rejected.
+        const verified = await verifyPaidGiftTransaction(
+          transactionId,
+          client.userId,
+          client.roomId,
+        );
         if (!verified) {
           sendToClient(client, "gift_ack", {
             transactionId: transactionId ?? null,
@@ -146,8 +161,10 @@ export async function handleMessage(
         }
 
         broadcastToRoom(client.roomId, "gift_sent", {
-          ...data,
           giftId: verified.giftId,
+          coins: verified.coins,
+          transactionId: String(transactionId),
+          battleTarget: normalizeBattleTarget(data.battleTarget) || null,
           user_id: client.userId,
           username: client.username,
           timestamp: new Date().toISOString(),
@@ -184,6 +201,9 @@ export async function handleMessage(
       }
 
       case "battle_create": {
+        if (!(await wsRateCheck(client.userId, "battle_create", 10, 60_000))) break;
+        const ownerId = await resolveStreamOwnerUserId(client.roomId);
+        if (!ownerId || ownerId !== client.userId) break;
         const existing = await getBattleFromStore(client.roomId);
         if (existing) {
           await valkeyDel("battle:" + client.roomId);
@@ -224,6 +244,15 @@ export async function handleMessage(
       }
 
       case "battle_join": {
+        if (!(await wsRateCheck(client.userId, "battle_join", 20, 60_000))) break;
+        const inviteKey = `battle_invite:${client.roomId}:${client.userId}`;
+        const invited = await valkeyGet(inviteKey);
+        if (!invited) {
+          sendToClient(client, "battle_error", {
+            message: "Battle invite required",
+          });
+          break;
+        }
         const battleSession = await joinBattle(
           client.roomId,
           client.userId,
@@ -233,6 +262,8 @@ export async function handleMessage(
           sendToClient(client, "battle_error", {
             message: "No battle to join",
           });
+        } else {
+          await valkeyDel(inviteKey);
         }
         break;
       }
@@ -323,17 +354,25 @@ export async function handleMessage(
       case "battle_invite_send": {
         if (!(await wsRateCheck(client.userId, "battle_invite_send", 100, 60_000)))
           break;
+        const ownerId = await resolveStreamOwnerUserId(client.roomId);
+        if (!ownerId || ownerId !== client.userId) break;
         const targetUserId =
-          typeof data.targetUserId === "string" ? data.targetUserId : "";
-        if (!targetUserId) break;
+          typeof data.targetUserId === "string" ? data.targetUserId.trim() : "";
+        if (!targetUserId || targetUserId === client.userId) break;
+        const streamKey =
+          typeof data.streamKey === "string" && data.streamKey.trim()
+            ? data.streamKey.trim()
+            : client.roomId;
+        await valkeySet(
+          `battle_invite:${streamKey}:${targetUserId}`,
+          "1",
+          10 * 60 * 1000,
+        );
         sendToUserGlobal(targetUserId, "battle_invite", {
           hostUserId: client.userId,
           hostName: data.hostName || client.displayName,
           hostAvatar: data.hostAvatar || client.avatarUrl || "",
-          streamKey:
-            typeof data.streamKey === "string" && data.streamKey.trim()
-              ? data.streamKey.trim()
-              : client.roomId,
+          streamKey,
         });
         break;
       }
@@ -380,6 +419,8 @@ export async function handleMessage(
           !(await wsRateCheck(client.userId, "cohost_invite_send", 200, 60_000))
         )
           break;
+        const ownerId = await resolveStreamOwnerUserId(client.roomId);
+        if (!ownerId || ownerId !== client.userId) break;
         const rawTarget =
           typeof data.targetUserId === "string" ? data.targetUserId.trim() : "";
         const streamHint =
@@ -401,16 +442,15 @@ export async function handleMessage(
           typeof data.streamKey === "string" && data.streamKey.trim()
             ? data.streamKey.trim()
             : client.roomId;
-        // Host authorized this user to co-host → record a server-side publish grant.
-        if (streamKey) await grantCohostPublish(streamKey, targetUserId);
-        if (client.roomId && client.roomId !== streamKey) {
-          await grantCohostPublish(client.roomId, targetUserId);
+        // Only the host of this room may authorize co-host publishing.
+        if (streamKey && streamKey === client.roomId) {
+          await grantCohostPublish(streamKey, targetUserId);
         }
         const invitePayload = {
           hostUserId: client.userId,
           hostName: data.hostName || client.displayName,
           hostAvatar: data.hostAvatar || client.avatarUrl || "",
-          streamKey,
+          streamKey: client.roomId,
         };
         let cohostSent = sendToUserGlobal(targetUserId, "cohost_invite", invitePayload);
         if (cohostSent === 0 && rawTarget && rawTarget !== targetUserId) {
@@ -468,11 +508,13 @@ export async function handleMessage(
           ))
         )
           break;
+        const ownerId = await resolveStreamOwnerUserId(client.roomId);
+        if (!ownerId || ownerId !== client.userId) break;
         const requesterUserId =
           typeof data.requesterUserId === "string"
-            ? data.requesterUserId
+            ? data.requesterUserId.trim()
             : "";
-        if (!requesterUserId) break;
+        if (!requesterUserId || requesterUserId === client.userId) break;
         // Host accepted this viewer's co-host request → grant publish for the room.
         if (client.roomId) await grantCohostPublish(client.roomId, requesterUserId);
         sendToUserGlobal(requesterUserId, "cohost_request_accepted", {
@@ -508,6 +550,9 @@ export async function handleMessage(
 
       case "cohost_layout_sync": {
         const roomId = client.roomId;
+        if (!roomId) break;
+        const ownerId = await resolveStreamOwnerUserId(roomId);
+        if (!ownerId || ownerId !== client.userId) break;
         const rawCoHosts = Array.isArray(data.coHosts) ? data.coHosts : [];
         const hostUserId = client.userId;
         const seen = new Set<string>();
@@ -517,13 +562,34 @@ export async function handleMessage(
           seen.add(uid);
           return true;
         });
-        if (roomId) {
-          await setCohostLayout(roomId, coHosts, hostUserId);
-          broadcastToRoom(roomId, "cohost_layout_sync", {
-            coHosts,
-            hostUserId,
-          });
+        const previous = await getCohostLayout(roomId);
+        const previousIds = new Set<string>(
+          Array.isArray(previous?.coHosts)
+            ? previous!.coHosts
+                .map((h: any) => (typeof h?.userId === "string" ? h.userId : ""))
+                .filter(Boolean)
+            : [],
+        );
+        const nextIds = new Set(
+          coHosts
+            .map((h: any) => (typeof h?.userId === "string" ? h.userId : ""))
+            .filter(Boolean),
+        );
+        for (const uid of previousIds) {
+          if (!nextIds.has(uid)) {
+            await revokeCohostPublish(roomId, uid);
+          }
         }
+        for (const uid of nextIds) {
+          if (!previousIds.has(uid)) {
+            await grantCohostPublish(roomId, uid);
+          }
+        }
+        await setCohostLayout(roomId, coHosts, hostUserId);
+        broadcastToRoom(roomId, "cohost_layout_sync", {
+          coHosts,
+          hostUserId,
+        });
         break;
       }
 

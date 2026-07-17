@@ -57,8 +57,11 @@ export async function handleSendGift(req: Request, res: Response) {
     }
     const clientTransactionId =
       typeof transaction_id === "string" && transaction_id.trim()
-        ? transaction_id.trim()
-        : `${auth.userId}:${roomId}:${giftId}:${Date.now()}`;
+        ? transaction_id.trim().slice(0, 128)
+        : "";
+    if (!clientTransactionId) {
+      return res.status(400).json({ error: "transaction_id is required." });
+    }
 
     if (coinCost > 0) {
       await neonEnsureBalanceFromFile(auth.userId);
@@ -75,12 +78,6 @@ export async function handleSendGift(req: Request, res: Response) {
           new_balance: debited.newBalance,
         });
       }
-      await pool.query(
-        `INSERT INTO elix_gift_transactions (user_id, room_id, gift_id, coins, client_transaction_id, created_at)
-         VALUES ($1, $2, $3, $4, $5, NOW())
-         ON CONFLICT (client_transaction_id) DO NOTHING`,
-        [auth.userId, roomId, giftId, coinCost, clientTransactionId],
-      );
 
       // Credit the receiving creator's earnings (idempotent per transaction).
       // Room id is the stream_key; resolve the host user id from live_streams,

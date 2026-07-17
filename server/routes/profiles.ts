@@ -6,7 +6,7 @@
 
 import { Request, Response } from "express";
 import { getTokenFromRequest, verifyAuthToken } from "./auth";
-import { ensureFollowsTable, getPool } from "../lib/postgres";
+import { dbIsBlockedEitherWay, ensureFollowsTable, getPool } from "../lib/postgres";
 import { logger } from "../lib/logger";
 import { isValkeyConfigured, valkeyGet, valkeySet, valkeyDel, acquireCacheBuildLock, waitForCachePopulate } from "../lib/valkey";
 import {
@@ -293,8 +293,10 @@ async function readUsersFromDb(): Promise<StoredUserRow[]> {
   if (!db) return [];
   try {
     const res = await db.query(`
-      SELECT id, email, username, display_name, avatar_url
-      FROM elix_auth_users
+      SELECT u.id, u.email, u.username, u.display_name, u.avatar_url
+      FROM elix_auth_users u
+      LEFT JOIN profiles p ON p.user_id = u.id
+      WHERE p.banned_until IS NULL OR p.banned_until <= NOW()
     `);
     return (res.rows || []).map((r: any) => ({
       id: String(r.id),
@@ -547,6 +549,7 @@ export async function handleListProfiles(_req: Request, res: Response): Promise<
         db.query(
           `SELECT user_id, username, display_name, avatar_url, level, is_verified, followers, following
            FROM profiles
+           WHERE banned_until IS NULL OR banned_until <= NOW()
            LIMIT 500`,
         ),
         readUsersFromDb(),
@@ -558,7 +561,10 @@ export async function handleListProfiles(_req: Request, res: Response): Promise<
       try {
         await ensureProfilesTable();
         const dbRes = await db.query(
-          `SELECT user_id, username, display_name, avatar_url, level, is_verified, followers, following FROM profiles LIMIT 500`,
+          `SELECT user_id, username, display_name, avatar_url, level, is_verified, followers, following
+           FROM profiles
+           WHERE banned_until IS NULL OR banned_until <= NOW()
+           LIMIT 500`,
         );
         profileRows = dbRes.rows || [];
       } catch (e2) {
@@ -767,6 +773,18 @@ export async function handleFollow(req: Request, res: Response): Promise<void> {
   const db = getPool();
   if (!db) {
     res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+    return;
+  }
+  const targetExists = await db.query(
+    `SELECT 1 FROM elix_auth_users WHERE id = $1 LIMIT 1`,
+    [userId],
+  );
+  if (!targetExists.rowCount) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+  if (await dbIsBlockedEitherWay(jwtUser.sub, userId)) {
+    res.status(403).json({ error: "Follow unavailable" });
     return;
   }
   try {

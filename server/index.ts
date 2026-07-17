@@ -20,11 +20,12 @@ import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import fs from "fs";
 
-import { stripeWebhookRouter, livekitWebhookRouter } from "./routes/webhooks.router";
+import { stripeWebhookRouter, livekitWebhookRouter, googlePlayRtdnRouter, appleIapNotifyRouter } from "./routes/webhooks.router";
 import { videoUploadRouter } from "./routes/media.router";
 import { mountRoutes } from "./routes/index";
 import { attachWebSocket, initWsPubSub } from "./websocket/index";
 import { initBattleTickLoop, stopBattleTickLoop } from "./websocket/battle";
+import { neonMatureCreatorEarnings } from "./lib/walletNeon";
 import { initFeedPubSub } from "./feedBroadcast";
 import crypto from "crypto";
 import cluster from "node:cluster";
@@ -196,6 +197,8 @@ app.use((req, res, next) => {
 // ── Raw-body routes (must come BEFORE express.json()) ────────────
 app.use("/api/stripe-webhook", stripeWebhookRouter);
 app.post("/api/livekit/webhook", livekitWebhookRouter);
+app.use("/api/webhooks/google-play", googlePlayRtdnRouter);
+app.use("/api/webhooks/apple-iap", appleIapNotifyRouter);
 app.use("/api/upload/video", videoUploadRouter);
 
 app.use(
@@ -432,19 +435,37 @@ const indexPath = join(distPath, "index.html");
 
 // Android App Links / Apple universal-link association files live under a
 // dot-directory, which express.static ignores by default. Serve them explicitly.
-app.get(
-  ["/.well-known/assetlinks.json", "/.well-known/apple-app-site-association"],
-  (req, res) => {
-    const name = req.path.endsWith("assetlinks.json")
-      ? "assetlinks.json"
-      : "apple-app-site-association";
-    res.type("application/json");
-    // send() ignores dot-directories by default; `.well-known` needs it allowed.
-    res.sendFile(join(distPath, ".well-known", name), { dotfiles: "allow" }, (err) => {
-      if (err && !res.headersSent) res.status(404).end();
+app.get("/.well-known/assetlinks.json", (req, res) => {
+  res.type("application/json");
+  res.sendFile(join(distPath, ".well-known", "assetlinks.json"), { dotfiles: "allow" }, (err) => {
+    if (err && !res.headersSent) res.status(404).end();
+  });
+});
+
+app.get("/.well-known/apple-app-site-association", (req, res) => {
+  res.type("application/json");
+  const teamId = process.env.APPLE_TEAM_ID?.trim();
+  if (teamId) {
+    return res.json({
+      applinks: {
+        apps: [],
+        details: [
+          {
+            appID: `${teamId}.com.elixstarlive.app`,
+            paths: ["*", "/"],
+          },
+        ],
+      },
     });
-  },
-);
+  }
+  res.sendFile(
+    join(distPath, ".well-known", "apple-app-site-association"),
+    { dotfiles: "allow" },
+    (err) => {
+      if (err && !res.headersSent) res.status(404).end();
+    },
+  );
+});
 
 if (!fs.existsSync(indexPath)) {
   console.error(`ERROR: index.html not found at ${indexPath}`);
@@ -522,6 +543,13 @@ try {
   }
   await loadGiftValuesFromDb();
   initBattleTickLoop();
+  // Mature pending gift earnings after the store refund hold window.
+  setInterval(() => {
+    void neonMatureCreatorEarnings().then((n) => {
+      if (n > 0) logger.info({ matured: n }, "Creator earnings matured to available");
+    });
+  }, 5 * 60 * 1000).unref();
+  void neonMatureCreatorEarnings();
   server.listen(PORT, "0.0.0.0", 8192, () => {
     logger.info(
       { port: PORT, version: BUILD_VERSION },

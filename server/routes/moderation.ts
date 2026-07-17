@@ -8,6 +8,9 @@ import { getPool } from '../lib/postgres';
 import { getTokenFromRequest, verifyAuthToken } from './auth';
 import { logger } from '../lib/logger';
 import { isValkeyConfigured, valkeyRateCheck } from '../lib/valkey';
+import { removeActiveStream, resolveStreamOwnerUserId } from './livestream';
+import { broadcastToRoom, deleteCohostLayout, disconnectUserSessions } from '../websocket/index';
+import { broadcastToFeedSubscribers } from '../feedBroadcast';
 
 const DANGEROUS_CATEGORIES = [
   'driving_while_live',
@@ -135,6 +138,10 @@ export async function handleLiveModerationCheck(req: Request, res: Response) {
   if (!streamKey || typeof streamKey !== 'string') {
     return res.status(400).json({ error: 'Missing stream_key' });
   }
+  const ownerId = await resolveStreamOwnerUserId(streamKey);
+  if (!ownerId || ownerId !== userId) {
+    return res.status(403).json({ error: 'Not authorized for this stream' });
+  }
   if (typeof imageBase64 === 'string' && imageBase64.length > 80_000) {
     return res.status(413).json({ error: 'image_base64 too large' });
   }
@@ -187,19 +194,53 @@ export async function handleLiveModerationCheck(req: Request, res: Response) {
 
     if (shouldSuspend) {
       await logEntry('flag', category, severity, 'suspend', { recent_count: recentCount, reason: isCritical ? 'critical' : 'repeated' });
+      const bannedUntil = new Date(Date.now() + 24 * 60 * 60 * 1000);
       try {
         await db.query(
-          `UPDATE profiles SET is_verified = FALSE, updated_at = NOW() WHERE user_id = $1`,
-          [userId],
+          `UPDATE profiles
+              SET is_verified = FALSE,
+                  banned_until = $2,
+                  updated_at = NOW()
+            WHERE user_id = $1`,
+          [userId, bannedUntil.toISOString()],
         );
       } catch (err) {
-        logger.error({ err, userId }, 'Failed to freeze account for moderation');
+        logger.error({ err, userId }, 'Failed to ban account for moderation');
       }
+      try {
+        const removed = await removeActiveStream(streamKey, userId);
+        if (removed) {
+          await deleteCohostLayout(streamKey);
+          broadcastToRoom(streamKey, 'stream_ended', {
+            stream_key: streamKey,
+            host_user_id: userId,
+            reason: 'moderation_suspend',
+          });
+          broadcastToFeedSubscribers('stream_ended', { stream_key: streamKey });
+        }
+      } catch (err) {
+        logger.error({ err, userId, streamKey }, 'Failed to end stream on moderation suspend');
+      }
+      disconnectUserSessions(userId, 'Suspended');
       return res.json({ action: 'suspend', message: SUSPEND_MESSAGE });
     }
 
     if (recentCount >= 1) {
       await logEntry('flag', category, severity, 'pause', { recent_count: recentCount });
+      try {
+        const removed = await removeActiveStream(streamKey, userId);
+        if (removed) {
+          await deleteCohostLayout(streamKey);
+          broadcastToRoom(streamKey, 'stream_ended', {
+            stream_key: streamKey,
+            host_user_id: userId,
+            reason: 'moderation_pause',
+          });
+          broadcastToFeedSubscribers('stream_ended', { stream_key: streamKey });
+        }
+      } catch (err) {
+        logger.error({ err, userId, streamKey }, 'Failed to end stream on moderation pause');
+      }
       return res.json({ action: 'pause', message: PAUSE_MESSAGE });
     }
 

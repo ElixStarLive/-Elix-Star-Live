@@ -391,12 +391,18 @@ export async function handleGetLiveToken(req: Request, res: Response) {
     if (!isHost) {
       let authorized = await hasCohostPublishGrant(roomName, auth.userId);
       if (!authorized) {
+        const ownerId = await resolveStreamOwnerUserId(roomName);
         const layout = await getCohostLayout(roomName);
-        authorized = Array.isArray(layout?.coHosts)
-          ? layout!.coHosts.some(
-              (h) => h && typeof h === 'object' && (h as { userId?: string }).userId === auth.userId,
-            )
-          : false;
+        authorized =
+          !!ownerId &&
+          layout?.hostUserId === ownerId &&
+          Array.isArray(layout?.coHosts) &&
+          layout!.coHosts.some(
+            (h) =>
+              h &&
+              typeof h === 'object' &&
+              (h as { userId?: string }).userId === auth.userId,
+          );
       }
       if (!authorized) {
         return res.status(403).json({ error: 'Not authorized to publish in this room.' });

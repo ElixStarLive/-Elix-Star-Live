@@ -35,6 +35,17 @@ export async function handleRegisterDeviceToken(req: Request, res: Response): Pr
     res.status(403).json({ error: "Forbidden" });
     return;
   }
+  const platformNorm = String(platform).trim().toLowerCase();
+  const platformOk =
+    platformNorm === "android" ||
+    platformNorm === "ios" ||
+    platformNorm === "iphone" ||
+    platformNorm === "web";
+  if (!platformOk) {
+    res.status(400).json({ error: "platform must be android, ios, or web" });
+    return;
+  }
+  const storedPlatform = platformNorm === "iphone" ? "ios" : platformNorm;
   const pool = getPool();
   if (!pool) {
     res.status(503).json({ error: "Database not configured" });
@@ -47,7 +58,7 @@ export async function handleRegisterDeviceToken(req: Request, res: Response): Pr
        VALUES ($1, $2, $3, NOW())
        ON CONFLICT (user_id, platform) DO UPDATE
          SET token = EXCLUDED.token, updated_at = NOW()`,
-      [userId, platform, deviceToken],
+      [userId, storedPlatform, deviceToken],
     );
     res.json({ success: true });
   } catch (err) {

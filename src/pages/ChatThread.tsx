@@ -199,6 +199,7 @@ export default function ChatThread() {
         if (msgsResult.data) {
           const msgs = msgsResult.data.messages || msgsResult.data.data || [];
           setMessages(msgs);
+          void request(`/api/chat/threads/${threadId}/read`, { method: 'POST' });
         }
 
         if (threadsResult.data) {

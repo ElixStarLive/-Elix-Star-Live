@@ -251,24 +251,28 @@ async function dbFindUserByEmailOrUsername(identifier: string): Promise<StoredUs
   if (!pool) return null;
   await ensureAuthUsersTable();
   const lower = identifier.toLowerCase();
-  const r = await pool.query(
+  const emailResult = await pool.query(
     `SELECT u.id, u.email, u.password_hash, u.username, u.avatar_url, u.created_at
        FROM elix_auth_users u
-      WHERE u.email_lower = $1 OR LOWER(u.username) = $1
+      WHERE u.email_lower = $1
       LIMIT 1`,
     [lower],
   );
-  if (r.rowCount) return rowToStoredUser(r.rows[0] as Record<string, unknown>);
-  const r2 = await pool.query(
+  if (emailResult.rowCount) {
+    return rowToStoredUser(emailResult.rows[0] as Record<string, unknown>);
+  }
+  const usernameResult = await pool.query(
     `SELECT u.id, u.email, u.password_hash, u.username, u.avatar_url, u.created_at
        FROM elix_auth_users u
-       JOIN profiles p ON p.user_id = u.id
-      WHERE LOWER(p.username) = $1 OR LOWER(p.display_name) = $1
-      LIMIT 1`,
+      WHERE LOWER(u.username) = $1
+      ORDER BY u.created_at ASC
+      LIMIT 2`,
     [lower],
   );
-  if (!r2.rowCount) return null;
-  return rowToStoredUser(r2.rows[0] as Record<string, unknown>);
+  // Legacy duplicate usernames must use their unique email; never choose an
+  // arbitrary account. Display names are public and are not login identifiers.
+  if (usernameResult.rowCount !== 1) return null;
+  return rowToStoredUser(usernameResult.rows[0] as Record<string, unknown>);
 }
 
 async function dbFindUserById(id: string): Promise<StoredUser | null> {
@@ -295,6 +299,64 @@ async function dbInsertUser(user: StoredUser): Promise<void> {
      VALUES ($1, $2, $3, $4, $5, $6, $7)`,
     [user.id, user.email, user.email.toLowerCase(), user.passwordHash, user.username, user.avatar_url, user.created_at],
   );
+}
+
+async function dbRegisterUser(
+  user: StoredUser,
+): Promise<"ok" | "email_exists" | "username_exists"> {
+  const pool = getPool();
+  if (!pool) throw new Error("DATABASE_UNAVAILABLE");
+  await ensureAuthUsersTable();
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    // Serialize registrations for the same case-insensitive username. Email
+    // uniqueness is also enforced by elix_auth_users.email_lower.
+    await client.query(`SELECT pg_advisory_xact_lock(hashtext($1))`, [
+      `register:${user.username.toLowerCase()}`,
+    ]);
+    const existing = await client.query(
+      `SELECT email_lower, LOWER(username) AS username_lower
+         FROM elix_auth_users
+        WHERE email_lower = $1 OR LOWER(username) = $2
+        LIMIT 1`,
+      [user.email.toLowerCase(), user.username.toLowerCase()],
+    );
+    if (existing.rowCount) {
+      await client.query("ROLLBACK");
+      return existing.rows[0]?.email_lower === user.email.toLowerCase()
+        ? "email_exists"
+        : "username_exists";
+    }
+    await client.query(
+      `INSERT INTO elix_auth_users
+         (id, email, email_lower, password_hash, username, avatar_url, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [
+        user.id,
+        user.email,
+        user.email.toLowerCase(),
+        user.passwordHash,
+        user.username,
+        user.avatar_url,
+        user.created_at,
+      ],
+    );
+    await client.query(
+      `INSERT INTO profiles
+         (user_id, username, display_name, avatar_url, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, NOW(), NOW())
+       ON CONFLICT (user_id) DO NOTHING`,
+      [user.id, user.username, user.username, user.avatar_url],
+    );
+    await client.query("COMMIT");
+    return "ok";
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 async function dbDeleteUserById(id: string): Promise<void> {
@@ -467,10 +529,6 @@ export async function handleRegister(req: Request, res: Response) {
       return res.status(400).json({ error: 'Password must be at least 8 characters.' });
     }
     if (!getPool()) return res.status(503).json({ error: 'Database not configured' });
-    const existing = await dbFindUserByEmail(e);
-    if (existing) {
-      return res.status(409).json({ error: 'An account with this email already exists.' });
-    }
     const id = crypto.randomUUID();
     const uname = typeof username === 'string' && username.trim() ? username.trim() : e.split('@')[0];
     const avatar_url = `https://ui-avatars.com/api/?name=${encodeURIComponent(uname)}&background=random`;
@@ -483,19 +541,12 @@ export async function handleRegister(req: Request, res: Response) {
       avatar_url,
       created_at,
     };
-    await dbInsertUser(stored);
-    const pool = getPool();
-    if (pool) {
-      try {
-        await pool.query(
-          `INSERT INTO profiles (user_id, username, display_name, avatar_url, created_at, updated_at)
-           VALUES ($1, $2, $3, $4, NOW(), NOW())
-           ON CONFLICT (user_id) DO NOTHING`,
-          [id, uname, uname, avatar_url],
-        );
-      } catch (profileErr) {
-        logger.warn({ err: profileErr }, 'profile creation during register skipped');
-      }
+    const registration = await dbRegisterUser(stored);
+    if (registration === "email_exists") {
+      return res.status(409).json({ error: 'An account with this email already exists.' });
+    }
+    if (registration === "username_exists") {
+      return res.status(409).json({ error: 'This username is already taken.' });
     }
     const token = signToken({ sub: id, email: e });
     await dbUpsertSession(id, token);

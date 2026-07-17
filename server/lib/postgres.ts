@@ -1072,6 +1072,54 @@ export async function dbUnreadCountForThread(threadId: string, readerId: string)
   }
 }
 
+export async function dbMarkChatThreadRead(threadId: string, readerId: string): Promise<number> {
+  const p = getPool();
+  if (!p) return 0;
+  const thread = await dbGetChatThread(threadId, readerId);
+  if (!thread) return -1;
+  try {
+    const res = await p.query(
+      `UPDATE messages
+          SET read = TRUE
+        WHERE thread_id = $1 AND sender_id <> $2 AND read = FALSE`,
+      [threadId, readerId],
+    );
+    return res.rowCount ?? 0;
+  } catch (err) {
+    logger.warn({ err, threadId, readerId }, "dbMarkChatThreadRead failed");
+    return 0;
+  }
+}
+
+/** Delete a chat thread the caller belongs to. */
+export async function dbDeleteChatThread(threadId: string, userId: string): Promise<boolean> {
+  const p = getPool();
+  if (!p) return false;
+  const thread = await dbGetChatThread(threadId, userId);
+  if (!thread) return false;
+  const client = await p.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query(`DELETE FROM messages WHERE thread_id = $1`, [threadId]);
+    const del = await client.query(
+      `DELETE FROM chat_threads WHERE id = $1 AND (user1_id = $2 OR user2_id = $2)`,
+      [threadId, userId],
+    );
+    await client.query("COMMIT");
+    return (del.rowCount ?? 0) > 0;
+  } catch (err) {
+    try {
+      await client.query("ROLLBACK");
+    } catch {
+      /* ignore */
+    }
+    logger.error({ err, threadId, userId }, "dbDeleteChatThread failed");
+    return false;
+  } finally {
+    client.release();
+  }
+}
+
 export type DbShopItemRow = {
   id: string;
   user_id: string;

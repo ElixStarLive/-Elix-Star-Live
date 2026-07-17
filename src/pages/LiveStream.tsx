@@ -3261,7 +3261,12 @@ export default function LiveStream() {
         try {
           const { data: result, error: giftErr } = await request('/api/gifts/send', {
             method: 'POST',
-            body: JSON.stringify({ streamKey: effectiveStreamId, giftId: gift.id, channel: platform.name }),
+            body: JSON.stringify({
+              streamKey: effectiveStreamId,
+              giftId: gift.id,
+              channel: platform.name,
+              transaction_id: crypto.randomUUID(),
+            }),
           });
 
           if (giftErr) {
@@ -3479,7 +3484,12 @@ export default function LiveStream() {
         try {
           const { data: result, error: giftErr } = await request('/api/gifts/send', {
             method: 'POST',
-            body: JSON.stringify({ streamKey: effectiveStreamId, giftId: lastSentGift.id, channel: platform.name }),
+            body: JSON.stringify({
+              streamKey: effectiveStreamId,
+              giftId: lastSentGift.id,
+              channel: platform.name,
+              transaction_id: crypto.randomUUID(),
+            }),
           });
 
           if (giftErr) {

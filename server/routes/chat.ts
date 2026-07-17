@@ -2,11 +2,13 @@ import { Request, Response } from "express";
 import { getTokenFromRequest, verifyAuthToken } from "./auth";
 import {
   dbAppendChatMessage,
+  dbDeleteChatThread,
   dbEnsureChatThread,
   dbGetChatThread,
   dbIsBlockedEitherWay,
   dbListChatMessages,
   dbListChatThreadsForUser,
+  dbMarkChatThreadRead,
   dbUnreadCountForThread,
 } from "../lib/postgres";
 import { getOrCreateProfile } from "./profiles";
@@ -159,4 +161,30 @@ export async function handlePostChatMessage(req: Request, res: Response) {
     return res.status(400).json({ error: "Could not send message" });
   }
   return res.status(201).json({ message: msg });
+}
+
+/** POST /api/chat/threads/:threadId/read — mark inbound messages as read */
+export async function handleMarkChatThreadRead(req: Request, res: Response) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+  const auth = requireAuth(req, res);
+  if (!auth) return;
+  const threadId = req.params.threadId;
+  const updated = await dbMarkChatThreadRead(threadId, auth.userId);
+  if (updated < 0) return res.status(404).json({ error: "Not found" });
+  return res.status(200).json({ ok: true, updated });
+}
+
+/** DELETE /api/chat/threads/:threadId */
+export async function handleDeleteChatThread(req: Request, res: Response) {
+  if (req.method !== "DELETE") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+  const auth = requireAuth(req, res);
+  if (!auth) return;
+  const threadId = req.params.threadId;
+  const deleted = await dbDeleteChatThread(threadId, auth.userId);
+  if (!deleted) return res.status(404).json({ error: "Not found" });
+  return res.status(200).json({ ok: true });
 }
