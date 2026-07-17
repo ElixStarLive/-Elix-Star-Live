@@ -12,7 +12,6 @@ import {
   profileToLiveDisplay,
 } from "../lib/liveCreatorDisplay";
 import { platform } from "../lib/platform";
-import { ForYouStoriesStrip } from "../components/ForYouStoriesStrip";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -556,7 +555,6 @@ export default function VideoFeed() {
   /* ================================================================ */
   return (
     <div className="h-full min-h-0 w-full flex flex-col bg-black relative">
-      <ForYouStoriesStrip />
       {/* Fills main between fixed TopNav and BottomNav; each slide is one viewport tall */}
       <div
         ref={containerRef}

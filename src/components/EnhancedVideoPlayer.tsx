@@ -16,7 +16,6 @@ import {
   Users2,
   Play,
   MoreHorizontal,
-  Disc3,
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useVideoStore } from '../store/useVideoStore';
@@ -970,32 +969,25 @@ export default function EnhancedVideoPlayer({
           title={video.music?.title || 'Original Sound'}
         >
           <span
-            className="rounded-full overflow-hidden border border-[#C9A227]/60 bg-black flex items-center justify-center"
-            style={{ width: 34, height: 34 }}
+            className="overflow-hidden bg-black flex items-center justify-center"
+            style={{ width: 34, height: 34, borderRadius: 4 }}
           >
-            {video.music?.coverUrl ? (
-              <img
-                src={video.music.coverUrl}
-                alt=""
-                className="w-full h-full object-cover"
-                draggable={false}
-                onError={(e) => {
-                  const img = e.currentTarget;
-                  img.removeAttribute('src');
-                  img.style.display = 'none';
-                  const icon = img.parentElement?.querySelector('[data-sound-fallback]');
-                  if (icon instanceof HTMLElement) icon.style.display = 'flex';
-                }}
-              />
-            ) : null}
-            <span
-              data-sound-fallback
-              className="w-full h-full items-center justify-center"
-              style={{ display: video.music?.coverUrl ? 'none' : 'flex' }}
-              aria-hidden
-            >
-              <Disc3 size={18} className="text-[#D4AF37]" strokeWidth={1.8} />
-            </span>
+            <img
+              src={
+                video.music?.coverUrl ||
+                video.user.avatar ||
+                '/royce/default-avatar.svg'
+              }
+              alt=""
+              className="w-full h-full object-cover"
+              draggable={false}
+              onError={(e) => {
+                const img = e.currentTarget;
+                if (img.dataset.fallback === '1') return;
+                img.dataset.fallback = '1';
+                img.src = video.user.avatar || '/royce/default-avatar.svg';
+              }}
+            />
           </span>
           <span className="text-[8px] font-medium leading-tight text-gold-light/80 max-w-full truncate text-center">
             {video.music?.title?.split(' ').slice(0, 2).join(' ') || 'Original'}
