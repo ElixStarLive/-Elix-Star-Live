@@ -4325,15 +4325,6 @@ export default function LiveStream() {
 
                   {/* Grid Container — ref for spectator tap→vote mapping */}
                   <div ref={battleVoteGridRef} className="flex-1 min-h-0 flex flex-col relative">
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); closeLiveWithSlide(); }}
-                      className="absolute top-2 right-2 z-40 w-8 h-8 royce-glow-disc flex items-center justify-center pointer-events-auto active:scale-95 transition-transform"
-                      title="Close"
-                      aria-label="Close"
-                    >
-                      <RoyceCloseIcon size={18} />
-                    </button>
                     <BattleVfxOverlays mistSide={battleMistSide} hideScores={false} gloves={battleGloves} />
                     {/* Row 1: P1 & P2 — equal joined panes */}
                     <div className="flex flex-1 min-h-0 gap-0">
@@ -4353,8 +4344,17 @@ export default function LiveStream() {
                           <span className="text-white font-bold text-[10px] truncate max-w-full px-1">{creatorName || user?.username || user?.name || 'Me'}</span>
                         </div>
                       )}
-                      {/* P1 mic + gold power (public icon) — no background chips */}
-                      <div className="absolute bottom-4 right-2 z-10 pointer-events-auto flex items-center gap-1">
+                      {/* P1 close + mic + cam — no glow discs */}
+                      <div className="absolute bottom-4 right-2 z-40 pointer-events-auto flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); closeLiveWithSlide(); }}
+                          title="Close"
+                          aria-label="Close"
+                          className="flex items-center justify-center border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
+                        >
+                          <RoyceCloseIcon size={12} />
+                        </button>
                         <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); togglePlayerMute('me'); }}

@@ -2052,15 +2052,6 @@ export default function SpectatorPage() {
                 {/* Battle grid — videos + tap overlay (2-way or 4-way PK); one +5 vote per spectator per battle */}
                 <div className="relative w-full flex-none flex flex-col overflow-hidden" style={{ height: LIVE_BATTLE_VIDEO_HEIGHT }}>
                   <div className="flex-1 min-h-0 flex flex-col relative">
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); leaveStreamWithSlide(); }}
-                      className="absolute top-2 right-2 z-40 w-8 h-8 royce-glow-disc flex items-center justify-center pointer-events-auto active:scale-95 transition-transform"
-                      title="Close"
-                      aria-label="Close"
-                    >
-                      <RoyceCloseIcon size={18} />
-                    </button>
                     <BattleVfxOverlays mistSide={battleMistSide} hideScores={false} gloves={battleGloves} />
                     <div className="absolute inset-0 flex flex-row gap-0">
                       <div className="flex-1 basis-0 min-w-0 h-full overflow-hidden relative bg-[#111111]">
@@ -2087,6 +2078,15 @@ export default function SpectatorPage() {
                             </div>
                           </div>
                         )}
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); leaveStreamWithSlide(); }}
+                          className="absolute bottom-4 right-2 z-40 flex items-center justify-center border-0 bg-transparent p-0 pointer-events-auto hover:opacity-90 active:scale-95"
+                          title="Close"
+                          aria-label="Close"
+                        >
+                          <RoyceCloseIcon size={12} />
+                        </button>
                       </div>
                       <div
                         className="flex-1 basis-0 min-w-0 h-full overflow-hidden relative bg-[#111111] cursor-pointer"
