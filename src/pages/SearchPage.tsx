@@ -5,6 +5,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { AvatarRing } from '../components/AvatarRing';
 import { TrendingSnapFeed } from '../components/TrendingSnapFeed';
 import { request } from '../lib/apiClient';
+import { resolveGridThumbnailUrl, resolveVideoPlaybackUrl } from '../lib/bunnyStorage';
 import { useVideoStore } from '../store/useVideoStore';
 
 export default function SearchPage() {
@@ -294,8 +295,8 @@ export default function SearchPage() {
                           className="w-full flex gap-3 p-2 rounded-xl hover:bg-white/5 transition"
                         >
                           <video
-                            src={v.url}
-                            poster={v.thumbnail || undefined}
+                            src={resolveVideoPlaybackUrl(v.url) ? `${resolveVideoPlaybackUrl(v.url)}#t=0.1` : undefined}
+                            poster={resolveGridThumbnailUrl(v.thumbnail, v.url) || undefined}
                             className="w-16 h-22 rounded-lg object-cover bg-[#111111] border border-[#C9A227]/20"
                             muted
                             playsInline

@@ -20,19 +20,8 @@ import {
   SHARE_PANEL_ITEM_WIDTH_PX,
 } from '../lib/sharePanelContacts';
 import { PROFILE_PAGE_AVATAR_PX } from '../lib/profileFrame';
-import { getVideoPosterUrl } from '../lib/bunnyStorage';
+import { getVideoPosterUrl, resolveGridThumbnailUrl, resolveVideoPlaybackUrl } from '../lib/bunnyStorage';
 import { openExternalLink } from '../lib/platform';
-
-/** Prefer real thumbnail URLs; never use an mp4/webm as <img src> (shows black). */
-function profileGridThumbSrc(thumbnail: string | undefined, videoUrl: string | undefined): string {
-  const thumb = typeof thumbnail === 'string' ? thumbnail.trim() : '';
-  if (thumb && !/\.(mp4|webm|mov)(\?|$)/i.test(thumb) && !thumb.startsWith('blob:')) {
-    return thumb;
-  }
-  const fromVideo = getVideoPosterUrl(videoUrl || '');
-  if (fromVideo) return fromVideo;
-  return '';
-}
 
 interface Video {
   id: string;
@@ -349,7 +338,7 @@ export default function Profile() {
           : allVids.filter((v: { privacy?: string }) => v.privacy !== 'private');
         const mapped = filtered.map((v: { id: string; thumbnail?: string; thumbnail_url?: string; url?: string; views?: number; privacy?: string }) => ({
           id: v.id,
-          thumbnail_url: profileGridThumbSrc(v.thumbnail || v.thumbnail_url, v.url),
+          thumbnail_url: resolveGridThumbnailUrl(v.thumbnail || v.thumbnail_url, v.url),
           url: v.url || '',
           views: v.views || 0,
           is_public: v.privacy !== 'private',
@@ -360,7 +349,7 @@ export default function Profile() {
         const likedSet = new Set(likedVideos);
         const liked = storeVideos.filter(v => likedSet.has(v.id)).map(v => ({
           id: v.id,
-          thumbnail_url: profileGridThumbSrc(v.thumbnail, v.url),
+          thumbnail_url: resolveGridThumbnailUrl(v.thumbnail, v.url),
           url: v.url || '',
           views: v.stats?.views || 0,
           is_public: true,
@@ -371,7 +360,7 @@ export default function Profile() {
         const savedSet = new Set(savedVideos);
         const saved = storeVideos.filter(v => savedSet.has(v.id)).map(v => ({
           id: v.id,
-          thumbnail_url: profileGridThumbSrc(v.thumbnail, v.url),
+          thumbnail_url: resolveGridThumbnailUrl(v.thumbnail, v.url),
           url: v.url || '',
           views: v.stats?.views || 0,
           is_public: true,
@@ -813,32 +802,32 @@ export default function Profile() {
         {/* ═══ ACTION BAR (scrollable) — compact so Edit Profile is visible ═══ */}
         <div className="mt-2 border-b border-white/5">
           <div className="flex overflow-x-auto no-scrollbar">
-            <button onClick={() => navigate('/ai-studio')} className="flex items-center gap-1.5 px-3 py-2 whitespace-nowrap">
+            <button onClick={() => navigate('/ai-studio')} className="flex flex-col items-center gap-0.5 px-3 py-2 whitespace-nowrap">
               <span className="royce-glow-disc" style={{ width: 26, height: 26 }} aria-hidden>
                 <Sparkles size={12} className="royce-icon-gold" />
               </span>
               <span className="text-[11px] font-bold text-white">AI Studio</span>
             </button>
-            <button onClick={() => navigate('/creator/login-details')} className="flex items-center gap-1.5 px-3 py-2 whitespace-nowrap">
+            <button onClick={() => navigate('/creator/login-details')} className="flex flex-col items-center gap-0.5 px-3 py-2 whitespace-nowrap">
               <span className="royce-glow-disc" style={{ width: 26, height: 26 }} aria-hidden>
                 <Sparkles size={12} className="royce-icon-gold" />
               </span>
               <span className="text-[11px] font-bold text-white">Elix Studio</span>
             </button>
-            <button onClick={() => navigate('/shop')} className="flex items-center gap-1.5 px-3 py-2 whitespace-nowrap">
+            <button onClick={() => navigate('/shop')} className="flex flex-col items-center gap-0.5 px-3 py-2 whitespace-nowrap">
               <span className="royce-glow-disc" style={{ width: 26, height: 26 }} aria-hidden>
                 <ShoppingBag size={12} className="royce-icon-gold" />
               </span>
               <span className="text-[11px] font-bold text-white">Shop</span>
             </button>
-            <button onClick={() => setActiveTab('shop')} className="flex items-center gap-1.5 px-3 py-2 whitespace-nowrap">
+            <button onClick={() => setActiveTab('shop')} className="flex flex-col items-center gap-0.5 px-3 py-2 whitespace-nowrap">
               <span className="royce-glow-disc" style={{ width: 26, height: 26 }} aria-hidden>
                 <ShoppingBag size={12} className="royce-icon-gold" />
               </span>
               <span className="text-[11px] font-bold text-white">Showcase</span>
             </button>
             {isOwnProfile && (
-              <button onClick={() => navigate('/settings')} className="flex items-center gap-1.5 px-3 py-2 whitespace-nowrap">
+              <button onClick={() => navigate('/settings')} className="flex flex-col items-center gap-0.5 px-3 py-2 whitespace-nowrap">
                 <span className="royce-glow-disc" style={{ width: 26, height: 26 }} aria-hidden>
                   <Settings size={12} className="royce-icon-gold" />
                 </span>
@@ -935,16 +924,30 @@ export default function Profile() {
                 <div className="w-8 h-8 border-2 border-[#C9A227] border-t-transparent rounded-full animate-spin" />
               </div>
             ) : (
-              videos.map((video) => (
+              videos.map((video) => {
+                const thumb = video.thumbnail_url || resolveGridThumbnailUrl(undefined, video.url);
+                const playbackUrl = resolveVideoPlaybackUrl(video.url || '');
+                return (
                 <button
                   key={video.id}
                   type="button"
                   onClick={() => navigate(`/video/${video.id}`)}
                   className="aspect-[3/4] bg-[#111111] relative group text-left rounded-xl overflow-hidden"
                 >
-                  {video.thumbnail_url || profileGridThumbSrc(undefined, video.url) ? (
+                  {playbackUrl ? (
+                    <video
+                      src={`${playbackUrl}#t=0.1`}
+                      poster={thumb || undefined}
+                      muted
+                      playsInline
+                      preload="metadata"
+                      className="absolute inset-0 size-full object-cover opacity-90 group-hover:opacity-100 transition pointer-events-none"
+                      aria-hidden
+                    />
+                  ) : null}
+                  {thumb ? (
                     <img
-                      src={video.thumbnail_url || profileGridThumbSrc(undefined, video.url)}
+                      src={thumb}
                       alt=""
                       className="absolute inset-0 size-full object-cover opacity-90 group-hover:opacity-100 transition pointer-events-none"
                       loading="lazy"
@@ -952,7 +955,7 @@ export default function Profile() {
                       onError={(e) => {
                         const img = e.currentTarget;
                         if (img.dataset.fallback) {
-                          img.style.opacity = '0';
+                          img.style.display = 'none';
                           return;
                         }
                         img.dataset.fallback = '1';
@@ -961,7 +964,7 @@ export default function Profile() {
                           img.src = poster;
                           return;
                         }
-                        img.style.opacity = '0';
+                        img.style.display = 'none';
                       }}
                     />
                   ) : null}
@@ -971,11 +974,13 @@ export default function Profile() {
                       <Lock size={14} className="text-white drop-shadow" />
                     </div>
                   )}
-                  <span className="absolute bottom-1.5 left-1.5 z-[2] flex items-center gap-0.5 text-[11px] font-bold text-white drop-shadow-md">
-                    <Play size={10} fill="white" /> {formatNumber(video.views)}
+                  <span className="absolute bottom-1.5 left-1.5 z-[2] flex flex-col items-start gap-0.5 text-[11px] font-bold text-white drop-shadow-md">
+                    <Play size={10} fill="white" />
+                    <span className="leading-none">{formatNumber(video.views)}</span>
                   </span>
                 </button>
-              ))
+                );
+              })
             )}
           </div>
         )}

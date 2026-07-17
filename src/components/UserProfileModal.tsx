@@ -10,7 +10,7 @@ import ReportModal from './ReportModal';
 import { showToast } from '../lib/toast';
 import { api, request } from '../lib/apiClient';
 import { navigateToDmWithUser } from '../lib/openDmThread';
-import { getVideoPosterUrl } from '../lib/bunnyStorage';
+import { getVideoPosterUrl, resolveGridThumbnailUrl, resolveVideoPlaybackUrl } from '../lib/bunnyStorage';
 
 interface User {
   id: string;
@@ -315,25 +315,44 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
             </div>
             {userVideos.length > 0 ? (
               <div className="grid grid-cols-2 gap-2">
-                {userVideos.map((video) => (
+                {userVideos.map((video) => {
+                  const thumb = resolveGridThumbnailUrl(video.thumbnail, video.url);
+                  const playbackUrl = resolveVideoPlaybackUrl(video.url || '');
+                  const bunnyPoster = getVideoPosterUrl(video.url || '');
+                  return (
                   <div key={video.id} onClick={() => { onClose(); navigate(`/video/${video.id}`); }} className="aspect-[3/4] bg-black rounded-xl overflow-hidden relative cursor-pointer">
-                    <img
-                      src={video.thumbnail || getVideoPosterUrl(video.url || '')}
-                      alt=""
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                      onError={(e) => {
-                        const img = e.currentTarget;
-                        if (img.dataset.fallback) return;
-                        img.dataset.fallback = '1';
-                        const poster = getVideoPosterUrl(video.url || '');
-                        if (poster && img.src !== poster) { img.src = poster; return; }
-                        img.style.opacity = '0';
-                      }}
-                    />
-                    <div className="absolute bottom-1.5 left-1.5 text-[10px] font-bold text-white drop-shadow-md flex items-center gap-0.5">
+                    {playbackUrl ? (
+                      <video
+                        src={`${playbackUrl}#t=0.1`}
+                        poster={thumb || undefined}
+                        muted
+                        playsInline
+                        preload="metadata"
+                        className="absolute inset-0 w-full h-full object-cover"
+                        aria-hidden
+                      />
+                    ) : null}
+                    {thumb ? (
+                      <img
+                        src={thumb}
+                        alt=""
+                        className="absolute inset-0 w-full h-full object-cover"
+                        loading="lazy"
+                        onError={(e) => {
+                          const img = e.currentTarget;
+                          if (img.dataset.fallback) {
+                            img.style.display = 'none';
+                            return;
+                          }
+                          img.dataset.fallback = '1';
+                          if (bunnyPoster && img.src !== bunnyPoster) { img.src = bunnyPoster; return; }
+                          img.style.display = 'none';
+                        }}
+                      />
+                    ) : null}
+                    <div className="absolute bottom-1.5 left-1.5 text-[10px] font-bold text-white drop-shadow-md flex flex-col items-start gap-0.5">
                       <Play size={10} fill="white" />
-                      {formatNumber(video.stats?.views || 0)}
+                      <span className="leading-none">{formatNumber(video.stats?.views || 0)}</span>
                     </div>
                     {video.description && (
                       <div className="absolute top-1.5 left-1.5 right-1.5 text-[9px] text-white/80 truncate drop-shadow-md">
@@ -341,7 +360,8 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
                       </div>
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="py-10 text-center text-white/40 text-sm rounded-lg bg-white/[0.02]">

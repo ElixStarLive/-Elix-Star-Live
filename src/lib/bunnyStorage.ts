@@ -179,6 +179,32 @@ export function getVideoPosterUrl(videoUrl: string): string {
 }
 
 /**
+ * Safe image URL for video grids. Never returns an mp4/webm/mov (those render
+ * as black rectangles in <img>). Prefers an explicit thumbnail, then poster.
+ */
+export function resolveGridThumbnailUrl(
+  thumbnail: string | undefined | null,
+  videoUrl: string | undefined | null,
+): string {
+  const thumb = typeof thumbnail === "string" ? thumbnail.trim() : "";
+  if (
+    thumb &&
+    !/\.(mp4|webm|mov)(\?|$)/i.test(thumb) &&
+    !thumb.startsWith("blob:")
+  ) {
+    if (
+      thumb.startsWith("http://") ||
+      thumb.startsWith("https://") ||
+      thumb.startsWith("data:")
+    ) {
+      return thumb;
+    }
+    return bunnyCdnUrl(thumb.replace(/^\//, ""));
+  }
+  return getVideoPosterUrl(videoUrl || "");
+}
+
+/**
  * Delete a file from Bunny Storage via the Hetzner backend.
  */
 export async function bunnyDelete(storagePath: string): Promise<void> {
