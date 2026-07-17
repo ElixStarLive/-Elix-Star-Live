@@ -32,8 +32,10 @@ import {
   Flag,
   Camera,
   CameraOff,
+  Sparkles,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { FILTER_PRESETS } from '../lib/ai/filters';
 import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, fetchGiftsFromDatabase, pickGiftVideoUrl } from '../lib/giftsCatalog';
 import { BattleVfxOverlays, type BattleMistSide, type GloveBurst } from '../components/BattleVfxOverlays';
 import {
@@ -1211,7 +1213,8 @@ export default function LiveStream() {
       if (battlePeerRef.current) { battlePeerRef.current.close(); battlePeerRef.current = null; }
     };
   }, [effectiveStreamId, isBroadcast, isBattleJoiner]);
-  const [liveFilterCss, _setLiveFilterCss] = useState('none');
+  const [liveFilterCss, setLiveFilterCss] = useState('none');
+  const [showLiveEffectsPanel, setShowLiveEffectsPanel] = useState(false);
   const [battleTime, setBattleTime] = useState(300); // 5 minutes
   const [myScore, setMyScore] = useState(0);
   const [opponentScore, setOpponentScore] = useState(0);
@@ -4243,7 +4246,10 @@ export default function LiveStream() {
               return (
                 <div
                   className="relative w-full flex-none flex flex-col overflow-hidden"
-                  style={{ height: LIVE_BATTLE_VIDEO_HEIGHT }}
+                  style={{
+                    height: LIVE_BATTLE_VIDEO_HEIGHT,
+                    filter: liveFilterCss !== 'none' ? liveFilterCss : undefined,
+                  }}
                 >
 
                   {/* Battle score: totals inside PK bar only (no name strip above) */}
@@ -5875,6 +5881,13 @@ export default function LiveStream() {
                 <span className="text-[10px] font-semibold text-white/70">{isChatVisible ? 'Hide Chat' : 'Show Chat'}</span>
               </button>
 
+              <button type="button" disabled={!isBroadcast} onClick={() => { setShowLiveEffectsPanel(true); setIsMoreMenuOpen(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform disabled:opacity-40">
+                <div className="w-11 h-11 rounded-full relative flex items-center justify-center">
+                  <Sparkles className={`w-[18px] h-[18px] relative z-[2] ${liveFilterCss !== 'none' ? 'text-[#D4AF37]' : 'text-[#D4AF37]'}`} strokeWidth={1.8} />
+                </div>
+                <span className="text-[10px] font-semibold text-white/70">Effects</span>
+              </button>
+
               <button type="button" onClick={() => { setIsReportModalOpen(true); setIsMoreMenuOpen(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform">
                 <div className="w-11 h-11 rounded-full relative flex items-center justify-center">
 <Flag className="w-[18px] h-[18px] text-white/60 relative z-[2]" strokeWidth={1.8} />
@@ -5902,6 +5915,52 @@ export default function LiveStream() {
 
             </div>
           </div>
+          </div>
+        </>
+      )}
+
+      {showLiveEffectsPanel && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/40 pointer-events-auto"
+            style={{ zIndex: 99998 }}
+            onClick={() => setShowLiveEffectsPanel(false)}
+          />
+          <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
+            <div
+              className="bg-[#111111]/95 rounded-t-2xl p-3 pb-safe shadow-2xl w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-center mb-2">
+                <div className="w-10 h-1 bg-white/20 rounded-full" />
+              </div>
+              <div className="flex items-center justify-center gap-1.5 mb-3">
+                <Sparkles size={14} className="text-[#D4AF37]" />
+                <span className="text-white text-sm font-bold">Effects</span>
+              </div>
+              <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 px-1">
+                {FILTER_PRESETS.filter((f) =>
+                  ['none', 'cinema-warm', 'cinema-cold', 'cinema-teal', 'port-soft', 'port-beauty', 'mood-dreamy', 'mood-neon', 'art-bw-high'].includes(f.id),
+                ).map((filter) => (
+                  <button
+                    key={filter.id}
+                    type="button"
+                    onClick={() => {
+                      setLiveFilterCss(filter.css);
+                      setShowLiveEffectsPanel(false);
+                    }}
+                    className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl min-w-[56px] transition-all active:scale-95 ${
+                      liveFilterCss === filter.css
+                        ? 'bg-[#C9A227]/20'
+                        : 'bg-white/5'
+                    }`}
+                  >
+                    <span className="text-lg">{filter.preview}</span>
+                    <span className="text-[8px] text-white/60 whitespace-nowrap">{filter.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </>
       )}
