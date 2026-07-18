@@ -2806,20 +2806,34 @@ export default function LiveStream() {
         }
       }
 
-      // Creator must play spectator gift videos. Broadcaster always queues
-      // incoming gifts from other users (spectator sends).
+      // Creator must play spectator gift videos. Skip only our own echo
+      // (sender already queued locally).
       const selfId = selfUserIdRef.current;
       const isOwnGift = !!(gifterId && selfId && gifterId === selfId);
-      if (!isOwnGift && videoUrl) {
-        if (txnId) {
-          playedGiftVideoTxnRef.current.add(txnId);
-          if (playedGiftVideoTxnRef.current.size > 200) {
-            const keep = [...playedGiftVideoTxnRef.current].slice(-100);
-            playedGiftVideoTxnRef.current = new Set(keep);
-          }
+      if (isOwnGift) return;
+
+      const playUrl =
+        videoUrl ||
+        pickGiftVideoUrl(
+          {
+            giftId: wsGiftId,
+            gift_id: wsGiftId,
+            video: typeof data?.video === 'string' ? data.video : '',
+            animation_url:
+              typeof data?.animation_url === 'string' ? data.animation_url : '',
+          },
+          giftsCatalogRef.current,
+        );
+      if (!playUrl) return;
+
+      if (txnId) {
+        playedGiftVideoTxnRef.current.add(txnId);
+        if (playedGiftVideoTxnRef.current.size > 200) {
+          const keep = [...playedGiftVideoTxnRef.current].slice(-100);
+          playedGiftVideoTxnRef.current = new Set(keep);
         }
-        enqueueGiftVideoRef.current(videoUrl);
       }
+      enqueueGiftVideoRef.current(playUrl);
     };
 
     // Server-controlled battle events — single source of truth
@@ -5201,7 +5215,7 @@ export default function LiveStream() {
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
-            className="fixed left-0 right-0 bottom-[calc(58px+max(2px,env(safe-area-inset-bottom,0px)))] z-[260] flex justify-center pointer-events-none"
+            className="fixed left-0 right-0 bottom-[calc(58px+max(2px,env(safe-area-inset-bottom,0px)))] z-[50001] flex justify-center pointer-events-none"
           >
             <div className="w-full max-w-[480px] mx-auto px-3 flex justify-end pointer-events-auto">
             <button
@@ -5224,7 +5238,7 @@ export default function LiveStream() {
 
       {/* BOTTOM RIGHT: Action buttons (same area as before, aligned right) */}
       <div
-        className="bottom-zone pointer-events-auto bg-transparent px-3 pt-0 flex flex-col items-end fixed left-0 right-0 bottom-0 z-[270] justify-end"
+        className="bottom-zone pointer-events-auto bg-transparent px-3 pt-0 flex flex-col items-end fixed left-0 right-0 bottom-0 z-[50002] justify-end"
         style={{ paddingBottom: LIVE_BOTTOM_ACTION_PADDING }}
       >
         <div className="w-full max-w-[480px] mx-auto flex flex-col items-end gap-0">
@@ -6401,14 +6415,14 @@ export default function LiveStream() {
         </div>
       )}
 
-      {/* Full-screen Video Effect Overlay (Behind controls but above video) */}
+      {/* Gift video — default z 50000 so it is visible on creator (including battle).
+          Combo/bottom icons use 50001+ so they stay above the gift. */}
       <GiftOverlay
         key={`gift-${giftKey}`}
         videoSrc={currentGift?.video ?? null}
         onEnded={handleGiftEnded}
         isBattleMode={isBattleMode}
         muted={false}
-        zIndex={210}
       />
       
       {/* ═══ SHARE PANEL ═══ */}

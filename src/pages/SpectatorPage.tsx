@@ -1341,7 +1341,14 @@ export default function SpectatorPage() {
       }
       // Play gift video for other users' gifts (sender already queued locally).
       {
-        const videoUrl = pickGiftVideoUrl(data, giftsCatalogRef.current);
+        const videoUrl =
+          pickGiftVideoUrl(data, giftsCatalogRef.current) ||
+          (wsGiftId
+            ? pickGiftVideoUrl(
+                { giftId: wsGiftId, gift_id: wsGiftId },
+                giftsCatalogRef.current,
+              )
+            : null);
         if (videoUrl) {
           setGiftQueue((prev) => [...prev, { video: videoUrl }]);
         }
