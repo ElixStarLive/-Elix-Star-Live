@@ -1358,6 +1358,25 @@ export default function LiveStream() {
   const [_battleReadiness, _setBattleReadiness] = useState(0);
   const [hasOpponentStream, setHasOpponentStream] = useState(false);
   const [opponentStreamKey, setOpponentStreamKey] = useState<string | null>(null);
+
+  /** Start / rematch with EVERY accepted creator seat (opponent + P3 + P4). */
+  const startBattleWithAcceptedCreators = useCallback(() => {
+    const accepted = battleSlots.filter((s) => s.status === 'accepted' && s.userId);
+    const opp = accepted[0];
+    const p3 = accepted[1];
+    const p4 = accepted[2];
+    websocket.send('battle_create', {
+      hostName: myCreatorName,
+      opponentUserId: opp?.userId ?? '',
+      opponentName: opp?.name ?? '',
+      opponentRoomId: opponentStreamKey || opp?.userId || '',
+      player3UserId: p3?.userId ?? '',
+      player3Name: p3?.name ?? '',
+      player4UserId: p4?.userId ?? '',
+      player4Name: p4?.name ?? '',
+    });
+  }, [battleSlots, myCreatorName, opponentStreamKey]);
+
   const battleRoleRef = useRef<'host' | 'opponent' | null>(null);
   const [_battleUiRole, setBattleUiRole] = useState<'host' | 'opponent'>(() =>
     isBattleJoiner ? 'opponent' : 'host',
@@ -3223,12 +3242,8 @@ export default function LiveStream() {
         }
         return next;
       });
-      websocket.send('battle_create', {
-        hostName: myCreatorName,
-        opponentUserId: requesterId,
-        opponentName: requesterName,
-        opponentRoomId: oppStreamKey,
-      });
+      // Do NOT battle_create here — each accept used to wipe the previous
+      // creator. Host taps Start Match once every accepted creator is ready.
     };
 
     const handleCohostRequest = (data) => {
@@ -5371,14 +5386,7 @@ export default function LiveStream() {
                 <button 
                   type="button" 
                   onClick={() => {
-                    if (battleSlots[0]?.userId) {
-                      websocket.send('battle_create', {
-                        hostName: myCreatorName,
-                        opponentUserId: battleSlots[0].userId,
-                        opponentName: battleSlots[0].name,
-                        opponentRoomId: opponentStreamKey || '',
-                      });
-                    }
+                    startBattleWithAcceptedCreators();
                     setBattleTime(300);
                     setMyScore(0);
                     setOpponentScore(0);
@@ -5582,13 +5590,7 @@ export default function LiveStream() {
                   type="button"
                   onClick={() => {
                     setIsFindCreatorsOpen(false);
-                    const accepted = battleSlots.find(s => s.status === 'accepted');
-                    websocket.send('battle_create', {
-                      hostName: myCreatorName,
-                      opponentUserId: accepted?.userId ?? '',
-                      opponentName: accepted?.name ?? 'Opponent',
-                      opponentRoomId: opponentStreamKey || '',
-                    });
+                    startBattleWithAcceptedCreators();
                   }}
                   className="w-full py-2.5 bg-[#D4AF37] text-black text-xs font-bold rounded-lg shadow-lg active:scale-95 transition-all flex items-center justify-center gap-1.5"
                 >
@@ -6179,7 +6181,7 @@ export default function LiveStream() {
               </button>
 
               {isBattleMode && battleWinner && isBroadcast && (
-                <button type="button" onClick={() => { if (battleSlots[0]?.userId) { websocket.send('battle_create', { hostName: myCreatorName, opponentUserId: battleSlots[0].userId, opponentName: battleSlots[0].name, opponentRoomId: opponentStreamKey || '' }); } setBattleTime(300); setMyScore(0); setOpponentScore(0); setPlayer3Score(0); setPlayer4Score(0); battleServerTotalsRef.current = { h: 0, o: 0, p3: 0, p4: 0 }; setBattleServerTotals({ h: 0, o: 0, p3: 0, p4: 0 }); setBattleWinner(null); setBattleCountdown(null); reachedThresholdsRef.current.clear(); setIsMoreMenuOpen(false); }} className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform">
+                <button type="button" onClick={() => { startBattleWithAcceptedCreators(); setBattleTime(300); setMyScore(0); setOpponentScore(0); setPlayer3Score(0); setPlayer4Score(0); battleServerTotalsRef.current = { h: 0, o: 0, p3: 0, p4: 0 }; setBattleServerTotals({ h: 0, o: 0, p3: 0, p4: 0 }); setBattleWinner(null); setBattleCountdown(null); reachedThresholdsRef.current.clear(); setIsMoreMenuOpen(false); }} className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform">
                   <div className="royce-glow-disc w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
                     <RefreshCw className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />
                   </div>

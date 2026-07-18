@@ -590,13 +590,21 @@ function scheduleBattleDisconnectEnd(battleRoomId: string, userId: string): void
         if (!battle || battle.status === "ENDED") return;
         const isHost = battle.hostUserId === userId;
         const isOpponent = battle.opponentUserId === userId;
-        if (!isHost && !isOpponent) return;
+        const isPlayer3 = battle.player3UserId === userId;
+        const isPlayer4 = battle.player4UserId === userId;
+        if (!isHost && !isOpponent && !isPlayer3 && !isPlayer4) return;
         logger.info(
-          { battleRoomId, role: isHost ? "host" : "opponent" },
+          { battleRoomId, role: isHost ? "host" : isOpponent ? "opponent" : isPlayer3 ? "player3" : "player4" },
           "Battle participant gone after grace, ending battle",
         );
         if (battle.opponentUserId) {
           await revokeBattlePublish(battleRoomId, battle.opponentUserId);
+        }
+        if (battle.player3UserId) {
+          await revokeBattlePublish(battleRoomId, battle.player3UserId);
+        }
+        if (battle.player4UserId) {
+          await revokeBattlePublish(battleRoomId, battle.player4UserId);
         }
         await endBattle(battleRoomId);
       } catch (err) {

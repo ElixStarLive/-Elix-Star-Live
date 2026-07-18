@@ -314,28 +314,64 @@ export async function handleMessage(
           typeof data.opponentName === "string" ? data.opponentName.trim() : "";
         const opponentRoomId =
           typeof data.opponentRoomId === "string" ? data.opponentRoomId.trim() : "";
+        const player3UserId =
+          typeof data.player3UserId === "string" ? data.player3UserId.trim() : "";
+        const player3Name =
+          typeof data.player3Name === "string" ? data.player3Name.trim() : "";
+        const player4UserId =
+          typeof data.player4UserId === "string" ? data.player4UserId.trim() : "";
+        const player4Name =
+          typeof data.player4Name === "string" ? data.player4Name.trim() : "";
+
+        // Every creator seat must have accepted a real invite. Never trust
+        // client-supplied ids alone — host, opponent, P3, and P4 all play.
+        const seats: { userId: string; name: string }[] = [];
         if (opponentUserId) {
-          // Never trust an opponent id supplied by the host client. The target
-          // must have accepted this host's invite before becoming a creator
-          // participant in the battle.
+          seats.push({ userId: opponentUserId, name: opponentName });
+        }
+        if (player3UserId) {
+          seats.push({ userId: player3UserId, name: player3Name });
+        }
+        if (player4UserId) {
+          seats.push({ userId: player4UserId, name: player4Name });
+        }
+        let seatsOk = true;
+        for (const seat of seats) {
+          if (!seat.name) {
+            seatsOk = false;
+            break;
+          }
           const accepted = await valkeyGet(
-            battleAcceptedKey(client.roomId, opponentUserId),
+            battleAcceptedKey(client.roomId, seat.userId),
           );
-          if (!accepted || !opponentName) {
-            sendToClient(client, "battle_error", {
-              message: "Accepted creator invite required",
-            });
+          if (!accepted) {
+            seatsOk = false;
             break;
           }
         }
+        if (seats.length > 0 && !seatsOk) {
+          sendToClient(client, "battle_error", {
+            message: "Accepted creator invite required",
+          });
+          break;
+        }
+
         const existing = await getBattleFromStore(client.roomId);
         if (existing) {
           if (existing.opponentUserId) {
             await revokeBattlePublish(client.roomId, existing.opponentUserId);
           }
+          if (existing.player3UserId) {
+            await revokeBattlePublish(client.roomId, existing.player3UserId);
+          }
+          if (existing.player4UserId) {
+            await revokeBattlePublish(client.roomId, existing.player4UserId);
+          }
           await valkeyDel("battle:" + client.roomId);
           await valkeyDel("ubr:" + existing.hostUserId);
           if (existing.opponentUserId) await valkeyDel("ubr:" + existing.opponentUserId);
+          if (existing.player3UserId) await valkeyDel("ubr:" + existing.player3UserId);
+          if (existing.player4UserId) await valkeyDel("ubr:" + existing.player4UserId);
         }
         const session = await createBattle(
           client.roomId,
@@ -343,17 +379,38 @@ export async function handleMessage(
           data.hostName || client.displayName,
         );
         if (!session) break;
-        if (opponentUserId && opponentName) {
-          session.opponentUserId = opponentUserId;
-          session.opponentName = opponentName;
-          session.opponentRoomId = opponentRoomId || opponentUserId;
-          await valkeySet(
-            "ubr:" + opponentUserId,
-            client.roomId,
-            BATTLE_USER_ROOM_TTL_MS,
-          );
-          // Opponent must publish into the host LiveKit room for battle video.
-          await grantBattlePublish(client.roomId, opponentUserId);
+        if (seats.length > 0) {
+          if (opponentUserId && opponentName) {
+            session.opponentUserId = opponentUserId;
+            session.opponentName = opponentName;
+            session.opponentRoomId = opponentRoomId || opponentUserId;
+            await valkeySet(
+              "ubr:" + opponentUserId,
+              client.roomId,
+              BATTLE_USER_ROOM_TTL_MS,
+            );
+            await grantBattlePublish(client.roomId, opponentUserId);
+          }
+          if (player3UserId && player3Name) {
+            session.player3UserId = player3UserId;
+            session.player3Name = player3Name;
+            await valkeySet(
+              "ubr:" + player3UserId,
+              client.roomId,
+              BATTLE_USER_ROOM_TTL_MS,
+            );
+            await grantBattlePublish(client.roomId, player3UserId);
+          }
+          if (player4UserId && player4Name) {
+            session.player4UserId = player4UserId;
+            session.player4Name = player4Name;
+            await valkeySet(
+              "ubr:" + player4UserId,
+              client.roomId,
+              BATTLE_USER_ROOM_TTL_MS,
+            );
+            await grantBattlePublish(client.roomId, player4UserId);
+          }
           await saveBattleToStore(client.roomId, session);
           await startBattleTimer(client.roomId);
         } else {
@@ -444,6 +501,12 @@ export async function handleMessage(
         if (bSession && bSession.hostUserId === client.userId) {
           if (bSession.opponentUserId) {
             await revokeBattlePublish(client.roomId, bSession.opponentUserId);
+          }
+          if (bSession.player3UserId) {
+            await revokeBattlePublish(client.roomId, bSession.player3UserId);
+          }
+          if (bSession.player4UserId) {
+            await revokeBattlePublish(client.roomId, bSession.player4UserId);
           }
           await endBattle(client.roomId);
         }
