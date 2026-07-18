@@ -166,7 +166,9 @@ export async function handleMessage(
             giftName: typeof data?.giftName === "string" ? data.giftName : "Gift",
             coins: 0,
             giftSource: "test_coins",
-            transactionId: "",
+            // Unique id so clients receiving this event twice (room broadcast +
+            // direct owner send) dedupe it and play the animation exactly once.
+            transactionId: `test-${randomUUID()}`,
             battleTarget: testBattleTarget,
             user_id: client.userId,
             username: client.username,

@@ -2814,6 +2814,16 @@ export default function LiveStream() {
       const isOwnGift = !!(gifterId && selfId && gifterId === selfId);
       if (isOwnGift) return;
 
+      // In battle, each creator only plays gift videos addressed to their own
+      // side — a gift sent to me must not play on the opponent's screen.
+      // (Chat, MVP, and PK score stay shared for the whole battle.)
+      if (isBattleModeRef.current) {
+        const giftSide = normalizeBattleGiftTarget(data.battleTarget);
+        const myRole =
+          battleRoleRef.current || (isBattleJoiner ? 'opponent' : (isBroadcast ? 'host' : null));
+        if (giftSide && myRole && giftSide !== myRole) return;
+      }
+
       const playUrl =
         videoUrl ||
         pickGiftVideoUrl(
