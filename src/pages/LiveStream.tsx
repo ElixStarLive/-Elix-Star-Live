@@ -1040,6 +1040,12 @@ export default function LiveStream() {
 
   const acceptCohostInvite = async () => {
     if (!pendingCohostInvite || !user?.id) return;
+    // Never accept a co-host invite while battling — it would pull this
+    // creator out of the battle onto the spectator page.
+    if (isBattleMode) {
+      setPendingCohostInvite(null);
+      return;
+    }
     const inv = pendingCohostInvite;
     setPendingCohostInvite(null);
     const myName = user?.username || user?.name || 'Creator';
@@ -1164,6 +1170,9 @@ export default function LiveStream() {
     // Seed pane 2 with the inviting host immediately (from accept navigation
     // state) so the joiner sees the same split battle layout as the host —
     // never the host-side "Add creator" placeholders.
+    // battleHost state also marks a REAL accepted invite (battle_accept_ack
+    // received) — that creator is never demoted to the spectator page.
+    const cameFromAcceptedInvite = !!(location.state as { battleHost?: unknown } | null)?.battleHost;
     const seededHost = (location.state as { battleHost?: { userId?: string; name?: string; avatar?: string } } | null)?.battleHost;
     if (seededHost && (seededHost.userId || seededHost.name)) {
       setBattleSlots(prev => {
@@ -1207,6 +1216,14 @@ export default function LiveStream() {
       }
       if (cancelled) return;
       if (!tokenData?.token) {
+        if (cameFromAcceptedInvite) {
+          // This creator accepted a real battle invite (server ack'd the
+          // grant). NEVER dump them on the spectator page — surface the
+          // failure and let them retry instead of silently demoting.
+          showToast('Battle connection failed — pull to retry or rejoin');
+          return;
+        }
+        // No accepted invite (deep link / stale URL): spectators watch only.
         navigate(`/watch/${effectiveStreamId}`, { replace: true });
         return;
       }
@@ -1973,6 +1990,9 @@ export default function LiveStream() {
     // Enter battle mode -> INVITING state, everything clean
     setBattleState('INVITING');
     setIsBattleMode(true);
+    // Battle mode owns invites now — drop any leftover co-host invite so its
+    // identical-looking Join banner can't hijack the battle flow.
+    setPendingCohostInvite(null);
     setBattleTime(0);
     setMyScore(0);
     setOpponentScore(0);
@@ -3246,6 +3266,10 @@ export default function LiveStream() {
         streamKey: data.streamKey || effectiveStreamId,
         hostUserId: data.hostUserId,
       });
+      // A battle invite kills any pending co-host invite: the two banners look
+      // identical, and tapping the co-host Join would send this creator to the
+      // spectator page instead of into the battle.
+      setPendingCohostInvite(null);
       // Open ONLY the battle panel so the red Reject / green Join buttons show
       // immediately. Never open the co-host panel here — it covers the battle
       // panel and its Add buttons send co-host invites, not battle invites.
@@ -3314,6 +3338,9 @@ export default function LiveStream() {
     const handleCohostInvite = (data) => {
       if (!user?.id) return;
       if (sameUserId(data.hostUserId, user.id)) return;
+      // In battle mode co-host invites are never shown: accepting one would
+      // route this creator to the spectator page mid-battle.
+      if (isBattleModeRef.current) return;
       setPendingCohostInvite({
         hostName: data.hostName || 'Creator',
         hostAvatar: data.hostAvatar || '',
@@ -5005,7 +5032,7 @@ export default function LiveStream() {
           })()}
 
             <div className="absolute bottom-1 left-0 right-0 px-3 py-2 flex items-center justify-between flex-none pointer-events-none relative z-30" style={{ transform: 'translateY(1mm)' }}>
-              <div className="flex items-center gap-[0mm] min-w-0 flex-1 justify-start pointer-events-auto" style={{ transform: 'translateX(-3mm)' }} onClick={() => setShowViewerList(true)}>
+              <div className="flex items-center gap-[0mm] min-w-0 flex-1 justify-start pointer-events-auto" style={{ transform: 'translateX(-3mm)' }} onClick={() => { setShowViewerList(false); setIsFindCreatorsOpen(true); }}>
                 {topMvpHostBattle.map((viewer, i) => {
                   const isMvp = i === 0 && (mvpGiftScoresHost[viewer.id] ?? 0) > 0;
                   return (
@@ -5030,7 +5057,7 @@ export default function LiveStream() {
                   );
                 })}
               </div>
-              <div className="flex items-center gap-[0mm] min-w-0 flex-1 justify-end pointer-events-auto" style={{ transform: 'translateX(3mm)' }} onClick={() => setShowViewerList(true)}>
+              <div className="flex items-center gap-[0mm] min-w-0 flex-1 justify-end pointer-events-auto" style={{ transform: 'translateX(3mm)' }} onClick={() => { setShowViewerList(false); setIsFindCreatorsOpen(true); }}>
                 {topMvpOpponentBattle.map((viewer, i) => {
                   const isMvp = i === 0 && (mvpGiftScoresOpponent[viewer.id] ?? 0) > 0;
                   return (
@@ -5253,7 +5280,16 @@ export default function LiveStream() {
                         <button
                           type="button"
                           title="Viewers"
-                          onClick={() => setShowViewerList(prev => !prev)}
+                          onClick={() => {
+                            // In battle: this opens the battle creator invite panel only,
+                            // never the co-host panel.
+                            if (isBattleMode) {
+                              setShowViewerList(false);
+                              setIsFindCreatorsOpen(true);
+                              return;
+                            }
+                            setShowViewerList(prev => !prev);
+                          }}
                           className="flex items-center gap-1.5 px-0 py-1 rounded-full bg-transparent border-0 active:scale-95 transition-transform pointer-events-auto"
                           style={{ marginRight: '1mm' }}
                         >
@@ -5802,7 +5838,10 @@ export default function LiveStream() {
       </AnimatePresence>
 
       {/* ═══ VIEWER LIST + JOIN REQUESTS PANEL — host only: see join requests (Accept/Decline) and invite spectators as co-host ═══ */}
-      {showViewerList && (
+      {/* NEVER rendered in battle mode: battle invites creators via the battle
+          panel only. The co-host Add/Invite button must not exist in battle —
+          a co-host invite joins the LIVE page, not the battle. */}
+      {showViewerList && !isBattleMode && (
         <>
           <div
             className="fixed inset-0 bg-black/40 pointer-events-auto"
@@ -5887,18 +5926,12 @@ export default function LiveStream() {
                         <button
                           type="button"
                           onClick={() => {
-                            // In battle: this panel must never send co-host invites.
-                            if (isBattleMode) {
-                              inviteCreatorToSlot(c.id);
-                              setShowViewerList(false);
-                              setIsFindCreatorsOpen(true);
-                              return;
-                            }
+                            // Co-host only — this panel cannot render in battle mode.
                             inviteCoHost({ id: c.id, streamKey: c.streamKey, name: c.name || c.username, avatar: c.avatar });
                           }}
                           className="px-2.5 py-1 rounded-full bg-[#C9A96E] text-black text-[10px] font-bold flex-shrink-0"
                         >
-                          {isBattleMode ? 'Invite' : 'Add'}
+                          Add
                         </button>
                       )}
                     </div>
