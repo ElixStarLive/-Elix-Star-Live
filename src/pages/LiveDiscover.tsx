@@ -243,7 +243,12 @@ export default function LiveDiscover() {
               <span className="text-white/40 font-medium text-xs ml-1.5">{creators.length}</span>
             ) : null}
           </h1>
-          <button onClick={() => navigate('/feed')} className="p-1" title="Back">
+          <button
+            onClick={() => navigate('/feed')}
+            className="p-1"
+            style={{ marginRight: '4mm' }}
+            title="Back"
+          >
             <RoyceBackIcon />
           </button>
         </div>
