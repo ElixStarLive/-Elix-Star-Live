@@ -5511,25 +5511,24 @@ export default function LiveStream() {
                   <span className="text-[#D4AF37] text-xs font-bold">Rematch</span>
                 </button>
               )}
-              <div className="flex flex-col items-center gap-0.5">
-                <button
-                  type="button"
-                  onClick={() => {
-                    // In battle: person+ must invite battle creators only — never open the co-host panel.
-                    if (isBattleMode) {
-                      setShowViewerList(false);
-                      setIsFindCreatorsOpen(true);
-                      return;
-                    }
-                    setIsFindCreatorsOpen(false);
-                    setShowViewerList(true);
-                  }}
-                  className={`${LIVE_BOTTOM_ICON_BTN} relative`}
-                >
-                  <span className="flex items-center justify-center w-full h-full relative z-[2]"><UserPlus size={20} className="text-[#D4AF37] shrink-0" strokeWidth={2} /></span>
+              {/* Co-Host belongs to NORMAL live only. During a battle it is hidden so
+                  it can never invite anyone as co-host into a match — battle creators
+                  are invited from the Battle button / empty battle slots instead. */}
+              {!isBattleMode && (
+                <div className="flex flex-col items-center gap-0.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsFindCreatorsOpen(false);
+                      setShowViewerList(true);
+                    }}
+                    className={`${LIVE_BOTTOM_ICON_BTN} relative`}
+                  >
+                    <span className="flex items-center justify-center w-full h-full relative z-[2]"><UserPlus size={20} className="text-[#D4AF37] shrink-0" strokeWidth={2} /></span>
 </button>
-                <span className="text-white/60 text-[8px] font-medium">Co-Host</span>
-              </div>
+                  <span className="text-white/60 text-[8px] font-medium">Co-Host</span>
+                </div>
+              )}
               <div className="flex flex-col items-center gap-0.5">
                 <button
                   type="button"
