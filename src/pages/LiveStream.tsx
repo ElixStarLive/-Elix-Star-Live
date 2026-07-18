@@ -897,6 +897,10 @@ export default function LiveStream() {
       showToast('Could not join the battle — invite is no longer valid');
       return;
     }
+    // Mark this as a REAL accepted battle invite in sessionStorage so the
+    // "never demote to spectator" guard survives a reload / remount even if
+    // React Router navigation state is lost. Cleared when the battle ends.
+    try { sessionStorage.setItem(`battleAccept:${invite.streamKey}`, '1'); } catch { /* ignore */ }
     // Display-only host info so the joiner's pane 2 shows the host right away
     // (authorization stays server-side via the battle grant / publish token).
     navigate(`/live/${invite.streamKey}?battle=1`, {
@@ -1172,8 +1176,11 @@ export default function LiveStream() {
     // state) so the joiner sees the same split battle layout as the host —
     // never the host-side "Add creator" placeholders.
     // battleHost state also marks a REAL accepted invite (battle_accept_ack
-    // received) — that creator is never demoted to the spectator page.
-    const cameFromAcceptedInvite = !!(location.state as { battleHost?: unknown } | null)?.battleHost;
+    // received) — that creator is never demoted to the spectator page. The
+    // sessionStorage flag is a reload-proof fallback for the same signal.
+    let acceptedFlag = false;
+    try { acceptedFlag = sessionStorage.getItem(`battleAccept:${effectiveStreamId}`) === '1'; } catch { /* ignore */ }
+    const cameFromAcceptedInvite = !!(location.state as { battleHost?: unknown } | null)?.battleHost || acceptedFlag;
     const seededHost = (location.state as { battleHost?: { userId?: string; name?: string; avatar?: string } } | null)?.battleHost;
     if (seededHost && (seededHost.userId || seededHost.name)) {
       setBattleSlots(prev => {
@@ -1918,6 +1925,9 @@ export default function LiveStream() {
     // Scores: battle_score + battle_state_sync + battle_ended. Battle countdown runs locally (no battle_tick).
 
   const endBattleCleanup = useCallback(() => {
+    // Accepted-invite marker is battle-scoped: drop it so a later fresh visit
+    // to this room is treated as a normal spectator, not an accepted joiner.
+    try { sessionStorage.removeItem(`battleAccept:${effectiveStreamId}`); } catch { /* ignore */ }
     setIsBattleMode(false);
     setBattleState('LIVE_SOLO');
     setBattleTime(300);
