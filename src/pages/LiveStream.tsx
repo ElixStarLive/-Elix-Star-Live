@@ -250,6 +250,16 @@ export default function LiveStream() {
   // redirected to the spectator page.
   const isBattleJoiner = !isBroadcast && new URLSearchParams(location.search).get('battle') === '1';
   const isCreatorParticipant = Boolean(isBroadcast || isBattleJoiner);
+  // Hard role separation, enforced by the page itself (not only the router):
+  // this page is for creators (own broadcast or an accepted battle opponent).
+  // Anyone else who lands here — deep link, stale URL, old build path — is a
+  // spectator and belongs on the watch page.
+  useEffect(() => {
+    if (!isCreatorParticipant && streamId && streamId !== 'broadcast' && streamId !== 'start' && streamId !== 'watch') {
+      navigate(`/watch/${streamId}`, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isCreatorParticipant, streamId]);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
