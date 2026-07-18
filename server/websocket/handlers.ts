@@ -304,40 +304,45 @@ export async function handleMessage(
 
       case "battle_get_state": {
         const currentBattle = await getBattleFromStore(client.roomId);
-        if (currentBattle) {
-          if (currentBattle.endsAt > 0) {
-            currentBattle.timeLeft = Math.max(
-              0,
-              Math.round((currentBattle.endsAt - Date.now()) / 1000),
-            );
-          }
-          if (currentBattle.status === "ACTIVE" && currentBattle.timeLeft <= 0) {
-            await endBattle(client.roomId);
-            break;
-          }
-          const scores = currentBattle.status === "ACTIVE"
-            ? await getBattleScores(client.roomId)
-            : currentBattle;
-          sendToClient(client, "battle_state_sync", {
-            id: currentBattle.id,
-            status: currentBattle.status,
-            hostUserId: currentBattle.hostUserId,
-            hostName: currentBattle.hostName,
-            opponentUserId: currentBattle.opponentUserId,
-            opponentName: currentBattle.opponentName,
-            player3UserId: currentBattle.player3UserId,
-            player3Name: currentBattle.player3Name,
-            player4UserId: currentBattle.player4UserId,
-            player4Name: currentBattle.player4Name,
-            hostScore: scores.hostScore,
-            opponentScore: scores.opponentScore,
-            player3Score: scores.player3Score,
-            player4Score: scores.player4Score,
-            timeLeft: currentBattle.timeLeft,
-            endsAt: currentBattle.endsAt,
-            winner: currentBattle.winner,
-          });
+        if (!currentBattle) {
+          // Creator is in normal live — force spectators out of battle layout.
+          sendToClient(client, "battle_state_sync", { status: "ENDED" });
+          break;
         }
+        if (currentBattle.endsAt > 0) {
+          currentBattle.timeLeft = Math.max(
+            0,
+            Math.round((currentBattle.endsAt - Date.now()) / 1000),
+          );
+        }
+        if (currentBattle.status === "ACTIVE" && currentBattle.timeLeft <= 0) {
+          await endBattle(client.roomId);
+          break;
+        }
+        const scores = currentBattle.status === "ACTIVE"
+          ? await getBattleScores(client.roomId)
+          : currentBattle;
+        sendToClient(client, "battle_state_sync", {
+          id: currentBattle.id,
+          status: currentBattle.status,
+          hostUserId: currentBattle.hostUserId,
+          hostName: currentBattle.hostName,
+          hostRoomId: currentBattle.hostRoomId,
+          opponentUserId: currentBattle.opponentUserId,
+          opponentName: currentBattle.opponentName,
+          opponentRoomId: currentBattle.opponentRoomId,
+          player3UserId: currentBattle.player3UserId,
+          player3Name: currentBattle.player3Name,
+          player4UserId: currentBattle.player4UserId,
+          player4Name: currentBattle.player4Name,
+          hostScore: scores.hostScore,
+          opponentScore: scores.opponentScore,
+          player3Score: scores.player3Score,
+          player4Score: scores.player4Score,
+          timeLeft: currentBattle.timeLeft,
+          endsAt: currentBattle.endsAt,
+          winner: currentBattle.winner,
+        });
         break;
       }
 

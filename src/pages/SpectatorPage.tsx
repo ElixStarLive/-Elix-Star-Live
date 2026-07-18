@@ -331,7 +331,10 @@ export default function SpectatorPage() {
   // BATTLE STATE (spectator sees host's battle status)
   // ═══════════════════════════════════════════════════
   const [spectatorBattle, setSpectatorBattle] = useState<{
+    /** True while creator is in battle layout (WAITING invite OR ACTIVE fight). */
     active: boolean;
+    /** Server battle status — layout follows WAITING+ACTIVE; timer/votes only ACTIVE. */
+    status: 'WAITING' | 'ACTIVE' | 'ENDED';
     hostScore: number;
     opponentScore: number;
     player3Score?: number;
@@ -380,8 +383,14 @@ export default function SpectatorPage() {
 
   useEffect(() => {
     const t = spectatorBattle?.timeLeft ?? 0;
-    setBattleHideScores(!!spectatorBattle?.active && t > 0 && t <= 10 && !spectatorBattle?.winner);
-  }, [spectatorBattle?.active, spectatorBattle?.timeLeft, spectatorBattle?.winner]);
+    setBattleHideScores(
+      !!spectatorBattle?.active &&
+        spectatorBattle?.status === 'ACTIVE' &&
+        t > 0 &&
+        t <= 10 &&
+        !spectatorBattle?.winner,
+    );
+  }, [spectatorBattle?.active, spectatorBattle?.status, spectatorBattle?.timeLeft, spectatorBattle?.winner]);
 
   const opponentVideoRef = useRef<HTMLVideoElement>(null);
   const opponentLkRoomRef = useRef<Room | null>(null);
@@ -435,7 +444,7 @@ export default function SpectatorPage() {
   }, [spectatorBattle?.opponentRoomId, navigate]);
 
   const handleSpectatorVote = useCallback((target: 'host' | 'opponent' | 'player3' | 'player4') => {
-    if (!spectatorBattle?.active) return;
+    if (!spectatorBattle?.active || spectatorBattle.status !== 'ACTIVE') return;
     if (spectatorBattleVoteRemainingRef.current <= 0) return;
     if (!websocket.isConnected()) return;
     spectatorBattleVoteRemainingRef.current = 0;
@@ -445,7 +454,7 @@ export default function SpectatorPage() {
       /* ignore */
     }
     websocket.send('battle_spectator_vote', { target });
-  }, [spectatorBattle?.active]);
+  }, [spectatorBattle?.active, spectatorBattle?.status]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -453,17 +462,17 @@ export default function SpectatorPage() {
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
-  // Battle countdown locally while active (no battle_tick WebSocket).
+  // Battle countdown only while the fight is ACTIVE (not during WAITING invite).
   useEffect(() => {
-    if (!spectatorBattle?.active) return;
+    if (!spectatorBattle?.active || spectatorBattle.status !== 'ACTIVE') return;
     const id = window.setInterval(() => {
       setSpectatorBattle((prev) => {
-        if (!prev?.active) return prev;
+        if (!prev?.active || prev.status !== 'ACTIVE') return prev;
         return { ...prev, timeLeft: Math.max(0, prev.timeLeft - 1) };
       });
     }, 1000);
     return () => clearInterval(id);
-  }, [spectatorBattle?.active]);
+  }, [spectatorBattle?.active, spectatorBattle?.status]);
 
   // Connect to opponent's LiveKit room so spectators see both battle videos
   useEffect(() => {
@@ -1357,9 +1366,16 @@ export default function SpectatorPage() {
         const n = Number(value);
         return Number.isFinite(n) ? n : fallback;
       };
-      if (data.status === 'ENDED') {
+      const rawStatus = String(data.status || '').toUpperCase();
+      // Creator entered battle layout (invite/WAITING) OR fight is ACTIVE →
+      // spectators must mirror battle UI. Only ENDED returns them to normal live.
+      const inBattleLayout =
+        rawStatus === 'WAITING' ||
+        rawStatus === 'ACTIVE' ||
+        rawStatus === 'IN_BATTLE';
+      if (rawStatus === 'ENDED') {
         setBattleStreamIds(null);
-      } else {
+      } else if (inBattleLayout) {
         setBattleStreamIds({
           hostRoomId: typeof data.hostRoomId === 'string' ? data.hostRoomId : '',
           hostUserId: typeof data.hostUserId === 'string' ? data.hostUserId : '',
@@ -1367,36 +1383,29 @@ export default function SpectatorPage() {
           opponentUserId: typeof data.opponentUserId === 'string' ? data.opponentUserId : '',
         });
       }
-      if (data.status === 'ACTIVE' || data.status === 'active' || data.status === 'IN_BATTLE') {
+      if (inBattleLayout) {
         const labels = battleTeamLabelsFromPayload(data);
-        setSpectatorBattle(prev => ({
+        const status: 'WAITING' | 'ACTIVE' =
+          rawStatus === 'WAITING' ? 'WAITING' : 'ACTIVE';
+        setSpectatorBattle((prev) => ({
           active: true,
+          status,
           hostScore: toScore(data.hostScore ?? data.host_score, prev?.hostScore ?? 0),
           opponentScore: toScore(data.opponentScore ?? data.opponent_score, prev?.opponentScore ?? 0),
           player3Score: toScore(data.player3Score ?? data.player3_score, prev?.player3Score ?? 0),
           player4Score: toScore(data.player4Score ?? data.player4_score, prev?.player4Score ?? 0),
-          timeLeft: toScore(data.timeLeft, prev?.timeLeft ?? 300),
+          timeLeft: toScore(data.timeLeft, status === 'WAITING' ? 300 : (prev?.timeLeft ?? 300)),
           opponentName: data.opponentName || data.opponent_name || prev?.opponentName,
           opponentRoomId: data.opponentRoomId || prev?.opponentRoomId,
-          redTeamLabel: labels.red,
-          blueTeamLabel: labels.blue,
+          redTeamLabel: labels.red || prev?.redTeamLabel || '',
+          blueTeamLabel: labels.blue || prev?.blueTeamLabel || '',
+          winner: undefined,
         }));
-      } else if (data.status === 'ENDED') {
-        setSpectatorBattle(prev => prev ? { ...prev, active: false } : null);
-        setTimeout(() => setSpectatorBattle(null), 5000);
-      } else if (data.status === 'WAITING') {
-        setSpectatorBattle(prev => ({
-          active: false,
-          hostScore: 0,
-          opponentScore: 0,
-          player3Score: 0,
-          player4Score: 0,
-          timeLeft: toScore(data.timeLeft, 300),
-          opponentName: data.opponentName || prev?.opponentName,
-          opponentRoomId: data.opponentRoomId || prev?.opponentRoomId,
-          redTeamLabel: '',
-          blueTeamLabel: '',
-        }));
+      } else if (rawStatus === 'ENDED') {
+        setSpectatorBattle((prev) =>
+          prev ? { ...prev, active: false, status: 'ENDED' } : null,
+        );
+        setTimeout(() => setSpectatorBattle(null), 2500);
       }
     };
 
@@ -1432,7 +1441,8 @@ export default function SpectatorPage() {
           return prev;
         }
         return {
-          active: prev?.active ?? true,
+          active: true,
+          status: 'ACTIVE' as const,
           timeLeft: prev?.timeLeft ?? 300,
           hostScore: newH,
           opponentScore: newO,
@@ -1441,8 +1451,8 @@ export default function SpectatorPage() {
           opponentName: newOppName,
           opponentRoomId: newOppRoom,
           winner: prev?.winner,
-          redTeamLabel: labels.red,
-          blueTeamLabel: labels.blue,
+          redTeamLabel: labels.red || prev?.redTeamLabel || '',
+          blueTeamLabel: labels.blue || prev?.blueTeamLabel || '',
         };
       });
     };
@@ -1453,7 +1463,8 @@ export default function SpectatorPage() {
         const n = Number(value);
         return Number.isFinite(n) ? n : fallback;
       };
-      setSpectatorBattle(prev => {
+      setBattleStreamIds(null);
+      setSpectatorBattle((prev) => {
         if (!prev) return null;
         const h = toScore(data.hostScore ?? data.host_score, prev.hostScore);
         const o = toScore(data.opponentScore ?? data.opponent_score, prev.opponentScore);
@@ -1468,16 +1479,18 @@ export default function SpectatorPage() {
         return {
           ...prev,
           active: false,
+          status: 'ENDED',
           hostScore: h,
           opponentScore: o,
           player3Score: p3,
           player4Score: p4,
           winner,
-          redTeamLabel: labels.red,
-          blueTeamLabel: labels.blue,
+          redTeamLabel: labels.red || prev.redTeamLabel || '',
+          blueTeamLabel: labels.blue || prev.blueTeamLabel || '',
         };
       });
-      setTimeout(() => setSpectatorBattle(null), 5000);
+      // Return spectators to normal live layout after a short end banner.
+      setTimeout(() => setSpectatorBattle(null), 2500);
     };
 
     const handleHeartSent = (data) => {
@@ -1629,6 +1642,12 @@ export default function SpectatorPage() {
     websocket.on('booster_caught', handleBoosterCaught);
     websocket.on('mist_activated', handleMistActivated);
 
+    const onConnected = () => {
+      // Re-sync battle layout if creator already switched to battle before we joined.
+      websocket.send('battle_get_state', {});
+    };
+    websocket.on('connected', onConnected);
+
     connect();
 
     const goOffline = async (_reason: string) => {
@@ -1687,6 +1706,7 @@ export default function SpectatorPage() {
       websocket.off('booster_activated', handleBoosterActivated);
       websocket.off('booster_caught', handleBoosterCaught);
       websocket.off('mist_activated', handleMistActivated);
+      websocket.off('connected', onConnected);
       websocket.disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
