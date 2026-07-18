@@ -1986,12 +1986,20 @@ export default function LiveStream() {
   const exitBattleMode = useCallback(() => {
     endBattleCleanup();
     websocket.send('battle_end', {});
+    // A battle opponent joined the HOST's room to play. Leaving the battle must
+    // return them to their OWN live page (they stay live), never to the host's
+    // watch page or the feed. The host just drops the ?battle flag and stays put.
+    const wasJoiner = !isBroadcast && new URLSearchParams(location.search).get('battle') === '1';
+    if (wasJoiner) {
+      navigate('/live/broadcast', { replace: true });
+      return;
+    }
     const params = new URLSearchParams(location.search);
     if (params.has('battle')) {
       params.delete('battle');
       navigate({ pathname: location.pathname, search: params.toString() ? `?${params.toString()}` : '' }, { replace: true });
     }
-  }, [endBattleCleanup, location.search, location.pathname, navigate]);
+  }, [endBattleCleanup, location.search, location.pathname, navigate, isBroadcast]);
 
   const toggleBattle = useCallback(() => {
     if (isBattleMode) {
@@ -3193,7 +3201,11 @@ export default function LiveStream() {
       else setBattleWinner('draw');
       battleEndedTimeoutRef.current = setTimeout(() => {
         battleEndedTimeoutRef.current = null;
-        if (mounted) endBattleCleanup();
+        if (!mounted) return;
+        endBattleCleanup();
+        // After the result shows, the opponent returns to their own live page and
+        // stays live; the host remains on their own room and continues live solo.
+        if (isBattleJoiner) navigate('/live/broadcast', { replace: true });
       }, 2000);
     };
 
