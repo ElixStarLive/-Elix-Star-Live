@@ -802,9 +802,9 @@ export default function LiveStream() {
   const inviteTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const inviteCreatorToSlot = async (creatorId: string) => {
-    // Battle invites come from the room owner only — the server drops
-    // battle_invite_send from anyone else, so never fake an 'invited' slot.
-    if (!isBroadcast) return;
+    // Every battle creator (host OR accepted opponent) can invite more live
+    // creators into the match. Co-host is a separate normal-live flow only.
+    if (!isBroadcast && !isBattleJoiner) return;
     const slotIndex = battleSlots.findIndex(s => s.status === 'empty');
     if (slotIndex === -1) return;
     if (battleSlots.some(s => s.userId === creatorId && s.status !== 'empty')) return;
@@ -819,6 +819,8 @@ export default function LiveStream() {
     });
 
     if (!user?.id) return;
+    // streamKey must be the battle room (host room). For the joiner,
+    // effectiveStreamId is already the host's stream id.
     websocket.send('battle_invite_send', {
       targetUserId: creatorId,
       targetStreamKey: creator.streamKey || creatorId,
@@ -826,7 +828,6 @@ export default function LiveStream() {
       hostAvatar: myAvatar,
       streamKey: effectiveStreamId,
     });
-    // No invite text over the live screen — the slot already shows "invited".
   };
 
   // ─── INCOMING INVITE (for viewers / other broadcasters) ─────
@@ -3278,7 +3279,8 @@ export default function LiveStream() {
     };
 
     const handleBattleInviteAccepted = (data) => {
-      if (!isBroadcast) return;
+      // Host and battle-playing creators all update slots when someone joins.
+      if (!isBroadcast && !isBattleJoiner) return;
       const requesterId = data.requesterUserId as string | undefined;
       const requesterName = data.requesterName as string | undefined;
       const requesterAvatar = data.requesterAvatar as string | undefined;
@@ -5621,8 +5623,7 @@ export default function LiveStream() {
                   return (
                     <div
                       key={c.id}
-                      onClick={() => !slotStatus && !allFull && inviteCreatorToSlot(c.id)}
-                      className={`w-full flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-white/[0.03] transition-colors active:scale-[0.98] cursor-pointer ${!!slotStatus || allFull ? 'opacity-70' : ''}`}
+                      className={`w-full flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-white/[0.03] transition-colors ${!!slotStatus || allFull ? 'opacity-70' : ''}`}
                     >
                       <div className="relative flex-shrink-0">
                         <AvatarRing src={c.avatar} alt={c.name} size={SHARE_PANEL_AVATAR_PX} />
@@ -5636,7 +5637,7 @@ export default function LiveStream() {
                           <span className="text-green-400 text-[9px] font-bold">Joined</span>
                         </div>
                       ) : isIncomingBattleInvite ? (
-                        <div className="flex items-center gap-1.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
                           <button
                             type="button"
                             className="h-6 px-3 rounded-full bg-red-500/25 border border-red-400/50 inline-flex items-center justify-center active:scale-95 transition-transform cursor-pointer"
@@ -5657,10 +5658,19 @@ export default function LiveStream() {
                           <span className="text-white/50 text-[9px] font-bold">Waiting</span>
                         </div>
                       ) : (
-                        <div className="px-2 py-1 rounded-full bg-[#C9A96E] flex items-center justify-center gap-0.5 flex-shrink-0">
+                        <button
+                          type="button"
+                          disabled={allFull || !(isBroadcast || isBattleJoiner)}
+                          onClick={(ev) => {
+                            ev.preventDefault();
+                            ev.stopPropagation();
+                            if (!allFull) void inviteCreatorToSlot(c.id);
+                          }}
+                          className="px-2 py-1 rounded-full bg-[#C9A96E] flex items-center justify-center gap-0.5 flex-shrink-0 active:scale-95 disabled:opacity-50"
+                        >
                           <UserPlus size={9} className="text-black shrink-0 flex-shrink-0" strokeWidth={2} />
                           <span className="text-black text-[9px] font-bold">Invite</span>
-                        </div>
+                        </button>
                       )}
                     </div>
                   );

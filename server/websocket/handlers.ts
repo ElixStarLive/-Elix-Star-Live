@@ -22,6 +22,7 @@ import {
   setCohostLayout,
   deleteCohostLayout,
   grantBattlePublish,
+  hasBattlePublishGrant,
   grantCohostPublish,
   revokeBattlePublish,
   revokeCohostPublish,
@@ -560,8 +561,15 @@ export async function handleMessage(
       case "battle_invite_send": {
         if (!(await wsRateCheck(client.userId, "battle_invite_send", 100, 60_000)))
           break;
+        // Battle room = the host's room. The room owner OR any accepted battle
+        // creator already in that room may invite more live creators into the match.
+        // Co-host is a separate flow and must never use this path.
         const ownerId = await resolveStreamOwnerUserId(client.roomId);
-        if (!ownerId || ownerId !== client.userId) break;
+        if (!ownerId) break;
+        const isOwner = ownerId === client.userId;
+        const isBattleCreator =
+          !isOwner && (await hasBattlePublishGrant(client.roomId, client.userId));
+        if (!isOwner && !isBattleCreator) break;
         const targetUserId =
           typeof data.targetUserId === "string" ? data.targetUserId.trim() : "";
         if (!targetUserId || targetUserId === client.userId) break;
@@ -590,17 +598,16 @@ export async function handleMessage(
           }
           if (!targetIsLiveHost) break;
         }
-        const streamKey =
-          typeof data.streamKey === "string" && data.streamKey.trim()
-            ? data.streamKey.trim()
-            : client.roomId;
+        // Always the battle room (host room) so accept joins the match, not a co-host live.
+        const streamKey = client.roomId;
         await valkeySet(
           `battle_invite:${streamKey}:${targetUserId}`,
           "1",
           10 * 60 * 1000,
         );
         sendToUserGlobal(targetUserId, "battle_invite", {
-          hostUserId: client.userId,
+          // Accept must authorize against the room owner — never the opponent inviter.
+          hostUserId: ownerId,
           hostName: data.hostName || client.displayName,
           hostAvatar: data.hostAvatar || client.avatarUrl || "",
           streamKey,
@@ -672,7 +679,9 @@ export async function handleMessage(
             BATTLE_USER_ROOM_TTL_MS,
           );
         }
-        sendToUserGlobal(authoritativeHostUserId, "battle_invite_accepted", {
+        // Notify every creator already in the battle room (host + opponents)
+        // so all of them show Joined — not only the room owner.
+        broadcastToRoom(hostRoomForInvite, "battle_invite_accepted", {
           requesterUserId: client.userId,
           requesterName: data.requesterName || client.displayName,
           requesterAvatar: data.requesterAvatar || client.avatarUrl || "",
