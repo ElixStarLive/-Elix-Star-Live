@@ -6,7 +6,7 @@
 import { createHash } from 'crypto';
 import { Request, Response } from 'express';
 import { getTokenFromRequest, verifyAuthToken } from '../routes/auth';
-import { createLiveToken, isLiveKitConfigured, getLiveKitUrl, listActiveRoomsFromLiveKit } from '../services/livekit';
+import { createLiveToken, isLiveKitConfigured, getLiveKitUrl, listActiveRoomsFromLiveKit, isUserPublishingInRoom } from '../services/livekit';
 import { broadcastToFeedSubscribers } from '../feedBroadcast';
 import { dbInsertLiveStream, dbEndLiveStream, dbGetLiveStreams } from '../lib/postgres';
 import { logger } from '../lib/logger';
@@ -177,7 +177,7 @@ async function buildStreamsResult(): Promise<StreamsListPayload> {
           ? await valkeyHgetallBatch(batchKeys)
           : [];
 
-      const streams = named.map((room, i) => {
+      const streams = named.flatMap((room, i) => {
         const data = hashList[i] || {};
         const dbRow = room.name ? dbByStreamKey.get(room.name) : undefined;
         const mem =
@@ -188,8 +188,13 @@ async function buildStreamsResult(): Promise<StreamsListPayload> {
                 displayName: data.displayName || undefined,
               }
             : null;
+        // Ghost room guard: every real stream registers via /api/live/start
+        // (Valkey + DB). A LiveKit room with neither record is a leftover
+        // (stale subscription / ended stream) and must never be listed as a
+        // live creator.
+        if (!mem && !dbRow) return [];
         const userId = mem?.userId ?? dbRow?.user_id ?? (room.name as NonNullable<typeof room.name>);
-        return {
+        return [{
           room_id: room.name,
           stream_key: room.name,
           user_id: userId,
@@ -198,9 +203,17 @@ async function buildStreamsResult(): Promise<StreamsListPayload> {
           title: mem?.displayName ?? dbRow?.display_name ?? undefined,
           display_name: mem?.displayName ?? dbRow?.display_name ?? undefined,
           viewer_count: room.numParticipants,
-        };
+        }];
       });
-      return { streams };
+      // Publishing guard: only list rooms whose host is actually broadcasting
+      // (publishing tracks) right now. A stale Valkey/DB "live" record for a
+      // user who is really just a spectator can never pass this.
+      const verified = await Promise.all(
+        streams.map(async (s) =>
+          (await isUserPublishingInRoom(s.stream_key as string, s.user_id)) ? s : null,
+        ),
+      );
+      return { streams: verified.filter((s): s is NonNullable<typeof s> => s !== null) };
     } catch (err) {
       logger.warn({ err }, "LiveKit list streams failed, falling back to DB");
     }

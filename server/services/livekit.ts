@@ -43,6 +43,31 @@ export async function listActiveRoomsFromLiveKit(): Promise<
   }
 }
 
+/**
+ * True if the user is connected to the room AND actively publishing tracks
+ * (camera/mic). This is the authoritative "is this user really broadcasting"
+ * check — a spectator/subscriber never publishes, so they can never pass it.
+ */
+export async function isUserPublishingInRoom(
+  roomName: string,
+  userId: string,
+): Promise<boolean> {
+  const client = getRoomService();
+  if (!client) return false;
+  try {
+    const participants = await client.listParticipants(roomName);
+    return participants.some(
+      (p) =>
+        p?.identity === userId &&
+        Array.isArray(p?.tracks) &&
+        p.tracks.length > 0,
+    );
+  } catch {
+    // Room does not exist (nobody live there) or transient API failure.
+    return false;
+  }
+}
+
 /** WebSocket URL for the LiveKit server (client connects here with token). */
 export function getLiveKitUrl(): string {
   return LIVEKIT_URL;

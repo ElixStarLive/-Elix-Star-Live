@@ -801,6 +801,7 @@ export default function LiveStream() {
     if (!user?.id) return;
     websocket.send('battle_invite_send', {
       targetUserId: creatorId,
+      targetStreamKey: creator.streamKey || creatorId,
       hostName: myCreatorName,
       hostAvatar: myAvatar,
       streamKey: effectiveStreamId,

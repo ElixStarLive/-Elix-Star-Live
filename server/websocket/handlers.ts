@@ -16,6 +16,7 @@ import {
   broadcastToFeedSubscribers,
 } from "../feedBroadcast";
 import { removeActiveStream, resolveStreamOwnerUserId, isStreamHost } from "../routes/livestream";
+import { isLiveKitConfigured, isUserPublishingInRoom } from "../services/livekit";
 import {
   wsRateCheck,
   setCohostLayout,
@@ -464,14 +465,29 @@ export async function handleMessage(
         if (!targetUserId || targetUserId === client.userId) break;
         // Battle is creator vs creator: the target must be LIVE as a host
         // right now. A spectator can never receive a battle invite.
-        let targetIsLiveHost = await isStreamHost(targetUserId, targetUserId);
-        if (!targetIsLiveHost) {
-          try {
-            const liveRows = await dbGetLiveStreams();
-            targetIsLiveHost = liveRows.some((r) => r.user_id === targetUserId);
-          } catch { /* fall through — treated as not live */ }
+        const targetRoomRaw =
+          typeof data.targetStreamKey === "string" && data.targetStreamKey.trim()
+            ? data.targetStreamKey.trim()
+            : targetUserId;
+        if (isLiveKitConfigured()) {
+          // Authoritative check: the target must be actively PUBLISHING
+          // (camera on) in their own room. Stale Valkey/DB "live" records
+          // cannot pass this — spectators never publish.
+          const targetPublishing =
+            (await isUserPublishingInRoom(targetRoomRaw, targetUserId)) ||
+            (targetRoomRaw !== targetUserId &&
+              (await isUserPublishingInRoom(targetUserId, targetUserId)));
+          if (!targetPublishing) break;
+        } else {
+          let targetIsLiveHost = await isStreamHost(targetUserId, targetUserId);
+          if (!targetIsLiveHost) {
+            try {
+              const liveRows = await dbGetLiveStreams();
+              targetIsLiveHost = liveRows.some((r) => r.user_id === targetUserId);
+            } catch { /* fall through — treated as not live */ }
+          }
+          if (!targetIsLiveHost) break;
         }
-        if (!targetIsLiveHost) break;
         const streamKey =
           typeof data.streamKey === "string" && data.streamKey.trim()
             ? data.streamKey.trim()
