@@ -15,7 +15,7 @@ import {
 import {
   broadcastToFeedSubscribers,
 } from "../feedBroadcast";
-import { removeActiveStream, resolveStreamOwnerUserId } from "../routes/livestream";
+import { removeActiveStream, resolveStreamOwnerUserId, isStreamHost } from "../routes/livestream";
 import {
   wsRateCheck,
   setCohostLayout,
@@ -30,7 +30,7 @@ import {
   clearGiftGoal,
   setGiftGoal,
 } from "./giftGoal";
-import { dbIsBlockedEitherWay, getPool } from "../lib/postgres";
+import { dbIsBlockedEitherWay, dbGetLiveStreams, getPool } from "../lib/postgres";
 import { activateBooster, getMistFogDurationMs } from "../lib/booster";
 import { deliverVerifiedGift } from "./giftDelivery";
 
@@ -462,6 +462,16 @@ export async function handleMessage(
         const targetUserId =
           typeof data.targetUserId === "string" ? data.targetUserId.trim() : "";
         if (!targetUserId || targetUserId === client.userId) break;
+        // Battle is creator vs creator: the target must be LIVE as a host
+        // right now. A spectator can never receive a battle invite.
+        let targetIsLiveHost = await isStreamHost(targetUserId, targetUserId);
+        if (!targetIsLiveHost) {
+          try {
+            const liveRows = await dbGetLiveStreams();
+            targetIsLiveHost = liveRows.some((r) => r.user_id === targetUserId);
+          } catch { /* fall through — treated as not live */ }
+        }
+        if (!targetIsLiveHost) break;
         const streamKey =
           typeof data.streamKey === "string" && data.streamKey.trim()
             ? data.streamKey.trim()

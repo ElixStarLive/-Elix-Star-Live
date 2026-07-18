@@ -805,7 +805,7 @@ export default function LiveStream() {
       hostAvatar: myAvatar,
       streamKey: effectiveStreamId,
     });
-    showToast(`Battle invite sent to @${creator.username}`);
+    // No invite text over the live screen — the slot already shows "invited".
   };
 
   // ─── INCOMING INVITE (for viewers / other broadcasters) ─────
@@ -3098,15 +3098,14 @@ export default function LiveStream() {
     // Battle & Co-Host invite / request signalling over WebSocket
     const handleBattleInvite = (data) => {
       if (!user?.id) return;
+      // No text or panels over the live screen. The Join/Reject row simply
+      // appears inside the invite panel when the creator opens it themselves.
       setPendingInvite({
         hostName: data.hostName || 'Creator',
         hostAvatar: data.hostAvatar || '',
         streamKey: data.streamKey || effectiveStreamId,
         hostUserId: data.hostUserId,
       });
-      setIsFindCreatorsOpen(true);
-      setShowViewerList(true);
-      showToast(`@${data.hostName || 'Creator'} invited you to battle — tap Join or Reject`);
     };
 
     const handleBattleInviteAccepted = (data) => {
