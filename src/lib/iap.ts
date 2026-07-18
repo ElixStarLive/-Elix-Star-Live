@@ -116,12 +116,17 @@ export async function initializeIAP(): Promise<void> {
 
   try {
     const mod = await getPlugin();
-    if (!mod) return;
+    if (!mod) {
+      reportIapStage('init_plugin_missing');
+      return;
+    }
 
     const { isBillingSupported } = await mod.NativePurchases.isBillingSupported();
     _billingSupported = isBillingSupported;
-  } catch {
+    reportIapStage('billing_init', { supported: isBillingSupported });
+  } catch (err) {
     _billingSupported = false;
+    reportIapStage('billing_init_error', { error: (err as { message?: string })?.message || String(err) });
   }
 }
 
