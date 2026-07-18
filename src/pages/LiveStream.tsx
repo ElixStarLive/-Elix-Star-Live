@@ -243,14 +243,12 @@ export default function LiveStream() {
   const [inputValue, setInputValue] = useState('');
   // Consolidate broadcast logic: host if streamId is broadcast OR if streamId matches my own user ID
   const isBroadcast = streamId === 'broadcast' || location.pathname === '/live/broadcast' || (user?.id && streamId === user.id);
-  // Same pattern as co-host: ?battle=1 alone never makes a spectator a creator.
-  // Only acceptBattleInvite sets fromBattleAccept after a real invite accept.
-  const fromBattleAccept =
-    (location.state as Record<string, unknown> | null)?.fromBattleAccept === true;
-  const isBattleJoiner =
-    !isBroadcast &&
-    new URLSearchParams(location.search).get('battle') === '1' &&
-    fromBattleAccept;
+  // ?battle=1 declares battle-creator intent; the role itself is server-
+  // authorized. The battle-join effect must obtain a LiveKit publish token —
+  // issued only against the battle grant recorded when this user accepted a
+  // real invite — before the camera opens. Anyone without the grant is
+  // redirected to the spectator page.
+  const isBattleJoiner = !isBroadcast && new URLSearchParams(location.search).get('battle') === '1';
   const isCreatorParticipant = Boolean(isBroadcast || isBattleJoiner);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
@@ -859,7 +857,7 @@ export default function LiveStream() {
     } catch { /* fire-and-forget */ }
 
     showToast(`Joining @${invite.hostName}'s battle...`);
-    navigate(`/live/${invite.streamKey}?battle=1`, { state: { fromBattleAccept: true } });
+    navigate(`/live/${invite.streamKey}?battle=1`);
   };
 
   const declineBattleInvite = async () => {
@@ -1384,10 +1382,7 @@ export default function LiveStream() {
   const [_opponentIsReady, setOpponentIsReady] = useState(false);
 
   // Peer connections for battle & co-host
-  const isBattleParticipant =
-    !isBroadcast &&
-    new URLSearchParams(location.search).get('battle') === '1' &&
-    fromBattleAccept;
+  const isBattleParticipant = isBattleJoiner;
   const [battleParticipantStream, setBattleParticipantStream] = useState<MediaStream | null>(null);
 
 
