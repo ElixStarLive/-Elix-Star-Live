@@ -802,6 +802,9 @@ export default function LiveStream() {
   const inviteTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const inviteCreatorToSlot = async (creatorId: string) => {
+    // Battle invites come from the room owner only — the server drops
+    // battle_invite_send from anyone else, so never fake an 'invited' slot.
+    if (!isBroadcast) return;
     const slotIndex = battleSlots.findIndex(s => s.status === 'empty');
     if (slotIndex === -1) return;
     if (battleSlots.some(s => s.userId === creatorId && s.status !== 'empty')) return;
@@ -892,7 +895,11 @@ export default function LiveStream() {
       showToast('Could not join the battle — invite is no longer valid');
       return;
     }
-    navigate(`/live/${invite.streamKey}?battle=1`);
+    // Display-only host info so the joiner's pane 2 shows the host right away
+    // (authorization stays server-side via the battle grant / publish token).
+    navigate(`/live/${invite.streamKey}?battle=1`, {
+      state: { battleHost: { userId: invite.hostUserId, name: invite.hostName, avatar: invite.hostAvatar } },
+    });
   };
 
   const declineBattleInvite = async () => {
@@ -1153,6 +1160,24 @@ export default function LiveStream() {
     setMyScore(0);
     setOpponentScore(0);
 
+    // Seed pane 2 with the inviting host immediately (from accept navigation
+    // state) so the joiner sees the same split battle layout as the host —
+    // never the host-side "Add creator" placeholders.
+    const seededHost = (location.state as { battleHost?: { userId?: string; name?: string; avatar?: string } } | null)?.battleHost;
+    if (seededHost && (seededHost.userId || seededHost.name)) {
+      setBattleSlots(prev => {
+        if (prev[0].status !== 'empty') return prev;
+        const next = [...prev];
+        next[0] = {
+          userId: seededHost.userId || effectiveStreamId,
+          name: seededHost.name || 'Creator',
+          status: 'accepted',
+          avatar: seededHost.avatar || '',
+        };
+        return next;
+      });
+    }
+
     let cancelled = false;
     (async () => {
       // Establish the server-authorized creator role before opening camera/mic.
@@ -1211,7 +1236,9 @@ export default function LiveStream() {
       if (cancelled) return;
       setBattleSlots(prev => {
         const next = [...prev];
-        next[0] = { userId: effectiveStreamId, name: hName, status: 'accepted', avatar: hAvatar };
+        // Keep a real seeded avatar over the generated fallback.
+        const avatar = prev[0].avatar && hAvatar.startsWith('https://ui-avatars.com/') ? prev[0].avatar : hAvatar;
+        next[0] = { userId: effectiveStreamId, name: hName, status: 'accepted', avatar };
         return next;
       });
 
@@ -3032,22 +3059,36 @@ export default function LiveStream() {
       setBattleSlots(prev => {
         const next = [...prev];
         const seenIds = new Set<string>();
+        // Preserve the avatar we already resolved locally when the sync (which
+        // carries no avatars) re-confirms the same user in the same pane.
+        const keepAvatar = (slotIdx: number, userId: string) =>
+          userId && prev[slotIdx]?.userId === userId ? prev[slotIdx].avatar : '';
 
-        // Opponent
-        if (data.opponentName) {
-          next[0] = { userId: data.opponentUserId || '', name: data.opponentName, status: 'accepted', avatar: '' };
-          if (data.opponentUserId) seenIds.add(data.opponentUserId);
-        } else {
-          // Keep existing if not provided? Or clear? 
-          // battle_state_sync sends FULL state. If opponentName is missing, it's empty.
-          // But data.opponentName check is safe?
-          // The sync payload has empty strings for empty slots.
-          if (!data.opponentUserId) next[0] = { userId: '', name: '', status: 'empty', avatar: '' };
+        // Pane 2 always shows the OTHER main creator: the opponent on the
+        // host's screen, the HOST on the battle joiner's screen. Both creators
+        // get the identical split battle layout — never self in a pane.
+        const selfIsOpponent =
+          !!selfId && typeof data.opponentUserId === 'string' && !!data.opponentUserId && data.opponentUserId === selfId;
+        const paneUserId = selfIsOpponent
+          ? (typeof data.hostUserId === 'string' ? data.hostUserId : '')
+          : (typeof data.opponentUserId === 'string' ? data.opponentUserId : '');
+        const paneName = selfIsOpponent
+          ? (typeof data.hostName === 'string' ? data.hostName : '')
+          : (typeof data.opponentName === 'string' ? data.opponentName : '');
+        if (paneName) {
+          next[0] = { userId: paneUserId || '', name: paneName, status: 'accepted', avatar: keepAvatar(0, paneUserId || '') };
+          if (paneUserId) seenIds.add(paneUserId);
+        } else if (!paneUserId) {
+          // battle_state_sync sends FULL state — but on the joiner's screen an
+          // empty/ENDED sync must not wipe the host pane we seeded on arrival
+          // (the host is still live in front of us until we leave the battle).
+          if (!isBattleJoiner) next[0] = { userId: '', name: '', status: 'empty', avatar: '' };
         }
+        if (selfId) seenIds.add(selfId);
 
         // Player 3
         if (data.player3Name && data.player3UserId && !seenIds.has(data.player3UserId)) {
-          next[1] = { userId: data.player3UserId || '', name: data.player3Name, status: 'accepted', avatar: '' };
+          next[1] = { userId: data.player3UserId || '', name: data.player3Name, status: 'accepted', avatar: keepAvatar(1, data.player3UserId) };
           seenIds.add(data.player3UserId);
         } else {
           next[1] = { userId: '', name: '', status: 'empty', avatar: '' };
@@ -3055,7 +3096,7 @@ export default function LiveStream() {
 
         // Player 4
         if (data.player4Name && data.player4UserId && !seenIds.has(data.player4UserId)) {
-          next[2] = { userId: data.player4UserId || '', name: data.player4Name, status: 'accepted', avatar: '' };
+          next[2] = { userId: data.player4UserId || '', name: data.player4Name, status: 'accepted', avatar: keepAvatar(2, data.player4UserId) };
         } else {
           next[2] = { userId: '', name: '', status: 'empty', avatar: '' };
         }
@@ -3203,9 +3244,10 @@ export default function LiveStream() {
         streamKey: data.streamKey || effectiveStreamId,
         hostUserId: data.hostUserId,
       });
-      // Open the panel so the red Reject / green Join buttons show immediately.
+      // Open ONLY the battle panel so the red Reject / green Join buttons show
+      // immediately. Never open the co-host panel here — it covers the battle
+      // panel and its Add buttons send co-host invites, not battle invites.
       setIsFindCreatorsOpen(true);
-      setShowViewerList(true);
     };
 
     const handleBattleInviteAccepted = (data) => {
@@ -5382,7 +5424,7 @@ export default function LiveStream() {
           {isCreatorParticipant && !currentGift && (
             <div className="flex items-end gap-2 w-full max-w-[480px] pointer-events-auto">
               <div className="flex items-end justify-center gap-3 flex-shrink-0 flex-1">
-              {isBattleMode && battleWinner && (
+              {isBattleMode && battleWinner && isBroadcast && (
                 <button 
                   type="button" 
                   onClick={() => {
@@ -5561,7 +5603,7 @@ export default function LiveStream() {
                       ) : (
                         <div className="px-2 py-1 rounded-full bg-[#C9A96E] flex items-center justify-center gap-0.5 flex-shrink-0">
                           <UserPlus size={9} className="text-black shrink-0 flex-shrink-0" strokeWidth={2} />
-                          <span className="text-black text-[9px] font-bold">Add</span>
+                          <span className="text-black text-[9px] font-bold">Invite</span>
                         </div>
                       )}
                     </div>
@@ -5583,8 +5625,8 @@ export default function LiveStream() {
               </div>
             </div>
 
-            {/* Start Match Button */}
-            {battleSlots.some(s => s.status === 'accepted') && (
+            {/* Start Match Button — host only: the server only accepts battle_create from the room owner */}
+            {isBroadcast && battleSlots.some(s => s.status === 'accepted') && (
               <div className="px-4 py-2 flex-shrink-0">
                 <button
                   type="button"
