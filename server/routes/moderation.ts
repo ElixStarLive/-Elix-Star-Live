@@ -5,7 +5,7 @@
 
 import { Request, Response } from 'express';
 import { getPool } from '../lib/postgres';
-import { getTokenFromRequest, verifyAuthToken } from './auth';
+import { getTokenFromRequest, verifyAuthToken, invalidateUserSessionCache } from './auth';
 import { logger } from '../lib/logger';
 import { isValkeyConfigured, valkeyRateCheck } from '../lib/valkey';
 import { removeActiveStream, resolveStreamOwnerUserId } from './livestream';
@@ -222,6 +222,7 @@ export async function handleLiveModerationCheck(req: Request, res: Response) {
         logger.error({ err, userId, streamKey }, 'Failed to end stream on moderation suspend');
       }
       disconnectUserSessions(userId, 'Suspended');
+      await invalidateUserSessionCache(userId);
       return res.json({ action: 'suspend', message: SUSPEND_MESSAGE });
     }
 

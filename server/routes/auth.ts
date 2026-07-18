@@ -8,6 +8,15 @@ import crypto from 'crypto';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { getPool } from '../lib/postgres';
 import { logger } from '../lib/logger';
+import {
+  isValkeyConfigured,
+  valkeyGet,
+  valkeySet,
+  valkeyDel,
+  valkeySadd,
+  valkeySmembers,
+  valkeyExpire,
+} from '../lib/valkey';
 import { isEmailConfigured, sendTransactionalEmail } from '../lib/email';
 import {
   getProgressionSnapshot,
@@ -155,12 +164,103 @@ export function verifyAuthToken(token: string): { sub: string; email: string } |
  * - "unavailable": session state could not be verified safely
  * - null: JWT is invalid/expired (treat as anonymous)
  */
+type SessionState = { state: 'ok' | 'revoked' | 'banned' | 'unavailable'; userId: string };
+
+/**
+ * Session-validation cache (Valkey).
+ *
+ * checkSessionState runs on EVERY authenticated request (sessionGuard) and every
+ * WS connect, so at scale it is the highest-volume DB read on the platform. The
+ * cache keeps the DB off that hot path while preserving strong enforcement:
+ *
+ *  - Postgres remains the source of truth; a cache miss or any Valkey error
+ *    falls back to the DB query and NEVER grants access on error.
+ *  - Only decided, safe states are cached ("ok"/"revoked"). "banned" and
+ *    "unavailable" are never cached, so a ban is enforced the moment the pre-ban
+ *    "ok" entry is invalidated (invalidateUserSessionCache) or its short TTL
+ *    lapses — whichever comes first.
+ *  - A per-user index (sessidx:{userId}) lets ban / logout-all / delete / reset
+ *    invalidate every cached token for that user immediately, even though the
+ *    cache is keyed by token hash.
+ */
+const SESSION_CACHE_TTL_MS = 60_000;
+const SESSION_INDEX_TTL_SEC = Math.ceil(SESSION_CACHE_TTL_MS / 1000) + 30;
+
+function sessionCacheKey(tokenHash: string): string {
+  return `sess:${tokenHash}`;
+}
+function userSessionIndexKey(userId: string): string {
+  return `sessidx:${userId}`;
+}
+
+async function readCachedSessionState(tokenHash: string): Promise<SessionState | null> {
+  if (!isValkeyConfigured()) return null;
+  try {
+    const cached = await valkeyGet(sessionCacheKey(tokenHash));
+    if (!cached) return null;
+    const parsed = JSON.parse(cached) as SessionState;
+    if (parsed && (parsed.state === 'ok' || parsed.state === 'revoked') && parsed.userId) {
+      return parsed;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+async function writeCachedSessionState(tokenHash: string, state: SessionState): Promise<void> {
+  if (!isValkeyConfigured()) return;
+  // Only cache decided, safe-to-cache states.
+  if (state.state !== 'ok' && state.state !== 'revoked') return;
+  try {
+    await valkeySet(sessionCacheKey(tokenHash), JSON.stringify(state), SESSION_CACHE_TTL_MS);
+    if (state.userId) {
+      await valkeySadd(userSessionIndexKey(state.userId), tokenHash);
+      // Index outlives the entries it points at so ban-time invalidation can find them.
+      await valkeyExpire(userSessionIndexKey(state.userId), SESSION_INDEX_TTL_SEC);
+    }
+  } catch (err) {
+    logger.warn({ err }, 'writeCachedSessionState failed');
+  }
+}
+
+/** Invalidate one cached session by its token (logout). Best-effort. */
+export async function invalidateSessionCacheByToken(token: string): Promise<void> {
+  if (!isValkeyConfigured()) return;
+  try {
+    await valkeyDel(sessionCacheKey(hashSessionToken(token)));
+  } catch (err) {
+    logger.warn({ err }, 'invalidateSessionCacheByToken failed');
+  }
+}
+
+/** Invalidate every cached session for a user (ban / logout-all / delete / reset). Best-effort. */
+export async function invalidateUserSessionCache(userId: string): Promise<void> {
+  if (!isValkeyConfigured() || !userId) return;
+  try {
+    const hashes = await valkeySmembers(userSessionIndexKey(userId));
+    await Promise.all(hashes.map((h) => valkeyDel(sessionCacheKey(h))));
+    await valkeyDel(userSessionIndexKey(userId));
+  } catch (err) {
+    logger.warn({ err, userId }, 'invalidateUserSessionCache failed');
+  }
+}
+
 export async function checkSessionState(
   token: string,
-): Promise<{ state: 'ok' | 'revoked' | 'banned' | 'unavailable'; userId: string } | null> {
+): Promise<SessionState | null> {
   const payload = verifyToken(token);
   // Purpose-bound tokens are not sessions.
   if (!payload || payload.purpose) return null;
+
+  const tokenHash = hashSessionToken(token);
+
+  // Fast path: serve a previously-validated state from Valkey. The DB stays the
+  // source of truth (see cache doc above); this only short-circuits repeated
+  // reads within the short TTL window.
+  const cached = await readCachedSessionState(tokenHash);
+  if (cached) return cached;
+
   const pool = getPool();
   if (!pool) return { state: 'unavailable', userId: payload.sub };
   try {
@@ -170,13 +270,20 @@ export async function checkSessionState(
          LEFT JOIN elix_auth_sessions s ON s.token_hash = x.th AND s.expires_at > NOW()
          LEFT JOIN profiles p ON p.user_id = x.uid
         LIMIT 1`,
-      [hashSessionToken(token), payload.sub],
+      [tokenHash, payload.sub],
     );
     const row = r.rows[0] as { has_session?: boolean; banned_until?: Date | string | null } | undefined;
-    if (!row || row.has_session !== true) return { state: 'revoked', userId: payload.sub };
-    const bu = row.banned_until;
-    if (bu && new Date(bu).getTime() > Date.now()) return { state: 'banned', userId: payload.sub };
-    return { state: 'ok', userId: payload.sub };
+    let result: SessionState;
+    if (!row || row.has_session !== true) {
+      result = { state: 'revoked', userId: payload.sub };
+    } else {
+      const bu = row.banned_until;
+      result = bu && new Date(bu).getTime() > Date.now()
+        ? { state: 'banned', userId: payload.sub }
+        : { state: 'ok', userId: payload.sub };
+    }
+    await writeCachedSessionState(tokenHash, result);
+    return result;
   } catch (err) {
     logger.error({ err, userId: payload.sub }, 'checkSessionState query failed');
     return { state: 'unavailable', userId: payload.sub };
@@ -404,6 +511,7 @@ async function dbDeleteSessionByToken(token: string): Promise<void> {
   if (!pool) return;
   await ensureAuthSessionsTable();
   await pool.query(`DELETE FROM elix_auth_sessions WHERE token_hash = $1`, [hashSessionToken(token)]);
+  await invalidateSessionCacheByToken(token);
 }
 
 /** Public user object for JSON responses: only strings (no null), so clients do not need null–undefined juggling. */
@@ -689,6 +797,7 @@ export async function handleDeleteAccount(req: Request, res: Response) {
     await del(`DELETE FROM profiles WHERE user_id = $1`, [user.id]);
     await client.query(`DELETE FROM elix_auth_users WHERE id = $1`, [user.id]);
     await client.query('COMMIT');
+    await invalidateUserSessionCache(user.id);
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
     logger.error({ err, userId: user.id }, 'handleDeleteAccount cascade failed');
@@ -961,6 +1070,7 @@ export async function handleResetPassword(req: Request, res: Response) {
     ]);
     // Invalidate every existing session so a stolen old token cannot stay logged in.
     await pool.query(`DELETE FROM elix_auth_sessions WHERE user_id = $1`, [user.id]);
+    await invalidateUserSessionCache(user.id);
     return res.status(200).json({ success: true });
   } catch (err) {
     logger.error({ err }, 'handleResetPassword failed');
