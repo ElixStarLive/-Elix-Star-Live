@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import { dbMarkShopItemSold } from "../lib/postgres";
 import { neonInsertShopPurchase } from "../lib/walletNeon";
 import { logger } from "../lib/logger";
+import { postAlertWebhook } from "../lib/alerting";
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 if (!stripeSecretKey) {
@@ -56,7 +57,8 @@ export async function handleStripeWebhook(req: Request, res: Response) {
 
   try {
     switch (event.type) {
-      case "checkout.session.completed": {
+      case "checkout.session.completed":
+      case "checkout.session.async_payment_succeeded": {
         const session = event.data.object as Stripe.Checkout.Session;
         await handleSuccessfulPayment(session);
         break;
@@ -84,17 +86,56 @@ async function handleSuccessfulPayment(session: Stripe.Checkout.Session) {
     return;
   }
 
+  // Only fulfil once Stripe confirms the money is actually captured. A
+  // checkout.session.completed can arrive with payment_status "unpaid" for async
+  // payment methods — those fulfil later via async_payment_succeeded.
+  if (session.payment_status && session.payment_status !== "paid") {
+    logger.info(
+      { sessionId: session.id, paymentStatus: session.payment_status },
+      "Shop checkout completed but not paid yet — deferring fulfilment",
+    );
+    return;
+  }
+
   const itemId = session.metadata?.itemId || "";
   const sellerId = session.metadata?.sellerId || "";
   const amountGbp = session.amount_total ? session.amount_total / 100 : 0;
-  await dbMarkShopItemSold(itemId);
-  await neonInsertShopPurchase({
+
+  // Record the purchase first (idempotent on stripe_session_id). If this returns
+  // false the webhook is a duplicate delivery and nothing else should happen.
+  const newlyInserted = await neonInsertShopPurchase({
     stripeSessionId: session.id,
     itemId,
     buyerId: userId || "",
     sellerId,
     amountGbp,
   });
+  if (!newlyInserted) {
+    logger.info({ itemId, sessionId: session.id }, "Duplicate shop webhook delivery — already fulfilled");
+    return;
+  }
+
+  // First paid wins the single-quantity item. If a second buyer paid for an item
+  // that is already sold, we have a genuine double-sale that needs a refund.
+  const claimed = await dbMarkShopItemSold(itemId);
+  if (!claimed) {
+    logger.error(
+      { itemId, buyerId: userId, sessionId: session.id, paymentIntent: session.payment_intent },
+      "Double-sale: shop item already sold when this payment settled — refund required",
+    );
+    void postAlertWebhook({
+      text: "Shop double-sale — buyer paid for an already-sold item and must be refunded",
+      severity: "critical",
+      context: {
+        itemId,
+        buyerId: userId || "",
+        sessionId: session.id,
+        paymentIntent: String(session.payment_intent || ""),
+        amountGbp,
+      },
+    });
+    return;
+  }
   logger.info({ itemId, buyerId: userId }, "Shop item purchased");
 }
 

@@ -129,7 +129,16 @@ export async function verifyAppleJwsPayload(
 
     const key = createPublicKey(leaf.publicKey);
     const { payload } = await jose.jwtVerify(jws, key, { algorithms: ["ES256"] });
-    return payload as AppleTxPayload;
+    const p = payload as AppleTxPayload;
+    // Reject validly-signed payloads that belong to a different app. Only enforced
+    // when bundleId is present (transaction payloads carry it; the outer
+    // notification envelope does not).
+    const expectedBundleId = process.env.APPLE_BUNDLE_ID || "com.elixstarlive.app";
+    if (p.bundleId && p.bundleId !== expectedBundleId) {
+      logger.warn({ bundleId: p.bundleId }, "Apple JWS bundleId mismatch — rejecting");
+      return null;
+    }
+    return p;
   } catch (err) {
     logger.warn({ err }, "Apple JWS verification failed");
     return null;

@@ -853,23 +853,26 @@ export async function neonUpdateMembershipSubscriptionState(input: {
   }
 }
 
+/** Returns true only when a new purchase row was inserted (false = duplicate webhook delivery). */
 export async function neonInsertShopPurchase(row: {
   stripeSessionId: string;
   itemId: string;
   buyerId: string;
   sellerId: string;
   amountGbp: number;
-}): Promise<void> {
+}): Promise<boolean> {
   const pool = getPool();
-  if (!pool) return;
+  if (!pool) return false;
   try {
-    await pool.query(
+    const r = await pool.query(
       `INSERT INTO elix_shop_purchases (stripe_session_id, item_id, buyer_id, seller_id, amount_gbp)
        VALUES ($1, $2, $3, $4, $5)
        ON CONFLICT (stripe_session_id) DO NOTHING`,
       [row.stripeSessionId, row.itemId, row.buyerId, row.sellerId, row.amountGbp],
     );
+    return (r.rowCount ?? 0) > 0;
   } catch (e) {
     logger.warn({ err: e }, "neonInsertShopPurchase failed");
+    return false;
   }
 }

@@ -1283,13 +1283,22 @@ export async function dbGetShopItemById(id: string): Promise<DbShopItemRow | nul
   }
 }
 
-export async function dbMarkShopItemSold(id: string): Promise<void> {
+/**
+ * Atomically claim a shop item as sold. Returns true only if THIS call flipped an
+ * active item to sold, so concurrent checkouts that both pay resolve first-wins.
+ */
+export async function dbMarkShopItemSold(id: string): Promise<boolean> {
   const p = getPool();
-  if (!p) return;
+  if (!p) return false;
   try {
-    await p.query(`UPDATE shop_items SET is_active = FALSE WHERE id = $1`, [id]);
+    const r = await p.query(
+      `UPDATE shop_items SET is_active = FALSE WHERE id = $1 AND is_active = TRUE`,
+      [id],
+    );
+    return (r.rowCount ?? 0) > 0;
   } catch (err) {
     logger.error({ err }, "dbMarkShopItemSold failed");
+    return false;
   }
 }
 
