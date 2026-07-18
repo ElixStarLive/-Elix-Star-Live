@@ -17,7 +17,7 @@ import { handleLiveModerationCheck } from "./moderation";
 import { handleGetStickers, handleUploadSticker, handleDeleteSticker } from "./stickers";
 import { validateBody } from "../middleware/validate";
 import { blockUserSchema, reportSchema, verifyPurchaseSchema } from "../validation/schemas";
-import { analyticsPostLimiter, moderationLimiter, verifyPurchaseLimiter } from "../middleware/rateLimit";
+import { analyticsPostLimiter, moderationLimiter, verifyPurchaseLimiter, uploadLimiter } from "../middleware/rateLimit";
 
 const router = Router();
 
@@ -145,7 +145,7 @@ router.get("/rankings/weekly", async (req, res) => {
 
 // Stickers
 router.get("/stickers/:creatorUserId", handleGetStickers);
-router.post("/stickers/upload", handleUploadSticker);
+router.post("/stickers/upload", uploadLimiter, handleUploadSticker);
 router.delete("/stickers/:id", handleDeleteSticker);
 
 export default router;

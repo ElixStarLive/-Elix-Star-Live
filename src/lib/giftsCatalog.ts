@@ -148,12 +148,12 @@ function giftPosterPath(animationPath: string): string {
 
 export function buildGiftUiItemsFromCatalog(rows: GiftCatalogRow[]): GiftUiItem[] {
   const faceArFallback: Record<string, { icon: string; video: string }> = {
-    face_ar_crown: { icon: '/Icons/Gift%20icon.png?v=3', video: '/gifts/elix_global_universe.webm' },
-    face_ar_glasses: { icon: '/Icons/Gift%20icon.png?v=3', video: '/gifts/elix_live_universe.webm' },
-    face_ar_hearts: { icon: '/Icons/Gift%20icon.png?v=3', video: '/gifts/elix_gold_universe.webm' },
-    face_ar_mask: { icon: '/Icons/Gift%20icon.png?v=3', video: '/gifts/beast_relic_of_the_ancients.webm' },
-    face_ar_ears: { icon: '/Icons/Gift%20icon.png?v=3', video: '/gifts/elix_live_universe.webm' },
-    face_ar_stars: { icon: '/Icons/Gift%20icon.png?v=3', video: '/gifts/elix_global_universe.webm' },
+    face_ar_crown: { icon: '/royce/elix-mark.svg', video: '/gifts/elix_global_universe.webm' },
+    face_ar_glasses: { icon: '/royce/elix-mark.svg', video: '/gifts/elix_live_universe.webm' },
+    face_ar_hearts: { icon: '/royce/elix-mark.svg', video: '/gifts/elix_gold_universe.webm' },
+    face_ar_mask: { icon: '/royce/elix-mark.svg', video: '/gifts/beast_relic_of_the_ancients.webm' },
+    face_ar_ears: { icon: '/royce/elix-mark.svg', video: '/gifts/elix_live_universe.webm' },
+    face_ar_stars: { icon: '/royce/elix-mark.svg', video: '/gifts/elix_global_universe.webm' },
   };
 
   const sanitizeGiftUrl = (url: string | null): string | null => {

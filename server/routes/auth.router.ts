@@ -15,7 +15,7 @@ router.post("/register", registerLimiter, authLimiter, validateBody(registerSche
 router.post("/logout", handleLogout);
 router.post("/delete", handleDeleteAccount);
 router.get("/me", handleMe);
-router.post("/resend-confirmation", validateBody(emailOnlySchema), handleResendConfirmation);
+router.post("/resend-confirmation", authLimiter, validateBody(emailOnlySchema), handleResendConfirmation);
 router.post("/apple/start", handleAppleStart);
 router.post("/apple/native", authLimiter, handleAppleNative);
 router.post("/forgot-password", authLimiter, validateBody(emailOnlySchema), handleForgotPassword);

@@ -75,6 +75,15 @@ export const verifyPurchaseSchema = z.object({
   receipt: z.string().optional(),
 });
 
+export const profilePatchSchema = z.object({
+  username: z.string().trim().min(1).max(30).optional(),
+  displayName: z.string().trim().max(100).optional(),
+  bio: z.string().max(500).optional(),
+  website: z.string().max(200).optional(),
+  // avatarUrl may be an https URL or a data: URL (inline image), so allow a generous size.
+  avatarUrl: z.string().max(5_000_000).optional(),
+});
+
 export const blockUserSchema = z.object({
   blockedUserId: z.string().min(1),
 });

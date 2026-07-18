@@ -272,11 +272,17 @@ async function verifyGooglePlayPurchase(
 
     const purchase = (await verifyResp.json()) as {
       purchaseState?: number;
+      consumptionState?: number;
       orderId?: string;
     };
     // purchaseState: 0 = purchased, 1 = canceled, 2 = pending
     if (purchase.purchaseState !== 0) {
       return { valid: false, detail: `google-purchase-state-${purchase.purchaseState}` };
+    }
+    // consumptionState: 0 = yet to be consumed, 1 = consumed.
+    // Reject already-consumed tokens as defense-in-depth against replay.
+    if (purchase.consumptionState === 1) {
+      return { valid: false, detail: 'google-already-consumed' };
     }
 
     return {

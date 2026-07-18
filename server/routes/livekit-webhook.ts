@@ -66,6 +66,6 @@ export async function handleLiveKitWebhook(req: Request, res: Response) {
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Webhook validation failed';
     logger.error({ err: message }, '[livekit-webhook] Validation failed');
-    return res.status(401).json({ error: message });
+    return res.status(401).json({ error: 'Webhook validation failed.' });
   }
 }

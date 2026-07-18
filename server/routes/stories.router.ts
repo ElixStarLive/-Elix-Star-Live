@@ -238,7 +238,7 @@ router.post("/", async (req: Request, res: Response) => {
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     logger.error({ err: msg }, "POST /api/stories failed");
-    return res.status(500).json({ error: msg || "Failed to create story" });
+    return res.status(500).json({ error: "Failed to create story" });
   }
 });
 

@@ -242,7 +242,7 @@ export class AvatarUploadService {
     if (userId) {
       return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(userId)}`;
     }
-    return "/images/default-avatar.png";
+    return "/royce/default-avatar.svg";
   }
 
   /** Check that a URL is reachable (HEAD request). */

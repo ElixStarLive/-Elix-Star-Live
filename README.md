@@ -20,7 +20,7 @@ A full-featured social video platform with live streaming, battles, virtual gift
 
 ### 💰 Monetization
 - **Virtual Currency** - Coins & diamonds system
-- **In-App Purchases** - Buy coin packages via Stripe/Apple/Google
+- **In-App Purchases** - Buy coin packages via Apple App Store & Google Play (Shop physical goods via Stripe)
 - **Battle Boosters** - Power-ups for live battles (2x, steal, freeze)
 - **Wallet System** - Immutable transaction ledger
 

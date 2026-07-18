@@ -108,6 +108,10 @@ export async function removeActiveStream(roomId: string, userId?: string): Promi
         if (storedUserId && storedUserId !== userId) return false;
       }
       await deleteActiveStream(roomId);
+    } else if (userId) {
+      // No Valkey: enforce host ownership from the DB so a non-host cannot end another user's stream.
+      const ownerUserId = await resolveStreamOwnerUserId(roomId);
+      if (ownerUserId && ownerUserId !== roomId && ownerUserId !== userId) return false;
     }
     await dbEndLiveStream(roomId);
     await invalidateLiveStreamsListCache();
@@ -366,7 +370,7 @@ export async function handleLiveStart(req: Request, res: Response) {
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to create token';
     logger.error({ err: message }, "live/start failed");
-    return res.status(500).json({ error: message });
+    return res.status(500).json({ error: 'Failed to start live stream.' });
   }
 }
 
@@ -479,6 +483,7 @@ export async function handleGetLiveToken(req: Request, res: Response) {
     return res.status(200).json({ room: roomName, token, url });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to create token';
-    return res.status(500).json({ error: message });
+    logger.error({ err: message }, "live/token failed");
+    return res.status(500).json({ error: 'Failed to create live token.' });
   }
 }
