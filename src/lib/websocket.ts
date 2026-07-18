@@ -25,6 +25,7 @@ export type WebSocketEvent =
   // Battle events (server-controlled)
   | "battle_invite"
   | "battle_invite_accepted"
+  | "battle_accept_ack"
   | "battle_ended"
   | "battle_created"
   | "battle_state_sync"

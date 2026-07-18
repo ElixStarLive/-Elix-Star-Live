@@ -844,6 +844,26 @@ export default function LiveStream() {
       showToast('Missing stream key');
       return;
     }
+
+    // Real handshake: the server validates the invite, records the battle
+    // grant, and only then sends battle_accept_ack. Navigation happens after
+    // the ack, so the joiner page is guaranteed to receive a publish token.
+    const ackPromise = new Promise<boolean>((resolve) => {
+      let settled = false;
+      const settle = (ok: boolean) => {
+        if (settled) return;
+        settled = true;
+        websocket.off('battle_accept_ack', onAck);
+        websocket.off('battle_error', onErr);
+        resolve(ok);
+      };
+      const onAck = () => settle(true);
+      const onErr = () => settle(false);
+      websocket.on('battle_accept_ack', onAck);
+      websocket.on('battle_error', onErr);
+      window.setTimeout(() => settle(false), 8000);
+    });
+
     try {
       const myUsername = user?.username || user?.name || viewerName;
       websocket.send('battle_invite_accept', {
@@ -857,6 +877,11 @@ export default function LiveStream() {
     } catch { /* fire-and-forget */ }
 
     showToast(`Joining @${invite.hostName}'s battle...`);
+    const granted = await ackPromise;
+    if (!granted) {
+      showToast('Could not join the battle — invite is no longer valid');
+      return;
+    }
     navigate(`/live/${invite.streamKey}?battle=1`);
   };
 
@@ -1122,9 +1147,11 @@ export default function LiveStream() {
     (async () => {
       // Establish the server-authorized creator role before opening camera/mic.
       // A plain spectator who reaches ?battle=1 has no accepted invite grant
-      // and is returned to the subscribe-only spectator page.
+      // and is returned to the subscribe-only spectator page. Only an explicit
+      // authorization refusal (403) demotes — transient network errors retry.
       let tokenData: { url?: string; token?: string } | null = null;
-      for (let attempt = 0; attempt < 6 && !cancelled; attempt += 1) {
+      let deniedCount = 0;
+      for (let attempt = 0; attempt < 12 && !cancelled; attempt += 1) {
         const tokenResult = await request(
           `/api/live/token?room=${encodeURIComponent(effectiveStreamId)}&publish=1`,
         );
@@ -1132,7 +1159,15 @@ export default function LiveStream() {
           tokenData = tokenResult.data;
           break;
         }
-        await new Promise((resolve) => window.setTimeout(resolve, 250));
+        const msg = tokenResult.error?.message || '';
+        if (msg.includes('403') || msg.toLowerCase().includes('not authorized')) {
+          deniedCount += 1;
+          // Three consecutive server refusals = genuinely no battle grant.
+          if (deniedCount >= 3) break;
+        } else {
+          deniedCount = 0;
+        }
+        await new Promise((resolve) => window.setTimeout(resolve, 500));
       }
       if (cancelled) return;
       if (!tokenData?.token) {

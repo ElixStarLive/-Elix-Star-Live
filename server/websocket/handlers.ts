@@ -568,11 +568,21 @@ export async function handleMessage(
         const authoritativeHostUserId = hostRoomForInvite
           ? await resolveStreamOwnerUserId(hostRoomForInvite)
           : "";
-        if (!authoritativeHostUserId || authoritativeHostUserId !== hostUserId) break;
+        if (!authoritativeHostUserId || authoritativeHostUserId !== hostUserId) {
+          sendToClient(client, "battle_error", {
+            message: "Battle invite is no longer valid",
+          });
+          break;
+        }
         const invitedKey = hostRoomForInvite
           ? await valkeyGet(`battle_invite:${hostRoomForInvite}:${client.userId}`)
           : null;
-        if (!invitedKey) break;
+        if (!invitedKey) {
+          sendToClient(client, "battle_error", {
+            message: "Battle invite is no longer valid",
+          });
+          break;
+        }
         // Persist the accepted creator role before navigation. This is the
         // authority used by battle_create and by the LiveKit publish-token
         // check; a spectator never receives either grant.
@@ -583,6 +593,13 @@ export async function handleMessage(
         );
         await grantBattlePublish(hostRoomForInvite, client.userId);
         await valkeyDel(`battle_invite:${hostRoomForInvite}:${client.userId}`);
+        // Handshake with the accepter: the grant now exists, so their client
+        // may navigate into the battle knowing the publish token will be
+        // issued. Removes the accept -> navigate -> token race entirely.
+        sendToClient(client, "battle_accept_ack", {
+          hostUserId: authoritativeHostUserId,
+          hostStreamKey: hostRoomForInvite,
+        });
         // Record where the accepter is heading BEFORE their solo stream ends,
         // so stream_end can redirect their spectators into the battle room.
         if (hostStreamKeyRaw && hostStreamKeyRaw !== client.roomId) {
