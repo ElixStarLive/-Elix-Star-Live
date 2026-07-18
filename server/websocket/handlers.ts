@@ -24,7 +24,7 @@ import {
   revokeCohostPublish,
   getCohostLayout,
 } from "./index";
-import { valkeyDel, valkeySet, valkeySetNx, valkeyGet } from "../lib/valkey";
+import { valkeyDel, valkeySet, valkeyGet } from "../lib/valkey";
 import { randomUUID } from "crypto";
 import {
   clearGiftGoal,
@@ -156,15 +156,17 @@ export async function handleMessage(
             (typeof data?.video === "string" && data.video) ||
             (typeof data?.animation_url === "string" && data.animation_url) ||
             null;
-          const { resolvePlayableGiftVideoUrl } = await import("./giftRegistry");
+          const { resolvePlayableGiftVideoUrl, normalizeBattleTarget, getGiftValue } =
+            await import("./giftRegistry");
           const testVideo = await resolvePlayableGiftVideoUrl(testGiftId, testClientVideo);
+          const testBattleTarget = normalizeBattleTarget(data?.battleTarget);
           const testPayload = {
             giftId: testGiftId,
             giftName: typeof data?.giftName === "string" ? data.giftName : "Gift",
             coins: 0,
             giftSource: "test_coins",
             transactionId: "",
-            battleTarget: null,
+            battleTarget: testBattleTarget,
             user_id: client.userId,
             username: client.username,
             avatar: typeof data?.avatar === "string" ? data.avatar : "",
@@ -182,6 +184,21 @@ export async function handleMessage(
             const testOwnerId = await resolveStreamOwnerUserId(client.roomId);
             if (testOwnerId && testOwnerId !== client.userId) {
               sendToUserGlobal(testOwnerId, "gift_sent", testPayload);
+            }
+          } catch { /* non-fatal */ }
+          // Test coins simulate battle score too (testing tool) — points show on
+          // the PK bar exactly like paid gifts, but never touch wallets or goals.
+          try {
+            const testBattle = await getBattleFromStore(client.roomId);
+            if (testBattle && testBattle.status === "ACTIVE") {
+              const testPoints = getGiftValue(testGiftId);
+              if (testPoints > 0) {
+                await addBattleScoreForTarget(
+                  client.roomId,
+                  testBattleTarget || "host",
+                  testPoints,
+                );
+              }
             }
           } catch { /* non-fatal */ }
           sendToClient(client, "gift_ack", {
@@ -357,30 +374,8 @@ export async function handleMessage(
       }
 
       case "battle_spectator_vote": {
-        // Client already allows one tap; enforce server-side so a forged loop
-        // cannot inject unlimited free battle score (undermines paid gifts).
-        if (!(await wsRateCheck(client.userId, "spectator_vote", 5, 60_000))) break;
-        const voteRoom = client.roomId;
-        const voteBattle = await getBattleFromStore(voteRoom);
-        if (!voteBattle || voteBattle.status !== "ACTIVE") break;
-        const voteClaimKey = `battle_vote:${voteBattle.id}:${client.userId}`;
-        const firstVote = await valkeySetNx(voteClaimKey, "1", 600_000);
-        if (!firstVote) {
-          sendToClient(client, "battle_vote_ack", {
-            target: null,
-            points: 0,
-            status: "already_voted",
-          });
-          break;
-        }
-        const voteTarget =
-          data.target === "host" ? "host" : "opponent";
-        await addBattleScoreForTarget(voteRoom, voteTarget as "host" | "opponent", 5);
-        sendToClient(client, "battle_vote_ack", {
-          target: voteTarget,
-          points: 5,
-          status: "ok",
-        });
+        // Disabled: spectators only watch and gift. Battle points come
+        // exclusively from gifts — no free vote points from any client.
         break;
       }
 

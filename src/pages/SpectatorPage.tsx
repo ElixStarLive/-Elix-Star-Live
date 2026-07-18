@@ -440,18 +440,11 @@ export default function SpectatorPage() {
   // Stay on the host stream during battle. Dual LiveKit already shows both
   // creators — navigating away mixes WS/LiveKit rooms and kills the live.
 
-  const handleSpectatorVote = useCallback((target: 'host' | 'opponent' | 'player3' | 'player4') => {
-    if (!spectatorBattle?.active || spectatorBattle.status !== 'ACTIVE') return;
-    if (spectatorBattleVoteRemainingRef.current <= 0) return;
-    if (!websocket.isConnected()) return;
-    spectatorBattleVoteRemainingRef.current = 0;
-    try {
-      if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(12);
-    } catch {
-      /* ignore */
-    }
-    websocket.send('battle_spectator_vote', { target });
-  }, [spectatorBattle?.active, spectatorBattle?.status]);
+  // Spectators only watch and gift — no free vote points. Battle points come
+  // exclusively from gifts, scored by the server.
+  const handleSpectatorVote = useCallback((_target: 'host' | 'opponent' | 'player3' | 'player4') => {
+    return;
+  }, []);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -2048,7 +2041,7 @@ export default function SpectatorPage() {
         giftSource: usedTestCoins ? 'test_coins' : giftSource,
         creator_name: hostName || 'Creator',
         host_user_id: hostUserId || effectiveStreamId,
-        ...(!usedTestCoins && spectatorBattle?.active
+        ...(spectatorBattle?.active
           ? { battleTarget: spectatorGiftBattleTarget }
           : {}),
       });

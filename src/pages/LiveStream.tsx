@@ -2107,16 +2107,11 @@ export default function LiveStream() {
     spawnHeartAt(x, y, '#ffffff', heartFloatName, heartFloatAvatar);
   }, [spawnHeartAt, heartFloatName, heartFloatAvatar]);
 
-  // Battle Tap Logic: spectator taps broadcaster side → 5 points, once per match
+  // Battle points come ONLY from gifts (server-scored). Taps just aim the gift
+  // target — spectators watch and gift, they never inject free points.
   const handleBattleTap = useCallback((target: 'me' | 'opponent' | 'player3' | 'player4') => {
     if (!isBattleMode || battleWinner || battleTime <= 0) return;
-    if (target !== 'me') return;
-    if (spectatorTapPointsRef.current > 0) return;
-
     setGiftTarget(target);
-    spectatorTapPointsRef.current = 1;
-    setSpectatorTapsUsed(1);
-    awardBattlePoints('me', 5, false);
   }, [battleWinner, battleTime, awardBattlePoints, isBattleMode]);
 
   // ─── SPEED CHALLENGE LOGIC ───
@@ -3591,7 +3586,7 @@ export default function LiveStream() {
           animation_url: wsVideo,
           transactionId: usedTestCoins ? null : giftTransactionId,
           giftSource: usedTestCoins ? 'test_coins' : giftSource,
-          battleTarget: usedTestCoins ? null : serverBattleTarget,
+          battleTarget: serverBattleTarget,
           creator_name: hostName || 'Creator',
           ...(!isBroadcast && { host_user_id: effectiveStreamId }),
         });
@@ -3832,7 +3827,7 @@ export default function LiveStream() {
           animation_url: comboWsVideo,
           transactionId: usedTestCoins ? null : giftTransactionId,
           giftSource: usedTestCoins ? 'test_coins' : giftSource,
-          battleTarget: usedTestCoins ? null : serverBattleTargetCombo,
+          battleTarget: serverBattleTargetCombo,
           creator_name: hostName || 'Creator',
           ...(!isBroadcast && { host_user_id: effectiveStreamId }),
         });
@@ -4498,17 +4493,6 @@ export default function LiveStream() {
                       </div>
                     </div>
                   </div>
-
-                  {/* Spectator Tap Indicator: 1 tap = 5 pts, then done */}
-                  {!isBroadcast && battleTime > 0 && !battleWinner && (
-                    <div className="absolute top-6 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
-                      <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#111111]/70 backdrop-blur-md border border-[#C9A227]/30">
-                        <span className="text-[9px] font-bold text-white">
-                          Tap to vote +5
-                        </span>
-                      </div>
-                    </div>
-                  )}
 
                   {/* Grid Container — ref for spectator tap→vote mapping */}
                   <div ref={battleVoteGridRef} className="flex-1 min-h-0 flex flex-col relative">
