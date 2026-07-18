@@ -33,6 +33,7 @@ import {
   setGiftGoal,
 } from "./giftGoal";
 import { dbIsBlockedEitherWay, getPool } from "../lib/postgres";
+import { activateBooster, resolveBoosterCatch } from "../lib/booster";
 
 const BATTLE_USER_ROOM_TTL_MS = 600_000;
 
@@ -215,12 +216,35 @@ export async function handleMessage(
         ) {
           const serverGiftValue = getGiftValue(sentGiftId);
           if (serverGiftValue > 0) {
-            const normalizedTarget = normalizeBattleTarget(data.battleTarget);
-            await addBattleScoreForTarget(
+            const normalizedTarget = normalizeBattleTarget(data.battleTarget) || "host";
+            // Point Multiplier Booster acts as a point catcher: if the sender has
+            // an active booster, the server randomly decides whether this gift is
+            // "caught" and multiplies its battle points. Fully server-authoritative.
+            const catchResult = await resolveBoosterCatch(
               client.roomId,
-              normalizedTarget || "host",
+              client.userId,
+              String(transactionId),
+              sentGiftId,
               serverGiftValue,
             );
+            await addBattleScoreForTarget(
+              client.roomId,
+              normalizedTarget,
+              catchResult.finalPoints,
+            );
+            if (catchResult.caught) {
+              broadcastToRoom(client.roomId, "booster_caught", {
+                user_id: client.userId,
+                username: client.username,
+                multiplier: catchResult.multiplier,
+                base_points: serverGiftValue,
+                final_points: catchResult.finalPoints,
+                gift_id: sentGiftId,
+                battleTarget: normalizedTarget,
+                transaction_id: String(transactionId),
+                timestamp: new Date().toISOString(),
+              });
+            }
           }
         }
         break;
@@ -621,19 +645,22 @@ export async function handleMessage(
 
       case "booster_activated": {
         if (!(await wsRateCheck(client.userId, "booster", 20, 60_000))) break;
-        // Forward only primitive scalar fields (no nested objects/arrays) so a
-        // client cannot rebroadcast arbitrary payloads to the whole room.
-        const safeBooster: Record<string, string | number | boolean> = {};
-        if (data && typeof data === "object") {
-          for (const [k, v] of Object.entries(data as Record<string, unknown>)) {
-            if (Object.keys(safeBooster).length >= 12) break;
-            if (typeof v === "string") safeBooster[k] = v.slice(0, 200);
-            else if (typeof v === "number" || typeof v === "boolean") safeBooster[k] = v;
-          }
-        }
+        // Server-authoritative activation: the multiplier is validated (x3/x5,
+        // must be enabled) and the active window is stored server-side with a
+        // config-driven duration. Only then is the activation broadcast so the
+        // catch mechanic (in gift_sent) is grounded in real server state.
+        const activated = await activateBooster(
+          client.roomId,
+          client.userId,
+          Number(data?.multiplier),
+        );
+        if (!activated) break;
         broadcastToRoom(client.roomId, "booster_activated", {
-          ...safeBooster,
           user_id: client.userId,
+          username: client.username,
+          multiplier: activated.multiplier,
+          duration_ms: activated.durationMs,
+          expires_at: activated.expiresAt,
         });
         break;
       }
