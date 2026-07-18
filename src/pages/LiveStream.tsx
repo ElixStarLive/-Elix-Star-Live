@@ -211,6 +211,8 @@ export default function LiveStream() {
   const [giftsCatalog, setGiftsCatalog] = useState<GiftUiItem[]>([]);
   const giftsCatalogRef = useRef<GiftUiItem[]>([]);
   useEffect(() => { giftsCatalogRef.current = giftsCatalog; }, [giftsCatalog]);
+  // Dedup gift_sent (REST + WS + owner-global can all deliver the same txn once).
+  const seenGiftTxnRef = useRef<Set<string>>(new Set());
   useEffect(() => { let c = false; fetchGiftsFromDatabase().then(g => { if (!c) setGiftsCatalog(g); }); return () => { c = true; }; }, []);
   const setPromo = useLivePromoStore((s) => s.setPromo);
   const { user, updateUser } = useAuthStore();
@@ -2676,6 +2678,18 @@ export default function LiveStream() {
 
     const handleGiftSent = (data) => {
       if (!mounted) return;
+      const txnId =
+        (typeof data.transactionId === 'string' && data.transactionId) ||
+        (typeof data.transaction_id === 'string' && data.transaction_id) ||
+        '';
+      if (txnId) {
+        if (seenGiftTxnRef.current.has(txnId)) return;
+        seenGiftTxnRef.current.add(txnId);
+        if (seenGiftTxnRef.current.size > 200) {
+          const keep = [...seenGiftTxnRef.current].slice(-100);
+          seenGiftTxnRef.current = new Set(keep);
+        }
+      }
       const wsGiftId =
         (typeof data.giftId === 'string' && data.giftId) ||
         (typeof data.gift_id === 'string' && data.gift_id) ||
@@ -2728,11 +2742,16 @@ export default function LiveStream() {
           }
         }
       }
-      if (giftDef) {
+      {
+        const giftName =
+          giftDef?.name ||
+          (typeof data.giftName === 'string' && data.giftName.trim()) ||
+          (typeof data.gift_name === 'string' && data.gift_name.trim()) ||
+          'Gift';
         const msg: LiveMessage = {
-          id: `gift-ws-${Date.now()}-${Math.random()}`,
+          id: `gift-ws-${txnId || Date.now()}-${Math.random()}`,
           username: typeof data.username === 'string' ? data.username : 'User',
-          text: `sent ${giftDef.name}`,
+          text: `sent ${giftName}`,
           level: typeof data.level === 'number' && Number.isFinite(data.level) ? data.level : 1,
           avatar: typeof data.avatar === 'string' ? data.avatar : '',
           isGift: true,
@@ -2741,7 +2760,7 @@ export default function LiveStream() {
         if (isBattleModeRef.current) {
           const iconRaw =
             (typeof data.gift_icon === 'string' && data.gift_icon) ||
-            (typeof giftDef.icon === 'string' ? giftDef.icon : '');
+            (typeof giftDef?.icon === 'string' ? giftDef.icon : '');
           const iconUrl =
             iconRaw && (iconRaw.startsWith('http://') || iconRaw.startsWith('https://') || iconRaw.startsWith('/'))
               ? (iconRaw.startsWith('http') ? iconRaw : resolveGiftAssetUrl(iconRaw.startsWith('/') ? iconRaw : `/${iconRaw}`))
@@ -3356,6 +3375,17 @@ export default function LiveStream() {
         setCoinBalance(debit.newBalance);
       } else if (user?.id) {
         try {
+          const idsForBattleGiftRest = battleStreamIdsRef.current;
+          const restBattleTarget =
+            isBattleMode
+              ? liveStreamUiGiftTargetToServerBattleTarget(giftTarget, {
+                  isBroadcast,
+                  isBattleJoiner,
+                  effectiveStreamId,
+                  hostRoomId: idsForBattleGiftRest?.hostRoomId ?? '',
+                  opponentRoomId: idsForBattleGiftRest?.opponentRoomId ?? '',
+                })
+              : undefined;
           const { data: result, error: giftErr } = await request('/api/gifts/send', {
             method: 'POST',
             body: JSON.stringify({
@@ -3364,6 +3394,7 @@ export default function LiveStream() {
               channel: platform.name,
               transaction_id: crypto.randomUUID(),
               gift_source: giftSource,
+              ...(restBattleTarget ? { battleTarget: restBattleTarget } : {}),
             }),
           });
 

@@ -155,6 +155,8 @@ export default function SpectatorPage() {
   const [giftsCatalog, setGiftsCatalog] = useState<GiftUiItem[]>([]);
   const giftsCatalogRef = useRef<GiftUiItem[]>([]);
   useEffect(() => { giftsCatalogRef.current = giftsCatalog; }, [giftsCatalog]);
+  // Dedup gift_sent (REST delivery + optional WS echo of the same transaction).
+  const seenGiftTxnRef = useRef<Set<string>>(new Set());
   useEffect(() => { let c = false; fetchGiftsFromDatabase().then(g => { if (!c) setGiftsCatalog(g); }); return () => { c = true; }; }, []);
   const [hostName, setHostName] = useState('Creator');
   const [hostAvatar, setHostAvatar] = useState('');
@@ -1248,6 +1250,18 @@ export default function SpectatorPage() {
 
     const handleGiftSent = (data) => {
       if (!mounted) return;
+      const txnId =
+        (typeof data.transactionId === 'string' && data.transactionId) ||
+        (typeof data.transaction_id === 'string' && data.transaction_id) ||
+        '';
+      if (txnId) {
+        if (seenGiftTxnRef.current.has(txnId)) return;
+        seenGiftTxnRef.current.add(txnId);
+        if (seenGiftTxnRef.current.size > 200) {
+          const keep = [...seenGiftTxnRef.current].slice(-100);
+          seenGiftTxnRef.current = new Set(keep);
+        }
+      }
       const wsGiftId =
         (typeof data.giftId === 'string' && data.giftId) ||
         (typeof data.gift_id === 'string' && data.gift_id) ||
@@ -1256,6 +1270,8 @@ export default function SpectatorPage() {
         ? giftsCatalogRef.current.find((g) => g.id === wsGiftId)
         : undefined;
       const gifterId = typeof data.user_id === 'string' ? data.user_id : '';
+      // Skip echo of our own gift — sender already queued local animation/chat.
+      if (gifterId && user?.id && gifterId === user.id) return;
       const giftCoins =
         giftDef?.coins ??
         (typeof data.coins === 'number' && Number.isFinite(data.coins) ? data.coins : 0);
@@ -1288,24 +1304,27 @@ export default function SpectatorPage() {
         }
         syncMvpSlots();
       }
-      if (giftDef) {
-        if (data.user_id !== user?.id) {
-          const msg: LiveMessage = {
-            id: `gift-ws-${Date.now()}-${Math.random()}`,
-            username: typeof data.username === 'string' ? data.username : 'User',
-            text: `sent ${giftDef.name}`,
-            level: typeof data.level === 'number' && Number.isFinite(data.level) ? data.level : 1,
-            avatar: typeof data.avatar === 'string' ? data.avatar : '',
-            isGift: true,
-          };
-          setMessages(prev => [...prev, msg]);
-        }
+      {
+        const giftName =
+          giftDef?.name ||
+          (typeof data.giftName === 'string' && data.giftName.trim()) ||
+          (typeof data.gift_name === 'string' && data.gift_name.trim()) ||
+          'Gift';
+        const msg: LiveMessage = {
+          id: `gift-ws-${txnId || Date.now()}-${Math.random()}`,
+          username: typeof data.username === 'string' ? data.username : 'User',
+          text: `sent ${giftName}`,
+          level: typeof data.level === 'number' && Number.isFinite(data.level) ? data.level : 1,
+          avatar: typeof data.avatar === 'string' ? data.avatar : '',
+          isGift: true,
+        };
+        setMessages(prev => [...prev, msg]);
         if (spectatorBattleRef.current?.active) {
           const side = normalizeBattleGiftTarget(data.battleTarget);
           if (side === 'opponent') {
             const iconRaw =
               (typeof data.gift_icon === 'string' && data.gift_icon) ||
-              (typeof giftDef.icon === 'string' ? giftDef.icon : '');
+              (typeof giftDef?.icon === 'string' ? giftDef.icon : '');
             const iconUrl =
               iconRaw && (iconRaw.startsWith('http://') || iconRaw.startsWith('https://') || iconRaw.startsWith('/'))
                 ? (iconRaw.startsWith('http') ? iconRaw : resolveGiftAssetUrl(iconRaw.startsWith('/') ? iconRaw : `/${iconRaw}`))
@@ -1315,7 +1334,7 @@ export default function SpectatorPage() {
         }
       }
       // Play gift video for other users' gifts (sender already queued locally).
-      if (data.user_id !== user?.id) {
+      {
         const videoUrl = pickGiftVideoUrl(data, giftsCatalogRef.current);
         if (videoUrl) {
           setGiftQueue((prev) => [...prev, { video: videoUrl }]);
@@ -1840,6 +1859,9 @@ export default function SpectatorPage() {
             channel: 'spectator',
             transaction_id: crypto.randomUUID(),
             gift_source: giftSource,
+            ...(spectatorBattle?.active
+              ? { battleTarget: spectatorGiftBattleTarget }
+              : {}),
           }),
         });
 

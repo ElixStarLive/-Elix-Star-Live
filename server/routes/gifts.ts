@@ -1,7 +1,7 @@
 /**
- * Gifts API: POST /api/gifts/send — validate and record gift (optional).
- * Real-time delivery stays via WebSocket (gift_sent). This endpoint can be used
- * for server-side validation, idempotency, or when client prefers REST.
+ * Gifts API: POST /api/gifts/send — validate, debit, and deliver gift in-room.
+ * Real-time delivery is server-driven (broadcast gift_sent) so the creator sees
+ * the gift even if the client WebSocket event is late or never arrives.
  */
 
 import { Request, Response } from "express";
@@ -16,6 +16,7 @@ import {
   giftIconUrlFromAnimation,
   resolveGiftMediaUrl,
 } from "../lib/giftAssets";
+import { deliverVerifiedGift } from "../websocket/giftDelivery";
 
 function requireAuth(req: Request, res: Response): { userId: string } | null {
   const token = getTokenFromRequest(req);
@@ -44,9 +45,12 @@ export async function handleSendGift(req: Request, res: Response) {
       streamKey,
       giftId: giftIdAlt,
       gift_source,
+      battleTarget,
+      battle_target,
     } = req.body ?? {};
     const roomId = typeof room_id === "string" ? room_id.trim() : (typeof streamKey === "string" ? streamKey.trim() : "");
     const giftId = typeof gift_id === "string" ? gift_id.trim() : (typeof giftIdAlt === "string" ? giftIdAlt.trim() : "");
+    const battleTargetRaw = battleTarget ?? battle_target;
 
     if (!roomId || !giftId) {
       return res.status(400).json({ error: "room_id and gift_id are required." });
@@ -117,6 +121,23 @@ export async function handleSendGift(req: Request, res: Response) {
             gift_source: "starter_coins",
           },
         });
+      }
+
+      if (!starterResult.already_processed) {
+        try {
+          await deliverVerifiedGift({
+            roomId,
+            userId: auth.userId,
+            giftId,
+            giftName: gift.name,
+            coins: coinCost,
+            giftSource: "starter_coins",
+            transactionId: clientTransactionId,
+            battleTarget: battleTargetRaw,
+          });
+        } catch (err) {
+          logger.warn({ err, roomId }, "handleSendGift: starter gift room delivery failed");
+        }
       }
 
       return res.status(200).json({
@@ -195,6 +216,25 @@ export async function handleSendGift(req: Request, res: Response) {
         }
       }
 
+      // Deliver to the live room from the server (creator sees animation/chat).
+      // Idempotent with the client WS gift_sent path via transaction claim.
+      if (!debited.alreadyProcessed) {
+        try {
+          await deliverVerifiedGift({
+            roomId,
+            userId: auth.userId,
+            giftId,
+            giftName: gift.name,
+            coins: coinCost,
+            giftSource: "paid_coins",
+            transactionId: clientTransactionId,
+            battleTarget: battleTargetRaw,
+          });
+        } catch (err) {
+          logger.warn({ err, roomId }, "handleSendGift: paid gift room delivery failed");
+        }
+      }
+
       return res.status(200).json({
         ok: true,
         room_id: roomId,
@@ -206,7 +246,7 @@ export async function handleSendGift(req: Request, res: Response) {
         total_xp: paidGiftXp?.total_xp,
         new_level: paidGiftXp?.new_level,
         leveled_up: paidGiftXp?.leveled_up ?? false,
-        message: "Gift sent. Delivery in room is via WebSocket.",
+        message: "Gift sent and delivered to the live room.",
       });
     }
 

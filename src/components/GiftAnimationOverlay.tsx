@@ -41,6 +41,7 @@ const MAX_VISIBLE = 3;
 export default function GiftAnimationOverlay({ streamId }: GiftAnimationOverlayProps) {
   const [gifts, setGifts] = useState<GiftAnimation[]>([]);
   const hideTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const seenTxnRef = useRef<Set<string>>(new Set());
   const streamIdRef = useRef(streamId);
   streamIdRef.current = streamId;
 
@@ -54,7 +55,14 @@ export default function GiftAnimationOverlay({ streamId }: GiftAnimationOverlayP
     hideTimersRef.current.set(id, t);
   };
 
-  const ingest = (raw: ElixGiftPillDetail & { stream_id?: string; gift_name?: string; gift_icon?: string; creator_name?: string }) => {
+  const ingest = (raw: ElixGiftPillDetail & {
+    stream_id?: string;
+    gift_name?: string;
+    gift_icon?: string;
+    creator_name?: string;
+    transactionId?: string;
+    transaction_id?: string;
+  }) => {
     const eventStreamId = raw.streamId ?? raw.stream_id;
     if (
       eventStreamId &&
@@ -63,6 +71,19 @@ export default function GiftAnimationOverlay({ streamId }: GiftAnimationOverlayP
       eventStreamId !== streamIdRef.current.replace(/^watch\//, '')
     ) {
       return;
+    }
+
+    const txnId =
+      (typeof raw.transactionId === 'string' && raw.transactionId) ||
+      (typeof raw.transaction_id === 'string' && raw.transaction_id) ||
+      '';
+    if (txnId) {
+      if (seenTxnRef.current.has(txnId)) return;
+      seenTxnRef.current.add(txnId);
+      if (seenTxnRef.current.size > 200) {
+        const keep = [...seenTxnRef.current].slice(-100);
+        seenTxnRef.current = new Set(keep);
+      }
     }
 
     const username = raw.username ?? 'Someone';

@@ -11,14 +11,12 @@ import {
   getBattleScores,
   saveBattleToStore,
 } from "./battle";
-import { getGiftValue, getGiftAnimationUrl, getGiftIconUrl, normalizeBattleTarget } from "./giftRegistry";
 import {
   broadcastToFeedSubscribers,
 } from "../feedBroadcast";
 import { removeActiveStream, resolveStreamOwnerUserId } from "../routes/livestream";
 import {
   wsRateCheck,
-  tryClaimTransaction,
   setCohostLayout,
   deleteCohostLayout,
   grantCohostPublish,
@@ -29,11 +27,11 @@ import { valkeyDel, valkeySet, valkeySetNx, valkeyGet } from "../lib/valkey";
 import { randomUUID } from "crypto";
 import {
   clearGiftGoal,
-  incrementGiftGoal,
   setGiftGoal,
 } from "./giftGoal";
 import { dbIsBlockedEitherWay, getPool } from "../lib/postgres";
-import { activateBooster, resolveBoosterCatch } from "../lib/booster";
+import { activateBooster, getMistFogDurationMs } from "../lib/booster";
+import { deliverVerifiedGift } from "./giftDelivery";
 
 const BATTLE_USER_ROOM_TTL_MS = 600_000;
 
@@ -148,8 +146,10 @@ export async function handleMessage(
         if (!(await wsRateCheck(client.userId, "gift", 50, 5_000))) break;
         const { transactionId } = data;
 
-        // Server-authoritative: broadcast only gifts backed by a persisted paid
-        // or Starter Coin transaction from this user for this room.
+        // Server-authoritative: only gifts backed by a persisted paid/starter
+        // transaction for this user+room are delivered. Delivery itself is shared
+        // with REST /api/gifts/send so the creator still sees the gift even if
+        // this WS event is late, missing, or fails after the coins were debited.
         const verified = await verifyGiftTransaction(
           transactionId,
           client.userId,
@@ -163,90 +163,25 @@ export async function handleMessage(
           return;
         }
 
-        const now = Date.now();
-        const claim = await tryClaimTransaction(String(transactionId), now);
-        if (!claim.claimed) {
-          sendToClient(client, "gift_ack", {
-            transactionId,
-            status: "duplicate",
-            timestamp: claim.existingTimestamp,
-          });
-          return;
-        }
-
-        broadcastToRoom(client.roomId, "gift_sent", {
-          giftId: verified.giftId,
-          coins: verified.coins,
-          giftSource: verified.giftSource,
-          transactionId: String(transactionId),
-          battleTarget: normalizeBattleTarget(data.battleTarget) || null,
-          user_id: client.userId,
+        const delivered = await deliverVerifiedGift({
+          roomId: client.roomId,
+          userId: client.userId,
           username: client.username,
           avatar: typeof data?.avatar === "string" ? data.avatar : "",
           level: typeof data?.level === "number" ? data.level : 1,
-          // Server-resolved playable URL so creator/spectators do not depend only
-          // on a client-side gifts catalog that may still be loading.
-          video: getGiftAnimationUrl(verified.giftId),
-          animation_url: getGiftAnimationUrl(verified.giftId),
-          gift_icon: getGiftIconUrl(verified.giftId),
-          timestamp: new Date().toISOString(),
+          giftId: verified.giftId,
+          giftName: typeof data?.giftName === "string" ? data.giftName : undefined,
+          coins: verified.coins,
+          giftSource: verified.giftSource,
+          transactionId: String(transactionId),
+          battleTarget: data?.battleTarget,
         });
-
-        // Starter gifts are experiential only: animation/chat notification is
-        // broadcast, but they never affect paid gift goals or battle scores.
-        const sentGiftId = verified.giftId;
-        if (sentGiftId && verified.giftSource === "paid_coins") {
-          const updatedGoal = await incrementGiftGoal(client.roomId, sentGiftId, 1);
-          if (updatedGoal) {
-            broadcastToRoom(client.roomId, "gift_goal_sync", updatedGoal);
-          }
-        }
 
         sendToClient(client, "gift_ack", {
           transactionId,
-          status: "success",
-          timestamp: now,
+          status: delivered.delivered ? "success" : delivered.reason,
+          timestamp: Date.now(),
         });
-
-        const activeBattle = await getBattleFromStore(client.roomId);
-        if (
-          verified.giftSource === "paid_coins" &&
-          activeBattle &&
-          activeBattle.status === "ACTIVE"
-        ) {
-          const serverGiftValue = getGiftValue(sentGiftId);
-          if (serverGiftValue > 0) {
-            const normalizedTarget = normalizeBattleTarget(data.battleTarget) || "host";
-            // Point Multiplier Booster acts as a point catcher: if the sender has
-            // an active booster, the server randomly decides whether this gift is
-            // "caught" and multiplies its battle points. Fully server-authoritative.
-            const catchResult = await resolveBoosterCatch(
-              client.roomId,
-              client.userId,
-              String(transactionId),
-              sentGiftId,
-              serverGiftValue,
-            );
-            await addBattleScoreForTarget(
-              client.roomId,
-              normalizedTarget,
-              catchResult.finalPoints,
-            );
-            if (catchResult.caught) {
-              broadcastToRoom(client.roomId, "booster_caught", {
-                user_id: client.userId,
-                username: client.username,
-                multiplier: catchResult.multiplier,
-                base_points: serverGiftValue,
-                final_points: catchResult.finalPoints,
-                gift_id: sentGiftId,
-                battleTarget: normalizedTarget,
-                transaction_id: String(transactionId),
-                timestamp: new Date().toISOString(),
-              });
-            }
-          }
-        }
         break;
       }
 
@@ -662,6 +597,39 @@ export async function handleMessage(
           duration_ms: activated.durationMs,
           expires_at: activated.expiresAt,
         });
+        break;
+      }
+
+      case "mist_activated": {
+        if (!(await wsRateCheck(client.userId, "booster", 20, 60_000))) break;
+        // Mist Fog: a spectator sends it during a battle to fog the battle score
+        // for everyone EXCEPT the creator they support. Purely visual (no points),
+        // but server-authoritative: the supported creator id and the timed window
+        // are resolved here from the real battle session, then broadcast to BOTH
+        // battle rooms so the opposing side is covered too. Clients cannot choose
+        // who the "supported creator" is — that comes from the session.
+        const mistBattle = await getBattleFromStore(client.roomId);
+        if (!mistBattle || mistBattle.status !== "ACTIVE") break;
+        const supportedSide = data?.target === "opponent" ? "opponent" : "host";
+        const supportedUserId =
+          supportedSide === "opponent"
+            ? mistBattle.opponentUserId
+            : mistBattle.hostUserId;
+        if (!supportedUserId) break;
+        const mistDurationMs = await getMistFogDurationMs();
+        const mistExpiresAt = Date.now() + mistDurationMs;
+        const mistPayload = {
+          user_id: client.userId,
+          username: client.username,
+          supported_side: supportedSide,
+          supported_user_id: supportedUserId,
+          duration_ms: mistDurationMs,
+          expires_at: mistExpiresAt,
+        };
+        const mistRooms = new Set<string>([client.roomId]);
+        if (mistBattle.hostRoomId) mistRooms.add(mistBattle.hostRoomId);
+        if (mistBattle.opponentRoomId) mistRooms.add(mistBattle.opponentRoomId);
+        for (const r of mistRooms) broadcastToRoom(r, "mist_activated", mistPayload);
         break;
       }
 
