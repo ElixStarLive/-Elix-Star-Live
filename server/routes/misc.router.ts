@@ -143,6 +143,66 @@ router.get("/rankings/weekly", async (req, res) => {
   }
 });
 
+// Hashtags — resolve videos tagged with a hashtag (data lives in videos.hashtags JSONB).
+router.get("/hashtags/:tag/videos", async (req, res) => {
+  res.setHeader("Cache-Control", "public, max-age=60");
+  const { getPool } = await import("../lib/postgres");
+  const { logger } = await import("../lib/logger");
+  const db = getPool();
+  if (!db) return res.status(503).json({ error: "Database not available", videos: [] });
+  const tag = String(req.params.tag || "").replace(/^#/, "").trim();
+  if (!tag) return res.json({ videos: [] });
+  try {
+    const r = await db.query(
+      `SELECT id,
+              thumbnail AS thumbnail_url,
+              COALESCE(views, 0) AS views_count,
+              COALESCE(likes, 0) AS likes_count
+       FROM videos
+       WHERE COALESCE(privacy, 'public') <> 'private'
+         AND jsonb_typeof(hashtags) = 'array'
+         AND EXISTS (
+           SELECT 1 FROM jsonb_array_elements_text(hashtags) AS h
+           WHERE lower(regexp_replace(h, '^#', '')) = lower($1)
+         )
+       ORDER BY COALESCE(views, 0) DESC, created_at DESC NULLS LAST
+       LIMIT 100`,
+      [tag],
+    );
+    return res.json({ videos: r.rows });
+  } catch (err) {
+    logger.error({ err, tag }, "GET /hashtags/:tag/videos failed");
+    return res.status(500).json({ error: "Failed to load hashtag videos", videos: [] });
+  }
+});
+
+router.get("/hashtags/:tag", async (req, res) => {
+  res.setHeader("Cache-Control", "public, max-age=60");
+  const { getPool } = await import("../lib/postgres");
+  const { logger } = await import("../lib/logger");
+  const db = getPool();
+  if (!db) return res.status(503).json({ error: "Database not available" });
+  const tag = String(req.params.tag || "").replace(/^#/, "").trim();
+  if (!tag) return res.json({ use_count: 0, trending_score: 0 });
+  try {
+    const r = await db.query(
+      `SELECT COUNT(*)::int AS use_count
+       FROM videos
+       WHERE COALESCE(privacy, 'public') <> 'private'
+         AND jsonb_typeof(hashtags) = 'array'
+         AND EXISTS (
+           SELECT 1 FROM jsonb_array_elements_text(hashtags) AS h
+           WHERE lower(regexp_replace(h, '^#', '')) = lower($1)
+         )`,
+      [tag],
+    );
+    return res.json({ use_count: Number(r.rows[0]?.use_count ?? 0), trending_score: 0 });
+  } catch (err) {
+    logger.error({ err, tag }, "GET /hashtags/:tag failed");
+    return res.status(500).json({ error: "Failed to load hashtag" });
+  }
+});
+
 // Stickers
 router.get("/stickers/:creatorUserId", handleGetStickers);
 router.post("/stickers/upload", uploadLimiter, handleUploadSticker);
