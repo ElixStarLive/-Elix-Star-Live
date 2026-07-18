@@ -8,7 +8,7 @@ import { Request, Response } from 'express';
 import { getTokenFromRequest, verifyAuthToken } from '../routes/auth';
 import { createLiveToken, isLiveKitConfigured, getLiveKitUrl, listActiveRoomsFromLiveKit, isUserPublishingInRoom } from '../services/livekit';
 import { broadcastToFeedSubscribers } from '../feedBroadcast';
-import { dbInsertLiveStream, dbEndLiveStream, dbGetLiveStreams } from '../lib/postgres';
+import { dbInsertLiveStream, dbEndLiveStream, dbGetLiveStreams, dbGetStreamOwnerUserId } from '../lib/postgres';
 import { logger } from '../lib/logger';
 import {
   isValkeyConfigured,
@@ -88,11 +88,8 @@ export async function resolveStreamOwnerUserId(roomOrUserId: string): Promise<st
     if (ownerUserId && ownerUserId.trim()) return ownerUserId.trim();
   }
   try {
-    const rows = await dbGetLiveStreams();
-    const match = rows.find(
-      (r) => r.stream_key === raw || r.user_id === raw,
-    );
-    if (match?.user_id?.trim()) return match.user_id.trim();
+    const owner = await dbGetStreamOwnerUserId(raw);
+    if (owner) return owner;
   } catch (err) {
     logger.warn({ err, roomOrUserId: raw }, "resolveStreamOwnerUserId DB lookup failed");
   }

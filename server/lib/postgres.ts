@@ -130,6 +130,19 @@ export async function connectPostgres(): Promise<void> {
   }
 
   const needsSsl = url.includes("neon.tech") || url.includes("sslmode=require");
+  // At high concurrency (many cluster workers × pool max) a direct Neon endpoint
+  // can exhaust the connection limit. The pooled endpoint (host contains
+  // "-pooler") is required for production scale. Warn loudly rather than silently
+  // rewriting the host, which could break an intentionally-direct connection.
+  if (
+    process.env.NODE_ENV === "production" &&
+    url.includes("neon.tech") &&
+    !url.includes("-pooler")
+  ) {
+    logger.warn(
+      "DATABASE_URL points at a direct Neon endpoint (no '-pooler' in host). Use the pooled connection string for production scale to avoid connection exhaustion.",
+    );
+  }
   const poolMax = Number(process.env.PG_POOL_MAX) || DEFAULT_POOL_PER_WORKER;
   const newPool = new Pool({
     connectionString: url,
@@ -362,6 +375,25 @@ export async function dbGetLiveStreams(): Promise<
   } catch (err) {
     logger.error({ err }, "Postgres get live_streams failed");
     return [];
+  }
+}
+
+/** Targeted owner lookup for a single room/user — avoids scanning all live streams. */
+export async function dbGetStreamOwnerUserId(keyOrUser: string): Promise<string | null> {
+  if (!pool || !keyOrUser) return null;
+  try {
+    const res = await pool.query<{ user_id: string }>(
+      `SELECT user_id
+         FROM live_streams
+        WHERE is_live = TRUE AND (stream_key = $1 OR user_id = $1)
+        ORDER BY started_at DESC
+        LIMIT 1`,
+      [keyOrUser],
+    );
+    return res.rows[0]?.user_id?.trim() || null;
+  } catch (err) {
+    logger.error({ err }, "Postgres get stream owner failed");
+    return null;
   }
 }
 

@@ -551,13 +551,18 @@ try {
   }
   await loadGiftValuesFromDb();
   initBattleTickLoop();
-  // Mature pending gift earnings after the store refund hold window.
-  setInterval(() => {
-    void neonMatureCreatorEarnings().then((n) => {
-      if (n > 0) logger.info({ matured: n }, "Creator earnings matured to available");
-    });
-  }, 5 * 60 * 1000).unref();
-  void neonMatureCreatorEarnings();
+  // Mature pending gift earnings after the store refund hold window. Only the
+  // job leader runs this — the maturation query is idempotent (FOR UPDATE SKIP
+  // LOCKED + status guard) but there is no reason for every cluster worker to
+  // scan every 5 minutes.
+  if (runBackgroundJobs) {
+    setInterval(() => {
+      void neonMatureCreatorEarnings().then((n) => {
+        if (n > 0) logger.info({ matured: n }, "Creator earnings matured to available");
+      });
+    }, 5 * 60 * 1000).unref();
+    void neonMatureCreatorEarnings();
+  }
   server.listen(PORT, "0.0.0.0", 8192, () => {
     logger.info(
       { port: PORT, version: BUILD_VERSION },
