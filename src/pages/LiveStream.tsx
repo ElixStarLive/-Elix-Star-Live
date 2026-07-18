@@ -3099,14 +3099,15 @@ export default function LiveStream() {
     // Battle & Co-Host invite / request signalling over WebSocket
     const handleBattleInvite = (data) => {
       if (!user?.id) return;
-      // No text or panels over the live screen. The Join/Reject row simply
-      // appears inside the invite panel when the creator opens it themselves.
       setPendingInvite({
         hostName: data.hostName || 'Creator',
         hostAvatar: data.hostAvatar || '',
         streamKey: data.streamKey || effectiveStreamId,
         hostUserId: data.hostUserId,
       });
+      // Open the panel so the red Reject / green Join buttons show immediately.
+      setIsFindCreatorsOpen(true);
+      setShowViewerList(true);
     };
 
     const handleBattleInviteAccepted = (data) => {
