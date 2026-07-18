@@ -203,6 +203,30 @@ router.get("/hashtags/:tag", async (req, res) => {
   }
 });
 
+// Boosters catalog — served from the boosters table when present. No boosters
+// are configured yet, so this returns an empty catalog (never fabricated data).
+router.get("/boosters/catalog", async (_req, res) => {
+  res.setHeader("Cache-Control", "public, max-age=60");
+  const { getPool } = await import("../lib/postgres");
+  const { logger } = await import("../lib/logger");
+  const db = getPool();
+  if (!db) return res.json({ data: [] });
+  try {
+    const exists = await db.query(
+      `SELECT to_regclass('public.elix_boosters') AS tbl`,
+    );
+    if (!exists.rows[0]?.tbl) return res.json({ data: [] });
+    const r = await db.query(
+      `SELECT id, name, coin_cost, effect_type, is_active
+       FROM elix_boosters ORDER BY coin_cost ASC`,
+    );
+    return res.json({ data: r.rows });
+  } catch (err) {
+    logger.error({ err }, "GET /boosters/catalog failed");
+    return res.json({ data: [] });
+  }
+});
+
 // Stickers
 router.get("/stickers/:creatorUserId", handleGetStickers);
 router.post("/stickers/upload", uploadLimiter, handleUploadSticker);

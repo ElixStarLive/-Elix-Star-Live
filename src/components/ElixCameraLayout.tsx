@@ -30,46 +30,6 @@ import {
   Layers,
   Crosshair,
 } from 'lucide-react';
-import { request } from '../lib/apiClient';
-
-// ═══════════════════════════════════════════════════
-// Database-driven Camera Filters - NO HARDCODED DATA
-// ═══════════════════════════════════════════════════
-async function fetchCameraFilters() {
-  try {
-    const { data, error } = await request('/api/camera-filters');
-    if (error) return [];
-    return Array.isArray(data) ? data : [];
-  } catch {
-    return [];
-  }
-}
-
-// ═══════════════════════════════════════════════════
-// Database-driven Speed options - NO HARDCODED DATA
-// ═══════════════════════════════════════════════════
-async function fetchSpeedOptions() {
-  try {
-    const { data, error } = await request('/api/speed-options');
-    if (error) return [];
-    return Array.isArray(data) ? data : [];
-  } catch {
-    return [];
-  }
-}
-
-// ═══════════════════════════════════════════════════
-// Database-driven Sticker/Emoji options - NO HARDCODED DATA
-// ═══════════════════════════════════════════════════
-async function fetchStickerOptions() {
-  try {
-    const { data, error } = await request('/api/sticker-options');
-    if (error) return [];
-    return Array.isArray(data) ? data : [];
-  } catch {
-    return [];
-  }
-}
 
 interface ElixCameraLayoutProps {
   videoRef: React.RefObject<HTMLVideoElement>;
@@ -119,6 +79,32 @@ interface SpeedOption {
 interface StickerOption {
   emoji: string;
 }
+
+// Built-in creative options for the camera (filters, speeds, stickers).
+// These are static app constants — no backend table is required.
+const DEFAULT_CAMERA_FILTERS: CameraFilterOption[] = [
+  { id: 'none', name: 'Normal', color: '#3A3A3A', filter: 'none' },
+  { id: 'warm', name: 'Warm', color: '#E8A87C', filter: 'sepia(0.3) saturate(1.3) brightness(1.05)' },
+  { id: 'cool', name: 'Cool', color: '#7CB5E8', filter: 'saturate(1.2) hue-rotate(-10deg) brightness(1.03)' },
+  { id: 'vivid', name: 'Vivid', color: '#E85C7A', filter: 'saturate(1.6) contrast(1.1)' },
+  { id: 'vintage', name: 'Vintage', color: '#C7A96B', filter: 'sepia(0.5) contrast(0.95) brightness(1.05) saturate(1.1)' },
+  { id: 'fade', name: 'Fade', color: '#B8B0A8', filter: 'contrast(0.85) brightness(1.1) saturate(0.85)' },
+  { id: 'mono', name: 'Mono', color: '#9A9A9A', filter: 'grayscale(1) contrast(1.1)' },
+  { id: 'noir', name: 'Noir', color: '#4A4A4A', filter: 'grayscale(1) contrast(1.4) brightness(0.95)' },
+];
+
+const DEFAULT_SPEED_OPTIONS: SpeedOption[] = [
+  { value: 0.3, label: '0.3x' },
+  { value: 0.5, label: '0.5x' },
+  { value: 1, label: '1x' },
+  { value: 2, label: '2x' },
+  { value: 3, label: '3x' },
+];
+
+const DEFAULT_STICKER_OPTIONS: StickerOption[] = [
+  '😀', '😍', '🔥', '❤️', '😂', '🎉', '👍', '💯', '✨', '🥳', '😎', '🙌',
+  '💖', '🌟', '👀', '💪', '🎶', '🌈', '⭐', '😭', '🥰', '😳', '👑', '💎',
+].map((emoji) => ({ emoji }));
 
 export default function ElixCameraLayout({
   videoRef,
@@ -179,17 +165,10 @@ export default function ElixCameraLayout({
   const [beautyEnabled, setBeautyEnabled] = useState(true);
   const [beautyLevel, setBeautyLevel] = useState(0.5); // 0 to 1
 
-  // ── Database-driven options ──
-  const [cameraFilters, setCameraFilters] = useState<CameraFilterOption[]>([]);
-  const [speedOptions, setSpeedOptions] = useState<SpeedOption[]>([]);
-  const [stickerOptions, setStickerOptions] = useState<StickerOption[]>([]);
-
-  // Fetch database options on mount
-  useEffect(() => {
-    fetchCameraFilters().then(setCameraFilters);
-    fetchSpeedOptions().then(setSpeedOptions);
-    fetchStickerOptions().then(setStickerOptions);
-  }, []);
+  // ── Built-in creative options (static app constants) ──
+  const [cameraFilters] = useState<CameraFilterOption[]>(DEFAULT_CAMERA_FILTERS);
+  const [speedOptions] = useState<SpeedOption[]>(DEFAULT_SPEED_OPTIONS);
+  const [stickerOptions] = useState<StickerOption[]>(DEFAULT_STICKER_OPTIONS);
 
   // ── Panel states ──
   const [showEffectsPanel, setShowEffectsPanel] = useState(false);
