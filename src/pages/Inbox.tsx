@@ -454,7 +454,7 @@ export default function Inbox() {
         </div>
 
         {/* Circles — Followers hub first; suggested + per-follower avatars scroll to the right */}
-        <div className="px-3 py-2 bg-[#111111]" style={{ marginTop: '13mm' }}>
+        <div className="px-3 py-2 bg-[#111111]" style={{ marginTop: '17mm' }}>
             <div className="flex gap-3 overflow-x-auto overflow-y-hidden no-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
                 <button
                     type="button"
@@ -579,7 +579,7 @@ export default function Inbox() {
                       onClick={() => { if (a.video_id) navigate(`/video/${encodeURIComponent(a.video_id)}`); }}
                       className="flex items-center gap-2.5 w-full text-left py-1.5 px-2 bg-[#111111]"
                     >
-                      <div className="w-9 h-9 rounded-full bg-[#111111] border border-[#C9A227]/30 flex items-center justify-center flex-shrink-0 overflow-hidden relative">
+                      <div className="w-9 h-9 rounded-full bg-[#111111] border border-[#C9A227]/30 flex items-center justify-center flex-shrink-0 overflow-hidden relative" style={{ transform: 'translateY(4mm)' }}>
                         {a.actor_avatar_url ? (
                           <img src={a.actor_avatar_url} alt="" className="w-full h-full object-cover" />
                         ) : (
@@ -773,7 +773,7 @@ export default function Inbox() {
                           }}
                           className="flex items-center gap-3 w-full text-left py-2.5 px-2 bg-[#111111]"
                         >
-                          <div className="w-12 h-12 rounded-full bg-[#111111] border border-[#C9A227]/40 flex items-center justify-center flex-shrink-0 overflow-hidden relative">
+                          <div className="w-12 h-12 rounded-full bg-[#111111] border border-[#C9A227]/40 flex items-center justify-center flex-shrink-0 overflow-hidden relative" style={{ transform: 'translateY(4mm)' }}>
                             {a.actor_avatar_url ? (
                               <img src={a.actor_avatar_url} alt="" className="w-full h-full object-cover" />
                             ) : (
