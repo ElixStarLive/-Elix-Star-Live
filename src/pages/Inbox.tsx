@@ -6,7 +6,7 @@ import { request } from '../lib/apiClient';
 import { useAuthStore } from '../store/useAuthStore';
 import { useVideoStore } from '../store/useVideoStore';
 import { nativeConfirm } from '../components/NativeDialog';
-import { Heart, UserPlus, Search, ShoppingBag, Archive, ChevronRight, Trash2, Bookmark, MessageCircle, AtSign, Share2 } from 'lucide-react';
+import { Heart, UserPlus, Search, ShoppingBag, Archive, ChevronRight, Trash2, Share2 } from 'lucide-react';
 import { AvatarRing } from '../components/AvatarRing';
 import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
 import { showToast } from '../lib/toast';
@@ -585,17 +585,6 @@ export default function Inbox() {
                         ) : (
                           <span className="text-[#D4AF37] font-bold text-sm">{actorName.replace('@', '').charAt(0).toUpperCase()}</span>
                         )}
-                        <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-[#111111] border border-[#C9A227]/50 flex items-center justify-center">
-                          {a.kind === 'save' ? (
-                            <Bookmark className="w-2 h-2 text-[#D4AF37]" strokeWidth={2.5} />
-                          ) : a.kind === 'comment' ? (
-                            <MessageCircle className="w-2 h-2 text-[#D4AF37]" strokeWidth={2.5} />
-                          ) : a.kind === 'mention' ? (
-                            <AtSign className="w-2 h-2 text-[#D4AF37]" strokeWidth={2.5} />
-                          ) : (
-                            <Heart className="w-2 h-2 text-[#D4AF37]" fill="currentColor" strokeWidth={0} />
-                          )}
-                        </span>
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs text-gold-bright truncate"><span className="font-semibold">{actorName}</span> <span className="text-gold-bright/60">{activityLine(a)}</span></p>
@@ -790,17 +779,6 @@ export default function Inbox() {
                             ) : (
                               <span className="text-[#D4AF37] font-bold text-lg">{actorName.replace('@', '').charAt(0).toUpperCase()}</span>
                             )}
-                            <span className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-[#111111] border border-[#C9A227]/50 flex items-center justify-center">
-                              {a.kind === 'save' ? (
-                                <Bookmark className="w-2.5 h-2.5 text-[#D4AF37]" strokeWidth={2.5} />
-                              ) : a.kind === 'comment' ? (
-                                <MessageCircle className="w-2.5 h-2.5 text-[#D4AF37]" strokeWidth={2.5} />
-                              ) : a.kind === 'mention' ? (
-                                <AtSign className="w-2.5 h-2.5 text-[#D4AF37]" strokeWidth={2.5} />
-                              ) : (
-                                <Heart className="w-2.5 h-2.5 text-[#D4AF37]" fill="currentColor" strokeWidth={0} />
-                              )}
-                            </span>
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="font-semibold text-sm text-gold-bright truncate">{actorName}</p>
