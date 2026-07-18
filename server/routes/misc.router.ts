@@ -203,6 +203,43 @@ router.get("/hashtags/:tag", async (req, res) => {
   }
 });
 
+// Camera creative options — served as app config so the Create camera can
+// populate filters/speeds/stickers. Static config (not user data).
+const CAMERA_FILTERS = [
+  { id: "none", name: "Normal", color: "#3A3A3A", filter: "none" },
+  { id: "warm", name: "Warm", color: "#E8A87C", filter: "sepia(0.3) saturate(1.3) brightness(1.05)" },
+  { id: "cool", name: "Cool", color: "#7CB5E8", filter: "saturate(1.2) hue-rotate(-10deg) brightness(1.03)" },
+  { id: "vivid", name: "Vivid", color: "#E85C7A", filter: "saturate(1.6) contrast(1.1)" },
+  { id: "vintage", name: "Vintage", color: "#C7A96B", filter: "sepia(0.5) contrast(0.95) brightness(1.05) saturate(1.1)" },
+  { id: "fade", name: "Fade", color: "#B8B0A8", filter: "contrast(0.85) brightness(1.1) saturate(0.85)" },
+  { id: "mono", name: "Mono", color: "#9A9A9A", filter: "grayscale(1) contrast(1.1)" },
+  { id: "noir", name: "Noir", color: "#4A4A4A", filter: "grayscale(1) contrast(1.4) brightness(0.95)" },
+];
+const SPEED_OPTIONS = [
+  { value: 0.3, label: "0.3x" },
+  { value: 0.5, label: "0.5x" },
+  { value: 1, label: "1x" },
+  { value: 2, label: "2x" },
+  { value: 3, label: "3x" },
+];
+const STICKER_OPTIONS = [
+  "😀", "😍", "🔥", "❤️", "😂", "🎉", "👍", "💯", "✨", "🥳", "😎", "🙌",
+  "💖", "🌟", "👀", "💪", "🎶", "🌈", "⭐", "😭", "🥰", "😳", "👑", "💎",
+].map((emoji) => ({ emoji }));
+
+router.get("/camera-filters", (_req, res) => {
+  res.setHeader("Cache-Control", "public, max-age=3600");
+  res.json({ data: CAMERA_FILTERS });
+});
+router.get("/speed-options", (_req, res) => {
+  res.setHeader("Cache-Control", "public, max-age=3600");
+  res.json({ data: SPEED_OPTIONS });
+});
+router.get("/sticker-options", (_req, res) => {
+  res.setHeader("Cache-Control", "public, max-age=3600");
+  res.json({ data: STICKER_OPTIONS });
+});
+
 // Boosters catalog — served from the boosters table when present. No boosters
 // are configured yet, so this returns an empty catalog (never fabricated data).
 router.get("/boosters/catalog", async (_req, res) => {

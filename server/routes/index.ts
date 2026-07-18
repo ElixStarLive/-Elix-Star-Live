@@ -18,6 +18,7 @@ import risingStarsRouter from "./risingStars.router";
 import adminRisingStarsRouter from "./adminRisingStars.router";
 import progressionRouter from "./progression.router";
 import adminProgressionRouter from "./adminProgression.router";
+import { handleGetTestCoinBalance, handleMintTestCoins, handleSpendTestCoinsForScore } from "./testCoins";
 
 export function mountRoutes(app: Express): void {
   app.use("/api/auth", authRouter);
@@ -41,6 +42,11 @@ export function mountRoutes(app: Express): void {
   app.use("/api/videos", videosRouter);
   app.use("/api/stories", storiesRouter);
   app.use("/api/media", mediaRouter);
+
+  // Test coins — isolated in-memory balance for gift testing only (never real money).
+  app.get("/api/test-coins/balance", handleGetTestCoinBalance);
+  app.post("/api/test-coins/mint", handleMintTestCoins);
+  app.post("/api/test-coins/score", handleSpendTestCoinsForScore);
 
   // Misc (analytics, block, report, notifications, IAP, refunds, etc.)
   app.use("/api", miscRouter);

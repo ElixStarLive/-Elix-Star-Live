@@ -30,6 +30,7 @@ import {
   Layers,
   Crosshair,
 } from 'lucide-react';
+import { request } from '../lib/apiClient';
 
 interface ElixCameraLayoutProps {
   videoRef: React.RefObject<HTMLVideoElement>;
@@ -106,6 +107,19 @@ const DEFAULT_STICKER_OPTIONS: StickerOption[] = [
   '💖', '🌟', '👀', '💪', '🎶', '🌈', '⭐', '😭', '🥰', '😳', '👑', '💎',
 ].map((emoji) => ({ emoji }));
 
+// Fetch creative options from the backend (/api/camera-filters, /api/speed-options,
+// /api/sticker-options). Falls back to built-in defaults if the API is unreachable.
+async function fetchOptionList<T>(path: string): Promise<T[]> {
+  try {
+    const { data, error } = await request(path);
+    if (error) return [];
+    const arr = (data as { data?: unknown })?.data;
+    return Array.isArray(arr) ? (arr as T[]) : [];
+  } catch {
+    return [];
+  }
+}
+
 export default function ElixCameraLayout({
   videoRef,
   isRecording,
@@ -165,10 +179,24 @@ export default function ElixCameraLayout({
   const [beautyEnabled, setBeautyEnabled] = useState(true);
   const [beautyLevel, setBeautyLevel] = useState(0.5); // 0 to 1
 
-  // ── Built-in creative options (static app constants) ──
-  const [cameraFilters] = useState<CameraFilterOption[]>(DEFAULT_CAMERA_FILTERS);
-  const [speedOptions] = useState<SpeedOption[]>(DEFAULT_SPEED_OPTIONS);
-  const [stickerOptions] = useState<StickerOption[]>(DEFAULT_STICKER_OPTIONS);
+  // ── Creative options (fetched from backend, with built-in defaults as fallback) ──
+  const [cameraFilters, setCameraFilters] = useState<CameraFilterOption[]>(DEFAULT_CAMERA_FILTERS);
+  const [speedOptions, setSpeedOptions] = useState<SpeedOption[]>(DEFAULT_SPEED_OPTIONS);
+  const [stickerOptions, setStickerOptions] = useState<StickerOption[]>(DEFAULT_STICKER_OPTIONS);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchOptionList<CameraFilterOption>('/api/camera-filters').then((list) => {
+      if (!cancelled && list.length) setCameraFilters(list);
+    });
+    fetchOptionList<SpeedOption>('/api/speed-options').then((list) => {
+      if (!cancelled && list.length) setSpeedOptions(list);
+    });
+    fetchOptionList<StickerOption>('/api/sticker-options').then((list) => {
+      if (!cancelled && list.length) setStickerOptions(list);
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   // ── Panel states ──
   const [showEffectsPanel, setShowEffectsPanel] = useState(false);
