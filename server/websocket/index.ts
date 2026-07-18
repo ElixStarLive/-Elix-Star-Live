@@ -27,7 +27,8 @@ import { checkSessionState, verifyAuthToken } from "../routes/auth";
 import {
   isValkeyConfigured,
   valkeyPublish,
-  valkeyPSubscribe,
+  valkeySubscribe,
+  valkeyUnsubscribe,
   valkeyRateCheck as valkeyRateCheckFn,
   valkeySet,
   valkeyGet,
@@ -40,6 +41,7 @@ import {
   valkeyExpire,
 } from "../lib/valkey";
 import { getPool } from "../lib/postgres";
+import { createCoalescedWriter } from "../lib/coalescedWriter";
 import { getUserBattleRoom, endBattle, getBattleFromStore } from "./battle";
 import { getGiftGoal } from "./giftGoal";
 import { handleMessage } from "./handlers";
@@ -369,70 +371,111 @@ export async function revokeBattlePublish(roomId: string, userId: string): Promi
 
 // ── Valkey pub/sub for cross-instance WS broadcasting ────────────
 
+/** Cross-instance payload shape published by broadcastToRoom / disconnectUserSessions. */
+interface WsPubSubPayload {
+  event: string;
+  data?: Record<string, unknown>;
+  timestamp?: string;
+  sourceInstanceId?: string;
+}
+
+/**
+ * Forward a cross-instance room message to LOCAL clients in that room. Registered
+ * per-room (only while this instance actually hosts clients in the room), so an
+ * instance never receives traffic for rooms it does not serve.
+ */
+function forwardRoomMessage(roomId: string, payload: WsPubSubPayload): void {
+  if (!payload || payload.sourceInstanceId === INSTANCE_ID) return;
+  const room = rooms.get(roomId);
+  if (!room) return;
+  let message: string;
+  try {
+    message = JSON.stringify({
+      event: payload.event,
+      data: payload.data,
+      timestamp: payload.timestamp,
+    });
+  } catch {
+    return;
+  }
+  room.forEach((client) => {
+    if (client.ws.readyState === WebSocket.OPEN) {
+      try {
+        client.ws.send(message);
+      } catch {
+        logger.debug("ws.send failed — client likely disconnected");
+      }
+    }
+  });
+}
+
+/** Forward a cross-instance user message (or force-disconnect) to LOCAL sockets. */
+function forwardUserMessage(userId: string, payload: WsPubSubPayload): void {
+  if (!payload || payload.sourceInstanceId === INSTANCE_ID) return;
+  if (payload.event === "force_disconnect") {
+    forceCloseLocalUserSockets(userId, String(payload.data?.reason || "Session ended"));
+    return;
+  }
+  let message: string;
+  try {
+    message = JSON.stringify({
+      event: payload.event,
+      data: payload.data,
+      timestamp: payload.timestamp,
+    });
+  } catch {
+    return;
+  }
+  const userSet = userClients.get(userId);
+  if (!userSet) return;
+  for (const client of userSet) {
+    if (client.ws.readyState === WebSocket.OPEN) {
+      try {
+        client.ws.send(message);
+      } catch {
+        logger.debug("ws.send failed — client likely disconnected");
+      }
+    }
+  }
+}
+
+/** Subscribe to a room's cross-instance channel when the first local client joins. */
+function subscribeRoomChannel(roomId: string): void {
+  if (!isValkeyConfigured()) return;
+  valkeySubscribe(`room:${roomId}`, (payload) =>
+    forwardRoomMessage(roomId, payload as WsPubSubPayload),
+  );
+}
+
+/** Unsubscribe from a room's channel once no local clients remain. */
+function unsubscribeRoomChannel(roomId: string): void {
+  if (!isValkeyConfigured()) return;
+  valkeyUnsubscribe(`room:${roomId}`);
+}
+
+/** Subscribe to a user's cross-instance channel when their first local socket connects. */
+function subscribeUserChannel(userId: string): void {
+  if (!isValkeyConfigured()) return;
+  valkeySubscribe(`user:${userId}`, (payload) =>
+    forwardUserMessage(userId, payload as WsPubSubPayload),
+  );
+}
+
+/** Unsubscribe from a user's channel once their last local socket closes. */
+function unsubscribeUserChannel(userId: string): void {
+  if (!isValkeyConfigured()) return;
+  valkeyUnsubscribe(`user:${userId}`);
+}
+
 export function initWsPubSub(): void {
   if (!isValkeyConfigured()) {
     logger.warn("Valkey not configured – skipping WS pub/sub init");
     return;
   }
-
-  valkeyPSubscribe("room:*", (channel, payload) => {
-    if (payload.sourceInstanceId === INSTANCE_ID) return;
-    const roomId = channel.replace(/^room:/, "");
-    const room = rooms.get(roomId);
-    if (!room) return;
-    let message: string;
-    try {
-      message = JSON.stringify({
-        event: payload.event,
-        data: payload.data,
-        timestamp: payload.timestamp,
-      });
-    } catch {
-      return;
-    }
-    room.forEach((client) => {
-      if (client.ws.readyState === WebSocket.OPEN) {
-        try {
-          client.ws.send(message);
-        } catch {
-          logger.debug("ws.send failed — client likely disconnected");
-        }
-      }
-    });
-  });
-
-  valkeyPSubscribe("user:*", (channel, payload) => {
-    if (payload.sourceInstanceId === INSTANCE_ID) return;
-    const userId = channel.replace(/^user:/, "");
-    if (payload.event === "force_disconnect") {
-      forceCloseLocalUserSockets(userId, String(payload.data?.reason || "Session ended"));
-      return;
-    }
-    let message: string;
-    try {
-      message = JSON.stringify({
-        event: payload.event,
-        data: payload.data,
-        timestamp: payload.timestamp,
-      });
-    } catch {
-      return;
-    }
-    const userSet = userClients.get(userId);
-    if (userSet) {
-      for (const client of userSet) {
-        if (client.ws.readyState === WebSocket.OPEN) {
-          try {
-            client.ws.send(message);
-          } catch {
-            logger.debug("ws.send failed — client likely disconnected");
-          }
-        }
-      }
-    }
-  });
-
-  logger.info({ instanceId: INSTANCE_ID }, "WS pub/sub initialized");
+  // Cross-instance routing is now conditional: rooms and users are subscribed on
+  // demand as local clients connect (see subscribeRoomChannel / subscribeUserChannel),
+  // so each instance only receives pub/sub traffic for the rooms and users it hosts.
+  logger.info({ instanceId: INSTANCE_ID }, "WS pub/sub initialized (per-room/per-user subscriptions)");
 }
 
 function forceCloseLocalUserSockets(userId: string, reason: string): number {
@@ -469,6 +512,20 @@ export function disconnectUserSessions(userId: string, reason = "Banned"): numbe
 
 // ── Viewer count from Valkey SCARD ───────────────────────────────
 
+/**
+ * Persisting the viewer count on every join/leave hammers the DB on hot rooms
+ * (one UPDATE per event × many concurrent viewers). The realtime count is served
+ * from Valkey SCARD and broadcast immediately; the DB copy only needs to be
+ * eventually-consistent for the feed/live list, so coalesce writes per room to a
+ * single trailing write that carries the latest value.
+ */
+const VIEWER_DB_WRITE_DEBOUNCE_MS = 3000;
+const viewerCountDbWriter = createCoalescedWriter<number>((roomId, count) => {
+  dbUpdateViewerCount(roomId, count).catch((err) => {
+    logger.warn({ err, roomId, count }, "dbUpdateViewerCount (coalesced) failed");
+  });
+}, VIEWER_DB_WRITE_DEBOUNCE_MS);
+
 async function updateViewerCount(roomId: string): Promise<void> {
   let count: number;
   if (isValkeyConfigured()) {
@@ -481,9 +538,7 @@ async function updateViewerCount(roomId: string): Promise<void> {
     count = room ? room.size : 0;
   }
   broadcastToRoom(roomId, "viewer_count", { count });
-  dbUpdateViewerCount(roomId, count).catch((err) => {
-    logger.warn({ err, roomId, count }, "dbUpdateViewerCount failed after viewer count broadcast");
-  });
+  viewerCountDbWriter.schedule(roomId, count);
 }
 
 /** Host WS blips (battle UI remount / mobile network) must not kill the live. */
@@ -783,10 +838,16 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
 
       clients.set(ws, client);
 
-      if (!userClients.has(userId)) userClients.set(userId, new Set());
+      if (!userClients.has(userId)) {
+        userClients.set(userId, new Set());
+        subscribeUserChannel(userId);
+      }
       (userClients.get(userId) as Set<Client>).add(client);
 
-      if (!rooms.has(roomId)) rooms.set(roomId, new Set());
+      if (!rooms.has(roomId)) {
+        rooms.set(roomId, new Set());
+        subscribeRoomChannel(roomId);
+      }
       (rooms.get(roomId) as Set<Client>).add(client);
 
       if (isValkeyConfigured()) {
@@ -921,7 +982,10 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
         const uc = userClients.get(client.userId);
         if (uc) {
           uc.delete(client);
-          if (uc.size === 0) userClients.delete(client.userId);
+          if (uc.size === 0) {
+            userClients.delete(client.userId);
+            unsubscribeUserChannel(client.userId);
+          }
         }
 
         if (client.roomId === "__feed__") {
@@ -959,6 +1023,8 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
 
           if (room.size === 0) {
             rooms.delete(client.roomId);
+            unsubscribeRoomChannel(client.roomId);
+            viewerCountDbWriter.flush(client.roomId);
           }
         }
 

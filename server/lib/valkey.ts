@@ -173,51 +173,103 @@ export function valkeyPublish(
   }
 }
 
-export function valkeySubscribe(
-  channel: string,
-  handler: (data: unknown) => void,
-): void {
-  const sub = getValkeySubscriber();
-  if (!sub) return;
+/**
+ * Channel-routed subscribe.
+ *
+ * A single "message" listener on the shared subscriber connection dispatches to
+ * the handlers registered for each channel. This lets callers SUBSCRIBE and
+ * UNSUBSCRIBE individual channels dynamically (per live room / per user) without
+ * leaking one Node event listener per subscription and without a global
+ * `PSUBSCRIBE room:*` that forces every instance to receive every room's traffic.
+ */
+type ChannelHandler = (data: unknown) => void;
 
-  sub.subscribe(channel).catch((err) =>
-    logger.error({ err, channel }, "Valkey subscribe failed"),
-  );
+const channelHandlers = new Map<string, Set<ChannelHandler>>();
+let boundDispatcherConn: Redis | null = null;
 
-  sub.on("message", (ch, message) => {
-    if (ch !== channel) return;
+function ensureMessageDispatcher(sub: Redis): void {
+  if (boundDispatcherConn === sub) return;
+  boundDispatcherConn = sub;
+
+  sub.on("message", (channel: string, message: string) => {
+    const handlers = channelHandlers.get(channel);
+    if (!handlers || handlers.size === 0) return;
+    let parsed: unknown;
     try {
-      handler(JSON.parse(message));
+      parsed = JSON.parse(message);
     } catch (err) {
       logger.warn(
-        { err: err?.message, channel },
+        { err: (err as Error)?.message, channel },
         "valkeySubscribe message parse failed",
       );
+      return;
+    }
+    for (const handler of handlers) {
+      try {
+        handler(parsed);
+      } catch (err) {
+        logger.warn(
+          { err: (err as Error)?.message, channel },
+          "valkeySubscribe handler threw",
+        );
+      }
     }
   });
+
+  // If the subscriber reconnected as a fresh connection, re-subscribe every
+  // channel we still have handlers for so cross-instance routing survives.
+  const known = [...channelHandlers.keys()];
+  if (known.length > 0) {
+    sub.subscribe(...known).catch((err) =>
+      logger.error({ err, channels: known.length }, "Valkey re-subscribe failed"),
+    );
+  }
 }
 
-export function valkeyPSubscribe(
-  pattern: string,
-  handler: (channel: string, data: unknown) => void,
+export function valkeySubscribe(
+  channel: string,
+  handler: ChannelHandler,
 ): void {
   const sub = getValkeySubscriber();
   if (!sub) return;
+  ensureMessageDispatcher(sub);
 
-  sub.psubscribe(pattern).catch((err) =>
-    logger.error({ err, pattern }, "Valkey psubscribe failed"),
-  );
+  let handlers = channelHandlers.get(channel);
+  if (!handlers) {
+    handlers = new Set();
+    channelHandlers.set(channel, handlers);
+    sub.subscribe(channel).catch((err) =>
+      logger.error({ err, channel }, "Valkey subscribe failed"),
+    );
+  }
+  handlers.add(handler);
+}
 
-  sub.on("pmessage", (_pat, ch, message) => {
-    try {
-      handler(ch, JSON.parse(message));
-    } catch (err) {
+/**
+ * Remove a handler (or all handlers) for a channel. When the last handler for a
+ * channel is removed we UNSUBSCRIBE from Valkey so this instance stops receiving
+ * traffic for rooms/users it no longer hosts.
+ */
+export function valkeyUnsubscribe(
+  channel: string,
+  handler?: ChannelHandler,
+): void {
+  const handlers = channelHandlers.get(channel);
+  if (!handlers) return;
+
+  if (handler) handlers.delete(handler);
+  else handlers.clear();
+
+  if (handlers.size === 0) {
+    channelHandlers.delete(channel);
+    const sub = getValkeySubscriber();
+    sub?.unsubscribe(channel).catch((err) =>
       logger.warn(
-        { err: err?.message, pattern, channel: ch },
-        "valkeyPSubscribe message parse failed",
-      );
-    }
-  });
+        { err: (err as Error)?.message, channel },
+        "Valkey unsubscribe failed",
+      ),
+    );
+  }
 }
 
 // ── Key-value helpers with TTL ───────────────────────────────────
