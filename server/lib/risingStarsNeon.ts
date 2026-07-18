@@ -253,9 +253,11 @@ export async function rsGetChallenge(id: string): Promise<RsChallenge | null> {
 
 export async function rsListEntries(
   challengeId: string,
+  limit = 500,
 ): Promise<Array<RsEntry & { username?: string; avatar_url?: string | null }>> {
   const p = db();
   if (!p) return [];
+  const cap = Math.max(1, Math.min(1000, Math.floor(limit) || 500));
   const r = await p.query(
     `SELECT e.*,
             COALESCE(p.username, p.display_name, 'Creator') AS username,
@@ -264,8 +266,9 @@ export async function rsListEntries(
      LEFT JOIN profiles p ON p.user_id = e.creator_user_id
      WHERE e.challenge_id = $1
        AND e.status IN ('active', 'advanced', 'eliminated')
-     ORDER BY e.vote_count DESC, e.created_at ASC`,
-    [challengeId],
+     ORDER BY e.vote_count DESC, e.created_at ASC
+     LIMIT $2`,
+    [challengeId, cap],
   );
   return r.rows.map((row) => ({
     ...mapEntry(row),
@@ -275,8 +278,9 @@ export async function rsListEntries(
 }
 
 export async function rsGetLeaderboard(challengeId: string, limit = 50) {
-  const entries = await rsListEntries(challengeId);
-  return entries.slice(0, Math.max(1, Math.min(200, limit))).map((e, i) => ({
+  const bounded = Math.max(1, Math.min(200, limit));
+  const entries = await rsListEntries(challengeId, bounded);
+  return entries.slice(0, bounded).map((e, i) => ({
     rank: i + 1,
     entry_id: e.id,
     creator_user_id: e.creator_user_id,

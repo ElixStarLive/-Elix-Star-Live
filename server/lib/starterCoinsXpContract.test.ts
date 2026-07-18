@@ -41,7 +41,7 @@ describe("Starter Coin transactional contracts", () => {
   const auth = read("../routes/auth.ts");
   const gifts = read("../routes/gifts.ts");
   const progression = read("./starterCoinsXp.ts");
-  const ws = read("../websocket/handlers.ts");
+  const giftDelivery = read("../websocket/giftDelivery.ts");
   const adminRouter = read("../routes/adminProgression.router.ts");
 
   it("grants onboarding coins inside the registration transaction", () => {
@@ -73,10 +73,13 @@ describe("Starter Coin transactional contracts", () => {
   });
 
   it("excludes starter gifts from goals and battle scores", () => {
-    expect(ws).toContain(
-      'sentGiftId && verified.giftSource === "paid_coins"',
-    );
-    expect(ws).toContain('verified.giftSource === "paid_coins"');
+    // Gift-goal + battle-score side effects only run inside the paid-coins branch,
+    // so starter (and test) coins never affect goals or battle scores.
+    expect(giftDelivery).toContain('input.giftSource === "paid_coins"');
+    const gate = giftDelivery.indexOf('input.giftSource === "paid_coins"');
+    const paidBranch = giftDelivery.slice(gate);
+    expect(paidBranch).toContain("incrementGiftGoal");
+    expect(paidBranch).toContain("addBattleScoreForTarget");
   });
 
   it("protects admin progression APIs with both auth and admin checks", () => {
