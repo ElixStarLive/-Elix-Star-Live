@@ -5,6 +5,7 @@ import { Capacitor } from '@capacitor/core'
 import App from './App'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { NativeDialogProvider } from './components/NativeDialog'
+import { crashReporting } from './lib/crashReporting'
 import './index.css'
 
 /* Native WebView: CSS hooks so phone layout can clear home bar without changing web. */
@@ -12,8 +13,14 @@ if (typeof document !== 'undefined' && Capacitor.isNativePlatform()) {
   document.documentElement.classList.add('native-app')
 }
 
+// Boot crash reporting so global errors are actually captured (no-op unless a
+// store build or VITE_ENABLE_CRASH_REPORTING=true).
+void crashReporting.initialize();
+
 window.addEventListener('error', (e) => {
   if (import.meta.env.DEV) console.error('[global error]', e.error || e.message);
+  const err = e.error instanceof Error ? e.error : new Error(String(e.message || 'window.error'));
+  void crashReporting.logError(err, { source: 'window.error' });
 });
 
 window.addEventListener('unhandledrejection', (e) => {
@@ -25,6 +32,8 @@ window.addEventListener('unhandledrejection', (e) => {
   if (import.meta.env.DEV) {
     console.error('[unhandledrejection]', e.reason);
   }
+  const err = e.reason instanceof Error ? e.reason : new Error(String(e.reason || 'unhandledrejection'));
+  void crashReporting.logError(err, { source: 'unhandledrejection' });
 });
 
 try {

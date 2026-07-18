@@ -31,7 +31,7 @@ const LiveDiscover = lazy(() => import("./pages/LiveDiscover"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
-import Upload from "./pages/Upload";
+const Upload = lazy(() => import("./pages/Upload"));
 const Create = lazy(() => import("./pages/Create"));
 const SavedVideos = lazy(() => import("./pages/SavedVideos"));
 const MusicFeed = lazy(() => import("./pages/MusicFeed"));

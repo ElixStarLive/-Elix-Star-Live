@@ -445,12 +445,14 @@ export default function LiveStream() {
 
   useEffect(() => {
     if (!user?.id) return;
-    
+    let cancelled = false;
+
     setUserLevel(user.level ?? 0);
     setUserXP(0);
 
     Promise.all([request('/api/wallet/'), request('/api/progression/me')])
       .then(([wallet, progression]) => {
+        if (cancelled) return;
         const walletBal =
           !wallet.error && wallet.data?.balance != null
             ? Math.max(0, Number(wallet.data.balance))
@@ -464,8 +466,10 @@ export default function LiveStream() {
         setUserXP(Math.max(0, Number(p?.total_xp) || 0));
       })
       .catch(() => {
+        if (cancelled) return;
         setCoinBalance(getPersistedTestCoinsBalance(user.id));
       });
+    return () => { cancelled = true; };
   }, [user?.id, user?.level]);
 
   const [isMyStreamLive, setIsMyStreamLive] = useState(false);

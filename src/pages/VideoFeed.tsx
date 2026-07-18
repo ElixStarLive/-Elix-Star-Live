@@ -1,6 +1,8 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback, Suspense } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import InlineLiveViewer from "../components/InlineLiveViewer";
+// Lazy so livekit-client (~420kb) is NOT in the first-paint feed chunk; it only
+// loads when a live card is actually rendered.
+const InlineLiveViewer = React.lazy(() => import("../components/InlineLiveViewer"));
 import EnhancedVideoPlayer from "../components/EnhancedVideoPlayer";
 import { useVideoStore } from "../store/useVideoStore";
 import { useAuthStore } from "../store/useAuthStore";
@@ -583,13 +585,15 @@ export default function VideoFeed() {
                 style={slideStyle}
               >
                 <div className="w-full flex-1 min-h-0 relative overflow-hidden bg-black">
-                  <InlineLiveViewer
-                    streamKey={item.stream.streamKey}
-                    isActive={activeIndex === index}
-                    creatorName={item.stream.name}
-                    creatorAvatar={item.stream.avatar}
-                    viewerCount={item.stream.viewers}
-                  />
+                  <Suspense fallback={<div className="w-full h-full bg-black" />}>
+                    <InlineLiveViewer
+                      streamKey={item.stream.streamKey}
+                      isActive={activeIndex === index}
+                      creatorName={item.stream.name}
+                      creatorAvatar={item.stream.avatar}
+                      viewerCount={item.stream.viewers}
+                    />
+                  </Suspense>
                 </div>
               </div>
             );

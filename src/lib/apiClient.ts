@@ -125,11 +125,18 @@ async function nativeFetchRequest<T>(
   init: RequestInit = {},
 ): Promise<{ data: T | null; error: { message: string } | null }> {
   const { signal: _ignored, ...rest } = init;
-  const res = await fetch(apiUrl(path), {
-    credentials: "omit",
-    ...rest,
-    headers: { ...authHeaders(), ...(init.headers || {}) },
-  });
+  // AbortSignal breaks Capacitor's patched fetch, so guard against a hung
+  // request with a timeout race instead of aborting the fetch itself.
+  const res = await Promise.race([
+    fetch(apiUrl(path), {
+      credentials: "omit",
+      ...rest,
+      headers: { ...authHeaders(), ...(init.headers || {}) },
+    }),
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("request_timeout")), REQUEST_TIMEOUT_MS),
+    ),
+  ]);
   const ct = res.headers.get("content-type") || "";
   const isJson = ct.includes("application/json") || ct.includes("+json");
   if (!isJson) {

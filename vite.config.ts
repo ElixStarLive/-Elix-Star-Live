@@ -26,7 +26,11 @@ export default defineConfig(({ mode }) => ({
       output: {
         manualChunks: {
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-ui': ['framer-motion', 'lucide-react', 'clsx', 'tailwind-merge'],
+          // lucide-react is used app-wide (loads on first paint); keep it here.
+          'vendor-ui': ['lucide-react', 'clsx', 'tailwind-merge'],
+          // framer-motion is only used by live pages — isolate it so it is not
+          // pulled into the first-paint vendor-ui chunk.
+          'vendor-motion': ['framer-motion'],
           'vendor-state': ['zustand'],
         },
       },
