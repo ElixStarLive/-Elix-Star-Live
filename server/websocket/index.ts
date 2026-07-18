@@ -466,20 +466,67 @@ async function updateViewerCount(roomId: string): Promise<void> {
   });
 }
 
+/** Host WS blips (battle UI remount / mobile network) must not kill the live. */
+const HOST_DISCONNECT_GRACE_MS = 20_000;
+const hostDisconnectTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+function hostDisconnectKey(roomId: string, userId: string): string {
+  return `${roomId}:${userId}`;
+}
+
+function cancelHostDisconnectGrace(roomId: string, userId: string): void {
+  const key = hostDisconnectKey(roomId, userId);
+  const t = hostDisconnectTimers.get(key);
+  if (t) {
+    clearTimeout(t);
+    hostDisconnectTimers.delete(key);
+  }
+}
+
+function scheduleHostDisconnectStreamEnd(roomId: string, userId: string): void {
+  const key = hostDisconnectKey(roomId, userId);
+  const existing = hostDisconnectTimers.get(key);
+  if (existing) clearTimeout(existing);
+  const timer = setTimeout(() => {
+    hostDisconnectTimers.delete(key);
+    void (async () => {
+      try {
+        // Host rejoined this room — keep the live up.
+        const room = rooms.get(roomId);
+        if (room && Array.from(room).some((c) => c.userId === userId)) {
+          return;
+        }
+        if (isValkeyConfigured()) {
+          const stillMember = await valkeySmembers(`room:members:${roomId}`);
+          if (stillMember.includes(userId)) return;
+        }
+        const isHost = await isStreamHost(roomId, userId);
+        if (!isHost) return;
+        await removeActiveStream(roomId, userId);
+        await deleteCohostLayout(roomId);
+        broadcastToRoom(roomId, "stream_ended", {
+          stream_key: roomId,
+          host_user_id: userId,
+          reason: "host_disconnected",
+        });
+        broadcastToFeedSubscribers("stream_ended", { stream_key: roomId });
+      } catch (err) {
+        logger.error({ err, roomId, userId }, "host disconnect grace end failed");
+      }
+    })();
+  }, HOST_DISCONNECT_GRACE_MS);
+  hostDisconnectTimers.set(key, timer);
+}
+
 async function checkAndBroadcastStreamEnd(
   roomId: string,
   userId: string,
 ): Promise<void> {
   const isHost = await isStreamHost(roomId, userId);
   if (!isHost) return;
-  await removeActiveStream(roomId, userId);
-  await deleteCohostLayout(roomId);
-  broadcastToRoom(roomId, "stream_ended", {
-    stream_key: roomId,
-    host_user_id: userId,
-    reason: "host_disconnected",
-  });
-  broadcastToFeedSubscribers("stream_ended", { stream_key: roomId });
+  // Grace window so brief WS reconnects (e.g. starting a battle match) do not
+  // end the live for every spectator.
+  scheduleHostDisconnectStreamEnd(roomId, userId);
 }
 
 // ── Build viewer list from Valkey + DB for new joiners ───────────
@@ -660,6 +707,9 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
         await valkeySadd(`room:members:${roomId}`, userId);
         await valkeyExpire(`room:members:${roomId}`, ROOM_MEMBER_TTL);
       }
+
+      // Host reconnected within grace — do not end the live.
+      cancelHostDisconnectGrace(roomId, userId);
 
       const viewers = await buildViewerList(roomId);
 

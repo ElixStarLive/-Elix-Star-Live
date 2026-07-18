@@ -3270,10 +3270,18 @@ export default function LiveStream() {
       websocket.off('moderation_warning', handleModerationWarning);
       websocket.off('moderation_pause', handleModerationPause);
       websocket.off('moderation_suspend', handleModerationSuspend);
-      websocket.disconnect();
+      // Do NOT disconnect here — unstable handler deps were dropping the host WS
+      // mid-battle and server treated that as "host left" → stream_ended.
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveStreamId, user?.id, navigate, maybeResolveViewerIdentity, isGenericViewerName, triggerBattleVfx]);
+  }, [effectiveStreamId, user?.id]);
+
+  // Disconnect WS only when leaving the LiveStream page entirely.
+  useEffect(() => {
+    return () => {
+      websocket.disconnect();
+    };
+  }, []);
 
   // AI moderation: periodic frame check when broadcasting (flag + assist, all actions logged)
   const moderationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -5193,19 +5201,19 @@ export default function LiveStream() {
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
-            className="fixed left-0 right-0 bottom-[calc(58px+max(2px,env(safe-area-inset-bottom,0px)))] z-[230] flex justify-center pointer-events-none"
+            className="fixed left-0 right-0 bottom-[calc(58px+max(2px,env(safe-area-inset-bottom,0px)))] z-[260] flex justify-center pointer-events-none"
           >
             <div className="w-full max-w-[480px] mx-auto px-3 flex justify-end pointer-events-auto">
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); handleComboClick(); }}
               disabled={comboCount >= GIFT_COMBO_MAX}
-              className="w-[72px] h-[72px] rounded-full bg-gradient-to-b from-[#FF5A7A] to-[#FF2D55] flex flex-col items-center justify-center active:scale-90 transition-transform shadow-[0_0_18px_rgba(255,45,85,0.55)] border-2 border-white/30 disabled:opacity-50"
+              className="w-[48px] h-[48px] rounded-full bg-gradient-to-b from-[#FF5A7A] to-[#FF2D55] flex flex-col items-center justify-center active:scale-90 transition-transform shadow-[0_0_12px_rgba(255,45,85,0.45)] border border-white/30 disabled:opacity-50"
             >
               {typeof lastSentGift.icon === 'string' && (lastSentGift.icon.startsWith('http') || lastSentGift.icon.startsWith('/')) ? (
-                <img src={lastSentGift.icon} alt="" className="w-7 h-7 object-contain mb-0.5" draggable={false} />
+                <img src={lastSentGift.icon} alt="" className="w-4 h-4 object-contain mb-0.5" draggable={false} />
               ) : null}
-              <span className={`font-black italic text-white drop-shadow-md leading-none ${comboCount >= 1000 ? 'text-sm' : 'text-xl'}`}>
+              <span className={`font-black italic text-white drop-shadow-md leading-none ${comboCount >= 1000 ? 'text-[9px]' : 'text-xs'}`}>
                 x{comboCount >= 1000 ? `${(comboCount / 1000).toFixed(comboCount % 1000 === 0 ? 0 : 1)}K` : comboCount}
               </span>
             </button>
@@ -5216,7 +5224,7 @@ export default function LiveStream() {
 
       {/* BOTTOM RIGHT: Action buttons (same area as before, aligned right) */}
       <div
-        className="bottom-zone pointer-events-auto bg-transparent px-3 pt-0 flex flex-col items-end fixed left-0 right-0 bottom-0 z-[250] justify-end"
+        className="bottom-zone pointer-events-auto bg-transparent px-3 pt-0 flex flex-col items-end fixed left-0 right-0 bottom-0 z-[270] justify-end"
         style={{ paddingBottom: LIVE_BOTTOM_ACTION_PADDING }}
       >
         <div className="w-full max-w-[480px] mx-auto flex flex-col items-end gap-0">
@@ -6400,6 +6408,7 @@ export default function LiveStream() {
         onEnded={handleGiftEnded}
         isBattleMode={isBattleMode}
         muted={false}
+        zIndex={210}
       />
       
       {/* ═══ SHARE PANEL ═══ */}

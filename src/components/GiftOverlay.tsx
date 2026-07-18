@@ -44,6 +44,8 @@ interface GiftOverlayProps {
   isBattleMode?: boolean;
   /** When false, spectators can hear the gift video sound. Default true (muted) for creator/autoplay. */
   muted?: boolean;
+  /** Stacking order. Spectator should keep this below combo/gift icons. */
+  zIndex?: number;
 }
 
 function GiftVideo({
@@ -108,6 +110,7 @@ export function GiftOverlay({
   splitStyle: _splitStyle,
   isBattleMode: _isBattleMode,
   muted = true,
+  zIndex = 50000,
 }: GiftOverlayProps) {
   const safetyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onEndedRef = useRef(onEnded);
@@ -161,8 +164,8 @@ export function GiftOverlay({
       className="fixed left-0 right-0 bottom-0 mx-auto w-full max-w-[480px] pointer-events-none overflow-hidden"
       style={{
         height: 'calc(70% - 25mm)',
-        // Above live battle/video layers; below modal sheets (99998+).
-        zIndex: 50000,
+        // Default high; spectator passes a lower zIndex so combo/gift icons stay on top.
+        zIndex,
         WebkitMaskImage: 'linear-gradient(to top, black 0%, black 60%, transparent 100%)',
         maskImage: 'linear-gradient(to top, black 0%, black 60%, transparent 100%)',
       }}

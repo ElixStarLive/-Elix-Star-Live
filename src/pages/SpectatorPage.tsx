@@ -437,11 +437,8 @@ export default function SpectatorPage() {
     })();
   }, [battleStreamIds?.opponentUserId, spectatorBattle?.opponentName]);
 
-  const joinOpponentLive = useCallback(() => {
-    const roomId = spectatorBattle?.opponentRoomId;
-    if (!roomId) return;
-    navigate(`/watch/${roomId}`);
-  }, [spectatorBattle?.opponentRoomId, navigate]);
+  // Stay on the host stream during battle. Dual LiveKit already shows both
+  // creators — navigating away mixes WS/LiveKit rooms and kills the live.
 
   const handleSpectatorVote = useCallback((target: 'host' | 'opponent' | 'player3' | 'player4') => {
     if (!spectatorBattle?.active || spectatorBattle.status !== 'ACTIVE') return;
@@ -1707,10 +1704,19 @@ export default function SpectatorPage() {
       websocket.off('booster_caught', handleBoosterCaught);
       websocket.off('mist_activated', handleMistActivated);
       websocket.off('connected', onConnected);
-      websocket.disconnect();
+      // Do NOT websocket.disconnect() here — battle/MVP callback identity churn was
+      // tearing down the host room and making the live look "closed". Leave only
+      // disconnects the intentional leave / stream_ended paths.
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveStreamId, user?.id, streamIsLive, syncMvpSlots, spawnHeartAt, triggerBattleVfx]);
+  }, [effectiveStreamId, user?.id, streamIsLive]);
+
+  // Disconnect WS only when leaving this stream page entirely.
+  useEffect(() => {
+    return () => {
+      websocket.disconnect();
+    };
+  }, []);
 
   // Clear the active booster indicator when its server-driven window expires.
   useEffect(() => {
@@ -2225,8 +2231,7 @@ export default function SpectatorPage() {
                         </button>
                       </div>
                       <div
-                        className="flex-1 basis-0 min-w-0 h-full overflow-hidden relative bg-[#111111] cursor-pointer"
-                        onClick={(e) => { e.stopPropagation(); joinOpponentLive(); }}
+                        className="flex-1 basis-0 min-w-0 h-full overflow-hidden relative bg-[#111111]"
                       >
                         <video
                           ref={opponentVideoRef}
@@ -2321,7 +2326,7 @@ export default function SpectatorPage() {
                             type="button"
                             className="flex-1 basis-0 min-w-0 h-full touch-manipulation cursor-pointer border-0 bg-transparent p-0 active:bg-white/5"
                             aria-label="Vote blue team"
-                            onClick={() => { handleSpectatorVote('opponent'); joinOpponentLive(); }}
+                            onClick={() => handleSpectatorVote('opponent')}
                           />
                         </>
                       )}
@@ -2959,20 +2964,20 @@ export default function SpectatorPage() {
           </div>
         </div>
 
-        {/* COMBO — TikTok-style round combo tap (above bottom bar + gift video) */}
+        {/* COMBO — above gift video + bottom bar icons */}
         {showComboButton && lastSentGift && (
-          <div className="fixed left-0 right-0 bottom-[calc(58px+max(2px,env(safe-area-inset-bottom,0px)))] z-[230] flex justify-center pointer-events-none">
+          <div className="fixed left-0 right-0 bottom-[calc(58px+max(2px,env(safe-area-inset-bottom,0px)))] z-[260] flex justify-center pointer-events-none">
             <div className="w-full max-w-[480px] mx-auto px-3 flex justify-end pointer-events-auto">
             <button
               type="button"
               onClick={handleComboClick}
               disabled={comboCount >= GIFT_COMBO_MAX}
-              className="w-[72px] h-[72px] rounded-full bg-gradient-to-b from-[#FF5A7A] to-[#FF2D55] flex flex-col items-center justify-center active:scale-90 transition-transform shadow-[0_0_18px_rgba(255,45,85,0.55)] border-2 border-white/30 disabled:opacity-50"
+              className="w-[48px] h-[48px] rounded-full bg-gradient-to-b from-[#FF5A7A] to-[#FF2D55] flex flex-col items-center justify-center active:scale-90 transition-transform shadow-[0_0_12px_rgba(255,45,85,0.45)] border border-white/30 disabled:opacity-50"
             >
               {typeof lastSentGift.icon === 'string' && (lastSentGift.icon.startsWith('http') || lastSentGift.icon.startsWith('/')) ? (
-                <img src={lastSentGift.icon} alt="" className="w-7 h-7 object-contain mb-0.5" draggable={false} />
+                <img src={lastSentGift.icon} alt="" className="w-4 h-4 object-contain mb-0.5" draggable={false} />
               ) : null}
-              <span className={`font-black italic text-white drop-shadow-md leading-none ${comboCount >= 1000 ? 'text-sm' : 'text-xl'}`}>
+              <span className={`font-black italic text-white drop-shadow-md leading-none ${comboCount >= 1000 ? 'text-[9px]' : 'text-xs'}`}>
                 x{comboCount >= 1000 ? `${(comboCount / 1000).toFixed(comboCount % 1000 === 0 ? 0 : 1)}K` : comboCount}
               </span>
             </button>
@@ -2982,7 +2987,7 @@ export default function SpectatorPage() {
 
         {/* Bottom bar — chat + Invite / Gift / Share / More (labels under icons, spectator) */}
         <div
-          className="fixed left-0 right-0 bottom-0 z-[250] pointer-events-auto flex justify-center"
+          className="fixed left-0 right-0 bottom-0 z-[270] pointer-events-auto flex justify-center"
           style={{ paddingBottom: LIVE_BOTTOM_ACTION_PADDING }}
         >
           <div className="w-full max-w-[480px] px-3 pt-0 bg-transparent">
@@ -3099,13 +3104,14 @@ export default function SpectatorPage() {
           </div>
         )}
 
-        {/* GIFT VIDEO OVERLAY */}
+        {/* GIFT VIDEO — behind combo + bottom gift icons (z 270/260), above battle video (z 80) */}
         <GiftOverlay
           key={`gift-${giftKey}`}
           videoSrc={currentGift?.video ?? null}
           onEnded={handleGiftEnded}
           isBattleMode={!!spectatorBattle?.active}
           muted={false}
+          zIndex={210}
         />
 
 
