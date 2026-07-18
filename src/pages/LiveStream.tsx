@@ -243,6 +243,9 @@ export default function LiveStream() {
   const [inputValue, setInputValue] = useState('');
   // Consolidate broadcast logic: host if streamId is broadcast OR if streamId matches my own user ID
   const isBroadcast = streamId === 'broadcast' || location.pathname === '/live/broadcast' || (user?.id && streamId === user.id);
+  // A battle joiner is a verified publishing creator, not a spectator.
+  const isBattleJoiner = !isBroadcast && new URLSearchParams(location.search).get('battle') === '1';
+  const isCreatorParticipant = Boolean(isBroadcast || isBattleJoiner);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -304,11 +307,11 @@ export default function LiveStream() {
   );
   const [hostName, setHostName] = useState('');
   const [hostAvatar, setHostAvatar] = useState('');
-  const creatorName = isBroadcast
+  const creatorName = isCreatorParticipant
     ? user?.name || user?.username || 'Creator'
     : hostName || 'Creator';
   const myCreatorName = creatorName;
-  const myAvatar = isBroadcast
+  const myAvatar = isCreatorParticipant
     ? user?.avatar || ''
     : hostAvatar || '';
   const [opponentCreatorName, setOpponentCreatorName] = useState('');
@@ -1102,8 +1105,6 @@ export default function LiveStream() {
   const isBattleModeRef = useRef(false);
   const battleEndedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => { isBattleModeRef.current = isBattleMode; }, [isBattleMode]);
-  const isBattleJoiner = !isBroadcast && new URLSearchParams(location.search).get('battle') === '1';
-
   // If joining as battle participant, enter battle mode and start camera (server drives timer/countdown)
   const battleLkRoomRef = useRef<Room | null>(null);
   useEffect(() => {
@@ -1115,6 +1116,26 @@ export default function LiveStream() {
 
     let cancelled = false;
     (async () => {
+      // Establish the server-authorized creator role before opening camera/mic.
+      // A plain spectator who reaches ?battle=1 has no accepted invite grant
+      // and is returned to the subscribe-only spectator page.
+      let tokenData: { url?: string; token?: string } | null = null;
+      for (let attempt = 0; attempt < 6 && !cancelled; attempt += 1) {
+        const tokenResult = await request(
+          `/api/live/token?room=${encodeURIComponent(effectiveStreamId)}&publish=1`,
+        );
+        if (!tokenResult.error && tokenResult.data?.token) {
+          tokenData = tokenResult.data;
+          break;
+        }
+        await new Promise((resolve) => window.setTimeout(resolve, 250));
+      }
+      if (cancelled) return;
+      if (!tokenData?.token) {
+        navigate(`/watch/${effectiveStreamId}`, { replace: true });
+        return;
+      }
+
       const hostLabel = effectiveStreamId.slice(0, 8).toUpperCase();
       let hName = `Host ${hostLabel}`;
       let hAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(hostLabel)}&background=121212&color=FFFFFF`;
@@ -1167,8 +1188,7 @@ export default function LiveStream() {
 
       // Connect to host's LiveKit room and publish our tracks
       try {
-        const { data: tokenData, error: tokenErr } = await request(`/api/live/token?room=${encodeURIComponent(effectiveStreamId)}&publish=1`);
-        if (tokenErr || cancelled) return;
+        if (cancelled) return;
         const lkUrl = (tokenData?.url ?? '').trim() || getLiveKitUrl();
         const lkToken = tokenData?.token;
         if (!lkUrl || !lkToken || cancelled) return;
@@ -3418,7 +3438,7 @@ export default function LiveStream() {
   }, []);
 
   const handleSendGift = async (gift: GiftUiItem) => {
-    if (!gift) return;
+    if (!gift || isCreatorParticipant) return;
 
     const usedTestCoins = Boolean(user?.id && shouldUseTestCoinsForGifts(user.id));
     const spendable = usedTestCoins
@@ -3677,7 +3697,7 @@ export default function LiveStream() {
   };
 
   const handleComboClick = async () => {
-      if (!lastSentGift) return;
+      if (!lastSentGift || isCreatorParticipant) return;
       if (comboCount >= GIFT_COMBO_MAX) return;
 
       const usedTestCoins = Boolean(user?.id && shouldUseTestCoinsForGifts(user.id));
@@ -3980,8 +4000,8 @@ export default function LiveStream() {
       }
     }
 
-    // Battle (spectators): +5 to the creator they watch (URL matches battle participant), else by tap position on the grid.
-    if (!isBroadcast && clientX !== undefined && clientY !== undefined && isBattleMode && battleTime > 0 && !battleWinner) {
+    // Battle spectators vote once per match. Publishing creators never enter this path.
+    if (!isCreatorParticipant && clientX !== undefined && clientY !== undefined && isBattleMode && battleTime > 0 && !battleWinner) {
       const watchedTarget = resolveSpectatorVoteTargetFromWatchedStream();
       const overlayEl = battleSpectatorOverlayRef.current;
       const gridEl = battleVoteGridRef.current;
@@ -4197,7 +4217,7 @@ export default function LiveStream() {
           <div
             className={hasAnyCoHost ? 'absolute inset-x-0 z-[25] flex flex-row' : 'relative w-full h-full'}
             style={hasAnyCoHost ? { top: '90px', height: 'calc(36dvh + 10mm)', filter: liveFilterCss !== 'none' ? liveFilterCss : undefined } : { filter: liveFilterCss !== 'none' ? liveFilterCss : undefined }}
-            onPointerDown={isBroadcast ? undefined : (e) => {
+            onPointerDown={isCreatorParticipant ? undefined : (e) => {
               if (e.target instanceof Element) {
                 const interactive = e.target.closest('button, a, input, textarea, select, [role="button"]');
                 if (interactive) return;
@@ -5257,7 +5277,7 @@ export default function LiveStream() {
         <div className="w-full max-w-[480px] mx-auto flex flex-col items-end gap-0">
         <div className="flex flex-col items-end">
           {/* Spectator bar — stay visible during gift video so they can send again */}
-          {!isBroadcast && (
+          {!isCreatorParticipant && (
             <div className="flex items-end gap-2 w-full max-w-[480px] pointer-events-auto">
               <form className="flex-1 flex items-center gap-2 bg-black/40 backdrop-blur-sm rounded-full px-3 py-2 border border-white/10 h-10 min-w-0" onSubmit={(e) => { e.preventDefault(); handleSendMessage(e); }}>
                 <input type="text" inputMode="text" enterKeyHint="send" autoComplete="off" placeholder="Say something..." className="bg-transparent text-white text-xs outline-none flex-1 placeholder:text-white/30 min-w-0" value={inputValue} onChange={(e) => setInputValue(e.target.value)} />
@@ -5361,7 +5381,7 @@ export default function LiveStream() {
       </div>
 
       {/* Gift panel: spectators open it from their bar; creator has no Gift button. */}
-      {showGiftPanel && !isBroadcast && (
+      {showGiftPanel && !isCreatorParticipant && (
         <>
           <div className="fixed inset-0 bg-black/50 pointer-events-auto" style={{ zIndex: 99998 }} onClick={() => setShowGiftPanel(false)} />
           <div className="fixed bottom-0 left-0 right-0 pointer-events-auto max-w-[480px] mx-auto" style={{ zIndex: 99999 }}>
@@ -6013,8 +6033,8 @@ export default function LiveStream() {
           <div className="w-full max-w-[480px] flex justify-start">
             <LiveGiftGoalBar
               goal={giftGoal}
-              onTap={() => { if (!isBroadcast) setShowGiftPanel(true); }}
-              showSend={!isBroadcast}
+              onTap={() => { if (!isCreatorParticipant) setShowGiftPanel(true); }}
+              showSend={!isCreatorParticipant}
             />
           </div>
         </div>

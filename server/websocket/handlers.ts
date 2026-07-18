@@ -37,6 +37,10 @@ import { deliverVerifiedGift } from "./giftDelivery";
 
 const BATTLE_USER_ROOM_TTL_MS = 600_000;
 
+function battleAcceptedKey(roomId: string, userId: string): string {
+  return `battle_accept:${roomId}:${userId}`;
+}
+
 /**
  * Verify that a WS gift event corresponds to a real, paid gift transaction
  * recorded by the REST /api/gifts/send endpoint for THIS user. Returns the
@@ -302,6 +306,26 @@ export async function handleMessage(
         if (!(await wsRateCheck(client.userId, "battle_create", 10, 60_000))) break;
         const ownerId = await resolveStreamOwnerUserId(client.roomId);
         if (!ownerId || ownerId !== client.userId) break;
+        const opponentUserId =
+          typeof data.opponentUserId === "string" ? data.opponentUserId.trim() : "";
+        const opponentName =
+          typeof data.opponentName === "string" ? data.opponentName.trim() : "";
+        const opponentRoomId =
+          typeof data.opponentRoomId === "string" ? data.opponentRoomId.trim() : "";
+        if (opponentUserId) {
+          // Never trust an opponent id supplied by the host client. The target
+          // must have accepted this host's invite before becoming a creator
+          // participant in the battle.
+          const accepted = await valkeyGet(
+            battleAcceptedKey(client.roomId, opponentUserId),
+          );
+          if (!accepted || !opponentName) {
+            sendToClient(client, "battle_error", {
+              message: "Accepted creator invite required",
+            });
+            break;
+          }
+        }
         const existing = await getBattleFromStore(client.roomId);
         if (existing) {
           await valkeyDel("battle:" + client.roomId);
@@ -314,12 +338,6 @@ export async function handleMessage(
           data.hostName || client.displayName,
         );
         if (!session) break;
-        const opponentUserId =
-          typeof data.opponentUserId === "string" ? data.opponentUserId : "";
-        const opponentName =
-          typeof data.opponentName === "string" ? data.opponentName : "";
-        const opponentRoomId =
-          typeof data.opponentRoomId === "string" ? data.opponentRoomId : "";
         if (opponentUserId && opponentName) {
           session.opponentUserId = opponentUserId;
           session.opponentName = opponentName;
@@ -384,6 +402,17 @@ export async function handleMessage(
         const voteRoom = client.roomId;
         const voteBattle = await getBattleFromStore(voteRoom);
         if (!voteBattle || voteBattle.status !== "ACTIVE") break;
+        const participantIds = [
+          voteBattle.hostUserId,
+          voteBattle.opponentUserId,
+          voteBattle.player3UserId,
+          voteBattle.player4UserId,
+        ].filter(
+          (participantId): participantId is string =>
+            typeof participantId === "string" && participantId.length > 0,
+        );
+        // Creators publish and compete; only spectators may cast the +5 vote.
+        if (participantIds.includes(client.userId)) break;
         const voteClaimKey = `battle_vote:${voteBattle.id}:${client.userId}`;
         const firstVote = await valkeySetNx(voteClaimKey, "1", 600_000);
         if (!firstVote) {
@@ -516,10 +545,9 @@ export async function handleMessage(
         const hostUserId =
           typeof data.hostUserId === "string" ? data.hostUserId : "";
         if (!hostUserId) break;
-        const accepterStreamKey =
-          typeof data.streamKey === "string" && data.streamKey.trim()
-            ? data.streamKey.trim()
-            : client.roomId;
+        // The accepting creator's current WS room is authoritative. Do not let
+        // client payloads substitute a spectator/user id as the creator room.
+        const accepterStreamKey = client.roomId;
         // Battle is creator vs creator. Acceptance is only valid if a REAL
         // battle invite was issued to this user for the host's room. This makes
         // it impossible for a spectator (never invited) to join as a battle
@@ -529,10 +557,24 @@ export async function handleMessage(
             ? data.hostStreamKey.trim()
             : "";
         const hostRoomForInvite = hostStreamKeyRaw || (await resolveStreamOwnerUserId(hostUserId));
+        const authoritativeHostUserId = hostRoomForInvite
+          ? await resolveStreamOwnerUserId(hostRoomForInvite)
+          : "";
+        if (!authoritativeHostUserId || authoritativeHostUserId !== hostUserId) break;
         const invitedKey = hostRoomForInvite
           ? await valkeyGet(`battle_invite:${hostRoomForInvite}:${client.userId}`)
           : null;
         if (!invitedKey) break;
+        // Persist the accepted creator role before navigation. This is the
+        // authority used by battle_create and by the LiveKit publish-token
+        // check; a spectator never receives either grant.
+        await valkeySet(
+          battleAcceptedKey(hostRoomForInvite, client.userId),
+          "1",
+          BATTLE_USER_ROOM_TTL_MS,
+        );
+        await grantCohostPublish(hostRoomForInvite, client.userId);
+        await valkeyDel(`battle_invite:${hostRoomForInvite}:${client.userId}`);
         // Record where the accepter is heading BEFORE their solo stream ends,
         // so stream_end can redirect their spectators into the battle room.
         if (hostStreamKeyRaw && hostStreamKeyRaw !== client.roomId) {
@@ -542,7 +584,7 @@ export async function handleMessage(
             BATTLE_USER_ROOM_TTL_MS,
           );
         }
-        sendToUserGlobal(hostUserId, "battle_invite_accepted", {
+        sendToUserGlobal(authoritativeHostUserId, "battle_invite_accepted", {
           requesterUserId: client.userId,
           requesterName: data.requesterName || client.displayName,
           requesterAvatar: data.requesterAvatar || client.avatarUrl || "",
