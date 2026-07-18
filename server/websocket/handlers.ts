@@ -502,24 +502,27 @@ export async function handleMessage(
           typeof data.streamKey === "string" && data.streamKey.trim()
             ? data.streamKey.trim()
             : client.roomId;
-        // Record where the accepter is heading BEFORE their solo stream ends,
-        // so stream_end can redirect their spectators into the battle room.
-        // Only trusted when a real invite exists for this user + host room.
+        // Battle is creator vs creator. Acceptance is only valid if a REAL
+        // battle invite was issued to this user for the host's room. This makes
+        // it impossible for a spectator (never invited) to join as a battle
+        // participant by forging an accept — they can only ever watch.
         const hostStreamKeyRaw =
           typeof data.hostStreamKey === "string" && data.hostStreamKey.trim()
             ? data.hostStreamKey.trim()
             : "";
+        const hostRoomForInvite = hostStreamKeyRaw || (await resolveStreamOwnerUserId(hostUserId));
+        const invitedKey = hostRoomForInvite
+          ? await valkeyGet(`battle_invite:${hostRoomForInvite}:${client.userId}`)
+          : null;
+        if (!invitedKey) break;
+        // Record where the accepter is heading BEFORE their solo stream ends,
+        // so stream_end can redirect their spectators into the battle room.
         if (hostStreamKeyRaw && hostStreamKeyRaw !== client.roomId) {
-          const invitedKey = await valkeyGet(
-            `battle_invite:${hostStreamKeyRaw}:${client.userId}`,
+          await valkeySet(
+            "ubr:" + client.userId,
+            hostStreamKeyRaw,
+            BATTLE_USER_ROOM_TTL_MS,
           );
-          if (invitedKey) {
-            await valkeySet(
-              "ubr:" + client.userId,
-              hostStreamKeyRaw,
-              BATTLE_USER_ROOM_TTL_MS,
-            );
-          }
         }
         sendToUserGlobal(hostUserId, "battle_invite_accepted", {
           requesterUserId: client.userId,

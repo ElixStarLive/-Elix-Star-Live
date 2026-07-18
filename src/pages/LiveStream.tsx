@@ -833,7 +833,7 @@ export default function LiveStream() {
     const invite = pendingInvite;
     setPendingInvite(null);
     if (!invite.streamKey) {
-      showToast('Invalid invite — missing stream key');
+      showToast('Missing stream key');
       return;
     }
     try {
@@ -855,7 +855,7 @@ export default function LiveStream() {
   const declineBattleInvite = async () => {
     if (!pendingInvite) return;
     setPendingInvite(null);
-    showToast('Battle invite declined');
+    showToast('Declined');
   };
 
   // Mute state per player pane
@@ -923,15 +923,15 @@ export default function LiveStream() {
 
   const inviteCoHost = async (creator: { id: string; streamKey?: string; name: string; avatar?: string }) => {
     if (!isBroadcast || !isMyStreamLive) {
-      showToast('You must be live to invite co-hosts');
+      showToast('You must be live to add co-hosts');
       return;
     }
     if (isSelfUser(creator.id, user?.id, effectiveStreamId)) {
-      showToast('You cannot invite yourself as co-host');
+      showToast('You cannot add yourself as co-host');
       return;
     }
     if (creator.streamKey && isSelfUser(creator.streamKey, user?.id, effectiveStreamId)) {
-      showToast('You cannot invite yourself as co-host');
+      showToast('You cannot add yourself as co-host');
       return;
     }
     if (isBattleMode) {
@@ -966,7 +966,7 @@ export default function LiveStream() {
       hostAvatar: myAvatar,
       streamKey: effectiveStreamId,
     });
-    showToast(`Co-host invite sent to @${creator.name}`);
+    showToast(`Request sent to @${creator.name}`);
   };
 
   // ─── INCOMING CO-HOST INVITE (from another creator) ───
@@ -984,7 +984,7 @@ export default function LiveStream() {
 
   const declineCohostInvite = () => {
     setPendingCohostInvite(null);
-    showToast('Co-host invite declined');
+    showToast('Declined');
   };
 
   const acceptCohostInvite = async () => {
@@ -3180,7 +3180,7 @@ export default function LiveStream() {
         hostUserId: data.hostUserId || '',
       });
       setShowViewerList(true);
-      showToast(`@${data.hostName || 'Creator'} invited you to co-host — tap Join or Reject`);
+      showToast(`@${data.hostName || 'Creator'} wants you to co-host — tap Join or Reject`);
     };
 
     const handleCohostInviteAck = (data) => {
@@ -4344,7 +4344,7 @@ export default function LiveStream() {
                       {slot.host.avatar ? <img src={slot.host.avatar} alt="" className="w-full h-full object-cover opacity-60" /> : <div className="w-full h-full flex items-center justify-center text-[#E8D5A3]/60 text-base font-bold">{(slot.host.name || '?').charAt(0)}</div>}
                     </div>
                     <p className="text-white/60 text-[9px] font-bold mt-0.5 truncate max-w-[95%] text-center">{slot.host.name}</p>
-                    <span className="text-[#E8D5A3]/70 text-[8px] font-semibold">Invited</span>
+                    <span className="text-[#E8D5A3]/70 text-[8px] font-semibold">Waiting</span>
                   </>
                 );
                 if (slot.type === 'pending' && slot.host) return (
@@ -4361,7 +4361,7 @@ export default function LiveStream() {
                     <div className="w-12 h-12 rounded-full flex items-center justify-center">
                       <span className="text-white/30 text-2xl font-light">+</span>
                     </div>
-                    <p className="text-white/30 text-[9px] font-semibold mt-0.5">Invite</p>
+                    <p className="text-white/30 text-[9px] font-semibold mt-0.5">Add</p>
                   </button>
                 );
               };
@@ -4619,7 +4619,7 @@ export default function LiveStream() {
                           <div className="w-12 h-12 rounded-full flex items-center justify-center">
                             <span className="text-white/30 text-2xl">+</span>
                           </div>
-                          <span className="text-white/40 text-[10px] font-bold">Invite creator</span>
+                          <span className="text-white/40 text-[10px] font-bold">Add creator</span>
                         </div>
                       )}
 
@@ -4731,7 +4731,7 @@ export default function LiveStream() {
                             <div className="w-12 h-12 rounded-full flex items-center justify-center">
                               <span className="text-white/30 text-2xl">+</span>
                             </div>
-                            <span className="text-white/40 text-[10px] font-bold">Invite creator</span>
+                            <span className="text-white/40 text-[10px] font-bold">Add creator</span>
                           </div>
                         )}
 
@@ -4813,7 +4813,7 @@ export default function LiveStream() {
                             <div className="w-12 h-12 rounded-full flex items-center justify-center">
                               <span className="text-white/30 text-2xl">+</span>
                             </div>
-                            <span className="text-white/40 text-[10px] font-bold">Invite creator</span>
+                            <span className="text-white/40 text-[10px] font-bold">Add creator</span>
                           </div>
                         )}
 
@@ -5406,7 +5406,7 @@ export default function LiveStream() {
             </div>
             {/* Header — title centered */}
             <div className="flex items-center justify-center px-4 py-2 flex-shrink-0">
-              <span className="text-white font-bold text-[13px]">Invite Creators</span>
+              <span className="text-white font-bold text-[13px]">Creators</span>
             </div>
 
             {/* Creator list */}
@@ -5467,12 +5467,12 @@ export default function LiveStream() {
                         </div>
                       ) : isInvited ? (
                         <div className="px-2 py-1 rounded-full bg-white/5 border border-white/20 flex items-center gap-0.5 flex-shrink-0">
-                          <span className="text-white/50 text-[9px] font-bold">Invited</span>
+                          <span className="text-white/50 text-[9px] font-bold">Waiting</span>
                         </div>
                       ) : (
                         <div className="px-2 py-1 rounded-full bg-[#C9A96E] flex items-center justify-center gap-0.5 flex-shrink-0">
                           <UserPlus size={9} className="text-black shrink-0 flex-shrink-0" strokeWidth={2} />
-                          <span className="text-black text-[9px] font-bold">Invite</span>
+                          <span className="text-black text-[9px] font-bold">Add</span>
                         </div>
                       )}
                     </div>
@@ -5670,7 +5670,7 @@ export default function LiveStream() {
                 <div className="w-10 h-1 bg-white/20 rounded-full" />
               </div>
               <div className="flex items-center justify-center px-4 pb-2">
-                <h3 className="text-white font-bold text-sm">Invite creators</h3>
+                <h3 className="text-white font-bold text-sm">Creators</h3>
               </div>
               <div className="flex-1 overflow-y-auto no-scrollbar px-4 pb-4 min-h-0">
                 {pendingInvite && (
@@ -5744,7 +5744,7 @@ export default function LiveStream() {
                           onClick={() => { inviteCoHost({ id: c.id, streamKey: c.streamKey, name: c.name || c.username, avatar: c.avatar }); }}
                           className="px-2.5 py-1 rounded-full bg-[#C9A96E] text-black text-[10px] font-bold flex-shrink-0"
                         >
-                          Invite
+                          Add
                         </button>
                       )}
                     </div>

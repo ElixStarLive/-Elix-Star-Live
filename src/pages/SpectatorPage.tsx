@@ -1604,7 +1604,7 @@ export default function SpectatorPage() {
         hostUserId: data.hostUserId || '',
       });
       setShowCoHostPanel(true);
-      showToast(`@${data.hostName || 'Creator'} invited you to co-host — tap Join or Reject`);
+      showToast(`@${data.hostName || 'Creator'} wants you to co-host — tap Join or Reject`);
     };
 
     const handleGiftGoalSync = (data: unknown) => {
@@ -2621,7 +2621,7 @@ export default function SpectatorPage() {
                     {slot.host.avatar ? <img src={slot.host.avatar} alt="" className="w-full h-full object-cover opacity-60" /> : <div className="w-full h-full flex items-center justify-center text-[#E8D5A3]/60 text-base font-bold">{(slot.host.name || '?').charAt(0)}</div>}
                   </div>
                   <p className="text-white/60 text-[9px] font-bold mt-0.5 truncate max-w-[95%] text-center">{slot.host.name}</p>
-                  <span className="text-[#E8D5A3]/70 text-[8px] font-semibold">Invited</span>
+                  <span className="text-[#E8D5A3]/70 text-[8px] font-semibold">Waiting</span>
                 </>
               );
             }
@@ -2641,7 +2641,7 @@ export default function SpectatorPage() {
                 <div className="w-12 h-12 rounded-full flex items-center justify-center">
                   <span className="text-white/30 text-2xl font-light">+</span>
                 </div>
-                <p className="text-white/30 text-[9px] font-semibold mt-0.5">Invite</p>
+                <p className="text-white/30 text-[9px] font-semibold mt-0.5">Add</p>
               </div>
             );
           };
@@ -3087,7 +3087,7 @@ export default function SpectatorPage() {
                     <UserPlus size={20} className="text-[#D4AF37] shrink-0" strokeWidth={2} />
                   </span>
                 </div>
-                <span className="text-[10px] font-semibold text-[#D4AF37] mt-0.5">Invite</span>
+                <span className="text-[10px] font-semibold text-[#D4AF37] mt-0.5">Co-host</span>
               </button>
               <button
                 type="button"
