@@ -81,10 +81,11 @@ function toResult<T>(
     };
   }
   if (status < 200 || status >= 300) {
+    const baseMessage = body.error ? String(body.error) : `HTTP_${status}`;
     return {
       data: null,
       error: {
-        message: body.error ? String(body.error) : `HTTP_${status}`,
+        message: body.detail ? `${baseMessage}: ${String(body.detail)}` : baseMessage,
       },
     };
   }

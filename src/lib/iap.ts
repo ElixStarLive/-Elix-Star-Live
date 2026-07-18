@@ -68,6 +68,31 @@ let _billingSupported: boolean | null = null;
 let _plugin: typeof import('@capgo/native-purchases').NativePurchases | null = null;
 let _PURCHASE_TYPE: typeof import('@capgo/native-purchases').PURCHASE_TYPE | null = null;
 
+/**
+ * Fire-and-forget diagnostic beacon for the IAP flow. In the store build `console.*`
+ * is stripped, so this lands the stage in `elix_analytics_events` (event `iap_debug`)
+ * where it is queryable. Never allowed to throw / block a purchase.
+ */
+function reportIapStage(stage: string, data: Record<string, unknown> = {}): void {
+  try {
+    // eslint-disable-next-line no-console
+    console.info?.(`[IAP] ${stage}`, data);
+  } catch { /* ignore */ }
+  try {
+    void request('/api/analytics/track', {
+      method: 'POST',
+      body: JSON.stringify({
+        event: 'iap_debug',
+        properties: {
+          stage,
+          platform: platform.isIOS ? 'ios' : platform.isAndroid ? 'android' : 'web',
+          ...data,
+        },
+      }),
+    });
+  } catch { /* diagnostics must never break a purchase */ }
+}
+
 /** Optional Android store-completion methods not present in every plugin version. */
 type StoreCompletionMethods = {
   consumePurchase(options: { purchaseToken: string }): Promise<unknown>;
@@ -119,6 +144,18 @@ export async function loadProducts(): Promise<IAPProduct[]> {
       productType: mod.PURCHASE_TYPE.INAPP,
     });
 
+    if (!products || products.length === 0) {
+      // Empty here almost always means: product IDs not created/active in Play Console,
+      // app not installed from a Play track, or the build is signed with the wrong key.
+      reportIapStage('products_empty', { requested: [...IAP_PRODUCT_IDS] });
+    } else {
+      reportIapStage('products_loaded', {
+        count: products.length,
+        requested: IAP_PRODUCT_IDS.length,
+        ids: products.map((p: { identifier?: string; productIdentifier?: string }) => p.identifier || p.productIdentifier),
+      });
+    }
+
     return products.map((p: {
       identifier?: string;
       productIdentifier?: string;
@@ -134,7 +171,8 @@ export async function loadProducts(): Promise<IAPProduct[]> {
       priceAmountMicros: p.priceAmountMicros || 0,
       coins: IAP_PRODUCTS[p.identifier as IAPProductId]?.coins ?? 0,
     }));
-  } catch {
+  } catch (err) {
+    reportIapStage('load_products_error', { error: (err as { message?: string })?.message || String(err) });
     return [];
   }
 }
@@ -159,6 +197,89 @@ function appAccountTokenForUser(userId: string): string {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
 }
 
+type NativePurchasesPlugin = NonNullable<Awaited<ReturnType<typeof getPlugin>>>;
+
+/** Launch the native Google Play / StoreKit purchase flow for a coin SKU. */
+function launchPurchase(mod: NativePurchasesPlugin, productId: IAPProductId) {
+  const { user } = useAuthStore.getState();
+  return mod.NativePurchases.purchaseProduct({
+    productIdentifier: productId,
+    productType: mod.PURCHASE_TYPE.INAPP,
+    quantity: 1,
+    ...(user?.id ? { appAccountToken: appAccountTokenForUser(user.id) } : {}),
+  });
+}
+
+/**
+ * Consume the purchase after the server has credited coins.
+ * Coins are consumable, so Android MUST consume the token, otherwise the same SKU
+ * cannot be bought again (Google returns ITEM_ALREADY_OWNED on the next attempt).
+ */
+async function completeCoinPurchase(
+  mod: NativePurchasesPlugin,
+  transactionId: string,
+  receipt: string,
+): Promise<void> {
+  try {
+    if (platform.isAndroid && 'consumePurchase' in mod.NativePurchases && receipt) {
+      await (mod.NativePurchases as unknown as StoreCompletionMethods).consumePurchase({ purchaseToken: receipt });
+      reportIapStage('consumed');
+    } else if ('acknowledgePurchase' in mod.NativePurchases) {
+      await (mod.NativePurchases as unknown as StoreCompletionMethods).acknowledgePurchase({
+        transactionIdentifier: transactionId,
+        purchaseToken: receipt,
+      });
+      reportIapStage('acknowledged');
+    }
+  } catch (e) {
+    reportIapStage('consume_error', { error: (e as { message?: string })?.message });
+  }
+}
+
+/**
+ * Verify + credit + consume any coin purchase the store still considers "owned".
+ * This clears the stuck ITEM_ALREADY_OWNED state that occurs when an earlier
+ * purchase was paid for but never consumed (e.g. a prior verification failure).
+ * Returns the number of purchases successfully credited.
+ */
+export async function reconcileOwnedCoinPurchases(): Promise<number> {
+  if (!platform.isNative) return 0;
+  const mod = await getPlugin();
+  if (!mod) return 0;
+
+  let credited = 0;
+  try {
+    const { purchases } = await mod.NativePurchases.getPurchases();
+    for (const purchase of purchases || []) {
+      const productId = String(purchase.productIdentifier || '');
+      const transactionId = String(purchase.transactionId || '');
+      const receipt = purchase.receipt || purchase.purchaseToken || '';
+      if (!(productId in IAP_PRODUCTS) || !receipt || !transactionId) continue;
+
+      reportIapStage('reconcile_found_owned', { productId });
+      const verified = await verifyAndCreditPurchase(productId as IAPProductId, transactionId, receipt);
+      if (verified.success) {
+        credited += 1;
+        await completeCoinPurchase(mod, transactionId, receipt);
+        reportIapStage('reconcile_credited', { productId });
+      } else {
+        reportIapStage('reconcile_verify_failed', { productId, error: verified.error });
+      }
+    }
+  } catch (err) {
+    reportIapStage('reconcile_error', { error: (err as { message?: string })?.message || String(err) });
+  }
+  return credited;
+}
+
+function isAlreadyOwnedError(msg: string): boolean {
+  return /already own|ITEM_ALREADY_OWNED|not purchased/i.test(msg);
+}
+
+function isCancelError(msg: string): boolean {
+  return /cancel/i.test(msg) || msg.includes('USER_CANCELED');
+}
+
 export async function purchaseProduct(productId: IAPProductId): Promise<IAPPurchaseResult> {
   if (!platform.isNative) {
     return { success: false, error: 'In-app purchases are only available in the app' };
@@ -170,53 +291,66 @@ export async function purchaseProduct(productId: IAPProductId): Promise<IAPPurch
 
   const mod = await getPlugin();
   if (!mod) {
+    reportIapStage('plugin_unavailable');
     return { success: false, error: 'Purchase service not available' };
   }
 
   const available = await isBillingAvailable();
   if (!available) {
+    reportIapStage('billing_unavailable');
     return { success: false, error: 'Purchases are not supported on this device' };
   }
 
   purchaseInProgress = true;
   try {
-    const { user } = useAuthStore.getState();
-    const result = await mod.NativePurchases.purchaseProduct({
-      productIdentifier: productId,
-      productType: mod.PURCHASE_TYPE.INAPP,
-      quantity: 1,
-      ...(user?.id ? { appAccountToken: appAccountTokenForUser(user.id) } : {}),
-    });
+    reportIapStage('purchase_start', { productId });
+    let result: Awaited<ReturnType<typeof launchPurchase>>;
+    try {
+      result = await launchPurchase(mod, productId);
+    } catch (err) {
+      const msg = (err as { message?: string })?.message || String(err);
+      if (isCancelError(msg)) {
+        reportIapStage('purchase_cancelled', { productId });
+        return { success: false, error: 'Purchase cancelled' };
+      }
+      if (isAlreadyOwnedError(msg)) {
+        // A previous purchase is stuck "owned" and blocks a new buy. Credit + consume
+        // it, then retry once so the customer gets what they paid for.
+        reportIapStage('already_owned_recovering', { productId, msg });
+        const recovered = await reconcileOwnedCoinPurchases();
+        if (recovered > 0) {
+          reportIapStage('already_owned_recovered', { productId, recovered });
+          return { success: true, coins: IAP_PRODUCTS[productId]?.coins ?? 0 };
+        }
+        try {
+          result = await launchPurchase(mod, productId);
+        } catch (err2) {
+          const msg2 = (err2 as { message?: string })?.message || String(err2);
+          reportIapStage('retry_failed', { productId, error: msg2 });
+          return { success: false, error: isCancelError(msg2) ? 'Purchase cancelled' : (msg2 || 'Purchase failed') };
+        }
+      } else {
+        reportIapStage('purchase_launch_error', { productId, error: msg });
+        return { success: false, error: msg || 'Purchase failed' };
+      }
+    }
 
     const transactionId = result.transactionId;
     const receipt = result.receipt || result.purchaseToken || '';
+    reportIapStage('purchase_returned', { productId, hasTxn: !!transactionId, hasReceipt: !!receipt });
 
     if (!transactionId) {
       return { success: false, error: 'Purchase could not be verified' };
     }
 
-    const verifyResult = await verifyAndCreditPurchase(
-      productId,
-      transactionId,
-      receipt,
-    );
+    const verifyResult = await verifyAndCreditPurchase(productId, transactionId, receipt);
+    reportIapStage('verify_result', { productId, success: verifyResult.success, error: verifyResult.error });
 
     if (!verifyResult.success) {
       return { success: false, error: verifyResult.error || 'Verification failed. Please contact support if you were charged.' };
     }
 
-    // Coins are consumable. Android must consume the purchase token after credit
-    // so the same SKU can be bought again; acknowledge alone is not enough.
-    try {
-      if (platform.isAndroid && 'consumePurchase' in mod.NativePurchases && receipt) {
-        await (mod.NativePurchases as unknown as StoreCompletionMethods).consumePurchase({ purchaseToken: receipt });
-      } else if ('acknowledgePurchase' in mod.NativePurchases) {
-        await (mod.NativePurchases as unknown as StoreCompletionMethods).acknowledgePurchase({
-          transactionIdentifier: transactionId,
-          purchaseToken: receipt,
-        });
-      }
-    } catch { /* best-effort store completion */ }
+    await completeCoinPurchase(mod, transactionId, receipt);
 
     return {
       success: true,
@@ -226,8 +360,9 @@ export async function purchaseProduct(productId: IAPProductId): Promise<IAPPurch
       newBalance: verifyResult.newBalance,
     };
   } catch (err) {
-    const msg = err?.message || String(err);
-    if (msg.includes('cancel') || msg.includes('Cancel') || msg.includes('USER_CANCELED')) {
+    const msg = (err as { message?: string })?.message || String(err);
+    reportIapStage('purchase_unexpected_error', { productId, error: msg });
+    if (isCancelError(msg)) {
       return { success: false, error: 'Purchase cancelled' };
     }
     return { success: false, error: msg || 'Purchase failed' };
@@ -456,6 +591,8 @@ async function verifyAndCreditPurchase(
 
     const provider = platform.isIOS ? 'apple' : 'google';
 
+    reportIapStage('verify_request', { packageId, provider, hasReceipt: !!receipt });
+
     const { data, error } = await request('/api/verify-purchase', {
       method: 'POST',
       body: JSON.stringify({
@@ -468,6 +605,9 @@ async function verifyAndCreditPurchase(
     });
 
     if (error) {
+      // error.message already includes the server `detail` (folded in by apiClient),
+      // e.g. "Invalid receipt: google-verify-410: ...".
+      reportIapStage('verify_server_error', { packageId, message: error.message });
       return { success: false, error: error.message || 'Server verification failed' };
     }
 

@@ -357,7 +357,22 @@ export async function handleVerifyPurchase(req: Request, res: Response) {
       isValid = google.valid;
       verificationResponse = { provider: 'google', verified: google.valid, productId: google.productId, detail: google.detail };
     }
-    if (!isValid) return res.status(400).json({ error: 'Invalid receipt' });
+    if (!isValid) {
+      // Log the exact reason (credentials missing, google-verify-410, already-consumed,
+      // purchase-state, etc.) so the failure is visible in backend logs without a device.
+      logger.warn(
+        { provider: safeProvider, packageId, userId: user.sub, detail: verificationResponse.detail },
+        'IAP verification failed — coins NOT credited',
+      );
+      return res.status(400).json({
+        error: 'Invalid receipt',
+        code: 'verification_failed',
+        detail:
+          typeof verificationResponse.detail === 'string'
+            ? verificationResponse.detail.slice(0, 300)
+            : undefined,
+      });
+    }
 
     if (safeProvider === 'apple' && verificationResponse.productId) {
       if (String(verificationResponse.productId) !== String(packageId)) {
@@ -368,7 +383,14 @@ export async function handleVerifyPurchase(req: Request, res: Response) {
 
     const coinMap = await dbLoadCoinMap();
     const coins = coinMap[String(packageId)] || 0;
-    if (coins <= 0) return res.status(400).json({ error: 'Unknown coin package' });
+    if (coins <= 0) {
+      // Receipt was valid but the product is not present in the coin_packages map.
+      logger.warn(
+        { packageId, knownPackages: Object.keys(coinMap) },
+        'IAP verified but product missing from coin map — check coin_packages table',
+      );
+      return res.status(400).json({ error: 'Unknown coin package', code: 'unknown_package' });
+    }
 
     const credited = await neonCreditIap({
       userId: String(userId),
@@ -380,6 +402,10 @@ export async function handleVerifyPurchase(req: Request, res: Response) {
     });
 
     if (credited.ok) {
+      logger.info(
+        { userId: String(userId), provider: safeProvider, packageId, coins, newBalance: credited.newBalance },
+        'IAP coins credited',
+      );
       return res.json({
         success: true,
         message: 'Purchase verified and coins credited',
