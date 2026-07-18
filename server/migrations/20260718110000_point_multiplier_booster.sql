@@ -10,7 +10,8 @@ CREATE TABLE IF NOT EXISTS booster_config (
 );
 
 INSERT INTO booster_config (key, value, description) VALUES
-  ('point_multiplier_catch_rate', 0.35, 'Probability (0-1) that an active point-multiplier booster catches a gift'),
+  ('point_multiplier_catch_rate', 0.12, 'Probability (0-1) that an active glove booster catches a gift — most gifts must miss'),
+  ('point_multiplier_max_catches', 3, 'Max gifts one glove activation window can catch'),
   ('point_multiplier_duration_ms', 30000, 'Active window of the point-multiplier booster, in milliseconds'),
   ('point_multiplier_x3_enabled', 1, 'Whether the x3 point-multiplier booster is enabled (1/0)'),
   ('point_multiplier_x5_enabled', 1, 'Whether the x5 point-multiplier booster is enabled (1/0)')
