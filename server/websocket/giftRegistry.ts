@@ -36,10 +36,39 @@ export function getGiftValue(giftId: string): number {
   return giftValueCache[giftId] || 0;
 }
 
+function isPlayableGiftVideoUrl(url: string | null | undefined): url is string {
+  if (!url) return false;
+  return /\.(mp4|webm|mov)(\?|$)/i.test(url.split("?")[0] || url);
+}
+
 /** Absolute CDN URL for gift video animation, or null if not a playable video. */
 export function getGiftAnimationUrl(giftId: string): string | null {
   if (!giftId) return null;
-  return giftAnimationCache[giftId] || null;
+  const cached = giftAnimationCache[giftId] || null;
+  return isPlayableGiftVideoUrl(cached) ? cached : null;
+}
+
+/**
+ * Resolve a playable gift video URL for delivery. Prefers an explicit URL from
+ * the caller (REST already loaded the gift row), then cache, then a fresh DB read.
+ */
+export async function resolvePlayableGiftVideoUrl(
+  giftId: string,
+  explicitUrl?: string | null,
+): Promise<string | null> {
+  const fromExplicit = resolveGiftMediaUrl(explicitUrl ?? null);
+  if (isPlayableGiftVideoUrl(fromExplicit)) {
+    giftAnimationCache[giftId] = fromExplicit;
+    return fromExplicit;
+  }
+  const cached = getGiftAnimationUrl(giftId);
+  if (cached) return cached;
+  try {
+    await loadGiftValuesFromDb();
+  } catch {
+    /* ignore */
+  }
+  return getGiftAnimationUrl(giftId);
 }
 
 export function getGiftIconUrl(giftId: string): string | null {

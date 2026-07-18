@@ -3,19 +3,16 @@
  *
  * After a gift is paid (REST), delivery must not depend on the client re-sending
  * a WebSocket event. This module claims the transaction once, broadcasts
- * gift_sent to the live room (so the creator sees animation/chat), updates gift
- * goals, and applies battle scores. The WS gift_sent path calls the same helper
- * so either REST or WS can deliver first without double-firing.
+ * gift_sent (WITH a playable video URL) to the live room so the creator plays
+ * the gift animation, updates gift goals, and applies battle scores.
  */
 
-import { broadcastToRoom, tryClaimTransaction } from "./index";
+import { broadcastToRoom, tryClaimTransaction, sendToUserGlobal } from "./index";
 import {
   getGiftValue,
-  getGiftAnimationUrl,
   getGiftIconUrl,
   normalizeBattleTarget,
-  isGiftCacheLoaded,
-  loadGiftValuesFromDb,
+  resolvePlayableGiftVideoUrl,
 } from "./giftRegistry";
 import { incrementGiftGoal } from "./giftGoal";
 import { addBattleScoreForTarget, getBattleFromStore } from "./battle";
@@ -23,7 +20,6 @@ import { resolveBoosterCatch } from "../lib/booster";
 import { getPool } from "../lib/postgres";
 import { logger } from "../lib/logger";
 import { resolveStreamOwnerUserId } from "../routes/livestream";
-import { sendToUserGlobal } from "./index";
 
 export type DeliverGiftInput = {
   roomId: string;
@@ -37,6 +33,8 @@ export type DeliverGiftInput = {
   giftSource: "starter_coins" | "paid_coins";
   transactionId: string;
   battleTarget?: unknown;
+  /** Prefer this animation URL (from REST gift row / client) when playable. */
+  animationUrl?: string | null;
 };
 
 export type DeliverGiftResult =
@@ -111,19 +109,21 @@ export async function deliverVerifiedGift(
       ? input.level
       : profile.level;
 
-  if (!isGiftCacheLoaded()) {
-    try {
-      await loadGiftValuesFromDb();
-    } catch {
-      /* non-fatal — delivery still proceeds without animation URL */
-    }
-  }
-
-  const video = getGiftAnimationUrl(giftId);
-  const giftIcon = getGiftIconUrl(giftId);
+  // Creator gift video play REQUIRES a real mp4/webm URL in the payload.
+  // Resolve from REST gift row first, then cache/DB — never broadcast null when
+  // a playable URL exists for this gift.
+  const video = await resolvePlayableGiftVideoUrl(giftId, input.animationUrl);
+  const giftIcon = getGiftIconUrl(giftId) || video?.replace(/\.(mp4|webm|mov)(\?|$)/i, ".png$2") || "🎁";
   const giftName =
     (typeof input.giftName === "string" && input.giftName.trim()) || "Gift";
   const normalizedTarget = normalizeBattleTarget(input.battleTarget);
+
+  if (!video) {
+    logger.warn(
+      { giftId, roomId, transactionId },
+      "deliverVerifiedGift: no playable gift video URL — creator may not see animation",
+    );
+  }
 
   const payload = {
     giftId,
@@ -138,7 +138,7 @@ export async function deliverVerifiedGift(
     level,
     video,
     animation_url: video,
-    gift_icon: giftIcon || "🎁",
+    gift_icon: giftIcon,
     quantity: 1,
     streamId: roomId,
     stream_id: roomId,

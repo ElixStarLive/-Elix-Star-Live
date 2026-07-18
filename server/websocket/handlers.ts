@@ -163,6 +163,10 @@ export async function handleMessage(
           return;
         }
 
+        const clientVideo =
+          (typeof data?.video === "string" && data.video) ||
+          (typeof data?.animation_url === "string" && data.animation_url) ||
+          null;
         const delivered = await deliverVerifiedGift({
           roomId: client.roomId,
           userId: client.userId,
@@ -175,6 +179,7 @@ export async function handleMessage(
           giftSource: verified.giftSource,
           transactionId: String(transactionId),
           battleTarget: data?.battleTarget,
+          animationUrl: clientVideo,
         });
 
         sendToClient(client, "gift_ack", {

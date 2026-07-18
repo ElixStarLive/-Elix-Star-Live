@@ -85,6 +85,16 @@ export function isGiftVideoPath(value: string): boolean {
   return p.endsWith('.mp4') || p.endsWith('.webm') || p.endsWith('.mov');
 }
 
+/** Map legacy DB gift ids to real Bunny Storage filenames. */
+const GIFT_ANIMATION_OVERRIDES: Record<string, string> = {
+  rose: '/gifts/treasure_drake_cub.mp4',
+  heart: '/gifts/pink_love_jet.mp4',
+  kiss: '/gifts/romantic_jet.mp4',
+  crown: '/gifts/crown_kitty_treasure.mp4',
+  diamond: '/gifts/celestial_star_wand.mp4',
+  rocket: '/gifts/lightning_hypercar.mp4',
+};
+
 /** Resolve playable gift video URL from WS payload + optional catalog row. */
 export function pickGiftVideoUrl(
   data: Record<string, unknown>,
@@ -95,11 +105,13 @@ export function pickGiftVideoUrl(
     (typeof data.gift_id === 'string' && data.gift_id.trim()) ||
     '';
   const giftDef = giftId && catalog?.length ? catalog.find((g) => g.id === giftId) : undefined;
+  const override = giftId ? GIFT_ANIMATION_OVERRIDES[giftId] : undefined;
 
   const candidates = [
     typeof data.video === 'string' ? data.video.trim() : '',
     typeof data.animation_url === 'string' ? data.animation_url.trim() : '',
     typeof giftDef?.video === 'string' ? giftDef.video.trim() : '',
+    typeof override === 'string' ? override : '',
   ].filter(Boolean);
 
   for (const raw of candidates) {
@@ -127,16 +139,6 @@ export function resolveGiftAssetUrl(path: string): string {
 
   return `${GIFT_CDN_ORIGIN}/${rel}`;
 }
-
-/** Map legacy DB gift ids to real Bunny Storage filenames. */
-const GIFT_ANIMATION_OVERRIDES: Record<string, string> = {
-  rose: '/gifts/treasure_drake_cub.mp4',
-  heart: '/gifts/pink_love_jet.mp4',
-  kiss: '/gifts/romantic_jet.mp4',
-  crown: '/gifts/crown_kitty_treasure.mp4',
-  diamond: '/gifts/celestial_star_wand.mp4',
-  rocket: '/gifts/lightning_hypercar.mp4',
-};
 
 function giftPosterPath(animationPath: string): string {
   const pathOnly = animationPath.split('?')[0];

@@ -134,6 +134,7 @@ export async function handleSendGift(req: Request, res: Response) {
             giftSource: "starter_coins",
             transactionId: clientTransactionId,
             battleTarget: battleTargetRaw,
+            animationUrl: resolveGiftMediaUrl(gift.animation_url),
           });
         } catch (err) {
           logger.warn({ err, roomId }, "handleSendGift: starter gift room delivery failed");
@@ -229,6 +230,7 @@ export async function handleSendGift(req: Request, res: Response) {
             giftSource: "paid_coins",
             transactionId: clientTransactionId,
             battleTarget: battleTargetRaw,
+            animationUrl: resolveGiftMediaUrl(gift.animation_url),
           });
         } catch (err) {
           logger.warn({ err, roomId }, "handleSendGift: paid gift room delivery failed");

@@ -132,12 +132,11 @@ export function GiftOverlay({
     if (videoCache.has(videoSrc)) {
       setVideoReady(true);
     } else {
+      // Preload is best-effort. On failure still try native playback — a failed
+      // preload (CORS / WebView) must not skip the gift video on the creator page.
       preloadVideo(videoSrc)
         .then(() => setVideoReady(true))
-        .catch(() => {
-          if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
-          onEndedRef.current();
-        });
+        .catch(() => setVideoReady(true));
     }
 
     return () => {
@@ -157,7 +156,8 @@ export function GiftOverlay({
       className="fixed left-0 right-0 bottom-0 mx-auto w-full max-w-[480px] pointer-events-none overflow-hidden"
       style={{
         height: 'calc(70% - 25mm)',
-        zIndex: 400,
+        // Above live battle/video layers; below modal sheets (99998+).
+        zIndex: 50000,
         WebkitMaskImage: 'linear-gradient(to top, black 0%, black 60%, transparent 100%)',
         maskImage: 'linear-gradient(to top, black 0%, black 60%, transparent 100%)',
       }}

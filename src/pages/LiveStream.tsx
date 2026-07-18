@@ -2777,10 +2777,10 @@ export default function LiveStream() {
         }
       }
 
-      // Play gift video for other users' gifts (sender already queued locally).
-      // Match spectator: play whenever the sender is not this user (giftId may
-      // arrive before catalog load; pickGiftVideoUrl uses WS video first).
-      if (!gifterId || gifterId !== user?.id) {
+      // Creator must play spectator gift videos. Never skip when we are the
+      // broadcaster receiving someone else's gift (even if catalog is still loading).
+      const isOwnGift = !!(gifterId && user?.id && gifterId === user.id);
+      if (!isOwnGift) {
         const videoUrl = pickGiftVideoUrl(data, giftsCatalogRef.current);
         if (videoUrl) {
           setGiftQueue((prev) => [...prev, { video: videoUrl }]);
