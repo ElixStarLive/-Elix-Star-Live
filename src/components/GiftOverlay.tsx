@@ -62,12 +62,17 @@ function GiftVideo({
   useEffect(() => {
     const el = videoRef.current;
     if (!el) return;
-    el.muted = muted;
+    // Always start muted so Android/iOS WebViews allow autoplay; unmute after
+    // playback starts when the caller requested sound.
+    el.muted = true;
     const tryPlay = () => {
       const p = el.play();
       if (p && typeof p.then === 'function') {
-        p.catch(() => {
-          // Autoplay with sound often blocked — still play the video muted.
+        p.then(() => {
+          if (!muted) {
+            el.muted = false;
+          }
+        }).catch(() => {
           el.muted = true;
           el.play().catch(() => onEnded());
         });

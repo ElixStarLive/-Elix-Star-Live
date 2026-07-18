@@ -1871,6 +1871,12 @@ export default function SpectatorPage() {
       setCoinBalance(debit.newBalance);
     } else if (user?.id) {
       try {
+        const playableVideo =
+          gift.video && gift.video.trim()
+            ? gift.video.startsWith('http://') || gift.video.startsWith('https://')
+              ? gift.video.trim()
+              : resolveGiftAssetUrl(gift.video.startsWith('/') ? gift.video : `/${gift.video}`)
+            : null;
         const { data: result, error: giftErr } = await request('/api/gifts/send', {
           method: 'POST',
           body: JSON.stringify({
@@ -1879,6 +1885,9 @@ export default function SpectatorPage() {
             channel: 'spectator',
             transaction_id: crypto.randomUUID(),
             gift_source: giftSource,
+            ...(playableVideo
+              ? { video: playableVideo, animation_url: playableVideo }
+              : {}),
             ...(spectatorBattle?.active
               ? { battleTarget: spectatorGiftBattleTarget }
               : {}),
@@ -1963,6 +1972,12 @@ export default function SpectatorPage() {
     // Test coins stay local — never broadcast gift_sent (avoids free battle scores).
     // Persisted gifts include the REST transaction id for source verification.
     if (!usedTestCoins && giftTransactionId) {
+      const wsVideo =
+        gift.video && gift.video.trim()
+          ? gift.video.startsWith('http://') || gift.video.startsWith('https://')
+            ? gift.video.trim()
+            : resolveGiftAssetUrl(gift.video.startsWith('/') ? gift.video : `/${gift.video}`)
+          : null;
       websocket.send('gift_sent', {
         giftId: gift.id,
         giftName: gift.name,
@@ -1971,7 +1986,8 @@ export default function SpectatorPage() {
         quantity: 1,
         level: newLevel,
         avatar: viewerAvatar,
-        video: gift.video || null,
+        video: wsVideo,
+        animation_url: wsVideo,
         transactionId: giftTransactionId,
         giftSource,
         creator_name: hostName || 'Creator',

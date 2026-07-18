@@ -47,10 +47,16 @@ export async function handleSendGift(req: Request, res: Response) {
       gift_source,
       battleTarget,
       battle_target,
+      video: clientVideoRaw,
+      animation_url: clientAnimationUrlRaw,
     } = req.body ?? {};
     const roomId = typeof room_id === "string" ? room_id.trim() : (typeof streamKey === "string" ? streamKey.trim() : "");
     const giftId = typeof gift_id === "string" ? gift_id.trim() : (typeof giftIdAlt === "string" ? giftIdAlt.trim() : "");
     const battleTargetRaw = battleTarget ?? battle_target;
+    const clientAnimationUrl =
+      (typeof clientVideoRaw === "string" && clientVideoRaw.trim()) ||
+      (typeof clientAnimationUrlRaw === "string" && clientAnimationUrlRaw.trim()) ||
+      null;
 
     if (!roomId || !giftId) {
       return res.status(400).json({ error: "room_id and gift_id are required." });
@@ -134,7 +140,9 @@ export async function handleSendGift(req: Request, res: Response) {
             giftSource: "starter_coins",
             transactionId: clientTransactionId,
             battleTarget: battleTargetRaw,
-            animationUrl: resolveGiftMediaUrl(gift.animation_url),
+            animationUrl:
+              resolveGiftMediaUrl(gift.animation_url) ||
+              resolveGiftMediaUrl(clientAnimationUrl),
           });
         } catch (err) {
           logger.warn({ err, roomId }, "handleSendGift: starter gift room delivery failed");
@@ -230,7 +238,9 @@ export async function handleSendGift(req: Request, res: Response) {
             giftSource: "paid_coins",
             transactionId: clientTransactionId,
             battleTarget: battleTargetRaw,
-            animationUrl: resolveGiftMediaUrl(gift.animation_url),
+            animationUrl:
+              resolveGiftMediaUrl(gift.animation_url) ||
+              resolveGiftMediaUrl(clientAnimationUrl),
           });
         } catch (err) {
           logger.warn({ err, roomId }, "handleSendGift: paid gift room delivery failed");

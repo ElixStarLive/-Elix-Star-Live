@@ -182,6 +182,48 @@ export async function handleMessage(
           animationUrl: clientVideo,
         });
 
+        // If REST already claimed the txn (possibly without a playable URL),
+        // still push a video-bearing gift_sent so the creator GiftOverlay can play.
+        if (!delivered.delivered && delivered.reason === "duplicate") {
+          try {
+            const { resolvePlayableGiftVideoUrl } = await import("./giftRegistry");
+            const { sendToUserGlobal, broadcastToRoom } = await import("./index");
+            const { resolveStreamOwnerUserId } = await import("../routes/livestream");
+            const video = await resolvePlayableGiftVideoUrl(
+              verified.giftId,
+              clientVideo,
+            );
+            if (video) {
+              const retryPayload = {
+                giftId: verified.giftId,
+                giftName:
+                  typeof data?.giftName === "string" ? data.giftName : "Gift",
+                coins: verified.coins,
+                giftSource: verified.giftSource,
+                transactionId: String(transactionId),
+                battleTarget: data?.battleTarget ?? null,
+                user_id: client.userId,
+                username: client.username,
+                avatar: typeof data?.avatar === "string" ? data.avatar : "",
+                level: typeof data?.level === "number" ? data.level : 1,
+                video,
+                animation_url: video,
+                quantity: 1,
+                streamId: client.roomId,
+                stream_id: client.roomId,
+                timestamp: new Date().toISOString(),
+              };
+              broadcastToRoom(client.roomId, "gift_sent", retryPayload);
+              const ownerId = await resolveStreamOwnerUserId(client.roomId);
+              if (ownerId && ownerId !== client.userId) {
+                sendToUserGlobal(ownerId, "gift_sent", retryPayload);
+              }
+            }
+          } catch (err) {
+            logger.warn({ err }, "gift_sent duplicate creator video retry failed");
+          }
+        }
+
         sendToClient(client, "gift_ack", {
           transactionId,
           status: delivered.delivered ? "success" : delivered.reason,

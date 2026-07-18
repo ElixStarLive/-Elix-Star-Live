@@ -224,6 +224,16 @@ export default function LiveStream() {
   const [showRankingPanel, setShowRankingPanel] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [currentGift, setCurrentGift] = useState<{ video: string } | null>(null);
+  // Gift video queue must live above the WS effect so creator playback never depends
+  // on hook-order / late state declarations.
+  const [giftQueue, setGiftQueue] = useState<{ video: string }[]>([]);
+  const [giftKey, setGiftKey] = useState(0);
+  const enqueueGiftVideoRef = useRef<(url: string) => void>(() => {});
+  const playedGiftVideoTxnRef = useRef<Set<string>>(new Set());
+  enqueueGiftVideoRef.current = (url: string) => {
+    if (!url) return;
+    setGiftQueue((prev) => [...prev, { video: url }]);
+  };
   const [messages, setMessages] = useState<LiveMessage[]>(() => []);
   const [coinBalance, setCoinBalance] = useState(0);
   const [starterCoinBalance, setStarterCoinBalance] = useState(0);
@@ -891,13 +901,15 @@ export default function LiveStream() {
   const coHostTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const coHostsRef = useRef<CoHost[]>([]);
   const isBroadcastRef = useRef(false);
+  const selfUserIdRef = useRef<string | null>(null);
   const MAX_CO_HOSTS = 8;
 
   // Keep refs in sync for use inside WebSocket handlers (avoid stale closure)
   useEffect(() => {
     coHostsRef.current = coHosts;
     isBroadcastRef.current = isBroadcast;
-  }, [coHosts, isBroadcast]);
+    selfUserIdRef.current = user?.id ?? null;
+  }, [coHosts, isBroadcast, user?.id]);
 
   // Broadcast co-host layout to room so spectators see same layout (single source of truth; no duplicate userIds)
   useEffect(() => {
@@ -2682,18 +2694,33 @@ export default function LiveStream() {
         (typeof data.transactionId === 'string' && data.transactionId) ||
         (typeof data.transaction_id === 'string' && data.transaction_id) ||
         '';
-      if (txnId) {
-        if (seenGiftTxnRef.current.has(txnId)) return;
+      const wsGiftId =
+        (typeof data.giftId === 'string' && data.giftId) ||
+        (typeof data.gift_id === 'string' && data.gift_id) ||
+        '';
+      const videoUrl =
+        pickGiftVideoUrl(data, giftsCatalogRef.current) ||
+        (wsGiftId
+          ? pickGiftVideoUrl(
+              { giftId: wsGiftId, gift_id: wsGiftId },
+              giftsCatalogRef.current,
+            )
+          : null);
+      const alreadySeen = !!(txnId && seenGiftTxnRef.current.has(txnId));
+      const videoAlreadyPlayed = !!(txnId && playedGiftVideoTxnRef.current.has(txnId));
+
+      // If REST arrived first without a video URL, a later gift_sent with the
+      // playable URL must still be allowed to queue the animation.
+      if (alreadySeen && (videoAlreadyPlayed || !videoUrl)) return;
+
+      if (txnId && !alreadySeen) {
         seenGiftTxnRef.current.add(txnId);
         if (seenGiftTxnRef.current.size > 200) {
           const keep = [...seenGiftTxnRef.current].slice(-100);
           seenGiftTxnRef.current = new Set(keep);
         }
       }
-      const wsGiftId =
-        (typeof data.giftId === 'string' && data.giftId) ||
-        (typeof data.gift_id === 'string' && data.gift_id) ||
-        '';
+
       const giftDef = wsGiftId
         ? giftsCatalogRef.current.find((g) => g.id === wsGiftId)
         : undefined;
@@ -2701,48 +2728,50 @@ export default function LiveStream() {
       const giftCoins =
         giftDef?.coins ??
         (typeof data.coins === 'number' && Number.isFinite(data.coins) ? data.coins : 0);
-      if (gifterId && giftCoins > 0) {
-        const gifterName =
-          (typeof data.username === 'string' && data.username.trim()) ||
-          viewerIdentityCacheRef.current.get(gifterId)?.displayName ||
-          viewerIdentityCacheRef.current.get(gifterId)?.username ||
-          'User';
-        const gifterAvatar =
-          (typeof data.avatar === 'string' && data.avatar.trim()) ||
-          (typeof data.avatar_url === 'string' && data.avatar_url.trim()) ||
-          viewerIdentityCacheRef.current.get(gifterId)?.avatar ||
-          '';
-        const gifterLevel =
-          (typeof data.level === 'number' && Number.isFinite(data.level) ? data.level : null) ??
-          viewerIdentityCacheRef.current.get(gifterId)?.level ??
-          1;
-        viewerIdentityCacheRef.current.set(gifterId, {
-          username: gifterName,
-          displayName: gifterName,
-          avatar: gifterAvatar,
-          level: gifterLevel,
-        });
-        if (!gifterAvatar) maybeResolveViewerIdentity(gifterId);
-        setMvpGiftScores((prev) => ({
-          ...prev,
-          [gifterId]: (prev[gifterId] || 0) + giftCoins,
-        }));
-        if (isBattleModeRef.current) {
-          const side = normalizeBattleGiftTarget(data.battleTarget);
-          if (side === 'host') {
-            setMvpGiftScoresHost((prev) => ({
-              ...prev,
-              [gifterId]: (prev[gifterId] || 0) + giftCoins,
-            }));
-          } else if (side === 'opponent') {
-            setMvpGiftScoresOpponent((prev) => ({
-              ...prev,
-              [gifterId]: (prev[gifterId] || 0) + giftCoins,
-            }));
+
+      // Chat / MVP only on first delivery of this transaction.
+      if (!alreadySeen) {
+        if (gifterId && giftCoins > 0) {
+          const gifterName =
+            (typeof data.username === 'string' && data.username.trim()) ||
+            viewerIdentityCacheRef.current.get(gifterId)?.displayName ||
+            viewerIdentityCacheRef.current.get(gifterId)?.username ||
+            'User';
+          const gifterAvatar =
+            (typeof data.avatar === 'string' && data.avatar.trim()) ||
+            (typeof data.avatar_url === 'string' && data.avatar_url.trim()) ||
+            viewerIdentityCacheRef.current.get(gifterId)?.avatar ||
+            '';
+          const gifterLevel =
+            (typeof data.level === 'number' && Number.isFinite(data.level) ? data.level : null) ??
+            viewerIdentityCacheRef.current.get(gifterId)?.level ??
+            1;
+          viewerIdentityCacheRef.current.set(gifterId, {
+            username: gifterName,
+            displayName: gifterName,
+            avatar: gifterAvatar,
+            level: gifterLevel,
+          });
+          if (!gifterAvatar) maybeResolveViewerIdentity(gifterId);
+          setMvpGiftScores((prev) => ({
+            ...prev,
+            [gifterId]: (prev[gifterId] || 0) + giftCoins,
+          }));
+          if (isBattleModeRef.current) {
+            const side = normalizeBattleGiftTarget(data.battleTarget);
+            if (side === 'host') {
+              setMvpGiftScoresHost((prev) => ({
+                ...prev,
+                [gifterId]: (prev[gifterId] || 0) + giftCoins,
+              }));
+            } else if (side === 'opponent') {
+              setMvpGiftScoresOpponent((prev) => ({
+                ...prev,
+                [gifterId]: (prev[gifterId] || 0) + giftCoins,
+              }));
+            }
           }
         }
-      }
-      {
         const giftName =
           giftDef?.name ||
           (typeof data.giftName === 'string' && data.giftName.trim()) ||
@@ -2756,7 +2785,7 @@ export default function LiveStream() {
           avatar: typeof data.avatar === 'string' ? data.avatar : '',
           isGift: true,
         };
-        setMessages(prev => [...prev, msg]);
+        setMessages((prev) => [...prev, msg]);
         if (isBattleModeRef.current) {
           const iconRaw =
             (typeof data.gift_icon === 'string' && data.gift_icon) ||
@@ -2777,14 +2806,19 @@ export default function LiveStream() {
         }
       }
 
-      // Creator must play spectator gift videos. Never skip when we are the
-      // broadcaster receiving someone else's gift (even if catalog is still loading).
-      const isOwnGift = !!(gifterId && user?.id && gifterId === user.id);
-      if (!isOwnGift) {
-        const videoUrl = pickGiftVideoUrl(data, giftsCatalogRef.current);
-        if (videoUrl) {
-          setGiftQueue((prev) => [...prev, { video: videoUrl }]);
+      // Creator must play spectator gift videos. Broadcaster always queues
+      // incoming gifts from other users (spectator sends).
+      const selfId = selfUserIdRef.current;
+      const isOwnGift = !!(gifterId && selfId && gifterId === selfId);
+      if (!isOwnGift && videoUrl) {
+        if (txnId) {
+          playedGiftVideoTxnRef.current.add(txnId);
+          if (playedGiftVideoTxnRef.current.size > 200) {
+            const keep = [...playedGiftVideoTxnRef.current].slice(-100);
+            playedGiftVideoTxnRef.current = new Set(keep);
+          }
         }
+        enqueueGiftVideoRef.current(videoUrl);
       }
     };
 
@@ -3304,7 +3338,6 @@ export default function LiveStream() {
     };
   }, [isBroadcast, user?.id, effectiveStreamId, navigate]);
 
-  const [giftQueue, setGiftQueue] = useState<{ video: string }[]>([]);
   const [_giftBanner, _setGiftBanner] = useState<{ username: string; giftName: string; icon: string } | null>(null);
   const _giftBannerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [lastSentGift, setLastSentGift] = useState<GiftUiItem | null>(null);
@@ -3335,7 +3368,6 @@ export default function LiveStream() {
     setActiveFaceARGift(next);
   };
 
-  const [giftKey, setGiftKey] = useState(0);
   useEffect(() => {
     if (giftQueue.length > 0 && !currentGift) {
       setCurrentGift(giftQueue[0]);
@@ -3386,6 +3418,12 @@ export default function LiveStream() {
                   opponentRoomId: idsForBattleGiftRest?.opponentRoomId ?? '',
                 })
               : undefined;
+          const playableVideo =
+            gift.video && gift.video.trim()
+              ? gift.video.startsWith('http://') || gift.video.startsWith('https://')
+                ? gift.video.trim()
+                : resolveGiftAssetUrl(gift.video.startsWith('/') ? gift.video : `/${gift.video}`)
+              : null;
           const { data: result, error: giftErr } = await request('/api/gifts/send', {
             method: 'POST',
             body: JSON.stringify({
@@ -3394,6 +3432,9 @@ export default function LiveStream() {
               channel: platform.name,
               transaction_id: crypto.randomUUID(),
               gift_source: giftSource,
+              ...(playableVideo
+                ? { video: playableVideo, animation_url: playableVideo }
+                : {}),
               ...(restBattleTarget ? { battleTarget: restBattleTarget } : {}),
             }),
           });
@@ -3507,6 +3548,12 @@ export default function LiveStream() {
       // Test coins stay local — never broadcast gift_sent (avoids free battle scores).
       // Persisted gifts include the REST transaction id for source verification.
       if (!usedTestCoins && giftTransactionId) {
+        const wsVideo =
+          gift.video && gift.video.trim()
+            ? gift.video.startsWith('http://') || gift.video.startsWith('https://')
+              ? gift.video.trim()
+              : resolveGiftAssetUrl(gift.video.startsWith('/') ? gift.video : `/${gift.video}`)
+            : null;
         websocket.send('gift_sent', {
           giftId: gift.id,
           giftName: gift.name,
@@ -3515,7 +3562,8 @@ export default function LiveStream() {
           quantity: 1,
           level: newLevel,
           avatar: giftMsg.avatar,
-          video: gift.video || null,
+          video: wsVideo,
+          animation_url: wsVideo,
           transactionId: giftTransactionId,
           giftSource,
           battleTarget: serverBattleTarget,
@@ -3616,6 +3664,16 @@ export default function LiveStream() {
         setCoinBalance(debit.newBalance);
       } else if (user?.id) {
         try {
+          const comboPlayableVideo =
+            lastSentGift.video && lastSentGift.video.trim()
+              ? lastSentGift.video.startsWith('http://') || lastSentGift.video.startsWith('https://')
+                ? lastSentGift.video.trim()
+                : resolveGiftAssetUrl(
+                    lastSentGift.video.startsWith('/')
+                      ? lastSentGift.video
+                      : `/${lastSentGift.video}`,
+                  )
+              : null;
           const { data: result, error: giftErr } = await request('/api/gifts/send', {
             method: 'POST',
             body: JSON.stringify({
@@ -3624,6 +3682,9 @@ export default function LiveStream() {
               channel: platform.name,
               transaction_id: crypto.randomUUID(),
               gift_source: giftSource,
+              ...(comboPlayableVideo
+                ? { video: comboPlayableVideo, animation_url: comboPlayableVideo }
+                : {}),
             }),
           });
 
@@ -3724,6 +3785,16 @@ export default function LiveStream() {
           : undefined;
 
       if (!usedTestCoins && giftTransactionId) {
+        const comboWsVideo =
+          lastSentGift.video && lastSentGift.video.trim()
+            ? lastSentGift.video.startsWith('http://') || lastSentGift.video.startsWith('https://')
+              ? lastSentGift.video.trim()
+              : resolveGiftAssetUrl(
+                  lastSentGift.video.startsWith('/')
+                    ? lastSentGift.video
+                    : `/${lastSentGift.video}`,
+                )
+            : null;
         websocket.send('gift_sent', {
           giftId: lastSentGift.id,
           giftName: lastSentGift.name,
@@ -3732,7 +3803,8 @@ export default function LiveStream() {
           quantity: 1,
           level: newLevel,
           avatar: giftMsg.avatar,
-          video: lastSentGift.video || null,
+          video: comboWsVideo,
+          animation_url: comboWsVideo,
           transactionId: giftTransactionId,
           giftSource,
           battleTarget: serverBattleTargetCombo,

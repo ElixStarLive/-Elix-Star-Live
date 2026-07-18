@@ -58,7 +58,8 @@ export type WebSocketEvent =
   | "booster:spawn"
   | "booster:activated"
   | "booster_activated"
-  | "booster_caught";
+  | "booster_caught"
+  | "mist_activated";
 
 export interface WebSocketMessage {
   event: WebSocketEvent | string;
