@@ -2964,9 +2964,9 @@ export default function SpectatorPage() {
           </div>
         </div>
 
-        {/* COMBO — above gift video + bottom bar icons */}
+        {/* COMBO — above gift video (GiftOverlay z=50000) */}
         {showComboButton && lastSentGift && (
-          <div className="fixed left-0 right-0 bottom-[calc(58px+max(2px,env(safe-area-inset-bottom,0px)))] z-[260] flex justify-center pointer-events-none">
+          <div className="fixed left-0 right-0 bottom-[calc(58px+max(2px,env(safe-area-inset-bottom,0px)))] z-[50001] flex justify-center pointer-events-none">
             <div className="w-full max-w-[480px] mx-auto px-3 flex justify-end pointer-events-auto">
             <button
               type="button"
@@ -2985,9 +2985,9 @@ export default function SpectatorPage() {
           </div>
         )}
 
-        {/* Bottom bar — chat + Invite / Gift / Share / More (labels under icons, spectator) */}
+        {/* Bottom bar — above gift video so Gift/Invite/Share/More stay tappable */}
         <div
-          className="fixed left-0 right-0 bottom-0 z-[270] pointer-events-auto flex justify-center"
+          className="fixed left-0 right-0 bottom-0 z-[50002] pointer-events-auto flex justify-center"
           style={{ paddingBottom: LIVE_BOTTOM_ACTION_PADDING }}
         >
           <div className="w-full max-w-[480px] px-3 pt-0 bg-transparent">
@@ -3104,14 +3104,12 @@ export default function SpectatorPage() {
           </div>
         )}
 
-        {/* GIFT VIDEO — behind combo + bottom gift icons (z 270/260), above battle video (z 80) */}
         <GiftOverlay
           key={`gift-${giftKey}`}
           videoSrc={currentGift?.video ?? null}
           onEnded={handleGiftEnded}
           isBattleMode={!!spectatorBattle?.active}
           muted={false}
-          zIndex={210}
         />
 
 
