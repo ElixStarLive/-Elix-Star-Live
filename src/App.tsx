@@ -85,6 +85,13 @@ function LiveStreamKeyed() {
   return <LiveStream key={loc.pathname + loc.search} />;
 }
 
+// Full remount per stream so battle redirects (/watch/B → /watch/A) never
+// carry stale WS/LiveKit/battle state between rooms.
+function SpectatorPageKeyed() {
+  const loc = useLocation();
+  return <SpectatorPage key={loc.pathname} />;
+}
+
 function LiveStreamGuard() {
   const loc = useLocation();
   const { user } = useAuthStore();
@@ -359,7 +366,7 @@ function App() {
                   path="/live/watch/:streamId"
                   element={<LiveWatchRedirect />}
                 />
-                <Route path="/watch/:streamId" element={<SpectatorPage />} />
+                <Route path="/watch/:streamId" element={<SpectatorPageKeyed />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/profile/:userId" element={<Profile />} />
                 <Route path="/friends" element={<FriendsFeed />} />

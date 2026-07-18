@@ -843,6 +843,8 @@ export default function LiveStream() {
         requesterName: myUsername,
         requesterAvatar: viewerAvatar,
         streamKey: user?.id || effectiveStreamId,
+        // Host's room — lets the server transition our spectators into the battle.
+        hostStreamKey: invite.streamKey,
       });
     } catch { /* fire-and-forget */ }
 
@@ -3567,9 +3569,10 @@ export default function LiveStream() {
             })
           : undefined;
 
-      // Test coins stay local — never broadcast gift_sent (avoids free battle scores).
+      // Test coins never touch payments, goals, or battle scores — the server
+      // broadcasts them animation-only so everyone in the room sees the video.
       // Persisted gifts include the REST transaction id for source verification.
-      if (!usedTestCoins && giftTransactionId) {
+      if (usedTestCoins || giftTransactionId) {
         const wsVideo =
           gift.video && gift.video.trim()
             ? gift.video.startsWith('http://') || gift.video.startsWith('https://')
@@ -3579,16 +3582,16 @@ export default function LiveStream() {
         websocket.send('gift_sent', {
           giftId: gift.id,
           giftName: gift.name,
-          coins: gift.coins,
+          coins: usedTestCoins ? 0 : gift.coins,
           gift_icon: gift.icon || '🎁',
           quantity: 1,
           level: newLevel,
           avatar: giftMsg.avatar,
           video: wsVideo,
           animation_url: wsVideo,
-          transactionId: giftTransactionId,
-          giftSource,
-          battleTarget: serverBattleTarget,
+          transactionId: usedTestCoins ? null : giftTransactionId,
+          giftSource: usedTestCoins ? 'test_coins' : giftSource,
+          battleTarget: usedTestCoins ? null : serverBattleTarget,
           creator_name: hostName || 'Creator',
           ...(!isBroadcast && { host_user_id: effectiveStreamId }),
         });
@@ -3806,7 +3809,7 @@ export default function LiveStream() {
             })
           : undefined;
 
-      if (!usedTestCoins && giftTransactionId) {
+      if (usedTestCoins || giftTransactionId) {
         const comboWsVideo =
           lastSentGift.video && lastSentGift.video.trim()
             ? lastSentGift.video.startsWith('http://') || lastSentGift.video.startsWith('https://')
@@ -3820,16 +3823,16 @@ export default function LiveStream() {
         websocket.send('gift_sent', {
           giftId: lastSentGift.id,
           giftName: lastSentGift.name,
-          coins: lastSentGift.coins,
+          coins: usedTestCoins ? 0 : lastSentGift.coins,
           gift_icon: lastSentGift.icon || '🎁',
           quantity: 1,
           level: newLevel,
           avatar: giftMsg.avatar,
           video: comboWsVideo,
           animation_url: comboWsVideo,
-          transactionId: giftTransactionId,
-          giftSource,
-          battleTarget: serverBattleTargetCombo,
+          transactionId: usedTestCoins ? null : giftTransactionId,
+          giftSource: usedTestCoins ? 'test_coins' : giftSource,
+          battleTarget: usedTestCoins ? null : serverBattleTargetCombo,
           creator_name: hostName || 'Creator',
           ...(!isBroadcast && { host_user_id: effectiveStreamId }),
         });

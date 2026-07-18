@@ -10,6 +10,7 @@ import {
   getBattleFromStore,
   getBattleScores,
   saveBattleToStore,
+  getUserBattleRoom,
 } from "./battle";
 import {
   broadcastToFeedSubscribers,
@@ -145,6 +146,51 @@ export async function handleMessage(
       case "gift_sent": {
         if (!(await wsRateCheck(client.userId, "gift", 50, 5_000))) break;
         const { transactionId } = data;
+
+        // TEST COINS (testing tool): animation-only broadcast so the creator and
+        // spectators see the gift video. Never claims a transaction, never touches
+        // wallets, gift goals, or battle scores.
+        if (data?.giftSource === "test_coins" || data?.gift_source === "test_coins") {
+          const testGiftId = typeof data?.giftId === "string" ? data.giftId : "";
+          const testClientVideo =
+            (typeof data?.video === "string" && data.video) ||
+            (typeof data?.animation_url === "string" && data.animation_url) ||
+            null;
+          const { resolvePlayableGiftVideoUrl } = await import("./giftRegistry");
+          const testVideo = await resolvePlayableGiftVideoUrl(testGiftId, testClientVideo);
+          const testPayload = {
+            giftId: testGiftId,
+            giftName: typeof data?.giftName === "string" ? data.giftName : "Gift",
+            coins: 0,
+            giftSource: "test_coins",
+            transactionId: "",
+            battleTarget: null,
+            user_id: client.userId,
+            username: client.username,
+            avatar: typeof data?.avatar === "string" ? data.avatar : "",
+            level: typeof data?.level === "number" ? data.level : 1,
+            video: testVideo,
+            animation_url: testVideo,
+            gift_icon: typeof data?.gift_icon === "string" ? data.gift_icon : "",
+            quantity: 1,
+            streamId: client.roomId,
+            stream_id: client.roomId,
+            timestamp: new Date().toISOString(),
+          };
+          broadcastToRoom(client.roomId, "gift_sent", testPayload);
+          try {
+            const testOwnerId = await resolveStreamOwnerUserId(client.roomId);
+            if (testOwnerId && testOwnerId !== client.userId) {
+              sendToUserGlobal(testOwnerId, "gift_sent", testPayload);
+            }
+          } catch { /* non-fatal */ }
+          sendToClient(client, "gift_ack", {
+            transactionId: null,
+            status: "test",
+            timestamp: Date.now(),
+          });
+          break;
+        }
 
         // Server-authoritative: only gifts backed by a persisted paid/starter
         // transaction for this user+room are delivered. Delivery itself is shared
@@ -428,6 +474,25 @@ export async function handleMessage(
           typeof data.streamKey === "string" && data.streamKey.trim()
             ? data.streamKey.trim()
             : client.roomId;
+        // Record where the accepter is heading BEFORE their solo stream ends,
+        // so stream_end can redirect their spectators into the battle room.
+        // Only trusted when a real invite exists for this user + host room.
+        const hostStreamKeyRaw =
+          typeof data.hostStreamKey === "string" && data.hostStreamKey.trim()
+            ? data.hostStreamKey.trim()
+            : "";
+        if (hostStreamKeyRaw && hostStreamKeyRaw !== client.roomId) {
+          const invitedKey = await valkeyGet(
+            `battle_invite:${hostStreamKeyRaw}:${client.userId}`,
+          );
+          if (invitedKey) {
+            await valkeySet(
+              "ubr:" + client.userId,
+              hostStreamKeyRaw,
+              BATTLE_USER_ROOM_TTL_MS,
+            );
+          }
+        }
         sendToUserGlobal(hostUserId, "battle_invite_accepted", {
           requesterUserId: client.userId,
           requesterName: data.requesterName || client.displayName,
@@ -441,10 +506,20 @@ export async function handleMessage(
         const removed = await removeActiveStream(client.roomId, client.userId);
         if (removed) {
           await deleteCohostLayout(client.roomId);
+          // Host is moving into a battle room (accepted an invite): their
+          // spectators must transition into the battle, not get kicked to feed.
+          let battleRedirect: string | null = null;
+          try {
+            const battleRoomId = await getUserBattleRoom(client.userId);
+            if (battleRoomId && battleRoomId !== client.roomId) {
+              battleRedirect = battleRoomId;
+            }
+          } catch { /* non-fatal */ }
           broadcastToRoom(client.roomId, "stream_ended", {
             stream_key: client.roomId,
             host_user_id: client.userId,
-            reason: "host_ended",
+            reason: battleRedirect ? "host_joined_battle" : "host_ended",
+            ...(battleRedirect ? { battle_room_id: battleRedirect } : {}),
           });
           broadcastToFeedSubscribers("stream_ended", {
             stream_key: client.roomId,

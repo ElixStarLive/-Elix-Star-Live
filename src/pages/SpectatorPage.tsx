@@ -1032,6 +1032,39 @@ export default function SpectatorPage() {
     }
   }, [spectatorBattle?.active, effectiveStreamId]);
 
+  // Battle: the opponent publishes into the HOST's LiveKit room (their solo room
+  // ends when they join the battle). Route their host-room track to the opponent
+  // panel so spectators always see both fighters.
+  useEffect(() => {
+    const oppId = battleStreamIds?.opponentUserId;
+    const room = liveKitRoomRef.current;
+    if (!oppId || !room || !spectatorBattle?.active) return;
+    const tryAttach = () => {
+      const el = opponentVideoRef.current;
+      if (!el) return;
+      for (const [, p] of room.remoteParticipants) {
+        if ((p.identity || '') !== oppId) continue;
+        for (const [, pub] of p.videoTrackPublications) {
+          if (pub.track && pub.isSubscribed) {
+            pub.track.attach(el);
+            setHasOpponentStream(true);
+            return;
+          }
+        }
+      }
+    };
+    tryAttach();
+    const onSub = (
+      track: import('livekit-client').RemoteTrack,
+      _pub: import('livekit-client').TrackPublication,
+      participant: import('livekit-client').RemoteParticipant,
+    ) => {
+      if (track.kind === 'video' && (participant?.identity || '') === oppId) tryAttach();
+    };
+    room.on(RoomEvent.TrackSubscribed, onSub);
+    return () => { room.off(RoomEvent.TrackSubscribed, onSub); };
+  }, [battleStreamIds?.opponentUserId, spectatorBattle?.active, hasStream]);
+
   // If we're still "connecting" after 18s, hint that host may not be publishing
   useEffect(() => {
     if (!streamIsLive || hasStream) return;
@@ -1355,9 +1388,17 @@ export default function SpectatorPage() {
       }
     };
 
-    const handleStreamEnded = (_data?: Record<string, unknown>) => {
+    const handleStreamEnded = (data?: Record<string, unknown>) => {
 
       if (!mounted) return;
+      // Creator moved into a battle room — follow them into the battle instead
+      // of closing the live for every spectator.
+      const battleRoom =
+        data && typeof data.battle_room_id === 'string' ? data.battle_room_id : '';
+      if (battleRoom && battleRoom !== effectiveStreamId) {
+        navigate(`/watch/${battleRoom}`, { replace: true });
+        return;
+      }
       setStreamEndedReceived(true);
       setStreamIsLive(false);
       websocket.disconnect();
@@ -1982,9 +2023,11 @@ export default function SpectatorPage() {
       avatar: viewerAvatar,
     };
     setMessages(prev => [...prev, giftMsg]);
-    // Test coins stay local — never broadcast gift_sent (avoids free battle scores).
-    // Persisted gifts include the REST transaction id for source verification.
-    if (!usedTestCoins && giftTransactionId) {
+    // Test coins never touch payments, goals, or battle scores — the server
+    // broadcasts them animation-only so the creator and all spectators see the
+    // gift video. Persisted gifts include the REST transaction id for
+    // server-side source verification.
+    if (usedTestCoins || giftTransactionId) {
       const wsVideo =
         gift.video && gift.video.trim()
           ? gift.video.startsWith('http://') || gift.video.startsWith('https://')
@@ -1994,18 +2037,18 @@ export default function SpectatorPage() {
       websocket.send('gift_sent', {
         giftId: gift.id,
         giftName: gift.name,
-        coins: gift.coins,
+        coins: usedTestCoins ? 0 : gift.coins,
         gift_icon: gift.icon || '🎁',
         quantity: 1,
         level: newLevel,
         avatar: viewerAvatar,
         video: wsVideo,
         animation_url: wsVideo,
-        transactionId: giftTransactionId,
-        giftSource,
+        transactionId: usedTestCoins ? null : giftTransactionId,
+        giftSource: usedTestCoins ? 'test_coins' : giftSource,
         creator_name: hostName || 'Creator',
         host_user_id: hostUserId || effectiveStreamId,
-        ...(spectatorBattle?.active
+        ...(!usedTestCoins && spectatorBattle?.active
           ? { battleTarget: spectatorGiftBattleTarget }
           : {}),
       });

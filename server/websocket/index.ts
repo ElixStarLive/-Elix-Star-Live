@@ -504,10 +504,17 @@ function scheduleHostDisconnectStreamEnd(roomId: string, userId: string): void {
         if (!isHost) return;
         await removeActiveStream(roomId, userId);
         await deleteCohostLayout(roomId);
+        // Host left for a battle room — send their spectators into the battle.
+        let battleRedirect: string | null = null;
+        try {
+          const battleRoomId = await getUserBattleRoom(userId);
+          if (battleRoomId && battleRoomId !== roomId) battleRedirect = battleRoomId;
+        } catch { /* non-fatal */ }
         broadcastToRoom(roomId, "stream_ended", {
           stream_key: roomId,
           host_user_id: userId,
-          reason: "host_disconnected",
+          reason: battleRedirect ? "host_joined_battle" : "host_disconnected",
+          ...(battleRedirect ? { battle_room_id: battleRedirect } : {}),
         });
         broadcastToFeedSubscribers("stream_ended", { stream_key: roomId });
       } catch (err) {
