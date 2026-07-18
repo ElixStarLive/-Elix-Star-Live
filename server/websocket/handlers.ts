@@ -263,6 +263,8 @@ export async function handleMessage(
             client.roomId,
             BATTLE_USER_ROOM_TTL_MS,
           );
+          // Opponent must publish into the host LiveKit room for battle video.
+          await grantCohostPublish(client.roomId, opponentUserId);
           await saveBattleToStore(client.roomId, session);
           await startBattleTimer(client.roomId);
         } else {

@@ -875,8 +875,11 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
           }
         }
 
+        // Only end battle when leaving the battle room itself. Ending on leave
+        // from the opponent's previous solo room races invite-accept reconnect
+        // and kills battles for host + spectators.
         const battleRoomId = await getUserBattleRoom(client.userId);
-        if (battleRoomId) {
+        if (battleRoomId && client.roomId === battleRoomId) {
           const battle = await getBattleFromStore(battleRoomId);
           if (battle && battle.status !== "ENDED") {
             const isHost = battle.hostUserId === client.userId;
