@@ -321,11 +321,11 @@ export default function LiveStream() {
   );
   const [hostName, setHostName] = useState('');
   const [hostAvatar, setHostAvatar] = useState('');
-  const creatorName = isBroadcast
+  const creatorName = isCreatorParticipant
     ? user?.name || user?.username || 'Creator'
     : hostName || 'Creator';
   const myCreatorName = creatorName;
-  const myAvatar = isBroadcast
+  const myAvatar = isCreatorParticipant
     ? user?.avatar || ''
     : hostAvatar || '';
   const [opponentCreatorName, setOpponentCreatorName] = useState('');
@@ -3487,7 +3487,7 @@ export default function LiveStream() {
   }, []);
 
   const handleSendGift = async (gift: GiftUiItem) => {
-    if (!gift) return;
+    if (!gift || isCreatorParticipant) return;
 
     const usedTestCoins = Boolean(user?.id && shouldUseTestCoinsForGifts(user.id));
     const spendable = usedTestCoins
@@ -3746,7 +3746,7 @@ export default function LiveStream() {
   };
 
   const handleComboClick = async () => {
-      if (!lastSentGift) return;
+      if (!lastSentGift || isCreatorParticipant) return;
       if (comboCount >= GIFT_COMBO_MAX) return;
 
       const usedTestCoins = Boolean(user?.id && shouldUseTestCoinsForGifts(user.id));
@@ -4049,8 +4049,8 @@ export default function LiveStream() {
       }
     }
 
-    // Battle (spectators): +5 to the creator they watch (URL matches battle participant), else by tap position on the grid.
-    if (!isBroadcast && clientX !== undefined && clientY !== undefined && isBattleMode && battleTime > 0 && !battleWinner) {
+    // Spectator tap vote only — creators playing a match never enter this path.
+    if (!isCreatorParticipant && clientX !== undefined && clientY !== undefined && isBattleMode && battleTime > 0 && !battleWinner) {
       const watchedTarget = resolveSpectatorVoteTargetFromWatchedStream();
       const overlayEl = battleSpectatorOverlayRef.current;
       const gridEl = battleVoteGridRef.current;
@@ -4266,7 +4266,7 @@ export default function LiveStream() {
           <div
             className={hasAnyCoHost ? 'absolute inset-x-0 z-[25] flex flex-row' : 'relative w-full h-full'}
             style={hasAnyCoHost ? { top: '90px', height: 'calc(36dvh + 10mm)', filter: liveFilterCss !== 'none' ? liveFilterCss : undefined } : { filter: liveFilterCss !== 'none' ? liveFilterCss : undefined }}
-            onPointerDown={isBroadcast ? undefined : (e) => {
+            onPointerDown={isCreatorParticipant ? undefined : (e) => {
               if (e.target instanceof Element) {
                 const interactive = e.target.closest('button, a, input, textarea, select, [role="button"]');
                 if (interactive) return;
@@ -5325,8 +5325,8 @@ export default function LiveStream() {
       >
         <div className="w-full max-w-[480px] mx-auto flex flex-col items-end gap-0">
         <div className="flex flex-col items-end">
-          {/* Spectator bar — stay visible during gift video so they can send again */}
-          {!isBroadcast && (
+          {/* Spectator bar — watch + gift only. Never shown to a broadcasting host or a battle-playing creator. */}
+          {!isCreatorParticipant && (
             <div className="flex items-end gap-2 w-full max-w-[480px] pointer-events-auto">
               <form className="flex-1 flex items-center gap-2 bg-black/40 backdrop-blur-sm rounded-full px-3 py-2 border border-white/10 h-10 min-w-0" onSubmit={(e) => { e.preventDefault(); handleSendMessage(e); }}>
                 <input type="text" inputMode="text" enterKeyHint="send" autoComplete="off" placeholder="Say something..." className="bg-transparent text-white text-xs outline-none flex-1 placeholder:text-white/30 min-w-0" value={inputValue} onChange={(e) => setInputValue(e.target.value)} />
@@ -5363,8 +5363,8 @@ export default function LiveStream() {
             </div>
           )}
 
-          {/* Creator-only bottom bar (Co-Host, Battle, Share, More). No chat, no Gift — creator speaks. Shown only when broadcasting. */}
-          {isBroadcast && !currentGift && (
+          {/* Creator bottom bar (Co-Host, Battle, Share, More). Host and battle-playing creators — same icons, same bar. */}
+          {isCreatorParticipant && !currentGift && (
             <div className="flex items-end gap-2 w-full max-w-[480px] pointer-events-auto">
               <div className="flex items-end justify-center gap-3 flex-shrink-0 flex-1">
               {isBattleMode && battleWinner && (
@@ -5430,7 +5430,7 @@ export default function LiveStream() {
       </div>
 
       {/* Gift panel: spectators open it from their bar; creator has no Gift button. */}
-      {showGiftPanel && !isBroadcast && (
+      {showGiftPanel && !isCreatorParticipant && (
         <>
           <div className="fixed inset-0 bg-black/50 pointer-events-auto" style={{ zIndex: 99998 }} onClick={() => setShowGiftPanel(false)} />
           <div className="fixed bottom-0 left-0 right-0 pointer-events-auto max-w-[480px] mx-auto" style={{ zIndex: 99999 }}>
@@ -6082,8 +6082,8 @@ export default function LiveStream() {
           <div className="w-full max-w-[480px] flex justify-start">
             <LiveGiftGoalBar
               goal={giftGoal}
-              onTap={() => { if (!isBroadcast) setShowGiftPanel(true); }}
-              showSend={!isBroadcast}
+              onTap={() => { if (!isCreatorParticipant) setShowGiftPanel(true); }}
+              showSend={!isCreatorParticipant}
             />
           </div>
         </div>
