@@ -21,7 +21,9 @@ import {
   wsRateCheck,
   setCohostLayout,
   deleteCohostLayout,
+  grantBattlePublish,
   grantCohostPublish,
+  revokeBattlePublish,
   revokeCohostPublish,
   getCohostLayout,
 } from "./index";
@@ -328,6 +330,9 @@ export async function handleMessage(
         }
         const existing = await getBattleFromStore(client.roomId);
         if (existing) {
+          if (existing.opponentUserId) {
+            await revokeBattlePublish(client.roomId, existing.opponentUserId);
+          }
           await valkeyDel("battle:" + client.roomId);
           await valkeyDel("ubr:" + existing.hostUserId);
           if (existing.opponentUserId) await valkeyDel("ubr:" + existing.opponentUserId);
@@ -348,7 +353,7 @@ export async function handleMessage(
             BATTLE_USER_ROOM_TTL_MS,
           );
           // Opponent must publish into the host LiveKit room for battle video.
-          await grantCohostPublish(client.roomId, opponentUserId);
+          await grantBattlePublish(client.roomId, opponentUserId);
           await saveBattleToStore(client.roomId, session);
           await startBattleTimer(client.roomId);
         } else {
@@ -437,6 +442,9 @@ export async function handleMessage(
       case "battle_end": {
         const bSession = await getBattleFromStore(client.roomId);
         if (bSession && bSession.hostUserId === client.userId) {
+          if (bSession.opponentUserId) {
+            await revokeBattlePublish(client.roomId, bSession.opponentUserId);
+          }
           await endBattle(client.roomId);
         }
         break;
@@ -573,7 +581,7 @@ export async function handleMessage(
           "1",
           BATTLE_USER_ROOM_TTL_MS,
         );
-        await grantCohostPublish(hostRoomForInvite, client.userId);
+        await grantBattlePublish(hostRoomForInvite, client.userId);
         await valkeyDel(`battle_invite:${hostRoomForInvite}:${client.userId}`);
         // Record where the accepter is heading BEFORE their solo stream ends,
         // so stream_end can redirect their spectators into the battle room.

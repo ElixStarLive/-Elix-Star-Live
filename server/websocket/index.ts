@@ -347,6 +347,26 @@ export async function clearCohostPublishGrants(roomId: string): Promise<void> {
   await valkeyDel(`cohost_grants:${roomId}`);
 }
 
+// ── Battle publish grants (accepted creator opponents only) ──────
+// Kept separate from co-host grants so battle participants are never promoted
+// into the co-host flow and co-host cleanup cannot revoke a live battle.
+const BATTLE_GRANT_TTL_MS = 10 * 60 * 1000;
+
+export async function grantBattlePublish(roomId: string, userId: string): Promise<void> {
+  if (!isValkeyConfigured() || !roomId || !userId) return;
+  await valkeySet(`battle_grant:${roomId}:${userId}`, "1", BATTLE_GRANT_TTL_MS);
+}
+
+export async function hasBattlePublishGrant(roomId: string, userId: string): Promise<boolean> {
+  if (!isValkeyConfigured() || !roomId || !userId) return false;
+  return (await valkeyGet(`battle_grant:${roomId}:${userId}`)) === "1";
+}
+
+export async function revokeBattlePublish(roomId: string, userId: string): Promise<void> {
+  if (!isValkeyConfigured() || !roomId || !userId) return;
+  await valkeyDel(`battle_grant:${roomId}:${userId}`);
+}
+
 // ── Valkey pub/sub for cross-instance WS broadcasting ────────────
 
 export function initWsPubSub(): void {
@@ -575,6 +595,9 @@ function scheduleBattleDisconnectEnd(battleRoomId: string, userId: string): void
           { battleRoomId, role: isHost ? "host" : "opponent" },
           "Battle participant gone after grace, ending battle",
         );
+        if (battle.opponentUserId) {
+          await revokeBattlePublish(battleRoomId, battle.opponentUserId);
+        }
         await endBattle(battleRoomId);
       } catch (err) {
         logger.error({ err, battleRoomId, userId }, "battle disconnect grace end failed");

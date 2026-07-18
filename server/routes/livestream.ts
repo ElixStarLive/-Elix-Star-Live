@@ -25,7 +25,7 @@ import {
   waitForCachePopulate,
 } from '../lib/valkey';
 import { bumpCacheLayer } from '../lib/cacheLayerMetrics';
-import { hasCohostPublishGrant, getCohostLayout } from '../websocket/index';
+import { hasBattlePublishGrant, hasCohostPublishGrant, getCohostLayout } from '../websocket/index';
 import { insertNotification } from '../lib/notifications';
 import { getFollowerIdsAsync } from './profiles';
 
@@ -429,7 +429,9 @@ export async function handleGetLiveToken(req: Request, res: Response) {
   if (publish) {
     const isHost = await isStreamHost(roomName, auth.userId);
     if (!isHost) {
-      let authorized = await hasCohostPublishGrant(roomName, auth.userId);
+      let authorized =
+        (await hasBattlePublishGrant(roomName, auth.userId)) ||
+        (await hasCohostPublishGrant(roomName, auth.userId));
       if (!authorized) {
         const ownerId = await resolveStreamOwnerUserId(roomName);
         const layout = await getCohostLayout(roomName);
