@@ -96,7 +96,11 @@ function LiveStreamGuard() {
   const loc = useLocation();
   const { user } = useAuthStore();
   const params = (loc.pathname.match(/^\/live\/(.+)/) || [])[1];
-  const isBattleJoin = loc.search.includes("battle=1");
+  // Same pattern as co-host: URL flag alone is not enough. Only a creator who
+  // just accepted a real battle invite carries fromBattleAccept navigation state.
+  const isBattleJoin =
+    new URLSearchParams(loc.search).get("battle") === "1" &&
+    (loc.state as Record<string, unknown> | null)?.fromBattleAccept === true;
   // If the current user is the owner of this live (their own user id or /live/broadcast),
   // keep them on the LiveStream page. Everyone else is redirected to Spectator (watch),
   // except explicit battle joiners.

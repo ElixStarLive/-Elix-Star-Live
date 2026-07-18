@@ -243,8 +243,14 @@ export default function LiveStream() {
   const [inputValue, setInputValue] = useState('');
   // Consolidate broadcast logic: host if streamId is broadcast OR if streamId matches my own user ID
   const isBroadcast = streamId === 'broadcast' || location.pathname === '/live/broadcast' || (user?.id && streamId === user.id);
-  // A battle joiner is a verified publishing creator, not a spectator.
-  const isBattleJoiner = !isBroadcast && new URLSearchParams(location.search).get('battle') === '1';
+  // Same pattern as co-host: ?battle=1 alone never makes a spectator a creator.
+  // Only acceptBattleInvite sets fromBattleAccept after a real invite accept.
+  const fromBattleAccept =
+    (location.state as Record<string, unknown> | null)?.fromBattleAccept === true;
+  const isBattleJoiner =
+    !isBroadcast &&
+    new URLSearchParams(location.search).get('battle') === '1' &&
+    fromBattleAccept;
   const isCreatorParticipant = Boolean(isBroadcast || isBattleJoiner);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
@@ -853,7 +859,7 @@ export default function LiveStream() {
     } catch { /* fire-and-forget */ }
 
     showToast(`Joining @${invite.hostName}'s battle...`);
-    navigate(`/live/${invite.streamKey}?battle=1`);
+    navigate(`/live/${invite.streamKey}?battle=1`, { state: { fromBattleAccept: true } });
   };
 
   const declineBattleInvite = async () => {
@@ -1378,7 +1384,10 @@ export default function LiveStream() {
   const [_opponentIsReady, setOpponentIsReady] = useState(false);
 
   // Peer connections for battle & co-host
-  const isBattleParticipant = !isBroadcast && new URLSearchParams(location.search).get('battle') === '1';
+  const isBattleParticipant =
+    !isBroadcast &&
+    new URLSearchParams(location.search).get('battle') === '1' &&
+    fromBattleAccept;
   const [battleParticipantStream, setBattleParticipantStream] = useState<MediaStream | null>(null);
 
 
