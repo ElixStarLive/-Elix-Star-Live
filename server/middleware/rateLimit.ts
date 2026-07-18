@@ -50,6 +50,13 @@ function getClientIp(req: Request): string {
 }
 
 const LOADTEST_SECRET = process.env.LOADTEST_BYPASS_SECRET || "";
+// The rate-limit bypass is a load-testing aid. Never honour it in production
+// unless it is deliberately enabled (ALLOW_LOADTEST_IN_PROD=1), so a leaked
+// header cannot be used to sidestep rate limiting against live traffic.
+export const LOADTEST_BYPASS_ENABLED =
+  !!LOADTEST_SECRET &&
+  (process.env.NODE_ENV !== "production" ||
+    process.env.ALLOW_LOADTEST_IN_PROD === "1");
 
 export function rateLimit(opts: {
   windowMs: number;
@@ -59,7 +66,7 @@ export function rateLimit(opts: {
   const { windowMs, max, keyPrefix = "rl" } = opts;
 
   return (req: Request, res: Response, next: NextFunction): void => {
-    if (LOADTEST_SECRET && req.headers["x-loadtest-key"] === LOADTEST_SECRET) {
+    if (LOADTEST_BYPASS_ENABLED && req.headers["x-loadtest-key"] === LOADTEST_SECRET) {
       next();
       return;
     }

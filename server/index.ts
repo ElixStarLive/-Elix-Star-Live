@@ -29,7 +29,7 @@ import { neonMatureCreatorEarnings } from "./lib/walletNeon";
 import { initFeedPubSub } from "./feedBroadcast";
 import crypto from "crypto";
 import cluster from "node:cluster";
-import { apiLimiter } from "./middleware/rateLimit";
+import { apiLimiter, LOADTEST_BYPASS_ENABLED } from "./middleware/rateLimit";
 import { errorHandler } from "./middleware/errorHandler";
 import { sessionGuard } from "./middleware/sessionGuard";
 
@@ -150,7 +150,7 @@ app.use((req, res, next) => {
 });
 
 app.use((req, res, next) => {
-  const isLoadTest = LOADTEST_SECRET && req.headers["x-loadtest-key"] === LOADTEST_SECRET;
+  const isLoadTest = LOADTEST_BYPASS_ENABLED && req.headers["x-loadtest-key"] === LOADTEST_SECRET;
 
   if (!isLoadTest) {
     req.requestId = (req.headers["x-request-id"] as string) || crypto.randomUUID();
