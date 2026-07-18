@@ -840,6 +840,7 @@ export default function LiveStream() {
 
   useEffect(() => {
     if (pendingInvite) {
+      setShowViewerList(false);
       setIsFindCreatorsOpen(true);
       const inviter = pendingInvite;
       setCreators(prev => {
@@ -2003,6 +2004,7 @@ export default function LiveStream() {
     if (opponentVideoRef.current) { opponentVideoRef.current.srcObject = null; }
     if (player3VideoRef.current) { player3VideoRef.current.srcObject = null; }
     if (player4VideoRef.current) { player4VideoRef.current.srcObject = null; }
+    setShowViewerList(false);
     setIsFindCreatorsOpen(true);
     websocket.send('battle_create', { hostName: creatorName });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -3247,6 +3249,7 @@ export default function LiveStream() {
       // Open ONLY the battle panel so the red Reject / green Join buttons show
       // immediately. Never open the co-host panel here — it covers the battle
       // panel and its Add buttons send co-host invites, not battle invites.
+      setShowViewerList(false);
       setIsFindCreatorsOpen(true);
     };
 
@@ -4753,7 +4756,7 @@ export default function LiveStream() {
                           <span className="text-white text-[10px] font-bold">Waiting...</span>
                         </div>
                       ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[#111111]/80 pointer-events-auto" onClick={(e) => { e.stopPropagation(); setIsFindCreatorsOpen(true); }}>
+                        <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[#111111]/80 pointer-events-auto" onClick={(e) => { e.stopPropagation(); setShowViewerList(false); setIsFindCreatorsOpen(true); }}>
                           <div className="w-12 h-12 rounded-full flex items-center justify-center">
                             <span className="text-white/30 text-2xl">+</span>
                           </div>
@@ -4865,7 +4868,7 @@ export default function LiveStream() {
                             <span className="text-white text-[10px] font-bold">Waiting...</span>
                           </div>
                         ) : (
-                          <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[#111111]/80 pointer-events-auto" onClick={(e) => { e.stopPropagation(); setIsFindCreatorsOpen(true); }}>
+                          <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[#111111]/80 pointer-events-auto" onClick={(e) => { e.stopPropagation(); setShowViewerList(false); setIsFindCreatorsOpen(true); }}>
                             <div className="w-12 h-12 rounded-full flex items-center justify-center">
                               <span className="text-white/30 text-2xl">+</span>
                             </div>
@@ -4947,7 +4950,7 @@ export default function LiveStream() {
                             <span className="text-white text-[10px] font-bold">Waiting...</span>
                           </div>
                         ) : (
-                          <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[#111111]/80 pointer-events-auto" onClick={(e) => { e.stopPropagation(); setIsFindCreatorsOpen(true); }}>
+                          <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[#111111]/80 pointer-events-auto" onClick={(e) => { e.stopPropagation(); setShowViewerList(false); setIsFindCreatorsOpen(true); }}>
                             <div className="w-12 h-12 rounded-full flex items-center justify-center">
                               <span className="text-white/30 text-2xl">+</span>
                             </div>
@@ -5447,7 +5450,16 @@ export default function LiveStream() {
               <div className="flex flex-col items-center gap-0.5">
                 <button
                   type="button"
-                  onClick={() => setShowViewerList(true)}
+                  onClick={() => {
+                    // In battle: person+ must invite battle creators only — never open the co-host panel.
+                    if (isBattleMode) {
+                      setShowViewerList(false);
+                      setIsFindCreatorsOpen(true);
+                      return;
+                    }
+                    setIsFindCreatorsOpen(false);
+                    setShowViewerList(true);
+                  }}
                   className={`${LIVE_BOTTOM_ICON_BTN} relative`}
                 >
                   <span className="flex items-center justify-center w-full h-full relative z-[2]"><UserPlus size={20} className="text-[#D4AF37] shrink-0" strokeWidth={2} /></span>
@@ -5455,7 +5467,15 @@ export default function LiveStream() {
                 <span className="text-white/60 text-[8px] font-medium">Co-Host</span>
               </div>
               <div className="flex flex-col items-center gap-0.5">
-                <button type="button" onClick={() => { if (!isBattleMode) toggleBattle(); else setIsFindCreatorsOpen(true); }} className={`${LIVE_BOTTOM_ICON_BTN} relative`}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowViewerList(false);
+                    if (!isBattleMode) toggleBattle();
+                    else setIsFindCreatorsOpen(true);
+                  }}
+                  className={`${LIVE_BOTTOM_ICON_BTN} relative`}
+                >
                   <Users size={20} className="text-[#D4AF37] relative z-[2]" />
 </button>
                 <span className="text-white/60 text-[8px] font-medium">Battle</span>
@@ -5866,10 +5886,19 @@ export default function LiveStream() {
                       {isBroadcast && isMyStreamLive && (
                         <button
                           type="button"
-                          onClick={() => { inviteCoHost({ id: c.id, streamKey: c.streamKey, name: c.name || c.username, avatar: c.avatar }); }}
+                          onClick={() => {
+                            // In battle: this panel must never send co-host invites.
+                            if (isBattleMode) {
+                              inviteCreatorToSlot(c.id);
+                              setShowViewerList(false);
+                              setIsFindCreatorsOpen(true);
+                              return;
+                            }
+                            inviteCoHost({ id: c.id, streamKey: c.streamKey, name: c.name || c.username, avatar: c.avatar });
+                          }}
                           className="px-2.5 py-1 rounded-full bg-[#C9A96E] text-black text-[10px] font-bold flex-shrink-0"
                         >
-                          Add
+                          {isBattleMode ? 'Invite' : 'Add'}
                         </button>
                       )}
                     </div>
