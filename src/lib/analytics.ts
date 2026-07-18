@@ -140,14 +140,7 @@ class AnalyticsService {
       app_version: import.meta.env.VITE_APP_VERSION || '1.0.2',
     };
 
-
-
-    // TODO: Send to analytics platform
-    // if (window.posthog) {
-    //   window.posthog.capture(event, enrichedProperties);
-    // }
-
-    // Send to backend for server-side tracking
+    // Server-side tracking is the single analytics sink (no third-party SDK).
     this.sendToBackend(event, enrichedProperties);
   }
 

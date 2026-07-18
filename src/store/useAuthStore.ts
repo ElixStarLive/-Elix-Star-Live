@@ -62,7 +62,6 @@ interface AuthStore {
     email: string,
   ) => Promise<{ error: string | null }>;
   signInWithApple: () => Promise<{ error: string | null }>;
-  signInAsGuest: () => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   updateUser: (updates: Partial<User>) => void;
   getCurrentUser: () => User | null;
@@ -489,42 +488,6 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
       return { error: err.message || "Apple sign-in failed." };
     }
   },
-  signInAsGuest: async () => {
-    try {
-      const { data, error } = await request("/api/auth/guest", {
-        method: "POST",
-      });
-
-      if (error || !data?.user || !data?.session) {
-        return {
-          error:
-            error?.message ||
-            "Guest login failed. Please try again or use email login.",
-        };
-      }
-
-      const mapped = mapUserToUser(data.user as AuthUser);
-
-      set({
-        user: mapped,
-        backendUser: data.user as AuthUser,
-        session: data.session as AuthSession,
-        isAuthenticated: true,
-        isLoading: false,
-      });
-
-      if (mapped) {
-        enrichUserWithProfile(mapped).then((enriched) => {
-          if (enriched) set({ user: enriched });
-        }).catch(() => {});
-      }
-
-      return { error: null };
-    } catch (e: unknown) {
-      return { error: e instanceof Error ? e.message : "Guest login failed." };
-    }
-  },
-
   // ── Sign out ─────────────────────────────────────────────────────────────
   signOut: async () => {
     try { await notificationService.unregisterToken(); } catch { /* intentionally empty */ }
