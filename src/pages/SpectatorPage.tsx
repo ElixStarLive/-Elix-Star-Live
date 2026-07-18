@@ -461,6 +461,55 @@ export default function SpectatorPage() {
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
+  // Accept a battle invite received while watching. Mirrors LiveStream's flow:
+  // real server handshake (battle_invite_accept -> battle_accept_ack) then move
+  // onto the live battle page as a player. Never leaves the creator as a spectator.
+  const acceptBattleInviteFromWatch = async () => {
+    if (!pendingBattleInvite || !user?.id || battleInviteJoining) return;
+    const invite = pendingBattleInvite;
+    if (!invite.streamKey) {
+      showToast('Missing stream key');
+      return;
+    }
+    setBattleInviteJoining(true);
+    const ackPromise = new Promise<boolean>((resolve) => {
+      let settled = false;
+      const settle = (ok: boolean) => {
+        if (settled) return;
+        settled = true;
+        websocket.off('battle_accept_ack', onAck);
+        websocket.off('battle_error', onErr);
+        resolve(ok);
+      };
+      const onAck = () => settle(true);
+      const onErr = () => settle(false);
+      websocket.on('battle_accept_ack', onAck);
+      websocket.on('battle_error', onErr);
+      window.setTimeout(() => settle(false), 8000);
+    });
+    try {
+      websocket.send('battle_invite_accept', {
+        hostUserId: invite.hostUserId,
+        requesterName: user?.username || user?.name || 'User',
+        requesterAvatar: user?.avatar || '',
+        streamKey: user?.id || effectiveStreamId,
+        hostStreamKey: invite.streamKey,
+      });
+    } catch { /* fire-and-forget */ }
+    showToast(`Joining @${invite.hostName}'s battle...`);
+    const granted = await ackPromise;
+    setBattleInviteJoining(false);
+    if (!granted) {
+      showToast('Could not join the battle — invite is no longer valid');
+      return;
+    }
+    setPendingBattleInvite(null);
+    try { sessionStorage.setItem(`battleAccept:${invite.streamKey}`, '1'); } catch { /* ignore */ }
+    navigate(`/live/${invite.streamKey}?battle=1`, {
+      state: { battleHost: { userId: invite.hostUserId, name: invite.hostName, avatar: invite.hostAvatar } },
+    });
+  };
+
   // Battle countdown only while the fight is ACTIVE (not during WAITING invite).
   useEffect(() => {
     if (!spectatorBattle?.active || spectatorBattle.status !== 'ACTIVE') return;
@@ -533,6 +582,11 @@ export default function SpectatorPage() {
   const coHostChanRef = useRef<unknown>(null);
   const [pendingCoHostInvite, setPendingCoHostInvite] = useState<{ notifId: string; hostName: string; hostAvatar: string; streamKey: string; hostUserId: string } | null>(null);
   const [showCoHostPanel, setShowCoHostPanel] = useState(false);
+  // A creator watching another creator can be invited into a BATTLE. That invite
+  // must move them onto the live battle page as a player — not leave them here as
+  // a spectator. (Co-host is a separate normal-live flow handled above.)
+  const [pendingBattleInvite, setPendingBattleInvite] = useState<{ hostName: string; hostAvatar: string; streamKey: string; hostUserId: string } | null>(null);
+  const [battleInviteJoining, setBattleInviteJoining] = useState(false);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -1607,6 +1661,19 @@ export default function SpectatorPage() {
       showToast(`@${data.hostName || 'Creator'} wants you to co-host — tap Join or Reject`);
     };
 
+    // Battle invite while watching: show a Join/Reject banner. Accepting takes the
+    // creator to the live battle page as a player, not the spectator page.
+    const handleBattleInvite = (data) => {
+      if (!mounted || !user?.id) return;
+      setPendingBattleInvite({
+        hostName: data.hostName || 'Creator',
+        hostAvatar: data.hostAvatar || '',
+        streamKey: data.streamKey || effectiveStreamId,
+        hostUserId: data.hostUserId || '',
+      });
+      showToast(`@${data.hostName || 'Creator'} invited you to battle — tap Join`);
+    };
+
     const handleGiftGoalSync = (data: unknown) => {
       if (!mounted) return;
       if (data == null) {
@@ -1685,6 +1752,7 @@ export default function SpectatorPage() {
     websocket.on('cohost_request_accepted', handleCohostRequestAccepted);
     websocket.on('cohost_request_declined', handleCohostRequestDeclined);
     websocket.on('cohost_invite', handleCohostInvite);
+    websocket.on('battle_invite', handleBattleInvite);
     websocket.on('booster_activated', handleBoosterActivated);
     websocket.on('booster_caught', handleBoosterCaught);
     websocket.on('mist_activated', handleMistActivated);
@@ -1750,6 +1818,7 @@ export default function SpectatorPage() {
       websocket.off('cohost_request_accepted', handleCohostRequestAccepted);
       websocket.off('cohost_request_declined', handleCohostRequestDeclined);
       websocket.off('cohost_invite', handleCohostInvite);
+      websocket.off('battle_invite', handleBattleInvite);
       websocket.off('booster_activated', handleBoosterActivated);
       websocket.off('booster_caught', handleBoosterCaught);
       websocket.off('mist_activated', handleMistActivated);
@@ -3168,6 +3237,37 @@ export default function SpectatorPage() {
           muted={false}
         />
 
+
+        {/* ═══ BATTLE INVITE BANNER — a watching creator was invited into the battle.
+             Join takes them to the live battle page as a player, not a spectator. */}
+        {pendingBattleInvite && (
+          <div className="fixed left-0 right-0 z-[100000] pointer-events-none flex justify-center px-3" style={{ top: 'calc(env(safe-area-inset-top, 0px) + 64px)' }}>
+            <div className="pointer-events-auto w-full max-w-[440px] flex items-center gap-2.5 py-2 px-2.5 rounded-xl bg-[#111111]/95 backdrop-blur-md border border-[#C9A227]/40 shadow-2xl">
+              <div
+                className="rounded-full overflow-hidden bg-[#111111] flex-shrink-0"
+                style={{ width: SHARE_PANEL_AVATAR_PX, height: SHARE_PANEL_AVATAR_PX }}
+              >
+                {pendingBattleInvite.hostAvatar ? (
+                  <img src={pendingBattleInvite.hostAvatar} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-[#D4AF37] font-bold">{pendingBattleInvite.hostName.slice(0, 1).toUpperCase()}</div>
+                )}
+              </div>
+              <div className="flex-1 min-w-0 text-left">
+                <p className="text-white text-xs font-semibold truncate">@{pendingBattleInvite.hostName}</p>
+                <p className="text-white/40 text-[10px]">invited you to battle</p>
+              </div>
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                <button type="button" onClick={() => setPendingBattleInvite(null)} className="h-6 px-3 rounded-full bg-red-500/25 border border-red-400/50 inline-flex items-center justify-center active:scale-95 transition-transform">
+                  <span className="text-red-300 text-[10px] font-bold leading-none whitespace-nowrap">Reject</span>
+                </button>
+                <button type="button" disabled={battleInviteJoining} onClick={() => void acceptBattleInviteFromWatch()} className="h-6 px-3.5 rounded-full bg-green-500 inline-flex items-center justify-center active:scale-95 transition-transform disabled:opacity-60">
+                  <span className="text-black text-[10px] font-bold leading-none whitespace-nowrap">{battleInviteJoining ? 'Joining…' : 'Join'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ═══ CO-HOST PANEL — spectator Accept/Reject when creator invited, or Request to co-host. No layout control. */}
         {showCoHostPanel && (
