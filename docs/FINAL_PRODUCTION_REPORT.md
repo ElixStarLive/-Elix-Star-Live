@@ -146,3 +146,100 @@ The 100% failure at 100 VUs was caused by rate limiting fail-closed — when loa
 - **No database schema changes** — all queries preserved
 - **No infrastructure changes** — all infra work is documented guidance for the user
 - **No Traefik container recreation** — only dynamic config file guidance
+
+---
+---
+
+# Round 2 — Scalability Hardening & Test Coverage (July 18, 2026)
+
+**Scope:** Eliminate the pub/sub and hot-path DB bottlenecks that cap horizontal
+scaling, add automated coverage for the changes, and extend the load-test suite
+to the authenticated/wallet/purchase paths.
+
+## Fixes implemented this round
+
+| Issue | Severity | File(s) | Root cause | Fix | Tests |
+|-------|----------|---------|-----------|-----|-------|
+| Global `PSUBSCRIBE room:*` / `user:*` — every instance received **every** room's and user's cross-instance traffic and discarded non-local messages | **HIGH** (scaling) | `server/lib/valkey.ts`, `server/websocket/index.ts` | Pattern subscription fans all matching publishes to all instances → O(instances × total traffic); the dominant cross-instance cost at high fan-out | Channel-routed subscribe: one shared `message` dispatcher + dynamic `SUBSCRIBE`/`UNSUBSCRIBE`; an instance subscribes to `room:{id}`/`user:{id}` only while it hosts a local client there. Added `valkeyUnsubscribe`, ref-counted handler registry, reconnect re-subscribe. | `server/lib/valkeyPubSub.test.ts` (7) |
+| `dbUpdateViewerCount` executed on **every** join/leave | **HIGH** (scaling) | `server/websocket/index.ts`, `server/lib/coalescedWriter.ts` | One DB `UPDATE` per membership event × many concurrent viewers hammered Postgres on hot rooms | Realtime count still broadcast immediately from Valkey `SCARD`; DB persistence coalesced per-room to a single trailing write (latest value) via reusable `createCoalescedWriter`; flushed when a room empties | `server/lib/coalescedWriter.test.ts` (5) |
+
+**Verification:** `npm run check` (tsc) clean; full suite **52 tests passing**
+(40 prior + 12 new). Committed on `main`.
+
+## Why these matter for horizontal scaling
+
+- **Pub/sub:** Before, adding an instance did **not** reduce per-instance pub/sub
+  load — each instance still processed all room/user traffic. After, per-instance
+  pub/sub work is proportional to the rooms/users that instance actually serves,
+  so the cluster scales close to linearly with added workers/instances.
+- **Viewer-count writes:** Removed the single largest per-event DB write from the
+  live hot path. DB write volume for viewer counts is now bounded by
+  `(#active rooms ÷ 3s)` instead of `(#join+leave events)`.
+
+## Protected area — plan presented, awaiting approval
+
+**Session validation is a per-request DB query.** `sessionGuard` (every
+authenticated `/api` request) and the WS connect handler both call
+`checkSessionState`, which runs a Postgres query (`elix_auth_sessions` +
+`profiles`). At tens of thousands of concurrent users this is the highest-volume
+DB read on the platform.
+
+Because this is auth/security-sensitive, **no code was changed** — see the
+proposed plan under "Pending — session-validation cache" below. It must be
+approved before implementation.
+
+## Load-test suite status
+
+The existing k6 suite (`loadtest/`) already covers WS concurrency, single-room
+viewer counts, chat, gift dedup, feed/HTTP, and reconnection storms, and is
+compatible with the current WS protocol. Added this round:
+
+- `loadtest/test7-auth-wallet.js` — **NEW.** Ramps authenticated VUs across
+  `/api/wallet/`, `/api/wallet/transactions`, `/api/progression/me`, and
+  `/api/shop/items`. This is the primary signal for the sessionGuard/auth hot
+  path and wallet read latency. Wired into `test-all.ps1` / `test-all.sh`.
+- **Purchases:** charge paths (Stripe checkout-session creation, Google/Apple
+  IAP verification) are deliberately excluded from load tests against production
+  and must be validated in the respective **sandbox** environments.
+
+**Honest limitation:** real 59k-concurrent metrics cannot be produced from this
+workspace — they require a deployed staging environment plus a distributed k6
+runner (single machine tops out ~8–10k VUs). The harness, thresholds, staged
+profiles, distributed-runner instructions (`docs/K6_40K_DISTRIBUTED.md`), and
+server-side monitoring commands are all in place to capture those metrics on
+staging. The load-test report template lives in `loadtest/README.md` ("Final
+Verdict Template") and should be filled from a staging run before certifying 59k.
+
+## Remaining blockers to a 59k certification
+
+1. **Infrastructure (unchanged from Round 1):** Hetzner LB tier, Traefik
+   GOMAXPROCS/transport, container fd limits, kernel tuning — see the Blockers
+   table above and `docs/PRODUCTION_GUIDE.md`.
+2. **Session-validation cache (pending approval):** required to keep the DB off
+   the authenticated hot path at target scale.
+3. **Staging load run:** the architecture changes above must be validated with a
+   distributed k6 run on staging and the metrics documented; static review
+   cannot certify 59k.
+4. **Neon pooling:** confirm the pooled endpoint (`-pooler`) and `PG_POOL_MAX`
+   sizing across cluster workers (warning already emitted in `postgres.ts`).
+
+## Pending — session-validation cache (proposed, NOT yet implemented)
+
+Design for approval:
+
+- **Cache key:** `sess:{sha256(token)}` in Valkey storing `{ state, userId }`.
+- **TTL:** short (e.g. 30–60s) so bans/revocations propagate quickly; never
+  longer than the token's own expiry.
+- **Read path:** `checkSessionState` checks Valkey first; on miss, runs the
+  existing DB query and populates the cache. DB remains the source of truth.
+- **Invalidation:** on logout, session revoke, ban/suspend, and account delete,
+  `DEL sess:{hash}` (and the existing `disconnectUserSessions` WS force-close
+  already fires for bans). Banned/`unavailable` states are **not** cached, or
+  cached only for a very short window, so enforcement never weakens.
+- **Fail-open/closed:** preserve current behavior exactly — Valkey miss/error
+  falls back to the DB query (never grants access on cache error).
+- **Tests:** cache hit/miss, TTL expiry, invalidation on logout/ban, and a
+  regression test asserting a ban is enforced within the TTL window.
+
+This changes behavior in a security-sensitive path, so it is held for explicit
+approval per the protected-areas policy.

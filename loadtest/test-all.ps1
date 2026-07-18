@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────
-# Run all 6 load tests sequentially and save results (PowerShell).
+# Run all 7 load tests sequentially and save results (PowerShell).
 #
 # Usage:
 #   $env:BASE_URL="http://YOUR_SERVER:8080"
@@ -38,7 +38,8 @@ $tests = @(
     @{ Name = "03-chat-stress";    File = "loadtest/test3-chat-stress.js" },
     @{ Name = "04-gift-burst";     File = "loadtest/test4-gift-burst.js" },
     @{ Name = "05-feed-api";       File = "loadtest/test5-feed-api.js" },
-    @{ Name = "06-reconnect";      File = "loadtest/test6-reconnect.js" }
+    @{ Name = "06-reconnect";      File = "loadtest/test6-reconnect.js" },
+    @{ Name = "07-auth-wallet";    File = "loadtest/test7-auth-wallet.js" }
 )
 
 foreach ($test in $tests) {

@@ -77,6 +77,12 @@ k6 run --env BASE_URL=http://YOUR_SERVER:8080 \
 | 4 | Gift Burst | `test4-gift-burst.js` | No duplicate transactions, no missed gift events |
 | 5 | Feed/API HTTP | `test5-feed-api.js` | HTTP endpoint latency under load (p50/p95/p99) |
 | 6 | Reconnection Storm | `test6-reconnect.js` | Users rejoin correctly after disconnect waves |
+| 7 | Auth + Wallet + Purchase-read | `test7-auth-wallet.js` | Authenticated hot path (sessionGuard), wallet/progression reads, shop catalog |
+
+> **Purchases:** `test7` covers the read/catalog side. Actual charge paths
+> (Stripe checkout-session creation, Google/Apple IAP verification) must be
+> load-tested against their **sandbox** environments only — never against the
+> live payment providers.
 
 ---
 

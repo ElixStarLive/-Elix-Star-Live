@@ -1,6 +1,6 @@
 #!/bin/bash
 # ─────────────────────────────────────────────────────────
-# Run all 6 load tests sequentially and save results.
+# Run all 7 load tests sequentially and save results.
 #
 # Usage:
 #   chmod +x loadtest/test-all.sh
@@ -65,6 +65,7 @@ run_test "03-chat-stress"      "loadtest/test3-chat-stress.js"
 run_test "04-gift-burst"       "loadtest/test4-gift-burst.js"
 run_test "05-feed-api"         "loadtest/test5-feed-api.js"
 run_test "06-reconnect"        "loadtest/test6-reconnect.js"
+run_test "07-auth-wallet"      "loadtest/test7-auth-wallet.js"
 
 echo ""
 echo "================================================"
