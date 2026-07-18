@@ -4356,7 +4356,7 @@ export default function LiveStream() {
                           aria-label="Close"
                           className="flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
                         >
-                          <RoyceCloseIcon size={12} />
+                          <X size={14} strokeWidth={2.35} className="text-[#D4AF37]" />
                           <span className="text-[8px] font-semibold text-white/85 leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">Close</span>
                         </button>
                         <button
