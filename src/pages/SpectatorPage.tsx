@@ -3065,6 +3065,9 @@ export default function SpectatorPage() {
                 ) : null}
               </form>
               <div className="flex items-end gap-2 flex-shrink-0" style={{ transform: 'translateX(4mm)' }}>
+              {/* Co-host is a NORMAL-LIVE feature only. During a battle a
+                  spectator can only watch, gift and comment — never co-host. */}
+              {!spectatorBattle?.active && (
               <button
                 type="button"
                 title={spectatorCoHostRequestSent ? 'Request sent' : 'Request to co-host'}
@@ -3089,6 +3092,7 @@ export default function SpectatorPage() {
                 </div>
                 <span className="text-[10px] font-semibold text-[#D4AF37] mt-0.5">Co-host</span>
               </button>
+              )}
               <button
                 type="button"
                 title="Send gift"
