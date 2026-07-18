@@ -2107,11 +2107,16 @@ export default function LiveStream() {
     spawnHeartAt(x, y, '#ffffff', heartFloatName, heartFloatAvatar);
   }, [spawnHeartAt, heartFloatName, heartFloatAvatar]);
 
-  // Battle points come ONLY from gifts (server-scored). Taps just aim the gift
-  // target — spectators watch and gift, they never inject free points.
+  // Battle Tap Logic: spectator taps broadcaster side → 5 points, once per match
   const handleBattleTap = useCallback((target: 'me' | 'opponent' | 'player3' | 'player4') => {
     if (!isBattleMode || battleWinner || battleTime <= 0) return;
+    if (target !== 'me') return;
+    if (spectatorTapPointsRef.current > 0) return;
+
     setGiftTarget(target);
+    spectatorTapPointsRef.current = 1;
+    setSpectatorTapsUsed(1);
+    awardBattlePoints('me', 5, false);
   }, [battleWinner, battleTime, awardBattlePoints, isBattleMode]);
 
   // ─── SPEED CHALLENGE LOGIC ───
@@ -2231,11 +2236,11 @@ export default function LiveStream() {
       const key = e.key;
       const code = e.code;
 
+      // Battle tap → score only. Likes (profile counter) are a separate action.
       if (key === 'ArrowLeft' || key === 'a' || key === 'A' || code === 'Numpad4') {
         e.preventDefault();
         handleBattleTap('me');
         spawnHeartAtSide('me');
-        addLiveLikes(1);
         return;
       }
 
@@ -2243,7 +2248,6 @@ export default function LiveStream() {
         e.preventDefault();
         handleBattleTap('opponent');
         spawnHeartAtSide('opponent');
-        addLiveLikes(1);
       }
     };
 
@@ -2883,6 +2887,9 @@ export default function LiveStream() {
       const syncStatus = typeof data.status === 'string' ? data.status : '';
       if (syncStatus === 'ACTIVE' && prevBattleSyncStatusRef.current !== 'ACTIVE') {
         battleTapScoreRemainingRef.current = 5;
+        // New match — everyone gets their single +5 tap again.
+        spectatorTapPointsRef.current = 0;
+        setSpectatorTapsUsed(0);
       }
       prevBattleSyncStatusRef.current = syncStatus || null;
       battleStreamIdsRef.current = {
@@ -4523,8 +4530,8 @@ export default function LiveStream() {
                           <span className="text-white font-bold text-[10px] truncate max-w-full px-1">{creatorName || user?.username || user?.name || 'Me'}</span>
                         </div>
                       )}
-                      {/* P1 close + mic + cam — labels under icons (same as More/Share/Effects) */}
-                      <div className="absolute bottom-3 right-1.5 z-40 pointer-events-auto flex items-end gap-2">
+                      {/* P1 close — top outer corner (top-left), icon only */}
+                      <div className="absolute top-3 left-1.5 z-40 pointer-events-auto">
                         <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); closeLiveWithSlide(); }}
@@ -4532,27 +4539,29 @@ export default function LiveStream() {
                           className="flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
                         >
                           <X size={14} strokeWidth={2.35} className="text-[#D4AF37]" />
-                          <span className="text-[8px] font-semibold text-white/85 leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">Close</span>
                         </button>
+                      </div>
+                      {/* P1 mic + cam — icons only */}
+                      <div className="absolute bottom-3 right-1.5 z-40 pointer-events-auto flex items-end gap-2">
                         <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); togglePlayerMute('me'); }}
+                          aria-label={mutedPlayers['me'] ? 'Unmute' : 'Mute'}
                           className="flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
                         >
                           {mutedPlayers['me']
                             ? <MicOff className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />
                             : <Mic className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />}
-                          <span className="text-[8px] font-semibold text-white/85 leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">{mutedPlayers['me'] ? 'Unmute' : 'Mute'}</span>
                         </button>
                         <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); toggleCam(); }}
+                          aria-label={isCamOff ? 'Cam On' : 'Cam Off'}
                           className="flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
                         >
                           {isCamOff
                             ? <CameraOff className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />
                             : <Camera className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />}
-                          <span className="text-[8px] font-semibold text-white/85 leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">{isCamOff ? 'Cam On' : 'Cam Off'}</span>
                         </button>
                       </div>
 
@@ -4616,36 +4625,42 @@ export default function LiveStream() {
                       )}
 
                       {battleSlots[0].status !== 'empty' && (
-                        <div className="absolute bottom-3 left-1.5 z-10 pointer-events-auto flex items-end gap-2">
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); togglePlayerMute('opponent'); }}
-                            className="flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
-                          >
-                            {mutedPlayers['opponent']
-                              ? <MicOff className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />
-                              : <Mic className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />}
-                            <span className="text-[8px] font-semibold text-white/85 leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">{mutedPlayers['opponent'] ? 'Unmute' : 'Mute'}</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); togglePlayerCamera('opponent'); }}
-                            className="flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
-                          >
-                            {cameraOffPlayers['opponent']
-                              ? <CameraOff className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />
-                              : <Camera className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />}
-                            <span className="text-[8px] font-semibold text-white/85 leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">{cameraOffPlayers['opponent'] ? 'Cam On' : 'Cam Off'}</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); removePlayerFromSlot(0); }}
-                            className="flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
-                          >
-                            <X size={14} className="text-[#D4AF37]" strokeWidth={2.25} />
-                            <span className="text-[8px] font-semibold text-white/85 leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">Remove</span>
-                          </button>
-                        </div>
+                        <>
+                          {/* P2 close/remove — top outer corner (top-right), icon only */}
+                          <div className="absolute top-3 right-1.5 z-10 pointer-events-auto">
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); removePlayerFromSlot(0); }}
+                              aria-label="Remove"
+                              className="flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
+                            >
+                              <X size={14} className="text-[#D4AF37]" strokeWidth={2.25} />
+                            </button>
+                          </div>
+                          {/* P2 mic + cam — icons only */}
+                          <div className="absolute bottom-3 left-1.5 z-10 pointer-events-auto flex items-end gap-2">
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); togglePlayerMute('opponent'); }}
+                              aria-label={mutedPlayers['opponent'] ? 'Unmute' : 'Mute'}
+                              className="flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
+                            >
+                              {mutedPlayers['opponent']
+                                ? <MicOff className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />
+                                : <Mic className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); togglePlayerCamera('opponent'); }}
+                              aria-label={cameraOffPlayers['opponent'] ? 'Cam On' : 'Cam Off'}
+                              className="flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
+                            >
+                              {cameraOffPlayers['opponent']
+                                ? <CameraOff className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />
+                                : <Camera className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />}
+                            </button>
+                          </div>
+                        </>
                       )}
 
                       <div 

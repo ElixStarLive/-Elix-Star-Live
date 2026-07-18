@@ -24,7 +24,7 @@ import {
   revokeCohostPublish,
   getCohostLayout,
 } from "./index";
-import { valkeyDel, valkeySet, valkeyGet } from "../lib/valkey";
+import { valkeyDel, valkeySet, valkeySetNx, valkeyGet } from "../lib/valkey";
 import { randomUUID } from "crypto";
 import {
   clearGiftGoal,
@@ -374,8 +374,31 @@ export async function handleMessage(
       }
 
       case "battle_spectator_vote": {
-        // Disabled: spectators only watch and gift. Battle points come
-        // exclusively from gifts — no free vote points from any client.
+        // Each spectator awards +5 exactly ONCE per full match (claim keyed by
+        // battle id, so the next match resets it). Enforced server-side so a
+        // forged loop cannot inject unlimited free battle score.
+        if (!(await wsRateCheck(client.userId, "spectator_vote", 5, 60_000))) break;
+        const voteRoom = client.roomId;
+        const voteBattle = await getBattleFromStore(voteRoom);
+        if (!voteBattle || voteBattle.status !== "ACTIVE") break;
+        const voteClaimKey = `battle_vote:${voteBattle.id}:${client.userId}`;
+        const firstVote = await valkeySetNx(voteClaimKey, "1", 600_000);
+        if (!firstVote) {
+          sendToClient(client, "battle_vote_ack", {
+            target: null,
+            points: 0,
+            status: "already_voted",
+          });
+          break;
+        }
+        const voteTarget =
+          data.target === "host" ? "host" : "opponent";
+        await addBattleScoreForTarget(voteRoom, voteTarget as "host" | "opponent", 5);
+        sendToClient(client, "battle_vote_ack", {
+          target: voteTarget,
+          points: 5,
+          status: "ok",
+        });
         break;
       }
 

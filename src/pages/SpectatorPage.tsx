@@ -402,16 +402,16 @@ export default function SpectatorPage() {
     followers: number; following: number; level: number; bio: string;
   } | null>(null);
   const opponentProfileFetchedRef = useRef('');
-  /** One server +5 PK vote per spectator per battle (matches LiveStream `battleTapScoreRemainingRef`). */
+  /** One +5 PK vote per spectator per full match — resets when a new match goes ACTIVE. */
   const spectatorBattleVoteRemainingRef = useRef(1);
   const prevSpectatorBattleActiveRef = useRef(false);
   useEffect(() => {
-    const active = !!spectatorBattle?.active;
+    const active = !!spectatorBattle?.active && spectatorBattle.status === 'ACTIVE';
     if (active && !prevSpectatorBattleActiveRef.current) {
       spectatorBattleVoteRemainingRef.current = 1;
     }
     prevSpectatorBattleActiveRef.current = active;
-  }, [spectatorBattle?.active]);
+  }, [spectatorBattle?.active, spectatorBattle?.status]);
 
   const _openOpponentPanel = useCallback(() => {
     const oppId = battleStreamIds?.opponentUserId;
@@ -440,11 +440,20 @@ export default function SpectatorPage() {
   // Stay on the host stream during battle. Dual LiveKit already shows both
   // creators — navigating away mixes WS/LiveKit rooms and kills the live.
 
-  // Spectators only watch and gift — no free vote points. Battle points come
-  // exclusively from gifts, scored by the server.
-  const handleSpectatorVote = useCallback((_target: 'host' | 'opponent' | 'player3' | 'player4') => {
-    return;
-  }, []);
+  // Tap vote goes to BATTLE SCORE only (server-scored) — never to the like
+  // counter under the profile. +5 once per full match, resets next match.
+  const handleSpectatorVote = useCallback((target: 'host' | 'opponent' | 'player3' | 'player4') => {
+    if (!spectatorBattle?.active || spectatorBattle.status !== 'ACTIVE') return;
+    if (spectatorBattleVoteRemainingRef.current <= 0) return;
+    if (!websocket.isConnected()) return;
+    spectatorBattleVoteRemainingRef.current = 0;
+    try {
+      if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(12);
+    } catch {
+      /* ignore */
+    }
+    websocket.send('battle_spectator_vote', { target });
+  }, [spectatorBattle?.active, spectatorBattle?.status]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
