@@ -56,7 +56,9 @@ export type WebSocketEvent =
   | "battle:score_update"
   | "likes:update"
   | "booster:spawn"
-  | "booster:activated";
+  | "booster:activated"
+  | "booster_activated"
+  | "booster_caught";
 
 export interface WebSocketMessage {
   event: WebSocketEvent | string;

@@ -31,7 +31,7 @@ import { GiftPanel } from '../components/GiftPanel';
 import { GiftGoalGallery } from '../components/GiftGoalGallery';
 import { LiveGiftGoalBar } from '../components/LiveGiftGoalBar';
 import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, fetchGiftsFromDatabase, pickGiftVideoUrl } from '../lib/giftsCatalog';
-import { BattleVfxOverlays, type BattleMistSide, type GloveBurst } from '../components/BattleVfxOverlays';
+import { BattleVfxOverlays, GloveIcon, type BattleMistSide, type GloveBurst } from '../components/BattleVfxOverlays';
 import {
   addPersistedTestCoins,
   debitTestCoinsForGift,
@@ -184,6 +184,13 @@ export default function SpectatorPage() {
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [isMember, setIsMember] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
+
+  // Point Multiplier Booster (glove) — the spectator's own active booster
+  // (server-driven window), transient glove-send animations (fly to the weekly-
+  // ranking corner when any spectator sends one), and transient "caught" popups.
+  const [activeBooster, setActiveBooster] = useState<{ multiplier: number; expiresAt: number } | null>(null);
+  const [boosterActivations, setBoosterActivations] = useState<{ id: string; multiplier: number; username: string }[]>([]);
+  const [boosterCatches, setBoosterCatches] = useState<{ id: string; multiplier: number; finalPoints: number; username: string }[]>([]);
 
   const [streamEndedReceived, setStreamEndedReceived] = useState(false);
 
@@ -1556,6 +1563,29 @@ export default function SpectatorPage() {
         return { ...prev, hostScore: newH, opponentScore: newO, player3Score: newP3, player4Score: newP4 };
       });
     };
+    const handleBoosterActivated = (data: unknown) => {
+      const d = data as { user_id?: string; username?: string; multiplier?: number; expires_at?: number };
+      const mult = Number(d?.multiplier) || 0;
+      if (d?.user_id && user?.id && String(d.user_id) === String(user.id)) {
+        setActiveBooster({ multiplier: mult, expiresAt: Number(d.expires_at) || 0 });
+      }
+      // Transient: a glove flies to the weekly-ranking corner when sent, then goes.
+      const id = `${Date.now()}-${Math.random()}`;
+      setBoosterActivations((prev) => [...prev, { id, multiplier: mult, username: String(d?.username || '') }]);
+      setTimeout(() => setBoosterActivations((prev) => prev.filter((a) => a.id !== id)), 1800);
+    };
+    const handleBoosterCaught = (data: unknown) => {
+      const d = data as { multiplier?: number; final_points?: number; username?: string; transaction_id?: string };
+      const id = String(d?.transaction_id || `${Date.now()}-${Math.random()}`);
+      setBoosterCatches((prev) => (prev.some((c) => c.id === id) ? prev : [...prev, {
+        id,
+        multiplier: Number(d?.multiplier) || 0,
+        finalPoints: Number(d?.final_points) || 0,
+        username: String(d?.username || ''),
+      }]));
+      setTimeout(() => setBoosterCatches((prev) => prev.filter((c) => c.id !== id)), 2200);
+    };
+
     websocket.on('battle_state_sync', handleBattleStateSync);
     websocket.on('battle_score', handleBattleScore);
     websocket.on('battle:score_update', handleBattleScoreUpdateColon);
@@ -1564,6 +1594,8 @@ export default function SpectatorPage() {
     websocket.on('cohost_request_accepted', handleCohostRequestAccepted);
     websocket.on('cohost_request_declined', handleCohostRequestDeclined);
     websocket.on('cohost_invite', handleCohostInvite);
+    websocket.on('booster_activated', handleBoosterActivated);
+    websocket.on('booster_caught', handleBoosterCaught);
 
     connect();
 
@@ -1620,10 +1652,21 @@ export default function SpectatorPage() {
       websocket.off('cohost_request_accepted', handleCohostRequestAccepted);
       websocket.off('cohost_request_declined', handleCohostRequestDeclined);
       websocket.off('cohost_invite', handleCohostInvite);
+      websocket.off('booster_activated', handleBoosterActivated);
+      websocket.off('booster_caught', handleBoosterCaught);
       websocket.disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveStreamId, user?.id, streamIsLive, syncMvpSlots, spawnHeartAt, triggerBattleVfx]);
+
+  // Clear the active booster indicator when its server-driven window expires.
+  useEffect(() => {
+    if (!activeBooster) return;
+    const ms = activeBooster.expiresAt - Date.now();
+    if (ms <= 0) { setActiveBooster(null); return; }
+    const t = setTimeout(() => setActiveBooster(null), ms);
+    return () => clearTimeout(t);
+  }, [activeBooster]);
 
   // Share panel contacts: all platform users (same list as live share / ShareModal).
   useEffect(() => {
@@ -2937,6 +2980,32 @@ export default function SpectatorPage() {
         {/* GIFT ANIMATION OVERLAY */}
         <GiftAnimationOverlay streamId={effectiveStreamId} />
 
+        {/* POINT MULTIPLIER BOOSTER — glove flies to the weekly-ranking corner when
+            a spectator sends it, then disappears (transient, never stays on screen) */}
+        {boosterActivations.length > 0 && (
+          <div className="fixed left-3 top-[92px] z-[100000] flex flex-col gap-1 pointer-events-none">
+            {boosterActivations.map((a) => (
+              <span key={a.id} className="booster-glove-fly relative flex items-center justify-center w-11 h-11 rounded-full bg-[#111111]/90 border border-[#D4AF37] shadow-2xl text-[#D4AF37]">
+                <GloveIcon className="w-7 h-7" />
+                <span className="absolute -bottom-1 -right-1 text-[9px] font-black leading-none px-1 rounded-full bg-black text-[#D4AF37] border border-[#C9A227]/60">x{a.multiplier}</span>
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Glove "caught" popup — server-synced to all clients when a gift is caught */}
+        {boosterCatches.length > 0 && (
+          <div className="fixed inset-x-0 top-[30%] z-[100000] flex flex-col items-center gap-2 pointer-events-none px-4">
+            {boosterCatches.map((c) => (
+              <div key={c.id} className="booster-catch-pop flex items-center gap-2 px-4 py-2 rounded-full bg-[#111111]/90 border border-[#D4AF37] shadow-2xl">
+                <GloveIcon className="w-5 h-5 text-[#D4AF37]" />
+                <span className="text-[#D4AF37] font-black text-base tracking-wide">x{c.multiplier} CAUGHT!</span>
+                <span className="text-white font-bold text-sm">+{c.finalPoints}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* GIFT VIDEO OVERLAY */}
         <GiftOverlay
           key={`gift-${giftKey}`}
@@ -3226,6 +3295,30 @@ export default function SpectatorPage() {
                       Right
                     </button>
                   </div>
+                  {/* Point Multiplier Booster (glove) — press a glove to send it; it
+                      flies to the ranking corner and opens a server-timed catch window. */}
+                  <div className="flex items-center gap-2">
+                    {[3, 5].map((m) => {
+                      const anyActive = !!activeBooster && activeBooster.expiresAt > Date.now();
+                      const isActive = activeBooster?.multiplier === m && anyActive;
+                      return (
+                        <button
+                          key={m}
+                          type="button"
+                          title={`Send x${m} glove booster`}
+                          disabled={anyActive}
+                          onClick={() => {
+                            if (anyActive) return;
+                            websocket.send('booster_activated', { multiplier: m });
+                          }}
+                          className={`relative flex items-center justify-center w-9 h-9 rounded-full border transition-colors active:scale-90 ${isActive ? 'bg-[#D4AF37] border-[#D4AF37] text-black' : anyActive ? 'bg-[#111111] border-[#C9A227]/30 text-white/30' : 'bg-[#111111] border-[#C9A227]/60 text-[#D4AF37]'}`}
+                        >
+                          <GloveIcon className="w-5 h-5" />
+                          <span className="absolute -bottom-1 -right-1 text-[8px] font-black leading-none px-1 rounded-full bg-black text-[#D4AF37] border border-[#C9A227]/60">x{m}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
               <GiftPanel
@@ -3309,12 +3402,12 @@ export default function SpectatorPage() {
               onClick={() => setShowSharePanel(false)}
             />
             <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
-              <div className="bg-[#111111]/95 rounded-t-2xl px-4 pt-1.5 pb-4 pb-safe flex flex-col gap-1 shadow-2xl w-full h-[40vh] overflow-y-auto overflow-x-hidden ">
-                <div className="flex justify-center mb-0.5">
+              <div className="bg-[#111111]/95 backdrop-blur-md rounded-t-2xl p-3 pb-safe flex flex-col shadow-2xl w-full h-[40vh] overflow-hidden ">
+                <div className="flex justify-center pt-0.5 pb-0.5">
                   <div className="w-10 h-1 bg-white/20 rounded-full" />
                 </div>
-                <div className="flex items-center justify-between gap-2">
-                  <h3 className="text-white font-bold whitespace-nowrap">Share to</h3>
+                <div className="flex items-center justify-between gap-2 px-4 pb-0.5 flex-shrink-0">
+                  <h3 className="text-white font-bold whitespace-nowrap text-sm">Share to</h3>
                   <div className="flex-none w-[120px] bg-white/5 rounded-lg px-2 py-0.5 flex items-center gap-2">
                     <Search className="w-3.5 h-3.5 text-white/30" />
                     <input
@@ -3326,7 +3419,7 @@ export default function SpectatorPage() {
                   </div>
                 </div>
                 <div className="w-full overflow-hidden shrink-0">
-                  <div className="flex gap-3 overflow-x-auto pt-3 pb-4 no-scrollbar items-center px-4">
+                  <div className="flex gap-3 overflow-x-auto overflow-y-hidden pt-3 pb-4 flex-shrink-0 px-4 no-scrollbar">
                     {shareContacts.filter(c => c.name.toLowerCase().includes(shareQuery.toLowerCase())).map((u) => (
                       <button
                         key={u.id}
@@ -3380,7 +3473,7 @@ export default function SpectatorPage() {
                   </div>
                 </div>
                 {/* Line between user circles and action icons */}
-                <div className="mx-0 my-1 border-t border-[#D4AF37]/45 flex-shrink-0" aria-hidden />
+                <div className="mx-4 my-1 border-t border-[#D4AF37]/45 flex-shrink-0" aria-hidden />
                 <div className="flex-1 overflow-y-scroll overflow-x-hidden min-h-0 px-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#C9A227]/60 [&::-webkit-scrollbar-thumb]:rounded-full">
                   {/* Share creator's live: all links use /watch/{creatorStreamId} */}
                   <div className="grid grid-cols-5 gap-y-3 gap-x-1.5 pt-4" style={{ marginTop: '6mm' }}>

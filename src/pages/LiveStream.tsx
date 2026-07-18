@@ -37,7 +37,7 @@ import {
 import { AnimatePresence, motion } from 'framer-motion';
 import { FILTER_PRESETS } from '../lib/ai/filters';
 import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, fetchGiftsFromDatabase, pickGiftVideoUrl } from '../lib/giftsCatalog';
-import { BattleVfxOverlays, type BattleMistSide, type GloveBurst } from '../components/BattleVfxOverlays';
+import { BattleVfxOverlays, GloveIcon, type BattleMistSide, type GloveBurst } from '../components/BattleVfxOverlays';
 import {
   addPersistedTestCoins,
   debitTestCoinsForGift,
@@ -992,7 +992,7 @@ export default function LiveStream() {
   type PendingJoinRequest = { requesterName: string; requesterAvatar: string; requesterId: string; type: 'cohost' | 'battle' };
   const [pendingJoinRequest, setPendingJoinRequest] = useState<PendingJoinRequest | null>(null);
 
-  const _acceptJoinRequest = async () => {
+  const acceptJoinRequest = async () => {
     if (!pendingJoinRequest || !user?.id) return;
     const req = pendingJoinRequest;
     if (isSelfUser(req.requesterId, user.id, effectiveStreamId)) {
@@ -1021,7 +1021,7 @@ export default function LiveStream() {
     showToast(`Accepted @${req.requesterName}'s co-host request!`);
   };
 
-  const _declineJoinRequest = async () => {
+  const declineJoinRequest = async () => {
     if (!pendingJoinRequest) return;
     const requesterId = pendingJoinRequest.requesterId;
     setPendingJoinRequest(null);
@@ -1281,6 +1281,10 @@ export default function LiveStream() {
   const _lastBattleScoreUpdateTraceSigRef = useRef('');
   const [battleServerTotals, setBattleServerTotals] = useState({ h: 0, o: 0, p3: 0, p4: 0 });
   const [battleMistSide, setBattleMistSide] = useState<BattleMistSide>(null);
+  // Point Multiplier Booster (glove) — transient glove-send animations (fly to the
+  // weekly-ranking corner when a spectator sends one) and transient "caught" popups.
+  const [boosterActivations, setBoosterActivations] = useState<{ id: string; multiplier: number; username: string }[]>([]);
+  const [boosterCatches, setBoosterCatches] = useState<{ id: string; multiplier: number; finalPoints: number; username: string }[]>([]);
   const [battleHideScores, setBattleHideScores] = useState(false);
   const [battleGloves, setBattleGloves] = useState<GloveBurst[]>([]);
   const battleMistTimerRef = useRef<number | null>(null);
@@ -2966,12 +2970,32 @@ export default function LiveStream() {
     websocket.on('gift_sent', handleGiftSent);
     websocket.on('gift_goal_sync', handleGiftGoalSync);
     websocket.on('heart_sent', handleHeartSent);
+    const handleBoosterActivated = (data: unknown) => {
+      const d = data as { multiplier?: number; username?: string };
+      const id = `${Date.now()}-${Math.random()}`;
+      setBoosterActivations((prev) => [...prev, { id, multiplier: Number(d?.multiplier) || 0, username: String(d?.username || '') }]);
+      setTimeout(() => setBoosterActivations((prev) => prev.filter((a) => a.id !== id)), 1800);
+    };
+    const handleBoosterCaught = (data: unknown) => {
+      const d = data as { multiplier?: number; final_points?: number; username?: string; transaction_id?: string };
+      const id = String(d?.transaction_id || `${Date.now()}-${Math.random()}`);
+      setBoosterCatches((prev) => (prev.some((c) => c.id === id) ? prev : [...prev, {
+        id,
+        multiplier: Number(d?.multiplier) || 0,
+        finalPoints: Number(d?.final_points) || 0,
+        username: String(d?.username || ''),
+      }]));
+      setTimeout(() => setBoosterCatches((prev) => prev.filter((c) => c.id !== id)), 2200);
+    };
+
     websocket.on('battle_state_sync', handleBattleStateSync);
     websocket.on('battle_score', handleBattleScore);
     websocket.on('battle:score_update', handleBattleScoreUpdate);
     websocket.on('battle_countdown', handleBattleCountdown);
     websocket.on('battle_ended', handleBattleEnded);
     websocket.on('battle_ready_state', handleBattleReadyState);
+    websocket.on('booster_activated', handleBoosterActivated);
+    websocket.on('booster_caught', handleBoosterCaught);
 
     // Battle & Co-Host invite / request signalling over WebSocket
     const handleBattleInvite = (data) => {
@@ -3153,6 +3177,8 @@ export default function LiveStream() {
       websocket.off('battle_countdown', handleBattleCountdown);
       websocket.off('battle_ended', handleBattleEnded);
       websocket.off('battle_ready_state', handleBattleReadyState);
+      websocket.off('booster_activated', handleBoosterActivated);
+      websocket.off('booster_caught', handleBoosterCaught);
       websocket.off('battle_invite', handleBattleInvite);
       websocket.off('battle_invite_accepted', handleBattleInviteAccepted);
       websocket.off('cohost_invite', handleCohostInvite);
@@ -6164,6 +6190,68 @@ export default function LiveStream() {
 
       {/* Full-screen Gift Overlay Animation */}
       <GiftAnimationOverlay streamId={effectiveStreamId} />
+
+      {/* POINT MULTIPLIER BOOSTER — glove flies to the weekly-ranking corner when a
+          spectator sends it, then disappears (transient, never stays on screen) */}
+      {boosterActivations.length > 0 && (
+        <div className="fixed left-3 top-[92px] z-[100000] flex flex-col gap-1 pointer-events-none">
+          {boosterActivations.map((a) => (
+            <span key={a.id} className="booster-glove-fly relative flex items-center justify-center w-11 h-11 rounded-full bg-[#111111]/90 border border-[#D4AF37] shadow-2xl text-[#D4AF37]">
+              <GloveIcon className="w-7 h-7" />
+              <span className="absolute -bottom-1 -right-1 text-[9px] font-black leading-none px-1 rounded-full bg-black text-[#D4AF37] border border-[#C9A227]/60">x{a.multiplier}</span>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Glove "caught" popup — server-synced to all clients when a gift is caught */}
+      {boosterCatches.length > 0 && (
+        <div className="fixed inset-x-0 top-[30%] z-[100000] flex flex-col items-center gap-2 pointer-events-none px-4">
+          {boosterCatches.map((c) => (
+            <div key={c.id} className="booster-catch-pop flex items-center gap-2 px-4 py-2 rounded-full bg-[#111111]/90 border border-[#D4AF37] shadow-2xl">
+              <GloveIcon className="w-5 h-5 text-[#D4AF37]" />
+              <span className="text-[#D4AF37] font-black text-base tracking-wide">x{c.multiplier} CAUGHT!</span>
+              <span className="text-white font-bold text-sm">+{c.finalPoints}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* CO-HOST REQUEST PROMPT — a spectator asked to send their video; the creator
+          accepts (grants publish so their camera reaches this page) or declines. */}
+      {isBroadcast && pendingJoinRequest && (
+        <div className="fixed inset-0 z-[100001] flex items-center justify-center pointer-events-auto px-6">
+          <div className="absolute inset-0 bg-black/50" onClick={declineJoinRequest} />
+          <div className="relative w-full max-w-[320px] bg-[#111111]/95 backdrop-blur-md rounded-2xl border border-[#D4AF37]/40 shadow-2xl p-5 flex flex-col items-center gap-3">
+            <div className="w-16 h-16 rounded-full overflow-hidden bg-[#13151A]">
+              <img
+                src={pendingJoinRequest.requesterAvatar || '/royce/default-avatar.svg'}
+                alt={pendingJoinRequest.requesterName}
+                className="w-full h-full object-cover"
+                draggable={false}
+              />
+            </div>
+            <p className="text-white font-bold text-sm text-center">@{pendingJoinRequest.requesterName}</p>
+            <p className="text-white/60 text-xs text-center">wants to join your live as co-host</p>
+            <div className="flex items-center gap-3 w-full mt-1">
+              <button
+                type="button"
+                onClick={declineJoinRequest}
+                className="flex-1 py-2.5 rounded-full bg-white/10 text-white/80 text-xs font-bold active:scale-95 transition-transform"
+              >
+                Decline
+              </button>
+              <button
+                type="button"
+                onClick={acceptJoinRequest}
+                className="flex-1 py-2.5 rounded-full bg-[#D4AF37] text-black text-xs font-bold active:scale-95 transition-transform"
+              >
+                Accept
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Full-screen Video Effect Overlay (Behind controls but above video) */}
       <GiftOverlay

@@ -14,7 +14,7 @@ type Props = {
 };
 
 /** Boxing-glove silhouette (inline SVG — no new assets). */
-function GloveIcon({ className, flip }: { className?: string; flip?: boolean }) {
+export function GloveIcon({ className, flip }: { className?: string; flip?: boolean }) {
   return (
     <svg
       viewBox="0 0 64 64"
