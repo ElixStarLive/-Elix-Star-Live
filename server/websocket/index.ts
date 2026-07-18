@@ -529,6 +529,54 @@ async function checkAndBroadcastStreamEnd(
   scheduleHostDisconnectStreamEnd(roomId, userId);
 }
 
+/** Battle participants also blip (remount/mobile network) — same grace as host. */
+const BATTLE_DISCONNECT_GRACE_MS = 15_000;
+const battleDisconnectTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+function cancelBattleDisconnectGrace(roomId: string, userId: string): void {
+  const key = hostDisconnectKey(roomId, userId);
+  const t = battleDisconnectTimers.get(key);
+  if (t) {
+    clearTimeout(t);
+    battleDisconnectTimers.delete(key);
+  }
+}
+
+function scheduleBattleDisconnectEnd(battleRoomId: string, userId: string): void {
+  const key = hostDisconnectKey(battleRoomId, userId);
+  const existing = battleDisconnectTimers.get(key);
+  if (existing) clearTimeout(existing);
+  const timer = setTimeout(() => {
+    battleDisconnectTimers.delete(key);
+    void (async () => {
+      try {
+        // Participant reconnected to the battle room — battle continues.
+        const room = rooms.get(battleRoomId);
+        if (room && Array.from(room).some((c) => c.userId === userId)) {
+          return;
+        }
+        if (isValkeyConfigured()) {
+          const members = await valkeySmembers(`room:members:${battleRoomId}`);
+          if (members.includes(userId)) return;
+        }
+        const battle = await getBattleFromStore(battleRoomId);
+        if (!battle || battle.status === "ENDED") return;
+        const isHost = battle.hostUserId === userId;
+        const isOpponent = battle.opponentUserId === userId;
+        if (!isHost && !isOpponent) return;
+        logger.info(
+          { battleRoomId, role: isHost ? "host" : "opponent" },
+          "Battle participant gone after grace, ending battle",
+        );
+        await endBattle(battleRoomId);
+      } catch (err) {
+        logger.error({ err, battleRoomId, userId }, "battle disconnect grace end failed");
+      }
+    })();
+  }, BATTLE_DISCONNECT_GRACE_MS);
+  battleDisconnectTimers.set(key, timer);
+}
+
 // ── Build viewer list from Valkey + DB for new joiners ───────────
 
 const MAX_VIEWER_LIST = 100;
@@ -708,8 +756,9 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
         await valkeyExpire(`room:members:${roomId}`, ROOM_MEMBER_TTL);
       }
 
-      // Host reconnected within grace — do not end the live.
+      // Host/battle participant reconnected within grace — keep live + battle up.
       cancelHostDisconnectGrace(roomId, userId);
+      cancelBattleDisconnectGrace(roomId, userId);
 
       const viewers = await buildViewerList(roomId);
 
@@ -877,19 +926,25 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
 
         // Only end battle when leaving the battle room itself. Ending on leave
         // from the opponent's previous solo room races invite-accept reconnect
-        // and kills battles for host + spectators.
+        // and kills battles for host + spectators. A WS blip must not end the
+        // battle instantly either — give the participant a grace to reconnect.
         const battleRoomId = await getUserBattleRoom(client.userId);
         if (battleRoomId && client.roomId === battleRoomId) {
-          const battle = await getBattleFromStore(battleRoomId);
-          if (battle && battle.status !== "ENDED") {
-            const isHost = battle.hostUserId === client.userId;
-            const isOpponent = battle.opponentUserId === client.userId;
-            if (isHost || isOpponent) {
-              logger.info(
-                { battleRoomId, role: isHost ? "host" : "opponent" },
-                "Battle participant disconnected, ending battle",
-              );
-              await endBattle(battleRoomId);
+          const stillConnectedToBattleRoom = (() => {
+            const battleRoom = rooms.get(battleRoomId);
+            if (!battleRoom) return false;
+            return Array.from(battleRoom).some(
+              (c) => c.userId === (client as NonNullable<typeof client>).userId,
+            );
+          })();
+          if (!stillConnectedToBattleRoom) {
+            const battle = await getBattleFromStore(battleRoomId);
+            if (battle && battle.status !== "ENDED") {
+              const isHost = battle.hostUserId === client.userId;
+              const isOpponent = battle.opponentUserId === client.userId;
+              if (isHost || isOpponent) {
+                scheduleBattleDisconnectEnd(battleRoomId, client.userId);
+              }
             }
           }
         }
