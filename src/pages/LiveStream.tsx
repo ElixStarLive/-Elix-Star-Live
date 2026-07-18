@@ -1286,6 +1286,10 @@ export default function LiveStream() {
   const [boosterActivations, setBoosterActivations] = useState<{ id: string; multiplier: number; username: string }[]>([]);
   const [boosterCatches, setBoosterCatches] = useState<{ id: string; multiplier: number; finalPoints: number; username: string }[]>([]);
   const [battleHideScores, setBattleHideScores] = useState(false);
+  // Mist Fog booster — server-driven window that hides the battle score for
+  // everyone EXCEPT the supported creator. The host keeps seeing the score when
+  // their own side is boosted; the opposing side's mist fogs it for them.
+  const [mistFog, setMistFog] = useState<{ supportedUserId: string; supportedSide: 'host' | 'opponent'; expiresAt: number } | null>(null);
   const [battleGloves, setBattleGloves] = useState<GloveBurst[]>([]);
   const battleMistTimerRef = useRef<number | null>(null);
   const gloveIdRef = useRef(0);
@@ -1310,6 +1314,20 @@ export default function LiveStream() {
   useEffect(() => {
     setBattleHideScores(isBattleMode && battleTime > 0 && battleTime <= 10 && !battleWinner);
   }, [isBattleMode, battleTime, battleWinner]);
+
+  // Mist Fog window self-expires on the client from the server expires_at.
+  useEffect(() => {
+    if (!mistFog) return;
+    const ms = mistFog.expiresAt - Date.now();
+    if (ms <= 0) { setMistFog(null); return; }
+    const t = setTimeout(() => setMistFog(null), ms);
+    return () => clearTimeout(t);
+  }, [mistFog]);
+
+  // Fog covers gift/battle points for everyone except the supported creator.
+  // Opponent creator + spectators lose the digits; only that creator keeps them.
+  const mistHidesScores = !!mistFog && mistFog.expiresAt > Date.now()
+    && String(mistFog.supportedUserId) !== String(user?.id || '');
 
   useEffect(() => {
     return () => {
@@ -2987,6 +3005,14 @@ export default function LiveStream() {
       }]));
       setTimeout(() => setBoosterCatches((prev) => prev.filter((c) => c.id !== id)), 2200);
     };
+    const handleMistActivated = (data: unknown) => {
+      const d = data as { supported_user_id?: string; supported_side?: string; expires_at?: number };
+      const supportedUserId = String(d?.supported_user_id || '');
+      const expiresAt = Number(d?.expires_at) || 0;
+      if (!supportedUserId || expiresAt <= Date.now()) return;
+      const supportedSide = d?.supported_side === 'opponent' ? 'opponent' : 'host';
+      setMistFog({ supportedUserId, supportedSide, expiresAt });
+    };
 
     websocket.on('battle_state_sync', handleBattleStateSync);
     websocket.on('battle_score', handleBattleScore);
@@ -2996,6 +3022,7 @@ export default function LiveStream() {
     websocket.on('battle_ready_state', handleBattleReadyState);
     websocket.on('booster_activated', handleBoosterActivated);
     websocket.on('booster_caught', handleBoosterCaught);
+    websocket.on('mist_activated', handleMistActivated);
 
     // Battle & Co-Host invite / request signalling over WebSocket
     const handleBattleInvite = (data) => {
@@ -3179,6 +3206,7 @@ export default function LiveStream() {
       websocket.off('battle_ready_state', handleBattleReadyState);
       websocket.off('booster_activated', handleBoosterActivated);
       websocket.off('booster_caught', handleBoosterCaught);
+      websocket.off('mist_activated', handleMistActivated);
       websocket.off('battle_invite', handleBattleInvite);
       websocket.off('battle_invite_accepted', handleBattleInviteAccepted);
       websocket.off('cohost_invite', handleCohostInvite);
@@ -4273,6 +4301,7 @@ export default function LiveStream() {
             {/* Dynamic Battle Grid: 2-split or 4-split based on players */}
             {(() => {
               const is4Player = battleSlots[1].status !== 'empty' || battleSlots[2].status !== 'empty';
+              const scoresHidden = battleHideScores || mistHidesScores;
               return (
                 <div
                   className="relative w-full flex-none flex flex-col overflow-hidden"
@@ -4296,7 +4325,7 @@ export default function LiveStream() {
                         />
                         <div className="h-full flex-1 min-w-0" style={{ backgroundImage: 'linear-gradient(90deg, #1E90FF, #4169E1, #0047AB)' }} />
                       </div>
-                      <div className={`relative z-10 flex h-full min-h-[16px] items-center justify-between gap-1.5 px-2 pointer-events-none leading-none ${battleHideScores ? 'opacity-0' : ''}`}>
+                      <div className={`relative z-10 flex h-full min-h-[16px] items-center justify-between gap-1.5 px-2 pointer-events-none leading-none ${scoresHidden ? 'opacity-0' : ''}`}>
                         <div className="flex min-w-0 flex-1 flex-col items-start justify-center gap-0">
                           <AnimatedScore value={typeof redTeamScore === 'number' && Number.isFinite(redTeamScore) ? redTeamScore : 0} durationMs={0} format={formatCoinsShort} className="text-white font-black text-[11px] tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" />
                           {is4Player && (
@@ -4314,7 +4343,7 @@ export default function LiveStream() {
                           )}
                         </div>
                       </div>
-                      {battleHideScores ? (
+                      {scoresHidden ? (
                         <div className="absolute inset-0 z-20 battle-score-veil pointer-events-none" />
                       ) : null}
                     </div>
@@ -4355,7 +4384,15 @@ export default function LiveStream() {
 
                   {/* Grid Container — ref for spectator tap→vote mapping */}
                   <div ref={battleVoteGridRef} className="flex-1 min-h-0 flex flex-col relative">
-                    <BattleVfxOverlays mistSide={battleMistSide} hideScores={false} gloves={battleGloves} />
+                    <BattleVfxOverlays
+                      mistSide={
+                        mistFog && mistFog.expiresAt > Date.now() && mistHidesScores
+                          ? (mistFog.supportedSide === 'opponent' ? 'blue' : 'red')
+                          : battleMistSide
+                      }
+                      hideScores={false}
+                      gloves={battleGloves}
+                    />
                     {/* Row 1: P1 & P2 — equal joined panes */}
                     <div className="flex flex-1 min-h-0 gap-0">
                       <div

@@ -26,6 +26,7 @@ import {
   Plus,
   PlusCircle,
   Play,
+  CloudFog,
 } from 'lucide-react';
 import { GiftPanel } from '../components/GiftPanel';
 import { GiftGoalGallery } from '../components/GiftGoalGallery';
@@ -191,6 +192,9 @@ export default function SpectatorPage() {
   const [activeBooster, setActiveBooster] = useState<{ multiplier: number; expiresAt: number } | null>(null);
   const [boosterActivations, setBoosterActivations] = useState<{ id: string; multiplier: number; username: string }[]>([]);
   const [boosterCatches, setBoosterCatches] = useState<{ id: string; multiplier: number; finalPoints: number; username: string }[]>([]);
+  // Mist Fog booster — server-driven window that hides the battle score for
+  // everyone EXCEPT the supported creator (supportedUserId). Purely visual.
+  const [mistFog, setMistFog] = useState<{ supportedUserId: string; supportedSide: 'host' | 'opponent'; expiresAt: number } | null>(null);
 
   const [streamEndedReceived, setStreamEndedReceived] = useState(false);
 
@@ -1585,6 +1589,14 @@ export default function SpectatorPage() {
       }]));
       setTimeout(() => setBoosterCatches((prev) => prev.filter((c) => c.id !== id)), 2200);
     };
+    const handleMistActivated = (data: unknown) => {
+      const d = data as { supported_user_id?: string; supported_side?: string; expires_at?: number };
+      const supportedUserId = String(d?.supported_user_id || '');
+      const expiresAt = Number(d?.expires_at) || 0;
+      if (!supportedUserId || expiresAt <= Date.now()) return;
+      const supportedSide = d?.supported_side === 'opponent' ? 'opponent' : 'host';
+      setMistFog({ supportedUserId, supportedSide, expiresAt });
+    };
 
     websocket.on('battle_state_sync', handleBattleStateSync);
     websocket.on('battle_score', handleBattleScore);
@@ -1596,6 +1608,7 @@ export default function SpectatorPage() {
     websocket.on('cohost_invite', handleCohostInvite);
     websocket.on('booster_activated', handleBoosterActivated);
     websocket.on('booster_caught', handleBoosterCaught);
+    websocket.on('mist_activated', handleMistActivated);
 
     connect();
 
@@ -1654,6 +1667,7 @@ export default function SpectatorPage() {
       websocket.off('cohost_invite', handleCohostInvite);
       websocket.off('booster_activated', handleBoosterActivated);
       websocket.off('booster_caught', handleBoosterCaught);
+      websocket.off('mist_activated', handleMistActivated);
       websocket.disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1667,6 +1681,18 @@ export default function SpectatorPage() {
     const t = setTimeout(() => setActiveBooster(null), ms);
     return () => clearTimeout(t);
   }, [activeBooster]);
+
+  useEffect(() => {
+    if (!mistFog) return;
+    const ms = mistFog.expiresAt - Date.now();
+    if (ms <= 0) { setMistFog(null); return; }
+    const t = setTimeout(() => setMistFog(null), ms);
+    return () => clearTimeout(t);
+  }, [mistFog]);
+
+  // Fog hides the battle score for everyone except the creator being supported.
+  const mistHidesMyScore = !!mistFog && mistFog.expiresAt > Date.now()
+    && String(mistFog.supportedUserId) !== String(user?.id || '');
 
   // Share panel contacts: all platform users (same list as live share / ShareModal).
   useEffect(() => {
@@ -2039,6 +2065,7 @@ export default function SpectatorPage() {
             /** 4-way tap zones only when co-host labels use "Name + Name"; per-bucket scores always shown under bar. */
             const showPkBreakdown =
               (spectatorBattle.redTeamLabel || '').includes(' + ') || (spectatorBattle.blueTeamLabel || '').includes(' + ');
+            const scoresHidden = battleHideScores || mistHidesMyScore;
             return (
               <div
                 className="absolute inset-0 z-[80] flex flex-col"
@@ -2054,7 +2081,7 @@ export default function SpectatorPage() {
                       <div className="h-full flex-1 min-w-0" style={{ backgroundImage: 'linear-gradient(90deg, #1E90FF, #4169E1, #0047AB)' }} />
                     </div>
                     <div className="relative z-10 flex h-full min-h-[16px] items-center justify-between gap-1.5 px-2 pointer-events-none leading-none">
-                      <div className={`flex min-w-0 flex-1 flex-col items-start justify-center gap-0 ${battleHideScores ? 'opacity-0' : ''}`}>
+                      <div className={`flex min-w-0 flex-1 flex-col items-start justify-center gap-0 ${scoresHidden ? 'opacity-0' : ''}`}>
                         <AnimatedScore value={typeof redTeamScore === 'number' && Number.isFinite(redTeamScore) ? redTeamScore : 0} durationMs={0} format={formatBattleScoreShort} className="text-white font-black text-[11px] tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" />
                         {showPkBreakdown && (
                           <span className="text-[5px] text-white/80 tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
@@ -2062,7 +2089,7 @@ export default function SpectatorPage() {
                           </span>
                         )}
                       </div>
-                      <div className={`flex min-w-0 flex-1 flex-col items-end justify-center gap-0 ${battleHideScores ? 'opacity-0' : ''}`}>
+                      <div className={`flex min-w-0 flex-1 flex-col items-end justify-center gap-0 ${scoresHidden ? 'opacity-0' : ''}`}>
                         <AnimatedScore value={typeof blueTeamScore === 'number' && Number.isFinite(blueTeamScore) ? blueTeamScore : 0} durationMs={0} format={formatBattleScoreShort} className="text-white font-black text-[11px] tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" />
                         {showPkBreakdown && (
                           <span className="text-[5px] text-white/80 tabular-nums leading-none text-right drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
@@ -2070,7 +2097,7 @@ export default function SpectatorPage() {
                           </span>
                         )}
                       </div>
-                      {battleHideScores ? (
+                      {scoresHidden ? (
                         <div className="absolute inset-0 z-20 battle-score-veil pointer-events-none" />
                       ) : null}
                     </div>
@@ -2095,7 +2122,15 @@ export default function SpectatorPage() {
                 {/* Battle grid — videos + tap overlay (2-way or 4-way PK); one +5 vote per spectator per battle */}
                 <div className="relative w-full flex-none flex flex-col overflow-hidden" style={{ height: LIVE_BATTLE_VIDEO_HEIGHT }}>
                   <div className="flex-1 min-h-0 flex flex-col relative">
-                    <BattleVfxOverlays mistSide={battleMistSide} hideScores={false} gloves={battleGloves} />
+                    <BattleVfxOverlays
+                      mistSide={
+                        mistFog && mistFog.expiresAt > Date.now() && mistHidesMyScore
+                          ? (mistFog.supportedSide === 'opponent' ? 'blue' : 'red')
+                          : battleMistSide
+                      }
+                      hideScores={false}
+                      gloves={battleGloves}
+                    />
                     <div className="absolute inset-0 flex flex-row gap-0">
                       <div className="flex-1 basis-0 min-w-0 h-full overflow-hidden relative bg-[#111111]">
                         <video
@@ -3318,6 +3353,25 @@ export default function SpectatorPage() {
                         </button>
                       );
                     })}
+                    {/* Mist Fog — hides the battle score from the opposing side; only
+                        the creator you back keeps seeing the points. */}
+                    {(() => {
+                      const mistActive = !!mistFog && mistFog.expiresAt > Date.now();
+                      return (
+                        <button
+                          type="button"
+                          title="Send mist fog (hide score from the other side)"
+                          disabled={mistActive}
+                          onClick={() => {
+                            if (mistActive) return;
+                            websocket.send('mist_activated', { target: spectatorGiftBattleTarget });
+                          }}
+                          className={`flex items-center justify-center w-9 h-9 rounded-full border transition-colors active:scale-90 ${mistActive ? 'bg-[#D4AF37] border-[#D4AF37] text-black' : 'bg-[#111111] border-[#C9A227]/60 text-[#D4AF37]'}`}
+                        >
+                          <CloudFog className="w-5 h-5" strokeWidth={2.25} />
+                        </button>
+                      );
+                    })()}
                   </div>
                 </div>
               )}
