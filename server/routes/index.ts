@@ -42,14 +42,6 @@ export function mountRoutes(app: Express): void {
   app.use("/api/stories", storiesRouter);
   app.use("/api/media", mediaRouter);
 
-  if (process.env.NODE_ENV !== "production") {
-    import("./testCoins").then(({ handleGetTestCoinBalance, handleMintTestCoins, handleSpendTestCoinsForScore }) => {
-      app.get("/api/test-coins/balance", handleGetTestCoinBalance);
-      app.post("/api/test-coins/mint", handleMintTestCoins);
-      app.post("/api/test-coins/score", handleSpendTestCoinsForScore);
-    });
-  }
-
   // Misc (analytics, block, report, notifications, IAP, refunds, etc.)
   app.use("/api", miscRouter);
 }
