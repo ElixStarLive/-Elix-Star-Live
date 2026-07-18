@@ -44,9 +44,14 @@ export function mountRoutes(app: Express): void {
   app.use("/api/media", mediaRouter);
 
   // Test coins — isolated in-memory balance for gift testing only (never real money).
-  app.get("/api/test-coins/balance", handleGetTestCoinBalance);
-  app.post("/api/test-coins/mint", handleMintTestCoins);
-  app.post("/api/test-coins/score", handleSpendTestCoinsForScore);
+  // Never mounted in production: the shipped store build does not use these routes
+  // (client test coins live in localStorage), so exposing a mint endpoint on the
+  // live backend would be an unnecessary abuse surface.
+  if (process.env.NODE_ENV !== "production") {
+    app.get("/api/test-coins/balance", handleGetTestCoinBalance);
+    app.post("/api/test-coins/mint", handleMintTestCoins);
+    app.post("/api/test-coins/score", handleSpendTestCoinsForScore);
+  }
 
   // Misc (analytics, block, report, notifications, IAP, refunds, etc.)
   app.use("/api", miscRouter);
