@@ -134,7 +134,7 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
                   </div>
                 )}
                 <span 
-                    className="text-white font-bold text-[13px] leading-none cursor-pointer hover:underline whitespace-nowrap" 
+                    className="text-white font-semibold text-[11px] leading-none cursor-pointer hover:underline whitespace-nowrap" 
                     onClick={() => onProfileTap?.(String(msg.username ?? ''))}
                 >
                   {typeof msg.username === 'string' ? msg.username : 'User'}
@@ -145,10 +145,16 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
                     <span className="text-white text-[9px] font-bold uppercase tracking-wider">Member</span>
                   </div>
                 )}
+                {/* Join / system events read inline next to the colored level badge */}
+                {msg.isSystem && typeof msg.text === 'string' && msg.text ? (
+                  <span className="text-white/70 text-[11px] leading-none whitespace-nowrap">
+                    {msg.text}
+                  </span>
+                ) : null}
               </div>
             </div>
 
-            {(msg.stickerUrl || (typeof msg.text === 'string' && msg.text)) ? (
+            {(msg.stickerUrl || (!msg.isSystem && typeof msg.text === 'string' && msg.text)) ? (
               <div
                 className="min-w-0"
                 style={{ paddingLeft: CHAT_PROFILE_RING_PX + 8 }}
@@ -156,7 +162,7 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
                 {msg.stickerUrl ? (
                   <img src={msg.stickerUrl} alt="sticker" className="w-16 h-16 object-contain rounded-lg" />
                 ) : (
-                  <span className={`text-[13px] leading-snug break-words ${msg.isGift ? 'text-white font-bold' : 'text-white/90'}`}>
+                  <span className={`text-[12px] leading-snug break-words ${msg.isGift ? 'text-white font-bold' : 'text-white/90'}`}>
                     {typeof msg.text === 'string' ? msg.text : ''}
                   </span>
                 )}
