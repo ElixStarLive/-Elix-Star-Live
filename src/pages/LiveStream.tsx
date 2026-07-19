@@ -79,7 +79,6 @@ import {
   SHARE_PANEL_AVATAR_PX,
   SHARE_PANEL_ITEM_WIDTH_PX,
 } from '../lib/sharePanelContacts';
-import { LevelBadge } from '../components/LevelBadge';
 import ReportModal from '../components/ReportModal';
 import PromotePanel from '../components/PromotePanel';
 import { GiftPanel } from '../components/GiftPanel';
@@ -5751,10 +5750,7 @@ export default function LiveStream() {
                     </div>
                     <div className="text-white/70 text-[12px] font-bold">
                       {typeof miniProfile.level === 'number' ? (
-                        <span className="inline-flex items-center gap-2">
-                          <LevelBadge level={miniProfile.level} size={16} layout="fixed" avatar={miniProfile.avatar} />
-                          <span>Level {miniProfile.level}</span>
-                        </span>
+                        <span className="text-white/80 text-[15px] font-black">Level {miniProfile.level}</span>
                       ) : (
                         'Level —'
                       )}
