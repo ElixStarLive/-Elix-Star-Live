@@ -19,6 +19,7 @@ import { initializeIAP } from "./lib/iap";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { OfflineBanner } from "./components/OfflineBanner";
 import { IncomingCallModal } from "./components/IncomingCallModal";
+import { LiveNotifyBanner } from "./components/LiveNotifyBanner";
 import { subscribeToIncomingCalls } from "./lib/callService";
 import { websocket } from "./lib/websocket";
 
@@ -294,6 +295,7 @@ function App() {
     <div className="fixed inset-0 w-full h-[100dvh] flex flex-col bg-background text-text font-sans overflow-hidden">
       <OfflineBanner />
       <IncomingCallModal />
+      <LiveNotifyBanner />
       {/* Swipe from left edge to go back on any page */}
       <div
         className="fixed left-0 top-0 bottom-0 z-[9998]"

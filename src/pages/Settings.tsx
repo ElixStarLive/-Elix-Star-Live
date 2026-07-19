@@ -15,15 +15,19 @@ import {
   Video,
   Ban,
   Trash2,
+  Radio,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { showToast } from '../lib/toast';
 import { useAuthStore } from '../store/useAuthStore';
+import { useSettingsStore } from '../store/useSettingsStore';
 import SettingsOptionSheet from '../components/SettingsOptionSheet';
 
 export default function Settings() {
   const navigate = useNavigate();
   const signOut = useAuthStore((s) => s.signOut);
+  const liveNotifications = useSettingsStore((s) => s.liveNotifications);
+  const setLiveNotifications = useSettingsStore((s) => s.setLiveNotifications);
 
   const handleLogout = async () => {
     try { await signOut(); } catch { /* best-effort */ }
@@ -97,6 +101,12 @@ export default function Settings() {
 
           <S t="Preferences" />
           <R ic={<Bell size={14} />} t="Notifications" fn={() => navigate('/settings/safety')} />
+          <R
+            ic={<Radio size={14} />}
+            t="Live notifications"
+            v={liveNotifications ? 'On' : 'Off'}
+            fn={() => setLiveNotifications(!liveNotifications)}
+          />
           <R ic={<Moon size={14} />} t="Dark Mode" v="On" fn={() => showToast('Dark mode is always on')} />
           <R ic={<Globe size={14} />} t="Language" v="EN" fn={() => showToast('More languages coming soon')} />
 

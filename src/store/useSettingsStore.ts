@@ -6,9 +6,11 @@ type AppLanguage = 'ro' | 'en';
 interface SettingsState {
   muteAllSounds: boolean;
   notificationsEnabled: boolean;
+  liveNotifications: boolean;
   language: AppLanguage;
   setMuteAllSounds: (value: boolean) => void;
   setNotificationsEnabled: (value: boolean) => void;
+  setLiveNotifications: (value: boolean) => void;
   setLanguage: (value: AppLanguage) => void;
 }
 
@@ -17,9 +19,11 @@ export const useSettingsStore = create<SettingsState>()(
     (set) => ({
       muteAllSounds: false,
       notificationsEnabled: true,
+      liveNotifications: true,
       language: 'ro',
       setMuteAllSounds: (value) => set({ muteAllSounds: value }),
       setNotificationsEnabled: (value) => set({ notificationsEnabled: value }),
+      setLiveNotifications: (value) => set({ liveNotifications: value }),
       setLanguage: (value) => set({ language: value }),
     }),
     {
