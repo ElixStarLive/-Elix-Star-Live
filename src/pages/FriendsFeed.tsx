@@ -161,21 +161,21 @@ export default function FriendsFeed() {
 
           {/* Circles — pushed down so avatar tops clear the header */}
           <div
-            className="px-3 pt-3 pb-2 relative z-[11]"
+            className="px-3 pb-2 relative z-[11]"
             style={{ marginTop: '6mm' }}
           >
-            <div className="flex gap-3 overflow-x-auto overflow-y-hidden no-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <div className="flex gap-3 overflow-x-auto overflow-y-hidden no-scrollbar pt-3" style={{ WebkitOverflowScrolling: 'touch' }}>
             {/* Add story — first in Friends strip (before other users) */}
             <button
               type="button"
               onClick={() => navigate('/upload?type=story')}
               className="flex-shrink-0 flex flex-col items-center gap-1"
-              style={{ width: 72, minWidth: 72 }}
+              style={{ width: 95, minWidth: 95 }}
               title="Add story"
             >
-              <div className="relative" style={{ width: 44, height: 44 }}>
+              <div className="relative" style={{ width: 56, height: 56 }}>
                 <StoryGoldRingAvatar
-                  size={44}
+                  size={56}
                   src={user?.avatar || '/royce/default-avatar.svg'}
                   alt={user?.username || 'You'}
                 />
@@ -195,11 +195,11 @@ export default function FriendsFeed() {
                   setStoryItemIndex(0);
                 }}
                 className="flex-shrink-0 flex flex-col items-center gap-1"
-                style={{ width: 72, minWidth: 72 }}
+                style={{ width: 95, minWidth: 95 }}
                 title="Your story"
               >
                 <StoryGoldRingAvatar
-                  size={44}
+                  size={56}
                   src={user?.avatar || '/royce/default-avatar.svg'}
                   alt="Your story"
                 />
@@ -222,10 +222,10 @@ export default function FriendsFeed() {
                   if (u.is_live) navigate(`/watch/${u.id}`);
                   else navigate(`/profile/${u.id}`);
                 }}
-                className="flex-shrink-0 flex flex-col items-center gap-1" style={{ width: 72, minWidth: 72 }}
+                className="flex-shrink-0 flex flex-col items-center gap-1" style={{ width: 95, minWidth: 95 }}
               >
                 <StoryGoldRingAvatar
-                  size={44}
+                  size={56}
                   live={u.is_live}
                   data-avatar-circle={u.is_live ? 'live' : undefined}
                   src={u.avatar_url || '/royce/default-avatar.svg'}

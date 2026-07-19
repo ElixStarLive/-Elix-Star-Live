@@ -93,6 +93,7 @@ export default function Settings() {
           <R ic={<User size={14} />} t="Edit Profile" fn={() => navigate('/edit-profile')} />
           <R ic={<Lock size={14} />} t="Privacy" fn={() => navigate('/settings/safety')} />
           <R ic={<Shield size={14} />} t="Security" fn={() => navigate('/settings/safety')} />
+          <R ic={<Trash2 size={14} />} t="Delete Account" fn={handleDeleteAccount} />
 
           <S t="Preferences" />
           <R ic={<Bell size={14} />} t="Notifications" fn={() => navigate('/settings/safety')} />

@@ -168,8 +168,8 @@ export default function FollowingFeed() {
       >
         <div className="w-full shrink-0 bg-[#111111] z-10 relative">
           {/* Circles — Create, then followers who are live, then all other users who are live; scroll left */}
-          <div className="px-3 py-2">
-            <div className="flex gap-3 overflow-x-auto overflow-y-hidden no-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <div className="px-3 pb-2">
+            <div className="flex gap-3 overflow-x-auto overflow-y-hidden no-scrollbar pt-3" style={{ WebkitOverflowScrolling: 'touch' }}>
               {followingUsers.filter((u) => u.id !== user?.id && (u.name || u.username || '').trim().toLowerCase() !== 'user').map((u) => (
                 <button
                   key={u.id}
