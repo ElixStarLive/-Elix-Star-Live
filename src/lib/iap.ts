@@ -9,10 +9,10 @@ import { request } from './apiClient';
 
 // Product IDs — must match App Store Connect / Google Play Console
 export const IAP_PRODUCTS = {
-  'com.elixstarlive.coins_100':  { coins: 100,  label: '100 Coins' },
-  'com.elixstarlive.coins_500':  { coins: 500,  label: '500 Coins' },
-  'com.elixstarlive.coins_1000': { coins: 1000, label: '1,000 Coins' },
-  'com.elixstarlive.coins_5000': { coins: 5000, label: '5,000 Coins' },
+  'elixstarlive.coins_100':  { coins: 100,  label: '100 Coins' },
+  'elixstarlive.coins_500':  { coins: 500,  label: '500 Coins' },
+  'elixstarlive.coins_1000': { coins: 1000, label: '1,000 Coins' },
+  'elixstarlive.coins_5000': { coins: 5000, label: '5,000 Coins' },
 } as const;
 
 // Promote boost product IDs (Apple IAP) — match goals: views £5, likes £10, profile £20, followers £30
