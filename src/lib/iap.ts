@@ -9,15 +9,15 @@ import { request } from './apiClient';
 
 // Product IDs — must match App Store Connect / Google Play Console
 export const IAP_PRODUCTS = {
-  'elixstarlive.coins_100':    { coins: 100,    label: '100 Coins' },
-  'elixstarlive.coins_500':    { coins: 500,    label: '500 Coins' },
-  'elixstarlive.coins_1000':   { coins: 1000,   label: '1,000 Coins' },
-  'elixstarlive.coins_5000':   { coins: 5000,   label: '5,000 Coins' },
-  'elixstarlive.coins_10000':  { coins: 10000,  label: '10,000 Coins' },
-  'elixstarlive.coins_50000':  { coins: 50000,  label: '50,000 Coins' },
-  'elixstarlive.coins_100000': { coins: 100000, label: '100,000 Coins' },
-  'elixstarlive.coins_150000': { coins: 150000, label: '150,000 Coins' },
-  'elixstarlive.coins_200000': { coins: 200000, label: '200,000 Coins' },
+  'coins100':    { coins: 100,    label: '100 Coins' },
+  'coins500':    { coins: 500,    label: '500 Coins' },
+  'coins1000':   { coins: 1000,   label: '1,000 Coins' },
+  'coins5000':   { coins: 5000,   label: '5,000 Coins' },
+  'coins10000':  { coins: 10000,  label: '10,000 Coins' },
+  'coins50000':  { coins: 50000,  label: '50,000 Coins' },
+  'coins100000': { coins: 100000, label: '100,000 Coins' },
+  'coins150000': { coins: 150000, label: '150,000 Coins' },
+  'coins200000': { coins: 200000, label: '200,000 Coins' },
 } as const;
 
 // Promote boost product IDs (Apple IAP) — match goals: views £5, likes £10, profile £20, followers £30
