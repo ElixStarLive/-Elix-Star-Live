@@ -92,9 +92,16 @@ export async function createShopItemCheckout(req: Request, res: Response) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const { itemId } = req.body ?? {};
-    if (!itemId || typeof itemId !== "string") {
-      return res.status(400).json({ error: "itemId required" });
+    // Accept a single itemId (legacy) or a basket of items. Dedupe and cap.
+    const body = req.body ?? {};
+    const rawIds: string[] = Array.isArray(body.items)
+      ? body.items.map((i: { id?: unknown }) => String(i?.id ?? "")).filter(Boolean)
+      : typeof body.itemId === "string" && body.itemId
+        ? [body.itemId]
+        : [];
+    const itemIds = Array.from(new Set(rawIds)).slice(0, 10);
+    if (itemIds.length === 0) {
+      return res.status(400).json({ error: "itemId or items required" });
     }
 
     const rateCheck = await checkRateLimit(authUserId, "shop_buy");
@@ -104,36 +111,42 @@ export async function createShopItemCheckout(req: Request, res: Response) {
         .json({ error: "Too many requests", retryAfter: rateCheck.retryAfter });
     }
 
-    const item = await dbGetShopItemById(itemId);
-    if (!item || !item.is_active) {
-      return res.status(404).json({ error: "Item not found or no longer available" });
-    }
-    if (item.user_id === authUserId) {
-      return res.status(400).json({ error: "Cannot buy your own item" });
-    }
-    if (!item.price || item.price <= 0) {
-      return res.status(400).json({ error: "Item has no valid price" });
+    // Validate every item server-side (same rules as single-item purchase).
+    const items = await Promise.all(itemIds.map((id) => dbGetShopItemById(id)));
+    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (!item || !item.is_active) {
+        return res.status(404).json({ error: "An item is no longer available", itemId: itemIds[i] });
+      }
+      if (item.user_id === authUserId) {
+        return res.status(400).json({ error: "Cannot buy your own item", itemId: itemIds[i] });
+      }
+      if (!item.price || item.price <= 0) {
+        return res.status(400).json({ error: "An item has no valid price", itemId: itemIds[i] });
+      }
+      lineItems.push({
+        price_data: {
+          currency: "gbp",
+          product_data: {
+            name: item.title,
+            description: item.description || "Shop item on Elix Star Live",
+            ...(item.image_url ? { images: [item.image_url] } : {}),
+          },
+          unit_amount: Math.round(item.price * 100),
+        },
+        quantity: 1,
+      });
     }
 
+    const validItems = items.filter(
+      (it): it is NonNullable<typeof it> => !!it,
+    );
     const origin = resolveOrigin(req);
-    const amountCents = Math.round(item.price * 100);
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
-      line_items: [
-        {
-          price_data: {
-            currency: "gbp",
-            product_data: {
-              name: item.title,
-              description: item.description || "Shop item on Elix Star Live",
-              ...(item.image_url ? { images: [item.image_url] } : {}),
-            },
-            unit_amount: amountCents,
-          },
-          quantity: 1,
-        },
-      ],
+      line_items: lineItems,
       mode: "payment",
       success_url: `${origin}/shop?purchase=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/shop?purchase=cancelled`,
@@ -141,9 +154,11 @@ export async function createShopItemCheckout(req: Request, res: Response) {
       metadata: {
         type: "shop_item",
         userId: authUserId,
-        itemId: item.id,
-        sellerId: item.user_id,
-        itemTitle: item.title.slice(0, 200),
+        // First item kept for legacy readers; itemIds carries the full basket.
+        itemId: validItems[0].id,
+        sellerId: validItems[0].user_id,
+        itemIds: validItems.map((it) => it.id).join(","),
+        itemTitle: validItems[0].title.slice(0, 200),
       },
     });
 

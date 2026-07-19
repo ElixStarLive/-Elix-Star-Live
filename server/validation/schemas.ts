@@ -55,9 +55,20 @@ export const liveEndSchema = z.object({
   room: z.string().min(1),
 });
 
-export const shopCheckoutSchema = z.object({
-  itemId: z.string().min(1),
-});
+export const shopCheckoutSchema = z
+  .object({
+    // Legacy single-item checkout (still supported).
+    itemId: z.string().min(1).optional(),
+    // Basket checkout: pay for multiple items in one Stripe session.
+    items: z
+      .array(z.object({ id: z.string().min(1) }))
+      .min(1)
+      .max(10)
+      .optional(),
+  })
+  .refine((d) => !!d.itemId || (Array.isArray(d.items) && d.items.length > 0), {
+    message: "itemId or items required",
+  });
 
 export const shopCreateSchema = z.object({
   title: z.string().min(1).max(200),

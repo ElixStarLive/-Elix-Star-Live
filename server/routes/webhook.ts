@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import Stripe from "stripe";
-import { dbMarkShopItemSold } from "../lib/postgres";
+import { dbMarkShopItemSold, dbGetShopItemById } from "../lib/postgres";
 import { neonInsertShopPurchase } from "../lib/walletNeon";
 import { logger } from "../lib/logger";
 import { postAlertWebhook } from "../lib/alerting";
@@ -97,45 +97,59 @@ async function handleSuccessfulPayment(session: Stripe.Checkout.Session) {
     return;
   }
 
-  const itemId = session.metadata?.itemId || "";
-  const sellerId = session.metadata?.sellerId || "";
-  const amountGbp = session.amount_total ? session.amount_total / 100 : 0;
-
-  // Record the purchase first (idempotent on stripe_session_id). If this returns
-  // false the webhook is a duplicate delivery and nothing else should happen.
-  const newlyInserted = await neonInsertShopPurchase({
-    stripeSessionId: session.id,
-    itemId,
-    buyerId: userId || "",
-    sellerId,
-    amountGbp,
-  });
-  if (!newlyInserted) {
-    logger.info({ itemId, sessionId: session.id }, "Duplicate shop webhook delivery — already fulfilled");
+  // A basket pays for several items in one session. `itemIds` carries the whole
+  // basket; fall back to the legacy single `itemId` for older sessions.
+  const idsCsv = session.metadata?.itemIds || session.metadata?.itemId || "";
+  const itemIds = Array.from(
+    new Set(idsCsv.split(",").map((s) => s.trim()).filter(Boolean)),
+  );
+  if (itemIds.length === 0) {
+    logger.warn({ sessionId: session.id }, "Shop payment with no items in metadata");
     return;
   }
 
-  // First paid wins the single-quantity item. If a second buyer paid for an item
-  // that is already sold, we have a genuine double-sale that needs a refund.
-  const claimed = await dbMarkShopItemSold(itemId);
-  if (!claimed) {
-    logger.error(
-      { itemId, buyerId: userId, sessionId: session.id, paymentIntent: session.payment_intent },
-      "Double-sale: shop item already sold when this payment settled — refund required",
-    );
-    void postAlertWebhook({
-      text: "Shop double-sale — buyer paid for an already-sold item and must be refunded",
-      severity: "critical",
-      context: {
-        itemId,
-        buyerId: userId || "",
-        sessionId: session.id,
-        paymentIntent: String(session.payment_intent || ""),
-        amountGbp,
-      },
+  // Fulfil each item independently and idempotently (unique on session + item).
+  for (const itemId of itemIds) {
+    const item = await dbGetShopItemById(itemId);
+    const sellerId = item?.user_id || session.metadata?.sellerId || "";
+    const amountGbp = Number(item?.price ?? 0);
+
+    // Record the purchase first (idempotent on (session_id, item_id)). If this
+    // returns false this item was already fulfilled by a prior delivery.
+    const newlyInserted = await neonInsertShopPurchase({
+      stripeSessionId: session.id,
+      itemId,
+      buyerId: userId || "",
+      sellerId,
+      amountGbp,
     });
-    return;
+    if (!newlyInserted) {
+      logger.info({ itemId, sessionId: session.id }, "Duplicate shop webhook delivery — item already fulfilled");
+      continue;
+    }
+
+    // First paid wins the single-quantity item. If a second buyer paid for an item
+    // that is already sold, we have a genuine double-sale that needs a refund.
+    const claimed = await dbMarkShopItemSold(itemId);
+    if (!claimed) {
+      logger.error(
+        { itemId, buyerId: userId, sessionId: session.id, paymentIntent: session.payment_intent },
+        "Double-sale: shop item already sold when this payment settled — refund required",
+      );
+      void postAlertWebhook({
+        text: "Shop double-sale — buyer paid for an already-sold item and must be refunded",
+        severity: "critical",
+        context: {
+          itemId,
+          buyerId: userId || "",
+          sessionId: session.id,
+          paymentIntent: String(session.payment_intent || ""),
+          amountGbp,
+        },
+      });
+      continue;
+    }
+    logger.info({ itemId, buyerId: userId }, "Shop item purchased");
   }
-  logger.info({ itemId, buyerId: userId }, "Shop item purchased");
 }
 

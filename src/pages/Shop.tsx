@@ -3,11 +3,12 @@ import { RoyceBackIcon } from '../components/royce';
 import { useNavigate } from 'react-router-dom';
 import { api, request } from '../lib/apiClient';
 import { useAuthStore } from '../store/useAuthStore';
-import { Plus, Camera, Tag, MessageCircle, Search, MoreVertical } from 'lucide-react';
+import { Plus, Camera, Tag, MessageCircle, Search, MoreVertical, ShoppingBag, X } from 'lucide-react';
 import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
 import { showToast } from '../lib/toast';
 import { bunnyUpload } from '../lib/bunnyStorage';
 import { openExternalLink } from '../lib/platform';
+import { useCartStore } from '../store/useCartStore';
 
 const SHOP_LIVE_RING = 56;
 
@@ -47,11 +48,34 @@ export default function Shop() {
   const [removingId, setRemovingId] = useState<string | null>(null);
   const previewUrlRef = useRef<string | null>(null);
 
+  const cartItems = useCartStore((s) => s.items);
+  const addToCart = useCartStore((s) => s.add);
+  const removeFromCart = useCartStore((s) => s.remove);
+  const clearCart = useCartStore((s) => s.clear);
+  const [showCart, setShowCart] = useState(false);
+  const [checkingOut, setCheckingOut] = useState(false);
+  const cartTotal = cartItems.reduce((sum, i) => sum + (Number(i.price) || 0), 0);
+
   useEffect(() => {
     return () => {
       if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
     };
   }, []);
+
+  // Returning from Stripe checkout: clear the basket on success, notify on cancel.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const purchase = params.get('purchase');
+    if (purchase === 'success') {
+      clearCart();
+      setShowCart(false);
+      showToast('Payment received — thank you!');
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (purchase === 'cancelled') {
+      showToast('Checkout cancelled');
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [clearCart]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchItems(); }, [activeFilter]);
@@ -198,11 +222,13 @@ export default function Shop() {
     setCreating(false);
   };
 
-  const handleBuy = async (item: ShopItem) => {
+  const handleCheckoutCart = async () => {
+    if (cartItems.length === 0 || checkingOut) return;
+    setCheckingOut(true);
     try {
       const { data, error } = await request('/api/shop/checkout', {
         method: 'POST',
-        body: JSON.stringify({ itemId: item.id }),
+        body: JSON.stringify({ items: cartItems.map((i) => ({ id: i.id })) }),
       });
       if (error) throw new Error(error.message || 'Checkout failed');
       if (data?.url) {
@@ -214,6 +240,8 @@ export default function Shop() {
       throw new Error('Checkout URL missing');
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Could not start checkout');
+    } finally {
+      setCheckingOut(false);
     }
   };
 
@@ -269,6 +297,14 @@ export default function Shop() {
               </button>
               <button onClick={() => navigate('/search')} className="p-1" title="Search">
                 <Search size={18} className="text-white" />
+              </button>
+              <button onClick={() => setShowCart(true)} className="p-1 relative" title="Basket">
+                <ShoppingBag size={18} className="text-white" />
+                {cartItems.length > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[15px] h-[15px] px-1 rounded-full bg-[#D4AF37] text-black text-[9px] font-extrabold flex items-center justify-center leading-none">
+                    {cartItems.length}
+                  </span>
+                )}
               </button>
             </div>
             <h1 className="text-sm font-bold text-white">Shop</h1>
@@ -415,13 +451,23 @@ export default function Shop() {
                     <p className="text-[11px] text-white/40 mt-0.5 line-clamp-2">{item.description}</p>
                   )}
                   {!isOwn && (
-                    <button
-                      type="button"
-                      onClick={() => handleBuy(item)}
-                      className="w-full mt-2 py-1.5 rounded-xl bg-[#D4AF37] text-black font-extrabold text-[12px]"
-                    >
-                      Buy with Stripe
-                    </button>
+                    cartItems.some((c) => c.id === item.id) ? (
+                      <button
+                        type="button"
+                        onClick={() => removeFromCart(item.id)}
+                        className="w-full mt-2 py-1.5 rounded-xl bg-white/10 text-[#D4AF37] border border-[#C9A227]/40 font-extrabold text-[12px]"
+                      >
+                        In basket — Remove
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => addToCart({ id: item.id, title: item.title, price: item.price, image_url: item.image_url })}
+                        className="w-full mt-2 py-1.5 rounded-xl bg-[#D4AF37] text-black font-extrabold text-[12px]"
+                      >
+                        Add to basket
+                      </button>
+                    )
                   )}
                 </div>
               </div>
@@ -515,6 +561,82 @@ export default function Shop() {
                   {creating ? 'Listing...' : 'List for Sale'}
                 </button>
               </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Basket sheet — review items and checkout once with Stripe */}
+        {showCart && (
+          <>
+            <div
+              className="fixed inset-0 z-[9998] bg-black/70"
+              onClick={() => setShowCart(false)}
+            />
+            <div className="fixed left-0 right-0 z-[9999] pointer-events-auto max-w-[480px] mx-auto fixed-above-bottom-nav">
+              <div
+                className="w-full bg-[#111111] rounded-t-3xl pb-safe"
+                style={{ maxHeight: '80dvh', boxShadow: '0 -4px 30px rgba(255,255,255,0.25)' }}
+                onClick={e => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-center pt-3 pb-1">
+                  <div className="w-10 h-1 rounded-full bg-white/20" />
+                </div>
+                <div className="flex items-center justify-between px-5 pb-3">
+                  <h3 className="text-gold-metallic font-bold text-base">Your basket</h3>
+                  <button onClick={() => setShowCart(false)} className="p-1" aria-label="Close basket">
+                    <X size={18} className="text-white/70" />
+                  </button>
+                </div>
+
+                {cartItems.length === 0 ? (
+                  <div className="px-5 pb-8 pt-4 flex flex-col items-center gap-2">
+                    <ShoppingBag size={32} className="text-white/20" />
+                    <p className="text-white/40 text-sm">Your basket is empty</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="overflow-y-auto px-5" style={{ maxHeight: 'calc(80dvh - 190px)' }}>
+                      {cartItems.map((ci) => (
+                        <div key={ci.id} className="flex items-center gap-3 py-2 border-b border-white/5">
+                          {ci.image_url ? (
+                            <img src={ci.image_url} alt={ci.title} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
+                          ) : (
+                            <div className="w-12 h-12 rounded-lg bg-white/5 flex items-center justify-center flex-shrink-0">
+                              <Tag size={16} className="text-white/20" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-white truncate">{ci.title}</p>
+                            <p className="text-sm font-extrabold text-gold-metallic">£{Number(ci.price).toFixed(2)}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeFromCart(ci.id)}
+                            className="p-1.5 rounded-full bg-white/5 border border-white/10"
+                            aria-label={`Remove ${ci.title}`}
+                          >
+                            <X size={14} className="text-white/70" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="px-5 pt-3 pb-5">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-sm text-white/60">Total</span>
+                        <span className="text-lg font-extrabold text-white">£{cartTotal.toFixed(2)}</span>
+                      </div>
+                      <button
+                        onClick={handleCheckoutCart}
+                        disabled={checkingOut}
+                        className="w-full py-3 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#E8D5A3] text-black font-bold text-sm disabled:opacity-50"
+                      >
+                        {checkingOut ? 'Starting checkout…' : 'Checkout with Stripe'}
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </>

@@ -867,7 +867,7 @@ export async function neonInsertShopPurchase(row: {
     const r = await pool.query(
       `INSERT INTO elix_shop_purchases (stripe_session_id, item_id, buyer_id, seller_id, amount_gbp)
        VALUES ($1, $2, $3, $4, $5)
-       ON CONFLICT (stripe_session_id) DO NOTHING`,
+       ON CONFLICT (stripe_session_id, item_id) DO NOTHING`,
       [row.stripeSessionId, row.itemId, row.buyerId, row.sellerId, row.amountGbp],
     );
     return (r.rowCount ?? 0) > 0;
