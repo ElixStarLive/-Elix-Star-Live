@@ -346,8 +346,15 @@ export default function ChatThread() {
           {messages.map((m) => {
             const isMe = m.sender_id === user?.id;
             const appMatch = m.text.match(APP_LINK_RE);
-            const previewKey = appMatch ? `${linkTypeFromMatch(appMatch[1])}:${appMatch[2]}` : null;
-            const preview = previewKey ? previews[previewKey] : null;
+            // Always render a tappable card for shared video/live/profile links.
+            // Use the fetched preview (thumbnail, name) when ready, else a minimal
+            // fallback so it never degrades to a plain text link.
+            const preview: LinkPreview | null = appMatch
+              ? previews[`${linkTypeFromMatch(appMatch[1])}:${appMatch[2]}`] ?? {
+                  type: linkTypeFromMatch(appMatch[1]),
+                  id: appMatch[2],
+                }
+              : null;
 
             return (
               <div key={m.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
