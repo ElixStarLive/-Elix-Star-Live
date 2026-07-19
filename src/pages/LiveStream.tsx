@@ -5862,7 +5862,7 @@ export default function LiveStream() {
               </div>
               <div className="flex-1 overflow-y-auto no-scrollbar px-4 pb-4 min-h-0">
                 {pendingInvite && (
-                  <div className="mb-3 flex items-center gap-2.5 w-full py-2 px-2 rounded-lg bg-[#C9A227]/10 border border-[#C9A227]/30">
+                  <div className="mb-3 flex items-center gap-2.5 w-full py-1 px-2 rounded-full bg-[#C9A227]/10 border border-[#C9A227]/30">
                     <div
                       className="rounded-full overflow-hidden bg-[#111111] flex-shrink-0"
                       style={{ width: SHARE_PANEL_AVATAR_PX, height: SHARE_PANEL_AVATAR_PX }}
@@ -5888,7 +5888,7 @@ export default function LiveStream() {
                 )}
 
                 {pendingCohostInvite && (
-                  <div className="mb-3 flex items-center gap-2.5 w-full py-2 px-2 rounded-lg bg-[#C9A227]/10 border border-[#C9A227]/30">
+                  <div className="mb-3 flex items-center gap-2.5 w-full py-1 px-2 rounded-full bg-[#C9A227]/10 border border-[#C9A227]/30">
                     <div
                       className="rounded-full overflow-hidden bg-[#111111] flex-shrink-0"
                       style={{ width: SHARE_PANEL_AVATAR_PX, height: SHARE_PANEL_AVATAR_PX }}

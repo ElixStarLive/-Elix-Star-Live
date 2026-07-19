@@ -3276,7 +3276,7 @@ export default function SpectatorPage() {
              Join takes them to the live battle page as a player, not a spectator. */}
         {pendingBattleInvite && (
           <div className="fixed left-0 right-0 z-[100000] pointer-events-none flex justify-center px-3" style={{ top: 'calc(env(safe-area-inset-top, 0px) + 64px)' }}>
-            <div className="pointer-events-auto w-full max-w-[440px] flex items-center gap-2.5 py-2 px-2.5 rounded-xl bg-[#111111]/95 backdrop-blur-md border border-[#C9A227]/40 shadow-2xl">
+            <div className="pointer-events-auto w-full max-w-[440px] flex items-center gap-2.5 py-1 px-2 rounded-full bg-[#111111]/95 backdrop-blur-md border border-[#C9A227]/40 shadow-2xl">
               <div
                 className="rounded-full overflow-hidden bg-[#111111] flex-shrink-0"
                 style={{ width: SHARE_PANEL_AVATAR_PX, height: SHARE_PANEL_AVATAR_PX }}
