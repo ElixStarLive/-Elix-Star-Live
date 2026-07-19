@@ -109,8 +109,8 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
             onPointerLeave={cancelLongPress}
             onPointerCancel={cancelLongPress}
           >
-            {/* Name on the same line as circle + LV */}
-            <div className="flex items-center gap-2 min-w-0">
+            {/* Name on the same line as circle + LV. Join/system events read as a grey rounded chip. */}
+            <div className={`flex items-center gap-2 min-w-0 ${msg.isSystem ? 'bg-black/45 rounded-full pr-2.5 py-0.5 self-start' : ''}`}>
               <div 
                 className="flex-shrink-0 cursor-pointer relative z-10 flex items-center justify-center"
                 style={{ height: CHAT_PROFILE_RING_PX }}
