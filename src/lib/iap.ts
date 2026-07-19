@@ -10,7 +10,7 @@ import { request } from './apiClient';
 // Product IDs — must match App Store Connect / Google Play Console
 export const IAP_PRODUCTS = {
   'coins100':    { coins: 100,    label: '100 Coins' },
-  'coins500':    { coins: 500,    label: '500 Coins' },
+  'coins500a':   { coins: 500,    label: '500 Coins' },
   'coins1000':   { coins: 1000,   label: '1,000 Coins' },
   'coins5000':   { coins: 5000,   label: '5,000 Coins' },
   'coins10000':  { coins: 10000,  label: '10,000 Coins' },
