@@ -474,7 +474,21 @@ async function dbRegisterUser(
        ON CONFLICT (user_id) DO NOTHING`,
       [user.id, user.username, user.username, user.avatar_url],
     );
-    await initializeNewUserStarterProgression(client, user.id);
+    // Starter coins + XP are a non-critical onboarding bonus. If those tables
+    // are missing / drifted in this environment, the seed must NOT abort the
+    // account creation itself — isolate it in a SAVEPOINT so the auth user and
+    // profile still commit.
+    await client.query("SAVEPOINT starter_seed");
+    try {
+      await initializeNewUserStarterProgression(client, user.id);
+      await client.query("RELEASE SAVEPOINT starter_seed");
+    } catch (seedErr) {
+      await client.query("ROLLBACK TO SAVEPOINT starter_seed");
+      logger.warn(
+        { err: seedErr, userId: user.id },
+        "dbRegisterUser: starter progression seed skipped (schema drift)",
+      );
+    }
     await client.query("COMMIT");
     return "ok";
   } catch (err) {
