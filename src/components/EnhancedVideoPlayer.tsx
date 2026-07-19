@@ -973,7 +973,7 @@ export default function EnhancedVideoPlayer({
         >
           <span
             className="overflow-hidden bg-black flex items-center justify-center"
-            style={{ width: 34, height: 34, borderRadius: 4 }}
+            style={{ width: 34, height: 34, borderRadius: '50%' }}
           >
             <img
               src={
