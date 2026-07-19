@@ -1314,14 +1314,21 @@ export default function SpectatorPage() {
         });
       }
       const joinName = data.username || 'User';
+      const joinMsgId = `join-${Date.now()}`;
       setMessages(prev => [...prev, {
-        id: `join-${Date.now()}`,
+        id: joinMsgId,
         username: joinName,
         text: 'joined the stream',
         isSystem: true,
         level: typeof data.level === 'number' && Number.isFinite(data.level) ? data.level : 1,
         avatar: typeof data.avatar_url === 'string' ? data.avatar_url : '',
       }]);
+      // The join banner is ephemeral: it appears only when someone joins, then
+      // clears itself so it never stays permanently in the chat feed.
+      window.setTimeout(() => {
+        if (!mounted) return;
+        setMessages(prev => prev.filter(m => m.id !== joinMsgId));
+      }, 5000);
       setViewerCount(prev => prev + 1);
       syncMvpSlots();
     };
