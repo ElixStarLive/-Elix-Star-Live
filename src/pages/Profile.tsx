@@ -72,16 +72,6 @@ export default function Profile() {
   const [shareFollowers, setShareFollowers] = useState<{ user_id: string; username: string; avatar_url: string | null }[]>([]);
   const [shareSent, setShareSent] = useState<Set<string>>(new Set());
   const [risingBadges, setRisingBadges] = useState<{ code: string; title: string; kind: string }[]>([]);
-  const [progression, setProgression] = useState<{
-    current_level: number;
-    total_xp?: number;
-    current_level_xp?: number;
-    xp_to_next_level?: number;
-    next_level_total_xp?: number | null;
-    starter_coin_balance?: number;
-    title?: string | null;
-    badge_code?: string | null;
-  } | null>(null);
   
   const [resolvedUserId, setResolvedUserId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -209,19 +199,6 @@ export default function Profile() {
         );
       })
       .catch(() => setRisingBadges([]));
-    request(
-      isOwnProfile
-        ? "/api/progression/me"
-        : `/api/progression/users/${encodeURIComponent(effectiveUserId)}/status`,
-    )
-      .then(({ data, error }) => {
-        if (error) {
-          setProgression(null);
-          return;
-        }
-        setProgression(data?.progression || data?.status || null);
-      })
-      .catch(() => setProgression(null));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveUserId, activeTab]);
 
@@ -708,53 +685,6 @@ export default function Profile() {
             <span className="text-[11px] text-white/40 font-medium">Likes</span>
           </div>
         </div>
-
-        {progression && (
-          <div className="mx-auto mt-3 w-[min(320px,calc(100%-32px))] rounded-xl border border-[#C9A227]/20 bg-white/5 px-3 py-2">
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-bold text-[#D4AF37]">
-                Level {progression.current_level}
-                {progression.title ? ` · ${progression.title}` : ""}
-              </span>
-              {isOwnProfile && progression.starter_coin_balance != null && (
-                <span className="text-white/60">
-                  Starter {progression.starter_coin_balance.toLocaleString()}
-                </span>
-              )}
-            </div>
-            {isOwnProfile &&
-              progression.total_xp != null &&
-              progression.next_level_total_xp != null && (
-                <>
-                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/40">
-                    <div
-                      className="h-full rounded-full bg-[#C9A227]"
-                      style={{
-                        width: `${Math.min(
-                          100,
-                          Math.max(
-                            0,
-                            ((progression.current_level_xp || 0) /
-                              Math.max(
-                                1,
-                                (progression.current_level_xp || 0) +
-                                  (progression.xp_to_next_level || 0),
-                              )) *
-                              100,
-                          ),
-                        )}%`,
-                      }}
-                    />
-                  </div>
-                  <div className="mt-1 text-[10px] text-white/40">
-                    {progression.total_xp.toLocaleString()} XP ·{" "}
-                    {(progression.xp_to_next_level || 0).toLocaleString()} to next
-                    level
-                  </div>
-                </>
-              )}
-          </div>
-        )}
 
         {/* ═══ BIO ═══ */}
         {profileData?.bio && (
