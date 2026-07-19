@@ -838,6 +838,37 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
 
       clients.set(ws, client);
 
+      // Populate the real identity from the profile so join/leave events show
+      // the actual username (and name/avatar/level) instead of the "Anonymous"
+      // placeholder the client was created with.
+      try {
+        const identityDb = getPool();
+        if (identityDb) {
+          const prof = await identityDb.query(
+            `SELECT username, display_name, avatar_url, level
+               FROM profiles WHERE user_id = $1 LIMIT 1`,
+            [userId],
+          );
+          const p = prof.rows[0];
+          if (p) {
+            if (typeof p.username === "string" && p.username.trim()) {
+              client.username = p.username.trim();
+            }
+            if (typeof p.display_name === "string" && p.display_name.trim()) {
+              client.displayName = p.display_name.trim();
+            }
+            if (typeof p.avatar_url === "string") {
+              client.avatarUrl = p.avatar_url;
+            }
+            if (typeof p.level === "number" && Number.isFinite(p.level)) {
+              client.level = p.level;
+            }
+          }
+        }
+      } catch (err) {
+        logger.warn({ err, userId }, "ws: failed to load joiner profile identity");
+      }
+
       if (!userClients.has(userId)) {
         userClients.set(userId, new Set());
         subscribeUserChannel(userId);
