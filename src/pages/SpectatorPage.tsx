@@ -75,7 +75,6 @@ import { RankingPanel } from '../components/RankingPanel';
 import { websocket } from '../lib/websocket';
 import { normalizeBattleGiftTarget } from '../lib/liveBattleGiftTarget';
 import { parseLiveGiftGoal, type LiveGiftGoal } from '../lib/liveGiftGoal';
-import { IS_STORE_BUILD } from '../config/build';
 import { resolveUiAvatarUrl } from '../lib/royceAssets';
 import { getMembershipStatus, purchaseMembership } from '../lib/iap';
 import { Room, RoomEvent, LocalVideoTrack, LocalAudioTrack } from 'livekit-client';
@@ -3840,7 +3839,6 @@ export default function SpectatorPage() {
                   <div className="w-10 h-1 bg-white/20 rounded-full" />
                 </div>
                 <div className="grid grid-cols-4 gap-y-4 gap-x-2 pt-1 pb-2 px-1">
-                  {!IS_STORE_BUILD && (
                   <button
                     type="button"
                     onClick={() => {
@@ -3857,7 +3855,6 @@ export default function SpectatorPage() {
                     </div>
                     <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">Test</span>
                   </button>
-                  )}
                   <button
                     type="button"
                     onClick={() => { setIsReportModalOpen(true); setIsMoreMenuOpen(false); }}
@@ -3894,8 +3891,8 @@ export default function SpectatorPage() {
           </>
         )}
 
-        {/* TEST COINS MODAL — hidden in store build */}
-        {!IS_STORE_BUILD && showTestCoinsModal && (
+        {/* TEST COINS MODAL — password-protected, local-only test balance */}
+        {showTestCoinsModal && (
           <>
             <div
               className="fixed inset-0 bg-black/60 pointer-events-auto"
