@@ -973,15 +973,15 @@ export default function EnhancedVideoPlayer({
           title={video.music?.title || 'Original Sound'}
         >
           <span
-            className="overflow-hidden bg-black flex items-center justify-center relative"
-            style={{ width: 34, height: 34, borderRadius: '50%' }}
+            className="royce-tile relative overflow-hidden"
+            style={{ width: 32, height: 32 }}
           >
-            <Music size={16} className="text-gold-light/80" />
+            <Music size={18} strokeWidth={2.25} className="royce-icon-gold" aria-hidden />
             {video.music?.coverUrl && (
               <img
                 src={video.music.coverUrl}
                 alt=""
-                className="absolute inset-0 w-full h-full object-cover"
+                className="absolute inset-0 w-full h-full object-cover rounded-full"
                 draggable={false}
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
