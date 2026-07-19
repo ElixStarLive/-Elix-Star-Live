@@ -36,7 +36,8 @@ interface GiftAnimationOverlayProps {
 
 const MERGE_WINDOW_MS = 2500;
 const DISPLAY_DURATION_MS = 5000;
-const MAX_VISIBLE = 3;
+// One small banner at a time that flies in from the left and out to the right.
+const MAX_VISIBLE = 1;
 
 export default function GiftAnimationOverlay({ streamId }: GiftAnimationOverlayProps) {
   const [gifts, setGifts] = useState<GiftAnimation[]>([]);
@@ -151,6 +152,14 @@ export default function GiftAnimationOverlay({ streamId }: GiftAnimationOverlayP
 
   return (
     <div className="fixed inset-0 pointer-events-none z-[240] flex justify-center">
+      <style>{`
+        @keyframes elixGiftFly {
+          0%   { transform: translateX(-120%); opacity: 0; }
+          12%  { transform: translateX(0);     opacity: 1; }
+          82%  { transform: translateX(0);     opacity: 1; }
+          100% { transform: translateX(150%);  opacity: 0; }
+        }
+      `}</style>
       <div className="w-full max-w-[480px] relative h-full">
         <div
           className="absolute left-2 flex flex-col gap-1.5 items-start"
@@ -159,7 +168,8 @@ export default function GiftAnimationOverlay({ streamId }: GiftAnimationOverlayP
           {gifts.map((g) => (
             <div
               key={g.id}
-              className="flex items-center gap-1.5 pl-1 pr-2 py-1 rounded-full bg-black/60 backdrop-blur-sm max-w-[min(280px,78vw)] animate-in slide-in-from-left-2 duration-200 shadow-lg"
+              className="flex items-center gap-1.5 pl-1 pr-2 py-1 rounded-full bg-black/60 backdrop-blur-sm max-w-[min(280px,78vw)] shadow-lg"
+              style={{ animation: `elixGiftFly ${DISPLAY_DURATION_MS}ms ease-in-out forwards` }}
             >
               <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 bg-[#222] border border-white/20">
                 {g.avatar && (g.avatar.startsWith('http') || g.avatar.startsWith('/') || g.avatar.startsWith('data:')) ? (
