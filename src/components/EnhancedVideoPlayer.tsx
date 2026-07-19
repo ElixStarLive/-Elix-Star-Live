@@ -710,8 +710,8 @@ export default function EnhancedVideoPlayer({
   const chromeBottom = abovePlayBar;
   // Icon stack lifted above the play bar so it clears the bottom nav (flat calc — nested calc breaks on some WebViews).
   const likeBarBottom = edgeToBottomNav
-    ? `calc(${navStackExpr} + 5mm + ${playLineH} - 1mm + 12mm)`
-    : `calc(5mm + ${playLineH} - 1mm + 12mm)`;
+    ? `calc(${navStackExpr} + 5mm + ${playLineH} - 1mm + 7mm)`
+    : `calc(5mm + ${playLineH} - 1mm + 7mm)`;
 
   return (
     <div 
@@ -833,7 +833,7 @@ export default function EnhancedVideoPlayer({
           aria-valuenow={Number.isFinite(currentTime) ? Math.round(currentTime) : 0}
           aria-valuemin={0}
           aria-valuemax={Number.isFinite(duration) && duration > 0 ? Math.round(duration) : 0}
-          className="absolute left-3 right-[3.75rem] z-[16] pointer-events-auto flex flex-col justify-end cursor-pointer select-none"
+          className="absolute left-3 right-3 z-[16] pointer-events-auto flex flex-col justify-end cursor-pointer select-none"
           style={{
             bottom: playBarBottom,
             paddingBottom: 0,
