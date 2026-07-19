@@ -300,13 +300,31 @@ export default function SearchPage() {
                             className="w-16 h-22 rounded-lg object-cover bg-[#111111] border border-[#C9A227]/20"
                             muted
                             playsInline
-                            preload="metadata"
-                            onLoadedMetadata={(e) => {
+                            preload="auto"
+                            onLoadedData={(e) => {
+                              // WebViews stay black until a frame is decoded — nudge + brief
+                              // muted play/pause so a real frame paints and freezes.
                               const vid = e.currentTarget;
                               try {
                                 if (vid.currentTime < 0.1) vid.currentTime = 0.1;
                               } catch {
                                 /* seek unsupported — ignore */
+                              }
+                              const played = vid.play?.();
+                              if (played && typeof played.then === 'function') {
+                                played
+                                  .then(() => {
+                                    window.setTimeout(() => {
+                                      try {
+                                        vid.pause();
+                                      } catch {
+                                        /* ignore */
+                                      }
+                                    }, 60);
+                                  })
+                                  .catch(() => {
+                                    /* autoplay blocked — seek above is the fallback */
+                                  });
                               }
                             }}
                           />
