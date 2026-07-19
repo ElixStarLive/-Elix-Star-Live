@@ -216,6 +216,11 @@ function launchPurchase(mod: NativePurchasesPlugin, productId: IAPProductId) {
     productIdentifier: productId,
     productType: mod.PURCHASE_TYPE.INAPP,
     quantity: 1,
+    // Coins are CONSUMABLE. Do not let the plugin auto-acknowledge (that makes
+    // Google treat the SKU as owned and blocks buying the same pack again with
+    // ITEM_ALREADY_OWNED). We consume it ourselves in completeCoinPurchase()
+    // right after the server credits the coins, so the same pack stays buyable.
+    autoAcknowledgePurchases: false,
     ...(user?.id ? { appAccountToken: appAccountTokenForUser(user.id) } : {}),
   });
 }

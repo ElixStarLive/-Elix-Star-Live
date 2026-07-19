@@ -9,6 +9,7 @@ import {
   purchaseProduct,
   loadProducts as loadIAPProducts,
   restorePurchases,
+  reconcileOwnedCoinPurchases,
   initializeIAP,
   IAP_PRODUCTS,
   type IAPProductId,
@@ -44,6 +45,17 @@ export default function PurchaseCoins() {
   const loadNativeProducts = async () => {
     try {
       await initializeIAP();
+      // Clear any purchase stuck in Google's "owned" state (e.g. a prior
+      // verify failure) so the same coin pack can be bought again instead of
+      // hitting ITEM_ALREADY_OWNED. Credits coins for anything it recovers.
+      try {
+        const recovered = await reconcileOwnedCoinPurchases();
+        if (recovered > 0) {
+          showToast('Previous coin purchase restored');
+        }
+      } catch {
+        /* best-effort — never block loading the store */
+      }
       const products = await loadIAPProducts();
       if (products.length > 0) {
         setNativeProducts(products);
