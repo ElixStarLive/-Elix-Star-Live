@@ -121,8 +121,12 @@ export const authLimiter = rateLimit({
 // Starter Coins make automated account creation economically attractive even
 // though they have no cash value. Limit onboarding grants per network.
 export const registerLimiter = rateLimit({
-  windowMs: 60 * 60_000,
-  max: 3,
+  // Keyed per-IP. Kept abuse-resistant, but 3/hour was far too strict: many
+  // real users share one public IP (mobile carriers, offices, campus Wi‑Fi),
+  // so a shared IP could exhaust the cap and block legitimate signups. A 15‑min
+  // window recovers quickly instead of locking an IP out for a full hour.
+  windowMs: 15 * 60_000,
+  max: 12,
   keyPrefix: "register",
 });
 
