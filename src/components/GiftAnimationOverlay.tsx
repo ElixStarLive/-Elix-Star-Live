@@ -154,7 +154,7 @@ export default function GiftAnimationOverlay({ streamId }: GiftAnimationOverlayP
       <div className="w-full max-w-[480px] relative h-full">
         <div
           className="absolute left-2 flex flex-col gap-1.5 items-start"
-          style={{ bottom: 'calc(70px + max(2px, env(safe-area-inset-bottom, 0px)) + 8mm)' }}
+          style={{ top: 'calc(env(safe-area-inset-top, 0px) + 1cm + 7mm)' }}
         >
           {gifts.map((g) => (
             <div
