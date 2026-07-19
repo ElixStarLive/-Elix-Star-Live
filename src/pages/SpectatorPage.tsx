@@ -192,7 +192,7 @@ export default function SpectatorPage() {
   // (server-driven window), transient glove-send animations (fly to the weekly-
   // ranking corner when any spectator sends one), and transient "caught" popups.
   const [activeBooster, setActiveBooster] = useState<{ multiplier: number; expiresAt: number } | null>(null);
-  const [boosterActivations, setBoosterActivations] = useState<{ id: string; multiplier: number; username: string }[]>([]);
+  const [boosterActivations, setBoosterActivations] = useState<{ id: string; userId: string; multiplier: number; username: string; expiresAt: number }[]>([]);
   const [boosterCatches, setBoosterCatches] = useState<{ id: string; multiplier: number; finalPoints: number; username: string }[]>([]);
   // Mist Fog booster — server-driven window that hides the battle score for
   // everyone EXCEPT the supported creator (supportedUserId). Purely visual.
@@ -1718,15 +1718,19 @@ export default function SpectatorPage() {
       });
     };
     const handleBoosterActivated = (data: unknown) => {
-      const d = data as { user_id?: string; username?: string; multiplier?: number; expires_at?: number };
+      const d = data as { user_id?: string; username?: string; multiplier?: number; expires_at?: number; duration_ms?: number };
       const mult = Number(d?.multiplier) || 0;
+      const expiresAt = Number(d?.expires_at) || (Date.now() + (Number(d?.duration_ms) || 30000));
       if (d?.user_id && user?.id && String(d.user_id) === String(user.id)) {
-        setActiveBooster({ multiplier: mult, expiresAt: Number(d.expires_at) || 0 });
+        setActiveBooster({ multiplier: mult, expiresAt });
       }
-      // Transient: a glove flies to the weekly-ranking corner when sent, then goes.
+      // The red boxing glove stays on the top-left for the full active window
+      // (server ~30s) while it catches gifts — not a 1.8s flash.
       const id = `${Date.now()}-${Math.random()}`;
-      setBoosterActivations((prev) => [...prev, { id, multiplier: mult, username: String(d?.username || '') }]);
-      setTimeout(() => setBoosterActivations((prev) => prev.filter((a) => a.id !== id)), 1800);
+      const userId = String(d?.user_id || '');
+      setBoosterActivations((prev) => [...prev, { id, userId, multiplier: mult, username: String(d?.username || ''), expiresAt }]);
+      const ms = Math.max(1000, expiresAt - Date.now());
+      setTimeout(() => setBoosterActivations((prev) => prev.filter((a) => a.id !== id)), ms);
     };
     const handleBoosterCaught = (data: unknown) => {
       const d = data as { multiplier?: number; final_points?: number; username?: string; transaction_id?: string };
@@ -2254,7 +2258,11 @@ export default function SpectatorPage() {
             /** 4-way tap zones only when co-host labels use "Name + Name"; per-bucket scores always shown under bar. */
             const showPkBreakdown =
               (spectatorBattle.redTeamLabel || '').includes(' + ') || (spectatorBattle.blueTeamLabel || '').includes(' + ');
-            const scoresHidden = battleHideScores || mistHidesMyScore;
+            // End-game suspense hides both scores; Mist Fog hides ONLY the supported
+            // creator's side (the one the spectator boosted), never both.
+            const mistSupportedSide = mistHidesMyScore ? mistFog?.supportedSide : null;
+            const hideRedScore = battleHideScores || mistSupportedSide === 'host';
+            const hideBlueScore = battleHideScores || mistSupportedSide === 'opponent';
             return (
               <div
                 className="absolute inset-0 z-[80] flex flex-col"
@@ -2270,7 +2278,7 @@ export default function SpectatorPage() {
                       <div className="h-full flex-1 min-w-0" style={{ backgroundImage: 'linear-gradient(90deg, #1E90FF, #4169E1, #0047AB)' }} />
                     </div>
                     <div className="relative z-10 flex h-full min-h-[16px] items-center justify-between gap-1.5 px-2 pointer-events-none leading-none">
-                      <div className={`flex min-w-0 flex-1 flex-col items-start justify-center gap-0 ${scoresHidden ? 'opacity-0' : ''}`}>
+                      <div className={`flex min-w-0 flex-1 flex-col items-start justify-center gap-0 ${hideRedScore ? 'opacity-0' : ''}`}>
                         <AnimatedScore value={typeof redTeamScore === 'number' && Number.isFinite(redTeamScore) ? redTeamScore : 0} durationMs={0} format={formatBattleScoreShort} className="text-white font-black text-[11px] tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" />
                         {showPkBreakdown && (
                           <span className="text-[5px] text-white/80 tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
@@ -2278,7 +2286,7 @@ export default function SpectatorPage() {
                           </span>
                         )}
                       </div>
-                      <div className={`flex min-w-0 flex-1 flex-col items-end justify-center gap-0 ${scoresHidden ? 'opacity-0' : ''}`}>
+                      <div className={`flex min-w-0 flex-1 flex-col items-end justify-center gap-0 ${hideBlueScore ? 'opacity-0' : ''}`}>
                         <AnimatedScore value={typeof blueTeamScore === 'number' && Number.isFinite(blueTeamScore) ? blueTeamScore : 0} durationMs={0} format={formatBattleScoreShort} className="text-white font-black text-[11px] tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" />
                         {showPkBreakdown && (
                           <span className="text-[5px] text-white/80 tabular-nums leading-none text-right drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
@@ -2286,8 +2294,10 @@ export default function SpectatorPage() {
                           </span>
                         )}
                       </div>
-                      {scoresHidden ? (
+                      {battleHideScores ? (
                         <div className="absolute inset-0 z-20 battle-score-veil pointer-events-none" />
+                      ) : mistSupportedSide ? (
+                        <div className={`absolute inset-y-0 z-20 battle-score-veil pointer-events-none w-1/2 ${mistSupportedSide === 'opponent' ? 'right-0' : 'left-0'}`} />
                       ) : null}
                     </div>
                   </div>
@@ -3207,14 +3217,28 @@ export default function SpectatorPage() {
         {/* GIFT ANIMATION OVERLAY */}
         <GiftAnimationOverlay streamId={effectiveStreamId} />
 
-        {/* POINT MULTIPLIER BOOSTER — glove flies to the weekly-ranking corner when
-            a spectator sends it, then disappears (transient, never stays on screen) */}
+        {/* POINT MULTIPLIER BOOSTER — a red boxing glove stays on the top-left, beside
+            the Weekly Ranking, for the whole active window (server ~30s) while it catches
+            gifts. One glove per spectator; a badge shows how many gloves that spectator sent. */}
         {boosterActivations.length > 0 && (
           <div className="fixed left-3 top-[92px] z-[100000] flex flex-col gap-1 pointer-events-none">
-            {boosterActivations.map((a) => (
-              <span key={a.id} className="booster-glove-fly relative flex items-center justify-center w-11 h-11 rounded-full bg-[#111111]/90 border border-[#D4AF37] shadow-2xl text-[#D4AF37]">
+            {Object.values(
+              boosterActivations.reduce<Record<string, { key: string; multiplier: number; count: number }>>((acc, a) => {
+                const key = a.userId || a.username || a.id;
+                if (!acc[key]) acc[key] = { key, multiplier: 0, count: 0 };
+                acc[key].count += 1;
+                acc[key].multiplier = Math.max(acc[key].multiplier, a.multiplier);
+                return acc;
+              }, {}),
+            ).map((g) => (
+              <span key={g.key} className="relative flex items-center justify-center w-11 h-11 rounded-full bg-[#111111]/90 border border-[#FF3B30] shadow-2xl text-[#FF3B30] animate-in zoom-in-50 duration-200">
                 <GloveIcon className="w-7 h-7" />
-                <span className="absolute -bottom-1 -right-1 text-[9px] font-black leading-none px-1 rounded-full bg-black text-[#D4AF37] border border-[#C9A227]/60">x{a.multiplier}</span>
+                {g.count > 1 && (
+                  <span className="absolute -top-1 -right-1 text-[9px] font-black leading-none px-1 rounded-full bg-[#FF3B30] text-white border border-black/40">{g.count}</span>
+                )}
+                {g.multiplier > 0 && (
+                  <span className="absolute -bottom-1 -right-1 text-[9px] font-black leading-none px-1 rounded-full bg-black text-[#FF3B30] border border-[#FF3B30]/60">x{g.multiplier}</span>
+                )}
               </span>
             ))}
           </div>

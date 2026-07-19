@@ -1431,7 +1431,7 @@ export default function LiveStream() {
   const [battleMistSide, setBattleMistSide] = useState<BattleMistSide>(null);
   // Point Multiplier Booster (glove) — transient glove-send animations (fly to the
   // weekly-ranking corner when a spectator sends one) and transient "caught" popups.
-  const [boosterActivations, setBoosterActivations] = useState<{ id: string; multiplier: number; username: string }[]>([]);
+  const [boosterActivations, setBoosterActivations] = useState<{ id: string; userId: string; multiplier: number; username: string; expiresAt: number }[]>([]);
   const [boosterCatches, setBoosterCatches] = useState<{ id: string; multiplier: number; finalPoints: number; username: string }[]>([]);
   const [battleHideScores, setBattleHideScores] = useState(false);
   // Mist Fog booster — server-driven window that hides the battle score for
@@ -3232,10 +3232,15 @@ export default function LiveStream() {
     websocket.on('gift_goal_sync', handleGiftGoalSync);
     websocket.on('heart_sent', handleHeartSent);
     const handleBoosterActivated = (data: unknown) => {
-      const d = data as { multiplier?: number; username?: string };
+      const d = data as { multiplier?: number; username?: string; user_id?: string; expires_at?: number; duration_ms?: number };
       const id = `${Date.now()}-${Math.random()}`;
-      setBoosterActivations((prev) => [...prev, { id, multiplier: Number(d?.multiplier) || 0, username: String(d?.username || '') }]);
-      setTimeout(() => setBoosterActivations((prev) => prev.filter((a) => a.id !== id)), 1800);
+      const userId = String(d?.user_id || '');
+      // The glove stays on screen for the full server-authoritative active window
+      // (default 30s) so viewers can see it is live and catching gifts — not a 1.8s flash.
+      const expiresAt = Number(d?.expires_at) || (Date.now() + (Number(d?.duration_ms) || 30000));
+      setBoosterActivations((prev) => [...prev, { id, userId, multiplier: Number(d?.multiplier) || 0, username: String(d?.username || ''), expiresAt }]);
+      const ms = Math.max(1000, expiresAt - Date.now());
+      setTimeout(() => setBoosterActivations((prev) => prev.filter((a) => a.id !== id)), ms);
     };
     const handleBoosterCaught = (data: unknown) => {
       const d = data as { multiplier?: number; final_points?: number; username?: string; transaction_id?: string };
@@ -4605,7 +4610,11 @@ export default function LiveStream() {
             {/* Dynamic Battle Grid: 2-split or 4-split based on players */}
             {(() => {
               const is4Player = battleSlots[1].status !== 'empty' || battleSlots[2].status !== 'empty';
-              const scoresHidden = battleHideScores || mistHidesScores;
+              // End-game suspense hides both scores. Mist Fog hides ONLY the supported
+              // creator's side (the one the spectator boosted), never both.
+              const mistSupportedSide = mistHidesScores ? mistFog?.supportedSide : null;
+              const hideRedScore = battleHideScores || mistSupportedSide === 'host';
+              const hideBlueScore = battleHideScores || mistSupportedSide === 'opponent';
               return (
                 <div
                   className="relative w-full flex-none flex flex-col overflow-hidden"
@@ -4629,8 +4638,8 @@ export default function LiveStream() {
                         />
                         <div className="h-full flex-1 min-w-0" style={{ backgroundImage: 'linear-gradient(90deg, #1E90FF, #4169E1, #0047AB)' }} />
                       </div>
-                      <div className={`relative z-10 flex h-full min-h-[16px] items-center justify-between gap-1.5 px-2 pointer-events-none leading-none ${scoresHidden ? 'opacity-0' : ''}`}>
-                        <div className="flex min-w-0 flex-1 flex-col items-start justify-center gap-0">
+                      <div className="relative z-10 flex h-full min-h-[16px] items-center justify-between gap-1.5 px-2 pointer-events-none leading-none">
+                        <div className={`flex min-w-0 flex-1 flex-col items-start justify-center gap-0 ${hideRedScore ? 'opacity-0' : ''}`}>
                           <AnimatedScore value={typeof redTeamScore === 'number' && Number.isFinite(redTeamScore) ? redTeamScore : 0} durationMs={0} format={formatCoinsShort} className="text-white font-black text-[11px] tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" />
                           {is4Player && (
                             <span className="text-[5px] text-white/80 tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
@@ -4638,7 +4647,7 @@ export default function LiveStream() {
                             </span>
                           )}
                         </div>
-                        <div className="flex min-w-0 flex-1 flex-col items-end justify-center gap-0">
+                        <div className={`flex min-w-0 flex-1 flex-col items-end justify-center gap-0 ${hideBlueScore ? 'opacity-0' : ''}`}>
                           <AnimatedScore value={typeof blueTeamScore === 'number' && Number.isFinite(blueTeamScore) ? blueTeamScore : 0} durationMs={0} format={formatCoinsShort} className="text-white font-black text-[11px] tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" />
                           {is4Player && (
                             <span className="text-[5px] text-white/80 tabular-nums leading-none text-right drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
@@ -4647,8 +4656,10 @@ export default function LiveStream() {
                           )}
                         </div>
                       </div>
-                      {scoresHidden ? (
+                      {battleHideScores ? (
                         <div className="absolute inset-0 z-20 battle-score-veil pointer-events-none" />
+                      ) : mistSupportedSide ? (
+                        <div className={`absolute inset-y-0 z-20 battle-score-veil pointer-events-none w-1/2 ${mistSupportedSide === 'opponent' ? 'right-0' : 'left-0'}`} />
                       ) : null}
                     </div>
                     {/* Match timer — flush under battle score bar (0mm gap); SPEED beside timer when active */}
@@ -6542,14 +6553,28 @@ export default function LiveStream() {
       {/* Full-screen Gift Overlay Animation */}
       <GiftAnimationOverlay streamId={effectiveStreamId} />
 
-      {/* POINT MULTIPLIER BOOSTER — glove flies to the weekly-ranking corner when a
-          spectator sends it, then disappears (transient, never stays on screen) */}
+      {/* POINT MULTIPLIER BOOSTER — a red boxing glove stays on the top-left, beside
+          the Weekly Ranking, for the whole active window (server ~30s) while it catches
+          gifts. One glove per spectator; a badge shows how many gloves that spectator sent. */}
       {boosterActivations.length > 0 && (
         <div className="fixed left-3 top-[92px] z-[100000] flex flex-col gap-1 pointer-events-none">
-          {boosterActivations.map((a) => (
-            <span key={a.id} className="booster-glove-fly relative flex items-center justify-center w-11 h-11 rounded-full bg-[#111111]/90 border border-[#D4AF37] shadow-2xl text-[#D4AF37]">
+          {Object.values(
+            boosterActivations.reduce<Record<string, { key: string; multiplier: number; count: number }>>((acc, a) => {
+              const key = a.userId || a.username || a.id;
+              if (!acc[key]) acc[key] = { key, multiplier: 0, count: 0 };
+              acc[key].count += 1;
+              acc[key].multiplier = Math.max(acc[key].multiplier, a.multiplier);
+              return acc;
+            }, {}),
+          ).map((g) => (
+            <span key={g.key} className="relative flex items-center justify-center w-11 h-11 rounded-full bg-[#111111]/90 border border-[#FF3B30] shadow-2xl text-[#FF3B30] animate-in zoom-in-50 duration-200">
               <GloveIcon className="w-7 h-7" />
-              <span className="absolute -bottom-1 -right-1 text-[9px] font-black leading-none px-1 rounded-full bg-black text-[#D4AF37] border border-[#C9A227]/60">x{a.multiplier}</span>
+              {g.count > 1 && (
+                <span className="absolute -top-1 -right-1 text-[9px] font-black leading-none px-1 rounded-full bg-[#FF3B30] text-white border border-black/40">{g.count}</span>
+              )}
+              {g.multiplier > 0 && (
+                <span className="absolute -bottom-1 -right-1 text-[9px] font-black leading-none px-1 rounded-full bg-black text-[#FF3B30] border border-[#FF3B30]/60">x{g.multiplier}</span>
+              )}
             </span>
           ))}
         </div>
