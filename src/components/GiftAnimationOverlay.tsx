@@ -27,36 +27,23 @@ interface GiftAnimation {
   creatorName: string;
   quantity: number;
   timestamp: number;
-  avatar?: string;
 }
 
 interface GiftAnimationOverlayProps {
   streamId: string;
 }
 
-const MERGE_WINDOW_MS = 2500;
-const DISPLAY_DURATION_MS = 5000;
-// One small banner at a time that flies in from the left and out to the right.
-const MAX_VISIBLE = 1;
+const MERGE_WINDOW_MS = 2000;
+const DISPLAY_DURATION_MS = 4000;
 
 export default function GiftAnimationOverlay({ streamId }: GiftAnimationOverlayProps) {
-  const [gifts, setGifts] = useState<GiftAnimation[]>([]);
-  const hideTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const [currentGift, setCurrentGift] = useState<GiftAnimation | null>(null);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const seenTxnRef = useRef<Set<string>>(new Set());
   const streamIdRef = useRef(streamId);
   streamIdRef.current = streamId;
 
-  const scheduleHide = (id: string) => {
-    const prev = hideTimersRef.current.get(id);
-    if (prev) clearTimeout(prev);
-    const t = setTimeout(() => {
-      hideTimersRef.current.delete(id);
-      setGifts((list) => list.filter((g) => g.id !== id));
-    }, DISPLAY_DURATION_MS);
-    hideTimersRef.current.set(id, t);
-  };
-
-  const ingest = (raw: ElixGiftPillDetail & {
+  const ingest = (data: ElixGiftPillDetail & {
     stream_id?: string;
     gift_name?: string;
     gift_icon?: string;
@@ -64,7 +51,7 @@ export default function GiftAnimationOverlay({ streamId }: GiftAnimationOverlayP
     transactionId?: string;
     transaction_id?: string;
   }) => {
-    const eventStreamId = raw.streamId ?? raw.stream_id;
+    const eventStreamId = data.streamId ?? data.stream_id;
     if (
       eventStreamId &&
       streamIdRef.current &&
@@ -75,55 +62,38 @@ export default function GiftAnimationOverlay({ streamId }: GiftAnimationOverlayP
     }
 
     const txnId =
-      (typeof raw.transactionId === 'string' && raw.transactionId) ||
-      (typeof raw.transaction_id === 'string' && raw.transaction_id) ||
+      (typeof data.transactionId === 'string' && data.transactionId) ||
+      (typeof data.transaction_id === 'string' && data.transaction_id) ||
       '';
     if (txnId) {
       if (seenTxnRef.current.has(txnId)) return;
       seenTxnRef.current.add(txnId);
       if (seenTxnRef.current.size > 200) {
-        const keep = [...seenTxnRef.current].slice(-100);
-        seenTxnRef.current = new Set(keep);
+        seenTxnRef.current = new Set([...seenTxnRef.current].slice(-100));
       }
     }
 
-    const username = raw.username ?? 'Someone';
-    const giftName = raw.giftName ?? raw.gift_name ?? 'Gift';
-    const quantity = typeof raw.quantity === 'number' && raw.quantity > 0 ? raw.quantity : 1;
+    const username = data.username ?? 'Someone';
+    const giftName = data.giftName ?? data.gift_name ?? 'Gift';
+    const quantity = typeof data.quantity === 'number' && data.quantity > 0 ? data.quantity : 1;
+    const giftIcon = data.giftIcon ?? data.gift_icon ?? '🎁';
     const now = Date.now();
-    const giftIcon = raw.giftIcon ?? raw.gift_icon ?? '🎁';
-    const avatar = typeof raw.avatar === 'string' ? raw.avatar : '';
 
-    setGifts((prev) => {
-      const mergeIdx = prev.findIndex(
-        (g) => g.username === username && g.giftName === giftName && now - g.timestamp < MERGE_WINDOW_MS,
-      );
-      if (mergeIdx >= 0) {
-        const merged = {
-          ...prev[mergeIdx],
-          quantity: prev[mergeIdx].quantity + quantity,
-          timestamp: now,
-          giftIcon,
-          avatar: avatar || prev[mergeIdx].avatar,
-        };
-        scheduleHide(merged.id);
-        const next = [...prev];
-        next[mergeIdx] = merged;
-        return next;
+    setCurrentGift(prev => {
+      const sameSenderSameGift =
+        prev && prev.username === username && prev.giftName === giftName && now - prev.timestamp < MERGE_WINDOW_MS;
+      if (sameSenderSameGift) {
+        return { ...prev, quantity: prev.quantity + quantity, timestamp: now };
       }
-      const id = `${now}-${Math.random()}`;
-      scheduleHide(id);
-      const row: GiftAnimation = {
-        id,
+      return {
+        id: now.toString() + Math.random(),
         username,
         giftIcon,
         giftName,
-        creatorName: raw.creatorName ?? raw.creator_name ?? 'Creator',
+        creatorName: data.creatorName ?? data.creator_name ?? 'Creator',
         quantity,
         timestamp: now,
-        avatar,
       };
-      return [...prev, row].slice(-MAX_VISIBLE);
     });
   };
 
@@ -141,49 +111,44 @@ export default function GiftAnimationOverlay({ streamId }: GiftAnimationOverlayP
     return () => {
       websocket.off('gift_sent', onWs);
       window.removeEventListener(ELIX_GIFT_PILL_EVENT, onLocal);
-      hideTimersRef.current.forEach((t) => clearTimeout(t));
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      hideTimersRef.current.clear();
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (gifts.length === 0) return null;
+  useEffect(() => {
+    if (!currentGift) return;
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    hideTimerRef.current = setTimeout(() => {
+      hideTimerRef.current = null;
+      setCurrentGift(null);
+    }, DISPLAY_DURATION_MS);
+    return () => {
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    };
+  }, [currentGift]);
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-[240] flex justify-center overflow-hidden">
-      <div className="w-full max-w-[480px] relative h-full">
-        <div
-          className="absolute left-2 flex flex-col gap-1.5 items-start"
-          style={{ top: 'calc(env(safe-area-inset-top, 0px) + 1cm + 7mm)' }}
-        >
-          {gifts.map((g) => (
-            <div
-              key={g.id}
-              className="flex items-center gap-1.5 pl-1 pr-2.5 py-0.5 rounded-full bg-gradient-to-r from-[#E11D2A] to-[#B0111C] backdrop-blur-sm max-w-[min(280px,78vw)] shadow-lg animate-in slide-in-from-left-4 duration-300"
-            >
-              <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0 bg-black/25 border border-white/30">
-                {g.avatar && (g.avatar.startsWith('http') || g.avatar.startsWith('/') || g.avatar.startsWith('data:')) ? (
-                  <img src={g.avatar} alt="" className="w-full h-full object-cover" draggable={false} />
+    <div className="fixed inset-0 pointer-events-none z-[999996] flex justify-center">
+      <div className="w-full max-w-[480px] relative">
+        <div className="absolute left-0 right-0 px-1" style={{ top: 'calc(1cm + 7mm)' }}>
+          {currentGift && (
+            <div className="animate-slide-in-right w-full rounded-full flex items-center gap-1.5 overflow-hidden px-2 py-0.5 bg-red-600/85 backdrop-blur-sm">
+              <div className="w-4 h-4 flex-shrink-0">
+                {currentGift.giftIcon && (currentGift.giftIcon.startsWith('http') || currentGift.giftIcon.startsWith('/')) ? (
+                  <img src={currentGift.giftIcon} alt="" className="w-full h-full object-contain" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-[9px] font-bold text-white/90">
-                    {(g.username || '?').slice(0, 2).toUpperCase()}
-                  </div>
+                  <span className="text-xs">{currentGift.giftIcon || '🎁'}</span>
                 )}
               </div>
-              <span className="text-white text-[11px] font-bold truncate leading-none max-w-[110px]">{g.username}</span>
-              <div className="w-6 h-6 flex-shrink-0 flex items-center justify-center">
-                {typeof g.giftIcon === 'string' && (g.giftIcon.startsWith('http') || g.giftIcon.startsWith('/')) ? (
-                  <img src={g.giftIcon} alt="" className="w-6 h-6 object-contain" draggable={false} />
-                ) : (
-                  <span className="text-base leading-none">{g.giftIcon || '🎁'}</span>
-                )}
+              <div className="flex-1 min-w-0 overflow-x-auto no-scrollbar">
+                <p className="text-xs font-bold text-black whitespace-nowrap leading-tight">
+                  {currentGift.username} sent {currentGift.giftName} to {currentGift.creatorName}
+                  {currentGift.quantity > 1 && <span> x{currentGift.quantity}</span>}
+                </p>
               </div>
-              <span className="text-white text-[14px] font-black italic tabular-nums flex-shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
-                x{g.quantity >= 1000 ? `${(g.quantity / 1000).toFixed(g.quantity % 1000 === 0 ? 0 : 1)}K` : g.quantity}
-              </span>
             </div>
-          ))}
+          )}
         </div>
       </div>
     </div>
