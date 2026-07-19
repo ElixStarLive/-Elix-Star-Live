@@ -26,7 +26,9 @@ export default function FriendsFeed() {
   const [storyViewer, setStoryViewer] = useState<StoryUserGroup | null>(null);
   const [storyItemIndex, setStoryItemIndex] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [chromeHidden, setChromeHidden] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const lastScrollTopRef = useRef(0);
   const friendVideoIds = friendVideos.map((v) => v.id);
 
   const reloadStories = useCallback(() => {
@@ -97,6 +99,13 @@ export default function FriendsFeed() {
     if (index >= 0 && index < friendVideoIds.length) {
       setActiveIndex(index);
     }
+    // Auto-hide the top story strip once scrolled into the feed (video goes full);
+    // reveal it again when scrolling back up or at the very top.
+    const last = lastScrollTopRef.current;
+    if (scrollPos <= 8) setChromeHidden(false);
+    else if (scrollPos > last + 6) setChromeHidden(true);
+    else if (scrollPos < last - 6) setChromeHidden(false);
+    lastScrollTopRef.current = scrollPos;
   };
 
   // Keep active index in sync with visible slide (so video play/pause works when scrolling)
@@ -131,9 +140,13 @@ export default function FriendsFeed() {
 
   return (
     <div className="h-full min-h-0 w-full flex justify-center bg-[#111111]">
-      {/* Full height of main: header + stories + video scroll share this column (video is NOT main-high alone) */}
-      <div className="w-full max-w-[480px] h-full min-h-0 flex flex-col overflow-hidden mx-auto">
-        <div className="w-full shrink-0 bg-[#111111] z-10 relative pt-app-header-safe">
+      {/* Video fills the column; the header + stories overlay the top and auto-hide on scroll so the video goes full. */}
+      <div className="w-full max-w-[480px] h-full min-h-0 relative overflow-hidden mx-auto">
+        <div
+          className={`absolute top-0 left-0 right-0 bg-[#111111] z-20 pt-app-header-safe transition-transform duration-300 ${
+            chromeHidden ? '-translate-y-full pointer-events-none' : 'translate-y-0'
+          }`}
+        >
           <div className="px-3 pb-1 flex items-center justify-between relative">
             <button onClick={() => navigate('/search')} className="w-8 h-8 royce-glow-disc flex items-center justify-center z-10" aria-label="Search">
               <Search size={16} className="royce-icon-gold" strokeWidth={2} />
@@ -228,7 +241,7 @@ export default function FriendsFeed() {
 
         <div
           ref={containerRef}
-          className="flex-1 min-h-0 w-full overflow-y-scroll snap-y snap-mandatory relative overscroll-none bg-black"
+          className="absolute inset-0 z-0 w-full overflow-y-scroll snap-y snap-mandatory overscroll-none bg-black"
           style={{ scrollSnapType: 'y mandatory', WebkitOverflowScrolling: 'touch' }}
           onScroll={handleScroll}
         >
