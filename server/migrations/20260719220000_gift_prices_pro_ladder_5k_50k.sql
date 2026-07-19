@@ -15,8 +15,24 @@ BEGIN;
 
 UPDATE elix_gifts g SET
   coin_cost = v.coin_cost,
-  battle_points = CASE WHEN g.gift_type = 'big' THEN v.coin_cost * 5 ELSE v.coin_cost END
+  -- Universe gifts keep their existing (large) battle_points; only the coin price
+  -- is capped. big = coins*5, small = coins.
+  battle_points = CASE
+                    WHEN g.gift_type = 'universe' THEN g.battle_points
+                    WHEN g.gift_type = 'big' THEN v.coin_cost * 5
+                    ELSE v.coin_cost
+                  END
 FROM (VALUES
+  -- Core starter gifts (rose/heart/kiss) + crown/diamond/rocket + universe
+  ('rose', 5000),
+  ('heart', 5000),
+  ('kiss', 8000),
+  ('rocket', 18000),
+  ('diamond', 25000),
+  ('crown', 35000),
+  ('elix_live_universe', 50000),
+  ('elix_gold_universe', 50000),
+  ('elix_global_universe', 50000),
   -- Small gifts (cheapest → entry tiers)
   ('horse', 5000),
   ('ember_dragon_egg', 5000),
@@ -73,9 +89,11 @@ WHERE g.gift_id = v.gift_id;
 -- 5k..50k band so nothing can ever exceed 50,000 coins again.
 UPDATE elix_gifts
    SET coin_cost = LEAST(50000, GREATEST(5000, coin_cost)),
-       battle_points = CASE WHEN gift_type = 'big'
-                            THEN LEAST(50000, GREATEST(5000, coin_cost)) * 5
-                            ELSE LEAST(50000, GREATEST(5000, coin_cost)) END
+       battle_points = CASE
+                         WHEN gift_type = 'universe' THEN battle_points
+                         WHEN gift_type = 'big'
+                           THEN LEAST(50000, GREATEST(5000, coin_cost)) * 5
+                         ELSE LEAST(50000, GREATEST(5000, coin_cost)) END
  WHERE coin_cost > 50000 OR coin_cost < 5000;
 
 COMMIT;
