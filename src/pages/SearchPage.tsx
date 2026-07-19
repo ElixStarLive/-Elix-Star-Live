@@ -301,6 +301,14 @@ export default function SearchPage() {
                             muted
                             playsInline
                             preload="metadata"
+                            onLoadedMetadata={(e) => {
+                              const vid = e.currentTarget;
+                              try {
+                                if (vid.currentTime < 0.1) vid.currentTime = 0.1;
+                              } catch {
+                                /* seek unsupported — ignore */
+                              }
+                            }}
                           />
                           <div className="text-left flex-1">
                             <div className="text-xs font-semibold line-clamp-2">{v.description}</div>

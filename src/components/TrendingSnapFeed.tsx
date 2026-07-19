@@ -44,6 +44,15 @@ function VideoThumbnail({ video }: { video: Video }) {
           muted
           playsInline
           preload="metadata"
+          onLoadedMetadata={(e) => {
+            // WebViews don't paint a frame until seeked — nudge to 0.1s so the tile shows a real thumbnail.
+            const vid = e.currentTarget;
+            try {
+              if (vid.currentTime < 0.1) vid.currentTime = 0.1;
+            } catch {
+              /* seek unsupported — ignore */
+            }
+          }}
           className={`absolute inset-0 w-full h-full object-cover ${showImg ? 'opacity-0' : 'opacity-90 group-hover:opacity-100'} transition`}
           aria-hidden
         />
