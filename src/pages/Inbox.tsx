@@ -454,8 +454,8 @@ export default function Inbox() {
         </div>
 
         {/* Circles — Followers hub first; suggested + per-follower avatars scroll to the right */}
-        <div className="px-3 py-2 bg-[#111111]" style={{ marginTop: '17mm' }}>
-            <div className="flex gap-3 overflow-x-auto overflow-y-hidden no-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <div className="px-3 pb-2 bg-[#111111]" style={{ marginTop: '17mm' }}>
+            <div className="flex gap-3 overflow-x-auto overflow-y-hidden no-scrollbar pt-3" style={{ WebkitOverflowScrolling: 'touch' }}>
                 <button
                     type="button"
                     onClick={() => setShowNewFollowersPanel(true)}
