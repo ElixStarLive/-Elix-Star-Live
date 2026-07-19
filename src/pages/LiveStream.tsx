@@ -40,9 +40,11 @@ import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, fetchGiftsFromDatabase
 import { BattleVfxOverlays, GloveIcon, type BattleMistSide, type GloveBurst } from '../components/BattleVfxOverlays';
 import {
   addPersistedTestCoins,
+  addTestGiftXp,
   debitTestCoinsForGift,
   getPersistedTestCoinsBalance,
   getSpendableGiftBalance,
+  getTestLevel,
   resolveGiftUiBalance,
   shouldUseTestCoinsForGifts,
 } from '../lib/testCoins';
@@ -461,8 +463,13 @@ export default function LiveStream() {
         const starter = Math.max(0, Number(p?.starter_coin_balance) || 0);
         setStarterCoinBalance(starter);
         setGiftSource(starter > 0 ? 'starter_coins' : 'paid_coins');
-        setUserLevel(Math.max(0, Number(p?.current_level) || 0));
-        setUserXP(Math.max(0, Number(p?.total_xp) || 0));
+        const serverLevel = Math.max(0, Number(p?.current_level) || 0);
+        const serverXp = Math.max(0, Number(p?.total_xp) || 0);
+        // While testing with test coins, show the local simulated level if it's
+        // higher (local-only, never real progression).
+        const testLvl = shouldUseTestCoinsForGifts(user.id) ? getTestLevel(user.id) : 0;
+        setUserLevel(Math.max(serverLevel, testLvl));
+        setUserXP(serverXp);
       })
       .catch(() => {
         if (cancelled) return;
@@ -3603,6 +3610,16 @@ export default function LiveStream() {
           return;
         }
         setCoinBalance(debit.newBalance);
+        // Test-only: drive a LOCAL level using the same curve as the server so
+        // the level visibly climbs while testing. Never sent to the server.
+        const sim = addTestGiftXp((user as NonNullable<typeof user>).id, gift.coins);
+        if (sim.level > userLevel) {
+          setUserLevel(sim.level);
+          updateUser({ level: sim.level });
+          newLevel = sim.level;
+          showToast(`Level up! You reached Level ${sim.level}`);
+        }
+        setUserXP(sim.totalXp);
       } else if (user?.id) {
         try {
           const idsForBattleGiftRest = battleStreamIdsRef.current;

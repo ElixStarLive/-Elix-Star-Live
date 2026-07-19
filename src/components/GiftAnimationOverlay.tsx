@@ -152,14 +152,6 @@ export default function GiftAnimationOverlay({ streamId }: GiftAnimationOverlayP
 
   return (
     <div className="fixed inset-0 pointer-events-none z-[240] flex justify-center overflow-hidden">
-      <style>{`
-        @keyframes elixGiftFly {
-          0%   { transform: translateX(-120%); opacity: 0; }
-          12%  { transform: translateX(0);     opacity: 1; }
-          82%  { transform: translateX(0);     opacity: 1; }
-          100% { transform: translateX(150%);  opacity: 0; }
-        }
-      `}</style>
       <div className="w-full max-w-[480px] relative h-full">
         <div
           className="absolute left-2 flex flex-col gap-1.5 items-start"
@@ -168,30 +160,26 @@ export default function GiftAnimationOverlay({ streamId }: GiftAnimationOverlayP
           {gifts.map((g) => (
             <div
               key={g.id}
-              className="flex items-center gap-1.5 pl-1 pr-2 py-1 rounded-full bg-black/60 backdrop-blur-sm max-w-[min(280px,78vw)] shadow-lg"
-              style={{ animation: `elixGiftFly ${DISPLAY_DURATION_MS}ms ease-in-out forwards` }}
+              className="flex items-center gap-1.5 pl-1 pr-2.5 py-0.5 rounded-full bg-gradient-to-r from-[#E11D2A] to-[#B0111C] backdrop-blur-sm max-w-[min(280px,78vw)] shadow-lg animate-in slide-in-from-left-4 duration-300"
             >
-              <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 bg-[#222] border border-white/20">
+              <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0 bg-black/25 border border-white/30">
                 {g.avatar && (g.avatar.startsWith('http') || g.avatar.startsWith('/') || g.avatar.startsWith('data:')) ? (
                   <img src={g.avatar} alt="" className="w-full h-full object-cover" draggable={false} />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-[9px] font-bold text-white/80">
+                  <div className="w-full h-full flex items-center justify-center text-[9px] font-bold text-white/90">
                     {(g.username || '?').slice(0, 2).toUpperCase()}
                   </div>
                 )}
               </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-white text-[11px] font-bold truncate leading-tight">{g.username}</p>
-                <p className="text-white/75 text-[10px] truncate leading-tight">sent {g.giftName}</p>
-              </div>
-              <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center">
+              <span className="text-white text-[11px] font-bold truncate leading-none max-w-[110px]">{g.username}</span>
+              <div className="w-6 h-6 flex-shrink-0 flex items-center justify-center">
                 {typeof g.giftIcon === 'string' && (g.giftIcon.startsWith('http') || g.giftIcon.startsWith('/')) ? (
-                  <img src={g.giftIcon} alt="" className="w-7 h-7 object-contain" draggable={false} />
+                  <img src={g.giftIcon} alt="" className="w-6 h-6 object-contain" draggable={false} />
                 ) : (
                   <span className="text-base leading-none">{g.giftIcon || '🎁'}</span>
                 )}
               </div>
-              <span className="text-[#FF2D55] text-[15px] font-black italic tabular-nums flex-shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+              <span className="text-white text-[14px] font-black italic tabular-nums flex-shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
                 x{g.quantity >= 1000 ? `${(g.quantity / 1000).toFixed(g.quantity % 1000 === 0 ? 0 : 1)}K` : g.quantity}
               </span>
             </div>
