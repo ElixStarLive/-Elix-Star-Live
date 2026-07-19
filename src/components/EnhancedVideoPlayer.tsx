@@ -16,6 +16,7 @@ import {
   Users2,
   Play,
   MoreHorizontal,
+  Music,
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useVideoStore } from '../store/useVideoStore';
@@ -972,25 +973,21 @@ export default function EnhancedVideoPlayer({
           title={video.music?.title || 'Original Sound'}
         >
           <span
-            className="overflow-hidden bg-black flex items-center justify-center"
+            className="overflow-hidden bg-black flex items-center justify-center relative"
             style={{ width: 34, height: 34, borderRadius: '50%' }}
           >
-            <img
-              src={
-                video.music?.coverUrl ||
-                video.user.avatar ||
-                '/royce/default-avatar.svg'
-              }
-              alt=""
-              className="w-full h-full object-cover"
-              draggable={false}
-              onError={(e) => {
-                const img = e.currentTarget;
-                if (img.dataset.fallback === '1') return;
-                img.dataset.fallback = '1';
-                img.src = video.user.avatar || '/royce/default-avatar.svg';
-              }}
-            />
+            <Music size={16} className="text-gold-light/80" />
+            {video.music?.coverUrl && (
+              <img
+                src={video.music.coverUrl}
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover"
+                draggable={false}
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+            )}
           </span>
           <span className="text-[8px] font-medium leading-tight text-gold-light/80 max-w-full truncate text-center">
             {video.music?.title?.split(' ').slice(0, 2).join(' ') || 'Original'}

@@ -356,7 +356,6 @@ export default function LiveStream() {
         if (!prev.includes(targetId)) {
           useVideoStore.setState({ followingUsers: [...prev, targetId] });
         }
-        showToast('Following');
       } catch {
         showToast('Could not follow. Try again.');
       }
@@ -895,10 +894,8 @@ export default function LiveStream() {
       });
     } catch { /* fire-and-forget */ }
 
-    showToast(`Joining @${invite.hostName}'s battle...`);
     const granted = await ackPromise;
     if (!granted) {
-      showToast('Could not join the battle — invite is no longer valid');
       return;
     }
     // Mark this as a REAL accepted battle invite in sessionStorage so the
@@ -915,7 +912,6 @@ export default function LiveStream() {
   const declineBattleInvite = async () => {
     if (!pendingInvite) return;
     setPendingInvite(null);
-    showToast('Declined');
   };
 
   // Mute state per player pane
@@ -983,19 +979,15 @@ export default function LiveStream() {
 
   const inviteCoHost = async (creator: { id: string; streamKey?: string; name: string; avatar?: string }) => {
     if (!isBroadcast || !isMyStreamLive) {
-      showToast('You must be live to add co-hosts');
       return;
     }
     if (isSelfUser(creator.id, user?.id, effectiveStreamId)) {
-      showToast('You cannot add yourself as co-host');
       return;
     }
     if (creator.streamKey && isSelfUser(creator.streamKey, user?.id, effectiveStreamId)) {
-      showToast('You cannot add yourself as co-host');
       return;
     }
     if (isBattleMode) {
-      showToast('End battle first — co-host is available in normal live mode');
       return;
     }
     if (coHosts.length >= MAX_CO_HOSTS) return;
@@ -1016,7 +1008,6 @@ export default function LiveStream() {
 
     if (!user?.id) return;
     if (!websocket.isConnected()) {
-      showToast('Not connected — wait a moment and try again');
       return;
     }
     websocket.send('cohost_invite_send', {
@@ -1026,7 +1017,6 @@ export default function LiveStream() {
       hostAvatar: myAvatar,
       streamKey: effectiveStreamId,
     });
-    showToast(`Request sent to @${creator.name}`);
   };
 
   // ─── INCOMING CO-HOST INVITE (from another creator) ───
@@ -1044,7 +1034,6 @@ export default function LiveStream() {
 
   const declineCohostInvite = () => {
     setPendingCohostInvite(null);
-    showToast('Declined');
   };
 
   const acceptCohostInvite = async () => {
@@ -1064,7 +1053,6 @@ export default function LiveStream() {
       cohostAvatar: user?.avatar || '',
       streamKey: user?.id || effectiveStreamId,
     });
-    showToast(`Joining @${inv.hostName}'s live as co-host`);
     if (inv.streamKey) {
       navigate(`/watch/${inv.streamKey}?cohost=1`, { state: { fromCohostInvite: true } });
     }
@@ -1100,7 +1088,6 @@ export default function LiveStream() {
         isMuted: false,
       }];
     });
-    showToast(`Accepted @${req.requesterName}'s co-host request!`);
   };
 
   const declineJoinRequest = async () => {
@@ -1108,7 +1095,6 @@ export default function LiveStream() {
     const requesterId = pendingJoinRequest.requesterId;
     setPendingJoinRequest(null);
     if (requesterId) websocket.send('cohost_request_decline', { requesterUserId: requesterId });
-    showToast('Request declined');
   };
 
   const _removeCoHost = (hostId: string) => {
@@ -1706,7 +1692,6 @@ export default function LiveStream() {
       currentCount: giftGoal?.giftId === goalPick.id ? giftGoal.currentCount : 0,
     });
     setGoalSaving(false);
-    showToast('Gift goal live!');
   }, [goalPick, goalTargetCount, giftGoal, isBroadcast]);
 
   const clearGiftGoal = useCallback(() => {
@@ -1714,7 +1699,6 @@ export default function LiveStream() {
     websocket.send('gift_goal_clear', {});
     setGiftGoal(null);
     setGoalPick(null);
-    showToast('Gift goal cleared');
   }, [isBroadcast]);
 
   useEffect(() => {
@@ -1909,7 +1893,6 @@ export default function LiveStream() {
         showToast(shareErr.message || 'Could not share');
         return;
       }
-      showToast(`Shared live with ${label}`);
       setShareSentTo((prev) => new Set(prev).add(targetUserId));
     } catch {
       showToast('Could not share');
@@ -3357,7 +3340,6 @@ export default function LiveStream() {
       if (!user?.id) return;
       const hostName = data.hostName || 'Creator';
       const streamKey = data.streamKey || effectiveStreamId;
-      showToast(`@${hostName} accepted your co-host request!`);
       if (streamKey) {
         navigate(`/watch/${streamKey}?cohost=1`, { state: { fromCohostInvite: true } });
       }
@@ -3382,7 +3364,6 @@ export default function LiveStream() {
     const handleCohostInviteAck = (data) => {
       if (!mounted) return;
       if (data?.delivered === false) {
-        showToast('Could not reach that creator — they must stay on their live screen');
         const tid = typeof data?.targetUserId === 'string' ? data.targetUserId : '';
         if (tid) {
           setCoHosts((prev) => prev.filter((h) => !(sameUserId(h.userId, tid) && h.status === 'invited')));
@@ -3419,7 +3400,6 @@ export default function LiveStream() {
           },
         ];
       });
-      showToast(`${data.cohostName || 'Co-host'} joined the live`);
     };
 
     websocket.on('battle_invite', handleBattleInvite);
@@ -4317,7 +4297,6 @@ export default function LiveStream() {
           ? { ...p, followers_count: Math.max(0, p.followers_count + (wasFollowing ? -1 : 1)) }
           : p,
       );
-      showToast(wasFollowing ? 'Unfollowed' : 'Following');
     } catch {
       showToast('Could not update follow. Try again.');
     }
@@ -5469,7 +5448,6 @@ export default function LiveStream() {
                     requesterAvatar: user?.avatar || '',
                   });
                   setSpectatorCoHostRequestSent(true);
-                  showToast('Co-host request sent!');
                 }}
                 className={`${LIVE_BOTTOM_ICON_BTN} relative disabled:opacity-60`}
               >
