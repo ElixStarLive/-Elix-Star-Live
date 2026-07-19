@@ -14,4 +14,7 @@ CREATE TABLE IF NOT EXISTS stories (
 
 CREATE INDEX IF NOT EXISTS idx_stories_expires_at ON stories (expires_at);
 CREATE INDEX IF NOT EXISTS idx_stories_user_id_created ON stories (user_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_stories_active_user ON stories (user_id) WHERE expires_at > NOW();
+-- NOTE: a partial index predicate cannot use NOW() (not IMMUTABLE). A composite
+-- (user_id, expires_at) index serves the same "active stories for a user" lookups
+-- (user_id = $1 AND expires_at > now()) without the illegal predicate.
+CREATE INDEX IF NOT EXISTS idx_stories_active_user ON stories (user_id, expires_at);
