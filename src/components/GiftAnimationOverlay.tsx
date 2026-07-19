@@ -151,7 +151,7 @@ export default function GiftAnimationOverlay({ streamId }: GiftAnimationOverlayP
   if (gifts.length === 0) return null;
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-[240] flex justify-center">
+    <div className="fixed inset-0 pointer-events-none z-[240] flex justify-center overflow-hidden">
       <style>{`
         @keyframes elixGiftFly {
           0%   { transform: translateX(-120%); opacity: 0; }
