@@ -731,7 +731,7 @@ export default function Profile() {
 
         {/* ═══ ACTION BAR (scrollable) — compact so Edit Profile is visible ═══ */}
         <div className="mt-2 border-b border-white/5">
-          <div className="flex overflow-x-auto no-scrollbar">
+          <div className="flex justify-center overflow-x-auto no-scrollbar">
             <button onClick={() => navigate('/ai-studio')} className="flex flex-col items-center gap-0.5 px-3 py-2 whitespace-nowrap">
               <span className="royce-glow-disc" style={{ width: 26, height: 26 }} aria-hidden>
                 <Sparkles size={12} className="royce-icon-gold" />
