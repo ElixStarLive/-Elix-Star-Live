@@ -1944,7 +1944,7 @@ export default function LiveStream() {
     battleTripleTapRef.current = { target: null, lastTapAt: 0, count: 0 };
     setMiniProfile(null);
     setSpeedChallengeActive(false);
-    setSpeedChallengeTime(60);
+    setSpeedChallengeTime(30);
     setSpeedChallengeTaps({ me: 0, opponent: 0, player3: 0, player4: 0 });
     setSpeedChallengeResult(null);
     setSpeedMultiplier(1);
@@ -2270,10 +2270,10 @@ export default function LiveStream() {
     setSpeedChallengeTaps({ me: 0, opponent: 0, player3: 0, player4: 0 });
     setSpeedChallengeResult(null);
     setSpeedChallengeActive(true);
-    setSpeedChallengeTime(60);
+    setSpeedChallengeTime(30);
   }, [speedChallengeActive, isBattleMode, battleWinner, SPEED_CHALLENGE_ENABLED]);
 
-  // Speed challenge timer: 60 → 0
+  // Speed challenge timer: 30 → 0
   useEffect(() => {
     if (!speedChallengeActive) return;
     if (speedChallengeTime <= 0) {
@@ -2312,30 +2312,15 @@ export default function LiveStream() {
   }, [speedChallengeActive, speedChallengeTime]);
 
 
-  // Speed challenge: total battle score thresholds — 200 → x2, 1000 → x3, 5000 → x5 (each 60s once crossed)
+  // Speed challenge: single fixed x2 round per match. Once the battle heats up
+  // (total score crosses the threshold) it starts once, runs for 30s at x2, then
+  // disappears. Thresholds reset when a new battle starts, so it returns next match.
   useEffect(() => {
     if (!SPEED_CHALLENGE_ENABLED || !isBattleMode || battleWinner) return;
     if (speedChallengeActive) return;
 
     const totalScore = myScore + opponentScore + player3Score + player4Score;
 
-    if (totalScore >= 5000 && !reachedThresholdsRef.current.has(5000)) {
-      reachedThresholdsRef.current.add(5000);
-      reachedThresholdsRef.current.add(1000);
-      reachedThresholdsRef.current.add(200);
-      setSpeedMultiplier(5);
-      speedMultiplierRef.current = 5;
-      startSpeedChallenge();
-      return;
-    }
-    if (totalScore >= 1000 && !reachedThresholdsRef.current.has(1000)) {
-      reachedThresholdsRef.current.add(1000);
-      reachedThresholdsRef.current.add(200);
-      setSpeedMultiplier(3);
-      speedMultiplierRef.current = 3;
-      startSpeedChallenge();
-      return;
-    }
     if (totalScore >= 200 && !reachedThresholdsRef.current.has(200)) {
       reachedThresholdsRef.current.add(200);
       setSpeedMultiplier(2);
@@ -4674,11 +4659,11 @@ export default function LiveStream() {
                         </div>
                         <span className="text-white text-[11px] font-black tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">{formatTime(battleTime)}</span>
                         {SPEED_CHALLENGE_ENABLED && speedChallengeActive && (
-                          <span className="flex items-center gap-1 pl-1.5 ml-0.5 border-l border-white/25">
-                            <span className="text-[#FFD54F] text-[8px] font-black uppercase tracking-wide">Speed</span>
+                          <span className="flex items-center gap-1 ml-1 px-1.5 py-0.5 rounded-full bg-[#B91C1C]/90 shadow-[0_0_10px_rgba(185,28,28,0.55)]">
+                            <span className="text-white text-[8px] font-black uppercase tracking-wide">Speed</span>
                             <span className="text-white text-[11px] font-black tabular-nums">{speedChallengeTime}s</span>
                             {speedMultiplier > 1 && (
-                              <span className="text-[#FFD54F] text-[9px] font-black">x{speedMultiplier}</span>
+                              <span className="text-white text-[9px] font-black">x{speedMultiplier}</span>
                             )}
                           </span>
                         )}
@@ -5104,7 +5089,7 @@ export default function LiveStream() {
 
             {SPEED_CHALLENGE_ENABLED && speedChallengeActive && (
               <div className="w-full px-3 py-2 flex items-center justify-center flex-none pointer-events-none mt-1 relative z-30" style={{ transform: 'translateY(-6mm)' }}>
-                <div className="flex items-center gap-3 px-5 py-1 rounded-full bg-[#B91C1C]/90 backdrop-blur-md border border-white/20/70 shadow-[0_0_15px_rgba(185,28,28,0.45)] animate-luxury-fade-in">
+                <div className="flex items-center gap-3 px-5 py-1 rounded-full bg-[#B91C1C]/90 backdrop-blur-md border border-white/20 shadow-[0_0_15px_rgba(185,28,28,0.45)] animate-luxury-fade-in">
                   <span className="text-white text-[9px] font-bold uppercase tracking-[0.1em]">⚡ Speed</span>
                   <span className="text-white text-[14px] font-black tabular-nums">{speedChallengeTime}s</span>
                   {speedMultiplier > 1 && (
