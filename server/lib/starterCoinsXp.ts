@@ -306,13 +306,18 @@ export async function sendStarterCoinGift(input: {
     );
 
     const source = xpSourceForGiftType(input.giftType);
+    // XP now scales with the coins spent (1 coin = 1 XP) instead of a flat
+    // per-gift-type amount, so bigger gifts move the level far more. The config
+    // row's `enabled` flag is still honoured so admins can switch gift XP off.
     const xpConfig = await client.query(
-      `SELECT xp_amount
+      `SELECT enabled
          FROM xp_activity_config
-        WHERE source = $1 AND enabled = TRUE`,
+        WHERE source = $1`,
       [source],
     );
-    const xpGained = Math.max(0, Number(xpConfig.rows[0]?.xp_amount) || 0);
+    const xpEnabled =
+      xpConfig.rows.length === 0 || xpConfig.rows[0].enabled === true;
+    const xpGained = xpEnabled ? Math.max(0, Math.floor(coins)) : 0;
 
     await client.query(
       `INSERT INTO user_progression (user_id, total_xp, current_level)
@@ -430,6 +435,7 @@ export async function sendStarterCoinGift(input: {
 export async function awardPaidGiftXp(input: {
   userId: string;
   giftType: string;
+  coins: number;
   clientTransactionId: string;
 }): Promise<{
   xp_gained: number;
@@ -454,12 +460,15 @@ export async function awardPaidGiftXp(input: {
     );
     const oldLevel = Math.max(0, Number(before.rows[0]?.current_level) || 0);
     const source = xpSourceForGiftType(input.giftType, "paid_gift");
+    // XP now scales with the coins spent (1 coin = 1 XP) instead of a flat
+    // per-gift-type amount. The config row's `enabled` flag is still honoured so
+    // admins can switch paid-gift XP off.
     const config = await client.query(
-      `SELECT xp_amount FROM xp_activity_config
-        WHERE source = $1 AND enabled = TRUE`,
+      `SELECT enabled FROM xp_activity_config WHERE source = $1`,
       [source],
     );
-    const configuredXp = Math.max(0, Number(config.rows[0]?.xp_amount) || 0);
+    const xpEnabled = config.rows.length === 0 || config.rows[0].enabled === true;
+    const configuredXp = xpEnabled ? Math.max(0, Math.floor(input.coins)) : 0;
     const tx = configuredXp > 0
       ? await client.query(
           `INSERT INTO xp_transactions

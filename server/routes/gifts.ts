@@ -202,6 +202,7 @@ export async function handleSendGift(req: Request, res: Response) {
           ? await awardPaidGiftXp({
               userId: auth.userId,
               giftType: gift.gift_type,
+              coins: coinCost,
               clientTransactionId,
             })
           : null;
