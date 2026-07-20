@@ -73,6 +73,9 @@ export async function epidemicFetch<T>(
   const url = path.startsWith("http") ? path : `${BASE_URL}${path}`;
   const res = await fetch(url, {
     ...init,
+    // Bound the request so a hung Epidemic Sound call cannot pin the handler.
+    // Respect a caller-supplied signal if one was passed.
+    signal: init?.signal ?? AbortSignal.timeout(15_000),
     headers: {
       Accept: "application/json",
       Authorization: `Bearer ${apiKey()}`,

@@ -106,6 +106,9 @@ async function scanWithPex(
 
     const res = await fetch(`${baseUrl}/identify`, {
       method: "POST",
+      // Bound the scan so a hung Pex request cannot pin the upload handler. On
+      // timeout the existing catch fails open (action: "allow") — unchanged.
+      signal: AbortSignal.timeout(20_000),
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/octet-stream",

@@ -87,8 +87,11 @@ export async function wsRateCheck(
   try {
     return await valkeyRateCheckFn(`wsrl:${userId}:${event}`, windowMs, maxPerWindow);
   } catch (err) {
-    logger.warn({ err: err?.message, userId, event }, "wsRateCheck: Valkey error — allowing event");
-    return true;
+    // Fail CLOSED: if the limiter cannot be evaluated (Valkey error), deny the
+    // event rather than allow unbounded gift/chat/battle spam. Production
+    // requires Valkey, so this only trips during a real outage.
+    logger.warn({ err: err?.message, userId, event }, "wsRateCheck: Valkey error — denying event (fail closed)");
+    return false;
   }
 }
 

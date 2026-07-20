@@ -70,13 +70,22 @@ async function isStreamActive(roomId: string): Promise<boolean> {
   return !!uid;
 }
 
-/** Check if a user is the host of a given stream room. Reads from Valkey. */
+/** Check if a user is the host of a given stream room. Reads Valkey, then DB. */
 export async function isStreamHost(roomId: string, userId: string): Promise<boolean> {
-  if (!isValkeyConfigured()) {
+  if (isValkeyConfigured()) {
+    const storedUserId = await valkeyHget(STREAM_KEY_PREFIX + roomId, 'userId');
+    if (storedUserId) return storedUserId === userId;
+  }
+  // Valkey unavailable (or has no record) — fall back to DB ownership so the
+  // real host is still authorized (e.g. to end their own stream). Without this
+  // the host could never end a stream when Valkey is down.
+  try {
+    const owner = await dbGetStreamOwnerUserId(roomId);
+    return !!owner && owner === userId;
+  } catch (err) {
+    logger.warn({ err, roomId }, "isStreamHost DB fallback failed");
     return false;
   }
-  const storedUserId = await valkeyHget(STREAM_KEY_PREFIX + roomId, 'userId');
-  return !!storedUserId && storedUserId === userId;
 }
 
 /** Map stream room id to auth userId for WebSocket delivery (cohost invites). */
@@ -105,6 +114,10 @@ export async function removeActiveStream(roomId: string, userId?: string): Promi
         if (storedUserId && storedUserId !== userId) return false;
       }
       await deleteActiveStream(roomId);
+      // Clear the room member set too. Without this the SCARD-based viewer count
+      // lingers (up to ROOM_MEMBER_TTL) as a ghost count after the stream ends
+      // and can inflate the count if the room id is reused.
+      await valkeyDel(`room:members:${roomId}`);
     } else if (userId) {
       // No Valkey: enforce host ownership from the DB so a non-host cannot end another user's stream.
       const ownerUserId = await resolveStreamOwnerUserId(roomId);

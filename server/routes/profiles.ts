@@ -723,6 +723,55 @@ export async function handlePatchProfile(req: Request, res: Response): Promise<v
     typeof patchedAvatarRaw === "string" ? patchedAvatarRaw.trim() : "";
 
   const profile = await getOrCreateProfileAsync(userId);
+
+  // --- Server-authoritative validation. The client enforces the same username
+  // rule, but never trust the client: bad/oversized values or a duplicated
+  // handle (impersonation) must be rejected here too. Errors surface via the
+  // existing "Failed to save profile" toast — no UI change.
+  const rawUsername = body["username"];
+  if (rawUsername !== undefined) {
+    if (typeof rawUsername !== "string") {
+      res.status(400).json({ error: "Invalid username" });
+      return;
+    }
+    const uname = rawUsername.trim().replace(/^@+/, "");
+    if (!/^[a-zA-Z0-9._]{3,30}$/.test(uname)) {
+      res.status(400).json({ error: "Username: 3–30 letters, numbers, . or _" });
+      return;
+    }
+    body["username"] = uname;
+    // Only check uniqueness when the handle actually changes, so pre-existing
+    // rows (and unchanged re-saves) are never blocked by legacy collisions.
+    if (uname.toLowerCase() !== (profile.username || "").toLowerCase()) {
+      const db = getPool();
+      if (db) {
+        const dup = await db.query(
+          `SELECT 1 FROM profiles WHERE lower(username) = lower($1) AND user_id <> $2 LIMIT 1`,
+          [uname, userId],
+        );
+        if (dup.rowCount) {
+          res.status(409).json({ error: "That username is already taken" });
+          return;
+        }
+      }
+    }
+  }
+  const rawDisplayName = body["displayName"];
+  if (rawDisplayName !== undefined && (typeof rawDisplayName !== "string" || rawDisplayName.length > 100)) {
+    res.status(400).json({ error: "Display name too long" });
+    return;
+  }
+  const rawBio = body["bio"];
+  if (rawBio !== undefined && (typeof rawBio !== "string" || rawBio.length > 2000)) {
+    res.status(400).json({ error: "Bio too long" });
+    return;
+  }
+  const rawWebsite = body["website"];
+  if (rawWebsite !== undefined && (typeof rawWebsite !== "string" || rawWebsite.length > 500)) {
+    res.status(400).json({ error: "Website too long" });
+    return;
+  }
+
   const allowed = ["username", "displayName", "avatarUrl", "bio", "website"] as const;
   for (const key of allowed) {
     const val = body[key];

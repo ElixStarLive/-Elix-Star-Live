@@ -63,6 +63,10 @@ If the image shows only safe/neutral content (including smoking, drinking, or pe
   try {
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
+      // Bound the call so a hung OpenAI request cannot pin this handler. On
+      // timeout the existing catch fails open ({ flagged: false }) — same as any
+      // other upstream error, so moderation behaviour is unchanged.
+      signal: AbortSignal.timeout(30_000),
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${apiKey}`,

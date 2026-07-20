@@ -20,29 +20,10 @@ adminPayoutRouter.get("/payouts", handleAdminListPayouts);
 adminPayoutRouter.post("/payout/:id/approve", handleAdminApprovePayout);
 adminPayoutRouter.post("/payout/:id/reject", handleAdminRejectPayout);
 adminPayoutRouter.post("/chargeback", handleAdminChargeback);
-adminPayoutRouter.get("/reports", async (req, res) => {
-  res.setHeader("Cache-Control", "private, no-store");
-  const { getPool } = await import("../lib/postgres");
-  const { getTokenFromRequest, verifyAuthToken } = await import("./auth");
-  const db = getPool();
-  if (!db) return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
-  const token = getTokenFromRequest(req);
-  const payload = token ? verifyAuthToken(token) : null;
-  if (!payload) return res.status(401).json({ error: "Unauthorized" });
-  const adminR = await db.query(`SELECT is_admin FROM profiles WHERE user_id = $1`, [payload.sub]);
-  if (!adminR.rows.length || !adminR.rows[0].is_admin) return res.status(403).json({ error: "Admin only" });
-  const status = req.query.status || "pending";
-  try {
-    const r = await db.query(
-      `SELECT * FROM elix_reports WHERE status = $1 ORDER BY created_at DESC LIMIT 100`,
-      [status],
-    );
-    return res.json({ data: r.rows });
-  } catch (err) {
-    logger.error({ err }, "admin/reports query failed");
-    return res.status(500).json({ error: "DATABASE_ERROR" });
-  }
-});
+// NOTE: GET /reports is intentionally NOT defined here. The richer handler in
+// adminActions.ts serves it (reporter username join, admin_note, and correct
+// all-statuses filtering). Defining it here shadowed that handler and broke the
+// "All" reports filter + reporter names on the admin dashboard.
 
 adminPayoutRouter.get("/purchases", async (req, res) => {
   res.setHeader("Cache-Control", "private, no-store");
@@ -86,34 +67,8 @@ adminPayoutRouter.post("/unfreeze/:userId", async (req, res) => {
   }
 });
 
-adminPayoutRouter.get("/stats/dau", async (req, res) => {
-  res.setHeader("Cache-Control", "private, max-age=300");
-  try {
-    const { getPool } = await import("../lib/postgres");
-    const { getTokenFromRequest, verifyAuthToken } = await import("./auth");
-    const db = getPool();
-    if (!db) return res.json({ dau: 0 });
-    const token = getTokenFromRequest(req);
-    const payload = token ? verifyAuthToken(token) : null;
-    if (!payload) return res.status(401).json({ error: "Unauthorized" });
-    const roleCheck = await db.query(
-      `SELECT COALESCE(is_admin, false) AS is_admin FROM profiles WHERE user_id = $1`,
-      [payload.sub],
-    ).catch(() => null);
-    if (!roleCheck?.rows[0]?.is_admin) return res.status(403).json({ error: "Admin only" });
-    const r = await db.query(
-      `SELECT COUNT(DISTINCT user_id) AS dau FROM elix_auth_sessions WHERE created_at > NOW() - INTERVAL '24 hours'`
-    ).catch(() => null);
-    if (r && r.rows[0]) {
-      return res.json({ dau: Number(r.rows[0].dau) || 0 });
-    }
-    const fallback = await db.query(
-      `SELECT COUNT(*) AS cnt FROM elix_auth_users WHERE created_at > NOW() - INTERVAL '30 days'`
-    ).catch(() => null);
-    return res.json({ dau: fallback?.rows[0]?.cnt ? Math.min(Number(fallback.rows[0].cnt), 100) : 0 });
-  } catch {
-    return res.json({ dau: 0 });
-  }
-});
+// NOTE: GET /stats/dau is intentionally NOT defined here. adminActions.ts serves
+// it with identical output ({ dau }) via the shared RBAC middleware. Keeping a
+// duplicate here only shadowed that handler with no behavioural difference.
 
 export { creatorRouter, adminPayoutRouter };
