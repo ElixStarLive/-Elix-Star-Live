@@ -109,11 +109,14 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
             onPointerLeave={cancelLongPress}
             onPointerCancel={cancelLongPress}
           >
-            {/* Name on the same line as circle + LV. Join/system events read as a grey rounded chip. */}
-            <div className={`flex items-center gap-2 min-w-0 ${msg.isSystem ? 'bg-gradient-to-r from-[#8A2BE2] to-[#3B4BE8] rounded-full pr-2.5 py-0.5 self-start shadow-sm' : ''}`}>
+            {/* Name on the same line as circle + LV. Join/system events read as a fixed 5mm banner. */}
+            <div
+              style={msg.isSystem ? { height: '5mm' } : undefined}
+              className={`flex items-center gap-2 min-w-0 ${msg.isSystem ? 'bg-gradient-to-r from-[#8A2BE2] to-[#3B4BE8] rounded-full pr-2.5 self-start shadow-sm' : ''}`}
+            >
               <div 
                 className="flex-shrink-0 cursor-pointer relative z-10 flex items-center justify-center"
-                style={{ height: CHAT_PROFILE_RING_PX }}
+                style={{ height: msg.isSystem ? '5mm' : CHAT_PROFILE_RING_PX }}
                 onClick={(e) => {
                   e.stopPropagation();
                   if (onProfileTap) onProfileTap(msg.username);
@@ -121,7 +124,7 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
               >
                 <LevelBadge
                   level={typeof msg.level === 'number' ? msg.level : 1}
-                  circleSize={CHAT_PROFILE_RING_PX}
+                  circleSize={msg.isSystem ? 18 : CHAT_PROFILE_RING_PX}
                   layout="fixed"
                   avatar={typeof msg.avatar === 'string' ? msg.avatar : undefined}
                 />
@@ -139,7 +142,7 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
                 >
                   {typeof msg.username === 'string' ? msg.username : 'User'}
                 </span>
-                {typeof msg.membershipIcon === 'string' && msg.membershipIcon && (
+                {!msg.isSystem && typeof msg.membershipIcon === 'string' && msg.membershipIcon && (
                   <div className="bg-[#FF4500] px-1.5 py-0.5 rounded-full flex items-center gap-1 border border-white/10 shadow-sm inline-flex align-middle">
                     <img src={msg.membershipIcon} alt="Member" className="w-3 h-3 object-contain" />
                     <span className="text-white text-[9px] font-bold uppercase tracking-wider">Member</span>

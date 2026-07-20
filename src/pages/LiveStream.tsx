@@ -5186,18 +5186,21 @@ export default function LiveStream() {
                                           setHasJoinedToday(true);
                                           setShowTeamStatus(true);
                                           
-                                          // Send animated heart to chat
+                                          // Send animated heart to chat (ephemeral join banner)
+                                          const joinBannerId = Date.now().toString();
                                           const newMessage: LiveMessage = {
-                                            id: Date.now().toString(),
+                                            id: joinBannerId,
                                             username: 'You',
                                             text: '❤️ Joined the team!',
                                             level: userLevel,
                                             isGift: false,
                                             avatar: '/royce/elix-mark.svg',
                                             isSystem: true,
-                                            membershipIcon: '/royce/membership.svg'
                                           };
                                           setMessages(prev => [...prev, newMessage]);
+                                          window.setTimeout(() => {
+                                            setMessages(prev => prev.filter(m => m.id !== joinBannerId));
+                                          }, 5000);
                                           spawnHeartFromClient(e.clientX, e.clientY, undefined, 'You', '/royce/elix-mark.svg');
 
                                         } else if (hasJoinedToday) {

@@ -1355,6 +1355,7 @@ export default function SpectatorPage() {
         level: typeof data.level === 'number' && Number.isFinite(data.level) ? data.level : 1,
         avatar: typeof data.avatar === 'string' ? data.avatar : '',
         stickerUrl: typeof data.stickerUrl === 'string' ? data.stickerUrl : undefined,
+        membershipIcon: data.is_member === true ? '/royce/membership.svg' : undefined,
       };
       setMessages(prev => [...prev, msg]);
     };
@@ -1969,12 +1970,14 @@ export default function SpectatorPage() {
       level: userLevel,
       avatar: viewerAvatar,
       isMod: isModerator,
+      membershipIcon: isMember ? '/royce/membership.svg' : undefined,
     };
     setMessages(prev => [...prev, newMsg]);
     websocket.send('chat_message', {
       text: inputValue,
       level: userLevel,
       avatar: viewerAvatar,
+      is_member: isMember,
     });
     setInputValue('');
   };
@@ -2900,17 +2903,20 @@ export default function SpectatorPage() {
                           if (!token) return;
                           setHasJoinedToday(true);
                           spawnHeartFromClient(e.clientX, e.clientY);
+                          const joinBannerId = Date.now().toString();
                           const newMessage: LiveMessage = {
-                            id: Date.now().toString(),
+                            id: joinBannerId,
                             username: viewerName,
                             text: '\u2764\ufe0f Joined the team!',
                             level: userLevel,
                             isGift: false,
                             avatar: viewerAvatar,
                             isSystem: true,
-                            membershipIcon: '/royce/membership.svg'
                           };
                           setMessages(prev => [...prev, newMessage]);
+                          window.setTimeout(() => {
+                            setMessages(prev => prev.filter(m => m.id !== joinBannerId));
+                          }, 5000);
                           try {
                             const { data: d } = await request('/api/hearts/daily', {
                               method: 'POST',
