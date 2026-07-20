@@ -732,7 +732,7 @@ export default function EnhancedVideoPlayer({
               <video
                 ref={duetOriginalRef}
                 src={duetOriginalSrc}
-                className="w-full h-full object-contain"
+                className="w-full h-full object-cover"
                 loop
                 playsInline
                 muted

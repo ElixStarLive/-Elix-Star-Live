@@ -922,7 +922,7 @@ export default function Upload() {
                     <video
                       ref={duetSourceVideoRef}
                       src={duetSourceVideoUrl}
-                      className="w-full h-full object-contain"
+                      className="w-full h-full object-cover"
                       playsInline
                       muted
                       loop
