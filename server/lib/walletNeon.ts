@@ -303,7 +303,8 @@ export async function neonDebitGift(input: {
  * Credit a creator's earnings ledger + rolling balance for a received gift.
  * Idempotent per gift transaction (id derived from clientTransactionId) so a
  * retried REST call or duplicate delivery cannot double-credit the creator.
- * Revenue share is configurable via CREATOR_GIFT_SHARE_PERCENT (default 100).
+ * Revenue share is configurable via CREATOR_GIFT_SHARE_PERCENT (default 60:
+ * creator keeps 60%, the app retains 40%).
  */
 export async function neonCreditCreatorEarning(input: {
   creatorId: string;
@@ -319,9 +320,10 @@ export async function neonCreditCreatorEarning(input: {
     // Do not credit self-gifting or unresolved creators.
     return { ok: false, credited: 0 };
   }
+  // Default 60: creator keeps 60%, app retains 40% of gift coin value.
   const sharePct = Math.min(
     100,
-    Math.max(0, Number(process.env.CREATOR_GIFT_SHARE_PERCENT ?? 100)),
+    Math.max(0, Number(process.env.CREATOR_GIFT_SHARE_PERCENT ?? 60)),
   );
   const credited = Math.floor((Math.max(0, Math.floor(input.coins)) * sharePct) / 100);
   if (credited <= 0) return { ok: true, credited: 0 };
