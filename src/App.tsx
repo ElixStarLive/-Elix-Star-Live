@@ -15,7 +15,7 @@ import { cn } from "./lib/utils";
 import { useDeepLinks } from "./lib/deepLinks";
 import { analytics } from "./lib/analytics";
 import { notificationService } from "./lib/notifications";
-import { initializeIAP } from "./lib/iap";
+import { initializeIAP, reconcileOwnedCoinPurchases } from "./lib/iap";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { OfflineBanner } from "./components/OfflineBanner";
 import { IncomingCallModal } from "./components/IncomingCallModal";
@@ -200,6 +200,7 @@ function App() {
     if (user?.id) {
       analytics.setUserId(user.id);
       void notificationService.registerTokenWithBackend().catch(() => {});
+      void reconcileOwnedCoinPurchases().catch(() => {});
       const unsubCalls = subscribeToIncomingCalls(user.id);
       return () => {
         unsubCalls();
