@@ -136,18 +136,18 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
                     <span className="text-white text-[7px] font-bold uppercase">MOD</span>
                   </div>
                 )}
+                {typeof msg.membershipIcon === 'string' && msg.membershipIcon && (
+                  <div className="bg-[#FF4500] px-1.5 py-0.5 rounded-full flex items-center gap-1 border border-white/10 shadow-sm inline-flex align-middle flex-shrink-0">
+                    <img src={msg.membershipIcon} alt="Member" className="w-3 h-3 object-contain" />
+                    <span className="text-white text-[9px] font-bold uppercase tracking-wider">Member</span>
+                  </div>
+                )}
                 <span 
                     className="text-white font-semibold text-[11px] leading-none cursor-pointer hover:underline whitespace-nowrap" 
                     onClick={() => onProfileTap?.(String(msg.username ?? ''))}
                 >
                   {typeof msg.username === 'string' ? msg.username : 'User'}
                 </span>
-                {!msg.isSystem && typeof msg.membershipIcon === 'string' && msg.membershipIcon && (
-                  <div className="bg-[#FF4500] px-1.5 py-0.5 rounded-full flex items-center gap-1 border border-white/10 shadow-sm inline-flex align-middle">
-                    <img src={msg.membershipIcon} alt="Member" className="w-3 h-3 object-contain" />
-                    <span className="text-white text-[9px] font-bold uppercase tracking-wider">Member</span>
-                  </div>
-                )}
                 {/* Join / system events read inline next to the colored level badge */}
                 {msg.isSystem && typeof msg.text === 'string' && msg.text ? (
                   <span className="text-white/70 text-[11px] leading-none whitespace-nowrap">

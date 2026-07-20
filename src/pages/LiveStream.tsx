@@ -5187,6 +5187,7 @@ export default function LiveStream() {
                                             isGift: false,
                                             avatar: '/royce/elix-mark.svg',
                                             isSystem: true,
+                                            membershipIcon: '/royce/membership.svg',
                                           };
                                           setMessages(prev => [...prev, newMessage]);
                                           window.setTimeout(() => {
