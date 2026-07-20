@@ -2340,24 +2340,6 @@ export default function LiveStream() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [myScore, opponentScore, player3Score, player4Score, isBattleMode, battleWinner, speedChallengeActive, startSpeedChallenge]);
 
-  // Auto-cycle multiplier during speed challenge (changes every 2-3s) - DISABLED to follow user's score-based rule
-  /*
-  useEffect(() => {
-    if (!speedChallengeActive) {
-      setSpeedMultiplier(1);
-      return;
-    }
-    const multipliers = [2, 3, 5];
-    const cycle = () => {
-      const next = multipliers[Math.floor(Math.random() * multipliers.length)];
-      setSpeedMultiplier(next);
-    };
-    cycle(); // Start with a random multiplier
-    const interval = setInterval(cycle, 2000 + Math.random() * 1000);
-    return () => clearInterval(interval);
-  }, [speedChallengeActive]);
-  */
-
   useEffect(() => {
     if (!isBattleMode) return;
 

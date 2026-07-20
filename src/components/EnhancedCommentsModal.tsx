@@ -131,13 +131,17 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
   };
 
   const handleEditComment = async (commentId: string) => {
-    if (!editText.trim()) return;
+    const nextText = editText.trim();
+    if (!nextText) return;
 
     try {
-      // Edit not supported by backend yet; update local only so UI doesn't break.
-      // (Can be added later if needed.)
+      const { error } = await request(
+        `/api/videos/${encodeURIComponent(videoId)}/comments/${encodeURIComponent(commentId)}`,
+        { method: 'PATCH', body: JSON.stringify({ text: nextText }) },
+      );
+      if (error) throw new Error(error.message);
 
-      // Update comment in state
+      // Reflect the persisted edit in local state
       setComments(prev => prev.map(comment => {
         if (comment.id === commentId) {
           return { ...comment, text: editText.trim() };
@@ -156,7 +160,10 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
 
       setEditingComment(null);
       setEditText('');
-    } catch { /* intentionally empty */ }
+    } catch (error) {
+      console.error('Failed to edit comment:', error);
+      showToast('Could not edit comment');
+    }
   };
 
   const handleLikeComment = async (commentId: string, _isReply: boolean = false) => {

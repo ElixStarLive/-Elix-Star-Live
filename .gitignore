@@ -106,3 +106,6 @@ android/gradle.properties
 android/*.keystore
 android/**/*.keystore
 *.jks
+
+# Local AAB inspection dump — build artifact, never commit
+_aab_peek/

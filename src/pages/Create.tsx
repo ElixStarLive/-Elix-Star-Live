@@ -21,6 +21,9 @@ import { setCachedRecordedMedia } from '../lib/recordedMediaCache';
 import { type SoundTrack } from '../lib/soundLibrary';
 import SoundPickerPanel from '../components/SoundPickerPanel';
 import ElixCameraLayout from '../components/ElixCameraLayout';
+import MediaEditorPanel, { type EditorTab, type FilterPreset, FILTER_PRESETS, EFFECT_PRESETS } from '../components/MediaEditorPanel';
+import { bakeImage, bakeVideo, type EditOverlay } from '../lib/mediaBake';
+import { nativeShareUrl } from '../lib/platform';
 import { useAuthStore } from '../store/useAuthStore';
 import { RoyceCloseIcon } from '../components/royce';
 
@@ -49,6 +52,17 @@ export default function Create() {
   const [_isLandscapeStream, setIsLandscapeStream] = useState(false);
   const [hwZoomRange, setHwZoomRange] = useState<{ min: number; max: number } | null>(null);
   const [retryCamera, setRetryCamera] = useState(0);
+
+  // ─── Compose editor (filters / effects / text / stickers) ───
+  const [filterPreset, setFilterPreset] = useState<FilterPreset>(FILTER_PRESETS[0]);
+  const [effectPreset, setEffectPreset] = useState<FilterPreset>(EFFECT_PRESETS[0]);
+  const [overlays, setOverlays] = useState<EditOverlay[]>([]);
+  const [editorTab, setEditorTab] = useState<EditorTab | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const [mediaWidth, setMediaWidth] = useState(0);
+  const mediaWrapRef = useRef<HTMLDivElement>(null);
+  const dragIdRef = useRef<string | null>(null);
+  const combinedFilter = `${filterPreset.css} ${effectPreset.css}`.trim();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -134,6 +148,17 @@ export default function Create() {
       if (countdownTimeoutRef.current !== null) clearTimeout(countdownTimeoutRef.current);
     };
   }, []);
+
+  // Track compose media width so overlay font/glyph size matches the baked output.
+  useEffect(() => {
+    const el = mediaWrapRef.current;
+    if (!el) return;
+    const update = () => setMediaWidth(el.clientWidth);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [previewUrl]);
 
   const openUploadPicker = () => fileInputRef.current?.click();
   const flipCamera = () => { setIsFrontCamera((v) => !v); setZoomLevel(1); };
@@ -244,6 +269,13 @@ export default function Create() {
     setIsRecording(false);
   };
 
+  const resetEdits = () => {
+    setFilterPreset(FILTER_PRESETS[0]);
+    setEffectPreset(EFFECT_PRESETS[0]);
+    setOverlays([]);
+    setEditorTab(null);
+  };
+
   const discardPreview = () => {
     setPreviewUrl((prev) => {
       if (prev) URL.revokeObjectURL(prev);
@@ -251,18 +283,84 @@ export default function Create() {
     });
     setPreviewKind('video');
     setIsPreviewPlaying(false);
+    resetEdits();
   };
 
-  const goYourStory = () => {
-    if (!previewUrl) return;
-    setCachedRecordedMedia(previewUrl, previewKind);
-    navigate('/upload?type=story');
+  const genOverlayId = () => `ov_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
+  const handleAddText = (text: string, color: string) =>
+    setOverlays((p) => [...p, { id: genOverlayId(), kind: 'text', value: text, xPct: 0.5, yPct: 0.5, color, sizePct: 0.07 }]);
+  const handleAddSticker = (emoji: string) =>
+    setOverlays((p) => [...p, { id: genOverlayId(), kind: 'sticker', value: emoji, xPct: 0.5, yPct: 0.5, color: '#FFFFFF', sizePct: 0.14 }]);
+  const removeOverlay = (id: string) => setOverlays((p) => p.filter((o) => o.id !== id));
+
+  const onOverlayPointerDown = (e: React.PointerEvent, id: string) => {
+    dragIdRef.current = id;
+    (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
+  };
+  const onOverlayPointerMove = (e: React.PointerEvent) => {
+    const id = dragIdRef.current;
+    if (!id) return;
+    const rect = mediaWrapRef.current?.getBoundingClientRect();
+    if (!rect || rect.width === 0 || rect.height === 0) return;
+    const xPct = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+    const yPct = Math.min(1, Math.max(0, (e.clientY - rect.top) / rect.height));
+    setOverlays((p) => p.map((o) => (o.id === id ? { ...o, xPct, yPct } : o)));
+  };
+  const onOverlayPointerUp = (e: React.PointerEvent) => {
+    dragIdRef.current = null;
+    (e.currentTarget as Element).releasePointerCapture?.(e.pointerId);
   };
 
-  const goNextVideoPost = () => {
-    if (!previewUrl) return;
-    setCachedRecordedMedia(previewUrl, previewKind);
-    navigate('/upload');
+  const handleShare = async () => {
+    try {
+      if (previewUrl && typeof navigator !== 'undefined' && typeof navigator.canShare === 'function') {
+        const resp = await fetch(previewUrl);
+        const blob = await resp.blob();
+        const file = new File([blob], previewKind === 'image' ? 'elixstar.jpg' : 'elixstar.webm', { type: blob.type || (previewKind === 'image' ? 'image/jpeg' : 'video/webm') });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: 'Elix Star Live' });
+          return;
+        }
+      }
+    } catch { /* fall through to link share */ }
+    const ok = await nativeShareUrl({ title: 'Elix Star Live', text: 'Made with Elix Star Live', url: 'https://www.elixstarlive.co.uk' });
+    if (!ok) showToastMsg('Sharing not available');
+  };
+
+  const exportEditedMedia = async (): Promise<string> => {
+    if (!previewUrl) return '';
+    if (!combinedFilter && overlays.length === 0) return previewUrl;
+    try {
+      return previewKind === 'image'
+        ? await bakeImage(previewUrl, combinedFilter, overlays)
+        : await bakeVideo(previewUrl, combinedFilter, overlays);
+    } catch {
+      return previewUrl;
+    }
+  };
+
+  const goYourStory = async () => {
+    if (!previewUrl || isExporting) return;
+    setIsExporting(true);
+    try {
+      const url = await exportEditedMedia();
+      setCachedRecordedMedia(url || previewUrl, previewKind);
+      navigate('/upload?type=story');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const goNextVideoPost = async () => {
+    if (!previewUrl || isExporting) return;
+    setIsExporting(true);
+    try {
+      const url = await exportEditedMedia();
+      setCachedRecordedMedia(url || previewUrl, previewKind);
+      navigate('/upload');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const storyInitials = (() => {
@@ -313,12 +411,12 @@ export default function Create() {
           }}
         />
 
-        <div className="absolute inset-0 z-[5]">
+        <div className="absolute inset-0 z-[5]" ref={mediaWrapRef}>
           {previewUrl ? (
             previewKind === 'image' ? (
-              <img src={previewUrl} alt="" className="w-full h-full object-cover" draggable={false} />
+              <img src={previewUrl} alt="" className="w-full h-full object-cover" draggable={false} style={combinedFilter ? { filter: combinedFilter } : undefined} />
             ) : (
-              <video ref={previewVideoRef} src={previewUrl} className="w-full h-full object-cover" autoPlay loop muted playsInline onPlay={() => setIsPreviewPlaying(true)} onPause={() => setIsPreviewPlaying(false)} />
+              <video ref={previewVideoRef} src={previewUrl} className="w-full h-full object-cover" autoPlay loop muted playsInline onPlay={() => setIsPreviewPlaying(true)} onPause={() => setIsPreviewPlaying(false)} style={combinedFilter ? { filter: combinedFilter } : undefined} />
             )
           ) : (
             <div className="w-full h-full bg-[#111111] relative flex items-center justify-center" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
@@ -349,6 +447,38 @@ export default function Create() {
             </div>
           )}
         </div>
+
+        {previewUrl && overlays.length > 0 && (
+          <div className="absolute inset-0 z-[10] pointer-events-none">
+            {overlays.map((o) => {
+              const fontPx = Math.max(12, Math.round(o.sizePct * (mediaWidth || 360)));
+              return (
+                <div
+                  key={o.id}
+                  role="button"
+                  tabIndex={0}
+                  onPointerDown={(e) => onOverlayPointerDown(e, o.id)}
+                  onPointerMove={onOverlayPointerMove}
+                  onPointerUp={onOverlayPointerUp}
+                  onDoubleClick={() => removeOverlay(o.id)}
+                  title="Drag to move · double-tap to remove"
+                  className="absolute -translate-x-1/2 -translate-y-1/2 select-none pointer-events-auto touch-none cursor-move whitespace-nowrap"
+                  style={{
+                    left: `${o.xPct * 100}%`,
+                    top: `${o.yPct * 100}%`,
+                    fontSize: `${fontPx}px`,
+                    color: o.kind === 'text' ? o.color : undefined,
+                    fontWeight: 700,
+                    textShadow: o.kind === 'text' ? '0 1px 3px rgba(0,0,0,0.55)' : undefined,
+                    lineHeight: 1,
+                  }}
+                >
+                  {o.value}
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {countdownSeconds !== null && (
           <div className="absolute inset-0 z-[80] flex items-center justify-center bg-[#111111]">
@@ -425,14 +555,14 @@ export default function Create() {
               style={{ top: 'calc(env(safe-area-inset-top, 0px) + 56px)' }}
             >
               {[
-                { Icon: Share2, title: 'Share', onClick: () => showToastMsg('Share tools coming soon') },
+                { Icon: Share2, title: 'Share', onClick: () => { void handleShare(); } },
                 { Icon: LayoutGrid, title: 'Layout', onClick: openUploadPicker },
                 { Icon: ImageIcon, title: 'Media', onClick: openUploadPicker },
                 { Icon: Video, title: 'Video', onClick: openUploadPicker },
-                { Icon: Type, title: 'Text', onClick: () => showToastMsg('Text tools coming soon') },
-                { Icon: Smile, title: 'Stickers', onClick: () => showToastMsg('Stickers coming soon') },
-                { Icon: Sparkles, title: 'Effects', onClick: () => showToastMsg('Effects coming soon') },
-                { Icon: Blend, title: 'Filters', onClick: () => showToastMsg('Filters coming soon') },
+                { Icon: Type, title: 'Text', onClick: () => setEditorTab('text') },
+                { Icon: Smile, title: 'Stickers', onClick: () => setEditorTab('stickers') },
+                { Icon: Sparkles, title: 'Effects', onClick: () => setEditorTab('effects') },
+                { Icon: Blend, title: 'Filters', onClick: () => setEditorTab('filters') },
               ].map(({ Icon, title, onClick }) => (
                 <button
                   key={title}
@@ -479,6 +609,7 @@ export default function Create() {
                 <button
                   type="button"
                   onClick={goYourStory}
+                  disabled={isExporting}
                   className="flex-1 h-12 rounded-full bg-white flex items-center justify-center gap-2 px-3 active:scale-[0.98] transition-transform"
                 >
                   <span className="w-8 h-8 rounded-full overflow-hidden border-2 border-[#00c2be] flex-shrink-0 bg-[#7B5CFF] flex items-center justify-center">
@@ -499,6 +630,7 @@ export default function Create() {
                 <button
                   type="button"
                   onClick={goNextVideoPost}
+                  disabled={isExporting}
                   className="flex-1 h-12 rounded-full bg-[#F12C56] flex items-center justify-center active:scale-[0.98] transition-transform"
                 >
                   <span className="text-white font-bold text-[15px]">Next</span>
@@ -535,6 +667,25 @@ export default function Create() {
             onRetake={discardPreview}
             onPost={goNextVideoPost}
           />
+        )}
+
+        {editorTab && (
+          <MediaEditorPanel
+            tab={editorTab}
+            activeFilterId={filterPreset.id}
+            activeEffectId={effectPreset.id}
+            onSelectFilter={setFilterPreset}
+            onSelectEffect={setEffectPreset}
+            onAddText={handleAddText}
+            onAddSticker={handleAddSticker}
+            onClose={() => setEditorTab(null)}
+          />
+        )}
+
+        {isExporting && (
+          <div className="absolute inset-0 z-[130] flex items-center justify-center bg-black/50">
+            <div className="px-4 py-2 rounded-full bg-[#111111] border border-[#C9A227]/35 text-sm text-white/90">Processing…</div>
+          </div>
         )}
 
         {isSoundOpen ? (

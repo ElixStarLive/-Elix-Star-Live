@@ -394,6 +394,38 @@ router.post("/:id/comments/:commentId/unlike", async (req, res) => {
   }
 });
 
+router.patch("/:id/comments/:commentId", async (req, res) => {
+  const token = getTokenFromRequest(req);
+  const payload = token ? verifyAuthToken(token) : null;
+  if (!payload?.sub) return res.status(401).json({ error: "Unauthorized" });
+  const db = getPool();
+  if (!db) return res.status(503).json({ error: "Database not configured" });
+  const { text } = req.body ?? {};
+  if (!text || typeof text !== "string" || !text.trim()) {
+    return res.status(400).json({ error: "text is required" });
+  }
+  try {
+    const upd = await db.query(
+      `UPDATE comments SET text = $1 WHERE id = $2 AND user_id = $3`,
+      [text.trim(), req.params.commentId, payload.sub],
+    );
+    if ((upd.rowCount ?? 0) === 0) {
+      return res.status(404).json({ error: "Comment not found" });
+    }
+    const r = await db.query(
+      `SELECT c.id, c.video_id, c.user_id, c.text, c.parent_id, c.created_at,
+              p.username, p.display_name, p.avatar_url
+       FROM comments c LEFT JOIN profiles p ON p.user_id = c.user_id
+       WHERE c.id = $1`,
+      [req.params.commentId],
+    );
+    return res.json({ comment: r.rows[0] || { id: req.params.commentId, text: text.trim() } });
+  } catch (err) {
+    logger.error({ err, commentId: req.params.commentId }, "edit comment failed");
+    return res.status(500).json({ error: "Failed to edit comment" });
+  }
+});
+
 router.delete("/:id/comments/:commentId", async (req, res) => {
   const token = getTokenFromRequest(req);
   const payload = token ? verifyAuthToken(token) : null;
