@@ -323,7 +323,7 @@ export default function Create() {
         }
       }
     } catch { /* fall through to link share */ }
-    const ok = await nativeShareUrl({ title: 'Elix Star Live', text: 'Made with Elix Star Live', url: 'https://elixstarlive.app' });
+    const ok = await nativeShareUrl({ title: 'Elix Star Live', text: 'Made with Elix Star Live', url: 'https://www.elixstarlive.co.uk' });
     if (!ok) showToastMsg('Sharing not available');
   };
 
