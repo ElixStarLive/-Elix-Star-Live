@@ -1141,9 +1141,10 @@ export default function SpectatorPage() {
     Promise.all([request('/api/wallet/'), request('/api/progression/me')])
       .then(([wallet, progression]) => {
         if (cancelled) return;
+        const walletRaw = wallet.data?.coin_balance ?? wallet.data?.balance;
         const walletBal =
-          !wallet.error && wallet.data?.balance != null
-            ? Math.max(0, Number(wallet.data.balance))
+          !wallet.error && walletRaw != null
+            ? Math.max(0, Number(walletRaw))
             : 0;
         setCoinBalance(resolveGiftUiBalance(walletBal, user.id));
         const p = progression.data?.progression;
@@ -1185,8 +1186,9 @@ export default function SpectatorPage() {
       return;
     }
     request('/api/wallet/').then(({ data, error: walletErr }) => {
-      if (!walletErr && data?.balance != null) {
-        setCoinBalance(Math.max(0, Number(data.balance)));
+      const walletRaw = data?.coin_balance ?? data?.balance;
+      if (!walletErr && walletRaw != null) {
+        setCoinBalance(Math.max(0, Number(walletRaw)));
       }
     }).catch(() => {});
     request('/api/progression/me').then(({ data, error }) => {
