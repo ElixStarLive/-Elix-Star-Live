@@ -989,9 +989,6 @@ export default function EnhancedVideoPlayer({
               />
             )}
           </span>
-          <span className="text-[8px] font-medium leading-tight text-gold-light/80 max-w-full truncate text-center">
-            {video.music?.title?.split(' ').slice(0, 2).join(' ') || 'Original'}
-          </span>
         </button>
 
         <button
