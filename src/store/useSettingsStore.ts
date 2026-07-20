@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-type AppLanguage = 'ro' | 'en';
+export type AppLanguage = 'en' | 'es' | 'fr' | 'pt' | 'de' | 'it' | 'hi' | 'ro';
 
 interface SettingsState {
   muteAllSounds: boolean;
@@ -20,7 +20,7 @@ export const useSettingsStore = create<SettingsState>()(
       muteAllSounds: false,
       notificationsEnabled: true,
       liveNotifications: true,
-      language: 'ro',
+      language: 'en',
       setMuteAllSounds: (value) => set({ muteAllSounds: value }),
       setNotificationsEnabled: (value) => set({ notificationsEnabled: value }),
       setLiveNotifications: (value) => set({ liveNotifications: value }),
@@ -28,7 +28,15 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: 'elix_settings_v1',
-      version: 1,
+      version: 2,
+      // v1 shipped with an unused default language of 'ro' (no picker existed).
+      // Now that language is applied, migrate that stale default to English so
+      // existing users are not unexpectedly switched to Romanian.
+      migrate: (persisted, fromVersion) => {
+        const state = (persisted as Partial<SettingsState>) || {};
+        if (fromVersion < 2 && state.language === 'ro') state.language = 'en';
+        return state as SettingsState;
+      },
     }
   )
 );

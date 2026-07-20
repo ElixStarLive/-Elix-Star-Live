@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { nativeConfirm } from '../components/NativeDialog';
 import { request } from '../lib/apiClient';
+import { useT, LANGUAGE_SHORT } from '../lib/i18n';
+import LanguagePickerSheet from '../components/LanguagePickerSheet';
 import {
   ChevronRight,
   User,
@@ -25,6 +27,8 @@ import SettingsOptionSheet from '../components/SettingsOptionSheet';
 
 export default function Settings() {
   const navigate = useNavigate();
+  const { t, lang } = useT();
+  const [langOpen, setLangOpen] = useState(false);
   const signOut = useAuthStore((s) => s.signOut);
   const liveNotifications = useSettingsStore((s) => s.liveNotifications);
   const setLiveNotifications = useSettingsStore((s) => s.setLiveNotifications);
@@ -83,7 +87,7 @@ export default function Settings() {
     <SettingsOptionSheet onClose={() => navigate(-1)}>
       <div className="flex-shrink-0 px-3 pb-1">
         <div className="flex flex-col items-center">
-          <span className="text-[13px] font-bold text-[#D4AF37]">Settings</span>
+          <span className="text-[13px] font-bold text-[#D4AF37]">{t('settings.title')}</span>
         </div>
       </div>
 
@@ -93,33 +97,33 @@ export default function Settings() {
           <div className="flex flex-col items-center pb-3">
             <img src="/elix-logo.png" alt="Elix Star Live" className="w-20 h-20 object-contain" />
           </div>
-          <S t="Account" />
-          <R ic={<User size={14} />} t="Edit Profile" fn={() => navigate('/edit-profile')} />
-          <R ic={<Lock size={14} />} t="Privacy" fn={() => navigate('/settings/safety')} />
-          <R ic={<Shield size={14} />} t="Security" fn={() => navigate('/settings/safety')} />
-          <R ic={<Trash2 size={14} />} t="Delete Account" fn={handleDeleteAccount} />
+          <S t={t('settings.section.account')} />
+          <R ic={<User size={14} />} t={t('settings.editProfile')} fn={() => navigate('/edit-profile')} />
+          <R ic={<Lock size={14} />} t={t('settings.privacy')} fn={() => navigate('/settings/safety')} />
+          <R ic={<Shield size={14} />} t={t('settings.security')} fn={() => navigate('/settings/safety')} />
+          <R ic={<Trash2 size={14} />} t={t('settings.deleteAccount')} fn={handleDeleteAccount} />
 
-          <S t="Preferences" />
-          <R ic={<Bell size={14} />} t="Notifications" fn={() => navigate('/settings/safety')} />
+          <S t={t('settings.section.preferences')} />
+          <R ic={<Bell size={14} />} t={t('settings.notifications')} fn={() => navigate('/settings/safety')} />
           <R
             ic={<Radio size={14} />}
-            t="Live notifications"
-            v={liveNotifications ? 'On' : 'Off'}
+            t={t('settings.liveNotifications')}
+            v={liveNotifications ? t('common.on') : t('common.off')}
             fn={() => setLiveNotifications(!liveNotifications)}
           />
-          <R ic={<Moon size={14} />} t="Dark Mode" v="On" fn={() => showToast('Dark mode is always on')} />
-          <R ic={<Globe size={14} />} t="Language" v="EN" fn={() => showToast('More languages coming soon')} />
+          <R ic={<Moon size={14} />} t={t('settings.darkMode')} v={t('common.on')} fn={() => showToast(t('toast.darkModeAlwaysOn'))} />
+          <R ic={<Globe size={14} />} t={t('settings.language')} v={LANGUAGE_SHORT[lang]} fn={() => setLangOpen(true)} />
 
-          <S t="Content" />
-          <R ic={<Video size={14} />} t="Video Quality" v="Auto" fn={() => showToast('Video quality is set to auto')} />
-          <R ic={<Heart size={14} />} t="Liked Videos" fn={() => navigate('/profile?tab=liked')} />
+          <S t={t('settings.section.content')} />
+          <R ic={<Video size={14} />} t={t('settings.videoQuality')} v={t('common.auto')} fn={() => showToast(t('toast.videoQualityAuto'))} />
+          <R ic={<Heart size={14} />} t={t('settings.likedVideos')} fn={() => navigate('/profile?tab=liked')} />
 
-          <S t="Safety" />
-          <R ic={<Ban size={14} />} t="Blocked Accounts" fn={() => navigate('/settings/blocked')} />
-          <R ic={<Shield size={14} />} t="Safety Center" fn={() => navigate('/settings/safety')} />
+          <S t={t('settings.section.safety')} />
+          <R ic={<Ban size={14} />} t={t('settings.blockedAccounts')} fn={() => navigate('/settings/blocked')} />
+          <R ic={<Shield size={14} />} t={t('settings.safetyCenter')} fn={() => navigate('/settings/safety')} />
 
-          <S t="Support" />
-          <R ic={<HelpCircle size={14} />} t="Help & Support" fn={() => navigate('/support')} />
+          <S t={t('settings.section.support')} />
+          <R ic={<HelpCircle size={14} />} t={t('settings.helpSupport')} fn={() => navigate('/support')} />
 
           <div className="grid grid-cols-3 gap-1 mt-auto pt-4 px-0.5">
             <button
@@ -127,21 +131,21 @@ export default function Settings() {
               onClick={() => navigate('/terms')}
               className="text-[12px] text-white/60 py-2 rounded-md active:bg-white/5 text-center leading-tight"
             >
-              Terms
+              {t('common.terms')}
             </button>
             <button
               type="button"
               onClick={() => navigate('/privacy')}
               className="text-[12px] text-white/60 py-2 rounded-md active:bg-white/5 text-center leading-tight"
             >
-              Privacy
+              {t('common.privacy')}
             </button>
             <button
               type="button"
               onClick={() => navigate('/guidelines')}
               className="text-[12px] text-white/60 py-2 rounded-md active:bg-white/5 text-center leading-tight"
             >
-              Guidelines
+              {t('common.guidelines')}
             </button>
           </div>
 
@@ -151,19 +155,20 @@ export default function Settings() {
               onClick={handleLogout}
               className="flex items-center gap-1.5 py-1.5 text-white/60 text-[13px] active:bg-white/5 px-2.5 rounded-md"
             >
-              <LogOut size={15} /> Log Out
+              <LogOut size={15} /> {t('common.logout')}
             </button>
             <button
               type="button"
               onClick={handleDeleteAccount}
               className="flex items-center gap-1.5 py-1.5 text-white/60/80 text-[13px] active:bg-white/20/10 px-2.5 rounded-md"
             >
-              <Trash2 size={15} /> Delete
+              <Trash2 size={15} /> {t('common.delete')}
             </button>
           </div>
           <p className="text-center text-[9px] text-white/20 pt-1.5 pb-0.5">v1.0.0</p>
         </div>
       </div>
+      {langOpen && <LanguagePickerSheet onClose={() => setLangOpen(false)} />}
     </SettingsOptionSheet>
   );
 }
