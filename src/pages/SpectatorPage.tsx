@@ -1368,14 +1368,21 @@ export default function SpectatorPage() {
     const handleChatMessage = (data) => {
       if (!mounted) return;
       if (data.user_id === user?.id) return;
+      const text = typeof data.text === 'string' ? data.text : '';
+      const levelUpMatch = /^reached Level (\d+)/i.exec(text);
+      const parsedLevel = levelUpMatch ? Number(levelUpMatch[1]) : NaN;
       const msg: LiveMessage = {
         id: `ws-${Date.now()}-${Math.random()}`,
         username: typeof data.username === 'string' ? data.username : 'User',
-        text: typeof data.text === 'string' ? data.text : '',
-        level: typeof data.level === 'number' && Number.isFinite(data.level) ? data.level : 1,
+        text,
+        level: Number.isFinite(parsedLevel)
+          ? parsedLevel
+          : typeof data.level === 'number' && Number.isFinite(data.level)
+            ? data.level
+            : 1,
         avatar: typeof data.avatar === 'string' ? data.avatar : '',
         stickerUrl: typeof data.stickerUrl === 'string' ? data.stickerUrl : undefined,
-        membershipIcon: data.is_member === true ? '/royce/membership.svg' : undefined,
+        isSystem: !!levelUpMatch,
       };
       setMessages(prev => [...prev, msg]);
     };
@@ -2064,7 +2071,18 @@ export default function SpectatorPage() {
         setUserLevel(sim.level);
         updateUser({ level: sim.level });
         newLevel = sim.level;
-        showToast(`Level up! You reached Level ${sim.level}`);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `levelup-${Date.now()}`,
+            username: viewerName,
+            text: `reached Level ${sim.level}`,
+            level: sim.level,
+            isGift: false,
+            avatar: viewerAvatar,
+            isSystem: true,
+          },
+        ]);
       }
     } else if (user?.id) {
       try {
@@ -2133,9 +2151,23 @@ export default function SpectatorPage() {
           setUserXP(Math.max(0, Number(result.total_xp) || 0));
         }
         if (result.leveled_up) {
-          showToast(`Level up! You reached Level ${newLevel}`);
-        } else if (result.xp_gained) {
-          showToast(`+${Number(result.xp_gained)} XP`);
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `levelup-${Date.now()}`,
+              username: viewerName,
+              text: `reached Level ${newLevel}`,
+              level: newLevel,
+              isGift: false,
+              avatar: viewerAvatar,
+              isSystem: true,
+            },
+          ]);
+          websocket.send('chat_message', {
+            text: `reached Level ${newLevel}`,
+            level: newLevel,
+            avatar: viewerAvatar,
+          });
         }
         giftTransactionId =
           typeof result.transaction_id === 'string' && result.transaction_id
