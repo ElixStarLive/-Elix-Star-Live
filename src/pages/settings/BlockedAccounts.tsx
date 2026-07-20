@@ -78,20 +78,20 @@ export default function BlockedAccounts() {
     <SettingsOptionSheet onClose={() => navigate(-1)}>
       <div className="w-full h-full overflow-hidden bg-[#111111] flex flex-col">
         {/* Header */}
-        <div className="sticky top-0 bg-[#111111] z-10 px-4 py-4 border-b border-transparent">
-        <div className="flex items-center justify-center mb-4">
-          <h1 className="text-xl font-bold">Blocked Accounts</h1>
+        <div className="sticky top-0 bg-[#111111] z-10 px-4 pt-3 pb-3 border-b border-white/[0.06]">
+        <div className="flex items-center justify-center mb-3">
+          <h1 className="text-lg font-bold text-[#D4AF37]">Blocked Accounts</h1>
         </div>
 
         {/* Search */}
-        <div className="flex items-center gap-3 bg-[#111111] rounded-full px-4 py-3">
-          <Search className="w-5 h-5 text-white/60" />
+        <div className="flex items-center gap-3 bg-white/[0.06] border border-white/10 rounded-full px-4 py-2.5">
+          <Search className="w-5 h-5 text-white/50 shrink-0" />
           <input
             type="text"
             placeholder="Search blocked users..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="flex-1 bg-transparent outline-none text-white placeholder-white/40"
+            className="flex-1 bg-transparent outline-none text-sm text-white placeholder-white/40"
           />
         </div>
       </div>
@@ -101,24 +101,24 @@ export default function BlockedAccounts() {
         {loading ? (
           <div className="text-center py-12 text-white/40">Loading...</div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             {filteredUsers.map(block => (
               <div
                 key={block.blocked_user_id}
-                className="flex items-center gap-3 p-4 bg-white rounded-xl"
+                className="flex items-center gap-3 p-3 bg-white/[0.05] border border-white/10 rounded-xl"
               >
                 <AvatarRing
                   src={block.avatar_url || `https://ui-avatars.com/api/?name=${block.username || 'U'}`}
                   alt={block.username}
                   size={48}
                 />
-                <div className="flex-1">
-                  <p className="font-semibold">{block.display_name || block.username || 'User'}</p>
-                  <p className="text-sm text-white/60">Blocked {formatDate(block.created_at || '')}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-[15px] text-white truncate">{block.display_name || block.username || 'User'}</p>
+                  <p className="text-xs text-white/55 mt-0.5">Blocked {formatDate(block.created_at || '')}</p>
                 </div>
                 <button
                   onClick={() => unblockUser(block.blocked_user_id)}
-                  className="px-4 py-2 bg-[#111111] rounded-full text-sm font-semibold hover:brightness-125 transition"
+                  className="px-4 py-2 bg-[#D4AF37] text-black rounded-full text-sm font-semibold hover:brightness-110 transition shrink-0"
                 >
                   Unblock
                 </button>
