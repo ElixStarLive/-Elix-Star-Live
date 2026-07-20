@@ -172,31 +172,30 @@ export default function EditProfile() {
     <SettingsOptionSheet onClose={() => navigate(-1)}>
       <div className="w-full h-full overflow-hidden bg-[#111111] flex flex-col">
       {/* Header */}
-      <div className="flex-shrink-0 px-3 py-1.5 flex items-center justify-between bg-[#111111]">
+      <div className="flex-shrink-0 px-4 py-3 flex items-center justify-between bg-[#111111]">
         <button
           onClick={handleSave}
           disabled={loading}
-          className="px-2.5 py-0.5 rounded-full bg-[#D4AF37] text-black text-[11px] font-semibold disabled:opacity-50 hover:brightness-110 transition"
+          className="px-4 py-1.5 rounded-full bg-[#D4AF37] text-black text-sm font-semibold disabled:opacity-50 hover:brightness-110 transition"
         >
           {loading ? 'Saving...' : 'Save'}
         </button>
-        <h1 className="text-[13px] font-bold text-center flex-1 text-gold-bright">Edit Profile</h1>
-        <div className="w-[44px]" aria-hidden />
+        <h1 className="text-lg font-bold text-center flex-1 text-gold-bright">Edit Profile</h1>
+        <div className="w-[64px]" aria-hidden />
       </div>
 
-      {/* Compact — one screen, no scroll */}
-      <div className="px-3 pt-1 pb-2 space-y-1.5 flex-1 min-h-0 overflow-hidden flex flex-col">
+      <div className="px-4 pt-2 pb-4 space-y-4 flex-1 min-h-0 overflow-y-auto flex flex-col">
         {/* Avatar */}
-        <div className="flex flex-col items-center gap-1 flex-shrink-0">
+        <div className="flex flex-col items-center gap-2 flex-shrink-0">
           <div className="relative group cursor-pointer">
             <div onClick={() => document.getElementById('avatar-upload')?.click()}>
-              <AvatarRing src={profile.avatar_url || `https://ui-avatars.com/api/?name=${profile.username}`} alt="Avatar" size={56} />
+              <AvatarRing src={profile.avatar_url || `https://ui-avatars.com/api/?name=${profile.username}`} alt="Avatar" size={96} />
             </div>
             <label
               htmlFor="avatar-upload"
-              className="absolute bottom-0 right-0 w-5 h-5 bg-[#D4AF37] rounded-full flex items-center justify-center cursor-pointer hover:scale-110 transition shadow-lg"
+              className="absolute bottom-0 right-0 w-8 h-8 bg-[#D4AF37] rounded-full flex items-center justify-center cursor-pointer hover:scale-110 transition shadow-lg"
             >
-              <Camera className="w-3 h-3 text-black" />
+              <Camera className="w-4 h-4 text-black" />
             </label>
             <input
               id="avatar-upload"
@@ -209,15 +208,15 @@ export default function EditProfile() {
           <button 
             type="button"
             onClick={() => document.getElementById('avatar-upload')?.click()}
-            className="text-[10px] font-semibold text-gold-bright/80 hover:text-gold-bright transition"
+            className="text-sm font-semibold text-gold-bright/80 hover:text-gold-bright transition"
           >
             Change Photo
           </button>
-          {uploading && <p className="text-[10px] text-gold-bright/60">Uploading...</p>}
+          {uploading && <p className="text-xs text-gold-bright/60">Uploading...</p>}
         </div>
 
         {/* Form Fields */}
-        <div className="space-y-1 flex-1 min-h-0 overflow-hidden">
+        <div className="space-y-3 flex-1 min-h-0">
           <InputField
             label="Username"
             value={profile.username || ''}
@@ -302,14 +301,14 @@ function InputField({
 }) {
   return (
     <div>
-      <label className="block text-[10px] font-semibold text-gold-bright/80 mb-0.5">{label}</label>
+      <label className="block text-sm font-semibold text-gold-bright/80 mb-1.5">{label}</label>
       <input
         type="text"
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         maxLength={maxLength}
-        className="w-full bg-[#111111] rounded px-2 py-1 outline-none text-[11px] leading-tight text-gold-bright placeholder:text-gold-bright/35 border-0 focus:outline-none transition"
+        className="w-full bg-white/[0.06] rounded-lg px-3 py-2.5 outline-none text-sm leading-tight text-gold-bright placeholder:text-gold-bright/35 border border-white/10 focus:border-[#D4AF37]/50 focus:outline-none transition"
       />
     </div>
   );
@@ -330,17 +329,17 @@ function TextAreaField({
 }) {
   return (
     <div>
-      <label className="block text-[10px] font-semibold text-gold-bright/80 mb-0.5">{label}</label>
+      <label className="block text-sm font-semibold text-gold-bright/80 mb-1.5">{label}</label>
       <textarea
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         maxLength={maxLength}
-        rows={2}
-        className="w-full bg-[#111111] rounded px-2 py-1 outline-none text-[11px] leading-tight text-gold-bright placeholder:text-gold-bright/35 border-0 focus:outline-none transition resize-none"
+        rows={3}
+        className="w-full bg-white/[0.06] rounded-lg px-3 py-2.5 outline-none text-sm leading-relaxed text-gold-bright placeholder:text-gold-bright/35 border border-white/10 focus:border-[#D4AF37]/50 focus:outline-none transition resize-none"
       />
       {maxLength && (
-        <p className="text-[9px] text-gold-bright/40 mt-0.5 text-right leading-none">
+        <p className="text-[11px] text-gold-bright/40 mt-1 text-right leading-none">
           {value.length}/{maxLength}
         </p>
       )}
@@ -350,10 +349,10 @@ function TextAreaField({
 
 function Divider({ label }: { label: string }) {
   return (
-    <div className="flex items-center gap-2 py-0.5">
-      <div className="flex-1 h-px bg-[#111111]"></div>
-      <span className="text-[9px] text-gold-bright/40 font-semibold">{label}</span>
-      <div className="flex-1 h-px bg-[#111111]"></div>
+    <div className="flex items-center gap-3 py-1.5">
+      <div className="flex-1 h-px bg-white/10"></div>
+      <span className="text-xs text-gold-bright/50 font-semibold uppercase tracking-wider">{label}</span>
+      <div className="flex-1 h-px bg-white/10"></div>
     </div>
   );
 }
