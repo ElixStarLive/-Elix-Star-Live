@@ -124,7 +124,8 @@
   /* Phone/app only: end feed at top of home bar so play line is not covered (web unchanged). */
   html.native-app {
     --feed-main-pb: var(--bottom-nav-top);
-    /* Edge-to-edge Android: env(safe-area-inset-top) is often 0 — keep sheet/page closes below status bar. */
+    /* Edge-to-edge Android WebView often reports 0 for safe-area insets — keep headers/closes tappable. */
+    --safe-top: max(40px, env(safe-area-inset-top, 0px));
     --page-header-top: max(40px, calc(env(safe-area-inset-top, 0px) + 8px));
   }
 
