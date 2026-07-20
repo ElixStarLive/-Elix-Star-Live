@@ -223,6 +223,7 @@ export async function verifyGoogleSubscription(
   try {
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` },
+      signal: AbortSignal.timeout(15_000),
     });
     if (!res.ok) {
       const detail = await res.text().catch(() => "");
@@ -268,6 +269,7 @@ export async function acknowledgeGoogleSubscription(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({}),
+      signal: AbortSignal.timeout(15_000),
     });
     if (!res.ok) {
       const detail = await res.text().catch(() => "");
@@ -358,6 +360,7 @@ async function playGetSubscription(
 ): Promise<{ status: number; body: unknown; detail?: string }> {
   const res = await fetch(subscriptionResourceUrl(packageName, productId), {
     headers: { Authorization: `Bearer ${accessToken}` },
+    signal: AbortSignal.timeout(15_000),
   });
   const text = await res.text().catch(() => "");
   let body: unknown = null;
@@ -432,6 +435,7 @@ async function playCreateSubscription(
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(15_000),
   });
   const text = await res.text().catch(() => "");
   let parsed: unknown = null;
@@ -463,6 +467,7 @@ async function playActivateBasePlan(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({}),
+    signal: AbortSignal.timeout(15_000),
   });
   const detail = await res.text().catch(() => "");
   return { ok: res.ok, status: res.status, detail: detail.slice(0, 500) };

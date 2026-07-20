@@ -92,9 +92,14 @@ export async function handleDeleteDeviceToken(req: Request, res: Response): Prom
     res.status(503).json({ error: "Database not configured" });
     return;
   }
+  // Match the normalization used at register time (iphone -> ios); otherwise a
+  // token registered as "ios" is never deleted when the client sends "iphone",
+  // leaving stale push tokens that notify logged-out devices.
+  const platformNorm = String(platform).toLowerCase();
+  const storedPlatform = platformNorm === "iphone" ? "ios" : platformNorm;
   try {
     await ensureDeviceTokensTable();
-    await pool.query(`DELETE FROM elix_device_tokens WHERE user_id = $1 AND platform = $2`, [userId, platform]);
+    await pool.query(`DELETE FROM elix_device_tokens WHERE user_id = $1 AND platform = $2`, [userId, storedPlatform]);
     res.json({ success: true });
   } catch (err) {
     logger.error({ err }, "handleDeleteDeviceToken failed");

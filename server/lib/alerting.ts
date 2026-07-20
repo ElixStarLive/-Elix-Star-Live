@@ -19,6 +19,7 @@ export async function postAlertWebhook(payload: {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body,
+      signal: AbortSignal.timeout(8_000),
     });
     if (!res.ok) {
       logger.warn({ status: res.status }, "alert webhook non-OK");

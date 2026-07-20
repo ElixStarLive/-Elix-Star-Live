@@ -313,12 +313,20 @@ export async function endBattle(roomId: string): Promise<void> {
     opponentName: session.opponentName,
   });
 
-  setTimeout(async () => {
-    const s = await getBattleFromStore(roomId);
-    if (s) {
-      await deleteBattleFromStore(roomId, s);
-    }
-    await valkeyDel(SCORE_KEY_PREFIX + roomId);
+  setTimeout(() => {
+    // Deferred cleanup must not surface as an unhandled promise rejection (which
+    // can crash the worker) if Valkey/store access fails.
+    void (async () => {
+      try {
+        const s = await getBattleFromStore(roomId);
+        if (s) {
+          await deleteBattleFromStore(roomId, s);
+        }
+        await valkeyDel(SCORE_KEY_PREFIX + roomId);
+      } catch (err) {
+        logger.warn({ err, roomId }, "endBattle deferred cleanup failed");
+      }
+    })();
   }, 10000);
 }
 

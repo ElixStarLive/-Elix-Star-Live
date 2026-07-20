@@ -64,6 +64,7 @@ async function sendFcm(token: string, title: string, body: string, data?: Record
             data: data || {},
           },
         }),
+        signal: AbortSignal.timeout(10_000),
       },
     );
     if (!res.ok) {
@@ -103,7 +104,22 @@ async function sendApns(deviceToken: string, title: string, body: string, data?:
 
     await new Promise<void>((resolve, reject) => {
       const client = http2.connect(`https://${host}`);
-      client.on("error", reject);
+      let settled = false;
+      // Always tear down the HTTP/2 session — previously it was only closed on
+      // the success `end` path, so any error/timeout leaked the connection.
+      const finish = (err?: Error) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        try { client.close(); } catch { /* already closed */ }
+        if (err) reject(err);
+        else resolve();
+      };
+      const timer = setTimeout(
+        () => finish(new Error("APNs request timed out")),
+        10_000,
+      );
+      client.on("error", (e) => finish(e as Error));
       const req = client.request({
         ":method": "POST",
         ":path": `/3/device/${deviceToken}`,
@@ -116,11 +132,10 @@ async function sendApns(deviceToken: string, title: string, body: string, data?:
       req.on("response", (headers) => {
         status = Number(headers[":status"] || 0);
       });
-      req.on("error", reject);
+      req.on("error", (e) => finish(e as Error));
       req.on("end", () => {
-        client.close();
-        if (status >= 200 && status < 300) resolve();
-        else reject(new Error(`APNs status ${status}`));
+        if (status >= 200 && status < 300) finish();
+        else finish(new Error(`APNs status ${status}`));
       });
       req.write(payload);
       req.end();

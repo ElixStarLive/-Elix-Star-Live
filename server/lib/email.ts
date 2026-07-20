@@ -38,6 +38,8 @@ export async function sendTransactionalEmail(opts: {
             { type: "text/html", value: opts.html },
           ],
         }),
+        // A hung email provider must not stall auth flows (register/reset).
+        signal: AbortSignal.timeout(15_000),
       });
       if (!res.ok) {
         const t = await res.text();

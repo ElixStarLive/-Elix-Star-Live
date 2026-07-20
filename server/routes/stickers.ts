@@ -25,13 +25,22 @@ export async function handleUploadSticker(req: Request, res: Response) {
     return res.status(400).json({ error: "Content-Type must be image/*" });
   }
 
+  const MAX_STICKER_BYTES = 2 * 1024 * 1024;
   const chunks: Buffer[] = [];
+  let total = 0;
+  // Enforce the size cap WHILE streaming so an oversized upload cannot exhaust
+  // memory before the check — stop reading as soon as the limit is exceeded.
   for await (const chunk of req) {
-    chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
+    const buf = typeof chunk === "string" ? Buffer.from(chunk) : chunk;
+    total += buf.length;
+    if (total > MAX_STICKER_BYTES) {
+      req.destroy();
+      return res.status(413).json({ error: "Sticker too large (max 2MB)" });
+    }
+    chunks.push(buf);
   }
   const buffer = Buffer.concat(chunks);
   if (buffer.length === 0) return res.status(400).json({ error: "Empty body" });
-  if (buffer.length > 2 * 1024 * 1024) return res.status(413).json({ error: "Sticker too large (max 2MB)" });
 
   const ext = contentType.includes("png") ? "png" : contentType.includes("gif") ? "gif" : "jpg";
   const fileName = `stickers/${payload.sub}/${Date.now()}.${ext}`;

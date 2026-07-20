@@ -158,6 +158,9 @@ async function appleApiGet(path: string): Promise<{ ok: boolean; status: number;
     try {
       const resp = await fetch(`${base}${path}`, {
         headers: { Authorization: `Bearer ${jwt}` },
+        // Bound the App Store Server API call so a hung upstream cannot pin the
+        // (rate-limited) IAP verify handler indefinitely.
+        signal: AbortSignal.timeout(15_000),
       });
       const text = await resp.text();
       let json: unknown;

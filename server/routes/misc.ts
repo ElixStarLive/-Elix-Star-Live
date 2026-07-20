@@ -247,6 +247,7 @@ async function verifyGooglePlayPurchase(
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${jwt}`,
+      signal: AbortSignal.timeout(15_000),
     });
 
     if (!tokenResp.ok) {
@@ -264,6 +265,7 @@ async function verifyGooglePlayPurchase(
 
     const verifyResp = await fetch(verifyUrl, {
       headers: { Authorization: `Bearer ${accessToken}` },
+      signal: AbortSignal.timeout(15_000),
     });
 
     if (!verifyResp.ok) {
