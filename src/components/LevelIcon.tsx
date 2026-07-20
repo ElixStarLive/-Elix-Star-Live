@@ -58,22 +58,22 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
   const avatarDiameter = profileRingInnerPx(circleSize);
 
   if (splitCircleSizing) {
-    /** Larger avatar circle; smaller perfect LV circle overlapping its right edge (circle-on-circle). */
-    const levelDim = Math.max(
-      12,
-      Math.round(sizeProvided ? Math.min(barBaseSize * 0.72, circleSize * 0.48) : circleSize * 0.42),
-    );
-    const overlapPx = Math.round(levelDim * 0.42);
-    const label = text === 'level' ? `${safeLevel}` : `LV${safeLevel}`;
-    const fontPx = Math.max(7, Math.round(levelDim * (safeLevel >= 10 ? 0.34 : 0.4)));
+    /** Circle; readable LV capsule hugging the circle, vertically centered. */
+    const pillH = Math.max(
+      10,
+      Math.round(sizeProvided ? barBaseSize * 0.62 : circleSize * 0.34),
+    ) + levelExtraHeightPx;
+    const pillPadX = Math.max(5, Math.round(pillH * 0.38));
+    const overlapPx = Math.round(circleSize * 0.28);
+    const label = text === 'level' ? `Level ${safeLevel}` : `LV ${safeLevel}`;
+    const fontPx = Math.max(8, Math.round(pillH * 0.52));
     return (
       <div
         className={className}
         style={{
           display: 'inline-flex',
           alignItems: 'center',
-          height: circleSize,
-          width: circleSize + levelDim - overlapPx,
+          height: Math.max(circleSize, pillH),
           flexShrink: 0,
           verticalAlign: 'middle',
           position: 'relative',
@@ -82,7 +82,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
         <div
           style={{
             position: 'relative',
-            zIndex: 1,
+            zIndex: 2,
             width: circleSize,
             height: circleSize,
             borderRadius: 9999,
@@ -121,20 +121,19 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
         </div>
         <div
           style={{
-            position: 'absolute',
-            zIndex: 2,
-            left: circleSize - overlapPx,
-            top: '50%',
-            transform: 'translateY(-50%)',
-            width: levelDim,
-            height: levelDim,
-            borderRadius: 9999,
+            position: 'relative',
+            zIndex: 1,
+            marginLeft: -overlapPx,
+            height: pillH,
+            borderRadius: pillH / 2,
             background: getBarGradient(),
-            border: '1.5px solid rgba(255,255,255,0.4)',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.55), inset 0 1px 1px rgba(255,255,255,0.35)',
+            border: '1px solid rgba(255,255,255,0.28)',
+            boxShadow: '0 4px 10px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.35)',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
+            justifyContent: 'flex-end',
+            paddingLeft: Math.round(overlapPx * 0.85) + pillPadX,
+            paddingRight: pillPadX,
             flexShrink: 0,
           }}
         >
@@ -143,9 +142,9 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
               color: 'white',
               fontWeight: 900,
               fontStyle: 'italic',
-              letterSpacing: '0.01em',
+              letterSpacing: '0.02em',
               fontSize: fontPx,
-              textShadow: '0 1px 3px rgba(0,0,0,0.75)',
+              textShadow: '0 2px 6px rgba(0,0,0,0.75)',
               lineHeight: 1,
               whiteSpace: 'nowrap',
             }}
