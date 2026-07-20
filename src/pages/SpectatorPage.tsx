@@ -541,18 +541,62 @@ export default function SpectatorPage() {
     return () => clearInterval(id);
   }, [spectatorBattle?.active, spectatorBattle?.status]);
 
-  // Battle opponent publishes into the HOST LiveKit room. Do not open a second
-  // subscribe to their old solo room (empty after join) — that cleanup cleared
-  // hasOpponentStream and left the pane on "Connecting...". Same-room attach
-  // lives in the effect below (battleStreamIds.opponentUserId).
+  // Connect to opponent's LiveKit room so spectators see both battle videos.
+  // Also keep host-room attach below — after accept the opponent may publish there.
   useEffect(() => {
-    if (!spectatorBattle?.active) {
+    const roomId = spectatorBattle?.opponentRoomId;
+    if (!spectatorBattle?.active || !roomId) {
       if (opponentLkRoomRef.current) {
         opponentLkRoomRef.current.disconnect();
         opponentLkRoomRef.current = null;
       }
+      if (!spectatorBattle?.active) setHasOpponentStream(false);
+      return;
     }
-  }, [spectatorBattle?.active, spectatorBattle?.opponentRoomId]);
+    // Opponent room id may equal host room when they already joined the battle room.
+    if (roomId === effectiveStreamId) return;
+
+    let mounted = true;
+    const room = new Room();
+    opponentLkRoomRef.current = room;
+    (async () => {
+      try {
+        const { data: payload, error: tokenErr } = await request(`/api/live/token?room=${encodeURIComponent(roomId)}`);
+        if (tokenErr || !mounted) return;
+        const token = payload?.token;
+        const url = (payload?.url ?? '').trim() || getLiveKitUrl();
+        if (!token || !url || !mounted) return;
+        room.on(RoomEvent.TrackSubscribed, (track) => {
+          if (!mounted || track.kind !== 'video') return;
+          const el = opponentVideoRef.current;
+          if (el) {
+            track.attach(el);
+            void el.play().catch(() => {});
+            setHasOpponentStream(true);
+          }
+        });
+        await room.connect(url, token);
+        if (!mounted) { room.disconnect(); return; }
+        for (const [, p] of room.remoteParticipants) {
+          for (const [, pub] of p.videoTrackPublications) {
+            if (pub.track && pub.isSubscribed && opponentVideoRef.current) {
+              pub.track.attach(opponentVideoRef.current);
+              void opponentVideoRef.current.play().catch(() => {});
+              setHasOpponentStream(true);
+            }
+          }
+        }
+      } catch {
+        /* opponent solo room may already have ended — host-room path still applies */
+      }
+    })();
+    return () => {
+      mounted = false;
+      room.disconnect();
+      if (opponentLkRoomRef.current === room) opponentLkRoomRef.current = null;
+      // Connection-bug fix only: do not clear hasOpponentStream on reconnect cleanup.
+    };
+  }, [spectatorBattle?.active, spectatorBattle?.opponentRoomId, effectiveStreamId]);
 
   // ═══════════════════════════════════════════════════
   // CO-HOST STATE (synced from host so spectators see same layout)

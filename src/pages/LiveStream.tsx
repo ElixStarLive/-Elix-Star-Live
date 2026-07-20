@@ -1586,14 +1586,67 @@ export default function LiveStream() {
 
   const _isRegularViewer = !isBroadcast && !isBattleParticipant;
 
-  // Opponent publishes into the HOST LiveKit room when they accept a battle invite
-  // (they leave their solo stream). A second subscribe to their old room is empty and
-  // its cleanup used to clear hasOpponentStream → pane stuck on "Connecting...".
-  // Opponent video is attached from liveKitRoomRef in TrackSubscribed / re-attach below.
+  // Connect to opponent's LiveKit room to receive their video (creators may still
+  // be publishing there). Host-room attach below covers when they join this room.
   useEffect(() => {
-    if (!isBattleMode || !isBroadcast) return;
-    // Keep opponentStreamKey for battle_create metadata only — do not open a second LK room.
-  }, [isBattleMode, isBroadcast, opponentStreamKey]);
+    if (!isBattleMode || !opponentStreamKey || !isBroadcast) return;
+    if (opponentStreamKey === effectiveStreamId) return;
+    let mounted = true;
+    const room = new Room();
+    opponentLkRoomRef.current = room;
+
+    (async () => {
+      try {
+        const { data: payload, error: tokenErr } = await request(`/api/live/token?room=${encodeURIComponent(opponentStreamKey)}`);
+        if (tokenErr || !mounted) return;
+        const token = payload?.token;
+        const url = (payload?.url ?? '').trim() || getLiveKitUrl();
+        if (!token || !url || !mounted) return;
+
+        room.on(RoomEvent.TrackSubscribed, (track) => {
+          if (!mounted) return;
+          if (track.kind === 'audio') {
+            attachRemoteAudio(track, opponentRemoteAudioRef.current);
+            return;
+          }
+          if (track.kind !== 'video') return;
+          const el = opponentVideoRef.current;
+          if (el) {
+            track.attach(el);
+            void el.play().catch(() => {});
+            setHasOpponentStream(true);
+          }
+        });
+
+        await room.connect(url, token);
+        if (!mounted) { room.disconnect(); return; }
+
+        for (const [, participant] of room.remoteParticipants) {
+          for (const [, pub] of participant.videoTrackPublications) {
+            if (pub.track && pub.isSubscribed && opponentVideoRef.current) {
+              pub.track.attach(opponentVideoRef.current);
+              void opponentVideoRef.current.play().catch(() => {});
+              setHasOpponentStream(true);
+            }
+          }
+          for (const [, pub] of participant.audioTrackPublications) {
+            if (pub.track && pub.isSubscribed) attachRemoteAudio(pub.track, opponentRemoteAudioRef.current);
+          }
+        }
+      } catch (e) {
+        console.error('[Battle] Failed to connect to opponent LiveKit room:', e);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+      room.disconnect();
+      if (opponentLkRoomRef.current === room) opponentLkRoomRef.current = null;
+      // Connection-bug fix only: do not clear hasOpponentStream here.
+      // Opponent may already be attached from the host LiveKit room; clearing
+      // on this cleanup left the pane stuck on "Connecting...".
+    };
+  }, [isBattleMode, opponentStreamKey, isBroadcast, effectiveStreamId, attachRemoteAudio]);
 
   // Re-attach remote LiveKit tracks when battle/co-host video elements mount after subscribe
   useEffect(() => {
@@ -1651,7 +1704,19 @@ export default function LiveStream() {
 
   // Re-attach opponent room video when battle pane mounts
   useEffect(() => {
-    // Legacy second-room attach removed — same-room path above owns the opponent pane.
+    const room = opponentLkRoomRef.current;
+    const el = opponentVideoRef.current;
+    if (!room || !el || !isBattleMode) return;
+
+    for (const [, participant] of room.remoteParticipants) {
+      for (const [, pub] of participant.videoTrackPublications) {
+        if (pub.track && pub.isSubscribed) {
+          pub.track.attach(el);
+          void el.play().catch(() => {});
+          setHasOpponentStream(true);
+        }
+      }
+    }
   }, [isBattleMode, opponentStreamKey, battleSlots]);
 
   // Speed Challenge State
