@@ -58,7 +58,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
   const avatarDiameter = profileRingInnerPx(circleSize);
 
   if (splitCircleSizing) {
-    /** Circle; readable LV capsule hugging the circle, vertically centered. */
+    /** Circle full size; smaller round LV capsule hugging the circle. */
     const pillH = Math.max(
       10,
       Math.round(sizeProvided ? barBaseSize * 0.62 : circleSize * 0.34),
@@ -125,7 +125,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
             zIndex: 1,
             marginLeft: -overlapPx,
             height: pillH,
-            borderRadius: pillH / 2,
+            borderRadius: 9999,
             background: getBarGradient(),
             border: '1px solid rgba(255,255,255,0.28)',
             boxShadow: '0 4px 10px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.35)',
