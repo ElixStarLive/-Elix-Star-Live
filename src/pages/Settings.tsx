@@ -59,24 +59,24 @@ export default function Settings() {
     <button
       type="button"
       onClick={fn}
-      className="w-full flex items-center gap-2.5 px-2 pt-[calc(0.5rem-3mm)] pb-2 active:bg-white/5 text-left rounded-md"
+      className="w-full flex items-center gap-3 px-2.5 py-2.5 active:bg-white/5 text-left rounded-md"
     >
       {ic && (
         <span
-          className="royce-glow-disc shrink-0 [&_svg]:size-[11px]"
-          style={{ width: 'calc(28px - 3mm)', height: 'calc(28px - 3mm)' }}
+          className="royce-glow-disc shrink-0 [&_svg]:size-[18px]"
+          style={{ width: '36px', height: '36px' }}
         >
           <span className="royce-icon-gold">{ic}</span>
         </span>
       )}
-      <span className="flex-1 text-[12px] leading-tight text-white/85">{t}</span>
-      {v && <span className="text-[10px] text-white/45 tabular-nums">{v}</span>}
-      <ChevronRight size={12} className="text-white/30 shrink-0" />
+      <span className="flex-1 text-[15px] leading-tight text-white/85">{t}</span>
+      {v && <span className="text-[12px] text-white/45 tabular-nums">{v}</span>}
+      <ChevronRight size={16} className="text-white/30 shrink-0" />
     </button>
   );
 
   const S = ({ t }: { t: string }) => (
-    <p className="text-[8px] text-white/30 uppercase tracking-[0.12em] mt-2.5 mb-0.5 px-1 leading-none">{t}</p>
+    <p className="text-[10px] text-white/30 uppercase tracking-[0.12em] mt-3.5 mb-1 px-1 leading-none">{t}</p>
   );
 
   return (
@@ -89,9 +89,9 @@ export default function Settings() {
 
       {/* Logo + menu moved down so the void under the title is filled */}
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 pb-[3mm]">
-        <div className="flex flex-col gap-0 max-w-full min-h-full" style={{ paddingTop: '8mm' }}>
+        <div className="flex flex-col gap-0 max-w-full min-h-full" style={{ paddingTop: '5mm' }}>
           <div className="flex flex-col items-center pb-3">
-            <img src="/elix-logo.png" alt="Elix Star Live" className="w-16 h-16 object-contain" />
+            <img src="/elix-logo.png" alt="Elix Star Live" className="w-20 h-20 object-contain" />
           </div>
           <S t="Account" />
           <R ic={<User size={14} />} t="Edit Profile" fn={() => navigate('/edit-profile')} />
@@ -121,47 +121,47 @@ export default function Settings() {
           <S t="Support" />
           <R ic={<HelpCircle size={14} />} t="Help & Support" fn={() => navigate('/support')} />
 
-          <div className="grid grid-cols-3 gap-1 mt-auto pt-3 px-0.5">
+          <div className="grid grid-cols-3 gap-1 mt-auto pt-4 px-0.5">
             <button
               type="button"
               onClick={() => navigate('/terms')}
-              className="text-[10px] text-white/60 pt-[calc(0.375rem-3mm)] pb-1.5 rounded-md active:bg-white/5 text-center leading-tight"
+              className="text-[12px] text-white/60 py-2 rounded-md active:bg-white/5 text-center leading-tight"
             >
               Terms
             </button>
             <button
               type="button"
               onClick={() => navigate('/privacy')}
-              className="text-[10px] text-white/60 pt-[calc(0.375rem-3mm)] pb-1.5 rounded-md active:bg-white/5 text-center leading-tight"
+              className="text-[12px] text-white/60 py-2 rounded-md active:bg-white/5 text-center leading-tight"
             >
               Privacy
             </button>
             <button
               type="button"
               onClick={() => navigate('/guidelines')}
-              className="text-[10px] text-white/60 pt-[calc(0.375rem-3mm)] pb-1.5 rounded-md active:bg-white/5 text-center leading-tight"
+              className="text-[12px] text-white/60 py-2 rounded-md active:bg-white/5 text-center leading-tight"
             >
               Guidelines
             </button>
           </div>
 
-          <div className="mt-2.5 pt-1.5 flex items-center justify-center gap-5 border-t border-white/[0.06]">
+          <div className="mt-3 pt-2.5 flex items-center justify-center gap-6 border-t border-white/[0.06]">
             <button
               type="button"
               onClick={handleLogout}
-              className="flex items-center gap-1 py-1 text-white/60 text-[11px] active:bg-white/5 px-2 rounded-md"
+              className="flex items-center gap-1.5 py-1.5 text-white/60 text-[13px] active:bg-white/5 px-2.5 rounded-md"
             >
-              <LogOut size={12} /> Log Out
+              <LogOut size={15} /> Log Out
             </button>
             <button
               type="button"
               onClick={handleDeleteAccount}
-              className="flex items-center gap-1 py-1 text-white/60/80 text-[11px] active:bg-white/20/10 px-2 rounded-md"
+              className="flex items-center gap-1.5 py-1.5 text-white/60/80 text-[13px] active:bg-white/20/10 px-2.5 rounded-md"
             >
-              <Trash2 size={12} /> Delete
+              <Trash2 size={15} /> Delete
             </button>
           </div>
-          <p className="text-center text-[8px] text-white/20 pt-1 pb-0.5">v1.0.0</p>
+          <p className="text-center text-[9px] text-white/20 pt-1.5 pb-0.5">v1.0.0</p>
         </div>
       </div>
     </SettingsOptionSheet>
