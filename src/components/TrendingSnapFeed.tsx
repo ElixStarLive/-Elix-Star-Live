@@ -10,13 +10,40 @@ function formatNumber(n: number): string {
   return String(n);
 }
 
+/** True when the still looks like a black / empty first frame. */
+function isNearlyBlackImage(img: HTMLImageElement): boolean {
+  try {
+    const canvas = document.createElement('canvas');
+    const w = 10;
+    const h = 10;
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return false;
+    ctx.drawImage(img, 0, 0, w, h);
+    const data = ctx.getImageData(0, 0, w, h).data;
+    let total = 0;
+    const pixels = data.length / 4;
+    for (let i = 0; i < data.length; i += 4) {
+      total += (data[i] + data[i + 1] + data[i + 2]) / 3;
+    }
+    return total / pixels < 14;
+  } catch {
+    // CORS-tainted canvas — cannot inspect; keep the image.
+    return false;
+  }
+}
+
 function VideoThumbnail({ video }: { video: Video }) {
   const navigate = useNavigate();
-  const [imgFailed, setImgFailed] = React.useState(false);
+  const videoRef = React.useRef<HTMLVideoElement>(null);
+  const [hideImg, setHideImg] = React.useState(false);
   const playbackUrl = resolveVideoPlaybackUrl(video.url || '');
   const poster = resolveGridThumbnailUrl(video.thumbnail, video.url || '');
   const bunnyPoster = getVideoPosterUrl(video.url || '');
-  const showImg = Boolean(poster) && !imgFailed;
+  const showImg = Boolean(poster) && !hideImg;
+  // Media fragment skips the common black intro frame (same idea as Profile grid).
+  const videoSrc = playbackUrl ? `${playbackUrl}#t=0.8` : '';
 
   const handleImgError = React.useCallback(
     (e: React.SyntheticEvent<HTMLImageElement>) => {
@@ -26,53 +53,57 @@ function VideoThumbnail({ video }: { video: Video }) {
         img.src = bunnyPoster;
         return;
       }
-      setImgFailed(true);
+      setHideImg(true);
     },
     [bunnyPoster],
   );
 
-  // For tiles without a still thumbnail we render the <video> and freeze a frame.
-  // The first ~0.5s is usually a black fade-in / encoder frame, so seek a bit into
-  // the clip where real content is visible — otherwise the tile looks "black".
-  const seekToContentFrame = React.useCallback(
-    (e: React.SyntheticEvent<HTMLVideoElement>) => {
-      const vid = e.currentTarget;
-      try {
-        const dur = Number.isFinite(vid.duration) && vid.duration > 0 ? vid.duration : 0;
-        const target = dur > 0 ? Math.min(Math.max(dur * 0.15, 0.7), 3) : 0.7;
-        if (Math.abs(vid.currentTime - target) > 0.05) vid.currentTime = target;
-      } catch {
-        /* seek unsupported — the play/pause fallback below handles it */
-      }
-    },
-    [],
-  );
+  const handleImgLoad = React.useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
+    if (isNearlyBlackImage(e.currentTarget)) {
+      setHideImg(true);
+    }
+  }, []);
 
-  // Some WebViews won't paint a seeked frame until playback happens, so if the
-  // seek didn't advance, nudge with a brief muted play → pause.
-  const paintFirstFrame = React.useCallback(
-    (e: React.SyntheticEvent<HTMLVideoElement>) => {
-      const vid = e.currentTarget;
-      if (vid.currentTime > 0.05) return; // seeked frame already painted
-      const played = vid.play?.();
-      if (played && typeof played.then === 'function') {
-        played
-          .then(() => {
-            window.setTimeout(() => {
-              try {
-                vid.pause();
-              } catch {
-                /* ignore */
-              }
-            }, 60);
-          })
-          .catch(() => {
-            /* autoplay blocked — the seek is the fallback */
-          });
+  // When the still is missing/black, paint a real frame from the video.
+  const paintContentFrame = React.useCallback((vid: HTMLVideoElement) => {
+    try {
+      const dur = Number.isFinite(vid.duration) && vid.duration > 0 ? vid.duration : 0;
+      const target = dur > 0 ? Math.min(Math.max(dur * 0.2, 0.8), 3) : 0.8;
+      if (Math.abs(vid.currentTime - target) > 0.05) {
+        vid.currentTime = target;
       }
-    },
-    [],
-  );
+    } catch {
+      /* seek unsupported */
+    }
+    const played = vid.play?.();
+    if (played && typeof played.then === 'function') {
+      played
+        .then(() => {
+          window.setTimeout(() => {
+            try {
+              vid.pause();
+            } catch {
+              /* ignore */
+            }
+          }, 80);
+        })
+        .catch(() => {
+          /* autoplay blocked — #t= fragment is the fallback */
+        });
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (showImg || !videoRef.current) return;
+    const vid = videoRef.current;
+    const onReady = () => paintContentFrame(vid);
+    if (vid.readyState >= 2) {
+      onReady();
+      return;
+    }
+    vid.addEventListener('loadeddata', onReady, { once: true });
+    return () => vid.removeEventListener('loadeddata', onReady);
+  }, [showImg, videoSrc, paintContentFrame]);
 
   return (
     <button
@@ -80,30 +111,38 @@ function VideoThumbnail({ video }: { video: Video }) {
       className="relative aspect-[3/4] bg-black rounded-lg overflow-hidden cursor-pointer group"
       onClick={() => navigate(`/video/${video.id}`)}
     >
+      {/* Video underlay — shows when still is missing, broken, or nearly black */}
+      {videoSrc ? (
+        <video
+          ref={videoRef}
+          src={videoSrc}
+          poster={showImg ? poster : undefined}
+          muted
+          playsInline
+          preload="metadata"
+          className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:opacity-100 transition pointer-events-none"
+          aria-hidden
+        />
+      ) : null}
+
       {showImg ? (
         <img
           src={poster}
           alt=""
-          className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:opacity-100 transition"
+          className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:opacity-100 transition pointer-events-none"
           loading="lazy"
+          decoding="async"
           onError={handleImgError}
+          onLoad={handleImgLoad}
         />
-      ) : playbackUrl ? (
-        <video
-          src={playbackUrl}
-          muted
-          playsInline
-          preload="auto"
-          onLoadedMetadata={seekToContentFrame}
-          onLoadedData={paintFirstFrame}
-          className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:opacity-100 transition"
-          aria-hidden
-        />
-      ) : (
+      ) : null}
+
+      {!videoSrc && !showImg ? (
         <div className="absolute inset-0 flex items-center justify-center">
           <Play size={24} className="text-white/30" />
         </div>
-      )}
+      ) : null}
+
       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
       <div className="absolute bottom-1.5 left-1.5 right-1.5 flex flex-col items-start gap-0.5">
         <Play size={10} fill="white" className="text-white drop-shadow-md" />
