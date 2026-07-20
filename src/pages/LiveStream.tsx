@@ -5740,24 +5740,37 @@ export default function LiveStream() {
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-start gap-3 min-w-0">
-                  <div className="relative -mt-6 flex-shrink-0">
-                    <AvatarRing src={typeof miniProfile.avatar === 'string' ? miniProfile.avatar : ''} alt={typeof miniProfile.username === 'string' ? miniProfile.username : 'User'} size={80} />
+                  <div className="relative -mt-4 flex-shrink-0">
+                    <AvatarRing src={typeof miniProfile.avatar === 'string' ? miniProfile.avatar : ''} alt={typeof miniProfile.username === 'string' ? miniProfile.username : 'User'} size={56} />
                   </div>
                   <div className="min-w-0 pt-1">
-                    <div className="flex items-center gap-1 min-w-0">
+                    <div className="flex items-center gap-1.5 min-w-0">
                       <div className="text-white font-black text-[16px] truncate">{typeof miniProfile.username === 'string' ? miniProfile.username : 'User'}</div>
                       {miniProfile?.id && moderators.has(miniProfile.id) && (
                         <User className="w-3.5 h-3.5 text-[#D4AF37] flex-shrink-0" strokeWidth={2.25} aria-hidden />
                       )}
+                      {(() => {
+                        const lvl = typeof miniProfile.level === 'number' ? miniProfile.level : userLevel;
+                        const grad =
+                          lvl >= 90 ? 'linear-gradient(180deg,#ffffff 0%,#7a1027 55%,#ffffff 100%)'
+                          : lvl >= 60 ? 'linear-gradient(180deg,#a855f7 0%,#4c1d95 55%,#a855f7 100%)'
+                          : lvl >= 30 ? 'linear-gradient(180deg,#3b82f6 0%,#1e3a8a 55%,#3b82f6 100%)'
+                          : 'linear-gradient(180deg,#22c55e 0%,#14532d 55%,#22c55e 100%)';
+                        return (
+                          <span
+                            className="flex-shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-white text-[10px] font-black italic leading-none border border-white/25"
+                            style={{ background: grad, textShadow: '0 1px 3px rgba(0,0,0,0.7)' }}
+                          >
+                            LV {lvl}
+                          </span>
+                        );
+                      })()}
                     </div>
-                    <div className="text-white/70 text-[12px] font-bold">
-                      {typeof miniProfile.level === 'number' ? (
-                        <span className="text-white/80 text-[15px] font-black">Level {miniProfile.level}</span>
-                      ) : (
-                        'Level —'
-                      )}
-                      {miniProfile.coins != null ? ` • 🪙 ${formatCoinsShort(miniProfile.coins)}` : ''}
-                    </div>
+                    {miniProfile.coins != null && (
+                      <div className="text-white/70 text-[12px] font-bold">
+                        🪙 {formatCoinsShort(miniProfile.coins)}
+                      </div>
+                    )}
                     
                     <div className="flex items-center gap-3 mt-1 text-[10px] text-white/50">
                       <div className="flex items-center gap-1">
