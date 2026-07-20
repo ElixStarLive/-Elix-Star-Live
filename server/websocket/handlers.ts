@@ -178,7 +178,11 @@ export async function handleMessage(
             transactionId: `test-${randomUUID()}`,
             battleTarget: testBattleTarget,
             user_id: client.userId,
-            username: client.username,
+            username: client.displayName || client.username,
+            creator_name:
+              typeof data?.creator_name === "string" && data.creator_name.trim()
+                ? data.creator_name.trim()
+                : undefined,
             avatar: typeof data?.avatar === "string" ? data.avatar : "",
             level: typeof data?.level === "number" ? data.level : 1,
             video: testVideo,
@@ -248,6 +252,8 @@ export async function handleMessage(
           level: typeof data?.level === "number" ? data.level : 1,
           giftId: verified.giftId,
           giftName: typeof data?.giftName === "string" ? data.giftName : undefined,
+          creatorName:
+            typeof data?.creator_name === "string" ? data.creator_name : undefined,
           coins: verified.coins,
           giftSource: verified.giftSource,
           transactionId: String(transactionId),
@@ -276,7 +282,11 @@ export async function handleMessage(
                 transactionId: String(transactionId),
                 battleTarget: data?.battleTarget ?? null,
                 user_id: client.userId,
-                username: client.username,
+                username: client.displayName || client.username,
+                creator_name:
+                  typeof data?.creator_name === "string" && data.creator_name.trim()
+                    ? data.creator_name.trim()
+                    : undefined,
                 avatar: typeof data?.avatar === "string" ? data.avatar : "",
                 level: typeof data?.level === "number" ? data.level : 1,
                 video,

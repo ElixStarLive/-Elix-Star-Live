@@ -2137,6 +2137,7 @@ export default function SpectatorPage() {
       websocket.send('gift_sent', {
         giftId: gift.id,
         giftName: gift.name,
+        username: viewerName,
         coins: usedTestCoins ? 0 : gift.coins,
         gift_icon: gift.icon || '🎁',
         quantity: 1,

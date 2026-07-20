@@ -3772,6 +3772,7 @@ export default function LiveStream() {
         websocket.send('gift_sent', {
           giftId: gift.id,
           giftName: gift.name,
+          username: isBroadcast ? creatorName : viewerName,
           coins: usedTestCoins ? 0 : gift.coins,
           gift_icon: gift.icon || '🎁',
           quantity: 1,
@@ -4013,6 +4014,7 @@ export default function LiveStream() {
         websocket.send('gift_sent', {
           giftId: lastSentGift.id,
           giftName: lastSentGift.name,
+          username: isBroadcast ? creatorName : viewerName,
           coins: usedTestCoins ? 0 : lastSentGift.coins,
           gift_icon: lastSentGift.icon || '🎁',
           quantity: 1,

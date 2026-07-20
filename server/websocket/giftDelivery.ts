@@ -29,6 +29,8 @@ export type DeliverGiftInput = {
   level?: number;
   giftId: string;
   giftName?: string;
+  /** Display name of the creator receiving the gift (for the gift banner). */
+  creatorName?: string;
   coins: number;
   giftSource: "starter_coins" | "paid_coins";
   transactionId: string;
@@ -134,6 +136,10 @@ export async function deliverVerifiedGift(
     battleTarget: normalizedTarget,
     user_id: userId,
     username,
+    creator_name:
+      typeof input.creatorName === "string" && input.creatorName.trim()
+        ? input.creatorName.trim()
+        : undefined,
     avatar,
     level,
     video,
