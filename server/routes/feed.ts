@@ -307,20 +307,18 @@ export async function handleTrackInteraction(req: Request, res: Response) {
     if (!db) {
       return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
     }
-    const col =
-      type === "like"
-        ? "likes"
-        : type === "comment"
-          ? "comments"
-          : type === "share"
-            ? "shares"
-            : type === "save"
-              ? "saves"
-              : null;
-    if (!col) {
+    const KNOWN_TYPES = new Set(["like", "comment", "share", "save", "follow", "view"]);
+    if (!KNOWN_TYPES.has(type)) {
       return res.status(400).json({ error: "Invalid interaction type" });
     }
-    await db.query(`UPDATE videos SET ${col} = ${col} + 1 WHERE id = $1`, [videoId]);
+    // Only `shares` is maintained here — it has no other counter path. like /
+    // comment / save are incremented transactionally AND deduped by
+    // /api/videos/:id/{like,save,comment}; incrementing them again here
+    // double-counted every action and let any user inflate arbitrary videos'
+    // public counters. Those types are now analytics-only no-ops.
+    if (type === "share") {
+      await db.query(`UPDATE videos SET shares = shares + 1 WHERE id = $1`, [videoId]);
+    }
 
     res.json({ ok: true });
   } catch (err: any) {

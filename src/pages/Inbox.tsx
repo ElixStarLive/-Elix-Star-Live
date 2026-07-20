@@ -207,14 +207,16 @@ export default function Inbox() {
         const rows = Array.isArray(data) ? data : (data?.notifications ?? []);
         setNotifications(rows
           .filter((n: { type?: string }) => n.type !== 'battle_invite' && n.type !== 'cohost_invite' && n.type !== 'battle_accepted' && n.type !== 'cohost_accepted')
-          .map((n: { type?: string; id?: string; title?: string; body?: string; is_read?: boolean; read?: boolean; created_at?: string; data?: Record<string, unknown> }) => ({
+          .map((n: { type?: string; id?: string; title?: string; body?: string; is_read?: boolean; read?: boolean; created_at?: string; action_url?: string; data?: Record<string, unknown> }) => ({
           id: n.id,
           type: n.type || 'system',
           actor_id: n.data?.actor_id || '',
           title: n.title || 'Notification',
           body: n.body,
           image_url: n.data?.image_url || n.data?.host_avatar || n.data?.avatar_url || null,
-          action_url: n.data?.action_url || null,
+          // Server returns action_url at the top level (server/lib/notifications.ts),
+          // not under data — read it there first so notification taps navigate.
+          action_url: n.action_url ?? (n.data?.action_url as string | undefined) ?? null,
           is_read: n.is_read ?? n.read ?? false,
           created_at: n.created_at,
           rawData: n.data || {},

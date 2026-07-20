@@ -219,6 +219,11 @@ app.use(
 );
 
 // ── JSON body parser ─────────────────────────────────────────────
+// The live AI-moderation frame check sends a base64 JPEG that can approach the
+// handler's own 80,000-char cap (~80 KB) — larger than the tight global limit.
+// Parse this one path first with a bigger limit; body-parser marks the body as
+// read so the global parser below skips it. Every other route stays at 50 KB.
+app.use("/api/live/moderation/check", express.json({ limit: "256kb" }));
 app.use(express.json({ limit: "50kb" }));
 
 // ── Health (before rate limiter — must be exempt for LB/monitoring) ──
