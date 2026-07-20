@@ -46,7 +46,8 @@ export default function SettingsOptionSheet({ children, onClose }: SettingsOptio
       >
         <div
           className="relative flex-shrink-0 bg-[#111111] touch-none cursor-grab active:cursor-grabbing border-b border-white/[0.06]"
-          style={{ paddingTop: 'var(--page-header-top)' }}
+          /* Fixed overlay ignores body safe padding; Android status bar often reports 0 inset — keep close tappable. */
+          style={{ paddingTop: 'max(40px, calc(env(safe-area-inset-top, 0px) + 8px))' }}
           onPointerDown={onDragStart}
           onPointerMove={onDragMove}
           onPointerUp={onDragEnd}
@@ -56,7 +57,10 @@ export default function SettingsOptionSheet({ children, onClose }: SettingsOptio
             <div className="w-11 h-1.5 bg-white/35 rounded-full absolute top-3 left-1/2 -translate-x-1/2" />
             <button
               type="button"
-              onClick={onClose}
+              onClick={(e) => {
+                e.stopPropagation();
+                onClose();
+              }}
               onPointerDown={(e) => e.stopPropagation()}
               className="absolute top-1 right-2 z-30 p-1 rounded-full active:scale-90 transition-transform"
               aria-label="Close"
