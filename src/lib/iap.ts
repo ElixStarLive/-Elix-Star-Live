@@ -6,6 +6,7 @@
 import { platform } from './platform';
 import { useAuthStore } from '../store/useAuthStore';
 import { request } from './apiClient';
+import { clearPersistedTestCoins } from './testCoins';
 
 // Product IDs — must match App Store Connect / Google Play Console
 export const IAP_PRODUCTS = {
@@ -285,6 +286,10 @@ export async function reconcileOwnedCoinPurchases(): Promise<number> {
   } catch (err) {
     reportIapStage('reconcile_error', { error: (err as { message?: string })?.message || String(err) });
   }
+  if (credited > 0) {
+    // Real coins landed — clear local test coins so the real wallet shows.
+    clearPersistedTestCoins(useAuthStore.getState().user?.id);
+  }
   return credited;
 }
 
@@ -336,6 +341,7 @@ export async function purchaseProduct(productId: IAPProductId): Promise<IAPPurch
         const recovered = await reconcileOwnedCoinPurchases();
         if (recovered > 0) {
           reportIapStage('already_owned_recovered', { productId, recovered });
+          clearPersistedTestCoins(useAuthStore.getState().user?.id);
           return { success: true, coins: IAP_PRODUCTS[productId]?.coins ?? 0 };
         }
         try {
@@ -367,6 +373,10 @@ export async function purchaseProduct(productId: IAPProductId): Promise<IAPPurch
     }
 
     await completeCoinPurchase(mod, transactionId, receipt);
+
+    // Real coins were credited to the wallet — reset any local test-coin balance
+    // so the real balance shows (test coins otherwise mask the wallet in the UI).
+    clearPersistedTestCoins(useAuthStore.getState().user?.id);
 
     return {
       success: true,

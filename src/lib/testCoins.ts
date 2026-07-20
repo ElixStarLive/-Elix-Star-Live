@@ -19,6 +19,21 @@ export function persistTestCoinsBalance(userId: string | undefined, balance: num
   }
 }
 
+/**
+ * Reset the local test-coin balance. Test coins are fake/local and mask the real
+ * wallet in the gift UI (see resolveGiftUiBalance); once the user spends real money
+ * on coins, the real wallet must become authoritative so purchased coins actually
+ * show. This only clears local test state and never touches the real wallet.
+ */
+export function clearPersistedTestCoins(userId: string | undefined): void {
+  if (!userId || typeof localStorage === 'undefined') return;
+  try {
+    localStorage.removeItem(`elix_test_coins_balance_${userId}`);
+  } catch {
+    /* ignore */
+  }
+}
+
 /** When test coins exist, gifts spend from test balance only — never the real wallet. */
 export function shouldUseTestCoinsForGifts(userId: string | undefined): boolean {
   return getPersistedTestCoinsBalance(userId) > 0;
