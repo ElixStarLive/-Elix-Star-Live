@@ -80,7 +80,6 @@ let _PURCHASE_TYPE: typeof import('@capgo/native-purchases').PURCHASE_TYPE | nul
  */
 function reportIapStage(stage: string, data: Record<string, unknown> = {}): void {
   try {
-    // eslint-disable-next-line no-console
     console.info?.(`[IAP] ${stage}`, data);
   } catch { /* ignore */ }
   try {

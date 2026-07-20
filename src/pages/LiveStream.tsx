@@ -22,7 +22,6 @@ import {
   PlusCircle,
   TrendingUp,
   Plus,
-  Check,
   User,
   UserPlus,
   X,
@@ -1881,7 +1880,6 @@ export default function LiveStream() {
 
   const sendShareToFollower = async (targetUserId: string) => {
     if (!user?.id || shareSentTo.has(targetUserId)) return;
-    const label = shareFollowers.find((f) => f.user_id === targetUserId)?.username || 'user';
     try {
       const { data: _j, error: shareErr } = await request('/api/live-share', {
         method: 'POST',
@@ -1973,7 +1971,6 @@ export default function LiveStream() {
     if (player4VideoRef.current) { player4VideoRef.current.srcObject = null; }
     if (battlePeerRef.current) { battlePeerRef.current.close(); battlePeerRef.current = null; }
     // Battle state notified via WebSocket.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveStreamId, isBattleJoiner]);
 
   const exitBattleMode = useCallback(() => {
@@ -3341,7 +3338,6 @@ export default function LiveStream() {
 
     const handleCohostRequestAccepted = (data) => {
       if (!user?.id) return;
-      const hostName = data.hostName || 'Creator';
       const streamKey = data.streamKey || effectiveStreamId;
       if (streamKey) {
         navigate(`/watch/${streamKey}?cohost=1`, { state: { fromCohostInvite: true } });

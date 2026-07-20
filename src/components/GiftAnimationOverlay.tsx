@@ -113,7 +113,6 @@ export default function GiftAnimationOverlay({ streamId }: GiftAnimationOverlayP
       window.removeEventListener(ELIX_GIFT_PILL_EVENT, onLocal);
       if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
