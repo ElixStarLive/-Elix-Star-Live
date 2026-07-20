@@ -97,12 +97,6 @@ function reportIapStage(stage: string, data: Record<string, unknown> = {}): void
   } catch { /* diagnostics must never break a purchase */ }
 }
 
-/** Optional Android store-completion methods not present in every plugin version. */
-type StoreCompletionMethods = {
-  consumePurchase(options: { purchaseToken: string }): Promise<unknown>;
-  acknowledgePurchase(options: { transactionIdentifier: string; purchaseToken: string }): Promise<unknown>;
-};
-
 async function getPlugin() {
   if (_plugin) return { NativePurchases: _plugin, PURCHASE_TYPE: (_PURCHASE_TYPE as NonNullable<typeof _PURCHASE_TYPE>) };
   try {
@@ -235,14 +229,22 @@ async function completeCoinPurchase(
   receipt: string,
 ): Promise<void> {
   try {
-    if (platform.isAndroid && 'consumePurchase' in mod.NativePurchases && receipt) {
-      await (mod.NativePurchases as unknown as StoreCompletionMethods).consumePurchase({ purchaseToken: receipt });
-      reportIapStage('consumed');
-    } else if ('acknowledgePurchase' in mod.NativePurchases) {
-      await (mod.NativePurchases as unknown as StoreCompletionMethods).acknowledgePurchase({
-        transactionIdentifier: transactionId,
-        purchaseToken: receipt,
-      });
+    if (platform.isAndroid) {
+      // Coins are CONSUMABLE — the token MUST be consumed so Google stops
+      // treating the SKU as "owned"; otherwise the next purchase of the same
+      // pack fails with ITEM_ALREADY_OWNED ("You already own this item").
+      // NOTE: do not gate this on `'consumePurchase' in mod.NativePurchases` —
+      // the Capacitor native plugin proxy does not expose its methods to the
+      // `in` operator, so that check is always false on-device and the coins
+      // would never get consumed. Call the method directly instead.
+      if (receipt) {
+        await mod.NativePurchases.consumePurchase({ purchaseToken: receipt });
+        reportIapStage('consumed');
+      }
+    } else {
+      // iOS: finish the StoreKit transaction (the token argument is the
+      // transaction id on iOS).
+      await mod.NativePurchases.acknowledgePurchase({ purchaseToken: transactionId });
       reportIapStage('acknowledged');
     }
   } catch (e) {
@@ -500,12 +502,11 @@ export async function purchaseMembership(
     if (error) return { success: false, error: error.message || 'Membership verification failed' };
 
     try {
-      if ('acknowledgePurchase' in mod.NativePurchases) {
-        await (mod.NativePurchases as unknown as StoreCompletionMethods).acknowledgePurchase({
-          transactionIdentifier: transactionId,
-          purchaseToken: receipt,
-        });
-      }
+      // Acknowledge the subscription so Google Play does not auto-refund it
+      // after 3 days. Token is the purchaseToken on Android, transaction id on iOS.
+      await mod.NativePurchases.acknowledgePurchase({
+        purchaseToken: platform.isAndroid ? receipt : transactionId,
+      });
     } catch {
       /* best-effort store completion */
     }
@@ -581,13 +582,12 @@ export async function finalizeNativePurchase(opts: {
   const mod = await getPlugin();
   if (!mod) return;
   try {
-    if (platform.isAndroid && 'consumePurchase' in mod.NativePurchases && opts.receipt) {
-      await (mod.NativePurchases as unknown as StoreCompletionMethods).consumePurchase({ purchaseToken: opts.receipt });
-    } else if ('acknowledgePurchase' in mod.NativePurchases) {
-      await (mod.NativePurchases as unknown as StoreCompletionMethods).acknowledgePurchase({
-        transactionIdentifier: opts.transactionId,
-        purchaseToken: opts.receipt || '',
-      });
+    if (platform.isAndroid && opts.receipt) {
+      // Consume the consumable coin token so the SKU is buyable again.
+      await mod.NativePurchases.consumePurchase({ purchaseToken: opts.receipt });
+    } else {
+      // iOS: finish the transaction (token argument is the transaction id).
+      await mod.NativePurchases.acknowledgePurchase({ purchaseToken: opts.transactionId });
     }
   } catch {
     /* best-effort store completion */
