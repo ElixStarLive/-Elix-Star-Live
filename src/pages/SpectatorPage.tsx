@@ -541,42 +541,17 @@ export default function SpectatorPage() {
     return () => clearInterval(id);
   }, [spectatorBattle?.active, spectatorBattle?.status]);
 
-  // Connect to opponent's LiveKit room so spectators see both battle videos
+  // Battle opponent publishes into the HOST LiveKit room. Do not open a second
+  // subscribe to their old solo room (empty after join) — that cleanup cleared
+  // hasOpponentStream and left the pane on "Connecting...". Same-room attach
+  // lives in the effect below (battleStreamIds.opponentUserId).
   useEffect(() => {
-    const roomId = spectatorBattle?.opponentRoomId;
-    if (!spectatorBattle?.active || !roomId) {
-      if (opponentLkRoomRef.current) { opponentLkRoomRef.current.disconnect(); opponentLkRoomRef.current = null; }
-      setHasOpponentStream(false);
-      return;
+    if (!spectatorBattle?.active) {
+      if (opponentLkRoomRef.current) {
+        opponentLkRoomRef.current.disconnect();
+        opponentLkRoomRef.current = null;
+      }
     }
-    let mounted = true;
-    const room = new Room();
-    opponentLkRoomRef.current = room;
-    (async () => {
-      try {
-        const { data: payload, error: tokenErr } = await request(`/api/live/token?room=${encodeURIComponent(roomId)}`);
-        if (tokenErr || !mounted) return;
-        const token = payload?.token;
-        const url = (payload?.url ?? '').trim() || getLiveKitUrl();
-        if (!token || !url || !mounted) return;
-        room.on(RoomEvent.TrackSubscribed, (track) => {
-          if (!mounted || track.kind !== 'video') return;
-          const el = opponentVideoRef.current;
-          if (el) { track.attach(el); setHasOpponentStream(true); }
-        });
-        await room.connect(url, token);
-        if (!mounted) { room.disconnect(); return; }
-        for (const [, p] of room.remoteParticipants) {
-          for (const [, pub] of p.videoTrackPublications) {
-            if (pub.track && pub.isSubscribed && opponentVideoRef.current) {
-              pub.track.attach(opponentVideoRef.current);
-              setHasOpponentStream(true);
-            }
-          }
-        }
-      } catch { /* ignore */ }
-    })();
-    return () => { mounted = false; room.disconnect(); opponentLkRoomRef.current = null; setHasOpponentStream(false); };
   }, [spectatorBattle?.active, spectatorBattle?.opponentRoomId]);
 
   // ═══════════════════════════════════════════════════
@@ -1113,15 +1088,21 @@ export default function SpectatorPage() {
   useEffect(() => {
     const oppId = battleStreamIds?.opponentUserId;
     const room = liveKitRoomRef.current;
-    if (!oppId || !room || !spectatorBattle?.active) return;
+    if (!room || !spectatorBattle?.active) return;
     const tryAttach = () => {
       const el = opponentVideoRef.current;
       if (!el) return;
       for (const [, p] of room.remoteParticipants) {
-        if ((p.identity || '') !== oppId) continue;
+        const identity = p.identity || '';
+        const isHost =
+          identity === (hostUserIdRef.current || '') ||
+          identity === effectiveStreamId;
+        if (isHost) continue;
+        if (oppId && identity !== oppId) continue;
         for (const [, pub] of p.videoTrackPublications) {
           if (pub.track && pub.isSubscribed) {
             pub.track.attach(el);
+            void el.play().catch(() => {});
             setHasOpponentStream(true);
             return;
           }
@@ -1134,11 +1115,24 @@ export default function SpectatorPage() {
       _pub: import('livekit-client').TrackPublication,
       participant: import('livekit-client').RemoteParticipant,
     ) => {
-      if (track.kind === 'video' && (participant?.identity || '') === oppId) tryAttach();
+      if (track.kind !== 'video') return;
+      const identity = participant?.identity || '';
+      const isHost =
+        identity === (hostUserIdRef.current || '') ||
+        identity === effectiveStreamId;
+      if (isHost) return;
+      if (oppId && identity !== oppId) return;
+      tryAttach();
     };
     room.on(RoomEvent.TrackSubscribed, onSub);
-    return () => { room.off(RoomEvent.TrackSubscribed, onSub); };
-  }, [battleStreamIds?.opponentUserId, spectatorBattle?.active, hasStream]);
+    room.on(RoomEvent.ParticipantConnected, tryAttach);
+    const poll = window.setInterval(tryAttach, 2000);
+    return () => {
+      room.off(RoomEvent.TrackSubscribed, onSub);
+      room.off(RoomEvent.ParticipantConnected, tryAttach);
+      window.clearInterval(poll);
+    };
+  }, [battleStreamIds?.opponentUserId, spectatorBattle?.active, hasStream, effectiveStreamId]);
 
   // If we're still "connecting" after 18s, hint that host may not be publishing
   useEffect(() => {
