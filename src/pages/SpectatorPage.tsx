@@ -3854,11 +3854,11 @@ export default function SpectatorPage() {
               onClick={() => setIsMoreMenuOpen(false)}
             />
             <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
-              <div className="bg-[#111111]/95 rounded-t-2xl p-4 pb-safe shadow-2xl w-full">
-                <div className="flex justify-center mb-3">
+              <div className="bg-[#111111]/95 backdrop-blur-md rounded-t-2xl p-3 pb-safe flex flex-col shadow-2xl w-full h-[40vh] overflow-hidden">
+                <div className="flex justify-center pt-0.5 pb-0.5">
                   <div className="w-10 h-1 bg-white/20 rounded-full" />
                 </div>
-                <div className="grid grid-cols-4 gap-y-4 gap-x-2 pt-1 pb-2 px-1">
+                <div className="grid grid-cols-4 gap-y-4 gap-x-2 pt-4 pb-2 px-1">
                   <button
                     type="button"
                     onClick={() => {
