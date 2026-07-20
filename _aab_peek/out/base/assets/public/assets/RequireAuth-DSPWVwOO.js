@@ -1,1 +1,0 @@
-import{j as t}from"./vendor-ui-CiG1jkR2.js";import{u as o}from"./index-CrMG-gd6.js";import{c as s,N as r,O as a}from"./vendor-react-Cn-VCGTm.js";import"./vendor-state-BqMS-q10.js";function e(){const e=s(),{isAuthenticated:n,isLoading:i}=o();return i?null:n?t.jsx(a,{}):t.jsx(r,{to:"/login",replace:!0,state:{from:e.pathname}})}export{e as default};
