@@ -659,9 +659,13 @@ export default function LiveStream() {
       setRemoteCamOff((prev) => { const n = new Set(prev); n.delete(id); return n; });
     });
 
+    let cancelled = false;
     (async () => {
       try {
         await room.connect(liveKitCreds.url, liveKitCreds.token);
+        // The effect was cleaned up while connecting — tear down instead of
+        // publishing a ghost camera/mic track into a room we've left.
+        if (cancelled) { room.disconnect(); return; }
         for (const [, participant] of room.remoteParticipants) {
           for (const [, pub] of participant.videoTrackPublications) {
             if (pub.track && pub.isSubscribed) attachRemoteTrack(pub.track, participant);
@@ -671,10 +675,12 @@ export default function LiveStream() {
           }
         }
         if (videoTrack) {
+          if (cancelled) { room.disconnect(); return; }
           const localVideo = new LocalVideoTrack(videoTrack);
           await room.localParticipant.publishTrack(localVideo, { name: 'camera' });
         }
         if (audioTrack) {
+          if (cancelled) { room.disconnect(); return; }
           const localAudio = new LocalAudioTrack(audioTrack);
           await room.localParticipant.publishTrack(localAudio, { name: 'mic' });
         }
@@ -687,6 +693,7 @@ export default function LiveStream() {
     })();
 
     return () => {
+      cancelled = true;
       liveKitRoomRef.current = null;
       room.disconnect();
     };

@@ -191,6 +191,8 @@ export default function Upload() {
         }
 
         if (stream.getVideoTracks().length === 0) {
+          // Stop the (audio-only) stream we won't use, or its mic stays live.
+          stream.getTracks().forEach(t => t.stop());
           setCameraError('Camera returned no video. Try a different browser.');
           return;
         }
@@ -198,6 +200,10 @@ export default function Upload() {
         if (!cancelled && videoRef.current) {
           videoRef.current.srcObject = stream;
           setCachedCameraStream(stream);
+        } else {
+          // Unmounted (or no video element) before we could attach/cache the
+          // stream — stop tracks so the camera/mic indicator does not stay on.
+          stream.getTracks().forEach(t => t.stop());
         }
         setCameraError(null);
       } catch (err: unknown) {

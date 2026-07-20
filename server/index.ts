@@ -211,7 +211,10 @@ app.use(
       "image/png",
       "image/webp",
     ],
-    limit: "100mb",
+    // Must match the media router's own raw parser limit (600mb). This global
+    // parser runs first and consumes the body, so a lower limit here silently
+    // caps video uploads and rejects large files before the route is reached.
+    limit: "600mb",
   }),
 );
 

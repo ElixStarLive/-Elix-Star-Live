@@ -63,7 +63,10 @@ export default function VideoCall() {
           video: { facingMode: { ideal: facingMode } },
           audio: true,
         });
+        // Unmounted while acquiring — stop tracks so the camera/mic indicator
+        // does not stay on after leaving the call setup.
         if (!cancelled) setLocalStream(stream);
+        else stream.getTracks().forEach((t) => t.stop());
       } catch {
         try {
           const stream = await navigator.mediaDevices.getUserMedia({
@@ -71,6 +74,7 @@ export default function VideoCall() {
             audio: true,
           });
           if (!cancelled) setLocalStream(stream);
+          else stream.getTracks().forEach((t) => t.stop());
         } catch {
           /* camera blocked — still show call UI */
         }
@@ -215,21 +219,39 @@ export default function VideoCall() {
     if (!localStream) return;
     const next = facingMode === 'user' ? 'environment' : 'user';
     localStream.getTracks().forEach((t) => t.stop());
+    // The LiveKit connect effect early-returns when a room already exists, so a
+    // camera switch mid-call must republish the freshly captured tracks here —
+    // otherwise the remote peer keeps seeing the old (now stopped) track.
+    const republish = async (stream: MediaStream) => {
+      setFacingMode(next);
+      setLocalStream(stream);
+      const room = roomRef.current;
+      if (!room) return;
+      try {
+        for (const pub of room.localParticipant.trackPublications.values()) {
+          if (pub.track) await room.localParticipant.unpublishTrack(pub.track);
+        }
+        const nv = stream.getVideoTracks()[0];
+        const na = stream.getAudioTracks()[0];
+        if (nv) await room.localParticipant.publishTrack(nv);
+        if (na) await room.localParticipant.publishTrack(na);
+      } catch {
+        /* keep the local switch even if republish fails */
+      }
+    };
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: { ideal: next } },
         audio: true,
       });
-      setFacingMode(next);
-      setLocalStream(stream);
+      await republish(stream);
     } catch {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: true,
           audio: true,
         });
-        setFacingMode(next);
-        setLocalStream(stream);
+        await republish(stream);
       } catch {
         /* ignore */
       }

@@ -744,6 +744,100 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
 
     let client: Client | null = null;
 
+    // Register error + close handlers up front so EVERY connection path cleans
+    // up its maps — including the feed branch and the setup-catch below, which
+    // both return before the rest of setup completes. The handlers guard on
+    // `client` and use per-step existence checks, so they are safe for partial
+    // or early-terminated connections. Without this, feed subscribers and
+    // failed-setup sockets leak entries in clients/feedSubscribers/rooms/Valkey.
+    ws.on("error", (error) => {
+      logger.error({ err: error }, "WebSocket error");
+    });
+
+    ws.on("close", async () => {
+      if (!client) return;
+
+      try {
+        const uc = userClients.get(client.userId);
+        if (uc) {
+          uc.delete(client);
+          if (uc.size === 0) {
+            userClients.delete(client.userId);
+            unsubscribeUserChannel(client.userId);
+          }
+        }
+
+        if (client.roomId === "__feed__") {
+          removeFeedSubscriber(ws);
+          clients.delete(ws);
+          return;
+        }
+
+        const room = rooms.get(client.roomId);
+        if (room) {
+          room.delete(client);
+
+          const userStillInRoom = Array.from(room).some(
+            (c) => c.userId === (client as NonNullable<typeof client>).userId,
+          );
+
+          if (!userStillInRoom && isValkeyConfigured()) {
+            await valkeySrem(`room:members:${client.roomId}`, client.userId);
+            // Leaving the room removes any co-host publish entitlement.
+            await revokeCohostPublish(client.roomId, client.userId);
+          }
+
+          broadcastToRoom(client.roomId, "user_left", {
+            user_id: client.userId,
+            username: client.username,
+            avatar_url: client.avatarUrl,
+          });
+
+          updateViewerCount(client.roomId).catch((err) => {
+            logger.warn({ err, roomId: client.roomId }, "updateViewerCount failed on client disconnect");
+          });
+          checkAndBroadcastStreamEnd(client.roomId, client.userId).catch((err) => {
+            logger.error({ err, roomId: client.roomId, userId: client.userId }, "checkAndBroadcastStreamEnd unhandled rejection");
+          });
+
+          if (room.size === 0) {
+            rooms.delete(client.roomId);
+            unsubscribeRoomChannel(client.roomId);
+            viewerCountDbWriter.flush(client.roomId);
+          }
+        }
+
+        // Only end battle when leaving the battle room itself. Ending on leave
+        // from the opponent's previous solo room races invite-accept reconnect
+        // and kills battles for host + spectators. A WS blip must not end the
+        // battle instantly either — give the participant a grace to reconnect.
+        const battleRoomId = await getUserBattleRoom(client.userId);
+        if (battleRoomId && client.roomId === battleRoomId) {
+          const stillConnectedToBattleRoom = (() => {
+            const battleRoom = rooms.get(battleRoomId);
+            if (!battleRoom) return false;
+            return Array.from(battleRoom).some(
+              (c) => c.userId === (client as NonNullable<typeof client>).userId,
+            );
+          })();
+          if (!stillConnectedToBattleRoom) {
+            const battle = await getBattleFromStore(battleRoomId);
+            if (battle && battle.status !== "ENDED") {
+              const isHost = battle.hostUserId === client.userId;
+              const isOpponent = battle.opponentUserId === client.userId;
+              if (isHost || isOpponent) {
+                scheduleBattleDisconnectEnd(battleRoomId, client.userId);
+              }
+            }
+          }
+        }
+
+        clients.delete(ws);
+      } catch (err) {
+        logger.error({ err }, "Error in close handler");
+      }
+    });
+
     try {
       if (!req.url) {
         ws.close(1008, "Missing URL");
@@ -971,10 +1065,6 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
       return;
     }
 
-    ws.on("error", (error) => {
-      logger.error({ err: error }, "WebSocket error");
-    });
-
     ws.on("message", async (data) => {
       aliveClients.add(ws);
       try {
@@ -1003,90 +1093,6 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
         } catch {
           /* prevent double-throw */
         }
-      }
-    });
-
-    ws.on("close", async () => {
-      if (!client) return;
-
-      try {
-        const uc = userClients.get(client.userId);
-        if (uc) {
-          uc.delete(client);
-          if (uc.size === 0) {
-            userClients.delete(client.userId);
-            unsubscribeUserChannel(client.userId);
-          }
-        }
-
-        if (client.roomId === "__feed__") {
-          removeFeedSubscriber(ws);
-          clients.delete(ws);
-          return;
-        }
-
-        const room = rooms.get(client.roomId);
-        if (room) {
-          room.delete(client);
-
-          const userStillInRoom = Array.from(room).some(
-            (c) => c.userId === (client as NonNullable<typeof client>).userId,
-          );
-
-          if (!userStillInRoom && isValkeyConfigured()) {
-            await valkeySrem(`room:members:${client.roomId}`, client.userId);
-            // Leaving the room removes any co-host publish entitlement.
-            await revokeCohostPublish(client.roomId, client.userId);
-          }
-
-          broadcastToRoom(client.roomId, "user_left", {
-            user_id: client.userId,
-            username: client.username,
-            avatar_url: client.avatarUrl,
-          });
-
-          updateViewerCount(client.roomId).catch((err) => {
-            logger.warn({ err, roomId: client.roomId }, "updateViewerCount failed on client disconnect");
-          });
-          checkAndBroadcastStreamEnd(client.roomId, client.userId).catch((err) => {
-            logger.error({ err, roomId: client.roomId, userId: client.userId }, "checkAndBroadcastStreamEnd unhandled rejection");
-          });
-
-          if (room.size === 0) {
-            rooms.delete(client.roomId);
-            unsubscribeRoomChannel(client.roomId);
-            viewerCountDbWriter.flush(client.roomId);
-          }
-        }
-
-        // Only end battle when leaving the battle room itself. Ending on leave
-        // from the opponent's previous solo room races invite-accept reconnect
-        // and kills battles for host + spectators. A WS blip must not end the
-        // battle instantly either — give the participant a grace to reconnect.
-        const battleRoomId = await getUserBattleRoom(client.userId);
-        if (battleRoomId && client.roomId === battleRoomId) {
-          const stillConnectedToBattleRoom = (() => {
-            const battleRoom = rooms.get(battleRoomId);
-            if (!battleRoom) return false;
-            return Array.from(battleRoom).some(
-              (c) => c.userId === (client as NonNullable<typeof client>).userId,
-            );
-          })();
-          if (!stillConnectedToBattleRoom) {
-            const battle = await getBattleFromStore(battleRoomId);
-            if (battle && battle.status !== "ENDED") {
-              const isHost = battle.hostUserId === client.userId;
-              const isOpponent = battle.opponentUserId === client.userId;
-              if (isHost || isOpponent) {
-                scheduleBattleDisconnectEnd(battleRoomId, client.userId);
-              }
-            }
-          }
-        }
-
-        clients.delete(ws);
-      } catch (err) {
-        logger.error({ err }, "Error in close handler");
       }
     });
   });

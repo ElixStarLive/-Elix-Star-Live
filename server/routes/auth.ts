@@ -1030,7 +1030,14 @@ export async function handleForgotPassword(req: Request, res: Response) {
         pv: passwordResetBinding(user.passwordHash),
       },
     );
-    const origin = process.env.APP_ORIGIN || req.headers.origin || 'https://www.elixstarlive.co.uk';
+    // Never trust the client-supplied Origin header in production — an attacker
+    // could spoof it to embed a valid reset token into a link on a site they
+    // control (token theft). Use the configured APP_ORIGIN or the canonical URL;
+    // the Origin header is only a convenience fallback in local/dev.
+    const origin =
+      process.env.APP_ORIGIN ||
+      (process.env.NODE_ENV !== 'production' ? req.headers.origin : undefined) ||
+      'https://www.elixstarlive.co.uk';
     const resetLink = `${origin}/reset-password?token=${encodeURIComponent(resetToken)}`;
 
     const result = await sendTransactionalEmail({

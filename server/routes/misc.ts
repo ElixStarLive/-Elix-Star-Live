@@ -4,6 +4,7 @@ import { getTokenFromRequest, verifyAuthToken } from './auth';
 import {
   neonCreditIap,
   neonGetActiveMembershipEntitlement,
+  neonGetCoinBalance,
   neonInsertPromotePurchase,
   neonIsIapProcessed,
   neonUpsertMembershipEntitlement,
@@ -300,7 +301,19 @@ async function verifyGooglePlayPurchase(
 async function verifyAppleReceipt(
   transactionId: string,
 ): Promise<{ valid: boolean; productId?: string; detail?: string }> {
-  return fetchAppleTransaction(transactionId);
+  const result = await fetchAppleTransaction(transactionId);
+  // Consumable coin purchases must NOT credit for a transaction that Apple has
+  // revoked or refunded. fetchAppleTransaction only checks JWS validity, so
+  // reject any transaction carrying a revocationDate here.
+  if (
+    result.valid &&
+    result.payload &&
+    typeof result.payload.revocationDate === 'number' &&
+    result.payload.revocationDate > 0
+  ) {
+    return { valid: false, productId: result.productId, detail: 'apple-transaction-revoked' };
+  }
+  return result;
 }
 
 // --- Verify Purchase ---
@@ -338,7 +351,16 @@ export async function handleVerifyPurchase(req: Request, res: Response) {
     );
     if (!providerTransactionId) return res.status(400).json({ error: 'Invalid transaction identifier' });
     if (await neonIsIapProcessed(safeProvider, providerTransactionId)) {
-      return res.status(200).json({ success: true, deduplicated: true, message: 'Transaction already processed' });
+      // Coins were already credited for this transaction. Return the authoritative
+      // wallet balance so the client never fabricates one (e.g. base + coins),
+      // which would double-count the purchase in the displayed balance.
+      const dedupedBalance = await neonGetCoinBalance(String(userId));
+      return res.status(200).json({
+        success: true,
+        deduplicated: true,
+        message: 'Transaction already processed',
+        ...(typeof dedupedBalance === 'number' ? { newBalance: dedupedBalance } : {}),
+      });
     }
 
     let isValid = false;
