@@ -28,6 +28,14 @@ export type GiftItem = GiftUiItem;
 
 export const GIFT_COMBO_MAX = 5000;
 
+/** Display-only name fixes (does not change gift_id / pricing). */
+export function formatGiftDisplayName(name: string): string {
+  if (name === 'A Gleaming Treasure Chest In A Cave') {
+    return 'Gleaming Treasure Chest In Cave';
+  }
+  return name;
+}
+
 // Fetch gifts from database - NO HARDCODED DATA
 export async function fetchGiftsFromDatabase(): Promise<GiftUiItem[]> {
   try {
@@ -217,7 +225,7 @@ export function buildGiftUiItemsFromCatalog(rows: GiftCatalogRow[]): GiftUiItem[
 
       return {
         id: row.gift_id,
-        name: row.name,
+        name: formatGiftDisplayName(row.name),
         coins: row.coin_cost,
         giftType: row.gift_type,
         isActive: row.is_active,

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { websocket } from '../lib/websocket';
+import { formatGiftDisplayName } from '../lib/giftsCatalog';
 
 export const ELIX_GIFT_PILL_EVENT = 'elix-gift-pill';
 
@@ -130,7 +131,7 @@ export default function GiftAnimationOverlay({ streamId }: GiftAnimationOverlayP
   return (
     <div className="fixed inset-0 pointer-events-none z-[999996] flex justify-center">
       <div className="w-full max-w-[480px] relative">
-        <div className="absolute left-0 right-0 px-1" style={{ top: 'calc(1cm + 7mm)' }}>
+        <div className="absolute left-0 right-0 px-1" style={{ top: 'calc(1cm + 13mm)' }}>
           {currentGift && (
             <div className="animate-slide-in-right w-full rounded-full flex items-center gap-1.5 overflow-hidden px-2 py-0.5 bg-red-600/85 backdrop-blur-sm">
               <div className="w-4 h-4 flex-shrink-0">
@@ -142,7 +143,7 @@ export default function GiftAnimationOverlay({ streamId }: GiftAnimationOverlayP
               </div>
               <div className="flex-1 min-w-0 overflow-x-auto no-scrollbar">
                 <p className="text-xs font-bold text-black whitespace-nowrap leading-tight">
-                  {currentGift.username} sent {currentGift.giftName} to {currentGift.creatorName}
+                  {currentGift.username} sent {formatGiftDisplayName(currentGift.giftName)} to {currentGift.creatorName}
                   {currentGift.quantity > 1 && <span> x{currentGift.quantity}</span>}
                 </p>
               </div>

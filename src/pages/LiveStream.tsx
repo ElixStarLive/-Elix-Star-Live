@@ -35,7 +35,7 @@ import {
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { FILTER_PRESETS } from '../lib/ai/filters';
-import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, fetchGiftsFromDatabase, pickGiftVideoUrl } from '../lib/giftsCatalog';
+import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, fetchGiftsFromDatabase, pickGiftVideoUrl, formatGiftDisplayName } from '../lib/giftsCatalog';
 import { BattleVfxOverlays, GloveIcon, type BattleMistSide, type GloveBurst } from '../components/BattleVfxOverlays';
 import {
   addPersistedTestCoins,
@@ -2986,11 +2986,12 @@ export default function LiveStream() {
             }
           }
         }
-        const giftName =
+        const giftName = formatGiftDisplayName(
           giftDef?.name ||
           (typeof data.giftName === 'string' && data.giftName.trim()) ||
           (typeof data.gift_name === 'string' && data.gift_name.trim()) ||
-          'Gift';
+          'Gift',
+        );
         const msg: LiveMessage = {
           id: `gift-ws-${txnId || Date.now()}-${Math.random()}`,
           username: typeof data.username === 'string' ? data.username : 'User',
