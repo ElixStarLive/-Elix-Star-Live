@@ -31,17 +31,29 @@ function VideoThumbnail({ video }: { video: Video }) {
     [bunnyPoster],
   );
 
-  // For tiles without a still thumbnail, WebViews leave the <video> black until a
-  // frame is actually decoded. Loading frame data (preload="auto") then a brief
-  // muted play → pause forces the player to paint and freeze on the real frame.
-  const paintFirstFrame = React.useCallback(
+  // For tiles without a still thumbnail we render the <video> and freeze a frame.
+  // The first ~0.5s is usually a black fade-in / encoder frame, so seek a bit into
+  // the clip where real content is visible — otherwise the tile looks "black".
+  const seekToContentFrame = React.useCallback(
     (e: React.SyntheticEvent<HTMLVideoElement>) => {
       const vid = e.currentTarget;
       try {
-        if (vid.currentTime < 0.1) vid.currentTime = 0.1;
+        const dur = Number.isFinite(vid.duration) && vid.duration > 0 ? vid.duration : 0;
+        const target = dur > 0 ? Math.min(Math.max(dur * 0.15, 0.7), 3) : 0.7;
+        if (Math.abs(vid.currentTime - target) > 0.05) vid.currentTime = target;
       } catch {
-        /* seek unsupported — ignore */
+        /* seek unsupported — the play/pause fallback below handles it */
       }
+    },
+    [],
+  );
+
+  // Some WebViews won't paint a seeked frame until playback happens, so if the
+  // seek didn't advance, nudge with a brief muted play → pause.
+  const paintFirstFrame = React.useCallback(
+    (e: React.SyntheticEvent<HTMLVideoElement>) => {
+      const vid = e.currentTarget;
+      if (vid.currentTime > 0.05) return; // seeked frame already painted
       const played = vid.play?.();
       if (played && typeof played.then === 'function') {
         played
@@ -55,7 +67,7 @@ function VideoThumbnail({ video }: { video: Video }) {
             }, 60);
           })
           .catch(() => {
-            /* autoplay blocked — the seek above is the fallback */
+            /* autoplay blocked — the seek is the fallback */
           });
       }
     },
@@ -78,10 +90,11 @@ function VideoThumbnail({ video }: { video: Video }) {
         />
       ) : playbackUrl ? (
         <video
-          src={`${playbackUrl}#t=0.1`}
+          src={playbackUrl}
           muted
           playsInline
           preload="auto"
+          onLoadedMetadata={seekToContentFrame}
           onLoadedData={paintFirstFrame}
           className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:opacity-100 transition"
           aria-hidden

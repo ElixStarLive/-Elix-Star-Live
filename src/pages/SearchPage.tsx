@@ -295,21 +295,28 @@ export default function SearchPage() {
                           className="w-full flex gap-3 p-2 rounded-xl hover:bg-white/5 transition"
                         >
                           <video
-                            src={resolveVideoPlaybackUrl(v.url) ? `${resolveVideoPlaybackUrl(v.url)}#t=0.1` : undefined}
+                            src={resolveVideoPlaybackUrl(v.url) || undefined}
                             poster={resolveGridThumbnailUrl(v.thumbnail, v.url) || undefined}
                             className="w-16 h-22 rounded-lg object-cover bg-[#111111] border border-[#C9A227]/20"
                             muted
                             playsInline
                             preload="auto"
-                            onLoadedData={(e) => {
-                              // WebViews stay black until a frame is decoded — nudge + brief
-                              // muted play/pause so a real frame paints and freezes.
+                            onLoadedMetadata={(e) => {
+                              // First ~0.5s is often a black fade-in frame — seek a bit into
+                              // the clip so a real content frame paints instead of black.
                               const vid = e.currentTarget;
                               try {
-                                if (vid.currentTime < 0.1) vid.currentTime = 0.1;
+                                const dur = Number.isFinite(vid.duration) && vid.duration > 0 ? vid.duration : 0;
+                                const target = dur > 0 ? Math.min(Math.max(dur * 0.15, 0.7), 3) : 0.7;
+                                if (Math.abs(vid.currentTime - target) > 0.05) vid.currentTime = target;
                               } catch {
                                 /* seek unsupported — ignore */
                               }
+                            }}
+                            onLoadedData={(e) => {
+                              // Some WebViews won't paint a seeked frame without playback.
+                              const vid = e.currentTarget;
+                              if (vid.currentTime > 0.05) return;
                               const played = vid.play?.();
                               if (played && typeof played.then === 'function') {
                                 played
