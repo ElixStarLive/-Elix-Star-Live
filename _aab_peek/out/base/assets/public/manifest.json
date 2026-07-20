@@ -1,0 +1,19 @@
+{
+  "name": "Elix Star Live",
+  "short_name": "Elix Star",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "description": "The ultimate video social platform",
+  "categories": ["entertainment", "social"],
+  "icons": [
+    {
+      "src": "/elix-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
