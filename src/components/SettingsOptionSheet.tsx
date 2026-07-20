@@ -45,23 +45,26 @@ export default function SettingsOptionSheet({ children, onClose }: SettingsOptio
         onClick={(e) => e.stopPropagation()}
       >
         <div
-          className="relative flex-shrink-0 h-11 bg-[#111111] touch-none cursor-grab active:cursor-grabbing border-b border-white/[0.06]"
+          className="relative flex-shrink-0 bg-[#111111] touch-none cursor-grab active:cursor-grabbing border-b border-white/[0.06]"
+          style={{ paddingTop: 'var(--page-header-top)' }}
           onPointerDown={onDragStart}
           onPointerMove={onDragMove}
           onPointerUp={onDragEnd}
           onPointerCancel={onDragEnd}
         >
-          <div className="w-11 h-1.5 bg-white/35 rounded-full absolute top-3 left-1/2 -translate-x-1/2" />
-          <button
-            type="button"
-            onClick={onClose}
-            onPointerDown={(e) => e.stopPropagation()}
-            className="absolute top-1 right-2 z-30 p-1 rounded-full active:scale-90 transition-transform"
-            aria-label="Close"
-            title="Close"
-          >
-            <RoyceCloseIcon size={20} />
-          </button>
+          <div className="relative h-11">
+            <div className="w-11 h-1.5 bg-white/35 rounded-full absolute top-3 left-1/2 -translate-x-1/2" />
+            <button
+              type="button"
+              onClick={onClose}
+              onPointerDown={(e) => e.stopPropagation()}
+              className="absolute top-1 right-2 z-30 p-1 rounded-full active:scale-90 transition-transform"
+              aria-label="Close"
+              title="Close"
+            >
+              <RoyceCloseIcon size={20} />
+            </button>
+          </div>
         </div>
         <div className="flex-1 min-h-0 overflow-hidden flex flex-col">{children}</div>
       </div>
