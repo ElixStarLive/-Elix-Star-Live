@@ -86,6 +86,20 @@ function formatBattleScoreShort(coins: number) {
   return n.toLocaleString();
 }
 
+/** Co-host tile gift totals — 15K / 100K / 500K style. */
+function formatCohostGiftScore(coins: number) {
+  const c = typeof coins === 'number' && Number.isFinite(coins) ? coins : 0;
+  if (c >= 1_000_000) {
+    const m = Math.round((c / 1_000_000) * 10) / 10;
+    return `${Number.isInteger(m) ? Math.trunc(m) : m}M`;
+  }
+  if (c >= 1000) {
+    const k = Math.round((c / 1000) * 10) / 10;
+    return `${Number.isInteger(k) ? Math.trunc(k) : k}K`;
+  }
+  return String(c);
+}
+
 function AnimatedScore({ value, className = '', durationMs = 300, format }: { value: number; className?: string; durationMs?: number; format?: (n: number) => string }) {
   const [display, setDisplay] = useState(value);
   const rafRef = useRef<number>(0);
@@ -398,6 +412,10 @@ export default function SpectatorPage() {
   const [hasOpponentStream, setHasOpponentStream] = useState(false);
   const [showOpponentPanel, setShowOpponentPanel] = useState(false);
   const [lastOpponentGift, setLastOpponentGift] = useState<string | null>(null);
+  /** Tap a co-host tile to gift them (null = gift goes to the stream host). */
+  const [selectedCohostGiftUserId, setSelectedCohostGiftUserId] = useState<string | null>(null);
+  const [cohostGiftScores, setCohostGiftScores] = useState<Record<string, number>>({});
+  const [cohostLastGifts, setCohostLastGifts] = useState<Record<string, string>>({});
   const [opponentProfile, setOpponentProfile] = useState<{
     displayName: string; username: string; avatarUrl: string;
     followers: number; following: number; level: number; bio: string;
@@ -1446,6 +1464,26 @@ export default function SpectatorPage() {
             if (iconUrl) setLastOpponentGift(iconUrl);
           }
         }
+        const cohostTarget =
+          (typeof data.cohostTargetUserId === 'string' && data.cohostTargetUserId.trim()) ||
+          (typeof data.cohost_target_user_id === 'string' && data.cohost_target_user_id.trim()) ||
+          '';
+        if (cohostTarget && giftCoins > 0) {
+          setCohostGiftScores((prev) => ({
+            ...prev,
+            [cohostTarget]: (prev[cohostTarget] || 0) + giftCoins,
+          }));
+          const iconRaw =
+            (typeof data.gift_icon === 'string' && data.gift_icon) ||
+            (typeof giftDef?.icon === 'string' ? giftDef.icon : '');
+          const iconUrl =
+            iconRaw && (iconRaw.startsWith('http://') || iconRaw.startsWith('https://') || iconRaw.startsWith('/'))
+              ? (iconRaw.startsWith('http') ? iconRaw : resolveGiftAssetUrl(iconRaw.startsWith('/') ? iconRaw : `/${iconRaw}`))
+              : null;
+          if (iconUrl) {
+            setCohostLastGifts((prev) => ({ ...prev, [cohostTarget]: iconUrl }));
+          }
+        }
       }
       // Play gift video for other users' gifts (sender already queued locally).
       {
@@ -2050,21 +2088,29 @@ export default function SpectatorPage() {
             ...(spectatorBattle?.active
               ? { battleTarget: spectatorGiftBattleTarget }
               : {}),
+            ...(!spectatorBattle?.active && selectedCohostGiftUserId
+              ? { cohostTargetUserId: selectedCohostGiftUserId }
+              : {}),
           }),
         });
 
         if (giftErr) {
           const msg = giftErr.message || '';
           if (msg.includes('frozen')) {
-            showToast('Account is frozen. Contact support.');
+              showToast('Account is frozen. Contact support.');
+              return;
+            }
+            if (msg.includes('INSUFFICIENT') || msg.includes('insufficient_funds') || msg.includes('insufficient')) {
+              showToast('Not enough coins');
+              return;
+            }
+            if (msg.includes('INVALID_COHOST_TARGET')) {
+              showToast('That co-host is no longer available');
+              setSelectedCohostGiftUserId(null);
+              return;
+            }
+            showToast(msg || 'Gift failed');
             return;
-          }
-          if (msg.includes('INSUFFICIENT') || msg.includes('insufficient_funds') || msg.includes('insufficient')) {
-            showToast('Not enough coins');
-            return;
-          }
-          showToast(msg || 'Gift failed');
-          return;
         }
         if (result.gift_source === 'starter_coins') {
           setStarterCoinBalance(
@@ -2156,6 +2202,12 @@ export default function SpectatorPage() {
         host_user_id: hostUserId || effectiveStreamId,
         ...(spectatorBattle?.active
           ? { battleTarget: spectatorGiftBattleTarget }
+          : {}),
+        ...(!spectatorBattle?.active && selectedCohostGiftUserId
+          ? {
+              cohostTargetUserId: selectedCohostGiftUserId,
+              cohost_target_user_id: selectedCohostGiftUserId,
+            }
           : {}),
       });
     }
@@ -2679,6 +2731,9 @@ export default function SpectatorPage() {
             }
             if (slot.type === 'live' && slot.host) {
               const h = slot.host;
+              const score = cohostGiftScores[h.userId] || 0;
+              const lastGiftIcon = cohostLastGifts[h.userId];
+              const isSelected = selectedCohostGiftUserId === h.userId;
               return (
                 <>
                   <video
@@ -2721,6 +2776,25 @@ export default function SpectatorPage() {
                     </div>
                   )}
                   <p className="absolute bottom-0.5 left-0.5 z-10 text-white/80 text-[8px] font-bold bg-black/50 rounded px-1 truncate max-w-[90%]">{h.name}</p>
+                  {(lastGiftIcon || score > 0) && (
+                    <div className="absolute bottom-0.5 right-0.5 z-10 flex items-center pointer-events-none">
+                      {lastGiftIcon && (
+                        <div className="w-5 h-5 rounded-full bg-[#111111] border border-[#C9A227]/40 overflow-hidden flex items-center justify-center drop-shadow-md z-10 relative">
+                          <img src={lastGiftIcon} alt="gift" className="w-full h-full object-cover" />
+                        </div>
+                      )}
+                      {score > 0 && (
+                        <div
+                          className={`h-4 flex items-center rounded-full text-[8px] font-bold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] relative z-0 bg-[#111111]/40 backdrop-blur-md border border-white/10 ${lastGiftIcon ? '-ml-2 pl-3 pr-1.5' : 'px-1.5'}`}
+                        >
+                          {formatCohostGiftScore(score)}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {isSelected && (
+                    <div className="absolute inset-0 z-[5] pointer-events-none border-2 border-[#D4AF37]" />
+                  )}
                 </>
               );
             }
@@ -2841,10 +2915,26 @@ export default function SpectatorPage() {
                     const cellSpeaking =
                       (slot.type === 'self' && !!user?.id && speakingIds.has(user.id)) ||
                       (slot.type === 'live' && !!slot.host && speakingIds.has(slot.host.userId));
+                    const liveHost = slot.type === 'live' ? slot.host : undefined;
                     return (
                       <div
                         key={i}
-                        className={`relative bg-[#111111] flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 border border-[#C9A96E]/40 ${cellSpeaking ? 'elix-speaking-pulse' : ''}`}
+                        role={liveHost ? 'button' : undefined}
+                        tabIndex={liveHost ? 0 : undefined}
+                        onClick={() => {
+                          if (!liveHost || spectatorBattle?.active) return;
+                          setSelectedCohostGiftUserId(liveHost.userId);
+                          setShowGiftPanel(true);
+                        }}
+                        onKeyDown={(e) => {
+                          if (!liveHost || spectatorBattle?.active) return;
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setSelectedCohostGiftUserId(liveHost.userId);
+                            setShowGiftPanel(true);
+                          }
+                        }}
+                        className={`relative bg-[#111111] flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 border border-[#C9A96E]/40 ${cellSpeaking ? 'elix-speaking-pulse' : ''} ${liveHost ? 'cursor-pointer' : ''}`}
                       >
                         {renderSlot(slot)}
                       </div>
@@ -3207,7 +3297,10 @@ export default function SpectatorPage() {
               <button
                 type="button"
                 title="Send gift"
-                onClick={() => setShowGiftPanel(true)}
+                onClick={() => {
+                  setSelectedCohostGiftUserId(null);
+                  setShowGiftPanel(true);
+                }}
                 className="flex flex-col items-center justify-center w-12 active:scale-95 transition-transform select-none flex-shrink-0"
               >
                 <div className="relative w-10 h-10 flex items-center justify-center">

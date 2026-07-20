@@ -1667,6 +1667,9 @@ export default function LiveStream() {
   const _speedChallengeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reachedThresholdsRef = useRef<Set<number>>(new Set());
   const [lastGifts, setLastGifts] = useState<{ opponent: string | null; player3: string | null; player4: string | null }>({ opponent: null, player3: null, player4: null });
+  /** Per co-host tile: gift totals + last gift icon (synced from gift_sent). */
+  const [cohostGiftScores, setCohostGiftScores] = useState<Record<string, number>>({});
+  const [cohostLastGifts, setCohostLastGifts] = useState<Record<string, string>>({});
   const [floatingHearts, setFloatingHearts] = useState<
     Array<{ id: string; x: number; y: number; dx: number; rot: number; size: number; color: string; username?: string; avatar?: string }>
   >([]);
@@ -2933,6 +2936,26 @@ export default function LiveStream() {
               ...(target === 'player3' ? { player3: iconUrl } : {}),
               ...(target === 'player4' ? { player4: iconUrl } : {}),
             }));
+          }
+        }
+        const cohostTarget =
+          (typeof data.cohostTargetUserId === 'string' && data.cohostTargetUserId.trim()) ||
+          (typeof data.cohost_target_user_id === 'string' && data.cohost_target_user_id.trim()) ||
+          '';
+        if (cohostTarget && giftCoins > 0) {
+          setCohostGiftScores((prev) => ({
+            ...prev,
+            [cohostTarget]: (prev[cohostTarget] || 0) + giftCoins,
+          }));
+          const iconRaw =
+            (typeof data.gift_icon === 'string' && data.gift_icon) ||
+            (typeof giftDef?.icon === 'string' ? giftDef.icon : '');
+          const iconUrl =
+            iconRaw && (iconRaw.startsWith('http://') || iconRaw.startsWith('https://') || iconRaw.startsWith('/'))
+              ? (iconRaw.startsWith('http') ? iconRaw : resolveGiftAssetUrl(iconRaw.startsWith('/') ? iconRaw : `/${iconRaw}`))
+              : null;
+          if (iconUrl) {
+            setCohostLastGifts((prev) => ({ ...prev, [cohostTarget]: iconUrl }));
           }
         }
       }
@@ -4488,6 +4511,8 @@ export default function LiveStream() {
                 if (slot.type === 'live' && slot.host) {
                   const host = slot.host;
                   const camOff = coHostCameraOff[host.id] || remoteCamOff.has(host.userId);
+                  const score = cohostGiftScores[host.userId] || 0;
+                  const lastGiftIcon = cohostLastGifts[host.userId];
                   return (
                     <>
                       <video
@@ -4512,6 +4537,22 @@ export default function LiveStream() {
                           {coHostCameraOff[host.id] ? <CameraOff className="text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] w-3 h-3" strokeWidth={2.5} /> : <Camera className="text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] w-3 h-3" strokeWidth={2.5} />}
                         </button>
                       </div>
+                      {(lastGiftIcon || score > 0) && (
+                        <div className="absolute bottom-0.5 right-0.5 z-10 flex items-center pointer-events-none">
+                          {lastGiftIcon && (
+                            <div className="w-5 h-5 rounded-full bg-[#111111] border border-[#C9A227]/40 overflow-hidden flex items-center justify-center drop-shadow-md z-10 relative">
+                              <img src={lastGiftIcon} alt="gift" className="w-full h-full object-cover" />
+                            </div>
+                          )}
+                          {score > 0 && (
+                            <div
+                              className={`h-4 flex items-center rounded-full text-[8px] font-bold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] relative z-0 bg-[#111111]/40 backdrop-blur-md border border-white/10 ${lastGiftIcon ? '-ml-2 pl-3 pr-1.5' : 'px-1.5'}`}
+                            >
+                              {formatCountShort(score)}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </>
                   );
                 }

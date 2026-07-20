@@ -35,6 +35,8 @@ export type DeliverGiftInput = {
   giftSource: "starter_coins" | "paid_coins";
   transactionId: string;
   battleTarget?: unknown;
+  /** When set, gift was aimed at a live co-host tile (not the stream host). */
+  cohostTargetUserId?: string | null;
   /** Prefer this animation URL (from REST gift row / client) when playable. */
   animationUrl?: string | null;
 };
@@ -119,6 +121,10 @@ export async function deliverVerifiedGift(
   const giftName =
     (typeof input.giftName === "string" && input.giftName.trim()) || "Gift";
   const normalizedTarget = normalizeBattleTarget(input.battleTarget);
+  const cohostTargetUserId =
+    typeof input.cohostTargetUserId === "string" && input.cohostTargetUserId.trim()
+      ? input.cohostTargetUserId.trim()
+      : null;
 
   if (!video) {
     logger.warn(
@@ -134,6 +140,12 @@ export async function deliverVerifiedGift(
     giftSource: input.giftSource,
     transactionId,
     battleTarget: normalizedTarget,
+    ...(cohostTargetUserId
+      ? {
+          cohostTargetUserId,
+          cohost_target_user_id: cohostTargetUserId,
+        }
+      : {}),
     user_id: userId,
     username,
     creator_name:
@@ -162,6 +174,15 @@ export async function deliverVerifiedGift(
     }
   } catch (err) {
     logger.warn({ err, roomId }, "deliverVerifiedGift: owner notify skipped");
+  }
+
+  // Co-host recipient may be on a different client path — push globally too.
+  if (cohostTargetUserId && cohostTargetUserId !== userId) {
+    try {
+      sendToUserGlobal(cohostTargetUserId, "gift_sent", payload);
+    } catch (err) {
+      logger.warn({ err, roomId, cohostTargetUserId }, "deliverVerifiedGift: cohost notify skipped");
+    }
   }
 
   if (input.giftSource === "paid_coins") {

@@ -17,6 +17,10 @@ import {
   resolveGiftMediaUrl,
 } from "../lib/giftAssets";
 import { deliverVerifiedGift } from "../websocket/giftDelivery";
+import {
+  getCohostLayout,
+  hasCohostPublishGrant,
+} from "../websocket/index";
 
 function requireAuth(req: Request, res: Response): { userId: string } | null {
   const token = getTokenFromRequest(req);
@@ -47,12 +51,15 @@ export async function handleSendGift(req: Request, res: Response) {
       gift_source,
       battleTarget,
       battle_target,
+      cohostTargetUserId,
+      cohost_target_user_id,
       video: clientVideoRaw,
       animation_url: clientAnimationUrlRaw,
     } = req.body ?? {};
     const roomId = typeof room_id === "string" ? room_id.trim() : (typeof streamKey === "string" ? streamKey.trim() : "");
     const giftId = typeof gift_id === "string" ? gift_id.trim() : (typeof giftIdAlt === "string" ? giftIdAlt.trim() : "");
     const battleTargetRaw = battleTarget ?? battle_target;
+    const cohostTargetRaw = cohostTargetUserId ?? cohost_target_user_id;
     const clientAnimationUrl =
       (typeof clientVideoRaw === "string" && clientVideoRaw.trim()) ||
       (typeof clientAnimationUrlRaw === "string" && clientAnimationUrlRaw.trim()) ||
@@ -97,10 +104,43 @@ export async function handleSendGift(req: Request, res: Response) {
     }
     const creatorId = String(hostRes.rows[0].user_id);
 
+    // Optional: gift a live co-host tile instead of the stream host.
+    // Validated via publish grant and/or the host's synced cohost layout.
+    let recipientId = creatorId;
+    let resolvedCohostTarget: string | null = null;
+    const requestedCohost =
+      typeof cohostTargetRaw === "string" ? cohostTargetRaw.trim() : "";
+    if (requestedCohost && requestedCohost !== creatorId) {
+      const granted = await hasCohostPublishGrant(roomId, requestedCohost);
+      let inLayout = false;
+      if (!granted) {
+        const layout = await getCohostLayout(roomId);
+        inLayout =
+          Array.isArray(layout?.coHosts) &&
+          layout!.coHosts.some((h) => {
+            const row = h as { userId?: unknown; status?: unknown };
+            const uid = typeof row.userId === "string" ? row.userId : "";
+            const status = typeof row.status === "string" ? row.status : "";
+            return (
+              uid === requestedCohost &&
+              (status === "live" ||
+                status === "accepted" ||
+                status === "" ||
+                status == null)
+            );
+          });
+      }
+      if (!granted && !inLayout) {
+        return res.status(400).json({ error: "INVALID_COHOST_TARGET" });
+      }
+      recipientId = requestedCohost;
+      resolvedCohostTarget = requestedCohost;
+    }
+
     if (gift_source === "starter_coins") {
       const starterResult = await sendStarterCoinGift({
         userId: auth.userId,
-        recipientUserId: creatorId,
+        recipientUserId: recipientId,
         giftId,
         giftType: gift.gift_type,
         roomId,
@@ -116,7 +156,7 @@ export async function handleSendGift(req: Request, res: Response) {
 
       if (!starterResult.already_processed) {
         await insertNotification({
-          userId: creatorId,
+          userId: recipientId,
           type: "starter_gift_received",
           title: "You received a Starter Coin gift",
           body: `A supporter sent ${gift.name}. Starter gifts have no monetary value and create no earnings.`,
@@ -125,6 +165,9 @@ export async function handleSendGift(req: Request, res: Response) {
             path: `/live/${roomId}`,
             gift_id: giftId,
             gift_source: "starter_coins",
+            ...(resolvedCohostTarget
+              ? { cohost_target_user_id: resolvedCohostTarget }
+              : {}),
           },
         });
       }
@@ -140,6 +183,7 @@ export async function handleSendGift(req: Request, res: Response) {
             giftSource: "starter_coins",
             transactionId: clientTransactionId,
             battleTarget: battleTargetRaw,
+            cohostTargetUserId: resolvedCohostTarget,
             animationUrl:
               resolveGiftMediaUrl(gift.animation_url) ||
               resolveGiftMediaUrl(clientAnimationUrl),
@@ -182,12 +226,11 @@ export async function handleSendGift(req: Request, res: Response) {
         });
       }
 
-      // Credit the receiving creator's earnings (idempotent per transaction).
-      // Room id is the stream_key; resolve the host user id from live_streams,
-      // falling back to the room id itself (rooms default to the host user id).
+      // Credit the gift recipient (stream host, or a validated live co-host).
+      // Idempotent per transaction. Co-host gifts use the same 60/40 split.
       try {
         await neonCreditCreatorEarning({
-          creatorId,
+          creatorId: recipientId,
           senderId: auth.userId,
           giftId,
           roomId,
@@ -198,7 +241,7 @@ export async function handleSendGift(req: Request, res: Response) {
         logger.warn({ err, roomId }, "handleSendGift: creator earning credit failed");
       }
       const paidGiftXp =
-        creatorId !== auth.userId
+        recipientId !== auth.userId
           ? await awardPaidGiftXp({
               userId: auth.userId,
               giftType: gift.gift_type,
@@ -207,10 +250,10 @@ export async function handleSendGift(req: Request, res: Response) {
             })
           : null;
 
-      if (creatorId && creatorId !== auth.userId) {
+      if (recipientId && recipientId !== auth.userId) {
         try {
           await insertNotification({
-            userId: creatorId,
+            userId: recipientId,
             type: "paid_gift_received",
             title: "You received a gift",
             body: `Someone sent ${gift.name} (${coinCost} coins).`,
@@ -219,10 +262,13 @@ export async function handleSendGift(req: Request, res: Response) {
               path: `/live/${roomId}`,
               gift_id: giftId,
               gift_source: "paid_coins",
+              ...(resolvedCohostTarget
+                ? { cohost_target_user_id: resolvedCohostTarget }
+                : {}),
             },
           });
         } catch (err) {
-          logger.warn({ err, creatorId }, "handleSendGift: paid gift push skipped");
+          logger.warn({ err, recipientId }, "handleSendGift: paid gift push skipped");
         }
       }
 
@@ -239,6 +285,7 @@ export async function handleSendGift(req: Request, res: Response) {
             giftSource: "paid_coins",
             transactionId: clientTransactionId,
             battleTarget: battleTargetRaw,
+            cohostTargetUserId: resolvedCohostTarget,
             animationUrl:
               resolveGiftMediaUrl(gift.animation_url) ||
               resolveGiftMediaUrl(clientAnimationUrl),
