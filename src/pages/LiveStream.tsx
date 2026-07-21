@@ -103,7 +103,7 @@ import { LiveGiftGoalBar } from '../components/LiveGiftGoalBar';
 import { LiveEngagementOverlay } from '../components/LiveEngagementOverlay';
 import { useLiveEngagement } from '../hooks/useLiveEngagement';
 import { RankingPanel } from '../components/RankingPanel';
-import { CyclingRankBadge, type LiveRankTab } from '../components/CyclingRankBadge';
+import { type LiveRankTab } from '../components/CyclingRankBadge';
 import { websocket } from '../lib/websocket';
 import { parseLiveGiftGoal, type LiveGiftGoal } from '../lib/liveGiftGoal';
 import { liveStreamUiGiftTargetToServerBattleTarget, normalizeBattleGiftTarget } from '../lib/liveBattleGiftTarget';
@@ -441,11 +441,7 @@ export default function LiveStream() {
   }, [user?.id, isBroadcast, effectiveStreamId]);
 
   useEffect(() => {
-    if (isBroadcast) {
-      setDiamondLeagueRank(null);
-      return;
-    }
-    const creatorId = effectiveStreamId;
+    const creatorId = isBroadcast ? (user?.id || '') : effectiveStreamId;
     if (!creatorId || creatorId === 'broadcast') {
       setDiamondLeagueRank(null);
       return;
@@ -463,7 +459,7 @@ export default function LiveStream() {
     return () => {
       cancelled = true;
     };
-  }, [isBroadcast, effectiveStreamId]);
+  }, [isBroadcast, effectiveStreamId, user?.id]);
 
   // Face AR overlays attach via FaceARGift + videoRef
   const [_battleGiftIconFailed, _setBattleGiftIconFailed] = useState(false);
@@ -5982,34 +5978,25 @@ export default function LiveStream() {
                               })()}
                             </div>
                           </div>
-                          <div className="flex items-center gap-2 mt-1 ml-12 pointer-events-auto relative z-20 flex-wrap">
-                            {isBroadcast ? (
-                              <CyclingRankBadge
-                                onOpen={(tab) => {
-                                  setRankingInitialTab(tab);
-                                  setShowRankingPanel(true);
-                                }}
-                              />
-                            ) : (
-                              <button
-                                type="button"
-                                className="flex items-center gap-1.5 bg-black/55 backdrop-blur-[2px] rounded-xl pl-1.5 pr-2 py-1 cursor-pointer active:scale-95 transition-transform"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setRankingInitialTab('weekly');
-                                  setShowRankingPanel(true);
-                                }}
-                              >
-                                <Gem className="w-4 h-4 text-[#C084FC] flex-shrink-0" strokeWidth={2.2} fill="#A855F7" />
-                                <span className="flex flex-col items-start leading-none min-w-0">
-                                  <span className="text-white text-[10px] font-bold whitespace-nowrap">Diamond League</span>
-                                  {diamondLeagueRank != null ? (
-                                    <span className="text-white/70 text-[8px] font-semibold whitespace-nowrap mt-0.5">Rank {diamondLeagueRank}</span>
-                                  ) : null}
-                                </span>
-                                <span className="text-white/80 text-[10px] ml-0.5">&gt;</span>
-                              </button>
-                            )}
+                          <div className="flex items-center gap-1.5 mt-1 ml-12 pointer-events-auto relative z-20 flex-wrap">
+                            <button
+                              type="button"
+                              className="flex items-center gap-1.5 bg-black/55 backdrop-blur-[2px] rounded-xl pl-1.5 pr-2 py-1 cursor-pointer active:scale-95 transition-transform"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setRankingInitialTab('weekly');
+                                setShowRankingPanel(true);
+                              }}
+                            >
+                              <Gem className="w-4 h-4 text-[#C084FC] flex-shrink-0" strokeWidth={2.2} fill="#A855F7" />
+                              <span className="flex flex-col items-start leading-none min-w-0">
+                                <span className="text-white text-[10px] font-bold whitespace-nowrap">Diamond League</span>
+                                {diamondLeagueRank != null ? (
+                                  <span className="text-white/70 text-[8px] font-semibold whitespace-nowrap mt-0.5">Rank {diamondLeagueRank}</span>
+                                ) : null}
+                              </span>
+                              <span className="text-white/80 text-[10px] ml-0.5">&gt;</span>
+                            </button>
                             <div 
                               className="flex items-center gap-1.5 bg-black/55 backdrop-blur-[2px] rounded-xl pl-1.5 pr-2 py-1 cursor-pointer active:scale-95 transition-transform" 
                               onClick={(e) => {
