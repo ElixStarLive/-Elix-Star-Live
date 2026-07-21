@@ -236,10 +236,13 @@ export default function VideoFeed() {
   /* ---- Fetch live streams from REST ---- */
   const fetchLiveStreams = useCallback(async () => {
     try {
-      const { data: body, error } = await request("/api/live/streams");
+      const { data: body, error } = await request("/api/live/streams", {
+        cache: "no-store",
+        headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+      });
 
-      if (error) {
-        setLiveStreams([]);
+      if (error || !body) {
+        // Keep realtime + WS-discovered streams on 304/empty/transient failures.
         setLiveLoading(false);
         return;
       }
@@ -308,7 +311,14 @@ export default function VideoFeed() {
         const keptFromPrev = prev.filter(
           (s) => !fromApi.has(s.streamKey) && !removed.has(s.streamKey)
         );
-        return [...mapped, ...keptFromPrev];
+        const merged = [...mapped, ...keptFromPrev];
+        // Dedupe by streamKey (API + WS can both add the same room).
+        const seen = new Set<string>();
+        return merged.filter((s) => {
+          if (!s.streamKey || seen.has(s.streamKey)) return false;
+          seen.add(s.streamKey);
+          return true;
+        });
       });
     } catch {
       /* preserve existing streams on transient errors */
@@ -389,7 +399,7 @@ export default function VideoFeed() {
             if (!uid) return;
             const key = (data.stream_key ?? data.room_id) as string;
             if (!key) return;
-            if (removedKeysRef.current.has(key)) return;
+            removedKeysRef.current.delete(key);
             const card = streamStartedToCard(data);
             setLiveStreams((prev) => {
               if (prev.some((s) => s.streamKey === key)) return prev;

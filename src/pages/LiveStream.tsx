@@ -607,7 +607,7 @@ export default function LiveStream() {
 
     const attachRemoteTrack = (track: import('livekit-client').Track, participant: import('livekit-client').RemoteParticipant) => {
       const identity = participant.identity;
-      if (identity === user?.id) return;
+      if (sameUserId(identity, user?.id)) return;
 
       if (track.kind === 'audio') {
         // Co-host audio must be attached on host side, otherwise host can see but not hear co-hosts.
@@ -630,16 +630,16 @@ export default function LiveStream() {
           void el.play().catch(() => {});
           return true;
         };
-        if (slots[0]?.userId && identity === slots[0].userId) {
+        if (slots[0]?.userId && sameUserId(identity, slots[0].userId)) {
           if (markAttached(opponentVideoRef.current)) {
             setHasOpponentStream(true);
             return;
           }
         }
-        if (slots[1]?.userId && identity === slots[1].userId) {
+        if (slots[1]?.userId && sameUserId(identity, slots[1].userId)) {
           if (markAttached(player3VideoRef.current)) return;
         }
-        if (slots[2]?.userId && identity === slots[2].userId) {
+        if (slots[2]?.userId && sameUserId(identity, slots[2].userId)) {
           if (markAttached(player4VideoRef.current)) return;
         }
         // Pane accepted but userId not synced yet — fill first free battle video.
@@ -727,7 +727,7 @@ export default function LiveStream() {
       room.disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isBroadcast, liveKitCreds, cameraStream]);
+  }, [isBroadcast, liveKitCreds]);
 
   const [isFindCreatorsOpen, setIsFindCreatorsOpen] = useState(false);
   const [_memberCount, setMemberCount] = useState(0);
@@ -1630,6 +1630,9 @@ export default function LiveStream() {
   useEffect(() => {
     if (!isBattleMode || !opponentStreamKey || !isBroadcast) return;
     if (opponentStreamKey === effectiveStreamId) return;
+    // Battle opponents publish into the host room — never open a second LiveKit
+    // connection to their old solo stream (that room is empty after accept).
+    if (battleSlotsRef.current[0]?.status === 'accepted') return;
     const connectId = ++opponentLkConnectIdRef.current;
     let mounted = true;
     const room = new Room();
@@ -1695,15 +1698,11 @@ export default function LiveStream() {
     if (!room || !isBroadcast) return;
 
     const attachAll = () => {
-      const battleVideoByUserId: Record<string, React.RefObject<HTMLVideoElement | null>> = {
-        [battleSlotsRef.current[0]?.userId || '']: opponentVideoRef,
-        [battleSlotsRef.current[1]?.userId || '']: player3VideoRef,
-        [battleSlotsRef.current[2]?.userId || '']: player4VideoRef,
-      };
+      const slots = battleSlotsRef.current;
 
       for (const [, participant] of room.remoteParticipants) {
         const identity = participant.identity;
-        if (!identity || identity === user?.id) continue;
+        if (!identity || sameUserId(identity, user?.id)) continue;
 
         for (const [, pub] of participant.videoTrackPublications) {
           if (!pub.track || !pub.isSubscribed) continue;
@@ -1712,16 +1711,19 @@ export default function LiveStream() {
             pub.track.attach(coHostEl);
             continue;
           }
-          const battleEl = battleVideoByUserId[identity]?.current;
+          let battleEl: HTMLVideoElement | null = null;
+          if (sameUserId(identity, slots[0]?.userId)) battleEl = opponentVideoRef.current;
+          else if (sameUserId(identity, slots[1]?.userId)) battleEl = player3VideoRef.current;
+          else if (sameUserId(identity, slots[2]?.userId)) battleEl = player4VideoRef.current;
           if (battleEl) {
             pub.track.attach(battleEl);
             void battleEl.play().catch(() => {});
-            if (identity === battleSlotsRef.current[0]?.userId) setHasOpponentStream(true);
+            if (sameUserId(identity, slots[0]?.userId)) setHasOpponentStream(true);
             continue;
           }
           if (
             isBattleModeRef.current &&
-            battleSlotsRef.current[0]?.status === 'accepted' &&
+            slots[0]?.status === 'accepted' &&
             !hasOpponentStreamRef.current &&
             opponentVideoRef.current
           ) {
@@ -3207,10 +3209,9 @@ export default function LiveStream() {
       setBattleTime(data.timeLeft ?? 300);
       if (data.hostReady != null) setHostIsReady(!!data.hostReady);
       if (data.opponentReady != null) setOpponentIsReady(!!data.opponentReady);
-      if (typeof data.opponentRoomId === 'string' && data.opponentRoomId.trim()) {
-        setOpponentStreamKey(data.opponentRoomId.trim());
-      } else if (typeof data.opponentUserId === 'string' && data.opponentUserId.trim()) {
-        setOpponentStreamKey(data.opponentUserId.trim());
+      // Host receives battle opponent video in own LiveKit room — never second-room connect.
+      if (!isBattleJoiner) {
+        setOpponentStreamKey(null);
       }
       
       setBattleSlots(prev => {
@@ -3435,8 +3436,8 @@ export default function LiveStream() {
       setIsBattleMode(true);
       setBattleState('INVITING');
       setOpponentCreatorName(requesterName);
-      const oppStreamKey = (data.streamKey as string) || '';
-      if (oppStreamKey) setOpponentStreamKey(oppStreamKey);
+      // Opponent publishes into this host room after accept — do not chase solo stream key.
+      setOpponentStreamKey(null);
       setBattleSlots(prev => {
         const next = [...prev];
         const existingIdx = next.findIndex((s) => s.userId === requesterId);
