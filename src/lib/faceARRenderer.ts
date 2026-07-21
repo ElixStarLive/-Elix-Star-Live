@@ -8,10 +8,32 @@ export type FaceAREffectType =
   | 'age'
   | 'youth';
 
+export type { FacePose } from './faceLandmarks';
+import type { FacePose } from './faceLandmarks';
+
 type FaceAnchor = { cx: number; cy: number; scale: number };
 
 function anchor(w: number, h: number): FaceAnchor {
   return { cx: w * 0.5, cy: h * 0.36, scale: Math.min(w, h) * 0.52 };
+}
+
+function resolvePose(pose: FacePose | null | undefined, w: number, h: number): FacePose {
+  if (pose) return pose;
+  const a = anchor(w, h);
+  return { ...a, rotation: 0 };
+}
+
+function withFaceTransform(
+  ctx: CanvasRenderingContext2D,
+  pose: FacePose,
+  draw: () => void,
+): void {
+  ctx.save();
+  ctx.translate(pose.cx, pose.cy);
+  ctx.rotate(pose.rotation);
+  ctx.translate(-pose.cx, -pose.cy);
+  draw();
+  ctx.restore();
 }
 
 function withGlow(
@@ -307,37 +329,41 @@ export function drawFaceAREffect(
   color: string,
   timeSec: number,
   _mirrored?: boolean,
+  facePose?: FacePose | null,
 ): void {
   if (!width || !height) return;
-  const a = anchor(width, height);
+  const pose = resolvePose(facePose, width, height);
+  const a: FaceAnchor = { cx: pose.cx, cy: pose.cy, scale: pose.scale };
   const type = effectType as FaceAREffectType;
 
-  switch (type) {
-    case 'crown':
-      drawCrown(ctx, a, color, timeSec);
-      break;
-    case 'glasses':
-      drawGlasses(ctx, a, color, timeSec);
-      break;
-    case 'mask':
-      drawMask(ctx, a, color);
-      break;
-    case 'ears':
-      drawEars(ctx, a, color, timeSec);
-      break;
-    case 'hearts':
-      drawHearts(ctx, a, color, timeSec);
-      break;
-    case 'stars':
-      drawStars(ctx, a, color, timeSec);
-      break;
-    case 'age':
-      drawAgeOverlay(ctx, width, height, a, timeSec);
-      break;
-    case 'youth':
-      drawYouthOverlay(ctx, a, color, timeSec);
-      break;
-    default:
-      break;
-  }
+  withFaceTransform(ctx, pose, () => {
+    switch (type) {
+      case 'crown':
+        drawCrown(ctx, a, color, timeSec);
+        break;
+      case 'glasses':
+        drawGlasses(ctx, a, color, timeSec);
+        break;
+      case 'mask':
+        drawMask(ctx, a, color);
+        break;
+      case 'ears':
+        drawEars(ctx, a, color, timeSec);
+        break;
+      case 'hearts':
+        drawHearts(ctx, a, color, timeSec);
+        break;
+      case 'stars':
+        drawStars(ctx, a, color, timeSec);
+        break;
+      case 'age':
+        drawAgeOverlay(ctx, width, height, a, timeSec);
+        break;
+      case 'youth':
+        drawYouthOverlay(ctx, a, color, timeSec);
+        break;
+      default:
+        break;
+    }
+  });
 }

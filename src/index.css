@@ -672,6 +672,15 @@
   animation: battle-glove-float 1.6s ease-out forwards;
 }
 
+@keyframes battle-taunt-float {
+  0% { opacity: 0; transform: translateY(14px) scale(0.65); }
+  18% { opacity: 1; transform: translateY(0) scale(1.15); }
+  100% { opacity: 0; transform: translateY(-48px) scale(0.9); }
+}
+.battle-taunt-float {
+  animation: battle-taunt-float 2.2s ease-out forwards;
+}
+
 /* Diamond Sparkle */
 @keyframes diamond-sparkle {
   0%, 100% {

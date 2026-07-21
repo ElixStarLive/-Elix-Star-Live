@@ -4,29 +4,29 @@ import { drawFaceAREffect } from '../lib/faceARRenderer';
 import { resolveLiveFaceEffectsEngine } from '../lib/liveFaceEffectsProvider';
 import { initCommercialFaceEngine, useMediaPipeForTracking } from '../lib/commercialFaceEffects';
 
-type FaceARGiftProps = {
-  giftType: string;
-  color: string;
+type LiveFaceEffectsLayerProps = {
   videoRef: React.RefObject<HTMLVideoElement | null>;
+  effectType: string;
+  color: string;
   mirrored?: boolean;
-  durationMs?: number;
-  onComplete?: () => void;
+  active: boolean;
 };
 
-export function FaceARGift({
-  giftType,
-  color,
+/** Persistent creator face FX layer (MediaPipe tracking; DeepAR/Banuba when licensed). */
+export function LiveFaceEffectsLayer({
   videoRef,
+  effectType,
+  color,
   mirrored = true,
-  durationMs = 4500,
-  onComplete,
-}: FaceARGiftProps) {
+  active,
+}: LiveFaceEffectsLayerProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const onCompleteRef = useRef(onComplete);
-  onCompleteRef.current = onComplete;
   const engine = resolveLiveFaceEffectsEngine();
 
   useEffect(() => {
+    if (!active || effectType === 'none') return;
+
+    let cancelled = false;
     void initCommercialFaceEngine(engine);
 
     const video = videoRef.current;
@@ -43,28 +43,11 @@ export function FaceARGift({
     }
 
     let raf = 0;
-    const start = performance.now();
-    let done = false;
     let lastDetect = 0;
     let cachedPose: Awaited<ReturnType<typeof detectFacePose>> = null;
 
-    const finish = () => {
-      if (done) return;
-      done = true;
-      cancelAnimationFrame(raf);
-      canvas?.remove();
-      canvasRef.current = null;
-      onCompleteRef.current?.();
-    };
-
     const tick = (now: number) => {
-      if (done) return;
-      const elapsed = now - start;
-      if (elapsed >= durationMs) {
-        finish();
-        return;
-      }
-
+      if (cancelled) return;
       const rect = parent.getBoundingClientRect();
       if (rect.width < 2 || rect.height < 2) {
         raf = requestAnimationFrame(tick);
@@ -88,20 +71,20 @@ export function FaceARGift({
       if (ctx) {
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         ctx.clearRect(0, 0, rect.width, rect.height);
-        drawFaceAREffect(ctx, rect.width, rect.height, giftType, color, elapsed / 1000, mirrored, cachedPose);
+        drawFaceAREffect(ctx, rect.width, rect.height, effectType, color, now / 1000, mirrored, cachedPose);
       }
 
       raf = requestAnimationFrame(tick);
     };
 
     raf = requestAnimationFrame(tick);
-    const timeout = window.setTimeout(finish, durationMs + 120);
-
     return () => {
-      window.clearTimeout(timeout);
-      finish();
+      cancelled = true;
+      cancelAnimationFrame(raf);
+      canvas?.remove();
+      canvasRef.current = null;
     };
-  }, [videoRef, giftType, color, mirrored, durationMs, engine]);
+  }, [active, color, effectType, engine, mirrored, videoRef]);
 
   return null;
 }

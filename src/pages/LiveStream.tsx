@@ -38,6 +38,16 @@ import { FILTER_PRESETS } from '../lib/ai/filters';
 import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, fetchGiftsFromDatabase, pickGiftVideoUrl, formatGiftDisplayName } from '../lib/giftsCatalog';
 import { appendCapped, LIVE_CHAT_MESSAGE_CAP, LIVE_GIFT_QUEUE_CAP, LIVE_VIEWER_CAP } from '../lib/liveRuntimeCaps';
 import { BattleVfxOverlays, GloveIcon, type BattleMistSide, type GloveBurst } from '../components/BattleVfxOverlays';
+import { BattleTauntOverlays } from '../components/BattleTauntOverlays';
+import { LiveFaceEffectsLayer } from '../components/LiveFaceEffectsLayer';
+import { LIVE_FACE_EFFECT_OPTIONS, getLiveFaceEngineLabel } from '../lib/liveFaceEffectsProvider';
+import {
+  announceMvpName,
+  createTauntBurst,
+  maybeTauntLeadChange,
+  playBattleTauntSound,
+  type TauntBurst,
+} from '../lib/battleTaunts';
 import {
   addPersistedTestCoins,
   addTestGiftXp,
@@ -1459,6 +1469,13 @@ export default function LiveStream() {
     };
   }, [effectiveStreamId, isBroadcast, isBattleJoiner]);
   const [liveFilterCss, setLiveFilterCss] = useState('none');
+  const [activeLiveFaceEffect, setActiveLiveFaceEffect] = useState<{ type: string; color: string } | null>(null);
+  const [battleTauntBursts, setBattleTauntBursts] = useState<TauntBurst[]>([]);
+  const prevMvpHostIdRef = useRef<string | null>(null);
+  const prevMvpOpponentIdRef = useRef<string | null>(null);
+  const pushBattleTaunt = useCallback((burst: TauntBurst) => {
+    setBattleTauntBursts((prev) => [...prev.slice(-10), burst]);
+  }, []);
   const [showLiveEffectsPanel, setShowLiveEffectsPanel] = useState(false);
   const [battleTime, setBattleTime] = useState(300); // 5 minutes
   const [myScore, setMyScore] = useState(0);
@@ -2841,6 +2858,32 @@ export default function LiveStream() {
     () => buildMvpRanked(mvpGiftScoresOpponent, 3),
     [buildMvpRanked, mvpGiftScoresOpponent],
   );
+
+  useEffect(() => {
+    if (!isBattleMode) {
+      prevMvpHostIdRef.current = null;
+      prevMvpOpponentIdRef.current = null;
+      return;
+    }
+    const hostMvp = topMvpHostBattle[0];
+    if (hostMvp?.id) {
+      if (prevMvpHostIdRef.current && prevMvpHostIdRef.current !== hostMvp.id) {
+        announceMvpName(hostMvp.displayName || hostMvp.username, 'host');
+        pushBattleTaunt(createTauntBurst('host', 'mvp'));
+      }
+      prevMvpHostIdRef.current = hostMvp.id;
+    }
+    const oppMvp = topMvpOpponentBattle[0];
+    if (oppMvp?.id) {
+      if (prevMvpOpponentIdRef.current && prevMvpOpponentIdRef.current !== oppMvp.id) {
+        announceMvpName(oppMvp.displayName || oppMvp.username, 'opponent');
+        pushBattleTaunt(createTauntBurst('opponent', 'mvp'));
+        playBattleTauntSound('boo');
+      }
+      prevMvpOpponentIdRef.current = oppMvp.id;
+    }
+  }, [isBattleMode, topMvpHostBattle, topMvpOpponentBattle, pushBattleTaunt]);
+
   useEffect(() => { speedChallengeTapsRef.current = speedChallengeTaps; }, [speedChallengeTaps]);
 
   // WebSocket: connect to room and track viewers
@@ -3212,6 +3255,18 @@ export default function LiveStream() {
       if (redDelta > blueDelta && redDelta > 0) triggerBattleVfx('red', redDelta);
       else if (blueDelta > 0) triggerBattleVfx('blue', blueDelta);
 
+      const redTotal = nextS.h + nextS.p3;
+      const blueTotal = nextS.o + nextS.p4;
+      const prevRedTotal = prevS.h + prevS.p3;
+      const prevBlueTotal = prevS.o + prevS.p4;
+      if (redTotal > blueTotal && redTotal - prevRedTotal >= 25) {
+        maybeTauntLeadChange('host', redTotal - prevRedTotal);
+        pushBattleTaunt(createTauntBurst('opponent', 'lead'));
+      } else if (blueTotal > redTotal && blueTotal - prevBlueTotal >= 25) {
+        maybeTauntLeadChange('opponent', blueTotal - prevBlueTotal);
+        pushBattleTaunt(createTauntBurst('host', 'lead'));
+      }
+
       const hostScore = nextS.h;
       const oppScore = nextS.o;
 
@@ -3385,6 +3440,13 @@ export default function LiveStream() {
       if (winner === 'host') setBattleWinner(role === 'opponent' ? 'opponent' : 'me');
       else if (winner === 'opponent') setBattleWinner(role === 'opponent' ? 'me' : 'opponent');
       else setBattleWinner('draw');
+      if (winner === 'host') {
+        playBattleTauntSound('win');
+        pushBattleTaunt(createTauntBurst('host', 'win'));
+      } else if (winner === 'opponent') {
+        playBattleTauntSound('win');
+        pushBattleTaunt(createTauntBurst('opponent', 'win'));
+      }
       battleEndedTimeoutRef.current = setTimeout(() => {
         battleEndedTimeoutRef.current = null;
         if (!mounted) return;
@@ -4739,6 +4801,14 @@ export default function LiveStream() {
                 onComplete={clearActiveFaceARGift}
               />
             )}
+            {isBroadcast && activeLiveFaceEffect && activeLiveFaceEffect.type !== 'none' && !activeFaceARGift && (
+              <LiveFaceEffectsLayer
+                videoRef={videoRef}
+                effectType={activeLiveFaceEffect.type}
+                color={activeLiveFaceEffect.color}
+                active
+              />
+            )}
 
             {isBroadcast && cameraError && (
               <div className="absolute inset-0 flex items-center justify-center bg-[#111111] text-white font-bold">
@@ -4989,6 +5059,7 @@ export default function LiveStream() {
                       hideScores={false}
                       gloves={battleGloves}
                     />
+                    <BattleTauntOverlays bursts={battleTauntBursts} opponentSide="opponent" />
                     {/* Row 1: P1 & P2 — equal joined panes */}
                     <div className="flex flex-1 min-h-0 gap-0">
                       <div
@@ -5001,6 +5072,14 @@ export default function LiveStream() {
                           giftType={activeFaceARGift.type}
                           color={activeFaceARGift.color || '#FFFFFF'}
                           onComplete={clearActiveFaceARGift}
+                        />
+                      )}
+                      {isBroadcast && activeLiveFaceEffect && activeLiveFaceEffect.type !== 'none' && !activeFaceARGift && (
+                        <LiveFaceEffectsLayer
+                          videoRef={videoRef}
+                          effectType={activeLiveFaceEffect.type}
+                          color={activeLiveFaceEffect.color}
+                          active
                         />
                       )}
                       {isCamOff && (
@@ -6649,9 +6728,10 @@ export default function LiveStream() {
               <div className="flex justify-center mb-2">
                 <div className="w-10 h-1 bg-white/20 rounded-full" />
               </div>
-              <div className="flex items-center justify-center gap-1.5 mb-3">
+              <div className="flex items-center justify-center gap-1.5 mb-2">
                 <Sparkles size={14} className="text-[#D4AF37]" />
                 <span className="text-white text-sm font-bold">Effects</span>
+                <span className="text-[9px] text-white/40">({getLiveFaceEngineLabel()})</span>
               </div>
               <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 px-1">
                 {FILTER_PRESETS.filter((f) =>
@@ -6672,6 +6752,35 @@ export default function LiveStream() {
                   >
                     <span className="text-lg">{filter.preview}</span>
                     <span className="text-[8px] text-white/60 whitespace-nowrap">{filter.name}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 px-1 mt-1 border-t border-white/5 pt-2">
+                {LIVE_FACE_EFFECT_OPTIONS.map((fx) => (
+                  <button
+                    key={fx.id}
+                    type="button"
+                    onClick={() => {
+                      if (fx.type === 'none') {
+                        setActiveLiveFaceEffect(null);
+                      } else {
+                        setActiveLiveFaceEffect({ type: fx.type, color: fx.color });
+                        if (fx.type === 'age') {
+                          setLiveFilterCss('sepia(0.38) saturate(0.72) contrast(1.1) brightness(0.9)');
+                        } else if (fx.type === 'youth') {
+                          setLiveFilterCss('brightness(1.12) contrast(0.88) saturate(1.22) blur(0.35px)');
+                        }
+                      }
+                      setShowLiveEffectsPanel(false);
+                    }}
+                    className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl min-w-[56px] transition-all active:scale-95 ${
+                      activeLiveFaceEffect?.type === fx.type || (fx.type === 'none' && !activeLiveFaceEffect)
+                        ? 'bg-[#C9A227]/20'
+                        : 'bg-white/5'
+                    }`}
+                  >
+                    <span className="text-lg">{fx.preview}</span>
+                    <span className="text-[8px] text-white/60 whitespace-nowrap">{fx.name}</span>
                   </button>
                 ))}
               </div>

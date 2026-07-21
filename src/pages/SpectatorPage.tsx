@@ -35,6 +35,14 @@ import { LiveGiftGoalBar } from '../components/LiveGiftGoalBar';
 import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, fetchGiftsFromDatabase, pickGiftVideoUrl, formatGiftDisplayName } from '../lib/giftsCatalog';
 import { appendCapped, LIVE_CHAT_MESSAGE_CAP, LIVE_GIFT_QUEUE_CAP } from '../lib/liveRuntimeCaps';
 import { BattleVfxOverlays, GloveIcon, type BattleMistSide, type GloveBurst } from '../components/BattleVfxOverlays';
+import { BattleTauntOverlays } from '../components/BattleTauntOverlays';
+import {
+  announceMvpName,
+  createTauntBurst,
+  maybeTauntLeadChange,
+  playBattleTauntSound,
+  type TauntBurst,
+} from '../lib/battleTaunts';
 import {
   addPersistedTestCoins,
   addTestGiftXp,
@@ -379,6 +387,12 @@ export default function SpectatorPage() {
   const [battleMistSide, setBattleMistSide] = useState<BattleMistSide>(null);
   const [battleHideScores, setBattleHideScores] = useState(false);
   const [battleGloves, setBattleGloves] = useState<GloveBurst[]>([]);
+  const [battleTauntBursts, setBattleTauntBursts] = useState<TauntBurst[]>([]);
+  const prevMvpHostSpectatorRef = useRef<string | null>(null);
+  const prevMvpOpponentSpectatorRef = useRef<string | null>(null);
+  const pushBattleTaunt = useCallback((burst: TauntBurst) => {
+    setBattleTauntBursts((prev) => [...prev.slice(-10), burst]);
+  }, []);
   const battleMistTimerRef = useRef<number | null>(null);
   const gloveIdRef = useRef(0);
 
@@ -409,6 +423,31 @@ export default function SpectatorPage() {
         !spectatorBattle?.winner,
     );
   }, [spectatorBattle?.active, spectatorBattle?.status, spectatorBattle?.timeLeft, spectatorBattle?.winner]);
+
+  useEffect(() => {
+    if (!spectatorBattle?.active) {
+      prevMvpHostSpectatorRef.current = null;
+      prevMvpOpponentSpectatorRef.current = null;
+      return;
+    }
+    const hostMvp = mvpSlots.host[0];
+    if (hostMvp?.id) {
+      if (prevMvpHostSpectatorRef.current && prevMvpHostSpectatorRef.current !== hostMvp.id) {
+        announceMvpName(hostMvp.name, 'host');
+        pushBattleTaunt(createTauntBurst('host', 'mvp'));
+      }
+      prevMvpHostSpectatorRef.current = hostMvp.id;
+    }
+    const oppMvp = mvpSlots.opponent[0];
+    if (oppMvp?.id) {
+      if (prevMvpOpponentSpectatorRef.current && prevMvpOpponentSpectatorRef.current !== oppMvp.id) {
+        announceMvpName(oppMvp.name, 'opponent');
+        pushBattleTaunt(createTauntBurst('opponent', 'mvp'));
+        playBattleTauntSound('boo');
+      }
+      prevMvpOpponentSpectatorRef.current = oppMvp.id;
+    }
+  }, [mvpSlots, pushBattleTaunt, spectatorBattle?.active]);
 
   const opponentVideoRef = useRef<HTMLVideoElement>(null);
   const opponentLkRoomRef = useRef<Room | null>(null);
@@ -1632,36 +1671,50 @@ export default function SpectatorPage() {
         return { ...prev, hostUserId: newHostUid, opponentUserId: newOppUid };
       });
       const labels = battleTeamLabelsFromPayload(data);
-      setSpectatorBattle(prev => {
-        const newH = toScore(data.hostScore, prev?.hostScore ?? 0);
-        const newO = toScore(data.opponentScore, prev?.opponentScore ?? 0);
-        const newP3 = toScore(data.player3Score ?? data.player3_score, prev?.player3Score ?? 0);
-        const newP4 = toScore(data.player4Score ?? data.player4_score, prev?.player4Score ?? 0);
-        const redDelta = (newH - (prev?.hostScore ?? 0)) + (newP3 - (prev?.player3Score ?? 0));
-        const blueDelta = (newO - (prev?.opponentScore ?? 0)) + (newP4 - (prev?.player4Score ?? 0));
-        if (redDelta > blueDelta && redDelta > 0) triggerBattleVfx('red', redDelta);
-        else if (blueDelta > 0) triggerBattleVfx('blue', blueDelta);
-        const newOppName = (typeof data.opponentName === 'string' && data.opponentName) || prev?.opponentName;
-        const newOppRoom = (typeof data.opponentRoomId === 'string' && data.opponentRoomId) || prev?.opponentRoomId;
-        if (prev?.active && newH === prev.hostScore && newO === prev.opponentScore &&
-            newP3 === (prev.player3Score ?? 0) && newP4 === (prev.player4Score ?? 0) &&
-            newOppName === prev.opponentName && newOppRoom === prev.opponentRoomId &&
-            labels.red === prev.redTeamLabel && labels.blue === prev.blueTeamLabel) {
-          return prev;
+      const prev = spectatorBattleRef.current;
+      const newH = toScore(data.hostScore, prev?.hostScore ?? 0);
+      const newO = toScore(data.opponentScore, prev?.opponentScore ?? 0);
+      const newP3 = toScore(data.player3Score ?? data.player3_score, prev?.player3Score ?? 0);
+      const newP4 = toScore(data.player4Score ?? data.player4_score, prev?.player4Score ?? 0);
+      const redDelta = (newH - (prev?.hostScore ?? 0)) + (newP3 - (prev?.player3Score ?? 0));
+      const blueDelta = (newO - (prev?.opponentScore ?? 0)) + (newP4 - (prev?.player4Score ?? 0));
+      if (redDelta > blueDelta && redDelta > 0) triggerBattleVfx('red', redDelta);
+      else if (blueDelta > 0) triggerBattleVfx('blue', blueDelta);
+
+      const redTotal = newH + newP3;
+      const blueTotal = newO + newP4;
+      const prevRedTotal = (prev?.hostScore ?? 0) + (prev?.player3Score ?? 0);
+      const prevBlueTotal = (prev?.opponentScore ?? 0) + (prev?.player4Score ?? 0);
+      if (redTotal > blueTotal && redTotal - prevRedTotal >= 25) {
+        maybeTauntLeadChange('host', redTotal - prevRedTotal);
+        pushBattleTaunt(createTauntBurst('opponent', 'lead'));
+      } else if (blueTotal > redTotal && blueTotal - prevBlueTotal >= 25) {
+        maybeTauntLeadChange('opponent', blueTotal - prevBlueTotal);
+        pushBattleTaunt(createTauntBurst('host', 'lead'));
+      }
+
+      setSpectatorBattle(prevState => {
+        const newOppName = (typeof data.opponentName === 'string' && data.opponentName) || prevState?.opponentName;
+        const newOppRoom = (typeof data.opponentRoomId === 'string' && data.opponentRoomId) || prevState?.opponentRoomId;
+        if (prevState?.active && newH === prevState.hostScore && newO === prevState.opponentScore &&
+            newP3 === (prevState.player3Score ?? 0) && newP4 === (prevState.player4Score ?? 0) &&
+            newOppName === prevState.opponentName && newOppRoom === prevState.opponentRoomId &&
+            labels.red === prevState.redTeamLabel && labels.blue === prevState.blueTeamLabel) {
+          return prevState;
         }
         return {
           active: true,
           status: 'ACTIVE' as const,
-          timeLeft: prev?.timeLeft ?? 300,
+          timeLeft: prevState?.timeLeft ?? 300,
           hostScore: newH,
           opponentScore: newO,
           player3Score: newP3,
           player4Score: newP4,
           opponentName: newOppName,
           opponentRoomId: newOppRoom,
-          winner: prev?.winner,
-          redTeamLabel: labels.red || prev?.redTeamLabel || '',
-          blueTeamLabel: labels.blue || prev?.blueTeamLabel || '',
+          winner: prevState?.winner,
+          redTeamLabel: labels.red || prevState?.redTeamLabel || '',
+          blueTeamLabel: labels.blue || prevState?.blueTeamLabel || '',
         };
       });
     };
@@ -1673,20 +1726,28 @@ export default function SpectatorPage() {
         return Number.isFinite(n) ? n : fallback;
       };
       setBattleStreamIds(null);
-      setSpectatorBattle((prev) => {
-        if (!prev) return null;
-        const h = toScore(data.hostScore ?? data.host_score, prev.hostScore);
-        const o = toScore(data.opponentScore ?? data.opponent_score, prev.opponentScore);
-        const p3 = toScore(data.player3Score ?? data.player3_score, prev.player3Score ?? 0);
-        const p4 = toScore(data.player4Score ?? data.player4_score, prev.player4Score ?? 0);
-        const teamA = h + p3;
-        const teamB = o + p4;
-        const winner =
-          (typeof data.winner === 'string' && data.winner) ||
-          (teamA > teamB ? 'host' : teamA < teamB ? 'opponent' : 'draw');
-        const labels = battleTeamLabelsFromPayload(data);
+      const prev = spectatorBattleRef.current;
+      const h = toScore(data.hostScore ?? data.host_score, prev?.hostScore ?? 0);
+      const o = toScore(data.opponentScore ?? data.opponent_score, prev?.opponentScore ?? 0);
+      const p3 = toScore(data.player3Score ?? data.player3_score, prev?.player3Score ?? 0);
+      const p4 = toScore(data.player4Score ?? data.player4_score, prev?.player4Score ?? 0);
+      const teamA = h + p3;
+      const teamB = o + p4;
+      const winner =
+        (typeof data.winner === 'string' && data.winner) ||
+        (teamA > teamB ? 'host' : teamA < teamB ? 'opponent' : 'draw');
+      if (winner === 'host') {
+        playBattleTauntSound('win');
+        pushBattleTaunt(createTauntBurst('host', 'win'));
+      } else if (winner === 'opponent') {
+        playBattleTauntSound('win');
+        pushBattleTaunt(createTauntBurst('opponent', 'win'));
+      }
+      const labels = battleTeamLabelsFromPayload(data);
+      setSpectatorBattle((prevState) => {
+        if (!prevState) return null;
         return {
-          ...prev,
+          ...prevState,
           active: false,
           status: 'ENDED',
           hostScore: h,
@@ -1694,8 +1755,8 @@ export default function SpectatorPage() {
           player3Score: p3,
           player4Score: p4,
           winner,
-          redTeamLabel: labels.red || prev.redTeamLabel || '',
-          blueTeamLabel: labels.blue || prev.blueTeamLabel || '',
+          redTeamLabel: labels.red || prevState.redTeamLabel || '',
+          blueTeamLabel: labels.blue || prevState.blueTeamLabel || '',
         };
       });
       // Return spectators to normal live layout after a short end banner.
@@ -2484,6 +2545,7 @@ export default function SpectatorPage() {
                       hideScores={false}
                       gloves={battleGloves}
                     />
+                    <BattleTauntOverlays bursts={battleTauntBursts} opponentSide="opponent" />
                     <div className="absolute inset-0 flex flex-row gap-0">
                       <div className="flex-1 basis-0 min-w-0 h-full overflow-hidden relative bg-[#111111]">
                         <video
