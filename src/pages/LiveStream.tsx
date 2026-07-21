@@ -16,6 +16,7 @@ import {
   MoreVertical,
   Users,
   Zap,
+  Trophy,
   Copy,
   AlertTriangle,
   PlusCircle,
@@ -95,10 +96,7 @@ import PromotePanel from '../components/PromotePanel';
 import { GiftPanel } from '../components/GiftPanel';
 import { GiftGoalGallery } from '../components/GiftGoalGallery';
 import { LiveGiftGoalBar } from '../components/LiveGiftGoalBar';
-import { LiveEngagementOverlay } from '../components/LiveEngagementOverlay';
-import { useLiveEngagement } from '../hooks/useLiveEngagement';
 import { RankingPanel } from '../components/RankingPanel';
-import { CyclingRankBadge } from '../components/CyclingRankBadge';
 import { websocket } from '../lib/websocket';
 import { parseLiveGiftGoal, type LiveGiftGoal } from '../lib/liveGiftGoal';
 import { liveStreamUiGiftTargetToServerBattleTarget, normalizeBattleGiftTarget } from '../lib/liveBattleGiftTarget';
@@ -269,16 +267,6 @@ export default function LiveStream() {
   const [inputValue, setInputValue] = useState('');
   // Consolidate broadcast logic: host if streamId is broadcast OR if streamId matches my own user ID
   const isBroadcast = streamId === 'broadcast' || location.pathname === '/live/broadcast' || (user?.id && streamId === user.id);
-
-  const {
-    state: engagementState,
-    nowMs: engagementNowMs,
-    milestoneFlash,
-    stageFlash,
-    startMystery,
-    startPoll,
-    votePoll,
-  } = useLiveEngagement({ enabled: true, isHost: !!isBroadcast });
 
   // ?battle=1 declares battle-creator intent; the role itself is server-
   // authorized. The battle-join effect must obtain a LiveKit publish token —
@@ -5800,12 +5788,16 @@ export default function LiveStream() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2 mt-1 ml-12 pointer-events-auto relative z-20 flex-wrap">
-                            <CyclingRankBadge
+                            <div 
+                              className="flex items-center gap-1 bg-black/75 rounded-full px-2.5 py-1 border border-[#D4AF37]/80 shadow-[0_0_8px_rgba(212,175,55,0.35)] cursor-pointer" 
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setShowRankingPanel(true);
                               }}
-                            />
+                            >
+                              <Trophy className="w-3.5 h-3.5 text-[#D4AF37] flex-shrink-0" strokeWidth={2.25} />
+                              <span className="text-[#F5E6A8] text-[11px] font-bold whitespace-nowrap drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">Weekly Ranking &gt;</span>
+                            </div>
                             <div 
                               className="flex items-center gap-1 bg-black/75 rounded-full px-2.5 py-1 border border-[#D4AF37]/80 shadow-[0_0_8px_rgba(212,175,55,0.35)] cursor-pointer" 
                               onClick={(e) => {
@@ -6808,19 +6800,6 @@ export default function LiveStream() {
           </div>
         </div>
       )}
-
-      <LiveEngagementOverlay
-        state={engagementState}
-        nowMs={engagementNowMs}
-        milestoneFlash={milestoneFlash}
-        stageFlash={stageFlash}
-        isHost={!!isBroadcast}
-        onVote={votePoll}
-        onStartMystery={(mins) => startMystery(mins, 'poll')}
-        onStartPoll={() =>
-          startPoll('What should we do next?', ['Dance', 'Sing', 'Q&A', 'Shoutouts'], 'poll')
-        }
-      />
 
       {isMoreMenuOpen && (
         <>
