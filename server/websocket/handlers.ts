@@ -35,6 +35,17 @@ import {
   clearGiftGoal,
   setGiftGoal,
 } from "./giftGoal";
+import {
+  claimWatchTick,
+  getEngagementPublicState,
+  recordEngagementAction,
+  setEngagementFeatures,
+  setEngagementPoll,
+  startMysteryCountdown,
+  voteEngagementPoll,
+  type EngagementFeatures,
+} from "./engagement";
+import { awardLiveWatchXp } from "../lib/awardLiveWatchXp";
 import { dbIsBlockedEitherWay, dbGetLiveStreams, getPool } from "../lib/postgres";
 import { activateBooster, getMistFogDurationMs } from "../lib/booster";
 import { deliverVerifiedGift } from "./giftDelivery";
@@ -143,6 +154,21 @@ export async function handleMessage(
           };
           broadcastToRoom(client.roomId, "chat_message", payload);
           sendToClient(client, "chat_ack", { messageId, status: "delivered" });
+          void recordEngagementAction({
+            roomId: client.roomId,
+            userId: client.userId,
+            username: client.username,
+            avatarUrl: client.avatarUrl || "",
+            type: "comment",
+          }).then(async (r) => {
+            if (r.stageUnlocked) {
+              broadcastToRoom(client.roomId, "engagement_stage_unlock", {
+                stage: r.communityStage,
+              });
+            }
+            const pub = await getEngagementPublicState(client.roomId, null);
+            broadcastToRoom(client.roomId, "engagement_sync", pub);
+          });
         }
         break;
 
@@ -153,6 +179,21 @@ export async function handleMessage(
           username: data?.username || client.username,
           avatar: data?.avatar || "",
           timestamp: new Date().toISOString(),
+        });
+        void recordEngagementAction({
+          roomId: client.roomId,
+          userId: client.userId,
+          username: client.username,
+          avatarUrl: client.avatarUrl || "",
+          type: "like",
+        }).then(async (r) => {
+          if (r.stageUnlocked) {
+            broadcastToRoom(client.roomId, "engagement_stage_unlock", {
+              stage: r.communityStage,
+            });
+          }
+          const pub = await getEngagementPublicState(client.roomId, null);
+          broadcastToRoom(client.roomId, "engagement_sync", pub);
         });
         break;
 
@@ -1040,6 +1081,110 @@ export async function handleMessage(
         if (ownerId && ownerId !== client.userId) break;
         await clearGiftGoal(client.roomId);
         broadcastToRoom(client.roomId, "gift_goal_sync", null);
+        break;
+      }
+
+      case "engagement_get_state": {
+        if (!(await wsRateCheck(client.userId, "engagement", 30, 10_000))) break;
+        const state = await getEngagementPublicState(client.roomId, client.userId);
+        sendToClient(client, "engagement_sync", state);
+        break;
+      }
+
+      case "engagement_watch_tick": {
+        if (!(await wsRateCheck(client.userId, "engagement_tick", 8, 60_000))) break;
+        const tick = await claimWatchTick({
+          roomId: client.roomId,
+          userId: client.userId,
+          username: client.username,
+          avatarUrl: client.avatarUrl || "",
+        });
+        if (tick.ok && tick.xpAwarded > 0) {
+          const minuteIndex = Math.floor((tick.state.me?.watchSeconds || 0) / 60);
+          await awardLiveWatchXp({
+            userId: client.userId,
+            roomId: client.roomId,
+            minuteIndex,
+            xpAmount: tick.xpAwarded,
+            sourceSuffix: tick.milestonesReached.length
+              ? `m${tick.milestonesReached.join("-")}`
+              : "tick",
+          });
+        }
+        if (tick.milestonesReached.length > 0) {
+          broadcastToRoom(client.roomId, "engagement_milestone", {
+            userId: client.userId,
+            username: client.username,
+            milestones: tick.milestonesReached,
+            title: tick.state.me?.title || "",
+            badge: tick.state.me?.badge || "",
+          });
+        }
+        if (tick.stageUnlocked) {
+          broadcastToRoom(client.roomId, "engagement_stage_unlock", {
+            stage: tick.communityStage,
+          });
+        }
+        const roomPublic = await getEngagementPublicState(client.roomId, null);
+        broadcastToRoom(client.roomId, "engagement_sync", roomPublic);
+        sendToClient(client, "engagement_sync", tick.state);
+        break;
+      }
+
+      case "engagement_mystery_start": {
+        if (!(await wsRateCheck(client.userId, "engagement_host", 20, 60_000))) break;
+        const ownerId = await resolveStreamOwnerUserId(client.roomId);
+        if (ownerId && ownerId !== client.userId) break;
+        const minsRaw = Math.floor(Number(data?.durationMin) || 5);
+        const durationMin = (minsRaw === 10 || minsRaw === 15 ? minsRaw : 5) as 5 | 10 | 15;
+        const kind = data?.kind === "trivia" ? "trivia" : "poll";
+        const state = await startMysteryCountdown(client.roomId, durationMin, kind);
+        broadcastToRoom(client.roomId, "engagement_sync", state);
+        break;
+      }
+
+      case "engagement_poll_set": {
+        if (!(await wsRateCheck(client.userId, "engagement_host", 20, 60_000))) break;
+        const ownerId = await resolveStreamOwnerUserId(client.roomId);
+        if (ownerId && ownerId !== client.userId) break;
+        const question = typeof data?.question === "string" ? data.question : "";
+        const options = Array.isArray(data?.options)
+          ? data.options.map((o: unknown) => String(o))
+          : [];
+        const kind = data?.kind === "trivia" ? "trivia" : "poll";
+        const state = await setEngagementPoll(client.roomId, question, options, kind);
+        broadcastToRoom(client.roomId, "engagement_sync", state);
+        break;
+      }
+
+      case "engagement_poll_vote": {
+        if (!(await wsRateCheck(client.userId, "engagement_vote", 10, 60_000))) break;
+        const optionIndex = Math.floor(Number(data?.optionIndex));
+        const vote = await voteEngagementPoll({
+          roomId: client.roomId,
+          userId: client.userId,
+          username: client.username,
+          avatarUrl: client.avatarUrl || "",
+          optionIndex,
+        });
+        if (vote.stageUnlocked) {
+          broadcastToRoom(client.roomId, "engagement_stage_unlock", {
+            stage: vote.communityStage,
+          });
+        }
+        broadcastToRoom(client.roomId, "engagement_sync", vote.state);
+        break;
+      }
+
+      case "engagement_features_set": {
+        if (!(await wsRateCheck(client.userId, "engagement_host", 20, 60_000))) break;
+        const ownerId = await resolveStreamOwnerUserId(client.roomId);
+        if (ownerId && ownerId !== client.userId) break;
+        const patch = (data?.features && typeof data.features === "object"
+          ? data.features
+          : data) as Partial<EngagementFeatures>;
+        const state = await setEngagementFeatures(client.roomId, patch || {});
+        broadcastToRoom(client.roomId, "engagement_sync", state);
         break;
       }
 

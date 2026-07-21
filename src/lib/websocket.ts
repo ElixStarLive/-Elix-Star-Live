@@ -62,7 +62,10 @@ export type WebSocketEvent =
   | "booster:activated"
   | "booster_activated"
   | "booster_caught"
-  | "mist_activated";
+  | "mist_activated"
+  | "engagement_sync"
+  | "engagement_milestone"
+  | "engagement_stage_unlock";
 
 export interface WebSocketMessage {
   event: WebSocketEvent | string;

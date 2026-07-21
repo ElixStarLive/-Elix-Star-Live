@@ -31,6 +31,8 @@ import {
 import { GiftPanel } from '../components/GiftPanel';
 import { GiftGoalGallery } from '../components/GiftGoalGallery';
 import { LiveGiftGoalBar } from '../components/LiveGiftGoalBar';
+import { LiveEngagementOverlay } from '../components/LiveEngagementOverlay';
+import { useLiveEngagement } from '../hooks/useLiveEngagement';
 import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, fetchGiftsFromDatabase, pickGiftVideoUrl, formatGiftDisplayName } from '../lib/giftsCatalog';
 import { appendCapped, LIVE_CHAT_MESSAGE_CAP, LIVE_GIFT_QUEUE_CAP } from '../lib/liveRuntimeCaps';
 import { BattleVfxOverlays, GloveIcon, type BattleMistSide, type GloveBurst } from '../components/BattleVfxOverlays';
@@ -226,6 +228,14 @@ export default function SpectatorPage() {
   const [mistFog, setMistFog] = useState<{ supportedUserId: string; supportedSide: 'host' | 'opponent'; expiresAt: number } | null>(null);
 
   const [streamEndedReceived, setStreamEndedReceived] = useState(false);
+
+  const {
+    state: engagementState,
+    nowMs: engagementNowMs,
+    milestoneFlash,
+    stageFlash,
+    votePoll,
+  } = useLiveEngagement({ enabled: streamIsLive === true, isHost: false });
 
   const [showTestCoinsModal, setShowTestCoinsModal] = useState(false);
   const [testCoinsStep, setTestCoinsStep] = useState<'password' | 'amount'>('password');
@@ -3866,6 +3876,16 @@ export default function SpectatorPage() {
             </div>
           </div>
         )}
+
+        {streamIsLive ? (
+          <LiveEngagementOverlay
+            state={engagementState}
+            nowMs={engagementNowMs}
+            milestoneFlash={milestoneFlash}
+            stageFlash={stageFlash}
+            onVote={votePoll}
+          />
+        ) : null}
 
         {/* GIFT PANEL — anchored to bottom, above all buttons */}
         {showGiftPanel && (

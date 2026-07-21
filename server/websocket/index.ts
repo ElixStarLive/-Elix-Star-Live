@@ -44,6 +44,10 @@ import { getPool } from "../lib/postgres";
 import { createCoalescedWriter } from "../lib/coalescedWriter";
 import { getUserBattleRoom, endBattle, getBattleFromStore } from "./battle";
 import { getGiftGoal } from "./giftGoal";
+import {
+  clearEngagementActiveRoom,
+  getEngagementPublicState,
+} from "./engagement";
 import { handleMessage } from "./handlers";
 
 export interface Client {
@@ -793,6 +797,10 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
             avatar_url: client.avatarUrl,
           });
 
+          if (!userStillInRoom) {
+            clearEngagementActiveRoom(client.userId, client.roomId).catch(() => undefined);
+          }
+
           updateViewerCount(client.roomId).catch((err) => {
             logger.warn({ err, roomId: client.roomId }, "updateViewerCount failed on client disconnect");
           });
@@ -1064,6 +1072,13 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
       const liveGiftGoal = await getGiftGoal(roomId);
       if (liveGiftGoal) {
         sendToClient(client, "gift_goal_sync", liveGiftGoal);
+      }
+
+      try {
+        const engage = await getEngagementPublicState(roomId, client.userId);
+        sendToClient(client, "engagement_sync", engage);
+      } catch (engageErr) {
+        logger.warn({ err: engageErr, roomId }, "engagement_sync on join failed");
       }
     } catch (error) {
       logger.error({ err: error }, "Connection setup error");
