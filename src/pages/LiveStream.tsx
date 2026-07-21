@@ -24,6 +24,8 @@ import {
   User,
   UserPlus,
   Crown,
+  Gem,
+  Star,
   X,
   Sword,
   Coins,
@@ -5968,11 +5970,11 @@ export default function LiveStream() {
                                     {!isBroadcast && !isFollowing && (
                                       <button
                                         type="button"
-                                        className="col-start-1 row-start-1 z-20 relative flex items-center justify-center gap-1 self-stretch h-full rounded-full bg-[#D4AF37] w-full"
+                                        className="col-start-1 row-start-1 z-20 relative flex items-center justify-center gap-0.5 self-stretch h-full rounded-full bg-[#FE2C55] w-full"
                                         onClick={followCreatorLive}
                                       >
-                                        <Plus size={12} className="text-black" strokeWidth={3} />
-                                        <span className="text-black text-[10px] font-bold">Follow</span>
+                                        <Plus size={12} className="text-white" strokeWidth={3} />
+                                        <span className="text-white text-[10px] font-bold">Follow</span>
                                       </button>
                                     )}
                                   </div>
@@ -5991,34 +5993,39 @@ export default function LiveStream() {
                             ) : (
                               <button
                                 type="button"
-                                className="flex items-center gap-1 bg-black/75 rounded-full px-2.5 py-1 border border-[#D4AF37]/80 shadow-[0_0_8px_rgba(212,175,55,0.35)] cursor-pointer active:scale-95 transition-transform"
+                                className="flex items-center gap-1.5 bg-black/55 backdrop-blur-[2px] rounded-xl pl-1.5 pr-2 py-1 cursor-pointer active:scale-95 transition-transform"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setRankingInitialTab('weekly');
                                   setShowRankingPanel(true);
                                 }}
                               >
-                                <Crown className="w-3.5 h-3.5 text-[#D4AF37] flex-shrink-0" strokeWidth={2.25} fill="#D4AF37" />
-                                <span className="text-[#F5E6A8] text-[11px] font-bold whitespace-nowrap drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">
-                                  Diamond League
+                                <Gem className="w-4 h-4 text-[#C084FC] flex-shrink-0" strokeWidth={2.2} fill="#A855F7" />
+                                <span className="flex flex-col items-start leading-none min-w-0">
+                                  <span className="text-white text-[10px] font-bold whitespace-nowrap">Diamond League</span>
                                   {diamondLeagueRank != null ? (
-                                    <span className="text-[#D4AF37] font-black"> · Rank {diamondLeagueRank}</span>
+                                    <span className="text-white/70 text-[8px] font-semibold whitespace-nowrap mt-0.5">Rank {diamondLeagueRank}</span>
                                   ) : null}
                                 </span>
-                                <span className="text-[#F5E6A8]/90 text-[11px]">&gt;</span>
+                                <span className="text-white/80 text-[10px] ml-0.5">&gt;</span>
                               </button>
                             )}
                             <div 
-                              className="flex items-center gap-1 bg-black/75 rounded-full px-2.5 py-1 border border-[#D4AF37]/80 shadow-[0_0_8px_rgba(212,175,55,0.35)] cursor-pointer" 
+                              className="flex items-center gap-1.5 bg-black/55 backdrop-blur-[2px] rounded-xl pl-1.5 pr-2 py-1 cursor-pointer active:scale-95 transition-transform" 
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setShowFanClub(true);
                               }}
                             >
-                              <Crown className="w-3.5 h-3.5 text-[#D4AF37] flex-shrink-0" strokeWidth={2.25} fill="#D4AF37" />
-                              <span className="text-[#F5E6A8] text-[11px] font-bold whitespace-nowrap drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">Membership</span>
-                              <span className="text-[#D4AF37] text-[9px] font-black tracking-wide">VIP</span>
-                              <span className="text-[#F5E6A8]/90 text-[11px]">&gt;</span>
+                              <Crown className="w-4 h-4 text-[#FFD54A] flex-shrink-0" strokeWidth={2} fill="#FFD54A" />
+                              <span className="flex flex-col items-start leading-none min-w-0">
+                                <span className="text-white text-[10px] font-bold whitespace-nowrap">Membership</span>
+                                <span className="flex items-center gap-0.5 mt-0.5">
+                                  <span className="text-[#FFD54A] text-[8px] font-bold">VIP</span>
+                                  <Star size={8} className="text-[#FFD54A]" fill="#FFD54A" strokeWidth={1.5} />
+                                </span>
+                              </span>
+                              <span className="text-white/80 text-[10px] ml-0.5">&gt;</span>
                             </div>
                             {currentUniverse && (
                               <div className="flex items-center gap-1 bg-[#111111]/90 rounded-full px-2.5 py-1 border border-[#D4AF37]/80 shadow-sm">
@@ -6053,11 +6060,11 @@ export default function LiveStream() {
                                 }}
                               >
                                 {isMvp && (
-                                  <span className="absolute -top-2 left-1/2 -translate-x-1/2 z-[3] flex items-center justify-center">
-                                    <Crown size={10} className="text-[#D4AF37] drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]" fill="#D4AF37" strokeWidth={1.5} />
+                                  <span className="absolute -top-1.5 -left-0.5 z-[3] flex items-center justify-center drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]">
+                                    <Crown size={11} className="text-[#FFD54A]" fill="#FFD54A" strokeWidth={1.2} />
                                   </span>
                                 )}
-                                <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
+                                <div className={isMvp ? 'rounded-full ring-[1.5px] ring-white/90' : ''}>
                                   <AvatarRing
                                     src={resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username)}
                                     alt={viewer.displayName || viewer.username || ''}
@@ -6065,7 +6072,8 @@ export default function LiveStream() {
                                   />
                                 </div>
                                 {isMvp && (
-                                  <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-black/85 border border-[#D4AF37]/80 text-[#F5E6A8] text-[6px] font-black leading-none tabular-nums whitespace-nowrap">
+                                  <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 z-[2] flex items-center gap-0.5 px-1 py-[1px] rounded-full bg-black/70 text-white text-[6px] font-bold leading-none tabular-nums whitespace-nowrap">
+                                    <Coins size={7} className="text-[#FFD54A] flex-shrink-0" strokeWidth={2.5} />
                                     {formatCountShort(points)}
                                   </span>
                                 )}
@@ -6177,7 +6185,7 @@ export default function LiveStream() {
               </div>
             </div>
 
-      {/* Combo column — stacked gift icons + real xN (red-circle) */}
+      {/* Combo column — gift icon + xN beside it (photo design) */}
       <AnimatePresence>
         {showComboButton && comboStack.length > 0 && (
           <motion.div
@@ -6186,8 +6194,8 @@ export default function LiveStream() {
             exit={{ scale: 0, opacity: 0 }}
             className="fixed left-0 right-0 bottom-[calc(58px+max(2px,env(safe-area-inset-bottom,0px)))] z-[50001] flex justify-center pointer-events-none"
           >
-            <div className="w-full max-w-[480px] mx-auto px-3 flex justify-end pointer-events-auto">
-              <div className="flex flex-col-reverse items-center gap-1.5">
+            <div className="w-full max-w-[480px] mx-auto px-3 flex justify-center pointer-events-auto">
+              <div className="flex flex-col-reverse items-center gap-2">
                 {comboStack.map((item, idx) => {
                   const isActive = idx === comboStack.length - 1;
                   const n = item.count;
@@ -6201,12 +6209,19 @@ export default function LiveStream() {
                         if (isActive) handleComboClick();
                       }}
                       disabled={!isActive || n >= GIFT_COMBO_MAX}
-                      className="w-[48px] h-[48px] rounded-full bg-gradient-to-b from-[#FF5A7A] to-[#FF2D55] flex flex-col items-center justify-center active:scale-90 transition-transform shadow-[0_0_12px_rgba(255,45,85,0.45)] border border-white/30 disabled:opacity-50"
+                      className="flex items-center gap-1.5 active:scale-95 transition-transform disabled:opacity-50 bg-transparent border-0 p-0"
                     >
                       {item.icon && (item.icon.startsWith('http') || item.icon.startsWith('/')) ? (
-                        <img src={item.icon} alt="" className="w-4 h-4 object-contain mb-0.5" draggable={false} />
-                      ) : null}
-                      <span className={`font-black italic text-white drop-shadow-md leading-none ${n >= 1000 ? 'text-[9px]' : 'text-xs'}`}>
+                        <img
+                          src={item.icon}
+                          alt=""
+                          className="w-11 h-11 object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.65)]"
+                          draggable={false}
+                        />
+                      ) : (
+                        <span className="w-11 h-11 flex items-center justify-center text-2xl drop-shadow-[0_2px_6px_rgba(0,0,0,0.65)]">🎁</span>
+                      )}
+                      <span className="font-black italic text-white text-[22px] leading-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)] tracking-tight">
                         x{label}
                       </span>
                     </button>
