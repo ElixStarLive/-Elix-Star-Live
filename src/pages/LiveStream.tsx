@@ -1963,14 +1963,17 @@ export default function LiveStream() {
   const saveGiftGoal = useCallback(() => {
     if (!goalPick || !isBroadcast) return;
     setGoalSaving(true);
-    websocket.send('gift_goal_set', {
+    const nextGoal = {
       giftId: goalPick.id,
       giftName: goalPick.name,
       giftIcon: goalPick.icon,
       targetCount: goalTargetCount,
       currentCount: giftGoal?.giftId === goalPick.id ? giftGoal.currentCount : 0,
-    });
+    };
+    websocket.send('gift_goal_set', nextGoal);
+    setGiftGoal(nextGoal);
     setGoalSaving(false);
+    showToast('Gift goal set');
   }, [goalPick, goalTargetCount, giftGoal, isBroadcast]);
 
   const clearGiftGoal = useCallback(() => {
@@ -1978,6 +1981,7 @@ export default function LiveStream() {
     websocket.send('gift_goal_clear', {});
     setGiftGoal(null);
     setGoalPick(null);
+    showToast('Gift goal cleared');
   }, [isBroadcast]);
 
   useEffect(() => {
@@ -6251,6 +6255,19 @@ export default function LiveStream() {
                       setShowRankingPanel(false);
                       setShowGiftPanel(true);
                     }
+              }
+              hostGoalEditor={
+                isBroadcast
+                  ? {
+                      selectedGiftId: goalPick?.id ?? giftGoal?.giftId ?? null,
+                      targetCount: goalTargetCount,
+                      onSelectGift: (gift) => setGoalPick(gift),
+                      onTargetCountChange: setGoalTargetCount,
+                      onSave: saveGiftGoal,
+                      onClear: clearGiftGoal,
+                      saving: goalSaving,
+                    }
+                  : null
               }
             />
           </div>

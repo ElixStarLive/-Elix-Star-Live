@@ -2,13 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { Trophy, Flame, Gift, Users, CalendarDays, Target } from 'lucide-react';
 import { request } from '../lib/apiClient';
 import { AvatarRing } from './AvatarRing';
-import { resolveGiftAssetUrl } from '../lib/giftsCatalog';
+import { resolveGiftAssetUrl, type GiftUiItem } from '../lib/giftsCatalog';
 import {
   giftGoalProgressPct,
   isGiftGoalComplete,
   type LiveGiftGoal,
 } from '../lib/liveGiftGoal';
 import type { LiveRankTab } from './CyclingRankBadge';
+import { GiftGoalGallery } from './GiftGoalGallery';
 
 interface CreatorRanking {
   rank: number;
@@ -27,6 +28,17 @@ export type RankingPerson = {
   subtitle?: string;
 };
 
+/** Host-only: pick a gift + target count from the gift catalog (gift-panel style). */
+export type HostGiftGoalEditor = {
+  selectedGiftId: string | null;
+  targetCount: number;
+  onSelectGift: (gift: GiftUiItem) => void;
+  onTargetCountChange: (count: number) => void;
+  onSave: () => void;
+  onClear: () => void;
+  saving?: boolean;
+};
+
 interface RankingPanelProps {
   onClose: () => void;
   initialTab?: LiveRankTab;
@@ -37,6 +49,8 @@ interface RankingPanelProps {
   /** Active gift goal for this live */
   giftGoal?: LiveGiftGoal | null;
   onSendGiftGoal?: () => void;
+  /** When set, Gift Goal tab shows the gift picker so the creator can set a goal */
+  hostGoalEditor?: HostGiftGoalEditor | null;
 }
 
 function formatNumber(num: number): string {
@@ -78,6 +92,7 @@ export function RankingPanel({
   spectators = [],
   giftGoal = null,
   onSendGiftGoal,
+  hostGoalEditor = null,
 }: RankingPanelProps) {
   const [tab, setTab] = useState<LiveRankTab>(initialTab);
   const [weekly, setWeekly] = useState<CreatorRanking[]>([]);
@@ -213,50 +228,65 @@ export function RankingPanel({
 
       <div className="flex-1 overflow-y-auto -mx-2 px-2 no-scrollbar">
         {tab === 'goal' ? (
-          giftGoal ? (
-            <div className="bg-white/5 rounded-xl p-3 border border-[#C9A227]/20 mb-2">
-              <div className="flex items-center gap-2 mb-2">
-                {giftGoal.giftIcon ? (
-                  <img
-                    src={resolveGiftAssetUrl(giftGoal.giftIcon)}
-                    alt=""
-                    className="w-10 h-10 object-contain flex-shrink-0"
-                  />
-                ) : (
-                  <Gift className="w-8 h-8 text-[#D4AF37]" strokeWidth={2} />
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="text-white text-[11px] font-bold truncate">{giftGoal.giftName}</p>
-                  <p className="text-[#D4AF37] text-[10px] font-bold tabular-nums">
-                    {giftGoal.currentCount}/{giftGoal.targetCount} points
-                  </p>
+          <div className="flex flex-col gap-2 pb-4">
+            {giftGoal ? (
+              <div className="bg-white/5 rounded-xl p-3 border border-[#C9A227]/20">
+                <div className="flex items-center gap-2 mb-2">
+                  {giftGoal.giftIcon ? (
+                    <img
+                      src={resolveGiftAssetUrl(giftGoal.giftIcon)}
+                      alt=""
+                      className="w-10 h-10 object-contain flex-shrink-0"
+                    />
+                  ) : (
+                    <Gift className="w-8 h-8 text-[#D4AF37]" strokeWidth={2} />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white text-[11px] font-bold truncate">{giftGoal.giftName}</p>
+                    <p className="text-[#D4AF37] text-[10px] font-bold tabular-nums">
+                      {giftGoal.currentCount}/{giftGoal.targetCount} points
+                    </p>
+                  </div>
+                  {isGiftGoalComplete(giftGoal) ? (
+                    <span className="text-[9px] font-bold text-black bg-[#D4AF37] px-2 py-1 rounded-full">Done</span>
+                  ) : null}
                 </div>
-                {isGiftGoalComplete(giftGoal) ? (
-                  <span className="text-[9px] font-bold text-black bg-[#D4AF37] px-2 py-1 rounded-full">Done</span>
+                <div className="h-1.5 rounded-full bg-white/10 overflow-hidden mb-2">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-[#D4AF37] to-[#E8D5A3] transition-all duration-500"
+                    style={{ width: `${giftGoalProgressPct(giftGoal)}%` }}
+                  />
+                </div>
+                {onSendGiftGoal && !isGiftGoalComplete(giftGoal) ? (
+                  <button
+                    type="button"
+                    onClick={onSendGiftGoal}
+                    className="w-full py-2 bg-gradient-to-r from-[#D4AF37] to-[#E8D5A3] text-black font-bold text-[10px] uppercase tracking-wide rounded-xl active:scale-[0.98]"
+                  >
+                    Send {giftGoal.giftName}
+                  </button>
                 ) : null}
               </div>
-              <div className="h-1.5 rounded-full bg-white/10 overflow-hidden mb-2">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-[#D4AF37] to-[#E8D5A3] transition-all duration-500"
-                  style={{ width: `${giftGoalProgressPct(giftGoal)}%` }}
-                />
+            ) : null}
+
+            {hostGoalEditor ? (
+              <GiftGoalGallery
+                mode="picker"
+                selectedGiftId={hostGoalEditor.selectedGiftId}
+                targetCount={hostGoalEditor.targetCount}
+                onSelectGift={hostGoalEditor.onSelectGift}
+                onTargetCountChange={hostGoalEditor.onTargetCountChange}
+                onSave={hostGoalEditor.onSave}
+                onClear={hostGoalEditor.onClear}
+                saving={hostGoalEditor.saving}
+              />
+            ) : !giftGoal ? (
+              <div className="flex flex-col items-center justify-center py-10 gap-2">
+                <Target className="w-12 h-12 text-white/10" />
+                <p className="text-white/30 text-sm">No gift goal set yet</p>
               </div>
-              {onSendGiftGoal && !isGiftGoalComplete(giftGoal) ? (
-                <button
-                  type="button"
-                  onClick={onSendGiftGoal}
-                  className="w-full py-2 bg-gradient-to-r from-[#D4AF37] to-[#E8D5A3] text-black font-bold text-[10px] uppercase tracking-wide rounded-xl active:scale-[0.98]"
-                >
-                  Send {giftGoal.giftName}
-                </button>
-              ) : null}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-10 gap-2">
-              <Target className="w-12 h-12 text-white/10" />
-              <p className="text-white/30 text-sm">No gift goal set yet</p>
-            </div>
-          )
+            ) : null}
+          </div>
         ) : loading && (tab === 'weekly' || tab === 'daily' || tab === 'live') ? (
           <div className="flex flex-col items-center justify-center py-10 gap-3">
             <div className="w-8 h-8 border-t-[#FFFFFF] rounded-full animate-spin" />
