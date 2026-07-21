@@ -96,7 +96,7 @@ import { GiftPanel } from '../components/GiftPanel';
 import { GiftGoalGallery } from '../components/GiftGoalGallery';
 import { LiveGiftGoalBar } from '../components/LiveGiftGoalBar';
 import { RankingPanel } from '../components/RankingPanel';
-import { CyclingRankBadge, type LiveRankTab } from '../components/CyclingRankBadge';
+import { CyclingRankBadge } from '../components/CyclingRankBadge';
 import { websocket } from '../lib/websocket';
 import { parseLiveGiftGoal, type LiveGiftGoal } from '../lib/liveGiftGoal';
 import { liveStreamUiGiftTargetToServerBattleTarget, normalizeBattleGiftTarget } from '../lib/liveBattleGiftTarget';
@@ -246,7 +246,6 @@ export default function LiveStream() {
   const _PROMOTE_LIKES_THRESHOLD_BATTLE = 50;
   
   const [showRankingPanel, setShowRankingPanel] = useState(false);
-  const [rankingInitialTab, setRankingInitialTab] = useState<LiveRankTab>('weekly');
   const [isFollowing, setIsFollowing] = useState(false);
   const [currentGift, setCurrentGift] = useState<{ video: string } | null>(null);
   // Gift video queue must live above the WS effect so creator playback never depends
@@ -5789,8 +5788,8 @@ export default function LiveStream() {
                           </div>
                           <div className="flex items-center gap-2 mt-1 ml-12 pointer-events-auto relative z-20 flex-wrap">
                             <CyclingRankBadge
-                              onOpen={(tab) => {
-                                setRankingInitialTab(tab);
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 setShowRankingPanel(true);
                               }}
                             />
@@ -6114,11 +6113,7 @@ export default function LiveStream() {
               giftSource={giftSource}
               onGiftSourceChange={setGiftSource}
               onRechargeSuccess={(newBalance) => { setCoinBalance(newBalance); }}
-              onWeeklyRanking={() => {
-                setShowGiftPanel(false);
-                setRankingInitialTab('weekly');
-                setShowRankingPanel(true);
-              }}
+              onWeeklyRanking={() => { setShowGiftPanel(false); setShowRankingPanel(true); }}
               onMembership={() => { setShowGiftPanel(false); setShowFanClub(true); }}
               highlightGiftId={giftGoal?.giftId ?? null}
             />
@@ -6137,33 +6132,7 @@ export default function LiveStream() {
             onClick={() => setShowRankingPanel(false)}
           />
           <div className="fixed bottom-0 left-0 right-0 h-[40vh] z-[99999] pointer-events-auto max-w-[480px] mx-auto">
-            <RankingPanel
-              onClose={() => setShowRankingPanel(false)}
-              initialTab={rankingInitialTab}
-              sessionGifters={buildMvpRanked(mvpGiftScores, 100).map((v) => ({
-                id: v.id,
-                name: v.displayName || v.username || 'User',
-                avatar: v.avatar,
-                points: mvpGiftScores[v.id] ?? 0,
-                subtitle: 'gift points',
-              }))}
-              spectators={activeViewers.slice(0, 1000).map((v) => ({
-                id: v.id,
-                name: v.displayName || v.username || 'User',
-                avatar: v.avatar,
-                points: mvpGiftScores[v.id] ?? 0,
-                subtitle: mvpGiftScores[v.id] ? 'gift points' : 'watching',
-              }))}
-              giftGoal={giftGoal}
-              onSendGiftGoal={
-                isCreatorParticipant
-                  ? undefined
-                  : () => {
-                      setShowRankingPanel(false);
-                      setShowGiftPanel(true);
-                    }
-              }
-            />
+            <RankingPanel onClose={() => setShowRankingPanel(false)} />
           </div>
         </>
       )}
@@ -6530,10 +6499,6 @@ export default function LiveStream() {
                             <p className="text-white text-sm font-semibold truncate">{displayName}</p>
                             {isJoinRequester ? (
                               <p className="text-white/40 text-[10px] font-medium">Requested to co-host</p>
-                            ) : (mvpGiftScores[v.id] ?? 0) > 0 ? (
-                              <p className="text-[#D4AF37] text-[10px] font-medium tabular-nums">
-                                {(mvpGiftScores[v.id] ?? 0).toLocaleString()} pts
-                              </p>
                             ) : null}
                           </div>
                         </button>

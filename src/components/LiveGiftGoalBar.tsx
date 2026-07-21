@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { resolveGiftAssetUrl } from "../lib/giftsCatalog";
 import {
   giftGoalProgressPct,
@@ -13,24 +13,10 @@ type Props = {
   showSend?: boolean;
 };
 
-/** When goal is complete, swap gift icon ↔ check every 5s so the finished state stays visible. */
 export function LiveGiftGoalBar({ goal, onTap, showSend = true }: Props) {
   const pct = giftGoalProgressPct(goal);
   const done = isGiftGoalComplete(goal);
   const remaining = giftGoalRemaining(goal);
-  const [showCheck, setShowCheck] = useState(false);
-
-  useEffect(() => {
-    if (!done) {
-      setShowCheck(false);
-      return;
-    }
-    setShowCheck(true);
-    const id = window.setInterval(() => {
-      setShowCheck((v) => !v);
-    }, 5000);
-    return () => window.clearInterval(id);
-  }, [done, goal.giftId, goal.currentCount]);
 
   return (
     <button
@@ -38,29 +24,16 @@ export function LiveGiftGoalBar({ goal, onTap, showSend = true }: Props) {
       onClick={onTap}
       className="pointer-events-auto flex items-center gap-2 max-w-[min(240px,72vw)] px-2 py-1.5 rounded-full bg-[#111111]/85 border border-[#C9A227]/35 backdrop-blur-md active:scale-[0.98] transition-transform shadow-lg"
     >
-      <span className="relative w-7 h-7 flex-shrink-0">
-        {goal.giftIcon ? (
-          <img
-            src={resolveGiftAssetUrl(goal.giftIcon)}
-            alt=""
-            className={`absolute inset-0 w-7 h-7 object-contain transition-opacity duration-500 ${
-              done && showCheck ? "opacity-0" : "opacity-100"
-            }`}
-          />
-        ) : null}
-        {done ? (
-          <span
-            className={`absolute inset-0 flex items-center justify-center text-[14px] font-black text-[#D4AF37] transition-opacity duration-500 ${
-              showCheck ? "opacity-100" : "opacity-0"
-            }`}
-          >
-            ✓
-          </span>
-        ) : null}
-      </span>
+      {goal.giftIcon ? (
+        <img
+          src={resolveGiftAssetUrl(goal.giftIcon)}
+          alt=""
+          className="w-7 h-7 object-contain flex-shrink-0"
+        />
+      ) : null}
       <div className="flex-1 min-w-0 text-left">
         <p className="text-[9px] font-bold text-white truncate leading-tight">
-          {done ? (showCheck ? "Goal reached!" : goal.giftName) : goal.giftName}
+          {done ? "Goal reached!" : goal.giftName}
         </p>
         <div className="h-1 rounded-full bg-white/15 overflow-hidden mt-0.5">
           <div
@@ -70,7 +43,7 @@ export function LiveGiftGoalBar({ goal, onTap, showSend = true }: Props) {
         </div>
       </div>
       <span className="text-[9px] font-bold text-[#D4AF37] tabular-nums flex-shrink-0">
-        {done ? `${goal.currentCount}/${goal.targetCount}` : `${remaining}`}
+        {done ? "✓" : `${remaining}`}
       </span>
       {showSend && !done && (
         <span className="text-[8px] font-bold text-black bg-[#D4AF37] px-1.5 py-0.5 rounded-full flex-shrink-0">
