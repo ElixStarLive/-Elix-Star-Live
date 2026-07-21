@@ -957,6 +957,11 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
             }
             if (typeof p.level === "number" && Number.isFinite(p.level)) {
               client.level = p.level;
+            } else {
+              const parsedLevel = Number(p.level);
+              if (Number.isFinite(parsedLevel) && parsedLevel >= 0) {
+                client.level = Math.floor(parsedLevel);
+              }
             }
           }
         }

@@ -326,7 +326,7 @@ export default function SpectatorPage() {
 
   const [joinRequested, setJoinRequested] = useState(false);
 
-  const [userLevel, setUserLevel] = useState(user?.level || 1);
+  const [userLevel, setUserLevel] = useState(() => Math.max(1, Number(user?.level) || 0));
   const [_userXP, setUserXP] = useState(0);
 
   const viewerName = user?.username || user?.name || 'Viewer';
@@ -1252,7 +1252,9 @@ export default function SpectatorPage() {
         {
           const serverLevel = Math.max(0, Number(p?.current_level) || 0);
           const testLvl = shouldUseTestCoinsForGifts(user.id) ? getTestLevel(user.id) : 0;
-          setUserLevel(Math.max(serverLevel, testLvl));
+          const resolvedLevel = Math.max(serverLevel, testLvl, Number(user.level) || 0);
+          setUserLevel(resolvedLevel);
+          if (serverLevel > 0) updateUser({ level: serverLevel });
         }
         setUserXP(Math.max(0, Number(p?.total_xp) || 0));
       })
@@ -1263,7 +1265,7 @@ export default function SpectatorPage() {
         }
       });
     return () => { cancelled = true; };
-  }, [user?.id, user?.level]);
+  }, [user?.id, user?.level, updateUser]);
 
   useEffect(() => {
     if (showTestCoinsModal) {
@@ -1413,11 +1415,14 @@ export default function SpectatorPage() {
         hostFoundInRoom = true;
         return;
       }
+      const wsLevel = Number(data.level);
+      const initialLevel = Number.isFinite(wsLevel) && wsLevel >= 0 ? Math.floor(wsLevel) : 1;
+      const uid = typeof data.user_id === 'string' ? data.user_id : String(data.user_id ?? '');
       if (data.user_id) {
         actualViewersRef.current.set(data.user_id, {
           name: data.display_name || data.username || 'User',
           avatar: data.avatar_url || '',
-          level: typeof data.level === 'number' ? data.level : 1,
+          level: initialLevel,
         });
       }
       const joinName = data.username || 'User';
@@ -1427,9 +1432,24 @@ export default function SpectatorPage() {
         username: joinName,
         text: 'joined the stream',
         isSystem: true,
-        level: typeof data.level === 'number' && Number.isFinite(data.level) ? data.level : 1,
+        level: initialLevel,
         avatar: typeof data.avatar_url === 'string' ? data.avatar_url : '',
       }, LIVE_CHAT_MESSAGE_CAP));
+      if (uid && initialLevel <= 1) {
+        void request(`/api/profiles/${encodeURIComponent(uid)}`).then(({ data: body }) => {
+          if (!mounted) return;
+          const prof = body?.profile || body?.data || {};
+          const lvl = Number(prof.level);
+          if (!Number.isFinite(lvl) || lvl <= 0) return;
+          const fixed = Math.floor(lvl);
+          setMessages((prev) => prev.map((m) => (m.id === joinMsgId ? { ...m, level: fixed } : m)));
+          if (data.user_id) {
+            const cached = actualViewersRef.current.get(data.user_id);
+            if (cached) actualViewersRef.current.set(data.user_id, { ...cached, level: fixed });
+          }
+          syncMvpSlotsRef.current();
+        }).catch(() => {});
+      }
       // The join banner is ephemeral: it appears only when someone joins, then
       // clears itself so it never stays permanently in the chat feed.
       window.setTimeout(() => {
@@ -1459,8 +1479,8 @@ export default function SpectatorPage() {
         text,
         level: Number.isFinite(parsedLevel)
           ? parsedLevel
-          : typeof data.level === 'number' && Number.isFinite(data.level)
-            ? data.level
+          : Number.isFinite(Number(data.level)) && Number(data.level) >= 0
+            ? Math.floor(Number(data.level))
             : 1,
         avatar: typeof data.avatar === 'string' ? data.avatar : '',
         stickerUrl: typeof data.stickerUrl === 'string' ? data.stickerUrl : undefined,
@@ -1506,7 +1526,7 @@ export default function SpectatorPage() {
           mvpIdentityRef.current.get(gifterId)?.avatar ||
           '';
         const gifterLevel =
-          (typeof data.level === 'number' && Number.isFinite(data.level) ? data.level : null) ??
+          (Number.isFinite(Number(data.level)) && Number(data.level) >= 0 ? Math.floor(Number(data.level)) : null) ??
           mvpIdentityRef.current.get(gifterId)?.level ??
           1;
         mvpIdentityRef.current.set(gifterId, {
@@ -1536,7 +1556,9 @@ export default function SpectatorPage() {
           id: `gift-ws-${txnId || Date.now()}-${Math.random()}`,
           username: typeof data.username === 'string' ? data.username : 'User',
           text: `sent ${giftName}`,
-          level: typeof data.level === 'number' && Number.isFinite(data.level) ? data.level : 1,
+          level: Number.isFinite(Number(data.level)) && Number(data.level) >= 0
+            ? Math.floor(Number(data.level))
+            : 1,
           avatar: typeof data.avatar === 'string' ? data.avatar : '',
           isGift: true,
         };

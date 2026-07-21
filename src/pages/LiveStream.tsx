@@ -484,7 +484,9 @@ export default function LiveStream() {
         // While testing with test coins, show the local simulated level if it's
         // higher (local-only, never real progression).
         const testLvl = shouldUseTestCoinsForGifts(user.id) ? getTestLevel(user.id) : 0;
-        setUserLevel(Math.max(serverLevel, testLvl));
+        const resolvedLevel = Math.max(serverLevel, testLvl, Number(user.level) || 0);
+        setUserLevel(resolvedLevel);
+        if (serverLevel > 0) updateUser({ level: serverLevel });
         setUserXP(serverXp);
       })
       .catch(() => {
@@ -494,7 +496,7 @@ export default function LiveStream() {
         }
       });
     return () => { cancelled = true; };
-  }, [user?.id, user?.level]);
+  }, [user?.id, user?.level, updateUser]);
 
   const [isMyStreamLive, setIsMyStreamLive] = useState(false);
   const creatorNameRef = useRef(creatorName);
@@ -2857,8 +2859,8 @@ export default function LiveStream() {
           (typeof profile.avatar_url === 'string' && profile.avatar_url.trim()) ||
           '';
         const resolvedLevel =
-          typeof profile.level === 'number' && Number.isFinite(profile.level) && profile.level > 0
-            ? Math.floor(profile.level)
+          Number.isFinite(Number(profile.level)) && Number(profile.level) >= 0
+            ? Math.floor(Number(profile.level))
             : 1;
         if (!resolvedUsername && !resolvedDisplayName && !resolvedAvatar) return;
         const nextIdentity = {
@@ -3067,13 +3069,20 @@ export default function LiveStream() {
       const joinName = data.username || 'User';
       const uid = typeof data.user_id === 'string' ? data.user_id : String(data.user_id ?? '');
       const cached = uid ? viewerIdentityCacheRef.current.get(uid) : undefined;
+      const wsLevel = Number(data.level);
+      const initialLevel =
+        cached?.level && cached.level > 0
+          ? cached.level
+          : Number.isFinite(wsLevel) && wsLevel >= 0
+            ? Math.floor(wsLevel)
+            : 1;
       setActiveViewers(prev => {
         if (prev.some(v => v.id === uid)) return prev;
         return appendCapped(prev, {
           id: uid,
           username: cached?.username || joinName,
           displayName: cached?.displayName || (typeof data.display_name === 'string' ? data.display_name : joinName),
-          level: cached?.level || (typeof data.level === 'number' && Number.isFinite(data.level) ? data.level : 1),
+          level: initialLevel,
           avatar: cached?.avatar || (typeof data.avatar_url === 'string' ? data.avatar_url : ''),
           country: data.country || '',
           joinedAt: Date.now(),
@@ -3089,9 +3098,20 @@ export default function LiveStream() {
         username: joinName,
         text: 'joined the stream',
         isSystem: true,
-        level: typeof data.level === 'number' && Number.isFinite(data.level) ? data.level : 1,
+        level: initialLevel,
         avatar: typeof data.avatar_url === 'string' ? data.avatar_url : '',
       }, LIVE_CHAT_MESSAGE_CAP));
+      if (uid && initialLevel <= 1) {
+        void request(`/api/profiles/${encodeURIComponent(uid)}`).then(({ data: body }) => {
+          if (!mounted) return;
+          const prof = body?.profile || body?.data || {};
+          const lvl = Number(prof.level);
+          if (!Number.isFinite(lvl) || lvl <= 0) return;
+          const fixed = Math.floor(lvl);
+          setMessages((prev) => prev.map((m) => (m.id === joinMsgId ? { ...m, level: fixed } : m)));
+          setActiveViewers((prev) => prev.map((v) => (v.id === uid ? { ...v, level: fixed } : v)));
+        }).catch(() => {});
+      }
       // The join banner is ephemeral: it appears only when someone joins, then
       // clears itself so it never stays permanently in the chat feed.
       window.setTimeout(() => {
@@ -3134,8 +3154,8 @@ export default function LiveStream() {
         text,
         level: Number.isFinite(parsedLevel)
           ? parsedLevel
-          : typeof data.level === 'number' && Number.isFinite(data.level)
-            ? data.level
+          : Number.isFinite(Number(data.level)) && Number(data.level) >= 0
+            ? Math.floor(Number(data.level))
             : 1,
         avatar: typeof data.avatar === 'string' ? data.avatar : '',
         stickerUrl: typeof data.stickerUrl === 'string' ? data.stickerUrl : undefined,
@@ -3199,7 +3219,7 @@ export default function LiveStream() {
             viewerIdentityCacheRef.current.get(gifterId)?.avatar ||
             '';
           const gifterLevel =
-            (typeof data.level === 'number' && Number.isFinite(data.level) ? data.level : null) ??
+            (Number.isFinite(Number(data.level)) && Number(data.level) >= 0 ? Math.floor(Number(data.level)) : null) ??
             viewerIdentityCacheRef.current.get(gifterId)?.level ??
             1;
           viewerIdentityCacheRef.current.set(gifterId, {
@@ -3238,7 +3258,9 @@ export default function LiveStream() {
           id: `gift-ws-${txnId || Date.now()}-${Math.random()}`,
           username: typeof data.username === 'string' ? data.username : 'User',
           text: `sent ${giftName}`,
-          level: typeof data.level === 'number' && Number.isFinite(data.level) ? data.level : 1,
+          level: Number.isFinite(Number(data.level)) && Number(data.level) >= 0
+            ? Math.floor(Number(data.level))
+            : 1,
           avatar: typeof data.avatar === 'string' ? data.avatar : '',
           isGift: true,
         };
@@ -3922,7 +3944,7 @@ export default function LiveStream() {
   const [_giftBanner, _setGiftBanner] = useState<{ username: string; giftName: string; icon: string } | null>(null);
   const _giftBannerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [lastSentGift, setLastSentGift] = useState<GiftUiItem | null>(null);
-  const [userLevel, setUserLevel] = useState(1);
+  const [userLevel, setUserLevel] = useState(() => Math.max(1, Number(user?.level) || 0));
 
 
   const [_userXP, setUserXP] = useState(0);

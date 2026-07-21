@@ -206,7 +206,9 @@ async function enrichUserWithProfile(user: User): Promise<User> {
     avatar: profile.avatarUrl || user.avatar,
     followers: profile.followers ?? user.followers,
     following: profile.following ?? user.following,
-    level: profile.level ?? user.level,
+    level: Number.isFinite(Number(profile.level)) && Number(profile.level) >= 0
+      ? Math.floor(Number(profile.level))
+      : user.level,
     isVerified: profile.isVerified ?? user.isVerified,
   };
 }
