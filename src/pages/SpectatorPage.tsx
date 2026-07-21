@@ -87,7 +87,7 @@ import { openExternalLink } from '../lib/platform';
 import ReportModal from '../components/ReportModal';
 import PromotePanel from '../components/PromotePanel';
 import { RankingPanel } from '../components/RankingPanel';
-import { CyclingRankBadge } from '../components/CyclingRankBadge';
+import { CyclingRankBadge, type LiveRankTab } from '../components/CyclingRankBadge';
 import { websocket } from '../lib/websocket';
 import { normalizeBattleGiftTarget } from '../lib/liveBattleGiftTarget';
 import { parseLiveGiftGoal, type LiveGiftGoal } from '../lib/liveGiftGoal';
@@ -212,6 +212,7 @@ export default function SpectatorPage() {
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [showRankingPanel, setShowRankingPanel] = useState(false);
+  const [rankingInitialTab, setRankingInitialTab] = useState<LiveRankTab>('weekly');
   const [showFanClub, setShowFanClub] = useState(false);
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [isMember, setIsMember] = useState(false);
@@ -3361,9 +3362,11 @@ export default function SpectatorPage() {
               className="flex items-center gap-2 mt-1 ml-12 pointer-events-auto relative z-20 flex-wrap"
             >
               <CyclingRankBadge
-                labelMode="split"
-                className="active:scale-95 transition-transform"
-                onClick={() => { setShowGiftPanel(false); setShowRankingPanel(true); }}
+                onOpen={(tab) => {
+                  setShowGiftPanel(false);
+                  setRankingInitialTab(tab);
+                  setShowRankingPanel(true);
+                }}
               />
               <div
                 className="flex items-center gap-1 bg-black/75 rounded-full px-2.5 py-1 border border-[#D4AF37]/80 shadow-[0_0_8px_rgba(212,175,55,0.35)] cursor-pointer active:scale-95 transition-transform"
@@ -3968,7 +3971,11 @@ export default function SpectatorPage() {
                 giftSource={giftSource}
                 onGiftSourceChange={setGiftSource}
                 onRechargeSuccess={(newBalance) => { setCoinBalance(newBalance); }}
-                onWeeklyRanking={() => { setShowGiftPanel(false); setShowRankingPanel(true); }}
+                onWeeklyRanking={() => {
+                  setShowGiftPanel(false);
+                  setRankingInitialTab('weekly');
+                  setShowRankingPanel(true);
+                }}
                 onMembership={() => { setShowGiftPanel(false); setShowFanClub(true); }}
                 highlightGiftId={giftGoal?.giftId ?? null}
               />
@@ -4416,7 +4423,37 @@ export default function SpectatorPage() {
               onClick={() => setShowRankingPanel(false)}
             />
             <div className="fixed bottom-0 left-0 right-0 h-[40vh] z-[99999] pointer-events-auto max-w-[480px] mx-auto">
-              <RankingPanel onClose={() => setShowRankingPanel(false)} />
+              <RankingPanel
+                onClose={() => setShowRankingPanel(false)}
+                initialTab={rankingInitialTab}
+                sessionGifters={Object.keys(mvpGiftScoresRef.current)
+                  .map((id) => {
+                    const cached = mvpIdentityRef.current.get(id);
+                    const fromList = viewersList.find((v) => v.id === id);
+                    return {
+                      id,
+                      name: cached?.name || fromList?.name || 'User',
+                      avatar: cached?.avatar || fromList?.avatar || '',
+                      points: mvpGiftScoresRef.current[id] ?? 0,
+                      subtitle: 'gift points',
+                    };
+                  })
+                  .filter((p) => p.points > 0)
+                  .sort((a, b) => b.points - a.points)
+                  .slice(0, 100)}
+                spectators={viewersList.slice(0, 1000).map((v) => ({
+                  id: v.id,
+                  name: v.name || 'User',
+                  avatar: v.avatar || '',
+                  points: mvpGiftScoresRef.current[v.id] ?? 0,
+                  subtitle: mvpGiftScoresRef.current[v.id] ? 'gift points' : 'watching',
+                }))}
+                giftGoal={giftGoal}
+                onSendGiftGoal={() => {
+                  setShowRankingPanel(false);
+                  setShowGiftPanel(true);
+                }}
+              />
             </div>
           </>
         )}
