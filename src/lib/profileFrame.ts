@@ -23,6 +23,9 @@ export const SPECTATOR_MVP_PROFILE_RING_PX = 28;
 /** Battle bottom MVP row (3 per side). */
 export const SPECTATOR_BATTLE_PROFILE_RING_PX = 26;
 
+/** Battle MVP row (6 circles): horizontal offset from column edge; lower = more inward. */
+export const BATTLE_MVP_ROW_EDGE_OFFSET_MM = 1;
+
 /** Battle video column height — 3mm shorter so chat does not cover MVP circles. */
 export const LIVE_BATTLE_VIDEO_HEIGHT = 'calc(44dvh - 3mm)' as const;
 

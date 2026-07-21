@@ -53,6 +53,7 @@ import {
   CREATOR_NAME_PILL_CLASSNAME,
   getCreatorNamePillStyle,
   SPECTATOR_BATTLE_PROFILE_RING_PX,
+  BATTLE_MVP_ROW_EDGE_OFFSET_MM,
   SPECTATOR_MVP_PROFILE_RING_PX,
   LIVE_BATTLE_VIDEO_HEIGHT,
   LIVE_BATTLE_CHAT_HEIGHT,
@@ -2625,7 +2626,7 @@ export default function SpectatorPage() {
                 <div className="w-full px-3 py-1.5 flex items-center justify-between flex-none z-30" style={{ transform: 'translateY(1mm)' }}>
                   <div
                     className="flex items-center gap-[0mm] min-w-0 flex-1 justify-start pointer-events-auto"
-                    style={{ transform: 'translateX(-3mm)' }}
+                    style={{ transform: `translateX(-${BATTLE_MVP_ROW_EDGE_OFFSET_MM}mm)` }}
                     onClick={() => setShowViewersPanel(true)}
                   >
                     {mvpSlots.host.map((slot, i) => {
@@ -2654,7 +2655,7 @@ export default function SpectatorPage() {
                   </div>
                   <div
                     className="flex items-center gap-[0mm] min-w-0 flex-1 justify-end pointer-events-auto"
-                    style={{ transform: 'translateX(3mm)' }}
+                    style={{ transform: `translateX(${BATTLE_MVP_ROW_EDGE_OFFSET_MM}mm)` }}
                     onClick={() => setShowViewersPanel(true)}
                   >
                     {mvpSlots.opponent.map((slot, i) => {
