@@ -42,6 +42,7 @@ import {
   SHARE_PANEL_ACTION_DISC_PX,
   SHARE_PANEL_ACTION_ICON_PX,
 } from '../lib/sharePanelContacts';
+import { LIVE_BATTLE_VIDEO_HEIGHT } from '../lib/profileFrame';
 
 const VIDEO_SIDEBAR_AVATAR = 38;
 const GOLD_ICON = 'royce-icon-gold';
@@ -727,7 +728,10 @@ export default function EnhancedVideoPlayer({
         <div className="w-full h-full" style={{ margin: 0, padding: 0 }}>
         <audio ref={audioRef} preload="auto" className="hidden" />
         {isDuetLayout && duetOriginalSrc ? (
-          <div className="absolute inset-0 flex flex-row">
+          <div
+            className="absolute top-0 left-0 right-0 w-full flex flex-row overflow-hidden"
+            style={{ height: LIVE_BATTLE_VIDEO_HEIGHT }}
+          >
             <div className="w-1/2 h-full flex-shrink-0 bg-black">
               <video
                 ref={duetOriginalRef}

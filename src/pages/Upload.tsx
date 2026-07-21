@@ -13,6 +13,7 @@ import { api } from '../lib/apiClient';
 import { useAuthStore } from '../store/useAuthStore';
 import AIToolsPanel from '../components/AIToolsPanel';
 import { takeCachedRecordedMedia } from '../lib/recordedMediaCache';
+import { LIVE_BATTLE_VIDEO_HEIGHT } from '../lib/profileFrame';
 
 export default function Upload() {
   const navigate = useNavigate();
@@ -525,11 +526,14 @@ export default function Upload() {
          <>
            <div className="relative z-10 w-full mx-auto h-[100dvh] bg-[#111111] flex flex-col items-center justify-center">
               {duetSourceVideoUrl ? (
-                <div className="absolute inset-0 flex flex-row">
+                <div
+                  className="absolute top-0 left-0 right-0 w-full flex flex-row overflow-hidden"
+                  style={{ height: LIVE_BATTLE_VIDEO_HEIGHT }}
+                >
                   <div className="w-1/2 h-full flex-shrink-0 bg-black">
                     <video
                       src={duetSourceVideoUrl}
-                      className="w-full h-full object-contain"
+                      className="w-full h-full object-cover"
                       playsInline
                       muted
                       loop
@@ -923,7 +927,10 @@ export default function Upload() {
           <div className="relative z-10 w-full h-[100dvh] mb-0 pointer-events-none bg-[#111111] shadow-2xl overflow-hidden">
               {/* Duet layout: left = source video, right = camera */}
               {duetSourceVideoUrl ? (
-                <div className="absolute inset-0 flex flex-row">
+                <div
+                  className="absolute top-0 left-0 right-0 w-full flex flex-row overflow-hidden"
+                  style={{ height: LIVE_BATTLE_VIDEO_HEIGHT }}
+                >
                   <div className="w-1/2 h-full flex-shrink-0 bg-black">
                     <video
                       ref={duetSourceVideoRef}
