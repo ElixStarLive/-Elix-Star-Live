@@ -88,7 +88,7 @@ import { openExternalLink } from '../lib/platform';
 import ReportModal from '../components/ReportModal';
 import PromotePanel from '../components/PromotePanel';
 import { RankingPanel } from '../components/RankingPanel';
-import { CyclingRankBadge, type LiveRankTab } from '../components/CyclingRankBadge';
+import { type LiveRankTab } from '../components/CyclingRankBadge';
 import { websocket } from '../lib/websocket';
 import { normalizeBattleGiftTarget } from '../lib/liveBattleGiftTarget';
 import { parseLiveGiftGoal, type LiveGiftGoal } from '../lib/liveGiftGoal';
@@ -258,11 +258,24 @@ export default function SpectatorPage() {
   const [lastSentGift, setLastSentGift] = useState<GiftUiItem | null>(null);
   const [comboCount, setComboCount] = useState(0);
   const [showComboButton, setShowComboButton] = useState(false);
+  /** Recent combo gifts (icon + real xN), capped to last 3 — red-circle combo column. */
+  const [comboStack, setComboStack] = useState<{ key: string; icon: string; count: number; gift: GiftUiItem }[]>([]);
   const comboTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resetComboTimer = () => {
     if (comboTimerRef.current) clearTimeout(comboTimerRef.current);
-    comboTimerRef.current = setTimeout(() => { setShowComboButton(false); setComboCount(0); }, 8000);
+    comboTimerRef.current = setTimeout(() => {
+      setShowComboButton(false);
+      setComboCount(0);
+      setComboStack([]);
+    }, 8000);
   };
+  const pushComboStack = useCallback((gift: GiftUiItem, nextCount: number) => {
+    const key = String(gift.id || gift.name || 'gift');
+    setComboStack((prev) => {
+      const without = prev.filter((i) => i.key !== key);
+      return [...without, { key, icon: typeof gift.icon === 'string' ? gift.icon : '', count: nextCount, gift }].slice(-3);
+    });
+  }, []);
 
   const [spectatorCoHostRequestSent, setSpectatorCoHostRequestSent] = useState(false);
   const [showViewersPanel, setShowViewersPanel] = useState(false);
@@ -275,12 +288,14 @@ export default function SpectatorPage() {
   /** Keep gifter identity for top MVP even when room list excludes self. */
   const mvpIdentityRef = useRef<Map<string, { name: string; avatar: string; level: number }>>(new Map());
 
-  type MvpSlotRow = { id: string; name: string; avatar: string; level: number };
+  type MvpSlotRow = { id: string; name: string; avatar: string; level: number; points: number };
   const [mvpSlots, setMvpSlots] = useState<{
     global: MvpSlotRow[];
     host: MvpSlotRow[];
     opponent: MvpSlotRow[];
   }>({ global: [], host: [], opponent: [] });
+  /** Host weekly ranking position for Diamond League capsule (null = unknown / not listed). */
+  const [diamondLeagueRank, setDiamondLeagueRank] = useState<number | null>(null);
   const resolveCircleAvatar = useCallback(
     (avatar: string | null | undefined, name: string | null | undefined) =>
       resolveUiAvatarUrl(avatar, name, SPECTATOR_MVP_PROFILE_RING_PX * 2),
@@ -293,7 +308,7 @@ export default function SpectatorPage() {
 
     actualViewersRef.current.forEach((v, id) => {
       if (!id || id === hid || id === effectiveStreamId) return;
-      byId.set(id, { id, name: v.name, avatar: v.avatar, level: v.level });
+      byId.set(id, { id, name: v.name, avatar: v.avatar, level: v.level, points: 0 });
       mvpIdentityRef.current.set(id, v);
     });
 
@@ -306,6 +321,7 @@ export default function SpectatorPage() {
           name: cached?.name || 'User',
           avatar: cached?.avatar || '',
           level: cached?.level || 1,
+          points: 0,
         });
       }
     };
@@ -320,11 +336,13 @@ export default function SpectatorPage() {
       if (sb !== sa) return sb - sa;
       return (b.level ?? 0) - (a.level ?? 0);
     };
+    const withPoints = (scores: Record<string, number>, list: MvpSlotRow[]) =>
+      list.map((s) => ({ ...s, points: scores[s.id] ?? 0 }));
 
     setMvpSlots({
-      global: [...base].sort(sortBy(mvpGiftScoresRef.current)).slice(0, 3),
-      host: [...base].sort(sortBy(mvpGiftScoresHostRef.current)).slice(0, 3),
-      opponent: [...base].sort(sortBy(mvpGiftScoresOpponentRef.current)).slice(0, 3),
+      global: withPoints(mvpGiftScoresRef.current, [...base].sort(sortBy(mvpGiftScoresRef.current)).slice(0, 3)),
+      host: withPoints(mvpGiftScoresHostRef.current, [...base].sort(sortBy(mvpGiftScoresHostRef.current)).slice(0, 3)),
+      opponent: withPoints(mvpGiftScoresOpponentRef.current, [...base].sort(sortBy(mvpGiftScoresOpponentRef.current)).slice(0, 3)),
     });
   }, [effectiveStreamId, hostUserId]);
 
@@ -2203,6 +2221,27 @@ export default function SpectatorPage() {
     [user?.id, hostUserId, navigate, location.pathname],
   );
 
+  useEffect(() => {
+    const creatorId = hostUserId;
+    if (!creatorId) {
+      setDiamondLeagueRank(null);
+      return;
+    }
+    let cancelled = false;
+    void request('/api/rankings/weekly').then(({ data, error }) => {
+      if (cancelled || error) return;
+      const list = Array.isArray(data?.rankings) ? data.rankings : [];
+      const idx = list.findIndex((r: { user_id?: string; id?: string; creator_id?: string }) => {
+        const id = String(r?.user_id || r?.id || r?.creator_id || '');
+        return id === String(creatorId);
+      });
+      setDiamondLeagueRank(idx >= 0 ? idx + 1 : null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [hostUserId]);
+
   // Spectator keyboard → creator: send chat to creator's room (broadcast so creator and all viewers see it)
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -2450,11 +2489,15 @@ export default function SpectatorPage() {
     
 
     setLastSentGift(gift);
+    let nextCombo = 1;
     if (opts?.fromCombo) {
-      setComboCount((prev) => Math.min(prev + 1, GIFT_COMBO_MAX));
+      nextCombo = Math.min(comboCount + 1, GIFT_COMBO_MAX);
+      setComboCount(nextCombo);
     } else {
       setComboCount(1);
+      nextCombo = 1;
     }
+    pushComboStack(gift, nextCombo);
     setShowComboButton(true);
     resetComboTimer();
     pushLocalGiftPill({
@@ -3311,14 +3354,14 @@ export default function SpectatorPage() {
                     {!isFollowing && (
                       <button
                         type="button"
-                        className="col-start-1 row-start-1 z-20 relative flex items-center justify-center gap-1 self-stretch h-full rounded-full bg-[#ffffff] w-full"
+                        className="col-start-1 row-start-1 z-20 relative flex items-center justify-center gap-1 self-stretch h-full rounded-full bg-[#D4AF37] w-full"
                         onClick={(e) => {
                           e.stopPropagation();
                           followHost(e);
                         }}
                       >
-                        <Plus size={12} className="text-white" strokeWidth={3} />
-                        <span className="text-white text-[10px] font-bold">Follow</span>
+                        <Plus size={12} className="text-black" strokeWidth={3} />
+                        <span className="text-black text-[10px] font-bold">Follow</span>
                       </button>
                     )}
                   </div>
@@ -3342,13 +3385,22 @@ export default function SpectatorPage() {
                   }}
                 >
                   {mvpSlots.global.map((slot, i) => {
-                    const isMvp = i === 0 && (mvpGiftScoresRef.current[slot.id] ?? 0) > 0;
+                    const isMvp = i === 0 && (slot.points ?? 0) > 0;
                     return (
                       <div
                         key={`spectator-top-mvp-${slot.id}`}
                         style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
                         className="relative"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (slot.id) navigate(`/profile/${slot.id}`);
+                        }}
                       >
+                        {isMvp && (
+                          <span className="absolute -top-2 left-1/2 -translate-x-1/2 z-[3] flex items-center justify-center">
+                            <Crown size={10} className="text-[#D4AF37] drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]" fill="#D4AF37" strokeWidth={1.5} />
+                          </span>
+                        )}
                         <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
                           <AvatarRing
                             src={resolveCircleAvatar(slot.avatar, slot.name)}
@@ -3357,8 +3409,8 @@ export default function SpectatorPage() {
                           />
                         </div>
                         {isMvp && (
-                          <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
-                            MVP
+                          <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-black/85 border border-[#D4AF37]/80 text-[#F5E6A8] text-[6px] font-black leading-none tabular-nums whitespace-nowrap">
+                            {formatCohostGiftScore(slot.points)}
                           </span>
                         )}
                       </div>
@@ -3398,23 +3450,37 @@ export default function SpectatorPage() {
               </div>
             </div>
 
-            {/* Second row: Weekly Ranking + Membership — spectator sees same creator top bar */}
+            {/* Second row: Diamond League + Membership VIP — red-circle live UI */}
             <div
               className="flex items-center gap-2 mt-1 ml-12 pointer-events-auto relative z-20 flex-wrap"
             >
-              <CyclingRankBadge
-                onOpen={(tab) => {
+              <button
+                type="button"
+                className="flex items-center gap-1 bg-black/75 rounded-full px-2.5 py-1 border border-[#D4AF37]/80 shadow-[0_0_8px_rgba(212,175,55,0.35)] cursor-pointer active:scale-95 transition-transform"
+                onClick={(e) => {
+                  e.stopPropagation();
                   setShowGiftPanel(false);
-                  setRankingInitialTab(tab);
+                  setRankingInitialTab('weekly');
                   setShowRankingPanel(true);
                 }}
-              />
+              >
+                <Crown className="w-3.5 h-3.5 text-[#D4AF37] flex-shrink-0" strokeWidth={2.25} fill="#D4AF37" />
+                <span className="text-[#F5E6A8] text-[11px] font-bold whitespace-nowrap drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">
+                  Diamond League
+                  {diamondLeagueRank != null ? (
+                    <span className="text-[#D4AF37] font-black"> · Rank {diamondLeagueRank}</span>
+                  ) : null}
+                </span>
+                <span className="text-[#F5E6A8]/90 text-[11px]">&gt;</span>
+              </button>
               <div
                 className="flex items-center gap-1 bg-black/75 rounded-full px-2.5 py-1 border border-[#D4AF37]/80 shadow-[0_0_8px_rgba(212,175,55,0.35)] cursor-pointer active:scale-95 transition-transform"
                 onClick={() => { setShowGiftPanel(false); setShowFanClub(true); }}
               >
-                <Heart className="w-3.5 h-3.5 text-[#D4AF37] flex-shrink-0" strokeWidth={2.25} fill="#D4AF37" />
+                <Crown className="w-3.5 h-3.5 text-[#D4AF37] flex-shrink-0" strokeWidth={2.25} fill="#D4AF37" />
                 <span className="text-[#F5E6A8] text-[11px] font-bold drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">Membership</span>
+                <span className="text-[#D4AF37] text-[9px] font-black tracking-wide">VIP</span>
+                <span className="text-[#F5E6A8]/90 text-[11px]">&gt;</span>
               </div>
             </div>
           </div>
@@ -3486,23 +3552,33 @@ export default function SpectatorPage() {
           </div>
         </div>
 
-        {/* COMBO — above gift video (GiftOverlay z=50000) */}
-        {showComboButton && lastSentGift && (
+        {/* COMBO COLUMN — stacked gift icons + real xN (red-circle); above gift video */}
+        {showComboButton && comboStack.length > 0 && (
           <div className="fixed left-0 right-0 bottom-[calc(58px+max(2px,env(safe-area-inset-bottom,0px)))] z-[50001] flex justify-center pointer-events-none">
             <div className="w-full max-w-[480px] mx-auto px-3 flex justify-end pointer-events-auto">
-            <button
-              type="button"
-              onClick={handleComboClick}
-              disabled={comboCount >= GIFT_COMBO_MAX}
-              className="w-[48px] h-[48px] rounded-full bg-gradient-to-b from-[#FF5A7A] to-[#FF2D55] flex flex-col items-center justify-center active:scale-90 transition-transform shadow-[0_0_12px_rgba(255,45,85,0.45)] border border-white/30 disabled:opacity-50"
-            >
-              {typeof lastSentGift.icon === 'string' && (lastSentGift.icon.startsWith('http') || lastSentGift.icon.startsWith('/')) ? (
-                <img src={lastSentGift.icon} alt="" className="w-4 h-4 object-contain mb-0.5" draggable={false} />
-              ) : null}
-              <span className={`font-black italic text-white drop-shadow-md leading-none ${comboCount >= 1000 ? 'text-[9px]' : 'text-xs'}`}>
-                x{comboCount >= 1000 ? `${(comboCount / 1000).toFixed(comboCount % 1000 === 0 ? 0 : 1)}K` : comboCount}
-              </span>
-            </button>
+              <div className="flex flex-col-reverse items-center gap-1.5">
+                {comboStack.map((item, idx) => {
+                  const isActive = idx === comboStack.length - 1;
+                  const n = item.count;
+                  const label = n >= 1000 ? `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}K` : String(n);
+                  return (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={isActive ? handleComboClick : undefined}
+                      disabled={!isActive || n >= GIFT_COMBO_MAX}
+                      className="w-[48px] h-[48px] rounded-full bg-gradient-to-b from-[#FF5A7A] to-[#FF2D55] flex flex-col items-center justify-center active:scale-90 transition-transform shadow-[0_0_12px_rgba(255,45,85,0.45)] border border-white/30 disabled:opacity-50"
+                    >
+                      {item.icon && (item.icon.startsWith('http') || item.icon.startsWith('/')) ? (
+                        <img src={item.icon} alt="" className="w-4 h-4 object-contain mb-0.5" draggable={false} />
+                      ) : null}
+                      <span className={`font-black italic text-white drop-shadow-md leading-none ${n >= 1000 ? 'text-[9px]' : 'text-xs'}`}>
+                        x{label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         )}

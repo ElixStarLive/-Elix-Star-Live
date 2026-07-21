@@ -23,6 +23,7 @@ import {
   Plus,
   User,
   UserPlus,
+  Crown,
   X,
   Sword,
   Coins,
@@ -436,6 +437,31 @@ export default function LiveStream() {
       cancelled = true;
     };
   }, [user?.id, isBroadcast, effectiveStreamId]);
+
+  useEffect(() => {
+    if (isBroadcast) {
+      setDiamondLeagueRank(null);
+      return;
+    }
+    const creatorId = effectiveStreamId;
+    if (!creatorId || creatorId === 'broadcast') {
+      setDiamondLeagueRank(null);
+      return;
+    }
+    let cancelled = false;
+    void request('/api/rankings/weekly').then(({ data, error }) => {
+      if (cancelled || error) return;
+      const list = Array.isArray(data?.rankings) ? data.rankings : [];
+      const idx = list.findIndex((r: { user_id?: string; id?: string; creator_id?: string }) => {
+        const id = String(r?.user_id || r?.id || r?.creator_id || '');
+        return id === String(creatorId);
+      });
+      setDiamondLeagueRank(idx >= 0 ? idx + 1 : null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isBroadcast, effectiveStreamId]);
 
   // Face AR overlays attach via FaceARGift + videoRef
   const [_battleGiftIconFailed, _setBattleGiftIconFailed] = useState(false);
@@ -2944,6 +2970,8 @@ export default function LiveStream() {
   const [mvpGiftScoresHost, setMvpGiftScoresHost] = useState<Record<string, number>>({});
   /** Battle: gifts tagged for opponent side (blue). */
   const [mvpGiftScoresOpponent, setMvpGiftScoresOpponent] = useState<Record<string, number>>({});
+  /** Host weekly ranking for Diamond League (viewers); null if unknown. */
+  const [diamondLeagueRank, setDiamondLeagueRank] = useState<number | null>(null);
   useEffect(() => { activeViewersRef.current = activeViewers; }, [activeViewers]);
   const isGenericViewerName = useCallback((value: string | null | undefined) => {
     const v = String(value || '').trim().toLowerCase();
@@ -4086,7 +4114,15 @@ export default function LiveStream() {
   const [_userXP, setUserXP] = useState(0);
   const [comboCount, setComboCount] = useState(0);
   const [showComboButton, setShowComboButton] = useState(false);
+  const [comboStack, setComboStack] = useState<{ key: string; icon: string; count: number; gift: GiftUiItem }[]>([]);
   const comboTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pushComboStack = useCallback((gift: GiftUiItem, nextCount: number) => {
+    const key = String(gift.id || gift.name || 'gift');
+    setComboStack((prev) => {
+      const without = prev.filter((i) => i.key !== key);
+      return [...without, { key, icon: typeof gift.icon === 'string' ? gift.icon : '', count: nextCount, gift }].slice(-3);
+    });
+  }, []);
   const [activeFaceARGift, setActiveFaceARGift] = useState<
     | { type: 'crown' | 'glasses' | 'mask' | 'ears' | 'hearts' | 'stars' | 'age' | 'youth'; color?: string }
     | null
@@ -4366,6 +4402,7 @@ export default function LiveStream() {
       // Handle Combo Logic
       setLastSentGift(gift);
       setComboCount(1);
+      pushComboStack(gift, 1);
       setShowComboButton(true);
       resetComboTimer();
       pushLocalGiftPill({
@@ -4428,6 +4465,7 @@ export default function LiveStream() {
       comboTimerRef.current = setTimeout(() => {
           setShowComboButton(false);
           setComboCount(0);
+          setComboStack([]);
           setLastSentGift(null);
       }, 8000); // keep combo on screen while gift video plays
   };
@@ -4628,7 +4666,11 @@ export default function LiveStream() {
 
 
       // Handle Combo Logic
-      setComboCount((prev) => Math.min(prev + 1, GIFT_COMBO_MAX));
+      setComboCount((prev) => {
+        const next = Math.min(prev + 1, GIFT_COMBO_MAX);
+        if (lastSentGift) pushComboStack(lastSentGift, next);
+        return next;
+      });
       setShowComboButton(true);
       resetComboTimer();
       pushLocalGiftPill({
@@ -5926,11 +5968,11 @@ export default function LiveStream() {
                                     {!isBroadcast && !isFollowing && (
                                       <button
                                         type="button"
-                                        className="col-start-1 row-start-1 z-20 relative flex items-center justify-center gap-1 self-stretch h-full rounded-full bg-[#ffffff] w-full"
+                                        className="col-start-1 row-start-1 z-20 relative flex items-center justify-center gap-1 self-stretch h-full rounded-full bg-[#D4AF37] w-full"
                                         onClick={followCreatorLive}
                                       >
-                                        <Plus size={12} className="text-white" strokeWidth={3} />
-                                        <span className="text-white text-[10px] font-bold">Follow</span>
+                                        <Plus size={12} className="text-black" strokeWidth={3} />
+                                        <span className="text-black text-[10px] font-bold">Follow</span>
                                       </button>
                                     )}
                                   </div>
@@ -5939,12 +5981,33 @@ export default function LiveStream() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2 mt-1 ml-12 pointer-events-auto relative z-20 flex-wrap">
-                            <CyclingRankBadge
-                              onOpen={(tab) => {
-                                setRankingInitialTab(tab);
-                                setShowRankingPanel(true);
-                              }}
-                            />
+                            {isBroadcast ? (
+                              <CyclingRankBadge
+                                onOpen={(tab) => {
+                                  setRankingInitialTab(tab);
+                                  setShowRankingPanel(true);
+                                }}
+                              />
+                            ) : (
+                              <button
+                                type="button"
+                                className="flex items-center gap-1 bg-black/75 rounded-full px-2.5 py-1 border border-[#D4AF37]/80 shadow-[0_0_8px_rgba(212,175,55,0.35)] cursor-pointer active:scale-95 transition-transform"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setRankingInitialTab('weekly');
+                                  setShowRankingPanel(true);
+                                }}
+                              >
+                                <Crown className="w-3.5 h-3.5 text-[#D4AF37] flex-shrink-0" strokeWidth={2.25} fill="#D4AF37" />
+                                <span className="text-[#F5E6A8] text-[11px] font-bold whitespace-nowrap drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">
+                                  Diamond League
+                                  {diamondLeagueRank != null ? (
+                                    <span className="text-[#D4AF37] font-black"> · Rank {diamondLeagueRank}</span>
+                                  ) : null}
+                                </span>
+                                <span className="text-[#F5E6A8]/90 text-[11px]">&gt;</span>
+                              </button>
+                            )}
                             <div 
                               className="flex items-center gap-1 bg-black/75 rounded-full px-2.5 py-1 border border-[#D4AF37]/80 shadow-[0_0_8px_rgba(212,175,55,0.35)] cursor-pointer" 
                               onClick={(e) => {
@@ -5952,12 +6015,10 @@ export default function LiveStream() {
                                 setShowFanClub(true);
                               }}
                             >
-                              <img src="/royce/membership.svg" alt="Membership" className="w-4 h-4 object-contain flex-shrink-0" onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                                e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                              }} />
-                              <Heart className="w-3.5 h-3.5 text-[#D4AF37] fill-[#D4AF37] hidden flex-shrink-0" />
+                              <Crown className="w-3.5 h-3.5 text-[#D4AF37] flex-shrink-0" strokeWidth={2.25} fill="#D4AF37" />
                               <span className="text-[#F5E6A8] text-[11px] font-bold whitespace-nowrap drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">Membership</span>
+                              <span className="text-[#D4AF37] text-[9px] font-black tracking-wide">VIP</span>
+                              <span className="text-[#F5E6A8]/90 text-[11px]">&gt;</span>
                             </div>
                             {currentUniverse && (
                               <div className="flex items-center gap-1 bg-[#111111]/90 rounded-full px-2.5 py-1 border border-[#D4AF37]/80 shadow-sm">
@@ -5979,13 +6040,23 @@ export default function LiveStream() {
                             }}
                           >
                             {topMvpViewers.map((viewer, i) => {
-                              const isMvp = i === 0 && (mvpGiftScores[viewer.id] ?? 0) > 0;
+                              const points = mvpGiftScores[viewer.id] ?? 0;
+                              const isMvp = i === 0 && points > 0;
                               return (
                               <div
                                 key={`top-viewers-${viewer.id}`}
                                 style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
                                 className="relative"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (viewer.id) navigate(`/profile/${viewer.id}`);
+                                }}
                               >
+                                {isMvp && (
+                                  <span className="absolute -top-2 left-1/2 -translate-x-1/2 z-[3] flex items-center justify-center">
+                                    <Crown size={10} className="text-[#D4AF37] drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]" fill="#D4AF37" strokeWidth={1.5} />
+                                  </span>
+                                )}
                                 <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
                                   <AvatarRing
                                     src={resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username)}
@@ -5994,8 +6065,8 @@ export default function LiveStream() {
                                   />
                                 </div>
                                 {isMvp && (
-                                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
-                                    MVP
+                                  <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-black/85 border border-[#D4AF37]/80 text-[#F5E6A8] text-[6px] font-black leading-none tabular-nums whitespace-nowrap">
+                                    {formatCountShort(points)}
                                   </span>
                                 )}
                               </div>
@@ -6106,9 +6177,9 @@ export default function LiveStream() {
               </div>
             </div>
 
-      {/* Combo — TikTok-style round combo tap (above bottom bar + gift video) */}
+      {/* Combo column — stacked gift icons + real xN (red-circle) */}
       <AnimatePresence>
-        {showComboButton && lastSentGift && (
+        {showComboButton && comboStack.length > 0 && (
           <motion.div
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -6116,19 +6187,32 @@ export default function LiveStream() {
             className="fixed left-0 right-0 bottom-[calc(58px+max(2px,env(safe-area-inset-bottom,0px)))] z-[50001] flex justify-center pointer-events-none"
           >
             <div className="w-full max-w-[480px] mx-auto px-3 flex justify-end pointer-events-auto">
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); handleComboClick(); }}
-              disabled={comboCount >= GIFT_COMBO_MAX}
-              className="w-[48px] h-[48px] rounded-full bg-gradient-to-b from-[#FF5A7A] to-[#FF2D55] flex flex-col items-center justify-center active:scale-90 transition-transform shadow-[0_0_12px_rgba(255,45,85,0.45)] border border-white/30 disabled:opacity-50"
-            >
-              {typeof lastSentGift.icon === 'string' && (lastSentGift.icon.startsWith('http') || lastSentGift.icon.startsWith('/')) ? (
-                <img src={lastSentGift.icon} alt="" className="w-4 h-4 object-contain mb-0.5" draggable={false} />
-              ) : null}
-              <span className={`font-black italic text-white drop-shadow-md leading-none ${comboCount >= 1000 ? 'text-[9px]' : 'text-xs'}`}>
-                x{comboCount >= 1000 ? `${(comboCount / 1000).toFixed(comboCount % 1000 === 0 ? 0 : 1)}K` : comboCount}
-              </span>
-            </button>
+              <div className="flex flex-col-reverse items-center gap-1.5">
+                {comboStack.map((item, idx) => {
+                  const isActive = idx === comboStack.length - 1;
+                  const n = item.count;
+                  const label = n >= 1000 ? `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}K` : String(n);
+                  return (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (isActive) handleComboClick();
+                      }}
+                      disabled={!isActive || n >= GIFT_COMBO_MAX}
+                      className="w-[48px] h-[48px] rounded-full bg-gradient-to-b from-[#FF5A7A] to-[#FF2D55] flex flex-col items-center justify-center active:scale-90 transition-transform shadow-[0_0_12px_rgba(255,45,85,0.45)] border border-white/30 disabled:opacity-50"
+                    >
+                      {item.icon && (item.icon.startsWith('http') || item.icon.startsWith('/')) ? (
+                        <img src={item.icon} alt="" className="w-4 h-4 object-contain mb-0.5" draggable={false} />
+                      ) : null}
+                      <span className={`font-black italic text-white drop-shadow-md leading-none ${n >= 1000 ? 'text-[9px]' : 'text-xs'}`}>
+                        x{label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </motion.div>
         )}
