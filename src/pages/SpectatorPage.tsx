@@ -57,6 +57,7 @@ import { GiftOverlay } from '../components/GiftOverlay';
 import GiftAnimationOverlay, { pushLocalGiftPill } from '../components/GiftAnimationOverlay';
 import { ChatOverlay } from '../components/ChatOverlay';
 import { AvatarRing } from '../components/AvatarRing';
+import { LevelBadge } from '../components/LevelBadge';
 import {
   CREATOR_NAME_PILL_CLASSNAME,
   getCreatorNamePillStyle,
@@ -2799,7 +2800,11 @@ export default function SpectatorPage() {
                                 <span className="text-white/70 font-semibold">{opponentProfile.followers >= 1000 ? `${(opponentProfile.followers / 1000).toFixed(1)}K` : opponentProfile.followers}</span>
                                 <span>followers</span>
                                 {opponentProfile.level > 0 && (
-                                  <><span>·</span><span className="font-bold text-[#D4AF37]">Lv.{opponentProfile.level}</span></>
+                                  <LevelBadge
+                                    level={opponentProfile.level}
+                                    avatar={opponentProfile.avatarUrl}
+                                    layout="fixed"
+                                  />
                                 )}
                               </>
                             )}
@@ -3951,18 +3956,13 @@ export default function SpectatorPage() {
                         onClick={() => { setShowViewersPanel(false); navigate(`/profile/${v.id}`); }}
                       >
                         <span className="text-white/30 text-xs font-bold w-5 text-right">{i + 1}</span>
-                        <div className="w-10 h-10 rounded-full overflow-hidden bg-[#111111] flex-shrink-0">
-                          {v.avatar ? (
-                            <img src={v.avatar} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <span className="text-[#D4AF37] font-bold text-sm">{v.name.slice(0, 1).toUpperCase()}</span>
-                            </div>
-                          )}
-                        </div>
+                        <LevelBadge
+                          level={typeof v.level === 'number' ? v.level : 1}
+                          avatar={v.avatar}
+                          layout="fixed"
+                        />
                         <div className="flex-1 min-w-0 text-left">
                           <p className="text-white text-sm font-semibold truncate">{v.name}</p>
-                          {v.level && <p className="text-white/40 text-[10px] font-medium">Level {v.level}</p>}
                         </div>
                       </button>
                     ))

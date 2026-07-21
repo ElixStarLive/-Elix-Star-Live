@@ -1026,7 +1026,7 @@ export default function EnhancedVideoPlayer({
         }}
       >
         <div className="flex items-center gap-2 w-full min-w-0 justify-start">
-          <LevelBadge level={video.user.level ?? 1} size={26} circleSize={28} layout="fixed" avatar={video.user.avatar} />
+          <LevelBadge level={video.user.level ?? 1} layout="fixed" avatar={video.user.avatar} />
           <h3 className="text-white font-bold text-shadow-md truncate">
             {video.user.name || video.user.username}
           </h3>

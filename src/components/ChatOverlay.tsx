@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { LevelBadge } from './LevelBadge';
-import { CHAT_LEVEL_PILL_SIZE_PX, CHAT_PROFILE_RING_PX } from '../lib/profileFrame';
+import { LEVEL_BADGE_RING_PX } from '../lib/profileFrame';
 import { Trash2, Ban, Shield } from 'lucide-react';
 
 interface Message {
@@ -109,14 +109,13 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
             onPointerLeave={cancelLongPress}
             onPointerCancel={cancelLongPress}
           >
-            {/* Name on the same line as circle + LV. Join/system events read as a fixed 5mm banner. */}
+            {/* Name on the same line as circle + LV. Join/system events use the same badge size as chat. */}
             <div
-              style={msg.isSystem ? { height: '5mm' } : undefined}
               className={`flex items-center gap-2 min-w-0 ${msg.isSystem ? 'bg-gradient-to-r from-[#8A2BE2] to-[#3B4BE8] rounded-full pr-2.5 self-start shadow-sm' : ''}`}
             >
               <div 
                 className="flex-shrink-0 cursor-pointer relative z-10 flex items-center justify-center"
-                style={{ height: msg.isSystem ? '5mm' : CHAT_PROFILE_RING_PX }}
+                style={{ height: LEVEL_BADGE_RING_PX }}
                 onClick={(e) => {
                   e.stopPropagation();
                   if (onProfileTap) onProfileTap(msg.username);
@@ -124,8 +123,6 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
               >
                 <LevelBadge
                   level={typeof msg.level === 'number' ? msg.level : 1}
-                  size={msg.isSystem ? 20 : CHAT_LEVEL_PILL_SIZE_PX}
-                  circleSize={msg.isSystem ? 16 : CHAT_PROFILE_RING_PX}
                   layout="fixed"
                   avatar={typeof msg.avatar === 'string' ? msg.avatar : undefined}
                 />
@@ -161,7 +158,7 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
             {(msg.stickerUrl || (!msg.isSystem && typeof msg.text === 'string' && msg.text)) ? (
               <div
                 className="min-w-0"
-                style={{ paddingLeft: CHAT_PROFILE_RING_PX + 8 }}
+                style={{ paddingLeft: LEVEL_BADGE_RING_PX + 8 }}
               >
                 {msg.stickerUrl ? (
                   <img src={msg.stickerUrl} alt="sticker" className="w-16 h-16 object-contain rounded-lg" />

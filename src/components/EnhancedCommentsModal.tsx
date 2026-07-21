@@ -243,8 +243,6 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
           <LevelBadge
             level={comment.level || 1}
             avatar={comment.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.username || 'U')}&background=121212&color=FFFFFF`}
-            size={16}
-            circleSize={28}
             layout="fixed"
           />
         </div>
@@ -428,8 +426,6 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
                 <LevelBadge
                     level={user?.level || 1}
                     avatar={user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'U')}&background=121212&color=FFFFFF`}
-                    size={16}
-                    circleSize={24}
                     layout="fixed"
                 />
             </div>

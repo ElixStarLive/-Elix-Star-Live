@@ -64,6 +64,7 @@ import { ChatOverlay } from '../components/ChatOverlay';
 import { FaceARGift } from '../components/FaceARGift';
 import { useLivePromoStore } from '../store/useLivePromoStore';
 import { AvatarRing } from '../components/AvatarRing';
+import { LevelBadge } from '../components/LevelBadge';
 import {
   CREATOR_NAME_PILL_CLASSNAME,
   getCreatorNamePillStyle,
@@ -6234,22 +6235,11 @@ export default function LiveStream() {
                       {miniProfile?.id && moderators.has(miniProfile.id) && (
                         <User className="w-3.5 h-3.5 text-[#D4AF37] flex-shrink-0" strokeWidth={2.25} aria-hidden />
                       )}
-                      {(() => {
-                        const lvl = typeof miniProfile.level === 'number' ? miniProfile.level : userLevel;
-                        const grad =
-                          lvl >= 90 ? 'linear-gradient(180deg,#ffffff 0%,#7a1027 55%,#ffffff 100%)'
-                          : lvl >= 60 ? 'linear-gradient(180deg,#a855f7 0%,#4c1d95 55%,#a855f7 100%)'
-                          : lvl >= 30 ? 'linear-gradient(180deg,#3b82f6 0%,#1e3a8a 55%,#3b82f6 100%)'
-                          : 'linear-gradient(180deg,#22c55e 0%,#14532d 55%,#22c55e 100%)';
-                        return (
-                          <span
-                            className="flex-shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-white text-[10px] font-black italic leading-none border border-white/25"
-                            style={{ background: grad, textShadow: '0 1px 3px rgba(0,0,0,0.7)' }}
-                          >
-                            LV {lvl}
-                          </span>
-                        );
-                      })()}
+                      <LevelBadge
+                        level={typeof miniProfile.level === 'number' ? miniProfile.level : userLevel}
+                        avatar={typeof miniProfile.avatar === 'string' ? miniProfile.avatar : undefined}
+                        layout="fixed"
+                      />
                     </div>
                     {miniProfile.coins != null && (
                       <div className="text-white/70 text-[12px] font-bold">
@@ -6447,16 +6437,16 @@ export default function LiveStream() {
                           className="flex items-center gap-3 flex-1 min-w-0 text-left"
                           onClick={() => { void openMiniProfile(displayName); setShowViewerList(false); }}
                         >
-                          <AvatarRing
-                            src={resolveCircleAvatar(v.avatar, displayName)}
-                            alt={displayName}
-                            size={SHARE_PANEL_AVATAR_PX}
+                          <LevelBadge
+                            level={typeof v.level === 'number' ? v.level : 1}
+                            avatar={resolveCircleAvatar(v.avatar, displayName)}
+                            layout="fixed"
                           />
                           <div className="flex-1 min-w-0">
                             <p className="text-white text-sm font-semibold truncate">{displayName}</p>
-                            <p className="text-white/40 text-[10px] font-medium">
-                              {isJoinRequester ? 'Requested to co-host' : `Level ${v.level}`}
-                            </p>
+                            {isJoinRequester ? (
+                              <p className="text-white/40 text-[10px] font-medium">Requested to co-host</p>
+                            ) : null}
                           </div>
                         </button>
                         {isBroadcast && isMyStreamLive && (

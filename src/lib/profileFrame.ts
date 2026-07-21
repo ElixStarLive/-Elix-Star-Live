@@ -14,8 +14,9 @@ export const PROFILE_RING_SIZE_BUMP_MM = 3;
 /** Live top-bar MVP avatars. */
 export const LIVE_MVP_PROFILE_RING_PX = 28;
 
-/** Live chat message user avatar circle. */
-export const CHAT_PROFILE_RING_PX = 26;
+/** Live chat message user avatar circle — app-wide standard for level badges. */
+export const LEVEL_BADGE_RING_PX = 26;
+export const CHAT_PROFILE_RING_PX = LEVEL_BADGE_RING_PX;
 
 /** Spectator top bar MVP row. */
 export const SPECTATOR_MVP_PROFILE_RING_PX = 28;
@@ -56,8 +57,9 @@ export function liveAvatarRingMaskStyle(thicknessPx = LIVE_AVATAR_RING_THICKNESS
   };
 }
 
-/** Chat LV green pill — compact capsule beside the avatar circle. */
-export const CHAT_LEVEL_PILL_SIZE_PX = 22;
+/** Chat LV green pill — compact capsule beside the avatar circle (app-wide standard). */
+export const LEVEL_BADGE_PILL_PX = 22;
+export const CHAT_LEVEL_PILL_SIZE_PX = LEVEL_BADGE_PILL_PX;
 
 /** Live bottom action row — sit on the writing/labels, safe-area inset only. */
 export const LIVE_BOTTOM_ACTION_PADDING = 'max(2px, env(safe-area-inset-bottom, 0px))' as const;

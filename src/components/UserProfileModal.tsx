@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useVideoStore } from '../store/useVideoStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { AvatarRing } from './AvatarRing';
+import { LevelBadge } from './LevelBadge';
 import { useSafetyStore } from '../store/useSafetyStore';
 import ReportModal from './ReportModal';
 import { showToast } from '../lib/toast';
@@ -208,9 +209,7 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
             <div className="mt-1 flex items-center gap-2">
               <span className="text-sm text-white/80 font-medium">{displayUser.name}</span>
               {displayUser.level != null && (
-                <span className="px-2 py-0.5 rounded-md bg-white/10 text-[10px] font-bold text-[#D4AF37] border border-[#C9A227]/30">
-                  LV {displayUser.level}
-                </span>
+                <LevelBadge level={displayUser.level} avatar={displayUser.avatar} layout="fixed" />
               )}
             </div>
 
