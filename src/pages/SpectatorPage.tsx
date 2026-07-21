@@ -88,7 +88,7 @@ import PromotePanel from '../components/PromotePanel';
 import { RankingPanel } from '../components/RankingPanel';
 import { websocket } from '../lib/websocket';
 import { normalizeBattleGiftTarget } from '../lib/liveBattleGiftTarget';
-import { parseLiveGiftGoal, type LiveGiftGoal } from '../lib/liveGiftGoal';
+import { parseLiveGiftGoal, isGiftGoalComplete, type LiveGiftGoal } from '../lib/liveGiftGoal';
 import { resolveUiAvatarUrl } from '../lib/royceAssets';
 import { getMembershipStatus, purchaseMembership } from '../lib/iap';
 import { Room, RoomEvent, LocalVideoTrack, LocalAudioTrack, ConnectionState } from 'livekit-client';
@@ -3864,7 +3864,17 @@ export default function SpectatorPage() {
             <div className="w-full max-w-[480px] flex justify-start">
               <LiveGiftGoalBar
                 goal={giftGoal}
-                onTap={() => setShowGiftPanel(true)}
+                onTap={() => {
+                  if (isGiftGoalComplete(giftGoal)) {
+                    setShowGiftPanel(true);
+                    return;
+                  }
+                  const g =
+                    giftsCatalog.find((x) => x.id === giftGoal.giftId) ||
+                    giftsCatalogRef.current.find((x) => x.id === giftGoal.giftId);
+                  if (g) void handleSendGift(g);
+                  else setShowGiftPanel(true);
+                }}
               />
             </div>
           </div>

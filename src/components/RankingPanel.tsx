@@ -26,17 +26,35 @@ export function RankingPanel({ onClose: _onClose }: RankingPanelProps) {
 
   const loadRanking = async () => {
     try {
-      const { data: json, error } = await request('/api/rankings/weekly');
-      if (error) throw new Error('fetch failed');
-      const list = Array.isArray(json?.rankings) ? json.rankings : [];
-      setRankings(list.map((r: Record<string, unknown>, i: number) => ({
+      const [rankRes, liveRes] = await Promise.all([
+        request<{ rankings?: Record<string, unknown>[] }>('/api/rankings/weekly'),
+        request<{ streams?: unknown[] }>('/api/live/streams'),
+      ]);
+      if (rankRes.error) throw new Error('fetch failed');
+      const list = Array.isArray(rankRes.data?.rankings) ? rankRes.data.rankings : [];
+      const liveIds = new Set<string>();
+      const streams = Array.isArray(liveRes.data?.streams) ? liveRes.data.streams : [];
+      for (const s of streams) {
+        const row = s as Record<string, unknown>;
+        const uid = String(row.user_id ?? row.userId ?? row.hostUserId ?? row.stream_key ?? row.room_id ?? '').trim();
+        if (uid) liveIds.add(uid);
+      }
+      const mapped = list.map((r: Record<string, unknown>, i: number) => ({
         rank: (r.rank as number | undefined) ?? i + 1,
         user_id: String(r.user_id ?? ''),
         username: (r.username as string) || '',
         display_name: (r.display_name as string) || (r.username as string) || '',
         avatar_url: (r.avatar_url as string | null) || null,
         total_diamonds: (r.total_coins as number | undefined) ?? (r.total_diamonds as number | undefined) ?? 0,
-      })));
+      }));
+      // Prefer creators currently live (same points UI; order only).
+      mapped.sort((a, b) => {
+        const aLive = liveIds.has(a.user_id) ? 1 : 0;
+        const bLive = liveIds.has(b.user_id) ? 1 : 0;
+        if (bLive !== aLive) return bLive - aLive;
+        return b.total_diamonds - a.total_diamonds;
+      });
+      setRankings(mapped.map((r, i) => ({ ...r, rank: i + 1 })));
     } catch {
       setRankings([]);
     } finally {
