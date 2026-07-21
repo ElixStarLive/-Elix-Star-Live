@@ -16,7 +16,6 @@ import {
   MoreVertical,
   Users,
   Zap,
-  Trophy,
   Copy,
   AlertTriangle,
   PlusCircle,
@@ -99,6 +98,7 @@ import { LiveGiftGoalBar } from '../components/LiveGiftGoalBar';
 import { LiveEngagementOverlay } from '../components/LiveEngagementOverlay';
 import { useLiveEngagement } from '../hooks/useLiveEngagement';
 import { RankingPanel } from '../components/RankingPanel';
+import { CyclingRankBadge } from '../components/CyclingRankBadge';
 import { websocket } from '../lib/websocket';
 import { parseLiveGiftGoal, type LiveGiftGoal } from '../lib/liveGiftGoal';
 import { liveStreamUiGiftTargetToServerBattleTarget, normalizeBattleGiftTarget } from '../lib/liveBattleGiftTarget';
@@ -5800,16 +5800,12 @@ export default function LiveStream() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2 mt-1 ml-12 pointer-events-auto relative z-20 flex-wrap">
-                            <div 
-                              className="flex items-center gap-1 bg-black/75 rounded-full px-2.5 py-1 border border-[#D4AF37]/80 shadow-[0_0_8px_rgba(212,175,55,0.35)] cursor-pointer" 
+                            <CyclingRankBadge
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setShowRankingPanel(true);
                               }}
-                            >
-                              <Trophy className="w-3.5 h-3.5 text-[#D4AF37] flex-shrink-0" strokeWidth={2.25} />
-                              <span className="text-[#F5E6A8] text-[11px] font-bold whitespace-nowrap drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">Weekly Ranking &gt;</span>
-                            </div>
+                            />
                             <div 
                               className="flex items-center gap-1 bg-black/75 rounded-full px-2.5 py-1 border border-[#D4AF37]/80 shadow-[0_0_8px_rgba(212,175,55,0.35)] cursor-pointer" 
                               onClick={(e) => {

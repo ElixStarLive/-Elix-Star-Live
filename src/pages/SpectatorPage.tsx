@@ -23,7 +23,6 @@ import {
   Coins,
   Lock,
   Crown,
-  Trophy,
   Plus,
   PlusCircle,
   Play,
@@ -88,6 +87,7 @@ import { openExternalLink } from '../lib/platform';
 import ReportModal from '../components/ReportModal';
 import PromotePanel from '../components/PromotePanel';
 import { RankingPanel } from '../components/RankingPanel';
+import { CyclingRankBadge } from '../components/CyclingRankBadge';
 import { websocket } from '../lib/websocket';
 import { normalizeBattleGiftTarget } from '../lib/liveBattleGiftTarget';
 import { parseLiveGiftGoal, type LiveGiftGoal } from '../lib/liveGiftGoal';
@@ -3360,14 +3360,11 @@ export default function SpectatorPage() {
             <div
               className="flex items-center gap-2 mt-1 ml-12 pointer-events-auto relative z-20 flex-wrap"
             >
-              <div
-                className="flex items-center gap-1 bg-black/75 rounded-full px-2.5 py-1 border border-[#D4AF37]/80 shadow-[0_0_8px_rgba(212,175,55,0.35)] cursor-pointer active:scale-95 transition-transform"
+              <CyclingRankBadge
+                labelMode="split"
+                className="active:scale-95 transition-transform"
                 onClick={() => { setShowGiftPanel(false); setShowRankingPanel(true); }}
-              >
-                <Trophy className="w-3.5 h-3.5 text-[#D4AF37] flex-shrink-0" strokeWidth={2.25} />
-                <span className="text-[#F5E6A8] text-[11px] font-bold drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">Weekly Ranking</span>
-                <span className="text-[#F5E6A8]/90 text-[11px]">&gt;</span>
-              </div>
+              />
               <div
                 className="flex items-center gap-1 bg-black/75 rounded-full px-2.5 py-1 border border-[#D4AF37]/80 shadow-[0_0_8px_rgba(212,175,55,0.35)] cursor-pointer active:scale-95 transition-transform"
                 onClick={() => { setShowGiftPanel(false); setShowFanClub(true); }}
