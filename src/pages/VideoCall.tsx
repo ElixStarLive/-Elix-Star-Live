@@ -164,12 +164,19 @@ export default function VideoCall() {
 
         await room.connect(livekitUrl, data.token);
 
+        if (cancelled) {
+          room.disconnect().catch(() => {});
+          return;
+        }
+
         const videoTrack = localStream.getVideoTracks()[0];
         const audioTrack = localStream.getAudioTracks()[0];
         if (videoTrack) {
+          if (cancelled) { room.disconnect().catch(() => {}); return; }
           await room.localParticipant.publishTrack(videoTrack);
         }
         if (audioTrack) {
+          if (cancelled) { room.disconnect().catch(() => {}); return; }
           await room.localParticipant.publishTrack(audioTrack);
         }
       } catch {

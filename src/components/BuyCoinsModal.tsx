@@ -5,6 +5,7 @@ import {
   loadProducts as loadIAPProducts,
   purchaseProduct,
   initializeIAP,
+  reconcileOwnedCoinPurchases,
   IAP_PRODUCTS,
   type IAPProductId,
   type IAPProduct,
@@ -31,6 +32,8 @@ export const BuyCoinsModal: React.FC<BuyCoinsModalProps> = ({ isOpen, onClose, o
     const loadNative = async () => {
       try {
         await initializeIAP();
+        // Recover stuck owned-but-uncredited purchases before showing the shop.
+        await reconcileOwnedCoinPurchases();
         const products = await loadIAPProducts();
         if (cancelled) return;
         if (products.length > 0) {

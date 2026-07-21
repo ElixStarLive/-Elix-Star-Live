@@ -36,6 +36,7 @@ import {
 import { AnimatePresence, motion } from 'framer-motion';
 import { FILTER_PRESETS } from '../lib/ai/filters';
 import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, fetchGiftsFromDatabase, pickGiftVideoUrl, formatGiftDisplayName } from '../lib/giftsCatalog';
+import { appendCapped, LIVE_CHAT_MESSAGE_CAP, LIVE_GIFT_QUEUE_CAP } from '../lib/liveRuntimeCaps';
 import { BattleVfxOverlays, GloveIcon, type BattleMistSide, type GloveBurst } from '../components/BattleVfxOverlays';
 import {
   addPersistedTestCoins,
@@ -232,7 +233,7 @@ export default function LiveStream() {
   const playedGiftVideoTxnRef = useRef<Set<string>>(new Set());
   enqueueGiftVideoRef.current = (url: string) => {
     if (!url) return;
-    setGiftQueue((prev) => [...prev, { video: url }]);
+    setGiftQueue((prev) => appendCapped(prev, { video: url }, LIVE_GIFT_QUEUE_CAP));
   };
   const [messages, setMessages] = useState<LiveMessage[]>(() => []);
   const [coinBalance, setCoinBalance] = useState(0);
@@ -1150,12 +1151,12 @@ export default function LiveStream() {
     const host = coHosts.find(h => h.id === hostId);
     setCoHosts(prev => prev.filter(h => h.id !== hostId));
     if (host) {
-      setMessages(prev => [...prev, {
+      setMessages(prev => appendCapped(prev, {
         id: Date.now().toString(),
         username: 'System',
         text: `${host.name} left the co-host`,
         isSystem: true,
-      }]);
+      }, LIVE_CHAT_MESSAGE_CAP));
     }
   };
 
@@ -1391,6 +1392,16 @@ export default function LiveStream() {
       cancelled = true;
       if (battleLkRoomRef.current) { battleLkRoomRef.current.disconnect(); battleLkRoomRef.current = null; }
       if (battlePeerRef.current) { battlePeerRef.current.close(); battlePeerRef.current = null; }
+      // Always stop local getUserMedia — disconnect alone leaves camera/mic hot.
+      const local = cameraStreamRef.current;
+      if (local) {
+        local.getTracks().forEach((t) => {
+          try { t.stop(); } catch { /* ignore */ }
+        });
+        cameraStreamRef.current = null;
+      }
+      setCameraStream(null);
+      setBattleParticipantStream(null);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isBattleJoiner, user?.id, effectiveStreamId]);
@@ -2842,14 +2853,14 @@ export default function LiveStream() {
         }];
       });
       const joinMsgId = `join-${Date.now()}`;
-      setMessages(prev => [...prev, {
+      setMessages(prev => appendCapped(prev, {
         id: joinMsgId,
         username: joinName,
         text: 'joined the stream',
         isSystem: true,
         level: typeof data.level === 'number' && Number.isFinite(data.level) ? data.level : 1,
         avatar: typeof data.avatar_url === 'string' ? data.avatar_url : '',
-      }]);
+      }, LIVE_CHAT_MESSAGE_CAP));
       // The join banner is ephemeral: it appears only when someone joins, then
       // clears itself so it never stays permanently in the chat feed.
       window.setTimeout(() => {
@@ -2899,7 +2910,7 @@ export default function LiveStream() {
         stickerUrl: typeof data.stickerUrl === 'string' ? data.stickerUrl : undefined,
         isSystem: !!levelUpMatch,
       };
-      setMessages(prev => [...prev, msg]);
+      setMessages(prev => appendCapped(prev, msg, LIVE_CHAT_MESSAGE_CAP));
     };
 
     const handleGiftSent = (data) => {
@@ -3000,7 +3011,7 @@ export default function LiveStream() {
           avatar: typeof data.avatar === 'string' ? data.avatar : '',
           isGift: true,
         };
-        setMessages((prev) => [...prev, msg]);
+        setMessages((prev) => appendCapped(prev, msg, LIVE_CHAT_MESSAGE_CAP));
         if (isBattleModeRef.current) {
           const iconRaw =
             (typeof data.gift_icon === 'string' && data.gift_icon) ||
@@ -3708,9 +3719,7 @@ export default function LiveStream() {
           updateUser({ level: sim.level });
           newLevel = sim.level;
           const levelBannerId = `levelup-${Date.now()}`;
-          setMessages((prev) => [
-            ...prev,
-            {
+          setMessages((prev) => appendCapped(prev, {
               id: levelBannerId,
               username: isBroadcast ? creatorName : viewerName,
               text: `reached Level ${sim.level}`,
@@ -3718,8 +3727,7 @@ export default function LiveStream() {
               isGift: false,
               avatar: isBroadcast ? myAvatar : viewerAvatar,
               isSystem: true,
-            },
-          ]);
+            }, LIVE_CHAT_MESSAGE_CAP));
         }
         setUserXP(sim.totalXp);
       } else if (user?.id) {
@@ -3790,9 +3798,7 @@ export default function LiveStream() {
           }
           if (result.leveled_up) {
             const levelBannerId = `levelup-${Date.now()}`;
-            setMessages((prev) => [
-              ...prev,
-              {
+            setMessages((prev) => appendCapped(prev, {
                 id: levelBannerId,
                 username: isBroadcast ? creatorName : viewerName,
                 text: `reached Level ${newLevel}`,
@@ -3800,8 +3806,7 @@ export default function LiveStream() {
                 isGift: false,
                 avatar: isBroadcast ? myAvatar : viewerAvatar,
                 isSystem: true,
-              },
-            ]);
+              }, LIVE_CHAT_MESSAGE_CAP));
             websocket.send('chat_message', {
               text: `reached Level ${newLevel}`,
               level: newLevel,
@@ -3833,7 +3838,7 @@ export default function LiveStream() {
             ? raw
             : resolveGiftAssetUrl(raw.startsWith('/') ? raw : `/${raw}`);
           if (videoUrl) {
-            setGiftQueue(prev => [...prev, { video: videoUrl }]);
+            setGiftQueue(prev => appendCapped(prev, { video: videoUrl }, LIVE_GIFT_QUEUE_CAP));
           }
         }
       }
@@ -3863,7 +3868,7 @@ export default function LiveStream() {
           level: newLevel,
           avatar: isBroadcast ? myAvatar : viewerAvatar,
       };
-      setMessages(prev => [...prev, giftMsg]);
+      setMessages(prev => appendCapped(prev, giftMsg, LIVE_CHAT_MESSAGE_CAP));
 
       const idsForBattleGift = battleStreamIdsRef.current;
       const serverBattleTarget =
@@ -4051,9 +4056,7 @@ export default function LiveStream() {
           }
           if (result.leveled_up) {
             const levelBannerId = `levelup-${Date.now()}`;
-            setMessages((prev) => [
-              ...prev,
-              {
+            setMessages((prev) => appendCapped(prev, {
                 id: levelBannerId,
                 username: isBroadcast ? creatorName : viewerName,
                 text: `reached Level ${newLevel}`,
@@ -4061,8 +4064,7 @@ export default function LiveStream() {
                 isGift: false,
                 avatar: isBroadcast ? myAvatar : viewerAvatar,
                 isSystem: true,
-              },
-            ]);
+              }, LIVE_CHAT_MESSAGE_CAP));
             websocket.send('chat_message', {
               text: `reached Level ${newLevel}`,
               level: newLevel,
@@ -4105,7 +4107,7 @@ export default function LiveStream() {
           ? lastSentGift.video
           : resolveGiftAssetUrl(lastSentGift.video.startsWith('/') ? lastSentGift.video : `/${lastSentGift.video}`);
         if (videoUrl) {
-          setGiftQueue(prev => [...prev, { video: videoUrl }]);
+          setGiftQueue(prev => appendCapped(prev, { video: videoUrl }, LIVE_GIFT_QUEUE_CAP));
           setShowGiftPanel(false);
         }
       }
@@ -4119,7 +4121,7 @@ export default function LiveStream() {
           level: newLevel,
           avatar: viewerAvatar,
       };
-      setMessages(prev => [...prev, giftMsg]);
+      setMessages(prev => appendCapped(prev, giftMsg, LIVE_CHAT_MESSAGE_CAP));
 
       const idsForBattleGiftCombo = battleStreamIdsRef.current;
       const serverBattleTargetCombo =
@@ -4192,7 +4194,7 @@ export default function LiveStream() {
           avatar: isBroadcast ? myAvatar : viewerAvatar,
           isMod: isBroadcast || moderators.has(user?.id || ''),
       };
-      setMessages(prev => [...prev, newMsg]);
+      setMessages(prev => appendCapped(prev, newMsg, LIVE_CHAT_MESSAGE_CAP));
 
       websocket.send('chat_message', {
         text: inputValue,
@@ -5353,7 +5355,7 @@ export default function LiveStream() {
                                             isSystem: true,
                                             membershipIcon: '/royce/membership.svg',
                                           };
-                                          setMessages(prev => [...prev, newMessage]);
+                                          setMessages(prev => appendCapped(prev, newMessage, LIVE_CHAT_MESSAGE_CAP));
                                           window.setTimeout(() => {
                                             setMessages(prev => prev.filter(m => m.id !== joinBannerId));
                                           }, 5000);

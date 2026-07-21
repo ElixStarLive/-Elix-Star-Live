@@ -33,6 +33,7 @@ import { GiftPanel } from '../components/GiftPanel';
 import { GiftGoalGallery } from '../components/GiftGoalGallery';
 import { LiveGiftGoalBar } from '../components/LiveGiftGoalBar';
 import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, fetchGiftsFromDatabase, pickGiftVideoUrl, formatGiftDisplayName } from '../lib/giftsCatalog';
+import { appendCapped, LIVE_CHAT_MESSAGE_CAP, LIVE_GIFT_QUEUE_CAP } from '../lib/liveRuntimeCaps';
 import { BattleVfxOverlays, GloveIcon, type BattleMistSide, type GloveBurst } from '../components/BattleVfxOverlays';
 import {
   addPersistedTestCoins,
@@ -668,12 +669,12 @@ export default function SpectatorPage() {
       }
 
       showToast('You are now co-hosting!');
-      setMessages(prev => [...prev, {
+      setMessages(prev => appendCapped(prev, {
         id: `cohost-${Date.now()}`,
         username: 'System',
         text: 'You joined as co-host',
         isSystem: true,
-      }]);
+      }, LIVE_CHAT_MESSAGE_CAP));
     } catch {
       showToast('Camera access denied');
     }
@@ -1379,14 +1380,14 @@ export default function SpectatorPage() {
       }
       const joinName = data.username || 'User';
       const joinMsgId = `join-${Date.now()}`;
-      setMessages(prev => [...prev, {
+      setMessages(prev => appendCapped(prev, {
         id: joinMsgId,
         username: joinName,
         text: 'joined the stream',
         isSystem: true,
         level: typeof data.level === 'number' && Number.isFinite(data.level) ? data.level : 1,
         avatar: typeof data.avatar_url === 'string' ? data.avatar_url : '',
-      }]);
+      }, LIVE_CHAT_MESSAGE_CAP));
       // The join banner is ephemeral: it appears only when someone joins, then
       // clears itself so it never stays permanently in the chat feed.
       window.setTimeout(() => {
@@ -1423,7 +1424,7 @@ export default function SpectatorPage() {
         stickerUrl: typeof data.stickerUrl === 'string' ? data.stickerUrl : undefined,
         isSystem: !!levelUpMatch,
       };
-      setMessages(prev => [...prev, msg]);
+      setMessages(prev => appendCapped(prev, msg, LIVE_CHAT_MESSAGE_CAP));
     };
 
     const handleGiftSent = (data) => {
@@ -1497,7 +1498,7 @@ export default function SpectatorPage() {
           avatar: typeof data.avatar === 'string' ? data.avatar : '',
           isGift: true,
         };
-        setMessages(prev => [...prev, msg]);
+        setMessages(prev => appendCapped(prev, msg, LIVE_CHAT_MESSAGE_CAP));
         if (spectatorBattleRef.current?.active) {
           const side = normalizeBattleGiftTarget(data.battleTarget);
           if (side === 'opponent') {
@@ -1543,7 +1544,7 @@ export default function SpectatorPage() {
               )
             : null);
         if (videoUrl) {
-          setGiftQueue((prev) => [...prev, { video: videoUrl }]);
+          setGiftQueue((prev) => appendCapped(prev, { video: videoUrl }, LIVE_GIFT_QUEUE_CAP));
         }
       }
     };
@@ -2059,7 +2060,7 @@ export default function SpectatorPage() {
       isMod: isModerator,
       membershipIcon: isMember ? '/royce/membership.svg' : undefined,
     };
-    setMessages(prev => [...prev, newMsg]);
+    setMessages(prev => appendCapped(prev, newMsg, LIVE_CHAT_MESSAGE_CAP));
     websocket.send('chat_message', {
       text: inputValue,
       level: userLevel,
@@ -2111,9 +2112,7 @@ export default function SpectatorPage() {
         setUserLevel(sim.level);
         updateUser({ level: sim.level });
         newLevel = sim.level;
-        setMessages((prev) => [
-          ...prev,
-          {
+        setMessages((prev) => appendCapped(prev, {
             id: `levelup-${Date.now()}`,
             username: viewerName,
             text: `reached Level ${sim.level}`,
@@ -2121,8 +2120,7 @@ export default function SpectatorPage() {
             isGift: false,
             avatar: viewerAvatar,
             isSystem: true,
-          },
-        ]);
+          }, LIVE_CHAT_MESSAGE_CAP));
       }
     } else if (user?.id) {
       try {
@@ -2191,9 +2189,7 @@ export default function SpectatorPage() {
           setUserXP(Math.max(0, Number(result.total_xp) || 0));
         }
         if (result.leveled_up) {
-          setMessages((prev) => [
-            ...prev,
-            {
+          setMessages((prev) => appendCapped(prev, {
               id: `levelup-${Date.now()}`,
               username: viewerName,
               text: `reached Level ${newLevel}`,
@@ -2201,8 +2197,7 @@ export default function SpectatorPage() {
               isGift: false,
               avatar: viewerAvatar,
               isSystem: true,
-            },
-          ]);
+            }, LIVE_CHAT_MESSAGE_CAP));
           websocket.send('chat_message', {
             text: `reached Level ${newLevel}`,
             level: newLevel,
@@ -2234,7 +2229,7 @@ export default function SpectatorPage() {
         raw.startsWith('http://') || raw.startsWith('https://')
           ? raw
           : resolveGiftAssetUrl(raw.startsWith('/') ? raw : `/${raw}`);
-      setGiftQueue(prev => [...prev, { video: videoUrl }]);
+      setGiftQueue(prev => appendCapped(prev, { video: videoUrl }, LIVE_GIFT_QUEUE_CAP));
     }
 
     const giftMsg: LiveMessage = {
@@ -2245,7 +2240,7 @@ export default function SpectatorPage() {
       level: newLevel,
       avatar: viewerAvatar,
     };
-    setMessages(prev => [...prev, giftMsg]);
+    setMessages(prev => appendCapped(prev, giftMsg, LIVE_CHAT_MESSAGE_CAP));
     // Test coins never touch payments, goals, or battle scores — the server
     // broadcasts them animation-only so the creator and all spectators see the
     // gift video. Persisted gifts include the REST transaction id for
@@ -3077,7 +3072,7 @@ export default function SpectatorPage() {
                             avatar: viewerAvatar,
                             isSystem: true,
                           };
-                          setMessages(prev => [...prev, newMessage]);
+                          setMessages(prev => appendCapped(prev, newMessage, LIVE_CHAT_MESSAGE_CAP));
                           window.setTimeout(() => {
                             setMessages(prev => prev.filter(m => m.id !== joinBannerId));
                           }, 5000);
@@ -3653,7 +3648,7 @@ export default function SpectatorPage() {
                                 avatar: '/royce/elix-mark.svg',
                                 isSystem: false,
                               };
-                              setMessages(prev => [...prev, newMessage]);
+                              setMessages(prev => appendCapped(prev, newMessage, LIVE_CHAT_MESSAGE_CAP));
                               setShowFanClub(false);
                             }}
                           >
@@ -3686,7 +3681,7 @@ export default function SpectatorPage() {
                                     avatar: '/royce/elix-mark.svg',
                                     isSystem: false,
                                   };
-                                  setMessages(prev => [...prev, newMessage]);
+                                  setMessages(prev => appendCapped(prev, newMessage, LIVE_CHAT_MESSAGE_CAP));
                                   setShowFanClub(false);
                                 };
                                 reader.readAsDataURL(file);

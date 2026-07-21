@@ -223,6 +223,14 @@ function App() {
         } catch (_) {
           /* avoid startup crashes from websocket reconnect */
         }
+        // Soft session refresh + recover stuck IAP without forcing logout on blips.
+        void useAuthStore.getState().checkUser();
+        if (useAuthStore.getState().user?.id) {
+          void reconcileOwnedCoinPurchases().catch((err) => {
+            const error = err instanceof Error ? err : new Error(String(err || "iap_reconcile_failed"));
+            void crashReporting.logError(error, { source: "reconcileOwnedCoinPurchases.foreground" });
+          });
+        }
       }
     };
     document.addEventListener("visibilitychange", handleVisibility);

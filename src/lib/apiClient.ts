@@ -189,21 +189,42 @@ export async function request<T = any>(
   path: string,
   init: RequestInit = {},
 ): Promise<{ data: T | null; error: { message: string } | null }> {
-  if (!Capacitor.isNativePlatform()) {
-    return webRequest<T>(path, init);
-  }
+  const result = !Capacitor.isNativePlatform()
+    ? await webRequest<T>(path, init)
+    : await (async () => {
+        // Prefer native HTTP bridge, then fall back to WebView fetch (needs server CORP cross-origin).
+        try {
+          return await nativeCapacitorHttpRequest<T>(path, init);
+        } catch {
+          try {
+            return await nativeFetchRequest<T>(path, init);
+          } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : String(e || "request_failed");
+            return { data: null, error: { message: msg || "request_failed" } };
+          }
+        }
+      })();
 
-  // Prefer native HTTP bridge, then fall back to WebView fetch (needs server CORP cross-origin).
-  try {
-    return await nativeCapacitorHttpRequest<T>(path, init);
-  } catch {
+  // Real auth failure — clear stale session so UI does not stay "logged in" with dead JWT.
+  // Skip /api/auth/me to avoid fighting checkUser's own handling.
+  const errMsg = result.error?.message || "";
+  if (
+    errMsg.includes("HTTP_401") &&
+    !path.includes("/api/auth/me") &&
+    !path.includes("/api/auth/login") &&
+    !path.includes("/api/auth/logout")
+  ) {
     try {
-      return await nativeFetchRequest<T>(path, init);
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e || "request_failed");
-      return { data: null, error: { message: msg || "request_failed" } };
+      const { session, signOut } = useAuthStore.getState();
+      if (session?.access_token) {
+        void signOut();
+      }
+    } catch {
+      /* never break the caller */
     }
   }
+
+  return result;
 }
 
 export const api = {

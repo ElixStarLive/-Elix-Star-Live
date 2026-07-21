@@ -526,7 +526,17 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
       const { data, error: meError } = await request("/api/auth/me");
 
       if (meError) {
-        clearState();
+        const msg = String(meError.message || "");
+        const isAuthFailure =
+          msg.includes("HTTP_401") ||
+          msg.includes("HTTP_403") ||
+          /invalid|expired|revoked|unauthorized|forbidden|session/i.test(msg);
+        // Transient network / timeout / 5xx must not wipe a hydrated session.
+        if (isAuthFailure || !get().session?.access_token) {
+          clearState();
+        } else {
+          set({ isLoading: false });
+        }
         return;
       }
 
