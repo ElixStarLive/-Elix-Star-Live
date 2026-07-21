@@ -61,12 +61,13 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
   const avatarDiameter = profileRingInnerPx(circleSize);
 
   if (splitCircleSizing) {
-    /** Circle full size; compact round LV capsule hugging the circle (live chat). */
-    const pillH = Math.max(11, Math.round(circleSize * 0.42));
-    const pillPadX = Math.max(6, Math.round(pillH * 0.45));
+    /** Circle full size; compact round LV capsule hugging the circle (live chat / For You). */
+    // +2mm height only (1mm top + 1mm bottom equivalent) — pill was too thin.
+    const pillH = Math.max(11, Math.round(circleSize * 0.42)) + levelExtraHeightPx;
+    const pillPadX = Math.max(6, Math.round(Math.max(11, Math.round(circleSize * 0.42)) * 0.45));
     const overlapPx = Math.round(circleSize * 0.22);
     const label = text === 'level' ? `Level ${safeLevel}` : `LV ${safeLevel}`;
-    const fontPx = Math.max(9, Math.round(pillH * 0.55));
+    const fontPx = Math.max(9, Math.round(Math.max(11, Math.round(circleSize * 0.42)) * 0.55));
     const pillStyle: React.CSSProperties = {
       position: 'relative',
       zIndex: 1,
