@@ -4668,15 +4668,43 @@ export default function LiveStream() {
     }
   };
 
-  const openMiniProfile = async (username: string, coins?: number) => {
-    const avatar = username === myCreatorName
+  const openMiniProfile = async (
+    username: string,
+    coins?: number,
+    opts?: { userId?: string; avatar?: string; level?: number | null },
+  ) => {
+    const avatar = opts?.avatar ?? (username === myCreatorName
       ? myAvatar
-      : `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=121212&color=FFFFFF`;
-    const level = username === myCreatorName ? userLevel : null;
+      : `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=121212&color=FFFFFF`);
+    const level = opts?.level ?? (username === myCreatorName ? userLevel : null);
     const donated = username === myCreatorName ? sessionContribution : 0;
-    setMiniProfile({ username, avatar, level, coins, donated });
+    setMiniProfile({ username, avatar, level, coins, donated, id: opts?.userId });
     try {
-      const { data: prof } = await request(`/api/profiles/by-username/${encodeURIComponent(username)}`);
+      if (opts?.userId) {
+        const { data: body } = await request<{ profile?: Record<string, unknown> }>(`/api/profiles/${encodeURIComponent(opts.userId)}`);
+        const prof = body?.profile;
+        if (prof) {
+          setMiniProfile((prev) => prev ? {
+            ...prev,
+            id: opts.userId,
+            username: String(prof.displayName || prof.username || prev.username),
+            bio: String(prof.bio || ''),
+            avatar: String(prof.avatarUrl || prev.avatar),
+            level: Number(prof.level) || prev.level,
+            followers_count: Number(prof.followers) || 0,
+            following_count: Number(prof.following) || 0,
+          } : prev);
+          return;
+        }
+      }
+      const { data: prof } = await request<{
+        user_id?: string;
+        bio?: string;
+        avatar_url?: string;
+        level?: number;
+        followers_count?: number;
+        following_count?: number;
+      }>(`/api/profiles/by-username/${encodeURIComponent(username)}`);
       if (prof?.user_id) {
         setMiniProfile(prev => prev ? {
           ...prev,
@@ -4703,46 +4731,51 @@ export default function LiveStream() {
     let targetId = miniProfile.id;
     if (!targetId && miniProfile.username) {
       try {
-        const { data: prof } = await request(`/api/profiles/by-username/${encodeURIComponent(miniProfile.username)}`);
-        if (prof?.user_id) {
-          targetId = prof.user_id;
-          setMiniProfile((prev) =>
-            prev && prev.username === miniProfile.username
-              ? {
-                  ...prev,
-                  id: prof.user_id,
-                  bio: prof.bio ?? prev.bio,
-                  avatar: prof.avatar_url || prev.avatar,
-                  level: prof.level ?? prev.level,
-                  followers_count: prof.followers_count ?? prev.followers_count,
-                  following_count: prof.following_count ?? prev.following_count,
-                }
-              : prev,
-          );
+        const { data: prof, error } = await request<{ user_id?: string; bio?: string; avatar_url?: string; level?: number; followers_count?: number; following_count?: number }>(
+          `/api/profiles/by-username/${encodeURIComponent(miniProfile.username)}`,
+        );
+        if (error || !prof?.user_id) {
+          showToast('Could not load profile. Try again.');
+          return;
         }
+        targetId = prof.user_id;
+        setMiniProfile((prev) =>
+          prev && prev.username === miniProfile.username
+            ? {
+                ...prev,
+                id: prof.user_id,
+                bio: prof.bio ?? prev.bio,
+                avatar: prof.avatar_url || prev.avatar,
+                level: prof.level ?? prev.level,
+                followers_count: prof.followers_count ?? prev.followers_count,
+                following_count: prof.following_count ?? prev.following_count,
+              }
+            : prev,
+        );
       } catch {
-        /* keep */
+        showToast('Could not load profile. Try again.');
+        return;
       }
     }
     if (!targetId) {
       showToast('Could not load profile. Try again.');
       return;
     }
-    if (targetId === user.id) return;
+    if (targetId === user.id) {
+      showToast("You can't follow yourself");
+      return;
+    }
 
     const wasFollowing =
       miniProfileFollowsThem === true ||
       (miniProfileFollowsThem === undefined && useVideoStore.getState().followingUsers.includes(targetId));
 
     try {
-      const session = useAuthStore.getState().session;
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
       const endpoint = wasFollowing
-        ? apiUrl(`/api/profiles/${encodeURIComponent(targetId)}/unfollow`)
-        : apiUrl(`/api/profiles/${encodeURIComponent(targetId)}/follow`);
-      const res = await fetch(endpoint, { method: 'POST', credentials: 'include', headers });
-      if (!res.ok) throw new Error('follow failed');
+        ? `/api/profiles/${encodeURIComponent(targetId)}/unfollow`
+        : `/api/profiles/${encodeURIComponent(targetId)}/follow`;
+      const { error } = await request(endpoint, { method: 'POST' });
+      if (error) throw new Error('follow failed');
 
       const prev = useVideoStore.getState().followingUsers;
       const nextIds = wasFollowing
@@ -4757,6 +4790,7 @@ export default function LiveStream() {
           ? { ...p, followers_count: Math.max(0, p.followers_count + (wasFollowing ? -1 : 1)) }
           : p,
       );
+      showToast(wasFollowing ? 'Unfollowed' : 'Following!');
     } catch {
       showToast('Could not update follow. Try again.');
     }
@@ -5632,7 +5666,7 @@ export default function LiveStream() {
                             <div className={CREATOR_NAME_PILL_CLASSNAME} style={getCreatorNamePillStyle()}>
                             <div 
                               className="relative z-[10] flex-shrink-0 pointer-events-auto cursor-pointer active:scale-95 transition-transform"
-                              onClick={(e) => { e.stopPropagation(); openMiniProfile(myCreatorName); }}
+                              onClick={(e) => { e.stopPropagation(); void openMiniProfile(myCreatorName, undefined, { userId: user?.id, avatar: myAvatar, level: userLevel }); }}
                             >
                               <AvatarRing src={resolveCircleAvatar(myAvatar, myCreatorName)} alt={myCreatorName} size={LIVE_TOP_AVATAR_RING_PX} />
                             </div>
@@ -6276,6 +6310,7 @@ export default function LiveStream() {
               </div>
 
               <div className="mt-5 grid grid-cols-4 gap-2">
+                {!(miniProfile?.id && user?.id && miniProfile.id === user.id) && (
                 <button
                   type="button"
                   onClick={() => void handleMiniProfileFollowToggle()}
@@ -6293,6 +6328,7 @@ export default function LiveStream() {
                     ? 'Following'
                     : 'Follow'}
                 </button>
+                )}
                 <button 
                   type="button" 
                   onClick={() => {
@@ -6433,7 +6469,7 @@ export default function LiveStream() {
                         <button
                           type="button"
                           className="flex items-center gap-3 flex-1 min-w-0 text-left"
-                          onClick={() => { void openMiniProfile(displayName); setShowViewerList(false); }}
+                          onClick={() => { void openMiniProfile(displayName, undefined, { userId: v.id, avatar: v.avatar, level: v.level }); setShowViewerList(false); }}
                         >
                           <LevelBadge
                             level={typeof v.level === 'number' ? v.level : 1}
