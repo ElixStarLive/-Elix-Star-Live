@@ -15,9 +15,14 @@ type Props = {
   onVote?: (optionIndex: number) => void;
 };
 
+type CycleSlot = "power" | "poll" | "ranks";
+
+const CYCLE_MS = 5000;
+
 /**
  * Proper live engagement HUD:
  * - Tiny status chips under the top bar only (never over chat)
+ * - Power / Results / Ranks share ONE capsule that cycles every 5s
  * - Poll / live ranks open as bottom sheets (same pattern as Ranking / More)
  * - Host start actions live in More menu — not floating on the video
  */
@@ -30,6 +35,7 @@ export function LiveEngagementOverlay({
 }: Props) {
   const [showLb, setShowLb] = useState(false);
   const [showPollSheet, setShowPollSheet] = useState(false);
+  const [cycleIndex, setCycleIndex] = useState(0);
   const features = state.features;
   const streakSec = state.me?.streakSeconds ?? state.me?.watchSeconds ?? 0;
   const mysteryLeft = mysteryRemainingMs(state.mystery, nowMs);
@@ -49,16 +55,43 @@ export function LiveEngagementOverlay({
     if (pollId) setShowPollSheet(false);
   }, [pollId]);
 
+  const cycleSlots = useMemo((): CycleSlot[] => {
+    const slots: CycleSlot[] = [];
+    if (features.community) slots.push("power");
+    if (features.poll && state.poll) slots.push("poll");
+    if (features.leaderboard) slots.push("ranks");
+    return slots;
+  }, [features.community, features.poll, features.leaderboard, state.poll]);
+
+  useEffect(() => {
+    if (cycleSlots.length <= 1) {
+      setCycleIndex(0);
+      return;
+    }
+    const id = window.setInterval(() => {
+      setCycleIndex((i) => (i + 1) % cycleSlots.length);
+    }, CYCLE_MS);
+    return () => window.clearInterval(id);
+  }, [cycleSlots]);
+
+  const activeSlot =
+    cycleSlots.length > 0
+      ? cycleSlots[cycleIndex % cycleSlots.length]
+      : null;
+
   const showStatus =
     (features.streak && true) ||
-    (features.community && true) ||
-    (features.mystery && !!mysteryLabel) ||
-    (features.poll && !!state.poll) ||
-    (features.leaderboard && true);
+    cycleSlots.length > 0 ||
+    (features.mystery && !!mysteryLabel);
 
   if (!showStatus && !milestoneFlash && stageFlash == null && !showLb && !showPollSheet) {
     return null;
   }
+
+  const openActiveSlot = () => {
+    if (activeSlot === "poll") setShowPollSheet(true);
+    else if (activeSlot === "ranks") setShowLb(true);
+  };
 
   return (
     <>
@@ -80,41 +113,57 @@ export function LiveEngagementOverlay({
             </div>
           ) : null}
 
-          {features.community ? (
-            <div className="pointer-events-none flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/55 border border-[#C9A227]/30">
-              <span className="text-[7px] font-bold text-white/70">Power</span>
-              <span className="text-[8px] font-bold text-[#D4AF37] tabular-nums">
-                {Math.round(state.communityProgress)}%
-              </span>
-            </div>
+          {/* One capsule: Power → Results/Poll → Ranks every 5s (marked spot). */}
+          {activeSlot ? (
+            <button
+              type="button"
+              className={`pointer-events-auto flex items-center gap-1 px-2 py-0.5 rounded-full min-w-[4.75rem] justify-center active:scale-95 transition-colors duration-300 ${
+                activeSlot === "poll"
+                  ? "bg-[#D4AF37] text-black border border-[#D4AF37]"
+                  : "bg-black/55 border border-[#C9A227]/30 text-[#F5E6A8]"
+              } ${activeSlot === "power" ? "cursor-default" : ""}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (activeSlot === "power") return;
+                openActiveSlot();
+              }}
+              aria-label={
+                activeSlot === "power"
+                  ? `Power ${Math.round(state.communityProgress)}%`
+                  : activeSlot === "poll"
+                    ? hasVoted
+                      ? "Results"
+                      : "Poll"
+                    : "Ranks"
+              }
+            >
+              {activeSlot === "power" ? (
+                <>
+                  <span className="text-[7px] font-bold text-white/70">Power</span>
+                  <span className="text-[8px] font-bold text-[#D4AF37] tabular-nums">
+                    {Math.round(state.communityProgress)}%
+                  </span>
+                </>
+              ) : null}
+              {activeSlot === "poll" ? (
+                <>
+                  <Sparkles className="w-2.5 h-2.5" strokeWidth={2.5} />
+                  <span className="text-[8px] font-bold">{hasVoted ? "Results" : "Poll"}</span>
+                </>
+              ) : null}
+              {activeSlot === "ranks" ? (
+                <>
+                  <Trophy className="w-2.5 h-2.5 text-[#D4AF37]" />
+                  <span className="text-[8px] font-bold text-[#F5E6A8]">Ranks</span>
+                </>
+              ) : null}
+            </button>
           ) : null}
 
           {features.mystery && mysteryLabel ? (
             <div className="pointer-events-none flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/55 border border-[#C9A227]/35">
               <span className="text-[7px] font-bold text-[#F5E6A8]">Mystery {mysteryLabel}</span>
             </div>
-          ) : null}
-
-          {features.poll && state.poll ? (
-            <button
-              type="button"
-              className="pointer-events-auto flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#D4AF37] text-black active:scale-95"
-              onClick={() => setShowPollSheet(true)}
-            >
-              <Sparkles className="w-2.5 h-2.5" strokeWidth={2.5} />
-              <span className="text-[8px] font-bold">{hasVoted ? "Results" : "Poll"}</span>
-            </button>
-          ) : null}
-
-          {features.leaderboard ? (
-            <button
-              type="button"
-              className="pointer-events-auto flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/55 border border-[#C9A227]/30 active:scale-95"
-              onClick={() => setShowLb(true)}
-            >
-              <Trophy className="w-2.5 h-2.5 text-[#D4AF37]" />
-              <span className="text-[8px] font-bold text-[#F5E6A8]">Ranks</span>
-            </button>
           ) : null}
         </div>
       </div>
