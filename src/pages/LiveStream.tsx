@@ -6272,8 +6272,8 @@ export default function LiveStream() {
                       )}
                       <LevelBadge
                         level={typeof miniProfile.level === 'number' ? miniProfile.level : userLevel}
-                        avatar={typeof miniProfile.avatar === 'string' ? miniProfile.avatar : undefined}
                         layout="fixed"
+                        hideCircle
                       />
                     </div>
                     {miniProfile.coins != null && (

@@ -12,6 +12,8 @@ export interface LevelIconProps {
   avatarUrl?: string;
   barColor?: string;
   text?: 'lv' | 'level';
+  /** Hide the profile circle; show LV pill only (e.g. mini profile already has AvatarRing). */
+  hideCircle?: boolean;
 }
 
 export const LevelIcon: React.FC<LevelIconProps> = ({
@@ -22,6 +24,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
   avatarUrl,
   barColor,
   text = 'lv',
+  hideCircle = false,
 }) => {
   const safeLevel = typeof level === 'number' && Number.isFinite(level) && level > 0 ? Math.floor(level) : 1;
   /** CSS px per mm (1in = 25.4mm, 1in = 96px). */
@@ -64,6 +67,43 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
     const overlapPx = Math.round(circleSize * 0.22);
     const label = text === 'level' ? `Level ${safeLevel}` : `LV ${safeLevel}`;
     const fontPx = Math.max(9, Math.round(pillH * 0.55));
+    const pillStyle: React.CSSProperties = {
+      position: 'relative',
+      zIndex: 1,
+      height: pillH,
+      borderRadius: 9999,
+      background: getBarGradient(),
+      border: '1px solid rgba(255,255,255,0.28)',
+      boxShadow: '0 2px 6px rgba(0,0,0,0.45), inset 0 1px 1px rgba(255,255,255,0.28)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingLeft: pillPadX,
+      paddingRight: pillPadX,
+      flexShrink: 0,
+    };
+    if (hideCircle) {
+      return (
+        <div className={className} style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
+          <div style={pillStyle}>
+            <span
+              style={{
+                color: 'white',
+                fontWeight: 900,
+                fontStyle: 'italic',
+                letterSpacing: '0.02em',
+                fontSize: fontPx,
+                textShadow: '0 2px 6px rgba(0,0,0,0.75)',
+                lineHeight: 1,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {label}
+            </span>
+          </div>
+        </div>
+      );
+    }
     return (
       <div
         className={className}
