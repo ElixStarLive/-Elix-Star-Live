@@ -62,9 +62,13 @@ export async function isUserPublishingInRoom(
         Array.isArray(p?.tracks) &&
         p.tracks.length > 0,
     );
-  } catch {
-    // Room does not exist (nobody live there) or transient API failure.
-    return false;
+  } catch (err) {
+    // Missing room → not live. Transient LiveKit API failures must NOT hide
+    // the card from every For You spectator (that looked like "only one can join").
+    const msg = err instanceof Error ? err.message : String(err);
+    if (/not found|does not exist|404/i.test(msg)) return false;
+    logger.warn({ err, roomName, userId }, "isUserPublishingInRoom transient failure — keeping stream listed");
+    return true;
   }
 }
 

@@ -894,67 +894,87 @@ export default function SpectatorPage() {
     return () => clearTimeout(t);
   }, [hasStream]);
 
-  // Fetch host / stream state from backend
+  // Fetch host / stream state. Join must NOT depend only on /api/live/streams —
+  // that list is publishing-gated and can be stale, so other spectators would
+  // see "offline" while one device that got a fresh list can watch. Token
+  // issuance is the source of truth for whether the room is joinable.
   useEffect(() => {
     if (!effectiveStreamId) return;
+    let cancelled = false;
     (async () => {
       try {
-        const { data: json, error: streamsErr } = await request('/api/live/streams');
-        if (streamsErr || !json) {
-          setStreamIsLive(false);
-          showToast('Stream is offline');
-          return;
-        }
-        const streams = Array.isArray(json.streams) ? json.streams : [];
+        const applyHostMeta = async (uid: string, titleHint?: string) => {
+          if (cancelled) return;
+          setHostUserId(uid);
+          hostUserIdRef.current = uid;
+          actualViewersRef.current.delete(uid);
+          const label = uid.slice(0, 8);
+          const initialName = titleHint || label || 'Creator';
+          setHostName(initialName);
+          setHostAvatar('');
+          try {
+            const { data: profileBody } = await request(`/api/profiles/${encodeURIComponent(uid)}`);
+            if (cancelled || !profileBody) return;
+            const profile = profileBody?.profile || profileBody?.data || {};
+            const profileName =
+              (typeof profile.displayName === 'string' && profile.displayName.trim()) ||
+              (typeof profile.username === 'string' && profile.username.trim()) ||
+              initialName;
+            const profileAvatar =
+              (typeof profile.avatarUrl === 'string' && profile.avatarUrl.trim()) || '';
+            setHostName(profileName);
+            if (profileAvatar) setHostAvatar(profileAvatar);
+          } catch {
+            /* Non-fatal: keep initialName/empty avatar */
+          }
+        };
+
+        const { data: json, error: streamsErr } = await request('/api/live/streams', {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
+        });
+        const streams = !streamsErr && json && Array.isArray(json.streams) ? json.streams : [];
         const stream =
           streams.find((s) => s.stream_key === effectiveStreamId) ||
           streams.find((s) => s.room_id === effectiveStreamId);
 
-        if (!stream) {
+        if (stream) {
+          if (cancelled) return;
+          setStreamIsLive(true);
+          setViewerCount(stream.viewer_count || 0);
+          syncMvpSlotsRef.current();
+          if (stream.user_id) {
+            await applyHostMeta(String(stream.user_id), stream.title);
+          } else {
+            await applyHostMeta(effectiveStreamId, stream.title);
+          }
+          return;
+        }
+
+        // Not in the public list — still try to join if the room is live.
+        const { data: tokenData, error: tokenErr } = await request(
+          `/api/live/token?room=${encodeURIComponent(effectiveStreamId)}&publish=0`,
+        );
+        if (cancelled) return;
+        if (tokenErr || !tokenData?.token) {
           setStreamIsLive(false);
           showToast('Stream is offline');
           return;
         }
-
         setStreamIsLive(true);
-        if (stream.user_id) {
-          const uid = String(stream.user_id);
-          setHostUserId(uid);
-          hostUserIdRef.current = uid;
-          actualViewersRef.current.delete(uid);
-          setViewerCount(stream.viewer_count || 0);
-          syncMvpSlotsRef.current();
-
-          // First guess: title from live stream or short id label
-          const label = uid.slice(0, 8);
-          const initialName = stream.title || label || 'Creator';
-          setHostName(initialName);
-          setHostAvatar('');
-
-          // Try to match Live page exactly by loading creator profile
-          // (same source as the creator page uses for display name / avatar).
-          try {
-            const { data: profileBody } = await request(`/api/profiles/${encodeURIComponent(uid)}`);
-            if (profileBody) {
-              const profile = profileBody?.profile || profileBody?.data || {};
-              const profileName =
-                (typeof profile.displayName === 'string' && profile.displayName.trim()) ||
-                (typeof profile.username === 'string' && profile.username.trim()) ||
-                initialName;
-              const profileAvatar =
-                (typeof profile.avatarUrl === 'string' && profile.avatarUrl.trim()) || '';
-              setHostName(profileName);
-              if (profileAvatar) setHostAvatar(profileAvatar);
-            }
-          } catch {
-            // Non-fatal: keep initialName/empty avatar
-          }
-        }
+        setViewerCount(0);
+        syncMvpSlotsRef.current();
+        await applyHostMeta(effectiveStreamId);
       } catch {
-        setStreamIsLive(false);
-        showToast('Stream is offline');
+        if (!cancelled) {
+          setStreamIsLive(false);
+          showToast('Stream is offline');
+        }
       }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [effectiveStreamId, navigate, streamRetryKey]);
 
   // LiveKit: spectator sees creator's live video/audio in real time — same room, subscribe to host tracks and attach to videoRef/audio

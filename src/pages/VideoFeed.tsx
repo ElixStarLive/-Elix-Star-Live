@@ -395,12 +395,11 @@ export default function VideoFeed() {
           const event = msg?.event;
           const data = msg?.data || {};
           if (event === "stream_started") {
-            const uid = String(data.user_id ?? "");
-            if (!uid) return;
-            const key = (data.stream_key ?? data.room_id) as string;
+            const key = String(data.stream_key ?? data.room_id ?? "").trim();
             if (!key) return;
+            const uid = String(data.user_id ?? key);
             removedKeysRef.current.delete(key);
-            const card = streamStartedToCard(data);
+            const card = streamStartedToCard({ ...data, user_id: uid, stream_key: key });
             setLiveStreams((prev) => {
               if (prev.some((s) => s.streamKey === key)) return prev;
               return [card, ...prev];

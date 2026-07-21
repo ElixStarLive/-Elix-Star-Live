@@ -105,14 +105,20 @@ export default function InlineLiveViewer({
             setHasStream(true);
           }
         });
-        room.on(RoomEvent.TrackUnpublished, (pub: RemoteTrackPublication) => {
+        room.on(RoomEvent.TrackUnpublished, (pub: RemoteTrackPublication, participant) => {
           if (!mounted || pub.kind !== "video") return;
+          // Only the host ending video means this live preview is over.
+          // Other spectators disconnecting must not kill the For You card.
+          const identity = participant?.identity || "";
+          if (identity && identity !== streamKey) return;
           setHasStream(false);
           setIsOffline(true);
           cleanup();
         });
-        room.on(RoomEvent.ParticipantDisconnected, () => {
+        room.on(RoomEvent.ParticipantDisconnected, (participant) => {
           if (!mounted) return;
+          const identity = participant?.identity || "";
+          if (identity !== streamKey) return;
           setHasStream(false);
           setIsOffline(true);
           cleanup();

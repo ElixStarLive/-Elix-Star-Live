@@ -243,11 +243,9 @@ async function buildStreamsResult(): Promise<StreamsListPayload> {
 }
 
 function setStreamsCacheHeaders(res: Response): void {
-  const sec = Math.max(3, Math.floor(STREAMS_CACHE_TTL_MS / 1000));
-  res.setHeader(
-    "Cache-Control",
-    `public, s-maxage=${sec}, max-age=${Math.max(2, Math.floor(sec * 0.7))}, stale-while-revalidate=${Math.min(120, sec * 3)}`,
-  );
+  // Live cards must be fresh for every spectator. Public/shared caching made
+  // some devices see an empty list while others still had the stream.
+  res.setHeader("Cache-Control", "private, no-store");
 }
 
 /** GET /api/live/streams — list active streams */
