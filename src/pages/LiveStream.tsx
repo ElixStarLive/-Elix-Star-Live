@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { RoyceCloseIcon } from '../components/royce';
 import { showToast } from '../lib/toast';
-import { platform, openExternalLink } from '../lib/platform';
+import { platform, openExternalLink, nativeShareUrl } from '../lib/platform';
 import {
   Send,
   Search,
@@ -16,7 +16,6 @@ import {
   MoreVertical,
   Users,
   Zap,
-  Trophy,
   Copy,
   AlertTriangle,
   PlusCircle,
@@ -97,8 +96,9 @@ import { GiftPanel } from '../components/GiftPanel';
 import { GiftGoalGallery } from '../components/GiftGoalGallery';
 import { LiveGiftGoalBar } from '../components/LiveGiftGoalBar';
 import { RankingPanel } from '../components/RankingPanel';
+import { CyclingRankBadge, type LiveRankTab } from '../components/CyclingRankBadge';
 import { websocket } from '../lib/websocket';
-import { parseLiveGiftGoal, isGiftGoalComplete, type LiveGiftGoal } from '../lib/liveGiftGoal';
+import { parseLiveGiftGoal, type LiveGiftGoal } from '../lib/liveGiftGoal';
 import { liveStreamUiGiftTargetToServerBattleTarget, normalizeBattleGiftTarget } from '../lib/liveBattleGiftTarget';
 import { IS_STORE_BUILD } from '../config/build';
 import { purchaseMembership } from '../lib/iap';
@@ -246,6 +246,7 @@ export default function LiveStream() {
   const _PROMOTE_LIKES_THRESHOLD_BATTLE = 50;
   
   const [showRankingPanel, setShowRankingPanel] = useState(false);
+  const [rankingInitialTab, setRankingInitialTab] = useState<LiveRankTab>('weekly');
   const [isFollowing, setIsFollowing] = useState(false);
   const [currentGift, setCurrentGift] = useState<{ video: string } | null>(null);
   // Gift video queue must live above the WS effect so creator playback never depends
@@ -562,6 +563,13 @@ export default function LiveStream() {
       if (hasJoined) {
         setHasJoinedToday(true);
       }
+      
+      // Load total heart count
+      const heartKey = `my_heart_count_${effectiveStreamId}_${user.id}`;
+      const savedHearts = localStorage.getItem(heartKey);
+      if (savedHearts) {
+        setMyHeartCount(parseInt(savedHearts, 10));
+      }
     }
   }, [user?.id, effectiveStreamId]);
 
@@ -827,45 +835,22 @@ export default function LiveStream() {
   const [totalGiftCoins, setTotalGiftCoins] = useState(0);
   const [topGifters, setTopGifters] = useState<{ user_id: string; total_coins: number; username?: string; avatar_url?: string }[]>([]);
 
-  // Fetch membership stats for creator (Team Status hearts + gift coins)
-  const refreshMembershipStats = useCallback(async () => {
-    if (!user?.id) return;
-    try {
-      const { data: d } = await request(`/api/membership/${user.id}`);
-      if (!d) return;
-      if (typeof d.todayHearts === 'number') setDailyHeartCount(d.todayHearts);
-      if (typeof d.totalHearts === 'number') setMyHeartCount(d.totalHearts);
-      if (typeof d.totalGiftCoins === 'number') setTotalGiftCoins(d.totalGiftCoins);
-      if (!Array.isArray(d.topGifters)) return;
-      const raw = d.topGifters as { user_id: string; total_coins: number; username?: string; avatar_url?: string }[];
-      const enriched = await Promise.all(
-        raw.map(async (g) => {
-          if (g.username || !g.user_id) return g;
-          try {
-            const { data: body } = await request(`/api/profiles/${encodeURIComponent(g.user_id)}`);
-            const p = (body as { profile?: Record<string, unknown> } | null)?.profile ?? body;
-            if (!p || typeof p !== 'object') return g;
-            const rec = p as Record<string, unknown>;
-            return {
-              ...g,
-              username: String(rec.display_name ?? rec.displayName ?? rec.username ?? g.username ?? ''),
-              avatar_url: (rec.avatar_url as string | undefined) ?? (rec.avatarUrl as string | undefined) ?? g.avatar_url,
-            };
-          } catch {
-            return g;
-          }
-        }),
-      );
-      setTopGifters(enriched);
-    } catch { /* non-fatal */ }
-  }, [user?.id]);
-
+  // Fetch membership stats for creator
   useEffect(() => {
     if (!user?.id) return;
-    void refreshMembershipStats();
-    const interval = setInterval(() => { void refreshMembershipStats(); }, 30000);
+    const fetchStats = () => {
+      request(`/api/membership/${user.id}`).then(({ data: d }) => {
+        if (!d) return;
+        if (typeof d.todayHearts === 'number') setDailyHeartCount(d.todayHearts);
+        if (typeof d.totalHearts === 'number') setMyHeartCount(d.totalHearts);
+        if (typeof d.totalGiftCoins === 'number') setTotalGiftCoins(d.totalGiftCoins);
+        if (Array.isArray(d.topGifters)) setTopGifters(d.topGifters);
+      }).catch(() => {});
+    };
+    fetchStats();
+    const interval = setInterval(fetchStats, 30000);
     return () => clearInterval(interval);
-  }, [user?.id, refreshMembershipStats]);
+  }, [user?.id]);
 
   const [creatorQuery, setCreatorQuery] = useState('');
   const [creators, setCreators] = useState<{ id: string; streamKey: string; name: string; username: string; followers: string; avatar: string; isLive: boolean }[]>([]);
@@ -1340,10 +1325,8 @@ export default function LiveStream() {
   const [battleState, setBattleState] = useState<BattleState>('LIVE_SOLO');
   const [isBattleMode, setIsBattleMode] = useState(false);
   const isBattleModeRef = useRef(false);
-  const battleStateRef = useRef<BattleState>('LIVE_SOLO');
   const battleEndedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => { isBattleModeRef.current = isBattleMode; }, [isBattleMode]);
-  useEffect(() => { battleStateRef.current = battleState; }, [battleState]);
   // If joining as battle participant, enter battle mode and start camera (server drives timer/countdown)
   const battleLkRoomRef = useRef<Room | null>(null);
   const battleJoinerConnectIdRef = useRef(0);
@@ -2069,6 +2052,16 @@ export default function LiveStream() {
       setIsSubscribing(false);
     }
   };
+
+  // Auto-close Fan Club after 10 seconds of inactivity
+  useEffect(() => {
+    if (showFanClub) {
+      const timer = setTimeout(() => {
+        setShowFanClub(false);
+      }, 10000);
+      return () => clearTimeout(timer);
+    }
+  }, [showFanClub]);
 
   const closeMembershipBar = useCallback(() => {
     // setMembershipBarClosing(true);
@@ -2965,60 +2958,6 @@ export default function LiveStream() {
     [buildMvpRanked, mvpGiftScoresOpponent],
   );
 
-  /** Spectators ordered by session gift points (gifters first), capped for the list panel. */
-  const rankedSpectators = useMemo(() => {
-    return [...activeViewers]
-      .sort((a, b) => {
-        const sa = mvpGiftScores[a.id] ?? 0;
-        const sb = mvpGiftScores[b.id] ?? 0;
-        if (sb !== sa) return sb - sa;
-        return (b.level || 0) - (a.level || 0);
-      })
-      .slice(0, 1000);
-  }, [activeViewers, mvpGiftScores]);
-
-  /** Top supporters: API gifters + this-session scores, names from room when possible. */
-  const displayTopSupporters = useMemo(() => {
-    const map = new Map<string, { user_id: string; total_coins: number; username?: string; avatar_url?: string }>();
-    for (const g of topGifters) {
-      if (!g?.user_id) continue;
-      map.set(g.user_id, {
-        user_id: g.user_id,
-        total_coins: Number(g.total_coins) || 0,
-        username: g.username,
-        avatar_url: g.avatar_url,
-      });
-    }
-    for (const [id, coins] of Object.entries(mvpGiftScores)) {
-      if (!id || !(coins > 0)) continue;
-      const viewer = activeViewers.find((v) => v.id === id);
-      const cached = viewerIdentityCacheRef.current.get(id);
-      const existing = map.get(id);
-      const name =
-        viewer?.displayName ||
-        viewer?.username ||
-        cached?.displayName ||
-        cached?.username ||
-        existing?.username;
-      const avatar = viewer?.avatar || cached?.avatar || existing?.avatar_url;
-      if (existing) {
-        existing.total_coins = Math.max(existing.total_coins, coins);
-        if (!existing.username && name) existing.username = name;
-        if (!existing.avatar_url && avatar) existing.avatar_url = avatar;
-      } else {
-        map.set(id, {
-          user_id: id,
-          total_coins: coins,
-          username: name,
-          avatar_url: avatar,
-        });
-      }
-    }
-    return [...map.values()]
-      .sort((a, b) => b.total_coins - a.total_coins)
-      .slice(0, 100);
-  }, [topGifters, mvpGiftScores, activeViewers]);
-
   useEffect(() => {
     if (!isBattleMode) {
       prevMvpHostIdRef.current = null;
@@ -3266,10 +3205,6 @@ export default function LiveStream() {
 
       // Chat / MVP only on first delivery of this transaction.
       if (!alreadySeen) {
-        if (isBroadcast && giftCoins > 0) {
-          setTotalGiftCoins((prev) => prev + giftCoins);
-          void refreshMembershipStats();
-        }
         if (gifterId && giftCoins > 0) {
           const gifterName =
             (typeof data.username === 'string' && data.username.trim()) ||
@@ -3374,37 +3309,27 @@ export default function LiveStream() {
       const isOwnGift = !!(gifterId && selfId && gifterId === selfId);
       if (isOwnGift) return;
 
-      // Active battle only: play gifts aimed at this creator's side.
-      // Do not filter during INVITING/ENDED — that blocked normal live gifts
-      // whenever battle UI was open.
-      if (isBattleModeRef.current && battleStateRef.current === 'IN_BATTLE') {
+      // In battle, each creator only plays gift videos addressed to their own
+      // side — a gift sent to me must not play on the opponent's screen.
+      // (Chat, MVP, and PK score stay shared for the whole battle.)
+      if (isBattleModeRef.current) {
         const giftSide = normalizeBattleGiftTarget(data.battleTarget);
         const myRole =
           battleRoleRef.current || (isBattleJoiner ? 'opponent' : (isBroadcast ? 'host' : null));
         if (giftSide && myRole && giftSide !== myRole) return;
       }
 
-      // Resolve playable URL the same way as SpectatorPage: payload first, then
-      // catalog by giftId. Never spread raw `data` after sanitized fields — that
-      // wiped giftId/video with undefined and stopped creator playback.
-      const playUrl =
-        pickGiftVideoUrl(data, giftsCatalogRef.current) ||
-        (wsGiftId
-          ? pickGiftVideoUrl(
-              { giftId: wsGiftId, gift_id: wsGiftId },
-              giftsCatalogRef.current,
-            )
-          : null) ||
-        pickGiftVideoUrl(
-          {
-            giftId: wsGiftId,
-            gift_id: wsGiftId,
-            video: typeof data?.video === 'string' ? data.video : '',
-            animation_url:
-              typeof data?.animation_url === 'string' ? data.animation_url : '',
-          },
-          giftsCatalogRef.current,
-        );
+      const playUrl = pickGiftVideoUrl(
+        {
+          giftId: wsGiftId,
+          gift_id: wsGiftId,
+          video: typeof data?.video === 'string' ? data.video : '',
+          animation_url:
+            typeof data?.animation_url === 'string' ? data.animation_url : '',
+          ...data,
+        },
+        giftsCatalogRef.current,
+      );
       if (!playUrl) return;
 
       if (txnId) {
@@ -3651,18 +3576,6 @@ export default function LiveStream() {
       } else if (data.user_id !== user?.id) {
         addLiveLikes(1);
       }
-      // Membership / Join hearts: activate icon animation + refresh Team Status coins/hearts
-      const isMembershipHeart =
-        data?.membership === true ||
-        data?.type === 'membership' ||
-        String(data?.avatar || '').includes('membership');
-      if (isBroadcast && data.user_id !== user?.id) {
-        void refreshMembershipStats();
-        if (isMembershipHeart) {
-          setShowJoinAnimation(true);
-          window.setTimeout(() => setShowJoinAnimation(false), 2000);
-        }
-      }
       if (data.user_id === user?.id) return;
       const layer = chatHeartLayerRef.current;
       if (layer && layer.clientWidth > 0 && layer.clientHeight > 0) {
@@ -3670,13 +3583,7 @@ export default function LiveStream() {
         const h = layer.clientHeight;
         const x = w * (0.58 + Math.random() * 0.35);
         const y = h * (0.18 + Math.random() * 0.58);
-        spawnHeartAt(
-          x,
-          y,
-          undefined,
-          data.username,
-          isMembershipHeart ? '/royce/membership.svg' : data.avatar,
-        );
+        spawnHeartAt(x, y, undefined, data.username, data.avatar);
       }
     };
 
@@ -3687,18 +3594,7 @@ export default function LiveStream() {
         return;
       }
       const parsed = parseLiveGiftGoal(data);
-      if (parsed) {
-        setGiftGoal((prev) => {
-          if (
-            isBroadcast &&
-            isGiftGoalComplete(parsed) &&
-            !(prev && isGiftGoalComplete(prev))
-          ) {
-            setTimeout(() => showToast('Gift goal reached! Set a new goal when ready.'), 0);
-          }
-          return parsed;
-        });
-      }
+      if (parsed) setGiftGoal(parsed);
     };
 
     websocket.on('room_state', handleRoomState);
@@ -4901,6 +4797,29 @@ export default function LiveStream() {
     }
   }, [miniProfile, user?.id, miniProfileFollowsThem, navigate, location.pathname]);
 
+  const handleMiniProfileShare = useCallback(async () => {
+    if (!miniProfile) return;
+    const username = typeof miniProfile.username === 'string' ? miniProfile.username : 'User';
+    const profileSlug = miniProfile.id ?? username;
+    if (!profileSlug) {
+      showToast('Could not share profile. Try again.');
+      return;
+    }
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://www.elixstarlive.co.uk';
+    const profileUrl = `${origin}/profile/${encodeURIComponent(profileSlug)}`;
+    const bioSnippet = miniProfile.bio ? ` - ${miniProfile.bio}` : '';
+    const ok = await nativeShareUrl({
+      title: `Check out ${username}'s profile`,
+      text: `Check out ${username} (@${username}) on Elix Star${bioSnippet}`,
+      url: profileUrl,
+    });
+    if (!ok) {
+      showToast('Sharing not available');
+    } else if (!platform.isNative && typeof navigator !== 'undefined' && !navigator.share) {
+      showToast('Profile link copied to clipboard!');
+    }
+  }, [miniProfile]);
+
   const _startBattleMatch = () => {
     if (!isBattleMode) return;
     setMyScore(0);
@@ -5798,32 +5717,24 @@ export default function LiveStream() {
                                     <button
                                       type="button"
                                       className={`col-start-1 row-start-1 flex items-center justify-center gap-1 self-stretch h-full rounded-full ${hasJoinedToday ? 'bg-[#FF4500]' : 'bg-transparent'} w-full z-0 transition-colors duration-200`}
-                                      onClick={async (e) => {
+                                      onClick={(e) => {
                                         e.stopPropagation();
                                         if (!hasJoinedToday && user?.id && effectiveStreamId) {
-                                          const token = useAuthStore.getState().session?.access_token;
-                                          if (!token) {
-                                            showToast('Sign in to join');
-                                            return;
-                                          }
-                                          const creatorId = isBroadcast ? user.id : effectiveStreamId;
-                                          if (!creatorId || creatorId === 'broadcast') return;
-
                                           const today = new Date().toISOString().split('T')[0];
                                           const storageKey = `joined_stream_${effectiveStreamId}_${user.id}_${today}`;
                                           localStorage.setItem(storageKey, 'true');
-
+                                          
+                                          // Update total heart count
+                                          const heartKey = `my_heart_count_${effectiveStreamId}_${user.id}`;
+                                          const newCount = myHeartCount + 1;
+                                          localStorage.setItem(heartKey, newCount.toString());
+                                          setMyHeartCount(newCount);
+                                          
                                           setMemberCount(prev => prev + 1);
                                           setHasJoinedToday(true);
                                           setShowTeamStatus(true);
-                                          if (websocket.isConnected()) {
-                                            websocket.send('heart_sent', {
-                                              username: isBroadcast ? creatorName : (user?.username || 'You'),
-                                              avatar: '/royce/membership.svg',
-                                              membership: true,
-                                            });
-                                          }
-
+                                          
+                                          // Send animated heart to chat (ephemeral join banner)
                                           const joinBannerId = Date.now().toString();
                                           const newMessage: LiveMessage = {
                                             id: joinBannerId,
@@ -5841,17 +5752,6 @@ export default function LiveStream() {
                                           }, 5000);
                                           spawnHeartFromClient(e.clientX, e.clientY, undefined, 'You', '/royce/elix-mark.svg');
 
-                                          try {
-                                            const { data: d } = await request('/api/hearts/daily', {
-                                              method: 'POST',
-                                              body: JSON.stringify({ creatorId }),
-                                            });
-                                            if (d) {
-                                              if (typeof d.todayCount === 'number') setDailyHeartCount(d.todayCount);
-                                              if (typeof d.totalCount === 'number') setMyHeartCount(d.totalCount);
-                                            }
-                                            if (isBroadcast) void refreshMembershipStats();
-                                          } catch { /* non-fatal */ }
                                         } else if (hasJoinedToday) {
                                           setShowTeamStatus(true);
                                         }
@@ -5888,16 +5788,12 @@ export default function LiveStream() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2 mt-1 ml-12 pointer-events-auto relative z-20 flex-wrap">
-                            <div 
-                              className="flex items-center gap-1 bg-black/75 rounded-full px-2.5 py-1 border border-[#D4AF37]/80 shadow-[0_0_8px_rgba(212,175,55,0.35)] cursor-pointer" 
-                              onClick={(e) => {
-                                e.stopPropagation();
+                            <CyclingRankBadge
+                              onOpen={(tab) => {
+                                setRankingInitialTab(tab);
                                 setShowRankingPanel(true);
                               }}
-                            >
-                              <Trophy className="w-3.5 h-3.5 text-[#D4AF37] flex-shrink-0" strokeWidth={2.25} />
-                              <span className="text-[#F5E6A8] text-[11px] font-bold whitespace-nowrap drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">Weekly Ranking &gt;</span>
-                            </div>
+                            />
                             <div 
                               className="flex items-center gap-1 bg-black/75 rounded-full px-2.5 py-1 border border-[#D4AF37]/80 shadow-[0_0_8px_rgba(212,175,55,0.35)] cursor-pointer" 
                               onClick={(e) => {
@@ -5912,29 +5808,6 @@ export default function LiveStream() {
                               <Heart className="w-3.5 h-3.5 text-[#D4AF37] fill-[#D4AF37] hidden flex-shrink-0" />
                               <span className="text-[#F5E6A8] text-[11px] font-bold whitespace-nowrap drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">Membership</span>
                             </div>
-                            {giftGoal && (
-                              <div
-                                className="flex items-center gap-1 bg-black/75 rounded-full px-2.5 py-1 border border-[#D4AF37]/80 shadow-[0_0_8px_rgba(212,175,55,0.35)] cursor-pointer"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (isBroadcast) setShowFanClub(true);
-                                  else if (!isCreatorParticipant) setShowGiftPanel(true);
-                                }}
-                              >
-                                {giftGoal.giftIcon ? (
-                                  <img
-                                    src={resolveGiftAssetUrl(giftGoal.giftIcon)}
-                                    alt=""
-                                    className="w-4 h-4 object-contain flex-shrink-0"
-                                  />
-                                ) : (
-                                  <Gift className="w-3.5 h-3.5 text-[#D4AF37] flex-shrink-0" strokeWidth={2.25} />
-                                )}
-                                <span className="text-[#F5E6A8] text-[11px] font-bold whitespace-nowrap tabular-nums drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">
-                                  {giftGoal.currentCount}/{giftGoal.targetCount}
-                                </span>
-                              </div>
-                            )}
                             {currentUniverse && (
                               <div className="flex items-center gap-1 bg-[#111111]/90 rounded-full px-2.5 py-1 border border-[#D4AF37]/80 shadow-sm">
                                 <span className="text-[#F5E6A8] text-[11px] font-bold whitespace-nowrap truncate max-w-[140px]">✨ {universeText} ✨</span>
@@ -6241,7 +6114,11 @@ export default function LiveStream() {
               giftSource={giftSource}
               onGiftSourceChange={setGiftSource}
               onRechargeSuccess={(newBalance) => { setCoinBalance(newBalance); }}
-              onWeeklyRanking={() => { setShowGiftPanel(false); setShowRankingPanel(true); }}
+              onWeeklyRanking={() => {
+                setShowGiftPanel(false);
+                setRankingInitialTab('weekly');
+                setShowRankingPanel(true);
+              }}
               onMembership={() => { setShowGiftPanel(false); setShowFanClub(true); }}
               highlightGiftId={giftGoal?.giftId ?? null}
             />
@@ -6260,7 +6137,33 @@ export default function LiveStream() {
             onClick={() => setShowRankingPanel(false)}
           />
           <div className="fixed bottom-0 left-0 right-0 h-[40vh] z-[99999] pointer-events-auto max-w-[480px] mx-auto">
-            <RankingPanel onClose={() => setShowRankingPanel(false)} />
+            <RankingPanel
+              onClose={() => setShowRankingPanel(false)}
+              initialTab={rankingInitialTab}
+              sessionGifters={buildMvpRanked(mvpGiftScores, 100).map((v) => ({
+                id: v.id,
+                name: v.displayName || v.username || 'User',
+                avatar: v.avatar,
+                points: mvpGiftScores[v.id] ?? 0,
+                subtitle: 'gift points',
+              }))}
+              spectators={activeViewers.slice(0, 1000).map((v) => ({
+                id: v.id,
+                name: v.displayName || v.username || 'User',
+                avatar: v.avatar,
+                points: mvpGiftScores[v.id] ?? 0,
+                subtitle: mvpGiftScores[v.id] ? 'gift points' : 'watching',
+              }))}
+              giftGoal={giftGoal}
+              onSendGiftGoal={
+                isCreatorParticipant
+                  ? undefined
+                  : () => {
+                      setShowRankingPanel(false);
+                      setShowGiftPanel(true);
+                    }
+              }
+            />
           </div>
         </>
       )}
@@ -6393,13 +6296,13 @@ export default function LiveStream() {
 
       <AnimatePresence>
         {miniProfile && (
-          <div className="fixed inset-0 z-[99999] flex flex-col justify-end max-w-[480px] mx-auto">
+          <div className="absolute inset-0 z-[10000] flex flex-col justify-end">
             <div 
               className="absolute inset-0 pointer-events-auto" 
               onClick={closeMiniProfile}
             />
             <motion.div
-              className="bg-[#111111] rounded-t-2xl border-t border-white/10 px-4 pt-4 pb-[calc(20px+env(safe-area-inset-bottom))] pointer-events-auto shadow-2xl relative z-10 w-full"
+              className="bg-[#111111] rounded-t-2xl border-t border-white/10 px-4 pt-4 pb-[calc(20px+env(safe-area-inset-bottom))] pointer-events-auto shadow-2xl relative z-10"
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
@@ -6457,6 +6360,7 @@ export default function LiveStream() {
               </div>
 
               <div className="mt-5 grid grid-cols-4 gap-2">
+                {!(miniProfile?.id && user?.id && miniProfile.id === user.id) && (
                 <button
                   type="button"
                   onClick={() => void handleMiniProfileFollowToggle()}
@@ -6474,26 +6378,18 @@ export default function LiveStream() {
                     ? 'Following'
                     : 'Follow'}
                 </button>
+                )}
                 <button 
                   type="button" 
                   onClick={() => {
-                    const slug = miniProfile.id ?? miniProfile.username;
                     closeMiniProfile();
-                    if (slug) navigate(`/profile/${encodeURIComponent(slug)}`);
-                    else showToast('Profile unavailable');
+                    navigate(`/profile/${miniProfile.id ?? miniProfile.username}`);
                   }}
                   className="h-9 rounded-lg bg-white/10 text-white text-[11px] font-bold hover:bg-white/20 active:scale-95 transition-all"
                 >
                   Profile
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    closeMiniProfile();
-                    void handleShare();
-                  }}
-                  className="h-9 rounded-lg bg-white/10 text-white text-[11px] font-bold hover:bg-white/20 active:scale-95 transition-all"
-                >
+                <button type="button" onClick={() => void handleMiniProfileShare()} className="h-9 rounded-lg bg-white/10 text-white text-[11px] font-bold hover:bg-white/20 active:scale-95 transition-all">
                   Share
                 </button>
               </div>
@@ -6609,12 +6505,11 @@ export default function LiveStream() {
                 )}
 
                 <p className="text-white/50 text-[10px] font-bold uppercase tracking-wider mb-1.5">Spectators</p>
-                {rankedSpectators.length > 0 ? (
-                  rankedSpectators.map((v, i) => {
+                {activeViewers.length > 0 ? (
+                  activeViewers.map((v, i) => {
                     const alreadyInvited = coHosts.some((h) => sameUserId(h.userId, v.id));
                     const isJoinRequester = pendingJoinRequest?.requesterId === v.id;
                     const displayName = v.displayName || v.username || 'User';
-                    const giftPts = mvpGiftScores[v.id] ?? 0;
                     return (
                       <div
                         key={v.id}
@@ -6635,12 +6530,13 @@ export default function LiveStream() {
                             <p className="text-white text-sm font-semibold truncate">{displayName}</p>
                             {isJoinRequester ? (
                               <p className="text-white/40 text-[10px] font-medium">Requested to co-host</p>
+                            ) : (mvpGiftScores[v.id] ?? 0) > 0 ? (
+                              <p className="text-[#D4AF37] text-[10px] font-medium tabular-nums">
+                                {(mvpGiftScores[v.id] ?? 0).toLocaleString()} pts
+                              </p>
                             ) : null}
                           </div>
                         </button>
-                        {giftPts > 0 ? (
-                          <span className="text-[#D4AF37] text-[10px] font-bold tabular-nums flex-shrink-0">{formatCountShort(giftPts)}</span>
-                        ) : null}
                         {isBroadcast && isMyStreamLive && !isBattleMode && (
                           isJoinRequester ? (
                             <div className="flex items-center gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
@@ -6767,10 +6663,10 @@ export default function LiveStream() {
                <div className="mt-3">
                  <h4 className="text-[#E8D5A3]/60 text-[9px] font-bold uppercase tracking-wider mb-2 px-1">Top Supporters</h4>
                  <div className="space-y-1">
-                   {displayTopSupporters.length === 0 && (
+                   {topGifters.length === 0 && (
                      <p className="text-white/30 text-[10px] text-center py-2">No gifts yet</p>
                    )}
-                   {displayTopSupporters.map((g, i) => (
+                   {topGifters.map((g, i) => (
                      <div key={g.user_id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-[#C9A227]/5 border border-[#C9A227]/15">
                        <div className="w-5 text-center font-bold text-[10px] text-[#E8D5A3]/60">{i + 1}</div>
                        <img src={g.avatar_url || '/royce/elix-mark.svg'} alt="" className="w-7 h-7 rounded-full object-cover border border-[#C9A227]/20" />
@@ -6928,21 +6824,7 @@ export default function LiveStream() {
           <div className="w-full max-w-[480px] flex justify-start">
             <LiveGiftGoalBar
               goal={giftGoal}
-              onTap={() => {
-                if (isCreatorParticipant) {
-                  if (isGiftGoalComplete(giftGoal)) setShowFanClub(true);
-                  return;
-                }
-                if (isGiftGoalComplete(giftGoal)) {
-                  setShowGiftPanel(true);
-                  return;
-                }
-                const g =
-                  giftsCatalog.find((x) => x.id === giftGoal.giftId) ||
-                  giftsCatalogRef.current.find((x) => x.id === giftGoal.giftId);
-                if (g) void handleSendGift(g);
-                else setShowGiftPanel(true);
-              }}
+              onTap={() => { if (!isCreatorParticipant) setShowGiftPanel(true); }}
               showSend={!isCreatorParticipant}
             />
           </div>

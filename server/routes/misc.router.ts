@@ -88,21 +88,14 @@ router.get("/hearts/daily/:creatorUserId", async (req, res) => {
 
 router.post("/hearts/daily", async (req, res) => {
   const { getTokenFromRequest, verifyAuthToken } = await import("./auth");
-  const { dbSendDailyHeart, dbGetDailyHeartCount, dbGetTotalHeartCount } = await import("../lib/postgres");
+  const { dbSendDailyHeart } = await import("../lib/postgres");
   const token = getTokenFromRequest(req);
   const payload = token ? verifyAuthToken(token) : null;
   if (!payload?.sub) return res.status(401).json({ error: "Unauthorized" });
   const { creatorId } = req.body ?? {};
   if (!creatorId) return res.status(400).json({ error: "creatorId required" });
   const result = await dbSendDailyHeart(creatorId, payload.sub);
-  const todayCount = await dbGetDailyHeartCount(creatorId);
-  const totalCount = await dbGetTotalHeartCount(creatorId);
-  return res.json({
-    ok: result === "sent",
-    already: result === "already",
-    todayCount,
-    totalCount,
-  });
+  return res.json({ ok: result === "sent", already: result === "already" });
 });
 
 router.get("/membership/:creatorId", async (req, res) => {
@@ -112,40 +105,60 @@ router.get("/membership/:creatorId", async (req, res) => {
   return res.json(stats);
 });
 
+async function loadGiftRankings(intervalSql: "7 days" | "1 day") {
+  const { getPool } = await import("../lib/postgres");
+  const db = getPool();
+  if (!db) return { ok: false as const, rankings: [] as Record<string, unknown>[] };
+  const r = await db.query(
+    `SELECT p.user_id, p.username, p.display_name, p.avatar_url,
+            COALESCE(p.followers, 0) AS followers,
+            COALESCE(e.total_received, 0) AS total_coins
+     FROM profiles p
+     JOIN (
+       SELECT creator_id, SUM(coins) AS total_received
+       FROM elix_creator_earnings
+       WHERE kind = 'gift' AND created_at > NOW() - $1::interval
+       GROUP BY creator_id
+     ) e ON e.creator_id = p.user_id
+     ORDER BY total_coins DESC, followers DESC
+     LIMIT 50`,
+    [intervalSql]
+  );
+  const rankings = r.rows.map((row: Record<string, unknown>, i: number) => ({
+    rank: i + 1,
+    user_id: row.user_id,
+    username: row.username,
+    display_name: row.display_name,
+    avatar_url: row.avatar_url,
+    total_coins: Number(row.total_coins) || 0,
+    followers_count: Number(row.followers) || 0,
+  }));
+  return { ok: true as const, rankings };
+}
+
 // Rankings
 router.get("/rankings/weekly", async (req, res) => {
   res.setHeader("Cache-Control", "private, max-age=300");
-  const { getPool } = await import("../lib/postgres");
   const { logger } = await import("../lib/logger");
-  const db = getPool();
-  if (!db) return res.status(503).json({ error: "Database not available", rankings: [] });
   try {
-    const r = await db.query(
-      `SELECT p.user_id, p.username, p.display_name, p.avatar_url,
-              COALESCE(p.followers, 0) AS followers,
-              COALESCE(e.total_received, 0) AS total_coins
-       FROM profiles p
-       JOIN (
-         SELECT creator_id, SUM(coins) AS total_received
-         FROM elix_creator_earnings
-         WHERE kind = 'gift' AND created_at > NOW() - INTERVAL '7 days'
-         GROUP BY creator_id
-       ) e ON e.creator_id = p.user_id
-       ORDER BY total_coins DESC, followers DESC
-       LIMIT 50`
-    );
-    const rankings = r.rows.map((row: Record<string, unknown>, i: number) => ({
-      rank: i + 1,
-      user_id: row.user_id,
-      username: row.username,
-      display_name: row.display_name,
-      avatar_url: row.avatar_url,
-      total_coins: Number(row.total_coins) || 0,
-      followers_count: Number(row.followers) || 0,
-    }));
-    return res.json({ rankings });
+    const result = await loadGiftRankings("7 days");
+    if (!result.ok) return res.status(503).json({ error: "Database not available", rankings: [] });
+    return res.json({ rankings: result.rankings });
   } catch (err) {
     logger.error({ err }, "GET /rankings/weekly failed");
+    return res.status(500).json({ error: "Failed to load rankings", rankings: [] });
+  }
+});
+
+router.get("/rankings/daily", async (req, res) => {
+  res.setHeader("Cache-Control", "private, max-age=120");
+  const { logger } = await import("../lib/logger");
+  try {
+    const result = await loadGiftRankings("1 day");
+    if (!result.ok) return res.status(503).json({ error: "Database not available", rankings: [] });
+    return res.json({ rankings: result.rankings });
+  } catch (err) {
+    logger.error({ err }, "GET /rankings/daily failed");
     return res.status(500).json({ error: "Failed to load rankings", rankings: [] });
   }
 });

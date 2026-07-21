@@ -23,7 +23,6 @@ import {
   Coins,
   Lock,
   Crown,
-  Trophy,
   Plus,
   PlusCircle,
   Play,
@@ -86,9 +85,10 @@ import { openExternalLink } from '../lib/platform';
 import ReportModal from '../components/ReportModal';
 import PromotePanel from '../components/PromotePanel';
 import { RankingPanel } from '../components/RankingPanel';
+import { CyclingRankBadge, type LiveRankTab } from '../components/CyclingRankBadge';
 import { websocket } from '../lib/websocket';
 import { normalizeBattleGiftTarget } from '../lib/liveBattleGiftTarget';
-import { parseLiveGiftGoal, isGiftGoalComplete, type LiveGiftGoal } from '../lib/liveGiftGoal';
+import { parseLiveGiftGoal, type LiveGiftGoal } from '../lib/liveGiftGoal';
 import { resolveUiAvatarUrl } from '../lib/royceAssets';
 import { getMembershipStatus, purchaseMembership } from '../lib/iap';
 import { Room, RoomEvent, LocalVideoTrack, LocalAudioTrack, ConnectionState } from 'livekit-client';
@@ -210,6 +210,7 @@ export default function SpectatorPage() {
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [showRankingPanel, setShowRankingPanel] = useState(false);
+  const [rankingInitialTab, setRankingInitialTab] = useState<LiveRankTab>('weekly');
   const [showFanClub, setShowFanClub] = useState(false);
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [isMember, setIsMember] = useState(false);
@@ -3213,13 +3214,6 @@ export default function SpectatorPage() {
                           if (!token) return;
                           setHasJoinedToday(true);
                           spawnHeartFromClient(e.clientX, e.clientY);
-                          if (websocket.isConnected()) {
-                            websocket.send('heart_sent', {
-                              username: viewerName,
-                              avatar: '/royce/membership.svg',
-                              membership: true,
-                            });
-                          }
                           const joinBannerId = Date.now().toString();
                           const newMessage: LiveMessage = {
                             id: joinBannerId,
@@ -3357,14 +3351,13 @@ export default function SpectatorPage() {
             <div
               className="flex items-center gap-2 mt-1 ml-12 pointer-events-auto relative z-20 flex-wrap"
             >
-              <div
-                className="flex items-center gap-1 bg-black/75 rounded-full px-2.5 py-1 border border-[#D4AF37]/80 shadow-[0_0_8px_rgba(212,175,55,0.35)] cursor-pointer active:scale-95 transition-transform"
-                onClick={() => { setShowGiftPanel(false); setShowRankingPanel(true); }}
-              >
-                <Trophy className="w-3.5 h-3.5 text-[#D4AF37] flex-shrink-0" strokeWidth={2.25} />
-                <span className="text-[#F5E6A8] text-[11px] font-bold drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">Weekly Ranking</span>
-                <span className="text-[#F5E6A8]/90 text-[11px]">&gt;</span>
-              </div>
+              <CyclingRankBadge
+                onOpen={(tab) => {
+                  setShowGiftPanel(false);
+                  setRankingInitialTab(tab);
+                  setShowRankingPanel(true);
+                }}
+              />
               <div
                 className="flex items-center gap-1 bg-black/75 rounded-full px-2.5 py-1 border border-[#D4AF37]/80 shadow-[0_0_8px_rgba(212,175,55,0.35)] cursor-pointer active:scale-95 transition-transform"
                 onClick={() => { setShowGiftPanel(false); setShowFanClub(true); }}
@@ -3372,25 +3365,6 @@ export default function SpectatorPage() {
                 <Heart className="w-3.5 h-3.5 text-[#D4AF37] flex-shrink-0" strokeWidth={2.25} fill="#D4AF37" />
                 <span className="text-[#F5E6A8] text-[11px] font-bold drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">Membership</span>
               </div>
-              {giftGoal && (
-                <div
-                  className="flex items-center gap-1 bg-black/75 rounded-full px-2.5 py-1 border border-[#D4AF37]/80 shadow-[0_0_8px_rgba(212,175,55,0.35)] cursor-pointer active:scale-95 transition-transform"
-                  onClick={() => { setShowFanClub(false); setShowGiftPanel(true); }}
-                >
-                  {giftGoal.giftIcon ? (
-                    <img
-                      src={resolveGiftAssetUrl(giftGoal.giftIcon)}
-                      alt=""
-                      className="w-4 h-4 object-contain flex-shrink-0"
-                    />
-                  ) : (
-                    <Gift className="w-3.5 h-3.5 text-[#D4AF37] flex-shrink-0" strokeWidth={2.25} />
-                  )}
-                  <span className="text-[#F5E6A8] text-[11px] font-bold tabular-nums drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">
-                    {giftGoal.currentCount}/{giftGoal.targetCount}
-                  </span>
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -3763,6 +3737,26 @@ export default function SpectatorPage() {
                             <Heart className="w-2.5 h-2.5 text-[#D4AF37] fill-[#FFFFFF] animate-pulse" />
                           </div>
                         </div>
+                        {(() => {
+                          const fanLevel = Math.min(300, Math.max(1, Number(userLevel) || 1));
+                          const nextLevel = Math.min(300, fanLevel + 1);
+                          const barPct = fanLevel >= 300 ? 100 : Math.round(((fanLevel - 1) / 299) * 100);
+                          return (
+                            <div className="mb-2">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-[#D4AF37] text-[10px] font-bold">Lv. {fanLevel}</span>
+                                <span className="text-white/40 text-[9px]">{fanLevel >= 300 ? 'Max' : `→ Lv. ${nextLevel}`}</span>
+                              </div>
+                              <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+                                <div
+                                  className="h-full rounded-full bg-gradient-to-r from-[#D4AF37] to-[#E8D5A3]"
+                                  style={{ width: `${barPct}%` }}
+                                />
+                              </div>
+                              <p className="text-white/30 text-[8px] mt-1">Fan journey levels 1–300</p>
+                            </div>
+                          );
+                        })()}
                         <div className="flex items-end gap-1 mb-2">
                           <span className="text-lg font-black text-gold-metallic">£3.00</span>
                           <span className="text-white/40 text-[10px] font-medium mb-0.5">/ month</span>
@@ -3890,17 +3884,7 @@ export default function SpectatorPage() {
             <div className="w-full max-w-[480px] flex justify-start">
               <LiveGiftGoalBar
                 goal={giftGoal}
-                onTap={() => {
-                  if (isGiftGoalComplete(giftGoal)) {
-                    setShowGiftPanel(true);
-                    return;
-                  }
-                  const g =
-                    giftsCatalog.find((x) => x.id === giftGoal.giftId) ||
-                    giftsCatalogRef.current.find((x) => x.id === giftGoal.giftId);
-                  if (g) void handleSendGift(g);
-                  else setShowGiftPanel(true);
-                }}
+                onTap={() => setShowGiftPanel(true)}
               />
             </div>
           </div>
@@ -3987,7 +3971,11 @@ export default function SpectatorPage() {
                 giftSource={giftSource}
                 onGiftSourceChange={setGiftSource}
                 onRechargeSuccess={(newBalance) => { setCoinBalance(newBalance); }}
-                onWeeklyRanking={() => { setShowGiftPanel(false); setShowRankingPanel(true); }}
+                onWeeklyRanking={() => {
+                  setShowGiftPanel(false);
+                  setRankingInitialTab('weekly');
+                  setShowRankingPanel(true);
+                }}
                 onMembership={() => { setShowGiftPanel(false); setShowFanClub(true); }}
                 highlightGiftId={giftGoal?.giftId ?? null}
               />
@@ -4037,6 +4025,11 @@ export default function SpectatorPage() {
                         />
                         <div className="flex-1 min-w-0 text-left">
                           <p className="text-white text-sm font-semibold truncate">{v.name}</p>
+                          {(mvpGiftScoresRef.current[v.id] ?? 0) > 0 ? (
+                            <p className="text-[#D4AF37] text-[10px] font-medium tabular-nums">
+                              {(mvpGiftScoresRef.current[v.id] ?? 0).toLocaleString()} pts
+                            </p>
+                          ) : null}
                         </div>
                       </button>
                     ))
@@ -4435,7 +4428,37 @@ export default function SpectatorPage() {
               onClick={() => setShowRankingPanel(false)}
             />
             <div className="fixed bottom-0 left-0 right-0 h-[40vh] z-[99999] pointer-events-auto max-w-[480px] mx-auto">
-              <RankingPanel onClose={() => setShowRankingPanel(false)} />
+              <RankingPanel
+                onClose={() => setShowRankingPanel(false)}
+                initialTab={rankingInitialTab}
+                sessionGifters={Object.keys(mvpGiftScoresRef.current)
+                  .map((id) => {
+                    const cached = mvpIdentityRef.current.get(id);
+                    const fromList = viewersList.find((v) => v.id === id);
+                    return {
+                      id,
+                      name: cached?.name || fromList?.name || 'User',
+                      avatar: cached?.avatar || fromList?.avatar || '',
+                      points: mvpGiftScoresRef.current[id] ?? 0,
+                      subtitle: 'gift points',
+                    };
+                  })
+                  .filter((p) => p.points > 0)
+                  .sort((a, b) => b.points - a.points)
+                  .slice(0, 100)}
+                spectators={viewersList.slice(0, 1000).map((v) => ({
+                  id: v.id,
+                  name: v.name,
+                  avatar: v.avatar,
+                  points: mvpGiftScoresRef.current[v.id] ?? 0,
+                  subtitle: (mvpGiftScoresRef.current[v.id] ?? 0) > 0 ? 'gift points' : 'watching',
+                }))}
+                giftGoal={giftGoal}
+                onSendGiftGoal={() => {
+                  setShowRankingPanel(false);
+                  setShowGiftPanel(true);
+                }}
+              />
             </div>
           </>
         )}
