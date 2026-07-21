@@ -2,101 +2,53 @@
 
 ## Required Assets for Elix Star Live
 
-### 1. App Icon (1024x1024)
-- **Location**: `store-assets/android/icon-1024.png`
-- **Format**: PNG, 1024x1024 pixels
-- **Design**: Clean, recognizable, no text
+### 1. App Icon (512x512 Play; 1024 for source)
+- Use the existing Android launcher mipmaps / `store-assets/android/icon-1024.png` when available
 
 ### 2. Feature Graphic (1024x500)
 - **Location**: `store-assets/android/feature-graphic.png`
-- **Format**: PNG, 1024x500 pixels
-- **Content**: App branding, key features highlighted
+- Required by Play Console
 
 ### 3. Screenshots (Required)
+Capture from a real device or emulator running the release AAB:
 - **Location**: `store-assets/android/screenshots/`
-- **Phone**: 
-  - `phone-screenshot-1.png` (320x3840 portrait)
-  - `phone-screenshot-2.png` (320x3840 portrait)
-  - `phone-screenshot-3.png` (320x3840 portrait)
-  - `phone-screenshot-4.png` (320x3840 portrait)
-- **Tablet** (optional):
-  - `tablet-screenshot-1.png` (600x800 portrait)
+- Phone: at least 2 (recommend 4) — feed, live, create, profile
+- Min short side ≥ 320px; typical 1080x1920
 
 ### 4. App Store Listing Content
 
 #### Title:
-"Elix Star Live - Short Video Social"
+Elix Star Live
 
-#### Short Description (80 chars):
-"Create, share & discover short videos. Go live, battle, and connect!"
+#### Short Description (≤80 chars):
+Create, share & discover short videos. Go live, battle, and connect!
 
 #### Full Description:
-"Elix Star Live is the ultimate short video social platform where creativity meets community. 
-
-🎬 CREATE AMAZING CONTENT
-• Record and edit short videos with effects and filters
-• Add trending music and sound effects
-• Go live and interact with your fans in real-time
-
-⚔️ BATTLE & COMPETE
-• Challenge other creators to epic battles
-• Win diamonds and climb the leaderboard
-• Show off your skills and gain followers
-
-💝 CONNECT & INTERACT
-• Send virtual gifts to support your favorite creators
-• Chat and make new friends from around the world
-• Build your community and grow your influence
-
-🎯 KEY FEATURES:
-• Short video creation with pro tools
-• Live streaming with real-time chat
-• Creator battles and competitions
-• Virtual gifting and economy
-• Advanced moderation and safety tools
-• Cross-platform synchronization
-
-Join millions of creators and viewers in the next generation of social entertainment. Download Elix Star Live today!"
-
-#### Keywords:
-"short video, social, live streaming, creator, battle, gifts, video editing, live chat, social media, content creator"
-
-#### Content Rating:
-"Teen" - Contains mild violence, suggestive themes
+Use the short-video / live / gifts / safety features description. Do not claim “millions of users” unless true.
 
 #### Category:
-"Social"
+Social
 
-### 5. Privacy Policy URL
-- **Required**: Must be publicly accessible
-- **Location**: `https://elixstarlive.com/privacy`
+#### Content rating:
+Complete the IARC questionnaire in Play Console (UGC, chat, virtual items).
 
-### 6. Support URL
-- **Required**: Contact information for users
-- **Location**: `https://elixstarlive.com/support`
+### 5. Required public URLs (use .co.uk — NOT .com)
 
-### 7. Store Listing Assets - iOS
+| Purpose | URL |
+|---------|-----|
+| Privacy Policy | https://www.elixstarlive.co.uk/privacy.html |
+| Terms | https://www.elixstarlive.co.uk/terms.html |
+| Support | https://www.elixstarlive.co.uk/support (or in-app Support) |
+| Account deletion | https://www.elixstarlive.co.uk/delete-account.html |
+| Child safety | https://www.elixstarlive.co.uk/child-safety.html |
 
-#### App Icon (1024x1024)
-- **Location**: `store-assets/ios/icon-1024.png`
-- **Format**: PNG, 1024x1024 pixels, no transparency
+### 6. In-app purchase product IDs (must match Play Console)
 
-#### Screenshots (Required)
-- **Location**: `store-assets/ios/screenshots/`
-- **iPhone**:
-  - `6.7-inch-1.png` (1290x2796)
-  - `6.7-inch-2.png` (1290x2796)
-  - `6.7-inch-3.png` (1290x2796)
-- **iPad** (optional):
-  - `ipad-pro-1.png` (2048x2732)
+```
+coins100, coins500a, coins1000, coins5000, coins10000,
+coins50000, coins100000, coins150000, coins200000
+```
 
-#### App Preview (Optional)
-- **Location**: `store-assets/ios/previews/`
-- **Format**: MP4, 15-30 seconds
-- **Resolution**: 1920x1080 or 1080x1920
+Promote / membership SKUs: see `src/lib/iap.ts` (`PROMOTE_PRODUCTS`, `MEMBERSHIP_PRODUCT_ID`).
 
-## Next Steps:
-1. Create all required assets
-2. Test on real devices
-3. Prepare store listings
-4. Submit to both stores
+Create each as **managed / consumable** (coins) or subscription (membership) in Play Console before testing.

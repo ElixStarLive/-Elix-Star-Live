@@ -104,6 +104,12 @@ export default function PurchaseCoins() {
         return;
       }
 
+      if (result.restoredOwned) {
+        trackEvent('purchase_restored', { package_id: product.id });
+        showToast('Previous purchase restored');
+        return;
+      }
+
       trackEvent('purchase_success', {
         package_id: product.id,
         coins: product.coins,

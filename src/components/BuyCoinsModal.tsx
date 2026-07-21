@@ -61,6 +61,16 @@ export const BuyCoinsModal: React.FC<BuyCoinsModalProps> = ({ isOpen, onClose, o
     try {
       const result = await purchaseProduct(product.id as IAPProductId);
       if (result.success) {
+        if (result.restoredOwned) {
+          showToast('Previous purchase restored');
+          if (onSuccess && typeof result.newBalance === 'number') {
+            onSuccess(result.newBalance);
+          } else if (onSuccess && typeof currentBalance === 'number') {
+            onSuccess(currentBalance);
+          }
+          onClose();
+          return;
+        }
         if (onSuccess) {
           if (typeof result.newBalance === 'number') {
             onSuccess(result.newBalance);

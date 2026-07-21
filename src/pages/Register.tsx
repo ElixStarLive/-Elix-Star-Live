@@ -75,8 +75,9 @@ export default function Register() {
       // Consent recorded locally — timestamp stored with registration
       try {
         localStorage.setItem('elix_consent_latest', JSON.stringify({
-          consent_type: 'terms_and_privacy',
-          version: '2026-02-20',
+          consent_type: 'terms_privacy_and_age_13_plus',
+          version: '2026-07-21',
+          age_confirmed_13_plus: true,
           accepted_at: new Date().toISOString(),
           email: email.trim(),
         }));
@@ -210,7 +211,7 @@ export default function Register() {
               }
             }}
             className="flex items-start gap-3 cursor-pointer select-none min-h-[44px] touch-manipulation"
-            aria-label="Accept Terms of Service and Privacy Policy"
+            aria-label="Confirm age 13+, Terms of Service and Privacy Policy"
           >
             <div
               className={`mt-0.5 w-6 h-6 min-w-[24px] min-h-[24px] rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
@@ -226,7 +227,7 @@ export default function Register() {
               )}
             </div>
             <span className="text-fluid-xs text-white/70 leading-5 pt-0.5">
-              I agree to the{' '}
+              I confirm I am at least 13 years old and agree to the{' '}
               <Link
                 to="/terms"
                 className="text-[#D4AF37] underline"

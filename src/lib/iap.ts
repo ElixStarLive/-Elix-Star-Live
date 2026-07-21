@@ -67,6 +67,8 @@ export interface IAPPurchaseResult {
   coins?: number;
   /** Authoritative wallet balance after server verification (prefer over local math). */
   newBalance?: number;
+  /** True when a stuck already-owned purchase was reconciled (not a fresh pack purchase). */
+  restoredOwned?: boolean;
 }
 
 let _billingSupported: boolean | null = null;
@@ -336,7 +338,8 @@ export async function purchaseProduct(productId: IAPProductId): Promise<IAPPurch
         const recovered = await reconcileOwnedCoinPurchases();
         if (recovered > 0) {
           reportIapStage('already_owned_recovered', { productId, recovered });
-          return { success: true, coins: IAP_PRODUCTS[productId]?.coins ?? 0 };
+          // Do not claim the tapped pack's coin amount — only that owned purchases were credited.
+          return { success: true, restoredOwned: true, coins: 0 };
         }
         try {
           result = await launchPurchase(mod, productId);
