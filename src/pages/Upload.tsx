@@ -476,7 +476,7 @@ export default function Upload() {
         setIsPosting(false);
         setPostProgress(0);
         showToast(isStoryUpload ? 'Story posted!' : 'Video posted!');
-        setTimeout(() => navigate(isStoryUpload ? '/feed' : '/feed'), 500);
+        setTimeout(() => navigate(isStoryUpload ? '/friends' : '/feed'), 500);
         
       } catch (error) {
         const msg = error?.message || error?.error_description || String(error) || 'Unknown error';

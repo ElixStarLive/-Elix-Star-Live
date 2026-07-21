@@ -317,8 +317,15 @@ export const useVideoStore = create<VideoStore>()(
             mapRawVideoRowToClientVideo(v, likedSet, savedSet, followingSet);
 
           // Use all real backend videos. If backend is empty, show empty state.
+          // Never show 24h story CDN clips in For You — those are not FYP videos.
           const hasApiVideos = Array.isArray(apiVideos) && apiVideos.length > 0;
-          const sourceVideos = hasApiVideos ? (apiVideos as NonNullable<typeof apiVideos>) : [];
+          const sourceVideos = hasApiVideos
+            ? (apiVideos as NonNullable<typeof apiVideos>).filter((raw) => {
+                const row = raw as { url?: string; video_url?: string };
+                const url = String(row.url || row.video_url || '');
+                return !url.includes('/stories/');
+              })
+            : [];
 
           const mappedVideos: Video[] = sourceVideos.map(toClientVideo);
 

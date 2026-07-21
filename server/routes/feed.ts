@@ -149,6 +149,7 @@ const FORYOU_SQL = `SELECT v.id, v.url, v.thumbnail, v.duration, v.description, 
          LEFT JOIN profiles p ON p.user_id = v.user_id
          WHERE (v.privacy IS NULL OR v.privacy <> 'private')
            AND v.url IS NOT NULL AND btrim(v.url) <> ''
+           AND v.url NOT ILIKE '%/stories/%'
          ORDER BY v.created_at DESC NULLS LAST
          LIMIT $1 OFFSET $2`;
 
@@ -373,6 +374,7 @@ const FRIENDS_SQL = `SELECT v.id, v.url, v.thumbnail, v.duration, v.description,
          WHERE v.user_id = ANY($1::text[])
            AND (v.privacy IS NULL OR v.privacy <> 'private')
            AND v.url IS NOT NULL AND btrim(v.url) <> ''
+           AND v.url NOT ILIKE '%/stories/%'
          ORDER BY v.created_at DESC NULLS LAST
          LIMIT 80`;
 
