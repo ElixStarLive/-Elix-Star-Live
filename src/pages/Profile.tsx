@@ -1117,7 +1117,7 @@ export default function Profile() {
 
       {storyViewerOpen && profileStoryGroup?.items?.[storyViewerIndex] && (
         <div
-          className="fixed inset-0 z-[10060] bg-black flex items-center justify-center"
+          className="fixed inset-0 z-[10060] bg-black flex justify-center"
           onClick={() => {
             if (storyViewerIndex + 1 < profileStoryGroup.items.length) {
               setStoryViewerIndex((i) => i + 1);
@@ -1126,40 +1126,42 @@ export default function Profile() {
             }
           }}
         >
-          <button
-            type="button"
-            className="absolute top-[calc(env(safe-area-inset-top,0px)+12px)] left-3 z-10 text-white text-sm font-bold px-2 py-1"
-            onClick={(e) => {
-              e.stopPropagation();
-              setStoryViewerOpen(false);
-            }}
-          >
-            Close
-          </button>
-          {profileStoryGroup.items[storyViewerIndex].mediaType === 'image' ? (
-            <img
-              src={profileStoryGroup.items[storyViewerIndex].mediaUrl}
-              alt=""
-              className="max-w-full max-h-full object-contain"
-              draggable={false}
-            />
-          ) : (
-            <video
-              key={profileStoryGroup.items[storyViewerIndex].id}
-              src={profileStoryGroup.items[storyViewerIndex].mediaUrl}
-              className="max-w-full max-h-full object-contain"
-              autoPlay
-              playsInline
-              controls={false}
-              onEnded={() => {
-                if (storyViewerIndex + 1 < profileStoryGroup.items.length) {
-                  setStoryViewerIndex((i) => i + 1);
-                } else {
-                  setStoryViewerOpen(false);
-                }
+          <div className="relative w-full max-w-[480px] h-full min-h-0 overflow-hidden bg-black">
+            <button
+              type="button"
+              className="absolute top-[calc(env(safe-area-inset-top,0px)+12px)] left-3 z-10 text-white text-sm font-bold px-2 py-1"
+              onClick={(e) => {
+                e.stopPropagation();
+                setStoryViewerOpen(false);
               }}
-            />
-          )}
+            >
+              Close
+            </button>
+            {profileStoryGroup.items[storyViewerIndex].mediaType === 'image' ? (
+              <img
+                src={profileStoryGroup.items[storyViewerIndex].mediaUrl}
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover"
+                draggable={false}
+              />
+            ) : (
+              <video
+                key={profileStoryGroup.items[storyViewerIndex].id}
+                src={profileStoryGroup.items[storyViewerIndex].mediaUrl}
+                className="absolute inset-0 w-full h-full object-cover"
+                autoPlay
+                playsInline
+                controls={false}
+                onEnded={() => {
+                  if (storyViewerIndex + 1 < profileStoryGroup.items.length) {
+                    setStoryViewerIndex((i) => i + 1);
+                  } else {
+                    setStoryViewerOpen(false);
+                  }
+                }}
+              />
+            )}
+          </div>
         </div>
       )}
     </div>
