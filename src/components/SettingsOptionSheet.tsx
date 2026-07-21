@@ -47,7 +47,7 @@ export default function SettingsOptionSheet({ children, onClose }: SettingsOptio
         <div
           className="relative flex-shrink-0 bg-[#111111] touch-none cursor-grab active:cursor-grabbing border-b border-white/[0.06]"
           /* Fixed overlay ignores body safe padding; Android status bar often reports 0 inset — keep close tappable. */
-          style={{ paddingTop: 'max(40px, calc(env(safe-area-inset-top, 0px) + 8px))' }}
+          style={{ paddingTop: 'calc(max(40px, calc(env(safe-area-inset-top, 0px) + 8px)) + 5mm)' }}
           onPointerDown={onDragStart}
           onPointerMove={onDragMove}
           onPointerUp={onDragEnd}

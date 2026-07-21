@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { isLanguageCode, type LanguageCode } from '../lib/languages';
 
-export type AppLanguage = 'en' | 'es' | 'fr' | 'pt' | 'de' | 'it' | 'hi' | 'ro';
+export type AppLanguage = LanguageCode;
 
 interface SettingsState {
   muteAllSounds: boolean;
@@ -24,7 +25,8 @@ export const useSettingsStore = create<SettingsState>()(
       setMuteAllSounds: (value) => set({ muteAllSounds: value }),
       setNotificationsEnabled: (value) => set({ notificationsEnabled: value }),
       setLiveNotifications: (value) => set({ liveNotifications: value }),
-      setLanguage: (value) => set({ language: value }),
+      setLanguage: (value) =>
+        set({ language: isLanguageCode(value) ? value : 'en' }),
     }),
     {
       name: 'elix_settings_v1',
@@ -35,6 +37,7 @@ export const useSettingsStore = create<SettingsState>()(
       migrate: (persisted, fromVersion) => {
         const state = (persisted as Partial<SettingsState>) || {};
         if (fromVersion < 2 && state.language === 'ro') state.language = 'en';
+        if (state.language && !isLanguageCode(state.language)) state.language = 'en';
         return state as SettingsState;
       },
     }

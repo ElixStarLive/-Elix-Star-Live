@@ -7,24 +7,16 @@
  * switching it in the picker re-renders every component using `useT()`.
  */
 import { useCallback } from 'react';
+import { languageShortCode, WORLD_LANGUAGES, type LanguageCode } from './languages';
 import { useSettingsStore, type AppLanguage } from '../store/useSettingsStore';
 
 export type Lang = AppLanguage;
 
-export const LANGUAGES: { code: Lang; label: string; english: string }[] = [
-  { code: 'en', label: 'English', english: 'English' },
-  { code: 'es', label: 'Español', english: 'Spanish' },
-  { code: 'fr', label: 'Français', english: 'French' },
-  { code: 'pt', label: 'Português', english: 'Portuguese' },
-  { code: 'de', label: 'Deutsch', english: 'German' },
-  { code: 'it', label: 'Italiano', english: 'Italian' },
-  { code: 'hi', label: 'हिन्दी', english: 'Hindi' },
-  { code: 'ro', label: 'Română', english: 'Romanian' },
-];
+export const LANGUAGES = WORLD_LANGUAGES;
 
-export const LANGUAGE_SHORT: Record<Lang, string> = {
-  en: 'EN', es: 'ES', fr: 'FR', pt: 'PT', de: 'DE', it: 'IT', hi: 'HI', ro: 'RO',
-};
+export const LANGUAGE_SHORT: Record<LanguageCode, string> = Object.fromEntries(
+  WORLD_LANGUAGES.map((l) => [l.code, languageShortCode(l.code)]),
+) as Record<LanguageCode, string>;
 
 type Dict = Record<string, string>;
 
@@ -292,10 +284,10 @@ const ro: Dict = {
   'toast.videoQualityAuto': 'Calitatea video este setată pe automat',
 };
 
-const DICTS: Record<Lang, Dict> = { en, es, fr, pt, de, it, hi, ro };
+const TRANSLATED: Partial<Record<Lang, Dict>> = { en, es, fr, pt, de, it, hi, ro };
 
 export function translate(lang: Lang, key: string): string {
-  return DICTS[lang]?.[key] ?? en[key] ?? key;
+  return TRANSLATED[lang]?.[key] ?? en[key] ?? key;
 }
 
 /** Keep the document language attribute in sync for accessibility. */
