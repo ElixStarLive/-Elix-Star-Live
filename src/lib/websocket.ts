@@ -82,17 +82,24 @@ class WebSocketService {
   private pendingMessages: string[] = [];
   private keepAliveTimer: ReturnType<typeof setInterval> | null = null;
 
-  connect(roomId: string, token: string) {
+  /** Host/creator rooms keep reconnecting so brief mobile blips do not end the live. */
+  private persistentReconnect = false;
+
+  connect(roomId: string, token: string, options?: { persistent?: boolean }) {
     if (
       this.ws?.readyState === WebSocket.OPEN ||
       this.ws?.readyState === WebSocket.CONNECTING
     ) {
-      if (this.roomId === roomId) return;
+      if (this.roomId === roomId) {
+        this.persistentReconnect = options?.persistent ?? this.persistentReconnect;
+        return;
+      }
       this.disconnect();
     }
 
     this.roomId = roomId;
     this.token = token;
+    this.persistentReconnect = options?.persistent ?? false;
     const wsUrl = getWsUrl();
     this.ws = new WebSocket(
       `${wsUrl}/live/${roomId}?token=${encodeURIComponent(token)}`,
@@ -154,6 +161,7 @@ class WebSocketService {
     }
     this.roomId = null;
     this.token = null;
+    this.persistentReconnect = false;
     this.reconnectAttempts = 0;
     this.pendingMessages = [];
   }
@@ -211,18 +219,23 @@ class WebSocketService {
       return;
     }
 
-    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      this.handleMessage({
-        event: "stream_ended",
-        data: { reason: "max_reconnect_attempts" },
-        timestamp: new Date().toISOString(),
-      });
+    const maxAttempts = this.persistentReconnect ? 120 : this.maxReconnectAttempts;
+    if (this.reconnectAttempts >= maxAttempts) {
+      if (!this.persistentReconnect) {
+        this.handleMessage({
+          event: "stream_ended",
+          data: { reason: "max_reconnect_attempts" },
+          timestamp: new Date().toISOString(),
+        });
+      }
       return;
     }
 
-    const base = this.reconnectDelay * Math.pow(2, this.reconnectAttempts);
+    const base = this.persistentReconnect
+      ? 400 + this.reconnectAttempts * 350
+      : this.reconnectDelay * Math.pow(2, this.reconnectAttempts);
     const jitter = Math.floor(Math.random() * 400);
-    const delay = Math.min(30_000, base + jitter);
+    const delay = Math.min(this.persistentReconnect ? 8_000 : 30_000, base + jitter);
     this.reconnectAttempts++;
 
     if (this.reconnectTimer) {

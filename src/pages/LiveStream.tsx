@@ -101,7 +101,8 @@ import { parseLiveGiftGoal, type LiveGiftGoal } from '../lib/liveGiftGoal';
 import { liveStreamUiGiftTargetToServerBattleTarget, normalizeBattleGiftTarget } from '../lib/liveBattleGiftTarget';
 import { IS_STORE_BUILD } from '../config/build';
 import { purchaseMembership } from '../lib/iap';
-import { Room, RoomEvent, LocalVideoTrack, LocalAudioTrack } from 'livekit-client';
+import { Room, RoomEvent, LocalVideoTrack, LocalAudioTrack, ConnectionState } from 'livekit-client';
+import { App as CapacitorApp } from '@capacitor/app';
 
 const LIVE_BOTTOM_ICON_BTN =
   'w-10 h-10 flex items-center justify-center bg-transparent border-0 shadow-none active:scale-95 transition-transform flex-shrink-0';
@@ -223,8 +224,10 @@ export default function LiveStream() {
     videoRef.current = el;
     if (!el) return;
     const stream = cameraStreamRef.current;
-    if (!stream || el.srcObject === stream) return;
-    el.srcObject = stream;
+    if (!stream) return;
+    if (el.srcObject !== stream) {
+      el.srcObject = stream;
+    }
     void el.play().catch(() => {});
   }, []);
   const [viewerHasStream, _setViewerHasStream] = useState(false);
@@ -569,6 +572,37 @@ export default function LiveStream() {
   // LiveKit credentials from /api/live/start (so we can connect and publish)
   const [liveKitCreds, setLiveKitCreds] = useState<{ token: string; url: string } | null>(null);
   const liveKitRoomRef = useRef<Room | null>(null);
+  const liveKitPublishGenRef = useRef(0);
+
+  const publishHostLiveKitTracks = useCallback(async () => {
+    const room = liveKitRoomRef.current;
+    const stream = cameraStreamRef.current;
+    if (!room || room.state !== ConnectionState.Connected || !stream) return;
+    const gen = ++liveKitPublishGenRef.current;
+    const videoTrack = stream.getVideoTracks()[0];
+    const audioTrack = stream.getAudioTracks()[0];
+    try {
+      for (const pub of room.localParticipant.trackPublications.values()) {
+        if (pub.track) {
+          try {
+            await room.localParticipant.unpublishTrack(pub.track);
+          } catch {
+            /* ignore unpublish race */
+          }
+        }
+      }
+      if (gen !== liveKitPublishGenRef.current) return;
+      if (videoTrack?.readyState === 'live') {
+        await room.localParticipant.publishTrack(new LocalVideoTrack(videoTrack), { name: 'camera' });
+      }
+      if (gen !== liveKitPublishGenRef.current) return;
+      if (audioTrack?.readyState === 'live') {
+        await room.localParticipant.publishTrack(new LocalAudioTrack(audioTrack), { name: 'mic' });
+      }
+    } catch (e) {
+      console.warn('[LiveKit] publish failed:', e);
+    }
+  }, []);
 
   // Register/unregister live stream in backend list; get LiveKit token+url for host
   useEffect(() => {
@@ -603,14 +637,10 @@ export default function LiveStream() {
 
   }, [isBroadcast, user?.id, effectiveStreamId]);
 
-  // Live: LiveKit. Host publishes here; viewers subscribe via SpectatorPage.
+  // Live: LiveKit room connection (host). Camera publish is separate so restarts
+  // (flip cam, app resume, battle layout) never leave viewers on a dead track.
   useEffect(() => {
-    if (!isBroadcast || !liveKitCreds || !cameraStreamRef.current) return;
-
-    const stream = cameraStreamRef.current;
-    const videoTrack = stream.getVideoTracks()[0];
-    const audioTrack = stream.getAudioTracks()[0];
-    if (!videoTrack && !audioTrack) return;
+    if (!isBroadcast || !liveKitCreds) return;
 
     const room = new Room({ adaptiveStream: true });
     liveKitRoomRef.current = room;
@@ -717,16 +747,7 @@ export default function LiveStream() {
             if (pub.track && pub.isSubscribed) attachRemoteAudio(pub.track, roomRemoteAudioRef.current);
           }
         }
-        if (videoTrack) {
-          if (cancelled) { room.disconnect(); return; }
-          const localVideo = new LocalVideoTrack(videoTrack);
-          await room.localParticipant.publishTrack(localVideo, { name: 'camera' });
-        }
-        if (audioTrack) {
-          if (cancelled) { room.disconnect(); return; }
-          const localAudio = new LocalAudioTrack(audioTrack);
-          await room.localParticipant.publishTrack(localAudio, { name: 'mic' });
-        }
+        await publishHostLiveKitTracks();
       } catch (e) {
         const errMsg = String(e).includes('401') ? 'LiveKit auth failed — check API keys'
           : String(e).includes('timeout') ? 'LiveKit connection timed out — retrying...'
@@ -741,7 +762,28 @@ export default function LiveStream() {
       room.disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isBroadcast, liveKitCreds]);
+  }, [isBroadcast, liveKitCreds, publishHostLiveKitTracks]);
+
+  // Republish when the local camera stream is recreated (flip, resume, permission blip).
+  useEffect(() => {
+    if (!isBroadcast || !cameraStream) return;
+    let cancelled = false;
+    let attempts = 0;
+    const run = () => {
+      if (cancelled || attempts > 48) return;
+      attempts += 1;
+      const room = liveKitRoomRef.current;
+      if (!room || room.state !== ConnectionState.Connected) {
+        window.setTimeout(run, 250);
+        return;
+      }
+      void publishHostLiveKitTracks();
+    };
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [isBroadcast, cameraStream, publishHostLiveKitTracks]);
 
   const [isFindCreatorsOpen, setIsFindCreatorsOpen] = useState(false);
   const [_memberCount, setMemberCount] = useState(0);
@@ -1286,7 +1328,7 @@ export default function LiveStream() {
     (async () => {
       const wsToken = useAuthStore.getState().session?.access_token ?? '';
       if (wsToken) {
-        websocket.connect(effectiveStreamId, wsToken);
+        websocket.connect(effectiveStreamId, wsToken, { persistent: false });
         for (let i = 0; i < 24 && !cancelled; i += 1) {
           if (websocket.isConnected()) break;
           await new Promise((r) => window.setTimeout(r, 250));
@@ -2692,34 +2734,84 @@ export default function LiveStream() {
     };
   }, [isBattleMode, isBroadcast, cameraStream]);
 
+  const recoverHostBroadcast = useCallback(async () => {
+    if (!isBroadcast) return;
+    websocket.reconnectOnForeground();
+    const stream = cameraStreamRef.current;
+    const track = stream?.getVideoTracks()[0];
+    if (!track || track.readyState === 'ended') {
+      try {
+        const newStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: cameraFacing },
+          audio: { echoCancellation: true, noiseSuppression: true },
+        });
+        cameraStreamRef.current = newStream;
+        setCameraStream(newStream);
+        newStream.getAudioTracks().forEach((t) => { t.enabled = !isMicMuted; });
+        if (videoRef.current) {
+          videoRef.current.srcObject = newStream;
+          void videoRef.current.play().catch(() => {});
+        }
+      } catch {
+        /* camera unavailable */
+      }
+    } else {
+      if (videoRef.current) {
+        if (videoRef.current.srcObject !== stream) {
+          videoRef.current.srcObject = stream;
+        }
+        void videoRef.current.play().catch(() => {});
+      }
+      await publishHostLiveKitTracks();
+    }
+  }, [cameraFacing, isBroadcast, isMicMuted, publishHostLiveKitTracks]);
+
   useEffect(() => {
     if (!isBroadcast) return;
-    const handleVisibility = async () => {
-      if (document.visibilityState !== 'visible') return;
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void recoverHostBroadcast();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [isBroadcast, recoverHostBroadcast]);
+
+  useEffect(() => {
+    if (!isBroadcast || !platform.isNative) return;
+    const sub = CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+      if (isActive) void recoverHostBroadcast();
+    });
+    return () => {
+      void sub.then((h) => h.remove());
+    };
+  }, [isBroadcast, recoverHostBroadcast]);
+
+  // Keep host preview + LiveKit publish alive if Android WebView drops the track.
+  useEffect(() => {
+    if (!isBroadcast) return;
+    const id = window.setInterval(() => {
       const stream = cameraStreamRef.current;
       const track = stream?.getVideoTracks()[0];
-      if (!track || track.readyState === 'ended') {
-        try {
-          const newStream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: cameraFacing },
-            audio: { echoCancellation: true, noiseSuppression: true },
-          });
-          cameraStreamRef.current = newStream;
-          setCameraStream(newStream);
-          newStream.getAudioTracks().forEach(t => (t.enabled = !isMicMuted));
-          if (videoRef.current) {
-            videoRef.current.srcObject = newStream;
-            videoRef.current.play().catch(() => {});
-          }
-        } catch { /* camera unavailable */ }
-      } else if (videoRef.current) {
-        videoRef.current.play().catch(() => {});
+      const el = videoRef.current;
+      if (stream && el && el.srcObject !== stream) {
+        el.srcObject = stream;
+        void el.play().catch(() => {});
+      } else if (el && stream && el.paused) {
+        void el.play().catch(() => {});
       }
-      websocket.reconnectOnForeground();
-    };
-    document.addEventListener('visibilitychange', handleVisibility);
-    return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [isBroadcast, cameraFacing, isMicMuted]);
+      if (track?.readyState === 'ended') {
+        void recoverHostBroadcast();
+        return;
+      }
+      const room = liveKitRoomRef.current;
+      if (room && room.state === ConnectionState.Connected && stream && track?.readyState === 'live') {
+        const hasLivePub = [...room.localParticipant.trackPublications.values()].some(
+          (p) => p.track && p.kind === 'video',
+        );
+        if (!hasLivePub) void publishHostLiveKitTracks();
+      }
+    }, 2500);
+    return () => window.clearInterval(id);
+  }, [isBroadcast, recoverHostBroadcast, publishHostLiveKitTracks]);
 
   useEffect(() => {
     const stream = cameraStreamRef.current;
@@ -2899,7 +2991,7 @@ export default function LiveStream() {
     const connect = async () => {
       const token = await getToken();
       if (!token || !mounted) return;
-      websocket.connect(effectiveStreamId, token);
+      websocket.connect(effectiveStreamId, token, { persistent: isBroadcast });
     };
 
     const handleRoomState = (data) => {
@@ -3358,10 +3450,11 @@ export default function LiveStream() {
           next[0] = { userId: paneUserId || '', name: paneName, status: 'accepted', avatar: keepAvatar(0, paneUserId || '') };
           if (paneUserId) seenIds.add(paneUserId);
         } else if (!paneUserId) {
-          // battle_state_sync sends FULL state — but on the joiner's screen an
-          // empty/ENDED sync must not wipe the host pane we seeded on arrival
-          // (the host is still live in front of us until we leave the battle).
-          if (!isBattleJoiner) {
+          // Opponent dropped mid-match — keep pane on reconnecting, not "Add creator".
+          if (!isBattleJoiner && prev[0]?.status === 'accepted' && prev[0]?.userId) {
+            next[0] = { ...prev[0] };
+            setHasOpponentStream(false);
+          } else if (!isBattleJoiner) {
             next[0] = { userId: '', name: '', status: 'empty', avatar: '' };
             setHasOpponentStream(false);
           }
