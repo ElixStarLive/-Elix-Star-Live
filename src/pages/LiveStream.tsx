@@ -733,6 +733,9 @@ export default function LiveStream() {
     };
 
     room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
+      if (publication.kind === 'video' && publication.isMuted && participant?.identity) {
+        setRemoteCamOff((prev) => { const n = new Set(prev); n.add(participant.identity); return n; });
+      }
       attachRemoteTrack(track, participant);
     });
     room.on(RoomEvent.TrackPublished, (publication, participant) => {
@@ -776,6 +779,9 @@ export default function LiveStream() {
         if (cancelled) { room.disconnect(); return; }
         for (const [, participant] of room.remoteParticipants) {
           for (const [, pub] of participant.videoTrackPublications) {
+            if (pub.isMuted && participant.identity) {
+              setRemoteCamOff((prev) => { const n = new Set(prev); n.add(participant.identity); return n; });
+            }
             if (pub.track && pub.isSubscribed) attachRemoteTrack(pub.track, participant);
           }
           for (const [, pub] of participant.audioTrackPublications) {
@@ -4256,9 +4262,13 @@ export default function LiveStream() {
     const stream = cameraStreamRef.current;
     if (!stream) return;
     const videoTrack = stream.getVideoTracks()[0];
-    if (videoTrack) {
-      videoTrack.enabled = isCamOff;
-      setIsCamOff(!isCamOff);
+    if (!videoTrack) return;
+    const nextCamOff = !isCamOff;
+    videoTrack.enabled = !nextCamOff;
+    setIsCamOff(nextCamOff);
+    const room = liveKitRoomRef.current;
+    if (room?.state === ConnectionState.Connected) {
+      void room.localParticipant.setCameraEnabled(!nextCamOff).catch(() => {});
     }
   };
 
@@ -4944,20 +4954,22 @@ export default function LiveStream() {
                   const lastGiftIcon = cohostLastGifts[host.userId];
                   return (
                     <>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[#111111] z-[5]">
+                        {host.avatar ? (
+                          <img src={host.avatar} alt="" className="w-10 h-10 rounded-full object-cover object-center" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-[#111111] flex items-center justify-center">
+                            <span className="text-[#E8D5A3]/60 text-sm font-bold">{(host.name || '?').charAt(0)}</span>
+                          </div>
+                        )}
+                        <span className="text-white/90 text-[8px] font-bold truncate max-w-full px-1">{host.name}</span>
+                      </div>
                       <video
                         ref={(el) => { if (el) coHostVideoRefs.current.set(host.userId, el); else coHostVideoRefs.current.delete(host.userId); }}
-                        className="absolute inset-0 w-full h-full object-cover"
+                        className="absolute inset-0 w-full h-full object-cover z-[6]"
                         autoPlay playsInline muted={host.isMuted}
-                        style={camOff ? { display: 'none' } : undefined}
+                        style={{ opacity: camOff ? 0 : 1, transition: 'opacity 0.3s ease' }}
                       />
-                      {camOff && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[#111111] z-[6]">
-                          {host.avatar ? <img src={host.avatar} alt="" className="w-10 h-10 object-cover object-center" /> : (
-                            <div className="w-10 h-10 bg-[#111111] flex items-center justify-center"><span className="text-[#E8D5A3]/60 text-sm font-bold">{(host.name || '?').charAt(0)}</span></div>
-                          )}
-                          <span className="text-white/90 text-[8px] font-bold truncate max-w-full px-1">{host.name}</span>
-                        </div>
-                      )}
                       <div className="absolute top-0.5 right-0.5 z-10 flex items-center gap-0.5 pointer-events-auto">
                         <button type="button" onClick={(e) => { e.stopPropagation(); toggleCoHostMute(host.id); }} className="rounded bg-black/50 p-0.5" title={host.isMuted ? 'Unmute' : 'Mute'}>
                           {host.isMuted ? <MicOff className="text-white w-3 h-3" strokeWidth={2.5} /> : <Mic className="text-white w-3 h-3" strokeWidth={2.5} />}

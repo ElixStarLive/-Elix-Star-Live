@@ -91,7 +91,7 @@ import { normalizeBattleGiftTarget } from '../lib/liveBattleGiftTarget';
 import { parseLiveGiftGoal, type LiveGiftGoal } from '../lib/liveGiftGoal';
 import { resolveUiAvatarUrl } from '../lib/royceAssets';
 import { getMembershipStatus, purchaseMembership } from '../lib/iap';
-import { Room, RoomEvent, LocalVideoTrack, LocalAudioTrack } from 'livekit-client';
+import { Room, RoomEvent, LocalVideoTrack, LocalAudioTrack, ConnectionState } from 'livekit-client';
 
 function formatBattleScoreShort(coins: number) {
   const n = typeof coins === 'number' && Number.isFinite(coins) ? coins : 0;
@@ -326,6 +326,21 @@ export default function SpectatorPage() {
   }, [effectiveStreamId]);
 
   const [joinRequested, setJoinRequested] = useState(false);
+
+  const sendCohostJoinRequest = useCallback(() => {
+    if (!user?.id || joinRequested || spectatorCoHostRequestSent) return false;
+    const targetHostId = hostUserIdRef.current || hostUserId || effectiveStreamId;
+    if (!targetHostId) return false;
+    setJoinRequested(true);
+    setSpectatorCoHostRequestSent(true);
+    websocket.send('cohost_request_send', {
+      hostUserId: targetHostId,
+      requesterName: user?.username || user?.name || 'Someone',
+      requesterAvatar: user?.avatar || '',
+    });
+    showToast('Co-host request sent!');
+    return true;
+  }, [user?.id, user?.username, user?.name, user?.avatar, joinRequested, spectatorCoHostRequestSent, hostUserId, effectiveStreamId]);
 
   const [userLevel, setUserLevel] = useState(() => Math.max(1, Number(user?.level) || 0));
   const [_userXP, setUserXP] = useState(0);
@@ -746,9 +761,13 @@ export default function SpectatorPage() {
   const toggleCam = () => {
     if (!coHostStream) return;
     const videoTrack = coHostStream.getVideoTracks()[0];
-    if (videoTrack) {
-      videoTrack.enabled = isCamOff;
-      setIsCamOff(!isCamOff);
+    if (!videoTrack) return;
+    const nextCamOff = !isCamOff;
+    videoTrack.enabled = !nextCamOff;
+    setIsCamOff(nextCamOff);
+    const room = liveKitRoomRef.current;
+    if (room?.state === ConnectionState.Connected) {
+      void room.localParticipant.setCameraEnabled(!nextCamOff).catch(() => {});
     }
   };
 
@@ -959,6 +978,9 @@ export default function SpectatorPage() {
         const onTrackSubscribed = (track: import('livekit-client').RemoteTrack, publication?: import('livekit-client').TrackPublication, participant?: import('livekit-client').RemoteParticipant) => {
           if (!mounted) return;
           const identity = participant?.identity || '';
+          if (track.kind === 'video' && publication?.isMuted && identity) {
+            setRemoteCamOff((prev) => { const n = new Set(prev); n.add(identity); return n; });
+          }
           const isSelf = identity === myIdentity;
           if (track.kind === 'audio') {
             const isHost = identity === hostId || identity === effectiveStreamId;
@@ -1038,6 +1060,9 @@ export default function SpectatorPage() {
           const isSelf = identity === myIdentity;
           if (isSelf) continue;
           for (const [, publication] of participant.videoTrackPublications) {
+            if (publication.isMuted && identity) {
+              setRemoteCamOff((prev) => { const n = new Set(prev); n.add(identity); return n; });
+            }
             if (publication.track && publication.isSubscribed && videoRef.current) {
               const track = publication.track;
               if (isHost) {
@@ -2866,21 +2891,21 @@ export default function SpectatorPage() {
             if (slot.type === 'self') {
               return (
                 <>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[#111111] z-[5]">
+                    {(viewerAvatar || user?.avatar) ? (
+                      <img src={viewerAvatar || user?.avatar || ''} alt="" className="w-10 h-10 rounded-full object-cover object-center" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-[#111111] flex items-center justify-center">
+                        <span className="text-[#E8D5A3]/60 text-sm font-bold">{(viewerName || '?').charAt(0)}</span>
+                      </div>
+                    )}
+                  </div>
                   <video
                     ref={myVideoRef}
-                    className="absolute inset-0 w-full h-full object-cover"
+                    className="absolute inset-0 w-full h-full object-cover z-[6]"
                     autoPlay playsInline muted
-                    style={isCamOff ? { display: 'none' } : undefined}
+                    style={{ opacity: isCamOff ? 0 : 1, transition: 'opacity 0.3s ease' }}
                   />
-                  {isCamOff && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[#111111] z-[6]">
-                      {(viewerAvatar || user?.avatar) ? (
-                        <img src={viewerAvatar || user?.avatar || ''} alt="" className="w-10 h-10 rounded-full object-cover object-center" />
-                      ) : (
-                        <CameraOff size={24} className="text-white/30" />
-                      )}
-                    </div>
-                  )}
                   <div className="absolute top-0.5 right-0.5 z-10 flex items-center gap-0.5 pointer-events-auto">
                     <button type="button" onClick={toggleMic} className="p-1" title={isMicMuted ? 'Unmute' : 'Mute'}>
                       {isMicMuted ? <MicOff className="text-white/60 w-3.5 h-3.5" strokeWidth={2.5} /> : <Mic className="text-white w-3.5 h-3.5" strokeWidth={2.5} />}
@@ -2895,11 +2920,22 @@ export default function SpectatorPage() {
             }
             if (slot.type === 'live' && slot.host) {
               const h = slot.host;
+              const camOff = remoteCamOff.has(h.userId);
               const score = cohostGiftScores[h.userId] || 0;
               const lastGiftIcon = cohostLastGifts[h.userId];
               const isSelected = selectedCohostGiftUserId === h.userId;
               return (
                 <>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[#111111] z-[5]">
+                    {h.avatar ? (
+                      <img src={h.avatar} alt="" className="w-10 h-10 rounded-full object-cover object-center" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-[#111111] flex items-center justify-center">
+                        <span className="text-[#E8D5A3]/60 text-sm font-bold">{(h.name || '?').charAt(0)}</span>
+                      </div>
+                    )}
+                    <span className="text-white/90 text-[8px] font-bold truncate max-w-full px-1">{h.name}</span>
+                  </div>
                   <video
                     ref={(el) => {
                       if (el) {
@@ -2926,19 +2962,10 @@ export default function SpectatorPage() {
                         coHostVideoRefs.current.delete(h.userId);
                       }
                     }}
-                    className="absolute inset-0 w-full h-full object-cover"
+                    className="absolute inset-0 w-full h-full object-cover z-[6]"
                     autoPlay playsInline
-                    style={remoteCamOff.has(h.userId) ? { display: 'none' } : undefined}
+                    style={{ opacity: camOff ? 0 : 1, transition: 'opacity 0.3s ease' }}
                   />
-                  {remoteCamOff.has(h.userId) && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-[#111111] z-[6]">
-                      {h.avatar ? (
-                        <img src={h.avatar} alt="" className="w-10 h-10 rounded-full object-cover object-center" />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-[#111111] flex items-center justify-center"><span className="text-[#E8D5A3]/60 text-sm font-bold">{(h.name || '?').charAt(0)}</span></div>
-                      )}
-                    </div>
-                  )}
                   <p className="absolute bottom-0.5 left-0.5 z-10 text-white/80 text-[8px] font-bold bg-black/50 rounded px-1 truncate max-w-[90%]">{h.name}</p>
                   {(lastGiftIcon || score > 0) && (
                     <div className="absolute bottom-0.5 right-0.5 z-10 flex items-center pointer-events-none">
@@ -2985,12 +3012,19 @@ export default function SpectatorPage() {
               );
             }
             return (
-              <div className="flex flex-col items-center justify-center w-full h-full">
+              <button
+                type="button"
+                disabled={joinRequested || spectatorCoHostRequestSent || !user?.id || isCoHosting}
+                onClick={() => { sendCohostJoinRequest(); }}
+                className="flex flex-col items-center justify-center w-full h-full active:scale-95 disabled:opacity-50"
+              >
                 <div className="w-12 h-12 rounded-full flex items-center justify-center">
                   <span className="text-white/30 text-2xl font-light">+</span>
                 </div>
-                <p className="text-white/30 text-[9px] font-semibold mt-0.5">Add</p>
-              </div>
+                <p className="text-white/30 text-[9px] font-semibold mt-0.5">
+                  {joinRequested || spectatorCoHostRequestSent ? 'Sent' : 'Add'}
+                </p>
+              </button>
             );
           };
 
@@ -3016,14 +3050,31 @@ export default function SpectatorPage() {
                   handleLikeTap(e);
                 }}
               >
+                {(() => {
+                  const hostId = hostUserIdRef.current || hostUserId || effectiveStreamId;
+                  const hostCamOff = remoteCamOff.has(hostId) || (effectiveStreamId ? remoteCamOff.has(effectiveStreamId) : false);
+                  return (
+                    <>
                 <video
                   ref={videoRef}
-                  className="absolute inset-0 w-full h-full object-cover rounded-none"
+                  className="absolute inset-0 w-full h-full object-cover rounded-none z-[6]"
                   playsInline
                   autoPlay
-                  style={{ opacity: hasStream ? 1 : 0, transition: 'opacity 0.4s ease' }}
+                  style={{ opacity: hasStream && !hostCamOff ? 1 : 0, transition: 'opacity 0.4s ease' }}
                 />
-                {!hasStream && (
+                {hostCamOff && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[#111111] z-[5]">
+                    {hostAvatar ? (
+                      <img src={hostAvatar} alt="" className="w-16 h-16 rounded-full object-cover object-center border-2 border-[#C9A227]/40" />
+                    ) : (
+                      <div className="w-16 h-16 rounded-full bg-[#C9A227]/20 flex items-center justify-center border-2 border-[#C9A227]/40">
+                        <span className="text-[#D4AF37] font-bold text-2xl">{hostName.slice(0, 1).toUpperCase()}</span>
+                      </div>
+                    )}
+                    <span className="text-white font-bold text-sm">{hostName}</span>
+                  </div>
+                )}
+                {!hasStream && !hostCamOff && (
                   <div className="w-full h-full flex flex-col items-center justify-center gap-4" style={{ transform: 'translateX(15mm)' }}>
                     <div className="w-24 h-24 rounded-full overflow-hidden">
                       {hostAvatar ? (
@@ -3070,6 +3121,9 @@ export default function SpectatorPage() {
                     )}
                   </div>
                 )}
+                    </>
+                  );
+                })()}
               </div>
 
               {/* Right: 8-slot co-host grid — same as creator */}
@@ -3437,17 +3491,7 @@ export default function SpectatorPage() {
                 type="button"
                 title={spectatorCoHostRequestSent ? 'Request sent' : 'Request to co-host'}
                 disabled={spectatorCoHostRequestSent || !user?.id}
-                onClick={async () => {
-                  if (!user?.id || !effectiveStreamId || spectatorCoHostRequestSent) return;
-                  const requesterName = user?.username || user?.name || 'Someone';
-                  websocket.send('cohost_request_send', {
-                    hostUserId: effectiveStreamId,
-                    requesterName,
-                    requesterAvatar: user?.avatar || '',
-                  });
-                  setSpectatorCoHostRequestSent(true);
-                  showToast('Co-host request sent!');
-                }}
+                onClick={() => { sendCohostJoinRequest(); }}
                 className="flex flex-col items-center justify-center w-12 active:scale-95 transition-transform select-none flex-shrink-0 disabled:opacity-60"
               >
                 <div className="relative w-10 h-10 flex items-center justify-center">
@@ -3455,7 +3499,9 @@ export default function SpectatorPage() {
                     <UserPlus size={20} className="text-[#D4AF37] shrink-0" strokeWidth={2} />
                   </span>
                 </div>
-                <span className="text-[10px] font-semibold text-[#D4AF37] mt-0.5">Co-host</span>
+                <span className="text-[10px] font-semibold text-[#D4AF37] mt-0.5">
+                  {spectatorCoHostRequestSent ? 'Sent' : 'Co-host'}
+                </span>
               </button>
               )}
               <button
@@ -3642,15 +3688,7 @@ export default function SpectatorPage() {
                       <button
                         type="button"
                         disabled={joinRequested || !user?.id}
-                        onClick={() => {
-                          if (!user?.id || joinRequested) return;
-                          const targetHostId = hostUserId || effectiveStreamId;
-                          if (!targetHostId) return;
-                          setJoinRequested(true);
-                          // Spectator-initiated co-host request; creator must still Accept before co-hosting starts
-                          websocket.send('cohost_request_send', { hostUserId: targetHostId, requesterName: user?.username || user?.name || 'User', requesterAvatar: user?.avatar || '' });
-                          showToast('Co-host request sent!');
-                        }}
+                        onClick={() => { sendCohostJoinRequest(); }}
                         className={`w-full py-3 rounded-xl font-bold text-sm ${joinRequested ? 'bg-white/10 text-white/40 cursor-not-allowed' : 'bg-[#D4AF37] text-black active:scale-95'}`}
                       >
                         {joinRequested ? 'Request sent' : 'Request to co-host'}
