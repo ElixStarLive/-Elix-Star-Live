@@ -18,6 +18,7 @@ import {
   Ban,
   Trash2,
   Radio,
+  Wallet,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { showToast } from '../lib/toast';
@@ -102,6 +103,7 @@ export default function Settings() {
           <R ic={<Lock size={14} />} t={t('settings.privacy')} fn={() => navigate('/settings/safety')} />
           <R ic={<Shield size={14} />} t={t('settings.security')} fn={() => navigate('/settings/safety')} />
           <R ic={<Trash2 size={14} />} t={t('settings.deleteAccount')} fn={handleDeleteAccount} />
+          <R ic={<Wallet size={14} />} t="Creator payout" fn={() => navigate('/settings/payout')} />
 
           <S t={t('settings.section.preferences')} />
           <R ic={<Bell size={14} />} t={t('settings.notifications')} fn={() => navigate('/settings/safety')} />

@@ -3213,6 +3213,13 @@ export default function SpectatorPage() {
                           if (!token) return;
                           setHasJoinedToday(true);
                           spawnHeartFromClient(e.clientX, e.clientY);
+                          if (websocket.isConnected()) {
+                            websocket.send('heart_sent', {
+                              username: viewerName,
+                              avatar: '/royce/membership.svg',
+                              membership: true,
+                            });
+                          }
                           const joinBannerId = Date.now().toString();
                           const newMessage: LiveMessage = {
                             id: joinBannerId,
@@ -3365,6 +3372,25 @@ export default function SpectatorPage() {
                 <Heart className="w-3.5 h-3.5 text-[#D4AF37] flex-shrink-0" strokeWidth={2.25} fill="#D4AF37" />
                 <span className="text-[#F5E6A8] text-[11px] font-bold drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">Membership</span>
               </div>
+              {giftGoal && (
+                <div
+                  className="flex items-center gap-1 bg-black/75 rounded-full px-2.5 py-1 border border-[#D4AF37]/80 shadow-[0_0_8px_rgba(212,175,55,0.35)] cursor-pointer active:scale-95 transition-transform"
+                  onClick={() => { setShowFanClub(false); setShowGiftPanel(true); }}
+                >
+                  {giftGoal.giftIcon ? (
+                    <img
+                      src={resolveGiftAssetUrl(giftGoal.giftIcon)}
+                      alt=""
+                      className="w-4 h-4 object-contain flex-shrink-0"
+                    />
+                  ) : (
+                    <Gift className="w-3.5 h-3.5 text-[#D4AF37] flex-shrink-0" strokeWidth={2.25} />
+                  )}
+                  <span className="text-[#F5E6A8] text-[11px] font-bold tabular-nums drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">
+                    {giftGoal.currentCount}/{giftGoal.targetCount}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>

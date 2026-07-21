@@ -827,51 +827,45 @@ export default function LiveStream() {
   const [totalGiftCoins, setTotalGiftCoins] = useState(0);
   const [topGifters, setTopGifters] = useState<{ user_id: string; total_coins: number; username?: string; avatar_url?: string }[]>([]);
 
-  // Fetch membership stats for creator
+  // Fetch membership stats for creator (Team Status hearts + gift coins)
+  const refreshMembershipStats = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const { data: d } = await request(`/api/membership/${user.id}`);
+      if (!d) return;
+      if (typeof d.todayHearts === 'number') setDailyHeartCount(d.todayHearts);
+      if (typeof d.totalHearts === 'number') setMyHeartCount(d.totalHearts);
+      if (typeof d.totalGiftCoins === 'number') setTotalGiftCoins(d.totalGiftCoins);
+      if (!Array.isArray(d.topGifters)) return;
+      const raw = d.topGifters as { user_id: string; total_coins: number; username?: string; avatar_url?: string }[];
+      const enriched = await Promise.all(
+        raw.map(async (g) => {
+          if (g.username || !g.user_id) return g;
+          try {
+            const { data: body } = await request(`/api/profiles/${encodeURIComponent(g.user_id)}`);
+            const p = (body as { profile?: Record<string, unknown> } | null)?.profile ?? body;
+            if (!p || typeof p !== 'object') return g;
+            const rec = p as Record<string, unknown>;
+            return {
+              ...g,
+              username: String(rec.display_name ?? rec.displayName ?? rec.username ?? g.username ?? ''),
+              avatar_url: (rec.avatar_url as string | undefined) ?? (rec.avatarUrl as string | undefined) ?? g.avatar_url,
+            };
+          } catch {
+            return g;
+          }
+        }),
+      );
+      setTopGifters(enriched);
+    } catch { /* non-fatal */ }
+  }, [user?.id]);
+
   useEffect(() => {
     if (!user?.id) return;
-    let cancelled = false;
-    const fetchStats = () => {
-      request(`/api/membership/${user.id}`).then(async ({ data: d }) => {
-        if (!d || cancelled) return;
-        if (typeof d.todayHearts === 'number') setDailyHeartCount(d.todayHearts);
-        if (typeof d.totalHearts === 'number') setMyHeartCount(d.totalHearts);
-        if (typeof d.totalGiftCoins === 'number') setTotalGiftCoins(d.totalGiftCoins);
-        if (!Array.isArray(d.topGifters)) return;
-        const raw = d.topGifters as { user_id: string; total_coins: number; username?: string; avatar_url?: string }[];
-        const needNames = raw.filter((g) => g?.user_id && !g.username).slice(0, 20);
-        if (needNames.length === 0) {
-          if (!cancelled) setTopGifters(raw);
-          return;
-        }
-        const enriched = await Promise.all(
-          raw.map(async (g) => {
-            if (g.username || !g.user_id) return g;
-            try {
-              const { data: body } = await request(`/api/profiles/${encodeURIComponent(g.user_id)}`);
-              const p = (body as { profile?: Record<string, unknown> } | null)?.profile ?? body;
-              if (!p || typeof p !== 'object') return g;
-              const rec = p as Record<string, unknown>;
-              return {
-                ...g,
-                username: String(rec.display_name ?? rec.displayName ?? rec.username ?? g.username ?? ''),
-                avatar_url: (rec.avatar_url as string | undefined) ?? (rec.avatarUrl as string | undefined) ?? g.avatar_url,
-              };
-            } catch {
-              return g;
-            }
-          }),
-        );
-        if (!cancelled) setTopGifters(enriched);
-      }).catch(() => {});
-    };
-    fetchStats();
-    const interval = setInterval(fetchStats, 30000);
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
-  }, [user?.id]);
+    void refreshMembershipStats();
+    const interval = setInterval(() => { void refreshMembershipStats(); }, 30000);
+    return () => clearInterval(interval);
+  }, [user?.id, refreshMembershipStats]);
 
   const [creatorQuery, setCreatorQuery] = useState('');
   const [creators, setCreators] = useState<{ id: string; streamKey: string; name: string; username: string; followers: string; avatar: string; isLive: boolean }[]>([]);
@@ -3270,6 +3264,10 @@ export default function LiveStream() {
 
       // Chat / MVP only on first delivery of this transaction.
       if (!alreadySeen) {
+        if (isBroadcast && giftCoins > 0) {
+          setTotalGiftCoins((prev) => prev + giftCoins);
+          void refreshMembershipStats();
+        }
         if (gifterId && giftCoins > 0) {
           const gifterName =
             (typeof data.username === 'string' && data.username.trim()) ||
@@ -3641,6 +3639,18 @@ export default function LiveStream() {
       } else if (data.user_id !== user?.id) {
         addLiveLikes(1);
       }
+      // Membership / Join hearts: activate icon animation + refresh Team Status coins/hearts
+      const isMembershipHeart =
+        data?.membership === true ||
+        data?.type === 'membership' ||
+        String(data?.avatar || '').includes('membership');
+      if (isBroadcast && data.user_id !== user?.id) {
+        void refreshMembershipStats();
+        if (isMembershipHeart) {
+          setShowJoinAnimation(true);
+          window.setTimeout(() => setShowJoinAnimation(false), 2000);
+        }
+      }
       if (data.user_id === user?.id) return;
       const layer = chatHeartLayerRef.current;
       if (layer && layer.clientWidth > 0 && layer.clientHeight > 0) {
@@ -3648,7 +3658,13 @@ export default function LiveStream() {
         const h = layer.clientHeight;
         const x = w * (0.58 + Math.random() * 0.35);
         const y = h * (0.18 + Math.random() * 0.58);
-        spawnHeartAt(x, y, undefined, data.username, data.avatar);
+        spawnHeartAt(
+          x,
+          y,
+          undefined,
+          data.username,
+          isMembershipHeart ? '/royce/membership.svg' : data.avatar,
+        );
       }
     };
 
@@ -5788,6 +5804,13 @@ export default function LiveStream() {
                                           setMemberCount(prev => prev + 1);
                                           setHasJoinedToday(true);
                                           setShowTeamStatus(true);
+                                          if (websocket.isConnected()) {
+                                            websocket.send('heart_sent', {
+                                              username: isBroadcast ? creatorName : (user?.username || 'You'),
+                                              avatar: '/royce/membership.svg',
+                                              membership: true,
+                                            });
+                                          }
 
                                           const joinBannerId = Date.now().toString();
                                           const newMessage: LiveMessage = {
@@ -5815,6 +5838,7 @@ export default function LiveStream() {
                                               if (typeof d.todayCount === 'number') setDailyHeartCount(d.todayCount);
                                               if (typeof d.totalCount === 'number') setMyHeartCount(d.totalCount);
                                             }
+                                            if (isBroadcast) void refreshMembershipStats();
                                           } catch { /* non-fatal */ }
                                         } else if (hasJoinedToday) {
                                           setShowTeamStatus(true);
@@ -5876,6 +5900,29 @@ export default function LiveStream() {
                               <Heart className="w-3.5 h-3.5 text-[#D4AF37] fill-[#D4AF37] hidden flex-shrink-0" />
                               <span className="text-[#F5E6A8] text-[11px] font-bold whitespace-nowrap drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">Membership</span>
                             </div>
+                            {giftGoal && (
+                              <div
+                                className="flex items-center gap-1 bg-black/75 rounded-full px-2.5 py-1 border border-[#D4AF37]/80 shadow-[0_0_8px_rgba(212,175,55,0.35)] cursor-pointer"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (isBroadcast) setShowFanClub(true);
+                                  else if (!isCreatorParticipant) setShowGiftPanel(true);
+                                }}
+                              >
+                                {giftGoal.giftIcon ? (
+                                  <img
+                                    src={resolveGiftAssetUrl(giftGoal.giftIcon)}
+                                    alt=""
+                                    className="w-4 h-4 object-contain flex-shrink-0"
+                                  />
+                                ) : (
+                                  <Gift className="w-3.5 h-3.5 text-[#D4AF37] flex-shrink-0" strokeWidth={2.25} />
+                                )}
+                                <span className="text-[#F5E6A8] text-[11px] font-bold whitespace-nowrap tabular-nums drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">
+                                  {giftGoal.currentCount}/{giftGoal.targetCount}
+                                </span>
+                              </div>
+                            )}
                             {currentUniverse && (
                               <div className="flex items-center gap-1 bg-[#111111]/90 rounded-full px-2.5 py-1 border border-[#D4AF37]/80 shadow-sm">
                                 <span className="text-[#F5E6A8] text-[11px] font-bold whitespace-nowrap truncate max-w-[140px]">✨ {universeText} ✨</span>

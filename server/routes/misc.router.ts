@@ -88,14 +88,21 @@ router.get("/hearts/daily/:creatorUserId", async (req, res) => {
 
 router.post("/hearts/daily", async (req, res) => {
   const { getTokenFromRequest, verifyAuthToken } = await import("./auth");
-  const { dbSendDailyHeart } = await import("../lib/postgres");
+  const { dbSendDailyHeart, dbGetDailyHeartCount, dbGetTotalHeartCount } = await import("../lib/postgres");
   const token = getTokenFromRequest(req);
   const payload = token ? verifyAuthToken(token) : null;
   if (!payload?.sub) return res.status(401).json({ error: "Unauthorized" });
   const { creatorId } = req.body ?? {};
   if (!creatorId) return res.status(400).json({ error: "creatorId required" });
   const result = await dbSendDailyHeart(creatorId, payload.sub);
-  return res.json({ ok: result === "sent", already: result === "already" });
+  const todayCount = await dbGetDailyHeartCount(creatorId);
+  const totalCount = await dbGetTotalHeartCount(creatorId);
+  return res.json({
+    ok: result === "sent",
+    already: result === "already",
+    todayCount,
+    totalCount,
+  });
 });
 
 router.get("/membership/:creatorId", async (req, res) => {

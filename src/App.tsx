@@ -45,6 +45,8 @@ const ChatThread = lazy(() => import("./pages/ChatThread"));
 const FriendsFeed = lazy(() => import("./pages/FriendsFeed"));
 const EditProfile = lazy(() => import("./pages/EditProfile"));
 const Settings = lazy(() => import("./pages/Settings"));
+const FollowList = lazy(() => import("./pages/FollowList"));
+const CreatorPayout = lazy(() => import("./pages/CreatorPayout"));
 const CreatorLoginDetails = lazy(() => import("./pages/CreatorLoginDetails"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const Terms = lazy(() => import("./pages/Terms"));
@@ -404,8 +406,11 @@ function App() {
                 <Route path="/upload" element={<Upload />} />
                 <Route path="/edit-profile" element={<EditProfile />} />
                 <Route path="/settings" element={<Settings />} />
+                <Route path="/settings/payout" element={<CreatorPayout />} />
                 <Route path="/settings/blocked" element={<BlockedAccounts />} />
                 <Route path="/settings/safety" element={<SafetyCenter />} />
+                <Route path="/profile/:userId/followers" element={<FollowList />} />
+                <Route path="/profile/:userId/following" element={<FollowList />} />
                 <Route path="/purchase-coins" element={<PurchaseCoins />} />
                 <Route path="/shop" element={<Shop />} />
                 <Route path="/shop/:itemId" element={<Shop />} />

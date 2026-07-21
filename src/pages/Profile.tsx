@@ -22,6 +22,7 @@ import {
 import { PROFILE_PAGE_AVATAR_PX } from '../lib/profileFrame';
 import { getVideoPosterUrl, resolveGridThumbnailUrl, resolveVideoPlaybackUrl } from '../lib/bunnyStorage';
 import { openExternalLink } from '../lib/platform';
+import { fetchActiveStories, type StoryUserGroup } from '../lib/storiesApi';
 
 interface Video {
   id: string;
@@ -72,6 +73,9 @@ export default function Profile() {
   const [shareFollowers, setShareFollowers] = useState<{ user_id: string; username: string; avatar_url: string | null }[]>([]);
   const [shareSent, setShareSent] = useState<Set<string>>(new Set());
   const [risingBadges, setRisingBadges] = useState<{ code: string; title: string; kind: string }[]>([]);
+  const [profileStoryGroup, setProfileStoryGroup] = useState<StoryUserGroup | null>(null);
+  const [storyViewerOpen, setStoryViewerOpen] = useState(false);
+  const [storyViewerIndex, setStoryViewerIndex] = useState(0);
   
   const [resolvedUserId, setResolvedUserId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -201,6 +205,21 @@ export default function Profile() {
       .catch(() => setRisingBadges([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveUserId, activeTab]);
+
+  useEffect(() => {
+    if (!effectiveUserId) {
+      setProfileStoryGroup(null);
+      return;
+    }
+    let cancelled = false;
+    void fetchActiveStories().then((groups) => {
+      if (cancelled) return;
+      setProfileStoryGroup(groups.find((g) => g.userId === effectiveUserId) ?? null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [effectiveUserId]);
 
   const loadProfile = async () => {
     if (!effectiveUserId) { setLoading(false); return; }
@@ -626,10 +645,47 @@ export default function Profile() {
         {/* ═══ AVATAR ═══ */}
         <div className="flex flex-col items-center mt-2 mb-3">
           <div
-            className={`relative ${isOwnProfile ? 'cursor-pointer' : ''}`}
-            onClick={() => { if (isOwnProfile) fileInputRef.current?.click(); }}
+            className={`relative ${isOwnProfile || (profileStoryGroup?.items?.length ?? 0) > 0 ? 'cursor-pointer' : ''}`}
+            onClick={() => {
+              if (profileStoryGroup && profileStoryGroup.items.length > 0) {
+                setStoryViewerIndex(0);
+                setStoryViewerOpen(true);
+                return;
+              }
+              if (isOwnProfile) {
+                navigate('/upload?type=story');
+              }
+            }}
+            onContextMenu={(e) => {
+              if (!isOwnProfile) return;
+              e.preventDefault();
+              fileInputRef.current?.click();
+            }}
           >
-            <StoryGoldRingAvatar size={PROFILE_PAGE_AVATAR_PX} src={displayAvatar} alt="Profile" />
+            <div
+              className="rounded-full p-[2px]"
+              style={{
+                background:
+                  (profileStoryGroup?.items?.length ?? 0) > 0
+                    ? 'linear-gradient(135deg, #D4AF37, #F5E6A8, #C9A227)'
+                    : 'transparent',
+              }}
+            >
+              <StoryGoldRingAvatar size={PROFILE_PAGE_AVATAR_PX} src={displayAvatar} alt="Profile" />
+            </div>
+            {isOwnProfile && (
+              <button
+                type="button"
+                className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#D4AF37] border-2 border-black text-black text-lg font-bold leading-none flex items-center justify-center"
+                title="Add story"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate('/upload?type=story');
+                }}
+              >
+                +
+              </button>
+            )}
           </div>
           <input 
             ref={fileInputRef}
@@ -641,6 +697,15 @@ export default function Profile() {
           />
           {isUploadingAvatar && <div className="text-xs text-white/70 mt-1">Uploading...</div>}
           {avatarError && <div className="text-xs text-rose-300 mt-1">{avatarError}</div>}
+          {isOwnProfile && (
+            <button
+              type="button"
+              className="text-[10px] text-[#D4AF37] mt-1 font-semibold"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              Change photo
+            </button>
+          )}
         </div>
 
         {/* ═══ NAME + USERNAME ═══ */}
@@ -672,14 +737,28 @@ export default function Profile() {
 
         {/* ═══ STATS ROW ═══ */}
         <div className="flex items-center justify-center gap-6 mt-4 px-4">
-          <div className="flex flex-col items-center min-w-[60px]">
+          <button
+            type="button"
+            className="flex flex-col items-center min-w-[60px] active:opacity-80"
+            onClick={() => {
+              const id = displayUserId || effectiveUserId;
+              if (id) navigate(`/profile/${id}/following`);
+            }}
+          >
             <span className="text-[17px] font-extrabold text-white">{formatNumber(profileData?.following_count || 0)}</span>
             <span className="text-[11px] text-white/40 font-medium">Following</span>
-          </div>
-          <div className="flex flex-col items-center min-w-[60px]">
+          </button>
+          <button
+            type="button"
+            className="flex flex-col items-center min-w-[60px] active:opacity-80"
+            onClick={() => {
+              const id = displayUserId || effectiveUserId;
+              if (id) navigate(`/profile/${id}/followers`);
+            }}
+          >
             <span className="text-[17px] font-extrabold text-white">{formatNumber(profileData?.followers_count || 0)}</span>
             <span className="text-[11px] text-white/40 font-medium">Followers</span>
-          </div>
+          </button>
           <div className="flex flex-col items-center min-w-[60px]">
             <span className="text-[17px] font-extrabold text-white">{formatNumber(profileData?.likes_count || 0)}</span>
             <span className="text-[11px] text-white/40 font-medium">Likes</span>
@@ -691,18 +770,47 @@ export default function Profile() {
           <p className="text-center text-[13px] text-white/70 mt-3 px-8 leading-relaxed">{profileData.bio}</p>
         )}
 
-        {/* ═══ FOLLOW / MESSAGE (other user) ═══ */}
+        {/* ═══ FOLLOW / APPRECIATE / MESSAGE (other user) ═══ */}
         {!isOwnProfile && (
           <div className="flex items-center justify-center gap-2 mt-4 px-6">
             <button
               onClick={toggleFollow}
-              className={`flex-1 max-w-[160px] py-2.5 rounded-md text-sm font-bold transition ${
+              className={`flex-1 max-w-[120px] py-2.5 rounded-md text-sm font-bold transition ${
                 isFollowing
                   ? 'bg-white/10 text-white border border-white/10'
                   : 'bg-[#D4AF37] text-black'
               }`}
             >
               {isFollowing ? 'Following' : 'Follow'}
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                if (!user?.id || !effectiveUserId) {
+                  showToast('Log in to appreciate');
+                  return;
+                }
+                try {
+                  const { data, error } = await request<{ already?: boolean; ok?: boolean }>(
+                    '/api/hearts/daily',
+                    {
+                      method: 'POST',
+                      body: JSON.stringify({ creatorId: effectiveUserId }),
+                    },
+                  );
+                  if (error) {
+                    showToast('Could not send appreciate');
+                    return;
+                  }
+                  showToast(data?.already ? 'Already appreciated today' : 'Appreciate sent!');
+                } catch {
+                  showToast('Could not send appreciate');
+                }
+              }}
+              className="flex-1 max-w-[120px] py-2.5 bg-white/10 border border-white/10 rounded-md text-sm font-bold text-white flex items-center justify-center gap-1"
+            >
+              <Heart size={14} className="text-[#D4AF37]" fill="#D4AF37" />
+              Appreciate
             </button>
             <button
               onClick={async () => {
@@ -717,7 +825,7 @@ export default function Profile() {
                   }
                 } catch { navigate('/inbox'); }
               }}
-              className="flex-1 max-w-[160px] py-2.5 bg-white/10 border border-white/10 rounded-md text-sm font-bold text-white"
+              className="flex-1 max-w-[120px] py-2.5 bg-white/10 border border-white/10 rounded-md text-sm font-bold text-white"
             >
               Message
             </button>
@@ -1005,6 +1113,54 @@ export default function Profile() {
           contentType="user"
           contentId={effectiveUserId}
         />
+      )}
+
+      {storyViewerOpen && profileStoryGroup?.items?.[storyViewerIndex] && (
+        <div
+          className="fixed inset-0 z-[10060] bg-black flex items-center justify-center"
+          onClick={() => {
+            if (storyViewerIndex + 1 < profileStoryGroup.items.length) {
+              setStoryViewerIndex((i) => i + 1);
+            } else {
+              setStoryViewerOpen(false);
+            }
+          }}
+        >
+          <button
+            type="button"
+            className="absolute top-[calc(env(safe-area-inset-top,0px)+12px)] left-3 z-10 text-white text-sm font-bold px-2 py-1"
+            onClick={(e) => {
+              e.stopPropagation();
+              setStoryViewerOpen(false);
+            }}
+          >
+            Close
+          </button>
+          {profileStoryGroup.items[storyViewerIndex].mediaType === 'image' ? (
+            <img
+              src={profileStoryGroup.items[storyViewerIndex].mediaUrl}
+              alt=""
+              className="max-w-full max-h-full object-contain"
+              draggable={false}
+            />
+          ) : (
+            <video
+              key={profileStoryGroup.items[storyViewerIndex].id}
+              src={profileStoryGroup.items[storyViewerIndex].mediaUrl}
+              className="max-w-full max-h-full object-contain"
+              autoPlay
+              playsInline
+              controls={false}
+              onEnded={() => {
+                if (storyViewerIndex + 1 < profileStoryGroup.items.length) {
+                  setStoryViewerIndex((i) => i + 1);
+                } else {
+                  setStoryViewerOpen(false);
+                }
+              }}
+            />
+          )}
+        </div>
       )}
     </div>
   );
