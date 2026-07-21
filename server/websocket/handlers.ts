@@ -5,6 +5,7 @@ import {
   joinBattle,
   startBattleTimer,
   endBattle,
+  removeBattleParticipant,
   addBattleScoreForTarget,
   broadcastBattleState,
   getBattleFromStore,
@@ -520,7 +521,8 @@ export async function handleMessage(
 
       case "battle_end": {
         const bSession = await getBattleFromStore(client.roomId);
-        if (bSession && bSession.hostUserId === client.userId) {
+        if (!bSession || bSession.status === "ENDED") break;
+        if (bSession.hostUserId === client.userId) {
           if (bSession.opponentUserId) {
             await revokeBattlePublish(client.roomId, bSession.opponentUserId);
           }
@@ -531,6 +533,9 @@ export async function handleMessage(
             await revokeBattlePublish(client.roomId, bSession.player4UserId);
           }
           await endBattle(client.roomId);
+        } else {
+          await revokeBattlePublish(client.roomId, client.userId);
+          await removeBattleParticipant(client.roomId, client.userId);
         }
         break;
       }
@@ -608,7 +613,14 @@ export async function handleMessage(
             (await isUserPublishingInRoom(targetRoomRaw, targetUserId)) ||
             (targetRoomRaw !== targetUserId &&
               (await isUserPublishingInRoom(targetUserId, targetUserId)));
-          if (!targetPublishing) break;
+          if (!targetPublishing) {
+            sendToClient(client, "battle_invite_ack", {
+              targetUserId,
+              delivered: false,
+              reason: "not_live",
+            });
+            break;
+          }
         } else {
           let targetIsLiveHost = await isStreamHost(targetUserId, targetUserId);
           if (!targetIsLiveHost) {
@@ -617,7 +629,14 @@ export async function handleMessage(
               targetIsLiveHost = liveRows.some((r) => r.user_id === targetUserId);
             } catch { /* fall through — treated as not live */ }
           }
-          if (!targetIsLiveHost) break;
+          if (!targetIsLiveHost) {
+            sendToClient(client, "battle_invite_ack", {
+              targetUserId,
+              delivered: false,
+              reason: "not_live",
+            });
+            break;
+          }
         }
         // Always the battle room (host room) so accept joins the match, not a co-host live.
         const streamKey = client.roomId;
@@ -626,12 +645,31 @@ export async function handleMessage(
           "1",
           10 * 60 * 1000,
         );
-        sendToUserGlobal(targetUserId, "battle_invite", {
+        const invitePayload = {
           // Accept must authorize against the room owner — never the opponent inviter.
           hostUserId: ownerId,
           hostName: data.hostName || client.displayName,
           hostAvatar: data.hostAvatar || client.avatarUrl || "",
           streamKey,
+        };
+        let delivered = sendToUserGlobal(targetUserId, "battle_invite", invitePayload);
+        if (delivered === 0 && targetRoomRaw !== targetUserId) {
+          delivered = sendToUserGlobal(targetRoomRaw, "battle_invite", invitePayload);
+        }
+        sendToClient(client, "battle_invite_ack", {
+          targetUserId,
+          delivered: delivered > 0,
+        });
+        break;
+      }
+
+      case "battle_invite_decline": {
+        const hostStreamKey =
+          typeof data.hostStreamKey === "string" ? data.hostStreamKey.trim() : "";
+        if (!hostStreamKey) break;
+        await valkeyDel(`battle_invite:${hostStreamKey}:${client.userId}`);
+        broadcastToRoom(hostStreamKey, "battle_invite_declined", {
+          userId: client.userId,
         });
         break;
       }

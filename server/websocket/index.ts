@@ -647,13 +647,10 @@ function scheduleBattleDisconnectEnd(battleRoomId: string, userId: string): void
         const battle = await getBattleFromStore(battleRoomId);
         if (!battle || battle.status === "ENDED") return;
         const isHost = battle.hostUserId === userId;
-        const isOpponent = battle.opponentUserId === userId;
-        const isPlayer3 = battle.player3UserId === userId;
-        const isPlayer4 = battle.player4UserId === userId;
-        if (!isHost && !isOpponent && !isPlayer3 && !isPlayer4) return;
+        if (!isHost) return;
         logger.info(
-          { battleRoomId, role: isHost ? "host" : isOpponent ? "opponent" : isPlayer3 ? "player3" : "player4" },
-          "Battle participant gone after grace, ending battle",
+          { battleRoomId, role: "host" },
+          "Battle host gone after grace, ending battle",
         );
         if (battle.opponentUserId) {
           await revokeBattlePublish(battleRoomId, battle.opponentUserId);
@@ -827,8 +824,9 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
             const battle = await getBattleFromStore(battleRoomId);
             if (battle && battle.status !== "ENDED") {
               const isHost = battle.hostUserId === client.userId;
-              const isOpponent = battle.opponentUserId === client.userId;
-              if (isHost || isOpponent) {
+              // Only the host disconnect ends the battle after grace. Opponents
+              // stay in the match until they explicitly send battle_end.
+              if (isHost) {
                 scheduleBattleDisconnectEnd(battleRoomId, client.userId);
               }
             }

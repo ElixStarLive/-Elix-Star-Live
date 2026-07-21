@@ -845,7 +845,26 @@ export default function LiveStream() {
   const battleSlotsRef = useRef(battleSlots);
   useEffect(() => { battleSlotsRef.current = battleSlots; }, [battleSlots]);
   const hasOpponentStreamRef = useRef(false);
-  const inviteTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const inviteTimersRef = useRef<Map<string, number>>(new Map());
+
+  const clearBattleInviteTimer = useCallback((creatorId: string) => {
+    const t = inviteTimersRef.current.get(creatorId);
+    if (t) {
+      clearTimeout(t);
+      inviteTimersRef.current.delete(creatorId);
+    }
+  }, []);
+
+  const clearInvitedBattleSlot = useCallback((creatorId: string) => {
+    clearBattleInviteTimer(creatorId);
+    setBattleSlots((prev) => {
+      const idx = prev.findIndex((s) => s.userId === creatorId && s.status === 'invited');
+      if (idx === -1) return prev;
+      const next = [...prev];
+      next[idx] = { userId: '', name: '', status: 'empty', avatar: '' };
+      return next;
+    });
+  }, [clearBattleInviteTimer]);
 
   const inviteCreatorToSlot = async (creatorId: string) => {
     // Every battle creator (host OR accepted opponent) can invite more live
@@ -874,6 +893,13 @@ export default function LiveStream() {
       hostAvatar: myAvatar,
       streamKey: effectiveStreamId,
     });
+
+    clearBattleInviteTimer(creatorId);
+    const timer = window.setTimeout(() => {
+      inviteTimersRef.current.delete(creatorId);
+      clearInvitedBattleSlot(creatorId);
+    }, 90_000);
+    inviteTimersRef.current.set(creatorId, timer);
   };
 
   // ─── INCOMING INVITE (for viewers / other broadcasters) ─────
@@ -954,6 +980,10 @@ export default function LiveStream() {
 
   const declineBattleInvite = async () => {
     if (!pendingInvite) return;
+    websocket.send('battle_invite_decline', {
+      hostStreamKey: pendingInvite.streamKey,
+      hostUserId: pendingInvite.hostUserId,
+    });
     setPendingInvite(null);
   };
 
@@ -1198,8 +1228,10 @@ export default function LiveStream() {
   useEffect(() => { isBattleModeRef.current = isBattleMode; }, [isBattleMode]);
   // If joining as battle participant, enter battle mode and start camera (server drives timer/countdown)
   const battleLkRoomRef = useRef<Room | null>(null);
+  const battleJoinerConnectIdRef = useRef(0);
   useEffect(() => {
     if (!isBattleJoiner || !user?.id) return;
+    const connectId = ++battleJoinerConnectIdRef.current;
     setIsBattleMode(true);
     setBattleState('INVITING');
     setMyScore(0);
@@ -1383,6 +1415,7 @@ export default function LiveStream() {
     })();
     return () => {
       cancelled = true;
+      if (battleJoinerConnectIdRef.current !== connectId) return;
       if (battleLkRoomRef.current) { battleLkRoomRef.current.disconnect(); battleLkRoomRef.current = null; }
       if (battlePeerRef.current) { battlePeerRef.current.close(); battlePeerRef.current = null; }
       // Always stop local getUserMedia — disconnect alone leaves camera/mic hot.
@@ -1590,11 +1623,13 @@ export default function LiveStream() {
 
   const _isRegularViewer = !isBroadcast && !isBattleParticipant;
 
+  const opponentLkConnectIdRef = useRef(0);
   // Connect to opponent's LiveKit room to receive their video (creators may still
   // be publishing there). Host-room attach below covers when they join this room.
   useEffect(() => {
     if (!isBattleMode || !opponentStreamKey || !isBroadcast) return;
     if (opponentStreamKey === effectiveStreamId) return;
+    const connectId = ++opponentLkConnectIdRef.current;
     let mounted = true;
     const room = new Room();
     opponentLkRoomRef.current = room;
@@ -1644,6 +1679,7 @@ export default function LiveStream() {
 
     return () => {
       mounted = false;
+      if (opponentLkConnectIdRef.current !== connectId) return;
       room.disconnect();
       if (opponentLkRoomRef.current === room) opponentLkRoomRef.current = null;
       // Connection-bug fix only: do not clear hasOpponentStream here.
@@ -2050,8 +2086,8 @@ export default function LiveStream() {
       { userId: '', name: '', status: 'empty', avatar: '' },
       { userId: '', name: '', status: 'empty', avatar: '' },
     ]);
-    inviteTimersRef.current.forEach(t => clearTimeout(t));
-    inviteTimersRef.current = [];
+    inviteTimersRef.current.forEach((t) => clearTimeout(t));
+    inviteTimersRef.current.clear();
     setIsFindCreatorsOpen(false);
     setCreatorQuery('');
     if (opponentVideoRef.current) { opponentVideoRef.current.srcObject = null; }
@@ -3202,7 +3238,10 @@ export default function LiveStream() {
           // battle_state_sync sends FULL state — but on the joiner's screen an
           // empty/ENDED sync must not wipe the host pane we seeded on arrival
           // (the host is still live in front of us until we leave the battle).
-          if (!isBattleJoiner) next[0] = { userId: '', name: '', status: 'empty', avatar: '' };
+          if (!isBattleJoiner) {
+            next[0] = { userId: '', name: '', status: 'empty', avatar: '' };
+            setHasOpponentStream(false);
+          }
         }
         if (selfId) seenIds.add(selfId);
 
@@ -3391,6 +3430,7 @@ export default function LiveStream() {
       const requesterName = data.requesterName as string | undefined;
       const requesterAvatar = data.requesterAvatar as string | undefined;
       if (!requesterId || !requesterName) return;
+      clearBattleInviteTimer(requesterId);
       setIsBattleMode(true);
       setBattleState('INVITING');
       setOpponentCreatorName(requesterName);
@@ -3421,6 +3461,22 @@ export default function LiveStream() {
       });
       // Do NOT battle_create here — each accept used to wipe the previous
       // creator. Host taps Start Match once every accepted creator is ready.
+    };
+
+    const handleBattleInviteAck = (data: { targetUserId?: string; delivered?: boolean }) => {
+      if (!mounted) return;
+      const tid = typeof data?.targetUserId === 'string' ? data.targetUserId : '';
+      if (!tid || data?.delivered !== false) return;
+      clearInvitedBattleSlot(tid);
+      showToast('Creator is not available for battle');
+    };
+
+    const handleBattleInviteDeclined = (data: { userId?: string }) => {
+      if (!mounted) return;
+      if (!isBroadcast && !isBattleJoiner) return;
+      const uid = typeof data?.userId === 'string' ? data.userId : '';
+      if (!uid) return;
+      clearInvitedBattleSlot(uid);
     };
 
     const handleCohostRequest = (data) => {
@@ -3499,6 +3555,8 @@ export default function LiveStream() {
     };
 
     websocket.on('battle_invite', handleBattleInvite);
+    websocket.on('battle_invite_ack', handleBattleInviteAck);
+    websocket.on('battle_invite_declined', handleBattleInviteDeclined);
     websocket.on('battle_invite_accepted', handleBattleInviteAccepted);
     websocket.on('cohost_invite', handleCohostInvite);
     websocket.on('cohost_invite_ack', handleCohostInviteAck);
@@ -3550,6 +3608,8 @@ export default function LiveStream() {
       websocket.off('booster_caught', handleBoosterCaught);
       websocket.off('mist_activated', handleMistActivated);
       websocket.off('battle_invite', handleBattleInvite);
+      websocket.off('battle_invite_ack', handleBattleInviteAck);
+      websocket.off('battle_invite_declined', handleBattleInviteDeclined);
       websocket.off('battle_invite_accepted', handleBattleInviteAccepted);
       websocket.off('cohost_invite', handleCohostInvite);
       websocket.off('cohost_invite_ack', handleCohostInviteAck);
@@ -5776,12 +5836,12 @@ export default function LiveStream() {
               <div className="space-y-1 pb-4">
                 {creatorsToInvite.map((c) => {
                   const isIncomingBattleInvite = !!(pendingInvite && pendingInvite.hostUserId === c.id);
-                  const allFull = battleSlots.every(s => s.status !== 'empty');
+                  const hasEmptyBattleSlot = battleSlots.some((s) => s.status === 'empty');
 
                   const handleReject = (ev: React.MouseEvent) => {
                     ev.preventDefault();
                     ev.stopPropagation();
-                    setBattleSlots(prev => prev.map(s => s.userId === c.id ? { userId: '', name: '', status: 'empty' as const, avatar: '' } : s));
+                    clearInvitedBattleSlot(c.id);
                     if (pendingInvite && pendingInvite.hostUserId === c.id) declineBattleInvite();
                   };
                   const handleJoin = async (ev: React.MouseEvent) => {
@@ -5793,7 +5853,7 @@ export default function LiveStream() {
                   return (
                     <div
                       key={c.id}
-                      className={`w-full flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-white/[0.03] transition-colors ${allFull ? 'opacity-70' : ''}`}
+                      className={`w-full flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-white/[0.03] transition-colors ${!hasEmptyBattleSlot ? 'opacity-70' : ''}`}
                     >
                       <div className="relative flex-shrink-0">
                         <AvatarRing src={c.avatar} alt={c.name} size={SHARE_PANEL_AVATAR_PX} />
@@ -5821,11 +5881,11 @@ export default function LiveStream() {
                       ) : (
                         <button
                           type="button"
-                          disabled={allFull || !(isBroadcast || isBattleJoiner)}
+                          disabled={!hasEmptyBattleSlot || !(isBroadcast || isBattleJoiner)}
                           onClick={(ev) => {
                             ev.preventDefault();
                             ev.stopPropagation();
-                            if (!allFull) void inviteCreatorToSlot(c.id);
+                            if (hasEmptyBattleSlot) void inviteCreatorToSlot(c.id);
                           }}
                           className="px-2 py-1 rounded-full bg-[#C9A96E] flex items-center justify-center gap-0.5 flex-shrink-0 active:scale-95 disabled:opacity-50"
                         >

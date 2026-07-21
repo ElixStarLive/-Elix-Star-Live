@@ -280,6 +280,39 @@ export async function addBattleScoreForTarget(
   });
 }
 
+/** Remove a non-host creator from an active battle without ending the match. */
+export async function removeBattleParticipant(
+  roomId: string,
+  userId: string,
+): Promise<boolean> {
+  const session = await getBattleFromStore(roomId);
+  if (!session || session.status === "ENDED") return false;
+  if (session.hostUserId === userId) return false;
+
+  let removed = false;
+  if (session.opponentUserId === userId) {
+    session.opponentUserId = "";
+    session.opponentName = "";
+    session.opponentRoomId = "";
+    session.opponentReady = false;
+    removed = true;
+  } else if (session.player3UserId === userId) {
+    session.player3UserId = "";
+    session.player3Name = "";
+    removed = true;
+  } else if (session.player4UserId === userId) {
+    session.player4UserId = "";
+    session.player4Name = "";
+    removed = true;
+  }
+  if (!removed) return false;
+
+  await valkeyDel("ubr:" + userId);
+  await saveBattleToStore(roomId, session);
+  broadcastBattleState(roomId, session);
+  return true;
+}
+
 export async function endBattle(roomId: string): Promise<void> {
   const session = await getBattleFromStore(roomId);
   if (!session) return;
