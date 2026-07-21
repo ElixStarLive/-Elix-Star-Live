@@ -1,130 +1,126 @@
 # Google Play Console — submission checklist (Elix Star Live)
 
-Freeze tag: `pre-production-audit-2026-07-21`  
-Current AAB target: **1.0.232+** (`android/app/build/outputs/bundle/release/app-release.aab`)  
-Package: `com.elixstarlive.app`
+**Package:** `com.elixstarlive.app`  
+**Current AAB:** `1.0.235` (versionCode **282**)  
+**AAB path:** `android/app/build/outputs/bundle/release/app-release.aab`
 
-**This document prepares Play Console answers from the codebase. Filling Console and submitting still requires your Google account.**
+This folder is the **complete Play policy + listing package**. Copy answers from the linked docs into Play Console — we cannot submit on your Google account for you.
 
 ---
 
-## 1. Upload
+## Quick links (policy docs)
 
-1. Play Console → App → Production or **Internal testing** (recommended first)
+| Doc | Use for |
+|-----|---------|
+| [PLAY_POLICY_DECLARATIONS.md](./PLAY_POLICY_DECLARATIONS.md) | App access, ads, financial features, UGC, child safety, account deletion |
+| [PLAY_DATA_SAFETY_FORM.md](./PLAY_DATA_SAFETY_FORM.md) | Data safety questionnaire |
+| [PLAY_IARC_ANSWERS.md](./PLAY_IARC_ANSWERS.md) | Content rating / IARC |
+| [../store-assets/android/STORE_LISTING_COPY.txt](../store-assets/android/STORE_LISTING_COPY.txt) | Title, short + full description |
+
+---
+
+## 1. Upload AAB
+
+1. Play Console → **Testing → Internal testing** (first) or **Production**
 2. Create release → upload `app-release.aab`
-3. Release name: `1.0.232 (279)` (match `versionName` / `versionCode`)
+3. Release name: `1.0.235 (282)`
 
 ---
 
-## 2. Store listing URLs (must be live)
+## 2. Store listing (Grow → Store presence → Main store listing)
 
-| Field | Exact URL |
-|-------|-----------|
-| Privacy policy | https://www.elixstarlive.co.uk/privacy.html |
-| App support | mailto:info@elixstarlive.co.uk or https://www.elixstarlive.co.uk (Support in app) |
-| Account deletion (Data safety / Account deletion) | https://www.elixstarlive.co.uk/delete-account.html |
-
-Verify in a browser before submit (200 OK, HTTPS).
-
----
-
-## 3. Data safety (answer from actual app)
-
-### Does your app collect or share user data?
-**Yes**
-
-### Data collected (typical mapping)
-
-| Data type | Collected? | Shared? | Purpose | Notes |
-|-----------|------------|---------|---------|-------|
-| Email | Yes | No (except processors) | Account | Registration / login |
-| Name / username | Yes | Yes (other users) | App functionality | Public profile / live / chat |
-| Photos / videos | Yes | Yes (UGC) | App functionality | User uploads / live |
-| Audio | Yes | Yes (UGC) | App functionality | Live / video |
-| Messages | Yes | Yes (recipients) | App functionality | Chat / live chat |
-| Purchase history | Yes | With Google Play | App functionality | IAP receipts verified server-side |
-| Device IDs | Yes | No | Analytics / fraud / push | Device tokens |
-| Crash logs | Yes | No | Analytics | Store builds → `/api/analytics/track` |
-| App interactions | Yes | No | Analytics | Optional analytics events |
-
-### Security practices
-- Data encrypted in transit: **Yes** (HTTPS / WSS)
-- Users can request deletion: **Yes** (Settings → Delete Account + web URL)
-
-### Advertising ID
-- **Not used** — AD_ID permission removed from manifest
-
-### Approximate location / precise location
-- **Not collected** (no location permission)
-
----
-
-## 4. Permissions declaration
-
-Declared and used:
-- Camera, Microphone — create / live / calls  
-- Notifications — push  
-- Billing — in-app coins / membership / promote  
-
-Also present (libraries / live streaming): `WAKE_LOCK`, `MODIFY_AUDIO_SETTINGS`, `ACCESS_NETWORK_STATE` — declare as required for live streaming / connectivity if Console asks.
-
----
-
-## 5. In-app products (create before testing IAP)
-
-Consumable coin packs (IDs must match exactly):
-
-`coins100` `coins500a` `coins1000` `coins5000` `coins10000` `coins50000` `coins100000` `coins150000` `coins200000`
-
-Also configure promote / membership products from `src/lib/iap.ts` if offered.
-
-License testers: add your Google account under Setup → License testing.
-
----
-
-## 6. Account deletion (Play policy)
-
-| Path | Status |
-|------|--------|
-| In-app | Settings → Delete Account → `POST /api/auth/delete` (hard delete) |
-| Web | https://www.elixstarlive.co.uk/delete-account.html |
-
----
-
-## 7. Content / UGC
-
-- Reporting: Report flows in app  
-- Blocking: Settings → Blocked Accounts  
-- Guidelines: in-app `/guidelines`  
-- Age: registration requires confirming **13+**  
-- Not Families / Designed for Children  
-
----
-
-## 8. Assets
-
-| Asset | Path |
-|-------|------|
+| Field | Value |
+|-------|-------|
+| App name | Elix Star Live |
+| Short description | See `store-assets/android/STORE_LISTING_COPY.txt` |
+| Full description | See `store-assets/android/STORE_LISTING_COPY.txt` |
+| App icon | `store-assets/android/icon-512.png` |
 | Feature graphic | `store-assets/android/feature-graphic.png` |
-| Screenshots | Capture yourself into `store-assets/android/screenshots/` (min 2 phone) |
+| Phone screenshots | `store-assets/android/screenshots/` (9 images) |
+| Category | Social |
+| Email | support@elixstarlive.co.uk |
+| Website | https://www.elixstarlive.co.uk |
+| Privacy policy | https://www.elixstarlive.co.uk/privacy.html |
 
 ---
 
-## 9. Pre-submit smoke test (you on a device)
+## 3. Required public URLs (must return 200 HTTPS)
 
-Internal testing track install, then verify:
+| Purpose | URL | Status |
+|---------|-----|--------|
+| Privacy policy | https://www.elixstarlive.co.uk/privacy.html | Live |
+| Terms | https://www.elixstarlive.co.uk/terms.html | Live |
+| Account deletion | https://www.elixstarlive.co.uk/delete-account.html | Live |
+| Child safety standards | https://www.elixstarlive.co.uk/child-safety.html | Live |
+| Support | https://www.elixstarlive.co.uk/support.html | Deploy with next web release |
 
-- [ ] Cold start / login / register (13+ checkbox)  
+---
+
+## 4. Policy forms (Policy → App content)
+
+Fill using **[PLAY_POLICY_DECLARATIONS.md](./PLAY_POLICY_DECLARATIONS.md)**:
+
+- [ ] Privacy policy URL  
+- [ ] Data safety → **[PLAY_DATA_SAFETY_FORM.md](./PLAY_DATA_SAFETY_FORM.md)**  
+- [ ] Content rating → **[PLAY_IARC_ANSWERS.md](./PLAY_IARC_ANSWERS.md)**  
+- [ ] Target audience (13+, **not** for children)  
+- [ ] Financial features (virtual currency / IAP)  
+- [ ] UGC declaration  
+- [ ] Child safety standards URL + contact  
+- [ ] Account deletion  
+- [ ] App access (reviewer test login — **you** add credentials in Console)  
+- [ ] Ads: **No**
+
+---
+
+## 5. In-app products (Monetize → Products)
+
+Consumable coin packs — IDs must match exactly:
+
+```
+coins100, coins500a, coins1000, coins5000, coins10000,
+coins50000, coins100000, coins150000, coins200000
+```
+
+Promote SKUs: see `src/lib/iap.ts` → `PROMOTE_PRODUCTS`  
+Membership: server-derived per creator (`/api/membership/...`)
+
+**Setup → License testing:** add your Google account for IAP testing.
+
+---
+
+## 6. In-app compliance (already in app)
+
+| Requirement | Where |
+|-------------|-------|
+| Age 13+ at registration | Register screen checkbox |
+| Privacy + Terms links | Register, Purchase Coins, Settings → Legal |
+| Account deletion | Settings → Delete Account |
+| Restore purchases | Get Coins → restore icon (native) |
+| Virtual currency disclosure | Purchase Coins footer |
+| Report / block | In-app on content and profiles |
+
+---
+
+## 7. Pre-submit smoke test
+
+- [ ] Login / register (13+ checkbox)  
 - [ ] Feed plays  
-- [ ] Live join / leave  
-- [ ] Settings → Privacy / Terms / Delete Account (cancel delete)  
-- [ ] Buy coins (license tester) — real Play Billing sheet  
-- [ ] No Test coins menu in store build  
-- [ ] Close/back on Settings & Live works under status bar  
+- [ ] Join and leave live  
+- [ ] Buy coins (license tester) — twice in a row  
+- [ ] Restore purchases  
+- [ ] Settings → Privacy, Terms, Delete Account (cancel)  
+- [ ] No Test Coins menu in store build  
 
 ---
 
-## 10. Honest status
+## 8. Deploy web policy pages
 
-Code + AAB + checklist: **ready to upload to Internal testing**.  
-**Google approval is not guaranteed** until Console forms, screenshots, IAP products, and device smoke tests are complete on your side.
+After pulling this commit, **redeploy** `www.elixstarlive.co.uk` so `support.html` is live (new file). Other policy URLs are already live.
+
+---
+
+## Honest status
+
+**Code + policy docs + assets:** ready for Play Console submission.  
+**You still must:** paste forms in Console, upload screenshots, add reviewer login, activate IAP products, and submit the release.

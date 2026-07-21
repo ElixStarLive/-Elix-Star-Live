@@ -10,10 +10,9 @@
 - Required by Play Console
 
 ### 3. Screenshots (Required)
-Capture from a real device or emulator running the release AAB:
-- **Location**: `store-assets/android/screenshots/`
-- Phone: at least 2 (recommend 4) — feed, live, create, profile
-- Min short side ≥ 320px; typical 1080x1920
+- **Location**: `store-assets/android/screenshots/` (9 phone screenshots ready)
+- Phone: upload all 9 from that folder (min 2 required)
+- Min short side ≥ 320px
 
 ### 4. App Store Listing Content
 
@@ -38,7 +37,7 @@ Complete the IARC questionnaire in Play Console (UGC, chat, virtual items).
 |---------|-----|
 | Privacy Policy | https://www.elixstarlive.co.uk/privacy.html |
 | Terms | https://www.elixstarlive.co.uk/terms.html |
-| Support | https://www.elixstarlive.co.uk/support (or in-app Support) |
+| Support | https://www.elixstarlive.co.uk/support.html |
 | Account deletion | https://www.elixstarlive.co.uk/delete-account.html |
 | Child safety | https://www.elixstarlive.co.uk/child-safety.html |
 
