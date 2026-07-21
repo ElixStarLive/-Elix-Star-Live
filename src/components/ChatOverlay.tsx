@@ -124,8 +124,8 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
               >
                 <LevelBadge
                   level={typeof msg.level === 'number' ? msg.level : 1}
-                  size={CHAT_LEVEL_PILL_SIZE_PX}
-                  circleSize={msg.isSystem ? 18 : CHAT_PROFILE_RING_PX}
+                  size={msg.isSystem ? 20 : CHAT_LEVEL_PILL_SIZE_PX}
+                  circleSize={msg.isSystem ? 16 : CHAT_PROFILE_RING_PX}
                   layout="fixed"
                   avatar={typeof msg.avatar === 'string' ? msg.avatar : undefined}
                 />

@@ -58,22 +58,19 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
   const avatarDiameter = profileRingInnerPx(circleSize);
 
   if (splitCircleSizing) {
-    /** Circle full size; smaller round LV capsule hugging the circle. */
-    const pillH = Math.max(
-      10,
-      Math.round(sizeProvided ? barBaseSize * 0.62 : circleSize * 0.34),
-    ) + levelExtraHeightPx;
-    const pillPadX = Math.max(5, Math.round(pillH * 0.38));
-    const overlapPx = Math.round(circleSize * 0.28);
+    /** Circle full size; compact round LV capsule hugging the circle (live chat). */
+    const pillH = Math.max(11, Math.round(circleSize * 0.42));
+    const pillPadX = Math.max(6, Math.round(pillH * 0.45));
+    const overlapPx = Math.round(circleSize * 0.22);
     const label = text === 'level' ? `Level ${safeLevel}` : `LV ${safeLevel}`;
-    const fontPx = Math.max(8, Math.round(pillH * 0.52));
+    const fontPx = Math.max(9, Math.round(pillH * 0.55));
     return (
       <div
         className={className}
         style={{
           display: 'inline-flex',
           alignItems: 'center',
-          height: Math.max(circleSize, pillH),
+          height: circleSize,
           flexShrink: 0,
           verticalAlign: 'middle',
           position: 'relative',
@@ -128,7 +125,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
             borderRadius: 9999,
             background: getBarGradient(),
             border: '1px solid rgba(255,255,255,0.28)',
-            boxShadow: '0 4px 10px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.35)',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.45), inset 0 1px 1px rgba(255,255,255,0.28)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'flex-end',
