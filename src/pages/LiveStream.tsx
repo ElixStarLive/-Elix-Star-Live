@@ -6099,8 +6099,6 @@ export default function LiveStream() {
       </AnimatePresence>
 
       {/* BOTTOM RIGHT: Action buttons (same area as before, aligned right) */}
-      {/* Hide while mini-profile is open so Co-Host/Battle/Share/More cannot sit on that panel. */}
-      {!miniProfile && (
       <div
         className="bottom-zone pointer-events-auto bg-transparent px-3 pt-0 flex flex-col items-end fixed left-0 right-0 bottom-0 z-[50002] justify-end"
         style={{ paddingBottom: LIVE_BOTTOM_ACTION_PADDING }}
@@ -6218,7 +6216,6 @@ export default function LiveStream() {
         </div>
         </div>
       </div>
-      )}
 
       {/* Gift panel: spectators open it from their bar; creator has no Gift button. */}
       {showGiftPanel && !isCreatorParticipant && (
@@ -6448,7 +6445,6 @@ export default function LiveStream() {
               </div>
 
               <div className="mt-5 grid grid-cols-4 gap-2">
-                {!(miniProfile?.id && user?.id && miniProfile.id === user.id) && (
                 <button
                   type="button"
                   onClick={() => void handleMiniProfileFollowToggle()}
@@ -6466,7 +6462,6 @@ export default function LiveStream() {
                     ? 'Following'
                     : 'Follow'}
                 </button>
-                )}
                 <button 
                   type="button" 
                   onClick={() => {
