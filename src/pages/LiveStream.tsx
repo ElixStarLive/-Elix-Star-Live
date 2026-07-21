@@ -209,6 +209,14 @@ export default function LiveStream() {
   /** Like/hearts only in bottom chat strip — not over battle/video (see SpectatorPage `spectatorChatHeartsRef`). */
   const chatHeartLayerRef = useRef<HTMLDivElement>(null);
   const cameraStreamRef = useRef<MediaStream | null>(null);
+  const bindHostCameraPreview = useCallback((el: HTMLVideoElement | null) => {
+    videoRef.current = el;
+    if (!el) return;
+    const stream = cameraStreamRef.current;
+    if (!stream || el.srcObject === stream) return;
+    el.srcObject = stream;
+    void el.play().catch(() => {});
+  }, []);
   const [viewerHasStream, _setViewerHasStream] = useState(false);
   const [giftsCatalog, setGiftsCatalog] = useState<GiftUiItem[]>([]);
   const giftsCatalogRef = useRef<GiftUiItem[]>([]);
@@ -2598,16 +2606,35 @@ export default function LiveStream() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isBroadcast, cameraFacing]);
 
-  // Re-attach camera stream to videoRef when battle mode toggles (the <video> element changes)
+  // Re-attach camera stream when battle mode toggles (solo vs battle <video> swap).
   useEffect(() => {
     if (!isBroadcast && !isBattleJoiner) return;
-    const stream = cameraStreamRef.current;
-    if (!stream || !videoRef.current) return;
-    if (videoRef.current.srcObject !== stream) {
-      videoRef.current.srcObject = stream;
-      videoRef.current.play().catch(() => {});
-    }
-  }, [isBattleMode, isBroadcast, isBattleJoiner]);
+    let cancelled = false;
+    let attempts = 0;
+    const attach = () => {
+      if (cancelled || attempts > 24) return;
+      attempts += 1;
+      const stream = cameraStreamRef.current;
+      const el = videoRef.current;
+      if (stream && el) {
+        if (el.srcObject !== stream) {
+          el.srcObject = stream;
+          void el.play().catch(() => {});
+        }
+        return;
+      }
+      requestAnimationFrame(attach);
+    };
+    requestAnimationFrame(attach);
+    return () => {
+      cancelled = true;
+    };
+  }, [isBattleMode, isBroadcast, isBattleJoiner, cameraStream]);
+
+  useEffect(() => {
+    if (!isBroadcast) return;
+    if (videoRef.current) setFaceARVideoEl(videoRef.current);
+  }, [isBroadcast, isBattleMode, cameraStream]);
 
   useEffect(() => {
     if (!isBroadcast) return;
@@ -4591,7 +4618,7 @@ export default function LiveStream() {
             {isBroadcast || isBattleParticipant ? (
               <>
                 <video
-                  ref={videoRef}
+                  ref={bindHostCameraPreview}
                   className="w-full h-full object-cover"
                   autoPlay
                   playsInline
@@ -4919,7 +4946,7 @@ export default function LiveStream() {
                       <div
                         className="flex-1 basis-0 min-w-0 h-full overflow-hidden relative bg-[#111111] pointer-events-auto"
                       >
-                      <video ref={videoRef} className="w-full h-full object-cover transform scale-x-[-1]" autoPlay playsInline muted style={isCamOff ? { opacity: 0 } : undefined} />
+                      <video ref={bindHostCameraPreview} className="w-full h-full object-cover transform scale-x-[-1]" autoPlay playsInline muted style={isCamOff ? { opacity: 0 } : undefined} />
                       {isCamOff && (
                         <div className="absolute inset-0 z-[5] flex flex-col items-center justify-center gap-1 bg-[#111111]">
                           {(user?.avatar || myAvatar) ? (
@@ -6974,6 +7001,7 @@ export default function LiveStream() {
         isOpen={isReportModalOpen}
         onClose={() => setIsReportModalOpen(false)}
         videoId={effectiveStreamId || ''}
+        contentId={user?.id || effectiveStreamId || ''}
         contentType="live"
       />
 

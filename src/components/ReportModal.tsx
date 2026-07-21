@@ -114,6 +114,11 @@ export default function ReportModal({ isOpen, onClose, videoId, contentType, con
     setIsSubmitting(true);
 
     const targetId = (contentType === 'video' ? videoId : contentId || videoId).trim();
+    if (!targetId) {
+      showToast('Cannot submit report — missing content reference.');
+      setIsSubmitting(false);
+      return;
+    }
     const done = () => {
       setShowSuccess(true);
       setTimeout(() => {
@@ -143,15 +148,12 @@ export default function ReportModal({ isOpen, onClose, videoId, contentType, con
       throw new Error(reqError.message);
     } catch {
       try {
-        const payload: Record<string, unknown> = {
-          reporter_id: authUserId,
+        const { error } = await api.reports.create({
+          targetType: contentType,
+          targetId,
           reason: selectedReason,
           details: additionalDetails || '',
-        };
-        if (contentType === 'video') payload.video_id = targetId;
-        if (contentType === 'user' && targetId) payload.reported_id = targetId;
-
-        const { error } = await api.reports.create(payload);
+        });
         if (error) throw error;
         done();
       } catch (directErr) {
@@ -197,7 +199,7 @@ export default function ReportModal({ isOpen, onClose, videoId, contentType, con
 
   if (showSuccess) {
     return (
-      <div className="fixed inset-0 z-modals bg-[#111111] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="fixed inset-0 z-[99999] bg-[#111111] flex items-center justify-center p-4" onClick={onClose}>
         <div className="bg-[#111111] rounded-2xl p-6 max-w-sm w-full text-center" onClick={(e) => e.stopPropagation()}>
           <div className="w-16 h-16 bg-[#C9A227]/20 rounded-full flex items-center justify-center mx-auto mb-4">
             <div className="w-8 h-8 bg-[#FFFFFF] rounded-full flex items-center justify-center">
@@ -216,7 +218,7 @@ export default function ReportModal({ isOpen, onClose, videoId, contentType, con
   }
 
   return (
-    <div className="fixed inset-0 z-modals flex items-end justify-center">
+    <div className="fixed inset-0 z-[99999] flex items-end justify-center">
       <div className="absolute inset-0 bg-black/60 pointer-events-auto" onClick={onClose} />
 
       <div className="relative w-full max-w-[480px] z-10 bg-[#111111]/95 backdrop-blur-md rounded-t-2xl p-4 pb-safe flex flex-col gap-1 shadow-2xl pointer-events-auto h-[40vh] max-h-[40vh] overflow-y-auto bottom-sheet-above-nav [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#C9A227]/50 [&::-webkit-scrollbar-thumb]:rounded-full" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.25) transparent' }}>
