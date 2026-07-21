@@ -6052,6 +6052,8 @@ export default function LiveStream() {
       </AnimatePresence>
 
       {/* BOTTOM RIGHT: Action buttons (same area as before, aligned right) */}
+      {/* Hide while mini-profile is open so Co-Host/Battle/Share/More cannot sit on that panel. */}
+      {!miniProfile && (
       <div
         className="bottom-zone pointer-events-auto bg-transparent px-3 pt-0 flex flex-col items-end fixed left-0 right-0 bottom-0 z-[50002] justify-end"
         style={{ paddingBottom: LIVE_BOTTOM_ACTION_PADDING }}
@@ -6169,6 +6171,7 @@ export default function LiveStream() {
         </div>
         </div>
       </div>
+      )}
 
       {/* Gift panel: spectators open it from their bar; creator has no Gift button. */}
       {showGiftPanel && !isCreatorParticipant && (
@@ -6334,13 +6337,13 @@ export default function LiveStream() {
 
       <AnimatePresence>
         {miniProfile && (
-          <div className="absolute inset-0 z-[50010] flex flex-col justify-end">
+          <div className="fixed inset-0 z-[99999] flex flex-col justify-end max-w-[480px] mx-auto">
             <div 
               className="absolute inset-0 pointer-events-auto" 
               onClick={closeMiniProfile}
             />
             <motion.div
-              className="bg-[#111111] rounded-t-2xl border-t border-white/10 px-4 pt-4 pb-[calc(20px+env(safe-area-inset-bottom))] pointer-events-auto shadow-2xl relative z-10"
+              className="bg-[#111111] rounded-t-2xl border-t border-white/10 px-4 pt-4 pb-[calc(20px+env(safe-area-inset-bottom))] pointer-events-auto shadow-2xl relative z-10 w-full"
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
