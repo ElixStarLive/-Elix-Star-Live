@@ -82,7 +82,7 @@ import {
 import { resolveUiAvatarUrl } from '../lib/royceAssets';
 import { useAuthStore } from '../store/useAuthStore';
 import { useVideoStore } from '../store/useVideoStore';
-import { clearCachedCameraStream, getCachedCameraStream } from '../lib/cameraStream';
+import { clearCachedCameraStream, getCachedCameraStream, setCachedCameraStream } from '../lib/cameraStream';
 import { apiUrl, getLiveKitUrl } from '../lib/api';
 import { request } from '../lib/apiClient';
 import {
@@ -633,14 +633,15 @@ export default function LiveStream() {
     try {
       if (pubVideo?.track && publishedVideoId !== wantVideoId) {
         try {
-          await room.localParticipant.unpublishTrack(pubVideo.track);
+          // Keep MediaStreamTrack alive for local preview — LiveKit must not stop it.
+          await room.localParticipant.unpublishTrack(pubVideo.track, false);
         } catch {
           /* ignore unpublish race */
         }
       }
       if (pubAudio?.track && publishedAudioId !== wantAudioId) {
         try {
-          await room.localParticipant.unpublishTrack(pubAudio.track);
+          await room.localParticipant.unpublishTrack(pubAudio.track, false);
         } catch {
           /* ignore unpublish race */
         }
@@ -704,7 +705,12 @@ export default function LiveStream() {
   useEffect(() => {
     if (!isBroadcast || !liveKitCreds) return;
 
-    const room = new Room({ adaptiveStream: true });
+    const room = new Room({
+      adaptiveStream: true,
+      // Preview and publish share the same getUserMedia tracks. If LiveKit stops
+      // them on unpublish/disconnect, the host <video> goes permanently black.
+      stopLocalTrackOnUnpublish: false,
+    });
     liveKitRoomRef.current = room;
 
     const attachRemoteTrack = (track: import('livekit-client').Track, participant: import('livekit-client').RemoteParticipant) => {
@@ -1497,7 +1503,10 @@ export default function LiveStream() {
         const lkToken = tokenData?.token;
         if (!lkUrl || !lkToken || cancelled) return;
 
-        const room = new Room({ adaptiveStream: true });
+        const room = new Room({
+          adaptiveStream: true,
+          stopLocalTrackOnUnpublish: false,
+        });
         battleLkRoomRef.current = room;
 
         // Subscribe to host's video for the opponent panel
@@ -2672,13 +2681,6 @@ export default function LiveStream() {
 
     let cancelled = false;
 
-    const stopTracks = () => {
-      const current = cameraStreamRef.current;
-      if (!current) return;
-      current.getTracks().forEach((t) => t.stop());
-      cameraStreamRef.current = null;
-    };
-
     const start = async () => {
       try {
         setCameraError(null);
@@ -2733,6 +2735,7 @@ export default function LiveStream() {
         const previous = cameraStreamRef.current;
         cameraStreamRef.current = stream;
         setCameraStream(stream);
+        setCachedCameraStream(stream);
         stream.getAudioTracks().forEach((t) => (t.enabled = !isMicMuted));
 
         // Set camera zoom to minimum for widest view
@@ -2749,6 +2752,7 @@ export default function LiveStream() {
           videoRef.current.play().catch(() => {});
         }
 
+        // Warm-swap: attach new stream first, then stop the previous facing.
         if (previous && previous !== stream) {
           previous.getTracks().forEach((t) => t.stop());
         }
@@ -2759,13 +2763,29 @@ export default function LiveStream() {
 
     start();
 
+    // Facing flip must NOT stop tracks in cleanup — that races the new getUserMedia
+    // and blacks the preview. Only cancel in-flight acquire; start() stops the old
+    // stream after the new one is attached.
     return () => {
       cancelled = true;
-      stopTracks();
-      clearCachedCameraStream();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isBroadcast, cameraFacing]);
+
+  // True leave of broadcast page: stop camera/mic (LiveKit no longer stops them for us).
+  useEffect(() => {
+    if (!isBroadcast) return;
+    return () => {
+      const current = cameraStreamRef.current;
+      if (current) {
+        current.getTracks().forEach((t) => {
+          try { t.stop(); } catch { /* ignore */ }
+        });
+        cameraStreamRef.current = null;
+      }
+      clearCachedCameraStream();
+    };
+  }, [isBroadcast]);
 
   // Re-attach camera stream when battle mode toggles (solo vs battle <video> swap).
   useEffect(() => {
@@ -2816,6 +2836,7 @@ export default function LiveStream() {
         const previous = cameraStreamRef.current;
         cameraStreamRef.current = newStream;
         setCameraStream(newStream);
+        setCachedCameraStream(newStream);
         newStream.getAudioTracks().forEach((t) => { t.enabled = !isMicMuted; });
         if (videoRef.current) {
           videoRef.current.srcObject = newStream;
@@ -2842,7 +2863,10 @@ export default function LiveStream() {
     };
   }, [isBroadcast, cameraFacing, isMicMuted, publishHostLiveKitTracks]);
 
-  // Preview-only: re-bind local camera to <video> if WebView drops srcObject — never restart camera here.
+  // Keep host preview alive: rebind srcObject, and if the track was killed
+  // (LiveKit unpublish/disconnect), reacquire once with a cooldown.
+  const cameraRecoverInFlightRef = useRef(false);
+  const cameraRecoverAtRef = useRef(0);
   useEffect(() => {
     if (!isBroadcast) return;
     const id = window.setInterval(() => {
@@ -2857,16 +2881,53 @@ export default function LiveStream() {
       }
       const el = videoRef.current;
       const track = stream?.getVideoTracks()[0];
-      if (!stream || !el || track?.readyState !== 'live') return;
-      if (el.srcObject !== stream) {
-        el.srcObject = stream;
+      if (stream && el && track?.readyState === 'live') {
+        if (el.srcObject !== stream) {
+          el.srcObject = stream;
+        }
+        if (el.paused) {
+          void el.play().catch(() => {});
+        }
+        return;
       }
-      if (el.paused) {
-        void el.play().catch(() => {});
-      }
+
+      if (cameraRecoverInFlightRef.current) return;
+      if (Date.now() - cameraRecoverAtRef.current < 5000) return;
+      cameraRecoverInFlightRef.current = true;
+      cameraRecoverAtRef.current = Date.now();
+      void (async () => {
+        try {
+          const newStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: cameraFacing },
+            audio: { echoCancellation: true, noiseSuppression: true },
+          });
+          const previous = cameraStreamRef.current;
+          cameraStreamRef.current = newStream;
+          setCameraStream(newStream);
+          setCachedCameraStream(newStream);
+          newStream.getAudioTracks().forEach((t) => {
+            t.enabled = !isMicMuted;
+          });
+          if (videoRef.current) {
+            videoRef.current.srcObject = newStream;
+            void videoRef.current.play().catch(() => {});
+          }
+          if (previous && previous !== newStream) {
+            previous.getTracks().forEach((t) => {
+              try { t.stop(); } catch { /* ignore */ }
+            });
+          }
+          setCameraError(null);
+          void publishHostLiveKitTracks();
+        } catch {
+          /* camera unavailable — leave error state if already set */
+        } finally {
+          cameraRecoverInFlightRef.current = false;
+        }
+      })();
     }, 750);
     return () => window.clearInterval(id);
-  }, [isBroadcast]);
+  }, [isBroadcast, cameraFacing, isMicMuted, publishHostLiveKitTracks]);
 
   useEffect(() => {
     const stream = cameraStreamRef.current;
