@@ -3341,26 +3341,25 @@ export default function LiveStream() {
       const isOwnGift = !!(gifterId && selfId && gifterId === selfId);
       if (isOwnGift) return;
 
-      // Active battle only: play gifts aimed at this creator's side.
-      // Do not filter during INVITING/ENDED — that blocked normal live gifts
-      // whenever battle UI was open.
-      if (isBattleModeRef.current && battleStateRef.current === 'IN_BATTLE') {
+      // Host always plays spectator gift videos (that is the product rule).
+      // Only battle joiners filter to their own side during an active battle.
+      if (
+        !isBroadcast &&
+        isBattleModeRef.current &&
+        battleStateRef.current === 'IN_BATTLE'
+      ) {
         const giftSide = normalizeBattleGiftTarget(data.battleTarget);
         const myRole =
-          battleRoleRef.current || (isBattleJoiner ? 'opponent' : (isBroadcast ? 'host' : null));
+          battleRoleRef.current || (isBattleJoiner ? 'opponent' : null);
         if (giftSide && myRole && giftSide !== myRole) return;
       }
 
-      // Resolve playable URL the same way as SpectatorPage: payload first, then
-      // catalog by giftId. Never spread raw `data` after sanitized fields — that
-      // wiped giftId/video with undefined and stopped creator playback.
-      const playUrl =
-        pickGiftVideoUrl(data, giftsCatalogRef.current) ||
+      // Spectator already played from local catalog; creator must resolve from
+      // WS payload and/or catalog. If catalog is still loading, retry once.
+      const resolvePlayUrl = (catalog: GiftUiItem[]) =>
+        pickGiftVideoUrl(data, catalog) ||
         (wsGiftId
-          ? pickGiftVideoUrl(
-              { giftId: wsGiftId, gift_id: wsGiftId },
-              giftsCatalogRef.current,
-            )
+          ? pickGiftVideoUrl({ giftId: wsGiftId, gift_id: wsGiftId }, catalog)
           : null) ||
         pickGiftVideoUrl(
           {
@@ -3370,18 +3369,39 @@ export default function LiveStream() {
             animation_url:
               typeof data?.animation_url === 'string' ? data.animation_url : '',
           },
-          giftsCatalogRef.current,
+          catalog,
         );
-      if (!playUrl) return;
 
-      if (txnId) {
-        playedGiftVideoTxnRef.current.add(txnId);
-        if (playedGiftVideoTxnRef.current.size > 200) {
-          const keep = [...playedGiftVideoTxnRef.current].slice(-100);
-          playedGiftVideoTxnRef.current = new Set(keep);
+      const enqueueCreatorGiftVideo = (url: string) => {
+        if (!url) return;
+        if (txnId) {
+          if (playedGiftVideoTxnRef.current.has(txnId)) return;
+          playedGiftVideoTxnRef.current.add(txnId);
+          if (playedGiftVideoTxnRef.current.size > 200) {
+            const keep = [...playedGiftVideoTxnRef.current].slice(-100);
+            playedGiftVideoTxnRef.current = new Set(keep);
+          }
         }
+        enqueueGiftVideoRef.current(url);
+      };
+
+      const playUrl = resolvePlayUrl(giftsCatalogRef.current);
+      if (playUrl) {
+        enqueueCreatorGiftVideo(playUrl);
+        return;
       }
-      enqueueGiftVideoRef.current(playUrl);
+
+      if (!wsGiftId) return;
+      void fetchGiftsFromDatabase().then((gifts) => {
+        if (!mounted) return;
+        if (txnId && playedGiftVideoTxnRef.current.has(txnId)) return;
+        if (gifts.length) {
+          giftsCatalogRef.current = gifts;
+          setGiftsCatalog(gifts);
+        }
+        const retryUrl = resolvePlayUrl(giftsCatalogRef.current);
+        if (retryUrl) enqueueCreatorGiftVideo(retryUrl);
+      });
     };
 
     // Server-controlled battle events — single source of truth

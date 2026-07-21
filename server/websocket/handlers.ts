@@ -201,18 +201,10 @@ export async function handleMessage(
         if (!(await wsRateCheck(client.userId, "gift", 50, 5_000))) break;
         const { transactionId } = data;
 
-        // TEST COINS (dev/testing only): animation-only broadcast. Never mounted as
-        // a payment path. Blocked in production so battles/scores cannot be skewed.
+        // TEST COINS: animation-only. Never payments / wallet / goals.
+        // Always broadcast so the creator GiftOverlay plays (spectator already
+        // queued locally). Production still forbids battle-score side effects.
         if (isTestCoinsGiftSource(data)) {
-          if (isProductionTestCoinsBlocked()) {
-            sendToClient(client, "gift_ack", {
-              transactionId: null,
-              status: "rejected",
-              reason: "test_coins_disabled",
-              timestamp: Date.now(),
-            });
-            break;
-          }
           const testGiftId = typeof data?.giftId === "string" ? data.giftId : "";
           const testClientVideo =
             (typeof data?.video === "string" && data.video) ||
@@ -255,19 +247,21 @@ export async function handleMessage(
             }
           } catch { /* non-fatal */ }
           // Non-prod only: simulate battle score for testing PK bar without wallets.
-          try {
-            const testBattle = await getBattleFromStore(client.roomId);
-            if (testBattle && testBattle.status === "ACTIVE") {
-              const testPoints = getGiftValue(testGiftId);
-              if (testPoints > 0) {
-                await addBattleScoreForTarget(
-                  client.roomId,
-                  testBattleTarget || "host",
-                  testPoints,
-                );
+          if (!isProductionTestCoinsBlocked()) {
+            try {
+              const testBattle = await getBattleFromStore(client.roomId);
+              if (testBattle && testBattle.status === "ACTIVE") {
+                const testPoints = getGiftValue(testGiftId);
+                if (testPoints > 0) {
+                  await addBattleScoreForTarget(
+                    client.roomId,
+                    testBattleTarget || "host",
+                    testPoints,
+                  );
+                }
               }
-            }
-          } catch { /* non-fatal */ }
+            } catch { /* non-fatal */ }
+          }
           sendToClient(client, "gift_ack", {
             transactionId: null,
             status: "test",

@@ -12,7 +12,7 @@ describe("testCoinsPolicy", () => {
     expect(isTestCoinsGiftSource(null)).toBe(false);
   });
 
-  it("blocks test coins only when NODE_ENV is production", () => {
+  it("marks production as blocking test-coin battle score side effects", () => {
     expect(isProductionTestCoinsBlocked("production")).toBe(true);
     expect(isProductionTestCoinsBlocked("development")).toBe(false);
     expect(isProductionTestCoinsBlocked(undefined)).toBe(false);
