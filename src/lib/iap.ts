@@ -229,7 +229,7 @@ async function completeCoinPurchase(
   mod: NativePurchasesPlugin,
   transactionId: string,
   receipt: string,
-): Promise<void> {
+): Promise<boolean> {
   try {
     if (platform.isAndroid) {
       // Coins are CONSUMABLE — the token MUST be consumed so Google stops
@@ -249,8 +249,10 @@ async function completeCoinPurchase(
       await mod.NativePurchases.acknowledgePurchase({ purchaseToken: transactionId });
       reportIapStage('acknowledged');
     }
+    return true;
   } catch (e) {
     reportIapStage('consume_error', { error: (e as { message?: string })?.message });
+    return false;
   }
 }
 
@@ -369,7 +371,11 @@ export async function purchaseProduct(productId: IAPProductId): Promise<IAPPurch
       return { success: false, error: verifyResult.error || 'Verification failed. Please contact support if you were charged.' };
     }
 
-    await completeCoinPurchase(mod, transactionId, receipt);
+    const consumed = await completeCoinPurchase(mod, transactionId, receipt);
+    if (!consumed) {
+      reportIapStage('consume_failed_reconcile', { productId });
+      void reconcileOwnedCoinPurchases();
+    }
 
     return {
       success: true,
@@ -543,9 +549,15 @@ export async function purchaseMembership(
  * Purchase a promote boost via Apple/Google IAP. Does NOT credit coins.
  * Client must then call POST /api/promote-iap-complete with transactionId, receipt, goal, contentType, contentId.
  */
+let promotePurchaseInProgress = false;
+
 export async function purchasePromoteProduct(productId: PromoteProductId): Promise<{ success: boolean; transactionId?: string; receipt?: string; error?: string }> {
   if (!platform.isNative) {
     return { success: false, error: 'Promote via IAP is only available in the app' };
+  }
+
+  if (promotePurchaseInProgress) {
+    return { success: false, error: 'A purchase is already in progress' };
   }
 
   const mod = await getPlugin();
@@ -554,6 +566,7 @@ export async function purchasePromoteProduct(productId: PromoteProductId): Promi
   const available = await isBillingAvailable();
   if (!available) return { success: false, error: 'Purchases are not supported on this device' };
 
+  promotePurchaseInProgress = true;
   try {
     const result = await mod.NativePurchases.purchaseProduct({
       productIdentifier: productId,
@@ -573,6 +586,8 @@ export async function purchasePromoteProduct(productId: PromoteProductId): Promi
       return { success: false, error: 'Purchase cancelled' };
     }
     return { success: false, error: msg || 'Purchase failed' };
+  } finally {
+    promotePurchaseInProgress = false;
   }
 }
 
@@ -682,8 +697,10 @@ export async function restorePurchases(): Promise<{
 
       if (productId in IAP_PRODUCTS) {
         const credited = await verifyAndCreditPurchase(productId as IAPProductId, transactionId, receipt);
-        if (credited.success) restoredCoins += 1;
-        else if (credited.error) errors.push(credited.error);
+        if (credited.success) {
+          restoredCoins += 1;
+          await completeCoinPurchase(mod, transactionId, receipt);
+        } else if (credited.error) errors.push(credited.error);
         continue;
       }
 

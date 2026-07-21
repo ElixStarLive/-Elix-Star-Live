@@ -1218,7 +1218,9 @@ export default function SpectatorPage() {
       })
       .catch(() => {
         if (cancelled) return;
-        setCoinBalance(getPersistedTestCoinsBalance(user.id));
+        if (shouldUseTestCoinsForGifts(user.id)) {
+          setCoinBalance(getPersistedTestCoinsBalance(user.id));
+        }
       });
     return () => { cancelled = true; };
   }, [user?.id, user?.level]);
@@ -2178,7 +2180,12 @@ export default function SpectatorPage() {
         } else if (result.new_balance != null) {
           setCoinBalance(Math.max(0, Number(result.new_balance)));
         } else {
-          setCoinBalance(prev => Math.max(0, prev - gift.coins));
+          void request('/api/wallet/').then(({ data, error: walletErr }) => {
+            const walletRaw = data?.coin_balance ?? data?.balance;
+            if (!walletErr && walletRaw != null) {
+              setCoinBalance(Math.max(0, Number(walletRaw)));
+            }
+          });
         }
         if (result.new_level != null) {
           newLevel = Math.max(0, Number(result.new_level) || 0);

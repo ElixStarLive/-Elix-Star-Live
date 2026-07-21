@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { appendCapped, LIVE_CHAT_MESSAGE_CAP, LIVE_GIFT_QUEUE_CAP } from './liveRuntimeCaps';
+import { appendCapped, LIVE_CHAT_MESSAGE_CAP, LIVE_GIFT_QUEUE_CAP, LIVE_VIEWER_CAP } from './liveRuntimeCaps';
 
 describe('liveRuntimeCaps', () => {
   it('appends without trimming under the cap', () => {
@@ -17,5 +17,6 @@ describe('liveRuntimeCaps', () => {
     expect(LIVE_CHAT_MESSAGE_CAP).toBeLessThanOrEqual(500);
     expect(LIVE_GIFT_QUEUE_CAP).toBeGreaterThan(0);
     expect(LIVE_GIFT_QUEUE_CAP).toBeLessThanOrEqual(20);
+    expect(LIVE_VIEWER_CAP).toBe(100);
   });
 });

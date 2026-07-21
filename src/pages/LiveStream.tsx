@@ -36,7 +36,7 @@ import {
 import { AnimatePresence, motion } from 'framer-motion';
 import { FILTER_PRESETS } from '../lib/ai/filters';
 import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, fetchGiftsFromDatabase, pickGiftVideoUrl, formatGiftDisplayName } from '../lib/giftsCatalog';
-import { appendCapped, LIVE_CHAT_MESSAGE_CAP, LIVE_GIFT_QUEUE_CAP } from '../lib/liveRuntimeCaps';
+import { appendCapped, LIVE_CHAT_MESSAGE_CAP, LIVE_GIFT_QUEUE_CAP, LIVE_VIEWER_CAP } from '../lib/liveRuntimeCaps';
 import { BattleVfxOverlays, GloveIcon, type BattleMistSide, type GloveBurst } from '../components/BattleVfxOverlays';
 import {
   addPersistedTestCoins,
@@ -309,6 +309,8 @@ export default function LiveStream() {
   const isBroadcaster = isBroadcast;
   const effectiveStreamId = isBroadcaster ? (user?.id || 'broadcast') : (_rawStreamId || 'broadcast');
   const liveRegisteredRef = useRef(false);
+  const effectiveStreamIdRef = useRef(effectiveStreamId);
+  effectiveStreamIdRef.current = effectiveStreamId;
   const _formatStreamName = (id: string) =>
     id
       .split(/[-_]/g)
@@ -473,7 +475,9 @@ export default function LiveStream() {
       })
       .catch(() => {
         if (cancelled) return;
-        setCoinBalance(getPersistedTestCoinsBalance(user.id));
+        if (shouldUseTestCoinsForGifts(user.id)) {
+          setCoinBalance(getPersistedTestCoinsBalance(user.id));
+        }
       });
     return () => { cancelled = true; };
   }, [user?.id, user?.level]);
@@ -498,19 +502,24 @@ export default function LiveStream() {
         user_id: user.id,
         title: creatorNameRef.current,
       });
-
-      return () => {
-        setIsMyStreamLive(false);
-        websocket.send('stream_end', {
-          stream_key: key,
-          user_id: user.id,
-        });
-      };
     } else {
       // Viewer mode - rely on WebSocket events for stream status
-      return () => {};
     }
   }, [effectiveStreamId, isBroadcast, user?.id]);
+
+  // End live registration only on page unmount (not on effect re-run mid-stream).
+  useEffect(() => {
+    return () => {
+      if (!liveRegisteredRef.current) return;
+      const room = effectiveStreamIdRef.current;
+      void request('/api/live/end', {
+        method: 'POST',
+        body: JSON.stringify({ room }),
+      }).finally(() => {
+        liveRegisteredRef.current = false;
+      });
+    };
+  }, []);
 
   useEffect(() => {
     // Title is set at stream start via POST /api/live/start; no DB update needed here
@@ -581,22 +590,6 @@ export default function LiveStream() {
       }
     })();
 
-    return () => {
-      setLiveKitCreds(null);
-      if (!liveRegisteredRef.current) return;
-      (async () => {
-        try {
-          await request('/api/live/end', {
-            method: 'POST',
-            body: JSON.stringify({ room: effectiveStreamId }),
-          });
-        } catch {
-          // ignore
-        } finally {
-          liveRegisteredRef.current = false;
-        }
-      })();
-    };
   }, [isBroadcast, user?.id, effectiveStreamId]);
 
   // Live: LiveKit. Host publishes here; viewers subscribe via SpectatorPage.
@@ -2477,8 +2470,6 @@ export default function LiveStream() {
 
     let cancelled = false;
 
-    let keepStreamAliveOnCleanup = false;
-
     const stop = () => {
       const current = cameraStreamRef.current;
       if (!current) return;
@@ -2497,7 +2488,6 @@ export default function LiveStream() {
 
         const cached = getCachedCameraStream();
         if (cached) {
-          keepStreamAliveOnCleanup = true;
           cameraStreamRef.current = cached;
           setCameraStream(cached);
           cached.getAudioTracks().forEach((t) => (t.enabled = !isMicMuted));
@@ -2563,7 +2553,8 @@ export default function LiveStream() {
 
     return () => {
       cancelled = true;
-      if (!keepStreamAliveOnCleanup) stop();
+      stop();
+      clearCachedCameraStream();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isBroadcast, cameraFacing]);
@@ -2838,7 +2829,7 @@ export default function LiveStream() {
       const cached = uid ? viewerIdentityCacheRef.current.get(uid) : undefined;
       setActiveViewers(prev => {
         if (prev.some(v => v.id === uid)) return prev;
-        return [...prev, {
+        return appendCapped(prev, {
           id: uid,
           username: cached?.username || joinName,
           displayName: cached?.displayName || (typeof data.display_name === 'string' ? data.display_name : joinName),
@@ -2850,7 +2841,7 @@ export default function LiveStream() {
           chatFrequency: 0,
           supportDays: 0,
           lastVisitDaysAgo: 0,
-        }];
+        }, LIVE_VIEWER_CAP);
       });
       const joinMsgId = `join-${Date.now()}`;
       setMessages(prev => appendCapped(prev, {
@@ -4228,6 +4219,7 @@ export default function LiveStream() {
 
     // Tell websocket listeners this stream ended
     websocket.send('stream_end', { stream_key: roomId, user_id: user?.id });
+    setIsMyStreamLive(false);
 
     // Stop local camera/mic
     if (cameraStreamRef.current) {

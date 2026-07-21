@@ -205,25 +205,6 @@ export async function request<T = any>(
         }
       })();
 
-  // Real auth failure — clear stale session so UI does not stay "logged in" with dead JWT.
-  // Skip /api/auth/me to avoid fighting checkUser's own handling.
-  const errMsg = result.error?.message || "";
-  if (
-    errMsg.includes("HTTP_401") &&
-    !path.includes("/api/auth/me") &&
-    !path.includes("/api/auth/login") &&
-    !path.includes("/api/auth/logout")
-  ) {
-    try {
-      const { session, signOut } = useAuthStore.getState();
-      if (session?.access_token) {
-        void signOut();
-      }
-    } catch {
-      /* never break the caller */
-    }
-  }
-
   return result;
 }
 

@@ -2,6 +2,7 @@
 
 export const LIVE_CHAT_MESSAGE_CAP = 200;
 export const LIVE_GIFT_QUEUE_CAP = 8;
+export const LIVE_VIEWER_CAP = 100;
 
 export function appendCapped<T>(prev: T[], item: T, cap: number): T[] {
   if (cap <= 0) return [item];
