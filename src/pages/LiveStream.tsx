@@ -397,10 +397,7 @@ export default function LiveStream() {
     };
   }, [user?.id, isBroadcast, effectiveStreamId]);
 
-  // FaceAR State
-  const faceARCanvasRef = useRef<HTMLCanvasElement>(null);
-  const [_faceARVideoEl, setFaceARVideoEl] = useState<HTMLVideoElement | null>(null);
-  const [_faceARCanvasEl, setFaceARCanvasEl] = useState<HTMLCanvasElement | null>(null);
+  // Face AR overlays attach via FaceARGift + videoRef
   const [_battleGiftIconFailed, _setBattleGiftIconFailed] = useState(false);
 
   // Handle keyboard/viewport resizing for Viewer List
@@ -437,11 +434,6 @@ export default function LiveStream() {
       return () => clearTimeout(timer);
     }
   }, [showViewerList]);
-
-  useEffect(() => {
-    if (videoRef.current) setFaceARVideoEl(videoRef.current);
-    if (faceARCanvasRef.current) setFaceARCanvasEl(faceARCanvasRef.current);
-  }, [isBroadcast]);
 
   // Fetch host info when viewing a stream (non-broadcast mode)
   // Note: Without a database, we derive host info from the stream key
@@ -2633,11 +2625,6 @@ export default function LiveStream() {
 
   useEffect(() => {
     if (!isBroadcast) return;
-    if (videoRef.current) setFaceARVideoEl(videoRef.current);
-  }, [isBroadcast, isBattleMode, cameraStream]);
-
-  useEffect(() => {
-    if (!isBroadcast) return;
     const handleVisibility = async () => {
       if (document.visibilityState !== 'visible') return;
       const stream = cameraStreamRef.current;
@@ -3735,24 +3722,36 @@ export default function LiveStream() {
   const [showComboButton, setShowComboButton] = useState(false);
   const comboTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [activeFaceARGift, setActiveFaceARGift] = useState<
-    | { type: 'crown' | 'glasses' | 'mask' | 'ears' | 'hearts' | 'stars'; color?: string }
+    | { type: 'crown' | 'glasses' | 'mask' | 'ears' | 'hearts' | 'stars' | 'age' | 'youth'; color?: string }
     | null
   >(null);
+  const liveFilterBeforeFaceGiftRef = useRef<string>('none');
 
   const maybeTriggerFaceARGift = (gift: GiftUiItem) => {
-    const mapping: Record<string, { type: 'crown' | 'glasses' | 'mask' | 'ears' | 'hearts' | 'stars'; color?: string } | undefined> = {
-      face_ar_crown: { type: 'crown', color: '#FFFFFF' },
+    const mapping: Record<string, { type: 'crown' | 'glasses' | 'mask' | 'ears' | 'hearts' | 'stars' | 'age' | 'youth'; color?: string } | undefined> = {
+      face_ar_crown: { type: 'crown', color: '#FFD700' },
       face_ar_glasses: { type: 'glasses', color: '#00D4FF' },
       face_ar_hearts: { type: 'hearts', color: '#FF3B7A' },
-      face_ar_mask: { type: 'mask', color: '#7C3AED' },
-      face_ar_ears: { type: 'ears', color: '#22C55E' },
+      face_ar_mask: { type: 'mask', color: '#9B59B6' },
+      face_ar_ears: { type: 'ears', color: '#FFB6C1' },
       face_ar_stars: { type: 'stars', color: '#F59E0B' },
     };
 
     const next = mapping[gift.id];
     if (!next) return;
+    liveFilterBeforeFaceGiftRef.current = liveFilterCss;
+    if (next.type === 'age') {
+      setLiveFilterCss('sepia(0.38) saturate(0.72) contrast(1.1) brightness(0.9)');
+    } else if (next.type === 'youth') {
+      setLiveFilterCss('brightness(1.12) contrast(0.88) saturate(1.22) blur(0.35px)');
+    }
     setActiveFaceARGift(next);
   };
+
+  const clearActiveFaceARGift = useCallback(() => {
+    setActiveFaceARGift(null);
+    setLiveFilterCss(liveFilterBeforeFaceGiftRef.current);
+  }, []);
 
   useEffect(() => {
     if (giftQueue.length > 0 && !currentGift) {
@@ -4680,16 +4679,12 @@ export default function LiveStream() {
             )}
 
             {isBroadcast && activeFaceARGift && (
-              <>
-                <canvas
-                  ref={faceARCanvasRef}
-                  className="absolute inset-0 w-full h-full pointer-events-none"
-                />
-                <FaceARGift
-                  giftType={activeFaceARGift.type}
-                  color={activeFaceARGift.color || '#FFFFFF'}
-                />
-              </>
+              <FaceARGift
+                videoRef={videoRef}
+                giftType={activeFaceARGift.type}
+                color={activeFaceARGift.color || '#FFFFFF'}
+                onComplete={clearActiveFaceARGift}
+              />
             )}
 
             {isBroadcast && cameraError && (
@@ -4947,6 +4942,14 @@ export default function LiveStream() {
                         className="flex-1 basis-0 min-w-0 h-full overflow-hidden relative bg-[#111111] pointer-events-auto"
                       >
                       <video ref={bindHostCameraPreview} className="w-full h-full object-cover transform scale-x-[-1]" autoPlay playsInline muted style={isCamOff ? { opacity: 0 } : undefined} />
+                      {isBroadcast && activeFaceARGift && (
+                        <FaceARGift
+                          videoRef={videoRef}
+                          giftType={activeFaceARGift.type}
+                          color={activeFaceARGift.color || '#FFFFFF'}
+                          onComplete={clearActiveFaceARGift}
+                        />
+                      )}
                       {isCamOff && (
                         <div className="absolute inset-0 z-[5] flex flex-col items-center justify-center gap-1 bg-[#111111]">
                           {(user?.avatar || myAvatar) ? (
@@ -6599,7 +6602,7 @@ export default function LiveStream() {
               </div>
               <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 px-1">
                 {FILTER_PRESETS.filter((f) =>
-                  ['none', 'cinema-warm', 'cinema-cold', 'cinema-teal', 'port-soft', 'port-beauty', 'mood-dreamy', 'mood-neon', 'art-bw-high'].includes(f.id),
+                  ['none', 'cinema-warm', 'cinema-cold', 'cinema-teal', 'port-soft', 'port-beauty', 'port-youth', 'port-age', 'mood-dreamy', 'mood-neon', 'art-bw-high'].includes(f.id),
                 ).map((filter) => (
                   <button
                     key={filter.id}

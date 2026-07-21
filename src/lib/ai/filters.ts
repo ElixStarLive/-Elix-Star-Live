@@ -22,6 +22,8 @@ export const FILTER_PRESETS: FilterPreset[] = [
   { id: 'port-beauty', name: 'Beauty', category: 'portrait', css: 'brightness(1.08) contrast(0.92) saturate(1.15) sepia(0.03)', intensity: 1, preview: '💎' },
   { id: 'port-hd', name: 'HD Clarity', category: 'portrait', css: 'contrast(1.15) brightness(1.02) saturate(1.05)', intensity: 1, preview: '🔍' },
   { id: 'port-warm', name: 'Warm Skin', category: 'portrait', css: 'sepia(0.12) saturate(1.2) brightness(1.05) contrast(1.02)', intensity: 1, preview: '🌸' },
+  { id: 'port-youth', name: 'Youth Glow', category: 'portrait', css: 'brightness(1.12) contrast(0.88) saturate(1.22) blur(0.35px)', intensity: 1, preview: '💫' },
+  { id: 'port-age', name: 'Aged Look', category: 'portrait', css: 'sepia(0.38) saturate(0.72) contrast(1.1) brightness(0.9)', intensity: 1, preview: '🎭' },
 
   // Mood
   { id: 'mood-dreamy', name: 'Dreamy', category: 'mood', css: 'brightness(1.15) contrast(0.85) saturate(1.3) sepia(0.1)', intensity: 1, preview: '💭' },

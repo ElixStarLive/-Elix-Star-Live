@@ -1,32 +1,92 @@
-import React, { useEffect } from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect, useRef } from 'react';
+import { drawFaceAREffect } from '../lib/faceARRenderer';
 
 type FaceARGiftProps = {
   giftType: string;
   color: string;
+  videoRef: React.RefObject<HTMLVideoElement | null>;
+  mirrored?: boolean;
+  durationMs?: number;
   onComplete?: () => void;
 };
 
-export function FaceARGift({ giftType, color, onComplete }: FaceARGiftProps) {
+export function FaceARGift({
+  giftType,
+  color,
+  videoRef,
+  mirrored = true,
+  durationMs = 4500,
+  onComplete,
+}: FaceARGiftProps) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+
   useEffect(() => {
-    const t = window.setTimeout(() => onComplete?.(), 2500);
-    return () => window.clearTimeout(t);
-  }, [onComplete]);
+    const video = videoRef.current;
+    const parent = video?.parentElement;
+    if (!video || !parent) return;
 
-  return (
-    <div className="fixed inset-0 z-[400] pointer-events-none flex items-center justify-center">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        transition={{ duration: 0.2 }}
-        className="px-5 py-4 rounded-2xl border border-transparent bg-[#111111] text-white text-center"
-        style={{ boxShadow: `0 0 40px ${color}55` }}
-      >
-        <div className="text-xs font-bold tracking-wide text-white/70">Gift</div>
-        <div className="text-lg font-black mt-1">{giftType}</div>
-      </motion.div>
-    </div>
-  );
+    let canvas = canvasRef.current;
+    if (!canvas) {
+      canvas = document.createElement('canvas');
+      canvas.setAttribute('aria-hidden', 'true');
+      canvas.className = 'absolute inset-0 w-full h-full pointer-events-none z-[6]';
+      canvasRef.current = canvas;
+      parent.appendChild(canvas);
+    }
+
+    let raf = 0;
+    const start = performance.now();
+    let done = false;
+
+    const finish = () => {
+      if (done) return;
+      done = true;
+      cancelAnimationFrame(raf);
+      canvas?.remove();
+      canvasRef.current = null;
+      onCompleteRef.current?.();
+    };
+
+    const tick = (now: number) => {
+      if (done) return;
+      const elapsed = now - start;
+      if (elapsed >= durationMs) {
+        finish();
+        return;
+      }
+
+      const rect = parent.getBoundingClientRect();
+      if (rect.width < 2 || rect.height < 2) {
+        raf = requestAnimationFrame(tick);
+        return;
+      }
+
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas!.width = Math.round(rect.width * dpr);
+      canvas!.height = Math.round(rect.height * dpr);
+      canvas!.style.width = `${rect.width}px`;
+      canvas!.style.height = `${rect.height}px`;
+
+      const ctx = canvas!.getContext('2d');
+      if (ctx) {
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, rect.width, rect.height);
+        drawFaceAREffect(ctx, rect.width, rect.height, giftType, color, elapsed / 1000, mirrored);
+      }
+
+      raf = requestAnimationFrame(tick);
+    };
+
+    raf = requestAnimationFrame(tick);
+    const timeout = window.setTimeout(finish, durationMs + 120);
+
+    return () => {
+      window.clearTimeout(timeout);
+      finish();
+    };
+  }, [videoRef, giftType, color, mirrored, durationMs]);
+
+  return null;
 }
-
