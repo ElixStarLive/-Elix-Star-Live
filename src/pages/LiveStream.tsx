@@ -31,6 +31,7 @@ import {
   Camera,
   CameraOff,
   Sparkles,
+  Timer,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { FILTER_PRESETS } from '../lib/ai/filters';
@@ -6845,12 +6846,7 @@ export default function LiveStream() {
         nowMs={engagementNowMs}
         milestoneFlash={milestoneFlash}
         stageFlash={stageFlash}
-        isHost={!!isBroadcast}
         onVote={votePoll}
-        onStartMystery={(mins) => startMystery(mins, 'poll')}
-        onStartPoll={() =>
-          startPoll('What should we do next?', ['Dance', 'Sing', 'Q&A', 'Shoutouts'], 'poll')
-        }
       />
 
       {isMoreMenuOpen && (
@@ -6930,6 +6926,42 @@ export default function LiveStream() {
                 </div>
                 <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">{isChatVisible ? 'Hide Chat' : 'Show Chat'}</span>
               </button>
+
+              {isBroadcast && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      startPoll('What should we do next?', ['Dance', 'Sing', 'Q&A', 'Shoutouts'], 'poll');
+                      setIsMoreMenuOpen(false);
+                      showToast('Poll started — viewers tap Poll chip');
+                    }}
+                    className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform"
+                  >
+                    <div className="royce-glow-disc w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
+                      <Sparkles className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />
+                    </div>
+                    <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">Poll</span>
+                  </button>
+                  {([5, 10, 15] as const).map((mins) => (
+                    <button
+                      key={mins}
+                      type="button"
+                      onClick={() => {
+                        startMystery(mins, 'poll');
+                        setIsMoreMenuOpen(false);
+                        showToast(`Mystery set for ${mins}m`);
+                      }}
+                      className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform"
+                    >
+                      <div className="royce-glow-disc w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
+                        <Timer className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />
+                      </div>
+                      <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">M{mins}m</span>
+                    </button>
+                  ))}
+                </>
+              )}
 
               <button type="button" onClick={() => { setIsReportModalOpen(true); setIsMoreMenuOpen(false); }} className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform">
                 <div className="royce-glow-disc w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
