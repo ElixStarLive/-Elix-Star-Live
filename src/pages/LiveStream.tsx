@@ -1340,8 +1340,10 @@ export default function LiveStream() {
   const [battleState, setBattleState] = useState<BattleState>('LIVE_SOLO');
   const [isBattleMode, setIsBattleMode] = useState(false);
   const isBattleModeRef = useRef(false);
+  const battleStateRef = useRef<BattleState>('LIVE_SOLO');
   const battleEndedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => { isBattleModeRef.current = isBattleMode; }, [isBattleMode]);
+  useEffect(() => { battleStateRef.current = battleState; }, [battleState]);
   // If joining as battle participant, enter battle mode and start camera (server drives timer/countdown)
   const battleLkRoomRef = useRef<Room | null>(null);
   const battleJoinerConnectIdRef = useRef(0);
@@ -3372,27 +3374,37 @@ export default function LiveStream() {
       const isOwnGift = !!(gifterId && selfId && gifterId === selfId);
       if (isOwnGift) return;
 
-      // In battle, each creator only plays gift videos addressed to their own
-      // side — a gift sent to me must not play on the opponent's screen.
-      // (Chat, MVP, and PK score stay shared for the whole battle.)
-      if (isBattleModeRef.current) {
+      // Active battle only: play gifts aimed at this creator's side.
+      // Do not filter during INVITING/ENDED — that blocked normal live gifts
+      // whenever battle UI was open.
+      if (isBattleModeRef.current && battleStateRef.current === 'IN_BATTLE') {
         const giftSide = normalizeBattleGiftTarget(data.battleTarget);
         const myRole =
           battleRoleRef.current || (isBattleJoiner ? 'opponent' : (isBroadcast ? 'host' : null));
         if (giftSide && myRole && giftSide !== myRole) return;
       }
 
-      const playUrl = pickGiftVideoUrl(
-        {
-          giftId: wsGiftId,
-          gift_id: wsGiftId,
-          video: typeof data?.video === 'string' ? data.video : '',
-          animation_url:
-            typeof data?.animation_url === 'string' ? data.animation_url : '',
-          ...data,
-        },
-        giftsCatalogRef.current,
-      );
+      // Resolve playable URL the same way as SpectatorPage: payload first, then
+      // catalog by giftId. Never spread raw `data` after sanitized fields — that
+      // wiped giftId/video with undefined and stopped creator playback.
+      const playUrl =
+        pickGiftVideoUrl(data, giftsCatalogRef.current) ||
+        (wsGiftId
+          ? pickGiftVideoUrl(
+              { giftId: wsGiftId, gift_id: wsGiftId },
+              giftsCatalogRef.current,
+            )
+          : null) ||
+        pickGiftVideoUrl(
+          {
+            giftId: wsGiftId,
+            gift_id: wsGiftId,
+            video: typeof data?.video === 'string' ? data.video : '',
+            animation_url:
+              typeof data?.animation_url === 'string' ? data.animation_url : '',
+          },
+          giftsCatalogRef.current,
+        );
       if (!playUrl) return;
 
       if (txnId) {
