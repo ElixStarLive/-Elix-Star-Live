@@ -3172,20 +3172,12 @@ export default function LiveStream() {
         (typeof data.giftId === 'string' && data.giftId) ||
         (typeof data.gift_id === 'string' && data.gift_id) ||
         '';
-      const videoUrl =
-        pickGiftVideoUrl(data, giftsCatalogRef.current) ||
-        (wsGiftId
-          ? pickGiftVideoUrl(
-              { giftId: wsGiftId, gift_id: wsGiftId },
-              giftsCatalogRef.current,
-            )
-          : null);
       const alreadySeen = !!(txnId && seenGiftTxnRef.current.has(txnId));
       const videoAlreadyPlayed = !!(txnId && playedGiftVideoTxnRef.current.has(txnId));
 
-      // If REST arrived first without a video URL, a later gift_sent with the
-      // playable URL must still be allowed to queue the animation.
-      if (alreadySeen && (videoAlreadyPlayed || !videoUrl)) return;
+      // Skip only when this transaction's video already played — not when the first
+      // payload lacked a URL (REST/WS can deliver metadata before the playable URL).
+      if (alreadySeen && videoAlreadyPlayed) return;
 
       if (txnId && !alreadySeen) {
         seenGiftTxnRef.current.add(txnId);
@@ -3319,18 +3311,17 @@ export default function LiveStream() {
         if (giftSide && myRole && giftSide !== myRole) return;
       }
 
-      const playUrl =
-        videoUrl ||
-        pickGiftVideoUrl(
-          {
-            giftId: wsGiftId,
-            gift_id: wsGiftId,
-            video: typeof data?.video === 'string' ? data.video : '',
-            animation_url:
-              typeof data?.animation_url === 'string' ? data.animation_url : '',
-          },
-          giftsCatalogRef.current,
-        );
+      const playUrl = pickGiftVideoUrl(
+        {
+          giftId: wsGiftId,
+          gift_id: wsGiftId,
+          video: typeof data?.video === 'string' ? data.video : '',
+          animation_url:
+            typeof data?.animation_url === 'string' ? data.animation_url : '',
+          ...data,
+        },
+        giftsCatalogRef.current,
+      );
       if (!playUrl) return;
 
       if (txnId) {
@@ -5764,7 +5755,10 @@ export default function LiveStream() {
                           <div
                             className="flex items-center gap-[0mm] pointer-events-auto flex-shrink-0"
                             style={{ transform: 'translateX(-2mm)' }}
-                            onClick={() => setShowViewerList((prev) => !prev)}
+                            onClick={() => {
+                              setIsFindCreatorsOpen(false);
+                              setShowViewerList((prev) => !prev);
+                            }}
                           >
                             {topMvpViewers.map((viewer, i) => {
                               const isMvp = i === 0 && (mvpGiftScores[viewer.id] ?? 0) > 0;
@@ -5795,14 +5789,8 @@ export default function LiveStream() {
                           type="button"
                           title="Viewers"
                           onClick={() => {
-                            // In battle: this opens the battle creator invite panel only,
-                            // never the co-host panel.
-                            if (isBattleMode) {
-                              setShowViewerList(false);
-                              setIsFindCreatorsOpen(true);
-                              return;
-                            }
-                            setShowViewerList(prev => !prev);
+                            setIsFindCreatorsOpen(false);
+                            setShowViewerList((prev) => !prev);
                           }}
                           className="flex items-center gap-1.5 px-0 py-1 rounded-full bg-transparent border-0 active:scale-95 transition-transform pointer-events-auto"
                           style={{ marginRight: '1mm' }}
@@ -6344,11 +6332,8 @@ export default function LiveStream() {
         )}
       </AnimatePresence>
 
-      {/* ═══ VIEWER LIST + JOIN REQUESTS PANEL — host only: see join requests (Accept/Decline) and invite spectators as co-host ═══ */}
-      {/* NEVER rendered in battle mode: battle invites creators via the battle
-          panel only. The co-host Add/Invite button must not exist in battle —
-          a co-host invite joins the LIVE page, not the battle. */}
-      {showViewerList && !isBattleMode && (
+      {/* ═══ VIEWER LIST + JOIN REQUESTS PANEL — spectators watching this live ═══ */}
+      {showViewerList && (
         <>
           <div
             className="fixed inset-0 bg-black/40 pointer-events-auto"
@@ -6449,7 +6434,7 @@ export default function LiveStream() {
                             ) : null}
                           </div>
                         </button>
-                        {isBroadcast && isMyStreamLive && (
+                        {isBroadcast && isMyStreamLive && !isBattleMode && (
                           isJoinRequester ? (
                             <div className="flex items-center gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                               <button type="button" onClick={() => { declineJoinRequest(); setShowViewerList(false); }} className="px-2 py-1 rounded-full bg-red-500/20 border border-red-500/30 flex items-center gap-0.5 active:scale-95 transition-transform cursor-pointer">
