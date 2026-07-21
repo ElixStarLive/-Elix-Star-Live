@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { RoyceCloseIcon } from '../components/royce';
 import { showToast } from '../lib/toast';
-import { platform, openExternalLink, nativeShareUrl } from '../lib/platform';
+import { platform, openExternalLink } from '../lib/platform';
 import {
   Send,
   Search,
@@ -4873,29 +4873,6 @@ export default function LiveStream() {
     }
   }, [miniProfile, user?.id, miniProfileFollowsThem, navigate, location.pathname]);
 
-  const handleMiniProfileShare = useCallback(async () => {
-    if (!miniProfile) return;
-    const username = typeof miniProfile.username === 'string' ? miniProfile.username : 'User';
-    const profileSlug = miniProfile.id ?? username;
-    if (!profileSlug) {
-      showToast('Could not share profile. Try again.');
-      return;
-    }
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://www.elixstarlive.co.uk';
-    const profileUrl = `${origin}/profile/${encodeURIComponent(profileSlug)}`;
-    const bioSnippet = miniProfile.bio ? ` - ${miniProfile.bio}` : '';
-    const ok = await nativeShareUrl({
-      title: `Check out ${username}'s profile`,
-      text: `Check out ${username} (@${username}) on Elix Star${bioSnippet}`,
-      url: profileUrl,
-    });
-    if (!ok) {
-      showToast('Sharing not available');
-    } else if (!platform.isNative && typeof navigator !== 'undefined' && !navigator.share) {
-      showToast('Profile link copied to clipboard!');
-    }
-  }, [miniProfile]);
-
   const _startBattleMatch = () => {
     if (!isBattleMode) return;
     setMyScore(0);
@@ -6357,7 +6334,7 @@ export default function LiveStream() {
 
       <AnimatePresence>
         {miniProfile && (
-          <div className="absolute inset-0 z-[10000] flex flex-col justify-end">
+          <div className="absolute inset-0 z-[50010] flex flex-col justify-end">
             <div 
               className="absolute inset-0 pointer-events-auto" 
               onClick={closeMiniProfile}
@@ -6443,14 +6420,23 @@ export default function LiveStream() {
                 <button 
                   type="button" 
                   onClick={() => {
+                    const slug = miniProfile.id ?? miniProfile.username;
                     closeMiniProfile();
-                    navigate(`/profile/${miniProfile.id ?? miniProfile.username}`);
+                    if (slug) navigate(`/profile/${encodeURIComponent(slug)}`);
+                    else showToast('Profile unavailable');
                   }}
                   className="h-9 rounded-lg bg-white/10 text-white text-[11px] font-bold hover:bg-white/20 active:scale-95 transition-all"
                 >
                   Profile
                 </button>
-                <button type="button" onClick={() => void handleMiniProfileShare()} className="h-9 rounded-lg bg-white/10 text-white text-[11px] font-bold hover:bg-white/20 active:scale-95 transition-all">
+                <button
+                  type="button"
+                  onClick={() => {
+                    closeMiniProfile();
+                    void handleShare();
+                  }}
+                  className="h-9 rounded-lg bg-white/10 text-white text-[11px] font-bold hover:bg-white/20 active:scale-95 transition-all"
+                >
                   Share
                 </button>
               </div>
