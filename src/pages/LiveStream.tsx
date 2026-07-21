@@ -52,6 +52,7 @@ import {
   addPersistedTestCoins,
   addTestGiftXp,
   debitTestCoinsForGift,
+  displayBalanceAfterTestSpend,
   getPersistedTestCoinsBalance,
   getSpendableGiftBalance,
   getTestLevel,
@@ -272,6 +273,8 @@ export default function LiveStream() {
   };
   const [messages, setMessages] = useState<LiveMessage[]>(() => []);
   const [coinBalance, setCoinBalance] = useState(0);
+  /** Real wallet coins — never overwritten by test-coin display balance. */
+  const walletCoinBalanceRef = useRef(0);
   const [starterCoinBalance, setStarterCoinBalance] = useState(0);
   const [giftSource, setGiftSource] = useState<"starter_coins" | "paid_coins">(
     "paid_coins",
@@ -498,6 +501,7 @@ export default function LiveStream() {
           !wallet.error && walletRaw != null
             ? Math.max(0, Number(walletRaw))
             : 0;
+        walletCoinBalanceRef.current = walletBal;
         setCoinBalance(resolveGiftUiBalance(walletBal, user.id));
         const p = progression.data?.progression;
         const starter = Math.max(0, Number(p?.starter_coin_balance) || 0);
@@ -2110,14 +2114,22 @@ export default function LiveStream() {
     const testBal = getPersistedTestCoinsBalance(user.id);
     if (testBal > 0) {
       setCoinBalance(testBal);
-      return;
+      void request('/api/wallet/').then(({ data, error: walletErr }) => {
+        const walletRaw = data?.coin_balance ?? data?.balance;
+        if (!walletErr && walletRaw != null) {
+          walletCoinBalanceRef.current = Math.max(0, Number(walletRaw));
+        }
+      });
+    } else {
+      void request('/api/wallet/').then(({ data, error: walletErr }) => {
+        const walletRaw = data?.coin_balance ?? data?.balance;
+        if (!walletErr && walletRaw != null) {
+          const walletBal = Math.max(0, Number(walletRaw));
+          walletCoinBalanceRef.current = walletBal;
+          setCoinBalance(walletBal);
+        }
+      });
     }
-    request('/api/wallet/').then(({ data, error: walletErr }) => {
-      const walletRaw = data?.coin_balance ?? data?.balance;
-      if (!walletErr && walletRaw != null) {
-        setCoinBalance(Math.max(0, Number(walletRaw)));
-      }
-    }).catch(() => {});
     request('/api/progression/me').then(({ data, error }) => {
       if (!error && data?.progression) {
         const starter = Math.max(
@@ -4062,7 +4074,7 @@ export default function LiveStream() {
       ? getSpendableGiftBalance(coinBalance, user?.id)
       : giftSource === 'starter_coins'
         ? starterCoinBalance
-        : coinBalance;
+        : walletCoinBalanceRef.current;
     if (spendable < gift.coins) {
       showToast(`Not enough coins (have ${spendable.toLocaleString()}, need ${gift.coins.toLocaleString()})`);
       return;
@@ -4078,7 +4090,9 @@ export default function LiveStream() {
           showToast(`Not enough coins (have ${debit.balance.toLocaleString()}, need ${gift.coins.toLocaleString()})`);
           return;
         }
-        setCoinBalance(debit.newBalance);
+        setCoinBalance(
+          displayBalanceAfterTestSpend(debit.newBalance, walletCoinBalanceRef.current),
+        );
         // Test-only: drive a LOCAL level using the same curve as the server so
         // the level visibly climbs while testing. Never sent to the server.
         const sim = addTestGiftXp((user as NonNullable<typeof user>).id, gift.coins);
@@ -4153,7 +4167,9 @@ export default function LiveStream() {
               setGiftSource('paid_coins');
             }
           } else if (result.new_balance != null) {
-            setCoinBalance(Math.max(0, Number(result.new_balance)));
+            const nextWallet = Math.max(0, Number(result.new_balance));
+            walletCoinBalanceRef.current = nextWallet;
+            setCoinBalance(resolveGiftUiBalance(nextWallet, user?.id));
           }
           if (result.new_level != null) {
             const updatedLevel = Number(result.new_level);
@@ -4194,7 +4210,9 @@ export default function LiveStream() {
           return;
         }
       } else {
-        setCoinBalance(prev => Math.max(0, prev - gift.coins));
+        const nextWallet = Math.max(0, walletCoinBalanceRef.current - gift.coins);
+        walletCoinBalanceRef.current = nextWallet;
+        setCoinBalance(resolveGiftUiBalance(nextWallet, user?.id));
       }
 
       if (gift.video && gift.video.trim()) {
@@ -4358,7 +4376,7 @@ export default function LiveStream() {
         ? getSpendableGiftBalance(coinBalance, user?.id)
         : giftSource === 'starter_coins'
           ? starterCoinBalance
-          : coinBalance;
+          : walletCoinBalanceRef.current;
       if (spendable < lastSentGift.coins) {
         showToast("Not enough coins!");
         return;
@@ -4372,7 +4390,9 @@ export default function LiveStream() {
           showToast("Not enough coins!");
           return;
         }
-        setCoinBalance(debit.newBalance);
+        setCoinBalance(
+          displayBalanceAfterTestSpend(debit.newBalance, walletCoinBalanceRef.current),
+        );
       } else if (user?.id) {
         try {
           const comboPlayableVideo =
@@ -4416,7 +4436,9 @@ export default function LiveStream() {
               setGiftSource('paid_coins');
             }
           } else if (result.new_balance != null) {
-            setCoinBalance(Math.max(0, Number(result.new_balance)));
+            const nextWallet = Math.max(0, Number(result.new_balance));
+            walletCoinBalanceRef.current = nextWallet;
+            setCoinBalance(resolveGiftUiBalance(nextWallet, user?.id));
           }
           if (result.new_level != null) {
             newLevel = Number(result.new_level);
@@ -4456,7 +4478,9 @@ export default function LiveStream() {
           return;
         }
       } else {
-        setCoinBalance(prev => Math.max(0, prev - lastSentGift.coins));
+        const nextWallet = Math.max(0, walletCoinBalanceRef.current - lastSentGift.coins);
+        walletCoinBalanceRef.current = nextWallet;
+        setCoinBalance(resolveGiftUiBalance(nextWallet, user?.id));
       }
 
       // Track session contribution for membership
@@ -6175,7 +6199,10 @@ export default function LiveStream() {
               starterCoins={starterCoinBalance}
               giftSource={giftSource}
               onGiftSourceChange={setGiftSource}
-              onRechargeSuccess={(newBalance) => { setCoinBalance(newBalance); }}
+              onRechargeSuccess={(newBalance) => {
+                walletCoinBalanceRef.current = Math.max(0, Number(newBalance) || 0);
+                setCoinBalance(resolveGiftUiBalance(walletCoinBalanceRef.current, user?.id));
+              }}
               onWeeklyRanking={() => {
                 setShowGiftPanel(false);
                 setRankingInitialTab('weekly');

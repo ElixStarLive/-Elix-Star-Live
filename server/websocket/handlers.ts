@@ -291,6 +291,11 @@ export async function handleMessage(
           (typeof data?.video === "string" && data.video) ||
           (typeof data?.animation_url === "string" && data.animation_url) ||
           null;
+        const cohostFromWs =
+          (typeof data?.cohostTargetUserId === "string" && data.cohostTargetUserId.trim()) ||
+          (typeof data?.cohost_target_user_id === "string" &&
+            data.cohost_target_user_id.trim()) ||
+          null;
         const delivered = await deliverVerifiedGift({
           roomId: client.roomId,
           userId: client.userId,
@@ -305,11 +310,13 @@ export async function handleMessage(
           giftSource: verified.giftSource,
           transactionId: String(transactionId),
           battleTarget: data?.battleTarget,
+          cohostTargetUserId: cohostFromWs,
           animationUrl: clientVideo,
         });
 
         // If REST already claimed the txn (possibly without a playable URL),
-        // still push a video-bearing gift_sent so the creator GiftOverlay can play.
+        // still push a gift_sent with giftId (+ video when available) so the
+        // creator GiftOverlay can play for paid and starter gifts.
         if (!delivered.delivered && delivered.reason === "duplicate") {
           try {
             const { resolvePlayableGiftVideoUrl } = await import("./giftRegistry");
@@ -319,35 +326,39 @@ export async function handleMessage(
               verified.giftId,
               clientVideo,
             );
-            if (video) {
-              const retryPayload = {
-                giftId: verified.giftId,
-                giftName:
-                  typeof data?.giftName === "string" ? data.giftName : "Gift",
-                coins: verified.coins,
-                giftSource: verified.giftSource,
-                transactionId: String(transactionId),
-                battleTarget: data?.battleTarget ?? null,
-                user_id: client.userId,
-                username: client.displayName || client.username,
-                creator_name:
-                  typeof data?.creator_name === "string" && data.creator_name.trim()
-                    ? data.creator_name.trim()
-                    : undefined,
-                avatar: typeof data?.avatar === "string" ? data.avatar : "",
-                level: typeof data?.level === "number" ? data.level : 1,
-                video,
-                animation_url: video,
-                quantity: 1,
-                streamId: client.roomId,
-                stream_id: client.roomId,
-                timestamp: new Date().toISOString(),
-              };
-              broadcastToRoom(client.roomId, "gift_sent", retryPayload);
-              const ownerId = await resolveStreamOwnerUserId(client.roomId);
-              if (ownerId && ownerId !== client.userId) {
-                sendToUserGlobal(ownerId, "gift_sent", retryPayload);
-              }
+            const retryPayload = {
+              giftId: verified.giftId,
+              giftName:
+                typeof data?.giftName === "string" ? data.giftName : "Gift",
+              coins: verified.coins,
+              giftSource: verified.giftSource,
+              transactionId: String(transactionId),
+              battleTarget: data?.battleTarget ?? null,
+              ...(cohostFromWs
+                ? {
+                    cohostTargetUserId: cohostFromWs,
+                    cohost_target_user_id: cohostFromWs,
+                  }
+                : {}),
+              user_id: client.userId,
+              username: client.displayName || client.username,
+              creator_name:
+                typeof data?.creator_name === "string" && data.creator_name.trim()
+                  ? data.creator_name.trim()
+                  : undefined,
+              avatar: typeof data?.avatar === "string" ? data.avatar : "",
+              level: typeof data?.level === "number" ? data.level : 1,
+              video,
+              animation_url: video,
+              quantity: 1,
+              streamId: client.roomId,
+              stream_id: client.roomId,
+              timestamp: new Date().toISOString(),
+            };
+            broadcastToRoom(client.roomId, "gift_sent", retryPayload);
+            const ownerId = await resolveStreamOwnerUserId(client.roomId);
+            if (ownerId && ownerId !== client.userId) {
+              sendToUserGlobal(ownerId, "gift_sent", retryPayload);
             }
           } catch (err) {
             logger.warn({ err }, "gift_sent duplicate creator video retry failed");

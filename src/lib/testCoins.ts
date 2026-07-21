@@ -46,6 +46,19 @@ export function getSpendableGiftBalance(displayBalance: number, userId: string |
   return resolveGiftUiBalance(displayBalance, userId);
 }
 
+/**
+ * After spending test coins, restore the UI to real wallet when test hits 0.
+ * Keeps test and real balances from wiping each other.
+ */
+export function displayBalanceAfterTestSpend(
+  testBalanceAfterDebit: number,
+  realWalletBalance: number,
+): number {
+  if (!testCoinsAllowed()) return Math.max(0, realWalletBalance);
+  if (testBalanceAfterDebit > 0) return testBalanceAfterDebit;
+  return Math.max(0, realWalletBalance);
+}
+
 export function addPersistedTestCoins(userId: string | undefined, amount: number): number {
   if (!testCoinsAllowed()) return 0;
   const add = Math.max(0, Math.floor(amount));

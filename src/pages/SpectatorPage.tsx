@@ -48,6 +48,7 @@ import {
   addPersistedTestCoins,
   addTestGiftXp,
   debitTestCoinsForGift,
+  displayBalanceAfterTestSpend,
   getPersistedTestCoinsBalance,
   getSpendableGiftBalance,
   getTestLevel,
@@ -200,6 +201,8 @@ export default function SpectatorPage() {
   const [messages, setMessages] = useState<LiveMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [coinBalance, setCoinBalance] = useState(0);
+  /** Real wallet coins — never overwritten by test-coin display balance. */
+  const walletCoinBalanceRef = useRef(0);
   const [starterCoinBalance, setStarterCoinBalance] = useState(0);
   const [giftSource, setGiftSource] = useState<"starter_coins" | "paid_coins">(
     "paid_coins",
@@ -1281,6 +1284,7 @@ export default function SpectatorPage() {
           !wallet.error && walletRaw != null
             ? Math.max(0, Number(walletRaw))
             : 0;
+        walletCoinBalanceRef.current = walletBal;
         setCoinBalance(resolveGiftUiBalance(walletBal, user.id));
         const p = progression.data?.progression;
         const starter = Math.max(0, Number(p?.starter_coin_balance) || 0);
@@ -1322,14 +1326,23 @@ export default function SpectatorPage() {
     const testBal = getPersistedTestCoinsBalance(user.id);
     if (testBal > 0) {
       setCoinBalance(testBal);
-      return;
+      // Still refresh real wallet in the background so paid gifts work when test hits 0.
+      void request('/api/wallet/').then(({ data, error: walletErr }) => {
+        const walletRaw = data?.coin_balance ?? data?.balance;
+        if (!walletErr && walletRaw != null) {
+          walletCoinBalanceRef.current = Math.max(0, Number(walletRaw));
+        }
+      });
+    } else {
+      void request('/api/wallet/').then(({ data, error: walletErr }) => {
+        const walletRaw = data?.coin_balance ?? data?.balance;
+        if (!walletErr && walletRaw != null) {
+          const walletBal = Math.max(0, Number(walletRaw));
+          walletCoinBalanceRef.current = walletBal;
+          setCoinBalance(walletBal);
+        }
+      });
     }
-    request('/api/wallet/').then(({ data, error: walletErr }) => {
-      const walletRaw = data?.coin_balance ?? data?.balance;
-      if (!walletErr && walletRaw != null) {
-        setCoinBalance(Math.max(0, Number(walletRaw)));
-      }
-    }).catch(() => {});
     request('/api/progression/me').then(({ data, error }) => {
       if (!error && data?.progression) {
         const starter = Math.max(
@@ -2206,7 +2219,7 @@ export default function SpectatorPage() {
       ? getSpendableGiftBalance(coinBalance, user?.id)
       : giftSource === 'starter_coins'
         ? starterCoinBalance
-        : coinBalance;
+        : walletCoinBalanceRef.current;
     if (spendable < gift.coins) {
       showToast(`Not enough coins (have ${spendable.toLocaleString()}, need ${gift.coins.toLocaleString()})`);
       return;
@@ -2227,7 +2240,9 @@ export default function SpectatorPage() {
         showToast(`Not enough coins (have ${debit.balance.toLocaleString()}, need ${gift.coins.toLocaleString()})`);
         return;
       }
-      setCoinBalance(debit.newBalance);
+      setCoinBalance(
+        displayBalanceAfterTestSpend(debit.newBalance, walletCoinBalanceRef.current),
+      );
       // Test-only: drive a LOCAL level using the same curve as the server so the
       // level visibly climbs while testing. Never sent to the server / real XP.
       const sim = addTestGiftXp((user as NonNullable<typeof user>).id, gift.coins);
@@ -2299,12 +2314,18 @@ export default function SpectatorPage() {
             setGiftSource('paid_coins');
           }
         } else if (result.new_balance != null) {
-          setCoinBalance(Math.max(0, Number(result.new_balance)));
+          const nextWallet = Math.max(0, Number(result.new_balance));
+          walletCoinBalanceRef.current = nextWallet;
+          setCoinBalance(
+            resolveGiftUiBalance(nextWallet, user?.id),
+          );
         } else {
           void request('/api/wallet/').then(({ data, error: walletErr }) => {
             const walletRaw = data?.coin_balance ?? data?.balance;
             if (!walletErr && walletRaw != null) {
-              setCoinBalance(Math.max(0, Number(walletRaw)));
+              const nextWallet = Math.max(0, Number(walletRaw));
+              walletCoinBalanceRef.current = nextWallet;
+              setCoinBalance(resolveGiftUiBalance(nextWallet, user?.id));
             }
           });
         }
@@ -3970,7 +3991,10 @@ export default function SpectatorPage() {
                 starterCoins={starterCoinBalance}
                 giftSource={giftSource}
                 onGiftSourceChange={setGiftSource}
-                onRechargeSuccess={(newBalance) => { setCoinBalance(newBalance); }}
+                onRechargeSuccess={(newBalance) => {
+                  walletCoinBalanceRef.current = Math.max(0, Number(newBalance) || 0);
+                  setCoinBalance(resolveGiftUiBalance(walletCoinBalanceRef.current, user?.id));
+                }}
                 onWeeklyRanking={() => {
                   setShowGiftPanel(false);
                   setRankingInitialTab('weekly');
