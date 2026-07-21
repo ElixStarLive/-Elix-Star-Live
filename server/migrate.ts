@@ -26,11 +26,17 @@ async function main(): Promise<void> {
   }
 
   const needsSsl = url.includes("neon.tech") || url.includes("sslmode=require");
+  /** Production verifies TLS by default; set PG_SSL_REJECT_UNAUTHORIZED=false only as an emergency escape. */
+  const rejectUnauthorized =
+    process.env.PG_SSL_REJECT_UNAUTHORIZED === "false"
+      ? false
+      : process.env.PG_SSL_REJECT_UNAUTHORIZED === "true" ||
+        process.env.NODE_ENV === "production";
   const pool = new pg.Pool({
     connectionString: url,
     max: 1,
     connectionTimeoutMillis: 30_000,
-    ...(needsSsl ? { ssl: { rejectUnauthorized: process.env.PG_SSL_REJECT_UNAUTHORIZED === "true" } } : {}),
+    ...(needsSsl ? { ssl: { rejectUnauthorized } } : {}),
   });
 
   const client = await pool.connect();

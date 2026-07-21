@@ -143,6 +143,12 @@ export async function connectPostgres(): Promise<void> {
       "DATABASE_URL points at a direct Neon endpoint (no '-pooler' in host). Use the pooled connection string for production scale to avoid connection exhaustion.",
     );
   }
+  /** Production verifies TLS by default; set PG_SSL_REJECT_UNAUTHORIZED=false only as an emergency escape. */
+  const rejectUnauthorized =
+    process.env.PG_SSL_REJECT_UNAUTHORIZED === "false"
+      ? false
+      : process.env.PG_SSL_REJECT_UNAUTHORIZED === "true" ||
+        process.env.NODE_ENV === "production";
   const poolMax = Number(process.env.PG_POOL_MAX) || DEFAULT_POOL_PER_WORKER;
   const newPool = new Pool({
     connectionString: url,
@@ -153,7 +159,7 @@ export async function connectPostgres(): Promise<void> {
     allowExitOnIdle: false,
     /** Fail before typical reverse-proxy ~10s idle timeout so clients see DB errors, not generic 502. */
     statement_timeout: Number(process.env.PG_STATEMENT_TIMEOUT_MS) || 8_000,
-    ...(needsSsl ? { ssl: { rejectUnauthorized: process.env.PG_SSL_REJECT_UNAUTHORIZED === "true" } } : {}),
+    ...(needsSsl ? { ssl: { rejectUnauthorized } } : {}),
   });
   newPool.on("error", (err) => {
     logger.error({ err: err.message }, "Unexpected pool error");

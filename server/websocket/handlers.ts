@@ -37,6 +37,10 @@ import {
 import { dbIsBlockedEitherWay, dbGetLiveStreams, getPool } from "../lib/postgres";
 import { activateBooster, getMistFogDurationMs } from "../lib/booster";
 import { deliverVerifiedGift } from "./giftDelivery";
+import {
+  isProductionTestCoinsBlocked,
+  isTestCoinsGiftSource,
+} from "./testCoinsPolicy";
 
 const BATTLE_USER_ROOM_TTL_MS = 600_000;
 
@@ -157,8 +161,8 @@ export async function handleMessage(
 
         // TEST COINS (dev/testing only): animation-only broadcast. Never mounted as
         // a payment path. Blocked in production so battles/scores cannot be skewed.
-        if (data?.giftSource === "test_coins" || data?.gift_source === "test_coins") {
-          if (process.env.NODE_ENV === "production") {
+        if (isTestCoinsGiftSource(data)) {
+          if (isProductionTestCoinsBlocked()) {
             sendToClient(client, "gift_ack", {
               transactionId: null,
               status: "rejected",
