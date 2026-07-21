@@ -584,22 +584,54 @@ export default function LiveStream() {
     const gen = ++liveKitPublishGenRef.current;
     const videoTrack = stream.getVideoTracks()[0];
     const audioTrack = stream.getAudioTracks()[0];
+    const wantVideoId = videoTrack?.readyState === 'live' ? videoTrack.id : null;
+    const wantAudioId = audioTrack?.readyState === 'live' ? audioTrack.id : null;
+
+    const pubs = [...room.localParticipant.trackPublications.values()];
+    const pubVideo = pubs.find((p) => p.kind === 'video');
+    const pubAudio = pubs.find((p) => p.kind === 'audio');
+    const publishedVideoId = pubVideo?.track?.mediaStreamTrack?.id ?? null;
+    const publishedAudioId = pubAudio?.track?.mediaStreamTrack?.id ?? null;
+
+    // Already publishing the correct live tracks — never unpublish/republish (causes black flicker).
+    if (
+      publishedVideoId === wantVideoId &&
+      publishedAudioId === wantAudioId &&
+      wantVideoId &&
+      (wantAudioId || !audioTrack)
+    ) {
+      return;
+    }
+
     try {
-      for (const pub of room.localParticipant.trackPublications.values()) {
-        if (pub.track) {
-          try {
-            await room.localParticipant.unpublishTrack(pub.track);
-          } catch {
-            /* ignore unpublish race */
-          }
+      if (pubVideo?.track && publishedVideoId !== wantVideoId) {
+        try {
+          await room.localParticipant.unpublishTrack(pubVideo.track);
+        } catch {
+          /* ignore unpublish race */
+        }
+      }
+      if (pubAudio?.track && publishedAudioId !== wantAudioId) {
+        try {
+          await room.localParticipant.unpublishTrack(pubAudio.track);
+        } catch {
+          /* ignore unpublish race */
         }
       }
       if (gen !== liveKitPublishGenRef.current) return;
-      if (videoTrack?.readyState === 'live') {
+
+      const hasVideoPub = [...room.localParticipant.trackPublications.values()].some(
+        (p) => p.kind === 'video' && p.track?.mediaStreamTrack?.id === wantVideoId,
+      );
+      if (!hasVideoPub && wantVideoId && videoTrack) {
         await room.localParticipant.publishTrack(new LocalVideoTrack(videoTrack), { name: 'camera' });
       }
       if (gen !== liveKitPublishGenRef.current) return;
-      if (audioTrack?.readyState === 'live') {
+
+      const hasAudioPub = [...room.localParticipant.trackPublications.values()].some(
+        (p) => p.kind === 'audio' && p.track?.mediaStreamTrack?.id === wantAudioId,
+      );
+      if (!hasAudioPub && wantAudioId && audioTrack) {
         await room.localParticipant.publishTrack(new LocalAudioTrack(audioTrack), { name: 'mic' });
       }
     } catch (e) {
@@ -773,11 +805,11 @@ export default function LiveStream() {
     let cancelled = false;
     let attempts = 0;
     const run = () => {
-      if (cancelled || attempts > 48) return;
+      if (cancelled || attempts > 12) return;
       attempts += 1;
       const room = liveKitRoomRef.current;
       if (!room || room.state !== ConnectionState.Connected) {
-        window.setTimeout(run, 250);
+        window.setTimeout(run, 500);
         return;
       }
       void publishHostLiveKitTracks();
@@ -2593,12 +2625,11 @@ export default function LiveStream() {
 
     let cancelled = false;
 
-    const stop = () => {
+    const stopTracks = () => {
       const current = cameraStreamRef.current;
       if (!current) return;
       current.getTracks().forEach((t) => t.stop());
       cameraStreamRef.current = null;
-      setCameraStream(null);
     };
 
     const start = async () => {
@@ -2611,17 +2642,19 @@ export default function LiveStream() {
 
         const cached = getCachedCameraStream();
         if (cached) {
-          cameraStreamRef.current = cached;
-          setCameraStream(cached);
-          cached.getAudioTracks().forEach((t) => (t.enabled = !isMicMuted));
-          if (videoRef.current) {
-            videoRef.current.srcObject = cached;
-            videoRef.current.play().catch(() => {});
+          const cachedVideo = cached.getVideoTracks()[0];
+          if (cachedVideo?.readyState === 'live') {
+            cameraStreamRef.current = cached;
+            setCameraStream(cached);
+            cached.getAudioTracks().forEach((t) => (t.enabled = !isMicMuted));
+            if (videoRef.current) {
+              videoRef.current.srcObject = cached;
+              videoRef.current.play().catch(() => {});
+            }
+            return;
           }
-          return;
+          clearCachedCameraStream();
         }
-
-        stop();
 
         let stream: MediaStream | null = null;
         try {
@@ -2650,6 +2683,7 @@ export default function LiveStream() {
           return;
         }
 
+        const previous = cameraStreamRef.current;
         cameraStreamRef.current = stream;
         setCameraStream(stream);
         stream.getAudioTracks().forEach((t) => (t.enabled = !isMicMuted));
@@ -2667,6 +2701,10 @@ export default function LiveStream() {
           videoRef.current.srcObject = stream;
           videoRef.current.play().catch(() => {});
         }
+
+        if (previous && previous !== stream) {
+          previous.getTracks().forEach((t) => t.stop());
+        }
       } catch {
         setCameraError('Camera access denied');
       }
@@ -2676,7 +2714,7 @@ export default function LiveStream() {
 
     return () => {
       cancelled = true;
-      stop();
+      stopTracks();
       clearCachedCameraStream();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2688,15 +2726,16 @@ export default function LiveStream() {
     let cancelled = false;
     let attempts = 0;
     const attach = () => {
-      if (cancelled || attempts > 24) return;
+      if (cancelled || attempts > 30) return;
       attempts += 1;
       const stream = cameraStreamRef.current;
       const el = videoRef.current;
-      if (stream && el) {
+      const track = stream?.getVideoTracks()[0];
+      if (stream && el && track?.readyState === 'live') {
         if (el.srcObject !== stream) {
           el.srcObject = stream;
-          void el.play().catch(() => {});
         }
+        void el.play().catch(() => {});
         return;
       }
       requestAnimationFrame(attach);
@@ -2707,43 +2746,27 @@ export default function LiveStream() {
     };
   }, [isBattleMode, isBroadcast, isBattleJoiner, cameraStream]);
 
-  // Battle grid mounts a new <video> — re-bind host camera after layout swap.
   useEffect(() => {
-    if (!isBroadcast || !isBattleMode) return;
-    const stream = cameraStreamRef.current;
-    if (!stream) return;
-    let attempts = 0;
-    let cancelled = false;
-    const bind = () => {
-      if (cancelled || attempts > 30) return;
-      attempts += 1;
-      const el = videoRef.current;
-      if (el) {
-        if (el.srcObject !== stream) {
-          el.srcObject = stream;
-          void el.play().catch(() => {});
+    if (!isBroadcast) return;
+    const handleForeground = async () => {
+      if (document.visibilityState !== 'visible') return;
+      websocket.reconnectOnForeground();
+      const stream = cameraStreamRef.current;
+      const track = stream?.getVideoTracks()[0];
+      if (track && track.readyState === 'live') {
+        const el = videoRef.current;
+        if (el) {
+          if (el.srcObject !== stream) el.srcObject = stream;
+          if (el.paused) void el.play().catch(() => {});
         }
         return;
       }
-      requestAnimationFrame(bind);
-    };
-    requestAnimationFrame(bind);
-    return () => {
-      cancelled = true;
-    };
-  }, [isBattleMode, isBroadcast, cameraStream]);
-
-  const recoverHostBroadcast = useCallback(async () => {
-    if (!isBroadcast) return;
-    websocket.reconnectOnForeground();
-    const stream = cameraStreamRef.current;
-    const track = stream?.getVideoTracks()[0];
-    if (!track || track.readyState === 'ended') {
       try {
         const newStream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: cameraFacing },
           audio: { echoCancellation: true, noiseSuppression: true },
         });
+        const previous = cameraStreamRef.current;
         cameraStreamRef.current = newStream;
         setCameraStream(newStream);
         newStream.getAudioTracks().forEach((t) => { t.enabled = !isMicMuted; });
@@ -2751,66 +2774,44 @@ export default function LiveStream() {
           videoRef.current.srcObject = newStream;
           void videoRef.current.play().catch(() => {});
         }
+        if (previous && previous !== newStream) {
+          previous.getTracks().forEach((t) => t.stop());
+        }
+        void publishHostLiveKitTracks();
       } catch {
         /* camera unavailable */
       }
-    } else {
-      if (videoRef.current) {
-        if (videoRef.current.srcObject !== stream) {
-          videoRef.current.srcObject = stream;
-        }
-        void videoRef.current.play().catch(() => {});
-      }
-      await publishHostLiveKitTracks();
+    };
+    document.addEventListener('visibilitychange', handleForeground);
+    let appSub: { remove: () => void } | null = null;
+    if (platform.isNative) {
+      void CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+        if (isActive) void handleForeground();
+      }).then((h) => { appSub = h; });
     }
-  }, [cameraFacing, isBroadcast, isMicMuted, publishHostLiveKitTracks]);
-
-  useEffect(() => {
-    if (!isBroadcast) return;
-    const onVisible = () => {
-      if (document.visibilityState === 'visible') void recoverHostBroadcast();
-    };
-    document.addEventListener('visibilitychange', onVisible);
-    return () => document.removeEventListener('visibilitychange', onVisible);
-  }, [isBroadcast, recoverHostBroadcast]);
-
-  useEffect(() => {
-    if (!isBroadcast || !platform.isNative) return;
-    const sub = CapacitorApp.addListener('appStateChange', ({ isActive }) => {
-      if (isActive) void recoverHostBroadcast();
-    });
     return () => {
-      void sub.then((h) => h.remove());
+      document.removeEventListener('visibilitychange', handleForeground);
+      appSub?.remove();
     };
-  }, [isBroadcast, recoverHostBroadcast]);
+  }, [isBroadcast, cameraFacing, isMicMuted, publishHostLiveKitTracks]);
 
-  // Keep host preview + LiveKit publish alive if Android WebView drops the track.
+  // Preview-only: re-bind local camera to <video> if WebView drops srcObject — never restart camera here.
   useEffect(() => {
     if (!isBroadcast) return;
     const id = window.setInterval(() => {
       const stream = cameraStreamRef.current;
-      const track = stream?.getVideoTracks()[0];
       const el = videoRef.current;
-      if (stream && el && el.srcObject !== stream) {
+      const track = stream?.getVideoTracks()[0];
+      if (!stream || !el || track?.readyState !== 'live') return;
+      if (el.srcObject !== stream) {
         el.srcObject = stream;
+      }
+      if (el.paused) {
         void el.play().catch(() => {});
-      } else if (el && stream && el.paused) {
-        void el.play().catch(() => {});
       }
-      if (track?.readyState === 'ended') {
-        void recoverHostBroadcast();
-        return;
-      }
-      const room = liveKitRoomRef.current;
-      if (room && room.state === ConnectionState.Connected && stream && track?.readyState === 'live') {
-        const hasLivePub = [...room.localParticipant.trackPublications.values()].some(
-          (p) => p.track && p.kind === 'video',
-        );
-        if (!hasLivePub) void publishHostLiveKitTracks();
-      }
-    }, 2500);
+    }, 2000);
     return () => window.clearInterval(id);
-  }, [isBroadcast, recoverHostBroadcast, publishHostLiveKitTracks]);
+  }, [isBroadcast]);
 
   useEffect(() => {
     const stream = cameraStreamRef.current;
