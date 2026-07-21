@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { RoyceBackIcon, RoyceCloseIcon } from '../components/royce';
 import { showToast } from '../lib/toast';
+import { IS_STORE_BUILD } from '../config/build';
 import {
   Send,
   Search,
@@ -4025,6 +4026,7 @@ export default function SpectatorPage() {
                   <div className="w-10 h-1 bg-white/20 rounded-full" />
                 </div>
                 <div className="grid grid-cols-4 gap-y-4 gap-x-2 pt-4 pb-2 px-1">
+                  {!IS_STORE_BUILD && (
                   <button
                     type="button"
                     onClick={() => {
@@ -4041,6 +4043,7 @@ export default function SpectatorPage() {
                     </div>
                     <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">Test</span>
                   </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => { setIsReportModalOpen(true); setIsMoreMenuOpen(false); }}
@@ -4077,8 +4080,8 @@ export default function SpectatorPage() {
           </>
         )}
 
-        {/* TEST COINS MODAL — password-protected, local-only test balance */}
-        {showTestCoinsModal && (
+        {/* TEST COINS MODAL — password-protected, local-only test balance (non-store only) */}
+        {!IS_STORE_BUILD && showTestCoinsModal && (
           <>
             <div
               className="fixed inset-0 bg-black/60 pointer-events-auto"

@@ -155,10 +155,18 @@ export async function handleMessage(
         if (!(await wsRateCheck(client.userId, "gift", 50, 5_000))) break;
         const { transactionId } = data;
 
-        // TEST COINS (testing tool): animation-only broadcast so the creator and
-        // spectators see the gift video. Never claims a transaction, never touches
-        // wallets, gift goals, or battle scores.
+        // TEST COINS (dev/testing only): animation-only broadcast. Never mounted as
+        // a payment path. Blocked in production so battles/scores cannot be skewed.
         if (data?.giftSource === "test_coins" || data?.gift_source === "test_coins") {
+          if (process.env.NODE_ENV === "production") {
+            sendToClient(client, "gift_ack", {
+              transactionId: null,
+              status: "rejected",
+              reason: "test_coins_disabled",
+              timestamp: Date.now(),
+            });
+            break;
+          }
           const testGiftId = typeof data?.giftId === "string" ? data.giftId : "";
           const testClientVideo =
             (typeof data?.video === "string" && data.video) ||
@@ -200,8 +208,7 @@ export async function handleMessage(
               sendToUserGlobal(testOwnerId, "gift_sent", testPayload);
             }
           } catch { /* non-fatal */ }
-          // Test coins simulate battle score too (testing tool) — points show on
-          // the PK bar exactly like paid gifts, but never touch wallets or goals.
+          // Non-prod only: simulate battle score for testing PK bar without wallets.
           try {
             const testBattle = await getBattleFromStore(client.roomId);
             if (testBattle && testBattle.status === "ACTIVE") {

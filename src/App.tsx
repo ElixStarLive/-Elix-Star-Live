@@ -16,6 +16,7 @@ import { useDeepLinks } from "./lib/deepLinks";
 import { analytics } from "./lib/analytics";
 import { notificationService } from "./lib/notifications";
 import { initializeIAP, reconcileOwnedCoinPurchases } from "./lib/iap";
+import { crashReporting } from "./lib/crashReporting";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { OfflineBanner } from "./components/OfflineBanner";
 import { IncomingCallModal } from "./components/IncomingCallModal";
@@ -189,8 +190,9 @@ function App() {
     void notificationService.initialize().catch(() => {
       /* async push init — never block app */
     });
-    void initializeIAP().catch(() => {
-      /* async IAP init — never block app */
+    void initializeIAP().catch((err) => {
+      const error = err instanceof Error ? err : new Error(String(err || "iap_init_failed"));
+      void crashReporting.logError(error, { source: "initializeIAP" });
     });
 
     return () => clearTimeout(timer);
@@ -200,7 +202,10 @@ function App() {
     if (user?.id) {
       analytics.setUserId(user.id);
       void notificationService.registerTokenWithBackend().catch(() => {});
-      void reconcileOwnedCoinPurchases().catch(() => {});
+      void reconcileOwnedCoinPurchases().catch((err) => {
+        const error = err instanceof Error ? err : new Error(String(err || "iap_reconcile_failed"));
+        void crashReporting.logError(error, { source: "reconcileOwnedCoinPurchases" });
+      });
       const unsubCalls = subscribeToIncomingCalls(user.id);
       return () => {
         unsubCalls();

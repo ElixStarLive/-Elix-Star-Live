@@ -1,6 +1,14 @@
 /** Local test coins — isolated from real wallet / IAP / Stripe (gift UI testing only). */
 
+import { IS_STORE_BUILD } from '../config/build';
+
+/** Store/production client builds must never read or spend test coins. */
+function testCoinsAllowed(): boolean {
+  return !IS_STORE_BUILD;
+}
+
 export function getPersistedTestCoinsBalance(userId: string | undefined): number {
+  if (!testCoinsAllowed()) return 0;
   if (!userId || typeof localStorage === 'undefined') return 0;
   try {
     const v = localStorage.getItem(`elix_test_coins_balance_${userId}`);
@@ -11,6 +19,7 @@ export function getPersistedTestCoinsBalance(userId: string | undefined): number
 }
 
 export function persistTestCoinsBalance(userId: string | undefined, balance: number): void {
+  if (!testCoinsAllowed()) return;
   if (!userId || typeof localStorage === 'undefined') return;
   try {
     localStorage.setItem(`elix_test_coins_balance_${userId}`, String(Math.max(0, balance)));
@@ -21,10 +30,12 @@ export function persistTestCoinsBalance(userId: string | undefined, balance: num
 
 /** When test coins exist, gifts spend from test balance only — never the real wallet. */
 export function shouldUseTestCoinsForGifts(userId: string | undefined): boolean {
+  if (!testCoinsAllowed()) return false;
   return getPersistedTestCoinsBalance(userId) > 0;
 }
 
 export function resolveGiftUiBalance(walletBalance: number, userId: string | undefined): number {
+  if (!testCoinsAllowed()) return Math.max(0, walletBalance);
   const test = getPersistedTestCoinsBalance(userId);
   if (test > 0) return test;
   return Math.max(0, walletBalance);
@@ -36,6 +47,7 @@ export function getSpendableGiftBalance(displayBalance: number, userId: string |
 }
 
 export function addPersistedTestCoins(userId: string | undefined, amount: number): number {
+  if (!testCoinsAllowed()) return 0;
   const add = Math.max(0, Math.floor(amount));
   const current = getPersistedTestCoinsBalance(userId);
   const newBalance = current + add;
@@ -51,6 +63,7 @@ export function debitTestCoinsForGift(
   userId: string | undefined,
   amount: number,
 ): DebitTestCoinsResult {
+  if (!testCoinsAllowed()) return { ok: false as const, balance: 0 };
   const coins = Math.max(0, Math.floor(amount));
   const current = getPersistedTestCoinsBalance(userId);
   if (current < coins) return { ok: false as const, balance: current };
@@ -91,6 +104,7 @@ export function addTestGiftXp(
   userId: string | undefined,
   coinsSpent: number,
 ): { totalXp: number; level: number } {
+  if (!testCoinsAllowed()) return { totalXp: 0, level: 0 };
   const gain = Math.max(0, Math.floor(coinsSpent));
   const totalXp = getPersistedTestXp(userId) + gain;
   if (userId && typeof localStorage !== 'undefined') {
