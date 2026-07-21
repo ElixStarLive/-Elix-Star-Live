@@ -91,6 +91,13 @@ import ReportModal from '../components/ReportModal';
 import PromotePanel from '../components/PromotePanel';
 import { RankingPanel } from '../components/RankingPanel';
 import { type LiveRankTab } from '../components/CyclingRankBadge';
+import {
+  LiveDiamondLeagueCapsule,
+  LiveFollowPill,
+  LiveGiftComboColumn,
+  LiveMembershipVipCapsule,
+  LiveTopGifterAvatar,
+} from '../components/LiveMarkedTopUi';
 import { websocket } from '../lib/websocket';
 import { normalizeBattleGiftTarget } from '../lib/liveBattleGiftTarget';
 import { parseLiveGiftGoal, type LiveGiftGoal } from '../lib/liveGiftGoal';
@@ -2837,25 +2844,25 @@ export default function SpectatorPage() {
                     onClick={() => setShowViewersPanel(true)}
                   >
                     {mvpSlots.host.map((slot, i) => {
-                      const isMvp = i === 0 && (mvpGiftScoresHostRef.current[slot.id] ?? 0) > 0;
+                      const pts = slot.points ?? mvpGiftScoresHostRef.current[slot.id] ?? 0;
+                      const isMvp = i === 0 && pts > 0;
                       return (
                         <div
                           key={`mvp-l-${slot.id}`}
                           className="relative flex flex-col items-center"
                           style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
                         >
-                          <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
-                            <AvatarRing
-                              src={resolveCircleAvatar(slot.avatar, slot.name)}
-                              alt={slot.name || ''}
-                              size={SPECTATOR_BATTLE_PROFILE_RING_PX}
-                            />
-                          </div>
-                          {isMvp && (
-                            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
-                              MVP
-                            </span>
-                          )}
+                          <LiveTopGifterAvatar
+                            slot={{
+                              id: slot.id,
+                              name: slot.name,
+                              avatar: resolveCircleAvatar(slot.avatar, slot.name),
+                              points: pts,
+                            }}
+                            size={SPECTATOR_BATTLE_PROFILE_RING_PX}
+                            isMvp={isMvp}
+                            onOpen={(id) => navigate(`/profile/${id}`)}
+                          />
                         </div>
                       );
                     })}
@@ -2866,25 +2873,25 @@ export default function SpectatorPage() {
                     onClick={() => setShowViewersPanel(true)}
                   >
                     {mvpSlots.opponent.map((slot, i) => {
-                      const isMvp = i === 0 && (mvpGiftScoresOpponentRef.current[slot.id] ?? 0) > 0;
+                      const pts = slot.points ?? mvpGiftScoresOpponentRef.current[slot.id] ?? 0;
+                      const isMvp = i === 0 && pts > 0;
                       return (
                         <div
                           key={`mvp-r-${slot.id}`}
                           className="relative flex flex-col items-center"
                           style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
                         >
-                          <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
-                            <AvatarRing
-                              src={resolveCircleAvatar(slot.avatar, slot.name)}
-                              alt={slot.name || ''}
-                              size={SPECTATOR_BATTLE_PROFILE_RING_PX}
-                            />
-                          </div>
-                          {isMvp && (
-                            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
-                              MVP
-                            </span>
-                          )}
+                          <LiveTopGifterAvatar
+                            slot={{
+                              id: slot.id,
+                              name: slot.name,
+                              avatar: resolveCircleAvatar(slot.avatar, slot.name),
+                              points: pts,
+                            }}
+                            size={SPECTATOR_BATTLE_PROFILE_RING_PX}
+                            isMvp={isMvp}
+                            onOpen={(id) => navigate(`/profile/${id}`)}
+                          />
                         </div>
                       );
                     })}
@@ -3354,17 +3361,12 @@ export default function SpectatorPage() {
 
                     {/* Follow Button (Top layer) — covers Join until user follows */}
                     {!isFollowing && (
-                      <button
-                        type="button"
-                        className="col-start-1 row-start-1 z-20 relative flex items-center justify-center gap-0.5 self-stretch h-full rounded-full bg-[#FE2C55] w-full"
-                        onClick={(e) => {
+                      <LiveFollowPill
+                        onFollow={(e) => {
                           e.stopPropagation();
                           followHost(e);
                         }}
-                      >
-                        <Plus size={12} className="text-white" strokeWidth={3} />
-                        <span className="text-white text-[10px] font-bold">Follow</span>
-                      </button>
+                      />
                     )}
                   </div>
                 </div>
@@ -3392,30 +3394,18 @@ export default function SpectatorPage() {
                       <div
                         key={`spectator-top-mvp-${slot.id}`}
                         style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
-                        className="relative"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (slot.id) navigate(`/profile/${slot.id}`);
-                        }}
                       >
-                        {isMvp && (
-                          <span className="absolute -top-1.5 -left-0.5 z-[3] flex items-center justify-center drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]">
-                            <Crown size={11} className="text-[#FFD54A]" fill="#FFD54A" strokeWidth={1.2} />
-                          </span>
-                        )}
-                        <div className={isMvp ? 'rounded-full ring-[1.5px] ring-white/90' : ''}>
-                          <AvatarRing
-                            src={resolveCircleAvatar(slot.avatar, slot.name)}
-                            alt={slot.name || ''}
-                            size={SPECTATOR_MVP_PROFILE_RING_PX}
-                          />
-                        </div>
-                        {isMvp && (
-                          <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 z-[2] flex items-center gap-0.5 px-1 py-[1px] rounded-full bg-black/70 text-white text-[6px] font-bold leading-none tabular-nums whitespace-nowrap">
-                            <Coins size={7} className="text-[#FFD54A] flex-shrink-0" strokeWidth={2.5} />
-                            {formatCohostGiftScore(slot.points)}
-                          </span>
-                        )}
+                        <LiveTopGifterAvatar
+                          slot={{
+                            id: slot.id,
+                            name: slot.name,
+                            avatar: resolveCircleAvatar(slot.avatar, slot.name),
+                            points: slot.points ?? 0,
+                          }}
+                          size={SPECTATOR_MVP_PROFILE_RING_PX}
+                          isMvp={isMvp}
+                          onOpen={(id) => navigate(`/profile/${id}`)}
+                        />
                       </div>
                     );
                   })}
@@ -3453,43 +3443,24 @@ export default function SpectatorPage() {
               </div>
             </div>
 
-            {/* Second row: Diamond League + Membership VIP — photo design */}
+            {/* Second row: Diamond League + Membership VIP — shared 1-1 with creator */}
             <div
               className="flex items-center gap-1.5 mt-1 ml-12 pointer-events-auto relative z-20 flex-wrap"
             >
-              <button
-                type="button"
-                className="flex items-center gap-1.5 bg-black/55 backdrop-blur-[2px] rounded-xl pl-1.5 pr-2 py-1 cursor-pointer active:scale-95 transition-transform"
-                onClick={(e) => {
-                  e.stopPropagation();
+              <LiveDiamondLeagueCapsule
+                rank={diamondLeagueRank}
+                onOpen={() => {
                   setShowGiftPanel(false);
                   setRankingInitialTab('weekly');
                   setShowRankingPanel(true);
                 }}
-              >
-                <Gem className="w-4 h-4 text-[#C084FC] flex-shrink-0" strokeWidth={2.2} fill="#A855F7" />
-                <span className="flex flex-col items-start leading-none min-w-0">
-                  <span className="text-white text-[10px] font-bold whitespace-nowrap">Diamond League</span>
-                  {diamondLeagueRank != null ? (
-                    <span className="text-white/70 text-[8px] font-semibold whitespace-nowrap mt-0.5">Rank {diamondLeagueRank}</span>
-                  ) : null}
-                </span>
-                <span className="text-white/80 text-[10px] ml-0.5">&gt;</span>
-              </button>
-              <div
-                className="flex items-center gap-1.5 bg-black/55 backdrop-blur-[2px] rounded-xl pl-1.5 pr-2 py-1 cursor-pointer active:scale-95 transition-transform"
-                onClick={() => { setShowGiftPanel(false); setShowFanClub(true); }}
-              >
-                <Crown className="w-4 h-4 text-[#FFD54A] flex-shrink-0" strokeWidth={2} fill="#FFD54A" />
-                <span className="flex flex-col items-start leading-none min-w-0">
-                  <span className="text-white text-[10px] font-bold whitespace-nowrap">Membership</span>
-                  <span className="flex items-center gap-0.5 mt-0.5">
-                    <span className="text-[#FFD54A] text-[8px] font-bold">VIP</span>
-                    <Star size={8} className="text-[#FFD54A]" fill="#FFD54A" strokeWidth={1.5} />
-                  </span>
-                </span>
-                <span className="text-white/80 text-[10px] ml-0.5">&gt;</span>
-              </div>
+              />
+              <LiveMembershipVipCapsule
+                onOpen={() => {
+                  setShowGiftPanel(false);
+                  setShowFanClub(true);
+                }}
+              />
             </div>
           </div>
         </div>
@@ -3560,45 +3531,12 @@ export default function SpectatorPage() {
           </div>
         </div>
 
-        {/* COMBO COLUMN — gift icon + xN beside it (photo design); above gift video */}
+        {/* COMBO COLUMN — shared 1-1 with creator */}
         {showComboButton && comboStack.length > 0 && (
-          <div className="fixed left-0 right-0 bottom-[calc(58px+max(2px,env(safe-area-inset-bottom,0px)))] z-[50001] flex justify-center pointer-events-none">
-            <div className="w-full max-w-[480px] mx-auto px-3 flex justify-center pointer-events-auto">
-              <div className="flex flex-col-reverse items-center gap-2">
-                {comboStack.map((item, idx) => {
-                  const isActive = idx === comboStack.length - 1;
-                  const n = item.count;
-                  const label = n >= 1000 ? `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}K` : String(n);
-                  return (
-                    <button
-                      key={item.key}
-                      type="button"
-                      onClick={isActive ? handleComboClick : undefined}
-                      disabled={!isActive || n >= GIFT_COMBO_MAX}
-                      className="flex items-center gap-1.5 active:scale-95 transition-transform disabled:opacity-50 bg-transparent border-0 p-0"
-                    >
-                      {item.icon && (item.icon.startsWith('http') || item.icon.startsWith('/')) ? (
-                        <img
-                          src={item.icon}
-                          alt=""
-                          className="w-11 h-11 object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.65)]"
-                          draggable={false}
-                        />
-                      ) : (
-                        <span className="w-11 h-11 flex items-center justify-center text-2xl drop-shadow-[0_2px_6px_rgba(0,0,0,0.65)]">🎁</span>
-                      )}
-                      <span className="font-black italic text-white text-[22px] leading-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)] tracking-tight">
-                        x{label}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
+          <LiveGiftComboColumn stack={comboStack} onCombo={handleComboClick} />
         )}
 
-        {/* Bottom bar — above gift video so Gift/Invite/Share/More stay tappable */}
+{/* Bottom bar — above gift video so Gift/Invite/Share/More stay tappable */}
         <div
           className="fixed left-0 right-0 bottom-0 z-[50002] pointer-events-auto flex justify-center"
           style={{ paddingBottom: LIVE_BOTTOM_ACTION_PADDING }}

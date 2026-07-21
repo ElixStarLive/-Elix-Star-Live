@@ -104,6 +104,13 @@ import { LiveEngagementOverlay } from '../components/LiveEngagementOverlay';
 import { useLiveEngagement } from '../hooks/useLiveEngagement';
 import { RankingPanel } from '../components/RankingPanel';
 import { type LiveRankTab } from '../components/CyclingRankBadge';
+import {
+  LiveDiamondLeagueCapsule,
+  LiveFollowPill,
+  LiveGiftComboColumn,
+  LiveMembershipVipCapsule,
+  LiveTopGifterAvatar,
+} from '../components/LiveMarkedTopUi';
 import { websocket } from '../lib/websocket';
 import { parseLiveGiftGoal, type LiveGiftGoal } from '../lib/liveGiftGoal';
 import { liveStreamUiGiftTargetToServerBattleTarget, normalizeBattleGiftTarget } from '../lib/liveBattleGiftTarget';
@@ -5797,50 +5804,50 @@ export default function LiveStream() {
             <div className="absolute bottom-1 left-0 right-0 px-3 py-2 flex items-center justify-between flex-none pointer-events-none relative z-30" style={{ transform: 'translateY(1mm)' }}>
               <div className="flex items-center gap-[0mm] min-w-0 flex-1 justify-start pointer-events-auto" style={{ transform: `translateX(-${BATTLE_MVP_ROW_EDGE_OFFSET_MM}mm)` }} onClick={() => { setShowViewerList(false); setIsFindCreatorsOpen(true); }}>
                 {topMvpHostBattle.map((viewer, i) => {
-                  const isMvp = i === 0 && (mvpGiftScoresHost[viewer.id] ?? 0) > 0;
+                  const points = mvpGiftScoresHost[viewer.id] ?? 0;
+                  const isMvp = i === 0 && points > 0;
                   return (
                   <div
                     key={`mvp-l-${viewer.id}`}
                     className="relative flex flex-col items-center"
                     style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
                   >
-                    <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
-                      <AvatarRing
-                        src={resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username)}
-                        alt={viewer.displayName || viewer.username || ''}
-                        size={SPECTATOR_BATTLE_PROFILE_RING_PX}
-                      />
-                    </div>
-                    {isMvp && (
-                      <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
-                        MVP
-                      </span>
-                    )}
+                    <LiveTopGifterAvatar
+                      slot={{
+                        id: viewer.id,
+                        name: viewer.displayName || viewer.username || '',
+                        avatar: resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username),
+                        points,
+                      }}
+                      size={SPECTATOR_BATTLE_PROFILE_RING_PX}
+                      isMvp={isMvp}
+                      onOpen={(id) => navigate(`/profile/${id}`)}
+                    />
                   </div>
                   );
                 })}
               </div>
               <div className="flex items-center gap-[0mm] min-w-0 flex-1 justify-end pointer-events-auto" style={{ transform: `translateX(${BATTLE_MVP_ROW_EDGE_OFFSET_MM}mm)` }} onClick={() => { setShowViewerList(false); setIsFindCreatorsOpen(true); }}>
                 {topMvpOpponentBattle.map((viewer, i) => {
-                  const isMvp = i === 0 && (mvpGiftScoresOpponent[viewer.id] ?? 0) > 0;
+                  const points = mvpGiftScoresOpponent[viewer.id] ?? 0;
+                  const isMvp = i === 0 && points > 0;
                   return (
                   <div
                     key={`mvp-r-${viewer.id}`}
                     className="relative flex flex-col items-center"
                     style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
                   >
-                    <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
-                      <AvatarRing
-                        src={resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username)}
-                        alt={viewer.displayName || viewer.username || ''}
-                        size={SPECTATOR_BATTLE_PROFILE_RING_PX}
-                      />
-                    </div>
-                    {isMvp && (
-                      <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
-                        MVP
-                      </span>
-                    )}
+                    <LiveTopGifterAvatar
+                      slot={{
+                        id: viewer.id,
+                        name: viewer.displayName || viewer.username || '',
+                        avatar: resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username),
+                        points,
+                      }}
+                      size={SPECTATOR_BATTLE_PROFILE_RING_PX}
+                      isMvp={isMvp}
+                      onOpen={(id) => navigate(`/profile/${id}`)}
+                    />
                   </div>
                   );
                 })}
@@ -5964,14 +5971,7 @@ export default function LiveStream() {
 
                                     {/* Follow Button (Top) — viewers only; calls POST /api/profiles/:id/follow */}
                                     {!isBroadcast && !isFollowing && (
-                                      <button
-                                        type="button"
-                                        className="col-start-1 row-start-1 z-20 relative flex items-center justify-center gap-0.5 self-stretch h-full rounded-full bg-[#FE2C55] w-full"
-                                        onClick={followCreatorLive}
-                                      >
-                                        <Plus size={12} className="text-white" strokeWidth={3} />
-                                        <span className="text-white text-[10px] font-bold">Follow</span>
-                                      </button>
+                                      <LiveFollowPill onFollow={followCreatorLive} />
                                     )}
                                   </div>
                                 );
@@ -5979,41 +5979,18 @@ export default function LiveStream() {
                             </div>
                           </div>
                           <div className="flex items-center gap-1.5 mt-1 ml-12 pointer-events-auto relative z-20 flex-wrap">
-                            <button
-                              type="button"
-                              className="flex items-center gap-1.5 bg-black/55 backdrop-blur-[2px] rounded-xl pl-1.5 pr-2 py-1 cursor-pointer active:scale-95 transition-transform"
-                              onClick={(e) => {
-                                e.stopPropagation();
+                            <LiveDiamondLeagueCapsule
+                              rank={diamondLeagueRank}
+                              onOpen={() => {
                                 setRankingInitialTab('weekly');
                                 setShowRankingPanel(true);
                               }}
-                            >
-                              <Gem className="w-4 h-4 text-[#C084FC] flex-shrink-0" strokeWidth={2.2} fill="#A855F7" />
-                              <span className="flex flex-col items-start leading-none min-w-0">
-                                <span className="text-white text-[10px] font-bold whitespace-nowrap">Diamond League</span>
-                                {diamondLeagueRank != null ? (
-                                  <span className="text-white/70 text-[8px] font-semibold whitespace-nowrap mt-0.5">Rank {diamondLeagueRank}</span>
-                                ) : null}
-                              </span>
-                              <span className="text-white/80 text-[10px] ml-0.5">&gt;</span>
-                            </button>
-                            <div 
-                              className="flex items-center gap-1.5 bg-black/55 backdrop-blur-[2px] rounded-xl pl-1.5 pr-2 py-1 cursor-pointer active:scale-95 transition-transform" 
-                              onClick={(e) => {
-                                e.stopPropagation();
+                            />
+                            <LiveMembershipVipCapsule
+                              onOpen={() => {
                                 setShowFanClub(true);
                               }}
-                            >
-                              <Crown className="w-4 h-4 text-[#FFD54A] flex-shrink-0" strokeWidth={2} fill="#FFD54A" />
-                              <span className="flex flex-col items-start leading-none min-w-0">
-                                <span className="text-white text-[10px] font-bold whitespace-nowrap">Membership</span>
-                                <span className="flex items-center gap-0.5 mt-0.5">
-                                  <span className="text-[#FFD54A] text-[8px] font-bold">VIP</span>
-                                  <Star size={8} className="text-[#FFD54A]" fill="#FFD54A" strokeWidth={1.5} />
-                                </span>
-                              </span>
-                              <span className="text-white/80 text-[10px] ml-0.5">&gt;</span>
-                            </div>
+                            />
                             {currentUniverse && (
                               <div className="flex items-center gap-1 bg-[#111111]/90 rounded-full px-2.5 py-1 border border-[#D4AF37]/80 shadow-sm">
                                 <span className="text-[#F5E6A8] text-[11px] font-bold whitespace-nowrap truncate max-w-[140px]">✨ {universeText} ✨</span>
@@ -6040,30 +6017,18 @@ export default function LiveStream() {
                               <div
                                 key={`top-viewers-${viewer.id}`}
                                 style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
-                                className="relative"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (viewer.id) navigate(`/profile/${viewer.id}`);
-                                }}
                               >
-                                {isMvp && (
-                                  <span className="absolute -top-1.5 -left-0.5 z-[3] flex items-center justify-center drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]">
-                                    <Crown size={11} className="text-[#FFD54A]" fill="#FFD54A" strokeWidth={1.2} />
-                                  </span>
-                                )}
-                                <div className={isMvp ? 'rounded-full ring-[1.5px] ring-white/90' : ''}>
-                                  <AvatarRing
-                                    src={resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username)}
-                                    alt={viewer.displayName || viewer.username || ''}
-                                    size={LIVE_MVP_PROFILE_RING_PX}
-                                  />
-                                </div>
-                                {isMvp && (
-                                  <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 z-[2] flex items-center gap-0.5 px-1 py-[1px] rounded-full bg-black/70 text-white text-[6px] font-bold leading-none tabular-nums whitespace-nowrap">
-                                    <Coins size={7} className="text-[#FFD54A] flex-shrink-0" strokeWidth={2.5} />
-                                    {formatCountShort(points)}
-                                  </span>
-                                )}
+                                <LiveTopGifterAvatar
+                                  slot={{
+                                    id: viewer.id,
+                                    name: viewer.displayName || viewer.username || '',
+                                    avatar: resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username),
+                                    points,
+                                  }}
+                                  size={LIVE_MVP_PROFILE_RING_PX}
+                                  isMvp={isMvp}
+                                  onOpen={(id) => navigate(`/profile/${id}`)}
+                                />
                               </div>
                               );
                             })}
@@ -6172,55 +6137,20 @@ export default function LiveStream() {
               </div>
             </div>
 
-      {/* Combo column — gift icon + xN beside it (photo design) */}
+      {/* Combo column — shared 1-1 with spectator */}
       <AnimatePresence>
         {showComboButton && comboStack.length > 0 && (
           <motion.div
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
-            className="fixed left-0 right-0 bottom-[calc(58px+max(2px,env(safe-area-inset-bottom,0px)))] z-[50001] flex justify-center pointer-events-none"
           >
-            <div className="w-full max-w-[480px] mx-auto px-3 flex justify-center pointer-events-auto">
-              <div className="flex flex-col-reverse items-center gap-2">
-                {comboStack.map((item, idx) => {
-                  const isActive = idx === comboStack.length - 1;
-                  const n = item.count;
-                  const label = n >= 1000 ? `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}K` : String(n);
-                  return (
-                    <button
-                      key={item.key}
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (isActive) handleComboClick();
-                      }}
-                      disabled={!isActive || n >= GIFT_COMBO_MAX}
-                      className="flex items-center gap-1.5 active:scale-95 transition-transform disabled:opacity-50 bg-transparent border-0 p-0"
-                    >
-                      {item.icon && (item.icon.startsWith('http') || item.icon.startsWith('/')) ? (
-                        <img
-                          src={item.icon}
-                          alt=""
-                          className="w-11 h-11 object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.65)]"
-                          draggable={false}
-                        />
-                      ) : (
-                        <span className="w-11 h-11 flex items-center justify-center text-2xl drop-shadow-[0_2px_6px_rgba(0,0,0,0.65)]">🎁</span>
-                      )}
-                      <span className="font-black italic text-white text-[22px] leading-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)] tracking-tight">
-                        x{label}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            <LiveGiftComboColumn stack={comboStack} onCombo={handleComboClick} />
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* BOTTOM RIGHT: Action buttons (same area as before, aligned right) */}
+{/* BOTTOM RIGHT: Action buttons (same area as before, aligned right) */}
       <div
         className="bottom-zone pointer-events-auto bg-transparent px-3 pt-0 flex flex-col items-end fixed left-0 right-0 bottom-0 z-[50002] justify-end"
         style={{ paddingBottom: LIVE_BOTTOM_ACTION_PADDING }}
