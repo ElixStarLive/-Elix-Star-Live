@@ -616,50 +616,54 @@ export default function LiveStream() {
       }
       if (track.kind !== 'video') return;
 
-      // Try co-host slot first
-      const coHostEl = coHostVideoRefs.current.get(identity);
-      if (coHostEl) { track.attach(coHostEl); return; }
-
-      // Battle: opponent publishes into THIS (host) LiveKit room — attach to the
-      // matching battle pane. Do not wait on a second connection to their old solo room.
-      if (isBattleModeRef.current) {
-        const slots = battleSlotsRef.current;
-        const markAttached = (el: HTMLVideoElement | null) => {
-          if (!el) return false;
-          track.attach(el);
-          void el.play().catch(() => {});
-          return true;
-        };
-        if (slots[0]?.userId && sameUserId(identity, slots[0].userId)) {
-          if (markAttached(opponentVideoRef.current)) {
-            setHasOpponentStream(true);
-            return;
-          }
-        }
-        if (slots[1]?.userId && sameUserId(identity, slots[1].userId)) {
-          if (markAttached(player3VideoRef.current)) return;
-        }
-        if (slots[2]?.userId && sameUserId(identity, slots[2].userId)) {
-          if (markAttached(player4VideoRef.current)) return;
-        }
-        // Pane accepted but userId not synced yet — fill first free battle video.
-        if (!hasOpponentStreamRef.current && markAttached(opponentVideoRef.current)) {
+      // Battle: opponent publishes into THIS (host) LiveKit room — attach to battle panes.
+      const slots = battleSlotsRef.current;
+      const markAttached = (el: HTMLVideoElement | null) => {
+        if (!el) return false;
+        track.attach(el);
+        void el.play().catch(() => {});
+        return true;
+      };
+      if (slots[0]?.status === 'accepted' && slots[0]?.userId && sameUserId(identity, slots[0].userId)) {
+        if (markAttached(opponentVideoRef.current)) {
           setHasOpponentStream(true);
           return;
         }
-        if (player3VideoRef.current && !player3VideoRef.current.srcObject) {
-          markAttached(player3VideoRef.current);
-          return;
-        }
-        if (player4VideoRef.current && !player4VideoRef.current.srcObject) {
-          markAttached(player4VideoRef.current);
+      }
+      if (slots[1]?.status === 'accepted' && slots[1]?.userId && sameUserId(identity, slots[1].userId)) {
+        if (markAttached(player3VideoRef.current)) return;
+      }
+      if (slots[2]?.status === 'accepted' && slots[2]?.userId && sameUserId(identity, slots[2].userId)) {
+        if (markAttached(player4VideoRef.current)) return;
+      }
+      // Accepted pane but userId not synced yet — attach first open battle slot.
+      if (isBattleModeRef.current && slots[0]?.status === 'accepted' && !hasOpponentStreamRef.current) {
+        if (markAttached(opponentVideoRef.current)) {
+          setHasOpponentStream(true);
           return;
         }
       }
+      if (isBattleModeRef.current && slots[1]?.status === 'accepted' && player3VideoRef.current && !player3VideoRef.current.srcObject) {
+        markAttached(player3VideoRef.current);
+        return;
+      }
+      if (isBattleModeRef.current && slots[2]?.status === 'accepted' && player4VideoRef.current && !player4VideoRef.current.srcObject) {
+        markAttached(player4VideoRef.current);
+        return;
+      }
+
+      // Co-host tiles (non-battle)
+      const coHostEl = coHostVideoRefs.current.get(identity);
+      if (coHostEl) { track.attach(coHostEl); return; }
     };
 
     room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
       attachRemoteTrack(track, participant);
+    });
+    room.on(RoomEvent.TrackPublished, (publication, participant) => {
+      if (publication.track && publication.isSubscribed) {
+        attachRemoteTrack(publication.track, participant);
+      }
     });
     room.on(RoomEvent.ParticipantConnected, (participant) => {
       for (const [, pub] of participant.videoTrackPublications) {
@@ -899,7 +903,7 @@ export default function LiveStream() {
     const timer = window.setTimeout(() => {
       inviteTimersRef.current.delete(creatorId);
       clearInvitedBattleSlot(creatorId);
-    }, 90_000);
+    }, 60_000);
     inviteTimersRef.current.set(creatorId, timer);
   };
 
@@ -922,6 +926,12 @@ export default function LiveStream() {
         return [...prev, { id: inviter.hostUserId, streamKey: inviter.streamKey || inviter.hostUserId, name: inviter.hostName, username: inviter.hostName, followers: '0', avatar: inviter.hostAvatar, isLive: true }];
       });
     }
+  }, [pendingInvite]);
+
+  useEffect(() => {
+    if (!pendingInvite) return;
+    const t = window.setTimeout(() => setPendingInvite(null), 60_000);
+    return () => window.clearTimeout(t);
   }, [pendingInvite]);
 
   const acceptBattleInvite = async () => {
@@ -1264,6 +1274,14 @@ export default function LiveStream() {
 
     let cancelled = false;
     (async () => {
+      const wsToken = useAuthStore.getState().session?.access_token ?? '';
+      if (wsToken) {
+        websocket.connect(effectiveStreamId, wsToken);
+        for (let i = 0; i < 24 && !cancelled; i += 1) {
+          if (websocket.isConnected()) break;
+          await new Promise((r) => window.setTimeout(r, 250));
+        }
+      }
       // Establish the server-authorized creator role before opening camera/mic.
       // A plain spectator who reaches ?battle=1 has no accepted invite grant
       // and is returned to the subscribe-only spectator page. Only an explicit
@@ -1741,7 +1759,12 @@ export default function LiveStream() {
     };
 
     attachAll();
-    const poll = window.setInterval(attachAll, 2000);
+    const waitingForOpponent =
+      isBattleMode &&
+      battleSlots.some((s) => s.status === 'accepted' && s.userId) &&
+      !hasOpponentStream;
+    const pollMs = waitingForOpponent ? 400 : 2000;
+    const poll = window.setInterval(attachAll, pollMs);
     return () => window.clearInterval(poll);
   }, [isBroadcast, isBattleMode, coHosts, battleSlots, attachRemoteAudio, user?.id, hasOpponentStream]);
 
@@ -2119,6 +2142,8 @@ export default function LiveStream() {
   }, [endBattleCleanup, location.search, location.pathname, navigate, isBroadcast]);
 
   const toggleBattle = useCallback(() => {
+    // Battle joiners enter via the dedicated joiner effect — never wipe their slots here.
+    if (isBattleJoiner) return;
     if (isBattleMode) {
       exitBattleMode();
       return;
@@ -2164,7 +2189,7 @@ export default function LiveStream() {
     setIsFindCreatorsOpen(true);
     websocket.send('battle_create', { hostName: creatorName });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isBattleMode, location.search, location.pathname, navigate, endBattleCleanup, creatorName, exitBattleMode]);
+  }, [isBattleMode, location.search, location.pathname, navigate, endBattleCleanup, creatorName, exitBattleMode, isBattleJoiner]);
 
   /** X on a battle participant — leave battle split view entirely (not just clear one slot). */
   const removePlayerFromSlot = useCallback((_slotIndex: number) => {
@@ -2499,10 +2524,11 @@ export default function LiveStream() {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const shouldStartBattle = params.get('battle') === '1';
-    if (shouldStartBattle && !isBattleMode) {
+    // Only the host may auto-enter battle from ?battle=1 — joiners use battle joiner effect.
+    if (shouldStartBattle && !isBattleMode && isBroadcast) {
       toggleBattle();
     }
-  }, [location.search, isBattleMode, toggleBattle]);
+  }, [location.search, isBattleMode, toggleBattle, isBroadcast]);
 
   useEffect(() => {
     if (!isBroadcast) return;
@@ -2622,6 +2648,32 @@ export default function LiveStream() {
       cancelled = true;
     };
   }, [isBattleMode, isBroadcast, isBattleJoiner, cameraStream]);
+
+  // Battle grid mounts a new <video> — re-bind host camera after layout swap.
+  useEffect(() => {
+    if (!isBroadcast || !isBattleMode) return;
+    const stream = cameraStreamRef.current;
+    if (!stream) return;
+    let attempts = 0;
+    let cancelled = false;
+    const bind = () => {
+      if (cancelled || attempts > 30) return;
+      attempts += 1;
+      const el = videoRef.current;
+      if (el) {
+        if (el.srcObject !== stream) {
+          el.srcObject = stream;
+          void el.play().catch(() => {});
+        }
+        return;
+      }
+      requestAnimationFrame(bind);
+    };
+    requestAnimationFrame(bind);
+    return () => {
+      cancelled = true;
+    };
+  }, [isBattleMode, isBroadcast, cameraStream]);
 
   useEffect(() => {
     if (!isBroadcast) return;
@@ -3447,6 +3499,7 @@ export default function LiveStream() {
       const requesterAvatar = data.requesterAvatar as string | undefined;
       if (!requesterId || !requesterName) return;
       clearBattleInviteTimer(requesterId);
+      setHasOpponentStream(false);
       setIsBattleMode(true);
       setBattleState('INVITING');
       setOpponentCreatorName(requesterName);
