@@ -28,18 +28,17 @@ export function RankingPanel({ onClose: _onClose }: RankingPanelProps) {
     try {
       const { data: json, error } = await request('/api/rankings/weekly');
       if (error) throw new Error('fetch failed');
-      if (Array.isArray(json?.data)) {
-        setRankings(json.data.map((r: Record<string, unknown>, i: number) => ({
-          rank: (r.rank as number | undefined) ?? i + 1,
-          user_id: r.user_id as string,
-          username: (r.username as string) || '',
-          display_name: (r.display_name as string) || (r.username as string) || '',
-          avatar_url: (r.avatar_url as string | null) || null,
-          total_diamonds: (r.total_diamonds as number | undefined) ?? (r.total_coins as number | undefined) ?? 0,
-        })));
-      }
+      const list = Array.isArray(json?.rankings) ? json.rankings : [];
+      setRankings(list.map((r: Record<string, unknown>, i: number) => ({
+        rank: (r.rank as number | undefined) ?? i + 1,
+        user_id: String(r.user_id ?? ''),
+        username: (r.username as string) || '',
+        display_name: (r.display_name as string) || (r.username as string) || '',
+        avatar_url: (r.avatar_url as string | null) || null,
+        total_diamonds: (r.total_coins as number | undefined) ?? (r.total_diamonds as number | undefined) ?? 0,
+      })));
     } catch {
-      // endpoint not reachable
+      setRankings([]);
     } finally {
       setLoading(false);
     }
