@@ -96,6 +96,8 @@ import PromotePanel from '../components/PromotePanel';
 import { GiftPanel } from '../components/GiftPanel';
 import { GiftGoalGallery } from '../components/GiftGoalGallery';
 import { LiveGiftGoalBar } from '../components/LiveGiftGoalBar';
+import { LiveEngagementOverlay } from '../components/LiveEngagementOverlay';
+import { useLiveEngagement } from '../hooks/useLiveEngagement';
 import { RankingPanel } from '../components/RankingPanel';
 import { websocket } from '../lib/websocket';
 import { parseLiveGiftGoal, type LiveGiftGoal } from '../lib/liveGiftGoal';
@@ -267,6 +269,16 @@ export default function LiveStream() {
   const [inputValue, setInputValue] = useState('');
   // Consolidate broadcast logic: host if streamId is broadcast OR if streamId matches my own user ID
   const isBroadcast = streamId === 'broadcast' || location.pathname === '/live/broadcast' || (user?.id && streamId === user.id);
+
+  const {
+    state: engagementState,
+    nowMs: engagementNowMs,
+    milestoneFlash,
+    stageFlash,
+    startMystery,
+    startPoll,
+    votePoll,
+  } = useLiveEngagement({ enabled: true, isHost: !!isBroadcast });
 
   // ?battle=1 declares battle-creator intent; the role itself is server-
   // authorized. The battle-join effect must obtain a LiveKit publish token —
@@ -6800,6 +6812,19 @@ export default function LiveStream() {
           </div>
         </div>
       )}
+
+      <LiveEngagementOverlay
+        state={engagementState}
+        nowMs={engagementNowMs}
+        milestoneFlash={milestoneFlash}
+        stageFlash={stageFlash}
+        isHost={!!isBroadcast}
+        onVote={votePoll}
+        onStartMystery={(mins) => startMystery(mins, 'poll')}
+        onStartPoll={() =>
+          startPoll('What should we do next?', ['Dance', 'Sing', 'Q&A', 'Shoutouts'], 'poll')
+        }
+      />
 
       {isMoreMenuOpen && (
         <>
