@@ -236,13 +236,13 @@ export function LiveEngagementOverlay({
           />
           <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
             <div
-              className="bg-[#111111]/95 rounded-t-2xl p-3 pb-safe max-h-[40vh] flex flex-col shadow-2xl"
+              className="bg-[#111111]/95 rounded-t-2xl p-3 pb-safe h-[40dvh] max-h-[40dvh] flex flex-col shadow-2xl w-full overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-center mb-2">
                 <div className="w-10 h-1 bg-white/20 rounded-full" />
               </div>
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-2 flex-shrink-0">
                 <div className="flex items-center gap-1.5">
                   <Users className="w-3.5 h-3.5 text-[#D4AF37]" />
                   <span className="text-sm font-bold text-white">Current live</span>
@@ -251,7 +251,7 @@ export function LiveEngagementOverlay({
                   <X className="w-4 h-4 text-white/60" />
                 </button>
               </div>
-              <div className="flex-1 overflow-y-auto no-scrollbar">
+              <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar">
                 {state.leaderboard.length === 0 ? (
                   <p className="text-white/40 text-xs text-center py-6">No rankings yet — keep watching</p>
                 ) : (
