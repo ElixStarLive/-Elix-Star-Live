@@ -13,6 +13,16 @@ import {
   updateXpConfig,
   upsertLevelRequirement,
 } from "../lib/starterCoinsXp";
+import {
+  listMissionsAdmin,
+  updateMissionAdmin,
+  listDailyRewardConfigAdmin,
+  updateDailyRewardConfigAdmin,
+  getBattleEnergyCaps,
+  updateBattleEnergyCapsAdmin,
+  getEngagementFlagsMerged,
+  updateFeatureFlagsAdmin,
+} from "../lib/engagementAdmin";
 import { logger } from "../lib/logger";
 
 const router = Router();
@@ -174,6 +184,162 @@ router.post(
     } catch (err) {
       logger.error({ err }, "admin Starter Coin adjustment failed");
       return res.status(500).json({ error: "STARTER_ADJUSTMENT_FAILED" });
+    }
+  },
+);
+
+// ── Engagement admin (missions, daily rewards, energy caps, flags) ──
+
+router.get("/missions", async (_req, res) => {
+  try {
+    return res.json({ missions: await listMissionsAdmin() });
+  } catch (err) {
+    logger.error({ err }, "admin missions list failed");
+    return res.status(500).json({ error: "MISSIONS_LOAD_FAILED" });
+  }
+});
+
+const missionPatchSchema = z.object({
+  title: z.string().min(1).max(200).optional(),
+  description: z.string().max(1000).nullable().optional(),
+  goal_count: z.number().int().min(1).max(1_000_000).optional(),
+  reward_xp: z.number().int().min(0).max(1_000_000).optional(),
+  reward_promo_coins: z.number().int().min(0).max(1_000_000).optional(),
+  reward_energy: z.number().int().min(0).max(1_000_000).optional(),
+  enabled: z.boolean().optional(),
+  sort_order: z.number().int().min(0).max(10_000).optional(),
+});
+
+router.patch(
+  "/missions/:id",
+  validateBody(missionPatchSchema),
+  async (req: Request, res: Response) => {
+    try {
+      const mission = await updateMissionAdmin({
+        id: String(req.params.id),
+        ...req.body,
+        adminUserId: (req.authContext as NonNullable<typeof req.authContext>)
+          .userId,
+      });
+      if (!mission) return res.status(404).json({ error: "MISSION_NOT_FOUND" });
+      return res.json({ mission });
+    } catch (err) {
+      logger.error({ err }, "admin mission update failed");
+      return res.status(500).json({ error: "MISSION_UPDATE_FAILED" });
+    }
+  },
+);
+
+router.get("/daily-rewards", async (_req, res) => {
+  try {
+    return res.json({ rewards: await listDailyRewardConfigAdmin() });
+  } catch (err) {
+    logger.error({ err }, "admin daily rewards list failed");
+    return res.status(500).json({ error: "DAILY_REWARDS_LOAD_FAILED" });
+  }
+});
+
+const dailyRewardSchema = z.object({
+  streak_day: z.number().int().min(1).max(7),
+  reward_xp: z.number().int().min(0).max(1_000_000),
+  reward_promo_coins: z.number().int().min(0).max(1_000_000),
+  reward_label: z.string().max(200).nullable().optional(),
+});
+
+router.put(
+  "/daily-rewards",
+  validateBody(dailyRewardSchema),
+  async (req: Request, res: Response) => {
+    try {
+      const reward = await updateDailyRewardConfigAdmin({
+        streakDay: req.body.streak_day,
+        reward_xp: req.body.reward_xp,
+        reward_promo_coins: req.body.reward_promo_coins,
+        reward_label: req.body.reward_label,
+        adminUserId: (req.authContext as NonNullable<typeof req.authContext>)
+          .userId,
+      });
+      if (!reward) return res.status(400).json({ error: "INVALID_STREAK_DAY" });
+      return res.json({ reward });
+    } catch (err) {
+      logger.error({ err }, "admin daily reward update failed");
+      return res.status(500).json({ error: "DAILY_REWARD_UPDATE_FAILED" });
+    }
+  },
+);
+
+router.get("/battle-energy-caps", async (_req, res) => {
+  try {
+    return res.json({ caps: await getBattleEnergyCaps() });
+  } catch (err) {
+    logger.error({ err }, "admin energy caps load failed");
+    return res.status(500).json({ error: "ENERGY_CAPS_LOAD_FAILED" });
+  }
+});
+
+const energyCapsSchema = z.object({
+  watch_amount: z.number().int().min(0).max(10_000),
+  comment_amount: z.number().int().min(0).max(10_000),
+  share_amount: z.number().int().min(0).max(10_000),
+  watch_cap: z.number().int().min(0).max(1_000_000),
+  comment_cap: z.number().int().min(0).max(1_000_000),
+  share_cap: z.number().int().min(0).max(1_000_000),
+});
+
+router.put(
+  "/battle-energy-caps",
+  validateBody(energyCapsSchema),
+  async (req: Request, res: Response) => {
+    try {
+      const caps = await updateBattleEnergyCapsAdmin(
+        req.body,
+        (req.authContext as NonNullable<typeof req.authContext>).userId,
+      );
+      return res.json({ caps });
+    } catch (err) {
+      logger.error({ err }, "admin energy caps update failed");
+      return res.status(500).json({ error: "ENERGY_CAPS_UPDATE_FAILED" });
+    }
+  },
+);
+
+router.get("/feature-flags", async (_req, res) => {
+  try {
+    return res.json({ flags: await getEngagementFlagsMerged() });
+  } catch (err) {
+    logger.error({ err }, "admin feature flags load failed");
+    return res.status(500).json({ error: "FLAGS_LOAD_FAILED" });
+  }
+});
+
+const flagsSchema = z
+  .object({
+    engagementHubEnabled: z.boolean().optional(),
+    promotionalCoinsEnabled: z.boolean().optional(),
+    battleEnergyEnabled: z.boolean().optional(),
+    dailyLoginEnabled: z.boolean().optional(),
+    missionRewardsEnabled: z.boolean().optional(),
+    promoGiftSpendEnabled: z.boolean().optional(),
+    treasureHuntEnabled: z.boolean().optional(),
+    stickerCollectionEnabled: z.boolean().optional(),
+    creatorCollectionsEnabled: z.boolean().optional(),
+    engagementNeonApproved: z.boolean().optional(),
+  })
+  .refine((v) => Object.keys(v).length > 0, "At least one flag required");
+
+router.patch(
+  "/feature-flags",
+  validateBody(flagsSchema),
+  async (req: Request, res: Response) => {
+    try {
+      const flags = await updateFeatureFlagsAdmin(
+        req.body,
+        (req.authContext as NonNullable<typeof req.authContext>).userId,
+      );
+      return res.json({ flags });
+    } catch (err) {
+      logger.error({ err }, "admin feature flags update failed");
+      return res.status(500).json({ error: "FLAGS_UPDATE_FAILED" });
     }
   },
 );

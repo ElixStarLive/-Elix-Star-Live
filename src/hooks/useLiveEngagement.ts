@@ -152,6 +152,11 @@ export function useLiveEngagement(options: Options = {}) {
     [isHost],
   );
 
+  const endPoll = useCallback(() => {
+    if (!isHost) return;
+    websocket.send("engagement_poll_end", {});
+  }, [isHost]);
+
   const votePoll = useCallback((optionIndex: number) => {
     websocket.send("engagement_poll_vote", { optionIndex });
   }, []);
@@ -171,6 +176,7 @@ export function useLiveEngagement(options: Options = {}) {
     stageFlash,
     startMystery,
     startPoll,
+    endPoll,
     votePoll,
     setFeatures,
   };

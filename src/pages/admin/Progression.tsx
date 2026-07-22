@@ -44,14 +44,60 @@ export default function AdminProgression() {
     string,
     boolean
   > | null>(null);
+  const [missions, setMissions] = useState<
+    Array<{
+      id: string;
+      title: string;
+      goal_count: number;
+      reward_xp: number;
+      reward_promo_coins: number;
+      reward_energy: number;
+      enabled: boolean;
+      metric_key: string;
+      scope: string;
+    }>
+  >([]);
+  const [dailyRewards, setDailyRewards] = useState<
+    Array<{
+      streak_day: number;
+      reward_xp: number;
+      reward_promo_coins: number;
+      reward_label: string | null;
+    }>
+  >([]);
+  const [energyCaps, setEnergyCaps] = useState({
+    watch_amount: 5,
+    comment_amount: 2,
+    share_amount: 20,
+    watch_cap: 300,
+    comment_cap: 20,
+    share_cap: 1,
+  });
+
+  const loadEngagementAdmin = async () => {
+    const [flagsRes, missionsRes, dailyRes, capsRes] = await Promise.all([
+      request("/api/admin/progression/feature-flags"),
+      request("/api/admin/progression/missions"),
+      request("/api/admin/progression/daily-rewards"),
+      request("/api/admin/progression/battle-energy-caps"),
+    ]);
+    if (flagsRes.data?.flags) {
+      setEngagementFlags(flagsRes.data.flags as Record<string, boolean>);
+    }
+    if (Array.isArray(missionsRes.data?.missions)) {
+      setMissions(missionsRes.data.missions);
+    }
+    if (Array.isArray(dailyRes.data?.rewards)) {
+      setDailyRewards(dailyRes.data.rewards);
+    }
+    if (capsRes.data?.caps) {
+      setEnergyCaps(capsRes.data.caps);
+    }
+  };
 
   useEffect(() => {
     void loadConfig();
-    void request("/api/engagement/flags").then(({ data }) => {
-      if (data?.flags && typeof data.flags === "object") {
-        setEngagementFlags(data.flags as Record<string, boolean>);
-      }
-    });
+    void loadEngagementAdmin();
   }, []);
 
   const loadConfig = async () => {
@@ -179,27 +225,334 @@ export default function AdminProgression() {
           <p className="font-semibold text-[#C9A227] mb-1">Engagement Phase 1 + 1.5 (live)</p>
           <p className="mb-2">
             Migrations through{" "}
-            <code className="text-white/50">20260722230000_sounds_and_video_scores.sql</code>.
-            Coolify release: <code className="text-white/50">npm run migrate</code>.
+            <code className="text-white/50">20260722250000_engagement_admin_and_gifts_mission.sql</code>.
+            Coolify: <code className="text-white/50">npm run migrate</code>.
           </p>
           <p className="mb-2">
             Battle Energy affects battle score only. Promo gifts create zero Diamonds.
-            Treasure spawn is server-only (watch/mission/login).
+            Treasure spawn is server-only. Feature flags persist in{" "}
+            <code className="text-white/50">engagement_settings</code> (env Neon kill-switch still wins).
           </p>
+        </section>
+
+        <section className="rounded-xl border border-white/10 p-4 mb-6">
+          <h2 className="font-semibold mb-3">Feature flags</h2>
           {engagementFlags ? (
-            <ul className="text-xs text-white/50 grid grid-cols-2 gap-1 mt-2">
+            <ul className="space-y-2">
               {Object.entries(engagementFlags).map(([k, v]) => (
-                <li key={k}>
-                  {k}:{" "}
-                  <span className={v ? "text-emerald-400" : "text-white/30"}>
-                    {v ? "on" : "off"}
-                  </span>
+                <li key={k} className="flex items-center justify-between gap-2 text-xs">
+                  <span className="text-white/70">{k}</span>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => {
+                      void (async () => {
+                        setBusy(true);
+                        const { data, error } = await request(
+                          "/api/admin/progression/feature-flags",
+                          {
+                            method: "PATCH",
+                            body: JSON.stringify({ [k]: !v }),
+                          },
+                        );
+                        setBusy(false);
+                        if (error) {
+                          showToast(error.message);
+                          return;
+                        }
+                        if (data?.flags) setEngagementFlags(data.flags);
+                        showToast("Flag updated");
+                      })();
+                    }}
+                    className={`px-2 py-1 rounded-full font-bold ${
+                      v ? "bg-emerald-500/20 text-emerald-400" : "bg-white/10 text-white/40"
+                    }`}
+                  >
+                    {v ? "ON" : "OFF"}
+                  </button>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="text-xs text-white/40 mt-2">Loading live flags…</p>
+            <p className="text-xs text-white/40">Loading flags…</p>
           )}
+        </section>
+
+        <section className="rounded-xl border border-white/10 p-4 mb-6">
+          <h2 className="font-semibold mb-3">Missions</h2>
+          <div className="space-y-3 max-h-96 overflow-y-auto">
+            {missions.map((m, index) => (
+              <div key={m.id} className="rounded-lg border border-white/10 p-3 space-y-2">
+                <div className="flex justify-between gap-2 text-xs">
+                  <span className="font-semibold text-white">{m.title}</span>
+                  <span className="text-white/40">
+                    {m.scope} · {m.metric_key}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  <label className="text-[10px] text-white/40">
+                    Goal
+                    <input
+                      type="number"
+                      className={inputClass}
+                      value={m.goal_count}
+                      onChange={(e) =>
+                        setMissions((cur) =>
+                          cur.map((row, i) =>
+                            i === index
+                              ? { ...row, goal_count: Number(e.target.value) || 1 }
+                              : row,
+                          ),
+                        )
+                      }
+                    />
+                  </label>
+                  <label className="text-[10px] text-white/40">
+                    XP
+                    <input
+                      type="number"
+                      className={inputClass}
+                      value={m.reward_xp}
+                      onChange={(e) =>
+                        setMissions((cur) =>
+                          cur.map((row, i) =>
+                            i === index
+                              ? { ...row, reward_xp: Number(e.target.value) || 0 }
+                              : row,
+                          ),
+                        )
+                      }
+                    />
+                  </label>
+                  <label className="text-[10px] text-white/40">
+                    Promo coins
+                    <input
+                      type="number"
+                      className={inputClass}
+                      value={m.reward_promo_coins}
+                      onChange={(e) =>
+                        setMissions((cur) =>
+                          cur.map((row, i) =>
+                            i === index
+                              ? {
+                                  ...row,
+                                  reward_promo_coins: Number(e.target.value) || 0,
+                                }
+                              : row,
+                          ),
+                        )
+                      }
+                    />
+                  </label>
+                  <label className="text-[10px] text-white/40">
+                    Energy
+                    <input
+                      type="number"
+                      className={inputClass}
+                      value={m.reward_energy}
+                      onChange={(e) =>
+                        setMissions((cur) =>
+                          cur.map((row, i) =>
+                            i === index
+                              ? {
+                                  ...row,
+                                  reward_energy: Number(e.target.value) || 0,
+                                }
+                              : row,
+                          ),
+                        )
+                      }
+                    />
+                  </label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs flex items-center gap-1">
+                    <input
+                      type="checkbox"
+                      checked={m.enabled}
+                      onChange={(e) =>
+                        setMissions((cur) =>
+                          cur.map((row, i) =>
+                            i === index
+                              ? { ...row, enabled: e.target.checked }
+                              : row,
+                          ),
+                        )
+                      }
+                    />
+                    Enabled
+                  </label>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    className="ml-auto px-3 py-1.5 rounded-lg bg-[#C9A227] text-black text-xs font-semibold disabled:opacity-40"
+                    onClick={() => {
+                      void (async () => {
+                        setBusy(true);
+                        const { error } = await request(
+                          `/api/admin/progression/missions/${encodeURIComponent(m.id)}`,
+                          {
+                            method: "PATCH",
+                            body: JSON.stringify({
+                              goal_count: m.goal_count,
+                              reward_xp: m.reward_xp,
+                              reward_promo_coins: m.reward_promo_coins,
+                              reward_energy: m.reward_energy,
+                              enabled: m.enabled,
+                            }),
+                          },
+                        );
+                        setBusy(false);
+                        if (error) showToast(error.message);
+                        else showToast("Mission saved");
+                      })();
+                    }}
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+            ))}
+            {missions.length === 0 ? (
+              <p className="text-xs text-white/40">No missions loaded (run migrate).</p>
+            ) : null}
+          </div>
+        </section>
+
+        <section className="rounded-xl border border-white/10 p-4 mb-6">
+          <h2 className="font-semibold mb-3">Daily login rewards</h2>
+          <div className="space-y-2">
+            {dailyRewards.map((r, index) => (
+              <div
+                key={r.streak_day}
+                className="grid grid-cols-[50px_1fr_1fr_1fr_70px] gap-2 items-center"
+              >
+                <span className="text-xs">Day {r.streak_day}</span>
+                <input
+                  type="number"
+                  className={inputClass}
+                  value={r.reward_xp}
+                  onChange={(e) =>
+                    setDailyRewards((cur) =>
+                      cur.map((row, i) =>
+                        i === index
+                          ? { ...row, reward_xp: Number(e.target.value) || 0 }
+                          : row,
+                      ),
+                    )
+                  }
+                />
+                <input
+                  type="number"
+                  className={inputClass}
+                  value={r.reward_promo_coins}
+                  onChange={(e) =>
+                    setDailyRewards((cur) =>
+                      cur.map((row, i) =>
+                        i === index
+                          ? {
+                              ...row,
+                              reward_promo_coins: Number(e.target.value) || 0,
+                            }
+                          : row,
+                      ),
+                    )
+                  }
+                />
+                <input
+                  className={inputClass}
+                  value={r.reward_label || ""}
+                  onChange={(e) =>
+                    setDailyRewards((cur) =>
+                      cur.map((row, i) =>
+                        i === index
+                          ? { ...row, reward_label: e.target.value }
+                          : row,
+                      ),
+                    )
+                  }
+                />
+                <button
+                  type="button"
+                  disabled={busy}
+                  className="py-2 rounded-lg bg-white/10 text-xs disabled:opacity-40"
+                  onClick={() => {
+                    void (async () => {
+                      setBusy(true);
+                      const { error } = await request(
+                        "/api/admin/progression/daily-rewards",
+                        {
+                          method: "PUT",
+                          body: JSON.stringify(r),
+                        },
+                      );
+                      setBusy(false);
+                      if (error) showToast(error.message);
+                      else showToast("Daily reward saved");
+                    })();
+                  }}
+                >
+                  Save
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="rounded-xl border border-white/10 p-4 mb-6">
+          <h2 className="font-semibold mb-3">Battle Energy caps</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-3">
+            {(
+              [
+                "watch_amount",
+                "comment_amount",
+                "share_amount",
+                "watch_cap",
+                "comment_cap",
+                "share_cap",
+              ] as const
+            ).map((key) => (
+              <label key={key} className="text-[10px] text-white/40">
+                {key}
+                <input
+                  type="number"
+                  className={inputClass}
+                  value={energyCaps[key]}
+                  onChange={(e) =>
+                    setEnergyCaps((c) => ({
+                      ...c,
+                      [key]: Number(e.target.value) || 0,
+                    }))
+                  }
+                />
+              </label>
+            ))}
+          </div>
+          <button
+            type="button"
+            disabled={busy}
+            className="px-3 py-2 rounded-lg bg-[#C9A227] text-black text-xs font-semibold disabled:opacity-40"
+            onClick={() => {
+              void (async () => {
+                setBusy(true);
+                const { data, error } = await request(
+                  "/api/admin/progression/battle-energy-caps",
+                  {
+                    method: "PUT",
+                    body: JSON.stringify(energyCaps),
+                  },
+                );
+                setBusy(false);
+                if (error) showToast(error.message);
+                else {
+                  if (data?.caps) setEnergyCaps(data.caps);
+                  showToast("Energy caps saved");
+                }
+              })();
+            }}
+          >
+            Save energy caps
+          </button>
         </section>
 
         <section className="rounded-xl border border-white/10 p-4 mb-6">

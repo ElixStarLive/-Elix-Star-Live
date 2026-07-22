@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { RoyceBackIcon } from '../components/royce';
 import { Bookmark, Play } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -17,31 +17,57 @@ export default function SavedVideos() {
   const navigate = useNavigate();
   const [videos, setVideos] = useState<SavedVideo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const { data, error } = await request('/api/videos/saved/list?limit=50&offset=0');
-        if (error) {
+  const mapVids = (vids: SavedVideo[]) =>
+    vids.map((v) => ({
+      id: v.id,
+      url: v.url || '',
+      thumbnail_url: v.thumbnail_url || (v as { thumbnail?: string }).thumbnail || '',
+      views: v.views || 0,
+      description: v.description || '',
+    }));
+
+  const load = useCallback(async (offset = 0, append = false) => {
+    if (append) setLoadingMore(true);
+    else setLoading(true);
+    try {
+      const { data, error } = await request(
+        `/api/videos/saved/list?limit=50&offset=${offset}`,
+      );
+      if (error) {
+        if (!append) {
           setVideos([]);
           setLoadError(error.message || 'Failed to load saved videos');
-          showToast(error.message || 'Failed to load saved videos');
-          setLoading(false);
-          return;
         }
-        const vids = Array.isArray(data?.videos) ? data.videos : (Array.isArray(data) ? data : []);
-        setVideos(vids);
-        setLoadError(null);
-      } catch {
+        showToast(error.message || 'Failed to load saved videos');
+        return;
+      }
+      const vids = Array.isArray(data?.videos)
+        ? data.videos
+        : Array.isArray(data)
+          ? data
+          : [];
+      setHasMore(!!data?.hasMore);
+      setLoadError(null);
+      setVideos((prev) => (append ? [...prev, ...mapVids(vids)] : mapVids(vids)));
+    } catch {
+      if (!append) {
         setVideos([]);
         setLoadError('Failed to load saved videos');
-        showToast('Failed to load saved videos');
       }
+      showToast('Failed to load saved videos');
+    } finally {
       setLoading(false);
-    };
-    load();
+      setLoadingMore(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void load(0, false);
+  }, [load]);
 
   const formatViews = (n: number) => {
     if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
@@ -74,39 +100,52 @@ export default function SavedVideos() {
             <p className="text-white/40 text-sm text-center">No saved videos yet. Tap the bookmark icon on any video to save it.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-0.5 p-0.5 flex-1 overflow-y-auto">
-            {videos.map((video) => (
-              <div
-                key={video.id}
-                className="aspect-[3/4] bg-[#111111] relative cursor-pointer group"
-                onClick={() => navigate(`/video/${video.id}`)}
-              >
-                {video.thumbnail_url ? (
-                  <img src={video.thumbnail_url} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <video
-                    src={video.url}
-                    className="w-full h-full object-cover"
-                    muted
-                    playsInline
-                    preload="metadata"
-                    onMouseOver={e => e.currentTarget.play()}
-                    onMouseOut={e => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
-                  />
-                )}
-                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <Play size={24} fill="white" className="text-white" />
+          <>
+            <div className="grid grid-cols-3 gap-0.5 p-0.5 flex-1 overflow-y-auto">
+              {videos.map((video) => (
+                <div
+                  key={video.id}
+                  className="aspect-[3/4] bg-[#111111] relative cursor-pointer group"
+                  onClick={() => navigate(`/video/${video.id}`)}
+                >
+                  {video.thumbnail_url ? (
+                    <img src={video.thumbnail_url} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <video
+                      src={video.url}
+                      className="w-full h-full object-cover"
+                      muted
+                      playsInline
+                      preload="metadata"
+                      onMouseOver={(e) => e.currentTarget.play()}
+                      onMouseOut={(e) => {
+                        e.currentTarget.pause();
+                        e.currentTarget.currentTime = 0;
+                      }}
+                    />
+                  )}
+                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <Play size={24} fill="white" className="text-white" />
+                  </div>
+                  <span className="absolute bottom-1 left-1 text-[10px] font-bold text-white drop-shadow">
+                    {formatViews(video.views)}
+                  </span>
                 </div>
-                <div className="absolute bottom-1 left-1 flex items-center gap-1 text-white text-xs drop-shadow-md">
-                  <Play size={10} fill="white" />
-                  <span>{formatViews(video.views || 0)}</span>
-                </div>
-                <div className="absolute top-1 right-1">
-                  <Bookmark size={12} fill="#D4AF37" className="text-[#D4AF37]" />
-                </div>
+              ))}
+            </div>
+            {hasMore ? (
+              <div className="flex justify-center py-3">
+                <button
+                  type="button"
+                  disabled={loadingMore}
+                  onClick={() => void load(videos.length, true)}
+                  className="px-4 py-2 rounded-lg bg-white/10 text-xs font-semibold disabled:opacity-40"
+                >
+                  {loadingMore ? 'Loading…' : 'Load more'}
+                </button>
               </div>
-            ))}
-          </div>
+            ) : null}
+          </>
         )}
       </div>
     </div>

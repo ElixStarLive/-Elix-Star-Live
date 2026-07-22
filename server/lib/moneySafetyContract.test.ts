@@ -90,4 +90,18 @@ describe("Money and economy safety contracts", () => {
     expect(payout).toContain("processed_by");
     expect(payout).toContain("elix_payout_audit");
   });
+
+  it("admin engagement config routes exist for missions daily rewards energy flags", () => {
+    const adminProg = read("../routes/adminProgression.router.ts");
+    expect(adminProg).toContain("/missions");
+    expect(adminProg).toContain("/daily-rewards");
+    expect(adminProg).toContain("/battle-energy-caps");
+    expect(adminProg).toContain("/feature-flags");
+  });
+
+  it("host can end poll via engagement_poll_end", () => {
+    expect(handlers).toContain("engagement_poll_end");
+    const engWs = read("../websocket/engagement.ts");
+    expect(engWs).toContain("endEngagementPoll");
+  });
 });

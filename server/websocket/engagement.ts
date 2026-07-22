@@ -538,6 +538,20 @@ async function maybeResolveMystery(state: EngagementRoomState): Promise<boolean>
   return true;
 }
 
+export async function endEngagementPoll(
+  roomId: string,
+): Promise<EngagementPublicState> {
+  const state = await loadRoom(roomId);
+  if (state.poll) {
+    state.poll = {
+      ...state.poll,
+      endsAt: Date.now(),
+    };
+    await saveRoom(state);
+  }
+  return toPublicEngagementState(state);
+}
+
 export async function setEngagementPoll(
   roomId: string,
   question: string,

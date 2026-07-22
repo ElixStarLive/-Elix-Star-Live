@@ -61,6 +61,8 @@ export default function Profile() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [videosLoading, setVideosLoading] = useState(false);
+  const [videosHasMore, setVideosHasMore] = useState(false);
+  const [videosLoadingMore, setVideosLoadingMore] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -344,11 +346,13 @@ export default function Profile() {
         const { data: body, error } = await request('/api/videos/liked/list?limit=50&offset=0');
         if (error) {
           setVideos([]);
+          setVideosHasMore(false);
           setVideosLoading(false);
           showToast(error.message || 'Failed to load liked videos');
           return;
         }
         const vids = Array.isArray(body?.videos) ? body.videos : [];
+        setVideosHasMore(!!body?.hasMore);
         setVideos(vids.map((v: { id: string; thumbnail?: string; thumbnail_url?: string; url?: string; views?: number }) => ({
           id: v.id,
           thumbnail_url: resolveGridThumbnailUrl(v.thumbnail || v.thumbnail_url, v.url),
@@ -360,11 +364,13 @@ export default function Profile() {
         const { data: body, error } = await request('/api/videos/saved/list?limit=50&offset=0');
         if (error) {
           setVideos([]);
+          setVideosHasMore(false);
           setVideosLoading(false);
           showToast(error.message || 'Failed to load saved videos');
           return;
         }
         const vids = Array.isArray(body?.videos) ? body.videos : [];
+        setVideosHasMore(!!body?.hasMore);
         setVideos(vids.map((v: { id: string; thumbnail?: string; thumbnail_url?: string; url?: string; views?: number }) => ({
           id: v.id,
           thumbnail_url: resolveGridThumbnailUrl(v.thumbnail || v.thumbnail_url, v.url),
@@ -373,12 +379,55 @@ export default function Profile() {
           is_public: true,
         })));
       } else {
+        setVideosHasMore(false);
         setVideos([]);
       }
     } catch {
       setVideos([]);
     } finally {
       setVideosLoading(false);
+    }
+  };
+
+  const loadMoreProfileVideos = async () => {
+    if (videosLoadingMore || !videosHasMore) return;
+    if (activeTab !== 'liked' && activeTab !== 'saved') return;
+    setVideosLoadingMore(true);
+    try {
+      const path =
+        activeTab === 'liked'
+          ? `/api/videos/liked/list?limit=50&offset=${videos.length}`
+          : `/api/videos/saved/list?limit=50&offset=${videos.length}`;
+      const { data: body, error } = await request(path);
+      if (error) {
+        showToast(error.message || 'Failed to load more');
+        return;
+      }
+      const vids = Array.isArray(body?.videos) ? body.videos : [];
+      setVideosHasMore(!!body?.hasMore);
+      setVideos((prev) => [
+        ...prev,
+        ...vids.map(
+          (v: {
+            id: string;
+            thumbnail?: string;
+            thumbnail_url?: string;
+            url?: string;
+            views?: number;
+          }) => ({
+            id: v.id,
+            thumbnail_url: resolveGridThumbnailUrl(
+              v.thumbnail || v.thumbnail_url,
+              v.url,
+            ),
+            url: v.url || '',
+            views: v.views || 0,
+            is_public: true,
+          }),
+        ),
+      ]);
+    } finally {
+      setVideosLoadingMore(false);
     }
   };
 
@@ -1032,6 +1081,20 @@ export default function Profile() {
             )}
           </div>
         )}
+        {!videosLoading &&
+          videosHasMore &&
+          (activeTab === 'liked' || activeTab === 'saved') && (
+            <div className="flex justify-center py-3">
+              <button
+                type="button"
+                disabled={videosLoadingMore}
+                onClick={() => void loadMoreProfileVideos()}
+                className="px-4 py-2 rounded-lg bg-white/10 text-xs font-semibold text-white/80 disabled:opacity-40"
+              >
+                {videosLoadingMore ? 'Loading…' : 'Load more'}
+              </button>
+            </div>
+          )}
 
         {/* ═══ SHOP ITEMS GRID ═══ */}
         {activeTab === 'shop' && videosLoading && shopItems.length === 0 && (

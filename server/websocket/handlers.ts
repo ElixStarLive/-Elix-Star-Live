@@ -1170,6 +1170,18 @@ export async function handleMessage(
         break;
       }
 
+      case "engagement_poll_end": {
+        if (!(await wsRateCheck(client.userId, "engagement_host", 20, 60_000))) break;
+        {
+          const ownerId = await resolveStreamOwnerUserId(client.roomId);
+          if (ownerId && ownerId !== client.userId) break;
+          const { endEngagementPoll } = await import("./engagement");
+          const state = await endEngagementPoll(client.roomId);
+          broadcastToRoom(client.roomId, "engagement_sync", state);
+        }
+        break;
+      }
+
       case "engagement_poll_vote": {
         if (!(await wsRateCheck(client.userId, "engagement_vote", 10, 60_000))) break;
         const optionIndex = Math.floor(Number(data?.optionIndex));

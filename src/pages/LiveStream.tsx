@@ -314,6 +314,7 @@ export default function LiveStream() {
     stageFlash,
     startMystery,
     startPoll,
+    endPoll,
     votePoll,
   } = useLiveEngagement({ enabled: true, isHost: !!isBroadcast });
 
@@ -4192,6 +4193,7 @@ export default function LiveStream() {
         const missions = (data?.missions as Array<{
           metric_key?: string;
           progress?: number;
+          goal_count?: number;
         }>) || [];
         const watch = missions.find((m) => m.metric_key === 'watch_minutes');
         const gifts = missions.find((m) => m.metric_key === 'gifts_sent');
@@ -4200,12 +4202,30 @@ export default function LiveStream() {
       })
       .catch(() => {});
   }, [user?.id]);
+  // Host also reports watch progress server-side (same contract as spectator).
   useEffect(() => {
+    if (!isBroadcast || !effectiveStreamId) return;
+    const roomId = effectiveStreamId;
     const id = window.setInterval(() => {
       setMissionWatchMin((m) => Math.min(30, m + 1));
+      void request('/api/engagement/progress', {
+        method: 'POST',
+        body: JSON.stringify({ metric: 'watch_minutes', delta: 1, roomId }),
+      }).catch(() => {});
     }, 60_000);
     return () => window.clearInterval(id);
-  }, []);
+  }, [isBroadcast, effectiveStreamId]);
+  useEffect(() => {
+    if (!isBattleMode || !effectiveStreamId) return;
+    void request('/api/engagement/progress', {
+      method: 'POST',
+      body: JSON.stringify({
+        metric: 'battles_joined',
+        delta: 1,
+        roomId: effectiveStreamId,
+      }),
+    }).catch(() => {});
+  }, [isBattleMode, effectiveStreamId]);
   const sideMissions = markedUiDemo
     ? LIVE_SIDE_DEMO_MISSIONS
     : {
@@ -6430,7 +6450,19 @@ export default function LiveStream() {
                     type="button"
                     title="Poll"
                     onClick={() => {
-                      startPoll('What should we do next?', ['Dance', 'Sing', 'Q&A', 'Shoutouts'], 'poll');
+                      {
+                        const activePoll =
+                          engagementState?.poll &&
+                          engagementNowMs < (engagementState.poll.endsAt || 0);
+                        if (activePoll) endPoll();
+                        else {
+                          startPoll(
+                            'What should we do next?',
+                            ['Dance', 'Sing', 'Q&A', 'Shoutouts'],
+                            'poll',
+                          );
+                        }
+                      }
                       showToast('Poll started — viewers tap Poll');
                     }}
                     className={`${LIVE_BOTTOM_ICON_BTN} relative`}
@@ -7309,7 +7341,19 @@ export default function LiveStream() {
                   <button
                     type="button"
                     onClick={() => {
-                      startPoll('What should we do next?', ['Dance', 'Sing', 'Q&A', 'Shoutouts'], 'poll');
+                      {
+                        const activePoll =
+                          engagementState?.poll &&
+                          engagementNowMs < (engagementState.poll.endsAt || 0);
+                        if (activePoll) endPoll();
+                        else {
+                          startPoll(
+                            'What should we do next?',
+                            ['Dance', 'Sing', 'Q&A', 'Shoutouts'],
+                            'poll',
+                          );
+                        }
+                      }
                       setIsMoreMenuOpen(false);
                       showToast('Poll started — viewers tap Poll chip');
                     }}

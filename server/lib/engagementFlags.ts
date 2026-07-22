@@ -1,7 +1,8 @@
 /**
  * Engagement feature flags — Phase 1 + 1.5 production defaults ON.
  * Promo gift spend creates ZERO Diamonds (never creator withdrawable value).
- * Set any flag to false via env to disable.
+ * Env is baseline; admin DB overrides (engagement_settings.feature_flags) merge on top.
+ * ENGAGEMENT_NEON_APPROVED=false in env always wins as a kill-switch.
  */
 function envBool(name: string, fallback: boolean): boolean {
   const raw = (process.env[name] || "").trim().toLowerCase();
@@ -26,8 +27,15 @@ export type EngagementFlags = {
   engagementNeonApproved: boolean;
 };
 
-export function getEngagementFlags(): EngagementFlags {
-  // End-to-end live: Neon engagement approved by default after migrations ship.
+let flagOverrideCache: Partial<EngagementFlags> = {};
+
+export function setEngagementFlagOverrides(
+  overrides: Partial<EngagementFlags>,
+): void {
+  flagOverrideCache = { ...overrides };
+}
+
+export function getEngagementFlagsFromEnv(): EngagementFlags {
   const engagementNeonApproved = envBool("ENGAGEMENT_NEON_APPROVED", true);
   return {
     engagementHubEnabled: envBool("ENGAGEMENT_HUB_ENABLED", true),
@@ -44,6 +52,18 @@ export function getEngagementFlags(): EngagementFlags {
     creatorCollectionsEnabled: envBool("CREATOR_COLLECTIONS_ENABLED", true),
     engagementNeonApproved,
   };
+}
+
+export function getEngagementFlags(): EngagementFlags {
+  const envFlags = getEngagementFlagsFromEnv();
+  const merged: EngagementFlags = { ...envFlags, ...flagOverrideCache };
+  if (!envFlags.engagementNeonApproved) {
+    merged.engagementNeonApproved = false;
+    merged.promotionalCoinsEnabled = false;
+    merged.battleEnergyEnabled = false;
+    merged.promoGiftSpendEnabled = false;
+  }
+  return merged;
 }
 
 export function canWriteEngagementWallets(): boolean {

@@ -558,6 +558,12 @@ const runBackgroundJobs =
 
 try {
   await connectPostgres();
+  try {
+    const { warmEngagementFlagCache } = await import("./lib/engagementAdmin");
+    await warmEngagementFlagCache();
+  } catch (err) {
+    logger.warn({ err }, "engagement flag cache warm failed");
+  }
   if (isValkeyConfigured()) {
     await waitForValkeyReady();
   }

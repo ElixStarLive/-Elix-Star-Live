@@ -405,10 +405,19 @@ export async function earnBattleEnergy(
   }
   const db = getPool();
   if (!db || !userId) return { granted: 0, balance: 0 };
-  // Phase 1 recommended caps (per battle when roomId set; stored on daily key until
-  // battle-scoped caps table is approved with Neon migration).
-  const amounts = { watch: 5, comment: 2, share: 20 } as const;
-  const caps = { watch: 300, comment: 20, share: 1 } as const;
+  // Phase 1 caps — loaded from engagement_settings with code defaults.
+  const { getBattleEnergyCaps } = await import("./engagementAdmin");
+  const capCfg = await getBattleEnergyCaps();
+  const amounts = {
+    watch: capCfg.watch_amount,
+    comment: capCfg.comment_amount,
+    share: capCfg.share_amount,
+  } as const;
+  const caps = {
+    watch: capCfg.watch_cap,
+    comment: capCfg.comment_cap,
+    share: capCfg.share_cap,
+  } as const;
   const col =
     source === "watch"
       ? "watch_energy"
