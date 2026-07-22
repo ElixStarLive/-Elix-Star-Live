@@ -25,7 +25,6 @@ import {
   Crown,
   Gem,
   Star,
-  Plus,
   PlusCircle,
   Play,
   CloudFog,
@@ -345,6 +344,16 @@ export default function SpectatorPage() {
       mvpIdentityRef.current.set(id, v);
     });
 
+    // Include self so top MVP circles match what the creator sees for this spectator.
+    const selfId = user?.id || '';
+    if (selfId && selfId !== hid && selfId !== effectiveStreamId && !byId.has(selfId)) {
+      const selfName = user?.username || user?.name || 'You';
+      const selfAvatar = user?.avatar || '';
+      const selfLevel = Math.max(1, Number(user?.level) || 1);
+      byId.set(selfId, { id: selfId, name: selfName, avatar: selfAvatar, level: selfLevel, points: 0 });
+      mvpIdentityRef.current.set(selfId, { name: selfName, avatar: selfAvatar, level: selfLevel });
+    }
+
     const addFromScores = (scores: Record<string, number>) => {
       for (const id of Object.keys(scores)) {
         if (!id || id === hid || id === effectiveStreamId || byId.has(id)) continue;
@@ -392,7 +401,7 @@ export default function SpectatorPage() {
       host: pickSide('host'),
       opponent: pickSide('opponent'),
     });
-  }, [effectiveStreamId, hostUserId]);
+  }, [effectiveStreamId, hostUserId, user?.id, user?.username, user?.name, user?.avatar, user?.level]);
 
   const syncMvpSlotsRef = useRef(syncMvpSlots);
   syncMvpSlotsRef.current = syncMvpSlots;
@@ -404,6 +413,11 @@ export default function SpectatorPage() {
     mvpIdentityRef.current.clear();
     syncMvpSlotsRef.current();
   }, [effectiveStreamId]);
+
+  // Re-sync top MVP when self identity is ready (match creator circles).
+  useEffect(() => {
+    syncMvpSlotsRef.current();
+  }, [user?.id, user?.avatar, user?.username, user?.name, user?.level]);
 
   const [joinRequested, setJoinRequested] = useState(false);
 
@@ -3312,9 +3326,10 @@ export default function SpectatorPage() {
         {/* CREATOR TOP BAR — only connection to creator page: spectator has access to full creator top bar (avatar, name, likes, Follow, Weekly Ranking, Membership, viewer count, close). Rest is single video + spectator's own bottom bar. */}
         <div className="absolute top-0 left-0 right-0 z-[110] pointer-events-none overflow-visible">
           <div className="px-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 6px)' }}>
-            <div className="flex items-center justify-between gap-2 relative">
+            <div className="flex items-start justify-between gap-2">
               {/* Left: Creator info — photo profile (MVP circles untouched) */}
-              <div className="pointer-events-auto flex items-center gap-0 flex-shrink min-w-0">
+              <div className="pointer-events-auto flex flex-col gap-2">
+                <div className="px-0 py-1 animate-luxury-fade-in relative">
                 <LiveHostProfileHeader
                   name={hostName}
                   avatar={resolveCircleAvatar(hostAvatar, hostName)}
@@ -3401,59 +3416,50 @@ export default function SpectatorPage() {
                             }
                 />
               </div>
+              </div>
 
-              <div className="pointer-events-auto flex items-center gap-[0mm] mt-1 flex-shrink-0 min-w-0">
-                <div
-                  className="flex items-center gap-[0mm] pointer-events-auto flex-shrink-0"
-                  style={{ transform: 'translateX(-2mm)' }}
-                  onClick={() => {
-                    const list: { id: string; name: string; avatar: string; level?: number }[] = [];
-                    const hid = hostUserIdRef.current || hostUserId || effectiveStreamId;
-                    actualViewersRef.current.forEach((v, id) => {
-                      if (id !== user?.id && id !== hid && id !== effectiveStreamId) {
-                        list.push({ id, name: v.name, avatar: v.avatar, level: v.level });
-                      }
-                    });
-                    setViewersList(list);
-                    setShowViewersPanel(true);
-                  }}
-                >
-                  {[0, 1, 2].map((i) => {
-                    const slot = mvpSlots.global[i];
-                    const isMvp = i === 0 && !!slot && (slot.points ?? 0) > 0;
-                    return (
-                      <div
-                        key={slot ? `spectator-top-mvp-${slot.id}` : `spectator-top-mvp-empty-${i}`}
-                        style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
-                        className="relative"
-                      >
-                        {slot ? (
-                          <>
-                            <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
-                              <AvatarRing
-                                src={resolveCircleAvatar(slot.avatar, slot.name)}
-                                alt={slot.name || ''}
-                                size={LIVE_MVP_PROFILE_RING_PX}
-                              />
-                            </div>
-                            {isMvp && (
-                              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
-                                MVP
-                              </span>
-                            )}
-                          </>
-                        ) : (
-                          <div
-                            className="rounded-full flex items-center justify-center ring-2 ring-[#D4AF37]/60 bg-black/40"
-                            style={{ width: LIVE_MVP_PROFILE_RING_PX, height: LIVE_MVP_PROFILE_RING_PX }}
-                          >
-                            <Plus className="text-[#D4AF37]" size={12} strokeWidth={2.5} />
+              <div className="pointer-events-auto flex items-center gap-[0mm] mt-1">
+                {mvpSlots.global.length > 0 ? (
+                  <div
+                    className="flex items-center gap-[0mm] pointer-events-auto flex-shrink-0"
+                    style={{ transform: 'translateX(-2mm)' }}
+                    onClick={() => {
+                      const list: { id: string; name: string; avatar: string; level?: number }[] = [];
+                      const hid = hostUserIdRef.current || hostUserId || effectiveStreamId;
+                      actualViewersRef.current.forEach((v, id) => {
+                        if (id !== user?.id && id !== hid && id !== effectiveStreamId) {
+                          list.push({ id, name: v.name, avatar: v.avatar, level: v.level });
+                        }
+                      });
+                      setViewersList(list);
+                      setShowViewersPanel(true);
+                    }}
+                  >
+                    {mvpSlots.global.map((slot, i) => {
+                      const isMvp = i === 0 && (slot.points ?? 0) > 0;
+                      return (
+                        <div
+                          key={`spectator-top-mvp-${slot.id}`}
+                          style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
+                          className="relative"
+                        >
+                          <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
+                            <AvatarRing
+                              src={resolveCircleAvatar(slot.avatar, slot.name)}
+                              alt={slot.name || ''}
+                              size={LIVE_MVP_PROFILE_RING_PX}
+                            />
                           </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+                          {isMvp && (
+                            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
+                              MVP
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : null}
                 {/* Viewer count */}
                 <button
                   type="button"
@@ -3469,6 +3475,7 @@ export default function SpectatorPage() {
                     setViewersList(list);
                     setShowViewersPanel(true);
                   }}
+                  style={{ marginRight: '1mm' }}
                 >
                   <span className="text-white text-[9px] font-bold tabular-nums">
                     {typeof viewerCount === 'number' && Number.isFinite(viewerCount) ? viewerCount.toLocaleString() : String(viewerCount)}
