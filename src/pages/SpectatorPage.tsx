@@ -961,6 +961,10 @@ export default function SpectatorPage() {
   }, [viewerName, viewerAvatar, spawnHeartFromClient, spawnHeartAtSideSpectator]);
 
   const [hasStream, setHasStream] = useState(false);
+  const hasStreamRef = useRef(false);
+  useEffect(() => {
+    hasStreamRef.current = hasStream;
+  }, [hasStream]);
   const [liveConnectRetryKey, setLiveConnectRetryKey] = useState(0);
   const retryJoinRoom = () => {
     setHasStream(false);
@@ -1523,22 +1527,21 @@ export default function SpectatorPage() {
     };
 
     let hostFoundInRoom = false;
-    let roomStateReceived = false;
-    let roomUsers: string[] = [];
 
     const handleRoomState = (data) => {
       if (!mounted) return;
-      roomStateReceived = true;
       const viewers = data.viewers;
       const hid = hostUserIdRef.current;
       if (Array.isArray(viewers)) {
         actualViewersRef.current.clear();
-        roomUsers = viewers.map((v) => v.user_id).filter(Boolean);
-        hostFoundInRoom = false;
+        // Host is often omitted from the WS viewers list. Never wipe a prior
+        // "host found" (or live video) just because another spectator joined
+        // and we got a fresh room snapshot without the host id.
+        let foundHostInList = false;
         let count = 0;
         for (const v of viewers) {
           if (v.user_id === hid || v.user_id === effectiveStreamId || v.is_host) {
-            hostFoundInRoom = true;
+            foundHostInList = true;
           } else if (v.user_id && v.user_id !== user?.id) {
             actualViewersRef.current.set(v.user_id, {
               name: v.display_name || v.username || 'User',
@@ -1548,10 +1551,10 @@ export default function SpectatorPage() {
             count++;
           }
         }
-        setViewerCount(Math.max(count, viewers.length - 1));
-        if (!hostFoundInRoom && !hid) {
+        if (foundHostInList || hasStreamRef.current || !hid) {
           hostFoundInRoom = true;
         }
+        setViewerCount(Math.max(count, viewers.length - 1));
         syncMvpSlots();
       }
       if (typeof data.live_likes === 'number' && Number.isFinite(data.live_likes)) {
@@ -2113,15 +2116,33 @@ export default function SpectatorPage() {
 
     const goOffline = async (_reason: string) => {
       if (!mounted) return;
-      try {
-        const { data: goOfflineJson } = await request('/api/live/streams');
-        if (goOfflineJson) {
-          const streams = Array.isArray(goOfflineJson.streams) ? goOfflineJson.streams : [];
-          const stillLive = streams.some((s) => (s.stream_key === effectiveStreamId || s.room_id === effectiveStreamId));
-          if (stillLive) return;
+      // Already watching host video — another spectator joining must never tear this down.
+      if (hasStreamRef.current) return;
+      const lkRoom = liveKitRoomRef.current;
+      if (lkRoom?.state === ConnectionState.Connected) {
+        const hid = hostUserIdRef.current || effectiveStreamId;
+        for (const [, p] of lkRoom.remoteParticipants) {
+          if (p.identity === hid || p.identity === effectiveStreamId) {
+            for (const [, pub] of p.videoTrackPublications) {
+              if (pub.track) return;
+            }
+          }
         }
-      } catch { /* intentionally empty */ }
-      if (!mounted) return;
+      }
+      // Fail open: streams list can lag / omit an active room under load.
+      // Only leave if the API succeeds AND the room is confirmed absent.
+      try {
+        const { data: goOfflineJson, error: goOfflineErr } = await request('/api/live/streams');
+        if (goOfflineErr || !goOfflineJson) return;
+        const streams = Array.isArray(goOfflineJson.streams) ? goOfflineJson.streams : [];
+        const stillLive = streams.some(
+          (s) => s.stream_key === effectiveStreamId || s.room_id === effectiveStreamId,
+        );
+        if (stillLive) return;
+      } catch {
+        return;
+      }
+      if (!mounted || hasStreamRef.current) return;
       showToast('Stream is offline');
       setStreamIsLive(false);
       websocket.disconnect();
@@ -2129,16 +2150,14 @@ export default function SpectatorPage() {
     };
 
     const connectTimeout = setTimeout(() => {
-      if (!mounted) return;
-      const hid = hostUserIdRef.current;
-      if (roomStateReceived && hid && !roomUsers.includes(hid)) {
-        hostFoundInRoom = false;
-      }
+      if (!mounted || hasStreamRef.current) return;
+      // Host is often not listed in WS viewers — do NOT force hostFoundInRoom=false
+      // from roomUsers alone (that falsely ends watch when another spectator joins).
       if (!hostFoundInRoom) goOffline('host_not_found_after_connect_timeout');
     }, 15000);
 
     const videoTimeout = setTimeout(() => {
-      if (!mounted) return;
+      if (!mounted || hasStreamRef.current) return;
       const vid = videoRef.current;
       const hasTrack = vid?.srcObject && (vid.srcObject as MediaStream).getVideoTracks().length > 0;
       if (!hasTrack && !hostFoundInRoom) goOffline('no_video_track_and_host_not_found_after_video_timeout');
