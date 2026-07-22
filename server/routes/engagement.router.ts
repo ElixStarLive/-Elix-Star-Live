@@ -25,12 +25,15 @@ import { getEngagementFlags } from "../lib/engagementFlags";
 import {
   listUserChests,
   openTreasureChest,
-  spawnTreasureChest,
   listStickersForUser,
   listCreatorCardsForUser,
   onWatchActivity,
 } from "../lib/engagementPhase15";
 import { resolveStreamOwnerUserId } from "./livestream";
+import {
+  engagementProgressLimiter,
+  engagementEarnLimiter,
+} from "../middleware/rateLimit";
 
 const router = Router();
 router.use(requireAuth);
@@ -211,7 +214,10 @@ router.get("/mvp", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/battle-energy/earn", async (req: Request, res: Response) => {
+router.post(
+  "/battle-energy/earn",
+  engagementEarnLimiter,
+  async (req: Request, res: Response) => {
   const userId = (req.auth as NonNullable<typeof req.auth>).sub;
   if (!getEngagementFlags().battleEnergyEnabled) {
     return res.json({ granted: 0, balance: 0, disabled: true });
@@ -222,6 +228,23 @@ router.post("/battle-energy/earn", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "INVALID_SOURCE" });
     }
     const roomId = req.body?.roomId ? String(req.body.roomId) : undefined;
+    if (source === "watch" && !roomId) {
+      return res.status(400).json({ error: "ROOM_REQUIRED" });
+    }
+    if (roomId) {
+      const pool = getPool();
+      if (pool) {
+        const live = await pool.query(
+          `SELECT 1 FROM live_streams
+            WHERE stream_key = $1 AND is_live = TRUE AND ended_at IS NULL
+            LIMIT 1`,
+          [roomId],
+        );
+        if (!live.rows[0]) {
+          return res.json({ granted: 0, balance: await getEnergyBalance(userId), skipped: "STREAM_NOT_LIVE" });
+        }
+      }
+    }
     const result = await earnBattleEnergy(userId, source, roomId);
     return res.json(result);
   } catch (err) {
@@ -275,7 +298,7 @@ router.post("/battle-energy/boost", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/progress", async (req: Request, res: Response) => {
+router.post("/progress", engagementProgressLimiter, async (req: Request, res: Response) => {
   const userId = (req.auth as NonNullable<typeof req.auth>).sub;
   if (!getEngagementFlags().engagementNeonApproved) {
     return res.json({ ok: true, skipped: true });
@@ -294,6 +317,30 @@ router.post("/progress", async (req: Request, res: Response) => {
     const delta = Math.max(1, Math.min(10, Math.floor(Number(req.body?.delta) || 1)));
     const roomId = req.body?.roomId ? String(req.body.roomId) : undefined;
 
+    if (
+      (metric === "lives_watched" ||
+        metric === "watch_minutes" ||
+        metric === "unique_creators") &&
+      !roomId
+    ) {
+      return res.status(400).json({ error: "ROOM_REQUIRED" });
+    }
+
+    if (roomId) {
+      const pool = getPool();
+      if (pool) {
+        const live = await pool.query(
+          `SELECT 1 FROM live_streams
+            WHERE stream_key = $1 AND is_live = TRUE AND ended_at IS NULL
+            LIMIT 1`,
+          [roomId],
+        );
+        if (!live.rows[0] && metric !== "battles_joined") {
+          return res.json({ ok: true, skipped: "STREAM_NOT_LIVE" });
+        }
+      }
+    }
+
     let creatorId = "";
     if (roomId) {
       try {
@@ -309,7 +356,7 @@ router.post("/progress", async (req: Request, res: Response) => {
         await bumpMission(userId, metric, 1);
         await bumpAchievement(userId, metric, 1);
         if (getEngagementFlags().treasureHuntEnabled) {
-          // Soft spawn explorer chest when discovering a new creator.
+          const { spawnTreasureChest } = await import("../lib/engagementPhase15");
           await spawnTreasureChest(userId, "chest_epic_streams", roomId || "live");
         }
       }
@@ -342,18 +389,13 @@ router.get("/treasure", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/treasure/spawn", async (req: Request, res: Response) => {
-  const userId = (req.auth as NonNullable<typeof req.auth>).sub;
-  try {
-    const chestDefId = String(req.body?.chestDefId || "chest_common_watch");
-    const locationHint = String(req.body?.locationHint || "hub");
-    const result = await spawnTreasureChest(userId, chestDefId, locationHint);
-    if (!result.ok) return res.status(400).json(result);
-    return res.json(result);
-  } catch (err) {
-    logger.error({ err, userId }, "POST treasure/spawn failed");
-    return res.status(500).json({ error: "SPAWN_FAILED" });
-  }
+router.post("/treasure/spawn", async (_req: Request, res: Response) => {
+  // Chests spawn only from server activity hooks (watch/mission/login).
+  // Public client spawn would allow farming — intentionally closed.
+  return res.status(403).json({
+    error: "SPAWN_SERVER_ONLY",
+    message: "Treasure chests spawn from LIVE activity only.",
+  });
 });
 
 router.post("/treasure/:chestId/open", async (req: Request, res: Response) => {

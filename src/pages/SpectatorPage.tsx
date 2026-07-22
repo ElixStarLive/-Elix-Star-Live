@@ -296,6 +296,21 @@ export default function SpectatorPage() {
   const [missionGiftsSent, setMissionGiftsSent] = useState(0);
   const [userXP, setUserXP] = useState(0);
   useEffect(() => {
+    if (!user?.id) return;
+    void request('/api/engagement/missions')
+      .then(({ data }) => {
+        const missions = (data?.missions as Array<{
+          metric_key?: string;
+          progress?: number;
+        }>) || [];
+        const watch = missions.find((m) => m.metric_key === 'watch_minutes');
+        const gifts = missions.find((m) => m.metric_key === 'gifts_sent');
+        if (watch) setMissionWatchMin(Math.max(0, Number(watch.progress) || 0));
+        if (gifts) setMissionGiftsSent(Math.max(0, Number(gifts.progress) || 0));
+      })
+      .catch(() => {});
+  }, [user?.id]);
+  useEffect(() => {
     const id = window.setInterval(() => {
       setMissionWatchMin((m) => Math.min(30, m + 1));
     }, 60_000);
@@ -2603,6 +2618,8 @@ export default function SpectatorPage() {
 
     setShowGiftPanel(false);
 
+    setMissionGiftsSent((n) => n + 1);
+
     if (gift.video && gift.video.trim() && isGiftVideoFile(gift.video)) {
       const raw = gift.video;
       const videoUrl =
@@ -3785,7 +3802,13 @@ export default function SpectatorPage() {
               <button
                 type="button"
                 title="Poll"
-                onClick={() => setIsMoreMenuOpen(true)}
+                onClick={() => {
+                  if (engagementState.poll) {
+                    window.dispatchEvent(new Event('elix-open-live-poll'));
+                  } else {
+                    showToast('No active poll right now');
+                  }
+                }}
                 className="flex flex-col items-center justify-center w-12 active:scale-95 transition-transform select-none flex-shrink-0"
               >
                 <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm">

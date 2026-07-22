@@ -40,9 +40,18 @@ export default function AdminProgression() {
     reason: "",
   });
   const [busy, setBusy] = useState(false);
+  const [engagementFlags, setEngagementFlags] = useState<Record<
+    string,
+    boolean
+  > | null>(null);
 
   useEffect(() => {
     void loadConfig();
+    void request("/api/engagement/flags").then(({ data }) => {
+      if (data?.flags && typeof data.flags === "object") {
+        setEngagementFlags(data.flags as Record<string, boolean>);
+      }
+    });
   }, []);
 
   const loadConfig = async () => {
@@ -169,15 +178,28 @@ export default function AdminProgression() {
         <section className="rounded-xl border border-[#C9A227]/25 bg-[#C9A227]/5 p-4 mb-6 text-sm text-white/70">
           <p className="font-semibold text-[#C9A227] mb-1">Engagement Phase 1 + 1.5 (live)</p>
           <p className="mb-2">
-            Migrations:{" "}
-            <code className="text-white/50">20260722190000_engagement_phase1.sql</code>,{" "}
-            <code className="text-white/50">20260722200000_engagement_phase15_collections.sql</code>.
-            Run Coolify release <code className="text-white/50">npm run migrate</code>.
+            Migrations through{" "}
+            <code className="text-white/50">20260722230000_sounds_and_video_scores.sql</code>.
+            Coolify release: <code className="text-white/50">npm run migrate</code>.
           </p>
-          <p>
-            Promo / Energy / Treasure / Stickers / Creator cards are ON by default.
+          <p className="mb-2">
             Battle Energy affects battle score only. Promo gifts create zero Diamonds.
+            Treasure spawn is server-only (watch/mission/login).
           </p>
+          {engagementFlags ? (
+            <ul className="text-xs text-white/50 grid grid-cols-2 gap-1 mt-2">
+              {Object.entries(engagementFlags).map(([k, v]) => (
+                <li key={k}>
+                  {k}:{" "}
+                  <span className={v ? "text-emerald-400" : "text-white/30"}>
+                    {v ? "on" : "off"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-xs text-white/40 mt-2">Loading live flags…</p>
+          )}
         </section>
 
         <section className="rounded-xl border border-white/10 p-4 mb-6">

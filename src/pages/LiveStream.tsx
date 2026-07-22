@@ -4186,6 +4186,21 @@ export default function LiveStream() {
   const [missionWatchMin, setMissionWatchMin] = useState(0);
   const [missionGiftsSent, setMissionGiftsSent] = useState(0);
   useEffect(() => {
+    if (!user?.id) return;
+    void request('/api/engagement/missions')
+      .then(({ data }) => {
+        const missions = (data?.missions as Array<{
+          metric_key?: string;
+          progress?: number;
+        }>) || [];
+        const watch = missions.find((m) => m.metric_key === 'watch_minutes');
+        const gifts = missions.find((m) => m.metric_key === 'gifts_sent');
+        if (watch) setMissionWatchMin(Math.max(0, Number(watch.progress) || 0));
+        if (gifts) setMissionGiftsSent(Math.max(0, Number(gifts.progress) || 0));
+      })
+      .catch(() => {});
+  }, [user?.id]);
+  useEffect(() => {
     const id = window.setInterval(() => {
       setMissionWatchMin((m) => Math.min(30, m + 1));
     }, 60_000);
@@ -4447,6 +4462,7 @@ export default function LiveStream() {
         }
       }
       setShowGiftPanel(false);
+      setMissionGiftsSent((n) => n + 1);
 
       // Track session contribution for membership
       setSessionContribution(prev => prev + gift.coins);
@@ -6308,7 +6324,13 @@ export default function LiveStream() {
                 <button
                   type="button"
                   title="Poll"
-                  onClick={() => setIsMoreMenuOpen(true)}
+                  onClick={() => {
+                    if (engagementState.poll) {
+                      window.dispatchEvent(new Event('elix-open-live-poll'));
+                    } else {
+                      showToast('No active poll right now');
+                    }
+                  }}
                   className={`${LIVE_BOTTOM_ICON_BTN} relative`}
                 >
                   <BarChart3 size={20} className="text-[#38BDF8] relative z-[2]" strokeWidth={2.2} />

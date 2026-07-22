@@ -175,6 +175,20 @@ export const risingStarsEnterLimiter = rateLimit({
   keyPrefix: "rs_enter",
 });
 
+/** Client-reported engagement progress (watch/minute ticks). */
+export const engagementProgressLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 8,
+  keyPrefix: "eng_progress",
+});
+
+/** Client-reported battle energy earn ticks. */
+export const engagementEarnLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 6,
+  keyPrefix: "eng_earn",
+});
+
 // Moderation actions (report / block / unblock). Prevents abuse-report spam and
 // block/unblock flapping while staying well above any legitimate user rate.
 export const moderationLimiter = rateLimit({

@@ -341,27 +341,27 @@ export default function Profile() {
         }));
         setVideos(mapped);
       } else if (activeTab === 'liked') {
-        const { likedVideos, videos: storeVideos } = useVideoStore.getState();
-        const likedSet = new Set(likedVideos);
-        const liked = storeVideos.filter(v => likedSet.has(v.id)).map(v => ({
+        const { data: body, error } = await request('/api/videos/liked/list');
+        if (error) { setVideos([]); setVideosLoading(false); return; }
+        const vids = Array.isArray(body?.videos) ? body.videos : [];
+        setVideos(vids.map((v: { id: string; thumbnail?: string; thumbnail_url?: string; url?: string; views?: number }) => ({
           id: v.id,
-          thumbnail_url: resolveGridThumbnailUrl(v.thumbnail, v.url),
+          thumbnail_url: resolveGridThumbnailUrl(v.thumbnail || v.thumbnail_url, v.url),
           url: v.url || '',
-          views: v.stats?.views || 0,
+          views: v.views || 0,
           is_public: true,
-        }));
-        setVideos(liked);
+        })));
       } else if (activeTab === 'saved') {
-        const { savedVideos, videos: storeVideos } = useVideoStore.getState();
-        const savedSet = new Set(savedVideos);
-        const saved = storeVideos.filter(v => savedSet.has(v.id)).map(v => ({
+        const { data: body, error } = await request('/api/videos/saved/list');
+        if (error) { setVideos([]); setVideosLoading(false); return; }
+        const vids = Array.isArray(body?.videos) ? body.videos : [];
+        setVideos(vids.map((v: { id: string; thumbnail?: string; thumbnail_url?: string; url?: string; views?: number }) => ({
           id: v.id,
-          thumbnail_url: resolveGridThumbnailUrl(v.thumbnail, v.url),
+          thumbnail_url: resolveGridThumbnailUrl(v.thumbnail || v.thumbnail_url, v.url),
           url: v.url || '',
-          views: v.stats?.views || 0,
+          views: v.views || 0,
           is_public: true,
-        }));
-        setVideos(saved);
+        })));
       } else {
         setVideos([]);
       }

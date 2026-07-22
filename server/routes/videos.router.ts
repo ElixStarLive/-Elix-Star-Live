@@ -151,6 +151,31 @@ router.get("/saved/list", async (req, res) => {
   }
 });
 
+router.get("/liked/list", async (req, res) => {
+  res.setHeader("Cache-Control", "private, no-store");
+  const token = getTokenFromRequest(req);
+  const payload = token ? verifyAuthToken(token) : null;
+  if (!payload?.sub) return res.status(401).json({ error: "Unauthorized", videos: [] });
+  const db = getPool();
+  if (!db) return res.status(503).json({ error: "Database not configured", videos: [] });
+  try {
+    const r = await db.query(
+      `SELECT v.id, v.url, v.thumbnail, v.description, v.views, v.likes, v.created_at, v.user_id
+       FROM likes l
+       INNER JOIN videos v ON v.id = l.video_id
+       WHERE l.user_id = $1
+         AND (v.user_id = $1 OR COALESCE(v.privacy, 'public') <> 'private')
+       ORDER BY l.created_at DESC
+       LIMIT 200`,
+      [payload.sub],
+    );
+    return res.json({ videos: r.rows });
+  } catch (err) {
+    logger.error({ err }, "GET liked/list failed");
+    return res.status(500).json({ error: "Failed to load liked videos", videos: [] });
+  }
+});
+
 /** GET /api/videos/:id/download — voice-only MP4 (licensed in-app music never included). */
 router.get("/:id/download", async (req, res) => {
   try {

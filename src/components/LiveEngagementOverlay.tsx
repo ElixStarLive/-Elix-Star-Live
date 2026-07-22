@@ -41,7 +41,19 @@ export function LiveEngagementOverlay({
 
   useEffect(() => {
     const openPoll = () => {
-      if (features.poll && state.poll) setShowPollSheet(true);
+      if (features.poll && state.poll) {
+        setShowPollSheet(true);
+        return;
+      }
+      try {
+        window.dispatchEvent(
+          new CustomEvent("elix-toast", {
+            detail: { message: "No active poll right now" },
+          }),
+        );
+      } catch {
+        /* ignore */
+      }
     };
     const openLb = () => {
       if (features.leaderboard) setShowLb(true);
