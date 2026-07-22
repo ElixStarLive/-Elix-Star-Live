@@ -456,7 +456,8 @@ export function buildLiveMarkedUiDemoComboStack(): LiveComboStackItem[] {
   ];
 }
 
-/** Tiny toggle so you can turn demo combo column on/off while testing. */
+/** Tiny toggle so you can turn demo combo column on/off while testing.
+ * Sits near the bottom Co-Host control (not over the top battle/header area). */
 export function LiveMarkedUiDemoToggle({
   enabled,
   onToggle,
@@ -467,9 +468,10 @@ export function LiveMarkedUiDemoToggle({
   return (
     <button
       type="button"
-      className="pointer-events-auto fixed z-[50050] left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-[10px] font-black tracking-wide active:scale-95 transition-transform"
+      className="pointer-events-auto fixed z-[50050] rounded-full px-3 py-1 text-[10px] font-black tracking-wide active:scale-95 transition-transform"
       style={{
-        top: 'calc(env(safe-area-inset-top, 0px) + 52px)',
+        bottom: 'calc(56px + max(2px, env(safe-area-inset-bottom, 0px)))',
+        left: 'max(12px, calc(50% - 240px + 12px))',
         background: enabled ? 'rgba(254,44,85,0.92)' : 'rgba(20,20,28,0.85)',
         color: '#fff',
         border: '1px solid rgba(255,255,255,0.25)',
