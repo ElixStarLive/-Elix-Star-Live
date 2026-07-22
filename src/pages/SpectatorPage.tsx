@@ -372,10 +372,25 @@ export default function SpectatorPage() {
     const withPoints = (scores: Record<string, number>, list: MvpSlotRow[]) =>
       list.map((s) => ({ ...s, points: scores[s.id] ?? 0 }));
 
+    // Battle sides: only viewers who scored on THAT side. Never mirror the same person on both.
+    const pickSide = (side: 'host' | 'opponent') => {
+      const scores = side === 'host' ? mvpGiftScoresHostRef.current : mvpGiftScoresOpponentRef.current;
+      const other = side === 'host' ? mvpGiftScoresOpponentRef.current : mvpGiftScoresHostRef.current;
+      const list = base.filter((s) => {
+        const mine = scores[s.id] ?? 0;
+        if (mine <= 0) return false;
+        const theirs = other[s.id] ?? 0;
+        // Higher side wins; equal scores → host only (never both).
+        if (side === 'host') return mine >= theirs;
+        return mine > theirs;
+      });
+      return withPoints(scores, [...list].sort(sortBy(scores)).slice(0, 3));
+    };
+
     setMvpSlots({
       global: withPoints(mvpGiftScoresRef.current, [...base].sort(sortBy(mvpGiftScoresRef.current)).slice(0, 3)),
-      host: withPoints(mvpGiftScoresHostRef.current, [...base].sort(sortBy(mvpGiftScoresHostRef.current)).slice(0, 3)),
-      opponent: withPoints(mvpGiftScoresOpponentRef.current, [...base].sort(sortBy(mvpGiftScoresOpponentRef.current)).slice(0, 3)),
+      host: pickSide('host'),
+      opponent: pickSide('opponent'),
     });
   }, [effectiveStreamId, hostUserId]);
 

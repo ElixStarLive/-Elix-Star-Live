@@ -3044,7 +3044,7 @@ export default function LiveStream() {
   }, [effectiveStreamId]);
 
   const buildMvpRanked = useCallback(
-    (scores: Record<string, number>, limit: number): LiveViewer[] => {
+    (scores: Record<string, number>, limit: number, opts?: { requirePositiveScore?: boolean }): LiveViewer[] => {
       const byId = new Map<string, LiveViewer>();
       for (const v of activeViewers) {
         const cached = viewerIdentityCacheRef.current.get(v.id);
@@ -3076,7 +3076,12 @@ export default function LiveStream() {
           lastVisitDaysAgo: 0,
         });
       }
-      const ranked = [...byId.values()].sort((a, b) => {
+      let pool = [...byId.values()];
+      // Battle host/opponent MVP: only people who scored on THAT side (never mirror the same viewer on both).
+      if (opts?.requirePositiveScore) {
+        pool = pool.filter((v) => (scores[v.id] ?? 0) > 0);
+      }
+      const ranked = pool.sort((a, b) => {
         const sa = scores[a.id] ?? 0;
         const sb = scores[b.id] ?? 0;
         if (sb !== sa) return sb - sa;
@@ -3098,15 +3103,25 @@ export default function LiveStream() {
     [buildMvpRanked, mvpGiftScores],
   );
 
-  const topMvpHostBattle = useMemo(
-    () => buildMvpRanked(mvpGiftScoresHost, 3),
-    [buildMvpRanked, mvpGiftScoresHost],
-  );
+  const topMvpHostBattle = useMemo(() => {
+    const ranked = buildMvpRanked(mvpGiftScoresHost, 3, { requirePositiveScore: true });
+    // Exclusive: host side only if host score beats opponent (tie stays on host).
+    return ranked.filter((v) => {
+      const h = mvpGiftScoresHost[v.id] ?? 0;
+      const o = mvpGiftScoresOpponent[v.id] ?? 0;
+      return h > 0 && h >= o;
+    });
+  }, [buildMvpRanked, mvpGiftScoresHost, mvpGiftScoresOpponent]);
 
-  const topMvpOpponentBattle = useMemo(
-    () => buildMvpRanked(mvpGiftScoresOpponent, 3),
-    [buildMvpRanked, mvpGiftScoresOpponent],
-  );
+  const topMvpOpponentBattle = useMemo(() => {
+    const ranked = buildMvpRanked(mvpGiftScoresOpponent, 3, { requirePositiveScore: true });
+    // Exclusive: opponent only when opponent score is strictly higher than host.
+    return ranked.filter((v) => {
+      const h = mvpGiftScoresHost[v.id] ?? 0;
+      const o = mvpGiftScoresOpponent[v.id] ?? 0;
+      return o > 0 && o > h;
+    });
+  }, [buildMvpRanked, mvpGiftScoresHost, mvpGiftScoresOpponent]);
 
   useEffect(() => {
     if (!isBattleMode) {
