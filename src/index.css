@@ -981,3 +981,48 @@ input::placeholder,
 textarea::placeholder {
   color: rgba(255, 107, 107, 0.42);
 }
+
+.text-gold-bright\/45,
+.text-gold-bright\/50,
+.text-gold-bright\/60 {
+  color: rgba(255, 107, 107, 0.5) !important;
+}
+
+/* Default writing color — entire app inherits #FF6B6B */
+body,
+#root {
+  color: var(--color-text);
+}
+
+/*
+ * Catch all remaining text color utilities (feed, nav, forms, hex classes).
+ * Icons stay Neon Purple — svg/path excluded.
+ */
+:not(svg):not(path):not(circle):not(rect):not(line):not(polyline):not(polygon)[class*="text-gold"],
+:not(svg):not(path)[class*="text-gray"],
+:not(svg):not(path)[class*="text-slate"],
+:not(svg):not(path)[class*="text-zinc"],
+:not(svg):not(path)[class*="text-neutral"],
+:not(svg):not(path)[class*="text-stone"],
+:not(svg):not(path)[class*="text-orange"],
+:not(svg):not(path)[class*="text-amber"],
+:not(svg):not(path)[class*="text-yellow"],
+:not(svg):not(path)[class*="text-lime"],
+:not(svg):not(path)[class*="text-green"],
+:not(svg):not(path)[class*="text-emerald"],
+:not(svg):not(path)[class*="text-teal"],
+:not(svg):not(path)[class*="text-cyan"],
+:not(svg):not(path)[class*="text-sky"],
+:not(svg):not(path)[class*="text-blue"],
+:not(svg):not(path)[class*="text-indigo"],
+:not(svg):not(path)[class*="text-violet"],
+:not(svg):not(path)[class*="text-purple"],
+:not(svg):not(path)[class*="text-fuchsia"],
+:not(svg):not(path)[class*="text-pink"],
+:not(svg):not(path)[class*="text-rose"],
+:not(svg):not(path)[class*="text-red"],
+:not(svg):not(path)[class*="text-black"],
+:not(svg):not(path)[class*="text-\[#"],
+:not(svg):not(path)[class*="text-text"] {
+  color: var(--color-text) !important;
+}
