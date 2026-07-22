@@ -64,8 +64,6 @@ import { ChatOverlay } from '../components/ChatOverlay';
 import { AvatarRing } from '../components/AvatarRing';
 import { LevelBadge } from '../components/LevelBadge';
 import {
-  CREATOR_NAME_PILL_CLASSNAME,
-  getCreatorNamePillStyle,
   SPECTATOR_BATTLE_PROFILE_RING_PX,
   BATTLE_MVP_ROW_EDGE_OFFSET_MM,
   SPECTATOR_MVP_PROFILE_RING_PX,
@@ -94,8 +92,9 @@ import { RankingPanel } from '../components/RankingPanel';
 import { type LiveRankTab } from '../components/CyclingRankBadge';
 import {
   LiveDiamondLeagueCapsule,
-  LiveFollowPill,
   LiveGiftComboColumn,
+  LiveHostProfileHeader,
+  LiveJoinPill,
   LiveMembershipVipCapsule,
 } from '../components/LiveMarkedTopUi';
 import { websocket } from '../lib/websocket';
@@ -199,6 +198,7 @@ export default function SpectatorPage() {
   useEffect(() => { let c = false; fetchGiftsFromDatabase().then(g => { if (!c) setGiftsCatalog(g); }); return () => { c = true; }; }, []);
   const [hostName, setHostName] = useState('Creator');
   const [hostAvatar, setHostAvatar] = useState('');
+  const [hostLevel, setHostLevel] = useState(1);
   const [hostUserId, setHostUserId] = useState('');
   const hostUserIdRef = useRef('');
   const [streamIsLive, setStreamIsLive] = useState<boolean | null>(null);
@@ -951,6 +951,8 @@ export default function SpectatorPage() {
               (typeof profile.avatarUrl === 'string' && profile.avatarUrl.trim()) || '';
             setHostName(profileName);
             if (profileAvatar) setHostAvatar(profileAvatar);
+            const lvl = Math.max(1, Number(profile.level ?? profile.current_level) || 1);
+            if (Number.isFinite(lvl)) setHostLevel(lvl);
           } catch {
             /* Non-fatal: keep initialName/empty avatar */
           }
@@ -3273,44 +3275,27 @@ export default function SpectatorPage() {
         <div className="absolute top-0 left-0 right-0 z-[110] pointer-events-none overflow-visible">
           <div className="px-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 6px)' }}>
             <div className="flex items-center justify-between gap-2 relative">
-              {/* Left: Creator info — full creator top bar */}
-              <div
-                className="pointer-events-auto flex items-center gap-0 flex-shrink min-w-0"
-              >
-                <div
-                  className={`${CREATOR_NAME_PILL_CLASSNAME} cursor-pointer`}
-                  style={getCreatorNamePillStyle()}
-                >
-                  <div
-                    className="relative z-[10] flex-shrink-0 overflow-visible active:scale-95 transition-transform"
-                    onClick={() => navigate(`/profile/${hostUserId}`)}
-                  >
-                    <AvatarRing src={resolveCircleAvatar(hostAvatar, hostName)} alt={hostName} size={LIVE_TOP_AVATAR_RING_PX} />
-                  </div>
-                  <div
-                    className="flex flex-col justify-center min-w-0 pl-1"
-                    onClick={() => navigate(`/profile/${hostUserId}`)}
-                  >
-                    <span className="text-white text-[11px] font-bold truncate max-w-[100px] leading-tight">{hostName}</span>
-                    <button
-                      type="button"
-                      className="flex items-center gap-0.5 pointer-events-auto -mt-0.5"
-                      onPointerDown={(e) => {
-                        e.stopPropagation();
-                        handleLikeTap(e);
-                      }}
-                    >
-                      <Heart className="w-2 h-2 text-[#D4AF37]" strokeWidth={2.5} fill="#D4AF37" />
-                      <span className="text-white/70 text-[8px] font-bold tabular-nums">{(typeof activeLikes === 'number' && Number.isFinite(activeLikes) ? activeLikes : 0).toLocaleString()}</span>
-                    </button>
-                  </div>
-                  {/* Follow / Join — round end of the capsule (one piece) */}
-                  <div className="ml-auto self-stretch grid place-items-center pointer-events-auto flex-shrink-0 w-[58px] rounded-full overflow-hidden">
-                    {/* Join Button (Bottom layer) — visible after following */}
-                    <button
-                      type="button"
-                      className={`col-start-1 row-start-1 flex items-center justify-center gap-1 self-stretch h-full rounded-full ${hasJoinedToday ? 'bg-[#FF4500]' : 'bg-transparent'} w-full z-0 transition-colors duration-200`}
-                      onClick={async (e) => {
+              {/* Left: Creator info — photo profile (MVP circles untouched) */}
+              <div className="pointer-events-auto flex items-center gap-0 flex-shrink min-w-0">
+                <LiveHostProfileHeader
+                  name={hostName}
+                  avatar={resolveCircleAvatar(hostAvatar, hostName)}
+                  likes={typeof activeLikes === 'number' && Number.isFinite(activeLikes) ? activeLikes : 0}
+                  level={hostLevel}
+                  avatarSize={LIVE_TOP_AVATAR_RING_PX}
+                  showFollow={!isFollowing}
+                  onAvatarClick={() => navigate(`/profile/${hostUserId}`)}
+                  onLike={(e) => {
+                    handleLikeTap(e);
+                  }}
+                  onFollow={(e) => {
+                    e.stopPropagation();
+                    followHost(e);
+                  }}
+                  joinSlot={
+                    <LiveJoinPill
+                      hasJoinedToday={hasJoinedToday}
+                      onJoin={async (e) => {
                         e.stopPropagation();
                         if (!hasJoinedToday && user?.id && hostUserId) {
                           const token = useAuthStore.getState().session?.access_token;
@@ -3343,33 +3328,9 @@ export default function SpectatorPage() {
                           } catch { /* non-fatal */ }
                         }
                       }}
-                    >
-                      <div className="relative">
-                        <Heart
-                          className={`w-3.5 h-3.5 ${hasJoinedToday ? 'text-white' : 'text-[#D4AF37]'}`}
-                          strokeWidth={2.5}
-                          fill={hasJoinedToday ? 'white' : '#FFFFFF'}
-                        />
-                        {!hasJoinedToday && (
-                          <div className="absolute -top-1 -right-1 w-2 h-2 bg-[#FFFFFF] rounded-full flex items-center justify-center border border-white">
-                            <span className="text-white text-[6px] font-bold leading-none">+</span>
-                          </div>
-                        )}
-                      </div>
-                      <span className={`${hasJoinedToday ? 'text-white' : 'text-[#D4AF37]'} text-[10px] font-bold`}>Join</span>
-                    </button>
-
-                    {/* Follow Button (Top layer) — covers Join until user follows */}
-                    {!isFollowing && (
-                      <LiveFollowPill
-                        onFollow={(e) => {
-                          e.stopPropagation();
-                          followHost(e);
-                        }}
-                      />
-                    )}
-                  </div>
-                </div>
+                    />
+                  }
+                />
               </div>
 
               <div className="pointer-events-auto flex items-center gap-[0mm] flex-shrink-0 min-w-0">

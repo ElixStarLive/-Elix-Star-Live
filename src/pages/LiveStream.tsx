@@ -71,8 +71,6 @@ import { useLivePromoStore } from '../store/useLivePromoStore';
 import { AvatarRing } from '../components/AvatarRing';
 import { LevelBadge } from '../components/LevelBadge';
 import {
-  CREATOR_NAME_PILL_CLASSNAME,
-  getCreatorNamePillStyle,
   LIVE_MVP_PROFILE_RING_PX,
   SPECTATOR_BATTLE_PROFILE_RING_PX,
   BATTLE_MVP_ROW_EDGE_OFFSET_MM,
@@ -107,8 +105,9 @@ import { RankingPanel } from '../components/RankingPanel';
 import { type LiveRankTab } from '../components/CyclingRankBadge';
 import {
   LiveDiamondLeagueCapsule,
-  LiveFollowPill,
   LiveGiftComboColumn,
+  LiveHostProfileHeader,
+  LiveJoinPill,
   LiveMembershipVipCapsule,
 } from '../components/LiveMarkedTopUi';
 import { websocket } from '../lib/websocket';
@@ -5882,102 +5881,64 @@ export default function LiveStream() {
                   <div className="px-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 6px)' }}>
                     <div className="flex items-start justify-between gap-2">
                       <div className="pointer-events-auto flex flex-col gap-2">
-                        {/* BROADCASTER INFO */}
+                        {/* BROADCASTER INFO — photo profile (MVP circles untouched) */}
                         <div className="px-0 py-1 animate-luxury-fade-in relative">
-                          <div className="flex items-center relative">
-                            <div className={CREATOR_NAME_PILL_CLASSNAME} style={getCreatorNamePillStyle()}>
-                            <div 
-                              className="relative z-[10] flex-shrink-0 pointer-events-auto cursor-pointer active:scale-95 transition-transform"
-                              onClick={(e) => { e.stopPropagation(); void openMiniProfile(myCreatorName, undefined, { userId: user?.id, avatar: myAvatar, level: userLevel }); }}
-                            >
-                              <AvatarRing src={resolveCircleAvatar(myAvatar, myCreatorName)} alt={myCreatorName} size={LIVE_TOP_AVATAR_RING_PX} />
-                            </div>
-                            <div className="flex flex-col justify-center min-w-0 pl-1">
-                              <span className="text-white text-[11px] font-bold truncate max-w-[100px] leading-tight">{myCreatorName}</span>
-                              <button
-                  type="button"
-                  className="flex items-center gap-0.5 pointer-events-auto -mt-0.5"
-                  onPointerDown={(e) => {
-                    handleLikeTap(e);
-                  }}
-                >
-                                <Heart className="w-2 h-2 text-[#D4AF37]" strokeWidth={2.5} fill="#D4AF37" />
-                                <span className="text-white/70 text-[8px] font-bold tabular-nums">{(typeof activeLikes === 'number' && Number.isFinite(activeLikes) ? activeLikes : 0).toLocaleString()}</span>
-                              </button>
-                            </div>
-                              
-                              {(() => {
-                                const _redCount = 0;
-                                const _greyCount = 0;
-                                return (
-                                  <div className="ml-auto self-stretch grid place-items-center pointer-events-auto flex-shrink-0 w-[58px] rounded-full overflow-hidden">
-                                    {/* Membership / Join — round end of the capsule (one piece) */}
-                                    <button
-                                      type="button"
-                                      className={`col-start-1 row-start-1 flex items-center justify-center gap-1 self-stretch h-full rounded-full ${hasJoinedToday ? 'bg-[#FF4500]' : 'bg-transparent'} w-full z-0 transition-colors duration-200`}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (!hasJoinedToday && user?.id && effectiveStreamId) {
-                                          const today = new Date().toISOString().split('T')[0];
-                                          const storageKey = `joined_stream_${effectiveStreamId}_${user.id}_${today}`;
-                                          localStorage.setItem(storageKey, 'true');
-                                          
-                                          // Update total heart count
-                                          const heartKey = `my_heart_count_${effectiveStreamId}_${user.id}`;
-                                          const newCount = myHeartCount + 1;
-                                          localStorage.setItem(heartKey, newCount.toString());
-                                          setMyHeartCount(newCount);
-                                          
-                                          setMemberCount(prev => prev + 1);
-                                          setHasJoinedToday(true);
-                                          setShowTeamStatus(true);
-                                          
-                                          // Send animated heart to chat (ephemeral join banner)
-                                          const joinBannerId = Date.now().toString();
-                                          const newMessage: LiveMessage = {
-                                            id: joinBannerId,
-                                            username: 'You',
-                                            text: '❤️ Joined the team!',
-                                            level: userLevel,
-                                            isGift: false,
-                                            avatar: '/royce/elix-mark.svg',
-                                            isSystem: true,
-                                            membershipIcon: '/royce/membership.svg',
-                                          };
-                                          setMessages(prev => appendCapped(prev, newMessage, LIVE_CHAT_MESSAGE_CAP));
-                                          window.setTimeout(() => {
-                                            setMessages(prev => prev.filter(m => m.id !== joinBannerId));
-                                          }, 5000);
-                                          spawnHeartFromClient(e.clientX, e.clientY, undefined, 'You', '/royce/elix-mark.svg');
+                          <LiveHostProfileHeader
+                            name={myCreatorName}
+                            avatar={resolveCircleAvatar(myAvatar, myCreatorName)}
+                            likes={typeof activeLikes === 'number' && Number.isFinite(activeLikes) ? activeLikes : 0}
+                            level={userLevel}
+                            avatarSize={LIVE_TOP_AVATAR_RING_PX}
+                            showFollow={!isBroadcast && !isFollowing}
+                            onAvatarClick={() => {
+                              void openMiniProfile(myCreatorName, undefined, { userId: user?.id, avatar: myAvatar, level: userLevel });
+                            }}
+                            onLike={(e) => {
+                              handleLikeTap(e);
+                            }}
+                            onFollow={followCreatorLive}
+                            joinSlot={
+                              <LiveJoinPill
+                                hasJoinedToday={hasJoinedToday}
+                                onJoin={(e) => {
+                                  e.stopPropagation();
+                                  if (!hasJoinedToday && user?.id && effectiveStreamId) {
+                                    const today = new Date().toISOString().split('T')[0];
+                                    const storageKey = `joined_stream_${effectiveStreamId}_${user.id}_${today}`;
+                                    localStorage.setItem(storageKey, 'true');
 
-                                        } else if (hasJoinedToday) {
-                                          setShowTeamStatus(true);
-                                        }
-                                      }}
-                                    >
-                                      <div className="relative">
-                                        <Heart
-                                          className={`w-3.5 h-3.5 ${hasJoinedToday ? 'text-white fill-white' : 'text-[#D4AF37] fill-[#FFFFFF]'}`}
-                                          strokeWidth={2.5}
-                                        />
-                                        {!hasJoinedToday && (
-                                          <div className="absolute -top-1 -right-1 w-2 h-2 bg-[#FFFFFF] rounded-full flex items-center justify-center border border-white">
-                                            <span className="text-white text-[6px] font-bold leading-none">+</span>
-                                          </div>
-                                        )}
-                                      </div>
-                                      <span className={`${hasJoinedToday ? 'text-white' : 'text-[#D4AF37]'} text-[10px] font-bold`}>Join</span>
-                                    </button>
+                                    const heartKey = `my_heart_count_${effectiveStreamId}_${user.id}`;
+                                    const newCount = myHeartCount + 1;
+                                    localStorage.setItem(heartKey, newCount.toString());
+                                    setMyHeartCount(newCount);
 
-                                    {/* Follow Button (Top) — viewers only; calls POST /api/profiles/:id/follow */}
-                                    {!isBroadcast && !isFollowing && (
-                                      <LiveFollowPill onFollow={followCreatorLive} />
-                                    )}
-                                  </div>
-                                );
-                              })()}
-                            </div>
-                          </div>
+                                    setMemberCount(prev => prev + 1);
+                                    setHasJoinedToday(true);
+                                    setShowTeamStatus(true);
+
+                                    const joinBannerId = Date.now().toString();
+                                    const newMessage: LiveMessage = {
+                                      id: joinBannerId,
+                                      username: 'You',
+                                      text: '❤️ Joined the team!',
+                                      level: userLevel,
+                                      isGift: false,
+                                      avatar: '/royce/elix-mark.svg',
+                                      isSystem: true,
+                                      membershipIcon: '/royce/membership.svg',
+                                    };
+                                    setMessages(prev => appendCapped(prev, newMessage, LIVE_CHAT_MESSAGE_CAP));
+                                    window.setTimeout(() => {
+                                      setMessages(prev => prev.filter(m => m.id !== joinBannerId));
+                                    }, 5000);
+                                    spawnHeartFromClient(e.clientX, e.clientY, undefined, 'You', '/royce/elix-mark.svg');
+                                  } else if (hasJoinedToday) {
+                                    setShowTeamStatus(true);
+                                  }
+                                }}
+                              />
+                            }
+                          />
                           <div className="flex items-center gap-1.5 mt-1 ml-12 pointer-events-auto relative z-20 flex-wrap">
                             <LiveDiamondLeagueCapsule
                               rank={diamondLeagueRank}

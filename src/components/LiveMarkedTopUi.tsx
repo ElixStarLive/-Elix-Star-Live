@@ -1,10 +1,51 @@
 import React from 'react';
-import { Crown, Gem, Plus, Star } from 'lucide-react';
+import { BadgeCheck, Crown, Gem, Heart, Plus, Star } from 'lucide-react';
+import { AvatarRing } from './AvatarRing';
 import type { GiftUiItem } from '../lib/giftsCatalog';
 import { GIFT_COMBO_MAX } from '../lib/giftsCatalog';
 
-/** Pink + Follow pill — identical on creator + spectator. */
-export function LiveFollowPill({ onFollow }: { onFollow: (e: React.MouseEvent) => void }) {
+function formatLikesShort(count: number) {
+  const c = typeof count === 'number' && Number.isFinite(count) ? count : 0;
+  if (c >= 1_000_000) {
+    const m = Math.round((c / 1_000_000) * 10) / 10;
+    return `${Number.isInteger(m) ? Math.trunc(m) : m}M`;
+  }
+  if (c >= 1000) {
+    const k = Math.round((c / 1000) * 10) / 10;
+    return `${Number.isInteger(k) ? Math.trunc(k) : k}K`;
+  }
+  return String(c);
+}
+
+/** Photo-style diamond badge label from host level (Diamond I…V). */
+export function liveDiamondTierLabel(level: number) {
+  const n = typeof level === 'number' && Number.isFinite(level) && level > 0 ? Math.floor(level) : 1;
+  const roman = ['I', 'II', 'III', 'IV', 'V'] as const;
+  const idx = Math.min(roman.length - 1, Math.floor((Math.max(1, n) - 1) / 20));
+  return `Diamond ${roman[idx]}`;
+}
+
+/** Pink + Follow pill — photo hot-pink; identical on creator + spectator. */
+export function LiveFollowPill({
+  onFollow,
+  variant = 'capsule',
+}: {
+  onFollow: (e: React.MouseEvent) => void;
+  /** `photo` = standalone pill next to host profile (mock). `capsule` = overlay on Join slot. */
+  variant?: 'capsule' | 'photo';
+}) {
+  if (variant === 'photo') {
+    return (
+      <button
+        type="button"
+        className="flex items-center justify-center gap-0.5 h-[28px] px-2.5 rounded-full bg-[#FE2C55] shadow-[0_0_10px_rgba(254,44,85,0.45)] active:scale-95 transition-transform flex-shrink-0"
+        onClick={onFollow}
+      >
+        <Plus size={12} className="text-white" strokeWidth={3} />
+        <span className="text-white text-[11px] font-bold leading-none">Follow</span>
+      </button>
+    );
+  }
   return (
     <button
       type="button"
@@ -13,6 +54,145 @@ export function LiveFollowPill({ onFollow }: { onFollow: (e: React.MouseEvent) =
     >
       <Plus size={12} className="text-white" strokeWidth={3} />
       <span className="text-white text-[10px] font-bold">Follow</span>
+    </button>
+  );
+}
+
+/**
+ * Host profile block (photo 1-1): pink ring avatar, name + blue verified,
+ * “N Likes • LIVE Pro”, Lv pill + Diamond tier, Follow/Join action slot.
+ * Does not touch the 3 MVP circles.
+ */
+export function LiveHostProfileHeader({
+  name,
+  avatar,
+  likes,
+  level,
+  avatarSize,
+  showFollow,
+  onAvatarClick,
+  onLike,
+  onFollow,
+  joinSlot,
+}: {
+  name: string;
+  avatar: string;
+  likes: number;
+  level: number;
+  avatarSize: number;
+  showFollow: boolean;
+  onAvatarClick: () => void;
+  onLike: (e: React.PointerEvent) => void;
+  onFollow: (e: React.MouseEvent) => void;
+  /** Shown when not following (Join remains available after follow). */
+  joinSlot?: React.ReactNode;
+}) {
+  const safeLevel = typeof level === 'number' && Number.isFinite(level) && level > 0 ? Math.floor(level) : 1;
+  const likesLabel = formatLikesShort(likes);
+
+  return (
+    <div className="flex items-center gap-1.5 min-w-0 pointer-events-auto">
+      <button
+        type="button"
+        className="relative flex-shrink-0 rounded-full p-[1.5px] active:scale-95 transition-transform"
+        style={{
+          background: 'linear-gradient(145deg, #FF4DA6 0%, #FE2C55 45%, #C084FC 100%)',
+          boxShadow: '0 0 12px rgba(254,44,85,0.55)',
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          onAvatarClick();
+        }}
+        aria-label="Open profile"
+      >
+        <div className="rounded-full overflow-hidden bg-[#0B0B12]">
+          <AvatarRing src={avatar} alt={name} size={avatarSize} />
+        </div>
+      </button>
+
+      <div className="flex flex-col justify-center min-w-0 gap-[2px]">
+        <div className="flex items-center gap-1 min-w-0">
+          <span className="text-white text-[12px] font-bold truncate max-w-[118px] leading-tight">{name}</span>
+          <BadgeCheck
+            size={14}
+            className="text-[#2F80FF] flex-shrink-0 drop-shadow-[0_0_4px_rgba(47,128,255,0.65)]"
+            fill="#2F80FF"
+            stroke="#FFFFFF"
+            strokeWidth={1.6}
+          />
+        </div>
+        <button
+          type="button"
+          className="flex items-center gap-1 pointer-events-auto self-start -mt-0.5"
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            onLike(e);
+          }}
+        >
+          <span className="text-white/65 text-[9px] font-semibold tabular-nums leading-none whitespace-nowrap">
+            {likesLabel} Likes
+          </span>
+          <span className="text-white/35 text-[9px] leading-none">•</span>
+          <span className="text-white/65 text-[9px] font-semibold leading-none whitespace-nowrap">LIVE Pro</span>
+        </button>
+        <div className="flex items-center gap-1 mt-[1px]">
+          <span
+            className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-[2px] text-[8px] font-bold text-white leading-none"
+            style={{
+              background: 'linear-gradient(90deg, #7C3AED 0%, #A855F7 100%)',
+              boxShadow: '0 0 6px rgba(168,85,247,0.45)',
+            }}
+          >
+            Lv.{safeLevel}
+          </span>
+          <span className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-[2px] bg-black/45 border border-white/10">
+            <Gem size={9} className="text-[#C084FC] flex-shrink-0" strokeWidth={2.2} fill="#A855F7" />
+            <span className="text-white/90 text-[8px] font-bold leading-none whitespace-nowrap">
+              {liveDiamondTierLabel(safeLevel)}
+            </span>
+          </span>
+        </div>
+      </div>
+
+      <div className="flex-shrink-0 self-center ml-0.5">
+        {showFollow ? (
+          <LiveFollowPill variant="photo" onFollow={onFollow} />
+        ) : (
+          joinSlot ?? null
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Compact Join control used after Follow (photo profile action slot). */
+export function LiveJoinPill({
+  hasJoinedToday,
+  onJoin,
+}: {
+  hasJoinedToday: boolean;
+  onJoin: (e: React.MouseEvent) => void;
+}) {
+  return (
+    <button
+      type="button"
+      className={`flex items-center justify-center gap-1 h-[28px] px-2.5 rounded-full active:scale-95 transition-transform ${
+        hasJoinedToday ? 'bg-[#FF4500]' : 'bg-black/55 border border-white/20'
+      }`}
+      onClick={onJoin}
+    >
+      <div className="relative">
+        <Heart
+          className={`w-3.5 h-3.5 ${hasJoinedToday ? 'text-white fill-white' : 'text-[#D4AF37] fill-[#FFFFFF]'}`}
+          strokeWidth={2.5}
+        />
+        {!hasJoinedToday && (
+          <div className="absolute -top-1 -right-1 w-2 h-2 bg-[#FFFFFF] rounded-full flex items-center justify-center border border-white">
+            <span className="text-white text-[6px] font-bold leading-none">+</span>
+          </div>
+        )}
+      </div>
+      <span className={`${hasJoinedToday ? 'text-white' : 'text-[#D4AF37]'} text-[10px] font-bold`}>Join</span>
     </button>
   );
 }
