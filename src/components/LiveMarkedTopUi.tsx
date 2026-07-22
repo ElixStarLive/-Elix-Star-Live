@@ -57,8 +57,8 @@ export function LiveFollowPill({
 }
 
 /**
- * Host profile block (photo 1-1): pink ring avatar, name + blue verified,
- * “N Likes • LIVE Pro”, Lv pill + Diamond tier, Follow → then membership heart.
+ * Host profile block: avatar (plain AvatarRing + Royce glow — morning style, no pink photo ring),
+ * name + blue verified, “N Likes • LIVE Pro”, Lv pill + Diamond tier, Follow → then membership heart.
  * Viewer flow: Follow first; after follow, action slot shows Join (membership heart).
  * Does not touch the 3 MVP circles.
  */
@@ -92,23 +92,17 @@ export function LiveHostProfileHeader({
 
   return (
     <div className="flex items-center gap-1.5 min-w-0 pointer-events-auto">
-      <button
-        type="button"
-        className="relative flex-shrink-0 rounded-full p-[1.5px] active:scale-95 transition-transform"
-        style={{
-          background: 'linear-gradient(145deg, #FF4DA6 0%, #FE2C55 45%, #C084FC 100%)',
-          boxShadow: '0 0 12px rgba(254,44,85,0.55)',
-        }}
-        onClick={(e) => {
-          e.stopPropagation();
-          onAvatarClick();
-        }}
-        aria-label="Open profile"
-      >
-        <div className="rounded-full overflow-hidden bg-[#0B0B12]">
-          <AvatarRing src={avatar} alt={name} size={avatarSize} />
-        </div>
-      </button>
+      <div className="relative z-[10] flex-shrink-0 pointer-events-auto cursor-pointer active:scale-95 transition-transform">
+        <AvatarRing
+          src={avatar}
+          alt={name}
+          size={avatarSize}
+          onClick={(e) => {
+            e.stopPropagation();
+            onAvatarClick();
+          }}
+        />
+      </div>
 
       <div className="flex flex-col justify-center min-w-0 gap-[2px]">
         <div className="flex items-center gap-1 min-w-0">
