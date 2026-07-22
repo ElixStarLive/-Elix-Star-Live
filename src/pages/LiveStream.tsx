@@ -5515,17 +5515,7 @@ export default function LiveStream() {
                           <span className="text-white font-bold text-[10px] truncate max-w-full px-1">{creatorName || user?.username || user?.name || 'Me'}</span>
                         </div>
                       )}
-                      {/* P1 close — top outer corner (top-left), icon only */}
-                      <div className="absolute top-3 left-1.5 z-40 pointer-events-auto">
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); closeLiveWithSlide(); }}
-                          aria-label="Close"
-                          className="flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
-                        >
-                          <X size={14} strokeWidth={2.35} className="text-[#D4AF37]" />
-                        </button>
-                      </div>
+                      {/* P1 close on video hidden — use top-bar close instead */}
                       {/* P1 mic + cam — icons only */}
                       <div className="absolute bottom-3 right-1.5 z-40 pointer-events-auto flex items-end gap-2">
                         <button
