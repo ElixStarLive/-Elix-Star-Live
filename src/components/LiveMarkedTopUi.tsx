@@ -270,27 +270,27 @@ export function LiveMembershipVipCapsule({ onOpen }: { onOpen: () => void }) {
   );
 }
 
-/** Photo 3D-style Gold diamond for Diamond League. */
+/** Photo 3D-style Primary Gold diamond for Diamond League. */
 function LivePhotoDiamondIcon({ size = 14 }: { size?: number }) {
   const uid = `dl${size}`;
   return (
-    <svg width={size} height={size} viewBox="0 0 18 18" className="flex-shrink-0 drop-shadow-[0_0_5px_rgba(255,213,77,0.7)]" aria-hidden>
+    <svg width={size} height={size} viewBox="0 0 18 18" className="flex-shrink-0 drop-shadow-[0_0_5px_rgba(212,175,55,0.7)]" aria-hidden>
       <defs>
         <linearGradient id={`${uid}Top`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#FFE082" />
-          <stop offset="45%" stopColor="#FFD54D" />
-          <stop offset="100%" stopColor="#FFC107" />
+          <stop offset="0%" stopColor="#E8C96A" />
+          <stop offset="45%" stopColor="#D4AF37" />
+          <stop offset="100%" stopColor="#C9A227" />
         </linearGradient>
         <linearGradient id={`${uid}Bot`} x1="0.2" y1="0" x2="0.8" y2="1">
-          <stop offset="0%" stopColor="#FFD54D" />
-          <stop offset="100%" stopColor="#C9A227" />
+          <stop offset="0%" stopColor="#D4AF37" />
+          <stop offset="100%" stopColor="#8B6914" />
         </linearGradient>
       </defs>
       <path d="M9 1.2 L15.2 6.2 L9 16.8 L2.8 6.2 Z" fill={`url(#${uid}Bot)`} />
       <path d="M9 1.2 L15.2 6.2 L9 7.4 L2.8 6.2 Z" fill={`url(#${uid}Top)`} />
-      <path d="M9 7.4 L15.2 6.2 L9 16.8 Z" fill="#FFC107" opacity="0.9" />
-      <path d="M9 7.4 L2.8 6.2 L9 16.8 Z" fill="#FFD54D" opacity="0.85" />
-      <path d="M9 1.2 L9 7.4" stroke="#FFF8E1" strokeWidth="0.45" opacity="0.7" />
+      <path d="M9 7.4 L15.2 6.2 L9 16.8 Z" fill="#C9A227" opacity="0.9" />
+      <path d="M9 7.4 L2.8 6.2 L9 16.8 Z" fill="#D4AF37" opacity="0.85" />
+      <path d="M9 1.2 L9 7.4" stroke="#F2F2F2" strokeWidth="0.45" opacity="0.7" />
     </svg>
   );
 }
@@ -363,17 +363,17 @@ export function LiveExplorePill({ onOpen }: { onOpen: () => void }) {
         onOpen();
       }}
     >
-      <svg width="14" height="14" viewBox="0 0 12 12" className="flex-shrink-0 drop-shadow-[0_0_4px_rgba(255,213,77,0.7)]" aria-hidden>
+      <svg width="14" height="14" viewBox="0 0 12 12" className="flex-shrink-0 drop-shadow-[0_0_4px_rgba(212,175,55,0.7)]" aria-hidden>
         <defs>
           <linearGradient id="elixExplorePlanet" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#FFE082" />
-            <stop offset="50%" stopColor="#FFD54D" />
-            <stop offset="100%" stopColor="#FFC107" />
+            <stop offset="0%" stopColor="#E8C96A" />
+            <stop offset="50%" stopColor="#D4AF37" />
+            <stop offset="100%" stopColor="#C9A227" />
           </linearGradient>
         </defs>
         <circle cx="6" cy="6" r="5" fill="url(#elixExplorePlanet)" />
-        <ellipse cx="6" cy="6" rx="5.4" ry="2.1" fill="none" stroke="#FFF8E1" strokeWidth="0.7" opacity="0.85" />
-        <path d="M6 1.2 C7.4 2.8 7.4 9.2 6 10.8 C4.6 9.2 4.6 2.8 6 1.2 Z" fill="#FFE082" opacity="0.35" />
+        <ellipse cx="6" cy="6" rx="5.4" ry="2.1" fill="none" stroke="#F2F2F2" strokeWidth="0.7" opacity="0.85" />
+        <path d="M6 1.2 C7.4 2.8 7.4 9.2 6 10.8 C4.6 9.2 4.6 2.8 6 1.2 Z" fill="#E8C96A" opacity="0.35" />
       </svg>
       <span className="flex flex-col items-start justify-center leading-none min-w-0">
         <span className="text-white text-[9px] font-bold whitespace-nowrap">Explore</span>
@@ -487,7 +487,7 @@ export function LiveMarkedUiDemoToggle({
         right: 'max(12px, calc(50% - 240px + 12px))',
         left: 'auto',
         background: enabled ? 'rgba(254,44,85,0.92)' : 'rgba(20,20,28,0.85)',
-        color: '#F1F1F1',
+        color: '#F2F2F2',
         border: '1px solid rgba(255,255,255,0.25)',
         boxShadow: '0 2px 10px rgba(0,0,0,0.45)',
       }}

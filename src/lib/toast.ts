@@ -9,7 +9,7 @@ let lastShownAt = 0;
 const DEDUPE_MS = 2500;
 
 const TOAST_STYLE =
-  'background:rgba(28,30,36,0.95);color:#F1F1F1;padding:2px 14px;border-radius:9999px;font-size:10.5px;line-height:1.2;font-weight:600;backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.25);box-shadow:0 4px 20px rgba(0,0,0,0.4);pointer-events:auto;animation:fadeIn .2s ease;max-width:92vw;max-height:5mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;';
+  'background:rgba(18,18,18,0.95);color:#F2F2F2;padding:2px 14px;border-radius:9999px;font-size:10.5px;line-height:1.2;font-weight:600;backdrop-filter:blur(12px);border:1px solid rgba(212,175,55,0.35);box-shadow:0 4px 20px rgba(0,0,0,0.4);pointer-events:auto;animation:fadeIn .2s ease;max-width:92vw;max-height:5mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;';
 
 function getContainer() {
   if (!container) {
