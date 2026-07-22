@@ -1,8 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Trophy, Timer, Users, Sparkles, X } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Users, Sparkles, X } from "lucide-react";
 import {
-  formatWatchClock,
-  mysteryRemainingMs,
   type EngagementMilestoneEvent,
   type EngagementPublicState,
 } from "../lib/liveEngagement";
@@ -15,34 +13,21 @@ type Props = {
   onVote?: (optionIndex: number) => void;
 };
 
-type CycleSlot = "power" | "poll" | "ranks";
-
-const CYCLE_MS = 5000;
-
 /**
- * Proper live engagement HUD:
- * - Tiny status chips under the top bar only (never over chat)
- * - Power / Results / Ranks share ONE capsule that cycles every 5s
- * - Poll / live ranks open as bottom sheets (same pattern as Ranking / More)
- * - Host start actions live in More menu — not floating on the video
+ * Live engagement sheets + flashes only.
+ * Top Power / Results / Ranks / streak chips removed — they covered the battle bar.
+ * Poll opens from the bottom Poll control via `elix-open-live-poll`.
  */
 export function LiveEngagementOverlay({
   state,
-  nowMs,
+  nowMs: _nowMs,
   milestoneFlash,
   stageFlash,
   onVote,
 }: Props) {
   const [showLb, setShowLb] = useState(false);
   const [showPollSheet, setShowPollSheet] = useState(false);
-  const [cycleIndex, setCycleIndex] = useState(0);
   const features = state.features;
-  const streakSec = state.me?.streakSeconds ?? state.me?.watchSeconds ?? 0;
-  const mysteryLeft = mysteryRemainingMs(state.mystery, nowMs);
-  const mysteryLabel = useMemo(() => {
-    if (!state.mystery || state.mystery.triggered || mysteryLeft <= 0) return null;
-    return formatWatchClock(Math.ceil(mysteryLeft / 1000));
-  }, [state.mystery, mysteryLeft]);
 
   const hasVoted =
     !!state.poll &&
@@ -51,124 +36,30 @@ export function LiveEngagementOverlay({
 
   const pollId = state.poll?.id ?? null;
   useEffect(() => {
-    // New poll: nudge once via chip; do not auto-cover the screen.
     if (pollId) setShowPollSheet(false);
   }, [pollId]);
 
-  const cycleSlots = useMemo((): CycleSlot[] => {
-    const slots: CycleSlot[] = [];
-    if (features.community) slots.push("power");
-    if (features.poll && state.poll) slots.push("poll");
-    if (features.leaderboard) slots.push("ranks");
-    return slots;
-  }, [features.community, features.poll, features.leaderboard, state.poll]);
-
   useEffect(() => {
-    if (cycleSlots.length <= 1) {
-      setCycleIndex(0);
-      return;
-    }
-    const id = window.setInterval(() => {
-      setCycleIndex((i) => (i + 1) % cycleSlots.length);
-    }, CYCLE_MS);
-    return () => window.clearInterval(id);
-  }, [cycleSlots]);
+    const openPoll = () => {
+      if (features.poll && state.poll) setShowPollSheet(true);
+    };
+    const openLb = () => {
+      if (features.leaderboard) setShowLb(true);
+    };
+    window.addEventListener("elix-open-live-poll", openPoll);
+    window.addEventListener("elix-open-live-ranks", openLb);
+    return () => {
+      window.removeEventListener("elix-open-live-poll", openPoll);
+      window.removeEventListener("elix-open-live-ranks", openLb);
+    };
+  }, [features.poll, features.leaderboard, state.poll]);
 
-  const activeSlot =
-    cycleSlots.length > 0
-      ? cycleSlots[cycleIndex % cycleSlots.length]
-      : null;
-
-  const showStatus =
-    (features.streak && true) ||
-    cycleSlots.length > 0 ||
-    (features.mystery && !!mysteryLabel);
-
-  if (!showStatus && !milestoneFlash && stageFlash == null && !showLb && !showPollSheet) {
+  if (!milestoneFlash && stageFlash == null && !showLb && !showPollSheet) {
     return null;
   }
 
-  const openActiveSlot = () => {
-    if (activeSlot === "poll") setShowPollSheet(true);
-    else if (activeSlot === "ranks") setShowLb(true);
-  };
-
   return (
     <>
-      {/* Status row — top only, left-aligned under creator bar */}
-      <div className="pointer-events-none fixed left-0 right-0 z-[92] max-w-[480px] mx-auto px-3 pt-[calc(var(--topnav-bar-height,56px)+48px)]">
-        <div className="pointer-events-none flex flex-wrap items-center gap-1 max-w-[72%]">
-          {features.streak ? (
-            <div className="pointer-events-none flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/55 border border-[#C9A227]/30">
-              <Timer className="w-2.5 h-2.5 text-[#D4AF37]" strokeWidth={2.5} />
-              <span className="text-[8px] font-bold text-[#F5E6A8] tabular-nums">
-                {formatWatchClock(streakSec)}
-              </span>
-              {state.nextMilestoneMin != null ? (
-                <span className="text-[7px] text-white/45">/{state.nextMilestoneMin}m</span>
-              ) : null}
-              {state.me?.sessionXp ? (
-                <span className="text-[7px] text-[#D4AF37] font-bold">+{state.me.sessionXp}</span>
-              ) : null}
-            </div>
-          ) : null}
-
-          {/* One capsule: Power → Results/Poll → Ranks every 5s (marked spot). */}
-          {activeSlot ? (
-            <button
-              type="button"
-              className={`pointer-events-auto flex items-center gap-1 px-2 py-0.5 rounded-full min-w-[4.75rem] justify-center active:scale-95 transition-colors duration-300 ${
-                activeSlot === "poll"
-                  ? "bg-[#D4AF37] text-black border border-[#D4AF37]"
-                  : "bg-black/55 border border-[#C9A227]/30 text-[#F5E6A8]"
-              } ${activeSlot === "power" ? "cursor-default" : ""}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (activeSlot === "power") return;
-                openActiveSlot();
-              }}
-              aria-label={
-                activeSlot === "power"
-                  ? `Power ${Math.round(state.communityProgress)}%`
-                  : activeSlot === "poll"
-                    ? hasVoted
-                      ? "Results"
-                      : "Poll"
-                    : "Ranks"
-              }
-            >
-              {activeSlot === "power" ? (
-                <>
-                  <span className="text-[7px] font-bold text-white/70">Power</span>
-                  <span className="text-[8px] font-bold text-[#D4AF37] tabular-nums">
-                    {Math.round(state.communityProgress)}%
-                  </span>
-                </>
-              ) : null}
-              {activeSlot === "poll" ? (
-                <>
-                  <Sparkles className="w-2.5 h-2.5" strokeWidth={2.5} />
-                  <span className="text-[8px] font-bold">{hasVoted ? "Results" : "Poll"}</span>
-                </>
-              ) : null}
-              {activeSlot === "ranks" ? (
-                <>
-                  <Trophy className="w-2.5 h-2.5 text-[#D4AF37]" />
-                  <span className="text-[8px] font-bold text-[#F5E6A8]">Ranks</span>
-                </>
-              ) : null}
-            </button>
-          ) : null}
-
-          {features.mystery && mysteryLabel ? (
-            <div className="pointer-events-none flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/55 border border-[#C9A227]/35">
-              <span className="text-[7px] font-bold text-[#F5E6A8]">Mystery {mysteryLabel}</span>
-            </div>
-          ) : null}
-        </div>
-      </div>
-
-      {/* Poll bottom sheet — intentional open, clears chat when closed */}
       {showPollSheet && state.poll && features.poll ? (
         <>
           <div
