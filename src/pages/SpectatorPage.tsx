@@ -3458,29 +3458,27 @@ export default function SpectatorPage() {
               </div>
             </div>
 
-            {/* Photo sub-header bar: Diamond League + Membership, Weekly Ranking + Explore */}
-            <div className="mt-1 pointer-events-auto relative z-20">
-              <LiveMarkedSubHeaderBar
-                rank={diamondLeagueRank}
-                onDiamond={() => {
-                  setShowGiftPanel(false);
-                  setRankingInitialTab('weekly');
-                  setShowRankingPanel(true);
-                }}
-                onMembership={() => {
-                  setShowGiftPanel(false);
-                  setShowFanClub(true);
-                }}
-                onWeeklyRanking={() => {
-                  setShowGiftPanel(false);
-                  setRankingInitialTab('weekly');
-                  setShowRankingPanel(true);
-                }}
-                onExplore={() => {
-                  navigate('/live');
-                }}
-              />
-            </div>
+            {/* Capsules right-aligned — left clear for battle gloves */}
+            <LiveMarkedSubHeaderBar
+              rank={diamondLeagueRank}
+              onDiamond={() => {
+                setShowGiftPanel(false);
+                setRankingInitialTab('weekly');
+                setShowRankingPanel(true);
+              }}
+              onMembership={() => {
+                setShowGiftPanel(false);
+                setShowFanClub(true);
+              }}
+              onWeeklyRanking={() => {
+                setShowGiftPanel(false);
+                setRankingInitialTab('weekly');
+                setShowRankingPanel(true);
+              }}
+              onExplore={() => {
+                navigate('/live');
+              }}
+            />
           </div>
         </div>
 

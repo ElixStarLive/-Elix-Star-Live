@@ -5997,31 +5997,11 @@ export default function LiveStream() {
                               ) : null
                             }
                           />
-                          <div className="mt-1 pointer-events-auto relative z-20">
-                            <LiveMarkedSubHeaderBar
-                              rank={diamondLeagueRank}
-                              onDiamond={() => {
-                                setRankingInitialTab('weekly');
-                                setShowRankingPanel(true);
-                              }}
-                              onMembership={() => {
-                                setShowFanClub(true);
-                              }}
-                              onWeeklyRanking={() => {
-                                setRankingInitialTab('weekly');
-                                setShowRankingPanel(true);
-                              }}
-                              onExplore={() => {
-                                setShowViewerList(false);
-                                setIsFindCreatorsOpen(true);
-                              }}
-                            />
-                            {currentUniverse && (
-                              <div className="flex items-center gap-1 mt-1 bg-[#111111]/90 rounded-full px-2.5 py-1 border border-[#D4AF37]/80 shadow-sm">
-                                <span className="text-[#F5E6A8] text-[11px] font-bold whitespace-nowrap truncate max-w-[140px]">✨ {universeText} ✨</span>
-                              </div>
-                            )}
-                          </div>
+                          {currentUniverse && (
+                            <div className="mt-1 flex items-center gap-1 bg-[#111111]/90 rounded-full px-2.5 py-1 border border-[#D4AF37]/80 shadow-sm pointer-events-auto relative z-20">
+                              <span className="text-[#F5E6A8] text-[11px] font-bold whitespace-nowrap truncate max-w-[140px]">✨ {universeText} ✨</span>
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -6078,6 +6058,25 @@ export default function LiveStream() {
                         </button>
                       </div>
                     </div>
+                    {/* Capsules right-aligned — left clear for battle gloves */}
+                    <LiveMarkedSubHeaderBar
+                      rank={diamondLeagueRank}
+                      onDiamond={() => {
+                        setRankingInitialTab('weekly');
+                        setShowRankingPanel(true);
+                      }}
+                      onMembership={() => {
+                        setShowFanClub(true);
+                      }}
+                      onWeeklyRanking={() => {
+                        setRankingInitialTab('weekly');
+                        setShowRankingPanel(true);
+                      }}
+                      onExplore={() => {
+                        setShowViewerList(false);
+                        setIsFindCreatorsOpen(true);
+                      }}
+                    />
                   </div>
                 </div>
 

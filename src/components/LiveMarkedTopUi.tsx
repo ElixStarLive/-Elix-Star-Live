@@ -147,9 +147,15 @@ export function LiveHostProfileHeader({
           >
             Lv.{safeLevel}
           </span>
-          <span className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-[2px] bg-black/45 border border-white/10">
-            <Gem size={9} className="text-[#C084FC] flex-shrink-0" strokeWidth={2.2} fill="#A855F7" />
-            <span className="text-white/90 text-[8px] font-bold leading-none whitespace-nowrap">
+          <span
+            className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-[2px] text-[8px] font-bold text-white leading-none"
+            style={{
+              background: 'linear-gradient(90deg, #FF4DA6 0%, #FE2C55 100%)',
+              boxShadow: '0 0 6px rgba(254,44,85,0.5)',
+            }}
+          >
+            <Gem size={9} className="text-white flex-shrink-0" strokeWidth={2.2} fill="#FFFFFF" />
+            <span className="text-white text-[8px] font-bold leading-none whitespace-nowrap">
               {liveDiamondTierLabel(safeLevel)}
             </span>
           </span>
@@ -200,13 +206,13 @@ export function LiveJoinPill({
 }
 
 const THIN_CAPSULE_STYLE: React.CSSProperties = {
-  background: 'rgba(8, 10, 28, 0.72)',
-  border: '1px solid rgba(255,255,255,0.12)',
-  backdropFilter: 'blur(4px)',
+  background: 'transparent',
+  border: '1px solid rgba(255,255,255,0.14)',
 };
 
+/** Same height for every sub-header capsule (matches Diamond League two-line layout). */
 const THIN_CAPSULE_CLASS =
-  'inline-flex items-center gap-1 flex-shrink-0 rounded-full pl-1.5 pr-1.5 py-[3px] pointer-events-auto active:scale-95 transition-transform';
+  'inline-flex items-center gap-1 flex-shrink-0 rounded-full pl-1.5 pr-1.5 h-[28px] box-border pointer-events-auto active:scale-95 transition-transform';
 
 /** Diamond League — separate thin capsule. */
 export function LiveDiamondLeagueCapsule({
@@ -227,7 +233,7 @@ export function LiveDiamondLeagueCapsule({
       }}
     >
       <LivePhotoDiamondIcon size={14} />
-      <span className="flex flex-col items-start leading-none min-w-0">
+      <span className="flex flex-col items-start justify-center leading-none min-w-0">
         <span className="text-white text-[9px] font-bold whitespace-nowrap">Diamond League</span>
         <span className="text-white/65 text-[7px] font-semibold whitespace-nowrap mt-[1px]">
           {rank != null ? `Rank ${rank}` : 'Rank —'}
@@ -251,9 +257,9 @@ export function LiveMembershipVipCapsule({ onOpen }: { onOpen: () => void }) {
       }}
     >
       <LivePhotoCrownIcon size={14} />
-      <span className="flex flex-col items-start leading-none min-w-0">
+      <span className="flex flex-col items-start justify-center leading-none min-w-0">
         <span className="text-white text-[9px] font-bold whitespace-nowrap">Membership</span>
-        <span className="text-[#FFD54A] text-[7px] font-bold mt-[1px]">VIP</span>
+        <span className="text-white/65 text-[7px] font-semibold whitespace-nowrap mt-[1px]">VIP</span>
       </span>
       <span className="text-white/75 text-[9px] font-medium leading-none">&gt;</span>
     </button>
@@ -309,7 +315,7 @@ function LivePhotoCrownIcon({ size = 14 }: { size?: number }) {
   );
 }
 
-/** Weekly Ranking — separate thin capsule (1st in row). */
+/** Weekly Ranking — same capsule height as Diamond League. */
 export function LiveWeeklyRankingPill({
   rank,
   onOpen,
@@ -327,21 +333,21 @@ export function LiveWeeklyRankingPill({
         onOpen();
       }}
     >
-      <span className="text-[11px] leading-none drop-shadow-[0_0_4px_rgba(255,140,0,0.55)]" aria-hidden>
+      <span className="text-[11px] leading-none w-[14px] h-[14px] flex items-center justify-center flex-shrink-0" aria-hidden>
         🔥
       </span>
-      <span className="flex items-baseline gap-0.5 min-w-0">
-        <span className="text-white text-[9px] font-bold whitespace-nowrap leading-none">Weekly Ranking</span>
-        {rank != null ? (
-          <span className="text-white/70 text-[8px] font-semibold whitespace-nowrap leading-none">No.{rank}</span>
-        ) : null}
+      <span className="flex flex-col items-start justify-center leading-none min-w-0">
+        <span className="text-white text-[9px] font-bold whitespace-nowrap">Weekly Ranking</span>
+        <span className="text-white/65 text-[7px] font-semibold whitespace-nowrap mt-[1px]">
+          {rank != null ? `No.${rank}` : 'No.—'}
+        </span>
       </span>
       <span className="text-white/75 text-[9px] font-medium leading-none">&gt;</span>
     </button>
   );
 }
 
-/** Explore — separate thin capsule (4th in row). */
+/** Explore — same capsule height as Diamond League. */
 export function LiveExplorePill({ onOpen }: { onOpen: () => void }) {
   return (
     <button
@@ -353,7 +359,7 @@ export function LiveExplorePill({ onOpen }: { onOpen: () => void }) {
         onOpen();
       }}
     >
-      <svg width="12" height="12" viewBox="0 0 12 12" className="flex-shrink-0 drop-shadow-[0_0_4px_rgba(168,85,247,0.7)]" aria-hidden>
+      <svg width="14" height="14" viewBox="0 0 12 12" className="flex-shrink-0 drop-shadow-[0_0_4px_rgba(168,85,247,0.7)]" aria-hidden>
         <defs>
           <linearGradient id="elixExplorePlanet" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stopColor="#E9D5FF" />
@@ -365,14 +371,18 @@ export function LiveExplorePill({ onOpen }: { onOpen: () => void }) {
         <ellipse cx="6" cy="6" rx="5.4" ry="2.1" fill="none" stroke="#F3E8FF" strokeWidth="0.7" opacity="0.85" />
         <path d="M6 1.2 C7.4 2.8 7.4 9.2 6 10.8 C4.6 9.2 4.6 2.8 6 1.2 Z" fill="#DDD6FE" opacity="0.35" />
       </svg>
-      <span className="text-white text-[9px] font-bold whitespace-nowrap leading-none">Explore</span>
+      <span className="flex flex-col items-start justify-center leading-none min-w-0">
+        <span className="text-white text-[9px] font-bold whitespace-nowrap">Explore</span>
+        <span className="text-white/65 text-[7px] font-semibold whitespace-nowrap mt-[1px]">Live</span>
+      </span>
       <span className="text-white/75 text-[9px] font-medium leading-none">&gt;</span>
     </button>
   );
 }
 
 /**
- * Photo sub-header: 4 separate thin capsules in one line.
+ * Photo sub-header: 4 separate thin capsules in one line, right-aligned
+ * so left stays clear for battle gloves.
  * 1 Weekly Ranking · 2 Diamond League · 3 Membership · 4 Explore
  */
 export function LiveMarkedSubHeaderBar({
@@ -389,8 +399,8 @@ export function LiveMarkedSubHeaderBar({
   onExplore: () => void;
 }) {
   return (
-    <div className="mt-1 w-full max-w-[100%] overflow-x-auto no-scrollbar pointer-events-auto relative z-20">
-      <div className="flex items-center gap-1 flex-nowrap w-max">
+    <div className="mt-1 w-full overflow-x-auto no-scrollbar pointer-events-auto relative z-20 flex justify-end">
+      <div className="flex items-center gap-1 flex-nowrap w-max max-w-full pl-14">
         <LiveWeeklyRankingPill rank={rank} onOpen={onWeeklyRanking} />
         <LiveDiamondLeagueCapsule rank={rank} onOpen={onDiamond} />
         <LiveMembershipVipCapsule onOpen={onMembership} />
@@ -471,7 +481,8 @@ export function LiveMarkedUiDemoToggle({
       className="pointer-events-auto fixed z-[50050] rounded-full px-3 py-1 text-[10px] font-black tracking-wide active:scale-95 transition-transform"
       style={{
         bottom: 'calc(56px + max(2px, env(safe-area-inset-bottom, 0px)))',
-        left: 'max(12px, calc(50% - 240px + 12px))',
+        right: 'max(12px, calc(50% - 240px + 12px))',
+        left: 'auto',
         background: enabled ? 'rgba(254,44,85,0.92)' : 'rgba(20,20,28,0.85)',
         color: '#fff',
         border: '1px solid rgba(255,255,255,0.25)',
