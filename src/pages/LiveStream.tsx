@@ -35,6 +35,7 @@ import {
   CameraOff,
   Sparkles,
   Timer,
+  BarChart3,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { FILTER_PRESETS } from '../lib/ai/filters';
@@ -108,6 +109,10 @@ import {
   LiveHostProfileHeader,
   LiveJoinPill,
   LiveMarkedSubHeaderBar,
+  LiveMarkedUiDemoToggle,
+  buildLiveMarkedUiDemoComboStack,
+  readLiveMarkedUiDemoEnabled,
+  writeLiveMarkedUiDemoEnabled,
 } from '../components/LiveMarkedTopUi';
 import { websocket } from '../lib/websocket';
 import { parseLiveGiftGoal, type LiveGiftGoal } from '../lib/liveGiftGoal';
@@ -4118,6 +4123,10 @@ export default function LiveStream() {
   const [comboCount, setComboCount] = useState(0);
   const [showComboButton, setShowComboButton] = useState(false);
   const [comboStack, setComboStack] = useState<{ key: string; icon: string; count: number; gift: GiftUiItem }[]>([]);
+  const [markedUiDemo, setMarkedUiDemo] = useState(() => readLiveMarkedUiDemoEnabled(IS_STORE_BUILD));
+  const demoComboStack = useMemo(() => (markedUiDemo ? buildLiveMarkedUiDemoComboStack() : []), [markedUiDemo]);
+  const visibleComboStack = comboStack.length > 0 ? comboStack : demoComboStack;
+  const showComboColumn = (showComboButton && comboStack.length > 0) || (markedUiDemo && demoComboStack.length > 0);
   const comboTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pushComboStack = useCallback((gift: GiftUiItem, nextCount: number) => {
     const key = String(gift.id || gift.name || 'gift');
@@ -6104,17 +6113,27 @@ export default function LiveStream() {
               </div>
             </div>
 
-      {/* Combo column — photo layout, right of chat; real combo counts */}
+      {/* Combo column — photo layout; real combos OR DEMO so you can see it */}
+      <LiveMarkedUiDemoToggle
+        enabled={markedUiDemo}
+        onToggle={(next) => {
+          writeLiveMarkedUiDemoEnabled(next);
+          setMarkedUiDemo(next);
+        }}
+      />
       <AnimatePresence>
-        {showComboButton && comboStack.length > 0 && (
+        {showComboColumn && visibleComboStack.length > 0 && (
           <motion.div
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
           >
             <LiveGiftComboColumn
-              stack={comboStack}
-              onCombo={handleComboClick}
+              stack={visibleComboStack}
+              onCombo={() => {
+                if (comboStack.length > 0) handleComboClick();
+                else setShowGiftPanel(true);
+              }}
               onOpen={() => setShowGiftPanel(true)}
             />
           </motion.div>
@@ -6135,6 +6154,17 @@ export default function LiveStream() {
                 <input type="text" inputMode="text" enterKeyHint="send" autoComplete="off" placeholder="Say something..." className="bg-transparent text-white text-xs outline-none flex-1 placeholder:text-white/30 min-w-0" value={inputValue} onChange={(e) => setInputValue(e.target.value)} />
                 {inputValue.trim() && <button type="submit" title="Send message" className="text-[#D4AF37] flex-shrink-0"><Send size={16} /></button>}
               </form>
+              <div className="flex flex-col items-center gap-0.5">
+                <button
+                  type="button"
+                  title="Poll"
+                  onClick={() => setIsMoreMenuOpen(true)}
+                  className={`${LIVE_BOTTOM_ICON_BTN} relative`}
+                >
+                  <BarChart3 size={20} className="text-[#38BDF8] relative z-[2]" strokeWidth={2.2} />
+                </button>
+                <span className="text-white/60 text-[8px] font-medium">Poll</span>
+              </div>
               <button
                 type="button"
                 title={spectatorCoHostRequestSent ? 'Request sent' : 'Co-Host'}
@@ -6221,6 +6251,22 @@ export default function LiveStream() {
 </button>
                 <span className="text-white/60 text-[8px] font-medium">Battle</span>
               </div>
+              {isBroadcast && (
+                <div className="flex flex-col items-center gap-0.5">
+                  <button
+                    type="button"
+                    title="Poll"
+                    onClick={() => {
+                      startPoll('What should we do next?', ['Dance', 'Sing', 'Q&A', 'Shoutouts'], 'poll');
+                      showToast('Poll started — viewers tap Poll');
+                    }}
+                    className={`${LIVE_BOTTOM_ICON_BTN} relative`}
+                  >
+                    <BarChart3 size={20} className="text-[#38BDF8] relative z-[2]" strokeWidth={2.2} />
+                  </button>
+                  <span className="text-white/60 text-[8px] font-medium">Poll</span>
+                </div>
+              )}
               <div className="flex flex-col items-center gap-0.5">
                 <button type="button" title="Share" onClick={() => setShowSharePanel(true)} className={`${LIVE_BOTTOM_ICON_BTN} relative`}>
                   <Share2 size={20} className="text-[#D4AF37] relative z-[2]" />

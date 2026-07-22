@@ -29,6 +29,7 @@ import {
   PlusCircle,
   Play,
   CloudFog,
+  BarChart3,
 } from 'lucide-react';
 import { GiftPanel } from '../components/GiftPanel';
 import { GiftGoalGallery } from '../components/GiftGoalGallery';
@@ -95,6 +96,10 @@ import {
   LiveHostProfileHeader,
   LiveJoinPill,
   LiveMarkedSubHeaderBar,
+  LiveMarkedUiDemoToggle,
+  buildLiveMarkedUiDemoComboStack,
+  readLiveMarkedUiDemoEnabled,
+  writeLiveMarkedUiDemoEnabled,
 } from '../components/LiveMarkedTopUi';
 import { websocket } from '../lib/websocket';
 import { normalizeBattleGiftTarget } from '../lib/liveBattleGiftTarget';
@@ -268,6 +273,10 @@ export default function SpectatorPage() {
   const [showComboButton, setShowComboButton] = useState(false);
   /** Recent combo gifts (icon + real xN), capped to last 3 — red-circle combo column. */
   const [comboStack, setComboStack] = useState<{ key: string; icon: string; count: number; gift: GiftUiItem }[]>([]);
+  const [markedUiDemo, setMarkedUiDemo] = useState(() => readLiveMarkedUiDemoEnabled(IS_STORE_BUILD));
+  const demoComboStack = markedUiDemo ? buildLiveMarkedUiDemoComboStack() : [];
+  const visibleComboStack = comboStack.length > 0 ? comboStack : demoComboStack;
+  const showComboColumn = (showComboButton && comboStack.length > 0) || (markedUiDemo && demoComboStack.length > 0);
   const comboTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resetComboTimer = () => {
     if (comboTimerRef.current) clearTimeout(comboTimerRef.current);
@@ -3497,11 +3506,21 @@ export default function SpectatorPage() {
           </div>
         </div>
 
-        {/* COMBO COLUMN — photo layout, right of chat; real combo counts */}
-        {showComboButton && comboStack.length > 0 && (
+        {/* COMBO COLUMN — photo layout; real combos OR DEMO */}
+        <LiveMarkedUiDemoToggle
+          enabled={markedUiDemo}
+          onToggle={(next) => {
+            writeLiveMarkedUiDemoEnabled(next);
+            setMarkedUiDemo(next);
+          }}
+        />
+        {showComboColumn && visibleComboStack.length > 0 && (
           <LiveGiftComboColumn
-            stack={comboStack}
-            onCombo={handleComboClick}
+            stack={visibleComboStack}
+            onCombo={() => {
+              if (comboStack.length > 0) handleComboClick();
+              else setShowGiftPanel(true);
+            }}
             onOpen={() => setShowGiftPanel(true)}
           />
         )}
@@ -3534,6 +3553,17 @@ export default function SpectatorPage() {
                 ) : null}
               </form>
               <div className="flex items-end gap-2 flex-shrink-0" style={{ transform: 'translateX(4mm)' }}>
+              <button
+                type="button"
+                title="Poll"
+                onClick={() => setIsMoreMenuOpen(true)}
+                className="flex flex-col items-center justify-center w-12 active:scale-95 transition-transform select-none flex-shrink-0"
+              >
+                <div className="relative w-10 h-10 flex items-center justify-center">
+                  <BarChart3 size={20} className="text-[#38BDF8] shrink-0" strokeWidth={2.2} />
+                </div>
+                <span className="text-[10px] font-semibold text-[#38BDF8] mt-0.5">Poll</span>
+              </button>
               {/* Co-host is a NORMAL-LIVE feature only. During a battle a
                   spectator can only watch, gift and comment — never co-host. */}
               {!spectatorBattle?.active && (

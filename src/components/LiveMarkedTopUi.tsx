@@ -424,6 +424,84 @@ export type LiveComboStackItem = {
   gift: GiftUiItem;
 };
 
+const LIVE_MARKED_UI_DEMO_KEY = 'elix_live_marked_ui_demo';
+
+/** Demo on by default so circled combo column is visible without sending gifts. Tap DEMO UI to turn off. */
+export function readLiveMarkedUiDemoEnabled(_isStoreBuild: boolean): boolean {
+  try {
+    const v = localStorage.getItem(LIVE_MARKED_UI_DEMO_KEY);
+    if (v === '0') return false;
+    return true;
+  } catch {
+    return true;
+  }
+}
+
+export function writeLiveMarkedUiDemoEnabled(on: boolean) {
+  try {
+    localStorage.setItem(LIVE_MARKED_UI_DEMO_KEY, on ? '1' : '0');
+  } catch {
+    /* ignore */
+  }
+}
+
+function demoGiftStub(id: string, name: string, iconPath: string): GiftUiItem {
+  const icon = iconPath.startsWith('http') || iconPath.startsWith('/')
+    ? (iconPath.startsWith('http') ? iconPath : `https://elixstorage.b-cdn.net${iconPath.startsWith('/') ? iconPath : `/${iconPath}`}`)
+    : iconPath;
+  return {
+    id,
+    name,
+    coins: 0,
+    giftType: 'big',
+    isActive: true,
+    icon,
+    video: '',
+    preview: icon,
+  };
+}
+
+/** Photo demo stack: Lion x30, Galaxy x15, Firework x10 — visual only, not real gifts. */
+export function buildLiveMarkedUiDemoComboStack(): LiveComboStackItem[] {
+  const lion = demoGiftStub('demo-lion', 'Lion', '/gifts/treasure_drake_cub.png');
+  const galaxy = demoGiftStub('demo-galaxy', 'Galaxy', '/gifts/elix_global_universe.png');
+  const firework = demoGiftStub('demo-firework', 'Firework', '/gifts/celestial_star_wand.png');
+  return [
+    { key: 'demo-firework', icon: firework.icon, count: 10, gift: firework },
+    { key: 'demo-galaxy', icon: galaxy.icon, count: 15, gift: galaxy },
+    { key: 'demo-lion', icon: lion.icon, count: 30, gift: lion },
+  ];
+}
+
+/** Tiny toggle so you can turn demo combo column on/off while testing. */
+export function LiveMarkedUiDemoToggle({
+  enabled,
+  onToggle,
+}: {
+  enabled: boolean;
+  onToggle: (next: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="pointer-events-auto fixed z-[50050] left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-[10px] font-black tracking-wide active:scale-95 transition-transform"
+      style={{
+        top: 'calc(env(safe-area-inset-top, 0px) + 52px)',
+        background: enabled ? 'rgba(254,44,85,0.92)' : 'rgba(20,20,28,0.85)',
+        color: '#fff',
+        border: '1px solid rgba(255,255,255,0.25)',
+        boxShadow: '0 2px 10px rgba(0,0,0,0.45)',
+      }}
+      onClick={(e) => {
+        e.stopPropagation();
+        onToggle(!enabled);
+      }}
+    >
+      {enabled ? 'DEMO UI ON' : 'DEMO UI OFF'}
+    </button>
+  );
+}
+
 /**
  * Photo combo column (red contour): large gift icons + pink italic xN,
  * seated just right of live chat. Counts come from real combo sends.
