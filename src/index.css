@@ -915,10 +915,10 @@ svg.lucide {
     drop-shadow(0 0 8px var(--icon-neon-purple-glow-soft));
 }
 
-/* Level Gem — soft gold + dark frame (visible on every level chip colour) */
+/* Level Gem — accent cyan + white frame (visible on every bright chip colour) */
 svg.lucide.level-gem-icon {
-  color: #FFE082 !important;
-  stroke: #FFE082 !important;
+  color: #5EEAD4 !important;
+  stroke: #5EEAD4 !important;
   fill: none !important;
   background: none !important;
   border: none !important;
@@ -926,8 +926,8 @@ svg.lucide.level-gem-icon {
 }
 
 svg.lucide.level-gem-icon-frame {
-  color: #0A0A0A !important;
-  stroke: #0A0A0A !important;
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
   fill: none !important;
   background: none !important;
   border: none !important;

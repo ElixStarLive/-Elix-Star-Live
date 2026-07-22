@@ -3,20 +3,20 @@ import { Gem } from 'lucide-react';
 import { PROFILE_RING_IMAGE_LIFT_MM, profileRingInnerPx } from '../lib/profileFrame';
 import { ROYCE_DEFAULT_AVATAR } from '../lib/royceAssets';
 
-/** Distinct chip fundal per level (cycles). */
+/** Bright chip fundal per level — not black / not near-black. */
 const LEVEL_CHIP_BACKGROUNDS = [
-  '#1E3A5F', // deep navy
-  '#0F766E', // teal
-  '#7C2D12', // rust
-  '#4C1D95', // indigo
-  '#9F1239', // rose
-  '#14532D', // forest
-  '#1E40AF', // royal blue
-  '#854D0E', // bronze
-  '#831843', // magenta
-  '#164E63', // cyan-dark
-  '#6B21A8', // violet
-  '#B45309', // amber
+  '#FF4D6D', // hot pink
+  '#3DA3FF', // neon blue
+  '#00E5A8', // mint
+  '#FF8A00', // orange
+  '#A855F7', // purple
+  '#22C55E', // green
+  '#F43F5E', // rose
+  '#06B6D4', // cyan
+  '#EAB308', // yellow
+  '#EC4899', // magenta
+  '#6366F1', // indigo
+  '#F97316', // vivid orange
 ] as const;
 
 function levelChipBackground(level: number): string {
@@ -26,7 +26,7 @@ function levelChipBackground(level: number): string {
 
 /**
  * Small Lucide Gem before level number.
- * Soft gold stroke + dark outer frame so the diamond stays visible on every chip colour.
+ * Bright cyan gem + white frame — visible on every coloured fundal (no black, no gold).
  */
 function LevelDiamondIcon({ size = 12 }: { size?: number }) {
   return (
@@ -35,21 +35,21 @@ function LevelDiamondIcon({ size = 12 }: { size?: number }) {
       style={{ width: size, height: size }}
       aria-hidden
     >
-      {/* Dark frame — keeps shape readable on any fundal */}
+      {/* White frame — readable on any bright chip colour */}
       <Gem
         size={size}
-        strokeWidth={2.6}
+        strokeWidth={2.8}
         fill="none"
         className="level-gem-icon-frame absolute inset-0"
-        style={{ color: '#0A0A0A', stroke: '#0A0A0A', fill: 'none' }}
+        style={{ color: '#FFFFFF', stroke: '#FFFFFF', fill: 'none' }}
       />
-      {/* Visible gem — soft gold */}
+      {/* Visible gem — accent cyan */}
       <Gem
         size={size}
         strokeWidth={1.7}
         fill="none"
         className="level-gem-icon relative"
-        style={{ color: '#FFE082', stroke: '#FFE082', fill: 'none' }}
+        style={{ color: '#5EEAD4', stroke: '#5EEAD4', fill: 'none' }}
       />
     </span>
   );
@@ -110,8 +110,8 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
         minWidth: chipH,
         borderRadius: 6,
         background: chipBg,
-        border: '1px solid rgba(10, 10, 10, 0.55)',
-        boxShadow: '0 1px 4px rgba(0,0,0,0.45)',
+        border: '1px solid rgba(255, 255, 255, 0.35)',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.35)',
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
