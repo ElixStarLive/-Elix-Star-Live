@@ -403,7 +403,7 @@ export function LiveMarkedSubHeaderBar({
   onExplore: () => void;
 }) {
   return (
-    <div className="mt-1 w-full pointer-events-auto relative z-20 flex justify-end">
+    <div className="mt-1 -translate-y-[2mm] w-full pointer-events-auto relative z-20 flex justify-end">
       <div className="flex items-center gap-0.5 flex-nowrap w-max max-w-full ml-auto overflow-x-auto no-scrollbar">
         <LiveWeeklyRankingPill rank={rank} onOpen={onWeeklyRanking} />
         <LiveDiamondLeagueCapsule rank={rank} onOpen={onDiamond} />
