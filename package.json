@@ -23,6 +23,7 @@
     "test:money": "npx tsx server/scripts/runMoneyItEmbedded.ts",
     "test:money:url": "vitest run --config vitest.money.config.ts",
     "test:money:sibling": "npx tsx server/scripts/runMoneyItNeonSibling.ts",
+    "smoke:prod:auth": "npx tsx server/scripts/productionSmokeAuth.ts",
     "migrate:status": "npx tsx server/scripts/migrationStatusCheck.ts",
     "start": "npx tsx server/index.ts",
     "migrate": "npx tsx server/migrate.ts",
