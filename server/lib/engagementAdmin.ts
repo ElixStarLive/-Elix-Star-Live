@@ -15,6 +15,17 @@ export type BattleEnergyCaps = {
   watch_cap: number;
   comment_cap: number;
   share_cap: number;
+  /** Storage / wallet energy cap (not Diamonds). */
+  storage_cap: number;
+  session_cap: number;
+  daily_cap: number;
+  minimum_boost: number;
+  allowed_boost_values: number[];
+  fan_energy_threshold: number;
+  /** Score multiplier only — never Diamonds. Server floor 1.0, cap 5.0 */
+  score_multiplier: number;
+  boost_duration_sec: number;
+  enabled: boolean;
 };
 
 export const DEFAULT_BATTLE_ENERGY_CAPS: BattleEnergyCaps = {
@@ -24,7 +35,19 @@ export const DEFAULT_BATTLE_ENERGY_CAPS: BattleEnergyCaps = {
   watch_cap: 300,
   comment_cap: 20,
   share_cap: 1,
+  storage_cap: 10_000,
+  session_cap: 500,
+  daily_cap: 2_000,
+  minimum_boost: 1,
+  allowed_boost_values: [1, 2, 5, 10],
+  fan_energy_threshold: 10_000,
+  score_multiplier: 1.2,
+  boost_duration_sec: 5,
+  enabled: true,
 };
+
+const MAX_SCORE_MULTIPLIER = 5;
+const MAX_BOOST_DURATION_SEC = 120;
 
 async function writeAdminAudit(
   adminUserId: string,
@@ -62,7 +85,22 @@ export async function listMissionsAdmin() {
        FROM engagement_missions
       ORDER BY scope, sort_order, id`,
   );
-  return r.rows;
+  const meta = await getMissionAdminMeta();
+  return r.rows.map((row) => {
+    const m = meta[row.id] || {
+      audience: "all_authenticated",
+      starts_at: null,
+      ends_at: null,
+      archived: false,
+    };
+    return {
+      ...row,
+      audience: m.audience,
+      starts_at: m.starts_at,
+      ends_at: m.ends_at,
+      archived: !!m.archived,
+    };
+  });
 }
 
 export async function createMissionAdmin(input: {
@@ -311,13 +349,37 @@ export async function getBattleEnergyCaps(): Promise<BattleEnergyCaps> {
   const db = getPool();
   if (!db) return { ...DEFAULT_BATTLE_ENERGY_CAPS };
   try {
-    const r = await db.query(
-      `SELECT value_json FROM engagement_settings WHERE key = $1`,
-      [BATTLE_ENERGY_CAPS_KEY],
+    const [capsR, boostR] = await Promise.all([
+      db.query(`SELECT value_json FROM engagement_settings WHERE key = $1`, [
+        BATTLE_ENERGY_CAPS_KEY,
+      ]),
+      db.query(`SELECT value_json FROM engagement_settings WHERE key = $1`, [
+        "fan_energy_boost",
+      ]),
+    ]);
+    const raw = capsR.rows[0]?.value_json;
+    const boost =
+      boostR.rows[0]?.value_json && typeof boostR.rows[0].value_json === "object"
+        ? (boostR.rows[0].value_json as Record<string, unknown>)
+        : {};
+    const v =
+      raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+    const allowedRaw = Array.isArray(v.allowed_boost_values)
+      ? (v.allowed_boost_values as unknown[])
+          .map((n) => Math.floor(Number(n)))
+          .filter((n) => Number.isFinite(n) && n >= 1)
+      : DEFAULT_BATTLE_ENERGY_CAPS.allowed_boost_values;
+    const multiplier = Math.min(
+      MAX_SCORE_MULTIPLIER,
+      Math.max(
+        1,
+        Number(
+          v.score_multiplier ??
+            boost.multiplier ??
+            DEFAULT_BATTLE_ENERGY_CAPS.score_multiplier,
+        ),
+      ),
     );
-    const raw = r.rows[0]?.value_json;
-    if (!raw || typeof raw !== "object") return { ...DEFAULT_BATTLE_ENERGY_CAPS };
-    const v = raw as Record<string, unknown>;
     return {
       watch_amount: Math.max(
         0,
@@ -334,6 +396,51 @@ export async function getBattleEnergyCaps(): Promise<BattleEnergyCaps> {
         Math.floor(Number(v.comment_cap ?? v.comment_per_battle ?? 20)),
       ),
       share_cap: Math.max(0, Math.floor(Number(v.share_cap ?? v.share_per_day ?? 1))),
+      storage_cap: Math.max(
+        0,
+        Math.floor(Number(v.storage_cap ?? DEFAULT_BATTLE_ENERGY_CAPS.storage_cap)),
+      ),
+      session_cap: Math.max(
+        0,
+        Math.floor(Number(v.session_cap ?? DEFAULT_BATTLE_ENERGY_CAPS.session_cap)),
+      ),
+      daily_cap: Math.max(
+        0,
+        Math.floor(Number(v.daily_cap ?? DEFAULT_BATTLE_ENERGY_CAPS.daily_cap)),
+      ),
+      minimum_boost: Math.max(
+        1,
+        Math.floor(Number(v.minimum_boost ?? DEFAULT_BATTLE_ENERGY_CAPS.minimum_boost)),
+      ),
+      allowed_boost_values:
+        allowedRaw.length > 0
+          ? allowedRaw
+          : [...DEFAULT_BATTLE_ENERGY_CAPS.allowed_boost_values],
+      fan_energy_threshold: Math.max(
+        1,
+        Math.floor(
+          Number(
+            v.fan_energy_threshold ??
+              boost.threshold ??
+              DEFAULT_BATTLE_ENERGY_CAPS.fan_energy_threshold,
+          ),
+        ),
+      ),
+      score_multiplier: multiplier,
+      boost_duration_sec: Math.min(
+        MAX_BOOST_DURATION_SEC,
+        Math.max(
+          1,
+          Math.floor(
+            Number(
+              v.boost_duration_sec ??
+                boost.duration_sec ??
+                DEFAULT_BATTLE_ENERGY_CAPS.boost_duration_sec,
+            ),
+          ),
+        ),
+      ),
+      enabled: v.enabled === undefined ? true : !!v.enabled,
     };
   } catch {
     return { ...DEFAULT_BATTLE_ENERGY_CAPS };
@@ -341,25 +448,65 @@ export async function getBattleEnergyCaps(): Promise<BattleEnergyCaps> {
 }
 
 export async function updateBattleEnergyCapsAdmin(
-  caps: BattleEnergyCaps,
+  caps: Partial<BattleEnergyCaps>,
   adminUserId: string,
 ): Promise<BattleEnergyCaps> {
   const db = getPool();
   if (!db) throw new Error("DATABASE_UNAVAILABLE");
   const prev = await getBattleEnergyCaps();
+  const allowed = Array.isArray(caps.allowed_boost_values)
+    ? caps.allowed_boost_values
+        .map((n) => Math.floor(Number(n)))
+        .filter((n) => Number.isFinite(n) && n >= 1)
+        .slice(0, 20)
+    : prev.allowed_boost_values;
   const next: BattleEnergyCaps = {
-    watch_amount: Math.max(0, Math.floor(caps.watch_amount)),
-    comment_amount: Math.max(0, Math.floor(caps.comment_amount)),
-    share_amount: Math.max(0, Math.floor(caps.share_amount)),
-    watch_cap: Math.max(0, Math.floor(caps.watch_cap)),
-    comment_cap: Math.max(0, Math.floor(caps.comment_cap)),
-    share_cap: Math.max(0, Math.floor(caps.share_cap)),
+    watch_amount: Math.max(0, Math.floor(Number(caps.watch_amount ?? prev.watch_amount))),
+    comment_amount: Math.max(
+      0,
+      Math.floor(Number(caps.comment_amount ?? prev.comment_amount)),
+    ),
+    share_amount: Math.max(0, Math.floor(Number(caps.share_amount ?? prev.share_amount))),
+    watch_cap: Math.max(0, Math.floor(Number(caps.watch_cap ?? prev.watch_cap))),
+    comment_cap: Math.max(0, Math.floor(Number(caps.comment_cap ?? prev.comment_cap))),
+    share_cap: Math.max(0, Math.floor(Number(caps.share_cap ?? prev.share_cap))),
+    storage_cap: Math.max(0, Math.floor(Number(caps.storage_cap ?? prev.storage_cap))),
+    session_cap: Math.max(0, Math.floor(Number(caps.session_cap ?? prev.session_cap))),
+    daily_cap: Math.max(0, Math.floor(Number(caps.daily_cap ?? prev.daily_cap))),
+    minimum_boost: Math.max(1, Math.floor(Number(caps.minimum_boost ?? prev.minimum_boost))),
+    allowed_boost_values: allowed.length ? allowed : prev.allowed_boost_values,
+    fan_energy_threshold: Math.max(
+      1,
+      Math.floor(Number(caps.fan_energy_threshold ?? prev.fan_energy_threshold)),
+    ),
+    score_multiplier: Math.min(
+      MAX_SCORE_MULTIPLIER,
+      Math.max(1, Number(caps.score_multiplier ?? prev.score_multiplier)),
+    ),
+    boost_duration_sec: Math.min(
+      MAX_BOOST_DURATION_SEC,
+      Math.max(1, Math.floor(Number(caps.boost_duration_sec ?? prev.boost_duration_sec))),
+    ),
+    enabled: caps.enabled !== undefined ? !!caps.enabled : prev.enabled,
   };
   await db.query(
     `INSERT INTO engagement_settings (key, value_json)
      VALUES ($1, $2::jsonb)
-     ON CONFLICT (key) DO UPDATE SET value_json = EXCLUDED.value_json`,
+     ON CONFLICT (key) DO UPDATE SET value_json = EXCLUDED.value_json, updated_at = NOW()`,
     [BATTLE_ENERGY_CAPS_KEY, JSON.stringify(next)],
+  );
+  // Keep fan_energy_boost mirror for legacy readers (score only — never Diamonds).
+  await db.query(
+    `INSERT INTO engagement_settings (key, value_json)
+     VALUES ('fan_energy_boost', $1::jsonb)
+     ON CONFLICT (key) DO UPDATE SET value_json = EXCLUDED.value_json, updated_at = NOW()`,
+    [
+      JSON.stringify({
+        threshold: next.fan_energy_threshold,
+        multiplier: next.score_multiplier,
+        duration_sec: next.boost_duration_sec,
+      }),
+    ],
   );
   await writeAdminAudit(
     adminUserId,
@@ -408,7 +555,7 @@ export async function getEngagementFlagsMerged(): Promise<EngagementFlags> {
 }
 
 export async function updateFeatureFlagsAdmin(
-  patch: Partial<EngagementFlags>,
+  patch: Partial<EngagementFlags> & { reason?: string },
   adminUserId: string,
 ): Promise<EngagementFlags> {
   const db = getPool();
@@ -434,6 +581,7 @@ export async function updateFeatureFlagsAdmin(
   const nextOverrides: Partial<EngagementFlags> = {
     ...(await loadFlagOverrides()),
   };
+  const reason = String(patch.reason || "").slice(0, 500);
   for (const key of allowed) {
     if (typeof patch[key] === "boolean") {
       nextOverrides[key] = patch[key];
@@ -442,8 +590,34 @@ export async function updateFeatureFlagsAdmin(
   await db.query(
     `INSERT INTO engagement_settings (key, value_json)
      VALUES ($1, $2::jsonb)
-     ON CONFLICT (key) DO UPDATE SET value_json = EXCLUDED.value_json`,
+     ON CONFLICT (key) DO UPDATE SET value_json = EXCLUDED.value_json, updated_at = NOW()`,
     [FEATURE_FLAGS_KEY, JSON.stringify(nextOverrides)],
+  );
+  const metaKey = "feature_flags_meta";
+  const prevMeta = await db.query(
+    `SELECT value_json FROM engagement_settings WHERE key = $1`,
+    [metaKey],
+  );
+  const metaObj =
+    prevMeta.rows[0]?.value_json &&
+    typeof prevMeta.rows[0].value_json === "object"
+      ? { ...(prevMeta.rows[0].value_json as Record<string, unknown>) }
+      : {};
+  for (const key of allowed) {
+    if (typeof patch[key] === "boolean") {
+      metaObj[key] = {
+        last_changed_by: adminUserId,
+        last_changed_at: new Date().toISOString(),
+        reason: reason || null,
+        admin_value: patch[key],
+      };
+    }
+  }
+  await db.query(
+    `INSERT INTO engagement_settings (key, value_json)
+     VALUES ($1, $2::jsonb)
+     ON CONFLICT (key) DO UPDATE SET value_json = EXCLUDED.value_json, updated_at = NOW()`,
+    [metaKey, JSON.stringify(metaObj)],
   );
   const next = await getEngagementFlagsMerged();
   const { setEngagementFlagOverrides } = await import("./engagementFlags");
@@ -452,10 +626,239 @@ export async function updateFeatureFlagsAdmin(
     adminUserId,
     "feature_flags_update",
     FEATURE_FLAGS_KEY,
+    { flags: prev, reason: reason || null },
+    { flags: next, reason: reason || null },
+  );
+  return next;
+}
+
+export type FeatureFlagAdminRow = {
+  key: keyof EngagementFlags;
+  effective: boolean;
+  default_value: boolean;
+  env_value: boolean;
+  admin_value: boolean | null;
+  last_changed_by: string | null;
+  last_changed_at: string | null;
+  reason: string | null;
+};
+
+export async function listFeatureFlagsAdminDetail(): Promise<{
+  flags: EngagementFlags;
+  rows: FeatureFlagAdminRow[];
+}> {
+  const envFlags = getEngagementFlagsFromEnv();
+  const defaults = getEngagementFlagsFromEnv(); // same source; env is baseline default
+  const overrides = await loadFlagOverrides();
+  const effective = await getEngagementFlagsMerged();
+  const db = getPool();
+  let meta: Record<string, unknown> = {};
+  if (db) {
+    try {
+      const r = await db.query(
+        `SELECT value_json FROM engagement_settings WHERE key = 'feature_flags_meta'`,
+      );
+      if (r.rows[0]?.value_json && typeof r.rows[0].value_json === "object") {
+        meta = r.rows[0].value_json as Record<string, unknown>;
+      }
+    } catch {
+      meta = {};
+    }
+  }
+  const keys = Object.keys(effective) as (keyof EngagementFlags)[];
+  const rows: FeatureFlagAdminRow[] = keys.map((key) => {
+    const m =
+      meta[key] && typeof meta[key] === "object"
+        ? (meta[key] as Record<string, unknown>)
+        : {};
+    return {
+      key,
+      effective: !!effective[key],
+      default_value: !!defaults[key],
+      env_value: !!envFlags[key],
+      admin_value:
+        typeof overrides[key] === "boolean" ? !!overrides[key] : null,
+      last_changed_by:
+        typeof m.last_changed_by === "string" ? m.last_changed_by : null,
+      last_changed_at:
+        typeof m.last_changed_at === "string" ? m.last_changed_at : null,
+      reason: typeof m.reason === "string" ? m.reason : null,
+    };
+  });
+  return { flags: effective, rows };
+}
+
+/** Supported mission audience — no free-form eligibility DSL. */
+export type MissionAudience =
+  | "all_authenticated"
+  | "creators_only"
+  | "viewers_only"
+  | "new_users";
+
+export async function getMissionAdminMeta(): Promise<
+  Record<
+    string,
+    {
+      audience: MissionAudience;
+      starts_at: string | null;
+      ends_at: string | null;
+      archived: boolean;
+    }
+  >
+> {
+  const db = getPool();
+  if (!db) return {};
+  try {
+    const r = await db.query(
+      `SELECT value_json FROM engagement_settings WHERE key = 'mission_admin_meta'`,
+    );
+    const raw = r.rows[0]?.value_json;
+    if (!raw || typeof raw !== "object") return {};
+    return raw as Record<
+      string,
+      {
+        audience: MissionAudience;
+        starts_at: string | null;
+        ends_at: string | null;
+        archived: boolean;
+      }
+    >;
+  } catch {
+    return {};
+  }
+}
+
+export async function upsertMissionAdminMeta(
+  missionId: string,
+  patch: {
+    audience?: MissionAudience;
+    starts_at?: string | null;
+    ends_at?: string | null;
+    archived?: boolean;
+  },
+  adminUserId: string,
+) {
+  const db = getPool();
+  if (!db) return null;
+  const all = await getMissionAdminMeta();
+  const prev = all[missionId] || {
+    audience: "all_authenticated" as MissionAudience,
+    starts_at: null,
+    ends_at: null,
+    archived: false,
+  };
+  const next = {
+    audience: patch.audience ?? prev.audience,
+    starts_at: patch.starts_at !== undefined ? patch.starts_at : prev.starts_at,
+    ends_at: patch.ends_at !== undefined ? patch.ends_at : prev.ends_at,
+    archived: patch.archived !== undefined ? !!patch.archived : prev.archived,
+  };
+  all[missionId] = next;
+  await db.query(
+    `INSERT INTO engagement_settings (key, value_json)
+     VALUES ('mission_admin_meta', $1::jsonb)
+     ON CONFLICT (key) DO UPDATE SET value_json = EXCLUDED.value_json, updated_at = NOW()`,
+    [JSON.stringify(all)],
+  );
+  await writeAdminAudit(
+    adminUserId,
+    "mission_meta_update",
+    missionId,
     prev,
     next,
   );
   return next;
+}
+
+export async function getDailyRewardPolicyAdmin() {
+  const db = getPool();
+  const defaults = {
+    streak_reset_policy: "miss_one_day" as const,
+    effective_start: null as string | null,
+    effective_end: null as string | null,
+    active: true,
+  };
+  if (!db) return defaults;
+  try {
+    const r = await db.query(
+      `SELECT value_json FROM engagement_settings WHERE key = 'daily_reward_policy'`,
+    );
+    const v = r.rows[0]?.value_json;
+    if (!v || typeof v !== "object") return defaults;
+    const o = v as Record<string, unknown>;
+    return {
+      streak_reset_policy:
+        o.streak_reset_policy === "never" ||
+        o.streak_reset_policy === "miss_one_day"
+          ? o.streak_reset_policy
+          : "miss_one_day",
+      effective_start:
+        typeof o.effective_start === "string" ? o.effective_start : null,
+      effective_end:
+        typeof o.effective_end === "string" ? o.effective_end : null,
+      active: o.active === undefined ? true : !!o.active,
+    };
+  } catch {
+    return defaults;
+  }
+}
+
+export async function updateDailyRewardPolicyAdmin(
+  policy: {
+    streak_reset_policy?: "miss_one_day" | "never";
+    effective_start?: string | null;
+    effective_end?: string | null;
+    active?: boolean;
+  },
+  adminUserId: string,
+) {
+  const db = getPool();
+  if (!db) throw new Error("DATABASE_UNAVAILABLE");
+  const prev = await getDailyRewardPolicyAdmin();
+  const next = {
+    streak_reset_policy:
+      policy.streak_reset_policy ?? prev.streak_reset_policy,
+    effective_start:
+      policy.effective_start !== undefined
+        ? policy.effective_start
+        : prev.effective_start,
+    effective_end:
+      policy.effective_end !== undefined
+        ? policy.effective_end
+        : prev.effective_end,
+    active: policy.active !== undefined ? !!policy.active : prev.active,
+  };
+  await db.query(
+    `INSERT INTO engagement_settings (key, value_json)
+     VALUES ('daily_reward_policy', $1::jsonb)
+     ON CONFLICT (key) DO UPDATE SET value_json = EXCLUDED.value_json, updated_at = NOW()`,
+    [JSON.stringify(next)],
+  );
+  await writeAdminAudit(
+    adminUserId,
+    "daily_reward_policy_update",
+    "daily_reward_policy",
+    prev,
+    next,
+  );
+  return next;
+}
+
+export async function listAdminAuditHistory(limit = 50) {
+  const db = getPool();
+  if (!db) return [];
+  try {
+    const r = await db.query(
+      `SELECT id, admin_user_id, action, target, previous_value, new_value, created_at
+         FROM engagement_admin_audit
+        ORDER BY created_at DESC
+        LIMIT $1`,
+      [Math.min(200, Math.max(1, limit))],
+    );
+    return r.rows;
+  } catch {
+    return [];
+  }
 }
 
 /** Call once at boot so sync getEngagementFlags() sees DB overrides. */

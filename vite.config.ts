@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import tsconfigPaths from "vite-tsconfig-paths";
 import basicSsl from '@vitejs/plugin-basic-ssl';
@@ -98,4 +98,13 @@ export default defineConfig(({ mode }) => ({
     tsconfigPaths(),
     basicSsl(),
   ],
+  test: {
+    environment: 'node',
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      // Money DB suite is isolated — run via `npm run test:money` only.
+      '**/moneyIntegration.test.ts',
+    ],
+  },
 }))

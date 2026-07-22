@@ -23,8 +23,12 @@ import {
   updateDailyRewardConfigAdmin,
   getBattleEnergyCaps,
   updateBattleEnergyCapsAdmin,
-  getEngagementFlagsMerged,
   updateFeatureFlagsAdmin,
+  listFeatureFlagsAdminDetail,
+  upsertMissionAdminMeta,
+  getDailyRewardPolicyAdmin,
+  updateDailyRewardPolicyAdmin,
+  listAdminAuditHistory,
 } from "../lib/engagementAdmin";
 import { logger } from "../lib/logger";
 
@@ -268,6 +272,16 @@ const missionPatchSchema = z.object({
   reward_energy: z.number().int().min(0).max(1_000_000).optional(),
   enabled: z.boolean().optional(),
   sort_order: z.number().int().min(0).max(10_000).optional(),
+  audience: z
+    .enum([
+      "all_authenticated",
+      "creators_only",
+      "viewers_only",
+      "new_users",
+    ])
+    .optional(),
+  starts_at: z.string().max(40).nullable().optional(),
+  ends_at: z.string().max(40).nullable().optional(),
 });
 
 router.patch(
@@ -275,14 +289,28 @@ router.patch(
   validateBody(missionPatchSchema),
   async (req: Request, res: Response) => {
     try {
+      const adminUserId = (req.authContext as NonNullable<typeof req.authContext>)
+        .userId;
+      const { audience, starts_at, ends_at, ...missionPatch } = req.body;
       const mission = await updateMissionAdmin({
         id: String(req.params.id),
-        ...req.body,
-        adminUserId: (req.authContext as NonNullable<typeof req.authContext>)
-          .userId,
+        ...missionPatch,
+        adminUserId,
       });
       if (!mission) return res.status(404).json({ error: "MISSION_NOT_FOUND" });
-      return res.json({ mission });
+      let meta = null;
+      if (
+        audience !== undefined ||
+        starts_at !== undefined ||
+        ends_at !== undefined
+      ) {
+        meta = await upsertMissionAdminMeta(
+          String(req.params.id),
+          { audience, starts_at, ends_at },
+          adminUserId,
+        );
+      }
+      return res.json({ mission: { ...mission, ...(meta || {}) } });
     } catch (err) {
       logger.error({ err }, "admin mission update failed");
       return res.status(500).json({ error: "MISSION_UPDATE_FAILED" });
@@ -292,7 +320,10 @@ router.patch(
 
 router.get("/daily-rewards", async (_req, res) => {
   try {
-    return res.json({ rewards: await listDailyRewardConfigAdmin() });
+    return res.json({
+      rewards: await listDailyRewardConfigAdmin(),
+      policy: await getDailyRewardPolicyAdmin(),
+    });
   } catch (err) {
     logger.error({ err }, "admin daily rewards list failed");
     return res.status(500).json({ error: "DAILY_REWARDS_LOAD_FAILED" });
@@ -304,6 +335,7 @@ const dailyRewardSchema = z.object({
   reward_xp: z.number().int().min(0).max(1_000_000),
   reward_promo_coins: z.number().int().min(0).max(1_000_000),
   reward_label: z.string().max(200).nullable().optional(),
+  cosmetic_ref: z.string().max(200).nullable().optional(),
 });
 
 router.put(
@@ -315,7 +347,7 @@ router.put(
         streakDay: req.body.streak_day,
         reward_xp: req.body.reward_xp,
         reward_promo_coins: req.body.reward_promo_coins,
-        reward_label: req.body.reward_label,
+        reward_label: req.body.reward_label ?? req.body.cosmetic_ref ?? null,
         adminUserId: (req.authContext as NonNullable<typeof req.authContext>)
           .userId,
       });
@@ -324,6 +356,30 @@ router.put(
     } catch (err) {
       logger.error({ err }, "admin daily reward update failed");
       return res.status(500).json({ error: "DAILY_REWARD_UPDATE_FAILED" });
+    }
+  },
+);
+
+const dailyPolicySchema = z.object({
+  streak_reset_policy: z.enum(["miss_one_day", "never"]).optional(),
+  effective_start: z.string().max(40).nullable().optional(),
+  effective_end: z.string().max(40).nullable().optional(),
+  active: z.boolean().optional(),
+});
+
+router.put(
+  "/daily-rewards/policy",
+  validateBody(dailyPolicySchema),
+  async (req: Request, res: Response) => {
+    try {
+      const policy = await updateDailyRewardPolicyAdmin(
+        req.body,
+        (req.authContext as NonNullable<typeof req.authContext>).userId,
+      );
+      return res.json({ policy });
+    } catch (err) {
+      logger.error({ err }, "admin daily reward policy update failed");
+      return res.status(500).json({ error: "DAILY_POLICY_UPDATE_FAILED" });
     }
   },
 );
@@ -338,12 +394,21 @@ router.get("/battle-energy-caps", async (_req, res) => {
 });
 
 const energyCapsSchema = z.object({
-  watch_amount: z.number().int().min(0).max(10_000),
-  comment_amount: z.number().int().min(0).max(10_000),
-  share_amount: z.number().int().min(0).max(10_000),
-  watch_cap: z.number().int().min(0).max(1_000_000),
-  comment_cap: z.number().int().min(0).max(1_000_000),
-  share_cap: z.number().int().min(0).max(1_000_000),
+  watch_amount: z.number().int().min(0).max(10_000).optional(),
+  comment_amount: z.number().int().min(0).max(10_000).optional(),
+  share_amount: z.number().int().min(0).max(10_000).optional(),
+  watch_cap: z.number().int().min(0).max(1_000_000).optional(),
+  comment_cap: z.number().int().min(0).max(1_000_000).optional(),
+  share_cap: z.number().int().min(0).max(1_000_000).optional(),
+  storage_cap: z.number().int().min(0).max(10_000_000).optional(),
+  session_cap: z.number().int().min(0).max(1_000_000).optional(),
+  daily_cap: z.number().int().min(0).max(10_000_000).optional(),
+  minimum_boost: z.number().int().min(1).max(100).optional(),
+  allowed_boost_values: z.array(z.number().int().min(1).max(100)).max(20).optional(),
+  fan_energy_threshold: z.number().int().min(1).max(100_000_000).optional(),
+  score_multiplier: z.number().min(1).max(5).optional(),
+  boost_duration_sec: z.number().int().min(1).max(120).optional(),
+  enabled: z.boolean().optional(),
 });
 
 router.put(
@@ -365,7 +430,8 @@ router.put(
 
 router.get("/feature-flags", async (_req, res) => {
   try {
-    return res.json({ flags: await getEngagementFlagsMerged() });
+    const detail = await listFeatureFlagsAdminDetail();
+    return res.json(detail);
   } catch (err) {
     logger.error({ err }, "admin feature flags load failed");
     return res.status(500).json({ error: "FLAGS_LOAD_FAILED" });
@@ -389,9 +455,15 @@ const flagsSchema = z
     worldEventsEnabled: z.boolean().optional(),
     guildsEnabled: z.boolean().optional(),
     appleSignInEnabled: z.boolean().optional(),
+    reason: z.string().max(500).optional(),
     confirm: z.boolean().optional(),
   })
-  .refine((v) => Object.keys(v).filter((k) => k !== "confirm").length > 0, "At least one flag required");
+  .refine(
+    (v) =>
+      Object.keys(v).filter((k) => k !== "confirm" && k !== "reason").length >
+      0,
+    "At least one flag required",
+  );
 
 router.patch(
   "/feature-flags",
@@ -415,12 +487,23 @@ router.patch(
         patch,
         (req.authContext as NonNullable<typeof req.authContext>).userId,
       );
-      return res.json({ flags });
+      const detail = await listFeatureFlagsAdminDetail();
+      return res.json({ flags, rows: detail.rows });
     } catch (err) {
       logger.error({ err }, "admin feature flags update failed");
       return res.status(500).json({ error: "FLAGS_UPDATE_FAILED" });
     }
   },
 );
+
+router.get("/audit-history", async (req: Request, res: Response) => {
+  try {
+    const limit = Number(req.query.limit || 50);
+    return res.json({ entries: await listAdminAuditHistory(limit) });
+  } catch (err) {
+    logger.error({ err }, "admin audit history failed");
+    return res.status(500).json({ error: "AUDIT_LOAD_FAILED" });
+  }
+});
 
 export default router;

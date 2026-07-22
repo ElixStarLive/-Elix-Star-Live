@@ -55,6 +55,10 @@ export default function AdminProgression() {
       enabled: boolean;
       metric_key: string;
       scope: string;
+      audience?: string;
+      starts_at?: string | null;
+      ends_at?: string | null;
+      sort_order?: number;
     }>
   >([]);
   const [dailyRewards, setDailyRewards] = useState<
@@ -72,17 +76,52 @@ export default function AdminProgression() {
     watch_cap: 300,
     comment_cap: 20,
     share_cap: 1,
+    storage_cap: 10000,
+    session_cap: 500,
+    daily_cap: 2000,
+    minimum_boost: 1,
+    allowed_boost_values: [1, 2, 5, 10] as number[],
+    fan_energy_threshold: 10000,
+    score_multiplier: 1.2,
+    boost_duration_sec: 5,
+    enabled: true,
   });
+  const [dailyPolicy, setDailyPolicy] = useState({
+    streak_reset_policy: "miss_one_day" as "miss_one_day" | "never",
+    effective_start: "" as string,
+    effective_end: "" as string,
+    active: true,
+  });
+  const [flagRows, setFlagRows] = useState<
+    Array<{
+      key: string;
+      effective: boolean;
+      default_value: boolean;
+      env_value: boolean;
+      admin_value: boolean | null;
+      last_changed_by: string | null;
+      last_changed_at: string | null;
+      reason: string | null;
+    }>
+  >([]);
+  const [auditEntries, setAuditEntries] = useState<
+    Array<Record<string, unknown>>
+  >([]);
 
   const loadEngagementAdmin = async () => {
-    const [flagsRes, missionsRes, dailyRes, capsRes] = await Promise.all([
-      request("/api/admin/progression/feature-flags"),
-      request("/api/admin/progression/missions"),
-      request("/api/admin/progression/daily-rewards"),
-      request("/api/admin/progression/battle-energy-caps"),
-    ]);
+    const [flagsRes, missionsRes, dailyRes, capsRes, auditRes] =
+      await Promise.all([
+        request("/api/admin/progression/feature-flags"),
+        request("/api/admin/progression/missions"),
+        request("/api/admin/progression/daily-rewards"),
+        request("/api/admin/progression/battle-energy-caps"),
+        request("/api/admin/progression/audit-history?limit=30"),
+      ]);
     if (flagsRes.data?.flags) {
       setEngagementFlags(flagsRes.data.flags as Record<string, boolean>);
+    }
+    if (Array.isArray(flagsRes.data?.rows)) {
+      setFlagRows(flagsRes.data.rows);
     }
     if (Array.isArray(missionsRes.data?.missions)) {
       setMissions(missionsRes.data.missions);
@@ -90,8 +129,20 @@ export default function AdminProgression() {
     if (Array.isArray(dailyRes.data?.rewards)) {
       setDailyRewards(dailyRes.data.rewards);
     }
+    if (dailyRes.data?.policy) {
+      const p = dailyRes.data.policy;
+      setDailyPolicy({
+        streak_reset_policy: p.streak_reset_policy || "miss_one_day",
+        effective_start: p.effective_start || "",
+        effective_end: p.effective_end || "",
+        active: p.active !== false,
+      });
+    }
     if (capsRes.data?.caps) {
-      setEnergyCaps(capsRes.data.caps);
+      setEnergyCaps((prev) => ({ ...prev, ...capsRes.data.caps }));
+    }
+    if (Array.isArray(auditRes.data?.entries)) {
+      setAuditEntries(auditRes.data.entries);
     }
   };
 
@@ -239,8 +290,11 @@ export default function AdminProgression() {
           <h2 className="font-semibold mb-3">Feature flags</h2>
           {engagementFlags ? (
             <ul className="space-y-2">
-              {Object.entries(engagementFlags).map(([k, v]) => (
-                <li key={k} className="flex items-center justify-between gap-2 text-xs">
+              {Object.entries(engagementFlags).map(([k, v]) => {
+                const row = flagRows.find((r) => r.key === k);
+                return (
+                <li key={k} className="flex flex-col gap-1 text-xs border-b border-white/5 pb-2">
+                  <div className="flex items-center justify-between gap-2">
                   <span className="text-white/70">{k}</span>
                   <button
                     type="button"
@@ -261,6 +315,9 @@ export default function AdminProgression() {
                         ) {
                           return;
                         }
+                        const reason =
+                          window.prompt("Reason for flag change (optional):") ||
+                          "";
                         setBusy(true);
                         const { data, error } = await request(
                           "/api/admin/progression/feature-flags",
@@ -268,6 +325,7 @@ export default function AdminProgression() {
                             method: "PATCH",
                             body: JSON.stringify({
                               [k]: !v,
+                              reason,
                               ...(highImpact ? { confirm: true } : {}),
                             }),
                           },
@@ -278,6 +336,7 @@ export default function AdminProgression() {
                           return;
                         }
                         if (data?.flags) setEngagementFlags(data.flags);
+                        if (Array.isArray(data?.rows)) setFlagRows(data.rows);
                         showToast("Flag updated");
                       })();
                     }}
@@ -287,8 +346,21 @@ export default function AdminProgression() {
                   >
                     {v ? "ON" : "OFF"}
                   </button>
+                  </div>
+                  {row ? (
+                    <div className="text-[10px] text-white/35">
+                      effective={String(row.effective)} · env={String(row.env_value)} ·
+                      admin={String(row.admin_value)} · default=
+                      {String(row.default_value)}
+                      {row.last_changed_at
+                        ? ` · changed ${row.last_changed_at}`
+                        : ""}
+                      {row.reason ? ` · ${row.reason}` : ""}
+                    </div>
+                  ) : null}
                 </li>
-              ))}
+              );
+              })}
             </ul>
           ) : (
             <p className="text-xs text-white/40">Loading flags…</p>
@@ -383,6 +455,27 @@ export default function AdminProgression() {
                   </label>
                 </div>
                 <div className="flex items-center gap-2">
+                  <label className="text-[10px] text-white/40">
+                    Audience
+                    <select
+                      className={inputClass}
+                      value={m.audience || "all_authenticated"}
+                      onChange={(e) =>
+                        setMissions((cur) =>
+                          cur.map((row, i) =>
+                            i === index
+                              ? { ...row, audience: e.target.value }
+                              : row,
+                          ),
+                        )
+                      }
+                    >
+                      <option value="all_authenticated">All authenticated</option>
+                      <option value="creators_only">Creators only</option>
+                      <option value="viewers_only">Viewers only</option>
+                      <option value="new_users">New users</option>
+                    </select>
+                  </label>
                   <label className="text-xs flex items-center gap-1">
                     <input
                       type="checkbox"
@@ -416,6 +509,8 @@ export default function AdminProgression() {
                               reward_promo_coins: m.reward_promo_coins,
                               reward_energy: m.reward_energy,
                               enabled: m.enabled,
+                              audience: m.audience || "all_authenticated",
+                              sort_order: m.sort_order,
                             }),
                           },
                         );
@@ -537,10 +632,99 @@ export default function AdminProgression() {
               </div>
             ))}
           </div>
+          <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+            <label className="text-white/40">
+              Streak reset
+              <select
+                className={inputClass}
+                value={dailyPolicy.streak_reset_policy}
+                onChange={(e) =>
+                  setDailyPolicy((p) => ({
+                    ...p,
+                    streak_reset_policy: e.target.value as
+                      | "miss_one_day"
+                      | "never",
+                  }))
+                }
+              >
+                <option value="miss_one_day">Miss one day</option>
+                <option value="never">Never</option>
+              </select>
+            </label>
+            <label className="text-white/40 flex items-center gap-2 mt-5">
+              <input
+                type="checkbox"
+                checked={dailyPolicy.active}
+                onChange={(e) =>
+                  setDailyPolicy((p) => ({ ...p, active: e.target.checked }))
+                }
+              />
+              Active
+            </label>
+            <label className="text-white/40">
+              Effective start (ISO)
+              <input
+                className={inputClass}
+                value={dailyPolicy.effective_start}
+                onChange={(e) =>
+                  setDailyPolicy((p) => ({
+                    ...p,
+                    effective_start: e.target.value,
+                  }))
+                }
+              />
+            </label>
+            <label className="text-white/40">
+              Effective end (ISO)
+              <input
+                className={inputClass}
+                value={dailyPolicy.effective_end}
+                onChange={(e) =>
+                  setDailyPolicy((p) => ({
+                    ...p,
+                    effective_end: e.target.value,
+                  }))
+                }
+              />
+            </label>
+          </div>
+          <button
+            type="button"
+            disabled={busy}
+            className="mt-2 px-3 py-2 rounded-lg bg-white/10 text-xs disabled:opacity-40"
+            onClick={() => {
+              void (async () => {
+                setBusy(true);
+                const { error } = await request(
+                  "/api/admin/progression/daily-rewards/policy",
+                  {
+                    method: "PUT",
+                    body: JSON.stringify({
+                      streak_reset_policy: dailyPolicy.streak_reset_policy,
+                      active: dailyPolicy.active,
+                      effective_start: dailyPolicy.effective_start || null,
+                      effective_end: dailyPolicy.effective_end || null,
+                    }),
+                  },
+                );
+                setBusy(false);
+                if (error) showToast(error.message);
+                else showToast("Daily policy saved");
+              })();
+            }}
+          >
+            Save daily policy
+          </button>
+          <p className="text-[10px] text-white/30 mt-2">
+            Claims already recorded keep the reward awarded at claim time.
+          </p>
         </section>
 
         <section className="rounded-xl border border-white/10 p-4 mb-6">
           <h2 className="font-semibold mb-3">Battle Energy caps</h2>
+          <p className="text-[10px] text-white/35 mb-2">
+            Score/battle only — never affects Diamonds.
+          </p>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-3">
             {(
               [
@@ -550,6 +734,13 @@ export default function AdminProgression() {
                 "watch_cap",
                 "comment_cap",
                 "share_cap",
+                "storage_cap",
+                "session_cap",
+                "daily_cap",
+                "minimum_boost",
+                "fan_energy_threshold",
+                "score_multiplier",
+                "boost_duration_sec",
               ] as const
             ).map((key) => (
               <label key={key} className="text-[10px] text-white/40">
@@ -567,6 +758,32 @@ export default function AdminProgression() {
                 />
               </label>
             ))}
+            <label className="text-[10px] text-white/40">
+              allowed_boost_values (csv)
+              <input
+                className={inputClass}
+                value={energyCaps.allowed_boost_values.join(",")}
+                onChange={(e) =>
+                  setEnergyCaps((c) => ({
+                    ...c,
+                    allowed_boost_values: e.target.value
+                      .split(",")
+                      .map((x) => Number(x.trim()))
+                      .filter((n) => Number.isFinite(n) && n >= 1),
+                  }))
+                }
+              />
+            </label>
+            <label className="text-xs flex items-center gap-1 mt-4">
+              <input
+                type="checkbox"
+                checked={energyCaps.enabled}
+                onChange={(e) =>
+                  setEnergyCaps((c) => ({ ...c, enabled: e.target.checked }))
+                }
+              />
+              Enabled
+            </label>
           </div>
           <button
             type="button"
@@ -585,7 +802,7 @@ export default function AdminProgression() {
                 setBusy(false);
                 if (error) showToast(error.message);
                 else {
-                  if (data?.caps) setEnergyCaps(data.caps);
+                  if (data?.caps) setEnergyCaps((prev) => ({ ...prev, ...data.caps }));
                   showToast("Energy caps saved");
                 }
               })();
@@ -833,6 +1050,22 @@ export default function AdminProgression() {
               </div>
             </>
           )}
+        </section>
+
+        <section className="rounded-xl border border-white/10 p-4 mb-6">
+          <h2 className="font-semibold mb-3">Engagement admin audit</h2>
+          <div className="max-h-64 overflow-y-auto text-[10px] space-y-1 text-white/50">
+            {auditEntries.length === 0 ? (
+              <p>No audit rows loaded.</p>
+            ) : (
+              auditEntries.map((row) => (
+                <div key={String(row.id)} className="border-b border-white/5 py-1">
+                  {String(row.created_at)} · {String(row.admin_user_id)} ·{" "}
+                  {String(row.action)} · {String(row.target)}
+                </div>
+              ))
+            )}
+          </div>
         </section>
       </div>
     </div>

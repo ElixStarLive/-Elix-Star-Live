@@ -28,3 +28,37 @@ jobs:
 
       - name: Production build
         run: npm run build
+
+  money-integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: elix_it
+          POSTGRES_PASSWORD: elix_it_ci_only
+          POSTGRES_DB: elix_money_it
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U elix_it -d elix_money_it"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Money DB integration tests
+        env:
+          CI: 'true'
+          REQUIRE_MONEY_IT: '1'
+          ALLOW_MONEY_IT_ON_URL: '1'
+          TEST_DATABASE_URL: postgres://elix_it:elix_it_ci_only@localhost:5432/elix_money_it
+        run: npm run test:money:url

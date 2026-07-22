@@ -4,6 +4,7 @@ import { Bookmark, Play } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { request } from '../lib/apiClient';
 import { showToast } from '../lib/toast';
+import { subscribeVideoCollection } from '../lib/videoCollectionEvents';
 
 interface SavedVideo {
   id: string;
@@ -67,6 +68,21 @@ export default function SavedVideos() {
 
   useEffect(() => {
     void load(0, false);
+  }, [load]);
+
+  useEffect(() => {
+    return subscribeVideoCollection((ev) => {
+      if (ev.type === 'refresh' && (ev.collection === 'all' || ev.collection === 'saved')) {
+        void load(0, false);
+        return;
+      }
+      if (ev.type !== 'saved') return;
+      if (!ev.saved) {
+        setVideos((prev) => prev.filter((v) => v.id !== ev.videoId));
+        return;
+      }
+      void load(0, false);
+    });
   }, [load]);
 
   const formatViews = (n: number) => {

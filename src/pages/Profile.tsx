@@ -23,6 +23,7 @@ import { PROFILE_PAGE_AVATAR_PX } from '../lib/profileFrame';
 import { getVideoPosterUrl, resolveGridThumbnailUrl, resolveVideoPlaybackUrl } from '../lib/bunnyStorage';
 import { openExternalLink } from '../lib/platform';
 import { fetchActiveStories, type StoryUserGroup } from '../lib/storiesApi';
+import { subscribeVideoCollection } from '../lib/videoCollectionEvents';
 
 interface Video {
   id: string;
@@ -222,6 +223,39 @@ export default function Profile() {
       cancelled = true;
     };
   }, [effectiveUserId]);
+
+  // Keep Profile liked/saved grids in sync with feed/action-menu toggles.
+  useEffect(() => {
+    if (!isOwnProfile) return;
+    return subscribeVideoCollection((ev) => {
+      if (ev.type === 'refresh') {
+        if (
+          ev.collection === 'all' ||
+          (ev.collection === 'saved' && activeTab === 'saved') ||
+          (ev.collection === 'liked' && activeTab === 'liked')
+        ) {
+          void loadVideos();
+        }
+        return;
+      }
+      if (ev.type === 'saved' && activeTab === 'saved') {
+        if (!ev.saved) {
+          setVideos((prev) => prev.filter((v) => v.id !== ev.videoId));
+        } else {
+          void loadVideos();
+        }
+        return;
+      }
+      if (ev.type === 'liked' && activeTab === 'liked') {
+        if (!ev.liked) {
+          setVideos((prev) => prev.filter((v) => v.id !== ev.videoId));
+        } else {
+          void loadVideos();
+        }
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOwnProfile, activeTab]);
 
   const loadProfile = async () => {
     if (!effectiveUserId) { setLoading(false); return; }

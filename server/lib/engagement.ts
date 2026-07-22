@@ -408,6 +408,9 @@ export async function earnBattleEnergy(
   // Phase 1 caps — loaded from engagement_settings with code defaults.
   const { getBattleEnergyCaps } = await import("./engagementAdmin");
   const capCfg = await getBattleEnergyCaps();
+  if (!capCfg.enabled) {
+    return { granted: 0, balance: 0 };
+  }
   const amounts = {
     watch: capCfg.watch_amount,
     comment: capCfg.comment_amount,

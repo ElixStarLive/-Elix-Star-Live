@@ -16,6 +16,7 @@ import { showToast } from '../lib/toast';
 import { getVideoPosterUrl, resolveVideoPlaybackUrl } from '../lib/bunnyStorage';
 import { resolveSoundTrackPlaybackUrl } from '../lib/soundLibrary';
 import { isStemExtraCaption } from '../lib/suggestiveCaption';
+import { publishVideoCollection } from '../lib/videoCollectionEvents';
 
 async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 2000): Promise<T> {
   for (let i = 0; i <= retries; i++) {
@@ -479,6 +480,7 @@ export const useVideoStore = create<VideoStore>()(
         if (!video) return;
 
         const wasLiked = video.isLiked;
+        const nextLiked = !wasLiked;
         const newLikes = Math.max(0, wasLiked ? video.stats.likes - 1 : video.stats.likes + 1);
         const updatedStats = { ...video.stats, likes: newLikes };
 
@@ -486,12 +488,13 @@ export const useVideoStore = create<VideoStore>()(
           ? state.likedVideos.filter(id => id !== videoId)
           : [...state.likedVideos, videoId];
 
-        const likeUpdate = (v: Video) => v.id === videoId ? { ...v, isLiked: !wasLiked, stats: updatedStats } : v;
+        const likeUpdate = (v: Video) => v.id === videoId ? { ...v, isLiked: nextLiked, stats: updatedStats } : v;
         set({
           videos: state.videos.map(likeUpdate),
           friendVideos: state.friendVideos.map(likeUpdate),
           likedVideos: newLikedVideos
         });
+        publishVideoCollection({ type: 'liked', videoId, liked: nextLiked });
 
         try {
 
@@ -510,6 +513,7 @@ export const useVideoStore = create<VideoStore>()(
             friendVideos: s.friendVideos.map(revert),
             likedVideos: wasLiked ? [...s.likedVideos, videoId] : s.likedVideos.filter(id => id !== videoId),
           }));
+          publishVideoCollection({ type: 'liked', videoId, liked: wasLiked });
         }
       },
 
@@ -528,19 +532,21 @@ export const useVideoStore = create<VideoStore>()(
         if (!video) return;
 
         const wasSaved = video.isSaved;
+        const nextSaved = !wasSaved;
         const newSavedVideos = wasSaved
           ? state.savedVideos.filter(id => id !== videoId)
           : [...state.savedVideos, videoId];
 
         const newSaves = Math.max(0, wasSaved ? (video.stats.saves || 0) - 1 : (video.stats.saves || 0) + 1);
         const saveUpdate = (v: Video) => v.id === videoId
-          ? { ...v, isSaved: !wasSaved, stats: { ...v.stats, saves: newSaves } }
+          ? { ...v, isSaved: nextSaved, stats: { ...v.stats, saves: newSaves } }
           : v;
         set({
           videos: state.videos.map(saveUpdate),
           friendVideos: state.friendVideos.map(saveUpdate),
           savedVideos: newSavedVideos,
         });
+        publishVideoCollection({ type: 'saved', videoId, saved: nextSaved });
 
         try {
 
@@ -556,6 +562,7 @@ export const useVideoStore = create<VideoStore>()(
             friendVideos: s.friendVideos.map(revert),
             savedVideos: wasSaved ? [...s.savedVideos, videoId] : s.savedVideos.filter(id => id !== videoId),
           }));
+          publishVideoCollection({ type: 'saved', videoId, saved: wasSaved });
         }
       },
 
