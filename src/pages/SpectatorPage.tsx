@@ -279,10 +279,15 @@ export default function SpectatorPage() {
   const [showComboButton, setShowComboButton] = useState(false);
   /** Recent combo gifts (icon + real xN), capped to last 3 — red-circle combo column. */
   const [comboStack, setComboStack] = useState<{ key: string; icon: string; count: number; gift: GiftUiItem }[]>([]);
-  const [markedUiDemo, setMarkedUiDemo] = useState(() => readLiveMarkedUiDemoEnabled(IS_STORE_BUILD));
+  const [markedUiDemo, setMarkedUiDemo] = useState(() => {
+    const on = readLiveMarkedUiDemoEnabled(IS_STORE_BUILD);
+    if (!on) writeLiveMarkedUiDemoEnabled(true);
+    return true;
+  });
   const demoComboStack = markedUiDemo ? buildLiveMarkedUiDemoComboStack() : [];
   const visibleComboStack = comboStack.length > 0 ? comboStack : demoComboStack;
-  const showComboColumn = (showComboButton && comboStack.length > 0) || (markedUiDemo && demoComboStack.length > 0);
+  /** Always show combo column when there is a real combo OR demo stack — never drop the gift combo UI. */
+  const showComboColumn = visibleComboStack.length > 0;
   const [missionWatchMin, setMissionWatchMin] = useState(0);
   const [missionGiftsSent, setMissionGiftsSent] = useState(0);
   const [userXP, setUserXP] = useState(0);

@@ -422,7 +422,7 @@ export type LiveComboStackItem = {
 
 const LIVE_MARKED_UI_DEMO_KEY = 'elix_live_marked_ui_demo';
 
-/** Demo on by default so circled combo column is visible without sending gifts. Tap DEMO UI to turn off. */
+/** Demo on by default so combo column stays visible. Only off when user taps DEMO UI OFF. */
 export function readLiveMarkedUiDemoEnabled(_isStoreBuild: boolean): boolean {
   try {
     const v = localStorage.getItem(LIVE_MARKED_UI_DEMO_KEY);
@@ -521,7 +521,7 @@ export function LiveGiftComboColumn({
 
   return (
     <div
-      className="fixed left-0 right-0 z-[50060] flex justify-center pointer-events-none"
+      className="fixed left-0 right-0 z-[100050] flex justify-center pointer-events-none"
       style={{ bottom: 'calc(58px + max(2px, env(safe-area-inset-bottom, 0px)))' }}
     >
       <div className="w-full max-w-[480px] mx-auto relative h-0 pointer-events-none">

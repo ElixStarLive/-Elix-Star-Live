@@ -4129,10 +4129,15 @@ export default function LiveStream() {
   const [comboCount, setComboCount] = useState(0);
   const [showComboButton, setShowComboButton] = useState(false);
   const [comboStack, setComboStack] = useState<{ key: string; icon: string; count: number; gift: GiftUiItem }[]>([]);
-  const [markedUiDemo, setMarkedUiDemo] = useState(() => readLiveMarkedUiDemoEnabled(IS_STORE_BUILD));
+  const [markedUiDemo, setMarkedUiDemo] = useState(() => {
+    const on = readLiveMarkedUiDemoEnabled(IS_STORE_BUILD);
+    if (!on) writeLiveMarkedUiDemoEnabled(true);
+    return true;
+  });
   const demoComboStack = useMemo(() => (markedUiDemo ? buildLiveMarkedUiDemoComboStack() : []), [markedUiDemo]);
   const visibleComboStack = comboStack.length > 0 ? comboStack : demoComboStack;
-  const showComboColumn = (showComboButton && comboStack.length > 0) || (markedUiDemo && demoComboStack.length > 0);
+  /** Always show combo column when there is a real combo OR demo stack — never drop the gift combo UI. */
+  const showComboColumn = visibleComboStack.length > 0;
   const [missionWatchMin, setMissionWatchMin] = useState(0);
   const [missionGiftsSent, setMissionGiftsSent] = useState(0);
   useEffect(() => {
