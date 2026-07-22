@@ -110,7 +110,6 @@ import {
   LiveFollowPill,
   LiveGiftComboColumn,
   LiveMembershipVipCapsule,
-  LiveTopGifterAvatar,
 } from '../components/LiveMarkedTopUi';
 import { websocket } from '../lib/websocket';
 import { parseLiveGiftGoal, type LiveGiftGoal } from '../lib/liveGiftGoal';
@@ -5805,50 +5804,50 @@ export default function LiveStream() {
             <div className="absolute bottom-1 left-0 right-0 px-3 py-2 flex items-center justify-between flex-none pointer-events-none relative z-30" style={{ transform: 'translateY(1mm)' }}>
               <div className="flex items-center gap-[0mm] min-w-0 flex-1 justify-start pointer-events-auto" style={{ transform: `translateX(-${BATTLE_MVP_ROW_EDGE_OFFSET_MM}mm)` }} onClick={() => { setShowViewerList(false); setIsFindCreatorsOpen(true); }}>
                 {topMvpHostBattle.map((viewer, i) => {
-                  const points = mvpGiftScoresHost[viewer.id] ?? 0;
-                  const isMvp = i === 0 && points > 0;
+                  const isMvp = i === 0 && (mvpGiftScoresHost[viewer.id] ?? 0) > 0;
                   return (
                   <div
                     key={`mvp-l-${viewer.id}`}
                     className="relative flex flex-col items-center"
                     style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
                   >
-                    <LiveTopGifterAvatar
-                      slot={{
-                        id: viewer.id,
-                        name: viewer.displayName || viewer.username || '',
-                        avatar: resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username),
-                        points,
-                      }}
-                      size={SPECTATOR_BATTLE_PROFILE_RING_PX}
-                      isMvp={isMvp}
-                      onOpen={(id) => navigate(`/profile/${id}`)}
-                    />
+                    <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
+                      <AvatarRing
+                        src={resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username)}
+                        alt={viewer.displayName || viewer.username || ''}
+                        size={SPECTATOR_BATTLE_PROFILE_RING_PX}
+                      />
+                    </div>
+                    {isMvp && (
+                      <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
+                        MVP
+                      </span>
+                    )}
                   </div>
                   );
                 })}
               </div>
               <div className="flex items-center gap-[0mm] min-w-0 flex-1 justify-end pointer-events-auto" style={{ transform: `translateX(${BATTLE_MVP_ROW_EDGE_OFFSET_MM}mm)` }} onClick={() => { setShowViewerList(false); setIsFindCreatorsOpen(true); }}>
                 {topMvpOpponentBattle.map((viewer, i) => {
-                  const points = mvpGiftScoresOpponent[viewer.id] ?? 0;
-                  const isMvp = i === 0 && points > 0;
+                  const isMvp = i === 0 && (mvpGiftScoresOpponent[viewer.id] ?? 0) > 0;
                   return (
                   <div
                     key={`mvp-r-${viewer.id}`}
                     className="relative flex flex-col items-center"
                     style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
                   >
-                    <LiveTopGifterAvatar
-                      slot={{
-                        id: viewer.id,
-                        name: viewer.displayName || viewer.username || '',
-                        avatar: resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username),
-                        points,
-                      }}
-                      size={SPECTATOR_BATTLE_PROFILE_RING_PX}
-                      isMvp={isMvp}
-                      onOpen={(id) => navigate(`/profile/${id}`)}
-                    />
+                    <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
+                      <AvatarRing
+                        src={resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username)}
+                        alt={viewer.displayName || viewer.username || ''}
+                        size={SPECTATOR_BATTLE_PROFILE_RING_PX}
+                      />
+                    </div>
+                    {isMvp && (
+                      <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
+                        MVP
+                      </span>
+                    )}
                   </div>
                   );
                 })}
@@ -6012,24 +6011,25 @@ export default function LiveStream() {
                             }}
                           >
                             {topMvpViewers.map((viewer, i) => {
-                              const points = mvpGiftScores[viewer.id] ?? 0;
-                              const isMvp = i === 0 && points > 0;
+                              const isMvp = i === 0 && (mvpGiftScores[viewer.id] ?? 0) > 0;
                               return (
                               <div
                                 key={`top-viewers-${viewer.id}`}
                                 style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
+                                className="relative"
                               >
-                                <LiveTopGifterAvatar
-                                  slot={{
-                                    id: viewer.id,
-                                    name: viewer.displayName || viewer.username || '',
-                                    avatar: resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username),
-                                    points,
-                                  }}
-                                  size={LIVE_MVP_PROFILE_RING_PX}
-                                  isMvp={isMvp}
-                                  onOpen={(id) => navigate(`/profile/${id}`)}
-                                />
+                                <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
+                                  <AvatarRing
+                                    src={resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username)}
+                                    alt={viewer.displayName || viewer.username || ''}
+                                    size={LIVE_MVP_PROFILE_RING_PX}
+                                  />
+                                </div>
+                                {isMvp && (
+                                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
+                                    MVP
+                                  </span>
+                                )}
                               </div>
                               );
                             })}

@@ -1,6 +1,5 @@
 import React from 'react';
 import { Crown, Gem, Plus, Star } from 'lucide-react';
-import { AvatarRing } from './AvatarRing';
 import type { GiftUiItem } from '../lib/giftsCatalog';
 import { GIFT_COMBO_MAX } from '../lib/giftsCatalog';
 
@@ -15,68 +14,6 @@ export function LiveFollowPill({ onFollow }: { onFollow: (e: React.MouseEvent) =
       <Plus size={12} className="text-white" strokeWidth={3} />
       <span className="text-white text-[10px] font-bold">Follow</span>
     </button>
-  );
-}
-
-export type LiveTopGifterSlot = {
-  id: string;
-  name: string;
-  avatar: string;
-  points: number;
-};
-
-function formatGiftCoinsShort(coins: number) {
-  const c = typeof coins === 'number' && Number.isFinite(coins) ? coins : 0;
-  if (c >= 1_000_000) {
-    const m = Math.round((c / 1_000_000) * 10) / 10;
-    return `${Number.isInteger(m) ? Math.trunc(m) : m}M`;
-  }
-  if (c >= 1000) {
-    const k = Math.round((c / 1000) * 10) / 10;
-    return `${Number.isInteger(k) ? Math.trunc(k) : k}K`;
-  }
-  return String(c);
-}
-
-/** Top gifter avatar: crown + coin label — identical on creator + spectator. */
-export function LiveTopGifterAvatar({
-  slot,
-  size,
-  isMvp,
-  onOpen,
-}: {
-  slot: LiveTopGifterSlot;
-  size: number;
-  isMvp: boolean;
-  onOpen?: (id: string) => void;
-}) {
-  return (
-    <div
-      className="relative"
-      onClick={(e) => {
-        e.stopPropagation();
-        if (slot.id && onOpen) onOpen(slot.id);
-      }}
-    >
-      {isMvp && (
-        <span className="absolute -top-1.5 -left-0.5 z-[3] flex items-center justify-center drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]">
-          <Crown size={12} className="text-[#FFD54A]" fill="#FFD54A" strokeWidth={1.2} />
-        </span>
-      )}
-      <div className={isMvp ? 'rounded-full ring-[1.5px] ring-[#FFD54A]' : ''}>
-        <AvatarRing src={slot.avatar} alt={slot.name || ''} size={size} />
-      </div>
-      {isMvp && (
-        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-[2] flex items-center gap-0.5 whitespace-nowrap">
-          <span className="w-3.5 h-3.5 rounded-full bg-[#FFD54A] text-black text-[7px] font-black flex items-center justify-center leading-none shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
-            1
-          </span>
-          <span className="px-1 py-[1px] rounded-full bg-black/75 text-white text-[7px] font-bold tabular-nums leading-none">
-            {formatGiftCoinsShort(slot.points)}
-          </span>
-        </div>
-      )}
-    </div>
   );
 }
 

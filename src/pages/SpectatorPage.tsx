@@ -97,7 +97,6 @@ import {
   LiveFollowPill,
   LiveGiftComboColumn,
   LiveMembershipVipCapsule,
-  LiveTopGifterAvatar,
 } from '../components/LiveMarkedTopUi';
 import { websocket } from '../lib/websocket';
 import { normalizeBattleGiftTarget } from '../lib/liveBattleGiftTarget';
@@ -2845,25 +2844,25 @@ export default function SpectatorPage() {
                     onClick={() => setShowViewersPanel(true)}
                   >
                     {mvpSlots.host.map((slot, i) => {
-                      const pts = slot.points ?? mvpGiftScoresHostRef.current[slot.id] ?? 0;
-                      const isMvp = i === 0 && pts > 0;
+                      const isMvp = i === 0 && (mvpGiftScoresHostRef.current[slot.id] ?? 0) > 0;
                       return (
                         <div
                           key={`mvp-l-${slot.id}`}
                           className="relative flex flex-col items-center"
                           style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
                         >
-                          <LiveTopGifterAvatar
-                            slot={{
-                              id: slot.id,
-                              name: slot.name,
-                              avatar: resolveCircleAvatar(slot.avatar, slot.name),
-                              points: pts,
-                            }}
-                            size={SPECTATOR_BATTLE_PROFILE_RING_PX}
-                            isMvp={isMvp}
-                            onOpen={(id) => navigate(`/profile/${id}`)}
-                          />
+                          <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
+                            <AvatarRing
+                              src={resolveCircleAvatar(slot.avatar, slot.name)}
+                              alt={slot.name || ''}
+                              size={SPECTATOR_BATTLE_PROFILE_RING_PX}
+                            />
+                          </div>
+                          {isMvp && (
+                            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
+                              MVP
+                            </span>
+                          )}
                         </div>
                       );
                     })}
@@ -2874,25 +2873,25 @@ export default function SpectatorPage() {
                     onClick={() => setShowViewersPanel(true)}
                   >
                     {mvpSlots.opponent.map((slot, i) => {
-                      const pts = slot.points ?? mvpGiftScoresOpponentRef.current[slot.id] ?? 0;
-                      const isMvp = i === 0 && pts > 0;
+                      const isMvp = i === 0 && (mvpGiftScoresOpponentRef.current[slot.id] ?? 0) > 0;
                       return (
                         <div
                           key={`mvp-r-${slot.id}`}
                           className="relative flex flex-col items-center"
                           style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
                         >
-                          <LiveTopGifterAvatar
-                            slot={{
-                              id: slot.id,
-                              name: slot.name,
-                              avatar: resolveCircleAvatar(slot.avatar, slot.name),
-                              points: pts,
-                            }}
-                            size={SPECTATOR_BATTLE_PROFILE_RING_PX}
-                            isMvp={isMvp}
-                            onOpen={(id) => navigate(`/profile/${id}`)}
-                          />
+                          <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
+                            <AvatarRing
+                              src={resolveCircleAvatar(slot.avatar, slot.name)}
+                              alt={slot.name || ''}
+                              size={SPECTATOR_BATTLE_PROFILE_RING_PX}
+                            />
+                          </div>
+                          {isMvp && (
+                            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
+                              MVP
+                            </span>
+                          )}
                         </div>
                       );
                     })}
@@ -3395,18 +3394,20 @@ export default function SpectatorPage() {
                       <div
                         key={`spectator-top-mvp-${slot.id}`}
                         style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
+                        className="relative"
                       >
-                        <LiveTopGifterAvatar
-                          slot={{
-                            id: slot.id,
-                            name: slot.name,
-                            avatar: resolveCircleAvatar(slot.avatar, slot.name),
-                            points: slot.points ?? 0,
-                          }}
-                          size={SPECTATOR_MVP_PROFILE_RING_PX}
-                          isMvp={isMvp}
-                          onOpen={(id) => navigate(`/profile/${id}`)}
-                        />
+                        <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
+                          <AvatarRing
+                            src={resolveCircleAvatar(slot.avatar, slot.name)}
+                            alt={slot.name || ''}
+                            size={SPECTATOR_MVP_PROFILE_RING_PX}
+                          />
+                        </div>
+                        {isMvp && (
+                          <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
+                            MVP
+                          </span>
+                        )}
                       </div>
                     );
                   })}
