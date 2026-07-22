@@ -4186,21 +4186,34 @@ export default function LiveStream() {
   const showComboColumn = (showComboButton && comboStack.length > 0) || (markedUiDemo && demoComboStack.length > 0);
   const [missionWatchMin, setMissionWatchMin] = useState(0);
   const [missionGiftsSent, setMissionGiftsSent] = useState(0);
+  const [missionWatchGoal, setMissionWatchGoal] = useState(30);
+  const [missionGiftsGoal, setMissionGiftsGoal] = useState(10);
   useEffect(() => {
     if (!user?.id) return;
-    void request('/api/engagement/missions')
-      .then(({ data }) => {
-        const missions = (data?.missions as Array<{
-          metric_key?: string;
-          progress?: number;
-          goal_count?: number;
-        }>) || [];
-        const watch = missions.find((m) => m.metric_key === 'watch_minutes');
-        const gifts = missions.find((m) => m.metric_key === 'gifts_sent');
-        if (watch) setMissionWatchMin(Math.max(0, Number(watch.progress) || 0));
-        if (gifts) setMissionGiftsSent(Math.max(0, Number(gifts.progress) || 0));
-      })
-      .catch(() => {});
+    const loadMissions = () => {
+      void request('/api/engagement/missions')
+        .then(({ data }) => {
+          const missions = (data?.missions as Array<{
+            metric_key?: string;
+            progress?: number;
+            goal_count?: number;
+          }>) || [];
+          const watch = missions.find((m) => m.metric_key === 'watch_minutes');
+          const gifts = missions.find((m) => m.metric_key === 'gifts_sent');
+          if (watch) {
+            setMissionWatchMin(Math.max(0, Number(watch.progress) || 0));
+            if (watch.goal_count) setMissionWatchGoal(Math.max(1, Number(watch.goal_count)));
+          }
+          if (gifts) {
+            setMissionGiftsSent(Math.max(0, Number(gifts.progress) || 0));
+            if (gifts.goal_count) setMissionGiftsGoal(Math.max(1, Number(gifts.goal_count)));
+          }
+        })
+        .catch(() => {});
+    };
+    loadMissions();
+    const refresh = window.setInterval(loadMissions, 60_000);
+    return () => window.clearInterval(refresh);
   }, [user?.id]);
   // Host also reports watch progress server-side (same contract as spectator).
   useEffect(() => {
@@ -4230,11 +4243,12 @@ export default function LiveStream() {
     ? LIVE_SIDE_DEMO_MISSIONS
     : {
         watchMin: missionWatchMin,
-        watchGoal: 30,
+        watchGoal: missionWatchGoal,
         giftsSent: missionGiftsSent,
-        giftsGoal: 10,
+        giftsGoal: missionGiftsGoal,
         battleJoined: isBattleMode ? 1 : 0,
         battleGoal: 1,
+        claimable: false as const,
       };
   const sideSupporters = useMemo(() => {
     if (markedUiDemo) return LIVE_SIDE_DEMO_SUPPORTERS;
@@ -6318,6 +6332,10 @@ export default function LiveStream() {
             onViewAllSupporters={() => {
               setIsFindCreatorsOpen(false);
               setShowViewerList(true);
+            }}
+            onOpenMissions={() => {
+              setEngagementPanel('missions');
+              setEngagementOpen(true);
             }}
             onBattlePass={() => {
               setRankingInitialTab('weekly');

@@ -16,6 +16,9 @@ import {
 import {
   listMissionsAdmin,
   updateMissionAdmin,
+  createMissionAdmin,
+  archiveMissionAdmin,
+  getMissionStatsAdmin,
   listDailyRewardConfigAdmin,
   updateDailyRewardConfigAdmin,
   getBattleEnergyCaps,
@@ -199,6 +202,63 @@ router.get("/missions", async (_req, res) => {
   }
 });
 
+const missionCreateSchema = z.object({
+  id: z.string().min(2).max(80),
+  scope: z.enum(["daily", "weekly", "creator", "special"]),
+  title: z.string().min(1).max(200),
+  description: z.string().max(1000).nullable().optional(),
+  goal_count: z.number().int().min(1).max(1_000_000),
+  reward_xp: z.number().int().min(0).max(1_000_000),
+  reward_promo_coins: z.number().int().min(0).max(1_000_000),
+  reward_energy: z.number().int().min(0).max(1_000_000),
+  metric_key: z.string().min(1).max(80),
+  sort_order: z.number().int().min(0).max(10_000).optional(),
+});
+
+router.post(
+  "/missions",
+  validateBody(missionCreateSchema),
+  async (req: Request, res: Response) => {
+    try {
+      const mission = await createMissionAdmin({
+        ...req.body,
+        adminUserId: (req.authContext as NonNullable<typeof req.authContext>)
+          .userId,
+      });
+      if (!mission) return res.status(409).json({ error: "MISSION_EXISTS_OR_INVALID" });
+      return res.status(201).json({ mission });
+    } catch (err) {
+      logger.error({ err }, "admin mission create failed");
+      return res.status(500).json({ error: "MISSION_CREATE_FAILED" });
+    }
+  },
+);
+
+router.post("/missions/:id/archive", async (req: Request, res: Response) => {
+  try {
+    const result = await archiveMissionAdmin({
+      id: String(req.params.id),
+      adminUserId: (req.authContext as NonNullable<typeof req.authContext>)
+        .userId,
+    });
+    if (!result) return res.status(404).json({ error: "MISSION_NOT_FOUND" });
+    return res.json(result);
+  } catch (err) {
+    logger.error({ err }, "admin mission archive failed");
+    return res.status(500).json({ error: "MISSION_ARCHIVE_FAILED" });
+  }
+});
+
+router.get("/missions/:id/stats", async (req: Request, res: Response) => {
+  try {
+    const stats = await getMissionStatsAdmin(String(req.params.id));
+    return res.json({ stats });
+  } catch (err) {
+    logger.error({ err }, "admin mission stats failed");
+    return res.status(500).json({ error: "MISSION_STATS_FAILED" });
+  }
+});
+
 const missionPatchSchema = z.object({
   title: z.string().min(1).max(200).optional(),
   description: z.string().max(1000).nullable().optional(),
@@ -324,16 +384,35 @@ const flagsSchema = z
     stickerCollectionEnabled: z.boolean().optional(),
     creatorCollectionsEnabled: z.boolean().optional(),
     engagementNeonApproved: z.boolean().optional(),
+    liveQuestsEnabled: z.boolean().optional(),
+    petEvolutionEnabled: z.boolean().optional(),
+    worldEventsEnabled: z.boolean().optional(),
+    guildsEnabled: z.boolean().optional(),
+    appleSignInEnabled: z.boolean().optional(),
+    confirm: z.boolean().optional(),
   })
-  .refine((v) => Object.keys(v).length > 0, "At least one flag required");
+  .refine((v) => Object.keys(v).filter((k) => k !== "confirm").length > 0, "At least one flag required");
 
 router.patch(
   "/feature-flags",
   validateBody(flagsSchema),
   async (req: Request, res: Response) => {
     try {
+      const highImpact =
+        typeof req.body.engagementNeonApproved === "boolean" ||
+        typeof req.body.promotionalCoinsEnabled === "boolean" ||
+        typeof req.body.promoGiftSpendEnabled === "boolean" ||
+        typeof req.body.battleEnergyEnabled === "boolean";
+      if (highImpact && req.body.confirm !== true) {
+        return res.status(400).json({
+          error: "CONFIRM_REQUIRED",
+          message:
+            "High-impact flag changes require confirm: true in the request body.",
+        });
+      }
+      const { confirm: _c, ...patch } = req.body;
       const flags = await updateFeatureFlagsAdmin(
-        req.body,
+        patch,
         (req.authContext as NonNullable<typeof req.authContext>).userId,
       );
       return res.json({ flags });

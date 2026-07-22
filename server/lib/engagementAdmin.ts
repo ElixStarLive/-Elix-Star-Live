@@ -65,6 +65,58 @@ export async function listMissionsAdmin() {
   return r.rows;
 }
 
+export async function createMissionAdmin(input: {
+  id: string;
+  scope: "daily" | "weekly" | "creator" | "special";
+  title: string;
+  description?: string | null;
+  goal_count: number;
+  reward_xp: number;
+  reward_promo_coins: number;
+  reward_energy: number;
+  metric_key: string;
+  sort_order?: number;
+  adminUserId: string;
+}) {
+  const db = getPool();
+  if (!db) return null;
+  const id = String(input.id || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, "_")
+    .slice(0, 80);
+  if (!id) return null;
+  const r = await db.query(
+    `INSERT INTO engagement_missions
+       (id, scope, title, description, goal_count, reward_xp, reward_promo_coins,
+        reward_energy, metric_key, enabled, sort_order)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,TRUE,$10)
+     ON CONFLICT (id) DO NOTHING
+     RETURNING *`,
+    [
+      id,
+      input.scope,
+      input.title.slice(0, 200),
+      input.description ?? null,
+      Math.max(1, Math.floor(input.goal_count)),
+      Math.max(0, Math.floor(input.reward_xp)),
+      Math.max(0, Math.floor(input.reward_promo_coins)),
+      Math.max(0, Math.floor(input.reward_energy)),
+      String(input.metric_key).slice(0, 80),
+      Math.floor(input.sort_order ?? 100),
+    ],
+  );
+  if (!r.rows[0]) return null;
+  await writeAdminAudit(
+    input.adminUserId,
+    "mission_create",
+    id,
+    null,
+    r.rows[0],
+  );
+  return r.rows[0];
+}
+
 export async function updateMissionAdmin(input: {
   id: string;
   title?: string;
@@ -84,25 +136,37 @@ export async function updateMissionAdmin(input: {
     [input.id],
   );
   if (!prev.rows[0]) return null;
+  const claimed = await db.query(
+    `SELECT COUNT(*)::int AS c FROM user_mission_progress
+      WHERE mission_id = $1 AND claimed = TRUE`,
+    [input.id],
+  );
+  const claimedCount = Number(claimed.rows[0]?.c || 0);
   const row = prev.rows[0];
+  // If already claimed, only allow enable/disable + sort — not reward/goal edits.
+  const lockRewards = claimedCount > 0;
   const next = {
     title: input.title ?? row.title,
     description:
       input.description !== undefined ? input.description : row.description,
-    goal_count:
-      input.goal_count !== undefined
+    goal_count: lockRewards
+      ? Number(row.goal_count)
+      : input.goal_count !== undefined
         ? Math.max(1, Math.floor(input.goal_count))
         : Number(row.goal_count),
-    reward_xp:
-      input.reward_xp !== undefined
+    reward_xp: lockRewards
+      ? Number(row.reward_xp)
+      : input.reward_xp !== undefined
         ? Math.max(0, Math.floor(input.reward_xp))
         : Number(row.reward_xp),
-    reward_promo_coins:
-      input.reward_promo_coins !== undefined
+    reward_promo_coins: lockRewards
+      ? Number(row.reward_promo_coins)
+      : input.reward_promo_coins !== undefined
         ? Math.max(0, Math.floor(input.reward_promo_coins))
         : Number(row.reward_promo_coins),
-    reward_energy:
-      input.reward_energy !== undefined
+    reward_energy: lockRewards
+      ? Number(row.reward_energy)
+      : input.reward_energy !== undefined
         ? Math.max(0, Math.floor(input.reward_energy))
         : Number(row.reward_energy),
     enabled: input.enabled !== undefined ? !!input.enabled : !!row.enabled,
@@ -139,10 +203,57 @@ export async function updateMissionAdmin(input: {
     input.adminUserId,
     "mission_update",
     input.id,
-    row,
+    { ...row, claimedCount },
     r.rows[0],
   );
   return r.rows[0];
+}
+
+export async function archiveMissionAdmin(input: {
+  id: string;
+  adminUserId: string;
+}) {
+  const db = getPool();
+  if (!db) return null;
+  const claims = await db.query(
+    `SELECT COUNT(*)::int AS c FROM user_mission_progress
+      WHERE mission_id = $1 AND claimed = TRUE`,
+    [input.id],
+  );
+  const claimedCount = Number(claims.rows[0]?.c || 0);
+  const prev = await db.query(
+    `SELECT * FROM engagement_missions WHERE id = $1`,
+    [input.id],
+  );
+  if (!prev.rows[0]) return null;
+  // Soft-archive: disable. Do not mutate rewards if already claimed.
+  const r = await db.query(
+    `UPDATE engagement_missions SET enabled = FALSE WHERE id = $1 RETURNING *`,
+    [input.id],
+  );
+  await writeAdminAudit(
+    input.adminUserId,
+    "mission_archive",
+    input.id,
+    { ...prev.rows[0], claimedCount },
+    r.rows[0],
+  );
+  return { mission: r.rows[0], claimedCount };
+}
+
+export async function getMissionStatsAdmin(missionId: string) {
+  const db = getPool();
+  if (!db) return null;
+  const r = await db.query(
+    `SELECT
+       COUNT(*)::int AS participants,
+       COUNT(*) FILTER (WHERE completed)::int AS completed,
+       COUNT(*) FILTER (WHERE claimed)::int AS claimed
+     FROM user_mission_progress
+     WHERE mission_id = $1`,
+    [missionId],
+  );
+  return r.rows[0] || { participants: 0, completed: 0, claimed: 0 };
 }
 
 export async function listDailyRewardConfigAdmin() {
@@ -314,6 +425,11 @@ export async function updateFeatureFlagsAdmin(
     "stickerCollectionEnabled",
     "creatorCollectionsEnabled",
     "engagementNeonApproved",
+    "liveQuestsEnabled",
+    "petEvolutionEnabled",
+    "worldEventsEnabled",
+    "guildsEnabled",
+    "appleSignInEnabled",
   ];
   const nextOverrides: Partial<EngagementFlags> = {
     ...(await loadFlagOverrides()),

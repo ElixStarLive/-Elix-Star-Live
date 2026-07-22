@@ -247,12 +247,29 @@ export default function AdminProgression() {
                     disabled={busy}
                     onClick={() => {
                       void (async () => {
+                        const highImpact = [
+                          "engagementNeonApproved",
+                          "promotionalCoinsEnabled",
+                          "promoGiftSpendEnabled",
+                          "battleEnergyEnabled",
+                        ].includes(k);
+                        if (
+                          highImpact &&
+                          !window.confirm(
+                            `Change high-impact flag "${k}"? This affects live economy behavior.`,
+                          )
+                        ) {
+                          return;
+                        }
                         setBusy(true);
                         const { data, error } = await request(
                           "/api/admin/progression/feature-flags",
                           {
                             method: "PATCH",
-                            body: JSON.stringify({ [k]: !v }),
+                            body: JSON.stringify({
+                              [k]: !v,
+                              ...(highImpact ? { confirm: true } : {}),
+                            }),
                           },
                         );
                         setBusy(false);
@@ -409,6 +426,29 @@ export default function AdminProgression() {
                     }}
                   >
                     Save
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    className="px-3 py-1.5 rounded-lg bg-white/10 text-xs disabled:opacity-40"
+                    onClick={() => {
+                      void (async () => {
+                        if (!window.confirm(`Archive mission ${m.id}?`)) return;
+                        setBusy(true);
+                        const { error } = await request(
+                          `/api/admin/progression/missions/${encodeURIComponent(m.id)}/archive`,
+                          { method: "POST", body: "{}" },
+                        );
+                        setBusy(false);
+                        if (error) showToast(error.message);
+                        else {
+                          showToast("Mission archived");
+                          void loadEngagementAdmin();
+                        }
+                      })();
+                    }}
+                  >
+                    Archive
                   </button>
                 </div>
               </div>

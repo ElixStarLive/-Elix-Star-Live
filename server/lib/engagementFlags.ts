@@ -25,6 +25,12 @@ export type EngagementFlags = {
   creatorCollectionsEnabled: boolean;
   /** Allows Neon engagement table writes (migrations must be applied) */
   engagementNeonApproved: boolean;
+  /** Future / gated surfaces — default OFF until product-ready */
+  liveQuestsEnabled: boolean;
+  petEvolutionEnabled: boolean;
+  worldEventsEnabled: boolean;
+  guildsEnabled: boolean;
+  appleSignInEnabled: boolean;
 };
 
 let flagOverrideCache: Partial<EngagementFlags> = {};
@@ -51,6 +57,11 @@ export function getEngagementFlagsFromEnv(): EngagementFlags {
     stickerCollectionEnabled: envBool("STICKER_COLLECTION_ENABLED", true),
     creatorCollectionsEnabled: envBool("CREATOR_COLLECTIONS_ENABLED", true),
     engagementNeonApproved,
+    liveQuestsEnabled: envBool("LIVE_QUESTS_ENABLED", false),
+    petEvolutionEnabled: envBool("PET_EVOLUTION_ENABLED", false),
+    worldEventsEnabled: envBool("WORLD_EVENTS_ENABLED", false),
+    guildsEnabled: envBool("GUILDS_ENABLED", false),
+    appleSignInEnabled: envBool("APPLE_SIGN_IN_ENABLED", false),
   };
 }
 

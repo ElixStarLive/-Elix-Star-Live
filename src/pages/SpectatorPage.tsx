@@ -294,28 +294,42 @@ export default function SpectatorPage() {
   const showComboColumn = (showComboButton && comboStack.length > 0) || (markedUiDemo && demoComboStack.length > 0);
   const [missionWatchMin, setMissionWatchMin] = useState(0);
   const [missionGiftsSent, setMissionGiftsSent] = useState(0);
+  const [missionWatchGoal, setMissionWatchGoal] = useState(30);
+  const [missionGiftsGoal, setMissionGiftsGoal] = useState(10);
   const [userXP, setUserXP] = useState(0);
   useEffect(() => {
     if (!user?.id) return;
-    void request('/api/engagement/missions')
-      .then(({ data }) => {
-        const missions = (data?.missions as Array<{
-          metric_key?: string;
-          progress?: number;
-        }>) || [];
-        const watch = missions.find((m) => m.metric_key === 'watch_minutes');
-        const gifts = missions.find((m) => m.metric_key === 'gifts_sent');
-        if (watch) setMissionWatchMin(Math.max(0, Number(watch.progress) || 0));
-        if (gifts) setMissionGiftsSent(Math.max(0, Number(gifts.progress) || 0));
-      })
-      .catch(() => {});
+    const loadMissions = () => {
+      void request('/api/engagement/missions')
+        .then(({ data }) => {
+          const missions = (data?.missions as Array<{
+            metric_key?: string;
+            progress?: number;
+            goal_count?: number;
+          }>) || [];
+          const watch = missions.find((m) => m.metric_key === 'watch_minutes');
+          const gifts = missions.find((m) => m.metric_key === 'gifts_sent');
+          if (watch) {
+            setMissionWatchMin(Math.max(0, Number(watch.progress) || 0));
+            if (watch.goal_count) setMissionWatchGoal(Math.max(1, Number(watch.goal_count)));
+          }
+          if (gifts) {
+            setMissionGiftsSent(Math.max(0, Number(gifts.progress) || 0));
+            if (gifts.goal_count) setMissionGiftsGoal(Math.max(1, Number(gifts.goal_count)));
+          }
+        })
+        .catch(() => {});
+    };
+    loadMissions();
+    const refresh = window.setInterval(loadMissions, 60_000);
+    return () => window.clearInterval(refresh);
   }, [user?.id]);
   useEffect(() => {
     const id = window.setInterval(() => {
-      setMissionWatchMin((m) => Math.min(30, m + 1));
+      setMissionWatchMin((m) => Math.min(missionWatchGoal, m + 1));
     }, 60_000);
     return () => window.clearInterval(id);
-  }, []);
+  }, [missionWatchGoal]);
   const comboTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resetComboTimer = () => {
     if (comboTimerRef.current) clearTimeout(comboTimerRef.current);
@@ -3741,11 +3755,12 @@ export default function SpectatorPage() {
                   ? LIVE_SIDE_DEMO_MISSIONS
                   : {
                       watchMin: missionWatchMin,
-                      watchGoal: 30,
+                      watchGoal: missionWatchGoal,
                       giftsSent: missionGiftsSent,
-                      giftsGoal: 10,
+                      giftsGoal: missionGiftsGoal,
                       battleJoined: spectatorBattle?.active ? 1 : 0,
                       battleGoal: 1,
+                      claimable: false as const,
                     }
               }
               supporters={
@@ -3764,6 +3779,10 @@ export default function SpectatorPage() {
               battlePassXp={markedUiDemo ? 320 : userXP % 1000}
               battlePassXpMax={1000}
               onViewAllSupporters={() => setShowViewersPanel(true)}
+              onOpenMissions={() => {
+                setEngagementPanel('missions');
+                setEngagementOpen(true);
+              }}
               onBattlePass={() => {
                 setRankingInitialTab('weekly');
                 setShowRankingPanel(true);

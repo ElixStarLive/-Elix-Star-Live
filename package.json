@@ -20,6 +20,8 @@
     "preview": "vite preview",
     "check": "tsc -b --noEmit",
     "test": "vitest run",
+    "test:money": "vitest run server/lib/moneyIntegration.test.ts",
+    "migrate:status": "npx tsx server/scripts/migrationStatusCheck.ts",
     "start": "npx tsx server/index.ts",
     "migrate": "npx tsx server/migrate.ts",
     "start:prod": "npx tsx server/cluster.ts",

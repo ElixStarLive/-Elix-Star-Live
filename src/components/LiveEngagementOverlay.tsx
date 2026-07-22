@@ -91,6 +91,9 @@ export function LiveEngagementOverlay({
                   <Sparkles className="w-3.5 h-3.5 text-[#D4AF37] flex-shrink-0" />
                   <span className="text-sm font-bold text-white truncate">
                     {state.poll.kind === "trivia" ? "Trivia" : "Live poll"}
+                    {state.poll.endsAt && _nowMs >= state.poll.endsAt
+                      ? " · Ended"
+                      : ""}
                   </span>
                 </div>
                 <button type="button" className="p-1" onClick={() => setShowPollSheet(false)}>
@@ -102,23 +105,26 @@ export function LiveEngagementOverlay({
                 {state.poll.options.map((opt, i) => {
                   const total = state.poll!.votes.reduce((a, b) => a + b, 0) || 1;
                   const pct = Math.round(((state.poll!.votes[i] || 0) / total) * 100);
+                  const ended =
+                    !!state.poll!.endsAt && _nowMs >= state.poll!.endsAt;
                   return (
                     <button
                       key={`${state.poll!.id}-${i}`}
                       type="button"
-                      disabled={hasVoted}
+                      disabled={hasVoted || ended}
                       onClick={() => {
+                        if (ended || hasVoted) return;
                         onVote?.(i);
                       }}
                       className="relative overflow-hidden rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-left disabled:opacity-90 active:scale-[0.99]"
                     >
                       <div
                         className="absolute inset-y-0 left-0 bg-[#D4AF37]/25"
-                        style={{ width: hasVoted ? `${pct}%` : "0%" }}
+                        style={{ width: hasVoted || ended ? `${pct}%` : "0%" }}
                       />
                       <div className="relative flex justify-between gap-2">
                         <span className="text-[12px] font-bold text-white">{opt}</span>
-                        {hasVoted ? (
+                        {hasVoted || ended ? (
                           <span className="text-[11px] text-[#D4AF37] tabular-nums font-bold">{pct}%</span>
                         ) : null}
                       </div>

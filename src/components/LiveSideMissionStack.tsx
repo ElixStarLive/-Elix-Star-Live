@@ -16,6 +16,11 @@ export type LiveSideMissionProgress = {
   giftsGoal: number;
   battleJoined: number;
   battleGoal: number;
+  /**
+   * Side stack is progress display only. Claims happen in Engagement Hub/drawer.
+   * Never treat this panel as a claim surface.
+   */
+  claimable?: false;
 };
 
 function formatPointsShort(n: number) {
@@ -110,6 +115,7 @@ export function LiveSideMissionStack({
   battlePassXpMax,
   onViewAllSupporters,
   onBattlePass,
+  onOpenMissions,
   /** When true, render panel/tab only (parent dock owns fixed position). */
   embedded = false,
 }: {
@@ -120,6 +126,8 @@ export function LiveSideMissionStack({
   battlePassXpMax: number;
   onViewAllSupporters?: () => void;
   onBattlePass?: () => void;
+  /** Opens Engagement Hub/drawer — side stack never claims rewards itself. */
+  onOpenMissions?: () => void;
   embedded?: boolean;
 }) {
   const [remainMs, setRemainMs] = useState(msUntilLocalMidnight);
@@ -181,30 +189,44 @@ export function LiveSideMissionStack({
           boxShadow: '0 1px 6px rgba(0,0,0,0.28)',
         }}
       >
-        <button
-          type="button"
-          className="flex items-center justify-between gap-1 w-full text-left active:opacity-90"
-          onClick={(e) => {
-            e.stopPropagation();
-            setOpen(false);
-          }}
-          title="Close"
-          aria-expanded={true}
-        >
-          <div className="flex items-center gap-1 min-w-0">
-            <Target size={11} className="text-[#FF4DA6] flex-shrink-0" strokeWidth={2.4} />
-            <span className="text-white text-[9px] font-bold whitespace-nowrap">Daily Mission</span>
-          </div>
-          <div className="flex items-center gap-1 flex-shrink-0">
-            <Clock size={9} className="text-[#F5D07A]" strokeWidth={2.2} />
-            <span className="text-[#F5D07A] text-[8px] font-bold tabular-nums leading-none">
-              {formatHms(remainMs)}
-            </span>
-            <span className="text-white/70 text-[10px] font-bold leading-none ml-0.5" aria-hidden>
-              ›
-            </span>
-          </div>
-        </button>
+        <div className="flex items-center justify-between gap-1 w-full">
+          <button
+            type="button"
+            className="flex items-center justify-between gap-1 flex-1 min-w-0 text-left active:opacity-90"
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpen(false);
+            }}
+            title="Close"
+            aria-expanded={true}
+          >
+            <div className="flex items-center gap-1 min-w-0">
+              <Target size={11} className="text-[#FF4DA6] flex-shrink-0" strokeWidth={2.4} />
+              <span className="text-white text-[9px] font-bold whitespace-nowrap">Daily Mission</span>
+            </div>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <Clock size={9} className="text-[#F5D07A]" strokeWidth={2.2} />
+              <span className="text-[#F5D07A] text-[8px] font-bold tabular-nums leading-none">
+                {formatHms(remainMs)}
+              </span>
+              <span className="text-white/70 text-[10px] font-bold leading-none ml-0.5" aria-hidden>
+                ›
+              </span>
+            </div>
+          </button>
+          {onOpenMissions ? (
+            <button
+              type="button"
+              className="text-[#C084FC] text-[8px] font-semibold whitespace-nowrap active:opacity-80 flex-shrink-0 pl-1"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenMissions();
+              }}
+            >
+              Hub
+            </button>
+          ) : null}
+        </div>
 
         <div className="flex flex-col gap-1">
           <MissionRow
