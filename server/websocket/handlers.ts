@@ -50,7 +50,6 @@ import { dbIsBlockedEitherWay, dbGetLiveStreams, getPool } from "../lib/postgres
 import { activateBooster, getMistFogDurationMs } from "../lib/booster";
 import { deliverVerifiedGift } from "./giftDelivery";
 import {
-  isProductionTestCoinsBlocked,
   isTestCoinsGiftSource,
 } from "./testCoinsPolicy";
 
@@ -201,9 +200,9 @@ export async function handleMessage(
         if (!(await wsRateCheck(client.userId, "gift", 50, 5_000))) break;
         const { transactionId } = data;
 
-        // TEST COINS: animation-only. Never payments / wallet / goals.
-        // Always broadcast so the creator GiftOverlay plays (spectator already
-        // queued locally). Production still forbids battle-score side effects.
+        // TEST COINS: never payments / wallet / goals / earnings.
+        // Always broadcast animation + apply battle MATCH points only
+        // (help in battle / test uploaded gifts). Money stays paid_coins-only.
         if (isTestCoinsGiftSource(data)) {
           const testGiftId = typeof data?.giftId === "string" ? data.giftId : "";
           const testClientVideo =
@@ -214,10 +213,12 @@ export async function handleMessage(
             await import("./giftRegistry");
           const testVideo = await resolvePlayableGiftVideoUrl(testGiftId, testClientVideo);
           const testBattleTarget = normalizeBattleTarget(data?.battleTarget);
+          const testPoints = Math.max(0, getGiftValue(testGiftId) || 0);
           const testPayload = {
             giftId: testGiftId,
             giftName: typeof data?.giftName === "string" ? data.giftName : "Gift",
-            coins: 0,
+            // Catalog points for MVP/UI only — giftSource marks this as not money.
+            coins: testPoints,
             giftSource: "test_coins",
             // Unique id so clients receiving this event twice (room broadcast +
             // direct owner send) dedupe it and play the animation exactly once.
@@ -246,22 +247,17 @@ export async function handleMessage(
               sendToUserGlobal(testOwnerId, "gift_sent", testPayload);
             }
           } catch { /* non-fatal */ }
-          // Non-prod only: simulate battle score for testing PK bar without wallets.
-          if (!isProductionTestCoinsBlocked()) {
-            try {
-              const testBattle = await getBattleFromStore(client.roomId);
-              if (testBattle && testBattle.status === "ACTIVE") {
-                const testPoints = getGiftValue(testGiftId);
-                if (testPoints > 0) {
-                  await addBattleScoreForTarget(
-                    client.roomId,
-                    testBattleTarget || "host",
-                    testPoints,
-                  );
-                }
-              }
-            } catch { /* non-fatal */ }
-          }
+          // Match/VS points only — never wallet, earnings, or gift goals.
+          try {
+            const testBattle = await getBattleFromStore(client.roomId);
+            if (testBattle && testBattle.status === "ACTIVE" && testPoints > 0) {
+              await addBattleScoreForTarget(
+                client.roomId,
+                testBattleTarget || "host",
+                testPoints,
+              );
+            }
+          } catch { /* non-fatal */ }
           sendToClient(client, "gift_ack", {
             transactionId: null,
             status: "test",

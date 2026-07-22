@@ -4437,9 +4437,8 @@ export default function LiveStream() {
             })
           : undefined;
 
-      // Test coins never touch payments, goals, or battle scores — the server
-      // broadcasts them animation-only so everyone in the room sees the video.
-      // Persisted gifts include the REST transaction id for source verification.
+      // Test coins: animation + battle MATCH points only (never wallet/money).
+      // Paid coins: REST-verified delivery applies money + battle in giftDelivery.
       if (usedTestCoins || giftTransactionId) {
         const wsVideo =
           gift.video && gift.video.trim()
@@ -4451,7 +4450,7 @@ export default function LiveStream() {
           giftId: gift.id,
           giftName: gift.name,
           username: isBroadcast ? creatorName : viewerName,
-          coins: usedTestCoins ? 0 : gift.coins,
+          coins: gift.coins,
           gift_icon: gift.icon || '🎁',
           quantity: 1,
           level: newLevel,
@@ -4717,7 +4716,7 @@ export default function LiveStream() {
           giftId: lastSentGift.id,
           giftName: lastSentGift.name,
           username: isBroadcast ? creatorName : viewerName,
-          coins: usedTestCoins ? 0 : lastSentGift.coins,
+          coins: lastSentGift.coins,
           gift_icon: lastSentGift.icon || '🎁',
           quantity: 1,
           level: newLevel,

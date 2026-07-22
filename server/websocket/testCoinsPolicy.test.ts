@@ -12,8 +12,8 @@ describe("testCoinsPolicy", () => {
     expect(isTestCoinsGiftSource(null)).toBe(false);
   });
 
-  it("marks production as blocking test-coin battle score side effects", () => {
-    expect(isProductionTestCoinsBlocked("production")).toBe(true);
+  it("does not block battle match points by NODE_ENV (money stays giftSource-gated)", () => {
+    expect(isProductionTestCoinsBlocked("production")).toBe(false);
     expect(isProductionTestCoinsBlocked("development")).toBe(false);
     expect(isProductionTestCoinsBlocked(undefined)).toBe(false);
   });

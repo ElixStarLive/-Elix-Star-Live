@@ -72,9 +72,10 @@ describe("Starter Coin transactional contracts", () => {
     expect(progression).toContain('await client.query("COMMIT")');
   });
 
-  it("excludes starter gifts from goals and battle scores", () => {
-    // Gift-goal + battle-score side effects only run inside the paid-coins branch,
-    // so starter (and test) coins never affect goals or battle scores.
+  it("excludes starter gifts from goals and battle scores in giftDelivery", () => {
+    // Gift-goal + battle-score side effects for verified REST gifts only run
+    // inside the paid-coins branch. Test-coin match points are handled separately
+    // in the WS gift_sent handler (animation + VS bar, never money).
     expect(giftDelivery).toContain('input.giftSource === "paid_coins"');
     const gate = giftDelivery.indexOf('input.giftSource === "paid_coins"');
     const paidBranch = giftDelivery.slice(gate);

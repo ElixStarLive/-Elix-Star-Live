@@ -186,6 +186,9 @@ export async function deliverVerifiedGift(
   }
 
   if (input.giftSource === "paid_coins") {
+    // Money path only: gift goals + battle scores from paid coins.
+    // Test coins apply match points in the WS gift_sent handler instead.
+    // Starter coins never count as money here.
     try {
       const updatedGoal = await incrementGiftGoal(roomId, giftId, 1);
       if (updatedGoal) {

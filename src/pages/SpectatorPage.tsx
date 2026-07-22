@@ -2531,10 +2531,8 @@ export default function SpectatorPage() {
       avatar: viewerAvatar,
     };
     setMessages(prev => appendCapped(prev, giftMsg, LIVE_CHAT_MESSAGE_CAP));
-    // Test coins never touch payments, goals, or battle scores — the server
-    // broadcasts them animation-only so the creator and all spectators see the
-    // gift video. Persisted gifts include the REST transaction id for
-    // server-side source verification.
+    // Test coins: animation + battle MATCH points only (never wallet/money).
+    // Paid coins: REST-verified delivery applies money + battle in giftDelivery.
     if (usedTestCoins || giftTransactionId) {
       const wsVideo =
         gift.video && gift.video.trim()
@@ -2546,7 +2544,7 @@ export default function SpectatorPage() {
         giftId: gift.id,
         giftName: gift.name,
         username: viewerName,
-        coins: usedTestCoins ? 0 : gift.coins,
+        coins: gift.coins,
         gift_icon: gift.icon || '🎁',
         quantity: 1,
         level: newLevel,
