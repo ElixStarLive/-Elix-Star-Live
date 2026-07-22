@@ -915,6 +915,17 @@ svg.lucide {
     drop-shadow(0 0 8px var(--icon-neon-purple-glow-soft));
 }
 
+/* Level number Gem — Neon Purple #C77DFF, exact specs (overrides gold icon theme) */
+svg.lucide.level-gem-icon {
+  color: #C77DFF !important;
+  stroke: #C77DFF !important;
+  stroke-width: 1.8 !important;
+  fill: none !important;
+  background: none !important;
+  border: none !important;
+  filter: none !important;
+}
+
 /* Active filled states (save, badge hearts, etc.) */
 svg.lucide.fill-current,
 svg.lucide.fill-gold-bright,

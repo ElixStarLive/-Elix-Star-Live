@@ -1,27 +1,27 @@
 import React from 'react';
+import { Gem } from 'lucide-react';
 import { PROFILE_RING_IMAGE_LIFT_MM, profileRingInnerPx } from '../lib/profileFrame';
 import { ROYCE_DEFAULT_AVATAR } from '../lib/royceAssets';
 
-/** Primary Gold diamond — style guide #D4AF37 */
-function LevelDiamondIcon({ size = 10 }: { size?: number }) {
+/** Lucide Gem before every level number — #C77DFF, 30px, stroke 1.8, no fill/bg/border. */
+function LevelDiamondIcon() {
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 16 16"
-      className="flex-shrink-0"
+    <Gem
+      size={30}
+      strokeWidth={1.8}
+      fill="none"
       aria-hidden
-      style={{ filter: 'drop-shadow(0 0 3px rgba(212,175,55,0.85))' }}
-    >
-      <path
-        d="M8 1.2 L14.2 6.1 L8 14.8 L1.8 6.1 Z"
-        fill="none"
-        stroke="#D4AF37"
-        strokeWidth="1.35"
-        strokeLinejoin="round"
-      />
-      <path d="M8 1.2 L14.2 6.1 L8 7.2 L1.8 6.1 Z" fill="#E8C96A" opacity="0.4" />
-    </svg>
+      className="level-gem-icon flex-shrink-0"
+      style={{
+        color: '#C77DFF',
+        stroke: '#C77DFF',
+        fill: 'none',
+        background: 'none',
+        border: 'none',
+        filter: 'none',
+        display: 'block',
+      }}
+    />
   );
 }
 
@@ -66,31 +66,25 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
 
   const avatarDiameter = profileRingInnerPx(circleSize);
 
-  /** Square rounded level chip: pink diamond + number (no LV), beside chat circle. */
-  const chipH = Math.max(18, Math.round(circleSize * 0.78));
-  const fontPx = Math.max(9, Math.round(chipH * 0.48));
-  const diamondPx = Math.max(8, Math.round(chipH * 0.42));
+  /** Lucide Gem (30px) + level number — no chip bg/border. */
+  const fontPx = Math.max(11, Math.round((typeof circleSizeProp === 'number' ? circleSizeProp : circleSize) * 0.42));
   const levelChip = (
     <div
       style={{
         position: 'relative',
         zIndex: 1,
-        height: chipH,
-        minWidth: chipH,
-        borderRadius: 6,
-        background: 'rgba(8, 10, 22, 0.45)',
-        border: '1px solid rgba(255, 107, 157, 0.45)',
-        boxShadow: '0 1px 4px rgba(0,0,0,0.35)',
+        minHeight: 30,
+        background: 'none',
+        border: 'none',
+        boxShadow: 'none',
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 3,
-        paddingLeft: 5,
-        paddingRight: 5,
+        gap: 4,
         flexShrink: 0,
       }}
     >
-      <LevelDiamondIcon size={diamondPx} />
+      <LevelDiamondIcon />
       <span
         style={{
           color: '#F2F2F2',
