@@ -1,7 +1,7 @@
-# Engagement Phase 1.5 — Collection & Exploration
-# Applied by Coolify `npm run migrate` from server/migrations/.
-#
-# Rewards: Promo Coins / XP / Battle Energy / cosmetics only — never Diamonds.
+-- Engagement Phase 1.5 — Collection & Exploration
+-- Applied by Coolify `npm run migrate` from server/migrations/.
+--
+-- Rewards: Promo Coins / XP / Battle Energy / cosmetics only — never Diamonds.
 
 CREATE TABLE IF NOT EXISTS treasure_chest_defs (
   id TEXT PRIMARY KEY,
