@@ -205,14 +205,18 @@ export function LiveJoinPill({
   );
 }
 
+/** Photo Diamond League capsule chrome — all 4 pills share this 1-1. */
 const THIN_CAPSULE_STYLE: React.CSSProperties = {
-  background: 'transparent',
-  border: '1px solid rgba(255,255,255,0.14)',
+  background: 'rgba(8, 10, 22, 0.62)',
+  border: '1px solid rgba(255, 255, 255, 0.22)',
+  backdropFilter: 'blur(10px)',
+  WebkitBackdropFilter: 'blur(10px)',
+  boxShadow: '0 1px 6px rgba(0,0,0,0.28)',
 };
 
-/** Same height for every sub-header capsule (matches Diamond League two-line layout). */
+/** Same height / padding / border for every sub-header capsule. */
 const THIN_CAPSULE_CLASS =
-  'inline-flex items-center gap-1 flex-shrink-0 rounded-full pl-1.5 pr-1.5 h-[28px] box-border pointer-events-auto active:scale-95 transition-transform';
+  'inline-flex items-center gap-1 flex-shrink-0 rounded-full pl-2 pr-2 h-[30px] box-border pointer-events-auto active:scale-95 transition-transform';
 
 /** Diamond League — separate thin capsule. */
 export function LiveDiamondLeagueCapsule({
@@ -239,12 +243,12 @@ export function LiveDiamondLeagueCapsule({
           {rank != null ? `Rank ${rank}` : 'Rank —'}
         </span>
       </span>
-      <span className="text-white/75 text-[9px] font-medium leading-none">&gt;</span>
+      <span className="text-white/70 text-[9px] font-medium leading-none">&gt;</span>
     </button>
   );
 }
 
-/** Membership VIP — separate thin capsule. */
+/** Membership VIP — same border/fill as Diamond League (no yellow contour). */
 export function LiveMembershipVipCapsule({ onOpen }: { onOpen: () => void }) {
   return (
     <button
@@ -259,9 +263,9 @@ export function LiveMembershipVipCapsule({ onOpen }: { onOpen: () => void }) {
       <LivePhotoCrownIcon size={14} />
       <span className="flex flex-col items-start justify-center leading-none min-w-0">
         <span className="text-white text-[9px] font-bold whitespace-nowrap">Membership</span>
-        <span className="text-white/65 text-[7px] font-semibold whitespace-nowrap mt-[1px]">VIP</span>
+        <span className="text-[#FFD54A] text-[7px] font-bold whitespace-nowrap mt-[1px]">VIP</span>
       </span>
-      <span className="text-white/75 text-[9px] font-medium leading-none">&gt;</span>
+      <span className="text-white/70 text-[9px] font-medium leading-none">&gt;</span>
     </button>
   );
 }
@@ -315,7 +319,7 @@ function LivePhotoCrownIcon({ size = 14 }: { size?: number }) {
   );
 }
 
-/** Weekly Ranking — same capsule height as Diamond League. */
+/** Weekly Ranking — identical chrome to Diamond League. */
 export function LiveWeeklyRankingPill({
   rank,
   onOpen,
@@ -342,12 +346,12 @@ export function LiveWeeklyRankingPill({
           {rank != null ? `No.${rank}` : 'No.—'}
         </span>
       </span>
-      <span className="text-white/75 text-[9px] font-medium leading-none">&gt;</span>
+      <span className="text-white/70 text-[9px] font-medium leading-none">&gt;</span>
     </button>
   );
 }
 
-/** Explore — same capsule height as Diamond League. */
+/** Explore — identical chrome to Diamond League. */
 export function LiveExplorePill({ onOpen }: { onOpen: () => void }) {
   return (
     <button
@@ -375,7 +379,7 @@ export function LiveExplorePill({ onOpen }: { onOpen: () => void }) {
         <span className="text-white text-[9px] font-bold whitespace-nowrap">Explore</span>
         <span className="text-white/65 text-[7px] font-semibold whitespace-nowrap mt-[1px]">Live</span>
       </span>
-      <span className="text-white/75 text-[9px] font-medium leading-none">&gt;</span>
+      <span className="text-white/70 text-[9px] font-medium leading-none">&gt;</span>
     </button>
   );
 }

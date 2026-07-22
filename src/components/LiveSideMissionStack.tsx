@@ -183,10 +183,11 @@ export function LiveSideMissionStack({
             <div
               className="rounded-xl px-2 py-1.5 flex flex-col gap-1.5"
               style={{
-                background: 'rgba(8, 10, 28, 0.82)',
-                border: '1px solid rgba(255,255,255,0.10)',
-                backdropFilter: 'blur(8px)',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+                background: 'rgba(8, 10, 22, 0.62)',
+                border: '1px solid rgba(255, 255, 255, 0.22)',
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
+                boxShadow: '0 1px 6px rgba(0,0,0,0.28)',
               }}
             >
               <button
