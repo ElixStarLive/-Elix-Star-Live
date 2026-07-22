@@ -60,7 +60,8 @@ export function LiveFollowPill({
 
 /**
  * Host profile block (photo 1-1): pink ring avatar, name + blue verified,
- * “N Likes • LIVE Pro”, Lv pill + Diamond tier, Follow/Join action slot.
+ * “N Likes • LIVE Pro”, Lv pill + Diamond tier, Follow → then membership heart.
+ * Viewer flow: Follow first; after follow, action slot shows Join (membership heart).
  * Does not touch the 3 MVP circles.
  */
 export function LiveHostProfileHeader({
@@ -80,11 +81,12 @@ export function LiveHostProfileHeader({
   likes: number;
   level: number;
   avatarSize: number;
+  /** true = show Follow; false = show membership heart (Join) when joinSlot set. */
   showFollow: boolean;
   onAvatarClick: () => void;
   onLike: (e: React.PointerEvent) => void;
   onFollow: (e: React.MouseEvent) => void;
-  /** Shown when not following (Join remains available after follow). */
+  /** Membership heart — only after follow (or host own-stream Join). */
   joinSlot?: React.ReactNode;
 }) {
   const safeLevel = typeof level === 'number' && Number.isFinite(level) && level > 0 ? Math.floor(level) : 1;

@@ -3304,53 +3304,84 @@ export default function SpectatorPage() {
                   likes={typeof activeLikes === 'number' && Number.isFinite(activeLikes) ? activeLikes : 0}
                   level={hostLevel}
                   avatarSize={LIVE_TOP_AVATAR_RING_PX}
-                  showFollow={!isFollowing}
-                  onAvatarClick={() => navigate(`/profile/${hostUserId}`)}
-                  onLike={(e) => {
-                    handleLikeTap(e);
-                  }}
-                  onFollow={(e) => {
-                    e.stopPropagation();
-                    followHost(e);
-                  }}
-                  joinSlot={
-                    <LiveJoinPill
-                      hasJoinedToday={hasJoinedToday}
-                      onJoin={async (e) => {
-                        e.stopPropagation();
-                        if (!hasJoinedToday && user?.id && hostUserId) {
-                          const token = useAuthStore.getState().session?.access_token;
-                          if (!token) return;
-                          setHasJoinedToday(true);
-                          spawnHeartFromClient(e.clientX, e.clientY);
-                          const joinBannerId = Date.now().toString();
-                          const newMessage: LiveMessage = {
-                            id: joinBannerId,
-                            username: viewerName,
-                            text: '\u2764\ufe0f Joined the team!',
-                            level: userLevel,
-                            isGift: false,
-                            avatar: viewerAvatar,
-                            isSystem: true,
-                          };
-                          setMessages(prev => appendCapped(prev, newMessage, LIVE_CHAT_MESSAGE_CAP));
-                          window.setTimeout(() => {
-                            setMessages(prev => prev.filter(m => m.id !== joinBannerId));
-                          }, 5000);
-                          try {
-                            const { data: d } = await request('/api/hearts/daily', {
-                              method: 'POST',
-                              body: JSON.stringify({ creatorId: hostUserId }),
-                            });
-                            if (d) {
-                              if (typeof d.todayCount === 'number') setDailyHeartCount(d.todayCount);
-                              if (typeof d.totalCount === 'number') setMyHeartCount(d.totalCount);
+                            showFollow={!isFollowing}
+                            onAvatarClick={() => navigate(`/profile/${hostUserId}`)}
+                            onLike={(e) => {
+                              handleLikeTap(e);
+                            }}
+                            onFollow={(e) => {
+                              e.stopPropagation();
+                              followHost(e);
+                            }}
+                            joinSlot={
+                              isFollowing ? (
+                              <LiveJoinPill
+                                hasJoinedToday={hasJoinedToday}
+                                onJoin={async (e) => {
+                                  e.stopPropagation();
+                                  if (!isFollowing) {
+                                    showToast('Follow first to give a membership heart');
+                                    return;
+                                  }
+                                  if (!user?.id) {
+                                    showToast('Log in to give a membership heart');
+                                    navigate('/login', { state: { from: location.pathname } });
+                                    return;
+                                  }
+                                  const creatorId = hostUserIdRef.current || hostUserId;
+                                  if (!creatorId || hasJoinedToday) return;
+                                  const token = useAuthStore.getState().session?.access_token;
+                                  if (!token) {
+                                    showToast('Log in to give a membership heart');
+                                    navigate('/login', { state: { from: location.pathname } });
+                                    return;
+                                  }
+                                  const today = new Date().toISOString().split('T')[0];
+                                  const storageKey = `joined_stream_${effectiveStreamId}_${user.id}_${today}`;
+                                  localStorage.setItem(storageKey, 'true');
+                                  setHasJoinedToday(true);
+                                  spawnHeartFromClient(e.clientX, e.clientY);
+                                  const joinBannerId = Date.now().toString();
+                                  const newMessage: LiveMessage = {
+                                    id: joinBannerId,
+                                    username: viewerName,
+                                    text: '\u2764\ufe0f Joined the team!',
+                                    level: userLevel,
+                                    isGift: false,
+                                    avatar: viewerAvatar,
+                                    isSystem: true,
+                                    membershipIcon: '/royce/membership.svg',
+                                  };
+                                  setMessages(prev => appendCapped(prev, newMessage, LIVE_CHAT_MESSAGE_CAP));
+                                  window.setTimeout(() => {
+                                    setMessages(prev => prev.filter(m => m.id !== joinBannerId));
+                                  }, 5000);
+                                  try {
+                                    const { data: d, error } = await request('/api/hearts/daily', {
+                                      method: 'POST',
+                                      body: JSON.stringify({ creatorId }),
+                                    });
+                                    if (error) {
+                                      showToast('Could not send membership heart. Try again.');
+                                      return;
+                                    }
+                                    if (d?.ok || d?.already) {
+                                      if (!d?.already) {
+                                        setMyHeartCount((prev) => {
+                                          const next = prev + 1;
+                                          localStorage.setItem(`my_heart_count_${effectiveStreamId}_${user.id}`, String(next));
+                                          return next;
+                                        });
+                                        setDailyHeartCount((c) => c + 1);
+                                      }
+                                    }
+                                  } catch {
+                                    showToast('Could not send membership heart. Try again.');
+                                  }
+                                }}
+                              />
+                              ) : null
                             }
-                          } catch { /* non-fatal */ }
-                        }
-                      }}
-                    />
-                  }
                 />
               </div>
 

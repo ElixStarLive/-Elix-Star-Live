@@ -5937,45 +5937,64 @@ export default function LiveStream() {
                             }}
                             onFollow={followCreatorLive}
                             joinSlot={
+                              (isBroadcast || isFollowing) ? (
                               <LiveJoinPill
                                 hasJoinedToday={hasJoinedToday}
-                                onJoin={(e) => {
+                                onJoin={async (e) => {
                                   e.stopPropagation();
-                                  if (!hasJoinedToday && user?.id && effectiveStreamId) {
-                                    const today = new Date().toISOString().split('T')[0];
-                                    const storageKey = `joined_stream_${effectiveStreamId}_${user.id}_${today}`;
-                                    localStorage.setItem(storageKey, 'true');
-
-                                    const heartKey = `my_heart_count_${effectiveStreamId}_${user.id}`;
-                                    const newCount = myHeartCount + 1;
-                                    localStorage.setItem(heartKey, newCount.toString());
-                                    setMyHeartCount(newCount);
-
-                                    setMemberCount(prev => prev + 1);
-                                    setHasJoinedToday(true);
+                                  if (!isBroadcast && !isFollowing) {
+                                    showToast('Follow first to give a membership heart');
+                                    return;
+                                  }
+                                  if (hasJoinedToday) {
                                     setShowTeamStatus(true);
+                                    return;
+                                  }
+                                  if (!user?.id || !effectiveStreamId) return;
+                                  const today = new Date().toISOString().split('T')[0];
+                                  const storageKey = `joined_stream_${effectiveStreamId}_${user.id}_${today}`;
+                                  localStorage.setItem(storageKey, 'true');
 
-                                    const joinBannerId = Date.now().toString();
-                                    const newMessage: LiveMessage = {
-                                      id: joinBannerId,
-                                      username: 'You',
-                                      text: '❤️ Joined the team!',
-                                      level: userLevel,
-                                      isGift: false,
-                                      avatar: '/royce/elix-mark.svg',
-                                      isSystem: true,
-                                      membershipIcon: '/royce/membership.svg',
-                                    };
-                                    setMessages(prev => appendCapped(prev, newMessage, LIVE_CHAT_MESSAGE_CAP));
-                                    window.setTimeout(() => {
-                                      setMessages(prev => prev.filter(m => m.id !== joinBannerId));
-                                    }, 5000);
-                                    spawnHeartFromClient(e.clientX, e.clientY, undefined, 'You', '/royce/elix-mark.svg');
-                                  } else if (hasJoinedToday) {
-                                    setShowTeamStatus(true);
+                                  const heartKey = `my_heart_count_${effectiveStreamId}_${user.id}`;
+                                  const newCount = myHeartCount + 1;
+                                  localStorage.setItem(heartKey, newCount.toString());
+                                  setMyHeartCount(newCount);
+
+                                  setMemberCount(prev => prev + 1);
+                                  setHasJoinedToday(true);
+                                  setShowTeamStatus(true);
+
+                                  const joinBannerId = Date.now().toString();
+                                  const newMessage: LiveMessage = {
+                                    id: joinBannerId,
+                                    username: 'You',
+                                    text: '❤️ Joined the team!',
+                                    level: userLevel,
+                                    isGift: false,
+                                    avatar: '/royce/elix-mark.svg',
+                                    isSystem: true,
+                                    membershipIcon: '/royce/membership.svg',
+                                  };
+                                  setMessages(prev => appendCapped(prev, newMessage, LIVE_CHAT_MESSAGE_CAP));
+                                  window.setTimeout(() => {
+                                    setMessages(prev => prev.filter(m => m.id !== joinBannerId));
+                                  }, 5000);
+                                  spawnHeartFromClient(e.clientX, e.clientY, undefined, 'You', '/royce/elix-mark.svg');
+
+                                  if (!isBroadcast) {
+                                    const creatorId = effectiveStreamId;
+                                    try {
+                                      await request('/api/hearts/daily', {
+                                        method: 'POST',
+                                        body: JSON.stringify({ creatorId }),
+                                      });
+                                    } catch {
+                                      /* local join already applied */
+                                    }
                                   }
                                 }}
                               />
+                              ) : null
                             }
                           />
                           <div className="mt-1 pointer-events-auto relative z-20">
