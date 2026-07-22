@@ -135,9 +135,11 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
                   </div>
                 )}
                 {typeof msg.membershipIcon === 'string' && msg.membershipIcon && (
-                  <div className="bg-[#FF4500] px-1.5 py-0.5 rounded-full flex items-center gap-1 border border-white/10 shadow-sm inline-flex align-middle flex-shrink-0">
-                    <img src={msg.membershipIcon} alt="Member" className="w-3 h-3 object-contain" />
-                    <span className="text-white text-[9px] font-bold uppercase tracking-wider">Member</span>
+                  <div className="bg-[#FF6A00] px-1.5 py-[2px] rounded-full flex items-center gap-0.5 border border-white/20 shadow-sm inline-flex align-middle flex-shrink-0">
+                    <img src={msg.membershipIcon} alt="" className="w-2.5 h-2.5 object-contain" />
+                    <span className="text-white text-[8px] font-extrabold uppercase tracking-wide leading-none">
+                      Member
+                    </span>
                   </div>
                 )}
                 <span 
