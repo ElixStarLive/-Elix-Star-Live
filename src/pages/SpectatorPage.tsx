@@ -3383,26 +3383,28 @@ export default function SpectatorPage() {
                               ) : null
                             }
                 />
-                <LiveMarkedSubHeaderBar
-                  rank={diamondLeagueRank}
-                  onDiamond={() => {
-                    setShowGiftPanel(false);
-                    setRankingInitialTab('weekly');
-                    setShowRankingPanel(true);
-                  }}
-                  onMembership={() => {
-                    setShowGiftPanel(false);
-                    setShowFanClub(true);
-                  }}
-                  onWeeklyRanking={() => {
-                    setShowGiftPanel(false);
-                    setRankingInitialTab('weekly');
-                    setShowRankingPanel(true);
-                  }}
-                  onExplore={() => {
-                    navigate('/live');
-                  }}
-                />
+                {!spectatorBattle?.active && (
+                  <LiveMarkedSubHeaderBar
+                    rank={diamondLeagueRank}
+                    onDiamond={() => {
+                      setShowGiftPanel(false);
+                      setRankingInitialTab('weekly');
+                      setShowRankingPanel(true);
+                    }}
+                    onMembership={() => {
+                      setShowGiftPanel(false);
+                      setShowFanClub(true);
+                    }}
+                    onWeeklyRanking={() => {
+                      setShowGiftPanel(false);
+                      setRankingInitialTab('weekly');
+                      setShowRankingPanel(true);
+                    }}
+                    onExplore={() => {
+                      navigate('/live');
+                    }}
+                  />
+                )}
               </div>
 
               <div className="pointer-events-auto flex items-center gap-[0mm] flex-shrink-0 min-w-0">

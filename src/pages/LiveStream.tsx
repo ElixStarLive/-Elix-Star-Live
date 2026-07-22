@@ -6003,24 +6003,26 @@ export default function LiveStream() {
                             </div>
                           )}
                         </div>
-                        <LiveMarkedSubHeaderBar
-                          rank={diamondLeagueRank}
-                          onDiamond={() => {
-                            setRankingInitialTab('weekly');
-                            setShowRankingPanel(true);
-                          }}
-                          onMembership={() => {
-                            setShowFanClub(true);
-                          }}
-                          onWeeklyRanking={() => {
-                            setRankingInitialTab('weekly');
-                            setShowRankingPanel(true);
-                          }}
-                          onExplore={() => {
-                            setShowViewerList(false);
-                            setIsFindCreatorsOpen(true);
-                          }}
-                        />
+                        {!isBattleMode && (
+                          <LiveMarkedSubHeaderBar
+                            rank={diamondLeagueRank}
+                            onDiamond={() => {
+                              setRankingInitialTab('weekly');
+                              setShowRankingPanel(true);
+                            }}
+                            onMembership={() => {
+                              setShowFanClub(true);
+                            }}
+                            onWeeklyRanking={() => {
+                              setRankingInitialTab('weekly');
+                              setShowRankingPanel(true);
+                            }}
+                            onExplore={() => {
+                              setShowViewerList(false);
+                              setIsFindCreatorsOpen(true);
+                            }}
+                          />
+                        )}
                       </div>
 
                       <div className="pointer-events-auto flex items-center gap-[0mm] mt-1 flex-shrink-0 min-w-0">
