@@ -197,7 +197,16 @@ export function LiveJoinPill({
   );
 }
 
-/** Diamond League capsule — identical on creator + spectator. */
+const THIN_CAPSULE_STYLE: React.CSSProperties = {
+  background: 'rgba(8, 10, 28, 0.72)',
+  border: '1px solid rgba(255,255,255,0.12)',
+  backdropFilter: 'blur(4px)',
+};
+
+const THIN_CAPSULE_CLASS =
+  'inline-flex items-center gap-1 flex-shrink-0 rounded-full pl-1.5 pr-1.5 py-[3px] pointer-events-auto active:scale-95 transition-transform';
+
+/** Diamond League — separate thin capsule. */
 export function LiveDiamondLeagueCapsule({
   rank,
   onOpen,
@@ -208,61 +217,65 @@ export function LiveDiamondLeagueCapsule({
   return (
     <button
       type="button"
-      className="flex items-center gap-1.5 bg-transparent rounded-none pl-0 pr-0 py-0 cursor-pointer active:scale-95 transition-transform"
+      className={THIN_CAPSULE_CLASS}
+      style={THIN_CAPSULE_STYLE}
       onClick={(e) => {
         e.stopPropagation();
         onOpen();
       }}
     >
-      <LivePhotoDiamondIcon />
+      <LivePhotoDiamondIcon size={14} />
       <span className="flex flex-col items-start leading-none min-w-0">
-        <span className="text-white text-[10px] font-bold whitespace-nowrap">Diamond League</span>
-        <span className="text-white/70 text-[8px] font-semibold whitespace-nowrap mt-0.5">
+        <span className="text-white text-[9px] font-bold whitespace-nowrap">Diamond League</span>
+        <span className="text-white/65 text-[7px] font-semibold whitespace-nowrap mt-[1px]">
           {rank != null ? `Rank ${rank}` : 'Rank —'}
         </span>
       </span>
-      <span className="text-white/80 text-[10px] ml-0.5 font-medium">&gt;</span>
+      <span className="text-white/75 text-[9px] font-medium leading-none">&gt;</span>
     </button>
   );
 }
 
-/** Membership VIP capsule — identical on creator + spectator. */
+/** Membership VIP — separate thin capsule. */
 export function LiveMembershipVipCapsule({ onOpen }: { onOpen: () => void }) {
   return (
-    <div
-      className="flex items-center gap-1.5 bg-transparent cursor-pointer active:scale-95 transition-transform"
+    <button
+      type="button"
+      className={THIN_CAPSULE_CLASS}
+      style={THIN_CAPSULE_STYLE}
       onClick={(e) => {
         e.stopPropagation();
         onOpen();
       }}
     >
-      <LivePhotoCrownIcon />
+      <LivePhotoCrownIcon size={14} />
       <span className="flex flex-col items-start leading-none min-w-0">
-        <span className="text-white text-[10px] font-bold whitespace-nowrap">Membership</span>
-        <span className="text-[#FFD54A] text-[8px] font-bold mt-0.5">VIP</span>
+        <span className="text-white text-[9px] font-bold whitespace-nowrap">Membership</span>
+        <span className="text-[#FFD54A] text-[7px] font-bold mt-[1px]">VIP</span>
       </span>
-      <span className="text-white/80 text-[10px] ml-0.5 font-medium">&gt;</span>
-    </div>
+      <span className="text-white/75 text-[9px] font-medium leading-none">&gt;</span>
+    </button>
   );
 }
 
 /** Photo 3D-style purple diamond for Diamond League. */
-function LivePhotoDiamondIcon() {
+function LivePhotoDiamondIcon({ size = 14 }: { size?: number }) {
+  const uid = `dl${size}`;
   return (
-    <svg width="18" height="18" viewBox="0 0 18 18" className="flex-shrink-0 drop-shadow-[0_0_6px_rgba(168,85,247,0.75)]" aria-hidden>
+    <svg width={size} height={size} viewBox="0 0 18 18" className="flex-shrink-0 drop-shadow-[0_0_5px_rgba(168,85,247,0.7)]" aria-hidden>
       <defs>
-        <linearGradient id="elixDlTop" x1="0" y1="0" x2="1" y2="1">
+        <linearGradient id={`${uid}Top`} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stopColor="#E9D5FF" />
           <stop offset="45%" stopColor="#C084FC" />
           <stop offset="100%" stopColor="#7C3AED" />
         </linearGradient>
-        <linearGradient id="elixDlBot" x1="0.2" y1="0" x2="0.8" y2="1">
+        <linearGradient id={`${uid}Bot`} x1="0.2" y1="0" x2="0.8" y2="1">
           <stop offset="0%" stopColor="#A855F7" />
           <stop offset="100%" stopColor="#4C1D95" />
         </linearGradient>
       </defs>
-      <path d="M9 1.2 L15.2 6.2 L9 16.8 L2.8 6.2 Z" fill="url(#elixDlBot)" />
-      <path d="M9 1.2 L15.2 6.2 L9 7.4 L2.8 6.2 Z" fill="url(#elixDlTop)" />
+      <path d="M9 1.2 L15.2 6.2 L9 16.8 L2.8 6.2 Z" fill={`url(#${uid}Bot)`} />
+      <path d="M9 1.2 L15.2 6.2 L9 7.4 L2.8 6.2 Z" fill={`url(#${uid}Top)`} />
       <path d="M9 7.4 L15.2 6.2 L9 16.8 Z" fill="#6D28D9" opacity="0.9" />
       <path d="M9 7.4 L2.8 6.2 L9 16.8 Z" fill="#A855F7" opacity="0.85" />
       <path d="M9 1.2 L9 7.4" stroke="#F3E8FF" strokeWidth="0.45" opacity="0.7" />
@@ -271,11 +284,12 @@ function LivePhotoDiamondIcon() {
 }
 
 /** Photo gold crown for Membership VIP. */
-function LivePhotoCrownIcon() {
+function LivePhotoCrownIcon({ size = 14 }: { size?: number }) {
+  const uid = `cr${size}`;
   return (
-    <svg width="18" height="18" viewBox="0 0 18 18" className="flex-shrink-0 drop-shadow-[0_0_6px_rgba(255,213,74,0.65)]" aria-hidden>
+    <svg width={size} height={size} viewBox="0 0 18 18" className="flex-shrink-0 drop-shadow-[0_0_5px_rgba(255,213,74,0.6)]" aria-hidden>
       <defs>
-        <linearGradient id="elixVipCrown" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={uid} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#FFF3C4" />
           <stop offset="45%" stopColor="#FFD54A" />
           <stop offset="100%" stopColor="#C9A227" />
@@ -283,7 +297,7 @@ function LivePhotoCrownIcon() {
       </defs>
       <path
         d="M2.2 12.2 L3.4 5.6 L6.5 8.4 L9 3.2 L11.5 8.4 L14.6 5.6 L15.8 12.2 Z"
-        fill="url(#elixVipCrown)"
+        fill={`url(#${uid})`}
       />
       <rect x="2.4" y="12.2" width="13.2" height="2.4" rx="0.6" fill="#FFD54A" />
       <circle cx="3.4" cy="5.4" r="1.05" fill="#FFF8DC" />
@@ -293,37 +307,7 @@ function LivePhotoCrownIcon() {
   );
 }
 
-/**
- * Photo circled bar: one navy capsule with Diamond League + Membership side-by-side.
- * Identical on creator + spectator. Does not touch MVP circles.
- */
-export function LiveLeagueMembershipBar({
-  rank,
-  onDiamond,
-  onMembership,
-}: {
-  rank: number | null;
-  onDiamond: () => void;
-  onMembership: () => void;
-}) {
-  return (
-    <div
-      className="inline-flex items-center gap-3 rounded-2xl pl-2 pr-2.5 py-1.5 pointer-events-auto"
-      style={{
-        background: 'rgba(8, 10, 28, 0.78)',
-        border: '1px solid rgba(255,255,255,0.10)',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.35)',
-        backdropFilter: 'blur(6px)',
-      }}
-    >
-      <LiveDiamondLeagueCapsule rank={rank} onOpen={onDiamond} />
-      <div className="w-px self-stretch min-h-[22px] bg-white/10" aria-hidden />
-      <LiveMembershipVipCapsule onOpen={onMembership} />
-    </div>
-  );
-}
-
-/** Photo “🔥 Weekly Ranking No.X >” pill under the league bar. */
+/** Weekly Ranking — separate thin capsule (1st in row). */
 export function LiveWeeklyRankingPill({
   rank,
   onOpen,
@@ -334,37 +318,34 @@ export function LiveWeeklyRankingPill({
   return (
     <button
       type="button"
-      className="inline-flex items-center gap-1 rounded-full pl-1.5 pr-2 py-1 pointer-events-auto active:scale-95 transition-transform"
-      style={{
-        background: 'rgba(8, 10, 28, 0.72)',
-        border: '1px solid rgba(255,255,255,0.10)',
-      }}
+      className={THIN_CAPSULE_CLASS}
+      style={THIN_CAPSULE_STYLE}
       onClick={(e) => {
         e.stopPropagation();
         onOpen();
       }}
     >
-      <span className="text-[10px] leading-none" aria-hidden>
+      <span className="text-[11px] leading-none drop-shadow-[0_0_4px_rgba(255,140,0,0.55)]" aria-hidden>
         🔥
       </span>
-      <span className="text-white text-[9px] font-bold whitespace-nowrap leading-none">
-        Weekly Ranking{rank != null ? ` No.${rank}` : ''}
+      <span className="flex items-baseline gap-0.5 min-w-0">
+        <span className="text-white text-[9px] font-bold whitespace-nowrap leading-none">Weekly Ranking</span>
+        {rank != null ? (
+          <span className="text-white/70 text-[8px] font-semibold whitespace-nowrap leading-none">No.{rank}</span>
+        ) : null}
       </span>
-      <span className="text-white/80 text-[9px] font-medium leading-none">&gt;</span>
+      <span className="text-white/75 text-[9px] font-medium leading-none">&gt;</span>
     </button>
   );
 }
 
-/** Photo purple planet “Explore >” pill. */
+/** Explore — separate thin capsule (4th in row). */
 export function LiveExplorePill({ onOpen }: { onOpen: () => void }) {
   return (
     <button
       type="button"
-      className="inline-flex items-center gap-1 rounded-full pl-1.5 pr-2 py-1 pointer-events-auto active:scale-95 transition-transform"
-      style={{
-        background: 'rgba(8, 10, 28, 0.72)',
-        border: '1px solid rgba(255,255,255,0.10)',
-      }}
+      className={THIN_CAPSULE_CLASS}
+      style={THIN_CAPSULE_STYLE}
       onClick={(e) => {
         e.stopPropagation();
         onOpen();
@@ -383,15 +364,14 @@ export function LiveExplorePill({ onOpen }: { onOpen: () => void }) {
         <path d="M6 1.2 C7.4 2.8 7.4 9.2 6 10.8 C4.6 9.2 4.6 2.8 6 1.2 Z" fill="#DDD6FE" opacity="0.35" />
       </svg>
       <span className="text-white text-[9px] font-bold whitespace-nowrap leading-none">Explore</span>
-      <span className="text-white/80 text-[9px] font-medium leading-none">&gt;</span>
+      <span className="text-white/75 text-[9px] font-medium leading-none">&gt;</span>
     </button>
   );
 }
 
 /**
- * Full photo sub-header under host profile:
- * Row 1: Diamond League + Membership navy bar + Explore
- * Row 2: Weekly Ranking No.X
+ * Photo sub-header: 4 separate thin capsules in one line.
+ * 1 Weekly Ranking · 2 Diamond League · 3 Membership · 4 Explore
  */
 export function LiveMarkedSubHeaderBar({
   rank,
@@ -407,12 +387,13 @@ export function LiveMarkedSubHeaderBar({
   onExplore: () => void;
 }) {
   return (
-    <div className="flex flex-col gap-1 mt-1 ml-0 pointer-events-auto relative z-20 min-w-0">
-      <div className="flex items-center gap-1.5 flex-wrap">
-        <LiveLeagueMembershipBar rank={rank} onDiamond={onDiamond} onMembership={onMembership} />
+    <div className="mt-1 w-full max-w-[100%] overflow-x-auto no-scrollbar pointer-events-auto relative z-20">
+      <div className="flex items-center gap-1 flex-nowrap w-max">
+        <LiveWeeklyRankingPill rank={rank} onOpen={onWeeklyRanking} />
+        <LiveDiamondLeagueCapsule rank={rank} onOpen={onDiamond} />
+        <LiveMembershipVipCapsule onOpen={onMembership} />
         <LiveExplorePill onOpen={onExplore} />
       </div>
-      <LiveWeeklyRankingPill rank={rank} onOpen={onWeeklyRanking} />
     </div>
   );
 }
