@@ -3167,7 +3167,7 @@ export default function SpectatorPage() {
             <div
               className={`absolute left-0 right-0 z-0 bg-transparent flex flex-row overflow-hidden rounded-none`}
               style={(showGrid || spectatorBattle?.active)
-                ? { top: LIVE_TOP_OVERLAY_OFFSET, height: 'calc(36dvh + 10mm)' }
+                ? { top: 'calc(env(safe-area-inset-top, 0px) + 78px)', height: 'calc(36dvh + 10mm)' }
                 : { top: '0px', bottom: '0px' }
               }
             >
@@ -3299,7 +3299,7 @@ export default function SpectatorPage() {
         })()}
 
         {/* CREATOR TOP BAR — only connection to creator page: spectator has access to full creator top bar (avatar, name, likes, Follow, Weekly Ranking, Membership, viewer count, close). Rest is single video + spectator's own bottom bar. */}
-        <div className="absolute top-0 left-0 right-0 z-[110] pointer-events-none overflow-visible">
+        <div className="absolute top-0 left-0 right-0 z-[110] pointer-events-none">
           <div className="px-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 6px)' }}>
             <div className="flex items-center justify-between gap-2 relative">
               {/* Left: Creator info — photo profile (MVP circles untouched) */}
