@@ -214,9 +214,9 @@ const THIN_CAPSULE_STYLE: React.CSSProperties = {
   boxShadow: 'none',
 };
 
-/** Same height / padding / border for every sub-header capsule. */
+/** Same height / padding / border for every sub-header capsule — shorter + right-side row. */
 const THIN_CAPSULE_CLASS =
-  'inline-flex items-center gap-1 flex-shrink-0 rounded-full pl-2 pr-2 h-[30px] box-border pointer-events-auto active:scale-95 transition-transform';
+  'inline-flex items-center gap-0.5 flex-shrink-0 rounded-full pl-1.5 pr-1.5 h-[22px] box-border pointer-events-auto active:scale-95 transition-transform';
 
 /** Diamond League — separate thin capsule. */
 export function LiveDiamondLeagueCapsule({
@@ -236,14 +236,14 @@ export function LiveDiamondLeagueCapsule({
         onOpen();
       }}
     >
-      <LivePhotoDiamondIcon size={14} />
+      <LivePhotoDiamondIcon size={11} />
       <span className="flex flex-col items-start justify-center leading-none min-w-0">
-        <span className="text-white text-[9px] font-bold whitespace-nowrap">Diamond League</span>
-        <span className="text-white/65 text-[7px] font-semibold whitespace-nowrap mt-[1px]">
+        <span className="text-white text-[8px] font-bold whitespace-nowrap">Diamond League</span>
+        <span className="text-white/65 text-[6px] font-semibold whitespace-nowrap mt-[0.5px]">
           {rank != null ? `Rank ${rank}` : 'Rank —'}
         </span>
       </span>
-      <span className="text-white/70 text-[9px] font-medium leading-none">&gt;</span>
+      <span className="text-white/70 text-[8px] font-medium leading-none">&gt;</span>
     </button>
   );
 }
@@ -260,12 +260,12 @@ export function LiveMembershipVipCapsule({ onOpen }: { onOpen: () => void }) {
         onOpen();
       }}
     >
-      <LivePhotoCrownIcon size={14} />
+      <LivePhotoCrownIcon size={11} />
       <span className="flex flex-col items-start justify-center leading-none min-w-0">
-        <span className="text-white text-[9px] font-bold whitespace-nowrap">Membership</span>
-        <span className="text-[#FFD54A] text-[7px] font-bold whitespace-nowrap mt-[1px]">VIP</span>
+        <span className="text-white text-[8px] font-bold whitespace-nowrap">Membership</span>
+        <span className="text-[#FFD54A] text-[6px] font-bold whitespace-nowrap mt-[0.5px]">VIP</span>
       </span>
-      <span className="text-white/70 text-[9px] font-medium leading-none">&gt;</span>
+      <span className="text-white/70 text-[8px] font-medium leading-none">&gt;</span>
     </button>
   );
 }
@@ -337,16 +337,16 @@ export function LiveWeeklyRankingPill({
         onOpen();
       }}
     >
-      <span className="text-[11px] leading-none w-[14px] h-[14px] flex items-center justify-center flex-shrink-0" aria-hidden>
+      <span className="text-[9px] leading-none w-[11px] h-[11px] flex items-center justify-center flex-shrink-0" aria-hidden>
         🔥
       </span>
       <span className="flex flex-col items-start justify-center leading-none min-w-0">
-        <span className="text-white text-[9px] font-bold whitespace-nowrap">Weekly Ranking</span>
-        <span className="text-white/65 text-[7px] font-semibold whitespace-nowrap mt-[1px]">
+        <span className="text-white text-[8px] font-bold whitespace-nowrap">Weekly Ranking</span>
+        <span className="text-white/65 text-[6px] font-semibold whitespace-nowrap mt-[0.5px]">
           {rank != null ? `No.${rank}` : 'No.—'}
         </span>
       </span>
-      <span className="text-white/70 text-[9px] font-medium leading-none">&gt;</span>
+      <span className="text-white/70 text-[8px] font-medium leading-none">&gt;</span>
     </button>
   );
 }
@@ -363,7 +363,7 @@ export function LiveExplorePill({ onOpen }: { onOpen: () => void }) {
         onOpen();
       }}
     >
-      <svg width="14" height="14" viewBox="0 0 12 12" className="flex-shrink-0 drop-shadow-[0_0_4px_rgba(168,85,247,0.7)]" aria-hidden>
+      <svg width="11" height="11" viewBox="0 0 12 12" className="flex-shrink-0 drop-shadow-[0_0_4px_rgba(168,85,247,0.7)]" aria-hidden>
         <defs>
           <linearGradient id="elixExplorePlanet" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stopColor="#E9D5FF" />
@@ -376,10 +376,10 @@ export function LiveExplorePill({ onOpen }: { onOpen: () => void }) {
         <path d="M6 1.2 C7.4 2.8 7.4 9.2 6 10.8 C4.6 9.2 4.6 2.8 6 1.2 Z" fill="#DDD6FE" opacity="0.35" />
       </svg>
       <span className="flex flex-col items-start justify-center leading-none min-w-0">
-        <span className="text-white text-[9px] font-bold whitespace-nowrap">Explore</span>
-        <span className="text-white/65 text-[7px] font-semibold whitespace-nowrap mt-[1px]">Live</span>
+        <span className="text-white text-[8px] font-bold whitespace-nowrap">Explore</span>
+        <span className="text-white/65 text-[6px] font-semibold whitespace-nowrap mt-[0.5px]">Live</span>
       </span>
-      <span className="text-white/70 text-[9px] font-medium leading-none">&gt;</span>
+      <span className="text-white/70 text-[8px] font-medium leading-none">&gt;</span>
     </button>
   );
 }
@@ -403,8 +403,8 @@ export function LiveMarkedSubHeaderBar({
   onExplore: () => void;
 }) {
   return (
-    <div className="mt-1 w-full overflow-x-auto no-scrollbar pointer-events-auto relative z-20 flex justify-end">
-      <div className="flex items-center gap-1 flex-nowrap w-max max-w-full pl-14">
+    <div className="mt-1 w-full pointer-events-auto relative z-20 flex justify-end">
+      <div className="flex items-center gap-0.5 flex-nowrap w-max max-w-full ml-auto overflow-x-auto no-scrollbar">
         <LiveWeeklyRankingPill rank={rank} onOpen={onWeeklyRanking} />
         <LiveDiamondLeagueCapsule rank={rank} onOpen={onDiamond} />
         <LiveMembershipVipCapsule onOpen={onMembership} />
