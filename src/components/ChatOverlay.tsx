@@ -109,7 +109,7 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
             onPointerLeave={cancelLongPress}
             onPointerCancel={cancelLongPress}
           >
-            {/* Name on the same line as circle + LV. Join/system events use the same badge size as chat. */}
+            {/* Name on the same line as circle + diamond level chip */}
             <div
               className={`flex items-center gap-2 min-w-0 ${msg.isSystem ? 'bg-gradient-to-r from-[#8A2BE2] to-[#3B4BE8] rounded-full pr-2.5 self-start shadow-sm' : ''}`}
             >
@@ -158,7 +158,7 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
             {(msg.stickerUrl || (!msg.isSystem && typeof msg.text === 'string' && msg.text)) ? (
               <div
                 className="min-w-0"
-                style={{ paddingLeft: LEVEL_BADGE_RING_PX + 8 }}
+                style={{ paddingLeft: LEVEL_BADGE_RING_PX + 4 + Math.max(18, Math.round(LEVEL_BADGE_RING_PX * 0.78)) + 12 }}
               >
                 {msg.stickerUrl ? (
                   <img src={msg.stickerUrl} alt="sticker" className="w-16 h-16 object-contain rounded-lg" />

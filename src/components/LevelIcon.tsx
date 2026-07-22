@@ -2,17 +2,40 @@ import React from 'react';
 import { PROFILE_RING_IMAGE_LIFT_MM, profileRingInnerPx } from '../lib/profileFrame';
 import { ROYCE_DEFAULT_AVATAR } from '../lib/royceAssets';
 
+/** Neon pink diamond (icon-set style) for level badges. */
+function LevelDiamondIcon({ size = 10 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      className="flex-shrink-0"
+      aria-hidden
+      style={{ filter: 'drop-shadow(0 0 3px rgba(255,45,117,0.75))' }}
+    >
+      <path
+        d="M8 1.2 L14.2 6.1 L8 14.8 L1.8 6.1 Z"
+        fill="none"
+        stroke="#FF2D75"
+        strokeWidth="1.35"
+        strokeLinejoin="round"
+      />
+      <path d="M8 1.2 L14.2 6.1 L8 7.2 L1.8 6.1 Z" fill="#FF2D75" opacity="0.35" />
+    </svg>
+  );
+}
+
 export interface LevelIconProps {
   level: number;
-  /** Drives the LV pill (bar) size and typography when `circleSize` is set; otherwise drives both bar + circle */
+  /** Drives sizing when `circleSize` is set; otherwise drives circle + chip */
   size?: number;
-  /** Optional larger avatar/profile circle only; bar stays sized from `size` */
+  /** Optional larger avatar/profile circle only */
   circleSize?: number;
   className?: string;
   avatarUrl?: string;
   barColor?: string;
   text?: 'lv' | 'level';
-  /** Hide the profile circle; show LV pill only (e.g. mini profile already has AvatarRing). */
+  /** Hide the profile circle; show level chip only (e.g. mini profile already has AvatarRing). */
   hideCircle?: boolean;
 }
 
@@ -22,21 +45,17 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
   circleSize: circleSizeProp,
   className = '',
   avatarUrl,
-  barColor,
-  text = 'lv',
   hideCircle = false,
 }) => {
   const safeLevel = typeof level === 'number' && Number.isFinite(level) && level > 0 ? Math.floor(level) : 1;
   /** CSS px per mm (1in = 25.4mm, 1in = 96px). */
   const MM_TO_PX = 96 / 25.4;
-  const levelExtraHeightPx = 2 * MM_TO_PX;
   const shrinkMm = 3;
   const shrinkPx = shrinkMm * MM_TO_PX;
   const circleGrowMm = 4;
   const circleGrowPx = circleGrowMm * MM_TO_PX;
   const sizeProvided = typeof size === 'number' && Number.isFinite(size);
   const rawSize = sizeProvided ? (size as number) : 40;
-  const barBaseSize = Math.max(16, Math.floor(rawSize));
   const maxShrink = Math.max(0, rawSize - 16);
   const circleSize =
     typeof circleSizeProp === 'number' && Number.isFinite(circleSizeProp)
@@ -44,64 +63,56 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
       : Math.max(16, Math.floor(rawSize - Math.min(shrinkPx, maxShrink) + circleGrowPx));
   const splitCircleSizing =
     typeof circleSizeProp === 'number' && Number.isFinite(circleSizeProp);
-  const barHeight = Math.round(barBaseSize * 0.72) + levelExtraHeightPx;
-  const barWidth = Math.round(barBaseSize * 1.75);
-  const overlap = splitCircleSizing
-    ? Math.round(circleSize * 0.28)
-    : Math.round(circleSize * 0.52);
-
-  const getBarGradient = () => {
-    if (barColor) return barColor;
-    if (safeLevel >= 90) return 'linear-gradient(180deg, #ffffff 0%, #7a1027 55%, #ffffff 100%)';
-    if (safeLevel >= 60) return 'linear-gradient(180deg, #a855f7 0%, #4c1d95 55%, #a855f7 100%)';
-    if (safeLevel >= 30) return 'linear-gradient(180deg, #3b82f6 0%, #1e3a8a 55%, #3b82f6 100%)';
-    return 'linear-gradient(180deg, #22c55e 0%, #14532d 55%, #22c55e 100%)';
-  };
 
   const avatarDiameter = profileRingInnerPx(circleSize);
 
+  /** Square rounded level chip: pink diamond + number (no LV), beside chat circle. */
+  const chipH = Math.max(18, Math.round(circleSize * 0.78));
+  const fontPx = Math.max(9, Math.round(chipH * 0.48));
+  const diamondPx = Math.max(8, Math.round(chipH * 0.42));
+  const levelChip = (
+    <div
+      style={{
+        position: 'relative',
+        zIndex: 1,
+        height: chipH,
+        minWidth: chipH,
+        borderRadius: 6,
+        background: 'rgba(8, 10, 22, 0.45)',
+        border: '1px solid rgba(255, 45, 117, 0.45)',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.35)',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 3,
+        paddingLeft: 5,
+        paddingRight: 5,
+        flexShrink: 0,
+      }}
+    >
+      <LevelDiamondIcon size={diamondPx} />
+      <span
+        style={{
+          color: '#FFFFFF',
+          fontWeight: 900,
+          letterSpacing: '0.01em',
+          fontSize: fontPx,
+          textShadow: '0 1px 3px rgba(0,0,0,0.75)',
+          lineHeight: 1,
+          whiteSpace: 'nowrap',
+          fontVariantNumeric: 'tabular-nums',
+        }}
+      >
+        {safeLevel}
+      </span>
+    </div>
+  );
+
   if (splitCircleSizing) {
-    /** Circle full size; compact round LV capsule hugging the circle (live chat / For You). */
-    // +2mm height only (1mm top + 1mm bottom equivalent) — pill was too thin.
-    const pillH = Math.max(11, Math.round(circleSize * 0.42)) + levelExtraHeightPx;
-    const pillPadX = Math.max(6, Math.round(Math.max(11, Math.round(circleSize * 0.42)) * 0.45));
-    const overlapPx = Math.round(circleSize * 0.22);
-    const label = text === 'level' ? `Level ${safeLevel}` : `LV ${safeLevel}`;
-    const fontPx = Math.max(9, Math.round(Math.max(11, Math.round(circleSize * 0.42)) * 0.55));
-    const pillStyle: React.CSSProperties = {
-      position: 'relative',
-      zIndex: 1,
-      height: pillH,
-      borderRadius: 9999,
-      background: getBarGradient(),
-      border: '1px solid rgba(255,255,255,0.28)',
-      boxShadow: '0 2px 6px rgba(0,0,0,0.45), inset 0 1px 1px rgba(255,255,255,0.28)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingLeft: pillPadX,
-      paddingRight: pillPadX,
-      flexShrink: 0,
-    };
     if (hideCircle) {
       return (
         <div className={className} style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
-          <div style={pillStyle}>
-            <span
-              style={{
-                color: 'white',
-                fontWeight: 900,
-                fontStyle: 'italic',
-                letterSpacing: '0.02em',
-                fontSize: fontPx,
-                textShadow: '0 2px 6px rgba(0,0,0,0.75)',
-                lineHeight: 1,
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {label}
-            </span>
-          </div>
+          {levelChip}
         </div>
       );
     }
@@ -111,6 +122,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
         style={{
           display: 'inline-flex',
           alignItems: 'center',
+          gap: 4,
           height: circleSize,
           flexShrink: 0,
           verticalAlign: 'middle',
@@ -157,45 +169,13 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
             />
           )}
         </div>
-        <div
-          style={{
-            position: 'relative',
-            zIndex: 1,
-            marginLeft: -overlapPx,
-            height: pillH,
-            borderRadius: 9999,
-            background: getBarGradient(),
-            border: '1px solid rgba(255,255,255,0.28)',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.45), inset 0 1px 1px rgba(255,255,255,0.28)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'flex-end',
-            paddingLeft: Math.round(overlapPx * 0.85) + pillPadX,
-            paddingRight: pillPadX,
-            flexShrink: 0,
-          }}
-        >
-          <span
-            style={{
-              color: 'white',
-              fontWeight: 900,
-              fontStyle: 'italic',
-              letterSpacing: '0.02em',
-              fontSize: fontPx,
-              textShadow: '0 2px 6px rgba(0,0,0,0.75)',
-              lineHeight: 1,
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {label}
-          </span>
-        </div>
+        {levelChip}
       </div>
     );
   }
 
   return (
-    <div className={className} style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0, marginLeft: 8 }}>
+    <div className={className} style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0, gap: 4, marginLeft: 8 }}>
       <div
         style={{
           position: 'relative',
@@ -246,51 +226,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
           )}
         </div>
       </div>
-
-      <div
-        style={{
-          position: 'relative',
-          zIndex: 1,
-          height: barHeight,
-          width: barWidth,
-          marginLeft: -overlap + 8,
-          borderRadius: barHeight / 2,
-          background: getBarGradient(),
-          border: '1px solid rgba(255,255,255,0.22)',
-          boxShadow: '0 6px 14px rgba(0,0,0,0.55), inset 0 1px 1px rgba(255,255,255,0.35)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'flex-end',
-          paddingRight: Math.round(barHeight * 0.35),
-          paddingLeft: Math.round(barHeight * 0.9),
-        }}
-      >
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            borderRadius: barHeight / 2,
-            background: 'linear-gradient(180deg, rgba(255,255,255,0.28) 0%, transparent 58%, rgba(0,0,0,0.18) 100%)',
-            pointerEvents: 'none',
-            opacity: 0.75,
-          }}
-        />
-        <span
-          style={{
-            position: 'relative',
-            color: 'white',
-            fontWeight: 900,
-            fontStyle: 'italic',
-            letterSpacing: '0.02em',
-            fontSize: Math.max(10, Math.round(barHeight * 0.52)),
-            textShadow: '0 2px 6px rgba(0,0,0,0.75)',
-            lineHeight: 1,
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {text === 'level' ? `Level ${safeLevel}` : `LV ${safeLevel}`}
-        </span>
-      </div>
+      {levelChip}
     </div>
   );
 };
