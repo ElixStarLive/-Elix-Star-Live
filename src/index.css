@@ -915,25 +915,6 @@ svg.lucide {
     drop-shadow(0 0 8px var(--icon-neon-purple-glow-soft));
 }
 
-/* Level Gem — accent cyan + white frame (visible on every bright chip colour) */
-svg.lucide.level-gem-icon {
-  color: #5EEAD4 !important;
-  stroke: #5EEAD4 !important;
-  fill: none !important;
-  background: none !important;
-  border: none !important;
-  filter: none !important;
-}
-
-svg.lucide.level-gem-icon-frame {
-  color: #FFFFFF !important;
-  stroke: #FFFFFF !important;
-  fill: none !important;
-  background: none !important;
-  border: none !important;
-  filter: none !important;
-}
-
 /* Active filled states (save, badge hearts, etc.) */
 svg.lucide.fill-current,
 svg.lucide.fill-gold-bright,

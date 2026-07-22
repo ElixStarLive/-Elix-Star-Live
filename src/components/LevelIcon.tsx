@@ -1,57 +1,42 @@
 import React from 'react';
-import { Gem } from 'lucide-react';
 import { PROFILE_RING_IMAGE_LIFT_MM, profileRingInnerPx } from '../lib/profileFrame';
 import { ROYCE_DEFAULT_AVATAR } from '../lib/royceAssets';
 
-/** Bright chip fundal per level — not black / not near-black. */
-const LEVEL_CHIP_BACKGROUNDS = [
-  '#FF4D6D', // hot pink
-  '#3DA3FF', // neon blue
-  '#00E5A8', // mint
-  '#FF8A00', // orange
-  '#A855F7', // purple
-  '#22C55E', // green
-  '#F43F5E', // rose
-  '#06B6D4', // cyan
-  '#EAB308', // yellow
-  '#EC4899', // magenta
-  '#6366F1', // indigo
-  '#F97316', // vivid orange
-] as const;
-
-function levelChipBackground(level: number): string {
-  const i = Math.max(0, (level - 1) % LEVEL_CHIP_BACKGROUNDS.length);
-  return LEVEL_CHIP_BACKGROUNDS[i];
-}
+/** Chat level pill — deep purple matching the reference badge. */
+const LEVEL_PILL_BG = '#5B2DB3';
 
 /**
- * Small Lucide Gem before level number.
- * Bright cyan gem + white frame — visible on every coloured fundal (no black, no gold).
+ * Faceted gem (flat top, point bottom) left of the level number — same layout as reference.
  */
 function LevelDiamondIcon({ size = 12 }: { size?: number }) {
   return (
-    <span
-      className="relative inline-flex flex-shrink-0 items-center justify-center"
-      style={{ width: size, height: size }}
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 20 20"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
       aria-hidden
+      style={{ display: 'block', flexShrink: 0 }}
     >
-      {/* White frame — readable on any bright chip colour */}
-      <Gem
-        size={size}
-        strokeWidth={2.8}
+      {/* Outer gem silhouette */}
+      <path d="M5 7.2 L7.2 3.2 H12.8 L15 7.2 L10 17.2 Z" fill="#F3E8FF" />
+      {/* Top crown facets */}
+      <path d="M5 7.2 H15 L12.8 3.2 H7.2 Z" fill="#FFFFFF" />
+      <path d="M7.2 3.2 L10 7.2 L12.8 3.2 Z" fill="#E9D5FF" />
+      {/* Left / right pavilion */}
+      <path d="M5 7.2 L10 7.2 L10 17.2 Z" fill="#DDD6FE" />
+      <path d="M15 7.2 L10 7.2 L10 17.2 Z" fill="#C4B5FD" />
+      {/* Center shine */}
+      <path d="M8.2 7.2 L10 12.5 L11.8 7.2 Z" fill="#FFFFFF" opacity="0.85" />
+      <path
+        d="M5 7.2 L7.2 3.2 H12.8 L15 7.2 L10 17.2 Z"
+        stroke="rgba(255,255,255,0.95)"
+        strokeWidth="0.7"
+        strokeLinejoin="round"
         fill="none"
-        className="level-gem-icon-frame absolute inset-0"
-        style={{ color: '#FFFFFF', stroke: '#FFFFFF', fill: 'none' }}
       />
-      {/* Visible gem — accent cyan */}
-      <Gem
-        size={size}
-        strokeWidth={1.7}
-        fill="none"
-        className="level-gem-icon relative"
-        style={{ color: '#5EEAD4', stroke: '#5EEAD4', fill: 'none' }}
-      />
-    </span>
+    </svg>
   );
 }
 
@@ -96,39 +81,34 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
 
   const avatarDiameter = profileRingInnerPx(circleSize);
 
-  /** Small gem + level number on a per-level coloured chip. */
-  const chipH = Math.max(18, Math.round(circleSize * 0.78));
-  const fontPx = Math.max(9, Math.round(chipH * 0.48));
-  const diamondPx = Math.max(10, Math.min(14, Math.round(chipH * 0.55)));
-  const chipBg = levelChipBackground(safeLevel);
+  /** Reference: purple pill — gem left, white level number right. */
+  const chipH = Math.max(16, Math.min(20, Math.round(circleSize * 0.7)));
+  const fontPx = Math.max(10, Math.round(chipH * 0.58));
+  const diamondPx = Math.max(11, Math.min(13, Math.round(chipH * 0.68)));
   const levelChip = (
     <div
       style={{
         position: 'relative',
         zIndex: 1,
         height: chipH,
-        minWidth: chipH,
-        borderRadius: 6,
-        background: chipBg,
-        border: '1px solid rgba(255, 255, 255, 0.35)',
-        boxShadow: '0 1px 4px rgba(0,0,0,0.35)',
+        borderRadius: 999,
+        background: LEVEL_PILL_BG,
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
         gap: 3,
         paddingLeft: 5,
-        paddingRight: 5,
+        paddingRight: 7,
         flexShrink: 0,
       }}
     >
       <LevelDiamondIcon size={diamondPx} />
       <span
         style={{
-          color: '#F2F2F2',
-          fontWeight: 900,
+          color: '#FFFFFF',
+          fontWeight: 800,
           letterSpacing: '0.01em',
           fontSize: fontPx,
-          textShadow: '0 1px 2px rgba(0,0,0,0.9)',
           lineHeight: 1,
           whiteSpace: 'nowrap',
           fontVariantNumeric: 'tabular-nums',
