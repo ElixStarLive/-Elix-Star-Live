@@ -3385,7 +3385,8 @@ export default function SpectatorPage() {
                 />
               </div>
 
-              <div className="pointer-events-auto flex items-center gap-[0mm] flex-shrink-0 min-w-0">
+              <div className="pointer-events-auto flex flex-col items-end gap-1 flex-shrink-0 min-w-0">
+                <div className="flex items-center gap-[0mm]">
                 <div
                   className="flex items-center gap-[0mm] pointer-events-auto flex-shrink-0"
                   style={{ transform: 'translateX(-2mm)' }}
@@ -3455,30 +3456,30 @@ export default function SpectatorPage() {
                 >
                   <RoyceCloseIcon size={18} />
                 </button>
+                </div>
+                {/* Capsules on the right — left clear for battle gloves */}
+                <LiveMarkedSubHeaderBar
+                  rank={diamondLeagueRank}
+                  onDiamond={() => {
+                    setShowGiftPanel(false);
+                    setRankingInitialTab('weekly');
+                    setShowRankingPanel(true);
+                  }}
+                  onMembership={() => {
+                    setShowGiftPanel(false);
+                    setShowFanClub(true);
+                  }}
+                  onWeeklyRanking={() => {
+                    setShowGiftPanel(false);
+                    setRankingInitialTab('weekly');
+                    setShowRankingPanel(true);
+                  }}
+                  onExplore={() => {
+                    navigate('/live');
+                  }}
+                />
               </div>
             </div>
-
-            {/* Capsules right-aligned — left clear for battle gloves */}
-            <LiveMarkedSubHeaderBar
-              rank={diamondLeagueRank}
-              onDiamond={() => {
-                setShowGiftPanel(false);
-                setRankingInitialTab('weekly');
-                setShowRankingPanel(true);
-              }}
-              onMembership={() => {
-                setShowGiftPanel(false);
-                setShowFanClub(true);
-              }}
-              onWeeklyRanking={() => {
-                setShowGiftPanel(false);
-                setRankingInitialTab('weekly');
-                setShowRankingPanel(true);
-              }}
-              onExplore={() => {
-                navigate('/live');
-              }}
-            />
           </div>
         </div>
 

@@ -403,8 +403,8 @@ export function LiveMarkedSubHeaderBar({
   onExplore: () => void;
 }) {
   return (
-    <div className="mt-1 w-full overflow-x-auto no-scrollbar pointer-events-auto relative z-20 flex justify-end">
-      <div className="flex items-center gap-1 flex-nowrap w-max max-w-full pl-14">
+    <div className="mt-1 pointer-events-auto relative z-20 flex justify-end">
+      <div className="flex items-center gap-1 flex-nowrap w-max max-w-full">
         <LiveWeeklyRankingPill rank={rank} onOpen={onWeeklyRanking} />
         <LiveDiamondLeagueCapsule rank={rank} onOpen={onDiamond} />
         <LiveMembershipVipCapsule onOpen={onMembership} />
@@ -488,7 +488,7 @@ export function LiveMarkedUiDemoToggle({
         right: 'max(12px, calc(50% - 240px + 12px))',
         left: 'auto',
         background: enabled ? 'rgba(254,44,85,0.92)' : 'rgba(20,20,28,0.85)',
-        color: '#fff',
+        color: '#FFE4EC',
         border: '1px solid rgba(255,255,255,0.25)',
         boxShadow: '0 2px 10px rgba(0,0,0,0.45)',
       }}

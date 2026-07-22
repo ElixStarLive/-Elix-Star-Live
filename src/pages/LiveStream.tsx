@@ -6005,7 +6005,8 @@ export default function LiveStream() {
                         </div>
                       </div>
 
-                      <div className="pointer-events-auto flex items-center gap-[0mm] mt-1">
+                      <div className="pointer-events-auto flex flex-col items-end gap-1 mt-1 flex-shrink-0 min-w-0">
+                        <div className="flex items-center gap-[0mm]">
                         {topMvpViewers.length > 0 ? (
                           <div
                             className="flex items-center gap-[0mm] pointer-events-auto flex-shrink-0"
@@ -6056,27 +6057,28 @@ export default function LiveStream() {
                         <button type="button" onClick={closeLiveWithSlide} className="w-8 h-8 royce-glow-disc flex items-center justify-center active:scale-95 transition-transform" title={isBroadcast ? (isBattleMode ? 'End battle' : 'End broadcast') : 'Leave'} aria-label="Close">
                           <RoyceCloseIcon size={18} />
                         </button>
+                        </div>
+                        {/* Capsules on the right — left clear for battle gloves */}
+                        <LiveMarkedSubHeaderBar
+                          rank={diamondLeagueRank}
+                          onDiamond={() => {
+                            setRankingInitialTab('weekly');
+                            setShowRankingPanel(true);
+                          }}
+                          onMembership={() => {
+                            setShowFanClub(true);
+                          }}
+                          onWeeklyRanking={() => {
+                            setRankingInitialTab('weekly');
+                            setShowRankingPanel(true);
+                          }}
+                          onExplore={() => {
+                            setShowViewerList(false);
+                            setIsFindCreatorsOpen(true);
+                          }}
+                        />
                       </div>
                     </div>
-                    {/* Capsules right-aligned — left clear for battle gloves */}
-                    <LiveMarkedSubHeaderBar
-                      rank={diamondLeagueRank}
-                      onDiamond={() => {
-                        setRankingInitialTab('weekly');
-                        setShowRankingPanel(true);
-                      }}
-                      onMembership={() => {
-                        setShowFanClub(true);
-                      }}
-                      onWeeklyRanking={() => {
-                        setRankingInitialTab('weekly');
-                        setShowRankingPanel(true);
-                      }}
-                      onExplore={() => {
-                        setShowViewerList(false);
-                        setIsFindCreatorsOpen(true);
-                      }}
-                    />
                   </div>
                 </div>
 

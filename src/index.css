@@ -51,8 +51,9 @@
     --color-rose: #B8A88A;
     --color-background: #000000;
     --color-surface: #0a0a0a;
-    --color-text: #FFFFFF;
-    --color-text-muted: #A89B7A;
+    /* Rose Gold writing theme (row 10 — Diamond #FFE4EC) */
+    --color-text: #FFE4EC;
+    --color-text-muted: rgba(255, 228, 236, 0.62);
     --radius-sm: 10px;
     --radius-md: 12px;
     --radius-lg: 16px;
@@ -846,7 +847,7 @@
 }
 
 .text-gold-metallic {
-  background: linear-gradient(145deg, #F5E6C8 0%, #D4AF37 35%, #B8860B 65%, #E8D5A3 100%);
+  background: linear-gradient(145deg, #FFF5F8 0%, #FFE4EC 35%, #F5C6D6 65%, #FFD6E4 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -947,4 +948,36 @@ svg.lucide.text-red-500 {
 /* Custom SVG icons (glove, etc.) still using legacy gold text utility */
 svg.text-\[\#D4AF37\] {
   color: var(--icon-neon-purple) !important;
+}
+
+/*
+ * Rose Gold writing (app-wide) — chart row 10 Diamond #FFE4EC
+ * Remaps default white/gold text utilities; icons stay Neon Purple above.
+ */
+.text-white { color: var(--color-text) !important; }
+.text-white\/90 { color: rgba(255, 228, 236, 0.9) !important; }
+.text-white\/85 { color: rgba(255, 228, 236, 0.85) !important; }
+.text-white\/80 { color: rgba(255, 228, 236, 0.8) !important; }
+.text-white\/75 { color: rgba(255, 228, 236, 0.75) !important; }
+.text-white\/70 { color: rgba(255, 228, 236, 0.7) !important; }
+.text-white\/65 { color: rgba(255, 228, 236, 0.65) !important; }
+.text-white\/60 { color: rgba(255, 228, 236, 0.6) !important; }
+.text-white\/50 { color: rgba(255, 228, 236, 0.5) !important; }
+.text-white\/40 { color: rgba(255, 228, 236, 0.4) !important; }
+.text-white\/30 { color: rgba(255, 228, 236, 0.3) !important; }
+.text-white\/20 { color: rgba(255, 228, 236, 0.2) !important; }
+.text-white\/10 { color: rgba(255, 228, 236, 0.1) !important; }
+
+.text-text { color: var(--color-text) !important; }
+.text-text-muted { color: var(--color-text-muted) !important; }
+.text-gold-bright { color: var(--color-text) !important; }
+.text-gold-light { color: rgba(255, 228, 236, 0.78) !important; }
+.text-gold-light\/70 { color: rgba(255, 228, 236, 0.54) !important; }
+.text-\[\#D4AF37\]:not(svg) { color: var(--color-text) !important; }
+.text-\[\#E8D5A3\]:not(svg) { color: rgba(255, 228, 236, 0.78) !important; }
+.text-\[\#E8D5A3\]\/50:not(svg) { color: rgba(255, 228, 236, 0.5) !important; }
+
+input::placeholder,
+textarea::placeholder {
+  color: rgba(255, 228, 236, 0.42);
 }
