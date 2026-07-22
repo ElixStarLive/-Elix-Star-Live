@@ -6,8 +6,9 @@
 
 import { Request, Response } from 'express';
 import { WebhookReceiver } from 'livekit-server-sdk';
-import { removeActiveStream } from './livestream';
+import { removeActiveStream, resolveStreamOwnerUserId } from './livestream';
 import { broadcastToFeedSubscribers } from '../feedBroadcast';
+import { listActiveRoomsFromLiveKit, isUserPublishingInRoom } from '../services/livekit';
 import { logger } from '../lib/logger';
 
 const API_KEY = (process.env.LIVEKIT_API_KEY || '').trim();
@@ -15,6 +16,30 @@ const API_SECRET = (process.env.LIVEKIT_API_SECRET || '').trim();
 
 const receiver =
   API_KEY && API_SECRET ? new WebhookReceiver(API_KEY, API_SECRET) : null;
+
+/** Delay before trusting room_finished — covers DUPLICATE_IDENTITY / brief empties. */
+const ROOM_FINISHED_GRACE_MS = 20_000;
+const pendingRoomFinished = new Map<string, ReturnType<typeof setTimeout>>();
+
+async function finalizeRoomFinished(roomName: string): Promise<void> {
+  try {
+    const rooms = await listActiveRoomsFromLiveKit();
+    if (rooms.some((r) => r.name === roomName)) {
+      logger.info({ roomName }, '[livekit-webhook] room_finished ignored — room active again');
+      return;
+    }
+    const ownerId = await resolveStreamOwnerUserId(roomName);
+    if (ownerId && (await isUserPublishingInRoom(roomName, ownerId))) {
+      logger.info({ roomName, ownerId }, '[livekit-webhook] room_finished ignored — host still publishing');
+      return;
+    }
+    await removeActiveStream(roomName);
+    broadcastToFeedSubscribers('stream_ended', { stream_key: roomName });
+    logger.info({ roomName }, '[livekit-webhook] room_finished applied after grace');
+  } catch (err) {
+    logger.error({ err, roomName }, '[livekit-webhook] finalizeRoomFinished failed');
+  }
+}
 
 /**
  * POST /api/livekit/webhook
@@ -40,14 +65,31 @@ export async function handleLiveKitWebhook(req: Request, res: Response) {
     switch (event.event) {
       case 'room_finished':
         if (event.room?.name) {
-          await removeActiveStream(event.room.name);
-          broadcastToFeedSubscribers('stream_ended', { stream_key: event.room.name });
+          const roomName = event.room.name;
+          // Do not wipe the live immediately: same-account join can kick the
+          // host publisher and emit room_finished while the host app recovers.
+          const existing = pendingRoomFinished.get(roomName);
+          if (existing) clearTimeout(existing);
+          pendingRoomFinished.set(
+            roomName,
+            setTimeout(() => {
+              pendingRoomFinished.delete(roomName);
+              void finalizeRoomFinished(roomName);
+            }, ROOM_FINISHED_GRACE_MS),
+          );
           if (process.env.NODE_ENV !== 'production') {
-            console.log('[livekit-webhook] room_finished:', event.room.name);
+            console.log('[livekit-webhook] room_finished scheduled:', roomName);
           }
         }
         break;
       case 'room_started':
+        if (event.room?.name) {
+          const t = pendingRoomFinished.get(event.room.name);
+          if (t) {
+            clearTimeout(t);
+            pendingRoomFinished.delete(event.room.name);
+          }
+        }
         if (process.env.NODE_ENV !== 'production') {
           console.log('[livekit-webhook] room_started:', event.room?.name);
         }

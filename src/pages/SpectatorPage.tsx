@@ -1628,7 +1628,9 @@ export default function SpectatorPage() {
     const connect = async () => {
       const token = useAuthStore.getState().session?.access_token || '';
       if (!token || !mounted) return;
-      websocket.connect(effectiveStreamId, token);
+      // Persistent reconnect: brief mobile blips must not synthesize stream_ended
+      // ("The host has ended the stream") for this spectator only.
+      websocket.connect(effectiveStreamId, token, { persistent: true });
     };
 
     let hostFoundInRoom = false;
@@ -1875,6 +1877,13 @@ export default function SpectatorPage() {
     const handleStreamEnded = (data?: Record<string, unknown>) => {
 
       if (!mounted) return;
+      const reason =
+        data && typeof data.reason === 'string' ? data.reason : '';
+      // Client-only reconnect exhaustion — never treat as host ending the live.
+      if (reason === 'max_reconnect_attempts') {
+        showToast('Connection lost. Trying to reconnect…');
+        return;
+      }
       // Creator moved into a battle room — follow them into the battle instead
       // of closing the live for every spectator.
       const battleRoom =
