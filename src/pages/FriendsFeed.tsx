@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { RoyceBackIcon } from '../components/royce';
-import { Search, Plus } from 'lucide-react';
+import { Search, Plus, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { useVideoStore } from '../store/useVideoStore';
@@ -95,7 +95,7 @@ function FriendStorySlide({
 
 export default function FriendsFeed() {
   const navigate = useNavigate();
-  const { user } = useAuthStore();
+  const { user, isAuthenticated } = useAuthStore();
   const { friendVideos, fetchFriendVideos, friendsLoading: loading } = useVideoStore();
   const [suggestedUsers, setSuggestedUsers] = useState<SuggestedUser[]>([]);
   const [storyGroups, setStoryGroups] = useState<StoryUserGroup[]>([]);
@@ -256,9 +256,20 @@ export default function FriendsFeed() {
           }`}
         >
           <div className="px-3 pb-1 flex items-center justify-between relative">
-            <button onClick={() => navigate('/search')} className="w-8 h-8 royce-glow-disc flex items-center justify-center z-10" aria-label="Search">
-              <Search size={16} className="royce-icon-gold" strokeWidth={2} />
-            </button>
+            <div className="flex items-center gap-2 z-10">
+              <button
+                type="button"
+                onClick={() => navigate(isAuthenticated ? '/profile' : '/login')}
+                className="w-8 h-8 royce-glow-disc flex items-center justify-center"
+                aria-label="Your account"
+                title="Your account"
+              >
+                <User size={16} className="royce-icon-gold" strokeWidth={2} />
+              </button>
+              <button onClick={() => navigate('/search')} className="w-8 h-8 royce-glow-disc flex items-center justify-center" aria-label="Search">
+                <Search size={16} className="royce-icon-gold" strokeWidth={2} />
+              </button>
+            </div>
             <h1 className="text-sm font-bold text-white absolute left-1/2 transform -translate-x-1/2">Friends</h1>
             <div className="flex items-center gap-3 z-10">
               <button onClick={() => navigate(-1)} title="Back">
