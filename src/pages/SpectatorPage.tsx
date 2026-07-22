@@ -3731,9 +3731,11 @@ export default function SpectatorPage() {
                     }
               }
               supporters={
-                markedUiDemo || mvpSlots.global.length === 0
+                markedUiDemo
                   ? LIVE_SIDE_DEMO_SUPPORTERS
-                  : mvpSlots.global.slice(0, 3).map((s) => ({
+                  : mvpSlots.global.length === 0
+                    ? []
+                    : mvpSlots.global.slice(0, 3).map((s) => ({
                       id: s.id,
                       name: s.name,
                       avatar: s.avatar,

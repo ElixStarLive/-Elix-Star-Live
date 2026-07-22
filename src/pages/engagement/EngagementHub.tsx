@@ -71,6 +71,12 @@ const LINKS: {
     subtitle: "7-day streak rewards",
     icon: Calendar,
   },
+  {
+    path: "/engagement/collections",
+    title: "Collections",
+    subtitle: "Treasure, stickers, creator cards",
+    icon: Zap,
+  },
 ];
 
 export default function EngagementHub() {
@@ -194,7 +200,9 @@ export default function EngagementHub() {
               </div>
               <p className="mt-4 text-[11px] text-white/35 leading-relaxed">
                 Promotional Coins and Battle Energy are free rewards — separate from
-                Purchased Coins. Battle Predictor League comes in Phase 2.
+                Purchased Coins. LIVE side mission chips are progress hints; claim
+                rewards in this Hub or the LIVE Engagement drawer. Battle Predictor
+                League comes in Phase 2.
               </p>
             </>
           )}

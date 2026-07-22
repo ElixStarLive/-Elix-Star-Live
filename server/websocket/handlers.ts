@@ -51,6 +51,7 @@ import { activateBooster, getMistFogDurationMs } from "../lib/booster";
 import { deliverVerifiedGift } from "./giftDelivery";
 import {
   isTestCoinsGiftSource,
+  canAcceptTestCoinsBattleScore,
 } from "./testCoinsPolicy";
 
 const BATTLE_USER_ROOM_TTL_MS = 600_000;
@@ -204,9 +205,17 @@ export async function handleMessage(
         const { transactionId } = data;
 
         // TEST COINS: never payments / wallet / goals / earnings.
-        // Always broadcast animation + apply battle MATCH points only
-        // (help in battle / test uploaded gifts). Money stays paid_coins-only.
+        // Animation may still broadcast in non-prod for gift QA.
+        // Production: reject battle scoring (and prefer reject entirely).
         if (isTestCoinsGiftSource(data)) {
+          if (!canAcceptTestCoinsBattleScore()) {
+            sendToClient(client, "gift_ack", {
+              transactionId: null,
+              status: "test_coins_blocked",
+              timestamp: Date.now(),
+            });
+            break;
+          }
           const testGiftId = typeof data?.giftId === "string" ? data.giftId : "";
           const testClientVideo =
             (typeof data?.video === "string" && data.video) ||

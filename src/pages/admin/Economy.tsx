@@ -23,6 +23,9 @@ interface BoosterCatalogItem {
 export default function AdminEconomy() {
   const [gifts, setGifts] = useState<GiftCatalogItem[]>([]);
   const [boosters, setBoosters] = useState<BoosterCatalogItem[]>([]);
+  const [packages, setPackages] = useState<
+    Array<{ id: string; title: string; coins: number; price_display: string }>
+  >([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -31,9 +34,10 @@ export default function AdminEconomy() {
 
   const loadData = async () => {
     try {
-      const [giftsRes, boostersRes] = await Promise.all([
+      const [giftsRes, boostersRes, packagesRes] = await Promise.all([
         api.gifts.getCatalog(),
         request('/api/boosters/catalog'),
+        request('/api/coin-packages'),
       ]);
 
       const gData = giftsRes.data;
@@ -49,6 +53,20 @@ export default function AdminEconomy() {
       );
       const bData = boostersRes.data;
       setBoosters(Array.isArray(bData) ? bData : (Array.isArray(bData?.data) ? bData.data : []));
+      const pData = packagesRes.data;
+      const rawPkgs = Array.isArray(pData)
+        ? pData
+        : (pData?.packages ?? pData?.data ?? []);
+      setPackages(
+        (rawPkgs as Record<string, unknown>[])
+          .map((p) => ({
+            id: String(p.id ?? p.product_id ?? ''),
+            title: String(p.title ?? p.name ?? p.product_id ?? ''),
+            coins: Number(p.coins ?? p.coin_amount ?? 0),
+            price_display: String(p.price_display ?? p.price ?? ''),
+          }))
+          .filter((p) => p.id),
+      );
     } catch {
       showToast('Failed to load economy data');
     } finally {
@@ -87,10 +105,33 @@ export default function AdminEconomy() {
         <div className="mb-8">
           <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
             <Package className="w-6 h-6 text-white" />
-            Coin Packages
+            Coin Packages ({packages.length})
           </h2>
-          <div className="bg-[#111111] rounded-lg p-6">
-            <p className="text-gray-400">Managed via coin_packages table</p>
+          <div className="bg-[#111111] rounded-lg overflow-hidden">
+            {packages.length === 0 ? (
+              <p className="text-gray-400 p-6">No coin packages found in coin_packages.</p>
+            ) : (
+              <table className="w-full">
+                <thead className="bg-[#2A2D35]">
+                  <tr>
+                    <th className="px-4 py-3 text-left">Package</th>
+                    <th className="px-4 py-3 text-left">Coins</th>
+                    <th className="px-4 py-3 text-left">Price</th>
+                    <th className="px-4 py-3 text-left">Product ID</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {packages.map((pkg) => (
+                    <tr key={pkg.id} className="hover:bg-[#2A2D35]/50">
+                      <td className="px-4 py-3 font-semibold">{pkg.title}</td>
+                      <td className="px-4 py-3">{pkg.coins.toLocaleString()}</td>
+                      <td className="px-4 py-3">{pkg.price_display || '—'}</td>
+                      <td className="px-4 py-3 text-gray-400 text-sm">{pkg.id}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
 

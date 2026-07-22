@@ -12,8 +12,8 @@ describe("testCoinsPolicy", () => {
     expect(isTestCoinsGiftSource(null)).toBe(false);
   });
 
-  it("does not block battle match points by NODE_ENV (money stays giftSource-gated)", () => {
-    expect(isProductionTestCoinsBlocked("production")).toBe(false);
+  it("blocks test-coin battle scoring in production", () => {
+    expect(isProductionTestCoinsBlocked("production")).toBe(true);
     expect(isProductionTestCoinsBlocked("development")).toBe(false);
     expect(isProductionTestCoinsBlocked(undefined)).toBe(false);
   });

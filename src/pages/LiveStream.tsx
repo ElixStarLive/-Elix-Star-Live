@@ -2624,17 +2624,20 @@ export default function LiveStream() {
     spawnHeartAt(x, y, '#ffffff', heartFloatName, heartFloatAvatar);
   }, [spawnHeartAt, heartFloatName, heartFloatAvatar]);
 
-  // Battle Tap Logic: spectator taps broadcaster side → 5 points, once per match
+  // Battle tap: spectators vote via server (+5 once). Creators never self-score locally.
   const handleBattleTap = useCallback((target: 'me' | 'opponent' | 'player3' | 'player4') => {
     if (!isBattleMode || battleWinner || battleTime <= 0) return;
-    if (target !== 'me') return;
+    if (isCreatorParticipant) return;
     if (spectatorTapPointsRef.current > 0) return;
+    if (!websocket.isConnected()) return;
 
     setGiftTarget(target);
     spectatorTapPointsRef.current = 1;
     setSpectatorTapsUsed(1);
-    awardBattlePoints('me', 5, false);
-  }, [battleWinner, battleTime, awardBattlePoints, isBattleMode]);
+    const voteTarget =
+      target === 'opponent' || target === 'player4' ? 'opponent' : 'host';
+    websocket.send('battle_spectator_vote', { target: voteTarget });
+  }, [battleWinner, battleTime, isBattleMode, isCreatorParticipant]);
 
   // ─── SPEED CHALLENGE LOGIC ───
   const startSpeedChallenge = useCallback(() => {
@@ -4214,7 +4217,7 @@ export default function LiveStream() {
       avatar: v.avatar || '',
       points: mvpGiftScores[v.id] ?? 0,
     }));
-    return fromMvp.length > 0 ? fromMvp : LIVE_SIDE_DEMO_SUPPORTERS;
+    return fromMvp.length > 0 ? fromMvp : [];
   }, [markedUiDemo, topGifters, topMvpViewers, mvpGiftScores]);
   const comboTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pushComboStack = useCallback((gift: GiftUiItem, nextCount: number) => {

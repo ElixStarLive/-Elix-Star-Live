@@ -89,11 +89,40 @@ router.get("/purchases", async (req: Request, res: Response) => {
         ORDER BY created_at DESC
         LIMIT 200`,
     );
-    return res.json(r.rows);
+    return res.json({ data: r.rows, source: "iap" });
   } catch (e) {
     const code = (e as { code?: string })?.code;
-    if (code === "42P01") return res.json([]);
+    if (code === "42P01") return res.json({ data: [], source: "iap" });
     logger.error({ err: e }, "admin GET /purchases failed");
+    return res.status(500).json({ error: "DATABASE_ERROR", data: [] });
+  }
+});
+
+router.get("/iap-purchases", async (req: Request, res: Response) => {
+  res.setHeader("Cache-Control", "private, no-store");
+  const db = getPool();
+  if (!db) return res.status(503).json({ error: "DATABASE_UNAVAILABLE", data: [] });
+  try {
+    const r = await db.query(
+      `SELECT id,
+              user_id,
+              product_id AS package_id,
+              provider,
+              provider_transaction_id AS transaction_id,
+              NULL::integer AS price_minor,
+              NULL::text AS currency,
+              kind AS status,
+              created_at
+         FROM elix_wallet_ledger
+        WHERE kind = 'iap_purchase'
+        ORDER BY created_at DESC
+        LIMIT 200`,
+    );
+    return res.json({ data: r.rows, source: "iap" });
+  } catch (e) {
+    const code = (e as { code?: string })?.code;
+    if (code === "42P01") return res.json({ data: [], source: "iap" });
+    logger.error({ err: e }, "admin GET /iap-purchases failed");
     return res.status(500).json({ error: "DATABASE_ERROR", data: [] });
   }
 });

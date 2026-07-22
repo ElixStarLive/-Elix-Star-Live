@@ -20,6 +20,8 @@ import {
   Radio,
   Wallet,
   Gift,
+  Bookmark,
+  LayoutDashboard,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { showToast } from '../lib/toast';
@@ -33,6 +35,7 @@ export default function Settings() {
   const { t, lang } = useT();
   const [langOpen, setLangOpen] = useState(false);
   const signOut = useAuthStore((s) => s.signOut);
+  const user = useAuthStore((s) => s.user);
   const liveNotifications = useSettingsStore((s) => s.liveNotifications);
   const setLiveNotifications = useSettingsStore((s) => s.setLiveNotifications);
 
@@ -109,6 +112,9 @@ export default function Settings() {
           {engagementFlags.engagementHubEnabled ? (
             <R ic={<Gift size={14} />} t="Engagement Hub" fn={() => navigate('/engagement')} />
           ) : null}
+          {user?.isAdmin ? (
+            <R ic={<LayoutDashboard size={14} />} t="Admin" fn={() => navigate('/admin')} />
+          ) : null}
 
           <S t={t('settings.section.preferences')} />
           <R ic={<Bell size={14} />} t={t('settings.notifications')} fn={() => navigate('/settings/safety')} />
@@ -124,6 +130,7 @@ export default function Settings() {
           <S t={t('settings.section.content')} />
           <R ic={<Video size={14} />} t={t('settings.videoQuality')} v={t('common.auto')} fn={() => showToast(t('toast.videoQualityAuto'))} />
           <R ic={<Heart size={14} />} t={t('settings.likedVideos')} fn={() => navigate('/profile?tab=liked')} />
+          <R ic={<Bookmark size={14} />} t="Saved videos" fn={() => navigate('/saved')} />
 
           <S t={t('settings.section.safety')} />
           <R ic={<Ban size={14} />} t={t('settings.blockedAccounts')} fn={() => navigate('/settings/blocked')} />

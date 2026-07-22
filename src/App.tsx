@@ -52,6 +52,7 @@ const EngagementMvp = lazy(() => import("./pages/engagement/EngagementMvp"));
 const EngagementAchievements = lazy(() => import("./pages/engagement/EngagementAchievements"));
 const EngagementRewards = lazy(() => import("./pages/engagement/EngagementRewards"));
 const EngagementDailyLogin = lazy(() => import("./pages/engagement/EngagementDailyLogin"));
+const EngagementCollections = lazy(() => import("./pages/engagement/EngagementCollections"));
 const FollowList = lazy(() => import("./pages/FollowList"));
 const CreatorPayout = lazy(() => import("./pages/CreatorPayout"));
 const CreatorLoginDetails = lazy(() => import("./pages/CreatorLoginDetails"));
@@ -387,6 +388,7 @@ function App() {
                 <Route path="/engagement/achievements" element={<EngagementAchievements />} />
                 <Route path="/engagement/rewards" element={<EngagementRewards />} />
                 <Route path="/engagement/daily-login" element={<EngagementDailyLogin />} />
+                <Route path="/engagement/collections" element={<EngagementCollections />} />
                 <Route path="/hashtag/:tag" element={<Hashtag />} />
                 <Route path="/report" element={<Report />} />
                 <Route path="/video/:videoId" element={<VideoView />} />

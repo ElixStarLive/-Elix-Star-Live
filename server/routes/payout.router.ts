@@ -25,7 +25,7 @@ adminPayoutRouter.post("/chargeback", handleAdminChargeback);
 // all-statuses filtering). Defining it here shadowed that handler and broke the
 // "All" reports filter + reporter names on the admin dashboard.
 
-adminPayoutRouter.get("/purchases", async (req, res) => {
+adminPayoutRouter.get("/shop-purchases", async (req, res) => {
   res.setHeader("Cache-Control", "private, no-store");
   const { getPool } = await import("../lib/postgres");
   const { getTokenFromRequest, verifyAuthToken } = await import("./auth");
@@ -40,9 +40,9 @@ adminPayoutRouter.get("/purchases", async (req, res) => {
     const r = await db.query(
       `SELECT * FROM elix_shop_purchases ORDER BY created_at DESC LIMIT 100`,
     );
-    return res.json({ data: r.rows });
+    return res.json({ data: r.rows, source: "shop" });
   } catch (err) {
-    logger.error({ err }, "admin/purchases query failed");
+    logger.error({ err }, "admin/shop-purchases query failed");
     return res.status(500).json({ error: "DATABASE_ERROR" });
   }
 });

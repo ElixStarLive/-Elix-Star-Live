@@ -19,11 +19,26 @@ export function isTestCoinsGiftSource(data: {
 
 /**
  * Historically blocked test-coin battle scores in production.
- * Battle match points are now allowed; money stays gated by giftSource routing.
- * Always false so existing call sites no longer treat NODE_ENV as a money gate.
+ * Production must reject forged gift_sent + giftSource=test_coins for battle
+ * points. Non-production may still allow animation + VS points for local QA.
  */
 export function isProductionTestCoinsBlocked(
-  _nodeEnv: string | undefined = process.env.NODE_ENV,
+  nodeEnv: string | undefined = process.env.NODE_ENV,
 ): boolean {
-  return false;
+  return String(nodeEnv || "").toLowerCase() === "production";
+}
+
+/**
+ * Optional explicit allowlist for test-coin battle scoring outside store builds.
+ * Default: only when NOT production.
+ */
+export function canAcceptTestCoinsBattleScore(
+  nodeEnv: string | undefined = process.env.NODE_ENV,
+): boolean {
+  if (isProductionTestCoinsBlocked(nodeEnv)) return false;
+  const raw = String(process.env.ALLOW_TEST_COINS_BATTLE_SCORE || "")
+    .trim()
+    .toLowerCase();
+  if (raw === "0" || raw === "false" || raw === "off") return false;
+  return true;
 }

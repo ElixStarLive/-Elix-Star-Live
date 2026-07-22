@@ -56,9 +56,27 @@ export default function AdminUsers() {
       });
       if (error) throw error;
       showToast('User banned successfully');
-      loadUsers();
+      setUsers((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, is_banned: true } : u)),
+      );
     } catch {
       showToast('Failed to ban user');
+    }
+  };
+
+  const handleUnbanUser = async (userId: string) => {
+    if (!window.confirm('Unban this user?')) return;
+    try {
+      const { error } = await request(`/api/admin/users/${encodeURIComponent(userId)}/ban`, {
+        method: 'DELETE',
+      });
+      if (error) throw error;
+      showToast('User unbanned');
+      setUsers((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, is_banned: false } : u)),
+      );
+    } catch {
+      showToast('Failed to unban user');
     }
   };
 
@@ -125,13 +143,22 @@ export default function AdminUsers() {
                       >
                         View
                       </button>
-                      <button
-                        onClick={() => handleBanUser(user.id)}
-                        className="px-3 py-1 bg-white/25 rounded hover:bg-white/30 text-sm flex items-center gap-1"
-                      >
-                        <Ban className="w-4 h-4" />
-                        Ban
-                      </button>
+                      {user.is_banned ? (
+                        <button
+                          onClick={() => handleUnbanUser(user.id)}
+                          className="px-3 py-1 bg-white/25 rounded hover:bg-white/30 text-sm"
+                        >
+                          Unban
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleBanUser(user.id)}
+                          className="px-3 py-1 bg-white/25 rounded hover:bg-white/30 text-sm flex items-center gap-1"
+                        >
+                          <Ban className="w-4 h-4" />
+                          Ban
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
