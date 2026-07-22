@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { RoyceBackIcon } from '../components/royce';
-import { Search, Plus, User } from 'lucide-react';
+import { Search, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { useVideoStore } from '../store/useVideoStore';
@@ -95,7 +95,7 @@ function FriendStorySlide({
 
 export default function FriendsFeed() {
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuthStore();
+  const { user } = useAuthStore();
   const { friendVideos, fetchFriendVideos, friendsLoading: loading } = useVideoStore();
   const [suggestedUsers, setSuggestedUsers] = useState<SuggestedUser[]>([]);
   const [storyGroups, setStoryGroups] = useState<StoryUserGroup[]>([]);
@@ -251,20 +251,9 @@ export default function FriendsFeed() {
       <div className="w-full max-w-[480px] h-full min-h-0 relative overflow-hidden mx-auto flex flex-col bg-black">
         <div className="flex-shrink-0 z-20 bg-[#111111] pt-app-header-safe">
           <div className="px-3 pb-1 flex items-center justify-between relative">
-            <div className="flex items-center gap-2 z-10">
-              <button
-                type="button"
-                onClick={() => navigate(isAuthenticated ? '/profile' : '/login')}
-                className="w-8 h-8 royce-glow-disc flex items-center justify-center"
-                aria-label="Your account"
-                title="Your account"
-              >
-                <User size={16} className="royce-icon-gold" strokeWidth={2} />
-              </button>
-              <button onClick={() => navigate('/search')} className="w-8 h-8 royce-glow-disc flex items-center justify-center" aria-label="Search">
-                <Search size={16} className="royce-icon-gold" strokeWidth={2} />
-              </button>
-            </div>
+            <button onClick={() => navigate('/search')} className="w-8 h-8 royce-glow-disc flex items-center justify-center z-10" aria-label="Search">
+              <Search size={16} className="royce-icon-gold" strokeWidth={2} />
+            </button>
             <h1 className="text-sm font-bold text-white absolute left-1/2 transform -translate-x-1/2">Friends</h1>
             <div className="flex items-center gap-3 z-10">
               <button onClick={() => navigate(-1)} title="Back">
