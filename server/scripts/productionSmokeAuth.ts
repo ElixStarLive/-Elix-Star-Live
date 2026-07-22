@@ -160,7 +160,7 @@ async function main() {
   );
   if (!anonEng.ok) failed++;
   const anonAdmin = await hit(
-    "/api/admin/withdrawals",
+    "/api/admin/payouts",
     null,
     [401, 403],
     "anon_admin",
@@ -222,7 +222,7 @@ async function main() {
       }
     }
     const denied = await hit(
-      "/api/admin/withdrawals",
+      "/api/admin/payouts",
       normal,
       403,
       "normal_admin_denied",
@@ -252,7 +252,7 @@ async function main() {
     failed++;
   } else {
     for (const p of [
-      "/api/admin/withdrawals",
+      "/api/admin/payouts",
       "/api/admin/iap-purchases",
       "/api/admin/shop-purchases",
       "/api/admin/progression/missions",
@@ -263,10 +263,10 @@ async function main() {
     ]) {
       const r = await hit(p, admin, 200, "admin");
       if (!r.ok) failed++;
-      if (p.includes("withdrawals") && r.ok) {
+      if (p.includes("payouts") && r.ok) {
         const text = JSON.stringify(r.body);
         console.log(
-          `INFO|withdrawals_mentions_processed_by=${text.includes("processed_by")}|previous_status=${text.includes("previous_status")}`,
+          `INFO|payouts_mentions_processed_by=${text.includes("processed_by")}|previous_status=${text.includes("previous_status")}`,
         );
       }
       if (p.includes("feature-flags") && r.ok) {
