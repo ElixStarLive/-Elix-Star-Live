@@ -78,6 +78,7 @@ import {
   LIVE_BATTLE_VIDEO_HEIGHT,
   LIVE_BATTLE_CHAT_HEIGHT,
   LIVE_BATTLE_CHAT_SHIFT_Y,
+  LIVE_TOP_OVERLAY_OFFSET,
   LIVE_TOP_AVATAR_RING_PX,
   LIVE_BOTTOM_ACTION_PADDING,
   LIVE_BOTTOM_ACTION_RESERVE,
@@ -5123,7 +5124,7 @@ export default function LiveStream() {
           return (
           <div
             className={hasAnyCoHost ? 'absolute inset-x-0 z-[25] flex flex-row' : 'relative w-full h-full'}
-            style={hasAnyCoHost ? { top: '90px', height: 'calc(36dvh + 10mm)', filter: liveFilterCss !== 'none' ? liveFilterCss : undefined } : { filter: liveFilterCss !== 'none' ? liveFilterCss : undefined }}
+            style={hasAnyCoHost ? { top: LIVE_TOP_OVERLAY_OFFSET, height: 'calc(36dvh + 10mm)', filter: liveFilterCss !== 'none' ? liveFilterCss : undefined } : { filter: liveFilterCss !== 'none' ? liveFilterCss : undefined }}
             onPointerDown={isCreatorParticipant ? undefined : (e) => {
               if (e.target instanceof Element) {
                 const interactive = e.target.closest('button, a, input, textarea, select, [role="button"]');
@@ -5356,8 +5357,7 @@ export default function LiveStream() {
             ref={battleSpectatorOverlayRef}
             className={`absolute inset-0 z-[80] flex flex-col ${isBroadcast ? 'pointer-events-none' : ''}`}
             style={{
-              // Slightly lower than top overlays: safe-area + 90px
-              paddingTop: 'calc(env(safe-area-inset-top, 0px) + 90px)',
+              paddingTop: LIVE_TOP_OVERLAY_OFFSET,
               paddingBottom: isBroadcast ? '305px' : undefined,
             }}
             onClick={(e) => {
@@ -5916,7 +5916,7 @@ export default function LiveStream() {
             {/* TOP AREA: Overlays (Top Bar & Floating Buttons) */}
             <div className="flex-[0_0_50dvh] relative pointer-events-none">
               {/* Top Bar — always show creator layout for everyone */}
-                <div className="absolute top-0 left-0 right-0 z-[110] pointer-events-none">
+                <div className="absolute top-0 left-0 right-0 z-[110] pointer-events-none overflow-visible">
                   <div className="px-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 6px)' }}>
                     <div className="flex items-start justify-between gap-2">
                       <div className="pointer-events-auto flex flex-col gap-2">
@@ -6003,6 +6003,7 @@ export default function LiveStream() {
                             </div>
                           )}
                         </div>
+                        {/* Always show — creator / battle / co-host. Do not gate on isBattleMode. */}
                         <LiveMarkedSubHeaderBar
                           rank={diamondLeagueRank}
                           onDiamond={() => {

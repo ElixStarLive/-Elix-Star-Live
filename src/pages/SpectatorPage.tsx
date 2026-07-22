@@ -71,6 +71,7 @@ import {
   LIVE_BATTLE_VIDEO_HEIGHT,
   LIVE_BATTLE_CHAT_HEIGHT,
   LIVE_BATTLE_CHAT_SHIFT_Y,
+  LIVE_TOP_OVERLAY_OFFSET,
   LIVE_TOP_AVATAR_RING_PX,
   LIVE_BOTTOM_ACTION_PADDING,
   LIVE_BOTTOM_ACTION_RESERVE,
@@ -2656,7 +2657,7 @@ export default function SpectatorPage() {
             return (
               <div
                 className="absolute inset-0 z-[80] flex flex-col"
-                style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 90px)' }}
+                style={{ paddingTop: LIVE_TOP_OVERLAY_OFFSET }}
               >
                 <div className="relative z-20 w-full flex-none bg-[#111111]/95 border-b border-white/10">
                   <div className="relative w-full overflow-hidden" style={{ minHeight: showPkBreakdown ? '20px' : '16px' }}>
@@ -3161,7 +3162,7 @@ export default function SpectatorPage() {
             <div
               className={`absolute left-0 right-0 z-0 bg-transparent flex flex-row overflow-hidden rounded-none`}
               style={(showGrid || spectatorBattle?.active)
-                ? { top: 'calc(env(safe-area-inset-top, 0px) + 78px)', height: 'calc(36dvh + 10mm)' }
+                ? { top: LIVE_TOP_OVERLAY_OFFSET, height: 'calc(36dvh + 10mm)' }
                 : { top: '0px', bottom: '0px' }
               }
             >
@@ -3383,6 +3384,7 @@ export default function SpectatorPage() {
                               ) : null
                             }
                 />
+                {/* Always show — spectator / battle / co-host watch. Do not gate on battle. */}
                 <LiveMarkedSubHeaderBar
                   rank={diamondLeagueRank}
                   onDiamond={() => {
