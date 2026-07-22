@@ -9,7 +9,8 @@ import {
   canWriteEngagementWallets,
   getEngagementFlags,
 } from "./engagementFlags";
-import { creditPromoCoins, creditBattleEnergy } from "./engagement";
+import { creditPromoCoins, creditBattleEnergy, awardEngagementXp } from "./engagement";
+import { resolveStreamOwnerUserId } from "../routes/livestream";
 
 export type ChestRarity = "common" | "rare" | "epic" | "legendary" | "mythic";
 
@@ -98,21 +99,7 @@ const CREATOR_TIERS = [
 ];
 
 async function awardXp(userId: string, xp: number): Promise<void> {
-  const db = getPool();
-  const gain = Math.max(0, Math.floor(xp));
-  if (!db || !userId || gain <= 0) return;
-  try {
-    await db.query(
-      `INSERT INTO user_progression (user_id, total_xp, current_level)
-       VALUES ($1, $2, 0)
-       ON CONFLICT (user_id) DO UPDATE SET
-         total_xp = user_progression.total_xp + $2,
-         updated_at = NOW()`,
-      [userId, gain],
-    );
-  } catch (err) {
-    logger.warn({ err, userId }, "phase15 awardXp failed");
-  }
+  await awardEngagementXp(userId, xp, "treasure_chest");
 }
 
 export function getTreasureCatalog() {
@@ -335,35 +322,68 @@ export async function listStickersForUser(userId: string) {
 export async function grantSticker(
   userId: string,
   stickerId: string,
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<{ ok: boolean; error?: string; set_completed?: boolean }> {
   if (!getEngagementFlags().stickerCollectionEnabled) {
     return { ok: false, error: "STICKERS_DISABLED" };
   }
   if (!canWriteEngagementWallets()) {
     return { ok: false, error: "ENGAGEMENT_NEON_PENDING_APPROVAL" };
   }
-  if (!STICKER_DEFS.some((s) => s.id === stickerId)) {
+  const def = STICKER_DEFS.find((s) => s.id === stickerId);
+  if (!def) {
     return { ok: false, error: "UNKNOWN_STICKER" };
   }
   const db = getPool();
   if (!db) return { ok: false, error: "DATABASE_UNAVAILABLE" };
   try {
+    const before = await listStickersForUser(userId);
+    const setBefore = before.sets.find((s) => s.id === def.set_id);
+    const wasComplete = !!setBefore?.complete;
     await db.query(
       `INSERT INTO user_stickers (user_id, sticker_id, count)
        VALUES ($1, $2, 1)
        ON CONFLICT (user_id, sticker_id) DO UPDATE SET count = user_stickers.count + 1`,
       [userId, stickerId],
     );
-    return { ok: true };
+    const after = await listStickersForUser(userId);
+    const setAfter = after.sets.find((s) => s.id === def.set_id);
+    const setCompleted = !wasComplete && !!setAfter?.complete;
+    if (setCompleted) {
+      // Cosmetic set complete → Promo/XP only (never Diamonds).
+      await creditPromoCoins(userId, 250, "sticker_set_complete", def.set_id);
+      await awardEngagementXp(userId, 100, `sticker_set:${def.set_id}`);
+    }
+    return { ok: true, set_completed: setCompleted };
   } catch (err) {
     logger.warn({ err, userId, stickerId }, "grantSticker failed");
     return { ok: false, error: "GRANT_FAILED" };
   }
 }
 
+/** Weighted random sticker from catalog (commons more likely). */
+async function grantRandomSticker(userId: string): Promise<void> {
+  const weights: Record<string, number> = {
+    common: 50,
+    rare: 25,
+    epic: 15,
+    legendary: 10,
+  };
+  const pool = STICKER_DEFS.flatMap((s) =>
+    Array(Math.max(1, weights[s.rarity] || 10)).fill(s.id),
+  ) as string[];
+  if (!pool.length) return;
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  await grantSticker(userId, pick);
+}
+
 export async function listCreatorCardsForUser(userId: string, creatorId?: string) {
   const db = getPool();
   let unlocked: Array<{ creator_id: string; tier: string; unlocked_at: string }> = [];
+  let progress: Array<{
+    creator_id: string;
+    watch_minutes: number;
+    gifts_count: number;
+  }> = [];
   let neon_ready = false;
   if (db && userId) {
     try {
@@ -383,14 +403,36 @@ export async function listCreatorCardsForUser(userId: string, creatorId?: string
         tier: String(row.tier),
         unlocked_at: String(row.unlocked_at),
       }));
+      const p = creatorId
+        ? await db.query(
+            `SELECT creator_id, watch_minutes, gifts_count
+               FROM user_creator_collection_progress
+              WHERE user_id = $1 AND creator_id = $2`,
+            [userId, creatorId],
+          )
+        : await db.query(
+            `SELECT creator_id, watch_minutes, gifts_count
+               FROM user_creator_collection_progress
+              WHERE user_id = $1
+              ORDER BY updated_at DESC
+              LIMIT 100`,
+            [userId],
+          );
+      progress = p.rows.map((row) => ({
+        creator_id: String(row.creator_id),
+        watch_minutes: Number(row.watch_minutes) || 0,
+        gifts_count: Number(row.gifts_count) || 0,
+      }));
       neon_ready = true;
     } catch {
       unlocked = [];
+      progress = [];
     }
   }
   return {
     tiers: CREATOR_TIERS,
     unlocked,
+    progress,
     neon_ready,
     focus_creator_id: creatorId || null,
   };
@@ -429,23 +471,131 @@ export async function unlockCreatorCard(
   }
 }
 
-/** Activity hook: maybe spawn a common watch chest + animal sticker (capped). */
-export async function onWatchActivity(userId: string, roomId?: string): Promise<void> {
+async function evaluateCreatorTiers(
+  userId: string,
+  creatorId: string,
+  watchMinutes: number,
+  giftsCount: number,
+): Promise<void> {
+  for (const tier of CREATOR_TIERS) {
+    if (
+      watchMinutes >= tier.watch_minutes_required &&
+      giftsCount >= tier.gifts_required
+    ) {
+      await unlockCreatorCard(userId, creatorId, tier.tier);
+    }
+  }
+}
+
+/** Add watch minutes toward creator collection cards for this host. */
+export async function recordCreatorWatchProgress(
+  userId: string,
+  creatorId: string,
+  minutes: number,
+): Promise<void> {
+  if (!getEngagementFlags().creatorCollectionsEnabled) return;
+  if (!canWriteEngagementWallets()) return;
+  const db = getPool();
+  const creator = String(creatorId || "").trim();
+  const add = Math.max(0, Math.floor(minutes));
+  if (!db || !userId || !creator || userId === creator || add <= 0) return;
+  try {
+    const r = await db.query(
+      `INSERT INTO user_creator_collection_progress
+         (user_id, creator_id, watch_minutes, gifts_count, updated_at)
+       VALUES ($1, $2, $3, 0, NOW())
+       ON CONFLICT (user_id, creator_id) DO UPDATE SET
+         watch_minutes = user_creator_collection_progress.watch_minutes + $3,
+         updated_at = NOW()
+       RETURNING watch_minutes, gifts_count`,
+      [userId, creator, add],
+    );
+    const row = r.rows[0];
+    await evaluateCreatorTiers(
+      userId,
+      creator,
+      Number(row?.watch_minutes) || 0,
+      Number(row?.gifts_count) || 0,
+    );
+  } catch (err) {
+    logger.warn({ err, userId, creator }, "recordCreatorWatchProgress failed");
+  }
+}
+
+/** Count a gift toward creator collection tiers (paid or promo gifts). */
+export async function recordCreatorGiftProgress(
+  userId: string,
+  creatorId: string,
+  gifts = 1,
+): Promise<void> {
+  if (!getEngagementFlags().creatorCollectionsEnabled) return;
+  if (!canWriteEngagementWallets()) return;
+  const db = getPool();
+  const creator = String(creatorId || "").trim();
+  const add = Math.max(0, Math.floor(gifts));
+  if (!db || !userId || !creator || userId === creator || add <= 0) return;
+  try {
+    const r = await db.query(
+      `INSERT INTO user_creator_collection_progress
+         (user_id, creator_id, watch_minutes, gifts_count, updated_at)
+       VALUES ($1, $2, 0, $3, NOW())
+       ON CONFLICT (user_id, creator_id) DO UPDATE SET
+         gifts_count = user_creator_collection_progress.gifts_count + $3,
+         updated_at = NOW()
+       RETURNING watch_minutes, gifts_count`,
+      [userId, creator, add],
+    );
+    const row = r.rows[0];
+    await evaluateCreatorTiers(
+      userId,
+      creator,
+      Number(row?.watch_minutes) || 0,
+      Number(row?.gifts_count) || 0,
+    );
+  } catch (err) {
+    logger.warn({ err, userId, creator }, "recordCreatorGiftProgress failed");
+  }
+}
+
+/**
+ * Activity hook: spawn chests, grant stickers, progress creator cards.
+ * `roomId` is stream_key; host is resolved to a real user id for cards.
+ */
+export async function onWatchActivity(
+  userId: string,
+  roomId?: string,
+  opts?: { minutes?: number; dropSticker?: boolean },
+): Promise<void> {
   if (!userId) return;
   try {
+    let creatorId = "";
+    if (roomId) {
+      try {
+        creatorId = (await resolveStreamOwnerUserId(roomId)) || roomId;
+      } catch {
+        creatorId = roomId;
+      }
+    }
+    const minutes = Math.max(1, Math.floor(opts?.minutes || 1));
+    const dropSticker = opts?.dropSticker === true;
+
     if (getEngagementFlags().treasureHuntEnabled && canWriteEngagementWallets()) {
       await spawnTreasureChest(userId, "chest_common_watch", roomId || "live");
     }
-    if (getEngagementFlags().stickerCollectionEnabled && canWriteEngagementWallets()) {
-      await grantSticker(userId, "animals_fox");
+    if (
+      dropSticker &&
+      getEngagementFlags().stickerCollectionEnabled &&
+      canWriteEngagementWallets()
+    ) {
+      await grantRandomSticker(userId);
     }
     if (
       getEngagementFlags().creatorCollectionsEnabled &&
       canWriteEngagementWallets() &&
-      roomId &&
-      roomId !== userId
+      creatorId &&
+      creatorId !== userId
     ) {
-      await unlockCreatorCard(userId, roomId, "bronze");
+      await recordCreatorWatchProgress(userId, creatorId, minutes);
     }
   } catch (err) {
     logger.warn({ err, userId }, "onWatchActivity phase15 failed");

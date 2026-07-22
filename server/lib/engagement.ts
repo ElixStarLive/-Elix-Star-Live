@@ -35,7 +35,7 @@ export function fanTierForLevel(level: number): FanTier {
   return "Bronze Fan";
 }
 
-function periodKey(scope: string, d = new Date()): string {
+export function periodKey(scope: string, d = new Date()): string {
   const y = d.getUTCFullYear();
   const m = String(d.getUTCMonth() + 1).padStart(2, "0");
   const day = String(d.getUTCDate()).padStart(2, "0");
@@ -170,6 +170,24 @@ export async function spendPromoCoins(
   const client = await db.connect();
   try {
     await client.query("BEGIN");
+    if (referenceId) {
+      const prior = await client.query(
+        `SELECT balance_after::bigint AS b
+           FROM promotional_coin_ledger
+          WHERE user_id = $1
+            AND reference_id = $2
+            AND direction = 'debit'
+          LIMIT 1`,
+        [userId, referenceId],
+      );
+      if (prior.rows[0]) {
+        await client.query("COMMIT");
+        return {
+          ok: true,
+          balance: Math.max(0, Number(prior.rows[0].b) || 0),
+        };
+      }
+    }
     await client.query(
       `INSERT INTO promotional_coin_balances (user_id) VALUES ($1)
        ON CONFLICT (user_id) DO NOTHING`,
@@ -490,6 +508,33 @@ export async function bumpMission(
   }
 }
 
+/**
+ * Count a creator once per weekly period for unique_creators missions.
+ * Returns true when this creator is newly recorded for the period.
+ */
+export async function recordUniqueCreatorVisit(
+  userId: string,
+  creatorId: string,
+): Promise<boolean> {
+  const db = getPool();
+  const creator = String(creatorId || "").trim();
+  if (!db || !userId || !creator || userId === creator) return false;
+  const pk = periodKey("weekly");
+  try {
+    const ins = await db.query(
+      `INSERT INTO user_engagement_unique_creators (user_id, creator_id, period_key)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (user_id, creator_id, period_key) DO NOTHING
+       RETURNING creator_id`,
+      [userId, creator, pk],
+    );
+    return (ins.rowCount ?? 0) > 0;
+  } catch (err) {
+    logger.warn({ err, userId, creator }, "recordUniqueCreatorVisit failed");
+    return false;
+  }
+}
+
 export async function bumpAchievement(
   userId: string,
   metricKey: string,
@@ -549,7 +594,7 @@ export async function bumpAchievement(
   }
 }
 
-async function awardEngagementXp(
+export async function awardEngagementXp(
   userId: string,
   xp: number,
   reason: string,
@@ -695,6 +740,15 @@ export async function claimMission(
       Number(mission.reward_xp),
       `mission:${missionId}`,
     );
+  }
+  try {
+    const { spawnTreasureChest } = await import("./engagementPhase15");
+    await spawnTreasureChest(userId, "chest_rare_missions", `mission:${missionId}`);
+    if (String(mission.metric_key) === "unique_creators") {
+      await spawnTreasureChest(userId, "chest_epic_streams", `mission:${missionId}`);
+    }
+  } catch (err) {
+    logger.warn({ err, userId, missionId }, "mission treasure spawn skipped");
   }
   return { ok: true };
 }
@@ -864,7 +918,20 @@ export async function claimDailyLogin(userId: string) {
     );
   }
   await bumpMission(userId, "login_streak_days", 1);
-  await bumpAchievement(userId, "login_streak_days", day);
+  // Progress by +1 per claim (not +streak_day), so day-7 unlocks correctly.
+  await bumpAchievement(userId, "login_streak_days", 1);
+  if (day === 7 || day === 5) {
+    try {
+      const { spawnTreasureChest } = await import("./engagementPhase15");
+      await spawnTreasureChest(
+        userId,
+        day === 7 ? "chest_legendary_streak" : "chest_rare_missions",
+        "daily_login",
+      );
+    } catch (err) {
+      logger.warn({ err, userId, day }, "daily login treasure spawn skipped");
+    }
+  }
   return {
     ok: true as const,
     streak_day: day,
@@ -896,6 +963,11 @@ export async function addMvpPoints(
         opts.source || "gift",
       ],
     );
+    // Unlock mvp_top10 when the user is currently in today's top 10.
+    const board = await getMvpLeaderboard("today", 10);
+    if (board.some((row) => row.user_id === userId && row.rank <= 10)) {
+      await bumpAchievement(userId, "mvp_top10", 1);
+    }
   } catch (err) {
     logger.warn({ err, userId }, "addMvpPoints failed");
   }

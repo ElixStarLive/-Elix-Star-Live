@@ -22,7 +22,7 @@ import {
   hasCohostPublishGrant,
 } from "../websocket/index";
 import { getEngagementFlags } from "../lib/engagementFlags";
-import { spendPromoCoins } from "../lib/engagement";
+import { spendPromoCoins, getPromoBalance } from "../lib/engagement";
 
 function requireAuth(req: Request, res: Response): { userId: string } | null {
   const token = getTokenFromRequest(req);
@@ -230,6 +230,45 @@ export async function handleSendGift(req: Request, res: Response) {
       if (coinCost <= 0) {
         return res.status(400).json({ error: "INVALID_GIFT_COST" });
       }
+
+      // Idempotent retry: same client_transaction_id must not double-debit promo.
+      const priorTx = await pool.query(
+        `SELECT gift_id, coins, gift_source
+           FROM elix_gift_transactions
+          WHERE client_transaction_id = $1
+          LIMIT 1`,
+        [clientTransactionId],
+      );
+      if (priorTx.rows[0]) {
+        const row = priorTx.rows[0] as {
+          gift_id?: string;
+          coins?: number;
+          gift_source?: string;
+        };
+        if (
+          row.gift_source !== "promotional_coins" ||
+          String(row.gift_id) !== giftId ||
+          Number(row.coins) !== coinCost
+        ) {
+          return res.status(409).json({ error: "transaction_conflict" });
+        }
+        const balance = await getPromoBalance(auth.userId);
+        return res.status(200).json({
+          ok: true,
+          room_id: roomId,
+          gift_id: giftId,
+          gift_source: "promotional_coins",
+          transaction_id: clientTransactionId,
+          new_promotional_balance: balance,
+          creator_earnings: 0,
+          diamonds: 0,
+          wallet_update: false,
+          already_processed: true,
+          message:
+            "Promotional gift already processed. Zero Diamonds / creator earnings.",
+        });
+      }
+
       const spent = await spendPromoCoins(
         auth.userId,
         coinCost,

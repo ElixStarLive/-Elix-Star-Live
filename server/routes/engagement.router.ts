@@ -17,6 +17,7 @@ import {
   fanTierForLevel,
   bumpMission,
   bumpAchievement,
+  recordUniqueCreatorVisit,
 } from "../lib/engagement";
 import { getProgressionSnapshot } from "../lib/starterCoinsXp";
 import { getPool } from "../lib/postgres";
@@ -29,6 +30,7 @@ import {
   listCreatorCardsForUser,
   onWatchActivity,
 } from "../lib/engagementPhase15";
+import { resolveStreamOwnerUserId } from "./livestream";
 
 const router = Router();
 router.use(requireAuth);
@@ -291,10 +293,35 @@ router.post("/progress", async (req: Request, res: Response) => {
     }
     const delta = Math.max(1, Math.min(10, Math.floor(Number(req.body?.delta) || 1)));
     const roomId = req.body?.roomId ? String(req.body.roomId) : undefined;
+
+    let creatorId = "";
+    if (roomId) {
+      try {
+        creatorId = (await resolveStreamOwnerUserId(roomId)) || roomId;
+      } catch {
+        creatorId = roomId;
+      }
+    }
+
+    if (metric === "unique_creators") {
+      const isNew = await recordUniqueCreatorVisit(userId, creatorId || roomId || "");
+      if (isNew) {
+        await bumpMission(userId, metric, 1);
+        await bumpAchievement(userId, metric, 1);
+        if (getEngagementFlags().treasureHuntEnabled) {
+          // Soft spawn explorer chest when discovering a new creator.
+          await spawnTreasureChest(userId, "chest_epic_streams", roomId || "live");
+        }
+      }
+      return res.json({ ok: true, unique: isNew });
+    }
+
     await bumpMission(userId, metric, delta);
     await bumpAchievement(userId, metric, delta);
-    if (metric === "lives_watched" || metric === "watch_minutes") {
-      await onWatchActivity(userId, roomId);
+    if (metric === "lives_watched") {
+      await onWatchActivity(userId, roomId, { minutes: 5, dropSticker: true });
+    } else if (metric === "watch_minutes") {
+      await onWatchActivity(userId, roomId, { minutes: delta, dropSticker: false });
     }
     return res.json({ ok: true });
   } catch (err) {

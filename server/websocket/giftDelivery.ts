@@ -21,6 +21,7 @@ import { getPool } from "../lib/postgres";
 import { logger } from "../lib/logger";
 import { resolveStreamOwnerUserId } from "../routes/livestream";
 import { addMvpPoints, bumpAchievement, bumpMission, fanEnergyGiftMultiplier } from "../lib/engagement";
+import { recordCreatorGiftProgress } from "../lib/engagementPhase15";
 
 export type DeliverGiftInput = {
   roomId: string;
@@ -172,6 +173,11 @@ export async function deliverVerifiedGift(
     const ownerId = await resolveStreamOwnerUserId(roomId);
     if (ownerId && ownerId !== userId) {
       sendToUserGlobal(ownerId, "gift_sent", payload);
+      try {
+        await recordCreatorGiftProgress(userId, ownerId, 1);
+      } catch (err) {
+        logger.warn({ err, roomId }, "deliverVerifiedGift: creator card gift progress skipped");
+      }
     }
   } catch (err) {
     logger.warn({ err, roomId }, "deliverVerifiedGift: owner notify skipped");

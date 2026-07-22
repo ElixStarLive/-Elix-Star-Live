@@ -1,10 +1,5 @@
 # Engagement Phase 1.5 — Collection & Exploration
-# Quarantined: Coolify `npm run migrate` will NOT apply this file.
-#
-# After owner approval:
-# 1. ENGAGEMENT_NEON_APPROVED=true
-# 2. Move into server/migrations/
-# 3. Enable TREASURE_HUNT_REWARDS / STICKER_REWARDS / CREATOR_CARD_REWARDS as needed
+# Applied by Coolify `npm run migrate` from server/migrations/.
 #
 # Rewards: Promo Coins / XP / Battle Energy / cosmetics only — never Diamonds.
 

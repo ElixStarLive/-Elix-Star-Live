@@ -367,7 +367,7 @@ function MissionsBody() {
       <Section title="Weekly" items={missions.filter((m) => m.scope === "weekly")} />
       {missions.length === 0 ? (
         <p className="text-sm text-white/45 text-center py-8">
-          Missions unlock after Neon approval. UI is ready.
+          Missions will appear when the engagement database is ready.
         </p>
       ) : null}
     </>
@@ -543,7 +543,7 @@ function BattleEnergyBody({ roomId }: { roomId: string }) {
   const boost = async (amount: number) => {
     if (!roomId || busy || !engagementFlags.battleEnergyEnabled) {
       if (!engagementFlags.battleEnergyEnabled) {
-        showToast("Battle Energy unlocks after Neon approval");
+        showToast("Battle Energy is currently disabled");
       }
       return;
     }
@@ -654,7 +654,7 @@ function AchievementsBody() {
   if (items.length === 0) {
     return (
       <p className="text-sm text-white/45 text-center py-8">
-        Achievements unlock after Neon approval.
+        Achievements will appear when the engagement database is ready.
       </p>
     );
   }
