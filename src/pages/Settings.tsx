@@ -26,6 +26,7 @@ import { showToast } from '../lib/toast';
 import { useAuthStore } from '../store/useAuthStore';
 import { useSettingsStore } from '../store/useSettingsStore';
 import SettingsOptionSheet from '../components/SettingsOptionSheet';
+import { engagementFlags } from '../config/engagementFlags';
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -105,7 +106,9 @@ export default function Settings() {
           <R ic={<Shield size={14} />} t={t('settings.security')} fn={() => navigate('/settings/safety')} />
           <R ic={<Trash2 size={14} />} t={t('settings.deleteAccount')} fn={handleDeleteAccount} />
           <R ic={<Wallet size={14} />} t="Creator payout" fn={() => navigate('/settings/payout')} />
-          <R ic={<Gift size={14} />} t="Engagement Hub" fn={() => navigate('/engagement')} />
+          {engagementFlags.engagementHubEnabled ? (
+            <R ic={<Gift size={14} />} t="Engagement Hub" fn={() => navigate('/engagement')} />
+          ) : null}
 
           <S t={t('settings.section.preferences')} />
           <R ic={<Bell size={14} />} t={t('settings.notifications')} fn={() => navigate('/settings/safety')} />

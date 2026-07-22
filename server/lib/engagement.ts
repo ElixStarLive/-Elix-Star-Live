@@ -2,10 +2,20 @@
  * Engagement Phase 1 — Promotional Coins, Battle Energy, missions,
  * achievements, daily login, MVP scores, fan tier labels.
  * Never touches purchased wallet / IAP / Stripe / test coins.
+ *
+ * CRITICAL ECONOMY RULES:
+ * - Battle Energy / Fan Energy multipliers affect battle score ONLY.
+ *   They must never change Diamonds or creator earnings.
+ * - Promotional Coin gifts (when enabled) create ZERO Diamonds.
+ * - Wallet writes require ENGAGEMENT_NEON_APPROVED + per-feature flags.
  */
 import { getPool } from "./postgres";
 import { logger } from "./logger";
 import { getProgressionSnapshot } from "./starterCoinsXp";
+import {
+  canWriteEngagementWallets,
+  getEngagementFlags,
+} from "./engagementFlags";
 
 export type FanTier =
   | "Bronze Fan"
@@ -45,31 +55,43 @@ function periodKey(scope: string, d = new Date()): string {
 export async function getPromoBalance(userId: string): Promise<number> {
   const db = getPool();
   if (!db || !userId) return 0;
-  await db.query(
-    `INSERT INTO promotional_coin_balances (user_id) VALUES ($1)
-     ON CONFLICT (user_id) DO NOTHING`,
-    [userId],
-  );
-  const r = await db.query(
-    `SELECT balance::bigint AS b FROM promotional_coin_balances WHERE user_id = $1`,
-    [userId],
-  );
-  return Math.max(0, Number(r.rows[0]?.b ?? 0));
+  try {
+    if (getEngagementFlags().promotionalCoinsEnabled) {
+      await db.query(
+        `INSERT INTO promotional_coin_balances (user_id) VALUES ($1)
+         ON CONFLICT (user_id) DO NOTHING`,
+        [userId],
+      );
+    }
+    const r = await db.query(
+      `SELECT balance::bigint AS b FROM promotional_coin_balances WHERE user_id = $1`,
+      [userId],
+    );
+    return Math.max(0, Number(r.rows[0]?.b ?? 0));
+  } catch {
+    return 0;
+  }
 }
 
 export async function getEnergyBalance(userId: string): Promise<number> {
   const db = getPool();
   if (!db || !userId) return 0;
-  await db.query(
-    `INSERT INTO battle_energy_balances (user_id) VALUES ($1)
-     ON CONFLICT (user_id) DO NOTHING`,
-    [userId],
-  );
-  const r = await db.query(
-    `SELECT balance::bigint AS b FROM battle_energy_balances WHERE user_id = $1`,
-    [userId],
-  );
-  return Math.max(0, Number(r.rows[0]?.b ?? 0));
+  try {
+    if (getEngagementFlags().battleEnergyEnabled) {
+      await db.query(
+        `INSERT INTO battle_energy_balances (user_id) VALUES ($1)
+         ON CONFLICT (user_id) DO NOTHING`,
+        [userId],
+      );
+    }
+    const r = await db.query(
+      `SELECT balance::bigint AS b FROM battle_energy_balances WHERE user_id = $1`,
+      [userId],
+    );
+    return Math.max(0, Number(r.rows[0]?.b ?? 0));
+  } catch {
+    return 0;
+  }
 }
 
 export async function creditPromoCoins(
@@ -78,6 +100,9 @@ export async function creditPromoCoins(
   reason: string,
   referenceId?: string,
 ): Promise<number> {
+  if (!getEngagementFlags().promotionalCoinsEnabled) {
+    return getPromoBalance(userId);
+  }
   const db = getPool();
   const add = Math.max(0, Math.floor(amount));
   if (!db || !userId || add <= 0) return getPromoBalance(userId);
@@ -125,6 +150,9 @@ export async function creditBattleEnergy(
   referenceId?: string,
   roomId?: string,
 ): Promise<number> {
+  if (!getEngagementFlags().battleEnergyEnabled) {
+    return getEnergyBalance(userId);
+  }
   const db = getPool();
   const add = Math.max(0, Math.floor(amount));
   if (!db || !userId || add <= 0) return getEnergyBalance(userId);
@@ -171,11 +199,28 @@ export async function spendBattleEnergy(
   reason: string,
   roomId: string,
   side: "host" | "opponent",
-): Promise<{ ok: boolean; balance: number; fanEnergy?: number }> {
+): Promise<{
+  ok: boolean;
+  balance: number;
+  fanEnergy?: number;
+  energySpent?: number;
+  boostActivated?: boolean;
+  boostMultiplier?: number;
+  boostEndsAt?: string | null;
+  error?: string;
+}> {
+  if (!getEngagementFlags().battleEnergyEnabled) {
+    return {
+      ok: false,
+      balance: await getEnergyBalance(userId),
+      error: "BATTLE_ENERGY_DISABLED",
+    };
+  }
   const db = getPool();
-  const spend = Math.max(0, Math.floor(amount));
-  if (!db || !userId || spend <= 0 || !roomId) {
-    return { ok: false, balance: await getEnergyBalance(userId) };
+  // Phase 1: minimum boost spend is 100 Energy.
+  const spend = Math.max(100, Math.floor(amount));
+  if (!db || !userId || !roomId) {
+    return { ok: false, balance: await getEnergyBalance(userId), error: "INVALID" };
   }
   const client = await db.connect();
   try {
@@ -192,7 +237,7 @@ export async function spendBattleEnergy(
     const before = Math.max(0, Number(cur.rows[0]?.b ?? 0));
     if (before < spend) {
       await client.query("ROLLBACK");
-      return { ok: false, balance: before };
+      return { ok: false, balance: before, error: "INSUFFICIENT_ENERGY" };
     }
     const after = before - spend;
     await client.query(
@@ -221,15 +266,43 @@ export async function spendBattleEnergy(
     await client.query("COMMIT");
     await bumpMission(userId, "energy_boosts", 1);
     await bumpAchievement(userId, "energy_spent", spend);
+    const fanEnergy = Math.max(0, Number(fan.rows[0]?.e ?? 0));
+    // Fan Energy threshold activates a temporary BATTLE SCORE multiplier only.
+    // Never used for Diamonds / creator earnings.
+    let threshold = 10000;
+    let multiplier = 1.2;
+    let durationSec = 5;
+    try {
+      const settings = await db.query(
+        `SELECT value_json FROM engagement_settings WHERE key = 'fan_energy_boost'`,
+      );
+      const cfg = (settings.rows[0]?.value_json || {}) as {
+        threshold?: number;
+        multiplier?: number;
+        duration_sec?: number;
+      };
+      threshold = Math.max(1, Number(cfg.threshold) || 10000);
+      multiplier = Math.max(1, Number(cfg.multiplier) || 1.2);
+      durationSec = Math.max(1, Number(cfg.duration_sec) || 5);
+    } catch {
+      /* defaults */
+    }
+    const boostActivated = fanEnergy >= threshold;
     return {
       ok: true,
       balance: after,
-      fanEnergy: Math.max(0, Number(fan.rows[0]?.e ?? 0)),
+      fanEnergy,
+      energySpent: spend,
+      boostActivated,
+      boostMultiplier: boostActivated ? multiplier : 1,
+      boostEndsAt: boostActivated
+        ? new Date(Date.now() + durationSec * 1000).toISOString()
+        : null,
     };
   } catch (err) {
     await client.query("ROLLBACK");
     logger.error({ err, userId }, "spendBattleEnergy failed");
-    return { ok: false, balance: await getEnergyBalance(userId) };
+    return { ok: false, balance: await getEnergyBalance(userId), error: "BOOST_FAILED" };
   } finally {
     client.release();
   }
@@ -240,10 +313,15 @@ export async function earnBattleEnergy(
   source: "watch" | "comment" | "share",
   roomId?: string,
 ): Promise<{ granted: number; balance: number }> {
+  if (!getEngagementFlags().battleEnergyEnabled) {
+    return { granted: 0, balance: 0 };
+  }
   const db = getPool();
   if (!db || !userId) return { granted: 0, balance: 0 };
+  // Phase 1 recommended caps (per battle when roomId set; stored on daily key until
+  // battle-scoped caps table is approved with Neon migration).
   const amounts = { watch: 5, comment: 2, share: 20 } as const;
-  const caps = { watch: 300, comment: 20, share: 20 } as const;
+  const caps = { watch: 300, comment: 20, share: 1 } as const;
   const col =
     source === "watch"
       ? "watch_energy"
@@ -436,48 +514,63 @@ async function awardEngagementXp(
 export async function listMissionsForUser(userId: string) {
   const db = getPool();
   if (!db) return [];
-  const missions = await db.query(
-    `SELECT * FROM engagement_missions WHERE enabled = TRUE ORDER BY scope, sort_order`,
-  );
-  const out = [];
-  for (const m of missions.rows) {
-    const pk = periodKey(String(m.scope));
-    const p = await db.query(
-      `SELECT progress, completed, claimed FROM user_mission_progress
-        WHERE user_id = $1 AND mission_id = $2 AND period_key = $3`,
-      [userId, m.id, pk],
+  try {
+    const missions = await db.query(
+      `SELECT * FROM engagement_missions WHERE enabled = TRUE ORDER BY scope, sort_order`,
     );
-    const prog = p.rows[0];
-    out.push({
-      id: m.id,
-      scope: m.scope,
-      title: m.title,
-      description: m.description,
-      goal_count: Number(m.goal_count),
-      reward_xp: Number(m.reward_xp),
-      reward_promo_coins: Number(m.reward_promo_coins),
-      reward_energy: Number(m.reward_energy),
-      metric_key: m.metric_key,
-      period_key: pk,
-      progress: Number(prog?.progress ?? 0),
-      completed: !!prog?.completed,
-      claimed: !!prog?.claimed,
-    });
+    const out = [];
+    for (const m of missions.rows) {
+      const pk = periodKey(String(m.scope));
+      const p = await db.query(
+        `SELECT progress, completed, claimed FROM user_mission_progress
+          WHERE user_id = $1 AND mission_id = $2 AND period_key = $3`,
+        [userId, m.id, pk],
+      );
+      const prog = p.rows[0];
+      out.push({
+        id: m.id,
+        scope: m.scope,
+        title: m.title,
+        description: m.description,
+        goal_count: Number(m.goal_count),
+        reward_xp: Number(m.reward_xp),
+        reward_promo_coins: Number(m.reward_promo_coins),
+        reward_energy: Number(m.reward_energy),
+        metric_key: m.metric_key,
+        period_key: pk,
+        progress: Number(prog?.progress ?? 0),
+        completed: !!prog?.completed,
+        claimed: !!prog?.claimed,
+      });
+    }
+    return out;
+  } catch {
+    return [];
   }
-  return out;
 }
 
 export async function claimMission(
   userId: string,
   missionId: string,
 ): Promise<{ ok: boolean; error?: string }> {
+  if (!getEngagementFlags().missionRewardsEnabled) {
+    return { ok: false, error: "MISSION_REWARDS_DISABLED" };
+  }
+  if (!canWriteEngagementWallets()) {
+    return { ok: false, error: "ENGAGEMENT_NEON_PENDING_APPROVAL" };
+  }
   const db = getPool();
   if (!db) return { ok: false, error: "DATABASE_UNAVAILABLE" };
-  const m = await db.query(
-    `SELECT * FROM engagement_missions WHERE id = $1 AND enabled = TRUE`,
-    [missionId],
-  );
-  const mission = m.rows[0];
+  let mission: Record<string, unknown> | undefined;
+  try {
+    const m = await db.query(
+      `SELECT * FROM engagement_missions WHERE id = $1 AND enabled = TRUE`,
+      [missionId],
+    );
+    mission = m.rows[0];
+  } catch {
+    return { ok: false, error: "ENGAGEMENT_SCHEMA_PENDING" };
+  }
   if (!mission) return { ok: false, error: "NOT_FOUND" };
   const pk = periodKey(String(mission.scope));
   const client = await db.connect();
@@ -510,6 +603,7 @@ export async function claimMission(
   } finally {
     client.release();
   }
+  // Promo / energy only when those flags are on (credit helpers also gate).
   if (Number(mission.reward_promo_coins) > 0) {
     await creditPromoCoins(
       userId,
@@ -539,97 +633,126 @@ export async function claimMission(
 export async function listAchievementsForUser(userId: string) {
   const db = getPool();
   if (!db) return [];
-  const a = await db.query(
-    `SELECT * FROM engagement_achievements WHERE enabled = TRUE ORDER BY rarity, id`,
-  );
-  const out = [];
-  for (const row of a.rows) {
-    const u = await db.query(
-      `SELECT progress, unlocked, unlocked_at, claimed FROM user_achievements
-        WHERE user_id = $1 AND achievement_id = $2`,
-      [userId, row.id],
+  try {
+    const a = await db.query(
+      `SELECT * FROM engagement_achievements WHERE enabled = TRUE ORDER BY rarity, id`,
     );
-    const p = u.rows[0];
-    out.push({
-      id: row.id,
-      name: row.name,
-      description: row.description,
-      icon: row.icon,
-      goal_count: Number(row.goal_count),
-      reward_xp: Number(row.reward_xp),
-      reward_promo_coins: Number(row.reward_promo_coins),
-      rarity: row.rarity,
-      progress: Number(p?.progress ?? 0),
-      unlocked: !!p?.unlocked,
-      unlocked_at: p?.unlocked_at || null,
-      claimed: !!p?.claimed,
-    });
+    const out = [];
+    for (const row of a.rows) {
+      const u = await db.query(
+        `SELECT progress, unlocked, unlocked_at, claimed FROM user_achievements
+          WHERE user_id = $1 AND achievement_id = $2`,
+        [userId, row.id],
+      );
+      const p = u.rows[0];
+      out.push({
+        id: row.id,
+        name: row.name,
+        description: row.description,
+        icon: row.icon,
+        goal_count: Number(row.goal_count),
+        reward_xp: Number(row.reward_xp),
+        reward_promo_coins: Number(row.reward_promo_coins),
+        rarity: row.rarity,
+        progress: Number(p?.progress ?? 0),
+        unlocked: !!p?.unlocked,
+        unlocked_at: p?.unlocked_at || null,
+        claimed: !!p?.claimed,
+      });
+    }
+    return out;
+  } catch {
+    return [];
   }
-  return out;
 }
 
 export async function getDailyLoginState(userId: string) {
   const db = getPool();
-  if (!db) {
-    return {
-      can_claim: false,
-      streak_day: 1,
-      claimed_today: false,
-      next_reward: null as null | Record<string, unknown>,
-    };
-  }
-  const today = periodKey("daily");
-  const todayClaim = await db.query(
-    `SELECT streak_day FROM daily_reward_claims WHERE user_id = $1 AND claim_date = $2::date`,
-    [userId, today],
-  );
-  if (todayClaim.rows[0]) {
-    return {
-      can_claim: false,
-      streak_day: Number(todayClaim.rows[0].streak_day),
-      claimed_today: true,
-      next_reward: null,
-    };
-  }
-  const yesterday = new Date();
-  yesterday.setUTCDate(yesterday.getUTCDate() - 1);
-  const yKey = periodKey("daily", yesterday);
-  const yClaim = await db.query(
-    `SELECT streak_day FROM daily_reward_claims WHERE user_id = $1 AND claim_date = $2::date`,
-    [userId, yKey],
-  );
-  const prev = Number(yClaim.rows[0]?.streak_day ?? 0);
-  const nextDay = prev >= 1 && prev < 7 ? prev + 1 : 1;
-  const cfg = await db.query(
-    `SELECT * FROM daily_reward_config WHERE streak_day = $1`,
-    [nextDay],
-  );
-  return {
-    can_claim: true,
-    streak_day: nextDay,
+  const empty = {
+    can_claim: false,
+    streak_day: 1,
     claimed_today: false,
-    next_reward: cfg.rows[0]
-      ? {
-          streak_day: Number(cfg.rows[0].streak_day),
-          reward_xp: Number(cfg.rows[0].reward_xp),
-          reward_promo_coins: Number(cfg.rows[0].reward_promo_coins),
-          reward_label: String(cfg.rows[0].reward_label),
-        }
-      : null,
+    next_reward: null as null | Record<string, unknown>,
   };
+  if (!db || !getEngagementFlags().dailyLoginEnabled) return empty;
+  try {
+    const today = periodKey("daily");
+    const todayClaim = await db.query(
+      `SELECT streak_day FROM daily_reward_claims WHERE user_id = $1 AND claim_date = $2::date`,
+      [userId, today],
+    );
+    if (todayClaim.rows[0]) {
+      return {
+        can_claim: false,
+        streak_day: Number(todayClaim.rows[0].streak_day),
+        claimed_today: true,
+        next_reward: null,
+      };
+    }
+    const yesterday = new Date();
+    yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+    const yKey = periodKey("daily", yesterday);
+    const yClaim = await db.query(
+      `SELECT streak_day FROM daily_reward_claims WHERE user_id = $1 AND claim_date = $2::date`,
+      [userId, yKey],
+    );
+    const prev = Number(yClaim.rows[0]?.streak_day ?? 0);
+    const nextDay = prev >= 1 && prev < 7 ? prev + 1 : 1;
+    const cfg = await db.query(
+      `SELECT * FROM daily_reward_config WHERE streak_day = $1`,
+      [nextDay],
+    );
+    return {
+      can_claim: canWriteEngagementWallets(),
+      streak_day: nextDay,
+      claimed_today: false,
+      next_reward: cfg.rows[0]
+        ? {
+            streak_day: Number(cfg.rows[0].streak_day),
+            reward_xp: Number(cfg.rows[0].reward_xp),
+            reward_promo_coins: Number(cfg.rows[0].reward_promo_coins),
+            reward_label: String(cfg.rows[0].reward_label),
+          }
+        : null,
+    };
+  } catch {
+    return empty;
+  }
 }
 
 export async function claimDailyLogin(userId: string) {
+  if (!getEngagementFlags().dailyLoginEnabled) {
+    return { ok: false as const, error: "DAILY_LOGIN_DISABLED" };
+  }
+  if (!canWriteEngagementWallets()) {
+    return { ok: false as const, error: "ENGAGEMENT_NEON_PENDING_APPROVAL" };
+  }
   const db = getPool();
   if (!db) return { ok: false as const, error: "DATABASE_UNAVAILABLE" };
   const state = await getDailyLoginState(userId);
-  if (!state.can_claim) return { ok: false as const, error: "ALREADY_CLAIMED" };
+  if (!state.can_claim) {
+    // Idempotent: if already claimed today, return original-day info.
+    if (state.claimed_today) {
+      return {
+        ok: true as const,
+        already_claimed: true,
+        streak_day: state.streak_day,
+        reward: null,
+      };
+    }
+    return { ok: false as const, error: "ALREADY_CLAIMED" };
+  }
   const day = state.streak_day;
-  const cfg = await db.query(
-    `SELECT * FROM daily_reward_config WHERE streak_day = $1`,
-    [day],
-  );
-  const reward = cfg.rows[0];
+  let reward: Record<string, unknown> | undefined;
+  try {
+    const cfg = await db.query(
+      `SELECT * FROM daily_reward_config WHERE streak_day = $1`,
+      [day],
+    );
+    reward = cfg.rows[0];
+  } catch {
+    return { ok: false as const, error: "ENGAGEMENT_SCHEMA_PENDING" };
+  }
   if (!reward) return { ok: false as const, error: "NO_CONFIG" };
   const today = periodKey("daily");
   try {
@@ -647,7 +770,14 @@ export async function claimDailyLogin(userId: string) {
       ],
     );
   } catch {
-    return { ok: false as const, error: "ALREADY_CLAIMED" };
+    // Unique(user_id, claim_date) — duplicate claim is idempotent.
+    const again = await getDailyLoginState(userId);
+    return {
+      ok: true as const,
+      already_claimed: true,
+      streak_day: again.streak_day,
+      reward: null,
+    };
   }
   if (Number(reward.reward_promo_coins) > 0) {
     await creditPromoCoins(
@@ -745,11 +875,15 @@ export async function getFanEnergy(roomId: string) {
   return { host, opponent };
 }
 
-/** When Fan Energy >= threshold, apply gift-score multiplier (default 1.2). */
+/** When Fan Energy >= threshold, apply gift-score multiplier (default 1.2).
+ * CRITICAL: This multiplier is for battle score ONLY. Creator Diamonds must
+ * always use giftEconomicValue (purchased/starter coin cost), never this.
+ */
 export async function fanEnergyGiftMultiplier(
   roomId: string,
   side: "host" | "opponent",
 ): Promise<number> {
+  if (!getEngagementFlags().battleEnergyEnabled) return 1;
   const db = getPool();
   if (!db || !roomId) return 1;
   try {

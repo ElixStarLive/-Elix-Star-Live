@@ -202,31 +202,37 @@ export async function deliverVerifiedGift(
     try {
       const activeBattle = await getBattleFromStore(roomId);
       if (activeBattle && activeBattle.status === "ACTIVE") {
-        const serverGiftValue = getGiftValue(giftId);
-        if (serverGiftValue > 0) {
+        // ECONOMY SPLIT (locked):
+        // giftEconomicValue  → Diamonds / financial ledger (credited in REST with coinCost)
+        // giftBattleScore    → battle winner points only (may include Fan Energy ×1.2)
+        // Battle Energy must NEVER increase creator earnings.
+        const giftEconomicValue = getGiftValue(giftId);
+        if (giftEconomicValue > 0) {
           const target = normalizedTarget || "host";
           const catchResult = await resolveBoosterCatch(
             roomId,
             userId,
             transactionId,
             giftId,
-            serverGiftValue,
+            giftEconomicValue,
           );
           const sideForFan: "host" | "opponent" =
             target === "opponent" || target === "player4" ? "opponent" : "host";
           const fanMult = await fanEnergyGiftMultiplier(roomId, sideForFan);
-          const scoredPoints = Math.max(
+          const giftBattleScore = Math.max(
             1,
             Math.round(catchResult.finalPoints * fanMult),
           );
-          await addBattleScoreForTarget(roomId, target, scoredPoints);
+          await addBattleScoreForTarget(roomId, target, giftBattleScore);
           if (catchResult.caught) {
             broadcastToRoom(roomId, "booster_caught", {
               user_id: userId,
               username,
               multiplier: catchResult.multiplier,
-              base_points: serverGiftValue,
-              final_points: scoredPoints,
+              base_points: giftEconomicValue,
+              final_points: giftBattleScore,
+              gift_economic_value: giftEconomicValue,
+              gift_battle_score: giftBattleScore,
               gift_id: giftId,
               battleTarget: target,
               transaction_id: transactionId,
@@ -240,26 +246,30 @@ export async function deliverVerifiedGift(
     }
 
     // Engagement Phase 1: MVP aggregates + gift metrics (separate from Battle Energy).
+    // Uses economic gift value for Economic Support Score — not battle-boosted points.
     try {
-      const pts = Math.max(
-        0,
-        Math.floor(Number(input.coins) || getGiftValue(giftId) || 0),
-      );
-      if (pts > 0) {
-        let hostUserId: string | undefined;
-        try {
-          hostUserId = (await resolveStreamOwnerUserId(roomId)) || undefined;
-        } catch {
-          hostUserId = undefined;
+      const { canWriteEngagementWallets } = await import("../lib/engagementFlags");
+      if (canWriteEngagementWallets()) {
+        const giftEconomicValue = Math.max(
+          0,
+          Math.floor(Number(input.coins) || getGiftValue(giftId) || 0),
+        );
+        if (giftEconomicValue > 0) {
+          let hostUserId: string | undefined;
+          try {
+            hostUserId = (await resolveStreamOwnerUserId(roomId)) || undefined;
+          } catch {
+            hostUserId = undefined;
+          }
+          await addMvpPoints(userId, giftEconomicValue, {
+            roomId,
+            hostUserId,
+            source: "paid_gift",
+          });
         }
-        await addMvpPoints(userId, pts, {
-          roomId,
-          hostUserId,
-          source: "paid_gift",
-        });
+        await bumpMission(userId, "gifts_sent", 1);
+        await bumpAchievement(userId, "gifts_sent", 1);
       }
-      await bumpMission(userId, "gifts_sent", 1);
-      await bumpAchievement(userId, "gifts_sent", 1);
     } catch (err) {
       logger.warn({ err, roomId, giftId }, "deliverVerifiedGift: engagement mvp failed");
     }

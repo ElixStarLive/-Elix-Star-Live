@@ -58,6 +58,20 @@ export async function handleSendGift(req: Request, res: Response) {
     } = req.body ?? {};
     const roomId = typeof room_id === "string" ? room_id.trim() : (typeof streamKey === "string" ? streamKey.trim() : "");
     const giftId = typeof gift_id === "string" ? gift_id.trim() : (typeof giftIdAlt === "string" ? giftIdAlt.trim() : "");
+
+    // Promotional Coin gifts: gated off until Neon approval + promoGiftSpendEnabled.
+    // When enabled later, they MUST credit zero Diamonds (never call neonCreditCreatorEarning).
+    if (
+      gift_source === "promotional_coins" ||
+      gift_source === "promo_coins" ||
+      gift_source === "promotional"
+    ) {
+      return res.status(403).json({
+        error: "PROMO_GIFT_SPEND_DISABLED",
+        message:
+          "Promotional Coin gifts are disabled until Neon wallet approval. When enabled they create zero Diamonds.",
+      });
+    }
     const battleTargetRaw = battleTarget ?? battle_target;
     const cohostTargetRaw = cohostTargetUserId ?? cohost_target_user_id;
     const clientAnimationUrl =
@@ -228,6 +242,8 @@ export async function handleSendGift(req: Request, res: Response) {
 
       // Credit the gift recipient (stream host, or a validated live co-host).
       // Idempotent per transaction. Co-host gifts use the same 60/40 split.
+      // CRITICAL: coins = giftEconomicValue only. Battle Energy multipliers
+      // must never be passed here — Diamonds stay tied to purchased coin cost.
       try {
         await neonCreditCreatorEarning({
           creatorId: recipientId,

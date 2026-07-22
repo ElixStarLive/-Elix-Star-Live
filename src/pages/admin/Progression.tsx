@@ -168,12 +168,16 @@ export default function AdminProgression() {
 
         <section className="rounded-xl border border-[#C9A227]/25 bg-[#C9A227]/5 p-4 mb-6 text-sm text-white/70">
           <p className="font-semibold text-[#C9A227] mb-1">Engagement Phase 1</p>
+          <p className="mb-2">
+            Hub UI is live. Neon migration is quarantined in{" "}
+            <code className="text-white/50">server/migrations/pending/</code> until
+            explicit approval. Set <code className="text-white/50">ENGAGEMENT_NEON_APPROVED=true</code>{" "}
+            only after ledger testing.
+          </p>
           <p>
-            Mission XP, daily login rewards, and Battle Energy caps live in Neon
-            tables <code className="text-white/50">engagement_missions</code>,{" "}
-            <code className="text-white/50">daily_reward_config</code>, and{" "}
-            <code className="text-white/50">engagement_settings</code>. Fan Energy
-            gift-score boost defaults to 10k → ×1.2. No gambling controls.
+            Locked rules: Battle Energy multipliers affect battle score only (never
+            Diamonds). Promo Coin gifts create zero Diamonds. Flags default: hub /
+            daily login / missions on; promo coins / battle energy / promo spend off.
           </p>
         </section>
 

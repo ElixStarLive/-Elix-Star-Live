@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Clock, Crown, Target } from 'lucide-react';
 import { AvatarRing } from './AvatarRing';
+import { engagementFlags } from '../config/engagementFlags';
 
 export type LiveSideSupporter = {
   id: string;
@@ -229,17 +230,19 @@ export function LiveSideMissionStack({
           />
         </div>
 
-        <button
-          type="button"
-          className="text-[#C9A227] text-[8px] font-semibold whitespace-nowrap active:opacity-80 self-start"
-          onClick={(e) => {
-            e.stopPropagation();
-            navigate('/engagement');
-          }}
-          title="Open Engagement Hub"
-        >
-          Open Hub &gt;
-        </button>
+        {engagementFlags.engagementHubEnabled ? (
+          <button
+            type="button"
+            className="text-[#C9A227] text-[8px] font-semibold whitespace-nowrap active:opacity-80 self-start"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate('/engagement');
+            }}
+            title="Open Engagement Hub"
+          >
+            Open Hub &gt;
+          </button>
+        ) : null}
 
         <div className="h-px w-full bg-white/10 my-0.5" />
 

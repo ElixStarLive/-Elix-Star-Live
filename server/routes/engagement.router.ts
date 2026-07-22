@@ -20,16 +20,25 @@ import {
 } from "../lib/engagement";
 import { getProgressionSnapshot } from "../lib/starterCoinsXp";
 import { getPool } from "../lib/postgres";
+import { getEngagementFlags } from "../lib/engagementFlags";
 
 const router = Router();
 router.use(requireAuth);
 
+router.get("/flags", (_req: Request, res: Response) => {
+  res.setHeader("Cache-Control", "private, no-store");
+  return res.json({ flags: getEngagementFlags() });
+});
+
 router.get("/hub", async (req: Request, res: Response) => {
   const userId = (req.auth as NonNullable<typeof req.auth>).sub;
+  if (!getEngagementFlags().engagementHubEnabled) {
+    return res.status(404).json({ error: "ENGAGEMENT_HUB_DISABLED" });
+  }
   try {
     const hub = await getHubSummary(userId);
     res.setHeader("Cache-Control", "private, no-store");
-    return res.json({ hub });
+    return res.json({ hub, flags: getEngagementFlags() });
   } catch (err) {
     logger.error({ err, userId }, "GET engagement/hub failed");
     return res.status(500).json({ error: "HUB_LOAD_FAILED" });
@@ -40,31 +49,48 @@ router.get("/wallet", async (req: Request, res: Response) => {
   const userId = (req.auth as NonNullable<typeof req.auth>).sub;
   try {
     const db = getPool();
-    let purchased = 0;
+    let purchasedCoins = 0;
     if (db) {
       const w = await db.query(
         `SELECT coin_balance::bigint AS b FROM elix_wallet_balances WHERE user_id = $1`,
         [userId],
       );
-      purchased = Math.max(0, Number(w.rows[0]?.b ?? 0));
+      purchasedCoins = Math.max(0, Number(w.rows[0]?.b ?? 0));
     }
-    const [promo, energy, progression] = await Promise.all([
+    const [promotionalCoins, battleEnergy, progression] = await Promise.all([
       getPromoBalance(userId),
       getEnergyBalance(userId),
       getProgressionSnapshot(userId),
     ]);
+    const starterCoins = Number(progression?.starter_coin_balance ?? 0);
     const level = Number(progression?.current_level ?? 0);
+    // Server never returns a single merged "coin balance" as the source of truth.
+    // totalGiftSpendable is a display helper only; spend priority is server-side.
+    const totalGiftSpendable =
+      purchasedCoins +
+      starterCoins +
+      (getEngagementFlags().promoGiftSpendEnabled ? promotionalCoins : 0);
     res.setHeader("Cache-Control", "private, no-store");
     return res.json({
       wallet: {
-        purchased_coins: purchased,
-        promotional_coins: promo,
-        battle_energy: energy,
-        starter_coins: Number(progression?.starter_coin_balance ?? 0),
+        purchasedCoins,
+        starterCoins,
+        promotionalCoins,
+        totalGiftSpendable,
+        battleEnergy,
+        totalXp: Number(progression?.total_xp ?? 0),
+        fanLevel: level,
+        fanTier: fanTierForLevel(level),
+        // Legacy snake_case aliases for existing clients
+        purchased_coins: purchasedCoins,
+        starter_coins: starterCoins,
+        promotional_coins: promotionalCoins,
+        battle_energy: battleEnergy,
         total_xp: Number(progression?.total_xp ?? 0),
         fan_level: level,
         fan_tier: fanTierForLevel(level),
       },
+      flags: getEngagementFlags(),
     });
   } catch (err) {
     logger.error({ err, userId }, "GET engagement/wallet failed");
@@ -177,6 +203,9 @@ router.get("/mvp", async (req: Request, res: Response) => {
 
 router.post("/battle-energy/earn", async (req: Request, res: Response) => {
   const userId = (req.auth as NonNullable<typeof req.auth>).sub;
+  if (!getEngagementFlags().battleEnergyEnabled) {
+    return res.json({ granted: 0, balance: 0, disabled: true });
+  }
   try {
     const source = String(req.body?.source || "");
     if (source !== "watch" && source !== "comment" && source !== "share") {
@@ -193,10 +222,17 @@ router.post("/battle-energy/earn", async (req: Request, res: Response) => {
 
 router.post("/battle-energy/boost", async (req: Request, res: Response) => {
   const userId = (req.auth as NonNullable<typeof req.auth>).sub;
+  if (!getEngagementFlags().battleEnergyEnabled) {
+    return res.status(403).json({ error: "BATTLE_ENERGY_DISABLED" });
+  }
   try {
     const roomId = String(req.body?.roomId || "");
     const side = String(req.body?.side || "");
-    const amount = Math.max(1, Math.min(500, Math.floor(Number(req.body?.amount) || 10)));
+    // Phase 1: minimum 100 Energy per boost.
+    const amount = Math.max(
+      100,
+      Math.min(5000, Math.floor(Number(req.body?.amount) || 100)),
+    );
     if (!roomId || (side !== "host" && side !== "opponent")) {
       return res.status(400).json({ error: "INVALID_BOOST" });
     }
@@ -208,9 +244,21 @@ router.post("/battle-energy/boost", async (req: Request, res: Response) => {
       side,
     );
     if (!result.ok) {
-      return res.status(400).json({ error: "INSUFFICIENT_ENERGY", ...result });
+      return res.status(400).json({
+        error: result.error || "INSUFFICIENT_ENERGY",
+        success: false,
+        remainingEnergy: result.balance,
+      });
     }
-    return res.json(result);
+    return res.json({
+      success: true,
+      energySpent: result.energySpent,
+      remainingEnergy: result.balance,
+      battleFanEnergy: result.fanEnergy,
+      boostActivated: result.boostActivated,
+      boostMultiplier: result.boostMultiplier,
+      boostEndsAt: result.boostEndsAt,
+    });
   } catch (err) {
     logger.error({ err, userId }, "POST battle-energy/boost failed");
     return res.status(500).json({ error: "BOOST_FAILED" });
@@ -219,6 +267,9 @@ router.post("/battle-energy/boost", async (req: Request, res: Response) => {
 
 router.post("/progress", async (req: Request, res: Response) => {
   const userId = (req.auth as NonNullable<typeof req.auth>).sub;
+  if (!getEngagementFlags().engagementNeonApproved) {
+    return res.json({ ok: true, skipped: true });
+  }
   try {
     const metric = String(req.body?.metric || "");
     const allowed = new Set([

@@ -3,15 +3,24 @@ import { Wallet, Zap } from "lucide-react";
 import { EngagementShell } from "./EngagementShell";
 import { request } from "../../lib/apiClient";
 import { showToast } from "../../lib/toast";
+import { engagementFlags } from "../../config/engagementFlags";
 
 type WalletData = {
-  purchased_coins: number;
-  promotional_coins: number;
-  battle_energy: number;
-  starter_coins: number;
-  total_xp: number;
-  fan_level: number;
-  fan_tier: string;
+  purchasedCoins?: number;
+  starterCoins?: number;
+  promotionalCoins?: number;
+  totalGiftSpendable?: number;
+  battleEnergy?: number;
+  totalXp?: number;
+  fanLevel?: number;
+  fanTier?: string;
+  purchased_coins?: number;
+  promotional_coins?: number;
+  battle_energy?: number;
+  starter_coins?: number;
+  total_xp?: number;
+  fan_level?: number;
+  fan_tier?: string;
 };
 
 export default function EngagementRewards() {
@@ -31,6 +40,16 @@ export default function EngagementRewards() {
       }
     })();
   }, []);
+
+  const purchased = wallet?.purchasedCoins ?? wallet?.purchased_coins ?? 0;
+  const starter = wallet?.starterCoins ?? wallet?.starter_coins ?? 0;
+  const promo = wallet?.promotionalCoins ?? wallet?.promotional_coins ?? 0;
+  const energy = wallet?.battleEnergy ?? wallet?.battle_energy ?? 0;
+  const xp = wallet?.totalXp ?? wallet?.total_xp ?? 0;
+  const level = wallet?.fanLevel ?? wallet?.fan_level ?? 0;
+  const tier = wallet?.fanTier ?? wallet?.fan_tier ?? "Bronze Fan";
+  const spendable =
+    wallet?.totalGiftSpendable ?? purchased + starter + (engagementFlags.promoGiftSpendEnabled ? promo : 0);
 
   const Row = ({
     label,
@@ -59,18 +78,27 @@ export default function EngagementRewards() {
       ) : (
         <>
           <Row
+            label="Available for gifts"
+            value={spendable}
+            note="Display total only. Server chooses which balance is spent."
+          />
+          <Row
             label="Purchased Coins"
-            value={wallet?.purchased_coins ?? 0}
+            value={purchased}
             note="From IAP / real money. Used for gifts. Never mixed with promo."
           />
           <Row
             label="Promotional Coins"
-            value={wallet?.promotional_coins ?? 0}
-            note="Platform rewards from missions, login, and events. Not real money."
+            value={promo}
+            note={
+              engagementFlags.promotionalCoinsEnabled
+                ? "Platform rewards. Not withdrawable. Promo gifts create zero Diamonds."
+                : "Disabled until Neon wallet approval. Shown as 0."
+            }
           />
           <Row
             label="Starter Coins"
-            value={wallet?.starter_coins ?? 0}
+            value={starter}
             note="Onboarding free coins. Separate from purchased and promo."
           />
           <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 mb-2">
@@ -79,17 +107,19 @@ export default function EngagementRewards() {
                 <Zap className="w-3.5 h-3.5 text-[#C9A227]" /> Battle Energy
               </span>
               <span className="text-sm font-bold tabular-nums text-[#C9A227]">
-                {wallet?.battle_energy ?? 0}
+                {energy}
               </span>
             </div>
             <p className="text-[11px] text-white/40">
-              Free LIVE boost power. Adds Fan Energy — separate from gift score.
+              {engagementFlags.battleEnergyEnabled
+                ? "Free LIVE boost power. Affects battle score only — never Diamonds."
+                : "Disabled until Neon approval. BOOST control hidden."}
             </p>
           </div>
           <Row
             label="XP / Fan Level"
-            value={`${wallet?.total_xp ?? 0} XP · Lv ${wallet?.fan_level ?? 0}`}
-            note={`${wallet?.fan_tier || "Bronze Fan"} — progression only, not currency.`}
+            value={`${xp} XP · Lv ${level}`}
+            note={`${tier} — progression only, not currency.`}
           />
           <p className="mt-3 text-[11px] text-white/35 leading-relaxed">
             Test coins stay local for UI testing and never appear here.

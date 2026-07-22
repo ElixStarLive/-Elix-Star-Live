@@ -305,6 +305,10 @@ export async function neonDebitGift(input: {
  * retried REST call or duplicate delivery cannot double-credit the creator.
  * Revenue share is configurable via CREATOR_GIFT_SHARE_PERCENT (default 60:
  * creator keeps 60%, the app retains 40%).
+ *
+ * CRITICAL: `coins` must be giftEconomicValue (purchased/starter cost only).
+ * Never pass giftBattleScore / Fan Energy multipliers here — Battle Energy
+ * must not create withdrawable Diamonds. Promotional Coin gifts must pass 0.
  */
 export async function neonCreditCreatorEarning(input: {
   creatorId: string;
