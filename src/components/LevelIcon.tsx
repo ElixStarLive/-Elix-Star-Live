@@ -1,93 +1,57 @@
 import React from 'react';
+import { Gem } from 'lucide-react';
 import { PROFILE_RING_IMAGE_LIFT_MM, profileRingInnerPx } from '../lib/profileFrame';
 import { ROYCE_DEFAULT_AVATAR } from '../lib/royceAssets';
 
-/** TikTok-style level diamond colours — brighter tiers as level rises. */
-function levelDiamondPalette(level: number): { top: string; mid: string; bot: string; edge: string } {
-  if (level >= 40) return { top: '#E9D5FF', mid: '#A855F7', bot: '#6B21A8', edge: '#F3E8FF' };
-  if (level >= 30) return { top: '#C4B5FD', mid: '#818CF8', bot: '#4338CA', edge: '#E0E7FF' };
-  if (level >= 20) return { top: '#93C5FD', mid: '#3B82F6', bot: '#1D4ED8', edge: '#DBEAFE' };
-  if (level >= 10) return { top: '#7DD3FC', mid: '#0EA5E9', bot: '#0369A1', edge: '#E0F2FE' };
-  if (level >= 5) return { top: '#67E8F9', mid: '#22D3EE', bot: '#0E7490', edge: '#CFFAFE' };
-  return { top: '#BFDBFE', mid: '#60A5FA', bot: '#2563EB', edge: '#EFF6FF' };
+/** Bright chip fundal per level — not black / not near-black. */
+const LEVEL_CHIP_BACKGROUNDS = [
+  '#FF4D6D', // hot pink
+  '#3DA3FF', // neon blue
+  '#00E5A8', // mint
+  '#FF8A00', // orange
+  '#A855F7', // purple
+  '#22C55E', // green
+  '#F43F5E', // rose
+  '#06B6D4', // cyan
+  '#EAB308', // yellow
+  '#EC4899', // magenta
+  '#6366F1', // indigo
+  '#F97316', // vivid orange
+] as const;
+
+function levelChipBackground(level: number): string {
+  const i = Math.max(0, (level - 1) % LEVEL_CHIP_BACKGROUNDS.length);
+  return LEVEL_CHIP_BACKGROUNDS[i];
 }
 
 /**
- * TikTok Live level badge: faceted diamond with white number INSIDE.
- * Small, clear, high contrast on black chat.
+ * Small Lucide Gem before level number.
+ * Bright cyan gem + white frame — visible on every coloured fundal (no black, no gold).
  */
-function LevelDiamondBadge({ level, height }: { level: number; height: number }) {
-  const digits = String(level).length;
-  const w = Math.round(height * (digits >= 3 ? 1.6 : digits === 2 ? 1.4 : 1.2));
-  const h = Math.max(14, height);
-  const p = levelDiamondPalette(level);
-  const uid = `lvd${level}-${h}-${w}`;
-  const fontPx = Math.max(8, Math.round(h * (digits >= 3 ? 0.42 : 0.5)));
-
+function LevelDiamondIcon({ size = 12 }: { size?: number }) {
   return (
-    <div
-      className="relative flex-shrink-0"
-      style={{ width: w, height: h }}
-      title={`Level ${level}`}
+    <span
+      className="relative inline-flex flex-shrink-0 items-center justify-center"
+      style={{ width: size, height: size }}
+      aria-hidden
     >
-      <svg
-        width={w}
-        height={h}
-        viewBox="0 0 40 32"
-        className="absolute inset-0"
-        aria-hidden
-        preserveAspectRatio="none"
-      >
-        <defs>
-          <linearGradient id={`${uid}g`} x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor={p.top} />
-            <stop offset="48%" stopColor={p.mid} />
-            <stop offset="100%" stopColor={p.bot} />
-          </linearGradient>
-          <linearGradient id={`${uid}shine`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="rgba(255,255,255,0.55)" />
-            <stop offset="100%" stopColor="rgba(255,255,255,0)" />
-          </linearGradient>
-        </defs>
-        {/* Outer faceted diamond */}
-        <path
-          d="M20 1.5 L37.5 16 L20 30.5 L2.5 16 Z"
-          fill={`url(#${uid}g)`}
-          stroke={p.edge}
-          strokeWidth="1.4"
-          strokeLinejoin="round"
-        />
-        {/* Inner facets for crystal look */}
-        <path d="M20 1.5 L29 16 L20 30.5 L11 16 Z" fill="rgba(255,255,255,0.12)" />
-        <path d="M20 1.5 L37.5 16 L20 16 Z" fill={`url(#${uid}shine)`} />
-        <path
-          d="M20 1.5 L37.5 16 L20 30.5 L2.5 16 Z"
-          fill="none"
-          stroke="rgba(255,255,255,0.4)"
-          strokeWidth="0.6"
-        />
-        <path d="M11 16 L29 16" stroke="rgba(255,255,255,0.35)" strokeWidth="0.55" />
-      </svg>
-      <span
-        style={{
-          position: 'absolute',
-          inset: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: '#FFFFFF',
-          fontWeight: 900,
-          fontSize: fontPx,
-          letterSpacing: '-0.02em',
-          textShadow: '0 1px 2px rgba(0,0,0,0.65)',
-          lineHeight: 1,
-          fontVariantNumeric: 'tabular-nums',
-          pointerEvents: 'none',
-        }}
-      >
-        {level}
-      </span>
-    </div>
+      {/* White frame — readable on any bright chip colour */}
+      <Gem
+        size={size}
+        strokeWidth={2.8}
+        fill="none"
+        className="level-gem-icon-frame absolute inset-0"
+        style={{ color: '#FFFFFF', stroke: '#FFFFFF', fill: 'none' }}
+      />
+      {/* Visible gem — accent cyan */}
+      <Gem
+        size={size}
+        strokeWidth={1.7}
+        fill="none"
+        className="level-gem-icon relative"
+        style={{ color: '#5EEAD4', stroke: '#5EEAD4', fill: 'none' }}
+      />
+    </span>
   );
 }
 
@@ -132,11 +96,46 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
 
   const avatarDiameter = profileRingInnerPx(circleSize);
 
-  /** TikTok-style diamond height — matches chat line, number sits inside. */
-  const diamondH = Math.max(16, Math.min(22, Math.round(circleSize * 0.72)));
+  /** Small gem + level number on a per-level coloured chip. */
+  const chipH = Math.max(18, Math.round(circleSize * 0.78));
+  const fontPx = Math.max(9, Math.round(chipH * 0.48));
+  const diamondPx = Math.max(10, Math.min(14, Math.round(chipH * 0.55)));
+  const chipBg = levelChipBackground(safeLevel);
   const levelChip = (
-    <div style={{ position: 'relative', zIndex: 1, flexShrink: 0, display: 'inline-flex' }}>
-      <LevelDiamondBadge level={safeLevel} height={diamondH} />
+    <div
+      style={{
+        position: 'relative',
+        zIndex: 1,
+        height: chipH,
+        minWidth: chipH,
+        borderRadius: 6,
+        background: chipBg,
+        border: '1px solid rgba(255, 255, 255, 0.35)',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.35)',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 3,
+        paddingLeft: 5,
+        paddingRight: 5,
+        flexShrink: 0,
+      }}
+    >
+      <LevelDiamondIcon size={diamondPx} />
+      <span
+        style={{
+          color: '#F2F2F2',
+          fontWeight: 900,
+          letterSpacing: '0.01em',
+          fontSize: fontPx,
+          textShadow: '0 1px 2px rgba(0,0,0,0.9)',
+          lineHeight: 1,
+          whiteSpace: 'nowrap',
+          fontVariantNumeric: 'tabular-nums',
+        }}
+      >
+        {safeLevel}
+      </span>
     </div>
   );
 
