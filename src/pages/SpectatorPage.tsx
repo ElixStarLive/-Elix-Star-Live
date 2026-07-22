@@ -91,11 +91,10 @@ import PromotePanel from '../components/PromotePanel';
 import { RankingPanel } from '../components/RankingPanel';
 import { type LiveRankTab } from '../components/CyclingRankBadge';
 import {
-  LiveDiamondLeagueCapsule,
   LiveGiftComboColumn,
   LiveHostProfileHeader,
   LiveJoinPill,
-  LiveMembershipVipCapsule,
+  LiveMarkedSubHeaderBar,
 } from '../components/LiveMarkedTopUi';
 import { websocket } from '../lib/websocket';
 import { normalizeBattleGiftTarget } from '../lib/liveBattleGiftTarget';
@@ -3406,22 +3405,26 @@ export default function SpectatorPage() {
               </div>
             </div>
 
-            {/* Second row: Diamond League + Membership VIP — shared 1-1 with creator */}
-            <div
-              className="flex items-center gap-1.5 mt-1 ml-12 pointer-events-auto relative z-20 flex-wrap"
-            >
-              <LiveDiamondLeagueCapsule
+            {/* Photo sub-header bar: Diamond League + Membership, Weekly Ranking + Explore */}
+            <div className="mt-1 pointer-events-auto relative z-20">
+              <LiveMarkedSubHeaderBar
                 rank={diamondLeagueRank}
-                onOpen={() => {
+                onDiamond={() => {
                   setShowGiftPanel(false);
                   setRankingInitialTab('weekly');
                   setShowRankingPanel(true);
                 }}
-              />
-              <LiveMembershipVipCapsule
-                onOpen={() => {
+                onMembership={() => {
                   setShowGiftPanel(false);
                   setShowFanClub(true);
+                }}
+                onWeeklyRanking={() => {
+                  setShowGiftPanel(false);
+                  setRankingInitialTab('weekly');
+                  setShowRankingPanel(true);
+                }}
+                onExplore={() => {
+                  navigate('/live');
                 }}
               />
             </div>

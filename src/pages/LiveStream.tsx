@@ -104,11 +104,10 @@ import { useLiveEngagement } from '../hooks/useLiveEngagement';
 import { RankingPanel } from '../components/RankingPanel';
 import { type LiveRankTab } from '../components/CyclingRankBadge';
 import {
-  LiveDiamondLeagueCapsule,
   LiveGiftComboColumn,
   LiveHostProfileHeader,
   LiveJoinPill,
-  LiveMembershipVipCapsule,
+  LiveMarkedSubHeaderBar,
 } from '../components/LiveMarkedTopUi';
 import { websocket } from '../lib/websocket';
 import { parseLiveGiftGoal, type LiveGiftGoal } from '../lib/liveGiftGoal';
@@ -5939,21 +5938,27 @@ export default function LiveStream() {
                               />
                             }
                           />
-                          <div className="flex items-center gap-1.5 mt-1 ml-12 pointer-events-auto relative z-20 flex-wrap">
-                            <LiveDiamondLeagueCapsule
+                          <div className="mt-1 pointer-events-auto relative z-20">
+                            <LiveMarkedSubHeaderBar
                               rank={diamondLeagueRank}
-                              onOpen={() => {
+                              onDiamond={() => {
                                 setRankingInitialTab('weekly');
                                 setShowRankingPanel(true);
                               }}
-                            />
-                            <LiveMembershipVipCapsule
-                              onOpen={() => {
+                              onMembership={() => {
                                 setShowFanClub(true);
+                              }}
+                              onWeeklyRanking={() => {
+                                setRankingInitialTab('weekly');
+                                setShowRankingPanel(true);
+                              }}
+                              onExplore={() => {
+                                setShowViewerList(false);
+                                setIsFindCreatorsOpen(true);
                               }}
                             />
                             {currentUniverse && (
-                              <div className="flex items-center gap-1 bg-[#111111]/90 rounded-full px-2.5 py-1 border border-[#D4AF37]/80 shadow-sm">
+                              <div className="flex items-center gap-1 mt-1 bg-[#111111]/90 rounded-full px-2.5 py-1 border border-[#D4AF37]/80 shadow-sm">
                                 <span className="text-[#F5E6A8] text-[11px] font-bold whitespace-nowrap truncate max-w-[140px]">✨ {universeText} ✨</span>
                               </div>
                             )}
