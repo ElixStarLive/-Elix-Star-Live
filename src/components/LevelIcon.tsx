@@ -6,9 +6,10 @@ import { ROYCE_DEFAULT_AVATAR } from '../lib/royceAssets';
 const LEVEL_PILL_BG = '#5B2DB3';
 
 /**
- * Faceted gem left of level number — bright white so it reads clearly on purple.
+ * Faceted gem left of level number — white fill, dark purple facet lines, large.
  */
 function LevelDiamondIcon({ size = 12 }: { size?: number }) {
+  const line = '#2E1065';
   return (
     <svg
       width={size}
@@ -20,18 +21,22 @@ function LevelDiamondIcon({ size = 12 }: { size?: number }) {
       style={{
         display: 'block',
         flexShrink: 0,
-        filter: 'drop-shadow(0 0 1.5px rgba(255,255,255,0.95)) drop-shadow(0 1px 1px rgba(0,0,0,0.45))',
+        filter: 'drop-shadow(0 0 1.2px rgba(255,255,255,0.9)) drop-shadow(0 1px 1px rgba(0,0,0,0.5))',
       }}
     >
-      {/* Solid bright white gem — high contrast on purple pill */}
       <path d="M5 7.2 L7.2 3.2 H12.8 L15 7.2 L10 17.2 Z" fill="#FFFFFF" />
-      {/* Facet lines so the cut diamond shape reads clearly */}
-      <path d="M5 7.2 H15" stroke="#5B2DB3" strokeWidth="0.9" strokeLinecap="round" />
-      <path d="M7.2 3.2 L10 7.2 L12.8 3.2" stroke="#5B2DB3" strokeWidth="0.75" strokeLinejoin="round" fill="none" />
-      <path d="M10 7.2 V17.2" stroke="#5B2DB3" strokeWidth="0.75" strokeLinecap="round" />
-      <path d="M5 7.2 L10 17.2 L15 7.2" stroke="#5B2DB3" strokeWidth="0.65" fill="none" strokeLinejoin="round" />
-      {/* Top highlight */}
-      <path d="M7.4 3.6 H12.6 L14.2 6.8 H5.8 Z" fill="#FFFFFF" opacity="0.35" />
+      {/* Dark purple facet lines */}
+      <path d="M5 7.2 H15" stroke={line} strokeWidth="1.15" strokeLinecap="round" />
+      <path d="M7.2 3.2 L10 7.2 L12.8 3.2" stroke={line} strokeWidth="1.05" strokeLinejoin="round" fill="none" />
+      <path d="M10 7.2 V17.2" stroke={line} strokeWidth="1.05" strokeLinecap="round" />
+      <path d="M5 7.2 L10 17.2 L15 7.2" stroke={line} strokeWidth="0.95" fill="none" strokeLinejoin="round" />
+      <path
+        d="M5 7.2 L7.2 3.2 H12.8 L15 7.2 L10 17.2 Z"
+        stroke={line}
+        strokeWidth="1.1"
+        strokeLinejoin="round"
+        fill="none"
+      />
     </svg>
   );
 }
@@ -77,11 +82,10 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
 
   const avatarDiameter = profileRingInnerPx(circleSize);
 
-  /** Reference: purple pill — gem left, white level number right. */
-  const chipH = Math.max(16, Math.min(20, Math.round(circleSize * 0.7)));
-  const fontPx = Math.max(10, Math.round(chipH * 0.58));
-  /** Larger diamond so it stays clearly visible next to the number. */
-  const diamondPx = Math.max(13, Math.min(16, Math.round(chipH * 0.82)));
+  /** Purple pill — bigger gem left, white level number right. */
+  const chipH = Math.max(18, Math.min(22, Math.round(circleSize * 0.78)));
+  const fontPx = Math.max(10, Math.round(chipH * 0.55));
+  const diamondPx = Math.max(15, Math.min(18, Math.round(chipH * 0.9)));
   const levelChip = (
     <div
       style={{
