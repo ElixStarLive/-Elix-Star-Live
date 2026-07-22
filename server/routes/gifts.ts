@@ -21,6 +21,8 @@ import {
   getCohostLayout,
   hasCohostPublishGrant,
 } from "../websocket/index";
+import { getEngagementFlags } from "../lib/engagementFlags";
+import { spendPromoCoins } from "../lib/engagement";
 
 function requireAuth(req: Request, res: Response): { userId: string } | null {
   const token = getTokenFromRequest(req);
@@ -58,20 +60,11 @@ export async function handleSendGift(req: Request, res: Response) {
     } = req.body ?? {};
     const roomId = typeof room_id === "string" ? room_id.trim() : (typeof streamKey === "string" ? streamKey.trim() : "");
     const giftId = typeof gift_id === "string" ? gift_id.trim() : (typeof giftIdAlt === "string" ? giftIdAlt.trim() : "");
-
-    // Promotional Coin gifts: gated off until Neon approval + promoGiftSpendEnabled.
-    // When enabled later, they MUST credit zero Diamonds (never call neonCreditCreatorEarning).
-    if (
+    const isPromoGift =
       gift_source === "promotional_coins" ||
       gift_source === "promo_coins" ||
-      gift_source === "promotional"
-    ) {
-      return res.status(403).json({
-        error: "PROMO_GIFT_SPEND_DISABLED",
-        message:
-          "Promotional Coin gifts are disabled until Neon wallet approval. When enabled they create zero Diamonds.",
-      });
-    }
+      gift_source === "promotional";
+
     const battleTargetRaw = battleTarget ?? battle_target;
     const cohostTargetRaw = cohostTargetUserId ?? cohost_target_user_id;
     const clientAnimationUrl =
@@ -221,6 +214,97 @@ export async function handleSendGift(req: Request, res: Response) {
         creator_earnings: 0,
         wallet_update: false,
         message: "Starter gift sent. No creator earnings were created.",
+      });
+    }
+
+    // Promotional Coin gifts: ledger debit, LIVE animation/MVP/battle points,
+    // ZERO Diamonds / creator earnings (never neonCreditCreatorEarning).
+    if (isPromoGift) {
+      const flags = getEngagementFlags();
+      if (!flags.promoGiftSpendEnabled || !flags.promotionalCoinsEnabled) {
+        return res.status(403).json({
+          error: "PROMO_GIFT_SPEND_DISABLED",
+          message: "Promotional Coin gifts are currently disabled.",
+        });
+      }
+      if (coinCost <= 0) {
+        return res.status(400).json({ error: "INVALID_GIFT_COST" });
+      }
+      const spent = await spendPromoCoins(
+        auth.userId,
+        coinCost,
+        "promo_gift",
+        clientTransactionId,
+      );
+      if (!spent.ok) {
+        return res.status(400).json({
+          error: spent.error || "INSUFFICIENT_PROMO",
+          promotional_coins: spent.balance,
+        });
+      }
+
+      // Persist gift tx so WS gift_sent can verify (same contract as paid/starter).
+      await pool.query(
+        `INSERT INTO elix_gift_transactions
+           (user_id, room_id, gift_id, coins, client_transaction_id, gift_source, created_at)
+         VALUES ($1, $2, $3, $4, $5, 'promotional_coins', NOW())
+         ON CONFLICT (client_transaction_id) DO NOTHING`,
+        [auth.userId, roomId, giftId, coinCost, clientTransactionId],
+      );
+
+      if (recipientId && recipientId !== auth.userId) {
+        try {
+          await insertNotification({
+            userId: recipientId,
+            type: "promo_gift_received",
+            title: "You received a promotional gift",
+            body: `Someone sent ${gift.name} with Promotional Coins (no earnings).`,
+            actionUrl: `/live/${encodeURIComponent(roomId)}`,
+            data: {
+              path: `/live/${roomId}`,
+              gift_id: giftId,
+              gift_source: "promotional_coins",
+              ...(resolvedCohostTarget
+                ? { cohost_target_user_id: resolvedCohostTarget }
+                : {}),
+            },
+          });
+        } catch (err) {
+          logger.warn({ err, recipientId }, "handleSendGift: promo gift push skipped");
+        }
+      }
+
+      try {
+        await deliverVerifiedGift({
+          roomId,
+          userId: auth.userId,
+          giftId,
+          giftName: gift.name,
+          coins: coinCost,
+          giftSource: "promotional_coins",
+          transactionId: clientTransactionId,
+          battleTarget: battleTargetRaw,
+          cohostTargetUserId: resolvedCohostTarget,
+          animationUrl:
+            resolveGiftMediaUrl(gift.animation_url) ||
+            resolveGiftMediaUrl(clientAnimationUrl),
+        });
+      } catch (err) {
+        logger.warn({ err, roomId }, "handleSendGift: promo gift room delivery failed");
+      }
+
+      return res.status(200).json({
+        ok: true,
+        room_id: roomId,
+        gift_id: giftId,
+        gift_source: "promotional_coins",
+        transaction_id: clientTransactionId,
+        new_promotional_balance: spent.balance,
+        creator_earnings: 0,
+        diamonds: 0,
+        wallet_update: false,
+        message:
+          "Promotional gift sent. Zero Diamonds / creator earnings were created.",
       });
     }
 

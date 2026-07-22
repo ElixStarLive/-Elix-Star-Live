@@ -35,6 +35,15 @@ describe("Starter Coin schema separation", () => {
     expect(sql).toContain("gift_source IN ('starter_coins', 'paid_coins')");
     expect(sql).toContain("DEFAULT 'paid_coins'");
   });
+
+  it("promotes gift_source to allow promotional_coins", () => {
+    const promoSql = read(
+      "../migrations/20260722210000_engagement_promo_gift_source.sql",
+    );
+    expect(promoSql).toContain(
+      "gift_source IN ('starter_coins', 'paid_coins', 'promotional_coins')",
+    );
+  });
 });
 
 describe("Starter Coin transactional contracts", () => {
@@ -55,13 +64,29 @@ describe("Starter Coin transactional contracts", () => {
 
   it("starter gifts do not call creator earning logic", () => {
     const starterStart = gifts.indexOf('if (gift_source === "starter_coins")');
-    const starterEnd = gifts.indexOf("if (coinCost > 0)", starterStart);
-    const starterBranch = gifts.slice(starterStart, starterEnd);
+    const promoComment = gifts.indexOf(
+      "// Promotional Coin gifts:",
+      starterStart,
+    );
+    const starterBranch = gifts.slice(starterStart, promoComment);
     expect(starterBranch).toContain("sendStarterCoinGift");
     expect(starterBranch).toContain("creator_earnings: 0");
     expect(starterBranch).toContain("wallet_update: false");
     expect(starterBranch).not.toContain("neonCreditCreatorEarning");
     expect(starterBranch).not.toContain("neonDebitGift");
+  });
+
+  it("promotional gifts never create Diamonds or creator earnings", () => {
+    const promoStart = gifts.indexOf("if (isPromoGift)");
+    const paidStart = gifts.indexOf("if (coinCost > 0)", promoStart);
+    const promoBranch = gifts.slice(promoStart, paidStart);
+    expect(promoBranch).toContain("spendPromoCoins");
+    expect(promoBranch).toContain('gift_source: "promotional_coins"');
+    expect(promoBranch).toContain("diamonds: 0");
+    expect(promoBranch).toContain("creator_earnings: 0");
+    expect(promoBranch).toContain("elix_gift_transactions");
+    expect(promoBranch).not.toContain("neonCreditCreatorEarning");
+    expect(promoBranch).not.toContain("neonDebitGift");
   });
 
   it("atomically debits, records the gift, and awards XP", () => {

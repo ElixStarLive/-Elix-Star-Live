@@ -299,9 +299,10 @@ export default function LiveStream() {
   /** Real wallet coins — never overwritten by test-coin display balance. */
   const walletCoinBalanceRef = useRef(0);
   const [starterCoinBalance, setStarterCoinBalance] = useState(0);
-  const [giftSource, setGiftSource] = useState<"starter_coins" | "paid_coins">(
-    "paid_coins",
-  );
+  const [promotionalCoinBalance, setPromotionalCoinBalance] = useState(0);
+  const [giftSource, setGiftSource] = useState<
+    "starter_coins" | "paid_coins" | "promotional_coins"
+  >("paid_coins");
   const [inputValue, setInputValue] = useState('');
   // Consolidate broadcast logic: host if streamId is broadcast OR if streamId matches my own user ID
   const isBroadcast = streamId === 'broadcast' || location.pathname === '/live/broadcast' || (user?.id && streamId === user.id);
@@ -539,8 +540,12 @@ export default function LiveStream() {
     setUserLevel(user.level ?? 0);
     setUserXP(0);
 
-    Promise.all([request('/api/wallet/'), request('/api/progression/me')])
-      .then(([wallet, progression]) => {
+    Promise.all([
+      request('/api/wallet/'),
+      request('/api/progression/me'),
+      request('/api/engagement/wallet'),
+    ])
+      .then(([wallet, progression, engagementWallet]) => {
         if (cancelled) return;
         const walletRaw = wallet.data?.coin_balance ?? wallet.data?.balance;
         const walletBal =
@@ -552,7 +557,19 @@ export default function LiveStream() {
         const p = progression.data?.progression;
         const starter = Math.max(0, Number(p?.starter_coin_balance) || 0);
         setStarterCoinBalance(starter);
-        setGiftSource(starter > 0 ? 'starter_coins' : 'paid_coins');
+        const ew = engagementWallet.data?.wallet as Record<string, number> | undefined;
+        const promo = Math.max(
+          0,
+          Number(ew?.promotionalCoins ?? ew?.promotional_coins ?? 0) || 0,
+        );
+        setPromotionalCoinBalance(promo);
+        if (promo > 0 && engagementFlags.promoGiftSpendEnabled) {
+          setGiftSource('promotional_coins');
+        } else if (starter > 0) {
+          setGiftSource('starter_coins');
+        } else {
+          setGiftSource('paid_coins');
+        }
         const serverLevel = Math.max(0, Number(p?.current_level) || 0);
         const serverXp = Math.max(0, Number(p?.total_xp) || 0);
         // While testing with test coins, show the local simulated level if it's
@@ -2196,7 +2213,16 @@ export default function LiveStream() {
           Number(data.progression.starter_coin_balance) || 0,
         );
         setStarterCoinBalance(starter);
-        if (starter <= 0) setGiftSource('paid_coins');
+      }
+    }).catch(() => {});
+    request('/api/engagement/wallet').then(({ data, error }) => {
+      if (!error && data?.wallet) {
+        const ew = data.wallet as Record<string, number>;
+        const promo = Math.max(
+          0,
+          Number(ew.promotionalCoins ?? ew.promotional_coins ?? 0) || 0,
+        );
+        setPromotionalCoinBalance(promo);
       }
     }).catch(() => {});
   }, [showGiftPanel, user?.id]);
@@ -4250,7 +4276,9 @@ export default function LiveStream() {
       ? getSpendableGiftBalance(coinBalance, user?.id)
       : giftSource === 'starter_coins'
         ? starterCoinBalance
-        : walletCoinBalanceRef.current;
+        : giftSource === 'promotional_coins'
+          ? promotionalCoinBalance
+          : walletCoinBalanceRef.current;
     if (spendable < gift.coins) {
       showToast(`Not enough coins (have ${spendable.toLocaleString()}, need ${gift.coins.toLocaleString()})`);
       return;
@@ -4341,6 +4369,17 @@ export default function LiveStream() {
             );
             if (Number(result.new_starter_balance) <= 0) {
               setGiftSource('paid_coins');
+            }
+          } else if (result.gift_source === 'promotional_coins') {
+            const nextPromo = Math.max(
+              0,
+              Number(result.new_promotional_balance) || 0,
+            );
+            setPromotionalCoinBalance(nextPromo);
+            if (nextPromo <= 0) {
+              setGiftSource(
+                starterCoinBalance > 0 ? 'starter_coins' : 'paid_coins',
+              );
             }
           } else if (result.new_balance != null) {
             const nextWallet = Math.max(0, Number(result.new_balance));
@@ -4553,7 +4592,9 @@ export default function LiveStream() {
         ? getSpendableGiftBalance(coinBalance, user?.id)
         : giftSource === 'starter_coins'
           ? starterCoinBalance
-          : walletCoinBalanceRef.current;
+          : giftSource === 'promotional_coins'
+            ? promotionalCoinBalance
+            : walletCoinBalanceRef.current;
       if (spendable < lastSentGift.coins) {
         showToast("Not enough coins!");
         return;
@@ -4611,6 +4652,17 @@ export default function LiveStream() {
             );
             if (Number(result.new_starter_balance) <= 0) {
               setGiftSource('paid_coins');
+            }
+          } else if (result.gift_source === 'promotional_coins') {
+            const nextPromo = Math.max(
+              0,
+              Number(result.new_promotional_balance) || 0,
+            );
+            setPromotionalCoinBalance(nextPromo);
+            if (nextPromo <= 0) {
+              setGiftSource(
+                starterCoinBalance > 0 ? 'starter_coins' : 'paid_coins',
+              );
             }
           } else if (result.new_balance != null) {
             const nextWallet = Math.max(0, Number(result.new_balance));
@@ -6390,6 +6442,7 @@ export default function LiveStream() {
               onSelectGift={handleSendGift}
               userCoins={coinBalance}
               starterCoins={starterCoinBalance}
+              promotionalCoins={promotionalCoinBalance}
               giftSource={giftSource}
               onGiftSourceChange={setGiftSource}
               onRechargeSuccess={(newBalance) => {

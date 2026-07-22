@@ -33,7 +33,7 @@ export type DeliverGiftInput = {
   /** Display name of the creator receiving the gift (for the gift banner). */
   creatorName?: string;
   coins: number;
-  giftSource: "starter_coins" | "paid_coins";
+  giftSource: "starter_coins" | "paid_coins" | "promotional_coins";
   transactionId: string;
   battleTarget?: unknown;
   /** When set, gift was aimed at a live co-host tile (not the stream host). */
@@ -272,6 +272,60 @@ export async function deliverVerifiedGift(
       }
     } catch (err) {
       logger.warn({ err, roomId, giftId }, "deliverVerifiedGift: engagement mvp failed");
+    }
+  }
+
+  if (input.giftSource === "promotional_coins") {
+    // Promo path: visual + MVP/engagement + optional battle points.
+    // NEVER gift goals money path. NEVER Diamonds / creator earnings.
+    try {
+      const activeBattle = await getBattleFromStore(roomId);
+      if (activeBattle && activeBattle.status === "ACTIVE") {
+        const giftBattleBase = Math.max(
+          0,
+          Math.floor(Number(input.coins) || getGiftValue(giftId) || 0),
+        );
+        if (giftBattleBase > 0) {
+          const target = normalizedTarget || "host";
+          const sideForFan: "host" | "opponent" =
+            target === "opponent" || target === "player4" ? "opponent" : "host";
+          const fanMult = await fanEnergyGiftMultiplier(roomId, sideForFan);
+          const giftBattleScore = Math.max(
+            1,
+            Math.round(giftBattleBase * fanMult),
+          );
+          await addBattleScoreForTarget(roomId, target, giftBattleScore);
+        }
+      }
+    } catch (err) {
+      logger.warn({ err, roomId, giftId }, "deliverVerifiedGift: promo battle score failed");
+    }
+
+    try {
+      const { canWriteEngagementWallets } = await import("../lib/engagementFlags");
+      if (canWriteEngagementWallets()) {
+        const pts = Math.max(
+          0,
+          Math.floor(Number(input.coins) || getGiftValue(giftId) || 0),
+        );
+        if (pts > 0) {
+          let hostUserId: string | undefined;
+          try {
+            hostUserId = (await resolveStreamOwnerUserId(roomId)) || undefined;
+          } catch {
+            hostUserId = undefined;
+          }
+          await addMvpPoints(userId, pts, {
+            roomId,
+            hostUserId,
+            source: "promo_gift",
+          });
+        }
+        await bumpMission(userId, "gifts_sent", 1);
+        await bumpAchievement(userId, "gifts_sent", 1);
+      }
+    } catch (err) {
+      logger.warn({ err, roomId, giftId }, "deliverVerifiedGift: promo engagement failed");
     }
   }
 

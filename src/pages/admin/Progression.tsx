@@ -167,19 +167,16 @@ export default function AdminProgression() {
         </div>
 
         <section className="rounded-xl border border-[#C9A227]/25 bg-[#C9A227]/5 p-4 mb-6 text-sm text-white/70">
-          <p className="font-semibold text-[#C9A227] mb-1">Engagement Phase 1</p>
+          <p className="font-semibold text-[#C9A227] mb-1">Engagement Phase 1 + 1.5 (live)</p>
           <p className="mb-2">
-            Hub UI is live. Neon migration is quarantined in{" "}
-            <code className="text-white/50">server/migrations/pending/</code> until
-            explicit approval. Set <code className="text-white/50">ENGAGEMENT_NEON_APPROVED=true</code>{" "}
-            only after ledger testing.
+            Migrations:{" "}
+            <code className="text-white/50">20260722190000_engagement_phase1.sql</code>,{" "}
+            <code className="text-white/50">20260722200000_engagement_phase15_collections.sql</code>.
+            Run Coolify release <code className="text-white/50">npm run migrate</code>.
           </p>
           <p>
-            Locked rules: Battle Energy multipliers affect battle score only (never
-            Diamonds). Promo Coin gifts create zero Diamonds. Flags default: hub /
-            daily login / missions on; promo coins / battle energy / promo spend off.
-            Phase 1.5 Treasure / Stickers / Creator cards UI is on; spawn & rewards
-            need Neon approval + pending migration.
+            Promo / Energy / Treasure / Stickers / Creator cards are ON by default.
+            Battle Energy affects battle score only. Promo gifts create zero Diamonds.
           </p>
         </section>
 

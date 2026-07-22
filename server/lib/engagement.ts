@@ -143,6 +143,75 @@ export async function creditPromoCoins(
   }
 }
 
+/**
+ * Debit Promotional Coins with ledger. Never touches purchased wallet or Diamonds.
+ */
+export async function spendPromoCoins(
+  userId: string,
+  amount: number,
+  reason: string,
+  referenceId?: string,
+): Promise<{ ok: boolean; balance: number; error?: string }> {
+  if (
+    !getEngagementFlags().promotionalCoinsEnabled ||
+    !getEngagementFlags().promoGiftSpendEnabled
+  ) {
+    return {
+      ok: false,
+      balance: await getPromoBalance(userId),
+      error: "PROMO_SPEND_DISABLED",
+    };
+  }
+  const db = getPool();
+  const spend = Math.max(0, Math.floor(amount));
+  if (!db || !userId || spend <= 0) {
+    return { ok: false, balance: await getPromoBalance(userId), error: "INVALID" };
+  }
+  const client = await db.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query(
+      `INSERT INTO promotional_coin_balances (user_id) VALUES ($1)
+       ON CONFLICT (user_id) DO NOTHING`,
+      [userId],
+    );
+    const cur = await client.query(
+      `SELECT balance::bigint AS b FROM promotional_coin_balances WHERE user_id = $1 FOR UPDATE`,
+      [userId],
+    );
+    const before = Math.max(0, Number(cur.rows[0]?.b ?? 0));
+    if (before < spend) {
+      await client.query("ROLLBACK");
+      return { ok: false, balance: before, error: "INSUFFICIENT_PROMO" };
+    }
+    const after = before - spend;
+    await client.query(
+      `UPDATE promotional_coin_balances
+          SET balance = $2, lifetime_spent = lifetime_spent + $3, updated_at = NOW()
+        WHERE user_id = $1`,
+      [userId, after, spend],
+    );
+    await client.query(
+      `INSERT INTO promotional_coin_ledger
+         (user_id, amount_delta, balance_before, balance_after, direction, reason, reference_id)
+       VALUES ($1, $2, $3, $4, 'debit', $5, $6)`,
+      [userId, -spend, before, after, reason, referenceId || null],
+    );
+    await client.query("COMMIT");
+    return { ok: true, balance: after };
+  } catch (err) {
+    await client.query("ROLLBACK");
+    logger.error({ err, userId }, "spendPromoCoins failed");
+    return {
+      ok: false,
+      balance: await getPromoBalance(userId),
+      error: "DEBIT_FAILED",
+    };
+  } finally {
+    client.release();
+  }
+}
+
 export async function creditBattleEnergy(
   userId: string,
   amount: number,

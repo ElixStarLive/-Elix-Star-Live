@@ -74,7 +74,7 @@ async function verifyGiftTransaction(
   giftId: string;
   coins: number;
   roomId: string;
-  giftSource: "starter_coins" | "paid_coins";
+  giftSource: "starter_coins" | "paid_coins" | "promotional_coins";
 } | null> {
   if (typeof transactionId !== "string" || !transactionId.trim()) return null;
   if (!roomId) return null;
@@ -100,14 +100,17 @@ async function verifyGiftTransaction(
         }
       | undefined;
     if (!row) return null;
+    const source =
+      row.gift_source === "starter_coins"
+        ? "starter_coins"
+        : row.gift_source === "promotional_coins"
+          ? "promotional_coins"
+          : "paid_coins";
     return {
       giftId: String(row.gift_id || ""),
       coins: Number(row.coins) || 0,
       roomId: String(row.room_id || ""),
-      giftSource:
-        row.gift_source === "starter_coins"
-          ? "starter_coins"
-          : "paid_coins",
+      giftSource: source,
     };
   } catch (err) {
     logger.warn({ err, userId }, "verifyGiftTransaction failed");

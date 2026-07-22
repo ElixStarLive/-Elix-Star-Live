@@ -93,7 +93,7 @@ export default function EngagementRewards() {
             note={
               engagementFlags.promotionalCoinsEnabled
                 ? "Platform rewards. Not withdrawable. Promo gifts create zero Diamonds."
-                : "Disabled until Neon wallet approval. Shown as 0."
+                : "Promotional coins disabled by config."
             }
           />
           <Row
@@ -113,7 +113,7 @@ export default function EngagementRewards() {
             <p className="text-[11px] text-white/40">
               {engagementFlags.battleEnergyEnabled
                 ? "Free LIVE boost power. Affects battle score only — never Diamonds."
-                : "Disabled until Neon approval. BOOST control hidden."}
+                : "Battle Energy disabled by config."}
             </p>
           </div>
           <Row

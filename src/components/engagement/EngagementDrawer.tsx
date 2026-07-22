@@ -623,7 +623,7 @@ function BattleEnergyBody({ roomId }: { roomId: string }) {
       ) : null}
       {!engagementFlags.battleEnergyEnabled ? (
         <p className="mt-3 text-[10px] text-white/40">
-          Wallet writes are gated until Neon approval. UI is ready.
+          Battle Energy is disabled by config.
         </p>
       ) : null}
     </>
@@ -916,7 +916,7 @@ function TreasureBody() {
       </div>
       {!neonReady ? (
         <p className="text-[11px] text-white/40 mb-3">
-          Catalog ready. Spawning/opening rewards after Neon approval.
+          Catalog ready. If chests do not spawn, run server migrate for engagement tables.
         </p>
       ) : null}
       {chests.filter((c) => c.status === "found").length === 0 ? (
@@ -1004,7 +1004,9 @@ function StickersBody() {
     <>
       <p className="text-[11px] text-white/45 mb-3">
         Earn stickers from activity. Complete a set for cosmetic rewards.
-        {!neonReady ? " Progress saves after Neon approval." : ""}
+        {!neonReady
+          ? " If progress does not save, run server migrate for engagement tables."
+          : ""}
       </p>
       {sets.map((s) => (
         <div key={s.id} className="rounded-xl border border-white/10 bg-white/[0.03] p-2.5 mb-2">
@@ -1085,7 +1087,7 @@ function CreatorCardsBody({ creatorId }: { creatorId?: string }) {
         </p>
         {!neonReady ? (
           <p className="text-[10px] text-white/40 mt-2">
-            Unlocks save after Neon approval.
+            If unlocks do not save, run server migrate for engagement tables.
           </p>
         ) : null}
       </div>

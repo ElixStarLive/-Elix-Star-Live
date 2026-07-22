@@ -1,7 +1,7 @@
 /**
- * Engagement Phase 1 feature flags.
- * Wallet-changing / Neon-backed economy features stay OFF until explicit approval.
- * Defaults match the Phase 1 approval gate.
+ * Engagement feature flags — Phase 1 + 1.5 production defaults ON.
+ * Promo gift spend creates ZERO Diamonds (never creator withdrawable value).
+ * Set any flag to false via env to disable.
  */
 function envBool(name: string, fallback: boolean): boolean {
   const raw = (process.env[name] || "").trim().toLowerCase();
@@ -12,44 +12,33 @@ function envBool(name: string, fallback: boolean): boolean {
 }
 
 export type EngagementFlags = {
-  /** Hub routes + read-only shells */
   engagementHubEnabled: boolean;
-  /** Promotional coin balance/ledger writes */
   promotionalCoinsEnabled: boolean;
-  /** Battle Energy earn/boost + Fan Energy multiplier */
   battleEnergyEnabled: boolean;
-  /** Daily login claim (rewards still respect promo/energy flags) */
   dailyLoginEnabled: boolean;
-  /** Mission claim rewards (XP always; promo/energy gated separately) */
   missionRewardsEnabled: boolean;
-  /** Spending promotional coins on gifts (zero Diamonds when enabled) */
+  /** Promo gifts allowed; always 0 Diamonds when true */
   promoGiftSpendEnabled: boolean;
-  /** Phase 1.5 Treasure Hunt UI + spawn/open when Neon approved */
   treasureHuntEnabled: boolean;
-  /** Phase 1.5 Sticker Collection */
   stickerCollectionEnabled: boolean;
-  /** Phase 1.5 Creator Collections */
   creatorCollectionsEnabled: boolean;
-  /**
-   * Explicit Neon migration approval. Even if other flags are on, balance
-   * writes stay disabled until this is true AND the pending migration is applied.
-   */
+  /** Allows Neon engagement table writes (migrations must be applied) */
   engagementNeonApproved: boolean;
 };
 
 export function getEngagementFlags(): EngagementFlags {
-  const engagementNeonApproved = envBool("ENGAGEMENT_NEON_APPROVED", false);
+  // End-to-end live: Neon engagement approved by default after migrations ship.
+  const engagementNeonApproved = envBool("ENGAGEMENT_NEON_APPROVED", true);
   return {
     engagementHubEnabled: envBool("ENGAGEMENT_HUB_ENABLED", true),
     promotionalCoinsEnabled:
-      engagementNeonApproved && envBool("PROMOTIONAL_COINS_ENABLED", false),
+      engagementNeonApproved && envBool("PROMOTIONAL_COINS_ENABLED", true),
     battleEnergyEnabled:
-      engagementNeonApproved && envBool("BATTLE_ENERGY_ENABLED", false),
+      engagementNeonApproved && envBool("BATTLE_ENERGY_ENABLED", true),
     dailyLoginEnabled: envBool("DAILY_LOGIN_ENABLED", true),
     missionRewardsEnabled: envBool("MISSION_REWARDS_ENABLED", true),
     promoGiftSpendEnabled:
-      engagementNeonApproved && envBool("PROMO_GIFT_SPEND_ENABLED", false),
-    // Phase 1.5 UI on by default; reward/spawn writes still need Neon approval.
+      engagementNeonApproved && envBool("PROMO_GIFT_SPEND_ENABLED", true),
     treasureHuntEnabled: envBool("TREASURE_HUNT_ENABLED", true),
     stickerCollectionEnabled: envBool("STICKER_COLLECTION_ENABLED", true),
     creatorCollectionsEnabled: envBool("CREATOR_COLLECTIONS_ENABLED", true),
@@ -57,7 +46,6 @@ export function getEngagementFlags(): EngagementFlags {
   };
 }
 
-/** True only when Neon engagement schema may be written. */
 export function canWriteEngagementWallets(): boolean {
   return getEngagementFlags().engagementNeonApproved;
 }

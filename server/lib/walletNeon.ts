@@ -227,7 +227,8 @@ export async function neonDebitGift(input: {
         String(existingGift.rows[0].room_id) !== input.roomId ||
         String(existingGift.rows[0].gift_id) !== input.giftId ||
         Number(existingGift.rows[0].coins) !== coins ||
-        existingGift.rows[0].gift_source === "starter_coins")
+        existingGift.rows[0].gift_source === "starter_coins" ||
+          existingGift.rows[0].gift_source === "promotional_coins")
     ) {
       await client.query("ROLLBACK");
       return { ok: false, error: "transaction_conflict", newBalance: 0 };

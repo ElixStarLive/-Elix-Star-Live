@@ -99,6 +99,7 @@ The app issues tokens for streamers and viewers and the frontend connects to `LI
 - Check `/health` (e.g. `https://your-app.example.com/health`).
 - Test login/signup, then upload a video (Bunny) and start a live stream (LiveKit).
 - If something fails, check Coolify logs and that all env vars (especially `VITE_*`, `LIVEKIT_*`, and `BUNNY_*`) are set correctly.
+- **Engagement (Phase 1 + 1.5):** Coolify release should run `npm run migrate` so engagement SQL applies (`20260722190000_*`, `20260722200000_*`, `20260722210000_*`). Promo gifts create **zero Diamonds**. Defaults are ON; set `ENGAGEMENT_NEON_APPROVED=false` only to kill-switch Neon wallet writes.
 
 ## 7. Local development
 

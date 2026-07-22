@@ -14,8 +14,11 @@ interface GiftPanelProps {
   /** Paid coin balance only. */
   userCoins: number;
   starterCoins?: number;
-  giftSource?: "starter_coins" | "paid_coins";
-  onGiftSourceChange?: (source: "starter_coins" | "paid_coins") => void;
+  promotionalCoins?: number;
+  giftSource?: "starter_coins" | "paid_coins" | "promotional_coins";
+  onGiftSourceChange?: (
+    source: "starter_coins" | "paid_coins" | "promotional_coins",
+  ) => void;
   onRechargeSuccess?: (newBalance: number) => void;
   onWeeklyRanking?: () => void;
   onMembership?: () => void;
@@ -138,6 +141,7 @@ export function GiftPanel({
   onSelectGift,
   userCoins,
   starterCoins = 0,
+  promotionalCoins = 0,
   giftSource = "paid_coins",
   onGiftSourceChange,
   onRechargeSuccess,
@@ -265,6 +269,20 @@ export function GiftPanel({
           Send Gift
         </h3>
         <div className="flex items-center gap-1 bg-black px-1.5 py-0.5 rounded-full border border-secondary/20">
+          {onGiftSourceChange && promotionalCoins > 0 && (
+            <button
+              type="button"
+              onClick={() => onGiftSourceChange("promotional_coins")}
+              className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                giftSource === "promotional_coins"
+                  ? "bg-[#38BDF8] text-black"
+                  : "text-white/60"
+              }`}
+              title="Promotional coins; zero Diamonds / creator earnings"
+            >
+              Promo {promotionalCoins.toLocaleString()}
+            </button>
+          )}
           {onGiftSourceChange && starterCoins > 0 && (
             <button
               type="button"
@@ -307,7 +325,11 @@ export function GiftPanel({
           Starter gifts earn XP but create no creator earnings.
         </p>
       )}
-
+      {giftSource === "promotional_coins" && (
+        <p className="text-[9px] text-white/45 -mt-2 mb-2 text-right">
+          Promo gifts create zero Diamonds / creator earnings.
+        </p>
+      )}
       <BuyCoinsModal
         isOpen={showRecharge}
         onClose={() => setShowRecharge(false)}
