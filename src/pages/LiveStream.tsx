@@ -106,18 +106,12 @@ import { useLiveEngagement } from '../hooks/useLiveEngagement';
 import { RankingPanel } from '../components/RankingPanel';
 import { type LiveRankTab } from '../components/CyclingRankBadge';
 import {
-  LiveGiftComboColumn,
   LiveHostProfileHeader,
   LiveJoinPill,
   LiveMarkedSubHeaderBar,
-  LiveMarkedUiDemoToggle,
-  buildLiveMarkedUiDemoComboStack,
-  readLiveMarkedUiDemoEnabled,
-  writeLiveMarkedUiDemoEnabled,
 } from '../components/LiveMarkedTopUi';
 import {
   LiveSideMissionStack,
-  LIVE_SIDE_DEMO_MISSIONS,
   LIVE_SIDE_DEMO_SUPPORTERS,
 } from '../components/LiveSideMissionStack';
 import { websocket } from '../lib/websocket';
@@ -4129,15 +4123,6 @@ export default function LiveStream() {
   const [comboCount, setComboCount] = useState(0);
   const [showComboButton, setShowComboButton] = useState(false);
   const [comboStack, setComboStack] = useState<{ key: string; icon: string; count: number; gift: GiftUiItem }[]>([]);
-  const [markedUiDemo, setMarkedUiDemo] = useState(() => {
-    const on = readLiveMarkedUiDemoEnabled(IS_STORE_BUILD);
-    if (!on) writeLiveMarkedUiDemoEnabled(true);
-    return true;
-  });
-  const demoComboStack = useMemo(() => (markedUiDemo ? buildLiveMarkedUiDemoComboStack() : []), [markedUiDemo]);
-  const visibleComboStack = comboStack.length > 0 ? comboStack : demoComboStack;
-  /** Always show combo column when there is a real combo OR demo stack — never drop the gift combo UI. */
-  const showComboColumn = visibleComboStack.length > 0;
   const [missionWatchMin, setMissionWatchMin] = useState(0);
   const [missionGiftsSent, setMissionGiftsSent] = useState(0);
   useEffect(() => {
@@ -4146,18 +4131,15 @@ export default function LiveStream() {
     }, 60_000);
     return () => window.clearInterval(id);
   }, []);
-  const sideMissions = markedUiDemo
-    ? LIVE_SIDE_DEMO_MISSIONS
-    : {
-        watchMin: missionWatchMin,
-        watchGoal: 30,
-        giftsSent: missionGiftsSent,
-        giftsGoal: 10,
-        battleJoined: isBattleMode ? 1 : 0,
-        battleGoal: 1,
-      };
+  const sideMissions = {
+    watchMin: missionWatchMin,
+    watchGoal: 30,
+    giftsSent: missionGiftsSent,
+    giftsGoal: 10,
+    battleJoined: isBattleMode ? 1 : 0,
+    battleGoal: 1,
+  };
   const sideSupporters = useMemo(() => {
-    if (markedUiDemo) return LIVE_SIDE_DEMO_SUPPORTERS;
     if (topGifters.length > 0) {
       return topGifters.slice(0, 3).map((g) => ({
         id: g.user_id,
@@ -4173,7 +4155,7 @@ export default function LiveStream() {
       points: mvpGiftScores[v.id] ?? 0,
     }));
     return fromMvp.length > 0 ? fromMvp : LIVE_SIDE_DEMO_SUPPORTERS;
-  }, [markedUiDemo, topGifters, topMvpViewers, mvpGiftScores]);
+  }, [topGifters, topMvpViewers, mvpGiftScores]);
   const comboTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pushComboStack = useCallback((gift: GiftUiItem, nextCount: number) => {
     const key = String(gift.id || gift.name || 'gift');
@@ -6173,43 +6155,12 @@ export default function LiveStream() {
               </div>
             </div>
 
-      {/* Gift combo — spectators only. Creators receive gifts; they do not send/combo. */}
-      {!isCreatorParticipant && (
-        <>
-          <LiveMarkedUiDemoToggle
-            enabled={markedUiDemo}
-            onToggle={(next) => {
-              writeLiveMarkedUiDemoEnabled(next);
-              setMarkedUiDemo(next);
-            }}
-          />
-          <AnimatePresence>
-            {showComboColumn && visibleComboStack.length > 0 && (
-              <motion.div
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0, opacity: 0 }}
-              >
-                <LiveGiftComboColumn
-                  stack={visibleComboStack}
-                  onCombo={() => {
-                    if (comboStack.length > 0) handleComboClick();
-                    else setShowGiftPanel(true);
-                  }}
-                  onOpen={() => setShowGiftPanel(true)}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </>
-      )}
-
       <LiveSideMissionStack
         missions={sideMissions}
         supporters={sideSupporters}
         battlePassLevel={userLevel || 1}
-        battlePassXp={markedUiDemo ? 320 : userXP % 1000}
-        battlePassXpMax={markedUiDemo ? 1000 : 1000}
+        battlePassXp={userXP % 1000}
+        battlePassXpMax={1000}
         onViewAllSupporters={() => {
           setIsFindCreatorsOpen(false);
           setShowViewerList(true);

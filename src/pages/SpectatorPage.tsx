@@ -93,18 +93,12 @@ import PromotePanel from '../components/PromotePanel';
 import { RankingPanel } from '../components/RankingPanel';
 import { type LiveRankTab } from '../components/CyclingRankBadge';
 import {
-  LiveGiftComboColumn,
   LiveHostProfileHeader,
   LiveJoinPill,
   LiveMarkedSubHeaderBar,
-  LiveMarkedUiDemoToggle,
-  buildLiveMarkedUiDemoComboStack,
-  readLiveMarkedUiDemoEnabled,
-  writeLiveMarkedUiDemoEnabled,
 } from '../components/LiveMarkedTopUi';
 import {
   LiveSideMissionStack,
-  LIVE_SIDE_DEMO_MISSIONS,
   LIVE_SIDE_DEMO_SUPPORTERS,
 } from '../components/LiveSideMissionStack';
 import { websocket } from '../lib/websocket';
@@ -277,17 +271,8 @@ export default function SpectatorPage() {
   const [lastSentGift, setLastSentGift] = useState<GiftUiItem | null>(null);
   const [comboCount, setComboCount] = useState(0);
   const [showComboButton, setShowComboButton] = useState(false);
-  /** Recent combo gifts (icon + real xN), capped to last 3 — red-circle combo column. */
+  /** Recent combo gifts (icon + real xN) — used for combo send logic, not a visible column. */
   const [comboStack, setComboStack] = useState<{ key: string; icon: string; count: number; gift: GiftUiItem }[]>([]);
-  const [markedUiDemo, setMarkedUiDemo] = useState(() => {
-    const on = readLiveMarkedUiDemoEnabled(IS_STORE_BUILD);
-    if (!on) writeLiveMarkedUiDemoEnabled(true);
-    return true;
-  });
-  const demoComboStack = markedUiDemo ? buildLiveMarkedUiDemoComboStack() : [];
-  const visibleComboStack = comboStack.length > 0 ? comboStack : demoComboStack;
-  /** Always show combo column when there is a real combo OR demo stack — never drop the gift combo UI. */
-  const showComboColumn = visibleComboStack.length > 0;
   const [missionWatchMin, setMissionWatchMin] = useState(0);
   const [missionGiftsSent, setMissionGiftsSent] = useState(0);
   const [userXP, setUserXP] = useState(0);
@@ -3565,40 +3550,17 @@ export default function SpectatorPage() {
           </div>
         </div>
 
-        {/* COMBO COLUMN — photo layout; real combos OR DEMO */}
-        <LiveMarkedUiDemoToggle
-          enabled={markedUiDemo}
-          onToggle={(next) => {
-            writeLiveMarkedUiDemoEnabled(next);
-            setMarkedUiDemo(next);
-          }}
-        />
-        {showComboColumn && visibleComboStack.length > 0 && (
-          <LiveGiftComboColumn
-            stack={visibleComboStack}
-            onCombo={() => {
-              if (comboStack.length > 0) handleComboClick();
-              else setShowGiftPanel(true);
-            }}
-            onOpen={() => setShowGiftPanel(true)}
-          />
-        )}
-
         <LiveSideMissionStack
-          missions={
-            markedUiDemo
-              ? LIVE_SIDE_DEMO_MISSIONS
-              : {
-                  watchMin: missionWatchMin,
-                  watchGoal: 30,
-                  giftsSent: missionGiftsSent,
-                  giftsGoal: 10,
-                  battleJoined: spectatorBattle?.active ? 1 : 0,
-                  battleGoal: 1,
-                }
-          }
+          missions={{
+            watchMin: missionWatchMin,
+            watchGoal: 30,
+            giftsSent: missionGiftsSent,
+            giftsGoal: 10,
+            battleJoined: spectatorBattle?.active ? 1 : 0,
+            battleGoal: 1,
+          }}
           supporters={
-            markedUiDemo || mvpSlots.global.length === 0
+            mvpSlots.global.length === 0
               ? LIVE_SIDE_DEMO_SUPPORTERS
               : mvpSlots.global.slice(0, 3).map((s) => ({
                   id: s.id,
@@ -3608,7 +3570,7 @@ export default function SpectatorPage() {
                 }))
           }
           battlePassLevel={userLevel || 1}
-          battlePassXp={markedUiDemo ? 320 : userXP % 1000}
+          battlePassXp={userXP % 1000}
           battlePassXpMax={1000}
           onViewAllSupporters={() => setShowViewersPanel(true)}
           onBattlePass={() => {
