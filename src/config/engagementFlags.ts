@@ -21,4 +21,7 @@ export const engagementFlags = {
   dailyLoginEnabled: viteBool("VITE_DAILY_LOGIN_ENABLED", true),
   missionRewardsEnabled: viteBool("VITE_MISSION_REWARDS_ENABLED", true),
   promoGiftSpendEnabled: viteBool("VITE_PROMO_GIFT_SPEND_ENABLED", false),
+  treasureHuntEnabled: viteBool("VITE_TREASURE_HUNT_ENABLED", true),
+  stickerCollectionEnabled: viteBool("VITE_STICKER_COLLECTION_ENABLED", true),
+  creatorCollectionsEnabled: viteBool("VITE_CREATOR_COLLECTIONS_ENABLED", true),
 } as const;

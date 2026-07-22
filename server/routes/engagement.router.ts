@@ -21,6 +21,14 @@ import {
 import { getProgressionSnapshot } from "../lib/starterCoinsXp";
 import { getPool } from "../lib/postgres";
 import { getEngagementFlags } from "../lib/engagementFlags";
+import {
+  listUserChests,
+  openTreasureChest,
+  spawnTreasureChest,
+  listStickersForUser,
+  listCreatorCardsForUser,
+  onWatchActivity,
+} from "../lib/engagementPhase15";
 
 const router = Router();
 router.use(requireAuth);
@@ -282,12 +290,82 @@ router.post("/progress", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "INVALID_METRIC" });
     }
     const delta = Math.max(1, Math.min(10, Math.floor(Number(req.body?.delta) || 1)));
+    const roomId = req.body?.roomId ? String(req.body.roomId) : undefined;
     await bumpMission(userId, metric, delta);
     await bumpAchievement(userId, metric, delta);
+    if (metric === "lives_watched" || metric === "watch_minutes") {
+      await onWatchActivity(userId, roomId);
+    }
     return res.json({ ok: true });
   } catch (err) {
     logger.error({ err, userId }, "POST engagement/progress failed");
     return res.status(500).json({ error: "PROGRESS_FAILED" });
+  }
+});
+
+router.get("/treasure", async (req: Request, res: Response) => {
+  const userId = (req.auth as NonNullable<typeof req.auth>).sub;
+  try {
+    const data = await listUserChests(userId);
+    res.setHeader("Cache-Control", "private, no-store");
+    return res.json(data);
+  } catch (err) {
+    logger.error({ err, userId }, "GET engagement/treasure failed");
+    return res.status(500).json({ error: "TREASURE_LOAD_FAILED" });
+  }
+});
+
+router.post("/treasure/spawn", async (req: Request, res: Response) => {
+  const userId = (req.auth as NonNullable<typeof req.auth>).sub;
+  try {
+    const chestDefId = String(req.body?.chestDefId || "chest_common_watch");
+    const locationHint = String(req.body?.locationHint || "hub");
+    const result = await spawnTreasureChest(userId, chestDefId, locationHint);
+    if (!result.ok) return res.status(400).json(result);
+    return res.json(result);
+  } catch (err) {
+    logger.error({ err, userId }, "POST treasure/spawn failed");
+    return res.status(500).json({ error: "SPAWN_FAILED" });
+  }
+});
+
+router.post("/treasure/:chestId/open", async (req: Request, res: Response) => {
+  const userId = (req.auth as NonNullable<typeof req.auth>).sub;
+  const chestId = String(req.params.chestId || "");
+  try {
+    const result = await openTreasureChest(userId, chestId);
+    if (!result.ok) return res.status(400).json(result);
+    return res.json(result);
+  } catch (err) {
+    logger.error({ err, userId, chestId }, "POST treasure open failed");
+    return res.status(500).json({ error: "OPEN_FAILED" });
+  }
+});
+
+router.get("/stickers", async (req: Request, res: Response) => {
+  const userId = (req.auth as NonNullable<typeof req.auth>).sub;
+  try {
+    const data = await listStickersForUser(userId);
+    res.setHeader("Cache-Control", "private, no-store");
+    return res.json(data);
+  } catch (err) {
+    logger.error({ err, userId }, "GET engagement/stickers failed");
+    return res.status(500).json({ error: "STICKERS_LOAD_FAILED" });
+  }
+});
+
+router.get("/creator-cards", async (req: Request, res: Response) => {
+  const userId = (req.auth as NonNullable<typeof req.auth>).sub;
+  try {
+    const creatorId = req.query.creatorId
+      ? String(req.query.creatorId)
+      : undefined;
+    const data = await listCreatorCardsForUser(userId, creatorId);
+    res.setHeader("Cache-Control", "private, no-store");
+    return res.json(data);
+  } catch (err) {
+    logger.error({ err, userId }, "GET engagement/creator-cards failed");
+    return res.status(500).json({ error: "CREATOR_CARDS_LOAD_FAILED" });
   }
 });
 

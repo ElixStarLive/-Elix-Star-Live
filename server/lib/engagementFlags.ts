@@ -24,6 +24,12 @@ export type EngagementFlags = {
   missionRewardsEnabled: boolean;
   /** Spending promotional coins on gifts (zero Diamonds when enabled) */
   promoGiftSpendEnabled: boolean;
+  /** Phase 1.5 Treasure Hunt UI + spawn/open when Neon approved */
+  treasureHuntEnabled: boolean;
+  /** Phase 1.5 Sticker Collection */
+  stickerCollectionEnabled: boolean;
+  /** Phase 1.5 Creator Collections */
+  creatorCollectionsEnabled: boolean;
   /**
    * Explicit Neon migration approval. Even if other flags are on, balance
    * writes stay disabled until this is true AND the pending migration is applied.
@@ -43,6 +49,10 @@ export function getEngagementFlags(): EngagementFlags {
     missionRewardsEnabled: envBool("MISSION_REWARDS_ENABLED", true),
     promoGiftSpendEnabled:
       engagementNeonApproved && envBool("PROMO_GIFT_SPEND_ENABLED", false),
+    // Phase 1.5 UI on by default; reward/spawn writes still need Neon approval.
+    treasureHuntEnabled: envBool("TREASURE_HUNT_ENABLED", true),
+    stickerCollectionEnabled: envBool("STICKER_COLLECTION_ENABLED", true),
+    creatorCollectionsEnabled: envBool("CREATOR_COLLECTIONS_ENABLED", true),
     engagementNeonApproved,
   };
 }

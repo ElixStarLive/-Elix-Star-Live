@@ -178,6 +178,8 @@ export default function AdminProgression() {
             Locked rules: Battle Energy multipliers affect battle score only (never
             Diamonds). Promo Coin gifts create zero Diamonds. Flags default: hub /
             daily login / missions on; promo coins / battle energy / promo spend off.
+            Phase 1.5 Treasure / Stickers / Creator cards UI is on; spawn & rewards
+            need Neon approval + pending migration.
           </p>
         </section>
 

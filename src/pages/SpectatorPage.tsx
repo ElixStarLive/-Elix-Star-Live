@@ -998,11 +998,19 @@ export default function SpectatorPage() {
       engagementWatchKeyedRef.current = effectiveStreamId;
       void request('/api/engagement/progress', {
         method: 'POST',
-        body: JSON.stringify({ metric: 'lives_watched', delta: 1 }),
+        body: JSON.stringify({
+          metric: 'lives_watched',
+          delta: 1,
+          roomId: effectiveStreamId,
+        }),
       }).catch(() => {});
       void request('/api/engagement/progress', {
         method: 'POST',
-        body: JSON.stringify({ metric: 'unique_creators', delta: 1 }),
+        body: JSON.stringify({
+          metric: 'unique_creators',
+          delta: 1,
+          roomId: effectiveStreamId,
+        }),
       }).catch(() => {});
     }
     const id = window.setInterval(() => {

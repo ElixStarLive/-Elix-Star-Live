@@ -9,6 +9,9 @@ import {
   Wallet,
   ChevronRight,
   X,
+  Map,
+  Sticker,
+  IdCard,
 } from "lucide-react";
 import { RoyceBackIcon } from "../royce";
 import { request } from "../../lib/apiClient";
@@ -23,7 +26,10 @@ export type EngagementPanel =
   | "battle-energy"
   | "achievements"
   | "daily-login"
-  | "rewards";
+  | "rewards"
+  | "treasure"
+  | "stickers"
+  | "creator-cards";
 
 const PANEL_TITLES: Record<EngagementPanel, string> = {
   hub: "Engagement Hub",
@@ -34,6 +40,9 @@ const PANEL_TITLES: Record<EngagementPanel, string> = {
   achievements: "Achievements",
   "daily-login": "Daily Login",
   rewards: "Reward Wallet",
+  treasure: "Treasure Hunt",
+  stickers: "Sticker Collection",
+  "creator-cards": "Creator Collections",
 };
 
 const HUB_LINKS: {
@@ -43,6 +52,9 @@ const HUB_LINKS: {
   icon: typeof Trophy;
 }[] = [
   { id: "missions", title: "Daily / Weekly Missions", subtitle: "Goals & claims", icon: Target },
+  { id: "treasure", title: "Treasure Hunt", subtitle: "Hidden chests", icon: Map },
+  { id: "stickers", title: "Sticker Collection", subtitle: "Complete sets", icon: Sticker },
+  { id: "creator-cards", title: "Creator Collections", subtitle: "Collectible cards", icon: IdCard },
   { id: "fan-level", title: "Fan Level", subtitle: "XP and tiers", icon: Star },
   { id: "mvp", title: "MVP Leaderboard", subtitle: "LIVE / Today / Week", icon: Crown },
   { id: "battle-energy", title: "Battle Energy", subtitle: "Boost Fan Energy", icon: Zap },
@@ -65,6 +77,7 @@ export function EngagementDrawer({
   open,
   activePanel,
   liveSessionId = "",
+  creatorId = "",
   onOpenChange,
   onPanelChange,
 }: Props) {
@@ -172,6 +185,11 @@ export function EngagementDrawer({
           {activePanel === "achievements" && <AchievementsBody />}
           {activePanel === "daily-login" && <DailyLoginBody />}
           {activePanel === "rewards" && <RewardsBody />}
+          {activePanel === "treasure" && <TreasureBody />}
+          {activePanel === "stickers" && <StickersBody />}
+          {activePanel === "creator-cards" && (
+            <CreatorCardsBody creatorId={creatorId} />
+          )}
         </div>
       </div>
     </div>
@@ -216,7 +234,13 @@ function HubBody({ onSelect }: { onSelect: (id: EngagementPanel) => void }) {
         </div>
       </div>
       <div className="flex flex-col gap-1.5">
-        {HUB_LINKS.map((item) => {
+        {HUB_LINKS.filter((item) => {
+          if (item.id === "treasure") return engagementFlags.treasureHuntEnabled;
+          if (item.id === "stickers") return engagementFlags.stickerCollectionEnabled;
+          if (item.id === "creator-cards")
+            return engagementFlags.creatorCollectionsEnabled;
+          return true;
+        }).map((item) => {
           const Icon = item.icon;
           return (
             <button
@@ -814,6 +838,301 @@ function RewardsBody() {
       <p className="text-[10px] text-white/35 mt-2">
         Balances stay separate. Test coins never appear here.
       </p>
+    </>
+  );
+}
+
+function TreasureBody() {
+  type Chest = {
+    id: string;
+    rarity: string;
+    title: string;
+    status: string;
+    reward_label: string;
+    location_hint?: string;
+  };
+  type Catalog = {
+    id: string;
+    rarity: string;
+    title: string;
+    description: string;
+    reward_label: string;
+  };
+  const [chests, setChests] = useState<Chest[]>([]);
+  const [catalog, setCatalog] = useState<Catalog[]>([]);
+  const [neonReady, setNeonReady] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    const { data } = await request("/api/engagement/treasure");
+    setChests((data?.chests as Chest[]) || []);
+    setCatalog((data?.catalog as Catalog[]) || []);
+    setNeonReady(!!data?.neon_ready);
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const openChest = async (id: string) => {
+    if (busy) return;
+    setBusy(id);
+    try {
+      const { data, error } = await request(`/api/engagement/treasure/${id}/open`, {
+        method: "POST",
+      });
+      if (error) {
+        showToast(error.message || "Open unavailable");
+        return;
+      }
+      const label =
+        (data as { reward?: { reward_label?: string } })?.reward?.reward_label ||
+        "Chest opened";
+      showToast(label);
+      await load();
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const rarityColor = (r: string) => {
+    if (r === "mythic") return "text-fuchsia-300 border-fuchsia-400/40";
+    if (r === "legendary") return "text-amber-300 border-amber-400/40";
+    if (r === "epic") return "text-purple-300 border-purple-400/40";
+    if (r === "rare") return "text-sky-300 border-sky-400/40";
+    return "text-white/70 border-white/15";
+  };
+
+  return (
+    <>
+      <div className="rounded-2xl border border-[#C9A227]/30 bg-gradient-to-br from-[#1a1608] to-[#111111] p-3 mb-3">
+        <p className="text-[10px] text-[#C9A227] uppercase tracking-wide mb-1">
+          Treasure Hunt
+        </p>
+        <p className="text-sm text-white/70">
+          Chests appear from watching, missions, and exploration. Open them here —
+          never on the battle screen.
+        </p>
+      </div>
+      {!neonReady ? (
+        <p className="text-[11px] text-white/40 mb-3">
+          Catalog ready. Spawning/opening rewards after Neon approval.
+        </p>
+      ) : null}
+      {chests.filter((c) => c.status === "found").length === 0 ? (
+        <p className="text-sm text-white/45 mb-3">No found chests yet. Keep watching LIVE.</p>
+      ) : (
+        <div className="flex flex-col gap-2 mb-3">
+          {chests
+            .filter((c) => c.status === "found")
+            .map((c) => (
+              <div
+                key={c.id}
+                className={`rounded-xl border bg-white/[0.03] p-2.5 ${rarityColor(c.rarity)}`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-semibold text-white/90">{c.title}</p>
+                    <p className="text-[10px] uppercase opacity-80">{c.rarity}</p>
+                    <p className="text-[11px] text-white/50">{c.reward_label}</p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={busy === c.id}
+                    onClick={() => void openChest(c.id)}
+                    className="shrink-0 rounded-lg bg-[#C9A227]/25 border border-[#C9A227]/50 px-2.5 py-1 text-[11px] font-bold text-[#C9A227]"
+                  >
+                    Open
+                  </button>
+                </div>
+              </div>
+            ))}
+        </div>
+      )}
+      <p className="text-[10px] text-white/30 uppercase tracking-[0.12em] mb-1.5">
+        Chest rarities
+      </p>
+      <div className="flex flex-col gap-1.5">
+        {catalog.map((c) => (
+          <div
+            key={c.id}
+            className={`rounded-xl border px-2.5 py-2 bg-white/[0.02] ${rarityColor(c.rarity)}`}
+          >
+            <p className="text-sm text-white/85">{c.title}</p>
+            <p className="text-[11px] text-white/45">{c.description}</p>
+            <p className="text-[10px] text-white/40 mt-0.5">{c.reward_label}</p>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function StickersBody() {
+  type SetRow = {
+    id: string;
+    title: string;
+    theme: string;
+    complete_reward_label: string;
+    progress: number;
+    total: number;
+    complete: boolean;
+    stickers: {
+      id: string;
+      name: string;
+      emoji: string;
+      rarity: string;
+      unlocked: boolean;
+      owned: number;
+    }[];
+  };
+  const [sets, setSets] = useState<SetRow[]>([]);
+  const [neonReady, setNeonReady] = useState(false);
+
+  useEffect(() => {
+    void request("/api/engagement/stickers").then(({ data }) => {
+      setSets((data?.sets as SetRow[]) || []);
+      setNeonReady(!!data?.neon_ready);
+    });
+  }, []);
+
+  if (!engagementFlags.stickerCollectionEnabled) {
+    return <p className="text-sm text-white/45 text-center py-8">Stickers disabled.</p>;
+  }
+
+  return (
+    <>
+      <p className="text-[11px] text-white/45 mb-3">
+        Earn stickers from activity. Complete a set for cosmetic rewards.
+        {!neonReady ? " Progress saves after Neon approval." : ""}
+      </p>
+      {sets.map((s) => (
+        <div key={s.id} className="rounded-xl border border-white/10 bg-white/[0.03] p-2.5 mb-2">
+          <div className="flex justify-between gap-2 mb-1">
+            <div>
+              <p className="text-sm font-semibold text-white/90">{s.title}</p>
+              <p className="text-[11px] text-white/45">{s.theme}</p>
+            </div>
+            <span className="text-[11px] tabular-nums text-[#C9A227]">
+              {s.progress}/{s.total}
+              {s.complete ? " ✓" : ""}
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-1.5 mb-1">
+            {s.stickers.map((st) => (
+              <div
+                key={st.id}
+                className={`w-10 h-10 rounded-lg border flex items-center justify-center text-lg ${
+                  st.unlocked
+                    ? "border-[#C9A227]/40 bg-[#C9A227]/10"
+                    : "border-white/10 bg-black/30 opacity-40"
+                }`}
+                title={st.name}
+              >
+                {st.emoji}
+              </div>
+            ))}
+          </div>
+          <p className="text-[10px] text-white/40">
+            Complete: {s.complete_reward_label}
+          </p>
+        </div>
+      ))}
+    </>
+  );
+}
+
+function CreatorCardsBody({ creatorId }: { creatorId?: string }) {
+  type Tier = {
+    tier: string;
+    title: string;
+    stars: number;
+    watch_minutes_required: number;
+    gifts_required: number;
+  };
+  const [tiers, setTiers] = useState<Tier[]>([]);
+  const [unlocked, setUnlocked] = useState<
+    { creator_id: string; tier: string; unlocked_at: string }[]
+  >([]);
+  const [neonReady, setNeonReady] = useState(false);
+
+  useEffect(() => {
+    const q = creatorId
+      ? `?creatorId=${encodeURIComponent(creatorId)}`
+      : "";
+    void request(`/api/engagement/creator-cards${q}`).then(({ data }) => {
+      setTiers((data?.tiers as Tier[]) || []);
+      setUnlocked((data?.unlocked as typeof unlocked) || []);
+      setNeonReady(!!data?.neon_ready);
+    });
+  }, [creatorId]);
+
+  const unlockedTiers = new Set(
+    unlocked
+      .filter((u) => !creatorId || u.creator_id === creatorId)
+      .map((u) => u.tier),
+  );
+
+  return (
+    <>
+      <div className="rounded-2xl border border-[#C9A227]/30 bg-gradient-to-br from-[#1a1608] to-[#111111] p-3 mb-3">
+        <p className="text-[10px] text-[#C9A227] uppercase tracking-wide mb-1">
+          Creator Collections
+        </p>
+        <p className="text-sm text-white/70">
+          Unlock Bronze→Legend cards by watching and supporting creators.
+          {creatorId ? ` Focus: ${creatorId.slice(0, 8)}…` : ""}
+        </p>
+        {!neonReady ? (
+          <p className="text-[10px] text-white/40 mt-2">
+            Unlocks save after Neon approval.
+          </p>
+        ) : null}
+      </div>
+      <div className="flex flex-col gap-2">
+        {tiers.map((t) => {
+          const have = unlockedTiers.has(t.tier);
+          return (
+            <div
+              key={t.tier}
+              className={`rounded-xl border p-2.5 ${
+                have
+                  ? "border-[#C9A227]/40 bg-[#C9A227]/10"
+                  : "border-white/10 bg-white/[0.03]"
+              }`}
+            >
+              <div className="flex justify-between gap-2 mb-0.5">
+                <p className="text-sm font-semibold text-white/90">{t.title}</p>
+                <span className="text-[11px] text-[#C9A227]">
+                  {"⭐".repeat(Math.max(1, t.stars))}
+                </span>
+              </div>
+              <p className="text-[11px] text-white/45">
+                Watch {t.watch_minutes_required}m
+                {t.gifts_required > 0 ? ` · ${t.gifts_required} gifts` : ""}
+              </p>
+              <p className="text-[10px] text-white/40 mt-0.5">
+                {have ? "Unlocked" : "Locked"}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+      {unlocked.length > 0 && !creatorId ? (
+        <div className="mt-3">
+          <p className="text-[10px] text-white/30 uppercase tracking-[0.12em] mb-1.5">
+            Your cards
+          </p>
+          {unlocked.slice(0, 20).map((u) => (
+            <div
+              key={`${u.creator_id}-${u.tier}`}
+              className="text-[11px] text-white/60 py-1 border-b border-white/5"
+            >
+              {u.tier} · {u.creator_id.slice(0, 10)}
+            </div>
+          ))}
+        </div>
+      ) : null}
     </>
   );
 }
