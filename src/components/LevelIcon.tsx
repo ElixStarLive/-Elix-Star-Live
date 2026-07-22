@@ -3,25 +3,55 @@ import { Gem } from 'lucide-react';
 import { PROFILE_RING_IMAGE_LIFT_MM, profileRingInnerPx } from '../lib/profileFrame';
 import { ROYCE_DEFAULT_AVATAR } from '../lib/royceAssets';
 
-/** Lucide Gem before every level number — #C77DFF, 30px, stroke 1.8, no fill/bg/border. */
-function LevelDiamondIcon() {
+/** Distinct chip fundal per level (cycles). */
+const LEVEL_CHIP_BACKGROUNDS = [
+  '#1E3A5F', // deep navy
+  '#0F766E', // teal
+  '#7C2D12', // rust
+  '#4C1D95', // indigo
+  '#9F1239', // rose
+  '#14532D', // forest
+  '#1E40AF', // royal blue
+  '#854D0E', // bronze
+  '#831843', // magenta
+  '#164E63', // cyan-dark
+  '#6B21A8', // violet
+  '#B45309', // amber
+] as const;
+
+function levelChipBackground(level: number): string {
+  const i = Math.max(0, (level - 1) % LEVEL_CHIP_BACKGROUNDS.length);
+  return LEVEL_CHIP_BACKGROUNDS[i];
+}
+
+/**
+ * Small Lucide Gem before level number.
+ * Soft gold stroke + dark outer frame so the diamond stays visible on every chip colour.
+ */
+function LevelDiamondIcon({ size = 12 }: { size?: number }) {
   return (
-    <Gem
-      size={30}
-      strokeWidth={1.8}
-      fill="none"
+    <span
+      className="relative inline-flex flex-shrink-0 items-center justify-center"
+      style={{ width: size, height: size }}
       aria-hidden
-      className="level-gem-icon flex-shrink-0"
-      style={{
-        color: '#C77DFF',
-        stroke: '#C77DFF',
-        fill: 'none',
-        background: 'none',
-        border: 'none',
-        filter: 'none',
-        display: 'block',
-      }}
-    />
+    >
+      {/* Dark frame — keeps shape readable on any fundal */}
+      <Gem
+        size={size}
+        strokeWidth={2.6}
+        fill="none"
+        className="level-gem-icon-frame absolute inset-0"
+        style={{ color: '#0A0A0A', stroke: '#0A0A0A', fill: 'none' }}
+      />
+      {/* Visible gem — soft gold */}
+      <Gem
+        size={size}
+        strokeWidth={1.7}
+        fill="none"
+        className="level-gem-icon relative"
+        style={{ color: '#FFE082', stroke: '#FFE082', fill: 'none' }}
+      />
+    </span>
   );
 }
 
@@ -66,32 +96,39 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
 
   const avatarDiameter = profileRingInnerPx(circleSize);
 
-  /** Lucide Gem (30px) + level number — no chip bg/border. */
-  const fontPx = Math.max(11, Math.round((typeof circleSizeProp === 'number' ? circleSizeProp : circleSize) * 0.42));
+  /** Small gem + level number on a per-level coloured chip. */
+  const chipH = Math.max(18, Math.round(circleSize * 0.78));
+  const fontPx = Math.max(9, Math.round(chipH * 0.48));
+  const diamondPx = Math.max(10, Math.min(14, Math.round(chipH * 0.55)));
+  const chipBg = levelChipBackground(safeLevel);
   const levelChip = (
     <div
       style={{
         position: 'relative',
         zIndex: 1,
-        minHeight: 30,
-        background: 'none',
-        border: 'none',
-        boxShadow: 'none',
+        height: chipH,
+        minWidth: chipH,
+        borderRadius: 6,
+        background: chipBg,
+        border: '1px solid rgba(10, 10, 10, 0.55)',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.45)',
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 4,
+        gap: 3,
+        paddingLeft: 5,
+        paddingRight: 5,
         flexShrink: 0,
       }}
     >
-      <LevelDiamondIcon />
+      <LevelDiamondIcon size={diamondPx} />
       <span
         style={{
           color: '#F2F2F2',
           fontWeight: 900,
           letterSpacing: '0.01em',
           fontSize: fontPx,
-          textShadow: '0 1px 3px rgba(0,0,0,0.75)',
+          textShadow: '0 1px 2px rgba(0,0,0,0.9)',
           lineHeight: 1,
           whiteSpace: 'nowrap',
           fontVariantNumeric: 'tabular-nums',

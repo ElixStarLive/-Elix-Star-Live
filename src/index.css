@@ -915,11 +915,19 @@ svg.lucide {
     drop-shadow(0 0 8px var(--icon-neon-purple-glow-soft));
 }
 
-/* Level number Gem — Neon Purple #C77DFF, exact specs (overrides gold icon theme) */
+/* Level Gem — soft gold + dark frame (visible on every level chip colour) */
 svg.lucide.level-gem-icon {
-  color: #C77DFF !important;
-  stroke: #C77DFF !important;
-  stroke-width: 1.8 !important;
+  color: #FFE082 !important;
+  stroke: #FFE082 !important;
+  fill: none !important;
+  background: none !important;
+  border: none !important;
+  filter: none !important;
+}
+
+svg.lucide.level-gem-icon-frame {
+  color: #0A0A0A !important;
+  stroke: #0A0A0A !important;
   fill: none !important;
   background: none !important;
   border: none !important;
