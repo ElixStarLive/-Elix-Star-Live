@@ -46,12 +46,14 @@ const c = await pool.connect();
 try {
   const id = await c.query(
     `SELECT current_database() AS database,
+            current_schema() AS schema,
             current_user AS db_user,
             inet_server_addr()::text AS server_addr,
             inet_server_port() AS server_port`,
   );
   const row = id.rows[0];
   console.log("IDENTITY|current_database=" + row.database);
+  console.log("IDENTITY|schema=" + row.schema);
   console.log("IDENTITY|current_user=" + row.db_user);
   console.log("IDENTITY|inet_server_addr=" + (row.server_addr || "null"));
   console.log("IDENTITY|inet_server_port=" + (row.server_port ?? "null"));
@@ -70,6 +72,11 @@ try {
     console.log("MIGRATION|last=NONE");
   }
 
+  const total = await c.query(
+    `SELECT COUNT(*)::int AS c FROM elix_schema_migrations`,
+  );
+  console.log("MIGRATION|count_total=" + total.rows[0].c);
+
   const tip = await c.query(
     `SELECT COUNT(*)::int AS c FROM elix_schema_migrations WHERE filename LIKE '20260722%'`,
   );
@@ -86,8 +93,11 @@ try {
   console.log("COMPARE|database_is_neondb=" + matchDb);
   console.log("COMPARE|last_is_250000=" + matchLast);
   console.log(
-    "COMPARE|coolify_neon_identity=" +
+    "COMPARE|matches_migrated_target=" +
       (matchHost && matchDb && matchLast ? "MATCH" : "MISMATCH_OR_INCOMPLETE"),
+  );
+  console.log(
+    "NOTE|coolify_gate=PASS only if this script was run inside Coolify production with Coolify DATABASE_URL",
   );
 } finally {
   c.release();
