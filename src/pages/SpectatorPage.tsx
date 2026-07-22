@@ -71,7 +71,6 @@ import {
   LIVE_BATTLE_VIDEO_HEIGHT,
   LIVE_BATTLE_CHAT_HEIGHT,
   LIVE_BATTLE_CHAT_SHIFT_Y,
-  LIVE_TOP_OVERLAY_OFFSET,
   LIVE_TOP_AVATAR_RING_PX,
   LIVE_BOTTOM_ACTION_PADDING,
   LIVE_BOTTOM_ACTION_RESERVE,
@@ -93,12 +92,18 @@ import PromotePanel from '../components/PromotePanel';
 import { RankingPanel } from '../components/RankingPanel';
 import { type LiveRankTab } from '../components/CyclingRankBadge';
 import {
+  LiveGiftComboColumn,
   LiveHostProfileHeader,
   LiveJoinPill,
   LiveMarkedSubHeaderBar,
+  LiveMarkedUiDemoToggle,
+  buildLiveMarkedUiDemoComboStack,
+  readLiveMarkedUiDemoEnabled,
+  writeLiveMarkedUiDemoEnabled,
 } from '../components/LiveMarkedTopUi';
 import {
   LiveSideMissionStack,
+  LIVE_SIDE_DEMO_MISSIONS,
   LIVE_SIDE_DEMO_SUPPORTERS,
 } from '../components/LiveSideMissionStack';
 import { websocket } from '../lib/websocket';
@@ -271,8 +276,12 @@ export default function SpectatorPage() {
   const [lastSentGift, setLastSentGift] = useState<GiftUiItem | null>(null);
   const [comboCount, setComboCount] = useState(0);
   const [showComboButton, setShowComboButton] = useState(false);
-  /** Recent combo gifts (icon + real xN) — used for combo send logic, not a visible column. */
+  /** Recent combo gifts (icon + real xN), capped to last 3 — red-circle combo column. */
   const [comboStack, setComboStack] = useState<{ key: string; icon: string; count: number; gift: GiftUiItem }[]>([]);
+  const [markedUiDemo, setMarkedUiDemo] = useState(() => readLiveMarkedUiDemoEnabled(IS_STORE_BUILD));
+  const demoComboStack = markedUiDemo ? buildLiveMarkedUiDemoComboStack() : [];
+  const visibleComboStack = comboStack.length > 0 ? comboStack : demoComboStack;
+  const showComboColumn = (showComboButton && comboStack.length > 0) || (markedUiDemo && demoComboStack.length > 0);
   const [missionWatchMin, setMissionWatchMin] = useState(0);
   const [missionGiftsSent, setMissionGiftsSent] = useState(0);
   const [userXP, setUserXP] = useState(0);
@@ -2647,7 +2656,7 @@ export default function SpectatorPage() {
             return (
               <div
                 className="absolute inset-0 z-[80] flex flex-col"
-                style={{ paddingTop: LIVE_TOP_OVERLAY_OFFSET }}
+                style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 90px)' }}
               >
                 <div className="relative z-20 w-full flex-none bg-[#111111]/95 border-b border-white/10">
                   <div className="relative w-full overflow-hidden" style={{ minHeight: showPkBreakdown ? '20px' : '16px' }}>
@@ -3284,11 +3293,11 @@ export default function SpectatorPage() {
         })()}
 
         {/* CREATOR TOP BAR — only connection to creator page: spectator has access to full creator top bar (avatar, name, likes, Follow, Weekly Ranking, Membership, viewer count, close). Rest is single video + spectator's own bottom bar. */}
-        <div className="absolute top-0 left-0 right-0 z-[110] pointer-events-none">
+        <div className="absolute top-0 left-0 right-0 z-[110] pointer-events-none overflow-visible">
           <div className="px-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 6px)' }}>
             <div className="flex items-center justify-between gap-2 relative">
               {/* Left: Creator info — photo profile (MVP circles untouched) */}
-              <div className="pointer-events-auto flex flex-col gap-1 flex-shrink min-w-0">
+              <div className="pointer-events-auto flex items-center gap-0 flex-shrink min-w-0">
                 <LiveHostProfileHeader
                   name={hostName}
                   avatar={resolveCircleAvatar(hostAvatar, hostName)}
@@ -3374,27 +3383,6 @@ export default function SpectatorPage() {
                               ) : null
                             }
                 />
-                {/* Always show — spectator / battle / co-host watch. Do not gate on battle. */}
-                <LiveMarkedSubHeaderBar
-                  rank={diamondLeagueRank}
-                  onDiamond={() => {
-                    setShowGiftPanel(false);
-                    setRankingInitialTab('weekly');
-                    setShowRankingPanel(true);
-                  }}
-                  onMembership={() => {
-                    setShowGiftPanel(false);
-                    setShowFanClub(true);
-                  }}
-                  onWeeklyRanking={() => {
-                    setShowGiftPanel(false);
-                    setRankingInitialTab('weekly');
-                    setShowRankingPanel(true);
-                  }}
-                  onExplore={() => {
-                    navigate('/live');
-                  }}
-                />
               </div>
 
               <div className="pointer-events-auto flex items-center gap-[0mm] flex-shrink-0 min-w-0">
@@ -3413,37 +3401,25 @@ export default function SpectatorPage() {
                     setShowViewersPanel(true);
                   }}
                 >
-                  {[0, 1, 2].map((i) => {
-                    const slot = mvpSlots.global[i];
-                    const isMvp = i === 0 && !!slot && (slot.points ?? 0) > 0;
+                  {mvpSlots.global.map((slot, i) => {
+                    const isMvp = i === 0 && (slot.points ?? 0) > 0;
                     return (
                       <div
-                        key={slot ? `spectator-top-mvp-${slot.id}` : `spectator-top-mvp-empty-${i}`}
+                        key={`spectator-top-mvp-${slot.id}`}
                         style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
                         className="relative"
                       >
-                        {slot ? (
-                          <>
-                            <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
-                              <AvatarRing
-                                src={resolveCircleAvatar(slot.avatar, slot.name)}
-                                alt={slot.name || ''}
-                                size={SPECTATOR_MVP_PROFILE_RING_PX}
-                              />
-                            </div>
-                            {isMvp && (
-                              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
-                                MVP
-                              </span>
-                            )}
-                          </>
-                        ) : (
-                          <div
-                            className="rounded-full flex items-center justify-center ring-2 ring-[#D4AF37]/60 bg-black/40"
-                            style={{ width: SPECTATOR_MVP_PROFILE_RING_PX, height: SPECTATOR_MVP_PROFILE_RING_PX }}
-                          >
-                            <Plus className="text-[#D4AF37]" size={12} strokeWidth={2.5} />
-                          </div>
+                        <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
+                          <AvatarRing
+                            src={resolveCircleAvatar(slot.avatar, slot.name)}
+                            alt={slot.name || ''}
+                            size={SPECTATOR_MVP_PROFILE_RING_PX}
+                          />
+                        </div>
+                        {isMvp && (
+                          <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
+                            MVP
+                          </span>
                         )}
                       </div>
                     );
@@ -3481,6 +3457,28 @@ export default function SpectatorPage() {
                 </button>
               </div>
             </div>
+
+            {/* Capsules right-aligned — left clear for battle gloves */}
+            <LiveMarkedSubHeaderBar
+              rank={diamondLeagueRank}
+              onDiamond={() => {
+                setShowGiftPanel(false);
+                setRankingInitialTab('weekly');
+                setShowRankingPanel(true);
+              }}
+              onMembership={() => {
+                setShowGiftPanel(false);
+                setShowFanClub(true);
+              }}
+              onWeeklyRanking={() => {
+                setShowGiftPanel(false);
+                setRankingInitialTab('weekly');
+                setShowRankingPanel(true);
+              }}
+              onExplore={() => {
+                navigate('/live');
+              }}
+            />
           </div>
         </div>
 
@@ -3550,17 +3548,40 @@ export default function SpectatorPage() {
           </div>
         </div>
 
-        <LiveSideMissionStack
-          missions={{
-            watchMin: missionWatchMin,
-            watchGoal: 30,
-            giftsSent: missionGiftsSent,
-            giftsGoal: 10,
-            battleJoined: spectatorBattle?.active ? 1 : 0,
-            battleGoal: 1,
+        {/* COMBO COLUMN — photo layout; real combos OR DEMO */}
+        <LiveMarkedUiDemoToggle
+          enabled={markedUiDemo}
+          onToggle={(next) => {
+            writeLiveMarkedUiDemoEnabled(next);
+            setMarkedUiDemo(next);
           }}
+        />
+        {showComboColumn && visibleComboStack.length > 0 && (
+          <LiveGiftComboColumn
+            stack={visibleComboStack}
+            onCombo={() => {
+              if (comboStack.length > 0) handleComboClick();
+              else setShowGiftPanel(true);
+            }}
+            onOpen={() => setShowGiftPanel(true)}
+          />
+        )}
+
+        <LiveSideMissionStack
+          missions={
+            markedUiDemo
+              ? LIVE_SIDE_DEMO_MISSIONS
+              : {
+                  watchMin: missionWatchMin,
+                  watchGoal: 30,
+                  giftsSent: missionGiftsSent,
+                  giftsGoal: 10,
+                  battleJoined: spectatorBattle?.active ? 1 : 0,
+                  battleGoal: 1,
+                }
+          }
           supporters={
-            mvpSlots.global.length === 0
+            markedUiDemo || mvpSlots.global.length === 0
               ? LIVE_SIDE_DEMO_SUPPORTERS
               : mvpSlots.global.slice(0, 3).map((s) => ({
                   id: s.id,
@@ -3570,7 +3591,7 @@ export default function SpectatorPage() {
                 }))
           }
           battlePassLevel={userLevel || 1}
-          battlePassXp={userXP % 1000}
+          battlePassXp={markedUiDemo ? 320 : userXP % 1000}
           battlePassXpMax={1000}
           onViewAllSupporters={() => setShowViewersPanel(true)}
           onBattlePass={() => {

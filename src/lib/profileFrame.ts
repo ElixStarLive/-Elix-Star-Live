@@ -36,13 +36,6 @@ export const LIVE_BATTLE_CHAT_HEIGHT = 'calc(20dvh + 1cm)' as const;
 /** Nudge battle chat toward bottom bar (clears MVP row). */
 export const LIVE_BATTLE_CHAT_SHIFT_Y = '3mm' as const;
 
-/**
- * Clears host profile + Weekly/Diamond/Membership/Explore capsules.
- * Morning (10:00) clearance: safe-area + 90px — restore exact top profile location.
- */
-export const LIVE_TOP_OVERLAY_OFFSET =
-  'calc(env(safe-area-inset-top, 0px) + 90px)' as const;
-
 /** Red animated ring thickness (px) around live avatars. */
 export const LIVE_AVATAR_RING_THICKNESS_PX = 3.5;
 

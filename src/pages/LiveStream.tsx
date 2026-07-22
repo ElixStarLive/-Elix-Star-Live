@@ -78,7 +78,6 @@ import {
   LIVE_BATTLE_VIDEO_HEIGHT,
   LIVE_BATTLE_CHAT_HEIGHT,
   LIVE_BATTLE_CHAT_SHIFT_Y,
-  LIVE_TOP_OVERLAY_OFFSET,
   LIVE_TOP_AVATAR_RING_PX,
   LIVE_BOTTOM_ACTION_PADDING,
   LIVE_BOTTOM_ACTION_RESERVE,
@@ -106,12 +105,18 @@ import { useLiveEngagement } from '../hooks/useLiveEngagement';
 import { RankingPanel } from '../components/RankingPanel';
 import { type LiveRankTab } from '../components/CyclingRankBadge';
 import {
+  LiveGiftComboColumn,
   LiveHostProfileHeader,
   LiveJoinPill,
   LiveMarkedSubHeaderBar,
+  LiveMarkedUiDemoToggle,
+  buildLiveMarkedUiDemoComboStack,
+  readLiveMarkedUiDemoEnabled,
+  writeLiveMarkedUiDemoEnabled,
 } from '../components/LiveMarkedTopUi';
 import {
   LiveSideMissionStack,
+  LIVE_SIDE_DEMO_MISSIONS,
   LIVE_SIDE_DEMO_SUPPORTERS,
 } from '../components/LiveSideMissionStack';
 import { websocket } from '../lib/websocket';
@@ -4123,6 +4128,10 @@ export default function LiveStream() {
   const [comboCount, setComboCount] = useState(0);
   const [showComboButton, setShowComboButton] = useState(false);
   const [comboStack, setComboStack] = useState<{ key: string; icon: string; count: number; gift: GiftUiItem }[]>([]);
+  const [markedUiDemo, setMarkedUiDemo] = useState(() => readLiveMarkedUiDemoEnabled(IS_STORE_BUILD));
+  const demoComboStack = useMemo(() => (markedUiDemo ? buildLiveMarkedUiDemoComboStack() : []), [markedUiDemo]);
+  const visibleComboStack = comboStack.length > 0 ? comboStack : demoComboStack;
+  const showComboColumn = (showComboButton && comboStack.length > 0) || (markedUiDemo && demoComboStack.length > 0);
   const [missionWatchMin, setMissionWatchMin] = useState(0);
   const [missionGiftsSent, setMissionGiftsSent] = useState(0);
   useEffect(() => {
@@ -4131,15 +4140,18 @@ export default function LiveStream() {
     }, 60_000);
     return () => window.clearInterval(id);
   }, []);
-  const sideMissions = {
-    watchMin: missionWatchMin,
-    watchGoal: 30,
-    giftsSent: missionGiftsSent,
-    giftsGoal: 10,
-    battleJoined: isBattleMode ? 1 : 0,
-    battleGoal: 1,
-  };
+  const sideMissions = markedUiDemo
+    ? LIVE_SIDE_DEMO_MISSIONS
+    : {
+        watchMin: missionWatchMin,
+        watchGoal: 30,
+        giftsSent: missionGiftsSent,
+        giftsGoal: 10,
+        battleJoined: isBattleMode ? 1 : 0,
+        battleGoal: 1,
+      };
   const sideSupporters = useMemo(() => {
+    if (markedUiDemo) return LIVE_SIDE_DEMO_SUPPORTERS;
     if (topGifters.length > 0) {
       return topGifters.slice(0, 3).map((g) => ({
         id: g.user_id,
@@ -4155,7 +4167,7 @@ export default function LiveStream() {
       points: mvpGiftScores[v.id] ?? 0,
     }));
     return fromMvp.length > 0 ? fromMvp : LIVE_SIDE_DEMO_SUPPORTERS;
-  }, [topGifters, topMvpViewers, mvpGiftScores]);
+  }, [markedUiDemo, topGifters, topMvpViewers, mvpGiftScores]);
   const comboTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pushComboStack = useCallback((gift: GiftUiItem, nextCount: number) => {
     const key = String(gift.id || gift.name || 'gift');
@@ -5130,6 +5142,10 @@ export default function LiveStream() {
               onPointerDown={isBroadcast ? (e) => {
                 if (e.target instanceof Element && e.target.closest('button, a, input, textarea, select, [role="button"]')) return;
                 handleLikeTap(e);
+                const now = Date.now();
+                const last = lastScreenTapRef.current;
+                lastScreenTapRef.current = now;
+                if (now - last <= 320) handleComboClick();
               } : undefined}
             >
             {isBroadcast || isBattleParticipant ? (
@@ -5340,7 +5356,8 @@ export default function LiveStream() {
             ref={battleSpectatorOverlayRef}
             className={`absolute inset-0 z-[80] flex flex-col ${isBroadcast ? 'pointer-events-none' : ''}`}
             style={{
-              paddingTop: LIVE_TOP_OVERLAY_OFFSET,
+              // Slightly lower than top overlays: safe-area + 90px
+              paddingTop: 'calc(env(safe-area-inset-top, 0px) + 90px)',
               paddingBottom: isBroadcast ? '305px' : undefined,
             }}
             onClick={(e) => {
@@ -5986,72 +6003,43 @@ export default function LiveStream() {
                             </div>
                           )}
                         </div>
-                        {/* Always show — creator / battle / co-host. Do not gate on isBattleMode. */}
-                        <LiveMarkedSubHeaderBar
-                          rank={diamondLeagueRank}
-                          onDiamond={() => {
-                            setRankingInitialTab('weekly');
-                            setShowRankingPanel(true);
-                          }}
-                          onMembership={() => {
-                            setShowFanClub(true);
-                          }}
-                          onWeeklyRanking={() => {
-                            setRankingInitialTab('weekly');
-                            setShowRankingPanel(true);
-                          }}
-                          onExplore={() => {
-                            setShowViewerList(false);
-                            setIsFindCreatorsOpen(true);
-                          }}
-                        />
                       </div>
 
-                      <div className="pointer-events-auto flex items-center gap-[0mm] mt-1 flex-shrink-0 min-w-0">
-                        <div
-                          className="flex items-center gap-[0mm] pointer-events-auto flex-shrink-0"
-                          style={{ transform: 'translateX(-2mm)' }}
-                          onClick={() => {
-                            setIsFindCreatorsOpen(false);
-                            setShowViewerList((prev) => !prev);
-                          }}
-                        >
-                          {[0, 1, 2].map((i) => {
-                            const viewer = topMvpViewers[i];
-                            const isMvp = i === 0 && !!viewer && (mvpGiftScores[viewer.id] ?? 0) > 0;
-                            return (
+                      <div className="pointer-events-auto flex items-center gap-[0mm] mt-1">
+                        {topMvpViewers.length > 0 ? (
+                          <div
+                            className="flex items-center gap-[0mm] pointer-events-auto flex-shrink-0"
+                            style={{ transform: 'translateX(-2mm)' }}
+                            onClick={() => {
+                              setIsFindCreatorsOpen(false);
+                              setShowViewerList((prev) => !prev);
+                            }}
+                          >
+                            {topMvpViewers.map((viewer, i) => {
+                              const isMvp = i === 0 && (mvpGiftScores[viewer.id] ?? 0) > 0;
+                              return (
                               <div
-                                key={viewer ? `top-viewers-${viewer.id}` : `top-viewers-empty-${i}`}
+                                key={`top-viewers-${viewer.id}`}
                                 style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
                                 className="relative"
                               >
-                                {viewer ? (
-                                  <>
-                                    <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
-                                      <AvatarRing
-                                        src={resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username)}
-                                        alt={viewer.displayName || viewer.username || ''}
-                                        size={LIVE_MVP_PROFILE_RING_PX}
-                                      />
-                                    </div>
-                                    {isMvp && (
-                                      <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
-                                        MVP
-                                      </span>
-                                    )}
-                                  </>
-                                ) : (
-                                  <div
-                                    className="rounded-full flex items-center justify-center ring-2 ring-[#D4AF37]/60 bg-black/40"
-                                    style={{ width: LIVE_MVP_PROFILE_RING_PX, height: LIVE_MVP_PROFILE_RING_PX }}
-                                  >
-                                    <Plus className="text-[#D4AF37]" size={12} strokeWidth={2.5} />
-                                  </div>
+                                <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
+                                  <AvatarRing
+                                    src={resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username)}
+                                    alt={viewer.displayName || viewer.username || ''}
+                                    size={LIVE_MVP_PROFILE_RING_PX}
+                                  />
+                                </div>
+                                {isMvp && (
+                                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
+                                    MVP
+                                  </span>
                                 )}
                               </div>
-                            );
-                          })}
-                        </div>
+                              );
+                            })}
+                          </div>
+                        ) : null}
                         <button
                           type="button"
                           title="Viewers"
@@ -6070,6 +6058,25 @@ export default function LiveStream() {
                         </button>
                       </div>
                     </div>
+                    {/* Capsules right-aligned — left clear for battle gloves */}
+                    <LiveMarkedSubHeaderBar
+                      rank={diamondLeagueRank}
+                      onDiamond={() => {
+                        setRankingInitialTab('weekly');
+                        setShowRankingPanel(true);
+                      }}
+                      onMembership={() => {
+                        setShowFanClub(true);
+                      }}
+                      onWeeklyRanking={() => {
+                        setRankingInitialTab('weekly');
+                        setShowRankingPanel(true);
+                      }}
+                      onExplore={() => {
+                        setShowViewerList(false);
+                        setIsFindCreatorsOpen(true);
+                      }}
+                    />
                   </div>
                 </div>
 
@@ -6155,12 +6162,39 @@ export default function LiveStream() {
               </div>
             </div>
 
+      {/* Combo column — photo layout; real combos OR DEMO so you can see it */}
+      <LiveMarkedUiDemoToggle
+        enabled={markedUiDemo}
+        onToggle={(next) => {
+          writeLiveMarkedUiDemoEnabled(next);
+          setMarkedUiDemo(next);
+        }}
+      />
+      <AnimatePresence>
+        {showComboColumn && visibleComboStack.length > 0 && (
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+          >
+            <LiveGiftComboColumn
+              stack={visibleComboStack}
+              onCombo={() => {
+                if (comboStack.length > 0) handleComboClick();
+                else setShowGiftPanel(true);
+              }}
+              onOpen={() => setShowGiftPanel(true)}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <LiveSideMissionStack
         missions={sideMissions}
         supporters={sideSupporters}
         battlePassLevel={userLevel || 1}
-        battlePassXp={userXP % 1000}
-        battlePassXpMax={1000}
+        battlePassXp={markedUiDemo ? 320 : userXP % 1000}
+        battlePassXpMax={markedUiDemo ? 1000 : 1000}
         onViewAllSupporters={() => {
           setIsFindCreatorsOpen(false);
           setShowViewerList(true);

@@ -17,9 +17,9 @@ interface SuggestedUser {
   is_live?: boolean;
 }
 
-type FeedPage =
+type FeedSlide =
   | { kind: 'story'; key: string; group: StoryUserGroup; item: StoryItem }
-  | { kind: 'pair'; key: string; topId: string; bottomId?: string };
+  | { kind: 'video'; key: string; videoId: string };
 
 const STORY_IMAGE_MS = 5000;
 
@@ -100,7 +100,9 @@ export default function FriendsFeed() {
   const [suggestedUsers, setSuggestedUsers] = useState<SuggestedUser[]>([]);
   const [storyGroups, setStoryGroups] = useState<StoryUserGroup[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [chromeHidden, setChromeHidden] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const lastScrollTopRef = useRef(0);
   const friendVideoIds = friendVideos.map((v) => v.id);
 
   const reloadStories = useCallback(() => {
@@ -120,9 +122,9 @@ export default function FriendsFeed() {
 
   const ownStory = user?.id ? storyGroups.find((g) => g.userId === user.id) : undefined;
 
-  /** Stories full-page first; friend videos paired into seamless top/bottom stack pages. */
-  const feedPages = useMemo((): FeedPage[] => {
-    const pages: FeedPage[] = [];
+  /** Stories first (own first, then others), then friend videos — same full-screen snap containers. */
+  const feedSlides = useMemo((): FeedSlide[] => {
+    const slides: FeedSlide[] = [];
     const orderedGroups = [...storyGroups].sort((a, b) => {
       if (user?.id && a.userId === user.id) return -1;
       if (user?.id && b.userId === user.id) return 1;
@@ -131,7 +133,7 @@ export default function FriendsFeed() {
     for (const group of orderedGroups) {
       for (const item of group.items || []) {
         if (!item?.mediaUrl) continue;
-        pages.push({
+        slides.push({
           kind: 'story',
           key: `story-${item.id}`,
           group,
@@ -139,20 +141,13 @@ export default function FriendsFeed() {
         });
       }
     }
-    for (let i = 0; i < friendVideoIds.length; i += 2) {
-      const topId = friendVideoIds[i];
-      const bottomId = friendVideoIds[i + 1];
-      pages.push({
-        kind: 'pair',
-        key: `pair-${topId}-${bottomId || 'solo'}`,
-        topId,
-        bottomId,
-      });
+    for (const videoId of friendVideoIds) {
+      slides.push({ kind: 'video', key: `video-${videoId}`, videoId });
     }
-    return pages;
+    return slides;
   }, [storyGroups, friendVideoIds, user?.id]);
 
-  const feedLen = feedPages.length;
+  const feedLen = feedSlides.length;
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -212,6 +207,11 @@ export default function FriendsFeed() {
     if (index >= 0 && index < feedLen) {
       setActiveIndex(index);
     }
+    const last = lastScrollTopRef.current;
+    if (scrollPos <= 8) setChromeHidden(false);
+    else if (scrollPos > last + 6) setChromeHidden(true);
+    else if (scrollPos < last - 6) setChromeHidden(false);
+    lastScrollTopRef.current = scrollPos;
   };
 
   useEffect(() => {
@@ -232,7 +232,7 @@ export default function FriendsFeed() {
     const slides = container.querySelectorAll('[data-slide-index]');
     slides.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
-  }, [feedLen, feedPages.map((s) => s.key).join('|')]);
+  }, [feedLen, feedSlides.map((s) => s.key).join('|')]);
 
   const handleSlideEnd = useCallback((index: number) => {
     if (index >= feedLen - 1) return;
@@ -240,16 +240,21 @@ export default function FriendsFeed() {
   }, [feedLen, scrollToIndex]);
 
   const openUserStoryInFeed = (userId: string) => {
-    const idx = feedPages.findIndex((s) => s.kind === 'story' && s.group.userId === userId);
+    const idx = feedSlides.findIndex((s) => s.kind === 'story' && s.group.userId === userId);
     if (idx >= 0) {
+      setChromeHidden(true);
       scrollToIndex(idx);
     }
   };
 
   return (
-    <div className="h-full min-h-0 w-full flex justify-center bg-black">
-      <div className="w-full max-w-[480px] h-full min-h-0 relative overflow-hidden mx-auto flex flex-col bg-black">
-        <div className="flex-shrink-0 z-20 bg-[#111111] pt-app-header-safe">
+    <div className="h-full min-h-0 w-full flex justify-center bg-[#111111]">
+      <div className="w-full max-w-[480px] h-full min-h-0 relative overflow-hidden mx-auto">
+        <div
+          className={`absolute top-0 left-0 right-0 bg-[#111111] z-20 pt-app-header-safe transition-transform duration-300 ${
+            chromeHidden ? '-translate-y-full pointer-events-none' : 'translate-y-0'
+          }`}
+        >
           <div className="px-3 pb-1 flex items-center justify-between relative">
             <button onClick={() => navigate('/search')} className="w-8 h-8 royce-glow-disc flex items-center justify-center z-10" aria-label="Search">
               <Search size={16} className="royce-icon-gold" strokeWidth={2} />
@@ -337,13 +342,13 @@ export default function FriendsFeed() {
 
         <div
           ref={containerRef}
-          className="flex-1 min-h-0 z-0 w-full relative overflow-y-scroll snap-y snap-mandatory overscroll-none bg-black"
+          className="absolute inset-0 z-0 w-full overflow-y-scroll snap-y snap-mandatory overscroll-none bg-black"
           style={{ scrollSnapType: 'y mandatory', WebkitOverflowScrolling: 'touch' }}
           onScroll={handleScroll}
         >
-          {feedPages.map((page, index) => (
+          {feedSlides.map((slide, index) => (
             <div
-              key={page.key}
+              key={slide.key}
               data-slide-index={index}
               className="h-full w-full shrink-0 snap-start bg-black"
               style={{
@@ -352,33 +357,17 @@ export default function FriendsFeed() {
                 scrollSnapStop: 'always',
               }}
             >
-              {page.kind === 'story' ? (
+              {slide.kind === 'story' ? (
                 <FriendStorySlide
-                  group={page.group}
-                  item={page.item}
+                  group={slide.group}
+                  item={slide.item}
                   isActive={activeIndex === index}
                   onEnded={() => handleSlideEnd(index)}
                 />
-              ) : page.bottomId ? (
-                <div className="w-full h-full min-h-0 flex flex-col bg-black" style={{ gap: 0, margin: 0, padding: 0 }}>
-                  <div className="flex-1 min-h-0 w-full relative overflow-hidden bg-black" style={{ flexBasis: '50%' }}>
-                    <EnhancedVideoPlayer
-                      videoId={page.topId}
-                      isActive={activeIndex === index}
-                      onVideoEnd={() => handleSlideEnd(index)}
-                    />
-                  </div>
-                  <div className="flex-1 min-h-0 w-full relative overflow-hidden bg-black" style={{ flexBasis: '50%' }}>
-                    <EnhancedVideoPlayer
-                      videoId={page.bottomId}
-                      isActive={activeIndex === index}
-                    />
-                  </div>
-                </div>
               ) : (
                 <div className="w-full h-full min-h-0 relative overflow-hidden bg-black">
                   <EnhancedVideoPlayer
-                    videoId={page.topId}
+                    videoId={slide.videoId}
                     isActive={activeIndex === index}
                     onVideoEnd={() => handleSlideEnd(index)}
                   />

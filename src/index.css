@@ -38,25 +38,16 @@
 @layer base {
   :root {
     --color-primary: #D4AF37;
-    --color-secondary: #E8C96A;
-    /* Style guide — Primary Gold icons #D4AF37 + Soft Gold #E8C96A */
-    --icon-neon-purple: #D4AF37;
-    --icon-neon-purple-diamond: #E8C96A;
-    --icon-neon-purple-glow: rgba(212, 175, 55, 0.75);
-    --icon-neon-purple-glow-soft: rgba(232, 201, 106, 0.4);
-    --color-gold: #D4AF37;
-    --color-gold-bright: #E8C96A;
-    --color-gold-light: #E8C96A;
+    --color-secondary: #C9A227;
+    --color-gold: #C9A227;
+    --color-gold-bright: #D4AF37;
+    --color-gold-light: #E8D5A3;
     --color-gold-dark: #8B6914;
-    --color-accent-cyan: #5EEAD4;
-    --color-alert: #EF4444;
     --color-rose: #B8A88A;
-    --color-background: #0A0A0A;
-    --color-surface: #1A1A1A;
-    --color-card: #121212;
-    /* Style guide — high-contrast text #F2F2F2 */
-    --color-text: #F2F2F2;
-    --color-text-muted: rgba(242, 242, 242, 0.55);
+    --color-background: #000000;
+    --color-surface: #0a0a0a;
+    --color-text: #FFFFFF;
+    --color-text-muted: #A89B7A;
     --radius-sm: 10px;
     --radius-md: 12px;
     --radius-lg: 16px;
@@ -850,7 +841,7 @@
 }
 
 .text-gold-metallic {
-  background: linear-gradient(145deg, #FFD4D4 0%, #FF6B6B 35%, #E85555 65%, #FF9A9A 100%);
+  background: linear-gradient(145deg, #F5E6C8 0%, #D4AF37 35%, #B8860B 65%, #E8D5A3 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -869,7 +860,7 @@
 
 /*
  * Unified icon halo (app-wide):
- * soft Primary Gold glow disc — style guide premium look.
+ * soft Royal Purple glow disc — effect only, NO solid ring/border.
  */
 .royce-glow-disc,
 .royce-tile {
@@ -883,17 +874,17 @@
   background:
     radial-gradient(
       circle at center,
-      rgba(212, 175, 55, 0.28) 0%,
-      rgba(18, 18, 18, 0.72) 52%,
-      rgba(10, 10, 10, 0.2) 78%,
+      rgba(168, 85, 247, 0.28) 0%,
+      rgba(17, 17, 17, 0.72) 52%,
+      rgba(0, 0, 0, 0.2) 78%,
       transparent 100%
     );
   box-shadow:
-    0 0 10px 2px rgba(212, 175, 55, 0.42),
-    0 0 22px 5px rgba(232, 201, 106, 0.18);
+    0 0 10px 2px rgba(168, 85, 247, 0.42),
+    0 0 22px 5px rgba(168, 85, 247, 0.18);
 }
 
-/* Same soft gold glow on user avatar circles (Friends strip, feed, etc.) */
+/* Same soft purple glow on user avatar circles (Friends strip, feed, etc.) */
 .royce-avatar-glow {
   border-radius: 9999px;
   box-shadow:
@@ -902,17 +893,18 @@
 }
 
 /*
- * Unified icon design (app-wide) — Primary Gold #D4AF37:
- * thin outline icons + soft glow (high contrast on dark).
+ * Unified icon design (app-wide) — Royal Purple theme:
+ * thin purple line icons + soft glow (readable on black video).
+ * Chart: Profile/Wallet/Setting #A855F7
  */
 svg.lucide {
-  color: var(--icon-neon-purple) !important;
+  color: #A855F7 !important;
   stroke: currentColor !important;
   stroke-width: 2;
   fill: none !important;
   filter:
-    drop-shadow(0 0 3px var(--icon-neon-purple-glow))
-    drop-shadow(0 0 8px var(--icon-neon-purple-glow-soft));
+    drop-shadow(0 0 3px rgba(168, 85, 247, 0.75))
+    drop-shadow(0 0 8px rgba(168, 85, 247, 0.35));
 }
 
 /* Active filled states (save, badge hearts, etc.) */
@@ -922,7 +914,7 @@ svg.lucide[fill]:not([fill="none"]):not(.fill-red-500) {
   fill: currentColor !important;
 }
 
-/* Liked / alert red — style guide #EF4444 only */
+/* Liked heart — keep red as status, not style drift */
 svg.lucide.fill-red-500,
 svg.lucide.text-red-500 {
   color: #ef4444 !important;
@@ -937,7 +929,7 @@ svg.lucide.text-red-500 {
 .bottom-nav-icon,
 .royce-icon-muted,
 .stroke-gold-metallic {
-  color: var(--icon-neon-purple) !important;
+  color: #A855F7 !important;
   stroke: currentColor;
   fill: none;
 }
@@ -945,93 +937,4 @@ svg.lucide.text-red-500 {
 .royce-icon-gold.fill-current,
 .royce-icon-gold.fill-gold-bright {
   fill: currentColor !important;
-}
-
-/* Custom SVG icons (glove, etc.) still using legacy gold text utility */
-svg.text-\[\#D4AF37\] {
-  color: var(--icon-neon-purple) !important;
-}
-
-/*
- * High-contrast writing (app-wide) — style guide Text Primary #F2F2F2
- * Icons stay Primary Gold #D4AF37 above. Alert/logout red excluded below.
- */
-.text-white { color: var(--color-text) !important; }
-.text-white\/90 { color: rgba(242, 242, 242, 0.9) !important; }
-.text-white\/85 { color: rgba(242, 242, 242, 0.85) !important; }
-.text-white\/80 { color: rgba(242, 242, 242, 0.8) !important; }
-.text-white\/75 { color: rgba(242, 242, 242, 0.75) !important; }
-.text-white\/70 { color: rgba(242, 242, 242, 0.7) !important; }
-.text-white\/65 { color: rgba(242, 242, 242, 0.65) !important; }
-.text-white\/60 { color: rgba(242, 242, 242, 0.6) !important; }
-.text-white\/50 { color: rgba(242, 242, 242, 0.5) !important; }
-.text-white\/40 { color: rgba(242, 242, 242, 0.4) !important; }
-.text-white\/30 { color: rgba(242, 242, 242, 0.3) !important; }
-.text-white\/20 { color: rgba(242, 242, 242, 0.2) !important; }
-.text-white\/10 { color: rgba(242, 242, 242, 0.1) !important; }
-
-.text-text { color: var(--color-text) !important; }
-.text-text-muted { color: var(--color-text-muted) !important; }
-.text-gold-bright { color: var(--color-text) !important; }
-.text-gold-light { color: rgba(242, 242, 242, 0.78) !important; }
-.text-gold-light\/70 { color: rgba(242, 242, 242, 0.54) !important; }
-.text-\[\#D4AF37\]:not(svg) { color: var(--color-text) !important; }
-.text-\[\#E8D5A3\]:not(svg) { color: rgba(242, 242, 242, 0.78) !important; }
-.text-\[\#E8D5A3\]\/50:not(svg) { color: rgba(242, 242, 242, 0.5) !important; }
-
-input::placeholder,
-textarea::placeholder {
-  color: rgba(242, 242, 242, 0.42);
-}
-
-.text-gold-bright\/45,
-.text-gold-bright\/50,
-.text-gold-bright\/60 {
-  color: rgba(242, 242, 242, 0.5) !important;
-}
-
-/* Default writing color — entire app inherits #F2F2F2 */
-body,
-#root {
-  color: var(--color-text);
-  background-color: var(--color-background);
-}
-
-/*
- * Catch all remaining text color utilities (feed, nav, forms, hex classes).
- * Icons stay Gold — svg/path excluded. text-red kept for Logout / alerts #EF4444.
- */
-:not(svg):not(path):not(circle):not(rect):not(line):not(polyline):not(polygon)[class*="text-gold"],
-:not(svg):not(path)[class*="text-gray"],
-:not(svg):not(path)[class*="text-slate"],
-:not(svg):not(path)[class*="text-zinc"],
-:not(svg):not(path)[class*="text-neutral"],
-:not(svg):not(path)[class*="text-stone"],
-:not(svg):not(path)[class*="text-orange"],
-:not(svg):not(path)[class*="text-amber"],
-:not(svg):not(path)[class*="text-yellow"],
-:not(svg):not(path)[class*="text-lime"],
-:not(svg):not(path)[class*="text-green"],
-:not(svg):not(path)[class*="text-emerald"],
-:not(svg):not(path)[class*="text-teal"],
-:not(svg):not(path)[class*="text-cyan"],
-:not(svg):not(path)[class*="text-sky"],
-:not(svg):not(path)[class*="text-blue"],
-:not(svg):not(path)[class*="text-indigo"],
-:not(svg):not(path)[class*="text-violet"],
-:not(svg):not(path)[class*="text-purple"],
-:not(svg):not(path)[class*="text-fuchsia"],
-:not(svg):not(path)[class*="text-pink"],
-:not(svg):not(path)[class*="text-rose"],
-:not(svg):not(path)[class*="text-black"],
-:not(svg):not(path)[class*="text-\[#"],
-:not(svg):not(path)[class*="text-text"] {
-  color: var(--color-text) !important;
-}
-
-.text-red-500,
-.text-red-400,
-.text-red-600,
-.text-\[\#EF4444\] {
-  color: #EF4444 !important;
 }
