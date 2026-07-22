@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { LevelBadge } from './LevelBadge';
 import { LEVEL_BADGE_RING_PX } from '../lib/profileFrame';
-import { Trash2, Ban, Shield } from 'lucide-react';
+import { Trash2, Ban, Shield, Heart } from 'lucide-react';
 
 interface Message {
   id: string;
@@ -12,6 +12,8 @@ interface Message {
   isSystem?: boolean;
   avatar?: string;
   membershipIcon?: string;
+  /** Fan club short name on the orange member pill (e.g. ZMAJ). */
+  membershipName?: string;
   isMod?: boolean;
   stickerUrl?: string;
 }
@@ -135,9 +137,35 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
                   </div>
                 )}
                 {typeof msg.membershipIcon === 'string' && msg.membershipIcon && (
-                  <div className="bg-[#FF4500] px-1.5 py-0.5 rounded-full flex items-center gap-1 border border-white/10 shadow-sm inline-flex align-middle flex-shrink-0">
-                    <img src={msg.membershipIcon} alt="Member" className="w-3 h-3 object-contain" />
-                    <span className="text-white text-[9px] font-bold uppercase tracking-wider">Member</span>
+                  <div
+                    className="inline-flex items-center flex-shrink-0 align-middle"
+                    style={{
+                      height: 15,
+                      paddingLeft: 4,
+                      paddingRight: 6,
+                      gap: 3,
+                      borderRadius: 999,
+                      background: 'linear-gradient(90deg, #8B3E0F 0%, #D45A12 50%, #E86A1A 100%)',
+                      border: '1px solid #FF8C3A',
+                    }}
+                    title="Member"
+                  >
+                    <Heart size={9} fill="#FF9A40" stroke="#FF9A40" strokeWidth={0} aria-hidden />
+                    <span
+                      style={{
+                        color: '#FFFFFF',
+                        fontSize: 8,
+                        fontWeight: 800,
+                        letterSpacing: '0.06em',
+                        textTransform: 'uppercase',
+                        lineHeight: 1,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {typeof msg.membershipName === 'string' && msg.membershipName.trim()
+                        ? msg.membershipName.trim().slice(0, 10)
+                        : 'FAN'}
+                    </span>
                   </div>
                 )}
                 <span 
