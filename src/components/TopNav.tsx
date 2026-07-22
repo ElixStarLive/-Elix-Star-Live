@@ -1,6 +1,9 @@
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Search, Tv } from "lucide-react";
+import { StoryGoldRingAvatar } from "./StoryGoldRingAvatar";
+import { useAuthStore } from "../store/useAuthStore";
+import { resolveUiAvatarUrl } from "../lib/royceAssets";
 
 const TOP_TABS = [
   { label: "LIVE", path: "/live", live: true },
@@ -14,10 +17,18 @@ const TOP_TABS = [
 export const TopNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, isAuthenticated } = useAuthStore();
 
   if (location.pathname !== "/feed") {
     return null;
   }
+
+  const accountAvatar = resolveUiAvatarUrl(
+    user?.avatar,
+    user?.username || user?.name || "Account",
+    64,
+  );
+  const accountLabel = user?.username || user?.name || "Account";
 
   return (
     <div
@@ -26,6 +37,16 @@ export const TopNav = () => {
     >
       <div className="feed-column-width pointer-events-auto bg-black min-h-[var(--topnav-bar-height)] h-[var(--topnav-bar-height)]">
         <div className="flex items-center h-full w-full px-1.5 gap-0.5">
+          <button
+            type="button"
+            onClick={() => navigate(isAuthenticated ? "/profile" : "/login")}
+            title={accountLabel}
+            aria-label="Your account"
+            className="flex-shrink-0 flex items-center justify-center mr-0.5 active:scale-95 transition-transform"
+            style={{ WebkitTapHighlightColor: "transparent" }}
+          >
+            <StoryGoldRingAvatar size={28} src={accountAvatar} alt={accountLabel} />
+          </button>
           <div className="flex flex-1 items-center justify-between min-w-0 h-full flex-nowrap overflow-x-auto no-scrollbar gap-0">
             {TOP_TABS.map((tab) => {
               const active = tab.path === "/feed";
