@@ -105,6 +105,7 @@ import { RankingPanel } from '../components/RankingPanel';
 import { type LiveRankTab } from '../components/CyclingRankBadge';
 import {
   LiveGiftComboColumn,
+  LiveComboMissionDock,
   LiveHostProfileHeader,
   LiveJoinPill,
   LiveMarkedSubHeaderBar,
@@ -6163,7 +6164,7 @@ export default function LiveStream() {
               </div>
             </div>
 
-      {/* Combo column — photo layout; real combos OR DEMO so you can see it */}
+      {/* Combo + Mission docked together — separate live sources */}
       <LiveMarkedUiDemoToggle
         enabled={markedUiDemo}
         onToggle={(next) => {
@@ -6171,39 +6172,46 @@ export default function LiveStream() {
           setMarkedUiDemo(next);
         }}
       />
-      <AnimatePresence>
-        {showComboColumn && visibleComboStack.length > 0 && (
-          <motion.div
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0, opacity: 0 }}
-          >
-            <LiveGiftComboColumn
-              stack={visibleComboStack}
-              onCombo={() => {
-                if (comboStack.length > 0) handleComboClick();
-                else setShowGiftPanel(true);
-              }}
-              onOpen={() => setShowGiftPanel(true)}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <LiveSideMissionStack
-        missions={sideMissions}
-        supporters={sideSupporters}
-        battlePassLevel={userLevel || 1}
-        battlePassXp={markedUiDemo ? 320 : userXP % 1000}
-        battlePassXpMax={markedUiDemo ? 1000 : 1000}
-        onViewAllSupporters={() => {
-          setIsFindCreatorsOpen(false);
-          setShowViewerList(true);
-        }}
-        onBattlePass={() => {
-          setRankingInitialTab('weekly');
-          setShowRankingPanel(true);
-        }}
+      <LiveComboMissionDock
+        combo={
+          showComboColumn && visibleComboStack.length > 0 ? (
+            <AnimatePresence>
+              <motion.div
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0, opacity: 0 }}
+              >
+                <LiveGiftComboColumn
+                  embedded
+                  stack={visibleComboStack}
+                  onCombo={() => {
+                    if (comboStack.length > 0) handleComboClick();
+                    else setShowGiftPanel(true);
+                  }}
+                  onOpen={() => setShowGiftPanel(true)}
+                />
+              </motion.div>
+            </AnimatePresence>
+          ) : null
+        }
+        mission={
+          <LiveSideMissionStack
+            embedded
+            missions={sideMissions}
+            supporters={sideSupporters}
+            battlePassLevel={userLevel || 1}
+            battlePassXp={markedUiDemo ? 320 : userXP % 1000}
+            battlePassXpMax={markedUiDemo ? 1000 : 1000}
+            onViewAllSupporters={() => {
+              setIsFindCreatorsOpen(false);
+              setShowViewerList(true);
+            }}
+            onBattlePass={() => {
+              setRankingInitialTab('weekly');
+              setShowRankingPanel(true);
+            }}
+          />
+        }
       />
 
 {/* BOTTOM RIGHT: Action buttons (same area as before, aligned right) */}

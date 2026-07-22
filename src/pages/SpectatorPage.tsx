@@ -94,6 +94,7 @@ import { RankingPanel } from '../components/RankingPanel';
 import { type LiveRankTab } from '../components/CyclingRankBadge';
 import {
   LiveGiftComboColumn,
+  LiveComboMissionDock,
   LiveHostProfileHeader,
   LiveJoinPill,
   LiveMarkedSubHeaderBar,
@@ -3563,7 +3564,7 @@ export default function SpectatorPage() {
           </div>
         </div>
 
-        {/* COMBO COLUMN — photo layout; real combos OR DEMO */}
+        {/* Combo + Mission docked together — separate live sources */}
         <LiveMarkedUiDemoToggle
           enabled={markedUiDemo}
           onToggle={(next) => {
@@ -3571,48 +3572,55 @@ export default function SpectatorPage() {
             setMarkedUiDemo(next);
           }}
         />
-        {showComboColumn && visibleComboStack.length > 0 && (
-          <LiveGiftComboColumn
-            stack={visibleComboStack}
-            onCombo={() => {
-              if (comboStack.length > 0) handleComboClick();
-              else setShowGiftPanel(true);
-            }}
-            onOpen={() => setShowGiftPanel(true)}
-          />
-        )}
-
-        <LiveSideMissionStack
-          missions={
-            markedUiDemo
-              ? LIVE_SIDE_DEMO_MISSIONS
-              : {
-                  watchMin: missionWatchMin,
-                  watchGoal: 30,
-                  giftsSent: missionGiftsSent,
-                  giftsGoal: 10,
-                  battleJoined: spectatorBattle?.active ? 1 : 0,
-                  battleGoal: 1,
-                }
+        <LiveComboMissionDock
+          combo={
+            showComboColumn && visibleComboStack.length > 0 ? (
+              <LiveGiftComboColumn
+                embedded
+                stack={visibleComboStack}
+                onCombo={() => {
+                  if (comboStack.length > 0) handleComboClick();
+                  else setShowGiftPanel(true);
+                }}
+                onOpen={() => setShowGiftPanel(true)}
+              />
+            ) : null
           }
-          supporters={
-            markedUiDemo || mvpSlots.global.length === 0
-              ? LIVE_SIDE_DEMO_SUPPORTERS
-              : mvpSlots.global.slice(0, 3).map((s) => ({
-                  id: s.id,
-                  name: s.name,
-                  avatar: s.avatar,
-                  points: s.points ?? 0,
-                }))
+          mission={
+            <LiveSideMissionStack
+              embedded
+              missions={
+                markedUiDemo
+                  ? LIVE_SIDE_DEMO_MISSIONS
+                  : {
+                      watchMin: missionWatchMin,
+                      watchGoal: 30,
+                      giftsSent: missionGiftsSent,
+                      giftsGoal: 10,
+                      battleJoined: spectatorBattle?.active ? 1 : 0,
+                      battleGoal: 1,
+                    }
+              }
+              supporters={
+                markedUiDemo || mvpSlots.global.length === 0
+                  ? LIVE_SIDE_DEMO_SUPPORTERS
+                  : mvpSlots.global.slice(0, 3).map((s) => ({
+                      id: s.id,
+                      name: s.name,
+                      avatar: s.avatar,
+                      points: s.points ?? 0,
+                    }))
+              }
+              battlePassLevel={userLevel || 1}
+              battlePassXp={markedUiDemo ? 320 : userXP % 1000}
+              battlePassXpMax={1000}
+              onViewAllSupporters={() => setShowViewersPanel(true)}
+              onBattlePass={() => {
+                setRankingInitialTab('weekly');
+                setShowRankingPanel(true);
+              }}
+            />
           }
-          battlePassLevel={userLevel || 1}
-          battlePassXp={markedUiDemo ? 320 : userXP % 1000}
-          battlePassXpMax={1000}
-          onViewAllSupporters={() => setShowViewersPanel(true)}
-          onBattlePass={() => {
-            setRankingInitialTab('weekly');
-            setShowRankingPanel(true);
-          }}
         />
 
 {/* Bottom bar — above gift video so Gift/Invite/Share/More stay tappable */}
