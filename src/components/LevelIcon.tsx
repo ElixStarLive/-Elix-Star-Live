@@ -2,8 +2,26 @@ import React from 'react';
 import { PROFILE_RING_IMAGE_LIFT_MM, profileRingInnerPx } from '../lib/profileFrame';
 import { ROYCE_DEFAULT_AVATAR } from '../lib/royceAssets';
 
-/** Chat level pill — deep purple matching the reference badge. */
-const LEVEL_PILL_BG = '#5B2DB3';
+/** Bright per-level chip colours (restored). */
+const LEVEL_CHIP_BACKGROUNDS = [
+  '#FF4D6D', // hot pink
+  '#3DA3FF', // neon blue
+  '#00E5A8', // mint
+  '#FF8A00', // orange
+  '#A855F7', // purple
+  '#22C55E', // green
+  '#F43F5E', // rose
+  '#06B6D4', // cyan
+  '#EAB308', // yellow
+  '#EC4899', // magenta
+  '#6366F1', // indigo
+  '#F97316', // vivid orange
+] as const;
+
+function levelChipBackground(level: number): string {
+  const i = Math.max(0, (level - 1) % LEVEL_CHIP_BACKGROUNDS.length);
+  return LEVEL_CHIP_BACKGROUNDS[i];
+}
 
 /**
  * Faceted gem left of level number — white fill, dark purple facet lines, large.
@@ -82,10 +100,11 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
 
   const avatarDiameter = profileRingInnerPx(circleSize);
 
-  /** Purple pill — bigger gem left, white level number right. */
+  /** Per-level bright chip colour; bigger gem left, white number right. */
   const chipH = Math.max(18, Math.min(22, Math.round(circleSize * 0.78)));
   const fontPx = Math.max(10, Math.round(chipH * 0.55));
   const diamondPx = Math.max(15, Math.min(18, Math.round(chipH * 0.9)));
+  const chipBg = levelChipBackground(safeLevel);
   const levelChip = (
     <div
       style={{
@@ -93,7 +112,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
         zIndex: 1,
         height: chipH,
         borderRadius: 999,
-        background: LEVEL_PILL_BG,
+        background: chipBg,
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',

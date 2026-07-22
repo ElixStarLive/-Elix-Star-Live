@@ -6026,40 +6026,50 @@ export default function LiveStream() {
                       </div>
 
                       <div className="pointer-events-auto flex items-center gap-[0mm] mt-1 flex-shrink-0 min-w-0">
-                        {topMvpViewers.length > 0 ? (
-                          <div
-                            className="flex items-center gap-[0mm] pointer-events-auto flex-shrink-0"
-                            style={{ transform: 'translateX(-2mm)' }}
-                            onClick={() => {
-                              setIsFindCreatorsOpen(false);
-                              setShowViewerList((prev) => !prev);
-                            }}
-                          >
-                            {topMvpViewers.map((viewer, i) => {
-                              const isMvp = i === 0 && (mvpGiftScores[viewer.id] ?? 0) > 0;
-                              return (
+                        <div
+                          className="flex items-center gap-[0mm] pointer-events-auto flex-shrink-0"
+                          style={{ transform: 'translateX(-2mm)' }}
+                          onClick={() => {
+                            setIsFindCreatorsOpen(false);
+                            setShowViewerList((prev) => !prev);
+                          }}
+                        >
+                          {[0, 1, 2].map((i) => {
+                            const viewer = topMvpViewers[i];
+                            const isMvp = i === 0 && !!viewer && (mvpGiftScores[viewer.id] ?? 0) > 0;
+                            return (
                               <div
-                                key={`top-viewers-${viewer.id}`}
+                                key={viewer ? `top-viewers-${viewer.id}` : `top-viewers-empty-${i}`}
                                 style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
                                 className="relative"
                               >
-                                <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
-                                  <AvatarRing
-                                    src={resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username)}
-                                    alt={viewer.displayName || viewer.username || ''}
-                                    size={LIVE_MVP_PROFILE_RING_PX}
-                                  />
-                                </div>
-                                {isMvp && (
-                                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
-                                    MVP
-                                  </span>
+                                {viewer ? (
+                                  <>
+                                    <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
+                                      <AvatarRing
+                                        src={resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username)}
+                                        alt={viewer.displayName || viewer.username || ''}
+                                        size={LIVE_MVP_PROFILE_RING_PX}
+                                      />
+                                    </div>
+                                    {isMvp && (
+                                      <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
+                                        MVP
+                                      </span>
+                                    )}
+                                  </>
+                                ) : (
+                                  <div
+                                    className="rounded-full flex items-center justify-center ring-2 ring-[#D4AF37]/60 bg-black/40"
+                                    style={{ width: LIVE_MVP_PROFILE_RING_PX, height: LIVE_MVP_PROFILE_RING_PX }}
+                                  >
+                                    <Plus className="text-[#D4AF37]" size={12} strokeWidth={2.5} />
+                                  </div>
                                 )}
                               </div>
-                              );
-                            })}
-                          </div>
-                        ) : null}
+                            );
+                          })}
+                        </div>
                         <button
                           type="button"
                           title="Viewers"
