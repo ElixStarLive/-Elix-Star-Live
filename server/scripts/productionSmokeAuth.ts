@@ -171,8 +171,14 @@ async function main() {
   const admin = await resolveToken("admin");
 
   if (!normal) {
+    const hasCreds = !!(
+      process.env.SMOKE_NORMAL_TOKEN ||
+      (process.env.SMOKE_NORMAL_EMAIL && process.env.SMOKE_NORMAL_PASSWORD)
+    );
     console.error(
-      "NOT_EXECUTED|normal_auth — SMOKE_NORMAL_TOKEN or SMOKE_NORMAL_EMAIL/PASSWORD missing in this process env",
+      hasCreds
+        ? "NOT_EXECUTED|normal_auth — credentials present but login failed (401/invalid). Use a real internal test account that exists on production — not .env.example placeholders."
+        : "NOT_EXECUTED|normal_auth — SMOKE_NORMAL_TOKEN or SMOKE_NORMAL_EMAIL/PASSWORD missing in this process env",
     );
     failed++;
   } else {
@@ -234,8 +240,14 @@ async function main() {
   }
 
   if (!admin) {
+    const hasCreds = !!(
+      process.env.SMOKE_ADMIN_TOKEN ||
+      (process.env.SMOKE_ADMIN_EMAIL && process.env.SMOKE_ADMIN_PASSWORD)
+    );
     console.error(
-      "NOT_EXECUTED|admin_auth — SMOKE_ADMIN_TOKEN or SMOKE_ADMIN_EMAIL/PASSWORD missing in this process env",
+      hasCreds
+        ? "NOT_EXECUTED|admin_auth — credentials present but login failed (401/invalid). Use a real internal admin test account on production — not .env.example placeholders."
+        : "NOT_EXECUTED|admin_auth — SMOKE_ADMIN_TOKEN or SMOKE_ADMIN_EMAIL/PASSWORD missing in this process env",
     );
     failed++;
   } else {
