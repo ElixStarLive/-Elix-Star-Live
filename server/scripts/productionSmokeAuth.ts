@@ -120,9 +120,11 @@ async function main() {
     console.error("FAIL|health_status");
     failed++;
   }
-  if (!String(h?.commit || "").startsWith("b4773a3")) {
+  if (!String(h?.commit || "").startsWith(
+    (process.env.SMOKE_EXPECT_COMMIT || "fde62c6").trim(),
+  )) {
     console.error(
-      `FAIL|health_commit|got=${String(h?.commit || "").slice(0, 12)}`,
+      `FAIL|health_commit|got=${String(h?.commit || "").slice(0, 12)}|expect_prefix=${(process.env.SMOKE_EXPECT_COMMIT || "fde62c6").trim()}`,
     );
     failed++;
   }
