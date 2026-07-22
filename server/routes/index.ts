@@ -18,6 +18,7 @@ import risingStarsRouter from "./risingStars.router";
 import adminRisingStarsRouter from "./adminRisingStars.router";
 import progressionRouter from "./progression.router";
 import adminProgressionRouter from "./adminProgression.router";
+import engagementRouter from "./engagement.router";
 import { handleGetTestCoinBalance, handleMintTestCoins, handleSpendTestCoinsForScore } from "./testCoins";
 
 export function mountRoutes(app: Express): void {
@@ -39,6 +40,7 @@ export function mountRoutes(app: Express): void {
   app.use("/api/admin/progression", adminProgressionRouter);
   app.use("/api/rising-stars", risingStarsRouter);
   app.use("/api/progression", progressionRouter);
+  app.use("/api/engagement", engagementRouter);
   app.use("/api/videos", videosRouter);
   app.use("/api/stories", storiesRouter);
   app.use("/api/media", mediaRouter);

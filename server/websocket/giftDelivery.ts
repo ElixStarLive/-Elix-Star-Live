@@ -20,6 +20,7 @@ import { resolveBoosterCatch } from "../lib/booster";
 import { getPool } from "../lib/postgres";
 import { logger } from "../lib/logger";
 import { resolveStreamOwnerUserId } from "../routes/livestream";
+import { addMvpPoints, bumpAchievement, bumpMission, fanEnergyGiftMultiplier } from "../lib/engagement";
 
 export type DeliverGiftInput = {
   roomId: string;
@@ -211,14 +212,21 @@ export async function deliverVerifiedGift(
             giftId,
             serverGiftValue,
           );
-          await addBattleScoreForTarget(roomId, target, catchResult.finalPoints);
+          const sideForFan: "host" | "opponent" =
+            target === "opponent" || target === "player4" ? "opponent" : "host";
+          const fanMult = await fanEnergyGiftMultiplier(roomId, sideForFan);
+          const scoredPoints = Math.max(
+            1,
+            Math.round(catchResult.finalPoints * fanMult),
+          );
+          await addBattleScoreForTarget(roomId, target, scoredPoints);
           if (catchResult.caught) {
             broadcastToRoom(roomId, "booster_caught", {
               user_id: userId,
               username,
               multiplier: catchResult.multiplier,
               base_points: serverGiftValue,
-              final_points: catchResult.finalPoints,
+              final_points: scoredPoints,
               gift_id: giftId,
               battleTarget: target,
               transaction_id: transactionId,
@@ -229,6 +237,31 @@ export async function deliverVerifiedGift(
       }
     } catch (err) {
       logger.warn({ err, roomId, giftId }, "deliverVerifiedGift: battle score failed");
+    }
+
+    // Engagement Phase 1: MVP aggregates + gift metrics (separate from Battle Energy).
+    try {
+      const pts = Math.max(
+        0,
+        Math.floor(Number(input.coins) || getGiftValue(giftId) || 0),
+      );
+      if (pts > 0) {
+        let hostUserId: string | undefined;
+        try {
+          hostUserId = (await resolveStreamOwnerUserId(roomId)) || undefined;
+        } catch {
+          hostUserId = undefined;
+        }
+        await addMvpPoints(userId, pts, {
+          roomId,
+          hostUserId,
+          source: "paid_gift",
+        });
+      }
+      await bumpMission(userId, "gifts_sent", 1);
+      await bumpAchievement(userId, "gifts_sent", 1);
+    } catch (err) {
+      logger.warn({ err, roomId, giftId }, "deliverVerifiedGift: engagement mvp failed");
     }
   }
 

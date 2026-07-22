@@ -35,6 +35,10 @@ import { GiftGoalGallery } from '../components/GiftGoalGallery';
 import { LiveGiftGoalBar } from '../components/LiveGiftGoalBar';
 import { LiveEngagementOverlay } from '../components/LiveEngagementOverlay';
 import { useLiveEngagement } from '../hooks/useLiveEngagement';
+import {
+  BattleEnergyBoostControls,
+  earnBattleEnergyQuiet,
+} from '../components/BattleEnergyBoostControls';
 import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, fetchGiftsFromDatabase, pickGiftVideoUrl, formatGiftDisplayName } from '../lib/giftsCatalog';
 import { appendCapped, LIVE_CHAT_MESSAGE_CAP, LIVE_GIFT_QUEUE_CAP } from '../lib/liveRuntimeCaps';
 import { BattleVfxOverlays, GloveIcon, type BattleMistSide, type GloveBurst } from '../components/BattleVfxOverlays';
@@ -579,6 +583,10 @@ export default function SpectatorPage() {
     const active = !!spectatorBattle?.active && spectatorBattle.status === 'ACTIVE';
     if (active && !prevSpectatorBattleActiveRef.current) {
       spectatorBattleVoteRemainingRef.current = 1;
+      void request('/api/engagement/progress', {
+        method: 'POST',
+        body: JSON.stringify({ metric: 'battles_joined', delta: 1 }),
+      }).catch(() => {});
     }
     prevSpectatorBattleActiveRef.current = active;
   }, [spectatorBattle?.active, spectatorBattle?.status]);
@@ -976,6 +984,28 @@ export default function SpectatorPage() {
     const t = setTimeout(() => { if (!hasStream) setShowRetryButton(true); }, 10000);
     return () => clearTimeout(t);
   }, [hasStream]);
+
+  // Engagement Phase 1: capped Battle Energy from watching (server enforces daily caps).
+  const engagementWatchKeyedRef = useRef<string>('');
+  useEffect(() => {
+    if (!effectiveStreamId || !hasStream) return;
+    earnBattleEnergyQuiet('watch', effectiveStreamId);
+    if (engagementWatchKeyedRef.current !== effectiveStreamId) {
+      engagementWatchKeyedRef.current = effectiveStreamId;
+      void request('/api/engagement/progress', {
+        method: 'POST',
+        body: JSON.stringify({ metric: 'lives_watched', delta: 1 }),
+      }).catch(() => {});
+      void request('/api/engagement/progress', {
+        method: 'POST',
+        body: JSON.stringify({ metric: 'unique_creators', delta: 1 }),
+      }).catch(() => {});
+    }
+    const id = window.setInterval(() => {
+      earnBattleEnergyQuiet('watch', effectiveStreamId);
+    }, 60_000);
+    return () => window.clearInterval(id);
+  }, [effectiveStreamId, hasStream]);
 
   // Fetch host / stream state. Join must NOT depend only on /api/live/streams —
   // that list is publishing-gated and can be stale, so other spectators would
@@ -2345,6 +2375,7 @@ export default function SpectatorPage() {
       is_member: isMember,
     });
     setInputValue('');
+    if (effectiveStreamId) earnBattleEnergyQuiet('comment', effectiveStreamId);
   };
 
   // Spectator gift → creator: send to creator's room (broadcast so creator sees it and gets credit)
@@ -2753,6 +2784,16 @@ export default function SpectatorPage() {
                         {formatTime(spectatorBattle.timeLeft)}
                       </span>
                     </div>
+                  </div>
+                  {/* Engagement Phase 1: Battle Energy BOOST (Fan Energy ≠ gift score) */}
+                  <div
+                    className="absolute left-0 right-0 z-30 flex justify-center pointer-events-none"
+                    style={{ top: 'calc(100% + 28px)' }}
+                  >
+                    <BattleEnergyBoostControls
+                      roomId={effectiveStreamId}
+                      preferredSide="host"
+                    />
                   </div>
                 </div>
 
@@ -4333,7 +4374,7 @@ export default function SpectatorPage() {
                   <div className="grid grid-cols-5 gap-y-3 gap-x-1.5 pt-4" style={{ marginTop: '6mm' }}>
                     {[
                       { name: 'WhatsApp', icon: <MessageCircle size={22} className="text-white" />, action: () => { openExternalLink(`https://wa.me/?text=${encodeURIComponent('Watch this on Elix! ' + `${window.location.origin}/watch/${effectiveStreamId}`)}`); setShowSharePanel(false); } },
-                      { name: 'Facebook', icon: <Share2 size={22} className="text-white" />, action: () => { openExternalLink(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${window.location.origin}/watch/${effectiveStreamId}`)}`); setShowSharePanel(false); } },
+                      { name: 'Facebook', icon: <Share2 size={22} className="text-white" />, action: () => { openExternalLink(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${window.location.origin}/watch/${effectiveStreamId}`)}`); if (effectiveStreamId) earnBattleEnergyQuiet('share', effectiveStreamId); setShowSharePanel(false); } },
                       { name: 'Copy Link', icon: <Copy size={22} className="text-white" />, action: () => { navigator.clipboard.writeText(`${window.location.origin}/watch/${effectiveStreamId}`); showToast('Link copied!'); setShowSharePanel(false); } },
                       { name: 'Promote', icon: <TrendingUp size={22} className="text-white" />, action: () => { setShowSharePanel(false); setShowPromotePanel(true); } },
                       { name: 'Report', icon: <Flag size={22} className="text-white/60" />, isRed: true, action: () => { setIsReportModalOpen(true); setShowSharePanel(false); } },

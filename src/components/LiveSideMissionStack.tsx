@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Clock, Crown, Target } from 'lucide-react';
 import { AvatarRing } from './AvatarRing';
 
@@ -122,6 +123,7 @@ export function LiveSideMissionStack({
   onBattlePass?: () => void;
   embedded?: boolean;
 }) {
+  const navigate = useNavigate();
   const [remainMs, setRemainMs] = useState(msUntilLocalMidnight);
   const [open, setOpen] = useState(false);
 
@@ -226,6 +228,18 @@ export function LiveSideMissionStack({
             barColor="linear-gradient(90deg,#86EFAC,#22C55E)"
           />
         </div>
+
+        <button
+          type="button"
+          className="text-[#C9A227] text-[8px] font-semibold whitespace-nowrap active:opacity-80 self-start"
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate('/engagement');
+          }}
+          title="Open Engagement Hub"
+        >
+          Open Hub &gt;
+        </button>
 
         <div className="h-px w-full bg-white/10 my-0.5" />
 

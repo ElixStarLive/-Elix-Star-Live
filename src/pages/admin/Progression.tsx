@@ -166,6 +166,17 @@ export default function AdminProgression() {
           </button>
         </div>
 
+        <section className="rounded-xl border border-[#C9A227]/25 bg-[#C9A227]/5 p-4 mb-6 text-sm text-white/70">
+          <p className="font-semibold text-[#C9A227] mb-1">Engagement Phase 1</p>
+          <p>
+            Mission XP, daily login rewards, and Battle Energy caps live in Neon
+            tables <code className="text-white/50">engagement_missions</code>,{" "}
+            <code className="text-white/50">daily_reward_config</code>, and{" "}
+            <code className="text-white/50">engagement_settings</code>. Fan Energy
+            gift-score boost defaults to 10k → ×1.2. No gambling controls.
+          </p>
+        </section>
+
         <section className="rounded-xl border border-white/10 p-4 mb-6">
           <h2 className="font-semibold mb-3">XP rewards</h2>
           <div className="space-y-2">

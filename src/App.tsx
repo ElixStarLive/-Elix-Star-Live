@@ -45,6 +45,13 @@ const ChatThread = lazy(() => import("./pages/ChatThread"));
 const FriendsFeed = lazy(() => import("./pages/FriendsFeed"));
 const EditProfile = lazy(() => import("./pages/EditProfile"));
 const Settings = lazy(() => import("./pages/Settings"));
+const EngagementHub = lazy(() => import("./pages/engagement/EngagementHub"));
+const EngagementMissions = lazy(() => import("./pages/engagement/EngagementMissions"));
+const EngagementFanLevel = lazy(() => import("./pages/engagement/EngagementFanLevel"));
+const EngagementMvp = lazy(() => import("./pages/engagement/EngagementMvp"));
+const EngagementAchievements = lazy(() => import("./pages/engagement/EngagementAchievements"));
+const EngagementRewards = lazy(() => import("./pages/engagement/EngagementRewards"));
+const EngagementDailyLogin = lazy(() => import("./pages/engagement/EngagementDailyLogin"));
 const FollowList = lazy(() => import("./pages/FollowList"));
 const CreatorPayout = lazy(() => import("./pages/CreatorPayout"));
 const CreatorLoginDetails = lazy(() => import("./pages/CreatorLoginDetails"));
@@ -373,6 +380,13 @@ function App() {
                 <Route path="/discover" element={<Discover />} />
                 <Route path="/rising-stars" element={<RisingStars />} />
                 <Route path="/rising-stars/challenge/:challengeId" element={<RisingStarsChallenge />} />
+                <Route path="/engagement" element={<EngagementHub />} />
+                <Route path="/engagement/missions" element={<EngagementMissions />} />
+                <Route path="/engagement/fan-level" element={<EngagementFanLevel />} />
+                <Route path="/engagement/mvp" element={<EngagementMvp />} />
+                <Route path="/engagement/achievements" element={<EngagementAchievements />} />
+                <Route path="/engagement/rewards" element={<EngagementRewards />} />
+                <Route path="/engagement/daily-login" element={<EngagementDailyLogin />} />
                 <Route path="/hashtag/:tag" element={<Hashtag />} />
                 <Route path="/report" element={<Report />} />
                 <Route path="/video/:videoId" element={<VideoView />} />
