@@ -503,8 +503,9 @@ export function LiveMarkedUiDemoToggle({
 }
 
 /**
- * Photo combo column: gift icons + pink italic xN.
- * Stack grows top→bottom; newest / highest combo is last (bottom) so it stays visible.
+ * Photo combo column (red contour): large gift icons + pink italic xN,
+ * seated just right of live chat. Counts come from real combo sends.
+ * Newest / active combo stays on TOP (flex-col-reverse). Do not move it to the bottom.
  * Does not replace GiftPanel / GiftAnimationOverlay / gift pay path.
  */
 export function LiveGiftComboColumn({
@@ -521,11 +522,11 @@ export function LiveGiftComboColumn({
 
   return (
     <div
-      className="fixed left-0 right-0 z-[50001] flex justify-center pointer-events-none"
+      className="fixed left-0 right-0 z-[50060] flex justify-center pointer-events-none"
       style={{ bottom: 'calc(58px + max(2px, env(safe-area-inset-bottom, 0px)))' }}
     >
       <div className="w-full max-w-[480px] mx-auto relative h-0 pointer-events-none">
-        {/* Right of chat; column sits mid-center like photo */}
+        {/* Right of chat (chat sits left ~0–42%); column sits mid-center like photo */}
         <div
           className="absolute pointer-events-auto"
           style={{ left: '48%', bottom: '8px', transform: 'translateX(-50%)' }}
@@ -543,7 +544,7 @@ export function LiveGiftComboColumn({
                 onOpen?.();
               }
             }}
-            className="flex flex-col items-center gap-2 rounded-2xl px-2.5 py-2.5 border border-[#FF2D85]/35 bg-[rgba(8,6,24,0.82)] backdrop-blur-md shadow-[0_0_18px_rgba(255,45,133,0.25)] active:scale-[0.98] transition-transform"
+            className="flex flex-col-reverse items-center gap-2 rounded-2xl px-2.5 py-2.5 border border-[#FF2D85]/35 bg-[rgba(8,6,24,0.82)] backdrop-blur-md shadow-[0_0_18px_rgba(255,45,133,0.25)] active:scale-[0.98] transition-transform"
           >
             {stack.map((item, idx) => {
               const isActive = idx === stack.length - 1;
