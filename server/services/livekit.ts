@@ -4,6 +4,7 @@
  * List active rooms from LiveKit so all server instances see the same streams (no per-instance memory).
  */
 
+import { randomUUID } from 'node:crypto';
 import { AccessToken, RoomServiceClient } from 'livekit-server-sdk';
 import { logger } from '../lib/logger';
 
@@ -58,6 +59,7 @@ export async function isUserPublishingInRoom(
     const participants = await client.listParticipants(roomName);
     return participants.some(
       (p) =>
+        // Host/co-host publish tokens use stable identity = userId.
         p?.identity === userId &&
         Array.isArray(p?.tracks) &&
         p.tracks.length > 0,
@@ -89,6 +91,25 @@ export interface CreateTokenOptions {
 }
 
 /**
+ * LiveKit allows one participant per identity per room. Publishers (host /
+ * co-host / battle) keep a stable identity (= userId) so clients can find the
+ * host. Subscribe-only viewers get a unique suffix so the same account on two
+ * phones (or host + self-watch) does not DUPLICATE_IDENTITY-kick the other.
+ */
+function liveKitParticipantIdentity(userId: string, canPublish: boolean): string {
+  if (canPublish) return userId;
+  const suffix = randomUUID().replace(/-/g, '').slice(0, 12);
+  return `${userId}__v_${suffix}`;
+}
+
+/** Resolve app user id from a LiveKit participant identity. */
+export function userIdFromLiveKitIdentity(identity: string): string {
+  const i = (identity || '').trim();
+  const m = i.match(/^(.*)__v_[a-f0-9]{12}$/i);
+  return m?.[1] || i;
+}
+
+/**
  * Create a LiveKit access token for a user to join a room.
  * Use canPublish: true for the stream host, false for viewers.
  */
@@ -98,11 +119,13 @@ export async function createLiveToken(options: CreateTokenOptions): Promise<stri
   }
 
   const { userId, roomName, canPublish = false, name = userId, ttl = '6h' } = options;
+  const identity = liveKitParticipantIdentity(userId, canPublish);
 
   const at = new AccessToken(API_KEY, API_SECRET, {
-    identity: userId,
+    identity,
     name,
     ttl,
+    metadata: JSON.stringify({ userId }),
   });
 
   at.addGrant({
