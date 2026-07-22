@@ -860,7 +860,7 @@
 
 /*
  * Unified icon halo (app-wide):
- * soft gold glow disc — effect only, NO solid gold ring/border.
+ * soft Royal Purple glow disc — effect only, NO solid ring/border.
  */
 .royce-glow-disc,
 .royce-tile {
@@ -874,39 +874,40 @@
   background:
     radial-gradient(
       circle at center,
-      rgba(212, 175, 55, 0.28) 0%,
+      rgba(168, 85, 247, 0.28) 0%,
       rgba(17, 17, 17, 0.72) 52%,
       rgba(0, 0, 0, 0.2) 78%,
       transparent 100%
     );
   box-shadow:
-    0 0 10px 2px rgba(212, 175, 55, 0.42),
-    0 0 22px 5px rgba(212, 175, 55, 0.18);
+    0 0 10px 2px rgba(168, 85, 247, 0.42),
+    0 0 22px 5px rgba(168, 85, 247, 0.18);
 }
 
-/* Same soft gold glow on user avatar circles (Friends strip, feed, etc.) */
+/* Same soft purple glow on user avatar circles (Friends strip, feed, etc.) */
 .royce-avatar-glow {
   border-radius: 9999px;
   box-shadow:
-    0 0 10px 2px rgba(212, 175, 55, 0.42),
-    0 0 22px 5px rgba(212, 175, 55, 0.18);
+    0 0 10px 2px rgba(168, 85, 247, 0.42),
+    0 0 22px 5px rgba(168, 85, 247, 0.18);
 }
 
 /*
- * Unified icon design (app-wide):
- * thin gold line icons + soft glow (readable on black video).
+ * Unified icon design (app-wide) — Royal Purple theme:
+ * thin purple line icons + soft glow (readable on black video).
+ * Chart: Profile/Wallet/Setting #A855F7
  */
 svg.lucide {
-  color: #d4af37 !important;
+  color: #A855F7 !important;
   stroke: currentColor !important;
   stroke-width: 2;
   fill: none !important;
   filter:
-    drop-shadow(0 0 3px rgba(212, 175, 55, 0.7))
-    drop-shadow(0 0 8px rgba(212, 175, 55, 0.35));
+    drop-shadow(0 0 3px rgba(168, 85, 247, 0.75))
+    drop-shadow(0 0 8px rgba(168, 85, 247, 0.35));
 }
 
-/* Active filled states (save, gold badge hearts, etc.) */
+/* Active filled states (save, badge hearts, etc.) */
 svg.lucide.fill-current,
 svg.lucide.fill-gold-bright,
 svg.lucide[fill]:not([fill="none"]):not(.fill-red-500) {
@@ -928,7 +929,7 @@ svg.lucide.text-red-500 {
 .bottom-nav-icon,
 .royce-icon-muted,
 .stroke-gold-metallic {
-  color: #d4af37 !important;
+  color: #A855F7 !important;
   stroke: currentColor;
   fill: none;
 }
