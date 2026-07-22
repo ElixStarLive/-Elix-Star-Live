@@ -128,7 +128,7 @@ import { Room, RoomEvent, LocalVideoTrack, LocalAudioTrack, ConnectionState } fr
 import { App as CapacitorApp } from '@capacitor/app';
 
 const LIVE_BOTTOM_ICON_BTN =
-  'w-10 h-10 flex items-center justify-center bg-transparent border-0 shadow-none active:scale-95 transition-transform flex-shrink-0';
+  'w-10 h-10 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm border-0 shadow-none active:scale-95 transition-transform flex-shrink-0';
 
 function AnimatedScore({ value, className = '', durationMs = 300, format }: { value: number; className?: string; durationMs?: number; format?: (n: number) => string }) {
   const [display, setDisplay] = useState(value);
@@ -5447,7 +5447,7 @@ export default function LiveStream() {
                     </div>
                     {/* Match timer — flush under battle score bar (0mm gap); SPEED beside timer when active */}
                     <div className="absolute left-0 right-0 top-full z-30 flex justify-center pointer-events-none m-0 p-0">
-                      <div className="flex items-center gap-1.5 bg-black/55 backdrop-blur-md rounded-full px-2.5 py-1 border border-white/15 shadow-sm">
+                      <div className="flex items-center gap-1.5 bg-black/35 backdrop-blur-md rounded-full px-2.5 py-1 border border-white/12 shadow-none">
                         <div className="relative w-5 h-5 flex items-center justify-center flex-shrink-0">
                           <svg viewBox="0 0 40 44" className="absolute inset-0 w-full h-full drop-shadow-md">
                             <path d="M20 2 L36 10 L36 26 Q36 38 20 42 Q4 38 4 26 L4 10 Z" fill="url(#vsGrad2)" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5"/>

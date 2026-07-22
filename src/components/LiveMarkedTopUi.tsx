@@ -205,13 +205,13 @@ export function LiveJoinPill({
   );
 }
 
-/** Photo Diamond League capsule chrome — all 4 pills share this 1-1. */
+/** TikTok-style soft transparent capsule fundal (top pills). */
 const THIN_CAPSULE_STYLE: React.CSSProperties = {
-  background: 'rgba(8, 10, 22, 0.62)',
-  border: '1px solid rgba(255, 255, 255, 0.22)',
-  backdropFilter: 'blur(10px)',
-  WebkitBackdropFilter: 'blur(10px)',
-  boxShadow: '0 1px 6px rgba(0,0,0,0.28)',
+  background: 'rgba(0, 0, 0, 0.35)',
+  border: '1px solid rgba(255, 255, 255, 0.12)',
+  backdropFilter: 'blur(8px)',
+  WebkitBackdropFilter: 'blur(8px)',
+  boxShadow: 'none',
 };
 
 /** Same height / padding / border for every sub-header capsule. */

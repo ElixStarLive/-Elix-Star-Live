@@ -2693,7 +2693,7 @@ export default function SpectatorPage() {
                   </div>
                   {/* Match timer — flush under battle score bar (0mm gap) */}
                   <div className="absolute left-0 right-0 top-full z-30 flex justify-center pointer-events-none m-0 p-0">
-                    <div className="flex items-center gap-1.5 bg-black/55 backdrop-blur-md rounded-full px-2.5 py-1 border border-white/15 shadow-sm">
+                    <div className="flex items-center gap-1.5 bg-black/35 backdrop-blur-md rounded-full px-2.5 py-1 border border-white/12 shadow-none">
                       <div className="relative w-5 h-5 flex items-center justify-center flex-shrink-0">
                         <svg viewBox="0 0 40 44" className="absolute inset-0 w-full h-full drop-shadow-md">
                           <path d="M20 2 L36 10 L36 26 Q36 38 20 42 Q4 38 4 26 L4 10 Z" fill="url(#vsGradSpectator)" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5"/>
@@ -3634,7 +3634,7 @@ export default function SpectatorPage() {
                 onClick={() => setIsMoreMenuOpen(true)}
                 className="flex flex-col items-center justify-center w-12 active:scale-95 transition-transform select-none flex-shrink-0"
               >
-                <div className="relative w-10 h-10 flex items-center justify-center">
+                <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm">
                   <BarChart3 size={20} className="text-[#38BDF8] shrink-0" strokeWidth={2.2} />
                 </div>
                 <span className="text-[10px] font-semibold text-[#38BDF8] mt-0.5">Poll</span>
@@ -3649,7 +3649,7 @@ export default function SpectatorPage() {
                 onClick={() => { sendCohostJoinRequest(); }}
                 className="flex flex-col items-center justify-center w-12 active:scale-95 transition-transform select-none flex-shrink-0 disabled:opacity-60"
               >
-                <div className="relative w-10 h-10 flex items-center justify-center">
+                <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm">
                   <span className="flex items-center justify-center w-full h-full relative z-[2]">
                     <UserPlus size={20} className="text-[#D4AF37] shrink-0" strokeWidth={2} />
                   </span>
@@ -3668,7 +3668,7 @@ export default function SpectatorPage() {
                 }}
                 className="flex flex-col items-center justify-center w-12 active:scale-95 transition-transform select-none flex-shrink-0"
               >
-                <div className="relative w-10 h-10 flex items-center justify-center">
+                <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm">
                   <Gift size={20} className="text-[#D4AF37] relative z-[2]" />
                 </div>
                 <span className="text-[10px] font-semibold text-[#D4AF37] mt-0.5">Gift</span>
@@ -3679,7 +3679,7 @@ export default function SpectatorPage() {
                 onClick={() => setShowSharePanel(true)}
                 className="flex flex-col items-center justify-center w-12 active:scale-95 transition-transform select-none flex-shrink-0"
               >
-                <div className="relative w-10 h-10 flex items-center justify-center">
+                <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm">
                   <Share2 size={20} className="text-[#D4AF37] relative z-[2]" />
                 </div>
                 <span className="text-[10px] font-semibold text-[#D4AF37] mt-0.5">Share</span>
@@ -3690,7 +3690,7 @@ export default function SpectatorPage() {
                 onClick={() => setIsMoreMenuOpen(true)}
                 className="flex flex-col items-center justify-center w-12 active:scale-95 transition-transform select-none flex-shrink-0"
               >
-                <div className="relative w-10 h-10 flex items-center justify-center">
+                <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm">
                   <MoreVertical size={20} className="text-[#D4AF37] relative z-[2]" />
                 </div>
                 <span className="text-[10px] font-semibold text-[#D4AF37] mt-0.5">More</span>
