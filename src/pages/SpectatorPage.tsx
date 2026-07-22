@@ -35,10 +35,12 @@ import { GiftGoalGallery } from '../components/GiftGoalGallery';
 import { LiveGiftGoalBar } from '../components/LiveGiftGoalBar';
 import { LiveEngagementOverlay } from '../components/LiveEngagementOverlay';
 import { useLiveEngagement } from '../hooks/useLiveEngagement';
+import { earnBattleEnergyQuiet } from '../components/BattleEnergyBoostControls';
 import {
-  BattleEnergyBoostControls,
-  earnBattleEnergyQuiet,
-} from '../components/BattleEnergyBoostControls';
+  EngagementDrawer,
+  type EngagementPanel,
+} from '../components/engagement/EngagementDrawer';
+import { engagementFlags } from '../config/engagementFlags';
 import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, fetchGiftsFromDatabase, pickGiftVideoUrl, formatGiftDisplayName } from '../lib/giftsCatalog';
 import { appendCapped, LIVE_CHAT_MESSAGE_CAP, LIVE_GIFT_QUEUE_CAP } from '../lib/liveRuntimeCaps';
 import { BattleVfxOverlays, GloveIcon, type BattleMistSide, type GloveBurst } from '../components/BattleVfxOverlays';
@@ -237,6 +239,8 @@ export default function SpectatorPage() {
   const [showPromotePanel, setShowPromotePanel] = useState(false);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [engagementOpen, setEngagementOpen] = useState(false);
+  const [engagementPanel, setEngagementPanel] = useState<EngagementPanel>('hub');
   const [showRankingPanel, setShowRankingPanel] = useState(false);
   const [rankingInitialTab, setRankingInitialTab] = useState<LiveRankTab>('weekly');
   const [showFanClub, setShowFanClub] = useState(false);
@@ -2785,16 +2789,6 @@ export default function SpectatorPage() {
                       </span>
                     </div>
                   </div>
-                  {/* Engagement Phase 1: Battle Energy BOOST (Fan Energy ≠ gift score) */}
-                  <div
-                    className="absolute left-0 right-0 z-30 flex justify-center pointer-events-none"
-                    style={{ top: 'calc(100% + 28px)' }}
-                  >
-                    <BattleEnergyBoostControls
-                      roomId={effectiveStreamId}
-                      preferredSide="host"
-                    />
-                  </div>
                 </div>
 
                 {/* Battle grid — videos + tap overlay (2-way or 4-way PK); one +5 vote per spectator per battle */}
@@ -4466,6 +4460,22 @@ export default function SpectatorPage() {
                     </div>
                     <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">Share</span>
                   </button>
+                  {engagementFlags.engagementHubEnabled ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEngagementPanel('hub');
+                      setEngagementOpen(true);
+                      setIsMoreMenuOpen(false);
+                    }}
+                    className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform"
+                  >
+                    <div className="w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
+                      <Gift size={18} className="text-[#D4AF37]" />
+                    </div>
+                    <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">Engagement</span>
+                  </button>
+                  ) : null}
                   <button
                     type="button"
                     onClick={() => setIsMoreMenuOpen(false)}
@@ -4710,6 +4720,16 @@ export default function SpectatorPage() {
             </div>
           </>
         )}
+
+        {/* Engagement Hub — side drawer only (no battle-screen widgets) */}
+        <EngagementDrawer
+          open={engagementOpen}
+          activePanel={engagementPanel}
+          liveSessionId={effectiveStreamId}
+          creatorId={hostUserId || effectiveStreamId}
+          onOpenChange={setEngagementOpen}
+          onPanelChange={setEngagementPanel}
+        />
 
         {/* REPORT MODAL */}
         {isReportModalOpen && (

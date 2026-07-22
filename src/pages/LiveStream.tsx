@@ -123,6 +123,11 @@ import { websocket } from '../lib/websocket';
 import { parseLiveGiftGoal, type LiveGiftGoal } from '../lib/liveGiftGoal';
 import { liveStreamUiGiftTargetToServerBattleTarget, normalizeBattleGiftTarget } from '../lib/liveBattleGiftTarget';
 import { IS_STORE_BUILD } from '../config/build';
+import { engagementFlags } from '../config/engagementFlags';
+import {
+  EngagementDrawer,
+  type EngagementPanel,
+} from '../components/engagement/EngagementDrawer';
 import { purchaseMembership } from '../lib/iap';
 import { Room, RoomEvent, LocalVideoTrack, LocalAudioTrack, ConnectionState } from 'livekit-client';
 import { App as CapacitorApp } from '@capacitor/app';
@@ -330,6 +335,8 @@ export default function LiveStream() {
   }, [isCreatorParticipant, streamId]);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+  const [engagementOpen, setEngagementOpen] = useState(false);
+  const [engagementPanel, setEngagementPanel] = useState<EngagementPanel>('hub');
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [showModerationWarning, setShowModerationWarning] = useState(false);
   const [pageExiting, setPageExiting] = useState(false);
@@ -7161,6 +7168,23 @@ export default function LiveStream() {
                 <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">Share</span>
               </button>
 
+              {engagementFlags.engagementHubEnabled ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setEngagementPanel('hub');
+                  setEngagementOpen(true);
+                  setIsMoreMenuOpen(false);
+                }}
+                className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform"
+              >
+                <div className="royce-glow-disc w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
+                  <Gift className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />
+                </div>
+                <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">Engagement</span>
+              </button>
+              ) : null}
+
               <button type="button" disabled={!isBroadcast} onClick={() => { flipCamera(); setIsMoreMenuOpen(false); }} className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform disabled:opacity-40">
                 <div className="royce-glow-disc w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
                   <RefreshCw className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />
@@ -7716,6 +7740,16 @@ export default function LiveStream() {
           avatar: myAvatar,
           postedAt: new Date().toLocaleDateString(),
         }}
+      />
+
+      {/* Engagement Hub — side drawer only (battle screen unchanged) */}
+      <EngagementDrawer
+        open={engagementOpen}
+        activePanel={engagementPanel}
+        liveSessionId={effectiveStreamId}
+        creatorId={user?.id || effectiveStreamId}
+        onOpenChange={setEngagementOpen}
+        onPanelChange={setEngagementPanel}
       />
 
       {/* Report Modal */}
