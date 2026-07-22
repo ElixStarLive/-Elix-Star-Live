@@ -740,18 +740,22 @@ export default function Profile() {
           <div
             className={`relative ${isOwnProfile || (profileStoryGroup?.items?.length ?? 0) > 0 ? 'cursor-pointer' : ''}`}
             onClick={() => {
+              // Own profile: tap avatar → change profile photo (plus button is for stories).
+              if (isOwnProfile) {
+                if (isUploadingAvatar) return;
+                fileInputRef.current?.click();
+                return;
+              }
+              // Others: tap ring opens their story if present.
               if (profileStoryGroup && profileStoryGroup.items.length > 0) {
                 setStoryViewerIndex(0);
                 setStoryViewerOpen(true);
-                return;
-              }
-              if (isOwnProfile) {
-                navigate('/upload?type=story');
               }
             }}
             onContextMenu={(e) => {
               if (!isOwnProfile) return;
               e.preventDefault();
+              if (isUploadingAvatar) return;
               fileInputRef.current?.click();
             }}
           >
