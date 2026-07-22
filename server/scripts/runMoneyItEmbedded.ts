@@ -18,7 +18,7 @@ function runVitest(env: NodeJS.ProcessEnv): Promise<number> {
   return new Promise((resolve) => {
     const child = spawn(
       process.platform === "win32" ? "npx.cmd" : "npx",
-      ["vitest", "run", "server/lib/moneyIntegration.test.ts"],
+      ["vitest", "run", "--config", "vitest.money.config.ts"],
       {
         cwd: root,
         env,

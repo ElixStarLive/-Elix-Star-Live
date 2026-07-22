@@ -641,11 +641,52 @@ export async function listMissionsForUser(userId: string) {
   const db = getPool();
   if (!db) return [];
   try {
+    const { getMissionAdminMeta } = await import("./engagementAdmin");
+    const meta = await getMissionAdminMeta();
+    let isCreator = false;
+    try {
+      const cr = await db.query(
+        `SELECT COALESCE(is_verified, FALSE) AS c FROM profiles WHERE user_id = $1 LIMIT 1`,
+        [userId],
+      );
+      isCreator = !!cr.rows[0]?.c;
+    } catch {
+      isCreator = false;
+    }
+    const accountAgeDays = await (async () => {
+      try {
+        const r = await db.query(
+          `SELECT EXTRACT(EPOCH FROM (NOW() - created_at))/86400.0 AS d
+             FROM profiles WHERE user_id = $1 LIMIT 1`,
+          [userId],
+        );
+        return Number(r.rows[0]?.d ?? 999);
+      } catch {
+        return 999;
+      }
+    })();
+
     const missions = await db.query(
       `SELECT * FROM engagement_missions WHERE enabled = TRUE ORDER BY scope, sort_order`,
     );
     const out = [];
+    const now = Date.now();
     for (const m of missions.rows) {
+      const mm = meta[m.id];
+      if (mm?.archived) continue;
+      if (mm?.starts_at) {
+        const t = Date.parse(mm.starts_at);
+        if (Number.isFinite(t) && t > now) continue;
+      }
+      if (mm?.ends_at) {
+        const t = Date.parse(mm.ends_at);
+        if (Number.isFinite(t) && t < now) continue;
+      }
+      const audience = mm?.audience || "all_authenticated";
+      if (audience === "creators_only" && !isCreator) continue;
+      if (audience === "viewers_only" && isCreator) continue;
+      if (audience === "new_users" && accountAgeDays > 14) continue;
+
       const pk = periodKey(String(m.scope));
       const p = await db.query(
         `SELECT progress, completed, claimed FROM user_mission_progress
@@ -667,6 +708,7 @@ export async function listMissionsForUser(userId: string) {
         progress: Number(prog?.progress ?? 0),
         completed: !!prog?.completed,
         claimed: !!prog?.claimed,
+        audience,
       });
     }
     return out;
