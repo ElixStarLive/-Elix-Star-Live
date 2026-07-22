@@ -39,11 +39,11 @@
   :root {
     --color-primary: #D4AF37;
     --color-secondary: #C9A227;
-    /* Neon icon theme (row 1 — Fire #FF6B9D) */
-    --icon-neon-purple: #FF6B9D;
-    --icon-neon-purple-diamond: #FF6B9D;
-    --icon-neon-purple-glow: rgba(255, 107, 157, 0.75);
-    --icon-neon-purple-glow-soft: rgba(255, 107, 157, 0.35);
+    /* Gold / Amber icons — chart row 5 #FFD54D */
+    --icon-neon-purple: #FFD54D;
+    --icon-neon-purple-diamond: #FFD54D;
+    --icon-neon-purple-glow: rgba(255, 213, 77, 0.75);
+    --icon-neon-purple-glow-soft: rgba(255, 193, 7, 0.4);
     --color-gold: #C9A227;
     --color-gold-bright: #D4AF37;
     --color-gold-light: #E8D5A3;
@@ -51,9 +51,9 @@
     --color-rose: #B8A88A;
     --color-background: #000000;
     --color-surface: #0a0a0a;
-    /* Red writing theme (row 8 — Gift #FF6B6B) */
-    --color-text: #FF6B6B;
-    --color-text-muted: rgba(255, 107, 107, 0.62);
+    /* White / Silver writing — chart row 10 #F1F1F1 */
+    --color-text: #F1F1F1;
+    --color-text-muted: rgba(241, 241, 241, 0.55);
     --radius-sm: 10px;
     --radius-md: 12px;
     --radius-lg: 16px;
@@ -866,7 +866,7 @@
 
 /*
  * Unified icon halo (app-wide):
- * soft neon pink glow disc — effect only, NO solid ring/border.
+ * soft gold glow disc — effect only, NO solid ring/border.
  */
 .royce-glow-disc,
 .royce-tile {
@@ -880,28 +880,28 @@
   background:
     radial-gradient(
       circle at center,
-      rgba(255, 107, 157, 0.28) 0%,
+      rgba(255, 213, 77, 0.28) 0%,
       rgba(17, 17, 17, 0.72) 52%,
       rgba(0, 0, 0, 0.2) 78%,
       transparent 100%
     );
   box-shadow:
-    0 0 10px 2px rgba(255, 107, 157, 0.42),
-    0 0 22px 5px rgba(255, 107, 157, 0.18);
+    0 0 10px 2px rgba(255, 213, 77, 0.42),
+    0 0 22px 5px rgba(255, 193, 7, 0.18);
 }
 
-/* Same soft neon pink glow on user avatar circles (Friends strip, feed, etc.) */
+/* Same soft gold glow on user avatar circles (Friends strip, feed, etc.) */
 .royce-avatar-glow {
   border-radius: 9999px;
   box-shadow:
-    0 0 10px 2px rgba(255, 107, 157, 0.42),
-    0 0 22px 5px rgba(255, 107, 157, 0.18);
+    0 0 10px 2px rgba(255, 213, 77, 0.42),
+    0 0 22px 5px rgba(255, 193, 7, 0.18);
 }
 
 /*
- * Unified icon design (app-wide) — Neon Pink theme:
+ * Unified icon design (app-wide) — Gold / Amber theme:
  * thin line icons + soft glow (readable on black video).
- * Chart row 1: Fire #FF6B9D
+ * Chart row 5: #FFD54D
  */
 svg.lucide {
   color: var(--icon-neon-purple) !important;
@@ -951,44 +951,44 @@ svg.text-\[\#D4AF37\] {
 }
 
 /*
- * Red writing (app-wide) — chart row 8 Gift #FF6B6B
- * Remaps default white/gold text utilities; icons stay Neon Pink #FF6B9D above.
+ * White / Silver writing (app-wide) — chart row 10 #F1F1F1
+ * Remaps default white/gold text utilities; icons stay Gold #FFD54D above.
  */
 .text-white { color: var(--color-text) !important; }
-.text-white\/90 { color: rgba(255, 107, 107, 0.9) !important; }
-.text-white\/85 { color: rgba(255, 107, 107, 0.85) !important; }
-.text-white\/80 { color: rgba(255, 107, 107, 0.8) !important; }
-.text-white\/75 { color: rgba(255, 107, 107, 0.75) !important; }
-.text-white\/70 { color: rgba(255, 107, 107, 0.7) !important; }
-.text-white\/65 { color: rgba(255, 107, 107, 0.65) !important; }
-.text-white\/60 { color: rgba(255, 107, 107, 0.6) !important; }
-.text-white\/50 { color: rgba(255, 107, 107, 0.5) !important; }
-.text-white\/40 { color: rgba(255, 107, 107, 0.4) !important; }
-.text-white\/30 { color: rgba(255, 107, 107, 0.3) !important; }
-.text-white\/20 { color: rgba(255, 107, 107, 0.2) !important; }
-.text-white\/10 { color: rgba(255, 107, 107, 0.1) !important; }
+.text-white\/90 { color: rgba(241, 241, 241, 0.9) !important; }
+.text-white\/85 { color: rgba(241, 241, 241, 0.85) !important; }
+.text-white\/80 { color: rgba(241, 241, 241, 0.8) !important; }
+.text-white\/75 { color: rgba(241, 241, 241, 0.75) !important; }
+.text-white\/70 { color: rgba(241, 241, 241, 0.7) !important; }
+.text-white\/65 { color: rgba(241, 241, 241, 0.65) !important; }
+.text-white\/60 { color: rgba(241, 241, 241, 0.6) !important; }
+.text-white\/50 { color: rgba(241, 241, 241, 0.5) !important; }
+.text-white\/40 { color: rgba(241, 241, 241, 0.4) !important; }
+.text-white\/30 { color: rgba(241, 241, 241, 0.3) !important; }
+.text-white\/20 { color: rgba(241, 241, 241, 0.2) !important; }
+.text-white\/10 { color: rgba(241, 241, 241, 0.1) !important; }
 
 .text-text { color: var(--color-text) !important; }
 .text-text-muted { color: var(--color-text-muted) !important; }
 .text-gold-bright { color: var(--color-text) !important; }
-.text-gold-light { color: rgba(255, 107, 107, 0.78) !important; }
-.text-gold-light\/70 { color: rgba(255, 107, 107, 0.54) !important; }
+.text-gold-light { color: rgba(241, 241, 241, 0.78) !important; }
+.text-gold-light\/70 { color: rgba(241, 241, 241, 0.54) !important; }
 .text-\[\#D4AF37\]:not(svg) { color: var(--color-text) !important; }
-.text-\[\#E8D5A3\]:not(svg) { color: rgba(255, 107, 107, 0.78) !important; }
-.text-\[\#E8D5A3\]\/50:not(svg) { color: rgba(255, 107, 107, 0.5) !important; }
+.text-\[\#E8D5A3\]:not(svg) { color: rgba(241, 241, 241, 0.78) !important; }
+.text-\[\#E8D5A3\]\/50:not(svg) { color: rgba(241, 241, 241, 0.5) !important; }
 
 input::placeholder,
 textarea::placeholder {
-  color: rgba(255, 107, 107, 0.42);
+  color: rgba(241, 241, 241, 0.42);
 }
 
 .text-gold-bright\/45,
 .text-gold-bright\/50,
 .text-gold-bright\/60 {
-  color: rgba(255, 107, 107, 0.5) !important;
+  color: rgba(241, 241, 241, 0.5) !important;
 }
 
-/* Default writing color — entire app inherits #FF6B6B */
+/* Default writing color — entire app inherits #F1F1F1 */
 body,
 #root {
   color: var(--color-text);
@@ -996,7 +996,7 @@ body,
 
 /*
  * Catch all remaining text color utilities (feed, nav, forms, hex classes).
- * Icons stay Neon Purple — svg/path excluded.
+ * Icons stay Gold — svg/path excluded.
  */
 :not(svg):not(path):not(circle):not(rect):not(line):not(polyline):not(polygon)[class*="text-gold"],
 :not(svg):not(path)[class*="text-gray"],

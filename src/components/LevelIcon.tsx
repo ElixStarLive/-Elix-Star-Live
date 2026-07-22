@@ -2,7 +2,7 @@ import React from 'react';
 import { PROFILE_RING_IMAGE_LIFT_MM, profileRingInnerPx } from '../lib/profileFrame';
 import { ROYCE_DEFAULT_AVATAR } from '../lib/royceAssets';
 
-/** Neon Pink diamond — chart row 1 Fire #FF6B9D */
+/** Gold / Amber diamond — chart row 5 #FFD54D */
 function LevelDiamondIcon({ size = 10 }: { size?: number }) {
   return (
     <svg
@@ -11,16 +11,16 @@ function LevelDiamondIcon({ size = 10 }: { size?: number }) {
       viewBox="0 0 16 16"
       className="flex-shrink-0"
       aria-hidden
-      style={{ filter: 'drop-shadow(0 0 3px rgba(255,107,157,0.8))' }}
+      style={{ filter: 'drop-shadow(0 0 3px rgba(255,213,77,0.85))' }}
     >
       <path
         d="M8 1.2 L14.2 6.1 L8 14.8 L1.8 6.1 Z"
         fill="none"
-        stroke="#FF6B9D"
+        stroke="#FFD54D"
         strokeWidth="1.35"
         strokeLinejoin="round"
       />
-      <path d="M8 1.2 L14.2 6.1 L8 7.2 L1.8 6.1 Z" fill="#FF6B9D" opacity="0.4" />
+      <path d="M8 1.2 L14.2 6.1 L8 7.2 L1.8 6.1 Z" fill="#FFD54D" opacity="0.4" />
     </svg>
   );
 }
@@ -93,7 +93,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
       <LevelDiamondIcon size={diamondPx} />
       <span
         style={{
-          color: '#FF6B6B',
+          color: '#F1F1F1',
           fontWeight: 900,
           letterSpacing: '0.01em',
           fontSize: fontPx,
