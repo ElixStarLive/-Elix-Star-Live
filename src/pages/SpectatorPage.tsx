@@ -3532,9 +3532,13 @@ export default function SpectatorPage() {
           </div>
         </div>
 
-        {/* COMBO COLUMN — shared 1-1 with creator */}
+        {/* COMBO COLUMN — photo layout, right of chat; real combo counts */}
         {showComboButton && comboStack.length > 0 && (
-          <LiveGiftComboColumn stack={comboStack} onCombo={handleComboClick} />
+          <LiveGiftComboColumn
+            stack={comboStack}
+            onCombo={handleComboClick}
+            onOpen={() => setShowGiftPanel(true)}
+          />
         )}
 
 {/* Bottom bar — above gift video so Gift/Invite/Share/More stay tappable */}

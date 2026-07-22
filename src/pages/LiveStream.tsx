@@ -6138,7 +6138,7 @@ export default function LiveStream() {
               </div>
             </div>
 
-      {/* Combo column — shared 1-1 with spectator */}
+      {/* Combo column — photo layout, right of chat; real combo counts */}
       <AnimatePresence>
         {showComboButton && comboStack.length > 0 && (
           <motion.div
@@ -6146,7 +6146,11 @@ export default function LiveStream() {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
           >
-            <LiveGiftComboColumn stack={comboStack} onCombo={handleComboClick} />
+            <LiveGiftComboColumn
+              stack={comboStack}
+              onCombo={handleComboClick}
+              onOpen={() => setShowGiftPanel(true)}
+            />
           </motion.div>
         )}
       </AnimatePresence>
