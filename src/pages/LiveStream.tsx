@@ -5148,10 +5148,6 @@ export default function LiveStream() {
               onPointerDown={isBroadcast ? (e) => {
                 if (e.target instanceof Element && e.target.closest('button, a, input, textarea, select, [role="button"]')) return;
                 handleLikeTap(e);
-                const now = Date.now();
-                const last = lastScreenTapRef.current;
-                lastScreenTapRef.current = now;
-                if (now - last <= 320) handleComboClick();
               } : undefined}
             >
             {isBroadcast || isBattleParticipant ? (
@@ -6167,32 +6163,36 @@ export default function LiveStream() {
               </div>
             </div>
 
-      {/* Combo column — photo layout; real combos OR DEMO so you can see it */}
-      <LiveMarkedUiDemoToggle
-        enabled={markedUiDemo}
-        onToggle={(next) => {
-          writeLiveMarkedUiDemoEnabled(next);
-          setMarkedUiDemo(next);
-        }}
-      />
-      <AnimatePresence>
-        {showComboColumn && visibleComboStack.length > 0 && (
-          <motion.div
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0, opacity: 0 }}
-          >
-            <LiveGiftComboColumn
-              stack={visibleComboStack}
-              onCombo={() => {
-                if (comboStack.length > 0) handleComboClick();
-                else setShowGiftPanel(true);
-              }}
-              onOpen={() => setShowGiftPanel(true)}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Gift combo — spectators only. Creators receive gifts; they do not send/combo. */}
+      {!isCreatorParticipant && (
+        <>
+          <LiveMarkedUiDemoToggle
+            enabled={markedUiDemo}
+            onToggle={(next) => {
+              writeLiveMarkedUiDemoEnabled(next);
+              setMarkedUiDemo(next);
+            }}
+          />
+          <AnimatePresence>
+            {showComboColumn && visibleComboStack.length > 0 && (
+              <motion.div
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0, opacity: 0 }}
+              >
+                <LiveGiftComboColumn
+                  stack={visibleComboStack}
+                  onCombo={() => {
+                    if (comboStack.length > 0) handleComboClick();
+                    else setShowGiftPanel(true);
+                  }}
+                  onOpen={() => setShowGiftPanel(true)}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </>
+      )}
 
       <LiveSideMissionStack
         missions={sideMissions}
