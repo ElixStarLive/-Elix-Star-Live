@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { RoyceCloseIcon } from '../components/royce';
 import { showToast } from '../lib/toast';
 import { platform, openExternalLink, nativeShareUrl } from '../lib/platform';
 import {
@@ -6053,8 +6052,10 @@ export default function LiveStream() {
                           <span className="text-white text-[9px] font-bold tabular-nums">{formatCountShort(viewerCount)}</span>
                           <UserPlus size={16} className="text-[#D4AF37]" strokeWidth={2.2} />
                         </button>
-                        <button type="button" onClick={closeLiveWithSlide} className="w-8 h-8 royce-glow-disc flex items-center justify-center active:scale-95 transition-transform" title={isBroadcast ? (isBattleMode ? 'End battle' : 'End broadcast') : 'Leave'} aria-label="Close">
-                          <RoyceCloseIcon size={18} />
+                        <button type="button" onClick={closeLiveWithSlide} className="w-8 h-8 rounded-full flex items-center justify-center bg-black/45 border border-white/15 active:scale-95 transition-transform pointer-events-auto" title={isBroadcast ? (isBattleMode ? 'End battle' : 'End broadcast') : 'Leave'} aria-label="Close">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" aria-hidden>
+                            <path d="M18 6L6 18M6 6l12 12" />
+                          </svg>
                         </button>
                       </div>
                     </div>
