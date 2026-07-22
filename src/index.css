@@ -39,17 +39,11 @@
   :root {
     --color-primary: #D4AF37;
     --color-secondary: #C9A227;
-    /* Gem icon theme — purple amethyst + clear diamond ring (glyphs white on gem) */
-    --icon-neon-purple: #F5F0FF;
-    --icon-neon-purple-diamond: #C9A0F0;
-    --icon-neon-purple-glow: rgba(200, 160, 255, 0.75);
-    --icon-neon-purple-glow-soft: rgba(140, 80, 220, 0.4);
-    --icon-gem-core-hi: #C4A0E8;
-    --icon-gem-core-mid: #6B2FA8;
-    --icon-gem-core-lo: #2D0A52;
-    --icon-gem-ring-hi: #FFFFFF;
-    --icon-gem-ring-mid: #E8E0F5;
-    --icon-gem-ring-lo: #9A8BB8;
+    /* Neon icon theme (row 1 — Fire #FF6B9D) */
+    --icon-neon-purple: #FF6B9D;
+    --icon-neon-purple-diamond: #FF6B9D;
+    --icon-neon-purple-glow: rgba(255, 107, 157, 0.75);
+    --icon-neon-purple-glow-soft: rgba(255, 107, 157, 0.35);
     --color-gold: #C9A227;
     --color-gold-bright: #D4AF37;
     --color-gold-light: #E8D5A3;
@@ -872,8 +866,7 @@
 
 /*
  * Unified icon halo (app-wide):
- * faceted purple gem core + thick clear diamond ring (control-center gem look).
- * Size/layout unchanged — appearance only.
+ * soft neon pink glow disc — effect only, NO solid ring/border.
  */
 .royce-glow-disc,
 .royce-tile {
@@ -883,80 +876,33 @@
   justify-content: center;
   flex-shrink: 0;
   border-radius: 9999px;
-  border: 2.5px solid transparent !important;
+  border: none !important;
   background:
     radial-gradient(
-      circle at 32% 28%,
-      var(--icon-gem-core-hi) 0%,
-      var(--icon-gem-core-mid) 42%,
-      var(--icon-gem-core-lo) 100%
-    ) padding-box,
-    conic-gradient(
-      from 12deg,
-      var(--icon-gem-ring-hi),
-      var(--icon-gem-ring-mid),
-      var(--icon-gem-ring-lo),
-      var(--icon-gem-ring-hi),
-      #D4CCE8,
-      #7A6E98,
-      var(--icon-gem-ring-hi),
-      var(--icon-gem-ring-mid),
-      var(--icon-gem-ring-hi)
-    ) border-box;
-  background-origin: border-box;
-  background-clip: padding-box, border-box;
+      circle at center,
+      rgba(255, 107, 157, 0.28) 0%,
+      rgba(17, 17, 17, 0.72) 52%,
+      rgba(0, 0, 0, 0.2) 78%,
+      transparent 100%
+    );
   box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.35),
-    inset 0 1px 2px rgba(255, 255, 255, 0.55),
-    inset 0 -2px 5px rgba(30, 5, 60, 0.65),
-    0 0 10px 2px rgba(140, 80, 220, 0.45),
-    0 0 22px 5px rgba(90, 40, 160, 0.28);
-  isolation: isolate;
+    0 0 10px 2px rgba(255, 107, 157, 0.42),
+    0 0 22px 5px rgba(255, 107, 157, 0.18);
 }
 
-.royce-glow-disc::before,
-.royce-tile::before {
-  content: "";
-  position: absolute;
-  inset: 3px;
-  border-radius: 9999px;
-  pointer-events: none;
-  z-index: 0;
-  background: conic-gradient(
-    from 40deg,
-    transparent 0deg,
-    rgba(255, 255, 255, 0.22) 28deg,
-    transparent 55deg,
-    rgba(180, 140, 255, 0.18) 110deg,
-    transparent 150deg,
-    rgba(255, 255, 255, 0.16) 200deg,
-    transparent 240deg,
-    rgba(120, 70, 200, 0.25) 300deg,
-    transparent 340deg
-  );
-  opacity: 0.9;
-}
-
-.royce-glow-disc > *,
-.royce-tile > * {
-  position: relative;
-  z-index: 1;
-}
-
-/* Avatar circles — same purple gem halo so rings match icon discs */
+/* Same soft neon pink glow on user avatar circles (Friends strip, feed, etc.) */
 .royce-avatar-glow {
   border-radius: 9999px;
   box-shadow:
-    0 0 0 2px rgba(255, 255, 255, 0.55),
-    0 0 0 3.5px rgba(154, 139, 184, 0.85),
-    0 0 10px 2px rgba(140, 80, 220, 0.45),
-    0 0 22px 5px rgba(90, 40, 160, 0.28);
+    0 0 10px 2px rgba(255, 107, 157, 0.42),
+    0 0 22px 5px rgba(255, 107, 157, 0.18);
 }
 
 /*
- * Unified icon design (app-wide) — white crystal glyphs on purple gem discs.
+ * Unified icon design (app-wide) — Neon Pink theme:
+ * thin line icons + soft glow (readable on black video).
+ * Chart row 1: Fire #FF6B9D
  */
-
 svg.lucide {
   color: var(--icon-neon-purple) !important;
   stroke: currentColor !important;
@@ -1006,7 +952,7 @@ svg.text-\[\#D4AF37\] {
 
 /*
  * Red writing (app-wide) — chart row 8 Gift #FF6B6B
- * Remaps default white/gold text utilities; icons stay gem crystal white above.
+ * Remaps default white/gold text utilities; icons stay Neon Pink #FF6B9D above.
  */
 .text-white { color: var(--color-text) !important; }
 .text-white\/90 { color: rgba(255, 107, 107, 0.9) !important; }
