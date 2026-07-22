@@ -39,11 +39,11 @@
   :root {
     --color-primary: #D4AF37;
     --color-secondary: #C9A227;
-    /* Neon Purple icon theme (row 1 — Diamond #C77DFF) */
-    --icon-neon-purple: #C77DFF;
-    --icon-neon-purple-diamond: #C77DFF;
-    --icon-neon-purple-glow: rgba(199, 125, 255, 0.75);
-    --icon-neon-purple-glow-soft: rgba(199, 125, 255, 0.35);
+    /* Neon icon theme (row 1 — Fire #FF6B9D) */
+    --icon-neon-purple: #FF6B9D;
+    --icon-neon-purple-diamond: #FF6B9D;
+    --icon-neon-purple-glow: rgba(255, 107, 157, 0.75);
+    --icon-neon-purple-glow-soft: rgba(255, 107, 157, 0.35);
     --color-gold: #C9A227;
     --color-gold-bright: #D4AF37;
     --color-gold-light: #E8D5A3;
@@ -866,7 +866,7 @@
 
 /*
  * Unified icon halo (app-wide):
- * soft Neon Purple glow disc — effect only, NO solid ring/border.
+ * soft neon pink glow disc — effect only, NO solid ring/border.
  */
 .royce-glow-disc,
 .royce-tile {
@@ -880,28 +880,28 @@
   background:
     radial-gradient(
       circle at center,
-      rgba(199, 125, 255, 0.28) 0%,
+      rgba(255, 107, 157, 0.28) 0%,
       rgba(17, 17, 17, 0.72) 52%,
       rgba(0, 0, 0, 0.2) 78%,
       transparent 100%
     );
   box-shadow:
-    0 0 10px 2px rgba(199, 125, 255, 0.42),
-    0 0 22px 5px rgba(199, 125, 255, 0.18);
+    0 0 10px 2px rgba(255, 107, 157, 0.42),
+    0 0 22px 5px rgba(255, 107, 157, 0.18);
 }
 
-/* Same soft Neon Purple glow on user avatar circles (Friends strip, feed, etc.) */
+/* Same soft neon pink glow on user avatar circles (Friends strip, feed, etc.) */
 .royce-avatar-glow {
   border-radius: 9999px;
   box-shadow:
-    0 0 10px 2px rgba(199, 125, 255, 0.42),
-    0 0 22px 5px rgba(199, 125, 255, 0.18);
+    0 0 10px 2px rgba(255, 107, 157, 0.42),
+    0 0 22px 5px rgba(255, 107, 157, 0.18);
 }
 
 /*
- * Unified icon design (app-wide) — Neon Purple theme:
+ * Unified icon design (app-wide) — Neon Pink theme:
  * thin line icons + soft glow (readable on black video).
- * Chart row 1: Diamond #C77DFF
+ * Chart row 1: Fire #FF6B9D
  */
 svg.lucide {
   color: var(--icon-neon-purple) !important;
@@ -952,7 +952,7 @@ svg.text-\[\#D4AF37\] {
 
 /*
  * Red writing (app-wide) — chart row 8 Gift #FF6B6B
- * Remaps default white/gold text utilities; icons stay Neon Purple above.
+ * Remaps default white/gold text utilities; icons stay Neon Pink #FF6B9D above.
  */
 .text-white { color: var(--color-text) !important; }
 .text-white\/90 { color: rgba(255, 107, 107, 0.9) !important; }

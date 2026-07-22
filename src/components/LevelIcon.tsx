@@ -2,7 +2,7 @@ import React from 'react';
 import { PROFILE_RING_IMAGE_LIFT_MM, profileRingInnerPx } from '../lib/profileFrame';
 import { ROYCE_DEFAULT_AVATAR } from '../lib/royceAssets';
 
-/** Neon Purple diamond — chart row 1 Diamond #C77DFF */
+/** Neon Pink diamond — chart row 1 Fire #FF6B9D */
 function LevelDiamondIcon({ size = 10 }: { size?: number }) {
   return (
     <svg
@@ -11,16 +11,16 @@ function LevelDiamondIcon({ size = 10 }: { size?: number }) {
       viewBox="0 0 16 16"
       className="flex-shrink-0"
       aria-hidden
-      style={{ filter: 'drop-shadow(0 0 3px rgba(199,125,255,0.8))' }}
+      style={{ filter: 'drop-shadow(0 0 3px rgba(255,107,157,0.8))' }}
     >
       <path
         d="M8 1.2 L14.2 6.1 L8 14.8 L1.8 6.1 Z"
         fill="none"
-        stroke="#C77DFF"
+        stroke="#FF6B9D"
         strokeWidth="1.35"
         strokeLinejoin="round"
       />
-      <path d="M8 1.2 L14.2 6.1 L8 7.2 L1.8 6.1 Z" fill="#C77DFF" opacity="0.4" />
+      <path d="M8 1.2 L14.2 6.1 L8 7.2 L1.8 6.1 Z" fill="#FF6B9D" opacity="0.4" />
     </svg>
   );
 }
@@ -79,7 +79,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
         minWidth: chipH,
         borderRadius: 6,
         background: 'rgba(8, 10, 22, 0.45)',
-        border: '1px solid rgba(199, 125, 255, 0.45)',
+        border: '1px solid rgba(255, 107, 157, 0.45)',
         boxShadow: '0 1px 4px rgba(0,0,0,0.35)',
         display: 'inline-flex',
         alignItems: 'center',
