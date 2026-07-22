@@ -63,6 +63,13 @@ const server = createServer(app);
 server.requestTimeout = Number(process.env.HTTP_REQUEST_TIMEOUT_MS) || 120_000;
 const PORT = Number(process.env.PORT) || 8080;
 const BUILD_VERSION = "2026-03-26T20:00-modular-rebuild";
+/** Coolify sets SOURCE_COMMIT on deploy — used to prove which git SHA is live. */
+const DEPLOYED_COMMIT = (
+  process.env.SOURCE_COMMIT ||
+  process.env.COOLIFY_GIT_COMMIT ||
+  process.env.GIT_COMMIT ||
+  ""
+).trim().slice(0, 40) || null;
 
 // ── Critical startup checks ─────────────────────────────────────
 validateAuthSecretOrDie();
@@ -295,6 +302,7 @@ async function healthCheck(_req: express.Request, res: express.Response) {
   const data = {
     status,
     version: BUILD_VERSION,
+    commit: DEPLOYED_COMMIT,
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
     port: PORT,
