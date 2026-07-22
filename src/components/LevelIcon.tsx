@@ -93,7 +93,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
       <LevelDiamondIcon size={diamondPx} />
       <span
         style={{
-          color: '#FFE4EC',
+          color: '#FF6B6B',
           fontWeight: 900,
           letterSpacing: '0.01em',
           fontSize: fontPx,

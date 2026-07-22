@@ -487,7 +487,7 @@ export function LiveMarkedUiDemoToggle({
         right: 'max(12px, calc(50% - 240px + 12px))',
         left: 'auto',
         background: enabled ? 'rgba(254,44,85,0.92)' : 'rgba(20,20,28,0.85)',
-        color: '#FFE4EC',
+        color: '#FF6B6B',
         border: '1px solid rgba(255,255,255,0.25)',
         boxShadow: '0 2px 10px rgba(0,0,0,0.45)',
       }}
