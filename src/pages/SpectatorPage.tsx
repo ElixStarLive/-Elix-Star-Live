@@ -101,6 +101,11 @@ import {
   readLiveMarkedUiDemoEnabled,
   writeLiveMarkedUiDemoEnabled,
 } from '../components/LiveMarkedTopUi';
+import {
+  LiveSideMissionStack,
+  LIVE_SIDE_DEMO_MISSIONS,
+  LIVE_SIDE_DEMO_SUPPORTERS,
+} from '../components/LiveSideMissionStack';
 import { websocket } from '../lib/websocket';
 import { normalizeBattleGiftTarget } from '../lib/liveBattleGiftTarget';
 import { parseLiveGiftGoal, type LiveGiftGoal } from '../lib/liveGiftGoal';
@@ -277,6 +282,15 @@ export default function SpectatorPage() {
   const demoComboStack = markedUiDemo ? buildLiveMarkedUiDemoComboStack() : [];
   const visibleComboStack = comboStack.length > 0 ? comboStack : demoComboStack;
   const showComboColumn = (showComboButton && comboStack.length > 0) || (markedUiDemo && demoComboStack.length > 0);
+  const [missionWatchMin, setMissionWatchMin] = useState(0);
+  const [missionGiftsSent, setMissionGiftsSent] = useState(0);
+  const [userXP, setUserXP] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setMissionWatchMin((m) => Math.min(30, m + 1));
+    }, 60_000);
+    return () => window.clearInterval(id);
+  }, []);
   const comboTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resetComboTimer = () => {
     if (comboTimerRef.current) clearTimeout(comboTimerRef.current);
@@ -392,7 +406,6 @@ export default function SpectatorPage() {
   }, [user?.id, user?.username, user?.name, user?.avatar, joinRequested, spectatorCoHostRequestSent, hostUserId, effectiveStreamId]);
 
   const [userLevel, setUserLevel] = useState(() => Math.max(1, Number(user?.level) || 0));
-  const [_userXP, setUserXP] = useState(0);
 
   const viewerName = user?.username || user?.name || 'Viewer';
   const viewerAvatar = user?.avatar || '';
@@ -3524,6 +3537,39 @@ export default function SpectatorPage() {
             onOpen={() => setShowGiftPanel(true)}
           />
         )}
+
+        <LiveSideMissionStack
+          missions={
+            markedUiDemo
+              ? LIVE_SIDE_DEMO_MISSIONS
+              : {
+                  watchMin: missionWatchMin,
+                  watchGoal: 30,
+                  giftsSent: missionGiftsSent,
+                  giftsGoal: 10,
+                  battleJoined: spectatorBattle?.active ? 1 : 0,
+                  battleGoal: 1,
+                }
+          }
+          supporters={
+            markedUiDemo || mvpSlots.global.length === 0
+              ? LIVE_SIDE_DEMO_SUPPORTERS
+              : mvpSlots.global.slice(0, 3).map((s) => ({
+                  id: s.id,
+                  name: s.name,
+                  avatar: s.avatar,
+                  points: s.points ?? 0,
+                }))
+          }
+          battlePassLevel={userLevel || 1}
+          battlePassXp={markedUiDemo ? 320 : userXP % 1000}
+          battlePassXpMax={1000}
+          onViewAllSupporters={() => setShowViewersPanel(true)}
+          onBattlePass={() => {
+            setRankingInitialTab('weekly');
+            setShowRankingPanel(true);
+          }}
+        />
 
 {/* Bottom bar — above gift video so Gift/Invite/Share/More stay tappable */}
         <div

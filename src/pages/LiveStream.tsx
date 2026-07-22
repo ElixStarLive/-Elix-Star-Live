@@ -114,6 +114,11 @@ import {
   readLiveMarkedUiDemoEnabled,
   writeLiveMarkedUiDemoEnabled,
 } from '../components/LiveMarkedTopUi';
+import {
+  LiveSideMissionStack,
+  LIVE_SIDE_DEMO_MISSIONS,
+  LIVE_SIDE_DEMO_SUPPORTERS,
+} from '../components/LiveSideMissionStack';
 import { websocket } from '../lib/websocket';
 import { parseLiveGiftGoal, type LiveGiftGoal } from '../lib/liveGiftGoal';
 import { liveStreamUiGiftTargetToServerBattleTarget, normalizeBattleGiftTarget } from '../lib/liveBattleGiftTarget';
@@ -4119,7 +4124,7 @@ export default function LiveStream() {
   const [userLevel, setUserLevel] = useState(() => Math.max(1, Number(user?.level) || 0));
 
 
-  const [_userXP, setUserXP] = useState(0);
+  const [userXP, setUserXP] = useState(0);
   const [comboCount, setComboCount] = useState(0);
   const [showComboButton, setShowComboButton] = useState(false);
   const [comboStack, setComboStack] = useState<{ key: string; icon: string; count: number; gift: GiftUiItem }[]>([]);
@@ -4127,6 +4132,42 @@ export default function LiveStream() {
   const demoComboStack = useMemo(() => (markedUiDemo ? buildLiveMarkedUiDemoComboStack() : []), [markedUiDemo]);
   const visibleComboStack = comboStack.length > 0 ? comboStack : demoComboStack;
   const showComboColumn = (showComboButton && comboStack.length > 0) || (markedUiDemo && demoComboStack.length > 0);
+  const [missionWatchMin, setMissionWatchMin] = useState(0);
+  const [missionGiftsSent, setMissionGiftsSent] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setMissionWatchMin((m) => Math.min(30, m + 1));
+    }, 60_000);
+    return () => window.clearInterval(id);
+  }, []);
+  const sideMissions = markedUiDemo
+    ? LIVE_SIDE_DEMO_MISSIONS
+    : {
+        watchMin: missionWatchMin,
+        watchGoal: 30,
+        giftsSent: missionGiftsSent,
+        giftsGoal: 10,
+        battleJoined: isBattleMode ? 1 : 0,
+        battleGoal: 1,
+      };
+  const sideSupporters = useMemo(() => {
+    if (markedUiDemo) return LIVE_SIDE_DEMO_SUPPORTERS;
+    if (topGifters.length > 0) {
+      return topGifters.slice(0, 3).map((g) => ({
+        id: g.user_id,
+        name: g.username || g.user_id.slice(0, 8),
+        avatar: g.avatar_url || '',
+        points: g.total_coins,
+      }));
+    }
+    const fromMvp = topMvpViewers.slice(0, 3).map((v) => ({
+      id: v.id,
+      name: v.displayName || v.username || '',
+      avatar: v.avatar || '',
+      points: mvpGiftScores[v.id] ?? 0,
+    }));
+    return fromMvp.length > 0 ? fromMvp : LIVE_SIDE_DEMO_SUPPORTERS;
+  }, [markedUiDemo, topGifters, topMvpViewers, mvpGiftScores]);
   const comboTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pushComboStack = useCallback((gift: GiftUiItem, nextCount: number) => {
     const key = String(gift.id || gift.name || 'gift');
@@ -6139,6 +6180,22 @@ export default function LiveStream() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <LiveSideMissionStack
+        missions={sideMissions}
+        supporters={sideSupporters}
+        battlePassLevel={userLevel || 1}
+        battlePassXp={markedUiDemo ? 320 : userXP % 1000}
+        battlePassXpMax={markedUiDemo ? 1000 : 1000}
+        onViewAllSupporters={() => {
+          setIsFindCreatorsOpen(false);
+          setShowViewerList(true);
+        }}
+        onBattlePass={() => {
+          setRankingInitialTab('weekly');
+          setShowRankingPanel(true);
+        }}
+      />
 
 {/* BOTTOM RIGHT: Action buttons (same area as before, aligned right) */}
       <div
