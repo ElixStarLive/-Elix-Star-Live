@@ -1,5 +1,5 @@
 import React from 'react';
-import { Coins, Crown, Gem, Plus, Star } from 'lucide-react';
+import { Crown, Gem, Plus, Star } from 'lucide-react';
 import { AvatarRing } from './AvatarRing';
 import type { GiftUiItem } from '../lib/giftsCatalog';
 import { GIFT_COMBO_MAX } from '../lib/giftsCatalog';
@@ -60,17 +60,21 @@ export function LiveTopGifterAvatar({
     >
       {isMvp && (
         <span className="absolute -top-1.5 -left-0.5 z-[3] flex items-center justify-center drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]">
-          <Crown size={11} className="text-[#FFD54A]" fill="#FFD54A" strokeWidth={1.2} />
+          <Crown size={12} className="text-[#FFD54A]" fill="#FFD54A" strokeWidth={1.2} />
         </span>
       )}
-      <div className={isMvp ? 'rounded-full ring-[1.5px] ring-white/90' : ''}>
+      <div className={isMvp ? 'rounded-full ring-[1.5px] ring-[#FFD54A]' : ''}>
         <AvatarRing src={slot.avatar} alt={slot.name || ''} size={size} />
       </div>
       {isMvp && (
-        <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 z-[2] flex items-center gap-0.5 px-1 py-[1px] rounded-full bg-black/70 text-white text-[6px] font-bold leading-none tabular-nums whitespace-nowrap">
-          <Coins size={7} className="text-[#FFD54A] flex-shrink-0" strokeWidth={2.5} />
-          {formatGiftCoinsShort(slot.points)}
-        </span>
+        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-[2] flex items-center gap-0.5 whitespace-nowrap">
+          <span className="w-3.5 h-3.5 rounded-full bg-[#FFD54A] text-black text-[7px] font-black flex items-center justify-center leading-none shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+            1
+          </span>
+          <span className="px-1 py-[1px] rounded-full bg-black/75 text-white text-[7px] font-bold tabular-nums leading-none">
+            {formatGiftCoinsShort(slot.points)}
+          </span>
+        </div>
       )}
     </div>
   );
@@ -167,15 +171,15 @@ export function LiveGiftComboColumn({
                   <img
                     src={item.icon}
                     alt=""
-                    className="w-11 h-11 object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.65)]"
+                    className="w-14 h-14 object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.75)]"
                     draggable={false}
                   />
                 ) : (
-                  <span className="w-11 h-11 flex items-center justify-center text-2xl drop-shadow-[0_2px_6px_rgba(0,0,0,0.65)]">
+                  <span className="w-14 h-14 flex items-center justify-center text-3xl drop-shadow-[0_2px_6px_rgba(0,0,0,0.65)]">
                     🎁
                   </span>
                 )}
-                <span className="font-black italic text-white text-[22px] leading-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)] tracking-tight">
+                <span className="font-black italic text-white text-[26px] leading-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)] tracking-tight">
                   x{label}
                 </span>
               </button>
