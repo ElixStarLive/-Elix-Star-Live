@@ -2,29 +2,17 @@ import React from 'react';
 import { PROFILE_RING_IMAGE_LIFT_MM, profileRingInnerPx } from '../lib/profileFrame';
 import { ROYCE_DEFAULT_AVATAR } from '../lib/royceAssets';
 
-/** Bright per-level chip colours (restored). */
-const LEVEL_CHIP_BACKGROUNDS = [
-  '#FF4D6D', // hot pink
-  '#3DA3FF', // neon blue
-  '#00E5A8', // mint
-  '#FF8A00', // orange
-  '#A855F7', // purple
-  '#22C55E', // green
-  '#F43F5E', // rose
-  '#06B6D4', // cyan
-  '#EAB308', // yellow
-  '#EC4899', // magenta
-  '#6366F1', // indigo
-  '#F97316', // vivid orange
-] as const;
-
-function levelChipBackground(level: number): string {
-  const i = Math.max(0, (level - 1) % LEVEL_CHIP_BACKGROUNDS.length);
-  return LEVEL_CHIP_BACKGROUNDS[i];
+/** Level badge colours from ~3 days ago (green / blue / purple / red tiers). */
+function getBarGradient(level: number, barColor?: string): string {
+  if (barColor) return barColor;
+  if (level >= 90) return 'linear-gradient(180deg, #ffffff 0%, #7a1027 55%, #ffffff 100%)';
+  if (level >= 60) return 'linear-gradient(180deg, #a855f7 0%, #4c1d95 55%, #a855f7 100%)';
+  if (level >= 30) return 'linear-gradient(180deg, #3b82f6 0%, #1e3a8a 55%, #3b82f6 100%)';
+  return 'linear-gradient(180deg, #22c55e 0%, #14532d 55%, #22c55e 100%)';
 }
 
 /**
- * Faceted gem left of level number — white fill, dark purple facet lines, large.
+ * Faceted gem left of level number — white fill, dark purple facet lines.
  */
 function LevelDiamondIcon({ size = 12 }: { size?: number }) {
   const line = '#2E1065';
@@ -43,7 +31,6 @@ function LevelDiamondIcon({ size = 12 }: { size?: number }) {
       }}
     >
       <path d="M5 7.2 L7.2 3.2 H12.8 L15 7.2 L10 17.2 Z" fill="#FFFFFF" />
-      {/* Dark purple facet lines */}
       <path d="M5 7.2 H15" stroke={line} strokeWidth="1.15" strokeLinecap="round" />
       <path d="M7.2 3.2 L10 7.2 L12.8 3.2" stroke={line} strokeWidth="1.05" strokeLinejoin="round" fill="none" />
       <path d="M10 7.2 V17.2" stroke={line} strokeWidth="1.05" strokeLinecap="round" />
@@ -79,6 +66,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
   circleSize: circleSizeProp,
   className = '',
   avatarUrl,
+  barColor,
   hideCircle = false,
 }) => {
   const safeLevel = typeof level === 'number' && Number.isFinite(level) && level > 0 ? Math.floor(level) : 1;
@@ -100,25 +88,27 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
 
   const avatarDiameter = profileRingInnerPx(circleSize);
 
-  /** Per-level bright chip colour; bigger gem left, white number right. */
+  /** Longer pill so diamond + number both read clearly; colours from ~3 days ago. */
   const chipH = Math.max(18, Math.min(22, Math.round(circleSize * 0.78)));
   const fontPx = Math.max(10, Math.round(chipH * 0.55));
   const diamondPx = Math.max(15, Math.min(18, Math.round(chipH * 0.9)));
-  const chipBg = levelChipBackground(safeLevel);
   const levelChip = (
     <div
       style={{
         position: 'relative',
         zIndex: 1,
         height: chipH,
+        minWidth: Math.round(chipH * 2.35),
         borderRadius: 999,
-        background: chipBg,
+        background: getBarGradient(safeLevel, barColor),
+        border: '1px solid rgba(255,255,255,0.28)',
+        boxShadow: '0 2px 6px rgba(0,0,0,0.45), inset 0 1px 1px rgba(255,255,255,0.28)',
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 3,
-        paddingLeft: 5,
-        paddingRight: 7,
+        gap: 5,
+        paddingLeft: 8,
+        paddingRight: 10,
         flexShrink: 0,
       }}
     >
@@ -129,6 +119,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
           fontWeight: 800,
           letterSpacing: '0.01em',
           fontSize: fontPx,
+          textShadow: '0 1px 2px rgba(0,0,0,0.75)',
           lineHeight: 1,
           whiteSpace: 'nowrap',
           fontVariantNumeric: 'tabular-nums',
