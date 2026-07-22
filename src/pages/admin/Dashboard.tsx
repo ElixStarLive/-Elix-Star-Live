@@ -130,6 +130,8 @@ export default function AdminDashboard() {
             <ActionButton href="/admin/users" label="Manage Users" onClick={(h) => navigate(h)} />
             <ActionButton href="/admin/reports" label="Review Reports" onClick={(h) => navigate(h)} />
             <ActionButton href="/admin/economy" label="Economy Controls" onClick={(h) => navigate(h)} />
+            <ActionButton href="/admin/purchases" label="IAP & Shop Purchases" onClick={(h) => navigate(h)} />
+            <ActionButton href="/admin/withdrawals" label="Withdrawals" onClick={(h) => navigate(h)} />
             <ActionButton href="/admin/rising-stars" label="Rising Stars" onClick={(h) => navigate(h)} />
             <ActionButton href="/admin/progression" label="Starter Coins & XP" onClick={(h) => navigate(h)} />
           </div>

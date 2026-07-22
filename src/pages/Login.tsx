@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
-import { isAppleSignInEnabled } from '../lib/authFeatures';
+import { isAppleSignInEnabled, isPasswordResetEnabled } from '../lib/authFeatures';
 import { Eye, EyeOff, Lock, Mail, Check, User } from 'lucide-react';
 
 export default function Login() {
@@ -19,6 +19,7 @@ export default function Login() {
   const state = location.state as { from?: string } | null;
   const from = state?.from ?? '/';
   const showAppleSignIn = isAppleSignInEnabled();
+  const showPasswordReset = isPasswordResetEnabled();
 
   // Load saved email AND password on mount
   useEffect(() => {
@@ -237,9 +238,11 @@ export default function Login() {
         )}
 
         <div className="mt-4 xs:mt-3 text-center space-y-2">
-          <Link to="/forgot-password" className="block text-fluid-sm text-white/60 hover:text-white hover:underline">
-            Forgot your password?
-          </Link>
+          {showPasswordReset ? (
+            <Link to="/forgot-password" className="block text-fluid-sm text-white/60 hover:text-white hover:underline">
+              Forgot your password?
+            </Link>
+          ) : null}
           <Link to="/register" className="block text-fluid-sm text-white hover:underline">
             Don&apos;t have an account? Sign up
           </Link>

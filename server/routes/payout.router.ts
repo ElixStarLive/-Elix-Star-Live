@@ -4,7 +4,8 @@ import {
   handleGetCreatorBalance, handleGetCreatorEarnings, handleCreatorWithdraw,
   handleGetCreatorPayouts, handleSetPayoutMethod, handleGetPayoutMethods,
   handleAdminListPayouts, handleAdminApprovePayout, handleAdminRejectPayout,
-  handleAdminChargeback,
+  handleAdminChargeback, handleAdminMarkPayoutPaid, handleAdminCancelPayout,
+  handleAdminReviewPayout,
 } from "./payout";
 
 const creatorRouter = Router();
@@ -19,6 +20,9 @@ const adminPayoutRouter = Router();
 adminPayoutRouter.get("/payouts", handleAdminListPayouts);
 adminPayoutRouter.post("/payout/:id/approve", handleAdminApprovePayout);
 adminPayoutRouter.post("/payout/:id/reject", handleAdminRejectPayout);
+adminPayoutRouter.post("/payout/:id/mark-paid", handleAdminMarkPayoutPaid);
+adminPayoutRouter.post("/payout/:id/cancel", handleAdminCancelPayout);
+adminPayoutRouter.post("/payout/:id/review", handleAdminReviewPayout);
 adminPayoutRouter.post("/chargeback", handleAdminChargeback);
 // NOTE: GET /reports is intentionally NOT defined here. The richer handler in
 // adminActions.ts serves it (reporter username join, admin_note, and correct

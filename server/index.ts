@@ -49,6 +49,7 @@ import { logger } from "./lib/logger";
 import { loadGiftValuesFromDb } from "./websocket/giftRegistry";
 import { validateAuthSecretOrDie } from "./routes/auth";
 import { getGiftCdnOrigin } from "./lib/giftAssets";
+import { isEmailConfigured } from "./lib/email";
 import helmet from "helmet";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -422,6 +423,9 @@ app.get("/env.js", (_req, res) => {
   }
   env.VITE_APPLE_SIGN_IN_ENABLED =
     process.env.APPLE_SIGN_IN_ENABLED === "true" ? "true" : "false";
+  // Soft signal only — never exposes SMTP secrets. Used to hide Forgot Password
+  // when transactional email is not configured (avoids predictable 501 UX).
+  env.VITE_EMAIL_CONFIGURED = isEmailConfigured() ? "true" : "false";
   res.setHeader("Content-Type", "application/javascript; charset=utf-8");
   res.setHeader("Cache-Control", "no-store");
   res

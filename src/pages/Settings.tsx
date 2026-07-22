@@ -106,7 +106,7 @@ export default function Settings() {
           <S t={t('settings.section.account')} />
           <R ic={<User size={14} />} t={t('settings.editProfile')} fn={() => navigate('/edit-profile')} />
           <R ic={<Lock size={14} />} t={t('settings.privacy')} fn={() => navigate('/settings/safety')} />
-          <R ic={<Shield size={14} />} t={t('settings.security')} fn={() => navigate('/settings/safety')} />
+          <R ic={<Shield size={14} />} t={t('settings.security')} fn={() => navigate('/settings/security')} />
           <R ic={<Trash2 size={14} />} t={t('settings.deleteAccount')} fn={handleDeleteAccount} />
           <R ic={<Wallet size={14} />} t="Creator payout" fn={() => navigate('/settings/payout')} />
           {engagementFlags.engagementHubEnabled ? (
@@ -117,7 +117,7 @@ export default function Settings() {
           ) : null}
 
           <S t={t('settings.section.preferences')} />
-          <R ic={<Bell size={14} />} t={t('settings.notifications')} fn={() => navigate('/settings/safety')} />
+          <R ic={<Bell size={14} />} t={t('settings.notifications')} fn={() => navigate('/settings/notifications')} />
           <R
             ic={<Radio size={14} />}
             t={t('settings.liveNotifications')}

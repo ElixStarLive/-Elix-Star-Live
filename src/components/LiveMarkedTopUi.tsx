@@ -423,14 +423,16 @@ export type LiveComboStackItem = {
 
 const LIVE_MARKED_UI_DEMO_KEY = 'elix_live_marked_ui_demo';
 
-/** Demo on by default so circled combo column is visible without sending gifts. Tap DEMO UI to turn off. */
-export function readLiveMarkedUiDemoEnabled(_isStoreBuild: boolean): boolean {
+/**
+ * Marked UI demo (fake supporters / combo) is opt-in only.
+ * Store / production builds always return false — never show fake accounts.
+ */
+export function readLiveMarkedUiDemoEnabled(isStoreBuild: boolean): boolean {
+  if (isStoreBuild) return false;
   try {
-    const v = localStorage.getItem(LIVE_MARKED_UI_DEMO_KEY);
-    if (v === '0') return false;
-    return true;
+    return localStorage.getItem(LIVE_MARKED_UI_DEMO_KEY) === '1';
   } catch {
-    return true;
+    return false;
   }
 }
 
@@ -475,10 +477,14 @@ export function buildLiveMarkedUiDemoComboStack(): LiveComboStackItem[] {
 export function LiveMarkedUiDemoToggle({
   enabled,
   onToggle,
+  /** Store builds never show the demo toggle. */
+  storeBuild = false,
 }: {
   enabled: boolean;
   onToggle: (next: boolean) => void;
+  storeBuild?: boolean;
 }) {
+  if (storeBuild) return null;
   return (
     <button
       type="button"

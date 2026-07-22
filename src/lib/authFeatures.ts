@@ -11,3 +11,11 @@ export function isAppleSignInEnabled(): boolean {
   if (runtime === 'false') return false;
   return import.meta.env.VITE_APPLE_SIGN_IN_ENABLED === 'true';
 }
+
+/** Password-reset UI — only when transactional email is configured on the server. */
+export function isPasswordResetEnabled(): boolean {
+  const runtime = runtimeEnv('VITE_EMAIL_CONFIGURED');
+  if (runtime === 'true') return true;
+  if (runtime === 'false') return false;
+  return import.meta.env.VITE_EMAIL_CONFIGURED === 'true';
+}

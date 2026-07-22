@@ -218,16 +218,63 @@ export async function handleAdminListPayouts(req: Request, res: Response) {
     if (!adminId) return res.status(403).json({ error: 'Admin only' });
 
     const status = (req.query.status as string) || 'pending';
-    const r = await db.query(
-      `SELECT p.*, pr.username, pr.display_name, pr.avatar_url
-       FROM elix_payout_requests p LEFT JOIN profiles pr ON pr.user_id = p.user_id
-       WHERE p.status = $1 ORDER BY p.created_at ASC LIMIT 100`, [status],
-    );
-    return res.json({ payouts: r.rows });
+    const allowed = new Set([
+      'pending',
+      'under_review',
+      'approved',
+      'paid_manually',
+      'rejected',
+      'cancelled',
+      'all',
+    ]);
+    if (!allowed.has(status)) {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+    const r =
+      status === 'all'
+        ? await db.query(
+            `SELECT p.*, pr.username, pr.display_name, pr.avatar_url
+             FROM elix_payout_requests p LEFT JOIN profiles pr ON pr.user_id = p.user_id
+             ORDER BY p.created_at DESC LIMIT 100`,
+          )
+        : await db.query(
+            `SELECT p.*, pr.username, pr.display_name, pr.avatar_url
+             FROM elix_payout_requests p LEFT JOIN profiles pr ON pr.user_id = p.user_id
+             WHERE p.status = $1 ORDER BY p.created_at ASC LIMIT 100`,
+            [status],
+          );
+    return res.json({
+      payouts: r.rows,
+      workflow: [
+        'pending',
+        'under_review',
+        'approved',
+        'paid_manually',
+        'rejected',
+        'cancelled',
+      ],
+      note: 'Manual bank payout only — no automated bank rail',
+    });
   } catch (err) {
     logger.error({ err }, 'Admin list payouts error');
     return res.status(500).json({ error: 'Failed to list payouts' });
   }
+}
+
+async function writePayoutAudit(
+  client: { query: (sql: string, params?: unknown[]) => Promise<unknown> },
+  payoutRequestId: string,
+  adminUserId: string,
+  previousStatus: string | null,
+  newStatus: string,
+  note: string | null,
+): Promise<void> {
+  await client.query(
+    `INSERT INTO elix_payout_audit
+       (payout_request_id, admin_user_id, previous_status, new_status, note)
+     VALUES ($1, $2, $3, $4, $5)`,
+    [payoutRequestId, adminUserId, previousStatus, newStatus, note],
+  );
 }
 
 export async function handleAdminApprovePayout(req: Request, res: Response) {
@@ -245,8 +292,15 @@ export async function handleAdminApprovePayout(req: Request, res: Response) {
     try {
       await client.query('BEGIN');
       const pr = await client.query(
-        `UPDATE elix_payout_requests SET status = 'approved', admin_note = $2, processed_at = NOW()
-         WHERE id = $1 AND status = 'pending' RETURNING *`, [requestId, admin_note || null],
+        `UPDATE elix_payout_requests
+         SET status = 'approved',
+             previous_status = status,
+             admin_note = $2,
+             processed_by = $3,
+             processed_at = NOW()
+         WHERE id = $1 AND status IN ('pending', 'under_review')
+         RETURNING *`,
+        [requestId, admin_note || null, adminId],
       );
       if (pr.rowCount === 0) {
         await client.query('ROLLBACK');
@@ -256,6 +310,14 @@ export async function handleAdminApprovePayout(req: Request, res: Response) {
       await client.query(
         `UPDATE elix_creator_balances SET locked_coins = locked_coins - $2, total_withdrawn = total_withdrawn + $2, updated_at = NOW()
          WHERE user_id = $1`, [payout.user_id, payout.coins_amount],
+      );
+      await writePayoutAudit(
+        client,
+        requestId,
+        adminId,
+        payout.previous_status || 'pending',
+        'approved',
+        admin_note || null,
       );
       await client.query('COMMIT');
       return res.json({ payout: pr.rows[0] });
@@ -281,22 +343,43 @@ export async function handleAdminRejectPayout(req: Request, res: Response) {
 
     const requestId = req.params.id;
     const { admin_note } = req.body;
+    if (!admin_note || !String(admin_note).trim()) {
+      return res.status(400).json({ error: 'admin_note required' });
+    }
 
     const client = await db.connect();
     try {
       await client.query('BEGIN');
       const pr = await client.query(
-        `UPDATE elix_payout_requests SET status = 'rejected', admin_note = $2, processed_at = NOW()
-         WHERE id = $1 AND status = 'pending' RETURNING *`, [requestId, admin_note || null],
+        `UPDATE elix_payout_requests
+         SET status = 'rejected',
+             previous_status = status,
+             admin_note = $2,
+             processed_by = $3,
+             processed_at = NOW()
+         WHERE id = $1 AND status IN ('pending', 'under_review')
+         RETURNING *`,
+        [requestId, admin_note, adminId],
       );
       if (pr.rowCount === 0) {
         await client.query('ROLLBACK');
         return res.status(400).json({ error: 'Payout not found or already processed' });
       }
       const payout = pr.rows[0];
-      await client.query(
-        `UPDATE elix_creator_balances SET locked_coins = locked_coins - $2, available_coins = available_coins + $2, updated_at = NOW()
-         WHERE user_id = $1`, [payout.user_id, payout.coins_amount],
+      // Unlock coins only when they were still locked (pending/under_review).
+      if (payout.previous_status === 'pending' || payout.previous_status === 'under_review') {
+        await client.query(
+          `UPDATE elix_creator_balances SET locked_coins = locked_coins - $2, available_coins = available_coins + $2, updated_at = NOW()
+           WHERE user_id = $1`, [payout.user_id, payout.coins_amount],
+        );
+      }
+      await writePayoutAudit(
+        client,
+        requestId,
+        adminId,
+        payout.previous_status || 'pending',
+        'rejected',
+        admin_note,
       );
       await client.query('COMMIT');
       return res.json({ payout: pr.rows[0] });
@@ -311,6 +394,171 @@ export async function handleAdminRejectPayout(req: Request, res: Response) {
     return res.status(500).json({ error: 'Failed to reject payout' });
   }
 }
+
+/** Mark an approved payout as paid manually (no bank rail). */
+export async function handleAdminMarkPayoutPaid(req: Request, res: Response) {
+  const db = getPool();
+  if (!db) return res.status(503).json({ error: 'Database not configured' });
+  try {
+    await ensureTables();
+    const adminId = await requireAdmin(req, db);
+    if (!adminId) return res.status(403).json({ error: 'Admin only' });
+
+    const requestId = req.params.id;
+    const { admin_note } = req.body;
+
+    const client = await db.connect();
+    try {
+      await client.query('BEGIN');
+      const pr = await client.query(
+        `UPDATE elix_payout_requests
+         SET status = 'paid_manually',
+             previous_status = status,
+             admin_note = COALESCE($2, admin_note),
+             processed_by = $3,
+             processed_at = NOW()
+         WHERE id = $1 AND status = 'approved'
+         RETURNING *`,
+        [requestId, admin_note || null, adminId],
+      );
+      if (pr.rowCount === 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'Payout must be approved before marking paid' });
+      }
+      const payout = pr.rows[0];
+      await writePayoutAudit(
+        client,
+        requestId,
+        adminId,
+        payout.previous_status || 'approved',
+        'paid_manually',
+        admin_note || null,
+      );
+      await client.query('COMMIT');
+      return res.json({ payout: pr.rows[0] });
+    } catch (e) {
+      await client.query('ROLLBACK').catch((re) => logger.warn({ err: re }, "ROLLBACK failed"));
+      throw e;
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    logger.error({ err }, 'Admin mark payout paid error');
+    return res.status(500).json({ error: 'Failed to mark payout paid' });
+  }
+}
+
+export async function handleAdminCancelPayout(req: Request, res: Response) {
+  const db = getPool();
+  if (!db) return res.status(503).json({ error: 'Database not configured' });
+  try {
+    await ensureTables();
+    const adminId = await requireAdmin(req, db);
+    if (!adminId) return res.status(403).json({ error: 'Admin only' });
+
+    const requestId = req.params.id;
+    const { admin_note } = req.body;
+    if (!admin_note || !String(admin_note).trim()) {
+      return res.status(400).json({ error: 'admin_note required' });
+    }
+
+    const client = await db.connect();
+    try {
+      await client.query('BEGIN');
+      const pr = await client.query(
+        `UPDATE elix_payout_requests
+         SET status = 'cancelled',
+             previous_status = status,
+             admin_note = $2,
+             processed_by = $3,
+             processed_at = NOW()
+         WHERE id = $1 AND status IN ('pending', 'under_review')
+         RETURNING *`,
+        [requestId, admin_note, adminId],
+      );
+      if (pr.rowCount === 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'Payout not found or not cancellable' });
+      }
+      const payout = pr.rows[0];
+      await client.query(
+        `UPDATE elix_creator_balances SET locked_coins = locked_coins - $2, available_coins = available_coins + $2, updated_at = NOW()
+         WHERE user_id = $1`, [payout.user_id, payout.coins_amount],
+      );
+      await writePayoutAudit(
+        client,
+        requestId,
+        adminId,
+        payout.previous_status || 'pending',
+        'cancelled',
+        admin_note,
+      );
+      await client.query('COMMIT');
+      return res.json({ payout: pr.rows[0] });
+    } catch (e) {
+      await client.query('ROLLBACK').catch((re) => logger.warn({ err: re }, "ROLLBACK failed"));
+      throw e;
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    logger.error({ err }, 'Admin cancel payout error');
+    return res.status(500).json({ error: 'Failed to cancel payout' });
+  }
+}
+
+export async function handleAdminReviewPayout(req: Request, res: Response) {
+  const db = getPool();
+  if (!db) return res.status(503).json({ error: 'Database not configured' });
+  try {
+    await ensureTables();
+    const adminId = await requireAdmin(req, db);
+    if (!adminId) return res.status(403).json({ error: 'Admin only' });
+
+    const requestId = req.params.id;
+    const { admin_note } = req.body;
+
+    const client = await db.connect();
+    try {
+      await client.query('BEGIN');
+      const pr = await client.query(
+        `UPDATE elix_payout_requests
+         SET status = 'under_review',
+             previous_status = status,
+             admin_note = COALESCE($2, admin_note),
+             processed_by = $3,
+             processed_at = NOW()
+         WHERE id = $1 AND status = 'pending'
+         RETURNING *`,
+        [requestId, admin_note || null, adminId],
+      );
+      if (pr.rowCount === 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'Payout not found or not pending' });
+      }
+      const payout = pr.rows[0];
+      await writePayoutAudit(
+        client,
+        requestId,
+        adminId,
+        payout.previous_status || 'pending',
+        'under_review',
+        admin_note || null,
+      );
+      await client.query('COMMIT');
+      return res.json({ payout: pr.rows[0] });
+    } catch (e) {
+      await client.query('ROLLBACK').catch((re) => logger.warn({ err: re }, "ROLLBACK failed"));
+      throw e;
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    logger.error({ err }, 'Admin review payout error');
+    return res.status(500).json({ error: 'Failed to mark under review' });
+  }
+}
+
 
 export async function handleAdminChargeback(req: Request, res: Response) {
   const db = getPool();

@@ -341,8 +341,13 @@ export default function Profile() {
         }));
         setVideos(mapped);
       } else if (activeTab === 'liked') {
-        const { data: body, error } = await request('/api/videos/liked/list');
-        if (error) { setVideos([]); setVideosLoading(false); return; }
+        const { data: body, error } = await request('/api/videos/liked/list?limit=50&offset=0');
+        if (error) {
+          setVideos([]);
+          setVideosLoading(false);
+          showToast(error.message || 'Failed to load liked videos');
+          return;
+        }
         const vids = Array.isArray(body?.videos) ? body.videos : [];
         setVideos(vids.map((v: { id: string; thumbnail?: string; thumbnail_url?: string; url?: string; views?: number }) => ({
           id: v.id,
@@ -352,8 +357,13 @@ export default function Profile() {
           is_public: true,
         })));
       } else if (activeTab === 'saved') {
-        const { data: body, error } = await request('/api/videos/saved/list');
-        if (error) { setVideos([]); setVideosLoading(false); return; }
+        const { data: body, error } = await request('/api/videos/saved/list?limit=50&offset=0');
+        if (error) {
+          setVideos([]);
+          setVideosLoading(false);
+          showToast(error.message || 'Failed to load saved videos');
+          return;
+        }
         const vids = Array.isArray(body?.videos) ? body.videos : [];
         setVideos(vids.map((v: { id: string; thumbnail?: string; thumbnail_url?: string; url?: string; views?: number }) => ({
           id: v.id,

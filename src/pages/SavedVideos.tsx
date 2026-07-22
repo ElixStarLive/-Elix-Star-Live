@@ -3,6 +3,7 @@ import { RoyceBackIcon } from '../components/royce';
 import { Bookmark, Play } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { request } from '../lib/apiClient';
+import { showToast } from '../lib/toast';
 
 interface SavedVideo {
   id: string;
@@ -16,20 +17,26 @@ export default function SavedVideos() {
   const navigate = useNavigate();
   const [videos, setVideos] = useState<SavedVideo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const { data, error } = await request('/api/videos/saved/list');
+        const { data, error } = await request('/api/videos/saved/list?limit=50&offset=0');
         if (error) {
           setVideos([]);
+          setLoadError(error.message || 'Failed to load saved videos');
+          showToast(error.message || 'Failed to load saved videos');
           setLoading(false);
           return;
         }
         const vids = Array.isArray(data?.videos) ? data.videos : (Array.isArray(data) ? data : []);
         setVideos(vids);
+        setLoadError(null);
       } catch {
         setVideos([]);
+        setLoadError('Failed to load saved videos');
+        showToast('Failed to load saved videos');
       }
       setLoading(false);
     };
@@ -55,6 +62,11 @@ export default function SavedVideos() {
         {loading ? (
           <div className="flex-1 flex items-center justify-center">
             <div className="w-10 h-10 border-3 border-[#C9A227] border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : loadError ? (
+          <div className="flex-1 flex flex-col items-center justify-center gap-3 px-8">
+            <Bookmark size={48} className="text-white/20" />
+            <p className="text-red-400/80 text-sm text-center">{loadError}</p>
           </div>
         ) : videos.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-3 px-8">

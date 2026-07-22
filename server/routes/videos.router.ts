@@ -134,6 +134,8 @@ router.get("/saved/list", async (req, res) => {
   const db = getPool();
   if (!db) return res.status(503).json({ error: "Database not configured", videos: [] });
   try {
+    const limit = Math.min(Math.max(parseInt(String(req.query.limit || "50"), 10) || 50, 1), 100);
+    const offset = Math.max(parseInt(String(req.query.offset || "0"), 10) || 0, 0);
     const r = await db.query(
       `SELECT v.id, v.url, v.thumbnail, v.description, v.views, v.likes, v.created_at, v.user_id
        FROM saves s
@@ -141,10 +143,10 @@ router.get("/saved/list", async (req, res) => {
        WHERE s.user_id = $1
          AND (v.user_id = $1 OR COALESCE(v.privacy, 'public') <> 'private')
        ORDER BY s.created_at DESC
-       LIMIT 200`,
-      [payload.sub],
+       LIMIT $2 OFFSET $3`,
+      [payload.sub, limit, offset],
     );
-    return res.json({ videos: r.rows });
+    return res.json({ videos: r.rows, limit, offset, hasMore: r.rows.length === limit });
   } catch (err) {
     logger.error({ err }, "GET saved/list failed");
     return res.status(500).json({ error: "Failed to load saved videos", videos: [] });
@@ -159,6 +161,8 @@ router.get("/liked/list", async (req, res) => {
   const db = getPool();
   if (!db) return res.status(503).json({ error: "Database not configured", videos: [] });
   try {
+    const limit = Math.min(Math.max(parseInt(String(req.query.limit || "50"), 10) || 50, 1), 100);
+    const offset = Math.max(parseInt(String(req.query.offset || "0"), 10) || 0, 0);
     const r = await db.query(
       `SELECT v.id, v.url, v.thumbnail, v.description, v.views, v.likes, v.created_at, v.user_id
        FROM likes l
@@ -166,10 +170,10 @@ router.get("/liked/list", async (req, res) => {
        WHERE l.user_id = $1
          AND (v.user_id = $1 OR COALESCE(v.privacy, 'public') <> 'private')
        ORDER BY l.created_at DESC
-       LIMIT 200`,
-      [payload.sub],
+       LIMIT $2 OFFSET $3`,
+      [payload.sub, limit, offset],
     );
-    return res.json({ videos: r.rows });
+    return res.json({ videos: r.rows, limit, offset, hasMore: r.rows.length === limit });
   } catch (err) {
     logger.error({ err }, "GET liked/list failed");
     return res.status(500).json({ error: "Failed to load liked videos", videos: [] });

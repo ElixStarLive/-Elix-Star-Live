@@ -20,10 +20,29 @@ type PayoutMethod = {
   is_default?: boolean;
 };
 
+type PayoutRequest = {
+  id: string;
+  coins_amount: number;
+  status: string;
+  admin_note?: string | null;
+  created_at?: string;
+  processed_at?: string | null;
+};
+
+const PAYOUT_STATUS_LABEL: Record<string, string> = {
+  pending: 'Requested',
+  under_review: 'Under review',
+  approved: 'Approved',
+  paid_manually: 'Paid manually',
+  rejected: 'Rejected',
+  cancelled: 'Cancelled',
+};
+
 export default function CreatorPayout() {
   const navigate = useNavigate();
   const [balance, setBalance] = useState<Balance | null>(null);
   const [methods, setMethods] = useState<PayoutMethod[]>([]);
+  const [requests, setRequests] = useState<PayoutRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
@@ -35,12 +54,14 @@ export default function CreatorPayout() {
   const reload = useCallback(async () => {
     setLoading(true);
     try {
-      const [balRes, methRes] = await Promise.all([
+      const [balRes, methRes, payRes] = await Promise.all([
         request<Balance>('/api/creator/balance'),
         request<{ methods?: PayoutMethod[] }>('/api/creator/payout-methods'),
+        request<{ payouts?: PayoutRequest[] }>('/api/creator/payouts'),
       ]);
       if (balRes.data) setBalance(balRes.data);
       setMethods(Array.isArray(methRes.data?.methods) ? methRes.data.methods : []);
+      setRequests(Array.isArray(payRes.data?.payouts) ? payRes.data.payouts : []);
     } catch {
       showToast('Could not load payout info');
     } finally {
@@ -226,7 +247,26 @@ export default function CreatorPayout() {
               >
                 {withdrawing ? 'Submitting...' : 'Request withdraw'}
               </button>
+              <p className="text-[10px] text-white/40">
+                Manual admin review only. Status: Requested → Under review → Approved → Paid manually.
+              </p>
             </div>
+
+            {requests.length > 0 ? (
+              <div className="rounded-xl border border-white/10 bg-white/5 p-3 space-y-2">
+                <p className="text-[#D4AF37] font-bold text-sm">Your requests</p>
+                {requests.slice(0, 10).map((r) => (
+                  <div key={r.id} className="flex justify-between gap-2 text-[11px]">
+                    <span className="text-white/70 tabular-nums">
+                      {Number(r.coins_amount).toLocaleString()} coins
+                    </span>
+                    <span className="text-white/50">
+                      {PAYOUT_STATUS_LABEL[r.status] || r.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </>
         )}
       </div>

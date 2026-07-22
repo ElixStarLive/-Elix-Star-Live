@@ -248,7 +248,7 @@ export function LiveSideMissionStack({
 
         <div className="flex flex-col gap-1">
           {top3.length === 0 ? (
-            <span className="text-white/35 text-[8px] py-0.5">No gifts yet</span>
+            <span className="text-white/35 text-[8px] py-0.5">No supporters yet</span>
           ) : (
             top3.map((s, i) => (
               <div key={s.id || `${s.name}-${i}`} className="flex items-center gap-1.5 min-w-0">

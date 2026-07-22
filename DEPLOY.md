@@ -100,8 +100,9 @@ The app issues tokens for streamers and viewers and the frontend connects to `LI
 - Test login/signup, then upload a video (Bunny) and start a live stream (LiveKit).
 - If something fails, check Coolify logs and that all env vars (especially `VITE_*`, `LIVEKIT_*`, and `BUNNY_*`) are set correctly.
 - **Engagement (Phase 1 + 1.5):** Coolify release should run `npm run migrate` so engagement SQL applies (`20260722190000_*` through `20260722230000_*`). Promo gifts create **zero Diamonds**. Defaults are ON; set `ENGAGEMENT_NEON_APPROVED=false` only to kill-switch Neon wallet writes.
-- **Creator withdrawals:** Users request payout via `/api/creator/withdraw`. Funds move available→locked; an admin must approve/reject in Admin. There is no automatic bank rail in-app — treat approve as the ops handoff.
-- **Admin purchases:** IAP ledger is `GET /api/admin/purchases` (and `/iap-purchases`). Shop Stripe orders are `GET /api/admin/shop-purchases`.
+- **Payout audit (additive):** `20260722240000_payout_audit_and_statuses.sql` adds `processed_by`, `previous_status`, and `elix_payout_audit`. Status workflow: Requested → Under review → Approved → Paid manually (or Rejected / Cancelled). Manual bank payout only.
+- **Creator withdrawals:** Users request payout via `/api/creator/withdraw`. Funds move available→locked; admins manage status in `/admin/withdrawals`. There is no automatic bank rail in-app.
+- **Admin purchases:** IAP ledger is `GET /api/admin/purchases` (and `/iap-purchases`). Shop Stripe orders are `GET /api/admin/shop-purchases`. UI: `/admin/purchases`.
 
 ## 7. Local development
 

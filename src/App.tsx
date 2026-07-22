@@ -91,6 +91,12 @@ const RisingStars = lazy(() => import("./pages/RisingStars"));
 const RisingStarsChallenge = lazy(() => import("./pages/RisingStarsChallenge"));
 const AdminRisingStars = lazy(() => import("./pages/admin/RisingStars"));
 const AdminProgression = lazy(() => import("./pages/admin/Progression"));
+const AdminPurchases = lazy(() => import("./pages/admin/Purchases"));
+const AdminWithdrawals = lazy(() => import("./pages/admin/Withdrawals"));
+const SecuritySettings = lazy(() => import("./pages/settings/SecuritySettings"));
+const NotificationSettings = lazy(
+  () => import("./pages/settings/NotificationSettings"),
+);
 
 function LiveStreamKeyed() {
   const loc = useLocation();
@@ -425,6 +431,11 @@ function App() {
                 <Route path="/settings/payout" element={<CreatorPayout />} />
                 <Route path="/settings/blocked" element={<BlockedAccounts />} />
                 <Route path="/settings/safety" element={<SafetyCenter />} />
+                <Route path="/settings/security" element={<SecuritySettings />} />
+                <Route
+                  path="/settings/notifications"
+                  element={<NotificationSettings />}
+                />
                 <Route path="/profile/:userId/followers" element={<FollowList />} />
                 <Route path="/profile/:userId/following" element={<FollowList />} />
                 <Route path="/purchase-coins" element={<PurchaseCoins />} />
@@ -437,6 +448,8 @@ function App() {
                   <Route path="/admin/users" element={<AdminUsers />} />
                   <Route path="/admin/reports" element={<AdminReports />} />
                   <Route path="/admin/economy" element={<AdminEconomy />} />
+                  <Route path="/admin/purchases" element={<AdminPurchases />} />
+                  <Route path="/admin/withdrawals" element={<AdminWithdrawals />} />
                   <Route path="/admin/rising-stars" element={<AdminRisingStars />} />
                   <Route path="/admin/progression" element={<AdminProgression />} />
                 </Route>

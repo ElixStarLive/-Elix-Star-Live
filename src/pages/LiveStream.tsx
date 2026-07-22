@@ -6259,6 +6259,7 @@ export default function LiveStream() {
       {/* Combo + Mission docked together — separate live sources */}
       <LiveMarkedUiDemoToggle
         enabled={markedUiDemo}
+        storeBuild={IS_STORE_BUILD}
         onToggle={(next) => {
           writeLiveMarkedUiDemoEnabled(next);
           setMarkedUiDemo(next);
