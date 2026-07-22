@@ -39,6 +39,11 @@
   :root {
     --color-primary: #D4AF37;
     --color-secondary: #C9A227;
+    /* Blue Violet icon theme (row 11 — Home/Profile/Wallet/Setting) */
+    --icon-blue-violet: #6366F1;
+    --icon-blue-violet-diamond: #C4B5FD;
+    --icon-blue-violet-glow: rgba(99, 102, 241, 0.75);
+    --icon-blue-violet-glow-soft: rgba(99, 102, 241, 0.35);
     --color-gold: #C9A227;
     --color-gold-bright: #D4AF37;
     --color-gold-light: #E8D5A3;
@@ -860,7 +865,7 @@
 
 /*
  * Unified icon halo (app-wide):
- * soft Royal Purple glow disc — effect only, NO solid ring/border.
+ * soft Blue Violet glow disc — effect only, NO solid ring/border.
  */
 .royce-glow-disc,
 .royce-tile {
@@ -874,37 +879,37 @@
   background:
     radial-gradient(
       circle at center,
-      rgba(168, 85, 247, 0.28) 0%,
+      rgba(99, 102, 241, 0.28) 0%,
       rgba(17, 17, 17, 0.72) 52%,
       rgba(0, 0, 0, 0.2) 78%,
       transparent 100%
     );
   box-shadow:
-    0 0 10px 2px rgba(168, 85, 247, 0.42),
-    0 0 22px 5px rgba(168, 85, 247, 0.18);
+    0 0 10px 2px rgba(99, 102, 241, 0.42),
+    0 0 22px 5px rgba(99, 102, 241, 0.18);
 }
 
-/* Same soft purple glow on user avatar circles (Friends strip, feed, etc.) */
+/* Same soft Blue Violet glow on user avatar circles (Friends strip, feed, etc.) */
 .royce-avatar-glow {
   border-radius: 9999px;
   box-shadow:
-    0 0 10px 2px rgba(168, 85, 247, 0.42),
-    0 0 22px 5px rgba(168, 85, 247, 0.18);
+    0 0 10px 2px rgba(99, 102, 241, 0.42),
+    0 0 22px 5px rgba(99, 102, 241, 0.18);
 }
 
 /*
- * Unified icon design (app-wide) — Royal Purple theme:
- * thin purple line icons + soft glow (readable on black video).
- * Chart: Profile/Wallet/Setting #A855F7
+ * Unified icon design (app-wide) — Blue Violet theme:
+ * thin line icons + soft glow (readable on black video).
+ * Chart row 11: Home/Profile/Wallet/Setting #6366F1
  */
 svg.lucide {
-  color: #A855F7 !important;
+  color: var(--icon-blue-violet) !important;
   stroke: currentColor !important;
   stroke-width: 2;
   fill: none !important;
   filter:
-    drop-shadow(0 0 3px rgba(168, 85, 247, 0.75))
-    drop-shadow(0 0 8px rgba(168, 85, 247, 0.35));
+    drop-shadow(0 0 3px var(--icon-blue-violet-glow))
+    drop-shadow(0 0 8px var(--icon-blue-violet-glow-soft));
 }
 
 /* Active filled states (save, badge hearts, etc.) */
@@ -929,7 +934,7 @@ svg.lucide.text-red-500 {
 .bottom-nav-icon,
 .royce-icon-muted,
 .stroke-gold-metallic {
-  color: #A855F7 !important;
+  color: var(--icon-blue-violet) !important;
   stroke: currentColor;
   fill: none;
 }
@@ -937,4 +942,9 @@ svg.lucide.text-red-500 {
 .royce-icon-gold.fill-current,
 .royce-icon-gold.fill-gold-bright {
   fill: currentColor !important;
+}
+
+/* Custom SVG icons (glove, etc.) still using legacy gold text utility */
+svg.text-\[\#D4AF37\] {
+  color: var(--icon-blue-violet) !important;
 }
