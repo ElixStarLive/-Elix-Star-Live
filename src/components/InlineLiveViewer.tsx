@@ -239,7 +239,7 @@ export default function InlineLiveViewer({
           style={{ paddingTop: "calc(env(safe-area-inset-top, 8px) + 8px)" }}
         >
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/20">
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-[#E53935]">
               <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
               <span className="text-white text-[10px] font-bold">LIVE</span>
             </div>
