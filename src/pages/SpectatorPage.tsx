@@ -193,6 +193,16 @@ type LiveMessage = {
   stickerUrl?: string;
 };
 
+function normalizeUserId(id: string | null | undefined): string {
+  return typeof id === 'string' ? id.trim().toLowerCase() : '';
+}
+
+function sameUserId(a: string | null | undefined, b: string | null | undefined): boolean {
+  const na = normalizeUserId(a);
+  const nb = normalizeUserId(b);
+  return !!na && !!nb && na === nb;
+}
+
 export default function SpectatorPage() {
   const { streamId } = useParams<{ streamId: string }>();
   const navigate = useNavigate();
@@ -918,6 +928,35 @@ export default function SpectatorPage() {
   // Co-host identities whose camera is off (video track muted) — show their avatar instead.
   const [remoteCamOff, setRemoteCamOff] = useState<Set<string>>(new Set());
 
+  const findCoHostVideoEl = useCallback((identity: string): HTMLVideoElement | null => {
+    const direct = coHostVideoRefs.current.get(identity);
+    if (direct) return direct;
+    for (const [uid, el] of coHostVideoRefs.current) {
+      if (sameUserId(uid, identity)) return el;
+    }
+    return null;
+  }, []);
+
+  const markRemoteCam = useCallback((identity: string, off: boolean) => {
+    if (!identity) return;
+    setRemoteCamOff((prev) => {
+      let changed = false;
+      const next = new Set<string>();
+      for (const id of prev) {
+        if (sameUserId(id, identity)) {
+          changed = true;
+          continue;
+        }
+        next.add(id);
+      }
+      if (off) {
+        next.add(identity);
+        changed = true;
+      }
+      return changed || off ? next : prev;
+    });
+  }, []);
+
   const [isCoHosting, setIsCoHosting] = useState(false);
   const [coHostStream, setCoHostStream] = useState<MediaStream | null>(null);
   const coHostChanRef = useRef<unknown>(null);
@@ -1029,7 +1068,7 @@ export default function SpectatorPage() {
   useEffect(() => {
     if (isCoHosting && coHostStream && myVideoRef.current) {
       myVideoRef.current.srcObject = coHostStream;
-      myVideoRef.current.play().catch(() => {});
+      prepareLiveVideoEl(myVideoRef.current);
     }
   }, [isCoHosting, coHostStream]);
 
@@ -1289,51 +1328,61 @@ export default function SpectatorPage() {
         const hostId = hostUserIdRef.current || effectiveStreamId;
         let mainVideoAttached = false;
         let myIdentity = '';
+        const isHostIdentity = (identity: string) =>
+          sameUserId(identity, hostId) || sameUserId(identity, effectiveStreamId);
+
+        const attachHostVideo = (track: import('livekit-client').RemoteTrack) => {
+          if (!videoRef.current) return;
+          if (mainProvisionalTrackRef.current && mainProvisionalTrackRef.current !== track) {
+            try { mainProvisionalTrackRef.current.detach(videoRef.current); } catch { /* noop */ }
+          }
+          mainProvisionalTrackRef.current = null;
+          track.attach(videoRef.current);
+          prepareLiveVideoEl(videoRef.current);
+          currentMainTrackRef.current = track;
+          mainVideoAttached = true;
+          setHasStream(true);
+        };
+
+        const attachCoHostVideo = (track: import('livekit-client').RemoteTrack, identity: string) => {
+          const el = findCoHostVideoEl(identity);
+          if (!el) return false;
+          track.attach(el);
+          prepareLiveVideoEl(el);
+          if (mainProvisionalTrackRef.current === track && videoRef.current) {
+            try { track.detach(videoRef.current); } catch { /* noop */ }
+            mainProvisionalTrackRef.current = null;
+            mainVideoAttached = false;
+          }
+          return true;
+        };
+
         const onTrackSubscribed = (track: import('livekit-client').RemoteTrack, publication?: import('livekit-client').TrackPublication, participant?: import('livekit-client').RemoteParticipant) => {
           if (!mounted) return;
           const identity = participant?.identity || '';
-          if (track.kind === 'video' && publication?.isMuted && identity) {
-            setRemoteCamOff((prev) => { const n = new Set(prev); n.add(identity); return n; });
+          if (track.kind === 'video') {
+            if (publication?.isMuted && identity) markRemoteCam(identity, true);
+            else if (identity) markRemoteCam(identity, false);
           }
-          const isSelf = identity === myIdentity;
+          const isSelf = sameUserId(identity, myIdentity);
           if (track.kind === 'audio') {
-            const isHost = identity === hostId || identity === effectiveStreamId;
             // Never attach/play remote audio if it's our own track (e.g. host watching own stream in another tab)
             if (isSelf) return;
-            if (isHost) track.attach();
+            if (isHostIdentity(identity)) track.attach();
             return;
           }
           if (track.kind === 'video' && participant && videoRef.current) {
-            const isHost = identity === hostId || identity === effectiveStreamId;
             if (isSelf) return;
-            if (isHost) {
-              // Host always owns the big box; evict any provisional co-host first.
-              if (mainProvisionalTrackRef.current && mainProvisionalTrackRef.current !== track) {
-                try { mainProvisionalTrackRef.current.detach(videoRef.current); } catch { /* noop */ }
-              }
-              mainProvisionalTrackRef.current = null;
-              track.attach(videoRef.current);
-              currentMainTrackRef.current = track;
-              mainVideoAttached = true;
-              setHasStream(true);
+            if (isHostIdentity(identity)) {
+              attachHostVideo(track);
               return;
             }
             // Non-host (co-host): belongs in a small tile, never the big box.
-            const el = coHostVideoRefs.current.get(identity);
-            if (el) {
-              track.attach(el);
-              prepareLiveVideoEl(el);
-              // If this co-host was provisionally shown in the big box, remove them from it.
-              if (mainProvisionalTrackRef.current === track) {
-                try { track.detach(videoRef.current); } catch { /* noop */ }
-                mainProvisionalTrackRef.current = null;
-                mainVideoAttached = false;
-              }
-              return;
-            }
+            if (attachCoHostVideo(track, identity)) return;
             // No tile yet and host not shown — provisionally fill the big box so it isn't blank.
             if (!mainVideoAttached) {
               track.attach(videoRef.current);
+              prepareLiveVideoEl(videoRef.current);
               currentMainTrackRef.current = track;
               mainProvisionalTrackRef.current = track;
               mainVideoAttached = true;
@@ -1355,13 +1404,13 @@ export default function SpectatorPage() {
           if (!mounted || pub.kind !== 'video') return;
           const id = participant?.identity;
           if (!id) return;
-          setRemoteCamOff((prev) => { const n = new Set(prev); n.add(id); return n; });
+          markRemoteCam(id, true);
         });
         room.on(RoomEvent.TrackUnmuted, (pub, participant) => {
           if (!mounted || pub.kind !== 'video') return;
           const id = participant?.identity;
           if (!id) return;
-          setRemoteCamOff((prev) => { const n = new Set(prev); n.delete(id); return n; });
+          markRemoteCam(id, false);
         });
         await room.connect(url, token);
         if (!mounted) {
@@ -1371,41 +1420,22 @@ export default function SpectatorPage() {
         myIdentity = room.localParticipant?.identity ?? '';
         for (const [, participant] of room.remoteParticipants) {
           const identity = participant.identity || '';
-          const isHost = identity === hostId || identity === effectiveStreamId;
-          const isSelf = identity === myIdentity;
-          if (isSelf) continue;
+          const isHost = isHostIdentity(identity);
+          if (sameUserId(identity, myIdentity)) continue;
           for (const [, publication] of participant.videoTrackPublications) {
-            if (publication.isMuted && identity) {
-              setRemoteCamOff((prev) => { const n = new Set(prev); n.add(identity); return n; });
-            }
+            if (publication.isMuted && identity) markRemoteCam(identity, true);
+            else if (identity) markRemoteCam(identity, false);
             if (publication.track && publication.isSubscribed && videoRef.current) {
               const track = publication.track;
               if (isHost) {
-                if (mainProvisionalTrackRef.current && mainProvisionalTrackRef.current !== track) {
-                  try { mainProvisionalTrackRef.current.detach(videoRef.current); } catch { /* noop */ }
-                }
-                mainProvisionalTrackRef.current = null;
+                attachHostVideo(track);
+              } else if (!attachCoHostVideo(track, identity) && !mainVideoAttached) {
                 track.attach(videoRef.current);
+                prepareLiveVideoEl(videoRef.current);
                 currentMainTrackRef.current = track;
+                mainProvisionalTrackRef.current = track;
                 mainVideoAttached = true;
                 setHasStream(true);
-              } else {
-                const el = coHostVideoRefs.current.get(identity);
-                if (el) {
-                  track.attach(el);
-                  prepareLiveVideoEl(el);
-                  if (mainProvisionalTrackRef.current === track) {
-                    try { track.detach(videoRef.current); } catch { /* noop */ }
-                    mainProvisionalTrackRef.current = null;
-                    mainVideoAttached = false;
-                  }
-                } else if (!mainVideoAttached) {
-                  track.attach(videoRef.current);
-                  currentMainTrackRef.current = track;
-                  mainProvisionalTrackRef.current = track;
-                  mainVideoAttached = true;
-                  setHasStream(true);
-                }
               }
             }
           }
@@ -1465,7 +1495,7 @@ export default function SpectatorPage() {
       }
       room.disconnect();
     };
-  }, [streamIsLive, effectiveStreamId, user?.id, liveConnectRetryKey, isCoHostFromUrl]);
+  }, [streamIsLive, effectiveStreamId, user?.id, liveConnectRetryKey, isCoHostFromUrl, findCoHostVideoEl, markRemoteCam]);
 
   // When user selects a spectator slot, show that participant on the main (big) screen; otherwise show creator.
   useEffect(() => {
@@ -1487,6 +1517,7 @@ export default function SpectatorPage() {
     if (current === videoTrack) return;
     if (current) current.detach(videoEl);
     videoTrack.attach(videoEl);
+    prepareLiveVideoEl(videoEl);
     currentMainTrackRef.current = videoTrack;
   }, [selectedSpectatorUserId, hasStream, effectiveStreamId]);
 
@@ -1498,17 +1529,20 @@ export default function SpectatorPage() {
     const hostId = hostUserIdRef.current || effectiveStreamId;
     for (const [, participant] of room.remoteParticipants) {
       const identity = participant.identity || '';
-      if (identity !== hostId && identity !== effectiveStreamId) continue;
+      if (!sameUserId(identity, hostId) && !sameUserId(identity, effectiveStreamId)) continue;
       for (const [, pub] of participant.videoTrackPublications) {
         if (pub.track && pub.isSubscribed) {
           pub.track.attach(videoEl);
+          prepareLiveVideoEl(videoEl);
           currentMainTrackRef.current = pub.track;
           setHasStream(true);
+          if (pub.isMuted) markRemoteCam(identity, true);
+          else markRemoteCam(identity, false);
           return;
         }
       }
     }
-  }, [spectatorBattle?.active, effectiveStreamId]);
+  }, [spectatorBattle?.active, effectiveStreamId, markRemoteCam]);
 
   // Battle: the opponent publishes into the HOST's LiveKit room (their solo room
   // ends when they join the battle). Route their host-room track to the opponent
@@ -3386,6 +3420,7 @@ export default function SpectatorPage() {
             if (slot.type === 'self') {
               return (
                 <>
+                  {isCamOff && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[#111111] z-[5]">
                     {(viewerAvatar || user?.avatar) ? (
                       <img src={viewerAvatar || user?.avatar || ''} alt="" className="w-10 h-10 rounded-full object-cover object-center" />
@@ -3395,6 +3430,7 @@ export default function SpectatorPage() {
                       </div>
                     )}
                   </div>
+                  )}
                   <video
                     ref={myVideoRef}
                     className={`absolute inset-0 w-full h-full object-cover z-[6] ${LIVE_WEBRTC_VIDEO_CLASS}`}
@@ -3403,7 +3439,11 @@ export default function SpectatorPage() {
                     muted
                     controls={false}
                     poster={LIVE_VIDEO_TRANSPARENT_POSTER}
-                    style={{ opacity: isCamOff ? 0 : 1, transition: 'opacity 0.3s ease', backgroundColor: 'transparent' }}
+                    style={{
+                      opacity: isCamOff ? 0 : 1,
+                      transition: 'opacity 0.3s ease',
+                      backgroundColor: '#111111',
+                    }}
                   />
                   <div className="absolute top-0.5 right-0.5 z-10 flex items-center gap-0.5 pointer-events-auto">
                     <button type="button" onClick={toggleMic} className="p-1" title={isMicMuted ? 'Unmute' : 'Mute'}>
@@ -3419,12 +3459,13 @@ export default function SpectatorPage() {
             }
             if (slot.type === 'live' && slot.host) {
               const h = slot.host;
-              const camOff = remoteCamOff.has(h.userId);
+              const camOff = [...remoteCamOff].some((id) => sameUserId(id, h.userId));
               const score = cohostGiftScores[h.userId] || 0;
               const lastGiftIcon = cohostLastGifts[h.userId];
               const isSelected = selectedCohostGiftUserId === h.userId;
               return (
                 <>
+                  {camOff && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[#111111] z-[5]">
                     {h.avatar ? (
                       <img src={h.avatar} alt="" className="w-10 h-10 rounded-full object-cover object-center" />
@@ -3435,6 +3476,7 @@ export default function SpectatorPage() {
                     )}
                     <span className="text-white/90 text-[8px] font-bold truncate max-w-full px-1">{h.name}</span>
                   </div>
+                  )}
                   <video
                     ref={(el) => {
                       if (el) {
@@ -3445,11 +3487,13 @@ export default function SpectatorPage() {
                         const room = liveKitRoomRef.current;
                         if (room) {
                           for (const [, p] of room.remoteParticipants) {
-                            if (p.identity !== h.userId) continue;
+                            if (!sameUserId(p.identity, h.userId)) continue;
                             for (const [, pub] of p.videoTrackPublications) {
                               if (pub.track && pub.isSubscribed) {
                                 pub.track.attach(el);
                                 prepareLiveVideoEl(el);
+                                if (pub.isMuted) markRemoteCam(p.identity, true);
+                                else markRemoteCam(p.identity, false);
                                 if (mainProvisionalTrackRef.current === pub.track && videoRef.current) {
                                   try { pub.track.detach(videoRef.current); } catch { /* noop */ }
                                   mainProvisionalTrackRef.current = null;
@@ -3468,7 +3512,11 @@ export default function SpectatorPage() {
                     muted
                     controls={false}
                     poster={LIVE_VIDEO_TRANSPARENT_POSTER}
-                    style={{ opacity: camOff ? 0 : 1, transition: 'opacity 0.3s ease', backgroundColor: 'transparent' }}
+                    style={{
+                      opacity: camOff ? 0 : 1,
+                      transition: 'opacity 0.3s ease',
+                      backgroundColor: '#111111',
+                    }}
                   />
                   <p className="absolute bottom-0.5 left-0.5 z-10 text-white/80 text-[8px] font-bold bg-black/50 rounded px-1 truncate max-w-[90%]">{h.name}</p>
                   {(lastGiftIcon || score > 0) && (
@@ -3556,15 +3604,23 @@ export default function SpectatorPage() {
               >
                 {(() => {
                   const hostId = hostUserIdRef.current || hostUserId || effectiveStreamId;
-                  const hostCamOff = remoteCamOff.has(hostId) || (effectiveStreamId ? remoteCamOff.has(effectiveStreamId) : false);
+                  const hostCamOff =
+                    [...remoteCamOff].some((id) => sameUserId(id, hostId) || sameUserId(id, effectiveStreamId));
                   return (
                     <>
                 <video
                   ref={videoRef}
-                  className="absolute inset-0 w-full h-full object-cover rounded-none z-[6]"
+                  className={`absolute inset-0 w-full h-full object-cover rounded-none z-[6] ${LIVE_WEBRTC_VIDEO_CLASS}`}
                   playsInline
                   autoPlay
-                  style={{ opacity: hasStream && !hostCamOff ? 1 : 0, transition: 'opacity 0.4s ease' }}
+                  muted
+                  controls={false}
+                  poster={LIVE_VIDEO_TRANSPARENT_POSTER}
+                  style={{
+                    opacity: hasStream && !hostCamOff ? 1 : 0,
+                    transition: 'opacity 0.4s ease',
+                    backgroundColor: '#111111',
+                  }}
                 />
                 {hostCamOff && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[#111111] z-[5]">
