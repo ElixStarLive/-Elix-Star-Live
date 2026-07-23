@@ -3,6 +3,11 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { showToast } from '../lib/toast';
 import { platform, openExternalLink, nativeShareUrl } from '../lib/platform';
 import {
+  prepareLiveVideoEl,
+  LIVE_WEBRTC_VIDEO_CLASS,
+  LIVE_VIDEO_TRANSPARENT_POSTER,
+} from '../lib/prepareLiveVideoEl';
+import {
   Send,
   Search,
   Heart,
@@ -784,7 +789,7 @@ export default function LiveStream() {
       const markAttached = (el: HTMLVideoElement | null) => {
         if (!el) return false;
         track.attach(el);
-        void el.play().catch(() => {});
+        prepareLiveVideoEl(el);
         return true;
       };
       if (slots[0]?.status === 'accepted' && slots[0]?.userId && sameUserId(identity, slots[0].userId)) {
@@ -817,7 +822,11 @@ export default function LiveStream() {
 
       // Co-host tiles (non-battle)
       const coHostEl = coHostVideoRefs.current.get(identity);
-      if (coHostEl) { track.attach(coHostEl); return; }
+      if (coHostEl) {
+        track.attach(coHostEl);
+        prepareLiveVideoEl(coHostEl);
+        return;
+      }
     };
 
     room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
@@ -1372,9 +1381,23 @@ export default function LiveStream() {
   };
 
   const toggleCoHostMute = (hostId: string) => {
-    setCoHosts(prev => prev.map(h =>
-      h.id === hostId ? { ...h, isMuted: !h.isMuted } : h
-    ));
+    setCoHosts(prev => prev.map(h => {
+      if (h.id !== hostId) return h;
+      const nextMuted = !h.isMuted;
+      // Audio is on LiveKit tracks (not the tile <video>). Mute volume so Android
+      // can keep the video element muted for autoplay.
+      const room = liveKitRoomRef.current;
+      if (room) {
+        for (const [, p] of room.remoteParticipants) {
+          if (!sameUserId(p.identity, h.userId)) continue;
+          for (const [, pub] of p.audioTrackPublications) {
+            const t = pub.track as { setVolume?: (v: number) => void } | null;
+            t?.setVolume?.(nextMuted ? 0 : 1);
+          }
+        }
+      }
+      return { ...h, isMuted: nextMuted };
+    }));
   };
   const [coHostCameraOff, setCoHostCameraOff] = useState<Record<string, boolean>>({});
   const toggleCoHostCamera = (hostId: string) => {
@@ -1922,6 +1945,7 @@ export default function LiveStream() {
           const coHostEl = coHostVideoRefs.current.get(identity);
           if (coHostEl) {
             pub.track.attach(coHostEl);
+            prepareLiveVideoEl(coHostEl);
             continue;
           }
           let battleEl: HTMLVideoElement | null = null;
@@ -5488,9 +5512,13 @@ export default function LiveStream() {
                       </div>
                       <video
                         ref={(el) => { if (el) coHostVideoRefs.current.set(host.userId, el); else coHostVideoRefs.current.delete(host.userId); }}
-                        className="absolute inset-0 w-full h-full object-cover z-[6]"
-                        autoPlay playsInline muted={host.isMuted}
-                        style={{ opacity: camOff ? 0 : 1, transition: 'opacity 0.3s ease' }}
+                        className={`absolute inset-0 w-full h-full object-cover z-[6] ${LIVE_WEBRTC_VIDEO_CLASS}`}
+                        autoPlay
+                        playsInline
+                        muted
+                        controls={false}
+                        poster={LIVE_VIDEO_TRANSPARENT_POSTER}
+                        style={{ opacity: camOff ? 0 : 1, transition: 'opacity 0.3s ease', backgroundColor: 'transparent' }}
                       />
                       <div className="absolute top-0.5 right-0.5 z-10 flex items-center gap-0.5 pointer-events-auto">
                         <button type="button" onClick={(e) => { e.stopPropagation(); toggleCoHostMute(host.id); }} className="rounded bg-black/50 p-0.5" title={host.isMuted ? 'Unmute' : 'Mute'}>

@@ -359,19 +359,23 @@
   }
 }
 
-/* Android WebView: hide default white play / media chrome on gift overlays */
-.gift-overlay-video::-webkit-media-controls {
+/* Android WebView: hide default white play / media chrome on gift overlays + live WebRTC */
+.gift-overlay-video::-webkit-media-controls,
+.live-webrtc-video::-webkit-media-controls {
   display: none !important;
   -webkit-appearance: none;
 }
-.gift-overlay-video::-webkit-media-controls-enclosure {
+.gift-overlay-video::-webkit-media-controls-enclosure,
+.live-webrtc-video::-webkit-media-controls-enclosure {
   display: none !important;
 }
-.gift-overlay-video::-webkit-media-controls-start-playback-button {
+.gift-overlay-video::-webkit-media-controls-start-playback-button,
+.live-webrtc-video::-webkit-media-controls-start-playback-button {
   display: none !important;
   -webkit-appearance: none;
 }
-.gift-overlay-video::-webkit-media-controls-overlay-play-button {
+.gift-overlay-video::-webkit-media-controls-overlay-play-button,
+.live-webrtc-video::-webkit-media-controls-overlay-play-button {
   display: none !important;
   -webkit-appearance: none;
   opacity: 0 !important;

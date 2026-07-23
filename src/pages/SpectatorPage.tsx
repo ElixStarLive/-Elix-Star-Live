@@ -4,6 +4,11 @@ import { RoyceCloseIcon } from '../components/royce';
 import { showToast } from '../lib/toast';
 import { IS_STORE_BUILD } from '../config/build';
 import {
+  prepareLiveVideoEl,
+  LIVE_WEBRTC_VIDEO_CLASS,
+  LIVE_VIDEO_TRANSPARENT_POSTER,
+} from '../lib/prepareLiveVideoEl';
+import {
   Send,
   Search,
   Heart,
@@ -1317,6 +1322,7 @@ export default function SpectatorPage() {
             const el = coHostVideoRefs.current.get(identity);
             if (el) {
               track.attach(el);
+              prepareLiveVideoEl(el);
               // If this co-host was provisionally shown in the big box, remove them from it.
               if (mainProvisionalTrackRef.current === track) {
                 try { track.detach(videoRef.current); } catch { /* noop */ }
@@ -1387,6 +1393,7 @@ export default function SpectatorPage() {
                 const el = coHostVideoRefs.current.get(identity);
                 if (el) {
                   track.attach(el);
+                  prepareLiveVideoEl(el);
                   if (mainProvisionalTrackRef.current === track) {
                     try { track.detach(videoRef.current); } catch { /* noop */ }
                     mainProvisionalTrackRef.current = null;
@@ -3390,9 +3397,13 @@ export default function SpectatorPage() {
                   </div>
                   <video
                     ref={myVideoRef}
-                    className="absolute inset-0 w-full h-full object-cover z-[6]"
-                    autoPlay playsInline muted
-                    style={{ opacity: isCamOff ? 0 : 1, transition: 'opacity 0.3s ease' }}
+                    className={`absolute inset-0 w-full h-full object-cover z-[6] ${LIVE_WEBRTC_VIDEO_CLASS}`}
+                    autoPlay
+                    playsInline
+                    muted
+                    controls={false}
+                    poster={LIVE_VIDEO_TRANSPARENT_POSTER}
+                    style={{ opacity: isCamOff ? 0 : 1, transition: 'opacity 0.3s ease', backgroundColor: 'transparent' }}
                   />
                   <div className="absolute top-0.5 right-0.5 z-10 flex items-center gap-0.5 pointer-events-auto">
                     <button type="button" onClick={toggleMic} className="p-1" title={isMicMuted ? 'Unmute' : 'Mute'}>
@@ -3438,6 +3449,7 @@ export default function SpectatorPage() {
                             for (const [, pub] of p.videoTrackPublications) {
                               if (pub.track && pub.isSubscribed) {
                                 pub.track.attach(el);
+                                prepareLiveVideoEl(el);
                                 if (mainProvisionalTrackRef.current === pub.track && videoRef.current) {
                                   try { pub.track.detach(videoRef.current); } catch { /* noop */ }
                                   mainProvisionalTrackRef.current = null;
@@ -3450,9 +3462,13 @@ export default function SpectatorPage() {
                         coHostVideoRefs.current.delete(h.userId);
                       }
                     }}
-                    className="absolute inset-0 w-full h-full object-cover z-[6]"
-                    autoPlay playsInline
-                    style={{ opacity: camOff ? 0 : 1, transition: 'opacity 0.3s ease' }}
+                    className={`absolute inset-0 w-full h-full object-cover z-[6] ${LIVE_WEBRTC_VIDEO_CLASS}`}
+                    autoPlay
+                    playsInline
+                    muted
+                    controls={false}
+                    poster={LIVE_VIDEO_TRANSPARENT_POSTER}
+                    style={{ opacity: camOff ? 0 : 1, transition: 'opacity 0.3s ease', backgroundColor: 'transparent' }}
                   />
                   <p className="absolute bottom-0.5 left-0.5 z-10 text-white/80 text-[8px] font-bold bg-black/50 rounded px-1 truncate max-w-[90%]">{h.name}</p>
                   {(lastGiftIcon || score > 0) && (
