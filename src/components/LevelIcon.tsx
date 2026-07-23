@@ -118,10 +118,9 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
   const { accent, background, border, glow, fillSoft } = getLevelAccentStyle(safeLevel);
   const prestige = isDiamondPrestigeLevel(safeLevel);
 
-  /** Chart-style chip: taller so the diamond reads clearly. */
+  /** Chart-style chip: diamond + number only (no LEVEL text). */
   const chipH = Math.max(24, Math.round(circleSize * 0.95));
-  const numberPx = Math.max(11, Math.round(chipH * 0.52));
-  const labelPx = Math.max(6, Math.round(chipH * 0.28));
+  const numberPx = Math.max(12, Math.round(chipH * 0.55));
   /** Bigger diamond on the LEFT — chart ~1/3 of badge. */
   const diamondSize = Math.round(chipH * 1.05);
 
@@ -131,7 +130,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
         position: 'relative',
         zIndex: 1,
         height: chipH,
-        minWidth: Math.round(diamondSize + numberPx * 2.4 + 14),
+        minWidth: Math.round(diamondSize + numberPx * 1.35 + 10),
         borderRadius: 6,
         background,
         border: `1px solid ${border}`,
@@ -141,7 +140,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
         justifyContent: 'flex-start',
         gap: 0,
         paddingLeft: 2,
-        paddingRight: 7,
+        paddingRight: 8,
         flexShrink: 0,
         overflow: 'visible',
       }}
@@ -162,74 +161,32 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
         <NeonLevelDiamond size={diamondSize} stroke={accent} rainbow={prestige} />
       </div>
 
-      {/* Chart divider */}
-      <span
-        aria-hidden
-        style={{
-          width: 1,
-          alignSelf: 'stretch',
-          marginTop: 4,
-          marginBottom: 4,
-          marginLeft: 1,
-          marginRight: 5,
-          background: accent,
-          boxShadow: `0 0 6px ${glow}`,
-          opacity: 0.9,
-          flexShrink: 0,
-        }}
-      />
-
       {/* Number OTHER SIDE (right) — same neon colour as diamond */}
-      <div
+      <span
         style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'flex-start',
-          justifyContent: 'center',
+          color: accent,
+          fontWeight: 900,
+          letterSpacing: '0.01em',
+          fontSize: numberPx,
+          textShadow: `0 0 8px ${glow}, 0 0 14px ${fillSoft}`,
           lineHeight: 1,
-          minWidth: 0,
-          paddingRight: 1,
+          whiteSpace: 'nowrap',
+          fontVariantNumeric: 'tabular-nums',
+          paddingLeft: 4,
+          ...(prestige
+            ? {
+                backgroundImage:
+                  'linear-gradient(90deg,#C77DFF,#3399FF,#33CCFF,#4ADE80,#FFD700,#FF7A3D,#FF4D4D,#FF69B4)',
+                WebkitBackgroundClip: 'text',
+                backgroundClip: 'text',
+                color: 'transparent',
+                textShadow: 'none',
+              }
+            : null),
         }}
       >
-        <span
-          style={{
-            color: accent,
-            fontWeight: 800,
-            fontSize: labelPx,
-            letterSpacing: '0.08em',
-            textTransform: 'uppercase',
-            textShadow: `0 0 6px ${glow}, 0 0 12px ${fillSoft}`,
-            lineHeight: 1,
-            whiteSpace: 'nowrap',
-          }}
-        >
-          LEVEL
-        </span>
-        <span
-          style={{
-            color: accent,
-            fontWeight: 900,
-            letterSpacing: '0.01em',
-            fontSize: numberPx,
-            textShadow: `0 0 8px ${glow}, 0 0 14px ${fillSoft}`,
-            lineHeight: 1.05,
-            whiteSpace: 'nowrap',
-            fontVariantNumeric: 'tabular-nums',
-            ...(prestige
-              ? {
-                  backgroundImage:
-                    'linear-gradient(90deg,#C77DFF,#3399FF,#33CCFF,#4ADE80,#FFD700,#FF7A3D,#FF4D4D,#FF69B4)',
-                  WebkitBackgroundClip: 'text',
-                  backgroundClip: 'text',
-                  color: 'transparent',
-                  textShadow: 'none',
-                }
-              : null),
-          }}
-        >
-          {safeLevel}
-        </span>
-      </div>
+        {safeLevel}
+      </span>
     </div>
   );
 

@@ -288,14 +288,18 @@ export default function FriendsFeed() {
             </button>
           </div>
 
-          <div className="px-4 pt-1 pb-3 overflow-visible">
+          {/* Story container — separate from friend video feed; always visible */}
+          <div className="px-4 pt-1 pb-3 overflow-visible flex-shrink-0">
             <div
-              className="flex gap-3.5 overflow-x-auto overflow-y-visible no-scrollbar py-1.5"
+              className="flex gap-3.5 overflow-x-auto overflow-y-visible no-scrollbar py-2 min-h-[76px]"
               style={{ WebkitOverflowScrolling: 'touch' }}
             >
               <button
                 type="button"
-                onClick={() => navigate('/upload?type=story')}
+                onClick={() => {
+                  if (ownStory?.items?.length) openUserStory(ownStory.userId);
+                  else navigate('/upload?type=story');
+                }}
                 className="flex-shrink-0 flex flex-col items-center gap-1"
                 style={{ width: 72, minWidth: 72 }}
                 title="Add story"
@@ -303,10 +307,25 @@ export default function FriendsFeed() {
                 <div className="relative overflow-visible" style={{ width: 52, height: 52 }}>
                   <StoryGoldRingAvatar
                     size={52}
+                    glow
                     src={user?.avatar || '/royce/default-avatar.svg'}
                     alt={user?.username || 'You'}
                   />
-                  <span className="absolute bottom-0 right-0 w-4 h-4 rounded-full bg-[#D4AF37] border-2 border-black flex items-center justify-center">
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate('/upload?type=story');
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.stopPropagation();
+                        navigate('/upload?type=story');
+                      }
+                    }}
+                    className="absolute bottom-0 right-0 w-4 h-4 rounded-full bg-[#D4AF37] border-2 border-black flex items-center justify-center z-10"
+                  >
                     <Plus size={9} className="text-black" strokeWidth={3} />
                   </span>
                 </div>
@@ -314,33 +333,35 @@ export default function FriendsFeed() {
                   {ownStory?.items?.length ? 'Your story' : 'Add story'}
                 </div>
               </button>
-              {ownStory && ownStory.items.length > 0 ? (
-                <button
-                  type="button"
-                  onClick={() => openUserStory(ownStory.userId)}
-                  className="flex-shrink-0 flex flex-col items-center gap-1"
-                  style={{ width: 72, minWidth: 72 }}
-                  title="Your story"
-                >
-                  <StoryGoldRingAvatar
-                    size={52}
-                    src={user?.avatar || '/royce/default-avatar.svg'}
-                    alt="Your story"
-                  />
-                  <div className="text-[10px] text-white/80 truncate w-full text-center leading-tight">You</div>
-                </button>
-              ) : null}
-              {suggestedUsers.map((u) => {
-                const friendStory = storyGroups.find((g) => g.userId === u.id);
-                return (
+              {storyGroups
+                .filter((g) => g.userId !== user?.id && (g.items?.length ?? 0) > 0)
+                .map((g) => (
+                  <button
+                    key={`story-${g.userId}`}
+                    type="button"
+                    onClick={() => openUserStory(g.userId)}
+                    className="flex-shrink-0 flex flex-col items-center gap-1"
+                    style={{ width: 72, minWidth: 72 }}
+                    title={g.displayName || g.username}
+                  >
+                    <StoryGoldRingAvatar
+                      size={52}
+                      glow
+                      src={g.avatar || '/royce/default-avatar.svg'}
+                      alt={g.displayName || g.username || ''}
+                    />
+                    <div className="text-[10px] text-white/80 truncate w-full text-center leading-tight">
+                      {g.displayName || g.username}
+                    </div>
+                  </button>
+                ))}
+              {suggestedUsers
+                .filter((u) => !storyGroups.some((g) => g.userId === u.id && (g.items?.length ?? 0) > 0))
+                .map((u) => (
                   <button
                     key={u.id}
                     type="button"
                     onClick={() => {
-                      if (friendStory?.items?.length) {
-                        openUserStory(u.id);
-                        return;
-                      }
                       if (u.is_live) navigate(`/watch/${u.id}`);
                       else navigate(`/profile/${u.id}`);
                     }}
@@ -349,6 +370,7 @@ export default function FriendsFeed() {
                   >
                     <StoryGoldRingAvatar
                       size={52}
+                      glow
                       live={u.is_live}
                       data-avatar-circle={u.is_live ? 'live' : undefined}
                       src={u.avatar_url || '/royce/default-avatar.svg'}
@@ -358,8 +380,7 @@ export default function FriendsFeed() {
                       {u.name || u.username}
                     </div>
                   </button>
-                );
-              })}
+                ))}
             </div>
           </div>
         </div>

@@ -3,13 +3,18 @@ import React from 'react';
 /** TikTok-style live red (ring + badge). */
 const LIVE_RING_COLOR = '#FE2C55';
 
-/** User avatar: photo only. No yellow/gold ring. Live keeps red ring + LIVE badge. */
+/** Same soft gold light as close / royce-glow-disc (icons), for story circles. */
+const STORY_CIRCLE_GLOW =
+  '0 0 10px 2px rgba(212, 175, 55, 0.42), 0 0 22px 5px rgba(212, 175, 55, 0.18)';
+
+/** User avatar. Optional gold halo (same light as close button). Live keeps red ring + LIVE badge. */
 export function StoryGoldRingAvatar({
   size = 56,
   src,
   alt = '',
   live = false,
   className = '',
+  glow = false,
   innerDiameterAddMm: _innerDiameterAddMm = 0,
   innerTranslateYmm = 0,
   'data-avatar-circle': dataAvatarCircle,
@@ -19,6 +24,8 @@ export function StoryGoldRingAvatar({
   alt?: string;
   live?: boolean;
   className?: string;
+  /** Soft gold light around the circle (same as close button / royce-glow-disc). */
+  glow?: boolean;
   /** @deprecated Photo fills `size` like AvatarRing; kept for call-site compatibility. */
   innerDiameterAddMm?: number;
   innerTranslateYmm?: number;
@@ -36,7 +43,12 @@ export function StoryGoldRingAvatar({
   return (
     <div
       className={`relative flex-shrink-0 flex items-center justify-center rounded-full overflow-visible ${className}`}
-      style={{ width: size, height: size, isolation: 'isolate' }}
+      style={{
+        width: size,
+        height: size,
+        isolation: 'isolate',
+        boxShadow: glow && !live ? STORY_CIRCLE_GLOW : undefined,
+      }}
       {...(dataAvatarCircle ? { 'data-avatar-circle': dataAvatarCircle } : {})}
     >
       <div

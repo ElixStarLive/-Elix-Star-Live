@@ -179,6 +179,7 @@ export default function FollowingFeed() {
                 >
                   <StoryGoldRingAvatar
                     live={u.is_live}
+                    glow
                     src={u.avatar_url || '/royce/default-avatar.svg'}
                     alt={u.name || u.username}
                   />
