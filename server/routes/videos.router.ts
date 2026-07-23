@@ -11,6 +11,29 @@ import { fetchVoiceOnlyVideoBuffer, isSafeMediaUrl } from "../services/videoDown
 
 const router = Router();
 
+// User-scoped Bunny storage prefixes (mirror media.router.ts). A stored media
+// URL must embed the owner's id right after one of these path segments.
+const MEDIA_SCOPED_PREFIXES = new Set(["videos", "stories", "thumbnails", "avatars"]);
+
+/**
+ * Ownership guard: a media URL belongs to a user only when its path contains a
+ * scoped prefix immediately followed by that user's id (e.g. videos/<uid>/...).
+ * Blocks attaching another user's Bunny object to your own video record.
+ */
+function mediaUrlBelongsToUser(rawUrl: string, userId: string): boolean {
+  try {
+    const segs = new URL(rawUrl).pathname.split("/").filter(Boolean);
+    for (let i = 0; i < segs.length - 1; i++) {
+      if (MEDIA_SCOPED_PREFIXES.has(segs[i].toLowerCase()) && segs[i + 1] === userId) {
+        return true;
+      }
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 router.post("/", async (req, res) => {
   try {
     const token = getTokenFromRequest(req);
@@ -25,10 +48,16 @@ router.post("/", async (req, res) => {
     if (typeof body.url !== "string" || !isSafeMediaUrl(body.url)) {
       return res.status(400).json({ error: "url must be an https Bunny CDN media URL" });
     }
+    if (!mediaUrlBelongsToUser(body.url, payload.sub)) {
+      return res.status(403).json({ error: "url must be your own uploaded media path." });
+    }
     const thumb =
       body.thumbnailUrl || body.thumbnail_url || body.thumbnail || "";
     if (thumb && (typeof thumb !== "string" || !isSafeMediaUrl(thumb))) {
       return res.status(400).json({ error: "thumbnail must be an https Bunny CDN media URL" });
+    }
+    if (thumb && !mediaUrlBelongsToUser(thumb, payload.sub)) {
+      return res.status(403).json({ error: "thumbnail must be your own uploaded media path." });
     }
 
     const { getOrCreateProfile } = await import("./profiles");
@@ -230,6 +259,14 @@ router.get("/:id", async (req, res) => {
 router.get("/:id/likes", async (req, res) => {
   const db = getPool();
   if (!db) return res.status(503).json({ error: "Database not configured", users: [] });
+  const gate = await getVideoAsync(req.params.id);
+  if (gate?.privacy === "private") {
+    const token = getTokenFromRequest(req);
+    const payload = token ? verifyAuthToken(token) : null;
+    if (payload?.sub !== gate.userId) {
+      return res.status(404).json({ error: "Video not found", users: [] });
+    }
+  }
   try {
     const r = await db.query(
       `SELECT l.user_id, p.username, p.display_name, p.avatar_url
@@ -334,6 +371,14 @@ router.post("/:id/unsave", async (req, res) => {
 router.get("/:id/comments", async (req, res) => {
   const db = getPool();
   if (!db) return res.status(503).json({ error: "Database not configured", comments: [] });
+  const gate = await getVideoAsync(req.params.id);
+  if (gate?.privacy === "private") {
+    const token = getTokenFromRequest(req);
+    const payload = token ? verifyAuthToken(token) : null;
+    if (payload?.sub !== gate.userId) {
+      return res.status(404).json({ error: "Video not found", comments: [] });
+    }
+  }
   const sort = req.query.sort === "oldest" ? "ASC" : "DESC";
   try {
     const r = await db.query(

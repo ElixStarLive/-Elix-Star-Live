@@ -2,7 +2,9 @@
  * Admin moderation API — reports status, platform bans (profiles.banned_until).
  */
 import { Router, Request, Response } from "express";
-import { getPool } from "../lib/postgres";
+import { getPool, deleteVideoFromDb } from "../lib/postgres";
+import { deleteVideoFromCache } from "../lib/videoStore";
+import { insertNotification } from "../lib/notifications";
 import { logger } from "../lib/logger";
 import { requireAuthWithRoles, requireAdmin } from "../middleware/rbac";
 import { disconnectUserSessions } from "../websocket/index";
@@ -13,7 +15,73 @@ import { validateBody } from "../middleware/validate";
 const patchReportSchema = z.object({
   status: z.enum(["pending", "reviewed", "dismissed", "actioned"]),
   admin_note: z.string().max(2000).optional(),
+  // Optional structured moderation outcome. When "removed", the reported
+  // content is actually taken down; when "warned", the owner is notified.
+  action: z.enum(["removed", "warned", "no_action"]).optional(),
 });
+
+/**
+ * Enforce a moderation outcome against the reported target. Best-effort and
+ * defensive: unknown target types are logged and skipped rather than throwing.
+ */
+async function enforceReportAction(
+  db: NonNullable<ReturnType<typeof getPool>>,
+  action: "removed" | "warned" | "no_action",
+  targetType: string,
+  targetId: string,
+  adminId: string,
+): Promise<void> {
+  if (!targetId || action === "no_action") return;
+  const type = String(targetType || "").toLowerCase();
+
+  if (action === "removed") {
+    if (type === "video" || type === "post" || type === "clip") {
+      deleteVideoFromCache(targetId);
+      await deleteVideoFromDb(targetId);
+    } else if (type === "comment") {
+      await db
+        .query(`DELETE FROM comments WHERE id = $1`, [targetId])
+        .catch((e) => logger.warn({ err: e, targetId }, "moderation comment delete failed"));
+    } else if (type === "stream" || type === "live") {
+      await db
+        .query(
+          `UPDATE live_streams SET is_live = FALSE, ended_at = COALESCE(ended_at, NOW()) WHERE stream_key = $1 OR id::text = $1`,
+          [targetId],
+        )
+        .catch((e) => logger.warn({ err: e, targetId }, "moderation stream end failed"));
+    } else {
+      logger.warn({ type, targetId }, "moderation remove: unsupported target type (no-op)");
+    }
+    logger.warn({ type, targetId, by: adminId }, "moderation content removed");
+    return;
+  }
+
+  if (action === "warned") {
+    // Resolve the owning user to notify.
+    let ownerId = "";
+    if (type === "user" || type === "profile") ownerId = targetId;
+    else if (type === "video" || type === "post" || type === "clip") {
+      const r = await db
+        .query(`SELECT user_id FROM videos WHERE id = $1 LIMIT 1`, [targetId])
+        .catch(() => ({ rows: [] as { user_id: string }[] }));
+      ownerId = r.rows[0]?.user_id ? String(r.rows[0].user_id) : "";
+    } else if (type === "comment") {
+      const r = await db
+        .query(`SELECT user_id FROM comments WHERE id = $1 LIMIT 1`, [targetId])
+        .catch(() => ({ rows: [] as { user_id: string }[] }));
+      ownerId = r.rows[0]?.user_id ? String(r.rows[0].user_id) : "";
+    }
+    if (ownerId) {
+      await insertNotification({
+        userId: ownerId,
+        type: "moderation_warning",
+        title: "Content warning",
+        body: "Your content was reviewed by moderators and may violate our community guidelines. Repeated violations can lead to a ban.",
+        data: { target_type: type, target_id: targetId },
+      }).catch((e) => logger.warn({ err: e, ownerId }, "moderation warning notify failed"));
+    }
+  }
+}
 
 const banSchema = z.object({
   until: z.string().optional(),
@@ -29,6 +97,51 @@ const router = Router();
 
 router.use(requireAuthWithRoles);
 router.use(requireAdmin);
+
+/**
+ * GET /api/admin/users — admin user list for moderation. Unlike the public
+ * profile list, this includes banned users and exposes ban status + email so
+ * the admin can see and lift bans reliably (fixes unban not persisting after
+ * reload). Admin-only via router middleware above.
+ */
+router.get("/users", async (req: Request, res: Response) => {
+  res.setHeader("Cache-Control", "private, no-store");
+  const db = getPool();
+  if (!db) return res.status(503).json({ error: "DATABASE_UNAVAILABLE", users: [] });
+  const q = typeof req.query.q === "string" ? req.query.q.trim().toLowerCase() : "";
+  try {
+    const params: string[] = [];
+    let where = "";
+    if (q) {
+      params.push(`%${q}%`);
+      where = `WHERE LOWER(p.username) LIKE $1 OR LOWER(u.email) LIKE $1`;
+    }
+    const r = await db.query(
+      `SELECT p.user_id, p.username, p.avatar_url, p.created_at, p.banned_until, u.email
+         FROM profiles p
+         LEFT JOIN elix_auth_users u ON u.id = p.user_id
+         ${where}
+         ORDER BY p.created_at DESC NULLS LAST
+         LIMIT 500`,
+      params,
+    );
+    const now = Date.now();
+    const users = r.rows.map((row: Record<string, unknown>) => ({
+      id: String(row.user_id),
+      username: row.username ? String(row.username) : "",
+      email: row.email ? String(row.email) : "",
+      avatar_url: row.avatar_url ? String(row.avatar_url) : null,
+      created_at: row.created_at ?? "",
+      is_banned: row.banned_until
+        ? new Date(String(row.banned_until)).getTime() > now
+        : false,
+    }));
+    return res.json({ users });
+  } catch (e) {
+    logger.error({ err: e }, "admin list users failed");
+    return res.status(500).json({ error: "DATABASE_ERROR", users: [] });
+  }
+});
 
 router.get("/reports", async (req: Request, res: Response) => {
   res.setHeader("Cache-Control", "private, no-store");
@@ -168,7 +281,7 @@ router.patch("/reports/:id", validateBody(patchReportSchema), async (req: Reques
   const db = getPool();
   if (!db) return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
   const id = req.params.id;
-  const { status, admin_note } = req.body as z.infer<typeof patchReportSchema>;
+  const { status, admin_note, action } = req.body as z.infer<typeof patchReportSchema>;
   const adminId = (req.authContext as NonNullable<typeof req.authContext>).userId;
   try {
     await db.query(
@@ -185,6 +298,16 @@ router.patch("/reports/:id", validateBody(patchReportSchema), async (req: Reques
       [status, admin_note ?? null, adminId, id],
     );
     if (r.rowCount === 0) return res.status(404).json({ error: "Report not found" });
+    const report = r.rows[0] as { target_type?: string; target_id?: string };
+    if (action) {
+      await enforceReportAction(
+        db,
+        action,
+        String(report.target_type ?? ""),
+        String(report.target_id ?? ""),
+        adminId,
+      );
+    }
     return res.json({ report: r.rows[0] });
   } catch (e) {
     logger.error({ err: e }, "admin patch report failed");

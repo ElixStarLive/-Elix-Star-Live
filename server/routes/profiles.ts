@@ -485,7 +485,14 @@ export async function handleGetProfile(req: Request, res: Response): Promise<voi
 let profilesListMemCache: { data: { profiles: unknown[] }; ts: number } | null = null;
 const PROFILES_LIST_MEM_TTL_MS = 55_000;
 
-export async function handleListProfiles(_req: Request, res: Response): Promise<void> {
+export async function handleListProfiles(req: Request, res: Response): Promise<void> {
+  // Require a valid session: the directory is app-internal and must not be
+  // anonymously enumerable. All app consumers send an auth token already.
+  const token = getTokenFromRequest(req);
+  if (!token || !verifyAuthToken(token)) {
+    res.status(401).json({ error: "Not authenticated." });
+    return;
+  }
   const now = Date.now();
   if (
     !isValkeyConfigured() &&
@@ -493,7 +500,7 @@ export async function handleListProfiles(_req: Request, res: Response): Promise<
     now - profilesListMemCache.ts < PROFILES_LIST_MEM_TTL_MS
   ) {
     bumpCacheLayer("profiles_list_mem_hits");
-    res.setHeader("Cache-Control", "public, s-maxage=55, max-age=25");
+    res.setHeader("Cache-Control", "private, max-age=25");
     res.json(profilesListMemCache.data);
     return;
   }
@@ -508,7 +515,7 @@ export async function handleListProfiles(_req: Request, res: Response): Promise<
         const data = JSON.parse(raw) as { profiles: unknown[] };
         if (Array.isArray(data?.profiles)) {
           bumpCacheLayer("profiles_list_valkey_hits");
-          res.setHeader("Cache-Control", "public, s-maxage=55, max-age=25");
+          res.setHeader("Cache-Control", "private, max-age=25");
           res.json(data);
           return;
         }
@@ -527,7 +534,7 @@ export async function handleListProfiles(_req: Request, res: Response): Promise<
           const data = JSON.parse(waited) as { profiles: unknown[] };
           if (Array.isArray(data?.profiles)) {
             bumpCacheLayer("profiles_list_valkey_hits");
-            res.setHeader("Cache-Control", "public, s-maxage=55, max-age=25");
+            res.setHeader("Cache-Control", "private, max-age=25");
             res.json(data);
             return;
           }
@@ -635,7 +642,7 @@ export async function handleListProfiles(_req: Request, res: Response): Promise<
     profilesListMemCache = { data: result, ts: now };
   }
 
-  res.setHeader("Cache-Control", "public, s-maxage=55, max-age=25");
+  res.setHeader("Cache-Control", "private, max-age=25");
   res.json(result);
 }
 

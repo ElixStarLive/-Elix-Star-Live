@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api, request } from '../../lib/apiClient';
+import { request } from '../../lib/apiClient';
 import { Ban, Search } from 'lucide-react';
 import { showToast } from '../../lib/toast';
 
@@ -26,17 +26,18 @@ export default function AdminUsers() {
 
   const loadUsers = async () => {
     try {
-      const { data, error } = await api.profiles.list();
+      const { data, error } = await request<{ users?: User[] }>('/api/admin/users');
 
       if (error) throw error;
 
-      const profiles = Array.isArray(data) ? data : [];
-      const usersData = profiles.map((u: { user_id?: string; userId?: string; id: string; username?: string; email?: string; avatar_url?: string | null; avatarUrl?: string | null; created_at?: string; createdAt?: string }) => ({
-        id: u.user_id || u.userId || u.id,
+      const profiles = Array.isArray(data?.users) ? data.users : [];
+      const usersData = profiles.map((u: Partial<User> & { user_id?: string; userId?: string; avatarUrl?: string | null; created_at?: string; createdAt?: string }) => ({
+        id: String(u.user_id || u.userId || u.id || ''),
         username: u.username || '',
         email: u.email || '',
         avatar_url: u.avatar_url || u.avatarUrl || null,
         created_at: u.created_at || u.createdAt || '',
+        is_banned: Boolean(u.is_banned),
       }));
 
       setUsers(usersData);

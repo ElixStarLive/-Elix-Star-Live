@@ -48,6 +48,7 @@ export default function AdminReports() {
         method: 'PATCH',
         body: JSON.stringify({
           status: 'actioned',
+          action: outcome,
           admin_note: `Outcome: ${outcome}`,
         }),
       });
