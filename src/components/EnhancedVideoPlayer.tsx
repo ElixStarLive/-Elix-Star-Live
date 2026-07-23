@@ -42,7 +42,7 @@ import {
   SHARE_PANEL_ACTION_DISC_PX,
   SHARE_PANEL_ACTION_ICON_PX,
 } from '../lib/sharePanelContacts';
-import { LIVE_BATTLE_VIDEO_HEIGHT } from '../lib/profileFrame';
+import { DUET_STAGE_HEIGHT } from '../lib/profileFrame';
 
 const VIDEO_SIDEBAR_AVATAR = 38;
 const GOLD_ICON = 'royce-icon-gold';
@@ -729,27 +729,29 @@ export default function EnhancedVideoPlayer({
         <audio ref={audioRef} preload="auto" className="hidden" />
         {isDuetLayout && duetOriginalSrc ? (
           <div
-            className="absolute top-0 left-0 right-0 w-full flex flex-row overflow-hidden"
-            style={{ height: LIVE_BATTLE_VIDEO_HEIGHT }}
+            className="absolute top-0 left-0 right-0 w-full overflow-hidden bg-black"
+            style={{ height: DUET_STAGE_HEIGHT }}
           >
-            <div className="w-1/2 h-full flex-shrink-0 bg-black">
-              <video
-                ref={duetOriginalRef}
-                src={duetOriginalSrc}
-                className="w-full h-full object-cover elix-no-media-chrome"
-                loop
-                playsInline
-                muted
-                controls={false}
-                preload={isActive ? 'auto' : 'none'}
-                poster={posterUrl}
-              />
-            </div>
-            <div className="w-1/2 h-full flex-shrink-0">
+            <video
+              ref={duetOriginalRef}
+              src={duetOriginalSrc}
+              className="absolute inset-0 w-full h-full object-cover elix-no-media-chrome"
+              loop
+              playsInline
+              muted
+              controls={false}
+              preload={isActive ? 'auto' : 'none'}
+              poster={posterUrl}
+            />
+            {/* Duet creator (you) — bottom-right PiP so the only person appears down */}
+            <div
+              className="absolute z-[2] overflow-hidden rounded-lg border border-[#C9A227]/45 shadow-lg bg-black"
+              style={{ width: '36%', aspectRatio: '9 / 16', bottom: 8, right: 8 }}
+            >
               <video
                 ref={videoRef}
                 src={video.url}
-                className="w-full h-full object-cover elix-no-media-chrome"
+                className="absolute inset-0 w-full h-full object-cover elix-no-media-chrome"
                 loop
                 playsInline
                 muted

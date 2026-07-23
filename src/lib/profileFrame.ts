@@ -30,6 +30,9 @@ export const BATTLE_MVP_ROW_EDGE_OFFSET_MM = 1;
 /** Battle video column height — 3mm shorter so chat does not cover MVP circles. */
 export const LIVE_BATTLE_VIDEO_HEIGHT = 'calc(44dvh - 3mm)' as const;
 
+/** Duet record/playback stage — battle height + 3cm taller. */
+export const DUET_STAGE_HEIGHT = 'calc(44dvh - 3mm + 3cm)' as const;
+
 /** Battle-mode chat scroll area — shorter + sits lower. */
 export const LIVE_BATTLE_CHAT_HEIGHT = 'calc(20dvh + 1cm)' as const;
 

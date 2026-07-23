@@ -13,7 +13,23 @@ import { api } from '../lib/apiClient';
 import { useAuthStore } from '../store/useAuthStore';
 import AIToolsPanel from '../components/AIToolsPanel';
 import { takeCachedRecordedMedia } from '../lib/recordedMediaCache';
-import { LIVE_BATTLE_VIDEO_HEIGHT } from '../lib/profileFrame';
+import { DUET_STAGE_HEIGHT } from '../lib/profileFrame';
+
+type DuetCorner = 'tl' | 'tr' | 'bl' | 'br';
+type DuetPipSize = 's' | 'm' | 'l';
+
+const DUET_PIP_WIDTH: Record<DuetPipSize, string> = {
+  s: '28%',
+  m: '36%',
+  l: '46%',
+};
+
+const DUET_PIP_POS: Record<DuetCorner, React.CSSProperties> = {
+  tl: { top: 8, left: 8 },
+  tr: { top: 8, right: 8 },
+  bl: { bottom: 8, left: 8 },
+  br: { bottom: 8, right: 8 },
+};
 
 export default function Upload() {
   const navigate = useNavigate();
@@ -53,6 +69,9 @@ export default function Upload() {
   const [duetSourceVideoId, setDuetSourceVideoId] = useState<string | null>(null);
   const [duetSourceVideoUrl, setDuetSourceVideoUrl] = useState<string | null>(null);
   const duetSourceVideoRef = useRef<HTMLVideoElement>(null);
+  /** You (camera) float as PiP — default bottom-right, medium. */
+  const [duetCorner, setDuetCorner] = useState<DuetCorner>('br');
+  const [duetPipSize, setDuetPipSize] = useState<DuetPipSize>('m');
 
   const duetParam = searchParams.get('duet');
   const isStoryUpload = searchParams.get('type') === 'story';
@@ -527,24 +546,29 @@ export default function Upload() {
            <div className="relative z-10 w-full mx-auto h-[100dvh] bg-[#111111] flex flex-col items-center justify-center">
               {duetSourceVideoUrl ? (
                 <div
-                  className="absolute top-0 left-0 right-0 w-full flex flex-row overflow-hidden"
-                  style={{ height: LIVE_BATTLE_VIDEO_HEIGHT }}
+                  className="absolute top-0 left-0 right-0 w-full overflow-hidden bg-black"
+                  style={{ height: DUET_STAGE_HEIGHT }}
                 >
-                  <div className="w-1/2 h-full flex-shrink-0 bg-black">
-                    <video
-                      src={duetSourceVideoUrl}
-                      className="w-full h-full object-cover"
-                      playsInline
-                      muted
-                      loop
-                      autoPlay
-                    />
-                  </div>
-                  <div className="w-1/2 h-full flex-shrink-0">
+                  <video
+                    src={duetSourceVideoUrl}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    playsInline
+                    muted
+                    loop
+                    autoPlay
+                  />
+                  <div
+                    className="absolute z-[2] overflow-hidden rounded-lg border border-[#C9A227]/50 shadow-lg bg-black"
+                    style={{
+                      width: DUET_PIP_WIDTH[duetPipSize],
+                      aspectRatio: '9 / 16',
+                      ...DUET_PIP_POS[duetCorner],
+                    }}
+                  >
                     <video
                       ref={videoRef}
                       src={recordedVideoUrl}
-                      className="w-full h-full object-cover z-0"
+                      className="absolute inset-0 w-full h-full object-cover z-0"
                       controls={false}
                       autoPlay
                       loop
@@ -552,6 +576,51 @@ export default function Upload() {
                       playsInline
                       style={{ filter: activeFilter !== 'none' || activeEnhance !== 'none' ? [activeFilter !== 'none' ? activeFilter : '', activeEnhance !== 'none' ? activeEnhance : ''].filter(Boolean).join(' ') : undefined }}
                     />
+                  </div>
+                  <div className="absolute left-2 top-2 z-[3] pointer-events-auto flex flex-col gap-1.5">
+                    <div className="flex gap-1">
+                      {([
+                        ['tl', '↖'],
+                        ['tr', '↗'],
+                        ['bl', '↙'],
+                        ['br', '↘'],
+                      ] as const).map(([c, label]) => (
+                        <button
+                          key={c}
+                          type="button"
+                          title={`Place you ${c}`}
+                          onClick={() => setDuetCorner(c)}
+                          className={`w-7 h-7 rounded-md text-[11px] font-bold active:scale-95 ${
+                            duetCorner === c
+                              ? 'bg-[#D4AF37] text-black'
+                              : 'bg-black/55 text-white border border-white/25'
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex gap-1">
+                      {([
+                        ['s', 'S'],
+                        ['m', 'M'],
+                        ['l', 'L'],
+                      ] as const).map(([sz, label]) => (
+                        <button
+                          key={sz}
+                          type="button"
+                          title={`Size ${label}`}
+                          onClick={() => setDuetPipSize(sz)}
+                          className={`h-7 min-w-[28px] px-1.5 rounded-md text-[10px] font-bold active:scale-95 ${
+                            duetPipSize === sz
+                              ? 'bg-[#D4AF37] text-black'
+                              : 'bg-black/55 text-white border border-white/25'
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               ) : mediaKind === 'image' ? (
@@ -925,32 +994,83 @@ export default function Upload() {
         <>
           {/* Container Principal */}
           <div className="relative z-10 w-full h-[100dvh] mb-0 pointer-events-none bg-[#111111] shadow-2xl overflow-hidden">
-              {/* Duet layout: left = source video, right = camera */}
+              {/* Duet: original full stage; you float as PiP (corner + size). Default bottom. */}
               {duetSourceVideoUrl ? (
                 <div
-                  className="absolute top-0 left-0 right-0 w-full flex flex-row overflow-hidden"
-                  style={{ height: LIVE_BATTLE_VIDEO_HEIGHT }}
+                  className="absolute top-0 left-0 right-0 w-full overflow-hidden bg-black"
+                  style={{ height: DUET_STAGE_HEIGHT }}
                 >
-                  <div className="w-1/2 h-full flex-shrink-0 bg-black">
-                    <video
-                      ref={duetSourceVideoRef}
-                      src={duetSourceVideoUrl}
-                      className="w-full h-full object-cover"
-                      playsInline
-                      muted
-                      loop
-                      autoPlay
-                    />
-                  </div>
-                  <div className="w-1/2 h-full flex-shrink-0 relative">
+                  <video
+                    ref={duetSourceVideoRef}
+                    src={duetSourceVideoUrl}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    playsInline
+                    muted
+                    loop
+                    autoPlay
+                  />
+                  <div
+                    className="absolute z-[2] overflow-hidden rounded-lg border border-[#C9A227]/50 shadow-lg bg-black"
+                    style={{
+                      width: DUET_PIP_WIDTH[duetPipSize],
+                      aspectRatio: '9 / 16',
+                      ...DUET_PIP_POS[duetCorner],
+                    }}
+                  >
                     <video
                       ref={videoRef}
                       autoPlay
                       playsInline
                       muted
-                      className={`absolute inset-0 w-full h-full object-cover z-0 ${cameraError ? 'hidden' : ''}`}
+                      className={`absolute inset-0 w-full h-full object-cover ${cameraError ? 'hidden' : ''}`}
                       style={{ transform: `scale(${zoomLevel}) scaleX(-1)`, transformOrigin: 'center center' }}
                     />
+                  </div>
+                  {/* Corner + size — you only (top-left so bottom PiP stays clear) */}
+                  <div className="absolute left-2 top-2 z-[3] pointer-events-auto flex flex-col gap-1.5">
+                    <div className="flex gap-1">
+                      {([
+                        ['tl', '↖'],
+                        ['tr', '↗'],
+                        ['bl', '↙'],
+                        ['br', '↘'],
+                      ] as const).map(([c, label]) => (
+                        <button
+                          key={c}
+                          type="button"
+                          title={`Place you ${c}`}
+                          onClick={() => setDuetCorner(c)}
+                          className={`w-7 h-7 rounded-md text-[11px] font-bold active:scale-95 ${
+                            duetCorner === c
+                              ? 'bg-[#D4AF37] text-black'
+                              : 'bg-black/55 text-white border border-white/25'
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex gap-1">
+                      {([
+                        ['s', 'S'],
+                        ['m', 'M'],
+                        ['l', 'L'],
+                      ] as const).map(([sz, label]) => (
+                        <button
+                          key={sz}
+                          type="button"
+                          title={`Size ${label}`}
+                          onClick={() => setDuetPipSize(sz)}
+                          className={`h-7 min-w-[28px] px-1.5 rounded-md text-[10px] font-bold active:scale-95 ${
+                            duetPipSize === sz
+                              ? 'bg-[#D4AF37] text-black'
+                              : 'bg-black/55 text-white border border-white/25'
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               ) : (
