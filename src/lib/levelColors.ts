@@ -2,29 +2,35 @@
 export const LEVEL_MAX = 300;
 
 /**
- * Level diamond neon colours — ELIX STAR LIVE chart (every 20 levels).
- * 1–20 Purple · 21–40 Blue · 41–60 Cyan · 61–80 Teal · 81–100 Green ·
- * 101–120 Lime · 121–140 Chartreuse · 141–160 Gold · 161–180 Amber ·
- * 181–200 Orange · 201–220 Red · 221–240 Crimson · 241–260 Pink ·
- * 261–280 Rose · 281–300 Diamond (rainbow).
+ * ELIX STAR LIVE diamond tiers (every 20 levels).
+ * Background + diamond glow from owner colour chart.
  */
-const LEVEL_TIER_COLORS: readonly { max: number; color: string; name: string }[] = [
-  { max: 20, color: '#C77DFF', name: 'Purple' },
-  { max: 40, color: '#3B82F6', name: 'Blue' },
-  { max: 60, color: '#22D3EE', name: 'Cyan' },
-  { max: 80, color: '#14B8A6', name: 'Teal' },
-  { max: 100, color: '#22C55E', name: 'Green' },
-  { max: 120, color: '#A3E635', name: 'Lime' },
-  { max: 140, color: '#BEF264', name: 'Chartreuse' },
-  { max: 160, color: '#EAB308', name: 'Gold' },
-  { max: 180, color: '#F59E0B', name: 'Amber' },
-  { max: 200, color: '#F97316', name: 'Orange' },
-  { max: 220, color: '#EF4444', name: 'Red' },
-  { max: 240, color: '#E11D48', name: 'Crimson' },
-  { max: 260, color: '#EC4899', name: 'Pink' },
-  { max: 280, color: '#FB7185', name: 'Rose' },
-  { max: 300, color: '#F8FAFC', name: 'Diamond' },
+const LEVEL_TIER_COLORS: readonly {
+  max: number;
+  background: string;
+  glow: string;
+  name: string;
+}[] = [
+  { max: 20, background: '#4A148C', glow: '#C77DFF', name: 'Purple' },
+  { max: 40, background: '#0D47A1', glow: '#3399FF', name: 'Blue' },
+  { max: 60, background: '#006C84', glow: '#33CCFF', name: 'Cyan' },
+  { max: 80, background: '#00796B', glow: '#4EFFF7', name: 'Teal' },
+  { max: 100, background: '#1B5E20', glow: '#4ADE80', name: 'Green' },
+  { max: 120, background: '#558B2F', glow: '#BEF264', name: 'Lime' },
+  { max: 140, background: '#827717', glow: '#D9FF4D', name: 'Chartreuse' },
+  { max: 160, background: '#B8860B', glow: '#FFD700', name: 'Gold' },
+  { max: 180, background: '#C96A00', glow: '#FFB347', name: 'Amber' },
+  { max: 200, background: '#BF360C', glow: '#FF7A3D', name: 'Orange' },
+  { max: 220, background: '#B71C1C', glow: '#FF4D4D', name: 'Red' },
+  { max: 240, background: '#880E4F', glow: '#FF5EC4', name: 'Crimson' },
+  { max: 260, background: '#AD1457', glow: '#FF69B4', name: 'Pink' },
+  { max: 280, background: '#6A1B9A', glow: '#FF8CC8', name: 'Rose' },
+  { max: 300, background: 'rainbow', glow: 'rainbow', name: 'Diamond' },
 ];
+
+/** Rainbow chip background for level 281–300. */
+export const LEVEL_RAINBOW_BACKGROUND =
+  'linear-gradient(90deg, #4A148C 0%, #0D47A1 16%, #006C84 28%, #1B5E20 42%, #B8860B 58%, #B71C1C 74%, #AD1457 88%, #6A1B9A 100%)';
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
   const h = hex.replace('#', '').trim();
@@ -62,24 +68,49 @@ export function getLevelTierName(level: number): string {
   return LEVEL_TIER_COLORS[getLevelColorBand(level)]?.name ?? 'Purple';
 }
 
+/** Diamond / number neon glow colour for the level band. */
 export function getLevelAccentColor(level: number): string {
-  return LEVEL_TIER_COLORS[getLevelColorBand(level)]?.color ?? LEVEL_TIER_COLORS[0].color;
+  const tier = LEVEL_TIER_COLORS[getLevelColorBand(level)] ?? LEVEL_TIER_COLORS[0];
+  return tier.glow === 'rainbow' ? '#FFD700' : tier.glow;
+}
+
+/** Solid (or rainbow) chip background for the level band. */
+export function getLevelBackgroundColor(level: number): string {
+  const tier = LEVEL_TIER_COLORS[getLevelColorBand(level)] ?? LEVEL_TIER_COLORS[0];
+  return tier.background === 'rainbow' ? LEVEL_RAINBOW_BACKGROUND : tier.background;
 }
 
 /** Soft border / glow helpers for the neon diamond frame. */
 export function getLevelAccentStyle(level: number): {
   accent: string;
+  background: string;
   border: string;
   glow: string;
   fillSoft: string;
   gradient: string;
+  prestige: boolean;
 } {
+  const prestige = isDiamondPrestigeLevel(level);
   const accent = getLevelAccentColor(level);
+  const background = getLevelBackgroundColor(level);
+  if (prestige) {
+    return {
+      accent,
+      background: LEVEL_RAINBOW_BACKGROUND,
+      border: rgba('#FFD700', 0.7),
+      glow: rgba('#C77DFF', 0.55),
+      fillSoft: rgba('#C77DFF', 0.28),
+      gradient: LEVEL_RAINBOW_BACKGROUND,
+      prestige: true,
+    };
+  }
   return {
     accent,
-    border: rgba(accent, 0.65),
+    background,
+    border: rgba(accent, 0.75),
     glow: rgba(accent, 0.55),
     fillSoft: rgba(accent, 0.28),
-    gradient: `linear-gradient(135deg, ${accent} 0%, ${rgba(accent, 0.82)} 55%, ${rgba(accent, 0.65)} 100%)`,
+    gradient: `linear-gradient(135deg, ${background} 0%, ${rgba(accent, 0.35)} 100%)`,
+    prestige: false,
   };
 }

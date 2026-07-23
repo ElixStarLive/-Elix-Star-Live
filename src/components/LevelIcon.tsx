@@ -52,12 +52,14 @@ function NeonLevelDiamond({
         {rainbow ? (
           <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="#C77DFF" />
-            <stop offset="20%" stopColor="#3B82F6" />
-            <stop offset="40%" stopColor="#22D3EE" />
-            <stop offset="55%" stopColor="#22C55E" />
-            <stop offset="70%" stopColor="#EAB308" />
-            <stop offset="85%" stopColor="#EF4444" />
-            <stop offset="100%" stopColor="#EC4899" />
+            <stop offset="16%" stopColor="#3399FF" />
+            <stop offset="28%" stopColor="#33CCFF" />
+            <stop offset="40%" stopColor="#4EFFF7" />
+            <stop offset="52%" stopColor="#4ADE80" />
+            <stop offset="64%" stopColor="#FFD700" />
+            <stop offset="76%" stopColor="#FF7A3D" />
+            <stop offset="88%" stopColor="#FF4D4D" />
+            <stop offset="100%" stopColor="#FF69B4" />
           </linearGradient>
         ) : null}
         <filter id={glowId} x="-60%" y="-60%" width="220%" height="220%" colorInterpolationFilters="sRGB">
@@ -113,7 +115,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
       ? Math.max(16, Math.floor(circleSizeProp))
       : Math.max(16, Math.floor(rawSize - Math.min(shrinkPx, maxShrink) + circleGrowPx));
 
-  const { accent, border, glow, fillSoft } = getLevelAccentStyle(safeLevel);
+  const { accent, background, border, glow, fillSoft } = getLevelAccentStyle(safeLevel);
   const prestige = isDiamondPrestigeLevel(safeLevel);
 
   /** Chart-style chip: taller so the diamond reads clearly. */
@@ -131,7 +133,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
         height: chipH,
         minWidth: Math.round(diamondSize + numberPx * 2.4 + 14),
         borderRadius: 6,
-        background: `linear-gradient(90deg, ${fillSoft} 0%, rgba(0,0,0,0.72) 55%, rgba(0,0,0,0.88) 100%)`,
+        background,
         border: `1px solid ${border}`,
         boxShadow: `0 0 10px 2px ${glow}, 0 0 18px 4px ${fillSoft}`,
         display: 'inline-flex',
@@ -216,7 +218,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
             ...(prestige
               ? {
                   backgroundImage:
-                    'linear-gradient(90deg,#C77DFF,#3B82F6,#22D3EE,#22C55E,#EAB308,#EF4444,#EC4899)',
+                    'linear-gradient(90deg,#C77DFF,#3399FF,#33CCFF,#4ADE80,#FFD700,#FF7A3D,#FF4D4D,#FF69B4)',
                   WebkitBackgroundClip: 'text',
                   backgroundClip: 'text',
                   color: 'transparent',
