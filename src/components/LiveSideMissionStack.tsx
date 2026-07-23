@@ -53,7 +53,7 @@ function formatHms(ms: number) {
 
 function GiftBoxIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" className="flex-shrink-0 drop-shadow-[0_0_4px_rgba(255,200,80,0.65)]" aria-hidden>
+    <svg width="18" height="18" viewBox="0 0 16 16" className="flex-shrink-0 drop-shadow-[0_0_4px_rgba(255,200,80,0.65)]" aria-hidden>
       <defs>
         <linearGradient id="elixSideGift" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#FFE9A8" />
@@ -85,14 +85,14 @@ function MissionRow({
   const safeCur = Math.max(0, Math.min(current, safeGoal));
   const pct = Math.min(100, (safeCur / safeGoal) * 100);
   return (
-    <div className="flex items-center gap-1.5 min-w-0">
-      <span className="text-white/90 text-[8px] font-semibold whitespace-nowrap w-[58px] flex-shrink-0 truncate">
+    <div className="flex items-center gap-2 min-w-0">
+      <span className="text-white/90 text-[11px] font-semibold whitespace-nowrap w-[78px] flex-shrink-0 truncate">
         {label}
       </span>
-      <div className="flex-1 h-[5px] rounded-full bg-white/10 overflow-hidden min-w-[36px]">
+      <div className="flex-1 h-[7px] rounded-full bg-white/10 overflow-hidden min-w-[44px]">
         <div className="h-full rounded-full" style={{ width: `${pct}%`, background: barColor }} />
       </div>
-      <span className="text-white/75 text-[7px] font-bold tabular-nums whitespace-nowrap flex-shrink-0">
+      <span className="text-white/80 text-[10px] font-bold tabular-nums whitespace-nowrap flex-shrink-0">
         {safeCur}/{safeGoal}
       </span>
       <GiftBoxIcon />
@@ -149,11 +149,11 @@ export function LiveSideMissionStack({
       type="button"
       title="Open Daily Mission"
       aria-expanded={false}
-      className="flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform"
+      className="flex flex-col items-center justify-center gap-1.5 active:scale-95 transition-transform"
       style={{
-        width: '28px',
-        minHeight: '72px',
-        borderRadius: '10px 0 0 10px',
+        width: '34px',
+        minHeight: '88px',
+        borderRadius: '12px 0 0 12px',
         background: 'rgba(8, 10, 28, 0.88)',
         border: '1px solid rgba(255,255,255,0.12)',
         borderRight: 'none',
@@ -166,21 +166,21 @@ export function LiveSideMissionStack({
         setOpen(true);
       }}
     >
-      <Target size={12} className="text-[#FF4DA6]" strokeWidth={2.4} />
+      <Target size={14} className="text-[#FF4DA6]" strokeWidth={2.4} />
       <span
-        className="text-white text-[8px] font-bold leading-none"
+        className="text-white text-[10px] font-bold leading-none"
         style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
       >
         Mission
       </span>
-      <Crown size={10} className="text-[#FFD54A]" fill="#FFD54A" strokeWidth={1.5} />
+      <Crown size={12} className="text-[#FFD54A]" fill="#FFD54A" strokeWidth={1.5} />
     </button>
   );
 
   const openPanel = (
-    <div className="flex flex-col gap-1.5" style={{ width: '158px', marginRight: embedded ? 8 : undefined }}>
+    <div className="flex flex-col gap-2" style={{ width: '204px', marginRight: embedded ? 8 : undefined }}>
       <div
-        className="rounded-xl px-2 py-1.5 flex flex-col gap-1.5"
+        className="rounded-xl px-2.5 py-2 flex flex-col gap-2"
         style={{
           background: 'rgba(8, 10, 22, 0.62)',
           border: '1px solid rgba(255, 255, 255, 0.22)',
@@ -200,16 +200,16 @@ export function LiveSideMissionStack({
             title="Close"
             aria-expanded={true}
           >
-            <div className="flex items-center gap-1 min-w-0">
-              <Target size={11} className="text-[#FF4DA6] flex-shrink-0" strokeWidth={2.4} />
-              <span className="text-white text-[9px] font-bold whitespace-nowrap">Daily Mission</span>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Target size={13} className="text-[#FF4DA6] flex-shrink-0" strokeWidth={2.4} />
+              <span className="text-white text-[12px] font-bold whitespace-nowrap">Daily Mission</span>
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
-              <Clock size={9} className="text-[#F5D07A]" strokeWidth={2.2} />
-              <span className="text-[#F5D07A] text-[8px] font-bold tabular-nums leading-none">
+              <Clock size={11} className="text-[#F5D07A]" strokeWidth={2.2} />
+              <span className="text-[#F5D07A] text-[10px] font-bold tabular-nums leading-none">
                 {formatHms(remainMs)}
               </span>
-              <span className="text-white/70 text-[10px] font-bold leading-none ml-0.5" aria-hidden>
+              <span className="text-white/70 text-[12px] font-bold leading-none ml-0.5" aria-hidden>
                 ›
               </span>
             </div>
@@ -217,7 +217,7 @@ export function LiveSideMissionStack({
           {onOpenMissions ? (
             <button
               type="button"
-              className="text-[#C084FC] text-[8px] font-semibold whitespace-nowrap active:opacity-80 flex-shrink-0 pl-1"
+              className="text-[#C084FC] text-[10px] font-semibold whitespace-nowrap active:opacity-80 flex-shrink-0 pl-1"
               onClick={(e) => {
                 e.stopPropagation();
                 onOpenMissions();
@@ -228,7 +228,7 @@ export function LiveSideMissionStack({
           ) : null}
         </div>
 
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1.5">
           <MissionRow
             label="Watch 30 min"
             current={missions.watchMin}
@@ -252,13 +252,13 @@ export function LiveSideMissionStack({
         <div className="h-px w-full bg-white/10 my-0.5" />
 
         <div className="flex items-center justify-between gap-1">
-          <div className="flex items-center gap-1 min-w-0">
-            <Crown size={10} className="text-[#FFD54A] flex-shrink-0" fill="#FFD54A" strokeWidth={1.5} />
-            <span className="text-white text-[9px] font-bold whitespace-nowrap">Top Supporters</span>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <Crown size={12} className="text-[#FFD54A] flex-shrink-0" fill="#FFD54A" strokeWidth={1.5} />
+            <span className="text-white text-[11px] font-bold whitespace-nowrap">Top Supporters</span>
           </div>
           <button
             type="button"
-            className="text-[#C084FC] text-[8px] font-semibold whitespace-nowrap active:opacity-80"
+            className="text-[#C084FC] text-[10px] font-semibold whitespace-nowrap active:opacity-80"
             onClick={(e) => {
               e.stopPropagation();
               onViewAllSupporters?.();
@@ -268,21 +268,21 @@ export function LiveSideMissionStack({
           </button>
         </div>
 
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1.5">
           {top3.length === 0 ? (
-            <span className="text-white/35 text-[8px] py-0.5">No supporters yet</span>
+            <span className="text-white/35 text-[10px] py-0.5">No supporters yet</span>
           ) : (
             top3.map((s, i) => (
-              <div key={s.id || `${s.name}-${i}`} className="flex items-center gap-1.5 min-w-0">
+              <div key={s.id || `${s.name}-${i}`} className="flex items-center gap-2 min-w-0">
                 <span
-                  className="w-3.5 h-3.5 rounded-full flex items-center justify-center text-[7px] font-black text-black flex-shrink-0"
+                  className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-black text-black flex-shrink-0"
                   style={{ background: RANK_RING[i] || RANK_RING[2] }}
                 >
                   {i + 1}
                 </span>
-                <AvatarRing src={s.avatar} alt={s.name} size={16} />
-                <span className="flex-1 min-w-0 text-white text-[8px] font-bold truncate">{s.name}</span>
-                <span className="text-[#FFD54A] text-[8px] font-bold tabular-nums flex-shrink-0">
+                <AvatarRing src={s.avatar} alt={s.name} size={20} />
+                <span className="flex-1 min-w-0 text-white text-[10px] font-bold truncate">{s.name}</span>
+                <span className="text-[#FFD54A] text-[10px] font-bold tabular-nums flex-shrink-0">
                   {formatPointsShort(s.points)}
                 </span>
               </div>
@@ -293,7 +293,7 @@ export function LiveSideMissionStack({
 
       <button
         type="button"
-        className="w-full flex items-center gap-1.5 rounded-full pl-1.5 pr-2 py-1.5 active:scale-[0.98] transition-transform text-left"
+        className="w-full flex items-center gap-2 rounded-full pl-2 pr-2.5 py-2 active:scale-[0.98] transition-transform text-left"
         style={{
           background: 'linear-gradient(105deg, rgba(76,29,149,0.92) 0%, rgba(30,16,60,0.92) 55%, rgba(88,28,135,0.88) 100%)',
           border: '1px solid rgba(196,132,252,0.35)',
@@ -305,7 +305,7 @@ export function LiveSideMissionStack({
         }}
       >
         <span
-          className="w-7 h-7 flex-shrink-0 flex items-center justify-center text-[10px] font-black text-[#1A1200]"
+          className="w-8 h-8 flex-shrink-0 flex items-center justify-center text-[11px] font-black text-[#1A1200]"
           style={{
             clipPath: 'polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%)',
             background: 'linear-gradient(160deg,#FFF3C4 0%,#FFD54A 45%,#C9A227 100%)',
@@ -314,9 +314,9 @@ export function LiveSideMissionStack({
         >
           {level}
         </span>
-        <span className="flex-1 min-w-0 flex flex-col gap-0.5">
-          <span className="text-white text-[9px] font-bold leading-none">Battle Pass</span>
-          <span className="relative h-[6px] w-full rounded-full bg-black/35 overflow-hidden">
+        <span className="flex-1 min-w-0 flex flex-col gap-1">
+          <span className="text-white text-[11px] font-bold leading-none">Battle Pass</span>
+          <span className="relative h-[8px] w-full rounded-full bg-black/35 overflow-hidden">
             <span
               className="absolute inset-y-0 left-0 rounded-full"
               style={{
@@ -324,12 +324,12 @@ export function LiveSideMissionStack({
                 background: 'linear-gradient(90deg,#E879F9,#A855F7,#7C3AED)',
               }}
             />
-            <span className="absolute inset-0 flex items-center justify-center text-[6px] font-black text-white tabular-nums drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">
+            <span className="absolute inset-0 flex items-center justify-center text-[8px] font-black text-white tabular-nums drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">
               {xpCur}/{xpMax}
             </span>
           </span>
         </span>
-        <span className="text-white/85 text-[11px] font-medium flex-shrink-0">&gt;</span>
+        <span className="text-white/85 text-[13px] font-medium flex-shrink-0">&gt;</span>
       </button>
     </div>
   );
