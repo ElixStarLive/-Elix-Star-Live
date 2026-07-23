@@ -3295,10 +3295,32 @@ export default function SpectatorPage() {
                   <div
                     className="flex items-center gap-[0mm] min-w-0 flex-1 justify-start pointer-events-auto"
                     style={{ transform: `translateX(-${BATTLE_MVP_ROW_EDGE_OFFSET_MM}mm)` }}
-                    onClick={() => setShowViewersPanel(true)}
+                    title="Top gifters · red team"
+                    onClick={() => {
+                      const list = mvpSlots.host.map((s) => ({
+                        id: s.id,
+                        name: s.name,
+                        avatar: s.avatar,
+                        level: s.level,
+                        points: s.points ?? mvpGiftScoresHostRef.current[s.id] ?? 0,
+                      }));
+                      setViewersList(list);
+                      setShowViewersPanel(true);
+                    }}
                   >
                     {mvpSlots.host.map((slot, i) => {
-                      const isMvp = i === 0 && (mvpGiftScoresHostRef.current[slot.id] ?? 0) > 0;
+                      const gifted = slot.points ?? mvpGiftScoresHostRef.current[slot.id] ?? 0;
+                      const isMvp = i === 0 && gifted > 0;
+                      const rawName = String(slot.name || '').trim();
+                      const label = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawName)
+                        ? rawName.split('@')[0] || 'User'
+                        : rawName || 'User';
+                      const ptsLabel =
+                        gifted >= 1_000_000
+                          ? `${(gifted / 1_000_000).toFixed(1)}M`
+                          : gifted >= 1_000
+                            ? `${(gifted / 1_000).toFixed(1)}K`
+                            : String(Math.floor(gifted));
                       return (
                         <div
                           key={`mvp-l-${slot.id}`}
@@ -3307,16 +3329,22 @@ export default function SpectatorPage() {
                         >
                           <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
                             <AvatarRing
-                              src={resolveCircleAvatar(slot.avatar, slot.name)}
-                              alt={slot.name || ''}
+                              src={resolveCircleAvatar(slot.avatar, label)}
+                              alt={label}
                               size={LIVE_MVP_PROFILE_RING_PX}
                             />
                           </div>
                           {isMvp && (
-                            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
+                            <span className="absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
                               MVP
                             </span>
                           )}
+                          <span className="mt-1 max-w-[40px] text-white text-[7px] font-semibold leading-none truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                            {label}
+                          </span>
+                          <span className="text-[#D4AF37] text-[7px] font-bold tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                            {ptsLabel}
+                          </span>
                         </div>
                       );
                     })}
@@ -3324,10 +3352,32 @@ export default function SpectatorPage() {
                   <div
                     className="flex items-center gap-[0mm] min-w-0 flex-1 justify-end pointer-events-auto"
                     style={{ transform: `translateX(${BATTLE_MVP_ROW_EDGE_OFFSET_MM}mm)` }}
-                    onClick={() => setShowViewersPanel(true)}
+                    title="Top gifters · blue team"
+                    onClick={() => {
+                      const list = mvpSlots.opponent.map((s) => ({
+                        id: s.id,
+                        name: s.name,
+                        avatar: s.avatar,
+                        level: s.level,
+                        points: s.points ?? mvpGiftScoresOpponentRef.current[s.id] ?? 0,
+                      }));
+                      setViewersList(list);
+                      setShowViewersPanel(true);
+                    }}
                   >
                     {mvpSlots.opponent.map((slot, i) => {
-                      const isMvp = i === 0 && (mvpGiftScoresOpponentRef.current[slot.id] ?? 0) > 0;
+                      const gifted = slot.points ?? mvpGiftScoresOpponentRef.current[slot.id] ?? 0;
+                      const isMvp = i === 0 && gifted > 0;
+                      const rawName = String(slot.name || '').trim();
+                      const label = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawName)
+                        ? rawName.split('@')[0] || 'User'
+                        : rawName || 'User';
+                      const ptsLabel =
+                        gifted >= 1_000_000
+                          ? `${(gifted / 1_000_000).toFixed(1)}M`
+                          : gifted >= 1_000
+                            ? `${(gifted / 1_000).toFixed(1)}K`
+                            : String(Math.floor(gifted));
                       return (
                         <div
                           key={`mvp-r-${slot.id}`}
@@ -3336,16 +3386,22 @@ export default function SpectatorPage() {
                         >
                           <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
                             <AvatarRing
-                              src={resolveCircleAvatar(slot.avatar, slot.name)}
-                              alt={slot.name || ''}
+                              src={resolveCircleAvatar(slot.avatar, label)}
+                              alt={label}
                               size={LIVE_MVP_PROFILE_RING_PX}
                             />
                           </div>
                           {isMvp && (
-                            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
+                            <span className="absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
                               MVP
                             </span>
                           )}
+                          <span className="mt-1 max-w-[40px] text-white text-[7px] font-semibold leading-none truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                            {label}
+                          </span>
+                          <span className="text-[#D4AF37] text-[7px] font-bold tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                            {ptsLabel}
+                          </span>
                         </div>
                       );
                     })}

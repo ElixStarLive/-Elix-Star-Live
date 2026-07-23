@@ -351,7 +351,9 @@ export default function LiveStream() {
   const TEST_COINS_HASH = '169a9bfc269089e14090ad2e393b17e945d798598c33993bcab5feef93e68508';
   const [showViewerList, setShowViewerList] = useState(false);
   /** MVP / supporters → top gifters; UserPlus / co-host request → invite spectators. */
-  const [viewerListMode, setViewerListMode] = useState<'spectators' | 'topGifters'>('spectators');
+  const [viewerListMode, setViewerListMode] = useState<
+    'spectators' | 'topGifters' | 'topGiftersHost' | 'topGiftersOpponent'
+  >('spectators');
   const [moderators, setModerators] = useState<Set<string>>(new Set());
   const attachRemoteAudio = useCallback((track: import('livekit-client').Track, el: HTMLAudioElement | null) => {
     if (track.kind !== 'audio') return;
@@ -3263,13 +3265,6 @@ export default function LiveStream() {
     [buildMvpRanked, mvpGiftScores],
   );
 
-  const topGiftersRanked = useMemo(() => {
-    const ranked = buildMvpRanked(mvpGiftScores, 50, { requirePositiveScore: true });
-    if (ranked.length > 0) return ranked;
-    // Fallback: show top viewers by level when nobody has gifted yet.
-    return buildMvpRanked(mvpGiftScores, 20);
-  }, [buildMvpRanked, mvpGiftScores]);
-
   const liveViewerLabel = useCallback((v: { displayName?: string; username?: string }) => {
     const d = String(v.displayName || '').trim();
     const u = String(v.username || '').trim();
@@ -3281,9 +3276,11 @@ export default function LiveStream() {
     return d || u || 'User';
   }, []);
 
-  const openTopGiftersPanel = useCallback(() => {
+  const openTopGiftersPanel = useCallback((side: 'global' | 'host' | 'opponent' = 'global') => {
     setIsFindCreatorsOpen(false);
-    setViewerListMode('topGifters');
+    setViewerListMode(
+      side === 'host' ? 'topGiftersHost' : side === 'opponent' ? 'topGiftersOpponent' : 'topGifters',
+    );
     setShowViewerList(true);
   }, []);
 
@@ -3292,6 +3289,23 @@ export default function LiveStream() {
     setViewerListMode('spectators');
     setShowViewerList(true);
   }, []);
+
+  const topGiftersPanelScores = useMemo(() => {
+    if (viewerListMode === 'topGiftersHost') return mvpGiftScoresHost;
+    if (viewerListMode === 'topGiftersOpponent') return mvpGiftScoresOpponent;
+    return mvpGiftScores;
+  }, [viewerListMode, mvpGiftScores, mvpGiftScoresHost, mvpGiftScoresOpponent]);
+
+  const topGiftersRanked = useMemo(() => {
+    const ranked = buildMvpRanked(topGiftersPanelScores, 50, { requirePositiveScore: true });
+    if (ranked.length > 0) return ranked;
+    return buildMvpRanked(topGiftersPanelScores, 20);
+  }, [buildMvpRanked, topGiftersPanelScores]);
+
+  const isTopGiftersPanel =
+    viewerListMode === 'topGifters' ||
+    viewerListMode === 'topGiftersHost' ||
+    viewerListMode === 'topGiftersOpponent';
 
   const topMvpHostBattle = useMemo(() => {
     // Scorers exclusive to host side, then fill remaining of 3 from viewers by host score.
@@ -6322,9 +6336,16 @@ export default function LiveStream() {
           })()}
 
             <div className="absolute bottom-1 left-0 right-0 px-3 py-2 flex items-center justify-between flex-none pointer-events-none relative z-30" style={{ transform: 'translateY(1mm)' }}>
-              <div className="flex items-center gap-[0mm] min-w-0 flex-1 justify-start pointer-events-auto" style={{ transform: `translateX(-${BATTLE_MVP_ROW_EDGE_OFFSET_MM}mm)` }} onClick={() => { setShowViewerList(false); setIsFindCreatorsOpen(true); }}>
+              <div
+                className="flex items-center gap-[0mm] min-w-0 flex-1 justify-start pointer-events-auto"
+                style={{ transform: `translateX(-${BATTLE_MVP_ROW_EDGE_OFFSET_MM}mm)` }}
+                onClick={() => openTopGiftersPanel('host')}
+                title="Top gifters · red team"
+              >
                 {topMvpHostBattle.map((viewer, i) => {
-                  const isMvp = i === 0 && (mvpGiftScoresHost[viewer.id] ?? 0) > 0;
+                  const gifted = mvpGiftScoresHost[viewer.id] ?? 0;
+                  const isMvp = i === 0 && gifted > 0;
+                  const label = liveViewerLabel(viewer);
                   return (
                   <div
                     key={`mvp-l-${viewer.id}`}
@@ -6333,23 +6354,36 @@ export default function LiveStream() {
                   >
                     <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
                       <AvatarRing
-                        src={resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username)}
-                        alt={viewer.displayName || viewer.username || ''}
+                        src={resolveCircleAvatar(viewer.avatar, label)}
+                        alt={label}
                         size={LIVE_MVP_PROFILE_RING_PX}
                       />
                     </div>
                     {isMvp && (
-                      <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
+                      <span className="absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
                         MVP
                       </span>
                     )}
+                    <span className="mt-1 max-w-[40px] text-white text-[7px] font-semibold leading-none truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                      {label}
+                    </span>
+                    <span className="text-[#D4AF37] text-[7px] font-bold tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                      {formatCoinsShort(gifted)}
+                    </span>
                   </div>
                   );
                 })}
               </div>
-              <div className="flex items-center gap-[0mm] min-w-0 flex-1 justify-end pointer-events-auto" style={{ transform: `translateX(${BATTLE_MVP_ROW_EDGE_OFFSET_MM}mm)` }} onClick={() => { setShowViewerList(false); setIsFindCreatorsOpen(true); }}>
+              <div
+                className="flex items-center gap-[0mm] min-w-0 flex-1 justify-end pointer-events-auto"
+                style={{ transform: `translateX(${BATTLE_MVP_ROW_EDGE_OFFSET_MM}mm)` }}
+                onClick={() => openTopGiftersPanel('opponent')}
+                title="Top gifters · blue team"
+              >
                 {topMvpOpponentBattle.map((viewer, i) => {
-                  const isMvp = i === 0 && (mvpGiftScoresOpponent[viewer.id] ?? 0) > 0;
+                  const gifted = mvpGiftScoresOpponent[viewer.id] ?? 0;
+                  const isMvp = i === 0 && gifted > 0;
+                  const label = liveViewerLabel(viewer);
                   return (
                   <div
                     key={`mvp-r-${viewer.id}`}
@@ -6358,16 +6392,22 @@ export default function LiveStream() {
                   >
                     <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
                       <AvatarRing
-                        src={resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username)}
-                        alt={viewer.displayName || viewer.username || ''}
+                        src={resolveCircleAvatar(viewer.avatar, label)}
+                        alt={label}
                         size={LIVE_MVP_PROFILE_RING_PX}
                       />
                     </div>
                     {isMvp && (
-                      <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
+                      <span className="absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
                         MVP
                       </span>
                     )}
+                    <span className="mt-1 max-w-[40px] text-white text-[7px] font-semibold leading-none truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                      {label}
+                    </span>
+                    <span className="text-[#D4AF37] text-[7px] font-bold tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                      {formatCoinsShort(gifted)}
+                    </span>
                   </div>
                   );
                 })}
@@ -6492,7 +6532,7 @@ export default function LiveStream() {
                           <div
                             className="flex items-center gap-[0mm] pointer-events-auto flex-shrink-0"
                             style={{ transform: 'translateX(-2mm)' }}
-                            onClick={openTopGiftersPanel}
+                            onClick={() => openTopGiftersPanel('global')}
                             title="Top viewers & gifters"
                           >
                             {topMvpViewers.map((viewer, i) => {
@@ -6676,7 +6716,7 @@ export default function LiveStream() {
             battlePassLevel={userLevel || 1}
             battlePassXp={userXP % 1000}
             battlePassXpMax={1000}
-            onViewAllSupporters={openTopGiftersPanel}
+            onViewAllSupporters={() => openTopGiftersPanel('global')}
             onOpenMissions={() => {
               setEngagementPanel('missions');
               setEngagementOpen(true);
@@ -7215,24 +7255,30 @@ export default function LiveStream() {
               </div>
               <div className="flex items-center justify-between px-4 pb-2">
                 <h3 className="text-white font-bold text-sm">
-                  {viewerListMode === 'topGifters' ? 'Top viewers & gifters' : 'Join requests & Spectators'}
+                  {isTopGiftersPanel
+                    ? viewerListMode === 'topGiftersHost'
+                      ? 'Top gifters · Red'
+                      : viewerListMode === 'topGiftersOpponent'
+                        ? 'Top gifters · Blue'
+                        : 'Top viewers & gifters'
+                    : 'Join requests & Spectators'}
                 </h3>
                 <div className="flex items-center gap-1">
                   <Users size={12} className="text-white/50" />
                   <span className="text-white/60 text-xs font-semibold">
-                    {viewerListMode === 'topGifters'
+                    {isTopGiftersPanel
                       ? formatCountShort(topGiftersRanked.length)
                       : formatCountShort(viewerCount)}
                   </span>
                 </div>
               </div>
               <div className="flex-1 overflow-y-auto no-scrollbar px-4 pb-4 min-h-0">
-                {viewerListMode === 'topGifters' ? (
+                {isTopGiftersPanel ? (
                   <>
                     <p className="text-white/50 text-[10px] font-bold uppercase tracking-wider mb-1.5">MVP · Gift coins this live</p>
                     {topGiftersRanked.length > 0 ? (
                       topGiftersRanked.map((v, i) => {
-                        const gifted = mvpGiftScores[v.id] ?? 0;
+                        const gifted = topGiftersPanelScores[v.id] ?? 0;
                         const displayName = liveViewerLabel(v);
                         const isMvp = i === 0 && gifted > 0;
                         return (
