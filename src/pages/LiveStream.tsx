@@ -14,7 +14,6 @@ import {
   Gift,
   MoreVertical,
   Users,
-  Zap,
   Copy,
   AlertTriangle,
   Plus,
@@ -1998,6 +1997,9 @@ export default function LiveStream() {
   const speedMultiplierRef = useRef(1);
   const roseCountRef = useRef(0);
   const [roseCount, setRoseCount] = useState(0);
+  /** Rapid battle screen taps — unlock Speed with roses / gift points. */
+  const battleScreenTapCountRef = useRef(0);
+  const [battleScreenTapCount, setBattleScreenTapCount] = useState(0);
 
   useEffect(() => { speedChallengeActiveRef.current = speedChallengeActive; }, [speedChallengeActive]);
   useEffect(() => { speedMultiplierRef.current = speedMultiplier; }, [speedMultiplier]);
@@ -2314,6 +2316,8 @@ export default function LiveStream() {
     reachedThresholdsRef.current.clear();
     roseCountRef.current = 0;
     setRoseCount(0);
+    battleScreenTapCountRef.current = 0;
+    setBattleScreenTapCount(0);
     battleFreeTapUsedRef.current = false;
     battleTapScoreRemainingRef.current = 5;
     prevBattleSyncStatusRef.current = null;
@@ -2677,20 +2681,29 @@ export default function LiveStream() {
   }, [speedChallengeActive, speedChallengeTime]);
 
 
-  // Speed challenge unlock: gift points OR flower/rose gifts.
-  // Thresholds — 200 pts / 1 flower → x2, 1000 / 3 → x3, 5000 / 5 → x5 (each 60s once crossed).
+  // Speed challenge unlock (automatic only — no More-menu Speed button).
+  // Unlocks from gift points OR rose/flower gifts OR lots of battle screen taps.
+  // Picks highest available tier: x2 / x3 / x5.
   useEffect(() => {
     if (!SPEED_CHALLENGE_ENABLED || !isBattleMode || battleWinner) return;
     if (speedChallengeActive) return;
 
     const totalScore = myScore + opponentScore + player3Score + player4Score;
     const flowers = roseCountRef.current;
+    const taps = battleScreenTapCountRef.current;
 
-    const tryUnlock = (threshold: number, mult: number, flowerNeed: number, markLower: number[]) => {
+    const tryUnlock = (
+      threshold: number,
+      mult: number,
+      flowerNeed: number,
+      tapNeed: number,
+      markLower: number[],
+    ) => {
       if (reachedThresholdsRef.current.has(threshold)) return false;
       const byPoints = totalScore >= threshold;
       const byFlower = flowers >= flowerNeed;
-      if (!byPoints && !byFlower) return false;
+      const byTaps = taps >= tapNeed;
+      if (!byPoints && !byFlower && !byTaps) return false;
       reachedThresholdsRef.current.add(threshold);
       for (const m of markLower) reachedThresholdsRef.current.add(m);
       setSpeedMultiplier(mult);
@@ -2699,11 +2712,12 @@ export default function LiveStream() {
       return true;
     };
 
-    if (tryUnlock(5000, 5, 5, [1000, 200])) return;
-    if (tryUnlock(1000, 3, 3, [200])) return;
-    tryUnlock(200, 2, 1, []);
+    // Highest first — system chooses x5 / x3 / x2 automatically.
+    if (tryUnlock(5000, 5, 5, 80, [1000, 200])) return;
+    if (tryUnlock(1000, 3, 3, 40, [200])) return;
+    tryUnlock(200, 2, 1, 15, []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [myScore, opponentScore, player3Score, player4Score, roseCount, isBattleMode, battleWinner, speedChallengeActive, startSpeedChallenge]);
+  }, [myScore, opponentScore, player3Score, player4Score, roseCount, battleScreenTapCount, isBattleMode, battleWinner, speedChallengeActive, startSpeedChallenge]);
 
   useEffect(() => {
     if (!isBattleMode) return;
@@ -5036,6 +5050,12 @@ export default function LiveStream() {
       }
     }
 
+    // Count battle screen taps for automatic Speed unlock (x2/x3/x5).
+    if (isBattleMode && battleTime > 0 && !battleWinner) {
+      battleScreenTapCountRef.current += 1;
+      setBattleScreenTapCount(battleScreenTapCountRef.current);
+    }
+
     // Spectator tap vote only — creators playing a match never enter this path.
     if (!isCreatorParticipant && clientX !== undefined && clientY !== undefined && isBattleMode && battleTime > 0 && !battleWinner) {
       const watchedTarget = resolveSpectatorVoteTargetFromWatchedStream();
@@ -6510,6 +6530,10 @@ export default function LiveStream() {
                     setBattleWinner(null);
                     setBattleCountdown(null);
                     reachedThresholdsRef.current.clear();
+                    roseCountRef.current = 0;
+                    setRoseCount(0);
+                    battleScreenTapCountRef.current = 0;
+                    setBattleScreenTapCount(0);
                   }}  
                   className="px-4 h-10 rounded-full bg-[#111111] backdrop-blur-md flex items-center justify-center shadow-lg active:scale-95 transition-transform"
                 >
@@ -7497,20 +7521,11 @@ export default function LiveStream() {
               </button>
 
               {isBattleMode && battleWinner && isBroadcast && (
-                <button type="button" onClick={() => { startBattleWithAcceptedCreators(); setBattleTime(300); setMyScore(0); setOpponentScore(0); setPlayer3Score(0); setPlayer4Score(0); battleServerTotalsRef.current = { h: 0, o: 0, p3: 0, p4: 0 }; setBattleServerTotals({ h: 0, o: 0, p3: 0, p4: 0 }); setBattleWinner(null); setBattleCountdown(null); reachedThresholdsRef.current.clear(); setIsMoreMenuOpen(false); }} className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform">
+                <button type="button" onClick={() => { startBattleWithAcceptedCreators(); setBattleTime(300); setMyScore(0); setOpponentScore(0); setPlayer3Score(0); setPlayer4Score(0); battleServerTotalsRef.current = { h: 0, o: 0, p3: 0, p4: 0 }; setBattleServerTotals({ h: 0, o: 0, p3: 0, p4: 0 }); setBattleWinner(null); setBattleCountdown(null); reachedThresholdsRef.current.clear(); roseCountRef.current = 0; setRoseCount(0); battleScreenTapCountRef.current = 0; setBattleScreenTapCount(0); setIsMoreMenuOpen(false); }} className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform">
                   <div className="royce-glow-disc w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
                     <RefreshCw className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />
                   </div>
                   <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">Rematch</span>
-                </button>
-              )}
-
-              {isBattleMode && isBroadcast && !battleWinner && battleTime > 0 && (
-                <button type="button" onClick={() => { startSpeedChallenge(); setIsMoreMenuOpen(false); }} className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform">
-                  <div className="royce-glow-disc w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
-                    <Zap className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />
-                  </div>
-                  <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">Speed</span>
                 </button>
               )}
 

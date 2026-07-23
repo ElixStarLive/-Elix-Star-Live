@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { RoyceBackIcon, RoyceCloseIcon } from '../components/royce';
+import { RoyceCloseIcon } from '../components/royce';
 import { showToast } from '../lib/toast';
 import { IS_STORE_BUILD } from '../config/build';
 import {
@@ -238,6 +238,7 @@ export default function SpectatorPage() {
   const [showSharePanel, setShowSharePanel] = useState(false);
   const [showPromotePanel, setShowPromotePanel] = useState(false);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+  const [isChatVisible, setIsChatVisible] = useState(true);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [engagementOpen, setEngagementOpen] = useState(false);
   const [engagementPanel, setEngagementPanel] = useState<EngagementPanel>('hub');
@@ -539,6 +540,103 @@ export default function SpectatorPage() {
   const spectatorBattleRef = useRef(spectatorBattle);
   spectatorBattleRef.current = spectatorBattle;
   const _lastBattleScoreUpdateTraceSigRef = useRef('');
+
+  // SPEED CHALLENGE (spectator) — auto unlock only; appears alone (not in More).
+  const SPEED_CHALLENGE_ENABLED = true;
+  const [speedChallengeActive, setSpeedChallengeActive] = useState(false);
+  const [speedChallengeTime, setSpeedChallengeTime] = useState(60);
+  const [speedMultiplier, setSpeedMultiplier] = useState(1);
+  const speedMultiplierRef = useRef(1);
+  const roseCountRef = useRef(0);
+  const [roseCount, setRoseCount] = useState(0);
+  const battleScreenTapCountRef = useRef(0);
+  const [battleScreenTapCount, setBattleScreenTapCount] = useState(0);
+  const reachedThresholdsRef = useRef<Set<number>>(new Set());
+  useEffect(() => { speedMultiplierRef.current = speedMultiplier; }, [speedMultiplier]);
+
+  const resetSpectatorSpeed = useCallback(() => {
+    reachedThresholdsRef.current.clear();
+    roseCountRef.current = 0;
+    setRoseCount(0);
+    battleScreenTapCountRef.current = 0;
+    setBattleScreenTapCount(0);
+    setSpeedChallengeActive(false);
+    setSpeedChallengeTime(60);
+    setSpeedMultiplier(1);
+    speedMultiplierRef.current = 1;
+  }, []);
+
+  const startSpeedChallenge = useCallback(() => {
+    if (!SPEED_CHALLENGE_ENABLED) return;
+    if (speedChallengeActive) return;
+    const b = spectatorBattleRef.current;
+    if (!b?.active || b.status !== 'ACTIVE' || b.winner) return;
+    setSpeedChallengeActive(true);
+    setSpeedChallengeTime(60);
+  }, [speedChallengeActive, SPEED_CHALLENGE_ENABLED]);
+
+  useEffect(() => {
+    if (!speedChallengeActive) return;
+    if (speedChallengeTime <= 0) {
+      setSpeedChallengeActive(false);
+      setSpeedMultiplier(1);
+      speedMultiplierRef.current = 1;
+      return;
+    }
+    const t = setTimeout(() => setSpeedChallengeTime((prev) => prev - 1), 1000);
+    return () => clearTimeout(t);
+  }, [speedChallengeActive, speedChallengeTime]);
+
+  // Auto unlock x2 / x3 / x5 from gift points OR rose gifts OR lots of screen taps.
+  useEffect(() => {
+    if (!SPEED_CHALLENGE_ENABLED) return;
+    const b = spectatorBattle;
+    if (!b?.active || b.status !== 'ACTIVE' || b.winner) return;
+    if (speedChallengeActive) return;
+
+    const totalScore =
+      (b.hostScore || 0) + (b.opponentScore || 0) + (b.player3Score ?? 0) + (b.player4Score ?? 0);
+    const flowers = roseCountRef.current;
+    const taps = battleScreenTapCountRef.current;
+
+    const tryUnlock = (
+      threshold: number,
+      mult: number,
+      flowerNeed: number,
+      tapNeed: number,
+      markLower: number[],
+    ) => {
+      if (reachedThresholdsRef.current.has(threshold)) return false;
+      const byPoints = totalScore >= threshold;
+      const byFlower = flowers >= flowerNeed;
+      const byTaps = taps >= tapNeed;
+      if (!byPoints && !byFlower && !byTaps) return false;
+      reachedThresholdsRef.current.add(threshold);
+      for (const m of markLower) reachedThresholdsRef.current.add(m);
+      setSpeedMultiplier(mult);
+      speedMultiplierRef.current = mult;
+      startSpeedChallenge();
+      return true;
+    };
+
+    if (tryUnlock(5000, 5, 5, 80, [1000, 200])) return;
+    if (tryUnlock(1000, 3, 3, 40, [200])) return;
+    tryUnlock(200, 2, 1, 15, []);
+  }, [
+    spectatorBattle?.hostScore,
+    spectatorBattle?.opponentScore,
+    spectatorBattle?.player3Score,
+    spectatorBattle?.player4Score,
+    spectatorBattle?.active,
+    spectatorBattle?.status,
+    spectatorBattle?.winner,
+    roseCount,
+    battleScreenTapCount,
+    speedChallengeActive,
+    startSpeedChallenge,
+    SPEED_CHALLENGE_ENABLED,
+  ]);
+
   /** When battle is active, gifts credit host (red) or opponent (blue) MVP tallies. */
   const [spectatorGiftBattleTarget, setSpectatorGiftBattleTarget] = useState<'host' | 'opponent'>('host');
   /** From battle_state_sync — map /watch/:streamId to red vs blue team for gifts (defaults were always host). */
@@ -1014,6 +1112,11 @@ export default function SpectatorPage() {
       spawnHeartAtSideSpectator();
     }
     setActiveLikes((prev) => prev + 1);
+    // Battle screen taps unlock Speed automatically (x2/x3/x5).
+    if (spectatorBattleRef.current?.active && spectatorBattleRef.current.status === 'ACTIVE') {
+      battleScreenTapCountRef.current += 1;
+      setBattleScreenTapCount(battleScreenTapCountRef.current);
+    }
     if (websocket.isConnected()) {
       websocket.send('heart_sent', { username: viewerName, avatar: viewerAvatar });
     }
@@ -1865,6 +1968,16 @@ export default function SpectatorPage() {
           isGift: true,
         };
         setMessages(prev => appendCapped(prev, msg, LIVE_CHAT_MESSAGE_CAP));
+        {
+          const flowerKey = giftName.toLowerCase();
+          if (
+            spectatorBattleRef.current?.active &&
+            (flowerKey.includes('rose') || flowerKey.includes('flower'))
+          ) {
+            roseCountRef.current += 1;
+            setRoseCount(roseCountRef.current);
+          }
+        }
         if (spectatorBattleRef.current?.active) {
           const side = normalizeBattleGiftTarget(data.battleTarget);
           if (side === 'opponent') {
@@ -1966,6 +2079,10 @@ export default function SpectatorPage() {
         const labels = battleTeamLabelsFromPayload(data);
         const status: 'WAITING' | 'ACTIVE' =
           rawStatus === 'WAITING' ? 'WAITING' : 'ACTIVE';
+        const prevBattle = spectatorBattleRef.current;
+        if (!prevBattle?.active || prevBattle.status === 'ENDED') {
+          resetSpectatorSpeed();
+        }
         setSpectatorBattle((prev) => ({
           active: true,
           status,
@@ -1984,6 +2101,7 @@ export default function SpectatorPage() {
         setSpectatorBattle((prev) =>
           prev ? { ...prev, active: false, status: 'ENDED' } : null,
         );
+        resetSpectatorSpeed();
         setTimeout(() => setSpectatorBattle(null), 2500);
       }
     };
@@ -2090,6 +2208,7 @@ export default function SpectatorPage() {
           blueTeamLabel: labels.blue || prevState.blueTeamLabel || '',
         };
       });
+      resetSpectatorSpeed();
       // Return spectators to normal live layout after a short end banner.
       setTimeout(() => setSpectatorBattle(null), 2500);
     };
@@ -2923,6 +3042,15 @@ export default function SpectatorPage() {
                       <span className="text-white text-[11px] font-black tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
                         {formatTime(spectatorBattle.timeLeft)}
                       </span>
+                      {SPEED_CHALLENGE_ENABLED && speedChallengeActive && (
+                        <span className="flex items-center gap-1 ml-1 px-1.5 py-0.5 rounded-full bg-[#B91C1C]/90 shadow-[0_0_10px_rgba(185,28,28,0.55)]">
+                          <span className="text-white text-[8px] font-black uppercase tracking-wide">Speed</span>
+                          <span className="text-white text-[11px] font-black tabular-nums">{speedChallengeTime}s</span>
+                          {speedMultiplier > 1 && (
+                            <span className="text-white text-[9px] font-black">x{speedMultiplier}</span>
+                          )}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -3163,6 +3291,18 @@ export default function SpectatorPage() {
                     })}
                   </div>
                 </div>
+
+                {SPEED_CHALLENGE_ENABLED && speedChallengeActive && (
+                  <div className="w-full px-3 py-2 flex items-center justify-center flex-none pointer-events-none mt-1 relative z-30" style={{ transform: 'translateY(-6mm)' }}>
+                    <div className="flex items-center gap-3 px-5 py-1 rounded-full bg-[#B91C1C]/90 backdrop-blur-md border border-white/20 shadow-[0_0_15px_rgba(185,28,28,0.45)] animate-luxury-fade-in">
+                      <span className="text-white text-[9px] font-bold uppercase tracking-[0.1em]">⚡ Speed</span>
+                      <span className="text-white text-[14px] font-black tabular-nums">{speedChallengeTime}s</span>
+                      {speedMultiplier > 1 && (
+                        <span className="text-white text-[11px] font-black animate-pulse">x{speedMultiplier}</span>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Opponent profile panel — floating above bottom bar */}
                 {showOpponentPanel && spectatorBattle.opponentRoomId && (
@@ -3774,7 +3914,7 @@ export default function SpectatorPage() {
             </div>
             <div
               className="relative z-[10] h-full overflow-y-auto pointer-events-auto bg-transparent px-1"
-              style={{ transform: 'translateX(2mm)' }}
+              style={{ transform: 'translateX(2mm)', visibility: isChatVisible ? 'visible' : 'hidden' }}
               onPointerDown={(e) => {
                 e.stopPropagation();
                 if (e.target instanceof Element) {
@@ -3784,6 +3924,7 @@ export default function SpectatorPage() {
                 handleLikeTap(e);
               }}
             >
+              {isChatVisible ? (
               <ChatOverlay
                 messages={messages}
                 variant="panel"
@@ -3792,6 +3933,7 @@ export default function SpectatorPage() {
                 onLike={handleLikeTap}
                 onProfileTap={() => {}}
               />
+              ) : null}
             </div>
           </div>
         </div>
@@ -4581,7 +4723,7 @@ export default function SpectatorPage() {
           }}
         />
 
-        {/* MORE MENU */}
+        {/* MORE MENU — same panel layout/style as creator More */}
         {isMoreMenuOpen && (
           <>
             <div
@@ -4590,11 +4732,14 @@ export default function SpectatorPage() {
               onClick={() => setIsMoreMenuOpen(false)}
             />
             <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
-              <div className="bg-[#111111]/95 backdrop-blur-md rounded-t-2xl p-3 pb-safe flex flex-col shadow-2xl w-full h-[40vh] overflow-hidden">
-                <div className="flex justify-center pt-0.5 pb-0.5">
+              <div
+                className="bg-[#111111]/95 rounded-t-2xl p-3 pb-safe h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex justify-center mb-2">
                   <div className="w-10 h-1 bg-white/20 rounded-full" />
                 </div>
-                <div className="grid grid-cols-4 gap-y-4 gap-x-2 pt-4 pb-2 px-1">
+                <div className="grid grid-cols-4 gap-y-4 gap-x-2 pt-1 pb-2 px-1">
                   {!IS_STORE_BUILD && (
                   <button
                     type="button"
@@ -4607,32 +4752,24 @@ export default function SpectatorPage() {
                     }}
                     className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform"
                   >
-                    <div className="w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
-                      <Coins size={18} className="text-[#D4AF37]" />
+                    <div className="royce-glow-disc w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
+                      <Coins className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />
                     </div>
                     <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">Test</span>
                   </button>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => { setIsReportModalOpen(true); setIsMoreMenuOpen(false); }}
-                    className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform"
-                  >
-                    <div className="w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
-                      <Flag size={18} className="text-white/60" />
-                    </div>
-                    <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">Report</span>
-                  </button>
+
                   <button
                     type="button"
                     onClick={() => { setShowSharePanel(true); setIsMoreMenuOpen(false); }}
                     className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform"
                   >
-                    <div className="w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
-                      <Share2 size={18} className="text-[#D4AF37]" />
+                    <div className="royce-glow-disc w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
+                      <Share2 className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />
                     </div>
                     <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">Share</span>
                   </button>
+
                   {engagementFlags.engagementHubEnabled ? (
                   <button
                     type="button"
@@ -4643,21 +4780,33 @@ export default function SpectatorPage() {
                     }}
                     className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform"
                   >
-                    <div className="w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
-                      <Gift size={18} className="text-[#D4AF37]" />
+                    <div className="royce-glow-disc w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
+                      <Gift className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />
                     </div>
                     <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">Engagement</span>
                   </button>
                   ) : null}
+
                   <button
                     type="button"
-                    onClick={() => setIsMoreMenuOpen(false)}
+                    onClick={() => { setIsChatVisible((v) => !v); setIsMoreMenuOpen(false); }}
                     className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform"
                   >
-                    <div className="w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
-                      <RoyceBackIcon size={18} />
+                    <div className="royce-glow-disc w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
+                      <MessageCircle className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />
                     </div>
-                    <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">Cancel</span>
+                    <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">{isChatVisible ? 'Hide Chat' : 'Show Chat'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => { setIsReportModalOpen(true); setIsMoreMenuOpen(false); }}
+                    className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform"
+                  >
+                    <div className="royce-glow-disc w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
+                      <Flag className="w-[18px] h-[18px] text-white/60 relative z-[2]" strokeWidth={1.8} />
+                    </div>
+                    <span className="text-[10px] font-semibold text-white/60 text-center leading-tight w-full">Report</span>
                   </button>
                 </div>
               </div>
