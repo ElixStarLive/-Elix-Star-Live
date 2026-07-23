@@ -270,10 +270,12 @@ export default function FriendsFeed() {
             <button
               type="button"
               onClick={() => navigate('/search')}
-              className="w-9 h-9 royce-glow-disc flex items-center justify-center z-10"
+              className="z-10 flex items-center justify-center"
               aria-label="Search"
             >
-              <Search size={16} className="royce-icon-gold" strokeWidth={2} />
+              <span className="royce-tile" style={{ width: 26, height: 26 }} aria-hidden>
+                <Search size={18} className="royce-icon-gold block" strokeWidth={2.35} />
+              </span>
             </button>
             <h1 className="text-sm font-bold text-white absolute left-1/2 -translate-x-1/2 pointer-events-none">
               Friends
