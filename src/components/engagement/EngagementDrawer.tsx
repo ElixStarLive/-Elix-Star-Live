@@ -8,7 +8,6 @@ import {
   Calendar,
   Wallet,
   ChevronRight,
-  X,
   Map,
   Sticker,
   IdCard,
@@ -149,24 +148,18 @@ export function EngagementDrawer({
         onClick={(e) => e.stopPropagation()}
       >
         <header className="flex items-center gap-2 px-3 py-2.5 border-b border-white/10 shrink-0">
-          <button
-            type="button"
-            onClick={backToHub}
-            className="p-1.5 rounded-md active:bg-white/10"
-            aria-label={activePanel === "hub" ? "Close" : "Back"}
-          >
-            <RoyceBackIcon className="w-5 h-5 text-white" />
-          </button>
+          {/* Spacer keeps title centered; exit control sits on the right. */}
+          <div className="w-8 h-8 shrink-0" aria-hidden />
           <h2 className="flex-1 text-center text-sm font-semibold text-white truncate">
             {PANEL_TITLES[activePanel]}
           </h2>
           <button
             type="button"
-            onClick={close}
-            className="p-1.5 rounded-md active:bg-white/10"
-            aria-label="Close"
+            onClick={backToHub}
+            className="p-1.5 rounded-md active:bg-white/10 shrink-0"
+            aria-label={activePanel === "hub" ? "Close" : "Back"}
           >
-            <X className="w-5 h-5 text-white/80" />
+            <RoyceBackIcon className="w-5 h-5 text-white" />
           </button>
         </header>
 
