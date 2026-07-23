@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" fill="none" aria-hidden="true">
+  <defs>
+    <filter id="neon" x="-40%" y="-40%" width="180%" height="180%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1.4" result="b1"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3.2" result="b2"/>
+      <feMerge>
+        <feMergeNode in="b2"/>
+        <feMergeNode in="b1"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <!-- Transparent background  neon purple diamond frame (lines only) -->
+  <g filter="url(#neon)" stroke="#C77DFF" stroke-linejoin="round" stroke-linecap="round">
+    <!-- Outer frame: flat top, pointed tip -->
+    <path d="M21.3 8.5 H42.7 L54.7 24.5 L32 55.5 L9.3 24.5 Z" stroke-width="2.6" fill="none"/>
+    <!-- Girdle -->
+    <path d="M9.3 24.5 H54.7" stroke-width="2.3"/>
+    <!-- Facets from top corners to tip -->
+    <path d="M21.3 8.5 L32 55.5" stroke-width="2.1"/>
+    <path d="M42.7 8.5 L32 55.5" stroke-width="2.1"/>
+    <!-- Crown mid to girdle corners -->
+    <path d="M32 8.5 L9.3 24.5" stroke-width="2"/>
+    <path d="M32 8.5 L54.7 24.5" stroke-width="2"/>
+  </g>
+</svg>
