@@ -20,7 +20,8 @@ interface SuggestedUser {
 const STORY_IMAGE_MS = 5000;
 
 /**
- * Story media player — plays inside the Friends body (not outside Friends).
+ * Story watch player — separate container for stories people add.
+ * Not part of the friend video container.
  */
 function FriendStorySlide({
   group,
@@ -75,7 +76,7 @@ function FriendStorySlide({
           onEnded={onEnded}
         />
       )}
-      <div className="absolute top-3 left-3 right-12 z-10 flex items-center gap-2 pointer-events-none">
+      <div className="absolute top-[calc(env(safe-area-inset-top,0px)+28px)] left-3 right-12 z-10 flex items-center gap-2 pointer-events-none">
         <StoryGoldRingAvatar
           size={36}
           glow
@@ -385,87 +386,125 @@ export default function FriendsFeed() {
           </div>
         </div>
 
-        {/* Friends body — friend videos + story player both live here */}
-        <div className="relative flex-1 min-h-0 z-0 w-full bg-black">
-          {/* Friend video container */}
-          <div
-            ref={containerRef}
-            className={`absolute inset-0 w-full overflow-y-scroll snap-y snap-mandatory overscroll-none bg-black ${
-              storyViewer ? 'invisible pointer-events-none' : ''
-            }`}
-            style={{ scrollSnapType: 'y mandatory', WebkitOverflowScrolling: 'touch' }}
-            onScroll={handleScroll}
-            aria-hidden={!!storyViewer}
-          >
-            {friendVideoIds.map((videoId, index) => {
-              return (
-                <div
-                  key={`video-${videoId}`}
-                  data-slide-index={index}
-                  className="h-full w-full shrink-0 snap-start bg-black"
-                  style={{
-                    height: '100%',
-                    scrollSnapAlign: 'start',
-                    scrollSnapStop: 'always',
-                  }}
-                >
-                  <FriendVideoSlide
-                    videoId={videoId}
-                    isActive={activeIndex === index && !storyViewer}
-                    onEnded={() => handleSlideEnd(index)}
-                  />
-                </div>
-              );
-            })}
-
-            {loading && feedLen === 0 && (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="w-8 h-8 border-2 border-[#C9A227] border-t-transparent rounded-full animate-spin" />
+        {/* Friend video container — untouched; videos only */}
+        <div
+          ref={containerRef}
+          className="relative flex-1 min-h-0 z-0 w-full overflow-y-scroll snap-y snap-mandatory overscroll-none bg-black"
+          style={{ scrollSnapType: 'y mandatory', WebkitOverflowScrolling: 'touch' }}
+          onScroll={handleScroll}
+        >
+          {friendVideoIds.map((videoId, index) => {
+            return (
+              <div
+                key={`video-${videoId}`}
+                data-slide-index={index}
+                className="h-full w-full shrink-0 snap-start bg-black"
+                style={{
+                  height: '100%',
+                  scrollSnapAlign: 'start',
+                  scrollSnapStop: 'always',
+                }}
+              >
+                <FriendVideoSlide
+                  videoId={videoId}
+                  isActive={activeIndex === index && !storyViewer}
+                  onEnded={() => handleSlideEnd(index)}
+                />
               </div>
-            )}
+            );
+          })}
 
-            {!loading && feedLen === 0 && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-white/50 px-6 text-center">
-                <p className="text-base font-semibold mb-1">No friend videos yet</p>
-                <p className="text-xs text-white/30 mb-4">Add a photo or video story, or follow people who post</p>
-                <button
-                  type="button"
-                  onClick={() => navigate('/upload?type=story')}
-                  className="px-5 py-2 bg-[#D4AF37] text-black rounded-full text-sm font-bold mb-3"
-                >
-                  Add story
-                </button>
-                <button
-                  type="button"
-                  onClick={() => navigate('/discover')}
-                  className="px-5 py-2 bg-white/10 text-white rounded-full text-sm font-bold"
-                >
-                  Discover people
-                </button>
-              </div>
-            )}
-          </div>
+          {loading && feedLen === 0 && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-8 h-8 border-2 border-[#C9A227] border-t-transparent rounded-full animate-spin" />
+            </div>
+          )}
 
-          {/* Story container — built inside Friends body; plays here only */}
-          {storyViewer && storyItem?.mediaUrl ? (
-            <div className="absolute inset-0 z-10 bg-black" data-story-container="friends">
-              <FriendStorySlide
-                group={storyViewer.group}
-                item={storyItem}
-                isActive
-                onEnded={advanceStory}
-              />
+          {!loading && feedLen === 0 && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-white/50 px-6 text-center">
+              <p className="text-base font-semibold mb-1">No friend videos yet</p>
+              <p className="text-xs text-white/30 mb-4">Add a photo or video story, or follow people who post</p>
               <button
                 type="button"
-                onClick={() => setStoryViewer(null)}
-                className="absolute top-3 right-3 z-20 flex items-center justify-center"
-                aria-label="Close story"
+                onClick={() => navigate('/upload?type=story')}
+                className="px-5 py-2 bg-[#D4AF37] text-black rounded-full text-sm font-bold mb-3"
               >
-                <RoyceBackIcon />
+                Add story
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/discover')}
+                className="px-5 py-2 bg-white/10 text-white rounded-full text-sm font-bold"
+              >
+                Discover people
               </button>
             </div>
-          ) : null}
+          )}
         </div>
+
+        {/* Story watch container — separate from friend videos; plays stories people add */}
+        {storyViewer && storyItem?.mediaUrl ? (
+          <div
+            className="absolute inset-0 z-[40] bg-black"
+            data-story-container="friends-watch"
+          >
+            <FriendStorySlide
+              group={storyViewer.group}
+              item={storyItem}
+              isActive
+              onEnded={advanceStory}
+            />
+            {/* Progress segments for multi-item stories */}
+            <div className="absolute top-[calc(env(safe-area-inset-top,0px)+8px)] left-3 right-12 z-[42] flex gap-1 pointer-events-none">
+              {(storyViewer.group.items || []).map((it, i) => (
+                <div
+                  key={it.id || i}
+                  className="h-0.5 flex-1 rounded-full overflow-hidden bg-white/25"
+                >
+                  <div
+                    className="h-full bg-white rounded-full"
+                    style={{
+                      width:
+                        i < storyViewer.itemIndex
+                          ? '100%'
+                          : i === storyViewer.itemIndex
+                            ? '100%'
+                            : '0%',
+                      opacity: i <= storyViewer.itemIndex ? 1 : 0.35,
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => setStoryViewer(null)}
+              className="absolute top-[calc(env(safe-area-inset-top,0px)+8px)] right-3 z-[43] flex items-center justify-center"
+              aria-label="Close story"
+            >
+              <RoyceBackIcon />
+            </button>
+            {/* Tap zones: left = previous, right = next */}
+            <button
+              type="button"
+              className="absolute left-0 top-0 bottom-0 w-1/3 z-[41] bg-transparent"
+              aria-label="Previous story"
+              onClick={() => {
+                setStoryViewer((prev) => {
+                  if (!prev) return null;
+                  if (prev.itemIndex <= 0) return null;
+                  return { group: prev.group, itemIndex: prev.itemIndex - 1 };
+                });
+              }}
+            />
+            <button
+              type="button"
+              className="absolute right-0 top-0 bottom-0 w-1/3 z-[41] bg-transparent"
+              aria-label="Next story"
+              onClick={advanceStory}
+            />
+          </div>
+        ) : null}
       </div>
     </div>
   );
