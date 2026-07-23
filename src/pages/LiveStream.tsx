@@ -245,7 +245,6 @@ export default function LiveStream() {
   const bindHostCameraPreview = useCallback((el: HTMLVideoElement | null) => {
     videoRef.current = el;
     if (!el) return;
-    prepareLiveVideoEl(el);
     // Prefer live ref; fall back to Create-page cached stream so remounts don't go black.
     let stream = cameraStreamRef.current;
     if (!stream) {
@@ -255,8 +254,7 @@ export default function LiveStream() {
         stream = cached;
       }
     }
-    if (!stream) return;
-    if (el.srcObject !== stream) {
+    if (stream && el.srcObject !== stream) {
       el.srcObject = stream;
     }
     prepareLiveVideoEl(el);
@@ -1203,7 +1201,40 @@ export default function LiveStream() {
   const [mutedPlayers, setMutedPlayers] = useState<Record<string, boolean>>({});
   const [cameraOffPlayers, setCameraOffPlayers] = useState<Record<string, boolean>>({});
   const togglePlayerMute = (player: string) => {
-    setMutedPlayers(prev => ({ ...prev, [player]: !prev[player] }));
+    if (player === 'me') {
+      toggleMic();
+      setMutedPlayers((prev) => ({ ...prev, me: !prev.me }));
+      return;
+    }
+    setMutedPlayers((prev) => {
+      const nextMuted = !prev[player];
+      const slots = battleSlotsRef.current;
+      const ids = battleStreamIdsRef.current;
+      let targetUserId = '';
+      if (player === 'opponent') {
+        targetUserId = slots[0]?.userId || ids?.opponentUserId || ids?.hostUserId || '';
+      } else if (player === 'player3') {
+        targetUserId = slots[1]?.userId || ids?.player3UserId || '';
+      } else if (player === 'player4') {
+        targetUserId = slots[2]?.userId || ids?.player4UserId || '';
+      }
+      const vol = nextMuted ? 0 : 1;
+      const room = liveKitRoomRef.current;
+      if (room && targetUserId) {
+        for (const [, p] of room.remoteParticipants) {
+          if (!sameUserId(p.identity, targetUserId)) continue;
+          for (const [, pub] of p.audioTrackPublications) {
+            const t = pub.track as { setVolume?: (v: number) => void } | null;
+            t?.setVolume?.(vol);
+          }
+        }
+      }
+      if (player === 'opponent' && opponentRemoteAudioRef.current) {
+        opponentRemoteAudioRef.current.muted = nextMuted;
+        opponentRemoteAudioRef.current.volume = nextMuted ? 0 : 1;
+      }
+      return { ...prev, [player]: nextMuted };
+    });
   };
   const togglePlayerCamera = (player: string) => {
     setCameraOffPlayers(prev => ({ ...prev, [player]: !prev[player] }));
@@ -2055,6 +2086,16 @@ export default function LiveStream() {
   /** Per co-host tile: gift totals + last gift icon (synced from gift_sent). */
   const [cohostGiftScores, setCohostGiftScores] = useState<Record<string, number>>({});
   const [cohostLastGifts, setCohostLastGifts] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (!selectedCohostGiftUserId) return;
+    const stillLive = coHosts.some(
+      (h) =>
+        sameUserId(h.userId, selectedCohostGiftUserId) &&
+        (h.status === 'live' || h.status === 'accepted'),
+    );
+    if (!stillLive) setSelectedCohostGiftUserId(null);
+  }, [coHosts, selectedCohostGiftUserId]);
   const [floatingHearts, setFloatingHearts] = useState<
     Array<{ id: string; x: number; y: number; dx: number; rot: number; size: number; color: string; username?: string; avatar?: string }>
   >([]);
@@ -3446,29 +3487,17 @@ export default function LiveStream() {
       const leftId = data.user_id != null ? String(data.user_id) : '';
       setActiveViewers(prev => prev.filter(v => String(v.id) !== leftId));
       setViewerCount(prev => Math.max(0, prev - 1));
-      // If the other main battle creator disconnects, leave battle UI and return to normal live.
-      let shouldExitBattle = false;
-      if (leftId && isBattleModeRef.current) {
-        const ids = battleStreamIdsRef.current;
-        const slots = battleSlotsRef.current;
-        const acceptedMainLeft =
-          slots[0]?.status === 'accepted' && sameUserId(leftId, slots[0]?.userId);
-        const syncOpponentLeft = sameUserId(leftId, ids?.opponentUserId);
-        const syncHostLeft =
-          !!ids?.hostUserId &&
-          sameUserId(leftId, ids.hostUserId) &&
-          !sameUserId(selfUserIdRef.current, ids.hostUserId);
-        shouldExitBattle = !!(acceptedMainLeft || syncOpponentLeft || syncHostLeft);
+      if (!leftId) return;
+      // During battle: do NOT exit locally on user_left. Server keeps a reconnect
+      // grace window, then emits battle_ended — that is what returns us to normal live.
+      // Clearing accepted battle slots here would flash empty panes on a brief blip.
+      if (isBattleModeRef.current) {
+        return;
       }
-      if (leftId) {
-        setCoHosts(prev => prev.filter(h => h.userId !== data.user_id));
-        setBattleSlots(prev => prev.map(s =>
-          s.userId === data.user_id ? { userId: '', name: '', status: 'empty' as const, avatar: '' } : s
-        ));
-      }
-      if (shouldExitBattle) {
-        exitBattleModeRef.current();
-      }
+      setCoHosts(prev => prev.filter(h => !sameUserId(h.userId, leftId)));
+      setBattleSlots(prev => prev.map(s =>
+        sameUserId(s.userId, leftId) ? { userId: '', name: '', status: 'empty' as const, avatar: '' } : s
+      ));
     };
 
     const handleChatMessage = (data) => {
@@ -4505,7 +4534,9 @@ export default function LiveStream() {
   }, []);
 
   const handleSendGift = async (gift: GiftUiItem) => {
-    if (!gift || isCreatorParticipant) return;
+    // Creators normally don't gift on their own live; exception: gifting a selected co-host tile.
+    if (!gift) return;
+    if (isCreatorParticipant && (!selectedCohostGiftUserId || isBattleMode)) return;
 
     const usedTestCoins = Boolean(user?.id && shouldUseTestCoinsForGifts(user.id));
     const spendable = usedTestCoins
@@ -4827,7 +4858,8 @@ export default function LiveStream() {
   };
 
   const handleComboClick = async () => {
-      if (!lastSentGift || isCreatorParticipant) return;
+      if (!lastSentGift) return;
+      if (isCreatorParticipant && (!selectedCohostGiftUserId || isBattleMode)) return;
       if (comboCount >= GIFT_COMBO_MAX) return;
 
       const usedTestCoins = Boolean(user?.id && shouldUseTestCoinsForGifts(user.id));
@@ -6777,7 +6809,7 @@ export default function LiveStream() {
       {/* Gift panel: spectators from bar; anyone (incl. host) after tapping a co-host tile. */}
       {showGiftPanel && (!isCreatorParticipant || !!selectedCohostGiftUserId) && (
         <>
-          <div className="fixed inset-0 bg-black/50 pointer-events-auto" style={{ zIndex: 99998 }} onClick={() => { setShowGiftPanel(false); }} />
+          <div className="fixed inset-0 bg-black/50 pointer-events-auto" style={{ zIndex: 99998 }} onClick={() => { setShowGiftPanel(false); setSelectedCohostGiftUserId(null); }} />
           <div className="fixed bottom-0 left-0 right-0 pointer-events-auto max-w-[480px] mx-auto" style={{ zIndex: 99999 }}>
             <GiftPanel
               onSelectGift={handleSendGift}

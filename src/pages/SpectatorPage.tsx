@@ -4514,7 +4514,7 @@ export default function SpectatorPage() {
             <div
               className="fixed inset-0 bg-black/50 pointer-events-auto"
               style={{ zIndex: 99998 }}
-              onClick={() => setShowGiftPanel(false)}
+              onClick={() => { setShowGiftPanel(false); setSelectedCohostGiftUserId(null); }}
             />
             <div className="fixed bottom-0 left-0 right-0 pointer-events-auto max-w-[480px] mx-auto" style={{ zIndex: 99999 }}>
               {spectatorBattle?.active && (
