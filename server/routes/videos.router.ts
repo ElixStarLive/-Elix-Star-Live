@@ -422,6 +422,12 @@ router.post("/:id/comments", async (req, res) => {
   if (!text || typeof text !== "string" || !text.trim()) {
     return res.status(400).json({ error: "text is required" });
   }
+  if (text.length > 2000) {
+    return res.status(400).json({ error: "Comment is too long (max 2000 characters)." });
+  }
+  if (parentId !== undefined && parentId !== null && typeof parentId !== "string") {
+    return res.status(400).json({ error: "Invalid parentId" });
+  }
   const id = `cmt_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
   try {
     const { dbIsBlockedEitherWay } = await import("../lib/postgres");

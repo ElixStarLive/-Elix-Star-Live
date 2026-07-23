@@ -68,8 +68,19 @@ async function main(): Promise<void> {
       const fullPath = path.join(migrationsDir, name);
       const sql = fs.readFileSync(fullPath, "utf8");
       logger.info({ migration: name }, "[migrate] applying");
-      await client.query(sql);
-      await client.query(`INSERT INTO elix_schema_migrations (filename) VALUES ($1)`, [name]);
+      // Apply each migration and record its marker atomically: if any statement
+      // in the file fails, the whole file rolls back so a partial migration is
+      // never left behind (and never recorded as applied).
+      try {
+        await client.query("BEGIN");
+        await client.query(sql);
+        await client.query(`INSERT INTO elix_schema_migrations (filename) VALUES ($1)`, [name]);
+        await client.query("COMMIT");
+      } catch (err) {
+        await client.query("ROLLBACK").catch(() => {});
+        logger.fatal({ migration: name, err }, "[migrate] failed — rolled back this migration");
+        throw err;
+      }
       logger.info({ migration: name }, "[migrate] applied");
     }
   } finally {
