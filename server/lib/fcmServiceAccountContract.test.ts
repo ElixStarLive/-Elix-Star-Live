@@ -7,11 +7,13 @@ import { resolve } from "node:path";
 
 describe("FCM service account config contract", () => {
   const push = readFileSync(resolve(__dirname, "./push.ts"), "utf8");
+  const helper = readFileSync(resolve(__dirname, "./serviceAccountEnv.ts"), "utf8");
 
-  it("rejects google-services.json-shaped env and requires client_email + private_key", () => {
-    expect(push).toContain("looksLikeGoogleServicesJson");
-    expect(push).toContain("client_email");
-    expect(push).toContain("private_key");
-    expect(push).toContain("FCM disabled");
+  it("loads Firebase creds via Coolify-safe serviceAccountEnv helper", () => {
+    expect(push).toContain("loadServiceAccountFromEnv");
+    expect(push).toContain("FIREBASE_SERVICE_ACCOUNT_BASE64");
+    expect(helper).toContain("tryBase64Json");
+    expect(helper).toContain("client_email");
+    expect(helper).toContain("private_key");
   });
 });

@@ -41,6 +41,11 @@ describe("Monitoring instrumentation contract", () => {
     expect(indexSrc).toContain("SOURCE_COMMIT");
     expect(indexSrc).toContain("commit: DEPLOYED_COMMIT");
   });
+
+  it("exposes push configured boolean on health (no secrets)", () => {
+    expect(indexSrc).toContain("isPushConfigured");
+    expect(indexSrc).toContain("push: isPushConfigured()");
+  });
 });
 
 describe("Monitoring live verification gate", () => {

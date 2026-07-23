@@ -35,6 +35,7 @@ import { sessionGuard } from "./middleware/sessionGuard";
 
 import { isLiveKitConfigured } from "./services/livekit";
 import { isBunnyConfigured } from "./services/bunny";
+import { isPushConfigured } from "./lib/push";
 import { isEpidemicSoundConfigured } from "./services/epidemicSound";
 import {
   isValkeyConfigured,
@@ -315,6 +316,8 @@ async function healthCheck(_req: express.Request, res: express.Response) {
       valkey: isValkeyConfigured() ? valkeyOk : "not_configured",
       livekit: isLiveKitConfigured(),
       bunnyStorage: isBunnyConfigured(),
+      // Boolean only — never expose credentials. Lets Coolify/smoke verify FCM/APNS wiring.
+      push: isPushConfigured(),
     },
   };
   healthCache = { data, code, ts: now };

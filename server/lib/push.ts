@@ -6,62 +6,54 @@ import * as jose from "jose";
 import http2 from "node:http2";
 import { getPool } from "./postgres";
 import { logger } from "./logger";
+import { loadServiceAccountFromEnv } from "./serviceAccountEnv";
 
 let fcmJwt: JWT | null = null;
+let fcmProjectId: string | null = null;
 
 function getFcmJwt(): JWT | null {
-  const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-  if (!raw) return null;
   if (fcmJwt) return fcmJwt;
+  const creds = loadServiceAccountFromEnv(
+    "FIREBASE_SERVICE_ACCOUNT_JSON",
+    "FIREBASE_SERVICE_ACCOUNT_BASE64",
+  );
+  if (!creds) return null;
   try {
-    const creds = JSON.parse(raw) as {
-      type?: string;
-      client_email?: string;
-      private_key?: string;
-      project_info?: unknown;
-      client?: unknown;
-    };
-    // Common misconfig: pasting google-services.json (client) instead of a
-    // Firebase Admin service-account JSON (type=service_account).
-    if (!creds.client_email || !creds.private_key) {
-      logger.error(
-        {
-          hasClientEmail: Boolean(creds.client_email),
-          hasPrivateKey: Boolean(creds.private_key),
-          looksLikeGoogleServicesJson: Boolean(creds.project_info || creds.client),
-          type: creds.type || null,
-        },
-        "FIREBASE_SERVICE_ACCOUNT_JSON is not a service account — FCM disabled. Use a Firebase Admin SDK service-account JSON (client_email + private_key).",
-      );
-      return null;
-    }
     fcmJwt = new JWT({
-      email: creds.client_email,
-      key: creds.private_key,
+      email: String(creds.client_email),
+      key: String(creds.private_key),
       scopes: ["https://www.googleapis.com/auth/firebase.messaging"],
     });
+    fcmProjectId = typeof creds.project_id === "string" ? creds.project_id : null;
     return fcmJwt;
   } catch (e) {
-    logger.error({ err: e }, "Invalid FIREBASE_SERVICE_ACCOUNT_JSON");
+    logger.error({ err: e }, "Failed to init FCM JWT from service account");
     return null;
   }
 }
 
 export function isPushConfigured(): boolean {
-  return Boolean(getFcmJwt() || (process.env.APNS_KEY_ID && process.env.APNS_TEAM_ID && process.env.APNS_PRIVATE_KEY && process.env.APNS_BUNDLE_ID));
+  return Boolean(
+    getFcmJwt() ||
+      (process.env.APNS_KEY_ID &&
+        process.env.APNS_TEAM_ID &&
+        process.env.APNS_PRIVATE_KEY &&
+        process.env.APNS_BUNDLE_ID),
+  );
 }
 
-async function sendFcm(token: string, title: string, body: string, data?: Record<string, string>): Promise<boolean> {
+async function sendFcm(
+  token: string,
+  title: string,
+  body: string,
+  data?: Record<string, string>,
+): Promise<boolean> {
   const jwtClient = getFcmJwt();
   if (!jwtClient) return false;
-  const projectId = process.env.FIREBASE_PROJECT_ID || (() => {
-    try {
-      const c = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON || "{}") as { project_id?: string };
-      return c.project_id || "";
-    } catch {
-      return "";
-    }
-  })();
+  const projectId =
+    process.env.FIREBASE_PROJECT_ID ||
+    fcmProjectId ||
+    "";
   if (!projectId) {
     logger.error("FCM: FIREBASE_PROJECT_ID or project_id in service account JSON required");
     return false;
