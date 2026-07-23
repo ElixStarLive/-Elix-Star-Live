@@ -1,82 +1,12 @@
 import React from 'react';
 import { AvatarRing } from './AvatarRing';
 import { resolveUiAvatarUrl, ROYCE_DEFAULT_AVATAR } from '../lib/royceAssets';
-import { getLevelAccentStyle } from '../lib/levelColors';
 
-/**
- * Neon diamond FRAME only — identical line gem from your reference:
- * flat top, girdle, facet lines to the tip. Stroke + glow, no fill.
- * Colour = level accent so it stays clear on the dark chip.
- */
-function LevelDiamondIcon({
-  width = 12,
-  height = 12,
-  color,
-}: {
-  width?: number;
-  height?: number;
-  color: string;
-}) {
-  return (
-    <svg
-      width={width}
-      height={height}
-      viewBox="0 0 24 24"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className="flex-shrink-0"
-      preserveAspectRatio="xMidYMid meet"
-      aria-hidden
-      style={{
-        display: 'block',
-        filter: `drop-shadow(0 0 2px ${color}) drop-shadow(0 0 5px ${color}) drop-shadow(0 0 9px ${color})`,
-      }}
-    >
-      {/* Outer diamond frame */}
-      <path
-        d="M8 3.2 H16 L20.5 9.2 L12 21.2 L3.5 9.2 Z"
-        stroke={color}
-        strokeWidth="1.55"
-        strokeLinejoin="round"
-        strokeLinecap="round"
-        fill="none"
-      />
-      {/* Girdle */}
-      <path
-        d="M3.5 9.2 H20.5"
-        stroke={color}
-        strokeWidth="1.35"
-        strokeLinecap="round"
-      />
-      {/* Facet lines from top corners through girdle to tip */}
-      <path
-        d="M8 3.2 L12 21.2"
-        stroke={color}
-        strokeWidth="1.25"
-        strokeLinecap="round"
-      />
-      <path
-        d="M16 3.2 L12 21.2"
-        stroke={color}
-        strokeWidth="1.25"
-        strokeLinecap="round"
-      />
-      {/* Crown mid to girdle (table facets) */}
-      <path
-        d="M12 3.2 L3.5 9.2"
-        stroke={color}
-        strokeWidth="1.15"
-        strokeLinecap="round"
-      />
-      <path
-        d="M12 3.2 L20.5 9.2"
-        stroke={color}
-        strokeWidth="1.15"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
+/** Proper blue fundal + blue light for the level chip (as instructed). */
+const LEVEL_FUNDAL = '#3B82F6';
+const LEVEL_FUNDAL_EDGE = 'rgba(59, 130, 246, 0.85)';
+const LEVEL_BLUE_GLOW = 'rgba(59, 130, 246, 0.55)';
+const LEVEL_BLUE_SOFT = 'rgba(59, 130, 246, 0.28)';
 
 export interface LevelIconProps {
   level: number;
@@ -109,7 +39,6 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
   hideCircle = false,
 }) => {
   const safeLevel = typeof level === 'number' && Number.isFinite(level) && level > 0 ? Math.floor(level) : 1;
-  const levelStyle = getLevelAccentStyle(safeLevel);
   /** CSS px per mm (1in = 25.4mm, 1in = 96px). */
   const MM_TO_PX = 96 / 25.4;
   const shrinkMm = 3;
@@ -124,12 +53,12 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
       ? Math.max(16, Math.floor(circleSizeProp))
       : Math.max(16, Math.floor(rawSize - Math.min(shrinkPx, maxShrink) + circleGrowPx));
 
-  /** Dark chip; diamond fills chip height and max width on the left. */
   const chipH = Math.max(20, Math.round(circleSize * 0.82));
   const fontPx = Math.max(9, Math.round(chipH * 0.48));
-  /** Height = full level-icon chip; width = max on the left (same as height). */
+  /** Diamond: full chip height, max width on the left — purple asset, not blue. */
   const diamondH = chipH;
   const diamondW = chipH;
+
   const levelChip = (
     <div
       style={{
@@ -138,9 +67,9 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
         height: chipH,
         minWidth: Math.max(chipH + diamondW + 6, Math.round(chipH * 2.1)),
         borderRadius: 6,
-        background: 'rgba(8, 10, 18, 0.92)',
-        border: `1px solid ${levelStyle.border}`,
-        boxShadow: `0 0 10px 2px ${levelStyle.glow}, 0 0 18px 4px ${levelStyle.fillSoft}`,
+        background: `linear-gradient(135deg, ${LEVEL_FUNDAL} 0%, ${LEVEL_FUNDAL_EDGE} 100%)`,
+        border: `1px solid ${LEVEL_FUNDAL_EDGE}`,
+        boxShadow: `0 0 10px 2px ${LEVEL_BLUE_GLOW}, 0 0 18px 4px ${LEVEL_BLUE_SOFT}`,
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'flex-start',
@@ -151,14 +80,27 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
         overflow: 'hidden',
       }}
     >
-      <LevelDiamondIcon width={diamondW} height={diamondH} color={levelStyle.accent} />
+      <img
+        src="/purple-diamond.svg"
+        alt=""
+        width={diamondW}
+        height={diamondH}
+        draggable={false}
+        style={{
+          display: 'block',
+          flexShrink: 0,
+          width: diamondW,
+          height: diamondH,
+          objectFit: 'contain',
+        }}
+      />
       <span
         style={{
           color: '#FFFFFF',
           fontWeight: 900,
           letterSpacing: '0.01em',
           fontSize: fontPx,
-          textShadow: `0 0 6px ${levelStyle.glow}`,
+          textShadow: '0 1px 3px rgba(0,0,0,0.75)',
           lineHeight: 1,
           whiteSpace: 'nowrap',
           fontVariantNumeric: 'tabular-nums',
@@ -170,7 +112,6 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
     </div>
   );
 
-  // Same gold-glow circle layout as LIVE top host avatar (AvatarRing + royce-avatar-glow).
   const chatAvatarSrc = resolveUiAvatarUrl(
     isUsableAvatarUrl(avatarUrl) ? avatarUrl.trim() : '',
     displayName || 'User',
