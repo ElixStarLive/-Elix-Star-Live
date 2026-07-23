@@ -261,49 +261,56 @@ export default function FriendsFeed() {
   return (
     <div className="h-full min-h-0 w-full flex justify-center bg-[#111111]">
       <div className="w-full max-w-[480px] h-full min-h-0 flex flex-col overflow-hidden mx-auto relative">
-        {/* Compact Friends chrome — search/close up; strip tight; feed gets the rest */}
+        {/* Friends chrome — room for icon glow; close stays inside column */}
         <div
-          className="flex-shrink-0 bg-[#111111] z-20"
-          style={{ paddingTop: 'max(4px, env(safe-area-inset-top, 0px))' }}
+          className="flex-shrink-0 bg-[#111111] z-20 overflow-visible"
+          style={{ paddingTop: 'max(8px, env(safe-area-inset-top, 0px))' }}
         >
-          <div className="px-3 h-9 flex items-center justify-between relative">
+          <div className="px-4 h-11 flex items-center justify-between relative overflow-visible">
             <button
               type="button"
               onClick={() => navigate('/search')}
-              className="w-8 h-8 royce-glow-disc flex items-center justify-center z-10"
+              className="w-9 h-9 royce-glow-disc flex items-center justify-center z-10"
               aria-label="Search"
             >
               <Search size={16} className="royce-icon-gold" strokeWidth={2} />
             </button>
-            <h1 className="text-sm font-bold text-white absolute left-1/2 -translate-x-1/2">Friends</h1>
-            <button type="button" onClick={() => navigate(-1)} title="Back" className="z-10">
+            <h1 className="text-sm font-bold text-white absolute left-1/2 -translate-x-1/2 pointer-events-none">
+              Friends
+            </h1>
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              title="Back"
+              className="z-10 flex items-center justify-center"
+            >
               <RoyceBackIcon />
             </button>
           </div>
 
-          <div className="px-3 pb-1.5">
+          <div className="px-4 pt-1 pb-3 overflow-visible">
             <div
-              className="flex gap-2.5 overflow-x-auto overflow-y-hidden no-scrollbar"
+              className="flex gap-3.5 overflow-x-auto overflow-y-visible no-scrollbar py-1.5"
               style={{ WebkitOverflowScrolling: 'touch' }}
             >
               <button
                 type="button"
                 onClick={() => navigate('/upload?type=story')}
-                className="flex-shrink-0 flex flex-col items-center gap-0.5"
-                style={{ width: 64, minWidth: 64 }}
+                className="flex-shrink-0 flex flex-col items-center gap-1"
+                style={{ width: 72, minWidth: 72 }}
                 title="Add story"
               >
-                <div className="relative" style={{ width: 44, height: 44 }}>
+                <div className="relative overflow-visible" style={{ width: 52, height: 52 }}>
                   <StoryGoldRingAvatar
-                    size={44}
+                    size={52}
                     src={user?.avatar || '/royce/default-avatar.svg'}
                     alt={user?.username || 'You'}
                   />
-                  <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-[#D4AF37] border-2 border-black flex items-center justify-center">
-                    <Plus size={8} className="text-black" strokeWidth={3} />
+                  <span className="absolute bottom-0 right-0 w-4 h-4 rounded-full bg-[#D4AF37] border-2 border-black flex items-center justify-center">
+                    <Plus size={9} className="text-black" strokeWidth={3} />
                   </span>
                 </div>
-                <div className="text-[9px] text-white/80 truncate w-full text-center leading-tight">
+                <div className="text-[10px] text-white/80 truncate w-full text-center leading-tight">
                   {ownStory?.items?.length ? 'Your story' : 'Add story'}
                 </div>
               </button>
@@ -311,16 +318,16 @@ export default function FriendsFeed() {
                 <button
                   type="button"
                   onClick={() => openUserStory(ownStory.userId)}
-                  className="flex-shrink-0 flex flex-col items-center gap-0.5"
-                  style={{ width: 64, minWidth: 64 }}
+                  className="flex-shrink-0 flex flex-col items-center gap-1"
+                  style={{ width: 72, minWidth: 72 }}
                   title="Your story"
                 >
                   <StoryGoldRingAvatar
-                    size={44}
+                    size={52}
                     src={user?.avatar || '/royce/default-avatar.svg'}
                     alt="Your story"
                   />
-                  <div className="text-[9px] text-white/80 truncate w-full text-center leading-tight">You</div>
+                  <div className="text-[10px] text-white/80 truncate w-full text-center leading-tight">You</div>
                 </button>
               ) : null}
               {suggestedUsers.map((u) => {
@@ -337,17 +344,17 @@ export default function FriendsFeed() {
                       if (u.is_live) navigate(`/watch/${u.id}`);
                       else navigate(`/profile/${u.id}`);
                     }}
-                    className="flex-shrink-0 flex flex-col items-center gap-0.5"
-                    style={{ width: 64, minWidth: 64 }}
+                    className="flex-shrink-0 flex flex-col items-center gap-1"
+                    style={{ width: 72, minWidth: 72 }}
                   >
                     <StoryGoldRingAvatar
-                      size={44}
+                      size={52}
                       live={u.is_live}
                       data-avatar-circle={u.is_live ? 'live' : undefined}
                       src={u.avatar_url || '/royce/default-avatar.svg'}
                       alt={u.name || u.username}
                     />
-                    <div className="text-[9px] text-white/80 truncate w-full text-center leading-tight">
+                    <div className="text-[10px] text-white/80 truncate w-full text-center leading-tight">
                       {u.name || u.username}
                     </div>
                   </button>
@@ -357,7 +364,7 @@ export default function FriendsFeed() {
           </div>
         </div>
 
-        {/* Friend videos fill remaining height under compact chrome */}
+        {/* Friend videos fill remaining height under chrome */}
         <div
           ref={containerRef}
           className="relative flex-1 min-h-0 z-0 w-full overflow-y-scroll snap-y snap-mandatory overscroll-none bg-black"
