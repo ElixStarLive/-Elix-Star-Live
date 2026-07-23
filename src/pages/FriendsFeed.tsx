@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { RoyceBackIcon } from '../components/royce';
-import { Search, Plus } from 'lucide-react';
+import { Search, Plus, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { useVideoStore } from '../store/useVideoStore';
@@ -17,12 +17,12 @@ interface SuggestedUser {
   is_live?: boolean;
 }
 
-type FeedSlide =
-  | { kind: 'story'; key: string; group: StoryUserGroup; item: StoryItem }
-  | { kind: 'video'; key: string; videoId: string };
-
 const STORY_IMAGE_MS = 5000;
 
+/**
+ * Story media container — separate from friend videos.
+ * Full-screen story viewer only (opened from the top profile circles).
+ */
 function FriendStorySlide({
   group,
   item,
@@ -68,7 +68,7 @@ function FriendStorySlide({
           ref={videoRef}
           key={item.id}
           src={item.mediaUrl}
-          className="absolute inset-0 w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-cover elix-no-media-chrome"
           playsInline
           muted={false}
           controls={false}
@@ -76,7 +76,7 @@ function FriendStorySlide({
           onEnded={onEnded}
         />
       )}
-      <div className="absolute top-[calc(env(safe-area-inset-top,0px)+72px)] left-3 right-3 z-10 flex items-center gap-2 pointer-events-none">
+      <div className="absolute top-[calc(env(safe-area-inset-top,0px)+12px)] left-3 right-12 z-10 flex items-center gap-2 pointer-events-none">
         <StoryGoldRingAvatar
           size={36}
           src={group.avatar || '/royce/default-avatar.svg'}
@@ -93,6 +93,31 @@ function FriendStorySlide({
   );
 }
 
+/**
+ * Friend video container — same chrome layout as the flower container
+ * (top bar + profile circles stay on FriendsFeed). Separate from story viewer.
+ * No profile circle drawn on top of the video (that lives in the Friends strip only).
+ */
+function FriendVideoSlide({
+  videoId,
+  isActive,
+  onEnded,
+}: {
+  videoId: string;
+  isActive: boolean;
+  onEnded: () => void;
+}) {
+  return (
+    <div className="w-full h-full min-h-0 relative overflow-hidden bg-black">
+      <EnhancedVideoPlayer
+        videoId={videoId}
+        isActive={isActive}
+        onVideoEnd={onEnded}
+      />
+    </div>
+  );
+}
+
 export default function FriendsFeed() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
@@ -100,9 +125,11 @@ export default function FriendsFeed() {
   const [suggestedUsers, setSuggestedUsers] = useState<SuggestedUser[]>([]);
   const [storyGroups, setStoryGroups] = useState<StoryUserGroup[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [chromeHidden, setChromeHidden] = useState(false);
+  const [storyViewer, setStoryViewer] = useState<{
+    group: StoryUserGroup;
+    itemIndex: number;
+  } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const lastScrollTopRef = useRef(0);
   const friendVideoIds = friendVideos.map((v) => v.id);
 
   const reloadStories = useCallback(() => {
@@ -122,32 +149,8 @@ export default function FriendsFeed() {
 
   const ownStory = user?.id ? storyGroups.find((g) => g.userId === user.id) : undefined;
 
-  /** Stories first (own first, then others), then friend videos — same full-screen snap containers. */
-  const feedSlides = useMemo((): FeedSlide[] => {
-    const slides: FeedSlide[] = [];
-    const orderedGroups = [...storyGroups].sort((a, b) => {
-      if (user?.id && a.userId === user.id) return -1;
-      if (user?.id && b.userId === user.id) return 1;
-      return 0;
-    });
-    for (const group of orderedGroups) {
-      for (const item of group.items || []) {
-        if (!item?.mediaUrl) continue;
-        slides.push({
-          kind: 'story',
-          key: `story-${item.id}`,
-          group,
-          item,
-        });
-      }
-    }
-    for (const videoId of friendVideoIds) {
-      slides.push({ kind: 'video', key: `video-${videoId}`, videoId });
-    }
-    return slides;
-  }, [storyGroups, friendVideoIds, user?.id]);
-
-  const feedLen = feedSlides.length;
+  /** Friend videos only — stories open in a separate story container. */
+  const feedLen = friendVideoIds.length;
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -207,14 +210,9 @@ export default function FriendsFeed() {
     if (index >= 0 && index < feedLen) {
       setActiveIndex(index);
     }
-    const last = lastScrollTopRef.current;
-    if (scrollPos <= 8) setChromeHidden(false);
-    else if (scrollPos > last + 6) setChromeHidden(true);
-    else if (scrollPos < last - 6) setChromeHidden(false);
-    lastScrollTopRef.current = scrollPos;
   };
 
-  const feedSlideKeys = feedSlides.map((s) => s.key).join('|');
+  const feedSlideKeys = friendVideoIds.join('|');
 
   useEffect(() => {
     if (!containerRef.current || feedLen === 0) return;
@@ -241,22 +239,30 @@ export default function FriendsFeed() {
     scrollToIndex(index + 1);
   }, [feedLen, scrollToIndex]);
 
-  const openUserStoryInFeed = (userId: string) => {
-    const idx = feedSlides.findIndex((s) => s.kind === 'story' && s.group.userId === userId);
-    if (idx >= 0) {
-      setChromeHidden(true);
-      scrollToIndex(idx);
-    }
+  const openUserStory = (userId: string) => {
+    const group = storyGroups.find((g) => g.userId === userId);
+    if (!group?.items?.length) return;
+    setStoryViewer({ group, itemIndex: 0 });
   };
+
+  const storyItem = storyViewer
+    ? storyViewer.group.items[storyViewer.itemIndex]
+    : null;
+
+  const advanceStory = useCallback(() => {
+    setStoryViewer((prev) => {
+      if (!prev) return null;
+      const next = prev.itemIndex + 1;
+      if (next >= (prev.group.items?.length || 0)) return null;
+      return { group: prev.group, itemIndex: next };
+    });
+  }, []);
 
   return (
     <div className="h-full min-h-0 w-full flex justify-center bg-[#111111]">
       <div className="w-full max-w-[480px] h-full min-h-0 relative overflow-hidden mx-auto">
-        <div
-          className={`absolute top-0 left-0 right-0 bg-[#111111] z-20 pt-app-header-safe transition-transform duration-300 ${
-            chromeHidden ? '-translate-y-full pointer-events-none' : 'translate-y-0'
-          }`}
-        >
+        {/* Same top bar + profile circles as flower container — always visible over friend videos */}
+        <div className="absolute top-0 left-0 right-0 bg-[#111111] z-20 pt-app-header-safe">
           <div className="px-3 pb-1 flex items-center justify-between relative">
             <button onClick={() => navigate('/search')} className="w-8 h-8 royce-glow-disc flex items-center justify-center z-10" aria-label="Search">
               <Search size={16} className="royce-icon-gold" strokeWidth={2} />
@@ -298,7 +304,7 @@ export default function FriendsFeed() {
             {ownStory && ownStory.items.length > 0 ? (
               <button
                 type="button"
-                onClick={() => openUserStoryInFeed(ownStory.userId)}
+                onClick={() => openUserStory(ownStory.userId)}
                 className="flex-shrink-0 flex flex-col items-center gap-1"
                 style={{ width: 95, minWidth: 95 }}
                 title="Your story"
@@ -319,7 +325,7 @@ export default function FriendsFeed() {
                 type="button"
                 onClick={() => {
                   if (friendStory?.items?.length) {
-                    openUserStoryInFeed(u.id);
+                    openUserStory(u.id);
                     return;
                   }
                   if (u.is_live) navigate(`/watch/${u.id}`);
@@ -342,41 +348,33 @@ export default function FriendsFeed() {
           </div>
         </div>
 
+        {/* Friend video containers only — flower-container layout under the same top chrome */}
         <div
           ref={containerRef}
           className="absolute inset-0 z-0 w-full overflow-y-scroll snap-y snap-mandatory overscroll-none bg-black"
           style={{ scrollSnapType: 'y mandatory', WebkitOverflowScrolling: 'touch' }}
           onScroll={handleScroll}
         >
-          {feedSlides.map((slide, index) => (
-            <div
-              key={slide.key}
-              data-slide-index={index}
-              className="h-full w-full shrink-0 snap-start bg-black"
-              style={{
-                height: '100%',
-                scrollSnapAlign: 'start',
-                scrollSnapStop: 'always',
-              }}
-            >
-              {slide.kind === 'story' ? (
-                <FriendStorySlide
-                  group={slide.group}
-                  item={slide.item}
-                  isActive={activeIndex === index}
+          {friendVideoIds.map((videoId, index) => {
+            return (
+              <div
+                key={`video-${videoId}`}
+                data-slide-index={index}
+                className="h-full w-full shrink-0 snap-start bg-black"
+                style={{
+                  height: '100%',
+                  scrollSnapAlign: 'start',
+                  scrollSnapStop: 'always',
+                }}
+              >
+                <FriendVideoSlide
+                  videoId={videoId}
+                  isActive={activeIndex === index && !storyViewer}
                   onEnded={() => handleSlideEnd(index)}
                 />
-              ) : (
-                <div className="w-full h-full min-h-0 relative overflow-hidden bg-black">
-                  <EnhancedVideoPlayer
-                    videoId={slide.videoId}
-                    isActive={activeIndex === index}
-                    onVideoEnd={() => handleSlideEnd(index)}
-                  />
-                </div>
-              )}
-            </div>
-          ))}
+              </div>
+            );
+          })}
 
           {loading && feedLen === 0 && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -386,7 +384,7 @@ export default function FriendsFeed() {
 
           {!loading && feedLen === 0 && (
             <div className="absolute inset-0 flex flex-col items-center justify-center text-white/50 px-6 text-center">
-              <p className="text-base font-semibold mb-1">No stories or videos yet</p>
+              <p className="text-base font-semibold mb-1">No friend videos yet</p>
               <p className="text-xs text-white/30 mb-4">Add a photo or video story, or follow people who post</p>
               <button
                 onClick={() => navigate('/upload?type=story')}
@@ -403,6 +401,26 @@ export default function FriendsFeed() {
             </div>
           )}
         </div>
+
+        {/* Separate story video/photo container — not mixed into friend video snap feed */}
+        {storyViewer && storyItem?.mediaUrl ? (
+          <div className="absolute inset-0 z-[40] bg-black">
+            <FriendStorySlide
+              group={storyViewer.group}
+              item={storyItem}
+              isActive
+              onEnded={advanceStory}
+            />
+            <button
+              type="button"
+              onClick={() => setStoryViewer(null)}
+              className="absolute top-[calc(env(safe-area-inset-top,0px)+12px)] right-3 z-[41] w-9 h-9 rounded-full bg-black/50 flex items-center justify-center"
+              aria-label="Close story"
+            >
+              <X size={18} className="text-white" strokeWidth={2.5} />
+            </button>
+          </div>
+        ) : null}
       </div>
     </div>
   );
