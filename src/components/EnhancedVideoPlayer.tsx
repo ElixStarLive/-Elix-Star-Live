@@ -836,8 +836,10 @@ export default function EnhancedVideoPlayer({
                       retryingRef.current = false;
                       const el = videoRef.current;
                       if (el && video.url) {
+                        // Never el.load() on Android — restarts pipeline and sticks white/crash.
                         el.src = video.url;
-                        el.load();
+                        prepareFeedVideoEl(el, { muted: true });
+                        void el.play().catch(() => {});
                       }
                     }, delay);
                     return;
@@ -870,8 +872,10 @@ export default function EnhancedVideoPlayer({
                 retryingRef.current = false;
                 const el = videoRef.current;
                 if (el && video.url) {
+                  // Never el.load() on Android — restarts pipeline and sticks white/crash.
                   el.src = video.url;
-                  el.load();
+                  prepareFeedVideoEl(el, { muted: true });
+                  void el.play().catch(() => {});
                 }
               }, delay);
               return;
@@ -887,7 +891,23 @@ export default function EnhancedVideoPlayer({
         {videoError && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#111111] z-10 gap-3">
             <span className="text-white/50 text-sm">Video processing...</span>
-            <button onClick={() => { setVideoError(false); retryCountRef.current = 0; retryingRef.current = false; const el = videoRef.current; if (el && video.url) { el.src = video.url; el.load(); el.play().catch(() => {}); } }} className="px-4 py-1.5 bg-[#C9A227]/20 border border-[#C9A227]/40 rounded-lg text-[#D4AF37] text-xs font-medium">Tap to retry</button>
+            <button
+              type="button"
+              onClick={() => {
+                setVideoError(false);
+                retryCountRef.current = 0;
+                retryingRef.current = false;
+                const el = videoRef.current;
+                if (el && video.url) {
+                  el.src = video.url;
+                  prepareFeedVideoEl(el, { muted: true });
+                  void el.play().catch(() => {});
+                }
+              }}
+              className="px-4 py-1.5 bg-[#C9A227]/20 border border-[#C9A227]/40 rounded-lg text-[#D4AF37] text-xs font-medium"
+            >
+              Tap to retry
+            </button>
           </div>
         )}
 

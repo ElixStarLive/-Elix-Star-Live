@@ -29,8 +29,8 @@ export function stripVideoMediaChrome(el: HTMLVideoElement): void {
 }
 
 /**
- * Feed / For You videos — hide chrome and kick play at the intended mute state.
- * Do NOT mute→unmute after play on Android (that paints the stuck white play icon).
+ * Feed / For You videos — hide chrome and set mute policy.
+ * Caller owns play() — do not call el.load() (Android WebView hang / white play).
  */
 export function prepareFeedVideoEl(
   el: HTMLVideoElement | null | undefined,
@@ -43,14 +43,6 @@ export function prepareFeedVideoEl(
   el.defaultMuted = muted;
   if (muted) el.setAttribute('muted', '');
   else el.removeAttribute('muted');
-  const kick = () => {
-    void el.play().catch(() => {});
-  };
-  kick();
-  if (el.readyState < 2) {
-    el.addEventListener('loadeddata', kick, { once: true });
-    el.addEventListener('canplay', kick, { once: true });
-  }
 }
 
 /**

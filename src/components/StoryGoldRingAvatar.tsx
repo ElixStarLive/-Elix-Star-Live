@@ -1,12 +1,12 @@
 import React from 'react';
-import { USER_CIRCLE_GLOW } from './AvatarRing';
+import { USER_CIRCLE_GLOW } from '../lib/userCircleGlow';
 
 /** TikTok-style live red (ring + badge). */
 const LIVE_RING_COLOR = '#FE2C55';
 
 /**
- * User avatar circle — same gold light as close button app-wide.
- * Live keeps red ring + LIVE badge on top of the gold light.
+ * User avatar circle — always shown, with same gold light as the close button.
+ * Live adds red ring + LIVE badge; never removes the circle.
  */
 export function StoryGoldRingAvatar({
   size = 56,
@@ -24,51 +24,52 @@ export function StoryGoldRingAvatar({
   alt?: string;
   live?: boolean;
   className?: string;
-  /** Soft gold light (default on — same as close button). Pass false to opt out. */
+  /** Soft gold light (default on). */
   glow?: boolean;
-  /** @deprecated Photo fills `size` like AvatarRing; kept for call-site compatibility. */
   innerDiameterAddMm?: number;
   innerTranslateYmm?: number;
   'data-avatar-circle'?: string;
 }) {
-  const ringPx = live ? Math.max(2, Math.min(3, Math.round(size * 0.05))) : 0;
-  const photoSize = Math.max(2, size - ringPx * 2);
-  const liveBadgeFont = Math.max(5, Math.round(size * 0.11));
-  const liveBadgePadX = Math.max(3, Math.round(size * 0.08));
-  const liveBadgePadY = Math.max(1, Math.round(size * 0.02));
-  const liveBadgeRadius = Math.max(2, Math.round(size * 0.055));
-  const safeSrc = src?.length ? src : '';
+  const safeSize = typeof size === 'number' && Number.isFinite(size) && size > 0 ? Math.floor(size) : 56;
+  const ringPx = live ? Math.max(2, Math.min(3, Math.round(safeSize * 0.05))) : 0;
+  const photoSize = Math.max(2, safeSize - ringPx * 2);
+  const liveBadgeFont = Math.max(5, Math.round(safeSize * 0.11));
+  const liveBadgePadX = Math.max(3, Math.round(safeSize * 0.08));
+  const liveBadgePadY = Math.max(1, Math.round(safeSize * 0.02));
+  const liveBadgeRadius = Math.max(2, Math.round(safeSize * 0.055));
+  const safeSrc = typeof src === 'string' && src.trim() ? src.trim() : '';
   const initial = (alt || '?').trim().charAt(0).toUpperCase() || '?';
 
   return (
     <div
-      className={`relative flex-shrink-0 flex items-center justify-center rounded-full overflow-visible ${className}`}
+      className={`relative flex-shrink-0 flex items-center justify-center rounded-full ${className}`}
       style={{
-        width: size,
-        height: size,
-        isolation: 'isolate',
+        width: safeSize,
+        height: safeSize,
         boxShadow: glow ? USER_CIRCLE_GLOW : undefined,
       }}
       {...(dataAvatarCircle ? { 'data-avatar-circle': dataAvatarCircle } : {})}
     >
       <div
-        className="absolute rounded-full overflow-hidden bg-[#13151A]"
+        className="rounded-full overflow-hidden bg-[#13151A] flex-shrink-0"
         style={{
           width: photoSize,
           height: photoSize,
-          top: '50%',
-          left: '50%',
-          transform:
-            innerTranslateYmm !== 0
-              ? `translate(-50%, calc(-50% + ${innerTranslateYmm}mm))`
-              : 'translate(-50%, -50%)',
+          transform: innerTranslateYmm !== 0 ? `translateY(${innerTranslateYmm}mm)` : undefined,
           zIndex: 1,
         }}
       >
         {safeSrc ? (
-          <img src={safeSrc} alt={alt} className="h-full w-full object-cover object-center" draggable={false} />
+          <img
+            src={safeSrc}
+            alt={alt}
+            className="block w-full h-full object-cover object-center"
+            draggable={false}
+          />
         ) : (
-          <div className="h-full w-full flex items-center justify-center text-white/70 font-bold text-lg">{initial}</div>
+          <div className="w-full h-full flex items-center justify-center text-white/70 font-bold text-lg">
+            {initial}
+          </div>
         )}
       </div>
       {live ? (

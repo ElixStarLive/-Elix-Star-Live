@@ -1,8 +1,7 @@
 import { resolveUiAvatarUrl } from '../lib/royceAssets';
+import { USER_CIRCLE_GLOW } from '../lib/userCircleGlow';
 
-/** Same soft gold light as close / royce-glow-disc. */
-export const USER_CIRCLE_GLOW =
-  '0 0 10px 2px rgba(212, 175, 55, 0.42), 0 0 22px 5px rgba(212, 175, 55, 0.18)';
+export { USER_CIRCLE_GLOW };
 
 interface AvatarRingProps {
   src: string;
@@ -10,26 +9,37 @@ interface AvatarRingProps {
   size: number;
   className?: string;
   onClick?: (e: React.MouseEvent) => void;
-  /** @deprecated All avatars use flat B&W ring now; kept for call-site compatibility. */
+  /** @deprecated kept for call-site compatibility */
   simple?: boolean;
 }
 
-/** Avatar — round crop + same gold light as close button. */
+/**
+ * User avatar circle — always shown, with same gold light as the close button.
+ * Do not remove the circle; light is additive only.
+ */
 export function AvatarRing({ src, alt = '', size, className = '', onClick }: AvatarRingProps) {
   const safeAlt = typeof alt === 'string' ? alt : '';
-  const imgSrc = resolveUiAvatarUrl(src, safeAlt, size * 2);
+  const safeSize = typeof size === 'number' && Number.isFinite(size) && size > 0 ? Math.floor(size) : 40;
+  const imgSrc = resolveUiAvatarUrl(src, safeAlt, safeSize * 2);
 
   return (
     <div
-      className={`relative flex-shrink-0 rounded-full overflow-visible ${onClick ? 'cursor-pointer' : ''} ${className}`}
-      style={{ width: size, height: size, boxShadow: USER_CIRCLE_GLOW }}
+      className={`relative flex-shrink-0 rounded-full ${onClick ? 'cursor-pointer' : ''} ${className}`}
+      style={{
+        width: safeSize,
+        height: safeSize,
+        boxShadow: USER_CIRCLE_GLOW,
+      }}
       onClick={onClick}
     >
-      <div className="absolute inset-0 rounded-full overflow-hidden bg-[#13151A]">
+      <div
+        className="w-full h-full rounded-full overflow-hidden bg-[#13151A]"
+        style={{ width: safeSize, height: safeSize }}
+      >
         <img
           src={imgSrc}
           alt={safeAlt}
-          className="h-full w-full object-cover object-center"
+          className="block w-full h-full object-cover object-center"
           draggable={false}
         />
       </div>
