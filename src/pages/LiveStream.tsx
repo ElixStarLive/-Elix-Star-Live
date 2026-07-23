@@ -3028,7 +3028,9 @@ export default function LiveStream() {
   }, []);
   const maybeResolveViewerIdentity = useCallback((viewerId: string) => {
     if (!viewerId || viewerId === user?.id) return;
-    if (viewerIdentityCacheRef.current.has(viewerId) || viewerIdentityInflightRef.current.has(viewerId)) return;
+    const cached = viewerIdentityCacheRef.current.get(viewerId);
+    const hasPhoto = Boolean(cached?.avatar && !cached.avatar.includes('/royce/default-avatar'));
+    if (hasPhoto || viewerIdentityInflightRef.current.has(viewerId)) return;
     const task = (async () => {
       try {
         const { data: body, error: profileErr } = await request(`/api/profiles/${encodeURIComponent(viewerId)}`);
@@ -3063,6 +3065,18 @@ export default function LiveStream() {
         setActiveViewers((prev) =>
           prev.map((v) => (v.id === viewerId ? { ...v, ...nextIdentity } : v))
         );
+        if (nextIdentity.avatar) {
+          setMessages((prev) =>
+            prev.map((m) => {
+              const sameUser =
+                m.username === nextIdentity.username ||
+                m.username === nextIdentity.displayName;
+              if (!sameUser) return m;
+              if (m.avatar && !m.avatar.includes('/royce/default-avatar')) return m;
+              return { ...m, avatar: nextIdentity.avatar };
+            }),
+          );
+        }
       } catch {
         // Keep socket name fallback if profile lookup fails.
       } finally {
@@ -3380,16 +3394,42 @@ export default function LiveStream() {
       const text = typeof data.text === 'string' ? data.text : '';
       const levelUpMatch = /^reached Level (\d+)/i.exec(text);
       const parsedLevel = levelUpMatch ? Number(levelUpMatch[1]) : NaN;
+      const uid = typeof data.user_id === 'string' ? data.user_id : '';
+      const cached = uid ? viewerIdentityCacheRef.current.get(uid) : undefined;
+      const username =
+        (typeof data.username === 'string' && data.username.trim()) ||
+        cached?.displayName ||
+        cached?.username ||
+        'User';
+      const avatar =
+        (typeof data.avatar === 'string' && data.avatar.trim()) ||
+        (typeof data.avatar_url === 'string' && data.avatar_url.trim()) ||
+        cached?.avatar ||
+        '';
+      if (uid) {
+        viewerIdentityCacheRef.current.set(uid, {
+          username,
+          displayName: username,
+          avatar: avatar || cached?.avatar || '',
+          level:
+            Number.isFinite(Number(data.level)) && Number(data.level) >= 0
+              ? Math.floor(Number(data.level))
+              : cached?.level || 1,
+        });
+        if (!avatar || avatar.includes('/royce/default-avatar')) {
+          maybeResolveViewerIdentity(uid);
+        }
+      }
       const msg: LiveMessage = {
         id: `ws-${Date.now()}-${Math.random()}`,
-        username: typeof data.username === 'string' ? data.username : 'User',
+        username,
         text,
         level: Number.isFinite(parsedLevel)
           ? parsedLevel
           : Number.isFinite(Number(data.level)) && Number(data.level) >= 0
             ? Math.floor(Number(data.level))
-            : 1,
-        avatar: typeof data.avatar === 'string' ? data.avatar : '',
+            : cached?.level || 1,
+        avatar,
         stickerUrl: typeof data.stickerUrl === 'string' ? data.stickerUrl : undefined,
         isSystem: !!levelUpMatch,
       };

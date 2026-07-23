@@ -1,6 +1,6 @@
 import React from 'react';
-import { PROFILE_RING_IMAGE_LIFT_MM, profileRingInnerPx } from '../lib/profileFrame';
-import { ROYCE_DEFAULT_AVATAR } from '../lib/royceAssets';
+import { AvatarRing } from './AvatarRing';
+import { resolveUiAvatarUrl, ROYCE_DEFAULT_AVATAR } from '../lib/royceAssets';
 
 /** Royal Purple diamond — chart Diamond #E0AAFF */
 function LevelDiamondIcon({ size = 12 }: { size?: number }) {
@@ -34,10 +34,17 @@ export interface LevelIconProps {
   circleSize?: number;
   className?: string;
   avatarUrl?: string;
+  /** Used for initials fallback when avatar URL is missing */
+  displayName?: string;
   barColor?: string;
   text?: 'lv' | 'level';
   /** Hide the profile circle; show level chip only (e.g. mini profile already has AvatarRing). */
   hideCircle?: boolean;
+}
+
+function isUsableAvatarUrl(url: string | undefined): url is string {
+  const t = typeof url === 'string' ? url.trim() : '';
+  return Boolean(t) && t !== ROYCE_DEFAULT_AVATAR && !t.includes('/royce/default-avatar');
 }
 
 export const LevelIcon: React.FC<LevelIconProps> = ({
@@ -46,6 +53,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
   circleSize: circleSizeProp,
   className = '',
   avatarUrl,
+  displayName,
   hideCircle = false,
 }) => {
   const safeLevel = typeof level === 'number' && Number.isFinite(level) && level > 0 ? Math.floor(level) : 1;
@@ -62,10 +70,6 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
     typeof circleSizeProp === 'number' && Number.isFinite(circleSizeProp)
       ? Math.max(16, Math.floor(circleSizeProp))
       : Math.max(16, Math.floor(rawSize - Math.min(shrinkPx, maxShrink) + circleGrowPx));
-  const splitCircleSizing =
-    typeof circleSizeProp === 'number' && Number.isFinite(circleSizeProp);
-
-  const avatarDiameter = profileRingInnerPx(circleSize);
 
   /** Longer rounded level chip: larger diamond + number (no LV), beside chat circle. */
   const chipH = Math.max(20, Math.round(circleSize * 0.82));
@@ -109,123 +113,36 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
     </div>
   );
 
-  if (splitCircleSizing) {
-    if (hideCircle) {
-      return (
-        <div className={className} style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
-          {levelChip}
-        </div>
-      );
-    }
+  // Same gold-glow circle layout as LIVE top host avatar (AvatarRing + royce-avatar-glow).
+  const chatAvatarSrc = resolveUiAvatarUrl(
+    isUsableAvatarUrl(avatarUrl) ? avatarUrl.trim() : '',
+    displayName || 'User',
+    circleSize * 2,
+  );
+
+  if (hideCircle) {
     return (
-      <div
-        className={className}
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 4,
-          height: circleSize,
-          flexShrink: 0,
-          verticalAlign: 'middle',
-          position: 'relative',
-        }}
-      >
-        <div
-          style={{
-            position: 'relative',
-            zIndex: 2,
-            width: circleSize,
-            height: circleSize,
-            borderRadius: 9999,
-            overflow: 'hidden',
-            flexShrink: 0,
-            background: '#000',
-          }}
-        >
-          {typeof avatarUrl === 'string' && avatarUrl ? (
-            <img
-              src={avatarUrl}
-              alt=""
-              draggable={false}
-              style={{
-                width: '100%',
-                height: '100%',
-                display: 'block',
-                objectFit: 'cover',
-                objectPosition: 'center center',
-              }}
-            />
-          ) : (
-            <img
-              src={ROYCE_DEFAULT_AVATAR}
-              alt=""
-              draggable={false}
-              style={{
-                width: '100%',
-                height: '100%',
-                display: 'block',
-                objectFit: 'cover',
-                objectPosition: 'center center',
-              }}
-            />
-          )}
-        </div>
+      <div className={className} style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
         {levelChip}
       </div>
     );
   }
 
   return (
-    <div className={className} style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0, gap: 4, marginLeft: 8 }}>
-      <div
-        style={{
-          position: 'relative',
-          zIndex: 2,
-          width: circleSize,
-          height: circleSize,
-          borderRadius: 999,
-        }}
-      >
-        <div
-          style={{
-            position: 'absolute',
-            top: `calc(50% - ${PROFILE_RING_IMAGE_LIFT_MM}mm)`,
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: avatarDiameter,
-            height: avatarDiameter,
-            borderRadius: 999,
-            overflow: 'hidden',
-          }}
-        >
-          {typeof avatarUrl === 'string' && avatarUrl ? (
-            <img
-              src={avatarUrl}
-              alt=""
-              draggable={false}
-              style={{
-                width: '100%',
-                height: '100%',
-                display: 'block',
-                objectFit: 'cover',
-                objectPosition: 'center center',
-              }}
-            />
-          ) : (
-            <img
-              src={ROYCE_DEFAULT_AVATAR}
-              alt=""
-              draggable={false}
-              style={{
-                width: '100%',
-                height: '100%',
-                display: 'block',
-                objectFit: 'cover',
-                objectPosition: 'center center',
-              }}
-            />
-          )}
-        </div>
+    <div
+      className={className}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 4,
+        height: circleSize,
+        flexShrink: 0,
+        verticalAlign: 'middle',
+        position: 'relative',
+      }}
+    >
+      <div style={{ position: 'relative', zIndex: 2, flexShrink: 0 }}>
+        <AvatarRing src={chatAvatarSrc} alt={displayName || ''} size={circleSize} />
       </div>
       {levelChip}
     </div>

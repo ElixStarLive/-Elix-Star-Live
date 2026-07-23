@@ -125,6 +125,7 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
                   level={typeof msg.level === 'number' ? msg.level : 1}
                   layout="fixed"
                   avatar={typeof msg.avatar === 'string' ? msg.avatar : undefined}
+                  name={typeof msg.username === 'string' ? msg.username : undefined}
                 />
               </div>
               <div className="flex items-center gap-1.5 min-w-0 flex-wrap">

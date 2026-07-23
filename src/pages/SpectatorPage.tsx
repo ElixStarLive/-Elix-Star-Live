@@ -1751,16 +1751,40 @@ export default function SpectatorPage() {
       const text = typeof data.text === 'string' ? data.text : '';
       const levelUpMatch = /^reached Level (\d+)/i.exec(text);
       const parsedLevel = levelUpMatch ? Number(levelUpMatch[1]) : NaN;
+      const uid = typeof data.user_id === 'string' ? data.user_id : '';
+      const cached = uid ? mvpIdentityRef.current.get(uid) || actualViewersRef.current.get(uid) : undefined;
+      const username =
+        (typeof data.username === 'string' && data.username.trim()) ||
+        cached?.name ||
+        'User';
+      const avatar =
+        (typeof data.avatar === 'string' && data.avatar.trim()) ||
+        (typeof data.avatar_url === 'string' && data.avatar_url.trim()) ||
+        cached?.avatar ||
+        '';
+      if (uid && avatar) {
+        const level =
+          Number.isFinite(Number(data.level)) && Number(data.level) >= 0
+            ? Math.floor(Number(data.level))
+            : cached?.level || 1;
+        mvpIdentityRef.current.set(uid, { name: username, avatar, level });
+        const existing = actualViewersRef.current.get(uid);
+        actualViewersRef.current.set(uid, {
+          name: username,
+          avatar,
+          level: existing?.level || level,
+        });
+      }
       const msg: LiveMessage = {
         id: `ws-${Date.now()}-${Math.random()}`,
-        username: typeof data.username === 'string' ? data.username : 'User',
+        username,
         text,
         level: Number.isFinite(parsedLevel)
           ? parsedLevel
           : Number.isFinite(Number(data.level)) && Number(data.level) >= 0
             ? Math.floor(Number(data.level))
-            : 1,
-        avatar: typeof data.avatar === 'string' ? data.avatar : '',
+            : cached?.level || 1,
+        avatar,
         stickerUrl: typeof data.stickerUrl === 'string' ? data.stickerUrl : undefined,
         isSystem: !!levelUpMatch,
       };

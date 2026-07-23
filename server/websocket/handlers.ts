@@ -147,12 +147,26 @@ export async function handleMessage(
                 ? data.message
                 : "";
           const text = String(rawText).slice(0, 500);
+          const avatar =
+            (typeof client.avatarUrl === "string" && client.avatarUrl.trim()) ||
+            (typeof data?.avatar === "string" && data.avatar.trim()) ||
+            (typeof data?.avatar_url === "string" && data.avatar_url.trim()) ||
+            "";
+          const level =
+            Number.isFinite(Number(data?.level)) && Number(data.level) >= 0
+              ? Math.floor(Number(data.level))
+              : Number.isFinite(Number(client.level)) && Number(client.level) >= 0
+                ? Math.floor(Number(client.level))
+                : 1;
           const payload = {
             text,
             message: text,
             messageId,
             user_id: client.userId,
-            username: client.username,
+            username: client.username || client.displayName || "User",
+            avatar,
+            avatar_url: avatar,
+            level,
             timestamp: new Date().toISOString(),
           };
           broadcastToRoom(client.roomId, "chat_message", payload);

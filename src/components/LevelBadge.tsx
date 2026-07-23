@@ -12,6 +12,8 @@ interface LevelBadgeProps {
   layout?: 'fit' | 'fixed';
   variant?: 'clean' | 'default' | 'chat';
   avatar?: string;
+  /** Display name for initials when photo URL is missing */
+  name?: string;
   hideCircle?: boolean;
 }
 
@@ -23,6 +25,7 @@ export const LevelBadge: React.FC<LevelBadgeProps> = ({
   layout: _layout = 'fit',
   variant: _variant = 'clean',
   avatar,
+  name,
   hideCircle = false,
 }) => {
   const safeLevel = typeof level === 'number' && Number.isFinite(level) && level > 0 ? Math.floor(level) : 1;
@@ -42,6 +45,7 @@ export const LevelBadge: React.FC<LevelBadgeProps> = ({
         size={pillSize}
         circleSize={circleDim}
         avatarUrl={typeof avatar === 'string' ? avatar : undefined}
+        displayName={typeof name === 'string' ? name : undefined}
         hideCircle={hideCircle}
       />
     </div>
