@@ -245,6 +245,7 @@ export default function LiveStream() {
   const bindHostCameraPreview = useCallback((el: HTMLVideoElement | null) => {
     videoRef.current = el;
     if (!el) return;
+    prepareLiveVideoEl(el);
     // Prefer live ref; fall back to Create-page cached stream so remounts don't go black.
     let stream = cameraStreamRef.current;
     if (!stream) {
@@ -258,7 +259,7 @@ export default function LiveStream() {
     if (el.srcObject !== stream) {
       el.srcObject = stream;
     }
-    void el.play().catch(() => {});
+    prepareLiveVideoEl(el);
   }, []);
   const [viewerHasStream, _setViewerHasStream] = useState(false);
   const [giftsCatalog, setGiftsCatalog] = useState<GiftUiItem[]>([]);
@@ -1214,8 +1215,10 @@ export default function LiveStream() {
       player3: player3VideoRef,
       player4: player4VideoRef,
     };
-    for (const [key, ref] of Object.entries(map)) {
-      if (ref.current) ref.current.muted = !!mutedPlayers[key];
+    for (const ref of Object.values(map)) {
+      // Keep tile <video> muted always — Android shows a white play icon if unmuted.
+      // Live audio rides on LiveKit audio tracks / hidden <audio>, not these elements.
+      if (ref.current) ref.current.muted = true;
     }
   }, [mutedPlayers]);
 
@@ -5494,10 +5497,12 @@ export default function LiveStream() {
               <>
                 <video
                   ref={bindHostCameraPreview}
-                  className="w-full h-full object-cover"
+                  className={`w-full h-full object-cover ${LIVE_WEBRTC_VIDEO_CLASS}`}
                   autoPlay
                   playsInline
                   muted
+                  controls={false}
+                  poster={LIVE_VIDEO_TRANSPARENT_POSTER}
                   style={isBroadcast ? { transform: 'scaleX(-1)', opacity: isCamOff ? 0 : 1, transition: 'opacity 0.3s ease' } : undefined}
                 />
                 {isCamOff && (
@@ -5528,10 +5533,16 @@ export default function LiveStream() {
             ) : (
               <>
                 <video
-                  ref={viewerVideoRef}
-                  className="w-full h-full object-cover"
+                  ref={(el) => {
+                    viewerVideoRef.current = el;
+                    if (el) prepareLiveVideoEl(el);
+                  }}
+                  className={`w-full h-full object-cover ${LIVE_WEBRTC_VIDEO_CLASS}`}
                   autoPlay
                   playsInline
+                  muted
+                  controls={false}
+                  poster={LIVE_VIDEO_TRANSPARENT_POSTER}
                   style={viewerHasStream ? {} : { display: 'none' }}
                 />
                 {!viewerHasStream && (
@@ -5856,7 +5867,7 @@ export default function LiveStream() {
                       <div
                         className="flex-1 basis-0 min-w-0 h-full overflow-hidden relative bg-[#111111] pointer-events-auto"
                       >
-                      <video ref={bindHostCameraPreview} className="w-full h-full object-cover transform scale-x-[-1]" autoPlay playsInline muted style={isCamOff ? { opacity: 0 } : undefined} />
+                      <video ref={bindHostCameraPreview} className={`w-full h-full object-cover transform scale-x-[-1] ${LIVE_WEBRTC_VIDEO_CLASS}`} autoPlay playsInline muted controls={false} poster={LIVE_VIDEO_TRANSPARENT_POSTER} style={isCamOff ? { opacity: 0 } : undefined} />
                       {isBroadcast && activeFaceARGift && (
                         <FaceARGift
                           videoRef={videoRef}
@@ -5934,7 +5945,7 @@ export default function LiveStream() {
                     >
                       {battleSlots[0].status === 'accepted' ? (
                         <div className="w-full h-full relative bg-[#111111]">
-                          <video ref={opponentVideoRef} className="absolute inset-0 w-full h-full object-cover z-10" autoPlay playsInline muted={!!mutedPlayers['opponent']} style={cameraOffPlayers['opponent'] ? { display: 'none' } : undefined} />
+                          <video ref={(el) => { opponentVideoRef.current = el; if (el) prepareLiveVideoEl(el); }} className={`absolute inset-0 w-full h-full object-cover z-10 ${LIVE_WEBRTC_VIDEO_CLASS}`} autoPlay playsInline muted controls={false} poster={LIVE_VIDEO_TRANSPARENT_POSTER} style={cameraOffPlayers['opponent'] ? { display: 'none' } : undefined} />
                           {cameraOffPlayers['opponent'] && (
                             <div className="absolute inset-0 z-[11] flex flex-col items-center justify-center gap-2 bg-[#111111]">
                               {battleSlots[0].avatar ? (
@@ -6052,7 +6063,7 @@ export default function LiveStream() {
                       >
                         {battleSlots[1].status === 'accepted' ? (
                           <div className="w-full h-full relative bg-[#111111]">
-                            <video ref={player3VideoRef} className="w-full h-full object-cover" autoPlay playsInline muted={!!mutedPlayers['player3']} style={player3VideoRef.current?.srcObject && !cameraOffPlayers['player3'] ? {} : { display: 'none' }} />
+                            <video ref={(el) => { player3VideoRef.current = el; if (el) prepareLiveVideoEl(el); }} className={`w-full h-full object-cover ${LIVE_WEBRTC_VIDEO_CLASS}`} autoPlay playsInline muted controls={false} poster={LIVE_VIDEO_TRANSPARENT_POSTER} style={player3VideoRef.current?.srcObject && !cameraOffPlayers['player3'] ? {} : { display: 'none' }} />
                             {cameraOffPlayers['player3'] && (
                               <div className="absolute inset-0 z-[11] flex flex-col items-center justify-center gap-1 bg-[#111111]">
                                 {battleSlots[1].avatar ? (
@@ -6134,7 +6145,7 @@ export default function LiveStream() {
                       >
                         {battleSlots[2].status === 'accepted' ? (
                           <div className="w-full h-full relative bg-[#111111]">
-                            <video ref={player4VideoRef} className="w-full h-full object-cover" autoPlay playsInline muted={!!mutedPlayers['player4']} style={player4VideoRef.current?.srcObject && !cameraOffPlayers['player4'] ? {} : { display: 'none' }} />
+                            <video ref={(el) => { player4VideoRef.current = el; if (el) prepareLiveVideoEl(el); }} className={`w-full h-full object-cover ${LIVE_WEBRTC_VIDEO_CLASS}`} autoPlay playsInline muted controls={false} poster={LIVE_VIDEO_TRANSPARENT_POSTER} style={player4VideoRef.current?.srcObject && !cameraOffPlayers['player4'] ? {} : { display: 'none' }} />
                             {cameraOffPlayers['player4'] && (
                               <div className="absolute inset-0 z-[11] flex flex-col items-center justify-center gap-1 bg-[#111111]">
                                 {battleSlots[2].avatar ? (

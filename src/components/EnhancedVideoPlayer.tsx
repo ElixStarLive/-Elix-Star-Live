@@ -736,10 +736,11 @@ export default function EnhancedVideoPlayer({
               <video
                 ref={duetOriginalRef}
                 src={duetOriginalSrc}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover elix-no-media-chrome"
                 loop
                 playsInline
                 muted
+                controls={false}
                 preload={isActive ? 'auto' : 'none'}
                 poster={posterUrl}
               />
@@ -748,10 +749,11 @@ export default function EnhancedVideoPlayer({
               <video
                 ref={videoRef}
                 src={video.url}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover elix-no-media-chrome"
                 loop
                 playsInline
                 muted
+                controls={false}
                 preload={isActive ? 'auto' : 'none'}
                 onClick={handleVideoClick}
                 poster={posterUrl}
@@ -781,10 +783,11 @@ export default function EnhancedVideoPlayer({
         <video
           ref={videoRef}
           src={video.url}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover elix-no-media-chrome"
           loop
           playsInline
           muted
+          controls={false}
           preload={isActive ? 'auto' : 'none'}
           onClick={handleVideoClick}
           poster={posterUrl}

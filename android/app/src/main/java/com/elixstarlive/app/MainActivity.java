@@ -5,9 +5,12 @@ import android.os.Bundle;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
+import com.getcapacitor.Bridge;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
@@ -15,11 +18,14 @@ public class MainActivity extends BridgeActivity {
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     ensureSystemBarsVisible();
+    allowInlineMediaAutoplay();
     // Capacitor WebView may apply insets after create — re-assert shortly after.
     View decor = getWindow() != null ? getWindow().getDecorView() : null;
     if (decor != null) {
       decor.post(this::ensureSystemBarsVisible);
+      decor.post(this::allowInlineMediaAutoplay);
       decor.postDelayed(this::ensureSystemBarsVisible, 400);
+      decor.postDelayed(this::allowInlineMediaAutoplay, 400);
     }
   }
 
@@ -27,6 +33,7 @@ public class MainActivity extends BridgeActivity {
   public void onResume() {
     super.onResume();
     ensureSystemBarsVisible();
+    allowInlineMediaAutoplay();
   }
 
   @Override
@@ -34,7 +41,22 @@ public class MainActivity extends BridgeActivity {
     super.onWindowFocusChanged(hasFocus);
     if (hasFocus) {
       ensureSystemBarsVisible();
+      allowInlineMediaAutoplay();
     }
+  }
+
+  /**
+   * Live / camera / feed videos must start without a tap. Without this, Android
+   * WebView blocks autoplay and shows the stuck white play icon.
+   */
+  private void allowInlineMediaAutoplay() {
+    Bridge bridge = getBridge();
+    if (bridge == null) return;
+    WebView webView = bridge.getWebView();
+    if (webView == null) return;
+    WebSettings settings = webView.getSettings();
+    if (settings == null) return;
+    settings.setMediaPlaybackRequiresUserGesture(false);
   }
 
   /**

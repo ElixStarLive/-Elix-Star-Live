@@ -361,25 +361,39 @@
 
 /* Android WebView: hide default white play / media chrome on gift overlays + live WebRTC */
 .gift-overlay-video::-webkit-media-controls,
-.live-webrtc-video::-webkit-media-controls {
+.live-webrtc-video::-webkit-media-controls,
+.elix-no-media-chrome::-webkit-media-controls,
+video::-webkit-media-controls {
   display: none !important;
   -webkit-appearance: none;
 }
 .gift-overlay-video::-webkit-media-controls-enclosure,
-.live-webrtc-video::-webkit-media-controls-enclosure {
+.live-webrtc-video::-webkit-media-controls-enclosure,
+.elix-no-media-chrome::-webkit-media-controls-enclosure,
+video::-webkit-media-controls-enclosure {
   display: none !important;
 }
 .gift-overlay-video::-webkit-media-controls-start-playback-button,
-.live-webrtc-video::-webkit-media-controls-start-playback-button {
-  display: none !important;
-  -webkit-appearance: none;
-}
-.gift-overlay-video::-webkit-media-controls-overlay-play-button,
-.live-webrtc-video::-webkit-media-controls-overlay-play-button {
+.live-webrtc-video::-webkit-media-controls-start-playback-button,
+.elix-no-media-chrome::-webkit-media-controls-start-playback-button,
+video::-webkit-media-controls-start-playback-button {
   display: none !important;
   -webkit-appearance: none;
   opacity: 0 !important;
   pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+.gift-overlay-video::-webkit-media-controls-overlay-play-button,
+.live-webrtc-video::-webkit-media-controls-overlay-play-button,
+.elix-no-media-chrome::-webkit-media-controls-overlay-play-button,
+video::-webkit-media-controls-overlay-play-button {
+  display: none !important;
+  -webkit-appearance: none;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 /* Hide scrollbar for Chrome, Safari and Opera */

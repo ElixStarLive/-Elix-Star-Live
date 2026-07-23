@@ -12,22 +12,40 @@ export const LIVE_WEBRTC_VIDEO_CLASS = 'live-webrtc-video';
  */
 export function prepareLiveVideoEl(el: HTMLVideoElement | null | undefined): void {
   if (!el) return;
+  el.classList.add(LIVE_WEBRTC_VIDEO_CLASS);
+  el.classList.add('elix-no-media-chrome');
   el.setAttribute('playsinline', 'true');
   el.setAttribute('webkit-playsinline', 'true');
   el.setAttribute('x5-playsinline', 'true');
   el.setAttribute('x5-video-player-type', 'h5');
   el.setAttribute('x5-video-player-fullscreen', 'false');
   el.controls = false;
+  el.removeAttribute('controls');
   el.muted = true;
   el.defaultMuted = true;
+  el.setAttribute('muted', '');
   el.playsInline = true;
   try {
     el.disablePictureInPicture = true;
   } catch {
     /* older WebViews */
   }
+  try {
+    el.setAttribute('controlslist', 'nodownload nofullscreen noremoteplayback');
+  } catch {
+    /* ignore */
+  }
   if (!el.getAttribute('poster')) {
     el.setAttribute('poster', LIVE_VIDEO_TRANSPARENT_POSTER);
   }
-  void el.play().catch(() => {});
+  // Kick playback immediately and again once data is ready (Android often
+  // paints the white play button between attach and first successful play).
+  const kick = () => {
+    void el.play().catch(() => {});
+  };
+  kick();
+  if (el.readyState < 2) {
+    el.addEventListener('loadeddata', kick, { once: true });
+    el.addEventListener('canplay', kick, { once: true });
+  }
 }
