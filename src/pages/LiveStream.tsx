@@ -1821,6 +1821,8 @@ export default function LiveStream() {
   const [boosterActivations, setBoosterActivations] = useState<{ id: string; userId: string; multiplier: number; username: string; expiresAt: number }[]>([]);
   const [boosterCatches, setBoosterCatches] = useState<{ id: string; multiplier: number; finalPoints: number; username: string }[]>([]);
   const [battleHideScores, setBattleHideScores] = useState(false);
+  /** Tap PK score bar to hide it so battle video + chat stay visible. */
+  const [battleScoreBarHidden, setBattleScoreBarHidden] = useState(false);
   // Mist Fog booster — server-driven window that hides the battle score for
   // everyone EXCEPT the supported creator. The host keeps seeing the score when
   // their own side is boosted; the opposing side's mist fogs it for them.
@@ -2379,6 +2381,7 @@ export default function LiveStream() {
     // to this room is treated as a normal spectator, not an accepted joiner.
     try { sessionStorage.removeItem(`battleAccept:${effectiveStreamId}`); } catch { /* ignore */ }
     setIsBattleMode(false);
+    setBattleScoreBarHidden(false);
     setBattleState('LIVE_SOLO');
     setBattleTime(300);
     setMyScore(0);
@@ -5820,47 +5823,63 @@ export default function LiveStream() {
                   }}
                 >
 
-                  {/* Battle score: totals inside PK bar only (no name strip above) */}
-                  <div className="relative z-20 w-full flex-none bg-[#111111]/95 border-b border-white/10">
-                    <div
-                      className="relative w-full overflow-hidden cursor-pointer pointer-events-auto"
-                      style={{ minHeight: is4Player ? '20px' : '16px' }}
-                      onClick={(e) => { e.stopPropagation(); if (isBroadcast) { toggleBattle(); } else { spawnHeartFromClient(e.clientX, e.clientY, undefined, heartFloatName, heartFloatAvatar); } }}
-                    >
-                      <div className="absolute inset-0 flex">
-                        <div
-                          className="h-full transition-[width] duration-[1200ms] ease-out motion-reduce:transition-none"
-                          style={{ width: `${leftPct}%`, backgroundImage: 'linear-gradient(90deg, #DC143C, #FF1744, #C41E3A)' }}
-                        />
-                        <div className="h-full flex-1 min-w-0" style={{ backgroundImage: 'linear-gradient(90deg, #1E90FF, #4169E1, #0047AB)' }} />
-                      </div>
-                      <div className="relative z-10 flex h-full min-h-[16px] items-center justify-between gap-1.5 px-2 pointer-events-none leading-none">
-                        <div className={`flex min-w-0 flex-1 flex-col items-start justify-center gap-0 ${hideRedScore ? 'opacity-0' : ''}`}>
-                          <AnimatedScore value={typeof redTeamScore === 'number' && Number.isFinite(redTeamScore) ? redTeamScore : 0} durationMs={0} format={formatCoinsShort} className="text-white font-black text-[11px] tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" />
-                          {is4Player && (
-                            <span className="text-[5px] text-white/80 tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
-                              P1 {battleServerTotals.h} + P3 {battleServerTotals.p3}
-                            </span>
-                          )}
+                  {/* Battle score: tap bar to hide (keeps battle video + chat visible). Tap VS to show again. */}
+                  <div className={`relative z-20 w-full flex-none ${battleScoreBarHidden ? '' : 'bg-[#111111]/95 border-b border-white/10'}`}>
+                    {!battleScoreBarHidden ? (
+                      <div
+                        className="relative w-full overflow-hidden cursor-pointer pointer-events-auto"
+                        style={{ minHeight: is4Player ? '20px' : '16px' }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setBattleScoreBarHidden(true);
+                        }}
+                        title="Hide score bar"
+                      >
+                        <div className="absolute inset-0 flex">
+                          <div
+                            className="h-full transition-[width] duration-[1200ms] ease-out motion-reduce:transition-none"
+                            style={{ width: `${leftPct}%`, backgroundImage: 'linear-gradient(90deg, #DC143C, #FF1744, #C41E3A)' }}
+                          />
+                          <div className="h-full flex-1 min-w-0" style={{ backgroundImage: 'linear-gradient(90deg, #1E90FF, #4169E1, #0047AB)' }} />
                         </div>
-                        <div className={`flex min-w-0 flex-1 flex-col items-end justify-center gap-0 ${hideBlueScore ? 'opacity-0' : ''}`}>
-                          <AnimatedScore value={typeof blueTeamScore === 'number' && Number.isFinite(blueTeamScore) ? blueTeamScore : 0} durationMs={0} format={formatCoinsShort} className="text-white font-black text-[11px] tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" />
-                          {is4Player && (
-                            <span className="text-[5px] text-white/80 tabular-nums leading-none text-right drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
-                              P2 {battleServerTotals.o} + P4 {battleServerTotals.p4}
-                            </span>
-                          )}
+                        <div className="relative z-10 flex h-full min-h-[16px] items-center justify-between gap-1.5 px-2 pointer-events-none leading-none">
+                          <div className={`flex min-w-0 flex-1 flex-col items-start justify-center gap-0 ${hideRedScore ? 'opacity-0' : ''}`}>
+                            <AnimatedScore value={typeof redTeamScore === 'number' && Number.isFinite(redTeamScore) ? redTeamScore : 0} durationMs={0} format={formatCoinsShort} className="text-white font-black text-[11px] tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" />
+                            {is4Player && (
+                              <span className="text-[5px] text-white/80 tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                                P1 {battleServerTotals.h} + P3 {battleServerTotals.p3}
+                              </span>
+                            )}
+                          </div>
+                          <div className={`flex min-w-0 flex-1 flex-col items-end justify-center gap-0 ${hideBlueScore ? 'opacity-0' : ''}`}>
+                            <AnimatedScore value={typeof blueTeamScore === 'number' && Number.isFinite(blueTeamScore) ? blueTeamScore : 0} durationMs={0} format={formatCoinsShort} className="text-white font-black text-[11px] tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" />
+                            {is4Player && (
+                              <span className="text-[5px] text-white/80 tabular-nums leading-none text-right drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                                P2 {battleServerTotals.o} + P4 {battleServerTotals.p4}
+                              </span>
+                            )}
+                          </div>
                         </div>
+                        {battleHideScores ? (
+                          <div className="absolute inset-0 z-20 battle-score-veil pointer-events-none" />
+                        ) : mistSupportedSide ? (
+                          <div className={`absolute inset-y-0 z-20 battle-score-veil pointer-events-none w-1/2 ${mistSupportedSide === 'opponent' ? 'right-0' : 'left-0'}`} />
+                        ) : null}
                       </div>
-                      {battleHideScores ? (
-                        <div className="absolute inset-0 z-20 battle-score-veil pointer-events-none" />
-                      ) : mistSupportedSide ? (
-                        <div className={`absolute inset-y-0 z-20 battle-score-veil pointer-events-none w-1/2 ${mistSupportedSide === 'opponent' ? 'right-0' : 'left-0'}`} />
-                      ) : null}
-                    </div>
+                    ) : (
+                      <div className="w-full h-0" aria-hidden />
+                    )}
                     {/* Match timer — flush under battle score bar (0mm gap); SPEED beside timer when active */}
-                    <div className="absolute left-0 right-0 top-full z-30 flex justify-center pointer-events-none m-0 p-0">
-                      <div className="flex items-center gap-1.5 bg-black/35 backdrop-blur-md rounded-full px-2.5 py-1 border border-white/12 shadow-none">
+                    <div className={`absolute left-0 right-0 z-30 flex justify-center m-0 p-0 ${battleScoreBarHidden ? 'top-0 pointer-events-auto' : 'top-full pointer-events-none'}`}>
+                      <button
+                        type="button"
+                        className="flex items-center gap-1.5 bg-black/35 backdrop-blur-md rounded-full px-2.5 py-1 border border-white/12 shadow-none pointer-events-auto"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (battleScoreBarHidden) setBattleScoreBarHidden(false);
+                        }}
+                        title={battleScoreBarHidden ? 'Show score bar' : undefined}
+                      >
                         <div className="relative w-5 h-5 flex items-center justify-center flex-shrink-0">
                           <svg viewBox="0 0 40 44" className="absolute inset-0 w-full h-full drop-shadow-md">
                             <path d="M20 2 L36 10 L36 26 Q36 38 20 42 Q4 38 4 26 L4 10 Z" fill="url(#vsGrad2)" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5"/>
@@ -5878,7 +5897,7 @@ export default function LiveStream() {
                             )}
                           </span>
                         )}
-                      </div>
+                      </button>
                     </div>
                   </div>
 
@@ -6519,7 +6538,7 @@ export default function LiveStream() {
 
             {/* MIDDLE ZONE: CHAT (Scrollable) — floating hearts only here, not over battle/video */}
             <div
-              className="chat-zone fixed left-0 right-0 z-[20] flex justify-center pointer-events-none"
+              className="chat-zone fixed left-0 right-0 z-[100] flex justify-center pointer-events-none"
               style={{
                 bottom: LIVE_BOTTOM_ACTION_RESERVE,
                 transform: isBattleMode ? `translateY(${LIVE_BATTLE_CHAT_SHIFT_Y})` : undefined,
