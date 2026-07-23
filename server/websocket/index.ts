@@ -1183,9 +1183,19 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
     ws.on("message", async (data) => {
       aliveClients.add(ws);
       try {
+        const raw = data.toString();
+        // Legacy/plain keepalive from older clients: bare "ping" text.
+        if (raw === "ping" || raw === '"ping"') {
+          try {
+            ws.send(JSON.stringify({ event: "pong", data: { t: Date.now() }, timestamp: new Date().toISOString() }));
+          } catch {
+            /* ignore send failures on closing sockets */
+          }
+          return;
+        }
         let parsed;
         try {
-          parsed = JSON.parse(data.toString());
+          parsed = JSON.parse(raw);
         } catch {
           return;
         }

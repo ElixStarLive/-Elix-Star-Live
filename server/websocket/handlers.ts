@@ -1306,6 +1306,23 @@ export async function handleMessage(
         break;
       }
 
+      case "ping": {
+        // Application-level keepalive (clients also rely on WS protocol ping/pong).
+        sendToClient(client, "pong", { t: Date.now() });
+        break;
+      }
+
+      case "stream_start": {
+        // Live discovery registration + `stream_started` broadcast are owned by
+        // POST /api/live/start. Acknowledge so host clients don't silently drop
+        // on an unknown event (previously unhandled).
+        sendToClient(client, "stream_start_ack", {
+          ok: true,
+          stream_key: client.roomId,
+        });
+        break;
+      }
+
       default:
         if (process.env.NODE_ENV !== "production")
           logger.warn({ event }, "Unknown WS event");

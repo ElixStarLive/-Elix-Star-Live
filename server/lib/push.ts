@@ -14,7 +14,27 @@ function getFcmJwt(): JWT | null {
   if (!raw) return null;
   if (fcmJwt) return fcmJwt;
   try {
-    const creds = JSON.parse(raw) as { client_email: string; private_key: string };
+    const creds = JSON.parse(raw) as {
+      type?: string;
+      client_email?: string;
+      private_key?: string;
+      project_info?: unknown;
+      client?: unknown;
+    };
+    // Common misconfig: pasting google-services.json (client) instead of a
+    // Firebase Admin service-account JSON (type=service_account).
+    if (!creds.client_email || !creds.private_key) {
+      logger.error(
+        {
+          hasClientEmail: Boolean(creds.client_email),
+          hasPrivateKey: Boolean(creds.private_key),
+          looksLikeGoogleServicesJson: Boolean(creds.project_info || creds.client),
+          type: creds.type || null,
+        },
+        "FIREBASE_SERVICE_ACCOUNT_JSON is not a service account — FCM disabled. Use a Firebase Admin SDK service-account JSON (client_email + private_key).",
+      );
+      return null;
+    }
     fcmJwt = new JWT({
       email: creds.client_email,
       key: creds.private_key,

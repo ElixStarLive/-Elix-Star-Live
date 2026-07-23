@@ -121,7 +121,8 @@ class WebSocketService {
       if (this.keepAliveTimer) clearInterval(this.keepAliveTimer);
       this.keepAliveTimer = setInterval(() => {
         if (this.ws?.readyState === WebSocket.OPEN) {
-          this.ws.send("ping");
+          // JSON app-level ping (server also accepts legacy bare "ping" text).
+          this.send("ping", {});
         }
       }, 25000);
 

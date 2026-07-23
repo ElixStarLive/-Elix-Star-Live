@@ -41,3 +41,24 @@ describe("1:1 video call contracts", () => {
     expect(callPage).toContain("getCallRoomName");
   });
 });
+
+describe("WS keepalive + stream_start contracts", () => {
+  const handlers = read("./handlers.ts");
+  const index = read("./index.ts");
+  const clientWs = read("../../src/lib/websocket.ts");
+
+  it("server handles application ping and stream_start (no silent drop)", () => {
+    expect(handlers).toContain('case "ping"');
+    expect(handlers).toContain('case "stream_start"');
+    expect(handlers).toContain('sendToClient(client, "pong"');
+    expect(handlers).toContain('sendToClient(client, "stream_start_ack"');
+  });
+
+  it("server accepts legacy bare ping text before JSON parse", () => {
+    expect(index).toContain('raw === "ping"');
+  });
+
+  it("client keepalive sends JSON event ping via send()", () => {
+    expect(clientWs).toContain('this.send("ping", {})');
+  });
+});

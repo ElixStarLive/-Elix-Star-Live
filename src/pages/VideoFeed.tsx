@@ -141,7 +141,13 @@ class RoomMonitor {
       // Send keepalive to prevent server-side timeout
       const keepAlive = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) {
-          ws.send("ping");
+          ws.send(
+            JSON.stringify({
+              event: "ping",
+              data: {},
+              timestamp: new Date().toISOString(),
+            }),
+          );
         } else {
           clearInterval(keepAlive);
         }
