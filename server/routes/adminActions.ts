@@ -11,6 +11,7 @@ import { disconnectUserSessions } from "../websocket/index";
 import { invalidateUserSessionCache } from "./auth";
 import { z } from "zod";
 import { validateBody } from "../middleware/validate";
+import { invalidateGiftsCatalogCache } from "../lib/catalogCacheValkey";
 
 const patchReportSchema = z.object({
   status: z.enum(["pending", "reviewed", "dismissed", "actioned"]),
@@ -381,6 +382,8 @@ router.patch(
         params,
       );
       if (r.rowCount === 0) return res.status(404).json({ error: "Gift not found" });
+      // Drop Valkey/catalog cache so live gift prices match the DB immediately.
+      await invalidateGiftsCatalogCache();
       return res.json({ gift: r.rows[0] });
     } catch (e) {
       logger.error({ err: e, giftId }, "admin patch gift catalog failed");
