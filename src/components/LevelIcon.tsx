@@ -3,7 +3,7 @@ import { PROFILE_RING_IMAGE_LIFT_MM, profileRingInnerPx } from '../lib/profileFr
 import { ROYCE_DEFAULT_AVATAR } from '../lib/royceAssets';
 
 /** Royal Purple diamond — chart Diamond #E0AAFF */
-function LevelDiamondIcon({ size = 10 }: { size?: number }) {
+function LevelDiamondIcon({ size = 12 }: { size?: number }) {
   return (
     <svg
       width={size}
@@ -11,16 +11,17 @@ function LevelDiamondIcon({ size = 10 }: { size?: number }) {
       viewBox="0 0 16 16"
       className="flex-shrink-0"
       aria-hidden
-      style={{ filter: 'drop-shadow(0 0 3px rgba(224,170,255,0.8))' }}
+      style={{ filter: 'drop-shadow(0 0 4px rgba(224,170,255,0.95))' }}
     >
       <path
         d="M8 1.2 L14.2 6.1 L8 14.8 L1.8 6.1 Z"
-        fill="none"
+        fill="#E0AAFF"
+        fillOpacity="0.22"
         stroke="#E0AAFF"
-        strokeWidth="1.35"
+        strokeWidth="1.5"
         strokeLinejoin="round"
       />
-      <path d="M8 1.2 L14.2 6.1 L8 7.2 L1.8 6.1 Z" fill="#E0AAFF" opacity="0.4" />
+      <path d="M8 1.2 L14.2 6.1 L8 7.2 L1.8 6.1 Z" fill="#E0AAFF" opacity="0.65" />
     </svg>
   );
 }
@@ -66,17 +67,17 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
 
   const avatarDiameter = profileRingInnerPx(circleSize);
 
-  /** Square rounded level chip: pink diamond + number (no LV), beside chat circle. */
-  const chipH = Math.max(18, Math.round(circleSize * 0.78));
+  /** Longer rounded level chip: larger diamond + number (no LV), beside chat circle. */
+  const chipH = Math.max(20, Math.round(circleSize * 0.82));
   const fontPx = Math.max(9, Math.round(chipH * 0.48));
-  const diamondPx = Math.max(8, Math.round(chipH * 0.42));
+  const diamondPx = Math.max(12, Math.round(chipH * 0.62));
   const levelChip = (
     <div
       style={{
         position: 'relative',
         zIndex: 1,
         height: chipH,
-        minWidth: chipH,
+        minWidth: Math.max(chipH + 14, Math.round(chipH * 1.7)),
         borderRadius: 6,
         background: 'rgba(8, 10, 22, 0.45)',
         border: '1px solid rgba(224, 170, 255, 0.45)',
@@ -84,9 +85,9 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 3,
-        paddingLeft: 5,
-        paddingRight: 5,
+        gap: 4,
+        paddingLeft: 8,
+        paddingRight: 8,
         flexShrink: 0,
       }}
     >
