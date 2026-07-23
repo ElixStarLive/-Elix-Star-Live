@@ -200,13 +200,14 @@ export function LiveJoinPill({
   );
 }
 
-/** TikTok-style soft transparent capsule fundal (top pills). */
+/** Neon purple capsules — bright enough to read on dark LIVE video. */
 const THIN_CAPSULE_STYLE: React.CSSProperties = {
-  background: 'rgba(0, 0, 0, 0.35)',
-  border: '1px solid rgba(255, 255, 255, 0.12)',
+  background: 'rgba(88, 28, 135, 0.72)',
+  border: '1px solid rgba(224, 170, 255, 0.85)',
   backdropFilter: 'blur(8px)',
   WebkitBackdropFilter: 'blur(8px)',
-  boxShadow: 'none',
+  boxShadow:
+    '0 0 10px 2px rgba(192, 132, 252, 0.65), 0 0 22px 4px rgba(168, 85, 247, 0.4), inset 0 0 8px rgba(224, 170, 255, 0.25)',
 };
 
 /** Same height / padding / border for every sub-header capsule — shorter + right-side row. */
@@ -233,12 +234,12 @@ export function LiveDiamondLeagueCapsule({
     >
       <LivePhotoDiamondIcon size={11} />
       <span className="flex flex-col items-start justify-center leading-none min-w-0">
-        <span className="text-white text-[8px] font-bold whitespace-nowrap">Diamond League</span>
-        <span className="text-white/65 text-[6px] font-semibold whitespace-nowrap mt-[0.5px]">
+        <span className="text-[#F3E8FF] text-[8px] font-bold whitespace-nowrap drop-shadow-[0_0_4px_rgba(224,170,255,0.9)]">Diamond League</span>
+        <span className="text-[#E0AAFF] text-[6px] font-semibold whitespace-nowrap mt-[0.5px]">
           {rank != null ? `Rank ${rank}` : 'Rank —'}
         </span>
       </span>
-      <span className="text-white/70 text-[8px] font-medium leading-none">&gt;</span>
+      <span className="text-[#E0AAFF] text-[8px] font-medium leading-none">&gt;</span>
     </button>
   );
 }
@@ -257,59 +258,59 @@ export function LiveMembershipVipCapsule({ onOpen }: { onOpen: () => void }) {
     >
       <LivePhotoCrownIcon size={11} />
       <span className="flex flex-col items-start justify-center leading-none min-w-0">
-        <span className="text-white text-[8px] font-bold whitespace-nowrap">Membership</span>
-        <span className="text-[#FFD54A] text-[6px] font-bold whitespace-nowrap mt-[0.5px]">VIP</span>
+        <span className="text-[#F3E8FF] text-[8px] font-bold whitespace-nowrap drop-shadow-[0_0_4px_rgba(224,170,255,0.9)]">Membership</span>
+        <span className="text-[#E0AAFF] text-[6px] font-bold whitespace-nowrap mt-[0.5px]">VIP</span>
       </span>
-      <span className="text-white/70 text-[8px] font-medium leading-none">&gt;</span>
+      <span className="text-[#E0AAFF] text-[8px] font-medium leading-none">&gt;</span>
     </button>
   );
 }
 
-/** Photo 3D-style gold diamond for Diamond League. */
+/** Neon purple diamond for Diamond League capsule. */
 function LivePhotoDiamondIcon({ size = 14 }: { size?: number }) {
   const uid = `dl${size}`;
   return (
-    <svg width={size} height={size} viewBox="0 0 18 18" className="flex-shrink-0 drop-shadow-[0_0_5px_rgba(212,175,55,0.7)]" aria-hidden>
+    <svg width={size} height={size} viewBox="0 0 18 18" className="flex-shrink-0 drop-shadow-[0_0_6px_rgba(224,170,255,0.95)]" aria-hidden>
       <defs>
         <linearGradient id={`${uid}Top`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#FFF3C4" />
-          <stop offset="45%" stopColor="#D4AF37" />
-          <stop offset="100%" stopColor="#B8860B" />
+          <stop offset="0%" stopColor="#F5E1FF" />
+          <stop offset="45%" stopColor="#E0AAFF" />
+          <stop offset="100%" stopColor="#A855F7" />
         </linearGradient>
         <linearGradient id={`${uid}Bot`} x1="0.2" y1="0" x2="0.8" y2="1">
-          <stop offset="0%" stopColor="#D4AF37" />
-          <stop offset="100%" stopColor="#8B6914" />
+          <stop offset="0%" stopColor="#C084FC" />
+          <stop offset="100%" stopColor="#7C3AED" />
         </linearGradient>
       </defs>
       <path d="M9 1.2 L15.2 6.2 L9 16.8 L2.8 6.2 Z" fill={`url(#${uid}Bot)`} />
       <path d="M9 1.2 L15.2 6.2 L9 7.4 L2.8 6.2 Z" fill={`url(#${uid}Top)`} />
-      <path d="M9 7.4 L15.2 6.2 L9 16.8 Z" fill="#A67C00" opacity="0.9" />
-      <path d="M9 7.4 L2.8 6.2 L9 16.8 Z" fill="#D4AF37" opacity="0.85" />
-      <path d="M9 1.2 L9 7.4" stroke="#FFF8DC" strokeWidth="0.45" opacity="0.7" />
+      <path d="M9 7.4 L15.2 6.2 L9 16.8 Z" fill="#7C3AED" opacity="0.9" />
+      <path d="M9 7.4 L2.8 6.2 L9 16.8 Z" fill="#C084FC" opacity="0.85" />
+      <path d="M9 1.2 L9 7.4" stroke="#F5E1FF" strokeWidth="0.45" opacity="0.7" />
     </svg>
   );
 }
 
-/** Photo gold crown for Membership VIP. */
+/** Neon purple crown for Membership VIP capsule. */
 function LivePhotoCrownIcon({ size = 14 }: { size?: number }) {
   const uid = `cr${size}`;
   return (
-    <svg width={size} height={size} viewBox="0 0 18 18" className="flex-shrink-0 drop-shadow-[0_0_5px_rgba(255,213,74,0.6)]" aria-hidden>
+    <svg width={size} height={size} viewBox="0 0 18 18" className="flex-shrink-0 drop-shadow-[0_0_6px_rgba(224,170,255,0.9)]" aria-hidden>
       <defs>
         <linearGradient id={uid} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#FFF3C4" />
-          <stop offset="45%" stopColor="#FFD54A" />
-          <stop offset="100%" stopColor="#C9A227" />
+          <stop offset="0%" stopColor="#F5E1FF" />
+          <stop offset="45%" stopColor="#E0AAFF" />
+          <stop offset="100%" stopColor="#A855F7" />
         </linearGradient>
       </defs>
       <path
         d="M2.2 12.2 L3.4 5.6 L6.5 8.4 L9 3.2 L11.5 8.4 L14.6 5.6 L15.8 12.2 Z"
         fill={`url(#${uid})`}
       />
-      <rect x="2.4" y="12.2" width="13.2" height="2.4" rx="0.6" fill="#FFD54A" />
-      <circle cx="3.4" cy="5.4" r="1.05" fill="#FFF8DC" />
-      <circle cx="9" cy="3" r="1.15" fill="#FFF8DC" />
-      <circle cx="14.6" cy="5.4" r="1.05" fill="#FFF8DC" />
+      <rect x="2.4" y="12.2" width="13.2" height="2.4" rx="0.6" fill="#E0AAFF" />
+      <circle cx="3.4" cy="5.4" r="1.05" fill="#F5E1FF" />
+      <circle cx="9" cy="3" r="1.15" fill="#F5E1FF" />
+      <circle cx="14.6" cy="5.4" r="1.05" fill="#F5E1FF" />
     </svg>
   );
 }
@@ -332,16 +333,16 @@ export function LiveWeeklyRankingPill({
         onOpen();
       }}
     >
-      <span className="text-[9px] leading-none w-[11px] h-[11px] flex items-center justify-center flex-shrink-0" aria-hidden>
+      <span className="text-[9px] leading-none w-[11px] h-[11px] flex items-center justify-center flex-shrink-0 drop-shadow-[0_0_6px_rgba(224,170,255,0.95)]" aria-hidden>
         🔥
       </span>
       <span className="flex flex-col items-start justify-center leading-none min-w-0">
-        <span className="text-white text-[8px] font-bold whitespace-nowrap">Weekly Ranking</span>
-        <span className="text-white/65 text-[6px] font-semibold whitespace-nowrap mt-[0.5px]">
+        <span className="text-[#F3E8FF] text-[8px] font-bold whitespace-nowrap drop-shadow-[0_0_4px_rgba(224,170,255,0.9)]">Weekly Ranking</span>
+        <span className="text-[#E0AAFF] text-[6px] font-semibold whitespace-nowrap mt-[0.5px]">
           {rank != null ? `No.${rank}` : 'No.—'}
         </span>
       </span>
-      <span className="text-white/70 text-[8px] font-medium leading-none">&gt;</span>
+      <span className="text-[#E0AAFF] text-[8px] font-medium leading-none">&gt;</span>
     </button>
   );
 }
@@ -358,23 +359,23 @@ export function LiveExplorePill({ onOpen }: { onOpen: () => void }) {
         onOpen();
       }}
     >
-      <svg width="11" height="11" viewBox="0 0 12 12" className="flex-shrink-0 drop-shadow-[0_0_4px_rgba(212,175,55,0.7)]" aria-hidden>
+      <svg width="11" height="11" viewBox="0 0 12 12" className="flex-shrink-0 drop-shadow-[0_0_6px_rgba(224,170,255,0.95)]" aria-hidden>
         <defs>
           <linearGradient id="elixExplorePlanet" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#FFF3C4" />
-            <stop offset="50%" stopColor="#D4AF37" />
-            <stop offset="100%" stopColor="#B8860B" />
+            <stop offset="0%" stopColor="#F5E1FF" />
+            <stop offset="50%" stopColor="#E0AAFF" />
+            <stop offset="100%" stopColor="#7C3AED" />
           </linearGradient>
         </defs>
         <circle cx="6" cy="6" r="5" fill="url(#elixExplorePlanet)" />
-        <ellipse cx="6" cy="6" rx="5.4" ry="2.1" fill="none" stroke="#FFF8DC" strokeWidth="0.7" opacity="0.85" />
-        <path d="M6 1.2 C7.4 2.8 7.4 9.2 6 10.8 C4.6 9.2 4.6 2.8 6 1.2 Z" fill="#F5E6C8" opacity="0.35" />
+        <ellipse cx="6" cy="6" rx="5.4" ry="2.1" fill="none" stroke="#F5E1FF" strokeWidth="0.7" opacity="0.85" />
+        <path d="M6 1.2 C7.4 2.8 7.4 9.2 6 10.8 C4.6 9.2 4.6 2.8 6 1.2 Z" fill="#F3E8FF" opacity="0.35" />
       </svg>
       <span className="flex flex-col items-start justify-center leading-none min-w-0">
-        <span className="text-white text-[8px] font-bold whitespace-nowrap">Explore</span>
-        <span className="text-white/65 text-[6px] font-semibold whitespace-nowrap mt-[0.5px]">Live</span>
+        <span className="text-[#F3E8FF] text-[8px] font-bold whitespace-nowrap drop-shadow-[0_0_4px_rgba(224,170,255,0.9)]">Explore</span>
+        <span className="text-[#E0AAFF] text-[6px] font-semibold whitespace-nowrap mt-[0.5px]">Live</span>
       </span>
-      <span className="text-white/70 text-[8px] font-medium leading-none">&gt;</span>
+      <span className="text-[#E0AAFF] text-[8px] font-medium leading-none">&gt;</span>
     </button>
   );
 }
