@@ -896,6 +896,32 @@ export default function EnhancedVideoPlayer({
         </div>
       </div>
 
+      {/* Friends video: same gold story circle as Friends home story strip */}
+      {feedSourceLabel === 'Friends' && video?.user ? (
+        <button
+          type="button"
+          onClick={handleProfileClick}
+          className="absolute z-[11] flex items-center gap-2 pointer-events-auto active:scale-95 transition-transform"
+          style={{
+            top: 'calc(env(safe-area-inset-top, 0px) + 72px)',
+            left: '12px',
+          }}
+          title={video.user.name || video.user.username}
+        >
+          <StoryGoldRingAvatar
+            size={56}
+            src={video.user.avatar || '/royce/default-avatar.svg'}
+            alt={video.user.name || video.user.username || ''}
+            live={creatorIsLive}
+          />
+          <div className="min-w-0 text-left pointer-events-none">
+            <p className="text-white text-sm font-semibold truncate max-w-[160px] drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+              {video.user.name || video.user.username}
+            </p>
+          </div>
+        </button>
+      ) : null}
+
       {/* Right Sidebar - Same Buttons with Subtle Luxury Effects */}
       <div
         className="absolute z-[10] flex flex-col items-center gap-2 pointer-events-auto"
