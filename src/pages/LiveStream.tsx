@@ -4178,6 +4178,12 @@ export default function LiveStream() {
         requesterAvatar: data.requesterAvatar || '',
         type: 'cohost',
       });
+      // Show Accept/Reject only in Join requests & Spectators panel (no center modal).
+      setShowGiftPanel(false);
+      setShowSharePanel(false);
+      setIsFindCreatorsOpen(false);
+      setShowViewerList(true);
+      showToast(`@${data.requesterName || 'User'} requested to co-host — tap Join or Reject`);
     };
 
     const handleCohostRequestAccepted = (data) => {
@@ -8042,42 +8048,6 @@ export default function LiveStream() {
               <span className="text-white font-bold text-sm">+{c.finalPoints}</span>
             </div>
           ))}
-        </div>
-      )}
-
-      {/* CO-HOST REQUEST PROMPT — a spectator asked to send their video; the creator
-          accepts (grants publish so their camera reaches this page) or declines. */}
-      {isBroadcast && pendingJoinRequest && (
-        <div className="fixed inset-0 z-[100001] flex items-center justify-center pointer-events-auto px-6">
-          <div className="absolute inset-0 bg-black/50" onClick={declineJoinRequest} />
-          <div className="relative w-full max-w-[320px] bg-[#111111]/95 backdrop-blur-md rounded-2xl border border-[#D4AF37]/40 shadow-2xl p-5 flex flex-col items-center gap-3">
-            <div className="w-16 h-16 rounded-full overflow-hidden bg-[#13151A]">
-              <img
-                src={pendingJoinRequest.requesterAvatar || '/royce/default-avatar.svg'}
-                alt={pendingJoinRequest.requesterName}
-                className="w-full h-full object-cover"
-                draggable={false}
-              />
-            </div>
-            <p className="text-white font-bold text-sm text-center">@{pendingJoinRequest.requesterName}</p>
-            <p className="text-white/60 text-xs text-center">wants to join your live as co-host</p>
-            <div className="flex items-center gap-3 w-full mt-1">
-              <button
-                type="button"
-                onClick={declineJoinRequest}
-                className="flex-1 py-2.5 rounded-full bg-white/10 text-white/80 text-xs font-bold active:scale-95 transition-transform"
-              >
-                Decline
-              </button>
-              <button
-                type="button"
-                onClick={acceptJoinRequest}
-                className="flex-1 py-2.5 rounded-full bg-[#D4AF37] text-black text-xs font-bold active:scale-95 transition-transform"
-              >
-                Accept
-              </button>
-            </div>
-          </div>
         </div>
       )}
 
