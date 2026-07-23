@@ -109,11 +109,13 @@ export function LiveHostProfileHeader({
 
       <div className="flex flex-col justify-center min-w-0 gap-[2px]">
         <div className="flex items-center gap-1 min-w-0">
-          <span className="text-white text-[12px] font-bold truncate max-w-[118px] leading-tight">{name}</span>
+          <span className="text-[#FFD54A] text-[12px] font-bold truncate max-w-[118px] leading-tight drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]">
+            {name}
+          </span>
           <BadgeCheck
             size={14}
-            className="text-[#2F80FF] flex-shrink-0 drop-shadow-[0_0_4px_rgba(47,128,255,0.65)]"
-            fill="#2F80FF"
+            className="text-[#FE2C55] flex-shrink-0 drop-shadow-[0_0_5px_rgba(254,44,85,0.85)]"
+            fill="#FE2C55"
             stroke="#FFFFFF"
             strokeWidth={1.6}
           />
@@ -126,11 +128,13 @@ export function LiveHostProfileHeader({
             onLike(e);
           }}
         >
-          <span className="text-white/65 text-[9px] font-semibold tabular-nums leading-none whitespace-nowrap">
+          <span className="text-[#FFE8A3] text-[9px] font-semibold tabular-nums leading-none whitespace-nowrap drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
             {likesLabel} Likes
           </span>
-          <span className="text-white/35 text-[9px] leading-none">•</span>
-          <span className="text-white/65 text-[9px] font-semibold leading-none whitespace-nowrap">LIVE Pro</span>
+          <span className="text-[#FFE8A3]/70 text-[9px] leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">•</span>
+          <span className="text-[#FFE8A3] text-[9px] font-semibold leading-none whitespace-nowrap drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+            LIVE Pro
+          </span>
         </button>
         <div className="flex items-center gap-1 mt-[1px]">
           <span
@@ -180,22 +184,24 @@ export function LiveJoinPill({
     <button
       type="button"
       className={`flex items-center justify-center gap-1 h-[28px] px-2.5 rounded-full active:scale-95 transition-transform ${
-        hasJoinedToday ? 'bg-[#FF4500]' : 'bg-black/55 border border-white/20'
+        hasJoinedToday
+          ? 'bg-[#FE2C55] border border-[#FF6B8A]'
+          : 'bg-[#FE2C55] border border-[#FF6B8A] shadow-[0_0_10px_rgba(254,44,85,0.55)]'
       }`}
       onClick={onJoin}
     >
       <div className="relative">
         <Heart
-          className={`w-3.5 h-3.5 ${hasJoinedToday ? 'text-white fill-white' : 'text-[#D4AF37] fill-[#FFFFFF]'}`}
+          className="w-3.5 h-3.5 text-white fill-white"
           strokeWidth={2.5}
         />
         {!hasJoinedToday && (
-          <div className="absolute -top-1 -right-1 w-2 h-2 bg-[#FFFFFF] rounded-full flex items-center justify-center border border-white">
-            <span className="text-white text-[6px] font-bold leading-none">+</span>
+          <div className="absolute -top-1 -right-1 w-2 h-2 bg-white rounded-full flex items-center justify-center border border-[#FE2C55]">
+            <span className="text-[#FE2C55] text-[6px] font-bold leading-none">+</span>
           </div>
         )}
       </div>
-      <span className={`${hasJoinedToday ? 'text-white' : 'text-[#D4AF37]'} text-[10px] font-bold`}>Join</span>
+      <span className="text-white text-[10px] font-bold drop-shadow-[0_1px_1px_rgba(0,0,0,0.45)]">Join</span>
     </button>
   );
 }
