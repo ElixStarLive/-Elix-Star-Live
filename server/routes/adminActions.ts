@@ -149,7 +149,6 @@ router.get("/reports", async (req: Request, res: Response) => {
   if (!db) return res.status(503).json({ error: "DATABASE_UNAVAILABLE", data: [] });
   const statusFilter = req.query.status as string | undefined;
   try {
-    await db.query(`ALTER TABLE elix_reports ADD COLUMN IF NOT EXISTS admin_note TEXT`).catch(() => {});
     let query = `SELECT r.id,
                         r.reporter_user_id AS reporter_id,
                         r.target_type,
@@ -284,15 +283,6 @@ router.patch("/reports/:id", validateBody(patchReportSchema), async (req: Reques
   const { status, admin_note, action } = req.body as z.infer<typeof patchReportSchema>;
   const adminId = (req.authContext as NonNullable<typeof req.authContext>).userId;
   try {
-    await db.query(
-      `ALTER TABLE elix_reports ADD COLUMN IF NOT EXISTS admin_note TEXT`,
-    ).catch(() => {});
-    await db.query(
-      `ALTER TABLE elix_reports ADD COLUMN IF NOT EXISTS reviewed_by TEXT`,
-    ).catch(() => {});
-    await db.query(
-      `ALTER TABLE elix_reports ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ`,
-    ).catch(() => {});
     const r = await db.query(
       `UPDATE elix_reports SET status = $1, admin_note = COALESCE($2, admin_note), reviewed_by = $3, reviewed_at = NOW() WHERE id = $4 RETURNING *`,
       [status, admin_note ?? null, adminId, id],
