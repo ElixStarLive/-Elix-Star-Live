@@ -3631,12 +3631,10 @@ export default function SpectatorPage() {
                   type="button"
                   title="Leave stream"
                   onClick={leaveStreamWithSlide}
-                  className="w-8 h-8 rounded-full flex items-center justify-center bg-black/45 border border-white/15 active:scale-95 transition-transform"
+                  className="p-1 active:scale-95 transition-transform"
                   aria-label="Close"
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" aria-hidden>
-                    <path d="M18 6L6 18M6 6l12 12" />
-                  </svg>
+                  <RoyceCloseIcon size={18} />
                 </button>
               </div>
             </div>

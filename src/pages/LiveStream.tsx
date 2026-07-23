@@ -78,6 +78,7 @@ import {
   LIVE_BOTTOM_ACTION_RESERVE,
 } from '../lib/profileFrame';
 import { resolveUiAvatarUrl } from '../lib/royceAssets';
+import { RoyceCloseIcon } from '../components/royce';
 import { useAuthStore } from '../store/useAuthStore';
 import { useVideoStore } from '../store/useVideoStore';
 import { clearCachedCameraStream, getCachedCameraStream, setCachedCameraStream } from '../lib/cameraStream';
@@ -6159,10 +6160,14 @@ export default function LiveStream() {
                           <span className="text-white text-[9px] font-bold tabular-nums">{formatCountShort(viewerCount)}</span>
                           <UserPlus size={16} className="text-[#D4AF37]" strokeWidth={2.2} />
                         </button>
-                        <button type="button" onClick={closeLiveWithSlide} className="w-8 h-8 rounded-full flex items-center justify-center bg-black/45 border border-white/15 active:scale-95 transition-transform pointer-events-auto" title={isBroadcast ? (isBattleMode ? 'End battle' : 'End broadcast') : 'Leave'} aria-label="Close">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" aria-hidden>
-                            <path d="M18 6L6 18M6 6l12 12" />
-                          </svg>
+                        <button
+                          type="button"
+                          onClick={closeLiveWithSlide}
+                          className="p-1 active:scale-95 transition-transform pointer-events-auto"
+                          title={isBroadcast ? (isBattleMode ? 'End battle' : 'End broadcast') : 'Leave'}
+                          aria-label="Close"
+                        >
+                          <RoyceCloseIcon size={18} />
                         </button>
                       </div>
                     </div>
