@@ -1,28 +1,36 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { RoyceBackIcon } from '../components/royce';
 import { useNavigate } from 'react-router-dom';
-import { Eye, Radio, RefreshCw } from 'lucide-react';
+import { Radio, RefreshCw } from 'lucide-react';
 import { getWsUrl } from '../lib/api';
 import { request } from '../lib/apiClient';
 import { useAuthStore } from '../store/useAuthStore';
-import { LIVE_FEED_CARD_AVATAR_PX } from '../lib/profileFrame';
 import {
   isGenericLiveCreatorName,
   liveNameFromStreamFields,
   profileToLiveDisplay,
 } from '../lib/liveCreatorDisplay';
 
+const InlineLiveViewer = React.lazy(() => import('../components/InlineLiveViewer'));
+
 type LiveCreator = {
   id: string;
   userId?: string;
   name: string;
+  avatar?: string;
   viewers: number;
-  thumbnail?: string;
   title?: string;
 };
 
+function isUiAvatarsUrl(url: string | undefined): boolean {
+  return !!url && /ui-avatars\.com/i.test(url);
+}
+
 async function enrichLiveCreator(creator: LiveCreator): Promise<LiveCreator> {
-  if (!creator.userId || !isGenericLiveCreatorName(creator.name)) return creator;
+  if (!creator.userId) return creator;
+  const needsName = isGenericLiveCreatorName(creator.name);
+  const needsAvatar = !creator.avatar || isUiAvatarsUrl(creator.avatar);
+  if (!needsName && !needsAvatar) return creator;
   try {
     const { data, error } = await request(`/api/profiles/${encodeURIComponent(creator.userId)}`);
     if (error || !data) return creator;
@@ -30,14 +38,12 @@ async function enrichLiveCreator(creator: LiveCreator): Promise<LiveCreator> {
     if (!name && !avatar) return creator;
     return {
       ...creator,
-      name: name || creator.name,
-      thumbnail:
-        avatar ||
-        creator.thumbnail ||
-        (name
-          ? `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=121212&color=FFFFFF`
-          : creator.thumbnail),
-      title: name || creator.title,
+      name: needsName && name ? name : creator.name,
+      avatar: avatar || (isUiAvatarsUrl(creator.avatar) ? undefined : creator.avatar),
+      title:
+        creator.title && !isGenericLiveCreatorName(creator.title)
+          ? creator.title
+          : name || creator.title,
     };
   } catch {
     return creator;
@@ -48,7 +54,11 @@ export default function LiveDiscover() {
   const navigate = useNavigate();
   const [creators, setCreators] = useState<LiveCreator[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeIds, setActiveIds] = useState<Set<string>>(() => new Set());
   const removedKeysRef = useRef<Set<string>>(new Set());
+  const cardRefs = useRef<Map<string, HTMLElement>>(new Map());
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const visibleIdsRef = useRef<Set<string>>(new Set());
 
   const fetchLiveStreams = useCallback(async () => {
     setLoading(true);
@@ -76,15 +86,12 @@ export default function LiveDiscover() {
             s.display_name ?? s.displayName,
             userId,
           );
-          const avatarLabel = isGenericLiveCreatorName(name) ? name : name;
           return {
             id,
             userId: userId || undefined,
             name,
+            avatar: undefined,
             viewers: Number(s.viewer_count ?? s.viewerCount ?? 0),
-            thumbnail: userId
-              ? `https://ui-avatars.com/api/?name=${encodeURIComponent(avatarLabel)}&background=121212&color=FFFFFF`
-              : undefined,
             title: s.title ?? s.display_name ?? s.displayName ?? undefined,
           };
         });
@@ -98,14 +105,24 @@ export default function LiveDiscover() {
   }, []);
 
   useEffect(() => {
-    const needs = creators.filter((c) => c.userId && isGenericLiveCreatorName(c.name));
+    const needs = creators.filter(
+      (c) =>
+        c.userId &&
+        (isGenericLiveCreatorName(c.name) || !c.avatar || isUiAvatarsUrl(c.avatar)),
+    );
     if (needs.length === 0) return;
     let cancelled = false;
     (async () => {
       for (const creator of needs) {
         if (cancelled) return;
         const enriched = await enrichLiveCreator(creator);
-        if (enriched.name === creator.name && enriched.thumbnail === creator.thumbnail) continue;
+        if (
+          enriched.name === creator.name &&
+          enriched.avatar === creator.avatar &&
+          enriched.title === creator.title
+        ) {
+          continue;
+        }
         setCreators((prev) => prev.map((c) => (c.id === creator.id ? enriched : c)));
       }
     })();
@@ -113,11 +130,11 @@ export default function LiveDiscover() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [creators.map((c) => `${c.id}:${c.name}:${c.userId ?? ''}`).join(',')]);
+  }, [creators.map((c) => `${c.id}:${c.name}:${c.userId ?? ''}:${c.avatar ?? ''}`).join(',')]);
 
   const removeLiveStream = useCallback((key: string) => {
     removedKeysRef.current.add(key);
-    setCreators(prev => prev.filter(c => c.id !== key));
+    setCreators((prev) => prev.filter((c) => c.id !== key));
     setTimeout(() => removedKeysRef.current.delete(key), 10000);
   }, []);
 
@@ -128,6 +145,36 @@ export default function LiveDiscover() {
     const poll = setInterval(fetchLiveStreams, 3_000);
     return () => clearInterval(poll);
   }, [fetchLiveStreams]);
+
+  // Activate live preview only for cards on screen (same pattern as For You active slide)
+  useEffect(() => {
+    observerRef.current?.disconnect();
+    visibleIdsRef.current = new Set();
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        let changed = false;
+        for (const entry of entries) {
+          const id = (entry.target as HTMLElement).dataset.streamId;
+          if (!id) continue;
+          const on = entry.isIntersecting && entry.intersectionRatio >= 0.35;
+          if (on) {
+            if (!visibleIdsRef.current.has(id)) {
+              visibleIdsRef.current.add(id);
+              changed = true;
+            }
+          } else if (visibleIdsRef.current.delete(id)) {
+            changed = true;
+          }
+        }
+        if (changed) setActiveIds(new Set(visibleIdsRef.current));
+      },
+      { threshold: [0, 0.35, 0.6], rootMargin: '40px 0px' },
+    );
+    for (const el of cardRefs.current.values()) {
+      observerRef.current.observe(el);
+    }
+    return () => observerRef.current?.disconnect();
+  }, [creators.map((c) => c.id).join(',')]);
 
   // When a creator starts live, show them on this page immediately (same as For You feed); reconnect on close
   useEffect(() => {
@@ -167,18 +214,22 @@ export default function LiveDiscover() {
               id: key,
               userId: userId || undefined,
               name,
+              avatar: undefined,
               viewers: 0,
-              thumbnail: userId
-                ? `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=121212&color=FFFFFF`
-                : undefined,
-              title: name,
+              title: typeof data.title === 'string' ? data.title : name,
             };
             setCreators((prev) => {
               if (prev.some((c) => c.id === key)) return prev;
               return [nextCreator, ...prev];
             });
             void enrichLiveCreator(nextCreator).then((enriched) => {
-              if (enriched.name === nextCreator.name && enriched.thumbnail === nextCreator.thumbnail) return;
+              if (
+                enriched.name === nextCreator.name &&
+                enriched.avatar === nextCreator.avatar &&
+                enriched.title === nextCreator.title
+              ) {
+                return;
+              }
               setCreators((prev) => prev.map((c) => (c.id === key ? enriched : c)));
             });
           } else if (event === 'stream_ended') {
@@ -212,55 +263,57 @@ export default function LiveDiscover() {
     };
   }, [token, removeLiveStream]);
 
-  const formatViewers = (n: number) => {
-    if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
-    if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
-    return n.toString();
-  };
+  const setCardRef = useCallback((id: string, el: HTMLDivElement | null) => {
+    const prev = cardRefs.current.get(id);
+    if (prev && observerRef.current) observerRef.current.unobserve(prev);
+    if (el) {
+      el.dataset.streamId = id;
+      cardRefs.current.set(id, el);
+      observerRef.current?.observe(el);
+    } else {
+      cardRefs.current.delete(id);
+    }
+  }, []);
 
   return (
     <div className="app-live-column bg-[#111111]">
-      {/* Header — Live / STEM band */}
+      {/* Header inside column — close stays within max-w container */}
       <div
-        className="fixed left-0 right-0 z-[9999] flex justify-center pointer-events-none"
-        style={{ top: 'var(--topnav-anchor-top)' }}
+        className="flex-shrink-0 w-full px-3 flex items-center justify-between z-20"
+        style={{
+          paddingTop: 'var(--topnav-anchor-top)',
+          minHeight: 'calc(var(--topnav-anchor-top) + var(--topnav-bar-height))',
+        }}
       >
-        <div
-          className="w-full max-w-[480px] px-3 flex items-center justify-between pointer-events-auto"
-          style={{ minHeight: 'var(--topnav-bar-height)' }}
+        <button
+          type="button"
+          onClick={fetchLiveStreams}
+          className="p-1"
+          title="Refresh"
+          aria-label="Refresh"
         >
-          <button
-            onClick={fetchLiveStreams}
-            className="p-1"
-            title="Refresh"
-            aria-label="Refresh"
-          >
-            <RefreshCw size={18} className={`text-white ${loading ? 'animate-spin' : ''}`} />
-          </button>
-          <h1 className="text-sm font-bold text-white">
-            Live
-            {creators.length > 0 ? (
-              <span className="text-white/40 font-medium text-xs ml-1.5">{creators.length}</span>
-            ) : null}
-          </h1>
-          <button
-            onClick={() => navigate('/feed')}
-            className="p-1"
-            style={{ marginRight: '4mm' }}
-            title="Back"
-          >
-            <RoyceBackIcon />
-          </button>
-        </div>
+          <RefreshCw size={18} className={`text-white ${loading ? 'animate-spin' : ''}`} />
+        </button>
+        <h1 className="text-sm font-bold text-white">
+          Live
+          {creators.length > 0 ? (
+            <span className="text-white/40 font-medium text-xs ml-1.5">{creators.length}</span>
+          ) : null}
+        </h1>
+        <button
+          type="button"
+          onClick={() => navigate('/feed')}
+          className="p-1"
+          title="Back"
+        >
+          <RoyceBackIcon />
+        </button>
       </div>
 
-      {/* Content — STEM-width column */}
+      {/* Content — same column as header */}
       <div
         className="flex-1 min-h-0 w-full overflow-y-auto"
-        style={{
-          paddingTop: 'calc(var(--topnav-anchor-top) + var(--topnav-bar-height))',
-          paddingBottom: 'var(--bottom-ui-reserve)',
-        }}
+        style={{ paddingBottom: 'var(--bottom-ui-reserve)' }}
       >
         <div className="w-full max-w-[480px] mx-auto">
           {loading && creators.length === 0 ? (
@@ -270,68 +323,23 @@ export default function LiveDiscover() {
           ) : creators.length > 0 ? (
             <div className="grid grid-cols-2 gap-1 px-1 pb-[env(safe-area-inset-bottom,20px)]">
               {creators.map((c, i) => (
-                <button
+                <div
                   key={c.id}
-                  type="button"
-                  onClick={() => navigate(`/watch/${c.id}`)}
-                  className={`relative overflow-hidden active:scale-[0.97] transition-transform ${
+                  ref={(el) => setCardRef(c.id, el)}
+                  className={`relative overflow-hidden bg-black ${
                     i === 0 && creators.length > 2 ? 'col-span-2 aspect-[2/1.2]' : 'aspect-[3/4]'
                   }`}
                 >
-                  {/* Background */}
-                  {c.thumbnail ? (
-                    <img
-                      src={c.thumbnail}
-                      alt=""
-                      className="absolute inset-0 w-full h-full object-cover"
+                  <Suspense fallback={<div className="absolute inset-0 bg-[#111111]" />}>
+                    <InlineLiveViewer
+                      streamKey={c.id}
+                      isActive={activeIds.has(c.id)}
+                      creatorName={c.name}
+                      creatorAvatar={c.avatar}
+                      viewerCount={c.viewers}
                     />
-                  ) : (
-                    <div className="absolute inset-0 bg-gradient-to-br from-[#1a1c22] to-[#0e1015] flex items-center justify-center">
-                      <div className="w-16 h-16 rounded-full bg-[#C9A227]/10 border border-[#C9A227]/20 flex items-center justify-center">
-                        <span className="text-[#D4AF37] font-bold text-2xl">{c.name.slice(0, 1).toUpperCase()}</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Gradient overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-
-                  {/* LIVE badge + viewer count */}
-                  <div className="absolute top-2 left-2 flex items-center gap-1.5">
-                    <span className="px-1.5 py-0.5 rounded bg-white/20 text-white text-[9px] font-extrabold uppercase tracking-wider flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                      Live
-                    </span>
-                    <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-black/50 text-white/80 text-[9px] font-semibold">
-                      <Eye size={10} />
-                      {formatViewers(c.viewers)}
-                    </span>
-                  </div>
-
-                  {/* Creator info at bottom */}
-                  <div className="absolute bottom-0 left-0 right-0 p-2.5">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="rounded-full overflow-hidden flex-shrink-0 bg-[#1a1c22]"
-                        style={{ width: LIVE_FEED_CARD_AVATAR_PX, height: LIVE_FEED_CARD_AVATAR_PX }}
-                      >
-                        {c.thumbnail ? (
-                          <img src={c.thumbnail} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-white/60 text-xs font-bold">
-                            {c.name.slice(0, 1).toUpperCase()}
-                          </div>
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-white font-bold text-xs truncate">{c.name}</p>
-                        {c.title && (
-                          <p className="text-white/50 text-[10px] truncate">{c.title}</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </button>
+                  </Suspense>
+                </div>
               ))}
             </div>
           ) : (
@@ -345,6 +353,7 @@ export default function LiveDiscover() {
                 Check back later to watch creators streaming live
               </p>
               <button
+                type="button"
                 onClick={fetchLiveStreams}
                 className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-white/5 border border-white/10 active:scale-95 transition-all"
               >
