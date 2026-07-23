@@ -92,6 +92,8 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
           width: diamondW,
           height: diamondH,
           objectFit: 'contain',
+          /* Same diamond frame shape; black lines on blue fundal */
+          filter: 'brightness(0)',
         }}
       />
       <span
