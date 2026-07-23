@@ -26,6 +26,8 @@ export type GiftUiItem = {
 
 export type GiftItem = GiftUiItem;
 
+export const GIFT_COMBO_MAX = 5000;
+
 /** Display-only name fixes (does not change gift_id / pricing). */
 export function formatGiftDisplayName(name: string): string {
   if (name === 'A Gleaming Treasure Chest In A Cave') {

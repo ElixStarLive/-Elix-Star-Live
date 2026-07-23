@@ -39,7 +39,7 @@ import {
   type EngagementPanel,
 } from '../components/engagement/EngagementDrawer';
 import { engagementFlags } from '../config/engagementFlags';
-import { GiftUiItem, resolveGiftAssetUrl, fetchGiftsFromDatabase, pickGiftVideoUrl, formatGiftDisplayName } from '../lib/giftsCatalog';
+import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, fetchGiftsFromDatabase, pickGiftVideoUrl, formatGiftDisplayName } from '../lib/giftsCatalog';
 import { appendCapped, LIVE_CHAT_MESSAGE_CAP, LIVE_GIFT_QUEUE_CAP } from '../lib/liveRuntimeCaps';
 import { BattleVfxOverlays, GloveIcon, type BattleMistSide, type GloveBurst } from '../components/BattleVfxOverlays';
 import { BattleTauntOverlays } from '../components/BattleTauntOverlays';
@@ -96,11 +96,13 @@ import PromotePanel from '../components/PromotePanel';
 import { RankingPanel } from '../components/RankingPanel';
 import { type LiveRankTab } from '../components/CyclingRankBadge';
 import {
+  LiveGiftComboColumn,
   LiveComboMissionDock,
   LiveHostProfileHeader,
   LiveJoinPill,
   LiveMarkedSubHeaderBar,
   LiveMarkedUiDemoToggle,
+  buildLiveMarkedUiDemoComboStack,
   readLiveMarkedUiDemoEnabled,
   writeLiveMarkedUiDemoEnabled,
 } from '../components/LiveMarkedTopUi';
@@ -279,7 +281,15 @@ export default function SpectatorPage() {
   const [giftQueue, setGiftQueue] = useState<{video: string}[]>([]);
   const [shareQuery, setShareQuery] = useState('');
   const [shareContacts, setShareContacts] = useState<{ id: string; name: string; avatar: string }[]>([]);
+  const [lastSentGift, setLastSentGift] = useState<GiftUiItem | null>(null);
+  const [comboCount, setComboCount] = useState(0);
+  const [showComboButton, setShowComboButton] = useState(false);
+  /** Recent combo gifts (icon + real xN), capped to last 3 — red-circle combo column. */
+  const [comboStack, setComboStack] = useState<{ key: string; icon: string; count: number; gift: GiftUiItem }[]>([]);
   const [markedUiDemo, setMarkedUiDemo] = useState(() => readLiveMarkedUiDemoEnabled(IS_STORE_BUILD));
+  const demoComboStack = markedUiDemo ? buildLiveMarkedUiDemoComboStack() : [];
+  const visibleComboStack = comboStack.length > 0 ? comboStack : demoComboStack;
+  const showComboColumn = (showComboButton && comboStack.length > 0) || (markedUiDemo && demoComboStack.length > 0);
   const [missionWatchMin, setMissionWatchMin] = useState(0);
   const [missionGiftsSent, setMissionGiftsSent] = useState(0);
   const [missionWatchGoal, setMissionWatchGoal] = useState(30);
@@ -318,6 +328,23 @@ export default function SpectatorPage() {
     }, 60_000);
     return () => window.clearInterval(id);
   }, [missionWatchGoal]);
+  const comboTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resetComboTimer = () => {
+    if (comboTimerRef.current) clearTimeout(comboTimerRef.current);
+    comboTimerRef.current = setTimeout(() => {
+      setShowComboButton(false);
+      setComboCount(0);
+      setComboStack([]);
+    }, 8000);
+  };
+  const pushComboStack = useCallback((gift: GiftUiItem, nextCount: number) => {
+    const key = String(gift.id || gift.name || 'gift');
+    setComboStack((prev) => {
+      const without = prev.filter((i) => i.key !== key);
+      return [...without, { key, icon: typeof gift.icon === 'string' ? gift.icon : '', count: nextCount, gift }].slice(-3);
+    });
+  }, []);
+
   const [spectatorCoHostRequestSent, setSpectatorCoHostRequestSent] = useState(false);
   const [showViewersPanel, setShowViewersPanel] = useState(false);
   const [viewersList, setViewersList] = useState<{ id: string; name: string; avatar: string; level?: number }[]>([]);
@@ -2434,8 +2461,9 @@ export default function SpectatorPage() {
   };
 
   // Spectator gift → creator: send to creator's room (broadcast so creator sees it and gets credit)
-  const handleSendGift = async (gift: GiftUiItem) => {
+  const handleSendGift = async (gift: GiftUiItem, opts?: { fromCombo?: boolean }) => {
     if (!gift) return;
+    if (opts?.fromCombo && comboCount >= GIFT_COMBO_MAX) return;
     const isGiftVideoFile = (value: string) => {
       const p = value.split('?')[0].toLowerCase();
       return p.endsWith('.mp4') || p.endsWith('.webm');
@@ -2668,6 +2696,18 @@ export default function SpectatorPage() {
     }
     
 
+    setLastSentGift(gift);
+    let nextCombo = 1;
+    if (opts?.fromCombo) {
+      nextCombo = Math.min(comboCount + 1, GIFT_COMBO_MAX);
+      setComboCount(nextCombo);
+    } else {
+      setComboCount(1);
+      nextCombo = 1;
+    }
+    pushComboStack(gift, nextCombo);
+    setShowComboButton(true);
+    resetComboTimer();
     pushLocalGiftPill({
       username: viewerName,
       giftName: gift.name,
@@ -2683,6 +2723,12 @@ export default function SpectatorPage() {
         : resolveGiftAssetUrl(gift.icon.startsWith('/') ? gift.icon : `/${gift.icon}`);
       setLastOpponentGift(iconUrl);
     }
+  };
+
+  const handleComboClick = () => {
+    if (!lastSentGift) return;
+    if (comboCount >= GIFT_COMBO_MAX) return;
+    void handleSendGift(lastSentGift, { fromCombo: true });
   };
 
   const leaveStreamWithSlide = useCallback(() => {
@@ -3685,6 +3731,7 @@ export default function SpectatorPage() {
           </div>
         </div>
 
+        {/* Combo + Mission docked together — separate live sources */}
         <LiveMarkedUiDemoToggle
           enabled={markedUiDemo}
           storeBuild={IS_STORE_BUILD}
@@ -3694,6 +3741,19 @@ export default function SpectatorPage() {
           }}
         />
         <LiveComboMissionDock
+          combo={
+            showComboColumn && visibleComboStack.length > 0 ? (
+              <LiveGiftComboColumn
+                embedded
+                stack={visibleComboStack}
+                onCombo={() => {
+                  if (comboStack.length > 0) handleComboClick();
+                  else setShowGiftPanel(true);
+                }}
+                onOpen={() => setShowGiftPanel(true)}
+              />
+            ) : null
+          }
           mission={
             <LiveSideMissionStack
               embedded
