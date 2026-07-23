@@ -3925,7 +3925,7 @@ export default function SpectatorPage() {
               rank={diamondLeagueRank}
               onDiamond={() => {
                 setShowGiftPanel(false);
-                setRankingInitialTab('weekly');
+                setRankingInitialTab('daily');
                 setShowRankingPanel(true);
               }}
               onMembership={() => {

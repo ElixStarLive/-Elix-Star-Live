@@ -6448,7 +6448,7 @@ export default function LiveStream() {
                     <LiveMarkedSubHeaderBar
                       rank={diamondLeagueRank}
                       onDiamond={() => {
-                        setRankingInitialTab('weekly');
+                        setRankingInitialTab('daily');
                         setShowRankingPanel(true);
                       }}
                       onMembership={() => {
