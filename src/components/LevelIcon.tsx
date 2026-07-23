@@ -1,26 +1,115 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { AvatarRing } from './AvatarRing';
 import { resolveUiAvatarUrl, ROYCE_DEFAULT_AVATAR } from '../lib/royceAssets';
+import { getLevelAccentStyle, isDiamondPrestigeLevel } from '../lib/levelColors';
 
-/** Proper blue fundal + blue light for the level chip (as instructed). */
-const LEVEL_FUNDAL = '#3B82F6';
-const LEVEL_FUNDAL_EDGE = 'rgba(59, 130, 246, 0.85)';
-const LEVEL_BLUE_GLOW = 'rgba(59, 130, 246, 0.55)';
-const LEVEL_BLUE_SOFT = 'rgba(59, 130, 246, 0.28)';
+/**
+ * Premium neon diamond frame (chart): 3 crown facets + open pavilion,
+ * white level number inside. Colour from every-20 tier (all 1–300).
+ */
+function LevelDiamondBadge({
+  level,
+  width,
+  height,
+  color,
+  prestige,
+}: {
+  level: number;
+  width: number;
+  height: number;
+  color: string;
+  prestige: boolean;
+}) {
+  const uid = useId().replace(/:/g, '');
+  const gradId = `lvlRainbow-${uid}`;
+  const stroke = prestige ? `url(#${gradId})` : color;
+  const glowColor = prestige ? '#A78BFA' : color;
+  const fontPx = Math.max(8, Math.round(Math.min(width, height) * (level >= 100 ? 0.3 : 0.36)));
+
+  return (
+    <div
+      style={{
+        position: 'relative',
+        width,
+        height,
+        flexShrink: 0,
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <svg
+        width={width}
+        height={height}
+        viewBox="0 0 64 64"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden
+        preserveAspectRatio="xMidYMid meet"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'block',
+          filter: `drop-shadow(0 0 2px ${glowColor}) drop-shadow(0 0 6px ${glowColor}) drop-shadow(0 0 11px ${glowColor})`,
+        }}
+      >
+        {prestige ? (
+          <defs>
+            <linearGradient id={gradId} x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#F97316" />
+              <stop offset="25%" stopColor="#EAB308" />
+              <stop offset="50%" stopColor="#22C55E" />
+              <stop offset="75%" stopColor="#3B82F6" />
+              <stop offset="100%" stopColor="#C77DFF" />
+            </linearGradient>
+          </defs>
+        ) : null}
+        {/* Outer diamond — flat top, pointed tip */}
+        <path
+          d="M22 11 H42 L53 27 L32 54 L11 27 Z"
+          stroke={stroke}
+          strokeWidth="2.8"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+          fill="none"
+        />
+        {/* Girdle */}
+        <path d="M11 27 H53" stroke={stroke} strokeWidth="2.4" strokeLinecap="round" />
+        {/* Three crown facets (chart style) */}
+        <path d="M22 11 L32 27" stroke={stroke} strokeWidth="2.15" strokeLinecap="round" />
+        <path d="M42 11 L32 27" stroke={stroke} strokeWidth="2.15" strokeLinecap="round" />
+        <path d="M32 11 L32 27" stroke={stroke} strokeWidth="2" strokeLinecap="round" />
+      </svg>
+      <span
+        style={{
+          position: 'relative',
+          zIndex: 1,
+          color: '#FFFFFF',
+          fontWeight: 900,
+          fontSize: fontPx,
+          lineHeight: 1,
+          letterSpacing: '-0.02em',
+          textShadow: '0 1px 3px rgba(0,0,0,0.95)',
+          fontVariantNumeric: 'tabular-nums',
+          pointerEvents: 'none',
+          marginTop: Math.round(height * 0.14),
+        }}
+      >
+        {level}
+      </span>
+    </div>
+  );
+}
 
 export interface LevelIconProps {
   level: number;
-  /** Drives sizing when `circleSize` is set; otherwise drives circle + chip */
   size?: number;
-  /** Optional larger avatar/profile circle only */
   circleSize?: number;
   className?: string;
   avatarUrl?: string;
-  /** Used for initials fallback when avatar URL is missing */
   displayName?: string;
   barColor?: string;
   text?: 'lv' | 'level';
-  /** Hide the profile circle; show level chip only (e.g. mini profile already has AvatarRing). */
   hideCircle?: boolean;
 }
 
@@ -39,7 +128,8 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
   hideCircle = false,
 }) => {
   const safeLevel = typeof level === 'number' && Number.isFinite(level) && level > 0 ? Math.floor(level) : 1;
-  /** CSS px per mm (1in = 25.4mm, 1in = 96px). */
+  const levelStyle = getLevelAccentStyle(safeLevel);
+  const prestige = isDiamondPrestigeLevel(safeLevel);
   const MM_TO_PX = 96 / 25.4;
   const shrinkMm = 3;
   const shrinkPx = shrinkMm * MM_TO_PX;
@@ -53,65 +143,17 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
       ? Math.max(16, Math.floor(circleSizeProp))
       : Math.max(16, Math.floor(rawSize - Math.min(shrinkPx, maxShrink) + circleGrowPx));
 
-  const chipH = Math.max(20, Math.round(circleSize * 0.82));
-  const fontPx = Math.max(9, Math.round(chipH * 0.48));
-  /** Diamond: full chip height, max width on the left — purple asset, not blue. */
-  const diamondH = chipH;
-  const diamondW = chipH;
+  const diamondH = Math.max(22, Math.round(circleSize * 0.95));
+  const diamondW = Math.max(26, Math.round(diamondH * 1.15));
 
-  const levelChip = (
-    <div
-      style={{
-        position: 'relative',
-        zIndex: 1,
-        height: chipH,
-        minWidth: Math.max(chipH + diamondW + 6, Math.round(chipH * 2.1)),
-        borderRadius: 6,
-        background: `linear-gradient(135deg, ${LEVEL_FUNDAL} 0%, ${LEVEL_FUNDAL_EDGE} 100%)`,
-        border: `1px solid ${LEVEL_FUNDAL_EDGE}`,
-        boxShadow: `0 0 10px 2px ${LEVEL_BLUE_GLOW}, 0 0 18px 4px ${LEVEL_BLUE_SOFT}`,
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'flex-start',
-        gap: 2,
-        paddingLeft: 0,
-        paddingRight: 8,
-        flexShrink: 0,
-        overflow: 'hidden',
-      }}
-    >
-      <img
-        src="/purple-diamond.svg"
-        alt=""
-        width={diamondW}
-        height={diamondH}
-        draggable={false}
-        style={{
-          display: 'block',
-          flexShrink: 0,
-          width: diamondW,
-          height: diamondH,
-          objectFit: 'contain',
-          /* Same diamond frame shape; black lines on blue fundal */
-          filter: 'brightness(0)',
-        }}
-      />
-      <span
-        style={{
-          color: '#FFFFFF',
-          fontWeight: 900,
-          letterSpacing: '0.01em',
-          fontSize: fontPx,
-          textShadow: '0 1px 3px rgba(0,0,0,0.75)',
-          lineHeight: 1,
-          whiteSpace: 'nowrap',
-          fontVariantNumeric: 'tabular-nums',
-          paddingRight: 2,
-        }}
-      >
-        {safeLevel}
-      </span>
-    </div>
+  const diamond = (
+    <LevelDiamondBadge
+      level={safeLevel}
+      width={diamondW}
+      height={diamondH}
+      color={levelStyle.accent}
+      prestige={prestige}
+    />
   );
 
   const chatAvatarSrc = resolveUiAvatarUrl(
@@ -123,7 +165,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
   if (hideCircle) {
     return (
       <div className={className} style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
-        {levelChip}
+        {diamond}
       </div>
     );
   }
@@ -135,7 +177,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
         display: 'inline-flex',
         alignItems: 'center',
         gap: 4,
-        height: circleSize,
+        height: Math.max(circleSize, diamondH),
         flexShrink: 0,
         verticalAlign: 'middle',
         position: 'relative',
@@ -144,7 +186,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
       <div style={{ position: 'relative', zIndex: 2, flexShrink: 0 }}>
         <AvatarRing src={chatAvatarSrc} alt={displayName || ''} size={circleSize} />
       </div>
-      {levelChip}
+      {diamond}
     </div>
   );
 };

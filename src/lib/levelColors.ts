@@ -2,40 +2,28 @@
 export const LEVEL_MAX = 300;
 
 /**
- * Accent color for a user level.
- * Bands of 10: 1–10, 11–20, …, 291–300 — a new colour every 10 levels.
+ * Level diamond neon colours — ELIX STAR LIVE chart (every 20 levels).
+ * 1–20 Purple · 21–40 Blue · 41–60 Cyan · 61–80 Teal · 81–100 Green ·
+ * 101–120 Lime · 121–140 Chartreuse · 141–160 Gold · 161–180 Amber ·
+ * 181–200 Orange · 201–220 Red · 221–240 Crimson · 241–260 Pink ·
+ * 261–280 Rose · 281–300 Diamond (rainbow).
  */
-const LEVEL_BAND_COLORS: readonly string[] = [
-  '#3B82F6', // 1–10 blue
-  '#22C55E', // 11–20
-  '#06B6D4', // 21–30
-  '#A855F7', // 31–40
-  '#E0AAFF', // 41–50
-  '#EC4899', // 51–60
-  '#F43F5E', // 61–70
-  '#F97316', // 71–80
-  '#EAB308', // 81–90
-  '#C9A227', // 91–100
-  '#14B8A6', // 101–110
-  '#6366F1', // 111–120
-  '#8B5CF6', // 121–130
-  '#D946EF', // 131–140
-  '#FB7185', // 141–150
-  '#FBBF24', // 151–160
-  '#84CC16', // 161–170
-  '#10B981', // 171–180
-  '#0EA5E9', // 181–190
-  '#F472B6', // 191–200
-  '#A78BFA', // 201–210
-  '#FCD34D', // 211–220
-  '#34D399', // 221–230
-  '#60A5FA', // 231–240
-  '#C084FC', // 241–250
-  '#FB923C', // 251–260
-  '#FACC15', // 261–270
-  '#E879F9', // 271–280
-  '#818CF8', // 281–290
-  '#FFD700', // 291–300
+const LEVEL_TIER_COLORS: readonly { max: number; color: string; name: string }[] = [
+  { max: 20, color: '#C77DFF', name: 'Purple' },
+  { max: 40, color: '#3B82F6', name: 'Blue' },
+  { max: 60, color: '#22D3EE', name: 'Cyan' },
+  { max: 80, color: '#14B8A6', name: 'Teal' },
+  { max: 100, color: '#22C55E', name: 'Green' },
+  { max: 120, color: '#A3E635', name: 'Lime' },
+  { max: 140, color: '#BEF264', name: 'Chartreuse' },
+  { max: 160, color: '#EAB308', name: 'Gold' },
+  { max: 180, color: '#F59E0B', name: 'Amber' },
+  { max: 200, color: '#F97316', name: 'Orange' },
+  { max: 220, color: '#EF4444', name: 'Red' },
+  { max: 240, color: '#E11D48', name: 'Crimson' },
+  { max: 260, color: '#EC4899', name: 'Pink' },
+  { max: 280, color: '#FB7185', name: 'Rose' },
+  { max: 300, color: '#F8FAFC', name: 'Diamond' },
 ];
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
@@ -58,17 +46,27 @@ export function clampUserLevel(level: number): number {
   return Math.min(LEVEL_MAX, Math.floor(level));
 }
 
-/** 0-based band index: levels 1–10 → 0, 11–20 → 1, … */
+/** True for the final prestige tier (rainbow neon frame). */
+export function isDiamondPrestigeLevel(level: number): boolean {
+  return clampUserLevel(level) > 280;
+}
+
+/** 0-based tier index for the chart bands (every 20 levels). */
 export function getLevelColorBand(level: number): number {
   const safe = clampUserLevel(level);
-  return Math.min(LEVEL_BAND_COLORS.length - 1, Math.floor((safe - 1) / 10));
+  const idx = LEVEL_TIER_COLORS.findIndex((t) => safe <= t.max);
+  return idx < 0 ? LEVEL_TIER_COLORS.length - 1 : idx;
+}
+
+export function getLevelTierName(level: number): string {
+  return LEVEL_TIER_COLORS[getLevelColorBand(level)]?.name ?? 'Purple';
 }
 
 export function getLevelAccentColor(level: number): string {
-  return LEVEL_BAND_COLORS[getLevelColorBand(level)] ?? LEVEL_BAND_COLORS[0];
+  return LEVEL_TIER_COLORS[getLevelColorBand(level)]?.color ?? LEVEL_TIER_COLORS[0].color;
 }
 
-/** Soft border / glow helpers for chips that use the level accent. */
+/** Soft border / glow helpers for the neon diamond frame. */
 export function getLevelAccentStyle(level: number): {
   accent: string;
   border: string;
@@ -80,7 +78,6 @@ export function getLevelAccentStyle(level: number): {
   return {
     accent,
     border: rgba(accent, 0.65),
-    /** Match royce-glow-disc intensity, tinted to the level colour (blue for Lv 1–10). */
     glow: rgba(accent, 0.55),
     fillSoft: rgba(accent, 0.28),
     gradient: `linear-gradient(135deg, ${accent} 0%, ${rgba(accent, 0.82)} 55%, ${rgba(accent, 0.65)} 100%)`,
