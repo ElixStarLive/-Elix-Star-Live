@@ -34,7 +34,7 @@ import {
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { FILTER_PRESETS } from '../lib/ai/filters';
-import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, fetchGiftsFromDatabase, pickGiftVideoUrl, formatGiftDisplayName } from '../lib/giftsCatalog';
+import { GiftUiItem, resolveGiftAssetUrl, fetchGiftsFromDatabase, pickGiftVideoUrl, formatGiftDisplayName } from '../lib/giftsCatalog';
 import { appendCapped, LIVE_CHAT_MESSAGE_CAP, LIVE_GIFT_QUEUE_CAP, LIVE_VIEWER_CAP } from '../lib/liveRuntimeCaps';
 import { BattleVfxOverlays, GloveIcon, type BattleMistSide, type GloveBurst } from '../components/BattleVfxOverlays';
 import { BattleTauntOverlays } from '../components/BattleTauntOverlays';
@@ -100,13 +100,11 @@ import { useLiveEngagement } from '../hooks/useLiveEngagement';
 import { RankingPanel } from '../components/RankingPanel';
 import { type LiveRankTab } from '../components/CyclingRankBadge';
 import {
-  LiveGiftComboColumn,
   LiveComboMissionDock,
   LiveHostProfileHeader,
   LiveJoinPill,
   LiveMarkedSubHeaderBar,
   LiveMarkedUiDemoToggle,
-  buildLiveMarkedUiDemoComboStack,
   readLiveMarkedUiDemoEnabled,
   writeLiveMarkedUiDemoEnabled,
 } from '../components/LiveMarkedTopUi';
@@ -1668,7 +1666,6 @@ export default function LiveStream() {
   }, [myScore, opponentScore, player3Score, player4Score]);
   const localBattleTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [giftTarget, setGiftTarget] = useState<'me' | 'opponent' | 'player3' | 'player4'>('me');
-  const lastScreenTapRef = useRef<number>(0);
   /** Spectator tap score budget (reference: one +5 award per battle, then exhausted — not 5 taps/sec). */
   const battleTapScoreRemainingRef = useRef(5);
   /** Last `battle_state_sync` status — reset tap budget when transitioning into ACTIVE. */
@@ -4156,18 +4153,11 @@ export default function LiveStream() {
 
   const [_giftBanner, _setGiftBanner] = useState<{ username: string; giftName: string; icon: string } | null>(null);
   const _giftBannerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [lastSentGift, setLastSentGift] = useState<GiftUiItem | null>(null);
   const [userLevel, setUserLevel] = useState(() => Math.max(1, Number(user?.level) || 0));
 
 
   const [userXP, setUserXP] = useState(0);
-  const [comboCount, setComboCount] = useState(0);
-  const [showComboButton, setShowComboButton] = useState(false);
-  const [comboStack, setComboStack] = useState<{ key: string; icon: string; count: number; gift: GiftUiItem }[]>([]);
   const [markedUiDemo, setMarkedUiDemo] = useState(() => readLiveMarkedUiDemoEnabled(IS_STORE_BUILD));
-  const demoComboStack = useMemo(() => (markedUiDemo ? buildLiveMarkedUiDemoComboStack() : []), [markedUiDemo]);
-  const visibleComboStack = comboStack.length > 0 ? comboStack : demoComboStack;
-  const showComboColumn = (showComboButton && comboStack.length > 0) || (markedUiDemo && demoComboStack.length > 0);
   const [missionWatchMin, setMissionWatchMin] = useState(0);
   const [missionGiftsSent, setMissionGiftsSent] = useState(0);
   const [missionWatchGoal, setMissionWatchGoal] = useState(30);
@@ -4252,14 +4242,6 @@ export default function LiveStream() {
     }));
     return fromMvp.length > 0 ? fromMvp : [];
   }, [markedUiDemo, topGifters, topMvpViewers, mvpGiftScores]);
-  const comboTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pushComboStack = useCallback((gift: GiftUiItem, nextCount: number) => {
-    const key = String(gift.id || gift.name || 'gift');
-    setComboStack((prev) => {
-      const without = prev.filter((i) => i.key !== key);
-      return [...without, { key, icon: typeof gift.icon === 'string' ? gift.icon : '', count: nextCount, gift }].slice(-3);
-    });
-  }, []);
   const [activeFaceARGift, setActiveFaceARGift] = useState<
     | { type: 'crown' | 'glasses' | 'mask' | 'ears' | 'hearts' | 'stars' | 'age' | 'youth'; color?: string }
     | null
@@ -4549,12 +4531,6 @@ export default function LiveStream() {
       }
       
 
-      // Handle Combo Logic
-      setLastSentGift(gift);
-      setComboCount(1);
-      pushComboStack(gift, 1);
-      setShowComboButton(true);
-      resetComboTimer();
       pushLocalGiftPill({
         username: isBroadcast ? creatorName : viewerName,
         giftName: gift.name,
@@ -4605,244 +4581,6 @@ export default function LiveStream() {
     if (!isBroadcast) return;
     setCameraFacing((prev) => (prev === 'user' ? 'environment' : 'user'));
   };
-
-  const resetComboTimer = () => {
-      if (comboTimerRef.current) clearTimeout(comboTimerRef.current);
-      comboTimerRef.current = setTimeout(() => {
-          setShowComboButton(false);
-          setComboCount(0);
-          setComboStack([]);
-          setLastSentGift(null);
-      }, 8000); // keep combo on screen while gift video plays
-  };
-
-  const handleComboClick = async () => {
-      if (!lastSentGift || isCreatorParticipant) return;
-      if (comboCount >= GIFT_COMBO_MAX) return;
-
-      const usedTestCoins = Boolean(user?.id && shouldUseTestCoinsForGifts(user.id));
-      const spendable = usedTestCoins
-        ? getSpendableGiftBalance(coinBalance, user?.id)
-        : giftSource === 'starter_coins'
-          ? starterCoinBalance
-          : giftSource === 'promotional_coins'
-            ? promotionalCoinBalance
-            : walletCoinBalanceRef.current;
-      if (spendable < lastSentGift.coins) {
-        showToast("Not enough coins!");
-        return;
-      }
-
-      let newLevel = userLevel;
-      let giftTransactionId: string | null = null;
-      if (usedTestCoins) {
-        const debit = debitTestCoinsForGift((user as NonNullable<typeof user>).id, lastSentGift.coins);
-        if (!debit.ok) {
-          showToast("Not enough coins!");
-          return;
-        }
-        setCoinBalance(
-          displayBalanceAfterTestSpend(debit.newBalance, walletCoinBalanceRef.current),
-        );
-      } else if (user?.id) {
-        try {
-          const comboPlayableVideo =
-            lastSentGift.video && lastSentGift.video.trim()
-              ? lastSentGift.video.startsWith('http://') || lastSentGift.video.startsWith('https://')
-                ? lastSentGift.video.trim()
-                : resolveGiftAssetUrl(
-                    lastSentGift.video.startsWith('/')
-                      ? lastSentGift.video
-                      : `/${lastSentGift.video}`,
-                  )
-              : null;
-          const { data: result, error: giftErr } = await request('/api/gifts/send', {
-            method: 'POST',
-            body: JSON.stringify({
-              streamKey: effectiveStreamId,
-              giftId: lastSentGift.id,
-              channel: platform.name,
-              transaction_id: crypto.randomUUID(),
-              gift_source: giftSource,
-              ...(comboPlayableVideo
-                ? { video: comboPlayableVideo, animation_url: comboPlayableVideo }
-                : {}),
-            }),
-          });
-
-          if (giftErr) {
-            const msg = giftErr.message || '';
-            if (msg.includes('insufficient_funds')) {
-              showToast('Not enough coins');
-              return;
-            }
-            showToast('Gift failed');
-            return;
-          }
-          if (result.gift_source === 'starter_coins') {
-            setStarterCoinBalance(
-              Math.max(0, Number(result.new_starter_balance) || 0),
-            );
-            if (Number(result.new_starter_balance) <= 0) {
-              setGiftSource('paid_coins');
-            }
-          } else if (result.gift_source === 'promotional_coins') {
-            const nextPromo = Math.max(
-              0,
-              Number(result.new_promotional_balance) || 0,
-            );
-            setPromotionalCoinBalance(nextPromo);
-            if (nextPromo <= 0) {
-              setGiftSource(
-                starterCoinBalance > 0 ? 'starter_coins' : 'paid_coins',
-              );
-            }
-          } else if (result.new_balance != null) {
-            const nextWallet = Math.max(0, Number(result.new_balance));
-            walletCoinBalanceRef.current = nextWallet;
-            setCoinBalance(resolveGiftUiBalance(nextWallet, user?.id));
-          }
-          if (result.new_level != null) {
-            newLevel = Number(result.new_level);
-            setUserLevel(newLevel);
-            updateUser({ level: newLevel });
-          }
-          if (result.total_xp != null) {
-            setUserXP(Math.max(0, Number(result.total_xp) || 0));
-          }
-          if (result.leveled_up) {
-            const levelBannerId = `levelup-${Date.now()}`;
-            setMessages((prev) => appendCapped(prev, {
-                id: levelBannerId,
-                username: isBroadcast ? creatorName : viewerName,
-                text: `reached Level ${newLevel}`,
-                level: newLevel,
-                isGift: false,
-                avatar: isBroadcast ? myAvatar : viewerAvatar,
-                isSystem: true,
-              }, LIVE_CHAT_MESSAGE_CAP));
-            websocket.send('chat_message', {
-              text: `reached Level ${newLevel}`,
-              level: newLevel,
-              avatar: isBroadcast ? myAvatar : viewerAvatar,
-            });
-          }
-          giftTransactionId =
-            typeof result.transaction_id === 'string' && result.transaction_id
-              ? result.transaction_id
-              : null;
-          if (!giftTransactionId) {
-            showToast('Gift failed');
-            return;
-          }
-        } catch {
-          showToast('Gift failed');
-          return;
-        }
-      } else {
-        const nextWallet = Math.max(0, walletCoinBalanceRef.current - lastSentGift.coins);
-        walletCoinBalanceRef.current = nextWallet;
-        setCoinBalance(resolveGiftUiBalance(nextWallet, user?.id));
-      }
-
-      // Track session contribution for membership
-      setSessionContribution(prev => prev + lastSentGift.coins);
-
-      maybeEnqueueUniverse(lastSentGift.name, viewerName);
-
-      // Rose trigger for Speed Challenge
-      if (lastSentGift.name.toLowerCase().includes('rose')) {
-        roseCountRef.current += 1;
-        setRoseCount(roseCountRef.current);
-      }
-
-      if (isBroadcast && !isBattleMode) {
-        maybeTriggerFaceARGift(lastSentGift);
-      }
-      
-      if (lastSentGift.video && lastSentGift.video.trim()) {
-        const videoUrl = (lastSentGift.video.startsWith('http://') || lastSentGift.video.startsWith('https://'))
-          ? lastSentGift.video
-          : resolveGiftAssetUrl(lastSentGift.video.startsWith('/') ? lastSentGift.video : `/${lastSentGift.video}`);
-        if (videoUrl) {
-          setGiftQueue(prev => appendCapped(prev, { video: videoUrl }, LIVE_GIFT_QUEUE_CAP));
-          setShowGiftPanel(false);
-        }
-      }
-      
-      // Add to chat
-      const giftMsg = {
-          id: Date.now().toString(),
-          username: viewerName,
-          text: `Sent a ${lastSentGift.name}`,
-          isGift: true,
-          level: newLevel,
-          avatar: viewerAvatar,
-      };
-      setMessages(prev => appendCapped(prev, giftMsg, LIVE_CHAT_MESSAGE_CAP));
-
-      const idsForBattleGiftCombo = battleStreamIdsRef.current;
-      const serverBattleTargetCombo =
-        isBattleMode
-          ? liveStreamUiGiftTargetToServerBattleTarget(giftTarget, {
-              isBroadcast,
-              isBattleJoiner,
-              effectiveStreamId,
-              hostRoomId: idsForBattleGiftCombo?.hostRoomId ?? '',
-              opponentRoomId: idsForBattleGiftCombo?.opponentRoomId ?? '',
-            })
-          : undefined;
-
-      if (usedTestCoins || giftTransactionId) {
-        const comboWsVideo =
-          lastSentGift.video && lastSentGift.video.trim()
-            ? lastSentGift.video.startsWith('http://') || lastSentGift.video.startsWith('https://')
-              ? lastSentGift.video.trim()
-              : resolveGiftAssetUrl(
-                  lastSentGift.video.startsWith('/')
-                    ? lastSentGift.video
-                    : `/${lastSentGift.video}`,
-                )
-            : null;
-        websocket.send('gift_sent', {
-          giftId: lastSentGift.id,
-          giftName: lastSentGift.name,
-          username: isBroadcast ? creatorName : viewerName,
-          coins: lastSentGift.coins,
-          gift_icon: lastSentGift.icon || '🎁',
-          quantity: 1,
-          level: newLevel,
-          avatar: giftMsg.avatar,
-          video: comboWsVideo,
-          animation_url: comboWsVideo,
-          transactionId: usedTestCoins ? null : giftTransactionId,
-          giftSource: usedTestCoins ? 'test_coins' : giftSource,
-          battleTarget: serverBattleTargetCombo,
-          creator_name: hostName || 'Creator',
-          ...(!isBroadcast && { host_user_id: effectiveStreamId }),
-        });
-      }
-
-
-      // Handle Combo Logic
-      setComboCount((prev) => {
-        const next = Math.min(prev + 1, GIFT_COMBO_MAX);
-        if (lastSentGift) pushComboStack(lastSentGift, next);
-        return next;
-      });
-      setShowComboButton(true);
-      resetComboTimer();
-      pushLocalGiftPill({
-        username: isBroadcast ? creatorName : viewerName,
-        giftName: lastSentGift.name,
-        giftIcon: lastSentGift.icon || '🎁',
-        avatar: giftMsg.avatar,
-        quantity: 1,
-        creatorName: hostName || creatorName || 'Creator',
-        streamId: effectiveStreamId,
-      });
-  };
-
 
   const handleSendMessage = (e: React.FormEvent) => {
       e.preventDefault();
@@ -5236,10 +4974,6 @@ export default function LiveStream() {
                 if (interactive) return;
               }
               handleLikeTap(e);
-              const now = Date.now();
-              const last = lastScreenTapRef.current;
-              lastScreenTapRef.current = now;
-              if (now - last <= 320) handleComboClick();
             }}
           >
             {/* Left: Host camera — 50% when co-hosts present, else full */}
@@ -5248,10 +4982,6 @@ export default function LiveStream() {
               onPointerDown={isBroadcast ? (e) => {
                 if (e.target instanceof Element && e.target.closest('button, a, input, textarea, select, [role="button"]')) return;
                 handleLikeTap(e);
-                const now = Date.now();
-                const last = lastScreenTapRef.current;
-                lastScreenTapRef.current = now;
-                if (now - last <= 320) handleComboClick();
               } : undefined}
             >
             {isBroadcast || isBattleParticipant ? (
@@ -6270,7 +6000,6 @@ export default function LiveStream() {
               </div>
             </div>
 
-      {/* Combo + Mission docked together — separate live sources */}
       <LiveMarkedUiDemoToggle
         enabled={markedUiDemo}
         storeBuild={IS_STORE_BUILD}
@@ -6280,27 +6009,6 @@ export default function LiveStream() {
         }}
       />
       <LiveComboMissionDock
-        combo={
-          showComboColumn && visibleComboStack.length > 0 ? (
-            <AnimatePresence>
-              <motion.div
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0, opacity: 0 }}
-              >
-                <LiveGiftComboColumn
-                  embedded
-                  stack={visibleComboStack}
-                  onCombo={() => {
-                    if (comboStack.length > 0) handleComboClick();
-                    else setShowGiftPanel(true);
-                  }}
-                  onOpen={() => setShowGiftPanel(true)}
-                />
-              </motion.div>
-            </AnimatePresence>
-          ) : null
-        }
         mission={
           <LiveSideMissionStack
             embedded

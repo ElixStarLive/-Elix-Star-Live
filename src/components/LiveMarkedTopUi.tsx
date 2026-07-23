@@ -1,8 +1,6 @@
 import React from 'react';
 import { BadgeCheck, Gem, Heart, Plus } from 'lucide-react';
 import { AvatarRing } from './AvatarRing';
-import type { GiftUiItem } from '../lib/giftsCatalog';
-import { GIFT_COMBO_MAX } from '../lib/giftsCatalog';
 
 function formatLikesShort(count: number) {
   const c = typeof count === 'number' && Number.isFinite(count) ? count : 0;
@@ -414,17 +412,10 @@ export function LiveMarkedSubHeaderBar({
   );
 }
 
-export type LiveComboStackItem = {
-  key: string;
-  icon: string;
-  count: number;
-  gift: GiftUiItem;
-};
-
 const LIVE_MARKED_UI_DEMO_KEY = 'elix_live_marked_ui_demo';
 
 /**
- * Marked UI demo (fake supporters / combo) is opt-in only.
+ * Marked UI demo (fake supporters / missions) is opt-in only.
  * Store / production builds always return false — never show fake accounts.
  */
 export function readLiveMarkedUiDemoEnabled(isStoreBuild: boolean): boolean {
@@ -444,36 +435,7 @@ export function writeLiveMarkedUiDemoEnabled(on: boolean) {
   }
 }
 
-function demoGiftStub(id: string, name: string, iconPath: string): GiftUiItem {
-  const icon = iconPath.startsWith('http') || iconPath.startsWith('/')
-    ? (iconPath.startsWith('http') ? iconPath : `https://elixstorage.b-cdn.net${iconPath.startsWith('/') ? iconPath : `/${iconPath}`}`)
-    : iconPath;
-  return {
-    id,
-    name,
-    coins: 0,
-    giftType: 'big',
-    isActive: true,
-    icon,
-    video: '',
-    preview: icon,
-  };
-}
-
-/** Photo demo stack: Lion x30, Galaxy x15, Firework x10 — visual only, not real gifts. */
-export function buildLiveMarkedUiDemoComboStack(): LiveComboStackItem[] {
-  const lion = demoGiftStub('demo-lion', 'Lion', '/gifts/treasure_drake_cub.png');
-  const galaxy = demoGiftStub('demo-galaxy', 'Galaxy', '/gifts/elix_global_universe.png');
-  const firework = demoGiftStub('demo-firework', 'Firework', '/gifts/celestial_star_wand.png');
-  return [
-    { key: 'demo-firework', icon: firework.icon, count: 10, gift: firework },
-    { key: 'demo-galaxy', icon: galaxy.icon, count: 15, gift: galaxy },
-    { key: 'demo-lion', icon: lion.icon, count: 30, gift: lion },
-  ];
-}
-
-/** Tiny toggle so you can turn demo combo column on/off while testing.
- * Sits near the bottom Co-Host control (not over the top battle/header area). */
+/** Tiny toggle for marked demo missions/supporters (dev only). */
 export function LiveMarkedUiDemoToggle({
   enabled,
   onToggle,
@@ -508,121 +470,10 @@ export function LiveMarkedUiDemoToggle({
   );
 }
 
-/**
- * Photo combo column (red contour): large gift icons + pink italic xN,
- * seated just right of live chat. Counts come from real combo sends.
- * Newest / active combo stays on TOP (flex-col-reverse). Do not move it to the bottom.
- * Does not replace GiftPanel / GiftAnimationOverlay / gift pay path.
- */
-export function LiveGiftComboColumn({
-  stack,
-  onCombo,
-  onOpen,
-  /** When true, render column only (parent dock owns fixed position). */
-  embedded = false,
-}: {
-  stack: LiveComboStackItem[];
-  onCombo: () => void;
-  /** Open gift panel (press the column) */
-  onOpen?: () => void;
-  embedded?: boolean;
-}) {
-  if (stack.length === 0) return null;
-
-  const column = (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={(e) => {
-        e.stopPropagation();
-        onOpen?.();
-      }}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onOpen?.();
-        }
-      }}
-      className="flex flex-col-reverse items-center gap-2 rounded-2xl px-2.5 py-2.5 border border-[#FF2D85]/35 bg-[rgba(8,6,24,0.82)] backdrop-blur-md shadow-[0_0_18px_rgba(255,45,133,0.25)] active:scale-[0.98] transition-transform"
-    >
-      {stack.map((item, idx) => {
-        const isActive = idx === stack.length - 1;
-        const n = item.count;
-        const label = n >= 1000 ? `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}K` : String(n);
-        return (
-          <button
-            key={item.key}
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (isActive) {
-                onCombo();
-              } else {
-                onOpen?.();
-              }
-            }}
-            disabled={isActive && n >= GIFT_COMBO_MAX}
-            className="flex items-center gap-2 bg-transparent border-0 p-0 active:scale-95 transition-transform disabled:opacity-50"
-          >
-            {item.icon && (item.icon.startsWith('http') || item.icon.startsWith('/')) ? (
-              <img
-                src={item.icon}
-                alt=""
-                className="w-14 h-14 object-contain drop-shadow-[0_0_10px_rgba(255,45,133,0.45)]"
-                draggable={false}
-              />
-            ) : (
-              <span className="w-14 h-14 flex items-center justify-center text-3xl drop-shadow-[0_0_8px_rgba(255,45,133,0.4)]">
-                🎁
-              </span>
-            )}
-            <span
-              className="font-black italic text-[26px] leading-none tracking-tight"
-              style={{
-                backgroundImage: 'linear-gradient(180deg, #FFFFFF 0%, #FF5AA8 55%, #FF2D85 100%)',
-                WebkitBackgroundClip: 'text',
-                backgroundClip: 'text',
-                color: 'transparent',
-                WebkitTextFillColor: 'transparent',
-                filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.85))',
-              }}
-            >
-              x{label}
-            </span>
-          </button>
-        );
-      })}
-    </div>
-  );
-
-  if (embedded) return column;
-
-  return (
-    <div
-      className="fixed left-0 right-0 z-[50060] flex justify-center pointer-events-none"
-      style={{ bottom: 'calc(58px + max(2px, env(safe-area-inset-bottom, 0px)))' }}
-    >
-      <div className="w-full max-w-[480px] mx-auto relative h-0 pointer-events-none">
-        <div
-          className="absolute pointer-events-auto"
-          style={{ left: '48%', bottom: '8px', transform: 'translateX(-50%)' }}
-        >
-          {column}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/**
- * Shared lower-right dock: gift combo (live combos) + Daily Mission (mission progress).
- * Sources stay separate — only layout is shared.
- */
+/** Lower-right dock for Daily Mission / supporters stack. */
 export function LiveComboMissionDock({
-  combo,
   mission,
 }: {
-  combo: React.ReactNode;
   mission: React.ReactNode;
 }) {
   return (
@@ -635,7 +486,6 @@ export function LiveComboMissionDock({
           className="absolute right-0 bottom-0 flex flex-row items-end gap-1.5 pointer-events-none"
           style={{ paddingRight: 0 }}
         >
-          {combo ? <div className="pointer-events-auto flex-shrink-0 mb-2">{combo}</div> : null}
           <div className="pointer-events-auto flex-shrink-0">{mission}</div>
         </div>
       </div>
