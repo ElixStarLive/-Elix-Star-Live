@@ -93,6 +93,31 @@ router.post("/", async (req, res) => {
         await clearCachedAudioScanResult(String(body.id));
       }
     }
+    // Persist duet partner/layout inside music JSON (no dedicated column).
+    const duetWithVideoId =
+      typeof body.duetWithVideoId === "string" && body.duetWithVideoId.trim()
+        ? String(body.duetWithVideoId).trim()
+        : null;
+    const duetLayout =
+      body.duetLayout === "overlay" || body.duetLayout === "split"
+        ? body.duetLayout
+        : null;
+    if (duetWithVideoId) {
+      const base =
+        music && typeof music === "object" && !Array.isArray(music)
+          ? (music as Record<string, unknown>)
+          : {
+              id: "original",
+              title: "Original Sound",
+              artist: profile.displayName || "User",
+              duration: "0:15",
+            };
+      music = {
+        ...base,
+        duetWithVideoId,
+        ...(duetLayout ? { duetLayout } : {}),
+      };
+    }
 
     const privacy =
       typeof body.privacy === "string" && body.privacy.trim()

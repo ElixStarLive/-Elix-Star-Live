@@ -89,6 +89,7 @@ export class VideoUploadService {
       isPrivate: boolean;
       music?: unknown;
       duetWithVideoId?: string;
+      duetLayout?: 'split' | 'overlay';
     },
   ): Promise<string> {
     try {
@@ -149,6 +150,7 @@ export class VideoUploadService {
         ...(metadata.duetWithVideoId && {
           duetWithVideoId: metadata.duetWithVideoId,
         }),
+        ...(metadata.duetLayout && { duetLayout: metadata.duetLayout }),
       };
 
       const { data: createData, error: createError } = await request<{ id?: string }>("/api/videos", {

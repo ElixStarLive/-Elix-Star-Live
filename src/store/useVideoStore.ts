@@ -112,7 +112,19 @@ function mapRawVideoRowToClientVideo(
     comments: [],
     quality: 'auto',
     privacy: v.privacy === 'private' ? 'private' : 'public',
-    ...(v.duetWithVideoId ? { duetWithVideoId: String(v.duetWithVideoId) } : {}),
+    ...((v.duetWithVideoId || music.duetWithVideoId)
+      ? { duetWithVideoId: String(v.duetWithVideoId || music.duetWithVideoId) }
+      : {}),
+    ...((v.duetLayout === 'overlay' ||
+      v.duetLayout === 'split' ||
+      music.duetLayout === 'overlay' ||
+      music.duetLayout === 'split')
+      ? {
+          duetLayout: (v.duetLayout === 'overlay' || music.duetLayout === 'overlay'
+            ? 'overlay'
+            : 'split') as 'split' | 'overlay',
+        }
+      : {}),
   };
 }
 
@@ -183,6 +195,8 @@ export interface Video {
   quality?: 'auto' | '720p' | '1080p';
   privacy?: 'public' | 'friends' | 'private';
   duetWithVideoId?: string;
+  /** split = half/half; overlay = full original with you on top */
+  duetLayout?: 'split' | 'overlay';
 }
 
 interface VideoStore {

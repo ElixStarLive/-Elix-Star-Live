@@ -172,6 +172,7 @@ export default function EnhancedVideoPlayer({
   const effectiveMuted = muteAllSounds || isMuted;
   const duetOriginalSrc = originalVideo?.url ?? duetOriginalUrl ?? '';
   const isDuetLayout = !!(video?.duetWithVideoId && (originalVideo || duetOriginalUrl));
+  const duetLayoutMode = video?.duetLayout === 'overlay' ? 'overlay' : 'split';
 
   // Uploader-set audio mix — only applies when a music track is attached.
   // Defaults to 1 (unchanged behavior) so existing videos are unaffected.
@@ -795,11 +796,19 @@ export default function EnhancedVideoPlayer({
         <audio ref={audioRef} preload="auto" className="hidden" />
         {isDuetLayout && duetOriginalSrc ? (
           <div
-            className="absolute top-0 left-0 right-0 w-full flex flex-row overflow-hidden bg-black"
+            className="absolute top-0 left-0 right-0 w-full overflow-hidden bg-black"
             style={{ height: DUET_STAGE_HEIGHT }}
             data-duet-container="playback"
+            data-duet-layout={duetLayoutMode}
           >
-            <div className="w-1/2 h-full flex-shrink-0 bg-black" data-duet-pane="original">
+            <div
+              className={
+                duetLayoutMode === 'overlay'
+                  ? 'absolute inset-0 bg-black'
+                  : 'absolute left-0 top-0 w-1/2 h-full bg-black'
+              }
+              data-duet-pane="original"
+            >
               <video
                 ref={duetOriginalRef}
                 src={duetOriginalSrc}
@@ -812,11 +821,18 @@ export default function EnhancedVideoPlayer({
                 poster={posterUrl}
               />
             </div>
-            <div className="w-1/2 h-full flex-shrink-0 bg-black" data-duet-pane="you">
+            <div
+              className={
+                duetLayoutMode === 'overlay'
+                  ? 'absolute bottom-3 right-3 z-[2] w-[34%] aspect-[9/16] rounded-xl overflow-hidden border-2 border-[#D4AF37] shadow-lg bg-black'
+                  : 'absolute right-0 top-0 w-1/2 h-full bg-black'
+              }
+              data-duet-pane="you"
+            >
               <video
                 ref={videoRef}
                 src={video.url}
-                className="w-full h-full object-cover elix-no-media-chrome"
+                className="absolute inset-0 w-full h-full object-cover elix-no-media-chrome"
                 loop
                 playsInline
                 muted={effectiveMuted}

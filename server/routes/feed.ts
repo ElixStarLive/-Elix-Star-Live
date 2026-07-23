@@ -75,6 +75,10 @@ function formatMusicFromRow(v: any, displayName: string): any {
       ...(typeof m.clipEndSeconds === "number"
         ? { clipEndSeconds: m.clipEndSeconds }
         : {}),
+      ...(m.duetWithVideoId ? { duetWithVideoId: String(m.duetWithVideoId) } : {}),
+      ...(m.duetLayout === "overlay" || m.duetLayout === "split"
+        ? { duetLayout: m.duetLayout }
+        : {}),
     };
   }
   return null;
@@ -91,6 +95,21 @@ function formatVideoForClient(
   const uname = u?.username ?? "user";
   const displayName = String(u?.display_name ?? uname);
   const music = formatMusicFromRow(v, displayName);
+  const rawMusic =
+    v.music && typeof v.music === "object" && !Array.isArray(v.music)
+      ? (v.music as Record<string, unknown>)
+      : null;
+  const duetWithVideoId =
+    (typeof v.duetWithVideoId === "string" && v.duetWithVideoId) ||
+    (typeof rawMusic?.duetWithVideoId === "string" && rawMusic.duetWithVideoId) ||
+    (typeof music?.duetWithVideoId === "string" && music.duetWithVideoId) ||
+    null;
+  const duetLayoutRaw =
+    v.duetLayout || rawMusic?.duetLayout || music?.duetLayout || null;
+  const duetLayout =
+    duetLayoutRaw === "overlay" || duetLayoutRaw === "split"
+      ? duetLayoutRaw
+      : null;
   return {
     id: v.id,
     url: v.url || v.video_url,
@@ -128,6 +147,8 @@ function formatVideoForClient(
     privacy:
       v.privacy === "private" || v.is_public === false ? "private" : "public",
     engagementScore: Number(v.engagement_score ?? 0),
+    ...(duetWithVideoId ? { duetWithVideoId: String(duetWithVideoId) } : {}),
+    ...(duetLayout ? { duetLayout } : {}),
   };
 }
 

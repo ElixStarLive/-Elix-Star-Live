@@ -58,6 +58,8 @@ export default function Upload() {
   const [countdown, setCountdown] = useState<number | null>(null);
   const [duetSourceVideoId, setDuetSourceVideoId] = useState<string | null>(null);
   const [duetSourceVideoUrl, setDuetSourceVideoUrl] = useState<string | null>(null);
+  /** split = half/half; overlay = full original with your face on top (PiP). */
+  const [duetLayout, setDuetLayout] = useState<'split' | 'overlay'>('split');
   const duetSourceVideoRef = useRef<HTMLVideoElement>(null);
 
   const duetParam = searchParams.get('duet');
@@ -497,7 +499,7 @@ export default function Upload() {
 
         const hashtags = Array.from(new Set([...captionHashtags, ...manualHashtags].map((h) => h.toLowerCase()))).slice(0, 20);
 
-        let musicMeta;
+        let musicMeta: Record<string, unknown> | undefined;
         if (selectedTrack && selectedAudioId.startsWith('track_')) {
             const track = selectedTrack;
             musicMeta = {
@@ -514,6 +516,19 @@ export default function Upload() {
                 musicVolume: Math.max(0, Math.min(1, musicVolume)),
             };
         }
+        // Persist duet partner + layout inside music JSON (no DB column yet).
+        if (duetSourceVideoId) {
+          musicMeta = {
+            ...(musicMeta || {
+              id: 'original',
+              title: 'Original Sound',
+              artist: authUser.username || authUser.name || 'Creator',
+              duration: '0:15',
+            }),
+            duetWithVideoId: duetSourceVideoId,
+            duetLayout,
+          };
+        }
 
         let videoId: string;
         if (isStoryUpload) {
@@ -527,6 +542,7 @@ export default function Upload() {
             isPrivate: false,
             music: musicMeta,
             duetWithVideoId: duetSourceVideoId || undefined,
+            duetLayout: duetSourceVideoId ? duetLayout : undefined,
           });
           await fetchVideos();
         }
@@ -589,11 +605,19 @@ export default function Upload() {
            <div className="relative z-10 w-full mx-auto h-[100dvh] bg-[#111111] flex flex-col items-center justify-center">
               {duetSourceVideoUrl ? (
                 <div
-                  className="absolute top-0 left-0 right-0 w-full flex flex-row overflow-hidden bg-black"
+                  className="absolute top-0 left-0 right-0 w-full overflow-hidden bg-black"
                   style={{ height: DUET_STAGE_HEIGHT }}
                   data-duet-container="preview"
+                  data-duet-layout={duetLayout}
                 >
-                  <div className="w-1/2 h-full flex-shrink-0 bg-black" data-duet-pane="original">
+                  <div
+                    className={
+                      duetLayout === 'overlay'
+                        ? 'absolute inset-0 bg-black'
+                        : 'absolute left-0 top-0 w-1/2 h-full bg-black'
+                    }
+                    data-duet-pane="original"
+                  >
                     <video
                       src={duetSourceVideoUrl}
                       className="w-full h-full object-cover"
@@ -603,11 +627,18 @@ export default function Upload() {
                       autoPlay
                     />
                   </div>
-                  <div className="w-1/2 h-full flex-shrink-0 bg-black" data-duet-pane="you">
+                  <div
+                    className={
+                      duetLayout === 'overlay'
+                        ? 'absolute bottom-3 right-3 z-[2] w-[34%] aspect-[9/16] rounded-xl overflow-hidden border-2 border-[#D4AF37] shadow-lg bg-black'
+                        : 'absolute right-0 top-0 w-1/2 h-full bg-black'
+                    }
+                    data-duet-pane="you"
+                  >
                     <video
                       ref={videoRef}
                       src={recordedVideoUrl}
-                      className="w-full h-full object-cover z-0"
+                      className="absolute inset-0 w-full h-full object-cover z-0"
                       controls={false}
                       autoPlay
                       loop
@@ -615,6 +646,33 @@ export default function Upload() {
                       playsInline
                       style={{ filter: activeFilter !== 'none' || activeEnhance !== 'none' ? [activeFilter !== 'none' ? activeFilter : '', activeEnhance !== 'none' ? activeEnhance : ''].filter(Boolean).join(' ') : undefined }}
                     />
+                  </div>
+                  <div
+                    className="absolute left-3 z-30 flex gap-2 pointer-events-auto"
+                    style={{ top: 'max(0.5rem, env(safe-area-inset-top))' }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setDuetLayout('split')}
+                      className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
+                        duetLayout === 'split'
+                          ? 'bg-[#D4AF37] text-black border-[#D4AF37]'
+                          : 'bg-black/55 text-[#D4AF37] border-[#D4AF37]/70'
+                      }`}
+                    >
+                      Split
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDuetLayout('overlay')}
+                      className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
+                        duetLayout === 'overlay'
+                          ? 'bg-[#D4AF37] text-black border-[#D4AF37]'
+                          : 'bg-black/55 text-[#D4AF37] border-[#D4AF37]/70'
+                      }`}
+                    >
+                      On top
+                    </button>
                   </div>
                 </div>
               ) : mediaKind === 'image' ? (
@@ -1000,14 +1058,22 @@ export default function Upload() {
         <>
           {/* Container Principal */}
           <div className="relative z-10 w-full h-[100dvh] mb-0 pointer-events-none bg-[#111111] shadow-2xl overflow-hidden">
-              {/* Duet: two containers — left = original, right = your camera */}
+              {/* Duet: split (half/half) or overlay (full original + your face on top) */}
               {duetSourceVideoUrl ? (
                 <div
-                  className="absolute top-0 left-0 right-0 w-full flex flex-row overflow-hidden bg-black"
+                  className="absolute top-0 left-0 right-0 w-full overflow-hidden bg-black"
                   style={{ height: DUET_STAGE_HEIGHT }}
                   data-duet-container="record"
+                  data-duet-layout={duetLayout}
                 >
-                  <div className="w-1/2 h-full flex-shrink-0 bg-black" data-duet-pane="original">
+                  <div
+                    className={
+                      duetLayout === 'overlay'
+                        ? 'absolute inset-0 bg-black'
+                        : 'absolute left-0 top-0 w-1/2 h-full bg-black'
+                    }
+                    data-duet-pane="original"
+                  >
                     <video
                       ref={duetSourceVideoRef}
                       src={duetSourceVideoUrl}
@@ -1018,7 +1084,14 @@ export default function Upload() {
                       autoPlay
                     />
                   </div>
-                  <div className="w-1/2 h-full flex-shrink-0 relative bg-black" data-duet-pane="you">
+                  <div
+                    className={
+                      duetLayout === 'overlay'
+                        ? 'absolute bottom-3 right-3 z-[2] w-[34%] aspect-[9/16] rounded-xl overflow-hidden border-2 border-[#D4AF37] shadow-lg bg-black'
+                        : 'absolute right-0 top-0 w-1/2 h-full bg-black'
+                    }
+                    data-duet-pane="you"
+                  >
                     <video
                       ref={videoRef}
                       autoPlay
@@ -1087,6 +1160,37 @@ export default function Upload() {
 
               {/* Interactive Hitboxes Layer */}
               <div className="absolute inset-0 z-20 w-full h-full pointer-events-auto">
+                  {duetSourceVideoUrl ? (
+                    <div
+                      className="absolute left-3 z-30 flex gap-2"
+                      style={{ top: 'max(0.5rem, env(safe-area-inset-top))' }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setDuetLayout('split')}
+                        className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
+                          duetLayout === 'split'
+                            ? 'bg-[#D4AF37] text-black border-[#D4AF37]'
+                            : 'bg-black/55 text-[#D4AF37] border-[#D4AF37]/70'
+                        }`}
+                        title="Side by side"
+                      >
+                        Split
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDuetLayout('overlay')}
+                        className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
+                          duetLayout === 'overlay'
+                            ? 'bg-[#D4AF37] text-black border-[#D4AF37]'
+                            : 'bg-black/55 text-[#D4AF37] border-[#D4AF37]/70'
+                        }`}
+                        title="Your face on top of full video"
+                      >
+                        On top
+                      </button>
+                    </div>
+                  ) : null}
                   {/* Right side — every control uses the same round gold glow */}
                   <div className="absolute top-0 right-[5%] bottom-0 flex flex-col items-center gap-3 py-2" style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}>
                     <button type="button" onClick={() => navigate('/feed')} className="w-9 h-9 royce-glow-disc flex items-center justify-center" title="Close">
