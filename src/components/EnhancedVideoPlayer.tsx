@@ -43,6 +43,8 @@ import {
   SHARE_PANEL_ACTION_ICON_PX,
 } from '../lib/sharePanelContacts';
 import { DUET_STAGE_HEIGHT } from '../lib/profileFrame';
+import { platform } from '../lib/platform';
+import { prepareFeedVideoEl, stripVideoMediaChrome } from '../lib/prepareLiveVideoEl';
 
 const VIDEO_SIDEBAR_AVATAR = 38;
 const GOLD_ICON = 'royce-icon-gold';
@@ -129,7 +131,7 @@ export default function EnhancedVideoPlayer({
   const shouldPlayRef = useRef(false);
   
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
   const volume = 0.5;
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -387,7 +389,9 @@ export default function EnhancedVideoPlayer({
     return () => a.removeEventListener('timeupdate', onTimeUpdate);
   }, []);
 
-  // Auto-play based on visibility — try with sound first; if blocked (e.g. iOS), fall back to muted
+  // Auto-play based on visibility.
+  // Android: start at the intended mute state — muted→unmute after play paints the stuck white play icon.
+  // iOS/web: try muted first, then unmute when allowed.
   useEffect(() => {
     /** Hard-stop helper — mutes and pauses every media element this player owns */
     const stopAll = () => {
@@ -409,6 +413,34 @@ export default function EnhancedVideoPlayer({
       const runPlay = (videoEl: HTMLVideoElement) => {
         if (!shouldPlayRef.current) return;
         videoEl.volume = videoVolume;
+
+        const finishOk = (actuallyMuted: boolean) => {
+          if (!shouldPlayRef.current) {
+            try { videoEl.pause(); videoEl.muted = true; } catch { void 0; }
+            return;
+          }
+          setIsPlaying(true);
+          setIsMuted(actuallyMuted);
+        };
+
+        if (platform.isAndroid) {
+          // Always autoplay muted on Android WebView. Unmute only on user tap
+          // (handleVideoClick) — muted→unmute without a gesture paints the white play icon.
+          prepareFeedVideoEl(videoEl, { muted: true });
+          videoEl.muted = true;
+          videoEl.defaultMuted = true;
+          videoEl.setAttribute('muted', '');
+          void videoEl
+            .play()
+            .then(() => finishOk(true))
+            .catch(() => {
+              if (!shouldPlayRef.current) return;
+              void videoEl.play().then(() => finishOk(true)).catch(() => {});
+            });
+          return;
+        }
+
+        prepareFeedVideoEl(videoEl, { muted: true });
         videoEl.muted = true;
         videoEl.play()
           .then(() => {
@@ -442,6 +474,7 @@ export default function EnhancedVideoPlayer({
       const tryPlay = () => {
         const el = videoRef.current;
         if (!el || !shouldPlayRef.current) return;
+        stripVideoMediaChrome(el);
         if (el.readyState >= 2) {
           runPlay(el);
         } else {
@@ -453,11 +486,23 @@ export default function EnhancedVideoPlayer({
           };
           el.addEventListener('canplay', onReady);
           el.addEventListener('loadeddata', onReady);
-          el.load();
+          // Do NOT call el.load() here — on Android WebView it restarts the
+          // pipeline and often sticks on the white play / forever-loading state.
+          if (el.networkState === HTMLMediaElement.NETWORK_EMPTY && video?.url) {
+            el.src = video.url;
+          }
         }
       };
 
       const timer = setTimeout(tryPlay, 50);
+      const retryTimer = platform.isAndroid
+        ? setTimeout(() => {
+            if (!shouldPlayRef.current) return;
+            const el = videoRef.current;
+            if (!el || !el.paused) return;
+            runPlay(el);
+          }, 400)
+        : null;
 
       incrementViews(videoId);
       trackEvent('video_view', { videoId });
@@ -506,6 +551,7 @@ export default function EnhancedVideoPlayer({
 
       return () => {
         clearTimeout(timer);
+        if (retryTimer) clearTimeout(retryTimer);
         if (singleTapTimerRef.current) { clearTimeout(singleTapTimerRef.current); singleTapTimerRef.current = null; }
         stopAll();
       };
@@ -550,14 +596,30 @@ export default function EnhancedVideoPlayer({
         setIsPlaying(false);
       } else if (shouldPlayRef.current) {
         const v = videoRef.current;
-        if (v) void v.play().catch(() => {});
+        if (v) {
+          if (platform.isAndroid) {
+            v.muted = true;
+            v.setAttribute('muted', '');
+          }
+          void v.play().then(() => setIsPlaying(true)).catch(() => {
+            try {
+              v.muted = true;
+              void v.play().then(() => {
+                setIsPlaying(true);
+                setIsMuted(true);
+              });
+            } catch {
+              void 0;
+            }
+          });
+        }
         const d = duetOriginalRef.current;
         if (d) void d.play().catch(() => {});
       }
     };
     document.addEventListener('visibilitychange', onVisibility);
     return () => document.removeEventListener('visibilitychange', onVisibility);
-  }, []);
+  }, [muteAllSounds]);
 
   useEffect(() => {
     if (!muteAllSounds) return;
@@ -581,7 +643,12 @@ export default function EnhancedVideoPlayer({
     if (isMuted && !muteAllSounds && videoRef.current) {
       videoRef.current.muted = false;
       videoRef.current.volume = videoVolume;
+      videoRef.current.removeAttribute('muted');
       setIsMuted(false);
+      // User gesture — safe to play with sound on Android after autoplay started muted.
+      if (videoRef.current.paused) {
+        void videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+      }
     }
 
     if (isDoubleClick) {
@@ -754,7 +821,7 @@ export default function EnhancedVideoPlayer({
                 className="absolute inset-0 w-full h-full object-cover elix-no-media-chrome"
                 loop
                 playsInline
-                muted
+                muted={effectiveMuted}
                 controls={false}
                 preload={isActive ? 'auto' : 'none'}
                 onClick={handleVideoClick}
@@ -788,7 +855,7 @@ export default function EnhancedVideoPlayer({
           className="w-full h-full object-cover elix-no-media-chrome"
           loop
           playsInline
-          muted
+          muted={effectiveMuted}
           controls={false}
           preload={isActive ? 'auto' : 'none'}
           onClick={handleVideoClick}

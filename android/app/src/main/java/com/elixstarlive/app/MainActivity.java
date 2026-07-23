@@ -30,6 +30,12 @@ public class MainActivity extends BridgeActivity {
   }
 
   @Override
+  public void onStart() {
+    super.onStart();
+    allowInlineMediaAutoplay();
+  }
+
+  @Override
   public void onResume() {
     super.onResume();
     ensureSystemBarsVisible();
@@ -57,6 +63,13 @@ public class MainActivity extends BridgeActivity {
     WebSettings settings = webView.getSettings();
     if (settings == null) return;
     settings.setMediaPlaybackRequiresUserGesture(false);
+    settings.setDomStorageEnabled(true);
+    // Keep media inline — fullscreen media chrome also shows a white play affordance.
+    try {
+      settings.setMediaPlaybackRequiresUserGesture(false);
+    } catch (Exception ignored) {
+      /* ignore */
+    }
   }
 
   /**
