@@ -51,7 +51,10 @@ function asJsonObject(data: unknown): Record<string, unknown> | null {
   if (typeof data === "string") {
     try {
       const parsed = JSON.parse(data);
-      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      // Accept both JSON objects and top-level arrays. Several endpoints
+      // (e.g. GET /api/admin/reports) return a bare array; rejecting arrays
+      // here previously surfaced them as RESPONSE_NOT_JSON.
+      if (parsed && typeof parsed === "object") {
         return parsed as Record<string, unknown>;
       }
       return null;
@@ -59,7 +62,7 @@ function asJsonObject(data: unknown): Record<string, unknown> | null {
       return null;
     }
   }
-  if (typeof data === "object" && !Array.isArray(data)) {
+  if (typeof data === "object") {
     return data as Record<string, unknown>;
   }
   return null;

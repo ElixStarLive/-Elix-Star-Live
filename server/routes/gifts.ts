@@ -7,7 +7,7 @@
 import { Request, Response } from "express";
 import { getTokenFromRequest, verifyAuthToken } from "./auth";
 import { getPool, dbLoadGifts } from "../lib/postgres";
-import { neonDebitGift, neonEnsureBalanceFromFile, neonCreditCreatorEarning } from "../lib/walletNeon";
+import { neonDebitGiftWithCreatorCredit, neonEnsureBalanceFromFile } from "../lib/walletNeon";
 import { logger } from "../lib/logger";
 import { assertGiftRestVelocityOk } from "../lib/fraud";
 import { awardPaidGiftXp, sendStarterCoinGift } from "../lib/starterCoinsXp";
@@ -350,35 +350,25 @@ export async function handleSendGift(req: Request, res: Response) {
 
     if (coinCost > 0) {
       await neonEnsureBalanceFromFile(auth.userId);
-      const debited = await neonDebitGift({
+      // Debit the sender AND credit the recipient creator's earnings in a
+      // SINGLE atomic transaction. Recipient is the stream host or a validated
+      // live co-host; co-host gifts use the same 60/40 split. Idempotent per
+      // transaction, so the WS delivery path cannot double-apply either side.
+      // CRITICAL: coins = giftEconomicValue only. Battle Energy multipliers
+      // must never be passed here — Diamonds stay tied to purchased coin cost.
+      const debited = await neonDebitGiftWithCreatorCredit({
         userId: auth.userId,
         giftId,
         roomId,
         coins: coinCost,
         clientTransactionId,
+        creatorId: recipientId,
       });
       if (!debited.ok) {
         return res.status(400).json({
           error: debited.error,
           new_balance: debited.newBalance,
         });
-      }
-
-      // Credit the gift recipient (stream host, or a validated live co-host).
-      // Idempotent per transaction. Co-host gifts use the same 60/40 split.
-      // CRITICAL: coins = giftEconomicValue only. Battle Energy multipliers
-      // must never be passed here — Diamonds stay tied to purchased coin cost.
-      try {
-        await neonCreditCreatorEarning({
-          creatorId: recipientId,
-          senderId: auth.userId,
-          giftId,
-          roomId,
-          coins: coinCost,
-          clientTransactionId,
-        });
-      } catch (err) {
-        logger.warn({ err, roomId }, "handleSendGift: creator earning credit failed");
       }
       const paidGiftXp =
         recipientId !== auth.userId

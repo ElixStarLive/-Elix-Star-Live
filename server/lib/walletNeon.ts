@@ -373,6 +373,168 @@ export async function neonCreditCreatorEarning(input: {
   }
 }
 
+/** Creator gift revenue share percent (default 60: creator keeps 60%). */
+function creatorGiftSharePct(): number {
+  return Math.min(
+    100,
+    Math.max(0, Number(process.env.CREATOR_GIFT_SHARE_PERCENT ?? 60)),
+  );
+}
+
+/**
+ * Atomic paid-gift settlement: debit the sender's wallet AND credit the
+ * recipient creator's pending earnings in a SINGLE database transaction.
+ *
+ * This closes the split-transaction gap where a committed debit could be
+ * followed by a failed creator credit (sender charged, creator never paid).
+ * Both sides commit together or not at all.
+ *
+ * Idempotent per clientTransactionId on both the debit (idempotency_key) and
+ * the credit (earn:{clientTransactionId}). A retried call, or the WS delivery
+ * path calling neonCreditCreatorEarning, cannot double-apply either side.
+ *
+ * CRITICAL: `coins` must be the purchased gift economic value only. Never pass
+ * Battle Energy / Fan multipliers — Diamonds stay tied to purchased coin cost.
+ */
+export async function neonDebitGiftWithCreatorCredit(input: {
+  userId: string;
+  giftId: string;
+  roomId: string;
+  coins: number;
+  clientTransactionId: string;
+  creatorId: string;
+}): Promise<
+  | { ok: true; newBalance: number; alreadyProcessed: boolean; credited: number }
+  | {
+      ok: false;
+      error:
+        | "insufficient_funds"
+        | "invalid_amount"
+        | "transaction_conflict"
+        | "database_error";
+      newBalance: number;
+    }
+> {
+  const pool = getPool();
+  if (!pool) return { ok: false, error: "invalid_amount", newBalance: 0 };
+  const coins = Math.max(0, Math.floor(input.coins));
+  if (coins <= 0) return { ok: false, error: "invalid_amount", newBalance: 0 };
+  const idem = `gift:${input.userId}:${input.clientTransactionId}`;
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const existingGift = await client.query(
+      `SELECT user_id, room_id, gift_id, coins, gift_source
+         FROM elix_gift_transactions
+        WHERE client_transaction_id = $1
+        LIMIT 1`,
+      [input.clientTransactionId],
+    );
+    if (
+      existingGift.rows[0] &&
+      (String(existingGift.rows[0].user_id) !== input.userId ||
+        String(existingGift.rows[0].room_id) !== input.roomId ||
+        String(existingGift.rows[0].gift_id) !== input.giftId ||
+        Number(existingGift.rows[0].coins) !== coins ||
+        existingGift.rows[0].gift_source === "starter_coins" ||
+        existingGift.rows[0].gift_source === "promotional_coins")
+    ) {
+      await client.query("ROLLBACK");
+      return { ok: false, error: "transaction_conflict", newBalance: 0 };
+    }
+    const ins = await client.query(
+      `INSERT INTO elix_wallet_ledger (user_id, kind, coins_delta, gift_id, room_id, client_transaction_id, idempotency_key)
+       VALUES ($1, 'gift_debit', $2, $3, $4, $5, $6)
+       ON CONFLICT (idempotency_key) DO NOTHING
+       RETURNING id`,
+      [input.userId, -coins, input.giftId, input.roomId, input.clientTransactionId, idem],
+    );
+    await client.query(
+      `INSERT INTO elix_gift_transactions (user_id, room_id, gift_id, coins, client_transaction_id, created_at)
+       VALUES ($1, $2, $3, $4, $5, NOW())
+       ON CONFLICT (client_transaction_id) DO NOTHING`,
+      [input.userId, input.roomId, input.giftId, coins, input.clientTransactionId],
+    );
+
+    const alreadyProcessed = ins.rowCount === 0;
+    let newBalance: number;
+    if (!alreadyProcessed) {
+      const up = await client.query(
+        `UPDATE elix_wallet_balances SET coin_balance = coin_balance - $2, updated_at = NOW()
+         WHERE user_id = $1 AND coin_balance >= $2
+         RETURNING coin_balance::bigint AS b`,
+        [input.userId, coins],
+      );
+      if (up.rowCount === 0) {
+        await client.query("ROLLBACK");
+        const balR = await pool.query(
+          `SELECT coin_balance::bigint AS b FROM elix_wallet_balances WHERE user_id = $1`,
+          [input.userId],
+        );
+        const b = balR.rows.length ? Math.max(0, Number(balR.rows[0].b)) : 0;
+        return { ok: false, error: "insufficient_funds", newBalance: b };
+      }
+      newBalance = Math.max(0, Number(up.rows[0].b));
+    } else {
+      const balR = await client.query(
+        `SELECT coin_balance::bigint AS b FROM elix_wallet_balances WHERE user_id = $1`,
+        [input.userId],
+      );
+      newBalance = balR.rows.length ? Math.max(0, Number(balR.rows[0].b)) : 0;
+    }
+
+    // Creator credit (same transaction). Idempotent via earn:{txid}.
+    let credited = 0;
+    if (input.creatorId && input.creatorId !== input.userId) {
+      const c = Math.floor((coins * creatorGiftSharePct()) / 100);
+      if (c > 0) {
+        const earningId = `earn:${input.clientTransactionId}`;
+        const earnIns = await client.query(
+          `INSERT INTO elix_creator_earnings (id, creator_id, kind, coins, gift_id, room_id, sender_id, status)
+           VALUES ($1, $2, 'gift', $3, $4, $5, $6, 'pending')
+           ON CONFLICT (id) DO NOTHING
+           RETURNING id`,
+          [earningId, input.creatorId, c, input.giftId, input.roomId, input.userId],
+        );
+        if ((earnIns.rowCount ?? 0) > 0) {
+          await client.query(
+            `INSERT INTO elix_creator_balances (user_id, pending_coins, total_earned, updated_at)
+             VALUES ($1, $2, $2, NOW())
+             ON CONFLICT (user_id) DO UPDATE SET
+               pending_coins = elix_creator_balances.pending_coins + EXCLUDED.pending_coins,
+               total_earned = elix_creator_balances.total_earned + EXCLUDED.total_earned,
+               updated_at = NOW()`,
+            [input.creatorId, c],
+          );
+          credited = c;
+        }
+      }
+    }
+
+    await client.query("COMMIT");
+    return { ok: true, newBalance, alreadyProcessed, credited };
+  } catch (e) {
+    try {
+      await client.query("ROLLBACK");
+    } catch (rbErr) {
+      logger.error({ err: rbErr }, "neonDebitGiftWithCreatorCredit ROLLBACK failed");
+    }
+    logger.error(
+      { err: e, userId: input.userId, giftId: input.giftId, roomId: input.roomId },
+      "neonDebitGiftWithCreatorCredit: unexpected database error",
+    );
+    const balR = await pool
+      .query(`SELECT coin_balance::bigint AS b FROM elix_wallet_balances WHERE user_id = $1`, [
+        input.userId,
+      ])
+      .catch(() => ({ rows: [] as { b: string }[] }));
+    const b = balR.rows?.length ? Math.max(0, Number(balR.rows[0].b)) : 0;
+    return { ok: false, error: "database_error", newBalance: b };
+  } finally {
+    client.release();
+  }
+}
+
 /** Hours gift earnings stay pending before becoming withdrawable. */
 export function creatorEarningHoldHours(): number {
   const n = Number(process.env.CREATOR_EARNING_HOLD_HOURS ?? 72);

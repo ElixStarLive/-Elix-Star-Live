@@ -113,9 +113,11 @@ export default function CreatorPayout() {
     }
     setWithdrawing(true);
     try {
+      const payoutMethodId =
+        methods.find((m) => m.is_default)?.id ?? methods[0]?.id ?? null;
       const { data, error } = await request<{ error?: string }>('/api/creator/withdraw', {
         method: 'POST',
-        body: JSON.stringify({ amount }),
+        body: JSON.stringify({ coins_amount: amount, payout_method_id: payoutMethodId }),
       });
       if (error) {
         showToast(error.message || 'Withdraw failed');
