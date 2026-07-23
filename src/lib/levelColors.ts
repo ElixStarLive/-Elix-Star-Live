@@ -79,9 +79,10 @@ export function getLevelAccentStyle(level: number): {
   const accent = getLevelAccentColor(level);
   return {
     accent,
-    border: rgba(accent, 0.45),
+    border: rgba(accent, 0.65),
+    /** Match royce-glow-disc intensity, tinted to the level colour (blue for Lv 1–10). */
     glow: rgba(accent, 0.55),
-    fillSoft: rgba(accent, 0.22),
-    gradient: `linear-gradient(90deg, ${accent} 0%, ${rgba(accent, 0.85)} 100%)`,
+    fillSoft: rgba(accent, 0.28),
+    gradient: `linear-gradient(135deg, ${accent} 0%, ${rgba(accent, 0.82)} 55%, ${rgba(accent, 0.65)} 100%)`,
   };
 }

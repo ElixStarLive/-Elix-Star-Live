@@ -72,7 +72,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
       ? Math.max(16, Math.floor(circleSizeProp))
       : Math.max(16, Math.floor(rawSize - Math.min(shrinkPx, maxShrink) + circleGrowPx));
 
-  /** Longer rounded level chip: larger diamond + number (no LV), beside chat circle. */
+  /** Longer rounded level chip: diamond + number; accent fundal + light like royce-glow-disc. */
   const chipH = Math.max(20, Math.round(circleSize * 0.82));
   const fontPx = Math.max(9, Math.round(chipH * 0.48));
   const diamondPx = Math.max(12, Math.round(chipH * 0.62));
@@ -84,9 +84,9 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
         height: chipH,
         minWidth: Math.max(chipH + 14, Math.round(chipH * 1.7)),
         borderRadius: 6,
-        background: 'rgba(8, 10, 22, 0.45)',
+        background: levelStyle.gradient,
         border: `1px solid ${levelStyle.border}`,
-        boxShadow: `0 1px 4px rgba(0,0,0,0.35), 0 0 6px ${levelStyle.glow}`,
+        boxShadow: `0 0 10px 2px ${levelStyle.glow}, 0 0 18px 4px ${levelStyle.fillSoft}`,
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -96,7 +96,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
         flexShrink: 0,
       }}
     >
-      <LevelDiamondIcon size={diamondPx} color={levelStyle.accent} />
+      <LevelDiamondIcon size={diamondPx} color="#FFFFFF" />
       <span
         style={{
           color: '#FFFFFF',

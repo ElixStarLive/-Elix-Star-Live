@@ -143,7 +143,7 @@ export function LiveHostProfileHeader({
             className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-[2px] text-[8px] font-bold text-white leading-none"
             style={{
               background: levelStyle.gradient,
-              boxShadow: `0 0 6px ${levelStyle.glow}`,
+              boxShadow: `0 0 10px 2px ${levelStyle.glow}, 0 0 18px 4px ${levelStyle.fillSoft}`,
             }}
           >
             Lv.{safeLevel}
