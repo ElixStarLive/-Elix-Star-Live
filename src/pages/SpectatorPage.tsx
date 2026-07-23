@@ -23,7 +23,6 @@ import {
   Coins,
   Lock,
   Crown,
-  Plus,
   PlusCircle,
   Play,
   CloudFog,
@@ -69,7 +68,6 @@ import { ChatOverlay } from '../components/ChatOverlay';
 import { AvatarRing } from '../components/AvatarRing';
 import { LevelBadge } from '../components/LevelBadge';
 import {
-  SPECTATOR_BATTLE_PROFILE_RING_PX,
   BATTLE_MVP_ROW_EDGE_OFFSET_MM,
   SPECTATOR_MVP_PROFILE_RING_PX,
   LIVE_MVP_PROFILE_RING_PX,
@@ -3205,37 +3203,25 @@ export default function SpectatorPage() {
                     style={{ transform: `translateX(-${BATTLE_MVP_ROW_EDGE_OFFSET_MM}mm)` }}
                     onClick={() => setShowViewersPanel(true)}
                   >
-                    {[0, 1, 2].map((i) => {
-                      const slot = mvpSlots.host[i];
-                      const isMvp = Boolean(slot && i === 0 && (mvpGiftScoresHostRef.current[slot.id] ?? 0) > 0);
+                    {mvpSlots.host.map((slot, i) => {
+                      const isMvp = i === 0 && (mvpGiftScoresHostRef.current[slot.id] ?? 0) > 0;
                       return (
                         <div
-                          key={slot ? `mvp-l-${slot.id}` : `mvp-l-empty-${i}`}
+                          key={`mvp-l-${slot.id}`}
                           className="relative flex flex-col items-center"
                           style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
                         >
-                          {slot ? (
-                            <>
-                              <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
-                                <AvatarRing
-                                  src={resolveCircleAvatar(slot.avatar, slot.name)}
-                                  alt={slot.name || ''}
-                                  size={SPECTATOR_BATTLE_PROFILE_RING_PX}
-                                />
-                              </div>
-                              {isMvp && (
-                                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
-                                  MVP
-                                </span>
-                              )}
-                            </>
-                          ) : (
-                            <div
-                              className="rounded-full bg-black/45 border border-[#C9A96E]/40 flex items-center justify-center"
-                              style={{ width: SPECTATOR_BATTLE_PROFILE_RING_PX, height: SPECTATOR_BATTLE_PROFILE_RING_PX }}
-                            >
-                              <Plus className="text-[#C9A96E]" size={12} strokeWidth={2.5} />
-                            </div>
+                          <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
+                            <AvatarRing
+                              src={resolveCircleAvatar(slot.avatar, slot.name)}
+                              alt={slot.name || ''}
+                              size={LIVE_MVP_PROFILE_RING_PX}
+                            />
+                          </div>
+                          {isMvp && (
+                            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
+                              MVP
+                            </span>
                           )}
                         </div>
                       );
@@ -3246,37 +3232,25 @@ export default function SpectatorPage() {
                     style={{ transform: `translateX(${BATTLE_MVP_ROW_EDGE_OFFSET_MM}mm)` }}
                     onClick={() => setShowViewersPanel(true)}
                   >
-                    {[0, 1, 2].map((i) => {
-                      const slot = mvpSlots.opponent[i];
-                      const isMvp = Boolean(slot && i === 0 && (mvpGiftScoresOpponentRef.current[slot.id] ?? 0) > 0);
+                    {mvpSlots.opponent.map((slot, i) => {
+                      const isMvp = i === 0 && (mvpGiftScoresOpponentRef.current[slot.id] ?? 0) > 0;
                       return (
                         <div
-                          key={slot ? `mvp-r-${slot.id}` : `mvp-r-empty-${i}`}
+                          key={`mvp-r-${slot.id}`}
                           className="relative flex flex-col items-center"
                           style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
                         >
-                          {slot ? (
-                            <>
-                              <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
-                                <AvatarRing
-                                  src={resolveCircleAvatar(slot.avatar, slot.name)}
-                                  alt={slot.name || ''}
-                                  size={SPECTATOR_BATTLE_PROFILE_RING_PX}
-                                />
-                              </div>
-                              {isMvp && (
-                                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
-                                  MVP
-                                </span>
-                              )}
-                            </>
-                          ) : (
-                            <div
-                              className="rounded-full bg-black/45 border border-[#C9A96E]/40 flex items-center justify-center"
-                              style={{ width: SPECTATOR_BATTLE_PROFILE_RING_PX, height: SPECTATOR_BATTLE_PROFILE_RING_PX }}
-                            >
-                              <Plus className="text-[#C9A96E]" size={12} strokeWidth={2.5} />
-                            </div>
+                          <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
+                            <AvatarRing
+                              src={resolveCircleAvatar(slot.avatar, slot.name)}
+                              alt={slot.name || ''}
+                              size={LIVE_MVP_PROFILE_RING_PX}
+                            />
+                          </div>
+                          {isMvp && (
+                            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
+                              MVP
+                            </span>
                           )}
                         </div>
                       );
