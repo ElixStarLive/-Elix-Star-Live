@@ -59,8 +59,9 @@ export function LiveFollowPill({
 }
 
 /**
- * Host profile block (photo 1-1): pink ring avatar, name + blue verified,
- * “N Likes • LIVE Pro”, Lv pill + Diamond tier, Follow → then membership heart.
+ * Host profile block (photo 1-1): gold-glow avatar (same soft halo as LIVE icons),
+ * name + blue verified, “N Likes • LIVE Pro”, Lv pill + Diamond tier,
+ * Follow → then membership heart.
  * Viewer flow: Follow first; after follow, action slot shows Join (membership heart).
  * Does not touch the 3 MVP circles.
  */
@@ -96,20 +97,14 @@ export function LiveHostProfileHeader({
     <div className="flex items-center gap-1.5 min-w-0 pointer-events-auto">
       <button
         type="button"
-        className="relative flex-shrink-0 rounded-full p-[1.5px] active:scale-95 transition-transform"
-        style={{
-          background: 'linear-gradient(145deg, #FF4DA6 0%, #FE2C55 45%, #C084FC 100%)',
-          boxShadow: '0 0 12px rgba(254,44,85,0.55)',
-        }}
+        className="relative flex-shrink-0 rounded-full active:scale-95 transition-transform"
         onClick={(e) => {
           e.stopPropagation();
           onAvatarClick();
         }}
         aria-label="Open profile"
       >
-        <div className="rounded-full overflow-hidden bg-[#0B0B12]">
-          <AvatarRing src={avatar} alt={name} size={avatarSize} />
-        </div>
+        <AvatarRing src={avatar} alt={name} size={avatarSize} />
       </button>
 
       <div className="flex flex-col justify-center min-w-0 gap-[2px]">
