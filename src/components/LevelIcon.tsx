@@ -4,10 +4,10 @@ import { resolveUiAvatarUrl, ROYCE_DEFAULT_AVATAR } from '../lib/royceAssets';
 import { getLevelAccentStyle } from '../lib/levelColors';
 
 /**
- * Identical badge diamond frame from the ELIX icon sheet (Ranking gem):
- * flat crown top, pointed pavilion. Dark gem so the coloured chip fundal reads as the light.
+ * Badge diamond FRAME only — same line gem as the ELIX icon sheet (Ranking diamond).
+ * Stroke outline + facets; no filled black body. Colour = level accent so it stays clear.
  */
-function LevelDiamondIcon({ size = 12 }: { size?: number }) {
+function LevelDiamondIcon({ size = 12, color }: { size?: number; color: string }) {
   return (
     <svg
       width={size}
@@ -17,29 +17,31 @@ function LevelDiamondIcon({ size = 12 }: { size?: number }) {
       xmlns="http://www.w3.org/2000/svg"
       className="flex-shrink-0"
       aria-hidden
-      style={{ display: 'block' }}
+      style={{
+        display: 'block',
+        filter: `drop-shadow(0 0 3px ${color}) drop-shadow(0 0 6px ${color})`,
+      }}
     >
-      {/* Outer gem silhouette — dark on coloured fundal */}
-      <path d="M5 7.2 L7.2 3.2 H12.8 L15 7.2 L10 17.2 Z" fill="#0A0A12" />
-      {/* Top crown facets */}
-      <path d="M5 7.2 H15 L12.8 3.2 H7.2 Z" fill="#14141C" />
-      <path d="M7.2 3.2 L10 7.2 L12.8 3.2 Z" fill="#0E0E16" />
-      {/* Left / right pavilion */}
-      <path d="M5 7.2 L10 7.2 L10 17.2 Z" fill="#12121A" />
-      <path d="M15 7.2 L10 7.2 L10 17.2 Z" fill="#0C0C14" />
-      {/* Center facet */}
-      <path d="M8.2 7.2 L10 12.5 L11.8 7.2 Z" fill="#181822" />
-      {/* Frame stroke — same gem outline as icon sheet */}
+      {/* Outer gem frame */}
       <path
         d="M5 7.2 L7.2 3.2 H12.8 L15 7.2 L10 17.2 Z"
-        stroke="rgba(0,0,0,0.85)"
-        strokeWidth="0.85"
+        stroke={color}
+        strokeWidth="1.35"
         strokeLinejoin="round"
         fill="none"
       />
-      <path d="M5 7.2 H15" stroke="rgba(0,0,0,0.7)" strokeWidth="0.55" />
-      <path d="M7.2 3.2 L10 7.2 L12.8 3.2" stroke="rgba(0,0,0,0.55)" strokeWidth="0.45" fill="none" />
-      <path d="M10 7.2 L10 17.2" stroke="rgba(0,0,0,0.55)" strokeWidth="0.45" />
+      {/* Crown table line */}
+      <path d="M5 7.2 H15" stroke={color} strokeWidth="1.1" strokeLinecap="round" />
+      {/* Top facets */}
+      <path
+        d="M7.2 3.2 L10 7.2 L12.8 3.2"
+        stroke={color}
+        strokeWidth="1"
+        strokeLinejoin="round"
+        fill="none"
+      />
+      {/* Pavilion center line */}
+      <path d="M10 7.2 L10 17.2" stroke={color} strokeWidth="1" strokeLinecap="round" />
     </svg>
   );
 }
@@ -90,7 +92,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
       ? Math.max(16, Math.floor(circleSizeProp))
       : Math.max(16, Math.floor(rawSize - Math.min(shrinkPx, maxShrink) + circleGrowPx));
 
-  /** Coloured fundal + glow; dark badge diamond frame sits on top. */
+  /** Dark chip so the coloured diamond FRAME lines stay clear (like icon sheet on black). */
   const chipH = Math.max(20, Math.round(circleSize * 0.82));
   const fontPx = Math.max(9, Math.round(chipH * 0.48));
   const diamondPx = Math.max(12, Math.round(chipH * 0.62));
@@ -102,7 +104,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
         height: chipH,
         minWidth: Math.max(chipH + 14, Math.round(chipH * 1.7)),
         borderRadius: 6,
-        background: levelStyle.gradient,
+        background: 'rgba(8, 10, 18, 0.92)',
         border: `1px solid ${levelStyle.border}`,
         boxShadow: `0 0 10px 2px ${levelStyle.glow}, 0 0 18px 4px ${levelStyle.fillSoft}`,
         display: 'inline-flex',
@@ -114,14 +116,14 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
         flexShrink: 0,
       }}
     >
-      <LevelDiamondIcon size={diamondPx} />
+      <LevelDiamondIcon size={diamondPx} color={levelStyle.accent} />
       <span
         style={{
           color: '#FFFFFF',
           fontWeight: 900,
           letterSpacing: '0.01em',
           fontSize: fontPx,
-          textShadow: '0 1px 3px rgba(0,0,0,0.75)',
+          textShadow: `0 0 6px ${levelStyle.glow}`,
           lineHeight: 1,
           whiteSpace: 'nowrap',
           fontVariantNumeric: 'tabular-nums',
