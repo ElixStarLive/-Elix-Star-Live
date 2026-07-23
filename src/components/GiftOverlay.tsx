@@ -48,6 +48,10 @@ interface GiftOverlayProps {
   zIndex?: number;
 }
 
+/** 1×1 transparent GIF — avoids Android WebView default poster / white play icon. */
+const TRANSPARENT_POSTER =
+  'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+
 function GiftVideo({
   videoSrc,
   muted,
@@ -60,29 +64,45 @@ function GiftVideo({
   className?: string;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  // Keep invisible until playback starts — Android Capacitor WebView otherwise
+  // flashes the system white play button before the first decoded frame.
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     const el = videoRef.current;
     if (!el) return;
+    setVisible(false);
     // Always start muted so Android/iOS WebViews allow autoplay; unmute after
     // playback starts when the caller requested sound.
     el.muted = true;
+    el.setAttribute('playsinline', 'true');
+    el.setAttribute('webkit-playsinline', 'true');
+    el.setAttribute('x5-playsinline', 'true');
+    el.setAttribute('x5-video-player-type', 'h5');
+    el.setAttribute('x5-video-player-fullscreen', 'false');
+    el.disablePictureInPicture = true;
+    const reveal = () => setVisible(true);
     const tryPlay = () => {
       const p = el.play();
       if (p && typeof p.then === 'function') {
         p.then(() => {
+          reveal();
           if (!muted) {
             el.muted = false;
           }
         }).catch(() => {
           el.muted = true;
-          el.play().catch(() => onEnded());
+          el.play().then(reveal).catch(() => onEnded());
         });
       }
     };
+    el.addEventListener('playing', reveal, { once: true });
     if (el.readyState >= 2) tryPlay();
     else el.addEventListener('loadeddata', tryPlay, { once: true });
-    return () => el.removeEventListener('loadeddata', tryPlay);
+    return () => {
+      el.removeEventListener('loadeddata', tryPlay);
+      el.removeEventListener('playing', reveal);
+    };
   }, [videoSrc, muted, onEnded]);
 
   return (
@@ -90,11 +110,19 @@ function GiftVideo({
       ref={videoRef}
       key={videoSrc}
       src={videoSrc}
-      className={`${className} pointer-events-none`}
-      style={{ pointerEvents: 'none' }}
+      className={`gift-overlay-video ${className} pointer-events-none`}
+      style={{
+        pointerEvents: 'none',
+        opacity: visible ? 1 : 0,
+        backgroundColor: 'transparent',
+      }}
       playsInline
       autoPlay
-      muted={muted}
+      muted
+      controls={false}
+      controlsList="nodownload nofullscreen noremoteplayback"
+      disablePictureInPicture
+      poster={TRANSPARENT_POSTER}
       preload="auto"
       onEnded={onEnded}
       onError={onEnded}
