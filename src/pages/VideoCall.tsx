@@ -121,7 +121,7 @@ export default function VideoCall() {
 
     (async () => {
       try {
-        const { data, error } = await request(`/api/live/token?room=${encodeURIComponent(roomName)}&identity=call`);
+        const { data, error } = await request(`/api/live/token?room=${encodeURIComponent(roomName)}&publish=1&identity=call`);
         if (cancelled) return;
         if (error || !data?.token) {
           useCallStore.getState().setStatus('ended');

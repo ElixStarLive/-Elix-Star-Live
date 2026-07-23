@@ -223,8 +223,42 @@ function App() {
         void crashReporting.logError(error, { source: "reconcileOwnedCoinPurchases" });
       });
       const unsubCalls = subscribeToIncomingCalls(user.id);
+
+      const onForceDisconnect = () => {
+        void useAuthStore.getState().signOut().catch(() => undefined);
+      };
+      websocket.on("force_disconnect", onForceDisconnect);
+      websocket.on("user_banned", onForceDisconnect);
+
+      // Keep a presence socket on __feed__ so call_invite / force_disconnect and
+      // other user-global events work while browsing (Inbox, Feed, etc.). Live
+      // pages take over the singleton when the user joins a room.
+      const ensurePresence = () => {
+        const token = useAuthStore.getState().session?.access_token;
+        if (!token) return;
+        const path = window.location.pathname;
+        const onLiveSurface =
+          path.startsWith("/live/") ||
+          path.startsWith("/watch/") ||
+          path === "/live/broadcast" ||
+          path === "/call";
+        if (onLiveSurface) return;
+        try {
+          if (!websocket.isConnected()) {
+            websocket.connect("__feed__", token, { persistent: true });
+          }
+        } catch {
+          /* presence is best-effort */
+        }
+      };
+      ensurePresence();
+      const presenceTimer = window.setInterval(ensurePresence, 5000);
+
       return () => {
         unsubCalls();
+        websocket.off("force_disconnect", onForceDisconnect);
+        websocket.off("user_banned", onForceDisconnect);
+        window.clearInterval(presenceTimer);
       };
     } else {
       analytics.setUserId(null);

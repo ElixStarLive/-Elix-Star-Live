@@ -7,6 +7,7 @@
 import { platform } from "./platform";
 import { request } from "./apiClient";
 import { useAuthStore } from "../store/useAuthStore";
+import { useSettingsStore } from "../store/useSettingsStore";
 import { trackEvent } from "./analytics";
 
 class NotificationService {
@@ -58,6 +59,8 @@ class NotificationService {
     if (!platform.isNative || !this.nativeToken) return;
     const { user } = useAuthStore.getState();
     if (!user?.id) return;
+    // Respect the local "App notifications" preference.
+    if (!useSettingsStore.getState().notificationsEnabled) return;
     try {
       await request("/api/device-tokens", {
         method: "POST",

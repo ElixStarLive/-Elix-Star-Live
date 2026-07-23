@@ -492,6 +492,18 @@ function forceCloseLocalUserSockets(userId: string, reason: string): number {
   for (const client of [...userSet]) {
     try {
       if (client.ws.readyState === WebSocket.OPEN || client.ws.readyState === WebSocket.CONNECTING) {
+        // Notify the client before closing so it can clear local session state.
+        try {
+          client.ws.send(
+            JSON.stringify({
+              event: "force_disconnect",
+              data: { reason },
+              timestamp: new Date().toISOString(),
+            }),
+          );
+        } catch {
+          /* ignore — close below */
+        }
         client.ws.close(1008, reason.slice(0, 120));
         closed += 1;
       }
@@ -976,6 +988,13 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
           connectedAt: new Date(),
         };
         clients.set(ws, client);
+        // Register on the user channel so global events (call_invite, force_disconnect,
+        // owner-targeted chat/gifts) reach users who are only on the feed socket.
+        if (!userClients.has(userId)) {
+          userClients.set(userId, new Set());
+          subscribeUserChannel(userId);
+        }
+        (userClients.get(userId) as Set<Client>).add(client);
         addFeedSubscriber(ws);
         try {
           ws.send(

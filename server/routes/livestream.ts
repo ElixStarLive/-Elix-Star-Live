@@ -469,6 +469,9 @@ export async function handleGetLiveToken(req: Request, res: Response) {
   const raw = typeof room === 'string' ? room.trim() : '';
   const roomName = raw.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 128) || null;
   const publish = req.query.publish === '1' || req.query.publish === 'true';
+  // 1:1 video calls use rooms named call_<uuid>. Both parties must publish
+  // (camera/mic) and there is no live-stream host registry for these rooms.
+  const isCallRoom = !!roomName && roomName.startsWith('call_');
 
   if (!roomName) {
     return res.status(400).json({ error: 'Query parameter "room" is required and must be alphanumeric.' });
@@ -476,7 +479,8 @@ export async function handleGetLiveToken(req: Request, res: Response) {
 
   // Publishing must be server-authorized: only the host or a host-approved
   // co-host may receive a publish token. Never trust a client "publish" flag alone.
-  if (publish) {
+  // Exception: call_* rooms are mutual publish for authenticated 1:1 calls.
+  if (publish && !isCallRoom) {
     const isHost = await isStreamHost(roomName, auth.userId);
     if (!isHost) {
       let authorized =
@@ -502,7 +506,7 @@ export async function handleGetLiveToken(req: Request, res: Response) {
     }
   }
 
-  if (!publish) {
+  if (!publish && !isCallRoom) {
     let streamExists = await isStreamActive(roomName);
     if (!streamExists) {
       const dbRows = await dbGetLiveStreams();
@@ -535,7 +539,8 @@ export async function handleGetLiveToken(req: Request, res: Response) {
     const token = await createLiveToken({
       userId: auth.userId,
       roomName,
-      canPublish: publish,
+      // Call rooms always publish; live rooms follow the authorized publish flag.
+      canPublish: isCallRoom ? true : publish,
       name: auth.userId,
     });
     if (!token || token.length < 50) {
@@ -543,7 +548,7 @@ export async function handleGetLiveToken(req: Request, res: Response) {
     }
     const url = getLiveKitUrl();
     if (process.env.NODE_ENV !== 'production') {
-      logger.debug({ room: roomName, urlSet: Boolean(url) }, "LiveKit token issued");
+      logger.debug({ room: roomName, urlSet: Boolean(url), isCallRoom }, "LiveKit token issued");
     }
     return res.status(200).json({ room: roomName, token, url });
   } catch (err) {

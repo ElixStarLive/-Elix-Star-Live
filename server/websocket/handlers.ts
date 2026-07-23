@@ -1234,6 +1234,78 @@ export async function handleMessage(
         break;
       }
 
+      // ── 1:1 video call signaling (relay only; media is LiveKit call_* rooms) ──
+      case "call_invite": {
+        if (!(await wsRateCheck(client.userId, "call_signal", 30, 60_000))) break;
+        const calleeId = typeof data?.calleeId === "string" ? data.calleeId.trim() : "";
+        const callId = typeof data?.callId === "string" ? data.callId.trim() : "";
+        if (!calleeId || !callId || calleeId === client.userId) break;
+        if (await dbIsBlockedEitherWay(client.userId, calleeId)) {
+          sendToClient(client, "call_rejected", { callId, reason: "blocked" });
+          break;
+        }
+        sendToUserGlobal(calleeId, "call_invite", {
+          callId,
+          callerId: client.userId,
+          callerUsername:
+            typeof data?.callerUsername === "string"
+              ? data.callerUsername
+              : client.username || client.displayName || "User",
+          callerAvatar:
+            typeof data?.callerAvatar === "string" ? data.callerAvatar : client.avatarUrl || "",
+          calleeId,
+        });
+        break;
+      }
+
+      case "call_accepted": {
+        if (!(await wsRateCheck(client.userId, "call_signal", 30, 60_000))) break;
+        const callerId = typeof data?.callerId === "string" ? data.callerId.trim() : "";
+        const callId = typeof data?.callId === "string" ? data.callId.trim() : "";
+        if (!callerId || !callId) break;
+        if (await dbIsBlockedEitherWay(client.userId, callerId)) break;
+        sendToUserGlobal(callerId, "call_accepted", {
+          callId,
+          calleeId: client.userId,
+          callerId,
+          calleeUsername:
+            typeof data?.calleeUsername === "string"
+              ? data.calleeUsername
+              : client.username || client.displayName || "User",
+          calleeAvatar:
+            typeof data?.calleeAvatar === "string" ? data.calleeAvatar : client.avatarUrl || "",
+        });
+        break;
+      }
+
+      case "call_rejected": {
+        if (!(await wsRateCheck(client.userId, "call_signal", 30, 60_000))) break;
+        const callerId = typeof data?.callerId === "string" ? data.callerId.trim() : "";
+        const callId = typeof data?.callId === "string" ? data.callId.trim() : "";
+        if (!callerId || !callId) break;
+        sendToUserGlobal(callerId, "call_rejected", {
+          callId,
+          calleeId: client.userId,
+          callerId,
+        });
+        break;
+      }
+
+      case "call_ended": {
+        if (!(await wsRateCheck(client.userId, "call_signal", 30, 60_000))) break;
+        const remoteId = typeof data?.remoteId === "string" ? data.remoteId.trim() : "";
+        const callId = typeof data?.callId === "string" ? data.callId.trim() : "";
+        if (!callId) break;
+        if (remoteId && remoteId !== client.userId) {
+          sendToUserGlobal(remoteId, "call_ended", {
+            callId,
+            userId: client.userId,
+            remoteId,
+          });
+        }
+        break;
+      }
+
       default:
         if (process.env.NODE_ENV !== "production")
           logger.warn({ event }, "Unknown WS event");
