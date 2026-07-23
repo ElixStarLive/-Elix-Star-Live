@@ -260,98 +260,107 @@ export default function FriendsFeed() {
 
   return (
     <div className="h-full min-h-0 w-full flex justify-center bg-[#111111]">
-      <div className="w-full max-w-[480px] h-full min-h-0 relative overflow-hidden mx-auto">
-        {/* Same top bar + profile circles as flower container — always visible over friend videos */}
-        <div className="absolute top-0 left-0 right-0 bg-[#111111] z-20 pt-app-header-safe">
-          <div className="px-3 pb-1 flex items-center justify-between relative">
-            <button onClick={() => navigate('/search')} className="w-8 h-8 royce-glow-disc flex items-center justify-center z-10" aria-label="Search">
-              <Search size={16} className="royce-icon-gold" strokeWidth={2} />
-            </button>
-            <h1 className="text-sm font-bold text-white absolute left-1/2 transform -translate-x-1/2">Friends</h1>
-            <div className="flex items-center gap-3 z-10">
-              <button onClick={() => navigate(-1)} title="Back">
-                <RoyceBackIcon />
-              </button>
-            </div>
-          </div>
-
-          <div
-            className="px-3 pb-2 relative z-[11]"
-            style={{ marginTop: '6mm' }}
-          >
-            <div className="flex gap-3 overflow-x-auto overflow-y-hidden no-scrollbar pt-3" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <div className="w-full max-w-[480px] h-full min-h-0 flex flex-col overflow-hidden mx-auto relative">
+        {/* Compact Friends chrome — search/close up; strip tight; feed gets the rest */}
+        <div
+          className="flex-shrink-0 bg-[#111111] z-20"
+          style={{ paddingTop: 'max(4px, env(safe-area-inset-top, 0px))' }}
+        >
+          <div className="px-3 h-9 flex items-center justify-between relative">
             <button
               type="button"
-              onClick={() => navigate('/upload?type=story')}
-              className="flex-shrink-0 flex flex-col items-center gap-1"
-              style={{ width: 95, minWidth: 95 }}
-              title="Add story"
+              onClick={() => navigate('/search')}
+              className="w-8 h-8 royce-glow-disc flex items-center justify-center z-10"
+              aria-label="Search"
             >
-              <div className="relative" style={{ width: 56, height: 56 }}>
-                <StoryGoldRingAvatar
-                  size={56}
-                  src={user?.avatar || '/royce/default-avatar.svg'}
-                  alt={user?.username || 'You'}
-                />
-                <span className="absolute bottom-0 right-0 w-4 h-4 rounded-full bg-[#D4AF37] border-2 border-black flex items-center justify-center">
-                  <Plus size={10} className="text-black" strokeWidth={3} />
-                </span>
-              </div>
-              <div className="text-[11px] text-white/80 truncate w-full text-center">
-                {ownStory?.items?.length ? 'Your story' : 'Add story'}
-              </div>
+              <Search size={16} className="royce-icon-gold" strokeWidth={2} />
             </button>
-            {ownStory && ownStory.items.length > 0 ? (
+            <h1 className="text-sm font-bold text-white absolute left-1/2 -translate-x-1/2">Friends</h1>
+            <button type="button" onClick={() => navigate(-1)} title="Back" className="z-10">
+              <RoyceBackIcon />
+            </button>
+          </div>
+
+          <div className="px-3 pb-1.5">
+            <div
+              className="flex gap-2.5 overflow-x-auto overflow-y-hidden no-scrollbar"
+              style={{ WebkitOverflowScrolling: 'touch' }}
+            >
               <button
                 type="button"
-                onClick={() => openUserStory(ownStory.userId)}
-                className="flex-shrink-0 flex flex-col items-center gap-1"
-                style={{ width: 95, minWidth: 95 }}
-                title="Your story"
+                onClick={() => navigate('/upload?type=story')}
+                className="flex-shrink-0 flex flex-col items-center gap-0.5"
+                style={{ width: 64, minWidth: 64 }}
+                title="Add story"
               >
-                <StoryGoldRingAvatar
-                  size={56}
-                  src={user?.avatar || '/royce/default-avatar.svg'}
-                  alt="Your story"
-                />
-                <div className="text-[11px] text-white/80 truncate w-full text-center">You</div>
+                <div className="relative" style={{ width: 44, height: 44 }}>
+                  <StoryGoldRingAvatar
+                    size={44}
+                    src={user?.avatar || '/royce/default-avatar.svg'}
+                    alt={user?.username || 'You'}
+                  />
+                  <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-[#D4AF37] border-2 border-black flex items-center justify-center">
+                    <Plus size={8} className="text-black" strokeWidth={3} />
+                  </span>
+                </div>
+                <div className="text-[9px] text-white/80 truncate w-full text-center leading-tight">
+                  {ownStory?.items?.length ? 'Your story' : 'Add story'}
+                </div>
               </button>
-            ) : null}
-            {suggestedUsers.map((u) => {
-              const friendStory = storyGroups.find((g) => g.userId === u.id);
-              return (
-              <button
-                key={u.id}
-                type="button"
-                onClick={() => {
-                  if (friendStory?.items?.length) {
-                    openUserStory(u.id);
-                    return;
-                  }
-                  if (u.is_live) navigate(`/watch/${u.id}`);
-                  else navigate(`/profile/${u.id}`);
-                }}
-                className="flex-shrink-0 flex flex-col items-center gap-1" style={{ width: 95, minWidth: 95 }}
-              >
-                <StoryGoldRingAvatar
-                  size={56}
-                  live={u.is_live}
-                  data-avatar-circle={u.is_live ? 'live' : undefined}
-                  src={u.avatar_url || '/royce/default-avatar.svg'}
-                  alt={u.name || u.username}
-                />
-                <div className="text-[11px] text-white/80 truncate w-full text-center">{u.name || u.username}</div>
-              </button>
-              );
-            })}
+              {ownStory && ownStory.items.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => openUserStory(ownStory.userId)}
+                  className="flex-shrink-0 flex flex-col items-center gap-0.5"
+                  style={{ width: 64, minWidth: 64 }}
+                  title="Your story"
+                >
+                  <StoryGoldRingAvatar
+                    size={44}
+                    src={user?.avatar || '/royce/default-avatar.svg'}
+                    alt="Your story"
+                  />
+                  <div className="text-[9px] text-white/80 truncate w-full text-center leading-tight">You</div>
+                </button>
+              ) : null}
+              {suggestedUsers.map((u) => {
+                const friendStory = storyGroups.find((g) => g.userId === u.id);
+                return (
+                  <button
+                    key={u.id}
+                    type="button"
+                    onClick={() => {
+                      if (friendStory?.items?.length) {
+                        openUserStory(u.id);
+                        return;
+                      }
+                      if (u.is_live) navigate(`/watch/${u.id}`);
+                      else navigate(`/profile/${u.id}`);
+                    }}
+                    className="flex-shrink-0 flex flex-col items-center gap-0.5"
+                    style={{ width: 64, minWidth: 64 }}
+                  >
+                    <StoryGoldRingAvatar
+                      size={44}
+                      live={u.is_live}
+                      data-avatar-circle={u.is_live ? 'live' : undefined}
+                      src={u.avatar_url || '/royce/default-avatar.svg'}
+                      alt={u.name || u.username}
+                    />
+                    <div className="text-[9px] text-white/80 truncate w-full text-center leading-tight">
+                      {u.name || u.username}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
 
-        {/* Friend video containers only — flower-container layout under the same top chrome */}
+        {/* Friend videos fill remaining height under compact chrome */}
         <div
           ref={containerRef}
-          className="absolute inset-0 z-0 w-full overflow-y-scroll snap-y snap-mandatory overscroll-none bg-black"
+          className="relative flex-1 min-h-0 z-0 w-full overflow-y-scroll snap-y snap-mandatory overscroll-none bg-black"
           style={{ scrollSnapType: 'y mandatory', WebkitOverflowScrolling: 'touch' }}
           onScroll={handleScroll}
         >
@@ -402,7 +411,6 @@ export default function FriendsFeed() {
           )}
         </div>
 
-        {/* Separate story video/photo container — not mixed into friend video snap feed */}
         {storyViewer && storyItem?.mediaUrl ? (
           <div className="absolute inset-0 z-[40] bg-black">
             <FriendStorySlide
@@ -414,7 +422,7 @@ export default function FriendsFeed() {
             <button
               type="button"
               onClick={() => setStoryViewer(null)}
-              className="absolute top-[calc(env(safe-area-inset-top,0px)+12px)] right-3 z-[41] w-9 h-9 rounded-full bg-black/50 flex items-center justify-center"
+              className="absolute top-[calc(env(safe-area-inset-top,0px)+8px)] right-3 z-[41] w-9 h-9 rounded-full bg-black/50 flex items-center justify-center"
               aria-label="Close story"
             >
               <X size={18} className="text-white" strokeWidth={2.5} />
