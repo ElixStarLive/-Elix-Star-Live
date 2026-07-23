@@ -2047,6 +2047,8 @@ export default function LiveStream() {
   const _speedChallengeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reachedThresholdsRef = useRef<Set<number>>(new Set());
   const [lastGifts, setLastGifts] = useState<{ opponent: string | null; player3: string | null; player4: string | null }>({ opponent: null, player3: null, player4: null });
+  /** Tap a co-host tile to gift them (null = gift goes to the stream host). */
+  const [selectedCohostGiftUserId, setSelectedCohostGiftUserId] = useState<string | null>(null);
   /** Per co-host tile: gift totals + last gift icon (synced from gift_sent). */
   const [cohostGiftScores, setCohostGiftScores] = useState<Record<string, number>>({});
   const [cohostLastGifts, setCohostLastGifts] = useState<Record<string, string>>({});
@@ -2423,6 +2425,7 @@ export default function LiveStream() {
     // Enter battle mode -> INVITING state, everything clean
     setBattleState('INVITING');
     setIsBattleMode(true);
+    setSelectedCohostGiftUserId(null);
     // Battle mode owns invites now — drop any leftover co-host invite so its
     // identical-looking Join banner can't hijack the battle flow.
     setPendingCohostInvite(null);
@@ -4577,6 +4580,9 @@ export default function LiveStream() {
                 ? { video: playableVideo, animation_url: playableVideo }
                 : {}),
               ...(restBattleTarget ? { battleTarget: restBattleTarget } : {}),
+              ...(!isBattleMode && selectedCohostGiftUserId
+                ? { cohostTargetUserId: selectedCohostGiftUserId }
+                : {}),
             }),
           });
 
@@ -4586,8 +4592,13 @@ export default function LiveStream() {
               showToast('Account is frozen. Contact support.');
               return;
             }
-            if (msg.includes('insufficient_funds')) {
+            if (msg.includes('insufficient_funds') || msg.includes('INSUFFICIENT') || msg.includes('insufficient')) {
               showToast('Not enough coins');
+              return;
+            }
+            if (msg.includes('INVALID_COHOST_TARGET')) {
+              showToast('That co-host is no longer available');
+              setSelectedCohostGiftUserId(null);
               return;
             }
             showToast('Gift failed');
@@ -4735,6 +4746,12 @@ export default function LiveStream() {
           battleTarget: serverBattleTarget,
           creator_name: hostName || 'Creator',
           ...(!isBroadcast && { host_user_id: effectiveStreamId }),
+          ...(!isBattleMode && selectedCohostGiftUserId
+            ? {
+                cohostTargetUserId: selectedCohostGiftUserId,
+                cohost_target_user_id: selectedCohostGiftUserId,
+              }
+            : {}),
         });
       }
       
@@ -4857,13 +4874,34 @@ export default function LiveStream() {
               ...(comboPlayableVideo
                 ? { video: comboPlayableVideo, animation_url: comboPlayableVideo }
                 : {}),
+              ...(isBattleMode
+                ? (() => {
+                    const ids = battleStreamIdsRef.current;
+                    const t = liveStreamUiGiftTargetToServerBattleTarget(giftTarget, {
+                      isBroadcast,
+                      isBattleJoiner,
+                      effectiveStreamId,
+                      hostRoomId: ids?.hostRoomId ?? '',
+                      opponentRoomId: ids?.opponentRoomId ?? '',
+                    });
+                    return t ? { battleTarget: t } : {};
+                  })()
+                : {}),
+              ...(!isBattleMode && selectedCohostGiftUserId
+                ? { cohostTargetUserId: selectedCohostGiftUserId }
+                : {}),
             }),
           });
 
           if (giftErr) {
             const msg = giftErr.message || '';
-            if (msg.includes('insufficient_funds')) {
+            if (msg.includes('insufficient_funds') || msg.includes('INSUFFICIENT') || msg.includes('insufficient')) {
               showToast('Not enough coins');
+              return;
+            }
+            if (msg.includes('INVALID_COHOST_TARGET')) {
+              showToast('That co-host is no longer available');
+              setSelectedCohostGiftUserId(null);
               return;
             }
             showToast('Gift failed');
@@ -5006,6 +5044,12 @@ export default function LiveStream() {
           battleTarget: serverBattleTargetCombo,
           creator_name: hostName || 'Creator',
           ...(!isBroadcast && { host_user_id: effectiveStreamId }),
+          ...(!isBattleMode && selectedCohostGiftUserId
+            ? {
+                cohostTargetUserId: selectedCohostGiftUserId,
+                cohost_target_user_id: selectedCohostGiftUserId,
+              }
+            : {}),
         });
       }
 
@@ -5552,8 +5596,14 @@ export default function LiveStream() {
                 if (slot.type === 'live' && slot.host) {
                   const host = slot.host;
                   const camOff = coHostCameraOff[host.id] || remoteCamOff.has(host.userId);
-                  const score = cohostGiftScores[host.userId] || 0;
-                  const lastGiftIcon = cohostLastGifts[host.userId];
+                  const scoreEntry = Object.entries(cohostGiftScores).find(([id]) =>
+                    sameUserId(id, host.userId),
+                  );
+                  const score = scoreEntry ? scoreEntry[1] : 0;
+                  const lastGiftIcon =
+                    Object.entries(cohostLastGifts).find(([id]) => sameUserId(id, host.userId))?.[1] ||
+                    undefined;
+                  const isSelected = !!selectedCohostGiftUserId && sameUserId(selectedCohostGiftUserId, host.userId);
                   return (
                     <>
                       <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[#111111] z-[5]">
@@ -5600,6 +5650,9 @@ export default function LiveStream() {
                           )}
                         </div>
                       )}
+                      {isSelected && (
+                        <div className="absolute inset-0 z-[5] pointer-events-none border-2 border-[#D4AF37]" />
+                      )}
                     </>
                   );
                 }
@@ -5639,7 +5692,22 @@ export default function LiveStream() {
                     return (
                       <div
                         key={i}
-                        className={`relative bg-[#111111] flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 border border-[#C9A96E]/40 ${cellSpeaking ? 'elix-speaking-pulse' : ''}`}
+                        role={cellHost && !isBattleMode ? 'button' : undefined}
+                        tabIndex={cellHost && !isBattleMode ? 0 : undefined}
+                        onClick={() => {
+                          if (!cellHost || isBattleMode) return;
+                          setSelectedCohostGiftUserId(cellHost.userId);
+                          setShowGiftPanel(true);
+                        }}
+                        onKeyDown={(e) => {
+                          if (!cellHost || isBattleMode) return;
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setSelectedCohostGiftUserId(cellHost.userId);
+                            setShowGiftPanel(true);
+                          }
+                        }}
+                        className={`relative bg-[#111111] flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 border border-[#C9A96E]/40 ${cellSpeaking ? 'elix-speaking-pulse' : ''} ${cellHost && !isBattleMode ? 'cursor-pointer' : ''}`}
                       >
                         {renderCoHostCell(slot)}
                       </div>
@@ -6576,7 +6644,7 @@ export default function LiveStream() {
               >
                 <span className="flex items-center justify-center w-full h-full relative z-[2]"><UserPlus size={20} className="text-[#D4AF37] shrink-0" strokeWidth={2} /></span>
 </button>
-              <button type="button" title="Send gift" onClick={() => setShowGiftPanel(true)} className={`${LIVE_BOTTOM_ICON_BTN} relative`}>
+              <button type="button" title="Send gift" onClick={() => { setSelectedCohostGiftUserId(null); setShowGiftPanel(true); }} className={`${LIVE_BOTTOM_ICON_BTN} relative`}>
                 <Gift size={20} className="text-[#D4AF37] relative z-[2]" />
 </button>
               <button type="button" title="Share" onClick={() => setShowSharePanel(true)} className={`${LIVE_BOTTOM_ICON_BTN} relative`}>
@@ -6695,10 +6763,10 @@ export default function LiveStream() {
         </div>
       </div>
 
-      {/* Gift panel: spectators open it from their bar; creator has no Gift button. */}
-      {showGiftPanel && !isCreatorParticipant && (
+      {/* Gift panel: spectators from bar; anyone (incl. host) after tapping a co-host tile. */}
+      {showGiftPanel && (!isCreatorParticipant || !!selectedCohostGiftUserId) && (
         <>
-          <div className="fixed inset-0 bg-black/50 pointer-events-auto" style={{ zIndex: 99998 }} onClick={() => setShowGiftPanel(false)} />
+          <div className="fixed inset-0 bg-black/50 pointer-events-auto" style={{ zIndex: 99998 }} onClick={() => { setShowGiftPanel(false); }} />
           <div className="fixed bottom-0 left-0 right-0 pointer-events-auto max-w-[480px] mx-auto" style={{ zIndex: 99999 }}>
             <GiftPanel
               onSelectGift={handleSendGift}

@@ -247,6 +247,11 @@ export async function handleMessage(
           const testVideo = await resolvePlayableGiftVideoUrl(testGiftId, testClientVideo);
           const testBattleTarget = normalizeBattleTarget(data?.battleTarget);
           const testPoints = Math.max(0, getGiftValue(testGiftId) || 0);
+          const testCohostTarget =
+            (typeof data?.cohostTargetUserId === "string" && data.cohostTargetUserId.trim()) ||
+            (typeof data?.cohost_target_user_id === "string" &&
+              data.cohost_target_user_id.trim()) ||
+            null;
           const testPayload = {
             giftId: testGiftId,
             giftName: typeof data?.giftName === "string" ? data.giftName : "Gift",
@@ -257,6 +262,12 @@ export async function handleMessage(
             // direct owner send) dedupe it and play the animation exactly once.
             transactionId: `test-${randomUUID()}`,
             battleTarget: testBattleTarget,
+            ...(testCohostTarget
+              ? {
+                  cohostTargetUserId: testCohostTarget,
+                  cohost_target_user_id: testCohostTarget,
+                }
+              : {}),
             user_id: client.userId,
             username: client.displayName || client.username,
             creator_name:
@@ -278,6 +289,9 @@ export async function handleMessage(
             const testOwnerId = await resolveStreamOwnerUserId(client.roomId);
             if (testOwnerId && testOwnerId !== client.userId) {
               sendToUserGlobal(testOwnerId, "gift_sent", testPayload);
+            }
+            if (testCohostTarget && testCohostTarget !== client.userId) {
+              sendToUserGlobal(testCohostTarget, "gift_sent", testPayload);
             }
           } catch { /* non-fatal */ }
           // Match/VS points only — never wallet, earnings, or gift goals.

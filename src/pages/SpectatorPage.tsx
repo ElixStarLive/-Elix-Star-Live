@@ -1960,11 +1960,33 @@ export default function SpectatorPage() {
         ? giftsCatalogRef.current.find((g) => g.id === wsGiftId)
         : undefined;
       const gifterId = typeof data.user_id === 'string' ? data.user_id : '';
-      // Skip echo of our own gift — sender already queued local animation/chat.
-      if (gifterId && user?.id && gifterId === user.id) return;
       const giftCoins =
         giftDef?.coins ??
         (typeof data.coins === 'number' && Number.isFinite(data.coins) ? data.coins : 0);
+      // Co-host tile corner scores must update for the sender too (own gift echo
+      // returns early below for chat/video — scores still need to land here).
+      const cohostTarget =
+        (typeof data.cohostTargetUserId === 'string' && data.cohostTargetUserId.trim()) ||
+        (typeof data.cohost_target_user_id === 'string' && data.cohost_target_user_id.trim()) ||
+        '';
+      if (cohostTarget && giftCoins > 0) {
+        setCohostGiftScores((prev) => ({
+          ...prev,
+          [cohostTarget]: (prev[cohostTarget] || 0) + giftCoins,
+        }));
+        const iconRaw =
+          (typeof data.gift_icon === 'string' && data.gift_icon) ||
+          (typeof giftDef?.icon === 'string' ? giftDef.icon : '');
+        const iconUrl =
+          iconRaw && (iconRaw.startsWith('http://') || iconRaw.startsWith('https://') || iconRaw.startsWith('/'))
+            ? (iconRaw.startsWith('http') ? iconRaw : resolveGiftAssetUrl(iconRaw.startsWith('/') ? iconRaw : `/${iconRaw}`))
+            : null;
+        if (iconUrl) {
+          setCohostLastGifts((prev) => ({ ...prev, [cohostTarget]: iconUrl }));
+        }
+      }
+      // Skip echo of our own gift — sender already queued local animation/chat.
+      if (gifterId && user?.id && gifterId === user.id) return;
       if (gifterId && giftCoins > 0) {
         const gifterName =
           (typeof data.username === 'string' && data.username.trim()) ||
@@ -2033,26 +2055,6 @@ export default function SpectatorPage() {
                 ? (iconRaw.startsWith('http') ? iconRaw : resolveGiftAssetUrl(iconRaw.startsWith('/') ? iconRaw : `/${iconRaw}`))
                 : null;
             if (iconUrl) setLastOpponentGift(iconUrl);
-          }
-        }
-        const cohostTarget =
-          (typeof data.cohostTargetUserId === 'string' && data.cohostTargetUserId.trim()) ||
-          (typeof data.cohost_target_user_id === 'string' && data.cohost_target_user_id.trim()) ||
-          '';
-        if (cohostTarget && giftCoins > 0) {
-          setCohostGiftScores((prev) => ({
-            ...prev,
-            [cohostTarget]: (prev[cohostTarget] || 0) + giftCoins,
-          }));
-          const iconRaw =
-            (typeof data.gift_icon === 'string' && data.gift_icon) ||
-            (typeof giftDef?.icon === 'string' ? giftDef.icon : '');
-          const iconUrl =
-            iconRaw && (iconRaw.startsWith('http://') || iconRaw.startsWith('https://') || iconRaw.startsWith('/'))
-              ? (iconRaw.startsWith('http') ? iconRaw : resolveGiftAssetUrl(iconRaw.startsWith('/') ? iconRaw : `/${iconRaw}`))
-              : null;
-          if (iconUrl) {
-            setCohostLastGifts((prev) => ({ ...prev, [cohostTarget]: iconUrl }));
           }
         }
       }
@@ -3476,9 +3478,15 @@ export default function SpectatorPage() {
             if (slot.type === 'live' && slot.host) {
               const h = slot.host;
               const camOff = [...remoteCamOff].some((id) => sameUserId(id, h.userId));
-              const score = cohostGiftScores[h.userId] || 0;
-              const lastGiftIcon = cohostLastGifts[h.userId];
-              const isSelected = selectedCohostGiftUserId === h.userId;
+              const scoreEntry = Object.entries(cohostGiftScores).find(([id]) =>
+                sameUserId(id, h.userId),
+              );
+              const score = scoreEntry ? scoreEntry[1] : 0;
+              const lastGiftIcon =
+                Object.entries(cohostLastGifts).find(([id]) => sameUserId(id, h.userId))?.[1] ||
+                undefined;
+              const isSelected =
+                !!selectedCohostGiftUserId && sameUserId(selectedCohostGiftUserId, h.userId);
               return (
                 <>
                   {camOff && (
