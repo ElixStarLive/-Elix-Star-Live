@@ -5465,7 +5465,7 @@ export default function LiveStream() {
           return (
           <div
             className={hasAnyCoHost ? 'absolute inset-x-0 z-[25] flex flex-row' : 'relative w-full h-full'}
-            style={hasAnyCoHost ? { top: '90px', height: 'calc(36dvh + 10mm)', filter: liveFilterCss !== 'none' ? liveFilterCss : undefined } : { filter: liveFilterCss !== 'none' ? liveFilterCss : undefined }}
+            style={hasAnyCoHost ? { top: 'calc(90px + 6mm)', height: 'calc(36dvh + 10mm)', filter: liveFilterCss !== 'none' ? liveFilterCss : undefined } : { filter: liveFilterCss !== 'none' ? liveFilterCss : undefined }}
             onPointerDown={isCreatorParticipant ? undefined : (e) => {
               if (e.target instanceof Element) {
                 const interactive = e.target.closest('button, a, input, textarea, select, [role="button"]');

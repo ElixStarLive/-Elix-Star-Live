@@ -3610,7 +3610,7 @@ export default function SpectatorPage() {
             <div
               className={`absolute left-0 right-0 z-0 bg-transparent flex flex-row overflow-hidden rounded-none`}
               style={(showGrid || spectatorBattle?.active)
-                ? { top: 'calc(env(safe-area-inset-top, 0px) + 78px)', height: 'calc(36dvh + 10mm)' }
+                ? { top: 'calc(env(safe-area-inset-top, 0px) + 78px + 6mm)', height: 'calc(36dvh + 10mm)' }
                 : { top: '0px', bottom: '0px' }
               }
             >
