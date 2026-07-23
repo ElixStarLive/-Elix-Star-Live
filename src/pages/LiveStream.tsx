@@ -261,6 +261,8 @@ export default function LiveStream() {
   useEffect(() => { giftsCatalogRef.current = giftsCatalog; }, [giftsCatalog]);
   // Dedup gift_sent (REST + WS + owner-global can all deliver the same txn once).
   const seenGiftTxnRef = useRef<Set<string>>(new Set());
+  // Dedup chat_message (room broadcast + owner-global fallback deliver once each).
+  const seenChatMsgIdRef = useRef<Set<string>>(new Set());
   useEffect(() => { let c = false; fetchGiftsFromDatabase().then(g => { if (!c) setGiftsCatalog(g); }); return () => { c = true; }; }, []);
   const setPromo = useLivePromoStore((s) => s.setPromo);
   const { user, updateUser } = useAuthStore();
@@ -3397,6 +3399,16 @@ export default function LiveStream() {
     const handleChatMessage = (data) => {
       if (!mounted) return;
       if (data.user_id === user?.id) return;
+      // Server may deliver the same message twice (room broadcast + owner-global
+      // fallback). Dedupe by messageId so the creator never sees a line twice.
+      const chatMsgId = typeof data.messageId === 'string' ? data.messageId : '';
+      if (chatMsgId) {
+        if (seenChatMsgIdRef.current.has(chatMsgId)) return;
+        seenChatMsgIdRef.current.add(chatMsgId);
+        if (seenChatMsgIdRef.current.size > 400) {
+          seenChatMsgIdRef.current = new Set([...seenChatMsgIdRef.current].slice(-200));
+        }
+      }
       const text = typeof data.text === 'string' ? data.text : '';
       const levelUpMatch = /^reached Level (\d+)/i.exec(text);
       const parsedLevel = levelUpMatch ? Number(levelUpMatch[1]) : NaN;

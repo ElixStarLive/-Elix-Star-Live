@@ -46,7 +46,7 @@ describe("Engagement claim and trust contracts", () => {
     expect(router).toContain("SPAWN_SERVER_ONLY");
   });
 
-  it("production blocks test-coin battle scoring", () => {
+  it("test-coin battle scoring is policy-gated (battle points only, never money)", () => {
     expect(testCoins).toContain('=== "production"');
     expect(testCoins).toContain("canAcceptTestCoinsBattleScore");
   });

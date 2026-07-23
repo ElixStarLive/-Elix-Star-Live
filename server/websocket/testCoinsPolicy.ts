@@ -18,9 +18,12 @@ export function isTestCoinsGiftSource(data: {
 }
 
 /**
- * Historically blocked test-coin battle scores in production.
- * Production must reject forged gift_sent + giftSource=test_coins for battle
- * points. Non-production may still allow animation + VS points for local QA.
+ * True when running in production. Retained for reference and for any future
+ * money-path gating. NOTE: this no longer blocks test-coin BATTLE SCORE —
+ * test coins add battle points + animation like the free tap vote and never
+ * touch money, so battle-only scoring is allowed in every environment. Money
+ * (wallet / earnings / revenue / paid gift goals) is still test-coin-blocked
+ * by the gift handler and REST path, not by this flag.
  */
 export function isProductionTestCoinsBlocked(
   nodeEnv: string | undefined = process.env.NODE_ENV,
@@ -29,13 +32,20 @@ export function isProductionTestCoinsBlocked(
 }
 
 /**
- * Optional explicit allowlist for test-coin battle scoring outside store builds.
- * Default: only when NOT production.
+ * Whether a test-coin gift may apply BATTLE SCORE + ANIMATION only.
+ *
+ * Test coins behave exactly like the free tap vote: they add VS/battle points
+ * and play the gift animation, but they NEVER touch the wallet, creator
+ * earnings, revenue, or paid gift-goal progression (that money separation is
+ * enforced in the gift handler / REST path, not here). Because no money is ever
+ * involved, battle-only scoring is safe in every environment — including
+ * production — so gift QA works against the real backend. The real Google Play
+ * (store) build disables test coins on the client, so this only affects dev /
+ * test builds. Operators keep a hard kill-switch via ALLOW_TEST_COINS_BATTLE_SCORE=0.
  */
 export function canAcceptTestCoinsBattleScore(
-  nodeEnv: string | undefined = process.env.NODE_ENV,
+  _nodeEnv: string | undefined = process.env.NODE_ENV,
 ): boolean {
-  if (isProductionTestCoinsBlocked(nodeEnv)) return false;
   const raw = String(process.env.ALLOW_TEST_COINS_BATTLE_SCORE || "")
     .trim()
     .toLowerCase();

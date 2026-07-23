@@ -38,10 +38,23 @@ describe("Money and economy safety contracts", () => {
     expect(paidBranch).toContain("incrementGiftGoal");
   });
 
-  it("blocks test-coin battle scoring in production", () => {
-    expect(testCoins).toContain('=== "production"');
+  it("test coins add battle score + animation only and never touch money", () => {
+    // Test coins are gated by canAcceptTestCoinsBattleScore (with a kill switch)
+    // and behave like the free tap vote: battle points + animation, never money.
     expect(testCoins).toContain("canAcceptTestCoinsBattleScore");
     expect(handlers).toContain("test_coins_blocked");
+
+    // The test-coin branch of gift_sent must NEVER credit the wallet, creator
+    // earnings, or paid gift-goal progression — that is the hard money rule.
+    const start = handlers.indexOf("if (isTestCoinsGiftSource(data))");
+    expect(start).toBeGreaterThan(-1);
+    const end = handlers.indexOf("const verified = await verifyGiftTransaction", start);
+    expect(end).toBeGreaterThan(start);
+    const testCoinBranch = handlers.slice(start, end);
+    expect(testCoinBranch).not.toContain("neonCreditCreatorEarning");
+    expect(testCoinBranch).not.toContain("neonDebitGift");
+    expect(testCoinBranch).not.toContain("incrementGiftGoal");
+    expect(testCoinBranch).not.toContain("recordCreatorGiftProgress");
   });
 
   it("Stripe webhook stays shop-scoped in source", () => {

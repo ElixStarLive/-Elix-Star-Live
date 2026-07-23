@@ -170,6 +170,13 @@ export async function handleMessage(
             timestamp: new Date().toISOString(),
           };
           broadcastToRoom(client.roomId, "chat_message", payload);
+          // Also push to the stream owner globally so the creator still sees
+          // spectator chat if their WS room id ever drifts from the spectator
+          // room id (same safety net gifts already use). Client dedupes by
+          // messageId so an in-room owner never sees the line twice.
+          if (hostUserId && hostUserId !== client.userId) {
+            sendToUserGlobal(hostUserId, "chat_message", payload);
+          }
           sendToClient(client, "chat_ack", { messageId, status: "delivered" });
           void recordEngagementAction({
             roomId: client.roomId,

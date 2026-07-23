@@ -20,14 +20,28 @@ describe("testCoinsPolicy", () => {
     expect(isTestCoinsGiftSource(null)).toBe(false);
   });
 
-  it("blocks test-coin battle scoring in production", () => {
+  it("allows test-coin battle scoring in every env (money stays separate), with a kill switch", () => {
+    // Production flag still reports correctly for any future money gating.
     expect(isProductionTestCoinsBlocked("production")).toBe(true);
     expect(isProductionTestCoinsBlocked("development")).toBe(false);
     expect(isProductionTestCoinsBlocked(undefined)).toBe(false);
+
+    // Test coins behave like the free tap vote: battle points + animation only,
+    // never money. So battle scoring is allowed in production too, enabling gift
+    // QA against the real backend.
+    const prev = process.env.ALLOW_TEST_COINS_BATTLE_SCORE;
+    delete process.env.ALLOW_TEST_COINS_BATTLE_SCORE;
+    expect(canAcceptTestCoinsBattleScore("production")).toBe(true);
+    expect(canAcceptTestCoinsBattleScore("development")).toBe(true);
+
+    // Operators keep a hard kill switch.
+    process.env.ALLOW_TEST_COINS_BATTLE_SCORE = "0";
     expect(canAcceptTestCoinsBattleScore("production")).toBe(false);
+    if (prev === undefined) delete process.env.ALLOW_TEST_COINS_BATTLE_SCORE;
+    else process.env.ALLOW_TEST_COINS_BATTLE_SCORE = prev;
   });
 
-  it("production test-coin gift_sent exits before broadcast, battle score, MVP, delivery", () => {
+  it("test-coin kill-switch guard exits before broadcast, battle score, MVP, delivery", () => {
     const start = handlersSrc.indexOf("if (isTestCoinsGiftSource(data))");
     expect(start).toBeGreaterThan(-1);
     const blockEnd = handlersSrc.indexOf("const testGiftId", start);
