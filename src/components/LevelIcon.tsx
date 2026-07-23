@@ -118,11 +118,11 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
   const { accent, background, border, glow, fillSoft } = getLevelAccentStyle(safeLevel);
   const prestige = isDiamondPrestigeLevel(safeLevel);
 
-  /** Chart-style chip: diamond + number only (no LEVEL text). */
-  const chipH = Math.max(24, Math.round(circleSize * 0.95));
-  const numberPx = Math.max(12, Math.round(chipH * 0.55));
-  /** Bigger diamond on the LEFT — chart ~1/3 of badge. */
-  const diamondSize = Math.round(chipH * 1.05);
+  /** Chip height — keep short; diamond + number only. */
+  const chipH = Math.max(18, Math.round(circleSize * 0.72));
+  const numberPx = Math.max(10, Math.round(chipH * 0.58));
+  /** Diamond fits inside chip height (not taller than the pill). */
+  const diamondSize = Math.max(14, Math.round(chipH * 0.9));
 
   const levelChip = (
     <div
@@ -153,8 +153,6 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
           justifyContent: 'center',
           width: diamondSize,
           height: diamondSize,
-          marginTop: -1,
-          marginBottom: -1,
           flexShrink: 0,
         }}
       >
