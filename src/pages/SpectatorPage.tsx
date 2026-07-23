@@ -3293,16 +3293,19 @@ export default function SpectatorPage() {
 
                 <div className="w-full px-3 py-1.5 flex items-center justify-between flex-none z-30" style={{ transform: 'translateY(1mm)' }}>
                   <div
-                    className="flex items-center gap-[0mm] min-w-0 flex-1 justify-start pointer-events-auto"
+                    className="flex items-end gap-[0mm] min-w-0 flex-1 justify-start pointer-events-auto"
                     style={{ transform: `translateX(-${BATTLE_MVP_ROW_EDGE_OFFSET_MM}mm)` }}
-                    title="Top gifters · red team"
+                    title="Top gifters — red side"
                     onClick={() => {
-                      const list = mvpSlots.host.map((s) => ({
+                      const ranked = [...mvpSlots.host]
+                        .filter((s) => (s.points ?? 0) > 0)
+                        .sort((a, b) => (b.points ?? 0) - (a.points ?? 0));
+                      const list = (ranked.length > 0 ? ranked : mvpSlots.host).map((s) => ({
                         id: s.id,
                         name: s.name,
                         avatar: s.avatar,
                         level: s.level,
-                        points: s.points ?? mvpGiftScoresHostRef.current[s.id] ?? 0,
+                        points: s.points ?? 0,
                       }));
                       setViewersList(list);
                       setShowViewersPanel(true);
@@ -3311,20 +3314,14 @@ export default function SpectatorPage() {
                     {mvpSlots.host.map((slot, i) => {
                       const gifted = slot.points ?? mvpGiftScoresHostRef.current[slot.id] ?? 0;
                       const isMvp = i === 0 && gifted > 0;
-                      const rawName = String(slot.name || '').trim();
-                      const label = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawName)
-                        ? rawName.split('@')[0] || 'User'
-                        : rawName || 'User';
-                      const ptsLabel =
-                        gifted >= 1_000_000
-                          ? `${(gifted / 1_000_000).toFixed(1)}M`
-                          : gifted >= 1_000
-                            ? `${(gifted / 1_000).toFixed(1)}K`
-                            : String(Math.floor(gifted));
+                      const raw = String(slot.name || '').trim();
+                      const label = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)
+                        ? raw.split('@')[0] || 'User'
+                        : raw || 'User';
                       return (
                         <div
                           key={`mvp-l-${slot.id}`}
-                          className="relative flex flex-col items-center"
+                          className="relative flex flex-col items-center max-w-[42px]"
                           style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
                         >
                           <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
@@ -3339,27 +3336,30 @@ export default function SpectatorPage() {
                               MVP
                             </span>
                           )}
-                          <span className="mt-1 max-w-[40px] text-white text-[7px] font-semibold leading-none truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                          <span className="mt-1.5 text-white text-[7px] font-semibold truncate max-w-full leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
                             {label}
                           </span>
-                          <span className="text-[#D4AF37] text-[7px] font-bold tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-                            {ptsLabel}
+                          <span className="text-[#D4AF37] text-[7px] font-black tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                            {gifted >= 1_000 ? `${(gifted / 1_000).toFixed(1)}K` : String(Math.floor(gifted))}
                           </span>
                         </div>
                       );
                     })}
                   </div>
                   <div
-                    className="flex items-center gap-[0mm] min-w-0 flex-1 justify-end pointer-events-auto"
+                    className="flex items-end gap-[0mm] min-w-0 flex-1 justify-end pointer-events-auto"
                     style={{ transform: `translateX(${BATTLE_MVP_ROW_EDGE_OFFSET_MM}mm)` }}
-                    title="Top gifters · blue team"
+                    title="Top gifters — blue side"
                     onClick={() => {
-                      const list = mvpSlots.opponent.map((s) => ({
+                      const ranked = [...mvpSlots.opponent]
+                        .filter((s) => (s.points ?? 0) > 0)
+                        .sort((a, b) => (b.points ?? 0) - (a.points ?? 0));
+                      const list = (ranked.length > 0 ? ranked : mvpSlots.opponent).map((s) => ({
                         id: s.id,
                         name: s.name,
                         avatar: s.avatar,
                         level: s.level,
-                        points: s.points ?? mvpGiftScoresOpponentRef.current[s.id] ?? 0,
+                        points: s.points ?? 0,
                       }));
                       setViewersList(list);
                       setShowViewersPanel(true);
@@ -3368,20 +3368,14 @@ export default function SpectatorPage() {
                     {mvpSlots.opponent.map((slot, i) => {
                       const gifted = slot.points ?? mvpGiftScoresOpponentRef.current[slot.id] ?? 0;
                       const isMvp = i === 0 && gifted > 0;
-                      const rawName = String(slot.name || '').trim();
-                      const label = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawName)
-                        ? rawName.split('@')[0] || 'User'
-                        : rawName || 'User';
-                      const ptsLabel =
-                        gifted >= 1_000_000
-                          ? `${(gifted / 1_000_000).toFixed(1)}M`
-                          : gifted >= 1_000
-                            ? `${(gifted / 1_000).toFixed(1)}K`
-                            : String(Math.floor(gifted));
+                      const raw = String(slot.name || '').trim();
+                      const label = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)
+                        ? raw.split('@')[0] || 'User'
+                        : raw || 'User';
                       return (
                         <div
                           key={`mvp-r-${slot.id}`}
-                          className="relative flex flex-col items-center"
+                          className="relative flex flex-col items-center max-w-[42px]"
                           style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
                         >
                           <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
@@ -3396,11 +3390,11 @@ export default function SpectatorPage() {
                               MVP
                             </span>
                           )}
-                          <span className="mt-1 max-w-[40px] text-white text-[7px] font-semibold leading-none truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                          <span className="mt-1.5 text-white text-[7px] font-semibold truncate max-w-full leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
                             {label}
                           </span>
-                          <span className="text-[#D4AF37] text-[7px] font-bold tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-                            {ptsLabel}
+                          <span className="text-[#D4AF37] text-[7px] font-black tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                            {gifted >= 1_000 ? `${(gifted / 1_000).toFixed(1)}K` : String(Math.floor(gifted))}
                           </span>
                         </div>
                       );
