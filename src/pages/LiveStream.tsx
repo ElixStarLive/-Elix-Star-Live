@@ -17,6 +17,7 @@ import {
   Zap,
   Copy,
   AlertTriangle,
+  Plus,
   PlusCircle,
   TrendingUp,
   User,
@@ -1996,7 +1997,7 @@ export default function LiveStream() {
   const speedChallengeActiveRef = useRef(false);
   const speedMultiplierRef = useRef(1);
   const roseCountRef = useRef(0);
-  const [_roseCount, setRoseCount] = useState(0);
+  const [roseCount, setRoseCount] = useState(0);
 
   useEffect(() => { speedChallengeActiveRef.current = speedChallengeActive; }, [speedChallengeActive]);
   useEffect(() => { speedMultiplierRef.current = speedMultiplier; }, [speedMultiplier]);
@@ -2311,6 +2312,8 @@ export default function LiveStream() {
     setBattleUiRole(isBattleJoiner ? 'opponent' : 'host');
     setMutedPlayers({});
     reachedThresholdsRef.current.clear();
+    roseCountRef.current = 0;
+    setRoseCount(0);
     battleFreeTapUsedRef.current = false;
     battleTapScoreRemainingRef.current = 5;
     prevBattleSyncStatusRef.current = null;
@@ -2318,7 +2321,7 @@ export default function LiveStream() {
     battleTripleTapRef.current = { target: null, lastTapAt: 0, count: 0 };
     setMiniProfile(null);
     setSpeedChallengeActive(false);
-    setSpeedChallengeTime(30);
+    setSpeedChallengeTime(60);
     setSpeedChallengeTaps({ me: 0, opponent: 0, player3: 0, player4: 0 });
     setSpeedChallengeResult(null);
     setSpeedMultiplier(1);
@@ -2632,10 +2635,10 @@ export default function LiveStream() {
     setSpeedChallengeTaps({ me: 0, opponent: 0, player3: 0, player4: 0 });
     setSpeedChallengeResult(null);
     setSpeedChallengeActive(true);
-    setSpeedChallengeTime(30);
+    setSpeedChallengeTime(60);
   }, [speedChallengeActive, isBattleMode, battleWinner, SPEED_CHALLENGE_ENABLED]);
 
-  // Speed challenge timer: 30 → 0
+  // Speed challenge timer: 60 → 0
   useEffect(() => {
     if (!speedChallengeActive) return;
     if (speedChallengeTime <= 0) {
@@ -2674,23 +2677,33 @@ export default function LiveStream() {
   }, [speedChallengeActive, speedChallengeTime]);
 
 
-  // Speed challenge: single fixed x2 round per match. Once the battle heats up
-  // (total score crosses the threshold) it starts once, runs for 30s at x2, then
-  // disappears. Thresholds reset when a new battle starts, so it returns next match.
+  // Speed challenge unlock: gift points OR flower/rose gifts.
+  // Thresholds — 200 pts / 1 flower → x2, 1000 / 3 → x3, 5000 / 5 → x5 (each 60s once crossed).
   useEffect(() => {
     if (!SPEED_CHALLENGE_ENABLED || !isBattleMode || battleWinner) return;
     if (speedChallengeActive) return;
 
     const totalScore = myScore + opponentScore + player3Score + player4Score;
+    const flowers = roseCountRef.current;
 
-    if (totalScore >= 200 && !reachedThresholdsRef.current.has(200)) {
-      reachedThresholdsRef.current.add(200);
-      setSpeedMultiplier(2);
-      speedMultiplierRef.current = 2;
+    const tryUnlock = (threshold: number, mult: number, flowerNeed: number, markLower: number[]) => {
+      if (reachedThresholdsRef.current.has(threshold)) return false;
+      const byPoints = totalScore >= threshold;
+      const byFlower = flowers >= flowerNeed;
+      if (!byPoints && !byFlower) return false;
+      reachedThresholdsRef.current.add(threshold);
+      for (const m of markLower) reachedThresholdsRef.current.add(m);
+      setSpeedMultiplier(mult);
+      speedMultiplierRef.current = mult;
       startSpeedChallenge();
-    }
+      return true;
+    };
+
+    if (tryUnlock(5000, 5, 5, [1000, 200])) return;
+    if (tryUnlock(1000, 3, 3, [200])) return;
+    tryUnlock(200, 2, 1, []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [myScore, opponentScore, player3Score, player4Score, isBattleMode, battleWinner, speedChallengeActive, startSpeedChallenge]);
+  }, [myScore, opponentScore, player3Score, player4Score, roseCount, isBattleMode, battleWinner, speedChallengeActive, startSpeedChallenge]);
 
   useEffect(() => {
     if (!isBattleMode) return;
@@ -3126,24 +3139,50 @@ export default function LiveStream() {
   );
 
   const topMvpHostBattle = useMemo(() => {
-    const ranked = buildMvpRanked(mvpGiftScoresHost, 3, { requirePositiveScore: true });
-    // Exclusive: host side only if host score beats opponent (tie stays on host).
-    return ranked.filter((v) => {
+    // Scorers exclusive to host side, then fill remaining of 3 from viewers by host score.
+    const exclusive = buildMvpRanked(mvpGiftScoresHost, 3, { requirePositiveScore: true }).filter((v) => {
       const h = mvpGiftScoresHost[v.id] ?? 0;
       const o = mvpGiftScoresOpponent[v.id] ?? 0;
       return h > 0 && h >= o;
     });
+    if (exclusive.length >= 3) return exclusive.slice(0, 3);
+    const seen = new Set(exclusive.map((v) => v.id));
+    const fillers = buildMvpRanked(mvpGiftScoresHost, 6);
+    const out = [...exclusive];
+    for (const v of fillers) {
+      if (out.length >= 3) break;
+      if (seen.has(v.id)) continue;
+      const h = mvpGiftScoresHost[v.id] ?? 0;
+      const o = mvpGiftScoresOpponent[v.id] ?? 0;
+      if (o > h) continue;
+      out.push(v);
+      seen.add(v.id);
+    }
+    return out;
   }, [buildMvpRanked, mvpGiftScoresHost, mvpGiftScoresOpponent]);
 
   const topMvpOpponentBattle = useMemo(() => {
-    const ranked = buildMvpRanked(mvpGiftScoresOpponent, 3, { requirePositiveScore: true });
-    // Exclusive: opponent only when opponent score is strictly higher than host.
-    return ranked.filter((v) => {
+    const exclusive = buildMvpRanked(mvpGiftScoresOpponent, 3, { requirePositiveScore: true }).filter((v) => {
       const h = mvpGiftScoresHost[v.id] ?? 0;
       const o = mvpGiftScoresOpponent[v.id] ?? 0;
       return o > 0 && o > h;
     });
-  }, [buildMvpRanked, mvpGiftScoresHost, mvpGiftScoresOpponent]);
+    if (exclusive.length >= 3) return exclusive.slice(0, 3);
+    const hostIds = new Set(topMvpHostBattle.map((v) => v.id));
+    const seen = new Set(exclusive.map((v) => v.id));
+    const fillers = buildMvpRanked(mvpGiftScoresOpponent, 6);
+    const out = [...exclusive];
+    for (const v of fillers) {
+      if (out.length >= 3) break;
+      if (seen.has(v.id) || hostIds.has(v.id)) continue;
+      const h = mvpGiftScoresHost[v.id] ?? 0;
+      const o = mvpGiftScoresOpponent[v.id] ?? 0;
+      if (h > o) continue;
+      out.push(v);
+      seen.add(v.id);
+    }
+    return out;
+  }, [buildMvpRanked, mvpGiftScoresHost, mvpGiftScoresOpponent, topMvpHostBattle]);
 
   useEffect(() => {
     if (!isBattleMode) {
@@ -3439,6 +3478,13 @@ export default function LiveStream() {
           (typeof data.gift_name === 'string' && data.gift_name.trim()) ||
           'Gift',
         );
+        if (isBattleModeRef.current) {
+          const flowerKey = giftName.toLowerCase();
+          if (flowerKey.includes('rose') || flowerKey.includes('flower')) {
+            roseCountRef.current += 1;
+            setRoseCount(roseCountRef.current);
+          }
+        }
         const msg: LiveMessage = {
           id: `gift-ws-${txnId || Date.now()}-${Math.random()}`,
           username: typeof data.username === 'string' ? data.username : 'User',
@@ -4488,11 +4534,7 @@ export default function LiveStream() {
 
       maybeEnqueueUniverse(gift.name, viewerName);
 
-      // Rose trigger for Speed Challenge
-      if (gift.name.toLowerCase().includes('rose')) {
-        roseCountRef.current += 1;
-        setRoseCount(roseCountRef.current);
-      }
+      // Flower/rose → Speed unlock is counted once in gift_sent WS handler.
 
       if (isBroadcast && !isBattleMode) {
         maybeTriggerFaceARGift(gift);
@@ -4751,11 +4793,7 @@ export default function LiveStream() {
 
       maybeEnqueueUniverse(lastSentGift.name, viewerName);
 
-      // Rose trigger for Speed Challenge
-      if (lastSentGift.name.toLowerCase().includes('rose')) {
-        roseCountRef.current += 1;
-        setRoseCount(roseCountRef.current);
-      }
+      // Flower/rose → Speed unlock is counted once in gift_sent WS handler.
 
       if (isBroadcast && !isBattleMode) {
         maybeTriggerFaceARGift(lastSentGift);
@@ -5948,50 +5986,74 @@ export default function LiveStream() {
 
             <div className="absolute bottom-1 left-0 right-0 px-3 py-2 flex items-center justify-between flex-none pointer-events-none relative z-30" style={{ transform: 'translateY(1mm)' }}>
               <div className="flex items-center gap-[0mm] min-w-0 flex-1 justify-start pointer-events-auto" style={{ transform: `translateX(-${BATTLE_MVP_ROW_EDGE_OFFSET_MM}mm)` }} onClick={() => { setShowViewerList(false); setIsFindCreatorsOpen(true); }}>
-                {topMvpHostBattle.map((viewer, i) => {
-                  const isMvp = i === 0 && (mvpGiftScoresHost[viewer.id] ?? 0) > 0;
+                {[0, 1, 2].map((i) => {
+                  const viewer = topMvpHostBattle[i];
+                  const isMvp = Boolean(viewer && i === 0 && (mvpGiftScoresHost[viewer.id] ?? 0) > 0);
                   return (
                   <div
-                    key={`mvp-l-${viewer.id}`}
+                    key={viewer ? `mvp-l-${viewer.id}` : `mvp-l-empty-${i}`}
                     className="relative flex flex-col items-center"
                     style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
                   >
-                    <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
-                      <AvatarRing
-                        src={resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username)}
-                        alt={viewer.displayName || viewer.username || ''}
-                        size={SPECTATOR_BATTLE_PROFILE_RING_PX}
-                      />
-                    </div>
-                    {isMvp && (
-                      <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
-                        MVP
-                      </span>
+                    {viewer ? (
+                      <>
+                        <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
+                          <AvatarRing
+                            src={resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username)}
+                            alt={viewer.displayName || viewer.username || ''}
+                            size={SPECTATOR_BATTLE_PROFILE_RING_PX}
+                          />
+                        </div>
+                        {isMvp && (
+                          <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
+                            MVP
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <div
+                        className="rounded-full bg-black/45 border border-[#C9A96E]/40 flex items-center justify-center"
+                        style={{ width: SPECTATOR_BATTLE_PROFILE_RING_PX, height: SPECTATOR_BATTLE_PROFILE_RING_PX }}
+                      >
+                        <Plus className="text-[#C9A96E]" size={12} strokeWidth={2.5} />
+                      </div>
                     )}
                   </div>
                   );
                 })}
               </div>
               <div className="flex items-center gap-[0mm] min-w-0 flex-1 justify-end pointer-events-auto" style={{ transform: `translateX(${BATTLE_MVP_ROW_EDGE_OFFSET_MM}mm)` }} onClick={() => { setShowViewerList(false); setIsFindCreatorsOpen(true); }}>
-                {topMvpOpponentBattle.map((viewer, i) => {
-                  const isMvp = i === 0 && (mvpGiftScoresOpponent[viewer.id] ?? 0) > 0;
+                {[0, 1, 2].map((i) => {
+                  const viewer = topMvpOpponentBattle[i];
+                  const isMvp = Boolean(viewer && i === 0 && (mvpGiftScoresOpponent[viewer.id] ?? 0) > 0);
                   return (
                   <div
-                    key={`mvp-r-${viewer.id}`}
+                    key={viewer ? `mvp-r-${viewer.id}` : `mvp-r-empty-${i}`}
                     className="relative flex flex-col items-center"
                     style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
                   >
-                    <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
-                      <AvatarRing
-                        src={resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username)}
-                        alt={viewer.displayName || viewer.username || ''}
-                        size={SPECTATOR_BATTLE_PROFILE_RING_PX}
-                      />
-                    </div>
-                    {isMvp && (
-                      <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
-                        MVP
-                      </span>
+                    {viewer ? (
+                      <>
+                        <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
+                          <AvatarRing
+                            src={resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username)}
+                            alt={viewer.displayName || viewer.username || ''}
+                            size={SPECTATOR_BATTLE_PROFILE_RING_PX}
+                          />
+                        </div>
+                        {isMvp && (
+                          <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
+                            MVP
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <div
+                        className="rounded-full bg-black/45 border border-[#C9A96E]/40 flex items-center justify-center"
+                        style={{ width: SPECTATOR_BATTLE_PROFILE_RING_PX, height: SPECTATOR_BATTLE_PROFILE_RING_PX }}
+                      >
+                        <Plus className="text-[#C9A96E]" size={12} strokeWidth={2.5} />
+                      </div>
                     )}
                   </div>
                   );
