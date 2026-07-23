@@ -817,29 +817,28 @@ export default function EnhancedVideoPlayer({
         <audio ref={audioRef} preload="auto" className="hidden" />
         {isDuetLayout && duetOriginalSrc ? (
           <div
-            className="absolute top-0 left-0 right-0 w-full overflow-hidden bg-black"
+            className="absolute top-0 left-0 right-0 w-full flex flex-row overflow-hidden bg-black"
             style={{ height: DUET_STAGE_HEIGHT }}
+            data-duet-container="playback"
           >
-            <video
-              ref={duetOriginalRef}
-              src={duetOriginalSrc}
-              className="absolute inset-0 w-full h-full object-cover elix-no-media-chrome"
-              loop
-              playsInline
-              muted
-              controls={false}
-              preload={isActive ? 'auto' : 'none'}
-              poster={posterUrl}
-            />
-            {/* Duet creator (you) — bottom-right PiP so the only person appears down */}
-            <div
-              className="absolute z-[2] overflow-hidden rounded-lg border border-[#C9A227]/45 shadow-lg bg-black"
-              style={{ width: '36%', aspectRatio: '9 / 16', bottom: 8, right: 8 }}
-            >
+            <div className="w-1/2 h-full flex-shrink-0 bg-black" data-duet-pane="original">
+              <video
+                ref={duetOriginalRef}
+                src={duetOriginalSrc}
+                className="w-full h-full object-cover elix-no-media-chrome"
+                loop
+                playsInline
+                muted
+                controls={false}
+                preload={isActive ? 'auto' : 'none'}
+                poster={posterUrl}
+              />
+            </div>
+            <div className="w-1/2 h-full flex-shrink-0 bg-black" data-duet-pane="you">
               <video
                 ref={videoRef}
                 src={video.url}
-                className="absolute inset-0 w-full h-full object-cover elix-no-media-chrome"
+                className="w-full h-full object-cover elix-no-media-chrome"
                 loop
                 playsInline
                 muted={effectiveMuted}
