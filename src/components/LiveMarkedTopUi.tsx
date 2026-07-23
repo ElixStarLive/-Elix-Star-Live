@@ -394,8 +394,8 @@ export function LiveExplorePill({ onOpen }: { onOpen: () => void }) {
 }
 
 /**
- * Photo sub-header: 4 individual thin capsules, stacked separately on the right
- * (not one fused horizontal strip). Left stays clear for battle gloves.
+ * Photo sub-header: 4 separate thin capsules in one line, right-aligned
+ * so left stays clear for battle gloves.
  * 1 Weekly Ranking · 2 Diamond League · 3 Membership · 4 Explore
  */
 export function LiveMarkedSubHeaderBar({
@@ -413,7 +413,7 @@ export function LiveMarkedSubHeaderBar({
 }) {
   return (
     <div className="mt-1 -translate-y-[2mm] w-full pointer-events-auto relative z-20 flex justify-end">
-      <div className="flex flex-col items-end gap-1.5 ml-auto">
+      <div className="flex items-center gap-0.5 flex-nowrap w-max max-w-full ml-auto overflow-x-auto no-scrollbar">
         <LiveWeeklyRankingPill rank={rank} onOpen={onWeeklyRanking} />
         <LiveDiamondLeagueCapsule rank={rank} onOpen={onDiamond} />
         <LiveMembershipVipCapsule onOpen={onMembership} />
