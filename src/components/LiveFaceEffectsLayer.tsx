@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { detectFacePose } from '../lib/faceLandmarks';
 import { drawFaceAREffect } from '../lib/faceARRenderer';
 import { resolveLiveFaceEffectsEngine } from '../lib/liveFaceEffectsProvider';
-import { initCommercialFaceEngine, useMediaPipeForTracking } from '../lib/commercialFaceEffects';
+import { initCommercialFaceEngine, shouldTrackWithMediaPipe } from '../lib/commercialFaceEffects';
 
 type LiveFaceEffectsLayerProps = {
   videoRef: React.RefObject<HTMLVideoElement | null>;
@@ -54,20 +54,26 @@ export function LiveFaceEffectsLayer({
         return;
       }
 
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas!.width = Math.round(rect.width * dpr);
-      canvas!.height = Math.round(rect.height * dpr);
-      canvas!.style.width = `${rect.width}px`;
-      canvas!.style.height = `${rect.height}px`;
+      const surface = canvas;
+      if (!surface) {
+        raf = requestAnimationFrame(tick);
+        return;
+      }
 
-      if (useMediaPipeForTracking(engine) && now - lastDetect > 48) {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      surface.width = Math.round(rect.width * dpr);
+      surface.height = Math.round(rect.height * dpr);
+      surface.style.width = `${rect.width}px`;
+      surface.style.height = `${rect.height}px`;
+
+      if (shouldTrackWithMediaPipe(engine) && now - lastDetect > 48) {
         lastDetect = now;
         void detectFacePose(video, rect.width, rect.height, mirrored, now).then((pose) => {
           if (pose) cachedPose = pose;
         });
       }
 
-      const ctx = canvas!.getContext('2d');
+      const ctx = surface.getContext('2d');
       if (ctx) {
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         ctx.clearRect(0, 0, rect.width, rect.height);

@@ -122,9 +122,10 @@ export async function handleSendGift(req: Request, res: Response) {
       let inLayout = false;
       if (!granted) {
         const layout = await getCohostLayout(roomId);
+        const coHosts = layout?.coHosts;
         inLayout =
-          Array.isArray(layout?.coHosts) &&
-          layout!.coHosts.some((h) => {
+          Array.isArray(coHosts) &&
+          coHosts.some((h) => {
             const row = h as { userId?: unknown; status?: unknown };
             const uid = typeof row.userId === "string" ? row.userId : "";
             const status = typeof row.status === "string" ? row.status : "";

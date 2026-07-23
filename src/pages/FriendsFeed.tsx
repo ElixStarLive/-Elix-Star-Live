@@ -214,6 +214,8 @@ export default function FriendsFeed() {
     lastScrollTopRef.current = scrollPos;
   };
 
+  const feedSlideKeys = feedSlides.map((s) => s.key).join('|');
+
   useEffect(() => {
     if (!containerRef.current || feedLen === 0) return;
     const container = containerRef.current;
@@ -232,7 +234,7 @@ export default function FriendsFeed() {
     const slides = container.querySelectorAll('[data-slide-index]');
     slides.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
-  }, [feedLen, feedSlides.map((s) => s.key).join('|')]);
+  }, [feedLen, feedSlideKeys]);
 
   const handleSlideEnd = useCallback((index: number) => {
     if (index >= feedLen - 1) return;

@@ -19,12 +19,8 @@ import {
   AlertTriangle,
   PlusCircle,
   TrendingUp,
-  Plus,
   User,
   UserPlus,
-  Crown,
-  Gem,
-  Star,
   X,
   Sword,
   Coins,
@@ -1625,6 +1621,8 @@ export default function LiveStream() {
     })();
     return () => {
       cancelled = true;
+      // Intentional: skip teardown if a newer battle join replaced this connectId.
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- compare live ref to this effect's connectId
       if (battleJoinerConnectIdRef.current !== connectId) return;
       if (battleLkRoomRef.current) { battleLkRoomRef.current.disconnect(); battleLkRoomRef.current = null; }
       if (battlePeerRef.current) { battlePeerRef.current.close(); battlePeerRef.current = null; }
@@ -1899,6 +1897,8 @@ export default function LiveStream() {
 
     return () => {
       mounted = false;
+      // Intentional: skip teardown if a newer opponent connect replaced this id.
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- compare live ref to this effect's connectId
       if (opponentLkConnectIdRef.current !== connectId) return;
       room.disconnect();
       if (opponentLkRoomRef.current === room) opponentLkRoomRef.current = null;
@@ -2525,22 +2525,6 @@ export default function LiveStream() {
       return next;
     });
   }, [isBattleMode, effectiveStreamId, setPromo]);
-
-  const awardBattlePoints = useCallback((target: 'me' | 'opponent' | 'player3' | 'player4', points: number, _isSpeedTap?: boolean) => {
-    if (!isBattleMode || battleTime <= 0 || battleWinner) return;
-    const rawPoints = speedChallengeActiveRef.current ? points * speedMultiplierRef.current : points;
-    const finalPoints = points <= 5 ? Math.min(rawPoints, 5) : rawPoints;
-
-    if (target === 'me') {
-      setMyScore((prev) => prev + finalPoints);
-    } else if (target === 'opponent') {
-      setOpponentScore((prev) => prev + finalPoints);
-    } else if (target === 'player3') {
-      setPlayer3Score((prev) => prev + finalPoints);
-    } else {
-      setPlayer4Score((prev) => prev + finalPoints);
-    }
-  }, [isBattleMode, battleTime, battleWinner]);
 
   /** Gift / battle PK totals — full numbers (no K/M) so scores match real coin amounts. */
   const formatCoinsShort = (coins: number) => {
@@ -4594,10 +4578,6 @@ export default function LiveStream() {
     } catch {
       showToast('Gift failed');
     }
-  };
-
-  const handleShare = async () => {
-    setShowSharePanel(true);
   };
 
   const toggleMic = () => {

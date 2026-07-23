@@ -37,6 +37,6 @@ export function isCommercialSdkActive(): boolean {
 }
 
 /** MediaPipe tracks the face unless a commercial SDK is actually loaded. */
-export function useMediaPipeForTracking(engine: LiveFaceEffectsEngine): boolean {
+export function shouldTrackWithMediaPipe(engine: LiveFaceEffectsEngine): boolean {
   return engine === 'mediapipe' || !commercialReady;
 }

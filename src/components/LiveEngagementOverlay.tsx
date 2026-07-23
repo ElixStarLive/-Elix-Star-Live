@@ -102,14 +102,17 @@ export function LiveEngagementOverlay({
               </div>
               <p className="text-white text-[12px] font-semibold mb-2">{state.poll.question}</p>
               <div className="flex-1 overflow-y-auto no-scrollbar flex flex-col gap-1.5">
-                {state.poll.options.map((opt, i) => {
-                  const total = state.poll!.votes.reduce((a, b) => a + b, 0) || 1;
-                  const pct = Math.round(((state.poll!.votes[i] || 0) / total) * 100);
+                {(() => {
+                  const poll = state.poll;
+                  if (!poll) return null;
+                  return poll.options.map((opt, i) => {
+                  const total = poll.votes.reduce((a, b) => a + b, 0) || 1;
+                  const pct = Math.round(((poll.votes[i] || 0) / total) * 100);
                   const ended =
-                    !!state.poll!.endsAt && _nowMs >= state.poll!.endsAt;
+                    !!poll.endsAt && _nowMs >= poll.endsAt;
                   return (
                     <button
-                      key={`${state.poll!.id}-${i}`}
+                      key={`${poll.id}-${i}`}
                       type="button"
                       disabled={hasVoted || ended}
                       onClick={() => {
@@ -130,7 +133,8 @@ export function LiveEngagementOverlay({
                       </div>
                     </button>
                   );
-                })}
+                  });
+                })()}
               </div>
             </div>
           </div>

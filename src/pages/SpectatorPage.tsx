@@ -23,8 +23,6 @@ import {
   Coins,
   Lock,
   Crown,
-  Gem,
-  Star,
   PlusCircle,
   Play,
   CloudFog,
