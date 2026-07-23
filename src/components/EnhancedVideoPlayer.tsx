@@ -430,6 +430,8 @@ export default function EnhancedVideoPlayer({
           videoEl.muted = true;
           videoEl.defaultMuted = true;
           videoEl.setAttribute('muted', '');
+          const markPlaying = () => finishOk(true);
+          videoEl.addEventListener('playing', markPlaying, { once: true });
           void videoEl
             .play()
             .then(() => finishOk(true))
@@ -475,22 +477,24 @@ export default function EnhancedVideoPlayer({
         const el = videoRef.current;
         if (!el || !shouldPlayRef.current) return;
         stripVideoMediaChrome(el);
-        if (el.readyState >= 2) {
-          runPlay(el);
-        } else {
+        // Ensure src is attached — Android often never fires canplay if we only wait.
+        if (video?.url && !el.currentSrc) {
+          el.src = video.url;
+        }
+        // ALWAYS attempt play immediately. Waiting only for readyState>=2 leaves
+        // Android WebView stuck forever (never buffers without a play() call).
+        runPlay(el);
+        if (el.readyState < 2) {
           const onReady = () => {
             el.removeEventListener('canplay', onReady);
             el.removeEventListener('loadeddata', onReady);
+            el.removeEventListener('playing', onReady);
             if (!shouldPlayRef.current) return;
             runPlay(el);
           };
           el.addEventListener('canplay', onReady);
           el.addEventListener('loadeddata', onReady);
-          // Do NOT call el.load() here — on Android WebView it restarts the
-          // pipeline and often sticks on the white play / forever-loading state.
-          if (el.networkState === HTMLMediaElement.NETWORK_EMPTY && video?.url) {
-            el.src = video.url;
-          }
+          el.addEventListener('playing', onReady);
         }
       };
 
@@ -499,9 +503,25 @@ export default function EnhancedVideoPlayer({
         ? setTimeout(() => {
             if (!shouldPlayRef.current) return;
             const el = videoRef.current;
-            if (!el || !el.paused) return;
+            if (!el) return;
+            if (!el.paused && !el.ended) {
+              setIsPlaying(true);
+              return;
+            }
             runPlay(el);
           }, 400)
+        : null;
+      const retryTimer2 = platform.isAndroid
+        ? setTimeout(() => {
+            if (!shouldPlayRef.current) return;
+            const el = videoRef.current;
+            if (!el) return;
+            if (!el.paused && !el.ended) {
+              setIsPlaying(true);
+              return;
+            }
+            runPlay(el);
+          }, 1200)
         : null;
 
       incrementViews(videoId);
@@ -552,6 +572,7 @@ export default function EnhancedVideoPlayer({
       return () => {
         clearTimeout(timer);
         if (retryTimer) clearTimeout(retryTimer);
+        if (retryTimer2) clearTimeout(retryTimer2);
         if (singleTapTimerRef.current) { clearTimeout(singleTapTimerRef.current); singleTapTimerRef.current = null; }
         stopAll();
       };
@@ -859,7 +880,7 @@ export default function EnhancedVideoPlayer({
           playsInline
           muted={effectiveMuted}
           controls={false}
-          preload={isActive ? 'auto' : 'none'}
+          preload={isActive ? 'auto' : 'metadata'}
           onClick={handleVideoClick}
           poster={posterUrl}
           onError={() => {
