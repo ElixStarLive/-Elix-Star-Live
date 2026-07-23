@@ -4,7 +4,11 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { setCachedCameraStream } from '../lib/cameraStream';
 import { RefreshCw, Zap, Clock, Music, Check, RotateCcw, ZoomIn, ZoomOut, Wand2, ChevronLeft, Image as ImageIcon, Type, Sparkles, X, LayoutGrid, Plus, Share2, Smile, Blend, ChevronDown } from 'lucide-react';
 import { useVideoStore } from '../store/useVideoStore';
-import { ORIGINAL_SOUND_TRACK, type SoundTrack } from '../lib/soundLibrary';
+import {
+  ORIGINAL_SOUND_TRACK,
+  resolvePlayableSoundUrl,
+  type SoundTrack,
+} from '../lib/soundLibrary';
 import SoundPickerPanel from '../components/SoundPickerPanel';
 import { trackEvent } from '../lib/analytics';
 import { useSettingsStore } from '../store/useSettingsStore';
@@ -378,8 +382,9 @@ export default function Upload() {
     }
   };
 
-  // Audio Preview Logic for Recorded Video
+  // Audio Preview Logic for Recorded Video — resolve signed Epidemic URL (no 302).
   useEffect(() => {
+      let cancelled = false;
       const shouldPlayTrack =
         !!recordedVideoUrl &&
         !muteAllSounds &&
@@ -387,38 +392,61 @@ export default function Upload() {
         selectedAudioId.startsWith('track_');
 
       if (!shouldPlayTrack) {
-        if (backgroundAudioRef.current) backgroundAudioRef.current.pause();
+        if (backgroundAudioRef.current) {
+          try { backgroundAudioRef.current.pause(); } catch { /* ignore */ }
+        }
         return;
       }
 
       const track = selectedTrack;
       if (!track?.url) {
-        if (backgroundAudioRef.current) backgroundAudioRef.current.pause();
+        if (backgroundAudioRef.current) {
+          try { backgroundAudioRef.current.pause(); } catch { /* ignore */ }
+        }
         return;
       }
 
       if (backgroundAudioRef.current) {
-        backgroundAudioRef.current.pause();
+        try { backgroundAudioRef.current.pause(); } catch { /* ignore */ }
       }
 
-      backgroundAudioRef.current = new Audio(track.url);
-      const start = Math.max(0, track.clipStartSeconds);
-      const end = Math.max(start, track.clipEndSeconds);
-      backgroundAudioRef.current.loop = false;
-      backgroundAudioRef.current.volume = Math.max(0, Math.min(1, musicVolume));
-      backgroundAudioRef.current.currentTime = start;
-      backgroundAudioRef.current.ontimeupdate = () => {
-        const a = backgroundAudioRef.current;
-        if (!a) return;
-        if (end > start && a.currentTime >= end) {
-          a.currentTime = start;
-          a.play().catch(() => {});
+      const start = Math.max(0, track.clipStartSeconds || 0);
+      const end = Math.max(start, track.clipEndSeconds || start + 30);
+
+      void (async () => {
+        const playable = await resolvePlayableSoundUrl(track.url);
+        if (cancelled || !playable) {
+          if (!cancelled && !playable) showToast('Could not load selected sound');
+          return;
         }
-      };
-      backgroundAudioRef.current.play().catch(() => {});
+        const audio = new Audio();
+        audio.preload = 'auto';
+        audio.loop = false;
+        audio.volume = Math.max(0, Math.min(1, musicVolume));
+        audio.src = playable;
+        audio.ontimeupdate = () => {
+          if (end > start && audio.currentTime >= end) {
+            audio.currentTime = start;
+            void audio.play().catch(() => {});
+          }
+        };
+        backgroundAudioRef.current = audio;
+        const onReady = () => {
+          if (cancelled) return;
+          try { audio.currentTime = start; } catch { /* ignore */ }
+          void audio.play().catch(() => {
+            if (!cancelled) showToast('Tap video to hear sound');
+          });
+        };
+        audio.addEventListener('canplay', onReady, { once: true });
+        audio.load();
+      })();
 
       return () => {
-        if (backgroundAudioRef.current) backgroundAudioRef.current.pause();
+        cancelled = true;
+        if (backgroundAudioRef.current) {
+          try { backgroundAudioRef.current.pause(); } catch { /* ignore */ }
+        }
       };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [muteAllSounds, postWithoutAudio, recordedVideoUrl, selectedAudioId, selectedTrack]);
@@ -502,13 +530,18 @@ export default function Upload() {
         let musicMeta: Record<string, unknown> | undefined;
         if (selectedTrack && selectedAudioId.startsWith('track_')) {
             const track = selectedTrack;
+            // Persist stable proxy path (not a short-lived signed CDN URL).
+            const previewPath =
+              track.provider === 'epidemic_sound' || /\/api\/music\/tracks\//.test(track.url || '')
+                ? `/api/music/tracks/${encodeURIComponent(track.id)}/preview`
+                : track.url;
             musicMeta = {
                 id: track.id,
                 title: track.title,
                 artist: track.artist,
                 duration: formatClip(track.clipStartSeconds, track.clipEndSeconds),
-                url: track.url,
-                previewUrl: track.url,
+                url: previewPath,
+                previewUrl: previewPath,
                 provider: track.provider,
                 clipStartSeconds: track.clipStartSeconds,
                 clipEndSeconds: track.clipEndSeconds,

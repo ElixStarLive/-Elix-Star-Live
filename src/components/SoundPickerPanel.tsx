@@ -5,7 +5,8 @@ import {
   fetchMusicPlaylists,
   searchLicensedTracks,
   ORIGINAL_SOUND_TRACK,
-  resolveSoundTrackPlaybackUrl,
+  resolvePlayableSoundUrl,
+  playAudioClip,
   type MusicPlaylist,
   type SoundTrack,
 } from '../lib/soundLibrary';
@@ -27,6 +28,7 @@ function formatClip(start: number, end: number) {
 export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: Props) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const clipRef = useRef<{ start: number; end: number } | null>(null);
+  const previewGenRef = useRef(0);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [playlists, setPlaylists] = useState<MusicPlaylist[]>([]);
   const [activePlaylistId, setActivePlaylistId] = useState<string | null>(null);
@@ -36,19 +38,23 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
   const [searchResults, setSearchResults] = useState<SoundTrack[]>([]);
   const [searching, setSearching] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
+  const [previewLoadingId, setPreviewLoadingId] = useState<string | null>(null);
 
   const stopPreview = () => {
+    previewGenRef.current += 1;
     const a = audioRef.current;
     if (a) {
       try {
         a.pause();
         a.removeAttribute('src');
+        a.load();
       } catch {
         /* ignore */
       }
     }
     clipRef.current = null;
     setPlayingId(null);
+    setPreviewLoadingId(null);
   };
 
   useEffect(() => {
@@ -125,39 +131,43 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
     e?.stopPropagation();
     e?.preventDefault();
     setPreviewError(null);
-    const url = resolveSoundTrackPlaybackUrl(track.url || '');
-    if (!url) {
-      setPreviewError('No preview for this track');
-      return;
-    }
-    const a = audioRef.current;
-    if (!a) return;
     if (playingId === track.id) {
       stopPreview();
       return;
     }
-    // Stop any previous preview first — music plays alone.
+    const a = audioRef.current;
+    if (!a) return;
+
+    const gen = ++previewGenRef.current;
+    setPreviewLoadingId(track.id);
     try {
       a.pause();
     } catch {
       /* ignore */
     }
-    a.src = url;
+
+    const playable = await resolvePlayableSoundUrl(track.url || '');
+    if (gen !== previewGenRef.current) return;
+    if (!playable) {
+      setPreviewLoadingId(null);
+      setPreviewError('Preview unavailable for this track');
+      return;
+    }
+
     const start = Math.max(0, track.clipStartSeconds || 0);
     const end = Math.max(start, track.clipEndSeconds || start + 30);
     clipRef.current = { start, end };
     try {
-      a.currentTime = start;
-    } catch {
-      /* ignore */
-    }
-    try {
-      await a.play();
+      await playAudioClip(a, playable, start);
+      if (gen !== previewGenRef.current) return;
       setPlayingId(track.id);
+      setPreviewLoadingId(null);
     } catch {
+      if (gen !== previewGenRef.current) return;
       clipRef.current = null;
       setPlayingId(null);
-      setPreviewError('Tap play again to hear preview');
+      setPreviewLoadingId(null);
+      setPreviewError('Could not play — tap play again');
     }
   };
 
@@ -302,11 +312,14 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
               <button
                 type="button"
                 onClick={(e) => void togglePreview(track, e)}
-                className="w-10 h-10 royce-glow-disc flex items-center justify-center pointer-events-auto"
+                disabled={previewLoadingId === track.id}
+                className="w-10 h-10 royce-glow-disc flex items-center justify-center pointer-events-auto disabled:opacity-60"
                 title={playingId === track.id ? 'Pause preview' : 'Play preview'}
                 aria-label={playingId === track.id ? 'Pause preview' : 'Play preview'}
               >
-                {playingId === track.id ? (
+                {previewLoadingId === track.id ? (
+                  <span className="w-3.5 h-3.5 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                ) : playingId === track.id ? (
                   <Pause className="w-3.5 h-3.5 text-white" strokeWidth={2} />
                 ) : (
                   <Play className="w-3.5 h-3.5 text-white" strokeWidth={2} />

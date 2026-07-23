@@ -36,7 +36,7 @@ import { api, request } from '../lib/apiClient';
 import { nativeConfirm } from './NativeDialog';
 import { downloadVideoWithoutMusic } from '../lib/videoDownloadClient';
 import { getVideoPosterUrl } from '../lib/bunnyStorage';
-import { resolveSoundTrackPlaybackUrl } from '../lib/soundLibrary';
+import { resolvePlayableSoundUrl, resolveSoundTrackPlaybackUrl } from '../lib/soundLibrary';
 import { StoryGoldRingAvatar } from './StoryGoldRingAvatar';
 import {
   SHARE_PANEL_ACTION_DISC_PX,
@@ -512,31 +512,42 @@ export default function EnhancedVideoPlayer({
 
       const audio = audioRef.current;
       if (audio && video?.music?.previewUrl) {
-        const previewSrc = resolveSoundTrackPlaybackUrl(video.music.previewUrl);
         const clipStart = Math.max(0, video.music.clipStartSeconds ?? 0);
         const clipEnd = Math.max(
           clipStart + 5,
           video.music.clipEndSeconds ?? clipStart + 60,
         );
         musicClipRef.current = { start: clipStart, end: clipEnd };
-        if (audio.src !== previewSrc) {
-          audio.src = previewSrc;
-        }
-        audio.currentTime = clipStart;
         audio.muted = muteAllSounds;
         audio.volume = musicVolume;
         if (!muteAllSounds) {
-          void audio.play().then(() => {
-            if (!shouldPlayRef.current) {
-              try {
-                audio.pause();
-                audio.muted = true;
-                audio.currentTime = clipStart;
-              } catch {
-                void 0;
-              }
+          void (async () => {
+            const previewSrc =
+              (await resolvePlayableSoundUrl(video.music.previewUrl || '')) ||
+              resolveSoundTrackPlaybackUrl(video.music.previewUrl || '');
+            if (!previewSrc || !shouldPlayRef.current) return;
+            if (audio.src !== previewSrc) {
+              audio.src = previewSrc;
+              audio.load();
             }
-          });
+            const startPlay = () => {
+              if (!shouldPlayRef.current) return;
+              try { audio.currentTime = clipStart; } catch { /* ignore */ }
+              void audio.play().then(() => {
+                if (!shouldPlayRef.current) {
+                  try {
+                    audio.pause();
+                    audio.muted = true;
+                    audio.currentTime = clipStart;
+                  } catch {
+                    void 0;
+                  }
+                }
+              });
+            };
+            if (audio.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) startPlay();
+            else audio.addEventListener('canplay', startPlay, { once: true });
+          })();
         }
       } else {
         musicClipRef.current = null;
