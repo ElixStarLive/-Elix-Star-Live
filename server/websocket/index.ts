@@ -42,7 +42,7 @@ import {
 } from "../lib/valkey";
 import { getPool } from "../lib/postgres";
 import { createCoalescedWriter } from "../lib/coalescedWriter";
-import { getUserBattleRoom, endBattle, getBattleFromStore } from "./battle";
+import { getUserBattleRoom, endBattle, getBattleFromStore, removeBattleParticipant } from "./battle";
 import { getGiftGoal } from "./giftGoal";
 import {
   clearEngagementActiveRoom,
@@ -674,6 +674,76 @@ function scheduleBattleDisconnectEnd(battleRoomId: string, userId: string): void
   battleDisconnectTimers.set(key, timer);
 }
 
+/**
+ * A NON-host battle creator (opponent / player3 / player4) dropping their socket
+ * must not leave the remaining creator stuck staring at a frozen pane until the
+ * full battle timer expires. Give the same reconnect grace as the host, then
+ * resolve safely:
+ *   - 2-player battle → the opponent is the only rival, so end the battle now and
+ *     let endBattle() compute the winner from the current scores.
+ *   - multi-creator battle → drop just this creator (removeBattleParticipant) and
+ *     keep the match running for everyone else.
+ * Reuses battleDisconnectTimers keyed by roomId:userId, so a reconnect within the
+ * grace cancels it via cancelBattleDisconnectGrace (same as the host path).
+ */
+function scheduleBattleParticipantDisconnectEnd(battleRoomId: string, userId: string): void {
+  const key = hostDisconnectKey(battleRoomId, userId);
+  const existing = battleDisconnectTimers.get(key);
+  if (existing) clearTimeout(existing);
+  const timer = setTimeout(() => {
+    battleDisconnectTimers.delete(key);
+    void (async () => {
+      try {
+        // Creator reconnected to the battle room within grace — nothing to do.
+        const room = rooms.get(battleRoomId);
+        if (room && Array.from(room).some((c) => c.userId === userId)) return;
+        if (isValkeyConfigured()) {
+          const members = await valkeySmembers(`room:members:${battleRoomId}`);
+          if (members.includes(userId)) return;
+        }
+        const battle = await getBattleFromStore(battleRoomId);
+        if (!battle || battle.status === "ENDED") return;
+        // Host disconnect is handled by scheduleBattleDisconnectEnd, not here.
+        if (battle.hostUserId === userId) return;
+        const isParticipant =
+          battle.opponentUserId === userId ||
+          battle.player3UserId === userId ||
+          battle.player4UserId === userId;
+        if (!isParticipant) return;
+
+        // Rival-side creators still connected besides the one who dropped.
+        const remainingRivals = [
+          battle.opponentUserId,
+          battle.player3UserId,
+          battle.player4UserId,
+        ].filter((id) => id && id !== userId);
+
+        await revokeBattlePublish(battleRoomId, userId);
+
+        if (remainingRivals.length === 0) {
+          logger.info(
+            { battleRoomId, userId },
+            "Battle opponent gone after grace, resolving battle from current scores",
+          );
+          await endBattle(battleRoomId);
+        } else {
+          logger.info(
+            { battleRoomId, userId },
+            "Battle creator gone after grace, removing from match (others continue)",
+          );
+          await removeBattleParticipant(battleRoomId, userId);
+        }
+      } catch (err) {
+        logger.error(
+          { err, battleRoomId, userId },
+          "battle participant disconnect grace end failed",
+        );
+      }
+    })();
+  }, BATTLE_DISCONNECT_GRACE_MS);
+  battleDisconnectTimers.set(key, timer);
+}
+
 // ── Build viewer list from Valkey + DB for new joiners ───────────
 
 const MAX_VIEWER_LIST = 100;
@@ -832,10 +902,15 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
             const battle = await getBattleFromStore(battleRoomId);
             if (battle && battle.status !== "ENDED") {
               const isHost = battle.hostUserId === client.userId;
-              // Only the host disconnect ends the battle after grace. Opponents
-              // stay in the match until they explicitly send battle_end.
+              // Host disconnect ends the whole battle after grace. A non-host
+              // creator dropping is resolved separately: after the same grace we
+              // either end a 2-player battle or drop just that creator from a
+              // multi-creator match, so the remaining creator is never stuck
+              // until the timer expires.
               if (isHost) {
                 scheduleBattleDisconnectEnd(battleRoomId, client.userId);
+              } else {
+                scheduleBattleParticipantDisconnectEnd(battleRoomId, client.userId);
               }
             }
           }

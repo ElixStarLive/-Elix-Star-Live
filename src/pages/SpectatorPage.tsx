@@ -2357,7 +2357,18 @@ export default function SpectatorPage() {
       setMistFog({ supportedUserId, supportedSide, expiresAt });
     };
 
+    // Server-authoritative battle clock (processBattleTick, 1 Hz). Sync the
+    // spectator countdown to it so a backgrounded/throttled webview timer
+    // self-corrects instead of drifting; scores still arrive via battle_score.
+    const handleBattleTick = (data: { timeLeft?: number }) => {
+      if (!mounted) return;
+      if (typeof data?.timeLeft !== 'number' || !Number.isFinite(data.timeLeft)) return;
+      const t = Math.max(0, Math.round(data.timeLeft));
+      setSpectatorBattle((prev) => (prev && prev.active ? { ...prev, timeLeft: t } : prev));
+    };
+
     websocket.on('battle_state_sync', handleBattleStateSync);
+    websocket.on('battle_tick', handleBattleTick);
     websocket.on('battle_score', handleBattleScore);
     websocket.on('battle:score_update', handleBattleScoreUpdateColon);
     websocket.on('battle_ended', handleBattleEnded);
@@ -2440,6 +2451,7 @@ export default function SpectatorPage() {
       websocket.off('heart_sent', handleHeartSent);
       websocket.off('stream_ended', handleStreamEnded);
       websocket.off('battle_state_sync', handleBattleStateSync);
+      websocket.off('battle_tick', handleBattleTick);
       websocket.off('battle_score', handleBattleScore);
       websocket.off('battle:score_update', handleBattleScoreUpdateColon);
       websocket.off('battle_ended', handleBattleEnded);

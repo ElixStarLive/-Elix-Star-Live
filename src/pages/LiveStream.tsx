@@ -3956,7 +3956,18 @@ export default function LiveStream() {
       setMistFog({ supportedUserId, supportedSide, expiresAt });
     };
 
+    // Server is the authority on remaining battle time (processBattleTick, 1 Hz).
+    // Sync the local countdown to it every tick so a throttled/backgrounded
+    // webview timer self-corrects instead of drifting. Scores keep flowing via
+    // battle_score, so the tick only touches time (no duplicate score/VFX).
+    const handleBattleTick = (data: { timeLeft?: number }) => {
+      if (typeof data?.timeLeft === 'number' && Number.isFinite(data.timeLeft)) {
+        setBattleTime(Math.max(0, Math.round(data.timeLeft)));
+      }
+    };
+
     websocket.on('battle_state_sync', handleBattleStateSync);
+    websocket.on('battle_tick', handleBattleTick);
     websocket.on('battle_score', handleBattleScore);
     websocket.on('battle:score_update', handleBattleScoreUpdate);
     websocket.on('battle_countdown', handleBattleCountdown);
@@ -4163,6 +4174,7 @@ export default function LiveStream() {
       websocket.off('gift_goal_sync', handleGiftGoalSync);
       websocket.off('heart_sent', handleHeartSent);
       websocket.off('battle_state_sync', handleBattleStateSync);
+      websocket.off('battle_tick', handleBattleTick);
       websocket.off('battle_score', handleBattleScore);
       websocket.off('battle:score_update', handleBattleScoreUpdate);
       websocket.off('battle_countdown', handleBattleCountdown);
