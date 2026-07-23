@@ -4,44 +4,76 @@ import { resolveUiAvatarUrl, ROYCE_DEFAULT_AVATAR } from '../lib/royceAssets';
 import { getLevelAccentStyle } from '../lib/levelColors';
 
 /**
- * Badge diamond FRAME only — same line gem as the ELIX icon sheet (Ranking diamond).
- * Stroke outline + facets; no filled black body. Colour = level accent so it stays clear.
+ * Neon diamond FRAME only — identical line gem from your reference:
+ * flat top, girdle, facet lines to the tip. Stroke + glow, no fill.
+ * Colour = level accent so it stays clear on the dark chip.
  */
-function LevelDiamondIcon({ size = 12, color }: { size?: number; color: string }) {
+function LevelDiamondIcon({
+  width = 12,
+  height = 12,
+  color,
+}: {
+  width?: number;
+  height?: number;
+  color: string;
+}) {
   return (
     <svg
-      width={size}
-      height={size}
-      viewBox="0 0 20 20"
+      width={width}
+      height={height}
+      viewBox="0 0 24 24"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className="flex-shrink-0"
+      preserveAspectRatio="xMidYMid meet"
       aria-hidden
       style={{
         display: 'block',
-        filter: `drop-shadow(0 0 3px ${color}) drop-shadow(0 0 6px ${color})`,
+        filter: `drop-shadow(0 0 2px ${color}) drop-shadow(0 0 5px ${color}) drop-shadow(0 0 9px ${color})`,
       }}
     >
-      {/* Outer gem frame */}
+      {/* Outer diamond frame */}
       <path
-        d="M5 7.2 L7.2 3.2 H12.8 L15 7.2 L10 17.2 Z"
+        d="M8 3.2 H16 L20.5 9.2 L12 21.2 L3.5 9.2 Z"
+        stroke={color}
+        strokeWidth="1.55"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+        fill="none"
+      />
+      {/* Girdle */}
+      <path
+        d="M3.5 9.2 H20.5"
         stroke={color}
         strokeWidth="1.35"
-        strokeLinejoin="round"
-        fill="none"
+        strokeLinecap="round"
       />
-      {/* Crown table line */}
-      <path d="M5 7.2 H15" stroke={color} strokeWidth="1.1" strokeLinecap="round" />
-      {/* Top facets */}
+      {/* Facet lines from top corners through girdle to tip */}
       <path
-        d="M7.2 3.2 L10 7.2 L12.8 3.2"
+        d="M8 3.2 L12 21.2"
         stroke={color}
-        strokeWidth="1"
-        strokeLinejoin="round"
-        fill="none"
+        strokeWidth="1.25"
+        strokeLinecap="round"
       />
-      {/* Pavilion center line */}
-      <path d="M10 7.2 L10 17.2" stroke={color} strokeWidth="1" strokeLinecap="round" />
+      <path
+        d="M16 3.2 L12 21.2"
+        stroke={color}
+        strokeWidth="1.25"
+        strokeLinecap="round"
+      />
+      {/* Crown mid to girdle (table facets) */}
+      <path
+        d="M12 3.2 L3.5 9.2"
+        stroke={color}
+        strokeWidth="1.15"
+        strokeLinecap="round"
+      />
+      <path
+        d="M12 3.2 L20.5 9.2"
+        stroke={color}
+        strokeWidth="1.15"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
@@ -92,31 +124,34 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
       ? Math.max(16, Math.floor(circleSizeProp))
       : Math.max(16, Math.floor(rawSize - Math.min(shrinkPx, maxShrink) + circleGrowPx));
 
-  /** Dark chip so the coloured diamond FRAME lines stay clear (like icon sheet on black). */
+  /** Dark chip; diamond fills chip height and max width on the left. */
   const chipH = Math.max(20, Math.round(circleSize * 0.82));
   const fontPx = Math.max(9, Math.round(chipH * 0.48));
-  const diamondPx = Math.max(12, Math.round(chipH * 0.62));
+  /** Height = full level-icon chip; width = max on the left (same as height). */
+  const diamondH = chipH;
+  const diamondW = chipH;
   const levelChip = (
     <div
       style={{
         position: 'relative',
         zIndex: 1,
         height: chipH,
-        minWidth: Math.max(chipH + 14, Math.round(chipH * 1.7)),
+        minWidth: Math.max(chipH + diamondW + 6, Math.round(chipH * 2.1)),
         borderRadius: 6,
         background: 'rgba(8, 10, 18, 0.92)',
         border: `1px solid ${levelStyle.border}`,
         boxShadow: `0 0 10px 2px ${levelStyle.glow}, 0 0 18px 4px ${levelStyle.fillSoft}`,
         display: 'inline-flex',
         alignItems: 'center',
-        justifyContent: 'center',
-        gap: 4,
-        paddingLeft: 8,
+        justifyContent: 'flex-start',
+        gap: 2,
+        paddingLeft: 0,
         paddingRight: 8,
         flexShrink: 0,
+        overflow: 'hidden',
       }}
     >
-      <LevelDiamondIcon size={diamondPx} color={levelStyle.accent} />
+      <LevelDiamondIcon width={diamondW} height={diamondH} color={levelStyle.accent} />
       <span
         style={{
           color: '#FFFFFF',
@@ -127,6 +162,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
           lineHeight: 1,
           whiteSpace: 'nowrap',
           fontVariantNumeric: 'tabular-nums',
+          paddingRight: 2,
         }}
       >
         {safeLevel}
