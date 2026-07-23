@@ -8,6 +8,7 @@ import {
 } from "../services/audioScan";
 import { clearCachedAudioScanResult, getCachedAudioScanResult } from "../lib/audioScanValkey";
 import { fetchVoiceOnlyVideoBuffer, isSafeMediaUrl } from "../services/videoDownload";
+import { insertNotification } from "../lib/notifications";
 
 const router = Router();
 
@@ -295,6 +296,22 @@ router.post("/:id/like", async (req, res) => {
     );
     if ((ins.rowCount ?? 0) > 0) {
       await db.query(`UPDATE videos SET likes = likes + 1 WHERE id = $1`, [req.params.id]).catch((e) => logger.warn({ err: e }, "like counter increment failed"));
+      try {
+        const owner = await db.query(`SELECT user_id FROM videos WHERE id = $1 LIMIT 1`, [req.params.id]);
+        const ownerId = owner.rows[0]?.user_id ? String(owner.rows[0].user_id) : "";
+        if (ownerId && ownerId !== payload.sub) {
+          await insertNotification({
+            userId: ownerId,
+            type: "video_like",
+            title: "New like",
+            body: "Someone liked your video.",
+            actionUrl: `/video/${encodeURIComponent(req.params.id)}`,
+            data: { path: `/video/${req.params.id}`, video_id: req.params.id, actor_id: payload.sub },
+          });
+        }
+      } catch (e) {
+        logger.warn({ err: e, videoId: req.params.id }, "like notification skipped");
+      }
     }
     return res.json({ ok: true });
   } catch (err) {
@@ -418,6 +435,20 @@ router.post("/:id/comments", async (req, res) => {
       [id, req.params.id, payload.sub, text.trim(), parentId || null],
     );
     await db.query(`UPDATE videos SET comments = comments + 1 WHERE id = $1`, [req.params.id]).catch((e) => logger.warn({ err: e }, "comment counter increment failed"));
+    if (ownerId && ownerId !== payload.sub) {
+      try {
+        await insertNotification({
+          userId: ownerId,
+          type: "video_comment",
+          title: "New comment",
+          body: text.trim().slice(0, 80),
+          actionUrl: `/video/${encodeURIComponent(req.params.id)}`,
+          data: { path: `/video/${req.params.id}`, video_id: req.params.id, actor_id: payload.sub },
+        });
+      } catch (e) {
+        logger.warn({ err: e, videoId: req.params.id }, "comment notification skipped");
+      }
+    }
     const r = await db.query(
       `SELECT c.id, c.video_id, c.user_id, c.text, c.parent_id, c.created_at,
               p.username, p.display_name, p.avatar_url
@@ -534,6 +565,36 @@ router.delete("/:id", async (req, res) => {
   deleteVideoFromCache(req.params.id);
   await deleteVideoFromDb(req.params.id);
   res.json({ ok: true });
+});
+
+// POST /:id/fyp — persist an initial FYP score row for a freshly uploaded video
+// (called by the client right after upload). Owner-only. The For You feed ranks
+// primarily by recency; this row seeds the score table consumed by /feed/score.
+router.post("/:id/fyp", async (req, res) => {
+  const token = getTokenFromRequest(req);
+  const payload = token ? verifyAuthToken(token) : null;
+  if (!payload?.sub) return res.status(401).json({ error: "Not authenticated." });
+  const db = getPool();
+  if (!db) return res.status(503).json({ error: "Database not configured" });
+  const video = await getVideoAsync(req.params.id);
+  if (!video) return res.status(404).json({ error: "Video not found" });
+  if (video.userId !== payload.sub) {
+    return res.status(403).json({ error: "You can only boost your own videos." });
+  }
+  const initialScore = req.body?.boost === true ? 100 : 0;
+  try {
+    await db.query(
+      `INSERT INTO video_scores (video_id, score, updated_at)
+       VALUES ($1, $2, NOW())
+       ON CONFLICT (video_id)
+       DO UPDATE SET score = GREATEST(video_scores.score, EXCLUDED.score), updated_at = NOW()`,
+      [req.params.id, initialScore],
+    );
+    return res.json({ ok: true, video_id: req.params.id, score: initialScore });
+  } catch (err) {
+    logger.error({ err, videoId: req.params.id }, "fyp score persist failed");
+    return res.status(500).json({ error: "Failed to record FYP score" });
+  }
 });
 
 export default router;

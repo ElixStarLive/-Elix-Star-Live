@@ -28,6 +28,7 @@ import {
 } from '../lib/sharePanelContacts';
 import { openExternalLink, nativeShareUrl } from '../lib/platform';
 import { showToast } from '../lib/toast';
+import { trackShare } from '../lib/interactionTracker';
 
 interface ShareModalProps {
   isOpen: boolean;
@@ -84,6 +85,7 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
       if (threadId) {
         await api.chat.sendMessage(threadId, msgText);
         setSentTo(prev => new Set(prev).add(targetUserId));
+        void trackShare(video.id, 'direct');
       } else {
         showToast('Could not send share');
       }
@@ -105,12 +107,18 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
 
   const filteredFollowers = followers.filter(f => f.username?.toLowerCase().includes(shareQuery.toLowerCase()));
 
+  // Wrap a share action so the platform share count is tracked server-side.
+  const withShareTracking = (platform: string, run: () => void) => () => {
+    run();
+    void trackShare(video.id, platform);
+  };
+
   const socialPlatforms = [
-    { name: 'WhatsApp', color: '#25D366', icon: <MessageCircle size={22} className="text-white" />, action: () => openExternalLink(`https://wa.me/?text=${encodeURIComponent(shareText + ' ' + videoUrl)}`) },
-    { name: 'Facebook', color: '#1877F2', icon: <Share2 size={22} className="text-white" />, action: () => openExternalLink(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(videoUrl)}`) },
-    { name: 'Twitter', color: '#1DA1F2', icon: <Share2 size={22} className="text-white" />, action: () => openExternalLink(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(videoUrl)}`) },
-    { name: 'Copy Link', color: '#FFFFFF', icon: copiedLink ? <Check size={22} className="text-white" /> : <Copy size={22} className="text-white" />, action: handleCopyLink },
-    { name: 'Email', color: '#EA4335', icon: <Send size={22} className="text-white" />, action: () => openExternalLink(`mailto:?subject=Check out this video&body=${encodeURIComponent(shareText + '\n\n' + videoUrl)}`) },
+    { name: 'WhatsApp', color: '#25D366', icon: <MessageCircle size={22} className="text-white" />, action: withShareTracking('whatsapp', () => openExternalLink(`https://wa.me/?text=${encodeURIComponent(shareText + ' ' + videoUrl)}`)) },
+    { name: 'Facebook', color: '#1877F2', icon: <Share2 size={22} className="text-white" />, action: withShareTracking('facebook', () => openExternalLink(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(videoUrl)}`)) },
+    { name: 'Twitter', color: '#1DA1F2', icon: <Share2 size={22} className="text-white" />, action: withShareTracking('twitter', () => openExternalLink(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(videoUrl)}`)) },
+    { name: 'Copy Link', color: '#FFFFFF', icon: copiedLink ? <Check size={22} className="text-white" /> : <Copy size={22} className="text-white" />, action: withShareTracking('copy', handleCopyLink) },
+    { name: 'Email', color: '#EA4335', icon: <Send size={22} className="text-white" />, action: withShareTracking('email', () => openExternalLink(`mailto:?subject=Check out this video&body=${encodeURIComponent(shareText + '\n\n' + videoUrl)}`)) },
   ];
 
   const isOwnVideo = !!user?.id && !!video.user?.id && user.id === video.user.id;

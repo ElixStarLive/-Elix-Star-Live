@@ -8,6 +8,8 @@ import { Request, Response } from "express";
 import { getTokenFromRequest, verifyAuthToken } from "./auth";
 import { dbIsBlockedEitherWay, ensureFollowsTable, getPool } from "../lib/postgres";
 import { logger } from "../lib/logger";
+import { insertNotification } from "../lib/notifications";
+import { isSafeMediaUrl } from "../services/videoDownload";
 import { isValkeyConfigured, valkeyGet, valkeySet, valkeyDel, acquireCacheBuildLock, waitForCachePopulate } from "../lib/valkey";
 import {
   bumpProfilesListEpoch,
@@ -779,6 +781,32 @@ export async function handlePatchProfile(req: Request, res: Response): Promise<v
     return;
   }
 
+  // Validate a *changed* avatar URL only (never block unchanged re-saves that
+  // may carry legacy/external avatars). A new avatar must be https and either
+  // the ui-avatars default or the caller's own Bunny avatars/<userId>/ object.
+  if (patchedAvatar && patchedAvatar !== (profile.avatarUrl || "")) {
+    let okAvatar = false;
+    try {
+      const u = new URL(patchedAvatar);
+      if (u.protocol === "https:") {
+        if (u.hostname === "ui-avatars.com") {
+          okAvatar = true;
+        } else if (isSafeMediaUrl(patchedAvatar)) {
+          const segs = u.pathname.split("/").filter(Boolean);
+          okAvatar = segs.some(
+            (s, i) => s.toLowerCase() === "avatars" && segs[i + 1] === userId,
+          );
+        }
+      }
+    } catch {
+      okAvatar = false;
+    }
+    if (!okAvatar) {
+      res.status(400).json({ error: "Invalid avatar URL" });
+      return;
+    }
+  }
+
   const allowed = ["username", "displayName", "avatarUrl", "bio", "website"] as const;
   for (const key of allowed) {
     const val = body[key];
@@ -884,6 +912,18 @@ export async function handleFollow(req: Request, res: Response): Promise<void> {
     .catch((err) => {
       logger.warn({ err, follower: jwtUser.sub, following: userId }, "handleFollow: invalidateFeedCache import failed");
     });
+  try {
+    await insertNotification({
+      userId,
+      type: "new_follower",
+      title: "New follower",
+      body: `${follower.displayName || follower.username || "Someone"} started following you.`,
+      actionUrl: `/profile/${encodeURIComponent(jwtUser.sub)}`,
+      data: { path: `/profile/${jwtUser.sub}`, actor_id: jwtUser.sub },
+    });
+  } catch (err) {
+    logger.warn({ err, userId }, "handleFollow: follow notification skipped");
+  }
   res.json({ success: true, followers: target.followers });
 }
 

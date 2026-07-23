@@ -261,34 +261,54 @@ export async function handleTrackView(req: Request, res: Response) {
 
     res.status(202).json({ accepted: true });
 
-    db.query(
-      `INSERT INTO video_views (id, user_id, video_id, watch_time_seconds, video_duration_seconds, completed, ip_hash, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
-       ON CONFLICT DO NOTHING`,
-      [
-        `v_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-        userId || "anonymous",
-        videoId,
-        watchTime || 0,
-        videoDuration || 0,
-        completed || false,
-        ipHash,
-      ],
-    ).catch((err: any) => {
-      logger.warn(
-        { err: err?.message },
-        "Failed to insert video_views row after track view",
-      );
-    });
-
-    db.query(`UPDATE videos SET views = views + 1 WHERE id = $1`, [videoId]).catch(
-      (err: any) => {
-        logger.warn(
-          { err: err?.message },
-          "Failed to increment video views in DB after track view",
+    // De-duplicate the public view counter: count at most one view per viewer
+    // per video (a logged-in user by id, otherwise by ip hash). Replays and
+    // scroll-backs still record analytics rows but no longer inflate `views`.
+    const isNamedUser = !!userId && userId !== "anonymous";
+    const viewerCol = isNamedUser ? "user_id" : "ip_hash";
+    const viewerVal = isNamedUser ? userId : ipHash;
+    void (async () => {
+      let isFirstView = true;
+      try {
+        const prior = await db.query(
+          `SELECT 1 FROM video_views WHERE video_id = $1 AND ${viewerCol} = $2 LIMIT 1`,
+          [videoId, viewerVal],
         );
-      },
-    );
+        isFirstView = (prior.rowCount ?? 0) === 0;
+      } catch (err: any) {
+        logger.warn({ err: err?.message }, "track view dedup check failed");
+      }
+
+      try {
+        await db.query(
+          `INSERT INTO video_views (id, user_id, video_id, watch_time_seconds, video_duration_seconds, completed, ip_hash, created_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+           ON CONFLICT DO NOTHING`,
+          [
+            `v_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+            userId || "anonymous",
+            videoId,
+            watchTime || 0,
+            videoDuration || 0,
+            completed || false,
+            ipHash,
+          ],
+        );
+      } catch (err: any) {
+        logger.warn({ err: err?.message }, "Failed to insert video_views row after track view");
+      }
+
+      if (isFirstView) {
+        db.query(`UPDATE videos SET views = views + 1 WHERE id = $1`, [videoId]).catch(
+          (err: any) => {
+            logger.warn(
+              { err: err?.message },
+              "Failed to increment video views in DB after track view",
+            );
+          },
+        );
+      }
+    })();
   } catch (err: any) {
     logger.error({ err: err?.message }, "TrackView error");
     res.status(500).json({ error: "Failed to track view" });
