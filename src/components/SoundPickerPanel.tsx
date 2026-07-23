@@ -130,8 +130,8 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
       <audio ref={audioRef} preload="auto" onEnded={() => setPlayingId(null)} className="hidden" />
       <div className="flex items-center justify-between px-4 py-3 flex-shrink-0">
         <div className="flex items-center gap-2">
-          <Music className="w-4 h-4 text-white" strokeWidth={2} />
-          <p className="text-white font-semibold">Add sound</p>
+          <Music className="w-4 h-4 text-[#D4AF37]" strokeWidth={2} />
+          <p className="text-[#D4AF37] font-semibold">Add sound</p>
         </div>
         {layout === 'embedded' ? (
           <button type="button" onClick={onClose} className="p-2" aria-label="Close">

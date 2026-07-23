@@ -1139,13 +1139,13 @@ export default function Upload() {
           {/* Music Selection Modal */}
           {showMusicModal && (
               <div className="absolute inset-0 z-[200] bg-[#111111] flex flex-col pt-6 animate-in slide-in-from-bottom duration-300">
-                  <div className="px-4 pb-2 grid grid-cols-2 gap-2 flex-shrink-0">
+                  <div className="px-4 pb-3 grid grid-cols-2 gap-2.5 flex-shrink-0">
                         <button
                           type="button"
-                          className={`px-3 py-3 rounded-xl border text-left ${
+                          className={`min-h-[64px] px-3 py-3 rounded-2xl border text-left transition-colors active:scale-[0.98] ${
                             selectedAudioId === 'original' && !postWithoutAudio
-                              ? 'bg-[#D4AF37] border-[#C9A227] text-black'
-                              : 'bg-white border-transparent text-white'
+                              ? 'bg-[#D4AF37] border-[#C9A227] text-black shadow-[0_0_16px_rgba(212,175,55,0.35)]'
+                              : 'bg-[#1a1a1a] border-[#C9A227]/40 text-white'
                           }`}
                           onClick={() => {
                             setSelectedAudioId('original');
@@ -1155,17 +1155,19 @@ export default function Upload() {
                             setShowMusicModal(false);
                           }}
                         >
-                          <div className="text-sm font-bold">Original Sound</div>
-                          <div className={`text-[11px] ${selectedAudioId === 'original' && !postWithoutAudio ? 'text-black/70' : 'text-white/60'}`}>
-                            Use the captured audio
+                          <div className="text-sm font-bold leading-tight">Original Sound</div>
+                          <div className={`text-[11px] mt-1 leading-snug ${
+                            selectedAudioId === 'original' && !postWithoutAudio ? 'text-black/65' : 'text-white/55'
+                          }`}>
+                            Use mic audio from your clip
                           </div>
                         </button>
                         <button
                           type="button"
-                          className={`px-3 py-3 rounded-xl border text-left ${
+                          className={`min-h-[64px] px-3 py-3 rounded-2xl border text-left transition-colors active:scale-[0.98] ${
                             postWithoutAudio || selectedAudioId === 'none'
-                              ? 'bg-[#D4AF37] border-[#C9A227] text-black'
-                              : 'bg-white border-transparent text-white'
+                              ? 'bg-[#D4AF37] border-[#C9A227] text-black shadow-[0_0_16px_rgba(212,175,55,0.35)]'
+                              : 'bg-[#1a1a1a] border-[#C9A227]/40 text-white'
                           }`}
                           onClick={() => {
                             setSelectedAudioId('none');
@@ -1175,9 +1177,11 @@ export default function Upload() {
                             setShowMusicModal(false);
                           }}
                         >
-                          <div className="text-sm font-bold">No audio</div>
-                          <div className={`text-[11px] ${postWithoutAudio || selectedAudioId === 'none' ? 'text-black/70' : 'text-white/60'}`}>
-                            Publish muted audio
+                          <div className="text-sm font-bold leading-tight">No audio</div>
+                          <div className={`text-[11px] mt-1 leading-snug ${
+                            postWithoutAudio || selectedAudioId === 'none' ? 'text-black/65' : 'text-white/55'
+                          }`}>
+                            Publish without sound
                           </div>
                         </button>
                       </div>
