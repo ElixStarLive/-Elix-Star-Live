@@ -360,19 +360,3 @@ export function LiveSideMissionStack({
     </div>
   );
 }
-
-/** Photo demo supporters when no live gifters yet / DEMO UI on. */
-export const LIVE_SIDE_DEMO_SUPPORTERS: LiveSideSupporter[] = [
-  { id: 'demo-s1', name: 'KING✧Alex', avatar: '', points: 12500 },
-  { id: 'demo-s2', name: 'Sarah', avatar: '', points: 8800 },
-  { id: 'demo-s3', name: 'Michael', avatar: '', points: 6300 },
-];
-
-export const LIVE_SIDE_DEMO_MISSIONS: LiveSideMissionProgress = {
-  watchMin: 20,
-  watchGoal: 30,
-  giftsSent: 7,
-  giftsGoal: 10,
-  battleJoined: 1,
-  battleGoal: 1,
-};

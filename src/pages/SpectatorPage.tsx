@@ -102,15 +102,9 @@ import {
   LiveHostProfileHeader,
   LiveJoinPill,
   LiveMarkedSubHeaderBar,
-  LiveMarkedUiDemoToggle,
-  buildLiveMarkedUiDemoComboStack,
-  readLiveMarkedUiDemoEnabled,
-  writeLiveMarkedUiDemoEnabled,
 } from '../components/LiveMarkedTopUi';
 import {
   LiveSideMissionStack,
-  LIVE_SIDE_DEMO_MISSIONS,
-  LIVE_SIDE_DEMO_SUPPORTERS,
 } from '../components/LiveSideMissionStack';
 import { websocket } from '../lib/websocket';
 import { normalizeBattleGiftTarget } from '../lib/liveBattleGiftTarget';
@@ -288,10 +282,8 @@ export default function SpectatorPage() {
   const [showComboButton, setShowComboButton] = useState(false);
   /** Recent combo gifts (icon + real xN), capped to last 3 — red-circle combo column. */
   const [comboStack, setComboStack] = useState<{ key: string; icon: string; count: number; gift: GiftUiItem }[]>([]);
-  const [markedUiDemo, setMarkedUiDemo] = useState(() => readLiveMarkedUiDemoEnabled(IS_STORE_BUILD));
-  const demoComboStack = markedUiDemo ? buildLiveMarkedUiDemoComboStack() : [];
-  const visibleComboStack = comboStack.length > 0 ? comboStack : demoComboStack;
-  const showComboColumn = (showComboButton && comboStack.length > 0) || (markedUiDemo && demoComboStack.length > 0);
+  const visibleComboStack = comboStack;
+  const showComboColumn = showComboButton && comboStack.length > 0;
   const [missionWatchMin, setMissionWatchMin] = useState(0);
   const [missionGiftsSent, setMissionGiftsSent] = useState(0);
   const [missionWatchGoal, setMissionWatchGoal] = useState(30);
@@ -3939,14 +3931,6 @@ export default function SpectatorPage() {
         </div>
 
         {/* Combo + Mission docked together — separate live sources */}
-        <LiveMarkedUiDemoToggle
-          enabled={markedUiDemo}
-          storeBuild={IS_STORE_BUILD}
-          onToggle={(next) => {
-            writeLiveMarkedUiDemoEnabled(next);
-            setMarkedUiDemo(next);
-          }}
-        />
         <LiveComboMissionDock
           combo={
             showComboColumn && visibleComboStack.length > 0 ? (
@@ -3964,10 +3948,7 @@ export default function SpectatorPage() {
           mission={
             <LiveSideMissionStack
               embedded
-              missions={
-                markedUiDemo
-                  ? LIVE_SIDE_DEMO_MISSIONS
-                  : {
+              missions={{
                       watchMin: missionWatchMin,
                       watchGoal: missionWatchGoal,
                       giftsSent: missionGiftsSent,
@@ -3975,12 +3956,9 @@ export default function SpectatorPage() {
                       battleJoined: spectatorBattle?.active ? 1 : 0,
                       battleGoal: 1,
                       claimable: false as const,
-                    }
-              }
+                    }}
               supporters={
-                markedUiDemo
-                  ? LIVE_SIDE_DEMO_SUPPORTERS
-                  : mvpSlots.global.length === 0
+                mvpSlots.global.length === 0
                     ? []
                     : mvpSlots.global.slice(0, 3).map((s) => ({
                       id: s.id,
@@ -3990,7 +3968,7 @@ export default function SpectatorPage() {
                     }))
               }
               battlePassLevel={userLevel || 1}
-              battlePassXp={markedUiDemo ? 320 : userXP % 1000}
+              battlePassXp={userXP % 1000}
               battlePassXpMax={1000}
               onViewAllSupporters={() => setShowViewersPanel(true)}
               onOpenMissions={() => {
