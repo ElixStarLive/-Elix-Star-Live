@@ -5,6 +5,7 @@
  */
 import { createHash, timingSafeEqual } from "crypto";
 import { Request, Response } from "express";
+import { OAuth2Client } from "google-auth-library";
 import { logger } from "../lib/logger";
 import { getPool } from "../lib/postgres";
 import {
@@ -37,6 +38,39 @@ function callbackSecretIsValid(req: Request, expected: string | undefined): bool
   const actual = Buffer.from(supplied);
   const wanted = Buffer.from(configured);
   return actual.length === wanted.length && timingSafeEqual(actual, wanted);
+}
+
+// Optional Google Pub/Sub OIDC push-token verification (defense in depth on top
+// of the URL secret). Enabled only when GOOGLE_RTDN_OIDC_AUDIENCE is set, so
+// existing secret-only deployments keep working unchanged. When enabled, the
+// Pub/Sub push must carry a valid Google-signed OIDC JWT in the Authorization
+// header whose audience matches, and (optionally) whose service-account email
+// matches GOOGLE_RTDN_OIDC_SA_EMAIL.
+let rtdnOidcClient: OAuth2Client | null = null;
+function rtdnOidcConfigured(): boolean {
+  return !!process.env.GOOGLE_RTDN_OIDC_AUDIENCE?.trim();
+}
+async function googleRtdnOidcValid(req: Request): Promise<boolean> {
+  const audience = process.env.GOOGLE_RTDN_OIDC_AUDIENCE?.trim();
+  if (!audience) return true; // not enforced
+  const authz = String(req.headers["authorization"] || "");
+  const match = authz.match(/^Bearer\s+(.+)$/i);
+  if (!match) return false;
+  try {
+    if (!rtdnOidcClient) rtdnOidcClient = new OAuth2Client();
+    const ticket = await rtdnOidcClient.verifyIdToken({ idToken: match[1], audience });
+    const payload = ticket.getPayload();
+    if (!payload) return false;
+    const expectedEmail = process.env.GOOGLE_RTDN_OIDC_SA_EMAIL?.trim();
+    if (expectedEmail) {
+      if (payload.email !== expectedEmail) return false;
+      if (payload.email_verified === false) return false;
+    }
+    return true;
+  } catch (err) {
+    logger.warn({ err }, "Google RTDN OIDC verification failed");
+    return false;
+  }
 }
 
 async function decodeAppleNotificationPayload(
@@ -193,14 +227,21 @@ async function reconcileGoogleSubscriptionEntitlement(purchaseToken: string): Pr
  */
 export async function handleGooglePlayRtdn(req: Request, res: Response) {
   try {
-    const authorized = callbackSecretIsValid(
+    const secretAuth = callbackSecretIsValid(
       req,
       process.env.GOOGLE_RTDN_WEBHOOK_SECRET,
     );
-    if (authorized === null) {
+    const oidcOn = rtdnOidcConfigured();
+    // At least one auth mechanism must be configured.
+    if (secretAuth === null && !oidcOn) {
       return res.status(503).json({ error: "Google RTDN webhook is not configured" });
     }
-    if (!authorized) return res.status(401).json({ error: "Unauthorized" });
+    // If a URL secret is configured, it must match.
+    if (secretAuth === false) return res.status(401).json({ error: "Unauthorized" });
+    // If OIDC is enabled, the Pub/Sub push JWT must verify.
+    if (oidcOn && !(await googleRtdnOidcValid(req))) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
 
     const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
     const dataB64 =
