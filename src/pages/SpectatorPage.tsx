@@ -804,6 +804,8 @@ export default function SpectatorPage() {
       return;
     }
     setBattleInviteJoining(true);
+    setShowGiftPanel(false);
+    setShowCoHostPanel(false);
     const ackPromise = new Promise<boolean>((resolve) => {
       let settled = false;
       const settle = (ok: boolean) => {
@@ -840,6 +842,17 @@ export default function SpectatorPage() {
     navigate(`/live/${invite.streamKey}?battle=1`, {
       state: { battleHost: { userId: invite.hostUserId, name: invite.hostName, avatar: invite.hostAvatar } },
     });
+  };
+
+  const declineBattleInviteFromWatch = () => {
+    if (!pendingBattleInvite) return;
+    websocket.send('battle_invite_decline', {
+      hostStreamKey: pendingBattleInvite.streamKey,
+      hostUserId: pendingBattleInvite.hostUserId,
+    });
+    setPendingBattleInvite(null);
+    setShowGiftPanel(false);
+    setShowCoHostPanel(false);
   };
 
   // Battle countdown only while the fight is ACTIVE (not during WAITING invite).
@@ -2321,6 +2334,9 @@ export default function SpectatorPage() {
         streamKey: data.streamKey || effectiveStreamId,
         hostUserId: data.hostUserId || '',
       });
+      // Invite arrives → banner comes up; close bottom panels so Join/Reject is clear.
+      setShowGiftPanel(false);
+      setShowCoHostPanel(false);
       showToast(`@${data.hostName || 'Creator'} invited you to battle — tap Join`);
     };
 
@@ -4221,7 +4237,7 @@ export default function SpectatorPage() {
                 <p className="text-white/40 text-[10px]">invited you to battle</p>
               </div>
               <div className="flex items-center gap-1.5 flex-shrink-0">
-                <button type="button" onClick={() => setPendingBattleInvite(null)} className="h-6 px-3 rounded-full bg-red-500/25 border border-red-400/50 inline-flex items-center justify-center active:scale-95 transition-transform">
+                <button type="button" onClick={declineBattleInviteFromWatch} className="h-6 px-3 rounded-full bg-red-500/25 border border-red-400/50 inline-flex items-center justify-center active:scale-95 transition-transform">
                   <span className="text-red-300 text-[10px] font-bold leading-none whitespace-nowrap">Reject</span>
                 </button>
                 <button type="button" disabled={battleInviteJoining} onClick={() => void acceptBattleInviteFromWatch()} className="h-6 px-3.5 rounded-full bg-green-500 inline-flex items-center justify-center active:scale-95 transition-transform disabled:opacity-60">

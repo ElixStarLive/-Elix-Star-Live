@@ -1102,9 +1102,21 @@ export default function LiveStream() {
   };
   const [pendingInvite, setPendingInvite] = useState<PendingInvite | null>(null);
 
+  const closeAllBottomPanels = useCallback(() => {
+    setIsFindCreatorsOpen(false);
+    setShowViewerList(false);
+    setShowGiftPanel(false);
+    setShowSharePanel(false);
+    setShowRankingPanel(false);
+    setShowFanClub(false);
+  }, []);
+
   useEffect(() => {
     if (pendingInvite) {
+      // Invite arrives → panel comes up on the other creator with Join/Reject.
       setShowViewerList(false);
+      setShowGiftPanel(false);
+      setShowSharePanel(false);
       setIsFindCreatorsOpen(true);
       const inviter = pendingInvite;
       setCreators(prev => {
@@ -1124,6 +1136,7 @@ export default function LiveStream() {
     if (!pendingInvite || !user?.id) return;
     const invite = pendingInvite;
     setPendingInvite(null);
+    closeAllBottomPanels();
     if (!invite.streamKey) {
       showToast('Missing stream key');
       return;
@@ -1182,6 +1195,7 @@ export default function LiveStream() {
       hostUserId: pendingInvite.hostUserId,
     });
     setPendingInvite(null);
+    closeAllBottomPanels();
   };
 
   // Mute state per player pane
@@ -1304,6 +1318,7 @@ export default function LiveStream() {
 
   const declineCohostInvite = () => {
     setPendingCohostInvite(null);
+    closeAllBottomPanels();
   };
 
   const acceptCohostInvite = async () => {
@@ -1312,10 +1327,12 @@ export default function LiveStream() {
     // creator out of the battle onto the spectator page.
     if (isBattleMode) {
       setPendingCohostInvite(null);
+      closeAllBottomPanels();
       return;
     }
     const inv = pendingCohostInvite;
     setPendingCohostInvite(null);
+    closeAllBottomPanels();
     const myName = user?.username || user?.name || 'Creator';
     websocket.send('cohost_invite_accept', {
       hostUserId: inv.hostUserId,
@@ -1337,9 +1354,11 @@ export default function LiveStream() {
     const req = pendingJoinRequest;
     if (isSelfUser(req.requesterId, user.id, effectiveStreamId)) {
       setPendingJoinRequest(null);
+      closeAllBottomPanels();
       return;
     }
     setPendingJoinRequest(null);
+    closeAllBottomPanels();
     const myName = user.username || user.name || 'Creator';
     websocket.send('cohost_request_accept', {
       requesterUserId: req.requesterId,
@@ -1364,6 +1383,7 @@ export default function LiveStream() {
     if (!pendingJoinRequest) return;
     const requesterId = pendingJoinRequest.requesterId;
     setPendingJoinRequest(null);
+    closeAllBottomPanels();
     if (requesterId) websocket.send('cohost_request_decline', { requesterUserId: requesterId });
   };
 
@@ -2387,6 +2407,11 @@ export default function LiveStream() {
       navigate({ pathname: location.pathname, search: params.toString() ? `?${params.toString()}` : '' }, { replace: true });
     }
   }, [endBattleCleanup, location.search, location.pathname, navigate, isBroadcast]);
+
+  const exitBattleModeRef = useRef(exitBattleMode);
+  useEffect(() => {
+    exitBattleModeRef.current = exitBattleMode;
+  }, [exitBattleMode]);
 
   const toggleBattle = useCallback(() => {
     // Battle joiners enter via the dedicated joiner effect — never wipe their slots here.
@@ -3412,13 +3437,31 @@ export default function LiveStream() {
 
     const handleUserLeft = (data) => {
       if (!mounted) return;
-      setActiveViewers(prev => prev.filter(v => String(v.id) !== String(data.user_id)));
+      const leftId = data.user_id != null ? String(data.user_id) : '';
+      setActiveViewers(prev => prev.filter(v => String(v.id) !== leftId));
       setViewerCount(prev => Math.max(0, prev - 1));
-      if (data.user_id) {
+      // If the other main battle creator disconnects, leave battle UI and return to normal live.
+      let shouldExitBattle = false;
+      if (leftId && isBattleModeRef.current) {
+        const ids = battleStreamIdsRef.current;
+        const slots = battleSlotsRef.current;
+        const acceptedMainLeft =
+          slots[0]?.status === 'accepted' && sameUserId(leftId, slots[0]?.userId);
+        const syncOpponentLeft = sameUserId(leftId, ids?.opponentUserId);
+        const syncHostLeft =
+          !!ids?.hostUserId &&
+          sameUserId(leftId, ids.hostUserId) &&
+          !sameUserId(selfUserIdRef.current, ids.hostUserId);
+        shouldExitBattle = !!(acceptedMainLeft || syncOpponentLeft || syncHostLeft);
+      }
+      if (leftId) {
         setCoHosts(prev => prev.filter(h => h.userId !== data.user_id));
         setBattleSlots(prev => prev.map(s =>
           s.userId === data.user_id ? { userId: '', name: '', status: 'empty' as const, avatar: '' } : s
         ));
+      }
+      if (shouldExitBattle) {
+        exitBattleModeRef.current();
       }
     };
 
@@ -4016,10 +4059,12 @@ export default function LiveStream() {
       // identical, and tapping the co-host Join would send this creator to the
       // spectator page instead of into the battle.
       setPendingCohostInvite(null);
-      // Open ONLY the battle panel so the red Reject / green Join buttons show
-      // immediately. Never open the co-host panel here — it covers the battle
-      // panel and its Add buttons send co-host invites, not battle invites.
+      // Invite arrives → Creators panel comes up with Reject / Join.
       setShowViewerList(false);
+      setShowGiftPanel(false);
+      setShowSharePanel(false);
+      setShowRankingPanel(false);
+      setShowFanClub(false);
       setIsFindCreatorsOpen(true);
     };
 
@@ -4031,6 +4076,13 @@ export default function LiveStream() {
       const requesterAvatar = data.requesterAvatar as string | undefined;
       if (!requesterId || !requesterName) return;
       clearBattleInviteTimer(requesterId);
+      // Invite accepted → bottom panel comes down alone; battle screen stays up.
+      setIsFindCreatorsOpen(false);
+      setShowViewerList(false);
+      setShowGiftPanel(false);
+      setShowSharePanel(false);
+      setShowRankingPanel(false);
+      setShowFanClub(false);
       setHasOpponentStream(false);
       setIsBattleMode(true);
       setBattleState('INVITING');
@@ -4110,6 +4162,10 @@ export default function LiveStream() {
         streamKey: data.streamKey || '',
         hostUserId: data.hostUserId || '',
       });
+      // Invite arrives → bottom panel comes up with Join/Reject.
+      setShowGiftPanel(false);
+      setShowSharePanel(false);
+      setIsFindCreatorsOpen(false);
       setShowViewerList(true);
       showToast(`@${data.hostName || 'Creator'} wants you to co-host — tap Join or Reject`);
     };
