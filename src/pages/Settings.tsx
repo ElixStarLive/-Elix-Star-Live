@@ -10,6 +10,7 @@ import {
   Bell,
   Shield,
   HelpCircle,
+  BookOpen,
   LogOut,
   Moon,
   Globe,
@@ -151,6 +152,7 @@ export default function Settings() {
           <R ic={<Shield size={14} />} t={t('settings.safetyCenter')} fn={() => navigate('/settings/safety')} />
 
           <S t={t('settings.section.support')} />
+          <R ic={<BookOpen size={14} />} t="How the app works" fn={() => navigate('/how-it-works')} />
           <R ic={<HelpCircle size={14} />} t={t('settings.helpSupport')} fn={() => navigate('/support')} />
 
           <div className="grid grid-cols-3 gap-1 mt-auto pt-4 px-0.5">

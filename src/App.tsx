@@ -84,6 +84,7 @@ const Shop = lazy(() => import("./pages/Shop"));
 const Report = lazy(() => import("./pages/Report"));
 const Support = lazy(() => import("./pages/Support"));
 const Guidelines = lazy(() => import("./pages/Guidelines"));
+const HowItWorks = lazy(() => import("./pages/HowItWorks"));
 const VideoCall = lazy(() => import("./pages/VideoCall"));
 const AIStudio = lazy(() => import("./pages/AIStudio"));
 const SpectatorPage = lazy(() => import("./pages/SpectatorPage"));
@@ -329,6 +330,7 @@ function App() {
     location.pathname === "/legal" ||
     location.pathname.startsWith("/legal/") ||
     location.pathname === "/guidelines" ||
+    location.pathname === "/how-it-works" ||
     location.pathname === "/support" ||
     location.pathname === "/forgot-password" ||
     location.pathname === "/reset-password";
@@ -408,6 +410,7 @@ function App() {
               <Route path="/legal/safety" element={<LegalSafety />} />
               <Route path="/legal/supplier" element={<LegalSupplier />} />
               <Route path="/guidelines" element={<Guidelines />} />
+              <Route path="/how-it-works" element={<HowItWorks />} />
               <Route path="/support" element={<Support />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
