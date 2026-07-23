@@ -6,7 +6,14 @@
 import { createHash } from 'crypto';
 import { Request, Response } from 'express';
 import { getTokenFromRequest, verifyAuthToken } from '../routes/auth';
-import { createLiveToken, isLiveKitConfigured, getLiveKitUrl, listActiveRoomsFromLiveKit, isUserPublishingInRoom } from '../services/livekit';
+import {
+  createLiveToken,
+  isLiveKitConfigured,
+  getLiveKitUrl,
+  listActiveRoomsFromLiveKit,
+  isUserPublishingInRoom,
+  roomHasActivePublisher,
+} from '../services/livekit';
 import { broadcastToFeedSubscribers } from '../feedBroadcast';
 import { dbInsertLiveStream, dbEndLiveStream, dbGetLiveStreams, dbGetStreamOwnerUserId } from '../lib/postgres';
 import { logger } from '../lib/logger';
@@ -181,13 +188,16 @@ async function buildStreamsResult(): Promise<StreamsListPayload> {
     try {
       const liveRooms = await listActiveRoomsFromLiveKit();
       const named = liveRooms.filter((r) => r.name);
+      const roomsByName = new Map(
+        named.map((r) => [r.name as NonNullable<typeof r.name>, r]),
+      );
       const batchKeys = named.map((r) => STREAM_KEY_PREFIX + (r.name as NonNullable<typeof r.name>));
       const hashList =
         batchKeys.length > 0 && isValkeyConfigured()
           ? await valkeyHgetallBatch(batchKeys)
           : [];
 
-      const streams = named.flatMap((room, i) => {
+      const fromLiveKit = named.flatMap((room, i) => {
         const data = hashList[i] || {};
         const dbRow = room.name ? dbByStreamKey.get(room.name) : undefined;
         const mem =
@@ -215,13 +225,45 @@ async function buildStreamsResult(): Promise<StreamsListPayload> {
           viewer_count: room.numParticipants,
         }];
       });
-      // Publishing guard: only list rooms whose host is actually broadcasting
-      // (publishing tracks) right now. A stale Valkey/DB "live" record for a
-      // user who is really just a spectator can never pass this.
+
+      // Also surface DB-registered lives whose LiveKit room exists but was
+      // missed in the Valkey batch path (same room key).
+      const seenKeys = new Set(
+        fromLiveKit.map((s) => s.stream_key).filter((k): k is string => typeof k === "string" && k.length > 0),
+      );
+      const fromDbExtras = dbRows.flatMap((row) => {
+        if (!row.stream_key || seenKeys.has(row.stream_key)) return [];
+        const room = roomsByName.get(row.stream_key);
+        if (!room) return [];
+        seenKeys.add(row.stream_key);
+        return [{
+          room_id: row.stream_key,
+          stream_key: row.stream_key,
+          user_id: row.user_id,
+          started_at: row.started_at,
+          status: "live" as const,
+          title: row.display_name || undefined,
+          display_name: row.display_name || undefined,
+          viewer_count: room.numParticipants,
+        }];
+      });
+
+      const streams = [...fromLiveKit, ...fromDbExtras];
+
+      // Discovery guard: list every registered room that is actually up.
+      // Prefer "any publisher" (host/co-host/battle) over host-identity-only —
+      // the old host-only check hid real creators from For You. Rooms with
+      // participants stay listed even if track metadata races; empty leftovers
+      // still require a publisher so ghost cards do not return.
       const verified = await Promise.all(
-        streams.map(async (s) =>
-          (await isUserPublishingInRoom(s.stream_key as string, s.user_id)) ? s : null,
-        ),
+        streams.map(async (s) => {
+          const key = s.stream_key as string;
+          const n = roomsByName.get(key)?.numParticipants ?? s.viewer_count ?? 0;
+          if (n > 0) return s;
+          if (await roomHasActivePublisher(key)) return s;
+          if (await isUserPublishingInRoom(key, s.user_id)) return s;
+          return null;
+        }),
       );
       return { streams: verified.filter((s): s is NonNullable<typeof s> => s !== null) };
     } catch (err) {

@@ -60,7 +60,8 @@ export async function isUserPublishingInRoom(
     return participants.some(
       (p) =>
         // Host/co-host publish tokens use stable identity = userId.
-        p?.identity === userId &&
+        // Spectator identities are `${userId}__v_<suffix>` — strip before compare.
+        userIdFromLiveKitIdentity(p?.identity || '') === userId &&
         Array.isArray(p?.tracks) &&
         p.tracks.length > 0,
     );
@@ -70,6 +71,27 @@ export async function isUserPublishingInRoom(
     const msg = err instanceof Error ? err.message : String(err);
     if (/not found|does not exist|404/i.test(msg)) return false;
     logger.warn({ err, roomName, userId }, "isUserPublishingInRoom transient failure — keeping stream listed");
+    return true;
+  }
+}
+
+/**
+ * True if anyone in the room is publishing tracks (host, co-host, or battle).
+ * Used for For You / Discover listing so a host identity mismatch cannot hide
+ * a real live room from every spectator.
+ */
+export async function roomHasActivePublisher(roomName: string): Promise<boolean> {
+  const client = getRoomService();
+  if (!client) return false;
+  try {
+    const participants = await client.listParticipants(roomName);
+    return participants.some(
+      (p) => Array.isArray(p?.tracks) && p.tracks.length > 0,
+    );
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (/not found|does not exist|404/i.test(msg)) return false;
+    logger.warn({ err, roomName }, "roomHasActivePublisher transient failure — keeping stream listed");
     return true;
   }
 }
