@@ -157,7 +157,7 @@ export function LiveHostProfileHeader({
         </div>
       </div>
 
-      <div className="flex-shrink-0 self-center ml-0.5" style={{ transform: 'translateX(-5mm)' }}>
+      <div className="flex-shrink-0 self-center ml-0.5" style={{ transform: 'translateX(-3mm)' }}>
         {showFollow ? (
           <LiveFollowPill variant="photo" onFollow={onFollow} />
         ) : (
