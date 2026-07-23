@@ -166,7 +166,12 @@ export default function LiveDiscover() {
             changed = true;
           }
         }
-        if (changed) setActiveIds(new Set(visibleIdsRef.current));
+        if (changed) {
+          // Confirmed Android risk: multiple InlineLiveViewer LiveKit rooms = OOM/crash.
+          // Allow only one active LiveKit preview at a time.
+          const first = visibleIdsRef.current.values().next().value as string | undefined;
+          setActiveIds(first ? new Set([first]) : new Set());
+        }
       },
       { threshold: [0, 0.35, 0.6], rootMargin: '40px 0px' },
     );
@@ -322,7 +327,9 @@ export default function LiveDiscover() {
             </div>
           ) : creators.length > 0 ? (
             <div className="grid grid-cols-2 gap-1 px-1 pb-[env(safe-area-inset-bottom,20px)]">
-              {creators.map((c, i) => (
+              {creators.map((c, i) => {
+                const previewActive = activeIds.has(c.id);
+                return (
                 <div
                   key={c.id}
                   ref={(el) => setCardRef(c.id, el)}
@@ -330,17 +337,48 @@ export default function LiveDiscover() {
                     i === 0 && creators.length > 2 ? 'col-span-2 aspect-[2/1.2]' : 'aspect-[3/4]'
                   }`}
                 >
-                  <Suspense fallback={<div className="absolute inset-0 bg-[#111111]" />}>
-                    <InlineLiveViewer
-                      streamKey={c.id}
-                      isActive={activeIds.has(c.id)}
-                      creatorName={c.name}
-                      creatorAvatar={c.avatar}
-                      viewerCount={c.viewers}
-                    />
-                  </Suspense>
+                  {previewActive ? (
+                    <Suspense fallback={<div className="absolute inset-0 bg-[#111111]" />}>
+                      <InlineLiveViewer
+                        streamKey={c.id}
+                        isActive
+                        creatorName={c.name}
+                        creatorAvatar={c.avatar}
+                        viewerCount={c.viewers}
+                      />
+                    </Suspense>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/watch/${c.id}`)}
+                      className="absolute inset-0 w-full h-full"
+                      aria-label={`Watch ${c.name}`}
+                    >
+                      {c.avatar ? (
+                        <img
+                          src={c.avatar}
+                          alt=""
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="absolute inset-0 bg-gradient-to-br from-[#1a1c22] to-[#0e1015] flex items-center justify-center">
+                          <span className="text-[#D4AF37] font-bold text-2xl">
+                            {(c.name || 'L').slice(0, 1).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                      <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-white/20 text-white text-[9px] font-extrabold uppercase tracking-wider">
+                        Live
+                      </div>
+                      <div className="absolute bottom-0 left-0 right-0 p-2.5">
+                        <p className="text-white font-bold text-xs truncate">{c.name}</p>
+                      </div>
+                    </button>
+                  )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             /* Empty state — no Go Live button, just info */

@@ -48,7 +48,10 @@ export function prepareFeedVideoEl(
     void el.play().catch(() => {});
   };
   kick();
-  if (el.readyState < 2) {
+  // Bind ready listeners once — runPlay/retries call this repeatedly.
+  const flagged = el as HTMLVideoElement & { __elixFeedKickBound?: boolean };
+  if (el.readyState < 2 && !flagged.__elixFeedKickBound) {
+    flagged.__elixFeedKickBound = true;
     el.addEventListener('loadeddata', kick, { once: true });
     el.addEventListener('canplay', kick, { once: true });
   }
@@ -73,7 +76,9 @@ export function prepareLiveVideoEl(el: HTMLVideoElement | null | undefined): voi
     void el.play().catch(() => {});
   };
   kick();
-  if (el.readyState < 2) {
+  const flagged = el as HTMLVideoElement & { __elixLiveKickBound?: boolean };
+  if (el.readyState < 2 && !flagged.__elixLiveKickBound) {
+    flagged.__elixLiveKickBound = true;
     el.addEventListener('loadeddata', kick, { once: true });
     el.addEventListener('canplay', kick, { once: true });
   }
