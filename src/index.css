@@ -927,12 +927,10 @@ video::-webkit-media-controls-overlay-enclosure,
     0 0 22px 5px rgba(212, 175, 55, 0.18);
 }
 
-/* Same soft gold glow on user avatar circles (Friends strip, feed, etc.) */
+/* Soft gold glow on user avatar circles — disabled (no yellow user rings). */
 .royce-avatar-glow {
   border-radius: 9999px;
-  box-shadow:
-    0 0 10px 2px rgba(212, 175, 55, 0.42),
-    0 0 22px 5px rgba(212, 175, 55, 0.18);
+  box-shadow: none;
 }
 
 /*

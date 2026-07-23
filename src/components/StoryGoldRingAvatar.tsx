@@ -2,10 +2,8 @@ import React from 'react';
 
 /** TikTok-style live red (ring + badge). */
 const LIVE_RING_COLOR = '#FE2C55';
-/** Friends / story strip gold ring (non-live). */
-const STORY_RING_COLOR = '#D4AF37';
 
-/** Live avatars: solid red ring + red LIVE badge. Non-live = gold story ring + soft glow (photo fills size). */
+/** User avatar: photo only. No yellow/gold ring. Live keeps red ring + LIVE badge. */
 export function StoryGoldRingAvatar({
   size = 56,
   src,
@@ -26,8 +24,7 @@ export function StoryGoldRingAvatar({
   innerTranslateYmm?: number;
   'data-avatar-circle'?: string;
 }) {
-  /** Keep ring thin and inside the box so live avatar matches other icon sizes. */
-  const ringPx = Math.max(2, Math.min(3, Math.round(size * 0.05)));
+  const ringPx = live ? Math.max(2, Math.min(3, Math.round(size * 0.05))) : 0;
   const photoSize = Math.max(2, size - ringPx * 2);
   const liveBadgeFont = Math.max(5, Math.round(size * 0.11));
   const liveBadgePadX = Math.max(3, Math.round(size * 0.08));
@@ -38,7 +35,7 @@ export function StoryGoldRingAvatar({
 
   return (
     <div
-      className={`relative flex-shrink-0 flex items-center justify-center rounded-full royce-avatar-glow overflow-visible ${className}`}
+      className={`relative flex-shrink-0 flex items-center justify-center rounded-full overflow-visible ${className}`}
       style={{ width: size, height: size, isolation: 'isolate' }}
       {...(dataAvatarCircle ? { 'data-avatar-circle': dataAvatarCircle } : {})}
     >
@@ -62,27 +59,29 @@ export function StoryGoldRingAvatar({
           <div className="h-full w-full flex items-center justify-center text-white/70 font-bold text-lg">{initial}</div>
         )}
       </div>
-      <div
-        className="pointer-events-none absolute inset-0 rounded-full"
-        style={{
-          boxSizing: 'border-box',
-          border: `${ringPx}px solid ${live ? LIVE_RING_COLOR : STORY_RING_COLOR}`,
-          zIndex: 2,
-        }}
-        aria-hidden
-      />
       {live ? (
-        <div
-          className="pointer-events-none absolute bottom-0 left-1/2 z-[20] -translate-x-1/2 translate-y-1/2 whitespace-nowrap font-bold leading-none text-white"
-          style={{
-            backgroundColor: LIVE_RING_COLOR,
-            fontSize: liveBadgeFont,
-            padding: `${liveBadgePadY}px ${liveBadgePadX}px`,
-            borderRadius: liveBadgeRadius,
-          }}
-        >
-          LIVE
-        </div>
+        <>
+          <div
+            className="pointer-events-none absolute inset-0 rounded-full"
+            style={{
+              boxSizing: 'border-box',
+              border: `${ringPx}px solid ${LIVE_RING_COLOR}`,
+              zIndex: 2,
+            }}
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute bottom-0 left-1/2 z-[20] -translate-x-1/2 translate-y-1/2 whitespace-nowrap font-bold leading-none text-white"
+            style={{
+              backgroundColor: LIVE_RING_COLOR,
+              fontSize: liveBadgeFont,
+              padding: `${liveBadgePadY}px ${liveBadgePadX}px`,
+              borderRadius: liveBadgeRadius,
+            }}
+          >
+            LIVE
+          </div>
+        </>
       ) : null}
     </div>
   );

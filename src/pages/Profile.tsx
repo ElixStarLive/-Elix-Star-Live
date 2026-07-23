@@ -677,7 +677,7 @@ export default function Profile() {
                       >
                         <div className="relative flex flex-col items-center gap-1" style={{ width: SHARE_PANEL_ITEM_WIDTH_PX, minWidth: SHARE_PANEL_ITEM_WIDTH_PX }}>
                           <div
-                            className="rounded-full overflow-hidden bg-[#13151A] flex-shrink-0 royce-avatar-glow"
+                            className="rounded-full overflow-hidden bg-[#13151A] flex-shrink-0"
                             style={{ width: SHARE_PANEL_AVATAR_PX, height: SHARE_PANEL_AVATAR_PX }}
                           >
                             <img

@@ -10,14 +10,14 @@ interface AvatarRingProps {
   simple?: boolean;
 }
 
-/** Avatar — round crop only, no border ring. */
+/** Avatar — round crop only, no border ring, no yellow glow. */
 export function AvatarRing({ src, alt = '', size, className = '', onClick }: AvatarRingProps) {
   const safeAlt = typeof alt === 'string' ? alt : '';
   const imgSrc = resolveUiAvatarUrl(src, safeAlt, size * 2);
 
   return (
     <div
-      className={`relative flex-shrink-0 rounded-full overflow-hidden bg-[#13151A] royce-avatar-glow ${onClick ? 'cursor-pointer' : ''} ${className}`}
+      className={`relative flex-shrink-0 rounded-full overflow-hidden bg-[#13151A] ${onClick ? 'cursor-pointer' : ''} ${className}`}
       style={{ width: size, height: size }}
       onClick={onClick}
     >
