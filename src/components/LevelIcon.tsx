@@ -1,9 +1,9 @@
 import React from 'react';
 import { AvatarRing } from './AvatarRing';
 import { resolveUiAvatarUrl, ROYCE_DEFAULT_AVATAR } from '../lib/royceAssets';
+import { getLevelAccentStyle } from '../lib/levelColors';
 
-/** Royal Purple diamond — chart Diamond #E0AAFF */
-function LevelDiamondIcon({ size = 12 }: { size?: number }) {
+function LevelDiamondIcon({ size = 12, color }: { size?: number; color: string }) {
   return (
     <svg
       width={size}
@@ -11,17 +11,17 @@ function LevelDiamondIcon({ size = 12 }: { size?: number }) {
       viewBox="0 0 16 16"
       className="flex-shrink-0"
       aria-hidden
-      style={{ filter: 'drop-shadow(0 0 4px rgba(224,170,255,0.95))' }}
+      style={{ filter: `drop-shadow(0 0 4px ${color})` }}
     >
       <path
         d="M8 1.2 L14.2 6.1 L8 14.8 L1.8 6.1 Z"
-        fill="#E0AAFF"
+        fill={color}
         fillOpacity="0.22"
-        stroke="#E0AAFF"
+        stroke={color}
         strokeWidth="1.5"
         strokeLinejoin="round"
       />
-      <path d="M8 1.2 L14.2 6.1 L8 7.2 L1.8 6.1 Z" fill="#E0AAFF" opacity="0.65" />
+      <path d="M8 1.2 L14.2 6.1 L8 7.2 L1.8 6.1 Z" fill={color} opacity="0.65" />
     </svg>
   );
 }
@@ -57,6 +57,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
   hideCircle = false,
 }) => {
   const safeLevel = typeof level === 'number' && Number.isFinite(level) && level > 0 ? Math.floor(level) : 1;
+  const levelStyle = getLevelAccentStyle(safeLevel);
   /** CSS px per mm (1in = 25.4mm, 1in = 96px). */
   const MM_TO_PX = 96 / 25.4;
   const shrinkMm = 3;
@@ -84,8 +85,8 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
         minWidth: Math.max(chipH + 14, Math.round(chipH * 1.7)),
         borderRadius: 6,
         background: 'rgba(8, 10, 22, 0.45)',
-        border: '1px solid rgba(224, 170, 255, 0.45)',
-        boxShadow: '0 1px 4px rgba(0,0,0,0.35)',
+        border: `1px solid ${levelStyle.border}`,
+        boxShadow: `0 1px 4px rgba(0,0,0,0.35), 0 0 6px ${levelStyle.glow}`,
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -95,7 +96,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
         flexShrink: 0,
       }}
     >
-      <LevelDiamondIcon size={diamondPx} />
+      <LevelDiamondIcon size={diamondPx} color={levelStyle.accent} />
       <span
         style={{
           color: '#FFFFFF',

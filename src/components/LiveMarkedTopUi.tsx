@@ -3,6 +3,7 @@ import { BadgeCheck, Gem, Heart, Plus } from 'lucide-react';
 import { AvatarRing } from './AvatarRing';
 import type { GiftUiItem } from '../lib/giftsCatalog';
 import { GIFT_COMBO_MAX } from '../lib/giftsCatalog';
+import { getLevelAccentStyle } from '../lib/levelColors';
 
 function formatLikesShort(count: number) {
   const c = typeof count === 'number' && Number.isFinite(count) ? count : 0;
@@ -92,6 +93,7 @@ export function LiveHostProfileHeader({
 }) {
   const safeLevel = typeof level === 'number' && Number.isFinite(level) && level > 0 ? Math.floor(level) : 1;
   const likesLabel = formatLikesShort(likes);
+  const levelStyle = getLevelAccentStyle(safeLevel);
 
   return (
     <div className="flex items-center gap-1.5 min-w-0 pointer-events-auto">
@@ -140,8 +142,8 @@ export function LiveHostProfileHeader({
           <span
             className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-[2px] text-[8px] font-bold text-white leading-none"
             style={{
-              background: 'linear-gradient(90deg, #7C3AED 0%, #A855F7 100%)',
-              boxShadow: '0 0 6px rgba(168,85,247,0.45)',
+              background: levelStyle.gradient,
+              boxShadow: `0 0 6px ${levelStyle.glow}`,
             }}
           >
             Lv.{safeLevel}
