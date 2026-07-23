@@ -5,6 +5,7 @@ import {
   fetchMusicPlaylists,
   searchLicensedTracks,
   ORIGINAL_SOUND_TRACK,
+  resolveSoundTrackPlaybackUrl,
   type MusicPlaylist,
   type SoundTrack,
 } from '../lib/soundLibrary';
@@ -34,6 +35,21 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
   const [search, setSearch] = useState('');
   const [searchResults, setSearchResults] = useState<SoundTrack[]>([]);
   const [searching, setSearching] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+
+  const stopPreview = () => {
+    const a = audioRef.current;
+    if (a) {
+      try {
+        a.pause();
+        a.removeAttribute('src');
+      } catch {
+        /* ignore */
+      }
+    }
+    clipRef.current = null;
+    setPlayingId(null);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -50,7 +66,9 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
       });
     return () => {
       cancelled = true;
+      stopPreview();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -85,14 +103,15 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
       if (!clip) return;
       if (clip.end > clip.start && a.currentTime >= clip.end) {
         a.currentTime = clip.start;
-        a.play().catch(() => {});
+        void a.play().catch(() => {});
       }
     };
     a.addEventListener('timeupdate', onTimeUpdate);
     return () => {
       a.removeEventListener('timeupdate', onTimeUpdate);
-      a.pause();
+      stopPreview();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const visibleTracks = useMemo(() => {
@@ -101,40 +120,80 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
     return pl?.tracks ?? [];
   }, [search, searchResults, playlists, activePlaylistId]);
 
-  const togglePreview = async (track: SoundTrack) => {
-    if (!track.url) return;
+  /** Preview only — does not select the track. One track at a time. */
+  const togglePreview = async (track: SoundTrack, e?: React.SyntheticEvent) => {
+    e?.stopPropagation();
+    e?.preventDefault();
+    setPreviewError(null);
+    const url = resolveSoundTrackPlaybackUrl(track.url || '');
+    if (!url) {
+      setPreviewError('No preview for this track');
+      return;
+    }
     const a = audioRef.current;
     if (!a) return;
     if (playingId === track.id) {
-      a.pause();
-      clipRef.current = null;
-      setPlayingId(null);
+      stopPreview();
       return;
     }
-    a.src = track.url;
-    const start = Math.max(0, track.clipStartSeconds);
-    const end = Math.max(start, track.clipEndSeconds);
+    // Stop any previous preview first — music plays alone.
+    try {
+      a.pause();
+    } catch {
+      /* ignore */
+    }
+    a.src = url;
+    const start = Math.max(0, track.clipStartSeconds || 0);
+    const end = Math.max(start, track.clipEndSeconds || start + 30);
     clipRef.current = { start, end };
-    a.currentTime = start;
+    try {
+      a.currentTime = start;
+    } catch {
+      /* ignore */
+    }
     try {
       await a.play();
       setPlayingId(track.id);
     } catch {
       clipRef.current = null;
       setPlayingId(null);
+      setPreviewError('Tap play again to hear preview');
     }
+  };
+
+  const pickTrack = (track: SoundTrack, e?: React.SyntheticEvent) => {
+    e?.stopPropagation();
+    e?.preventDefault();
+    stopPreview();
+    onPick(track);
+    onClose();
   };
 
   const inner = (
     <>
-      <audio ref={audioRef} preload="auto" onEnded={() => setPlayingId(null)} className="hidden" />
+      <audio
+        ref={audioRef}
+        preload="auto"
+        playsInline
+        onEnded={() => setPlayingId(null)}
+        className="hidden"
+      />
       <div className="flex items-center justify-between px-4 py-3 flex-shrink-0">
         <div className="flex items-center gap-2">
           <Music className="w-4 h-4 text-[#D4AF37]" strokeWidth={2} />
           <p className="text-[#D4AF37] font-semibold">Add sound</p>
         </div>
         {layout === 'embedded' ? (
-          <button type="button" onClick={onClose} className="p-2" aria-label="Close">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              stopPreview();
+              onClose();
+            }}
+            className="p-2 pointer-events-auto"
+            aria-label="Close"
+          >
             <RoyceCloseIcon />
           </button>
         ) : (
@@ -153,6 +212,9 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
             className="flex-1 bg-transparent text-white text-sm outline-none placeholder:text-white/40"
           />
         </div>
+        {previewError ? (
+          <p className="mt-1.5 text-[11px] text-[#D4AF37]/80 px-1">{previewError}</p>
+        ) : null}
       </div>
 
       {!search.trim() && playlists.length > 0 ? (
@@ -163,8 +225,11 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
               <button
                 key={pl.id}
                 type="button"
-                onClick={() => setActivePlaylistId(pl.id)}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border ${
+                onClick={() => {
+                  stopPreview();
+                  setActivePlaylistId(pl.id);
+                }}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border pointer-events-auto ${
                   active
                     ? 'bg-[#D4AF37] border-[#C9A227] text-black'
                     : 'border-[#C9A227]/35 text-white'
@@ -177,15 +242,12 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
         </div>
       ) : null}
 
-      <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-3">
+      <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-3 overscroll-contain">
         {!search.trim() ? (
           <button
             type="button"
-            onClick={() => {
-              onPick(ORIGINAL_SOUND_TRACK);
-              onClose();
-            }}
-            className="w-full px-2 py-2 flex items-center gap-2 hover:brightness-125 transition-colors text-left"
+            onClick={(e) => pickTrack(ORIGINAL_SOUND_TRACK, e)}
+            className="w-full px-2 py-2.5 flex items-center gap-2 active:brightness-125 transition-colors text-left pointer-events-auto"
           >
             <div className="w-10 h-10 rounded-md flex-shrink-0 bg-[#222] border border-[#C9A227]/20 flex items-center justify-center">
               <Music className="w-4 h-4 text-[#D4AF37]" />
@@ -194,7 +256,7 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
               <p className="text-white text-sm font-medium">Original Sound</p>
               <p className="text-white/50 text-xs">Use mic audio from your clip</p>
             </div>
-            <span className="px-2.5 py-1 rounded-full border border-[#C9A227]/35 text-white text-[10px] font-semibold">
+            <span className="min-h-[32px] min-w-[48px] px-3 py-1.5 rounded-full bg-[#D4AF37] text-black text-[10px] font-bold flex items-center justify-center">
               Use
             </span>
           </button>
@@ -212,28 +274,37 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
         {visibleTracks.map((track) => (
           <div
             key={track.id}
-            className="w-full px-2 py-2 flex items-center gap-2 hover:brightness-125 transition-colors"
+            className="w-full px-2 py-2.5 flex items-center gap-2 active:brightness-125 transition-colors pointer-events-auto"
           >
-            <div className="w-10 h-10 rounded-md overflow-hidden flex-shrink-0 bg-[#222] border border-[#C9A227]/20">
-              {track.coverUrl ? (
-                <img src={track.coverUrl} alt="" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <Music className="w-4 h-4 text-white/40" />
-                </div>
-              )}
-            </div>
-            <div className="text-left flex-1 min-w-0">
-              <p className="text-white text-sm font-medium leading-4 truncate">{track.title}</p>
-              <p className="text-white/50 text-xs leading-4 truncate">
-                {track.artist} • {formatClip(track.clipStartSeconds, track.clipEndSeconds)}
-              </p>
-            </div>
-            <div className="flex items-center gap-1.5 flex-shrink-0">
+            <button
+              type="button"
+              className="flex flex-1 min-w-0 items-center gap-2 text-left"
+              onClick={(e) => pickTrack(track, e)}
+              title={`Use ${track.title}`}
+            >
+              <div className="w-10 h-10 rounded-md overflow-hidden flex-shrink-0 bg-[#222] border border-[#C9A227]/20">
+                {track.coverUrl ? (
+                  <img src={track.coverUrl} alt="" className="w-full h-full object-cover" draggable={false} />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Music className="w-4 h-4 text-white/40" />
+                  </div>
+                )}
+              </div>
+              <div className="text-left flex-1 min-w-0">
+                <p className="text-white text-sm font-medium leading-4 truncate">{track.title}</p>
+                <p className="text-white/50 text-xs leading-4 truncate">
+                  {track.artist} • {formatClip(track.clipStartSeconds, track.clipEndSeconds)}
+                </p>
+              </div>
+            </button>
+            <div className="flex items-center gap-2 flex-shrink-0">
               <button
                 type="button"
-                onClick={() => togglePreview(track)}
-                className="w-8 h-8 royce-glow-disc flex items-center justify-center"
+                onClick={(e) => void togglePreview(track, e)}
+                className="w-10 h-10 royce-glow-disc flex items-center justify-center pointer-events-auto"
+                title={playingId === track.id ? 'Pause preview' : 'Play preview'}
+                aria-label={playingId === track.id ? 'Pause preview' : 'Play preview'}
               >
                 {playingId === track.id ? (
                   <Pause className="w-3.5 h-3.5 text-white" strokeWidth={2} />
@@ -243,11 +314,8 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  onPick(track);
-                  onClose();
-                }}
-                className="px-2.5 py-1 rounded-full border border-[#C9A227]/35 text-white text-[10px] font-semibold"
+                onClick={(e) => pickTrack(track, e)}
+                className="min-h-[32px] min-w-[48px] px-3 py-1.5 rounded-full bg-[#D4AF37] text-black text-[10px] font-bold pointer-events-auto"
               >
                 Use
               </button>
@@ -259,17 +327,25 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
   );
 
   if (layout === 'embedded') {
-    return <div className="flex flex-col flex-1 min-h-0">{inner}</div>;
+    return (
+      <div className="flex flex-col flex-1 min-h-0 pointer-events-auto relative z-10">
+        {inner}
+      </div>
+    );
   }
 
   return (
     <div
-      className="fixed inset-0 z-[500] bg-black/40 flex items-end justify-center animate-in fade-in duration-200"
-      onClick={onClose}
+      className="fixed inset-0 z-[10050] bg-black/40 flex items-end justify-center animate-in fade-in duration-200 pointer-events-auto"
+      onClick={() => {
+        stopPreview();
+        onClose();
+      }}
     >
       <div
-        className="bg-[#111111]/95 backdrop-blur-md w-full max-w-[480px] rounded-t-2xl overflow-hidden flex flex-col h-[70vh] max-h-[70dvh] shadow-2xl animate-in slide-in-from-bottom duration-300"
+        className="bg-[#111111]/95 backdrop-blur-md w-full max-w-[480px] rounded-t-2xl overflow-hidden flex flex-col h-[70vh] max-h-[70dvh] shadow-2xl animate-in slide-in-from-bottom duration-300 pointer-events-auto"
         onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
       >
         {inner}
       </div>
