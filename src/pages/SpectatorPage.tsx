@@ -354,7 +354,7 @@ export default function SpectatorPage() {
 
   const [spectatorCoHostRequestSent, setSpectatorCoHostRequestSent] = useState(false);
   const [showViewersPanel, setShowViewersPanel] = useState(false);
-  const [viewersList, setViewersList] = useState<{ id: string; name: string; avatar: string; level?: number }[]>([]);
+  const [viewersList, setViewersList] = useState<{ id: string; name: string; avatar: string; level?: number; points?: number }[]>([]);
   const actualViewersRef = useRef<Map<string, { name: string; avatar: string; level: number }>>(new Map());
   /** Gift coins — global (top bar #1–3), host team, opponent team (battle rows). */
   const mvpGiftScoresRef = useRef<Record<string, number>>({});
@@ -3872,14 +3872,18 @@ export default function SpectatorPage() {
                   <div
                     className="flex items-center gap-[0mm] pointer-events-auto flex-shrink-0"
                     style={{ transform: 'translateX(-2mm)' }}
+                    title="Top viewers & gifters"
                     onClick={() => {
-                      const list: { id: string; name: string; avatar: string; level?: number }[] = [];
-                      const hid = hostUserIdRef.current || hostUserId || effectiveStreamId;
-                      actualViewersRef.current.forEach((v, id) => {
-                        if (id !== user?.id && id !== hid && id !== effectiveStreamId) {
-                          list.push({ id, name: v.name, avatar: v.avatar, level: v.level });
-                        }
-                      });
+                      const ranked = [...mvpSlots.global]
+                        .filter((s) => (s.points ?? 0) > 0)
+                        .sort((a, b) => (b.points ?? 0) - (a.points ?? 0));
+                      const list = (ranked.length > 0 ? ranked : mvpSlots.global).map((s) => ({
+                        id: s.id,
+                        name: s.name,
+                        avatar: s.avatar,
+                        level: s.level,
+                        points: s.points ?? 0,
+                      }));
                       setViewersList(list);
                       setShowViewersPanel(true);
                     }}
@@ -4088,7 +4092,20 @@ export default function SpectatorPage() {
               battlePassLevel={userLevel || 1}
               battlePassXp={userXP % 1000}
               battlePassXpMax={1000}
-              onViewAllSupporters={() => setShowViewersPanel(true)}
+              onViewAllSupporters={() => {
+                const ranked = [...mvpSlots.global]
+                  .filter((s) => (s.points ?? 0) > 0)
+                  .sort((a, b) => (b.points ?? 0) - (a.points ?? 0));
+                const list = (ranked.length > 0 ? ranked : mvpSlots.global).map((s) => ({
+                  id: s.id,
+                  name: s.name,
+                  avatar: s.avatar,
+                  level: s.level,
+                  points: s.points ?? 0,
+                }));
+                setViewersList(list);
+                setShowViewersPanel(true);
+              }}
               onOpenMissions={() => {
                 setEngagementPanel('missions');
                 setEngagementOpen(true);
@@ -4655,20 +4672,28 @@ export default function SpectatorPage() {
                   <div className="w-10 h-1 bg-white/20 rounded-full" />
                 </div>
                 <div className="flex items-center justify-between px-4 pb-2">
-                  <h3 className="text-white font-bold text-sm">Top Viewers</h3>
+                  <h3 className="text-white font-bold text-sm">Top viewers & gifters</h3>
                   <div className="flex items-center gap-1">
                     <Eye size={12} className="text-white/50" />
-                    <span className="text-white/60 text-xs font-semibold">{viewerCount}</span>
+                    <span className="text-white/60 text-xs font-semibold">{viewersList.length || viewerCount}</span>
                   </div>
                 </div>
                 <div className="flex-1 overflow-y-auto no-scrollbar px-4 pb-4">
+                  <p className="text-white/50 text-[10px] font-bold uppercase tracking-wider mb-1.5">MVP · Gift coins this live</p>
                   {viewersList.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full gap-2">
                       <Eye size={28} className="text-white/10" />
-                      <p className="text-white/40 text-sm">No other viewers yet</p>
+                      <p className="text-white/40 text-sm">No gifters yet</p>
                     </div>
                   ) : (
-                    viewersList.map((v, i) => (
+                    viewersList.map((v, i) => {
+                      const gifted = Math.max(0, Number(v.points) || 0);
+                      const rawName = String(v.name || '').trim();
+                      const label = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawName)
+                        ? rawName.split('@')[0] || 'User'
+                        : rawName || 'User';
+                      const isMvp = i === 0 && gifted > 0;
+                      return (
                       <button
                         key={v.id}
                         type="button"
@@ -4676,16 +4701,32 @@ export default function SpectatorPage() {
                         onClick={() => { setShowViewersPanel(false); navigate(`/profile/${v.id}`); }}
                       >
                         <span className="text-white/30 text-xs font-bold w-5 text-right">{i + 1}</span>
-                        <LevelBadge
-                          level={typeof v.level === 'number' ? v.level : 1}
-                          avatar={v.avatar}
-                          layout="fixed"
-                        />
-                        <div className="flex-1 min-w-0 text-left">
-                          <p className="text-white text-sm font-semibold truncate">{v.name}</p>
+                        <div className={`relative flex-shrink-0 ${isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px]' : ''}`}>
+                          <LevelBadge
+                            level={typeof v.level === 'number' ? v.level : 1}
+                            avatar={v.avatar}
+                            layout="fixed"
+                          />
+                          {isMvp ? (
+                            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
+                              MVP
+                            </span>
+                          ) : null}
                         </div>
+                        <div className="flex-1 min-w-0 text-left">
+                          <p className="text-white text-sm font-semibold truncate">{label}</p>
+                          <p className="text-white/40 text-[10px] font-medium">{gifted > 0 ? 'Top gifter' : 'Viewer'}</p>
+                        </div>
+                        <span className="text-[#D4AF37] text-xs font-bold tabular-nums flex-shrink-0">
+                          {gifted >= 1_000_000
+                            ? `${(gifted / 1_000_000).toFixed(1)}M`
+                            : gifted >= 1_000
+                              ? `${(gifted / 1_000).toFixed(1)}K`
+                              : String(Math.floor(gifted))}
+                        </span>
                       </button>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </div>

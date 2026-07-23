@@ -350,6 +350,8 @@ export default function LiveStream() {
   const testCoinsPwdRef = useRef<HTMLInputElement>(null);
   const TEST_COINS_HASH = '169a9bfc269089e14090ad2e393b17e945d798598c33993bcab5feef93e68508';
   const [showViewerList, setShowViewerList] = useState(false);
+  /** MVP / supporters → top gifters; UserPlus / co-host request → invite spectators. */
+  const [viewerListMode, setViewerListMode] = useState<'spectators' | 'topGifters'>('spectators');
   const [moderators, setModerators] = useState<Set<string>>(new Set());
   const attachRemoteAudio = useCallback((track: import('livekit-client').Track, el: HTMLAudioElement | null) => {
     if (track.kind !== 'audio') return;
@@ -3261,6 +3263,36 @@ export default function LiveStream() {
     [buildMvpRanked, mvpGiftScores],
   );
 
+  const topGiftersRanked = useMemo(() => {
+    const ranked = buildMvpRanked(mvpGiftScores, 50, { requirePositiveScore: true });
+    if (ranked.length > 0) return ranked;
+    // Fallback: show top viewers by level when nobody has gifted yet.
+    return buildMvpRanked(mvpGiftScores, 20);
+  }, [buildMvpRanked, mvpGiftScores]);
+
+  const liveViewerLabel = useCallback((v: { displayName?: string; username?: string }) => {
+    const d = String(v.displayName || '').trim();
+    const u = String(v.username || '').trim();
+    const looksEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+    if (d && !looksEmail(d)) return d;
+    if (u && !looksEmail(u)) return u;
+    if (d && looksEmail(d)) return d.split('@')[0] || 'User';
+    if (u && looksEmail(u)) return u.split('@')[0] || 'User';
+    return d || u || 'User';
+  }, []);
+
+  const openTopGiftersPanel = useCallback(() => {
+    setIsFindCreatorsOpen(false);
+    setViewerListMode('topGifters');
+    setShowViewerList(true);
+  }, []);
+
+  const openSpectatorsPanel = useCallback(() => {
+    setIsFindCreatorsOpen(false);
+    setViewerListMode('spectators');
+    setShowViewerList(true);
+  }, []);
+
   const topMvpHostBattle = useMemo(() => {
     // Scorers exclusive to host side, then fill remaining of 3 from viewers by host score.
     const exclusive = buildMvpRanked(mvpGiftScoresHost, 3, { requirePositiveScore: true }).filter((v) => {
@@ -4182,6 +4214,7 @@ export default function LiveStream() {
       setShowGiftPanel(false);
       setShowSharePanel(false);
       setIsFindCreatorsOpen(false);
+      setViewerListMode('spectators');
       setShowViewerList(true);
       showToast(`@${data.requesterName || 'User'} requested to co-host — tap Join or Reject`);
     };
@@ -4210,6 +4243,7 @@ export default function LiveStream() {
       setShowGiftPanel(false);
       setShowSharePanel(false);
       setIsFindCreatorsOpen(false);
+      setViewerListMode('spectators');
       setShowViewerList(true);
       showToast(`@${data.hostName || 'Creator'} wants you to co-host — tap Join or Reject`);
     };
@@ -5727,7 +5761,7 @@ export default function LiveStream() {
                   </>
                 );
                 return (
-                  <button type="button" onClick={() => setShowViewerList(true)} className="flex flex-col items-center justify-center w-full h-full active:scale-95">
+                  <button type="button" onClick={openSpectatorsPanel} className="flex flex-col items-center justify-center w-full h-full active:scale-95">
                     <div className="w-12 h-12 rounded-full flex items-center justify-center">
                       <span className="text-white/30 text-2xl font-light">+</span>
                     </div>
@@ -6458,10 +6492,8 @@ export default function LiveStream() {
                           <div
                             className="flex items-center gap-[0mm] pointer-events-auto flex-shrink-0"
                             style={{ transform: 'translateX(-2mm)' }}
-                            onClick={() => {
-                              setIsFindCreatorsOpen(false);
-                              setShowViewerList((prev) => !prev);
-                            }}
+                            onClick={openTopGiftersPanel}
+                            title="Top viewers & gifters"
                           >
                             {topMvpViewers.map((viewer, i) => {
                               const isMvp = i === 0 && (mvpGiftScores[viewer.id] ?? 0) > 0;
@@ -6490,11 +6522,8 @@ export default function LiveStream() {
                         ) : null}
                         <button
                           type="button"
-                          title="Viewers"
-                          onClick={() => {
-                            setIsFindCreatorsOpen(false);
-                            setShowViewerList((prev) => !prev);
-                          }}
+                          title="Spectators & invite"
+                          onClick={openSpectatorsPanel}
                           className="flex items-center gap-1.5 px-0 py-1 rounded-full bg-transparent border-0 active:scale-95 transition-transform pointer-events-auto"
                           style={{ marginRight: '1mm' }}
                         >
@@ -6647,10 +6676,7 @@ export default function LiveStream() {
             battlePassLevel={userLevel || 1}
             battlePassXp={userXP % 1000}
             battlePassXpMax={1000}
-            onViewAllSupporters={() => {
-              setIsFindCreatorsOpen(false);
-              setShowViewerList(true);
-            }}
+            onViewAllSupporters={openTopGiftersPanel}
             onOpenMissions={() => {
               setEngagementPanel('missions');
               setEngagementOpen(true);
@@ -6759,10 +6785,7 @@ export default function LiveStream() {
                 <div className="flex flex-col items-center gap-0.5">
                   <button
                     type="button"
-                    onClick={() => {
-                      setIsFindCreatorsOpen(false);
-                      setShowViewerList(true);
-                    }}
+                    onClick={openSpectatorsPanel}
                     className={`${LIVE_BOTTOM_ICON_BTN} relative`}
                   >
                     <span className="flex items-center justify-center w-full h-full relative z-[2]"><UserPlus size={20} className="text-[#D4AF37] shrink-0" strokeWidth={2} /></span>
@@ -7177,7 +7200,7 @@ export default function LiveStream() {
         )}
       </AnimatePresence>
 
-      {/* ═══ VIEWER LIST + JOIN REQUESTS PANEL — spectators watching this live ═══ */}
+      {/* ═══ VIEWER LIST: Top gifters (MVP) OR Join requests & Spectators (invite) ═══ */}
       {showViewerList && (
         <>
           <div
@@ -7191,13 +7214,72 @@ export default function LiveStream() {
                 <div className="w-10 h-1 bg-white/20 rounded-full" />
               </div>
               <div className="flex items-center justify-between px-4 pb-2">
-                <h3 className="text-white font-bold text-sm">Join requests & Spectators</h3>
+                <h3 className="text-white font-bold text-sm">
+                  {viewerListMode === 'topGifters' ? 'Top viewers & gifters' : 'Join requests & Spectators'}
+                </h3>
                 <div className="flex items-center gap-1">
                   <Users size={12} className="text-white/50" />
-                  <span className="text-white/60 text-xs font-semibold">{formatCountShort(viewerCount)}</span>
+                  <span className="text-white/60 text-xs font-semibold">
+                    {viewerListMode === 'topGifters'
+                      ? formatCountShort(topGiftersRanked.length)
+                      : formatCountShort(viewerCount)}
+                  </span>
                 </div>
               </div>
               <div className="flex-1 overflow-y-auto no-scrollbar px-4 pb-4 min-h-0">
+                {viewerListMode === 'topGifters' ? (
+                  <>
+                    <p className="text-white/50 text-[10px] font-bold uppercase tracking-wider mb-1.5">MVP · Gift coins this live</p>
+                    {topGiftersRanked.length > 0 ? (
+                      topGiftersRanked.map((v, i) => {
+                        const gifted = mvpGiftScores[v.id] ?? 0;
+                        const displayName = liveViewerLabel(v);
+                        const isMvp = i === 0 && gifted > 0;
+                        return (
+                          <button
+                            key={`gifter-${v.id}`}
+                            type="button"
+                            className="flex items-center gap-3 w-full py-2 rounded-lg hover:bg-white/[0.03] text-left"
+                            onClick={() => {
+                              void openMiniProfile(displayName, undefined, { userId: v.id, avatar: v.avatar, level: v.level });
+                              setShowViewerList(false);
+                            }}
+                          >
+                            <span className="text-white/30 text-xs font-bold w-5 text-right flex-shrink-0">{i + 1}</span>
+                            <div className={`relative flex-shrink-0 ${isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px]' : ''}`}>
+                              <LevelBadge
+                                level={typeof v.level === 'number' ? v.level : 1}
+                                avatar={resolveCircleAvatar(v.avatar, displayName)}
+                                layout="fixed"
+                              />
+                              {isMvp ? (
+                                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
+                                  MVP
+                                </span>
+                              ) : null}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-white text-sm font-semibold truncate">{displayName}</p>
+                              <p className="text-white/40 text-[10px] font-medium">
+                                {gifted > 0 ? 'Top gifter' : 'Viewer'}
+                              </p>
+                            </div>
+                            <span className="text-[#D4AF37] text-xs font-bold tabular-nums flex-shrink-0">
+                              {formatCoinsShort(gifted)}
+                            </span>
+                          </button>
+                        );
+                      })
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-8 text-center">
+                        <Users className="w-7 h-7 text-white/10 mb-2" />
+                        <p className="text-white/50 text-sm">No gifters yet</p>
+                        <p className="text-white/30 text-xs mt-1">Send a gift to appear on the MVP list</p>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
                 {pendingInvite && (
                   <div className="mb-3 flex items-center gap-2.5 w-full py-1 px-2 rounded-full bg-[#C9A227]/10 border border-[#C9A227]/30">
                     <div
@@ -7255,7 +7337,7 @@ export default function LiveStream() {
                   activeViewers.map((v, i) => {
                     const alreadyInvited = coHosts.some((h) => sameUserId(h.userId, v.id));
                     const isJoinRequester = pendingJoinRequest?.requesterId === v.id;
-                    const displayName = v.displayName || v.username || 'User';
+                    const displayName = liveViewerLabel(v);
                     return (
                       <div
                         key={v.id}
@@ -7313,6 +7395,8 @@ export default function LiveStream() {
                     <Users className="w-7 h-7 text-white/10 mb-2" />
                     <p className="text-white/50 text-sm">No spectators yet</p>
                   </div>
+                )}
+                  </>
                 )}
               </div>
             </div>
