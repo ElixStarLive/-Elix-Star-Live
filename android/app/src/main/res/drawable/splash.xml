@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="@color/colorPrimary" />
+    <!-- Solid black only — no logo (in-app / login logo is the single brand image). -->
+    <item android:drawable="@android:color/black" />
 </layer-list>
