@@ -221,21 +221,37 @@ async function main() {
         }
       }
     }
-    const denied = await hit(
-      "/api/admin/payouts",
-      normal,
-      403,
-      "normal_admin_denied",
-    );
-    if (!denied.ok) {
-      if (denied.status === 401) {
-        console.error(
-          "FAIL|normal_admin_got_401_while_authenticated — session/role handling suspect",
-        );
-      } else if (denied.status === 200) {
-        console.error("FAIL|CRITICAL|normal_user_reached_admin_api");
+    // When normal + admin intentionally share one account (common for solo ops),
+    // skip RBAC isolation — that check needs two distinct users.
+    const sameAccount =
+      !!normal &&
+      !!admin &&
+      normal === admin;
+    const sameEmail =
+      (process.env.SMOKE_NORMAL_EMAIL || "").trim().toLowerCase() ===
+        (process.env.SMOKE_ADMIN_EMAIL || "").trim().toLowerCase() &&
+      !!(process.env.SMOKE_NORMAL_EMAIL || "").trim();
+    if (sameAccount || sameEmail) {
+      console.log(
+        "SKIP|normal_admin_denied — SMOKE_NORMAL and SMOKE_ADMIN are the same account",
+      );
+    } else {
+      const denied = await hit(
+        "/api/admin/payouts",
+        normal,
+        403,
+        "normal_admin_denied",
+      );
+      if (!denied.ok) {
+        if (denied.status === 401) {
+          console.error(
+            "FAIL|normal_admin_got_401_while_authenticated — session/role handling suspect",
+          );
+        } else if (denied.status === 200) {
+          console.error("FAIL|CRITICAL|normal_user_reached_admin_api");
+        }
+        failed++;
       }
-      failed++;
     }
   }
 
