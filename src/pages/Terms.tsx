@@ -19,7 +19,7 @@ export default function Terms() {
           <h1 className="font-bold text-lg">Terms of Service</h1>
         </header>
         <div className="overflow-y-auto min-h-0 px-4 pb-3">
-          <p className="text-xs text-white/40 italic mb-4">Last updated: July 15, 2026</p>
+          <p className="text-xs text-white/40 italic mb-4">Last updated: July 23, 2026</p>
           <div className="text-sm text-white/75 space-y-5 leading-6">
           <Section title="1. About the Service">
             <p>
@@ -169,12 +169,20 @@ export default function Terms() {
             </ul>
           </Section>
 
-          <Section title="12. Shop Payments">
+          <Section title="12. Shop Payments (Stripe)">
             <ul className="list-disc pl-5 space-y-1">
-              <li>Shop checkout uses third-party payment providers (for example Stripe).</li>
+              <li>
+                Shop checkout uses <strong>Stripe only</strong> (web/shop checkout). Shop payments are
+                separate from in-app coin purchases.
+              </li>
               <li>Currency may be shown in GBP or other currencies offered at checkout.</li>
               <li>Taxes, fees, and shipping (if any) may be added where applicable.</li>
               <li>By paying, you authorise the charge through the selected payment method.</li>
+              <li>
+                <strong>Shop refunds (if eligible)</strong> are handled only for Stripe shop orders —
+                via Stripe and/or support@elixstarlive.co.uk — not through Google Play or Apple IAP,
+                and never as a credit of digital coins.
+              </li>
             </ul>
           </Section>
 
@@ -188,8 +196,14 @@ export default function Terms() {
               <li>Coins are digital items only — not real money, bank balances, or securities.</li>
               <li>Coins generally have no cash value for consumers and are not transferable outside the Service except where our monetization programme expressly allows creator conversion under Section 15.</li>
               <li>
-                <strong>Coin purchases are final and non-refundable</strong>, except where required by
-                applicable law or the app store.
+                <strong>Digital coin purchases are final and non-refundable.</strong> Elix Star Live
+                does not offer an in-app coin refund feature. Coins are not refunded through Stripe
+                or the shop.
+              </li>
+              <li>
+                Where Apple or Google require a store-level refund or void by law or store policy,
+                that process is controlled by the app store — not by an Elix Star Live coin refund
+                UI.
               </li>
               <li>Packages, pricing, and bonuses may change.</li>
             </ul>
@@ -217,25 +231,36 @@ export default function Terms() {
             </ul>
           </Section>
 
-          <Section title="16. Refunds">
+          <Section title="16. Refunds — Digital Coins vs Shop">
+            <p className="mb-2">
+              Refund rules differ by product. Use this list:
+            </p>
             <ul className="list-disc pl-5 space-y-1">
               <li>
-                <strong>Coins and sent gifts:</strong> generally non-refundable except as required by
-                law or the relevant app store (Apple / Google).
+                <strong>Digital coins (IAP):</strong> final and non-refundable. No in-app coin refunds.
+                Not refundable via Stripe. Store-mandated voids/chargebacks (if any) follow Apple /
+                Google rules only.
+              </li>
+              <li>
+                <strong>Sent gifts:</strong> final once sent; coins spent are not returned, except
+                where required by law.
               </li>
               <li>
                 <strong>Subscriptions:</strong> managed by Apple or Google; cancel renewals in store
                 settings; refunds follow store rules.
               </li>
               <li>
-                <strong>Digital shop cosmetic items</strong> (badges, frames, boosts, etc.): may be
-                refundable if unused/unactivated and requested within 14 days, subject to review; used
-                items are not refundable.
+                <strong>Shop purchases (Stripe only):</strong> this is the only Elix Star Live product
+                category where we process refunds/returns through our shop payment provider. Eligibility
+                depends on product type, whether the item was fulfilled/used, stated policy at purchase,
+                and applicable consumer law. Contact support@elixstarlive.co.uk.
               </li>
               <li>
-                <strong>Shop purchases from Elix Star Live:</strong> refunds/returns follow the product
-                type, stated policy at purchase, and applicable consumer law. Contact
-                support@elixstarlive.co.uk.
+                <strong>Shop refund checklist:</strong> (1) order paid via Stripe checkout;
+                (2) request sent to support with order/payment reference; (3) unused/unfulfilled items
+                may be reviewed within 14 days where applicable; (4) used, activated, or fulfilled
+                items are generally not refundable; (5) approved refunds are issued via Stripe — never
+                as digital coins.
               </li>
               <li>We investigate fraud; chargebacks may cause balances/items to be revoked and accounts suspended.</li>
             </ul>

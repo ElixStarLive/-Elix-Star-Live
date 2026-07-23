@@ -222,10 +222,10 @@ export default function PurchaseCoins() {
             <FeatureItem text="Support the community and help creators grow" />
           </div>
 
-          {/* No-refund policy */}
+          {/* No-refund policy — digital coins only; shop refunds are Stripe-only (see Terms §16) */}
           <div className="bg-white/5 border border-white/10 rounded-xl p-4 mt-6">
-            <p className="text-xs text-white/60 text-center font-semibold mb-1">All coin purchases are final and non-refundable.</p>
-            <p className="text-[10px] text-white/40 text-center">Coins have no real-world monetary value. Once purchased, coins cannot be returned, exchanged, or transferred. Gifts sent to creators are final. Prices may vary by platform.</p>
+            <p className="text-xs text-white/60 text-center font-semibold mb-1">All digital coin purchases are final and non-refundable.</p>
+            <p className="text-[10px] text-white/40 text-center">Coins have no real-world monetary value. Once purchased, coins cannot be returned, exchanged, or transferred, and are not refunded via Stripe or the shop. Gifts sent to creators are final. Shop (Stripe) refunds, if eligible, are separate — see Terms. Prices may vary by platform.</p>
           </div>
           <p className="text-xs text-white/40 text-center mt-3 px-4">
             By purchasing, you agree to our{' '}

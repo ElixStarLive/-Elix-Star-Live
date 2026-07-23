@@ -52,7 +52,8 @@ Add your account under **Setup → License testing** for IAP review.
 
 Disclosure text (already in app Terms + Purchase Coins screen):
 - Coins are digital items with no real-world cash value
-- Purchases are final and non-refundable except where required by law
+- Digital coin purchases are final and non-refundable (no in-app coin refunds; not via Stripe)
+- Shop (Stripe) refunds, if eligible, are separate from coin IAP
 - Restore purchases available on Get Coins screen (native)
 
 ---

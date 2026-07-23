@@ -12,6 +12,16 @@ const FAQ_ITEMS = [
     answer: 'You can purchase coins through the in-app store, or receive them as gifts from other users during your live streams.',
   },
   {
+    question: 'Are digital coin purchases refundable?',
+    answer:
+      'No. Digital coin purchases (Apple / Google Play) are final and non-refundable. Elix Star Live does not offer in-app coin refunds, and coins are not refunded through Stripe or the shop. Gifts sent with coins are also final.',
+  },
+  {
+    question: 'Can I get a refund on a shop purchase?',
+    answer:
+      'Shop purchases paid with Stripe may be eligible for a refund under our shop policy (for example unused/unfulfilled items within 14 days, subject to review). Contact support@elixstarlive.co.uk with your order/payment reference. Approved shop refunds are issued via Stripe — never as digital coins.',
+  },
+  {
     question: 'What are battles?',
     answer: 'Battles are live competitions between two streamers where viewers send gifts to support their favorite creator. The streamer with the most gifts at the end wins!',
   },
