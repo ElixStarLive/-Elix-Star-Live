@@ -21,6 +21,10 @@ export const resetPasswordSchema = z.object({
   token: z.string().optional(),
 });
 
+export const verifyEmailSchema = z.object({
+  token: z.string().min(1),
+});
+
 export const sendGiftSchema = z.object({
   room_id: z.string().min(1).optional(),
   gift_id: z.string().min(1).optional(),

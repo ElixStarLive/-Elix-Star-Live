@@ -12,6 +12,7 @@ import {
   isValkeyConfigured,
   valkeyGet,
   valkeySet,
+  valkeySetNx,
   valkeyDel,
   valkeySadd,
   valkeySmembers,
@@ -85,12 +86,86 @@ function getLoginDecoyHash(): Promise<string> {
 }
 
 const RESET_TOKEN_EXPIRY_SEC = 60 * 60; // 1 hour — purpose-bound, not a session
+const VERIFY_TOKEN_EXPIRY_SEC = 60 * 60 * 24; // 24 hours — purpose-bound email confirm
+const RESEND_CONFIRM_COOLDOWN_MS = 60_000;
 
 // Binds a purpose-bound token (e.g. password reset) to the account's current
 // password hash. After a successful reset the hash changes, so an old token's
 // binding no longer matches — making reset links effectively single-use.
 export function passwordResetBinding(passwordHash: string): string {
   return crypto.createHash('sha256').update(String(passwordHash)).digest('base64url').slice(0, 22);
+}
+
+/** Binding for email-verify tokens — invalid once the account is confirmed. */
+function emailVerifyBinding(user: {
+  id: string;
+  email_confirmed_at: string | null;
+  passwordHash: string;
+}): string {
+  const state = user.email_confirmed_at ? `confirmed:${user.email_confirmed_at}` : 'pending';
+  return crypto
+    .createHash('sha256')
+    .update(`${user.id}|${state}|${user.passwordHash}`)
+    .digest('base64url')
+    .slice(0, 22);
+}
+
+function appOrigin(req: Request): string {
+  return (
+    process.env.APP_ORIGIN ||
+    (process.env.NODE_ENV !== 'production' ? (req.headers.origin as string | undefined) : undefined) ||
+    'https://www.elixstarlive.co.uk'
+  );
+}
+
+async function sendEmailConfirmation(
+  req: Request,
+  user: {
+    id: string;
+    email: string;
+    email_confirmed_at: string | null;
+    passwordHash: string;
+  },
+): Promise<{ ok: boolean; error?: string }> {
+  if (!isEmailConfigured()) {
+    return { ok: false, error: 'EMAIL_NOT_CONFIGURED' };
+  }
+  if (user.email_confirmed_at) {
+    return { ok: true };
+  }
+  const verifyToken = signToken(
+    { sub: user.id, email: user.email },
+    {
+      purpose: 'email_verify',
+      expirySec: VERIFY_TOKEN_EXPIRY_SEC,
+      pv: emailVerifyBinding(user),
+    },
+  );
+  const verifyLink = `${appOrigin(req)}/auth/callback?token=${encodeURIComponent(verifyToken)}`;
+  const result = await sendTransactionalEmail({
+    to: user.email,
+    subject: 'Confirm your Elix Star account',
+    text: `Confirm your email by opening this link:\n\n${verifyLink}\n\nThis link expires in 24 hours. If you did not create an account, ignore this email.`,
+    html: `<p>Confirm your email by clicking the link below:</p><p><a href="${verifyLink}">Confirm email</a></p><p>This link expires in 24 hours. If you did not create an account, you can ignore this email.</p>`,
+  });
+  if (!result.ok) return { ok: false, error: result.error };
+  return { ok: true };
+}
+
+async function markEmailConfirmed(userId: string): Promise<string | null> {
+  const pool = getPool();
+  if (!pool) return null;
+  const r = await pool.query(
+    `UPDATE elix_auth_users
+        SET email_confirmed_at = COALESCE(email_confirmed_at, NOW())
+      WHERE id = $1
+      RETURNING email_confirmed_at`,
+    [userId],
+  );
+  const raw = r.rows[0]?.email_confirmed_at;
+  if (raw instanceof Date) return raw.toISOString();
+  if (typeof raw === 'string' && raw.trim()) return raw;
+  return null;
 }
 
 function signToken(
@@ -323,6 +398,8 @@ interface StoredUser {
   username: string;
   avatar_url: string;
   created_at: string;
+  /** ISO timestamp when email was confirmed; null/undefined = unverified. */
+  email_confirmed_at: string | null;
 }
 let authTableEnsured = false;
 let sessionTableEnsured = false;
@@ -331,6 +408,22 @@ async function ensureAuthUsersTable(): Promise<void> {
   if (authTableEnsured) return;
   const pool = getPool();
   if (!pool) return;
+  try {
+    // Idempotent: migration 20260723140000 also adds this; keep runtime safe if
+    // a deploy races ahead of migrate.
+    await pool.query(
+      `ALTER TABLE elix_auth_users ADD COLUMN IF NOT EXISTS email_confirmed_at TIMESTAMPTZ`,
+    );
+    // Grandfather only rows that still lack a value (existing production accounts).
+    await pool.query(
+      `UPDATE elix_auth_users
+          SET email_confirmed_at = COALESCE(created_at, NOW())
+        WHERE email_confirmed_at IS NULL
+          AND created_at < NOW() - INTERVAL '1 minute'`,
+    );
+  } catch (err) {
+    logger.warn({ err }, 'ensureAuthUsersTable: email_confirmed_at ensure skipped');
+  }
   authTableEnsured = true;
 }
 
@@ -346,6 +439,13 @@ function hashSessionToken(token: string): string {
 }
 
 function rowToStoredUser(row: Record<string, unknown>): StoredUser {
+  const confirmedRaw = row.email_confirmed_at;
+  let email_confirmed_at: string | null = null;
+  if (confirmedRaw instanceof Date) {
+    email_confirmed_at = confirmedRaw.toISOString();
+  } else if (typeof confirmedRaw === 'string' && confirmedRaw.trim()) {
+    email_confirmed_at = confirmedRaw;
+  }
   return {
     id: String(row.id),
     email: String(row.email ?? ''),
@@ -353,6 +453,7 @@ function rowToStoredUser(row: Record<string, unknown>): StoredUser {
     username: String(row.username ?? ''),
     avatar_url: String(row.avatar_url ?? ''),
     created_at: row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at ?? new Date().toISOString()),
+    email_confirmed_at,
   };
 }
 
@@ -361,7 +462,7 @@ async function dbFindUserByEmail(email: string): Promise<StoredUser | null> {
   if (!pool) return null;
   await ensureAuthUsersTable();
   const r = await pool.query(
-    `SELECT id, email, password_hash, username, avatar_url, created_at
+    `SELECT id, email, password_hash, username, avatar_url, created_at, email_confirmed_at
        FROM elix_auth_users
       WHERE email_lower = $1
       LIMIT 1`,
@@ -377,7 +478,7 @@ async function dbFindUserByEmailOrUsername(identifier: string): Promise<StoredUs
   await ensureAuthUsersTable();
   const lower = identifier.toLowerCase();
   const emailResult = await pool.query(
-    `SELECT u.id, u.email, u.password_hash, u.username, u.avatar_url, u.created_at
+    `SELECT u.id, u.email, u.password_hash, u.username, u.avatar_url, u.created_at, u.email_confirmed_at
        FROM elix_auth_users u
       WHERE u.email_lower = $1
       LIMIT 1`,
@@ -387,7 +488,7 @@ async function dbFindUserByEmailOrUsername(identifier: string): Promise<StoredUs
     return rowToStoredUser(emailResult.rows[0] as Record<string, unknown>);
   }
   const usernameResult = await pool.query(
-    `SELECT u.id, u.email, u.password_hash, u.username, u.avatar_url, u.created_at
+    `SELECT u.id, u.email, u.password_hash, u.username, u.avatar_url, u.created_at, u.email_confirmed_at
        FROM elix_auth_users u
       WHERE LOWER(u.username) = $1
       ORDER BY u.created_at ASC
@@ -405,7 +506,7 @@ async function dbFindUserById(id: string): Promise<StoredUser | null> {
   if (!pool) return null;
   await ensureAuthUsersTable();
   const r = await pool.query(
-    `SELECT id, email, password_hash, username, avatar_url, created_at
+    `SELECT id, email, password_hash, username, avatar_url, created_at, email_confirmed_at
        FROM elix_auth_users
       WHERE id = $1
       LIMIT 1`,
@@ -420,9 +521,18 @@ async function dbInsertUser(user: StoredUser): Promise<void> {
   if (!pool) return;
   await ensureAuthUsersTable();
   await pool.query(
-    `INSERT INTO elix_auth_users (id, email, email_lower, password_hash, username, avatar_url, created_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-    [user.id, user.email, user.email.toLowerCase(), user.passwordHash, user.username, user.avatar_url, user.created_at],
+    `INSERT INTO elix_auth_users (id, email, email_lower, password_hash, username, avatar_url, created_at, email_confirmed_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+    [
+      user.id,
+      user.email,
+      user.email.toLowerCase(),
+      user.passwordHash,
+      user.username,
+      user.avatar_url,
+      user.created_at,
+      user.email_confirmed_at,
+    ],
   );
 }
 
@@ -455,8 +565,8 @@ async function dbRegisterUser(
     }
     await client.query(
       `INSERT INTO elix_auth_users
-         (id, email, email_lower, password_hash, username, avatar_url, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+         (id, email, email_lower, password_hash, username, avatar_url, created_at, email_confirmed_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
       [
         user.id,
         user.email,
@@ -465,6 +575,7 @@ async function dbRegisterUser(
         user.username,
         user.avatar_url,
         user.created_at,
+        user.email_confirmed_at,
       ],
     );
     await client.query(
@@ -544,7 +655,8 @@ function toAuthUser(u: StoredUser): {
       full_name: u.username || '',
       avatar_url: u.avatar_url || '',
     },
-    email_confirmed_at: new Date().toISOString(),
+    // Empty string = unverified. Client treats truthy email_confirmed_at as confirmed.
+    email_confirmed_at: u.email_confirmed_at || '',
     created_at: u.created_at || new Date().toISOString(),
   };
 }
@@ -607,6 +719,13 @@ export async function handleLogin(req: Request, res: Response) {
     if (!(await verifyPassword(password, user.passwordHash))) {
       return res.status(401).json({ error: 'Invalid login credentials.' });
     }
+    // Password accounts must confirm email when the mail provider is configured.
+    // Existing accounts are grandfathered via migration (email_confirmed_at set).
+    if (!user.email_confirmed_at && isEmailConfigured()) {
+      return res.status(403).json({
+        error: 'Please confirm your email before logging in. Check your inbox or request a new confirmation email.',
+      });
+    }
     const pool = getPool();
     if (pool) {
       try {
@@ -655,6 +774,7 @@ export async function handleGuestLogin(_req: Request, res: Response) {
       username: uname,
       avatar_url,
       created_at,
+      email_confirmed_at: created_at,
     };
     await dbInsertUser(guest);
   }
@@ -681,6 +801,10 @@ export async function handleRegister(req: Request, res: Response) {
     const uname = typeof username === 'string' && username.trim() ? username.trim() : e.split('@')[0];
     const avatar_url = `https://ui-avatars.com/api/?name=${encodeURIComponent(uname)}&background=random`;
     const created_at = new Date().toISOString();
+    // When transactional email is configured, leave the account unconfirmed and
+    // require the verify link before login. Without a mail provider (local/dev),
+    // auto-confirm so registration still works.
+    const requireConfirm = isEmailConfigured();
     const stored: StoredUser = {
       id,
       email: e,
@@ -688,6 +812,7 @@ export async function handleRegister(req: Request, res: Response) {
       username: uname,
       avatar_url,
       created_at,
+      email_confirmed_at: requireConfirm ? null : created_at,
     };
     const registration = await dbRegisterUser(stored);
     if (registration === "email_exists") {
@@ -696,6 +821,22 @@ export async function handleRegister(req: Request, res: Response) {
     if (registration === "username_exists") {
       return res.status(409).json({ error: 'This username is already taken.' });
     }
+
+    if (requireConfirm) {
+      const sent = await sendEmailConfirmation(req, stored);
+      if (!sent.ok) {
+        logger.error({ error: sent.error, userId: id }, 'handleRegister: confirmation email failed');
+      }
+      // Do not issue a session until the email is confirmed.
+      return res.status(201).json({
+        user: toAuthUser(stored),
+        session: null,
+        needsEmailConfirmation: true,
+        welcome_message:
+          'Check your email to confirm your account before signing in.',
+      });
+    }
+
     const token = signToken({ sub: id, email: e });
     await dbUpsertSession(id, token);
     setAuthCookie(res, token);
@@ -703,6 +844,7 @@ export async function handleRegister(req: Request, res: Response) {
     return res.status(201).json({
       ...authLoginRegisterBody(stored, token),
       profile_meta,
+      needsEmailConfirmation: false,
       welcome_message:
         'Welcome! You received 50,000 Starter Coins to explore gifts and support creators.',
     });
@@ -836,20 +978,32 @@ export async function handleResendConfirmation(req: Request, res: Response) {
   }
 
   try {
-    const user = await dbFindUserByEmail(email.trim());
+    const normalized = email.trim().toLowerCase();
+    // Always return success for unknown emails (no account enumeration).
+    const user = await dbFindUserByEmail(normalized);
     if (!user) {
       return res.status(200).json({ success: true });
     }
+    if (user.email_confirmed_at) {
+      return res.status(200).json({ success: true, already_confirmed: true });
+    }
 
-    const result = await sendTransactionalEmail({
-      to: user.email,
-      subject: 'Confirm your Elix Star account',
-      text: 'Your account is already active. You can log in with your email and password.',
-      html: '<p>Your account is already active. You can log in with your email and password.</p>',
-    });
+    // Rate-limit after a successful send (always 200 to avoid account enumeration).
+    if (isValkeyConfigured()) {
+      const sentKey = `email_confirm_sent:${normalized}`;
+      const claimed = await valkeySetNx(sentKey, '1', RESEND_CONFIRM_COOLDOWN_MS).catch(() => true);
+      if (!claimed) {
+        return res.status(200).json({ success: true });
+      }
+    }
 
-    if (!result.ok) {
-      logger.error({ error: result.error }, 'handleResendConfirmation email send failed');
+    const sent = await sendEmailConfirmation(req, user);
+    if (!sent.ok) {
+      // Allow immediate retry if the provider failed.
+      if (isValkeyConfigured()) {
+        await valkeyDel(`email_confirm_sent:${normalized}`).catch(() => undefined);
+      }
+      logger.error({ error: sent.error }, 'handleResendConfirmation email send failed');
       return res.status(500).json({ error: 'Failed to send email. Please try again later.' });
     }
 
@@ -857,6 +1011,62 @@ export async function handleResendConfirmation(req: Request, res: Response) {
   } catch (err) {
     logger.error({ err }, 'handleResendConfirmation failed');
     return res.status(500).json({ error: 'Unable to process request.' });
+  }
+}
+
+/**
+ * Confirm email via purpose-bound token from the verification link.
+ * Single-use: once email_confirmed_at is set, the pending binding no longer matches.
+ */
+export async function handleVerifyEmail(req: Request, res: Response) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  const token = typeof req.body?.token === 'string' ? req.body.token.trim() : '';
+  if (!token) return res.status(400).json({ error: 'Verification token is required.' });
+
+  const payload = verifyToken(token);
+  if (!payload || payload.purpose !== 'email_verify') {
+    return res.status(401).json({ error: 'Invalid or expired confirmation link.' });
+  }
+
+  try {
+    const user = await dbFindUserById(payload.sub);
+    if (!user) return res.status(404).json({ error: 'User not found.' });
+
+    if (user.email_confirmed_at) {
+      // Already confirmed — issue a session so the callback can land the user.
+      const sessionToken = signToken({ sub: user.id, email: user.email });
+      await dbUpsertSession(user.id, sessionToken);
+      setAuthCookie(res, sessionToken);
+      const profile_meta = await loadProfileMeta(user.id);
+      return res.status(200).json({
+        ...authLoginRegisterBody(user, sessionToken),
+        profile_meta,
+        already_confirmed: true,
+      });
+    }
+
+    if (!payload.pv || payload.pv !== emailVerifyBinding(user)) {
+      return res.status(401).json({ error: 'This confirmation link is no longer valid.' });
+    }
+
+    const confirmedAt = await markEmailConfirmed(user.id);
+    if (!confirmedAt) {
+      return res.status(503).json({ error: 'Database not configured' });
+    }
+    user.email_confirmed_at = confirmedAt;
+
+    const sessionToken = signToken({ sub: user.id, email: user.email });
+    await dbUpsertSession(user.id, sessionToken);
+    setAuthCookie(res, sessionToken);
+    const profile_meta = await loadProfileMeta(user.id);
+    return res.status(200).json({
+      ...authLoginRegisterBody(user, sessionToken),
+      profile_meta,
+      already_confirmed: false,
+    });
+  } catch (err) {
+    logger.error({ err }, 'handleVerifyEmail failed');
+    return res.status(500).json({ error: 'Email confirmation failed. Please try again.' });
   }
 }
 
@@ -893,7 +1103,7 @@ async function dbFindUserByAppleSub(appleSub: string): Promise<StoredUser | null
   const pool = getPool();
   if (!pool) return null;
   const r = await pool.query(
-    `SELECT id, email, password_hash, username, avatar_url, created_at
+    `SELECT id, email, password_hash, username, avatar_url, created_at, email_confirmed_at
        FROM elix_auth_users
       WHERE apple_sub = $1
       LIMIT 1`,
@@ -948,6 +1158,11 @@ export async function handleAppleNative(req: Request, res: Response) {
           return res.status(409).json({ error: 'This account is linked to a different Apple ID.' });
         }
         user = byEmail;
+        // Apple verified this email — confirm if still pending.
+        if (!user.email_confirmed_at) {
+          const confirmedAt = await markEmailConfirmed(user.id);
+          if (confirmedAt) user.email_confirmed_at = confirmedAt;
+        }
       }
     }
 
@@ -970,6 +1185,8 @@ export async function handleAppleNative(req: Request, res: Response) {
         username,
         avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(suppliedName || username)}&background=random`,
         created_at: new Date().toISOString(),
+        // Apple already verified this email claim.
+        email_confirmed_at: new Date().toISOString(),
       };
       const registered = await dbRegisterUser(stored);
       if (registered !== 'ok') {

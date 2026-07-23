@@ -72,6 +72,44 @@ router.get("/notifications", async (req, res) => {
   }
 });
 
+/** Mark one or all of the caller's notifications as read. */
+router.post("/notifications/read", async (req, res) => {
+  res.setHeader("Cache-Control", "private, no-store");
+  const { getTokenFromRequest, verifyAuthToken } = await import("./auth");
+  const { getPool } = await import("../lib/postgres");
+  const { logger } = await import("../lib/logger");
+  const token = getTokenFromRequest(req);
+  const payload = token ? verifyAuthToken(token) : null;
+  if (!payload?.sub) return res.status(401).json({ error: "Unauthorized" });
+  const db = getPool();
+  if (!db) return res.status(503).json({ error: "Database not available" });
+  const idsRaw = (req.body as { ids?: unknown })?.ids;
+  const ids = Array.isArray(idsRaw)
+    ? idsRaw.filter((id): id is string => typeof id === "string" && id.length > 0).slice(0, 100)
+    : [];
+  try {
+    if (ids.length > 0) {
+      const r = await db.query(
+        `UPDATE elix_notifications
+            SET read = TRUE
+          WHERE user_id = $1 AND id = ANY($2::text[]) AND read = FALSE`,
+        [payload.sub, ids],
+      );
+      return res.json({ ok: true, updated: r.rowCount ?? 0 });
+    }
+    const r = await db.query(
+      `UPDATE elix_notifications
+          SET read = TRUE
+        WHERE user_id = $1 AND read = FALSE`,
+      [payload.sub],
+    );
+    return res.json({ ok: true, updated: r.rowCount ?? 0 });
+  } catch (err) {
+    logger.error({ err }, "POST /notifications/read failed");
+    return res.status(500).json({ error: "Failed to mark notifications read" });
+  }
+});
+
 // Hearts & Membership stats
 router.get("/hearts/daily/:creatorUserId", async (req, res) => {
   res.setHeader("Cache-Control", "private, no-store");

@@ -35,6 +35,16 @@ describe("sessionGuard", () => {
     authMocks.getTokenFromRequest.mockReturnValue("token");
   });
 
+  it("allows public verify-email without querying session state", async () => {
+    const res = response();
+    const next = vi.fn() as NextFunction;
+
+    await sessionGuard(request("/api/auth/verify-email"), res.value, next);
+
+    expect(next).toHaveBeenCalledOnce();
+    expect(authMocks.checkSessionState).not.toHaveBeenCalled();
+  });
+
   it("allows public login without querying session state", async () => {
     const res = response();
     const next = vi.fn() as NextFunction;

@@ -221,6 +221,17 @@ export default function Inbox() {
           created_at: n.created_at,
           rawData: n.data || {},
         })));
+        // Mark unread notifications as read once the inbox has loaded them.
+        const unreadIds = rows
+          .filter((n: { read?: boolean; is_read?: boolean; id?: string }) => !(n.is_read ?? n.read) && n.id)
+          .map((n: { id: string }) => n.id)
+          .slice(0, 100);
+        if (unreadIds.length > 0) {
+          void request('/api/notifications/read', {
+            method: 'POST',
+            body: JSON.stringify({ ids: unreadIds }),
+          }).catch(() => undefined);
+        }
       } catch { /* ignore */ }
     };
     const fetchConversations = async () => {

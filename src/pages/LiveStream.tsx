@@ -1455,7 +1455,9 @@ export default function LiveStream() {
     (async () => {
       const wsToken = useAuthStore.getState().session?.access_token ?? '';
       if (wsToken) {
-        websocket.connect(effectiveStreamId, wsToken, { persistent: false });
+        // Battle joiners are creators — keep reconnecting through mobile blips
+        // instead of synthesizing stream_ended after a short attempt budget.
+        websocket.connect(effectiveStreamId, wsToken, { persistent: true });
         for (let i = 0; i < 24 && !cancelled; i += 1) {
           if (websocket.isConnected()) break;
           await new Promise((r) => window.setTimeout(r, 250));

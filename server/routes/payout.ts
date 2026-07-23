@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { getPool } from '../lib/postgres';
 import { getTokenFromRequest, verifyAuthToken } from './auth';
 import { logger } from '../lib/logger';
+import { isEmailConfigured } from '../lib/email';
 
 function getUserId(req: Request): string | null {
   const token = getTokenFromRequest(req);
@@ -82,6 +83,24 @@ export async function handleCreatorWithdraw(req: Request, res: Response) {
     await ensureTables();
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    // Withdrawals require a confirmed email when mail is configured.
+    try {
+      if (isEmailConfigured()) {
+        const conf = await db.query(
+          `SELECT email_confirmed_at FROM elix_auth_users WHERE id = $1 LIMIT 1`,
+          [userId],
+        );
+        const confirmed = conf.rows[0]?.email_confirmed_at;
+        if (!confirmed) {
+          return res.status(403).json({
+            error: 'Please confirm your email before requesting a payout.',
+          });
+        }
+      }
+    } catch (err) {
+      logger.warn({ err, userId }, 'payout email-confirm check skipped');
+    }
 
       const { coins_amount, payout_method_id } = req.body;
     const amt = Math.floor(Number(coins_amount));

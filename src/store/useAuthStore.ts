@@ -84,6 +84,12 @@ const authStateStorage: StateStorage = {
         const legacy = window.localStorage.getItem(name);
         if (legacy != null) {
           await Preferences.set({ key: name, value: legacy });
+          // Remove the plaintext copy so the token is not left in WebView storage.
+          try {
+            window.localStorage.removeItem(name);
+          } catch {
+            // ignore
+          }
           return legacy;
         }
       } catch {

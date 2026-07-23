@@ -152,6 +152,9 @@ export async function handlePostChatMessage(req: Request, res: Response) {
     ? (req.body as { text: string }).text.trim()
     : "";
   if (!text) return res.status(400).json({ error: "Message text is required" });
+  if (text.length > 2000) {
+    return res.status(400).json({ error: "Message is too long (max 2000 characters)." });
+  }
   const thread = await dbGetChatThread(threadId, auth.userId);
   if (!thread) return res.status(404).json({ error: "Not found" });
   const otherId = thread.user1_id === auth.userId ? thread.user2_id : thread.user1_id;

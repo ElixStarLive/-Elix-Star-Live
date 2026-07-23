@@ -36,6 +36,7 @@ export async function sessionGuard(
     "/api/auth/guest",
     "/api/auth/register",
     "/api/auth/resend-confirmation",
+    "/api/auth/verify-email",
     "/api/auth/apple/start",
     "/api/auth/forgot-password",
     "/api/auth/reset-password",
