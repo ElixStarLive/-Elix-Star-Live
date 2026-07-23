@@ -3,25 +3,43 @@ import { AvatarRing } from './AvatarRing';
 import { resolveUiAvatarUrl, ROYCE_DEFAULT_AVATAR } from '../lib/royceAssets';
 import { getLevelAccentStyle } from '../lib/levelColors';
 
-function LevelDiamondIcon({ size = 12, color }: { size?: number; color: string }) {
+/**
+ * Identical badge diamond frame from the ELIX icon sheet (Ranking gem):
+ * flat crown top, pointed pavilion. Dark gem so the coloured chip fundal reads as the light.
+ */
+function LevelDiamondIcon({ size = 12 }: { size?: number }) {
   return (
     <svg
       width={size}
       height={size}
-      viewBox="0 0 16 16"
+      viewBox="0 0 20 20"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
       className="flex-shrink-0"
       aria-hidden
-      style={{ filter: `drop-shadow(0 0 4px ${color})` }}
+      style={{ display: 'block' }}
     >
+      {/* Outer gem silhouette — dark on coloured fundal */}
+      <path d="M5 7.2 L7.2 3.2 H12.8 L15 7.2 L10 17.2 Z" fill="#0A0A12" />
+      {/* Top crown facets */}
+      <path d="M5 7.2 H15 L12.8 3.2 H7.2 Z" fill="#14141C" />
+      <path d="M7.2 3.2 L10 7.2 L12.8 3.2 Z" fill="#0E0E16" />
+      {/* Left / right pavilion */}
+      <path d="M5 7.2 L10 7.2 L10 17.2 Z" fill="#12121A" />
+      <path d="M15 7.2 L10 7.2 L10 17.2 Z" fill="#0C0C14" />
+      {/* Center facet */}
+      <path d="M8.2 7.2 L10 12.5 L11.8 7.2 Z" fill="#181822" />
+      {/* Frame stroke — same gem outline as icon sheet */}
       <path
-        d="M8 1.2 L14.2 6.1 L8 14.8 L1.8 6.1 Z"
-        fill={color}
-        fillOpacity="0.22"
-        stroke={color}
-        strokeWidth="1.5"
+        d="M5 7.2 L7.2 3.2 H12.8 L15 7.2 L10 17.2 Z"
+        stroke="rgba(0,0,0,0.85)"
+        strokeWidth="0.85"
         strokeLinejoin="round"
+        fill="none"
       />
-      <path d="M8 1.2 L14.2 6.1 L8 7.2 L1.8 6.1 Z" fill={color} opacity="0.65" />
+      <path d="M5 7.2 H15" stroke="rgba(0,0,0,0.7)" strokeWidth="0.55" />
+      <path d="M7.2 3.2 L10 7.2 L12.8 3.2" stroke="rgba(0,0,0,0.55)" strokeWidth="0.45" fill="none" />
+      <path d="M10 7.2 L10 17.2" stroke="rgba(0,0,0,0.55)" strokeWidth="0.45" />
     </svg>
   );
 }
@@ -72,7 +90,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
       ? Math.max(16, Math.floor(circleSizeProp))
       : Math.max(16, Math.floor(rawSize - Math.min(shrinkPx, maxShrink) + circleGrowPx));
 
-  /** Longer rounded level chip: diamond + number; accent fundal + light like royce-glow-disc. */
+  /** Coloured fundal + glow; dark badge diamond frame sits on top. */
   const chipH = Math.max(20, Math.round(circleSize * 0.82));
   const fontPx = Math.max(9, Math.round(chipH * 0.48));
   const diamondPx = Math.max(12, Math.round(chipH * 0.62));
@@ -96,7 +114,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
         flexShrink: 0,
       }}
     >
-      <LevelDiamondIcon size={diamondPx} color="#FFFFFF" />
+      <LevelDiamondIcon size={diamondPx} />
       <span
         style={{
           color: '#FFFFFF',
