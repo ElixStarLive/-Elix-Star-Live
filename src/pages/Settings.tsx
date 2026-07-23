@@ -22,6 +22,8 @@ import {
   Gift,
   Bookmark,
   LayoutDashboard,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { showToast } from '../lib/toast';
@@ -38,6 +40,8 @@ export default function Settings() {
   const user = useAuthStore((s) => s.user);
   const liveNotifications = useSettingsStore((s) => s.liveNotifications);
   const setLiveNotifications = useSettingsStore((s) => s.setLiveNotifications);
+  const muteAllSounds = useSettingsStore((s) => s.muteAllSounds);
+  const setMuteAllSounds = useSettingsStore((s) => s.setMuteAllSounds);
 
   const handleLogout = async () => {
     try { await signOut(); } catch { /* best-effort */ }
@@ -123,6 +127,16 @@ export default function Settings() {
             t={t('settings.liveNotifications')}
             v={liveNotifications ? t('common.on') : t('common.off')}
             fn={() => setLiveNotifications(!liveNotifications)}
+          />
+          <R
+            ic={muteAllSounds ? <VolumeX size={14} /> : <Volume2 size={14} />}
+            t="Mute all sounds"
+            v={muteAllSounds ? t('common.on') : t('common.off')}
+            fn={() => {
+              const next = !muteAllSounds;
+              setMuteAllSounds(next);
+              showToast(next ? 'All app sounds muted' : 'App sounds on');
+            }}
           />
           <R ic={<Moon size={14} />} t={t('settings.darkMode')} v={t('common.on')} fn={() => showToast(t('toast.darkModeAlwaysOn'))} />
           <R ic={<Globe size={14} />} t={t('settings.language')} v={LANGUAGE_SHORT[lang]} fn={() => setLangOpen(true)} />

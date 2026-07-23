@@ -14,6 +14,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import AIToolsPanel from '../components/AIToolsPanel';
 import { takeCachedRecordedMedia } from '../lib/recordedMediaCache';
 import { DUET_STAGE_HEIGHT } from '../lib/profileFrame';
+import { nativeShareUrl } from '../lib/platform';
 
 export default function Upload() {
   const navigate = useNavigate();
@@ -50,6 +51,11 @@ export default function Upload() {
   const [showAITools, setShowAITools] = useState(false);
   const [activeFilter, setActiveFilter] = useState('none');
   const [activeEnhance, setActiveEnhance] = useState('none');
+  const [cameraSpeed, setCameraSpeed] = useState<1 | 0.5 | 2>(1);
+  const [beautyOn, setBeautyOn] = useState(false);
+  const [timerDelay, setTimerDelay] = useState<0 | 3 | 10>(0);
+  const [flashOn, setFlashOn] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
   const [duetSourceVideoId, setDuetSourceVideoId] = useState<string | null>(null);
   const [duetSourceVideoUrl, setDuetSourceVideoUrl] = useState<string | null>(null);
   const duetSourceVideoRef = useRef<HTMLVideoElement>(null);
@@ -159,6 +165,11 @@ export default function Upload() {
     setMediaKind(cached.kind === 'image' ? 'image' : 'video');
     if (cached.caption) setCaption(cached.caption);
     if (cached.hashtags) setHashtagsText(cached.hashtags);
+    if (cached.sound?.id && cached.sound.id !== 'original' && cached.sound.url) {
+      setSelectedTrack(cached.sound);
+      setSelectedAudioId(`track_${cached.sound.id}`);
+      setPostWithoutAudio(false);
+    }
     void fetch(cached.url)
       .then((r) => r.blob())
       .then((blob) => {
@@ -266,7 +277,7 @@ export default function Upload() {
     };
   }, [recordedVideoUrl, cameraRetry]);
 
-  const startRecording = () => {
+  const startRecordingNow = () => {
     if (videoRef.current && videoRef.current.srcObject) {
       const stream = videoRef.current.srcObject as MediaStream;
       const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9'
@@ -295,6 +306,26 @@ export default function Upload() {
       mediaRecorderRef.current = mediaRecorder;
       setIsRecording(true);
     }
+  };
+
+  const startRecording = () => {
+    if (countdown !== null) return;
+    if (timerDelay > 0) {
+      setCountdown(timerDelay);
+      let left = timerDelay;
+      const tick = window.setInterval(() => {
+        left -= 1;
+        if (left <= 0) {
+          window.clearInterval(tick);
+          setCountdown(null);
+          startRecordingNow();
+        } else {
+          setCountdown(left);
+        }
+      }, 1000);
+      return;
+    }
+    startRecordingNow();
   };
 
   const pauseRecording = () => {
@@ -663,7 +694,15 @@ export default function Upload() {
                      style={{ top: 'calc(env(safe-area-inset-top, 0px) + 56px)' }}
                    >
                      {[
-                       { Icon: Share2, title: 'Share', onClick: () => setShowAITools(true) },
+                       { Icon: Share2, title: 'Share', onClick: async () => {
+                         if (!recordedVideoUrl) return;
+                         const ok = await nativeShareUrl({
+                           title: 'Elix Star Live',
+                           text: caption || 'Check out my clip',
+                           url: typeof window !== 'undefined' ? window.location.origin : recordedVideoUrl,
+                         });
+                         showToast(ok ? 'Shared' : 'Could not share');
+                       } },
                        { Icon: LayoutGrid, title: 'Layout', onClick: handleFileUpload },
                        { Icon: ImageIcon, title: 'Media', onClick: handleFileUpload },
                        { Icon: Music, title: 'Audio', onClick: () => setShowMusicModal(true) },
@@ -682,7 +721,7 @@ export default function Upload() {
                          <Icon size={20} className="text-white drop-shadow-md" strokeWidth={2} />
                        </button>
                      ))}
-                     <button type="button" onClick={handleDiscard} className="w-10 h-10 rounded-full bg-black/35 backdrop-blur-sm flex items-center justify-center" title="More">
+                     <button type="button" onClick={() => setShowAITools(true)} className="w-10 h-10 rounded-full bg-black/35 backdrop-blur-sm flex items-center justify-center" title="More">
                        <ChevronDown size={20} className="text-white drop-shadow-md" strokeWidth={2} />
                      </button>
                    </div>
@@ -948,8 +987,12 @@ export default function Upload() {
                   });
                   setShowAITools(false);
                 }}
-                onThumbnailSelect={() => { showToast('Thumbnail selected'); }}
-                onVoiceEffectChange={() => { showToast('Voice effect applied'); }}
+                onThumbnailSelect={() => {
+                  showToast('Thumbnail preview saved — auto-thumb used on upload');
+                }}
+                onVoiceEffectChange={() => {
+                  showToast('Voice effect preview only — not baked into upload yet');
+                }}
               />
          </>
        ) : (
@@ -982,7 +1025,11 @@ export default function Upload() {
                       playsInline
                       muted
                       className={`absolute inset-0 w-full h-full object-cover z-0 ${cameraError ? 'hidden' : ''}`}
-                      style={{ transform: `scale(${zoomLevel}) scaleX(-1)`, transformOrigin: 'center center' }}
+                      style={{
+                        transform: `scale(${zoomLevel}) scaleX(-1)`,
+                        transformOrigin: 'center center',
+                        filter: beautyOn ? 'brightness(1.08) contrast(1.05) saturate(1.12)' : undefined,
+                      }}
                     />
                   </div>
                 </div>
@@ -995,10 +1042,19 @@ export default function Upload() {
                 playsInline
                 muted
                 className={`absolute inset-0 w-full h-full object-cover z-0 ${cameraError ? 'hidden' : ''}`}
-                style={{ transform: `scale(${zoomLevel}) scaleX(-1)`, transformOrigin: 'center center' }}
+                style={{
+                  transform: `scale(${zoomLevel}) scaleX(-1)`,
+                  transformOrigin: 'center center',
+                  filter: beautyOn ? 'brightness(1.08) contrast(1.05) saturate(1.12)' : undefined,
+                }}
               />
                 </>
               )}
+              {countdown !== null ? (
+                <div className="absolute inset-0 z-[25] flex items-center justify-center pointer-events-none">
+                  <span className="text-6xl font-black text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]">{countdown}</span>
+                </div>
+              ) : null}
 
               {cameraError && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center z-[5] bg-[#111111] text-white p-6 text-center">
@@ -1089,39 +1145,76 @@ export default function Upload() {
                     <button
                       type="button"
                       className="w-9 h-9 royce-glow-disc flex items-center justify-center"
-                      onClick={() => showToast('Speed: 1x')}
-                      title="Speed"
+                      onClick={() => {
+                        const next = cameraSpeed === 1 ? 0.5 : cameraSpeed === 0.5 ? 2 : 1;
+                        setCameraSpeed(next);
+                        if (videoRef.current) {
+                          try { videoRef.current.playbackRate = next; } catch { /* ignore */ }
+                        }
+                        showToast(`Speed ${next}x`);
+                      }}
+                      title={`Speed ${cameraSpeed}x`}
                     >
-                      <span className="text-[#D4AF37] font-bold text-xs">1x</span>
+                      <span className="text-[#D4AF37] font-bold text-xs">{cameraSpeed}x</span>
                     </button>
                     <button
                       type="button"
                       className="w-9 h-9 royce-glow-disc flex items-center justify-center"
-                      onClick={() => showToast('Beauty: On')}
-                      title="Beauty"
+                      onClick={() => {
+                        setBeautyOn((v) => {
+                          const next = !v;
+                          showToast(next ? 'Beauty on' : 'Beauty off');
+                          return next;
+                        });
+                      }}
+                      title={beautyOn ? 'Beauty on' : 'Beauty off'}
                     >
-                      <Sparkles size={18} className="royce-icon-gold" strokeWidth={2} />
+                      <Sparkles size={18} className={`royce-icon-gold ${beautyOn ? '' : 'opacity-50'}`} strokeWidth={2} />
                     </button>
                     <button
                       type="button"
-                      className="w-9 h-9 royce-glow-disc flex items-center justify-center"
-                      onClick={() => showToast('Timer: Off')}
-                      title="Timer"
+                      className="relative w-9 h-9 royce-glow-disc flex items-center justify-center"
+                      onClick={() => {
+                        const next = timerDelay === 0 ? 3 : timerDelay === 3 ? 10 : 0;
+                        setTimerDelay(next);
+                        showToast(next === 0 ? 'Timer off' : `Timer ${next}s`);
+                      }}
+                      title={timerDelay === 0 ? 'Timer off' : `Timer ${timerDelay}s`}
                     >
                       <Clock size={18} className="royce-icon-gold" strokeWidth={2} />
+                      {timerDelay > 0 ? (
+                        <span className="absolute -bottom-0.5 text-[8px] font-bold text-[#D4AF37]">{timerDelay}</span>
+                      ) : null}
                     </button>
                     <button
                       type="button"
                       className="w-9 h-9 royce-glow-disc flex items-center justify-center"
-                      onClick={() => showToast('Flash: Off')}
-                      title="Flash"
+                      onClick={async () => {
+                        const stream = videoRef.current?.srcObject as MediaStream | null;
+                        const track = stream?.getVideoTracks()?.[0];
+                        if (!track) {
+                          showToast('Flash unavailable');
+                          return;
+                        }
+                        const next = !flashOn;
+                        try {
+                          await track.applyConstraints({
+                            advanced: [{ torch: next } as unknown as MediaTrackConstraintSet],
+                          });
+                          setFlashOn(next);
+                          showToast(next ? 'Flash on' : 'Flash off');
+                        } catch {
+                          showToast('Flash unavailable');
+                        }
+                      }}
+                      title={flashOn ? 'Flash on' : 'Flash off'}
                     >
-                      <Zap size={18} className="royce-icon-gold" strokeWidth={2} />
+                      <Zap size={18} className="royce-icon-gold" strokeWidth={2} fill={flashOn ? '#D4AF37' : 'none'} />
                     </button>
                     <button
                       type="button"
                       className="w-9 h-9 royce-glow-disc flex items-center justify-center"
-                      onClick={() => { if (!recordedVideoUrl) showToast('Record a video first'); }}
+                      onClick={() => navigate('/ai-studio')}
                       title="AI Effects"
                     >
                       <Wand2 size={18} className="royce-icon-gold" strokeWidth={2} />

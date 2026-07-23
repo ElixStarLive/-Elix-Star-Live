@@ -4005,7 +4005,20 @@ export default function SpectatorPage() {
                 compact={!!spectatorBattle?.active}
                 isModerator={isModerator}
                 onLike={handleLikeTap}
-                onProfileTap={() => {}}
+                onProfileTap={(username) => {
+                  const name = String(username || '').trim();
+                  if (!name) return;
+                  const hostId = hostUserIdRef.current || hostUserId;
+                  if (hostId && (name === hostName || name.toLowerCase() === hostName.toLowerCase())) {
+                    navigate(`/profile/${hostId}`);
+                    return;
+                  }
+                  if (user?.id && (name === user.username || name === user.name)) {
+                    navigate(`/profile/${user.id}`);
+                    return;
+                  }
+                  navigate(`/search?q=${encodeURIComponent(name)}`);
+                }}
               />
               ) : null}
             </div>

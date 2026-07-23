@@ -302,34 +302,6 @@ export default function EnhancedVideoPlayer({
     setIsPlaying(prev => !prev);
   }, [effectiveMuted, isDuetLayout, isPlaying, duetOriginalSrc]);
 
-  const _toggleMute = () => {
-    if (muteAllSounds) {
-      trackEvent('video_toggle_mute_blocked_global', { videoId });
-      return;
-    }
-    if (videoRef.current) {
-      const newMuted = !isMuted;
-      videoRef.current.muted = newMuted;
-      setIsMuted(newMuted);
-      if (!newMuted) {
-        videoRef.current.volume = videoVolume;
-      }
-    }
-
-    if (audioRef.current) {
-      const newMuted = !isMuted;
-      audioRef.current.muted = newMuted;
-      audioRef.current.volume = musicVolume;
-      if (newMuted) {
-        audioRef.current.pause();
-      } else {
-        audioRef.current.play().catch(() => {});
-      }
-    }
-
-    trackEvent('video_toggle_mute', { videoId, muted: !isMuted });
-  };
-
   // Video event handlers
   useEffect(() => {
     const videoElement = videoRef.current;
@@ -666,6 +638,12 @@ export default function EnhancedVideoPlayer({
       videoRef.current.volume = videoVolume;
       videoRef.current.removeAttribute('muted');
       setIsMuted(false);
+      const a = audioRef.current;
+      if (a) {
+        a.muted = false;
+        a.volume = musicVolume;
+        void a.play().catch(() => {});
+      }
       // User gesture — safe to play with sound on Android after autoplay started muted.
       if (videoRef.current.paused) {
         void videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});

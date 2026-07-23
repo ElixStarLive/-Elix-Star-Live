@@ -223,7 +223,17 @@ export default function Create() {
     }
   };
   const handleTouchEnd = () => { pinchStartDistRef.current = null; };
-  const handleSpeedChange = (speed: number) => { setPlaybackSpeed(speed); showToastMsg(`Speed ${speed}x`); };
+  const handleSpeedChange = (speed: number) => {
+    setPlaybackSpeed(speed);
+    if (videoRef.current) {
+      try {
+        videoRef.current.playbackRate = speed;
+      } catch {
+        /* ignore */
+      }
+    }
+    showToastMsg(`Speed ${speed}x`);
+  };
 
   const startRecordingNow = () => {
     const stream = streamRef.current;
@@ -344,7 +354,9 @@ export default function Create() {
     setIsExporting(true);
     try {
       const url = await exportEditedMedia();
-      setCachedRecordedMedia(url || previewUrl, previewKind);
+      setCachedRecordedMedia(url || previewUrl, previewKind, {
+        sound: selectedSound && selectedSound.id !== 'original' ? selectedSound : null,
+      });
       navigate('/upload?type=story');
     } finally {
       setIsExporting(false);
@@ -356,7 +368,9 @@ export default function Create() {
     setIsExporting(true);
     try {
       const url = await exportEditedMedia();
-      setCachedRecordedMedia(url || previewUrl, previewKind);
+      setCachedRecordedMedia(url || previewUrl, previewKind, {
+        sound: selectedSound && selectedSound.id !== 'original' ? selectedSound : null,
+      });
       navigate('/upload');
     } finally {
       setIsExporting(false);
