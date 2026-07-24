@@ -16,22 +16,9 @@ interface Report {
   reporter?: { username: string };
 }
 
-interface ModerationLog {
-  id: string;
-  stream_key: string | null;
-  user_id: string | null;
-  kind: string | null;
-  category: string | null;
-  severity: string | null;
-  action_taken: string | null;
-  details: unknown;
-  created_at: string;
-}
-
 export default function AdminReports() {
   const navigate = useNavigate();
   const [reports, setReports] = useState<Report[]>([]);
-  const [moderationLogs, setModerationLogs] = useState<ModerationLog[]>([]);
   const [filter, setFilter] = useState<'pending' | 'all'>('pending');
   const [loading, setLoading] = useState(true);
 
@@ -39,10 +26,6 @@ export default function AdminReports() {
     loadReports();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
-
-  useEffect(() => {
-    void loadModerationLogs();
-  }, []);
 
   const loadReports = async () => {
     try {
@@ -56,21 +39,6 @@ export default function AdminReports() {
       showToast('Failed to load reports');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const loadModerationLogs = async () => {
-    try {
-      const { data, error } = await request<{ logs?: ModerationLog[] }>(
-        '/api/admin/moderation/logs?limit=50',
-      );
-      // #region agent log
-      fetch('http://127.0.0.1:7293/ingest/e7fb8ad3-ac4d-422a-955a-8c318a5cd9e2',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'fa77db'},body:JSON.stringify({sessionId:'fa77db',runId:'conn-audit',hypothesisId:'H1',location:'Reports.tsx:loadModerationLogs',message:'admin moderation logs fetch',data:{ok:!error,count:Array.isArray(data?.logs)?data.logs.length:-1,err:error?.message||null},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
-      if (error) throw error;
-      setModerationLogs(Array.isArray(data?.logs) ? data.logs : []);
-    } catch {
-      setModerationLogs([]);
     }
   };
 
@@ -203,37 +171,6 @@ export default function AdminReports() {
           {reports.length === 0 && (
             <div className="text-center py-12 text-gray-400">No reports found</div>
           )}
-        </div>
-
-        <div className="mt-10">
-          <h2 className="text-2xl font-bold mb-4">Live moderation logs</h2>
-          <div className="space-y-3">
-            {moderationLogs.map((log) => (
-              <div key={log.id} className="bg-[#111111] rounded-lg p-4">
-                <div className="flex items-center gap-3 mb-1">
-                  <span className="px-3 py-1 bg-white/25 rounded-full text-xs font-bold">
-                    {(log.kind || 'log').toUpperCase()}
-                  </span>
-                  {log.severity ? (
-                    <span className="text-gray-400 text-sm">{log.severity}</span>
-                  ) : null}
-                  {log.action_taken ? (
-                    <span className="text-gray-400 text-sm">{log.action_taken}</span>
-                  ) : null}
-                </div>
-                <p className="text-gray-300 text-sm">
-                  {log.stream_key ? `Stream: ${log.stream_key}` : 'No stream'}
-                  {log.user_id ? ` • User: ${log.user_id}` : ''}
-                </p>
-                <p className="text-gray-500 text-sm mt-1">
-                  {log.created_at ? new Date(log.created_at).toLocaleString() : ''}
-                </p>
-              </div>
-            ))}
-            {moderationLogs.length === 0 && (
-              <div className="text-center py-8 text-gray-400">No live moderation logs</div>
-            )}
-          </div>
         </div>
       </div>
     </div>

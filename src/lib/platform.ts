@@ -47,24 +47,6 @@ export function openExternalLink(url: string): void {
   }
 }
 
-/** Copy text using Capacitor Clipboard on native, otherwise navigator.clipboard. */
-export async function copyTextToClipboard(text: string): Promise<boolean> {
-  try {
-    if (platform.isNative) {
-      const { Clipboard } = await import('@capacitor/clipboard');
-      await Clipboard.write({ string: text });
-      // #region agent log
-      fetch('http://127.0.0.1:7293/ingest/e7fb8ad3-ac4d-422a-955a-8c318a5cd9e2',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'fa77db'},body:JSON.stringify({sessionId:'fa77db',runId:'conn-audit',hypothesisId:'H5',location:'platform.ts:copyTextToClipboard',message:'native clipboard write',data:{ok:true,len:text.length},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
-      return true;
-    }
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 /**
  * Trigger the native share sheet on iOS/Android, or the Web Share API,
  * or fall back to copying to clipboard.
@@ -83,5 +65,10 @@ export async function nativeShareUrl(opts: { title?: string; text?: string; url:
       return true;
     } catch { /* user cancelled */ }
   }
-  return copyTextToClipboard(opts.url);
+  try {
+    await navigator.clipboard.writeText(opts.url);
+    return true;
+  } catch {
+    return false;
+  }
 }

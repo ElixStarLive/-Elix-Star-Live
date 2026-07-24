@@ -26,7 +26,7 @@ import {
   SHARE_PANEL_AVATAR_PX,
   SHARE_PANEL_ITEM_WIDTH_PX,
 } from '../lib/sharePanelContacts';
-import { openExternalLink, nativeShareUrl, copyTextToClipboard } from '../lib/platform';
+import { openExternalLink, nativeShareUrl } from '../lib/platform';
 import { showToast } from '../lib/toast';
 import { trackShare } from '../lib/interactionTracker';
 
@@ -99,7 +99,7 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
 
   const handleCopyLink = async () => {
     try {
-      await copyTextToClipboard(videoUrl);
+      await navigator.clipboard.writeText(videoUrl);
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2000);
     } catch { /* intentionally empty */ }

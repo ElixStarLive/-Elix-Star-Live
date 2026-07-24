@@ -95,7 +95,7 @@ import {
   SHARE_PANEL_ITEM_WIDTH_PX,
 } from '../lib/sharePanelContacts';
 import { request } from '../lib/apiClient';
-import { openExternalLink, copyTextToClipboard } from '../lib/platform';
+import { openExternalLink } from '../lib/platform';
 import ReportModal from '../components/ReportModal';
 import PromotePanel from '../components/PromotePanel';
 import { RankingPanel } from '../components/RankingPanel';
@@ -5109,7 +5109,7 @@ export default function SpectatorPage() {
                     {[
                       { name: 'WhatsApp', icon: <MessageCircle size={22} className="text-white" />, action: () => { openExternalLink(`https://wa.me/?text=${encodeURIComponent('Watch this on Elix! ' + `${window.location.origin}/watch/${effectiveStreamId}`)}`); if (effectiveStreamId) { earnBattleEnergyQuiet('share', effectiveStreamId); void request('/api/engagement/progress', { method: 'POST', body: JSON.stringify({ metric: 'shares', delta: 1, roomId: effectiveStreamId }) }).catch(() => {}); } setShowSharePanel(false); } },
                       { name: 'Facebook', icon: <Share2 size={22} className="text-white" />, action: () => { openExternalLink(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${window.location.origin}/watch/${effectiveStreamId}`)}`); if (effectiveStreamId) { earnBattleEnergyQuiet('share', effectiveStreamId); void request('/api/engagement/progress', { method: 'POST', body: JSON.stringify({ metric: 'shares', delta: 1, roomId: effectiveStreamId }) }).catch(() => {}); } setShowSharePanel(false); } },
-                      { name: 'Copy Link', icon: <Copy size={22} className="text-white" />, action: () => { void copyTextToClipboard(`${window.location.origin}/watch/${effectiveStreamId}`); if (effectiveStreamId) { earnBattleEnergyQuiet('share', effectiveStreamId); void request('/api/engagement/progress', { method: 'POST', body: JSON.stringify({ metric: 'shares', delta: 1, roomId: effectiveStreamId }) }).catch(() => {}); } showToast('Link copied!'); setShowSharePanel(false); } },
+                      { name: 'Copy Link', icon: <Copy size={22} className="text-white" />, action: () => { navigator.clipboard.writeText(`${window.location.origin}/watch/${effectiveStreamId}`); if (effectiveStreamId) { earnBattleEnergyQuiet('share', effectiveStreamId); void request('/api/engagement/progress', { method: 'POST', body: JSON.stringify({ metric: 'shares', delta: 1, roomId: effectiveStreamId }) }).catch(() => {}); } showToast('Link copied!'); setShowSharePanel(false); } },
                       { name: 'Promote', icon: <TrendingUp size={22} className="text-white" />, action: () => { setShowSharePanel(false); setShowPromotePanel(true); } },
                       { name: 'Report', icon: <Flag size={22} className="text-white/60" />, isRed: true, action: () => { setIsReportModalOpen(true); setShowSharePanel(false); } },
                     ].map((item) => (

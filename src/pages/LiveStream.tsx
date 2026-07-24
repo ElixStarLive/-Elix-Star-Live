@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { showToast } from '../lib/toast';
-import { platform, openExternalLink, nativeShareUrl, copyTextToClipboard } from '../lib/platform';
+import { platform, openExternalLink, nativeShareUrl } from '../lib/platform';
 import {
   prepareLiveVideoEl,
   LIVE_WEBRTC_VIDEO_CLASS,
@@ -463,12 +463,6 @@ export default function LiveStream() {
       cancelled = true;
     };
   }, [user?.id, isBroadcast, effectiveStreamId]);
-
-  // #region agent log
-  useEffect(() => {
-    fetch('http://127.0.0.1:7293/ingest/e7fb8ad3-ac4d-422a-955a-8c318a5cd9e2',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'fa77db'},body:JSON.stringify({sessionId:'fa77db',runId:'follow-join-restore',hypothesisId:'H1',location:'LiveStream.tsx:hostHeaderSlot',message:'follow/membership slot flags',data:{isBroadcast:!!isBroadcast,isFollowing:!!isFollowing,showFollow:!isBroadcast&&!isFollowing,showJoinMembership:!!(isBroadcast||isFollowing)},timestamp:Date.now()})}).catch(()=>{});
-  }, [isBroadcast, isFollowing]);
-  // #endregion
 
   useEffect(() => {
     const creatorId = isBroadcast ? (user?.id || '') : effectiveStreamId;
@@ -6859,12 +6853,13 @@ export default function LiveStream() {
                             }}
                             onFollow={followCreatorLive}
                             joinSlot={
-                              (isBroadcast || isFollowing) ? (
+                              // Host own-live: no Join capsule. Spectators get Join after Follow.
+                              (!isBroadcast && isFollowing) ? (
                               <LiveJoinPill
                                 hasJoinedToday={hasJoinedToday}
                                 onJoin={async (e) => {
                                   e.stopPropagation();
-                                  if (!isBroadcast && !isFollowing) {
+                                  if (!isFollowing) {
                                     showToast('Follow first to give a membership heart');
                                     return;
                                   }
@@ -8700,7 +8695,7 @@ export default function LiveStream() {
                 {[
                   { name: 'WhatsApp', icon: <MessageCircle size={22} className="text-white" />, action: () => { openExternalLink(`https://wa.me/?text=${encodeURIComponent('Watch my LIVE on Elix! ' + `${window.location.origin}/live/${effectiveStreamId}`)}`); if (effectiveStreamId) { earnBattleEnergyQuiet('share', effectiveStreamId); void request('/api/engagement/progress', { method: 'POST', body: JSON.stringify({ metric: 'shares', delta: 1, roomId: effectiveStreamId }) }).catch(() => {}); } setShowSharePanel(false); } },
                   { name: 'Facebook', icon: <Share2 size={22} className="text-white" />, action: () => { openExternalLink(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${window.location.origin}/live/${effectiveStreamId}`)}`); if (effectiveStreamId) { earnBattleEnergyQuiet('share', effectiveStreamId); void request('/api/engagement/progress', { method: 'POST', body: JSON.stringify({ metric: 'shares', delta: 1, roomId: effectiveStreamId }) }).catch(() => {}); } setShowSharePanel(false); } },
-                  { name: 'Copy Link', icon: <Copy size={22} className="text-white" />, action: () => { void copyTextToClipboard(`${typeof window !== 'undefined' ? window.location.origin : 'https://www.elixstarlive.co.uk'}/live/${effectiveStreamId}`); if (effectiveStreamId) { earnBattleEnergyQuiet('share', effectiveStreamId); void request('/api/engagement/progress', { method: 'POST', body: JSON.stringify({ metric: 'shares', delta: 1, roomId: effectiveStreamId }) }).catch(() => {}); } showToast('Link copied!'); setShowSharePanel(false); } },
+                  { name: 'Copy Link', icon: <Copy size={22} className="text-white" />, action: () => { navigator.clipboard.writeText(`${typeof window !== 'undefined' ? window.location.origin : 'https://www.elixstarlive.co.uk'}/live/${effectiveStreamId}`); if (effectiveStreamId) { earnBattleEnergyQuiet('share', effectiveStreamId); void request('/api/engagement/progress', { method: 'POST', body: JSON.stringify({ metric: 'shares', delta: 1, roomId: effectiveStreamId }) }).catch(() => {}); } showToast('Link copied!'); setShowSharePanel(false); } },
                   { name: 'Promote', icon: <TrendingUp size={22} className="text-white" />, action: () => { setShowSharePanel(false); setShowPromotePanel(true); } },
                   { name: 'Report', icon: <Flag size={22} className="text-white/60" />, isRed: true, action: () => { setIsReportModalOpen(true); setShowSharePanel(false); } },
                 ].map((item) => (
