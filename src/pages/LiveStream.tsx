@@ -6839,12 +6839,13 @@ export default function LiveStream() {
                             }}
                             onFollow={followCreatorLive}
                             joinSlot={
-                              (isBroadcast || isFollowing) ? (
+                              // Host own-live: no Join capsule. Spectators get Join after Follow.
+                              (!isBroadcast && isFollowing) ? (
                               <LiveJoinPill
                                 hasJoinedToday={hasJoinedToday}
                                 onJoin={async (e) => {
                                   e.stopPropagation();
-                                  if (!isBroadcast && !isFollowing) {
+                                  if (!isFollowing) {
                                     showToast('Follow first to give a membership heart');
                                     return;
                                   }

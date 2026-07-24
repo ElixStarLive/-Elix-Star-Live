@@ -106,7 +106,7 @@ export function LiveHostProfileHeader({
         }}
         aria-label="Open profile"
       >
-        <AvatarRing src={avatar} alt={name} size={avatarSize} />
+        <AvatarRing src={avatar} alt={name} size={avatarSize} glow={false} />
       </button>
 
       <div className="flex flex-col justify-center min-w-0 gap-[2px]">
@@ -116,8 +116,8 @@ export function LiveHostProfileHeader({
           </span>
           <BadgeCheck
             size={14}
-            className="text-[#FE2C55] flex-shrink-0 drop-shadow-[0_0_5px_rgba(254,44,85,0.85)]"
-            fill="#FE2C55"
+            className="text-[#D4AF37] flex-shrink-0"
+            fill="#D4AF37"
             stroke="#FFFFFF"
             strokeWidth={1.6}
           />

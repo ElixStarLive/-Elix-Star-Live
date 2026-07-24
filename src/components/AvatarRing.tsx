@@ -9,6 +9,8 @@ interface AvatarRingProps {
   size: number;
   className?: string;
   onClick?: (e: React.MouseEvent) => void;
+  /** Soft gold halo around the circle. Default on. */
+  glow?: boolean;
   /** @deprecated kept for call-site compatibility */
   simple?: boolean;
 }
@@ -17,7 +19,7 @@ interface AvatarRingProps {
  * User avatar circle — always shown, with same gold light as the close button.
  * Do not remove the circle; light is additive only.
  */
-export function AvatarRing({ src, alt = '', size, className = '', onClick }: AvatarRingProps) {
+export function AvatarRing({ src, alt = '', size, className = '', onClick, glow = true }: AvatarRingProps) {
   const safeAlt = typeof alt === 'string' ? alt : '';
   const safeSize = typeof size === 'number' && Number.isFinite(size) && size > 0 ? Math.floor(size) : 40;
   const imgSrc = resolveUiAvatarUrl(src, safeAlt, safeSize * 2);
@@ -28,7 +30,7 @@ export function AvatarRing({ src, alt = '', size, className = '', onClick }: Ava
       style={{
         width: safeSize,
         height: safeSize,
-        boxShadow: USER_CIRCLE_GLOW,
+        boxShadow: glow ? USER_CIRCLE_GLOW : undefined,
       }}
       onClick={onClick}
     >
