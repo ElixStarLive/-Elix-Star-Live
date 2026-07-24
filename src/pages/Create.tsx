@@ -17,6 +17,11 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { setCachedCameraStream } from '../lib/cameraStream';
+import {
+  LIVE_VIDEO_TRANSPARENT_POSTER,
+  LIVE_WEBRTC_VIDEO_CLASS,
+  prepareLiveVideoEl,
+} from '../lib/prepareLiveVideoEl';
 import { setCachedRecordedMedia } from '../lib/recordedMediaCache';
 import { type SoundTrack } from '../lib/soundLibrary';
 import SoundPickerPanel from '../components/SoundPickerPanel';
@@ -128,7 +133,10 @@ export default function Create() {
           else { setHwZoomRange(null); }
         } catch { setHwZoomRange(null); }
 
-        if (videoRef.current) videoRef.current.srcObject = nextStream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = nextStream;
+          prepareLiveVideoEl(videoRef.current);
+        }
         setZoomLevel(1);
       } catch (e: unknown) {
         if (cancelled) return;
@@ -395,7 +403,10 @@ export default function Create() {
         catch { try { nextStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: isFrontCamera ? 'user' : 'environment' }, audio: false }); showToastMsg('Going live without sound.'); } catch { setCameraError('Camera access denied'); return; } }
         if (current) current.getTracks().forEach((t) => t.stop());
         streamRef.current = nextStream;
-        if (videoRef.current) videoRef.current.srcObject = nextStream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = nextStream;
+          prepareLiveVideoEl(videoRef.current);
+        }
         setCachedCameraStream(nextStream);
       } else { setCachedCameraStream(current); }
       keepStreamOnUnmountRef.current = true;
@@ -435,9 +446,13 @@ export default function Create() {
           ) : (
             <div className="w-full h-full bg-[#111111] relative flex items-center justify-center" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
               <video
-                ref={videoRef}
-                className={`w-full h-full object-cover ${cameraError ? 'hidden' : ''}`}
-                autoPlay muted playsInline
+                ref={(el) => {
+                  videoRef.current = el;
+                  if (el) prepareLiveVideoEl(el);
+                }}
+                className={`w-full h-full object-cover ${LIVE_WEBRTC_VIDEO_CLASS} ${cameraError ? 'hidden' : ''}`}
+                autoPlay muted playsInline controls={false}
+                poster={LIVE_VIDEO_TRANSPARENT_POSTER}
                 style={{
                   transform: isFrontCamera
                     ? (zoomLevel > 1 && !hwZoomRange ? `scaleX(-1) scale(${zoomLevel})` : 'scaleX(-1)')

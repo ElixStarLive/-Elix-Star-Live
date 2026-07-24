@@ -365,41 +365,60 @@
 .elix-no-media-chrome::-webkit-media-controls,
 video::-webkit-media-controls {
   display: none !important;
-  -webkit-appearance: none;
+  -webkit-appearance: none !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 .gift-overlay-video::-webkit-media-controls-enclosure,
 .live-webrtc-video::-webkit-media-controls-enclosure,
 .elix-no-media-chrome::-webkit-media-controls-enclosure,
 video::-webkit-media-controls-enclosure {
   display: none !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
 }
 .gift-overlay-video::-webkit-media-controls-start-playback-button,
 .live-webrtc-video::-webkit-media-controls-start-playback-button,
 .elix-no-media-chrome::-webkit-media-controls-start-playback-button,
 video::-webkit-media-controls-start-playback-button {
   display: none !important;
-  -webkit-appearance: none;
+  -webkit-appearance: none !important;
   opacity: 0 !important;
   pointer-events: none !important;
   width: 0 !important;
   height: 0 !important;
+  max-width: 0 !important;
+  max-height: 0 !important;
+  position: absolute !important;
+  left: -9999px !important;
 }
 .gift-overlay-video::-webkit-media-controls-overlay-play-button,
 .live-webrtc-video::-webkit-media-controls-overlay-play-button,
 .elix-no-media-chrome::-webkit-media-controls-overlay-play-button,
 video::-webkit-media-controls-overlay-play-button {
   display: none !important;
-  -webkit-appearance: none;
+  -webkit-appearance: none !important;
   opacity: 0 !important;
   pointer-events: none !important;
   width: 0 !important;
   height: 0 !important;
+  max-width: 0 !important;
+  max-height: 0 !important;
+  position: absolute !important;
+  left: -9999px !important;
 }
 video::-webkit-media-controls-overlay-enclosure,
-.elix-no-media-chrome::-webkit-media-controls-overlay-enclosure {
+.elix-no-media-chrome::-webkit-media-controls-overlay-enclosure,
+.live-webrtc-video::-webkit-media-controls-overlay-enclosure,
+.gift-overlay-video::-webkit-media-controls-overlay-enclosure {
   display: none !important;
   opacity: 0 !important;
   pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 /* Hide scrollbar for Chrome, Safari and Opera */

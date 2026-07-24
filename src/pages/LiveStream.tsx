@@ -1738,7 +1738,7 @@ export default function LiveStream() {
         setBattleParticipantStream(stream);
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          videoRef.current.play().catch(() => {});
+          prepareLiveVideoEl(videoRef.current);
         }
       } catch {
         showToast('Camera access denied — cannot join battle');
@@ -2024,7 +2024,7 @@ export default function LiveStream() {
   useEffect(() => {
     if (!isBattleParticipant || !battleParticipantStream || !videoRef.current) return;
     videoRef.current.srcObject = battleParticipantStream;
-    videoRef.current.play().catch(() => {});
+    prepareLiveVideoEl(videoRef.current);
   }, [isBattleParticipant, battleParticipantStream]);
 
   const _isRegularViewer = !isBroadcast && !isBattleParticipant;
@@ -3072,7 +3072,7 @@ export default function LiveStream() {
             cached.getAudioTracks().forEach((t) => (t.enabled = !isMicMuted));
             if (videoRef.current) {
               videoRef.current.srcObject = cached;
-              videoRef.current.play().catch(() => {});
+              prepareLiveVideoEl(videoRef.current);
             }
             return;
           }
@@ -3123,7 +3123,7 @@ export default function LiveStream() {
 
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          videoRef.current.play().catch(() => {});
+          prepareLiveVideoEl(videoRef.current);
         }
 
         // Warm-swap: attach new stream first, then stop the previous facing.
@@ -3176,7 +3176,7 @@ export default function LiveStream() {
         if (el.srcObject !== stream) {
           el.srcObject = stream;
         }
-        void el.play().catch(() => {});
+        prepareLiveVideoEl(el);
         return;
       }
       requestAnimationFrame(attach);
@@ -3198,7 +3198,7 @@ export default function LiveStream() {
         const el = videoRef.current;
         if (el) {
           if (el.srcObject !== stream) el.srcObject = stream;
-          if (el.paused) void el.play().catch(() => {});
+          prepareLiveVideoEl(el);
         }
         return;
       }
@@ -3214,7 +3214,7 @@ export default function LiveStream() {
         newStream.getAudioTracks().forEach((t) => { t.enabled = !isMicMuted; });
         if (videoRef.current) {
           videoRef.current.srcObject = newStream;
-          void videoRef.current.play().catch(() => {});
+          prepareLiveVideoEl(videoRef.current);
         }
         if (previous && previous !== newStream) {
           previous.getTracks().forEach((t) => t.stop());
@@ -3259,8 +3259,8 @@ export default function LiveStream() {
         if (el.srcObject !== stream) {
           el.srcObject = stream;
         }
-        if (el.paused) {
-          void el.play().catch(() => {});
+        if (el.paused || el.style.visibility === 'hidden') {
+          prepareLiveVideoEl(el);
         }
         return;
       }
@@ -3284,7 +3284,7 @@ export default function LiveStream() {
           });
           if (videoRef.current) {
             videoRef.current.srcObject = newStream;
-            void videoRef.current.play().catch(() => {});
+            prepareLiveVideoEl(videoRef.current);
           }
           if (previous && previous !== newStream) {
             previous.getTracks().forEach((t) => {

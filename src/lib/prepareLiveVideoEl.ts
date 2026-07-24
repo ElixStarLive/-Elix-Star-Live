@@ -5,6 +5,39 @@ export const LIVE_VIDEO_TRANSPARENT_POSTER =
 /** CSS class: hide WebView media chrome on LiveKit/WebRTC videos. */
 export const LIVE_WEBRTC_VIDEO_CLASS = 'live-webrtc-video';
 
+type HideUntilPlayingEl = HTMLVideoElement & {
+  __elixRevealOnPlaying?: () => void;
+};
+
+/**
+ * Android Capacitor WebView draws a native white play icon on <video> before
+ * the first frame. CSS opacity does NOT hide that overlay — visibility:hidden does.
+ * Keep the element hidden until real `playing` (or already decoding frames).
+ */
+export function hideVideoUntilPlaying(el: HTMLVideoElement | null | undefined): void {
+  if (!el) return;
+  const flagged = el as HideUntilPlayingEl;
+  if (flagged.__elixRevealOnPlaying) {
+    el.removeEventListener('playing', flagged.__elixRevealOnPlaying);
+    flagged.__elixRevealOnPlaying = undefined;
+  }
+  const hasFrames =
+    !el.paused &&
+    el.readyState >= 2 &&
+    Boolean(el.srcObject || el.currentSrc || el.src);
+  if (hasFrames) {
+    el.style.visibility = 'visible';
+    return;
+  }
+  el.style.visibility = 'hidden';
+  const reveal = () => {
+    el.style.visibility = 'visible';
+    flagged.__elixRevealOnPlaying = undefined;
+  };
+  flagged.__elixRevealOnPlaying = reveal;
+  el.addEventListener('playing', reveal, { once: true });
+}
+
 /** Strip Android WebView white play / media chrome without changing mute policy. */
 export function stripVideoMediaChrome(el: HTMLVideoElement): void {
   el.classList.add('elix-no-media-chrome');
@@ -25,6 +58,11 @@ export function stripVideoMediaChrome(el: HTMLVideoElement): void {
     el.setAttribute('controlslist', 'nodownload nofullscreen noremoteplayback');
   } catch {
     /* ignore */
+  }
+  try {
+    el.disableRemotePlayback = true;
+  } catch {
+    /* older WebViews */
   }
 }
 
@@ -72,6 +110,7 @@ export function prepareLiveVideoEl(el: HTMLVideoElement | null | undefined): voi
   if (!el.getAttribute('poster')) {
     el.setAttribute('poster', LIVE_VIDEO_TRANSPARENT_POSTER);
   }
+  hideVideoUntilPlaying(el);
   const kick = () => {
     void el.play().catch(() => {});
   };
