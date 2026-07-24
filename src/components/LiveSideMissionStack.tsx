@@ -230,13 +230,13 @@ export function LiveSideMissionStack({
 
         <div className="flex flex-col gap-1.5">
           <MissionRow
-            label="Watch 30 min"
+            label={`Watch ${Math.max(1, missions.watchGoal)} min`}
             current={missions.watchMin}
             goal={missions.watchGoal}
             barColor="linear-gradient(90deg,#FBBF24,#F59E0B)"
           />
           <MissionRow
-            label="Send 10 gifts"
+            label={`Send ${Math.max(1, missions.giftsGoal)} gifts`}
             current={missions.giftsSent}
             goal={missions.giftsGoal}
             barColor="linear-gradient(90deg,#FB7185,#E11D48)"

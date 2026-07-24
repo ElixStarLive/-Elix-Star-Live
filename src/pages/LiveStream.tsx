@@ -118,6 +118,7 @@ import { parseLiveGiftGoal, type LiveGiftGoal } from '../lib/liveGiftGoal';
 import { liveStreamUiGiftTargetToServerBattleTarget, normalizeBattleGiftTarget } from '../lib/liveBattleGiftTarget';
 import { IS_STORE_BUILD } from '../config/build';
 import { engagementFlags } from '../config/engagementFlags';
+import { earnBattleEnergyQuiet } from '../components/BattleEnergyBoostControls';
 import {
   EngagementDrawer,
   type EngagementPanel,
@@ -2457,6 +2458,17 @@ export default function LiveStream() {
         return;
       }
       setShareSentTo((prev) => new Set(prev).add(targetUserId));
+      if (effectiveStreamId) {
+        earnBattleEnergyQuiet('share', effectiveStreamId);
+        void request('/api/engagement/progress', {
+          method: 'POST',
+          body: JSON.stringify({
+            metric: 'shares',
+            delta: 1,
+            roomId: effectiveStreamId,
+          }),
+        }).catch(() => {});
+      }
     } catch {
       showToast('Could not share');
     }
@@ -4558,7 +4570,7 @@ export default function LiveStream() {
   const [comboStack, setComboStack] = useState<{ key: string; icon: string; count: number; gift: GiftUiItem }[]>([]);
   const [missionWatchMin, setMissionWatchMin] = useState(0);
   const [missionGiftsSent, setMissionGiftsSent] = useState(0);
-  const [missionWatchGoal, setMissionWatchGoal] = useState(30);
+  const [missionWatchGoal, setMissionWatchGoal] = useState(10);
   const [missionGiftsGoal, setMissionGiftsGoal] = useState(10);
   useEffect(() => {
     if (!user?.id) return;
@@ -4592,14 +4604,15 @@ export default function LiveStream() {
     if (!isBroadcast || !effectiveStreamId) return;
     const roomId = effectiveStreamId;
     const id = window.setInterval(() => {
-      setMissionWatchMin((m) => Math.min(30, m + 1));
+      setMissionWatchMin((m) => Math.min(missionWatchGoal, m + 1));
+      earnBattleEnergyQuiet('watch', roomId);
       void request('/api/engagement/progress', {
         method: 'POST',
         body: JSON.stringify({ metric: 'watch_minutes', delta: 1, roomId }),
       }).catch(() => {});
     }, 60_000);
     return () => window.clearInterval(id);
-  }, [isBroadcast, effectiveStreamId]);
+  }, [isBroadcast, effectiveStreamId, missionWatchGoal]);
   useEffect(() => {
     if (!isBattleMode || !effectiveStreamId) return;
     void request('/api/engagement/progress', {
@@ -4875,7 +4888,10 @@ export default function LiveStream() {
         }
       }
       setShowGiftPanel(false);
-      setMissionGiftsSent((n) => n + 1);
+      // Test coins are local-only — never inflate gifts mission bar.
+      if (!usedTestCoins) {
+        setMissionGiftsSent((n) => n + 1);
+      }
 
       // Track session contribution for membership
       setSessionContribution(prev => prev + gift.coins);
@@ -5286,6 +5302,17 @@ export default function LiveStream() {
       });
 
       setInputValue('');
+      if (effectiveStreamId) {
+        earnBattleEnergyQuiet('comment', effectiveStreamId);
+        void request('/api/engagement/progress', {
+          method: 'POST',
+          body: JSON.stringify({
+            metric: 'comments',
+            delta: 1,
+            roomId: effectiveStreamId,
+          }),
+        }).catch(() => {});
+      }
   };
 
   const formatTime = (seconds: number) => {
@@ -8454,9 +8481,9 @@ export default function LiveStream() {
             <div className="flex-1 overflow-y-scroll overflow-x-hidden min-h-0 px-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#C9A227]/60 [&::-webkit-scrollbar-thumb]:rounded-full">
               <div className="grid grid-cols-5 gap-y-3 gap-x-1.5 pt-4" style={{ marginTop: '6mm' }}>
                 {[
-                  { name: 'WhatsApp', icon: <MessageCircle size={22} className="text-white" />, action: () => { openExternalLink(`https://wa.me/?text=${encodeURIComponent('Watch my LIVE on Elix! ' + `${window.location.origin}/live/${effectiveStreamId}`)}`); setShowSharePanel(false); } },
-                  { name: 'Facebook', icon: <Share2 size={22} className="text-white" />, action: () => { openExternalLink(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${window.location.origin}/live/${effectiveStreamId}`)}`); setShowSharePanel(false); } },
-                  { name: 'Copy Link', icon: <Copy size={22} className="text-white" />, action: () => { navigator.clipboard.writeText(`${typeof window !== 'undefined' ? window.location.origin : 'https://www.elixstarlive.co.uk'}/live/${effectiveStreamId}`); showToast('Link copied!'); setShowSharePanel(false); } },
+                  { name: 'WhatsApp', icon: <MessageCircle size={22} className="text-white" />, action: () => { openExternalLink(`https://wa.me/?text=${encodeURIComponent('Watch my LIVE on Elix! ' + `${window.location.origin}/live/${effectiveStreamId}`)}`); if (effectiveStreamId) { earnBattleEnergyQuiet('share', effectiveStreamId); void request('/api/engagement/progress', { method: 'POST', body: JSON.stringify({ metric: 'shares', delta: 1, roomId: effectiveStreamId }) }).catch(() => {}); } setShowSharePanel(false); } },
+                  { name: 'Facebook', icon: <Share2 size={22} className="text-white" />, action: () => { openExternalLink(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${window.location.origin}/live/${effectiveStreamId}`)}`); if (effectiveStreamId) { earnBattleEnergyQuiet('share', effectiveStreamId); void request('/api/engagement/progress', { method: 'POST', body: JSON.stringify({ metric: 'shares', delta: 1, roomId: effectiveStreamId }) }).catch(() => {}); } setShowSharePanel(false); } },
+                  { name: 'Copy Link', icon: <Copy size={22} className="text-white" />, action: () => { navigator.clipboard.writeText(`${typeof window !== 'undefined' ? window.location.origin : 'https://www.elixstarlive.co.uk'}/live/${effectiveStreamId}`); if (effectiveStreamId) { earnBattleEnergyQuiet('share', effectiveStreamId); void request('/api/engagement/progress', { method: 'POST', body: JSON.stringify({ metric: 'shares', delta: 1, roomId: effectiveStreamId }) }).catch(() => {}); } showToast('Link copied!'); setShowSharePanel(false); } },
                   { name: 'Promote', icon: <TrendingUp size={22} className="text-white" />, action: () => { setShowSharePanel(false); setShowPromotePanel(true); } },
                   { name: 'Report', icon: <Flag size={22} className="text-white/60" />, isRed: true, action: () => { setIsReportModalOpen(true); setShowSharePanel(false); } },
                 ].map((item) => (

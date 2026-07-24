@@ -310,6 +310,8 @@ router.post("/progress", engagementProgressLimiter, async (req: Request, res: Re
       "lives_watched",
       "unique_creators",
       "watch_minutes",
+      "comments",
+      "shares",
     ]);
     if (!allowed.has(metric)) {
       return res.status(400).json({ error: "INVALID_METRIC" });
@@ -320,7 +322,9 @@ router.post("/progress", engagementProgressLimiter, async (req: Request, res: Re
     if (
       (metric === "lives_watched" ||
         metric === "watch_minutes" ||
-        metric === "unique_creators") &&
+        metric === "unique_creators" ||
+        metric === "comments" ||
+        metric === "shares") &&
       !roomId
     ) {
       return res.status(400).json({ error: "ROOM_REQUIRED" });

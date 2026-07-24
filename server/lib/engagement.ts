@@ -476,9 +476,8 @@ export async function earnBattleEnergy(
       [userId, grant, before, after, `earn_${source}`, roomId || null],
     );
     await client.query("COMMIT");
-    if (source === "watch") await bumpMission(userId, "watch_minutes", 1);
-    if (source === "comment") await bumpMission(userId, "comments", 1);
-    if (source === "share") await bumpMission(userId, "shares", 1);
+    // Missions progress via POST /api/engagement/progress (not energy earn),
+    // so watch/comment/share do not double-count when both paths fire.
     return { granted: grant, balance: after };
   } catch (err) {
     await client.query("ROLLBACK");
