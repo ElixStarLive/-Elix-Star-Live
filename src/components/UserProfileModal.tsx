@@ -12,6 +12,7 @@ import { showToast } from '../lib/toast';
 import { api, request } from '../lib/apiClient';
 import { navigateToDmWithUser } from '../lib/openDmThread';
 import { getVideoPosterUrl, resolveGridThumbnailUrl, resolveVideoPlaybackUrl } from '../lib/bunnyStorage';
+import { copyTextToClipboard } from '../lib/platform';
 
 interface User {
   id: string;
@@ -390,8 +391,9 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
         url: profileUrl,
       });
     } else {
-      navigator.clipboard.writeText(profileUrl);
-      showToast('Profile link copied to clipboard!');
+      void copyTextToClipboard(profileUrl).then((ok) => {
+        if (ok) showToast('Profile link copied to clipboard!');
+      });
     }
   }
 }

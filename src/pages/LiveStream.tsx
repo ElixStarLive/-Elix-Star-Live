@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { showToast } from '../lib/toast';
-import { platform, openExternalLink, nativeShareUrl } from '../lib/platform';
+import { platform, openExternalLink, nativeShareUrl, copyTextToClipboard } from '../lib/platform';
 import {
   prepareLiveVideoEl,
   LIVE_WEBRTC_VIDEO_CLASS,
@@ -8695,7 +8695,7 @@ export default function LiveStream() {
                 {[
                   { name: 'WhatsApp', icon: <MessageCircle size={22} className="text-white" />, action: () => { openExternalLink(`https://wa.me/?text=${encodeURIComponent('Watch my LIVE on Elix! ' + `${window.location.origin}/live/${effectiveStreamId}`)}`); if (effectiveStreamId) { earnBattleEnergyQuiet('share', effectiveStreamId); void request('/api/engagement/progress', { method: 'POST', body: JSON.stringify({ metric: 'shares', delta: 1, roomId: effectiveStreamId }) }).catch(() => {}); } setShowSharePanel(false); } },
                   { name: 'Facebook', icon: <Share2 size={22} className="text-white" />, action: () => { openExternalLink(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${window.location.origin}/live/${effectiveStreamId}`)}`); if (effectiveStreamId) { earnBattleEnergyQuiet('share', effectiveStreamId); void request('/api/engagement/progress', { method: 'POST', body: JSON.stringify({ metric: 'shares', delta: 1, roomId: effectiveStreamId }) }).catch(() => {}); } setShowSharePanel(false); } },
-                  { name: 'Copy Link', icon: <Copy size={22} className="text-white" />, action: () => { navigator.clipboard.writeText(`${typeof window !== 'undefined' ? window.location.origin : 'https://www.elixstarlive.co.uk'}/live/${effectiveStreamId}`); if (effectiveStreamId) { earnBattleEnergyQuiet('share', effectiveStreamId); void request('/api/engagement/progress', { method: 'POST', body: JSON.stringify({ metric: 'shares', delta: 1, roomId: effectiveStreamId }) }).catch(() => {}); } showToast('Link copied!'); setShowSharePanel(false); } },
+                  { name: 'Copy Link', icon: <Copy size={22} className="text-white" />, action: () => { void copyTextToClipboard(`${typeof window !== 'undefined' ? window.location.origin : 'https://www.elixstarlive.co.uk'}/live/${effectiveStreamId}`); if (effectiveStreamId) { earnBattleEnergyQuiet('share', effectiveStreamId); void request('/api/engagement/progress', { method: 'POST', body: JSON.stringify({ metric: 'shares', delta: 1, roomId: effectiveStreamId }) }).catch(() => {}); } showToast('Link copied!'); setShowSharePanel(false); } },
                   { name: 'Promote', icon: <TrendingUp size={22} className="text-white" />, action: () => { setShowSharePanel(false); setShowPromotePanel(true); } },
                   { name: 'Report', icon: <Flag size={22} className="text-white/60" />, isRed: true, action: () => { setIsReportModalOpen(true); setShowSharePanel(false); } },
                 ].map((item) => (

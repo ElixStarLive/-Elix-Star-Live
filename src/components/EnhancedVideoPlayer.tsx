@@ -43,7 +43,7 @@ import {
   SHARE_PANEL_ACTION_ICON_PX,
 } from '../lib/sharePanelContacts';
 import { DUET_STAGE_HEIGHT } from '../lib/profileFrame';
-import { platform } from '../lib/platform';
+import { platform, copyTextToClipboard } from '../lib/platform';
 import { prepareFeedVideoEl, stripVideoMediaChrome } from '../lib/prepareLiveVideoEl';
 
 const VIDEO_SIDEBAR_AVATAR = 38;
@@ -730,7 +730,7 @@ export default function EnhancedVideoPlayer({
   const videoPageUrl = `https://www.elixstarlive.co.uk/video/${videoId}`;
   const handleCopyLink = async () => {
     try {
-      await navigator.clipboard.writeText(videoPageUrl);
+      await copyTextToClipboard(videoPageUrl);
       showToast('Link copied!');
     } catch { /* intentionally empty */ }
   };
@@ -747,7 +747,7 @@ export default function EnhancedVideoPlayer({
   const _handleQRCode = async () => {
     const url = `${window.location.origin}/video/${videoId}`;
     try {
-      await navigator.clipboard.writeText(url);
+      await copyTextToClipboard(url);
       showToast('Link copied!');
     } catch { /* intentionally empty */ }
   };

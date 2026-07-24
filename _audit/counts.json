@@ -1,0 +1,11 @@
+{
+  "src_ts": 193,
+  "server_ts": 141,
+  "android_src": 18,
+  "migrations": 43,
+  "tests": 21,
+  "ios_sampled": 3,
+  "scripts": 16,
+  "docs": 16,
+  "inspected_total": 435
+}
