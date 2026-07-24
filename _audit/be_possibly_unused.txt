@@ -1,0 +1,12 @@
+GET /api/admin/moderation/logs
+GET /api/creator/earnings
+GET /api/engagement/flags
+GET /api/music/collections
+GET /api/music/status
+GET /api/progression/starter-history
+GET /api/progression/users/:userId/status
+GET /api/progression/xp-history
+GET /api/rising-stars/rewards
+POST /api/admin/chargeback
+POST /api/admin/unfreeze/:userId
+POST /api/auth/guest

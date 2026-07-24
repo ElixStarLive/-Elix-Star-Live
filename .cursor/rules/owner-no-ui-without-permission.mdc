@@ -1,0 +1,30 @@
+---
+description: Never change UI/layout or app code without explicit user permission; connection audits report first
+alwaysApply: true
+---
+
+# Owner lock — no silent app changes
+
+The owner’s standing order (2026-07-24):
+
+## Hard bans (unless the user explicitly asks in that message)
+
+- Do **not** touch UI, layout, spacing, styling, colors, typography, icons, wrappers, or visual hierarchy
+- Do **not** redesign screens or “improve” visuals
+- Do **not** change navigation appearance, tab order, or route names
+- Do **not** change anything in the app “while debugging” unless they asked for that exact change
+- Do **not** remove code, files, components, routes, or APIs until the user says what to remove vs keep
+
+## Connection / integration audits
+
+When asked for a full connection audit:
+
+1. **Inventory and report first** — disconnected buttons, routes, APIs, WS, orphans, etc.
+2. For each item label: `CONNECTED` | `NEEDS CONNECT` | `CANDIDATE REMOVE` | `RETAINED WITH REASON` | `NOT VERIFIABLE`
+3. **CONNECT** only when wiring is clearly required and can be done **without** changing how anything looks (handler / API / route registration only)
+4. If a control needs a missing icon: note it in the report; **do not invent iconography** until the user confirms
+5. **REMOVE** only after the user explicitly chooses what to delete
+
+## Default
+
+If unsure whether a change is visual: **stop and ask**. Stability and owner permission over initiative.

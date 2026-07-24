@@ -1,0 +1,15 @@
+{
+  "unreachablePages": [],
+  "orphanComps": [
+    "src/components/ForYouStoriesStrip.tsx",
+    "src/components/GoldProfileFrame.tsx",
+    "src/components/LiveAIFilters.tsx"
+  ],
+  "orphanLibs": [],
+  "counts": {
+    "pages": 69,
+    "unreachablePages": 0,
+    "orphanComps": 3,
+    "orphanLibs": 0
+  }
+}
