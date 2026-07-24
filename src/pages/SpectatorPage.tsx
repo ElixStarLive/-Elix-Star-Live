@@ -4973,11 +4973,7 @@ export default function SpectatorPage() {
                           <p className="text-white/40 text-[10px] font-medium">{gifted > 0 ? 'Top gifter' : 'Viewer'}</p>
                         </div>
                         <span className="text-[#D4AF37] text-xs font-bold tabular-nums flex-shrink-0">
-                          {gifted >= 1_000_000
-                            ? `${(gifted / 1_000_000).toFixed(1)}M`
-                            : gifted >= 1_000
-                              ? `${(gifted / 1_000).toFixed(1)}K`
-                              : String(Math.floor(gifted))}
+                          {formatCohostGiftScore(gifted)}
                         </span>
                       </button>
                       );

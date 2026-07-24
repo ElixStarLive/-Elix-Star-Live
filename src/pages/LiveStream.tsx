@@ -7564,7 +7564,7 @@ export default function LiveStream() {
                               </p>
                             </div>
                             <span className="text-[#D4AF37] text-xs font-bold tabular-nums flex-shrink-0">
-                              {formatCoinsShort(gifted)}
+                              {formatCountShort(gifted)}
                             </span>
                           </button>
                         );
