@@ -1490,12 +1490,36 @@ export default function LiveStream() {
     );
   };
 
+  /** Restore host camera on the main live preview (after featured / co-host grid ends). */
+  const restoreHostCameraPreview = useCallback(() => {
+    const el = videoRef.current;
+    if (!el) return;
+    const stream =
+      cameraStreamRef.current ||
+      (() => {
+        const cached = getCachedCameraStream();
+        if (cached?.getVideoTracks()?.some((t) => t.readyState === 'live')) {
+          cameraStreamRef.current = cached;
+          return cached;
+        }
+        return null;
+      })();
+    if (stream && el.srcObject !== stream) {
+      el.srcObject = stream;
+    }
+    prepareLiveVideoEl(el);
+    el.style.transform = 'scaleX(-1)';
+    void el.play().catch(() => {});
+  }, []);
+
   /** Host big-table X: clear every co-host seat and return to solo live layout. */
-  const endCoHostMode = () => {
-    if (coHosts.length === 0) return;
+  const endCoHostMode = useCallback(() => {
+    if (coHosts.length === 0 && !featuredUserId) return;
     setCoHosts([]);
     setFeaturedUserId(null);
     setSelectedCohostGiftUserId(null);
+    // Next paint: grid unmounts — put host camera back on the full live preview.
+    window.requestAnimationFrame(() => restoreHostCameraPreview());
     setMessages((prev) =>
       appendCapped(
         prev,
@@ -1508,7 +1532,7 @@ export default function LiveStream() {
         LIVE_CHAT_MESSAGE_CAP,
       ),
     );
-  };
+  }, [coHosts.length, featuredUserId, restoreHostCameraPreview]);
 
   const toggleCoHostMute = (hostId: string) => {
     setCoHosts(prev => prev.map(h => {
@@ -2107,7 +2131,12 @@ export default function LiveStream() {
         hostSmallVideoRef.current.style.transform = 'scaleX(-1)';
       }
     }
-  }, [featuredUserId, isBroadcast, coHosts]);
+
+    // Leaving featured big-screen: put host camera back on the main preview (stay live).
+    if (!featuredUserId) {
+      restoreHostCameraPreview();
+    }
+  }, [featuredUserId, isBroadcast, coHosts, restoreHostCameraPreview]);
 
   // Re-attach remote LiveKit tracks when battle/co-host video elements mount after subscribe
   useEffect(() => {
@@ -5430,8 +5459,21 @@ export default function LiveStream() {
 
   const closeLiveWithSlide = useCallback(() => {
     if (pageExiting) return;
+    // Battle / co-host: close the mode and stay on normal live — do not disconnect.
     if (isBroadcast && isBattleMode) {
       exitBattleMode();
+      return;
+    }
+    const hasCoHostSeats = coHosts.some(
+      (h) =>
+        (h.status === 'live' ||
+          h.status === 'accepted' ||
+          h.status === 'invited' ||
+          h.status === 'pending_accept') &&
+        !sameUserId(h.userId, user?.id),
+    );
+    if (isBroadcast && (hasCoHostSeats || featuredUserId)) {
+      endCoHostMode();
       return;
     }
     setPageExiting(true);
@@ -5442,7 +5484,18 @@ export default function LiveStream() {
         void stopBroadcast();
       }
     }, 250);
-  }, [pageExiting, isBroadcast, isBattleMode, exitBattleMode, navigate, stopBroadcast]);
+  }, [
+    pageExiting,
+    isBroadcast,
+    isBattleMode,
+    exitBattleMode,
+    navigate,
+    stopBroadcast,
+    coHosts,
+    featuredUserId,
+    user?.id,
+    endCoHostMode,
+  ]);
 
   const handleScreenTap = (e?: React.MouseEvent | React.TouchEvent) => {
     let clientX: number | undefined;
@@ -6900,7 +6953,15 @@ export default function LiveStream() {
                           type="button"
                           onClick={closeLiveWithSlide}
                           className="p-1 active:scale-95 transition-transform pointer-events-auto"
-                          title={isBroadcast ? (isBattleMode ? 'End battle' : 'End broadcast') : 'Leave'}
+                          title={
+                            isBroadcast
+                              ? (isBattleMode
+                                ? 'End battle'
+                                : (coHosts.some((h) => !sameUserId(h.userId, user?.id)) || featuredUserId)
+                                  ? 'End co-host'
+                                  : 'End broadcast')
+                              : 'Leave'
+                          }
                           aria-label="Close"
                         >
                           <RoyceCloseIcon size={18} />
