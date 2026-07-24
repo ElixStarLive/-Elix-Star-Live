@@ -305,33 +305,6 @@ export async function handleMessage(
                 testBattleTarget || "host",
                 testPoints,
               );
-              // #region agent log
-              try {
-                const fs = await import("node:fs");
-                const path = await import("node:path");
-                fs.appendFileSync(
-                  path.resolve(process.cwd(), "debug-fa77db.log"),
-                  `${JSON.stringify({
-                    sessionId: "fa77db",
-                    runId: "test-coins-tap",
-                    hypothesisId: "H1_BATTLE_ONLY",
-                    location: "server/websocket/handlers.ts:gift_sent:test_coins",
-                    message: "test_coins catalog points to battle — no money",
-                    data: {
-                      points: testPoints,
-                      usesCatalogGiftValue: true,
-                      battleActive: true,
-                      moneyPaths: false,
-                      giftSource: "test_coins",
-                      animationBroadcast: true,
-                    },
-                    timestamp: Date.now(),
-                  })}\n`,
-                );
-              } catch {
-                /* debug log best-effort */
-              }
-              // #endregion
             }
           } catch { /* non-fatal */ }
           sendToClient(client, "gift_ack", {
