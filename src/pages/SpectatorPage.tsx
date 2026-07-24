@@ -1100,9 +1100,9 @@ export default function SpectatorPage() {
     }
   };
 
-  const _stopCoHosting = () => {
+  const stopCoHosting = useCallback(() => {
     if (coHostStream) {
-      coHostStream.getTracks().forEach(t => t.stop());
+      coHostStream.getTracks().forEach((t) => t.stop());
       setCoHostStream(null);
     }
     if (coHostChanRef.current) {
@@ -1111,7 +1111,30 @@ export default function SpectatorPage() {
     setIsCoHosting(false);
     setIsMicMuted(true);
     setIsCamOff(false);
-  };
+  }, [coHostStream]);
+
+  // Host removed this co-host from the table — leave publish mode.
+  const wasCohostSeatedRef = useRef(false);
+  useEffect(() => {
+    if (!user?.id) return;
+    const stillSeated = spectatorCoHosts.some(
+      (h) =>
+        sameUserId(h.userId, user.id) &&
+        (h.status === 'live' ||
+          h.status === 'accepted' ||
+          h.status === 'invited' ||
+          h.status === 'pending_accept'),
+    );
+    if (stillSeated) wasCohostSeatedRef.current = true;
+    if (isCoHosting && wasCohostSeatedRef.current && !stillSeated) {
+      wasCohostSeatedRef.current = false;
+      stopCoHosting();
+      showToast('Removed from co-host');
+      if (featuredUserId && sameUserId(featuredUserId, user.id)) {
+        setFeaturedUserId(null);
+      }
+    }
+  }, [spectatorCoHosts, isCoHosting, user?.id, stopCoHosting, featuredUserId]);
 
   const toggleMic = () => {
     if (!coHostStream) return;

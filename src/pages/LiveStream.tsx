@@ -1466,17 +1466,48 @@ export default function LiveStream() {
     if (requesterId) websocket.send('cohost_request_decline', { requesterUserId: requesterId });
   };
 
-  const _removeCoHost = (hostId: string) => {
-    const host = coHosts.find(h => h.id === hostId);
-    setCoHosts(prev => prev.filter(h => h.id !== hostId));
-    if (host) {
-      setMessages(prev => appendCapped(prev, {
-        id: Date.now().toString(),
-        username: 'System',
-        text: `${host.name} left the co-host`,
-        isSystem: true,
-      }, LIVE_CHAT_MESSAGE_CAP));
+  const removeCoHost = (hostId: string) => {
+    const host = coHosts.find((h) => h.id === hostId);
+    if (!host) return;
+    setCoHosts((prev) => prev.filter((h) => h.id !== hostId));
+    if (featuredUserId && sameUserId(featuredUserId, host.userId)) {
+      setFeaturedUserId(null);
     }
+    if (selectedCohostGiftUserId && sameUserId(selectedCohostGiftUserId, host.userId)) {
+      setSelectedCohostGiftUserId(null);
+    }
+    setMessages((prev) =>
+      appendCapped(
+        prev,
+        {
+          id: Date.now().toString(),
+          username: 'System',
+          text: `${host.name} removed from co-host`,
+          isSystem: true,
+        },
+        LIVE_CHAT_MESSAGE_CAP,
+      ),
+    );
+  };
+
+  /** Host big-table X: clear every co-host seat and return to solo live layout. */
+  const endCoHostMode = () => {
+    if (coHosts.length === 0) return;
+    setCoHosts([]);
+    setFeaturedUserId(null);
+    setSelectedCohostGiftUserId(null);
+    setMessages((prev) =>
+      appendCapped(
+        prev,
+        {
+          id: Date.now().toString(),
+          username: 'System',
+          text: 'Co-host ended',
+          isSystem: true,
+        },
+        LIVE_CHAT_MESSAGE_CAP,
+      ),
+    );
   };
 
   const toggleCoHostMute = (hostId: string) => {
@@ -5764,15 +5795,26 @@ export default function LiveStream() {
                       poster={LIVE_VIDEO_TRANSPARENT_POSTER}
                       style={{ backgroundColor: '#111111' }}
                     />
-                    <button
-                      type="button"
-                      title="Back to host on big screen"
-                      onClick={(e) => { e.stopPropagation(); setFeaturedUserId(null); }}
-                      className="absolute top-1 left-1 z-20 flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-black/60 border border-[#D4AF37]/50 pointer-events-auto active:scale-95"
-                    >
-                      <ArrowLeftRight className="w-3 h-3 text-[#D4AF37]" strokeWidth={2.5} />
-                      <span className="text-[8px] font-bold text-[#D4AF37]">Host</span>
-                    </button>
+                    <div className="absolute top-1 left-1 z-20 flex items-center gap-1 pointer-events-auto">
+                      <button
+                        type="button"
+                        title="Remove co-host"
+                        aria-label="Remove co-host"
+                        onClick={(e) => { e.stopPropagation(); removeCoHost(featuredHost.id); }}
+                        className="flex items-center justify-center border-0 bg-transparent p-0.5 hover:opacity-90 active:scale-95"
+                      >
+                        <X size={14} strokeWidth={2.35} className="text-[#D4AF37]" />
+                      </button>
+                      <button
+                        type="button"
+                        title="Back to host on big screen"
+                        onClick={(e) => { e.stopPropagation(); setFeaturedUserId(null); }}
+                        className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-black/60 border border-[#D4AF37]/50 active:scale-95"
+                      >
+                        <ArrowLeftRight className="w-3 h-3 text-[#D4AF37]" strokeWidth={2.5} />
+                        <span className="text-[8px] font-bold text-[#D4AF37]">Host</span>
+                      </button>
+                    </div>
                     <span className="absolute bottom-1 left-1 z-20 text-white/90 text-[9px] font-bold bg-black/55 rounded px-1 truncate max-w-[90%]">
                       {featuredHost.name}
                     </span>
@@ -5791,16 +5833,27 @@ export default function LiveStream() {
                   </div>
                 )}
                 {isBroadcast && hasAnyCoHost && !featuredHost && (
-                  <div className="absolute top-1 right-1 z-10 flex items-end gap-1.5 pointer-events-auto">
-                    <button type="button" onClick={(e) => { e.stopPropagation(); toggleMic(); }} className="flex flex-col items-center gap-0.5 p-0.5 rounded bg-black/50">
-                      {isMicMuted ? <MicOff className="w-3 h-3 text-white" strokeWidth={2.5} /> : <Mic className="w-3 h-3 text-white" strokeWidth={2.5} />}
-                      <span className="text-[7px] font-semibold text-white/85 leading-none">{isMicMuted ? 'Unmute' : 'Mute'}</span>
+                  <>
+                    <button
+                      type="button"
+                      title="End co-host"
+                      aria-label="End co-host"
+                      onClick={(e) => { e.stopPropagation(); endCoHostMode(); }}
+                      className="absolute top-1 left-1 z-20 flex items-center justify-center border-0 bg-transparent p-0.5 pointer-events-auto hover:opacity-90 active:scale-95"
+                    >
+                      <X size={14} strokeWidth={2.35} className="text-[#D4AF37]" />
                     </button>
-                    <button type="button" onClick={(e) => { e.stopPropagation(); toggleCam(); }} className="flex flex-col items-center gap-0.5 p-0.5 rounded">
-                      {isCamOff ? <CameraOff className="w-3 h-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]" strokeWidth={2.5} /> : <Camera className="w-3 h-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]" strokeWidth={2.5} />}
-                      <span className="text-[7px] font-semibold text-white/85 leading-none">{isCamOff ? 'Cam On' : 'Cam Off'}</span>
-                    </button>
-                  </div>
+                    <div className="absolute top-1 right-1 z-10 flex items-end gap-1.5 pointer-events-auto">
+                      <button type="button" onClick={(e) => { e.stopPropagation(); toggleMic(); }} className="flex flex-col items-center gap-0.5 p-0.5 rounded bg-black/50">
+                        {isMicMuted ? <MicOff className="w-3 h-3 text-white" strokeWidth={2.5} /> : <Mic className="w-3 h-3 text-white" strokeWidth={2.5} />}
+                        <span className="text-[7px] font-semibold text-white/85 leading-none">{isMicMuted ? 'Unmute' : 'Mute'}</span>
+                      </button>
+                      <button type="button" onClick={(e) => { e.stopPropagation(); toggleCam(); }} className="flex flex-col items-center gap-0.5 p-0.5 rounded">
+                        {isCamOff ? <CameraOff className="w-3 h-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]" strokeWidth={2.5} /> : <Camera className="w-3 h-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]" strokeWidth={2.5} />}
+                        <span className="text-[7px] font-semibold text-white/85 leading-none">{isCamOff ? 'Cam On' : 'Cam Off'}</span>
+                      </button>
+                    </div>
+                  </>
                 )}
               </>
             ) : (
@@ -5905,14 +5958,25 @@ export default function LiveStream() {
                           )}
                         </div>
                       )}
-                      <button
-                        type="button"
-                        title="Host on big screen"
-                        onClick={(e) => { e.stopPropagation(); setFeaturedUserId(null); }}
-                        className="absolute top-0.5 left-0.5 z-10 rounded bg-black/55 p-0.5 border border-[#D4AF37]/45 pointer-events-auto active:scale-95"
-                      >
-                        <ArrowLeftRight className="w-3 h-3 text-[#D4AF37]" strokeWidth={2.5} />
-                      </button>
+                      <div className="absolute top-0.5 left-0.5 z-10 flex items-center gap-0.5 pointer-events-auto">
+                        <button
+                          type="button"
+                          title="End co-host"
+                          aria-label="End co-host"
+                          onClick={(e) => { e.stopPropagation(); endCoHostMode(); }}
+                          className="flex items-center justify-center border-0 bg-transparent p-0.5 hover:opacity-90 active:scale-95"
+                        >
+                          <X size={14} strokeWidth={2.35} className="text-[#D4AF37]" />
+                        </button>
+                        <button
+                          type="button"
+                          title="Host on big screen"
+                          onClick={(e) => { e.stopPropagation(); setFeaturedUserId(null); }}
+                          className="rounded bg-black/55 p-0.5 border border-[#D4AF37]/45 active:scale-95"
+                        >
+                          <ArrowLeftRight className="w-3 h-3 text-[#D4AF37]" strokeWidth={2.5} />
+                        </button>
+                      </div>
                       <span className="absolute bottom-0.5 left-0.5 z-10 text-white/80 text-[8px] font-bold bg-black/50 rounded px-1">You</span>
                     </>
                   );
@@ -5950,14 +6014,25 @@ export default function LiveStream() {
                         poster={LIVE_VIDEO_TRANSPARENT_POSTER}
                         style={{ opacity: camOff ? 0 : 1, transition: 'opacity 0.3s ease', backgroundColor: 'transparent' }}
                       />
-                      <button
-                        type="button"
-                        title="Put on big screen"
-                        onClick={(e) => { e.stopPropagation(); toggleFeaturedUser(host.userId); }}
-                        className="absolute top-0.5 left-0.5 z-10 rounded bg-black/55 p-0.5 border border-[#D4AF37]/45 pointer-events-auto active:scale-95"
-                      >
-                        <ArrowLeftRight className="w-3 h-3 text-[#D4AF37]" strokeWidth={2.5} />
-                      </button>
+                      <div className="absolute top-0.5 left-0.5 z-10 flex items-center gap-0.5 pointer-events-auto">
+                        <button
+                          type="button"
+                          title="Remove co-host"
+                          aria-label="Remove co-host"
+                          onClick={(e) => { e.stopPropagation(); removeCoHost(host.id); }}
+                          className="flex items-center justify-center border-0 bg-transparent p-0.5 hover:opacity-90 active:scale-95"
+                        >
+                          <X size={14} strokeWidth={2.35} className="text-[#D4AF37]" />
+                        </button>
+                        <button
+                          type="button"
+                          title="Put on big screen"
+                          onClick={(e) => { e.stopPropagation(); toggleFeaturedUser(host.userId); }}
+                          className="rounded bg-black/55 p-0.5 border border-[#D4AF37]/45 active:scale-95"
+                        >
+                          <ArrowLeftRight className="w-3 h-3 text-[#D4AF37]" strokeWidth={2.5} />
+                        </button>
+                      </div>
                       <div className="absolute top-0.5 right-0.5 z-10 flex items-center gap-0.5 pointer-events-auto">
                         <button type="button" onClick={(e) => { e.stopPropagation(); toggleCoHostMute(host.id); }} className="rounded bg-black/50 p-0.5" title={host.isMuted ? 'Unmute' : 'Mute'}>
                           {host.isMuted ? <MicOff className="text-white w-3 h-3" strokeWidth={2.5} /> : <Mic className="text-white w-3 h-3" strokeWidth={2.5} />}
@@ -5990,6 +6065,15 @@ export default function LiveStream() {
                 }
                 if (slot.type === 'invited' && slot.host) return (
                   <>
+                    <button
+                      type="button"
+                      title="Cancel invite"
+                      aria-label="Cancel invite"
+                      onClick={(e) => { e.stopPropagation(); removeCoHost(slot.host!.id); }}
+                      className="absolute top-0.5 left-0.5 z-10 flex items-center justify-center border-0 bg-transparent p-0.5 pointer-events-auto hover:opacity-90 active:scale-95"
+                    >
+                      <X size={14} strokeWidth={2.35} className="text-[#D4AF37]" />
+                    </button>
                     <div className="w-12 h-12 rounded-full overflow-hidden bg-[#111111]">
                       {slot.host.avatar ? <img src={slot.host.avatar} alt="" className="w-full h-full object-cover opacity-60" /> : <div className="w-full h-full flex items-center justify-center text-[#E8D5A3]/60 text-base font-bold">{(slot.host.name || '?').charAt(0)}</div>}
                     </div>
@@ -5999,6 +6083,15 @@ export default function LiveStream() {
                 );
                 if (slot.type === 'pending' && slot.host) return (
                   <>
+                    <button
+                      type="button"
+                      title="Decline request"
+                      aria-label="Decline request"
+                      onClick={(e) => { e.stopPropagation(); removeCoHost(slot.host!.id); }}
+                      className="absolute top-0.5 left-0.5 z-10 flex items-center justify-center border-0 bg-transparent p-0.5 pointer-events-auto hover:opacity-90 active:scale-95"
+                    >
+                      <X size={14} strokeWidth={2.35} className="text-[#D4AF37]" />
+                    </button>
                     <div className="w-10 h-10 rounded-full overflow-hidden bg-[#111111]">
                       {slot.host.avatar ? <img src={slot.host.avatar} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[#D4AF37] text-sm font-bold">{(slot.host.name || '?').charAt(0)}</div>}
                     </div>
