@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { platform } from '../lib/platform';
-import { hideVideoUntilPlaying, stripVideoMediaChrome } from '../lib/prepareLiveVideoEl';
 
 const MAX_CACHE = 20;
 const videoCache = new Map<string, string>();
@@ -91,7 +90,6 @@ function GiftVideo({
   const videoRef = useRef<HTMLVideoElement>(null);
   // Keep invisible until playback starts — Android Capacitor WebView otherwise
   // flashes the system white play button before the first decoded frame.
-  // opacity alone is NOT enough on Android; visibility:hidden is required.
   const [visible, setVisible] = useState(false);
   const playSrc = androidPlayableSrc(videoSrc);
 
@@ -99,22 +97,28 @@ function GiftVideo({
     const el = videoRef.current;
     if (!el) return;
     setVisible(false);
-    hideVideoUntilPlaying(el);
-    stripVideoMediaChrome(el);
     let ended = false;
     const finish = () => {
       if (ended) return;
       ended = true;
       onEnded();
     };
-    // Always start muted so Android/iOS WebViews allow autoplay.
-    // On Android do NOT unmute after play — muted→unmute paints the white play icon.
+    // Always start muted so Android/iOS WebViews allow autoplay; unmute after
+    // playback starts when the caller requested sound.
     el.muted = true;
     el.defaultMuted = true;
-    el.setAttribute('muted', '');
+    el.playsInline = true;
+    el.setAttribute('playsinline', 'true');
+    el.setAttribute('webkit-playsinline', 'true');
+    el.setAttribute('x5-playsinline', 'true');
+    el.setAttribute('x5-video-player-type', 'h5');
+    el.setAttribute('x5-video-player-fullscreen', 'false');
+    el.disablePictureInPicture = true;
     const reveal = () => {
-      el.style.visibility = 'visible';
       setVisible(true);
+      // #region agent log
+      fetch('http://127.0.0.1:7293/ingest/e7fb8ad3-ac4d-422a-955a-8c318a5cd9e2',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'fa77db'},body:JSON.stringify({sessionId:'fa77db',runId:'post-fix',hypothesisId:'H-gift',location:'GiftOverlay.tsx:reveal',message:'gift overlay revealed (opacity only)',data:{hasHideHelper:false},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
     };
     const tryPlay = () => {
       el.muted = true;
@@ -122,8 +126,7 @@ function GiftVideo({
       if (p && typeof p.then === 'function') {
         p.then(() => {
           reveal();
-          // Sound only off Android — unmute after play causes the stuck white icon.
-          if (!muted && !platform.isAndroid) {
+          if (!muted) {
             try {
               el.muted = false;
             } catch {
@@ -133,26 +136,28 @@ function GiftVideo({
         }).catch(() => {
           el.muted = true;
           el.play().then(reveal).catch(() => {
-            // Do not reveal a stuck white play chrome — skip this gift.
-            finish();
+            // Last resort: show frame anyway so gift is not a black hole.
+            reveal();
+            window.setTimeout(finish, 1200);
           });
         });
+      } else {
+        reveal();
       }
     };
     el.addEventListener('playing', reveal, { once: true });
     el.addEventListener('loadeddata', tryPlay, { once: true });
     el.addEventListener('canplay', tryPlay, { once: true });
     if (el.readyState >= 2) tryPlay();
-    // Retry play only — never reveal early (that shows the white player icon).
+    // If play never starts (Android quirk), still reveal briefly then end.
     const watchdog = window.setTimeout(() => {
-      if (!ended && el.paused) tryPlay();
-    }, 800);
-    const hardFail = window.setTimeout(() => {
-      if (!ended && el.paused) finish();
-    }, 5000);
+      if (!ended) {
+        reveal();
+        tryPlay();
+      }
+    }, 600);
     return () => {
       window.clearTimeout(watchdog);
-      window.clearTimeout(hardFail);
       el.removeEventListener('loadeddata', tryPlay);
       el.removeEventListener('canplay', tryPlay);
       el.removeEventListener('playing', reveal);
@@ -164,11 +169,10 @@ function GiftVideo({
       ref={videoRef}
       key={playSrc}
       src={playSrc}
-      className={`gift-overlay-video elix-no-media-chrome ${className} pointer-events-none`}
+      className={`gift-overlay-video ${className} pointer-events-none`}
       style={{
         pointerEvents: 'none',
         opacity: visible ? 1 : 0,
-        visibility: visible ? 'visible' : 'hidden',
         backgroundColor: 'transparent',
       }}
       playsInline
@@ -185,12 +189,8 @@ function GiftVideo({
         const el = videoRef.current;
         if (el && playSrc !== videoSrc && el.src.includes('.mp4')) {
           el.src = videoSrc;
-          hideVideoUntilPlaying(el);
-          setVisible(false);
-          void el.play().then(() => {
-            el.style.visibility = 'visible';
-            setVisible(true);
-          }).catch(() => onEnded());
+          el.load();
+          void el.play().catch(() => onEnded());
           return;
         }
         onEnded();
@@ -232,15 +232,6 @@ export function GiftOverlay({
       if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
       onEndedRef.current();
       return;
-    }
-
-    // On Android, skip long preload — mount muted+hidden and play immediately.
-    // Preload's early timeout was mounting a not-ready video that showed white chrome.
-    if (platform.isAndroid) {
-      setVideoReady(true);
-      return () => {
-        if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
-      };
     }
 
     const playSrc = androidPlayableSrc(videoSrc);
