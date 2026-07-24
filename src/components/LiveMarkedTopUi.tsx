@@ -142,8 +142,9 @@ export function LiveHostProfileHeader({
           <span
             className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-[2px] text-[8px] font-bold text-white leading-none"
             style={{
-              background: levelStyle.gradient,
-              boxShadow: `0 0 10px 2px ${levelStyle.glow}, 0 0 18px 4px ${levelStyle.fillSoft}`,
+              background: levelStyle.background,
+              border: '1px solid rgba(255,255,255,0.35)',
+              boxShadow: 'none',
             }}
           >
             Lv.{safeLevel}
@@ -152,7 +153,8 @@ export function LiveHostProfileHeader({
             className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-[2px] text-[8px] font-bold text-white leading-none"
             style={{
               background: 'linear-gradient(90deg, #818CF8 0%, #A78BFA 55%, #C4B5FD 100%)',
-              boxShadow: '0 0 6px rgba(129,140,248,0.55)',
+              border: '1px solid rgba(255,255,255,0.35)',
+              boxShadow: 'none',
             }}
           >
             <Gem size={9} className="text-white flex-shrink-0" strokeWidth={2.2} fill="#FFFFFF" />

@@ -4,7 +4,6 @@ import { resolveUiAvatarUrl, ROYCE_DEFAULT_AVATAR } from '../lib/royceAssets';
 import {
   clampUserLevel,
   getLevelAccentStyle,
-  isDiamondPrestigeLevel,
 } from '../lib/levelColors';
 
 export interface LevelIconProps {
@@ -116,14 +115,15 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
       ? Math.max(16, Math.floor(circleSizeProp))
       : Math.max(16, Math.floor(rawSize - Math.min(shrinkPx, maxShrink) + circleGrowPx));
 
-  const { accent, background, border, glow, fillSoft } = getLevelAccentStyle(safeLevel);
-  const prestige = isDiamondPrestigeLevel(safeLevel);
+  const { background, prestige } = getLevelAccentStyle(safeLevel);
 
   /** Chip height — keep short; diamond + number only. */
   const chipH = Math.max(20, Math.round(circleSize * 0.78));
   const numberPx = Math.max(10, Math.round(chipH * 0.58));
   /** Diamond must stay large enough to read at MVP list sizes. */
   const diamondSize = Math.max(16, Math.round(chipH * 0.95));
+  /** Solid white number — readable on every tier background with no backlight. */
+  const numberColor = '#FFFFFF';
 
   const levelChip = (
     <div
@@ -134,8 +134,8 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
         minWidth: Math.round(diamondSize + numberPx * 1.35 + 10),
         borderRadius: 6,
         background,
-        border: `1px solid ${border}`,
-        boxShadow: `0 0 10px 2px ${glow}, 0 0 18px 4px ${fillSoft}`,
+        border: '1px solid rgba(255,255,255,0.35)',
+        boxShadow: 'none',
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'flex-start',
@@ -146,7 +146,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
         overflow: 'visible',
       }}
     >
-      {/* Diamond LEFT — neon tier colour (rainbow for 281–300) */}
+      {/* Diamond LEFT — solid royal pink + white (no glow) */}
       <div
         style={{
           display: 'flex',
@@ -157,31 +157,21 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
           flexShrink: 0,
         }}
       >
-        <NeonLevelDiamond size={diamondSize} stroke={accent} rainbow={prestige} />
+        <NeonLevelDiamond size={diamondSize} stroke="#FF4FA3" rainbow={prestige} />
       </div>
 
-      {/* Number OTHER SIDE (right) — same neon colour as diamond */}
+      {/* Number RIGHT — solid white, no text glow */}
       <span
         style={{
-          color: accent,
+          color: numberColor,
           fontWeight: 900,
           letterSpacing: '0.01em',
           fontSize: numberPx,
-          textShadow: `0 0 8px ${glow}, 0 0 14px ${fillSoft}`,
+          textShadow: 'none',
           lineHeight: 1,
           whiteSpace: 'nowrap',
           fontVariantNumeric: 'tabular-nums',
           paddingLeft: 4,
-          ...(prestige
-            ? {
-                backgroundImage:
-                  'linear-gradient(90deg,#C77DFF,#3399FF,#33CCFF,#4ADE80,#FFD700,#FF7A3D,#FF4D4D,#FF69B4)',
-                WebkitBackgroundClip: 'text',
-                backgroundClip: 'text',
-                color: 'transparent',
-                textShadow: 'none',
-              }
-            : null),
         }}
       >
         {safeLevel}

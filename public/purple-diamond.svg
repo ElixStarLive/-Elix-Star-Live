@@ -1,36 +1,26 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" fill="none" role="img" aria-label="Purple diamond">
   <title>Purple diamond</title>
   <defs>
-    <filter id="neonGlow" x="-50%" y="-50%" width="200%" height="200%" color-interpolation-filters="sRGB">
-      <feGaussianBlur in="SourceGraphic" stdDeviation="1.2" result="soft"/>
-      <feGaussianBlur in="SourceGraphic" stdDeviation="2.8" result="bloom"/>
-      <feMerge>
-        <feMergeNode in="bloom"/>
-        <feMergeNode in="soft"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>
+    <linearGradient id="diaFill" x1="18%" y1="8%" x2="82%" y2="92%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="42%" stop-color="#FFB6D9"/>
+      <stop offset="100%" stop-color="#FF4FA3"/>
+    </linearGradient>
   </defs>
-  <!-- Transparent background. Neon purple line frame only (#C77DFF). -->
-  <g
-    filter="url(#neonGlow)"
-    stroke="#C77DFF"
-    stroke-linejoin="round"
-    stroke-linecap="round"
-    fill="none"
-  >
-    <!-- Outer diamond: flat top, pointed tip -->
-    <path d="M22 10 H42 L54 26 L32 54 L10 26 Z" stroke-width="2.75"/>
-    <!-- Girdle (widest horizontal) -->
-    <path d="M10 26 H54" stroke-width="2.4"/>
-    <!-- Upper facets to girdle center -->
-    <path d="M22 10 L32 26" stroke-width="2.2"/>
-    <path d="M42 10 L32 26" stroke-width="2.2"/>
-    <!-- Top mid to girdle corners (4 crown facets) -->
-    <path d="M32 10 L10 26" stroke-width="2.1"/>
-    <path d="M32 10 L54 26" stroke-width="2.1"/>
-    <!-- Lower facets: girdle junctions to tip (3 pavilion facets) -->
-    <path d="M21 26 L32 54" stroke-width="2.2"/>
-    <path d="M43 26 L32 54" stroke-width="2.2"/>
+  <!-- Solid royal pink + white — no backlight / neon glow -->
+  <path d="M22 10 H42 L54 26 L32 54 L10 26 Z" fill="url(#diaFill)" opacity="0.95"/>
+  <g stroke="#FFFFFF" stroke-linejoin="round" stroke-linecap="round" fill="none">
+    <path d="M22 10 H42 L54 26 L32 54 L10 26 Z" stroke-width="3.2"/>
   </g>
+  <g stroke="#FF4FA3" stroke-linejoin="round" stroke-linecap="round" fill="none">
+    <path d="M22 10 H42 L54 26 L32 54 L10 26 Z" stroke-width="2.1"/>
+    <path d="M10 26 H54" stroke-width="2"/>
+    <path d="M22 10 L32 26" stroke-width="1.9"/>
+    <path d="M42 10 L32 26" stroke-width="1.9"/>
+    <path d="M32 10 L10 26" stroke-width="1.8"/>
+    <path d="M32 10 L54 26" stroke-width="1.8"/>
+    <path d="M21 26 L32 54" stroke-width="1.9"/>
+    <path d="M43 26 L32 54" stroke-width="1.9"/>
+  </g>
+  <path d="M26 14 L38 14" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" opacity="0.95"/>
 </svg>
