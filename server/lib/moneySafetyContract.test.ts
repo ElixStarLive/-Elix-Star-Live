@@ -57,6 +57,11 @@ describe("Money and economy safety contracts", () => {
     expect(testCoinBranch).not.toContain("recordCreatorGiftProgress");
   });
 
+  it("REST /api/gifts/send rejects gift_source=test_coins (WS-only path)", () => {
+    expect(gifts).toContain("TEST_COINS_REST_FORBIDDEN");
+    expect(gifts).toContain('gift_source === "test_coins"');
+  });
+
   it("Stripe webhook stays shop-scoped in source", () => {
     expect(webhook).toMatch(/shop_item|shop/i);
   });

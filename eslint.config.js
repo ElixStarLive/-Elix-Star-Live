@@ -15,6 +15,7 @@ export default [
       "ios/App/App/public/",
       "Elix Star Live/",
       "_aab_peek/",
+      "_audit/",
       "assets/",
       "*.config.js",
       "*.config.ts",
@@ -52,6 +53,7 @@ export default [
     languageOptions: {
       globals: {
         console: "readonly",
+        URL: "readonly",
         __ENV: "readonly",
       },
     },
