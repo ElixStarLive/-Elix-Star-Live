@@ -1036,9 +1036,14 @@ export async function handleMessage(
           }
         }
         await setCohostLayout(roomId, coHosts, hostUserId);
+        const featuredUserId =
+          typeof data.featuredUserId === "string" && data.featuredUserId.trim()
+            ? data.featuredUserId.trim()
+            : null;
         broadcastToRoom(roomId, "cohost_layout_sync", {
           coHosts,
           hostUserId,
+          featuredUserId,
         });
         break;
       }

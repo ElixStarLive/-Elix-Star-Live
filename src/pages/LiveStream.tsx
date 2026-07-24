@@ -35,6 +35,7 @@ import {
   Sparkles,
   Timer,
   BarChart3,
+  ArrowLeftRight,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { FILTER_PRESETS } from '../lib/ai/filters';
@@ -822,12 +823,24 @@ export default function LiveStream() {
         return;
       }
 
-      // Co-host tiles (non-battle)
-      const coHostEl = coHostVideoRefs.current.get(identity);
+      // Co-host on big screen (featured)
+      if (featuredUserIdRef.current && sameUserId(identity, featuredUserIdRef.current) && featuredBigVideoRef.current) {
+        track.attach(featuredBigVideoRef.current);
+        prepareLiveVideoEl(featuredBigVideoRef.current);
+      }
+      // Co-host tiles (non-battle) — match identity case-insensitively
+      let coHostEl = coHostVideoRefs.current.get(identity) || null;
+      if (!coHostEl) {
+        for (const [uid, el] of coHostVideoRefs.current) {
+          if (sameUserId(uid, identity)) {
+            coHostEl = el;
+            break;
+          }
+        }
+      }
       if (coHostEl) {
         track.attach(coHostEl);
         prepareLiveVideoEl(coHostEl);
-        return;
       }
     };
 
@@ -1276,11 +1289,15 @@ export default function LiveStream() {
   };
   const [coHosts, setCoHosts] = useState<CoHost[]>([]);
   const [hostSearchQuery, _setHostSearchQuery] = useState('');
-  const [featuredHostId, setFeaturedHostId] = useState<string | null>(null);
+  /** Co-host userId shown on the left big screen (null = host). */
+  const [featuredUserId, setFeaturedUserId] = useState<string | null>(null);
+  const featuredBigVideoRef = useRef<HTMLVideoElement | null>(null);
+  const hostSmallVideoRef = useRef<HTMLVideoElement | null>(null);
   const coHostTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const coHostsRef = useRef<CoHost[]>([]);
   const isBroadcastRef = useRef(false);
   const selfUserIdRef = useRef<string | null>(null);
+  const featuredUserIdRef = useRef<string | null>(null);
   const MAX_CO_HOSTS = 8;
 
   // Keep refs in sync for use inside WebSocket handlers (avoid stale closure)
@@ -1288,15 +1305,32 @@ export default function LiveStream() {
     coHostsRef.current = coHosts;
     isBroadcastRef.current = isBroadcast;
     selfUserIdRef.current = user?.id ?? null;
-  }, [coHosts, isBroadcast, user?.id]);
+    featuredUserIdRef.current = featuredUserId;
+  }, [coHosts, isBroadcast, user?.id, featuredUserId]);
 
   // Broadcast co-host layout to room so spectators see same layout (single source of truth; no duplicate userIds)
   useEffect(() => {
     if (!isBroadcast || !effectiveStreamId || !user?.id) return;
     const list = coHosts.map((h) => ({ id: h.id, userId: h.userId, name: h.name, avatar: h.avatar, status: h.status }));
-    const payload = { roomId: effectiveStreamId, coHosts: list, hostUserId: user.id };
+    const payload = {
+      roomId: effectiveStreamId,
+      coHosts: list,
+      hostUserId: user.id,
+      featuredUserId: featuredUserId || null,
+    };
     websocket.send('cohost_layout_sync', payload);
-  }, [isBroadcast, effectiveStreamId, user?.id, coHosts]);
+  }, [isBroadcast, effectiveStreamId, user?.id, coHosts, featuredUserId]);
+
+  // Drop featured big-screen target if that co-host leaves.
+  useEffect(() => {
+    if (!featuredUserId) return;
+    const stillLive = coHosts.some(
+      (h) =>
+        sameUserId(h.userId, featuredUserId) &&
+        (h.status === 'live' || h.status === 'accepted'),
+    );
+    if (!stillLive) setFeaturedUserId(null);
+  }, [coHosts, featuredUserId]);
 
   const inviteCoHost = async (creator: { id: string; streamKey?: string; name: string; avatar?: string }) => {
     if (!isBroadcast || !isMyStreamLive) {
@@ -1465,14 +1499,29 @@ export default function LiveStream() {
   // Co-host identities whose own camera is off (video track muted) — show their avatar.
   const [remoteCamOff, setRemoteCamOff] = useState<Set<string>>(new Set());
 
-  const liveCoHosts = coHosts.filter(h => h.status === 'live');
-  const featuredHost = featuredHostId ? liveCoHosts.find(h => h.id === featuredHostId) : null;
-  const smallHosts = featuredHost ? liveCoHosts.filter(h => h.id !== featuredHostId) : liveCoHosts;
-  const _hostGridCols = smallHosts.length <= 1 ? 1 : smallHosts.length <= 4 ? 2 : smallHosts.length <= 9 ? 3 : 4;
+  const liveCoHosts = coHosts.filter(h => h.status === 'live' || h.status === 'accepted');
+  const featuredHost = featuredUserId
+    ? liveCoHosts.find((h) => sameUserId(h.userId, featuredUserId)) || null
+    : null;
 
-  const _toggleFeatured = (hostId: string) => {
-    setFeaturedHostId(prev => prev === hostId ? null : hostId);
-  };
+  const findCoHostVideoEl = useCallback((identity: string): HTMLVideoElement | null => {
+    const direct = coHostVideoRefs.current.get(identity);
+    if (direct) return direct;
+    for (const [uid, el] of coHostVideoRefs.current) {
+      if (sameUserId(uid, identity)) return el;
+    }
+    return null;
+  }, []);
+
+  const isSpeakingUser = useCallback(
+    (userId?: string | null) =>
+      !!userId && [...speakingIds].some((id) => sameUserId(id, userId)),
+    [speakingIds],
+  );
+
+  const toggleFeaturedUser = useCallback((userId: string) => {
+    setFeaturedUserId((prev) => (sameUserId(prev, userId) ? null : userId));
+  }, []);
 
   const filteredHostCreators = creators.filter(c =>
     c.name.toLowerCase().includes(hostSearchQuery.trim().toLowerCase()) &&
@@ -1987,6 +2036,40 @@ export default function LiveStream() {
     };
   }, [isBattleMode, opponentStreamKey, isBroadcast, effectiveStreamId, attachRemoteAudio]);
 
+  // When featuring a co-host on the big screen: attach their remote track + host preview in the small tile.
+  useEffect(() => {
+    const room = liveKitRoomRef.current;
+    if (!room || !isBroadcast) return;
+
+    if (featuredUserId && featuredBigVideoRef.current) {
+      for (const [, p] of room.remoteParticipants) {
+        if (!sameUserId(p.identity, featuredUserId)) continue;
+        for (const [, pub] of p.videoTrackPublications) {
+          if (pub.track && pub.isSubscribed) {
+            pub.track.attach(featuredBigVideoRef.current);
+            prepareLiveVideoEl(featuredBigVideoRef.current);
+          }
+        }
+      }
+    }
+
+    if (featuredUserId && hostSmallVideoRef.current) {
+      for (const [, pub] of room.localParticipant.videoTrackPublications) {
+        if (pub.track) {
+          pub.track.attach(hostSmallVideoRef.current);
+          prepareLiveVideoEl(hostSmallVideoRef.current);
+          hostSmallVideoRef.current.style.transform = 'scaleX(-1)';
+        }
+      }
+      // Fallback: local camera MediaStream if LiveKit local track not ready
+      if (!hostSmallVideoRef.current.srcObject && cameraStreamRef.current) {
+        hostSmallVideoRef.current.srcObject = cameraStreamRef.current;
+        void hostSmallVideoRef.current.play().catch(() => {});
+        hostSmallVideoRef.current.style.transform = 'scaleX(-1)';
+      }
+    }
+  }, [featuredUserId, isBroadcast, coHosts]);
+
   // Re-attach remote LiveKit tracks when battle/co-host video elements mount after subscribe
   useEffect(() => {
     const room = liveKitRoomRef.current;
@@ -2001,7 +2084,19 @@ export default function LiveStream() {
 
         for (const [, pub] of participant.videoTrackPublications) {
           if (!pub.track || !pub.isSubscribed) continue;
-          const coHostEl = coHostVideoRefs.current.get(identity);
+          if (featuredUserIdRef.current && sameUserId(identity, featuredUserIdRef.current) && featuredBigVideoRef.current) {
+            pub.track.attach(featuredBigVideoRef.current);
+            prepareLiveVideoEl(featuredBigVideoRef.current);
+          }
+          let coHostEl = coHostVideoRefs.current.get(identity) || null;
+          if (!coHostEl) {
+            for (const [uid, el] of coHostVideoRefs.current) {
+              if (sameUserId(uid, identity)) {
+                coHostEl = el;
+                break;
+              }
+            }
+          }
           if (coHostEl) {
             pub.track.attach(coHostEl);
             prepareLiveVideoEl(coHostEl);
@@ -5574,9 +5669,13 @@ export default function LiveStream() {
               if (now - last <= 320) handleComboClick();
             }}
           >
-            {/* Left: Host camera — 50% when co-hosts present, else full */}
+            {/* Left: Host camera (or featured co-host) — 50% when co-hosts present, else full */}
             <div
-              className={hasAnyCoHost ? 'w-1/2 min-w-0 relative' : 'relative w-full h-full'}
+              className={`${hasAnyCoHost ? 'w-1/2 min-w-0 relative' : 'relative w-full h-full'} border border-[#C9A96E]/40 ${
+                (featuredHost ? isSpeakingUser(featuredHost.userId) : isSpeakingUser(user?.id))
+                  ? 'elix-speaking-pulse'
+                  : ''
+              }`}
               onPointerDown={isBroadcast ? (e) => {
                 if (e.target instanceof Element && e.target.closest('button, a, input, textarea, select, [role="button"]')) return;
                 handleLikeTap(e);
@@ -5596,9 +5695,42 @@ export default function LiveStream() {
                   muted
                   controls={false}
                   poster={LIVE_VIDEO_TRANSPARENT_POSTER}
-                  style={isBroadcast ? { transform: 'scaleX(-1)', opacity: isCamOff ? 0 : 1, transition: 'opacity 0.3s ease' } : undefined}
+                  style={isBroadcast ? {
+                    transform: 'scaleX(-1)',
+                    opacity: featuredHost || isCamOff ? 0 : 1,
+                    transition: 'opacity 0.3s ease',
+                    position: featuredHost ? 'absolute' : undefined,
+                    inset: featuredHost ? 0 : undefined,
+                    pointerEvents: featuredHost ? 'none' : undefined,
+                  } : undefined}
                 />
-                {isCamOff && (
+                {featuredHost && (
+                  <>
+                    <video
+                      ref={featuredBigVideoRef}
+                      className={`absolute inset-0 w-full h-full object-cover z-[4] ${LIVE_WEBRTC_VIDEO_CLASS}`}
+                      autoPlay
+                      playsInline
+                      muted
+                      controls={false}
+                      poster={LIVE_VIDEO_TRANSPARENT_POSTER}
+                      style={{ backgroundColor: '#111111' }}
+                    />
+                    <button
+                      type="button"
+                      title="Back to host on big screen"
+                      onClick={(e) => { e.stopPropagation(); setFeaturedUserId(null); }}
+                      className="absolute top-1 left-1 z-20 flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-black/60 border border-[#D4AF37]/50 pointer-events-auto active:scale-95"
+                    >
+                      <ArrowLeftRight className="w-3 h-3 text-[#D4AF37]" strokeWidth={2.5} />
+                      <span className="text-[8px] font-bold text-[#D4AF37]">Host</span>
+                    </button>
+                    <span className="absolute bottom-1 left-1 z-20 text-white/90 text-[9px] font-bold bg-black/55 rounded px-1 truncate max-w-[90%]">
+                      {featuredHost.name}
+                    </span>
+                  </>
+                )}
+                {isCamOff && !featuredHost && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[#111111] z-[5]">
                     {(user?.avatar || myAvatar) ? (
                       <img src={user?.avatar || myAvatar || ''} alt="" className="w-16 h-16 rounded-full border-2 border-[#C9A227]/40 object-cover object-center" />
@@ -5610,7 +5742,7 @@ export default function LiveStream() {
                     <span className="text-white font-bold text-xs">{creatorName || user?.username || user?.name || 'Me'}</span>
                   </div>
                 )}
-                {isBroadcast && hasAnyCoHost && (
+                {isBroadcast && hasAnyCoHost && !featuredHost && (
                   <div className="absolute top-1 right-1 z-10 flex items-end gap-1.5 pointer-events-auto">
                     <button type="button" onClick={(e) => { e.stopPropagation(); toggleMic(); }} className="flex flex-col items-center gap-0.5 p-0.5 rounded bg-black/50">
                       {isMicMuted ? <MicOff className="w-3 h-3 text-white" strokeWidth={2.5} /> : <Mic className="w-3 h-3 text-white" strokeWidth={2.5} />}
@@ -5684,22 +5816,62 @@ export default function LiveStream() {
 
             {/* Right: co-host 8-slot grid */}
             {hasAnyCoHost && (() => {
-              // Self is always shown in the big box only — never in a small tile.
+              // Self is in the big box unless a co-host is featured (then host moves to a small tile).
               const list = coHosts.filter(h => !sameUserId(h.userId, user?.id));
               const liveList = list.filter(h => h.status === 'live' || h.status === 'accepted');
-              const firstLive = liveList[0];
-              const restLive = liveList.slice(1);
+              const featured = featuredUserId
+                ? liveList.find((h) => sameUserId(h.userId, featuredUserId)) || null
+                : null;
+              const restLive = featured
+                ? liveList.filter((h) => !sameUserId(h.userId, featured.userId))
+                : liveList;
               const invitedPending = list.filter(h => h.status === 'invited' || h.status === 'pending_accept');
-              const smallSlots: Array<{ type: 'live' | 'invited' | 'pending' | 'empty'; host?: (typeof coHosts)[0] }> = [];
-              if (firstLive) smallSlots.push({ type: 'live', host: firstLive });
+              const smallSlots: Array<{ type: 'host_main' | 'live' | 'invited' | 'pending' | 'empty'; host?: (typeof coHosts)[0] }> = [];
+              if (featured) smallSlots.push({ type: 'host_main' });
               restLive.forEach(h => smallSlots.push({ type: 'live', host: h }));
               invitedPending.forEach(h => smallSlots.push({ type: h.status === 'invited' ? 'invited' : 'pending', host: h }));
               while (smallSlots.length < 8) smallSlots.push({ type: 'empty' });
 
-              const renderCoHostCell = (slot: { type: 'live' | 'invited' | 'pending' | 'empty'; host?: (typeof coHosts)[0] }) => {
+              const renderCoHostCell = (slot: { type: 'host_main' | 'live' | 'invited' | 'pending' | 'empty'; host?: (typeof coHosts)[0] }) => {
+                if (slot.type === 'host_main') {
+                  return (
+                    <>
+                      <video
+                        ref={hostSmallVideoRef}
+                        className={`absolute inset-0 w-full h-full object-cover z-[6] ${LIVE_WEBRTC_VIDEO_CLASS}`}
+                        autoPlay
+                        playsInline
+                        muted
+                        controls={false}
+                        poster={LIVE_VIDEO_TRANSPARENT_POSTER}
+                        style={{ opacity: isCamOff ? 0 : 1, transform: 'scaleX(-1)', backgroundColor: '#111111' }}
+                      />
+                      {isCamOff && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[#111111] z-[5]">
+                          {(user?.avatar || myAvatar) ? (
+                            <img src={user?.avatar || myAvatar || ''} alt="" className="w-10 h-10 rounded-full object-cover" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-[#111111] flex items-center justify-center">
+                              <span className="text-[#E8D5A3]/60 text-sm font-bold">{(creatorName || 'Me').charAt(0)}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        title="Host on big screen"
+                        onClick={(e) => { e.stopPropagation(); setFeaturedUserId(null); }}
+                        className="absolute top-0.5 left-0.5 z-10 rounded bg-black/55 p-0.5 border border-[#D4AF37]/45 pointer-events-auto active:scale-95"
+                      >
+                        <ArrowLeftRight className="w-3 h-3 text-[#D4AF37]" strokeWidth={2.5} />
+                      </button>
+                      <span className="absolute bottom-0.5 left-0.5 z-10 text-white/80 text-[8px] font-bold bg-black/50 rounded px-1">You</span>
+                    </>
+                  );
+                }
                 if (slot.type === 'live' && slot.host) {
                   const host = slot.host;
-                  const camOff = coHostCameraOff[host.id] || remoteCamOff.has(host.userId);
+                  const camOff = coHostCameraOff[host.id] || [...remoteCamOff].some((id) => sameUserId(id, host.userId));
                   const scoreEntry = Object.entries(cohostGiftScores).find(([id]) =>
                     sameUserId(id, host.userId),
                   );
@@ -5730,6 +5902,14 @@ export default function LiveStream() {
                         poster={LIVE_VIDEO_TRANSPARENT_POSTER}
                         style={{ opacity: camOff ? 0 : 1, transition: 'opacity 0.3s ease', backgroundColor: 'transparent' }}
                       />
+                      <button
+                        type="button"
+                        title="Put on big screen"
+                        onClick={(e) => { e.stopPropagation(); toggleFeaturedUser(host.userId); }}
+                        className="absolute top-0.5 left-0.5 z-10 rounded bg-black/55 p-0.5 border border-[#D4AF37]/45 pointer-events-auto active:scale-95"
+                      >
+                        <ArrowLeftRight className="w-3 h-3 text-[#D4AF37]" strokeWidth={2.5} />
+                      </button>
                       <div className="absolute top-0.5 right-0.5 z-10 flex items-center gap-0.5 pointer-events-auto">
                         <button type="button" onClick={(e) => { e.stopPropagation(); toggleCoHostMute(host.id); }} className="rounded bg-black/50 p-0.5" title={host.isMuted ? 'Unmute' : 'Mute'}>
                           {host.isMuted ? <MicOff className="text-white w-3 h-3" strokeWidth={2.5} /> : <Mic className="text-white w-3 h-3" strokeWidth={2.5} />}
@@ -5792,7 +5972,9 @@ export default function LiveStream() {
                 <div className="w-1/2 h-full grid grid-cols-2 grid-rows-4 gap-[1px] bg-[#1a1c22]">
                   {smallSlots.slice(0, 8).map((slot, i) => {
                     const cellHost = slot.type === 'live' ? slot.host : undefined;
-                    const cellSpeaking = !!cellHost && speakingIds.has(cellHost.userId);
+                    const cellSpeaking =
+                      (slot.type === 'host_main' && isSpeakingUser(user?.id)) ||
+                      (!!cellHost && isSpeakingUser(cellHost.userId));
                     return (
                       <div
                         key={i}
