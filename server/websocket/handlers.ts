@@ -226,8 +226,7 @@ export async function handleMessage(
         const { transactionId } = data;
 
         // TEST COINS: never payments / wallet / goals / earnings.
-        // Animation may still broadcast in non-prod for gift QA.
-        // Production: reject battle scoring (and prefer reject entirely).
+        // Animation + battle VS points only (like free tap vote) — not revenue.
         if (isTestCoinsGiftSource(data)) {
           if (!canAcceptTestCoinsBattleScore()) {
             sendToClient(client, "gift_ack", {

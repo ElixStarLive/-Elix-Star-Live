@@ -39,7 +39,7 @@ import {
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { FILTER_PRESETS } from '../lib/ai/filters';
-import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, fetchGiftsFromDatabase, pickGiftVideoUrl, formatGiftDisplayName } from '../lib/giftsCatalog';
+import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, preferPlayableGiftVideoUrl, fetchGiftsFromDatabase, pickGiftVideoUrl, formatGiftDisplayName } from '../lib/giftsCatalog';
 import { appendCapped, LIVE_CHAT_MESSAGE_CAP, LIVE_GIFT_QUEUE_CAP, LIVE_VIEWER_CAP } from '../lib/liveRuntimeCaps';
 import { BattleVfxOverlays, GloveIcon, type BattleMistSide, type GloveBurst } from '../components/BattleVfxOverlays';
 import { BattleTauntOverlays } from '../components/BattleTauntOverlays';
@@ -62,6 +62,7 @@ import {
   getTestLevel,
   resolveGiftUiBalance,
   shouldUseTestCoinsForGifts,
+  areTestCoinsEnabled,
 } from '../lib/testCoins';
 import { GiftOverlay } from '../components/GiftOverlay';
 import GiftAnimationOverlay, { pushLocalGiftPill } from '../components/GiftAnimationOverlay';
@@ -116,7 +117,6 @@ import {
 import { websocket } from '../lib/websocket';
 import { parseLiveGiftGoal, type LiveGiftGoal } from '../lib/liveGiftGoal';
 import { liveStreamUiGiftTargetToServerBattleTarget, normalizeBattleGiftTarget } from '../lib/liveBattleGiftTarget';
-import { IS_STORE_BUILD } from '../config/build';
 import { engagementFlags } from '../config/engagementFlags';
 import { earnBattleEnergyQuiet } from '../components/BattleEnergyBoostControls';
 import {
@@ -4848,9 +4848,11 @@ export default function LiveStream() {
               : undefined;
           const playableVideo =
             gift.video && gift.video.trim()
-              ? gift.video.startsWith('http://') || gift.video.startsWith('https://')
-                ? gift.video.trim()
-                : resolveGiftAssetUrl(gift.video.startsWith('/') ? gift.video : `/${gift.video}`)
+              ? preferPlayableGiftVideoUrl(
+                  gift.video.startsWith('http://') || gift.video.startsWith('https://')
+                    ? gift.video.trim()
+                    : resolveGiftAssetUrl(gift.video.startsWith('/') ? gift.video : `/${gift.video}`),
+                )
               : null;
           const { data: result, error: giftErr } = await request('/api/gifts/send', {
             method: 'POST',
@@ -4958,11 +4960,13 @@ export default function LiveStream() {
       if (gift.video && gift.video.trim()) {
         const raw = gift.video;
         const ext = raw.split('?')[0].toLowerCase();
-        const isVid = ext.endsWith('.mp4') || ext.endsWith('.webm');
+        const isVid = ext.endsWith('.mp4') || ext.endsWith('.webm') || ext.endsWith('.mov');
         if (isVid) {
-          const videoUrl = (raw.startsWith('http://') || raw.startsWith('https://'))
-            ? raw
-            : resolveGiftAssetUrl(raw.startsWith('/') ? raw : `/${raw}`);
+          const videoUrl = preferPlayableGiftVideoUrl(
+            (raw.startsWith('http://') || raw.startsWith('https://'))
+              ? raw
+              : resolveGiftAssetUrl(raw.startsWith('/') ? raw : `/${raw}`),
+          );
           if (videoUrl) {
             setGiftQueue(prev => appendCapped(prev, { video: videoUrl }, LIVE_GIFT_QUEUE_CAP));
           }
@@ -4974,8 +4978,10 @@ export default function LiveStream() {
         setMissionGiftsSent((n) => n + 1);
       }
 
-      // Track session contribution for membership
-      setSessionContribution(prev => prev + gift.coins);
+      // Track session contribution for membership (real gifts only — never test coins).
+      if (!usedTestCoins) {
+        setSessionContribution(prev => prev + gift.coins);
+      }
 
       maybeEnqueueUniverse(gift.name, viewerName);
 
@@ -5013,9 +5019,11 @@ export default function LiveStream() {
       if (usedTestCoins || giftTransactionId) {
         const wsVideo =
           gift.video && gift.video.trim()
-            ? gift.video.startsWith('http://') || gift.video.startsWith('https://')
-              ? gift.video.trim()
-              : resolveGiftAssetUrl(gift.video.startsWith('/') ? gift.video : `/${gift.video}`)
+            ? preferPlayableGiftVideoUrl(
+                gift.video.startsWith('http://') || gift.video.startsWith('https://')
+                  ? gift.video.trim()
+                  : resolveGiftAssetUrl(gift.video.startsWith('/') ? gift.video : `/${gift.video}`),
+              )
             : null;
         websocket.send('gift_sent', {
           giftId: gift.id,
@@ -5261,8 +5269,10 @@ export default function LiveStream() {
         setCoinBalance(resolveGiftUiBalance(nextWallet, user?.id));
       }
 
-      // Track session contribution for membership
-      setSessionContribution(prev => prev + lastSentGift.coins);
+      // Track session contribution for membership (real gifts only — never test coins).
+      if (!usedTestCoins) {
+        setSessionContribution(prev => prev + lastSentGift.coins);
+      }
 
       maybeEnqueueUniverse(lastSentGift.name, viewerName);
 
@@ -5273,9 +5283,11 @@ export default function LiveStream() {
       }
       
       if (lastSentGift.video && lastSentGift.video.trim()) {
-        const videoUrl = (lastSentGift.video.startsWith('http://') || lastSentGift.video.startsWith('https://'))
-          ? lastSentGift.video
-          : resolveGiftAssetUrl(lastSentGift.video.startsWith('/') ? lastSentGift.video : `/${lastSentGift.video}`);
+        const videoUrl = preferPlayableGiftVideoUrl(
+          (lastSentGift.video.startsWith('http://') || lastSentGift.video.startsWith('https://'))
+            ? lastSentGift.video
+            : resolveGiftAssetUrl(lastSentGift.video.startsWith('/') ? lastSentGift.video : `/${lastSentGift.video}`),
+        );
         if (videoUrl) {
           setGiftQueue(prev => appendCapped(prev, { video: videoUrl }, LIVE_GIFT_QUEUE_CAP));
           setShowGiftPanel(false);
@@ -5308,13 +5320,15 @@ export default function LiveStream() {
       if (usedTestCoins || giftTransactionId) {
         const comboWsVideo =
           lastSentGift.video && lastSentGift.video.trim()
-            ? lastSentGift.video.startsWith('http://') || lastSentGift.video.startsWith('https://')
-              ? lastSentGift.video.trim()
-              : resolveGiftAssetUrl(
-                  lastSentGift.video.startsWith('/')
-                    ? lastSentGift.video
-                    : `/${lastSentGift.video}`,
-                )
+            ? preferPlayableGiftVideoUrl(
+                lastSentGift.video.startsWith('http://') || lastSentGift.video.startsWith('https://')
+                  ? lastSentGift.video.trim()
+                  : resolveGiftAssetUrl(
+                      lastSentGift.video.startsWith('/')
+                        ? lastSentGift.video
+                        : `/${lastSentGift.video}`,
+                    ),
+              )
             : null;
         websocket.send('gift_sent', {
           giftId: lastSentGift.id,
@@ -8163,7 +8177,7 @@ export default function LiveStream() {
             {/* Content — icon on top, label under (same as Share / Effects) */}
             <div className="grid grid-cols-4 gap-y-4 gap-x-2 pt-1 pb-2 px-1">
 
-              {!IS_STORE_BUILD && (
+              {areTestCoinsEnabled() && (
               <button type="button" onClick={() => { setShowTestCoinsModal(true); setTestCoinsStep(sessionStorage.getItem('elix_test_coins_unlocked') ? 'amount' : 'password'); setTestCoinsPwd(''); setTestCoinsError(''); setTestCoinsAmount(''); setIsMoreMenuOpen(false); }} className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform">
                 <div className="royce-glow-disc w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
                   <Coins className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />
@@ -8382,7 +8396,7 @@ export default function LiveStream() {
         </>
       )}
 
-      {!IS_STORE_BUILD && showTestCoinsModal && (
+      {areTestCoinsEnabled() && showTestCoinsModal && (
         <>
           <div
             className="fixed inset-0 bg-black/60 pointer-events-auto"

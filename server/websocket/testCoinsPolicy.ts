@@ -39,9 +39,10 @@ export function isProductionTestCoinsBlocked(
  * earnings, revenue, or paid gift-goal progression (that money separation is
  * enforced in the gift handler / REST path, not here). Because no money is ever
  * involved, battle-only scoring is safe in every environment — including
- * production — so gift QA works against the real backend. The real Google Play
- * (store) build disables test coins on the client, so this only affects dev /
- * test builds. Operators keep a hard kill-switch via ALLOW_TEST_COINS_BATTLE_SCORE=0.
+ * production — so gift QA works against the real backend. Client test-coin UI is
+ * password-gated and allowed on Capacitor native (including store AAB shells)
+ * for QA; pure web store builds stay blocked. Operators keep a hard kill-switch
+ * via ALLOW_TEST_COINS_BATTLE_SCORE=0.
  */
 export function canAcceptTestCoinsBattleScore(
   _nodeEnv: string | undefined = process.env.NODE_ENV,

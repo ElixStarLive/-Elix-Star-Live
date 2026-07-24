@@ -1,34 +1,58 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { platform } from '../lib/platform';
 
 const MAX_CACHE = 20;
 const videoCache = new Map<string, string>();
 
+/** Android WebView often cannot decode VP9/WebM — prefer MP4 sibling when available. */
+function androidPlayableSrc(src: string): string {
+  if (!platform.isAndroid) return src;
+  if (/\.webm(\?|#|$)/i.test(src)) {
+    return src.replace(/\.webm(\?|#|$)/i, '.mp4$1');
+  }
+  return src;
+}
+
 function preloadVideo(src: string): Promise<string> {
-  if (videoCache.has(src)) return Promise.resolve(videoCache.get(src) as NonNullable<ReturnType<typeof videoCache.get>>);
+  const playSrc = androidPlayableSrc(src);
+  if (videoCache.has(playSrc)) return Promise.resolve(videoCache.get(playSrc) as string);
   return new Promise((resolve, reject) => {
     const vid = document.createElement('video');
     vid.preload = 'auto';
     vid.muted = true;
     vid.playsInline = true;
-    vid.oncanplaythrough = () => {
+    vid.setAttribute('playsinline', 'true');
+    vid.setAttribute('webkit-playsinline', 'true');
+    let settled = false;
+    const finishOk = () => {
+      if (settled) return;
+      settled = true;
       vid.oncanplaythrough = null;
+      vid.onloadeddata = null;
       vid.onerror = null;
-      vid.src = '';
-      vid.load();
       if (videoCache.size >= MAX_CACHE) {
         const first = videoCache.keys().next().value;
         if (first) videoCache.delete(first);
       }
-      videoCache.set(src, src);
-      resolve(src);
+      videoCache.set(playSrc, playSrc);
+      resolve(playSrc);
     };
-    vid.onerror = () => {
+    const finishErr = () => {
+      if (settled) return;
+      settled = true;
       vid.oncanplaythrough = null;
+      vid.onloadeddata = null;
       vid.onerror = null;
-      vid.src = '';
       reject(new Error('preload failed'));
     };
-    vid.src = src;
+    vid.oncanplaythrough = finishOk;
+    vid.onloadeddata = finishOk;
+    vid.onerror = finishErr;
+    // Don't leave Android hanging forever on preload.
+    window.setTimeout(() => {
+      if (!settled) finishOk();
+    }, 2500);
+    vid.src = playSrc;
     vid.load();
   });
 }
@@ -56,7 +80,7 @@ function GiftVideo({
   videoSrc,
   muted,
   onEnded,
-  className = 'absolute inset-0 w-full h-full object-cover drop-shadow-2xl',
+  className = 'absolute inset-0 w-full h-full object-contain drop-shadow-2xl',
 }: {
   videoSrc: string;
   muted: boolean;
@@ -67,14 +91,23 @@ function GiftVideo({
   // Keep invisible until playback starts — Android Capacitor WebView otherwise
   // flashes the system white play button before the first decoded frame.
   const [visible, setVisible] = useState(false);
+  const playSrc = androidPlayableSrc(videoSrc);
 
   useEffect(() => {
     const el = videoRef.current;
     if (!el) return;
     setVisible(false);
+    let ended = false;
+    const finish = () => {
+      if (ended) return;
+      ended = true;
+      onEnded();
+    };
     // Always start muted so Android/iOS WebViews allow autoplay; unmute after
     // playback starts when the caller requested sound.
     el.muted = true;
+    el.defaultMuted = true;
+    el.playsInline = true;
     el.setAttribute('playsinline', 'true');
     el.setAttribute('webkit-playsinline', 'true');
     el.setAttribute('x5-playsinline', 'true');
@@ -83,33 +116,54 @@ function GiftVideo({
     el.disablePictureInPicture = true;
     const reveal = () => setVisible(true);
     const tryPlay = () => {
+      el.muted = true;
       const p = el.play();
       if (p && typeof p.then === 'function') {
         p.then(() => {
           reveal();
           if (!muted) {
-            el.muted = false;
+            try {
+              el.muted = false;
+            } catch {
+              /* keep muted */
+            }
           }
         }).catch(() => {
           el.muted = true;
-          el.play().then(reveal).catch(() => onEnded());
+          el.play().then(reveal).catch(() => {
+            // Last resort: show frame anyway so gift is not a black hole.
+            reveal();
+            window.setTimeout(finish, 1200);
+          });
         });
+      } else {
+        reveal();
       }
     };
     el.addEventListener('playing', reveal, { once: true });
+    el.addEventListener('loadeddata', tryPlay, { once: true });
+    el.addEventListener('canplay', tryPlay, { once: true });
     if (el.readyState >= 2) tryPlay();
-    else el.addEventListener('loadeddata', tryPlay, { once: true });
+    // If play never starts (Android quirk), still reveal briefly then end.
+    const watchdog = window.setTimeout(() => {
+      if (!ended) {
+        reveal();
+        tryPlay();
+      }
+    }, 600);
     return () => {
+      window.clearTimeout(watchdog);
       el.removeEventListener('loadeddata', tryPlay);
+      el.removeEventListener('canplay', tryPlay);
       el.removeEventListener('playing', reveal);
     };
-  }, [videoSrc, muted, onEnded]);
+  }, [playSrc, muted, onEnded]);
 
   return (
     <video
       ref={videoRef}
-      key={videoSrc}
-      src={videoSrc}
+      key={playSrc}
+      src={playSrc}
       className={`gift-overlay-video ${className} pointer-events-none`}
       style={{
         pointerEvents: 'none',
@@ -125,7 +179,17 @@ function GiftVideo({
       poster={TRANSPARENT_POSTER}
       preload="auto"
       onEnded={onEnded}
-      onError={onEnded}
+      onError={() => {
+        // One retry with original src if mp4 sibling failed (or vice versa).
+        const el = videoRef.current;
+        if (el && playSrc !== videoSrc && el.src.includes('.mp4')) {
+          el.src = videoSrc;
+          el.load();
+          void el.play().catch(() => onEnded());
+          return;
+        }
+        onEnded();
+      }}
     />
   );
 }
@@ -154,7 +218,7 @@ export function GiftOverlay({
 
     safetyTimerRef.current = setTimeout(() => {
       onEndedRef.current();
-    }, 8000);
+    }, 12000);
 
     const path = videoSrc.split('?')[0].toLowerCase();
     const isVideo = path.endsWith('.mp4') || path.endsWith('.webm') || path.endsWith('.mov');
@@ -165,7 +229,8 @@ export function GiftOverlay({
       return;
     }
 
-    if (videoCache.has(videoSrc)) {
+    const playSrc = androidPlayableSrc(videoSrc);
+    if (videoCache.has(playSrc)) {
       setVideoReady(true);
     } else {
       // Preload is best-effort. On failure still try native playback — a failed
@@ -194,8 +259,13 @@ export function GiftOverlay({
         height: 'calc(70% - 25mm)',
         // Default high; spectator passes a lower zIndex so combo/gift icons stay on top.
         zIndex,
-        WebkitMaskImage: 'linear-gradient(to top, black 0%, black 60%, transparent 100%)',
-        maskImage: 'linear-gradient(to top, black 0%, black 60%, transparent 100%)',
+        // CSS mask blanks gift videos on many Android WebViews — keep mask off Android.
+        ...(platform.isAndroid
+          ? {}
+          : {
+              WebkitMaskImage: 'linear-gradient(to top, black 0%, black 60%, transparent 100%)',
+              maskImage: 'linear-gradient(to top, black 0%, black 60%, transparent 100%)',
+            }),
       }}
     >
       <GiftVideo videoSrc={videoSrc} muted={muted} onEnded={handleEnded} />

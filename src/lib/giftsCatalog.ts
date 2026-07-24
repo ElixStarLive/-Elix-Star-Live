@@ -124,8 +124,12 @@ export function pickGiftVideoUrl(
 
   for (const raw of candidates) {
     if (!isGiftVideoPath(raw)) continue;
-    if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
-    return resolveGiftAssetUrl(raw.startsWith('/') ? raw : `/${raw}`);
+    if (raw.startsWith('http://') || raw.startsWith('https://')) {
+      return preferPlayableGiftVideoUrl(raw);
+    }
+    return preferPlayableGiftVideoUrl(
+      resolveGiftAssetUrl(raw.startsWith('/') ? raw : `/${raw}`),
+    );
   }
   return null;
 }
@@ -146,6 +150,22 @@ export function resolveGiftAssetUrl(path: string): string {
   }
 
   return `${GIFT_CDN_ORIGIN}/${rel}`;
+}
+
+/**
+ * Android WebView often fails on WebM/VP9. Prefer an MP4 URL when the catalog
+ * points at .webm so gift videos actually play in Capacitor.
+ */
+export function preferPlayableGiftVideoUrl(url: string): string {
+  if (!url) return url;
+  const isAndroid =
+    typeof navigator !== 'undefined' &&
+    /Android/i.test(navigator.userAgent || '');
+  if (!isAndroid) return url;
+  if (/\.webm(\?|#|$)/i.test(url)) {
+    return url.replace(/\.webm(\?|#|$)/i, '.mp4$1');
+  }
+  return url;
 }
 
 function giftPosterPath(animationPath: string): string {

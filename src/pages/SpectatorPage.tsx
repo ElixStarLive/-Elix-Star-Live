@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { RoyceCloseIcon } from '../components/royce';
 import { showToast } from '../lib/toast';
-import { IS_STORE_BUILD } from '../config/build';
 import {
   prepareLiveVideoEl,
   LIVE_WEBRTC_VIDEO_CLASS,
@@ -45,7 +44,7 @@ import {
   type EngagementPanel,
 } from '../components/engagement/EngagementDrawer';
 import { engagementFlags } from '../config/engagementFlags';
-import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, fetchGiftsFromDatabase, pickGiftVideoUrl, formatGiftDisplayName } from '../lib/giftsCatalog';
+import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, preferPlayableGiftVideoUrl, fetchGiftsFromDatabase, pickGiftVideoUrl, formatGiftDisplayName } from '../lib/giftsCatalog';
 import { appendCapped, LIVE_CHAT_MESSAGE_CAP, LIVE_GIFT_QUEUE_CAP } from '../lib/liveRuntimeCaps';
 import { BattleVfxOverlays, GloveIcon, type BattleMistSide, type GloveBurst } from '../components/BattleVfxOverlays';
 import { BattleTauntOverlays } from '../components/BattleTauntOverlays';
@@ -66,6 +65,7 @@ import {
   getTestLevel,
   resolveGiftUiBalance,
   shouldUseTestCoinsForGifts,
+  areTestCoinsEnabled,
 } from '../lib/testCoins';
 import { GiftOverlay } from '../components/GiftOverlay';
 import GiftAnimationOverlay, { pushLocalGiftPill } from '../components/GiftAnimationOverlay';
@@ -2982,10 +2982,11 @@ export default function SpectatorPage() {
 
     if (gift.video && gift.video.trim() && isGiftVideoFile(gift.video)) {
       const raw = gift.video;
-      const videoUrl =
+      const videoUrl = preferPlayableGiftVideoUrl(
         raw.startsWith('http://') || raw.startsWith('https://')
           ? raw
-          : resolveGiftAssetUrl(raw.startsWith('/') ? raw : `/${raw}`);
+          : resolveGiftAssetUrl(raw.startsWith('/') ? raw : `/${raw}`),
+      );
       setGiftQueue(prev => appendCapped(prev, { video: videoUrl }, LIVE_GIFT_QUEUE_CAP));
     }
 
@@ -3003,9 +3004,11 @@ export default function SpectatorPage() {
     if (usedTestCoins || giftTransactionId) {
       const wsVideo =
         gift.video && gift.video.trim()
-          ? gift.video.startsWith('http://') || gift.video.startsWith('https://')
-            ? gift.video.trim()
-            : resolveGiftAssetUrl(gift.video.startsWith('/') ? gift.video : `/${gift.video}`)
+          ? preferPlayableGiftVideoUrl(
+              gift.video.startsWith('http://') || gift.video.startsWith('https://')
+                ? gift.video.trim()
+                : resolveGiftAssetUrl(gift.video.startsWith('/') ? gift.video : `/${gift.video}`),
+            )
           : null;
       websocket.send('gift_sent', {
         giftId: gift.id,
@@ -5162,7 +5165,7 @@ export default function SpectatorPage() {
                   <div className="w-10 h-1 bg-white/20 rounded-full" />
                 </div>
                 <div className="grid grid-cols-4 gap-y-4 gap-x-2 pt-1 pb-2 px-1">
-                  {!IS_STORE_BUILD && (
+                  {areTestCoinsEnabled() && (
                   <button
                     type="button"
                     onClick={() => {
@@ -5237,7 +5240,7 @@ export default function SpectatorPage() {
         )}
 
         {/* TEST COINS MODAL — password-protected, local-only test balance (non-store only) */}
-        {!IS_STORE_BUILD && showTestCoinsModal && (
+        {areTestCoinsEnabled() && showTestCoinsModal && (
           <>
             <div
               className="fixed inset-0 bg-black/60 pointer-events-auto"
