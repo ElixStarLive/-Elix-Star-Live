@@ -24,10 +24,10 @@ function isUsableAvatarUrl(url: string | undefined): url is string {
   return Boolean(t) && t !== ROYCE_DEFAULT_AVATAR && !t.includes('/royce/default-avatar');
 }
 
-/** Neon wireframe diamond — matches ELIX STAR LIVE diamond chart look. */
+/** Royal pink + white diamond — solid strokes so it stays visible at small chip sizes. */
 function NeonLevelDiamond({
   size,
-  stroke,
+  stroke: _stroke,
   rainbow,
 }: {
   size: number;
@@ -35,9 +35,10 @@ function NeonLevelDiamond({
   rainbow: boolean;
 }) {
   const uid = useId().replace(/:/g, '');
-  const gradId = `lvl-dia-grad-${uid}`;
-  const glowId = `lvl-dia-glow-${uid}`;
-  const strokePaint = rainbow ? `url(#${gradId})` : stroke;
+  const fillId = `lvl-dia-fill-${uid}`;
+  const royalPink = '#FF4FA3';
+  const softPink = '#FFB6D9';
+  const white = '#FFFFFF';
 
   return (
     <svg
@@ -49,45 +50,45 @@ function NeonLevelDiamond({
       style={{ display: 'block', flexShrink: 0, overflow: 'visible' }}
     >
       <defs>
-        {rainbow ? (
-          <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#C77DFF" />
-            <stop offset="16%" stopColor="#3399FF" />
-            <stop offset="28%" stopColor="#33CCFF" />
-            <stop offset="40%" stopColor="#4EFFF7" />
-            <stop offset="52%" stopColor="#4ADE80" />
-            <stop offset="64%" stopColor="#FFD700" />
-            <stop offset="76%" stopColor="#FF7A3D" />
-            <stop offset="88%" stopColor="#FF4D4D" />
-            <stop offset="100%" stopColor="#FF69B4" />
-          </linearGradient>
-        ) : null}
-        <filter id={glowId} x="-60%" y="-60%" width="220%" height="220%" colorInterpolationFilters="sRGB">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="1.4" result="soft" />
-          <feGaussianBlur in="SourceGraphic" stdDeviation="3.2" result="bloom" />
-          <feMerge>
-            <feMergeNode in="bloom" />
-            <feMergeNode in="soft" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
+        <linearGradient id={fillId} x1="18%" y1="8%" x2="82%" y2="92%">
+          {rainbow ? (
+            <>
+              <stop offset="0%" stopColor="#FF8AD4" />
+              <stop offset="45%" stopColor="#FF4FA3" />
+              <stop offset="100%" stopColor="#FFFFFF" />
+            </>
+          ) : (
+            <>
+              <stop offset="0%" stopColor={white} />
+              <stop offset="42%" stopColor={softPink} />
+              <stop offset="100%" stopColor={royalPink} />
+            </>
+          )}
+        </linearGradient>
       </defs>
-      <g
-        filter={`url(#${glowId})`}
-        stroke={strokePaint}
-        strokeLinejoin="round"
-        strokeLinecap="round"
-        fill="none"
-      >
-        <path d="M22 10 H42 L54 26 L32 54 L10 26 Z" strokeWidth="2.75" />
-        <path d="M10 26 H54" strokeWidth="2.4" />
-        <path d="M22 10 L32 26" strokeWidth="2.2" />
-        <path d="M42 10 L32 26" strokeWidth="2.2" />
-        <path d="M32 10 L10 26" strokeWidth="2.1" />
-        <path d="M32 10 L54 26" strokeWidth="2.1" />
-        <path d="M21 26 L32 54" strokeWidth="2.2" />
-        <path d="M43 26 L32 54" strokeWidth="2.2" />
+      {/* Soft fill so the gem never reads as empty */}
+      <path
+        d="M22 10 H42 L54 26 L32 54 L10 26 Z"
+        fill={`url(#${fillId})`}
+        opacity={0.95}
+      />
+      {/* White outer frame */}
+      <g stroke={white} strokeLinejoin="round" strokeLinecap="round" fill="none">
+        <path d="M22 10 H42 L54 26 L32 54 L10 26 Z" strokeWidth="3.2" />
       </g>
+      {/* Royal pink facets */}
+      <g stroke={royalPink} strokeLinejoin="round" strokeLinecap="round" fill="none">
+        <path d="M22 10 H42 L54 26 L32 54 L10 26 Z" strokeWidth="2.1" />
+        <path d="M10 26 H54" strokeWidth="2" />
+        <path d="M22 10 L32 26" strokeWidth="1.9" />
+        <path d="M42 10 L32 26" strokeWidth="1.9" />
+        <path d="M32 10 L10 26" strokeWidth="1.8" />
+        <path d="M32 10 L54 26" strokeWidth="1.8" />
+        <path d="M21 26 L32 54" strokeWidth="1.9" />
+        <path d="M43 26 L32 54" strokeWidth="1.9" />
+      </g>
+      {/* White sparkle line */}
+      <path d="M26 14 L38 14" stroke={white} strokeWidth="1.6" strokeLinecap="round" opacity={0.95} />
     </svg>
   );
 }
@@ -119,10 +120,10 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
   const prestige = isDiamondPrestigeLevel(safeLevel);
 
   /** Chip height — keep short; diamond + number only. */
-  const chipH = Math.max(18, Math.round(circleSize * 0.72));
+  const chipH = Math.max(20, Math.round(circleSize * 0.78));
   const numberPx = Math.max(10, Math.round(chipH * 0.58));
-  /** Diamond fits inside chip height (not taller than the pill). */
-  const diamondSize = Math.max(14, Math.round(chipH * 0.9));
+  /** Diamond must stay large enough to read at MVP list sizes. */
+  const diamondSize = Math.max(16, Math.round(chipH * 0.95));
 
   const levelChip = (
     <div
