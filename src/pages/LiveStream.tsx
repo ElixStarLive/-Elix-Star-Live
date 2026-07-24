@@ -7304,12 +7304,14 @@ export default function LiveStream() {
                             }}
                           >
                             <span className="text-white/30 text-xs font-bold w-5 text-right flex-shrink-0">{i + 1}</span>
-                            <div className={`relative flex-shrink-0 ${isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px]' : ''}`}>
-                              <LevelBadge
-                                level={typeof v.level === 'number' ? v.level : 1}
-                                avatar={resolveCircleAvatar(v.avatar, displayName)}
-                                layout="fixed"
-                              />
+                            <div className="relative flex-shrink-0">
+                              <div className={isMvp ? 'rounded-full ring-2 ring-[#D4AF37] p-[1px] shadow-[0_0_6px_rgba(212,175,55,0.55)]' : ''}>
+                                <AvatarRing
+                                  src={resolveCircleAvatar(v.avatar, displayName)}
+                                  alt={displayName}
+                                  size={LIVE_MVP_PROFILE_RING_PX}
+                                />
+                              </div>
                               {isMvp ? (
                                 <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#D4AF37] text-black text-[6px] font-black leading-none tracking-wide">
                                   MVP
