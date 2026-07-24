@@ -35,13 +35,6 @@ function sameId(a: string | null | undefined, b: string | null | undefined): boo
   return !!na && !!nb && na === nb;
 }
 
-function formatScore(n: number): string {
-  if (!Number.isFinite(n) || n <= 0) return "0";
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return String(Math.floor(n));
-}
-
 function formatTime(sec: number): string {
   const s = Math.max(0, Math.floor(sec || 0));
   const m = Math.floor(s / 60);
@@ -410,10 +403,6 @@ export default function InlineLiveViewer({
         : String(viewerCount);
 
   const liveCohosts = coHosts.slice(0, 8);
-  const totalHostScore = battle?.hostScore ?? 0;
-  const totalOppScore = battle?.opponentScore ?? 0;
-  const scoreSum = totalHostScore + totalOppScore;
-  const leftPct = scoreSum > 0 ? Math.max(8, Math.min(92, (totalHostScore / scoreSum) * 100)) : 50;
 
   const placeholder = (
     <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#111111] gap-4 pointer-events-none z-[1]">
@@ -471,44 +460,11 @@ export default function InlineLiveViewer({
         </div>
       )}
 
-      {/* ── Battle: split panes + score bar (preview) ── */}
+      {/* ── Battle: same feed card size as normal live; split only — no score bar ── */}
       {mode === "battle" && (
-        <div className="absolute inset-0 flex flex-col">
-          <div className="relative z-20 w-full flex-none bg-[#111111]/95 border-b border-white/10">
-            <div className="relative w-full overflow-hidden" style={{ minHeight: 16 }}>
-              <div className="absolute inset-0 flex">
-                <div
-                  className="h-full"
-                  style={{
-                    width: `${leftPct}%`,
-                    backgroundImage: "linear-gradient(90deg, #DC143C, #FF1744, #C41E3A)",
-                  }}
-                />
-                <div
-                  className="h-full flex-1 min-w-0"
-                  style={{ backgroundImage: "linear-gradient(90deg, #1E90FF, #4169E1, #0047AB)" }}
-                />
-              </div>
-              <div className="relative z-10 flex h-full min-h-[16px] items-center justify-between gap-1.5 px-2 leading-none">
-                <span className="text-white font-black text-[11px] tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-                  {formatScore(totalHostScore)}
-                </span>
-                <span className="text-white font-black text-[11px] tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-                  {formatScore(totalOppScore)}
-                </span>
-              </div>
-            </div>
-            <div className="absolute left-0 right-0 top-full z-30 flex justify-center pointer-events-none m-0 p-0">
-              <div className="flex items-center gap-1.5 bg-black/35 backdrop-blur-md rounded-full px-2.5 py-1 border border-white/12">
-                <span className="text-white text-[7px] font-black italic">VS</span>
-                <span className="text-white text-[11px] font-black tabular-nums">
-                  {formatTime(battle?.timeLeft ?? 0)}
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className="flex-1 min-h-0 flex flex-row">
-            <div className="flex-1 basis-0 min-w-0 h-full relative bg-[#111111] overflow-hidden">
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 flex flex-row">
+            <div className="w-1/2 h-full relative bg-[#111111] overflow-hidden">
               <video
                 ref={hostVideoRef}
                 className={videoClass}
@@ -523,7 +479,7 @@ export default function InlineLiveViewer({
                 {creatorName}
               </span>
             </div>
-            <div className="flex-1 basis-0 min-w-0 h-full relative bg-[#111111] overflow-hidden">
+            <div className="w-1/2 h-full relative bg-[#111111] overflow-hidden">
               <video
                 ref={opponentVideoRef}
                 className={videoClass}
@@ -534,8 +490,23 @@ export default function InlineLiveViewer({
                 poster={LIVE_VIDEO_TRANSPARENT_POSTER}
                 style={{ backgroundColor: "#111111" }}
               />
-              <span className="absolute bottom-1 right-1 z-10 text-white/80 text-[8px] font-bold bg-black/50 rounded px-1 truncate max-w-[90%]">
-                {battle?.opponentName || "Opponent"}
+              {!battle?.opponentName ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 pointer-events-none z-[1]">
+                  <span className="text-white/30 text-lg font-light">+</span>
+                  <span className="text-white/40 text-[10px] font-semibold">Waiting</span>
+                </div>
+              ) : (
+                <span className="absolute bottom-1 right-1 z-10 text-white/80 text-[8px] font-bold bg-black/50 rounded px-1 truncate max-w-[90%]">
+                  {battle.opponentName}
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="absolute left-0 right-0 top-[42px] z-20 flex justify-center pointer-events-none">
+            <div className="flex items-center gap-1.5 bg-black/35 backdrop-blur-md rounded-full px-2.5 py-1 border border-white/12">
+              <span className="text-white text-[7px] font-black italic">VS</span>
+              <span className="text-white text-[11px] font-black tabular-nums">
+                {formatTime(battle?.timeLeft ?? 0)}
               </span>
             </div>
           </div>
