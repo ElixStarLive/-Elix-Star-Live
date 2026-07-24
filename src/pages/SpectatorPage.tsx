@@ -2157,17 +2157,42 @@ export default function SpectatorPage() {
         }
       }
       // Play gift video for other users' gifts (sender already queued locally).
+      // Same resolve path as creator LiveStream so Spectator GiftOverlay matches.
       {
-        const videoUrl =
-          pickGiftVideoUrl(data, giftsCatalogRef.current) ||
+        const resolvePlayUrl = (catalog: GiftUiItem[]) =>
+          pickGiftVideoUrl(data, catalog) ||
           (wsGiftId
-            ? pickGiftVideoUrl(
-                { giftId: wsGiftId, gift_id: wsGiftId },
-                giftsCatalogRef.current,
-              )
-            : null);
-        if (videoUrl) {
-          setGiftQueue((prev) => appendCapped(prev, { video: videoUrl }, LIVE_GIFT_QUEUE_CAP));
+            ? pickGiftVideoUrl({ giftId: wsGiftId, gift_id: wsGiftId }, catalog)
+            : null) ||
+          pickGiftVideoUrl(
+            {
+              giftId: wsGiftId,
+              gift_id: wsGiftId,
+              video: typeof data?.video === 'string' ? data.video : '',
+              animation_url:
+                typeof data?.animation_url === 'string' ? data.animation_url : '',
+            },
+            catalog,
+          );
+
+        const enqueueSpectatorGiftVideo = (url: string) => {
+          if (!url) return;
+          setGiftQueue((prev) => appendCapped(prev, { video: url }, LIVE_GIFT_QUEUE_CAP));
+        };
+
+        const playUrl = resolvePlayUrl(giftsCatalogRef.current);
+        if (playUrl) {
+          enqueueSpectatorGiftVideo(playUrl);
+        } else if (wsGiftId) {
+          void fetchGiftsFromDatabase().then((gifts) => {
+            if (!mounted) return;
+            if (gifts.length) {
+              giftsCatalogRef.current = gifts;
+              setGiftsCatalog(gifts);
+            }
+            const retryUrl = resolvePlayUrl(giftsCatalogRef.current);
+            if (retryUrl) enqueueSpectatorGiftVideo(retryUrl);
+          });
         }
       }
     };
@@ -4543,6 +4568,8 @@ export default function SpectatorPage() {
           </div>
         )}
 
+        {/* Gift video — same GiftOverlay as creator live (default z 50000).
+            Combo/bottom icons use 50001+ so they stay above the gift. */}
         <GiftOverlay
           key={`gift-${giftKey}`}
           videoSrc={currentGift?.video ?? null}
