@@ -133,8 +133,13 @@ export default function FriendsFeed() {
   const friendVideoIds = friendVideos.map((v) => v.id);
 
   const reloadStories = useCallback(() => {
-    void fetchActiveStories().then(setStoryGroups);
-  }, []);
+    void fetchActiveStories().then((next) => {
+      // #region agent log
+      fetch('http://127.0.0.1:7293/ingest/e7fb8ad3-ac4d-422a-955a-8c318a5cd9e2',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'fa77db'},body:JSON.stringify({sessionId:'fa77db',runId:'stories-friends',hypothesisId:'H2',location:'FriendsFeed.tsx:reloadStories',message:'Friends stories fetch',data:{groupCount:next.length,itemCount:next.reduce((n,g)=>n+(g.items?.length||0),0),hasOwn:!!(user?.id&&next.some(g=>g.userId===user.id))},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+      setStoryGroups(next);
+    });
+  }, [user?.id]);
 
   useEffect(() => {
     reloadStories();
