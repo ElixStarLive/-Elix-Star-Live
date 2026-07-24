@@ -98,6 +98,9 @@ export function debitTestCoinsForGift(
   if (current < coins) return { ok: false as const, balance: current };
   const newBalance = current - coins;
   persistTestCoinsBalance(userId, newBalance);
+  // #region agent log
+  fetch('http://127.0.0.1:7293/ingest/e7fb8ad3-ac4d-422a-955a-8c318a5cd9e2',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'fa77db'},body:JSON.stringify({sessionId:'fa77db',runId:'test-coins-tap',hypothesisId:'H2_LOCAL_DEBIT_ONLY',location:'src/lib/testCoins.ts:debitTestCoinsForGift',message:'test coins local debit only — no wallet/IAP/Stripe',data:{spent:coins,newBalance,walletTouched:false},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
   return { ok: true as const, newBalance };
 }
 

@@ -55,11 +55,29 @@ describe("Money and economy safety contracts", () => {
     expect(testCoinBranch).not.toContain("neonDebitGift");
     expect(testCoinBranch).not.toContain("incrementGiftGoal");
     expect(testCoinBranch).not.toContain("recordCreatorGiftProgress");
+    // Like free tap regarding PAYMENT only: battle VS points from catalog + animation.
+    expect(testCoinBranch).toContain("addBattleScoreForTarget");
+    expect(testCoinBranch).toContain("getGiftValue");
+    expect(testCoinBranch).toContain('giftSource: "test_coins"');
+    expect(testCoinBranch).toContain('status: "test"');
+    expect(testCoinBranch).not.toContain("TEST_COINS_BATTLE_POINTS");
   });
 
   it("REST /api/gifts/send rejects gift_source=test_coins (WS-only path)", () => {
     expect(gifts).toContain("TEST_COINS_REST_FORBIDDEN");
     expect(gifts).toContain('gift_source === "test_coins"');
+  });
+
+  it("spectator tap vote stays fixed +5 and is separate from test gifts", () => {
+    const voteStart = handlers.indexOf('case "battle_spectator_vote"');
+    expect(voteStart).toBeGreaterThan(-1);
+    const voteEnd = handlers.indexOf("case \"", voteStart + 10);
+    const voteBranch = handlers.slice(voteStart, voteEnd > voteStart ? voteEnd : voteStart + 2500);
+    expect(voteBranch).toContain("addBattleScoreForTarget");
+    expect(voteBranch).toMatch(/addBattleScoreForTarget\(\s*voteRoom[\s\S]*?,\s*5\s*\)/);
+    // Tap path must not be rewritten to use gift catalog / test coins.
+    expect(voteBranch).not.toContain("getGiftValue");
+    expect(voteBranch).not.toContain("test_coins");
   });
 
   it("Stripe webhook stays shop-scoped in source", () => {

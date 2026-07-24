@@ -3,12 +3,15 @@
  *
  * Allowed:
  * - gift animation broadcast (test new gifts / upload QA)
- * - live battle match points (VS bar) so they can help in battle
+ * - live battle match points (VS bar) using the gift's catalog point value
+ *   (e.g. a 50k gift adds 50k battle points — same magnitude as paid gifts,
+ *   but these points are NOT money / revenue)
  *
- * Forbidden:
+ * Forbidden (payment-only separation — like free tap regarding money):
  * - wallet debit/credit
  * - creator earnings / revenue
  * - gift goals that count as paid progression
+ * - REST /api/gifts/send (test coins are WS-only)
  */
 export function isTestCoinsGiftSource(data: {
   giftSource?: unknown;
@@ -20,10 +23,10 @@ export function isTestCoinsGiftSource(data: {
 /**
  * True when running in production. Retained for reference and for any future
  * money-path gating. NOTE: this no longer blocks test-coin BATTLE SCORE —
- * test coins add battle points + animation like the free tap vote and never
- * touch money, so battle-only scoring is allowed in every environment. Money
- * (wallet / earnings / revenue / paid gift goals) is still test-coin-blocked
- * by the gift handler and REST path, not by this flag.
+ * test coins add catalog battle points + animation and never touch money, so
+ * battle-only scoring is allowed in every environment. Money (wallet /
+ * earnings / revenue / paid gift goals) is still test-coin-blocked by the gift
+ * handler and REST path, not by this flag.
  */
 export function isProductionTestCoinsBlocked(
   nodeEnv: string | undefined = process.env.NODE_ENV,
@@ -34,15 +37,13 @@ export function isProductionTestCoinsBlocked(
 /**
  * Whether a test-coin gift may apply BATTLE SCORE + ANIMATION only.
  *
- * Test coins behave exactly like the free tap vote: they add VS/battle points
- * and play the gift animation, but they NEVER touch the wallet, creator
- * earnings, revenue, or paid gift-goal progression (that money separation is
- * enforced in the gift handler / REST path, not here). Because no money is ever
- * involved, battle-only scoring is safe in every environment — including
- * production — so gift QA works against the real backend. Client test-coin UI is
- * password-gated and allowed on Capacitor native (including store AAB shells)
- * for QA; pure web store builds stay blocked. Operators keep a hard kill-switch
- * via ALLOW_TEST_COINS_BATTLE_SCORE=0.
+ * Payment rule (same spirit as free tap): NEVER wallet, creator earnings,
+ * revenue, or paid gift-goal progression.
+ *
+ * Points rule: use the gift catalog value as battle VS points (50k gift →
+ * 50k battle points) so QA can stress large gifts / videos. Animation always
+ * broadcasts. Operators keep a hard kill-switch via
+ * ALLOW_TEST_COINS_BATTLE_SCORE=0.
  */
 export function canAcceptTestCoinsBattleScore(
   _nodeEnv: string | undefined = process.env.NODE_ENV,

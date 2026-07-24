@@ -4811,6 +4811,9 @@ export default function LiveStream() {
           showToast(`Not enough coins (have ${debit.balance.toLocaleString()}, need ${gift.coins.toLocaleString()})`);
           return;
         }
+        // #region agent log
+        fetch('http://127.0.0.1:7293/ingest/e7fb8ad3-ac4d-422a-955a-8c318a5cd9e2',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'fa77db'},body:JSON.stringify({sessionId:'fa77db',runId:'test-coins-tap',hypothesisId:'H3_SKIP_REST',location:'LiveStream.tsx:handleSendGift',message:'test gift skips REST money path — WS battle points only',data:{giftId:gift.id,points:gift.coins,restCalled:false,giftSource:'test_coins'},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
         setCoinBalance(
           displayBalanceAfterTestSpend(debit.newBalance, walletCoinBalanceRef.current),
         );
