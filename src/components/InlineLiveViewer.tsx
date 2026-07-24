@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Room, RoomEvent, RemoteTrack, RemoteParticipant, RemoteTrackPublication } from "livekit-client";
-import { apiUrl, getLiveKitUrl, getWsUrl } from "../lib/api";
+import { getLiveKitUrl, getWsUrl } from "../lib/api";
+import { request } from "../lib/apiClient";
 import { useAuthStore } from "../store/useAuthStore";
 import { INLINE_LIVE_PLACEHOLDER_AVATAR_PX } from "../lib/profileFrame";
 import {
@@ -96,6 +97,17 @@ export default function InlineLiveViewer({
     track.attach(el);
     prepareLiveVideoEl(el);
     setHasStream(true);
+    // Android LiveKit often skips `playing`; force-show once a frame exists so
+    // For You live cards are not stuck visibility:hidden (looks like "no live").
+    const showIfFramed = () => {
+      if (el.videoWidth > 0) el.style.visibility = "visible";
+    };
+    showIfFramed();
+    el.addEventListener("playing", showIfFramed, { once: true });
+    el.addEventListener("loadeddata", showIfFramed, { once: true });
+    window.setTimeout(() => {
+      if (el.srcObject) el.style.visibility = "visible";
+    }, 700);
   }, []);
 
   const routeVideoTrack = useCallback(
@@ -295,15 +307,11 @@ export default function InlineLiveViewer({
         setHostUserId(streamKey);
       }
       try {
-        const token = useAuthStore.getState().session?.access_token;
-        const headers: Record<string, string> = { "Content-Type": "application/json" };
-        if (token) headers.Authorization = `Bearer ${token}`;
-
-        const res = await fetch(
-          apiUrl(`/api/live/token?room=${encodeURIComponent(streamKey)}&publish=0`),
-          { method: "GET", credentials: "include", headers },
-        );
-        if (!res.ok || !mounted) {
+        const { data, error } = await request<{
+          url?: string;
+          token?: string;
+        }>(`/api/live/token?room=${encodeURIComponent(streamKey)}&publish=0`);
+        if (error || !data || !mounted) {
           if (mounted) {
             setIsOffline(true);
             setConnecting(false);
@@ -312,7 +320,6 @@ export default function InlineLiveViewer({
           return;
         }
 
-        const data = await res.json().catch(() => ({}));
         let url = (data?.url ?? "").trim();
         if (!url) url = getLiveKitUrl();
         const lkToken = data?.token;

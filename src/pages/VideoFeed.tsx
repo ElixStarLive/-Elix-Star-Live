@@ -314,6 +314,11 @@ export default function VideoFeed() {
       // when the poll runs before LiveKit has the room (creator still connecting)
       setLiveStreams((prev) => {
         const fromApi = new Set(mapped.map((s) => s.streamKey));
+        // If API returned an empty list, keep previous discovery (WS / last good poll)
+        // so a transient LiveKit verification miss does not wipe For You lives.
+        if (mapped.length === 0 && prev.length > 0) {
+          return prev.filter((s) => !removed.has(s.streamKey));
+        }
         const keptFromPrev = prev.filter(
           (s) => !fromApi.has(s.streamKey) && !removed.has(s.streamKey)
         );
