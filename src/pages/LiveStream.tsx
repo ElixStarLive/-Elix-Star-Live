@@ -104,7 +104,6 @@ import { useLiveEngagement } from '../hooks/useLiveEngagement';
 import { RankingPanel } from '../components/RankingPanel';
 import { type LiveRankTab } from '../components/CyclingRankBadge';
 import {
-  LiveGiftComboColumn,
   LiveComboMissionDock,
   LiveHostProfileHeader,
   LiveJoinPill,
@@ -4462,8 +4461,6 @@ export default function LiveStream() {
   const [comboCount, setComboCount] = useState(0);
   const [showComboButton, setShowComboButton] = useState(false);
   const [comboStack, setComboStack] = useState<{ key: string; icon: string; count: number; gift: GiftUiItem }[]>([]);
-  const visibleComboStack = comboStack;
-  const showComboColumn = showComboButton && comboStack.length > 0;
   const [missionWatchMin, setMissionWatchMin] = useState(0);
   const [missionGiftsSent, setMissionGiftsSent] = useState(0);
   const [missionWatchGoal, setMissionWatchGoal] = useState(30);
@@ -6691,29 +6688,9 @@ export default function LiveStream() {
               </div>
             </div>
 
-      {/* Combo + Mission docked together — separate live sources */}
+      {/* Mission dock (combo button is separate — TikTok pink round tap) */}
       <LiveComboMissionDock
-        combo={
-          showComboColumn && visibleComboStack.length > 0 ? (
-            <AnimatePresence>
-              <motion.div
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0, opacity: 0 }}
-              >
-                <LiveGiftComboColumn
-                  embedded
-                  stack={visibleComboStack}
-                  onCombo={() => {
-                    if (comboStack.length > 0) handleComboClick();
-                    else setShowGiftPanel(true);
-                  }}
-                  onOpen={() => setShowGiftPanel(true)}
-                />
-              </motion.div>
-            </AnimatePresence>
-          ) : null
-        }
+        combo={null}
         mission={
           <LiveSideMissionStack
             embedded
@@ -6734,6 +6711,34 @@ export default function LiveStream() {
           />
         }
       />
+
+      {/* Combo — TikTok-style round combo tap (restored from Jul 16) */}
+      <AnimatePresence>
+        {showComboButton && lastSentGift && (
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            className="fixed left-0 right-0 bottom-[calc(58px+max(2px,env(safe-area-inset-bottom,0px)))] z-[50061] flex justify-center pointer-events-none"
+          >
+            <div className="w-full max-w-[480px] mx-auto px-3 flex justify-end pointer-events-auto">
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); void handleComboClick(); }}
+                disabled={comboCount >= GIFT_COMBO_MAX}
+                className="w-[72px] h-[72px] rounded-full bg-gradient-to-b from-[#FF5A7A] to-[#FF2D55] flex flex-col items-center justify-center active:scale-90 transition-transform shadow-[0_0_18px_rgba(255,45,85,0.55)] border-2 border-white/30 disabled:opacity-50"
+              >
+                {typeof lastSentGift.icon === 'string' && (lastSentGift.icon.startsWith('http') || lastSentGift.icon.startsWith('/')) ? (
+                  <img src={lastSentGift.icon} alt="" className="w-7 h-7 object-contain mb-0.5" draggable={false} />
+                ) : null}
+                <span className={`font-black italic text-white drop-shadow-md leading-none ${comboCount >= 1000 ? 'text-sm' : 'text-xl'}`}>
+                  x{comboCount >= 1000 ? `${(comboCount / 1000).toFixed(comboCount % 1000 === 0 ? 0 : 1)}K` : comboCount}
+                </span>
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
 {/* BOTTOM RIGHT: Action buttons (same area as before, aligned right) */}
       <div
