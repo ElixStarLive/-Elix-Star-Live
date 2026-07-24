@@ -226,8 +226,7 @@ export async function handleMessage(
         const { transactionId } = data;
 
         // TEST COINS: never payments / wallet / goals / earnings.
-        // Catalog gift points → battle VS score + animation (e.g. 50k gift = 50k
-        // battle points). Payment-wise like free tap: not revenue.
+        // Animation + battle VS points only (like free tap vote) — not revenue.
         if (isTestCoinsGiftSource(data)) {
           if (!canAcceptTestCoinsBattleScore()) {
             sendToClient(client, "gift_ack", {
@@ -246,8 +245,6 @@ export async function handleMessage(
             await import("./giftRegistry");
           const testVideo = await resolvePlayableGiftVideoUrl(testGiftId, testClientVideo);
           const testBattleTarget = normalizeBattleTarget(data?.battleTarget);
-          // Catalog gift value as battle points (50k gift → 50k VS points).
-          // Not money — giftSource "test_coins" blocks wallet/earnings paths.
           const testPoints = Math.max(0, getGiftValue(testGiftId) || 0);
           const testCohostTarget =
             (typeof data?.cohostTargetUserId === "string" && data.cohostTargetUserId.trim()) ||
@@ -257,7 +254,7 @@ export async function handleMessage(
           const testPayload = {
             giftId: testGiftId,
             giftName: typeof data?.giftName === "string" ? data.giftName : "Gift",
-            // Catalog gift points for MVP/UI + battle — giftSource marks not money.
+            // Catalog points for MVP/UI only — giftSource marks this as not money.
             coins: testPoints,
             giftSource: "test_coins",
             // Unique id so clients receiving this event twice (room broadcast +

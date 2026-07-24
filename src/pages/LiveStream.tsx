@@ -464,12 +464,6 @@ export default function LiveStream() {
     };
   }, [user?.id, isBroadcast, effectiveStreamId]);
 
-  // #region agent log
-  useEffect(() => {
-    fetch('http://127.0.0.1:7293/ingest/e7fb8ad3-ac4d-422a-955a-8c318a5cd9e2',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'fa77db'},body:JSON.stringify({sessionId:'fa77db',runId:'post-fix',hypothesisId:'H-follow',location:'LiveStream.tsx:slotFlags',message:'follow/membership flags',data:{isBroadcast:!!isBroadcast,isFollowing:!!isFollowing,showFollow:!isBroadcast&&!isFollowing,showJoin:!!(isBroadcast||isFollowing)},timestamp:Date.now()})}).catch(()=>{});
-  }, [isBroadcast, isFollowing]);
-  // #endregion
-
   useEffect(() => {
     const creatorId = isBroadcast ? (user?.id || '') : effectiveStreamId;
     if (!creatorId || creatorId === 'broadcast') {
@@ -6859,12 +6853,13 @@ export default function LiveStream() {
                             }}
                             onFollow={followCreatorLive}
                             joinSlot={
-                              (isBroadcast || isFollowing) ? (
+                              // Host own-live: no Join capsule. Spectators get Join after Follow.
+                              (!isBroadcast && isFollowing) ? (
                               <LiveJoinPill
                                 hasJoinedToday={hasJoinedToday}
                                 onJoin={async (e) => {
                                   e.stopPropagation();
-                                  if (!isBroadcast && !isFollowing) {
+                                  if (!isFollowing) {
                                     showToast('Follow first to give a membership heart');
                                     return;
                                   }

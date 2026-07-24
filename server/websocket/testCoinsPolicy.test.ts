@@ -26,8 +26,9 @@ describe("testCoinsPolicy", () => {
     expect(isProductionTestCoinsBlocked("development")).toBe(false);
     expect(isProductionTestCoinsBlocked(undefined)).toBe(false);
 
-    // Test coins: catalog battle points + animation, never money (payment-wise
-    // like free tap). Battle scoring allowed in production too for gift QA.
+    // Test coins behave like the free tap vote: battle points + animation only,
+    // never money. So battle scoring is allowed in production too, enabling gift
+    // QA against the real backend.
     const prev = process.env.ALLOW_TEST_COINS_BATTLE_SCORE;
     delete process.env.ALLOW_TEST_COINS_BATTLE_SCORE;
     expect(canAcceptTestCoinsBattleScore("production")).toBe(true);

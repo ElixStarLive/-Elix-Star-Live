@@ -76,15 +76,6 @@ export async function handleSendGift(req: Request, res: Response) {
       return res.status(400).json({ error: "room_id and gift_id are required." });
     }
 
-    // Test coins are WS-only (animation + battle points). REST must never accept
-    // gift_source=test_coins — that path is paid/starter/promo ledger only.
-    if (gift_source === "test_coins") {
-      return res.status(400).json({
-        error: "TEST_COINS_REST_FORBIDDEN",
-        message: "Test coins cannot be spent via /api/gifts/send.",
-      });
-    }
-
     const pool = getPool();
     if (!pool) return res.status(503).json({ error: "Database not configured" });
 
