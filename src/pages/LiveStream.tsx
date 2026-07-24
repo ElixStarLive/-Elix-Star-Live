@@ -946,8 +946,14 @@ export default function LiveStream() {
   const [dailyHeartCount, setDailyHeartCount] = useState(0);
   const [totalGiftCoins, setTotalGiftCoins] = useState(0);
   const [topGifters, setTopGifters] = useState<{ user_id: string; total_coins: number; username?: string; avatar_url?: string }[]>([]);
+  const [heartMembers, setHeartMembers] = useState<{
+    user_id: string;
+    heart_days: number;
+    username?: string;
+    avatar_url?: string;
+  }[]>([]);
 
-  // Fetch membership stats for creator
+  // Fetch membership stats for creator (hearts + real gift coins / top supporters)
   useEffect(() => {
     if (!user?.id) return;
     const fetchStats = () => {
@@ -957,6 +963,7 @@ export default function LiveStream() {
         if (typeof d.totalHearts === 'number') setMyHeartCount(d.totalHearts);
         if (typeof d.totalGiftCoins === 'number') setTotalGiftCoins(d.totalGiftCoins);
         if (Array.isArray(d.topGifters)) setTopGifters(d.topGifters);
+        if (Array.isArray(d.heartMembers)) setHeartMembers(d.heartMembers);
       }).catch(() => {});
     };
     fetchStats();
@@ -2205,6 +2212,20 @@ export default function LiveStream() {
   const [miniProfileFollowsThem, setMiniProfileFollowsThem] = useState<boolean | undefined>(undefined);
   const [_showMembershipBar, _setShowMembershipBar] = useState(false);
   const [showTeamStatus, setShowTeamStatus] = useState(false);
+  // Refresh team stats when the panel opens so hearts/coins are current.
+  useEffect(() => {
+    if (!showTeamStatus || !user?.id) return;
+    void request(`/api/membership/${user.id}`)
+      .then(({ data: d }) => {
+        if (!d) return;
+        if (typeof d.todayHearts === 'number') setDailyHeartCount(d.todayHearts);
+        if (typeof d.totalHearts === 'number') setMyHeartCount(d.totalHearts);
+        if (typeof d.totalGiftCoins === 'number') setTotalGiftCoins(d.totalGiftCoins);
+        if (Array.isArray(d.topGifters)) setTopGifters(d.topGifters);
+        if (Array.isArray(d.heartMembers)) setHeartMembers(d.heartMembers);
+      })
+      .catch(() => {});
+  }, [showTeamStatus, user?.id]);
   const [showJoinAnimation, setShowJoinAnimation] = useState(false);
   const [_showEmojiPicker, _setShowEmojiPicker] = useState(false);
   const [_membershipHeartActive, _setMembershipHeartActive] = useState(false);
@@ -7757,6 +7778,28 @@ export default function LiveStream() {
                  </div>
                </div>
 
+               {/* Heart senders — days each spectator gave a membership heart */}
+               <div className="mt-3">
+                 <h4 className="text-[#E8D5A3]/60 text-[9px] font-bold uppercase tracking-wider mb-2 px-1">Hearts Sent</h4>
+                 <div className="space-y-1">
+                   {heartMembers.length === 0 && (
+                     <p className="text-white/30 text-[10px] text-center py-2">No membership hearts yet</p>
+                   )}
+                   {heartMembers.map((m, i) => (
+                     <div key={m.user_id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-[#C9A227]/5 border border-[#C9A227]/15">
+                       <div className="w-5 text-center font-bold text-[10px] text-[#E8D5A3]/60">{i + 1}</div>
+                       <img src={m.avatar_url || '/royce/elix-mark.svg'} alt="" className="w-7 h-7 rounded-full object-cover border border-[#C9A227]/20" />
+                       <div className="flex-1 min-w-0">
+                         <div className="text-[10px] font-bold text-white truncate">{m.username || m.user_id.slice(0, 8)}</div>
+                       </div>
+                       <div className="text-[#D4AF37] text-[10px] font-bold whitespace-nowrap">
+                         {m.heart_days} {m.heart_days === 1 ? 'day' : 'days'}
+                       </div>
+                     </div>
+                   ))}
+                 </div>
+               </div>
+
                {/* Total Gift Coins */}
                <div className="bg-white/5 rounded-xl p-3 border border-[#C9A227]/20 mt-2">
                  <div className="text-[#E8D5A3]/60 text-[9px] font-bold uppercase tracking-wider">Total Gift Coins Received</div>
@@ -7777,7 +7820,7 @@ export default function LiveStream() {
                        <div className="flex-1 min-w-0">
                          <div className="text-[10px] font-bold text-white truncate">{g.username || g.user_id.slice(0, 8)}</div>
                        </div>
-                       <div className="text-[#D4AF37] text-[10px] font-bold">{g.total_coins.toLocaleString()}</div>
+                       <div className="text-[#D4AF37] text-[10px] font-bold whitespace-nowrap">{g.total_coins.toLocaleString()} coins</div>
                      </div>
                    ))}
                  </div>

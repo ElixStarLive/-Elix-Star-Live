@@ -852,25 +852,118 @@ export async function dbGetWeeklyRanking(): Promise<{ user_id: string; total_coi
   }
 }
 
-export async function dbGetCreatorMembershipStats(creatorUserId: string): Promise<{ todayHearts: number; totalHearts: number; totalGiftCoins: number; topGifters: { user_id: string; total_coins: number }[] }> {
+export type CreatorMembershipHeartMember = {
+  user_id: string;
+  username?: string;
+  avatar_url?: string;
+  /** Distinct days this spectator sent a membership heart. */
+  heart_days: number;
+};
+
+export type CreatorMembershipTopGifter = {
+  user_id: string;
+  total_coins: number;
+  username?: string;
+  avatar_url?: string;
+};
+
+export async function dbGetCreatorMembershipStats(creatorUserId: string): Promise<{
+  todayHearts: number;
+  totalHearts: number;
+  totalGiftCoins: number;
+  topGifters: CreatorMembershipTopGifter[];
+  heartMembers: CreatorMembershipHeartMember[];
+}> {
+  const empty = {
+    todayHearts: 0,
+    totalHearts: 0,
+    totalGiftCoins: 0,
+    topGifters: [] as CreatorMembershipTopGifter[],
+    heartMembers: [] as CreatorMembershipHeartMember[],
+  };
   const p = getPool();
-  if (!p) return { todayHearts: 0, totalHearts: 0, totalGiftCoins: 0, topGifters: [] };
+  if (!p) return empty;
   try {
-    const [todayRes, totalRes, coinsRes, giftersRes] = await Promise.all([
-      p.query(`SELECT COUNT(*) as cnt FROM daily_hearts WHERE creator_user_id = $1 AND day = CURRENT_DATE`, [creatorUserId]),
-      p.query(`SELECT COUNT(*) as cnt FROM daily_hearts WHERE creator_user_id = $1`, [creatorUserId]),
-      p.query(`SELECT COALESCE(SUM(coins), 0) as total FROM gift_logs WHERE creator_user_id = $1`, [creatorUserId]),
-      p.query(`SELECT sender_user_id AS user_id, SUM(coins) AS total_coins FROM gift_logs WHERE creator_user_id = $1 GROUP BY sender_user_id ORDER BY total_coins DESC LIMIT 10`, [creatorUserId]),
+    const [todayRes, totalRes, coinsRes, giftersRes, heartsRes] = await Promise.all([
+      p.query(
+        `SELECT COUNT(*) as cnt FROM daily_hearts WHERE creator_user_id = $1 AND day = CURRENT_DATE`,
+        [creatorUserId],
+      ),
+      p.query(
+        `SELECT COUNT(*) as cnt FROM daily_hearts WHERE creator_user_id = $1`,
+        [creatorUserId],
+      ),
+      // Real gift value credited to the creator (gift_logs is unused / never written).
+      p.query(
+        `SELECT COALESCE(SUM(coins), 0) AS total
+           FROM elix_creator_earnings
+          WHERE creator_id = $1 AND kind = 'gift'`,
+        [creatorUserId],
+      ),
+      p.query(
+        `SELECT e.sender_id AS user_id,
+                SUM(e.coins)::bigint AS total_coins,
+                p.username,
+                p.display_name,
+                p.avatar_url
+           FROM elix_creator_earnings e
+           LEFT JOIN profiles p ON p.user_id = e.sender_id
+          WHERE e.creator_id = $1
+            AND e.kind = 'gift'
+            AND e.sender_id IS NOT NULL
+            AND TRIM(e.sender_id) <> ''
+          GROUP BY e.sender_id, p.username, p.display_name, p.avatar_url
+          ORDER BY total_coins DESC
+          LIMIT 10`,
+        [creatorUserId],
+      ),
+      p.query(
+        `SELECT h.member_user_id AS user_id,
+                COUNT(*)::int AS heart_days,
+                p.username,
+                p.display_name,
+                p.avatar_url
+           FROM daily_hearts h
+           LEFT JOIN profiles p ON p.user_id = h.member_user_id
+          WHERE h.creator_user_id = $1
+          GROUP BY h.member_user_id, p.username, p.display_name, p.avatar_url
+          ORDER BY heart_days DESC, MAX(h.day) DESC
+          LIMIT 20`,
+        [creatorUserId],
+      ),
     ]);
     return {
       todayHearts: Number(todayRes.rows[0]?.cnt) || 0,
       totalHearts: Number(totalRes.rows[0]?.cnt) || 0,
       totalGiftCoins: Number(coinsRes.rows[0]?.total) || 0,
-      topGifters: giftersRes.rows.map(r => ({ user_id: r.user_id, total_coins: Number(r.total_coins) || 0 })),
+      topGifters: giftersRes.rows.map((r) => ({
+        user_id: String(r.user_id),
+        total_coins: Number(r.total_coins) || 0,
+        username:
+          (typeof r.display_name === "string" && r.display_name.trim()) ||
+          (typeof r.username === "string" && r.username.trim()) ||
+          undefined,
+        avatar_url:
+          typeof r.avatar_url === "string" && r.avatar_url.trim()
+            ? r.avatar_url
+            : undefined,
+      })),
+      heartMembers: heartsRes.rows.map((r) => ({
+        user_id: String(r.user_id),
+        heart_days: Math.max(0, Number(r.heart_days) || 0),
+        username:
+          (typeof r.display_name === "string" && r.display_name.trim()) ||
+          (typeof r.username === "string" && r.username.trim()) ||
+          undefined,
+        avatar_url:
+          typeof r.avatar_url === "string" && r.avatar_url.trim()
+            ? r.avatar_url
+            : undefined,
+      })),
     };
   } catch (err) {
     logger.error({ err, creatorUserId }, "dbGetCreatorMembershipStats failed");
-    return { todayHearts: 0, totalHearts: 0, totalGiftCoins: 0, topGifters: [] };
+    return empty;
   }
 }
 
