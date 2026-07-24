@@ -156,9 +156,16 @@ export function LiveGiftFeedStack({ streamId }: Props) {
   return (
     <div className="fixed inset-0 pointer-events-none z-[999995] flex justify-center">
       <div className="w-full max-w-[480px] relative h-full">
+        {/*
+          Sit under battle/live MVP circles (not mid-video).
+          Matches LIVE_BATTLE_VIDEO_HEIGHT + top bar: safe-area + 90px + 44dvh - 3mm.
+        */}
         <div
           className="absolute left-2 flex flex-col gap-1.5"
-          style={{ top: 'calc(22dvh + 6mm)', maxWidth: '220px' }}
+          style={{
+            top: 'calc(env(safe-area-inset-top, 0px) + 90px + 44dvh - 3mm + 8mm)',
+            maxWidth: '220px',
+          }}
         >
           {stack.map((g) => {
             const style = BADGE[g.badge];
