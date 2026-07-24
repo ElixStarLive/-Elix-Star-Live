@@ -19,12 +19,8 @@ export type StoryUserGroup = {
 
 export async function fetchActiveStories(): Promise<StoryUserGroup[]> {
   const { data, error } = await request<{ stories?: StoryUserGroup[] }>('/api/stories');
-  const stories = Array.isArray(data?.stories) ? data.stories : [];
-  // #region agent log
-  fetch('http://127.0.0.1:7293/ingest/e7fb8ad3-ac4d-422a-955a-8c318a5cd9e2',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'fa77db'},body:JSON.stringify({sessionId:'fa77db',runId:'stories-api',hypothesisId:'H3',location:'storiesApi.ts:fetchActiveStories',message:'GET /api/stories result',data:{ok:!error,err:error?.message||null,groupCount:stories.length},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
   if (error) return [];
-  return stories;
+  return Array.isArray(data?.stories) ? data.stories : [];
 }
 
 export async function createStoryRecord(payload: {
