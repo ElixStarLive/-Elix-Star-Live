@@ -119,6 +119,133 @@ router.post("/", async (req, res) => {
       };
     }
 
+    // --- Sound reuse / rights (UGC original audio) ---
+    const allowSoundReuse = Boolean(body.allowSoundReuse);
+    const rightsConfirmed = Boolean(body.rightsConfirmed);
+    const rightsConfirmationVersion =
+      typeof body.rightsConfirmationVersion === "string" && body.rightsConfirmationVersion.trim()
+        ? String(body.rightsConfirmationVersion).trim()
+        : "1.0";
+    const reuseSoundId =
+      typeof body.reuseSoundId === "string" && body.reuseSoundId.trim()
+        ? String(body.reuseSoundId).trim()
+        : music && typeof music === "object" && !Array.isArray(music) && typeof (music as { id?: unknown }).id === "string"
+          ? String((music as { id: string }).id)
+          : "";
+
+    // Publishing with an attached reusable sound — recheck eligibility at publish time.
+    let attachedReusableSound = false;
+    if (reuseSoundId && reuseSoundId !== "original" && !String(reuseSoundId).startsWith("mixkit")) {
+      const { canReuseSound, getSoundById } = await import("../lib/soundReuse");
+      const existingSound = await getSoundById(reuseSoundId);
+      if (existingSound) {
+        const ok = await canReuseSound(existingSound, payload.sub);
+        if (!ok) {
+          return res.status(409).json({ error: "This sound is no longer available for reuse." });
+        }
+        const { recordReuseEvent } = await import("../lib/soundRights");
+        await recordReuseEvent({ soundId: reuseSoundId, userId: payload.sub, videoId: id });
+        let ownerUsername = "creator";
+        const dbOwner = getPool();
+        if (dbOwner && existingSound.original_uploader_id) {
+          const pr = await dbOwner.query(
+            `SELECT username FROM profiles WHERE user_id = $1 LIMIT 1`,
+            [existingSound.original_uploader_id],
+          );
+          ownerUsername = String(pr.rows[0]?.username || "creator");
+        }
+        const musicObj =
+          music && typeof music === "object" && !Array.isArray(music)
+            ? { ...(music as Record<string, unknown>) }
+            : {};
+        music = {
+          ...musicObj,
+          id: existingSound.id,
+          title: existingSound.title || musicObj.title || "Original sound",
+          artist: existingSound.artist || ownerUsername,
+          url: existingSound.audio_url || musicObj.url || "",
+          previewUrl: existingSound.audio_url || musicObj.previewUrl || musicObj.url || "",
+          provider: "ugc",
+          source: "original_sound",
+          originalUploaderId: existingSound.original_uploader_id,
+          sourceVideoId: existingSound.source_video_id,
+          displayLabel: `Original sound — @${ownerUsername}`,
+          attribution: `Original sound — @${ownerUsername}`,
+        };
+        attachedReusableSound = true;
+      }
+    }
+
+    if (allowSoundReuse && !rightsConfirmed) {
+      return res.status(400).json({
+        error: "A valid rights confirmation is required before audio reuse can be enabled.",
+      });
+    }
+
+    // Create original-sound asset for this upload (not when attaching someone else's reusable sound).
+    const musicId =
+      music && typeof music === "object" && !Array.isArray(music)
+        ? String((music as { id?: string }).id || "")
+        : "";
+    const isLibraryTrack =
+      musicId.startsWith("mixkit") ||
+      (music &&
+        typeof music === "object" &&
+        (music as { provider?: string }).provider === "mixkit");
+    if (!attachedReusableSound && !isLibraryTrack) {
+      try {
+        const { upsertOriginalSound, clientMeta } = await import("../lib/soundRights");
+        const soundId = `ugc_${id}`;
+        const meta = clientMeta(req);
+        const title =
+          (music && typeof music === "object" && (music as { title?: string }).title) ||
+          "Original sound";
+        const artist =
+          (music && typeof music === "object" && (music as { artist?: string }).artist) ||
+          profile.displayName ||
+          profile.username ||
+          "User";
+        await upsertOriginalSound({
+          soundId,
+          title: String(title),
+          artist: String(artist),
+          audioUrl: body.url,
+          durationMs: Math.round(Number(body.duration || 0) * 1000) || 0,
+          uploaderId: payload.sub,
+          sourceVideoId: id,
+          allowReuse: allowSoundReuse,
+          rightsConfirmed: allowSoundReuse ? rightsConfirmed : false,
+          rightsVersion: allowSoundReuse ? rightsConfirmationVersion : null,
+          ipHash: meta.ipHash,
+          userAgent: meta.userAgent,
+        });
+        const base =
+          music && typeof music === "object" && !Array.isArray(music)
+            ? { ...(music as Record<string, unknown>) }
+            : {};
+        music = {
+          ...base,
+          id: soundId,
+          title: String(title),
+          artist: String(artist),
+          provider: base.provider || "ugc",
+          source: "original_sound",
+          originalUploaderId: payload.sub,
+          sourceVideoId: id,
+          allowReuse: allowSoundReuse,
+          displayLabel: `Original sound — @${profile.username || "creator"}`,
+          attribution: `Original sound — @${profile.username || "creator"}`,
+        };
+      } catch (soundErr) {
+        if ((soundErr as Error).message === "RIGHTS_REQUIRED") {
+          return res.status(400).json({
+            error: "A valid rights confirmation is required before audio reuse can be enabled.",
+          });
+        }
+        logger.warn({ err: soundErr, videoId: id }, "original sound upsert failed");
+      }
+    }
+
     const privacy =
       typeof body.privacy === "string" && body.privacy.trim()
         ? String(body.privacy).trim()
@@ -149,12 +276,6 @@ router.post("/", async (req, res) => {
 
     addVideo(video);
     await saveVideoToDb(video);
-
-    const videoMusic = music as { id?: string; provider?: string } | null;
-    if (videoMusic?.provider === "epidemic_sound" && videoMusic.id) {
-      const { reportTracksExported } = await import("../services/epidemicSound");
-      void reportTracksExported(payload.sub, [String(videoMusic.id)], "OTHER");
-    }
 
     logger.info({ videoId: id }, "Video created");
 

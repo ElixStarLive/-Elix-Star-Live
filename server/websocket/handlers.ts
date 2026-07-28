@@ -900,6 +900,7 @@ export async function handleMessage(
           hostName: data.hostName || client.displayName,
           hostAvatar: data.hostAvatar || client.avatarUrl || "",
           streamKey: client.roomId,
+          targetUserId,
         };
         let cohostSent = sendToUserGlobal(targetUserId, "cohost_invite", invitePayload);
         if (cohostSent === 0 && rawTarget && rawTarget !== targetUserId) {
@@ -918,13 +919,26 @@ export async function handleMessage(
         )
           break;
         const hostUserId =
-          typeof data.hostUserId === "string" ? data.hostUserId : "";
+          typeof data.hostUserId === "string" ? data.hostUserId.trim() : "";
         if (!hostUserId) break;
+        // Prefer the host's stream key from the invite; never trust the
+        // acceptor's user id as the room (that was a known co-host break).
+        const acceptStreamKey =
+          typeof data.streamKey === "string" && data.streamKey.trim()
+            ? data.streamKey.trim()
+            : client.roomId;
+        const grantRoom =
+          acceptStreamKey && acceptStreamKey !== client.userId
+            ? acceptStreamKey
+            : hostUserId;
+        if (grantRoom) {
+          await grantCohostPublish(grantRoom, client.userId);
+        }
         sendToUserGlobal(hostUserId, "cohost_invite_accepted", {
           cohostUserId: client.userId,
           cohostName: data.cohostName || client.displayName,
           cohostAvatar: data.cohostAvatar || client.avatarUrl || "",
-          streamKey: data.streamKey || client.roomId,
+          streamKey: grantRoom,
         });
         break;
       }
@@ -1040,6 +1054,7 @@ export async function handleMessage(
             ? data.featuredUserId.trim()
             : null;
         broadcastToRoom(roomId, "cohost_layout_sync", {
+          roomId,
           coHosts,
           hostUserId,
           featuredUserId,

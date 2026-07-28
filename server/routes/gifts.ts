@@ -481,70 +481,24 @@ export async function handleGetGiftCatalog(_req: Request, res: Response) {
   }
 }
 
-/** GET /api/sounds — licensed tracks for upload picker (Epidemic Sound or Neon fallback) */
+/** GET /api/sounds — Mixkit free catalog for upload picker */
 export async function handleGetSounds(_req: Request, res: Response) {
-  const { isEpidemicSoundConfigured, buildEpidemicSoundTracksForClient } = await import("./music");
-
-  if (isEpidemicSoundConfigured()) {
-    try {
-      const tracks = await buildEpidemicSoundTracksForClient(60);
-      res.setHeader("Cache-Control", "public, s-maxage=300, max-age=60");
-      return res.status(200).json({
-        tracks,
-        configured: true,
-        source: "epidemic_sound",
-      });
-    } catch (err) {
-      logger.error({ err }, "handleGetSounds epidemic failed");
-      return res.status(200).json({
-        tracks: [],
-        configured: true,
-        source: "epidemic_sound",
-        error: "MUSIC_PROVIDER_ERROR",
-      });
-    }
-  }
-
-  const pool = getPool();
-  if (!pool) {
-    return res.status(200).json({ tracks: [], configured: false, source: null });
-  }
   try {
-    const r = await pool.query(
-      `SELECT id, title, artist, audio_url, cover_url, duration, use_count
-       FROM sounds
-       WHERE is_active = true
-       ORDER BY use_count DESC, created_at DESC
-       LIMIT 200`
-    );
-    const tracks = r.rows.map((row: {
-      id: string | number;
-      title: string;
-      artist: string;
-      audio_url: string;
-      duration: number | string | null;
-    }) => ({
-      id: String(row.id),
-      title: row.title,
-      artist: row.artist,
-      duration: typeof row.duration === "number"
-        ? `${Math.floor(row.duration / 60)}:${String(row.duration % 60).padStart(2, "0")}`
-        : String(row.duration || "0:30"),
-      url: row.audio_url,
-      license: "Licensed",
-      source: "Catalog",
-      provider: "local" as const,
-      clipStartSeconds: 0,
-      clipEndSeconds: 30,
-    }));
+    const { buildFreeSoundTracksForClient } = await import("./music");
+    const tracks = buildFreeSoundTracksForClient(80);
     res.setHeader("Cache-Control", "public, s-maxage=300, max-age=60");
-    return res.status(200).json({ tracks, configured: true, source: "database" });
+    return res.status(200).json({
+      tracks,
+      configured: true,
+      source: "mixkit_free",
+    });
   } catch (err) {
-    const code = (err as { code?: string })?.code;
-    if (code === "42P01") {
-      return res.status(200).json({ tracks: [], configured: false, source: null });
-    }
     logger.error({ err }, "handleGetSounds failed");
-    return res.status(500).json({ tracks: [], error: "Failed to load sounds" });
+    return res.status(200).json({
+      tracks: [],
+      configured: false,
+      source: null,
+      error: "MUSIC_PROVIDER_ERROR",
+    });
   }
 }

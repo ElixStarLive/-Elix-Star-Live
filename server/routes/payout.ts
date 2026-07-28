@@ -85,6 +85,7 @@ export async function handleCreatorWithdraw(req: Request, res: Response) {
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
     // Withdrawals require a confirmed email when mail is configured.
+    // Fail closed: never skip this check on DB/query errors.
     try {
       if (isEmailConfigured()) {
         const conf = await db.query(
@@ -99,7 +100,10 @@ export async function handleCreatorWithdraw(req: Request, res: Response) {
         }
       }
     } catch (err) {
-      logger.warn({ err, userId }, 'payout email-confirm check skipped');
+      logger.error({ err, userId }, 'payout email-confirm check failed — blocking withdrawal');
+      return res.status(503).json({
+        error: 'Unable to verify email confirmation. Please try again later.',
+      });
     }
 
       const { coins_amount, payout_method_id } = req.body;
