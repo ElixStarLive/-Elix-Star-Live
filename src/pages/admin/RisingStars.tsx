@@ -413,7 +413,7 @@ export default function AdminRisingStars() {
             />
             <input
               className={inputClass}
-              placeholder="Epidemic sound_track_id"
+              placeholder="Mixkit track id (e.g. mixkit-371)"
               value={challengeForm.sound_track_id}
               onChange={(e) =>
                 setChallengeForm({

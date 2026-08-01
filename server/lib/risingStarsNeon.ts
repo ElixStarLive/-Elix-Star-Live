@@ -122,7 +122,7 @@ function mapChallenge(r: Record<string, unknown>): RsChallenge {
     week_index: Number(r.week_index) || 1,
     title: String(r.title),
     description: r.description == null ? null : String(r.description),
-    sound_provider: String(r.sound_provider || "epidemic"),
+    sound_provider: String(r.sound_provider || "mixkit_free"),
     sound_track_id: String(r.sound_track_id),
     sound_meta:
       meta && typeof meta === "object" && !Array.isArray(meta)

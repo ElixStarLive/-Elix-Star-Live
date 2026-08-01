@@ -1,0 +1,39 @@
+---
+description: Ban patches/workarounds — fix only with proper owning-layer implementation
+alwaysApply: true
+---
+
+# No patches — proper implementation only
+
+Owner standing order: **do not patch around problems.**
+
+If something is wrong, fix it at the **owning layer** with a real, durable implementation that matches the product contract. Do not leave paper-over hacks in the NEW app (or anywhere else).
+
+## Forbidden (patches)
+
+- Client shims that hide wrong or missing server responses
+- Silent `catch` / ignore on auth, wallet, gifts, IAP, LiveKit, upload, or realtime paths
+- Fake success, stub success, or “treat any 2xx as OK” without checking the real response contract
+- Extra alias listeners / dual code paths “just in case” instead of aligning to the real event/API name
+- Local-only state that pretends a production payment, session, or live join succeeded
+- Feature-flag spaghetti or temporary branches left as the permanent fix
+- Restoring deleted owner files / reversing intentional deletes without being asked
+- “Quick” workarounds that lie to users or the backend
+
+## Required (proper fix)
+
+1. Identify the **owner** (auth store, `roomSocket`, `LiveKitSession`, `feedApi`, IAP verify path, etc.)
+2. Fix **there** so the contract is honest: types, lifecycle, cleanup, success/failure
+3. Align client to the **real** production API/WS/LiveKit contract (reference OLD behaviour/server, do not invent)
+4. Fail visibly with correct errors when the real path fails
+5. Prefer the smallest change that is still **complete and correct** — not the smallest hack
+
+## Audit vs fix
+
+- When asked to audit: report findings; **do not silently patch** while auditing
+- When asked to fix: implement properly at the owning layer, or stop and state the external blocker
+- Never call a patch “done”
+
+## Default
+
+**No patches. Proper implementation only.**

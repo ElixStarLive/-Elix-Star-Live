@@ -113,7 +113,7 @@ Flag defaults are defined in `src/lib/*` and `server/lib/engagementFlags.ts`. Wa
 | **Apple IAP** | iOS coins/membership | `@capgo/native-purchases` | `server/lib/appleIap.ts` |
 | **FCM** | push | `@capacitor/push-notifications` | `server/lib/push.ts` |
 | **SendGrid/email** | auth mail | — | `server/lib/email.ts` |
-| **Epidemic Sound** | music catalog | — | `server/services/epidemicSound.ts` |
+| **Mixkit free catalog** | music catalog | — | `server/services/freeSoundCatalog.ts` |
 | **Sentry** | crash reporting | `src/lib/crashReporting.ts` | `server/lib/sentryInit.ts` |
 | **Coolify / Hetzner** | deploy / host | — | env + Traefik proxy trust |
 

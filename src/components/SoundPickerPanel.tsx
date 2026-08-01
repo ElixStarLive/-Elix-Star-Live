@@ -278,7 +278,7 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
           <p className="px-3 py-6 text-center text-white/40 text-xs">
             {configured
               ? 'No tracks in this playlist. Try another playlist or search.'
-              : 'Licensed playlists unavailable. Check EPIDEMIC_SOUND_API_KEY on the server.'}
+              : 'Music catalog unavailable. Redeploy the server with the free Mixkit catalog.'}
           </p>
         ) : null}
         {visibleTracks.map((track) => (

@@ -9,23 +9,23 @@ export type SoundTrack = {
   url: string;
   license: string;
   source: string;
-  provider?: "epidemic_sound" | "custom" | "local";
+  provider?: "custom" | "local";
   clipStartSeconds: number;
   clipEndSeconds: number;
   coverUrl?: string | null;
   isPreviewOnly?: boolean;
 };
 
-/** Resolve relative preview proxy paths for `<audio>` on native (Capacitor). */
+/** Absolute URL for a relative `/api/...` path so `<audio>` works on native. */
 export function resolveSoundTrackPlaybackUrl(url: string): string {
   if (!url) return "";
   if (url.startsWith("http://") || url.startsWith("https://")) return url;
   return apiUrl(url);
 }
 
-const previewSignedUrlCache = new Map<string, { url: string; expiresAt: number }>();
+const previewUrlCache = new Map<string, { url: string; expiresAt: number }>();
 
-/** Extract Epidemic track id from our preview proxy path (relative or absolute). */
+/** Extract track id from `/api/music/tracks/:id/preview` (relative or absolute). */
 export function extractMusicPreviewTrackId(url: string): string | null {
   if (!url) return null;
   const m = String(url).match(/\/api\/music\/tracks\/([^/?#]+)\/preview/i);
@@ -34,18 +34,20 @@ export function extractMusicPreviewTrackId(url: string): string | null {
 
 /**
  * Resolve a URL that `<audio>` can actually play.
- * Our `/api/music/tracks/:id/preview` endpoint 302-redirects to a short-lived
- * Epidemic CDN URL — many WebViews (and some browsers) fail to play that via
- * redirect. Fetch `?format=json` and use the signed URL directly instead.
+ * Direct HTTPS (Mixkit catalog) plays as-is. Relative preview paths resolve via JSON.
  */
 export async function resolvePlayableSoundUrl(url: string): Promise<string> {
   const resolved = resolveSoundTrackPlaybackUrl(url);
   if (!resolved) return "";
 
+  if (/^https?:\/\//i.test(resolved) && !extractMusicPreviewTrackId(resolved)) {
+    return resolved;
+  }
+
   const trackId = extractMusicPreviewTrackId(resolved);
   if (!trackId) return resolved;
 
-  const cached = previewSignedUrlCache.get(trackId);
+  const cached = previewUrlCache.get(trackId);
   if (cached && cached.expiresAt > Date.now() + 15_000) {
     return cached.url;
   }
@@ -55,16 +57,21 @@ export async function resolvePlayableSoundUrl(url: string): Promise<string> {
   const previewUrl = typeof data?.previewUrl === "string" ? data.previewUrl.trim() : "";
   if (error || !previewUrl) return "";
 
-  let expiresAt = Date.now() + 4 * 60_000;
+  let expiresAt = Date.now() + 60 * 60_000;
   if (data?.expires) {
     const parsed = Date.parse(data.expires);
     if (Number.isFinite(parsed)) expiresAt = parsed;
   }
-  previewSignedUrlCache.set(trackId, { url: previewUrl, expiresAt });
+  previewUrlCache.set(trackId, { url: previewUrl, expiresAt });
   return previewUrl;
 }
 
-/** Load src, seek to clip start, then play (avoids currentTime-before-ready failures). */
+async function attachMediaSource(audio: HTMLAudioElement, src: string): Promise<void> {
+  if (audio.src !== src) audio.src = src;
+  audio.load();
+}
+
+/** Load src, seek to clip start, then play. */
 export async function playAudioClip(
   audio: HTMLAudioElement,
   src: string,
@@ -72,10 +79,7 @@ export async function playAudioClip(
 ): Promise<void> {
   if (!src) throw new Error("no_audio_src");
   audio.pause();
-  if (audio.src !== src) {
-    audio.src = src;
-  }
-  audio.load();
+  await attachMediaSource(audio, src);
 
   await new Promise<void>((resolve, reject) => {
     let settled = false;
@@ -98,11 +102,22 @@ export async function playAudioClip(
 
   const start = Math.max(0, clipStartSeconds || 0);
   try {
-    if (Number.isFinite(start)) audio.currentTime = start;
+    if (Number.isFinite(start) && start > 0) audio.currentTime = start;
   } catch {
     /* ignore seek errors */
   }
   await audio.play();
+}
+
+export function stopAudioClip(audio: HTMLAudioElement | null | undefined): void {
+  if (!audio) return;
+  try {
+    audio.pause();
+    audio.removeAttribute("src");
+    audio.load();
+  } catch {
+    /* ignore */
+  }
 }
 
 export type SoundCatalogResponse = {
@@ -119,7 +134,7 @@ function mapSoundTracks(tracks: SoundTrack[]): SoundTrack[] {
   }));
 }
 
-/** Licensed sound tracks from server (Epidemic Sound when configured, else Neon catalog). */
+/** Free Mixkit catalog from `/api/sounds`. */
 export async function fetchSoundTracksFromDatabase(): Promise<SoundTrack[]> {
   const catalog = await fetchSoundCatalog();
   return catalog.tracks;
@@ -224,11 +239,12 @@ export async function fetchMusicPlaylists(): Promise<{
   if (error) {
     return { playlists: [], configured: false, error: error.message };
   }
+  const playlists = (data?.playlists ?? []).map((p) => ({
+    ...p,
+    tracks: mapSoundTracks(p.tracks ?? []),
+  }));
   return {
-    playlists: (data?.playlists ?? []).map((p) => ({
-      ...p,
-      tracks: mapSoundTracks(p.tracks ?? []),
-    })),
+    playlists,
     configured: Boolean(data?.configured),
     clipMaxSeconds: data?.clipMaxSeconds,
     error: data?.error ?? null,
@@ -245,7 +261,7 @@ export async function searchLicensedTracks(term: string): Promise<SoundTrack[]> 
   return mapSoundTracks(data?.tracks ?? []);
 }
 
-const SAVED_SOUNDS_KEY = 'elix_saved_sounds_v1';
+const SAVED_SOUNDS_KEY = "elix_saved_sounds_v1";
 
 export function listSavedSounds(): SoundTrack[] {
   try {

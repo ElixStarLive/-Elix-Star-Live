@@ -1,0 +1,48 @@
+---
+description: Standing order for the Elix Star Live clean rebuild — run to completion, Opus only
+alwaysApply: true
+---
+
+# Rebuild standing order (owner, 2026-07-24)
+
+## Model lock
+
+Handle this rebuild with the **Opus** agent only.
+
+- Do **not** switch models mid-task
+- Do **not** delegate rebuild work to a subagent on a different model
+- If a subagent is genuinely needed, it must inherit the current model
+
+## Run to completion
+
+The rebuild is authorised in full. **Do not stop to ask whether to continue.**
+
+- Do not pause after a screen, a feature group, or a commit
+- Do not ask for approval that was already given
+- Keep working through `docs/PARITY.md` until every required item is `PASS`
+
+Only stop a specific item for a **genuine external blocker**: a missing
+credential, an unavailable service, or required Apple/Google account
+configuration. Document the blocker in `docs/PARITY.md` and carry on with
+everything that is not blocked.
+
+## Where work goes
+
+- **New app:** `C:\Users\Absm Construction\Desktop\Elix-Star-Live-New` — all
+  implementation, all commits
+- **Old app:** `C:\Users\Absm Construction\Desktop\Elix Star Live` — frozen
+  reference. Enforce **0 modified files**; read it, never edit it
+
+## Definition of done
+
+Every required screen implemented, no `PendingScreen` left, all controls
+connected, plus auth, feed, uploads, chat, calls, notifications, live, battles,
+gifts, coins, IAP, Stripe, LiveKit, Android and iOS. Tests pass, typecheck
+passes, production build passes.
+
+Until then the status is **NEW CLEAN REBUILD — IN PROGRESS**.
+
+## Keep the baseline
+
+After each feature group: run the relevant tests, the full suite, the
+typecheck, and the production build. Test count grows as functionality grows.

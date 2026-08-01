@@ -36,7 +36,7 @@ import { sessionGuard } from "./middleware/sessionGuard";
 import { isLiveKitConfigured } from "./services/livekit";
 import { isBunnyConfigured } from "./services/bunny";
 import { isPushConfigured } from "./lib/push";
-import { isEpidemicSoundConfigured } from "./services/epidemicSound";
+import { isFreeSoundCatalogConfigured } from "./services/freeSoundCatalog";
 import {
   isValkeyConfigured,
   valkeyHealthCheck,
@@ -542,7 +542,7 @@ initFeedPubSub();
 
 // ── Start server ─────────────────────────────────────────────────
 logger.info(
-  { port: PORT, nodeEnv: process.env.NODE_ENV, epidemicSound: isEpidemicSoundConfigured() },
+  { port: PORT, nodeEnv: process.env.NODE_ENV, musicCatalog: isFreeSoundCatalogConfigured() ? "mixkit_free" : null },
   "Starting server...",
 );
 

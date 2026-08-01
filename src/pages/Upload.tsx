@@ -382,7 +382,7 @@ export default function Upload() {
     }
   };
 
-  // Audio Preview Logic for Recorded Video — resolve signed Epidemic URL (no 302).
+  // Audio preview for recorded video — resolve catalog MP3 URL.
   useEffect(() => {
       let cancelled = false;
       const shouldPlayTrack =
@@ -530,19 +530,15 @@ export default function Upload() {
         let musicMeta: Record<string, unknown> | undefined;
         if (selectedTrack && selectedAudioId.startsWith('track_')) {
             const track = selectedTrack;
-            // Persist stable proxy path (not a short-lived signed CDN URL).
-            const previewPath =
-              track.provider === 'epidemic_sound' || /\/api\/music\/tracks\//.test(track.url || '')
-                ? `/api/music/tracks/${encodeURIComponent(track.id)}/preview`
-                : track.url;
+            const musicUrl = track.url || '';
             musicMeta = {
                 id: track.id,
                 title: track.title,
                 artist: track.artist,
                 duration: formatClip(track.clipStartSeconds, track.clipEndSeconds),
-                url: previewPath,
-                previewUrl: previewPath,
-                provider: track.provider,
+                url: musicUrl,
+                previewUrl: musicUrl,
+                provider: track.provider || 'local',
                 clipStartSeconds: track.clipStartSeconds,
                 clipEndSeconds: track.clipEndSeconds,
                 originalVolume: Math.max(0, Math.min(1, originalVolume)),
@@ -1410,60 +1406,6 @@ export default function Upload() {
           onPointerDown={(e) => e.stopPropagation()}
         >
           <div className="w-full max-w-[480px] mx-auto flex flex-col flex-1 min-h-0 h-full">
-            <div className="px-4 pb-3 grid grid-cols-2 gap-2.5 flex-shrink-0">
-              <button
-                type="button"
-                className={`min-h-[64px] px-3 py-3 rounded-2xl border text-left transition-colors active:scale-[0.98] ${
-                  selectedAudioId === 'original' && !postWithoutAudio
-                    ? 'bg-[#D4AF37] border-[#C9A227] text-black shadow-[0_0_16px_rgba(212,175,55,0.35)]'
-                    : 'bg-[#1a1a1a] border-[#C9A227]/40 text-white'
-                }`}
-                onClick={() => {
-                  handleSelectMusic(ORIGINAL_SOUND_TRACK);
-                }}
-              >
-                <div className="text-sm font-bold leading-tight">Original Sound</div>
-                <div
-                  className={`text-[11px] mt-1 leading-snug ${
-                    selectedAudioId === 'original' && !postWithoutAudio ? 'text-black/65' : 'text-white/55'
-                  }`}
-                >
-                  Use mic audio from your clip
-                </div>
-              </button>
-              <button
-                type="button"
-                className={`min-h-[64px] px-3 py-3 rounded-2xl border text-left transition-colors active:scale-[0.98] ${
-                  postWithoutAudio || selectedAudioId === 'none'
-                    ? 'bg-[#D4AF37] border-[#C9A227] text-black shadow-[0_0_16px_rgba(212,175,55,0.35)]'
-                    : 'bg-[#1a1a1a] border-[#C9A227]/40 text-white'
-                }`}
-                onClick={() => {
-                  if (previewAudioRef.current) {
-                    try {
-                      previewAudioRef.current.pause();
-                    } catch {
-                      /* ignore */
-                    }
-                  }
-                  setSelectedAudioId('none');
-                  setSelectedTrack(null);
-                  setPostWithoutAudio(true);
-                  trackEvent('upload_select_audio', { type: 'none' });
-                  setShowMusicModal(false);
-                  showToast('No audio');
-                }}
-              >
-                <div className="text-sm font-bold leading-tight">No audio</div>
-                <div
-                  className={`text-[11px] mt-1 leading-snug ${
-                    postWithoutAudio || selectedAudioId === 'none' ? 'text-black/65' : 'text-white/55'
-                  }`}
-                >
-                  Publish without sound
-                </div>
-              </button>
-            </div>
             <SoundPickerPanel
               layout="embedded"
               onClose={() => setShowMusicModal(false)}
