@@ -59,17 +59,21 @@ workflows:
         script: |
           npm run build:ios
           # Capacitor on Windows can write backslash SPM paths; keep Unix paths for Mac builders.
+          # Old app uses CocoaPods; CapApp-SPM may not exist — skip if missing.
           python3 - <<'PY'
           from pathlib import Path
           p = Path("ios/App/CapApp-SPM/Package.swift")
-          text = p.read_text(encoding="utf-8")
-          fixed = text.replace("\\\\", "/").replace("\\", "/")
-          if fixed != text:
-              p.write_text(fixed, encoding="utf-8")
-              print("Normalized Package.swift path separators to /")
+          if not p.is_file():
+              print("No CapApp-SPM/Package.swift (CocoaPods project) — skip path normalize")
           else:
-              print("Package.swift paths already use /")
-          print(p.read_text(encoding="utf-8"))
+              text = p.read_text(encoding="utf-8")
+              fixed = text.replace("\\\\", "/").replace("\\", "/")
+              if fixed != text:
+                  p.write_text(fixed, encoding="utf-8")
+                  print("Normalized Package.swift path separators to /")
+              else:
+                  print("Package.swift paths already use /")
+              print(p.read_text(encoding="utf-8"))
           PY
       - name: Set up keychain + code signing
         script: |
@@ -137,13 +141,16 @@ workflows:
           python3 - <<'PY'
           from pathlib import Path
           p = Path("ios/App/CapApp-SPM/Package.swift")
-          text = p.read_text(encoding="utf-8")
-          fixed = text.replace("\\\\", "/").replace("\\", "/")
-          if fixed != text:
-              p.write_text(fixed, encoding="utf-8")
-              print("Normalized Package.swift path separators to /")
+          if not p.is_file():
+              print("No CapApp-SPM/Package.swift (CocoaPods project) — skip path normalize")
           else:
-              print("Package.swift paths already use /")
+              text = p.read_text(encoding="utf-8")
+              fixed = text.replace("\\\\", "/").replace("\\", "/")
+              if fixed != text:
+                  p.write_text(fixed, encoding="utf-8")
+                  print("Normalized Package.swift path separators to /")
+              else:
+                  print("Package.swift paths already use /")
           PY
       - name: Set up keychain + code signing
         script: |
