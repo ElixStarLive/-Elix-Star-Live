@@ -1,11 +1,16 @@
-# Codemagic — Capacitor iOS (Vite store build)
+# Codemagic — Elix Star Live (old app)
 # Repo: https://github.com/ElixStarLive/-Elix-Star-Live
 #
-# Signing uses uploaded identities in Codemagic Settings → Code signing identities:
-#   - iOS certificate: ElixStarLive-Distribution.p12
-#   - iOS profile: App Store .mobileprovision for com.elixstarlive.app
+# Native iOS is Capacitor + CocoaPods (ios/App/App.xcworkspace).
+# Not SPM / CapApp-SPM — do not copy New-app SPM steps here.
 #
-# No App Store Connect "integration name" required for the signed IPA build.
+# Signing (account Code signing identities — reuse existing, do not recreate):
+#   - ElixStarLive-Distribution.p12
+#   - App Store .mobileprovision for com.elixstarlive.app
+# Team: 74Y7WAZVUV
+#
+# iOS deployment target is 15.0 because @capgo/native-purchases requires it
+# (CapgoNativePurchases.podspec: s.ios.deployment_target = '15.0').
 
 workflows:
   ios-unsigned:
@@ -16,7 +21,7 @@ workflows:
       node: 22
       xcode: latest
       vars:
-        XCODE_PROJECT: ios/App/App.xcodeproj
+        XCODE_WORKSPACE: ios/App/App.xcworkspace
         XCODE_SCHEME: App
     scripts:
       - name: Install npm dependencies
@@ -28,7 +33,7 @@ workflows:
       - name: Xcode build (no signing)
         script: |
           xcodebuild \
-            -project "$XCODE_PROJECT" \
+            -workspace "$XCODE_WORKSPACE" \
             -scheme "$XCODE_SCHEME" \
             -sdk iphonesimulator \
             -configuration Debug \
@@ -48,7 +53,7 @@ workflows:
       node: 22
       xcode: latest
       vars:
-        XCODE_PROJECT: ios/App/App.xcodeproj
+        XCODE_WORKSPACE: ios/App/App.xcworkspace
         XCODE_SCHEME: App
         BUNDLE_ID: com.elixstarlive.app
     scripts:
@@ -58,26 +63,8 @@ workflows:
       - name: Build web + sync Capacitor iOS
         script: |
           npm run build:ios
-          # Capacitor on Windows can write backslash SPM paths; keep Unix paths for Mac builders.
-          # Old app uses CocoaPods; CapApp-SPM may not exist — skip if missing.
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path("ios/App/CapApp-SPM/Package.swift")
-          if not p.is_file():
-              print("No CapApp-SPM/Package.swift (CocoaPods project) — skip path normalize")
-          else:
-              text = p.read_text(encoding="utf-8")
-              fixed = text.replace("\\\\", "/").replace("\\", "/")
-              if fixed != text:
-                  p.write_text(fixed, encoding="utf-8")
-                  print("Normalized Package.swift path separators to /")
-              else:
-                  print("Package.swift paths already use /")
-              print(p.read_text(encoding="utf-8"))
-          PY
       - name: Set up keychain + code signing
         script: |
-          # Fresh keychain, then import the .p12 Codemagic prepared from Code signing identities.
           keychain initialize
           keychain add-certificates
           echo "==== Codesigning identities in keychain ===="
@@ -90,9 +77,8 @@ workflows:
       - name: Build signed IPA
         script: |
           set +e
-          # Force Apple Distribution identity (Xcode error text still says "iOS Distribution").
           xcode-project build-ipa \
-            --project "$XCODE_PROJECT" \
+            --workspace "$XCODE_WORKSPACE" \
             --scheme "$XCODE_SCHEME" \
             --export-options-plist /Users/builder/export_options.plist \
             --archive-flags="-destination 'generic/platform=iOS' CODE_SIGN_IDENTITY='Apple Distribution' CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=74Y7WAZVUV"
@@ -103,7 +89,7 @@ workflows:
             for f in /tmp/xcodebuild_logs/*.log; do
               [ -f "$f" ] || continue
               echo "---- $f ----"
-              grep -E "error:|ARCHIVE FAILED|Provisioning profile|Code Sign|conflicting provisioning|No profiles|Swift Package|could not find|fatal error" "$f" | tail -n 100 || true
+              grep -E "error:|ARCHIVE FAILED|Provisioning profile|Code signature|No profiles|fatal error|CocoaPods" "$f" | tail -n 100 || true
               echo "---- tail $f ----"
               tail -n 60 "$f" || true
             done
@@ -128,7 +114,7 @@ workflows:
       node: 22
       xcode: latest
       vars:
-        XCODE_PROJECT: ios/App/App.xcodeproj
+        XCODE_WORKSPACE: ios/App/App.xcworkspace
         XCODE_SCHEME: App
         BUNDLE_ID: com.elixstarlive.app
     scripts:
@@ -138,20 +124,6 @@ workflows:
       - name: Build web + sync Capacitor iOS
         script: |
           npm run build:ios
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path("ios/App/CapApp-SPM/Package.swift")
-          if not p.is_file():
-              print("No CapApp-SPM/Package.swift (CocoaPods project) — skip path normalize")
-          else:
-              text = p.read_text(encoding="utf-8")
-              fixed = text.replace("\\\\", "/").replace("\\", "/")
-              if fixed != text:
-                  p.write_text(fixed, encoding="utf-8")
-                  print("Normalized Package.swift path separators to /")
-              else:
-                  print("Package.swift paths already use /")
-          PY
       - name: Set up keychain + code signing
         script: |
           keychain initialize
@@ -167,7 +139,7 @@ workflows:
         script: |
           set +e
           xcode-project build-ipa \
-            --project "$XCODE_PROJECT" \
+            --workspace "$XCODE_WORKSPACE" \
             --scheme "$XCODE_SCHEME" \
             --export-options-plist /Users/builder/export_options.plist \
             --archive-flags="-destination 'generic/platform=iOS' CODE_SIGN_IDENTITY='Apple Distribution' CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=74Y7WAZVUV"
@@ -178,7 +150,7 @@ workflows:
             for f in /tmp/xcodebuild_logs/*.log; do
               [ -f "$f" ] || continue
               echo "---- $f ----"
-              grep -E "error:|ARCHIVE FAILED|Provisioning profile|Code Sign|conflicting provisioning|No profiles|Swift Package|could not find|fatal error" "$f" | tail -n 100 || true
+              grep -E "error:|ARCHIVE FAILED|Provisioning profile|Code signature|No profiles|fatal error|CocoaPods" "$f" | tail -n 100 || true
               echo "---- tail $f ----"
               tail -n 60 "$f" || true
             done
@@ -194,90 +166,40 @@ workflows:
             exit 1
           fi
           echo "IPA: $IPA_PATH"
-          echo "KEY_ID length: ${#APP_STORE_CONNECT_KEY_ID}"
-          echo "ISSUER_ID length: ${#APP_STORE_CONNECT_ISSUER_ID}"
-          echo "PRIVATE_KEY length: ${#APP_STORE_CONNECT_PRIVATE_KEY}"
+
+          if [ -z "${APP_STORE_CONNECT_KEY_ID:-}" ] || [ -z "${APP_STORE_CONNECT_ISSUER_ID:-}" ] || [ -z "${APP_STORE_CONNECT_PRIVATE_KEY:-}" ]; then
+            echo "ERROR: Attach Codemagic group app_store_credentials (existing keys — do not create new Apple certs)"
+            exit 1
+          fi
 
           python3 - <<'PY'
           import os, re, pathlib, base64, sys
-          key_id = os.environ.get("APP_STORE_CONNECT_KEY_ID", "").strip()
-          issuer = os.environ.get("APP_STORE_CONNECT_ISSUER_ID", "").strip()
-          raw = os.environ.get("APP_STORE_CONNECT_PRIVATE_KEY", "")
-          if not key_id or not issuer or not raw.strip():
-              print("ERROR: missing APP_STORE_CONNECT_* env vars")
-              sys.exit(1)
-
-          # Accept either PEM text or base64-encoded .p8 contents
+          key_id = os.environ["APP_STORE_CONNECT_KEY_ID"].strip()
+          issuer = os.environ["APP_STORE_CONNECT_ISSUER_ID"].strip()
+          raw = os.environ["APP_STORE_CONNECT_PRIVATE_KEY"]
           text = raw.strip()
           if "BEGIN PRIVATE KEY" not in text:
-              try:
-                  text = base64.b64decode(text).decode("utf-8")
-              except Exception as e:
-                  print("ERROR: private key is not PEM and not valid base64:", e)
-                  sys.exit(1)
-
+              text = base64.b64decode(text).decode("utf-8")
           body = text.replace("-----BEGIN PRIVATE KEY-----", "").replace("-----END PRIVATE KEY-----", "")
           body = re.sub(r"\s+", "", body)
           if len(body) < 80:
-              print("ERROR: private key body too short; paste was likely truncated")
+              print("ERROR: APP_STORE_CONNECT_PRIVATE_KEY truncated or invalid")
               sys.exit(1)
           lines = [body[i:i+64] for i in range(0, len(body), 64)]
           pem = "-----BEGIN PRIVATE KEY-----\n" + "\n".join(lines) + "\n-----END PRIVATE KEY-----\n"
-
-          for folder in (
-              pathlib.Path.home() / ".appstoreconnect" / "private_keys",
-              pathlib.Path.home() / ".private_keys",
-              pathlib.Path("private_keys"),
-          ):
-              folder.mkdir(parents=True, exist_ok=True)
-              path = folder / f"AuthKey_{key_id}.p8"
-              path.write_text(pem, encoding="utf-8")
-              print(f"Wrote {path} ({path.stat().st_size} bytes)")
-          print("KEY_ID=", key_id)
-          print("ISSUER_ID=", issuer)
+          folder = pathlib.Path.home() / ".appstoreconnect" / "private_keys"
+          folder.mkdir(parents=True, exist_ok=True)
+          path = folder / f"AuthKey_{key_id}.p8"
+          path.write_text(pem, encoding="utf-8")
+          print(f"Wrote {path}")
           PY
 
-          set +e
-          echo "==== Attempt 1: altool upload ===="
           xcrun altool --upload-app \
             --type ios \
             --file "$IPA_PATH" \
             --apiKey "$APP_STORE_CONNECT_KEY_ID" \
             --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID" \
             --verbose
-          status=$?
-          if [ $status -eq 0 ]; then
-            echo "Upload succeeded"
-            exit 0
-          fi
-
-          echo "==== Attempt 2: altool with --use-old-altool ===="
-          xcrun altool --upload-app \
-            --type ios \
-            --file "$IPA_PATH" \
-            --apiKey "$APP_STORE_CONNECT_KEY_ID" \
-            --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID" \
-            --use-old-altool \
-            --verbose
-          status=$?
-          if [ $status -eq 0 ]; then
-            echo "Upload succeeded with legacy altool"
-            exit 0
-          fi
-
-          echo "==== Attempt 3: Codemagic app-store-connect publish ===="
-          KEY_FILE="$HOME/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8"
-          app-store-connect publish \
-            --key-id "$APP_STORE_CONNECT_KEY_ID" \
-            --issuer-id "$APP_STORE_CONNECT_ISSUER_ID" \
-            --private-key "@file:$KEY_FILE" \
-            --path "$IPA_PATH"
-          status=$?
-          if [ $status -ne 0 ]; then
-            echo "ERROR: All App Store Connect upload methods failed"
-            exit $status
-          fi
-          echo "Upload succeeded via app-store-connect CLI"
     artifacts:
       - build/ios/ipa/*.ipa
       - ios/App/build/ios/ipa/*.ipa
