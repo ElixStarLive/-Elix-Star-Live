@@ -344,7 +344,7 @@ export default function EnhancedVideoPlayer({
     };
   }, [onProgress, onVideoEnd]);
 
-  // Loop music within the selected clip window.
+  // Loop licensed music within Epidemic highlight clip (TikTok-style segment only).
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;

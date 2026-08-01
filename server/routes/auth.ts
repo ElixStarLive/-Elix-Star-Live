@@ -864,22 +864,6 @@ export async function handleLogout(req: Request, res: Response) {
   return res.status(200).json({ ok: true });
 }
 
-async function dbGraceExpireSession(token: string, graceSec: number): Promise<void> {
-  const pool = getPool();
-  if (!pool) return;
-  await ensureAuthSessionsTable();
-  const tokenHash = hashSessionToken(token);
-  // Keep the previous bearer valid briefly so concurrent /me (boot + foreground)
-  // and in-flight API calls are not revoked mid-flight when the client rotates.
-  await pool.query(
-    `UPDATE elix_auth_sessions
-        SET expires_at = LEAST(expires_at, NOW() + ($2::text || ' seconds')::interval)
-      WHERE token_hash = $1`,
-    [tokenHash, String(Math.max(1, graceSec))],
-  );
-  await invalidateSessionCacheByToken(token);
-}
-
 export async function handleMe(req: Request, res: Response) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
   try {
@@ -891,20 +875,9 @@ export async function handleMe(req: Request, res: Response) {
     if (!getPool()) return res.status(503).json({ error: 'Database not configured' });
     const user = await dbFindUserById(payload.sub);
     if (!user) return res.status(401).json({ error: 'User not found.' });
-    // Sliding session: issue a fresh 7-day access token on every successful /me
-    // so kill→reopen + foreground hydrate keeps the user signed in without a
-    // separate refresh-token product (client already persists session.access_token).
-    // Previous token is grace-expired (not hard-deleted) to avoid race logout when
-    // two hydrates overlap or an in-flight request still carries the old bearer.
-    const renewed = signToken({ sub: user.id, email: user.email });
-    await dbUpsertSession(user.id, renewed);
-    if (renewed !== token) {
-      await dbGraceExpireSession(token, 180);
-    }
-    setAuthCookie(res, renewed);
     const profile_meta = await loadProfileMeta(payload.sub);
     return res.status(200).json({
-      ...authLoginRegisterBody(user, renewed),
+      ...authLoginRegisterBody(user, token),
       profile_meta,
     });
   } catch (err) {

@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS rs_challenges (
   week_index INT NOT NULL DEFAULT 1,
   title TEXT NOT NULL,
   description TEXT,
-  sound_provider TEXT NOT NULL DEFAULT 'mixkit_free',
+  sound_provider TEXT NOT NULL DEFAULT 'epidemic',
   sound_track_id TEXT NOT NULL,
   sound_meta JSONB NOT NULL DEFAULT '{}'::jsonb,
   opens_at TIMESTAMPTZ NOT NULL,

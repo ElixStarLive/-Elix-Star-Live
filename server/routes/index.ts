@@ -19,9 +19,6 @@ import adminRisingStarsRouter from "./adminRisingStars.router";
 import progressionRouter from "./progression.router";
 import adminProgressionRouter from "./adminProgression.router";
 import engagementRouter from "./engagement.router";
-import soundReuseRouter from "./soundReuse.router";
-import copyrightRouter from "./copyright.router";
-import adminCopyrightRouter from "./adminCopyright.router";
 import { handleGetTestCoinBalance, handleMintTestCoins, handleSpendTestCoinsForScore } from "./testCoins";
 
 export function mountRoutes(app: Express): void {
@@ -29,9 +26,6 @@ export function mountRoutes(app: Express): void {
   app.use("/api/live", liveRouter);
   app.use("/api/gifts", giftsRouter);
   app.use("/api/sounds", soundsRouter);
-  app.use("/api/sounds", soundReuseRouter);
-  app.use("/api/copyright", copyrightRouter);
-  app.use("/api/admin/copyright", adminCopyrightRouter);
   app.use("/api/music", musicRouter);
   app.use("/api/feed", feedRouter);
   app.use("/api/chat", chatRouter);
