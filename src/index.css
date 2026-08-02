@@ -17,37 +17,37 @@
 .new-followers-panel-scroll {
   -ms-overflow-style: auto;
   scrollbar-width: thin;
-  scrollbar-color: rgba(201, 162, 39, 0.45) rgba(201, 162, 39, 0.08);
+  scrollbar-color: rgba(212, 175, 55, 0.45) rgba(212, 175, 55, 0.08);
 }
 .new-followers-panel-scroll::-webkit-scrollbar {
   display: block;
   width: 6px;
 }
 .new-followers-panel-scroll::-webkit-scrollbar-track {
-  background: rgba(201, 162, 39, 0.08);
+  background: rgba(212, 175, 55, 0.08);
   border-radius: 3px;
 }
 .new-followers-panel-scroll::-webkit-scrollbar-thumb {
-  background: rgba(201, 162, 39, 0.45);
+  background: rgba(212, 175, 55, 0.45);
   border-radius: 3px;
 }
 .new-followers-panel-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(201, 162, 39, 0.65);
+  background: rgba(212, 175, 55, 0.65);
 }
 
 @layer base {
   :root {
     --color-primary: #D4AF37;
-    --color-secondary: #C9A227;
-    --color-gold: #C9A227;
+    --color-secondary: #2F6BFF;
+    --color-gold: #D4AF37;
     --color-gold-bright: #D4AF37;
-    --color-gold-light: #E8D5A3;
+    --color-gold-light: #F5D76E;
     --color-gold-dark: #8B6914;
-    --color-rose: #B8A88A;
-    --color-background: #000000;
-    --color-surface: #0a0a0a;
+    --color-rose: #F5D76E;
+    --color-background: #09090B;
+    --color-surface: #09090B;
     --color-text: #FFFFFF;
-    --color-text-muted: #A89B7A;
+    --color-text-muted: #CDBA84;
     --radius-sm: 10px;
     --radius-md: 12px;
     --radius-lg: 16px;
@@ -301,7 +301,7 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    background: #111111;
+    background: var(--color-surface);
   }
 
   /* Tab pages: pin content between screen top and top of home/bottom bar */

@@ -21,9 +21,9 @@ export default {
         primary: "var(--color-primary)",
         secondary: "var(--color-secondary)",
         gold: {
-          DEFAULT: "#C9A227",
-          bright: "#D4AF37",
-          light: "#E8D5A3",
+          DEFAULT: "#D4AF37",
+          bright: "#F5D76E",
+          light: "#F5D76E",
           dark: "#8B6914",
         },
         rose: "var(--color-rose)",
