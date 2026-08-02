@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { Mail, ArrowLeft, CheckCircle } from 'lucide-react';
-import { request } from '../lib/apiClient';
+import { authForgotPassword } from '../features/auth/authSession';
 import { isPasswordResetEnabled } from '../lib/authFeatures';
 
 export default function ForgotPassword() {
@@ -21,15 +21,12 @@ export default function ForgotPassword() {
     setIsSubmitting(true);
 
     try {
-      const { error: reqError } = await request('/api/auth/forgot-password', {
-        method: 'POST',
-        body: JSON.stringify({ email: email.trim() }),
-      });
+      const result = await authForgotPassword(email);
 
-      if (!reqError) {
-        setSuccess(true);
+      if (result.ok === false) {
+        setError(result.error);
       } else {
-        setError(reqError.message || 'Unable to process request. Please try again.');
+        setSuccess(true);
       }
     } catch {
       setError('Network error. Please check your connection and try again.');

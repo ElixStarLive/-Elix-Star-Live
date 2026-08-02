@@ -37,17 +37,29 @@ export function formatGiftDisplayName(name: string): string {
 }
 
 // Fetch gifts from database - NO HARDCODED DATA
+async function warnCatalogLoadFailed(reason: string) {
+  try {
+    const { showToast } = await import('./toast');
+    showToast(reason || 'Could not load gifts catalog');
+  } catch {
+    /* toast is best-effort */
+  }
+}
+
 export async function fetchGiftsFromDatabase(): Promise<GiftUiItem[]> {
   try {
     const { data, error } = await api.gifts.getCatalog();
 
     if (error) {
+      await warnCatalogLoadFailed(error.message || 'Could not load gifts catalog');
       return [];
     }
 
     const giftsData = Array.isArray(data) ? data : (data?.catalog ?? data?.gifts ?? []);
     return buildGiftUiItemsFromCatalog(giftsData);
-  } catch {
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : 'Could not load gifts catalog';
+    await warnCatalogLoadFailed(msg);
     return [];
   }
 }
@@ -57,6 +69,7 @@ export async function fetchGiftPriceMap(): Promise<Map<string, number>> {
     const { data, error } = await api.gifts.getCatalog();
 
     if (error) {
+      await warnCatalogLoadFailed(error.message || 'Could not load gift prices');
       return new Map();
     }
 
@@ -68,7 +81,9 @@ export async function fetchGiftPriceMap(): Promise<Map<string, number>> {
       }
     }
     return map;
-  } catch {
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : 'Could not load gift prices';
+    await warnCatalogLoadFailed(msg);
     return new Map();
   }
 }

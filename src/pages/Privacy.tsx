@@ -1,12 +1,15 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SettingsOptionSheet from '../components/SettingsOptionSheet';
 
 export default function Privacy() {
   const navigate = useNavigate();
 
+  const goBack = useCallback(() => navigate(-1), [navigate]);
+  const goSettings = useCallback(() => navigate('/settings'), [navigate]);
+
   return (
-    <SettingsOptionSheet onClose={() => navigate(-1)}>
+    <SettingsOptionSheet onClose={goBack}>
       <div className="w-full h-full overflow-hidden bg-[#111111] text-white flex flex-col">
         <header className="flex items-center justify-center mb-4 px-4 pt-2">
           <h1 className="font-bold text-lg">Privacy Policy</h1>
@@ -183,7 +186,7 @@ export default function Privacy() {
           <div className="pt-4 border-t border-white/10">
             <button
               type="button"
-              onClick={() => navigate('/settings')}
+              onClick={goSettings}
               className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-sm font-medium transition"
             >
               Go to Settings

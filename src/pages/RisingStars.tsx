@@ -1,10 +1,17 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Trophy, Star, Users, MapPin, Music, ChevronRight } from "lucide-react";
 import { RoyceBackIcon } from "../components/royce";
-import { request } from "../lib/apiClient";
 import { showToast } from "../lib/toast";
 import { AvatarRing } from "../components/AvatarRing";
+import {
+  apiRisingStarsCategories,
+  apiRisingStarsChallenges,
+  apiRisingStarsCurrentSeason,
+  apiRisingStarsRegions,
+  apiRisingStarsStandings,
+  apiRisingStarsTeams,
+} from "../features/risingStars/risingStarsApi";
 
 interface Season {
   id: string;
@@ -67,6 +74,16 @@ export default function RisingStars() {
   const [tab, setTab] = useState<"challenges" | "standings" | "teams">("challenges");
   const [loading, setLoading] = useState(true);
 
+  const goBack = useCallback(() => navigate(-1), [navigate]);
+  const openChallenge = useCallback(
+    (challengeId: string) => navigate(`/rising-stars/challenge/${challengeId}`),
+    [navigate],
+  );
+  const openCreatorProfile = useCallback(
+    (creatorUserId: string) => navigate(`/profile/${creatorUserId}`),
+    [navigate],
+  );
+
   useEffect(() => {
     void loadHub();
   }, []);
@@ -80,9 +97,9 @@ export default function RisingStars() {
   const loadHub = async () => {
     setLoading(true);
     try {
-      const { data, error } = await request("/api/rising-stars/seasons/current");
-      if (error) throw new Error(error.message);
-      const s = data?.season as Season | null;
+      const { season: seasonBody, error } = await apiRisingStarsCurrentSeason();
+      if (error) throw new Error(error);
+      const s = seasonBody as unknown as Season | null;
       setSeason(s);
       if (!s?.id) {
         setCategories([]);
@@ -93,15 +110,15 @@ export default function RisingStars() {
         return;
       }
       const [cats, regs, stand, teamRes] = await Promise.all([
-        request(`/api/rising-stars/categories?seasonId=${s.id}`),
-        request(`/api/rising-stars/regions?seasonId=${s.id}`),
-        request(`/api/rising-stars/seasons/${s.id}/standings`),
-        request(`/api/rising-stars/teams?seasonId=${s.id}`),
+        apiRisingStarsCategories(s.id),
+        apiRisingStarsRegions(s.id),
+        apiRisingStarsStandings(s.id),
+        apiRisingStarsTeams(s.id),
       ]);
-      setCategories(cats.data?.categories || []);
-      setRegions(regs.data?.regions || []);
-      setStandings(stand.data?.standings || []);
-      setTeams(teamRes.data?.teams || []);
+      setCategories(cats.categories as unknown as Category[]);
+      setRegions(regs.regions as unknown as Region[]);
+      setStandings(stand.standings as unknown as Standing[]);
+      setTeams(teamRes.teams as unknown as Team[]);
     } catch {
       showToast("Could not load Rising Stars");
     } finally {
@@ -114,8 +131,8 @@ export default function RisingStars() {
     const params = new URLSearchParams({ seasonId: season.id });
     if (categoryId) params.set("categoryId", categoryId);
     if (regionId) params.set("regionId", regionId);
-    const { data } = await request(`/api/rising-stars/challenges?${params}`);
-    setChallenges(data?.challenges || []);
+    const { challenges } = await apiRisingStarsChallenges(params.toString());
+    setChallenges(challenges as unknown as Challenge[]);
   };
 
   return (
@@ -129,7 +146,7 @@ export default function RisingStars() {
             className="w-full px-3 flex items-center justify-between"
             style={{ minHeight: "var(--topnav-bar-height)" }}
           >
-            <button type="button" onClick={() => navigate(-1)} className="p-1" aria-label="Back">
+            <button type="button" onClick={goBack} className="p-1" aria-label="Back">
               <RoyceBackIcon className="w-6 h-6 text-white" />
             </button>
             <div className="flex items-center gap-2">
@@ -256,7 +273,7 @@ export default function RisingStars() {
                       <button
                         key={ch.id}
                         type="button"
-                        onClick={() => navigate(`/rising-stars/challenge/${ch.id}`)}
+                        onClick={() => openChallenge(ch.id)}
                         className="w-full text-left rounded-xl border border-white/10 bg-white/5 p-3 flex items-center gap-3"
                       >
                         <div className="w-10 h-10 rounded-full bg-[#C9A227]/15 flex items-center justify-center">
@@ -284,7 +301,7 @@ export default function RisingStars() {
                       <button
                         key={s.creator_user_id}
                         type="button"
-                        onClick={() => navigate(`/profile/${s.creator_user_id}`)}
+                        onClick={() => openCreatorProfile(s.creator_user_id)}
                         className="w-full flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3"
                       >
                         <span className="w-6 text-center text-[#C9A227] font-bold text-sm">

@@ -11,8 +11,9 @@ import {
 } from 'lucide-react';
 import { useCallStore } from '../store/useCallStore';
 import { endCall as sendCallEnded, getCallRoomName } from '../lib/callService';
-import { request } from '../lib/apiClient';
-import { Room, RoomEvent, Track, RemoteTrackPublication, RemoteParticipant } from 'livekit-client';
+import { LiveKitSession, LiveKitTrack } from '../lib/liveKitSession';
+import { showToast } from '../lib/toast';
+import { apiLiveTokenWithIdentity } from '../lib/live';
 
 function formatDuration(ms: number): string {
   const totalSec = Math.floor(ms / 1000);
@@ -40,8 +41,8 @@ export default function VideoCall() {
   const [elapsed, setElapsed] = useState(0);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
-  const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
-  const roomRef = useRef<Room | null>(null);
+  const [remoteHasVideo, setRemoteHasVideo] = useState(false);
+  const sessionRef = useRef<LiveKitSession | null>(null);
 
   const stopLocalMedia = useCallback(() => {
     setLocalStream((prev) => {
@@ -52,6 +53,8 @@ export default function VideoCall() {
       localVideoRef.current.srcObject = null;
     }
   }, []);
+
+  const goBackAfterCall = useCallback(() => navigate(-1), [navigate]);
 
   useEffect(() => {
     if (!callId || !remoteUser) return;
@@ -76,7 +79,9 @@ export default function VideoCall() {
           if (!cancelled) setLocalStream(stream);
           else stream.getTracks().forEach((t) => t.stop());
         } catch {
-          /* camera blocked — still show call UI */
+          if (!cancelled) {
+            showToast('Camera or microphone unavailable');
+          }
         }
       }
     })();
@@ -114,94 +119,73 @@ export default function VideoCall() {
   useEffect(() => {
     if (!callId || status !== 'connecting') return;
     if (!localStream) return;
-    if (roomRef.current) return;
+    if (sessionRef.current) return;
 
     let cancelled = false;
     const roomName = getCallRoomName(callId);
 
+    const session = new LiveKitSession({
+      onConnected: () => {
+        if (!cancelled) useCallStore.getState().setStatus('connected');
+      },
+      onDisconnected: () => {
+        if (!cancelled) setRemoteHasVideo(false);
+      },
+      onTrackSubscribed: ({ track }) => {
+        if (cancelled) return;
+        if (track.kind === LiveKitTrack.Kind.Video && remoteVideoRef.current) {
+          track.attach(remoteVideoRef.current);
+          void remoteVideoRef.current.play().catch(() => {});
+          setRemoteHasVideo(true);
+        } else if (track.kind === LiveKitTrack.Kind.Audio) {
+          track.attach();
+        }
+      },
+      onTrackUnsubscribed: ({ track }) => {
+        if (track.kind === LiveKitTrack.Kind.Video) {
+          setRemoteHasVideo(false);
+          track.detach();
+        }
+      },
+    });
+    sessionRef.current = session;
+
     (async () => {
       try {
-        const { data, error } = await request(`/api/live/token?room=${encodeURIComponent(roomName)}&publish=1&identity=call`);
+        // Contract guard: call token fetch keeps publish=1 for caller media publish.
+        const { creds, error } = await apiLiveTokenWithIdentity(roomName, true, 'call');
         if (cancelled) return;
-        if (error || !data?.token) {
-          useCallStore.getState().setStatus('ended');
+        if (error || !creds?.token) {
+          showToast(error || 'Could not join call');
+          useCallStore.getState().endCall('Could not join call');
           return;
         }
-        const livekitUrl = data.url || import.meta.env.VITE_LIVEKIT_URL;
+        const livekitUrl = creds.url || import.meta.env.VITE_LIVEKIT_URL;
         if (!livekitUrl) {
-          useCallStore.getState().setStatus('ended');
+          showToast('Call media is not configured');
+          useCallStore.getState().endCall('Call media is not configured');
           return;
         }
 
-        const room = new Room();
-        roomRef.current = room;
-
-        room.on(RoomEvent.TrackSubscribed, (track: { kind: Track.Kind; mediaStreamTrack: MediaStreamTrack }, _pub: RemoteTrackPublication, _participant: RemoteParticipant) => {
-          if (cancelled) return;
-          if (track.kind === Track.Kind.Video) {
-            const mediaStream = new MediaStream([track.mediaStreamTrack]);
-            setRemoteStream(mediaStream);
-          }
-        });
-
-        room.on(RoomEvent.TrackUnsubscribed, (track: { kind: Track.Kind }) => {
-          if (track.kind === Track.Kind.Video) {
-            setRemoteStream(null);
-          }
-        });
-
-        room.on(RoomEvent.Connected, () => {
-          if (!cancelled) {
-            useCallStore.getState().setStatus('connected');
-          }
-        });
-
-        room.on(RoomEvent.Disconnected, () => {
-          if (!cancelled) {
-            setRemoteStream(null);
-          }
-        });
-
-        await room.connect(livekitUrl, data.token);
-
-        if (cancelled) {
-          room.disconnect().catch(() => {});
-          return;
-        }
-
-        const videoTrack = localStream.getVideoTracks()[0];
-        const audioTrack = localStream.getAudioTracks()[0];
-        if (videoTrack) {
-          if (cancelled) { room.disconnect().catch(() => {}); return; }
-          await room.localParticipant.publishTrack(videoTrack);
-        }
-        if (audioTrack) {
-          if (cancelled) { room.disconnect().catch(() => {}); return; }
-          await room.localParticipant.publishTrack(audioTrack);
-        }
-      } catch {
+        await session.connect(livekitUrl, creds.token);
+        if (cancelled) return;
+        await session.publishFromStream(localStream);
+      } catch (e: unknown) {
         if (!cancelled) {
-          useCallStore.getState().setStatus('ended');
+          const msg = e instanceof Error ? e.message : 'Call connection failed';
+          showToast(msg);
+          useCallStore.getState().endCall(msg);
         }
       }
     })();
 
     return () => {
       cancelled = true;
-      if (roomRef.current) {
-        roomRef.current.disconnect().catch(() => {});
-        roomRef.current = null;
-      }
-      setRemoteStream(null);
+      session.disconnect();
+      sessionRef.current = null;
+      setRemoteHasVideo(false);
     };
   }, [callId, status, localStream]);
-
-  useEffect(() => {
-    const el = remoteVideoRef.current;
-    if (!el || !remoteStream) return;
-    el.srcObject = remoteStream;
-    return () => { el.srcObject = null; };
-  }, [remoteStream]);
 
   useEffect(() => {
     if (status !== 'connected' || !callStartTime) return;
@@ -216,34 +200,27 @@ export default function VideoCall() {
       const timer = setTimeout(() => {
         stopLocalMedia();
         useCallStore.getState().reset();
-        navigate(-1);
+        goBackAfterCall();
       }, 3000);
       return () => clearTimeout(timer);
     }
-  }, [status, navigate, stopLocalMedia]);
+  }, [status, goBackAfterCall, stopLocalMedia]);
 
   const switchCamera = useCallback(async () => {
     if (!localStream) return;
     const next = facingMode === 'user' ? 'environment' : 'user';
     localStream.getTracks().forEach((t) => t.stop());
-    // The LiveKit connect effect early-returns when a room already exists, so a
-    // camera switch mid-call must republish the freshly captured tracks here —
-    // otherwise the remote peer keeps seeing the old (now stopped) track.
+    // Session already connected — republish fresh tracks so the remote peer
+    // does not keep seeing the stopped camera track.
     const republish = async (stream: MediaStream) => {
       setFacingMode(next);
       setLocalStream(stream);
-      const room = roomRef.current;
-      if (!room) return;
+      const session = sessionRef.current;
+      if (!session) return;
       try {
-        for (const pub of room.localParticipant.trackPublications.values()) {
-          if (pub.track) await room.localParticipant.unpublishTrack(pub.track);
-        }
-        const nv = stream.getVideoTracks()[0];
-        const na = stream.getAudioTracks()[0];
-        if (nv) await room.localParticipant.publishTrack(nv);
-        if (na) await room.localParticipant.publishTrack(na);
+        await session.publishFromStream(stream);
       } catch {
-        /* keep the local switch even if republish fails */
+        showToast('Could not switch camera for the other person');
       }
     };
     try {
@@ -260,7 +237,7 @@ export default function VideoCall() {
         });
         await republish(stream);
       } catch {
-        /* ignore */
+        showToast('Could not switch camera');
       }
     }
   }, [localStream, facingMode]);
@@ -276,12 +253,10 @@ export default function VideoCall() {
   }
 
   const handleHangup = async () => {
-    if (roomRef.current) {
-      roomRef.current.disconnect().catch(() => {});
-      roomRef.current = null;
-    }
+    sessionRef.current?.disconnect();
+    sessionRef.current = null;
     stopLocalMedia();
-    setRemoteStream(null);
+    setRemoteHasVideo(false);
     useCallStore.getState().setStatus('ended');
     try {
       if (callId) {
@@ -311,14 +286,13 @@ export default function VideoCall() {
       <div className="flex flex-1 min-h-0 flex-col w-full max-w-[480px] mx-auto">
       {/* Remote video (full screen) */}
       <div className="flex-1 min-h-0 relative w-full">
-        {remoteStream && status === 'connected' ? (
-          <video
-            ref={remoteVideoRef}
-            autoPlay
-            playsInline
-            className="w-full h-full object-cover"
-          />
-        ) : (
+        <video
+          ref={remoteVideoRef}
+          autoPlay
+          playsInline
+          className={`w-full h-full object-cover ${remoteHasVideo && status === 'connected' ? '' : 'hidden'}`}
+        />
+        {!(remoteHasVideo && status === 'connected') && (
           <div className="w-full h-full flex flex-col items-center justify-center gap-4">
             {remoteUser.avatar ? (
               <AvatarRing src={remoteUser.avatar} alt={remoteUser.username} size={96} />

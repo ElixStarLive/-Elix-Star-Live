@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { nativeConfirm } from '../components/NativeDialog';
-import { request } from '../lib/apiClient';
+import { authDeleteAccount } from '../features/auth/authSession';
 import { useT, LANGUAGE_SHORT } from '../lib/i18n';
 import LanguagePickerSheet from '../components/LanguagePickerSheet';
 import {
@@ -44,9 +44,30 @@ export default function Settings() {
   const muteAllSounds = useSettingsStore((s) => s.muteAllSounds);
   const setMuteAllSounds = useSettingsStore((s) => s.setMuteAllSounds);
 
+  const goBack = useCallback(() => {
+    navigate(-1);
+  }, [navigate]);
+
+  const goEditProfile = useCallback(() => navigate('/edit-profile'), [navigate]);
+  const goSafety = useCallback(() => navigate('/settings/safety'), [navigate]);
+  const goSecurity = useCallback(() => navigate('/settings/security'), [navigate]);
+  const goPayout = useCallback(() => navigate('/settings/payout'), [navigate]);
+  const goEngagement = useCallback(() => navigate('/engagement'), [navigate]);
+  const goAdmin = useCallback(() => navigate('/admin'), [navigate]);
+  const goNotifications = useCallback(() => navigate('/settings/notifications'), [navigate]);
+  const goLikedVideos = useCallback(() => navigate('/profile?tab=liked'), [navigate]);
+  const goSaved = useCallback(() => navigate('/saved'), [navigate]);
+  const goBlocked = useCallback(() => navigate('/settings/blocked'), [navigate]);
+  const goHowItWorks = useCallback(() => navigate('/how-it-works'), [navigate]);
+  const goSupport = useCallback(() => navigate('/support'), [navigate]);
+  const goTerms = useCallback(() => navigate('/terms'), [navigate]);
+  const goPrivacy = useCallback(() => navigate('/privacy'), [navigate]);
+  const goGuidelines = useCallback(() => navigate('/guidelines'), [navigate]);
+  const goLogin = useCallback(() => navigate('/login'), [navigate]);
+
   const handleLogout = async () => {
     try { await signOut(); } catch { /* best-effort */ }
-    navigate('/login');
+    goLogin();
   };
 
   const handleDeleteAccount = async () => {
@@ -57,11 +78,11 @@ export default function Settings() {
     if (!confirmed) return;
 
     try {
-      const { error } = await request('/api/auth/delete', { method: 'POST' });
+      const result = await authDeleteAccount();
 
-      if (!error) {
+      if (result.ok) {
         await signOut();
-        navigate('/login');
+        goLogin();
       } else {
         showToast('Failed to delete account.');
       }
@@ -95,7 +116,7 @@ export default function Settings() {
   );
 
   return (
-    <SettingsOptionSheet onClose={() => navigate(-1)}>
+    <SettingsOptionSheet onClose={goBack}>
       <div className="flex-shrink-0 px-3 pb-1">
         <div className="flex flex-col items-center">
           <span className="text-[13px] font-bold text-[#D4AF37]">{t('settings.title')}</span>
@@ -109,20 +130,20 @@ export default function Settings() {
             <img src="/elix-logo.png" alt="Elix Star Live" className="w-20 h-20 object-contain" />
           </div>
           <S t={t('settings.section.account')} />
-          <R ic={<User size={14} />} t={t('settings.editProfile')} fn={() => navigate('/edit-profile')} />
-          <R ic={<Lock size={14} />} t={t('settings.privacy')} fn={() => navigate('/settings/safety')} />
-          <R ic={<Shield size={14} />} t={t('settings.security')} fn={() => navigate('/settings/security')} />
+          <R ic={<User size={14} />} t={t('settings.editProfile')} fn={goEditProfile} />
+          <R ic={<Lock size={14} />} t={t('settings.privacy')} fn={goSafety} />
+          <R ic={<Shield size={14} />} t={t('settings.security')} fn={goSecurity} />
           <R ic={<Trash2 size={14} />} t={t('settings.deleteAccount')} fn={handleDeleteAccount} />
-          <R ic={<Wallet size={14} />} t="Creator payout" fn={() => navigate('/settings/payout')} />
+          <R ic={<Wallet size={14} />} t="Creator payout" fn={goPayout} />
           {engagementFlags.engagementHubEnabled ? (
-            <R ic={<Gift size={14} />} t="Engagement Hub" fn={() => navigate('/engagement')} />
+            <R ic={<Gift size={14} />} t="Engagement Hub" fn={goEngagement} />
           ) : null}
           {user?.isAdmin ? (
-            <R ic={<LayoutDashboard size={14} />} t="Admin" fn={() => navigate('/admin')} />
+            <R ic={<LayoutDashboard size={14} />} t="Admin" fn={goAdmin} />
           ) : null}
 
           <S t={t('settings.section.preferences')} />
-          <R ic={<Bell size={14} />} t={t('settings.notifications')} fn={() => navigate('/settings/notifications')} />
+          <R ic={<Bell size={14} />} t={t('settings.notifications')} fn={goNotifications} />
           <R
             ic={<Radio size={14} />}
             t={t('settings.liveNotifications')}
@@ -144,35 +165,35 @@ export default function Settings() {
 
           <S t={t('settings.section.content')} />
           <R ic={<Video size={14} />} t={t('settings.videoQuality')} v={t('common.auto')} fn={() => showToast(t('toast.videoQualityAuto'))} />
-          <R ic={<Heart size={14} />} t={t('settings.likedVideos')} fn={() => navigate('/profile?tab=liked')} />
-          <R ic={<Bookmark size={14} />} t="Saved videos" fn={() => navigate('/saved')} />
+          <R ic={<Heart size={14} />} t={t('settings.likedVideos')} fn={goLikedVideos} />
+          <R ic={<Bookmark size={14} />} t="Saved videos" fn={goSaved} />
 
           <S t={t('settings.section.safety')} />
-          <R ic={<Ban size={14} />} t={t('settings.blockedAccounts')} fn={() => navigate('/settings/blocked')} />
-          <R ic={<Shield size={14} />} t={t('settings.safetyCenter')} fn={() => navigate('/settings/safety')} />
+          <R ic={<Ban size={14} />} t={t('settings.blockedAccounts')} fn={goBlocked} />
+          <R ic={<Shield size={14} />} t={t('settings.safetyCenter')} fn={goSafety} />
 
           <S t={t('settings.section.support')} />
-          <R ic={<BookOpen size={14} />} t="How the app works" fn={() => navigate('/how-it-works')} />
-          <R ic={<HelpCircle size={14} />} t={t('settings.helpSupport')} fn={() => navigate('/support')} />
+          <R ic={<BookOpen size={14} />} t="How the app works" fn={goHowItWorks} />
+          <R ic={<HelpCircle size={14} />} t={t('settings.helpSupport')} fn={goSupport} />
 
           <div className="grid grid-cols-3 gap-1 mt-auto pt-4 px-0.5">
             <button
               type="button"
-              onClick={() => navigate('/terms')}
+              onClick={goTerms}
               className="text-[12px] text-white/60 py-2 rounded-md active:bg-white/5 text-center leading-tight"
             >
               {t('common.terms')}
             </button>
             <button
               type="button"
-              onClick={() => navigate('/privacy')}
+              onClick={goPrivacy}
               className="text-[12px] text-white/60 py-2 rounded-md active:bg-white/5 text-center leading-tight"
             >
               {t('common.privacy')}
             </button>
             <button
               type="button"
-              onClick={() => navigate('/guidelines')}
+              onClick={goGuidelines}
               className="text-[12px] text-white/60 py-2 rounded-md active:bg-white/5 text-center leading-tight"
             >
               {t('common.guidelines')}

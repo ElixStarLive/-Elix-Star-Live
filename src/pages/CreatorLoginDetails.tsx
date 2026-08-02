@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { RoyceCloseIcon } from '../components/royce';
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -9,6 +9,9 @@ export default function CreatorLoginDetails() {
   const navigate = useNavigate();
   const { user, signInWithPassword, signUpWithPassword, signOut, resendSignupConfirmation } = useAuthStore();
   const [saveDetails, setSaveDetails] = useState(false);
+
+  const goBack = useCallback(() => navigate(-1), [navigate]);
+  const goProfile = useCallback(() => navigate('/profile', { replace: true }), [navigate]);
 
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   // Force signin mode if users shouldn't create accounts here
@@ -42,6 +45,14 @@ export default function CreatorLoginDetails() {
   const [showResend, setShowResend] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [_isSwitching, setIsSwitching] = useState(false);
+
+  const handleSignOut = useCallback(async () => {
+    try { await signOut(); } catch { /* best-effort */ }
+    setPassword('');
+    setConfirmPassword('');
+    setMode('signin');
+    navigate('/creator/login-details', { replace: true });
+  }, [navigate, signOut]);
 
   const [savedAccounts, setSavedAccounts] = useState<Array<{
     identifier: string;
@@ -139,7 +150,7 @@ export default function CreatorLoginDetails() {
         }
         saveCurrentAccount(trimmedEmail, trimmedUsername || trimmedEmail.split('@')[0]);
         persistSavedPassword(password);
-        navigate('/profile', { replace: true });
+        goProfile();
         return;
       }
 
@@ -159,7 +170,7 @@ export default function CreatorLoginDetails() {
       }
       saveCurrentAccount(trimmedEmail, trimmedUsername || trimmedEmail.split('@')[0]);
       persistSavedPassword(password);
-      navigate('/profile', { replace: true });
+      goProfile();
     } catch (err) {
       setError(err?.message || 'An unexpected error occurred. Please try again.');
     } finally {
@@ -235,7 +246,7 @@ export default function CreatorLoginDetails() {
           </div>
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             className="w-9 h-9 flex items-center justify-center flex-shrink-0 active:scale-90 transition-transform"
             aria-label="Close"
           >
@@ -511,13 +522,7 @@ export default function CreatorLoginDetails() {
 
             <button
               className="w-full bg-transparent10 border border-white/10 rounded-xl py-3 text-sm font-semibold hover:bg-white/5 transition-colors"
-              onClick={async () => {
-                try { await signOut(); } catch { /* best-effort */ }
-                setPassword('');
-                setConfirmPassword('');
-                setMode('signin');
-                navigate('/creator/login-details', { replace: true });
-              }}
+              onClick={() => void handleSignOut()}
             >
               Sign out
             </button>

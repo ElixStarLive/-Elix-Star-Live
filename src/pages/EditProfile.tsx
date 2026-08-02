@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { request } from '../lib/apiClient';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Camera } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { trackEvent } from '../lib/analytics';
@@ -8,6 +7,7 @@ import { avatarUploadService } from '../lib/avatarUploadService';
 import { showToast } from '../lib/toast';
 import { useAuthStore } from '../store/useAuthStore';
 import SettingsOptionSheet from '../components/SettingsOptionSheet';
+import { apiFetchProfileById, apiPatchProfile } from '../features/feed/feedApi';
 
 interface Profile {
   username: string;
@@ -38,6 +38,14 @@ export default function EditProfile() {
   const [uploading, setUploading] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
+  const goBack = useCallback(() => {
+    navigate(-1);
+  }, [navigate]);
+
+  const openAvatarPicker = useCallback(() => {
+    document.getElementById('avatar-upload')?.click();
+  }, []);
+
   useEffect(() => {
     // Reload profile once auth store has the current user ID
     if (user?.id) {
@@ -51,9 +59,18 @@ export default function EditProfile() {
       if (!user?.id) return;
       setCurrentUserId(user.id);
 
-      const { data: body, error } = await request(`/api/profiles/${encodeURIComponent(user.id)}`);
+      const { body, error } = await apiFetchProfileById(user.id);
       if (error) return;
-      const data = body?.profile || body;
+      const data = (body?.profile || body) as {
+        username?: string;
+        displayName?: string;
+        bio?: string;
+        avatarUrl?: string;
+        website?: string;
+        instagram?: string;
+        youtube?: string;
+        tiktok?: string;
+      };
       if (data) {
         setProfile({
           username: data.username || user.username || '',
@@ -106,7 +123,7 @@ export default function EditProfile() {
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!currentUserId && !user?.id) {
       showToast('Please log in again');
       return;
@@ -125,22 +142,19 @@ export default function EditProfile() {
 
     setLoading(true);
     try {
-      const { error } = await request(`/api/profiles/${encodeURIComponent(uid)}`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          username: nextUsername,
-          displayName: profile.display_name,
-          bio: profile.bio,
-          avatarUrl: profile.avatar_url,
-          website: profile.website,
-          instagram: profile.instagram,
-          youtube: profile.youtube,
-          tiktok: profile.tiktok,
-        }),
+      const { error } = await apiPatchProfile(uid, {
+        username: nextUsername,
+        displayName: profile.display_name,
+        bio: profile.bio,
+        avatarUrl: profile.avatar_url,
+        website: profile.website,
+        instagram: profile.instagram,
+        youtube: profile.youtube,
+        tiktok: profile.tiktok,
       });
 
       if (error) {
-        showToast(error.message || 'Failed to save profile');
+        showToast(error || 'Failed to save profile');
         return;
       }
 
@@ -166,10 +180,10 @@ export default function EditProfile() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentUserId, user, profile, updateUser, navigate]);
 
   return (
-    <SettingsOptionSheet onClose={() => navigate(-1)}>
+    <SettingsOptionSheet onClose={goBack}>
       <div className="w-full h-full overflow-hidden bg-[#111111] flex flex-col">
       {/* Header */}
       <div className="flex-shrink-0 px-4 py-3 flex items-center justify-between bg-[#111111]">
@@ -188,7 +202,7 @@ export default function EditProfile() {
         {/* Avatar */}
         <div className="flex flex-col items-center gap-2 flex-shrink-0">
           <div className="relative group cursor-pointer">
-            <div onClick={() => document.getElementById('avatar-upload')?.click()}>
+            <div onClick={openAvatarPicker}>
               <AvatarRing src={profile.avatar_url || `https://ui-avatars.com/api/?name=${profile.username}`} alt="Avatar" size={96} />
             </div>
             <label
@@ -207,7 +221,7 @@ export default function EditProfile() {
           </div>
           <button 
             type="button"
-            onClick={() => document.getElementById('avatar-upload')?.click()}
+            onClick={openAvatarPicker}
             className="text-sm font-semibold text-gold-bright/80 hover:text-gold-bright transition"
           >
             Change Photo

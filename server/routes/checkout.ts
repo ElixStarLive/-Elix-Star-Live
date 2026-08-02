@@ -168,3 +168,40 @@ export async function createShopItemCheckout(req: Request, res: Response) {
     return res.status(500).json({ error: "Failed to create shop checkout" });
   }
 }
+
+/** GET /api/shop/checkout-session/:sessionId — payment status for the authenticated buyer only. */
+export async function getShopCheckoutSession(req: Request, res: Response) {
+  try {
+    const authUserId = getAuthenticatedUserId(req);
+    if (!authUserId) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+    if (!stripe) {
+      return res.status(503).json({ error: "Payments not configured" });
+    }
+
+    const sessionId = String(req.params.sessionId || "").trim();
+    if (!sessionId.startsWith("cs_")) {
+      return res.status(400).json({ error: "Invalid session id" });
+    }
+
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    const owner =
+      (typeof session.client_reference_id === "string" && session.client_reference_id) ||
+      (typeof session.metadata?.userId === "string" && session.metadata.userId) ||
+      "";
+    if (!owner || owner !== authUserId) {
+      return res.status(403).json({ error: "Session does not belong to this account" });
+    }
+
+    return res.status(200).json({
+      sessionId: session.id,
+      status: session.status,
+      payment_status: session.payment_status,
+      paid: session.payment_status === "paid",
+    });
+  } catch (error) {
+    logger.error({ err: error }, "Shop checkout session lookup error");
+    return res.status(500).json({ error: "Failed to look up checkout session" });
+  }
+}

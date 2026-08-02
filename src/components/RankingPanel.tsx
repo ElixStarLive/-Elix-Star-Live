@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { Trophy, Flame, Gift, Users, CalendarDays, Target } from 'lucide-react';
-import { request } from '../lib/apiClient';
 import { AvatarRing } from './AvatarRing';
 import { resolveGiftAssetUrl, type GiftUiItem } from '../lib/giftsCatalog';
 import {
@@ -10,6 +9,11 @@ import {
 } from '../lib/liveGiftGoal';
 import type { LiveRankTab } from './CyclingRankBadge';
 import { GiftGoalGallery } from './GiftGoalGallery';
+import {
+  apiLiveRankingsDaily,
+  apiLiveRankingsWeekly,
+} from '../features/live/engagement/liveEngagementApi';
+import { apiLiveStreams } from '../lib/live';
 
 interface CreatorRanking {
   rank: number;
@@ -110,9 +114,9 @@ export function RankingPanel({
       setLoading(true);
       try {
         const [weeklyRes, dailyRes, streamsRes] = await Promise.all([
-          request('/api/rankings/weekly'),
-          request('/api/rankings/daily'),
-          request('/api/live/streams'),
+          apiLiveRankingsWeekly(),
+          apiLiveRankingsDaily(),
+          apiLiveStreams(),
         ]);
         if (cancelled) return;
 
@@ -126,10 +130,7 @@ export function RankingPanel({
           : weeklyList;
         setDaily(mapRankings(dailyList));
 
-        const streamsRaw =
-          (Array.isArray(streamsRes.data?.streams) && streamsRes.data.streams) ||
-          (Array.isArray(streamsRes.data) && streamsRes.data) ||
-          [];
+        const streamsRaw = Array.isArray(streamsRes.streams) ? streamsRes.streams : [];
         const liveList: RankingPerson[] = (streamsRaw as Record<string, unknown>[])
           .map((s, i) => {
             const viewers =

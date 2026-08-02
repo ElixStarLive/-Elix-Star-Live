@@ -6,7 +6,6 @@ import {
   purchaseProduct,
   initializeIAP,
   reconcileOwnedCoinPurchases,
-  IAP_PRODUCTS,
   type IAPProductId,
   type IAPProduct,
 } from '@/lib/iap';
@@ -39,17 +38,8 @@ export const BuyCoinsModal: React.FC<BuyCoinsModalProps> = ({ isOpen, onClose, o
         if (products.length > 0) {
           setNativeProducts(products);
         } else {
-          const fallback: IAPProduct[] = Object.entries(IAP_PRODUCTS).map(
-            ([id, meta]) => ({
-              id,
-              title: meta.label,
-              description: `Get ${meta.coins} coins`,
-              price: '',
-              priceAmountMicros: 0,
-              coins: meta.coins,
-            }),
-          );
-          setNativeProducts(fallback);
+          setNativeProducts([]);
+          showToast('Coin store unavailable. Try again in a moment.');
         }
       } catch {
         if (!cancelled) showToast('Failed to load products');
@@ -68,8 +58,14 @@ export const BuyCoinsModal: React.FC<BuyCoinsModalProps> = ({ isOpen, onClose, o
           showToast('Previous purchase restored');
           if (onSuccess && typeof result.newBalance === 'number') {
             onSuccess(result.newBalance);
-          } else if (onSuccess && typeof currentBalance === 'number') {
-            onSuccess(currentBalance);
+          } else if (onSuccess) {
+            const { useWalletStore } = await import('@/store/useWalletStore');
+            const refreshed = await useWalletStore.getState().fetchWallet();
+            if (refreshed.ok) {
+              onSuccess(useWalletStore.getState().paidBalance);
+            } else if (typeof currentBalance === 'number') {
+              onSuccess(currentBalance);
+            }
           }
           onClose();
           return;
@@ -87,7 +83,11 @@ export const BuyCoinsModal: React.FC<BuyCoinsModalProps> = ({ isOpen, onClose, o
             onSuccess(Math.max(0, base));
           }
         }
-        showToast(`+${product.coins.toLocaleString()} coins added!`);
+        if (typeof result.newBalance === 'number') {
+          showToast(`Coins updated — balance ${result.newBalance.toLocaleString()}`);
+        } else {
+          showToast('Purchase completed. Refresh if balance looks wrong.');
+        }
         onClose();
       } else if (result.error !== 'Purchase cancelled') {
         showToast(result.error || 'Purchase failed');

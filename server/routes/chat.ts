@@ -165,6 +165,34 @@ export async function handlePostChatMessage(req: Request, res: Response) {
   if (!msg) {
     return res.status(400).json({ error: "Could not send message" });
   }
+
+  // Realtime DM fanout (user-global — same path as call_invite; not live room chat).
+  try {
+    const { sendToUserGlobal } = await import("../websocket/index");
+    const payload = {
+      threadId,
+      message: msg,
+      senderId: auth.userId,
+      otherUserId: otherId,
+    };
+    sendToUserGlobal(otherId, "dm_message", payload);
+    sendToUserGlobal(auth.userId, "dm_message", payload);
+    sendToUserGlobal(otherId, "dm_thread_updated", {
+      threadId,
+      last_message: text.length > 120 ? `${text.slice(0, 117)}...` : text,
+      last_at: (msg as { created_at?: string }).created_at || new Date().toISOString(),
+      sender_id: auth.userId,
+    });
+    sendToUserGlobal(auth.userId, "dm_thread_updated", {
+      threadId,
+      last_message: text.length > 120 ? `${text.slice(0, 117)}...` : text,
+      last_at: (msg as { created_at?: string }).created_at || new Date().toISOString(),
+      sender_id: auth.userId,
+    });
+  } catch (err) {
+    logger.warn({ err, threadId }, "handlePostChatMessage: dm WS fanout skipped");
+  }
+
   try {
     const preview = text.length > 80 ? `${text.slice(0, 77)}...` : text;
     await insertNotification({

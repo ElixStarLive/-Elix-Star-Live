@@ -12,6 +12,7 @@ describe("Email verification contracts", () => {
   const guard = read("../middleware/sessionGuard.ts");
   const payout = read("../routes/payout.ts");
   const callback = read("../../src/pages/AuthCallback.tsx");
+  const authSession = read("../../src/features/auth/authSession.ts");
 
   it("migration adds email_confirmed_at and grandfathers existing accounts", () => {
     expect(migration).toContain("email_confirmed_at");
@@ -45,8 +46,11 @@ describe("Email verification contracts", () => {
   });
 
   it("AuthCallback redeems the verify token against the API", () => {
-    expect(callback).toContain("/api/auth/verify-email");
+    // Page wires authSession owner; owner owns the production verify-email path.
+    expect(callback).toContain("authVerifyEmail");
     expect(callback).toContain("searchParams.get('token')");
+    expect(authSession).toContain("/api/auth/verify-email");
+    expect(authSession).toContain("export async function authVerifyEmail");
   });
 
   it("payout withdraw requires confirmed email when mail is configured", () => {

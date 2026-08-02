@@ -6,7 +6,8 @@ import { useAuthStore } from "../store/useAuthStore";
 export type WebSocketEvent =
   // Room events
   | "room_state"
-  | "viewer_count_update"
+  /** Server emits `viewer_count` (legacy alias kept for typed listeners). */
+  | "viewer_count"
   | "user_joined"
   | "user_left"
   | "connected"
@@ -31,11 +32,10 @@ export type WebSocketEvent =
   | "battle_ended"
   | "battle_created"
   | "battle_state_sync"
-  | "battle_countdown"
+  | "battle_tick"
   | "battle_score"
   | "battle_error"
   | "battle_ready"
-  | "battle_ready_state"
   // Co-host events
   | "cohost_invite"
   | "cohost_invite_ack"
@@ -55,17 +55,18 @@ export type WebSocketEvent =
   | "moderation_suspend"
   | "room_full"
   | "stream_ended"
-  // Battle (server-authoritative; colon names match server events)
-  | "battle:score_update"
-  | "likes:update"
-  | "booster:spawn"
-  | "booster:activated"
   | "booster_activated"
   | "booster_caught"
   | "mist_activated"
   | "engagement_sync"
   | "engagement_milestone"
-  | "engagement_stage_unlock";
+  | "engagement_stage_unlock"
+  /** Client-local: transport failure (not a server stream end). */
+  | "ws_error"
+  | "ws_reconnect_exhausted"
+  /** DM realtime (user-global; not live room chat_message). */
+  | "dm_message"
+  | "dm_thread_updated";
 
 export interface WebSocketMessage {
   event: WebSocketEvent | string;
@@ -142,7 +143,13 @@ class WebSocketService {
       }
     };
 
-    this.ws.onerror = () => {};
+    this.ws.onerror = () => {
+      this.handleMessage({
+        event: "ws_error",
+        data: { roomId: this.roomId },
+        timestamp: new Date().toISOString(),
+      });
+    };
 
     this.ws.onclose = (event) => {
       this.attemptReconnect(event.code);
@@ -172,6 +179,17 @@ class WebSocketService {
 
   isConnected(): boolean {
     return this.ws?.readyState === WebSocket.OPEN;
+  }
+
+  getCurrentRoomId(): string | null {
+    return this.roomId;
+  }
+
+  /** Tear down only when this service still owns `roomId` (safe for preview → watch handoff). */
+  disconnectIfRoom(roomId: string) {
+    if (this.roomId === roomId) {
+      this.disconnect();
+    }
   }
 
   send(event: string, data: unknown) {
@@ -226,9 +244,10 @@ class WebSocketService {
     const maxAttempts = this.persistentReconnect ? 120 : this.maxReconnectAttempts;
     if (this.reconnectAttempts >= maxAttempts) {
       if (!this.persistentReconnect) {
+        // Do not invent stream_ended — that is a server lifecycle event only.
         this.handleMessage({
-          event: "stream_ended",
-          data: { reason: "max_reconnect_attempts" },
+          event: "ws_reconnect_exhausted",
+          data: { reason: "max_reconnect_attempts", roomId: this.roomId },
           timestamp: new Date().toISOString(),
         });
       }

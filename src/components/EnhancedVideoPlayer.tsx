@@ -32,7 +32,7 @@ import ReportModal from './ReportModal';
 import PromotePanel from './PromotePanel';
 import { LevelBadge } from './LevelBadge';
 import { RoyceIcon } from './royce';
-import { api, request } from '../lib/apiClient';
+import { api } from '../lib/apiClient';
 import { nativeConfirm } from './NativeDialog';
 import { downloadVideoWithoutMusic } from '../lib/videoDownloadClient';
 import { getVideoPosterUrl } from '../lib/bunnyStorage';
@@ -45,6 +45,7 @@ import {
 import { DUET_STAGE_HEIGHT } from '../lib/profileFrame';
 import { platform } from '../lib/platform';
 import { prepareFeedVideoEl, stripVideoMediaChrome } from '../lib/prepareLiveVideoEl';
+import { apiLiveStreams } from '../lib/live';
 
 const VIDEO_SIDEBAR_AVATAR = 38;
 const GOLD_ICON = 'royce-icon-gold';
@@ -208,11 +209,11 @@ export default function EnhancedVideoPlayer({
       return;
     }
     let cancelled = false;
-    request('/api/live/streams')
-      .then(({ data }) => {
+    apiLiveStreams()
+      .then(({ streams }) => {
         if (cancelled) return;
         const liveIds = new Set(
-          (data?.streams || []).map((s: { user_id?: string; userId?: string }) =>
+          (streams || []).map((s: { user_id?: string; userId?: string }) =>
             String(s.user_id || s.userId || ''),
           ).filter(Boolean),
         );
@@ -738,53 +739,135 @@ export default function EnhancedVideoPlayer({
     trackEvent('video_profile_open', { videoId, userId: video.user.id });
   }, [video?.user?.id, videoId]);
 
-  const handleMusicClick = () => {
+  const handleMusicClick = useCallback(() => {
     if (!video?.music?.id) return;
     navigate(`/music/${encodeURIComponent(video.music.id)}`);
     trackEvent('video_music_open', { videoId, musicId: video.music.id });
-  };
-  const handleReport = () => {
+  }, [video?.music?.id, videoId, navigate]);
+
+  const openMoreMenu = useCallback(() => {
     setIsMoreMenuOpen(true);
-  };
+  }, []);
+
+  const closeMoreMenu = useCallback(() => {
+    setIsMoreMenuOpen(false);
+    setShowQrCodeInMore(false);
+  }, []);
 
   const videoPageUrl = `https://www.elixstarlive.co.uk/video/${videoId}`;
-  const handleCopyLink = async () => {
+
+  const handleCopyLink = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(videoPageUrl);
       showToast('Link copied!');
     } catch { /* intentionally empty */ }
-  };
+  }, [videoPageUrl]);
 
-  const handleDownload = async () => {
+  const handleDownload = useCallback(async () => {
     try {
       await downloadVideoWithoutMusic(videoId);
       showToast('Download started (voice only — app music not included)');
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Download failed');
     }
-  };
-
-  const _handleQRCode = async () => {
-    const url = `${window.location.origin}/video/${videoId}`;
-    try {
-      await navigator.clipboard.writeText(url);
-      showToast('Link copied!');
-    } catch { /* intentionally empty */ }
-  };
+  }, [videoId]);
 
   const isOwnVideo = !!authUserId && !!video?.user?.id && authUserId === video.user.id;
-  const handleDeleteVideo = async () => {
+
+  const handleDeleteVideo = useCallback(async () => {
     if (!isOwnVideo) return;
     const ok = await nativeConfirm('Delete this video? This cannot be undone.', 'Delete Video');
     if (!ok) return;
     try {
       await deleteVideo(videoId);
-      setIsMoreMenuOpen(false);
+      closeMoreMenu();
       showToast('Video deleted');
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Failed to delete');
     }
-  };
+  }, [isOwnVideo, videoId, deleteVideo, closeMoreMenu]);
+
+  const moreCopyLink = useCallback(() => {
+    void handleCopyLink();
+    closeMoreMenu();
+  }, [handleCopyLink, closeMoreMenu]);
+
+  const moreDownload = useCallback(() => {
+    void handleDownload();
+    closeMoreMenu();
+  }, [handleDownload, closeMoreMenu]);
+
+  const moreDuet = useCallback(() => {
+    closeMoreMenu();
+    navigate(`/upload?duet=${videoId}`);
+  }, [closeMoreMenu, navigate, videoId]);
+
+  const openHashtag = useCallback(
+    (hashtag: string) => navigate(`/hashtag/${hashtag}`),
+    [navigate],
+  );
+
+  const moreToggleQr = useCallback(() => {
+    setShowQrCodeInMore((v) => !v);
+  }, []);
+
+  const moreShare = useCallback(() => {
+    closeMoreMenu();
+    handleShare();
+  }, [closeMoreMenu, handleShare]);
+
+  const moreSave = useCallback(() => {
+    handleSave();
+    closeMoreMenu();
+  }, [handleSave, closeMoreMenu]);
+
+  const moreFollow = useCallback(() => {
+    handleFollow();
+    closeMoreMenu();
+  }, [handleFollow, closeMoreMenu]);
+
+  const morePromote = useCallback(() => {
+    closeMoreMenu();
+    setShowPromotePanel(true);
+  }, [closeMoreMenu]);
+
+  const moreReport = useCallback(() => {
+    closeMoreMenu();
+    setShowReportModal(true);
+    trackEvent('video_report_open', { videoId });
+  }, [closeMoreMenu, videoId]);
+
+  const retryVideoSrc = useCallback(() => {
+    const el = videoRef.current;
+    if (el && video.url) {
+      el.src = video.url;
+      prepareFeedVideoEl(el, { muted: true });
+      void el.play().catch(() => {});
+    }
+  }, [video.url]);
+
+  const handleVideoLoadError = useCallback(() => {
+    if (retryingRef.current) return;
+    if (retryCountRef.current < 3 && video.url) {
+      retryCountRef.current += 1;
+      retryingRef.current = true;
+      const delay = 2000 * retryCountRef.current;
+      setTimeout(() => {
+        retryingRef.current = false;
+        retryVideoSrc();
+      }, delay);
+      return;
+    }
+    setIsPlaying(false);
+    setVideoError(true);
+  }, [video.url, retryVideoSrc]);
+
+  const retryVideoPlayback = useCallback(() => {
+    setVideoError(false);
+    retryCountRef.current = 0;
+    retryingRef.current = false;
+    retryVideoSrc();
+  }, [retryVideoSrc]);
 
   // Format functions
   const formatNumber = (num: number) => {
@@ -871,27 +954,7 @@ export default function EnhancedVideoPlayer({
                 preload={isActive ? 'auto' : 'none'}
                 onClick={handleVideoClick}
                 poster={posterUrl}
-                onError={() => {
-                  if (retryingRef.current) return;
-                  if (retryCountRef.current < 3 && video.url) {
-                    retryCountRef.current += 1;
-                    retryingRef.current = true;
-                    const delay = 2000 * retryCountRef.current;
-                    setTimeout(() => {
-                      retryingRef.current = false;
-                      const el = videoRef.current;
-                      if (el && video.url) {
-                        // Never el.load() on Android — restarts pipeline and sticks white/crash.
-                        el.src = video.url;
-                        prepareFeedVideoEl(el, { muted: true });
-                        void el.play().catch(() => {});
-                      }
-                    }, delay);
-                    return;
-                  }
-                  setIsPlaying(false);
-                  setVideoError(true);
-                }}
+                onError={handleVideoLoadError}
               />
             </div>
           </div>
@@ -907,27 +970,7 @@ export default function EnhancedVideoPlayer({
           preload={isActive ? 'auto' : 'metadata'}
           onClick={handleVideoClick}
           poster={posterUrl}
-          onError={() => {
-            if (retryingRef.current) return;
-            if (retryCountRef.current < 3 && video.url) {
-              retryCountRef.current += 1;
-              retryingRef.current = true;
-              const delay = 2000 * retryCountRef.current;
-              setTimeout(() => {
-                retryingRef.current = false;
-                const el = videoRef.current;
-                if (el && video.url) {
-                  // Never el.load() on Android — restarts pipeline and sticks white/crash.
-                  el.src = video.url;
-                  prepareFeedVideoEl(el, { muted: true });
-                  void el.play().catch(() => {});
-                }
-              }, delay);
-              return;
-            }
-            setIsPlaying(false);
-            setVideoError(true);
-          }}
+          onError={handleVideoLoadError}
         />
         )}
 
@@ -938,17 +981,7 @@ export default function EnhancedVideoPlayer({
             <span className="text-white/50 text-sm">Video processing...</span>
             <button
               type="button"
-              onClick={() => {
-                setVideoError(false);
-                retryCountRef.current = 0;
-                retryingRef.current = false;
-                const el = videoRef.current;
-                if (el && video.url) {
-                  el.src = video.url;
-                  prepareFeedVideoEl(el, { muted: true });
-                  void el.play().catch(() => {});
-                }
-              }}
+              onClick={retryVideoPlayback}
               className="px-4 py-1.5 bg-[#C9A227]/20 border border-[#C9A227]/40 rounded-lg text-[#D4AF37] text-xs font-medium"
             >
               Tap to retry
@@ -1134,7 +1167,7 @@ export default function EnhancedVideoPlayer({
 
         <button
           type="button"
-          onClick={handleReport}
+          onClick={openMoreMenu}
           className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform"
           title="More"
           aria-label="More options"
@@ -1194,7 +1227,7 @@ export default function EnhancedVideoPlayer({
           {video.hashtags.map((hashtag) => (
             <button
               key={hashtag}
-              onClick={() => navigate(`/hashtag/${hashtag}`)}
+              onClick={() => openHashtag(hashtag)}
               className="text-white text-xs font-medium hover:underline pointer-events-auto"
             >
               #{hashtag}
@@ -1245,7 +1278,7 @@ export default function EnhancedVideoPlayer({
       
             {isMoreMenuOpen && (
         <div className="fixed inset-0 z-modals flex items-end justify-center">
-          <div className="absolute inset-0 pointer-events-auto" onClick={() => setIsMoreMenuOpen(false)} />
+          <div className="absolute inset-0 pointer-events-auto" onClick={closeMoreMenu} />
           <div
             className="bg-[#111111]/95 rounded-t-2xl max-h-[40dvh] flex flex-col shadow-2xl pointer-events-auto w-full max-w-[480px] relative z-10 bottom-sheet-above-nav"
             style={{ boxShadow: '0 -4px 30px rgba(255,255,255,0.25)' }}
@@ -1272,7 +1305,7 @@ export default function EnhancedVideoPlayer({
               <div className="grid grid-cols-4 gap-y-4 gap-x-2">
                 <button
                   type="button"
-                  onClick={() => { handleCopyLink(); setIsMoreMenuOpen(false); }}
+                  onClick={moreCopyLink}
                   className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
                   <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
@@ -1282,7 +1315,7 @@ export default function EnhancedVideoPlayer({
                 </button>
                 <button
                   type="button"
-                  onClick={() => { handleDownload(); setIsMoreMenuOpen(false); }}
+                  onClick={moreDownload}
                   className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
                   <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
@@ -1292,7 +1325,7 @@ export default function EnhancedVideoPlayer({
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setIsMoreMenuOpen(false); navigate(`/upload?duet=${videoId}`); }}
+                  onClick={moreDuet}
                   className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
                   <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
@@ -1302,7 +1335,7 @@ export default function EnhancedVideoPlayer({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowQrCodeInMore((v) => !v)}
+                  onClick={moreToggleQr}
                   className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
                   <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
@@ -1313,7 +1346,7 @@ export default function EnhancedVideoPlayer({
                 {isOwnVideo && (
                   <button
                     type="button"
-                    onClick={() => { handleDeleteVideo(); setIsMoreMenuOpen(false); }}
+                    onClick={() => { void handleDeleteVideo(); }}
                     className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                   >
                     <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
@@ -1324,7 +1357,7 @@ export default function EnhancedVideoPlayer({
                 )}
                 <button
                   type="button"
-                  onClick={() => { setIsMoreMenuOpen(false); handleShare(); }}
+                  onClick={moreShare}
                   className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
                   <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
@@ -1334,7 +1367,7 @@ export default function EnhancedVideoPlayer({
                 </button>
                 <button
                   type="button"
-                  onClick={() => { handleSave(); setIsMoreMenuOpen(false); }}
+                  onClick={moreSave}
                   className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
                   <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
@@ -1344,7 +1377,7 @@ export default function EnhancedVideoPlayer({
                 </button>
                 <button
                   type="button"
-                  onClick={() => { handleFollow(); setIsMoreMenuOpen(false); }}
+                  onClick={moreFollow}
                   className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
                   <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
@@ -1356,7 +1389,7 @@ export default function EnhancedVideoPlayer({
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setIsMoreMenuOpen(false); setShowPromotePanel(true); }}
+                  onClick={morePromote}
                   className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
                   <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
@@ -1366,7 +1399,7 @@ export default function EnhancedVideoPlayer({
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setIsMoreMenuOpen(false); setShowReportModal(true); trackEvent('video_report_open', { videoId }); }}
+                  onClick={moreReport}
                   className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
                   <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>

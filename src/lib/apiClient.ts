@@ -198,12 +198,19 @@ export async function request<T = any>(
         // Prefer native HTTP bridge, then fall back to WebView fetch (needs server CORP cross-origin).
         try {
           return await nativeCapacitorHttpRequest<T>(path, init);
-        } catch {
+        } catch (capErr: unknown) {
+          const capMsg =
+            capErr instanceof Error ? capErr.message : String(capErr || "capacitor_http_failed");
           try {
             return await nativeFetchRequest<T>(path, init);
           } catch (e: unknown) {
             const msg = e instanceof Error ? e.message : String(e || "request_failed");
-            return { data: null, error: { message: msg || "request_failed" } };
+            return {
+              data: null,
+              error: {
+                message: `native_http_failed: ${capMsg}; fetch: ${msg || "request_failed"}`,
+              },
+            };
           }
         }
       })();
@@ -278,21 +285,23 @@ export const api = {
   },
 
   chat: {
+    /** Thin wrapper — owner is `src/lib/chatMessages.ts`. */
     async ensureThread(otherUserId: string) {
-      const r = await request("/api/chat/threads/ensure", {
-        method: "POST",
-        body: JSON.stringify({ otherUserId }),
-      });
+      const { ensureDmThread } = await import("./chatMessages");
+      const r = await ensureDmThread(otherUserId);
       return {
-        data: r.data?.threadId ? { id: r.data.threadId } : null,
-        error: r.error,
+        data: r.threadId ? { id: r.threadId } : null,
+        error: r.error ? { message: r.error } : null,
       };
     },
+    /** Thin wrapper — owner is `src/lib/chatMessages.ts`. */
     async sendMessage(threadId: string, text: string) {
-      return request(
-        `/api/chat/threads/${encodeURIComponent(threadId)}/messages`,
-        { method: "POST", body: JSON.stringify({ text }) },
-      );
+      const { sendThreadMessage } = await import("./chatMessages");
+      const r = await sendThreadMessage(threadId, text);
+      return {
+        data: r.message ? { message: r.message } : null,
+        error: r.error ? { message: r.error } : null,
+      };
     },
   },
 
@@ -340,6 +349,13 @@ export const api = {
   gifts: {
     async getCatalog() {
       return request("/api/gifts/catalog");
+    },
+    /** Paid/starter/promo gifts only — see `src/lib/giftSend.ts`. */
+    async send(body: Record<string, unknown>) {
+      return request("/api/gifts/send", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
     },
   },
 };

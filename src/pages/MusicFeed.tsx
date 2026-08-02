@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RoyceBackIcon } from '../components/royce';
 import { Music, Pause, Play, Search, Bookmark } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -146,7 +146,45 @@ export default function MusicFeed() {
     };
   }, [songId]);
 
-  const togglePreview = async (track: SoundTrack) => {
+  const headerTitle = selectedTrack?.title || 'Sound';
+  const headerArtist = selectedTrack?.artist || 'Licensed playlists';
+  const trackForSave =
+    selectedTrack ||
+    (playingId ? allTracks.find((t) => t.id === playingId) || searchResults.find((t) => t.id === playingId) || null : null);
+  const trackIsSaved = trackForSave ? isSoundSaved(trackForSave.id) : false;
+  void savedTick;
+
+  const goSearch = useCallback(() => {
+    navigate('/search');
+  }, [navigate]);
+
+  const goBack = useCallback(() => {
+    navigate(-1);
+  }, [navigate]);
+
+  const toggleSaveTrack = useCallback(() => {
+    if (!trackForSave) {
+      showToast('Play or open a sound first');
+      return;
+    }
+    const nowSaved = toggleSavedSound(trackForSave);
+    setSavedTick((n) => n + 1);
+    showToast(nowSaved ? 'Sound saved' : 'Removed from saved');
+  }, [trackForSave]);
+
+  const selectPlaylist = useCallback((playlistId: string) => {
+    setActivePlaylistId(playlistId);
+  }, []);
+
+  const openTrack = useCallback((trackId: string) => {
+    navigate(`/music/${encodeURIComponent(trackId)}`);
+  }, [navigate]);
+
+  const openVideoFromSound = useCallback((videoId: string) => {
+    navigate(`/feed?video=${videoId}`);
+  }, [navigate]);
+
+  const togglePreview = useCallback(async (track: SoundTrack) => {
     if (!track.url) return;
     const a = audioRef.current;
     if (!a) return;
@@ -167,15 +205,7 @@ export default function MusicFeed() {
     } catch {
       setPlayingId(null);
     }
-  };
-
-  const headerTitle = selectedTrack?.title || 'Sound';
-  const headerArtist = selectedTrack?.artist || 'Licensed playlists';
-  const trackForSave =
-    selectedTrack ||
-    (playingId ? allTracks.find((t) => t.id === playingId) || searchResults.find((t) => t.id === playingId) || null : null);
-  const trackIsSaved = trackForSave ? isSoundSaved(trackForSave.id) : false;
-  void savedTick;
+  }, [playingId]);
 
   return (
     <div className="page-above-bottom-nav bg-[#111111] text-white">
@@ -183,13 +213,13 @@ export default function MusicFeed() {
       <div className="page-above-bottom-nav__inner bg-[#111111] flex flex-col min-h-0">
         <div className="w-full shrink-0 bg-[#111111] z-10 border-b border-white/[0.06]">
           <div className="px-3 pt-page-header pb-3 flex items-center justify-between relative">
-            <button type="button" onClick={() => navigate('/search')} className="p-1 z-10" aria-label="Search">
+            <button type="button" onClick={goSearch} className="p-1 z-10" aria-label="Search">
               <Search className="w-4 h-4 text-[#D4AF37]" />
             </button>
             <h1 className="text-sm font-bold text-gold-metallic absolute left-1/2 transform -translate-x-1/2">
               Sound
             </h1>
-            <button type="button" onClick={() => navigate(-1)} className="p-1 z-10" title="Back">
+            <button type="button" onClick={goBack} className="p-1 z-10" title="Back">
               <RoyceBackIcon />
             </button>
           </div>
@@ -209,15 +239,7 @@ export default function MusicFeed() {
                 <button
                   type="button"
                   disabled={!trackForSave}
-                  onClick={() => {
-                    if (!trackForSave) {
-                      showToast('Play or open a sound first');
-                      return;
-                    }
-                    const nowSaved = toggleSavedSound(trackForSave);
-                    setSavedTick((n) => n + 1);
-                    showToast(nowSaved ? 'Sound saved' : 'Removed from saved');
-                  }}
+                  onClick={toggleSaveTrack}
                   className="bg-[#D4AF37] text-black px-6 py-1.5 rounded-full font-semibold flex items-center gap-1.5 text-sm w-fit active:scale-95 transition-transform disabled:opacity-50"
                 >
                   <Bookmark
@@ -251,7 +273,7 @@ export default function MusicFeed() {
                     <button
                       key={pl.id}
                       type="button"
-                      onClick={() => setActivePlaylistId(pl.id)}
+                      onClick={() => selectPlaylist(pl.id)}
                       className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border ${
                         pl.id === activePlaylistId
                           ? 'bg-[#D4AF37] border-[#C9A227] text-black'
@@ -284,7 +306,7 @@ export default function MusicFeed() {
                   <div
                     key={video.id}
                     className="aspect-[3/4] bg-[#111111] relative cursor-pointer"
-                    onClick={() => navigate(`/feed?video=${video.id}`)}
+                    onClick={() => openVideoFromSound(video.id)}
                   >
                     <video
                       src={video.url || video.video_url}
@@ -310,7 +332,7 @@ export default function MusicFeed() {
                 >
                   <button
                     type="button"
-                    onClick={() => navigate(`/music/${encodeURIComponent(track.id)}`)}
+                    onClick={() => openTrack(track.id)}
                     className="flex items-center gap-2 flex-1 min-w-0 text-left"
                   >
                     <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0 bg-[#222] border border-[#C9A227]/20">

@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { RoyceBackIcon } from '../components/royce';
 import { FileText, Lock, Copyright, Music, Users, BadgeDollarSign, ShieldAlert, Mail, Package } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function Legal() {
   const navigate = useNavigate();
+
+  const goBack = useCallback(() => navigate(-1), [navigate]);
+  const openLegalItem = useCallback((to: string) => navigate(to), [navigate]);
   const dmcaEmail = 'dmca@elixstarlive.com';
   const supportEmail = 'support@elixstarlive.co.uk';
 
@@ -24,7 +27,7 @@ export default function Legal() {
     <div className="bg-[#111111] text-white flex justify-center px-2">
       <div className="w-full max-w-[480px] rounded-3xl overflow-hidden bg-[#111111] flex flex-col overflow-y-auto p-4">
         <header className="flex items-center justify-between mb-6">
-          <button onClick={() => navigate(-1)} aria-label="Back">
+          <button onClick={goBack} aria-label="Back">
             <RoyceBackIcon />
           </button>
           <h1 className="font-bold text-lg">Legal</h1>
@@ -37,7 +40,7 @@ export default function Legal() {
               key={item.label}
               type="button"
               className="w-full flex items-center p-4 hover:bg-[#111111] cursor-pointer text-left"
-              onClick={() => navigate(item.to)}
+              onClick={() => openLegalItem(item.to)}
             >
               <item.icon size={20} className="mr-4 text-white" />
               <span className="text-base">{item.label}</span>

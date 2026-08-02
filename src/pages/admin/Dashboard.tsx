@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api, request } from '../../lib/apiClient';
 import { BarChart3, Users, Video, DollarSign, Flag, Zap } from 'lucide-react';
 import { showToast } from '../../lib/toast';
+import { apiFetchAdminDashboardSourceData } from '../../features/admin/adminApi';
 
 interface DashboardStats {
   dailyActiveUsers: number;
@@ -15,6 +15,7 @@ interface DashboardStats {
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
+  const goAdminPath = useCallback((path: string) => navigate(path), [navigate]);
   const [stats, setStats] = useState<DashboardStats>({
     dailyActiveUsers: 0,
     totalUsers: 0,
@@ -31,34 +32,16 @@ export default function AdminDashboard() {
 
   const loadStats = async () => {
     try {
-      const results = await Promise.allSettled([
-        api.profiles.list(),
-        api.videos.list(),
-        request('/api/live/streams'),
-        request('/api/admin/reports'),
-        request('/api/admin/purchases'),
-        request('/api/admin/stats/dau'),
-      ]);
-      const settled = (i: number): { count?: number; data?: Record<string, unknown> } => results[i].status === 'fulfilled' ? (results[i] as PromiseFulfilledResult<{ count?: number; data?: Record<string, unknown> }>).value : { data: null };
-      const [usersRes, videosRes, liveRoomsRes, reportsRes, purchasesRes, dauRes] = [settled(0), settled(1), settled(2), settled(3), settled(4), settled(5)];
-
-      const totalUsers = usersRes.count ?? (Array.isArray(usersRes.data) ? usersRes.data.length : 0);
-      const totalVideos = Array.isArray(videosRes.data) ? videosRes.data.length : 0;
-      const liveStreams = liveRoomsRes.data?.streams ?? liveRoomsRes.data;
-      const liveCount = Array.isArray(liveStreams) ? liveStreams.length : 0;
-      const reportsArr = Array.isArray(reportsRes.data) ? reportsRes.data : (Array.isArray(reportsRes.data?.data) ? reportsRes.data.data : []);
-      const pendingCount = (reportsArr as { status?: string }[]).filter((r) => r.status === 'pending').length;
-      const purchasesArr = Array.isArray(purchasesRes.data) ? purchasesRes.data : (Array.isArray(purchasesRes.data?.data) ? purchasesRes.data.data : []);
-      const revenue = (purchasesArr as { price_minor?: number }[]).reduce((sum: number, p) => sum + (p.price_minor || 0), 0);
-      const dau = (dauRes.data?.dau as number) ?? 0;
+      const { data, error } = await apiFetchAdminDashboardSourceData();
+      if (error) throw new Error(error);
 
       setStats({
-        dailyActiveUsers: dau,
-        totalUsers,
-        totalVideos,
-        liveRooms: liveCount,
-        totalRevenue: revenue / 100,
-        pendingReports: pendingCount,
+        dailyActiveUsers: data.dailyActiveUsers,
+        totalUsers: data.totalUsers,
+        totalVideos: data.totalVideos,
+        liveRooms: data.liveRooms,
+        totalRevenue: data.totalRevenueMinor / 100,
+        pendingReports: data.pendingReports,
       });
     } catch {
       showToast('Failed to load dashboard data');
@@ -127,13 +110,13 @@ export default function AdminDashboard() {
         <div className="bg-[#111111] rounded-lg p-6">
           <h2 className="text-xl font-bold mb-4">Quick Actions</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <ActionButton href="/admin/users" label="Manage Users" onClick={(h) => navigate(h)} />
-            <ActionButton href="/admin/reports" label="Review Reports" onClick={(h) => navigate(h)} />
-            <ActionButton href="/admin/economy" label="Economy Controls" onClick={(h) => navigate(h)} />
-            <ActionButton href="/admin/purchases" label="IAP & Shop Purchases" onClick={(h) => navigate(h)} />
-            <ActionButton href="/admin/withdrawals" label="Withdrawals" onClick={(h) => navigate(h)} />
-            <ActionButton href="/admin/rising-stars" label="Rising Stars" onClick={(h) => navigate(h)} />
-            <ActionButton href="/admin/progression" label="Starter Coins & XP" onClick={(h) => navigate(h)} />
+            <ActionButton href="/admin/users" label="Manage Users" onClick={goAdminPath} />
+            <ActionButton href="/admin/reports" label="Review Reports" onClick={goAdminPath} />
+            <ActionButton href="/admin/economy" label="Economy Controls" onClick={goAdminPath} />
+            <ActionButton href="/admin/purchases" label="IAP & Shop Purchases" onClick={goAdminPath} />
+            <ActionButton href="/admin/withdrawals" label="Withdrawals" onClick={goAdminPath} />
+            <ActionButton href="/admin/rising-stars" label="Rising Stars" onClick={goAdminPath} />
+            <ActionButton href="/admin/progression" label="Starter Coins & XP" onClick={goAdminPath} />
           </div>
         </div>
       </div>

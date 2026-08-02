@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { api, request } from '../../lib/apiClient';
 import { nativePrompt } from '../../components/NativeDialog';
 import { DollarSign, Gift, Zap, Package } from 'lucide-react';
 import { showToast } from '../../lib/toast';
+import {
+  apiAdminUpdateGiftPrice,
+  apiFetchAdminEconomySourceData,
+} from '../../features/admin/adminApi';
 
 interface GiftCatalogItem {
   id: string;
@@ -34,14 +37,9 @@ export default function AdminEconomy() {
 
   const loadData = async () => {
     try {
-      const [giftsRes, boostersRes, packagesRes] = await Promise.all([
-        api.gifts.getCatalog(),
-        request('/api/boosters/catalog'),
-        request('/api/coin-packages'),
-      ]);
-
-      const gData = giftsRes.data;
-      const rawGifts = Array.isArray(gData) ? gData : (gData?.gifts ?? gData?.data ?? []);
+      const { data, error } = await apiFetchAdminEconomySourceData();
+      if (error) throw new Error(error);
+      const rawGifts = data.gifts;
       setGifts(
         rawGifts.map((g: Record<string, unknown>) => ({
           id: String(g.gift_id ?? g.id ?? ''),
@@ -51,12 +49,8 @@ export default function AdminEconomy() {
           is_active: Boolean(g.is_active),
         })).filter((g) => g.id),
       );
-      const bData = boostersRes.data;
-      setBoosters(Array.isArray(bData) ? bData : (Array.isArray(bData?.data) ? bData.data : []));
-      const pData = packagesRes.data;
-      const rawPkgs = Array.isArray(pData)
-        ? pData
-        : (pData?.packages ?? pData?.data ?? []);
+      setBoosters(data.boosters as unknown as BoosterCatalogItem[]);
+      const rawPkgs = data.packages;
       setPackages(
         (rawPkgs as Record<string, unknown>[])
           .map((p) => ({
@@ -76,10 +70,7 @@ export default function AdminEconomy() {
 
   const updateGiftPrice = async (giftId: string, newPrice: number) => {
     try {
-      const { error } = await request(`/api/admin/gifts/catalog/${encodeURIComponent(giftId)}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ coin_cost: newPrice }),
-      });
+      const { error } = await apiAdminUpdateGiftPrice(giftId, newPrice);
 
       if (error) throw error;
       showToast('Price updated');

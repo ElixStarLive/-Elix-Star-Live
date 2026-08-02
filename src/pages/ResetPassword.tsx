@@ -1,7 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Lock, CheckCircle } from 'lucide-react';
-import { request } from '../lib/apiClient';
+import { authResetPassword } from '../features/auth/authSession';
 
 export default function ResetPassword() {
   const navigate = useNavigate();
@@ -13,6 +13,8 @@ export default function ResetPassword() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const goLogin = useCallback(() => navigate('/login', { replace: true }), [navigate]);
 
   useEffect(() => {
     if (!resetToken) {
@@ -44,15 +46,12 @@ export default function ResetPassword() {
 
     setIsSubmitting(true);
     try {
-      const { error: reqError } = await request('/api/auth/reset-password', {
-        method: 'POST',
-        body: JSON.stringify({ password, token: resetToken }),
-      });
-      if (reqError) {
-        setError(reqError.message || 'Password reset is not available at this time.');
+      const result = await authResetPassword(resetToken, password);
+      if (result.ok === false) {
+        setError(result.error);
       } else {
         setSuccess(true);
-        redirectTimerRef.current = setTimeout(() => navigate('/login', { replace: true }), 3000);
+        redirectTimerRef.current = setTimeout(() => goLogin(), 3000);
       }
     } catch {
       setError('Failed to reset password. Please try again.');

@@ -6,6 +6,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useVideoStore } from '../store/useVideoStore';
 import { showToast } from '../lib/toast';
 import { AvatarRing } from '../components/AvatarRing';
+import { apiFetchFollowingIds, apiToggleFollow } from '../features/feed/feedApi';
 
 type Person = {
   user_id: string;
@@ -39,10 +40,7 @@ export default function FollowList() {
         );
         setPeople(Array.isArray(data?.follower_profiles) ? data.follower_profiles : []);
       } else {
-        const { data } = await request<{ following?: string[] }>(
-          `/api/profiles/${encodeURIComponent(userId)}/following`,
-        );
-        const ids = Array.isArray(data?.following) ? data.following : [];
+        const { following: ids } = await apiFetchFollowingIds(userId);
         const rows = await Promise.all(
           ids.slice(0, 200).map(async (id) => {
             try {
@@ -75,10 +73,17 @@ export default function FollowList() {
     void load();
   }, [load]);
 
+  const goBack = useCallback(() => navigate(-1), [navigate]);
+  const goLogin = useCallback(() => navigate('/login'), [navigate]);
+  const openProfile = useCallback(
+    (targetId: string) => navigate(`/profile/${targetId}`),
+    [navigate],
+  );
+
   const toggleFollow = async (targetId: string) => {
     if (!me?.id) {
       showToast('Log in to follow');
-      navigate('/login');
+      goLogin();
       return;
     }
     if (targetId === me.id) return;
@@ -89,12 +94,7 @@ export default function FollowList() {
       else next.add(targetId);
       return next;
     });
-    const { error } = await request(
-      was
-        ? `/api/profiles/${encodeURIComponent(targetId)}/unfollow`
-        : `/api/profiles/${encodeURIComponent(targetId)}/follow`,
-      { method: 'POST' },
-    );
+    const { error } = await apiToggleFollow(targetId, was);
     if (error) {
       setIFollow((prev) => {
         const next = new Set(prev);
@@ -118,7 +118,7 @@ export default function FollowList() {
   return (
     <div className="fixed inset-0 z-[100] bg-[#111111] flex flex-col max-w-[480px] mx-auto">
       <div className="flex items-center justify-between px-3 pt-[max(12px,env(safe-area-inset-top))] pb-2">
-        <button type="button" onClick={() => navigate(-1)} aria-label="Back">
+        <button type="button" onClick={goBack} aria-label="Back">
           <RoyceBackIcon />
         </button>
         <h1 className="text-sm font-bold text-[#D4AF37] absolute left-1/2 -translate-x-1/2">
@@ -146,7 +146,7 @@ export default function FollowList() {
                   <button
                     type="button"
                     className="flex items-center gap-3 flex-1 min-w-0 text-left"
-                    onClick={() => navigate(`/profile/${p.user_id}`)}
+                    onClick={() => openProfile(p.user_id)}
                   >
                     <AvatarRing src={p.avatar_url || ''} alt={name} size={44} />
                     <div className="min-w-0">

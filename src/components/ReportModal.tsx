@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, Flag, Ban, EyeOff, MessageSquare, UserMinus } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
-import { useVideoStore } from '../store/useVideoStore';
-import { api, request } from '../lib/apiClient';
 import { showToast } from '../lib/toast';
+import { apiCreateReport } from '../features/safety/safetyApi';
 
 interface ReportModalProps {
   isOpen: boolean;
@@ -77,29 +76,22 @@ export default function ReportModal({ isOpen, onClose, videoId, contentType, con
   const [additionalDetails, setAdditionalDetails] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [isDeletingVideo, setIsDeletingVideo] = useState(false);
-  const [videoOwnerIdFromDb, setVideoOwnerIdFromDb] = useState<string | null>(null);
-  const _authToken = useAuthStore((s) => s.session?.access_token ?? null);
+  const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const authUserId = useAuthStore((s) => s.user?.id ?? null);
-  const videoOwnerId = useVideoStore((s) => s.videos.find((v) => v.id === videoId)?.user.id ?? null);
-  const deleteVideo = useVideoStore((s) => s.deleteVideo);
 
   useEffect(() => {
-    let cancelled = false;
-    if (!isOpen || contentType !== 'video') return;
-    setVideoOwnerIdFromDb(null);
-    void (async () => {
-    try {
-      const { data } = await api.videos.get(videoId);
-      if (cancelled) return;
-      setVideoOwnerIdFromDb(data?.user_id ?? null);
-    } catch { /* intentionally empty */ }
-  })();return () => {
-      cancelled = true;
+    return () => {
+      if (successTimerRef.current) clearTimeout(successTimerRef.current);
     };
-  }, [contentType, isOpen, videoId]);
+  }, []);
 
   if (!isOpen) return null;
+
+  const resetForm = () => {
+    setSelectedReason('');
+    setAdditionalDetails('');
+    setShowSuccess(false);
+  };
 
   const handleSubmit = async () => {
     if (!selectedReason) {
@@ -110,80 +102,36 @@ export default function ReportModal({ isOpen, onClose, videoId, contentType, con
       showToast('Please sign in to submit a report.');
       return;
     }
-
-    setIsSubmitting(true);
+    if (isSubmitting) return;
 
     const targetId = (contentType === 'video' ? videoId : contentId || videoId).trim();
     if (!targetId) {
       showToast('Cannot submit report — missing content reference.');
-      setIsSubmitting(false);
       return;
     }
-    const done = () => {
-      setShowSuccess(true);
-      setTimeout(() => {
-        setShowSuccess(false);
-        onClose();
-        setSelectedReason('');
-        setAdditionalDetails('');
-      }, 2000);
-    };
 
+    setIsSubmitting(true);
     try {
-      const { error: reqError } = await request('/api/report', {
-        method: 'POST',
-        body: JSON.stringify({
-          targetType: contentType,
-          targetId,
-          reason: selectedReason,
-          details: additionalDetails || '',
-          contextVideoId: contentType === 'video' ? undefined : videoId,
-        }),
+      const { error } = await apiCreateReport({
+        targetType: contentType,
+        targetId,
+        reason: selectedReason,
+        details: additionalDetails || '',
+        contextVideoId: contentType === 'video' ? undefined : videoId,
       });
+      if (error) throw new Error(error);
 
-      if (!reqError) {
-        done();
-        return;
-      }
-      throw new Error(reqError.message);
-    } catch {
-      try {
-        const { error } = await api.reports.create({
-          targetType: contentType,
-          targetId,
-          reason: selectedReason,
-          details: additionalDetails || '',
-        });
-        if (error) throw error;
-        done();
-      } catch (directErr) {
-        const msg = directErr instanceof Error ? directErr.message : 'Failed to submit report. Please try again.';
-        showToast(msg);
-      }
+      setShowSuccess(true);
+      if (successTimerRef.current) clearTimeout(successTimerRef.current);
+      successTimerRef.current = setTimeout(() => {
+        resetForm();
+        onClose();
+      }, 2000);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to submit report. Please try again.';
+      showToast(msg);
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const resolvedOwnerId = videoOwnerIdFromDb ?? videoOwnerId;
-  const canDeleteByAdmin = false;
-  const canDeleteOwned = contentType === 'video' && !!authUserId && !!resolvedOwnerId && authUserId === resolvedOwnerId;
-  const canDelete = canDeleteByAdmin || canDeleteOwned;
-
-  const _handleDelete = async () => {
-    if (!canDelete) return;
-    if (isDeletingVideo) return;
-    setIsDeletingVideo(true);
-    try {
-      await deleteVideo(videoId);
-      onClose();
-      setSelectedReason('');
-      setAdditionalDetails('');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to delete video.';
-      showToast(message);
-    } finally {
-      setIsDeletingVideo(false);
     }
   };
 
@@ -285,7 +233,7 @@ export default function ReportModal({ isOpen, onClose, videoId, contentType, con
           </button>
           <button
             type="button"
-            onClick={handleSubmit}
+            onClick={() => { void handleSubmit(); }}
             disabled={isSubmitting || !selectedReason}
             className="flex-1 py-2.5 bg-[#D4AF37] text-black font-bold text-xs rounded-lg hover:brightness-110 disabled:opacity-40 transition"
           >

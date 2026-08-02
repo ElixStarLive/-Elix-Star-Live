@@ -1,12 +1,24 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, Lock, Eye, AlertTriangle, Ban, Flag, HelpCircle } from 'lucide-react';
 import SettingsOptionSheet from '../../components/SettingsOptionSheet';
 
 export default function SafetyCenter() {
   const navigate = useNavigate();
+
+  const goBack = useCallback(() => navigate(-1), [navigate]);
+  const goBlocked = useCallback(() => navigate('/settings/blocked'), [navigate]);
+  const goReport = useCallback(
+    () => navigate('/report?type=support&id=support_ticket'),
+    [navigate],
+  );
+  const goEditProfile = useCallback(() => navigate('/edit-profile'), [navigate]);
+  const goPrivacy = useCallback(() => navigate('/privacy'), [navigate]);
+  const goGuidelines = useCallback(() => navigate('/guidelines'), [navigate]);
+  const goSupport = useCallback(() => navigate('/support'), [navigate]);
+
   return (
-    <SettingsOptionSheet onClose={() => navigate(-1)}>
+    <SettingsOptionSheet onClose={goBack}>
       <div className="w-full h-full overflow-hidden bg-[#111111] flex flex-col">
         <header className="flex items-center justify-center mb-2 px-4 pt-2">
           <h1 className="font-bold text-lg text-[#D4AF37]">Safety Center</h1>
@@ -18,13 +30,13 @@ export default function SafetyCenter() {
               icon={<Ban size={18} />}
               title="Blocked Accounts"
               description="Manage users you've blocked."
-              onClick={() => navigate('/settings/blocked')}
+              onClick={goBlocked}
             />
             <OptionRow
               icon={<Flag size={18} />}
               title="Report a Problem"
               description="Report users or content violating guidelines."
-              onClick={() => navigate('/report?type=support&id=support_ticket')}
+              onClick={goReport}
             />
           </Section>
 
@@ -33,13 +45,13 @@ export default function SafetyCenter() {
               icon={<Lock size={18} />}
               title="Account Privacy"
               description="Control who can see your content."
-              onClick={() => navigate('/edit-profile')}
+              onClick={goEditProfile}
             />
             <OptionRow
               icon={<Eye size={18} />}
               title="Data & Personalization"
               description="Manage how your data is used."
-              onClick={() => navigate('/privacy')}
+              onClick={goPrivacy}
             />
           </Section>
 
@@ -48,13 +60,13 @@ export default function SafetyCenter() {
               icon={<AlertTriangle size={18} />}
               title="Community Guidelines"
               description="Read what is allowed on Elix Star."
-              onClick={() => navigate('/guidelines')}
+              onClick={goGuidelines}
             />
             <OptionRow
               icon={<HelpCircle size={18} />}
               title="Safety Tips"
               description="Open online safety best practices."
-              onClick={() => navigate('/guidelines')}
+              onClick={goGuidelines}
             />
           </Section>
 
@@ -71,7 +83,7 @@ export default function SafetyCenter() {
               icon={<HelpCircle size={18} />}
               title="Contact Support"
               description="Send us a message and we will respond."
-              onClick={() => navigate('/support')}
+              onClick={goSupport}
             />
           </Section>
         </div>

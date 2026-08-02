@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { Target } from "lucide-react";
 import { EngagementShell } from "./EngagementShell";
-import { request } from "../../lib/apiClient";
 import { showToast } from "../../lib/toast";
+import {
+  apiEngagementMissionClaim,
+  apiEngagementMissions,
+} from "../../features/live/engagement/liveEngagementApi";
 
 type Mission = {
   id: string;
@@ -26,8 +29,8 @@ export default function EngagementMissions() {
   const load = async () => {
     setLoading(true);
     try {
-      const { data, error } = await request("/api/engagement/missions");
-      if (error) throw new Error(error.message);
+      const { data, error } = await apiEngagementMissions();
+      if (error) throw new Error(error);
       setMissions((data?.missions as Mission[]) || []);
     } catch {
       showToast("Could not load missions");
@@ -44,11 +47,9 @@ export default function EngagementMissions() {
     if (claiming) return;
     setClaiming(id);
     try {
-      const { error } = await request(`/api/engagement/missions/${id}/claim`, {
-        method: "POST",
-      });
+      const { error } = await apiEngagementMissionClaim(id);
       if (error) {
-        showToast(error.message || "Claim failed");
+        showToast(error || "Claim failed");
         return;
       }
       showToast("Reward claimed");

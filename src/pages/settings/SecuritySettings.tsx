@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronRight, KeyRound, Shield } from "lucide-react";
 import SettingsOptionSheet from "../../components/SettingsOptionSheet";
@@ -7,8 +7,13 @@ import { isPasswordResetEnabled } from "../../lib/authFeatures";
 export default function SecuritySettings() {
   const navigate = useNavigate();
   const showReset = isPasswordResetEnabled();
+
+  const goBack = useCallback(() => navigate(-1), [navigate]);
+  const goForgotPassword = useCallback(() => navigate("/forgot-password"), [navigate]);
+  const goBlocked = useCallback(() => navigate("/settings/blocked"), [navigate]);
+
   return (
-    <SettingsOptionSheet onClose={() => navigate(-1)}>
+    <SettingsOptionSheet onClose={goBack}>
       <div className="w-full h-full overflow-hidden bg-[#111111] flex flex-col">
         <header className="flex items-center justify-center mb-2 px-4 pt-2">
           <h1 className="font-bold text-lg text-[#D4AF37]">Security</h1>
@@ -19,7 +24,7 @@ export default function SecuritySettings() {
               icon={<KeyRound size={18} />}
               title="Password"
               description="Reset your password via email."
-              onClick={() => navigate("/forgot-password")}
+              onClick={goForgotPassword}
             />
           ) : (
             <p className="text-xs text-white/40 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
@@ -31,7 +36,7 @@ export default function SecuritySettings() {
             icon={<Shield size={18} />}
             title="Blocked accounts"
             description="Manage people you have blocked."
-            onClick={() => navigate("/settings/blocked")}
+            onClick={goBlocked}
           />
           <p className="text-xs text-white/40 pt-2">
             Two-factor authentication is not available yet.

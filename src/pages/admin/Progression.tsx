@@ -1,7 +1,20 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Coins, ShieldCheck, Sparkles } from "lucide-react";
-import { request } from "../../lib/apiClient";
+import {
+  apiAdminProgressionAdjust,
+  apiAdminProgressionArchiveMission,
+  apiAdminProgressionLoadConfig,
+  apiAdminProgressionLoadEngagementAdmin,
+  apiAdminProgressionLoadUser,
+  apiAdminProgressionSaveBattleEnergyCaps,
+  apiAdminProgressionSaveConfig,
+  apiAdminProgressionSaveDailyPolicy,
+  apiAdminProgressionSaveDailyReward,
+  apiAdminProgressionSaveLevel,
+  apiAdminProgressionSaveMission,
+  apiAdminProgressionToggleFeatureFlag,
+} from "../../features/admin/adminApi";
 import { showToast } from "../../lib/toast";
 
 interface XpConfig {
@@ -26,6 +39,7 @@ interface Progression {
 
 export default function AdminProgression() {
   const navigate = useNavigate();
+  const goAdmin = useCallback(() => navigate("/admin"), [navigate]);
   const [config, setConfig] = useState<XpConfig[]>([]);
   const [levels, setLevels] = useState<LevelRequirement[]>([]);
   const [userId, setUserId] = useState("");
@@ -109,40 +123,35 @@ export default function AdminProgression() {
   >([]);
 
   const loadEngagementAdmin = async () => {
-    const [flagsRes, missionsRes, dailyRes, capsRes, auditRes] =
-      await Promise.all([
-        request("/api/admin/progression/feature-flags"),
-        request("/api/admin/progression/missions"),
-        request("/api/admin/progression/daily-rewards"),
-        request("/api/admin/progression/battle-energy-caps"),
-        request("/api/admin/progression/audit-history?limit=30"),
-      ]);
-    if (flagsRes.data?.flags) {
-      setEngagementFlags(flagsRes.data.flags as Record<string, boolean>);
+    const data = await apiAdminProgressionLoadEngagementAdmin();
+    if (data.flags) {
+      setEngagementFlags(data.flags);
     }
-    if (Array.isArray(flagsRes.data?.rows)) {
-      setFlagRows(flagsRes.data.rows);
+    if (Array.isArray(data.rows)) {
+      setFlagRows(data.rows as typeof flagRows);
     }
-    if (Array.isArray(missionsRes.data?.missions)) {
-      setMissions(missionsRes.data.missions);
+    if (Array.isArray(data.missions)) {
+      setMissions(data.missions as typeof missions);
     }
-    if (Array.isArray(dailyRes.data?.rewards)) {
-      setDailyRewards(dailyRes.data.rewards);
+    if (Array.isArray(data.rewards)) {
+      setDailyRewards(data.rewards as typeof dailyRewards);
     }
-    if (dailyRes.data?.policy) {
-      const p = dailyRes.data.policy;
+    if (data.policy) {
+      const p = data.policy;
       setDailyPolicy({
-        streak_reset_policy: p.streak_reset_policy || "miss_one_day",
-        effective_start: p.effective_start || "",
-        effective_end: p.effective_end || "",
+        streak_reset_policy: String(p.streak_reset_policy || "miss_one_day") as
+          | "miss_one_day"
+          | "never",
+        effective_start: String(p.effective_start || ""),
+        effective_end: String(p.effective_end || ""),
         active: p.active !== false,
       });
     }
-    if (capsRes.data?.caps) {
-      setEnergyCaps((prev) => ({ ...prev, ...capsRes.data.caps }));
+    if (data.caps) {
+      setEnergyCaps((prev) => ({ ...prev, ...data.caps }));
     }
-    if (Array.isArray(auditRes.data?.entries)) {
-      setAuditEntries(auditRes.data.entries);
+    if (Array.isArray(data.entries)) {
+      setAuditEntries(data.entries as typeof auditEntries);
     }
   };
 
@@ -152,31 +161,23 @@ export default function AdminProgression() {
   }, []);
 
   const loadConfig = async () => {
-    const [configRes, levelsRes] = await Promise.all([
-      request("/api/admin/progression/config"),
-      request("/api/admin/progression/levels"),
-    ]);
-    if (configRes.error || levelsRes.error) {
-      showToast(
-        configRes.error?.message ||
-          levelsRes.error?.message ||
-          "Failed to load progression controls",
-      );
+    const data = await apiAdminProgressionLoadConfig();
+    if (data.error) {
+      showToast(data.error || "Failed to load progression controls");
       return;
     }
-    setConfig(configRes.data?.config || []);
-    setLevels(levelsRes.data?.levels || []);
+    setConfig(data.config as XpConfig[]);
+    setLevels(data.levels as LevelRequirement[]);
   };
 
   const saveConfig = async (row: XpConfig) => {
     setBusy(true);
     try {
-      const { error } = await request("/api/admin/progression/config", {
-        method: "PATCH",
-        body: JSON.stringify(row),
-      });
+      const { error } = await apiAdminProgressionSaveConfig(
+        row as unknown as Record<string, unknown>,
+      );
       if (error) {
-        showToast(error.message);
+        showToast(error);
         return;
       }
       showToast("XP reward updated");
@@ -189,12 +190,11 @@ export default function AdminProgression() {
   const saveLevel = async (row: LevelRequirement) => {
     setBusy(true);
     try {
-      const { error } = await request("/api/admin/progression/levels", {
-        method: "PUT",
-        body: JSON.stringify(row),
-      });
+      const { error } = await apiAdminProgressionSaveLevel(
+        row as unknown as Record<string, unknown>,
+      );
       if (error) {
-        showToast(error.message);
+        showToast(error);
         return;
       }
       showToast("Level requirement updated");
@@ -206,16 +206,15 @@ export default function AdminProgression() {
 
   const loadUser = async () => {
     if (!userId.trim()) return;
-    const { data, error } = await request(
-      `/api/admin/progression/users/${encodeURIComponent(userId.trim())}`,
-    );
+    const { progression, xp_history, starter_history, error } =
+      await apiAdminProgressionLoadUser(userId.trim());
     if (error) {
-      showToast(error.message);
+      showToast(error);
       return;
     }
-    setUserProgression(data?.progression || null);
-    setXpHistory(data?.xp_history || []);
-    setStarterHistory(data?.starter_history || []);
+    setUserProgression((progression as unknown as Progression | null) || null);
+    setXpHistory(xp_history as Array<Record<string, unknown>>);
+    setStarterHistory(starter_history as Array<Record<string, unknown>>);
   };
 
   const adjust = async (kind: "xp" | "starter") => {
@@ -228,20 +227,14 @@ export default function AdminProgression() {
     try {
       const endpoint =
         kind === "xp" ? "xp-adjustments" : "starter-adjustments";
-      const { error } = await request(
-        `/api/admin/progression/${endpoint}`,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            user_id: userId.trim(),
-            amount_delta: amount,
-            reason: adjustment.reason.trim(),
-            idempotency_key: crypto.randomUUID(),
-          }),
-        },
-      );
+      const { error } = await apiAdminProgressionAdjust(endpoint, {
+        user_id: userId.trim(),
+        amount_delta: amount,
+        reason: adjustment.reason.trim(),
+        idempotency_key: crypto.randomUUID(),
+      });
       if (error) {
-        showToast(error.message);
+        showToast(error);
         return;
       }
       showToast(kind === "xp" ? "XP adjusted" : "Starter Coins adjusted");
@@ -265,7 +258,7 @@ export default function AdminProgression() {
           </h1>
           <button
             type="button"
-            onClick={() => navigate("/admin")}
+            onClick={goAdmin}
             className="text-sm text-white/60"
           >
             Back
@@ -319,24 +312,20 @@ export default function AdminProgression() {
                           window.prompt("Reason for flag change (optional):") ||
                           "";
                         setBusy(true);
-                        const { data, error } = await request(
-                          "/api/admin/progression/feature-flags",
-                          {
-                            method: "PATCH",
-                            body: JSON.stringify({
-                              [k]: !v,
-                              reason,
-                              ...(highImpact ? { confirm: true } : {}),
-                            }),
-                          },
-                        );
+                        const { flags, rows, error } =
+                          await apiAdminProgressionToggleFeatureFlag({
+                            [k]: !v,
+                            reason,
+                            ...(highImpact ? { confirm: true } : {}),
+                          });
                         setBusy(false);
                         if (error) {
-                          showToast(error.message);
+                          showToast(error);
                           return;
                         }
-                        if (data?.flags) setEngagementFlags(data.flags);
-                        if (Array.isArray(data?.rows)) setFlagRows(data.rows);
+                        if (flags) setEngagementFlags(flags);
+                        if (Array.isArray(rows))
+                          setFlagRows(rows as typeof flagRows);
                         showToast("Flag updated");
                       })();
                     }}
@@ -499,23 +488,18 @@ export default function AdminProgression() {
                     onClick={() => {
                       void (async () => {
                         setBusy(true);
-                        const { error } = await request(
-                          `/api/admin/progression/missions/${encodeURIComponent(m.id)}`,
-                          {
-                            method: "PATCH",
-                            body: JSON.stringify({
-                              goal_count: m.goal_count,
-                              reward_xp: m.reward_xp,
-                              reward_promo_coins: m.reward_promo_coins,
-                              reward_energy: m.reward_energy,
-                              enabled: m.enabled,
-                              audience: m.audience || "all_authenticated",
-                              sort_order: m.sort_order,
-                            }),
-                          },
-                        );
+                        const { error } =
+                          await apiAdminProgressionSaveMission(m.id, {
+                            goal_count: m.goal_count,
+                            reward_xp: m.reward_xp,
+                            reward_promo_coins: m.reward_promo_coins,
+                            reward_energy: m.reward_energy,
+                            enabled: m.enabled,
+                            audience: m.audience || "all_authenticated",
+                            sort_order: m.sort_order,
+                          });
                         setBusy(false);
-                        if (error) showToast(error.message);
+                        if (error) showToast(error);
                         else showToast("Mission saved");
                       })();
                     }}
@@ -530,12 +514,11 @@ export default function AdminProgression() {
                       void (async () => {
                         if (!window.confirm(`Archive mission ${m.id}?`)) return;
                         setBusy(true);
-                        const { error } = await request(
-                          `/api/admin/progression/missions/${encodeURIComponent(m.id)}/archive`,
-                          { method: "POST", body: "{}" },
+                        const { error } = await apiAdminProgressionArchiveMission(
+                          m.id,
                         );
                         setBusy(false);
-                        if (error) showToast(error.message);
+                        if (error) showToast(error);
                         else {
                           showToast("Mission archived");
                           void loadEngagementAdmin();
@@ -614,15 +597,11 @@ export default function AdminProgression() {
                   onClick={() => {
                     void (async () => {
                       setBusy(true);
-                      const { error } = await request(
-                        "/api/admin/progression/daily-rewards",
-                        {
-                          method: "PUT",
-                          body: JSON.stringify(r),
-                        },
+                      const { error } = await apiAdminProgressionSaveDailyReward(
+                        r as unknown as Record<string, unknown>,
                       );
                       setBusy(false);
-                      if (error) showToast(error.message);
+                      if (error) showToast(error);
                       else showToast("Daily reward saved");
                     })();
                   }}
@@ -695,20 +674,14 @@ export default function AdminProgression() {
             onClick={() => {
               void (async () => {
                 setBusy(true);
-                const { error } = await request(
-                  "/api/admin/progression/daily-rewards/policy",
-                  {
-                    method: "PUT",
-                    body: JSON.stringify({
-                      streak_reset_policy: dailyPolicy.streak_reset_policy,
-                      active: dailyPolicy.active,
-                      effective_start: dailyPolicy.effective_start || null,
-                      effective_end: dailyPolicy.effective_end || null,
-                    }),
-                  },
-                );
+                const { error } = await apiAdminProgressionSaveDailyPolicy({
+                  streak_reset_policy: dailyPolicy.streak_reset_policy,
+                  active: dailyPolicy.active,
+                  effective_start: dailyPolicy.effective_start || null,
+                  effective_end: dailyPolicy.effective_end || null,
+                });
                 setBusy(false);
-                if (error) showToast(error.message);
+                if (error) showToast(error);
                 else showToast("Daily policy saved");
               })();
             }}
@@ -792,17 +765,14 @@ export default function AdminProgression() {
             onClick={() => {
               void (async () => {
                 setBusy(true);
-                const { data, error } = await request(
-                  "/api/admin/progression/battle-energy-caps",
-                  {
-                    method: "PUT",
-                    body: JSON.stringify(energyCaps),
-                  },
-                );
+                const { caps, error } =
+                  await apiAdminProgressionSaveBattleEnergyCaps(
+                    energyCaps as unknown as Record<string, unknown>,
+                  );
                 setBusy(false);
-                if (error) showToast(error.message);
+                if (error) showToast(error);
                 else {
-                  if (data?.caps) setEnergyCaps((prev) => ({ ...prev, ...data.caps }));
+                  if (caps) setEnergyCaps((prev) => ({ ...prev, ...caps }));
                   showToast("Energy caps saved");
                 }
               })();

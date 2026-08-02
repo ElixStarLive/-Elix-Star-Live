@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { RoyceBackIcon } from '../components/royce';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Upload, Play, Wand2, Download, Share2, Sparkles } from 'lucide-react';
@@ -18,18 +18,40 @@ export default function AIStudio() {
   const [toast, setToast] = useState('');
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2000); };
 
+  const goBack = useCallback(() => {
+    navigate(-1);
+  }, [navigate]);
+
+  const openFilePicker = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const openTools = useCallback(() => {
+    setShowTools(true);
+  }, []);
+
+  const closeTools = useCallback(() => {
+    setShowTools(false);
+  }, []);
+
+  const handleReset = useCallback(() => {
+    setFilterCss('none');
+    setEnhanceCss('none');
+    showToast('Reset');
+  }, []);
+
   const combinedFilter = [filterCss, enhanceCss].filter(f => f && f !== 'none').join(' ') || undefined;
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (videoUrl) URL.revokeObjectURL(videoUrl);
     const url = URL.createObjectURL(file);
     setVideoUrl(url);
     setIsPlaying(true);
-  };
+  }, [videoUrl]);
 
-  const togglePlayback = () => {
+  const togglePlayback = useCallback(() => {
     const v = videoRef.current;
     if (!v) return;
     if (v.paused) {
@@ -38,16 +60,16 @@ export default function AIStudio() {
       v.pause();
       setIsPlaying(false);
     }
-  };
+  }, []);
 
-  const handleAutoEnhance = () => {
+  const handleAutoEnhance = useCallback(() => {
     if (!videoRef.current) return;
     const settings = autoEnhance(videoRef.current);
     setEnhanceCss(enhanceSettingsToCss(settings));
     showToast('AI Auto-Enhanced');
-  };
+  }, []);
 
-  const handleExport = async () => {
+  const handleExport = useCallback(async () => {
     if (!videoRef.current || !canvasRef.current) {
       showToast('Load a video first');
       return;
@@ -76,7 +98,7 @@ export default function AIStudio() {
     } catch {
       showToast('Export failed');
     }
-  };
+  }, [combinedFilter]);
 
   return (
     <div className="h-full min-h-0 w-full bg-[#111111] text-white flex flex-col overflow-hidden">
@@ -98,7 +120,7 @@ export default function AIStudio() {
           <Wand2 size={15} className="text-[#D4AF37]" />
           <span className="text-white font-bold text-sm">AI Studio</span>
         </div>
-        <button onClick={() => navigate(-1)} className="p-1">
+        <button onClick={goBack} className="p-1">
           <RoyceBackIcon />
         </button>
       </header>
@@ -138,7 +160,7 @@ export default function AIStudio() {
             </div>
             <p className="text-white/50 text-sm text-center">Import a video to start editing with AI tools</p>
             <button
-              onClick={() => fileInputRef.current?.click()}
+              onClick={openFilePicker}
               className="px-6 py-3 rounded-full bg-[#D4AF37] text-black font-bold text-sm flex items-center gap-2"
             >
               <Upload size={16} /> Select Video
@@ -150,7 +172,7 @@ export default function AIStudio() {
       {/* Bottom Action Bar */}
       <div className="flex items-center justify-around px-4 py-3 border-t border-white/5 flex-shrink-0">
         <button
-          onClick={() => fileInputRef.current?.click()}
+          onClick={openFilePicker}
           className="flex flex-col items-center gap-1"
         >
           <Upload size={16} className="text-white/60" />
@@ -161,7 +183,7 @@ export default function AIStudio() {
           <span className="text-[10px] text-[#D4AF37]">Auto AI</span>
         </button>
         <button
-          onClick={() => setShowTools(true)}
+          onClick={openTools}
           className="flex flex-col items-center gap-1"
         >
           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#D4AF37] to-[#B8943F] flex items-center justify-center shadow-lg shadow-[#FFFFFF]/20">
@@ -169,7 +191,7 @@ export default function AIStudio() {
           </div>
           <span className="text-[10px] text-white/60">AI Tools</span>
         </button>
-        <button onClick={() => { setFilterCss('none'); setEnhanceCss('none'); showToast('Reset'); }} className="flex flex-col items-center gap-1">
+        <button onClick={handleReset} className="flex flex-col items-center gap-1">
           <ArrowLeft size={16} className="text-white/60 rotate-[135deg]" />
           <span className="text-[10px] text-white/40">Reset</span>
         </button>
@@ -181,14 +203,14 @@ export default function AIStudio() {
 
       <AIToolsPanel
         isOpen={showTools}
-        onClose={() => setShowTools(false)}
+        onClose={closeTools}
         videoUrl={videoUrl}
         videoRef={videoRef}
         onFilterChange={setFilterCss}
         onEnhanceChange={setEnhanceCss}
         onCaptionSelect={(caption) => { if (caption) showToast('Caption ready — copy it from AI Tools'); }}
-        onThumbnailSelect={() => { showToast('Thumbnail preview only — export uses the filtered frame'); }}
-        onVoiceEffectChange={() => { showToast('Voice preview only — not included in export yet'); }}
+        onThumbnailSelect={() => { showToast('Thumbnail uses the filtered frame on export'); }}
+        onVoiceEffectChange={() => { showToast('Voice preview — AI Studio exports the filtered frame only'); }}
       />
     </div>
   );

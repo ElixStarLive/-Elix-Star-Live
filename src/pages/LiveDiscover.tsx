@@ -2,14 +2,15 @@ import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react
 import { RoyceBackIcon } from '../components/royce';
 import { useNavigate } from 'react-router-dom';
 import { Radio, RefreshCw } from 'lucide-react';
-import { getWsUrl } from '../lib/api';
-import { request } from '../lib/apiClient';
 import { useAuthStore } from '../store/useAuthStore';
+import { apiLiveStreams, connectLiveFeedPresence } from '../lib/live';
+import { showToast } from '../lib/toast';
 import {
   isGenericLiveCreatorName,
   liveNameFromStreamFields,
   profileToLiveDisplay,
 } from '../lib/liveCreatorDisplay';
+import { apiFetchProfileById } from '../features/feed/feedApi';
 
 const InlineLiveViewer = React.lazy(() => import('../components/InlineLiveViewer'));
 
@@ -32,9 +33,9 @@ async function enrichLiveCreator(creator: LiveCreator): Promise<LiveCreator> {
   const needsAvatar = !creator.avatar || isUiAvatarsUrl(creator.avatar);
   if (!needsName && !needsAvatar) return creator;
   try {
-    const { data, error } = await request(`/api/profiles/${encodeURIComponent(creator.userId)}`);
-    if (error || !data) return creator;
-    const { name, avatar } = profileToLiveDisplay(data);
+    const { body, error } = await apiFetchProfileById(creator.userId);
+    if (error || !body) return creator;
+    const { name, avatar } = profileToLiveDisplay(body);
     if (!name && !avatar) return creator;
     return {
       ...creator,
@@ -52,6 +53,17 @@ async function enrichLiveCreator(creator: LiveCreator): Promise<LiveCreator> {
 
 export default function LiveDiscover() {
   const navigate = useNavigate();
+
+  const goFeed = useCallback(() => {
+    navigate('/feed');
+  }, [navigate]);
+
+  const openWatch = useCallback(
+    (creatorId: string) => {
+      navigate(`/watch/${creatorId}`);
+    },
+    [navigate],
+  );
   const [creators, setCreators] = useState<LiveCreator[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeIds, setActiveIds] = useState<Set<string>>(() => new Set());
@@ -63,23 +75,38 @@ export default function LiveDiscover() {
   const fetchLiveStreams = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await request('/api/live/streams');
-      if (error || !data) {
-        setCreators([]);
-        setLoading(false);
+      const { streams, error } = await apiLiveStreams();
+      if (error) {
+        // Keep prior lobby data — do not wipe to empty on a failed refresh.
+        showToast(error || 'Could not load live streams');
         return;
       }
 
-      const streams = Array.isArray(data.streams) ? data.streams : [];
       const removed = removedKeysRef.current;
 
       const mapped: LiveCreator[] = streams
-        .filter((s: { stream_key?: string; streamKey?: string; room_id?: string; roomId?: string; id: string }) => {
+        .filter((raw) => {
+          const s = raw as { stream_key?: string; streamKey?: string; room_id?: string; roomId?: string; id?: string };
           const key = s.stream_key ?? s.streamKey ?? s.room_id ?? s.roomId ?? s.id;
-          return key && !removed.has(key);
+          return !!key && !removed.has(key);
         })
-        .map((s: { stream_key?: string; streamKey?: string; room_id?: string; roomId?: string; id: string; user_id?: string; userId?: string; hostUserId?: string; title?: string; display_name?: string; displayName?: string; viewer_count?: number; viewerCount?: number }) => {
-          const id = s.stream_key ?? s.streamKey ?? s.room_id ?? s.roomId ?? s.id;
+        .map((raw) => {
+          const s = raw as {
+            stream_key?: string;
+            streamKey?: string;
+            room_id?: string;
+            roomId?: string;
+            id?: string;
+            user_id?: string;
+            userId?: string;
+            hostUserId?: string;
+            title?: string;
+            display_name?: string;
+            displayName?: string;
+            viewer_count?: number;
+            viewerCount?: number;
+          };
+          const id = s.stream_key ?? s.streamKey ?? s.room_id ?? s.roomId ?? s.id ?? '';
           const userId = s.user_id ?? s.userId ?? s.hostUserId ?? '';
           const name = liveNameFromStreamFields(
             s.title,
@@ -97,8 +124,9 @@ export default function LiveDiscover() {
         });
 
       setCreators(mapped);
-    } catch {
-      setCreators([]);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Could not load live streams';
+      showToast(msg);
     } finally {
       setLoading(false);
     }
@@ -184,88 +212,44 @@ export default function LiveDiscover() {
   // When a creator starts live, show them on this page immediately (same as For You feed); reconnect on close
   useEffect(() => {
     if (!token) return;
-    const url = `${getWsUrl()}/live/__feed__?token=${encodeURIComponent(token)}`;
-    let ws: WebSocket | null = null;
-    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-    let reconnectAttempt = 0;
-    let cancelled = false;
-
-    function connect() {
-      if (cancelled) return;
-      try {
-        ws = new WebSocket(url);
-      } catch {
-        reconnectAttempt++;
-        const base = 1000 * Math.pow(2, Math.min(reconnectAttempt - 1, 8));
-        const delay = Math.min(30_000, base + Math.floor(Math.random() * 400));
-        reconnectTimer = setTimeout(connect, delay);
-        return;
-      }
-      ws.onmessage = (evt) => {
-        try {
-          const msg = JSON.parse(evt.data);
-          const event = msg?.event;
-          const data = msg?.data || {};
-          if (event === 'stream_started') {
-            const key = (data.stream_key ?? data.room_id) as string;
-            if (!key || removedKeysRef.current.has(key)) return;
-            const userId = (data.user_id ?? '') as string;
-            const name = liveNameFromStreamFields(
-              data.title,
-              data.display_name ?? data.displayName,
-              userId,
-            );
-            const nextCreator: LiveCreator = {
-              id: key,
-              userId: userId || undefined,
-              name,
-              avatar: undefined,
-              viewers: 0,
-              title: typeof data.title === 'string' ? data.title : name,
-            };
-            setCreators((prev) => {
-              if (prev.some((c) => c.id === key)) return prev;
-              return [nextCreator, ...prev];
-            });
-            void enrichLiveCreator(nextCreator).then((enriched) => {
-              if (
-                enriched.name === nextCreator.name &&
-                enriched.avatar === nextCreator.avatar &&
-                enriched.title === nextCreator.title
-              ) {
-                return;
-              }
-              setCreators((prev) => prev.map((c) => (c.id === key ? enriched : c)));
-            });
-          } else if (event === 'stream_ended') {
-            const key = (data.stream_key ?? data.room_id) as string;
-            if (key) removeLiveStream(key);
+    return connectLiveFeedPresence(token, {
+      onStreamStarted: (data) => {
+        const key = (data.stream_key ?? data.room_id) as string;
+        if (!key || removedKeysRef.current.has(key)) return;
+        const userId = (data.user_id ?? '') as string;
+        const name = liveNameFromStreamFields(
+          data.title as string | undefined,
+          (data.display_name ?? data.displayName) as string | undefined,
+          userId,
+        );
+        const nextCreator: LiveCreator = {
+          id: key,
+          userId: userId || undefined,
+          name,
+          avatar: undefined,
+          viewers: 0,
+          title: typeof data.title === 'string' ? data.title : name,
+        };
+        setCreators((prev) => {
+          if (prev.some((c) => c.id === key)) return prev;
+          return [nextCreator, ...prev];
+        });
+        void enrichLiveCreator(nextCreator).then((enriched) => {
+          if (
+            enriched.name === nextCreator.name &&
+            enriched.avatar === nextCreator.avatar &&
+            enriched.title === nextCreator.title
+          ) {
+            return;
           }
-        } catch {
-          /* ignore */
-        }
-      };
-      ws.onopen = () => {
-        reconnectAttempt = 0;
-      };
-      ws.onclose = () => {
-        ws = null;
-        if (!cancelled) {
-          reconnectAttempt++;
-          const base = 1000 * Math.pow(2, Math.min(reconnectAttempt - 1, 8));
-          const delay = Math.min(30_000, base + Math.floor(Math.random() * 400));
-          reconnectTimer = setTimeout(connect, delay);
-        }
-      };
-    }
-    connect();
-    return () => {
-      cancelled = true;
-      if (reconnectTimer) clearTimeout(reconnectTimer);
-      try {
-        if (ws) ws.close();
-      } catch { /* intentionally empty */ }
-    };
+          setCreators((prev) => prev.map((c) => (c.id === key ? enriched : c)));
+        });
+      },
+      onStreamEnded: (data) => {
+        const key = (data.stream_key ?? data.room_id) as string;
+        if (key) removeLiveStream(key);
+      },
+    });
   }, [token, removeLiveStream]);
 
   const setCardRef = useCallback((id: string, el: HTMLDivElement | null) => {
@@ -307,7 +291,7 @@ export default function LiveDiscover() {
         </h1>
         <button
           type="button"
-          onClick={() => navigate('/feed')}
+          onClick={goFeed}
           className="p-1"
           title="Back"
         >
@@ -350,7 +334,7 @@ export default function LiveDiscover() {
                   ) : (
                     <button
                       type="button"
-                      onClick={() => navigate(`/watch/${c.id}`)}
+                      onClick={() => openWatch(c.id)}
                       className="absolute inset-0 w-full h-full"
                       aria-label={`Watch ${c.name}`}
                     >

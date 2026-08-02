@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Trophy,
@@ -12,8 +12,8 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { RoyceBackIcon } from "../../components/royce";
-import { request } from "../../lib/apiClient";
 import { showToast } from "../../lib/toast";
+import { apiEngagementHub } from "../../features/live/engagement/liveEngagementApi";
 
 type Hub = {
   promotional_coins: number;
@@ -84,12 +84,16 @@ export default function EngagementHub() {
   const [hub, setHub] = useState<Hub | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const goBack = useCallback(() => navigate(-1), [navigate]);
+  const goDailyLogin = useCallback(() => navigate("/engagement/daily-login"), [navigate]);
+  const openEngagementPath = useCallback((path: string) => navigate(path), [navigate]);
+
   useEffect(() => {
     void (async () => {
       setLoading(true);
       try {
-        const { data, error } = await request("/api/engagement/hub");
-        if (error) throw new Error(error.message);
+        const { data, error } = await apiEngagementHub();
+        if (error) throw new Error(error);
         setHub((data?.hub as Hub) || null);
       } catch {
         showToast("Could not load Engagement Hub");
@@ -112,7 +116,7 @@ export default function EngagementHub() {
           >
             <button
               type="button"
-              onClick={() => navigate(-1)}
+              onClick={goBack}
               className="p-1"
               aria-label="Back"
             >
@@ -160,7 +164,7 @@ export default function EngagementHub() {
                 {hub?.daily_login?.can_claim ? (
                   <button
                     type="button"
-                    onClick={() => navigate("/engagement/daily-login")}
+                    onClick={goDailyLogin}
                     className="mt-3 w-full rounded-xl bg-[#C9A227]/20 border border-[#C9A227]/40 py-2 text-xs font-semibold text-[#C9A227]"
                   >
                     Claim daily login · Day {hub.daily_login.streak_day}
@@ -175,7 +179,7 @@ export default function EngagementHub() {
                     <button
                       key={item.path}
                       type="button"
-                      onClick={() => navigate(item.path)}
+                      onClick={() => openEngagementPath(item.path)}
                       className="w-full flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3 text-left active:bg-white/5"
                     >
                       <span className="royce-glow-disc shrink-0 flex items-center justify-center w-9 h-9">

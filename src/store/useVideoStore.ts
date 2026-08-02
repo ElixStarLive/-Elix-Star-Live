@@ -1,17 +1,30 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useAuthStore } from './useAuthStore';
-import { request } from '../lib/apiClient';
 import {
   refreshVideoFypStatus,
 } from '../lib/fypEligibility';
 import {
-  fetchForYouFeed,
   trackLike,
   trackComment,
   trackShare,
   trackFollow,
 } from '../lib/interactionTracker';
+import {
+  apiDeleteVideo,
+  apiDeleteVideoComment,
+  apiFetchAllVideos,
+  apiFetchFollowingIds,
+  apiFetchForYouFeed,
+  apiFetchFriendsFeed,
+  apiFetchVideoById,
+  apiPostVideoComment,
+  apiToggleCommentLike,
+  apiToggleFollow,
+  apiToggleVideoLike,
+  apiToggleVideoSave,
+  apiTrackFeedView,
+} from '../features/feed/feedApi';
 import { showToast } from '../lib/toast';
 import { getVideoPosterUrl, resolveVideoPlaybackUrl } from '../lib/bunnyStorage';
 import { resolveSoundTrackPlaybackUrl } from '../lib/soundLibrary';
@@ -282,8 +295,8 @@ export const useVideoStore = create<VideoStore>()(
         if (!id) return false;
         if (get().getVideoById(id)) return true;
         try {
-          const { data: raw, error } = await request(`/api/videos/${encodeURIComponent(id)}`);
-          if (error) return false;
+          const { video: raw, error } = await apiFetchVideoById(id);
+          if (error || !raw) return false;
           const url = raw?.url != null ? String(raw.url).trim() : '';
           if (!url) return false;
           const { likedVideos, savedVideos, followingUsers } = get();
@@ -311,15 +324,14 @@ export const useVideoStore = create<VideoStore>()(
         const doFetch = async () => {
         set({ loading: true });
         try {
-          const pageJson = await withRetry(() => fetchForYouFeed(1, 50));
+          const pageJson = await withRetry(() => apiFetchForYouFeed(1, 50));
           const apiVideos = Array.isArray(pageJson?.videos) ? pageJson.videos : [];
           const mutualFromApi = Array.isArray(pageJson?.mutualUserIds) ? pageJson.mutualUserIds : [];
           const authUser = useAuthStore.getState().user;
           if (authUser?.id) {
             try {
-              const { data: followBody, error: followError } = await request(`/api/profiles/${encodeURIComponent(authUser.id)}/following`);
+              const { following: ids, error: followError } = await apiFetchFollowingIds(authUser.id);
               if (!followError) {
-                const ids: string[] = Array.isArray(followBody?.following) ? followBody.following : [];
                 set({ followingUsers: ids });
               }
             } catch {
@@ -372,12 +384,11 @@ export const useVideoStore = create<VideoStore>()(
           const savedSet = new Set(savedVideos);
           const followingSet = new Set(followingUsers);
 
-          const { data: body, error } = await request('/api/videos');
+          const { videos: rawList, error } = await apiFetchAllVideos();
           if (error) {
             set({ stemVideos: [], stemLoading: false });
             return;
           }
-          const rawList = Array.isArray(body?.videos) ? body.videos : [];
           const eligible = rawList.filter((v: { privacy?: string; url?: string }) => {
             if (v.privacy === 'private') return false;
             return !!(v.url || '').toString().trim();
@@ -413,21 +424,19 @@ export const useVideoStore = create<VideoStore>()(
           }
 
           // First load who we follow so followingUsers is up to date
-          const { data: followBody } = await request(`/api/profiles/${authUser.id}/following`);
-          if (followBody) {
-            const ids: string[] = Array.isArray(followBody?.following) ? followBody.following : [];
+          const { following: ids, error: followListErr } = await apiFetchFollowingIds(authUser.id);
+          if (!followListErr) {
             set({ followingUsers: ids });
           }
 
           /* Server unions following ∪ followers; do not skip when following list is empty */
           const { followingUsers } = get();
 
-          const { data: body, error } = await request('/api/feed/friends');
+          const { videos: apiVideos, error } = await apiFetchFriendsFeed();
           if (error) {
             set({ friendsLoading: false });
             return;
           }
-          const apiVideos = Array.isArray(body?.videos) ? body.videos : [];
           if (apiVideos.length === 0) {
             set({ friendVideos: [], friendsLoading: false });
             return;
@@ -473,12 +482,10 @@ export const useVideoStore = create<VideoStore>()(
             throw new Error('Please sign in to delete videos.');
           }
 
-          const { error } = await request(`/api/videos/${videoId}`, {
-            method: 'DELETE',
-          });
+          const { ok, error } = await apiDeleteVideo(videoId);
 
-          if (error) {
-            throw new Error(error.message || 'Failed to delete video');
+          if (!ok || error) {
+            throw new Error(error || 'Failed to delete video');
           }
 
           set((s) => ({ videos: s.videos.filter((v) => v.id !== videoId), friendVideos: s.friendVideos.filter((v) => v.id !== videoId) }));
@@ -518,10 +525,15 @@ export const useVideoStore = create<VideoStore>()(
 
         likeInFlight.add(videoId);
         try {
-          const { error } = await request(wasLiked ? `/api/videos/${videoId}/unlike` : `/api/videos/${videoId}/like`, { method: 'POST' });
-          if (error) throw new Error('Like failed');
+          const { ok, error } = await apiToggleVideoLike(videoId, wasLiked);
+          if (!ok || error) throw new Error('Like failed');
 
-          if (!wasLiked) trackLike(videoId).catch(() => {});
+          // Analytics best-effort — like already succeeded on the server.
+          if (!wasLiked) {
+            void trackLike(videoId).catch(() => {
+              /* non-critical analytics */
+            });
+          }
           await refreshVideoFypStatus(videoId, updatedStats);
         } catch {
           const originalLikes = video.stats.likes;
@@ -534,6 +546,7 @@ export const useVideoStore = create<VideoStore>()(
             likedVideos: wasLiked ? [...s.likedVideos, videoId] : s.likedVideos.filter(id => id !== videoId),
           }));
           publishVideoCollection({ type: 'liked', videoId, liked: wasLiked });
+          showToast(wasLiked ? 'Couldn’t unlike. Please try again.' : 'Couldn’t like. Please try again.');
         } finally {
           likeInFlight.delete(videoId);
         }
@@ -573,8 +586,8 @@ export const useVideoStore = create<VideoStore>()(
 
         saveInFlight.add(videoId);
         try {
-          const { error: saveError } = await request(wasSaved ? `/api/videos/${videoId}/unsave` : `/api/videos/${videoId}/save`, { method: 'POST' });
-          if (saveError) throw new Error('Save failed');
+          const { ok, error: saveError } = await apiToggleVideoSave(videoId, wasSaved);
+          if (!ok || saveError) throw new Error('Save failed');
         } catch {
           const originalSaves = video.stats.saves || 0;
           const revert = (v: Video) => v.id === videoId
@@ -586,6 +599,7 @@ export const useVideoStore = create<VideoStore>()(
             savedVideos: wasSaved ? [...s.savedVideos, videoId] : s.savedVideos.filter(id => id !== videoId),
           }));
           publishVideoCollection({ type: 'saved', videoId, saved: wasSaved });
+          showToast(wasSaved ? 'Couldn’t unsave. Please try again.' : 'Couldn’t save. Please try again.');
         } finally {
           saveInFlight.delete(videoId);
         }
@@ -652,9 +666,14 @@ export const useVideoStore = create<VideoStore>()(
         });
 
         try {
-          const { error: followError } = await request(wasFollowing ? `/api/profiles/${userId}/unfollow` : `/api/profiles/${userId}/follow`, { method: 'POST' });
-          if (followError) throw new Error('Follow request failed');
-          if (!wasFollowing) trackFollow(userId).catch(() => {});
+          const { ok, error: followError } = await apiToggleFollow(userId, wasFollowing);
+          if (!ok || followError) throw new Error('Follow request failed');
+          // Analytics best-effort — follow already succeeded on the server.
+          if (!wasFollowing) {
+            void trackFollow(userId).catch(() => {
+              /* non-critical analytics */
+            });
+          }
         } catch {
           revert();
           showToast('Couldn’t follow. Please try again.');
@@ -674,19 +693,26 @@ export const useVideoStore = create<VideoStore>()(
         const video = state.getVideoById(videoId);
         if (!video) return;
 
-        const newShares = video.stats.shares + 1;
+        const prevShares = video.stats.shares;
+        const newShares = prevShares + 1;
         const updatedStats = { ...video.stats, shares: newShares };
         const shareUpdate = (v: Video) => v.id === videoId ? { ...v, stats: updatedStats } : v;
+        const revertShare = (v: Video) =>
+          v.id === videoId ? { ...v, stats: { ...v.stats, shares: prevShares } } : v;
         set({
           videos: state.videos.map(shareUpdate),
           friendVideos: state.friendVideos.map(shareUpdate),
         });
 
         try {
-          trackShare(videoId).catch(() => {});
+          await trackShare(videoId);
           await refreshVideoFypStatus(videoId, updatedStats);
         } catch {
-          /* ignored */
+          set((s) => ({
+            videos: s.videos.map(revertShare),
+            friendVideos: s.friendVideos.map(revertShare),
+          }));
+          showToast('Couldn’t record share. Please try again.');
         }
       },
 
@@ -723,15 +749,16 @@ export const useVideoStore = create<VideoStore>()(
         });
 
         try {
-          const { data: body, error: commentError } = await request(`/api/videos/${videoId}/comments`, {
-            method: 'POST',
-            body: JSON.stringify({ text: commentData.text, parentId: (commentData as { parentId?: string }).parentId || null }),
-          });
+          const { comment, error: commentError } = await apiPostVideoComment(
+            videoId,
+            commentData.text,
+            (commentData as { parentId?: string }).parentId || null,
+          );
 
           if (commentError) throw new Error('Comment failed');
 
-          if (body?.comment?.id) {
-            const realId = body.comment.id;
+          if (comment?.id) {
+            const realId = String(comment.id);
             const commentIdUpdate = (v: Video) => v.id === videoId
               ? { ...v, comments: v.comments.map(c => c.id === tempId ? { ...c, id: realId } : c) }
               : v;
@@ -741,7 +768,10 @@ export const useVideoStore = create<VideoStore>()(
             }));
           }
 
-          trackComment(videoId, commentData.text).catch(() => {});
+          // Analytics best-effort — comment already succeeded on the server.
+          void trackComment(videoId, commentData.text).catch(() => {
+            /* non-critical analytics */
+          });
           await refreshVideoFypStatus(videoId, updatedStats);
         } catch {
           /* revert optimistic update on failure */
@@ -753,25 +783,45 @@ export const useVideoStore = create<VideoStore>()(
               ? { ...v, comments: v.comments.filter(c => c.id !== tempId), stats: { ...v.stats, comments: Math.max(0, v.stats.comments - 1) } }
               : v),
           }));
+          showToast('Couldn’t post comment. Please try again.');
         }
       },
 
       deleteComment: async (videoId, commentId) => {
-        const commentDelUpdate = (video: Video) => video.id === videoId
+        const state = get();
+        const video = state.getVideoById(videoId);
+        if (!video) return;
+        const removed = video.comments.find((c) => c.id === commentId);
+        if (!removed) return;
+
+        const commentDelUpdate = (v: Video) => v.id === videoId
           ? {
-              ...video,
-              comments: video.comments.filter(c => c.id !== commentId),
-              stats: { ...video.stats, comments: Math.max(0, video.stats.comments - 1) }
+              ...v,
+              comments: v.comments.filter(c => c.id !== commentId),
+              stats: { ...v.stats, comments: Math.max(0, v.stats.comments - 1) }
             }
-          : video;
-        set((state) => ({
+          : v;
+        const revertDel = (v: Video) =>
+          v.id === videoId
+            ? {
+                ...v,
+                comments: [...v.comments, removed],
+                stats: { ...v.stats, comments: v.stats.comments + 1 },
+              }
+            : v;
+        set({
           videos: state.videos.map(commentDelUpdate),
           friendVideos: state.friendVideos.map(commentDelUpdate),
-        }));
+        });
         try {
-          await request(`/api/videos/${videoId}/comments/${commentId}`, { method: 'DELETE' });
+          const { ok, error } = await apiDeleteVideoComment(videoId, commentId);
+          if (!ok || error) throw new Error(error);
         } catch {
-          /* ignored */
+          set((s) => ({
+            videos: s.videos.map(revertDel),
+            friendVideos: s.friendVideos.map(revertDel),
+          }));
+          showToast('Couldn’t delete comment. Please try again.');
         }
       },
 
@@ -800,9 +850,27 @@ export const useVideoStore = create<VideoStore>()(
         }));
 
         const action = wasLiked ? 'unlike' : 'like';
+        const revertLike = (v: Video) =>
+          v.id === videoId
+            ? {
+                ...v,
+                comments: v.comments.map((c) =>
+                  c.id === commentId
+                    ? { ...c, isLiked: wasLiked, likes: wasLiked ? c.likes + 1 : c.likes - 1 }
+                    : c,
+                ),
+              }
+            : v;
         try {
-          await request(`/api/videos/${videoId}/comments/${commentId}/${action}`, { method: 'POST' });
-        } catch { /* best-effort */ }
+          const { ok, error } = await apiToggleCommentLike(videoId, commentId, action);
+          if (!ok || error) throw new Error(error);
+        } catch {
+          set((s) => ({
+            videos: s.videos.map(revertLike),
+            friendVideos: s.friendVideos.map(revertLike),
+          }));
+          showToast('Couldn’t update comment like. Please try again.');
+        }
       },
 
       // Analytics
@@ -820,10 +888,11 @@ export const useVideoStore = create<VideoStore>()(
         });
 
         try {
-          await request('/api/feed/track-view', { method: 'POST', body: JSON.stringify({ videoId }) }).catch(() => {});
+          await apiTrackFeedView(videoId);
+          // View tracking is best-effort; local count already updated for UX.
           await refreshVideoFypStatus(videoId, updatedStats);
         } catch {
-          /* ignored */
+          /* view analytics must not block feed */
         }
       },
 

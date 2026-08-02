@@ -1,14 +1,18 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { RoyceBackIcon } from '../components/royce';
 import { Send, ArrowLeft, Video, Play, Radio } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
-import { request } from '../lib/apiClient';
+import { fetchThreadMessages, sendThreadMessage } from '../lib/chatMessages';
+import { apiListChatThreads, apiMarkThreadRead } from '../features/chat/chatApi';
+import { websocket } from '../lib/websocket';
 import { LevelBadge } from '../components/LevelBadge';
 import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
 import { initiateCall } from '../lib/callService';
 import { showToast } from '../lib/toast';
 import { getVideoPosterUrl } from '../lib/bunnyStorage';
+import { apiFetchProfileById, apiFetchProfiles, apiFetchVideoById } from '../features/feed/feedApi';
+import { apiLiveStreams } from '../lib/live';
 
 interface Message {
   id: string;
@@ -90,10 +94,10 @@ function useLinkPreviews(messages: Message[]) {
 
     for (const item of toFetch) {
       if (item.type === 'profile') {
-        request(`/api/profiles/${encodeURIComponent(item.id)}`).then(({ data }) => {
-          if (!data) return;
+        apiFetchProfileById(item.id).then(({ body }) => {
+          if (!body) return;
           // API returns { profile: { username, displayName, avatarUrl } } (camelCase).
-          const p = (data as { profile?: Record<string, unknown> })?.profile ?? data;
+          const p = (body as { profile?: Record<string, unknown> })?.profile ?? body;
           const name =
             (typeof p.displayName === 'string' && p.displayName.trim()) ||
             (typeof p.username === 'string' && p.username.trim()) ||
@@ -105,17 +109,23 @@ function useLinkPreviews(messages: Message[]) {
           }));
         }).catch(() => {});
       } else if (item.type === 'video') {
-        request(`/api/videos/${encodeURIComponent(item.id)}`).then(({ data }) => {
-          if (!data) return;
-          const v = data.video || data;
+        apiFetchVideoById(item.id).then(({ video }) => {
+          if (!video) return;
+          const v = ((video as { video?: Record<string, unknown> }).video || video) as Record<string, unknown>;
           setPreviews(prev => ({
             ...prev,
             [item.key]: {
               type: 'video',
               id: item.id,
-              thumbnail: v.thumbnail_url || v.thumbnail || (v.url ? getVideoPosterUrl(v.url) : undefined),
-              username: v.user?.username || v.username || '',
-              description: v.description || '',
+              thumbnail:
+                (v.thumbnail_url as string | undefined) ||
+                (v.thumbnail as string | undefined) ||
+                ((v.url as string | undefined) ? getVideoPosterUrl(v.url as string) : undefined),
+              username:
+                ((v.user as { username?: string } | undefined)?.username as string | undefined) ||
+                (v.username as string | undefined) ||
+                '',
+              description: (v.description as string | undefined) || '',
             },
           }));
         }).catch(() => {});
@@ -147,20 +157,54 @@ export default function ChatThread() {
     return ['new', 'followers', 'likes', 'comments', 'mentions'].includes(threadId || '');
   }, [threadId]);
 
+  const goInbox = useCallback(() => {
+    navigate('/inbox');
+  }, [navigate]);
+
+  const handleVideoCall = useCallback(async () => {
+    if (!otherUser) return;
+    try {
+      const callId = await initiateCall({ id: otherUser.user_id, username: otherUser.username, avatar: otherUser.avatar_url || '' });
+      if (callId) navigate('/call');
+      else showToast('Could not start video call');
+    } catch {
+      showToast('Could not start video call');
+    }
+  }, [navigate, otherUser]);
+
+  const openWatchLive = useCallback((roomKey: string) => {
+    navigate(`/watch/${roomKey}`);
+  }, [navigate]);
+
+  const openProfile = useCallback((profileId: string) => {
+    navigate(`/profile/${profileId}`);
+  }, [navigate]);
+
+  const openVideo = useCallback((videoId: string) => {
+    navigate(`/video/${videoId}`);
+  }, [navigate]);
+
+  const openPreviewMedia = useCallback((preview: LinkPreview) => {
+    if (preview.type === 'video') openVideo(preview.id);
+    else openWatchLive(preview.id);
+  }, [openVideo, openWatchLive]);
+
+  const openAppLink = useCallback((path: string) => {
+    navigate(path);
+  }, [navigate]);
+
   // People currently live — shown as a horizontal scroll row at the top of the chat.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         const [profilesResult, liveResult] = await Promise.all([
-          request('/api/profiles'),
-          request('/api/live/streams').catch(() => ({ data: null })),
+          apiFetchProfiles(),
+          apiLiveStreams().catch(() => ({ streams: [], error: null })),
         ]);
         if (cancelled) return;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const streams = ((liveResult.data as any)?.streams || []) as any[];
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const profiles = ((profilesResult.data as any)?.profiles || []) as any[];
+        const streams = liveResult.streams as Record<string, unknown>[];
+        const profiles = profilesResult.profiles as Record<string, unknown>[];
         const byId = new Map(profiles.map((p) => [String(p.user_id || p.userId || ''), p]));
         const seen = new Set<string>();
         const list = streams
@@ -192,25 +236,27 @@ export default function ChatThread() {
     const load = async () => {
       try {
         const [msgsResult, threadsResult] = await Promise.all([
-          request(`/api/chat/threads/${threadId}/messages`),
-          request('/api/chat/threads'),
+          fetchThreadMessages(threadId),
+          apiListChatThreads(),
         ]);
 
-        if (msgsResult.data) {
-          const msgs = msgsResult.data.messages || msgsResult.data.data || [];
-          setMessages(msgs);
-          void request(`/api/chat/threads/${threadId}/read`, { method: 'POST' });
+        if (msgsResult.error) {
+          showToast(msgsResult.error);
+        } else {
+          setMessages(msgsResult.messages as Message[]);
+          void apiMarkThreadRead(threadId);
         }
 
-        if (threadsResult.data) {
-          const threadsList = threadsResult.data.threads || threadsResult.data.data || [];
-          const thread = threadsList.find((t: Record<string, unknown>) => t.id === threadId);
+        if (!threadsResult.error && threadsResult.threads.length > 0) {
+          const threadsList = threadsResult.threads;
+          const thread = threadsList.find((t) => t.id === threadId);
           if (thread) {
-            const other = thread.otherUser || {};
+            const row = thread as Record<string, unknown>;
+            const other = (row.otherUser ?? {}) as Record<string, unknown>;
             setOtherUser({
-              user_id: thread.user1_id === user?.id ? thread.user2_id : thread.user1_id,
-              username: other.display_name || other.username || thread.other_username || "User",
-              avatar_url: other.avatar_url || thread.other_avatar || null,
+              user_id: row.user1_id === user?.id ? String(row.user2_id ?? '') : String(row.user1_id ?? ''),
+              username: String(other.display_name ?? other.username ?? row.other_username ?? 'User'),
+              avatar_url: (other.avatar_url ?? row.other_avatar ?? null) as string | null,
             });
           }
         }
@@ -222,14 +268,39 @@ export default function ChatThread() {
     };
 
     load();
-    const interval = setInterval(async () => {
-      try {
-        const { data } = await request(`/api/chat/threads/${threadId}/messages`);
-        if (data) setMessages(data.messages || data.data || []);
-      } catch { /* intentionally empty */ }
-    }, 5000);
 
-    return () => clearInterval(interval);
+    const onDmMessage = (raw: unknown) => {
+      const data = (raw ?? {}) as { threadId?: string; message?: Message };
+      if (!data.threadId || data.threadId !== threadId || !data.message?.id) return;
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === data.message!.id)) return prev;
+        return [...prev, data.message!];
+      });
+      scrollToBottom();
+      void apiMarkThreadRead(threadId);
+    };
+    websocket.on('dm_message', onDmMessage);
+
+    // Slow fallback if WS presence is down (App keeps __feed__ connected when logged in).
+    let pollFailures = 0;
+    const interval = setInterval(async () => {
+      const { messages: next, error } = await fetchThreadMessages(threadId);
+      if (error) {
+        pollFailures += 1;
+        if (pollFailures >= 3) {
+          showToast('Chat connection issue — messages may be delayed');
+          pollFailures = 0;
+        }
+        return;
+      }
+      pollFailures = 0;
+      setMessages(next as Message[]);
+    }, 30000);
+
+    return () => {
+      websocket.off('dm_message', onDmMessage);
+      clearInterval(interval);
+    };
   }, [threadId, user?.id, isSystemThread]);
 
   const scrollToBottom = () => {
@@ -245,23 +316,16 @@ export default function ChatThread() {
     const msgText = draft.trim();
     setDraft('');
 
-    try {
-      const { data, error } = await request(`/api/chat/threads/${threadId}/messages`, {
-        method: 'POST',
-        body: JSON.stringify({ text: msgText }),
+    const { message, error } = await sendThreadMessage(threadId, msgText);
+    if (message) {
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === (message as Message).id)) return prev;
+        return [...prev, message as Message];
       });
-
-      if (!error && data) {
-        const newMsg = data.message || data.data || data;
-        setMessages(prev => [...prev, newMsg]);
-        scrollToBottom();
-      } else {
-        setDraft(msgText);
-        showToast('Failed to send message');
-      }
-    } catch {
+      scrollToBottom();
+    } else {
       setDraft(msgText);
-      showToast('Failed to send message');
+      showToast(error || 'Failed to send message');
     }
   };
 
@@ -269,7 +333,7 @@ export default function ChatThread() {
     return (
       <div className="min-h-full min-h-0 flex flex-col bg-[#111111] text-white p-4">
         <header className="flex items-center gap-4 mb-4 flex-shrink-0">
-          <button type="button" onClick={() => navigate('/inbox')} className="p-1 rounded-lg active:bg-white/10" aria-label="Back to inbox">
+          <button type="button" onClick={goInbox} className="p-1 rounded-lg active:bg-white/10" aria-label="Back to inbox">
             <ArrowLeft />
           </button>
           <h1 className="font-bold text-lg capitalize">{threadId}</h1>
@@ -289,12 +353,7 @@ export default function ChatThread() {
             {otherUser && (
               <button
                 type="button"
-                onClick={async () => {
-                  try {
-                    const callId = await initiateCall({ id: otherUser.user_id, username: otherUser.username, avatar: otherUser.avatar_url || '' });
-                    if (callId) navigate('/call');
-                  } catch { /* auth or connection error */ }
-                }}
+                onClick={handleVideoCall}
                 className="p-2 rounded-full bg-[#111111] border border-[#C9A227]/40 hover:bg-[#C9A227]/10 transition-colors"
                 aria-label="Video call"
               >
@@ -313,7 +372,7 @@ export default function ChatThread() {
             <span className="flex-1 text-center font-bold text-lg">Chat</span>
           )}
           <div className="flex w-12 shrink-0 items-center justify-end">
-            <button type="button" onClick={() => navigate('/inbox')} className="p-1 rounded-lg active:bg-white/10" aria-label="Back to inbox">
+            <button type="button" onClick={goInbox} className="p-1 rounded-lg active:bg-white/10" aria-label="Back to inbox">
               <RoyceBackIcon />
             </button>
           </div>
@@ -326,7 +385,7 @@ export default function ChatThread() {
                 <button
                   key={u.roomKey}
                   type="button"
-                  onClick={() => navigate(`/watch/${u.roomKey}`)}
+                  onClick={() => openWatchLive(u.roomKey)}
                   className="flex-shrink-0 flex flex-col items-center gap-1"
                   style={{ width: 64, minWidth: 64 }}
                 >
@@ -362,7 +421,7 @@ export default function ChatThread() {
                   {preview && preview.type === 'profile' ? (
                     <button
                       type="button"
-                      onClick={() => navigate(`/profile/${preview.id}`)}
+                      onClick={() => openProfile(preview.id)}
                       className="flex items-center gap-2.5 active:scale-[0.98] transition-transform text-left"
                     >
                       <div className="w-14 h-14 rounded-lg overflow-hidden bg-black/20 flex-shrink-0">
@@ -383,10 +442,7 @@ export default function ChatThread() {
                     <div>
                       <button
                         type="button"
-                        onClick={() => {
-                          if (preview.type === 'video') navigate(`/video/${preview.id}`);
-                          else navigate(`/watch/${preview.id}`);
-                        }}
+                        onClick={() => openPreviewMedia(preview)}
                         className="w-full rounded-lg overflow-hidden mb-1.5 active:scale-[0.98] transition-transform text-left"
                       >
                         <div className="relative w-full aspect-video bg-black/30 rounded-lg overflow-hidden">
@@ -418,7 +474,7 @@ export default function ChatThread() {
                       </span>
                     </div>
                   ) : (
-                    <MessageText text={m.text} isMe={isMe} navigate={navigate} />
+                    <MessageText text={m.text} isMe={isMe} navigate={openAppLink} />
                   )}
                 </div>
               </div>

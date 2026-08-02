@@ -13,13 +13,13 @@ import { X } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { getWsUrl } from '../lib/api';
-import { request } from '../lib/apiClient';
 import { StoryGoldRingAvatar } from './StoryGoldRingAvatar';
 import {
   isGenericLiveCreatorName,
   liveNameFromStreamFields,
   profileToLiveDisplay,
 } from '../lib/liveCreatorDisplay';
+import { apiFetchProfileById } from '../features/feed/feedApi';
 
 interface LiveBanner {
   room: string;
@@ -71,7 +71,7 @@ export function LiveNotifyBanner() {
       let avatar = '';
       if (uid && isGenericLiveCreatorName(name)) {
         try {
-          const { data: prof } = await request(`/api/profiles/${encodeURIComponent(uid)}`);
+          const { body: prof } = await apiFetchProfileById(uid);
           if (prof) {
             const d = profileToLiveDisplay(prof);
             name = d.name || name;
@@ -132,9 +132,13 @@ export function LiveNotifyBanner() {
     location.pathname.startsWith('/watch') ||
     location.pathname.startsWith('/create');
 
-  if (!banner || suppressed) return null;
+  const openLiveWatch = useCallback(() => {
+    if (!banner) return;
+    dismiss();
+    navigate(`/watch/${encodeURIComponent(banner.room)}`);
+  }, [banner, dismiss, navigate]);
 
-  const room = banner.room;
+  if (!banner || suppressed) return null;
 
   return (
     <div
@@ -144,10 +148,7 @@ export function LiveNotifyBanner() {
       <div className="pointer-events-auto w-full max-w-[480px] flex items-center gap-2 rounded-full bg-[#111111]/95 border border-[#C9A227]/40 pl-1.5 pr-2 py-1 shadow-[0_8px_30px_rgba(0,0,0,0.55)]">
         <button
           type="button"
-          onClick={() => {
-            dismiss();
-            navigate(`/watch/${encodeURIComponent(room)}`);
-          }}
+          onClick={openLiveWatch}
           className="flex-1 min-w-0 flex items-center gap-2 text-left active:scale-[0.99] transition-transform"
         >
           <StoryGoldRingAvatar size={26} src={banner.avatar} alt={banner.name} live />

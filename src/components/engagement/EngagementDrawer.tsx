@@ -13,7 +13,23 @@ import {
   IdCard,
 } from "lucide-react";
 import { RoyceBackIcon } from "../royce";
-import { request } from "../../lib/apiClient";
+import {
+  apiEngagementAchievements,
+  apiEngagementBattleEnergyBoost,
+  apiEngagementBattleEnergyFan,
+  apiEngagementCreatorCardsByCreator,
+  apiEngagementDailyLogin,
+  apiEngagementDailyLoginClaim,
+  apiEngagementFanLevel,
+  apiEngagementHub,
+  apiEngagementMissionClaim,
+  apiEngagementMissions,
+  apiEngagementMvp,
+  apiEngagementStickers,
+  apiEngagementTreasure,
+  apiEngagementTreasureOpen,
+  apiLiveEngagementWallet,
+} from "../../features/live/engagement/liveEngagementApi";
 import { showToast } from "../../lib/toast";
 import { engagementFlags } from "../../config/engagementFlags";
 
@@ -200,7 +216,7 @@ function HubBody({ onSelect }: { onSelect: (id: EngagementPanel) => void }) {
   } | null>(null);
 
   useEffect(() => {
-    void request("/api/engagement/hub").then(({ data }) => {
+    void apiEngagementHub().then(({ data }) => {
       setHub((data?.hub as typeof hub) || null);
     });
   }, []);
@@ -284,7 +300,7 @@ function MissionsBody() {
   const [claiming, setClaiming] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const { data } = await request("/api/engagement/missions");
+    const { data } = await apiEngagementMissions();
     setMissions((data?.missions as Mission[]) || []);
   }, []);
 
@@ -296,11 +312,9 @@ function MissionsBody() {
     if (claiming) return;
     setClaiming(id);
     try {
-      const { error } = await request(`/api/engagement/missions/${id}/claim`, {
-        method: "POST",
-      });
+      const { error } = await apiEngagementMissionClaim(id);
       if (error) {
-        showToast(error.message || "Claim failed");
+        showToast(error || "Claim failed");
         return;
       }
       showToast("Reward claimed");
@@ -376,7 +390,7 @@ function FanLevelBody() {
   } | null>(null);
 
   useEffect(() => {
-    void request("/api/engagement/fan-level").then(({ data }) => {
+    void apiEngagementFanLevel().then(({ data }) => {
       setFan((data?.fan_level as typeof fan) || null);
     });
   }, []);
@@ -437,7 +451,7 @@ function MvpBody() {
   const [viewerId, setViewerId] = useState("");
 
   useEffect(() => {
-    void request(`/api/engagement/mvp?period=${period}`).then(({ data }) => {
+    void apiEngagementMvp(period).then(({ data }) => {
       setRows((data?.leaderboard as typeof rows) || []);
       setViewerId(String(data?.viewer_id || ""));
     });
@@ -516,9 +530,9 @@ function BattleEnergyBody({ roomId }: { roomId: string }) {
 
   const refresh = useCallback(async () => {
     const [w, f] = await Promise.all([
-      request("/api/engagement/wallet"),
+      apiLiveEngagementWallet(),
       roomId
-        ? request(`/api/engagement/battle-energy/fan?roomId=${encodeURIComponent(roomId)}`)
+        ? apiEngagementBattleEnergyFan(roomId)
         : Promise.resolve({ data: null, error: null }),
     ]);
     const wallet = w.data?.wallet as Record<string, number> | undefined;
@@ -542,12 +556,13 @@ function BattleEnergyBody({ roomId }: { roomId: string }) {
     }
     setBusy(true);
     try {
-      const { data, error } = await request("/api/engagement/battle-energy/boost", {
-        method: "POST",
-        body: JSON.stringify({ roomId, side: "host", amount }),
+      const { data, error } = await apiEngagementBattleEnergyBoost({
+        roomId,
+        side: "host",
+        amount,
       });
       if (error) {
-        showToast(error.message || "Boost failed");
+        showToast(error || "Boost failed");
         return;
       }
       setLastBoost(data as typeof lastBoost);
@@ -639,7 +654,7 @@ function AchievementsBody() {
   };
   const [items, setItems] = useState<A[]>([]);
   useEffect(() => {
-    void request("/api/engagement/achievements").then(({ data }) => {
+    void apiEngagementAchievements().then(({ data }) => {
       setItems((data?.achievements as A[]) || []);
     });
   }, []);
@@ -705,7 +720,7 @@ function DailyLoginBody() {
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
-    const { data } = await request("/api/engagement/daily-login");
+    const { data } = await apiEngagementDailyLogin();
     setDaily((data?.daily as typeof daily) || null);
   }, []);
 
@@ -717,11 +732,9 @@ function DailyLoginBody() {
     if (busy || !daily?.can_claim) return;
     setBusy(true);
     try {
-      const { data, error } = await request("/api/engagement/daily-login/claim", {
-        method: "POST",
-      });
+      const { data, error } = await apiEngagementDailyLoginClaim();
       if (error) {
-        showToast(error.message || "Claim unavailable");
+        showToast(error || "Claim unavailable");
         return;
       }
       showToast(
@@ -790,7 +803,7 @@ function RewardsBody() {
     null,
   );
   useEffect(() => {
-    void request("/api/engagement/wallet").then(({ data }) => {
+    void apiLiveEngagementWallet().then(({ data }) => {
       setWallet((data?.wallet as typeof wallet) || null);
     });
   }, []);
@@ -857,7 +870,7 @@ function TreasureBody() {
   const [busy, setBusy] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const { data } = await request("/api/engagement/treasure");
+    const { data } = await apiEngagementTreasure();
     setChests((data?.chests as Chest[]) || []);
     setCatalog((data?.catalog as Catalog[]) || []);
     setNeonReady(!!data?.neon_ready);
@@ -871,11 +884,9 @@ function TreasureBody() {
     if (busy) return;
     setBusy(id);
     try {
-      const { data, error } = await request(`/api/engagement/treasure/${id}/open`, {
-        method: "POST",
-      });
+      const { data, error } = await apiEngagementTreasureOpen(id);
       if (error) {
-        showToast(error.message || "Open unavailable");
+        showToast(error || "Open unavailable");
         return;
       }
       const label =
@@ -983,7 +994,7 @@ function StickersBody() {
   const [neonReady, setNeonReady] = useState(false);
 
   useEffect(() => {
-    void request("/api/engagement/stickers").then(({ data }) => {
+    void apiEngagementStickers().then(({ data }) => {
       setSets((data?.sets as SetRow[]) || []);
       setNeonReady(!!data?.neon_ready);
     });
@@ -1052,10 +1063,7 @@ function CreatorCardsBody({ creatorId }: { creatorId?: string }) {
   const [neonReady, setNeonReady] = useState(false);
 
   useEffect(() => {
-    const q = creatorId
-      ? `?creatorId=${encodeURIComponent(creatorId)}`
-      : "";
-    void request(`/api/engagement/creator-cards${q}`).then(({ data }) => {
+    void apiEngagementCreatorCardsByCreator(creatorId).then(({ data }) => {
       setTiers((data?.tiers as Tier[]) || []);
       setUnlocked((data?.unlocked as typeof unlocked) || []);
       setNeonReady(!!data?.neon_ready);

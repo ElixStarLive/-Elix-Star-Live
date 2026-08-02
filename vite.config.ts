@@ -10,6 +10,16 @@ export default defineConfig(({ mode }) => ({
       '@': path.resolve(__dirname, 'src'),
     },
   },
+  // Dev prebundle must match modern deps (framer-motion, lucide, capacitor).
+  // Without this, esbuild falls back to legacy browser targets and crashes optimizeDeps.
+  esbuild: {
+    target: 'esnext',
+  },
+  optimizeDeps: {
+    esbuildOptions: {
+      target: 'esnext',
+    },
+  },
   build: {
     sourcemap: mode !== 'production' && mode !== 'store',
     target: 'esnext',

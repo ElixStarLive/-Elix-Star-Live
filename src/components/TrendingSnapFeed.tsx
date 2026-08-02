@@ -105,11 +105,15 @@ function VideoThumbnail({ video }: { video: Video }) {
     return () => vid.removeEventListener('loadeddata', onReady);
   }, [showImg, videoSrc, paintContentFrame]);
 
+  const openVideo = React.useCallback(() => {
+    navigate(`/video/${video.id}`);
+  }, [navigate, video.id]);
+
   return (
     <button
       type="button"
       className="relative aspect-[3/4] bg-black rounded-lg overflow-hidden cursor-pointer group"
-      onClick={() => navigate(`/video/${video.id}`)}
+      onClick={openVideo}
     >
       {/* Video underlay — shows when still is missing, broken, or nearly black */}
       {videoSrc ? (

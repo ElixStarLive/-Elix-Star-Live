@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { Wallet, Zap } from "lucide-react";
 import { EngagementShell } from "./EngagementShell";
-import { request } from "../../lib/apiClient";
 import { showToast } from "../../lib/toast";
 import { engagementFlags } from "../../config/engagementFlags";
+import { apiLiveEngagementWallet } from "../../features/live/engagement/liveEngagementApi";
 
 type WalletData = {
   purchasedCoins?: number;
@@ -30,8 +30,8 @@ export default function EngagementRewards() {
   useEffect(() => {
     void (async () => {
       try {
-        const { data, error } = await request("/api/engagement/wallet");
-        if (error) throw new Error(error.message);
+        const { data, error } = await apiLiveEngagementWallet();
+        if (error) throw new Error(error);
         setWallet((data?.wallet as WalletData) || null);
       } catch {
         showToast("Could not load reward wallet");

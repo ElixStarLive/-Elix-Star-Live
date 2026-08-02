@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Shield, Users, Heart, AlertTriangle, Eye, Ban } from 'lucide-react';
 import SettingsOptionSheet from '../components/SettingsOptionSheet';
@@ -6,8 +6,12 @@ import SettingsOptionSheet from '../components/SettingsOptionSheet';
 export default function Guidelines() {
   const navigate = useNavigate();
 
+  const goBack = useCallback(() => navigate(-1), [navigate]);
+  const goReport = useCallback(() => navigate('/report'), [navigate]);
+  const goSettings = useCallback(() => navigate('/settings'), [navigate]);
+
   return (
-    <SettingsOptionSheet onClose={() => navigate(-1)}>
+    <SettingsOptionSheet onClose={goBack}>
       <div className="w-full h-full overflow-hidden bg-[#111111] text-white flex flex-col">
         <header className="flex items-center justify-center mb-4 px-4 pt-2">
           <h1 className="font-bold text-lg">Community Guidelines</h1>
@@ -83,7 +87,7 @@ export default function Guidelines() {
               </p>
               <button
                 type="button"
-                onClick={() => navigate('/report')}
+                onClick={goReport}
                 className="w-full py-3 bg-[#D4AF37] text-black rounded-xl font-bold hover:opacity-90 transition"
               >
                 Report a Violation
@@ -93,7 +97,7 @@ export default function Guidelines() {
             <div className="pt-4 border-t border-white/10">
               <button
                 type="button"
-                onClick={() => navigate('/settings')}
+                onClick={goSettings}
                 className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-sm font-medium transition"
               >
                 Go to Settings

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   CameraOff,
   ChevronLeft,
@@ -168,10 +168,68 @@ export default function Create() {
     return () => ro.disconnect();
   }, [previewUrl]);
 
-  const openUploadPicker = () => fileInputRef.current?.click();
-  const flipCamera = () => { setIsFrontCamera((v) => !v); setZoomLevel(1); };
-  const showToastMsg = (msg: string) => { setToast(msg); window.setTimeout(() => setToast(null), 1800); };
-  const cycleTimer = () => setRecordingDelaySeconds((v) => (v === 0 ? 3 : v === 3 ? 10 : 0));
+  const openUploadPicker = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const flipCamera = useCallback(() => {
+    setIsFrontCamera((v) => !v);
+    setZoomLevel(1);
+  }, []);
+
+  const showToastMsg = (msg: string) => {
+    setToast(msg);
+    window.setTimeout(() => setToast(null), 1800);
+  };
+
+  const cycleTimer = useCallback(() => {
+    setRecordingDelaySeconds((v) => (v === 0 ? 3 : v === 3 ? 10 : 0));
+  }, []);
+
+  const goFeedClose = useCallback(() => {
+    navigate('/feed');
+  }, [navigate]);
+
+  const openSoundPicker = useCallback(() => {
+    setIsSoundOpen(true);
+  }, []);
+
+  const clearSelectedSound = useCallback((e?: React.SyntheticEvent) => {
+    e?.stopPropagation();
+    setSelectedSound(null);
+  }, []);
+
+  const selectPostTab = useCallback(() => {
+    setMode('post');
+  }, []);
+
+  const selectCreateTab = useCallback(() => {
+    setMode('create');
+  }, []);
+
+  const selectLiveTab = useCallback(() => {
+    setMode('live');
+  }, []);
+
+  const openTextEditor = useCallback(() => {
+    setEditorTab('text');
+  }, []);
+
+  const openStickersEditor = useCallback(() => {
+    setEditorTab('stickers');
+  }, []);
+
+  const openEffectsEditor = useCallback(() => {
+    setEditorTab('effects');
+  }, []);
+
+  const openFiltersEditor = useCallback(() => {
+    setEditorTab('filters');
+  }, []);
+
+  const closeEditorPanel = useCallback(() => {
+    setEditorTab(null);
+  }, []);
 
   const handleFlashToggle = async () => {
     const stream = streamRef.current;
@@ -540,7 +598,7 @@ export default function Create() {
               </button>
               <button
                 type="button"
-                onClick={() => setIsSoundOpen(true)}
+                onClick={openSoundPicker}
                 className="flex items-center gap-1.5 max-w-[58%] px-3 py-1.5 rounded-full bg-black/50 backdrop-blur-md"
                 title={selectedSound?.title || 'Add sound'}
               >
@@ -552,15 +610,9 @@ export default function Create() {
                   <span
                     role="button"
                     tabIndex={0}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedSound(null);
-                    }}
+                    onClick={clearSelectedSound}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.stopPropagation();
-                        setSelectedSound(null);
-                      }
+                      if (e.key === 'Enter') clearSelectedSound(e);
                     }}
                     className="ml-0.5"
                   >
@@ -570,7 +622,7 @@ export default function Create() {
               </button>
               <button
                 type="button"
-                onClick={() => navigate('/feed')}
+                onClick={goFeedClose}
                 className="w-9 h-9 royce-glow-disc flex items-center justify-center"
                 title="Close"
                 aria-label="Close"
@@ -588,10 +640,10 @@ export default function Create() {
                 { Icon: LayoutGrid, title: 'Layout', onClick: openUploadPicker },
                 { Icon: ImageIcon, title: 'Media', onClick: openUploadPicker },
                 { Icon: Video, title: 'Video', onClick: openUploadPicker },
-                { Icon: Type, title: 'Text', onClick: () => setEditorTab('text') },
-                { Icon: Smile, title: 'Stickers', onClick: () => setEditorTab('stickers') },
-                { Icon: Sparkles, title: 'Effects', onClick: () => setEditorTab('effects') },
-                { Icon: Blend, title: 'Filters', onClick: () => setEditorTab('filters') },
+                { Icon: Type, title: 'Text', onClick: openTextEditor },
+                { Icon: Smile, title: 'Stickers', onClick: openStickersEditor },
+                { Icon: Sparkles, title: 'Effects', onClick: openEffectsEditor },
+                { Icon: Blend, title: 'Filters', onClick: openFiltersEditor },
               ].map(({ Icon, title, onClick }) => (
                 <button
                   key={title}
@@ -673,18 +725,18 @@ export default function Create() {
             isRecording={isRecording}
             isPaused={false}
             onRecord={mode === 'live' ? startLive : (isRecording ? stopRecording : startRecording)}
-            onClose={() => navigate('/feed')}
+            onClose={goFeedClose}
             onFlipCamera={flipCamera}
-            onSelectMusic={() => setIsSoundOpen(true)}
-            onAIMusicGenerator={() => setIsSoundOpen(true)}
+            onSelectMusic={openSoundPicker}
+            onAIMusicGenerator={openSoundPicker}
             zoomLevel={zoomLevel}
             onZoomIn={handleZoomIn}
             onZoomOut={handleZoomOut}
             onZoomReset={handleZoomReset}
             onGalleryOpen={openUploadPicker}
-            onPostTab={() => setMode('post')}
-            onCreateTab={() => setMode('create')}
-            onLiveTab={() => setMode('live')}
+            onPostTab={selectPostTab}
+            onCreateTab={selectCreateTab}
+            onLiveTab={selectLiveTab}
             selectedTab={mode === 'live' ? 'live' : mode === 'post' ? 'post' : 'create'}
             onFlashToggle={handleFlashToggle}
             flashActive={flashEnabled}
@@ -707,7 +759,7 @@ export default function Create() {
             onSelectEffect={setEffectPreset}
             onAddText={handleAddText}
             onAddSticker={handleAddSticker}
-            onClose={() => setEditorTab(null)}
+            onClose={closeEditorPanel}
           />
         )}
 

@@ -2,8 +2,14 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Wallet, Landmark, Banknote } from 'lucide-react';
 import { RoyceBackIcon } from '../components/royce';
-import { request } from '../lib/apiClient';
 import { showToast } from '../lib/toast';
+import {
+  apiCreatorBalance,
+  apiCreatorPayoutMethods,
+  apiCreatorPayoutRequests,
+  apiCreatorSavePayoutMethod,
+  apiCreatorWithdraw,
+} from '../features/creator/creatorPayoutApi';
 
 type Balance = {
   pending_coins: number;
@@ -55,13 +61,13 @@ export default function CreatorPayout() {
     setLoading(true);
     try {
       const [balRes, methRes, payRes] = await Promise.all([
-        request<Balance>('/api/creator/balance'),
-        request<{ methods?: PayoutMethod[] }>('/api/creator/payout-methods'),
-        request<{ payouts?: PayoutRequest[] }>('/api/creator/payouts'),
+        apiCreatorBalance(),
+        apiCreatorPayoutMethods(),
+        apiCreatorPayoutRequests(),
       ]);
-      if (balRes.data) setBalance(balRes.data);
-      setMethods(Array.isArray(methRes.data?.methods) ? methRes.data.methods : []);
-      setRequests(Array.isArray(payRes.data?.payouts) ? payRes.data.payouts : []);
+      if (balRes.data) setBalance(balRes.data as Balance);
+      setMethods(methRes.methods as PayoutMethod[]);
+      setRequests(payRes.payouts as PayoutRequest[]);
     } catch {
       showToast('Could not load payout info');
     } finally {
@@ -72,6 +78,8 @@ export default function CreatorPayout() {
   useEffect(() => {
     void reload();
   }, [reload]);
+
+  const goBack = useCallback(() => navigate(-1), [navigate]);
 
   const saveMethod = async () => {
     if (!accountName.trim() || !accountDetail.trim()) {
@@ -84,12 +92,9 @@ export default function CreatorPayout() {
         methodType === 'paypal'
           ? { email: accountDetail.trim(), name: accountName.trim() }
           : { account_name: accountName.trim(), iban_or_account: accountDetail.trim() };
-      const { error } = await request('/api/creator/payout-method', {
-        method: 'POST',
-        body: JSON.stringify({ type: methodType, details }),
-      });
+      const { error } = await apiCreatorSavePayoutMethod({ type: methodType, details });
       if (error) {
-        showToast(error.message || 'Could not save payout method');
+        showToast(error || 'Could not save payout method');
         return;
       }
       showToast('Payout method saved');
@@ -115,12 +120,12 @@ export default function CreatorPayout() {
     try {
       const payoutMethodId =
         methods.find((m) => m.is_default)?.id ?? methods[0]?.id ?? null;
-      const { data, error } = await request<{ error?: string }>('/api/creator/withdraw', {
-        method: 'POST',
-        body: JSON.stringify({ coins_amount: amount, payout_method_id: payoutMethodId }),
+      const { data, error } = await apiCreatorWithdraw({
+        coins_amount: amount,
+        payout_method_id: payoutMethodId,
       });
       if (error) {
-        showToast(error.message || 'Withdraw failed');
+        showToast(error || 'Withdraw failed');
         return;
       }
       if (data && typeof data === 'object' && 'error' in data && data.error) {
@@ -138,7 +143,7 @@ export default function CreatorPayout() {
   return (
     <div className="fixed inset-0 z-[100] bg-[#111111] flex flex-col max-w-[480px] mx-auto">
       <div className="flex items-center justify-between px-3 pt-[max(12px,env(safe-area-inset-top))] pb-2">
-        <button type="button" onClick={() => navigate(-1)} aria-label="Back">
+        <button type="button" onClick={goBack} aria-label="Back">
           <RoyceBackIcon />
         </button>
         <h1 className="text-sm font-bold text-[#D4AF37] absolute left-1/2 -translate-x-1/2">Creator Payout</h1>

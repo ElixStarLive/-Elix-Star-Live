@@ -8,6 +8,7 @@ type Tab = "iap" | "shop";
 
 export default function AdminPurchases() {
   const navigate = useNavigate();
+  const goAdmin = useCallback(() => navigate("/admin"), [navigate]);
   const [tab, setTab] = useState<Tab>("iap");
   const [rows, setRows] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,7 +42,7 @@ export default function AdminPurchases() {
         <button
           type="button"
           className="text-white/50 text-sm mb-4"
-          onClick={() => navigate("/admin")}
+          onClick={goAdmin}
         >
           ← Admin
         </button>

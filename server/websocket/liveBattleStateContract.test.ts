@@ -18,8 +18,8 @@ const read = (relative: string) =>
 describe("LIVE + battle server state-machine contracts", () => {
   const wsIndex = read("./index.ts");
   const battle = read("./battle.ts");
-  const liveStream = read("../../src/pages/LiveStream.tsx");
-  const spectator = read("../../src/pages/SpectatorPage.tsx");
+  const liveStream = read("../../src/features/live/host/useLiveHostController.tsx");
+  const spectator = read("../../src/features/live/spectator/useLiveSpectatorController.tsx");
 
   it("viewer count is derived from Valkey SCARD and broadcast to the room", () => {
     expect(wsIndex).toContain("valkeyScard(`room:members:${roomId}`)");
@@ -80,9 +80,14 @@ describe("LIVE + battle server state-machine contracts", () => {
   });
 
   it("both live clients consume battle_tick to stay time-synced with the server", () => {
-    expect(liveStream).toContain("websocket.on('battle_tick', handleBattleTick)");
-    expect(liveStream).toContain("websocket.off('battle_tick', handleBattleTick)");
-    expect(spectator).toContain("websocket.on('battle_tick', handleBattleTick)");
-    expect(spectator).toContain("websocket.off('battle_tick', handleBattleTick)");
+    const battleBind = read("../../src/features/live/ws/bindLiveBattleWs.ts");
+    // Bind owner registers battle_tick; host + spectator both pass handleBattleTick.
+    expect(battleBind).toContain("LIVE_WS_IN.battle_tick");
+    expect(battleBind).toContain("websocket.on(type, fn)");
+    expect(battleBind).toContain("websocket.off(type, fn)");
+    expect(liveStream).toContain("bindLiveBattleWs");
+    expect(liveStream).toContain("onTick: handleBattleTick");
+    expect(spectator).toContain("bindLiveBattleWs");
+    expect(spectator).toContain("onTick: handleBattleTick");
   });
 });

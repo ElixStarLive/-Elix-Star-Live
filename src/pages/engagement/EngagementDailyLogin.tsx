@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { Calendar } from "lucide-react";
 import { EngagementShell } from "./EngagementShell";
-import { request } from "../../lib/apiClient";
 import { showToast } from "../../lib/toast";
+import {
+  apiEngagementDailyLogin,
+  apiEngagementDailyLoginClaim,
+} from "../../features/live/engagement/liveEngagementApi";
 
 type Daily = {
   can_claim: boolean;
@@ -24,8 +27,8 @@ export default function EngagementDailyLogin() {
   const load = async () => {
     setLoading(true);
     try {
-      const { data, error } = await request("/api/engagement/daily-login");
-      if (error) throw new Error(error.message);
+      const { data, error } = await apiEngagementDailyLogin();
+      if (error) throw new Error(error);
       setDaily((data?.daily as Daily) || null);
     } catch {
       showToast("Could not load daily login");
@@ -42,14 +45,13 @@ export default function EngagementDailyLogin() {
     if (busy || !daily?.can_claim) return;
     setBusy(true);
     try {
-      const { data, error } = await request("/api/engagement/daily-login/claim", {
-        method: "POST",
-      });
+      const { data, error } = await apiEngagementDailyLoginClaim();
       if (error) {
-        showToast(error.message || "Already claimed");
+        showToast(error || "Already claimed");
         return;
       }
-      const label = data?.reward?.reward_label || "Reward claimed";
+      const reward = (data?.reward ?? null) as { reward_label?: string } | null;
+      const label = reward?.reward_label || "Reward claimed";
       showToast(label);
       await load();
     } finally {

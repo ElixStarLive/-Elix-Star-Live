@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { RoyceBackIcon } from '../components/royce';
 import { Bookmark, Play } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { request } from '../lib/apiClient';
+import { apiFetchSavedVideos } from '../features/feed/feedApi';
 import { showToast } from '../lib/toast';
 import { subscribeVideoCollection } from '../lib/videoCollectionEvents';
 
@@ -35,25 +35,18 @@ export default function SavedVideos() {
     if (append) setLoadingMore(true);
     else setLoading(true);
     try {
-      const { data, error } = await request(
-        `/api/videos/saved/list?limit=50&offset=${offset}`,
-      );
+      const { videos: vids, error } = await apiFetchSavedVideos(50, offset);
       if (error) {
         if (!append) {
           setVideos([]);
-          setLoadError(error.message || 'Failed to load saved videos');
+          setLoadError(error || 'Failed to load saved videos');
         }
-        showToast(error.message || 'Failed to load saved videos');
+        showToast(error || 'Failed to load saved videos');
         return;
       }
-      const vids = Array.isArray(data?.videos)
-        ? data.videos
-        : Array.isArray(data)
-          ? data
-          : [];
-      setHasMore(!!data?.hasMore);
+      setHasMore(vids.length >= 50);
       setLoadError(null);
-      setVideos((prev) => (append ? [...prev, ...mapVids(vids)] : mapVids(vids)));
+      setVideos((prev) => (append ? [...prev, ...mapVids(vids as SavedVideo[])] : mapVids(vids as SavedVideo[])));
     } catch {
       if (!append) {
         setVideos([]);
@@ -85,6 +78,18 @@ export default function SavedVideos() {
     });
   }, [load]);
 
+  const goBack = useCallback(() => {
+    navigate(-1);
+  }, [navigate]);
+
+  const openVideo = useCallback((videoId: string) => {
+    navigate(`/video/${videoId}`);
+  }, [navigate]);
+
+  const loadMore = useCallback(() => {
+    void load(videos.length, true);
+  }, [load, videos.length]);
+
   const formatViews = (n: number) => {
     if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
     if (n >= 1_000) return (n / 1_000).toFixed(1) + 'K';
@@ -95,7 +100,7 @@ export default function SavedVideos() {
     <div className="h-full min-h-0 w-full bg-[#111111] text-white flex justify-center px-2">
       <div className="w-full max-w-[480px] h-full min-h-0 flex flex-col overflow-y-auto bg-[#111111]">
         <div className="p-4 flex items-center gap-4">
-          <button onClick={() => navigate(-1)} className="p-1">
+          <button onClick={goBack} className="p-1">
             <RoyceBackIcon />
           </button>
           <h1 className="text-lg font-bold text-gold-metallic">Saved Videos</h1>
@@ -122,7 +127,7 @@ export default function SavedVideos() {
                 <div
                   key={video.id}
                   className="aspect-[3/4] bg-[#111111] relative cursor-pointer group"
-                  onClick={() => navigate(`/video/${video.id}`)}
+                  onClick={() => openVideo(video.id)}
                 >
                   {video.thumbnail_url ? (
                     <img src={video.thumbnail_url} alt="" className="w-full h-full object-cover" />
@@ -154,7 +159,7 @@ export default function SavedVideos() {
                 <button
                   type="button"
                   disabled={loadingMore}
-                  onClick={() => void load(videos.length, true)}
+                  onClick={loadMore}
                   className="px-4 py-2 rounded-lg bg-white/10 text-xs font-semibold disabled:opacity-40"
                 >
                   {loadingMore ? 'Loading…' : 'Load more'}

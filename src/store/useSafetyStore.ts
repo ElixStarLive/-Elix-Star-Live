@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { request } from '../lib/apiClient';
+import { apiBlockUser, apiUnblockUser } from '../features/safety/safetyApi';
 
 type SafetyStore = {
   blockedUserIds: string[];
@@ -19,9 +19,10 @@ export const useSafetyStore = create<SafetyStore>()(
         const current = get().blockedUserIds;
         if (current.includes(id)) return;
         set({ blockedUserIds: [...current, id] });
-        request('/api/block-user', {
-          method: 'POST',
-          body: JSON.stringify({ blockedUserId: id }),
+        apiBlockUser(id).then((res) => {
+          if (!res.ok) {
+            set({ blockedUserIds: get().blockedUserIds.filter((x) => x !== id) });
+          }
         }).catch(() => {
           set({ blockedUserIds: get().blockedUserIds.filter((x) => x !== id) });
         });
@@ -31,9 +32,10 @@ export const useSafetyStore = create<SafetyStore>()(
         if (!id) return;
         const prev = get().blockedUserIds;
         set({ blockedUserIds: prev.filter((x) => x !== id) });
-        request('/api/unblock-user', {
-          method: 'POST',
-          body: JSON.stringify({ blockedUserId: id }),
+        apiUnblockUser(id).then((res) => {
+          if (!res.ok) {
+            set({ blockedUserIds: [...get().blockedUserIds, id] });
+          }
         }).catch(() => {
           set({ blockedUserIds: [...get().blockedUserIds, id] });
         });

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { RoyceBackIcon } from '../components/royce';
 import { useNavigate } from 'react-router-dom';
 
@@ -9,12 +9,13 @@ import { useNavigate } from 'react-router-dom';
  */
 export default function LegalSupplier() {
   const navigate = useNavigate();
+  const goBack = useCallback(() => navigate(-1), [navigate]);
 
   return (
     <div className="bg-[#111111] text-white flex justify-center px-2">
       <div className="w-full max-w-[480px] rounded-3xl overflow-hidden bg-[#111111] flex flex-col overflow-y-auto p-4 pb-20">
         <header className="flex items-center justify-between mb-4">
-          <button onClick={() => navigate(-1)} aria-label="Back" title="Back">
+          <button onClick={goBack} aria-label="Back" title="Back">
             <RoyceBackIcon />
           </button>
           <h1 className="font-bold text-lg">Supplier Agreement</h1>

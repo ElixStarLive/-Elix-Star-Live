@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Home, Users, Plus, MessageCircle, User, type LucideIcon } from "lucide-react";
 
@@ -17,6 +17,8 @@ const NAV_ITEMS: NavItem[] = [
   { path: "/profile", label: "Profile", Icon: User },
 ];
 
+type BottomNavPath = (typeof NAV_ITEMS)[number]["path"];
+
 const ICON_SIZE = 26;
 
 function isActiveRoute(pathname: string, path: string): boolean {
@@ -25,9 +27,58 @@ function isActiveRoute(pathname: string, path: string): boolean {
   return pathname === path || pathname.startsWith(`${path}/`);
 }
 
+/**
+ * Main bottom tab bar — one clean navigation owner per control.
+ * UI/layout/routes unchanged from production chrome.
+ */
 export const BottomNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
+
+  const goHome = useCallback(() => {
+    navigate("/feed");
+  }, [navigate]);
+
+  const goFriends = useCallback(() => {
+    navigate("/friends");
+  }, [navigate]);
+
+  const goCreate = useCallback(() => {
+    navigate("/create");
+  }, [navigate]);
+
+  const goInbox = useCallback(() => {
+    navigate("/inbox");
+  }, [navigate]);
+
+  const goProfile = useCallback(() => {
+    navigate("/profile");
+  }, [navigate]);
+
+  const onTabPress = useCallback(
+    (path: BottomNavPath) => {
+      switch (path) {
+        case "/feed":
+          goHome();
+          return;
+        case "/friends":
+          goFriends();
+          return;
+        case "/create":
+          goCreate();
+          return;
+        case "/inbox":
+          goInbox();
+          return;
+        case "/profile":
+          goProfile();
+          return;
+        default:
+          return;
+      }
+    },
+    [goHome, goFriends, goCreate, goInbox, goProfile],
+  );
 
   if (location.pathname === "/live" || location.pathname.startsWith("/live/")) {
     return null;
@@ -51,7 +102,7 @@ export const BottomNav = () => {
                 <button
                   key={path}
                   type="button"
-                  onClick={() => navigate(path)}
+                  onClick={() => onTabPress(path)}
                   title={label}
                   aria-label={label}
                   aria-current={active ? "page" : undefined}

@@ -14,6 +14,7 @@
  * if the env var is not set.
  */
 
+import { Capacitor } from "@capacitor/core";
 import { apiUrl } from "./api";
 import { request } from "./apiClient";
 import { useAuthStore } from "../store/useAuthStore";
@@ -64,13 +65,15 @@ export async function bunnyUpload(
     || (_storeState.session as unknown as { accessToken?: string })?.accessToken
     || null;
 
+  // Binary body cannot go through CapacitorHttp JSON `data` — same native fetch
+  // contract as apiClient's nativeFetchRequest (omit credentials on native).
   const res = await fetch(apiUrl(`/api/media/upload-file?${qs}`), {
     method: "POST",
     headers: {
       "Content-Type": "application/octet-stream",
       ...(_token ? { "Authorization": `Bearer ${_token}` } : {}),
     },
-    credentials: "include",
+    credentials: Capacitor.isNativePlatform() ? "omit" : "include",
     body: file,
   });
 

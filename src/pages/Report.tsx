@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { api } from '../lib/apiClient';
 import { CheckCircle, Flag } from 'lucide-react';
 import { trackEvent } from '../lib/analytics';
 import { showToast } from '../lib/toast';
 import SettingsOptionSheet from '../components/SettingsOptionSheet';
+import { apiCreateReport, apiGetCurrentUserId } from '../features/safety/safetyApi';
 
 const REPORT_REASONS = {
   video: [
@@ -47,6 +47,8 @@ export default function Report() {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
+  const goBack = useCallback(() => navigate(-1), [navigate]);
+
   const reasons = REPORT_REASONS[contentType] || REPORT_REASONS.video;
 
   const handleSubmit = async () => {
@@ -57,11 +59,11 @@ export default function Report() {
 
     setLoading(true);
     try {
-      const { data: userData } = await api.auth.getUser();
-      if (!userData.user) throw new Error('Not authenticated');
+      const { userId, error: userErr } = await apiGetCurrentUserId();
+      if (!userId || userErr) throw new Error(userErr || 'Not authenticated');
 
-      const { error } = await api.reports.create({
-        reporter_id: userData.user.id,
+      const { error } = await apiCreateReport({
+        reporter_id: userId,
         targetType: isGeneralSupport ? 'support' : contentType,
         targetId: isGeneralSupport ? (contentId || 'support_ticket') : contentId,
         reason: selectedReason,
@@ -78,7 +80,7 @@ export default function Report() {
 
       setSubmitted(true);
       setTimeout(() => {
-        navigate(-1);
+        goBack();
       }, 2000);
     } catch {
 
@@ -90,7 +92,7 @@ export default function Report() {
 
   if (submitted) {
     return (
-      <SettingsOptionSheet onClose={() => navigate(-1)}>
+      <SettingsOptionSheet onClose={goBack}>
         <div className="flex-1 flex items-center justify-center px-4">
           <div className="text-center">
             <div className="w-20 h-20 bg-[#FFFFFF] rounded-full mx-auto mb-4 flex items-center justify-center">
@@ -105,7 +107,7 @@ export default function Report() {
   }
 
   return (
-    <SettingsOptionSheet onClose={() => navigate(-1)}>
+    <SettingsOptionSheet onClose={goBack}>
       <div className="w-full h-full min-h-0 flex flex-col overflow-hidden bg-[#111111]">
       <div className="sticky top-0 bg-[#111111] z-10 px-4 py-4 border-b border-transparent flex items-center justify-center">
         <h1 className="text-lg font-bold">{isGeneralSupport ? 'Report a problem' : `Report ${contentType}`}</h1>

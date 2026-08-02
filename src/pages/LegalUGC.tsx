@@ -1,15 +1,17 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { RoyceBackIcon } from '../components/royce';
 import { useNavigate } from 'react-router-dom';
 
 export default function LegalUGC() {
   const navigate = useNavigate();
+  const goBack = useCallback(() => navigate(-1), [navigate]);
+  const goDmca = useCallback(() => navigate('/legal/dmca'), [navigate]);
 
   return (
     <div className="bg-[#111111] text-white flex justify-center px-2">
       <div className="w-full max-w-[480px] rounded-3xl overflow-hidden bg-[#111111] flex flex-col overflow-y-auto p-4 pb-20">
         <header className="flex items-center justify-between mb-4">
-          <button onClick={() => navigate(-1)} aria-label="Back" title="Back">
+          <button onClick={goBack} aria-label="Back" title="Back">
             <RoyceBackIcon />
           </button>
           <h1 className="font-bold text-lg">User-Generated Content Policy</h1>
@@ -64,7 +66,7 @@ export default function LegalUGC() {
               in-app reporting tools. For copyright-related removal requests, please refer to our
               {' '}
               <button
-                onClick={() => navigate('/legal/dmca')}
+                onClick={goDmca}
                 className="text-[#D4AF37] underline"
               >
                 DMCA Policy

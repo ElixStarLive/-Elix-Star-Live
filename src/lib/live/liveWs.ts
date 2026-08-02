@@ -1,0 +1,85 @@
+/**
+ * Live WebSocket event names that match production server contracts.
+ * Dead / invented client-only names are intentionally omitted.
+ */
+
+import { websocket } from '../websocket';
+
+/** Server → client events used by Live UI (see LIVE_CONNECTION_MAP). */
+export const LIVE_WS_IN = {
+  connected: 'connected',
+  room_state: 'room_state',
+  user_joined: 'user_joined',
+  user_left: 'user_left',
+  stream_ended: 'stream_ended',
+  chat_message: 'chat_message',
+  heart_sent: 'heart_sent',
+  gift_sent: 'gift_sent',
+  gift_goal_sync: 'gift_goal_sync',
+  booster_caught: 'booster_caught',
+  battle_state_sync: 'battle_state_sync',
+  battle_tick: 'battle_tick',
+  battle_score: 'battle_score',
+  battle_ended: 'battle_ended',
+  battle_error: 'battle_error',
+  battle_invite: 'battle_invite',
+  battle_invite_sent: 'battle_invite_sent',
+  battle_invite_declined: 'battle_invite_declined',
+  battle_accept_ack: 'battle_accept_ack',
+  /** Server emits viewer_count (not viewer_count_update). */
+  viewer_count: 'viewer_count',
+  cohost_invite: 'cohost_invite',
+  cohost_accepted: 'cohost_accepted',
+  cohost_request: 'cohost_request',
+  cohost_layout_sync: 'cohost_layout_sync',
+  booster_activated: 'booster_activated',
+  mist_activated: 'mist_activated',
+  engagement_sync: 'engagement_sync',
+  ws_reconnect_exhausted: 'ws_reconnect_exhausted',
+  ws_error: 'ws_error',
+} as const;
+
+export type LiveWsInEvent = (typeof LIVE_WS_IN)[keyof typeof LIVE_WS_IN];
+
+/** Client → server Live actions. Paid gifts must NOT use gift_sent — use giftSend REST. */
+export const LIVE_WS_OUT = {
+  ping: 'ping',
+  stream_start: 'stream_start',
+  stream_end: 'stream_end',
+  chat_message: 'chat_message',
+  heart_sent: 'heart_sent',
+  gift_sent: 'gift_sent',
+  gift_goal_set: 'gift_goal_set',
+  gift_goal_clear: 'gift_goal_clear',
+  battle_create: 'battle_create',
+  battle_join: 'battle_join',
+  battle_end: 'battle_end',
+  battle_get_state: 'battle_get_state',
+  battle_spectator_vote: 'battle_spectator_vote',
+  battle_invite_send: 'battle_invite_send',
+  battle_invite_accept: 'battle_invite_accept',
+  battle_invite_decline: 'battle_invite_decline',
+  cohost_invite_send: 'cohost_invite_send',
+  cohost_invite_accept: 'cohost_invite_accept',
+  cohost_request_send: 'cohost_request_send',
+  cohost_request_accept: 'cohost_request_accept',
+  cohost_request_decline: 'cohost_request_decline',
+  cohost_layout_sync: 'cohost_layout_sync',
+  booster_activated: 'booster_activated',
+  mist_activated: 'mist_activated',
+} as const;
+
+export function liveWsSend(
+  type: (typeof LIVE_WS_OUT)[keyof typeof LIVE_WS_OUT],
+  payload?: Record<string, unknown>,
+): void {
+  websocket.send(type, payload ?? {});
+}
+
+export function liveWsOn(
+  type: LiveWsInEvent | string,
+  handler: (data: unknown) => void,
+): () => void {
+  websocket.on(type, handler);
+  return () => websocket.off(type, handler);
+}

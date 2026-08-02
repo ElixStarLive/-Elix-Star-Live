@@ -1,5 +1,6 @@
 import type { NavigateFunction } from 'react-router-dom';
-import { request } from './apiClient';
+import { ensureDmThread } from './chatMessages';
+import { showToast } from './toast';
 
 /**
  * Opens (or reuses) a DM thread with another user and navigates to /inbox/:threadId.
@@ -14,19 +15,11 @@ export async function navigateToDmWithUser(
     navigate('/inbox');
     return;
   }
-  try {
-    const { data: body, error } = await request('/api/chat/threads/ensure', {
-      method: 'POST',
-      body: JSON.stringify({ otherUserId }),
-    });
-    const id = body?.threadId as string | undefined
-      ?? (body?.thread as { id?: string } | undefined)?.id;
-    if (!error && id) {
-      navigate(`/inbox/${encodeURIComponent(id)}`);
-      return;
-    }
-  } catch {
-    /* fall through */
+  const { threadId, error } = await ensureDmThread(otherUserId);
+  if (threadId) {
+    navigate(`/inbox/${encodeURIComponent(threadId)}`);
+    return;
   }
+  showToast(error || 'Could not open chat');
   navigate('/inbox');
 }

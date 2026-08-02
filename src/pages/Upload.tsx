@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { CaptureShutterButton } from '../components/CaptureShutterButton';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { setCachedCameraStream } from '../lib/cameraStream';
@@ -19,6 +19,7 @@ import AIToolsPanel from '../components/AIToolsPanel';
 import { takeCachedRecordedMedia } from '../lib/recordedMediaCache';
 import { DUET_STAGE_HEIGHT } from '../lib/profileFrame';
 import { nativeShareUrl } from '../lib/platform';
+import { bakeImage, bakeVideo, canBakeVideo } from '../lib/mediaBake';
 
 export default function Upload() {
   const navigate = useNavigate();
@@ -55,6 +56,10 @@ export default function Upload() {
   const [showAITools, setShowAITools] = useState(false);
   const [activeFilter, setActiveFilter] = useState('none');
   const [activeEnhance, setActiveEnhance] = useState('none');
+  /** Selected AI thumbnail data URL — uploaded as real thumb (not preview-only). */
+  const [selectedThumbnailDataUrl, setSelectedThumbnailDataUrl] = useState<string | null>(null);
+  /** Voice FX is baked into video via mediaBake + VoiceProcessor when the runtime can re-encode. */
+  const [selectedVoiceEffect, setSelectedVoiceEffect] = useState('none');
   const [cameraSpeed, setCameraSpeed] = useState<1 | 0.5 | 2>(1);
   const [beautyOn, setBeautyOn] = useState(false);
   const [timerDelay, setTimerDelay] = useState<0 | 3 | 10>(0);
@@ -68,6 +73,50 @@ export default function Upload() {
 
   const duetParam = searchParams.get('duet');
   const isStoryUpload = searchParams.get('type') === 'story';
+
+  const goLoginFromUpload = useCallback(() => {
+    navigate('/login', { state: { from: '/upload' } });
+  }, [navigate]);
+
+  const goCreate = useCallback(() => {
+    navigate('/create');
+  }, [navigate]);
+
+  const goFeed = useCallback(() => {
+    navigate('/feed');
+  }, [navigate]);
+
+  const goFriends = useCallback(() => {
+    navigate('/friends');
+  }, [navigate]);
+
+  const goAiStudio = useCallback(() => {
+    navigate('/ai-studio');
+  }, [navigate]);
+
+  const openMusicModal = useCallback(() => {
+    setShowMusicModal(true);
+  }, []);
+
+  const openAITools = useCallback(() => {
+    setShowAITools(true);
+  }, []);
+
+  const clearPostError = useCallback(() => {
+    setPostError(null);
+  }, []);
+
+  const setDuetSplit = useCallback(() => {
+    setDuetLayout('split');
+  }, []);
+
+  const setDuetOverlay = useCallback(() => {
+    setDuetLayout('overlay');
+  }, []);
+
+  const toggleOriginalMute = useCallback(() => {
+    setOriginalVolume((v) => (v === 0 ? 1 : 0));
+  }, []);
 
   useEffect(() => {
     if (!duetParam) {
@@ -467,7 +516,7 @@ export default function Upload() {
 
       const authUser = useAuthStore.getState().user;
       if (!authUser?.id) {
-        navigate('/login', { state: { from: '/upload' } });
+        goLoginFromUpload();
         return;
       }
 
@@ -492,24 +541,13 @@ export default function Upload() {
       }
 
       // Use the MIME type from the first chunk (which we set correctly in handleFileUpload or recording)
-      const mimeType = uploadChunks[0].type || (mediaKind === 'image' ? 'image/jpeg' : 'video/webm');
-      const blob = new Blob(uploadChunks, { type: mimeType });
+      let mimeType = uploadChunks[0].type || (mediaKind === 'image' ? 'image/jpeg' : 'video/webm');
+      let blob = new Blob(uploadChunks, { type: mimeType });
 
       if (blob.size === 0) {
         showToast(isStoryUpload ? 'Story is empty. Record or choose a valid clip.' : 'Video is empty. Record or choose a valid video.');
         return;
       }
-
-      // Use correct extension based on MIME type
-      let ext = 'webm';
-      if (mimeType.includes('mp4')) ext = 'mp4';
-      if (mimeType.includes('quicktime')) ext = 'mov';
-      if (mimeType.includes('png')) ext = 'png';
-      else if (mimeType.includes('jpeg') || mimeType.includes('jpg')) ext = 'jpg';
-      else if (mimeType.includes('webp')) ext = 'webp';
-      else if (mimeType.startsWith('image/')) ext = 'jpg';
-
-      const file = new File([blob], `upload-${Date.now()}.${ext}`, { type: mimeType });
 
       videoUploadService.onProgress(({ progress }) => setPostProgress(progress));
       setPostProgress(0);
@@ -517,6 +555,58 @@ export default function Upload() {
       setIsPosting(true);
 
       try {
+        const filterCss = [activeFilter !== 'none' ? activeFilter : '', activeEnhance !== 'none' ? activeEnhance : '']
+          .filter(Boolean)
+          .join(' ');
+        const sourceUrl = recordedVideoUrl || URL.createObjectURL(blob);
+        const ownsTempUrl = !recordedVideoUrl;
+        const wantsVoice = Boolean(selectedVoiceEffect && selectedVoiceEffect !== 'none');
+        try {
+          if (mediaKind === 'image' || mimeType.startsWith('image/')) {
+            if (filterCss) {
+              const bakedUrl = await bakeImage(sourceUrl, filterCss, []);
+              if (bakedUrl && bakedUrl !== sourceUrl) {
+                blob = await fetch(bakedUrl).then((r) => r.blob());
+                mimeType = blob.type || 'image/jpeg';
+                URL.revokeObjectURL(bakedUrl);
+              }
+            }
+            if (wantsVoice) {
+              showToast('Voice effect applies to video only — not in uploaded image');
+            }
+          } else if (filterCss || wantsVoice) {
+            if (canBakeVideo()) {
+              const bakedUrl = await bakeVideo(sourceUrl, filterCss, [], wantsVoice ? selectedVoiceEffect : undefined);
+              if (bakedUrl && bakedUrl !== sourceUrl) {
+                blob = await fetch(bakedUrl).then((r) => r.blob());
+                mimeType = blob.type || 'video/webm';
+                URL.revokeObjectURL(bakedUrl);
+              } else {
+                showToast(wantsVoice
+                  ? 'Could not bake voice/filters — uploading original'
+                  : 'Could not bake filters — uploading original');
+              }
+            } else {
+              showToast(wantsVoice
+                ? 'Device cannot bake voice/filters — uploading original'
+                : 'Device cannot bake video filters — uploading original');
+            }
+          }
+        } finally {
+          if (ownsTempUrl) URL.revokeObjectURL(sourceUrl);
+        }
+
+        // Use correct extension based on MIME type
+        let ext = 'webm';
+        if (mimeType.includes('mp4')) ext = 'mp4';
+        if (mimeType.includes('quicktime')) ext = 'mov';
+        if (mimeType.includes('png')) ext = 'png';
+        else if (mimeType.includes('jpeg') || mimeType.includes('jpg')) ext = 'jpg';
+        else if (mimeType.includes('webp')) ext = 'webp';
+        else if (mimeType.startsWith('image/')) ext = 'jpg';
+
+        const file = new File([blob], `upload-${Date.now()}.${ext}`, { type: mimeType });
+
         const normalizedCaption = caption.trim();
         const captionHashtags = Array.from(normalizedCaption.matchAll(/#([\p{L}0-9_]+)/gu)).map((m) => m[1]);
         const manualHashtags = hashtagsText
@@ -563,10 +653,12 @@ export default function Upload() {
           };
         }
 
+        const thumbDataUrl = selectedThumbnailDataUrl || undefined;
         let videoId: string;
         if (isStoryUpload) {
           videoId = await videoUploadService.uploadStory(file, authUser.id, {
             mediaType: mediaKind === 'image' || mimeType.startsWith('image/') ? 'image' : 'video',
+            thumbnailDataUrl: thumbDataUrl,
           });
         } else {
           videoId = await videoUploadService.uploadVideo(file, authUser.id, {
@@ -576,6 +668,7 @@ export default function Upload() {
             music: musicMeta,
             duetWithVideoId: duetSourceVideoId || undefined,
             duetLayout: duetSourceVideoId ? duetLayout : undefined,
+            thumbnailDataUrl: thumbDataUrl,
           });
           await fetchVideos();
         }
@@ -584,10 +677,12 @@ export default function Upload() {
         setRecordedVideoUrl(null);
         setChunks([]);
         setMediaKind('video');
+        setSelectedThumbnailDataUrl(null);
+        setSelectedVoiceEffect('none');
         setIsPosting(false);
         setPostProgress(0);
         showToast(isStoryUpload ? 'Story posted!' : 'Video posted!');
-        setTimeout(() => navigate(isStoryUpload ? '/friends' : '/feed'), 500);
+        setTimeout(() => (isStoryUpload ? goFriends() : goFeed()), 500);
         
       } catch (error) {
         const msg = error?.message || error?.error_description || String(error) || 'Unknown error';
@@ -596,7 +691,7 @@ export default function Upload() {
           const { signOut } = await import('../store/useAuthStore').then(m => ({ signOut: m.useAuthStore.getState().signOut }));
           await signOut();
           setPostError('Session expired. Please log in again.');
-          setTimeout(() => navigate('/login'), 1500);
+          setTimeout(() => goLoginFromUpload(), 1500);
         } else {
           setPostError(msg);
         }
@@ -609,6 +704,8 @@ export default function Upload() {
       setRecordedVideoUrl(null);
       setChunks([]);
       setMediaKind('video');
+      setSelectedThumbnailDataUrl(null);
+      setSelectedVoiceEffect('none');
   };
 
   const handleFileUpload = () => {
@@ -686,7 +783,7 @@ export default function Upload() {
                   >
                     <button
                       type="button"
-                      onClick={() => setDuetLayout('split')}
+                      onClick={setDuetSplit}
                       className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
                         duetLayout === 'split'
                           ? 'bg-[#D4AF37] text-black border-[#D4AF37]'
@@ -697,7 +794,7 @@ export default function Upload() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setDuetLayout('overlay')}
+                      onClick={setDuetOverlay}
                       className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
                         duetLayout === 'overlay'
                           ? 'bg-[#D4AF37] text-black border-[#D4AF37]'
@@ -739,7 +836,7 @@ export default function Upload() {
                    >
                      <button
                        type="button"
-                       onClick={() => navigate('/create')}
+                       onClick={goCreate}
                        className="w-9 h-9 flex items-center justify-center"
                        title="Back"
                      >
@@ -747,7 +844,7 @@ export default function Upload() {
                      </button>
                      <button
                        type="button"
-                       onClick={() => setShowMusicModal(true)}
+                       onClick={openMusicModal}
                        className="flex items-center gap-1.5 max-w-[58%] px-3 py-1.5 rounded-full bg-black/50 backdrop-blur-md"
                        title={getSelectedLabel()}
                      >
@@ -796,11 +893,11 @@ export default function Upload() {
                        } },
                        { Icon: LayoutGrid, title: 'Layout', onClick: handleFileUpload },
                        { Icon: ImageIcon, title: 'Media', onClick: handleFileUpload },
-                       { Icon: Music, title: 'Audio', onClick: () => setShowMusicModal(true) },
-                       { Icon: Type, title: 'Text', onClick: () => setShowAITools(true) },
-                       { Icon: Smile, title: 'Stickers', onClick: () => setShowAITools(true) },
-                       { Icon: Sparkles, title: 'Effects', onClick: () => setShowAITools(true) },
-                       { Icon: Blend, title: 'Filters', onClick: () => setShowAITools(true) },
+                       { Icon: Music, title: 'Audio', onClick: openMusicModal },
+                       { Icon: Type, title: 'Text', onClick: openAITools },
+                       { Icon: Smile, title: 'Stickers', onClick: openAITools },
+                       { Icon: Sparkles, title: 'Effects', onClick: openAITools },
+                       { Icon: Blend, title: 'Filters', onClick: openAITools },
                      ].map(({ Icon, title, onClick }) => (
                        <button
                          key={title}
@@ -812,7 +909,7 @@ export default function Upload() {
                          <Icon size={20} className="text-white drop-shadow-md" strokeWidth={2} />
                        </button>
                      ))}
-                     <button type="button" onClick={() => setShowAITools(true)} className="w-10 h-10 rounded-full bg-black/35 backdrop-blur-sm flex items-center justify-center" title="More">
+                     <button type="button" onClick={openAITools} className="w-10 h-10 rounded-full bg-black/35 backdrop-blur-sm flex items-center justify-center" title="More">
                        <ChevronDown size={20} className="text-white drop-shadow-md" strokeWidth={2} />
                      </button>
                    </div>
@@ -841,7 +938,7 @@ export default function Upload() {
                      {postError ? (
                        <div className="w-full max-w-md px-3 py-2 rounded-lg bg-red-600/80 text-white text-xs text-center">
                          {postError}
-                         <button type="button" onClick={() => setPostError(null)} className="ml-2 underline">×</button>
+                         <button type="button" onClick={clearPostError} className="ml-2 underline">×</button>
                        </div>
                      ) : null}
                      {isPosting ? (
@@ -900,7 +997,7 @@ export default function Upload() {
                {/* Preview Top Controls - centered sound icon; power lives in right vertical column */}
                <div className="absolute top-[2%] left-0 right-0 z-20 flex items-center justify-center pointer-events-auto px-4">
                  <button
-                   onClick={() => setShowMusicModal(true)}
+                   onClick={openMusicModal}
                    className="flex items-center justify-center p-1"
                    title={getSelectedLabel()}
                  >
@@ -960,7 +1057,7 @@ export default function Upload() {
                           <label className="text-[10px] text-[#D4AF37] font-semibold">Original sound</label>
                           <button
                             type="button"
-                            onClick={() => setOriginalVolume((v) => (v === 0 ? 1 : 0))}
+                            onClick={toggleOriginalMute}
                             className="text-[9px] font-bold text-white/60 px-1.5 py-0.5 rounded bg-white/10"
                           >
                             {originalVolume === 0 ? 'Muted' : 'Mute'}
@@ -988,7 +1085,7 @@ export default function Upload() {
                    {postError ? (
                      <div className="w-full px-3 py-2 rounded-lg bg-white/20/80 text-white text-xs">
                        {postError}
-                       <button type="button" onClick={() => setPostError(null)} className="ml-2 underline">×</button>
+                       <button type="button" onClick={clearPostError} className="ml-2 underline">×</button>
                      </div>
                    ) : null}
                    {isPosting ? (
@@ -1019,7 +1116,7 @@ export default function Upload() {
 
                   {/* AI Studio (moved up) */}
                   <button
-                    onClick={() => setShowAITools(true)}
+                    onClick={openAITools}
                     className="absolute right-[5%] bottom-[26%] flex flex-col items-center gap-1 z-30 pointer-events-auto group"
                     title="AI Studio"
                   >
@@ -1078,11 +1175,19 @@ export default function Upload() {
                   });
                   setShowAITools(false);
                 }}
-                onThumbnailSelect={() => {
-                  showToast('Thumbnail preview saved — auto-thumb used on upload');
+                onThumbnailSelect={(dataUrl) => {
+                  if (dataUrl && dataUrl.startsWith('data:')) {
+                    setSelectedThumbnailDataUrl(dataUrl);
+                    showToast('Thumbnail selected for upload');
+                  } else {
+                    showToast('Could not use that thumbnail');
+                  }
                 }}
-                onVoiceEffectChange={() => {
-                  showToast('Voice effect preview only — not baked into upload yet');
+                onVoiceEffectChange={(effectId) => {
+                  setSelectedVoiceEffect(effectId || 'none');
+                  if (effectId && effectId !== 'none') {
+                    showToast('Voice effect preview — baked into video on post');
+                  }
                 }}
               />
          </>
@@ -1200,7 +1305,7 @@ export default function Upload() {
                     >
                       <button
                         type="button"
-                        onClick={() => setDuetLayout('split')}
+                        onClick={setDuetSplit}
                         className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
                           duetLayout === 'split'
                             ? 'bg-[#D4AF37] text-black border-[#D4AF37]'
@@ -1212,7 +1317,7 @@ export default function Upload() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => setDuetLayout('overlay')}
+                        onClick={setDuetOverlay}
                         className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
                           duetLayout === 'overlay'
                             ? 'bg-[#D4AF37] text-black border-[#D4AF37]'
@@ -1226,13 +1331,13 @@ export default function Upload() {
                   ) : null}
                   {/* Right side — every control uses the same round gold glow */}
                   <div className="absolute top-0 right-[5%] bottom-0 flex flex-col items-center gap-3 py-2" style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}>
-                    <button type="button" onClick={() => navigate('/feed')} className="w-9 h-9 royce-glow-disc flex items-center justify-center" title="Close">
+                    <button type="button" onClick={goFeed} className="w-9 h-9 royce-glow-disc flex items-center justify-center" title="Close">
                       <ChevronLeft size={18} className="royce-icon-gold" strokeWidth={2.5} />
                     </button>
                     <button
                       type="button"
                       className="w-9 h-9 royce-glow-disc flex items-center justify-center"
-                      onClick={() => setShowMusicModal(true)}
+                      onClick={openMusicModal}
                       title="Add sound"
                     >
                       <Music size={18} className="royce-icon-gold" strokeWidth={2} />
@@ -1351,7 +1456,7 @@ export default function Upload() {
                     <button
                       type="button"
                       className="w-9 h-9 royce-glow-disc flex items-center justify-center"
-                      onClick={() => navigate('/ai-studio')}
+                      onClick={goAiStudio}
                       title="AI Effects"
                     >
                       <Wand2 size={18} className="royce-icon-gold" strokeWidth={2} />

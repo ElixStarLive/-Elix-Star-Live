@@ -6,9 +6,10 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useVideoStore } from '../store/useVideoStore';
 import EnhancedVideoPlayer from '../components/EnhancedVideoPlayer';
 import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
-import { request } from '../lib/apiClient';
+import { apiFetchProfiles } from '../features/feed/feedApi';
 import { fetchActiveStories, type StoryItem, type StoryUserGroup } from '../lib/storiesApi';
 import { prepareFeedVideoEl } from '../lib/prepareLiveVideoEl';
+import { apiLiveStreams } from '../lib/live';
 
 interface SuggestedUser {
   id: string;
@@ -132,6 +133,33 @@ export default function FriendsFeed() {
   const containerRef = useRef<HTMLDivElement>(null);
   const friendVideoIds = friendVideos.map((v) => v.id);
 
+  const goSearch = useCallback(() => {
+    navigate('/search');
+  }, [navigate]);
+
+  const goBack = useCallback(() => {
+    navigate(-1);
+  }, [navigate]);
+
+  const goUploadStory = useCallback(() => {
+    navigate('/upload?type=story');
+  }, [navigate]);
+
+  const goDiscover = useCallback(() => {
+    navigate('/discover');
+  }, [navigate]);
+
+  const openUserOrLive = useCallback(
+    (userId: string, isLive: boolean) => {
+      navigate(isLive ? `/watch/${userId}` : `/profile/${userId}`);
+    },
+    [navigate],
+  );
+
+  const closeStoryViewer = useCallback(() => {
+    setStoryViewer(null);
+  }, []);
+
   const reloadStories = useCallback(() => {
     void fetchActiveStories().then(setStoryGroups);
   }, []);
@@ -156,11 +184,11 @@ export default function FriendsFeed() {
     const fetchUsers = async () => {
       try {
         const [profilesResult, liveResult] = await Promise.all([
-          request('/api/profiles'),
-          request('/api/live/streams').catch(() => ({ data: null, error: null })),
+          apiFetchProfiles(),
+          apiLiveStreams().catch(() => ({ streams: [], error: null })),
         ]);
-        const profilesBody = profilesResult.data ?? { profiles: [] };
-        const liveBody = liveResult.data ?? { streams: [] };
+        const profilesBody = { profiles: profilesResult.profiles ?? [] };
+        const liveBody = { streams: liveResult.streams ?? [] };
         const liveSet = new Set(
           (liveBody?.streams || [])
             .flatMap((s: Record<string, unknown>) => [s.hostUserId, s.userId, s.user_id, s.stream_key, s.streamKey, s.room_id, s.roomId])
@@ -269,7 +297,7 @@ export default function FriendsFeed() {
           <div className="px-4 h-11 flex items-center justify-between relative overflow-visible">
             <button
               type="button"
-              onClick={() => navigate('/search')}
+              onClick={goSearch}
               className="z-10 flex items-center justify-center"
               aria-label="Search"
             >
@@ -282,7 +310,7 @@ export default function FriendsFeed() {
             </h1>
             <button
               type="button"
-              onClick={() => navigate(-1)}
+              onClick={goBack}
               title="Back"
               className="z-10 flex items-center justify-center"
             >
@@ -300,7 +328,7 @@ export default function FriendsFeed() {
                 type="button"
                 onClick={() => {
                   if (ownStory?.items?.length) openUserStory(ownStory.userId);
-                  else navigate('/upload?type=story');
+                  else goUploadStory();
                 }}
                 className="flex-shrink-0 flex flex-col items-center gap-1"
                 style={{ width: 72, minWidth: 72 }}
@@ -318,12 +346,12 @@ export default function FriendsFeed() {
                     tabIndex={0}
                     onClick={(e) => {
                       e.stopPropagation();
-                      navigate('/upload?type=story');
+                      goUploadStory();
                     }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.stopPropagation();
-                        navigate('/upload?type=story');
+                        goUploadStory();
                       }
                     }}
                     className="absolute bottom-0 right-0 w-4 h-4 rounded-full bg-[#D4AF37] border-2 border-black flex items-center justify-center z-10"
@@ -363,10 +391,7 @@ export default function FriendsFeed() {
                   <button
                     key={u.id}
                     type="button"
-                    onClick={() => {
-                      if (u.is_live) navigate(`/watch/${u.id}`);
-                      else navigate(`/profile/${u.id}`);
-                    }}
+                    onClick={() => openUserOrLive(u.id, !!u.is_live)}
                     className="flex-shrink-0 flex flex-col items-center gap-1"
                     style={{ width: 72, minWidth: 72 }}
                   >
@@ -432,14 +457,14 @@ export default function FriendsFeed() {
                 <p className="text-xs text-white/30 mb-4">Add a photo or video story, or follow people who post</p>
                 <button
                   type="button"
-                  onClick={() => navigate('/upload?type=story')}
+                  onClick={goUploadStory}
                   className="px-5 py-2 bg-[#D4AF37] text-black rounded-full text-sm font-bold mb-3"
                 >
                   Add story
                 </button>
                 <button
                   type="button"
-                  onClick={() => navigate('/discover')}
+                  onClick={goDiscover}
                   className="px-5 py-2 bg-white/10 text-white rounded-full text-sm font-bold"
                 >
                   Discover people
@@ -480,7 +505,7 @@ export default function FriendsFeed() {
               </div>
               <button
                 type="button"
-                onClick={() => setStoryViewer(null)}
+                onClick={closeStoryViewer}
                 className="absolute top-3 right-3 z-20 flex items-center justify-center"
                 aria-label="Close story"
               >

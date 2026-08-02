@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { RoyceBackIcon } from '../components/royce';
 import { useNavigate, useParams } from 'react-router-dom';
-import { request } from '../lib/apiClient';
 import { Hash, TrendingUp } from 'lucide-react';
 import { trackEvent } from '../lib/analytics';
+import { apiFetchHashtag, apiFetchHashtagVideos } from '../features/feed/feedApi';
 
 interface Video {
   id: string;
@@ -20,6 +20,12 @@ export default function Hashtag() {
   const [hashtagInfo, setHashtagInfo] = useState<{ use_count: number; trending_score: number } | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const goFeed = useCallback(() => navigate('/feed'), [navigate]);
+  const openVideo = useCallback(
+    (videoId: string) => navigate(`/video/${videoId}`),
+    [navigate],
+  );
+
   useEffect(() => {
     if (!tag) return;
     let cancelled = false;
@@ -28,15 +34,17 @@ export default function Hashtag() {
     (async () => {
       setLoading(true);
       try {
-        const { data: hashtagData } = await request(`/api/hashtags/${encodeURIComponent(tag.toLowerCase())}`);
+        const { body: hashtagData } = await apiFetchHashtag(tag);
         if (!cancelled && hashtagData) {
-          setHashtagInfo({ use_count: hashtagData.use_count ?? 0, trending_score: hashtagData.trending_score ?? 0 });
+          setHashtagInfo({
+            use_count: Number(hashtagData.use_count ?? 0),
+            trending_score: Number(hashtagData.trending_score ?? 0),
+          });
         }
 
-        const { data: videosData } = await request(`/api/hashtags/${encodeURIComponent(tag.toLowerCase())}/videos`);
+        const { videos: vids } = await apiFetchHashtagVideos(tag);
         if (!cancelled) {
-          const vids = Array.isArray(videosData) ? videosData : (videosData?.videos ?? []);
-          setVideos(vids);
+          setVideos(vids as unknown as Video[]);
         }
       } catch {
         if (!cancelled) setVideos([]);
@@ -54,7 +62,7 @@ export default function Hashtag() {
       {/* Header */}
       <div className="sticky top-0 z-10 px-4 py-6 bg-[#111111]">
         <div className="flex items-center gap-3 mb-4">
-          <button onClick={() => navigate('/feed')} className="p-1 hover:brightness-125 transition" title="Back to For You">
+          <button onClick={goFeed} className="p-1 hover:brightness-125 transition" title="Back to For You">
             <RoyceBackIcon />
           </button>
           <div className="w-16 h-16 bg-gradient-to-br from-[#D4AF37] to-[#B8943F] rounded-full flex items-center justify-center">
@@ -86,7 +94,7 @@ export default function Hashtag() {
             {videos.map(video => (
               <button
                 key={video.id}
-                onClick={() => navigate(`/video/${video.id}`)}
+                onClick={() => openVideo(video.id)}
                 className="relative aspect-[9/16] bg-[#111111] rounded overflow-hidden text-left"
               >
                 <img

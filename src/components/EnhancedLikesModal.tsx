@@ -3,10 +3,11 @@ import { X, UserPlus, UserMinus, MessageCircle, MoreHorizontal, Flag } from 'luc
 import { useNavigate } from 'react-router-dom';
 import { useVideoStore } from '../store/useVideoStore';
 import { useAuthStore } from '../store/useAuthStore';
-import { api, request } from '../lib/apiClient';
+import { request } from '../lib/apiClient';
 import { showToast } from '../lib/toast';
 import { AvatarRing } from './AvatarRing';
 import { navigateToDmWithUser } from '../lib/openDmThread';
+import { apiBlockUser, apiCreateReport, apiGetCurrentUserId } from '../features/safety/safetyApi';
 
 interface LikeUser {
   id: string;
@@ -91,22 +92,19 @@ export default function EnhancedLikesModal({ isOpen, onClose, videoId, likes }: 
   };
 
   const handleReportUser = async (user: LikeUser) => {
-    const me = (await api.auth.getUser()).data.user;
-    if (!me) { showToast('Please sign in'); return; }
-    const { error } = await api.reports.create({
-      reporter_id: me.id, target_type: 'user', target_id: user.id, reason: 'inappropriate',
+    const { userId } = await apiGetCurrentUserId();
+    if (!userId) { showToast('Please sign in'); return; }
+    const { error } = await apiCreateReport({
+      reporter_id: userId, target_type: 'user', target_id: user.id, reason: 'inappropriate',
     });
     if (error) showToast('Failed to report');
     else showToast('User reported');
   };
 
   const handleBlockUser = async (user: LikeUser) => {
-    const me = (await api.auth.getUser()).data.user;
-    if (!me) { showToast('Please sign in'); return; }
-    const { error } = await request('/api/block-user', {
-      method: 'POST',
-      body: JSON.stringify({ blockedUserId: user.id }),
-    });
+    const { userId } = await apiGetCurrentUserId();
+    if (!userId) { showToast('Please sign in'); return; }
+    const { error } = await apiBlockUser(user.id);
     if (!error) { showToast('User blocked'); onClose(); }
     else showToast('Failed to block user');
   };

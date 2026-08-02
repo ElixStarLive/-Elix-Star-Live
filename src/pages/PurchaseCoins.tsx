@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { RoyceBackIcon } from '../components/royce';
-import { api } from '../lib/apiClient';
 import { Check, Sparkles, RotateCcw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { trackEvent } from '../lib/analytics';
@@ -11,11 +10,11 @@ import {
   restorePurchases,
   reconcileOwnedCoinPurchases,
   initializeIAP,
-  IAP_PRODUCTS,
   type IAPProductId,
   type IAPProduct,
 } from '../lib/iap';
 import { showToast } from '../lib/toast';
+import { apiGetCurrentUserId } from '../features/safety/safetyApi';
 
 export default function PurchaseCoins() {
   const navigate = useNavigate();
@@ -25,63 +24,26 @@ export default function PurchaseCoins() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const isNative = platform.isNative;
 
-  useEffect(() => {
-    loadCurrentUser();
-    if (isNative) {
-      loadNativeProducts();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const goFeed = useCallback(() => {
+    navigate('/feed');
+  }, [navigate]);
 
-  const loadCurrentUser = async () => {
-    try {
-      const { data } = await api.auth.getUser();
-      setCurrentUserId(data.user?.id || null);
-    } catch {
-      setCurrentUserId(null);
-    }
-  };
+  const goLogin = useCallback(() => {
+    navigate('/login');
+  }, [navigate]);
 
-  const loadNativeProducts = async () => {
-    try {
-      await initializeIAP();
-      // Clear any purchase stuck in Google's "owned" state (e.g. a prior
-      // verify failure) so the same coin pack can be bought again instead of
-      // hitting ITEM_ALREADY_OWNED. Credits coins for anything it recovers.
-      try {
-        const recovered = await reconcileOwnedCoinPurchases();
-        if (recovered > 0) {
-          showToast('Previous coin purchase restored');
-        }
-      } catch {
-        /* best-effort — never block loading the store */
-      }
-      const products = await loadIAPProducts();
-      if (products.length > 0) {
-        setNativeProducts(products);
-      } else {
-        // Fallback — show products from our config so the page isn't empty
-        const fallback: IAPProduct[] = Object.entries(IAP_PRODUCTS).map(
-          ([id, meta]) => ({
-            id,
-            title: meta.label,
-            description: `Get ${meta.coins} coins`,
-            price: '',
-            priceAmountMicros: 0,
-            coins: meta.coins,
-          }),
-        );
-        setNativeProducts(fallback);
-      }
-    } catch {
-      showToast('Failed to load products');
-    }
-  };
+  const goTerms = useCallback(() => {
+    navigate('/terms');
+  }, [navigate]);
 
-  const handleNativePurchase = async (product: IAPProduct) => {
+  const goPrivacy = useCallback(() => {
+    navigate('/privacy');
+  }, [navigate]);
+
+  const handleNativePurchase = useCallback(async (product: IAPProduct) => {
     if (!currentUserId) {
       showToast('Please log in to purchase coins');
-      navigate('/login');
+      goLogin();
       return;
     }
 
@@ -116,16 +78,20 @@ export default function PurchaseCoins() {
         transaction_id: result.transactionId,
       });
 
-      showToast(`+${product.coins.toLocaleString()} coins added!`);
+      if (typeof result.newBalance === 'number') {
+        showToast(`Coins updated — balance ${result.newBalance.toLocaleString()}`);
+      } else {
+        showToast('Purchase completed. Refresh if balance looks wrong.');
+      }
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Purchase failed');
     } finally {
       setLoading(false);
       setSelectedNativeId(null);
     }
-  };
+  }, [currentUserId, goLogin]);
 
-  const handleRestore = async () => {
+  const handleRestore = useCallback(async () => {
     try {
       setLoading(true);
       const result = await restorePurchases();
@@ -139,6 +105,50 @@ export default function PurchaseCoins() {
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    loadCurrentUser();
+    if (isNative) {
+      loadNativeProducts();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const loadCurrentUser = async () => {
+    try {
+      const { userId } = await apiGetCurrentUserId();
+      setCurrentUserId(userId);
+    } catch {
+      setCurrentUserId(null);
+    }
+  };
+
+  const loadNativeProducts = async () => {
+    try {
+      await initializeIAP();
+      // Clear any purchase stuck in Google's "owned" state (e.g. a prior
+      // verify failure) so the same coin pack can be bought again instead of
+      // hitting ITEM_ALREADY_OWNED. Credits coins for anything it recovers.
+      try {
+        const recovered = await reconcileOwnedCoinPurchases();
+        if (recovered > 0) {
+          showToast('Previous coin purchase restored');
+        }
+      } catch {
+        /* best-effort — never block loading the store */
+      }
+      const products = await loadIAPProducts();
+      if (products.length > 0) {
+        setNativeProducts(products);
+      } else {
+        // Do not invent buyable rows without store prices — purchase would lie.
+        setNativeProducts([]);
+        showToast('Coin store unavailable. Try again in a moment.');
+      }
+    } catch {
+      showToast('Failed to load products');
+    }
   };
 
   return (
@@ -146,7 +156,7 @@ export default function PurchaseCoins() {
       <div className="w-full max-w-[480px] h-full min-h-0 flex flex-col overflow-hidden bg-[#111111]">
         {/* Header */}
         <div className="sticky top-0 bg-[#111111] z-10 px-4 py-4 border-b border-transparent flex items-center justify-between">
-          <button onClick={() => navigate('/feed')} className="p-2 hover:brightness-125 rounded-full transition" title="Back">
+          <button onClick={goFeed} className="p-2 hover:brightness-125 rounded-full transition" title="Back">
             <RoyceBackIcon />
           </button>
           <h1 className="text-lg font-bold">Get Coins</h1>
@@ -229,9 +239,9 @@ export default function PurchaseCoins() {
           </div>
           <p className="text-xs text-white/40 text-center mt-3 px-4">
             By purchasing, you agree to our{' '}
-            <span className="text-white underline cursor-pointer" onClick={() => navigate('/terms')}>Terms of Service</span>{' '}
+            <span className="text-white underline cursor-pointer" onClick={goTerms}>Terms of Service</span>{' '}
             and{' '}
-            <span className="text-white underline cursor-pointer" onClick={() => navigate('/privacy')}>Privacy Policy</span>.
+            <span className="text-white underline cursor-pointer" onClick={goPrivacy}>Privacy Policy</span>.
           </p>
         </div>
       </div>

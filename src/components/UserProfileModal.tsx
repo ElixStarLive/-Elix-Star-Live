@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { RoyceCloseIcon } from './royce';
 import { Share2, Ban, Play, MoreHorizontal, Flag } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -9,9 +9,10 @@ import { LevelBadge } from './LevelBadge';
 import { useSafetyStore } from '../store/useSafetyStore';
 import ReportModal from './ReportModal';
 import { showToast } from '../lib/toast';
-import { api, request } from '../lib/apiClient';
+import { api } from '../lib/apiClient';
 import { navigateToDmWithUser } from '../lib/openDmThread';
 import { getVideoPosterUrl, resolveGridThumbnailUrl, resolveVideoPlaybackUrl } from '../lib/bunnyStorage';
+import { apiSetBlockUserAction } from '../features/safety/safetyApi';
 
 interface User {
   id: string;
@@ -95,6 +96,11 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, user.id]);
 
+  const openVideoFromGrid = useCallback((videoId: string) => {
+    onClose();
+    navigate(`/video/${videoId}`);
+  }, [onClose, navigate]);
+
   if (!isOpen) return null;
 
   const handleMessage = async () => {
@@ -109,10 +115,7 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
   };
 
   const handleBlockUser = async () => {
-    await request('/api/block-user', {
-      method: 'POST',
-      body: JSON.stringify({ blockedUserId: user.id, action: 'block' }),
-    }).catch(() => null);
+    await apiSetBlockUserAction(user.id, 'block').catch(() => null);
     blockUser(user.id);
     onClose();
   };
@@ -153,10 +156,7 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
               </p>
               <button
                 onClick={async () => {
-                  await request('/api/block-user', {
-                    method: 'POST',
-                    body: JSON.stringify({ blockedUserId: user.id, action: 'unblock' }),
-                  }).catch(() => null);
+                  await apiSetBlockUserAction(user.id, 'unblock').catch(() => null);
                   unblockUser(user.id);
                 }}
                 className="px-4 py-2 bg-white text-white rounded-lg hover:bg-white transition-colors"
@@ -319,7 +319,7 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
                   const playbackUrl = resolveVideoPlaybackUrl(video.url || '');
                   const bunnyPoster = getVideoPosterUrl(video.url || '');
                   return (
-                  <div key={video.id} onClick={() => { onClose(); navigate(`/video/${video.id}`); }} className="aspect-[3/4] bg-black rounded-xl overflow-hidden relative cursor-pointer">
+                  <div key={video.id} onClick={() => openVideoFromGrid(video.id)} className="aspect-[3/4] bg-black rounded-xl overflow-hidden relative cursor-pointer">
                     {playbackUrl ? (
                       <video
                         src={`${playbackUrl}#t=0.1`}

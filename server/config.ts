@@ -31,6 +31,17 @@ if (fs.existsSync(envPath)) {
     console.log(`[config] Loaded .env (NODE_ENV=${process.env.NODE_ENV || nodeEnv})`);
   }
 }
+
+// Local PC cannot resolve Coolify-internal Valkey hostnames. Opt in with
+// ELIX_LOCAL_NO_VALKEY=1 for single-instance auth/API testing against Neon.
+if (
+  (process.env.NODE_ENV || nodeEnv) !== 'production' &&
+  (process.env.ELIX_LOCAL_NO_VALKEY === '1' || process.env.ELIX_LOCAL_NO_VALKEY === 'true')
+) {
+  delete process.env.VALKEY_URL;
+  delete process.env.REDIS_URL;
+  console.log('[config] ELIX_LOCAL_NO_VALKEY=1 — Valkey disabled for local single-instance mode');
+}
 if ((process.env.NODE_ENV || nodeEnv) === 'production' && fs.existsSync(envProdPath)) {
   dotenv.config({ path: envProdPath, override: true });
   if (nodeEnv !== 'production') {

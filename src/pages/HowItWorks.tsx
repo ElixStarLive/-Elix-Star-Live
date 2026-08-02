@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   BookOpen,
@@ -22,8 +22,13 @@ import SettingsOptionSheet from '../components/SettingsOptionSheet';
 export default function HowItWorks() {
   const navigate = useNavigate();
 
+  const goBack = useCallback(() => navigate(-1), [navigate]);
+  const goEngagement = useCallback(() => navigate('/engagement'), [navigate]);
+  const goSupport = useCallback(() => navigate('/support'), [navigate]);
+  const goGuidelines = useCallback(() => navigate('/guidelines'), [navigate]);
+
   return (
-    <SettingsOptionSheet onClose={() => navigate(-1)}>
+    <SettingsOptionSheet onClose={goBack}>
       <div className="w-full h-full overflow-hidden bg-[#111111] text-white flex flex-col">
         <header className="flex items-center justify-center mb-3 px-4 pt-2">
           <h1 className="font-bold text-lg flex items-center gap-2">
@@ -252,21 +257,21 @@ export default function HowItWorks() {
             <div className="pt-2 flex flex-col gap-2">
               <button
                 type="button"
-                onClick={() => navigate('/engagement')}
+                onClick={goEngagement}
                 className="w-full py-3 bg-[#D4AF37] text-black rounded-xl font-bold active:opacity-90 transition"
               >
                 Open Engagement Hub
               </button>
               <button
                 type="button"
-                onClick={() => navigate('/support')}
+                onClick={goSupport}
                 className="w-full py-3 bg-white/10 text-white rounded-xl font-semibold active:bg-white/15 transition"
               >
                 Help &amp; Support
               </button>
               <button
                 type="button"
-                onClick={() => navigate('/guidelines')}
+                onClick={goGuidelines}
                 className="w-full py-3 bg-white/10 text-white rounded-xl font-semibold active:bg-white/15 transition"
               >
                 Community Guidelines

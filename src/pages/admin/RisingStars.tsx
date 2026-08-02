@@ -1,7 +1,16 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Trophy } from "lucide-react";
-import { request } from "../../lib/apiClient";
+import {
+  apiAdminRisingStarsCreateCategory,
+  apiAdminRisingStarsCreateChallenge,
+  apiAdminRisingStarsCreateRegion,
+  apiAdminRisingStarsCreateSeason,
+  apiAdminRisingStarsLoadChallenges,
+  apiAdminRisingStarsReload,
+  apiAdminRisingStarsSetChallengeStatus,
+  apiAdminRisingStarsSnapshot,
+} from "../../features/admin/adminApi";
 import { showToast } from "../../lib/toast";
 
 interface Season {
@@ -23,6 +32,7 @@ interface Challenge {
 
 export default function AdminRisingStars() {
   const navigate = useNavigate();
+  const goAdmin = useCallback(() => navigate("/admin"), [navigate]);
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [selectedSeasonId, setSelectedSeasonId] = useState("");
   const [challenges, setChallenges] = useState<Challenge[]>([]);
@@ -70,36 +80,30 @@ export default function AdminRisingStars() {
   }, [selectedSeasonId]);
 
   const reload = async () => {
-    const [s, a] = await Promise.all([
-      request("/api/admin/rising-stars/seasons"),
-      request("/api/admin/rising-stars/audit?limit=50"),
-    ]);
-    if (s.error) {
-      showToast(s.error.message);
+    const { seasons: list, audit, error } = await apiAdminRisingStarsReload();
+    if (error) {
+      showToast(error);
       return;
     }
-    const list = s.data?.seasons || [];
-    setSeasons(list);
-    if (!selectedSeasonId && list[0]?.id) setSelectedSeasonId(list[0].id);
-    setAudit(a.data?.audit || []);
+    const seasons = list as Season[];
+    setSeasons(seasons);
+    if (!selectedSeasonId && seasons[0]?.id) setSelectedSeasonId(seasons[0].id);
+    setAudit(audit as Array<Record<string, unknown>>);
   };
 
   const loadChallenges = async (seasonId: string) => {
-    const { data } = await request(
-      `/api/rising-stars/challenges?seasonId=${seasonId}`,
-    );
-    setChallenges(data?.challenges || []);
+    const { challenges } = await apiAdminRisingStarsLoadChallenges(seasonId);
+    setChallenges(challenges as Challenge[]);
   };
 
   const createSeason = async () => {
     setBusy(true);
     try {
-      const { error } = await request("/api/admin/rising-stars/seasons", {
-        method: "POST",
-        body: JSON.stringify(seasonForm),
-      });
+      const { error } = await apiAdminRisingStarsCreateSeason(
+        seasonForm as unknown as Record<string, unknown>,
+      );
       if (error) {
-        showToast(error.message);
+        showToast(error);
         return;
       }
       showToast("Season created");
@@ -113,19 +117,16 @@ export default function AdminRisingStars() {
     if (!selectedSeasonId) return;
     setBusy(true);
     try {
-      const { data, error } = await request("/api/admin/rising-stars/categories", {
-        method: "POST",
-        body: JSON.stringify({
-          season_id: selectedSeasonId,
-          ...categoryForm,
-        }),
+      const { category, error } = await apiAdminRisingStarsCreateCategory({
+        season_id: selectedSeasonId,
+        ...categoryForm,
       });
       if (error) {
-        showToast(error.message);
+        showToast(error);
         return;
       }
-      if (data?.category?.id) {
-        setChallengeForm((f) => ({ ...f, category_id: data.category.id }));
+      if (category?.id) {
+        setChallengeForm((f) => ({ ...f, category_id: String(category.id) }));
       }
       showToast("Category created");
     } finally {
@@ -137,20 +138,17 @@ export default function AdminRisingStars() {
     if (!selectedSeasonId) return;
     setBusy(true);
     try {
-      const { data, error } = await request("/api/admin/rising-stars/regions", {
-        method: "POST",
-        body: JSON.stringify({
-          season_id: selectedSeasonId,
-          ...regionForm,
-          country_codes: ["GB"],
-        }),
+      const { region, error } = await apiAdminRisingStarsCreateRegion({
+        season_id: selectedSeasonId,
+        ...regionForm,
+        country_codes: ["GB"],
       });
       if (error) {
-        showToast(error.message);
+        showToast(error);
         return;
       }
-      if (data?.region?.id) {
-        setChallengeForm((f) => ({ ...f, region_id: data.region.id }));
+      if (region?.id) {
+        setChallengeForm((f) => ({ ...f, region_id: String(region.id) }));
       }
       showToast("Region created");
     } finally {
@@ -165,22 +163,19 @@ export default function AdminRisingStars() {
     }
     setBusy(true);
     try {
-      const { error } = await request("/api/admin/rising-stars/challenges", {
-        method: "POST",
-        body: JSON.stringify({
-          season_id: selectedSeasonId,
-          category_id: challengeForm.category_id,
-          region_id: challengeForm.region_id || null,
-          week_index: Number(challengeForm.week_index) || 1,
-          title: challengeForm.title,
-          sound_track_id: challengeForm.sound_track_id,
-          opens_at: challengeForm.opens_at,
-          closes_at: challengeForm.closes_at,
-          status: challengeForm.status,
-        }),
+      const { error } = await apiAdminRisingStarsCreateChallenge({
+        season_id: selectedSeasonId,
+        category_id: challengeForm.category_id,
+        region_id: challengeForm.region_id || null,
+        week_index: Number(challengeForm.week_index) || 1,
+        title: challengeForm.title,
+        sound_track_id: challengeForm.sound_track_id,
+        opens_at: challengeForm.opens_at,
+        closes_at: challengeForm.closes_at,
+        status: challengeForm.status,
       });
       if (error) {
-        showToast(error.message);
+        showToast(error);
         return;
       }
       showToast("Challenge created");
@@ -194,15 +189,11 @@ export default function AdminRisingStars() {
   const setStatus = async (id: string, status: string) => {
     setBusy(true);
     try {
-      const { error } = await request(
-        `/api/admin/rising-stars/challenges/${id}/status`,
-        {
-          method: "PATCH",
-          body: JSON.stringify({ status }),
-        },
-      );
+      const { error } = await apiAdminRisingStarsSetChallengeStatus(id, {
+        status,
+      });
       if (error) {
-        showToast(error.message);
+        showToast(error);
         return;
       }
       await loadChallenges(selectedSeasonId);
@@ -214,18 +205,12 @@ export default function AdminRisingStars() {
   const snapshot = async (id: string, phase: "qualifier" | "final") => {
     setBusy(true);
     try {
-      const { error } = await request(
-        `/api/admin/rising-stars/challenges/${id}/snapshot`,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            phase,
-            advanceTopN: phase === "qualifier" ? 10 : 0,
-          }),
-        },
-      );
+      const { error } = await apiAdminRisingStarsSnapshot(id, {
+        phase,
+        advanceTopN: phase === "qualifier" ? 10 : 0,
+      });
       if (error) {
-        showToast(error.message);
+        showToast(error);
         return;
       }
       showToast(`${phase} snapshot saved`);
@@ -248,7 +233,7 @@ export default function AdminRisingStars() {
           </h1>
           <button
             type="button"
-            onClick={() => navigate("/admin")}
+            onClick={goAdmin}
             className="text-sm text-white/60"
           >
             Back

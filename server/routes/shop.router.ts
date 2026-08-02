@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createShopItemCheckout } from "./checkout";
+import { createShopItemCheckout, getShopCheckoutSession } from "./checkout";
 import { handleGetCoinPackages } from "./coinPackages";
 import { handleListShopItems, handleCreateShopItem, handleDeleteShopItem } from "./shopItems";
 import { validateBody } from "../middleware/validate";
@@ -11,6 +11,7 @@ router.get("/items", handleListShopItems);
 router.post("/items", validateBody(shopCreateSchema), handleCreateShopItem);
 router.delete("/items/:id", handleDeleteShopItem);
 router.post("/checkout", shopCheckoutLimiter, validateBody(shopCheckoutSchema), createShopItemCheckout);
+router.get("/checkout-session/:sessionId", getShopCheckoutSession);
 export default router;
 
 export const coinPackagesRouter = Router();

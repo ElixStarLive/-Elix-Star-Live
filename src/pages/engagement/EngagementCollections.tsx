@@ -1,9 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { Gift, Layers, Map, Star } from "lucide-react";
 import { EngagementShell } from "./EngagementShell";
-import { request } from "../../lib/apiClient";
 import { showToast } from "../../lib/toast";
 import { engagementFlags } from "../../config/engagementFlags";
+import {
+  apiEngagementCreatorCards,
+  apiEngagementStickers,
+  apiEngagementTreasure,
+  apiEngagementTreasureOpen,
+} from "../../features/live/engagement/liveEngagementApi";
 
 type Chest = {
   id: string;
@@ -42,13 +47,13 @@ export default function EngagementCollections() {
     try {
       const [tRes, sRes, cRes] = await Promise.all([
         engagementFlags.treasureHuntEnabled
-          ? request("/api/engagement/treasure")
+          ? apiEngagementTreasure()
           : Promise.resolve({ data: null, error: null }),
         engagementFlags.stickerCollectionEnabled
-          ? request("/api/engagement/stickers")
+          ? apiEngagementStickers()
           : Promise.resolve({ data: null, error: null }),
         engagementFlags.creatorCollectionsEnabled
-          ? request("/api/engagement/creator-cards")
+          ? apiEngagementCreatorCards()
           : Promise.resolve({ data: null, error: null }),
       ]);
       setChests((tRes.data?.chests as Chest[]) || []);
@@ -69,11 +74,9 @@ export default function EngagementCollections() {
     if (opening) return;
     setOpening(id);
     try {
-      const { data, error } = await request(`/api/engagement/treasure/${id}/open`, {
-        method: "POST",
-      });
+      const { data, error } = await apiEngagementTreasureOpen(id);
       if (error) {
-        showToast(error.message || "Open failed");
+        showToast(error || "Open failed");
         return;
       }
       const label = (data?.reward as { reward_label?: string } | undefined)?.reward_label;

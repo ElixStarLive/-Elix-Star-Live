@@ -1,7 +1,6 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { request } from '../lib/apiClient';
-import { parseAuthLoginRegisterResponse } from '../lib/authApiContract';
+import { authVerifyEmail } from '../features/auth/authSession';
 import { useAuthStore } from '../store/useAuthStore';
 
 /**
@@ -10,6 +9,7 @@ import { useAuthStore } from '../store/useAuthStore';
  */
 export default function AuthCallback() {
   const navigate = useNavigate();
+  const goLogin = useCallback(() => navigate('/login', { replace: true }), [navigate]);
   const [status, setStatus] = useState<'working' | 'error' | 'ok'>('working');
   const [message, setMessage] = useState<string>('Confirming your email...');
   const processedRef = useRef(false);
@@ -41,18 +41,14 @@ export default function AuthCallback() {
         }
 
         if (token) {
-          const { data, error: verifyError } = await request('/api/auth/verify-email', {
-            method: 'POST',
-            body: JSON.stringify({ token }),
-          });
+          const verifyResult = await authVerifyEmail(token);
           if (cancelled) return;
-          if (verifyError) {
+          if (verifyResult.ok === false) {
             setStatus('error');
-            setMessage(verifyError.message || 'Invalid or expired confirmation link.');
+            setMessage(verifyResult.error || 'Invalid or expired confirmation link.');
             return;
           }
-          const parsed = parseAuthLoginRegisterResponse(data);
-          if (!parsed?.accessToken) {
+          if (verifyResult.kind !== 'session' || !verifyResult.accessToken) {
             setStatus('error');
             setMessage('Confirmation succeeded but no session was returned. Please sign in.');
             return;
@@ -60,10 +56,10 @@ export default function AuthCallback() {
           // Seed the session token so checkUser can hydrate user + profile_meta.
           useAuthStore.setState({
             session: {
-              user: parsed.user as never,
-              access_token: parsed.accessToken,
+              user: verifyResult.user as never,
+              access_token: verifyResult.accessToken,
             },
-            backendUser: parsed.user as never,
+            backendUser: verifyResult.user as never,
             isAuthenticated: true,
             isLoading: true,
             authMode: 'client',
@@ -109,7 +105,7 @@ export default function AuthCallback() {
         </div>
         <button
           className="mt-4 w-full bg-secondary text-black font-bold rounded-xl py-2 text-sm"
-          onClick={() => navigate('/login', { replace: true })}
+          onClick={goLogin}
         >
           Go to Login
         </button>

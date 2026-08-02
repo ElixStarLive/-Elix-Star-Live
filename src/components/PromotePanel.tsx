@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Play, UserPlus, FileText, Heart } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
-import { request } from '../lib/apiClient';
 import { getPaymentMethod, platform } from '../lib/platform';
 import { finalizeNativePurchase, purchasePromoteProduct, type PromoteProductId } from '../lib/iap';
+import { apiPromoteIapComplete } from '../features/promote/promoteApi';
 
 export type PromoteContentType = 'video' | 'profile' | 'live';
 
@@ -81,18 +81,15 @@ export default function PromotePanel({ isOpen, onClose, contentType, content }: 
           setPanelMessage(result.error || 'Purchase failed');
           return;
         }
-        const { data, error: reqError } = await request('/api/promote-iap-complete', {
-          method: 'POST',
-          body: JSON.stringify({
-            transactionId: result.transactionId,
-            receipt: result.receipt || '',
-            productId,
-            provider: useAppleIAP ? 'apple' : 'google',
-            contentType,
-            contentId: content?.id ?? '',
-          }),
+        const { ok, error } = await apiPromoteIapComplete({
+          transactionId: result.transactionId,
+          receipt: result.receipt || '',
+          productId,
+          provider: useAppleIAP ? 'apple' : 'google',
+          contentType,
+          contentId: content?.id ?? '',
         });
-        if (!reqError && data?.success) {
+        if (ok) {
           await finalizeNativePurchase({
             transactionId: result.transactionId,
             receipt: result.receipt || '',
@@ -100,7 +97,7 @@ export default function PromotePanel({ isOpen, onClose, contentType, content }: 
           onClose();
           return;
         }
-        setPanelMessage(data?.error || reqError?.message || 'Failed to complete promote. Please try again.');
+        setPanelMessage(error || 'Failed to complete promote. Please try again.');
       } catch {
         setPanelMessage('Failed to complete promote. Please try again.');
       } finally {

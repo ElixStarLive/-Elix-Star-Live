@@ -96,16 +96,19 @@ type CaptureCanvas = HTMLCanvasElement & { captureStream: (fps?: number) => Medi
 type CaptureVideo = HTMLVideoElement & { captureStream?: () => MediaStream };
 
 /**
- * Bake filter + overlays into a video by re-drawing every frame to a canvas and
- * re-encoding with the original audio. Falls back to the original URL if the
- * runtime cannot re-encode (edits then apply to preview only, never faked).
+ * Bake filter + overlays (+ optional voice FX) into a video by re-drawing every
+ * frame to a canvas and re-encoding with MediaRecorder. Voice FX routes the
+ * captured audio through VoiceProcessor before mux. Falls back to the original
+ * URL if the runtime cannot re-encode (edits then apply to preview only, never faked).
  */
 export async function bakeVideo(
   srcUrl: string,
   filterCss: string,
   overlays: EditOverlay[],
+  voiceEffectId?: string,
 ): Promise<string> {
-  if (!filterCss && overlays.length === 0) return srcUrl;
+  const wantsVoice = Boolean(voiceEffectId && voiceEffectId !== 'none');
+  if (!filterCss && overlays.length === 0 && !wantsVoice) return srcUrl;
   if (!canBakeVideo()) return srcUrl;
 
   const video = document.createElement('video') as CaptureVideo;
@@ -130,13 +133,36 @@ export async function bakeVideo(
 
   const canvasStream = canvas.captureStream(30);
 
-  // Attach original audio if present.
+  // Attach original (or voice-processed) audio if present.
+  let destroyVoice: (() => void) | null = null;
+  let voiceApplied = !wantsVoice;
   try {
     const srcStream = video.captureStream?.();
     const audio = srcStream?.getAudioTracks?.() ?? [];
-    for (const track of audio) canvasStream.addTrack(track);
+    if (audio.length > 0) {
+      if (wantsVoice) {
+        const { VoiceProcessor } = await import('./ai/voice');
+        const voiceProcessor = new VoiceProcessor();
+        const processed = await voiceProcessor.init(new MediaStream(audio));
+        voiceProcessor.applyEffect(voiceEffectId as string);
+        destroyVoice = () => { try { voiceProcessor.destroy(); } catch { /* ignore */ } };
+        for (const track of processed.getAudioTracks()) canvasStream.addTrack(track);
+        voiceApplied = processed.getAudioTracks().length > 0;
+      } else {
+        for (const track of audio) canvasStream.addTrack(track);
+      }
+    }
   } catch {
-    /* no audio track available — export video-only */
+    /* no audio track available — export video-only; voice bake skipped honestly */
+    try { destroyVoice?.(); } catch { /* ignore */ }
+    destroyVoice = null;
+    voiceApplied = !wantsVoice;
+  }
+
+  // Voice was requested but could not be applied — abort bake (never pretend FX is in file).
+  if (wantsVoice && !voiceApplied) {
+    try { destroyVoice?.(); } catch { /* ignore */ }
+    return srcUrl;
   }
 
   const mimeCandidates = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4'];
@@ -171,6 +197,7 @@ export async function bakeVideo(
     recorder.onstop = () => {
       const blob = new Blob(chunks, { type: mimeType || 'video/webm' });
       try { video.pause(); } catch { /* ignore */ }
+      try { destroyVoice?.(); } catch { /* ignore */ }
       resolve(blob.size === 0 ? srcUrl : URL.createObjectURL(blob));
     };
     video.onended = finish;

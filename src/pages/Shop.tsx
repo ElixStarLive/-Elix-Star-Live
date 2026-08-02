@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { RoyceBackIcon } from '../components/royce';
 import { useNavigate } from 'react-router-dom';
-import { api, request } from '../lib/apiClient';
+import { api } from '../lib/apiClient';
 import { useAuthStore } from '../store/useAuthStore';
 import { Plus, Camera, Tag, MessageCircle, Search, MoreVertical, ShoppingBag, X } from 'lucide-react';
 import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
@@ -9,6 +9,9 @@ import { showToast } from '../lib/toast';
 import { bunnyUpload } from '../lib/bunnyStorage';
 import { openExternalLink } from '../lib/platform';
 import { useCartStore } from '../store/useCartStore';
+import { apiLiveStreams } from '../lib/live';
+import { apiFetchProfiles } from '../features/feed/feedApi';
+import { apiShopCheckout, apiShopCheckoutSessionStatus } from '../features/shop/shopApi';
 
 const SHOP_LIVE_RING = 56;
 
@@ -56,25 +59,104 @@ export default function Shop() {
   const [checkingOut, setCheckingOut] = useState(false);
   const cartTotal = cartItems.reduce((sum, i) => sum + (Number(i.price) || 0), 0);
 
+  const goBack = useCallback(() => {
+    navigate(-1);
+  }, [navigate]);
+
+  const goSearch = useCallback(() => {
+    navigate('/search');
+  }, [navigate]);
+
+  const goLiveDiscover = useCallback(() => {
+    navigate('/live');
+  }, [navigate]);
+
+  const openWatchLive = useCallback((streamKey: string) => {
+    navigate(`/watch/${streamKey}`);
+  }, [navigate]);
+
+  const openCreateListing = useCallback(() => {
+    setShowCreate(true);
+  }, []);
+
+  const closeCreateListing = useCallback(() => {
+    setShowCreate(false);
+  }, []);
+
+  const openCart = useCallback(() => {
+    setShowCart(true);
+  }, []);
+
+  const closeCart = useCallback(() => {
+    setShowCart(false);
+  }, []);
+
+  const selectFilter = useCallback((key: typeof activeFilter) => {
+    setActiveFilter(key);
+  }, []);
+
+  const toggleItemMenu = useCallback((itemId: string, menuOpen: boolean) => {
+    setMenuItemId(menuOpen ? null : itemId);
+  }, []);
+
+  const closeItemMenu = useCallback(() => {
+    setMenuItemId(null);
+  }, []);
+
+  const handleAddToCart = useCallback((item: { id: string; title: string; price: number; image_url: string | null }) => {
+    addToCart(item);
+  }, [addToCart]);
+
+  const handleRemoveFromCart = useCallback((itemId: string) => {
+    removeFromCart(itemId);
+  }, [removeFromCart]);
+
   useEffect(() => {
     return () => {
       if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
     };
   }, []);
 
-  // Returning from Stripe checkout: clear the basket on success, notify on cancel.
+  // Returning from Stripe checkout: confirm payment_status via server (buyer-scoped).
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const purchase = params.get('purchase');
-    if (purchase === 'success') {
-      clearCart();
-      setShowCart(false);
-      showToast('Payment received — thank you!');
-      window.history.replaceState({}, '', window.location.pathname);
-    } else if (purchase === 'cancelled') {
+    const sessionId = params.get('session_id');
+    if (purchase === 'cancelled') {
       showToast('Checkout cancelled');
       window.history.replaceState({}, '', window.location.pathname);
+      return;
     }
+    if (purchase !== 'success') return;
+
+    let cancelled = false;
+    (async () => {
+      if (!sessionId) {
+        showToast('Checkout return incomplete — check email/orders if you paid');
+        window.history.replaceState({}, '', window.location.pathname);
+        return;
+      }
+      const { data, error } = await apiShopCheckoutSessionStatus(sessionId);
+      if (cancelled) return;
+      if (error) {
+        showToast(error || 'Could not confirm payment status');
+      } else if (data?.paid) {
+        clearCart();
+        setShowCart(false);
+        showToast('Payment confirmed');
+      } else {
+        clearCart();
+        setShowCart(false);
+        showToast(
+          `Checkout returned — payment status: ${data?.payment_status || 'pending'}`,
+        );
+      }
+      window.history.replaceState({}, '', window.location.pathname);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [clearCart]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -84,11 +166,11 @@ export default function Shop() {
     const load = async () => {
       try {
         const [streamsResult, profilesResult] = await Promise.all([
-          request('/api/live/streams').catch(() => ({ data: null, error: null })),
-          request('/api/profiles').catch(() => ({ data: null, error: null })),
+          apiLiveStreams().catch(() => ({ streams: [], error: null })),
+          apiFetchProfiles().catch(() => ({ profiles: [], error: null })),
         ]);
-        const streamsBody = streamsResult.data ?? { streams: [] };
-        const profilesBody = profilesResult.data ?? { profiles: [] };
+        const streamsBody = { streams: streamsResult.streams ?? [] };
+        const profilesBody = { profiles: profilesResult.profiles ?? [] };
 
         const profiles = Array.isArray(profilesBody?.profiles) ? profilesBody.profiles : [];
         const byId = new Map<string, { name: string; avatar: string }>();
@@ -226,11 +308,10 @@ export default function Shop() {
     if (cartItems.length === 0 || checkingOut) return;
     setCheckingOut(true);
     try {
-      const { data, error } = await request('/api/shop/checkout', {
-        method: 'POST',
-        body: JSON.stringify({ items: cartItems.map((i) => ({ id: i.id })) }),
+      const { data, error } = await apiShopCheckout({
+        items: cartItems.map((i) => ({ id: i.id })),
       });
-      if (error) throw new Error(error.message || 'Checkout failed');
+      if (error) throw new Error(error || 'Checkout failed');
       if (data?.url) {
         // Shop is physical goods → Stripe is correct. On native, open the
         // system browser so checkout does not hijack the Capacitor WebView.
@@ -245,7 +326,7 @@ export default function Shop() {
     }
   };
 
-  const contactSeller = async (sellerId: string) => {
+  const contactSeller = useCallback(async (sellerId: string) => {
     if (!user?.id || sellerId === user.id) return;
     try {
       const { data: thread } = await api.chat.ensureThread(sellerId);
@@ -253,7 +334,12 @@ export default function Shop() {
     } catch {
       showToast('Failed to contact seller');
     }
-  };
+  }, [navigate, user?.id]);
+
+  const handleMessageSeller = useCallback((sellerId: string) => {
+    setMenuItemId(null);
+    void contactSeller(sellerId);
+  }, [contactSeller]);
 
   const handleRemoveItem = async (item: ShopItem) => {
     if (!user?.id || item.user_id !== user.id || removingId) return;
@@ -292,13 +378,13 @@ export default function Shop() {
             style={{ minHeight: 'var(--topnav-bar-height)' }}
           >
             <div className="flex items-center gap-1">
-              <button onClick={() => setShowCreate(true)} className="p-1" title="Sell item">
+              <button onClick={openCreateListing} className="p-1" title="Sell item">
                 <Plus size={18} className="text-white" />
               </button>
-              <button onClick={() => navigate('/search')} className="p-1" title="Search">
+              <button onClick={goSearch} className="p-1" title="Search">
                 <Search size={18} className="text-white" />
               </button>
-              <button onClick={() => setShowCart(true)} className="p-1 relative" title="Basket">
+              <button onClick={openCart} className="p-1 relative" title="Basket">
                 <ShoppingBag size={18} className="text-white" />
                 {cartItems.length > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 min-w-[15px] h-[15px] px-1 rounded-full bg-[#D4AF37] text-black text-[9px] font-extrabold flex items-center justify-center leading-none">
@@ -308,7 +394,7 @@ export default function Shop() {
               </button>
             </div>
             <h1 className="text-sm font-bold text-white">Shop</h1>
-            <button onClick={() => navigate(-1)} className="p-1" title="Back">
+            <button onClick={goBack} className="p-1" title="Back">
               <RoyceBackIcon />
             </button>
           </div>
@@ -321,7 +407,7 @@ export default function Shop() {
               <span className="text-[11px] font-bold text-white/60">LIVE now</span>
               <button
                 type="button"
-                onClick={() => navigate('/live')}
+                onClick={goLiveDiscover}
                 className="text-[11px] font-bold text-[#D4AF37]"
               >
                 See all
@@ -332,7 +418,7 @@ export default function Shop() {
                 <button
                   key={u.streamKey}
                   type="button"
-                  onClick={() => navigate(`/watch/${u.streamKey}`)}
+                  onClick={() => openWatchLive(u.streamKey)}
                   className="flex-shrink-0 flex flex-col items-center gap-1 active:scale-95 transition-transform"
                   style={{ width: SHOP_LIVE_RING, minWidth: SHOP_LIVE_RING }}
                   title={u.name}
@@ -357,7 +443,7 @@ export default function Shop() {
           {filters.map(f => (
             <button
               key={f.key}
-              onClick={() => setActiveFilter(f.key)}
+              onClick={() => selectFilter(f.key)}
               className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border transition-colors ${
                 activeFilter === f.key
                   ? 'bg-[#D4AF37] text-black border-[#C9A227]'
@@ -377,7 +463,7 @@ export default function Shop() {
           <div className="flex-1 flex flex-col items-center justify-center py-20 gap-3">
             <Tag size={40} className="text-white/20" />
             <p className="text-white/40 text-sm">No items for sale yet</p>
-            <button onClick={() => setShowCreate(true)} className="mt-2 px-5 py-2 rounded-xl bg-[#D4AF37] text-black font-bold text-sm">
+            <button onClick={openCreateListing} className="mt-2 px-5 py-2 rounded-xl bg-[#D4AF37] text-black font-bold text-sm">
               Sell Something
             </button>
           </div>
@@ -401,7 +487,7 @@ export default function Shop() {
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setMenuItemId(menuOpen ? null : item.id);
+                        toggleItemMenu(item.id, menuOpen);
                       }}
                       className="p-1.5 rounded-full bg-black/55 border border-white/10"
                       aria-label="Item options"
@@ -414,7 +500,7 @@ export default function Shop() {
                           type="button"
                           className="fixed inset-0 z-[3]"
                           aria-label="Close menu"
-                          onClick={() => setMenuItemId(null)}
+                          onClick={closeItemMenu}
                         />
                         <div className="absolute right-0 top-full mt-1 z-[4] min-w-[120px] rounded-xl bg-[#1a1a1a] border border-white/10 shadow-lg overflow-hidden">
                           {isOwn ? (
@@ -429,10 +515,7 @@ export default function Shop() {
                           ) : (
                             <button
                               type="button"
-                              onClick={() => {
-                                setMenuItemId(null);
-                                contactSeller(item.user_id);
-                              }}
+                              onClick={() => handleMessageSeller(item.user_id)}
                               className="w-full text-left px-3 py-2 text-xs font-semibold text-white/80 hover:bg-white/5 flex items-center gap-1.5"
                             >
                               <MessageCircle size={12} className="text-[#D4AF37]" />
@@ -454,7 +537,7 @@ export default function Shop() {
                     cartItems.some((c) => c.id === item.id) ? (
                       <button
                         type="button"
-                        onClick={() => removeFromCart(item.id)}
+                        onClick={() => handleRemoveFromCart(item.id)}
                         className="w-full mt-2 py-1.5 rounded-xl bg-white/10 text-[#D4AF37] border border-[#C9A227]/40 font-extrabold text-[12px]"
                       >
                         In basket — Remove
@@ -462,7 +545,7 @@ export default function Shop() {
                     ) : (
                       <button
                         type="button"
-                        onClick={() => addToCart({ id: item.id, title: item.title, price: item.price, image_url: item.image_url })}
+                        onClick={() => handleAddToCart({ id: item.id, title: item.title, price: item.price, image_url: item.image_url })}
                         className="w-full mt-2 py-1.5 rounded-xl bg-[#D4AF37] text-black font-extrabold text-[12px]"
                       >
                         Add to basket
@@ -481,7 +564,7 @@ export default function Shop() {
           <>
             <div
               className="fixed inset-0 z-[9998] bg-black/70"
-              onClick={() => setShowCreate(false)}
+              onClick={closeCreateListing}
             />
             {/* Anchor the modal exactly to the top of the bottom bar (no extra gap). */}
             <div className="fixed left-0 right-0 z-[9999] pointer-events-auto max-w-[480px] mx-auto fixed-above-bottom-nav">
@@ -571,7 +654,7 @@ export default function Shop() {
           <>
             <div
               className="fixed inset-0 z-[9998] bg-black/70"
-              onClick={() => setShowCart(false)}
+              onClick={closeCart}
             />
             <div className="fixed left-0 right-0 z-[9999] pointer-events-auto max-w-[480px] mx-auto fixed-above-bottom-nav">
               <div
@@ -584,7 +667,7 @@ export default function Shop() {
                 </div>
                 <div className="flex items-center justify-between px-5 pb-3">
                   <h3 className="text-gold-metallic font-bold text-base">Your basket</h3>
-                  <button onClick={() => setShowCart(false)} className="p-1" aria-label="Close basket">
+                  <button onClick={closeCart} className="p-1" aria-label="Close basket">
                     <X size={18} className="text-white/70" />
                   </button>
                 </div>
@@ -612,7 +695,7 @@ export default function Shop() {
                           </div>
                           <button
                             type="button"
-                            onClick={() => removeFromCart(ci.id)}
+                            onClick={() => handleRemoveFromCart(ci.id)}
                             className="p-1.5 rounded-full bg-white/5 border border-white/10"
                             aria-label={`Remove ${ci.title}`}
                           >

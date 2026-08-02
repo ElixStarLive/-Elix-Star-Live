@@ -1,8 +1,11 @@
 import React, { useCallback, useRef, useState } from "react";
 import { Zap } from "lucide-react";
-import { request } from "../lib/apiClient";
 import { showToast } from "../lib/toast";
 import { engagementFlags } from "../config/engagementFlags";
+import {
+  apiEngagementBattleEnergyBoost,
+  apiEngagementBattleEnergyEarn,
+} from "../features/live/engagement/liveEngagementApi";
 
 /**
  * Minimal Battle Energy BOOST control for live battle chrome.
@@ -26,13 +29,15 @@ export function BattleEnergyBoostControls({
       inflight.current = true;
       setBusy(true);
       try {
-        const { data, error } = await request("/api/engagement/battle-energy/boost", {
-          method: "POST",
-          body: JSON.stringify({ roomId, side, amount: 100 }),
+        const { data, error } = await apiEngagementBattleEnergyBoost({
+          roomId,
+          side,
+          amount: 100,
         });
         if (error) {
+          const errText = String(error || "");
           showToast(
-            String(error.message || "").includes("INSUFFICIENT")
+            errText.includes("INSUFFICIENT")
               ? "Not enough Battle Energy"
               : "Boost unavailable",
           );
@@ -86,8 +91,5 @@ export function earnBattleEnergyQuiet(
   roomId?: string,
 ): void {
   if (!engagementFlags.battleEnergyEnabled) return;
-  void request("/api/engagement/battle-energy/earn", {
-    method: "POST",
-    body: JSON.stringify({ source, roomId }),
-  }).catch(() => {});
+  void apiEngagementBattleEnergyEarn({ source, roomId }).catch(() => {});
 }

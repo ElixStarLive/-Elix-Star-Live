@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Phone, PhoneOff } from 'lucide-react';
 import { useCallStore } from '../store/useCallStore';
@@ -9,17 +9,19 @@ export function IncomingCallModal() {
   const navigate = useNavigate();
   const { callId, status, remoteUser } = useCallStore();
 
+  const goCall = useCallback(() => navigate('/call'), [navigate]);
+
   useEffect(() => {
     if (status === 'connecting' && callId) {
-      navigate('/call');
+      goCall();
     }
-  }, [status, callId, navigate]);
+  }, [status, callId, goCall]);
 
   if (status !== 'incoming' || !callId || !remoteUser) return null;
 
   const handleAccept = async () => {
     await acceptCall(callId);
-    navigate('/call');
+    goCall();
   };
 
   const handleReject = async () => {

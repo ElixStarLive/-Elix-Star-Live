@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { request } from '../../lib/apiClient';
 import { Flag, CheckCircle, XCircle, Eye } from 'lucide-react';
 import { showToast } from '../../lib/toast';
+import { apiAdminListReports, apiAdminResolveReport } from '../../features/admin/adminApi';
 
 interface Report {
   id: string;
@@ -18,6 +18,12 @@ interface Report {
 
 export default function AdminReports() {
   const navigate = useNavigate();
+  const openReportTarget = useCallback((targetType: string, targetId: string) => {
+    if (targetType === 'video') navigate(`/video/${targetId}`);
+    else if (targetType === 'user' || targetType === 'profile') navigate(`/profile/${targetId}`);
+    else if (targetType === 'stream' || targetType === 'live') navigate(`/live/${targetId}`);
+    else navigate(`/video/${targetId}`);
+  }, [navigate]);
   const [reports, setReports] = useState<Report[]>([]);
   const [filter, setFilter] = useState<'pending' | 'all'>('pending');
   const [loading, setLoading] = useState(true);
@@ -29,12 +35,9 @@ export default function AdminReports() {
 
   const loadReports = async () => {
     try {
-      const queryParam = filter === 'pending' ? '?status=pending' : '';
-      const { data, error } = await request(`/api/admin/reports${queryParam}`);
-
-      if (error) throw error;
-      const list = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : []);
-      setReports(list);
+      const { reports: list, error } = await apiAdminListReports(filter);
+      if (error) throw new Error(error);
+      setReports(list as unknown as Report[]);
     } catch {
       showToast('Failed to load reports');
     } finally {
@@ -44,16 +47,8 @@ export default function AdminReports() {
 
   const handleResolve = async (reportId: string, outcome: 'removed' | 'warned' | 'no_action') => {
     try {
-      const { error } = await request(`/api/admin/reports/${encodeURIComponent(reportId)}`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          status: 'actioned',
-          action: outcome,
-          admin_note: `Outcome: ${outcome}`,
-        }),
-      });
-
-      if (error) throw error;
+      const { error } = await apiAdminResolveReport(reportId, outcome);
+      if (error) throw new Error(error);
 
       showToast('Report resolved');
       loadReports();
@@ -150,14 +145,7 @@ export default function AdminReports() {
                     No Action
                   </button>
                   <button
-                    onClick={() => {
-                      const t = report.target_type;
-                      const id = report.target_id;
-                      if (t === 'video') navigate(`/video/${id}`);
-                      else if (t === 'user' || t === 'profile') navigate(`/profile/${id}`);
-                      else if (t === 'stream' || t === 'live') navigate(`/live/${id}`);
-                      else navigate(`/video/${id}`);
-                    }}
+                    onClick={() => openReportTarget(report.target_type, report.target_id)}
                     className="px-4 py-2 bg-[#FFFFFF] rounded hover:bg-[#B8943F] flex items-center gap-2"
                   >
                     <Eye className="w-4 h-4" />

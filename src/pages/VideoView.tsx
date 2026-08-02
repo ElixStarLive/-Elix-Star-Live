@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { RoyceBackIcon, RoyceCloseIcon } from '../components/royce';
 
 import { useNavigate, useParams } from 'react-router-dom';
@@ -11,6 +11,8 @@ export default function VideoView() {
   const fetchVideoById = useVideoStore((s) => s.fetchVideoById);
   const video = useVideoStore((s) => (videoId ? s.getVideoById(videoId) : undefined));
   const [loadPhase, setLoadPhase] = useState<'idle' | 'loading' | 'done'>('idle');
+
+  const goBack = useCallback(() => navigate(-1), [navigate]);
 
   useEffect(() => {
     if (!videoId) return;
@@ -32,7 +34,7 @@ export default function VideoView() {
   if (!videoId) {
     return (
       <div className="min-h-[100dvh] bg-[#111111] text-white p-4">
-        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-white/80">
+        <button onClick={goBack} className="flex items-center gap-2 text-white/80">
           <RoyceBackIcon />
           Back
         </button>
@@ -58,7 +60,7 @@ export default function VideoView() {
             }}
           >
             <button
-              onClick={() => navigate(-1)}
+              onClick={goBack}
               className="p-2 rounded-full bg-transparent border border-transparent text-white"
               aria-label="Back"
             >
@@ -88,7 +90,7 @@ export default function VideoView() {
             }}
           >
             <button
-              onClick={() => navigate(-1)}
+              onClick={goBack}
               className="p-2 rounded-full bg-transparent border border-transparent text-white"
               aria-label="Back"
             >
@@ -99,7 +101,7 @@ export default function VideoView() {
             <span className="text-white/70 text-sm text-center">Video not found or unavailable.</span>
             <button
               type="button"
-              onClick={() => navigate(-1)}
+              onClick={goBack}
               className="text-[#D4AF37] text-sm font-semibold"
             >
               Go back
@@ -121,7 +123,7 @@ export default function VideoView() {
           }}
         >
           <button
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             className="p-2 rounded-full bg-transparent border border-transparent text-white"
             aria-label="Back"
           >

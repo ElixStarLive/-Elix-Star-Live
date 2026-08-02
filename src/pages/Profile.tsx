@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { RoyceCloseIcon } from '../components/royce';
 import { Share2, Menu, Lock, Play, Heart, Sparkles, LogOut, UserPlus, Bookmark, Grid3X3, ShoppingBag, Repeat2, ChevronDown, Search, Copy, MessageCircle, Check, TrendingUp, Flag, Settings } from 'lucide-react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -11,7 +11,16 @@ import { trackEvent } from '../lib/analytics';
 import ReportModal from '../components/ReportModal';
 import PromotePanel from '../components/PromotePanel';
 import { useVideoStore } from '../store/useVideoStore';
-import { request } from '../lib/apiClient';
+import {
+  apiFetchFollowingIds,
+  apiFetchLikedVideos,
+  apiFetchProfileById,
+  apiFetchProfileByUsername,
+  apiFetchSavedVideos,
+  apiFetchUserVideos,
+  apiToggleFollow,
+} from '../features/feed/feedApi';
+import { sendDmToUser } from '../lib/chatMessages';
 import {
   fetchAllSharePanelContacts,
   SHARE_PANEL_ACTION_DISC_PX,
@@ -24,6 +33,9 @@ import { getVideoPosterUrl, resolveGridThumbnailUrl, resolveVideoPlaybackUrl } f
 import { openExternalLink } from '../lib/platform';
 import { fetchActiveStories, type StoryUserGroup } from '../lib/storiesApi';
 import { subscribeVideoCollection } from '../lib/videoCollectionEvents';
+import { apiRisingStarsUserBadges } from '../features/risingStars/risingStarsApi';
+import { apiShopItemsByUser } from '../features/shop/shopApi';
+import { apiLiveSendDailyHeart } from '../features/live/engagement/liveEngagementApi';
 
 interface Video {
   id: string;
@@ -84,10 +96,103 @@ export default function Profile() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const headerCenterLabelRef = useRef<HTMLDivElement | null>(null);
 
+  const goBack = useCallback(() => {
+    navigate(-1);
+  }, [navigate]);
+
+  const goSettings = useCallback(() => {
+    setShowAccountMenu(false);
+    navigate('/settings');
+  }, [navigate]);
+
+  const goLoginAfterSignOut = useCallback(async () => {
+    setShowAccountMenu(false);
+    await signOut();
+    navigate('/login', { replace: true });
+  }, [navigate, signOut]);
+
+  const closeAccountMenu = useCallback(() => {
+    setShowAccountMenu(false);
+  }, []);
+
+  const goAiStudio = useCallback(() => {
+    navigate('/ai-studio');
+  }, [navigate]);
+
+  const goCreatorLoginDetails = useCallback(() => {
+    navigate('/creator/login-details');
+  }, [navigate]);
+
+  const goShop = useCallback(() => {
+    navigate('/shop');
+  }, [navigate]);
+
+  const goUploadStory = useCallback(() => {
+    navigate('/upload?type=story');
+  }, [navigate]);
+
+  const goUploadStoryFromRing = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      goUploadStory();
+    },
+    [goUploadStory],
+  );
+
+  const goVideo = useCallback(
+    (videoId: string) => {
+      navigate(`/video/${videoId}`);
+    },
+    [navigate],
+  );
+
+  const goFollowingList = useCallback(() => {
+    const id = resolvedUserId || routeUserId || user?.id;
+    if (id) navigate(`/profile/${id}/following`);
+  }, [navigate, resolvedUserId, routeUserId, user?.id]);
+
+  const goFollowersList = useCallback(() => {
+    const id = resolvedUserId || routeUserId || user?.id;
+    if (id) navigate(`/profile/${id}/followers`);
+  }, [navigate, resolvedUserId, routeUserId, user?.id]);
+
+  const openAvatarPicker = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const tabVideos = useCallback(() => setActiveTab('videos'), []);
+  const tabShop = useCallback(() => setActiveTab('shop'), []);
+  const tabPrivate = useCallback(() => setActiveTab('private'), []);
+  const tabReposts = useCallback(() => setActiveTab('reposts'), []);
+  const tabSaved = useCallback(() => setActiveTab('saved'), []);
+  const tabLiked = useCallback(() => setActiveTab('liked'), []);
+
   const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
   const isOwnProfile = !routeUserId || routeUserId === user?.id;
   const displayUserId = routeUserId || user?.id;
   const effectiveUserId = resolvedUserId ?? displayUserId;
+
+  const goInbox = useCallback(() => {
+    navigate('/inbox');
+  }, [navigate]);
+
+  const openThread = useCallback(async () => {
+    if (!effectiveUserId) {
+      goInbox();
+      return;
+    }
+    try {
+      const { apiEnsureDmThread } = await import('../features/chat/chatApi');
+      const { threadId, error: threadErr } = await apiEnsureDmThread(effectiveUserId);
+      if (!threadErr && threadId) {
+        navigate(`/inbox/${threadId}`);
+        return;
+      }
+    } catch {
+      // fall through to inbox
+    }
+    goInbox();
+  }, [navigate, effectiveUserId, goInbox]);
 
   const openSharePanel = async () => {
     setShowSharePanel(true);
@@ -104,23 +209,12 @@ export default function Profile() {
     if (!user?.id || shareSent.has(targetUserId)) return;
     const profileUrl = `${window.location.origin}/profile/${effectiveUserId}`;
     const msgText = `Check out this profile: ${displayName} ${profileUrl}`;
-    try {
-      const { data: threadData, error: threadError } = await request('/api/chat/threads/ensure', {
-        method: "POST",
-        body: JSON.stringify({ otherUserId: targetUserId }),
-      });
-      if (threadError) { showToast('Failed to send'); return; }
-      const threadId = threadData?.threadId || threadData?.thread?.id || threadData?.data?.id;
-      if (threadId) {
-        await request(`/api/chat/threads/${threadId}/messages`, {
-          method: "POST",
-          body: JSON.stringify({ text: msgText }),
-        });
-      }
-      setShareSent(prev => new Set(prev).add(targetUserId));
-    } catch {
-      showToast('Failed to send');
+    const { message, error } = await sendDmToUser(targetUserId, msgText);
+    if (!message) {
+      showToast(error || 'Failed to send');
+      return;
     }
+    setShareSent((prev) => new Set(prev).add(targetUserId));
   };
   
   const _isFallback = (n: string | null | undefined) =>
@@ -162,8 +256,8 @@ export default function Profile() {
     }
     let cancelled = false;
     const usernameClean = (displayUserId || '').replace(/^@+/, '');
-    request(`/api/profiles/by-username/${encodeURIComponent(usernameClean)}`)
-      .then(({ data: body, error }) => {
+    apiFetchProfileByUsername(usernameClean)
+      .then(({ body, error }) => {
         if (cancelled) return;
         if (error || !body) {
           setResolvedUserId(null);
@@ -171,7 +265,8 @@ export default function Profile() {
           setLoading(false);
           return;
         }
-        const uid = body?.profile?.userId || body?.user_id;
+        const profile = body?.profile as { userId?: string } | undefined;
+        const uid = profile?.userId || (body?.user_id as string | undefined);
         if (uid) setResolvedUserId(uid);
         else {
           setResolvedUserId(null);
@@ -194,9 +289,9 @@ export default function Profile() {
     setLoading(true);
     loadProfile();
     loadVideos();
-    request(`/api/rising-stars/badges/user/${encodeURIComponent(effectiveUserId)}`)
-      .then(({ data }) => {
-        const list = Array.isArray(data?.badges) ? data.badges : [];
+    apiRisingStarsUserBadges(effectiveUserId)
+      .then(({ badges }) => {
+        const list = Array.isArray(badges) ? badges : [];
         setRisingBadges(
           list.map((b: { code?: string; title?: string; kind?: string }) => ({
             code: String(b.code || ""),
@@ -273,14 +368,25 @@ export default function Profile() {
         is_creator: false,
       };
 
-      const { data: body, error } = await request(`/api/profiles/${effectiveUserId}`);
-      if (error) {
+      const { body, error } = await apiFetchProfileById(effectiveUserId);
+      if (error || !body) {
         setProfileData(effectiveUserId === user?.id ? fallback : null);
         setLoading(false);
         return;
       }
 
-      const p = body?.profile;
+      const p = body?.profile as {
+        userId?: string;
+        username?: string;
+        displayName?: string;
+        avatarUrl?: string;
+        bio?: string;
+        followers?: number;
+        followers_count?: number;
+        following?: number;
+        following_count?: number;
+        isVerified?: boolean;
+      } | undefined;
       if (!p) {
         setProfileData(effectiveUserId === user?.id ? fallback : null);
         setLoading(false);
@@ -300,11 +406,12 @@ export default function Profile() {
       };
 
       try {
-        const { data: vidsBody } = await request(`/api/videos/user/${effectiveUserId}`);
-        if (vidsBody) {
-          const vids = Array.isArray(vidsBody?.videos) ? vidsBody.videos : [];
-          data.likes_count = vids.reduce((sum: number, v: { likes?: number }) => sum + (v.likes || 0), 0);
-        }
+        const { videos: vids } = await apiFetchUserVideos(effectiveUserId);
+        data.likes_count = vids.reduce<number>(
+          (sum: number, v: unknown) =>
+            sum + Number((v as { likes?: number })?.likes || 0),
+          0,
+        );
       } catch { /* intentionally empty */ }
 
       setProfileData(data);
@@ -340,12 +447,11 @@ export default function Profile() {
       if (activeTab === 'shop') {
         setVideos([]);
         try {
-          const { data, error } = await request(`/api/shop/items?user_id=${encodeURIComponent(effectiveUserId)}`);
+          const { items, error } = await apiShopItemsByUser(effectiveUserId);
           if (error) {
             setShopItems([]);
             showToast('Failed to load shop items');
           } else {
-            const items = Array.isArray(data?.items) ? data.items : [];
             setShopItems(items.map((i: { id: string; title?: string; price?: number | string; image_url?: string | null }) => ({
               id: i.id,
               title: i.title || '',
@@ -362,9 +468,8 @@ export default function Profile() {
       }
 
       if (activeTab === 'videos' || activeTab === 'private') {
-        const { data: body, error } = await request(`/api/videos/user/${effectiveUserId}`);
+        const { videos: allVids, error } = await apiFetchUserVideos(effectiveUserId);
         if (error) { setVideos([]); setVideosLoading(false); return; }
-        const allVids = Array.isArray(body?.videos) ? body.videos : [];
         const filtered = activeTab === 'private'
           ? allVids.filter((v: { privacy?: string }) => v.privacy === 'private')
           : allVids.filter((v: { privacy?: string }) => v.privacy !== 'private');
@@ -377,16 +482,15 @@ export default function Profile() {
         }));
         setVideos(mapped);
       } else if (activeTab === 'liked') {
-        const { data: body, error } = await request('/api/videos/liked/list?limit=50&offset=0');
+        const { videos: vids, error } = await apiFetchLikedVideos(50, 0);
         if (error) {
           setVideos([]);
           setVideosHasMore(false);
           setVideosLoading(false);
-          showToast(error.message || 'Failed to load liked videos');
+          showToast(error || 'Failed to load liked videos');
           return;
         }
-        const vids = Array.isArray(body?.videos) ? body.videos : [];
-        setVideosHasMore(!!body?.hasMore);
+        setVideosHasMore(vids.length >= 50);
         setVideos(vids.map((v: { id: string; thumbnail?: string; thumbnail_url?: string; url?: string; views?: number }) => ({
           id: v.id,
           thumbnail_url: resolveGridThumbnailUrl(v.thumbnail || v.thumbnail_url, v.url),
@@ -395,16 +499,15 @@ export default function Profile() {
           is_public: true,
         })));
       } else if (activeTab === 'saved') {
-        const { data: body, error } = await request('/api/videos/saved/list?limit=50&offset=0');
+        const { videos: vids, error } = await apiFetchSavedVideos(50, 0);
         if (error) {
           setVideos([]);
           setVideosHasMore(false);
           setVideosLoading(false);
-          showToast(error.message || 'Failed to load saved videos');
+          showToast(error || 'Failed to load saved videos');
           return;
         }
-        const vids = Array.isArray(body?.videos) ? body.videos : [];
-        setVideosHasMore(!!body?.hasMore);
+        setVideosHasMore(vids.length >= 50);
         setVideos(vids.map((v: { id: string; thumbnail?: string; thumbnail_url?: string; url?: string; views?: number }) => ({
           id: v.id,
           thumbnail_url: resolveGridThumbnailUrl(v.thumbnail || v.thumbnail_url, v.url),
@@ -428,17 +531,15 @@ export default function Profile() {
     if (activeTab !== 'liked' && activeTab !== 'saved') return;
     setVideosLoadingMore(true);
     try {
-      const path =
+      const { videos: vids, error } =
         activeTab === 'liked'
-          ? `/api/videos/liked/list?limit=50&offset=${videos.length}`
-          : `/api/videos/saved/list?limit=50&offset=${videos.length}`;
-      const { data: body, error } = await request(path);
+          ? await apiFetchLikedVideos(50, videos.length)
+          : await apiFetchSavedVideos(50, videos.length);
       if (error) {
-        showToast(error.message || 'Failed to load more');
+        showToast(error || 'Failed to load more');
         return;
       }
-      const vids = Array.isArray(body?.videos) ? body.videos : [];
-      setVideosHasMore(!!body?.hasMore);
+      setVideosHasMore(vids.length >= 50);
       setVideos((prev) => [
         ...prev,
         ...vids.map(
@@ -471,11 +572,8 @@ export default function Profile() {
     if (!idToCheck) return;
 
     try {
-      const { data: body } = await request(`/api/profiles/${user.id}/following`);
-      if (body) {
-        const ids: string[] = Array.isArray(body?.following) ? body.following : (Array.isArray(body) ? body : []);
-        setIsFollowing(ids.includes(idToCheck));
-      }
+      const { following } = await apiFetchFollowingIds(user.id);
+      setIsFollowing(following.includes(idToCheck));
     } catch { /* ignore */ }
   };
 
@@ -487,12 +585,8 @@ export default function Profile() {
     const wasFollowing = isFollowing;
     setIsFollowing(!wasFollowing);
     try {
-      const endpoint = wasFollowing
-        ? `/api/profiles/${targetProfileId}/unfollow`
-        : `/api/profiles/${targetProfileId}/follow`;
-
-      const { error: followError } = await request(endpoint, { method: 'POST' });
-      if (followError) throw new Error('Follow action failed');
+      const { error: followError } = await apiToggleFollow(targetProfileId, wasFollowing);
+      if (followError) throw new Error(followError || 'Follow action failed');
 
       if (!wasFollowing) {
         trackEvent('user_follow', { target_user_id: targetProfileId });
@@ -544,11 +638,11 @@ export default function Profile() {
   if (routeUserId && resolvedUserId === null && !loading) {
     return (
       <div className="bg-[#111111] text-white flex flex-col items-center justify-center min-h-[50vh] px-4">
-        <button onClick={() => navigate(-1)} className="absolute top-4 right-4 p-1" title="Close" aria-label="Close">
+        <button onClick={goBack} className="absolute top-4 right-4 p-1" title="Close" aria-label="Close">
           <RoyceCloseIcon size={20} />
         </button>
         <p className="text-white/70 text-center">Profile not found.</p>
-        <button onClick={() => navigate(-1)} className="mt-4 text-gold-metallic font-semibold text-sm">Go back</button>
+        <button onClick={goBack} className="mt-4 text-gold-metallic font-semibold text-sm">Go back</button>
       </div>
     );
   }
@@ -556,11 +650,11 @@ export default function Profile() {
   if (!loading && !profileData && !isOwnProfile) {
     return (
       <div className="bg-[#111111] text-white flex flex-col items-center justify-center min-h-[50vh] px-4">
-        <button onClick={() => navigate(-1)} className="absolute top-4 right-4 p-1" title="Close" aria-label="Close">
+        <button onClick={goBack} className="absolute top-4 right-4 p-1" title="Close" aria-label="Close">
           <RoyceCloseIcon size={20} />
         </button>
         <p className="text-white/70 text-center">Profile not found or couldn&apos;t load.</p>
-        <button onClick={() => navigate(-1)} className="mt-4 text-gold-metallic font-semibold text-sm">Go back</button>
+        <button onClick={goBack} className="mt-4 text-gold-metallic font-semibold text-sm">Go back</button>
       </div>
     );
   }
@@ -592,7 +686,7 @@ export default function Profile() {
           </div>
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             title="Close"
             aria-label="Close"
             className="p-1"
@@ -622,21 +716,21 @@ export default function Profile() {
                 </div>
               </div>
               <div className="py-2">
-                <button onClick={() => { setShowAccountMenu(false); navigate('/settings'); }} className="w-full flex items-center gap-3 px-5 py-3 hover:bg-white/5 transition-colors">
+                <button onClick={goSettings} className="w-full flex items-center gap-3 px-5 py-3 hover:bg-white/5 transition-colors">
                   <Menu size={20} className="text-white/70" />
                   <span className="text-white text-sm font-medium">Settings</span>
                 </button>
-                <button onClick={async () => { setShowAccountMenu(false); await signOut(); navigate('/login', { replace: true }); }} className="w-full flex items-center gap-3 px-5 py-3 hover:bg-white/5 transition-colors">
+                <button onClick={() => { void goLoginAfterSignOut(); }} className="w-full flex items-center gap-3 px-5 py-3 hover:bg-white/5 transition-colors">
                   <UserPlus size={20} className="text-white" />
                   <span className="text-white text-sm font-medium">Switch Account</span>
                 </button>
-                <button onClick={async () => { setShowAccountMenu(false); await signOut(); navigate('/login', { replace: true }); }} className="w-full flex items-center gap-3 px-5 py-3 hover:bg-white/5 transition-colors">
+                <button onClick={() => { void goLoginAfterSignOut(); }} className="w-full flex items-center gap-3 px-5 py-3 hover:bg-white/5 transition-colors">
                   <LogOut size={20} className="text-white/60" />
                   <span className="text-white/60 text-sm font-medium">Log Out</span>
                 </button>
               </div>
               <div className="px-5 pb-4 pt-1">
-                <button onClick={() => setShowAccountMenu(false)} className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-white/60 text-sm font-semibold">Cancel</button>
+                <button onClick={closeAccountMenu} className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-white/60 text-sm font-semibold">Cancel</button>
               </div>
             </div>
           </div>
@@ -775,10 +869,7 @@ export default function Profile() {
                 type="button"
                 className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#D4AF37] border-2 border-black text-black text-lg font-bold leading-none flex items-center justify-center"
                 title="Add story"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate('/upload?type=story');
-                }}
+                onClick={goUploadStoryFromRing}
               >
                 +
               </button>
@@ -798,7 +889,7 @@ export default function Profile() {
             <button
               type="button"
               className="text-[10px] text-[#D4AF37] mt-1 font-semibold"
-              onClick={() => fileInputRef.current?.click()}
+              onClick={openAvatarPicker}
             >
               Change photo
             </button>
@@ -837,10 +928,7 @@ export default function Profile() {
           <button
             type="button"
             className="flex flex-col items-center min-w-[60px] active:opacity-80"
-            onClick={() => {
-              const id = displayUserId || effectiveUserId;
-              if (id) navigate(`/profile/${id}/following`);
-            }}
+            onClick={goFollowingList}
           >
             <span className="text-[17px] font-extrabold text-white">{formatNumber(profileData?.following_count || 0)}</span>
             <span className="text-[11px] text-white/40 font-medium">Following</span>
@@ -848,10 +936,7 @@ export default function Profile() {
           <button
             type="button"
             className="flex flex-col items-center min-w-[60px] active:opacity-80"
-            onClick={() => {
-              const id = displayUserId || effectiveUserId;
-              if (id) navigate(`/profile/${id}/followers`);
-            }}
+            onClick={goFollowersList}
           >
             <span className="text-[17px] font-extrabold text-white">{formatNumber(profileData?.followers_count || 0)}</span>
             <span className="text-[11px] text-white/40 font-medium">Followers</span>
@@ -888,13 +973,7 @@ export default function Profile() {
                   return;
                 }
                 try {
-                  const { data, error } = await request<{ already?: boolean; ok?: boolean }>(
-                    '/api/hearts/daily',
-                    {
-                      method: 'POST',
-                      body: JSON.stringify({ creatorId: effectiveUserId }),
-                    },
-                  );
+                  const { data, error } = await apiLiveSendDailyHeart(effectiveUserId);
                   if (error) {
                     showToast('Could not send appreciate');
                     return;
@@ -910,18 +989,7 @@ export default function Profile() {
               Appreciate
             </button>
             <button
-              onClick={async () => {
-                try {
-                  const { data: threadBody, error: threadErr } = await request('/api/chat/threads/ensure', {
-                    method: "POST",
-                    body: JSON.stringify({ otherUserId: effectiveUserId }),
-                  });
-                  const tid = threadBody?.threadId || threadBody?.thread?.id || threadBody?.data?.id;
-                  if (!threadErr && tid) {
-                    navigate(`/inbox/${tid}`);
-                  }
-                } catch { navigate('/inbox'); }
-              }}
+              onClick={() => { void openThread(); }}
               className="flex-1 max-w-[120px] py-2.5 bg-white/10 border border-white/10 rounded-md text-sm font-bold text-white"
             >
               Message
@@ -937,32 +1005,32 @@ export default function Profile() {
         {/* ═══ ACTION BAR (scrollable) — compact so Edit Profile is visible ═══ */}
         <div className="mt-2 border-b border-white/5">
           <div className="flex justify-center overflow-x-auto no-scrollbar">
-            <button onClick={() => navigate('/ai-studio')} className="flex flex-col items-center gap-0.5 px-3 py-2 whitespace-nowrap">
+            <button onClick={goAiStudio} className="flex flex-col items-center gap-0.5 px-3 py-2 whitespace-nowrap">
               <span className="royce-glow-disc" style={{ width: 26, height: 26 }} aria-hidden>
                 <Sparkles size={12} className="royce-icon-gold" />
               </span>
               <span className="text-[11px] font-bold text-white">AI Studio</span>
             </button>
-            <button onClick={() => navigate('/creator/login-details')} className="flex flex-col items-center gap-0.5 px-3 py-2 whitespace-nowrap">
+            <button onClick={goCreatorLoginDetails} className="flex flex-col items-center gap-0.5 px-3 py-2 whitespace-nowrap">
               <span className="royce-glow-disc" style={{ width: 26, height: 26 }} aria-hidden>
                 <Sparkles size={12} className="royce-icon-gold" />
               </span>
               <span className="text-[11px] font-bold text-white">Elix Studio</span>
             </button>
-            <button onClick={() => navigate('/shop')} className="flex flex-col items-center gap-0.5 px-3 py-2 whitespace-nowrap">
+            <button onClick={goShop} className="flex flex-col items-center gap-0.5 px-3 py-2 whitespace-nowrap">
               <span className="royce-glow-disc" style={{ width: 26, height: 26 }} aria-hidden>
                 <ShoppingBag size={12} className="royce-icon-gold" />
               </span>
               <span className="text-[11px] font-bold text-white">Shop</span>
             </button>
-            <button onClick={() => setActiveTab('shop')} className="flex flex-col items-center gap-0.5 px-3 py-2 whitespace-nowrap">
+            <button onClick={tabShop} className="flex flex-col items-center gap-0.5 px-3 py-2 whitespace-nowrap">
               <span className="royce-glow-disc" style={{ width: 26, height: 26 }} aria-hidden>
                 <ShoppingBag size={12} className="royce-icon-gold" />
               </span>
               <span className="text-[11px] font-bold text-white">Showcase</span>
             </button>
             {isOwnProfile && (
-              <button onClick={() => navigate('/settings')} className="flex flex-col items-center gap-0.5 px-3 py-2 whitespace-nowrap">
+              <button onClick={goSettings} className="flex flex-col items-center gap-0.5 px-3 py-2 whitespace-nowrap">
                 <span className="royce-glow-disc" style={{ width: 26, height: 26 }} aria-hidden>
                   <Settings size={12} className="royce-icon-gold" />
                 </span>
@@ -976,7 +1044,7 @@ export default function Profile() {
         <div className="border-b border-white/10 flex">
           <button
             type="button"
-            onClick={() => setActiveTab('videos')}
+            onClick={tabVideos}
             className={`flex-1 pb-2.5 pt-2.5 flex items-center justify-center gap-0.5 border-b-2 transition-colors ${
               activeTab === 'videos' ? 'border-white text-white' : 'border-transparent text-white/30'
             }`}
@@ -987,7 +1055,7 @@ export default function Profile() {
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab('shop')}
+            onClick={tabShop}
             className={`flex-1 pb-2.5 pt-2.5 flex justify-center border-b-2 transition-colors ${
               activeTab === 'shop' ? 'border-white text-white' : 'border-transparent text-white/30'
             }`}
@@ -998,7 +1066,7 @@ export default function Profile() {
           {isOwnProfile && (
             <button
               type="button"
-              onClick={() => setActiveTab('private')}
+              onClick={tabPrivate}
               className={`flex-1 pb-2.5 pt-2.5 flex justify-center border-b-2 transition-colors ${
                 activeTab === 'private' ? 'border-white text-white' : 'border-transparent text-white/30'
               }`}
@@ -1009,7 +1077,7 @@ export default function Profile() {
           )}
           <button
             type="button"
-            onClick={() => setActiveTab('reposts')}
+            onClick={tabReposts}
             className={`flex-1 pb-2.5 pt-2.5 flex justify-center border-b-2 transition-colors ${
               activeTab === 'reposts' ? 'border-white text-white' : 'border-transparent text-white/30'
             }`}
@@ -1019,7 +1087,7 @@ export default function Profile() {
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab('saved')}
+            onClick={tabSaved}
             className={`flex-1 pb-2.5 pt-2.5 flex justify-center border-b-2 transition-colors ${
               activeTab === 'saved' ? 'border-white text-white' : 'border-transparent text-white/30'
             }`}
@@ -1029,7 +1097,7 @@ export default function Profile() {
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab('liked')}
+            onClick={tabLiked}
             className={`flex-1 pb-2.5 pt-2.5 flex justify-center border-b-2 transition-colors ${
               activeTab === 'liked' ? 'border-white text-white' : 'border-transparent text-white/30'
             }`}
@@ -1043,7 +1111,7 @@ export default function Profile() {
           <div className="px-3 pt-2 pb-1 flex justify-end">
             <button
               type="button"
-              onClick={() => navigate('/upload?type=story')}
+              onClick={goUploadStory}
               className="px-3 py-1.5 rounded-md bg-[#D4AF37] text-black text-[11px] font-bold"
             >
               Post Story
@@ -1066,7 +1134,7 @@ export default function Profile() {
                 <button
                   key={video.id}
                   type="button"
-                  onClick={() => navigate(`/video/${video.id}`)}
+                  onClick={() => goVideo(video.id)}
                   className="aspect-[3/4] bg-[#111111] relative group text-left rounded-xl overflow-hidden"
                 >
                   {playbackUrl ? (
@@ -1145,7 +1213,7 @@ export default function Profile() {
             {shopItems.map((item) => (
               <button
                 key={item.id}
-                onClick={() => navigate('/shop')}
+                onClick={goShop}
                 className="bg-white/5 rounded-2xl overflow-hidden border border-white/5 text-left"
               >
                 {item.image_url ? (
@@ -1173,7 +1241,7 @@ export default function Profile() {
                 {isOwnProfile && (
                   <button
                     type="button"
-                    onClick={() => navigate('/upload?type=story')}
+                    onClick={goUploadStory}
                     className="px-3 py-1.5 rounded-md bg-[#D4AF37] text-black text-[11px] font-bold"
                   >
                     Post Story
@@ -1191,7 +1259,7 @@ export default function Profile() {
             <ShoppingBag size={32} className="text-white/20" />
             <span className="text-white/30 text-sm">No items for sale</span>
             {isOwnProfile && (
-              <button onClick={() => navigate('/shop')} className="mt-2 px-4 py-2 rounded-xl bg-[#D4AF37] text-black font-bold text-xs">
+              <button onClick={goShop} className="mt-2 px-4 py-2 rounded-xl bg-[#D4AF37] text-black font-bold text-xs">
                 Start Selling
               </button>
             )}

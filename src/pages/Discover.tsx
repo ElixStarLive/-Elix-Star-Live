@@ -1,16 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { RoyceBackIcon, RoyceIcon } from '../components/royce';
 import { useNavigate } from 'react-router-dom';
 import { Search, TrendingUp, Hash, Users, Video as VideoIcon, Trophy, Music, Flame, Sparkles, Star, Zap, Heart, MessageCircle, Bookmark, Share2, MoreHorizontal } from 'lucide-react';
 import { trackEvent } from '../lib/analytics';
 import { AvatarRing } from '../components/AvatarRing';
 import { getVideoPosterUrl } from '../lib/bunnyStorage';
-import { request } from '../lib/apiClient';
 import { isIndecentExploreCaption } from '../lib/suggestiveCaption';
 import { useVideoStore } from '../store/useVideoStore';
 import { nativeShareUrl } from '../lib/platform';
 import { showToast } from '../lib/toast';
 import { generateWebLink } from '../lib/deepLinks';
+import {
+  apiFetchAllVideos,
+  apiFetchProfiles,
+  apiLikeVideo,
+  apiSaveVideo,
+  apiToggleFollow,
+} from '../features/feed/feedApi';
+import { apiLiveRankingsWeekly } from '../features/live/engagement/liveEngagementApi';
 
 interface Video {
   id: string;
@@ -83,14 +90,12 @@ export default function Discover() {
     setLoading(true);
     setTrendingVideos([]);
     try {
-      const { data: body, error } = await request('/api/videos');
+      const { videos: list, error } = await apiFetchAllVideos();
       if (error) throw new Error('Failed');
-      const list = Array.isArray(body?.videos) ? body.videos : [];
 
 
       if (list.length > 0) {
-        const { data: profBody } = await request('/api/profiles');
-        const allProfiles = profBody?.profiles || [];
+        const { profiles: allProfiles } = await apiFetchProfiles();
         const profileMap: Record<string, { username: string; avatar_url: string | null }> = {};
         allProfiles.forEach((p: { user_id: string; username?: string; avatar_url?: string | null }) => { profileMap[p.user_id] = { username: p.username || 'User', avatar_url: p.avatar_url ?? null }; });
 
@@ -142,9 +147,11 @@ export default function Discover() {
   const loadRanking = async () => {
     setLoading(true);
     try {
-      const { data: rankBody, error } = await request('/api/rankings/weekly');
+      const { data: rankBody, error } = await apiLiveRankingsWeekly();
       if (error) throw new Error('Failed');
-      setRankings(rankBody?.rankings || []);
+      setRankings(
+        (Array.isArray(rankBody?.rankings) ? rankBody.rankings : []) as unknown as CreatorRanking[],
+      );
     } catch {
       setRankings([]);
     } finally {
@@ -158,11 +165,11 @@ export default function Discover() {
     trackEvent('search_query', { query: searchQuery });
     try {
       const [videosResult, profilesResult] = await Promise.all([
-        request('/api/videos'),
-        request('/api/profiles'),
+        apiFetchAllVideos(),
+        apiFetchProfiles(),
       ]);
-      const allVids = videosResult.data?.videos || [];
-      const allProfiles = profilesResult.data?.profiles || [];
+      const allVids = videosResult.videos || [];
+      const allProfiles = (profilesResult.profiles || []) as unknown as User[];
       const q = searchQuery.toLowerCase();
       const matchedVids = allVids.filter((v: { description?: string }) => (v.description || '').toLowerCase().includes(q)).slice(0, 20);
       const matchedUsers = allProfiles.filter((p: { username?: string; display_name?: string }) => (p.username || '').toLowerCase().includes(q) || (p.display_name || '').toLowerCase().includes(q)).slice(0, 20);
@@ -184,6 +191,58 @@ export default function Discover() {
     }
   };
 
+  const focusSearch = useCallback(() => {
+    document.getElementById('discover-search')?.focus();
+  }, []);
+
+  const goBack = useCallback(() => {
+    navigate(-1);
+  }, [navigate]);
+
+  const clearSearchQuery = useCallback(() => {
+    setSearchQuery('');
+  }, []);
+
+  const tabTrending = useCallback(() => {
+    setActiveTab('trending');
+  }, []);
+
+  const tabRanking = useCallback(() => {
+    setActiveTab('ranking');
+  }, []);
+
+  const tabHashtags = useCallback(() => {
+    setActiveTab('hashtags');
+  }, []);
+
+  const goRisingStars = useCallback(() => {
+    navigate('/rising-stars');
+  }, [navigate]);
+
+  const searchMusic = useCallback(() => {
+    setSearchQuery('music');
+    setActiveTab('search');
+  }, []);
+
+  const searchComedy = useCallback(() => {
+    setSearchQuery('comedy');
+    setActiveTab('search');
+  }, []);
+
+  const searchGaming = useCallback(() => {
+    setSearchQuery('gaming');
+    setActiveTab('search');
+  }, []);
+
+  const searchDance = useCallback(() => {
+    setSearchQuery('dance');
+    setActiveTab('search');
+  }, []);
+
+  const openCreatorProfile = useCallback((userId: string) => {
+    navigate(`/profile/${userId}`);
+  }, [navigate]);
+
   return (
     <div className="page-above-bottom-nav bg-[#111111] text-white">
       <div className="page-above-bottom-nav__inner">
@@ -197,11 +256,11 @@ export default function Discover() {
             className="w-full px-3 flex items-center justify-between"
             style={{ minHeight: 'var(--topnav-bar-height)' }}
           >
-            <button onClick={() => document.getElementById('discover-search')?.focus()} className="p-1" title="Search">
+            <button onClick={focusSearch} className="p-1" title="Search">
               <Search size={18} className="text-white" />
             </button>
             <h1 className="text-sm font-bold text-white">Explore</h1>
-            <button onClick={() => navigate(-1)} className="p-1" title="Back">
+            <button onClick={goBack} className="p-1" title="Back">
               <RoyceBackIcon />
             </button>
           </div>
@@ -221,7 +280,7 @@ export default function Discover() {
               className="flex-1 bg-transparent outline-none text-[13px] text-gold-metallic placeholder-[#FFFFFF]/30"
             />
             {searchQuery && (
-              <button onClick={() => setSearchQuery('')} className="p-0.5 rounded-full bg-[#111111] border border-white/15" title="Clear">
+              <button onClick={clearSearchQuery} className="p-0.5 rounded-full bg-[#111111] border border-white/15" title="Clear">
                 <span className="text-white/50 text-xs leading-none px-1">✕</span>
               </button>
             )}
@@ -230,14 +289,14 @@ export default function Discover() {
           {/* Tabs */}
           {searchQuery.length < 2 && (
             <div className="flex gap-1.5 px-3 pb-1.5 no-scrollbar overflow-x-auto">
-              <TabButton active={activeTab === 'trending'} onClick={() => setActiveTab('trending')} icon={<Flame className="w-3 h-3" />} label="Trending" />
-              <TabButton active={false} onClick={() => navigate('/rising-stars')} icon={<Trophy className="w-3 h-3" />} label="Rising" />
-              <TabButton active={activeTab === 'ranking'} onClick={() => setActiveTab('ranking')} icon={<Trophy className="w-3 h-3" />} label="Top 99" />
-              <TabButton active={activeTab === 'hashtags'} onClick={() => setActiveTab('hashtags')} icon={<Hash className="w-3 h-3" />} label="Tags" />
-              <TabButton active={false} onClick={() => { setSearchQuery('music'); setActiveTab('search'); }} icon={<Music className="w-3 h-3" />} label="Music" />
-              <TabButton active={false} onClick={() => { setSearchQuery('comedy'); setActiveTab('search'); }} icon={<Sparkles className="w-3 h-3" />} label="Comedy" />
-              <TabButton active={false} onClick={() => { setSearchQuery('gaming'); setActiveTab('search'); }} icon={<Zap className="w-3 h-3" />} label="Gaming" />
-              <TabButton active={false} onClick={() => { setSearchQuery('dance'); setActiveTab('search'); }} icon={<Star className="w-3 h-3" />} label="Dance" />
+              <TabButton active={activeTab === 'trending'} onClick={tabTrending} icon={<Flame className="w-3 h-3" />} label="Trending" />
+              <TabButton active={false} onClick={goRisingStars} icon={<Trophy className="w-3 h-3" />} label="Rising" />
+              <TabButton active={activeTab === 'ranking'} onClick={tabRanking} icon={<Trophy className="w-3 h-3" />} label="Top 99" />
+              <TabButton active={activeTab === 'hashtags'} onClick={tabHashtags} icon={<Hash className="w-3 h-3" />} label="Tags" />
+              <TabButton active={false} onClick={searchMusic} icon={<Music className="w-3 h-3" />} label="Music" />
+              <TabButton active={false} onClick={searchComedy} icon={<Sparkles className="w-3 h-3" />} label="Comedy" />
+              <TabButton active={false} onClick={searchGaming} icon={<Zap className="w-3 h-3" />} label="Gaming" />
+              <TabButton active={false} onClick={searchDance} icon={<Star className="w-3 h-3" />} label="Dance" />
             </div>
           )}
         </div>
@@ -343,7 +402,7 @@ export default function Discover() {
                   {rankings.map((creator) => (
                     <button 
                       key={creator.user_id}
-                      onClick={() => navigate(`/profile/${creator.user_id}`)}
+                      onClick={() => openCreatorProfile(creator.user_id)}
                       className={`w-full flex items-center gap-3 p-2.5 rounded-xl transition text-left ${
                         creator.rank <= 3
                           ? 'bg-white/5'
@@ -469,12 +528,16 @@ function VideoThumbnail({ video, variant = 'grid' }: { video: Video; variant?: '
 
   const feed = variant === 'feed';
 
-  const handleLike = async (e: React.MouseEvent) => {
+  const openVideo = useCallback(() => {
+    navigate(`/video/${video.id}`);
+  }, [navigate, video.id]);
+
+  const handleLike = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (likeBusy) return;
     setLikeBusy(true);
     try {
-      const { error } = await request(`/api/videos/${video.id}/like`, { method: 'POST' });
+      const { error } = await apiLikeVideo(video.id);
       if (error) showToast('Could not like video');
       else showToast('Liked');
     } catch {
@@ -482,14 +545,14 @@ function VideoThumbnail({ video, variant = 'grid' }: { video: Video; variant?: '
     } finally {
       setLikeBusy(false);
     }
-  };
+  }, [likeBusy, video.id]);
 
-  const handleSave = async (e: React.MouseEvent) => {
+  const handleSave = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (saveBusy) return;
     setSaveBusy(true);
     try {
-      const { error } = await request(`/api/videos/${video.id}/save`, { method: 'POST' });
+      const { error } = await apiSaveVideo(video.id);
       if (error) showToast('Could not save video');
       else showToast('Saved');
     } catch {
@@ -497,7 +560,24 @@ function VideoThumbnail({ video, variant = 'grid' }: { video: Video; variant?: '
     } finally {
       setSaveBusy(false);
     }
-  };
+  }, [saveBusy, video.id]);
+
+  const handleShare = useCallback(async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const url = generateWebLink('video', video.id);
+    const ok = await nativeShareUrl({ title: 'Elix Star Live', text: video.description || 'Watch on Elix Star', url });
+    if (ok) showToast('Shared');
+  }, [video.id, video.description]);
+
+  const openVideoMore = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate(`/video/${video.id}`);
+  }, [navigate, video.id]);
+
+  const openVideoComment = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate(`/video/${video.id}`);
+  }, [navigate, video.id]);
 
   return (
     <div
@@ -509,7 +589,7 @@ function VideoThumbnail({ video, variant = 'grid' }: { video: Video; variant?: '
       <div
         className="absolute inset-0 cursor-pointer"
         style={feed ? { top: `${EXPLORE_FEED_VIDEO_DOWN_MM}mm` } : undefined}
-        onClick={() => navigate(`/video/${video.id}`)}
+        onClick={openVideo}
       >
         {video.url ? (
           <video
@@ -533,7 +613,7 @@ function VideoThumbnail({ video, variant = 'grid' }: { video: Video; variant?: '
 
       {/* 3 Dots Menu — top right */}
       <button
-        onClick={(e) => { e.stopPropagation(); navigate(`/video/${video.id}`); }}
+        onClick={openVideoMore}
         className="absolute top-1.5 right-1.5 z-10"
         title="More"
       >
@@ -545,19 +625,14 @@ function VideoThumbnail({ video, variant = 'grid' }: { video: Video; variant?: '
         <button onClick={handleLike} title="Like" disabled={likeBusy}>
           <RoyceIcon icon={Heart} size={24} tile />
         </button>
-        <button onClick={(e) => { e.stopPropagation(); navigate(`/video/${video.id}`); }} title="Comment">
+        <button onClick={openVideoComment} title="Comment">
           <RoyceIcon icon={MessageCircle} size={24} tile />
         </button>
         <button onClick={handleSave} title="Save" disabled={saveBusy}>
           <RoyceIcon icon={Bookmark} size={24} tile />
         </button>
         <button
-          onClick={async (e) => {
-            e.stopPropagation();
-            const url = generateWebLink('video', video.id);
-            const ok = await nativeShareUrl({ title: 'Elix Star Live', text: video.description || 'Watch on Elix Star', url });
-            if (ok) showToast('Shared');
-          }}
+          onClick={handleShare}
           title="Share"
         >
           <RoyceIcon icon={Share2} size={24} tile />
@@ -588,17 +663,23 @@ function VideoThumbnail({ video, variant = 'grid' }: { video: Video; variant?: '
 function UserSearchResult({ user }: { user: User }) {
   const navigate = useNavigate();
   const [followed, setFollowed] = useState(false);
-  const handleFollow = async (e: React.MouseEvent) => {
+
+  const openUserProfile = useCallback(() => {
+    navigate(`/profile/${user.user_id}`);
+  }, [navigate, user.user_id]);
+
+  const handleFollow = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (followed) return;
     try {
-      const { error } = await request(`/api/profiles/${user.user_id}/follow`, { method: 'POST' });
+      const { error } = await apiToggleFollow(user.user_id, false);
       if (!error) setFollowed(true);
     } catch { /* network failure */ }
-  };
+  }, [followed, user.user_id]);
+
   return (
     <button
-      onClick={() => navigate(`/profile/${user.user_id}`)}
+      onClick={openUserProfile}
       className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/5 transition text-left"
     >
       <div className="w-11 h-11 rounded-full overflow-hidden shrink-0">
@@ -624,9 +705,15 @@ function UserSearchResult({ user }: { user: User }) {
 
 function HashtagItem({ hashtag, index }: { hashtag: Hashtag; index: number }) {
   const navigate = useNavigate();
+
+  const openHashtag = useCallback(() => {
+    trackEvent('hashtag_click', { hashtag: hashtag.tag });
+    navigate(`/hashtag/${hashtag.tag}`);
+  }, [navigate, hashtag.tag]);
+
   return (
     <button
-      onClick={() => { trackEvent('hashtag_click', { hashtag: hashtag.tag }); navigate(`/hashtag/${hashtag.tag}`); }}
+      onClick={openHashtag}
       className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition text-left"
     >
       <div className="w-9 h-9 bg-[#C9A227]/10 rounded-xl flex items-center justify-center shrink-0">

@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { request } from '../../lib/apiClient';
 import { Ban, Search } from 'lucide-react';
 import { showToast } from '../../lib/toast';
+import { apiAdminListUsers, apiAdminSetUserBan } from '../../features/admin/adminApi';
 
 interface User {
   id: string;
@@ -16,6 +16,7 @@ interface User {
 
 export default function AdminUsers() {
   const navigate = useNavigate();
+  const goProfile = useCallback((userId: string) => navigate(`/profile/${userId}`), [navigate]);
   const [users, setUsers] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
@@ -26,11 +27,8 @@ export default function AdminUsers() {
 
   const loadUsers = async () => {
     try {
-      const { data, error } = await request<{ users?: User[] }>('/api/admin/users');
-
-      if (error) throw error;
-
-      const profiles = Array.isArray(data?.users) ? data.users : [];
+      const { users: profiles, error } = await apiAdminListUsers();
+      if (error) throw new Error(error);
       const usersData = profiles.map((u: Partial<User> & { user_id?: string; userId?: string; avatarUrl?: string | null; created_at?: string; createdAt?: string }) => ({
         id: String(u.user_id || u.userId || u.id || ''),
         username: u.username || '',
@@ -51,11 +49,8 @@ export default function AdminUsers() {
   const handleBanUser = async (userId: string) => {
     if (!window.confirm('Are you sure you want to ban this user? This action cannot be easily undone.')) return;
     try {
-      const { error } = await request(`/api/admin/users/${encodeURIComponent(userId)}/ban`, {
-        method: 'POST',
-        body: JSON.stringify({ reason: 'Banned by admin' }),
-      });
-      if (error) throw error;
+      const { error } = await apiAdminSetUserBan(userId, true);
+      if (error) throw new Error(error);
       showToast('User banned successfully');
       setUsers((prev) =>
         prev.map((u) => (u.id === userId ? { ...u, is_banned: true } : u)),
@@ -68,10 +63,8 @@ export default function AdminUsers() {
   const handleUnbanUser = async (userId: string) => {
     if (!window.confirm('Unban this user?')) return;
     try {
-      const { error } = await request(`/api/admin/users/${encodeURIComponent(userId)}/ban`, {
-        method: 'DELETE',
-      });
-      if (error) throw error;
+      const { error } = await apiAdminSetUserBan(userId, false);
+      if (error) throw new Error(error);
       showToast('User unbanned');
       setUsers((prev) =>
         prev.map((u) => (u.id === userId ? { ...u, is_banned: false } : u)),
@@ -139,7 +132,7 @@ export default function AdminUsers() {
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-2">
                       <button
-                        onClick={() => navigate(`/profile/${user.id}`)}
+                        onClick={() => goProfile(user.id)}
                         className="px-3 py-1 bg-[#FFFFFF] rounded hover:bg-[#B8943F] text-sm"
                       >
                         View

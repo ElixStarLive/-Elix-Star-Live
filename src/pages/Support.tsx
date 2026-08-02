@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Book, ChevronRight, HelpCircle, Mail, MessageCircle, Send, Shield } from 'lucide-react';
-import { api } from '../lib/apiClient';
 import { trackEvent } from '../lib/analytics';
 import { showToast } from '../lib/toast';
 import SettingsOptionSheet from '../components/SettingsOptionSheet';
+import { apiCreateReport, apiGetCurrentUserId } from '../features/safety/safetyApi';
 
 const FAQ_ITEMS = [
   {
@@ -52,6 +52,14 @@ export default function Support() {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
+  const goBack = useCallback(() => navigate(-1), [navigate]);
+  const goSafety = useCallback(() => navigate('/settings/safety'), [navigate]);
+  const goGuidelines = useCallback(() => navigate('/guidelines'), [navigate]);
+  const goTerms = useCallback(() => navigate('/terms'), [navigate]);
+  const goPrivacy = useCallback(() => navigate('/privacy'), [navigate]);
+  const goCopyright = useCallback(() => navigate('/copyright'), [navigate]);
+  const openContactForm = useCallback(() => setShowContactForm(true), []);
+
   const handleSubmitTicket = async () => {
     if (!subject.trim() || !message.trim() || !email.trim()) {
       showToast('Please fill in all fields');
@@ -60,10 +68,10 @@ export default function Support() {
 
     setLoading(true);
     try {
-      const { data: userData } = await api.auth.getUser();
+      const { userId } = await apiGetCurrentUserId();
 
-      const { error } = await api.reports.create({
-        reporter_id: userData.user?.id || null,
+      const { error } = await apiCreateReport({
+        reporter_id: userId,
         targetType: 'support',
         targetId: 'support_ticket',
         reason: subject,
@@ -77,12 +85,12 @@ export default function Support() {
 
       trackEvent('support_ticket_submit', {
         subject,
-        has_user: !!userData.user,
+        has_user: !!userId,
       });
 
       setSubmitted(true);
       setTimeout(() => {
-        navigate(-1);
+        goBack();
       }, 2000);
     } catch {
       showToast('Failed to submit. Please try again.');
@@ -93,7 +101,7 @@ export default function Support() {
 
   if (submitted) {
     return (
-      <SettingsOptionSheet onClose={() => navigate(-1)}>
+      <SettingsOptionSheet onClose={goBack}>
         <div className="h-full flex flex-col items-center justify-center px-4 text-center">
           <div className="w-16 h-16 bg-[#D4AF37] rounded-full mx-auto mb-4 flex items-center justify-center">
             <Send className="w-8 h-8 text-black" />
@@ -107,7 +115,7 @@ export default function Support() {
 
   if (showContactForm) {
     return (
-      <SettingsOptionSheet onClose={() => navigate(-1)}>
+      <SettingsOptionSheet onClose={goBack}>
         <div className="w-full h-full overflow-hidden bg-[#111111] flex flex-col">
           <header className="flex items-center justify-center mb-2 px-4 pt-2">
             <h1 className="font-bold text-lg text-[#D4AF37]">Contact Support</h1>
@@ -164,7 +172,7 @@ export default function Support() {
   }
 
   return (
-    <SettingsOptionSheet onClose={() => navigate(-1)}>
+    <SettingsOptionSheet onClose={goBack}>
       <div className="w-full h-full overflow-hidden bg-[#111111] flex flex-col">
         <header className="flex items-center justify-center mb-2 px-4 pt-2">
           <h1 className="font-bold text-lg text-[#D4AF37]">Help &amp; Support</h1>
@@ -176,19 +184,19 @@ export default function Support() {
             icon={<MessageCircle size={18} />}
             label="Contact Support"
             helper="Send a message to our support team."
-            onClick={() => setShowContactForm(true)}
+            onClick={openContactForm}
           />
           <ListRow
             icon={<Shield size={18} />}
             label="Safety Center"
             helper="Safety tools and reporting resources."
-            onClick={() => navigate('/settings/safety')}
+            onClick={goSafety}
           />
           <ListRow
             icon={<Book size={18} />}
             label="Community Guidelines"
             helper="Read what content is allowed."
-            onClick={() => navigate('/guidelines')}
+            onClick={goGuidelines}
           />
         </Section>
 
@@ -201,9 +209,9 @@ export default function Support() {
         </Section>
 
         <Section title="Legal">
-          <ListRow label="Terms of Service" onClick={() => navigate('/terms')} />
-          <ListRow label="Privacy Policy" onClick={() => navigate('/privacy')} />
-          <ListRow label="Copyright Policy" onClick={() => navigate('/copyright')} />
+          <ListRow label="Terms of Service" onClick={goTerms} />
+          <ListRow label="Privacy Policy" onClick={goPrivacy} />
+          <ListRow label="Copyright Policy" onClick={goCopyright} />
         </Section>
 
         <div className="p-4 rounded-xl border border-white/10 bg-white/[0.04] text-center">

@@ -3,8 +3,15 @@ import { createJSONStorage, persist, type StateStorage } from "zustand/middlewar
 import { Capacitor } from "@capacitor/core";
 import { Preferences } from "@capacitor/preferences";
 import { request } from "../lib/apiClient";
-import { parseAuthLoginRegisterResponse } from "../lib/authApiContract";
 import { notificationService } from "../lib/notifications";
+import {
+  authAppleNative,
+  authGetMe,
+  authLoginWithPassword,
+  authLogout,
+  authRegister,
+  authResendConfirmation,
+} from "../features/auth/authSession";
 
 interface User {
   id: string;
@@ -43,6 +50,8 @@ interface AuthStore {
   backendUser: AuthUser | null;
   isLoading: boolean;
   authMode: AuthMode;
+  /** Last non-fatal auth warning (e.g. local sign-out while server logout failed). Not persisted. */
+  lastError: string | null;
 
   signInWithPassword: (
     email: string,
@@ -63,6 +72,7 @@ interface AuthStore {
   ) => Promise<{ error: string | null }>;
   signInWithApple: () => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
+  clearLastError: () => void;
   updateUser: (updates: Partial<User>) => void;
   getCurrentUser: () => User | null;
   checkUser: () => Promise<void>;
@@ -228,21 +238,14 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
   backendUser: null,
   isLoading: true,
   authMode: "client",
+  lastError: null,
 
   // ── Sign in ──────────────────────────────────────────────────────────────
   signInWithPassword: async (email, password) => {
-    if (!email || !password) {
-      return { error: "Please enter both email and password." };
-    }
-
     try {
-      const { data, error: loginError } = await request("/api/auth/login", {
-        method: "POST",
-        body: JSON.stringify({ email: email.trim(), password }),
-      });
-
-      if (loginError) {
-        const message = loginError.message || "Login failed. Please try again.";
+      const result = await authLoginWithPassword(email, password);
+      if (result.ok === false) {
+        const message = result.error;
         const m = message.toLowerCase();
         if (m.includes("invalid") || m.includes("credentials")) {
           return { error: "Incorrect email/username or password." };
@@ -273,23 +276,19 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
         }
         return { error: message };
       }
-
-      const parsed = parseAuthLoginRegisterResponse(data);
-      if (!parsed) {
-        return {
-          error: "Cannot reach backend. Try again later.",
-        };
+      if (result.kind !== "session") {
+        return { error: "Please verify your email address before logging in." };
       }
 
-      const backendUser = parsed.user as AuthUser;
-      const accessToken = parsed.accessToken;
+      const backendUser = result.user as unknown as AuthUser;
+      const accessToken = result.accessToken;
       const mappedBase = mapUserToUser(backendUser);
       if (!mappedBase) {
         return { error: "Cannot reach backend. Try again later." };
       }
       const mapped = applyProfileMeta(
         mappedBase,
-        (data as { profile_meta?: { is_admin?: boolean; is_creator?: boolean } })?.profile_meta,
+        result.profileMeta as { is_admin?: boolean; is_creator?: boolean } | undefined,
       );
 
       set({
@@ -301,15 +300,20 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
         authMode: "client",
       });
 
-      // Enrich with Hetzner profile data in the background
       if (mapped) {
-        enrichUserWithProfile(mapped)
-          .then((enriched) => {
-            if (get().isAuthenticated && get().user?.id === enriched.id) {
-              set({ user: { ...enriched, isAdmin: get().user?.isAdmin ?? enriched.isAdmin } });
-            }
-          })
-          .catch(() => {});
+        try {
+          const enriched = await enrichUserWithProfile(mapped);
+          if (get().isAuthenticated && get().user?.id === enriched.id) {
+            set({ user: { ...enriched, isAdmin: get().user?.isAdmin ?? enriched.isAdmin } });
+          }
+        } catch {
+          try {
+            const { showToast } = await import("../lib/toast");
+            showToast("Signed in, but profile details could not load");
+          } catch {
+            /* toast best-effort */
+          }
+        }
       }
 
       return { error: null };
@@ -322,18 +326,15 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
   // ── Sign up ──────────────────────────────────────────────────────────────
   signUpWithPassword: async (email, password, username, displayName) => {
     try {
-      const { data, error: regError } = await request("/api/auth/register", {
-        method: "POST",
-        body: JSON.stringify({
-          email: email.trim(),
-          password,
-          username: username || email.split("@")[0],
-          displayName: displayName || username || email.split("@")[0],
-        }),
+      const result = await authRegister({
+        email: email.trim(),
+        password,
+        username: username || email.split("@")[0],
+        displayName: displayName || username || email.split("@")[0],
       });
 
-      if (regError) {
-        const message = regError.message || "Signup failed. Please try again.";
+      if (result.ok === false) {
+        const message = result.error;
         const m = message.toLowerCase();
         if (
           m.includes("fetch") ||
@@ -358,31 +359,35 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
         return { error: message, needsEmailConfirmation: false };
       }
 
-      if (data?.needsEmailConfirmation) {
+      if (result.kind === "email_confirm") {
         return { error: null, needsEmailConfirmation: true };
       }
 
-      const parsed = parseAuthLoginRegisterResponse(data);
-      if (!parsed) {
-        return {
-          error: "Cannot reach backend. Try again later.",
-          needsEmailConfirmation: false,
-        };
-      }
-
-      const backendUser = parsed.user as AuthUser;
-      const accessToken = parsed.accessToken;
+      const data = result.raw as { welcome_message?: string } | null;
+      const backendUser = result.user as unknown as AuthUser;
+      const accessToken = result.accessToken;
       const mappedBase = mapUserToUser(backendUser);
       const mapped = mappedBase
         ? applyProfileMeta(
             mappedBase,
-            (data as { profile_meta?: { is_admin?: boolean; is_creator?: boolean } })?.profile_meta,
+            result.profileMeta as { is_admin?: boolean; is_creator?: boolean } | undefined,
           )
         : null;
 
       if (mapped) {
-        const createProfile = () =>
-          request("/api/profiles", {
+        const { error: profileError } = await request("/api/profiles", {
+          method: "POST",
+          body: JSON.stringify({
+            userId: mapped.id,
+            username: mapped.username,
+            displayName: mapped.name,
+            email: mapped.email,
+            avatarUrl: mapped.avatar,
+          }),
+        });
+        if (profileError) {
+          // Retry once — still fail visibly if profile cannot be created.
+          const retry = await request("/api/profiles", {
             method: "POST",
             body: JSON.stringify({
               userId: mapped.id,
@@ -392,9 +397,14 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
               avatarUrl: mapped.avatar,
             }),
           });
-        createProfile().catch(() => {
-          setTimeout(() => createProfile().catch(() => {}), 3000);
-        });
+          if (retry.error) {
+            set({ isLoading: false });
+            return {
+              error: retry.error.message || "Account created but profile setup failed. Please sign in again.",
+              needsEmailConfirmation: false,
+            };
+          }
+        }
       }
 
       set({
@@ -421,12 +431,9 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
 
   // ── Resend confirmation ──────────────────────────────────────────────────
   resendSignupConfirmation: async (email) => {
-    const { error } = await request("/api/auth/resend-confirmation", {
-      method: "POST",
-      body: JSON.stringify({ email }),
-    });
-    if (error) {
-      return { error: error.message || "Failed to resend confirmation email." };
+    const result = await authResendConfirmation(email);
+    if (result.ok === false) {
+      return { error: result.error };
     }
     return { error: null };
   },
@@ -453,36 +460,32 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
           state,
         },
       });
-      const result = apple.result;
-      if (!result.idToken) {
+      const appleResult = apple.result;
+      if (!appleResult.idToken) {
         return { error: "Apple did not return a valid identity token." };
       }
 
-      const { data, error } = await request("/api/auth/apple/native", {
-        method: "POST",
-        body: JSON.stringify({
-          idToken: result.idToken,
-          givenName: result.profile.givenName,
-          familyName: result.profile.familyName,
-        }),
+      const authResult = await authAppleNative({
+        idToken: appleResult.idToken,
+        givenName: appleResult.profile.givenName,
+        familyName: appleResult.profile.familyName,
       });
-      if (error) {
-        return { error: error.message || "Apple sign-in failed." };
+      if (authResult.ok === false) {
+        return { error: authResult.error };
       }
-      const parsed = parseAuthLoginRegisterResponse(data);
-      if (!parsed) {
+      if (authResult.kind !== "session") {
         return { error: "Apple sign-in returned an invalid session." };
       }
-      const backendUser = parsed.user as AuthUser;
+      const backendUser = authResult.user as unknown as AuthUser;
       const mappedBase = mapUserToUser(backendUser);
       if (!mappedBase) return { error: "Apple account could not be loaded." };
       const mapped = applyProfileMeta(
         mappedBase,
-        (data as { profile_meta?: { is_admin?: boolean; is_creator?: boolean } })?.profile_meta,
+        authResult.profileMeta as { is_admin?: boolean; is_creator?: boolean } | undefined,
       );
       set({
         backendUser,
-        session: { user: backendUser, access_token: parsed.accessToken },
+        session: { user: backendUser, access_token: authResult.accessToken },
         user: mapped,
         isAuthenticated: true,
         isLoading: false,
@@ -498,8 +501,29 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
   },
   // ── Sign out ─────────────────────────────────────────────────────────────
   signOut: async () => {
-    try { await notificationService.unregisterToken(); } catch { /* intentionally empty */ }
-    try { await request("/api/auth/logout", { method: "POST" }); } catch { /* intentionally empty */ }
+    try { await notificationService.unregisterToken(); } catch { /* push unregister is best-effort */ }
+
+    // Local clear is required for security even if the server logout fails.
+    let serverLogoutError: string | null = null;
+    try {
+      const { error } = await authLogout();
+      if (error) {
+        serverLogoutError = error || "Logout request failed";
+      }
+    } catch (e: unknown) {
+      serverLogoutError =
+        e instanceof Error ? e.message : "Logout request failed";
+    }
+
+    try {
+      const { useWalletStore } = await import("./useWalletStore");
+      useWalletStore.getState().clear();
+    } catch { /* wallet clear is best-effort */ }
+
+    const lastError = serverLogoutError
+      ? `Signed out locally, but server session may still be active (${serverLogoutError})`
+      : null;
+
     set({
       session: null,
       user: null,
@@ -507,8 +531,20 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
       isAuthenticated: false,
       isLoading: false,
       authMode: "client",
+      lastError,
     });
+
+    if (lastError) {
+      try {
+        const { showToast } = await import("../lib/toast");
+        showToast("Signed out, but server logout may have failed");
+      } catch {
+        /* toast is best-effort */
+      }
+    }
   },
+
+  clearLastError: () => set({ lastError: null }),
 
   // ── Update user locally ──────────────────────────────────────────────────
   updateUser: (updates) =>
@@ -531,16 +567,10 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
       });
 
     try {
-      const { data, error: meError } = await request("/api/auth/me");
+      const meResult = await authGetMe();
 
-      if (meError) {
-        const msg = String(meError.message || "");
-        const isAuthFailure =
-          msg.includes("HTTP_401") ||
-          msg.includes("HTTP_403") ||
-          /invalid|expired|revoked|unauthorized|forbidden|session/i.test(msg);
-        // Transient network / timeout / 5xx must not wipe a hydrated session.
-        if (isAuthFailure || !get().session?.access_token) {
+      if (meResult.ok === false) {
+        if (meResult.isAuthFailure || !get().session?.access_token) {
           clearState();
         } else {
           set({ isLoading: false });
@@ -548,20 +578,14 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
         return;
       }
 
-      const parsed = parseAuthLoginRegisterResponse(data);
-      if (!parsed) {
-        clearState();
-        return;
-      }
-
-      const backendUser = parsed.user as AuthUser;
-      const accessToken = parsed.accessToken;
+      const backendUser = meResult.user as unknown as AuthUser;
+      const accessToken = meResult.accessToken;
 
       const mappedBase = mapUserToUser(backendUser);
       const mapped = mappedBase
         ? applyProfileMeta(
             mappedBase,
-            (data as { profile_meta?: { is_admin?: boolean; is_creator?: boolean } })?.profile_meta,
+            meResult.profileMeta as { is_admin?: boolean; is_creator?: boolean } | undefined,
           )
         : null;
 
@@ -573,6 +597,12 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
           userToSet = { ...enriched, isAdmin: mapped.isAdmin };
         } catch {
           userToSet = mapped;
+          try {
+            const { showToast } = await import("../lib/toast");
+            showToast("Could not refresh profile details");
+          } catch {
+            /* toast best-effort */
+          }
         }
       }
 

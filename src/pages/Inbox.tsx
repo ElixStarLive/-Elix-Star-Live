@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { RoyceBackIcon } from '../components/royce';
 import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { request } from '../lib/apiClient';
+import { apiDeleteChatThread, apiListChatThreads } from '../features/chat/chatApi';
 import { useAuthStore } from '../store/useAuthStore';
 import { useVideoStore } from '../store/useVideoStore';
 import { nativeConfirm } from '../components/NativeDialog';
@@ -10,6 +10,17 @@ import { Heart, UserPlus, Search, ShoppingBag, Archive, ChevronRight, Trash2, Sh
 import { AvatarRing } from '../components/AvatarRing';
 import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
 import { showToast } from '../lib/toast';
+import { websocket } from '../lib/websocket';
+import {
+  apiListActivityItems,
+  apiListFollowers,
+  apiListLiveShareRequests,
+  apiListMyFollowingIds,
+  apiListNotifications,
+  apiListSuggestedUsersInput,
+  apiMarkNotificationsRead,
+  apiToggleInboxFollow,
+} from '../features/notifications/notificationsApi';
 
 interface Notification {
   id: string;
@@ -23,6 +34,32 @@ interface Notification {
   is_read: boolean;
   created_at: string;
   rawData?: Record<string, string | undefined>;
+}
+
+function normalizeNotificationType(value: unknown): Notification['type'] {
+  if (
+    value === 'like' ||
+    value === 'comment' ||
+    value === 'follow' ||
+    value === 'gift' ||
+    value === 'battle_invite' ||
+    value === 'shop' ||
+    value === 'system'
+  ) {
+    return value;
+  }
+  return 'system';
+}
+
+function toStringRecord(input?: Record<string, unknown>): Record<string, string | undefined> {
+  if (!input) return {};
+  const out: Record<string, string | undefined> = {};
+  for (const [key, value] of Object.entries(input)) {
+    if (typeof value === 'string') out[key] = value;
+    else if (value == null) out[key] = undefined;
+    else out[key] = String(value);
+  }
+  return out;
 }
 
 interface Conversation {
@@ -141,9 +178,8 @@ export default function Inbox() {
   const loadMyFollowingIds = useCallback(async () => {
     if (!currentUserId) return;
     try {
-      const { data: body, error } = await request(`/api/profiles/${encodeURIComponent(currentUserId)}/following`);
+      const { ids, error } = await apiListMyFollowingIds(currentUserId);
       if (error) return;
-      const ids: string[] = Array.isArray(body?.following) ? body.following : [];
       setIFollowIds(new Set(ids));
     } catch {
       /* ignore */
@@ -169,10 +205,7 @@ export default function Inbox() {
         return r;
       });
       try {
-        const endpoint = wasFollowing
-          ? `/api/profiles/${encodeURIComponent(targetUserId)}/unfollow`
-          : `/api/profiles/${encodeURIComponent(targetUserId)}/follow`;
-        const { error: followErr } = await request(endpoint, { method: 'POST' });
+        const { error: followErr } = await apiToggleInboxFollow(targetUserId, wasFollowing);
         if (followErr) throw new Error('failed');
         const videoStore = useVideoStore.getState();
         const cur = videoStore.followingUsers;
@@ -196,30 +229,112 @@ export default function Inbox() {
     [currentUserId, iFollowIds],
   );
 
+  const goSearch = useCallback(() => {
+    navigate('/search');
+  }, [navigate]);
+
+  const goFeedBack = useCallback(() => {
+    navigate('/feed', { replace: true });
+  }, [navigate]);
+
+  const goShop = useCallback(() => {
+    navigate('/shop');
+  }, [navigate]);
+
+  const openNewFollowersPanel = useCallback(() => {
+    setShowNewFollowersPanel(true);
+  }, []);
+
+  const closeNewFollowersPanel = useCallback(() => {
+    setShowNewFollowersPanel(false);
+  }, []);
+
+  const openConversation = useCallback(
+    (conversationId: string) => {
+      navigate(`/inbox/${conversationId}`);
+    },
+    [navigate],
+  );
+
+  const openUserProfile = useCallback(
+    (userId: string) => {
+      navigate(`/profile/${userId}`);
+    },
+    [navigate],
+  );
+
+  const openUserOrLive = useCallback(
+    (userId: string, isLive: boolean) => {
+      navigate(isLive ? `/watch/${userId}` : `/profile/${userId}`);
+    },
+    [navigate],
+  );
+
+  const openVideo = useCallback(
+    (videoId: string) => {
+      navigate(`/video/${encodeURIComponent(videoId)}`);
+    },
+    [navigate],
+  );
+
+  const openWatchStream = useCallback(
+    (streamKey: string) => {
+      navigate(`/watch/${encodeURIComponent(streamKey)}`);
+    },
+    [navigate],
+  );
+
+  const openActionUrl = useCallback(
+    (actionUrl: string) => {
+      navigate(actionUrl);
+    },
+    [navigate],
+  );
+
+  const openFollowerProfile = useCallback(
+    (userId: string) => {
+      setShowNewFollowersPanel(false);
+      navigate(`/profile/${userId}`);
+    },
+    [navigate],
+  );
+
+  const filterMain = useCallback(() => setActiveFilter('main'), []);
+  const filterRequests = useCallback(() => setActiveFilter('requests'), []);
+  const filterUnread = useCallback(() => setActiveFilter('unread'), []);
+  const filterStarred = useCallback(() => setActiveFilter('starred'), []);
+  const filterActivity = useCallback(() => setActiveFilter('activity'), []);
+
   useEffect(() => {
     if (!currentUserId) return;
     let cancelled = false;
     deletedThreadIdsRef.current = getDeletedThreadIds();
     const fetchNotifications = async () => {
       try {
-        const { data } = await request('/api/notifications');
+        const { rows } = await apiListNotifications();
         if (cancelled) return;
-        const rows = Array.isArray(data) ? data : (data?.notifications ?? []);
         setNotifications(rows
           .filter((n: { type?: string }) => n.type !== 'battle_invite' && n.type !== 'cohost_invite' && n.type !== 'battle_accepted' && n.type !== 'cohost_accepted')
           .map((n: { type?: string; id?: string; title?: string; body?: string; is_read?: boolean; read?: boolean; created_at?: string; action_url?: string; data?: Record<string, unknown> }) => ({
           id: n.id,
-          type: n.type || 'system',
-          actor_id: n.data?.actor_id || '',
+          type: normalizeNotificationType(n.type),
+          actor_id: typeof n.data?.actor_id === 'string' ? n.data.actor_id : '',
           title: n.title || 'Notification',
           body: n.body,
-          image_url: n.data?.image_url || n.data?.host_avatar || n.data?.avatar_url || null,
+          image_url:
+            typeof n.data?.image_url === 'string'
+              ? n.data.image_url
+              : typeof n.data?.host_avatar === 'string'
+                ? n.data.host_avatar
+                : typeof n.data?.avatar_url === 'string'
+                  ? n.data.avatar_url
+                  : null,
           // Server returns action_url at the top level (server/lib/notifications.ts),
           // not under data — read it there first so notification taps navigate.
           action_url: n.action_url ?? (n.data?.action_url as string | undefined) ?? null,
           is_read: n.is_read ?? n.read ?? false,
           created_at: n.created_at,
-          rawData: n.data || {},
+          rawData: toStringRecord(n.data),
         })));
         // Mark unread notifications as read once the inbox has loaded them.
         const unreadIds = rows
@@ -227,22 +342,18 @@ export default function Inbox() {
           .map((n: { id: string }) => n.id)
           .slice(0, 100);
         if (unreadIds.length > 0) {
-          void request('/api/notifications/read', {
-            method: 'POST',
-            body: JSON.stringify({ ids: unreadIds }),
-          }).catch(() => undefined);
+          void apiMarkNotificationsRead(unreadIds).catch(() => undefined);
         }
       } catch { /* ignore */ }
     };
     const fetchConversations = async () => {
       try {
-        const { data: body, error: convError } = await request('/api/chat/threads');
+        const { threads: rows, error: convError } = await apiListChatThreads();
         if (cancelled) return;
         if (convError) {
           setConversations([]);
           return;
         }
-        const rows = Array.isArray(body?.threads) ? body.threads : (Array.isArray(body?.data) ? body.data : []);
         const mapped: Conversation[] = rows.map((t: Record<string, unknown>) => {
           const other = (t.otherUser ?? {}) as Record<string, unknown>;
           const display =
@@ -276,9 +387,7 @@ export default function Inbox() {
     };
     const fetchFollowers = async () => {
       try {
-        const { data: backendBody, error: followersErr } = await request(
-          `/api/profiles/${encodeURIComponent(currentUserId)}/followers`,
-        );
+        const { body: backendBody, error: followersErr } = await apiListFollowers(currentUserId);
         if (cancelled) return;
         if (followersErr || !backendBody) {
           setFollowers([]);
@@ -304,17 +413,15 @@ export default function Inbox() {
     };
     const fetchSuggestedUsers = async () => {
       try {
-        const [profilesResult, liveResult] = await Promise.all([
-          request('/api/profiles'),
-          request('/api/live/streams').catch(() => ({ data: null, error: null })),
-        ]);
+        const { profiles, streams } = await apiListSuggestedUsersInput();
         if (cancelled) return;
-        const profilesBody = profilesResult.data ?? { profiles: [] };
-        const liveBody = liveResult.data ?? { streams: [] };
-        const liveSet = new Set<string>((liveBody?.streams || []).map((s: { userId: string; user_id: string }) => s.userId || s.user_id).filter(Boolean));
+        const liveSet = new Set<string>(streams.map((s) => {
+          const row = s as { userId?: string; user_id?: string };
+          return row.userId || row.user_id || '';
+        }).filter(Boolean));
         setLiveUserIds(liveSet);
 
-        const rows = Array.isArray(profilesBody?.profiles) ? profilesBody.profiles : [];
+        const rows = profiles;
         const blocklist = ['', 'user', 'demo', 'test', 'unknown', 'anonymous', 'guest'];
         const mapped: SuggestedUser[] = rows
           .map((p: { user_id: string; userId: string; username?: string; display_name?: string; displayName?: string; avatar_url?: string; avatarUrl?: string }) => ({
@@ -338,13 +445,12 @@ export default function Inbox() {
     };
     const fetchActivity = async () => {
       try {
-        const { data: body, error: actError } = await request('/api/activity');
+        const { rows: raw, error: actError } = await apiListActivityItems();
         if (cancelled) return;
         if (actError) {
           setActivityItems([]);
           return;
         }
-        const raw = Array.isArray(body?.activities) ? body.activities : [];
         const list: ActivityItem[] = raw
           .filter((a: { kind?: string }) => a && (a.kind === 'like' || a.kind === 'comment' || a.kind === 'save' || a.kind === 'mention'))
           .map((a: { id?: string | number; kind?: string; video_id?: string; actor_user_id?: string; actor_username?: string; actor_display_name?: string | null; actor_avatar_url?: string | null; snippet?: string | null; created_at?: string }) => ({
@@ -365,13 +471,12 @@ export default function Inbox() {
     };
     const fetchLiveShareRequests = async () => {
       try {
-        const { data: body, error: lsError } = await request('/api/inbox/live-share-requests');
+        const { rows: raw, error: lsError } = await apiListLiveShareRequests();
         if (cancelled) return;
         if (lsError) {
           setLiveShareRequests([]);
           return;
         }
-        const raw = Array.isArray(body?.items) ? body.items : [];
         setLiveShareRequests(
           raw.map((row: Record<string, unknown>) => ({
             sharer_id: String(row.sharer_id ?? ''),
@@ -394,7 +499,41 @@ export default function Inbox() {
     fetchSuggestedUsers();
     fetchActivity();
     fetchLiveShareRequests();
-    return () => { cancelled = true; };
+
+    const onDmThreadUpdated = (raw: unknown) => {
+      if (cancelled) return;
+      const data = (raw ?? {}) as {
+        threadId?: string;
+        last_message?: string;
+        last_at?: string;
+        sender_id?: string;
+      };
+      if (!data.threadId) return;
+      setConversations((prev) => {
+        const idx = prev.findIndex((c) => c.id === data.threadId);
+        if (idx < 0) {
+          void fetchConversations();
+          return prev;
+        }
+        const next = [...prev];
+        const row = { ...next[idx] };
+        if (data.last_message) row.lastMessage = data.last_message;
+        if (data.last_at) row.last_at = data.last_at;
+        if (data.sender_id && data.sender_id !== currentUserId) {
+          row.hasUnread = true;
+          row.unreadCount = Math.max(1, (row.unreadCount || 0) + 1);
+        }
+        next.splice(idx, 1);
+        next.unshift(row);
+        return next;
+      });
+    };
+    websocket.on('dm_thread_updated', onDmThreadUpdated);
+
+    return () => {
+      cancelled = true;
+      websocket.off('dm_thread_updated', onDmThreadUpdated);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserId, location.pathname]);
 
@@ -452,12 +591,12 @@ export default function Inbox() {
         <div className="flex-1 min-h-0 overflow-y-auto bg-[#111111]">
         <div className="px-3 pt-page-header pb-1 flex items-center justify-between relative bg-[#111111]">
           <div className="flex items-center gap-3 z-10">
-            <button onClick={() => navigate('/search')} aria-label="Search"><Search size={18} className="text-gold-bright" /></button>
+            <button onClick={goSearch} aria-label="Search"><Search size={18} className="text-gold-bright" /></button>
           </div>
           <h1 className="text-sm font-bold text-gold-bright absolute left-1/2 transform -translate-x-1/2">Inbox</h1>
           <button
             type="button"
-            onClick={() => navigate("/feed", { replace: true })}
+            onClick={goFeedBack}
             className="p-1 z-10"
             title="Close"
             aria-label="Close inbox and go to For You"
@@ -471,7 +610,7 @@ export default function Inbox() {
             <div className="flex gap-3 overflow-x-auto overflow-y-hidden no-scrollbar pt-3" style={{ WebkitOverflowScrolling: 'touch' }}>
                 <button
                     type="button"
-                    onClick={() => setShowNewFollowersPanel(true)}
+                    onClick={openNewFollowersPanel}
                     className="flex-shrink-0 flex flex-col items-center gap-1" style={{ width: 95, minWidth: 95 }}
                 >
                     <StoryGoldRingAvatar
@@ -493,7 +632,7 @@ export default function Inbox() {
                     <button
                         key={u.id}
                         type="button"
-                        onClick={() => u.is_live ? navigate(`/watch/${u.id}`) : navigate(`/profile/${u.id}`)}
+                        onClick={() => openUserOrLive(u.id, !!u.is_live)}
                         className="flex-shrink-0 flex flex-col items-center gap-1" style={{ width: 95, minWidth: 95 }}
                     >
                         <StoryGoldRingAvatar
@@ -512,7 +651,7 @@ export default function Inbox() {
                     <button
                         key={f.user_id}
                         type="button"
-                        onClick={() => fLive ? navigate(`/watch/${f.user_id}`) : navigate(`/profile/${f.user_id}`)}
+                        onClick={() => openUserOrLive(f.user_id, fLive)}
                         className="flex-shrink-0 flex flex-col items-center gap-1" style={{ width: 95, minWidth: 95 }}
                     >
                         <StoryGoldRingAvatar
@@ -530,11 +669,11 @@ export default function Inbox() {
 
         {/* Filters — flat text on fundal, no bordered boxes */}
         <div className="pl-[calc(1rem+22mm)] pr-4 py-2 flex items-center justify-center gap-3 overflow-x-auto no-scrollbar mb-2 bg-[#111111]" style={{ marginLeft: '-20mm' }}>
-            <button onClick={() => setActiveFilter('main')} className={`px-2 py-1.5 text-xs font-bold whitespace-nowrap bg-transparent border-0 ${activeFilter === 'main' ? 'text-gold-bright' : 'text-gold-bright/45'}`}>Main</button>
-            <button onClick={() => setActiveFilter('requests')} className={`px-2 py-1.5 text-xs font-bold whitespace-nowrap bg-transparent border-0 ${activeFilter === 'requests' ? 'text-gold-bright' : 'text-gold-bright/45'}`}>Requests</button>
-            <button onClick={() => setActiveFilter('unread')} className={`px-2 py-1.5 text-xs font-bold whitespace-nowrap bg-transparent border-0 ${activeFilter === 'unread' ? 'text-gold-bright' : 'text-gold-bright/45'}`}>Unread</button>
-            <button onClick={() => setActiveFilter('starred')} className={`px-2 py-1.5 text-xs font-bold whitespace-nowrap bg-transparent border-0 ${activeFilter === 'starred' ? 'text-gold-bright' : 'text-gold-bright/45'}`}>Starred</button>
-            <button onClick={() => setActiveFilter('activity')} className={`px-2 py-1.5 text-xs font-bold whitespace-nowrap bg-transparent border-0 ${activeFilter === 'activity' ? 'text-gold-bright' : 'text-gold-bright/45'}`}>Activity</button>
+            <button onClick={filterMain} className={`px-2 py-1.5 text-xs font-bold whitespace-nowrap bg-transparent border-0 ${activeFilter === 'main' ? 'text-gold-bright' : 'text-gold-bright/45'}`}>Main</button>
+            <button onClick={filterRequests} className={`px-2 py-1.5 text-xs font-bold whitespace-nowrap bg-transparent border-0 ${activeFilter === 'requests' ? 'text-gold-bright' : 'text-gold-bright/45'}`}>Requests</button>
+            <button onClick={filterUnread} className={`px-2 py-1.5 text-xs font-bold whitespace-nowrap bg-transparent border-0 ${activeFilter === 'unread' ? 'text-gold-bright' : 'text-gold-bright/45'}`}>Unread</button>
+            <button onClick={filterStarred} className={`px-2 py-1.5 text-xs font-bold whitespace-nowrap bg-transparent border-0 ${activeFilter === 'starred' ? 'text-gold-bright' : 'text-gold-bright/45'}`}>Starred</button>
+            <button onClick={filterActivity} className={`px-2 py-1.5 text-xs font-bold whitespace-nowrap bg-transparent border-0 ${activeFilter === 'activity' ? 'text-gold-bright' : 'text-gold-bright/45'}`}>Activity</button>
             <div className="ml-auto stroke-gold-metallic text-gold-bright">
                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
             </div>
@@ -548,7 +687,7 @@ export default function Inbox() {
             {/* New followers — tap to open panel with all people who follow you */}
             <button
                 type="button"
-                onClick={() => setShowNewFollowersPanel(true)}
+                onClick={openNewFollowersPanel}
                 className="flex items-center gap-3 w-full text-left py-2 px-2 bg-[#111111]"
             >
                 <div className="relative w-12 h-12 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0 royce-tile">
@@ -566,7 +705,7 @@ export default function Inbox() {
             </button>
 
             {/* Activity - golden circle from Music Icon (likes, comments) */}
-            <button onClick={() => setActiveFilter('activity')} className="flex items-center gap-3 w-full text-left py-2 px-2 bg-[#111111]">
+            <button onClick={filterActivity} className="flex items-center gap-3 w-full text-left py-2 px-2 bg-[#111111]">
                 <div className="relative w-12 h-12 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0 royce-tile">
 <Heart className="w-6 h-6 royce-icon-gold relative z-10" strokeWidth={2.25} />
                 </div>
@@ -589,7 +728,7 @@ export default function Inbox() {
                     <button
                       key={a.id}
                       type="button"
-                      onClick={() => { if (a.video_id) navigate(`/video/${encodeURIComponent(a.video_id)}`); }}
+                      onClick={() => { if (a.video_id) openVideo(a.video_id); }}
                       className="flex items-center gap-2.5 w-full text-left py-1.5 px-2 bg-[#111111]"
                     >
                       <div className="w-9 h-9 rounded-full bg-[#111111] border border-[#C9A227]/30 flex items-center justify-center flex-shrink-0 overflow-hidden relative" style={{ transform: 'translateY(4mm)' }}>
@@ -606,7 +745,7 @@ export default function Inbox() {
                   );
                 })}
                 {activityItems.length > 5 && (
-                  <button type="button" onClick={() => setActiveFilter('activity')} className="text-[11px] text-[#E8D5A3]/70 font-medium pl-2 py-1">
+                  <button type="button" onClick={filterActivity} className="text-[11px] text-[#E8D5A3]/70 font-medium pl-2 py-1">
                     View all activity →
                   </button>
                 )}
@@ -621,7 +760,7 @@ export default function Inbox() {
                 ) : (
                     conversations.map((conv) => (
                         <div key={conv.id} className="flex items-center gap-3 py-2 px-2 bg-[#111111] group">
-                            <div className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer" onClick={() => navigate(`/inbox/${conv.id}`)}>
+                            <div className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer" onClick={() => openConversation(conv.id)}>
                                 <AvatarRing src={conv.otherUser?.avatar_url || ''} alt={conv.otherUser?.display_name || conv.otherUser?.username || 'User'} size={48} />
                                 <div className="flex-1 min-w-0">
                                     <p className="font-semibold text-sm text-gold-bright truncate flex items-center gap-1.5">
@@ -640,10 +779,8 @@ export default function Inbox() {
                                     const ok = await nativeConfirm('Delete this conversation? Messages will be removed.', 'Delete Conversation');
                                     if (!ok) return;
                                     try {
-                                      const { error: delError } = await request(`/api/chat/threads/${encodeURIComponent(conv.id)}`, {
-                                        method: 'DELETE',
-                                      });
-                                      if (delError) showToast('Could not delete');
+                                      const { ok, error: delError } = await apiDeleteChatThread(conv.id);
+                                      if (!ok || delError) showToast('Could not delete');
                                       else {
                                         addDeletedThreadId(conv.id);
                                         setConversations((prev) => prev.filter((c) => c.id !== conv.id));
@@ -677,7 +814,7 @@ export default function Inbox() {
                 ) : (
                     conversations.filter((c) => c.hasUnread).map((conv) => (
                         <div key={conv.id} className="flex items-center gap-3 py-2 px-2 bg-[#111111] group">
-                            <div className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer" onClick={() => navigate(`/inbox/${conv.id}`)}>
+                            <div className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer" onClick={() => openConversation(conv.id)}>
                                 <AvatarRing src={conv.otherUser?.avatar_url || ''} alt={conv.otherUser?.display_name || conv.otherUser?.username || 'User'} size={48} />
                                 <div className="flex-1 min-w-0">
                                     <p className="font-semibold text-sm text-gold-bright truncate">{conv.otherUser?.display_name || conv.otherUser?.username || 'User'}</p>
@@ -697,10 +834,8 @@ export default function Inbox() {
                                     const ok = await nativeConfirm('Delete this conversation? Messages will be removed.', 'Delete Conversation');
                                     if (!ok) return;
                                     try {
-                                      const { error: delError } = await request(`/api/chat/threads/${encodeURIComponent(conv.id)}`, {
-                                        method: 'DELETE',
-                                      });
-                                      if (delError) showToast('Could not delete');
+                                      const { ok, error: delError } = await apiDeleteChatThread(conv.id);
+                                      if (!ok || delError) showToast('Could not delete');
                                       else {
                                         addDeletedThreadId(conv.id);
                                         setConversations((prev) => prev.filter((c) => c.id !== conv.id));
@@ -739,7 +874,7 @@ export default function Inbox() {
                           key={`${row.sharer_id}_${row.stream_key}`}
                           type="button"
                           onClick={() => {
-                            if (row.stream_key) navigate(`/watch/${encodeURIComponent(row.stream_key)}`);
+                            if (row.stream_key) openWatchStream(row.stream_key);
                           }}
                           className="flex items-center gap-3 w-full text-left py-2.5 px-2 bg-[#111111]"
                         >
@@ -782,7 +917,7 @@ export default function Inbox() {
                           key={a.id}
                           type="button"
                           onClick={() => {
-                            if (a.video_id) navigate(`/video/${encodeURIComponent(a.video_id)}`);
+                            if (a.video_id) openVideo(a.video_id);
                           }}
                           className="flex items-center gap-3 w-full text-left py-2.5 px-2 bg-[#111111]"
                         >
@@ -815,7 +950,7 @@ export default function Inbox() {
                               key={notif.id}
                               type="button"
                               onClick={() => {
-                                if (actionUrl) navigate(actionUrl);
+                                if (actionUrl) openActionUrl(actionUrl);
                               }}
                               className="flex items-center gap-3 w-full text-left py-2.5 px-2 bg-[#111111]"
                             >
@@ -847,7 +982,7 @@ export default function Inbox() {
             {(activeFilter === 'main') && notifications
                 .filter(n => n.type === 'system' && !(n.body?.toLowerCase?.().includes('check out this profile') || n.action_url?.includes('/profile/' + currentUserId)))
                 .map(notif => (
-                <button key={notif.id} onClick={() => notif.action_url ? navigate(notif.action_url) : null} className="flex items-center gap-3 w-full text-left">
+                <button key={notif.id} onClick={() => { if (notif.action_url) openActionUrl(notif.action_url); }} className="flex items-center gap-3 w-full text-left">
                     <div className="w-12 h-12 rounded-full bg-[#111111] border border-[#C9A227]/40 flex items-center justify-center">
                         <Archive className="w-6 h-6 stroke-gold-metallic" />
                     </div>
@@ -866,7 +1001,7 @@ export default function Inbox() {
 
              {/* Shop Notification */}
              {activeFilter === 'main' && notifications.filter(n => n.type === 'shop').map(notif => (
-                <button key={notif.id} onClick={() => navigate('/shop')} className="flex items-center gap-3 w-full text-left">
+                <button key={notif.id} onClick={goShop} className="flex items-center gap-3 w-full text-left">
                     <div className="w-12 h-12 rounded-full bg-[#111111] border border-[#C9A227]/40 flex items-center justify-center">
                         <ShoppingBag className="w-6 h-6 text-[#D4AF37]" strokeWidth={2} />
                     </div>
@@ -894,7 +1029,7 @@ export default function Inbox() {
                 </h2>
                 <button
                   type="button"
-                  onClick={() => setShowNewFollowersPanel(false)}
+                  onClick={closeNewFollowersPanel}
                   className="p-1 z-10"
                   title="Close"
                   aria-label="Close followers"
@@ -914,7 +1049,7 @@ export default function Inbox() {
                       <button
                         type="button"
                         className="flex items-center gap-3 flex-1 min-w-0 text-left bg-[#111111]"
-                        onClick={() => { setShowNewFollowersPanel(false); navigate(`/profile/${f.user_id}`); }}
+                        onClick={() => openFollowerProfile(f.user_id)}
                       >
                         <div className="relative w-11 h-11 rounded-full bg-[#111111] flex items-center justify-center overflow-hidden flex-shrink-0">
                           {f.avatar_url ? (
@@ -947,7 +1082,7 @@ export default function Inbox() {
                       <button
                         type="button"
                         className="p-1 flex-shrink-0 bg-[#111111]"
-                        onClick={() => { setShowNewFollowersPanel(false); navigate(`/profile/${f.user_id}`); }}
+                        onClick={() => openFollowerProfile(f.user_id)}
                         aria-label="Open profile"
                       >
                         <ChevronRight className="w-5 h-5 text-gold-bright/70" />

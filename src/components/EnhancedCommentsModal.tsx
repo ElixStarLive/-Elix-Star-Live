@@ -2,7 +2,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, Heart, Trash2, Edit3, MessageSquare, Reply } from 'lucide-react';
 import { useVideoStore } from '../store/useVideoStore';
 import { useAuthStore } from '../store/useAuthStore';
-import { request } from '../lib/apiClient';
+import {
+  apiDeleteVideoComment,
+  apiFetchVideoComments,
+  apiPatchVideoComment,
+  apiPostVideoComment,
+  apiToggleCommentLike,
+} from '../features/feed/feedApi';
 import { showToast } from '../lib/toast';
 import { LevelBadge } from './LevelBadge';
 
@@ -35,11 +41,11 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'mostLiked'>('newest');
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(false);
+  const [posting, setPosting] = useState(false);
   const [showReplies, setShowReplies] = useState<Set<string>>(new Set());
   const commentsEndRef = useRef<HTMLDivElement>(null);
   
   const { user } = useAuthStore();
-  const _token = useAuthStore((s) => s.session?.access_token || '');
   const { getVideoById, updateVideo } = useVideoStore();
 
   // Fetch comments when modal opens
@@ -54,11 +60,11 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
     try {
       setLoading(true);
       const sort = sortBy === 'oldest' ? 'oldest' : 'newest';
-      const { data: body, error } = await request(`/api/videos/${encodeURIComponent(videoId)}/comments?sort=${sort}`);
-      if (error) throw new Error(error.message);
-      let list = Array.isArray(body?.comments) ? body.comments : [];
+      const { comments: raw, error } = await apiFetchVideoComments(videoId, sort);
+      if (error) throw new Error(error);
+      let list = Array.isArray(raw) ? (raw as Comment[]) : [];
       if (sortBy === 'mostLiked') {
-        list = [...list].sort((a: { likes?: number }, b: { likes?: number }) => (b.likes ?? 0) - (a.likes ?? 0));
+        list = [...list].sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0));
       }
       setComments(list);
     } catch (error) {
@@ -70,14 +76,12 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
 
   const handleAddComment = async (parentComment?: Comment) => {
     const commentText = newComment.trim();
-    if (!commentText || !user?.id) return;
+    if (!commentText || !user?.id || posting) return;
 
+    setPosting(true);
     try {
-      const { error } = await request(`/api/videos/${encodeURIComponent(videoId)}/comments`, {
-        method: 'POST',
-        body: JSON.stringify({ text: commentText, parentId: parentComment?.id || null }),
-      });
-      if (error) throw new Error(error.message);
+      const { error } = await apiPostVideoComment(videoId, commentText, parentComment?.id || null);
+      if (error) throw new Error(error);
 
       // Server owns comment shape — reload from GET, do not invent rows from POST body.
       setNewComment('');
@@ -92,18 +96,17 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
           });
         }
       }
-    } catch (error) {
-      console.error('Failed to add comment:', error);
+    } catch {
       showToast('Could not post comment');
+    } finally {
+      setPosting(false);
     }
   };
 
   const handleDeleteComment = async (commentId: string, isReply: boolean = false, parentId?: string) => {
     try {
-      const { error } = await request(`/api/videos/${encodeURIComponent(videoId)}/comments/${encodeURIComponent(commentId)}`, {
-        method: 'DELETE',
-      });
-      if (error) throw new Error(error.message);
+      const { error } = await apiDeleteVideoComment(videoId, commentId);
+      if (error) throw new Error(error);
 
       if (isReply && parentId) {
         // Remove reply from parent comment
@@ -135,11 +138,8 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
     if (!nextText) return;
 
     try {
-      const { error } = await request(
-        `/api/videos/${encodeURIComponent(videoId)}/comments/${encodeURIComponent(commentId)}`,
-        { method: 'PATCH', body: JSON.stringify({ text: nextText }) },
-      );
-      if (error) throw new Error(error.message);
+      const { error } = await apiPatchVideoComment(videoId, commentId, nextText);
+      if (error) throw new Error(error);
 
       // Reflect the persisted edit in local state
       setComments(prev => prev.map(comment => {
@@ -184,7 +184,7 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
       }
 
       const action = currentlyLiked ? 'unlike' : 'like';
-      await request(`/api/videos/${encodeURIComponent(videoId)}/comments/${encodeURIComponent(commentId)}/${action}`, { method: 'POST' });
+      await apiToggleCommentLike(videoId, commentId, action);
 
       setComments(prev => prev.map(comment => {
         if (comment.id === commentId) {
@@ -446,7 +446,7 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
               <button
                 type="button"
                 onClick={() => handleAddComment()}
-                disabled={!newComment.trim()}
+                disabled={!newComment.trim() || posting}
                 className="text-secondary hover:brightness-125 disabled:opacity-50 disabled:cursor-not-allowed transition"
               >
                 <Send className="w-5 h-5" />

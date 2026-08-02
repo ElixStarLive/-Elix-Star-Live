@@ -6,14 +6,14 @@ const InlineLiveViewer = React.lazy(() => import("../components/InlineLiveViewer
 import EnhancedVideoPlayer from "../components/EnhancedVideoPlayer";
 import { useVideoStore } from "../store/useVideoStore";
 import { useAuthStore } from "../store/useAuthStore";
-import { getWsUrl } from "../lib/api";
-import { request } from "../lib/apiClient";
 import {
   isGenericLiveCreatorName,
   liveNameFromStreamFields,
   profileToLiveDisplay,
 } from "../lib/liveCreatorDisplay";
 import { platform } from "../lib/platform";
+import { apiLiveStreams, connectLiveFeedPresence, createLiveRoomEndMonitor } from "../lib/live";
+import { apiFetchProfileById as apiFeedFetchProfileById } from "../features/feed/feedApi";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -54,127 +54,6 @@ type FeedItem =
    pressing X returned to /feed — the live card at the same index would
    immediately re-trigger navigation. Users now tap LivePreviewCard to join. */
 
-/* ------------------------------------------------------------------ */
-/*  Lightweight per-room WebSocket monitor                             */
-/*  Opens a subscribe-only WS to each active room so we receive       */
-/*  "stream_ended" the instant the host disconnects — no polling lag.  */
-/* ------------------------------------------------------------------ */
-
-class RoomMonitor {
-  private sockets = new Map<string, WebSocket>();
-  private reconnectAttempts = new Map<string, number>();
-  private reconnectTimers = new Map<string, ReturnType<typeof setTimeout>>();
-  private activeKeys = new Set<string>();
-  private onStreamEnded: (streamKey: string) => void;
-  private token: string;
-
-  constructor(token: string, onStreamEnded: (streamKey: string) => void) {
-    this.token = token;
-    this.onStreamEnded = onStreamEnded;
-  }
-
-  /** Reconcile: open sockets for new rooms, close sockets for removed rooms */
-  sync(activeKeys: string[]) {
-    const desired = new Set(activeKeys);
-    this.activeKeys = desired;
-
-    // Close sockets for rooms no longer active
-    for (const [key, ws] of this.sockets) {
-      if (!desired.has(key)) {
-        try {
-          ws.close();
-        } catch {
-          /* ignore */
-        }
-        this.sockets.delete(key);
-      }
-    }
-
-    // Open sockets for new rooms
-    for (const key of activeKeys) {
-      if (this.sockets.has(key)) continue;
-      this.openSocket(key);
-    }
-  }
-
-  private openSocket(roomKey: string) {
-    if (!this.token) return;
-    try {
-      const wsUrl = getWsUrl();
-      const ws = new WebSocket(
-        `${wsUrl}/live/${roomKey}?token=${encodeURIComponent(this.token)}`,
-      );
-
-      ws.onmessage = (evt) => {
-        try {
-          const msg = JSON.parse(evt.data);
-          if (msg.event === "stream_ended") {
-            this.onStreamEnded(msg.data?.stream_key || roomKey);
-          }
-        } catch {
-          /* malformed frame */
-        }
-      };
-
-      ws.onerror = () => {
-        /* silent */
-      };
-
-      ws.onclose = () => {
-        if (this.sockets.get(roomKey) !== ws) return;
-        this.sockets.delete(roomKey);
-        if (!this.token || !this.activeKeys.has(roomKey)) return;
-        const n = (this.reconnectAttempts.get(roomKey) ?? 0) + 1;
-        if (n > 12) return;
-        this.reconnectAttempts.set(roomKey, n);
-        const base = 1000 * Math.pow(2, n - 1);
-        const delay = Math.min(30_000, base + Math.floor(Math.random() * 400));
-        const timer = setTimeout(() => {
-          this.reconnectTimers.delete(roomKey);
-          if (this.token && this.activeKeys.has(roomKey) && !this.sockets.has(roomKey)) {
-            this.openSocket(roomKey);
-          }
-        }, delay);
-        this.reconnectTimers.set(roomKey, timer);
-      };
-
-      // Send keepalive to prevent server-side timeout
-      const keepAlive = setInterval(() => {
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(
-            JSON.stringify({
-              event: "ping",
-              data: {},
-              timestamp: new Date().toISOString(),
-            }),
-          );
-        } else {
-          clearInterval(keepAlive);
-        }
-      }, 25_000);
-
-      this.sockets.set(roomKey, ws);
-    } catch {
-      /* connection failed — polling is still the fallback */
-    }
-  }
-
-  destroy() {
-    for (const [, timer] of this.reconnectTimers) {
-      clearTimeout(timer);
-    }
-    this.reconnectTimers.clear();
-    for (const [, ws] of this.sockets) {
-      try {
-        ws.close();
-      } catch {
-        /* ignore */
-      }
-    }
-    this.sockets.clear();
-  }
-}
-
 /** Map stream_started payload from server to LiveStreamCard */
 function streamStartedToCard(data: Record<string, unknown>): LiveStreamCard {
   const key = (data.stream_key ?? data.room_id ?? "") as string;
@@ -197,9 +76,9 @@ function streamStartedToCard(data: Record<string, unknown>): LiveStreamCard {
 async function enrichLiveStreamCard(card: LiveStreamCard): Promise<LiveStreamCard> {
   if (!card.userId || !isGenericLiveCreatorName(card.name)) return card;
   try {
-    const { data, error } = await request(`/api/profiles/${encodeURIComponent(card.userId)}`);
-    if (error || !data) return card;
-    const { name, avatar } = profileToLiveDisplay(data);
+    const { body, error } = await apiFeedFetchProfileById(card.userId);
+    if (error || !body) return card;
+    const { name, avatar } = profileToLiveDisplay(body);
     if (!name && !avatar) return card;
     return {
       ...card,
@@ -224,7 +103,7 @@ export default function VideoFeed() {
   const [liveStreams, setLiveStreams] = useState<LiveStreamCard[]>([]);
   const [liveLoading, setLiveLoading] = useState(true);
   const removedKeysRef = useRef<Set<string>>(new Set());
-  const monitorRef = useRef<RoomMonitor | null>(null);
+  const monitorRef = useRef<ReturnType<typeof createLiveRoomEndMonitor> | null>(null);
 
   const session = useAuthStore((s) => s.session);
   const token = session?.access_token || "";
@@ -242,19 +121,14 @@ export default function VideoFeed() {
   /* ---- Fetch live streams from REST ---- */
   const fetchLiveStreams = useCallback(async () => {
     try {
-      const { data: body, error } = await request("/api/live/streams", {
-        cache: "no-store",
-        headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
-      });
+      const { streams: rawStreams, error } = await apiLiveStreams();
 
-      if (error || !body) {
+      if (error) {
         // Keep realtime + WS-discovered streams on 304/empty/transient failures.
         setLiveLoading(false);
         return;
       }
-      const streams: RawStream[] = Array.isArray(body?.streams)
-        ? (body.streams as RawStream[])
-        : [];
+      const streams: RawStream[] = rawStreams as RawStream[];
 
       // When API returns [], still merge with prev so streams from stream_started stay visible
       const removed = removedKeysRef.current;
@@ -348,14 +222,15 @@ export default function VideoFeed() {
 
     // Create room monitor for instant stream_ended detection
     if (token) {
-      monitorRef.current = new RoomMonitor(token, (endedKey) => {
-        removeLiveStream(endedKey);
-      });
+      monitorRef.current = createLiveRoomEndMonitor(
+        () => useAuthStore.getState().session?.access_token || token,
+        { onStreamEnded: (endedKey) => removeLiveStream(endedKey) },
+      );
     }
 
     return () => {
       clearInterval(poll);
-      monitorRef.current?.destroy();
+      monitorRef.current?.dispose();
       monitorRef.current = null;
     };
   }, [fetchLiveStreams, fetchVideos, removeLiveStream, token]);
@@ -386,63 +261,29 @@ export default function VideoFeed() {
   /* ---- Feed channel: when a creator starts live, they appear on For You immediately; reconnect on close ---- */
   useEffect(() => {
     if (!token) return;
-    const wsUrl = getWsUrl();
-    const url = `${wsUrl}/live/__feed__?token=${encodeURIComponent(token)}`;
-    let ws: WebSocket | null = null;
-    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-    let cancelled = false;
-
-    function connect() {
-      if (cancelled) return;
-      try {
-        ws = new WebSocket(url);
-      } catch {
-        reconnectTimer = setTimeout(connect, 3000);
-        return;
-      }
-      ws.onmessage = (evt) => {
-        try {
-          const msg = JSON.parse(evt.data);
-          const event = msg?.event;
-          const data = msg?.data || {};
-          if (event === "stream_started") {
-            const key = String(data.stream_key ?? data.room_id ?? "").trim();
-            if (!key) return;
-            const uid = String(data.user_id ?? key);
-            removedKeysRef.current.delete(key);
-            const card = streamStartedToCard({ ...data, user_id: uid, stream_key: key });
-            setLiveStreams((prev) => {
-              if (prev.some((s) => s.streamKey === key)) return prev;
-              return [card, ...prev];
-            });
-            void enrichLiveStreamCard(card).then((enriched) => {
-              if (enriched.name === card.name && enriched.avatar === card.avatar) return;
-              setLiveStreams((prev) =>
-                prev.map((s) => (s.streamKey === key ? enriched : s)),
-              );
-            });
-          } else if (event === "stream_ended") {
-            const key = (data.stream_key ?? data.room_id) as string;
-            if (key) removeLiveStream(key);
-          }
-        } catch {
-          /* ignore */
-        }
-      };
-      ws.onerror = () => {};
-      ws.onclose = () => {
-        ws = null;
-        if (!cancelled) reconnectTimer = setTimeout(connect, 3000);
-      };
-    }
-    connect();
-    return () => {
-      cancelled = true;
-      if (reconnectTimer) clearTimeout(reconnectTimer);
-      try {
-        if (ws) ws.close();
-      } catch { /* intentionally empty */ }
-    };
+    return connectLiveFeedPresence(token, {
+      onStreamStarted: (data) => {
+        const key = String(data.stream_key ?? data.room_id ?? "").trim();
+        if (!key) return;
+        const uid = String(data.user_id ?? key);
+        removedKeysRef.current.delete(key);
+        const card = streamStartedToCard({ ...data, user_id: uid, stream_key: key });
+        setLiveStreams((prev) => {
+          if (prev.some((s) => s.streamKey === key)) return prev;
+          return [card, ...prev];
+        });
+        void enrichLiveStreamCard(card).then((enriched) => {
+          if (enriched.name === card.name && enriched.avatar === card.avatar) return;
+          setLiveStreams((prev) =>
+            prev.map((s) => (s.streamKey === key ? enriched : s)),
+          );
+        });
+      },
+      onStreamEnded: (data) => {
+        const key = (data.stream_key ?? data.room_id) as string;
+        if (key) removeLiveStream(key);
+      },
+    });
   }, [token, removeLiveStream]);
 
   /* ---- Re-fetch when navigating back to /feed ---- */
@@ -461,7 +302,7 @@ export default function VideoFeed() {
   const visibleLiveStreams = liveStreams;
 
   useEffect(() => {
-    monitorRef.current?.sync(visibleLiveStreams.map((s) => s.streamKey));
+    monitorRef.current?.setActiveKeys(visibleLiveStreams.map((s) => s.streamKey));
   }, [visibleLiveStreams]);
 
   /* ---- Build unified feed: live first, then videos ---- */

@@ -520,10 +520,20 @@ export async function purchaseMembership(
       /* best-effort store completion */
     }
 
+    const active = data?.active === true;
+    if (!active) {
+      // Do not claim membership activated without server confirmation.
+      return {
+        success: false,
+        error:
+          'Purchase recorded but membership is not active yet. Restore purchases or contact support if charged.',
+      };
+    }
+
     return {
       success: true,
       status: {
-        active: data?.active === true,
+        active: true,
         productId: current.status.productId,
         basePlanId: current.status.basePlanId,
         purchaseReady: true,
@@ -643,10 +653,26 @@ async function verifyAndCreditPurchase(
       return { success: false, error: error.message || 'Server verification failed' };
     }
 
-    const newBalance =
+    let newBalance =
       data && typeof data.newBalance === 'number' && Number.isFinite(data.newBalance)
         ? Math.max(0, Math.floor(data.newBalance))
         : undefined;
+
+    const { useWalletStore } = await import('../store/useWalletStore');
+    if (newBalance != null) {
+      useWalletStore.getState().applyServerBalances({ paid: newBalance });
+    } else {
+      // Verify claimed success but omitted balance — refresh wallet; fail if still unknown.
+      const refreshed = await useWalletStore.getState().fetchWallet();
+      if (!refreshed.ok) {
+        reportIapStage('verify_missing_balance', { packageId });
+        return {
+          success: false,
+          error: 'Purchase verified but balance could not be confirmed. Contact support if charged.',
+        };
+      }
+      newBalance = useWalletStore.getState().paidBalance;
+    }
 
     return { success: true, newBalance };
   } catch {

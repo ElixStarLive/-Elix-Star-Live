@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Trophy } from "lucide-react";
 import { EngagementShell } from "./EngagementShell";
-import { request } from "../../lib/apiClient";
 import { showToast } from "../../lib/toast";
+import { apiEngagementAchievements } from "../../features/live/engagement/liveEngagementApi";
 
 type Achievement = {
   id: string;
@@ -24,8 +24,8 @@ export default function EngagementAchievements() {
   useEffect(() => {
     void (async () => {
       try {
-        const { data, error } = await request("/api/engagement/achievements");
-        if (error) throw new Error(error.message);
+        const { data, error } = await apiEngagementAchievements();
+        if (error) throw new Error(error);
         setItems((data?.achievements as Achievement[]) || []);
       } catch {
         showToast("Could not load achievements");

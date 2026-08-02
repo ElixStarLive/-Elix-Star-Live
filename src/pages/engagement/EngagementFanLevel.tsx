@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Star } from "lucide-react";
 import { EngagementShell } from "./EngagementShell";
-import { request } from "../../lib/apiClient";
 import { showToast } from "../../lib/toast";
+import { apiEngagementFanLevel } from "../../features/live/engagement/liveEngagementApi";
 
 const TIERS = [
   { name: "Bronze Fan", min: 0 },
@@ -29,8 +29,8 @@ export default function EngagementFanLevel() {
   useEffect(() => {
     void (async () => {
       try {
-        const { data, error } = await request("/api/engagement/fan-level");
-        if (error) throw new Error(error.message);
+        const { data, error } = await apiEngagementFanLevel();
+        if (error) throw new Error(error);
         setFan((data?.fan_level as FanLevel) || null);
       } catch {
         showToast("Could not load fan level");

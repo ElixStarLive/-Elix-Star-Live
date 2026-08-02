@@ -1,10 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { api } from '../../lib/apiClient';
+import React, { useCallback, useState, useEffect } from 'react';
 import { Search, Ban } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { showToast } from '../../lib/toast';
 import { AvatarRing } from '../../components/AvatarRing';
 import SettingsOptionSheet from '../../components/SettingsOptionSheet';
+import {
+  apiGetCurrentUserId,
+  apiListBlockedUsers,
+  apiUnblockUser,
+} from '../../features/safety/safetyApi';
 
 interface BlockedUser {
   blocked_user_id: string;
@@ -21,6 +25,8 @@ export default function BlockedAccounts() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const goBack = useCallback(() => navigate(-1), [navigate]);
+
   useEffect(() => {
     loadCurrentUser();
   }, []);
@@ -34,8 +40,9 @@ export default function BlockedAccounts() {
 
   const loadCurrentUser = async () => {
     try {
-      const { data } = await api.auth.getUser();
-      setCurrentUserId(data.user?.id || null);
+      const { userId, error } = await apiGetCurrentUserId();
+      if (error) throw new Error(error);
+      setCurrentUserId(userId);
     } catch {
       showToast('Failed to load user');
     }
@@ -46,11 +53,9 @@ export default function BlockedAccounts() {
 
     setLoading(true);
     try {
-      const { data, error } = await api.blocked.list();
-
+      const { rows, error } = await apiListBlockedUsers();
       if (error) throw error;
-      const raw = data as unknown as { data?: BlockedUser[] };
-      const list = Array.isArray(raw) ? raw : (Array.isArray(raw?.data) ? raw.data : []);
+      const list = rows as unknown as BlockedUser[];
       setBlockedUsers(list);
     } catch {
       showToast('Failed to load blocked users');
@@ -61,7 +66,7 @@ export default function BlockedAccounts() {
 
   const unblockUser = async (blockedUserId: string) => {
     try {
-      const { error } = await api.blocked.unblock(blockedUserId);
+      const { error } = await apiUnblockUser(blockedUserId);
       if (error) throw error;
       setBlockedUsers(prev => prev.filter(b => b.blocked_user_id !== blockedUserId));
     } catch {
@@ -75,7 +80,7 @@ export default function BlockedAccounts() {
   );
 
   return (
-    <SettingsOptionSheet onClose={() => navigate(-1)}>
+    <SettingsOptionSheet onClose={goBack}>
       <div className="w-full h-full overflow-hidden bg-[#111111] flex flex-col">
         {/* Header */}
         <div className="sticky top-0 bg-[#111111] z-10 px-4 pt-3 pb-3 border-b border-white/[0.06]">

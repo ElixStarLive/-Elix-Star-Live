@@ -28,6 +28,9 @@ export class VoiceProcessor {
 
   async init(stream: MediaStream): Promise<MediaStream> {
     this.ctx = new AudioContext();
+    if (this.ctx.state === 'suspended') {
+      try { await this.ctx.resume(); } catch { /* autoplay policy — caller may retry */ }
+    }
     this.source = this.ctx.createMediaStreamSource(stream);
     this.destination = this.ctx.createMediaStreamDestination();
     this.source.connect(this.destination);

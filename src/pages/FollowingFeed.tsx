@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { RoyceBackIcon } from '../components/royce';
 import { Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -7,7 +7,8 @@ import { useVideoStore } from '../store/useVideoStore';
 import { trackScreenView } from '../lib/analytics';
 import EnhancedVideoPlayer from '../components/EnhancedVideoPlayer';
 import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
-import { request } from '../lib/apiClient';
+import { apiFetchProfiles } from '../features/feed/feedApi';
+import { apiLiveStreams } from '../lib/live';
 
 interface FollowingUser {
   id: string;
@@ -42,12 +43,12 @@ export default function FollowingFeed() {
     if (!user?.id) return;
     try {
       const [profilesResult, streamsResult] = await Promise.all([
-        request('/api/profiles'),
-        request('/api/live/streams').catch(() => ({ data: null, error: null })),
+        apiFetchProfiles(),
+        apiLiveStreams().catch(() => ({ streams: [], error: null })),
       ]);
 
-      const profilesBody = profilesResult.data ?? { profiles: [] };
-      const streamsBody = streamsResult.data ?? { streams: [] };
+      const profilesBody = { profiles: profilesResult.profiles ?? [] };
+      const streamsBody = { streams: streamsResult.streams ?? [] };
 
       const profiles = Array.isArray(profilesBody?.profiles) ? profilesBody.profiles : [];
       const byId = new Map<string, Record<string, unknown>>();
@@ -106,13 +107,30 @@ export default function FollowingFeed() {
     }
   };
 
-  const handleScroll = () => {
+  const goSearch = useCallback(() => {
+    navigate('/search');
+  }, [navigate]);
+
+  const goBack = useCallback(() => {
+    navigate(-1);
+  }, [navigate]);
+
+  const goDiscover = useCallback(() => {
+    navigate('/discover');
+  }, [navigate]);
+
+  const openFollowingUser = useCallback((u: FollowingUser) => {
+    if (u.is_live) navigate(`/watch/${u.id}`);
+    else navigate(`/profile/${u.id}`);
+  }, [navigate]);
+
+  const handleScroll = useCallback(() => {
     if (!containerRef.current) return;
     const scrollPos = containerRef.current.scrollTop;
     const height = containerRef.current.clientHeight;
     const index = Math.round(scrollPos / height);
     if (index >= 0 && index < friendVideoIds.length) setActiveIndex(index);
-  };
+  }, [friendVideoIds.length]);
 
   useEffect(() => {
     if (!containerRef.current || friendVideoIds.length === 0) return;
@@ -133,13 +151,13 @@ export default function FollowingFeed() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [friendVideoIds.join(',')]);
 
-  const handleVideoEnd = (index: number) => {
+  const handleVideoEnd = useCallback((index: number) => {
     if (!containerRef.current || index >= friendVideoIds.length - 1) return;
     containerRef.current.scrollTo({
       top: (index + 1) * containerRef.current.clientHeight,
       behavior: 'smooth',
     });
-  };
+  }, [friendVideoIds.length]);
 
   return (
     <div className="app-live-column bg-[#111111]">
@@ -152,11 +170,11 @@ export default function FollowingFeed() {
           className="w-full max-w-[480px] px-3 flex items-center justify-between pointer-events-auto"
           style={{ minHeight: 'var(--topnav-bar-height)' }}
         >
-          <button onClick={() => navigate('/search')} className="p-1" aria-label="Search">
+          <button onClick={goSearch} className="p-1" aria-label="Search">
             <Search size={18} className="text-white" />
           </button>
           <h1 className="text-sm font-bold text-white">Following</h1>
-          <button onClick={() => navigate(-1)} title="Back" className="p-1">
+          <button onClick={goBack} title="Back" className="p-1">
             <RoyceBackIcon />
           </button>
         </div>
@@ -174,7 +192,7 @@ export default function FollowingFeed() {
                 <button
                   key={u.id}
                   type="button"
-                  onClick={() => u.is_live ? navigate(`/watch/${u.id}`) : navigate(`/profile/${u.id}`)}
+                  onClick={() => openFollowingUser(u)}
                   className="flex-shrink-0 flex flex-col items-center gap-1" style={{ width: 95, minWidth: 95 }}
                 >
                   <StoryGoldRingAvatar
@@ -228,7 +246,7 @@ export default function FollowingFeed() {
               <p className="text-base font-semibold mb-1">No videos from people you follow</p>
               <p className="text-xs text-white/30 mb-4">Follow people to see their videos here</p>
               <button
-                onClick={() => navigate('/discover')}
+                onClick={goDiscover}
                 className="px-5 py-2 bg-[#D4AF37] text-black rounded-full text-sm font-bold"
               >
                 Discover people

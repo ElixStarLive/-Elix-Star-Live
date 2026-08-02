@@ -1,12 +1,18 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Music, Trophy, Vote, Video, Radio } from "lucide-react";
 import { RoyceBackIcon } from "../components/royce";
-import { request } from "../lib/apiClient";
 import { showToast } from "../lib/toast";
 import { useAuthStore } from "../store/useAuthStore";
 import { AvatarRing } from "../components/AvatarRing";
 import { nativeShareUrl } from "../lib/platform";
+import { apiFetchUserVideos } from "../features/feed/feedApi";
+import {
+  apiRisingStarsChallenge,
+  apiRisingStarsChallengeEntries,
+  apiRisingStarsEnterChallenge,
+  apiRisingStarsVoteEntry,
+} from "../features/risingStars/risingStarsApi";
 
 interface Challenge {
   id: string;
@@ -45,6 +51,28 @@ export default function RisingStarsChallenge() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
 
+  const goBack = useCallback(() => navigate(-1), [navigate]);
+  const goLogin = useCallback(() => navigate("/login"), [navigate]);
+  const goCreate = useCallback(() => navigate("/create"), [navigate]);
+  const openCreatorProfile = useCallback(
+    (creatorUserId: string) => navigate(`/profile/${creatorUserId}`),
+    [navigate],
+  );
+  const openVideo = useCallback(
+    (videoId: string) => navigate(`/video/${videoId}`),
+    [navigate],
+  );
+  const openWatchLive = useCallback(
+    (roomId: string | null) => {
+      if (!roomId) {
+        showToast("Live stage not scheduled yet");
+        return;
+      }
+      navigate(`/watch/${encodeURIComponent(roomId)}`);
+    },
+    [navigate],
+  );
+
   const soundTitle = useMemo(() => {
     const meta = challenge?.sound_meta || {};
     return String(meta.title || meta.name || challenge?.sound_track_id || "Exclusive sound");
@@ -61,21 +89,16 @@ export default function RisingStarsChallenge() {
     setLoading(true);
     try {
       const [ch, en] = await Promise.all([
-        request(`/api/rising-stars/challenges/${challengeId}`),
-        request(`/api/rising-stars/challenges/${challengeId}/entries`),
+        apiRisingStarsChallenge(challengeId),
+        apiRisingStarsChallengeEntries(challengeId),
       ]);
-      if (ch.error) throw new Error(ch.error.message);
-      setChallenge(ch.data?.challenge || null);
-      setVotedToday(Boolean(ch.data?.voted_today));
-      setEntries(en.data?.entries || []);
+      if (ch.error) throw new Error(ch.error);
+      setChallenge((ch.body?.challenge as Challenge) || null);
+      setVotedToday(Boolean(ch.body?.voted_today));
+      setEntries(en.entries as unknown as Entry[]);
 
       if (user?.id) {
-        const vids = await request(`/api/videos/user/${user.id}`);
-        const list = Array.isArray(vids.data?.videos)
-          ? vids.data.videos
-          : Array.isArray(vids.data)
-            ? vids.data
-            : [];
+        const { videos: list } = await apiFetchUserVideos(user.id);
         setMyVideos(
           list.map((v: { id?: string; description?: string }) => ({
             id: String(v.id),
@@ -93,20 +116,14 @@ export default function RisingStarsChallenge() {
   const enter = async () => {
     if (!challengeId || !selectedVideoId || busy) return;
     if (!user) {
-      navigate("/login");
+      goLogin();
       return;
     }
     setBusy(true);
     try {
-      const { error } = await request(
-        `/api/rising-stars/challenges/${challengeId}/enter`,
-        {
-          method: "POST",
-          body: JSON.stringify({ videoId: selectedVideoId }),
-        },
-      );
+      const { error } = await apiRisingStarsEnterChallenge(challengeId, selectedVideoId);
       if (error) {
-        showToast(error.message || "Entry failed");
+        showToast(error || "Entry failed");
         return;
       }
       showToast("Entry accepted");
@@ -118,18 +135,15 @@ export default function RisingStarsChallenge() {
 
   const vote = async (entryId: string) => {
     if (!user) {
-      navigate("/login");
+      goLogin();
       return;
     }
     if (votedToday || busy) return;
     setBusy(true);
     try {
-      const { data, error } = await request(
-        `/api/rising-stars/entries/${entryId}/vote`,
-        { method: "POST", body: "{}" },
-      );
+      const { body: data, error } = await apiRisingStarsVoteEntry(entryId);
       if (error) {
-        showToast(error.message || "Vote failed");
+        showToast(error || "Vote failed");
         return;
       }
       setVotedToday(true);
@@ -146,22 +160,14 @@ export default function RisingStarsChallenge() {
     }
   };
 
-  const share = async () => {
+  const share = useCallback(async () => {
     if (!challengeId) return;
     await nativeShareUrl({
       title: challenge?.title || "Rising Stars",
       text: "Vote in Rising Stars on Elix Star Live",
       url: `https://www.elixstarlive.co.uk/rising-stars/challenge/${challengeId}`,
     });
-  };
-
-  const openLive = (roomId: string | null) => {
-    if (!roomId) {
-      showToast("Live stage not scheduled yet");
-      return;
-    }
-    navigate(`/watch/${encodeURIComponent(roomId)}`);
-  };
+  }, [challengeId, challenge?.title]);
 
   return (
     <div className="page-above-bottom-nav bg-[#111111] text-white">
@@ -174,7 +180,7 @@ export default function RisingStarsChallenge() {
             className="w-full px-3 flex items-center justify-between"
             style={{ minHeight: "var(--topnav-bar-height)" }}
           >
-            <button type="button" onClick={() => navigate(-1)} className="p-1" aria-label="Back">
+            <button type="button" onClick={goBack} className="p-1" aria-label="Back">
               <RoyceBackIcon className="w-6 h-6 text-white" />
             </button>
             <div className="flex items-center gap-2">
@@ -210,14 +216,14 @@ export default function RisingStarsChallenge() {
                 <div className="flex gap-2 mt-3">
                   <button
                     type="button"
-                    onClick={() => openLive(challenge.live_qualifier_room_id)}
+                    onClick={() => openWatchLive(challenge.live_qualifier_room_id)}
                     className="flex-1 py-2 rounded-xl bg-white/10 text-xs flex items-center justify-center gap-1"
                   >
                     <Radio className="w-3 h-3" /> Qualifier
                   </button>
                   <button
                     type="button"
-                    onClick={() => openLive(challenge.live_final_room_id)}
+                    onClick={() => openWatchLive(challenge.live_final_room_id)}
                     className="flex-1 py-2 rounded-xl bg-white/10 text-xs flex items-center justify-center gap-1"
                   >
                     <Radio className="w-3 h-3" /> Final
@@ -249,7 +255,7 @@ export default function RisingStarsChallenge() {
                   <div className="flex gap-2">
                     <button
                       type="button"
-                      onClick={() => navigate("/create")}
+                      onClick={goCreate}
                       className="flex-1 py-2 rounded-xl bg-white/10 text-xs"
                     >
                       Create video
@@ -286,7 +292,7 @@ export default function RisingStarsChallenge() {
                       </span>
                       <button
                         type="button"
-                        onClick={() => navigate(`/profile/${e.creator_user_id}`)}
+                        onClick={() => openCreatorProfile(e.creator_user_id)}
                       >
                         <AvatarRing
                           src={e.avatar_url || ""}
@@ -298,7 +304,7 @@ export default function RisingStarsChallenge() {
                         <button
                           type="button"
                           className="text-sm font-medium truncate block text-left"
-                          onClick={() => navigate(`/video/${e.video_id}`)}
+                          onClick={() => openVideo(e.video_id)}
                         >
                           {e.username || "Creator"}
                         </button>

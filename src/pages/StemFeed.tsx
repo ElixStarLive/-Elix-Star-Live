@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { RoyceBackIcon } from '../components/royce';
 import { Search } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -27,22 +27,34 @@ export default function StemFeed() {
     }
   }, [location.pathname, fetchStemVideos]);
 
-  const handleScroll = () => {
+  const goSearch = useCallback(() => {
+    navigate('/search');
+  }, [navigate]);
+
+  const goBack = useCallback(() => {
+    navigate(-1);
+  }, [navigate]);
+
+  const refreshStem = useCallback(() => {
+    fetchStemVideos();
+  }, [fetchStemVideos]);
+
+  const handleScroll = useCallback(() => {
     if (!containerRef.current) return;
     const container = containerRef.current;
     const index = Math.round(container.scrollTop / container.clientHeight);
     if (index >= 0 && index < stemVideos.length) {
       setActiveIndex(index);
     }
-  };
+  }, [stemVideos.length]);
 
-  const handleVideoEnd = (index: number) => {
+  const handleVideoEnd = useCallback((index: number) => {
     if (!containerRef.current || index >= stemVideos.length - 1) return;
     containerRef.current.scrollTo({
       top: (index + 1) * containerRef.current.clientHeight,
       behavior: "smooth",
     });
-  };
+  }, [stemVideos.length]);
 
   const prevCountRef = useRef(stemVideos.length);
   useEffect(() => {
@@ -70,7 +82,7 @@ export default function StemFeed() {
           style={{ minHeight: "var(--topnav-bar-height)" }}
         >
           <button
-            onClick={() => navigate("/search")}
+            onClick={goSearch}
             className="p-1"
             aria-label="Search"
           >
@@ -78,7 +90,7 @@ export default function StemFeed() {
           </button>
           <h1 className="text-sm font-bold text-white">STEM</h1>
           <button
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             title="Back"
             className="p-1"
           >
@@ -133,7 +145,7 @@ export default function StemFeed() {
             Nothing in the global list yet. STEM uses trending views plus caption-tagged clips.
           </p>
           <button
-            onClick={() => fetchStemVideos()}
+            onClick={refreshStem}
             className="px-5 py-2 bg-[#C9A227]/20 border border-[#C9A227]/40 rounded-full text-[#D4AF37] text-sm font-bold pointer-events-auto active:scale-95 transition-transform"
           >
             Refresh

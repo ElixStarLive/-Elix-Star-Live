@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { RoyceBackIcon } from "../../components/royce";
 import type { LucideIcon } from "lucide-react";
@@ -15,6 +15,7 @@ export function EngagementShell({
   backTo?: string;
 }) {
   const navigate = useNavigate();
+  const goBack = useCallback(() => navigate(backTo), [navigate, backTo]);
   return (
     <div className="page-above-bottom-nav bg-[#111111] text-white">
       <div className="page-above-bottom-nav__inner">
@@ -28,7 +29,7 @@ export function EngagementShell({
           >
             <button
               type="button"
-              onClick={() => navigate(backTo)}
+              onClick={goBack}
               className="p-1"
               aria-label="Back"
             >

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { platform } from '../lib/platform';
 import SettingsOptionSheet from '../components/SettingsOptionSheet';
@@ -12,8 +12,10 @@ import SettingsOptionSheet from '../components/SettingsOptionSheet';
 export default function Terms() {
   const navigate = useNavigate();
 
+  const goBack = useCallback(() => navigate(-1), [navigate]);
+
   return (
-    <SettingsOptionSheet onClose={() => navigate(-1)}>
+    <SettingsOptionSheet onClose={goBack}>
       <div className="w-full h-full overflow-hidden bg-[#111111] text-white flex flex-col">
         <header className="flex items-center justify-center mb-4 px-4 pt-2">
           <h1 className="font-bold text-lg">Terms of Service</h1>

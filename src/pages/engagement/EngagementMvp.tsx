@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Crown } from "lucide-react";
 import { EngagementShell } from "./EngagementShell";
-import { request } from "../../lib/apiClient";
 import { showToast } from "../../lib/toast";
+import { apiEngagementMvp } from "../../features/live/engagement/liveEngagementApi";
 
 type Row = { rank: number; user_id: string; points: number };
 
@@ -16,10 +16,8 @@ export default function EngagementMvp() {
     void (async () => {
       setLoading(true);
       try {
-        const { data, error } = await request(
-          `/api/engagement/mvp?period=${period}`,
-        );
-        if (error) throw new Error(error.message);
+        const { data, error } = await apiEngagementMvp(period);
+        if (error) throw new Error(error);
         setRows((data?.leaderboard as Row[]) || []);
         setViewerId(String(data?.viewer_id || ""));
       } catch {

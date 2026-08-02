@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Wallet } from "lucide-react";
-import { request } from "../../lib/apiClient";
 import { showToast } from "../../lib/toast";
+import { apiAdminListPayouts, apiAdminPayoutAction } from "../../features/admin/adminApi";
 
 type PayoutRow = {
   id: string;
@@ -38,6 +38,7 @@ const TABS = [
 
 export default function AdminWithdrawals() {
   const navigate = useNavigate();
+  const goAdmin = useCallback(() => navigate("/admin"), [navigate]);
   const [status, setStatus] = useState<(typeof TABS)[number]>("pending");
   const [rows, setRows] = useState<PayoutRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,14 +47,12 @@ export default function AdminWithdrawals() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await request<{ payouts?: PayoutRow[] }>(
-      `/api/admin/payouts?status=${encodeURIComponent(status)}`,
-    );
+    const { payouts, error } = await apiAdminListPayouts(status);
     if (error) {
-      showToast(error.message || "Failed to load payouts");
+      showToast(error || "Failed to load payouts");
       setRows([]);
     } else {
-      setRows(Array.isArray(data?.payouts) ? data.payouts : []);
+      setRows(payouts as PayoutRow[]);
     }
     setLoading(false);
   }, [status]);
@@ -74,13 +73,10 @@ export default function AdminWithdrawals() {
       return;
     }
     setBusyId(id);
-    const { error } = await request(`/api/admin/payout/${id}/${action}`, {
-      method: "POST",
-      body: JSON.stringify({ admin_note: note.trim() || undefined }),
-    });
+    const { error } = await apiAdminPayoutAction(id, action, note);
     setBusyId(null);
     if (error) {
-      showToast(error.message || "Action failed");
+      showToast(error || "Action failed");
       return;
     }
     setNote("");
@@ -94,7 +90,7 @@ export default function AdminWithdrawals() {
         <button
           type="button"
           className="text-white/50 text-sm mb-4"
-          onClick={() => navigate("/admin")}
+          onClick={goAdmin}
         >
           ← Admin
         </button>

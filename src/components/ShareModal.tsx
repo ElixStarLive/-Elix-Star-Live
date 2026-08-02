@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Download,
@@ -14,7 +14,6 @@ import {
   Users2,
   Search,
 } from 'lucide-react';
-import { api } from '../lib/apiClient';
 import { useAuthStore } from '../store/useAuthStore';
 import PromotePanel from './PromotePanel';
 import { nativeConfirm } from './NativeDialog';
@@ -29,6 +28,7 @@ import {
 import { openExternalLink, nativeShareUrl } from '../lib/platform';
 import { showToast } from '../lib/toast';
 import { trackShare } from '../lib/interactionTracker';
+import { sendDmToUser } from '../lib/chatMessages';
 
 interface ShareModalProps {
   isOpen: boolean;
@@ -79,19 +79,13 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
     if (!user?.id || sentTo.has(targetUserId)) return;
     const shareUrl = `${window.location.origin}/video/${video.id}`;
     const msgText = `Check out this video by @${video.user.username}: ${shareUrl}`;
-    try {
-      const { data: thread } = await api.chat.ensureThread(targetUserId);
-      const threadId = thread?.id;
-      if (threadId) {
-        await api.chat.sendMessage(threadId, msgText);
-        setSentTo(prev => new Set(prev).add(targetUserId));
-        void trackShare(video.id, 'direct');
-      } else {
-        showToast('Could not send share');
-      }
-    } catch {
-      showToast('Failed to send');
+    const { message, error } = await sendDmToUser(targetUserId, msgText);
+    if (!message) {
+      showToast(error || 'Failed to send');
+      return;
     }
+    setSentTo((prev) => new Set(prev).add(targetUserId));
+    void trackShare(video.id, 'direct');
   };
 
   const videoUrl = `${window.location.origin}/video/${video.id}`;
@@ -113,6 +107,51 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
     void trackShare(video.id, platform);
   };
 
+  const goDuet = useCallback(() => {
+    onClose();
+    navigate(`/upload?duet=${video.id}`);
+  }, [onClose, navigate, video.id]);
+
+  const openPromotePanel = useCallback(() => {
+    onClose();
+    setShowPromotePanel(true);
+  }, [onClose]);
+
+  const reportFromShare = useCallback(() => {
+    onClose();
+    if (onReport) onReport();
+  }, [onClose, onReport]);
+
+  const shareNative = useCallback(async () => {
+    await nativeShareUrl({ title: `Video by @${video.user.username}`, text: shareText, url: videoUrl });
+  }, [video.user.username, shareText, videoUrl]);
+
+  const downloadFromShare = useCallback(async () => {
+    try {
+      await downloadVideoWithoutMusic(video.id);
+      showToast('Download started');
+    } catch {
+      showToast('Download failed');
+    }
+  }, [video.id]);
+
+  const openQrCode = useCallback(() => {
+    setShowQrCode(true);
+  }, []);
+
+  const closeQrCode = useCallback(() => {
+    setShowQrCode(false);
+  }, []);
+
+  const confirmDeleteVideo = useCallback(async () => {
+    if (!onDeleteVideo) return;
+    const ok = await nativeConfirm('Delete this video? This cannot be undone.', 'Delete Video');
+    if (ok) {
+      onDeleteVideo();
+      onClose();
+    }
+  }, [onDeleteVideo, onClose]);
+
   const socialPlatforms = [
     { name: 'WhatsApp', color: '#25D366', icon: <MessageCircle size={22} className="text-white" />, action: withShareTracking('whatsapp', () => openExternalLink(`https://wa.me/?text=${encodeURIComponent(shareText + ' ' + videoUrl)}`)) },
     { name: 'Facebook', color: '#1877F2', icon: <Share2 size={22} className="text-white" />, action: withShareTracking('facebook', () => openExternalLink(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(videoUrl)}`)) },
@@ -123,13 +162,13 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
 
   const isOwnVideo = !!user?.id && !!video.user?.id && user.id === video.user.id;
   const actionItems = [
-    { name: 'Duet', icon: <Users2 size={22} className="text-white" />, action: () => { onClose(); navigate(`/upload?duet=${video.id}`); } },
-    { name: 'Promote', color: '#FFFFFF', icon: <TrendingUp size={22} className="text-white" />, action: () => { onClose(); setShowPromotePanel(true); } },
-    { name: 'Report', color: '#EF4444', icon: <Flag size={22} className="text-white" />, action: () => { onClose(); if (onReport) onReport(); } },
-    { name: 'Share', icon: <Share2 size={22} className="text-white" />, action: async () => { await nativeShareUrl({ title: `Video by @${video.user.username}`, text: shareText, url: videoUrl }); } },
-    { name: 'Download', icon: <Download size={22} className="text-white" />, action: async () => { try { await downloadVideoWithoutMusic(video.id); showToast('Download started'); } catch { showToast('Download failed'); } } },
-    { name: 'QR Code', icon: <QrCode size={22} className="text-white" />, action: () => setShowQrCode(true) },
-    ...(isOwnVideo && onDeleteVideo ? [{ name: 'Delete video', icon: <Trash2 size={22} className="text-white/60" />, action: async () => { const ok = await nativeConfirm('Delete this video? This cannot be undone.', 'Delete Video'); if (ok) { onDeleteVideo(); onClose(); } }, isRed: true }] : []),
+    { name: 'Duet', icon: <Users2 size={22} className="text-white" />, action: goDuet },
+    { name: 'Promote', color: '#FFFFFF', icon: <TrendingUp size={22} className="text-white" />, action: openPromotePanel },
+    { name: 'Report', color: '#EF4444', icon: <Flag size={22} className="text-white" />, action: reportFromShare },
+    { name: 'Share', icon: <Share2 size={22} className="text-white" />, action: shareNative },
+    { name: 'Download', icon: <Download size={22} className="text-white" />, action: downloadFromShare },
+    { name: 'QR Code', icon: <QrCode size={22} className="text-white" />, action: openQrCode },
+    ...(isOwnVideo && onDeleteVideo ? [{ name: 'Delete video', icon: <Trash2 size={22} className="text-white/60" />, action: confirmDeleteVideo, isRed: true }] : []),
   ];
 
   return (
@@ -195,7 +234,7 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
             <div className="pt-2 pb-3 flex flex-col items-center gap-2 border-b border-white/10 mb-2">
               <div className="flex items-center justify-between w-full">
                 <span className="text-white/80 text-sm font-medium">Scan to open video</span>
-                <button type="button" onClick={() => setShowQrCode(false)} className="text-white/70 hover:text-white text-xs px-2 py-1 rounded">Close</button>
+                <button type="button" onClick={closeQrCode} className="text-white/70 hover:text-white text-xs px-2 py-1 rounded">Close</button>
               </div>
               <img
                 src={`https://api.qrserver.com/v1/create-qr-code/?size=112x112&data=${encodeURIComponent(videoUrl)}`}

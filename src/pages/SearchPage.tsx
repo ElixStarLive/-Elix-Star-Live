@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { RoyceBackIcon } from '../components/royce';
 import { Search as SearchIcon, X } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -7,6 +7,7 @@ import { TrendingSnapFeed } from '../components/TrendingSnapFeed';
 import { request } from '../lib/apiClient';
 import { resolveGridThumbnailUrl, resolveVideoPlaybackUrl } from '../lib/bunnyStorage';
 import { useVideoStore } from '../store/useVideoStore';
+import { apiFetchProfiles } from '../features/feed/feedApi';
 
 export default function SearchPage() {
   const navigate = useNavigate();
@@ -49,28 +50,41 @@ export default function SearchPage() {
     return matched.length > 0 ? matched : all;
   }, [videos, activeCategory]);
 
-  useEffect(() => {
-    requestAnimationFrame(() => setVisible(true));
-  }, []);
-
-  const closePanel = () => {
+  const closePanel = useCallback(() => {
     setVisible(false);
     setTimeout(() => navigate(-1), 250);
-  };
+  }, [navigate]);
 
-  const handleTouchStart = (e: React.TouchEvent) => {
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-  };
-  const handleTouchEnd = (e: React.TouchEvent) => {
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
     const endX = e.changedTouches[0].clientX;
     const endY = e.changedTouches[0].clientY;
     const dx = endX - touchStart.current.x;
     const dy = endY - touchStart.current.y;
     const minSwipe = 80;
-    if (dy > minSwipe || Math.abs(dx) > minSwipe) closePanel(); // swipe down or to the side to close
-  };
+    if (dy > minSwipe || Math.abs(dx) > minSwipe) closePanel();
+  }, [closePanel]);
 
-  const handleSearch = (e: React.FormEvent) => {
+  const clearQuery = useCallback(() => {
+    setQuery('');
+  }, []);
+
+  const selectCategory = useCallback((cat: string) => {
+    setActiveCategory(cat);
+  }, []);
+
+  const openUserProfile = useCallback((userId: string) => {
+    navigate(`/profile/${userId}`);
+  }, [navigate]);
+
+  const openVideo = useCallback((videoId: string) => {
+    navigate(`/video/${videoId}`);
+  }, [navigate]);
+
+  const handleSearch = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     const next = query.trim();
     const params = new URLSearchParams(location.search);
@@ -86,7 +100,11 @@ export default function SearchPage() {
       params.delete('q');
     }
     navigate({ pathname: location.pathname, search: params.toString() ? `?${params.toString()}` : '' }, { replace: true });
-  };
+  }, [query, location.pathname, location.search, navigate]);
+
+  useEffect(() => {
+    requestAnimationFrame(() => setVisible(true));
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -109,8 +127,8 @@ export default function SearchPage() {
     (async () => {
       try {
         // Users: filter the backend /api/profiles list client-side
-        const profilesResult = await request('/api/profiles');
-        const profilesBody = profilesResult.data ?? { profiles: [] };
+        const profilesResult = await apiFetchProfiles();
+        const profilesBody = { profiles: profilesResult.profiles ?? [] };
         const profiles = Array.isArray(profilesBody?.profiles) ? profilesBody.profiles : [];
         const users = profiles
           .map((p: { user_id: string; userId: string; username?: string; display_name?: string; displayName?: string; avatar_url?: string; avatarUrl?: string }) => ({
@@ -225,7 +243,7 @@ export default function SearchPage() {
                 {query && (
                   <button 
                     type="button" 
-                    onClick={() => setQuery('')}
+                    onClick={clearQuery}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-[#E8D5A3]/60"
                   >
                     <X size={10} />
@@ -245,7 +263,7 @@ export default function SearchPage() {
                     <button
                       key={cat}
                       type="button"
-                      onClick={() => setActiveCategory(cat)}
+                      onClick={() => selectCategory(cat)}
                       className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap border transition-colors ${activeCategory === cat ? 'bg-[#C9A227]/20 border-[#C9A227] text-[#D4AF37]' : 'bg-[#111111] border-white/15 text-white/60'}`}
                     >
                       {cat}
@@ -268,7 +286,7 @@ export default function SearchPage() {
                       {matchedUsers.map((u) => (
                         <button
                           key={u.id}
-                          onClick={() => navigate(`/profile/${u.id}`)}
+                          onClick={() => openUserProfile(u.id)}
                           className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition"
                         >
                           <AvatarRing src={u.avatar} alt={u.username} size={32} />
@@ -291,7 +309,7 @@ export default function SearchPage() {
                       {matchedVideos.map((v) => (
                         <button
                           key={v.id}
-                          onClick={() => navigate(`/video/${v.id}`)}
+                          onClick={() => openVideo(v.id)}
                           className="w-full flex gap-3 p-2 rounded-xl hover:bg-white/5 transition"
                         >
                           <video

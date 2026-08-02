@@ -7,6 +7,8 @@ import { bunnyUpload } from "./bunnyStorage";
 import { request } from "./apiClient";
 import { useAuthStore } from "../store/useAuthStore";
 import { trackEvent } from "./analytics";
+import { showToast } from "./toast";
+import { apiBoostVideoFyp, apiCreateVideo } from "../features/upload/uploadApi";
 
 export interface UploadProgress {
   stage: "validating" | "compressing" | "uploading" | "processing" | "complete";
@@ -22,11 +24,20 @@ export interface VideoMetadata {
   format: string;
 }
 
+export interface VideoUploadMetadata {
+  description: string;
+  hashtags: string[];
+  isPrivate: boolean;
+  music?: unknown;
+  duetWithVideoId?: string;
+  duetLayout?: "split" | "overlay";
+  /** Optional JPEG/PNG data URL selected in AI tools — uploaded as the real thumb. */
+  thumbnailDataUrl?: string;
+}
+
 // ── Config ──────────────────────────────────────────────────────────────────
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500 MB
 const ALLOWED_FORMATS = ["video/mp4", "video/quicktime", "video/webm"];
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
 
 // ── Service class ─────────────────────────────────────────────────────────────
 
@@ -45,6 +56,17 @@ export class VideoUploadService {
     message: string,
   ) {
     this.onProgressCallback?.({ stage, progress, message });
+  }
+
+  /** Surface thumbnail failure without blocking the video upload. */
+  private warnThumbnailFailure(reason: string) {
+    const message = reason || "Thumbnail upload failed";
+    this.updateProgress(
+      "processing",
+      78,
+      `${message} — continuing without thumbnail`,
+    );
+    showToast(message);
   }
 
   // ── Public: validate ────────────────────────────────────────────────────────
@@ -83,14 +105,7 @@ export class VideoUploadService {
   async uploadVideo(
     file: File,
     userId: string,
-    metadata: {
-      description: string;
-      hashtags: string[];
-      isPrivate: boolean;
-      music?: unknown;
-      duetWithVideoId?: string;
-      duetLayout?: 'split' | 'overlay';
-    },
+    metadata: VideoUploadMetadata,
   ): Promise<string> {
     try {
       // ── Auth check ──────────────────────────────────────────────────
@@ -127,13 +142,29 @@ export class VideoUploadService {
       let thumbnailUrl = "";
       try {
         thumbnailUrl = await Promise.race([
-          this.generateAndUploadThumbnail(file, userId, videoId),
+          metadata.thumbnailDataUrl
+            ? this.uploadThumbnailDataUrl(
+                metadata.thumbnailDataUrl,
+                userId,
+                videoId,
+              )
+            : this.generateAndUploadThumbnail(file, userId, videoId),
           new Promise<string>((_, reject) =>
-            setTimeout(() => reject(new Error("timeout")), 10_000),
+            setTimeout(
+              () => reject(new Error("Thumbnail timed out")),
+              10_000,
+            ),
           ),
         ]);
-      } catch {
-        // Non-critical — video still uploads without a thumbnail
+        if (!thumbnailUrl) {
+          this.warnThumbnailFailure("Thumbnail could not be created");
+        }
+      } catch (thumbErr: unknown) {
+        const msg =
+          thumbErr instanceof Error
+            ? thumbErr.message
+            : "Thumbnail upload failed";
+        this.warnThumbnailFailure(msg);
       }
 
       this.updateProgress("processing", 82, "Creating video record on server…");
@@ -153,28 +184,25 @@ export class VideoUploadService {
         ...(metadata.duetLayout && { duetLayout: metadata.duetLayout }),
       };
 
-      const { data: createData, error: createError } = await request<{ id?: string }>("/api/videos", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
-
+      const { id: createdId, error: createError } = await apiCreateVideo(payload);
       if (createError) {
         throw new Error(
-          createError.message ?? "Failed to create video record",
+          createError || "Failed to create video record",
         );
       }
 
-      const finalId = createData?.id ?? videoId;
+      const finalId = createdId ?? videoId;
 
       // ── FYP boost for new video ──────────────────────────────────────
       this.updateProgress("processing", 92, "Boosting visibility…");
-      try {
-        await request(`/api/videos/${finalId}/fyp`, {
-          method: "POST",
-          body: JSON.stringify({ boost: true }),
-        });
-      } catch {
-        // Non-critical
+      const { error: fypError } = await apiBoostVideoFyp(finalId);
+      if (fypError) {
+        // Non-blocking — video is already created
+        this.updateProgress(
+          "processing",
+          95,
+          "Video saved (visibility boost skipped)",
+        );
       }
 
       this.updateProgress("complete", 100, "Video uploaded successfully!");
@@ -188,7 +216,10 @@ export class VideoUploadService {
       return finalId;
     } catch (error) {
       trackEvent("video_upload_failed", { error: String(error) });
-      const msg = error?.message ?? error?.error_description ?? String(error);
+      const msg =
+        (error as { message?: string; error_description?: string })?.message ??
+        (error as { error_description?: string })?.error_description ??
+        String(error);
       throw new Error(msg || "Upload failed");
     }
   }
@@ -197,7 +228,7 @@ export class VideoUploadService {
   async uploadStory(
     file: File,
     userId: string,
-    opts?: { mediaType?: "video" | "image" },
+    opts?: { mediaType?: "video" | "image"; thumbnailDataUrl?: string },
   ): Promise<string> {
     try {
       const storeUser = useAuthStore.getState().user;
@@ -247,13 +278,29 @@ export class VideoUploadService {
       } else {
         try {
           thumbnailUrl = await Promise.race([
-            this.generateAndUploadThumbnail(file, userId, storyId),
+            opts?.thumbnailDataUrl
+              ? this.uploadThumbnailDataUrl(
+                  opts.thumbnailDataUrl,
+                  userId,
+                  storyId,
+                )
+              : this.generateAndUploadThumbnail(file, userId, storyId),
             new Promise<string>((_, reject) =>
-              setTimeout(() => reject(new Error("timeout")), 10_000),
+              setTimeout(
+                () => reject(new Error("Thumbnail timed out")),
+                10_000,
+              ),
             ),
           ]);
-        } catch {
-          /* optional */
+          if (!thumbnailUrl) {
+            this.warnThumbnailFailure("Thumbnail could not be created");
+          }
+        } catch (thumbErr: unknown) {
+          const msg =
+            thumbErr instanceof Error
+              ? thumbErr.message
+              : "Thumbnail upload failed";
+          this.warnThumbnailFailure(msg);
         }
       }
 
@@ -281,15 +328,44 @@ export class VideoUploadService {
 
   // ── Private: thumbnail ──────────────────────────────────────────────────────
 
+  private async uploadThumbnailDataUrl(
+    dataUrl: string,
+    userId: string,
+    videoId: string,
+  ): Promise<string> {
+    const blob = await dataUrlToJpegBlob(dataUrl);
+    if (!blob || blob.size === 0) {
+      throw new Error("Selected thumbnail is empty");
+    }
+    const thumbPath = `thumbnails/${userId}/${videoId}/thumb.jpg`;
+    const { cdnUrl } = await bunnyUpload(blob, thumbPath, "image/jpeg");
+    if (!cdnUrl) throw new Error("Thumbnail upload returned no URL");
+    return cdnUrl;
+  }
+
   private generateAndUploadThumbnail(
     file: File,
     userId: string,
     videoId: string,
   ): Promise<string> {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const video = document.createElement("video");
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
+      let settled = false;
+
+      const fail = (reason: string) => {
+        if (settled) return;
+        settled = true;
+        if (video.src) URL.revokeObjectURL(video.src);
+        reject(new Error(reason));
+      };
+
+      const succeed = (url: string) => {
+        if (settled) return;
+        settled = true;
+        resolve(url);
+      };
 
       video.onloadedmetadata = () => {
         video.currentTime = Math.min(1, video.duration / 2);
@@ -299,13 +375,17 @@ export class VideoUploadService {
         try {
           canvas.width = video.videoWidth || 640;
           canvas.height = video.videoHeight || 360;
-          ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
+          if (!ctx) {
+            fail("Canvas unavailable for thumbnail");
+            return;
+          }
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
           canvas.toBlob(
             async (blob) => {
               URL.revokeObjectURL(video.src);
               if (!blob) {
-                resolve("");
+                fail("Could not capture thumbnail frame");
                 return;
               }
 
@@ -316,28 +396,64 @@ export class VideoUploadService {
                   thumbPath,
                   "image/jpeg",
                 );
-                resolve(cdnUrl);
-              } catch {
-                resolve("");
+                if (!cdnUrl) {
+                  fail("Thumbnail upload returned no URL");
+                  return;
+                }
+                succeed(cdnUrl);
+              } catch (e: unknown) {
+                fail(
+                  e instanceof Error
+                    ? e.message
+                    : "Thumbnail upload to CDN failed",
+                );
               }
             },
             "image/jpeg",
             0.85,
           );
-        } catch {
-          URL.revokeObjectURL(video.src);
-          resolve("");
+        } catch (e: unknown) {
+          fail(
+            e instanceof Error ? e.message : "Thumbnail frame capture failed",
+          );
         }
       };
 
       video.onerror = () => {
-        if (video.src) URL.revokeObjectURL(video.src);
-        resolve(""); // Non-fatal — upload continues without thumbnail
+        fail("Could not load video for thumbnail");
       };
 
       video.src = URL.createObjectURL(file);
     });
   }
+}
+
+async function dataUrlToJpegBlob(dataUrl: string): Promise<Blob | null> {
+  if (!dataUrl || typeof dataUrl !== "string" || !dataUrl.startsWith("data:")) {
+    return null;
+  }
+  const res = await fetch(dataUrl);
+  const blob = await res.blob();
+  if (blob.type === "image/jpeg" || blob.type === "image/jpg") return blob;
+
+  // Re-encode non-JPEG data URLs so storage path stays .jpg
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth || img.width || 320;
+      canvas.height = img.naturalHeight || img.height || 180;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        resolve(blob);
+        return;
+      }
+      ctx.drawImage(img, 0, 0);
+      canvas.toBlob((jpeg) => resolve(jpeg || blob), "image/jpeg", 0.85);
+    };
+    img.onerror = () => resolve(blob);
+    img.src = dataUrl;
+  });
 }
 
 export const videoUploadService = new VideoUploadService();

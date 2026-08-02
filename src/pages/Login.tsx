@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { isAppleSignInEnabled, isPasswordResetEnabled } from '../lib/authFeatures';
@@ -20,6 +20,8 @@ export default function Login() {
   const from = state?.from ?? '/';
   const showAppleSignIn = isAppleSignInEnabled();
   const showPasswordReset = isPasswordResetEnabled();
+
+  const goRegister = useCallback(() => navigate('/register'), [navigate]);
 
   // Load saved email AND password on mount
   useEffect(() => {
@@ -197,7 +199,7 @@ export default function Login() {
           </div>
           <button
             type="button"
-            onClick={() => navigate('/register')}
+            onClick={goRegister}
             className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-white/8 hover:bg-white/15 text-white text-sm font-semibold py-2.5 border border-white/15 transition"
           >
             <User className="w-4 h-4" />
