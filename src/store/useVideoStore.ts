@@ -32,6 +32,8 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 2000): Pr
 let _feedFetchPromise: Promise<void> | null = null;
 /** In-memory only — not persisted. Prevents duplicate like/unlike POSTs per video. */
 const likeInFlight = new Set<string>();
+/** In-memory only — not persisted. Prevents duplicate save/unsave POSTs per video. */
+const saveInFlight = new Set<string>();
 
 function mapRawVideoRowToClientVideo(
   // Backend feed rows are dynamically shaped; the mapper narrows fields defensively below.
@@ -546,6 +548,7 @@ export const useVideoStore = create<VideoStore>()(
       toggleSave: async (videoId) => {
         const authUser = useAuthStore.getState().user;
         if (!authUser?.id) return;
+        if (saveInFlight.has(videoId)) return;
 
         const state = get();
         const video = state.getVideoById(videoId);
@@ -568,8 +571,8 @@ export const useVideoStore = create<VideoStore>()(
         });
         publishVideoCollection({ type: 'saved', videoId, saved: nextSaved });
 
+        saveInFlight.add(videoId);
         try {
-
           const { error: saveError } = await request(wasSaved ? `/api/videos/${videoId}/unsave` : `/api/videos/${videoId}/save`, { method: 'POST' });
           if (saveError) throw new Error('Save failed');
         } catch {
@@ -583,6 +586,8 @@ export const useVideoStore = create<VideoStore>()(
             savedVideos: wasSaved ? [...s.savedVideos, videoId] : s.savedVideos.filter(id => id !== videoId),
           }));
           publishVideoCollection({ type: 'saved', videoId, saved: wasSaved });
+        } finally {
+          saveInFlight.delete(videoId);
         }
       },
 

@@ -74,9 +74,28 @@ Tap Like (or double-tap video)
 
 ---
 
-## Queue (next when continuing)
-- 009 Comment button  
-- 010 Share  
-- 011 Save / Bookmark  
-- 012 Follow on video  
-- 013 Profile avatar on video  
+## Controls 009–013 — For You video sidebar (COMPLETED)
+
+### Files changed
+- `src/components/EnhancedVideoPlayer.tsx` only (handlers)
+
+### Removed
+- Loose `const handleX = () =>` handlers without stable identity / dependency clarity
+
+### Implemented (same UI buttons, same actions)
+| ID | Control | New owner | Behaviour preserved |
+| --- | --- | --- | --- |
+| 009 | Comment | `handleComment` useCallback | opens `EnhancedCommentsModal`, analytics |
+| 010 | Share | `handleShare` useCallback | opens ShareModal, analytics |
+| 011 | Save | `handleSave` useCallback | `toggleSave` + analytics |
+| 012 | Follow | `handleFollow` useCallback | `toggleFollow` + analytics |
+| 013 | Profile avatar | `handleProfileClick` useCallback | opens UserProfileModal, analytics |
+
+Modal markup / API paths inside modals **not** rebuilt in this step (next controls if damaged).
+
+---
+
+## Queue (next)
+- 014 Comment modal send  
+- 015 Music chip on video  
+- 016 More / Report menu  

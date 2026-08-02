@@ -710,33 +710,33 @@ export default function EnhancedVideoPlayer({
     }, 300);
   };
 
-  const handleSave = () => {
+  const handleSave = useCallback(() => {
     if (!video) return;
     toggleSave(videoId);
     trackEvent('video_save_toggle', { videoId, next: !video.isSaved });
-  };
+  }, [video, videoId, toggleSave]);
 
-  const handleFollow = () => {
+  const handleFollow = useCallback(() => {
     if (!video?.user?.id) return;
     toggleFollow(video.user.id);
     trackEvent('video_follow_toggle', { videoId, userId: video.user.id, next: !video.isFollowing });
-  };
+  }, [video?.user?.id, video?.isFollowing, videoId, toggleFollow]);
 
-  const handleShare = () => {
+  const handleShare = useCallback(() => {
     setShowShareModal(true);
     trackEvent('video_share_open', { videoId });
-  };
+  }, [videoId]);
 
-  const handleComment = () => {
+  const handleComment = useCallback(() => {
     setShowComments(true);
     trackEvent('video_comments_open', { videoId });
-  };
+  }, [videoId]);
 
-  const handleProfileClick = () => {
+  const handleProfileClick = useCallback(() => {
     if (!video?.user?.id) return;
     setShowUserProfile(true);
     trackEvent('video_profile_open', { videoId, userId: video.user.id });
-  };
+  }, [video?.user?.id, videoId]);
 
   const handleMusicClick = () => {
     if (!video?.music?.id) return;
