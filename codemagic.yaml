@@ -1,0 +1,178 @@
+# Codemagic — Elix Star Live (old app)
+# Repo: https://github.com/ElixStarLive/-Elix-Star-Live
+#
+# Capacitor + CocoaPods → ios/App/App.xcworkspace
+# Signing: Code signing identities (.p12 + App Store profile)
+# Upload: environment group app_store_credentials
+# Team: 74Y7WAZVUV · Bundle: com.elixstarlive.app
+
+workflows:
+  ios-unsigned:
+    name: iOS compile check (unsigned)
+    max_build_duration: 120
+    instance_type: mac_mini_m2
+    environment:
+      node: 22
+      xcode: latest
+      vars:
+        XCODE_WORKSPACE: ios/App/App.xcworkspace
+        XCODE_SCHEME: App
+    scripts:
+      - name: Install npm dependencies
+        script: |
+          npm ci
+      - name: Build web + sync Capacitor iOS
+        script: |
+          npm run build:ios
+      - name: Xcode build (no signing)
+        script: |
+          xcodebuild \
+            -workspace "$XCODE_WORKSPACE" \
+            -scheme "$XCODE_SCHEME" \
+            -sdk iphonesimulator \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+    artifacts:
+      - /tmp/xcodebuild_logs/*.log
+
+  ios-signed-ipa:
+    name: iOS signed IPA
+    max_build_duration: 120
+    instance_type: mac_mini_m2
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.elixstarlive.app
+      node: 22
+      xcode: latest
+      vars:
+        XCODE_WORKSPACE: ios/App/App.xcworkspace
+        XCODE_SCHEME: App
+        BUNDLE_ID: com.elixstarlive.app
+    scripts:
+      - name: Install npm dependencies
+        script: |
+          npm ci
+      - name: Build web + sync Capacitor iOS
+        script: |
+          npm run build:ios
+      - name: Set up keychain + code signing
+        script: |
+          keychain initialize
+          keychain add-certificates
+          security find-identity -v -p codesigning
+          xcode-project use-profiles --code-signing-setup-verbose-logging
+      - name: Increment iOS build number
+        script: |
+          cd ios/App
+          agvtool new-version -all $(($BUILD_NUMBER))
+      - name: Build signed IPA
+        script: |
+          set +e
+          xcode-project build-ipa \
+            --workspace "$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME" \
+            --export-options-plist /Users/builder/export_options.plist \
+            --archive-flags="-destination 'generic/platform=iOS' CODE_SIGN_IDENTITY='Apple Distribution' CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=74Y7WAZVUV"
+          status=$?
+          if [ $status -ne 0 ]; then
+            for f in /tmp/xcodebuild_logs/*.log; do
+              [ -f "$f" ] || continue
+              grep -E "error:|ARCHIVE FAILED|Provisioning|Code Sign|fatal error" "$f" | tail -n 80 || true
+              tail -n 40 "$f" || true
+            done
+            exit $status
+          fi
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - ios/App/build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+
+  ios-testflight:
+    name: iOS TestFlight
+    max_build_duration: 120
+    instance_type: mac_mini_m2
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.elixstarlive.app
+      groups:
+        - app_store_credentials
+      node: 22
+      xcode: latest
+      vars:
+        XCODE_WORKSPACE: ios/App/App.xcworkspace
+        XCODE_SCHEME: App
+        BUNDLE_ID: com.elixstarlive.app
+    scripts:
+      - name: Install npm dependencies
+        script: |
+          npm ci
+      - name: Build web + sync Capacitor iOS
+        script: |
+          npm run build:ios
+      - name: Set up keychain + code signing
+        script: |
+          keychain initialize
+          keychain add-certificates
+          security find-identity -v -p codesigning
+          xcode-project use-profiles --code-signing-setup-verbose-logging
+      - name: Increment iOS build number
+        script: |
+          cd ios/App
+          agvtool new-version -all $(($BUILD_NUMBER))
+      - name: Build signed IPA
+        script: |
+          set +e
+          xcode-project build-ipa \
+            --workspace "$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME" \
+            --export-options-plist /Users/builder/export_options.plist \
+            --archive-flags="-destination 'generic/platform=iOS' CODE_SIGN_IDENTITY='Apple Distribution' CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=74Y7WAZVUV"
+          status=$?
+          if [ $status -ne 0 ]; then
+            for f in /tmp/xcodebuild_logs/*.log; do
+              [ -f "$f" ] || continue
+              grep -E "error:|ARCHIVE FAILED|Provisioning|Code Sign|fatal error" "$f" | tail -n 80 || true
+              tail -n 40 "$f" || true
+            done
+            exit $status
+          fi
+      - name: Upload IPA to App Store Connect
+        script: |
+          set -e
+          IPA_PATH="$(ls build/ios/ipa/*.ipa ios/App/build/ios/ipa/*.ipa 2>/dev/null | head -n 1)"
+          if [ -z "$IPA_PATH" ]; then
+            echo "ERROR: No IPA found"
+            exit 1
+          fi
+          if [ -z "${APP_STORE_CONNECT_KEY_ID:-}" ] || [ -z "${APP_STORE_CONNECT_ISSUER_ID:-}" ] || [ -z "${APP_STORE_CONNECT_PRIVATE_KEY:-}" ]; then
+            echo "ERROR: app_store_credentials group missing"
+            exit 1
+          fi
+          python3 - <<'PY'
+          import os, re, pathlib, base64, sys
+          key_id = os.environ["APP_STORE_CONNECT_KEY_ID"].strip()
+          raw = os.environ["APP_STORE_CONNECT_PRIVATE_KEY"]
+          text = raw.strip()
+          if "BEGIN PRIVATE KEY" not in text:
+              text = base64.b64decode(text).decode("utf-8")
+          body = text.replace("-----BEGIN PRIVATE KEY-----", "").replace("-----END PRIVATE KEY-----", "")
+          body = re.sub(r"\s+", "", body)
+          lines = [body[i:i+64] for i in range(0, len(body), 64)]
+          pem = "-----BEGIN PRIVATE KEY-----\n" + "\n".join(lines) + "\n-----END PRIVATE KEY-----\n"
+          folder = pathlib.Path.home() / ".appstoreconnect" / "private_keys"
+          folder.mkdir(parents=True, exist_ok=True)
+          (folder / f"AuthKey_{key_id}.p8").write_text(pem, encoding="utf-8")
+          PY
+          xcrun altool --upload-app \
+            --type ios \
+            --file "$IPA_PATH" \
+            --apiKey "$APP_STORE_CONNECT_KEY_ID" \
+            --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID" \
+            --verbose
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - ios/App/build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
