@@ -30,6 +30,8 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 2000): Pr
 }
 
 let _feedFetchPromise: Promise<void> | null = null;
+/** In-memory only — not persisted. Prevents duplicate like/unlike POSTs per video. */
+const likeInFlight = new Set<string>();
 
 function mapRawVideoRowToClientVideo(
   // Backend feed rows are dynamically shaped; the mapper narrows fields defensively below.
@@ -488,6 +490,8 @@ export const useVideoStore = create<VideoStore>()(
       toggleLike: async (videoId) => {
         const authUser = useAuthStore.getState().user;
         if (!authUser?.id) return;
+        // One in-flight like/unlike per video — blocks double-tap duplicate POSTs.
+        if (likeInFlight.has(videoId)) return;
 
         const state = get();
         const video = state.getVideoById(videoId);
@@ -510,8 +514,8 @@ export const useVideoStore = create<VideoStore>()(
         });
         publishVideoCollection({ type: 'liked', videoId, liked: nextLiked });
 
+        likeInFlight.add(videoId);
         try {
-
           const { error } = await request(wasLiked ? `/api/videos/${videoId}/unlike` : `/api/videos/${videoId}/like`, { method: 'POST' });
           if (error) throw new Error('Like failed');
 
@@ -528,6 +532,8 @@ export const useVideoStore = create<VideoStore>()(
             likedVideos: wasLiked ? [...s.likedVideos, videoId] : s.likedVideos.filter(id => id !== videoId),
           }));
           publishVideoCollection({ type: 'liked', videoId, liked: wasLiked });
+        } finally {
+          likeInFlight.delete(videoId);
         }
       },
 

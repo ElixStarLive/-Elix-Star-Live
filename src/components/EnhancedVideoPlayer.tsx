@@ -643,6 +643,34 @@ export default function EnhancedVideoPlayer({
   }, [muteAllSounds]);
 
   const singleTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const heartHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // For You / feed Like — one owner; double-tap video surface calls the same path.
+  const handleLike = useCallback(() => {
+    if (!video) return;
+    const next = !video.isLiked;
+    void toggleLike(videoId);
+    trackEvent('video_like_toggle', { videoId, next });
+  }, [video, videoId, toggleLike]);
+
+  const pulseHeartAnimation = useCallback(() => {
+    if (heartHideTimerRef.current) {
+      clearTimeout(heartHideTimerRef.current);
+      heartHideTimerRef.current = null;
+    }
+    setShowHeartAnimation(true);
+    heartHideTimerRef.current = setTimeout(() => {
+      heartHideTimerRef.current = null;
+      setShowHeartAnimation(false);
+    }, 1000);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (heartHideTimerRef.current) clearTimeout(heartHideTimerRef.current);
+      if (singleTapTimerRef.current) clearTimeout(singleTapTimerRef.current);
+    };
+  }, []);
 
   const handleVideoClick = (_e: React.MouseEvent) => {
     if (isMuted && !muteAllSounds && videoRef.current) {
@@ -668,8 +696,7 @@ export default function EnhancedVideoPlayer({
         singleTapTimerRef.current = null;
       }
       handleLike();
-      setShowHeartAnimation(true);
-      setTimeout(() => setShowHeartAnimation(false), 1000);
+      pulseHeartAnimation();
       setIsDoubleClick(false);
       return;
     }
@@ -681,13 +708,6 @@ export default function EnhancedVideoPlayer({
       singleTapTimerRef.current = null;
       togglePlay();
     }, 300);
-  };
-
-  // Action handlers
-  const handleLike = () => {
-    if (!video) return;
-    toggleLike(videoId);
-    trackEvent('video_like_toggle', { videoId, next: !video.isLiked });
   };
 
   const handleSave = () => {

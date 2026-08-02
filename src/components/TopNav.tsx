@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Search, Tv } from "lucide-react";
 
@@ -11,9 +11,71 @@ const TOP_TABS = [
   { label: "For You", path: "/feed", primary: true },
 ] as const;
 
+type TopTabPath = (typeof TOP_TABS)[number]["path"];
+
+/**
+ * For You top tab bar — one clean navigation owner per control.
+ * UI/layout/routes unchanged from production For You chrome.
+ */
 export const TopNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
+
+  const goLive = useCallback(() => {
+    navigate("/live", { replace: true });
+  }, [navigate]);
+
+  const goStem = useCallback(() => {
+    navigate("/stem");
+  }, [navigate]);
+
+  const goExplore = useCallback(() => {
+    navigate("/discover");
+  }, [navigate]);
+
+  const goFollowing = useCallback(() => {
+    navigate("/following");
+  }, [navigate]);
+
+  const goShop = useCallback(() => {
+    navigate("/shop");
+  }, [navigate]);
+
+  const goForYou = useCallback(() => {
+    navigate("/feed");
+  }, [navigate]);
+
+  const goSearch = useCallback(() => {
+    navigate("/search");
+  }, [navigate]);
+
+  const onTabPress = useCallback(
+    (path: TopTabPath) => {
+      switch (path) {
+        case "/live":
+          goLive();
+          return;
+        case "/stem":
+          goStem();
+          return;
+        case "/discover":
+          goExplore();
+          return;
+        case "/following":
+          goFollowing();
+          return;
+        case "/shop":
+          goShop();
+          return;
+        case "/feed":
+          goForYou();
+          return;
+        default:
+          return;
+      }
+    },
+    [goLive, goStem, goExplore, goFollowing, goShop, goForYou],
+  );
 
   if (location.pathname !== "/feed") {
     return null;
@@ -33,10 +95,7 @@ export const TopNav = () => {
                 <button
                   key={tab.label}
                   type="button"
-                  onClick={() => {
-                    if (tab.path === "/live") navigate("/live", { replace: true });
-                    else navigate(tab.path);
-                  }}
+                  onClick={() => onTabPress(tab.path)}
                   className="flex-shrink-0 flex items-center px-1 py-0 h-full active:opacity-70 transition-opacity focus:outline-none"
                   style={{ WebkitTapHighlightColor: "transparent" }}
                   title={tab.label}
@@ -59,7 +118,7 @@ export const TopNav = () => {
           </div>
           <button
             type="button"
-            onClick={() => navigate("/search")}
+            onClick={goSearch}
             title="Search"
             className="flex-shrink-0 flex items-center justify-center w-6 h-full ml-0.5 active:opacity-70 transition-opacity"
             style={{ WebkitTapHighlightColor: "transparent" }}
