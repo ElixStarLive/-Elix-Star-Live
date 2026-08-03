@@ -18,7 +18,7 @@ export async function apiGetCurrentUserId(): Promise<{
 export async function apiCreateReport(
   payload: Record<string, unknown>,
 ): Promise<{ ok: boolean; error: string | null }> {
-  const { error } = await request('/api/reports', {
+  const { error } = await request('/api/report', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
@@ -52,19 +52,18 @@ export async function apiSetBlockUserAction(
   blockedUserId: string,
   action: 'block' | 'unblock',
 ): Promise<{ ok: boolean; error: string | null }> {
-  const { error } = await request('/api/block-user', {
-    method: 'POST',
-    body: JSON.stringify({ blockedUserId, action }),
-  });
-  if (error) return { ok: false, error: error.message || `Failed to ${action} user` };
-  return { ok: true, error: null };
+  // Production has separate endpoints — never send unblock to /api/block-user.
+  if (action === 'unblock') {
+    return apiUnblockUser(blockedUserId);
+  }
+  return apiBlockUser(blockedUserId);
 }
 
 export async function apiListBlockedUsers(): Promise<{
   rows: Record<string, unknown>[];
   error: string | null;
 }> {
-  const { data, error } = await request<Record<string, unknown>>('/api/blocked/list');
+  const { data, error } = await request<Record<string, unknown>>('/api/blocked-users');
   if (error) return { rows: [], error: error.message || 'Failed to load blocked users' };
   const raw = Array.isArray(data)
     ? data

@@ -1,21 +1,14 @@
 /** Local test coins — isolated from real wallet / IAP / Stripe (gift UI testing only). */
 
-import { Capacitor } from '@capacitor/core';
 import { IS_STORE_BUILD } from '../config/build';
 
 /**
  * Test coins are for gift/UI QA only.
- * - Web non-store builds: allowed
- * - Capacitor Android/iOS (including store-mode shell used for AAB): allowed, password-gated in UI
- * - Pure web store builds: blocked
+ * - Non-store / debug / internal builds: allowed (password-gated in live UI)
+ * - Store / Play / App Store release builds (`vite --mode store`): always off
  */
 export function areTestCoinsEnabled(): boolean {
-  if (!IS_STORE_BUILD) return true;
-  try {
-    return Capacitor.isNativePlatform();
-  } catch {
-    return false;
-  }
+  return !IS_STORE_BUILD;
 }
 
 /** @deprecated use areTestCoinsEnabled — kept for call sites that checked store mode only */
