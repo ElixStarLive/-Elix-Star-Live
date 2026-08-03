@@ -2,6 +2,9 @@
  * Host LiveKit registration + connect + publish — clean owner.
  * Room WebSocket stays with the host room/chat bind path (one WS).
  * Room() only via LiveRoomLifecycle → liveKitSession.
+ *
+ * Connect/disconnect must only run when broadcast enablement or credentials
+ * change — never when parent re-renders or camera getter identity churns.
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -29,6 +32,10 @@ export function useHostLiveSession(opts: {
   const lifecycleRef = useRef(new LiveRoomLifecycle());
   const registeredRef = useRef(false);
   const roomRef = useRef<Room | null>(null);
+  const getCameraStreamRef = useRef(opts.getCameraStream);
+  getCameraStreamRef.current = opts.getCameraStream;
+  const displayNameRef = useRef(opts.displayName);
+  displayNameRef.current = opts.displayName;
 
   const [creds, setCreds] = useState<LiveKitCreds | null>(null);
   const [connected, setConnected] = useState(false);
@@ -40,7 +47,7 @@ export function useHostLiveSession(opts: {
       try {
         const started = await apiLiveStart({
           room: opts.roomId,
-          displayName: opts.displayName,
+          displayName: displayNameRef.current,
         });
         if (cancelled) return;
         if (started.error || !started.creds) {
@@ -62,17 +69,17 @@ export function useHostLiveSession(opts: {
     return () => {
       cancelled = true;
     };
-  }, [opts.enabled, opts.roomId, opts.displayName]);
+  }, [opts.enabled, opts.roomId]);
 
   const publishFromCamera = useCallback(async () => {
-    const stream = opts.getCameraStream();
+    const stream = getCameraStreamRef.current();
     if (!stream || !lifecycleRef.current.liveKit?.connected) return;
     try {
       await lifecycleRef.current.publishFromStream(stream);
     } catch (e) {
       console.warn('[LiveKit] publish failed:', e);
     }
-  }, [opts.getCameraStream]);
+  }, []);
 
   useEffect(() => {
     if (!opts.enabled || !creds) return;
@@ -87,6 +94,7 @@ export function useHostLiveSession(opts: {
           opts.liveKitHandlersRef.current.onConnected?.();
         },
         onDisconnected: () => {
+          if (cancelled) return;
           setConnected(false);
           roomRef.current = null;
           opts.liveKitHandlersRef.current.onDisconnected?.();
@@ -110,9 +118,9 @@ export function useHostLiveSession(opts: {
       setConnected(false);
       lifecycle.liveKit?.disconnect();
     };
-  }, [opts.enabled, creds, publishFromCamera]);
+  }, [opts.enabled, creds, opts.liveKitHandlersRef, publishFromCamera]);
 
-  // Republish when camera stream recreates
+  // Republish when camera stream recreates (does not reconnect the room).
   useEffect(() => {
     if (!opts.enabled || !opts.cameraStream) return;
     let cancelled = false;

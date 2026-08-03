@@ -70,6 +70,8 @@ export default function InlineLiveViewer({
   const modeRef = useRef<PreviewMode>("normal");
   const hostIdRef = useRef<string>(streamKey);
   const opponentIdRef = useRef<string>("");
+  const routeVideoTrackRef = useRef<(track: RemoteTrack, identity: string) => void>(() => {});
+  const reattachAllRef = useRef<(room: Room) => void>(() => {});
 
   const [hasStream, setHasStream] = useState(false);
   const [connecting, setConnecting] = useState(false);
@@ -162,6 +164,9 @@ export default function InlineLiveViewer({
     [routeVideoTrack],
   );
 
+  routeVideoTrackRef.current = routeVideoTrack;
+  reattachAllRef.current = reattachAll;
+
   useEffect(() => {
     if (!isActive || !streamKey) {
       lifecycleRef.current.liveKit?.disconnect();
@@ -176,7 +181,7 @@ export default function InlineLiveViewer({
       return;
     }
 
-    const connKey = `${streamKey}-${isActive}`;
+    const connKey = `${streamKey}-active`;
     if (connectedKeyRef.current === connKey && lifecycleRef.current.liveKit?.connected) return;
     connectedKeyRef.current = connKey;
 
@@ -232,7 +237,7 @@ export default function InlineLiveViewer({
         setMode(next);
         modeRef.current = next;
       }
-      if (roomRef.current) reattachAll(roomRef.current);
+      if (roomRef.current) reattachAllRef.current(roomRef.current);
     };
 
     const applyBattlePayload = (raw: unknown, fromTick: boolean) => {
@@ -264,7 +269,7 @@ export default function InlineLiveViewer({
         setHostUserId(data.hostUserId);
         hostIdRef.current = data.hostUserId;
       }
-      if (roomRef.current) reattachAll(roomRef.current);
+      if (roomRef.current) reattachAllRef.current(roomRef.current);
     };
     const onBattleStateSync = (raw: unknown) => applyBattlePayload(raw, false);
     const onBattleTick = (raw: unknown) => applyBattlePayload(raw, true);
@@ -321,7 +326,7 @@ export default function InlineLiveViewer({
             onTrackSubscribed: ({ track, participant }) => {
               if (!mounted || track.kind !== LiveKitTrack.Kind.Video) return;
               gotVideo = true;
-              routeVideoTrack(track, participant?.identity || "");
+              routeVideoTrackRef.current(track, participant?.identity || "");
             },
             onParticipantDisconnected: (participant) => {
               if (!mounted) return;
@@ -350,7 +355,7 @@ export default function InlineLiveViewer({
           websocket.connect(streamKey, authToken);
         }
 
-        if (session.raw) reattachAll(session.raw);
+        if (session.raw) reattachAllRef.current(session.raw);
         if (gotVideo || (session.raw && hasAnyVideo(session.raw))) {
           gotVideo = true;
           setHasStream(true);
@@ -377,7 +382,8 @@ export default function InlineLiveViewer({
       setHasStream(false);
       setConnecting(false);
     };
-  }, [isActive, streamKey, reattachAll, routeVideoTrack]);
+    // Route/reattach callbacks are refs — reconnect only when slide ownership changes.
+  }, [isActive, streamKey]);
 
   // Re-route when layout mode / cohost tiles change.
   useEffect(() => {

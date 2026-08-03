@@ -423,11 +423,12 @@ export function useLiveHostController() {
   const myAvatar = isCreatorParticipant
     ? user?.avatar || ''
     : hostAvatar || '';
+  const getHostCameraStream = useCallback(() => cameraStreamRef.current, []);
   const hostSession = useHostLiveSession({
     enabled: Boolean(isBroadcast && user?.id && effectiveStreamId),
     roomId: effectiveStreamId,
     displayName: creatorName,
-    getCameraStream: () => cameraStreamRef.current,
+    getCameraStream: getHostCameraStream,
     cameraStream,
     liveKitHandlersRef,
   });
