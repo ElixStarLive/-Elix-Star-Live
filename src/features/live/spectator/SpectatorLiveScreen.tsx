@@ -617,7 +617,12 @@ export default function SpectatorLiveScreen() {
             return (
               <div
                 className="absolute inset-0 z-[80] flex flex-col"
-                style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 90px)' }}
+                style={{
+                  // Match creator broadcast battle: reserve bottom for chat / action bar
+                  // so video stays top-half and chat sits in the lower half.
+                  paddingTop: 'calc(env(safe-area-inset-top, 0px) + 90px)',
+                  paddingBottom: '305px',
+                }}
               >
                 <div className={`relative z-20 w-full flex-none ${battleScoreBarHidden ? '' : 'bg-[#111111]/95 border-b border-white/10'}`}>
                   {!battleScoreBarHidden ? (

@@ -2180,9 +2180,24 @@ export function useLiveSpectatorController() {
       // of closing the live for every spectator.
       const battleRoom =
         data && typeof data.battle_room_id === 'string' ? data.battle_room_id : '';
-      if (battleRoom && battleRoom !== effectiveStreamId) {
-        navigate(`/watch/${battleRoom}`, { replace: true });
+      if (battleRoom) {
+        if (battleRoom !== effectiveStreamId) {
+          navigate(`/watch/${battleRoom}`, { replace: true });
+          return;
+        }
+        // Same room is the battle room — stay; do not show "Stream ended".
         return;
+      }
+      if (reason === 'host_joined_battle') {
+        return;
+      }
+      // Host WS grace races during battle must not kick spectators while PK UI
+      // is active, or while LiveKit still has the host after a brief disconnect.
+      const inBattle = !!spectatorBattleRef.current?.active;
+      if (inBattle) return;
+      if (reason === 'host_disconnected' && hasStreamRef.current) {
+        const lkRoom = liveKitRoomRef.current;
+        if (lkRoom?.state === ConnectionState.Connected) return;
       }
       setStreamEndedReceived(true);
       setStreamIsLive(false);
@@ -2534,6 +2549,8 @@ export function useLiveSpectatorController() {
       if (!mounted) return;
       // Already watching host video — another spectator joining must never tear this down.
       if (hasStreamRef.current) return;
+      // Battle layout active — do not synthesize offline while PK is running.
+      if (spectatorBattleRef.current?.active) return;
       const lkRoom = liveKitRoomRef.current;
       if (lkRoom?.state === ConnectionState.Connected) {
         const hid = hostUserIdRef.current || effectiveStreamId;
