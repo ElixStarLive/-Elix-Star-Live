@@ -65,9 +65,21 @@ function getAuthenticatedUserId(req: Request): string | null {
   return payload?.sub ?? null;
 }
 
+/**
+ * Capacitor WebView origins (http://localhost, capacitor://localhost) are
+ * unreachable from the system browser Stripe redirects to after payment, so
+ * they must never be used for success/cancel URLs. Real browser origins always
+ * carry a domain or an explicit port (e.g. localhost:5173 in dev).
+ */
+function isNativeShellOrigin(origin: string): boolean {
+  return /^(capacitor|ionic):\/\//i.test(origin) || /^https?:\/\/localhost$/i.test(origin);
+}
+
 function resolveOrigin(req: Request): string {
+  const headerOrigin =
+    typeof req.headers.origin === "string" ? req.headers.origin.trim() : "";
   const origin =
-    (typeof req.headers.origin === "string" && req.headers.origin.trim()) ||
+    (headerOrigin && !isNativeShellOrigin(headerOrigin) && headerOrigin) ||
     process.env.CLIENT_URL;
   if (origin) return origin;
   // Construct from request when behind proxy; require CLIENT_URL in production
