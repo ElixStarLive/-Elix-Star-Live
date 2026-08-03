@@ -1610,6 +1610,9 @@ export async function dbLoadCoinMap(): Promise<Record<string, number>> {
     for (const row of res.rows) {
       if (row.product_id) map[String(row.product_id)] = Number(row.coins);
     }
+    // iOS App Store product id coins500 + Android Play coins500a both credit 500.
+    if (map.coins500a && !map.coins500) map.coins500 = map.coins500a;
+    if (map.coins500 && !map.coins500a) map.coins500a = map.coins500;
     return map;
   } catch (err) {
     logger.error({ err }, "dbLoadCoinMap failed");
