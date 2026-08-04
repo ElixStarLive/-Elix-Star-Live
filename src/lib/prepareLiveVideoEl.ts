@@ -68,15 +68,20 @@ export function hideVideoUntilPlaying(el: HTMLVideoElement | null | undefined): 
     if (el.videoWidth > 0) reveal();
   }, 50);
 
-  // Never auto-reveal without a decoded frame — Android WebView paints a white
-  // play icon on empty <video>. Poll until videoWidth > 0; stop polling eventually.
+  // LiveKit remote tracks on Android often skip `playing` — don't leave For You blank.
+  // Only auto-reveal for MediaStream (camera / LiveKit). URL gifts stay hidden until a frame.
+  const isStreamMedia = Boolean(el.srcObject);
   flagged.__elixRevealTimer = setTimeout(() => {
     flagged.__elixRevealTimer = undefined;
+    if (isStreamMedia) {
+      reveal();
+      return;
+    }
     if (flagged.__elixRevealPoll != null) {
       clearInterval(flagged.__elixRevealPoll);
       flagged.__elixRevealPoll = undefined;
     }
-  }, 15000);
+  }, 900);
 }
 
 /** Strip Android WebView white play / media chrome without changing mute policy. */

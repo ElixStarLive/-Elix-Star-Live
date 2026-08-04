@@ -10,7 +10,6 @@ import { bindLiveRoomWs } from "../ws/bindLiveRoomWs";
 import { bindLiveBattleWs } from "../ws/bindLiveBattleWs";
 import { bindLiveCohostWs } from "../ws/bindLiveCohostWs";
 import { INLINE_LIVE_PLACEHOLDER_AVATAR_PX } from "../../../lib/profileFrame";
-import { sanitizeLiveAvatar } from "../../../lib/liveCreatorDisplay";
 import {
   prepareLiveVideoEl,
   LIVE_WEBRTC_VIDEO_CLASS,
@@ -114,6 +113,11 @@ export default function InlineLiveViewer({
     el.addEventListener("playing", showIfFramed, { once: true });
     el.addEventListener("loadeddata", showIfFramed, { once: true });
     el.addEventListener("resize", showIfFramed);
+    // LiveKit on Android can hold videoWidth at 0 — reveal the attached stream
+    // anyway so the card shows live video instead of the avatar placeholder.
+    setTimeout(() => {
+      if (el.srcObject) el.style.visibility = "visible";
+    }, 700);
   }, []);
 
   const routeVideoTrack = useCallback(
@@ -403,7 +407,7 @@ export default function InlineLiveViewer({
   }, [navigate, streamKey]);
 
   const liveCohosts = coHosts.slice(0, 8);
-  const displayAvatar = sanitizeLiveAvatar(creatorAvatar);
+  const displayAvatar = creatorAvatar || "";
 
   const placeholder = (
     <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#111113] gap-4 pointer-events-none z-[1]">
