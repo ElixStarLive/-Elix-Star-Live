@@ -17,7 +17,7 @@ export default function NotificationSettings() {
 
   return (
     <SettingsOptionSheet onClose={goBack}>
-      <div className="w-full h-full overflow-hidden bg-[#111111] flex flex-col">
+      <div className="w-full h-full overflow-hidden bg-[#111113] flex flex-col">
         <header className="flex items-center justify-center mb-2 px-4 pt-2">
           <h1 className="font-bold text-lg text-[#D4AF37]">Notifications</h1>
         </header>
@@ -68,7 +68,7 @@ function ToggleRow({
       </span>
       <span
         className={`text-xs font-bold px-2 py-1 rounded-full ${
-          value ? "bg-[#C9A227] text-black" : "bg-white/10 text-white/50"
+          value ? "bg-[#D4AF37] text-black" : "bg-white/10 text-white/50"
         }`}
       >
         {value ? "On" : "Off"}

@@ -81,11 +81,11 @@ export default function AdminEconomy() {
   };
 
   if (loading) {
-    return <div className="min-h-screen bg-[#111111] flex items-center justify-center text-white">Loading...</div>;
+    return <div className="min-h-screen bg-[#111113] flex items-center justify-center text-white">Loading...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-[#111111] text-white p-6">
+    <div className="min-h-screen bg-[#111113] text-white p-6">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold mb-8 flex items-center gap-3">
           <DollarSign className="w-8 h-8 text-white" />
@@ -98,7 +98,7 @@ export default function AdminEconomy() {
             <Package className="w-6 h-6 text-white" />
             Coin Packages ({packages.length})
           </h2>
-          <div className="bg-[#111111] rounded-lg overflow-hidden">
+          <div className="bg-[#111113] rounded-lg overflow-hidden">
             {packages.length === 0 ? (
               <p className="text-gray-400 p-6">No coin packages found in coin_packages.</p>
             ) : (
@@ -132,7 +132,7 @@ export default function AdminEconomy() {
             <Gift className="w-6 h-6 text-pink-500" />
             Gifts Catalog ({gifts.length})
           </h2>
-          <div className="bg-[#111111] rounded-lg overflow-hidden">
+          <div className="bg-[#111113] rounded-lg overflow-hidden">
             <table className="w-full">
               <thead className="bg-[#2A2D35]">
                 <tr>
@@ -170,7 +170,7 @@ export default function AdminEconomy() {
                             updateGiftPrice(gift.id, parsed);
                           }
                         }}
-                        className="px-3 py-1 bg-[#D4AF37] text-black rounded hover:bg-[#C9A227]/90 text-sm"
+                        className="px-3 py-1 bg-[#D4AF37] text-black rounded hover:bg-[#D4AF37]/90 text-sm"
                       >
                         Edit Price
                       </button>
@@ -188,7 +188,7 @@ export default function AdminEconomy() {
             <Zap className="w-6 h-6 text-white" />
             Boosters Catalog ({boosters.length})
           </h2>
-          <div className="bg-[#111111] rounded-lg overflow-hidden">
+          <div className="bg-[#111113] rounded-lg overflow-hidden">
             <table className="w-full">
               <thead className="bg-[#2A2D35]">
                 <tr>

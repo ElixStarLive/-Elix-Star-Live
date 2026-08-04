@@ -64,8 +64,8 @@ export default function EngagementDailyLogin() {
       {loading ? (
         <div className="py-10 text-center text-white/50 text-sm">Loading...</div>
       ) : (
-        <div className="rounded-2xl border border-[#C9A227]/30 bg-gradient-to-br from-[#1a1608] to-[#111111] p-4">
-          <p className="text-xs text-[#C9A227] uppercase tracking-wide mb-1">
+        <div className="rounded-2xl border border-[#D4AF37]/30 bg-gradient-to-br from-[#1a1608] to-[#111113] p-4">
+          <p className="text-xs text-[#D4AF37] uppercase tracking-wide mb-1">
             7-day streak
           </p>
           <p className="text-2xl font-bold mb-2">
@@ -98,9 +98,9 @@ export default function EngagementDailyLogin() {
                   key={d}
                   className={`aspect-square rounded-lg flex items-center justify-center text-[11px] font-bold border ${
                     filled
-                      ? "bg-[#C9A227]/30 border-[#C9A227]/50 text-[#C9A227]"
+                      ? "bg-[#D4AF37]/30 border-[#D4AF37]/50 text-[#D4AF37]"
                       : current
-                        ? "bg-white/10 border-[#C9A227] text-white"
+                        ? "bg-white/10 border-[#D4AF37] text-white"
                         : "bg-white/[0.03] border-white/10 text-white/40"
                   }`}
                 >
@@ -113,7 +113,7 @@ export default function EngagementDailyLogin() {
             type="button"
             disabled={!daily?.can_claim || busy}
             onClick={() => void claim()}
-            className="w-full rounded-xl py-2.5 text-sm font-semibold border border-[#C9A227]/50 bg-[#C9A227]/20 text-[#C9A227] disabled:opacity-40"
+            className="w-full rounded-xl py-2.5 text-sm font-semibold border border-[#D4AF37]/50 bg-[#D4AF37]/20 text-[#D4AF37] disabled:opacity-40"
           >
             {daily?.claimed_today ? "Claimed" : "Claim today"}
           </button>

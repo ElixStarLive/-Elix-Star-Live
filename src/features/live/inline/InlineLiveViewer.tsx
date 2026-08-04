@@ -406,7 +406,7 @@ export default function InlineLiveViewer({
   const liveCohosts = coHosts.slice(0, 8);
 
   const placeholder = (
-    <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#111111] gap-4 pointer-events-none z-[1]">
+    <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#111113] gap-4 pointer-events-none z-[1]">
       {creatorAvatar ? (
         <div
           className="rounded-full overflow-hidden shrink-0"
@@ -416,7 +416,7 @@ export default function InlineLiveViewer({
         </div>
       ) : (
         <div
-          className="rounded-full bg-[#C9A227]/20 flex items-center justify-center shrink-0"
+          className="rounded-full bg-[#D4AF37]/20 flex items-center justify-center shrink-0"
           style={{ width: INLINE_LIVE_PLACEHOLDER_AVATAR_PX, height: INLINE_LIVE_PLACEHOLDER_AVATAR_PX }}
         >
           <span className="text-3xl font-bold text-[#E8D5A3]/80">
@@ -427,7 +427,7 @@ export default function InlineLiveViewer({
       <p className="text-white font-semibold text-base truncate max-w-[80%]">{creatorName}</p>
       {connecting && !isOffline ? (
         <>
-          <div className="w-8 h-8 border-2 border-[#C9A227] border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-[#D4AF37] border-t-transparent rounded-full animate-spin" />
           <span className="text-white/60 text-sm">Connecting to live...</span>
         </>
       ) : isOffline ? (
@@ -440,8 +440,8 @@ export default function InlineLiveViewer({
 
   return (
     <div
-      className={`relative w-full h-full bg-[#111111] cursor-pointer ${className}`}
-      style={{ background: "#13151A" }}
+      className={`relative w-full h-full bg-[#111113] cursor-pointer ${className}`}
+      style={{ background: "#18181B" }}
       onClick={openWatch}
     >
       {/* ── Normal live: single full-bleed host ── */}
@@ -455,7 +455,7 @@ export default function InlineLiveViewer({
             muted
             controls={false}
             poster={LIVE_VIDEO_TRANSPARENT_POSTER}
-            style={{ opacity: hasStream ? 1 : 0, transition: "opacity 0.35s ease", backgroundColor: "#111111" }}
+            style={{ opacity: hasStream ? 1 : 0, transition: "opacity 0.35s ease", backgroundColor: "#111113" }}
           />
           {!hasStream && placeholder}
         </div>
@@ -465,7 +465,7 @@ export default function InlineLiveViewer({
       {mode === "battle" && (
         <div className="absolute inset-0">
           <div className="absolute inset-0 flex flex-row">
-            <div className="w-1/2 h-full relative bg-[#111111] overflow-hidden">
+            <div className="w-1/2 h-full relative bg-[#111113] overflow-hidden">
               <video
                 ref={hostVideoRef}
                 className={videoClass}
@@ -474,13 +474,13 @@ export default function InlineLiveViewer({
                 muted
                 controls={false}
                 poster={LIVE_VIDEO_TRANSPARENT_POSTER}
-                style={{ backgroundColor: "#111111" }}
+                style={{ backgroundColor: "#111113" }}
               />
               <span className="absolute bottom-1 left-1 z-10 text-white/80 text-[8px] font-bold bg-black/50 rounded px-1 truncate max-w-[90%]">
                 {creatorName}
               </span>
             </div>
-            <div className="w-1/2 h-full relative bg-[#111111] overflow-hidden">
+            <div className="w-1/2 h-full relative bg-[#111113] overflow-hidden">
               <video
                 ref={opponentVideoRef}
                 className={videoClass}
@@ -489,7 +489,7 @@ export default function InlineLiveViewer({
                 muted
                 controls={false}
                 poster={LIVE_VIDEO_TRANSPARENT_POSTER}
-                style={{ backgroundColor: "#111111" }}
+                style={{ backgroundColor: "#111113" }}
               />
               {!battle?.opponentName ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 pointer-events-none z-[1]">
@@ -518,7 +518,7 @@ export default function InlineLiveViewer({
       {/* ── Co-host: host left + live tiles right (same idea as live stream) ── */}
       {mode === "cohost" && (
         <div className="absolute inset-0 flex flex-row">
-          <div className="w-1/2 h-full relative bg-[#111111] overflow-hidden">
+          <div className="w-1/2 h-full relative bg-[#111113] overflow-hidden">
             <video
               ref={hostVideoRef}
               className={videoClass}
@@ -527,14 +527,14 @@ export default function InlineLiveViewer({
               muted
               controls={false}
               poster={LIVE_VIDEO_TRANSPARENT_POSTER}
-              style={{ opacity: hasStream ? 1 : 0, backgroundColor: "#111111" }}
+              style={{ opacity: hasStream ? 1 : 0, backgroundColor: "#111113" }}
             />
             {!hasStream && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[#111111] z-[1]">
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[#111113] z-[1]">
                 {creatorAvatar ? (
                   <img src={creatorAvatar} alt="" className="w-16 h-16 rounded-full object-cover" />
                 ) : (
-                  <div className="w-16 h-16 rounded-full bg-[#C9A227]/20 flex items-center justify-center">
+                  <div className="w-16 h-16 rounded-full bg-[#D4AF37]/20 flex items-center justify-center">
                     <span className="text-[#D4AF37] font-bold text-2xl">
                       {(creatorName || "C").charAt(0).toUpperCase()}
                     </span>
@@ -551,7 +551,7 @@ export default function InlineLiveViewer({
                 return (
                   <div
                     key={`empty-${i}`}
-                    className="relative min-h-0 overflow-hidden rounded-none border border-[#C9A227]/25 bg-[#111111] flex flex-col items-center justify-center"
+                    className="relative min-h-0 overflow-hidden rounded-none border border-[#D4AF37]/25 bg-[#111113] flex flex-col items-center justify-center"
                   >
                     <span className="text-white/30 text-lg font-light">+</span>
                     <span className="text-white/30 text-[8px] font-semibold">Add</span>
@@ -561,13 +561,13 @@ export default function InlineLiveViewer({
               return (
                 <div
                   key={h.userId}
-                  className="relative min-h-0 overflow-hidden rounded-none border border-[#C9A227]/35 bg-[#111111]"
+                  className="relative min-h-0 overflow-hidden rounded-none border border-[#D4AF37]/35 bg-[#111113]"
                 >
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 z-[1] bg-[#111111]">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 z-[1] bg-[#111113]">
                     {h.avatar ? (
                       <img src={h.avatar} alt="" className="w-8 h-8 rounded-full object-cover" />
                     ) : (
-                      <div className="w-8 h-8 rounded-full bg-[#111111] flex items-center justify-center border border-[#C9A227]/40">
+                      <div className="w-8 h-8 rounded-full bg-[#111113] flex items-center justify-center border border-[#D4AF37]/40">
                         <span className="text-[#E8D5A3]/70 text-xs font-bold">
                           {(h.name || "?").charAt(0)}
                         </span>
@@ -599,7 +599,7 @@ export default function InlineLiveViewer({
                     muted
                     controls={false}
                     poster={LIVE_VIDEO_TRANSPARENT_POSTER}
-                    style={{ backgroundColor: "#111111" }}
+                    style={{ backgroundColor: "#111113" }}
                   />
                   <span className="absolute bottom-0.5 left-0.5 z-[3] text-white/80 text-[7px] font-bold bg-black/50 rounded px-0.5 truncate max-w-[95%]">
                     {h.name}

@@ -160,7 +160,7 @@ export default function FollowingFeed() {
   }, [friendVideoIds.length]);
 
   return (
-    <div className="app-live-column bg-[#111111]">
+    <div className="app-live-column bg-[#111113]">
       {/* Header — same size container as LIVE */}
       <div
         className="fixed left-0 right-0 z-[9999] flex justify-center pointer-events-none"
@@ -184,7 +184,7 @@ export default function FollowingFeed() {
         className="w-full max-w-[480px] mx-auto flex-1 min-h-0 flex flex-col overflow-hidden"
         style={{ paddingTop: 'calc(var(--topnav-anchor-top) + var(--topnav-bar-height))' }}
       >
-        <div className="w-full shrink-0 bg-[#111111] z-10 relative">
+        <div className="w-full shrink-0 bg-[#111113] z-10 relative">
           {/* Circles — Create, then followers who are live, then all other users who are live; scroll left */}
           <div className="px-3 pb-2">
             <div className="flex gap-3 overflow-x-auto overflow-y-hidden no-scrollbar pt-3" style={{ WebkitOverflowScrolling: 'touch' }}>
@@ -237,7 +237,7 @@ export default function FollowingFeed() {
 
           {loading && friendVideoIds.length === 0 && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-8 h-8 border-2 border-[#C9A227] border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-2 border-[#D4AF37] border-t-transparent rounded-full animate-spin" />
             </div>
           )}
 

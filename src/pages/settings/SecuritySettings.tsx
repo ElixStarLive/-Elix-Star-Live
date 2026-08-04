@@ -14,7 +14,7 @@ export default function SecuritySettings() {
 
   return (
     <SettingsOptionSheet onClose={goBack}>
-      <div className="w-full h-full overflow-hidden bg-[#111111] flex flex-col">
+      <div className="w-full h-full overflow-hidden bg-[#111113] flex flex-col">
         <header className="flex items-center justify-center mb-2 px-4 pt-2">
           <h1 className="font-bold text-lg text-[#D4AF37]">Security</h1>
         </header>

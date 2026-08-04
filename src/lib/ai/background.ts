@@ -18,7 +18,7 @@ export const BACKGROUND_OPTIONS: BackgroundOption[] = [
   { id: 'grad-ocean', name: 'Ocean', type: 'gradient', value: 'linear-gradient(135deg, #667eea, #764ba2)', preview: '🌊' },
   { id: 'grad-neon', name: 'Neon', type: 'gradient', value: 'linear-gradient(135deg, #f093fb, #f5576c)', preview: '💜' },
   { id: 'grad-gold', name: 'Gold', type: 'gradient', value: 'linear-gradient(135deg, #FFFFFF, #FFFFFF)', preview: '✨' },
-  { id: 'grad-dark', name: 'Dark Mode', type: 'gradient', value: 'linear-gradient(135deg, #13151A, #1C1E24)', preview: '🌑' },
+  { id: 'grad-dark', name: 'Dark Mode', type: 'gradient', value: 'linear-gradient(135deg, #18181B, #1C1E24)', preview: '🌑' },
 ];
 
 export function applyBackgroundBlur(

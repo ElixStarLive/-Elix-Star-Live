@@ -2670,7 +2670,7 @@ export function useLiveHostController() {
     const dx = Math.round((Math.random() * 2 - 1) * 120);
     const rot = Math.round((Math.random() * 2 - 1) * 45);
     const size = Math.round(24 + Math.random() * 12);
-    const colors = ['#FF0000', '#ffffff', '#E60026', '#DC143C', '#FF1744', '#CC0000'];
+    const colors = ['#FF0000', '#ffffff', '#E60026', '#FF3B5C', '#FF1744', '#CC0000'];
     const color = colorOverride ?? colors[Math.floor(Math.random() * colors.length)];
     
     // Check if this is a membership heart (triggered by "Joined the team")

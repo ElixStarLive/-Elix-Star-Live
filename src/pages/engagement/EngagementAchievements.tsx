@@ -51,7 +51,7 @@ export default function EngagementAchievements() {
                 key={a.id}
                 className={`rounded-xl border p-3 ${
                   a.unlocked
-                    ? "border-[#C9A227]/40 bg-[#C9A227]/10"
+                    ? "border-[#D4AF37]/40 bg-[#D4AF37]/10"
                     : "border-white/10 bg-white/[0.03]"
                 }`}
               >
@@ -67,7 +67,7 @@ export default function EngagementAchievements() {
                 </div>
                 <div className="h-1.5 rounded-full bg-white/10 overflow-hidden mb-1">
                   <div
-                    className="h-full rounded-full bg-[#C9A227]"
+                    className="h-full rounded-full bg-[#D4AF37]"
                     style={{ width: `${pct}%` }}
                   />
                 </div>

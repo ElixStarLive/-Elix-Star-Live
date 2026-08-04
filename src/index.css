@@ -37,17 +37,30 @@
 
 @layer base {
   :root {
+    /* Obsidian Luxury — Theme 1 */
     --color-primary: #D4AF37;
     --color-secondary: #2F6BFF;
     --color-gold: #D4AF37;
-    --color-gold-bright: #D4AF37;
+    --color-gold-bright: #F5D76E;
     --color-gold-light: #F5D76E;
     --color-gold-dark: #8B6914;
+    --color-gold-premium: #F5D76E;
     --color-rose: #F5D76E;
     --color-background: #09090B;
-    --color-surface: #09090B;
-    --color-text: #FFFFFF;
-    --color-text-muted: #CDBA84;
+    --color-surface: #111113;
+    --color-card: #18181B;
+    --color-card-elevated: #202024;
+    --color-border: #2A2A30;
+    --color-text: #F8F8FA;
+    --color-text-muted: #9CA3AF;
+    --color-text-disabled: #5B616E;
+    --color-live: #FF3B5C;
+    --color-success: #22C55E;
+    --color-accent-blue: #2F6BFF;
+    --color-accent-blue-light: #63B3FF;
+    --color-glass-bg: rgba(255, 255, 255, 0.04);
+    --color-glass-border: rgba(255, 255, 255, 0.08);
+    --shadow-luxury: 0 12px 40px rgba(0, 0, 0, 0.45);
     --radius-sm: 10px;
     --radius-md: 12px;
     --radius-lg: 16px;

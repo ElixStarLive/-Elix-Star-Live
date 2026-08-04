@@ -104,10 +104,10 @@ export default function EngagementHub() {
   }, []);
 
   return (
-    <div className="page-above-bottom-nav bg-[#111111] text-white">
+    <div className="page-above-bottom-nav bg-[#111113] text-white">
       <div className="page-above-bottom-nav__inner">
         <div
-          className="w-full shrink-0 bg-[#111111] z-10"
+          className="w-full shrink-0 bg-[#111113] z-10"
           style={{ paddingTop: "var(--topnav-anchor-top)" }}
         >
           <div
@@ -123,7 +123,7 @@ export default function EngagementHub() {
               <RoyceBackIcon className="w-6 h-6 text-white" />
             </button>
             <div className="flex items-center gap-2">
-              <Gift className="w-5 h-5 text-[#C9A227]" />
+              <Gift className="w-5 h-5 text-[#D4AF37]" />
               <h1 className="text-base font-semibold">Engagement Hub</h1>
             </div>
             <div className="w-8" />
@@ -135,8 +135,8 @@ export default function EngagementHub() {
             <div className="py-10 text-center text-white/50 text-sm">Loading...</div>
           ) : (
             <>
-              <div className="rounded-2xl border border-[#C9A227]/30 bg-gradient-to-br from-[#1a1608] to-[#111111] p-4 mb-4">
-                <p className="text-xs uppercase tracking-wide text-[#C9A227] mb-2">
+              <div className="rounded-2xl border border-[#D4AF37]/30 bg-gradient-to-br from-[#1a1608] to-[#111113] p-4 mb-4">
+                <p className="text-xs uppercase tracking-wide text-[#D4AF37] mb-2">
                   {hub?.fan_tier || "Bronze Fan"} · Level {hub?.fan_level ?? 0}
                 </p>
                 <div className="grid grid-cols-3 gap-2 text-center">
@@ -148,7 +148,7 @@ export default function EngagementHub() {
                   </div>
                   <div>
                     <p className="text-[10px] text-white/50 flex items-center justify-center gap-0.5">
-                      <Zap className="w-3 h-3 text-[#C9A227]" /> Energy
+                      <Zap className="w-3 h-3 text-[#D4AF37]" /> Energy
                     </p>
                     <p className="text-sm font-bold tabular-nums">
                       {hub?.battle_energy ?? 0}
@@ -165,7 +165,7 @@ export default function EngagementHub() {
                   <button
                     type="button"
                     onClick={goDailyLogin}
-                    className="mt-3 w-full rounded-xl bg-[#C9A227]/20 border border-[#C9A227]/40 py-2 text-xs font-semibold text-[#C9A227]"
+                    className="mt-3 w-full rounded-xl bg-[#D4AF37]/20 border border-[#D4AF37]/40 py-2 text-xs font-semibold text-[#D4AF37]"
                   >
                     Claim daily login · Day {hub.daily_login.streak_day}
                   </button>
@@ -183,7 +183,7 @@ export default function EngagementHub() {
                       className="w-full flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3 text-left active:bg-white/5"
                     >
                       <span className="royce-glow-disc shrink-0 flex items-center justify-center w-9 h-9">
-                        <Icon className="w-[18px] h-[18px] text-[#C9A227]" />
+                        <Icon className="w-[18px] h-[18px] text-[#D4AF37]" />
                       </span>
                       <span className="flex-1 min-w-0">
                         <span className="block text-[15px] text-white/90">

@@ -219,7 +219,7 @@ export function GiftPanel({
   return (
     <div
       ref={panelRef}
-      className="bg-[#1a1a1a]/95 rounded-t-2xl p-3 pb-safe max-h-[40dvh] overflow-y-auto no-scrollbar shadow-2xl w-full relative z-[99999]"
+      className="bg-[#18181B]/95 rounded-t-2xl p-3 pb-safe max-h-[40dvh] overflow-y-auto no-scrollbar shadow-2xl w-full relative z-[99999]"
     >
       {/* Top bar: Weekly Ranking / Membership */}
       {(onWeeklyRanking || onMembership) && (
@@ -275,7 +275,7 @@ export function GiftPanel({
               onClick={() => onGiftSourceChange("promotional_coins")}
               className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
                 giftSource === "promotional_coins"
-                  ? "bg-[#38BDF8] text-black"
+                  ? "bg-[#2F6BFF] text-black"
                   : "text-white/60"
               }`}
               title="Promotional coins; zero Diamonds / creator earnings"

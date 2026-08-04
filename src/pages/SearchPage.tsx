@@ -220,7 +220,7 @@ export default function SearchPage() {
           >
             <div className="w-[26px]" />
             <div className="flex-1 flex justify-center">
-              <div className="w-8 h-[2px] rounded-full bg-[#C9A227]/30" />
+              <div className="w-8 h-[2px] rounded-full bg-[#D4AF37]/30" />
             </div>
             <button type="button" onClick={closePanel} className="p-1" title="Back">
               <RoyceBackIcon />
@@ -234,7 +234,7 @@ export default function SearchPage() {
                 <input 
                   type="text" 
                   placeholder="Search" 
-                  className="w-full bg-[#111111] text-gold-metallic placeholder-[#FFFFFF]/40 rounded-full py-0.5 pl-9 pr-9 text-sm focus:outline-none border border-white/15 focus:border-white/40"
+                  className="w-full bg-[#111113] text-gold-metallic placeholder-[#FFFFFF]/40 rounded-full py-0.5 pl-9 pr-9 text-sm focus:outline-none border border-white/15 focus:border-white/40"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   autoFocus
@@ -264,7 +264,7 @@ export default function SearchPage() {
                       key={cat}
                       type="button"
                       onClick={() => selectCategory(cat)}
-                      className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap border transition-colors ${activeCategory === cat ? 'bg-[#C9A227]/20 border-[#C9A227] text-[#D4AF37]' : 'bg-[#111111] border-white/15 text-white/60'}`}
+                      className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap border transition-colors ${activeCategory === cat ? 'bg-[#D4AF37]/20 border-[#D4AF37] text-[#D4AF37]' : 'bg-[#111113] border-white/15 text-white/60'}`}
                     >
                       {cat}
                     </button>
@@ -315,7 +315,7 @@ export default function SearchPage() {
                           <video
                             src={resolveVideoPlaybackUrl(v.url) || undefined}
                             poster={resolveGridThumbnailUrl(v.thumbnail, v.url) || undefined}
-                            className="w-16 h-22 rounded-lg object-cover bg-[#111111] border border-[#C9A227]/20"
+                            className="w-16 h-22 rounded-lg object-cover bg-[#111113] border border-[#D4AF37]/20"
                             muted
                             playsInline
                             preload="auto"

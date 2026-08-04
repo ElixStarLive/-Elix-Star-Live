@@ -474,7 +474,7 @@ export default function Create() {
 
   // ═══ CAMERA / POST-CAPTURE COMPOSE ═══
   return (
-    <div className="min-h-[100dvh] bg-[#111111] text-white flex justify-center">
+    <div className="min-h-[100dvh] bg-[#111113] text-white flex justify-center">
       <div className="relative w-full min-h-[100dvh] overflow-hidden">
         <input
           ref={fileInputRef}
@@ -502,7 +502,7 @@ export default function Create() {
               <video ref={previewVideoRef} src={previewUrl} className="w-full h-full object-cover" autoPlay loop muted playsInline onPlay={() => setIsPreviewPlaying(true)} onPause={() => setIsPreviewPlaying(false)} style={combinedFilter ? { filter: combinedFilter } : undefined} />
             )
           ) : (
-            <div className="w-full h-full bg-[#111111] relative flex items-center justify-center" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
+            <div className="w-full h-full bg-[#111113] relative flex items-center justify-center" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
               <video
                 ref={(el) => {
                   videoRef.current = el;
@@ -520,7 +520,7 @@ export default function Create() {
                 }}
               />
               {cameraError && (
-                <div className="absolute inset-0 flex items-center justify-center bg-[#111111] z-[100]">
+                <div className="absolute inset-0 flex items-center justify-center bg-[#111113] z-[100]">
                   <div className="text-center p-5 max-w-[280px]">
                     <CameraOff className="w-12 h-12 text-white/70 mx-auto mb-4" strokeWidth={1.5} />
                     <p className="text-white text-sm font-semibold mb-2">Camera Access Needed</p>
@@ -568,8 +568,8 @@ export default function Create() {
         )}
 
         {countdownSeconds !== null && (
-          <div className="absolute inset-0 z-[80] flex items-center justify-center bg-[#111111]">
-            <div className="w-24 h-24 rounded-full bg-[#111111] border border-[#C9A227]/35 flex items-center justify-center">
+          <div className="absolute inset-0 z-[80] flex items-center justify-center bg-[#111113]">
+            <div className="w-24 h-24 rounded-full bg-[#111113] border border-[#D4AF37]/35 flex items-center justify-center">
               <div className="text-4xl font-black text-white">{countdownSeconds}</div>
             </div>
           </div>
@@ -577,7 +577,7 @@ export default function Create() {
 
         {toast && (
           <div className="absolute left-0 right-0 top-20 z-[90] flex justify-center px-4">
-            <div className="px-4 py-2 rounded-full bg-[#111111] border border-transparent text-sm text-white/80">{toast}</div>
+            <div className="px-4 py-2 rounded-full bg-[#111113] border border-transparent text-sm text-white/80">{toast}</div>
           </div>
         )}
 
@@ -765,7 +765,7 @@ export default function Create() {
 
         {isExporting && (
           <div className="absolute inset-0 z-[130] flex items-center justify-center bg-black/50">
-            <div className="px-4 py-2 rounded-full bg-[#111111] border border-[#C9A227]/35 text-sm text-white/90">Processing…</div>
+            <div className="px-4 py-2 rounded-full bg-[#111113] border border-[#D4AF37]/35 text-sm text-white/90">Processing…</div>
           </div>
         )}
 

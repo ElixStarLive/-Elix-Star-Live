@@ -132,7 +132,7 @@ export default function PromotePanel({ isOpen, onClose, contentType, content }: 
   return (
     <div className="fixed inset-0 z-[100000] flex items-end justify-center bg-black/50" onClick={onClose}>
       <div
-        className={`w-full max-w-[480px] bg-[#111111]/95 backdrop-blur-md rounded-t-2xl h-[38vh] max-h-[320px] overflow-hidden flex flex-col shadow-2xl animate-in slide-in-from-bottom ${!bottomNavHidden ? 'bottom-sheet-above-nav' : ''}`}
+        className={`w-full max-w-[480px] bg-[#111113]/95 backdrop-blur-md rounded-t-2xl h-[38vh] max-h-[320px] overflow-hidden flex flex-col shadow-2xl animate-in slide-in-from-bottom ${!bottomNavHidden ? 'bottom-sheet-above-nav' : ''}`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Drag handle */}
@@ -144,7 +144,7 @@ export default function PromotePanel({ isOpen, onClose, contentType, content }: 
           <h2 className="text-white font-bold text-sm">Promote</h2>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-3 py-2 space-y-3 min-h-0 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-[#C9A227]/50 [&::-webkit-scrollbar-thumb]:rounded-full">
+        <div className="flex-1 overflow-y-auto px-3 py-2 space-y-3 min-h-0 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-[#D4AF37]/50 [&::-webkit-scrollbar-thumb]:rounded-full">
           {/* Goal buttons + selected goal row */}
           <div className="flex gap-2">
             <button
@@ -174,20 +174,20 @@ export default function PromotePanel({ isOpen, onClose, contentType, content }: 
               <label
                 key={g.id}
                 className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-colors ${
-                  selectedGoal === g.id ? 'bg-[#C9A227]/20 border border-[#C9A227]/40' : 'bg-white/5'
+                  selectedGoal === g.id ? 'bg-[#D4AF37]/20 border border-[#D4AF37]/40' : 'bg-white/5'
                 }`}
               >
                 <input type="radio" name="goal" checked={selectedGoal === g.id} onChange={() => setSelectedGoal(g.id)} className="sr-only" />
                 <g.icon size={16} className="text-[#D4AF37] flex-shrink-0" />
                 <span className="text-white text-xs font-medium flex-1 truncate">{g.label}</span>
-                {g.badge && <span className="text-[8px] font-bold text-[#D4AF37] bg-[#C9A227]/20 px-1.5 py-0.5 rounded">New</span>}
+                {g.badge && <span className="text-[8px] font-bold text-[#D4AF37] bg-[#D4AF37]/20 px-1.5 py-0.5 rounded">New</span>}
               </label>
             ))}
           </div>
 
           {/* Content preview - compact */}
           <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-white/5">
-            <div className="w-9 h-9 rounded-lg overflow-hidden bg-[#111111] flex-shrink-0">
+            <div className="w-9 h-9 rounded-lg overflow-hidden bg-[#111113] flex-shrink-0">
               {content?.thumbnail ? (
                 <img src={content.thumbnail} alt="" className="w-full h-full object-cover" />
               ) : (
@@ -221,7 +221,7 @@ export default function PromotePanel({ isOpen, onClose, contentType, content }: 
         </div>
 
         {/* Bottom payment bar - compact */}
-        <div className="flex items-center justify-between px-3 py-2 border-t border-white/10 bg-[#111111] flex-shrink-0">
+        <div className="flex items-center justify-between px-3 py-2 border-t border-white/10 bg-[#111113] flex-shrink-0">
           <div>
             {panelMessage ? (
               <p className="text-white/60/90 text-xs max-w-[200px]">{panelMessage}</p>
@@ -236,7 +236,7 @@ export default function PromotePanel({ isOpen, onClose, contentType, content }: 
             type="button"
             onClick={handlePay}
             disabled={isPaying}
-            className="px-5 py-2 rounded-lg bg-[#D4AF37] text-black font-bold text-xs hover:bg-[#C9A227]/90 active:scale-95 transition-all disabled:opacity-70"
+            className="px-5 py-2 rounded-lg bg-[#D4AF37] text-black font-bold text-xs hover:bg-[#D4AF37]/90 active:scale-95 transition-all disabled:opacity-70"
           >
             {isPaying ? '...' : 'Pay'}
           </button>

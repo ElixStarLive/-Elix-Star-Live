@@ -80,7 +80,7 @@ export function LiveEngagementOverlay({
           />
           <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
             <div
-              className="bg-[#111111]/95 rounded-t-2xl p-3 pb-safe max-h-[40vh] flex flex-col shadow-2xl"
+              className="bg-[#111113]/95 rounded-t-2xl p-3 pb-safe max-h-[40vh] flex flex-col shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-center mb-2">
@@ -149,7 +149,7 @@ export function LiveEngagementOverlay({
           />
           <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
             <div
-              className="bg-[#111111]/95 rounded-t-2xl p-3 pb-safe h-[40dvh] max-h-[40dvh] flex flex-col shadow-2xl w-full overflow-hidden"
+              className="bg-[#111113]/95 rounded-t-2xl p-3 pb-safe h-[40dvh] max-h-[40dvh] flex flex-col shadow-2xl w-full overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-center mb-2">
@@ -194,7 +194,7 @@ export function LiveEngagementOverlay({
 
       {(milestoneFlash || stageFlash != null) && (
         <div className="pointer-events-none fixed inset-0 z-[100] flex items-start justify-center pt-[28%] max-w-[480px] mx-auto">
-          <div className="px-4 py-3 rounded-2xl bg-[#111111]/92 border border-[#D4AF37]/50 shadow-[0_0_24px_rgba(212,175,55,0.35)]">
+          <div className="px-4 py-3 rounded-2xl bg-[#111113]/92 border border-[#D4AF37]/50 shadow-[0_0_24px_rgba(212,175,55,0.35)]">
             {milestoneFlash ? (
               <p className="text-[#F5E6A8] text-sm font-black text-center">
                 {milestoneFlash.milestones.map((m) => `${m}m`).join(", ")} streak!

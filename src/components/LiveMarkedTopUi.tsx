@@ -39,7 +39,7 @@ export function LiveFollowPill({
     return (
       <button
         type="button"
-        className="flex items-center justify-center gap-0.5 h-[28px] px-2.5 rounded-full bg-[#FE2C55] shadow-[0_0_10px_rgba(254,44,85,0.45)] active:scale-95 transition-transform flex-shrink-0"
+        className="flex items-center justify-center gap-0.5 h-[28px] px-2.5 rounded-full bg-[#FF3B5C] shadow-[0_0_10px_rgba(255,59,92,0.45)] active:scale-95 transition-transform flex-shrink-0"
         onClick={onFollow}
       >
         <Plus size={12} className="text-white" strokeWidth={3} />
@@ -50,7 +50,7 @@ export function LiveFollowPill({
   return (
     <button
       type="button"
-      className="col-start-1 row-start-1 z-20 relative flex items-center justify-center gap-0.5 self-stretch h-full rounded-full bg-[#FE2C55] w-full"
+      className="col-start-1 row-start-1 z-20 relative flex items-center justify-center gap-0.5 self-stretch h-full rounded-full bg-[#FF3B5C] w-full"
       onClick={onFollow}
     >
       <Plus size={12} className="text-white" strokeWidth={3} />
@@ -189,8 +189,8 @@ export function LiveJoinPill({
       type="button"
       className={`flex items-center justify-center gap-1 h-[28px] px-2.5 rounded-full active:scale-95 transition-transform ${
         hasJoinedToday
-          ? 'bg-[#FE2C55] border border-[#FF6B8A]'
-          : 'bg-[#FE2C55] border border-[#FF6B8A] shadow-[0_0_10px_rgba(254,44,85,0.55)]'
+          ? 'bg-[#FF3B5C] border border-[#FF6B8A]'
+          : 'bg-[#FF3B5C] border border-[#FF6B8A] shadow-[0_0_10px_rgba(255,59,92,0.55)]'
       }`}
       onClick={onJoin}
     >
@@ -200,8 +200,8 @@ export function LiveJoinPill({
           strokeWidth={2.5}
         />
         {!hasJoinedToday && (
-          <div className="absolute -top-1 -right-1 w-2 h-2 bg-white rounded-full flex items-center justify-center border border-[#FE2C55]">
-            <span className="text-[#FE2C55] text-[6px] font-bold leading-none">+</span>
+          <div className="absolute -top-1 -right-1 w-2 h-2 bg-white rounded-full flex items-center justify-center border border-[#FF3B5C]">
+            <span className="text-[#FF3B5C] text-[6px] font-bold leading-none">+</span>
           </div>
         )}
       </div>

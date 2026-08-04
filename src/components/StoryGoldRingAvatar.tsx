@@ -2,7 +2,7 @@ import React from 'react';
 import { USER_CIRCLE_GLOW } from '../lib/userCircleGlow';
 
 /** TikTok-style live red (ring + badge). */
-const LIVE_RING_COLOR = '#FE2C55';
+const LIVE_RING_COLOR = '#FF3B5C';
 
 /**
  * User avatar circle — always shown, with same gold light as the close button.
@@ -51,7 +51,7 @@ export function StoryGoldRingAvatar({
       {...(dataAvatarCircle ? { 'data-avatar-circle': dataAvatarCircle } : {})}
     >
       <div
-        className="rounded-full overflow-hidden bg-[#13151A] flex-shrink-0"
+        className="rounded-full overflow-hidden bg-[#18181B] flex-shrink-0"
         style={{
           width: photoSize,
           height: photoSize,

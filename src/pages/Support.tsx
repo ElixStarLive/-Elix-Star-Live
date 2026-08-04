@@ -116,7 +116,7 @@ export default function Support() {
   if (showContactForm) {
     return (
       <SettingsOptionSheet onClose={goBack}>
-        <div className="w-full h-full overflow-hidden bg-[#111111] flex flex-col">
+        <div className="w-full h-full overflow-hidden bg-[#111113] flex flex-col">
           <header className="flex items-center justify-center mb-2 px-4 pt-2">
             <h1 className="font-bold text-lg text-[#D4AF37]">Contact Support</h1>
           </header>
@@ -129,7 +129,7 @@ export default function Support() {
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="your@email.com"
-              className="w-full bg-white/[0.06] rounded-lg px-3 py-2.5 outline-none text-sm text-white placeholder-white/35 border border-white/10 focus:border-[#C9A227] transition"
+              className="w-full bg-white/[0.06] rounded-lg px-3 py-2.5 outline-none text-sm text-white placeholder-white/35 border border-white/10 focus:border-[#D4AF37] transition"
             />
           </div>
 
@@ -141,7 +141,7 @@ export default function Support() {
               onChange={e => setSubject(e.target.value)}
               placeholder="Brief description of your issue"
               maxLength={100}
-              className="w-full bg-white/[0.06] rounded-lg px-3 py-2.5 outline-none text-sm text-white placeholder-white/35 border border-white/10 focus:border-[#C9A227] transition"
+              className="w-full bg-white/[0.06] rounded-lg px-3 py-2.5 outline-none text-sm text-white placeholder-white/35 border border-white/10 focus:border-[#D4AF37] transition"
             />
           </div>
 
@@ -153,7 +153,7 @@ export default function Support() {
               placeholder="Describe your issue in detail..."
               maxLength={1000}
               rows={6}
-              className="w-full bg-white/[0.06] rounded-lg px-3 py-2.5 outline-none text-sm text-white placeholder-white/35 border border-white/10 focus:border-[#C9A227] transition resize-none"
+              className="w-full bg-white/[0.06] rounded-lg px-3 py-2.5 outline-none text-sm text-white placeholder-white/35 border border-white/10 focus:border-[#D4AF37] transition resize-none"
             />
             <p className="text-xs text-white/40 mt-1 text-right">{message.length}/1000</p>
           </div>
@@ -173,7 +173,7 @@ export default function Support() {
 
   return (
     <SettingsOptionSheet onClose={goBack}>
-      <div className="w-full h-full overflow-hidden bg-[#111111] flex flex-col">
+      <div className="w-full h-full overflow-hidden bg-[#111113] flex flex-col">
         <header className="flex items-center justify-center mb-2 px-4 pt-2">
           <h1 className="font-bold text-lg text-[#D4AF37]">Help &amp; Support</h1>
         </header>

@@ -22,7 +22,7 @@ export function LiveGiftGoalBar({ goal, onTap, showSend = true }: Props) {
     <button
       type="button"
       onClick={onTap}
-      className="pointer-events-auto flex items-center gap-2 max-w-[min(240px,72vw)] px-2 py-1.5 rounded-full bg-[#111111]/85 border border-[#C9A227]/35 backdrop-blur-md active:scale-[0.98] transition-transform shadow-lg"
+      className="pointer-events-auto flex items-center gap-2 max-w-[min(240px,72vw)] px-2 py-1.5 rounded-full bg-[#111113]/85 border border-[#D4AF37]/35 backdrop-blur-md active:scale-[0.98] transition-transform shadow-lg"
     >
       {goal.giftIcon ? (
         <img

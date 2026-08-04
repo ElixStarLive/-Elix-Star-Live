@@ -56,7 +56,7 @@ export function GiftGoalGallery(props: Props) {
     const { goal, onSend } = props;
     const pct = giftGoalProgressPct(goal);
     return (
-      <div className="bg-white/5 rounded-xl p-3 border border-[#C9A227]/20">
+      <div className="bg-white/5 rounded-xl p-3 border border-[#D4AF37]/20">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-gold-metallic font-bold text-[10px] flex items-center gap-1">
             <Target className="w-3 h-3 text-[#D4AF37]" strokeWidth={2.5} />
@@ -113,7 +113,7 @@ export function GiftGoalGallery(props: Props) {
   const selectedGift = galleryGifts.find((g) => g.id === selectedGiftId) ?? null;
 
   return (
-    <div className="bg-white/5 rounded-xl p-3 border border-[#C9A227]/20">
+    <div className="bg-white/5 rounded-xl p-3 border border-[#D4AF37]/20">
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-gold-metallic font-bold text-[10px] flex items-center gap-1">
           <Gift className="w-3 h-3 text-[#D4AF37]" strokeWidth={2.5} />
@@ -134,8 +134,8 @@ export function GiftGoalGallery(props: Props) {
               className={[
                 "aspect-square rounded-lg border p-1 flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-all",
                 selectedGiftId === gift.id
-                  ? "border-[#D4AF37] bg-[#C9A227]/15"
-                  : "border-[#C9A227]/15 bg-white/5 hover:bg-white/10",
+                  ? "border-[#D4AF37] bg-[#D4AF37]/15"
+                  : "border-[#D4AF37]/15 bg-white/5 hover:bg-white/10",
               ].join(" ")}
             >
               <img
@@ -159,7 +159,7 @@ export function GiftGoalGallery(props: Props) {
             className={[
               "px-2 py-0.5 rounded-full text-[9px] font-bold border active:scale-95 transition-all",
               targetCount === n
-                ? "bg-[#C9A227]/25 border-[#D4AF37] text-[#D4AF37]"
+                ? "bg-[#D4AF37]/25 border-[#D4AF37] text-[#D4AF37]"
                 : "bg-white/5 border-white/10 text-white/60",
             ].join(" ")}
           >

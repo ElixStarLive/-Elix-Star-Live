@@ -191,7 +191,7 @@ export function RankingPanel({
 
   return (
     <div
-      className="bg-[#111111]/95 backdrop-blur-md rounded-t-2xl p-3 pb-safe max-h-[40dvh] flex flex-col shadow-2xl w-full overflow-hidden h-full"
+      className="bg-[#111113]/95 backdrop-blur-md rounded-t-2xl p-3 pb-safe max-h-[40dvh] flex flex-col shadow-2xl w-full overflow-hidden h-full"
       onClick={(e) => e.stopPropagation()}
     >
       <div className="flex justify-center mb-2">
@@ -200,7 +200,7 @@ export function RankingPanel({
 
       <div className="flex justify-between items-center mb-2 flex-shrink-0">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-[#111111] flex items-center justify-center border border-[#C9A227]/40">
+          <div className="w-8 h-8 rounded-full bg-[#111113] flex items-center justify-center border border-[#D4AF37]/40">
             <HeaderIcon className="w-4 h-4 text-[#D4AF37]" fill="currentColor" />
           </div>
           <div>
@@ -231,7 +231,7 @@ export function RankingPanel({
         {tab === 'goal' ? (
           <div className="flex flex-col gap-2 pb-4">
             {giftGoal ? (
-              <div className="bg-white/5 rounded-xl p-3 border border-[#C9A227]/20">
+              <div className="bg-white/5 rounded-xl p-3 border border-[#D4AF37]/20">
                 <div className="flex items-center gap-2 mb-2">
                   {giftGoal.giftIcon ? (
                     <img

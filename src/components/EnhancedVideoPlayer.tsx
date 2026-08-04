@@ -903,7 +903,7 @@ export default function EnhancedVideoPlayer({
     >
       {/* Video Element - iPhone 14 Pro Max: 6.7" Super Retina XDR, 2796×1290, 19.5:9, ~460ppi */}
       <div
-        className="absolute inset-0 flex items-center justify-center bg-[#111111]"
+        className="absolute inset-0 flex items-center justify-center bg-[#111113]"
         style={{ margin: 0, padding: 0, gap: 0 }}
       >
         <div className="w-full h-full" style={{ margin: 0, padding: 0 }}>
@@ -977,12 +977,12 @@ export default function EnhancedVideoPlayer({
 
 
         {videoError && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#111111] z-10 gap-3">
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#111113] z-10 gap-3">
             <span className="text-white/50 text-sm">Video processing...</span>
             <button
               type="button"
               onClick={retryVideoPlayback}
-              className="px-4 py-1.5 bg-[#C9A227]/20 border border-[#C9A227]/40 rounded-lg text-[#D4AF37] text-xs font-medium"
+              className="px-4 py-1.5 bg-[#D4AF37]/20 border border-[#D4AF37]/40 rounded-lg text-[#D4AF37] text-xs font-medium"
             >
               Tap to retry
             </button>
@@ -1280,7 +1280,7 @@ export default function EnhancedVideoPlayer({
         <div className="fixed inset-0 z-modals flex items-end justify-center">
           <div className="absolute inset-0 pointer-events-auto" onClick={closeMoreMenu} />
           <div
-            className="bg-[#111111]/95 rounded-t-2xl max-h-[40dvh] flex flex-col shadow-2xl pointer-events-auto w-full max-w-[480px] relative z-10 bottom-sheet-above-nav"
+            className="bg-[#111113]/95 rounded-t-2xl max-h-[40dvh] flex flex-col shadow-2xl pointer-events-auto w-full max-w-[480px] relative z-10 bottom-sheet-above-nav"
             style={{ boxShadow: '0 -4px 30px rgba(255,255,255,0.25)' }}
             onClick={(e) => e.stopPropagation()}
           >

@@ -162,7 +162,7 @@ export default function AIToolsPanel({
   return (
     <div className="fixed inset-0 z-[500] flex items-end justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative w-full max-w-[480px] bg-[#111111] rounded-t-2xl overflow-hidden animate-in slide-in-from-bottom duration-300" style={{ maxHeight: '70dvh' }}>
+      <div className="relative w-full max-w-[480px] bg-[#111113] rounded-t-2xl overflow-hidden animate-in slide-in-from-bottom duration-300" style={{ maxHeight: '70dvh' }}>
         
         {/* Header */}
         <div className="flex items-center justify-center px-4 py-3 ">
@@ -181,7 +181,7 @@ export default function AIToolsPanel({
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
                 activeTab === tab.id
                   ? 'bg-[#D4AF37] text-black'
-                  : 'bg-[#111111] text-white/70 hover:text-white'
+                  : 'bg-[#111113] text-white/70 hover:text-white'
               }`}
             >
               {tab.icon}
@@ -202,7 +202,7 @@ export default function AIToolsPanel({
                     key={cat.id}
                     onClick={() => setFilterCategory(cat.id)}
                     className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
-                      filterCategory === cat.id ? 'bg-[#C9A227]/20 text-[#D4AF37]' : 'bg-[#111111] text-white/50'
+                      filterCategory === cat.id ? 'bg-[#D4AF37]/20 text-[#D4AF37]' : 'bg-[#111113] text-white/50'
                     }`}
                   >
                     {cat.label}
@@ -216,8 +216,8 @@ export default function AIToolsPanel({
                     onClick={() => handleFilterSelect(filter)}
                     className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${
                       selectedFilter === filter.id
-                        ? 'bg-[#C9A227]/20 opacity-100'
-                        : 'bg-[#111111] hover:bg-[#111111]/80'
+                        ? 'bg-[#D4AF37]/20 opacity-100'
+                        : 'bg-[#111113] hover:bg-[#111113]/80'
                     }`}
                   >
                     <span className="text-2xl">{filter.preview}</span>
@@ -251,7 +251,7 @@ export default function AIToolsPanel({
                 <button onClick={handleAutoEnhance} className="flex-1 py-2 rounded-xl bg-[#D4AF37] text-black text-xs font-bold flex items-center justify-center gap-1.5">
                   <Wand2 size={14} /> Auto Enhance
                 </button>
-                <button onClick={handleResetEnhance} className="flex-1 py-2 rounded-xl bg-[#111111] text-white/70 text-xs font-bold">
+                <button onClick={handleResetEnhance} className="flex-1 py-2 rounded-xl bg-[#111113] text-white/70 text-xs font-bold">
                   Reset
                 </button>
               </div>
@@ -290,7 +290,7 @@ export default function AIToolsPanel({
                   value={captionInput}
                   onChange={e => setCaptionInput(e.target.value)}
                   placeholder="Dance video with friends at sunset..."
-                  className="w-full bg-[#111111] text-white text-sm rounded-xl px-3 py-2 border border-white/10 resize-none h-20 outline-none focus:border-[#C9A227]/50"
+                  className="w-full bg-[#111113] text-white text-sm rounded-xl px-3 py-2 border border-white/10 resize-none h-20 outline-none focus:border-[#D4AF37]/50"
                 />
               </div>
               <button
@@ -306,7 +306,7 @@ export default function AIToolsPanel({
                     <button
                       key={i}
                       onClick={() => onCaptionSelect?.(s.caption, s.hashtags)}
-                      className="w-full text-left p-3 rounded-xl bg-[#111111] hover:bg-[#111111]/70 transition-colors"
+                      className="w-full text-left p-3 rounded-xl bg-[#111113] hover:bg-[#111113]/70 transition-colors"
                     >
                       <p className="text-white text-sm mb-1">{s.caption}</p>
                       <p className="text-[#D4AF37] text-xs">
@@ -330,7 +330,7 @@ export default function AIToolsPanel({
                       <button
                         key={tag}
                         onClick={() => onCaptionSelect?.('', [tag])}
-                        className="px-2.5 py-1 rounded-full bg-[#C9A227]/10 text-[#D4AF37] text-xs font-medium hover:bg-[#C9A227]/20 transition-colors"
+                        className="px-2.5 py-1 rounded-full bg-[#D4AF37]/10 text-[#D4AF37] text-xs font-medium hover:bg-[#D4AF37]/20 transition-colors"
                       >
                         #{tag}
                       </button>
@@ -348,14 +348,14 @@ export default function AIToolsPanel({
                 <span className="text-xs text-white/50">AI-ranked best frames</span>
                 <button
                   onClick={handleExtractThumbnails}
-                  className="px-3 py-1 rounded-full bg-[#C9A227]/20 text-[#D4AF37] text-xs font-semibold"
+                  className="px-3 py-1 rounded-full bg-[#D4AF37]/20 text-[#D4AF37] text-xs font-semibold"
                 >
                   Refresh
                 </button>
               </div>
               {isLoadingThumbnails ? (
                 <div className="flex items-center justify-center py-8">
-                  <div className="w-8 h-8 border-2 border-[#C9A227] border-t-transparent rounded-full animate-spin" />
+                  <div className="w-8 h-8 border-2 border-[#D4AF37] border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : thumbnails.length === 0 ? (
                 <div className="text-center py-8 text-white/30 text-sm">
@@ -402,8 +402,8 @@ export default function AIToolsPanel({
                     }}
                     className={`flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all ${
                       selectedVoice === effect.id
-                        ? 'bg-[#C9A227]/20 opacity-100'
-                        : 'bg-[#111111] hover:bg-[#111111]/80'
+                        ? 'bg-[#D4AF37]/20 opacity-100'
+                        : 'bg-[#111113] hover:bg-[#111113]/80'
                     }`}
                   >
                     <span className="text-xl">{effect.icon}</span>
@@ -423,7 +423,7 @@ export default function AIToolsPanel({
                   <select
                     value={subLang}
                     onChange={e => setSubLang(e.target.value)}
-                    className="w-full bg-[#111111] text-white text-sm rounded-xl px-3 py-2.5 border border-white/10 outline-none appearance-none"
+                    className="w-full bg-[#111113] text-white text-sm rounded-xl px-3 py-2.5 border border-white/10 outline-none appearance-none"
                     title="Subtitle language"
                   >
                     {SUBTITLE_LANGUAGES.map(l => (
@@ -456,8 +456,8 @@ export default function AIToolsPanel({
                       }}
                       className={`p-3 rounded-xl text-left transition-all ${
                         selectedSubStyle === style.id
-                          ? 'bg-[#C9A227]/20 opacity-100'
-                          : 'bg-[#111111]'
+                          ? 'bg-[#D4AF37]/20 opacity-100'
+                          : 'bg-[#111113]'
                       }`}
                     >
                       <div
@@ -491,8 +491,8 @@ export default function AIToolsPanel({
                     }}
                     className={`flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all ${
                       selectedBg === opt.id
-                        ? 'bg-[#C9A227]/20 opacity-100'
-                        : 'bg-[#111111] hover:bg-[#111111]/80'
+                        ? 'bg-[#D4AF37]/20 opacity-100'
+                        : 'bg-[#111113] hover:bg-[#111113]/80'
                     }`}
                   >
                     <span className="text-xl">{opt.preview}</span>

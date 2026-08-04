@@ -287,11 +287,11 @@ export default function FriendsFeed() {
   }, []);
 
   return (
-    <div className="h-full min-h-0 w-full flex justify-center bg-[#111111]">
+    <div className="h-full min-h-0 w-full flex justify-center bg-[#111113]">
       <div className="w-full max-w-[480px] h-full min-h-0 flex flex-col overflow-hidden mx-auto relative">
         {/* Friends chrome — room for icon glow; close stays inside column */}
         <div
-          className="flex-shrink-0 bg-[#111111] z-20 overflow-visible"
+          className="flex-shrink-0 bg-[#111113] z-20 overflow-visible"
           style={{ paddingTop: 'max(8px, env(safe-area-inset-top, 0px))' }}
         >
           <div className="px-4 h-11 flex items-center justify-between relative overflow-visible">
@@ -447,7 +447,7 @@ export default function FriendsFeed() {
 
             {loading && feedLen === 0 && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="w-8 h-8 border-2 border-[#C9A227] border-t-transparent rounded-full animate-spin" />
+                <div className="w-8 h-8 border-2 border-[#D4AF37] border-t-transparent rounded-full animate-spin" />
               </div>
             )}
 

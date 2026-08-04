@@ -101,9 +101,9 @@ export default function AIStudio() {
   }, [combinedFilter]);
 
   return (
-    <div className="h-full min-h-0 w-full bg-[#111111] text-white flex flex-col overflow-hidden">
+    <div className="h-full min-h-0 w-full bg-[#111113] text-white flex flex-col overflow-hidden">
       {toast && (
-        <div className="fixed top-16 left-1/2 -translate-x-1/2 bg-[#C9A227]/20 backdrop-blur-md text-white text-sm px-4 py-2 rounded-xl z-[9999]">
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 bg-[#D4AF37]/20 backdrop-blur-md text-white text-sm px-4 py-2 rounded-xl z-[9999]">
           {toast}
         </div>
       )}
@@ -155,7 +155,7 @@ export default function AIStudio() {
           </>
         ) : (
           <div className="flex flex-col items-center gap-4 p-8">
-            <div className="w-24 h-24 rounded-2xl bg-[#111111] flex items-center justify-center">
+            <div className="w-24 h-24 rounded-2xl bg-[#111113] flex items-center justify-center">
               <Upload size={36} className="text-[#D4AF37]" />
             </div>
             <p className="text-white/50 text-sm text-center">Import a video to start editing with AI tools</p>

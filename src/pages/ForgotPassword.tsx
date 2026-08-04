@@ -37,7 +37,7 @@ export default function ForgotPassword() {
 
   if (success) {
     return (
-      <div className="bg-[#111111] text-white flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-[#111113] text-white flex items-center justify-center p-4 overflow-y-auto">
         <div className="w-full max-w-[420px] bg-white/5 border border-white/10 rounded-2xl p-6 text-center">
           <CheckCircle className="w-12 h-12 text-white mx-auto mb-4" />
           <h1 className="text-xl font-bold mb-2">Check your email</h1>
@@ -57,7 +57,7 @@ export default function ForgotPassword() {
   }
 
   return (
-    <div className="bg-[#111111] text-white flex items-center justify-center p-4 overflow-y-auto">
+    <div className="bg-[#111113] text-white flex items-center justify-center p-4 overflow-y-auto">
       <div className="w-full max-w-[420px] bg-white/5 border border-white/10 rounded-2xl p-6">
         <Link to="/login" className="flex items-center gap-2 text-white/60 text-sm mb-4 hover:text-white">
           <ArrowLeft className="w-4 h-4" />
@@ -78,7 +78,7 @@ export default function ForgotPassword() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-white/10 border border-white/10 rounded-xl pl-10 pr-3 py-3 text-sm text-white outline-none focus:border-[#C9A227]/50 placeholder:text-white/40"
+                className="w-full bg-white/10 border border-white/10 rounded-xl pl-10 pr-3 py-3 text-sm text-white outline-none focus:border-[#D4AF37]/50 placeholder:text-white/40"
                 placeholder="you@email.com"
                 autoComplete="email"
                 required

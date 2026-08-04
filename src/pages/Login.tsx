@@ -111,7 +111,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-[100dvh] h-[100dvh] bg-[#111111] text-white flex items-center justify-center p-4 xs:p-3 sm:p-4 overflow-y-auto pt-[calc(var(--safe-top)+46px)] pb-[calc(var(--safe-bottom)+var(--nav-height))]">
+    <div className="min-h-[100dvh] h-[100dvh] bg-[#111113] text-white flex items-center justify-center p-4 xs:p-3 sm:p-4 overflow-y-auto pt-[calc(var(--safe-top)+46px)] pb-[calc(var(--safe-bottom)+var(--nav-height))]">
       <div className="w-full max-w-[420px] xs:max-w-[320px] sm:max-w-[380px] bg-white/5 border border-white/10 rounded-2xl p-6 xs:p-4 sm:p-5">
         <div className="flex justify-center mb-4">
           <img src="/elix-logo.png" alt="Elix Star Live" className="w-24 h-24 object-contain" />
@@ -127,7 +127,7 @@ export default function Login() {
                 type="text"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-white/10 border border-white/10 rounded-xl pl-10 xs:pl-9 pr-3 py-3 xs:py-2.5 text-fluid-sm text-white outline-none focus:border-[#C9A227]/50 placeholder:text-white/40"
+                className="w-full bg-white/10 border border-white/10 rounded-xl pl-10 xs:pl-9 pr-3 py-3 xs:py-2.5 text-fluid-sm text-white outline-none focus:border-[#D4AF37]/50 placeholder:text-white/40"
                 placeholder="username or you@email.com"
                 autoComplete="email"
                 required
@@ -143,7 +143,7 @@ export default function Login() {
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-white/10 border border-white/10 rounded-xl pl-10 xs:pl-9 pr-10 xs:pr-9 py-3 xs:py-2.5 text-fluid-sm text-white outline-none focus:border-[#C9A227]/50 placeholder:text-white/40"
+                className="w-full bg-white/10 border border-white/10 rounded-xl pl-10 xs:pl-9 pr-10 xs:pr-9 py-3 xs:py-2.5 text-fluid-sm text-white outline-none focus:border-[#D4AF37]/50 placeholder:text-white/40"
                 placeholder="••••••••"
                 autoComplete="current-password"
                 required
@@ -168,7 +168,7 @@ export default function Login() {
               />
               <div className={`w-5 h-5 xs:w-4 xs:h-4 rounded-md border transition-all flex items-center justify-center ${
                 saveDetails 
-                  ? 'bg-[#D4AF37] border-[#C9A227]' 
+                  ? 'bg-[#D4AF37] border-[#D4AF37]' 
                   : 'bg-white/10 border-white/30 group-hover:border-white/50'
               }`}>
                 {saveDetails && <Check className="w-3.5 h-3.5 xs:w-3 xs:h-3 text-black stroke-[3]" />}

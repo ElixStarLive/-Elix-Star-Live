@@ -121,7 +121,7 @@ export default function EngagementCollections() {
                           type="button"
                           disabled={opening === c.id}
                           onClick={() => void openChest(c.id)}
-                          className="text-xs font-semibold text-[#D4AF37] px-2 py-1 rounded border border-[#C9A227]/40 disabled:opacity-40"
+                          className="text-xs font-semibold text-[#D4AF37] px-2 py-1 rounded border border-[#D4AF37]/40 disabled:opacity-40"
                         >
                           Open
                         </button>

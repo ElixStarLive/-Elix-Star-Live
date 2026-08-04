@@ -179,7 +179,7 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
       onClick={onClose}
     >
       <div
-        className="bg-[#111111]/95 backdrop-blur-md w-full max-w-[480px] rounded-t-2xl overflow-hidden flex flex-col h-[38vh] shadow-2xl"
+        className="bg-[#111113]/95 backdrop-blur-md w-full max-w-[480px] rounded-t-2xl overflow-hidden flex flex-col h-[38vh] shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-center px-4 pt-0.5 pb-0.5">
@@ -208,7 +208,7 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
               onClick={() => sendShareTo(f.user_id)}
             >
               <div
-                className="rounded-full overflow-hidden bg-[#13151A] flex-shrink-0"
+                className="rounded-full overflow-hidden bg-[#18181B] flex-shrink-0"
                 style={{ width: SHARE_PANEL_AVATAR_PX, height: SHARE_PANEL_AVATAR_PX }}
               >
                 <img
@@ -229,7 +229,7 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
         <div className="mx-4 border-t border-[#D4AF37]/45 flex-shrink-0" aria-hidden />
 
         {/* Action icons pinned to bottom of sheet */}
-        <div className="flex-1 overflow-y-scroll overflow-x-hidden min-h-0 px-4 pb-2 flex flex-col justify-end [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#C9A227]/60 [&::-webkit-scrollbar-thumb]:rounded-full" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.25) transparent' }}>
+        <div className="flex-1 overflow-y-scroll overflow-x-hidden min-h-0 px-4 pb-2 flex flex-col justify-end [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#D4AF37]/60 [&::-webkit-scrollbar-thumb]:rounded-full" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.25) transparent' }}>
           {showQrCode && (
             <div className="pt-2 pb-3 flex flex-col items-center gap-2 border-b border-white/10 mb-2">
               <div className="flex items-center justify-between w-full">

@@ -212,7 +212,7 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
       </div>
 
       <div className="px-4 pb-2 flex-shrink-0">
-        <div className="flex items-center gap-2 px-3 py-2 rounded-full border border-[#C9A227]/25 bg-[#111111]">
+        <div className="flex items-center gap-2 px-3 py-2 rounded-full border border-[#D4AF37]/25 bg-[#111113]">
           <Search className="w-4 h-4 text-white/50 flex-shrink-0" strokeWidth={2} />
           <input
             type="search"
@@ -241,8 +241,8 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
                 }}
                 className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border pointer-events-auto ${
                   active
-                    ? 'bg-[#D4AF37] border-[#C9A227] text-black'
-                    : 'border-[#C9A227]/35 text-white'
+                    ? 'bg-[#D4AF37] border-[#D4AF37] text-black'
+                    : 'border-[#D4AF37]/35 text-white'
                 }`}
               >
                 {pl.name}
@@ -259,7 +259,7 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
             onClick={(e) => pickTrack(ORIGINAL_SOUND_TRACK, e)}
             className="w-full px-2 py-2.5 flex items-center gap-2 active:brightness-125 transition-colors text-left pointer-events-auto"
           >
-            <div className="w-10 h-10 rounded-md flex-shrink-0 bg-[#222] border border-[#C9A227]/20 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-md flex-shrink-0 bg-[#202024] border border-[#D4AF37]/20 flex items-center justify-center">
               <Music className="w-4 h-4 text-[#D4AF37]" />
             </div>
             <div className="flex-1 min-w-0">
@@ -292,7 +292,7 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
               onClick={(e) => pickTrack(track, e)}
               title={`Use ${track.title}`}
             >
-              <div className="w-10 h-10 rounded-md overflow-hidden flex-shrink-0 bg-[#222] border border-[#C9A227]/20">
+              <div className="w-10 h-10 rounded-md overflow-hidden flex-shrink-0 bg-[#202024] border border-[#D4AF37]/20">
                 {track.coverUrl ? (
                   <img src={track.coverUrl} alt="" className="w-full h-full object-cover" draggable={false} />
                 ) : (
@@ -356,7 +356,7 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
       }}
     >
       <div
-        className="bg-[#111111]/95 backdrop-blur-md w-full max-w-[480px] rounded-t-2xl overflow-hidden flex flex-col h-[70vh] max-h-[70dvh] shadow-2xl animate-in slide-in-from-bottom duration-300 pointer-events-auto"
+        className="bg-[#111113]/95 backdrop-blur-md w-full max-w-[480px] rounded-t-2xl overflow-hidden flex flex-col h-[70vh] max-h-[70dvh] shadow-2xl animate-in slide-in-from-bottom duration-300 pointer-events-auto"
         onClick={(e) => e.stopPropagation()}
         onPointerDown={(e) => e.stopPropagation()}
       >

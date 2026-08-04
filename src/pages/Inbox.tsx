@@ -585,11 +585,11 @@ export default function Inbox() {
   };
 
   return (
-    <div className="page-above-bottom-nav bg-[#111111]">
-      <div className="page-above-bottom-nav__inner bg-[#111111] flex flex-col min-h-0">
+    <div className="page-above-bottom-nav bg-[#111113]">
+      <div className="page-above-bottom-nav__inner bg-[#111113] flex flex-col min-h-0">
         {/* One full-page scroll — same fundal colour, no framed boxes */}
-        <div className="flex-1 min-h-0 overflow-y-auto bg-[#111111]">
-        <div className="px-3 pt-page-header pb-1 flex items-center justify-between relative bg-[#111111]">
+        <div className="flex-1 min-h-0 overflow-y-auto bg-[#111113]">
+        <div className="px-3 pt-page-header pb-1 flex items-center justify-between relative bg-[#111113]">
           <div className="flex items-center gap-3 z-10">
             <button onClick={goSearch} aria-label="Search"><Search size={18} className="text-gold-bright" /></button>
           </div>
@@ -606,7 +606,7 @@ export default function Inbox() {
         </div>
 
         {/* Circles — Followers hub first; suggested + per-follower avatars scroll to the right */}
-        <div className="px-3 pb-2 bg-[#111111]" style={{ marginTop: '4mm' }}>
+        <div className="px-3 pb-2 bg-[#111113]" style={{ marginTop: '4mm' }}>
             <div className="flex gap-3 overflow-x-auto overflow-y-hidden no-scrollbar pt-3" style={{ WebkitOverflowScrolling: 'touch' }}>
                 <button
                     type="button"
@@ -668,7 +668,7 @@ export default function Inbox() {
         </div>
 
         {/* Filters — flat text on fundal, no bordered boxes */}
-        <div className="pl-[calc(1rem+22mm)] pr-4 py-2 flex items-center justify-center gap-3 overflow-x-auto no-scrollbar mb-2 bg-[#111111]" style={{ marginLeft: '-20mm' }}>
+        <div className="pl-[calc(1rem+22mm)] pr-4 py-2 flex items-center justify-center gap-3 overflow-x-auto no-scrollbar mb-2 bg-[#111113]" style={{ marginLeft: '-20mm' }}>
             <button onClick={filterMain} className={`px-2 py-1.5 text-xs font-bold whitespace-nowrap bg-transparent border-0 ${activeFilter === 'main' ? 'text-gold-bright' : 'text-gold-bright/45'}`}>Main</button>
             <button onClick={filterRequests} className={`px-2 py-1.5 text-xs font-bold whitespace-nowrap bg-transparent border-0 ${activeFilter === 'requests' ? 'text-gold-bright' : 'text-gold-bright/45'}`}>Requests</button>
             <button onClick={filterUnread} className={`px-2 py-1.5 text-xs font-bold whitespace-nowrap bg-transparent border-0 ${activeFilter === 'unread' ? 'text-gold-bright' : 'text-gold-bright/45'}`}>Unread</button>
@@ -680,7 +680,7 @@ export default function Inbox() {
         </div>
 
         {/* List Content — continues same scroll / same fundal */}
-        <div className="px-4 py-1 space-y-4 bg-[#111111] pb-4">
+        <div className="px-4 py-1 space-y-4 bg-[#111113] pb-4">
             
             {activeFilter === 'main' && (
             <>
@@ -688,7 +688,7 @@ export default function Inbox() {
             <button
                 type="button"
                 onClick={openNewFollowersPanel}
-                className="flex items-center gap-3 w-full text-left py-2 px-2 bg-[#111111]"
+                className="flex items-center gap-3 w-full text-left py-2 px-2 bg-[#111113]"
             >
                 <div className="relative w-12 h-12 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0 royce-tile">
                     <UserPlus className="w-6 h-6 royce-icon-gold relative z-10" strokeWidth={2} style={{ transform: 'translate(0.5mm, -0.5mm)' }} />
@@ -705,7 +705,7 @@ export default function Inbox() {
             </button>
 
             {/* Activity - golden circle from Music Icon (likes, comments) */}
-            <button onClick={filterActivity} className="flex items-center gap-3 w-full text-left py-2 px-2 bg-[#111111]">
+            <button onClick={filterActivity} className="flex items-center gap-3 w-full text-left py-2 px-2 bg-[#111113]">
                 <div className="relative w-12 h-12 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0 royce-tile">
 <Heart className="w-6 h-6 royce-icon-gold relative z-10" strokeWidth={2.25} />
                 </div>
@@ -729,9 +729,9 @@ export default function Inbox() {
                       key={a.id}
                       type="button"
                       onClick={() => { if (a.video_id) openVideo(a.video_id); }}
-                      className="flex items-center gap-2.5 w-full text-left py-1.5 px-2 bg-[#111111]"
+                      className="flex items-center gap-2.5 w-full text-left py-1.5 px-2 bg-[#111113]"
                     >
-                      <div className="w-9 h-9 rounded-full bg-[#111111] border border-[#C9A227]/30 flex items-center justify-center flex-shrink-0 overflow-hidden relative" style={{ transform: 'translateY(4mm)' }}>
+                      <div className="w-9 h-9 rounded-full bg-[#111113] border border-[#D4AF37]/30 flex items-center justify-center flex-shrink-0 overflow-hidden relative" style={{ transform: 'translateY(4mm)' }}>
                         {a.actor_avatar_url ? (
                           <img src={a.actor_avatar_url} alt="" className="w-full h-full object-cover" />
                         ) : (
@@ -759,7 +759,7 @@ export default function Inbox() {
                     <p className="text-gold-bright/50 text-xs px-1 py-2">No messages yet</p>
                 ) : (
                     conversations.map((conv) => (
-                        <div key={conv.id} className="flex items-center gap-3 py-2 px-2 bg-[#111111] group">
+                        <div key={conv.id} className="flex items-center gap-3 py-2 px-2 bg-[#111113] group">
                             <div className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer" onClick={() => openConversation(conv.id)}>
                                 <AvatarRing src={conv.otherUser?.avatar_url || ''} alt={conv.otherUser?.display_name || conv.otherUser?.username || 'User'} size={48} />
                                 <div className="flex-1 min-w-0">
@@ -789,7 +789,7 @@ export default function Inbox() {
                                       showToast('Could not delete');
                                     }
                                 }}
-                                className="w-10 h-10 rounded-full bg-[#111111] border border-[#C9A227]/40 flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform hover:border-[#C9A227]/50 hover:bg-[#111111]"
+                                className="w-10 h-10 rounded-full bg-[#111113] border border-[#D4AF37]/40 flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform hover:border-[#D4AF37]/50 hover:bg-[#111113]"
                                 title="Delete conversation"
                                 aria-label="Delete conversation"
                             >
@@ -813,7 +813,7 @@ export default function Inbox() {
                     <p className="text-gold-bright/50 text-xs px-1 py-2">You’re all caught up.</p>
                 ) : (
                     conversations.filter((c) => c.hasUnread).map((conv) => (
-                        <div key={conv.id} className="flex items-center gap-3 py-2 px-2 bg-[#111111] group">
+                        <div key={conv.id} className="flex items-center gap-3 py-2 px-2 bg-[#111113] group">
                             <div className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer" onClick={() => openConversation(conv.id)}>
                                 <AvatarRing src={conv.otherUser?.avatar_url || ''} alt={conv.otherUser?.display_name || conv.otherUser?.username || 'User'} size={48} />
                                 <div className="flex-1 min-w-0">
@@ -844,7 +844,7 @@ export default function Inbox() {
                                       showToast('Could not delete');
                                     }
                                 }}
-                                className="w-10 h-10 rounded-full bg-[#111111] border border-[#C9A227]/40 flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform hover:border-[#C9A227]/50 hover:bg-[#111111]"
+                                className="w-10 h-10 rounded-full bg-[#111113] border border-[#D4AF37]/40 flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform hover:border-[#D4AF37]/50 hover:bg-[#111113]"
                                 title="Delete conversation"
                                 aria-label="Delete conversation"
                             >
@@ -876,15 +876,15 @@ export default function Inbox() {
                           onClick={() => {
                             if (row.stream_key) openWatchStream(row.stream_key);
                           }}
-                          className="flex items-center gap-3 w-full text-left py-2.5 px-2 bg-[#111111]"
+                          className="flex items-center gap-3 w-full text-left py-2.5 px-2 bg-[#111113]"
                         >
-                          <div className="w-12 h-12 rounded-full bg-[#111111] border border-[#C9A227]/40 flex items-center justify-center flex-shrink-0 overflow-hidden relative">
+                          <div className="w-12 h-12 rounded-full bg-[#111113] border border-[#D4AF37]/40 flex items-center justify-center flex-shrink-0 overflow-hidden relative">
                             {row.sharer_avatar ? (
                               <img src={row.sharer_avatar} alt="" className="w-full h-full object-cover" />
                             ) : (
                               <span className="text-[#D4AF37] font-bold text-lg">{who.replace('@', '').charAt(0).toUpperCase()}</span>
                             )}
-                            <span className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-[#111111] border border-[#C9A227]/50 flex items-center justify-center">
+                            <span className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-[#111113] border border-[#D4AF37]/50 flex items-center justify-center">
                               <Share2 className="w-2.5 h-2.5 text-[#D4AF37]" strokeWidth={2.5} />
                             </span>
                           </div>
@@ -919,9 +919,9 @@ export default function Inbox() {
                           onClick={() => {
                             if (a.video_id) openVideo(a.video_id);
                           }}
-                          className="flex items-center gap-3 w-full text-left py-2.5 px-2 bg-[#111111]"
+                          className="flex items-center gap-3 w-full text-left py-2.5 px-2 bg-[#111113]"
                         >
-                          <div className="w-12 h-12 rounded-full bg-[#111111] border border-[#C9A227]/40 flex items-center justify-center flex-shrink-0 overflow-hidden relative" style={{ transform: 'translateY(4mm)' }}>
+                          <div className="w-12 h-12 rounded-full bg-[#111113] border border-[#D4AF37]/40 flex items-center justify-center flex-shrink-0 overflow-hidden relative" style={{ transform: 'translateY(4mm)' }}>
                             {a.actor_avatar_url ? (
                               <img src={a.actor_avatar_url} alt="" className="w-full h-full object-cover" />
                             ) : (
@@ -952,9 +952,9 @@ export default function Inbox() {
                               onClick={() => {
                                 if (actionUrl) openActionUrl(actionUrl);
                               }}
-                              className="flex items-center gap-3 w-full text-left py-2.5 px-2 bg-[#111111]"
+                              className="flex items-center gap-3 w-full text-left py-2.5 px-2 bg-[#111113]"
                             >
-                              <div className="w-12 h-12 rounded-full bg-[#111111] border border-[#C9A227]/40 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                              <div className="w-12 h-12 rounded-full bg-[#111113] border border-[#D4AF37]/40 flex items-center justify-center flex-shrink-0 overflow-hidden">
                                 {notif.image_url || notif.rawData?.avatar_url ? (
                                   <img src={notif.image_url || notif.rawData?.avatar_url} alt="" className="w-full h-full object-cover" />
                                 ) : (
@@ -983,7 +983,7 @@ export default function Inbox() {
                 .filter(n => n.type === 'system' && !(n.body?.toLowerCase?.().includes('check out this profile') || n.action_url?.includes('/profile/' + currentUserId)))
                 .map(notif => (
                 <button key={notif.id} onClick={() => { if (notif.action_url) openActionUrl(notif.action_url); }} className="flex items-center gap-3 w-full text-left">
-                    <div className="w-12 h-12 rounded-full bg-[#111111] border border-[#C9A227]/40 flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-full bg-[#111113] border border-[#D4AF37]/40 flex items-center justify-center">
                         <Archive className="w-6 h-6 stroke-gold-metallic" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -1002,7 +1002,7 @@ export default function Inbox() {
              {/* Shop Notification */}
              {activeFilter === 'main' && notifications.filter(n => n.type === 'shop').map(notif => (
                 <button key={notif.id} onClick={goShop} className="flex items-center gap-3 w-full text-left">
-                    <div className="w-12 h-12 rounded-full bg-[#111111] border border-[#C9A227]/40 flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-full bg-[#111113] border border-[#D4AF37]/40 flex items-center justify-center">
                         <ShoppingBag className="w-6 h-6 text-[#D4AF37]" strokeWidth={2} />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -1019,10 +1019,10 @@ export default function Inbox() {
 
       {/* Followers — full page on same fundal, no sheet box */}
       {showNewFollowersPanel && createPortal(
-        <div className="page-above-bottom-nav bg-[#111111] z-[101] pointer-events-auto">
-          <div className="page-above-bottom-nav__inner bg-[#111111] flex flex-col min-h-0">
-            <div className="flex-1 min-h-0 overflow-y-auto bg-[#111111] new-followers-panel-scroll">
-              <div className="px-3 pt-page-header pb-1 flex items-center justify-between relative bg-[#111111]">
+        <div className="page-above-bottom-nav bg-[#111113] z-[101] pointer-events-auto">
+          <div className="page-above-bottom-nav__inner bg-[#111113] flex flex-col min-h-0">
+            <div className="flex-1 min-h-0 overflow-y-auto bg-[#111113] new-followers-panel-scroll">
+              <div className="px-3 pt-page-header pb-1 flex items-center justify-between relative bg-[#111113]">
                 <div className="w-8" aria-hidden />
                 <h2 className="text-sm font-bold text-gold-bright absolute left-1/2 transform -translate-x-1/2">
                   Followers ({followersCount})
@@ -1040,18 +1040,18 @@ export default function Inbox() {
               {myNewFollowers.length === 0 ? (
               <p className="text-gold-bright/50 text-sm py-6 text-center px-4">No one follows you yet. When they do, they’ll show here.</p>
             ) : (
-              <div className="space-y-0.5 pb-4 px-4 bg-[#111111]">
+              <div className="space-y-0.5 pb-4 px-4 bg-[#111113]">
                 {myNewFollowers.map((f) => (
                     <div
                       key={f.user_id}
-                      className="flex items-center gap-2 w-full py-2.5 px-0 bg-[#111111]"
+                      className="flex items-center gap-2 w-full py-2.5 px-0 bg-[#111113]"
                     >
                       <button
                         type="button"
-                        className="flex items-center gap-3 flex-1 min-w-0 text-left bg-[#111111]"
+                        className="flex items-center gap-3 flex-1 min-w-0 text-left bg-[#111113]"
                         onClick={() => openFollowerProfile(f.user_id)}
                       >
-                        <div className="relative w-11 h-11 rounded-full bg-[#111111] flex items-center justify-center overflow-hidden flex-shrink-0">
+                        <div className="relative w-11 h-11 rounded-full bg-[#111113] flex items-center justify-center overflow-hidden flex-shrink-0">
                           {f.avatar_url ? (
                             <img src={f.avatar_url} alt="" className="w-full h-full object-cover" />
                           ) : (
@@ -1081,7 +1081,7 @@ export default function Inbox() {
                       )}
                       <button
                         type="button"
-                        className="p-1 flex-shrink-0 bg-[#111111]"
+                        className="p-1 flex-shrink-0 bg-[#111113]"
                         onClick={() => openFollowerProfile(f.user_id)}
                         aria-label="Open profile"
                       >

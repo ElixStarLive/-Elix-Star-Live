@@ -57,10 +57,10 @@ export default function Hashtag() {
   }, [tag]);
 
   return (
-    <div className="h-full min-h-0 w-full bg-[#111111] text-white flex justify-center px-2">
-      <div className="w-full max-w-[480px] h-full min-h-0 flex flex-col overflow-hidden bg-[#111111]">
+    <div className="h-full min-h-0 w-full bg-[#111113] text-white flex justify-center px-2">
+      <div className="w-full max-w-[480px] h-full min-h-0 flex flex-col overflow-hidden bg-[#111113]">
       {/* Header */}
-      <div className="sticky top-0 z-10 px-4 py-6 bg-[#111111]">
+      <div className="sticky top-0 z-10 px-4 py-6 bg-[#111113]">
         <div className="flex items-center gap-3 mb-4">
           <button onClick={goFeed} className="p-1 hover:brightness-125 transition" title="Back to For You">
             <RoyceBackIcon />
@@ -95,7 +95,7 @@ export default function Hashtag() {
               <button
                 key={video.id}
                 onClick={() => openVideo(video.id)}
-                className="relative aspect-[9/16] bg-[#111111] rounded overflow-hidden text-left"
+                className="relative aspect-[9/16] bg-[#111113] rounded overflow-hidden text-left"
               >
                 <img
                   src={video.thumbnail_url || `https://ui-avatars.com/api/?name=Video&background=1C1E24&color=FFFFFF&size=200`}

@@ -265,7 +265,7 @@ export default function LiveDiscover() {
   }, []);
 
   return (
-    <div className="app-live-column bg-[#111111]">
+    <div className="app-live-column bg-[#111113]">
       {/* Header inside column — close stays within max-w container */}
       <div
         className="flex-shrink-0 w-full px-3 flex items-center justify-between z-20"
@@ -307,7 +307,7 @@ export default function LiveDiscover() {
         <div className="w-full max-w-[480px] mx-auto">
           {loading && creators.length === 0 ? (
             <div className="flex items-center justify-center py-32">
-              <div className="w-8 h-8 border-2 border-[#C9A227] border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-2 border-[#D4AF37] border-t-transparent rounded-full animate-spin" />
             </div>
           ) : creators.length > 0 ? (
             <div className="grid grid-cols-2 gap-1 px-1 pb-[env(safe-area-inset-bottom,20px)]">
@@ -322,7 +322,7 @@ export default function LiveDiscover() {
                   }`}
                 >
                   {previewActive ? (
-                    <Suspense fallback={<div className="absolute inset-0 bg-[#111111]" />}>
+                    <Suspense fallback={<div className="absolute inset-0 bg-[#111113]" />}>
                       <InlineLiveViewer
                         streamKey={c.id}
                         isActive

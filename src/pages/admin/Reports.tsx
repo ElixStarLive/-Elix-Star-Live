@@ -59,11 +59,11 @@ export default function AdminReports() {
   };
 
   if (loading) {
-    return <div className="min-h-screen bg-[#111111] flex items-center justify-center text-white">Loading...</div>;
+    return <div className="min-h-screen bg-[#111113] flex items-center justify-center text-white">Loading...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-[#111111] text-white p-6">
+    <div className="min-h-screen bg-[#111113] text-white p-6">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold mb-6 flex items-center gap-3">
           <Flag className="w-8 h-8 text-white/70" />
@@ -93,7 +93,7 @@ export default function AdminReports() {
         {/* Reports List */}
         <div className="space-y-4">
           {reports.map(report => (
-            <div key={report.id} className="bg-[#111111] rounded-lg p-6">
+            <div key={report.id} className="bg-[#111113] rounded-lg p-6">
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <div className="flex items-center gap-3 mb-2">

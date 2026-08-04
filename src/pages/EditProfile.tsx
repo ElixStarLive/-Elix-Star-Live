@@ -184,9 +184,9 @@ export default function EditProfile() {
 
   return (
     <SettingsOptionSheet onClose={goBack}>
-      <div className="w-full h-full overflow-hidden bg-[#111111] flex flex-col">
+      <div className="w-full h-full overflow-hidden bg-[#111113] flex flex-col">
       {/* Header */}
-      <div className="flex-shrink-0 px-4 py-3 flex items-center justify-between bg-[#111111]">
+      <div className="flex-shrink-0 px-4 py-3 flex items-center justify-between bg-[#111113]">
         <button
           onClick={handleSave}
           disabled={loading}

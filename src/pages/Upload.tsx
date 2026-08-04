@@ -726,13 +726,13 @@ export default function Upload() {
   };
 
   return (
-    <div className="fixed inset-0 h-[100dvh] w-full bg-[#111111] overflow-hidden flex justify-center">
+    <div className="fixed inset-0 h-[100dvh] w-full bg-[#111113] overflow-hidden flex justify-center">
       <div className={`w-full max-w-[480px] flex flex-col items-center h-full relative ${recordedVideoUrl ? 'justify-end' : 'justify-start'}`}>
       {toast && <div className="fixed top-16 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-md text-white text-sm px-4 py-2 rounded-xl z-[9999]">{toast}</div>}
       {/* PREVIEW MODE */}
        {recordedVideoUrl ? (
          <>
-           <div className="relative z-10 w-full mx-auto h-[100dvh] bg-[#111111] flex flex-col items-center justify-center">
+           <div className="relative z-10 w-full mx-auto h-[100dvh] bg-[#111113] flex flex-col items-center justify-center">
               {duetSourceVideoUrl ? (
                 <div
                   className="absolute top-0 left-0 right-0 w-full overflow-hidden bg-black"
@@ -1006,14 +1006,14 @@ export default function Upload() {
                </div>
 
                <div className="absolute bottom-[22%] left-0 right-0 z-20 px-4 pointer-events-auto flex justify-center">
-                 <div className="bg-black/60 backdrop-blur-md border border-[#C9A227]/30 rounded-xl p-2.5 space-y-2 w-[75%] max-w-[280px]">
+                 <div className="bg-black/60 backdrop-blur-md border border-[#D4AF37]/30 rounded-xl p-2.5 space-y-2 w-[75%] max-w-[280px]">
                    <div>
                      <label className="text-[10px] text-[#D4AF37] font-semibold mb-1 block">Caption</label>
                      <textarea
                        value={caption}
                        onChange={(e) => setCaption(e.target.value)}
                        placeholder="Write something…"
-                       className="w-full bg-white/10 text-white placeholder-white/40 border border-[#C9A227]/40 rounded-lg px-3 py-2 text-sm outline-none resize-none h-10 focus:h-24 focus:border-[#C9A227] transition-all duration-300"
+                       className="w-full bg-white/10 text-white placeholder-white/40 border border-[#D4AF37]/40 rounded-lg px-3 py-2 text-sm outline-none resize-none h-10 focus:h-24 focus:border-[#D4AF37] transition-all duration-300"
                        aria-label="Caption"
                      />
                    </div>
@@ -1023,7 +1023,7 @@ export default function Upload() {
                        value={hashtagsText}
                        onChange={(e) => setHashtagsText(e.target.value)}
                        placeholder="#fun #dance #viral"
-                       className="w-full bg-white/10 text-white placeholder-white/40 border border-[#C9A227]/40 rounded-lg px-3 py-2 text-sm outline-none h-10 focus:border-[#C9A227] transition-all duration-300"
+                       className="w-full bg-white/10 text-white placeholder-white/40 border border-[#D4AF37]/40 rounded-lg px-3 py-2 text-sm outline-none h-10 focus:border-[#D4AF37] transition-all duration-300"
                        aria-label="Hashtags"
                      />
                    </div>
@@ -1195,7 +1195,7 @@ export default function Upload() {
         /* CAMERA MODE */
         <>
           {/* Container Principal */}
-          <div className="relative z-10 w-full h-[100dvh] mb-0 pointer-events-none bg-[#111111] shadow-2xl overflow-hidden">
+          <div className="relative z-10 w-full h-[100dvh] mb-0 pointer-events-none bg-[#111113] shadow-2xl overflow-hidden">
               {/* Duet: split (half/half) or overlay (full original + your face on top) */}
               {duetSourceVideoUrl ? (
                 <div
@@ -1268,8 +1268,8 @@ export default function Upload() {
               ) : null}
 
               {cameraError && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center z-[5] bg-[#111111] text-white p-6 text-center">
-                  <div className="w-14 h-14 rounded-full bg-[#C9A227]/20 flex items-center justify-center mb-3">
+                <div className="absolute inset-0 flex flex-col items-center justify-center z-[5] bg-[#111113] text-white p-6 text-center">
+                  <div className="w-14 h-14 rounded-full bg-[#D4AF37]/20 flex items-center justify-center mb-3">
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M21 21H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3l2-3h6l2 3h3a2 2 0 0 1 2 2v9.34"/><path d="M14.12 14.12A3 3 0 1 1 9.88 9.88"/></svg>
                   </div>
                   <p className="text-white text-sm font-medium mb-1">Camera Access Needed</p>
@@ -1507,7 +1507,7 @@ export default function Upload() {
       {/* Above camera hit-layer + preview chrome — works in record and after capture */}
       {showMusicModal ? (
         <div
-          className="fixed inset-0 z-[10050] bg-[#111111] flex flex-col pt-6 pointer-events-auto"
+          className="fixed inset-0 z-[10050] bg-[#111113] flex flex-col pt-6 pointer-events-auto"
           role="dialog"
           aria-modal="true"
           aria-label="Add sound"
@@ -1520,8 +1520,8 @@ export default function Upload() {
                 type="button"
                 className={`min-h-[64px] px-3 py-3 rounded-2xl border text-left transition-colors active:scale-[0.98] ${
                   selectedAudioId === 'original' && !postWithoutAudio
-                    ? 'bg-[#D4AF37] border-[#C9A227] text-black shadow-[0_0_16px_rgba(212,175,55,0.35)]'
-                    : 'bg-[#1a1a1a] border-[#C9A227]/40 text-white'
+                    ? 'bg-[#D4AF37] border-[#D4AF37] text-black shadow-[0_0_16px_rgba(212,175,55,0.35)]'
+                    : 'bg-[#18181B] border-[#D4AF37]/40 text-white'
                 }`}
                 onClick={() => {
                   handleSelectMusic(ORIGINAL_SOUND_TRACK);
@@ -1540,8 +1540,8 @@ export default function Upload() {
                 type="button"
                 className={`min-h-[64px] px-3 py-3 rounded-2xl border text-left transition-colors active:scale-[0.98] ${
                   postWithoutAudio || selectedAudioId === 'none'
-                    ? 'bg-[#D4AF37] border-[#C9A227] text-black shadow-[0_0_16px_rgba(212,175,55,0.35)]'
-                    : 'bg-[#1a1a1a] border-[#C9A227]/40 text-white'
+                    ? 'bg-[#D4AF37] border-[#D4AF37] text-black shadow-[0_0_16px_rgba(212,175,55,0.35)]'
+                    : 'bg-[#18181B] border-[#D4AF37]/40 text-white'
                 }`}
                 onClick={() => {
                   if (previewAudioRef.current) {
