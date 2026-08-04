@@ -1008,25 +1008,4 @@ svg.lucide.text-red-500 {
   stroke: url(#elixSilverRed) !important;
 }
 
-/* Create (+) — round circle, half silver / half red diagonal. White plus. No glow. */
-.bottom-nav-plus-tile {
-  width: 40px;
-  height: 40px;
-  border-radius: 9999px;
-  border: none;
-  background: linear-gradient(135deg, #E5E5E7 0%, #E5E5E7 50%, #FF3B3F 50%, #FF3B3F 100%);
-  box-shadow: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-plus,
-nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-plus path,
-nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-plus line {
-  color: #FFFFFF !important;
-  stroke: #FFFFFF !important;
-  fill: none !important;
-  filter: none !important;
-}
+/* Create (+) uses same royce-glow-disc + half silver/half red stroke as other nav icons. */
