@@ -2799,7 +2799,7 @@ export default function SpectatorLiveScreen() {
                   >
                     <p className="text-white/40 text-xs mb-3">These coins are for testing only and have no real value.</p>
                     <div className="flex items-center gap-2 mb-2">
-                      <Coins className="w-4 h-4 text-[#D2ADF8]" />
+                      <Coins className="w-4 h-4 text-[#D9A62E]" />
                       <span className="text-white/60 text-xs">Current: {coinBalance.toLocaleString()}</span>
                     </div>
                     <input

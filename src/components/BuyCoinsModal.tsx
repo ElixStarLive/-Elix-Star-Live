@@ -115,7 +115,7 @@ export const BuyCoinsModal: React.FC<BuyCoinsModalProps> = ({ isOpen, onClose, o
           </div>
 
           <div className="flex items-center gap-1.5 px-4 pb-2 flex-shrink-0">
-            <Coins className="w-3.5 h-3.5 text-[#D2ADF8]" strokeWidth={1.8} />
+            <Coins className="w-3.5 h-3.5 text-[#D9A62E]" strokeWidth={1.8} />
             <span className="text-white font-bold text-[13px]">Recharge Coins</span>
           </div>
 
@@ -131,14 +131,14 @@ export const BuyCoinsModal: React.FC<BuyCoinsModalProps> = ({ isOpen, onClose, o
                   >
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 rounded-full bg-[#0B0B0E] border border-[#5F0AE3]/30 flex items-center justify-center">
-                        <Sparkles className="w-3.5 h-3.5 text-[#D2ADF8]" strokeWidth={1.8} />
+                        <Sparkles className="w-3.5 h-3.5 text-[#D9A62E]" strokeWidth={1.8} />
                       </div>
                       <div className="text-left">
                         <p className="text-white text-xs font-semibold">{product.title}</p>
                         {product.price && <p className="text-white/40 text-[10px]">{product.price}</p>}
                       </div>
                     </div>
-                    <span className="text-[#D2ADF8] text-[10px] font-bold">{nativeLoading === product.id ? 'Processing...' : `${product.coins} coins`}</span>
+                    <span className="text-[#D9A62E] text-[10px] font-bold">{nativeLoading === product.id ? 'Processing...' : `${product.coins} coins`}</span>
                   </button>
                 ))}
               </div>

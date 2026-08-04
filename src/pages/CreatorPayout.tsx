@@ -164,7 +164,7 @@ export default function CreatorPayout() {
               <div className="grid grid-cols-2 gap-2 text-[12px]">
                 <div>
                   <p className="text-white/40 uppercase text-[9px]">Available</p>
-                  <p className="text-[#D2ADF8] font-bold text-lg tabular-nums">{(balance?.available_coins ?? 0).toLocaleString()}</p>
+                  <p className="text-[#D9A62E] font-bold text-lg tabular-nums">{(balance?.available_coins ?? 0).toLocaleString()}</p>
                 </div>
                 <div>
                   <p className="text-white/40 uppercase text-[9px]">Pending</p>

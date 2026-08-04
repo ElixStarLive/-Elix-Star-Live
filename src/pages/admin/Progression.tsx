@@ -930,7 +930,7 @@ export default function AdminProgression() {
                 <div className="rounded-lg bg-white/5 p-3">
                   <div className="text-xs text-white/40">Starter Coins</div>
                   <div className="font-bold flex items-center gap-1">
-                    <Coins className="w-4 h-4 text-[#D2ADF8]" />
+                    <Coins className="w-4 h-4 text-[#D9A62E]" />
                     {userProgression.starter_coin_balance.toLocaleString()}
                   </div>
                 </div>

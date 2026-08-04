@@ -2886,7 +2886,7 @@ export default function LiveHostScreen() {
                {/* Total Gift Coins */}
                <div className="bg-white/5 rounded-xl p-3 border border-[#5F0AE3]/20 mt-2">
                  <div className="text-[#D2ADF8]/60 text-[9px] font-bold uppercase tracking-wider">Total Gift Coins Received</div>
-                 <div className="text-gold-metallic font-bold text-lg">{totalGiftCoins.toLocaleString()}</div>
+                 <div className="text-[#D9A62E] font-bold text-lg">{totalGiftCoins.toLocaleString()}</div>
                </div>
 
                {/* Top Gifters */}
@@ -2903,7 +2903,7 @@ export default function LiveHostScreen() {
                        <div className="flex-1 min-w-0">
                          <div className="text-[10px] font-bold text-white truncate">{g.username || g.user_id.slice(0, 8)}</div>
                        </div>
-                       <div className="text-[#D2ADF8] text-[10px] font-bold whitespace-nowrap">{g.total_coins.toLocaleString()} coins</div>
+                       <div className="text-[#D9A62E] text-[10px] font-bold whitespace-nowrap">{g.total_coins.toLocaleString()} coins</div>
                      </div>
                    ))}
                  </div>
@@ -3340,7 +3340,7 @@ export default function LiveHostScreen() {
                 >
                   <p className="text-white/40 text-xs mb-3">These coins are for testing only and have no real value.</p>
                   <div className="flex items-center gap-2 mb-2">
-                    <Coins className="w-4 h-4 text-[#D2ADF8]" />
+                    <Coins className="w-4 h-4 text-[#D9A62E]" />
                     <span className="text-white/60 text-xs">Current: {coinBalance.toLocaleString()}</span>
                   </div>
                   <input

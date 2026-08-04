@@ -172,7 +172,7 @@ export default function PurchaseCoins() {
         <div className="px-4 py-6 flex-1 overflow-y-auto">
           {/* Hero */}
           <div className="text-center mb-8">
-            <div className="w-20 h-20 bg-gradient-to-br from-[#D2ADF8] to-[#B8943F] rounded-full mx-auto mb-4 flex items-center justify-center">
+            <div className="w-20 h-20 bg-gradient-to-br from-[#D9A62E] to-[#B8943F] rounded-full mx-auto mb-4 flex items-center justify-center">
               <Sparkles className="w-10 h-10 text-black" />
             </div>
             <h2 className="text-2xl font-bold mb-2">Buy Coins</h2>
@@ -192,7 +192,7 @@ export default function PurchaseCoins() {
                   <div className="flex items-center justify-between">
                     <div className="text-left">
                       <div className="flex items-center gap-2 mb-2">
-                        <Sparkles className="w-6 h-6 text-[#D2ADF8]" />
+                        <Sparkles className="w-6 h-6 text-[#D9A62E]" />
                         <span className="text-2xl font-bold">{product.coins.toLocaleString()}</span>
                       </div>
                       <p className="text-sm text-white/60">{product.title}</p>
@@ -215,7 +215,7 @@ export default function PurchaseCoins() {
           {/* Web — direct to mobile app */}
           {!isNative && (
             <div className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-8 text-center">
-              <Sparkles className="w-10 h-10 text-[#D2ADF8] mx-auto mb-3" />
+              <Sparkles className="w-10 h-10 text-[#D9A62E] mx-auto mb-3" />
               <h3 className="font-bold text-lg mb-2">Purchase Coins in the App</h3>
               <p className="text-sm text-white/60">
                 Coins are digital items and must be purchased through the Elix Star app on your mobile device via Apple App Store or Google Play.

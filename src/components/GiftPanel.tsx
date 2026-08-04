@@ -122,8 +122,8 @@ function GiftGridItem({
           {gift.name}
         </p>
         <div className="flex items-center justify-center gap-1">
-          <Coins size={9} className="text-secondary" />
-          <p className="text-[10px] text-secondary font-bold">
+          <Coins size={9} className="text-[#D9A62E]" />
+          <p className="text-[10px] text-[#D9A62E] font-bold">
             {gift.coins.toLocaleString()}
           </p>
         </div>
@@ -302,8 +302,8 @@ export function GiftPanel({
             onClick={() => onGiftSourceChange?.("paid_coins")}
             className={`flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded ${
               giftSource === "paid_coins" || !onGiftSourceChange
-                ? "bg-secondary text-black"
-                : "text-secondary"
+                ? "bg-[#D9A62E] text-black"
+                : "text-[#D9A62E]"
             }`}
           >
             <Coins size={11} />
