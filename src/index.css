@@ -1001,13 +1001,13 @@ svg.lucide.text-red-500 {
   stroke: url(#elixSilverRed) !important;
 }
 
-/* Create (+) — round, black middle, silver contour, white plus, no glow */
+/* Create (+) — no circle, transparent bg, same half silver / half red stroke as other icons */
 .bottom-nav-plus-tile {
   width: 40px;
   height: 40px;
-  border-radius: 9999px;
-  border: 2px solid #E5E5E7;
-  background: #0A0A0D;
+  border-radius: 0;
+  border: none;
+  background: transparent;
   box-shadow: none;
   display: inline-flex;
   align-items: center;
@@ -1025,13 +1025,15 @@ button svg,
 [aria-label="Main navigation"] svg {
   filter: none !important;
   box-shadow: none !important;
+  background-color: transparent;
 }
 
+/* Plus uses same diagonal silver/red as every other nav icon — no solid white */
 nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-plus,
 nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-plus path,
 nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-plus line {
-  color: #FFFFFF !important;
-  stroke: #FFFFFF !important;
+  color: #E5E5E7 !important;
+  stroke: url(#elixSilverRed) !important;
   fill: none !important;
   filter: none !important;
 }
