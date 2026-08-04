@@ -94,7 +94,7 @@ export const BottomNav = () => {
           <div className="flex items-center justify-around px-1 pt-1.5 pb-1">
             {NAV_ITEMS.map(({ path, label, Icon, center }) => {
               const active = isActiveRoute(location.pathname, path);
-              const iconClass = "royce-icon-gold";
+              const iconClass = center ? "bottom-nav-icon-plus" : "royce-icon-gold";
               const labelClass = active || center ? "text-[#FFFFFF]" : "text-[#A7A7AD]";
               const size = center ? ICON_SIZE + 2 : ICON_SIZE;
 
@@ -113,12 +113,12 @@ export const BottomNav = () => {
                 >
                   {center ? (
                     <span className="bottom-nav-plus-tile" aria-hidden>
-                      <Icon size={22} strokeWidth={2.75} className="royce-icon-gold bottom-nav-icon-plus" />
+                      <Icon size={22} strokeWidth={2.75} className={iconClass} />
                     </span>
                   ) : (
                     <span
                       className="royce-glow-disc"
-                      style={{ width: size + 12, height: size + 12, background: "transparent" }}
+                      style={{ width: size + 12, height: size + 12 }}
                       aria-hidden
                     >
                       <Icon

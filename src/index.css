@@ -940,7 +940,8 @@ video::-webkit-media-controls-overlay-enclosure,
 }
 
 /*
- * Icon discs — flat, no background glow (match mockup: clean glyphs only).
+ * Icon discs — same as before (round dark background + same colors).
+ * Only change: no glow/light (no box-shadow / drop-shadow).
  */
 .royce-glow-disc,
 .royce-tile {
@@ -951,7 +952,14 @@ video::-webkit-media-controls-overlay-enclosure,
   flex-shrink: 0;
   border-radius: 9999px;
   border: none !important;
-  background: transparent;
+  background:
+    radial-gradient(
+      circle at center,
+      rgba(229, 229, 231, 0.22) 0%,
+      rgba(10, 10, 13, 0.85) 52%,
+      rgba(0, 0, 0, 0.2) 78%,
+      transparent 100%
+    );
   box-shadow: none;
 }
 
@@ -961,7 +969,7 @@ video::-webkit-media-controls-overlay-enclosure,
   box-shadow: none;
 }
 
-/* Icon line — diagonal half silver / half red (no fill, no glow) */
+/* Icon line — diagonal half silver / half red (same colors, no glow) */
 svg.lucide {
   color: #E5E5E7 !important;
   stroke: url(#elixSilverRed) !important;
@@ -992,7 +1000,6 @@ svg.lucide.text-red-500 {
   color: #E5E5E7 !important;
   stroke: url(#elixSilverRed) !important;
   fill: none !important;
-  filter: none !important;
 }
 
 .royce-icon-gold.fill-current,
@@ -1001,13 +1008,13 @@ svg.lucide.text-red-500 {
   stroke: url(#elixSilverRed) !important;
 }
 
-/* Create (+) — no circle, transparent bg, same half silver / half red stroke as other icons */
+/* Create (+) — same as before: black middle, silver contour, white plus. Round. No glow. */
 .bottom-nav-plus-tile {
   width: 40px;
   height: 40px;
-  border-radius: 0;
-  border: none;
-  background: transparent;
+  border-radius: 9999px;
+  border: 2px solid #E5E5E7;
+  background: #0A0A0D;
   box-shadow: none;
   display: inline-flex;
   align-items: center;
@@ -1015,25 +1022,11 @@ svg.lucide.text-red-500 {
   flex-shrink: 0;
 }
 
-/* Kill icon glow/halo app-wide (discs, Lucide, inline SVGs in buttons). */
-.royce-glow-disc,
-.royce-tile,
-.royce-avatar-glow,
-.bottom-nav-plus-tile,
-svg.lucide,
-button svg,
-[aria-label="Main navigation"] svg {
-  filter: none !important;
-  box-shadow: none !important;
-  background-color: transparent;
-}
-
-/* Plus uses same diagonal silver/red as every other nav icon — no solid white */
 nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-plus,
 nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-plus path,
 nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-plus line {
-  color: #E5E5E7 !important;
-  stroke: url(#elixSilverRed) !important;
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
   fill: none !important;
   filter: none !important;
 }
