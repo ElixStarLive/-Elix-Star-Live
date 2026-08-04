@@ -1886,7 +1886,7 @@ export default function SpectatorLiveScreen() {
                 }}
                 className="flex flex-col items-center justify-center w-12 active:scale-95 transition-transform select-none flex-shrink-0"
               >
-                <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm">
+                <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-transparent">
                   <BarChart3 size={20} className="text-[#A7A7AD] shrink-0" strokeWidth={2.2} />
                 </div>
                 <span className="text-[10px] font-semibold text-[#A7A7AD] mt-0.5">Poll</span>
@@ -1901,7 +1901,7 @@ export default function SpectatorLiveScreen() {
                 onClick={() => { sendCohostJoinRequest(); }}
                 className="flex flex-col items-center justify-center w-12 active:scale-95 transition-transform select-none flex-shrink-0 disabled:opacity-60"
               >
-                <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm">
+                <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-transparent">
                   <span className="flex items-center justify-center w-full h-full relative z-[2]">
                     <UserPlus size={20} className="text-[#F5F5F7] shrink-0" strokeWidth={2} />
                   </span>
@@ -1920,7 +1920,7 @@ export default function SpectatorLiveScreen() {
                 }}
                 className="flex flex-col items-center justify-center w-12 active:scale-95 transition-transform select-none flex-shrink-0"
               >
-                <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm">
+                <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-transparent">
                   <Gift size={20} className="text-[#F5F5F7] relative z-[2]" />
                 </div>
                 <span className="text-[10px] font-semibold text-[#F5F5F7] mt-0.5">Gift</span>
@@ -1931,7 +1931,7 @@ export default function SpectatorLiveScreen() {
                 onClick={() => setShowSharePanel(true)}
                 className="flex flex-col items-center justify-center w-12 active:scale-95 transition-transform select-none flex-shrink-0"
               >
-                <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm">
+                <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-transparent">
                   <Share2 size={20} className="text-[#F5F5F7] relative z-[2]" />
                 </div>
                 <span className="text-[10px] font-semibold text-[#F5F5F7] mt-0.5">Share</span>
@@ -1942,7 +1942,7 @@ export default function SpectatorLiveScreen() {
                 onClick={() => setIsMoreMenuOpen(true)}
                 className="flex flex-col items-center justify-center w-12 active:scale-95 transition-transform select-none flex-shrink-0"
               >
-                <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm">
+                <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-transparent">
                   <MoreVertical size={20} className="text-[#F5F5F7] relative z-[2]" />
                 </div>
                 <span className="text-[10px] font-semibold text-[#F5F5F7] mt-0.5">More</span>

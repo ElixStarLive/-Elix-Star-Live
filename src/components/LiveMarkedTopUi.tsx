@@ -374,7 +374,7 @@ export function LiveExplorePill({ onOpen }: { onOpen: () => void }) {
         onOpen();
       }}
     >
-      <svg width="11" height="11" viewBox="0 0 12 12" className="flex-shrink-0 drop-shadow-[0_0_6px_rgba(165,180,252,0.95)]" aria-hidden>
+      <svg width="11" height="11" viewBox="0 0 12 12" className="flex-shrink-0" aria-hidden>
         <defs>
           <linearGradient id="elixExplorePlanet" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stopColor="#EEF2FF" />
@@ -388,7 +388,10 @@ export function LiveExplorePill({ onOpen }: { onOpen: () => void }) {
       </svg>
       <span className="flex flex-col items-start justify-center leading-none min-w-0">
         <span className={CAPSULE_TITLE}>Explore</span>
-        <span className={CAPSULE_SUB}>Live</span>
+        <span
+          className="mt-[1px] w-[5px] h-[5px] rounded-full bg-[#FF3B3F] flex-shrink-0"
+          aria-label="Live"
+        />
       </span>
       <span className={CAPSULE_CHEVRON}>&gt;</span>
     </button>
