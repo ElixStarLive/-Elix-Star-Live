@@ -2160,7 +2160,7 @@ export default function LiveHostScreen() {
                   onClick={openSpectatorPoll}
                   className={`${LIVE_BOTTOM_ICON_BTN} relative`}
                 >
-                  <BarChart3 size={20} className="text-[#C9CCD1] relative z-[2]" strokeWidth={2.2} />
+                  <BarChart3 size={20} className="text-[#A7A7AD] relative z-[2]" strokeWidth={2.2} />
                 </button>
                 <span className="text-white/60 text-[8px] font-medium">Poll</span>
               </div>
@@ -2232,7 +2232,7 @@ export default function LiveHostScreen() {
                     onClick={toggleHostPoll}
                     className={`${LIVE_BOTTOM_ICON_BTN} relative`}
                   >
-                    <BarChart3 size={20} className="text-[#C9CCD1] relative z-[2]" strokeWidth={2.2} />
+                    <BarChart3 size={20} className="text-[#A7A7AD] relative z-[2]" strokeWidth={2.2} />
                   </button>
                   <span className="text-white/60 text-[8px] font-medium">Poll</span>
                 </div>

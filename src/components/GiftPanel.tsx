@@ -370,7 +370,7 @@ export function GiftPanel({
         <button
           className={`text-sm font-bold pb-2 transition-colors relative ${
             activeTab === "big"
-              ? "text-secondary"
+              ? "text-[#A7A7AD]"
               : "text-white/50 hover:text-white/80"
           }`}
           onClick={() => setActiveTab("big")}

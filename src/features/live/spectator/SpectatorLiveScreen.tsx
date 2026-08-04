@@ -1879,9 +1879,9 @@ export default function SpectatorLiveScreen() {
                 className="flex flex-col items-center justify-center w-12 active:scale-95 transition-transform select-none flex-shrink-0"
               >
                 <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm">
-                  <BarChart3 size={20} className="text-[#C9CCD1] shrink-0" strokeWidth={2.2} />
+                  <BarChart3 size={20} className="text-[#A7A7AD] shrink-0" strokeWidth={2.2} />
                 </div>
-                <span className="text-[10px] font-semibold text-[#C9CCD1] mt-0.5">Poll</span>
+                <span className="text-[10px] font-semibold text-[#A7A7AD] mt-0.5">Poll</span>
               </button>
               {/* Co-host is a NORMAL-LIVE feature only. During a battle a
                   spectator can only watch, gift and comment — never co-host. */}

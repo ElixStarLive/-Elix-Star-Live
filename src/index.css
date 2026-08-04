@@ -922,21 +922,21 @@ video::-webkit-media-controls-overlay-enclosure,
 }
 
 .text-gold-metallic {
-  background: linear-gradient(145deg, #F5E6C8 0%, #D4AF37 35%, #B8860B 65%, #E8D5A3 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
+  background: none;
+  -webkit-background-clip: unset;
+  background-clip: unset;
+  -webkit-text-fill-color: #FFFFFF;
+  color: #FFFFFF;
 }
 
 .stroke-gold-metallic {
-  color: #D4AF37;
-  filter: drop-shadow(0 0 6px rgba(201, 162, 39, 0.45));
+  color: #E5E5E7;
+  filter: drop-shadow(0 0 6px rgba(229, 229, 231, 0.35));
 }
 
 .border-gold-metallic {
-  border-color: rgba(201, 162, 39, 0.55);
-  box-shadow: 0 0 12px rgba(201, 162, 39, 0.2);
+  border-color: rgba(229, 229, 231, 0.55);
+  box-shadow: 0 0 12px rgba(229, 229, 231, 0.2);
 }
 
 /*

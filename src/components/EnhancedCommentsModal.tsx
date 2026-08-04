@@ -388,7 +388,7 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
       >
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-white font-semibold text-sm flex items-center gap-2">
-            <MessageSquare className="text-secondary" size={16} />
+            <MessageSquare className="text-[#A7A7AD]" size={16} />
             Comments
           </h2>
           <div className="flex items-center gap-3">
@@ -397,7 +397,7 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
                 key={sort}
                 onClick={() => setSortBy(sort)}
                 className={`text-[11px] font-semibold capitalize ${
-                  sortBy === sort ? 'text-secondary' : 'text-white/60 hover:text-white'
+                  sortBy === sort ? 'text-[#A7A7AD]' : 'text-white/60 hover:text-white'
                 } transition-colors`}
               >
                 {sort === 'mostLiked' ? 'Most Liked' : sort}
@@ -447,7 +447,7 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
                 type="button"
                 onClick={() => handleAddComment()}
                 disabled={!newComment.trim() || posting}
-                className="text-secondary hover:brightness-125 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                className="text-[#A7A7AD] hover:brightness-125 disabled:opacity-50 disabled:cursor-not-allowed transition"
               >
                 <Send className="w-5 h-5" />
               </button>
