@@ -940,8 +940,8 @@ video::-webkit-media-controls-overlay-enclosure,
 }
 
 /*
- * Unified icon halo (app-wide):
- * soft silver glow disc — effect only, NO solid ring/border.
+ * Icon contour (app-wide) — SAME half silver / half red as the icon.
+ * Contour ring: #E5E5E7 → #FF3B3F (matches glyph gradient).
  */
 .royce-glow-disc,
 .royce-tile {
@@ -951,56 +951,60 @@ video::-webkit-media-controls-overlay-enclosure,
   justify-content: center;
   flex-shrink: 0;
   border-radius: 9999px;
-  border: none !important;
+  border: 1.5px solid transparent !important;
   background:
     radial-gradient(
       circle at center,
-      rgba(229, 229, 231, 0.28) 0%,
-      rgba(17, 17, 17, 0.72) 52%,
-      rgba(0, 0, 0, 0.2) 78%,
-      transparent 100%
-    );
+      rgba(229, 229, 231, 0.12) 0%,
+      rgba(17, 17, 17, 0.55) 52%,
+      transparent 78%
+    ) padding-box,
+    linear-gradient(135deg, #E5E5E7 0%, #E5E5E7 45%, #FF3B3F 55%, #FF3B3F 100%) border-box;
   box-shadow:
-    0 0 10px 2px rgba(229, 229, 231, 0.42),
-    0 0 22px 5px rgba(229, 229, 231, 0.18);
+    0 0 8px 1px rgba(229, 229, 231, 0.35),
+    0 0 14px 3px rgba(255, 59, 63, 0.35);
 }
 
-/* Soft silver glow on user avatar circles — same light as close / royce-glow-disc. */
+/* Avatar contour — same silver / red split ring */
 .royce-avatar-glow {
   border-radius: 9999px;
+  border: 1.5px solid transparent;
+  background:
+    linear-gradient(transparent, transparent) padding-box,
+    linear-gradient(135deg, #E5E5E7 0%, #E5E5E7 45%, #FF3B3F 55%, #FF3B3F 100%) border-box;
   box-shadow:
-    0 0 10px 2px rgba(229, 229, 231, 0.42),
-    0 0 22px 5px rgba(229, 229, 231, 0.18);
+    0 0 8px 1px rgba(229, 229, 231, 0.35),
+    0 0 14px 3px rgba(255, 59, 63, 0.35);
 }
 
 /*
- * Unified icon design (app-wide) — black + silver + red:
- * thin silver line icons + soft glow (readable on black video).
- * Bottom-nav active/inactive use their own solid colors (excluded here).
+ * Unified icon design — mockup half silver / half red.
+ * Gradient: #E5E5E7 → #FF3B3F (defs in index.html #elixSilverRed)
  */
-svg.lucide:not(.bottom-nav-icon-active):not(.bottom-nav-icon-inactive) {
+svg.lucide:not(.bottom-nav-icon-active):not(.bottom-nav-icon-inactive):not(.bottom-nav-icon-plus) {
   color: #E5E5E7 !important;
-  stroke: currentColor !important;
+  stroke: url(#elixSilverRed) !important;
   stroke-width: 2;
   fill: none !important;
   filter:
-    drop-shadow(0 0 3px rgba(229, 229, 231, 0.55))
-    drop-shadow(0 0 8px rgba(229, 229, 231, 0.25));
+    drop-shadow(0 0 3px rgba(229, 229, 231, 0.35))
+    drop-shadow(0 0 6px rgba(255, 59, 63, 0.25));
 }
 
-/* Active filled states (save, badge hearts, etc.) */
+/* Active filled states keep the same silver→red brand fill */
 svg.lucide.fill-current,
 svg.lucide.fill-gold-bright,
-svg.lucide[fill]:not([fill="none"]):not(.fill-red-500) {
-  fill: currentColor !important;
+svg.lucide[fill]:not([fill="none"]):not(.fill-red-500):not(.bottom-nav-icon-active) {
+  fill: url(#elixSilverRed) !important;
+  stroke: url(#elixSilverRed) !important;
 }
 
-/* Liked heart — keep red as status, not style drift */
+/* Liked heart — solid red status */
 svg.lucide.fill-red-500,
 svg.lucide.text-red-500 {
   color: #FF3B3F !important;
-  fill: currentColor !important;
-  stroke: currentColor !important;
+  fill: #FF3B3F !important;
+  stroke: #FF3B3F !important;
   filter:
     drop-shadow(0 0 3px rgba(255, 59, 63, 0.55))
     drop-shadow(0 0 8px rgba(255, 59, 63, 0.25));
@@ -1010,23 +1014,24 @@ svg.lucide.text-red-500 {
 .bottom-nav-icon,
 .stroke-gold-metallic {
   color: #E5E5E7 !important;
-  stroke: currentColor;
+  stroke: url(#elixSilverRed) !important;
   fill: none;
 }
 
-/* Bottom nav — one solid color only (no silver+red mix) */
+/* Bottom nav inactive — half silver / half red like brand icons */
 nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-inactive,
 nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-inactive path,
 nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-inactive circle,
 nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-inactive line,
 nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-inactive polyline,
 nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-inactive polygon {
-  color: #A7A7AD !important;
-  stroke: #A7A7AD !important;
+  color: #E5E5E7 !important;
+  stroke: url(#elixSilverRed) !important;
   fill: none !important;
   filter: none !important;
 }
 
+/* Bottom nav active — solid red (mockup active state) */
 nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-active,
 nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-active path,
 nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-active circle,
@@ -1039,23 +1044,42 @@ nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-active polygon {
   filter: none !important;
 }
 
-/* Create (+) — red outline only */
-nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-active.bottom-nav-icon-plus,
-nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-active.bottom-nav-icon-plus path,
-nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-active.bottom-nav-icon-plus line {
+/* Create (+) — red fill, silver/red contour same as icons */
+.bottom-nav-plus-tile {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1.5px solid transparent;
+  background:
+    linear-gradient(#FF3B3F, #FF3B3F) padding-box,
+    linear-gradient(135deg, #E5E5E7 0%, #E5E5E7 45%, #FF3B3F 55%, #FF3B3F 100%) border-box;
+  box-shadow:
+    0 0 8px 1px rgba(229, 229, 231, 0.35),
+    0 0 14px 3px rgba(255, 59, 63, 0.35);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-plus,
+nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-plus path,
+nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-plus line {
+  color: #F5F5F7 !important;
+  stroke: #F5F5F7 !important;
   fill: none !important;
-  stroke: #FF3B3F !important;
-  color: #FF3B3F !important;
+  filter: none !important;
 }
 
 .royce-icon-muted {
   color: #707070 !important;
-  stroke: currentColor;
+  stroke: #707070 !important;
   fill: none;
   filter: none;
 }
 
 .royce-icon-gold.fill-current,
 .royce-icon-gold.fill-gold-bright {
-  fill: currentColor !important;
+  fill: url(#elixSilverRed) !important;
+  stroke: url(#elixSilverRed) !important;
 }
