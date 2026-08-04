@@ -210,24 +210,23 @@ export function LiveJoinPill({
   );
 }
 
-/** Blue-pink capsules — cooler than hot pink so white text stays readable on LIVE video. */
+/** Flat transparent chips — same as bottom live icons (no pill fill / contour / glow). */
 const THIN_CAPSULE_STYLE: React.CSSProperties = {
-  background: 'rgba(67, 56, 202, 0.82)',
-  border: '1px solid rgba(196, 181, 253, 0.95)',
-  backdropFilter: 'blur(8px)',
-  WebkitBackdropFilter: 'blur(8px)',
-  boxShadow:
-    '0 0 10px 2px rgba(129, 140, 248, 0.7), 0 0 22px 4px rgba(99, 102, 241, 0.45), inset 0 0 8px rgba(233, 213, 255, 0.28)',
+  background: 'transparent',
+  border: 'none',
+  boxShadow: 'none',
+  backdropFilter: 'none',
+  WebkitBackdropFilter: 'none',
 };
 
 /** Shared capsule title / subtitle text — bright white for contrast. */
-const CAPSULE_TITLE = 'text-white text-[8px] font-bold whitespace-nowrap drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]';
-const CAPSULE_SUB = 'text-[#E0E7FF] text-[6px] font-semibold whitespace-nowrap mt-[0.5px] drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]';
-const CAPSULE_CHEVRON = 'text-white text-[8px] font-medium leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]';
+const CAPSULE_TITLE = 'text-white text-[8px] font-bold whitespace-nowrap';
+const CAPSULE_SUB = 'text-white/70 text-[6px] font-semibold whitespace-nowrap mt-[0.5px]';
+const CAPSULE_CHEVRON = 'text-white text-[8px] font-medium leading-none';
 
-/** Same height / padding / border for every sub-header capsule — shorter + right-side row. */
+/** Same height / padding for every sub-header chip — no visible container. */
 const THIN_CAPSULE_CLASS =
-  'inline-flex items-center gap-0.5 flex-shrink-0 rounded-full pl-1.5 pr-1.5 h-[22px] box-border pointer-events-auto active:scale-95 transition-transform';
+  'inline-flex items-center gap-0.5 flex-shrink-0 rounded-none pl-0.5 pr-0.5 h-[22px] box-border pointer-events-auto active:scale-95 transition-transform bg-transparent border-0 shadow-none';
 
 /** Diamond League — separate thin capsule. */
 export function LiveDiamondLeagueCapsule({
@@ -285,7 +284,7 @@ export function LiveMembershipVipCapsule({ onOpen }: { onOpen: () => void }) {
 function LivePhotoDiamondIcon({ size = 14 }: { size?: number }) {
   const uid = `dl${size}`;
   return (
-    <svg width={size} height={size} viewBox="0 0 18 18" className="flex-shrink-0 drop-shadow-[0_0_6px_rgba(165,180,252,0.95)]" aria-hidden>
+    <svg width={size} height={size} viewBox="0 0 18 18" className="flex-shrink-0" aria-hidden>
       <defs>
         <linearGradient id={`${uid}Top`} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stopColor="#EEF2FF" />
@@ -310,7 +309,7 @@ function LivePhotoDiamondIcon({ size = 14 }: { size?: number }) {
 function LivePhotoCrownIcon({ size = 14 }: { size?: number }) {
   const uid = `cr${size}`;
   return (
-    <svg width={size} height={size} viewBox="0 0 18 18" className="flex-shrink-0 drop-shadow-[0_0_6px_rgba(165,180,252,0.9)]" aria-hidden>
+    <svg width={size} height={size} viewBox="0 0 18 18" className="flex-shrink-0" aria-hidden>
       <defs>
         <linearGradient id={uid} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#EEF2FF" />
@@ -348,7 +347,7 @@ export function LiveWeeklyRankingPill({
         onOpen();
       }}
     >
-      <span className="text-[9px] leading-none w-[11px] h-[11px] flex items-center justify-center flex-shrink-0 drop-shadow-[0_0_6px_rgba(165,180,252,0.95)]" aria-hidden>
+      <span className="text-[9px] leading-none w-[11px] h-[11px] flex items-center justify-center flex-shrink-0" aria-hidden>
         🔥
       </span>
       <span className="flex flex-col items-start justify-center leading-none min-w-0">

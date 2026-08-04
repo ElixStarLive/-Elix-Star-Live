@@ -1015,6 +1015,18 @@ svg.lucide.text-red-500 {
   flex-shrink: 0;
 }
 
+/* Kill icon glow/halo app-wide (discs, Lucide, inline SVGs in buttons). */
+.royce-glow-disc,
+.royce-tile,
+.royce-avatar-glow,
+.bottom-nav-plus-tile,
+svg.lucide,
+button svg,
+[aria-label="Main navigation"] svg {
+  filter: none !important;
+  box-shadow: none !important;
+}
+
 nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-plus,
 nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-plus path,
 nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-plus line {
