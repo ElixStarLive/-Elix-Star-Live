@@ -616,7 +616,7 @@ export default function SpectatorLiveScreen() {
             const hideBlueScore = battleHideScores || mistSupportedSide === 'opponent';
             return (
               <div
-                className="absolute inset-0 z-[80] flex flex-col"
+                className="absolute inset-0 z-[80] flex flex-col overflow-hidden"
                 style={{
                   // Match creator broadcast battle: reserve bottom for chat / action bar
                   // so video stays top-half and chat sits in the lower half.
@@ -624,6 +624,8 @@ export default function SpectatorLiveScreen() {
                   paddingBottom: '305px',
                 }}
               >
+                {/* Battle video half — score + videos + MVP inside height box (host-identical) */}
+                <div className="relative w-full flex-none flex flex-col overflow-hidden" style={{ height: LIVE_BATTLE_VIDEO_HEIGHT }}>
                 <div className={`relative z-20 w-full flex-none ${battleScoreBarHidden ? '' : 'bg-[#121215]/95 border-b border-white/10'}`}>
                   {!battleScoreBarHidden ? (
                     <div
@@ -704,7 +706,6 @@ export default function SpectatorLiveScreen() {
                 </div>
 
                 {/* Battle grid — videos + tap overlay (2-way or 4-way PK); one +5 vote per spectator per battle */}
-                <div className="relative w-full flex-none flex flex-col overflow-hidden" style={{ height: LIVE_BATTLE_VIDEO_HEIGHT }}>
                   <div className="flex-1 min-h-0 flex flex-col relative">
                     <BattleVfxOverlays
                       mistSide={
@@ -853,9 +854,8 @@ export default function SpectatorLiveScreen() {
                       )}
                     </div>
                   </div>
-                </div>
 
-                <div className="w-full px-3 py-1.5 flex items-center justify-between flex-none z-30" style={{ transform: 'translateY(1mm)' }}>
+                <div className="absolute bottom-1 left-0 right-0 px-3 py-1.5 flex items-center justify-between flex-none z-30 pointer-events-none" style={{ transform: 'translateY(1mm)' }}>
                   <div
                     className="flex items-end gap-[0mm] min-w-0 flex-1 justify-start pointer-events-auto"
                     style={{ transform: `translateX(-${BATTLE_MVP_ROW_EDGE_OFFSET_MM}mm)` }}
@@ -965,7 +965,7 @@ export default function SpectatorLiveScreen() {
                     })}
                   </div>
                 </div>
-
+                </div>
                 {SPEED_CHALLENGE_ENABLED && speedChallengeActive && (
                   <div className="w-full px-3 py-2 flex items-center justify-center flex-none pointer-events-none mt-1 relative z-30" style={{ transform: 'translateY(-6mm)' }}>
                     <div className="flex items-center gap-3 px-5 py-1 rounded-full bg-[#B91C1C]/90 backdrop-blur-md border border-white/20 shadow-[0_0_15px_rgba(185,28,28,0.45)] animate-luxury-fade-in">
