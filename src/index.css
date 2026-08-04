@@ -955,22 +955,22 @@ video::-webkit-media-controls-overlay-enclosure,
   background:
     radial-gradient(
       circle at center,
-      rgba(229, 229, 231, 0.18) 0%,
-      rgba(10, 10, 13, 0.85) 48%,
-      rgba(255, 59, 63, 0.16) 72%,
+      rgba(229, 229, 231, 0.22) 0%,
+      rgba(10, 10, 13, 0.85) 52%,
+      rgba(0, 0, 0, 0.2) 78%,
       transparent 100%
     );
   box-shadow:
-    0 0 10px 2px rgba(229, 229, 231, 0.35),
-    0 0 18px 4px rgba(255, 59, 63, 0.28);
+    0 0 10px 2px rgba(229, 229, 231, 0.5),
+    0 0 22px 5px rgba(229, 229, 231, 0.22);
 }
 
 .royce-avatar-glow {
   border-radius: 9999px;
   border: none;
   box-shadow:
-    0 0 10px 2px rgba(229, 229, 231, 0.35),
-    0 0 18px 4px rgba(255, 59, 63, 0.28);
+    0 0 10px 2px rgba(229, 229, 231, 0.5),
+    0 0 22px 5px rgba(229, 229, 231, 0.22);
 }
 
 /* Icon line — diagonal half silver / half red (no fill) */
@@ -980,8 +980,8 @@ svg.lucide {
   stroke-width: 2;
   fill: none !important;
   filter:
-    drop-shadow(0 0 2px rgba(229, 229, 231, 0.45))
-    drop-shadow(0 0 4px rgba(255, 59, 63, 0.35));
+    drop-shadow(0 0 3px rgba(229, 229, 231, 0.55))
+    drop-shadow(0 0 8px rgba(229, 229, 231, 0.25));
 }
 
 svg.lucide.fill-current,
@@ -1014,4 +1014,29 @@ svg.lucide.text-red-500 {
 .royce-icon-gold.fill-gold-bright {
   fill: none !important;
   stroke: url(#elixSilverRed) !important;
+}
+
+/* Create (+) — black middle, silver contour, white plus */
+.bottom-nav-plus-tile {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  border: 2px solid #E5E5E7;
+  background: #0A0A0D;
+  box-shadow:
+    0 0 10px 2px rgba(229, 229, 231, 0.5),
+    0 0 22px 5px rgba(229, 229, 231, 0.22);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-plus,
+nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-plus path,
+nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-plus line {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+  fill: none !important;
+  filter: none !important;
 }
