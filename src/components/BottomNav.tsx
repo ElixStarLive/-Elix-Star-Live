@@ -95,7 +95,7 @@ export const BottomNav = () => {
             {NAV_ITEMS.map(({ path, label, Icon, center }) => {
               const active = isActiveRoute(location.pathname, path);
               const iconClass = "royce-icon-gold";
-              const labelClass = active ? "text-gold-bright" : "text-gold-bright/45";
+              const labelClass = active ? "text-[#FFFFFF]" : "text-[#A7A7AD]";
               const size = center ? ICON_SIZE + 2 : ICON_SIZE;
 
               return (
