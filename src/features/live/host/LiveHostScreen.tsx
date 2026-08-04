@@ -1446,6 +1446,13 @@ export default function LiveHostScreen() {
                             : <Camera className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />}
                         </button>
                       </div>
+                      {lastGifts.host && (
+                        <div className="absolute bottom-1 left-1 z-20 pointer-events-none flex items-center">
+                          <div className="w-5 h-5 rounded-full bg-[#121215] border border-[#E5E5E7]/40 overflow-hidden flex items-center justify-center drop-shadow-md">
+                            <img src={lastGifts.host} alt="gift" className="w-full h-full object-cover" />
+                          </div>
+                        </div>
+                      )}
 
 
                       {battleWinner && (
@@ -3455,6 +3462,7 @@ export default function LiveHostScreen() {
         videoSrc={currentGift?.video ?? null}
         onEnded={handleGiftEnded}
         isBattleMode={isBattleMode}
+        battleSide={currentGift?.battleSide ?? null}
         muted={false}
       />
       

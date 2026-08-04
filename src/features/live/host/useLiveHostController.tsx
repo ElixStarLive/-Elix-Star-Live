@@ -280,16 +280,16 @@ export function useLiveHostController() {
   const [showRankingPanel, setShowRankingPanel] = useState(false);
   const [rankingInitialTab, setRankingInitialTab] = useState<LiveRankTab>('weekly');
   const [isFollowing, setIsFollowing] = useState(false);
-  const [currentGift, setCurrentGift] = useState<{ video: string } | null>(null);
+  const [currentGift, setCurrentGift] = useState<{ video: string; battleSide?: 'host' | 'opponent' | null } | null>(null);
   // Gift video queue must live above the WS effect so creator playback never depends
   // on hook-order / late state declarations.
-  const [giftQueue, setGiftQueue] = useState<{ video: string }[]>([]);
+  const [giftQueue, setGiftQueue] = useState<{ video: string; battleSide?: 'host' | 'opponent' | null }[]>([]);
   const [giftKey, setGiftKey] = useState(0);
-  const enqueueGiftVideoRef = useRef<(url: string) => void>(() => {});
+  const enqueueGiftVideoRef = useRef<(url: string, battleSide?: 'host' | 'opponent' | null) => void>(() => {});
   const playedGiftVideoTxnRef = useRef<Set<string>>(new Set());
-  enqueueGiftVideoRef.current = (url: string) => {
+  enqueueGiftVideoRef.current = (url: string, battleSide?: 'host' | 'opponent' | null) => {
     if (!url) return;
-    setGiftQueue((prev) => appendCapped(prev, { video: url }, LIVE_GIFT_QUEUE_CAP));
+    setGiftQueue((prev) => appendCapped(prev, { video: url, battleSide: battleSide ?? null }, LIVE_GIFT_QUEUE_CAP));
   };
   const [messages, setMessages] = useState<LiveMessage[]>(() => []);
   const [coinBalance, setCoinBalance] = useState(0);
@@ -2071,7 +2071,7 @@ export function useLiveHostController() {
 
   const _speedChallengeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reachedThresholdsRef = useRef<Set<number>>(new Set());
-  const [lastGifts, setLastGifts] = useState<{ opponent: string | null; player3: string | null; player4: string | null }>({ opponent: null, player3: null, player4: null });
+  const [lastGifts, setLastGifts] = useState<{ host: string | null; opponent: string | null; player3: string | null; player4: string | null }>({ host: null, opponent: null, player3: null, player4: null });
   /** Tap a co-host tile to gift them (null = gift goes to the stream host). */
   const [selectedCohostGiftUserId, setSelectedCohostGiftUserId] = useState<string | null>(null);
   /** Per co-host tile: gift totals + last gift icon (synced from gift_sent). */
@@ -3733,13 +3733,15 @@ export function useLiveHostController() {
               ? (iconRaw.startsWith('http') ? iconRaw : resolveGiftAssetUrl(iconRaw.startsWith('/') ? iconRaw : `/${iconRaw}`))
               : null;
           const target = data.battleTarget;
-          if (iconUrl && (target === 'opponent' || target === 'player3' || target === 'player4')) {
-            setLastGifts((prev) => ({
-              ...prev,
-              ...(target === 'opponent' ? { opponent: iconUrl } : {}),
-              ...(target === 'player3' ? { player3: iconUrl } : {}),
-              ...(target === 'player4' ? { player4: iconUrl } : {}),
-            }));
+          const side = normalizeBattleGiftTarget(target);
+          if (iconUrl) {
+            setLastGifts((prev) => {
+              if (target === 'player3') return { ...prev, player3: iconUrl, host: iconUrl };
+              if (target === 'player4') return { ...prev, player4: iconUrl, opponent: iconUrl };
+              if (side === 'host' || target === 'host' || target === 'me') return { ...prev, host: iconUrl };
+              if (side === 'opponent' || target === 'opponent') return { ...prev, opponent: iconUrl };
+              return prev;
+            });
           }
         }
         const cohostTarget =
@@ -3770,16 +3772,18 @@ export function useLiveHostController() {
       const isOwnGift = !!(gifterId && selfId && gifterId === selfId);
       if (isOwnGift) return;
 
-      // Host always plays spectator gift videos (that is the product rule).
-      // Only battle joiners filter to their own side during an active battle.
+      // Battle: each creator only plays big gift video for gifts sent to their side.
+      // The other side stays as the small tile icon (lastGifts) — never fullscreen.
+      const giftSide = isBattleModeRef.current
+        ? normalizeBattleGiftTarget(data.battleTarget)
+        : null;
       if (
-        !isBroadcast &&
         isBattleModeRef.current &&
         battleStateRef.current === 'IN_BATTLE'
       ) {
-        const giftSide = normalizeBattleGiftTarget(data.battleTarget);
         const myRole =
-          battleRoleRef.current || (isBattleJoiner ? 'opponent' : null);
+          battleRoleRef.current ||
+          (isBroadcast ? 'host' : isBattleJoiner ? 'opponent' : null);
         if (giftSide && myRole && giftSide !== myRole) return;
       }
 
@@ -3811,7 +3815,7 @@ export function useLiveHostController() {
             playedGiftVideoTxnRef.current = new Set(keep);
           }
         }
-        enqueueGiftVideoRef.current(url);
+        enqueueGiftVideoRef.current(url, giftSide);
       };
 
       const playUrl = resolvePlayUrl(giftsCatalogRef.current);
@@ -4701,6 +4705,18 @@ export function useLiveHostController() {
         return;
       }
 
+      const idsForBattleGift = battleStreamIdsRef.current;
+      const serverBattleTarget =
+        isBattleMode
+          ? liveStreamUiGiftTargetToServerBattleTarget(giftTarget, {
+              isBroadcast,
+              isBattleJoiner,
+              effectiveStreamId,
+              hostRoomId: idsForBattleGift?.hostRoomId ?? '',
+              opponentRoomId: idsForBattleGift?.opponentRoomId ?? '',
+            })
+          : undefined;
+
       if (gift.video && gift.video.trim()) {
         const raw = gift.video;
         const ext = raw.split('?')[0].toLowerCase();
@@ -4712,7 +4728,10 @@ export function useLiveHostController() {
               : resolveGiftAssetUrl(raw.startsWith('/') ? raw : `/${raw}`),
           );
           if (videoUrl) {
-            setGiftQueue(prev => appendCapped(prev, { video: videoUrl }, LIVE_GIFT_QUEUE_CAP));
+            const localBattleSide = isBattleMode
+              ? normalizeBattleGiftTarget(serverBattleTarget)
+              : null;
+            setGiftQueue(prev => appendCapped(prev, { video: videoUrl, battleSide: localBattleSide }, LIVE_GIFT_QUEUE_CAP));
           }
         }
       }
@@ -4745,18 +4764,6 @@ export function useLiveHostController() {
           avatar: isBroadcast ? myAvatar : viewerAvatar,
       };
       setMessages(prev => appendCapped(prev, giftMsg, LIVE_CHAT_MESSAGE_CAP));
-
-      const idsForBattleGift = battleStreamIdsRef.current;
-      const serverBattleTarget =
-        isBattleMode
-          ? liveStreamUiGiftTargetToServerBattleTarget(giftTarget, {
-              isBroadcast,
-              isBattleJoiner,
-              effectiveStreamId,
-              hostRoomId: idsForBattleGift?.hostRoomId ?? '',
-              opponentRoomId: idsForBattleGift?.opponentRoomId ?? '',
-            })
-          : undefined;
 
       // Test coins only on WS. Paid gifts: server already broadcasts gift_sent.
       if (usedTestCoins) {
@@ -5011,7 +5018,18 @@ export function useLiveHostController() {
             : resolveGiftAssetUrl(lastSentGift.video.startsWith('/') ? lastSentGift.video : `/${lastSentGift.video}`),
         );
         if (videoUrl) {
-          setGiftQueue(prev => appendCapped(prev, { video: videoUrl }, LIVE_GIFT_QUEUE_CAP));
+          const comboBattleSide = isBattleMode
+            ? normalizeBattleGiftTarget(
+                liveStreamUiGiftTargetToServerBattleTarget(giftTarget, {
+                  isBroadcast,
+                  isBattleJoiner,
+                  effectiveStreamId,
+                  hostRoomId: battleStreamIdsRef.current?.hostRoomId ?? '',
+                  opponentRoomId: battleStreamIdsRef.current?.opponentRoomId ?? '',
+                }),
+              )
+            : null;
+          setGiftQueue(prev => appendCapped(prev, { video: videoUrl, battleSide: comboBattleSide }, LIVE_GIFT_QUEUE_CAP));
           setShowGiftPanel(false);
         }
       }

@@ -319,8 +319,8 @@ export function useLiveSpectatorController() {
   const [testCoinsSavePwd, setTestCoinsSavePwd] = useState(!!(typeof localStorage !== 'undefined' && localStorage.getItem(TEST_COINS_PWD_KEY)));
   const testCoinsPwdRef = useRef<HTMLInputElement>(null);
   const TEST_COINS_HASH = '169a9bfc269089e14090ad2e393b17e945d798598c33993bcab5feef93e68508';
-  const [currentGift, setCurrentGift] = useState<{video: string} | null>(null);
-  const [giftQueue, setGiftQueue] = useState<{video: string}[]>([]);
+  const [currentGift, setCurrentGift] = useState<{video: string; battleSide?: 'host' | 'opponent' | null} | null>(null);
+  const [giftQueue, setGiftQueue] = useState<{video: string; battleSide?: 'host' | 'opponent' | null}[]>([]);
   const [shareQuery, setShareQuery] = useState('');
   const [shareContacts, setShareContacts] = useState<{ id: string; name: string; avatar: string }[]>([]);
   const [lastSentGift, setLastSentGift] = useState<GiftUiItem | null>(null);
@@ -757,6 +757,7 @@ export function useLiveSpectatorController() {
   const [hasOpponentStream, setHasOpponentStream] = useState(false);
   const [showOpponentPanel, setShowOpponentPanel] = useState(false);
   const [lastOpponentGift, setLastOpponentGift] = useState<string | null>(null);
+  const [lastHostGift, setLastHostGift] = useState<string | null>(null);
   /** Tap a co-host tile to gift them (null = gift goes to the stream host). */
   const [selectedCohostGiftUserId, setSelectedCohostGiftUserId] = useState<string | null>(null);
   const [cohostGiftScores, setCohostGiftScores] = useState<Record<string, number>>({});
@@ -2113,20 +2114,20 @@ export function useLiveSpectatorController() {
         }
         if (spectatorBattleRef.current?.active) {
           const side = normalizeBattleGiftTarget(data.battleTarget);
-          if (side === 'opponent') {
-            const iconRaw =
-              (typeof data.gift_icon === 'string' && data.gift_icon) ||
-              (typeof giftDef?.icon === 'string' ? giftDef.icon : '');
-            const iconUrl =
-              iconRaw && (iconRaw.startsWith('http://') || iconRaw.startsWith('https://') || iconRaw.startsWith('/'))
-                ? (iconRaw.startsWith('http') ? iconRaw : resolveGiftAssetUrl(iconRaw.startsWith('/') ? iconRaw : `/${iconRaw}`))
-                : null;
-            if (iconUrl) setLastOpponentGift(iconUrl);
-          }
+          const iconRaw =
+            (typeof data.gift_icon === 'string' && data.gift_icon) ||
+            (typeof giftDef?.icon === 'string' ? giftDef.icon : '');
+          const iconUrl =
+            iconRaw && (iconRaw.startsWith('http://') || iconRaw.startsWith('https://') || iconRaw.startsWith('/'))
+              ? (iconRaw.startsWith('http') ? iconRaw : resolveGiftAssetUrl(iconRaw.startsWith('/') ? iconRaw : `/${iconRaw}`))
+              : null;
+          if (iconUrl && side === 'opponent') setLastOpponentGift(iconUrl);
+          if (iconUrl && side === 'host') setLastHostGift(iconUrl);
         }
       }
       // Play gift video for other users' gifts (sender already queued locally).
       // Same resolve path as creator LiveStream so Spectator GiftOverlay matches.
+      // In battle: video plays only on the receiving side's half (battleSide).
       {
         const resolvePlayUrl = (catalog: GiftUiItem[]) =>
           pickGiftVideoUrl(data, catalog) ||
@@ -2144,9 +2145,13 @@ export function useLiveSpectatorController() {
             catalog,
           );
 
+        const battleSide = spectatorBattleRef.current?.active
+          ? normalizeBattleGiftTarget(data.battleTarget)
+          : null;
+
         const enqueueSpectatorGiftVideo = (url: string) => {
           if (!url) return;
-          setGiftQueue((prev) => appendCapped(prev, { video: url }, LIVE_GIFT_QUEUE_CAP));
+          setGiftQueue((prev) => appendCapped(prev, { video: url, battleSide }, LIVE_GIFT_QUEUE_CAP));
         };
 
         const playUrl = resolvePlayUrl(giftsCatalogRef.current);
@@ -2951,7 +2956,8 @@ export function useLiveSpectatorController() {
           ? raw
           : resolveGiftAssetUrl(raw.startsWith('/') ? raw : `/${raw}`),
       );
-      setGiftQueue(prev => appendCapped(prev, { video: videoUrl }, LIVE_GIFT_QUEUE_CAP));
+      const localBattleSide = spectatorBattle?.active ? spectatorGiftBattleTarget : null;
+      setGiftQueue(prev => appendCapped(prev, { video: videoUrl, battleSide: localBattleSide }, LIVE_GIFT_QUEUE_CAP));
     }
 
     const giftMsg: LiveMessage = {
@@ -3023,11 +3029,12 @@ export function useLiveSpectatorController() {
       creatorName: hostName || 'Creator',
       streamId: effectiveStreamId,
     });
-    if (spectatorBattle?.active && spectatorGiftBattleTarget === 'opponent' && gift.icon && (gift.icon.startsWith('http') || gift.icon.startsWith('/'))) {
+    if (spectatorBattle?.active && gift.icon && (gift.icon.startsWith('http') || gift.icon.startsWith('/'))) {
       const iconUrl = gift.icon.startsWith('http')
         ? gift.icon
         : resolveGiftAssetUrl(gift.icon.startsWith('/') ? gift.icon : `/${gift.icon}`);
-      setLastOpponentGift(iconUrl);
+      if (spectatorGiftBattleTarget === 'opponent') setLastOpponentGift(iconUrl);
+      if (spectatorGiftBattleTarget === 'host') setLastHostGift(iconUrl);
     }
   };
 
@@ -3152,6 +3159,7 @@ export function useLiveSpectatorController() {
     isSubscribing,
     joinRequested,
     lastOpponentGift,
+    lastHostGift,
     lastSentGift,
     leaveStreamWithSlide,
     liveConnectRetryKey,

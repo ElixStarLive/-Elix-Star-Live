@@ -6,6 +6,8 @@ import {
   prepareGiftVideoEl,
   stripVideoMediaChrome,
 } from '../lib/prepareLiveVideoEl';
+import { LIVE_BATTLE_VIDEO_HEIGHT } from '../lib/profileFrame';
+import type { BattleGiftSide } from '../lib/liveBattleGiftTarget';
 
 const MAX_CACHE = 20;
 const videoCache = new Map<string, string>();
@@ -45,11 +47,13 @@ interface GiftOverlayProps {
   videoSrc: string | null;
   previewSrc?: string | null;
   onEnded: () => void;
-  /** @deprecated Gift video never splits onto battle/co-host panes. */
+  /** @deprecated Prefer battleSide — kept for call-site compatibility. */
   splitSides?: boolean;
   /** @deprecated */
   splitStyle?: React.CSSProperties;
   isBattleMode?: boolean;
+  /** In battle: play big gift only on receiving side (host=left/red, opponent=right/blue). */
+  battleSide?: BattleGiftSide | null;
   /** When false, spectators can hear the gift video sound. Default true (muted) for creator/autoplay. */
   muted?: boolean;
   /** Stacking order. Spectator should keep this below combo/gift icons. */
@@ -125,7 +129,8 @@ export function GiftOverlay({
   onEnded,
   splitSides: _splitSides = false,
   splitStyle: _splitStyle,
-  isBattleMode: _isBattleMode,
+  isBattleMode = false,
+  battleSide = null,
   muted = true,
   zIndex = 50000,
 }: GiftOverlayProps) {
@@ -174,17 +179,38 @@ export function GiftOverlay({
 
   if (!videoSrc || !videoReady) return null;
 
+  const sideScoped = !!(isBattleMode && battleSide);
+
   return (
     <div
-      className="fixed left-0 right-0 bottom-0 mx-auto w-full max-w-[480px] pointer-events-none overflow-hidden"
-      style={{
-        height: 'calc(70% - 25mm)',
-        zIndex,
-        WebkitMaskImage: 'linear-gradient(to top, black 0%, black 60%, transparent 100%)',
-        maskImage: 'linear-gradient(to top, black 0%, black 60%, transparent 100%)',
-      }}
+      className="fixed left-0 right-0 mx-auto w-full max-w-[480px] pointer-events-none overflow-hidden"
+      style={
+        sideScoped
+          ? {
+              top: 'calc(env(safe-area-inset-top, 0px) + 90px)',
+              height: LIVE_BATTLE_VIDEO_HEIGHT,
+              zIndex,
+            }
+          : {
+              bottom: 0,
+              height: 'calc(70% - 25mm)',
+              zIndex,
+              WebkitMaskImage: 'linear-gradient(to top, black 0%, black 60%, transparent 100%)',
+              maskImage: 'linear-gradient(to top, black 0%, black 60%, transparent 100%)',
+            }
+      }
     >
-      <GiftVideo videoSrc={videoSrc} muted={muted} onEnded={handleEnded} />
+      <div
+        className={sideScoped ? 'absolute top-0 bottom-0 w-1/2 overflow-hidden' : 'absolute inset-0'}
+        style={sideScoped ? { left: battleSide === 'host' ? 0 : '50%' } : undefined}
+      >
+        <GiftVideo
+          videoSrc={videoSrc}
+          muted={muted}
+          onEnded={handleEnded}
+          className="absolute inset-0 w-full h-full object-contain drop-shadow-2xl"
+        />
+      </div>
     </div>
   );
 }

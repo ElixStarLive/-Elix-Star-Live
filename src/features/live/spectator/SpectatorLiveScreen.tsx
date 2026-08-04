@@ -313,6 +313,7 @@ export default function SpectatorLiveScreen() {
     isSubscribing,
     joinRequested,
     lastOpponentGift,
+    lastHostGift,
     lastSentGift,
     leaveStreamWithSlide,
     liveConnectRetryKey,
@@ -751,6 +752,13 @@ export default function SpectatorLiveScreen() {
                         >
                           <RoyceCloseIcon size={12} />
                         </button>
+                        {lastHostGift && (
+                          <div className="absolute bottom-1 left-1 z-20 pointer-events-none flex items-center">
+                            <div className="w-5 h-5 rounded-full bg-[#121215] border border-[#E5E5E7]/40 overflow-hidden flex items-center justify-center drop-shadow-md">
+                              <img src={lastHostGift} alt="gift" className="w-full h-full object-cover" />
+                            </div>
+                          </div>
+                        )}
                       </div>
                       <div
                         className="flex-1 basis-0 min-w-0 h-full overflow-hidden relative bg-[#121215]"
@@ -1996,6 +2004,7 @@ export default function SpectatorLiveScreen() {
           videoSrc={currentGift?.video ?? null}
           onEnded={handleGiftEnded}
           isBattleMode={!!spectatorBattle?.active}
+          battleSide={currentGift?.battleSide ?? null}
           muted={false}
         />
 
