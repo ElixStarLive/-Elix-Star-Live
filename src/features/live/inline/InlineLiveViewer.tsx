@@ -113,9 +113,7 @@ export default function InlineLiveViewer({
     showIfFramed();
     el.addEventListener("playing", showIfFramed, { once: true });
     el.addEventListener("loadeddata", showIfFramed, { once: true });
-    window.setTimeout(() => {
-      if (el.srcObject) el.style.visibility = "visible";
-    }, 700);
+    el.addEventListener("resize", showIfFramed);
   }, []);
 
   const routeVideoTrack = useCallback(

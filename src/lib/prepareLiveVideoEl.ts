@@ -68,20 +68,15 @@ export function hideVideoUntilPlaying(el: HTMLVideoElement | null | undefined): 
     if (el.videoWidth > 0) reveal();
   }, 50);
 
-  // LiveKit remote tracks on Android often skip `playing` — don't leave For You blank.
-  // Only auto-reveal for MediaStream (camera / LiveKit). URL gifts stay hidden until a frame.
-  const isStreamMedia = Boolean(el.srcObject);
+  // Never auto-reveal without a decoded frame — Android WebView paints a white
+  // play icon on empty <video>. Poll until videoWidth > 0; stop polling eventually.
   flagged.__elixRevealTimer = setTimeout(() => {
     flagged.__elixRevealTimer = undefined;
-    if (isStreamMedia) {
-      reveal();
-      return;
-    }
     if (flagged.__elixRevealPoll != null) {
       clearInterval(flagged.__elixRevealPoll);
       flagged.__elixRevealPoll = undefined;
     }
-  }, 900);
+  }, 15000);
 }
 
 /** Strip Android WebView white play / media chrome without changing mute policy. */
@@ -109,6 +104,39 @@ export function stripVideoMediaChrome(el: HTMLVideoElement): void {
     el.disableRemotePlayback = true;
   } catch {
     /* older WebViews */
+  }
+}
+
+/** CSS class: hide WebView media chrome on gift overlay URL videos. */
+export const GIFT_OVERLAY_VIDEO_CLASS = 'gift-overlay-video';
+
+/**
+ * Gift overlay URL videos — strip chrome, transparent poster, reveal only on first frame.
+ * Keep muted on Android; unmute-after-play paints the stuck white play icon.
+ */
+export function prepareGiftVideoEl(
+  el: HTMLVideoElement | null | undefined,
+  opts?: { muted?: boolean },
+): void {
+  if (!el) return;
+  el.classList.add(GIFT_OVERLAY_VIDEO_CLASS);
+  stripVideoMediaChrome(el);
+  el.setAttribute('poster', LIVE_VIDEO_TRANSPARENT_POSTER);
+  const muted = opts?.muted !== false;
+  el.muted = muted;
+  el.defaultMuted = muted;
+  if (muted) el.setAttribute('muted', '');
+  else el.removeAttribute('muted');
+  hideVideoUntilPlaying(el);
+  const kick = () => {
+    void el.play().catch(() => {});
+  };
+  kick();
+  const flagged = el as HTMLVideoElement & { __elixGiftKickBound?: boolean };
+  if (el.readyState < 2 && !flagged.__elixGiftKickBound) {
+    flagged.__elixGiftKickBound = true;
+    el.addEventListener('loadeddata', kick, { once: true });
+    el.addEventListener('canplay', kick, { once: true });
   }
 }
 

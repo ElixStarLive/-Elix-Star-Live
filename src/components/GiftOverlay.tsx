@@ -1,4 +1,11 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { platform } from '../lib/platform';
+import {
+  GIFT_OVERLAY_VIDEO_CLASS,
+  LIVE_VIDEO_TRANSPARENT_POSTER,
+  prepareGiftVideoEl,
+  stripVideoMediaChrome,
+} from '../lib/prepareLiveVideoEl';
 
 const MAX_CACHE = 20;
 const videoCache = new Map<string, string>();
@@ -10,6 +17,7 @@ function preloadVideo(src: string): Promise<string> {
     vid.preload = 'auto';
     vid.muted = true;
     vid.playsInline = true;
+    stripVideoMediaChrome(vid);
     vid.oncanplaythrough = () => {
       vid.oncanplaythrough = null;
       vid.onerror = null;
@@ -61,24 +69,31 @@ function GiftVideo({
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  const bindVideo = useCallback(
+    (el: HTMLVideoElement | null) => {
+      videoRef.current = el;
+      if (!el) return;
+      prepareGiftVideoEl(el, { muted: true });
+    },
+    [],
+  );
+
   useEffect(() => {
     const el = videoRef.current;
     if (!el) return;
-    // Always start muted so Android/iOS WebViews allow autoplay; unmute after
-    // playback starts when the caller requested sound.
-    el.muted = true;
+    prepareGiftVideoEl(el, { muted: true });
     const tryPlay = () => {
       const p = el.play();
-      if (p && typeof p.then === 'function') {
-        p.then(() => {
-          if (!muted) {
-            el.muted = false;
-          }
-        }).catch(() => {
-          el.muted = true;
-          el.play().catch(() => onEnded());
-        });
-      }
+      if (!p || typeof p.then !== 'function') return;
+      p.then(() => {
+        // Android WebView: unmute-after-play paints a stuck white play icon.
+        if (!muted && !platform.isAndroid) {
+          el.muted = false;
+        }
+      }).catch(() => {
+        el.muted = true;
+        el.play().catch(() => onEnded());
+      });
     };
     if (el.readyState >= 2) tryPlay();
     else el.addEventListener('loadeddata', tryPlay, { once: true });
@@ -87,14 +102,16 @@ function GiftVideo({
 
   return (
     <video
-      ref={videoRef}
+      ref={bindVideo}
       key={videoSrc}
       src={videoSrc}
-      className={`${className} pointer-events-none`}
+      className={`${className} ${GIFT_OVERLAY_VIDEO_CLASS} pointer-events-none`}
       style={{ pointerEvents: 'none' }}
       playsInline
       autoPlay
-      muted={muted}
+      muted
+      controls={false}
+      poster={LIVE_VIDEO_TRANSPARENT_POSTER}
       preload="auto"
       onEnded={onEnded}
       onError={onEnded}
@@ -140,8 +157,6 @@ export function GiftOverlay({
     if (videoCache.has(videoSrc)) {
       setVideoReady(true);
     } else {
-      // Preload is best-effort. On failure still try native playback — a failed
-      // preload (CORS / WebView) must not skip the gift video on the creator page.
       preloadVideo(videoSrc)
         .then(() => setVideoReady(true))
         .catch(() => setVideoReady(true));
@@ -164,7 +179,6 @@ export function GiftOverlay({
       className="fixed left-0 right-0 bottom-0 mx-auto w-full max-w-[480px] pointer-events-none overflow-hidden"
       style={{
         height: 'calc(70% - 25mm)',
-        // Default high; spectator passes a lower zIndex so combo/gift icons stay on top.
         zIndex,
         WebkitMaskImage: 'linear-gradient(to top, black 0%, black 60%, transparent 100%)',
         maskImage: 'linear-gradient(to top, black 0%, black 60%, transparent 100%)',
