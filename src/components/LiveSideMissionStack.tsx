@@ -154,10 +154,11 @@ export function LiveSideMissionStack({
         width: '34px',
         minHeight: '88px',
         borderRadius: '12px 0 0 12px',
-        background: 'transparent',
-        border: 'none',
+        background: 'rgba(8, 10, 28, 0.88)',
+        border: '1px solid rgba(255,255,255,0.12)',
+        borderRight: 'none',
         boxShadow: 'none',
-        backdropFilter: 'none',
+        backdropFilter: 'blur(8px)',
         marginBottom: embedded ? 0 : undefined,
       }}
       onClick={(e) => {

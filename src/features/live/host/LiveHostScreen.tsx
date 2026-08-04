@@ -147,7 +147,7 @@ import { useWalletStore } from '../../../store/useWalletStore';
 import { App as CapacitorApp } from '@capacitor/app';
 
 const LIVE_BOTTOM_ICON_BTN =
-  'w-10 h-10 flex items-center justify-center rounded-full bg-transparent border-0 shadow-none active:scale-95 transition-transform flex-shrink-0';
+  'w-10 h-10 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm border-0 shadow-none active:scale-95 transition-transform flex-shrink-0';
 
 function AnimatedScore({ value, className = '', durationMs = 300, format }: { value: number; className?: string; durationMs?: number; format?: (n: number) => string }) {
   const [display, setDisplay] = useState(value);

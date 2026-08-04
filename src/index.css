@@ -1008,11 +1008,11 @@ svg.lucide.text-red-500 {
   stroke: url(#elixSilverRed) !important;
 }
 
-/* Create (+) — same as before: black middle, silver contour, white plus. Round. No glow. */
+/* Create (+) — original colors: black middle, silver contour, white plus. No glow. */
 .bottom-nav-plus-tile {
   width: 40px;
   height: 40px;
-  border-radius: 9999px;
+  border-radius: 11px;
   border: 2px solid #E5E5E7;
   background: #0A0A0D;
   box-shadow: none;

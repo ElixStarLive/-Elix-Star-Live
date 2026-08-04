@@ -210,23 +210,23 @@ export function LiveJoinPill({
   );
 }
 
-/** Flat transparent chips — same as bottom live icons (no pill fill / contour / glow). */
+/** Live ranking chips — original colors. No glow light. */
 const THIN_CAPSULE_STYLE: React.CSSProperties = {
-  background: 'transparent',
-  border: 'none',
+  background: 'rgba(67, 56, 202, 0.82)',
+  border: '1px solid rgba(196, 181, 253, 0.95)',
+  backdropFilter: 'blur(8px)',
+  WebkitBackdropFilter: 'blur(8px)',
   boxShadow: 'none',
-  backdropFilter: 'none',
-  WebkitBackdropFilter: 'none',
 };
 
-/** Shared capsule title / subtitle text — bright white for contrast. */
-const CAPSULE_TITLE = 'text-white text-[8px] font-bold whitespace-nowrap';
-const CAPSULE_SUB = 'text-white/70 text-[6px] font-semibold whitespace-nowrap mt-[0.5px]';
-const CAPSULE_CHEVRON = 'text-white text-[8px] font-medium leading-none';
+/** Shared capsule title / subtitle text — original colors. */
+const CAPSULE_TITLE = 'text-white text-[8px] font-bold whitespace-nowrap drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]';
+const CAPSULE_SUB = 'text-[#E0E7FF] text-[6px] font-semibold whitespace-nowrap mt-[0.5px] drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]';
+const CAPSULE_CHEVRON = 'text-white text-[8px] font-medium leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]';
 
-/** Same height / padding for every sub-header chip — no visible container. */
+/** Same height / padding / border for every sub-header capsule. */
 const THIN_CAPSULE_CLASS =
-  'inline-flex items-center gap-0.5 flex-shrink-0 rounded-none pl-0.5 pr-0.5 h-[22px] box-border pointer-events-auto active:scale-95 transition-transform bg-transparent border-0 shadow-none';
+  'inline-flex items-center gap-0.5 flex-shrink-0 rounded-full pl-1.5 pr-1.5 h-[22px] box-border pointer-events-auto active:scale-95 transition-transform';
 
 /** Diamond League — separate thin capsule. */
 export function LiveDiamondLeagueCapsule({
@@ -387,10 +387,7 @@ export function LiveExplorePill({ onOpen }: { onOpen: () => void }) {
       </svg>
       <span className="flex flex-col items-start justify-center leading-none min-w-0">
         <span className={CAPSULE_TITLE}>Explore</span>
-        <span
-          className="mt-[1px] w-[5px] h-[5px] rounded-full bg-[#FF3B3F] flex-shrink-0"
-          aria-label="Live"
-        />
+        <span className={CAPSULE_SUB}>Live</span>
       </span>
       <span className={CAPSULE_CHEVRON}>&gt;</span>
     </button>
