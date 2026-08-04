@@ -58,10 +58,10 @@ function drawCrown(ctx: CanvasRenderingContext2D, a: FaceAnchor, color: string, 
   const h = s * 0.22;
 
   const grad = ctx.createLinearGradient(x - w / 2, y, x + w / 2, y + h);
-  grad.addColorStop(0, '#8B6914');
+  grad.addColorStop(0, '#841EB0');
   grad.addColorStop(0.35, color);
   grad.addColorStop(0.7, '#FFF8DC');
-  grad.addColorStop(1, '#8B6914');
+  grad.addColorStop(1, '#841EB0');
 
   withGlow(ctx, `${color}88`, 18, () => {
     ctx.fillStyle = grad;

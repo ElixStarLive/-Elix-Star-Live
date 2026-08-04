@@ -97,7 +97,7 @@ export default function EngagementCollections() {
         <div className="flex flex-col gap-6">
           {engagementFlags.treasureHuntEnabled ? (
             <section>
-              <h2 className="text-sm font-semibold text-[#D4AF37] mb-2 flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-[#D2ADF8] mb-2 flex items-center gap-2">
                 <Map className="w-4 h-4" /> Treasure Hunt
               </h2>
               {chests.length === 0 ? (
@@ -121,7 +121,7 @@ export default function EngagementCollections() {
                           type="button"
                           disabled={opening === c.id}
                           onClick={() => void openChest(c.id)}
-                          className="text-xs font-semibold text-[#D4AF37] px-2 py-1 rounded border border-[#D4AF37]/40 disabled:opacity-40"
+                          className="text-xs font-semibold text-[#D2ADF8] px-2 py-1 rounded border border-[#5F0AE3]/40 disabled:opacity-40"
                         >
                           Open
                         </button>
@@ -135,7 +135,7 @@ export default function EngagementCollections() {
 
           {engagementFlags.stickerCollectionEnabled ? (
             <section>
-              <h2 className="text-sm font-semibold text-[#D4AF37] mb-2 flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-[#D2ADF8] mb-2 flex items-center gap-2">
                 <Gift className="w-4 h-4" /> Stickers
               </h2>
               {sets.length === 0 ? (
@@ -161,7 +161,7 @@ export default function EngagementCollections() {
 
           {engagementFlags.creatorCollectionsEnabled ? (
             <section>
-              <h2 className="text-sm font-semibold text-[#D4AF37] mb-2 flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-[#D2ADF8] mb-2 flex items-center gap-2">
                 <Star className="w-4 h-4" /> Creator Cards
               </h2>
               {cards.length === 0 ? (

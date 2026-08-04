@@ -184,13 +184,13 @@ export default function EditProfile() {
 
   return (
     <SettingsOptionSheet onClose={goBack}>
-      <div className="w-full h-full overflow-hidden bg-[#111113] flex flex-col">
+      <div className="w-full h-full overflow-hidden bg-[#0B0B0E] flex flex-col">
       {/* Header */}
-      <div className="flex-shrink-0 px-4 py-3 flex items-center justify-between bg-[#111113]">
+      <div className="flex-shrink-0 px-4 py-3 flex items-center justify-between bg-[#0B0B0E]">
         <button
           onClick={handleSave}
           disabled={loading}
-          className="px-4 py-1.5 rounded-full bg-[#D4AF37] text-black text-sm font-semibold disabled:opacity-50 hover:brightness-110 transition"
+          className="px-4 py-1.5 rounded-full bg-[#5F0AE3] text-black text-sm font-semibold disabled:opacity-50 hover:brightness-110 transition"
         >
           {loading ? 'Saving...' : 'Save'}
         </button>
@@ -207,7 +207,7 @@ export default function EditProfile() {
             </div>
             <label
               htmlFor="avatar-upload"
-              className="absolute bottom-0 right-0 w-8 h-8 bg-[#D4AF37] rounded-full flex items-center justify-center cursor-pointer hover:scale-110 transition shadow-lg"
+              className="absolute bottom-0 right-0 w-8 h-8 bg-[#5F0AE3] rounded-full flex items-center justify-center cursor-pointer hover:scale-110 transition shadow-lg"
             >
               <Camera className="w-4 h-4 text-black" />
             </label>
@@ -322,7 +322,7 @@ function InputField({
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         maxLength={maxLength}
-        className="w-full bg-white/[0.06] rounded-lg px-3 py-2.5 outline-none text-sm leading-tight text-gold-bright placeholder:text-gold-bright/35 border border-white/10 focus:border-[#D4AF37]/50 focus:outline-none transition"
+        className="w-full bg-white/[0.06] rounded-lg px-3 py-2.5 outline-none text-sm leading-tight text-gold-bright placeholder:text-gold-bright/35 border border-white/10 focus:border-[#5F0AE3]/50 focus:outline-none transition"
       />
     </div>
   );
@@ -350,7 +350,7 @@ function TextAreaField({
         placeholder={placeholder}
         maxLength={maxLength}
         rows={3}
-        className="w-full bg-white/[0.06] rounded-lg px-3 py-2.5 outline-none text-sm leading-relaxed text-gold-bright placeholder:text-gold-bright/35 border border-white/10 focus:border-[#D4AF37]/50 focus:outline-none transition resize-none"
+        className="w-full bg-white/[0.06] rounded-lg px-3 py-2.5 outline-none text-sm leading-relaxed text-gold-bright placeholder:text-gold-bright/35 border border-white/10 focus:border-[#5F0AE3]/50 focus:outline-none transition resize-none"
       />
       {maxLength && (
         <p className="text-[11px] text-gold-bright/40 mt-1 text-right leading-none">

@@ -114,7 +114,7 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-[100dvh] h-[100dvh] bg-[#111113] text-white flex items-center justify-center p-4 xs:p-3 sm:p-4 overflow-y-auto pt-[calc(var(--safe-top)+46px)] pb-[calc(var(--safe-bottom)+var(--nav-height))]">
+    <div className="min-h-[100dvh] h-[100dvh] bg-[#0B0B0E] text-white flex items-center justify-center p-4 xs:p-3 sm:p-4 overflow-y-auto pt-[calc(var(--safe-top)+46px)] pb-[calc(var(--safe-bottom)+var(--nav-height))]">
       <div className="w-full max-w-[420px] xs:max-w-[320px] sm:max-w-[380px] bg-white/5 border border-white/10 rounded-2xl p-6 xs:p-4 sm:p-5">
         <div className="flex justify-center mb-3">
           <img src="/elix-logo.png" alt="Elix Star Live" className="w-20 h-20 object-contain" />
@@ -130,7 +130,7 @@ export default function Register() {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full bg-white/10 border border-white/10 rounded-xl pl-10 xs:pl-9 pr-3 py-3 xs:py-2.5 text-fluid-sm text-white outline-none focus:border-[#D4AF37]/50 placeholder:text-white/40"
+                className="w-full bg-white/10 border border-white/10 rounded-xl pl-10 xs:pl-9 pr-3 py-3 xs:py-2.5 text-fluid-sm text-white outline-none focus:border-[#5F0AE3]/50 placeholder:text-white/40"
                 placeholder="username"
                 autoComplete="username"
               />
@@ -145,7 +145,7 @@ export default function Register() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-white/10 border border-white/10 rounded-xl pl-10 xs:pl-9 pr-3 py-3 xs:py-2.5 text-fluid-sm text-white outline-none focus:border-[#D4AF37]/50 placeholder:text-white/40"
+                className="w-full bg-white/10 border border-white/10 rounded-xl pl-10 xs:pl-9 pr-3 py-3 xs:py-2.5 text-fluid-sm text-white outline-none focus:border-[#5F0AE3]/50 placeholder:text-white/40"
                 placeholder="you@email.com"
                 autoComplete="email"
                 required
@@ -161,7 +161,7 @@ export default function Register() {
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-white/10 border border-white/10 rounded-xl pl-10 xs:pl-9 pr-10 xs:pr-9 py-3 xs:py-2.5 text-fluid-sm text-white outline-none focus:border-[#D4AF37]/50 placeholder:text-white/40"
+                className="w-full bg-white/10 border border-white/10 rounded-xl pl-10 xs:pl-9 pr-10 xs:pr-9 py-3 xs:py-2.5 text-fluid-sm text-white outline-none focus:border-[#5F0AE3]/50 placeholder:text-white/40"
                 placeholder="••••••••"
                 autoComplete="new-password"
                 required
@@ -184,7 +184,7 @@ export default function Register() {
                 type={showConfirmPassword ? 'text' : 'password'}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full bg-white/10 border border-white/10 rounded-xl pl-10 xs:pl-9 pr-10 xs:pr-9 py-3 xs:py-2.5 text-fluid-sm text-white outline-none focus:border-[#D4AF37]/50 placeholder:text-white/40"
+                className="w-full bg-white/10 border border-white/10 rounded-xl pl-10 xs:pl-9 pr-10 xs:pr-9 py-3 xs:py-2.5 text-fluid-sm text-white outline-none focus:border-[#5F0AE3]/50 placeholder:text-white/40"
                 placeholder="••••••••"
                 autoComplete="new-password"
                 required
@@ -216,7 +216,7 @@ export default function Register() {
             <div
               className={`mt-0.5 w-6 h-6 min-w-[24px] min-h-[24px] rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
                 acceptedTerms
-                  ? 'border-[#D4AF37] bg-[#D4AF37]'
+                  ? 'border-[#5F0AE3] bg-[#5F0AE3]'
                   : 'border-white/30 bg-white/10'
               }`}
             >
@@ -230,7 +230,7 @@ export default function Register() {
               I confirm I am at least 13 years old and agree to the{' '}
               <Link
                 to="/terms"
-                className="text-[#D4AF37] underline"
+                className="text-[#D2ADF8] underline"
                 onClick={(e) => e.stopPropagation()}
               >
                 Terms of Service
@@ -238,7 +238,7 @@ export default function Register() {
               and{' '}
               <Link
                 to="/privacy"
-                className="text-[#D4AF37] underline"
+                className="text-[#D2ADF8] underline"
                 onClick={(e) => e.stopPropagation()}
               >
                 Privacy Policy
@@ -261,7 +261,7 @@ export default function Register() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full bg-[#D4AF37] text-black font-bold rounded-xl py-3 xs:py-2.5 text-fluid-sm disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full bg-[#5F0AE3] text-black font-bold rounded-xl py-3 xs:py-2.5 text-fluid-sm disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {isSubmitting ? 'Creating account...' : 'Create account'}
           </button>

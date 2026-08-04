@@ -141,30 +141,30 @@ export default function CreatorPayout() {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-[#111113] flex flex-col max-w-[480px] mx-auto">
+    <div className="fixed inset-0 z-[100] bg-[#0B0B0E] flex flex-col max-w-[480px] mx-auto">
       <div className="flex items-center justify-between px-3 pt-[max(12px,env(safe-area-inset-top))] pb-2">
         <button type="button" onClick={goBack} aria-label="Back">
           <RoyceBackIcon />
         </button>
-        <h1 className="text-sm font-bold text-[#D4AF37] absolute left-1/2 -translate-x-1/2">Creator Payout</h1>
+        <h1 className="text-sm font-bold text-[#D2ADF8] absolute left-1/2 -translate-x-1/2">Creator Payout</h1>
         <div className="w-8" />
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 pb-10 space-y-4">
         {loading ? (
           <div className="flex justify-center py-10">
-            <div className="w-6 h-6 border-2 border-[#D4AF37] border-t-transparent rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-[#5F0AE3] border-t-transparent rounded-full animate-spin" />
           </div>
         ) : (
           <>
-            <div className="rounded-xl border border-[#D4AF37]/25 bg-white/5 p-3 space-y-2">
-              <div className="flex items-center gap-2 text-[#D4AF37] font-bold text-sm">
+            <div className="rounded-xl border border-[#5F0AE3]/25 bg-white/5 p-3 space-y-2">
+              <div className="flex items-center gap-2 text-[#D2ADF8] font-bold text-sm">
                 <Wallet size={16} /> Gift earnings
               </div>
               <div className="grid grid-cols-2 gap-2 text-[12px]">
                 <div>
                   <p className="text-white/40 uppercase text-[9px]">Available</p>
-                  <p className="text-[#D4AF37] font-bold text-lg tabular-nums">{(balance?.available_coins ?? 0).toLocaleString()}</p>
+                  <p className="text-[#D2ADF8] font-bold text-lg tabular-nums">{(balance?.available_coins ?? 0).toLocaleString()}</p>
                 </div>
                 <div>
                   <p className="text-white/40 uppercase text-[9px]">Pending</p>
@@ -181,8 +181,8 @@ export default function CreatorPayout() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-[#D4AF37]/25 bg-white/5 p-3 space-y-2">
-              <div className="flex items-center gap-2 text-[#D4AF37] font-bold text-sm">
+            <div className="rounded-xl border border-[#5F0AE3]/25 bg-white/5 p-3 space-y-2">
+              <div className="flex items-center gap-2 text-[#D2ADF8] font-bold text-sm">
                 <Landmark size={16} /> Payment method
               </div>
               {methods.length > 0 ? (
@@ -201,14 +201,14 @@ export default function CreatorPayout() {
                 <button
                   type="button"
                   onClick={() => setMethodType('bank')}
-                  className={`flex-1 py-2 rounded-lg text-[11px] font-bold ${methodType === 'bank' ? 'bg-[#D4AF37] text-black' : 'bg-white/10 text-white'}`}
+                  className={`flex-1 py-2 rounded-lg text-[11px] font-bold ${methodType === 'bank' ? 'bg-[#5F0AE3] text-black' : 'bg-white/10 text-white'}`}
                 >
                   Bank
                 </button>
                 <button
                   type="button"
                   onClick={() => setMethodType('paypal')}
-                  className={`flex-1 py-2 rounded-lg text-[11px] font-bold ${methodType === 'paypal' ? 'bg-[#D4AF37] text-black' : 'bg-white/10 text-white'}`}
+                  className={`flex-1 py-2 rounded-lg text-[11px] font-bold ${methodType === 'paypal' ? 'bg-[#5F0AE3] text-black' : 'bg-white/10 text-white'}`}
                 >
                   PayPal
                 </button>
@@ -229,14 +229,14 @@ export default function CreatorPayout() {
                 type="button"
                 disabled={saving}
                 onClick={() => void saveMethod()}
-                className="w-full py-2.5 rounded-lg bg-[#D4AF37] text-black text-[12px] font-bold disabled:opacity-50"
+                className="w-full py-2.5 rounded-lg bg-[#5F0AE3] text-black text-[12px] font-bold disabled:opacity-50"
               >
                 {saving ? 'Saving...' : 'Save payout method'}
               </button>
             </div>
 
-            <div className="rounded-xl border border-[#D4AF37]/25 bg-white/5 p-3 space-y-2">
-              <div className="flex items-center gap-2 text-[#D4AF37] font-bold text-sm">
+            <div className="rounded-xl border border-[#5F0AE3]/25 bg-white/5 p-3 space-y-2">
+              <div className="flex items-center gap-2 text-[#D2ADF8] font-bold text-sm">
                 <Banknote size={16} /> Withdraw
               </div>
               <input
@@ -250,7 +250,7 @@ export default function CreatorPayout() {
                 type="button"
                 disabled={withdrawing}
                 onClick={() => void withdraw()}
-                className="w-full py-2.5 rounded-lg bg-white/10 border border-[#D4AF37]/40 text-[#D4AF37] text-[12px] font-bold disabled:opacity-50"
+                className="w-full py-2.5 rounded-lg bg-white/10 border border-[#5F0AE3]/40 text-[#D2ADF8] text-[12px] font-bold disabled:opacity-50"
               >
                 {withdrawing ? 'Submitting...' : 'Request withdraw'}
               </button>
@@ -261,7 +261,7 @@ export default function CreatorPayout() {
 
             {requests.length > 0 ? (
               <div className="rounded-xl border border-white/10 bg-white/5 p-3 space-y-2">
-                <p className="text-[#D4AF37] font-bold text-sm">Your requests</p>
+                <p className="text-[#D2ADF8] font-bold text-sm">Your requests</p>
                 {requests.slice(0, 10).map((r) => (
                   <div key={r.id} className="flex justify-between gap-2 text-[11px]">
                     <span className="text-white/70 tabular-nums">

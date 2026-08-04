@@ -17,47 +17,48 @@
 .new-followers-panel-scroll {
   -ms-overflow-style: auto;
   scrollbar-width: thin;
-  scrollbar-color: rgba(212, 175, 55, 0.45) rgba(212, 175, 55, 0.08);
+  scrollbar-color: rgba(95, 10, 227, 0.45) rgba(95, 10, 227, 0.08);
 }
 .new-followers-panel-scroll::-webkit-scrollbar {
   display: block;
   width: 6px;
 }
 .new-followers-panel-scroll::-webkit-scrollbar-track {
-  background: rgba(212, 175, 55, 0.08);
+  background: rgba(95, 10, 227, 0.08);
   border-radius: 3px;
 }
 .new-followers-panel-scroll::-webkit-scrollbar-thumb {
-  background: rgba(212, 175, 55, 0.45);
+  background: rgba(95, 10, 227, 0.45);
   border-radius: 3px;
 }
 .new-followers-panel-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(212, 175, 55, 0.65);
+  background: rgba(95, 10, 227, 0.65);
 }
 
 @layer base {
   :root {
-    /* Obsidian Luxury — Theme 1 */
-    --color-primary: #D4AF37;
-    --color-secondary: #2F6BFF;
-    --color-gold: #D4AF37;
-    --color-gold-bright: #F5D76E;
-    --color-gold-light: #F5D76E;
-    --color-gold-dark: #8B6914;
-    --color-gold-premium: #F5D76E;
-    --color-rose: #F5D76E;
-    --color-background: #09090B;
-    --color-surface: #111113;
-    --color-card: #18181B;
-    --color-card-elevated: #202024;
-    --color-border: #2A2A30;
-    --color-text: #F8F8FA;
-    --color-text-muted: #9CA3AF;
+    /* Neon Purple */
+    --color-primary: #5F0AE3;
+    --color-secondary: #5F0AE3;
+    --color-gold: #5F0AE3;
+    --color-gold-bright: #D2ADF8;
+    --color-gold-light: #D2ADF8;
+    --color-gold-dark: #841EB0;
+    --color-gold-premium: #D2ADF8;
+    --color-rose: #FF4FA0;
+    --color-coin: #D9A62E;
+    --color-background: #000000;
+    --color-surface: #0B0B0E;
+    --color-card: #111116;
+    --color-card-elevated: #1A1A22;
+    --color-border: #2A2A35;
+    --color-text: #FFFFFF;
+    --color-text-muted: #A6A6B2;
     --color-text-disabled: #5B616E;
-    --color-live: #FF3B5C;
+    --color-live: #DB0A3B;
     --color-success: #22C55E;
-    --color-accent-blue: #2F6BFF;
-    --color-accent-blue-light: #63B3FF;
+    --color-accent-blue: #5F0AE3;
+    --color-accent-blue-light: #D2ADF8;
     --color-glass-bg: rgba(255, 255, 255, 0.04);
     --color-glass-border: rgba(255, 255, 255, 0.08);
     --shadow-luxury: 0 12px 40px rgba(0, 0, 0, 0.45);
@@ -580,11 +581,11 @@ video::-webkit-media-controls-overlay-enclosure,
    Uses box-shadow + border-color only (never size), so it never shifts layout. */
 @keyframes elix-speaking-pulse {
   0%, 100% {
-    box-shadow: 0 0 0 0 rgba(212, 175, 55, 0);
-    border-color: rgba(212, 175, 55, 0.55);
+    box-shadow: 0 0 0 0 rgba(95, 10, 227, 0);
+    border-color: rgba(95, 10, 227, 0.55);
   }
   50% {
-    box-shadow: 0 0 14px 3px rgba(212, 175, 55, 0.95), 0 0 22px 6px rgba(255, 215, 120, 0.45);
+    box-shadow: 0 0 14px 3px rgba(95, 10, 227, 0.95), 0 0 22px 6px rgba(255, 215, 120, 0.45);
     border-color: rgba(255, 230, 150, 1);
   }
 }
@@ -917,7 +918,7 @@ video::-webkit-media-controls-overlay-enclosure,
 }
 
 .text-gold-metallic {
-  background: linear-gradient(145deg, #F5E6C8 0%, #D4AF37 35%, #B8860B 65%, #E8D5A3 100%);
+  background: linear-gradient(145deg, #8D3CFF 0%, #5F0AE3 35%, #5F0AE3 65%, #D2ADF8 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -925,7 +926,7 @@ video::-webkit-media-controls-overlay-enclosure,
 }
 
 .stroke-gold-metallic {
-  color: #D4AF37;
+  color: #D2ADF8;
   filter: drop-shadow(0 0 6px rgba(201, 162, 39, 0.45));
 }
 
@@ -950,37 +951,37 @@ video::-webkit-media-controls-overlay-enclosure,
   background:
     radial-gradient(
       circle at center,
-      rgba(212, 175, 55, 0.28) 0%,
+      rgba(95, 10, 227, 0.28) 0%,
       rgba(17, 17, 17, 0.72) 52%,
       rgba(0, 0, 0, 0.2) 78%,
       transparent 100%
     );
   box-shadow:
-    0 0 10px 2px rgba(212, 175, 55, 0.42),
-    0 0 22px 5px rgba(212, 175, 55, 0.18);
+    0 0 10px 2px rgba(95, 10, 227, 0.42),
+    0 0 22px 5px rgba(95, 10, 227, 0.18);
 }
 
 /* Soft gold glow on user avatar circles — same light as close / royce-glow-disc. */
 .royce-avatar-glow {
   border-radius: 9999px;
   box-shadow:
-    0 0 10px 2px rgba(212, 175, 55, 0.42),
-    0 0 22px 5px rgba(212, 175, 55, 0.18);
+    0 0 10px 2px rgba(95, 10, 227, 0.42),
+    0 0 22px 5px rgba(95, 10, 227, 0.18);
 }
 
 /*
  * Unified icon design (app-wide) — Elix Gold theme:
  * thin gold line icons + soft glow (readable on black video).
- * Chart: Profile/Wallet/Setting #D4AF37
+ * Chart: Profile/Wallet/Setting #5F0AE3
  */
 svg.lucide {
-  color: #D4AF37 !important;
+  color: #D2ADF8 !important;
   stroke: currentColor !important;
   stroke-width: 2;
   fill: none !important;
   filter:
-    drop-shadow(0 0 3px rgba(212, 175, 55, 0.75))
-    drop-shadow(0 0 8px rgba(212, 175, 55, 0.35));
+    drop-shadow(0 0 3px rgba(95, 10, 227, 0.75))
+    drop-shadow(0 0 8px rgba(95, 10, 227, 0.35));
 }
 
 /* Active filled states (save, badge hearts, etc.) */
@@ -1005,7 +1006,7 @@ svg.lucide.text-red-500 {
 .bottom-nav-icon,
 .royce-icon-muted,
 .stroke-gold-metallic {
-  color: #D4AF37 !important;
+  color: #D2ADF8 !important;
   stroke: currentColor;
   fill: none;
 }

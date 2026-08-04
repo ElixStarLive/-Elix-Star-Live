@@ -339,7 +339,7 @@ function App() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="w-10 h-10 border-2 border-[#D4AF37] border-t-transparent rounded-full animate-spin" />
+        <div className="w-10 h-10 border-2 border-[#5F0AE3] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }

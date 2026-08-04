@@ -10,7 +10,7 @@ export default function Copyright() {
 
   return (
     <SettingsOptionSheet onClose={goBack}>
-      <div className="w-full h-full overflow-hidden bg-[#111113] text-white flex flex-col">
+      <div className="w-full h-full overflow-hidden bg-[#0B0B0E] text-white flex flex-col">
         <header className="flex items-center justify-center mb-4 px-4 pt-2">
           <h1 className="font-bold text-lg">Copyright Notice</h1>
         </header>
@@ -56,7 +56,7 @@ export default function Copyright() {
               our{' '}
               <button
                 onClick={goDmca}
-                className="text-[#D4AF37] underline"
+                className="text-[#D2ADF8] underline"
               >
                 DMCA Policy
               </button>{' '}

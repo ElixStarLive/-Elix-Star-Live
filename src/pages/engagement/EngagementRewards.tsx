@@ -63,7 +63,7 @@ export default function EngagementRewards() {
     <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 mb-2">
       <div className="flex items-center justify-between gap-2 mb-0.5">
         <span className="text-sm font-semibold text-white/90">{label}</span>
-        <span className="text-sm font-bold tabular-nums text-[#D4AF37]">
+        <span className="text-sm font-bold tabular-nums text-[#D2ADF8]">
           {value}
         </span>
       </div>
@@ -104,9 +104,9 @@ export default function EngagementRewards() {
           <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 mb-2">
             <div className="flex items-center justify-between gap-2 mb-0.5">
               <span className="text-sm font-semibold text-white/90 flex items-center gap-1">
-                <Zap className="w-3.5 h-3.5 text-[#D4AF37]" /> Battle Energy
+                <Zap className="w-3.5 h-3.5 text-[#D2ADF8]" /> Battle Energy
               </span>
-              <span className="text-sm font-bold tabular-nums text-[#D4AF37]">
+              <span className="text-sm font-bold tabular-nums text-[#D2ADF8]">
                 {energy}
               </span>
             </div>

@@ -14,9 +14,9 @@ export default function SecuritySettings() {
 
   return (
     <SettingsOptionSheet onClose={goBack}>
-      <div className="w-full h-full overflow-hidden bg-[#111113] flex flex-col">
+      <div className="w-full h-full overflow-hidden bg-[#0B0B0E] flex flex-col">
         <header className="flex items-center justify-center mb-2 px-4 pt-2">
-          <h1 className="font-bold text-lg text-[#D4AF37]">Security</h1>
+          <h1 className="font-bold text-lg text-[#D2ADF8]">Security</h1>
         </header>
         <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4 space-y-3">
           {showReset ? (
@@ -64,7 +64,7 @@ function Row({
       onClick={onClick}
       className="w-full flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-left"
     >
-      <span className="text-[#D4AF37]">{icon}</span>
+      <span className="text-[#D2ADF8]">{icon}</span>
       <span className="flex-1 min-w-0">
         <span className="block text-sm font-semibold text-white">{title}</span>
         <span className="block text-xs text-white/50 mt-0.5">{description}</span>

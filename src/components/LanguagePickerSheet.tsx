@@ -10,9 +10,9 @@ export default function LanguagePickerSheet({ onClose }: Props) {
   return (
     <div className="fixed inset-0 z-[10000] flex items-end justify-center" role="dialog" aria-label={t('settings.chooseLanguage')}>
       <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden />
-      <div className="relative w-full max-w-md bg-[#111113] rounded-t-2xl border-t border-white/10 max-h-[70vh] flex flex-col">
+      <div className="relative w-full max-w-md bg-[#0B0B0E] rounded-t-2xl border-t border-white/10 max-h-[70vh] flex flex-col">
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
-          <span className="text-[13px] font-bold text-[#D4AF37]">{t('settings.chooseLanguage')}</span>
+          <span className="text-[13px] font-bold text-[#D2ADF8]">{t('settings.chooseLanguage')}</span>
           <button type="button" onClick={onClose} className="p-1 rounded-full active:scale-90 transition-transform" aria-label="Close">
             <RoyceCloseIcon size={18} />
           </button>
@@ -29,7 +29,7 @@ export default function LanguagePickerSheet({ onClose }: Props) {
                 {l.label}
                 {l.english !== l.label && <span className="text-white/40 text-[12px]"> · {l.english}</span>}
               </span>
-              {lang === l.code && <Check size={18} className="text-[#D4AF37] shrink-0" />}
+              {lang === l.code && <Check size={18} className="text-[#D2ADF8] shrink-0" />}
             </button>
           ))}
         </div>

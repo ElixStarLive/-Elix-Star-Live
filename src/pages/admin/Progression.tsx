@@ -249,11 +249,11 @@ export default function AdminProgression() {
     "bg-[#0f1218] border border-white/10 rounded-lg px-3 py-2 text-sm text-white";
 
   return (
-    <div className="min-h-screen bg-[#111113] text-white p-6">
+    <div className="min-h-screen bg-[#0B0B0E] text-white p-6">
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Sparkles className="w-7 h-7 text-[#D4AF37]" />
+            <Sparkles className="w-7 h-7 text-[#D2ADF8]" />
             Starter Coins & XP
           </h1>
           <button
@@ -265,8 +265,8 @@ export default function AdminProgression() {
           </button>
         </div>
 
-        <section className="rounded-xl border border-[#D4AF37]/25 bg-[#D4AF37]/5 p-4 mb-6 text-sm text-white/70">
-          <p className="font-semibold text-[#D4AF37] mb-1">Engagement Phase 1 + 1.5 (live)</p>
+        <section className="rounded-xl border border-[#5F0AE3]/25 bg-[#5F0AE3]/5 p-4 mb-6 text-sm text-white/70">
+          <p className="font-semibold text-[#D2ADF8] mb-1">Engagement Phase 1 + 1.5 (live)</p>
           <p className="mb-2">
             Migrations through{" "}
             <code className="text-white/50">20260722250000_engagement_admin_and_gifts_mission.sql</code>.
@@ -484,7 +484,7 @@ export default function AdminProgression() {
                   <button
                     type="button"
                     disabled={busy}
-                    className="ml-auto px-3 py-1.5 rounded-lg bg-[#D4AF37] text-black text-xs font-semibold disabled:opacity-40"
+                    className="ml-auto px-3 py-1.5 rounded-lg bg-[#5F0AE3] text-black text-xs font-semibold disabled:opacity-40"
                     onClick={() => {
                       void (async () => {
                         setBusy(true);
@@ -761,7 +761,7 @@ export default function AdminProgression() {
           <button
             type="button"
             disabled={busy}
-            className="px-3 py-2 rounded-lg bg-[#D4AF37] text-black text-xs font-semibold disabled:opacity-40"
+            className="px-3 py-2 rounded-lg bg-[#5F0AE3] text-black text-xs font-semibold disabled:opacity-40"
             onClick={() => {
               void (async () => {
                 setBusy(true);
@@ -829,7 +829,7 @@ export default function AdminProgression() {
                   type="button"
                   disabled={busy}
                   onClick={() => void saveConfig(row)}
-                  className="py-2 rounded-lg bg-[#D4AF37] text-black text-xs font-semibold disabled:opacity-40"
+                  className="py-2 rounded-lg bg-[#5F0AE3] text-black text-xs font-semibold disabled:opacity-40"
                 >
                   Save
                 </button>
@@ -905,7 +905,7 @@ export default function AdminProgression() {
 
         <section className="rounded-xl border border-white/10 p-4">
           <h2 className="font-semibold mb-3 flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-[#D4AF37]" />
+            <ShieldCheck className="w-5 h-5 text-[#D2ADF8]" />
             User audit & abuse correction
           </h2>
           <div className="flex gap-2 mb-4">
@@ -930,7 +930,7 @@ export default function AdminProgression() {
                 <div className="rounded-lg bg-white/5 p-3">
                   <div className="text-xs text-white/40">Starter Coins</div>
                   <div className="font-bold flex items-center gap-1">
-                    <Coins className="w-4 h-4 text-[#D4AF37]" />
+                    <Coins className="w-4 h-4 text-[#D2ADF8]" />
                     {userProgression.starter_coin_balance.toLocaleString()}
                   </div>
                 </div>
@@ -978,7 +978,7 @@ export default function AdminProgression() {
                   type="button"
                   disabled={busy}
                   onClick={() => void adjust("starter")}
-                  className="px-3 rounded-lg bg-[#D4AF37] text-black text-xs font-semibold disabled:opacity-40"
+                  className="px-3 rounded-lg bg-[#5F0AE3] text-black text-xs font-semibold disabled:opacity-40"
                 >
                   Adjust Starter
                 </button>

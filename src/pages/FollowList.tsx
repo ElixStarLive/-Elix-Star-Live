@@ -116,12 +116,12 @@ export default function FollowList() {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-[#111113] flex flex-col max-w-[480px] mx-auto">
+    <div className="fixed inset-0 z-[100] bg-[#0B0B0E] flex flex-col max-w-[480px] mx-auto">
       <div className="flex items-center justify-between px-3 pt-[max(12px,env(safe-area-inset-top))] pb-2">
         <button type="button" onClick={goBack} aria-label="Back">
           <RoyceBackIcon />
         </button>
-        <h1 className="text-sm font-bold text-[#D4AF37] absolute left-1/2 -translate-x-1/2">
+        <h1 className="text-sm font-bold text-[#D2ADF8] absolute left-1/2 -translate-x-1/2">
           {mode === 'following' ? 'Following' : 'Followers'}
         </h1>
         <div className="w-8" />
@@ -129,7 +129,7 @@ export default function FollowList() {
       <div className="flex-1 overflow-y-auto px-4 pb-8">
         {loading ? (
           <div className="flex justify-center py-10">
-            <div className="w-6 h-6 border-2 border-[#D4AF37] border-t-transparent rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-[#5F0AE3] border-t-transparent rounded-full animate-spin" />
           </div>
         ) : people.length === 0 ? (
           <p className="text-white/40 text-sm text-center py-10">
@@ -161,7 +161,7 @@ export default function FollowList() {
                       className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold active:scale-95 ${
                         following
                           ? 'bg-white/10 text-white border border-white/15'
-                          : 'bg-[#D4AF37] text-black'
+                          : 'bg-[#5F0AE3] text-black'
                       }`}
                     >
                       {following ? 'Following' : 'Follow'}

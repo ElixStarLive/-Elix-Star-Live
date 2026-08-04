@@ -35,7 +35,7 @@ export function AvatarRing({ src, alt = '', size, className = '', onClick, glow 
       onClick={onClick}
     >
       <div
-        className="w-full h-full rounded-full overflow-hidden bg-[#18181B]"
+        className="w-full h-full rounded-full overflow-hidden bg-[#111116]"
         style={{ width: safeSize, height: safeSize }}
       >
         <img

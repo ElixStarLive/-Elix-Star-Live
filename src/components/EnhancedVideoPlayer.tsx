@@ -92,7 +92,7 @@ export const PremiumSidebarButton = ({
           className={`w-7 h-7 stroke-[2px] transition-all duration-200 ${
             isActive ? GOLD_ICON : 'text-gold-bright/60'
           }`}
-          style={isActive && !iconSrc ? { fill: '#D4AF37' } : { fill: 'transparent' }}
+          style={isActive && !iconSrc ? { fill: '#5F0AE3' } : { fill: 'transparent' }}
         />
       )}
     </button>
@@ -903,7 +903,7 @@ export default function EnhancedVideoPlayer({
     >
       {/* Video Element - iPhone 14 Pro Max: 6.7" Super Retina XDR, 2796×1290, 19.5:9, ~460ppi */}
       <div
-        className="absolute inset-0 flex items-center justify-center bg-[#111113]"
+        className="absolute inset-0 flex items-center justify-center bg-[#0B0B0E]"
         style={{ margin: 0, padding: 0, gap: 0 }}
       >
         <div className="w-full h-full" style={{ margin: 0, padding: 0 }}>
@@ -938,7 +938,7 @@ export default function EnhancedVideoPlayer({
             <div
               className={
                 duetLayoutMode === 'overlay'
-                  ? 'absolute bottom-3 right-3 z-[2] w-[34%] aspect-[9/16] rounded-xl overflow-hidden border-2 border-[#D4AF37] shadow-lg bg-black'
+                  ? 'absolute bottom-3 right-3 z-[2] w-[34%] aspect-[9/16] rounded-xl overflow-hidden border-2 border-[#5F0AE3] shadow-lg bg-black'
                   : 'absolute right-0 top-0 w-1/2 h-full bg-black'
               }
               data-duet-pane="you"
@@ -977,12 +977,12 @@ export default function EnhancedVideoPlayer({
 
 
         {videoError && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#111113] z-10 gap-3">
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0B0B0E] z-10 gap-3">
             <span className="text-white/50 text-sm">Video processing...</span>
             <button
               type="button"
               onClick={retryVideoPlayback}
-              className="px-4 py-1.5 bg-[#D4AF37]/20 border border-[#D4AF37]/40 rounded-lg text-[#D4AF37] text-xs font-medium"
+              className="px-4 py-1.5 bg-[#5F0AE3]/20 border border-[#5F0AE3]/40 rounded-lg text-[#D2ADF8] text-xs font-medium"
             >
               Tap to retry
             </button>
@@ -1042,7 +1042,7 @@ export default function EnhancedVideoPlayer({
             }
           >
             <div
-              className="h-full rounded-full bg-gradient-to-r from-[#D4AF37] via-[#00c2be] to-[#E8D5A3] relative overflow-hidden"
+              className="h-full rounded-full bg-gradient-to-r from-[#D2ADF8] via-[#00c2be] to-[#D2ADF8] relative overflow-hidden"
               style={{
                 width: `${duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0}%`,
                 boxShadow: scrubbing ? '0 0 10px rgba(255,255,255,0.25)' : 'none',
@@ -1280,14 +1280,14 @@ export default function EnhancedVideoPlayer({
         <div className="fixed inset-0 z-modals flex items-end justify-center">
           <div className="absolute inset-0 pointer-events-auto" onClick={closeMoreMenu} />
           <div
-            className="bg-[#111113]/95 rounded-t-2xl max-h-[40dvh] flex flex-col shadow-2xl pointer-events-auto w-full max-w-[480px] relative z-10 bottom-sheet-above-nav"
+            className="bg-[#0B0B0E]/95 rounded-t-2xl max-h-[40dvh] flex flex-col shadow-2xl pointer-events-auto w-full max-w-[480px] relative z-10 bottom-sheet-above-nav"
             style={{ boxShadow: '0 -4px 30px rgba(255,255,255,0.25)' }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
               <div className="flex items-center gap-2">
                 <Settings2 className="w-4 h-4 text-white" />
-                <span className="text-[#D4AF37] font-bold text-sm">More Options</span>
+                <span className="text-[#D2ADF8] font-bold text-sm">More Options</span>
               </div>
             </div>
             <div className="p-4 overflow-y-auto overflow-x-hidden min-h-0 flex-1">
@@ -1299,7 +1299,7 @@ export default function EnhancedVideoPlayer({
                     alt="QR code"
                     className="w-28 h-28 rounded-lg bg-white p-1.5"
                   />
-                  <button type="button" onClick={() => setShowQrCodeInMore(false)} className="text-[#D4AF37] text-xs font-semibold">Close</button>
+                  <button type="button" onClick={() => setShowQrCodeInMore(false)} className="text-[#D2ADF8] text-xs font-semibold">Close</button>
                 </div>
               )}
               <div className="grid grid-cols-4 gap-y-4 gap-x-2">
@@ -1311,7 +1311,7 @@ export default function EnhancedVideoPlayer({
                   <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                     <Copy size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />
                   </span>
-                  <span className="text-[10px] font-semibold text-[#D4AF37]">Copy Link</span>
+                  <span className="text-[10px] font-semibold text-[#D2ADF8]">Copy Link</span>
                 </button>
                 <button
                   type="button"
@@ -1321,7 +1321,7 @@ export default function EnhancedVideoPlayer({
                   <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                     <Download size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />
                   </span>
-                  <span className="text-[10px] font-semibold text-[#D4AF37]">Download</span>
+                  <span className="text-[10px] font-semibold text-[#D2ADF8]">Download</span>
                 </button>
                 <button
                   type="button"
@@ -1331,7 +1331,7 @@ export default function EnhancedVideoPlayer({
                   <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                     <Users2 size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />
                   </span>
-                  <span className="text-[10px] font-semibold text-[#D4AF37]">Duet</span>
+                  <span className="text-[10px] font-semibold text-[#D2ADF8]">Duet</span>
                 </button>
                 <button
                   type="button"
@@ -1341,7 +1341,7 @@ export default function EnhancedVideoPlayer({
                   <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                     <QrCode size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />
                   </span>
-                  <span className="text-[10px] font-semibold text-[#D4AF37]">QR Code</span>
+                  <span className="text-[10px] font-semibold text-[#D2ADF8]">QR Code</span>
                 </button>
                 {isOwnVideo && (
                   <button
@@ -1352,7 +1352,7 @@ export default function EnhancedVideoPlayer({
                     <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                       <Trash2 size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />
                     </span>
-                    <span className="text-[10px] font-semibold text-[#D4AF37]">Delete video</span>
+                    <span className="text-[10px] font-semibold text-[#D2ADF8]">Delete video</span>
                   </button>
                 )}
                 <button
@@ -1363,7 +1363,7 @@ export default function EnhancedVideoPlayer({
                   <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                     <Share2 size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />
                   </span>
-                  <span className="text-[10px] font-semibold text-[#D4AF37]">Share</span>
+                  <span className="text-[10px] font-semibold text-[#D2ADF8]">Share</span>
                 </button>
                 <button
                   type="button"
@@ -1373,7 +1373,7 @@ export default function EnhancedVideoPlayer({
                   <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                     <Bookmark size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />
                   </span>
-                  <span className="text-[10px] font-semibold text-[#D4AF37]">{video.isSaved ? 'Unsave' : 'Save'}</span>
+                  <span className="text-[10px] font-semibold text-[#D2ADF8]">{video.isSaved ? 'Unsave' : 'Save'}</span>
                 </button>
                 <button
                   type="button"
@@ -1385,7 +1385,7 @@ export default function EnhancedVideoPlayer({
                       ? <UserMinus size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />
                       : <UserPlus size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />}
                   </span>
-                  <span className="text-[10px] font-semibold text-[#D4AF37]">{video.isFollowing ? 'Unfollow' : 'Follow'}</span>
+                  <span className="text-[10px] font-semibold text-[#D2ADF8]">{video.isFollowing ? 'Unfollow' : 'Follow'}</span>
                 </button>
                 <button
                   type="button"
@@ -1395,7 +1395,7 @@ export default function EnhancedVideoPlayer({
                   <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                     <TrendingUp size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />
                   </span>
-                  <span className="text-[10px] font-semibold text-[#D4AF37]">Promote</span>
+                  <span className="text-[10px] font-semibold text-[#D2ADF8]">Promote</span>
                 </button>
                 <button
                   type="button"
@@ -1405,7 +1405,7 @@ export default function EnhancedVideoPlayer({
                   <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                     <Flag size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />
                   </span>
-                  <span className="text-[10px] font-semibold text-[#D4AF37]">Report</span>
+                  <span className="text-[10px] font-semibold text-[#D2ADF8]">Report</span>
                 </button>
               </div>
             </div>

@@ -70,11 +70,11 @@ export function BattleEnergyBoostControls({
           e.stopPropagation();
           void boost(preferredSide);
         }}
-        className="flex items-center gap-1 rounded-full bg-black/50 border border-[#D4AF37]/45 px-2 py-1 active:scale-95 disabled:opacity-50"
+        className="flex items-center gap-1 rounded-full bg-black/50 border border-[#5F0AE3]/45 px-2 py-1 active:scale-95 disabled:opacity-50"
         title="Spend Battle Energy to boost creator Fan Energy (battle score only — never Diamonds)"
       >
-        <Zap size={11} className="text-[#D4AF37]" fill="#D4AF37" />
-        <span className="text-[9px] font-black text-[#D4AF37] tracking-wide">
+        <Zap size={11} className="text-[#D2ADF8]" fill="#5F0AE3" />
+        <span className="text-[9px] font-black text-[#D2ADF8] tracking-wide">
           BOOST
         </span>
         {balance != null ? (

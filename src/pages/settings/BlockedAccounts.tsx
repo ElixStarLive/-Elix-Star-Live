@@ -81,11 +81,11 @@ export default function BlockedAccounts() {
 
   return (
     <SettingsOptionSheet onClose={goBack}>
-      <div className="w-full h-full overflow-hidden bg-[#111113] flex flex-col">
+      <div className="w-full h-full overflow-hidden bg-[#0B0B0E] flex flex-col">
         {/* Header */}
-        <div className="sticky top-0 bg-[#111113] z-10 px-4 pt-3 pb-3 border-b border-white/[0.06]">
+        <div className="sticky top-0 bg-[#0B0B0E] z-10 px-4 pt-3 pb-3 border-b border-white/[0.06]">
         <div className="flex items-center justify-center mb-3">
-          <h1 className="text-lg font-bold text-[#D4AF37]">Blocked Accounts</h1>
+          <h1 className="text-lg font-bold text-[#D2ADF8]">Blocked Accounts</h1>
         </div>
 
         {/* Search */}
@@ -123,7 +123,7 @@ export default function BlockedAccounts() {
                 </div>
                 <button
                   onClick={() => unblockUser(block.blocked_user_id)}
-                  className="px-4 py-2 bg-[#D4AF37] text-black rounded-full text-sm font-semibold hover:brightness-110 transition shrink-0"
+                  className="px-4 py-2 bg-[#5F0AE3] text-black rounded-full text-sm font-semibold hover:brightness-110 transition shrink-0"
                 >
                   Unblock
                 </button>

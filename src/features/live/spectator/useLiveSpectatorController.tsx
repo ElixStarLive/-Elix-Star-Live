@@ -1215,7 +1215,7 @@ export function useLiveSpectatorController() {
     const dx = Math.round((Math.random() * 2 - 1) * 120);
     const rot = Math.round((Math.random() * 2 - 1) * 45);
     const size = Math.round(24 + Math.random() * 12);
-    const colors = ['#FF0000', '#ffffff', '#E60026', '#FF3B5C', '#FF1744', '#CC0000'];
+    const colors = ['#FF0000', '#ffffff', '#E60026', '#DB0A3B', '#FF1744', '#CC0000'];
     const color = colorOverride ?? colors[Math.floor(Math.random() * colors.length)];
     setFloatingHearts((prev) => [...prev.slice(-40), { id, x, y, dx, rot, size, color, username: likerName, avatar: likerAvatar }]);
     window.setTimeout(() => {

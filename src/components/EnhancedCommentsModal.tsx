@@ -259,7 +259,7 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
                 type="text"
                 value={editText}
                 onChange={(e) => setEditText(e.target.value)}
-                className="flex-1 bg-white/10 text-white px-3 py-1 rounded-lg border border-white/20 focus:border-[#D4AF37] outline-none"
+                className="flex-1 bg-white/10 text-white px-3 py-1 rounded-lg border border-white/20 focus:border-[#5F0AE3] outline-none"
                 placeholder="Edit comment..."
               />
               <button
@@ -352,7 +352,7 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
                 placeholder={`Reply to ${comment.username}...`}
-                className="flex-1 bg-white/10 text-white px-3 py-2 rounded-lg border border-white/20 focus:border-[#D4AF37] outline-none"
+                className="flex-1 bg-white/10 text-white px-3 py-2 rounded-lg border border-white/20 focus:border-[#5F0AE3] outline-none"
                 autoFocus
               />
               <button
@@ -382,7 +382,7 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
       onClick={onClose}
     >
       <div
-        className="bg-[#111113]/95 rounded-t-2xl p-3 pb-safe h-1/2 w-full max-w-[480px] shadow-2xl flex flex-col bottom-sheet-above-nav"
+        className="bg-[#0B0B0E]/95 rounded-t-2xl p-3 pb-safe h-1/2 w-full max-w-[480px] shadow-2xl flex flex-col bottom-sheet-above-nav"
         style={{ boxShadow: '0 -4px 30px rgba(255,255,255,0.25)' }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -435,7 +435,7 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
                 placeholder="Add a comment..."
-                className="flex-1 bg-[#111113] text-white px-3 py-2 rounded-lg border border-white/10 focus:border-secondary outline-none text-sm"
+                className="flex-1 bg-[#0B0B0E] text-white px-3 py-2 rounded-lg border border-white/10 focus:border-secondary outline-none text-sm"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();

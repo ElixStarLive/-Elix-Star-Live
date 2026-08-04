@@ -191,7 +191,7 @@ export function RankingPanel({
 
   return (
     <div
-      className="bg-[#111113]/95 backdrop-blur-md rounded-t-2xl p-3 pb-safe max-h-[40dvh] flex flex-col shadow-2xl w-full overflow-hidden h-full"
+      className="bg-[#0B0B0E]/95 backdrop-blur-md rounded-t-2xl p-3 pb-safe max-h-[40dvh] flex flex-col shadow-2xl w-full overflow-hidden h-full"
       onClick={(e) => e.stopPropagation()}
     >
       <div className="flex justify-center mb-2">
@@ -200,8 +200,8 @@ export function RankingPanel({
 
       <div className="flex justify-between items-center mb-2 flex-shrink-0">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-[#111113] flex items-center justify-center border border-[#D4AF37]/40">
-            <HeaderIcon className="w-4 h-4 text-[#D4AF37]" fill="currentColor" />
+          <div className="w-8 h-8 rounded-full bg-[#0B0B0E] flex items-center justify-center border border-[#5F0AE3]/40">
+            <HeaderIcon className="w-4 h-4 text-[#D2ADF8]" fill="currentColor" />
           </div>
           <div>
             <h3 className="text-white font-bold text-sm leading-none">{headerMeta.title}</h3>
@@ -218,7 +218,7 @@ export function RankingPanel({
             onClick={() => setTab(t.id)}
             className={`px-2.5 py-1 rounded-full text-[10px] font-bold whitespace-nowrap border transition-colors ${
               tab === t.id
-                ? 'bg-[#D4AF37] text-black border-[#D4AF37]'
+                ? 'bg-[#5F0AE3] text-black border-[#5F0AE3]'
                 : 'bg-white/5 text-white/60 border-white/10'
             }`}
           >
@@ -231,7 +231,7 @@ export function RankingPanel({
         {tab === 'goal' ? (
           <div className="flex flex-col gap-2 pb-4">
             {giftGoal ? (
-              <div className="bg-white/5 rounded-xl p-3 border border-[#D4AF37]/20">
+              <div className="bg-white/5 rounded-xl p-3 border border-[#5F0AE3]/20">
                 <div className="flex items-center gap-2 mb-2">
                   {giftGoal.giftIcon ? (
                     <img
@@ -240,21 +240,21 @@ export function RankingPanel({
                       className="w-10 h-10 object-contain flex-shrink-0"
                     />
                   ) : (
-                    <Gift className="w-8 h-8 text-[#D4AF37]" strokeWidth={2} />
+                    <Gift className="w-8 h-8 text-[#D2ADF8]" strokeWidth={2} />
                   )}
                   <div className="flex-1 min-w-0">
                     <p className="text-white text-[11px] font-bold truncate">{giftGoal.giftName}</p>
-                    <p className="text-[#D4AF37] text-[10px] font-bold tabular-nums">
+                    <p className="text-[#D2ADF8] text-[10px] font-bold tabular-nums">
                       {giftGoal.currentCount}/{giftGoal.targetCount} points
                     </p>
                   </div>
                   {isGiftGoalComplete(giftGoal) ? (
-                    <span className="text-[9px] font-bold text-black bg-[#D4AF37] px-2 py-1 rounded-full">Done</span>
+                    <span className="text-[9px] font-bold text-black bg-[#5F0AE3] px-2 py-1 rounded-full">Done</span>
                   ) : null}
                 </div>
                 <div className="h-1.5 rounded-full bg-white/10 overflow-hidden mb-2">
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-[#D4AF37] to-[#E8D5A3] transition-all duration-500"
+                    className="h-full rounded-full bg-gradient-to-r from-[#D2ADF8] to-[#D2ADF8] transition-all duration-500"
                     style={{ width: `${giftGoalProgressPct(giftGoal)}%` }}
                   />
                 </div>
@@ -262,7 +262,7 @@ export function RankingPanel({
                   <button
                     type="button"
                     onClick={onSendGiftGoal}
-                    className="w-full py-2 bg-gradient-to-r from-[#D4AF37] to-[#E8D5A3] text-black font-bold text-[10px] uppercase tracking-wide rounded-xl active:scale-[0.98]"
+                    className="w-full py-2 bg-gradient-to-r from-[#D2ADF8] to-[#D2ADF8] text-black font-bold text-[10px] uppercase tracking-wide rounded-xl active:scale-[0.98]"
                   >
                     Send {giftGoal.giftName}
                   </button>
@@ -348,7 +348,7 @@ function CreatorRankingBody({
                 <Trophy className="w-6 h-6 text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.25)]" fill="currentColor" />
               </div>
               <AvatarRing src={rankings[0].avatar_url || ''} alt={rankings[0].display_name} size={64} />
-              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#D4AF37] text-black text-xs font-black px-2 py-0.5 rounded-full border border-white">
+              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#5F0AE3] text-black text-xs font-black px-2 py-0.5 rounded-full border border-white">
                 1
               </div>
             </div>

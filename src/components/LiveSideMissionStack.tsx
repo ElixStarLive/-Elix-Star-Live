@@ -58,14 +58,14 @@ function GiftBoxIcon() {
         <linearGradient id="elixSideGift" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#FFE9A8" />
           <stop offset="55%" stopColor="#FFD54A" />
-          <stop offset="100%" stopColor="#D4AF37" />
+          <stop offset="100%" stopColor="#5F0AE3" />
         </linearGradient>
       </defs>
       <rect x="3" y="7" width="10" height="7" rx="1.2" fill="url(#elixSideGift)" />
       <rect x="2.5" y="5" width="11" height="2.4" rx="0.6" fill="#FFF3C4" />
-      <rect x="7.2" y="5" width="1.6" height="9" fill="#FF3B5C" />
-      <path d="M8 5 C6.2 3.2 4.2 4.2 4.8 5.6" stroke="#FF3B5C" strokeWidth="1.2" fill="none" />
-      <path d="M8 5 C9.8 3.2 11.8 4.2 11.2 5.6" stroke="#FF3B5C" strokeWidth="1.2" fill="none" />
+      <rect x="7.2" y="5" width="1.6" height="9" fill="#DB0A3B" />
+      <path d="M8 5 C6.2 3.2 4.2 4.2 4.8 5.6" stroke="#DB0A3B" strokeWidth="1.2" fill="none" />
+      <path d="M8 5 C9.8 3.2 11.8 4.2 11.2 5.6" stroke="#DB0A3B" strokeWidth="1.2" fill="none" />
     </svg>
   );
 }
@@ -217,7 +217,7 @@ export function LiveSideMissionStack({
           {onOpenMissions ? (
             <button
               type="button"
-              className="text-[#C084FC] text-[10px] font-semibold whitespace-nowrap active:opacity-80 flex-shrink-0 pl-1"
+              className="text-[#D2ADF8] text-[10px] font-semibold whitespace-nowrap active:opacity-80 flex-shrink-0 pl-1"
               onClick={(e) => {
                 e.stopPropagation();
                 onOpenMissions();
@@ -258,7 +258,7 @@ export function LiveSideMissionStack({
           </div>
           <button
             type="button"
-            className="text-[#C084FC] text-[10px] font-semibold whitespace-nowrap active:opacity-80"
+            className="text-[#D2ADF8] text-[10px] font-semibold whitespace-nowrap active:opacity-80"
             onClick={(e) => {
               e.stopPropagation();
               onViewAllSupporters?.();
@@ -308,7 +308,7 @@ export function LiveSideMissionStack({
           className="w-8 h-8 flex-shrink-0 flex items-center justify-center text-[11px] font-black text-[#1A1200]"
           style={{
             clipPath: 'polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%)',
-            background: 'linear-gradient(160deg,#FFF3C4 0%,#FFD54A 45%,#D4AF37 100%)',
+            background: 'linear-gradient(160deg,#FFF3C4 0%,#FFD54A 45%,#5F0AE3 100%)',
             boxShadow: '0 0 8px rgba(255,213,74,0.55)',
           }}
         >
@@ -321,7 +321,7 @@ export function LiveSideMissionStack({
               className="absolute inset-y-0 left-0 rounded-full"
               style={{
                 width: `${xpPct}%`,
-                background: 'linear-gradient(90deg,#E879F9,#A855F7,#7C3AED)',
+                background: 'linear-gradient(90deg,#D2ADF8,#5F0AE3,#5F0AE3)',
               }}
             />
             <span className="absolute inset-0 flex items-center justify-center text-[8px] font-black text-white tabular-nums drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">
