@@ -29,7 +29,7 @@ function isActiveRoute(pathname: string, path: string): boolean {
 
 /**
  * Main bottom tab bar — one clean navigation owner per control.
- * Icons always half silver / half red (same on press). Contour disc always on.
+ * UI/layout/routes unchanged from production chrome.
  */
 export const BottomNav = () => {
   const navigate = useNavigate();
@@ -95,7 +95,7 @@ export const BottomNav = () => {
             {NAV_ITEMS.map(({ path, label, Icon, center }) => {
               const active = isActiveRoute(location.pathname, path);
               const iconClass = "royce-icon-gold";
-              const labelClass = active ? "text-[#FFFFFF]" : "text-[#A7A7AD]";
+              const labelClass = active ? "text-gold-bright" : "text-gold-bright/45";
               const size = center ? ICON_SIZE + 2 : ICON_SIZE;
 
               return (

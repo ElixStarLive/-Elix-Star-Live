@@ -922,27 +922,26 @@ video::-webkit-media-controls-overlay-enclosure,
 }
 
 .text-gold-metallic {
-  background: none;
-  -webkit-background-clip: unset;
-  background-clip: unset;
-  -webkit-text-fill-color: #FFFFFF;
-  color: #FFFFFF;
+  background: linear-gradient(145deg, #F5E6C8 0%, #D4AF37 35%, #B8860B 65%, #E8D5A3 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
 }
 
 .stroke-gold-metallic {
-  color: #E5E5E7;
-  filter: drop-shadow(0 0 6px rgba(229, 229, 231, 0.35));
+  color: #D4AF37;
+  filter: drop-shadow(0 0 6px rgba(201, 162, 39, 0.45));
 }
 
 .border-gold-metallic {
-  border-color: rgba(229, 229, 231, 0.55);
-  box-shadow: 0 0 12px rgba(229, 229, 231, 0.2);
+  border-color: rgba(201, 162, 39, 0.55);
+  box-shadow: 0 0 12px rgba(201, 162, 39, 0.2);
 }
 
 /*
- * Icon contour disc (app-wide) — same structure as before.
- * Half silver / half red fill + red-silver-red-silver contour.
- * NEVER changes on press / active.
+ * Unified icon halo (app-wide):
+ * soft Elix Gold glow disc — effect only, NO solid ring/border.
  */
 .royce-glow-disc,
 .royce-tile {
@@ -952,93 +951,71 @@ video::-webkit-media-controls-overlay-enclosure,
   justify-content: center;
   flex-shrink: 0;
   border-radius: 9999px;
-  border: 2px solid transparent !important;
+  border: none !important;
   background:
-    linear-gradient(180deg, #E5E5E7 0%, #C9CCD1 45%, #FF3B3F 55%, #D91F2D 100%) padding-box,
-    conic-gradient(
-      #FF3B3F 0deg 45deg,
-      #E5E5E7 45deg 90deg,
-      #FF3B3F 90deg 135deg,
-      #E5E5E7 135deg 180deg,
-      #FF3B3F 180deg 225deg,
-      #E5E5E7 225deg 270deg,
-      #FF3B3F 270deg 315deg,
-      #E5E5E7 315deg 360deg
-    ) border-box;
+    radial-gradient(
+      circle at center,
+      rgba(212, 175, 55, 0.28) 0%,
+      rgba(17, 17, 17, 0.72) 52%,
+      rgba(0, 0, 0, 0.2) 78%,
+      transparent 100%
+    );
   box-shadow:
-    0 0 10px 2px rgba(229, 229, 231, 0.4),
-    0 0 18px 4px rgba(255, 59, 63, 0.35);
+    0 0 10px 2px rgba(212, 175, 55, 0.42),
+    0 0 22px 5px rgba(212, 175, 55, 0.18);
 }
 
-/* Soft contour glow on user avatar circles — same silver/red */
+/* Soft gold glow on user avatar circles — same light as close / royce-glow-disc. */
 .royce-avatar-glow {
   border-radius: 9999px;
-  border: 2px solid transparent;
-  background:
-    linear-gradient(transparent, transparent) padding-box,
-    conic-gradient(
-      #FF3B3F 0deg 45deg,
-      #E5E5E7 45deg 90deg,
-      #FF3B3F 90deg 135deg,
-      #E5E5E7 135deg 180deg,
-      #FF3B3F 180deg 225deg,
-      #E5E5E7 225deg 270deg,
-      #FF3B3F 270deg 315deg,
-      #E5E5E7 315deg 360deg
-    ) border-box;
   box-shadow:
-    0 0 10px 2px rgba(229, 229, 231, 0.4),
-    0 0 18px 4px rgba(255, 59, 63, 0.35);
+    0 0 10px 2px rgba(212, 175, 55, 0.42),
+    0 0 22px 5px rgba(212, 175, 55, 0.18);
 }
 
 /*
- * Icon glyphs — always half silver / half red. No press color change.
+ * Unified icon design (app-wide) — Elix Gold theme:
+ * thin gold line icons + soft glow (readable on black video).
+ * Chart: Profile/Wallet/Setting #D4AF37
  */
 svg.lucide {
-  color: #FFFFFF !important;
-  stroke: #FFFFFF !important;
+  color: #D4AF37 !important;
+  stroke: currentColor !important;
   stroke-width: 2;
   fill: none !important;
   filter:
-    drop-shadow(0 0 2px rgba(0, 0, 0, 0.55));
+    drop-shadow(0 0 3px rgba(212, 175, 55, 0.75))
+    drop-shadow(0 0 8px rgba(212, 175, 55, 0.35));
 }
 
-/* Active filled states — stay on brand (no solid-red press swap) */
+/* Active filled states (save, badge hearts, etc.) */
 svg.lucide.fill-current,
 svg.lucide.fill-gold-bright,
 svg.lucide[fill]:not([fill="none"]):not(.fill-red-500) {
-  fill: #FFFFFF !important;
-  stroke: #FFFFFF !important;
+  fill: currentColor !important;
 }
 
-/* Liked heart — solid red status only */
+/* Liked heart — keep red as status, not style drift */
 svg.lucide.fill-red-500,
 svg.lucide.text-red-500 {
-  color: #FF3B3F !important;
-  fill: #FF3B3F !important;
-  stroke: #FF3B3F !important;
+  color: #ef4444 !important;
+  fill: currentColor !important;
+  stroke: currentColor !important;
   filter:
-    drop-shadow(0 0 3px rgba(255, 59, 63, 0.55))
-    drop-shadow(0 0 8px rgba(255, 59, 63, 0.25));
+    drop-shadow(0 0 3px rgba(239, 68, 68, 0.55))
+    drop-shadow(0 0 8px rgba(239, 68, 68, 0.25));
 }
 
 .royce-icon-gold,
 .bottom-nav-icon,
+.royce-icon-muted,
 .stroke-gold-metallic {
-  color: #FFFFFF !important;
-  stroke: #FFFFFF !important;
+  color: #D4AF37 !important;
+  stroke: currentColor;
   fill: none;
-}
-
-.royce-icon-muted {
-  color: #FFFFFF !important;
-  stroke: #FFFFFF !important;
-  fill: none;
-  filter: none;
 }
 
 .royce-icon-gold.fill-current,
 .royce-icon-gold.fill-gold-bright {
-  fill: #FFFFFF !important;
-  stroke: #FFFFFF !important;
+  fill: currentColor !important;
 }
