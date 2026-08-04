@@ -94,7 +94,7 @@ export default function AuthCallback() {
   }, [navigate]);
 
   return (
-    <div className="min-h-[100dvh] bg-[#0B0B0E] text-white p-4 flex justify-center">
+    <div className="min-h-[100dvh] bg-[#111113] text-white p-4 flex justify-center">
       <div className="w-full">
         <h1 className="font-bold text-lg mb-3">Auth Callback</h1>
         <div className="text-sm text-white/70">

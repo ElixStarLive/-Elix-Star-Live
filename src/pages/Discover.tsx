@@ -244,12 +244,12 @@ export default function Discover() {
   }, [navigate]);
 
   return (
-    <div className="page-above-bottom-nav bg-[#0B0B0E] text-white">
+    <div className="page-above-bottom-nav bg-[#111113] text-white">
       <div className="page-above-bottom-nav__inner">
 
         {/* Header — same size container as STEM */}
         <div
-          className="w-full shrink-0 bg-[#0B0B0E] z-10"
+          className="w-full shrink-0 bg-[#111113] z-10"
           style={{ paddingTop: 'var(--topnav-anchor-top)' }}
         >
           <div
@@ -267,7 +267,7 @@ export default function Discover() {
 
           {/* Search Bar */}
           <div className="mx-3 mb-1.5 flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2 border border-white/10">
-            <Search className="w-3.5 h-3.5 text-[#D2ADF8]/50 shrink-0" />
+            <Search className="w-3.5 h-3.5 text-[#B57CFF]/50 shrink-0" />
             <input
               id="discover-search"
               type="text"
@@ -280,7 +280,7 @@ export default function Discover() {
               className="flex-1 bg-transparent outline-none text-[13px] text-gold-metallic placeholder-[#FFFFFF]/30"
             />
             {searchQuery && (
-              <button onClick={clearSearchQuery} className="p-0.5 rounded-full bg-[#0B0B0E] border border-white/15" title="Clear">
+              <button onClick={clearSearchQuery} className="p-0.5 rounded-full bg-[#111113] border border-white/15" title="Clear">
                 <span className="text-white/50 text-xs leading-none px-1">✕</span>
               </button>
             )}
@@ -302,12 +302,12 @@ export default function Discover() {
         </div>
 
         {/* ═══ CONTENT — full width, no card chrome on trending feed ═══ */}
-        <div className="flex-1 min-h-0 overflow-y-auto w-full bg-[#0B0B0E] pb-24">
+        <div className="flex-1 min-h-0 overflow-y-auto w-full bg-[#111113] pb-24">
 
           {/* Loading */}
           {loading && (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
-              <div className="w-7 h-7 border-2 border-[#5F0AE3]/20 border-t-[#FFFFFF] rounded-full animate-spin" />
+              <div className="w-7 h-7 border-2 border-[#6F2BFF]/20 border-t-[#FFFFFF] rounded-full animate-spin" />
               <p className="text-white/30 text-xs">Loading...</p>
             </div>
           )}
@@ -335,7 +335,7 @@ export default function Discover() {
               {searchResults.users.length > 0 && (
                 <div className="mb-5">
                   <div className="flex items-center gap-2 mb-2 px-1">
-                    <Users className="w-4 h-4 text-[#D2ADF8]" />
+                    <Users className="w-4 h-4 text-[#B57CFF]" />
                     <h2 className="text-[14px] font-bold text-gold-metallic">Users</h2>
                   </div>
                   <div className="space-y-1">
@@ -349,7 +349,7 @@ export default function Discover() {
               {searchResults.videos.length > 0 && (
                 <div>
                   <div className="flex items-center gap-2 mb-2 px-1">
-                    <VideoIcon className="w-4 h-4 text-[#D2ADF8]" />
+                    <VideoIcon className="w-4 h-4 text-[#B57CFF]" />
                     <h2 className="text-[14px] font-bold text-gold-metallic">Videos</h2>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
@@ -491,7 +491,7 @@ function TabButton({ active, onClick, icon, label }: { active: boolean; onClick:
       onClick={onClick}
       className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap transition-all border ${
         active
-          ? 'bg-[#5F0AE3]/15 text-[#D2ADF8] border-[#5F0AE3]/30'
+          ? 'bg-[#6F2BFF]/15 text-[#B57CFF] border-[#6F2BFF]/30'
           : 'text-white/40 hover:text-white/60 border-transparent'
       }`}
     >
@@ -583,7 +583,7 @@ function VideoThumbnail({ video, variant = 'grid' }: { video: Video; variant?: '
     <div
       ref={containerRef}
       className={`relative overflow-hidden w-full ${
-        feed ? 'h-full min-h-0 rounded-none border-0 bg-black' : 'aspect-[9/16] rounded-xl bg-[#0B0B0E] border border-white/10'
+        feed ? 'h-full min-h-0 rounded-none border-0 bg-black' : 'aspect-[9/16] rounded-xl bg-[#111113] border border-white/10'
       }`}
     >
       <div
@@ -695,7 +695,7 @@ function UserSearchResult({ user }: { user: User }) {
       </div>
       <span
         onClick={handleFollow}
-        className={`px-3.5 py-1.5 rounded-lg font-bold text-[11px] ${followed ? 'bg-white/10 text-white/60' : 'bg-[#5F0AE3] text-black'}`}
+        className={`px-3.5 py-1.5 rounded-lg font-bold text-[11px] ${followed ? 'bg-white/10 text-white/60' : 'bg-[#6F2BFF] text-black'}`}
       >
         {followed ? 'Following' : 'Follow'}
       </span>
@@ -716,8 +716,8 @@ function HashtagItem({ hashtag, index }: { hashtag: Hashtag; index: number }) {
       onClick={openHashtag}
       className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition text-left"
     >
-      <div className="w-9 h-9 bg-[#5F0AE3]/10 rounded-xl flex items-center justify-center shrink-0">
-        <Hash className="w-4 h-4 text-[#D2ADF8]" />
+      <div className="w-9 h-9 bg-[#6F2BFF]/10 rounded-xl flex items-center justify-center shrink-0">
+        <Hash className="w-4 h-4 text-[#B57CFF]" />
       </div>
       <div className="flex-1 min-w-0">
         <p className="font-bold text-[13px] truncate">#{hashtag.tag}</p>

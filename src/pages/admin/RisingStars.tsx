@@ -224,11 +224,11 @@ export default function AdminRisingStars() {
     "w-full bg-[#0f1218] border border-white/10 rounded-lg px-3 py-2 text-sm text-white mb-2";
 
   return (
-    <div className="min-h-screen bg-[#0B0B0E] text-white p-6">
+    <div className="min-h-screen bg-[#111113] text-white p-6">
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Trophy className="w-7 h-7 text-[#D2ADF8]" />
+            <Trophy className="w-7 h-7 text-[#B57CFF]" />
             Rising Stars Admin
           </h1>
           <button
@@ -298,7 +298,7 @@ export default function AdminRisingStars() {
               type="button"
               disabled={busy}
               onClick={() => void createSeason()}
-              className="w-full py-2 rounded-lg bg-[#5F0AE3] text-black font-semibold disabled:opacity-40"
+              className="w-full py-2 rounded-lg bg-[#6F2BFF] text-black font-semibold disabled:opacity-40"
             >
               Create season
             </button>
@@ -443,7 +443,7 @@ export default function AdminRisingStars() {
               type="button"
               disabled={busy}
               onClick={() => void createChallenge()}
-              className="w-full py-2 rounded-lg bg-[#5F0AE3] text-black font-semibold disabled:opacity-40"
+              className="w-full py-2 rounded-lg bg-[#6F2BFF] text-black font-semibold disabled:opacity-40"
             >
               Create challenge
             </button>
@@ -506,7 +506,7 @@ export default function AdminRisingStars() {
           <div className="space-y-2 max-h-80 overflow-y-auto text-xs">
             {audit.map((row) => (
               <div key={String(row.id)} className="border-b border-white/5 pb-2">
-                <span className="text-[#D2ADF8]">{String(row.action)}</span>{" "}
+                <span className="text-[#B57CFF]">{String(row.action)}</span>{" "}
                 {String(row.entity_type)} {String(row.entity_id || "")} ·{" "}
                 {String(row.created_at || "")}
               </div>

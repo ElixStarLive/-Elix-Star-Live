@@ -726,13 +726,13 @@ export default function Upload() {
   };
 
   return (
-    <div className="fixed inset-0 h-[100dvh] w-full bg-[#0B0B0E] overflow-hidden flex justify-center">
+    <div className="fixed inset-0 h-[100dvh] w-full bg-[#111113] overflow-hidden flex justify-center">
       <div className={`w-full max-w-[480px] flex flex-col items-center h-full relative ${recordedVideoUrl ? 'justify-end' : 'justify-start'}`}>
       {toast && <div className="fixed top-16 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-md text-white text-sm px-4 py-2 rounded-xl z-[9999]">{toast}</div>}
       {/* PREVIEW MODE */}
        {recordedVideoUrl ? (
          <>
-           <div className="relative z-10 w-full mx-auto h-[100dvh] bg-[#0B0B0E] flex flex-col items-center justify-center">
+           <div className="relative z-10 w-full mx-auto h-[100dvh] bg-[#111113] flex flex-col items-center justify-center">
               {duetSourceVideoUrl ? (
                 <div
                   className="absolute top-0 left-0 right-0 w-full overflow-hidden bg-black"
@@ -760,7 +760,7 @@ export default function Upload() {
                   <div
                     className={
                       duetLayout === 'overlay'
-                        ? 'absolute bottom-3 right-3 z-[2] w-[34%] aspect-[9/16] rounded-xl overflow-hidden border-2 border-[#5F0AE3] shadow-lg bg-black'
+                        ? 'absolute bottom-3 right-3 z-[2] w-[34%] aspect-[9/16] rounded-xl overflow-hidden border-2 border-[#6F2BFF] shadow-lg bg-black'
                         : 'absolute right-0 top-0 w-1/2 h-full bg-black'
                     }
                     data-duet-pane="you"
@@ -786,8 +786,8 @@ export default function Upload() {
                       onClick={setDuetSplit}
                       className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
                         duetLayout === 'split'
-                          ? 'bg-[#5F0AE3] text-black border-[#5F0AE3]'
-                          : 'bg-black/55 text-[#D2ADF8] border-[#5F0AE3]/70'
+                          ? 'bg-[#6F2BFF] text-black border-[#6F2BFF]'
+                          : 'bg-black/55 text-[#B57CFF] border-[#6F2BFF]/70'
                       }`}
                     >
                       Split
@@ -797,8 +797,8 @@ export default function Upload() {
                       onClick={setDuetOverlay}
                       className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
                         duetLayout === 'overlay'
-                          ? 'bg-[#5F0AE3] text-black border-[#5F0AE3]'
-                          : 'bg-black/55 text-[#D2ADF8] border-[#5F0AE3]/70'
+                          ? 'bg-[#6F2BFF] text-black border-[#6F2BFF]'
+                          : 'bg-black/55 text-[#B57CFF] border-[#6F2BFF]/70'
                       }`}
                     >
                       On top
@@ -1001,29 +1001,29 @@ export default function Upload() {
                    className="flex items-center justify-center p-1"
                    title={getSelectedLabel()}
                  >
-                   <Music size={18} className="text-[#D2ADF8] drop-shadow-[0_0_8px_rgba(132, 30, 176,1)]" />
+                   <Music size={18} className="text-[#B57CFF] drop-shadow-[0_0_8px_rgba(176, 0, 255,1)]" />
                  </button>
                </div>
 
                <div className="absolute bottom-[22%] left-0 right-0 z-20 px-4 pointer-events-auto flex justify-center">
-                 <div className="bg-black/60 backdrop-blur-md border border-[#5F0AE3]/30 rounded-xl p-2.5 space-y-2 w-[75%] max-w-[280px]">
+                 <div className="bg-black/60 backdrop-blur-md border border-[#6F2BFF]/30 rounded-xl p-2.5 space-y-2 w-[75%] max-w-[280px]">
                    <div>
-                     <label className="text-[10px] text-[#D2ADF8] font-semibold mb-1 block">Caption</label>
+                     <label className="text-[10px] text-[#B57CFF] font-semibold mb-1 block">Caption</label>
                      <textarea
                        value={caption}
                        onChange={(e) => setCaption(e.target.value)}
                        placeholder="Write something…"
-                       className="w-full bg-white/10 text-white placeholder-white/40 border border-[#5F0AE3]/40 rounded-lg px-3 py-2 text-sm outline-none resize-none h-10 focus:h-24 focus:border-[#5F0AE3] transition-all duration-300"
+                       className="w-full bg-white/10 text-white placeholder-white/40 border border-[#6F2BFF]/40 rounded-lg px-3 py-2 text-sm outline-none resize-none h-10 focus:h-24 focus:border-[#6F2BFF] transition-all duration-300"
                        aria-label="Caption"
                      />
                    </div>
                    <div>
-                     <label className="text-[10px] text-[#D2ADF8] font-semibold mb-1 block">Add Hashtags</label>
+                     <label className="text-[10px] text-[#B57CFF] font-semibold mb-1 block">Add Hashtags</label>
                      <input
                        value={hashtagsText}
                        onChange={(e) => setHashtagsText(e.target.value)}
                        placeholder="#fun #dance #viral"
-                       className="w-full bg-white/10 text-white placeholder-white/40 border border-[#5F0AE3]/40 rounded-lg px-3 py-2 text-sm outline-none h-10 focus:border-[#5F0AE3] transition-all duration-300"
+                       className="w-full bg-white/10 text-white placeholder-white/40 border border-[#6F2BFF]/40 rounded-lg px-3 py-2 text-sm outline-none h-10 focus:border-[#6F2BFF] transition-all duration-300"
                        aria-label="Hashtags"
                      />
                    </div>
@@ -1032,7 +1032,7 @@ export default function Upload() {
                      <button
                        type="button"
                        className={`w-11 h-6 rounded-full transition-colors ${
-                         postWithoutAudio ? 'bg-[#5F0AE3]' : 'bg-white/20'
+                         postWithoutAudio ? 'bg-[#6F2BFF]' : 'bg-white/20'
                        }`}
                        onClick={() => {
                          const next = !postWithoutAudio;
@@ -1054,7 +1054,7 @@ export default function Upload() {
                     <div className="space-y-1.5 pt-1 border-t border-white/10">
                       <div>
                         <div className="flex items-center justify-between mb-0.5">
-                          <label className="text-[10px] text-[#D2ADF8] font-semibold">Original sound</label>
+                          <label className="text-[10px] text-[#B57CFF] font-semibold">Original sound</label>
                           <button
                             type="button"
                             onClick={toggleOriginalMute}
@@ -1066,16 +1066,16 @@ export default function Upload() {
                         <input
                           type="range" min={0} max={100} value={Math.round(originalVolume * 100)}
                           onChange={(e) => setOriginalVolume(Number(e.target.value) / 100)}
-                          className="w-full accent-[#5F0AE3]"
+                          className="w-full accent-[#6F2BFF]"
                           aria-label="Original sound volume"
                         />
                       </div>
                       <div>
-                        <label className="text-[10px] text-[#D2ADF8] font-semibold mb-0.5 block">Song volume</label>
+                        <label className="text-[10px] text-[#B57CFF] font-semibold mb-0.5 block">Song volume</label>
                         <input
                           type="range" min={0} max={100} value={Math.round(musicVolume * 100)}
                           onChange={(e) => setMusicVolume(Number(e.target.value) / 100)}
-                          className="w-full accent-[#5F0AE3]"
+                          className="w-full accent-[#6F2BFF]"
                           aria-label="Song volume"
                         />
                       </div>
@@ -1111,7 +1111,7 @@ export default function Upload() {
                     <span className="royce-glow-disc w-9 h-9 group-active:scale-90 transition-transform" aria-hidden>
                       <ImageIcon size={18} className="royce-icon-gold" strokeWidth={2} />
                     </span>
-                    <span className="text-[#D2ADF8] text-[10px] font-bold drop-shadow-[0_0_8px_rgba(132, 30, 176,0.9)]">Upload</span>
+                    <span className="text-[#B57CFF] text-[10px] font-bold drop-shadow-[0_0_8px_rgba(176, 0, 255,0.9)]">Upload</span>
                   </button>
 
                   {/* AI Studio (moved up) */}
@@ -1123,7 +1123,7 @@ export default function Upload() {
                     <span className="w-9 h-9 royce-glow-disc flex items-center justify-center group-hover:scale-110 transition-transform" aria-hidden>
                       <Wand2 size={18} className="royce-icon-gold" strokeWidth={2} />
                     </span>
-                    <span className="text-[#D2ADF8] font-bold text-[10px] drop-shadow-[0_0_8px_rgba(132, 30, 176,0.9)]">AI Studio</span>
+                    <span className="text-[#B57CFF] font-bold text-[10px] drop-shadow-[0_0_8px_rgba(176, 0, 255,0.9)]">AI Studio</span>
                   </button>
 
                   {/* Retake + Post (moved down) */}
@@ -1136,7 +1136,7 @@ export default function Upload() {
                       <span className="w-9 h-9 royce-glow-disc flex items-center justify-center group-hover:scale-110 transition-transform" aria-hidden>
                         <RotateCcw size={18} className="royce-icon-gold" strokeWidth={2} />
                       </span>
-                      <span className="text-[#D2ADF8] font-bold text-[10px] drop-shadow-[0_0_8px_rgba(132, 30, 176,0.9)]">Retake</span>
+                      <span className="text-[#B57CFF] font-bold text-[10px] drop-shadow-[0_0_8px_rgba(176, 0, 255,0.9)]">Retake</span>
                     </button>
 
                     <button
@@ -1149,7 +1149,7 @@ export default function Upload() {
                       <span className="w-11 h-11 royce-glow-disc flex items-center justify-center group-hover:scale-110 active:scale-95 transition-transform" aria-hidden>
                         <Check size={18} className={`royce-icon-gold ${isPosting ? 'opacity-60' : ''}`} strokeWidth={2.5} />
                       </span>
-                      <span className="text-[#D2ADF8] font-bold text-[10px] drop-shadow-[0_0_8px_rgba(132, 30, 176,0.9)]">
+                      <span className="text-[#B57CFF] font-bold text-[10px] drop-shadow-[0_0_8px_rgba(176, 0, 255,0.9)]">
                         {isPosting ? 'Posting…' : isStoryUpload ? 'Your Story' : 'Post'}
                       </span>
                     </button>
@@ -1195,7 +1195,7 @@ export default function Upload() {
         /* CAMERA MODE */
         <>
           {/* Container Principal */}
-          <div className="relative z-10 w-full h-[100dvh] mb-0 pointer-events-none bg-[#0B0B0E] shadow-2xl overflow-hidden">
+          <div className="relative z-10 w-full h-[100dvh] mb-0 pointer-events-none bg-[#111113] shadow-2xl overflow-hidden">
               {/* Duet: split (half/half) or overlay (full original + your face on top) */}
               {duetSourceVideoUrl ? (
                 <div
@@ -1225,7 +1225,7 @@ export default function Upload() {
                   <div
                     className={
                       duetLayout === 'overlay'
-                        ? 'absolute bottom-3 right-3 z-[2] w-[34%] aspect-[9/16] rounded-xl overflow-hidden border-2 border-[#5F0AE3] shadow-lg bg-black'
+                        ? 'absolute bottom-3 right-3 z-[2] w-[34%] aspect-[9/16] rounded-xl overflow-hidden border-2 border-[#6F2BFF] shadow-lg bg-black'
                         : 'absolute right-0 top-0 w-1/2 h-full bg-black'
                     }
                     data-duet-pane="you"
@@ -1268,8 +1268,8 @@ export default function Upload() {
               ) : null}
 
               {cameraError && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center z-[5] bg-[#0B0B0E] text-white p-6 text-center">
-                  <div className="w-14 h-14 rounded-full bg-[#5F0AE3]/20 flex items-center justify-center mb-3">
+                <div className="absolute inset-0 flex flex-col items-center justify-center z-[5] bg-[#111113] text-white p-6 text-center">
+                  <div className="w-14 h-14 rounded-full bg-[#6F2BFF]/20 flex items-center justify-center mb-3">
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M21 21H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3l2-3h6l2 3h3a2 2 0 0 1 2 2v9.34"/><path d="M14.12 14.12A3 3 0 1 1 9.88 9.88"/></svg>
                   </div>
                   <p className="text-white text-sm font-medium mb-1">Camera Access Needed</p>
@@ -1289,7 +1289,7 @@ export default function Upload() {
                       // Increment retry counter to force useEffect re-run
                       setCameraRetry(prev => prev + 1);
                     }}
-                    className="px-5 py-2.5 rounded-full bg-[#5F0AE3] text-black text-sm font-semibold active:scale-95 transition-transform pointer-events-auto"
+                    className="px-5 py-2.5 rounded-full bg-[#6F2BFF] text-black text-sm font-semibold active:scale-95 transition-transform pointer-events-auto"
                   >
                     Try Again
                   </button>
@@ -1308,8 +1308,8 @@ export default function Upload() {
                         onClick={setDuetSplit}
                         className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
                           duetLayout === 'split'
-                            ? 'bg-[#5F0AE3] text-black border-[#5F0AE3]'
-                            : 'bg-black/55 text-[#D2ADF8] border-[#5F0AE3]/70'
+                            ? 'bg-[#6F2BFF] text-black border-[#6F2BFF]'
+                            : 'bg-black/55 text-[#B57CFF] border-[#6F2BFF]/70'
                         }`}
                         title="Side by side"
                       >
@@ -1320,8 +1320,8 @@ export default function Upload() {
                         onClick={setDuetOverlay}
                         className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
                           duetLayout === 'overlay'
-                            ? 'bg-[#5F0AE3] text-black border-[#5F0AE3]'
-                            : 'bg-black/55 text-[#D2ADF8] border-[#5F0AE3]/70'
+                            ? 'bg-[#6F2BFF] text-black border-[#6F2BFF]'
+                            : 'bg-black/55 text-[#B57CFF] border-[#6F2BFF]/70'
                         }`}
                         title="Your face on top of full video"
                       >
@@ -1397,7 +1397,7 @@ export default function Upload() {
                       }}
                       title={`Speed ${cameraSpeed}x`}
                     >
-                      <span className="text-[#D2ADF8] font-bold text-xs">{cameraSpeed}x</span>
+                      <span className="text-[#B57CFF] font-bold text-xs">{cameraSpeed}x</span>
                     </button>
                     <button
                       type="button"
@@ -1425,7 +1425,7 @@ export default function Upload() {
                     >
                       <Clock size={18} className="royce-icon-gold" strokeWidth={2} />
                       {timerDelay > 0 ? (
-                        <span className="absolute -bottom-0.5 text-[8px] font-bold text-[#D2ADF8]">{timerDelay}</span>
+                        <span className="absolute -bottom-0.5 text-[8px] font-bold text-[#B57CFF]">{timerDelay}</span>
                       ) : null}
                     </button>
                     <button
@@ -1451,7 +1451,7 @@ export default function Upload() {
                       }}
                       title={flashOn ? 'Flash on' : 'Flash off'}
                     >
-                      <Zap size={18} className="royce-icon-gold" strokeWidth={2} fill={flashOn ? '#5F0AE3' : 'none'} />
+                      <Zap size={18} className="royce-icon-gold" strokeWidth={2} fill={flashOn ? '#6F2BFF' : 'none'} />
                     </button>
                     <button
                       type="button"
@@ -1496,7 +1496,7 @@ export default function Upload() {
                     <span className="royce-glow-disc w-9 h-9 group-active:scale-90 transition-transform" aria-hidden>
                       <ImageIcon size={18} className="royce-icon-gold" strokeWidth={2} />
                     </span>
-                    <span className="text-[#D2ADF8] text-[10px] font-bold drop-shadow-[0_0_8px_rgba(132, 30, 176,0.9)]">Upload</span>
+                    <span className="text-[#B57CFF] text-[10px] font-bold drop-shadow-[0_0_8px_rgba(176, 0, 255,0.9)]">Upload</span>
                   </button>
 
               </div>
@@ -1507,7 +1507,7 @@ export default function Upload() {
       {/* Above camera hit-layer + preview chrome — works in record and after capture */}
       {showMusicModal ? (
         <div
-          className="fixed inset-0 z-[10050] bg-[#0B0B0E] flex flex-col pt-6 pointer-events-auto"
+          className="fixed inset-0 z-[10050] bg-[#111113] flex flex-col pt-6 pointer-events-auto"
           role="dialog"
           aria-modal="true"
           aria-label="Add sound"
@@ -1520,8 +1520,8 @@ export default function Upload() {
                 type="button"
                 className={`min-h-[64px] px-3 py-3 rounded-2xl border text-left transition-colors active:scale-[0.98] ${
                   selectedAudioId === 'original' && !postWithoutAudio
-                    ? 'bg-[#5F0AE3] border-[#5F0AE3] text-black shadow-[0_0_16px_rgba(95, 10, 227,0.35)]'
-                    : 'bg-[#111116] border-[#5F0AE3]/40 text-white'
+                    ? 'bg-[#6F2BFF] border-[#6F2BFF] text-black shadow-[0_0_16px_rgba(111, 43, 255,0.35)]'
+                    : 'bg-[#18181B] border-[#6F2BFF]/40 text-white'
                 }`}
                 onClick={() => {
                   handleSelectMusic(ORIGINAL_SOUND_TRACK);
@@ -1540,8 +1540,8 @@ export default function Upload() {
                 type="button"
                 className={`min-h-[64px] px-3 py-3 rounded-2xl border text-left transition-colors active:scale-[0.98] ${
                   postWithoutAudio || selectedAudioId === 'none'
-                    ? 'bg-[#5F0AE3] border-[#5F0AE3] text-black shadow-[0_0_16px_rgba(95, 10, 227,0.35)]'
-                    : 'bg-[#111116] border-[#5F0AE3]/40 text-white'
+                    ? 'bg-[#6F2BFF] border-[#6F2BFF] text-black shadow-[0_0_16px_rgba(111, 43, 255,0.35)]'
+                    : 'bg-[#18181B] border-[#6F2BFF]/40 text-white'
                 }`}
                 onClick={() => {
                   if (previewAudioRef.current) {

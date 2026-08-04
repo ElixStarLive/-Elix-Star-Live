@@ -56,13 +56,13 @@ export function GiftGoalGallery(props: Props) {
     const { goal, onSend } = props;
     const pct = giftGoalProgressPct(goal);
     return (
-      <div className="bg-white/5 rounded-xl p-3 border border-[#5F0AE3]/20">
+      <div className="bg-white/5 rounded-xl p-3 border border-[#6F2BFF]/20">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-gold-metallic font-bold text-[10px] flex items-center gap-1">
-            <Target className="w-3 h-3 text-[#D2ADF8]" strokeWidth={2.5} />
+            <Target className="w-3 h-3 text-[#B57CFF]" strokeWidth={2.5} />
             Gift Goal
           </h3>
-          <span className="text-[#D2ADF8] text-[9px] font-bold tabular-nums">
+          <span className="text-[#B57CFF] text-[9px] font-bold tabular-nums">
             {goal.currentCount}/{goal.targetCount}
           </span>
         </div>
@@ -74,7 +74,7 @@ export function GiftGoalGallery(props: Props) {
               className="w-10 h-10 object-contain flex-shrink-0"
             />
           ) : (
-            <Gift className="w-8 h-8 text-[#D2ADF8]" strokeWidth={2} />
+            <Gift className="w-8 h-8 text-[#B57CFF]" strokeWidth={2} />
           )}
           <div className="flex-1 min-w-0">
             <p className="text-white text-[11px] font-bold truncate">{goal.giftName}</p>
@@ -83,7 +83,7 @@ export function GiftGoalGallery(props: Props) {
         </div>
         <div className="h-1.5 rounded-full bg-white/10 overflow-hidden mb-2">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-[#D2ADF8] to-[#D2ADF8] transition-all duration-500"
+            className="h-full rounded-full bg-gradient-to-r from-[#B57CFF] to-[#B57CFF] transition-all duration-500"
             style={{ width: `${pct}%` }}
           />
         </div>
@@ -91,7 +91,7 @@ export function GiftGoalGallery(props: Props) {
           <button
             type="button"
             onClick={onSend}
-            className="w-full py-2 bg-gradient-to-r from-[#D2ADF8] to-[#D2ADF8] text-black font-bold text-[10px] uppercase tracking-wide rounded-xl active:scale-[0.98] transition-all"
+            className="w-full py-2 bg-gradient-to-r from-[#B57CFF] to-[#B57CFF] text-black font-bold text-[10px] uppercase tracking-wide rounded-xl active:scale-[0.98] transition-all"
           >
             Send {goal.giftName}
           </button>
@@ -113,10 +113,10 @@ export function GiftGoalGallery(props: Props) {
   const selectedGift = galleryGifts.find((g) => g.id === selectedGiftId) ?? null;
 
   return (
-    <div className="bg-white/5 rounded-xl p-3 border border-[#5F0AE3]/20">
+    <div className="bg-white/5 rounded-xl p-3 border border-[#6F2BFF]/20">
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-gold-metallic font-bold text-[10px] flex items-center gap-1">
-          <Gift className="w-3 h-3 text-[#D2ADF8]" strokeWidth={2.5} />
+          <Gift className="w-3 h-3 text-[#B57CFF]" strokeWidth={2.5} />
           Gift Goal Gallery
         </h3>
         <span className="text-white/40 text-[8px]">Pick a gift for fans to send</span>
@@ -134,8 +134,8 @@ export function GiftGoalGallery(props: Props) {
               className={[
                 "aspect-square rounded-lg border p-1 flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-all",
                 selectedGiftId === gift.id
-                  ? "border-[#5F0AE3] bg-[#5F0AE3]/15"
-                  : "border-[#5F0AE3]/15 bg-white/5 hover:bg-white/10",
+                  ? "border-[#6F2BFF] bg-[#6F2BFF]/15"
+                  : "border-[#6F2BFF]/15 bg-white/5 hover:bg-white/10",
               ].join(" ")}
             >
               <img
@@ -159,7 +159,7 @@ export function GiftGoalGallery(props: Props) {
             className={[
               "px-2 py-0.5 rounded-full text-[9px] font-bold border active:scale-95 transition-all",
               targetCount === n
-                ? "bg-[#5F0AE3]/25 border-[#5F0AE3] text-[#D2ADF8]"
+                ? "bg-[#6F2BFF]/25 border-[#6F2BFF] text-[#B57CFF]"
                 : "bg-white/5 border-white/10 text-white/60",
             ].join(" ")}
           >
@@ -179,7 +179,7 @@ export function GiftGoalGallery(props: Props) {
           type="button"
           disabled={!selectedGift || saving}
           onClick={onSave}
-          className="flex-1 py-2 bg-gradient-to-r from-[#D2ADF8] to-[#D2ADF8] text-black font-bold text-[10px] uppercase tracking-wide rounded-xl active:scale-[0.98] transition-all disabled:opacity-50"
+          className="flex-1 py-2 bg-gradient-to-r from-[#B57CFF] to-[#B57CFF] text-black font-bold text-[10px] uppercase tracking-wide rounded-xl active:scale-[0.98] transition-all disabled:opacity-50"
         >
           {saving ? "Saving..." : "Set Goal"}
         </button>

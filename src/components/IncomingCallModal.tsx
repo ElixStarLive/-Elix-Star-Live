@@ -29,12 +29,12 @@ export function IncomingCallModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-[#0B0B0E]/70 backdrop-blur-md flex items-center justify-center">
-      <div className="bg-[#0B0B0E] rounded-3xl p-8 max-w-sm w-full mx-4 text-center shadow-2xl">
+    <div className="fixed inset-0 z-[100] bg-[#111113]/70 backdrop-blur-md flex items-center justify-center">
+      <div className="bg-[#111113] rounded-3xl p-8 max-w-sm w-full mx-4 text-center shadow-2xl">
         {remoteUser.avatar ? (
           <AvatarRing src={remoteUser.avatar} alt={remoteUser.username} size={96} className="mx-auto mb-4" />
         ) : (
-          <div className="w-24 h-24 rounded-full bg-[#0B0B0E] border border-[#5F0AE3]/40 mx-auto mb-4 flex items-center justify-center text-3xl text-white">
+          <div className="w-24 h-24 rounded-full bg-[#111113] border border-[#6F2BFF]/40 mx-auto mb-4 flex items-center justify-center text-3xl text-white">
             {remoteUser.username[0]?.toUpperCase()}
           </div>
         )}

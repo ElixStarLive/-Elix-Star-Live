@@ -79,7 +79,7 @@ export const CREATOR_NAME_PILL_HEIGHT_PX = 36;
 
 /** Shared shell: avatar + name + Join/Follow as one rounded capsule. */
 export const CREATOR_NAME_PILL_CLASSNAME =
-  'relative flex items-center min-w-0 rounded-full border border-[#FFFFFF]/60 bg-[#0B0B0E]/80 z-[15] overflow-visible' as const;
+  'relative flex items-center min-w-0 rounded-full border border-[#FFFFFF]/60 bg-[#111113]/80 z-[15] overflow-visible' as const;
 
 /** Inline styles for the host capsule; merge with `style` if needed. */
 export function getCreatorNamePillStyle(overrides?: Record<string, string | number | undefined>): Record<string, string | number> {

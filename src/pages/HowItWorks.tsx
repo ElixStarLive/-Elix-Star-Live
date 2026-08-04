@@ -29,10 +29,10 @@ export default function HowItWorks() {
 
   return (
     <SettingsOptionSheet onClose={goBack}>
-      <div className="w-full h-full overflow-hidden bg-[#0B0B0E] text-white flex flex-col">
+      <div className="w-full h-full overflow-hidden bg-[#111113] text-white flex flex-col">
         <header className="flex items-center justify-center mb-3 px-4 pt-2">
           <h1 className="font-bold text-lg flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-[#D2ADF8]" />
+            <BookOpen className="w-5 h-5 text-[#B57CFF]" />
             How the app works
           </h1>
         </header>
@@ -258,7 +258,7 @@ export default function HowItWorks() {
               <button
                 type="button"
                 onClick={goEngagement}
-                className="w-full py-3 bg-[#5F0AE3] text-black rounded-xl font-bold active:opacity-90 transition"
+                className="w-full py-3 bg-[#6F2BFF] text-black rounded-xl font-bold active:opacity-90 transition"
               >
                 Open Engagement Hub
               </button>
@@ -296,7 +296,7 @@ function Section({
   return (
     <div>
       <h2 className="flex items-center gap-2 text-white font-semibold text-base mb-2">
-        <span className="text-[#D2ADF8] flex-shrink-0">{icon}</span>
+        <span className="text-[#B57CFF] flex-shrink-0">{icon}</span>
         {title}
       </h2>
       {children}

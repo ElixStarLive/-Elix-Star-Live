@@ -119,7 +119,7 @@ export default function Settings() {
     <SettingsOptionSheet onClose={goBack}>
       <div className="flex-shrink-0 px-3 pb-1">
         <div className="flex flex-col items-center">
-          <span className="text-[13px] font-bold text-[#D2ADF8]">{t('settings.title')}</span>
+          <span className="text-[13px] font-bold text-[#B57CFF]">{t('settings.title')}</span>
         </div>
       </div>
 

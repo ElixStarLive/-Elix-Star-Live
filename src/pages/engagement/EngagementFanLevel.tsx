@@ -46,8 +46,8 @@ export default function EngagementFanLevel() {
         <div className="py-10 text-center text-white/50 text-sm">Loading...</div>
       ) : (
         <>
-          <div className="rounded-2xl border border-[#5F0AE3]/30 bg-gradient-to-br from-[#1a1608] to-[#0B0B0E] p-4 mb-4">
-            <p className="text-xs text-[#D2ADF8] uppercase tracking-wide mb-1">
+          <div className="rounded-2xl border border-[#6F2BFF]/30 bg-gradient-to-br from-[#1a1608] to-[#111113] p-4 mb-4">
+            <p className="text-xs text-[#B57CFF] uppercase tracking-wide mb-1">
               {fan?.tier || "Bronze Fan"}
             </p>
             <p className="text-3xl font-bold mb-1">Level {fan?.level ?? 0}</p>
@@ -73,12 +73,12 @@ export default function EngagementFanLevel() {
                   key={t.name}
                   className={`rounded-xl border px-3 py-2.5 flex items-center justify-between ${
                     active
-                      ? "border-[#5F0AE3]/40 bg-[#5F0AE3]/10"
+                      ? "border-[#6F2BFF]/40 bg-[#6F2BFF]/10"
                       : "border-white/10 bg-white/[0.03]"
                   }`}
                 >
                   <span
-                    className={`text-sm ${active ? "text-[#D2ADF8]" : "text-white/50"}`}
+                    className={`text-sm ${active ? "text-[#B57CFF]" : "text-white/50"}`}
                   >
                     {t.name}
                   </span>

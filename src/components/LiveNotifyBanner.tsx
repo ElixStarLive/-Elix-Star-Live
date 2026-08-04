@@ -145,7 +145,7 @@ export function LiveNotifyBanner() {
       className="fixed left-0 right-0 top-0 z-[9999] flex justify-center px-3 pointer-events-none"
       style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 8px)' }}
     >
-      <div className="pointer-events-auto w-full max-w-[480px] flex items-center gap-2 rounded-full bg-[#0B0B0E]/95 border border-[#5F0AE3]/40 pl-1.5 pr-2 py-1 shadow-[0_8px_30px_rgba(0,0,0,0.55)]">
+      <div className="pointer-events-auto w-full max-w-[480px] flex items-center gap-2 rounded-full bg-[#111113]/95 border border-[#6F2BFF]/40 pl-1.5 pr-2 py-1 shadow-[0_8px_30px_rgba(0,0,0,0.55)]">
         <button
           type="button"
           onClick={openLiveWatch}
@@ -154,7 +154,7 @@ export function LiveNotifyBanner() {
           <StoryGoldRingAvatar size={26} src={banner.avatar} alt={banner.name} live />
           <span className="flex-1 min-w-0 flex items-baseline gap-1.5 truncate">
             <span className="text-white font-bold text-xs truncate">{banner.name}</span>
-            <span className="text-[#D2ADF8] text-[11px] font-semibold whitespace-nowrap">
+            <span className="text-[#B57CFF] text-[11px] font-semibold whitespace-nowrap">
               is live now — tap to watch
             </span>
           </span>

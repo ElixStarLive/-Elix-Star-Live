@@ -80,7 +80,7 @@ export function LiveEngagementOverlay({
           />
           <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
             <div
-              className="bg-[#0B0B0E]/95 rounded-t-2xl p-3 pb-safe max-h-[40vh] flex flex-col shadow-2xl"
+              className="bg-[#111113]/95 rounded-t-2xl p-3 pb-safe max-h-[40vh] flex flex-col shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-center mb-2">
@@ -88,7 +88,7 @@ export function LiveEngagementOverlay({
               </div>
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <Sparkles className="w-3.5 h-3.5 text-[#D2ADF8] flex-shrink-0" />
+                  <Sparkles className="w-3.5 h-3.5 text-[#B57CFF] flex-shrink-0" />
                   <span className="text-sm font-bold text-white truncate">
                     {state.poll.kind === "trivia" ? "Trivia" : "Live poll"}
                     {state.poll.endsAt && _nowMs >= state.poll.endsAt
@@ -122,13 +122,13 @@ export function LiveEngagementOverlay({
                       className="relative overflow-hidden rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-left disabled:opacity-90 active:scale-[0.99]"
                     >
                       <div
-                        className="absolute inset-y-0 left-0 bg-[#5F0AE3]/25"
+                        className="absolute inset-y-0 left-0 bg-[#6F2BFF]/25"
                         style={{ width: hasVoted || ended ? `${pct}%` : "0%" }}
                       />
                       <div className="relative flex justify-between gap-2">
                         <span className="text-[12px] font-bold text-white">{opt}</span>
                         {hasVoted || ended ? (
-                          <span className="text-[11px] text-[#D2ADF8] tabular-nums font-bold">{pct}%</span>
+                          <span className="text-[11px] text-[#B57CFF] tabular-nums font-bold">{pct}%</span>
                         ) : null}
                       </div>
                     </button>
@@ -149,7 +149,7 @@ export function LiveEngagementOverlay({
           />
           <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
             <div
-              className="bg-[#0B0B0E]/95 rounded-t-2xl p-3 pb-safe h-[40dvh] max-h-[40dvh] flex flex-col shadow-2xl w-full overflow-hidden"
+              className="bg-[#111113]/95 rounded-t-2xl p-3 pb-safe h-[40dvh] max-h-[40dvh] flex flex-col shadow-2xl w-full overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-center mb-2">
@@ -157,7 +157,7 @@ export function LiveEngagementOverlay({
               </div>
               <div className="flex items-center justify-between mb-2 flex-shrink-0">
                 <div className="flex items-center gap-1.5">
-                  <Users className="w-3.5 h-3.5 text-[#D2ADF8]" />
+                  <Users className="w-3.5 h-3.5 text-[#B57CFF]" />
                   <span className="text-sm font-bold text-white">Current live</span>
                 </div>
                 <button type="button" onClick={() => setShowLb(false)} className="p-1">
@@ -179,7 +179,7 @@ export function LiveEngagementOverlay({
                       <div className="flex-1 min-w-0">
                         <p className="text-white text-[11px] font-semibold truncate">{row.username}</p>
                         {row.title ? (
-                          <p className="text-[8px] text-[#D2ADF8] truncate">{row.title}</p>
+                          <p className="text-[8px] text-[#B57CFF] truncate">{row.title}</p>
                         ) : null}
                       </div>
                       <span className="text-[10px] font-bold text-[#F5E6A8] tabular-nums">{row.score}</span>
@@ -194,7 +194,7 @@ export function LiveEngagementOverlay({
 
       {(milestoneFlash || stageFlash != null) && (
         <div className="pointer-events-none fixed inset-0 z-[100] flex items-start justify-center pt-[28%] max-w-[480px] mx-auto">
-          <div className="px-4 py-3 rounded-2xl bg-[#0B0B0E]/92 border border-[#5F0AE3]/50 shadow-[0_0_24px_rgba(95, 10, 227,0.35)]">
+          <div className="px-4 py-3 rounded-2xl bg-[#111113]/92 border border-[#6F2BFF]/50 shadow-[0_0_24px_rgba(111, 43, 255,0.35)]">
             {milestoneFlash ? (
               <p className="text-[#F5E6A8] text-sm font-black text-center">
                 {milestoneFlash.milestones.map((m) => `${m}m`).join(", ")} streak!

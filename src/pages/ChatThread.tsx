@@ -43,12 +43,12 @@ function MessageText({ text, isMe, navigate: nav }: { text: string; isMe: boolea
               : appMatch[1] === 'profile' ? `/profile/${appMatch[2]}`
               : `/watch/${appMatch[2]}`;
             return (
-              <button key={i} type="button" onClick={() => nav(route)} className={`underline font-medium ${isMe ? 'text-black/80' : 'text-[#D2ADF8]'}`}>
+              <button key={i} type="button" onClick={() => nav(route)} className={`underline font-medium ${isMe ? 'text-black/80' : 'text-[#B57CFF]'}`}>
                 {appMatch[1] === 'video' ? 'View Video' : appMatch[1] === 'profile' ? 'View Profile' : 'Join Live'}
               </button>
             );
           }
-          return <a key={i} href={part} target="_blank" rel="noopener noreferrer" className={`underline ${isMe ? 'text-black/70' : 'text-[#D2ADF8]/80'}`}>{part}</a>;
+          return <a key={i} href={part} target="_blank" rel="noopener noreferrer" className={`underline ${isMe ? 'text-black/70' : 'text-[#B57CFF]/80'}`}>{part}</a>;
         }
         return <React.Fragment key={i}>{part}</React.Fragment>;
       })}
@@ -331,7 +331,7 @@ export default function ChatThread() {
 
   if (isSystemThread) {
     return (
-      <div className="min-h-full min-h-0 flex flex-col bg-[#0B0B0E] text-white p-4">
+      <div className="min-h-full min-h-0 flex flex-col bg-[#111113] text-white p-4">
         <header className="flex items-center gap-4 mb-4 flex-shrink-0">
           <button type="button" onClick={goInbox} className="p-1 rounded-lg active:bg-white/10" aria-label="Back to inbox">
             <ArrowLeft />
@@ -345,16 +345,16 @@ export default function ChatThread() {
 
   return (
     <div
-      className="fixed left-0 right-0 flex flex-col w-full max-w-[480px] mx-auto bg-[#0B0B0E] text-white z-[1]"
+      className="fixed left-0 right-0 flex flex-col w-full max-w-[480px] mx-auto bg-[#111113] text-white z-[1]"
       style={{ top: 0, bottom: 'var(--bottom-ui-reserve)' }}
     >
-        <header className="flex-shrink-0 flex items-center gap-2 px-4 py-3 border-b border-white/10 bg-[#0B0B0E]">
+        <header className="flex-shrink-0 flex items-center gap-2 px-4 py-3 border-b border-white/10 bg-[#111113]">
           <div className="flex w-12 shrink-0 items-center justify-start">
             {otherUser && (
               <button
                 type="button"
                 onClick={handleVideoCall}
-                className="p-2 rounded-full bg-[#0B0B0E] border border-[#5F0AE3]/40 hover:bg-[#5F0AE3]/10 transition-colors"
+                className="p-2 rounded-full bg-[#111113] border border-[#6F2BFF]/40 hover:bg-[#6F2BFF]/10 transition-colors"
                 aria-label="Video call"
               >
                 <Video className="w-5 h-5 text-white" />
@@ -379,7 +379,7 @@ export default function ChatThread() {
         </header>
 
         {liveUsers.length > 0 && (
-          <div className="flex-shrink-0 border-b border-white/10 bg-[#0B0B0E]">
+          <div className="flex-shrink-0 border-b border-white/10 bg-[#111113]">
             <div className="flex gap-3 overflow-x-auto overflow-y-hidden no-scrollbar px-3 py-2" style={{ WebkitOverflowScrolling: 'touch' }}>
               {liveUsers.map((u) => (
                 <button
@@ -417,7 +417,7 @@ export default function ChatThread() {
 
             return (
               <div key={m.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm leading-snug break-words ${isMe ? 'bg-[#5F0AE3] text-black rounded-tr-none' : 'bg-[#1A1A22] text-white rounded-tl-none'}`}>
+                <div className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm leading-snug break-words ${isMe ? 'bg-[#6F2BFF] text-black rounded-tr-none' : 'bg-[#202024] text-white rounded-tl-none'}`}>
                   {preview && preview.type === 'profile' ? (
                     <button
                       type="button"
@@ -482,8 +482,8 @@ export default function ChatThread() {
           })}
         </div>
 
-        <div className="flex-shrink-0 p-4 bg-[#0B0B0E] border-t border-white/10">
-          <form className="flex items-center gap-2 bg-[#1A1A22] rounded-full px-4 py-2" onSubmit={handleSend}>
+        <div className="flex-shrink-0 p-4 bg-[#111113] border-t border-white/10">
+          <form className="flex items-center gap-2 bg-[#202024] rounded-full px-4 py-2" onSubmit={handleSend}>
             <input
               value={draft}
               onChange={(e) => setDraft(e.target.value)}

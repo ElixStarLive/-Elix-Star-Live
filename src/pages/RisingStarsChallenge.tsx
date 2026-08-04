@@ -170,10 +170,10 @@ export default function RisingStarsChallenge() {
   }, [challengeId, challenge?.title]);
 
   return (
-    <div className="page-above-bottom-nav bg-[#0B0B0E] text-white">
+    <div className="page-above-bottom-nav bg-[#111113] text-white">
       <div className="page-above-bottom-nav__inner">
         <div
-          className="w-full shrink-0 bg-[#0B0B0E] z-10"
+          className="w-full shrink-0 bg-[#111113] z-10"
           style={{ paddingTop: "var(--topnav-anchor-top)" }}
         >
           <div
@@ -184,10 +184,10 @@ export default function RisingStarsChallenge() {
               <RoyceBackIcon className="w-6 h-6 text-white" />
             </button>
             <div className="flex items-center gap-2">
-              <Trophy className="w-5 h-5 text-[#D2ADF8]" />
+              <Trophy className="w-5 h-5 text-[#B57CFF]" />
               <h1 className="text-base font-semibold">Challenge</h1>
             </div>
-            <button type="button" onClick={() => void share()} className="text-xs text-[#D2ADF8]">
+            <button type="button" onClick={() => void share()} className="text-xs text-[#B57CFF]">
               Share
             </button>
           </div>
@@ -199,7 +199,7 @@ export default function RisingStarsChallenge() {
           ) : (
             <>
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4 mb-4">
-                <div className="text-xs text-[#D2ADF8] mb-1 uppercase">
+                <div className="text-xs text-[#B57CFF] mb-1 uppercase">
                   Week {challenge.week_index} · {challenge.status}
                 </div>
                 <h2 className="text-lg font-bold mb-2">{challenge.title}</h2>
@@ -207,7 +207,7 @@ export default function RisingStarsChallenge() {
                   <p className="text-sm text-white/60 mb-3">{challenge.description}</p>
                 )}
                 <div className="flex items-center gap-2 text-sm text-white/80">
-                  <Music className="w-4 h-4 text-[#D2ADF8]" />
+                  <Music className="w-4 h-4 text-[#B57CFF]" />
                   <span>Required sound: {soundTitle}</span>
                 </div>
                 <p className="text-xs text-white/40 mt-2">
@@ -232,9 +232,9 @@ export default function RisingStarsChallenge() {
               </div>
 
               {user && ["open", "voting"].includes(challenge.status) && (
-                <div className="rounded-2xl border border-[#5F0AE3]/25 bg-[#1a1608] p-4 mb-4">
+                <div className="rounded-2xl border border-[#6F2BFF]/25 bg-[#1a1608] p-4 mb-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <Video className="w-4 h-4 text-[#D2ADF8]" />
+                    <Video className="w-4 h-4 text-[#B57CFF]" />
                     <span className="text-sm font-semibold">Enter with your video</span>
                   </div>
                   <p className="text-xs text-white/50 mb-2">
@@ -243,7 +243,7 @@ export default function RisingStarsChallenge() {
                   <select
                     value={selectedVideoId}
                     onChange={(e) => setSelectedVideoId(e.target.value)}
-                    className="w-full bg-[#0B0B0E] border border-white/10 rounded-xl px-3 py-2 text-sm mb-2"
+                    className="w-full bg-[#111113] border border-white/10 rounded-xl px-3 py-2 text-sm mb-2"
                   >
                     <option value="">Select a video…</option>
                     {myVideos.map((v) => (
@@ -264,7 +264,7 @@ export default function RisingStarsChallenge() {
                       type="button"
                       disabled={!selectedVideoId || busy}
                       onClick={() => void enter()}
-                      className="flex-1 py-2 rounded-xl bg-[#5F0AE3] text-black text-xs font-semibold disabled:opacity-40"
+                      className="flex-1 py-2 rounded-xl bg-[#6F2BFF] text-black text-xs font-semibold disabled:opacity-40"
                     >
                       Submit entry
                     </button>
@@ -273,7 +273,7 @@ export default function RisingStarsChallenge() {
               )}
 
               <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                <Vote className="w-4 h-4 text-[#D2ADF8]" /> Entries
+                <Vote className="w-4 h-4 text-[#B57CFF]" /> Entries
                 {votedToday && (
                   <span className="text-xs text-white/40 font-normal">(voted today)</span>
                 )}
@@ -287,7 +287,7 @@ export default function RisingStarsChallenge() {
                       key={e.id}
                       className="rounded-xl border border-white/10 bg-white/5 p-3 flex items-center gap-3"
                     >
-                      <span className="w-6 text-center text-[#D2ADF8] font-bold text-sm">
+                      <span className="w-6 text-center text-[#B57CFF] font-bold text-sm">
                         {idx + 1}
                       </span>
                       <button
@@ -319,7 +319,7 @@ export default function RisingStarsChallenge() {
                           e.creator_user_id === user?.id
                         }
                         onClick={() => void vote(e.id)}
-                        className="px-3 py-1.5 rounded-lg bg-[#5F0AE3] text-black text-xs font-semibold disabled:opacity-40"
+                        className="px-3 py-1.5 rounded-lg bg-[#6F2BFF] text-black text-xs font-semibold disabled:opacity-40"
                       >
                         Vote
                       </button>

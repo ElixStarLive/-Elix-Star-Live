@@ -64,7 +64,7 @@ export function NativeDialogProvider({ children }: { children: React.ReactNode }
           onClick={(e) => { if (e.target === e.currentTarget) handleCancel(); }}
         >
           <div
-            className="w-full max-w-[320px] bg-[#0B0B0E] rounded-2xl overflow-hidden shadow-2xl border border-white/10"
+            className="w-full max-w-[320px] bg-[#111113] rounded-2xl overflow-hidden shadow-2xl border border-white/10"
             role="alertdialog"
             aria-modal="true"
           >
@@ -84,7 +84,7 @@ export function NativeDialogProvider({ children }: { children: React.ReactNode }
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') handleConfirm(); }}
-                  className="w-full px-3 py-2.5 bg-black/40 border border-white/20 rounded-xl text-white text-sm placeholder:text-white/30 outline-none focus:border-[#5F0AE3]/60"
+                  className="w-full px-3 py-2.5 bg-black/40 border border-white/20 rounded-xl text-white text-sm placeholder:text-white/30 outline-none focus:border-[#6F2BFF]/60"
                   autoFocus
                 />
               </div>
@@ -99,7 +99,7 @@ export function NativeDialogProvider({ children }: { children: React.ReactNode }
               <div className="w-px bg-white/10" />
               <button
                 onClick={handleConfirm}
-                className="flex-1 py-3.5 text-[#D2ADF8] text-sm font-bold active:bg-white/5 transition-colors"
+                className="flex-1 py-3.5 text-[#B57CFF] text-sm font-bold active:bg-white/5 transition-colors"
               >
                 {dialog.type === 'confirm' ? 'Confirm' : 'OK'}
               </button>

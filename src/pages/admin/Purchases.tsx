@@ -37,7 +37,7 @@ export default function AdminPurchases() {
   }, [load]);
 
   return (
-    <div className="min-h-screen bg-[#0B0B0E] text-white p-6">
+    <div className="min-h-screen bg-[#111113] text-white p-6">
       <div className="max-w-5xl mx-auto">
         <button
           type="button"
@@ -47,7 +47,7 @@ export default function AdminPurchases() {
           ← Admin
         </button>
         <h1 className="text-2xl font-bold mb-2 flex items-center gap-2">
-          <DollarSign className="w-7 h-7 text-[#D2ADF8]" />
+          <DollarSign className="w-7 h-7 text-[#B57CFF]" />
           Purchases
         </h1>
         <p className="text-sm text-white/50 mb-4">
@@ -59,7 +59,7 @@ export default function AdminPurchases() {
             type="button"
             onClick={() => setTab("iap")}
             className={`px-3 py-1.5 rounded-full text-xs font-semibold ${
-              tab === "iap" ? "bg-[#5F0AE3] text-black" : "bg-white/10"
+              tab === "iap" ? "bg-[#6F2BFF] text-black" : "bg-white/10"
             }`}
           >
             Coin IAP
@@ -68,7 +68,7 @@ export default function AdminPurchases() {
             type="button"
             onClick={() => setTab("shop")}
             className={`px-3 py-1.5 rounded-full text-xs font-semibold ${
-              tab === "shop" ? "bg-[#5F0AE3] text-black" : "bg-white/10"
+              tab === "shop" ? "bg-[#6F2BFF] text-black" : "bg-white/10"
             }`}
           >
             Shop (Stripe)
@@ -110,7 +110,7 @@ export default function AdminPurchases() {
                         r.product_id ?? r.item_id ?? r.kind ?? r.provider ?? "—",
                       )}
                     </td>
-                    <td className="p-2 tabular-nums text-[#D2ADF8]">
+                    <td className="p-2 tabular-nums text-[#B57CFF]">
                       {r.coins_delta != null
                         ? String(r.coins_delta)
                         : r.price_minor != null

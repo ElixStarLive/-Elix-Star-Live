@@ -632,12 +632,12 @@ export default function Profile() {
   };
 
   if (!displayUserId) {
-     return <div className="bg-[#0B0B0E] text-white flex items-center justify-center min-h-[50vh]">Loading...</div>;
+     return <div className="bg-[#111113] text-white flex items-center justify-center min-h-[50vh]">Loading...</div>;
   }
 
   if (routeUserId && resolvedUserId === null && !loading) {
     return (
-      <div className="bg-[#0B0B0E] text-white flex flex-col items-center justify-center min-h-[50vh] px-4">
+      <div className="bg-[#111113] text-white flex flex-col items-center justify-center min-h-[50vh] px-4">
         <button onClick={goBack} className="absolute top-4 right-4 p-1" title="Close" aria-label="Close">
           <RoyceCloseIcon size={20} />
         </button>
@@ -649,7 +649,7 @@ export default function Profile() {
 
   if (!loading && !profileData && !isOwnProfile) {
     return (
-      <div className="bg-[#0B0B0E] text-white flex flex-col items-center justify-center min-h-[50vh] px-4">
+      <div className="bg-[#111113] text-white flex flex-col items-center justify-center min-h-[50vh] px-4">
         <button onClick={goBack} className="absolute top-4 right-4 p-1" title="Close" aria-label="Close">
           <RoyceCloseIcon size={20} />
         </button>
@@ -660,8 +660,8 @@ export default function Profile() {
   }
 
   return (
-    <div className="page-above-bottom-nav bg-[#0B0B0E] text-white">
-      <div className="page-above-bottom-nav__inner bg-[#0B0B0E]">
+    <div className="page-above-bottom-nav bg-[#111113] text-white">
+      <div className="page-above-bottom-nav__inner bg-[#111113]">
         {/* Small top header with Share + Exit buttons — same panel height as Inbox */}
         <header className="flex items-center justify-between px-4 pt-page-header pb-2 relative z-10">
           <button
@@ -698,11 +698,11 @@ export default function Profile() {
         {/* ═══ Account Menu Modal ═══ */}
         {showAccountMenu && (
           <div
-            className="fixed inset-0 z-[9999] bg-[#0B0B0E]/70 flex items-end justify-center pb-[var(--bottom-nav-top)]"
+            className="fixed inset-0 z-[9999] bg-[#111113]/70 flex items-end justify-center pb-[var(--bottom-nav-top)]"
             onClick={() => setShowAccountMenu(false)}
           >
             <div 
-              className="w-full max-w-[480px] bg-[#0B0B0E] rounded-t-2xl border-t border-white/10 pb-safe"
+              className="w-full max-w-[480px] bg-[#111113] rounded-t-2xl border-t border-white/10 pb-safe"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-center px-5 pt-4 pb-3 border-b border-white/10">
@@ -743,7 +743,7 @@ export default function Profile() {
             onClick={() => setShowSharePanel(false)}
           >
             <div
-              className="w-full max-w-[480px] bg-[#0B0B0E]/95 rounded-t-2xl max-h-[40dvh] flex flex-col overflow-hidden"
+              className="w-full max-w-[480px] bg-[#111113]/95 rounded-t-2xl max-h-[40dvh] flex flex-col overflow-hidden"
               style={{ boxShadow: '0 -4px 30px rgba(255,255,255,0.25)' }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -752,8 +752,8 @@ export default function Profile() {
               </div>
               <div className="flex items-center justify-between gap-2 px-4 pb-0.5">
                 <h3 className="text-gold-metallic font-bold text-sm">Share to</h3>
-                <div className="flex-none w-[120px] bg-white/5 rounded-lg px-2 py-0.5 flex items-center gap-2 border border-[#5F0AE3]/20">
-                  <Search className="w-3.5 h-3.5 text-[#D2ADF8]/40" />
+                <div className="flex-none w-[120px] bg-white/5 rounded-lg px-2 py-0.5 flex items-center gap-2 border border-[#6F2BFF]/20">
+                  <Search className="w-3.5 h-3.5 text-[#B57CFF]/40" />
                   <input placeholder="Search..." value={shareQuery ?? ''} onChange={(e) => setShareQuery(e.target.value)} className="bg-transparent text-white text-xs outline-none w-full placeholder:text-white/20" />
                 </div>
               </div>
@@ -771,7 +771,7 @@ export default function Profile() {
                       >
                         <div className="relative flex flex-col items-center gap-1" style={{ width: SHARE_PANEL_ITEM_WIDTH_PX, minWidth: SHARE_PANEL_ITEM_WIDTH_PX }}>
                           <div
-                            className="rounded-full overflow-hidden bg-[#111116] flex-shrink-0"
+                            className="rounded-full overflow-hidden bg-[#18181B] flex-shrink-0"
                             style={{ width: SHARE_PANEL_AVATAR_PX, height: SHARE_PANEL_AVATAR_PX }}
                           >
                             <img
@@ -794,10 +794,10 @@ export default function Profile() {
                 </div>
 
                 {/* Line between user circles and action icons */}
-                <div className="border-t border-[#5F0AE3]/45 flex-shrink-0 mb-0" aria-hidden />
+                <div className="border-t border-[#6F2BFF]/45 flex-shrink-0 mb-0" aria-hidden />
 
                 {/* Share options — same layout as ShareModal */}
-                <div className="flex-1 overflow-y-scroll overflow-x-hidden min-h-0 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#5F0AE3]/60 [&::-webkit-scrollbar-thumb]:rounded-full">
+                <div className="flex-1 overflow-y-scroll overflow-x-hidden min-h-0 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#6F2BFF]/60 [&::-webkit-scrollbar-thumb]:rounded-full">
                   <div className="grid grid-cols-5 gap-y-3 gap-x-1.5 pt-3" style={{ marginTop: '5mm' }}>
                     {[
                       { name: 'WhatsApp', icon: <MessageCircle size={22} className="text-white" />, action: () => openExternalLink(`https://wa.me/?text=${encodeURIComponent(`Check out ${displayName}'s profile on Elix! ${window.location.origin}/profile/${displayUserId}`)}`) },
@@ -858,7 +858,7 @@ export default function Profile() {
               style={{
                 background:
                   (profileStoryGroup?.items?.length ?? 0) > 0
-                    ? 'linear-gradient(135deg, #5F0AE3, #F5E6A8, #5F0AE3)'
+                    ? 'linear-gradient(135deg, #6F2BFF, #F5E6A8, #6F2BFF)'
                     : 'transparent',
               }}
             >
@@ -867,7 +867,7 @@ export default function Profile() {
             {isOwnProfile && (
               <button
                 type="button"
-                className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#5F0AE3] border-2 border-black text-black text-lg font-bold leading-none flex items-center justify-center"
+                className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#6F2BFF] border-2 border-black text-black text-lg font-bold leading-none flex items-center justify-center"
                 title="Add story"
                 onClick={goUploadStoryFromRing}
               >
@@ -888,7 +888,7 @@ export default function Profile() {
           {isOwnProfile && (
             <button
               type="button"
-              className="text-[10px] text-[#D2ADF8] mt-1 font-semibold"
+              className="text-[10px] text-[#B57CFF] mt-1 font-semibold"
               onClick={openAvatarPicker}
             >
               Change photo
@@ -912,7 +912,7 @@ export default function Profile() {
               {risingBadges.slice(0, 6).map((b) => (
                 <span
                   key={b.code}
-                  className="px-2 py-0.5 rounded-full text-[10px] bg-[#5F0AE3]/15 text-[#D2ADF8] border border-[#5F0AE3]/30"
+                  className="px-2 py-0.5 rounded-full text-[10px] bg-[#6F2BFF]/15 text-[#B57CFF] border border-[#6F2BFF]/30"
                   title={b.title}
                 >
                   {b.title}
@@ -960,7 +960,7 @@ export default function Profile() {
               className={`flex-1 max-w-[120px] py-2.5 rounded-md text-sm font-bold transition ${
                 isFollowing
                   ? 'bg-white/10 text-white border border-white/10'
-                  : 'bg-[#5F0AE3] text-black'
+                  : 'bg-[#6F2BFF] text-black'
               }`}
             >
               {isFollowing ? 'Following' : 'Follow'}
@@ -985,7 +985,7 @@ export default function Profile() {
               }}
               className="flex-1 max-w-[120px] py-2.5 bg-white/10 border border-white/10 rounded-md text-sm font-bold text-white flex items-center justify-center gap-1"
             >
-              <Heart size={14} className="text-[#D2ADF8]" fill="#5F0AE3" />
+              <Heart size={14} className="text-[#B57CFF]" fill="#6F2BFF" />
               Appreciate
             </button>
             <button
@@ -1112,7 +1112,7 @@ export default function Profile() {
             <button
               type="button"
               onClick={goUploadStory}
-              className="px-3 py-1.5 rounded-md bg-[#5F0AE3] text-black text-[11px] font-bold"
+              className="px-3 py-1.5 rounded-md bg-[#6F2BFF] text-black text-[11px] font-bold"
             >
               Post Story
             </button>
@@ -1124,7 +1124,7 @@ export default function Profile() {
           <div className="grid grid-cols-3 gap-[2px] px-3 pt-3 pb-2 flex-1">
             {videosLoading && videos.length === 0 ? (
               <div className="col-span-3 flex items-center justify-center py-16">
-                <div className="w-8 h-8 border-2 border-[#5F0AE3] border-t-transparent rounded-full animate-spin" />
+                <div className="w-8 h-8 border-2 border-[#6F2BFF] border-t-transparent rounded-full animate-spin" />
               </div>
             ) : (
               videos.map((video) => {
@@ -1135,7 +1135,7 @@ export default function Profile() {
                   key={video.id}
                   type="button"
                   onClick={() => goVideo(video.id)}
-                  className="aspect-[3/4] bg-[#0B0B0E] relative group text-left rounded-xl overflow-hidden"
+                  className="aspect-[3/4] bg-[#111113] relative group text-left rounded-xl overflow-hidden"
                 >
                   {playbackUrl ? (
                     <video
@@ -1205,7 +1205,7 @@ export default function Profile() {
         {/* ═══ SHOP ITEMS GRID ═══ */}
         {activeTab === 'shop' && videosLoading && shopItems.length === 0 && (
           <div className="flex-1 flex items-center justify-center py-16">
-            <div className="w-8 h-8 border-2 border-[#5F0AE3] border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-[#6F2BFF] border-t-transparent rounded-full animate-spin" />
           </div>
         )}
         {activeTab === 'shop' && shopItems.length > 0 && (
@@ -1242,7 +1242,7 @@ export default function Profile() {
                   <button
                     type="button"
                     onClick={goUploadStory}
-                    className="px-3 py-1.5 rounded-md bg-[#5F0AE3] text-black text-[11px] font-bold"
+                    className="px-3 py-1.5 rounded-md bg-[#6F2BFF] text-black text-[11px] font-bold"
                   >
                     Post Story
                   </button>
@@ -1259,7 +1259,7 @@ export default function Profile() {
             <ShoppingBag size={32} className="text-white/20" />
             <span className="text-white/30 text-sm">No items for sale</span>
             {isOwnProfile && (
-              <button onClick={goShop} className="mt-2 px-4 py-2 rounded-xl bg-[#5F0AE3] text-black font-bold text-xs">
+              <button onClick={goShop} className="mt-2 px-4 py-2 rounded-xl bg-[#6F2BFF] text-black font-bold text-xs">
                 Start Selling
               </button>
             )}

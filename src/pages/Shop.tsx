@@ -366,11 +366,11 @@ export default function Shop() {
   ] as const;
 
   return (
-    <div className="page-above-bottom-nav bg-[#0B0B0E] text-white">
+    <div className="page-above-bottom-nav bg-[#111113] text-white">
       <div className="page-above-bottom-nav__inner">
         {/* Header — same size container as STEM */}
         <div
-          className="w-full shrink-0 bg-[#0B0B0E] z-10 border-b border-white/5"
+          className="w-full shrink-0 bg-[#111113] z-10 border-b border-white/5"
           style={{ paddingTop: 'var(--topnav-anchor-top)' }}
         >
           <div
@@ -387,7 +387,7 @@ export default function Shop() {
               <button onClick={openCart} className="p-1 relative" title="Basket">
                 <ShoppingBag size={18} className="text-white" />
                 {cartItems.length > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-[15px] h-[15px] px-1 rounded-full bg-[#5F0AE3] text-black text-[9px] font-extrabold flex items-center justify-center leading-none">
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[15px] h-[15px] px-1 rounded-full bg-[#6F2BFF] text-black text-[9px] font-extrabold flex items-center justify-center leading-none">
                     {cartItems.length}
                   </span>
                 )}
@@ -408,7 +408,7 @@ export default function Shop() {
               <button
                 type="button"
                 onClick={goLiveDiscover}
-                className="text-[11px] font-bold text-[#D2ADF8]"
+                className="text-[11px] font-bold text-[#B57CFF]"
               >
                 See all
               </button>
@@ -446,7 +446,7 @@ export default function Shop() {
               onClick={() => selectFilter(f.key)}
               className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border transition-colors ${
                 activeFilter === f.key
-                  ? 'bg-[#5F0AE3] text-black border-[#5F0AE3]'
+                  ? 'bg-[#6F2BFF] text-black border-[#6F2BFF]'
                   : 'bg-white/5 text-white/60 border-white/10'
               }`}
             >
@@ -457,13 +457,13 @@ export default function Shop() {
 
         {loading ? (
           <div className="flex-1 flex items-center justify-center py-20">
-            <div className="w-8 h-8 border-2 border-[#5F0AE3] border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-[#6F2BFF] border-t-transparent rounded-full animate-spin" />
           </div>
         ) : items.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center py-20 gap-3">
             <Tag size={40} className="text-white/20" />
             <p className="text-white/40 text-sm">No items for sale yet</p>
-            <button onClick={openCreateListing} className="mt-2 px-5 py-2 rounded-xl bg-[#5F0AE3] text-black font-bold text-sm">
+            <button onClick={openCreateListing} className="mt-2 px-5 py-2 rounded-xl bg-[#6F2BFF] text-black font-bold text-sm">
               Sell Something
             </button>
           </div>
@@ -502,7 +502,7 @@ export default function Shop() {
                           aria-label="Close menu"
                           onClick={closeItemMenu}
                         />
-                        <div className="absolute right-0 top-full mt-1 z-[4] min-w-[120px] rounded-xl bg-[#111116] border border-white/10 shadow-lg overflow-hidden">
+                        <div className="absolute right-0 top-full mt-1 z-[4] min-w-[120px] rounded-xl bg-[#18181B] border border-white/10 shadow-lg overflow-hidden">
                           {isOwn ? (
                             <button
                               type="button"
@@ -518,7 +518,7 @@ export default function Shop() {
                               onClick={() => handleMessageSeller(item.user_id)}
                               className="w-full text-left px-3 py-2 text-xs font-semibold text-white/80 hover:bg-white/5 flex items-center gap-1.5"
                             >
-                              <MessageCircle size={12} className="text-[#D2ADF8]" />
+                              <MessageCircle size={12} className="text-[#B57CFF]" />
                               Message
                             </button>
                           )}
@@ -538,7 +538,7 @@ export default function Shop() {
                       <button
                         type="button"
                         onClick={() => handleRemoveFromCart(item.id)}
-                        className="w-full mt-2 py-1.5 rounded-xl bg-white/10 text-[#D2ADF8] border border-[#5F0AE3]/40 font-extrabold text-[12px]"
+                        className="w-full mt-2 py-1.5 rounded-xl bg-white/10 text-[#B57CFF] border border-[#6F2BFF]/40 font-extrabold text-[12px]"
                       >
                         In basket — Remove
                       </button>
@@ -546,7 +546,7 @@ export default function Shop() {
                       <button
                         type="button"
                         onClick={() => handleAddToCart({ id: item.id, title: item.title, price: item.price, image_url: item.image_url })}
-                        className="w-full mt-2 py-1.5 rounded-xl bg-[#5F0AE3] text-black font-extrabold text-[12px]"
+                        className="w-full mt-2 py-1.5 rounded-xl bg-[#6F2BFF] text-black font-extrabold text-[12px]"
                       >
                         Add to basket
                       </button>
@@ -569,7 +569,7 @@ export default function Shop() {
             {/* Anchor the modal exactly to the top of the bottom bar (no extra gap). */}
             <div className="fixed left-0 right-0 z-[9999] pointer-events-auto max-w-[480px] mx-auto fixed-above-bottom-nav">
               <div
-                className="w-full bg-[#0B0B0E] rounded-t-3xl pb-safe"
+                className="w-full bg-[#111113] rounded-t-3xl pb-safe"
                 style={{ maxHeight: '80dvh', boxShadow: '0 -4px 30px rgba(255,255,255,0.25)' }}
                 onClick={e => e.stopPropagation()}
               >
@@ -582,13 +582,13 @@ export default function Shop() {
               <div className="overflow-y-auto px-5 pb-6" style={{ maxHeight: 'calc(80dvh - 70px)' }}>
                 <button
                   onClick={() => document.getElementById('shop-image-input')?.click()}
-                  className="w-full aspect-video rounded-xl border-2 border-dashed border-[#5F0AE3]/40 flex flex-col items-center justify-center gap-2 mb-4 overflow-hidden"
+                  className="w-full aspect-video rounded-xl border-2 border-dashed border-[#6F2BFF]/40 flex flex-col items-center justify-center gap-2 mb-4 overflow-hidden"
                 >
                   {newImagePreview ? (
                     <img src={newImagePreview} alt="Preview" className="w-full h-full object-cover" />
                   ) : (
                     <>
-                      <Camera size={28} className="text-[#D2ADF8]/50" />
+                      <Camera size={28} className="text-[#B57CFF]/50" />
                       <span className="text-white/40 text-xs">Add Photo</span>
                     </>
                   )}
@@ -606,7 +606,7 @@ export default function Shop() {
                   value={newTitle}
                   onChange={e => setNewTitle(e.target.value)}
                   placeholder="Item name"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-white/30 mb-3 focus:outline-none focus:border-[#5F0AE3]"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-white/30 mb-3 focus:outline-none focus:border-[#6F2BFF]"
                 />
                 <input
                   value={newPrice}
@@ -615,19 +615,19 @@ export default function Shop() {
                   type="number"
                   min="0"
                   step="0.01"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-white/30 mb-3 focus:outline-none focus:border-[#5F0AE3]"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-white/30 mb-3 focus:outline-none focus:border-[#6F2BFF]"
                 />
                 <textarea
                   value={newDescription}
                   onChange={e => setNewDescription(e.target.value)}
                   placeholder="Description (optional)"
                   rows={3}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-white/30 mb-3 focus:outline-none focus:border-[#5F0AE3] resize-none"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-white/30 mb-3 focus:outline-none focus:border-[#6F2BFF] resize-none"
                 />
                 <select
                   value={newCategory}
                   onChange={e => setNewCategory(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm mb-4 focus:outline-none focus:border-[#5F0AE3] [&>option]:bg-[#0B0B0E] [&>option]:text-white"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm mb-4 focus:outline-none focus:border-[#6F2BFF] [&>option]:bg-[#111113] [&>option]:text-white"
                   aria-label="Category"
                 >
                   <option value="clothing">Clothing</option>
@@ -639,7 +639,7 @@ export default function Shop() {
                 <button
                   onClick={handleCreateListing}
                   disabled={creating || !newTitle.trim() || !newPrice.trim()}
-                  className="w-full py-3 rounded-xl bg-gradient-to-r from-[#D2ADF8] to-[#D2ADF8] text-black font-bold text-sm disabled:opacity-50"
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-[#B57CFF] to-[#B57CFF] text-black font-bold text-sm disabled:opacity-50"
                 >
                   {creating ? 'Listing...' : 'List for Sale'}
                 </button>
@@ -658,7 +658,7 @@ export default function Shop() {
             />
             <div className="fixed left-0 right-0 z-[9999] pointer-events-auto max-w-[480px] mx-auto fixed-above-bottom-nav">
               <div
-                className="w-full bg-[#0B0B0E] rounded-t-3xl pb-safe"
+                className="w-full bg-[#111113] rounded-t-3xl pb-safe"
                 style={{ maxHeight: '80dvh', boxShadow: '0 -4px 30px rgba(255,255,255,0.25)' }}
                 onClick={e => e.stopPropagation()}
               >
@@ -713,7 +713,7 @@ export default function Shop() {
                       <button
                         onClick={handleCheckoutCart}
                         disabled={checkingOut}
-                        className="w-full py-3 rounded-xl bg-gradient-to-r from-[#D2ADF8] to-[#D2ADF8] text-black font-bold text-sm disabled:opacity-50"
+                        className="w-full py-3 rounded-xl bg-gradient-to-r from-[#B57CFF] to-[#B57CFF] text-black font-bold text-sm disabled:opacity-50"
                       >
                         {checkingOut ? 'Starting checkout…' : 'Checkout with Stripe'}
                       </button>

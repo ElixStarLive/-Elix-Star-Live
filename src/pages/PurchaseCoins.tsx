@@ -152,17 +152,17 @@ export default function PurchaseCoins() {
   };
 
   return (
-    <div className="h-full min-h-0 w-full bg-[#0B0B0E] text-white flex justify-center px-2">
-      <div className="w-full max-w-[480px] h-full min-h-0 flex flex-col overflow-hidden bg-[#0B0B0E]">
+    <div className="h-full min-h-0 w-full bg-[#111113] text-white flex justify-center px-2">
+      <div className="w-full max-w-[480px] h-full min-h-0 flex flex-col overflow-hidden bg-[#111113]">
         {/* Header */}
-        <div className="sticky top-0 bg-[#0B0B0E] z-10 px-4 py-4 border-b border-transparent flex items-center justify-between">
+        <div className="sticky top-0 bg-[#111113] z-10 px-4 py-4 border-b border-transparent flex items-center justify-between">
           <button onClick={goFeed} className="p-2 hover:brightness-125 rounded-full transition" title="Back">
             <RoyceBackIcon />
           </button>
           <h1 className="text-lg font-bold">Get Coins</h1>
           {isNative ? (
             <button onClick={handleRestore} disabled={loading} className="p-2 hover:brightness-125 rounded-full transition" title="Restore purchases">
-              <RotateCcw className="w-5 h-5 text-[#D2ADF8]" />
+              <RotateCcw className="w-5 h-5 text-[#B57CFF]" />
             </button>
           ) : (
             <div className="w-10" />
@@ -187,18 +187,18 @@ export default function PurchaseCoins() {
                   key={product.id}
                   onClick={() => handleNativePurchase(product)}
                   disabled={loading}
-                  className="w-full p-6 rounded-2xl transition relative overflow-hidden bg-white/5 border-2 border-transparent hover:border-[#5F0AE3]/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full p-6 rounded-2xl transition relative overflow-hidden bg-white/5 border-2 border-transparent hover:border-[#6F2BFF]/40 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <div className="flex items-center justify-between">
                     <div className="text-left">
                       <div className="flex items-center gap-2 mb-2">
-                        <Sparkles className="w-6 h-6 text-[#D9A62E]" />
+                        <Sparkles className="w-6 h-6 text-[#B57CFF]" />
                         <span className="text-2xl font-bold">{product.coins.toLocaleString()}</span>
                       </div>
                       <p className="text-sm text-white/60">{product.title}</p>
                     </div>
                     <div className="text-right">
-                      <div className="text-2xl font-bold text-[#D2ADF8]">
+                      <div className="text-2xl font-bold text-[#B57CFF]">
                         {product.price || 'Loading…'}
                       </div>
                     </div>
@@ -215,7 +215,7 @@ export default function PurchaseCoins() {
           {/* Web — direct to mobile app */}
           {!isNative && (
             <div className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-8 text-center">
-              <Sparkles className="w-10 h-10 text-[#D9A62E] mx-auto mb-3" />
+              <Sparkles className="w-10 h-10 text-[#B57CFF] mx-auto mb-3" />
               <h3 className="font-bold text-lg mb-2">Purchase Coins in the App</h3>
               <p className="text-sm text-white/60">
                 Coins are digital items and must be purchased through the Elix Star app on your mobile device via Apple App Store or Google Play.
