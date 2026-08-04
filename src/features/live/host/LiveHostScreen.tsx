@@ -1868,7 +1868,8 @@ export default function LiveHostScreen() {
                             likes={typeof activeLikes === 'number' && Number.isFinite(activeLikes) ? activeLikes : 0}
                             level={userLevel}
                             avatarSize={LIVE_TOP_AVATAR_RING_PX}
-                            showFollow={!isBroadcast && !isFollowing}
+                            showFollow={!isBroadcast}
+                            isFollowing={isFollowing}
                             onAvatarClick={() => {
                               void openMiniProfile(myCreatorName, undefined, { userId: user?.id, avatar: myAvatar, level: userLevel });
                             }}

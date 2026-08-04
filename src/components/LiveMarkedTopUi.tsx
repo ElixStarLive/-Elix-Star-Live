@@ -30,20 +30,25 @@ export function liveDiamondTierLabel(level: number) {
 export function LiveFollowPill({
   onFollow,
   variant = 'capsule',
+  isFollowing = false,
 }: {
   onFollow: (e: React.MouseEvent) => void;
   /** `photo` = standalone pill next to host profile (mock). `capsule` = overlay on Join slot. */
   variant?: 'capsule' | 'photo';
+  /** When true, capsule stays visible with "Following" label. */
+  isFollowing?: boolean;
 }) {
+  const label = isFollowing ? 'Following' : 'Follow';
   if (variant === 'photo') {
     return (
       <button
         type="button"
         className="flex items-center justify-center gap-0.5 h-[28px] px-2.5 rounded-full bg-[#FF3B3F] shadow-[0_0_10px_rgba(255,59,92,0.45)] active:scale-95 transition-transform flex-shrink-0"
         onClick={onFollow}
+        aria-label={label}
       >
-        <Plus size={12} className="text-white" strokeWidth={3} />
-        <span className="text-white text-[11px] font-bold leading-none">Follow</span>
+        {!isFollowing ? <Plus size={12} className="text-white" strokeWidth={3} /> : null}
+        <span className="text-white text-[11px] font-bold leading-none">{label}</span>
       </button>
     );
   }
@@ -52,9 +57,10 @@ export function LiveFollowPill({
       type="button"
       className="col-start-1 row-start-1 z-20 relative flex items-center justify-center gap-0.5 self-stretch h-full rounded-full bg-[#FF3B3F] w-full"
       onClick={onFollow}
+      aria-label={label}
     >
-      <Plus size={12} className="text-white" strokeWidth={3} />
-      <span className="text-white text-[10px] font-bold">Follow</span>
+      {!isFollowing ? <Plus size={12} className="text-white" strokeWidth={3} /> : null}
+      <span className="text-white text-[10px] font-bold">{label}</span>
     </button>
   );
 }
@@ -62,8 +68,7 @@ export function LiveFollowPill({
 /**
  * Host profile block (photo 1-1): gold-glow avatar (same soft halo as LIVE icons),
  * name + blue verified, “N Likes • LIVE Pro”, Lv pill + Diamond tier,
- * Follow → then membership heart.
- * Viewer flow: Follow first; after follow, action slot shows Join (membership heart).
+ * Follow capsule stays visible; Join (membership heart) can sit beside it after follow.
  * Does not touch the 3 MVP circles.
  */
 export function LiveHostProfileHeader({
@@ -73,6 +78,7 @@ export function LiveHostProfileHeader({
   level,
   avatarSize,
   showFollow,
+  isFollowing = false,
   onAvatarClick,
   onLike,
   onFollow,
@@ -83,12 +89,13 @@ export function LiveHostProfileHeader({
   likes: number;
   level: number;
   avatarSize: number;
-  /** true = show Follow; false = show membership heart (Join) when joinSlot set. */
+  /** true = show Follow capsule (stays visible whether following or not). */
   showFollow: boolean;
+  isFollowing?: boolean;
   onAvatarClick: () => void;
   onLike: (e: React.PointerEvent) => void;
   onFollow: (e: React.MouseEvent) => void;
-  /** Membership heart — only after follow (or host own-stream Join). */
+  /** Membership heart — shown beside Follow after follow (or host own-stream Join). */
   joinSlot?: React.ReactNode;
 }) {
   const safeLevel = typeof level === 'number' && Number.isFinite(level) && level > 0 ? Math.floor(level) : 1;
@@ -165,12 +172,11 @@ export function LiveHostProfileHeader({
         </div>
       </div>
 
-      <div className="flex-shrink-0 self-center ml-0.5" style={{ transform: 'translateX(-3mm)' }}>
+      <div className="flex-shrink-0 self-center ml-0.5 flex items-center gap-1" style={{ transform: 'translateX(-3mm)' }}>
         {showFollow ? (
-          <LiveFollowPill variant="photo" onFollow={onFollow} />
-        ) : (
-          joinSlot ?? null
-        )}
+          <LiveFollowPill variant="photo" isFollowing={isFollowing} onFollow={onFollow} />
+        ) : null}
+        {joinSlot ?? null}
       </div>
     </div>
   );
@@ -210,13 +216,13 @@ export function LiveJoinPill({
   );
 }
 
-/** Live ranking chips — current app palette only (black / silver). No glow. */
+/** Live ranking chips — transparent (no black fill). No glow. */
 const THIN_CAPSULE_STYLE: React.CSSProperties = {
-  background: 'rgba(10, 10, 13, 0.85)',
-  border: '1px solid rgba(229, 229, 231, 0.45)',
-  backdropFilter: 'blur(8px)',
-  WebkitBackdropFilter: 'blur(8px)',
+  background: 'transparent',
+  border: 'none',
   boxShadow: 'none',
+  backdropFilter: 'none',
+  WebkitBackdropFilter: 'none',
 };
 
 /** Shared capsule title / subtitle — current white / grey. */

@@ -1507,7 +1507,8 @@ export default function SpectatorLiveScreen() {
                   likes={typeof activeLikes === 'number' && Number.isFinite(activeLikes) ? activeLikes : 0}
                   level={hostLevel}
                   avatarSize={LIVE_TOP_AVATAR_RING_PX}
-                            showFollow={!isFollowing}
+                            showFollow={true}
+                            isFollowing={isFollowing}
                             onAvatarClick={() => navigate(`/profile/${hostUserId}`)}
                             onLike={(e) => {
                               handleLikeTap(e);
