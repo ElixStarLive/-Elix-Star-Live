@@ -940,11 +940,8 @@ video::-webkit-media-controls-overlay-enclosure,
 }
 
 /*
- * Mockup icons:
- * - middle background = BLACK
- * - neon contour around disc = half silver / half red
- * - icon stroke = half silver / half red
- * - never solid red fill / never changes on press
+ * Icons like original app discs (soft glow, NO hard circle border).
+ * Glyph cut diagonal: half silver / half red.
  */
 .royce-glow-disc,
 .royce-tile {
@@ -954,27 +951,29 @@ video::-webkit-media-controls-overlay-enclosure,
   justify-content: center;
   flex-shrink: 0;
   border-radius: 9999px;
-  border: 2px solid transparent !important;
+  border: none !important;
   background:
-    linear-gradient(#0A0A0D, #0A0A0D) padding-box,
-    linear-gradient(180deg, #E5E5E7 0%, #E5E5E7 48%, #FF3B3F 52%, #FF3B3F 100%) border-box;
+    radial-gradient(
+      circle at center,
+      rgba(229, 229, 231, 0.18) 0%,
+      rgba(10, 10, 13, 0.85) 48%,
+      rgba(255, 59, 63, 0.16) 72%,
+      transparent 100%
+    );
   box-shadow:
-    0 0 8px 1px rgba(229, 229, 231, 0.55),
-    0 0 14px 3px rgba(255, 59, 63, 0.45);
+    0 0 10px 2px rgba(229, 229, 231, 0.35),
+    0 0 18px 4px rgba(255, 59, 63, 0.28);
 }
 
 .royce-avatar-glow {
   border-radius: 9999px;
-  border: 2px solid transparent;
-  background:
-    linear-gradient(#0A0A0D, #0A0A0D) padding-box,
-    linear-gradient(180deg, #E5E5E7 0%, #E5E5E7 48%, #FF3B3F 52%, #FF3B3F 100%) border-box;
+  border: none;
   box-shadow:
-    0 0 8px 1px rgba(229, 229, 231, 0.55),
-    0 0 14px 3px rgba(255, 59, 63, 0.45);
+    0 0 10px 2px rgba(229, 229, 231, 0.35),
+    0 0 18px 4px rgba(255, 59, 63, 0.28);
 }
 
-/* Icon glyph — half silver (top) / half red (bottom). Black shows through. */
+/* Icon line — diagonal half silver / half red (no fill) */
 svg.lucide {
   color: #E5E5E7 !important;
   stroke: url(#elixSilverRed) !important;
@@ -992,7 +991,6 @@ svg.lucide[fill]:not([fill="none"]):not(.fill-red-500) {
   stroke: url(#elixSilverRed) !important;
 }
 
-/* Liked heart only — solid red status */
 svg.lucide.fill-red-500,
 svg.lucide.text-red-500 {
   color: #FF3B3F !important;
