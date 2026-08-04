@@ -29,7 +29,7 @@ function isActiveRoute(pathname: string, path: string): boolean {
 
 /**
  * Main bottom tab bar — one clean navigation owner per control.
- * UI/layout/routes unchanged from production chrome.
+ * Icons always half silver / half red (same on press). Contour disc always on.
  */
 export const BottomNav = () => {
   const navigate = useNavigate();
@@ -94,13 +94,9 @@ export const BottomNav = () => {
           <div className="flex items-center justify-around px-1 pt-1.5 pb-1">
             {NAV_ITEMS.map(({ path, label, Icon, center }) => {
               const active = isActiveRoute(location.pathname, path);
-              const iconClass = center
-                ? "bottom-nav-icon-plus"
-                : active
-                  ? "bottom-nav-icon-active"
-                  : "bottom-nav-icon-inactive";
-              const labelClass = active || center ? "text-[#FFFFFF]" : "text-[#A7A7AD]";
-              const size = center ? ICON_SIZE : ICON_SIZE;
+              const iconClass = "royce-icon-gold";
+              const labelClass = active ? "text-[#FFFFFF]" : "text-[#A7A7AD]";
+              const size = center ? ICON_SIZE + 2 : ICON_SIZE;
 
               return (
                 <button
@@ -115,23 +111,17 @@ export const BottomNav = () => {
                   }`}
                   style={{ WebkitTapHighlightColor: "transparent" }}
                 >
-                  {center ? (
-                    <span className="bottom-nav-plus-tile" aria-hidden>
-                      <Icon size={22} strokeWidth={2.5} className={iconClass} />
-                    </span>
-                  ) : (
-                    <span
-                      className="royce-glow-disc"
-                      style={{ width: size + 12, height: size + 12 }}
-                      aria-hidden
-                    >
-                      <Icon
-                        size={size}
-                        strokeWidth={active ? 2.35 : 2}
-                        className={iconClass}
-                      />
-                    </span>
-                  )}
+                  <span
+                    className="royce-glow-disc"
+                    style={{ width: size + 12, height: size + 12 }}
+                    aria-hidden
+                  >
+                    <Icon
+                      size={size}
+                      strokeWidth={active ? 2.35 : 2}
+                      className={iconClass}
+                    />
+                  </span>
                   <span
                     className={`text-[9px] font-semibold leading-none tracking-wide ${labelClass}`}
                     style={{ marginTop: "1mm" }}
