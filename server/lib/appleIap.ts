@@ -2,8 +2,8 @@
  * Apple App Store Server API helpers for StoreKit 2 transactions and
  * auto-renewable creator memberships.
  *
- * Product IDs mirror Google (`elix.creator.<24-hex>`). Apple cannot create those
- * SKUs at runtime — they must be pre-created in App Store Connect.
+ * iOS uses one shared auto-renewable SKU in App Store Connect (all creators).
+ * Android keeps per-creator IDs (`elix.creator.<24-hex>`).
  */
 import { createHash, createPublicKey, X509Certificate } from "node:crypto";
 import * as jose from "jose";
@@ -11,10 +11,13 @@ import { logger } from "./logger";
 import { getPool } from "./postgres";
 import {
   CREATOR_MEMBERSHIP_BASE_PLAN_ID,
-  creatorMembershipProductId,
   type EnsureMembershipProductResult,
   type MembershipProvisionStatus,
 } from "./googlePlaySubscriptions";
+
+/** Single App Store Connect subscription product for all creator memberships on iOS. */
+export const APPLE_CREATOR_MEMBERSHIP_PRODUCT_ID =
+  process.env.APPLE_CREATOR_MEMBERSHIP_PRODUCT_ID?.trim() || "com.elixstarlive.membership";
 
 export type AppleTxPayload = {
   transactionId?: string;
@@ -349,7 +352,7 @@ async function upsertAppleProvisionRow(input: {
 export async function ensureAppleCreatorMembershipProduct(
   creatorId: string,
 ): Promise<EnsureMembershipProductResult> {
-  const productId = creatorMembershipProductId(creatorId);
+  const productId = APPLE_CREATOR_MEMBERSHIP_PRODUCT_ID;
   const basePlanId = CREATOR_MEMBERSHIP_BASE_PLAN_ID;
   if (!appleCredentialsConfigured()) {
     return {

@@ -60,12 +60,15 @@ describe("parseMoneyAmount / loadMembershipPriceConfig", () => {
     });
   });
 
-  it("defaults to GBP/US monthly regions with 4.99 pricing", () => {
+  it("defaults to GBP/US monthly regions with 9.99 pricing", () => {
     const cfg = loadMembershipPriceConfig();
     expect(cfg.title).toBeTruthy();
     expect(cfg.regions.some((r) => r.regionCode === "GB")).toBe(true);
+    expect(cfg.regions.find((r) => r.regionCode === "GB")?.price.units).toBe("9");
     expect(cfg.otherUsd.currencyCode).toBe("USD");
+    expect(cfg.otherUsd.units).toBe("9");
     expect(cfg.otherEur.currencyCode).toBe("EUR");
+    expect(cfg.otherEur.units).toBe("9");
     expect(CREATOR_MEMBERSHIP_BASE_PLAN_ID).toBe("monthly");
   });
 });

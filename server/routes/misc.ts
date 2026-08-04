@@ -22,6 +22,7 @@ import {
   verifyGoogleSubscription,
 } from '../lib/googlePlaySubscriptions';
 import {
+  APPLE_CREATOR_MEMBERSHIP_PRODUCT_ID,
   ensureAppleCreatorMembershipProduct,
   fetchAppleTransaction,
   hashAppleOriginalTransactionId,
@@ -543,7 +544,10 @@ export async function handleGetMembershipStatus(req: Request, res: Response) {
         ? 'apple'
         : 'google';
 
-  const productId = creatorMembershipProductId(creatorId);
+  const productId =
+    store === 'apple'
+      ? APPLE_CREATOR_MEMBERSHIP_PRODUCT_ID
+      : creatorMembershipProductId(creatorId);
   const basePlanId = CREATOR_MEMBERSHIP_BASE_PLAN_ID;
   if (creatorId === user.sub) {
     return res.json({
@@ -622,11 +626,13 @@ export async function handleMembershipIAPComplete(req: Request, res: Response) {
   const pool = getPool();
   if (!creatorId && claimedProductId && pool) {
     try {
-      const mapped = await pool.query(
-        `SELECT creator_id FROM elix_creator_membership_products WHERE product_id = $1 LIMIT 1`,
-        [claimedProductId],
-      );
-      if (mapped.rowCount) creatorId = String(mapped.rows[0].creator_id);
+      if (claimedProductId !== APPLE_CREATOR_MEMBERSHIP_PRODUCT_ID) {
+        const mapped = await pool.query(
+          `SELECT creator_id FROM elix_creator_membership_products WHERE product_id = $1 LIMIT 1`,
+          [claimedProductId],
+        );
+        if (mapped.rowCount) creatorId = String(mapped.rows[0].creator_id);
+      }
     } catch (err) {
       logger.warn({ err, claimedProductId }, 'Membership product→creator lookup failed');
     }
@@ -636,7 +642,10 @@ export async function handleMembershipIAPComplete(req: Request, res: Response) {
     return res.status(400).json({ error: 'Cannot subscribe to your own membership' });
   }
 
-  const expectedProductId = creatorMembershipProductId(creatorId);
+  const expectedProductId =
+    provider === 'apple'
+      ? APPLE_CREATOR_MEMBERSHIP_PRODUCT_ID
+      : creatorMembershipProductId(creatorId);
   if (claimedProductId && claimedProductId !== expectedProductId) {
     return res.status(400).json({ error: 'Product ID mismatch' });
   }

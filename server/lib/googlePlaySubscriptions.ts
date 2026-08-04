@@ -304,15 +304,15 @@ export function parseMoneyAmount(raw: string, currencyCode: string): MoneyParts 
 /**
  * Launch default pricing until per-creator pricing UI exists.
  * Override via Coolify:
- *   CREATOR_MEMBERSHIP_PRICE_GBP=4.99
- *   CREATOR_MEMBERSHIP_PRICE_USD=4.99
- *   CREATOR_MEMBERSHIP_PRICE_EUR=4.99
+ *   CREATOR_MEMBERSHIP_PRICE_GBP=9.99
+ *   CREATOR_MEMBERSHIP_PRICE_USD=9.99
+ *   CREATOR_MEMBERSHIP_PRICE_EUR=9.99
  *   CREATOR_MEMBERSHIP_REGIONS=GB,US
  */
 export function loadMembershipPriceConfig(): MembershipPriceConfig {
-  const gbp = parseMoneyAmount(process.env.CREATOR_MEMBERSHIP_PRICE_GBP || "4.99", "GBP");
-  const usd = parseMoneyAmount(process.env.CREATOR_MEMBERSHIP_PRICE_USD || "4.99", "USD");
-  const eur = parseMoneyAmount(process.env.CREATOR_MEMBERSHIP_PRICE_EUR || "4.99", "EUR");
+  const gbp = parseMoneyAmount(process.env.CREATOR_MEMBERSHIP_PRICE_GBP || "9.99", "GBP");
+  const usd = parseMoneyAmount(process.env.CREATOR_MEMBERSHIP_PRICE_USD || "9.99", "USD");
+  const eur = parseMoneyAmount(process.env.CREATOR_MEMBERSHIP_PRICE_EUR || "9.99", "EUR");
   const regionsRaw = (process.env.CREATOR_MEMBERSHIP_REGIONS || "GB,US")
     .split(",")
     .map((s) => s.trim().toUpperCase())

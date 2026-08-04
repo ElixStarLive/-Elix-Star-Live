@@ -37,7 +37,7 @@ export type PromoteProductId = keyof typeof PROMOTE_PRODUCTS;
 export const IAP_PRODUCT_IDS = Object.keys(IAP_PRODUCTS) as IAPProductId[];
 export type IAPProductId = keyof typeof IAP_PRODUCTS;
 
-/** Legacy membership SKU. Creator subscriptions now use server-derived product IDs. */
+/** Shared iOS subscription SKU for all creator memberships (App Store Connect). */
 export const MEMBERSHIP_PRODUCT_ID = 'com.elixstarlive.membership';
 
 export interface MembershipStatus {
@@ -733,7 +733,7 @@ export async function restorePurchases(): Promise<{
         continue;
       }
 
-      if (productId.startsWith('elix.creator.')) {
+      if (productId.startsWith('elix.creator.') || productId === MEMBERSHIP_PRODUCT_ID) {
         const { error } = await request('/api/membership/iap-complete', {
           method: 'POST',
           body: JSON.stringify({
