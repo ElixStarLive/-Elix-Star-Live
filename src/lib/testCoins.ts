@@ -1,14 +1,16 @@
 /** Local test coins — isolated from real wallet / IAP / Stripe (gift UI testing only). */
 
-import { IS_STORE_BUILD } from '../config/build';
-
 /**
- * Test coins are for gift/UI QA only.
- * - Non-store / debug / internal builds: allowed (password-gated in live UI)
- * - Store / Play / App Store release builds (`vite --mode store`): always off
+ * Test coins stay available in all app builds (password-gated in live UI).
+ * They never create creator revenue — server treats giftSource=test_coins as
+ * animation + optional battle score only (see server/websocket/testCoinsPolicy.ts).
+ *
+ * Optional kill-switch for store builds: VITE_ALLOW_TEST_COINS=0
  */
 export function areTestCoinsEnabled(): boolean {
-  return !IS_STORE_BUILD;
+  const raw = String(import.meta.env.VITE_ALLOW_TEST_COINS ?? "").trim().toLowerCase();
+  if (raw === "0" || raw === "false" || raw === "off") return false;
+  return true;
 }
 
 /** @deprecated use areTestCoinsEnabled — kept for call sites that checked store mode only */

@@ -2600,14 +2600,10 @@ export default function SpectatorLiveScreen() {
             />
             <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
               <div
-                className="bg-[#111111]/95 rounded-t-2xl p-3 pb-safe h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full"
+                className="relative bg-[#111111]/95 rounded-t-2xl p-3 pb-safe h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="flex justify-center mb-2">
-                  <div className="w-10 h-1 bg-white/20 rounded-full" />
-                </div>
-                <div className="grid grid-cols-4 gap-y-4 gap-x-2 pt-1 pb-2 px-1">
-                  {areTestCoinsEnabled() && (
+                {areTestCoinsEnabled() && (
                   <button
                     type="button"
                     onClick={() => {
@@ -2617,15 +2613,17 @@ export default function SpectatorLiveScreen() {
                       setTestCoinsPwd(''); setTestCoinsError(''); setTestCoinsAmount('');
                       setShowTestCoinsModal(true); setIsMoreMenuOpen(false);
                     }}
-                    className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform"
+                    className="absolute top-2.5 right-3 z-10 w-4 h-4 p-0 m-0 flex items-center justify-center"
+                    aria-hidden="true"
+                    tabIndex={-1}
                   >
-                    <div className="royce-glow-disc w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
-                      <Coins className="w-[18px] h-[18px] text-[#D4AF37] relative z-[2]" strokeWidth={1.8} />
-                    </div>
-                    <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">Test</span>
+                    <span className="w-1 h-1 rounded-full bg-white/20" />
                   </button>
-                  )}
-
+                )}
+                <div className="flex justify-center mb-2">
+                  <div className="w-10 h-1 bg-white/20 rounded-full" />
+                </div>
+                <div className="grid grid-cols-4 gap-y-4 gap-x-2 pt-1 pb-2 px-1">
                   <button
                     type="button"
                     onClick={() => { setShowSharePanel(true); setIsMoreMenuOpen(false); }}
