@@ -2260,7 +2260,11 @@ export default function LiveHostScreen() {
       {showGiftPanel && (!isCreatorParticipant || !!selectedCohostGiftUserId) && (
         <>
           <div className="fixed inset-0 bg-black/50 pointer-events-auto" style={{ zIndex: 99998 }} onClick={closeGiftPanel} />
-          <div className="fixed bottom-0 left-0 right-0 pointer-events-auto max-w-[480px] mx-auto" style={{ zIndex: 99999 }}>
+          <div
+            className="fixed bottom-0 left-0 right-0 pointer-events-auto max-w-[480px] mx-auto overflow-x-hidden touch-pan-y"
+            style={{ zIndex: 99999, touchAction: 'pan-y' }}
+            onTouchMove={(e) => e.stopPropagation()}
+          >
             <GiftPanel
               onSelectGift={handleSendGift}
               userCoins={coinBalance}

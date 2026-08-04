@@ -2291,7 +2291,11 @@ export default function SpectatorLiveScreen() {
               style={{ zIndex: 99998 }}
               onClick={() => { setShowGiftPanel(false); setSelectedCohostGiftUserId(null); }}
             />
-            <div className="fixed bottom-0 left-0 right-0 pointer-events-auto max-w-[480px] mx-auto" style={{ zIndex: 99999 }}>
+            <div
+              className="fixed bottom-0 left-0 right-0 pointer-events-auto max-w-[480px] mx-auto overflow-x-hidden touch-pan-y"
+              style={{ zIndex: 99999, touchAction: 'pan-y' }}
+              onTouchMove={(e) => e.stopPropagation()}
+            >
               {spectatorBattle?.active && (
                 <div className="px-3 pb-2 pt-1 flex items-center justify-center gap-2 bg-[#121215]/95 rounded-t-xl">
                   <div className="flex rounded-full overflow-hidden border border-[#E5E5E7]/40">

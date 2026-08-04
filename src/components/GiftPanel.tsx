@@ -219,7 +219,12 @@ export function GiftPanel({
   return (
     <div
       ref={panelRef}
-      className="bg-[#1A1A1F]/95 rounded-t-2xl p-3 pb-safe max-h-[40dvh] overflow-y-auto no-scrollbar shadow-2xl w-full relative z-[99999]"
+      className="bg-[#1A1A1F]/95 rounded-t-2xl p-3 pb-safe max-h-[40dvh] overflow-y-auto overflow-x-hidden overscroll-y-contain touch-pan-y no-scrollbar shadow-2xl w-full relative z-[99999]"
+      style={{ touchAction: "pan-y" }}
+      onTouchMove={(e) => {
+        // Keep gift panel vertical-only; do not let horizontal pans move the live page.
+        e.stopPropagation();
+      }}
     >
       {/* Top bar: Weekly Ranking / Membership */}
       {(onWeeklyRanking || onMembership) && (
@@ -227,11 +232,8 @@ export function GiftPanel({
           className="mb-1.5 -mx-3 -mt-1 w-[calc(100%+24px)] overflow-hidden border-b border-white/5"
           style={{ height: "10mm", maxHeight: "10mm" }}
         >
-          <div
-            className="w-full h-full flex items-center overflow-x-auto no-scrollbar"
-            style={{ scrollBehavior: "smooth" }}
-          >
-            <div className="flex items-center gap-2 px-3 flex-nowrap min-w-max">
+          <div className="w-full h-full flex items-center overflow-x-hidden">
+            <div className="flex items-center gap-2 px-3 flex-nowrap min-w-0">
               {onWeeklyRanking && (
                 <div
                   className="flex items-center gap-1 cursor-pointer flex-shrink-0 active:scale-95 transition-transform"
