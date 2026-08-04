@@ -117,7 +117,7 @@ export const BottomNav = () => {
                   style={{ WebkitTapHighlightColor: "transparent" }}
                 >
                   <span
-                    className="royce-glow-disc"
+                    className="inline-flex items-center justify-center flex-shrink-0"
                     style={{ width: size + 12, height: size + 12 }}
                     aria-hidden
                   >

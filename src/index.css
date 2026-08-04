@@ -976,9 +976,9 @@ video::-webkit-media-controls-overlay-enclosure,
 /*
  * Unified icon design (app-wide) — black + silver + red:
  * thin silver line icons + soft glow (readable on black video).
- * Active silver #E5E5E7 · Active red #FF3B3F · Inactive #707070
+ * Bottom-nav active/inactive use their own solid colors (excluded here).
  */
-svg.lucide {
+svg.lucide:not(.bottom-nav-icon-active):not(.bottom-nav-icon-inactive) {
   color: #E5E5E7 !important;
   stroke: currentColor !important;
   stroke-width: 2;
@@ -1014,29 +1014,38 @@ svg.lucide.text-red-500 {
   fill: none;
 }
 
-/* Bottom nav — mockup: inactive silver, active red */
-.bottom-nav-icon-inactive,
-svg.lucide.bottom-nav-icon-inactive {
+/* Bottom nav — one solid color only (no silver+red mix) */
+nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-inactive,
+nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-inactive path,
+nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-inactive circle,
+nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-inactive line,
+nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-inactive polyline,
+nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-inactive polygon {
   color: #A7A7AD !important;
-  stroke: currentColor !important;
+  stroke: #A7A7AD !important;
   fill: none !important;
   filter: none !important;
 }
 
-.bottom-nav-icon-active,
-svg.lucide.bottom-nav-icon-active {
+nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-active,
+nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-active path,
+nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-active circle,
+nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-active line,
+nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-active polyline,
+nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-active polygon {
   color: #FF3B3F !important;
-  stroke: currentColor !important;
-  fill: currentColor !important;
-  filter:
-    drop-shadow(0 0 3px rgba(255, 59, 63, 0.45))
-    drop-shadow(0 0 8px rgba(255, 59, 63, 0.2)) !important;
+  stroke: #FF3B3F !important;
+  fill: #FF3B3F !important;
+  filter: none !important;
 }
 
-/* Create (+) stays outline stroke — not a filled blob */
-.bottom-nav-icon-active.bottom-nav-icon-plus,
-svg.lucide.bottom-nav-icon-active.bottom-nav-icon-plus {
+/* Create (+) — red outline only */
+nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-active.bottom-nav-icon-plus,
+nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-active.bottom-nav-icon-plus path,
+nav[aria-label="Main navigation"] svg.lucide.bottom-nav-icon-active.bottom-nav-icon-plus line {
   fill: none !important;
+  stroke: #FF3B3F !important;
+  color: #FF3B3F !important;
 }
 
 .royce-icon-muted {
