@@ -20,6 +20,18 @@ export function profileToLiveDisplay(body: unknown): { name: string; avatar: str
   return { name, avatar };
 }
 
+/** Generated initials avatars — not real profile photos. */
+export function isUiAvatarsUrl(url: string | undefined | null): boolean {
+  return !!url && /ui-avatars\.com/i.test(url);
+}
+
+/** Drop placeholder avatar URLs so live cards wait for real profile photos. */
+export function sanitizeLiveAvatar(avatar: string | undefined | null): string {
+  const direct = typeof avatar === "string" ? avatar.trim() : "";
+  if (!direct || isUiAvatarsUrl(direct)) return "";
+  return direct;
+}
+
 /** Placeholder labels that should be replaced with a real profile name. */
 export function isGenericLiveCreatorName(name: string | undefined | null): boolean {
   if (!name || !name.trim()) return true;

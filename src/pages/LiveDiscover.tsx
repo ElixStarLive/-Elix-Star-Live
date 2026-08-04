@@ -7,8 +7,10 @@ import { apiLiveStreams, connectLiveFeedPresence } from '../lib/live';
 import { showToast } from '../lib/toast';
 import {
   isGenericLiveCreatorName,
+  isUiAvatarsUrl,
   liveNameFromStreamFields,
   profileToLiveDisplay,
+  sanitizeLiveAvatar,
 } from '../lib/liveCreatorDisplay';
 import { apiFetchProfileById } from '../features/feed/feedApi';
 
@@ -23,24 +25,21 @@ type LiveCreator = {
   title?: string;
 };
 
-function isUiAvatarsUrl(url: string | undefined): boolean {
-  return !!url && /ui-avatars\.com/i.test(url);
-}
-
 async function enrichLiveCreator(creator: LiveCreator): Promise<LiveCreator> {
   if (!creator.userId) return creator;
   const needsName = isGenericLiveCreatorName(creator.name);
-  const needsAvatar = !creator.avatar || isUiAvatarsUrl(creator.avatar);
+  const needsAvatar = !sanitizeLiveAvatar(creator.avatar);
   if (!needsName && !needsAvatar) return creator;
   try {
     const { body, error } = await apiFetchProfileById(creator.userId);
     if (error || !body) return creator;
     const { name, avatar } = profileToLiveDisplay(body);
     if (!name && !avatar) return creator;
+    const cleanAvatar = sanitizeLiveAvatar(avatar);
     return {
       ...creator,
       name: needsName && name ? name : creator.name,
-      avatar: avatar || (isUiAvatarsUrl(creator.avatar) ? undefined : creator.avatar),
+      avatar: cleanAvatar || sanitizeLiveAvatar(creator.avatar),
       title:
         creator.title && !isGenericLiveCreatorName(creator.title)
           ? creator.title
@@ -58,12 +57,6 @@ export default function LiveDiscover() {
     navigate('/feed');
   }, [navigate]);
 
-  const openWatch = useCallback(
-    (creatorId: string) => {
-      navigate(`/watch/${creatorId}`);
-    },
-    [navigate],
-  );
   const [creators, setCreators] = useState<LiveCreator[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeIds, setActiveIds] = useState<Set<string>>(() => new Set());
@@ -136,7 +129,7 @@ export default function LiveDiscover() {
     const needs = creators.filter(
       (c) =>
         c.userId &&
-        (isGenericLiveCreatorName(c.name) || !c.avatar || isUiAvatarsUrl(c.avatar)),
+        (isGenericLiveCreatorName(c.name) || !sanitizeLiveAvatar(c.avatar) || isUiAvatarsUrl(c.avatar)),
     );
     if (needs.length === 0) return;
     let cancelled = false;
@@ -173,6 +166,12 @@ export default function LiveDiscover() {
     const poll = setInterval(fetchLiveStreams, 3_000);
     return () => clearInterval(poll);
   }, [fetchLiveStreams]);
+
+  // First visible card should preview immediately (same as For You active slide).
+  useEffect(() => {
+    if (creators.length === 0) return;
+    setActiveIds((prev) => (prev.size > 0 ? prev : new Set([creators[0].id])));
+  }, [creators]);
 
   // Activate live preview only for cards on screen (same pattern as For You active slide)
   useEffect(() => {
@@ -311,9 +310,7 @@ export default function LiveDiscover() {
             </div>
           ) : creators.length > 0 ? (
             <div className="grid grid-cols-2 gap-1 px-1 pb-[env(safe-area-inset-bottom,20px)]">
-              {creators.map((c, i) => {
-                const previewActive = activeIds.has(c.id);
-                return (
+              {creators.map((c, i) => (
                 <div
                   key={c.id}
                   ref={(el) => setCardRef(c.id, el)}
@@ -321,48 +318,17 @@ export default function LiveDiscover() {
                     i === 0 && creators.length > 2 ? 'col-span-2 aspect-[2/1.2]' : 'aspect-[3/4]'
                   }`}
                 >
-                  {previewActive ? (
-                    <Suspense fallback={<div className="absolute inset-0 bg-[#111113]" />}>
-                      <InlineLiveViewer
-                        streamKey={c.id}
-                        isActive
-                        creatorName={c.name}
-                        creatorAvatar={c.avatar}
-                        viewerCount={c.viewers}
-                      />
-                    </Suspense>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => openWatch(c.id)}
-                      className="absolute inset-0 w-full h-full"
-                      aria-label={`Watch ${c.name}`}
-                    >
-                      {c.avatar ? (
-                        <img
-                          src={c.avatar}
-                          alt=""
-                          className="absolute inset-0 w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="absolute inset-0 bg-gradient-to-br from-[#1a1c22] to-[#0e1015] flex items-center justify-center">
-                          <span className="text-[#D4AF37] font-bold text-2xl">
-                            {(c.name || 'L').slice(0, 1).toUpperCase()}
-                          </span>
-                        </div>
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                      <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-white/20 text-white text-[9px] font-extrabold uppercase tracking-wider">
-                        Live
-                      </div>
-                      <div className="absolute bottom-0 left-0 right-0 p-2.5">
-                        <p className="text-white font-bold text-xs truncate">{c.name}</p>
-                      </div>
-                    </button>
-                  )}
+                  <Suspense fallback={<div className="absolute inset-0 bg-[#111113]" />}>
+                    <InlineLiveViewer
+                      streamKey={c.id}
+                      isActive={activeIds.has(c.id)}
+                      creatorName={c.name}
+                      creatorAvatar={c.avatar}
+                      viewerCount={c.viewers}
+                    />
+                  </Suspense>
                 </div>
-                );
-              })}
+              ))}
             </div>
           ) : (
             /* Empty state — no Go Live button, just info */

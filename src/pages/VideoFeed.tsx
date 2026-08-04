@@ -8,8 +8,10 @@ import { useVideoStore } from "../store/useVideoStore";
 import { useAuthStore } from "../store/useAuthStore";
 import {
   isGenericLiveCreatorName,
+  isUiAvatarsUrl,
   liveNameFromStreamFields,
   profileToLiveDisplay,
+  sanitizeLiveAvatar,
 } from "../lib/liveCreatorDisplay";
 import { platform } from "../lib/platform";
 import { apiLiveStreams, connectLiveFeedPresence, createLiveRoomEndMonitor } from "../lib/live";
@@ -59,13 +61,10 @@ function streamStartedToCard(data: Record<string, unknown>): LiveStreamCard {
   const key = (data.stream_key ?? data.room_id ?? "") as string;
   const userId = (data.user_id ?? "") as string;
   const name = liveNameFromStreamFields(data.title, data.display_name ?? data.displayName, userId);
-  const avatarLabel = isGenericLiveCreatorName(name) && userId ? name : name;
   return {
     streamKey: key,
     name,
-    avatar: userId
-      ? `https://ui-avatars.com/api/?name=${encodeURIComponent(avatarLabel)}&background=121212&color=FFFFFF`
-      : "",
+    avatar: "",
     viewers: 0,
     title: typeof data.title === "string" ? data.title : undefined,
     thumbnail: "",
@@ -74,17 +73,24 @@ function streamStartedToCard(data: Record<string, unknown>): LiveStreamCard {
 }
 
 async function enrichLiveStreamCard(card: LiveStreamCard): Promise<LiveStreamCard> {
-  if (!card.userId || !isGenericLiveCreatorName(card.name)) return card;
+  if (!card.userId) return card;
+  const needsName = isGenericLiveCreatorName(card.name);
+  const needsAvatar = !sanitizeLiveAvatar(card.avatar);
+  if (!needsName && !needsAvatar) return card;
   try {
     const { body, error } = await apiFeedFetchProfileById(card.userId);
     if (error || !body) return card;
     const { name, avatar } = profileToLiveDisplay(body);
     if (!name && !avatar) return card;
+    const cleanAvatar = sanitizeLiveAvatar(avatar);
     return {
       ...card,
-      name: name || card.name,
-      avatar: avatar || card.avatar,
-      title: name || card.title,
+      name: needsName && name ? name : card.name,
+      avatar: cleanAvatar || sanitizeLiveAvatar(card.avatar),
+      title:
+        card.title && !isGenericLiveCreatorName(card.title)
+          ? card.title
+          : name || card.title,
     };
   } catch {
     return card;
@@ -238,7 +244,9 @@ export default function VideoFeed() {
   /* ---- Enrich live stream names/avatars from profiles ---- */
   useEffect(() => {
     const needsEnrichment = liveStreams.filter(
-      (s) => s.userId && isGenericLiveCreatorName(s.name),
+      (s) =>
+        s.userId &&
+        (isGenericLiveCreatorName(s.name) || !sanitizeLiveAvatar(s.avatar) || isUiAvatarsUrl(s.avatar)),
     );
     if (needsEnrichment.length === 0) return;
     let cancelled = false;

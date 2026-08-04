@@ -10,6 +10,7 @@ import { bindLiveRoomWs } from "../ws/bindLiveRoomWs";
 import { bindLiveBattleWs } from "../ws/bindLiveBattleWs";
 import { bindLiveCohostWs } from "../ws/bindLiveCohostWs";
 import { INLINE_LIVE_PLACEHOLDER_AVATAR_PX } from "../../../lib/profileFrame";
+import { sanitizeLiveAvatar } from "../../../lib/liveCreatorDisplay";
 import {
   prepareLiveVideoEl,
   LIVE_WEBRTC_VIDEO_CLASS,
@@ -404,15 +405,16 @@ export default function InlineLiveViewer({
   }, [navigate, streamKey]);
 
   const liveCohosts = coHosts.slice(0, 8);
+  const displayAvatar = sanitizeLiveAvatar(creatorAvatar);
 
   const placeholder = (
     <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#111113] gap-4 pointer-events-none z-[1]">
-      {creatorAvatar ? (
+      {displayAvatar ? (
         <div
           className="rounded-full overflow-hidden shrink-0"
           style={{ width: INLINE_LIVE_PLACEHOLDER_AVATAR_PX, height: INLINE_LIVE_PLACEHOLDER_AVATAR_PX }}
         >
-          <img src={creatorAvatar} alt="" className="w-full h-full object-cover object-center" />
+          <img src={displayAvatar} alt="" className="w-full h-full object-cover object-center" />
         </div>
       ) : (
         <div
@@ -531,8 +533,8 @@ export default function InlineLiveViewer({
             />
             {!hasStream && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[#111113] z-[1]">
-                {creatorAvatar ? (
-                  <img src={creatorAvatar} alt="" className="w-16 h-16 rounded-full object-cover" />
+                {displayAvatar ? (
+                  <img src={displayAvatar} alt="" className="w-16 h-16 rounded-full object-cover" />
                 ) : (
                   <div className="w-16 h-16 rounded-full bg-[#D4AF37]/20 flex items-center justify-center">
                     <span className="text-[#D4AF37] font-bold text-2xl">
