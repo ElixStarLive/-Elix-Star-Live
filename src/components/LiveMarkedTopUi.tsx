@@ -210,21 +210,21 @@ export function LiveJoinPill({
   );
 }
 
-/** Live ranking chips — original colors. No glow light. */
+/** Live ranking chips — current app palette only (black / silver). No glow. */
 const THIN_CAPSULE_STYLE: React.CSSProperties = {
-  background: 'rgba(67, 56, 202, 0.82)',
-  border: '1px solid rgba(196, 181, 253, 0.95)',
+  background: 'rgba(10, 10, 13, 0.85)',
+  border: '1px solid rgba(229, 229, 231, 0.45)',
   backdropFilter: 'blur(8px)',
   WebkitBackdropFilter: 'blur(8px)',
   boxShadow: 'none',
 };
 
-/** Shared capsule title / subtitle text — original colors. */
-const CAPSULE_TITLE = 'text-white text-[8px] font-bold whitespace-nowrap drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]';
-const CAPSULE_SUB = 'text-[#E0E7FF] text-[6px] font-semibold whitespace-nowrap mt-[0.5px] drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]';
-const CAPSULE_CHEVRON = 'text-white text-[8px] font-medium leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]';
+/** Shared capsule title / subtitle — current white / grey. */
+const CAPSULE_TITLE = 'text-white text-[8px] font-bold whitespace-nowrap';
+const CAPSULE_SUB = 'text-[#A7A7AD] text-[6px] font-semibold whitespace-nowrap mt-[0.5px]';
+const CAPSULE_CHEVRON = 'text-white text-[8px] font-medium leading-none';
 
-/** Same height / padding / border for every sub-header capsule. */
+/** Same height / padding / round chip shape. */
 const THIN_CAPSULE_CLASS =
   'inline-flex items-center gap-0.5 flex-shrink-0 rounded-full pl-1.5 pr-1.5 h-[22px] box-border pointer-events-auto active:scale-95 transition-transform';
 
