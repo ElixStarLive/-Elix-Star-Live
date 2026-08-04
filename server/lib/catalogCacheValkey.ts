@@ -6,7 +6,7 @@
 import { getValkey, isValkeyConfigured, valkeyGet } from "./valkey";
 import { logger } from "./logger";
 
-export const GIFTS_CATALOG_KEY = "elix:http:gifts_catalog:v3";
+export const GIFTS_CATALOG_KEY = "elix:http:gifts_catalog:v4";
 export const COIN_PACKAGES_KEY = "elix:http:coin_packages";
 export const PROFILES_LIST_EPOCH_KEY = "elix:profiles:list:epoch";
 
@@ -46,6 +46,7 @@ export async function invalidateGiftsCatalogCache(): Promise<void> {
   if (!v) return;
   try {
     await v.del(GIFTS_CATALOG_KEY);
+    await v.del("elix:http:gifts_catalog:v3");
   } catch (err: unknown) {
     logger.warn(
       { err: err instanceof Error ? err.message : err },

@@ -12,6 +12,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { logger } from "./lib/logger";
+import { invalidateGiftsCatalogCache } from "./lib/catalogCacheValkey";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const migrationsDir = path.join(__dirname, "migrations");
@@ -92,6 +93,8 @@ async function main(): Promise<void> {
     client.release();
     await pool.end();
   }
+
+  await invalidateGiftsCatalogCache().catch(() => {});
 
   logger.info("[migrate] complete");
 }
