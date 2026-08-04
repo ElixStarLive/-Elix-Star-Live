@@ -94,8 +94,13 @@ export const BottomNav = () => {
           <div className="flex items-center justify-around px-1 pt-1.5 pb-1">
             {NAV_ITEMS.map(({ path, label, Icon, center }) => {
               const active = isActiveRoute(location.pathname, path);
-              const iconClass = "royce-icon-gold";
-              const labelClass = active ? "text-gold-bright" : "text-gold-bright/45";
+              const iconClass = [
+                active ? "bottom-nav-icon-active" : "bottom-nav-icon-inactive",
+                center ? "bottom-nav-icon-plus" : "",
+              ]
+                .filter(Boolean)
+                .join(" ");
+              const labelClass = active ? "text-[#FFFFFF]" : "text-[#A7A7AD]";
               const size = center ? ICON_SIZE + 2 : ICON_SIZE;
 
               return (

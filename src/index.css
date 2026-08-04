@@ -1014,6 +1014,31 @@ svg.lucide.text-red-500 {
   fill: none;
 }
 
+/* Bottom nav — mockup: inactive silver, active red */
+.bottom-nav-icon-inactive,
+svg.lucide.bottom-nav-icon-inactive {
+  color: #A7A7AD !important;
+  stroke: currentColor !important;
+  fill: none !important;
+  filter: none !important;
+}
+
+.bottom-nav-icon-active,
+svg.lucide.bottom-nav-icon-active {
+  color: #FF3B3F !important;
+  stroke: currentColor !important;
+  fill: currentColor !important;
+  filter:
+    drop-shadow(0 0 3px rgba(255, 59, 63, 0.45))
+    drop-shadow(0 0 8px rgba(255, 59, 63, 0.2)) !important;
+}
+
+/* Create (+) stays outline stroke — not a filled blob */
+.bottom-nav-icon-active.bottom-nav-icon-plus,
+svg.lucide.bottom-nav-icon-active.bottom-nav-icon-plus {
+  fill: none !important;
+}
+
 .royce-icon-muted {
   color: #707070 !important;
   stroke: currentColor;
