@@ -33,7 +33,7 @@ export default function VideoView() {
 
   if (!videoId) {
     return (
-      <div className="min-h-[100dvh] bg-[#111113] text-white p-4">
+      <div className="min-h-[100dvh] bg-[#121215] text-white p-4">
         <button onClick={goBack} className="flex items-center gap-2 text-white/80">
           <RoyceBackIcon />
           Back
@@ -47,9 +47,9 @@ export default function VideoView() {
 
   if (loadPhase === 'loading' || (loadPhase === 'idle' && !video)) {
     return (
-      <div className="fixed inset-0 z-[9990] bg-[#111113] flex justify-center">
+      <div className="fixed inset-0 z-[9990] bg-[#121215] flex justify-center">
         <div
-          className="w-full max-w-[480px] relative overflow-hidden bg-[#111113] h-viewport"
+          className="w-full max-w-[480px] relative overflow-hidden bg-[#121215] h-viewport"
           style={{ marginTop: 0 }}
         >
           <div
@@ -77,9 +77,9 @@ export default function VideoView() {
 
   if (showMissing || !video) {
     return (
-      <div className="fixed inset-0 z-[9990] bg-[#111113] flex justify-center">
+      <div className="fixed inset-0 z-[9990] bg-[#121215] flex justify-center">
         <div
-          className="w-full max-w-[480px] relative overflow-hidden bg-[#111113] h-viewport"
+          className="w-full max-w-[480px] relative overflow-hidden bg-[#121215] h-viewport"
           style={{ marginTop: 0 }}
         >
           <div
@@ -102,7 +102,7 @@ export default function VideoView() {
             <button
               type="button"
               onClick={goBack}
-              className="text-[#B57CFF] text-sm font-semibold"
+              className="text-[#F5F5F7] text-sm font-semibold"
             >
               Go back
             </button>
@@ -113,8 +113,8 @@ export default function VideoView() {
   }
 
   return (
-    <div className="page-above-bottom-nav z-[9990] bg-[#111113]">
-      <div className="page-above-bottom-nav__inner relative bg-[#111113]">
+    <div className="page-above-bottom-nav z-[9990] bg-[#121215]">
+      <div className="page-above-bottom-nav__inner relative bg-[#121215]">
         <div
           className="absolute z-[250] pointer-events-auto"
           style={{

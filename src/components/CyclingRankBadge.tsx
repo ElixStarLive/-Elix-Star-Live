@@ -41,7 +41,7 @@ export function CyclingRankBadge({ onOpen, className = '', showChevron = true }:
   return (
     <button
       type="button"
-      className={`flex items-center gap-1 bg-black/75 rounded-full px-2.5 py-1 border border-[#6F2BFF]/80 shadow-[0_0_8px_rgba(111, 43, 255,0.35)] cursor-pointer active:scale-95 transition-transform ${className}`}
+      className={`flex items-center gap-1 bg-black/75 rounded-full px-2.5 py-1 border border-[#E5E5E7]/80 shadow-[0_0_8px_rgba(229, 229, 231,0.35)] cursor-pointer active:scale-95 transition-transform ${className}`}
       onClick={(e) => {
         e.stopPropagation();
         onOpen(slot.tab);
@@ -55,7 +55,7 @@ export function CyclingRankBadge({ onOpen, className = '', showChevron = true }:
           return (
             <SlotIcon
               key={s.tab}
-              className={`absolute inset-0 w-3.5 h-3.5 text-[#B57CFF] transition-opacity duration-500 ${
+              className={`absolute inset-0 w-3.5 h-3.5 text-[#F5F5F7] transition-opacity duration-500 ${
                 active ? 'opacity-100' : 'opacity-0'
               }`}
               strokeWidth={2.25}

@@ -18,7 +18,7 @@ const LEVEL_TIER_COLORS: readonly {
   { max: 100, background: '#1B5E20', glow: '#4ADE80', name: 'Green' },
   { max: 120, background: '#558B2F', glow: '#BEF264', name: 'Lime' },
   { max: 140, background: '#827717', glow: '#D9FF4D', name: 'Chartreuse' },
-  { max: 160, background: '#6F2BFF', glow: '#FFD700', name: 'Gold' },
+  { max: 160, background: '#E5E5E7', glow: '#FFD700', name: 'Gold' },
   { max: 180, background: '#C96A00', glow: '#FFB347', name: 'Amber' },
   { max: 200, background: '#BF360C', glow: '#FF7A3D', name: 'Orange' },
   { max: 220, background: '#B71C1C', glow: '#FF4D4D', name: 'Red' },
@@ -30,7 +30,7 @@ const LEVEL_TIER_COLORS: readonly {
 
 /** Rainbow chip background for level 281–300. */
 export const LEVEL_RAINBOW_BACKGROUND =
-  'linear-gradient(90deg, #4A148C 0%, #0D47A1 16%, #006C84 28%, #1B5E20 42%, #6F2BFF 58%, #B71C1C 74%, #AD1457 88%, #6A1B9A 100%)';
+  'linear-gradient(90deg, #4A148C 0%, #0D47A1 16%, #006C84 28%, #1B5E20 42%, #E5E5E7 58%, #B71C1C 74%, #AD1457 88%, #6A1B9A 100%)';
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
   const h = hex.replace('#', '').trim();

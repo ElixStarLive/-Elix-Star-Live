@@ -24,8 +24,8 @@ export default function Legal() {
   ];
 
   return (
-    <div className="bg-[#111113] text-white flex justify-center px-2">
-      <div className="w-full max-w-[480px] rounded-3xl overflow-hidden bg-[#111113] flex flex-col overflow-y-auto p-4">
+    <div className="bg-[#121215] text-white flex justify-center px-2">
+      <div className="w-full max-w-[480px] rounded-3xl overflow-hidden bg-[#121215] flex flex-col overflow-y-auto p-4">
         <header className="flex items-center justify-between mb-6">
           <button onClick={goBack} aria-label="Back">
             <RoyceBackIcon />
@@ -39,7 +39,7 @@ export default function Legal() {
             <button
               key={item.label}
               type="button"
-              className="w-full flex items-center p-4 hover:bg-[#111113] cursor-pointer text-left"
+              className="w-full flex items-center p-4 hover:bg-[#121215] cursor-pointer text-left"
               onClick={() => openLegalItem(item.to)}
             >
               <item.icon size={20} className="mr-4 text-white" />

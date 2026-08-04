@@ -39,7 +39,7 @@ export function LiveFollowPill({
     return (
       <button
         type="button"
-        className="flex items-center justify-center gap-0.5 h-[28px] px-2.5 rounded-full bg-[#FF3B5C] shadow-[0_0_10px_rgba(255,59,92,0.45)] active:scale-95 transition-transform flex-shrink-0"
+        className="flex items-center justify-center gap-0.5 h-[28px] px-2.5 rounded-full bg-[#FF3B3F] shadow-[0_0_10px_rgba(255,59,92,0.45)] active:scale-95 transition-transform flex-shrink-0"
         onClick={onFollow}
       >
         <Plus size={12} className="text-white" strokeWidth={3} />
@@ -50,7 +50,7 @@ export function LiveFollowPill({
   return (
     <button
       type="button"
-      className="col-start-1 row-start-1 z-20 relative flex items-center justify-center gap-0.5 self-stretch h-full rounded-full bg-[#FF3B5C] w-full"
+      className="col-start-1 row-start-1 z-20 relative flex items-center justify-center gap-0.5 self-stretch h-full rounded-full bg-[#FF3B3F] w-full"
       onClick={onFollow}
     >
       <Plus size={12} className="text-white" strokeWidth={3} />
@@ -116,8 +116,8 @@ export function LiveHostProfileHeader({
           </span>
           <BadgeCheck
             size={14}
-            className="text-[#B57CFF] flex-shrink-0"
-            fill="#6F2BFF"
+            className="text-[#F5F5F7] flex-shrink-0"
+            fill="#E5E5E7"
             stroke="#FFFFFF"
             strokeWidth={1.6}
           />
@@ -152,7 +152,7 @@ export function LiveHostProfileHeader({
           <span
             className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-[2px] text-[8px] font-bold text-white leading-none"
             style={{
-              background: 'linear-gradient(90deg, #818CF8 0%, #B57CFF 55%, #C4B5FD 100%)',
+              background: 'linear-gradient(90deg, #818CF8 0%, #E5E5E7 55%, #C4B5FD 100%)',
               border: '1px solid rgba(255,255,255,0.35)',
               boxShadow: 'none',
             }}
@@ -189,8 +189,8 @@ export function LiveJoinPill({
       type="button"
       className={`flex items-center justify-center gap-1 h-[28px] px-2.5 rounded-full active:scale-95 transition-transform ${
         hasJoinedToday
-          ? 'bg-[#FF3B5C] border border-[#FF6B8A]'
-          : 'bg-[#FF3B5C] border border-[#FF6B8A] shadow-[0_0_10px_rgba(255,59,92,0.55)]'
+          ? 'bg-[#FF3B3F] border border-[#FF6B8A]'
+          : 'bg-[#FF3B3F] border border-[#FF6B8A] shadow-[0_0_10px_rgba(255,59,92,0.55)]'
       }`}
       onClick={onJoin}
     >
@@ -200,8 +200,8 @@ export function LiveJoinPill({
           strokeWidth={2.5}
         />
         {!hasJoinedToday && (
-          <div className="absolute -top-1 -right-1 w-2 h-2 bg-white rounded-full flex items-center justify-center border border-[#FF3B5C]">
-            <span className="text-[#FF3B5C] text-[6px] font-bold leading-none">+</span>
+          <div className="absolute -top-1 -right-1 w-2 h-2 bg-white rounded-full flex items-center justify-center border border-[#FF3B3F]">
+            <span className="text-[#FF3B3F] text-[6px] font-bold leading-none">+</span>
           </div>
         )}
       </div>
@@ -293,14 +293,14 @@ function LivePhotoDiamondIcon({ size = 14 }: { size?: number }) {
           <stop offset="100%" stopColor="#818CF8" />
         </linearGradient>
         <linearGradient id={`${uid}Bot`} x1="0.2" y1="0" x2="0.8" y2="1">
-          <stop offset="0%" stopColor="#B57CFF" />
+          <stop offset="0%" stopColor="#E5E5E7" />
           <stop offset="100%" stopColor="#6366F1" />
         </linearGradient>
       </defs>
       <path d="M9 1.2 L15.2 6.2 L9 16.8 L2.8 6.2 Z" fill={`url(#${uid}Bot)`} />
       <path d="M9 1.2 L15.2 6.2 L9 7.4 L2.8 6.2 Z" fill={`url(#${uid}Top)`} />
       <path d="M9 7.4 L15.2 6.2 L9 16.8 Z" fill="#6366F1" opacity="0.9" />
-      <path d="M9 7.4 L2.8 6.2 L9 16.8 Z" fill="#B57CFF" opacity="0.85" />
+      <path d="M9 7.4 L2.8 6.2 L9 16.8 Z" fill="#E5E5E7" opacity="0.85" />
       <path d="M9 1.2 L9 7.4" stroke="#EEF2FF" strokeWidth="0.45" opacity="0.7" />
     </svg>
   );

@@ -12,7 +12,7 @@ export default function Guidelines() {
 
   return (
     <SettingsOptionSheet onClose={goBack}>
-      <div className="w-full h-full overflow-hidden bg-[#111113] text-white flex flex-col">
+      <div className="w-full h-full overflow-hidden bg-[#121215] text-white flex flex-col">
         <header className="flex items-center justify-center mb-4 px-4 pt-2">
           <h1 className="font-bold text-lg">Community Guidelines</h1>
         </header>
@@ -88,7 +88,7 @@ export default function Guidelines() {
               <button
                 type="button"
                 onClick={goReport}
-                className="w-full py-3 bg-[#6F2BFF] text-black rounded-xl font-bold hover:opacity-90 transition"
+                className="w-full py-3 bg-[#FF3B3F] text-black rounded-xl font-bold hover:opacity-90 transition"
               >
                 Report a Violation
               </button>
@@ -122,7 +122,7 @@ function Section({
   return (
     <div>
       <h2 className="flex items-center gap-2 text-white font-semibold text-base mb-2">
-        <span className="text-[#B57CFF] flex-shrink-0">{icon}</span>
+        <span className="text-[#F5F5F7] flex-shrink-0">{icon}</span>
         {title}
       </h2>
       {children}

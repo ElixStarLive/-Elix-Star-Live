@@ -19,9 +19,9 @@ export default function SafetyCenter() {
 
   return (
     <SettingsOptionSheet onClose={goBack}>
-      <div className="w-full h-full overflow-hidden bg-[#111113] flex flex-col">
+      <div className="w-full h-full overflow-hidden bg-[#121215] flex flex-col">
         <header className="flex items-center justify-center mb-2 px-4 pt-2">
-          <h1 className="font-bold text-lg text-[#B57CFF]">Safety Center</h1>
+          <h1 className="font-bold text-lg text-[#F5F5F7]">Safety Center</h1>
         </header>
 
         <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4 space-y-4">

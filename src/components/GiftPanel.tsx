@@ -201,7 +201,7 @@ export function GiftPanel({
 
   const goalBorder = (giftId: string, fallback?: string) =>
     highlightGiftId === giftId
-      ? "border-[#6F2BFF]/80 ring-1 ring-[#6F2BFF]/40"
+      ? "border-[#E5E5E7]/80 ring-1 ring-[#E5E5E7]/40"
       : fallback;
 
   const handleGiftTap = useCallback(
@@ -219,7 +219,7 @@ export function GiftPanel({
   return (
     <div
       ref={panelRef}
-      className="bg-[#18181B]/95 rounded-t-2xl p-3 pb-safe max-h-[40dvh] overflow-y-auto no-scrollbar shadow-2xl w-full relative z-[99999]"
+      className="bg-[#1A1A1F]/95 rounded-t-2xl p-3 pb-safe max-h-[40dvh] overflow-y-auto no-scrollbar shadow-2xl w-full relative z-[99999]"
     >
       {/* Top bar: Weekly Ranking / Membership */}
       {(onWeeklyRanking || onMembership) && (
@@ -237,8 +237,8 @@ export function GiftPanel({
                   className="flex items-center gap-1 cursor-pointer flex-shrink-0 active:scale-95 transition-transform"
                   onClick={onWeeklyRanking}
                 >
-                  <Trophy className="w-2.5 h-2.5 text-[#B57CFF] flex-shrink-0" />
-                  <span className="text-[#B57CFF] text-[8px] font-bold whitespace-nowrap">
+                  <Trophy className="w-2.5 h-2.5 text-[#F5F5F7] flex-shrink-0" />
+                  <span className="text-[#F5F5F7] text-[8px] font-bold whitespace-nowrap">
                     Weekly Ranking &gt;
                   </span>
                 </div>
@@ -251,8 +251,8 @@ export function GiftPanel({
                   className="flex items-center gap-1 cursor-pointer flex-shrink-0 active:scale-95 transition-transform"
                   onClick={onMembership}
                 >
-                  <Heart className="w-2.5 h-2.5 text-[#B57CFF] fill-[#FFFFFF] flex-shrink-0" />
-                  <span className="text-[#B57CFF] text-[8px] font-bold whitespace-nowrap">
+                  <Heart className="w-2.5 h-2.5 text-[#F5F5F7] fill-[#FFFFFF] flex-shrink-0" />
+                  <span className="text-[#F5F5F7] text-[8px] font-bold whitespace-nowrap">
                     Membership
                   </span>
                 </div>
@@ -275,7 +275,7 @@ export function GiftPanel({
               onClick={() => onGiftSourceChange("promotional_coins")}
               className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
                 giftSource === "promotional_coins"
-                  ? "bg-[#4F7BFF] text-black"
+                  ? "bg-[#C9CCD1] text-black"
                   : "text-white/60"
               }`}
               title="Promotional coins; zero Diamonds / creator earnings"

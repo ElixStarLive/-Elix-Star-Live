@@ -17,10 +17,10 @@ export function EngagementShell({
   const navigate = useNavigate();
   const goBack = useCallback(() => navigate(backTo), [navigate, backTo]);
   return (
-    <div className="page-above-bottom-nav bg-[#111113] text-white">
+    <div className="page-above-bottom-nav bg-[#121215] text-white">
       <div className="page-above-bottom-nav__inner">
         <div
-          className="w-full shrink-0 bg-[#111113] z-10"
+          className="w-full shrink-0 bg-[#121215] z-10"
           style={{ paddingTop: "var(--topnav-anchor-top)" }}
         >
           <div
@@ -36,7 +36,7 @@ export function EngagementShell({
               <RoyceBackIcon className="w-6 h-6 text-white" />
             </button>
             <div className="flex items-center gap-2">
-              {Icon ? <Icon className="w-5 h-5 text-[#B57CFF]" /> : null}
+              {Icon ? <Icon className="w-5 h-5 text-[#F5F5F7]" /> : null}
               <h1 className="text-base font-semibold">{title}</h1>
             </div>
             <div className="w-8" />

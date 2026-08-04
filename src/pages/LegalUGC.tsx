@@ -8,8 +8,8 @@ export default function LegalUGC() {
   const goDmca = useCallback(() => navigate('/legal/dmca'), [navigate]);
 
   return (
-    <div className="bg-[#111113] text-white flex justify-center px-2">
-      <div className="w-full max-w-[480px] rounded-3xl overflow-hidden bg-[#111113] flex flex-col overflow-y-auto p-4 pb-20">
+    <div className="bg-[#121215] text-white flex justify-center px-2">
+      <div className="w-full max-w-[480px] rounded-3xl overflow-hidden bg-[#121215] flex flex-col overflow-y-auto p-4 pb-20">
         <header className="flex items-center justify-between mb-4">
           <button onClick={goBack} aria-label="Back" title="Back">
             <RoyceBackIcon />
@@ -67,7 +67,7 @@ export default function LegalUGC() {
               {' '}
               <button
                 onClick={goDmca}
-                className="text-[#B57CFF] underline"
+                className="text-[#F5F5F7] underline"
               >
                 DMCA Policy
               </button>.

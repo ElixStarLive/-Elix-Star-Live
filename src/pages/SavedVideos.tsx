@@ -97,8 +97,8 @@ export default function SavedVideos() {
   };
 
   return (
-    <div className="h-full min-h-0 w-full bg-[#111113] text-white flex justify-center px-2">
-      <div className="w-full max-w-[480px] h-full min-h-0 flex flex-col overflow-y-auto bg-[#111113]">
+    <div className="h-full min-h-0 w-full bg-[#121215] text-white flex justify-center px-2">
+      <div className="w-full max-w-[480px] h-full min-h-0 flex flex-col overflow-y-auto bg-[#121215]">
         <div className="p-4 flex items-center gap-4">
           <button onClick={goBack} className="p-1">
             <RoyceBackIcon />
@@ -108,7 +108,7 @@ export default function SavedVideos() {
 
         {loading ? (
           <div className="flex-1 flex items-center justify-center">
-            <div className="w-10 h-10 border-3 border-[#6F2BFF] border-t-transparent rounded-full animate-spin" />
+            <div className="w-10 h-10 border-3 border-[#E5E5E7] border-t-transparent rounded-full animate-spin" />
           </div>
         ) : loadError ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-3 px-8">
@@ -126,7 +126,7 @@ export default function SavedVideos() {
               {videos.map((video) => (
                 <div
                   key={video.id}
-                  className="aspect-[3/4] bg-[#111113] relative cursor-pointer group"
+                  className="aspect-[3/4] bg-[#121215] relative cursor-pointer group"
                   onClick={() => openVideo(video.id)}
                 >
                   {video.thumbnail_url ? (

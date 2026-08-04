@@ -108,8 +108,8 @@ export default function Report() {
 
   return (
     <SettingsOptionSheet onClose={goBack}>
-      <div className="w-full h-full min-h-0 flex flex-col overflow-hidden bg-[#111113]">
-      <div className="sticky top-0 bg-[#111113] z-10 px-4 py-4 border-b border-transparent flex items-center justify-center">
+      <div className="w-full h-full min-h-0 flex flex-col overflow-hidden bg-[#121215]">
+      <div className="sticky top-0 bg-[#121215] z-10 px-4 py-4 border-b border-transparent flex items-center justify-center">
         <h1 className="text-lg font-bold">{isGeneralSupport ? 'Report a problem' : `Report ${contentType}`}</h1>
       </div>
 
@@ -133,7 +133,7 @@ export default function Report() {
               onClick={() => setSelectedReason(reason.id)}
               className={`w-full text-left px-4 py-4 rounded-xl transition ${
                 selectedReason === reason.id
-                  ? 'bg-[#6F2BFF]/20 border-2 border-[#6F2BFF]'
+                  ? 'bg-[#FF3B3F]/20 border-2 border-[#E5E5E7]'
                   : 'bg-white border-2 border-transparent hover:brightness-125'
               }`}
             >
@@ -160,7 +160,7 @@ export default function Report() {
             placeholder="Provide more context to help us understand the issue..."
             maxLength={500}
             rows={4}
-            className="w-full bg-white rounded-xl px-4 py-3 outline-none text-white placeholder-white/40 border border-transparent focus:border-[#6F2BFF] transition resize-none"
+            className="w-full bg-white rounded-xl px-4 py-3 outline-none text-white placeholder-white/40 border border-transparent focus:border-[#E5E5E7] transition resize-none"
           />
           <p className="text-xs text-white/40 mt-1 text-right">{details.length}/500</p>
         </div>

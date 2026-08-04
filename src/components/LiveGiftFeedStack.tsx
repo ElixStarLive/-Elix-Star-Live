@@ -39,18 +39,18 @@ const BADGE: Record<
 > = {
   top_gifter: {
     label: 'Top Gifter',
-    chip: 'bg-[#6F2BFF] text-black',
-    glow: 'border-[#6F2BFF]/50 shadow-[0_0_10px_rgba(111, 43, 255,0.45)]',
+    chip: 'bg-[#FF3B3F] text-black',
+    glow: 'border-[#E5E5E7]/50 shadow-[0_0_10px_rgba(229, 229, 231,0.45)]',
   },
   vip: {
     label: 'VIP',
-    chip: 'bg-[#4F7BFF] text-white',
-    glow: 'border-[#4F7BFF]/45 shadow-[0_0_10px_rgba(79, 123, 255,0.35)]',
+    chip: 'bg-[#C9CCD1] text-white',
+    glow: 'border-[#C9CCD1]/45 shadow-[0_0_10px_rgba(201, 204, 209,0.35)]',
   },
   elite: {
     label: 'Elite',
-    chip: 'bg-[#202024] text-[#F8F8FA] border border-[#2A2A30]',
-    glow: 'border-[#2A2A30]/80 shadow-[0_0_10px_rgba(0,0,0,0.35)]',
+    chip: 'bg-[#1F1F26] text-[#FFFFFF] border border-[#2A2A31]',
+    glow: 'border-[#2A2A31]/80 shadow-[0_0_10px_rgba(0,0,0,0.35)]',
   },
 };
 

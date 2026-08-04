@@ -109,7 +109,7 @@ export const BuyCoinsModal: React.FC<BuyCoinsModalProps> = ({ isOpen, onClose, o
         className="fixed left-0 right-0 z-[999999] pointer-events-auto max-w-[480px] mx-auto"
         style={{ bottom: 'var(--bottom-nav-top)' }}
       >
-        <div className="bg-[#111113]/95 backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl overflow-hidden">
+        <div className="bg-[#121215]/95 backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl overflow-hidden">
           <div className="flex justify-center pt-2 pb-1">
             <div className="w-10 h-1 bg-white/20 rounded-full" />
           </div>
@@ -127,11 +127,11 @@ export const BuyCoinsModal: React.FC<BuyCoinsModalProps> = ({ isOpen, onClose, o
                     key={product.id}
                     onClick={() => handleNativePurchase(product)}
                     disabled={nativeLoading === product.id}
-                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-white/[0.03] border border-white/10 hover:bg-[#6F2BFF]/10 transition-colors active:scale-[0.98] disabled:opacity-50"
+                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-white/[0.03] border border-white/10 hover:bg-[#FF3B3F]/10 transition-colors active:scale-[0.98] disabled:opacity-50"
                   >
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-[#111113] border border-[#6F2BFF]/30 flex items-center justify-center">
-                        <Sparkles className="w-3.5 h-3.5 text-[#B57CFF]" strokeWidth={1.8} />
+                      <div className="w-8 h-8 rounded-full bg-[#121215] border border-[#E5E5E7]/30 flex items-center justify-center">
+                        <Sparkles className="w-3.5 h-3.5 text-[#F5F5F7]" strokeWidth={1.8} />
                       </div>
                       <div className="text-left">
                         <p className="text-white text-xs font-semibold">{product.title}</p>
@@ -144,7 +144,7 @@ export const BuyCoinsModal: React.FC<BuyCoinsModalProps> = ({ isOpen, onClose, o
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-6 text-center">
-                <Sparkles className="w-8 h-8 text-[#B57CFF] mb-3" />
+                <Sparkles className="w-8 h-8 text-[#F5F5F7] mb-3" />
                 <p className="text-white text-xs font-semibold mb-1">Purchase Coins in the App</p>
                 <p className="text-white/40 text-[10px] px-4">Coins are digital items and must be purchased through the Elix Star app on your mobile device.</p>
               </div>

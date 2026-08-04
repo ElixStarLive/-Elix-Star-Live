@@ -85,7 +85,7 @@ export default function AdminWithdrawals() {
   };
 
   return (
-    <div className="min-h-screen bg-[#111113] text-white p-6">
+    <div className="min-h-screen bg-[#121215] text-white p-6">
       <div className="max-w-5xl mx-auto">
         <button
           type="button"
@@ -95,7 +95,7 @@ export default function AdminWithdrawals() {
           ← Admin
         </button>
         <h1 className="text-2xl font-bold mb-2 flex items-center gap-2">
-          <Wallet className="w-7 h-7 text-[#B57CFF]" />
+          <Wallet className="w-7 h-7 text-[#F5F5F7]" />
           Withdrawals
         </h1>
         <p className="text-sm text-white/50 mb-4">
@@ -111,7 +111,7 @@ export default function AdminWithdrawals() {
               onClick={() => setStatus(t)}
               className={`px-3 py-1 rounded-full text-xs font-semibold ${
                 status === t
-                  ? "bg-[#6F2BFF] text-black"
+                  ? "bg-[#FF3B3F] text-black"
                   : "bg-white/10 text-white/70"
               }`}
             >
@@ -149,7 +149,7 @@ export default function AdminWithdrawals() {
                     <p className="text-xs text-white/40">{p.id}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-[#B57CFF] font-bold tabular-nums">
+                    <p className="text-[#F5F5F7] font-bold tabular-nums">
                       {Number(p.coins_amount).toLocaleString()} coins
                     </p>
                     <p className="text-xs text-white/50">

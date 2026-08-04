@@ -249,11 +249,11 @@ export default function AdminProgression() {
     "bg-[#0f1218] border border-white/10 rounded-lg px-3 py-2 text-sm text-white";
 
   return (
-    <div className="min-h-screen bg-[#111113] text-white p-6">
+    <div className="min-h-screen bg-[#121215] text-white p-6">
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Sparkles className="w-7 h-7 text-[#B57CFF]" />
+            <Sparkles className="w-7 h-7 text-[#F5F5F7]" />
             Starter Coins & XP
           </h1>
           <button
@@ -265,8 +265,8 @@ export default function AdminProgression() {
           </button>
         </div>
 
-        <section className="rounded-xl border border-[#6F2BFF]/25 bg-[#6F2BFF]/5 p-4 mb-6 text-sm text-white/70">
-          <p className="font-semibold text-[#B57CFF] mb-1">Engagement Phase 1 + 1.5 (live)</p>
+        <section className="rounded-xl border border-[#E5E5E7]/25 bg-[#FF3B3F]/5 p-4 mb-6 text-sm text-white/70">
+          <p className="font-semibold text-[#F5F5F7] mb-1">Engagement Phase 1 + 1.5 (live)</p>
           <p className="mb-2">
             Migrations through{" "}
             <code className="text-white/50">20260722250000_engagement_admin_and_gifts_mission.sql</code>.
@@ -484,7 +484,7 @@ export default function AdminProgression() {
                   <button
                     type="button"
                     disabled={busy}
-                    className="ml-auto px-3 py-1.5 rounded-lg bg-[#6F2BFF] text-black text-xs font-semibold disabled:opacity-40"
+                    className="ml-auto px-3 py-1.5 rounded-lg bg-[#FF3B3F] text-black text-xs font-semibold disabled:opacity-40"
                     onClick={() => {
                       void (async () => {
                         setBusy(true);
@@ -761,7 +761,7 @@ export default function AdminProgression() {
           <button
             type="button"
             disabled={busy}
-            className="px-3 py-2 rounded-lg bg-[#6F2BFF] text-black text-xs font-semibold disabled:opacity-40"
+            className="px-3 py-2 rounded-lg bg-[#FF3B3F] text-black text-xs font-semibold disabled:opacity-40"
             onClick={() => {
               void (async () => {
                 setBusy(true);
@@ -829,7 +829,7 @@ export default function AdminProgression() {
                   type="button"
                   disabled={busy}
                   onClick={() => void saveConfig(row)}
-                  className="py-2 rounded-lg bg-[#6F2BFF] text-black text-xs font-semibold disabled:opacity-40"
+                  className="py-2 rounded-lg bg-[#FF3B3F] text-black text-xs font-semibold disabled:opacity-40"
                 >
                   Save
                 </button>
@@ -905,7 +905,7 @@ export default function AdminProgression() {
 
         <section className="rounded-xl border border-white/10 p-4">
           <h2 className="font-semibold mb-3 flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-[#B57CFF]" />
+            <ShieldCheck className="w-5 h-5 text-[#F5F5F7]" />
             User audit & abuse correction
           </h2>
           <div className="flex gap-2 mb-4">
@@ -978,7 +978,7 @@ export default function AdminProgression() {
                   type="button"
                   disabled={busy}
                   onClick={() => void adjust("starter")}
-                  className="px-3 rounded-lg bg-[#6F2BFF] text-black text-xs font-semibold disabled:opacity-40"
+                  className="px-3 rounded-lg bg-[#FF3B3F] text-black text-xs font-semibold disabled:opacity-40"
                 >
                   Adjust Starter
                 </button>

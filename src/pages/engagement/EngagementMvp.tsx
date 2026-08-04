@@ -44,7 +44,7 @@ export default function EngagementMvp() {
             onClick={() => setPeriod(id)}
             className={`rounded-full px-3 py-1.5 text-xs font-semibold border ${
               period === id
-                ? "border-[#6F2BFF] bg-[#6F2BFF]/20 text-[#B57CFF]"
+                ? "border-[#E5E5E7] bg-[#FF3B3F]/20 text-[#F5F5F7]"
                 : "border-white/15 text-white/60"
             }`}
           >
@@ -71,11 +71,11 @@ export default function EngagementMvp() {
                 key={`${r.rank}-${r.user_id}`}
                 className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 ${
                   mine
-                    ? "border-[#6F2BFF]/40 bg-[#6F2BFF]/10"
+                    ? "border-[#E5E5E7]/40 bg-[#FF3B3F]/10"
                     : "border-white/10 bg-white/[0.03]"
                 }`}
               >
-                <span className="w-7 text-sm font-bold text-[#B57CFF] tabular-nums">
+                <span className="w-7 text-sm font-bold text-[#F5F5F7] tabular-nums">
                   #{r.rank}
                 </span>
                 <span className="flex-1 text-sm text-white/80 truncate">

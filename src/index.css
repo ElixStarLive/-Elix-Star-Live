@@ -17,49 +17,52 @@
 .new-followers-panel-scroll {
   -ms-overflow-style: auto;
   scrollbar-width: thin;
-  scrollbar-color: rgba(111, 43, 255, 0.45) rgba(111, 43, 255, 0.08);
+  scrollbar-color: rgba(229, 229, 231, 0.45) rgba(229, 229, 231, 0.08);
 }
 .new-followers-panel-scroll::-webkit-scrollbar {
   display: block;
   width: 6px;
 }
 .new-followers-panel-scroll::-webkit-scrollbar-track {
-  background: rgba(111, 43, 255, 0.08);
+  background: rgba(229, 229, 231, 0.08);
   border-radius: 3px;
 }
 .new-followers-panel-scroll::-webkit-scrollbar-thumb {
-  background: rgba(111, 43, 255, 0.45);
+  background: rgba(229, 229, 231, 0.45);
   border-radius: 3px;
 }
 .new-followers-panel-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(111, 43, 255, 0.65);
+  background: rgba(229, 229, 231, 0.65);
 }
 
 @layer base {
   :root {
-    /* Neon Purple */
-    --color-primary: #6F2BFF;
-    --color-secondary: #4F7BFF;
-    --color-gold: #6F2BFF;
-    --color-gold-bright: #B57CFF;
-    --color-gold-light: #B57CFF;
-    --color-gold-dark: #B000FF;
-    --color-gold-premium: #B57CFF;
-    --color-rose: #FF4FA3;
-    --color-purple-bright: #8B3DFF;
+    /* Black + Silver + Red */
+    --color-primary: #FF3B3F;
+    --color-secondary: #E5E5E7;
+    --color-gold: #E5E5E7;
+    --color-gold-bright: #F5F5F7;
+    --color-gold-light: #C9CCD1;
+    --color-gold-dark: #8B9098;
+    --color-gold-premium: #F5F5F7;
+    --color-rose: #FF3B3F;
+    --color-purple-bright: #E5E5E7;
     --color-coin: #D9A62E;
-    --color-background: #09090B;
-    --color-surface: #111113;
-    --color-card: #18181B;
-    --color-card-elevated: #202024;
-    --color-border: #2A2A30;
-    --color-text: #F8F8FA;
-    --color-text-muted: #9CA3AF;
-    --color-text-disabled: #5B616E;
-    --color-live: #FF3B5C;
+    --color-hover-red: #FF5A5F;
+    --color-deep-red: #D91F2D;
+    --color-dark-red: #B3131B;
+    --color-background: #0A0A0D;
+    --color-surface: #121215;
+    --color-card: #1A1A1F;
+    --color-card-elevated: #1F1F26;
+    --color-border: #2A2A31;
+    --color-text: #FFFFFF;
+    --color-text-muted: #A7A7AD;
+    --color-text-disabled: #707070;
+    --color-live: #FF3B3F;
     --color-success: #22C55E;
-    --color-accent-blue: #4F7BFF;
-    --color-accent-blue-light: #6AA9FF;
+    --color-accent-blue: #C9CCD1;
+    --color-accent-blue-light: #E5E5E7;
     --color-glass-bg: rgba(255, 255, 255, 0.04);
     --color-glass-border: rgba(255, 255, 255, 0.08);
     --shadow-luxury: 0 12px 40px rgba(0, 0, 0, 0.45);
@@ -582,11 +585,11 @@ video::-webkit-media-controls-overlay-enclosure,
    Uses box-shadow + border-color only (never size), so it never shifts layout. */
 @keyframes elix-speaking-pulse {
   0%, 100% {
-    box-shadow: 0 0 0 0 rgba(111, 43, 255, 0);
-    border-color: rgba(111, 43, 255, 0.55);
+    box-shadow: 0 0 0 0 rgba(229, 229, 231, 0);
+    border-color: rgba(229, 229, 231, 0.55);
   }
   50% {
-    box-shadow: 0 0 14px 3px rgba(111, 43, 255, 0.95), 0 0 22px 6px rgba(255, 215, 120, 0.45);
+    box-shadow: 0 0 14px 3px rgba(229, 229, 231, 0.95), 0 0 22px 6px rgba(255, 215, 120, 0.45);
     border-color: rgba(255, 230, 150, 1);
   }
 }
@@ -919,26 +922,26 @@ video::-webkit-media-controls-overlay-enclosure,
 }
 
 .text-gold-metallic {
-  background: linear-gradient(145deg, #8B3DFF 0%, #6F2BFF 35%, #6F2BFF 65%, #B57CFF 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
+  background: none;
+  -webkit-background-clip: unset;
+  background-clip: unset;
+  -webkit-text-fill-color: #FFFFFF;
+  color: #FFFFFF;
 }
 
 .stroke-gold-metallic {
-  color: #B57CFF;
-  filter: drop-shadow(0 0 6px rgba(201, 162, 39, 0.45));
+  color: #E5E5E7;
+  filter: drop-shadow(0 0 6px rgba(229, 229, 231, 0.35));
 }
 
 .border-gold-metallic {
-  border-color: rgba(201, 162, 39, 0.55);
-  box-shadow: 0 0 12px rgba(201, 162, 39, 0.2);
+  border-color: rgba(229, 229, 231, 0.55);
+  box-shadow: 0 0 12px rgba(229, 229, 231, 0.2);
 }
 
 /*
  * Unified icon halo (app-wide):
- * soft Elix Gold glow disc — effect only, NO solid ring/border.
+ * soft silver glow disc — effect only, NO solid ring/border.
  */
 .royce-glow-disc,
 .royce-tile {
@@ -952,37 +955,37 @@ video::-webkit-media-controls-overlay-enclosure,
   background:
     radial-gradient(
       circle at center,
-      rgba(111, 43, 255, 0.28) 0%,
+      rgba(229, 229, 231, 0.28) 0%,
       rgba(17, 17, 17, 0.72) 52%,
       rgba(0, 0, 0, 0.2) 78%,
       transparent 100%
     );
   box-shadow:
-    0 0 10px 2px rgba(111, 43, 255, 0.42),
-    0 0 22px 5px rgba(111, 43, 255, 0.18);
+    0 0 10px 2px rgba(229, 229, 231, 0.42),
+    0 0 22px 5px rgba(229, 229, 231, 0.18);
 }
 
-/* Soft gold glow on user avatar circles — same light as close / royce-glow-disc. */
+/* Soft silver glow on user avatar circles — same light as close / royce-glow-disc. */
 .royce-avatar-glow {
   border-radius: 9999px;
   box-shadow:
-    0 0 10px 2px rgba(111, 43, 255, 0.42),
-    0 0 22px 5px rgba(111, 43, 255, 0.18);
+    0 0 10px 2px rgba(229, 229, 231, 0.42),
+    0 0 22px 5px rgba(229, 229, 231, 0.18);
 }
 
 /*
- * Unified icon design (app-wide) — Elix Gold theme:
- * thin gold line icons + soft glow (readable on black video).
- * Chart: Profile/Wallet/Setting #6F2BFF
+ * Unified icon design (app-wide) — black + silver + red:
+ * thin silver line icons + soft glow (readable on black video).
+ * Active silver #E5E5E7 · Active red #FF3B3F · Inactive #707070
  */
 svg.lucide {
-  color: #B57CFF !important;
+  color: #E5E5E7 !important;
   stroke: currentColor !important;
   stroke-width: 2;
   fill: none !important;
   filter:
-    drop-shadow(0 0 3px rgba(111, 43, 255, 0.75))
-    drop-shadow(0 0 8px rgba(111, 43, 255, 0.35));
+    drop-shadow(0 0 3px rgba(229, 229, 231, 0.55))
+    drop-shadow(0 0 8px rgba(229, 229, 231, 0.25));
 }
 
 /* Active filled states (save, badge hearts, etc.) */
@@ -995,21 +998,27 @@ svg.lucide[fill]:not([fill="none"]):not(.fill-red-500) {
 /* Liked heart — keep red as status, not style drift */
 svg.lucide.fill-red-500,
 svg.lucide.text-red-500 {
-  color: #ef4444 !important;
+  color: #FF3B3F !important;
   fill: currentColor !important;
   stroke: currentColor !important;
   filter:
-    drop-shadow(0 0 3px rgba(239, 68, 68, 0.55))
-    drop-shadow(0 0 8px rgba(239, 68, 68, 0.25));
+    drop-shadow(0 0 3px rgba(255, 59, 63, 0.55))
+    drop-shadow(0 0 8px rgba(255, 59, 63, 0.25));
 }
 
 .royce-icon-gold,
 .bottom-nav-icon,
-.royce-icon-muted,
 .stroke-gold-metallic {
-  color: #B57CFF !important;
+  color: #E5E5E7 !important;
   stroke: currentColor;
   fill: none;
+}
+
+.royce-icon-muted {
+  color: #707070 !important;
+  stroke: currentColor;
+  fill: none;
+  filter: none;
 }
 
 .royce-icon-gold.fill-current,

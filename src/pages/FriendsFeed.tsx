@@ -287,11 +287,11 @@ export default function FriendsFeed() {
   }, []);
 
   return (
-    <div className="h-full min-h-0 w-full flex justify-center bg-[#111113]">
+    <div className="h-full min-h-0 w-full flex justify-center bg-[#121215]">
       <div className="w-full max-w-[480px] h-full min-h-0 flex flex-col overflow-hidden mx-auto relative">
         {/* Friends chrome — room for icon glow; close stays inside column */}
         <div
-          className="flex-shrink-0 bg-[#111113] z-20 overflow-visible"
+          className="flex-shrink-0 bg-[#121215] z-20 overflow-visible"
           style={{ paddingTop: 'max(8px, env(safe-area-inset-top, 0px))' }}
         >
           <div className="px-4 h-11 flex items-center justify-between relative overflow-visible">
@@ -354,7 +354,7 @@ export default function FriendsFeed() {
                         goUploadStory();
                       }
                     }}
-                    className="absolute bottom-0 right-0 w-4 h-4 rounded-full bg-[#6F2BFF] border-2 border-black flex items-center justify-center z-10"
+                    className="absolute bottom-0 right-0 w-4 h-4 rounded-full bg-[#FF3B3F] border-2 border-black flex items-center justify-center z-10"
                   >
                     <Plus size={9} className="text-black" strokeWidth={3} />
                   </span>
@@ -447,7 +447,7 @@ export default function FriendsFeed() {
 
             {loading && feedLen === 0 && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="w-8 h-8 border-2 border-[#6F2BFF] border-t-transparent rounded-full animate-spin" />
+                <div className="w-8 h-8 border-2 border-[#E5E5E7] border-t-transparent rounded-full animate-spin" />
               </div>
             )}
 
@@ -458,7 +458,7 @@ export default function FriendsFeed() {
                 <button
                   type="button"
                   onClick={goUploadStory}
-                  className="px-5 py-2 bg-[#6F2BFF] text-black rounded-full text-sm font-bold mb-3"
+                  className="px-5 py-2 bg-[#FF3B3F] text-black rounded-full text-sm font-bold mb-3"
                 >
                   Add story
                 </button>

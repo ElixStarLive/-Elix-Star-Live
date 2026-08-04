@@ -88,7 +88,7 @@ export default function EngagementMissions() {
                     type="button"
                     disabled={claiming === m.id}
                     onClick={() => void claim(m.id)}
-                    className="shrink-0 rounded-lg bg-[#6F2BFF]/25 border border-[#6F2BFF]/50 px-2.5 py-1 text-[11px] font-bold text-[#B57CFF]"
+                    className="shrink-0 rounded-lg bg-[#FF3B3F]/25 border border-[#E5E5E7]/50 px-2.5 py-1 text-[11px] font-bold text-[#F5F5F7]"
                   >
                     Claim
                   </button>
@@ -98,7 +98,7 @@ export default function EngagementMissions() {
               </div>
               <div className="h-1.5 rounded-full bg-white/10 overflow-hidden mb-1.5">
                 <div
-                  className="h-full rounded-full bg-[#6F2BFF]"
+                  className="h-full rounded-full bg-[#FF3B3F]"
                   style={{ width: `${pct}%` }}
                 />
               </div>

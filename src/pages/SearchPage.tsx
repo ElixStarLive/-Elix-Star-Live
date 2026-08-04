@@ -220,7 +220,7 @@ export default function SearchPage() {
           >
             <div className="w-[26px]" />
             <div className="flex-1 flex justify-center">
-              <div className="w-8 h-[2px] rounded-full bg-[#6F2BFF]/30" />
+              <div className="w-8 h-[2px] rounded-full bg-[#FF3B3F]/30" />
             </div>
             <button type="button" onClick={closePanel} className="p-1" title="Back">
               <RoyceBackIcon />
@@ -234,17 +234,17 @@ export default function SearchPage() {
                 <input 
                   type="text" 
                   placeholder="Search" 
-                  className="w-full bg-[#111113] text-gold-metallic placeholder-[#FFFFFF]/40 rounded-full py-0.5 pl-9 pr-9 text-sm focus:outline-none border border-white/15 focus:border-white/40"
+                  className="w-full bg-[#121215] text-gold-metallic placeholder-[#FFFFFF]/40 rounded-full py-0.5 pl-9 pr-9 text-sm focus:outline-none border border-white/15 focus:border-white/40"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   autoFocus
                 />
-                <SearchIcon size={10} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#B57CFF]" />
+                <SearchIcon size={10} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#F5F5F7]" />
                 {query && (
                   <button 
                     type="button" 
                     onClick={clearQuery}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#B57CFF]/60"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#F5F5F7]/60"
                   >
                     <X size={10} />
                   </button>
@@ -264,7 +264,7 @@ export default function SearchPage() {
                       key={cat}
                       type="button"
                       onClick={() => selectCategory(cat)}
-                      className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap border transition-colors ${activeCategory === cat ? 'bg-[#6F2BFF]/20 border-[#6F2BFF] text-[#B57CFF]' : 'bg-[#111113] border-white/15 text-white/60'}`}
+                      className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap border transition-colors ${activeCategory === cat ? 'bg-[#FF3B3F]/20 border-[#E5E5E7] text-[#F5F5F7]' : 'bg-[#121215] border-white/15 text-white/60'}`}
                     >
                       {cat}
                     </button>
@@ -277,7 +277,7 @@ export default function SearchPage() {
               </>
             ) : (
               <div className="space-y-4 px-4 pb-4">
-                {searching && <div className="text-xs text-[#B57CFF]/60 text-center py-3">Searching...</div>}
+                {searching && <div className="text-xs text-[#F5F5F7]/60 text-center py-3">Searching...</div>}
 
                 {matchedUsers.length > 0 && (
                   <div>
@@ -315,7 +315,7 @@ export default function SearchPage() {
                           <video
                             src={resolveVideoPlaybackUrl(v.url) || undefined}
                             poster={resolveGridThumbnailUrl(v.thumbnail, v.url) || undefined}
-                            className="w-16 h-22 rounded-lg object-cover bg-[#111113] border border-[#6F2BFF]/20"
+                            className="w-16 h-22 rounded-lg object-cover bg-[#121215] border border-[#E5E5E7]/20"
                             muted
                             playsInline
                             preload="auto"
@@ -355,7 +355,7 @@ export default function SearchPage() {
                           />
                           <div className="text-left flex-1">
                             <div className="text-xs font-semibold line-clamp-2">{v.description}</div>
-                            <div className="text-[10px] text-[#B57CFF] mt-1">@{v.username}</div>
+                            <div className="text-[10px] text-[#F5F5F7] mt-1">@{v.username}</div>
                             <div className="text-[10px] text-white/40 mt-1 line-clamp-1">
                               {v.hashtags.map((h: string) => `#${h}`).join(' ')}
                             </div>
