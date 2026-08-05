@@ -1,0 +1,44 @@
+{
+  "label": "SANDBOX_TEST_EVIDENCE_NOT_LIVE_MONEY",
+  "generated_at": "2026-08-05T14:16:50.640Z",
+  "deployed_commit": "5ad807aea95050c34fc64204b7c719609c2f3139",
+  "contains_monetisation_commit_c6f49ff": true,
+  "test_database": "elix_money_it",
+  "production_neondb_mutated_for_this_evidence": false,
+  "stripe_mode_policy": "sk_test_only — live key present in local env; transfer/webhook SKIPPED",
+  "stripe_test_transfer_id": null,
+  "stripe_webhook_event_id": null,
+  "final_payout_status": "processing (simulated provider ref; NOT Stripe-confirmed paid)",
+  "test_financial_report_reference": "sfr_c5447daa-c597-46e8-a089-c7bf886e67b6",
+  "store_transaction_reference": "TEST_TXN_12d848e4-51dc-4b0b-9a4a-debd2b19b02b",
+  "paid_coin_lot_id": "lot_4ebeac6f-f97e-4a9a-9f7b-caadeca25202",
+  "gift_transaction_id": "gift_42f68388-4404-450f-9874-62c68d2ca463",
+  "creator_ledger_id": "led_gift_4fe2d77a-7cfe-46c9-baea-3240a886da2c",
+  "platform_share_pence": 120,
+  "creator_share_pence": 180,
+  "creator_wallet_before": {
+    "pending": 0,
+    "available": 0,
+    "held": 0,
+    "withdrawn": 0
+  },
+  "creator_wallet_after": {
+    "pending": 0,
+    "available": 0,
+    "held": 180,
+    "withdrawn": 0
+  },
+  "gbp_withdrawal_id": "wdgbp_81a13856-9ffc-400d-bcd1-6b5ba4537e53",
+  "reconciliation_result": {
+    "note": "Reconciliation runner requires app getPool; sibling SQL evidence recorded instead",
+    "duplicate_import_rejected": true,
+    "unmatched_lines": 1,
+    "commission_invented": false,
+    "commission_from_csv_pence": 300
+  },
+  "notes": [
+    "CSV used official Apple-like columns but is labelled TEST_EVIDENCE_NOT_PRODUCTION_APPLE",
+    "No 15%/30% commission invented — commission derived from Customer Price - Developer Proceeds",
+    "Stripe Connect paid confirmation not executed because only sk_live_ is configured locally"
+  ]
+}
