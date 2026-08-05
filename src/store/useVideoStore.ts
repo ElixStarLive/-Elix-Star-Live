@@ -228,9 +228,13 @@ interface VideoStore {
   loading: boolean;
   friendsLoading: boolean;
   stemLoading: boolean;
+  /** For You pagination — backend hasMore from GET /api/feed/foryou */
+  forYouPage: number;
+  forYouHasMore: boolean;
   
   // Video actions
   fetchVideos: () => Promise<void>;
+  fetchMoreForYou: () => Promise<void>;
   fetchFriendVideos: () => Promise<void>;
   fetchStemVideos: () => Promise<void>;
   /** Load a single video from API when missing from store (deep link / shared /video/:id). Returns true if loaded. */
@@ -280,6 +284,8 @@ export const useVideoStore = create<VideoStore>()(
       loading: false,
       friendsLoading: false,
       stemLoading: false,
+      forYouPage: 1,
+      forYouHasMore: false,
 
       getVideoById: (videoId: string) => {
         const { friendVideos, videos, stemVideos } = get();
@@ -360,11 +366,13 @@ export const useVideoStore = create<VideoStore>()(
 
           const mappedVideos: Video[] = sourceVideos.map(toClientVideo);
 
-          /* For You = /api/feed/foryou (all public videos). Do not merge friends-only here. */
+          /* For You = /api/feed/foryou (ranked stages). Do not merge friends-only here. */
           set({
             videos: mappedVideos,
             mutualFollowIds: mutualFromApi,
             loading: false,
+            forYouPage: 1,
+            forYouHasMore: Boolean(pageJson?.hasMore),
           });
         } catch {
           set({ loading: false });
@@ -374,6 +382,39 @@ export const useVideoStore = create<VideoStore>()(
         };
         _feedFetchPromise = doFetch().finally(() => { _feedFetchPromise = null; });
         return _feedFetchPromise;
+      },
+
+      fetchMoreForYou: async () => {
+        const { forYouHasMore, forYouPage, loading, videos } = get();
+        if (!forYouHasMore || loading) return;
+        const nextPage = forYouPage + 1;
+        set({ loading: true });
+        try {
+          const pageJson = await withRetry(() => apiFetchForYouFeed(nextPage, 50));
+          const apiVideos = Array.isArray(pageJson?.videos) ? pageJson.videos : [];
+          const { likedVideos, savedVideos, followingUsers } = get();
+          const likedSet = new Set(likedVideos);
+          const savedSet = new Set(savedVideos);
+          const followingSet = new Set(followingUsers);
+          const existing = new Set(videos.map((v) => v.id));
+          const mapped = apiVideos
+            .filter((raw) => {
+              const row = raw as { id?: string; url?: string; video_url?: string };
+              const id = String(row.id || '');
+              if (!id || existing.has(id)) return false;
+              const url = String(row.url || row.video_url || '');
+              return !url.includes('/stories/');
+            })
+            .map((v) => mapRawVideoRowToClientVideo(v, likedSet, savedSet, followingSet));
+          set({
+            videos: [...videos, ...mapped],
+            forYouPage: nextPage,
+            forYouHasMore: Boolean(pageJson?.hasMore),
+            loading: false,
+          });
+        } catch {
+          set({ loading: false });
+        }
       },
 
       fetchStemVideos: async () => {

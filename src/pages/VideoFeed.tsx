@@ -114,7 +114,17 @@ export default function VideoFeed() {
   const session = useAuthStore((s) => s.session);
   const token = session?.access_token || "";
 
-  const { videos, fetchVideos, loading: videosLoading } = useVideoStore();
+  const { videos, fetchVideos, fetchMoreForYou, forYouHasMore, loading: videosLoading } = useVideoStore();
+
+  /* Prefetch next For You page before the user reaches the end (live cards prepend). */
+  useEffect(() => {
+    if (!forYouHasMore || videosLoading) return;
+    const liveCount = liveStreams.length;
+    const vodIndex = activeIndex - liveCount;
+    if (vodIndex >= videos.length - 5) {
+      void fetchMoreForYou();
+    }
+  }, [activeIndex, videos.length, liveStreams.length, forYouHasMore, videosLoading, fetchMoreForYou]);
 
   /* ---- Remove a live stream instantly ---- */
   const removeLiveStream = useCallback((streamKey: string) => {

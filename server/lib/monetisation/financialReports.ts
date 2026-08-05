@@ -6,6 +6,7 @@ import { createHash, randomUUID } from "crypto";
 import { getPool } from "../postgres";
 import { logger } from "../logger";
 import { applyVerifiedProceedsAdjustment } from "./storeSettlement";
+import { postPromotePlatformRevenue } from "./settlements";
 import { gbpStringToPence } from "./moneyMath";
 
 export type ParsedReportLine = {
@@ -216,6 +217,7 @@ export async function importStoreFinancialReport(input: {
     for (const line of parsed) {
       let matchStatus: "unmatched" | "matched" = "unmatched";
       let matchedPurchaseId: string | null = null;
+      let matchKind: "coin_lot" | "membership" | "promote" | null = null;
       if (line.externalTransactionId) {
         const purch = await client.query(
           `SELECT provider_transaction_id FROM elix_paid_coin_lots
@@ -224,20 +226,35 @@ export async function importStoreFinancialReport(input: {
         ).catch(() => ({ rowCount: 0, rows: [] as { provider_transaction_id: string }[] }));
         if (purch.rowCount) {
           matchStatus = "matched";
+          matchKind = "coin_lot";
           matchedPurchaseId = String(purch.rows[0].provider_transaction_id);
           matched += 1;
         } else {
           const memb = await client.query(
             `SELECT latest_order_id FROM elix_membership_purchases
-              WHERE latest_order_id = $1 OR purchase_token_hash = $1 LIMIT 1`,
+              WHERE latest_order_id = $1 OR purchase_token_hash = $1
+                 OR provider_transaction_id = $1 LIMIT 1`,
             [line.externalTransactionId],
           ).catch(() => ({ rowCount: 0, rows: [] as { latest_order_id: string }[] }));
           if (memb.rowCount) {
             matchStatus = "matched";
+            matchKind = "membership";
             matchedPurchaseId = String(memb.rows[0].latest_order_id || line.externalTransactionId);
             matched += 1;
           } else {
-            unmatched += 1;
+            const promo = await client.query(
+              `SELECT provider_transaction_id FROM elix_promote_purchases
+                WHERE provider_transaction_id = $1 LIMIT 1`,
+              [line.externalTransactionId],
+            ).catch(() => ({ rowCount: 0, rows: [] as { provider_transaction_id: string }[] }));
+            if (promo.rowCount) {
+              matchStatus = "matched";
+              matchKind = "promote";
+              matchedPurchaseId = String(promo.rows[0].provider_transaction_id);
+              matched += 1;
+            } else {
+              unmatched += 1;
+            }
           }
         }
       } else {
@@ -263,7 +280,7 @@ export async function importStoreFinancialReport(input: {
           line.quantity,
           matchedPurchaseId,
           matchStatus,
-          JSON.stringify(line.raw),
+          JSON.stringify({ ...line.raw, matchKind }),
         ],
       );
     }
@@ -301,6 +318,38 @@ export async function importStoreFinancialReport(input: {
       });
     } catch (err) {
       logger.warn({ err, ext: line.externalTransactionId }, "proceeds adjustment skipped");
+    }
+    // Promote purchases: 100% platform — post/adjust ledger when report matches promote txn
+    try {
+      const pool2 = getPool();
+      if (!pool2) continue;
+      const promo = await pool2.query(
+        `SELECT id, user_id, content_type, content_id, amount_gbp, gross_pence, provider_transaction_id
+           FROM elix_promote_purchases WHERE provider_transaction_id = $1 LIMIT 1`,
+        [line.externalTransactionId],
+      );
+      if (!promo.rowCount) continue;
+      const row = promo.rows[0];
+      const gross =
+        row.gross_pence != null
+          ? Math.floor(Number(row.gross_pence))
+          : Math.max(
+              line.grossPence,
+              Math.round(Number(row.amount_gbp || 0) * 100),
+            );
+      await postPromotePlatformRevenue({
+        promotionId: String(row.id || line.externalTransactionId),
+        userId: String(row.user_id),
+        videoId: row.content_type === "video" ? String(row.content_id || "") : undefined,
+        providerTransactionId: String(row.provider_transaction_id),
+        grossPence: gross,
+        appStoreDeductionPence: line.commissionPence,
+        taxDeductionPence: line.taxPence,
+        processingDeductionPence: 0,
+        netPence: line.netProceedsPence,
+      });
+    } catch (err) {
+      logger.warn({ err, ext: line.externalTransactionId }, "promote settle from report skipped");
     }
   }
 

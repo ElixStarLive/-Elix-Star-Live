@@ -1,41 +1,19 @@
 /**
- * FYP Eligibility Engine — Hetzner backend.
+ * Legacy client FYP score helpers — DEPRECATED for For You ranking.
  *
- * Calculates an engagement score for a video and decides whether it
- * should appear on the For You Page.
- *
- * Score formula:
- *   watch_time × 2  +  likes × 5  +  comments × 6  +  shares × 8
- *   + completions × 10  +  views × 1
- *
- * Threshold:
- *   A video becomes FYP-eligible when its score ≥ FYP_THRESHOLD.
- *   New uploads start with a small "new-video boost" so they get
- *   initial impressions before organic engagement kicks in.
- *
- * Persistence via PATCH /api/videos/:id/fyp on the Node backend.
+ * For You visibility and ranking are backend-owned
+ * (`elix_video_foryou_state` + GET /api/feed/foryou). Clients must not
+ * decide eligibility. These helpers remain as no-ops so call sites compile
+ * without hitting the broken PATCH /api/videos/:id/fyp path.
  */
 
-import { request } from "./apiClient";
-
-// ── Weights ──────────────────────────────────────────────────────────────────
-
-const WEIGHT_WATCH_TIME = 2;
-const WEIGHT_LIKE = 5;
-const WEIGHT_COMMENT = 6;
-const WEIGHT_SHARE = 8;
-const WEIGHT_COMPLETION = 10;
-const WEIGHT_VIEW = 1;
-
-/** Score a video must reach before the algorithm shows it on FYP. */
+/** @deprecated Score is not used for For You ranking. */
 export const FYP_THRESHOLD = 50;
 
-/** Boost given to every newly-uploaded video so it gets initial exposure. */
+/** @deprecated Boost is handled by enrollVideoInForYou on upload. */
 export const NEW_VIDEO_BOOST = 50;
 
-// ── Pure helpers ─────────────────────────────────────────────────────────────
-
-/** Calculate raw engagement score from video stats. */
+/** @deprecated Pure helper kept for any unit tests that still import it. */
 export function calculateEngagementScore(stats: {
   likes: number;
   comments: number;
@@ -45,54 +23,26 @@ export function calculateEngagementScore(stats: {
   completions?: number;
 }): number {
   return (
-    (stats.watch_time ?? 0) * WEIGHT_WATCH_TIME +
-    stats.likes * WEIGHT_LIKE +
-    stats.comments * WEIGHT_COMMENT +
-    stats.shares * WEIGHT_SHARE +
-    (stats.completions ?? 0) * WEIGHT_COMPLETION +
-    stats.views * WEIGHT_VIEW
+    (stats.watch_time ?? 0) * 2 +
+    stats.likes * 5 +
+    stats.comments * 6 +
+    stats.shares * 8 +
+    (stats.completions ?? 0) * 10 +
+    stats.views * 1
   );
 }
 
-/** Return true when a score qualifies for the For You Page. */
+/** @deprecated For You does not use client eligibility. */
 export function isEligibleForFyp(score: number): boolean {
   return score >= FYP_THRESHOLD;
 }
 
-// ── Backend helpers ───────────────────────────────────────────────────────────
-
 /**
- * PATCH /api/videos/:id/fyp
- * Internal helper — sends an FYP status update to the Hetzner backend.
- */
-async function patchVideoFyp(
-  videoId: string,
-  body: Record<string, unknown>,
-): Promise<void> {
-  const { error } = await request(`/api/videos/${videoId}/fyp`, {
-    method: "PATCH",
-    body: JSON.stringify(body),
-  });
-
-  if (error) {
-    console.warn(
-      `[FYP] PATCH /api/videos/${videoId}/fyp failed:`,
-      error.message,
-    );
-  }
-}
-
-// ── Public API ────────────────────────────────────────────────────────────────
-
-/**
- * Recalculate engagement_score + is_eligible_for_fyp for a single video
- * and persist the result to the Hetzner backend.
- *
- * Safe to call frequently — single PATCH request.
+ * No-op — For You ranking is server-owned. Do not PATCH /api/videos/:id/fyp.
  */
 export async function refreshVideoFypStatus(
-  videoId: string,
-  stats: {
+  _videoId: string,
+  _stats: {
     likes: number;
     comments: number;
     shares: number;
@@ -101,25 +51,12 @@ export async function refreshVideoFypStatus(
     completions?: number;
   },
 ): Promise<void> {
-  const score = calculateEngagementScore(stats);
-  const eligible = isEligibleForFyp(score);
-
-  await patchVideoFyp(videoId, {
-    engagementScore: score,
-    isEligibleForFyp: eligible,
-  });
+  /* intentionally empty */
 }
 
 /**
- * Give a freshly-uploaded video an initial engagement boost so it starts
- * appearing in FYP feeds right away before organic engagement accumulates.
- *
- * Called automatically by VideoUploadService after a successful upload.
+ * No-op — enrollment happens in postgres save → enrollVideoInForYou.
  */
-export async function boostNewVideo(videoId: string): Promise<void> {
-  await patchVideoFyp(videoId, {
-    engagementScore: NEW_VIDEO_BOOST,
-    isEligibleForFyp: NEW_VIDEO_BOOST >= FYP_THRESHOLD,
-    boost: true,
-  });
+export async function boostNewVideo(_videoId: string): Promise<void> {
+  /* intentionally empty */
 }

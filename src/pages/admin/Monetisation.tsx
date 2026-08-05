@@ -38,6 +38,13 @@ export default function AdminMonetisation() {
   const [manualNote, setManualNote] = useState('');
   const [fraudReviews, setFraudReviews] = useState<Record<string, unknown>[]>([]);
   const [foryouCfg, setForyouCfg] = useState<Record<string, unknown> | null>(null);
+  const [settleTxn, setSettleTxn] = useState('');
+  const [settleDeduction, setSettleDeduction] = useState('0');
+  const [settleNet, setSettleNet] = useState('');
+  const [settleKind, setSettleKind] = useState<'coin-lot' | 'promote' | 'reverse'>('coin-lot');
+  const [reverseKind, setReverseKind] = useState<'REFUND_REVERSAL' | 'CHARGEBACK_REVERSAL'>(
+    'REFUND_REVERSAL',
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -223,6 +230,58 @@ export default function AdminMonetisation() {
     }
   };
 
+  const runManualSettlement = async () => {
+    const txn = settleTxn.trim();
+    if (!txn) {
+      showToast('Provider transaction id required');
+      return;
+    }
+    const deduction = Math.max(0, Math.floor(Number(settleDeduction) || 0));
+    const netRaw = settleNet.trim();
+    const netPence = netRaw === '' ? undefined : Math.max(0, Math.floor(Number(netRaw) || 0));
+    try {
+      if (settleKind === 'reverse') {
+        const { error } = await request('/api/admin/monetisation/settlements/reverse', {
+          method: 'POST',
+          body: JSON.stringify({
+            externalTransactionId: txn,
+            kind: reverseKind,
+            webhookEventId: `admin_manual_${Date.now()}`,
+          }),
+        });
+        if (error) throw new Error(error.message);
+        showToast('Reversal posted');
+      } else if (settleKind === 'promote') {
+        const { error } = await request('/api/admin/monetisation/settlements/promote', {
+          method: 'POST',
+          body: JSON.stringify({
+            providerTransactionId: txn,
+            appStoreDeductionPence: deduction,
+            netPence,
+          }),
+        });
+        if (error) throw new Error(error.message);
+        showToast('Promote settled');
+      } else {
+        const { error } = await request('/api/admin/monetisation/settlements/coin-lot', {
+          method: 'POST',
+          body: JSON.stringify({
+            provider: csvStore,
+            providerTransactionId: txn,
+            appStoreDeductionPence: deduction,
+            netPence,
+          }),
+        });
+        if (error) throw new Error(error.message);
+        showToast('Coin lot settled');
+      }
+      setSettleTxn('');
+      await load();
+    } catch {
+      showToast('Settlement action failed');
+    }
+  };
+
   if (loading || !cfg) {
     return (
       <div className="min-h-screen bg-[#121215] flex items-center justify-center text-white">
@@ -363,6 +422,7 @@ export default function AdminMonetisation() {
           <h2 className="text-xl font-bold">Financial report import</h2>
           <p className="text-xs text-white/50">
             Paste official Apple / Google earnings CSV. Commission is never invented — see docs/STORE_FINANCIAL_SETTLEMENT.md.
+            Matches coin lots, memberships, and promote purchases.
           </p>
           <select
             className="bg-black/40 border border-white/10 rounded px-2 py-1 text-sm"
@@ -384,6 +444,67 @@ export default function AdminMonetisation() {
             className="px-3 py-2 rounded-lg bg-[#FF3B3F] text-black text-sm font-bold"
           >
             Import report
+          </button>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-xl font-bold">Manual settlements</h2>
+          <p className="text-xs text-white/50">
+            Use when CSV import cannot match a line. Enter verified store deductions only — never invent commission.
+          </p>
+          <div className="flex flex-wrap gap-2 text-sm">
+            <select
+              className="bg-black/40 border border-white/10 rounded px-2 py-1"
+              value={settleKind}
+              onChange={(e) =>
+                setSettleKind(e.target.value as 'coin-lot' | 'promote' | 'reverse')
+              }
+            >
+              <option value="coin-lot">Settle coin lot</option>
+              <option value="promote">Settle promote (100% platform)</option>
+              <option value="reverse">Refund / chargeback reverse</option>
+            </select>
+            {settleKind === 'reverse' ? (
+              <select
+                className="bg-black/40 border border-white/10 rounded px-2 py-1"
+                value={reverseKind}
+                onChange={(e) =>
+                  setReverseKind(e.target.value as 'REFUND_REVERSAL' | 'CHARGEBACK_REVERSAL')
+                }
+              >
+                <option value="REFUND_REVERSAL">Refund</option>
+                <option value="CHARGEBACK_REVERSAL">Chargeback</option>
+              </select>
+            ) : null}
+          </div>
+          <input
+            className="w-full bg-black/40 border border-white/10 rounded px-2 py-1.5 text-xs font-mono"
+            placeholder="Provider transaction id"
+            value={settleTxn}
+            onChange={(e) => setSettleTxn(e.target.value)}
+          />
+          {settleKind !== 'reverse' ? (
+            <div className="grid md:grid-cols-2 gap-2 text-sm">
+              <input
+                className="bg-black/40 border border-white/10 rounded px-2 py-1.5 text-xs"
+                placeholder="App store deduction (pence)"
+                value={settleDeduction}
+                onChange={(e) => setSettleDeduction(e.target.value)}
+              />
+              <input
+                className="bg-black/40 border border-white/10 rounded px-2 py-1.5 text-xs"
+                placeholder="Net proceeds (pence, optional)"
+                value={settleNet}
+                onChange={(e) => setSettleNet(e.target.value)}
+              />
+            </div>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => void runManualSettlement()}
+            className="px-3 py-2 rounded-lg bg-[#FF3B3F] text-black text-sm font-bold"
+          >
+            Submit settlement
           </button>
         </section>
 
@@ -485,6 +606,41 @@ export default function AdminMonetisation() {
                 label="Fraud sensitivity 0-100"
                 value={Number(foryouCfg.fraudSensitivity) || 0}
                 onSave={(v) => void patchForYou('fraudSensitivity', Number(v))}
+              />
+              <Field
+                label="Weight: qualified views"
+                value={Number((foryouCfg.weights as Record<string, number> | undefined)?.qualifiedViews) || 0}
+                onSave={(v) => void patchForYou('weightQualifiedViews', Number(v))}
+              />
+              <Field
+                label="Weight: watch time"
+                value={Number((foryouCfg.weights as Record<string, number> | undefined)?.watchTime) || 0}
+                onSave={(v) => void patchForYou('weightWatchTime', Number(v))}
+              />
+              <Field
+                label="Weight: completion"
+                value={Number((foryouCfg.weights as Record<string, number> | undefined)?.completion) || 0}
+                onSave={(v) => void patchForYou('weightCompletion', Number(v))}
+              />
+              <Field
+                label="Weight: likes"
+                value={Number((foryouCfg.weights as Record<string, number> | undefined)?.likes) || 0}
+                onSave={(v) => void patchForYou('weightLikes', Number(v))}
+              />
+              <Field
+                label="Weight: shares"
+                value={Number((foryouCfg.weights as Record<string, number> | undefined)?.shares) || 0}
+                onSave={(v) => void patchForYou('weightShares', Number(v))}
+              />
+              <Field
+                label="Weight: freshness"
+                value={Number((foryouCfg.weights as Record<string, number> | undefined)?.freshness) || 0}
+                onSave={(v) => void patchForYou('weightFreshness', Number(v))}
+              />
+              <Field
+                label="Weight: fraud/report rate"
+                value={Number((foryouCfg.weights as Record<string, number> | undefined)?.reportRate) || 0}
+                onSave={(v) => void patchForYou('weightReportRate', Number(v))}
               />
             </div>
           ) : (

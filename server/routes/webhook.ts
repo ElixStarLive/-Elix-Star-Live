@@ -65,6 +65,7 @@ export async function handleStripeWebhook(req: Request, res: Response) {
       }
       case "transfer.created":
       case "transfer.updated":
+      case "transfer.reversed":
       case "account.updated": {
         const { handleStripeConnectPayoutWebhook } = await import(
           "../lib/monetisation/payoutProvider"

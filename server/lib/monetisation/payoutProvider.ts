@@ -54,8 +54,8 @@ export async function createOrGetPayoutAccount(creatorUserId: string): Promise<{
       try {
         const link = await stripeClient.accountLinks.create({
           account: String(row.provider_account_id),
-          refresh_url: `${process.env.VITE_API_URL || "https://www.elixstarlive.co.uk"}/creator-payout?payout_refresh=1`,
-          return_url: `${process.env.VITE_API_URL || "https://www.elixstarlive.co.uk"}/creator-payout?payout_return=1`,
+          refresh_url: `${process.env.CLIENT_URL || process.env.VITE_API_URL || "https://www.elixstarlive.co.uk"}/creator-payout?payout_refresh=1`,
+          return_url: `${process.env.CLIENT_URL || process.env.VITE_API_URL || "https://www.elixstarlive.co.uk"}/creator-payout?payout_return=1`,
           type: "account_onboarding",
         });
         onboardingUrl = link.url;
@@ -85,8 +85,8 @@ export async function createOrGetPayoutAccount(creatorUserId: string): Promise<{
     });
     const link = await stripeClient.accountLinks.create({
       account: account.id,
-      refresh_url: `${process.env.VITE_API_URL || "https://www.elixstarlive.co.uk"}/creator-payout?payout_refresh=1`,
-      return_url: `${process.env.VITE_API_URL || "https://www.elixstarlive.co.uk"}/creator-payout?payout_return=1`,
+      refresh_url: `${process.env.CLIENT_URL || process.env.VITE_API_URL || "https://www.elixstarlive.co.uk"}/creator-payout?payout_refresh=1`,
+      return_url: `${process.env.CLIENT_URL || process.env.VITE_API_URL || "https://www.elixstarlive.co.uk"}/creator-payout?payout_return=1`,
       type: "account_onboarding",
     });
     const id = `pac_${randomUUID()}`;
@@ -355,11 +355,15 @@ export async function handleStripeConnectPayoutWebhook(
   const pool = getPool();
   if (!pool) return { ok: false };
 
-  if (event.type === "transfer.created" || event.type === "transfer.updated") {
+  if (
+    event.type === "transfer.created" ||
+    event.type === "transfer.updated" ||
+    event.type === "transfer.reversed"
+  ) {
     const transfer = event.data.object as Stripe.Transfer;
     const withdrawalId = transfer.metadata?.elix_withdrawal_id;
     if (!withdrawalId) return { ok: true };
-    if (transfer.reversed) {
+    if (event.type === "transfer.reversed" || transfer.reversed) {
       await adminSetGbpWithdrawalStatus({
         withdrawalId,
         toStatus: "failed",

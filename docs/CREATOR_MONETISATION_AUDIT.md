@@ -1,81 +1,67 @@
 # Creator Monetisation + For You — Status Audit
 
-**Date:** 2026-08-05  
+**Date:** 2026-08-05 (updated same day — code-complete pass)  
 **Rule:** Labels only VERIFIED | PARTIAL | MISSING. Do **not** claim production-complete without evidence.
 
-## This commit deliverables
+## This pass deliverables (code)
 
 | Area | What shipped |
 |------|----------------|
-| For You ranking | Backend-owned multi-signal ranker; stages `initial` → `promoted` / `removed` → `reentry_eligible` → `reentered` |
-| Thresholds | Defaults **5000** promote / **1000** re-entry — stored in `elix_foryou_config` (admin-editable, not hardcoded in ranker) |
-| Qualified views | Still one user = one qualified view; drives lifecycle transitions |
-| Fraud admin | `/api/admin/monetisation/fraud-reviews` + outcome + admin UI queue |
-| Platform ledger | `elix_platform_wallet_gbp` + deltas on ledger post + reconcile compare (no silent repair) |
-| Creator wallet reconcile | pending/available/held/**withdrawn**/**reversed** checks |
-| Creator Connect UI | Stripe Connect onboard wired on Creator Payout page |
-| Admin For You | Config fields + sweep endpoint on Monetisation admin |
+| Stripe Connect webhook | `transfer.reversed` handled (same path as reversed flag on transfer.updated) |
+| Connect onboard URLs | Prefer `CLIENT_URL` then `VITE_API_URL` for return/refresh |
+| Financial report match | Coin lots + memberships + **promote** purchases; promote 100% platform settle from report |
+| Admin settlements UI | Manual coin-lot / promote / refund-chargeback reverse wired |
+| Admin For You weights | Ranking weight fields editable in Monetisation admin |
+| Legacy client FYP | `fypEligibility` no-ops — For You ranking is server-owned |
+| For You pagination | `fetchMoreForYou` + VideoFeed prefetch near end |
+| `.env.example` | Documents `sk_test_` for Connect sandbox evidence |
 
 ## Tests (isolated `elix_money_it` — production `neondb` untouched)
 
 | Suite | Result |
 |-------|--------|
-| `npm run test:money:sibling` | **48 passed**, 0 failed (includes 6 For You DB tests + §22 matrix) |
-| Unit `foryouRanking.test.ts` + `moneyMath.test.ts` | **28 passed** |
+| `npm run test:money:sibling` | **48 passed**, 0 failed (2026-08-05 ~18:40 UTC+1) |
+| Unit foryouRanking + moneyMath | Run in same session when invoked |
 
-Evidence: local run 2026-08-05 ~15:41 UTC+1 — `[money-it] PASSED against isolated sibling DB`.
-
-## Stripe Connect paid path
+## Hard external blockers (cannot VERIFIED in-repo alone)
 
 | Check | Result |
 |--------|--------|
-| Local `STRIPE_SECRET_KEY` | **`sk_live_`** |
-| Test Connect transfer / webhook → `paid` | **SKIPPED** — policy requires `sk_test_` only |
-| Status | **PARTIAL** / **MISSING** for live-money provider-paid E2E |
-
-**Blocker:** Coolify + local must use `sk_test_…` to verify Express onboard + transfer + webhook `paid` with real `tr_…` IDs.
-
-## Official Apple/Google financial reports
-
-| Check | Result |
-|--------|--------|
-| CSV ingest + match code | PRESENT |
-| Official production closed-period import | **NOT RUN** this session |
-| Status | **PARTIAL** |
+| Local `STRIPE_SECRET_KEY` | **`sk_live_`** present |
+| Test Connect transfer → webhook → `paid` | **BLOCKED** — policy requires `sk_test_` only |
+| Official Apple/Google closed-period CSV on production | **OWNER OPS** — paste in `/admin/monetisation` Import report |
+| Production migrate `20260805160000` | **OWNER / Coolify deploy migrate** |
+| Production reconcile 0 mismatches | **OWNER** — admin Reconciliation → Run now |
 
 ## Status table
 
 | # | Requirement | Status |
 |---|-------------|--------|
-| 1 | Store settlement (Apple/Google verified financial data) | **PARTIAL** — auto-settle + CSV ingest present; no official prod report evidence this session |
-| 2 | Gift 60/40 automatic | **PARTIAL** — code + prior sandbox evidence; not report-matched + provider-paid chain |
-| 3 | Subscription 60/40 automatic | **PARTIAL** |
-| 4 | Promote Video 100% platform | **PARTIAL** |
-| 5 | Live GBP payout provider (Stripe Connect) | **PARTIAL** — code + creator onboard UI; test-mode paid blocked by live key |
-| 6 | Creator GBP withdrawals + provider txn IDs | **PARTIAL** — rail + UI surfaces `payout_provider_ref`; Stripe-confirmed `paid` not proven |
-| 7 | Refund/chargeback GBP ledger reversal | **PARTIAL** — matrix covered; store webhook E2E not re-run |
-| 8 | Creator wallet reconciliation | **PARTIAL** — withdrawn/reversed checks added; needs clean production run evidence |
-| 9 | Platform ledger reconciliation | **PARTIAL** — platform wallet + compare added |
-| 10 | Full fraud detection | **PARTIAL** — signals + admin review queue wired |
-| 11 | Full admin monetisation dashboard | **PARTIAL** — fraud + For You + prior ops controls |
-| 12 | Full creator earnings dashboard | **PARTIAL** — Connect onboard + provider ref display added |
+| 1 | Store settlement (Apple/Google verified financial data) | **PARTIAL** — ingest + promote match + manual settle UI complete; official prod CSV not imported |
+| 2 | Gift 60/40 automatic | **PARTIAL** — code + sibling IT; final net needs verified store deductions |
+| 3 | Subscription 60/40 automatic | **PARTIAL** — same |
+| 4 | Promote Video 100% platform | **PARTIAL** — code + report match + admin settle; prod CSV evidence pending |
+| 5 | Live GBP payout provider (Stripe Connect) | **PARTIAL** — code complete; Stripe-confirmed `paid` blocked by `sk_live_` locally |
+| 6 | Creator GBP withdrawals + provider txn IDs | **PARTIAL** — rail + UI; paid not Stripe-proven |
+| 7 | Refund/chargeback GBP ledger reversal | **PARTIAL** — matrix + admin reverse UI; store chargeback webhook kind still admin-path |
+| 8 | Creator wallet reconciliation | **PARTIAL** — checks in runner; needs clean prod Run now |
+| 9 | Platform ledger reconciliation | **PARTIAL** — compare present; needs clean prod Run now |
+| 10 | Full fraud detection | **PARTIAL** — signals + admin queue; high-traffic load not separately proven |
+| 11 | Full admin monetisation dashboard | **PARTIAL** → **stronger** — settlements + For You weights wired |
+| 12 | Full creator earnings dashboard | **PARTIAL** — Connect onboard + provider ref |
 | 13 | Complete end-to-end testing | **PARTIAL** / **MISSING** for Stripe-confirmed paid + official store reports |
-| 14 | Complete database integration tests | **VERIFIED** on sibling — **48 passed** including For You |
-| 15 | For You: new videos enter feed | **VERIFIED** (DB IT enroll + feed query uses active stages) |
-| 16 | For You: 5000 stay recommended | **VERIFIED** (DB IT promote stage) |
-| 17 | For You: below threshold stop recommending (profile remains) | **VERIFIED** (DB IT removed excluded; video row kept) |
-| 18 | For You: re-entry after +1000 | **VERIFIED** (DB IT) |
-| 19 | One user ×30 = one qualified view | **VERIFIED** |
-| 20 | Bots/duplicates excluded from qualified/ranking inputs | **PARTIAL** — fraud suite present; high-traffic load not separately load-tested this session |
+| 14 | Complete database integration tests | **VERIFIED** — **48 passed** sibling |
+| 15–19 | For You lifecycle + qualified views | **VERIFIED** (sibling DB IT) |
+| 20 | Bots/duplicates excluded | **PARTIAL** — fraud suite present |
 
 ## Remaining blockers to claim production-ready
 
-1. Configure **`sk_test_`** Stripe + Connect webhook; complete one Express onboard → transfer → webhook → `paid`.
-2. Import one official closed-period Apple + Google financial CSV on production admin; document match rates.
-3. Apply migration `20260805160000_for_you_feed_and_platform_wallet.sql` on production via deploy migrate.
-4. Production reconcile run with 0 mismatches (admin “Run now”).
-5. Optional: store refund notification → ledger reverse evidence on sandbox.
+1. Put **`sk_test_…`** in local (and Coolify staging) Stripe secret; run one Express onboard → admin submit-provider → webhook/`paid` with real `tr_…`.
+2. Import one official closed-period **Apple** + **Google** earnings CSV on production admin; record match rates.
+3. Coolify migrate includes `20260805160000_for_you_feed_and_platform_wallet.sql` on production Neon.
+4. Production Reconciliation **Run now** with 0 mismatches.
 
 ## Honest verdict
 
-**Not production-complete.** Code paths for monetisation + For You are substantially implemented and sibling-DB verified. Live Stripe-confirmed payouts and official store financial settlement remain **PARTIAL/MISSING**.
+**Code for monetisation + For You is as complete as the repo can make it without owner secrets/reports.**  
+**Not production-complete** until Stripe test-mode paid evidence + official store CSV imports + prod migrate/reconcile are done. Do not mark VERIFIED for live money without those.
