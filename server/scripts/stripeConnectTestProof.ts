@@ -429,23 +429,59 @@ async function main() {
         });
       }
 
-      // Signed reversed + failed: cryptographic verification only on clean sibling.
-      // Invoking the failure handler posts PAYOUT_FAILURE platform credits that are
-      // not in the reconcile expected set (known formula gap). Full handler path for
-      // failed/reversed was already exercised on elix_money_it; here we prove signature.
+      // Signed reversed + failed — full handler path (creator PAYOUT_FAILURE restore).
+      // Seed available ledger + held WITHDRAWAL so restore is grounded (no phantom credit).
+      await pool.query(
+        `INSERT INTO elix_creator_wallet_gbp (user_id, available_pence, held_pence, pending_pence, withdrawn_pence, reversed_pence)
+         VALUES ($1, 0, 0, 0, 0, 0)
+         ON CONFLICT (user_id) DO NOTHING`,
+        [creatorId],
+      );
+      const { postLedgerEntryStandalone } = await import(
+        "../lib/monetisation/ledger.ts"
+      );
+      await postLedgerEntryStandalone({
+        idempotencyKey: `connect_proof_fail_seed:${wdFailId}`,
+        revenueSource: "CREATOR_REWARD",
+        creatorUserId: creatorId,
+        grossPence: 500,
+        netRevenuePence: 500,
+        creatorPct: 100,
+        creatorAmountPence: 500,
+        platformPct: 0,
+        platformAmountPence: 0,
+        status: "available",
+        ruleSnapshot: { connect_proof: true, purpose: "fail_path_seed" },
+      });
+      await pool.query(
+        `UPDATE elix_creator_wallet_gbp
+            SET available_pence = GREATEST(0, available_pence - 500),
+                held_pence = held_pence + 500,
+                updated_at = NOW()
+          WHERE user_id = $1`,
+        [creatorId],
+      );
+      const failTransferRef = `tr_proof_fail_${randomUUID().slice(0, 8)}`;
       await pool.query(
         `INSERT INTO elix_creator_withdrawals_gbp
            (id, idempotency_key, creator_user_id, amount_pence, currency, status, payment_rail, payout_provider_ref)
-         VALUES ($1,$1,$2,500,'GBP','approved','stripe_connect',$3)
+         VALUES ($1,$1,$2,500,'GBP','processing','stripe_connect',$3)
          ON CONFLICT (id) DO NOTHING`,
-        [wdFailId, creatorId, `tr_proof_fail_${randomUUID().slice(0, 8)}`],
+        [wdFailId, creatorId, failTransferRef],
       );
-      const failTransferId = (
-        await pool.query(
-          `SELECT payout_provider_ref FROM elix_creator_withdrawals_gbp WHERE id = $1`,
-          [wdFailId],
-        )
-      ).rows[0]?.payout_provider_ref as string;
+      await postLedgerEntryStandalone({
+        idempotencyKey: `withdrawal:connect_proof_fail:${wdFailId}`,
+        revenueSource: "WITHDRAWAL",
+        creatorUserId: creatorId,
+        grossPence: 500,
+        netRevenuePence: 0,
+        creatorPct: 100,
+        creatorAmountPence: 0,
+        platformPct: 0,
+        platformAmountPence: 0,
+        status: "held",
+        ruleSnapshot: { withdrawal_id: wdFailId, amount_pence: 500 },
+      });
 
       for (const spec of eventSpecs.filter((e) =>
         ["transfer.reversed", "transfer.failed"].includes(e.type),
@@ -457,7 +493,7 @@ async function main() {
           type: spec.type,
           data: {
             object: {
-              id: failTransferId,
+              id: failTransferRef,
               object: "transfer",
               amount: 500,
               currency: "gbp",
@@ -471,17 +507,16 @@ async function main() {
           secret: whsec,
         });
         const event = stripe.webhooks.constructEvent(payload, header, whsec);
+        const wh = await handleStripeConnectPayoutWebhook(event);
         webhookEventIds[spec.label] = event.id;
         steps.push({
           step: `signed_webhook_${spec.label}`,
-          ok: !!event.id && event.type === spec.type,
+          ok: wh.ok,
           eventId: event.id,
           eventType: event.type,
-          transferId: failTransferId,
+          transferId: failTransferRef,
           withdrawalId: wdFailId,
-          handlerInvoked: false,
-          reason:
-            "signature verified; handler skipped on clean sibling to avoid PAYOUT_FAILURE platform residue (reconcile formula excludes that source)",
+          handlerInvoked: true,
         });
       }
     }

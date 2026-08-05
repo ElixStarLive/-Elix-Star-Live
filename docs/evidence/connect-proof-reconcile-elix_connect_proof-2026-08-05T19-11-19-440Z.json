@@ -1,0 +1,10 @@
+{
+  "database": "elix_connect_proof",
+  "testRunId": "iso_20260805_195709",
+  "command": "npx tsx server/scripts/runConnectProofReconcile.ts",
+  "ok": true,
+  "mismatchCount": 0,
+  "runId": 2,
+  "mismatches": [],
+  "finishedAt": "2026-08-05T19:11:19.440Z"
+}

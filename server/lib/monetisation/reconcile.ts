@@ -47,9 +47,26 @@ export async function runWalletLedgerReconciliation(): Promise<{
       const ledger = await pool.query(
         `SELECT
            COALESCE(SUM(CASE WHEN status = 'pending' AND creator_amount_pence > 0 THEN creator_amount_pence ELSE 0 END),0)::bigint AS pending,
-           COALESCE(SUM(CASE WHEN status = 'available' AND creator_amount_pence > 0 THEN creator_amount_pence ELSE 0 END),0)::bigint AS available,
-           COALESCE(SUM(CASE WHEN status = 'held' AND creator_amount_pence > 0 THEN creator_amount_pence ELSE 0 END),0)::bigint AS held,
-           COALESCE(SUM(CASE WHEN revenue_source = 'WITHDRAWAL' AND creator_amount_pence < 0 THEN -creator_amount_pence ELSE 0 END),0)::bigint AS withdrawn,
+           COALESCE(SUM(CASE
+             WHEN status = 'available'
+              AND creator_amount_pence > 0
+              AND revenue_source <> 'PAYOUT_FAILURE'
+             THEN creator_amount_pence ELSE 0 END),0)::bigint
+             - COALESCE(SUM(CASE
+                 WHEN revenue_source = 'WITHDRAWAL' AND status IN ('held','paid')
+                 THEN COALESCE(NULLIF((rule_snapshot->>'amount_pence')::bigint, 0), gross_pence, net_revenue_pence)
+                 ELSE 0 END),0)::bigint
+             AS available,
+           COALESCE(SUM(CASE
+             WHEN status = 'held' AND creator_amount_pence > 0 THEN creator_amount_pence
+             WHEN revenue_source = 'WITHDRAWAL' AND status = 'held'
+               THEN COALESCE(NULLIF((rule_snapshot->>'amount_pence')::bigint, 0), gross_pence, net_revenue_pence)
+             ELSE 0 END),0)::bigint AS held,
+           COALESCE(SUM(CASE
+             WHEN revenue_source = 'WITHDRAWAL' AND creator_amount_pence < 0 THEN -creator_amount_pence
+             WHEN revenue_source = 'WITHDRAWAL' AND status = 'paid'
+               THEN COALESCE(NULLIF((rule_snapshot->>'amount_pence')::bigint, 0), gross_pence, net_revenue_pence)
+             ELSE 0 END),0)::bigint AS withdrawn,
            COALESCE(SUM(CASE WHEN status = 'reversed' OR revenue_source IN ('REFUND_REVERSAL','CHARGEBACK_REVERSAL') THEN ABS(LEAST(creator_amount_pence,0)) ELSE 0 END),0)::bigint AS reversed
          FROM elix_financial_ledger
         WHERE creator_user_id = $1`,

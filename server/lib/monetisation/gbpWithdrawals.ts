@@ -122,11 +122,12 @@ export async function requestGbpWithdrawal(input: {
       revenueSource: "WITHDRAWAL",
       creatorUserId: input.creatorUserId,
       grossPence: amount,
-      netRevenuePence: amount,
+      // Memo only: wallet already moved available→held. Do not credit platform.
+      netRevenuePence: 0,
       creatorPct: 100,
-      creatorAmountPence: 0, // funds already moved available→held in wallet
+      creatorAmountPence: 0,
       platformPct: 0,
-      platformAmountPence: amount,
+      platformAmountPence: 0,
       status: "held",
       ruleSnapshot: { withdrawal_id: id, amount_pence: amount },
     });
@@ -223,33 +224,75 @@ export async function adminSetGbpWithdrawalStatus(input: {
           WHERE user_id = $1`,
         [creatorId, amount],
       );
+      // Mark the matching WITHDRAWAL ledger row paid so reconcile can count withdrawn.
+      await client.query(
+        `UPDATE elix_financial_ledger SET
+           status = 'paid',
+           paid_at = NOW(),
+           updated_at = NOW()
+         WHERE revenue_source = 'WITHDRAWAL'
+           AND status = 'held'
+           AND (rule_snapshot->>'withdrawal_id') = $1`,
+        [input.withdrawalId],
+      );
     } else if (
       (input.toStatus === "failed" ||
         input.toStatus === "rejected" ||
         input.toStatus === "cancelled") &&
       from !== "paid"
     ) {
-      await client.query(
-        `UPDATE elix_creator_wallet_gbp
-            SET held_pence = GREATEST(0, held_pence - $2),
-                available_pence = available_pence + $2,
-                updated_at = NOW()
-          WHERE user_id = $1`,
-        [creatorId, amount],
+      // Only restore when a held WITHDRAWAL ledger row proves funds were reserved.
+      const heldLedger = await client.query(
+        `SELECT id FROM elix_financial_ledger
+          WHERE revenue_source = 'WITHDRAWAL'
+            AND status = 'held'
+            AND (rule_snapshot->>'withdrawal_id') = $1
+          LIMIT 1`,
+        [input.withdrawalId],
       );
-      await postLedgerEntry(client, {
-        idempotencyKey: `payout_failure:${input.withdrawalId}:${input.toStatus}`,
-        revenueSource: "PAYOUT_FAILURE",
-        creatorUserId: creatorId,
-        grossPence: amount,
-        netRevenuePence: amount,
-        creatorPct: 100,
-        creatorAmountPence: 0,
-        platformPct: 0,
-        platformAmountPence: amount,
-        status: "available",
-        ruleSnapshot: { withdrawal_id: input.withdrawalId, restored: true },
-      });
+      const fundsWereHeld = (heldLedger.rowCount ?? 0) > 0;
+      if (fundsWereHeld) {
+        // Release held only — available is restored via PAYOUT_FAILURE creator credit below.
+        await client.query(
+          `UPDATE elix_creator_wallet_gbp
+              SET held_pence = GREATEST(0, held_pence - $2),
+                  updated_at = NOW()
+            WHERE user_id = $1`,
+          [creatorId, amount],
+        );
+      }
+      // Release held WITHDRAWAL ledger so it no longer counts as held.
+      await client.query(
+        `UPDATE elix_financial_ledger SET
+           status = 'cancelled',
+           updated_at = NOW()
+         WHERE revenue_source = 'WITHDRAWAL'
+           AND status = 'held'
+           AND (rule_snapshot->>'withdrawal_id') = $1`,
+        [input.withdrawalId],
+      );
+      // Creator restore only — never credit platform wallet on payout failure.
+      // postLedgerEntry applies available += creatorAmountPence (reconcile excludes
+      // PAYOUT_FAILURE from available expected so cancel+restore stays balanced).
+      if (fundsWereHeld) {
+        await postLedgerEntry(client, {
+          idempotencyKey: `payout_failure:${input.withdrawalId}:${input.toStatus}`,
+          revenueSource: "PAYOUT_FAILURE",
+          creatorUserId: creatorId,
+          grossPence: amount,
+          netRevenuePence: amount,
+          creatorPct: 100,
+          creatorAmountPence: amount,
+          platformPct: 0,
+          platformAmountPence: 0,
+          status: "available",
+          ruleSnapshot: {
+            withdrawal_id: input.withdrawalId,
+            restored: true,
+            from_status: from,
+          },
+        });
+      }
     }
 
     await client.query("COMMIT");
