@@ -9,7 +9,7 @@ import { apiLiveToken, LiveRoomLifecycle } from "../../../lib/live";
 import { bindLiveRoomWs } from "../ws/bindLiveRoomWs";
 import { bindLiveBattleWs } from "../ws/bindLiveBattleWs";
 import { bindLiveCohostWs } from "../ws/bindLiveCohostWs";
-import { INLINE_LIVE_PLACEHOLDER_AVATAR_PX, LIVE_BATTLE_VIDEO_HEIGHT, LIVE_BATTLE_CHAT_HEIGHT } from "../../../lib/profileFrame";
+import { INLINE_LIVE_PLACEHOLDER_AVATAR_PX } from "../../../lib/profileFrame";
 import {
   prepareLiveVideoEl,
   LIVE_WEBRTC_VIDEO_CLASS,
@@ -458,16 +458,16 @@ export default function InlineLiveViewer({
         </div>
       )}
 
-      {/* ── Battle: video half (same height as live battle) + chat half (hidden until join) ── */}
+      {/* ── Battle: 50% video / 50% chat of the For You card (chat messages hidden until join) ── */}
       {mode === "battle" && (
         <div
           className="absolute inset-0 flex flex-col bg-[#121215] overflow-hidden"
           data-elix-foryou-battle-root="1"
         >
           <div
-            className="relative w-full flex-none overflow-hidden"
+            className="relative w-full overflow-hidden border-b border-white/10"
             data-elix-foryou-battle="video-half"
-            style={{ height: LIVE_BATTLE_VIDEO_HEIGHT, maxHeight: "50%" }}
+            style={{ flex: "1 1 50%", height: "50%", maxHeight: "50%", minHeight: 0 }}
           >
             <div className="absolute inset-0 flex flex-row w-full h-full">
               <div className="w-1/2 h-full relative bg-[#121215] overflow-hidden min-h-0">
@@ -511,19 +511,13 @@ export default function InlineLiveViewer({
             {!hasStream && placeholder}
           </div>
 
-          {/* Chat half — reserves battle chat space; messages hidden until tap to join */}
           <div
-            className="relative flex-1 min-h-0 w-full flex flex-col bg-[#121215] border-t border-white/10"
+            className="relative w-full flex flex-col bg-[#121215] overflow-hidden"
             data-elix-foryou-battle="chat-half"
-            style={{ minHeight: LIVE_BATTLE_CHAT_HEIGHT }}
+            style={{ flex: "1 1 50%", height: "50%", maxHeight: "50%", minHeight: 0 }}
           >
-            <div
-              className="flex-1 min-h-0 overflow-hidden px-2 pt-2"
-              style={{ visibility: "hidden" }}
-              aria-hidden
-            >
-              {/* Chat messages stay hidden on For You until user joins /watch */}
-            </div>
+            {/* Messages intentionally empty/hidden until user joins /watch */}
+            <div className="flex-1 min-h-0" style={{ visibility: "hidden" }} aria-hidden />
             <div className="flex-none px-3 pb-3 pt-1 pointer-events-none">
               <p className="text-white font-bold text-sm truncate mb-1.5">{creatorName}</p>
               <div className="flex items-center gap-2 mb-2">
