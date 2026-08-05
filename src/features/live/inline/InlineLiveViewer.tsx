@@ -461,11 +461,15 @@ export default function InlineLiveViewer({
       {/* ── Battle: TOP HALF of card height (full width); left|right only inside that half ── */}
       {mode === "battle" && (
         <div className="absolute inset-0 bg-[#121215]" data-elix-foryou-battle-root="1">
-          {/* Half HEIGHT of the feed card — not half width of the full screen */}
+          {/* Explicit 50% HEIGHT — do not stretch full feed card */}
           <div
-            className="absolute top-0 left-0 right-0 w-full h-1/2 overflow-hidden"
+            className="absolute top-0 left-0 right-0 w-full overflow-hidden"
             data-elix-foryou-battle="half-height"
-            style={{ maxHeight: LIVE_BATTLE_VIDEO_HEIGHT }}
+            style={{
+              height: "50%",
+              maxHeight: LIVE_BATTLE_VIDEO_HEIGHT,
+              minHeight: 0,
+            }}
           >
             <div className="absolute inset-0 flex flex-row w-full h-full">
               <div className="w-1/2 h-full relative bg-[#121215] overflow-hidden min-h-0">
@@ -508,8 +512,12 @@ export default function InlineLiveViewer({
             </div>
             {!hasStream && placeholder}
           </div>
-          {/* Bottom half of card — empty (chat zone), same idea as real battle */}
-          <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-[#121215]" aria-hidden />
+          {/* Bottom half of card — empty until user taps to join (no timer on preview) */}
+          <div
+            className="absolute bottom-0 left-0 right-0 w-full bg-[#121215]"
+            style={{ height: "50%" }}
+            aria-hidden
+          />
         </div>
       )}
 
