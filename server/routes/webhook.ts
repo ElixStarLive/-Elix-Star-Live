@@ -14,6 +14,34 @@ const stripe = stripeSecretKey
   ? new Stripe(stripeSecretKey, { apiVersion: "2025-01-27.acacia" as unknown as Stripe.LatestApiVersion })
   : (null as unknown as Stripe);
 
+/** Prefer dedicated test webhook secret when Connect/test mode is forced; otherwise live. */
+function resolveStripeWebhookSecret(): string {
+  const testSecret = (process.env.STRIPE_WEBHOOK_SECRET_TEST || "").trim();
+  const liveSecret = (process.env.STRIPE_WEBHOOK_SECRET || "").trim();
+  const forceTest =
+    String(process.env.ELIX_STRIPE_CONNECT_MODE || "").trim().toLowerCase() === "test";
+  const primary = (process.env.STRIPE_SECRET_KEY || "").trim();
+  if (
+    (forceTest || primary.startsWith("sk_test_")) &&
+    testSecret.startsWith("whsec_")
+  ) {
+    return testSecret;
+  }
+  return liveSecret;
+}
+
+/** Secrets to try for signature verification (live first, then test). */
+function webhookSecretsToTry(): string[] {
+  const primary = resolveStripeWebhookSecret();
+  const testSecret = (process.env.STRIPE_WEBHOOK_SECRET_TEST || "").trim();
+  const liveSecret = (process.env.STRIPE_WEBHOOK_SECRET || "").trim();
+  const out: string[] = [];
+  for (const s of [primary, liveSecret, testSecret]) {
+    if (s.startsWith("whsec_") && !out.includes(s)) out.push(s);
+  }
+  return out;
+}
+
 // --- Main Webhook Handler ---
 export async function handleStripeWebhook(req: Request, res: Response) {
   if (req.method !== "POST") {
@@ -22,7 +50,7 @@ export async function handleStripeWebhook(req: Request, res: Response) {
 
   const isProd = process.env.NODE_ENV === "production";
   const sig = req.headers["stripe-signature"] as string | undefined;
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || "";
+  const secrets = webhookSecretsToTry();
 
   let event: Stripe.Event;
 
@@ -35,14 +63,40 @@ export async function handleStripeWebhook(req: Request, res: Response) {
     const rawBody = req.body as Buffer;
 
     if (isProd) {
-      if (!sig || !webhookSecret) {
+      if (!sig || secrets.length === 0) {
         return res.status(400).json({ error: "Missing signature or webhook secret" });
       }
-      event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
+      let lastErr: unknown;
+      event = null as unknown as Stripe.Event;
+      for (const webhookSecret of secrets) {
+        try {
+          event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
+          lastErr = null;
+          break;
+        } catch (err) {
+          lastErr = err;
+        }
+      }
+      if (lastErr || !event) {
+        throw lastErr || new Error("webhook_signature_failed");
+      }
     } else {
-      if (sig && webhookSecret) {
-        event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
-      } else if (webhookSecret) {
+      if (sig && secrets.length > 0) {
+        let lastErr: unknown;
+        event = null as unknown as Stripe.Event;
+        for (const webhookSecret of secrets) {
+          try {
+            event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
+            lastErr = null;
+            break;
+          } catch (err) {
+            lastErr = err;
+          }
+        }
+        if (lastErr || !event) {
+          throw lastErr || new Error("webhook_signature_failed");
+        }
+      } else if (secrets.length > 0) {
         // Secret is set but no signature — reject (possible tampering)
         return res.status(400).json({ error: "Missing Stripe signature" });
       } else {

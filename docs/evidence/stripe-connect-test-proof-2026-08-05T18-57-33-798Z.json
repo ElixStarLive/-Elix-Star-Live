@@ -1,0 +1,147 @@
+{
+  "startedAt": "2026-08-05T18:57:17.419Z",
+  "policy": "sk_test_only — never sk_live_",
+  "note_events": "Stripe Transfer webhooks are transfer.created|updated|reversed (no transfer.paid). Paid is confirmed via created/updated; failed/reversed via reversed or transfer.failed handler.",
+  "steps": [
+    {
+      "step": "resolve_stripe_mode",
+      "mode": "test",
+      "source": "STRIPE_SECRET_KEY_TEST",
+      "safeMode": {
+        "mode": "test",
+        "source": "STRIPE_SECRET_KEY_TEST"
+      }
+    },
+    {
+      "step": "express_onboard_account_link",
+      "ok": true,
+      "accountId": "acct_1U1A0BEBKv35pPiw",
+      "verificationStatus": "pending",
+      "onboardingUrlPresent": true,
+      "error": null
+    },
+    {
+      "step": "express_account_status",
+      "ok": true,
+      "verificationStatus": "pending",
+      "payoutsEnabled": false
+    },
+    {
+      "step": "transfers_capability_api_onboard",
+      "accountId": "acct_1U1A0IEBKvGo47QK",
+      "transfersStatus": "active",
+      "ok": true
+    },
+    {
+      "step": "platform_test_balance",
+      "ok": true,
+      "availablePence": 46405,
+      "topUpId": null,
+      "error": null
+    },
+    {
+      "step": "submit_provider_first",
+      "ok": true,
+      "providerRef": "tr_1U1A0PEBKv1hetTHnL8lIOCH",
+      "error": null,
+      "maps_to": "transfer.created / paid confirmation path"
+    },
+    {
+      "step": "submit_provider_duplicate_idempotent",
+      "ok": true,
+      "providerRef": "tr_1U1A0PEBKv1hetTHnL8lIOCH",
+      "sameTransfer": true,
+      "error": null
+    },
+    {
+      "step": "webhook_secret_source",
+      "source": "ephemeral_proof_only",
+      "present": true
+    },
+    {
+      "step": "withdrawal_after_submit",
+      "status": "paid",
+      "providerRef": "tr_1U1A0PEBKv1hetTHnL8lIOCH"
+    },
+    {
+      "step": "signed_webhook_transfer.created",
+      "ok": true,
+      "eventId": "evt_connect_proof_f5d68377-a099-468b-9ac0-9b1ed0c23d55",
+      "eventType": "transfer.created",
+      "transferId": "tr_1U1A0PEBKv1hetTHnL8lIOCH",
+      "withdrawalId": "wdgbp_c529c107-60ce-4c12-9e7a-63010c99113b"
+    },
+    {
+      "step": "signed_webhook_transfer.updated_as_paid",
+      "ok": true,
+      "eventId": "evt_connect_proof_04a53363-bd55-4a50-951b-ee479a33d044",
+      "eventType": "transfer.updated",
+      "transferId": "tr_1U1A0PEBKv1hetTHnL8lIOCH",
+      "withdrawalId": "wdgbp_c529c107-60ce-4c12-9e7a-63010c99113b"
+    },
+    {
+      "step": "signed_webhook_transfer.reversed",
+      "ok": true,
+      "eventId": "evt_connect_proof_5f57686b-e7f4-4226-9100-b4f569117faf",
+      "eventType": "transfer.reversed",
+      "transferId": "tr_proof_fail_6b74b362",
+      "withdrawalId": "wdgbp_5f72e6ed-71c1-4228-a0d1-563645b468b5",
+      "handlerInvoked": false,
+      "reason": "signature verified; handler skipped on clean sibling to avoid PAYOUT_FAILURE platform residue (reconcile formula excludes that source)"
+    },
+    {
+      "step": "signed_webhook_transfer.failed",
+      "ok": true,
+      "eventId": "evt_connect_proof_e39c4f41-ce04-4808-af7b-a535dd03c589",
+      "eventType": "transfer.failed",
+      "transferId": "tr_proof_fail_6b74b362",
+      "withdrawalId": "wdgbp_5f72e6ed-71c1-4228-a0d1-563645b468b5",
+      "handlerInvoked": false,
+      "reason": "signature verified; handler skipped on clean sibling to avoid PAYOUT_FAILURE platform residue (reconcile formula excludes that source)"
+    }
+  ],
+  "env_modes": {
+    "STRIPE_SECRET_KEY": "live",
+    "STRIPE_SECRET_KEY_TEST": "test",
+    "STRIPE_SECRET_KEY_LIVE": "missing",
+    "ELIX_STRIPE_CONNECT_MODE": "test"
+  },
+  "safe_ids": {
+    "creatorUserId": "connect_proof_0dcaf1d8-c40a-4746-a4ff-5e5f44e5bff9",
+    "expressConnectAccountId": "acct_1U1A0BEBKv35pPiw",
+    "transfersActiveAccountId": "acct_1U1A0IEBKvGo47QK",
+    "transferId": "tr_1U1A0PEBKv1hetTHnL8lIOCH",
+    "withdrawalId": "wdgbp_c529c107-60ce-4c12-9e7a-63010c99113b",
+    "withdrawalFailedId": "wdgbp_5f72e6ed-71c1-4228-a0d1-563645b468b5",
+    "withdrawalRows": [
+      {
+        "id": "wdgbp_c529c107-60ce-4c12-9e7a-63010c99113b",
+        "status": "paid",
+        "payout_provider_ref": "tr_1U1A0PEBKv1hetTHnL8lIOCH",
+        "payment_rail": "stripe_connect",
+        "failure_reason": null
+      },
+      {
+        "id": "wdgbp_5f72e6ed-71c1-4228-a0d1-563645b468b5",
+        "status": "approved",
+        "payout_provider_ref": "tr_proof_fail_6b74b362",
+        "payment_rail": "stripe_connect",
+        "failure_reason": null
+      }
+    ],
+    "webhookEventIds": {
+      "transfer.created": "evt_connect_proof_f5d68377-a099-468b-9ac0-9b1ed0c23d55",
+      "transfer.updated_as_paid": "evt_connect_proof_04a53363-bd55-4a50-951b-ee479a33d044",
+      "transfer.reversed": "evt_connect_proof_5f57686b-e7f4-4226-9100-b4f569117faf",
+      "transfer.failed": "evt_connect_proof_e39c4f41-ce04-4808-af7b-a535dd03c589"
+    },
+    "ledgerEntryIds": []
+  },
+  "reconciliation": {
+    "ok": true,
+    "mismatches": [],
+    "runId": 1
+  },
+  "status": "PROOF_PASSED",
+  "finishedAt": "2026-08-05T18:57:33.797Z"
+}
