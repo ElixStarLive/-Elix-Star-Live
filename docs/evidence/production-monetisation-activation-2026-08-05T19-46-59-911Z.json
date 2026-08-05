@@ -1,0 +1,159 @@
+{
+  "finishedAt": "2026-08-05T19:46:59.911Z",
+  "productionCommit": "9ec1da3450a7dcca85679ecd64255db1d59b7256",
+  "localTip": "9ec1da3450a7dcca85679ecd64255db1d59b7256",
+  "tipDeployedOnCoolify": true,
+  "coolifyDeploy": "MISSING_NO_CREDENTIALS",
+  "creatorId": "monet_act_f877278d-8440-4709-8fd6-5f778e4a2de3",
+  "expressAccountId": "acct_1U1AltEBKvoA6k5s",
+  "transferAccountId": "acct_1U1Am9EBKvFRtti8",
+  "usedExpressForTransfer": false,
+  "transferId": "tr_1U1AmFEBKv1hetTHNQoUUAUu",
+  "withdrawalId": "wdgbp_3e86733b-9d2c-42e1-8ea2-079165d490e4",
+  "withdrawalStatus": "paid",
+  "walletBefore": {
+    "available_pence": 2500,
+    "held_pence": 0,
+    "withdrawn_pence": 0
+  },
+  "walletAfter": {
+    "available_pence": 2000,
+    "held_pence": 0,
+    "withdrawn_pence": 1000
+  },
+  "ledgerEntryIds": [
+    "54699eb6-543f-4f2b-8a58-ef47befe46dd",
+    "0db071a7-7395-4a45-bbb9-764eb951e729",
+    "c8f8a2d8-4468-4423-8eae-d2caf735d336",
+    "e1686bc9-bc1a-4436-93a7-7551334c6e8c",
+    "0ff174d5-112e-4719-901b-36aa116ea102"
+  ],
+  "ledgerRows": [
+    {
+      "id": "54699eb6-543f-4f2b-8a58-ef47befe46dd",
+      "revenue_source": "CREATOR_REWARD",
+      "status": "available",
+      "creator_amount_pence": 2500,
+      "platform_amount_pence": 0
+    },
+    {
+      "id": "0db071a7-7395-4a45-bbb9-764eb951e729",
+      "revenue_source": "WITHDRAWAL",
+      "status": "paid",
+      "creator_amount_pence": 0,
+      "platform_amount_pence": 0
+    },
+    {
+      "id": "c8f8a2d8-4468-4423-8eae-d2caf735d336",
+      "revenue_source": "CREATOR_REWARD",
+      "status": "available",
+      "creator_amount_pence": 500,
+      "platform_amount_pence": 0
+    },
+    {
+      "id": "e1686bc9-bc1a-4436-93a7-7551334c6e8c",
+      "revenue_source": "WITHDRAWAL",
+      "status": "cancelled",
+      "creator_amount_pence": 0,
+      "platform_amount_pence": 0
+    },
+    {
+      "id": "0ff174d5-112e-4719-901b-36aa116ea102",
+      "revenue_source": "PAYOUT_FAILURE",
+      "status": "available",
+      "creator_amount_pence": 500,
+      "platform_amount_pence": 0
+    }
+  ],
+  "reconcile": {
+    "ok": true,
+    "mismatchCount": 0,
+    "runId": 4
+  },
+  "steps": [
+    {
+      "step": "deploy_gate",
+      "productionCommit": "9ec1da3450a7dcca85679ecd64255db1d59b7256",
+      "localTip": "9ec1da3450a7dcca85679ecd64255db1d59b7256",
+      "tipDeployed": true,
+      "coolifyCredentials": "MISSING"
+    },
+    {
+      "step": "neon",
+      "database": "neondb",
+      "migrations": 53,
+      "lastMigration": "20260805160000_for_you_feed_and_platform_wallet.sql"
+    },
+    {
+      "step": "express_link",
+      "ok": true,
+      "accountId": "acct_1U1AltEBKvoA6k5s",
+      "urlPresent": true,
+      "error": null
+    },
+    {
+      "step": "express_browser",
+      "opened": true,
+      "host": "connect.stripe.com",
+      "payoutsEnabled": false,
+      "verificationStatus": "pending",
+      "expressVerified": false
+    },
+    {
+      "step": "transfer_recipient_fallback",
+      "accountId": "acct_1U1Am9EBKvFRtti8",
+      "transfersStatus": "active",
+      "expressVerified": false
+    },
+    {
+      "step": "withdraw_request",
+      "result": {
+        "ok": true,
+        "id": "wdgbp_3e86733b-9d2c-42e1-8ea2-079165d490e4",
+        "status": "pending",
+        "alreadyExists": false
+      }
+    },
+    {
+      "step": "submit_transfer",
+      "ok": true,
+      "transferId": "tr_1U1AmFEBKv1hetTHNQoUUAUu",
+      "idempotent": true
+    },
+    {
+      "step": "handler_transfer.created",
+      "ok": true,
+      "eventId": "evt_monet_022eddbf-7a45-466c-a843-98ac9cc57e29"
+    },
+    {
+      "step": "handler_transfer.updated",
+      "ok": true,
+      "eventId": "evt_monet_76ce5f38-8a00-4a28-87a6-5e8cc7e8ccad"
+    },
+    {
+      "step": "reverse_restore",
+      "eventId": "evt_monet_rev_b3cfc906-40cc-4065-80c7-ba2872ea6373",
+      "payoutFailureId": "0ff174d5-112e-4719-901b-36aa116ea102",
+      "creatorCredited": true,
+      "platformCredited": false
+    },
+    {
+      "step": "for_you",
+      "promotionThreshold": 5000,
+      "reentryAdditional": 1000,
+      "qualifiedViews": 1,
+      "oneUserOneView": true,
+      "stage": "initial"
+    },
+    {
+      "step": "rewards_period_open",
+      "periodId": "crp_2026-08_cda262bd"
+    },
+    {
+      "step": "store_csv_parsers",
+      "appleRows": 1,
+      "googleRows": 1,
+      "officialCsvImported": false
+    }
+  ]
+}

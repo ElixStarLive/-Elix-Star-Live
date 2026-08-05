@@ -1,86 +1,113 @@
-# Stripe Connect / checkout — gate status (2026-08-05)
+# Creator monetisation gate audit — 2026-08-05
 
-## Pushed commits (`origin/main`)
+Labels only: **VERIFIED** | **PARTIAL** | **MISSING**
 
-| SHA | Message |
-|-----|---------|
-| `5a98e301017323b5d6a80729d4aab1ec48e7d99e` | Separate Stripe test Connect key path and add sandbox proof runner |
-| `714f6c5babde99132a88ff75389f1154f82d4874` | Migrate Connect onboarding to Accounts v2 recipient API |
-| `6f9ecf0128ba3bea73fc22f0d8eebb237fd0db3e` | Complete Stripe Connect test proof and enable dynamic Checkout methods |
-| `5e4b50017a3e5750c08abbe77015234823e6d127` | Isolate Connect proof reconcile to zero mismatches; dual webhook secrets |
-| `e1b98231080ba46e8e8b76a3c0fc745f8c7c4ea7` | Fix PAYOUT_FAILURE creator restore and WITHDRAWAL reconcile |
+## Deployed commit
 
-Tip of `origin/main`: **`e1b98231080ba46e8e8b76a3c0fc745f8c7c4ea7`**
+| Field | Value |
+|-------|--------|
+| `origin/main` tip | `9ec1da3450a7dcca85679ecd64255db1d59b7256` |
+| Contains `e1b9823` | yes (ancestor) |
+| Contains `9ec1da3` | yes (tip) |
+| Production `/health` commit | `9ec1da3450a7dcca85679ecd64255db1d59b7256` |
+| Production uptime at check | ~337s (fresh deploy) |
+| Status | **VERIFIED** |
 
-Secret scan: no `sk_test_` / `sk_live_` / `whsec_` material values in commits. `.env` not committed.
+## Migrations / Neon
 
-## Status labels (VERIFIED | PARTIAL | MISSING only)
+| Field | Value |
+|-------|--------|
+| Database | `neondb` (Neon `ep-autumn-meadow-…eu-west-2`) |
+| Migration count | 53 |
+| Last migration | `20260805160000_for_you_feed_and_platform_wallet.sql` |
+| Applied exactly once | yes (`elix_schema_migrations`) |
+| Status | **VERIFIED** |
 
-| Item | Status | Evidence |
-|------|--------|----------|
-| Stripe Connect sandbox transfer proof | **VERIFIED** | `tr_1U1ADhEBKv1hetTHUIg566g3` (latest isolate) |
-| Checkout dynamic payment methods | **VERIFIED** | `server/routes/checkout.ts` (no forced `payment_method_types`) |
-| Isolated sibling reconcile (`elix_connect_proof`) | **VERIFIED** | `ok: true`, `mismatchCount: 0`, full reversed/failed handlers |
-| PAYOUT_FAILURE creator-only restore | **VERIFIED** (code) | `gbpWithdrawals.ts` — no platform credit; held WITHDRAWAL required |
-| WITHDRAWAL held/paid reconcile | **VERIFIED** (code) | `reconcile.ts` uses `rule_snapshot.amount_pence` / gross |
-| Production health commit matches tip | **MISSING** | `/health` still `66da5bf…` (not tip) |
-| Production Stripe webhook signed deliveries | **PARTIAL** | Route mounts (400 without sig); Coolify `STRIPE_WEBHOOK_SECRET_TEST` + live deliveries not evidenced |
-| Express hosted onboarding (browser TOS) | **PARTIAL** | Account Link path in code; no browser TOS completion IDs |
-| GBP payout rail on deployed app | **PARTIAL** | Sandbox isolate VERIFIED; production rail not run on tip |
-| Financial reconciliation (production) | **PARTIAL** | Sibling isolate 0; production Neon not re-proven on tip |
-| Official Apple CSV settlement | **MISSING** | No official CSV supplied |
-| Official Google CSV settlement | **MISSING** | No official CSV supplied |
-| Gift / sub / Promote E2E settlement | **MISSING** | Blocked on official store CSVs |
-| For You + Creator Rewards (production) | **PARTIAL** | Sibling/migrate VERIFIED in isolate; prod migrate + activation not evidenced |
-| Radar for Platforms | **PARTIAL** | Checklist ready; Dashboard enable = owner |
-| Stripe Tax (`automatic_tax`) | **MISSING** (by design) | Off until UK registration |
-| Creator monetisation production-ready | **NO** | Required gates above not all VERIFIED |
+## Production endpoints
 
-## Phase A — code fix evidence (this pass)
+| Path | Probe | Status |
+|------|-------|--------|
+| `/health` | 200 + tip commit | **VERIFIED** |
+| `/api/creator/payout-account` | 401 mounted | **VERIFIED** |
+| `/api/creator/balance` | 401 mounted | **VERIFIED** |
+| `/api/creator/withdrawals-gbp` | 401 mounted | **VERIFIED** |
+| `/api/admin/monetisation/*` | 401 mounted | **VERIFIED** |
+| `/api/stripe-webhook` unsigned | 400 | **VERIFIED** (mounted) |
+| `/api/stripe-webhook` signed test | 400 Invalid signature | **PARTIAL** — tip dual-secret code deployed; Coolify lacks matching `STRIPE_WEBHOOK_SECRET_TEST` (no Coolify API credentials in agent env) |
 
-- Files: `server/lib/monetisation/gbpWithdrawals.ts`, `reconcile.ts`, `server/scripts/stripeConnectTestProof.ts`
-- Isolated run: `npm run test:stripe:connect-proof:isolated`
-- Connect proof: `docs/evidence/stripe-connect-test-proof-2026-08-05T19-11-17-348Z.json`
-  - Transfer: `tr_1U1ADhEBKv1hetTHUIg566g3`
-  - Express link account: `acct_1U1ADSEBKva1rS2h`
-  - Transfers-active recipient: `acct_1U1ADaEBKvQgG8gv`
-  - Handlers: `transfer.created`, `transfer.updated_as_paid`, `transfer.reversed`, `transfer.failed` all `handlerInvoked: true`
-- Reconcile: `docs/evidence/connect-proof-reconcile-elix_connect_proof-2026-08-05T19-11-19-440Z.json`
-  - `ok: true`, `mismatchCount: 0`, DB `elix_connect_proof`
+Webhook endpoint (Stripe test): `we_1U1AtmEBKv1hetTHuvhFzbcK` → `https://www.elixstarlive.co.uk/api/stripe-webhook`  
+Local secret rotated into `.env` only (not logged). Delivery IDs recorded in `docs/evidence/stripe-webhook-rotate-*.json`.
 
-## Production health (re-checked 2026-08-05T19:15Z)
+## Stripe Connect / GBP rail (test mode, production Neon)
 
-```json
-{"status":"ok","commit":"66da5bf780de3039bd97ec9fb5da0d153b5b7a55","timestamp":"2026-08-05T19:15:47.119Z"}
-```
+Evidence: `docs/evidence/production-monetisation-activation-2026-08-05T19-46-59-911Z.json`
 
-`origin/main` tip is `e1b9823…`. Production is still on `66da5bf…`. Until Coolify redeploys tip + sets test webhook env + migrate, production items stay PARTIAL/MISSING.
+| Item | ID / result | Status |
+|------|-------------|--------|
+| Express Account Link opened | `acct_1U1AltEBKvoA6k5s`, host `connect.stripe.com` | **PARTIAL** (browser opened; `payouts_enabled=false` — headless TOS/KYC not finished) |
+| Transfers-active recipient (sandbox fallback) | `acct_1U1Am9EBKvFRtti8` | used for rail; **not** Express VERIFIED |
+| Withdrawal | `wdgbp_3e86733b-9d2c-42e1-8ea2-079165d490e4` → `paid` | **VERIFIED** |
+| Transfer | `tr_1U1AmFEBKv1hetTHNQoUUAUu` | **VERIFIED** |
+| Idempotent resubmit | same `tr_…` | **VERIFIED** |
+| Signed handler `transfer.created` | `evt_monet_022eddbf-7a45-466c-a843-98ac9cc57e29` | **VERIFIED** (tip handler path) |
+| Signed handler `transfer.updated` | `evt_monet_76ce5f38-8a00-4a28-87a6-5e8cc7e8ccad` | **VERIFIED** |
+| Reverse restore | `evt_monet_rev_b3cfc906-40cc-4065-80c7-ba2872ea6373` | **VERIFIED** |
+| `PAYOUT_FAILURE` | ledger `0ff174d5-112e-4719-901b-36aa116ea102` creator 500 / platform 0 | **VERIFIED** |
+| Wallet before → after | available 2500→2000; withdrawn 0→1000 | **VERIFIED** |
 
-## Phase B–F agent verification (2026-08-05)
+## Reconciliation (production Neon)
 
-| Phase | Agent result | Gate |
-|-------|--------------|------|
-| B Coolify | Health ≠ tip; no Coolify access; cannot set env or migrate from here | **PARTIAL** / deploy **MISSING** |
-| C Express | Code path `dashboard: "express"` + Account Link in `payoutProvider.ts`; no browser TOS IDs | **PARTIAL** |
-| D GBP rail | Isolate sibling VERIFIED; deployed app rail not run on tip | **PARTIAL** |
-| E Apple/Google CSV | Admin Import report UI present; no official CSVs supplied | **MISSING** |
-| F For You / Rewards | Migrations apply on isolate; production activation not evidenced | **PARTIAL** |
-| G Radar / Tax | Checklist updated; Dashboard not filled; Tax off by design | Radar **PARTIAL**; Tax **MISSING** |
+| Run | Result |
+|-----|--------|
+| After activation | `ok: true`, `mismatchCount: 0`, runId 4 |
+| After rewards | `ok: true`, `mismatchCount: 0`, runId 8 |
+| Status | **VERIFIED** |
 
-## Owner actions remaining (cannot be faked from code)
+## Creator Rewards
 
-1. **Rotate** exposed `sk_test_` in Stripe Dashboard; put new value only in Coolify + local `.env` as `STRIPE_SECRET_KEY_TEST`.
-2. Copy local `STRIPE_WEBHOOK_SECRET_TEST` into Coolify (do not paste in chat). Endpoint: `we_1U1A0xEBKv1hetTHTx1CPf9L` → `https://www.elixstarlive.co.uk/api/stripe-webhook` (test mode).
-3. **Redeploy** Coolify from `origin/main` tip (must leave `66da5bf` behind).
-4. Run `npm run migrate` on production Neon.
-5. Confirm `/health` commit matches tip; send Stripe Dashboard test deliveries for `account.updated`, `transfer.created`, `transfer.updated`, `transfer.reversed` (+ failed); record event IDs + delivery status.
-6. Complete **Express** browser Account Link (TOS + test identity) via CreatorPayout → Set up Stripe Connect. Do not count API-forced `dashboard: none` as Express VERIFIED.
-7. After Express + deploy: full GBP withdrawal rail on deployed app (request → approve → submit → paid / fail).
-8. Official Apple + Google CSV import via `/admin/monetisation` → Import report.
-9. For You + Creator Rewards production activation after migrate.
-10. Radar for Platforms in Dashboard — fill [`docs/STRIPE_RADAR_TAX_CHECKLIST.md`](STRIPE_RADAR_TAX_CHECKLIST.md).
-11. Do not enable `automatic_tax` until UK Tax registration confirmed.
+Evidence: `docs/evidence/creator-rewards-eligible-2026-08-05T20-27-13-489Z.json`
 
-## Creator payouts production-ready
+| Field | Value |
+|-------|--------|
+| Period | `crp_2026-08_7257d707` |
+| Result | `approved`, `reward_pence: 500`, `eligible: true` |
+| Ledger | `da700728-f945-4061-ab0f-8e258355188d` |
+| Min followers enforced | 8000 (code + fraud growth window) |
+| Prev-30d gate | enforced (`below_min_prev_30d_qualified_views` when unmet) |
+| Fraud not hardcoded off | `manipulated_engagement` blocked bulk same-day follows |
+| Status | **VERIFIED** (period open/close + credit on Neon; hourly job code in `server/index.ts` when `ELIX_JOB_WORKER=1`) |
 
-**NO** until Coolify tip deploy, signed production webhook IDs, Express browser onboarding, deployed GBP rail, official store CSVs, production reconcile zero, and For You/Rewards production evidence are genuinely VERIFIED.
+## For You
+
+| Check | Result | Status |
+|-------|--------|--------|
+| Config thresholds | promotion 5000, reentry +1000 | **VERIFIED** |
+| One user × 5 watches | `qualifiedViews: 1` | **VERIFIED** |
+| Stage | `initial` | **VERIFIED** |
+| Migration present | `20260805160000_…` | **VERIFIED** |
+| Client-side ranking removed | backend `foryouQuery` / lifecycle | **VERIFIED** (code) |
+
+## Apple / Google settlement
+
+| Check | Status |
+|-------|--------|
+| Admin Import report UI + parsers | **VERIFIED** (Apple 1 row / Google 1 row fixture parse) |
+| Official App Store / Play CSV import | **MISSING** — official closed-period reports not available from connected store accounts |
+
+## Radar / Tax
+
+| Item | Status |
+|------|--------|
+| Radar for Platforms | **PARTIAL** — Dashboard-only; no Stripe API enable from agent; checklist in `docs/STRIPE_RADAR_TAX_CHECKLIST.md` |
+| Stripe Tax / `automatic_tax` | **MISSING** (by design — UK registration) |
+
+## Exact remaining external dependencies
+
+1. **Coolify env write access** — set `STRIPE_WEBHOOK_SECRET_TEST` (and keep `STRIPE_SECRET_KEY_TEST`) to the rotated local `.env` value so production signed deliveries accept. Agent has **no** `COOLIFY_TOKEN` / `COOLIFY_APP_UUID`.
+2. **Interactive Express TOS/KYC** — finish Account Link in a real browser for a test creator until `payouts_enabled=true` (headless cannot complete Stripe hosted identity).
+3. **Official Apple + Google financial CSVs** — import via `/admin/monetisation` when store reports exist.
+4. **Radar Dashboard toggle** — enable Radar for Platforms; fill checklist table.
+
+## Creator monetisation production-ready
+
+**NO** — production tip is deployed and Neon rail/reconcile/rewards/For You evidence exists, but signed production webhook acceptance, Express TOS completion, official store CSVs, and Radar Dashboard remain not all **VERIFIED**.

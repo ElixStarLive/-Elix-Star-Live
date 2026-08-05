@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "created": false,
+  "endpointId": "we_1U1A0xEBKv1hetTHTx1CPf9L",
+  "url": "https://www.elixstarlive.co.uk/api/stripe-webhook",
+  "status": "enabled",
+  "livemode": false,
+  "enabled_events": [
+    "account.updated",
+    "transfer.created",
+    "transfer.updated",
+    "transfer.reversed",
+    "capability.updated"
+  ],
+  "secretPresentInResponse": false,
+  "note": "If created, copy whsec from Stripe Dashboard into Coolify STRIPE_WEBHOOK_SECRET_TEST only — not logged here.",
+  "finishedAt": "2026-08-05T19:30:01.101Z"
+}

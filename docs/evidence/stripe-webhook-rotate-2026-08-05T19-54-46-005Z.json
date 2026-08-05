@@ -1,0 +1,39 @@
+{
+  "finishedAt": "2026-08-05T19:54:46.003Z",
+  "endpointId": "we_1U1AtmEBKv1hetTHuvhFzbcK",
+  "url": "https://www.elixstarlive.co.uk/api/stripe-webhook",
+  "secretWrittenToEnv": true,
+  "secretLogged": false,
+  "delivery": [
+    {
+      "type": "account.updated",
+      "eventId": "evt_whrot_78c4843e-1bf9-4a28-898f-77d15c3a168b",
+      "httpStatus": 400,
+      "accepted": false,
+      "bodySnippet": "{\"error\":\"Invalid signature\"}"
+    },
+    {
+      "type": "transfer.created",
+      "eventId": "evt_whrot_e2f16419-74fa-47e2-8f60-f8011db6476a",
+      "httpStatus": 400,
+      "accepted": false,
+      "bodySnippet": "{\"error\":\"Invalid signature\"}"
+    },
+    {
+      "type": "transfer.updated",
+      "eventId": "evt_whrot_09ae2582-0032-49c5-bf2a-380053847880",
+      "httpStatus": 400,
+      "accepted": false,
+      "bodySnippet": "{\"error\":\"Invalid signature\"}"
+    },
+    {
+      "type": "transfer.reversed",
+      "eventId": "evt_whrot_e9bab9ee-cf36-4a49-8c14-15c07ad78fed",
+      "httpStatus": 400,
+      "accepted": false,
+      "bodySnippet": "{\"error\":\"Invalid signature\"}"
+    }
+  ],
+  "allAccepted": false,
+  "note": "If allAccepted=false, Coolify lacks matching STRIPE_WEBHOOK_SECRET_TEST (set from local .env — never paste in chat)."
+}
