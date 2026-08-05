@@ -26,7 +26,25 @@ function liveDiamondTierLabel(level: number) {
   return `Diamond ${roman[idx]}`;
 }
 
-/** Pink + Follow pill — photo hot-pink; identical on creator + spectator. */
+/** Live ranking chips — same fill as live bottom icons (`bg-black/35 backdrop-blur-sm`). */
+const THIN_CAPSULE_STYLE: React.CSSProperties = {
+  background: 'rgba(0, 0, 0, 0.35)',
+  border: 'none',
+  boxShadow: 'none',
+  backdropFilter: 'blur(4px)',
+  WebkitBackdropFilter: 'blur(4px)',
+};
+
+/** Shared capsule title / subtitle — half silver / half red writing. */
+const CAPSULE_TITLE = 'elix-silver-red-text text-[8px] font-bold whitespace-nowrap';
+const CAPSULE_SUB = 'elix-silver-red-text text-[6px] font-semibold whitespace-nowrap mt-[0.5px]';
+const CAPSULE_CHEVRON = 'elix-silver-red-text text-[8px] font-medium leading-none';
+
+/** Same height / padding / round chip shape. */
+const THIN_CAPSULE_CLASS =
+  'inline-flex items-center gap-0.5 flex-shrink-0 rounded-full pl-1.5 pr-1.5 h-[22px] box-border pointer-events-auto active:scale-95 transition-transform';
+
+/** Pink + Follow pill — legacy hot-pink; kept for any non-profile uses. */
 export function LiveFollowPill({
   onFollow,
   variant = 'capsule',
@@ -65,10 +83,34 @@ export function LiveFollowPill({
   );
 }
 
+/** Follow — same thin capsule chrome as Membership (shared profile slot). */
+export function LiveFollowCapsule({ onFollow }: { onFollow: (e: React.MouseEvent) => void }) {
+  return (
+    <button
+      type="button"
+      className={THIN_CAPSULE_CLASS}
+      style={THIN_CAPSULE_STYLE}
+      onClick={(e) => {
+        e.stopPropagation();
+        onFollow(e);
+      }}
+      aria-label="Follow"
+    >
+      <Plus size={11} className="text-[#F5F5F7] flex-shrink-0" strokeWidth={3} />
+      <span className="flex flex-col items-start justify-center leading-none min-w-0">
+        <span className={CAPSULE_TITLE}>Follow</span>
+        <span className={`${CAPSULE_SUB} font-bold`}>Creator</span>
+      </span>
+      <span className={CAPSULE_CHEVRON}>&gt;</span>
+    </button>
+  );
+}
+
 /**
  * Host profile block (photo 1-1): gold-glow avatar (same soft halo as LIVE icons),
  * name + blue verified, “N Likes • LIVE Pro”, Lv pill + Diamond tier,
- * Follow capsule stays visible after follow; Join (membership heart) sits under it.
+ * One action slot beside profile: Follow (not following) XOR Membership (following).
+ * Same capsule design/layout on host + spectator — never both, never stacked.
  * Does not touch the 3 MVP circles.
  */
 export function LiveHostProfileHeader({
@@ -82,21 +124,21 @@ export function LiveHostProfileHeader({
   onAvatarClick,
   onLike,
   onFollow,
-  joinSlot,
+  onMembership,
 }: {
   name: string;
   avatar: string;
   likes: number;
   level: number;
   avatarSize: number;
-  /** true = show Follow capsule (stays visible whether following or not). */
+  /** true = show Follow / Membership action slot (spectators). */
   showFollow: boolean;
   isFollowing?: boolean;
   onAvatarClick: () => void;
   onLike: (e: React.PointerEvent) => void;
   onFollow: (e: React.MouseEvent) => void;
-  /** Membership heart — shown beside Follow after follow (or host own-stream Join). */
-  joinSlot?: React.ReactNode;
+  /** Opens Membership VIP — shown in the same slot after follow. */
+  onMembership?: () => void;
 }) {
   const safeLevel = typeof level === 'number' && Number.isFinite(level) && level > 0 ? Math.floor(level) : 1;
   const likesLabel = formatLikesShort(likes);
@@ -167,13 +209,16 @@ export function LiveHostProfileHeader({
         </div>
       </div>
 
-      {/* Follow stays; membership heart capsule appears under it after follow */}
-      <div className="flex-shrink-0 self-center ml-1.5 flex flex-col items-center gap-1">
-        {showFollow ? (
-          <LiveFollowPill variant="photo" isFollowing={isFollowing} onFollow={onFollow} />
-        ) : null}
-        {joinSlot ?? null}
-      </div>
+      {/* Same slot + same capsule chrome on spectator and host watchers */}
+      {showFollow ? (
+        <div className="flex-shrink-0 self-center ml-1.5 flex items-center justify-center min-h-[22px]">
+          {!isFollowing ? (
+            <LiveFollowCapsule onFollow={onFollow} />
+          ) : onMembership ? (
+            <LiveMembershipVipCapsule onOpen={onMembership} />
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -211,24 +256,6 @@ export function LiveJoinPill({
     </button>
   );
 }
-
-/** Live ranking chips — same fill as live bottom icons (`bg-black/35 backdrop-blur-sm`). */
-const THIN_CAPSULE_STYLE: React.CSSProperties = {
-  background: 'rgba(0, 0, 0, 0.35)',
-  border: 'none',
-  boxShadow: 'none',
-  backdropFilter: 'blur(4px)',
-  WebkitBackdropFilter: 'blur(4px)',
-};
-
-/** Shared capsule title / subtitle — half silver / half red writing. */
-const CAPSULE_TITLE = 'elix-silver-red-text text-[8px] font-bold whitespace-nowrap';
-const CAPSULE_SUB = 'elix-silver-red-text text-[6px] font-semibold whitespace-nowrap mt-[0.5px]';
-const CAPSULE_CHEVRON = 'elix-silver-red-text text-[8px] font-medium leading-none';
-
-/** Same height / padding / round chip shape. */
-const THIN_CAPSULE_CLASS =
-  'inline-flex items-center gap-0.5 flex-shrink-0 rounded-full pl-1.5 pr-1.5 h-[22px] box-border pointer-events-auto active:scale-95 transition-transform';
 
 /** Diamond League — separate thin capsule. */
 export function LiveDiamondLeagueCapsule({
@@ -397,9 +424,10 @@ export function LiveExplorePill({ onOpen }: { onOpen: () => void }) {
 }
 
 /**
- * Photo sub-header: 4 separate thin capsules on the same horizontal line
- * (right-aligned). Gap keeps them as individual pills, not one fused strip.
- * 1 Weekly Ranking · 2 Diamond League · 3 Membership · 4 Explore
+ * Photo sub-header: thin capsules on the same horizontal line (right-aligned).
+ * Gap keeps them as individual pills, not one fused strip.
+ * Weekly Ranking · Diamond League · Membership (optional) · Explore
+ * When Membership lives in the profile Follow slot, pass showMembership={false}.
  */
 export function LiveMarkedSubHeaderBar({
   rank,
@@ -407,19 +435,22 @@ export function LiveMarkedSubHeaderBar({
   onMembership,
   onWeeklyRanking,
   onExplore,
+  showMembership = true,
 }: {
   rank: number | null;
   onDiamond: () => void;
   onMembership: () => void;
   onWeeklyRanking: () => void;
   onExplore: () => void;
+  /** false when Membership is shown in the profile Follow slot instead. */
+  showMembership?: boolean;
 }) {
   return (
     <div className="mt-1 -translate-y-[2mm] w-full pointer-events-auto relative z-20 flex justify-end">
       <div className="flex items-center gap-1.5 flex-nowrap w-max max-w-full ml-auto overflow-x-auto no-scrollbar">
         <LiveWeeklyRankingPill rank={rank} onOpen={onWeeklyRanking} />
         <LiveDiamondLeagueCapsule rank={rank} onOpen={onDiamond} />
-        <LiveMembershipVipCapsule onOpen={onMembership} />
+        {showMembership ? <LiveMembershipVipCapsule onOpen={onMembership} /> : null}
         <LiveExplorePill onOpen={onExplore} />
       </div>
     </div>

@@ -99,15 +99,6 @@ import ReportModal from '../../../components/ReportModal';
 import PromotePanel from '../../../components/PromotePanel';
 import { RankingPanel } from '../../../components/RankingPanel';
 import { type LiveRankTab } from '../../../components/CyclingRankBadge';
-import {
-  LiveComboMissionDock,
-  LiveHostProfileHeader,
-  LiveJoinPill,
-  LiveMarkedSubHeaderBar,
-} from '../../../components/LiveMarkedTopUi';
-import {
-  LiveSideMissionStack,
-} from '../../../components/LiveSideMissionStack';
 import { websocket } from '../../../lib/websocket';
 import { bindLiveBattleWs } from '../ws/bindLiveBattleWs';
 import { bindLiveBattleInviteWs } from '../ws/bindLiveBattleInviteWs';

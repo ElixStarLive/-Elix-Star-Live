@@ -124,7 +124,6 @@ import { type LiveRankTab } from '../../../components/CyclingRankBadge';
 import {
   LiveComboMissionDock,
   LiveHostProfileHeader,
-  LiveJoinPill,
   LiveMarkedSubHeaderBar,
 } from '../../../components/LiveMarkedTopUi';
 import {
@@ -135,7 +134,6 @@ import { parseLiveGiftGoal, type LiveGiftGoal } from '../../../lib/liveGiftGoal'
 import { liveStreamUiGiftTargetToServerBattleTarget, normalizeBattleGiftTarget } from '../../../lib/liveBattleGiftTarget';
 import { engagementFlags } from '../../../config/engagementFlags';
 import { earnBattleEnergyQuiet } from '../../../components/BattleEnergyBoostControls';
-import { apiLiveSendDailyHeart } from '../engagement/liveEngagementApi';
 import {
   EngagementDrawer,
   type EngagementPanel,
@@ -1877,64 +1875,7 @@ export default function LiveHostScreen() {
                               handleLikeTap(e);
                             }}
                             onFollow={followCreatorLive}
-                            joinSlot={
-                              // After Follow → membership heart (Join). Host own-live: no Join.
-                              (!isBroadcast && isFollowing) ? (
-                              <LiveJoinPill
-                                hasJoinedToday={hasJoinedToday}
-                                onJoin={async (e) => {
-                                  e.stopPropagation();
-                                  if (!isFollowing) {
-                                    showToast('Follow first to give a membership heart');
-                                    return;
-                                  }
-                                  if (hasJoinedToday) {
-                                    setShowTeamStatus(true);
-                                    return;
-                                  }
-                                  if (!user?.id || !effectiveStreamId) return;
-                                  const today = new Date().toISOString().split('T')[0];
-                                  const storageKey = `joined_stream_${effectiveStreamId}_${user.id}_${today}`;
-                                  localStorage.setItem(storageKey, 'true');
-
-                                  const heartKey = `my_heart_count_${effectiveStreamId}_${user.id}`;
-                                  const newCount = myHeartCount + 1;
-                                  localStorage.setItem(heartKey, newCount.toString());
-                                  setMyHeartCount(newCount);
-
-                                  setMemberCount(prev => prev + 1);
-                                  setHasJoinedToday(true);
-                                  setShowTeamStatus(true);
-
-                                  const joinBannerId = Date.now().toString();
-                                  const newMessage: LiveMessage = {
-                                    id: joinBannerId,
-                                    username: 'You',
-                                    text: '❤️ Joined the team!',
-                                    level: userLevel,
-                                    isGift: false,
-                                    avatar: '/royce/elix-mark.svg',
-                                    isSystem: true,
-                                    membershipIcon: '/royce/membership.svg',
-                                  };
-                                  setMessages(prev => appendCapped(prev, newMessage, LIVE_CHAT_MESSAGE_CAP));
-                                  window.setTimeout(() => {
-                                    setMessages(prev => prev.filter(m => m.id !== joinBannerId));
-                                  }, 5000);
-                                  spawnHeartFromClient(e.clientX, e.clientY, undefined, 'You', '/royce/elix-mark.svg');
-
-                                  if (!isBroadcast) {
-                                    const creatorId = effectiveStreamId;
-                                    try {
-                                      await apiLiveSendDailyHeart(creatorId);
-                                    } catch {
-                                      /* local join already applied */
-                                    }
-                                  }
-                                }}
-                              />
-                              ) : null
-                            }
+                            onMembership={_openMembershipBar}
                           />
                           {currentUniverse && (
                             <div className="mt-1 flex items-center gap-1 bg-[#121215]/90 rounded-full px-2.5 py-1 border border-[#E5E5E7]/80 shadow-sm pointer-events-auto relative z-20">
@@ -2008,6 +1949,7 @@ export default function LiveHostScreen() {
                     {/* Capsules right-aligned — left clear for battle gloves */}
                     <LiveMarkedSubHeaderBar
                       rank={diamondLeagueRank}
+                      showMembership={isBroadcast}
                       onDiamond={openDailyRanking}
                       onMembership={_openMembershipBar}
                       onWeeklyRanking={openWeeklyRanking}
