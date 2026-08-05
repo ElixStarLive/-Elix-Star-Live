@@ -12,6 +12,8 @@ import {
 } from "../lib/feedCacheValkey";
 import { bumpCacheLayer } from "../lib/cacheLayerMetrics";
 import { recordQualifiedRewardView } from "../lib/monetisation/qualifiedViews";
+import { queryRankedForYouPage } from "../lib/feed/foryouQuery";
+import { bumpFeedSignal, markNotInterested } from "../lib/feed/foryouLifecycle";
 
 const RATE_LIMIT_WINDOW = 60_000;
 const RATE_LIMIT_MAX_VIEWS = 120;
@@ -153,28 +155,6 @@ function formatVideoForClient(
   };
 }
 
-const FORYOU_SQL = `SELECT v.id, v.url, v.thumbnail, v.duration, v.description, v.hashtags, v.music,
-                v.views, v.likes, v.comments, v.shares, v.saves,
-                v.created_at, v.privacy, v.user_id,
-                (COALESCE(v.views,0) + COALESCE(v.likes,0)*2 + COALESCE(v.comments,0) + COALESCE(v.shares,0))::int AS engagement_score,
-                (json_build_object(
-                  'user_id', p.user_id,
-                  'username', p.username,
-                  'display_name', p.display_name,
-                  'avatar_url', p.avatar_url,
-                  'is_creator', COALESCE(p.is_verified, false),
-                  'followers', COALESCE(p.followers, 0),
-                  'following', COALESCE(p.following, 0),
-                  'level', COALESCE(p.level, 1)
-                ))::json AS user
-         FROM videos v
-         LEFT JOIN profiles p ON p.user_id = v.user_id
-         WHERE (v.privacy IS NULL OR v.privacy <> 'private')
-           AND v.url IS NOT NULL AND btrim(v.url) <> ''
-           AND v.url NOT ILIKE '%/stories/%'
-         ORDER BY v.created_at DESC NULLS LAST
-         LIMIT $1 OFFSET $2`;
-
 function foryouResponse(videos: any[], page: number, limit: number, offset: number, source: string) {
   return {
     videos,
@@ -187,66 +167,76 @@ function foryouResponse(videos: any[], page: number, limit: number, offset: numb
   };
 }
 
-function setCacheHeaders(res: Response) {
+function setCacheHeaders(res: Response, personalized: boolean) {
+  if (personalized) {
+    res.setHeader("Cache-Control", "private, no-store");
+    return;
+  }
   res.setHeader("Cache-Control", `public, s-maxage=${FORYOU_CACHE_SEC}, max-age=${Math.max(5, Math.floor(FORYOU_CACHE_SEC / 2))}`);
 }
 
-async function buildFeedFromDb(limit: number, offset: number): Promise<any[]> {
-  const db = getPool();
-  if (!db) return [];
-  const { rows } = await db.query(FORYOU_SQL, [limit, offset]);
+async function buildFeedFromDb(
+  limit: number,
+  offset: number,
+  viewerUserId?: string | null,
+): Promise<any[]> {
+  const rows = await queryRankedForYouPage({ limit, offset, viewerUserId });
   return (rows || []).map((v: any) =>
     formatVideoForClient(v, new Set(), new Set(), "For You"),
   );
 }
 
-/** For You — Valkey-first with distributed lock to prevent cache stampede. */
+/** For You — backend ranking; Valkey cache is global for anon, private for logged-in. */
 export async function handleForYouFeed(req: Request, res: Response) {
   try {
     const page = Math.max(1, parseInt(String(req.query.page || "1"), 10) || 1);
     const limit = Math.min(50, Math.max(1, parseInt(String(req.query.limit || "20"), 10) || 20));
     const offset = (page - 1) * limit;
+    const viewerUserId = await getUserId(req);
+    const personalized = !!viewerUserId;
 
     const db = getPool();
     if (!db) return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
 
-    const epoch = await getFeedForyouEpoch();
-    const valkeyKey = feedForyouDataKey(epoch, page, limit);
-
-    if (isValkeyConfigured()) {
+    // Personalized feeds must not share a global Valkey payload (not-interested / fraud gates).
+    if (!personalized && isValkeyConfigured()) {
+      const epoch = await getFeedForyouEpoch();
+      const valkeyKey = feedForyouDataKey(epoch, page, limit);
       const cached = await valkeyGet(valkeyKey);
       if (cached) {
         try {
           const payload = JSON.parse(cached) as { videos: any[] };
-          setCacheHeaders(res);
+          setCacheHeaders(res, false);
           bumpCacheLayer("feed_foryou_valkey_hits");
           return res.json(foryouResponse(payload.videos, page, limit, offset, "valkey"));
         } catch { /* corrupted cache, rebuild */ }
       }
-    }
 
-    const gotLock = await acquireCacheBuildLock(valkeyKey);
-
-    if (!gotLock && isValkeyConfigured()) {
-      const waited = await waitForCachePopulate(valkeyKey);
-      if (waited) {
-        try {
-          const payload = JSON.parse(waited) as { videos: any[] };
-          setCacheHeaders(res);
-          bumpCacheLayer("feed_foryou_valkey_hits");
-          return res.json(foryouResponse(payload.videos, page, limit, offset, "valkey"));
-        } catch { /* fall through to DB */ }
+      const gotLock = await acquireCacheBuildLock(valkeyKey);
+      if (!gotLock) {
+        const waited = await waitForCachePopulate(valkeyKey);
+        if (waited) {
+          try {
+            const payload = JSON.parse(waited) as { videos: any[] };
+            setCacheHeaders(res, false);
+            bumpCacheLayer("feed_foryou_valkey_hits");
+            return res.json(foryouResponse(payload.videos, page, limit, offset, "valkey"));
+          } catch { /* fall through */ }
+        }
       }
+
+      const videos = await buildFeedFromDb(limit, offset, null);
+      bumpCacheLayer("feed_foryou_builds");
+      if (videos.length > 0) {
+        valkeySet(valkeyKey, JSON.stringify({ videos }), FEED_FORYOU_CACHE_TTL_MS).catch(() => {});
+      }
+      setCacheHeaders(res, false);
+      return res.json(foryouResponse(videos, page, limit, offset, "postgres"));
     }
 
-    const videos = await buildFeedFromDb(limit, offset);
+    const videos = await buildFeedFromDb(limit, offset, viewerUserId);
     bumpCacheLayer("feed_foryou_builds");
-
-    if (isValkeyConfigured() && videos.length > 0) {
-      valkeySet(valkeyKey, JSON.stringify({ videos }), FEED_FORYOU_CACHE_TTL_MS).catch(() => {});
-    }
-
-    setCacheHeaders(res);
+    setCacheHeaders(res, personalized);
     return res.json(foryouResponse(videos, page, limit, offset, "postgres"));
   } catch (err: any) {
     logger.error({ err: err?.message }, "ForYouFeed error");
@@ -359,7 +349,7 @@ export async function handleTrackView(req: Request, res: Response) {
           rate_view_farm: "fraud",
           account_not_good_standing: "fraud",
         };
-        await recordQualifiedRewardView({
+        const qResult = await recordQualifiedRewardView({
           videoId: String(videoId),
           viewerUserId: isNamedUser ? String(userId) : "",
           creatorUserId,
@@ -368,6 +358,25 @@ export async function handleTrackView(req: Request, res: Response) {
             ? rejectMap[fraud.reason || ""] || "fraud"
             : null,
         });
+
+        const watchSec = Math.floor(Number(watchTime) || 0);
+        if (watchSec > 0) {
+          void bumpFeedSignal(String(videoId), "watch_time_seconds", watchSec);
+        }
+        if (completed) {
+          void bumpFeedSignal(String(videoId), "completions", 1);
+        }
+        if (!isFirstView && isNamedUser) {
+          void bumpFeedSignal(String(videoId), "rewatches_unique", 1);
+        }
+
+        if (qResult.qualified) {
+          const { onQualifiedUniqueViewForFeed } = await import("../lib/feed/foryouLifecycle");
+          await onQualifiedUniqueViewForFeed({
+            videoId: String(videoId),
+            creatorUserId,
+          });
+        }
       } catch (err: any) {
         logger.warn({ err: err?.message }, "qualified reward view recording failed");
       }
@@ -391,7 +400,16 @@ export async function handleTrackInteraction(req: Request, res: Response) {
     if (!db) {
       return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
     }
-    const KNOWN_TYPES = new Set(["like", "comment", "share", "save", "follow", "view"]);
+    const KNOWN_TYPES = new Set([
+      "like",
+      "comment",
+      "share",
+      "save",
+      "follow",
+      "view",
+      "not_interested",
+      "profile_visit",
+    ]);
     if (!KNOWN_TYPES.has(type)) {
       return res.status(400).json({ error: "Invalid interaction type" });
     }
@@ -402,6 +420,15 @@ export async function handleTrackInteraction(req: Request, res: Response) {
     // public counters. Those types are now analytics-only no-ops.
     if (type === "share") {
       await db.query(`UPDATE videos SET shares = shares + 1 WHERE id = $1`, [videoId]);
+    }
+    if (type === "not_interested") {
+      await markNotInterested(String(videoId), userId);
+    }
+    if (type === "follow") {
+      void bumpFeedSignal(String(videoId), "follows_generated", 1);
+    }
+    if (type === "profile_visit") {
+      void bumpFeedSignal(String(videoId), "profile_visits_generated", 1);
     }
 
     res.json({ ok: true });

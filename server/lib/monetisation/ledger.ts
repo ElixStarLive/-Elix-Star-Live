@@ -143,6 +143,59 @@ async function applyCreatorWalletDelta(
   );
 }
 
+/** Platform GBP books — mirrors creator wallet deltas for platform share. */
+async function applyPlatformWalletDelta(
+  client: PoolClient,
+  platformAmountPence: number,
+  status: LedgerStatus,
+): Promise<void> {
+  if (platformAmountPence === 0) return;
+  try {
+    await client.query(
+      `INSERT INTO elix_platform_wallet_gbp (id) VALUES ('default') ON CONFLICT (id) DO NOTHING`,
+    );
+  } catch {
+    return; // pre-migration
+  }
+  if (platformAmountPence > 0) {
+    if (status === "pending" || status === "awaiting_settlement") {
+      await client.query(
+        `UPDATE elix_platform_wallet_gbp
+            SET pending_pence = pending_pence + $1, updated_at = NOW()
+          WHERE id = 'default'`,
+        [platformAmountPence],
+      );
+    } else {
+      await client.query(
+        `UPDATE elix_platform_wallet_gbp
+            SET available_pence = available_pence + $1, updated_at = NOW()
+          WHERE id = 'default'`,
+        [platformAmountPence],
+      );
+    }
+    return;
+  }
+  const abs = Math.abs(platformAmountPence);
+  const bal = await client.query(
+    `SELECT pending_pence, available_pence FROM elix_platform_wallet_gbp WHERE id = 'default' FOR UPDATE`,
+  );
+  let remaining = abs;
+  const pending = Math.max(0, Number(bal.rows[0]?.pending_pence) || 0);
+  const available = Math.max(0, Number(bal.rows[0]?.available_pence) || 0);
+  const fromPending = Math.min(pending, remaining);
+  remaining -= fromPending;
+  const fromAvailable = Math.min(available, remaining);
+  await client.query(
+    `UPDATE elix_platform_wallet_gbp SET
+       pending_pence = GREATEST(0, pending_pence - $1),
+       available_pence = GREATEST(0, available_pence - $2),
+       reversed_pence = reversed_pence + $3,
+       updated_at = NOW()
+     WHERE id = 'default'`,
+    [fromPending, fromAvailable, abs],
+  );
+}
+
 export async function postLedgerEntry(
   client: PoolClient,
   input: LedgerPostInput,
@@ -231,6 +284,9 @@ export async function postLedgerEntry(
   const ledgerId = String(ins.rows[0].id);
   if (input.creatorUserId && input.creatorAmountPence !== 0) {
     await applyCreatorWalletDelta(client, input.creatorUserId, input.creatorAmountPence, status);
+  }
+  if (input.platformAmountPence !== 0) {
+    await applyPlatformWalletDelta(client, input.platformAmountPence, status);
   }
   return { id: ledgerId, alreadyExisted: false };
 }

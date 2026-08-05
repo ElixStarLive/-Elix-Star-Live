@@ -8,6 +8,7 @@ export default defineConfig({
       "server/lib/moneyIntegration.test.ts",
       "server/lib/monetisation/monetisation.db.test.ts",
       "server/lib/monetisation/monetisationMatrix.db.test.ts",
+      "server/lib/feed/foryou.db.test.ts",
     ],
     exclude: ["**/node_modules/**", "**/dist/**"],
     testTimeout: 120_000,

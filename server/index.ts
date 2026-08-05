@@ -30,6 +30,7 @@ import { matureGbpPendingEarnings } from "./lib/monetisation/ledger";
 import { loadMonetisationConfig } from "./lib/monetisation/config";
 import { openCreatorRewardPeriod, closeCreatorRewardPeriod } from "./lib/monetisation/creatorRewardsJob";
 import { runWalletLedgerReconciliation } from "./lib/monetisation/reconcile";
+import { sweepForYouLifecycle } from "./lib/feed/foryouLifecycle";
 import { initFeedPubSub } from "./feedBroadcast";
 import crypto from "crypto";
 import cluster from "node:cluster";
@@ -632,6 +633,11 @@ try {
       void runWalletLedgerReconciliation();
     }, 6 * 60 * 60 * 1000).unref();
     void runWalletLedgerReconciliation();
+
+    setInterval(() => {
+      void sweepForYouLifecycle(300);
+    }, 15 * 60 * 1000).unref();
+    void sweepForYouLifecycle(100);
   }
   server.listen(PORT, "0.0.0.0", 8192, () => {
     logger.info(

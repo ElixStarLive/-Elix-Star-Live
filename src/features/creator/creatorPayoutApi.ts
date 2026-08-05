@@ -85,3 +85,24 @@ export async function apiCreatorLedger(): Promise<{
     error: null,
   };
 }
+
+export async function apiCreatorPayoutAccount(): Promise<{
+  data: Record<string, unknown> | null;
+  error: string | null;
+}> {
+  const { data, error } = await request<Record<string, unknown>>('/api/creator/payout-account');
+  if (error) return { data: null, error: error.message };
+  return { data: data ?? null, error: null };
+}
+
+export async function apiCreatorPayoutOnboard(): Promise<{
+  data: Record<string, unknown> | null;
+  error: string | null;
+}> {
+  const { data, error } = await request<Record<string, unknown>>('/api/creator/payout-account/onboard', {
+    method: 'POST',
+    body: '{}',
+  });
+  if (error) return { data: null, error: error.message };
+  return { data: data ?? null, error: null };
+}

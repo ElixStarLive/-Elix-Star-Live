@@ -10,6 +10,8 @@ import {
   apiCreatorWithdrawGbp,
   apiCreatorGbpWithdrawals,
   apiCreatorLedger,
+  apiCreatorPayoutAccount,
+  apiCreatorPayoutOnboard,
 } from '../features/creator/creatorPayoutApi';
 import { SETTINGS_HOME } from '../lib/settingsNav';
 
@@ -58,6 +60,7 @@ type GbpWithdrawal = {
   amount_pence: number;
   status: string;
   created_at?: string;
+  payout_provider_ref?: string | null;
 };
 
 type LedgerRow = {
@@ -91,20 +94,28 @@ export default function CreatorPayout() {
   const [accountName, setAccountName] = useState('');
   const [accountDetail, setAccountDetail] = useState('');
   const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [connectStatus, setConnectStatus] = useState('unknown');
+  const [onboarding, setOnboarding] = useState(false);
 
   const reload = useCallback(async () => {
     setLoading(true);
     try {
-      const [balRes, methRes, wdRes, ledRes] = await Promise.all([
+      const [balRes, methRes, wdRes, ledRes, acctRes] = await Promise.all([
         apiCreatorBalance(),
         apiCreatorPayoutMethods(),
         apiCreatorGbpWithdrawals(),
         apiCreatorLedger(),
+        apiCreatorPayoutAccount(),
       ]);
       if (balRes.data) setBalance(balRes.data as Balance);
       setMethods(methRes.methods as PayoutMethod[]);
       setGbpWithdrawals(wdRes.withdrawals as GbpWithdrawal[]);
       setLedger(ledRes.ledger as LedgerRow[]);
+      if (acctRes.data) {
+        const d = acctRes.data;
+        const ready = d.charges_enabled === true || d.payouts_enabled === true || d.ok === true;
+        setConnectStatus(ready ? 'ready' : String(d.status || d.account_status || 'pending'));
+      }
     } catch {
       showToast('Could not load payout info');
     } finally {
@@ -117,6 +128,34 @@ export default function CreatorPayout() {
   }, [reload]);
 
   const exit = useCallback(() => navigate(SETTINGS_HOME, { replace: true }), [navigate]);
+
+  const startConnectOnboard = async () => {
+    setOnboarding(true);
+    try {
+      const { data, error } = await apiCreatorPayoutOnboard();
+      if (error) {
+        showToast(error || 'Stripe Connect unavailable');
+        return;
+      }
+      const url = String(
+        (data as Record<string, unknown> | null)?.onboardingUrl ||
+          (data as Record<string, unknown> | null)?.onboarding_url ||
+          (data as Record<string, unknown> | null)?.url ||
+          '',
+      );
+      if (url) {
+        window.location.href = url;
+        return;
+      }
+      const ready =
+        (data as Record<string, unknown> | null)?.ok === true &&
+        String((data as Record<string, unknown> | null)?.verificationStatus || '') === 'verified';
+      showToast(ready ? 'Stripe Connect account ready' : 'Stripe Connect response received');
+      await reload();
+    } finally {
+      setOnboarding(false);
+    }
+  };
 
   const saveMethod = async () => {
     if (!accountName.trim() || !accountDetail.trim()) {
@@ -264,6 +303,23 @@ export default function CreatorPayout() {
 
             <div className="rounded-xl border border-[#E5E5E7]/25 bg-white/5 p-3 space-y-2">
               <div className="flex items-center gap-2 text-[#F5F5F7] font-bold text-sm">
+                <Banknote size={16} /> Stripe Connect (GBP payouts)
+              </div>
+              <p className="text-[11px] text-white/55">
+                Status: {connectStatus}. Connect is required for automatic provider payouts with transaction IDs.
+              </p>
+              <button
+                type="button"
+                disabled={onboarding || connectStatus === 'ready'}
+                onClick={() => void startConnectOnboard()}
+                className="w-full py-2.5 rounded-lg bg-[#FF3B3F] text-black text-[12px] font-bold disabled:opacity-50"
+              >
+                {connectStatus === 'ready' ? 'Stripe Connect ready' : onboarding ? 'Opening…' : 'Set up Stripe Connect'}
+              </button>
+            </div>
+
+            <div className="rounded-xl border border-[#E5E5E7]/25 bg-white/5 p-3 space-y-2">
+              <div className="flex items-center gap-2 text-[#F5F5F7] font-bold text-sm">
                 <Landmark size={16} /> Payment method
               </div>
               {methods.length > 0 ? (
@@ -344,11 +400,18 @@ export default function CreatorPayout() {
               <div className="rounded-xl border border-white/10 bg-white/5 p-3 space-y-2">
                 <p className="text-[#F5F5F7] font-bold text-sm">GBP withdrawal history</p>
                 {gbpWithdrawals.slice(0, 10).map((r) => (
-                  <div key={r.id} className="flex justify-between gap-2 text-[11px]">
-                    <span className="text-white/70 tabular-nums">{formatPence(Number(r.amount_pence) || 0)}</span>
-                    <span className="text-white/50">
-                      {GBP_STATUS_LABEL[r.status] || r.status}
-                    </span>
+                  <div key={r.id} className="flex flex-col gap-0.5 text-[11px]">
+                    <div className="flex justify-between gap-2">
+                      <span className="text-white/70 tabular-nums">{formatPence(Number(r.amount_pence) || 0)}</span>
+                      <span className="text-white/50">
+                        {GBP_STATUS_LABEL[r.status] || r.status}
+                      </span>
+                    </div>
+                    {r.payout_provider_ref ? (
+                      <span className="text-white/35 font-mono text-[10px] truncate">
+                        {String(r.payout_provider_ref)}
+                      </span>
+                    ) : null}
                   </div>
                 ))}
               </div>

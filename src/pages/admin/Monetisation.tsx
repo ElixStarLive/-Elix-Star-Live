@@ -36,16 +36,20 @@ export default function AdminMonetisation() {
   const [csvText, setCsvText] = useState('');
   const [csvStore, setCsvStore] = useState<'apple' | 'google'>('apple');
   const [manualNote, setManualNote] = useState('');
+  const [fraudReviews, setFraudReviews] = useState<Record<string, unknown>[]>([]);
+  const [foryouCfg, setForyouCfg] = useState<Record<string, unknown> | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [c, r, w, rec, dash] = await Promise.all([
+      const [c, r, w, rec, dash, fraud, fy] = await Promise.all([
         request('/api/admin/monetisation/config'),
         request('/api/admin/monetisation/reports/summary'),
         request('/api/admin/monetisation/withdrawals-gbp'),
         request('/api/admin/monetisation/reconciliation'),
         request('/api/admin/monetisation/reports/dashboard'),
+        request('/api/admin/monetisation/fraud-reviews'),
+        request('/api/admin/monetisation/foryou-config'),
       ]);
       setCfg(((c.data as Record<string, unknown>)?.config as MonetisationConfig) || null);
       setReport((r.data as Record<string, unknown>) || null);
@@ -60,6 +64,14 @@ export default function AdminMonetisation() {
           : [],
       );
       setDashboard((dash.data as Record<string, unknown>) || null);
+      setFraudReviews(
+        Array.isArray((fraud.data as Record<string, unknown>)?.reviews)
+          ? ((fraud.data as Record<string, unknown>).reviews as Record<string, unknown>[])
+          : [],
+      );
+      setForyouCfg(
+        ((fy.data as Record<string, unknown>)?.config as Record<string, unknown>) || null,
+      );
     } catch {
       showToast('Failed to load monetisation admin');
     } finally {
@@ -147,6 +159,43 @@ export default function AdminMonetisation() {
       await load();
     } catch {
       showToast('Manual mark-paid failed');
+    }
+  };
+
+  const patchForYou = async (field: string, value: string | number | boolean | null) => {
+    try {
+      const { error } = await request('/api/admin/monetisation/foryou-config', {
+        method: 'PATCH',
+        body: JSON.stringify({ field, value, reason }),
+      });
+      if (error) throw new Error(error.message);
+      showToast('For You setting saved');
+      await load();
+    } catch {
+      showToast('For You save failed');
+    }
+  };
+
+  const setFraudOutcome = async (id: number, status: string) => {
+    try {
+      const { error } = await request(`/api/admin/monetisation/fraud-reviews/${id}/outcome`, {
+        method: 'POST',
+        body: JSON.stringify({ status, outcome_note: reason }),
+      });
+      if (error) throw new Error(error.message);
+      showToast('Fraud review updated');
+      await load();
+    } catch {
+      showToast('Fraud update failed');
+    }
+  };
+
+  const runForYouSweep = async () => {
+    try {
+      await request('/api/admin/monetisation/foryou-sweep', { method: 'POST', body: '{}' });
+      showToast('For You sweep finished');
+    } catch {
+      showToast('For You sweep failed');
     }
   };
 
@@ -352,6 +401,95 @@ export default function AdminMonetisation() {
           <pre className="text-xs bg-black/40 border border-white/10 rounded-lg p-3 overflow-auto max-h-48">
             {JSON.stringify(reconcileRuns.slice(0, 5), null, 2)}
           </pre>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-xl font-bold">Fraud reviews</h2>
+          <div className="space-y-2">
+            {fraudReviews.length === 0 ? (
+              <p className="text-white/40 text-sm">No open fraud reviews</p>
+            ) : (
+              fraudReviews.map((fr) => (
+                <div
+                  key={String(fr.id)}
+                  className="flex flex-wrap items-center gap-2 border border-white/10 rounded-lg p-3 text-sm"
+                >
+                  <span className="font-mono text-xs">#{String(fr.id)}</span>
+                  <span>{String(fr.user_id)}</span>
+                  <span className="text-xs text-white/50">{String(fr.status)}</span>
+                  <span className="text-xs text-white/40">{JSON.stringify(fr.reason_codes)}</span>
+                  <button
+                    type="button"
+                    className="px-2 py-1 rounded bg-white/10"
+                    onClick={() => void setFraudOutcome(Number(fr.id), 'cleared')}
+                  >
+                    Clear
+                  </button>
+                  <button
+                    type="button"
+                    className="px-2 py-1 rounded bg-[#FF3B3F] text-black font-bold"
+                    onClick={() => void setFraudOutcome(Number(fr.id), 'confirmed_fraud')}
+                  >
+                    Confirm fraud
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+
+        <section className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-xl font-bold">For You algorithm</h2>
+            <button
+              type="button"
+              onClick={() => void runForYouSweep()}
+              className="px-3 py-2 rounded-lg bg-[#FF3B3F] text-black text-sm font-bold"
+            >
+              Run sweep
+            </button>
+          </div>
+          {foryouCfg ? (
+            <div className="grid md:grid-cols-2 gap-3 text-sm">
+              <Field
+                label="Initial audience size"
+                value={Number(foryouCfg.initialAudienceSize) || 0}
+                onSave={(v) => void patchForYou('initialAudienceSize', Number(v))}
+              />
+              <Field
+                label="Promotion qualified views"
+                value={Number(foryouCfg.promotionQualifiedViews) || 0}
+                onSave={(v) => void patchForYou('promotionQualifiedViews', Number(v))}
+              />
+              <Field
+                label="Removal window hours"
+                value={Number(foryouCfg.removalWindowHours) || 0}
+                onSave={(v) => void patchForYou('removalWindowHours', Number(v))}
+              />
+              <Field
+                label="Re-entry additional qualified views"
+                value={Number(foryouCfg.reentryAdditionalQualifiedViews) || 0}
+                onSave={(v) => void patchForYou('reentryAdditionalQualifiedViews', Number(v))}
+              />
+              <Field
+                label="Max recommendation cycles"
+                value={Number(foryouCfg.maxRecommendationCycles) || 0}
+                onSave={(v) => void patchForYou('maxRecommendationCycles', Number(v))}
+              />
+              <Field
+                label="Freshness window hours"
+                value={Number(foryouCfg.freshnessWindowHours) || 0}
+                onSave={(v) => void patchForYou('freshnessWindowHours', Number(v))}
+              />
+              <Field
+                label="Fraud sensitivity 0-100"
+                value={Number(foryouCfg.fraudSensitivity) || 0}
+                onSave={(v) => void patchForYou('fraudSensitivity', Number(v))}
+              />
+            </div>
+          ) : (
+            <p className="text-white/40 text-sm">For You config unavailable (migrate first)</p>
+          )}
         </section>
 
         <section className="space-y-3">

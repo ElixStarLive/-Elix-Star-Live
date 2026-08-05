@@ -291,6 +291,16 @@ export async function saveVideoToDb(video: Video): Promise<void> {
     ]
   );
   logger.info({ videoId: video.id, url: video.url?.slice(0, 50) }, "Video saved to Postgres");
+  try {
+    const { enrollVideoInForYou } = await import("./feed/foryouLifecycle");
+    await enrollVideoInForYou({
+      videoId: video.id,
+      creatorUserId: video.userId,
+      privacy: video.privacy,
+    });
+  } catch (err) {
+    logger.warn({ err, videoId: video.id }, "For You enroll after save failed");
+  }
 }
 
 /** Remove video and related engagement rows so it does not reappear after restart (Neon reload). */

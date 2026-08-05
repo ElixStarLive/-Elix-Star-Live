@@ -539,4 +539,117 @@ router.get("/reports/dashboard", async (_req, res) => {
   }
 });
 
+// ── Fraud review queue ──────────────────────────────────────────────
+router.get("/fraud-reviews", async (req, res) => {
+  const pool = getPool();
+  if (!pool) return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+  try {
+    const status = String(req.query.status || "open");
+    const { rows } = await pool.query(
+      `SELECT * FROM elix_fraud_reviews
+        WHERE ($1 = 'all' OR status = $1 OR ($1 = 'open' AND status IN ('open','under_review')))
+        ORDER BY created_at DESC
+        LIMIT 100`,
+      [status],
+    );
+    return res.json({ reviews: rows });
+  } catch (err) {
+    logger.error({ err }, "admin fraud-reviews list failed");
+    return res.status(500).json({ error: "SERVER_ERROR" });
+  }
+});
+
+const fraudOutcomeSchema = z.object({
+  status: z.enum(["open", "under_review", "cleared", "confirmed_fraud", "appealed"]),
+  outcome_note: z.string().max(1000).optional(),
+});
+
+router.post(
+  "/fraud-reviews/:id/outcome",
+  validateBody(fraudOutcomeSchema),
+  async (req: Request, res: Response) => {
+    const adminId = (req.authContext as NonNullable<typeof req.authContext>).userId;
+    const reviewId = Math.floor(Number(req.params.id) || 0);
+    if (!reviewId) return res.status(400).json({ error: "INVALID_ID" });
+    try {
+      const { setFraudReviewOutcome } = await import("../lib/monetisation/fraud");
+      const result = await setFraudReviewOutcome({
+        reviewId,
+        status: req.body.status,
+        reviewerUserId: adminId,
+        outcomeNote: req.body.outcome_note,
+      });
+      if (!result.ok) return res.status(500).json({ error: "UPDATE_FAILED" });
+      return res.json({ ok: true });
+    } catch (err) {
+      logger.error({ err }, "admin fraud outcome failed");
+      return res.status(500).json({ error: "SERVER_ERROR" });
+    }
+  },
+);
+
+// ── For You algorithm config ────────────────────────────────────────
+router.get("/foryou-config", async (_req, res) => {
+  try {
+    const { loadForYouConfig } = await import("../lib/feed/foryouConfig");
+    const cfg = await loadForYouConfig(true);
+    return res.json({ config: cfg });
+  } catch (err) {
+    logger.error({ err }, "admin foryou-config get failed");
+    return res.status(500).json({ error: "SERVER_ERROR" });
+  }
+});
+
+const foryouPatchSchema = z.object({
+  field: z.string().min(1).max(80),
+  value: z.union([z.string(), z.number(), z.boolean(), z.null()]),
+  reason: z.string().max(500).optional(),
+});
+
+router.patch("/foryou-config", validateBody(foryouPatchSchema), async (req: Request, res: Response) => {
+  const adminId = (req.authContext as NonNullable<typeof req.authContext>).userId;
+  const {
+    FORYOU_CONFIG_FIELD_MAP,
+    invalidateForYouConfigCache,
+    loadForYouConfig,
+  } = await import("../lib/feed/foryouConfig");
+  const field = String(req.body.field);
+  const col = FORYOU_CONFIG_FIELD_MAP[field];
+  if (!col) return res.status(400).json({ error: "UNKNOWN_FIELD" });
+  const pool = getPool();
+  if (!pool) return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+  try {
+    const prev = await pool.query(`SELECT * FROM elix_foryou_config WHERE id = 'default'`);
+    const previousValue =
+      prev.rows[0] && prev.rows[0][col] != null ? String(prev.rows[0][col]) : null;
+    await pool.query(`UPDATE elix_foryou_config SET ${col} = $1, updated_at = NOW() WHERE id = 'default'`, [
+      req.body.value,
+    ]);
+    await auditMonetisationConfigChange({
+      adminUserId: adminId,
+      fieldName: `foryou.${field}`,
+      previousValue,
+      newValue: String(req.body.value),
+      reason: req.body.reason,
+    });
+    invalidateForYouConfigCache();
+    const cfg = await loadForYouConfig(true);
+    return res.json({ ok: true, config: cfg });
+  } catch (err) {
+    logger.error({ err, field }, "admin foryou-config patch failed");
+    return res.status(500).json({ error: "SERVER_ERROR" });
+  }
+});
+
+router.post("/foryou-sweep", async (_req, res) => {
+  try {
+    const { sweepForYouLifecycle } = await import("../lib/feed/foryouLifecycle");
+    const result = await sweepForYouLifecycle(500);
+    return res.json({ ok: true, ...result });
+  } catch (err) {
+    logger.error({ err }, "admin foryou-sweep failed");
+    return res.status(500).json({ error: "SERVER_ERROR" });
+  }
+});
+
 export default router;

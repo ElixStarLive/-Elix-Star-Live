@@ -60,6 +60,8 @@ export async function runWalletLedgerReconciliation(): Promise<{
         ["pending", Number(w.pending_pence) || 0, Number(L.pending) || 0],
         ["available", Number(w.available_pence) || 0, Number(L.available) || 0],
         ["held", Number(w.held_pence) || 0, Number(L.held) || 0],
+        ["withdrawn", Number(w.withdrawn_pence) || 0, Number(L.withdrawn) || 0],
+        ["reversed", Number(w.reversed_pence) || 0, Number(L.reversed) || 0],
       ];
       for (const [scope, actual, expected] of checks) {
         if (actual !== expected) {
@@ -78,10 +80,45 @@ export async function runWalletLedgerReconciliation(): Promise<{
       `SELECT
          COALESCE(SUM(CASE WHEN revenue_source = 'PROMOTE_VIDEO' AND reversal_of_id IS NULL THEN platform_amount_pence ELSE 0 END),0)::bigint AS promote,
          COALESCE(SUM(CASE WHEN revenue_source IN ('PAID_GIFT','CREATOR_SUBSCRIPTION') AND reversal_of_id IS NULL THEN platform_amount_pence ELSE 0 END),0)::bigint AS share,
-         COALESCE(SUM(CASE WHEN revenue_source IN ('REFUND_REVERSAL','CHARGEBACK_REVERSAL') THEN platform_amount_pence ELSE 0 END),0)::bigint AS reverses
+         COALESCE(SUM(CASE WHEN revenue_source IN ('REFUND_REVERSAL','CHARGEBACK_REVERSAL') THEN ABS(LEAST(platform_amount_pence,0)) ELSE 0 END),0)::bigint AS reverses
        FROM elix_financial_ledger`,
     );
-    const p = plat.rows[0];
+    const p = plat.rows[0] || {};
+    const expectedPlatformAvailable =
+      (Number(p.promote) || 0) + (Number(p.share) || 0) - (Number(p.reverses) || 0);
+
+    // Report-only: never rewrite platform wallet here.
+    try {
+      const pw = await pool.query(
+        `SELECT available_pence, pending_pence, reversed_pence
+           FROM elix_platform_wallet_gbp WHERE id = 'default' LIMIT 1`,
+      );
+      if (pw.rowCount) {
+        const availableActual =
+          (Number(pw.rows[0].available_pence) || 0) + (Number(pw.rows[0].pending_pence) || 0);
+        const revActual = Number(pw.rows[0].reversed_pence) || 0;
+        const revExpected = Number(p.reverses) || 0;
+        if (availableActual !== expectedPlatformAvailable) {
+          mismatches.push({
+            scope: "platform:available_plus_pending",
+            expected_pence: expectedPlatformAvailable,
+            actual_pence: availableActual,
+            detail: "platform_wallet_vs_ledger",
+          });
+        }
+        if (revActual !== revExpected) {
+          mismatches.push({
+            scope: "platform:reversed",
+            expected_pence: revExpected,
+            actual_pence: revActual,
+            detail: "platform_wallet_vs_ledger",
+          });
+        }
+      }
+    } catch {
+      /* optional pre-migration */
+    }
+
     // Sanity: creator + platform = net for non-reversal gift/sub rows
     const splitCheck = await pool.query(
       `SELECT id, net_revenue_pence, creator_amount_pence, platform_amount_pence
@@ -100,8 +137,6 @@ export async function runWalletLedgerReconciliation(): Promise<{
         detail: "creator_plus_platform_ne_net",
       });
     }
-
-    void p; // platform aggregates available for report payload
 
     const status = mismatches.length === 0 ? "ok" : "mismatch";
     const ins = await pool.query(
