@@ -9,7 +9,7 @@ import { apiLiveToken, LiveRoomLifecycle } from "../../../lib/live";
 import { bindLiveRoomWs } from "../ws/bindLiveRoomWs";
 import { bindLiveBattleWs } from "../ws/bindLiveBattleWs";
 import { bindLiveCohostWs } from "../ws/bindLiveCohostWs";
-import { INLINE_LIVE_PLACEHOLDER_AVATAR_PX } from "../../../lib/profileFrame";
+import { INLINE_LIVE_PLACEHOLDER_AVATAR_PX, LIVE_BATTLE_VIDEO_HEIGHT } from "../../../lib/profileFrame";
 import {
   prepareLiveVideoEl,
   LIVE_WEBRTC_VIDEO_CLASS,
@@ -465,57 +465,64 @@ export default function InlineLiveViewer({
         </div>
       )}
 
-      {/* ── Battle: same feed card size as normal live; split only — no score bar ── */}
+      {/* ── Battle: same half-height container as live battle (top videos, bottom empty/chat zone) ── */}
       {mode === "battle" && (
-        <div className="absolute inset-0">
-          <div className="absolute inset-0 flex flex-row">
-            <div className="w-1/2 h-full relative bg-[#121215] overflow-hidden">
-              <video
-                ref={hostVideoRef}
-                className={videoClass}
-                autoPlay
-                playsInline
-                muted
-                controls={false}
-                poster={LIVE_VIDEO_TRANSPARENT_POSTER}
-                style={{ backgroundColor: "#121215" }}
-              />
-              <span className="absolute bottom-1 left-1 z-10 text-white/80 text-[8px] font-bold bg-black/50 rounded px-1 truncate max-w-[90%]">
-                {creatorName}
-              </span>
-            </div>
-            <div className="w-1/2 h-full relative bg-[#121215] overflow-hidden">
-              <video
-                ref={opponentVideoRef}
-                className={videoClass}
-                autoPlay
-                playsInline
-                muted
-                controls={false}
-                poster={LIVE_VIDEO_TRANSPARENT_POSTER}
-                style={{ backgroundColor: "#121215" }}
-              />
-              {!battle?.opponentName ? (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 pointer-events-none z-[1]">
-                  <span className="text-white/30 text-lg font-light">+</span>
-                  <span className="text-white/40 text-[10px] font-semibold">Waiting</span>
-                </div>
-              ) : (
-                <span className="absolute bottom-1 right-1 z-10 text-white/80 text-[8px] font-bold bg-black/50 rounded px-1 truncate max-w-[90%]">
-                  {battle.opponentName}
+        <div className="absolute inset-0 flex flex-col bg-[#121215]">
+          <div
+            className="relative w-full flex-none overflow-hidden"
+            style={{ height: LIVE_BATTLE_VIDEO_HEIGHT }}
+          >
+            <div className="absolute inset-0 flex flex-row">
+              <div className="w-1/2 h-full relative bg-[#121215] overflow-hidden">
+                <video
+                  ref={hostVideoRef}
+                  className={videoClass}
+                  autoPlay
+                  playsInline
+                  muted
+                  controls={false}
+                  poster={LIVE_VIDEO_TRANSPARENT_POSTER}
+                  style={{ backgroundColor: "#121215" }}
+                />
+                <span className="absolute bottom-1 left-1 z-10 text-white/80 text-[8px] font-bold bg-black/50 rounded px-1 truncate max-w-[90%]">
+                  {creatorName}
                 </span>
-              )}
+              </div>
+              <div className="w-1/2 h-full relative bg-[#121215] overflow-hidden">
+                <video
+                  ref={opponentVideoRef}
+                  className={videoClass}
+                  autoPlay
+                  playsInline
+                  muted
+                  controls={false}
+                  poster={LIVE_VIDEO_TRANSPARENT_POSTER}
+                  style={{ backgroundColor: "#121215" }}
+                />
+                {!battle?.opponentName ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 pointer-events-none z-[1]">
+                    <span className="text-white/30 text-lg font-light">+</span>
+                    <span className="text-white/40 text-[10px] font-semibold">Waiting</span>
+                  </div>
+                ) : (
+                  <span className="absolute bottom-1 right-1 z-10 text-white/80 text-[8px] font-bold bg-black/50 rounded px-1 truncate max-w-[90%]">
+                    {battle.opponentName}
+                  </span>
+                )}
+              </div>
             </div>
-          </div>
-          <div className="absolute left-0 right-0 top-[42px] z-20 flex justify-center pointer-events-none">
-            <div className="flex items-center gap-1.5 bg-black/35 backdrop-blur-md rounded-full px-2.5 py-1 border border-white/12">
-              <span className="text-white text-[7px] font-black italic">VS</span>
-              <span className="text-white text-[11px] font-black tabular-nums">
-                {formatTime(battle?.timeLeft ?? 0)}
-              </span>
+            <div className="absolute left-0 right-0 top-2 z-20 flex justify-center pointer-events-none">
+              <div className="flex items-center gap-1.5 bg-black/35 backdrop-blur-md rounded-full px-2.5 py-1 border border-white/12">
+                <span className="text-white text-[7px] font-black italic">VS</span>
+                <span className="text-white text-[11px] font-black tabular-nums">
+                  {formatTime(battle?.timeLeft ?? 0)}
+                </span>
+              </div>
             </div>
+            {!hasStream && placeholder}
           </div>
-          {!hasStream && placeholder}
+          {/* Lower half matches battle chat zone — empty on For You preview */}
+          <div className="flex-1 min-h-0 bg-[#121215]" aria-hidden />
         </div>
       )}
 
