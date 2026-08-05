@@ -338,16 +338,35 @@ export async function handleTrackView(req: Request, res: Response) {
           videoId,
         ]);
         if (owner.rowCount) creatorUserId = String(owner.rows[0].user_id || "");
+        const { evaluateViewFraud } = await import("../lib/monetisation/fraud");
+        const { loadMonetisationConfig } = await import("../lib/monetisation/config");
+        const cfg = await loadMonetisationConfig();
+        const ua = String(req.headers["user-agent"] || "");
+        const fraud = await evaluateViewFraud({
+          videoId: String(videoId),
+          viewerUserId: isNamedUser ? String(userId) : "",
+          creatorUserId,
+          watchSeconds: Math.floor(Number(watchTime) || 0),
+          minWatchSeconds: cfg.rewardsMinWatchSeconds,
+          userAgent: ua,
+          ipHash,
+        });
+        const rejectMap: Record<string, "bot" | "fraud" | "logged_out" | "self" | "watch_time" | null> = {
+          logged_out: "logged_out",
+          self_view: "self",
+          watch_time: "watch_time",
+          bot_ua: "bot",
+          rate_view_farm: "fraud",
+          account_not_good_standing: "fraud",
+        };
         await recordQualifiedRewardView({
           videoId: String(videoId),
           viewerUserId: isNamedUser ? String(userId) : "",
           creatorUserId,
           watchSeconds: Math.floor(Number(watchTime) || 0),
-          rejectReason: !isNamedUser
-            ? "logged_out"
-            : creatorUserId && userId === creatorUserId
-              ? "self"
-              : null,
+          rejectReason: fraud.reject
+            ? rejectMap[fraud.reason || ""] || "fraud"
+            : null,
         });
       } catch (err: any) {
         logger.warn({ err: err?.message }, "qualified reward view recording failed");

@@ -140,6 +140,18 @@ async function reconcileAppleSubscriptionEntitlement(
       },
     });
     if (!upserted.ok) return { ok: false, updated: false, detail: upserted.error };
+    try {
+      const { autoPostSubscriptionRevenue } = await import("../lib/monetisation/storeSettlement");
+      await autoPostSubscriptionRevenue({
+        subscriptionId: upserted.id,
+        creatorUserId: creatorId,
+        payerUserId: userId,
+        externalTransactionId: verified.transactionId || verified.originalTransactionId,
+        applePayload: verified.rawTransaction as Record<string, unknown>,
+      });
+    } catch (err) {
+      logger.warn({ err, creatorId }, "Apple sub renewal GBP post skipped");
+    }
     return { ok: true, updated: true };
   }
 
@@ -206,6 +218,17 @@ async function reconcileGoogleSubscriptionEntitlement(purchaseToken: string): Pr
       },
     });
     if (!upserted.ok) return { ok: false, updated: false, detail: upserted.error };
+    try {
+      const { autoPostSubscriptionRevenue } = await import("../lib/monetisation/storeSettlement");
+      await autoPostSubscriptionRevenue({
+        subscriptionId: upserted.id,
+        creatorUserId: creatorId,
+        payerUserId: userId,
+        externalTransactionId: verified.latestOrderId || purchaseTokenHash,
+      });
+    } catch (err) {
+      logger.warn({ err, creatorId }, "Google sub renewal GBP post skipped");
+    }
     return { ok: true, updated: true };
   }
 

@@ -9,6 +9,11 @@ import { createPaidCoinLot, consumeSettledNetForGift } from "./monetisation/paid
 import { loadMonetisationConfig, ruleSnapshotFromConfig } from "./monetisation/config";
 import { splitNetRevenue } from "./monetisation/moneyMath";
 import { postLedgerEntry } from "./monetisation/ledger";
+import {
+  resolveCoinPurchaseVerifiedPrice,
+  reversePurchaseFinancials,
+} from "./monetisation/storeSettlement";
+import type { AppleTxPayload } from "./appleIap";
 
 export async function neonGetCoinBalance(userId: string): Promise<number | null> {
   const pool = getPool();
@@ -72,6 +77,7 @@ export async function neonCreditIap(input: {
   productId: string;
   coins: number;
   verification: Record<string, unknown>;
+  applePayload?: AppleTxPayload | Record<string, unknown> | null;
 }): Promise<CreditOk | CreditDup | CreditErr> {
   const pool = getPool();
   if (!pool) return { ok: false, error: "no_pool" };
@@ -112,25 +118,30 @@ export async function neonCreditIap(input: {
          updated_at = NOW()`,
       [input.userId, coins],
     );
-    // Paid coin lot for gift GBP attribution. Net stays unset until verified settlement.
+    // Paid coin lot — auto-settle from verified store/catalog price (no invented commission).
     try {
-      let grossPence = 0;
-      const priceR = await client.query(
-        `SELECT price FROM elix_coin_packages WHERE product_id = $1 OR id = $1 LIMIT 1`,
-        [input.productId],
-      );
-      if (priceR.rowCount) {
-        const { catalogGbpNumberToPence } = await import("./monetisation/moneyMath");
-        grossPence = catalogGbpNumberToPence(Number(priceR.rows[0].price));
-      }
+      const price = await resolveCoinPurchaseVerifiedPrice({
+        provider: input.provider === "google" ? "google" : "apple",
+        productId: input.productId,
+        applePayload: (input.applePayload as Record<string, unknown>) || null,
+      });
+      const net =
+        price.grossPence -
+        price.appStoreDeductionPence -
+        price.taxDeductionPence -
+        price.processingDeductionPence;
       await createPaidCoinLot(client, {
         userId: input.userId,
         provider: input.provider,
         providerTransactionId: input.providerTransactionId,
         productId: input.productId,
         coins,
-        grossPence,
-        settled: false,
+        grossPence: price.grossPence,
+        netPence: Math.max(0, net),
+        appStoreDeductionPence: price.appStoreDeductionPence,
+        taxDeductionPence: price.taxDeductionPence,
+        processingDeductionPence: price.processingDeductionPence,
+        settled: price.grossPence > 0,
       });
       await client.query(
         `INSERT INTO elix_processed_purchases (external_purchase_id, provider, product_id, user_id)
@@ -810,6 +821,17 @@ export async function neonReverseIapPurchase(input: {
     }
 
     await client.query("COMMIT");
+    // GBP ledger + paid-coin lot reverse (idempotent via webhook event id).
+    try {
+      await reversePurchaseFinancials({
+        provider: input.provider,
+        providerTransactionId: txnId,
+        kind: "REFUND_REVERSAL",
+        webhookEventId: `iap_gbp_rev:${input.provider}:${txnId}`,
+      });
+    } catch (gbpErr) {
+      logger.error({ err: gbpErr, txnId }, "GBP ledger reverse after IAP refund failed");
+    }
     return { ok: true, alreadyProcessed: false, reversedCoins: coins };
   } catch (e) {
     try {

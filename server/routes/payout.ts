@@ -105,7 +105,51 @@ export async function handleGetCreatorBalance(req: Request, res: Response) {
       /* optional until migration */
     }
 
-    return res.json({ ...coinBal, gbp, rewards });
+    const earningsBySource = {
+      gifts_pence: 0,
+      subscriptions_pence: 0,
+      rewards_pence: 0,
+      reversals_pence: 0,
+    };
+    let activeSubscribers = 0;
+    try {
+      const bySrc = await db.query(
+        `SELECT revenue_source,
+                COALESCE(SUM(creator_amount_pence),0)::bigint AS pence
+           FROM elix_financial_ledger
+          WHERE creator_user_id = $1 AND creator_amount_pence > 0
+          GROUP BY revenue_source`,
+        [userId],
+      );
+      for (const row of bySrc.rows) {
+        const src = String(row.revenue_source);
+        const p = Math.floor(Number(row.pence) || 0);
+        if (src === 'PAID_GIFT') earningsBySource.gifts_pence = p;
+        if (src === 'CREATOR_SUBSCRIPTION') earningsBySource.subscriptions_pence = p;
+        if (src === 'CREATOR_REWARD') earningsBySource.rewards_pence = p;
+        if (src === 'REFUND_REVERSAL' || src === 'CHARGEBACK_REVERSAL') {
+          earningsBySource.reversals_pence += p;
+        }
+      }
+      const subs = await db.query(
+        `SELECT COUNT(*)::int AS c FROM elix_membership_purchases
+          WHERE creator_id = $1
+            AND subscription_state IN ('ACTIVE', 'IN_GRACE_PERIOD')
+            AND (expires_at IS NULL OR expires_at > NOW())`,
+        [userId],
+      );
+      activeSubscribers = Math.floor(Number(subs.rows[0]?.c) || 0);
+    } catch {
+      /* optional */
+    }
+
+    return res.json({
+      ...coinBal,
+      gbp,
+      rewards,
+      earnings_by_source: earningsBySource,
+      active_subscribers: activeSubscribers,
+    });
   } catch (err) {
     logger.error({ err }, 'Get creator balance error');
     return res.status(500).json({ error: 'Failed to get balance' });
@@ -713,6 +757,80 @@ export async function handleAdminChargeback(req: Request, res: Response) {
   } catch (err) {
     logger.error({ err }, 'Admin chargeback error');
     return res.status(500).json({ error: 'Chargeback failed' });
+  }
+}
+
+/** POST /api/creator/withdraw-gbp — withdraw available GBP earnings only. */
+export async function handleCreatorWithdrawGbp(req: Request, res: Response) {
+  const userId = getUserId(req);
+  if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+  const amountPence = Math.floor(Number(req.body?.amount_pence) || 0);
+  const idempotencyKey =
+    typeof req.body?.idempotency_key === 'string' && req.body.idempotency_key.trim()
+      ? String(req.body.idempotency_key).trim().slice(0, 120)
+      : `wdgbp:${userId}:${amountPence}:${Date.now()}`;
+  try {
+    const { requestGbpWithdrawal } = await import('../lib/monetisation/gbpWithdrawals');
+    const result = await requestGbpWithdrawal({
+      creatorUserId: userId,
+      amountPence,
+      idempotencyKey,
+    });
+    if (!result.ok) {
+      const status =
+        result.error === 'insufficient_available'
+          ? 400
+          : result.error === 'no_payout_method'
+            ? 400
+            : result.error === 'below_minimum' || result.error === 'above_maximum'
+              ? 400
+              : 500;
+      return res.status(status).json({ error: result.error });
+    }
+    return res.json({
+      ok: true,
+      id: result.id,
+      status: result.status,
+      already_exists: result.alreadyExists,
+    });
+  } catch (err) {
+    logger.error({ err }, 'handleCreatorWithdrawGbp failed');
+    return res.status(500).json({ error: 'withdraw_failed' });
+  }
+}
+
+export async function handleGetCreatorGbpWithdrawals(req: Request, res: Response) {
+  const userId = getUserId(req);
+  if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    const { listGbpWithdrawals } = await import('../lib/monetisation/gbpWithdrawals');
+    const rows = await listGbpWithdrawals(userId);
+    return res.json({ withdrawals: rows });
+  } catch (err) {
+    logger.error({ err }, 'handleGetCreatorGbpWithdrawals failed');
+    return res.status(500).json({ error: 'list_failed' });
+  }
+}
+
+export async function handleGetCreatorLedgerHistory(req: Request, res: Response) {
+  const userId = getUserId(req);
+  if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+  const db = getPool();
+  if (!db) return res.status(503).json({ error: 'Database not configured' });
+  try {
+    const r = await db.query(
+      `SELECT id, revenue_source, creator_amount_pence, platform_amount_pence, net_revenue_pence,
+              status, gift_id, subscription_id, reward_period_id, created_at, reversal_of_id
+         FROM elix_financial_ledger
+        WHERE creator_user_id = $1
+        ORDER BY created_at DESC
+        LIMIT 100`,
+      [userId],
+    );
+    return res.json({ ledger: r.rows });
+  } catch (err) {
+    logger.error({ err }, 'handleGetCreatorLedgerHistory failed');
+    return res.status(500).json({ error: 'list_failed' });
   }
 }
 

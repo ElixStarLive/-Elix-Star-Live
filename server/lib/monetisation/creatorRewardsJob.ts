@@ -142,18 +142,22 @@ export async function closeCreatorRewardPeriod(periodId: string): Promise<{
       );
       const prev30 = Math.floor(Number(prevR.rows[0]?.c) || 0);
 
+      const { isAccountInGoodStanding, hasUnresolvedFraudFlag } = await import("./fraud");
+      const goodStanding = await isAccountInGoodStanding(creatorId);
+      const unresolvedFraud = await hasUnresolvedFraudFlag(creatorId);
+
       const eligibility = evaluateCreatorRewardsEligibility({
         followers,
         prev30dQualifiedViews: prev30,
-        accountInGoodStanding: true,
+        accountInGoodStanding: goodStanding,
         countryEligible: true,
         ageEligible: true,
         publicAccountOk: true,
         originalContentOk: true,
-        noSeriousViolations: true,
-        noUnresolvedFraud: true,
-        noManipulatedEngagement: true,
-        noPurchasedViewsOrFollowers: true,
+        noSeriousViolations: goodStanding,
+        noUnresolvedFraud: !unresolvedFraud,
+        noManipulatedEngagement: !unresolvedFraud,
+        noPurchasedViewsOrFollowers: !unresolvedFraud,
         minFollowers: effectiveMinFollowers,
         minPrev30dQualifiedViews: effectiveMinPrev,
       });

@@ -6,9 +6,10 @@ import { showToast } from '../lib/toast';
 import {
   apiCreatorBalance,
   apiCreatorPayoutMethods,
-  apiCreatorPayoutRequests,
   apiCreatorSavePayoutMethod,
-  apiCreatorWithdraw,
+  apiCreatorWithdrawGbp,
+  apiCreatorGbpWithdrawals,
+  apiCreatorLedger,
 } from '../features/creator/creatorPayoutApi';
 import { SETTINGS_HOME } from '../lib/settingsNav';
 
@@ -31,6 +32,13 @@ type Balance = {
     next_milestone_views: number | null;
     next_milestone_reward_pence: number | null;
   };
+  earnings_by_source?: {
+    gifts_pence: number;
+    subscriptions_pence: number;
+    rewards_pence: number;
+    reversals_pence: number;
+  };
+  active_subscribers?: number;
 };
 
 function formatPence(pence: number): string {
@@ -45,20 +53,27 @@ type PayoutMethod = {
   is_default?: boolean;
 };
 
-type PayoutRequest = {
+type GbpWithdrawal = {
   id: string;
-  coins_amount: number;
+  amount_pence: number;
   status: string;
-  admin_note?: string | null;
   created_at?: string;
-  processed_at?: string | null;
 };
 
-const PAYOUT_STATUS_LABEL: Record<string, string> = {
-  pending: 'Requested',
-  under_review: 'Under review',
+type LedgerRow = {
+  id: string;
+  revenue_source: string;
+  creator_amount_pence: number;
+  status: string;
+  created_at?: string;
+};
+
+const GBP_STATUS_LABEL: Record<string, string> = {
+  pending: 'Pending',
   approved: 'Approved',
-  paid_manually: 'Paid manually',
+  processing: 'Processing',
+  paid: 'Paid',
+  failed: 'Failed',
   rejected: 'Rejected',
   cancelled: 'Cancelled',
 };
@@ -67,7 +82,8 @@ export default function CreatorPayout() {
   const navigate = useNavigate();
   const [balance, setBalance] = useState<Balance | null>(null);
   const [methods, setMethods] = useState<PayoutMethod[]>([]);
-  const [requests, setRequests] = useState<PayoutRequest[]>([]);
+  const [gbpWithdrawals, setGbpWithdrawals] = useState<GbpWithdrawal[]>([]);
+  const [ledger, setLedger] = useState<LedgerRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
@@ -79,14 +95,16 @@ export default function CreatorPayout() {
   const reload = useCallback(async () => {
     setLoading(true);
     try {
-      const [balRes, methRes, payRes] = await Promise.all([
+      const [balRes, methRes, wdRes, ledRes] = await Promise.all([
         apiCreatorBalance(),
         apiCreatorPayoutMethods(),
-        apiCreatorPayoutRequests(),
+        apiCreatorGbpWithdrawals(),
+        apiCreatorLedger(),
       ]);
       if (balRes.data) setBalance(balRes.data as Balance);
       setMethods(methRes.methods as PayoutMethod[]);
-      setRequests(payRes.payouts as PayoutRequest[]);
+      setGbpWithdrawals(wdRes.withdrawals as GbpWithdrawal[]);
+      setLedger(ledRes.ledger as LedgerRow[]);
     } catch {
       showToast('Could not load payout info');
     } finally {
@@ -126,9 +144,11 @@ export default function CreatorPayout() {
   };
 
   const withdraw = async () => {
-    const amount = Math.floor(Number(withdrawAmount) || 0);
-    if (amount <= 0) {
-      showToast('Enter a valid amount');
+    // Amount entered as pounds (e.g. 10.50) → pence
+    const pounds = Number(withdrawAmount);
+    const amountPence = Math.round((Number.isFinite(pounds) ? pounds : 0) * 100);
+    if (amountPence <= 0) {
+      showToast('Enter a valid GBP amount');
       return;
     }
     if (!methods.length) {
@@ -137,21 +157,15 @@ export default function CreatorPayout() {
     }
     setWithdrawing(true);
     try {
-      const payoutMethodId =
-        methods.find((m) => m.is_default)?.id ?? methods[0]?.id ?? null;
-      const { data, error } = await apiCreatorWithdraw({
-        coins_amount: amount,
-        payout_method_id: payoutMethodId,
+      const { data, error } = await apiCreatorWithdrawGbp({
+        amount_pence: amountPence,
+        idempotency_key: `ui:${Date.now()}:${amountPence}`,
       });
       if (error) {
         showToast(error || 'Withdraw failed');
         return;
       }
-      if (data && typeof data === 'object' && 'error' in data && data.error) {
-        showToast(String(data.error));
-        return;
-      }
-      showToast('Withdraw request submitted');
+      showToast(data?.already_exists ? 'Withdrawal already submitted' : 'GBP withdrawal requested');
       setWithdrawAmount('');
       await reload();
     } finally {
@@ -178,7 +192,7 @@ export default function CreatorPayout() {
           <>
             <div className="rounded-xl border border-[#E5E5E7]/25 bg-white/5 p-3 space-y-2">
               <div className="flex items-center gap-2 text-[#F5F5F7] font-bold text-sm">
-                <Wallet size={16} /> Gift earnings
+                <Wallet size={16} /> Creator earnings (GBP)
               </div>
               <p className="text-[11px] text-white/70 leading-snug">
                 Creators receive 60% of eligible net gift and creator-subscription revenue received by Elix Star
@@ -191,28 +205,38 @@ export default function CreatorPayout() {
               </p>
               <div className="grid grid-cols-2 gap-2 text-[12px]">
                 <div>
-                  <p className="text-white/40 uppercase text-[9px]">Available</p>
-                  <p className="text-[#D9A62E] font-bold text-lg tabular-nums">{(balance?.available_coins ?? 0).toLocaleString()}</p>
-                </div>
-                <div>
-                  <p className="text-white/40 uppercase text-[9px]">Pending</p>
-                  <p className="text-white font-bold text-lg tabular-nums">{(balance?.pending_coins ?? 0).toLocaleString()}</p>
-                </div>
-                <div>
-                  <p className="text-white/40 uppercase text-[9px]">Total earned</p>
-                  <p className="text-white/80 font-semibold tabular-nums">{(balance?.total_earned ?? 0).toLocaleString()}</p>
-                </div>
-                <div>
-                  <p className="text-white/40 uppercase text-[9px]">Withdrawn</p>
-                  <p className="text-white/80 font-semibold tabular-nums">{(balance?.total_withdrawn ?? 0).toLocaleString()}</p>
-                </div>
-                <div>
                   <p className="text-white/40 uppercase text-[9px]">GBP available</p>
-                  <p className="text-white/80 font-semibold tabular-nums">{formatPence(balance?.gbp?.available_pence ?? 0)}</p>
+                  <p className="text-[#D9A62E] font-bold text-lg tabular-nums">{formatPence(balance?.gbp?.available_pence ?? 0)}</p>
                 </div>
                 <div>
                   <p className="text-white/40 uppercase text-[9px]">GBP pending</p>
-                  <p className="text-white/80 font-semibold tabular-nums">{formatPence(balance?.gbp?.pending_pence ?? 0)}</p>
+                  <p className="text-white font-bold text-lg tabular-nums">{formatPence(balance?.gbp?.pending_pence ?? 0)}</p>
+                </div>
+                <div>
+                  <p className="text-white/40 uppercase text-[9px]">GBP withdrawn</p>
+                  <p className="text-white/80 font-semibold tabular-nums">{formatPence(balance?.gbp?.withdrawn_pence ?? 0)}</p>
+                </div>
+                <div>
+                  <p className="text-white/40 uppercase text-[9px]">GBP reversed / held</p>
+                  <p className="text-white/80 font-semibold tabular-nums">
+                    {formatPence(balance?.gbp?.reversed_pence ?? 0)} / {formatPence(balance?.gbp?.held_pence ?? 0)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-white/40 uppercase text-[9px]">Gift earnings</p>
+                  <p className="text-white/80 font-semibold tabular-nums">{formatPence(balance?.earnings_by_source?.gifts_pence ?? 0)}</p>
+                </div>
+                <div>
+                  <p className="text-white/40 uppercase text-[9px]">Subscription earnings</p>
+                  <p className="text-white/80 font-semibold tabular-nums">{formatPence(balance?.earnings_by_source?.subscriptions_pence ?? 0)}</p>
+                </div>
+                <div>
+                  <p className="text-white/40 uppercase text-[9px]">Rewards earnings</p>
+                  <p className="text-white/80 font-semibold tabular-nums">{formatPence(balance?.earnings_by_source?.rewards_pence ?? 0)}</p>
+                </div>
+                <div>
+                  <p className="text-white/40 uppercase text-[9px]">Active subscribers</p>
+                  <p className="text-white/80 font-semibold tabular-nums">{(balance?.active_subscribers ?? 0).toLocaleString()}</p>
                 </div>
                 <div>
                   <p className="text-white/40 uppercase text-[9px]">Qualified views (30d)</p>
@@ -226,6 +250,14 @@ export default function CreatorPayout() {
                       ? ` → ${formatPence(balance.rewards.next_milestone_reward_pence ?? 0)} @ ${balance.rewards.next_milestone_views.toLocaleString()}`
                       : ''}
                   </p>
+                </div>
+                <div>
+                  <p className="text-white/40 uppercase text-[9px]">Diamonds (ops only)</p>
+                  <p className="text-white/50 font-semibold tabular-nums">{(balance?.available_coins ?? 0).toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-white/40 uppercase text-[9px]">Diamonds pending</p>
+                  <p className="text-white/50 font-semibold tabular-nums">{(balance?.pending_coins ?? 0).toLocaleString()}</p>
                 </div>
               </div>
             </div>
@@ -286,13 +318,13 @@ export default function CreatorPayout() {
 
             <div className="rounded-xl border border-[#E5E5E7]/25 bg-white/5 p-3 space-y-2">
               <div className="flex items-center gap-2 text-[#F5F5F7] font-bold text-sm">
-                <Banknote size={16} /> Withdraw
+                <Banknote size={16} /> Withdraw GBP
               </div>
               <input
                 value={withdrawAmount}
-                onChange={(e) => setWithdrawAmount(e.target.value.replace(/[^\d]/g, ''))}
-                placeholder="Amount in coins"
-                inputMode="numeric"
+                onChange={(e) => setWithdrawAmount(e.target.value.replace(/[^\d.]/g, ''))}
+                placeholder="Amount in GBP (e.g. 10.00)"
+                inputMode="decimal"
                 className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-[12px] outline-none"
               />
               <button
@@ -301,24 +333,34 @@ export default function CreatorPayout() {
                 onClick={() => void withdraw()}
                 className="w-full py-2.5 rounded-lg bg-white/10 border border-[#E5E5E7]/40 text-[#F5F5F7] text-[12px] font-bold disabled:opacity-50"
               >
-                {withdrawing ? 'Submitting...' : 'Request withdraw'}
+                {withdrawing ? 'Submitting...' : 'Request GBP withdrawal'}
               </button>
               <p className="text-[10px] text-white/40">
-                Manual admin review only. Status: Requested → Under review → Approved → Paid manually.
+                Only available GBP earnings can be withdrawn. Coin Diamonds are not cash. Status: Pending → Approved → Processing → Paid.
               </p>
             </div>
 
-            {requests.length > 0 ? (
+            {gbpWithdrawals.length > 0 ? (
               <div className="rounded-xl border border-white/10 bg-white/5 p-3 space-y-2">
-                <p className="text-[#F5F5F7] font-bold text-sm">Your requests</p>
-                {requests.slice(0, 10).map((r) => (
+                <p className="text-[#F5F5F7] font-bold text-sm">GBP withdrawal history</p>
+                {gbpWithdrawals.slice(0, 10).map((r) => (
                   <div key={r.id} className="flex justify-between gap-2 text-[11px]">
-                    <span className="text-white/70 tabular-nums">
-                      {Number(r.coins_amount).toLocaleString()} coins
-                    </span>
+                    <span className="text-white/70 tabular-nums">{formatPence(Number(r.amount_pence) || 0)}</span>
                     <span className="text-white/50">
-                      {PAYOUT_STATUS_LABEL[r.status] || r.status}
+                      {GBP_STATUS_LABEL[r.status] || r.status}
                     </span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
+            {ledger.length > 0 ? (
+              <div className="rounded-xl border border-white/10 bg-white/5 p-3 space-y-2">
+                <p className="text-[#F5F5F7] font-bold text-sm">Ledger history</p>
+                {ledger.slice(0, 15).map((r) => (
+                  <div key={r.id} className="flex justify-between gap-2 text-[11px]">
+                    <span className="text-white/60 truncate">{r.revenue_source}</span>
+                    <span className="text-white/70 tabular-nums">{formatPence(Number(r.creator_amount_pence) || 0)}</span>
                   </div>
                 ))}
               </div>

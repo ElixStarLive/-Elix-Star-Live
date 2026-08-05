@@ -6,12 +6,18 @@ import {
   handleAdminListPayouts, handleAdminApprovePayout, handleAdminRejectPayout,
   handleAdminChargeback, handleAdminMarkPayoutPaid, handleAdminCancelPayout,
   handleAdminReviewPayout,
+  handleCreatorWithdrawGbp,
+  handleGetCreatorGbpWithdrawals,
+  handleGetCreatorLedgerHistory,
 } from "./payout";
 
 const creatorRouter = Router();
 creatorRouter.get("/balance", handleGetCreatorBalance);
 creatorRouter.get("/earnings", handleGetCreatorEarnings);
 creatorRouter.post("/withdraw", handleCreatorWithdraw);
+creatorRouter.post("/withdraw-gbp", handleCreatorWithdrawGbp);
+creatorRouter.get("/withdrawals-gbp", handleGetCreatorGbpWithdrawals);
+creatorRouter.get("/ledger", handleGetCreatorLedgerHistory);
 creatorRouter.get("/payouts", handleGetCreatorPayouts);
 creatorRouter.post("/payout-method", handleSetPayoutMethod);
 creatorRouter.get("/payout-methods", handleGetPayoutMethods);

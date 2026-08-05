@@ -45,17 +45,43 @@ export async function apiCreatorSavePayoutMethod(payload: {
   return { ok: true, error: null };
 }
 
-export async function apiCreatorWithdraw(payload: {
-  coins_amount: number;
-  payout_method_id: string | null;
+export async function apiCreatorWithdrawGbp(payload: {
+  amount_pence: number;
+  idempotency_key: string;
 }): Promise<{
   data: Record<string, unknown> | null;
   error: string | null;
 }> {
-  const { data, error } = await request<Record<string, unknown>>('/api/creator/withdraw', {
+  const { data, error } = await request<Record<string, unknown>>('/api/creator/withdraw-gbp', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
   if (error) return { data: null, error: error.message };
   return { data: data ?? null, error: null };
+}
+
+export async function apiCreatorGbpWithdrawals(): Promise<{
+  withdrawals: Record<string, unknown>[];
+  error: string | null;
+}> {
+  const { data, error } = await request<Record<string, unknown>>('/api/creator/withdrawals-gbp');
+  if (error) return { withdrawals: [], error: error.message };
+  return {
+    withdrawals: Array.isArray(data?.withdrawals)
+      ? (data.withdrawals as Record<string, unknown>[])
+      : [],
+    error: null,
+  };
+}
+
+export async function apiCreatorLedger(): Promise<{
+  ledger: Record<string, unknown>[];
+  error: string | null;
+}> {
+  const { data, error } = await request<Record<string, unknown>>('/api/creator/ledger');
+  if (error) return { ledger: [], error: error.message };
+  return {
+    ledger: Array.isArray(data?.ledger) ? (data.ledger as Record<string, unknown>[]) : [],
+    error: null,
+  };
 }

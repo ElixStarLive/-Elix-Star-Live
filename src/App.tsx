@@ -76,6 +76,7 @@ const AdminDashboard = lazy(() => import("./pages/admin/Dashboard"));
 const AdminUsers = lazy(() => import("./pages/admin/Users"));
 const AdminReports = lazy(() => import("./pages/admin/Reports"));
 const AdminEconomy = lazy(() => import("./pages/admin/Economy"));
+const AdminMonetisation = lazy(() => import("./pages/admin/Monetisation"));
 const Hashtag = lazy(() => import("./pages/Hashtag"));
 const BlockedAccounts = lazy(() => import("./pages/settings/BlockedAccounts"));
 const SafetyCenter = lazy(() => import("./pages/settings/SafetyCenter"));
@@ -485,6 +486,7 @@ function App() {
                   <Route path="/admin/users" element={<AdminUsers />} />
                   <Route path="/admin/reports" element={<AdminReports />} />
                   <Route path="/admin/economy" element={<AdminEconomy />} />
+                  <Route path="/admin/monetisation" element={<AdminMonetisation />} />
                   <Route path="/admin/purchases" element={<AdminPurchases />} />
                   <Route path="/admin/withdrawals" element={<AdminWithdrawals />} />
                   <Route path="/admin/rising-stars" element={<AdminRisingStars />} />

@@ -113,6 +113,7 @@ export default function AdminDashboard() {
             <ActionButton href="/admin/users" label="Manage Users" onClick={goAdminPath} />
             <ActionButton href="/admin/reports" label="Review Reports" onClick={goAdminPath} />
             <ActionButton href="/admin/economy" label="Economy Controls" onClick={goAdminPath} />
+            <ActionButton href="/admin/monetisation" label="Monetisation" onClick={goAdminPath} />
             <ActionButton href="/admin/purchases" label="IAP & Shop Purchases" onClick={goAdminPath} />
             <ActionButton href="/admin/withdrawals" label="Withdrawals" onClick={goAdminPath} />
             <ActionButton href="/admin/rising-stars" label="Rising Stars" onClick={goAdminPath} />

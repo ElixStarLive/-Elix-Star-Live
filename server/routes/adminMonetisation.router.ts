@@ -313,4 +313,75 @@ router.get("/audit", async (req, res) => {
   }
 });
 
+router.get("/reconciliation", async (_req, res) => {
+  try {
+    const { ensureReconcileTables } = await import("../lib/monetisation/reconcile");
+    await ensureReconcileTables();
+    const pool = getPool();
+    const latest = pool
+      ? await pool.query(
+          `SELECT * FROM elix_reconciliation_runs ORDER BY created_at DESC LIMIT 10`,
+        )
+      : { rows: [] };
+    return res.json({ runs: latest.rows });
+  } catch (err) {
+    logger.error({ err }, "admin reconciliation list failed");
+    return res.status(500).json({ error: "SERVER_ERROR" });
+  }
+});
+
+router.post("/reconciliation/run", async (_req, res) => {
+  const { runWalletLedgerReconciliation } = await import("../lib/monetisation/reconcile");
+  const result = await runWalletLedgerReconciliation();
+  return res.json(result);
+});
+
+const gbpWdStatusSchema = z.object({
+  toStatus: z.enum([
+    "pending",
+    "approved",
+    "processing",
+    "paid",
+    "failed",
+    "rejected",
+    "cancelled",
+  ]),
+  note: z.string().max(500).optional(),
+  payoutProviderRef: z.string().max(200).optional(),
+  failureReason: z.string().max(500).optional(),
+});
+
+router.get("/withdrawals-gbp", async (_req, res) => {
+  const pool = getPool();
+  if (!pool) return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+  try {
+    const r = await pool.query(
+      `SELECT * FROM elix_creator_withdrawals_gbp ORDER BY created_at DESC LIMIT 200`,
+    );
+    return res.json({ withdrawals: r.rows });
+  } catch (err) {
+    logger.error({ err }, "admin list gbp withdrawals failed");
+    return res.status(500).json({ error: "SERVER_ERROR" });
+  }
+});
+
+router.post(
+  "/withdrawals-gbp/:id/status",
+  validateBody(gbpWdStatusSchema),
+  async (req: Request, res: Response) => {
+    const adminId = (req.authContext as NonNullable<typeof req.authContext>).userId;
+    const { adminSetGbpWithdrawalStatus } = await import("../lib/monetisation/gbpWithdrawals");
+    const result = await adminSetGbpWithdrawalStatus({
+      withdrawalId: String(req.params.id),
+      toStatus: req.body.toStatus,
+      adminUserId: adminId,
+      note: req.body.note,
+      payoutProviderRef: req.body.payoutProviderRef,
+      failureReason: req.body.failureReason,
+    });
+    if (!result.ok) return res.status(400).json(result);
+    return res.json({ ok: true });
+  },
+);
+
 export default router;

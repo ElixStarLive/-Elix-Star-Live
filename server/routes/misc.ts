@@ -303,7 +303,12 @@ async function verifyGooglePlayPurchase(
 // --- Apple receipt verification via App Store Server API ---
 async function verifyAppleReceipt(
   transactionId: string,
-): Promise<{ valid: boolean; productId?: string; detail?: string }> {
+): Promise<{
+  valid: boolean;
+  productId?: string;
+  detail?: string;
+  payload?: Record<string, unknown>;
+}> {
   const result = await fetchAppleTransaction(transactionId);
   // Consumable coin purchases must NOT credit for a transaction that Apple has
   // revoked or refunded. fetchAppleTransaction only checks JWS validity, so
@@ -314,9 +319,19 @@ async function verifyAppleReceipt(
     typeof result.payload.revocationDate === 'number' &&
     result.payload.revocationDate > 0
   ) {
-    return { valid: false, productId: result.productId, detail: 'apple-transaction-revoked' };
+    return {
+      valid: false,
+      productId: result.productId,
+      detail: 'apple-transaction-revoked',
+      payload: result.payload as Record<string, unknown>,
+    };
   }
-  return result;
+  return {
+    valid: result.valid,
+    productId: result.productId,
+    detail: result.detail,
+    payload: result.payload as Record<string, unknown> | undefined,
+  };
 }
 
 // --- Verify Purchase ---
@@ -368,9 +383,11 @@ export async function handleVerifyPurchase(req: Request, res: Response) {
 
     let isValid = false;
     let verificationResponse: Record<string, unknown> = {};
+    let applePayload: Record<string, unknown> | null = null;
     if (safeProvider === 'apple') {
       const apple = await verifyAppleReceipt(String(transactionId));
       isValid = apple.valid;
+      applePayload = apple.payload ?? null;
       verificationResponse = { provider: 'apple', verified: apple.valid, productId: apple.productId, detail: apple.detail };
     } else {
       const packageName = process.env.GOOGLE_PLAY_PACKAGE_NAME || 'com.elixstarlive.app';
@@ -424,6 +441,7 @@ export async function handleVerifyPurchase(req: Request, res: Response) {
       productId: String(packageId),
       coins,
       verification: verificationResponse,
+      applePayload,
     });
 
     if (credited.ok) {
@@ -517,6 +535,20 @@ export async function handlePromoteIAPComplete(req: Request, res: Response) {
       contentId: String(contentId || ''),
       goal: meta.goal,
       amountGbp: meta.amountGbp,
+    });
+    const { autoPostPromoteRevenue } = await import('../lib/monetisation/storeSettlement');
+    let applePayload: Record<string, unknown> | null = null;
+    if (provider === 'apple') {
+      const apple = await verifyAppleReceipt(String(transactionId));
+      applePayload = apple.payload ?? null;
+    }
+    await autoPostPromoteRevenue({
+      providerTransactionId,
+      userId: user.sub,
+      productId: String(productId),
+      contentId: String(contentId || ''),
+      amountGbp: meta.amountGbp,
+      applePayload,
     });
     return res.json({ success: true, message: 'Promote purchase recorded' });
   } catch (err) {
@@ -702,15 +734,25 @@ export async function handleMembershipIAPComplete(req: Request, res: Response) {
       }
       await markAppleCreatorMembershipActive(creatorId, expectedProductId);
       if (upserted.created) {
-        // Creator GBP share posts only after verified store settlement
-        // (POST /api/admin/monetisation/settlements/subscription) — never invent fees.
+        try {
+          const { autoPostSubscriptionRevenue } = await import('../lib/monetisation/storeSettlement');
+          await autoPostSubscriptionRevenue({
+            subscriptionId: upserted.id,
+            creatorUserId: creatorId,
+            payerUserId: user.sub,
+            externalTransactionId: verified.transactionId || verified.originalTransactionId,
+            applePayload: verified.rawTransaction as Record<string, unknown>,
+          });
+        } catch (earnErr) {
+          logger.error({ err: earnErr, creatorId }, 'Membership GBP ledger post failed');
+        }
         logger.info(
           {
             creatorId,
             subscriberId: user.sub,
             externalTransactionId: verified.originalTransactionId,
           },
-          "Membership created — awaiting verified settlement for 60/40 creator earnings",
+          'Membership created — automatic 60/40 creator earnings posted when entitled',
         );
         try {
           await insertNotification({
@@ -817,13 +859,24 @@ export async function handleMembershipIAPComplete(req: Request, res: Response) {
     }
 
     if (upserted.created) {
+      try {
+        const { autoPostSubscriptionRevenue } = await import('../lib/monetisation/storeSettlement');
+        await autoPostSubscriptionRevenue({
+          subscriptionId: upserted.id,
+          creatorUserId: creatorId,
+          payerUserId: user.sub,
+          externalTransactionId: verified.latestOrderId || purchaseTokenHash,
+        });
+      } catch (earnErr) {
+        logger.error({ err: earnErr, creatorId }, 'Google membership GBP ledger post failed');
+      }
       logger.info(
         {
           creatorId,
           subscriberId: user.sub,
           externalTransactionId: verified.latestOrderId || purchaseTokenHash,
         },
-        "Membership created — awaiting verified settlement for 60/40 creator earnings",
+        'Membership created — automatic 60/40 creator earnings posted when entitled',
       );
       try {
         await insertNotification({

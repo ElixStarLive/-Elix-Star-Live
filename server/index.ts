@@ -28,6 +28,8 @@ import { initBattleTickLoop, stopBattleTickLoop } from "./websocket/battle";
 import { neonMatureCreatorEarnings } from "./lib/walletNeon";
 import { matureGbpPendingEarnings } from "./lib/monetisation/ledger";
 import { loadMonetisationConfig } from "./lib/monetisation/config";
+import { openCreatorRewardPeriod, closeCreatorRewardPeriod } from "./lib/monetisation/creatorRewardsJob";
+import { runWalletLedgerReconciliation } from "./lib/monetisation/reconcile";
 import { initFeedPubSub } from "./feedBroadcast";
 import crypto from "crypto";
 import cluster from "node:cluster";
@@ -599,6 +601,37 @@ try {
     }, 5 * 60 * 1000).unref();
     void neonMatureCreatorEarnings();
     void loadMonetisationConfig().then((cfg) => matureGbpPendingEarnings(cfg.giftSettlementHours));
+
+    // Creator Rewards: ensure an open monthly period; close overdue periods.
+    const tickRewardsPeriods = async () => {
+      try {
+        const pool = getPool();
+        if (!pool) return;
+        const open = await pool.query(
+          `SELECT id, ends_at FROM elix_creator_reward_periods WHERE status = 'open' ORDER BY starts_at DESC LIMIT 1`,
+        );
+        if (!open.rowCount) {
+          await openCreatorRewardPeriod();
+          return;
+        }
+        const ends = new Date(open.rows[0].ends_at);
+        if (ends.getTime() <= Date.now()) {
+          await closeCreatorRewardPeriod(String(open.rows[0].id));
+          await openCreatorRewardPeriod();
+        }
+      } catch (err) {
+        logger.warn({ err }, "creator rewards period tick failed");
+      }
+    };
+    void tickRewardsPeriods();
+    setInterval(() => {
+      void tickRewardsPeriods();
+    }, 60 * 60 * 1000).unref();
+
+    setInterval(() => {
+      void runWalletLedgerReconciliation();
+    }, 6 * 60 * 60 * 1000).unref();
+    void runWalletLedgerReconciliation();
   }
   server.listen(PORT, "0.0.0.0", 8192, () => {
     logger.info(
