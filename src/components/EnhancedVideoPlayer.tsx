@@ -42,12 +42,19 @@ import {
   SHARE_PANEL_ACTION_DISC_PX,
   SHARE_PANEL_ACTION_ICON_PX,
 } from '../lib/sharePanelContacts';
-import { DUET_STAGE_HEIGHT } from '../lib/profileFrame';
+import {
+  DUET_STAGE_HEIGHT,
+  LEVEL_BADGE_PILL_PX,
+  LEVEL_BADGE_RING_PX,
+  profileRingOuterAddMm,
+} from '../lib/profileFrame';
 import { platform } from '../lib/platform';
 import { prepareFeedVideoEl, stripVideoMediaChrome } from '../lib/prepareLiveVideoEl';
 import { apiLiveStreams } from '../lib/live';
 
 const VIDEO_SIDEBAR_AVATAR = 38;
+/** Description-row creator circle only: +1mm each side. Level pill stays {@link LEVEL_BADGE_PILL_PX}. */
+const VIDEO_DESC_AVATAR_PX = profileRingOuterAddMm(LEVEL_BADGE_RING_PX, 2);
 const GOLD_ICON = 'royce-icon-gold';
 const GOLD_COUNT = 'text-[10px] font-semibold leading-none text-gold-light';
 
@@ -98,8 +105,8 @@ export const PremiumSidebarButton = ({
     </button>
     {label && (
       <span 
-        className={`text-xs font-semibold mt-1 cursor-pointer hover:underline transition-colors ${
-          isActive ? 'text-gold-bright' : 'text-gold-light/70'
+        className={`elix-silver-red-text text-xs font-semibold mt-1 cursor-pointer hover:underline transition-opacity ${
+          isActive ? '' : 'opacity-70'
         }`}
         style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}
         onClick={onClick}
@@ -1119,13 +1126,13 @@ export default function EnhancedVideoPlayer({
           type="button"
           onClick={handleSave}
           className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform"
-          title="Save"
+          title={video.isSaved ? 'Saved' : 'Save'}
         >
           <span className="royce-tile" style={{ width: 34, height: 34 }}>
             <Bookmark
               size={24}
               strokeWidth={2.25}
-              className={video.isSaved ? 'royce-icon-gold fill-gold-bright' : 'royce-icon-gold'}
+              className={video.isSaved ? 'fill-silver-full' : 'royce-icon-gold'}
             />
           </span>
           <span className={GOLD_COUNT}>{formatNumber(Math.max(0, video.stats.saves || 0))}</span>
@@ -1196,8 +1203,14 @@ export default function EnhancedVideoPlayer({
         }}
       >
         <div className="flex items-center gap-2 w-full min-w-0 justify-start">
-          <LevelBadge level={video.user.level ?? 1} layout="fixed" avatar={video.user.avatar} />
-          <h3 className="text-white font-bold text-shadow-md truncate">
+          <LevelBadge
+            level={video.user.level ?? 1}
+            layout="fixed"
+            avatar={video.user.avatar}
+            circleSize={VIDEO_DESC_AVATAR_PX}
+            size={LEVEL_BADGE_PILL_PX}
+          />
+          <h3 className="elix-silver-red-text font-bold text-shadow-md truncate">
             {video.user.name || video.user.username}
           </h3>
           {video.user.isVerified && (
@@ -1208,18 +1221,18 @@ export default function EnhancedVideoPlayer({
         </div>
 
         <div className="w-full min-w-0 text-left">
-          <span className="text-xs font-medium text-white/90 animate-marquee whitespace-nowrap overflow-hidden block max-w-full">
+          <span className="elix-silver-red-text text-xs font-medium animate-marquee whitespace-nowrap overflow-hidden block max-w-full">
             {video.music?.title || 'Original Sound'}
             {(video.music?.artist || video.user.name || video.user.username) ? ` - ${video.music?.artist || video.user.name || video.user.username}` : ''}
           </span>
         </div>
 
-        <div className="flex items-center gap-2 text-white/60 text-xs w-full justify-start">
+        <div className="flex items-center gap-2 elix-silver-red-text text-xs w-full justify-start opacity-80">
           <span>{formatNumber(video.stats.views)} views</span>
           <span>{new Date(video.createdAt).toLocaleDateString()}</span>
         </div>
 
-        <p className="text-white/90 text-sm mb-0 text-shadow-md line-clamp-2 w-full text-left">
+        <p className="elix-silver-red-text text-sm mb-0 text-shadow-md line-clamp-2 w-full text-left">
           {video.description}
         </p>
 
@@ -1228,7 +1241,7 @@ export default function EnhancedVideoPlayer({
             <button
               key={hashtag}
               onClick={() => openHashtag(hashtag)}
-              className="text-white text-xs font-medium hover:underline pointer-events-auto"
+              className="elix-silver-red-text text-xs font-medium hover:underline pointer-events-auto"
             >
               #{hashtag}
             </button>
@@ -1236,14 +1249,14 @@ export default function EnhancedVideoPlayer({
         </div>
 
         {video.location && (
-          <div className="flex items-center gap-1 text-white/60 text-xs mb-0 w-full justify-start">
+          <div className="flex items-center gap-1 elix-silver-red-text text-xs mb-0 w-full justify-start opacity-80">
             <div className="w-3 h-3 rounded-full" />
             <span>{video.location}</span>
           </div>
         )}
 
         {feedSourceLabel ? (
-          <p className="text-white/50 text-[11px] font-medium mt-0 mb-0 w-full text-left">{feedSourceLabel}</p>
+          <p className="elix-silver-red-text text-[11px] font-medium mt-0 mb-0 w-full text-left opacity-70">{feedSourceLabel}</p>
         ) : null}
       </div>
 
@@ -1371,7 +1384,11 @@ export default function EnhancedVideoPlayer({
                   className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
                   <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
-                    <Bookmark size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />
+                    <Bookmark
+                      size={SHARE_PANEL_ACTION_ICON_PX}
+                      className={video.isSaved ? 'fill-silver-full' : 'royce-icon-gold'}
+                      strokeWidth={2}
+                    />
                   </span>
                   <span className="text-[10px] font-semibold text-[#F5F5F7]">{video.isSaved ? 'Unsave' : 'Save'}</span>
                 </button>

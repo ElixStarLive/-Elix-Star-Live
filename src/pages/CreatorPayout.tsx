@@ -10,6 +10,7 @@ import {
   apiCreatorSavePayoutMethod,
   apiCreatorWithdraw,
 } from '../features/creator/creatorPayoutApi';
+import { SETTINGS_HOME } from '../lib/settingsNav';
 
 type Balance = {
   pending_coins: number;
@@ -17,7 +18,25 @@ type Balance = {
   locked_coins: number;
   total_earned: number;
   total_withdrawn: number;
+  gbp?: {
+    pending_pence: number;
+    available_pence: number;
+    withdrawn_pence: number;
+    reversed_pence: number;
+    held_pence: number;
+  };
+  rewards?: {
+    qualified_views_30d: number;
+    current_reward_pence: number;
+    next_milestone_views: number | null;
+    next_milestone_reward_pence: number | null;
+  };
 };
+
+function formatPence(pence: number): string {
+  const n = Math.max(0, Math.floor(Number(pence) || 0));
+  return `£${(n / 100).toFixed(2)}`;
+}
 
 type PayoutMethod = {
   id?: string;
@@ -79,7 +98,7 @@ export default function CreatorPayout() {
     void reload();
   }, [reload]);
 
-  const goBack = useCallback(() => navigate(-1), [navigate]);
+  const exit = useCallback(() => navigate(SETTINGS_HOME, { replace: true }), [navigate]);
 
   const saveMethod = async () => {
     if (!accountName.trim() || !accountDetail.trim()) {
@@ -143,7 +162,7 @@ export default function CreatorPayout() {
   return (
     <div className="fixed inset-0 z-[100] bg-[#121215] flex flex-col max-w-[480px] mx-auto">
       <div className="flex items-center justify-between px-3 pt-[max(12px,env(safe-area-inset-top))] pb-2">
-        <button type="button" onClick={goBack} aria-label="Back">
+        <button type="button" onClick={exit} aria-label="Back">
           <RoyceBackIcon />
         </button>
         <h1 className="text-sm font-bold text-[#F5F5F7] absolute left-1/2 -translate-x-1/2">Creator Payout</h1>
@@ -161,6 +180,15 @@ export default function CreatorPayout() {
               <div className="flex items-center gap-2 text-[#F5F5F7] font-bold text-sm">
                 <Wallet size={16} /> Gift earnings
               </div>
+              <p className="text-[11px] text-white/70 leading-snug">
+                Creators receive 60% of eligible net gift and creator-subscription revenue received by Elix Star
+                Live after applicable store fees, taxes, refunds, chargebacks and processing deductions.
+              </p>
+              <p className="text-[11px] text-white/55 leading-snug">
+                Video rewards use qualified unique views. Repeated watches by the same user do not create
+                additional qualified reward views. Test, free and promotional coins never create withdrawable
+                earnings. Promote Video purchases are platform advertising revenue only (0% to creators).
+              </p>
               <div className="grid grid-cols-2 gap-2 text-[12px]">
                 <div>
                   <p className="text-white/40 uppercase text-[9px]">Available</p>
@@ -177,6 +205,27 @@ export default function CreatorPayout() {
                 <div>
                   <p className="text-white/40 uppercase text-[9px]">Withdrawn</p>
                   <p className="text-white/80 font-semibold tabular-nums">{(balance?.total_withdrawn ?? 0).toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-white/40 uppercase text-[9px]">GBP available</p>
+                  <p className="text-white/80 font-semibold tabular-nums">{formatPence(balance?.gbp?.available_pence ?? 0)}</p>
+                </div>
+                <div>
+                  <p className="text-white/40 uppercase text-[9px]">GBP pending</p>
+                  <p className="text-white/80 font-semibold tabular-nums">{formatPence(balance?.gbp?.pending_pence ?? 0)}</p>
+                </div>
+                <div>
+                  <p className="text-white/40 uppercase text-[9px]">Qualified views (30d)</p>
+                  <p className="text-white/80 font-semibold tabular-nums">{(balance?.rewards?.qualified_views_30d ?? 0).toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-white/40 uppercase text-[9px]">Reward milestone</p>
+                  <p className="text-white/80 font-semibold tabular-nums">
+                    {formatPence(balance?.rewards?.current_reward_pence ?? 0)}
+                    {balance?.rewards?.next_milestone_views != null
+                      ? ` → ${formatPence(balance.rewards.next_milestone_reward_pence ?? 0)} @ ${balance.rewards.next_milestone_views.toLocaleString()}`
+                      : ''}
+                  </p>
                 </div>
               </div>
             </div>

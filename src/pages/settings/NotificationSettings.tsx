@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Bell } from "lucide-react";
 import SettingsOptionSheet from "../../components/SettingsOptionSheet";
 import { useSettingsStore } from "../../store/useSettingsStore";
+import { SETTINGS_HOME } from "../../lib/settingsNav";
 
 export default function NotificationSettings() {
   const navigate = useNavigate();
@@ -13,10 +14,10 @@ export default function NotificationSettings() {
   );
   const setLiveNotifications = useSettingsStore((s) => s.setLiveNotifications);
 
-  const goBack = useCallback(() => navigate(-1), [navigate]);
+  const exit = useCallback(() => navigate(SETTINGS_HOME, { replace: true }), [navigate]);
 
   return (
-    <SettingsOptionSheet onClose={goBack}>
+    <SettingsOptionSheet onClose={exit}>
       <div className="w-full h-full overflow-hidden bg-[#121215] flex flex-col">
         <header className="flex items-center justify-center mb-2 px-4 pt-2">
           <h1 className="font-bold text-lg text-[#F5F5F7]">Notifications</h1>

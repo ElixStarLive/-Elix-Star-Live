@@ -55,6 +55,33 @@ export async function apiFetchProfileById(
   return { body: data ?? null, error: null };
 }
 
+/**
+ * Register a profile open. Backend is source of truth for unique viewers vs visits.
+ * Safe to call on every open — duplicates do not inflate unique views.
+ */
+export async function apiRegisterProfileView(
+  profileOwnerUserId: string,
+): Promise<{
+  uniqueViews: number;
+  isNewUniqueView: boolean;
+  totalVisits: number;
+  error: string | null;
+}> {
+  const { data, error } = await request<Record<string, unknown>>(
+    `/api/profiles/${encodeURIComponent(profileOwnerUserId)}/view`,
+    { method: 'POST' },
+  );
+  if (error) {
+    return { uniqueViews: 0, isNewUniqueView: false, totalVisits: 0, error: error.message };
+  }
+  return {
+    uniqueViews: Number(data?.uniqueViews ?? 0) || 0,
+    isNewUniqueView: Boolean(data?.isNewUniqueView),
+    totalVisits: Number(data?.totalVisits ?? 0) || 0,
+    error: null,
+  };
+}
+
 export async function apiFetchProfileByUsername(
   username: string,
 ): Promise<{ body: Record<string, unknown> | null; error: string | null }> {

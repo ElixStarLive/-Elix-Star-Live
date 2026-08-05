@@ -32,6 +32,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useSettingsStore } from '../store/useSettingsStore';
 import SettingsOptionSheet from '../components/SettingsOptionSheet';
 import { engagementFlags } from '../config/engagementFlags';
+import { SETTINGS_EXIT_TO, ENGAGEMENT_HOME } from '../lib/settingsNav';
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -44,15 +45,15 @@ export default function Settings() {
   const muteAllSounds = useSettingsStore((s) => s.muteAllSounds);
   const setMuteAllSounds = useSettingsStore((s) => s.setMuteAllSounds);
 
-  const goBack = useCallback(() => {
-    navigate(-1);
+  const exitSettings = useCallback(() => {
+    navigate(SETTINGS_EXIT_TO, { replace: true });
   }, [navigate]);
 
   const goEditProfile = useCallback(() => navigate('/edit-profile'), [navigate]);
   const goSafety = useCallback(() => navigate('/settings/safety'), [navigate]);
   const goSecurity = useCallback(() => navigate('/settings/security'), [navigate]);
   const goPayout = useCallback(() => navigate('/settings/payout'), [navigate]);
-  const goEngagement = useCallback(() => navigate('/engagement'), [navigate]);
+  const goEngagement = useCallback(() => navigate(ENGAGEMENT_HOME), [navigate]);
   const goAdmin = useCallback(() => navigate('/admin'), [navigate]);
   const goNotifications = useCallback(() => navigate('/settings/notifications'), [navigate]);
   const goLikedVideos = useCallback(() => navigate('/profile?tab=liked'), [navigate]);
@@ -105,27 +106,27 @@ export default function Settings() {
           <span className="royce-icon-gold">{ic}</span>
         </span>
       )}
-      <span className="flex-1 text-[15px] leading-tight text-white/85">{t}</span>
-      {v && <span className="text-[12px] text-white/45 tabular-nums">{v}</span>}
+      <span className="flex-1 min-w-0">
+        <span className="elix-silver-red-text text-[15px] leading-tight">{t}</span>
+      </span>
+      {v ? (
+        <span className="elix-silver-red-text text-[12px] tabular-nums shrink-0">{v}</span>
+      ) : null}
       <ChevronRight size={16} className="text-white/30 shrink-0" />
     </button>
   );
 
   const S = ({ t }: { t: string }) => (
-    <p className="text-[10px] text-white/30 uppercase tracking-[0.12em] mt-3.5 mb-1 px-1 leading-none">{t}</p>
+    <p className="mt-3.5 mb-1 px-1 leading-none">
+      <span className="elix-silver-red-text text-[10px] uppercase tracking-[0.12em]">{t}</span>
+    </p>
   );
 
   return (
-    <SettingsOptionSheet onClose={goBack}>
-      <div className="flex-shrink-0 px-3 pb-1">
-        <div className="flex flex-col items-center">
-          <span className="text-[13px] font-bold text-[#F5F5F7]">{t('settings.title')}</span>
-        </div>
-      </div>
-
-      {/* Logo + menu moved down so the void under the title is filled */}
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 pb-[3mm]">
-        <div className="flex flex-col gap-0 max-w-full min-h-full" style={{ paddingTop: '5mm' }}>
+    <SettingsOptionSheet onClose={exitSettings} title={t('settings.title')}>
+      {/* Logo + menu — title lives in sheet top bar with close (no gap) */}
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 pt-2 pb-[3mm]">
+        <div className="flex flex-col gap-0 max-w-full min-h-full">
           <div className="flex flex-col items-center pb-3">
             <img src="/elix-logo.png" alt="Elix Star Live" className="w-20 h-20 object-contain" />
           </div>
@@ -180,23 +181,23 @@ export default function Settings() {
             <button
               type="button"
               onClick={goTerms}
-              className="text-[12px] text-white/60 py-2 rounded-md active:bg-white/5 text-center leading-tight"
+              className="text-[12px] py-2 rounded-md active:bg-white/5 text-center leading-tight"
             >
-              {t('common.terms')}
+              <span className="elix-silver-red-text">{t('common.terms')}</span>
             </button>
             <button
               type="button"
               onClick={goPrivacy}
-              className="text-[12px] text-white/60 py-2 rounded-md active:bg-white/5 text-center leading-tight"
+              className="text-[12px] py-2 rounded-md active:bg-white/5 text-center leading-tight"
             >
-              {t('common.privacy')}
+              <span className="elix-silver-red-text">{t('common.privacy')}</span>
             </button>
             <button
               type="button"
               onClick={goGuidelines}
-              className="text-[12px] text-white/60 py-2 rounded-md active:bg-white/5 text-center leading-tight"
+              className="text-[12px] py-2 rounded-md active:bg-white/5 text-center leading-tight"
             >
-              {t('common.guidelines')}
+              <span className="elix-silver-red-text">{t('common.guidelines')}</span>
             </button>
           </div>
 
@@ -204,19 +205,21 @@ export default function Settings() {
             <button
               type="button"
               onClick={handleLogout}
-              className="flex items-center gap-1.5 py-1.5 text-white/60 text-[13px] active:bg-white/5 px-2.5 rounded-md"
+              className="flex items-center gap-1.5 py-1.5 text-[13px] active:bg-white/5 px-2.5 rounded-md"
             >
-              <LogOut size={15} /> {t('common.logout')}
+              <LogOut size={15} className="royce-icon-gold" /> <span className="elix-silver-red-text">{t('common.logout')}</span>
             </button>
             <button
               type="button"
               onClick={handleDeleteAccount}
-              className="flex items-center gap-1.5 py-1.5 text-white/60/80 text-[13px] active:bg-white/20/10 px-2.5 rounded-md"
+              className="flex items-center gap-1.5 py-1.5 text-[13px] active:bg-white/20/10 px-2.5 rounded-md"
             >
-              <Trash2 size={15} /> {t('common.delete')}
+              <Trash2 size={15} className="royce-icon-gold" /> <span className="elix-silver-red-text">{t('common.delete')}</span>
             </button>
           </div>
-          <p className="text-center text-[9px] text-white/20 pt-1.5 pb-0.5">v1.0.0</p>
+          <p className="text-center text-[9px] pt-1.5 pb-0.5">
+            <span className="elix-silver-red-text opacity-40">v1.0.0</span>
+          </p>
         </div>
       </div>
       {langOpen && <LanguagePickerSheet onClose={() => setLangOpen(false)} />}

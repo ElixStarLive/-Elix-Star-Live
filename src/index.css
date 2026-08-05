@@ -922,24 +922,158 @@ video::-webkit-media-controls-overlay-enclosure,
 }
 
 .text-gold-metallic {
-  background: none;
-  -webkit-background-clip: unset;
-  background-clip: unset;
-  -webkit-text-fill-color: #FFFFFF;
-  color: #FFFFFF;
-}
-
-/* Writing — half silver / half red (same split as icon rings) */
-.elix-silver-red-text {
-  background: linear-gradient(135deg, #E5E5E7 0%, #E5E5E7 50%, #FF3B3F 50%, #FF3B3F 100%);
+  background-image: var(--elix-write, linear-gradient(90deg, #e5e5e7 0%, #e5e5e7 45%, #ff3b3f 55%, #ff3b3f 100%));
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   color: transparent;
 }
 
+/* ═══ GLOBAL: all writing = silver → red (POST · CREATE · LIVE) ═══ */
+#root {
+  --elix-write: linear-gradient(90deg, #e5e5e7 0%, #e5e5e7 45%, #ff3b3f 55%, #ff3b3f 100%);
+}
+
+/* Shrink-wrap gradient to glyphs — never stretch across flex-1 empty space */
+.elix-silver-red-text {
+  display: inline-block;
+  width: max-content;
+  max-width: 100%;
+  background-image: var(--elix-write) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important;
+}
+
+.elix-silver-red-text,
+#root :where(h1, h2, h3, h4, h5, h6, p, label, legend, a, li, th, td, small, strong, em, b),
+#root :where(span):not(:has(> svg)):not([class*='bg-[']),
+#root button > :where(span, p, label, strong, em, b, small),
+#root [class*='text-white'],
+#root [class*='text-gold'],
+#root [class*='text-[#F5F5F7]'],
+#root [class*='text-[#FFFFFF]'],
+#root [class*='text-[#E5E5E7]'],
+#root [class*='text-[#A7A7AD]'] {
+  background-image: var(--elix-write);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/*
+ * GLOBAL: no solid red press / select fills.
+ * Solid bg-[#FF3B3F] buttons -> transparent; text children keep silver-red.
+ * Opt out with .elix-solid-red (Follow / Join capsules).
+ */
+#root :is(button, a, [role='button'])[class*='bg-[#FF3B3F]']:not([class*='bg-[#FF3B3F]/']):not(.elix-solid-red) {
+  background-color: transparent !important;
+  background-image: none !important;
+  border-color: rgba(255, 255, 255, 0.28) !important;
+  box-shadow: none !important;
+}
+#root :is(button, a, [role='button'])[class*='bg-[#FF3B3F]']:not([class*='bg-[#FF3B3F]/']):not(.elix-solid-red) :where(span, p, small, strong, b, label) {
+  background-image: var(--elix-write) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important;
+}
+
+/* Soft red / selected tints — strip the red wash, keep writing */
+#root :is(button, a, [role='button'])[class*='bg-[#FF3B3F]/'],
+#root :is(button, a, [role='button'])[class*='hover:bg-[#FF3B3F]'],
+#root :is(button, a, [role='button'])[class*='active:bg-[#FF3B3F]'] {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Red / gold chip borders on press — kill them; writing is the only signal */
+#root :is(button, a, [role='button'])[class*='border-[#FF3B3F]'],
+#root :is(button, a, [role='button'])[class*='border-[#E5E5E7]'],
+#root :is(button, a, [role='button'])[class*='border-red'] {
+  border-color: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Active / pressed: no fill chrome — writing stays silver-red */
+#root :is(button, a, [role='button']).elix-chip-active,
+#root :is(button, a, [role='button'])[aria-pressed='true'],
+#root :is(button, a, [role='button'])[aria-current='true'],
+#root :is(button, a, [role='button']):active:not(.elix-solid-red) {
+  background-color: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Form fields stay solid */
+#root :where(input, textarea, select),
+#root :where(input, textarea, select) * {
+  background-image: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: #f5f5f7 !important;
+  color: #f5f5f7 !important;
+}
+
+/* SVG / icons keep strokes */
+#root svg,
+#root svg *,
+#root .lucide,
+#root [class*='royce-icon'] {
+  background-image: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: unset !important;
+}
+
+#root span:has(> svg:only-child),
+#root button:has(> svg:only-child):not(:has(span, p, label)) {
+  background-image: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: unset !important;
+  color: inherit;
+}
+
+
+/* Engagement Hub / drawer panels — force silver-red writing */
+#root .engagement-panel-writing :where(h1, h2, h3, h4, p, label, small, strong, em, b, li),
+#root .engagement-panel-writing button > :where(span:not(:has(svg))),
+#root .engagement-panel-writing [class*="text-white"],
+#root .engagement-panel-writing [class*="text-[#F5F5F7]"] {
+  background-image: var(--elix-write) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important;
+}
+#root .engagement-panel-writing svg,
+#root .engagement-panel-writing svg *,
+#root .engagement-panel-writing .lucide,
+#root .engagement-panel-writing .royce-icon-gold,
+#root .engagement-panel-writing .royce-glow-disc {
+  background-image: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: unset !important;
+}
+
+/* Kept solid red fills (shutter / follow / join) — readable dark text */
+#root .elix-solid-red,
+#root .elix-solid-red :where(span, p, small, strong, b, label) {
+  background-image: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: #121215 !important;
+  color: #121215 !important;
+}
+
 .stroke-gold-metallic {
-  color: #E5E5E7;
+  color: #e5e5e7;
   filter: none;
 }
 
@@ -1056,7 +1190,57 @@ nav[aria-label="Main navigation"] .royce-glow-disc::before {
   display: none !important;
 }
 
-/* Profile / chat avatars — no silver/red circle ring */
+/* Profile avatar — small add-story disc: half silver / half red ring + visible plus */
+.profile-add-story-btn {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  min-height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  background: #121215;
+  overflow: visible;
+}
+.profile-add-story-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 2px;
+  box-sizing: border-box;
+  background: linear-gradient(135deg, #E5E5E7 0%, #E5E5E7 50%, #FF3B3F 50%, #FF3B3F 100%);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 0;
+}
+.profile-add-story-btn__plus {
+  position: relative;
+  z-index: 2;
+  display: block;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+  width: max-content;
+  background: linear-gradient(90deg, #E5E5E7 0%, #E5E5E7 42%, #FF3B3F 58%, #FF3B3F 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  pointer-events: none;
+  user-select: none;
+}
+
 .elix-profile-ring,
 .royce-avatar-glow {
   box-sizing: border-box;
@@ -1077,7 +1261,7 @@ svg.lucide {
 
 svg.lucide.fill-current,
 svg.lucide.fill-gold-bright,
-svg.lucide[fill]:not([fill="none"]):not(.fill-red-500) {
+svg.lucide[fill]:not([fill="none"]):not(.fill-red-500):not(.fill-silver-full) {
   fill: none !important;
   stroke: url(#elixSilverRed) !important;
 }
@@ -1087,6 +1271,16 @@ svg.lucide.text-red-500 {
   color: #FF3B3F !important;
   fill: #FF3B3F !important;
   stroke: #FF3B3F !important;
+  filter: none !important;
+}
+
+/* Saved bookmark — solid silver fill so saved state is obvious */
+svg.lucide.fill-silver-full,
+.royce-icon-gold.fill-silver-full,
+svg.lucide.fill-silver-full.royce-icon-gold {
+  color: #E5E5E7 !important;
+  fill: #E5E5E7 !important;
+  stroke: #E5E5E7 !important;
   filter: none !important;
 }
 

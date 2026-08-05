@@ -26,6 +26,8 @@ import { mountRoutes } from "./routes/index";
 import { attachWebSocket, initWsPubSub } from "./websocket/index";
 import { initBattleTickLoop, stopBattleTickLoop } from "./websocket/battle";
 import { neonMatureCreatorEarnings } from "./lib/walletNeon";
+import { matureGbpPendingEarnings } from "./lib/monetisation/ledger";
+import { loadMonetisationConfig } from "./lib/monetisation/config";
 import { initFeedPubSub } from "./feedBroadcast";
 import crypto from "crypto";
 import cluster from "node:cluster";
@@ -589,8 +591,14 @@ try {
       void neonMatureCreatorEarnings().then((n) => {
         if (n > 0) logger.info({ matured: n }, "Creator earnings matured to available");
       });
+      void loadMonetisationConfig().then((cfg) =>
+        matureGbpPendingEarnings(cfg.giftSettlementHours).then((n) => {
+          if (n > 0) logger.info({ matured: n }, "GBP creator ledger matured to available");
+        }),
+      );
     }, 5 * 60 * 1000).unref();
     void neonMatureCreatorEarnings();
+    void loadMonetisationConfig().then((cfg) => matureGbpPendingEarnings(cfg.giftSettlementHours));
   }
   server.listen(PORT, "0.0.0.0", 8192, () => {
     logger.info(

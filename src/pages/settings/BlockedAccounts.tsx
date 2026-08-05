@@ -9,6 +9,7 @@ import {
   apiListBlockedUsers,
   apiUnblockUser,
 } from '../../features/safety/safetyApi';
+import { SETTINGS_HOME } from '../../lib/settingsNav';
 
 interface BlockedUser {
   blocked_user_id: string;
@@ -25,7 +26,7 @@ export default function BlockedAccounts() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const goBack = useCallback(() => navigate(-1), [navigate]);
+  const exit = useCallback(() => navigate(SETTINGS_HOME, { replace: true }), [navigate]);
 
   useEffect(() => {
     loadCurrentUser();
@@ -80,7 +81,7 @@ export default function BlockedAccounts() {
   );
 
   return (
-    <SettingsOptionSheet onClose={goBack}>
+    <SettingsOptionSheet onClose={exit}>
       <div className="w-full h-full overflow-hidden bg-[#121215] flex flex-col">
         {/* Header */}
         <div className="sticky top-0 bg-[#121215] z-10 px-4 pt-3 pb-3 border-b border-white/[0.06]">

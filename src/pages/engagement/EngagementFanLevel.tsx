@@ -43,27 +43,35 @@ export default function EngagementFanLevel() {
   return (
     <EngagementShell title="Fan Level" icon={Star}>
       {loading ? (
-        <div className="py-10 text-center text-white/50 text-sm">Loading...</div>
+        <div className="py-10 text-center text-sm">
+          <span className="elix-silver-red-text opacity-50">Loading...</span>
+        </div>
       ) : (
         <>
           <div className="rounded-2xl border border-[#E5E5E7]/30 bg-gradient-to-br from-[#1a1608] to-[#121215] p-4 mb-4">
-            <p className="text-xs text-[#F5F5F7] uppercase tracking-wide mb-1">
-              {fan?.tier || "Bronze Fan"}
+            <p className="text-xs uppercase tracking-wide mb-1">
+              <span className="elix-silver-red-text">{fan?.tier || "Bronze Fan"}</span>
             </p>
-            <p className="text-3xl font-bold mb-1">Level {fan?.level ?? 0}</p>
-            <p className="text-sm text-white/60 mb-3 tabular-nums">
-              {fan?.total_xp ?? 0} XP
-              {fan?.xp_to_next_level != null
-                ? ` · ${fan.xp_to_next_level} to next`
-                : ""}
+            <p className="text-3xl font-bold mb-1">
+              <span className="elix-silver-red-text">Level {fan?.level ?? 0}</span>
             </p>
-            <p className="text-[11px] text-white/40">
-              Earn XP from watching, gifts, missions, and daily login. Rewards are
-              badges and cosmetics only.
+            <p className="text-sm mb-3 tabular-nums">
+              <span className="elix-silver-red-text opacity-70">
+                {fan?.total_xp ?? 0} XP
+                {fan?.xp_to_next_level != null
+                  ? ` · ${fan.xp_to_next_level} to next`
+                  : ""}
+              </span>
+            </p>
+            <p className="text-[11px]">
+              <span className="elix-silver-red-text opacity-55">
+                Earn XP from watching, gifts, missions, and daily login. Rewards are
+                badges and cosmetics only.
+              </span>
             </p>
           </div>
-          <p className="text-[10px] text-white/30 uppercase tracking-[0.12em] mb-2">
-            Tiers
+          <p className="text-[10px] uppercase tracking-[0.12em] mb-2">
+            <span className="elix-silver-red-text opacity-55">Tiers</span>
           </p>
           <div className="flex flex-col gap-2">
             {TIERS.map((t) => {
@@ -73,16 +81,18 @@ export default function EngagementFanLevel() {
                   key={t.name}
                   className={`rounded-xl border px-3 py-2.5 flex items-center justify-between ${
                     active
-                      ? "border-[#E5E5E7]/40 bg-[#FF3B3F]/10"
+                      ? "border-[#E5E5E7]/40 bg-white/[0.04]"
                       : "border-white/10 bg-white/[0.03]"
                   }`}
                 >
-                  <span
-                    className={`text-sm ${active ? "text-[#F5F5F7]" : "text-white/50"}`}
-                  >
-                    {t.name}
+                  <span className="text-sm">
+                    <span className={`elix-silver-red-text ${active ? "" : "opacity-50"}`}>
+                      {t.name}
+                    </span>
                   </span>
-                  <span className="text-[11px] text-white/40">Lv {t.min}+</span>
+                  <span className="text-[11px]">
+                    <span className="elix-silver-red-text opacity-55">Lv {t.min}+</span>
+                  </span>
                 </div>
               );
             })}

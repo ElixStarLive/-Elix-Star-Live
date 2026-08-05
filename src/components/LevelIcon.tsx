@@ -117,8 +117,10 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
 
   const { background, prestige } = getLevelAccentStyle(safeLevel);
 
-  /** Chip height — keep short; diamond + number only. */
-  const chipH = Math.max(20, Math.round(circleSize * 0.78));
+  /** Chip height — use explicit `size` when set so avatar circle can grow independently. */
+  const chipH = sizeProvided
+    ? Math.max(16, Math.round(rawSize))
+    : Math.max(20, Math.round(circleSize * 0.78));
   const numberPx = Math.max(10, Math.round(chipH * 0.58));
   /** Diamond must stay large enough to read at MVP list sizes. */
   const diamondSize = Math.max(16, Math.round(chipH * 0.95));

@@ -64,8 +64,8 @@ export default function EngagementMissions() {
 
   const Section = ({ title, items }: { title: string; items: Mission[] }) => (
     <div className="mb-4">
-      <p className="text-[10px] text-white/30 uppercase tracking-[0.12em] mb-2">
-        {title}
+      <p className="text-[10px] uppercase tracking-[0.12em] mb-2">
+        <span className="elix-silver-red-text opacity-55">{title}</span>
       </p>
       <div className="flex flex-col gap-2">
         {items.map((m) => {
@@ -80,20 +80,26 @@ export default function EngagementMissions() {
             >
               <div className="flex items-start justify-between gap-2 mb-1">
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-white/90">{m.title}</p>
-                  <p className="text-[11px] text-white/45">{m.description}</p>
+                  <p className="text-sm font-semibold">
+                    <span className="elix-silver-red-text">{m.title}</span>
+                  </p>
+                  <p className="text-[11px]">
+                    <span className="elix-silver-red-text opacity-55">{m.description}</span>
+                  </p>
                 </div>
                 {m.completed && !m.claimed ? (
                   <button
                     type="button"
                     disabled={claiming === m.id}
                     onClick={() => void claim(m.id)}
-                    className="shrink-0 rounded-lg bg-[#FF3B3F]/25 border border-[#E5E5E7]/50 px-2.5 py-1 text-[11px] font-bold text-[#F5F5F7]"
+                    className="shrink-0 rounded-lg bg-transparent border border-white/30 px-2.5 py-1 text-[11px] font-bold active:opacity-70"
                   >
-                    Claim
+                    <span className="elix-silver-red-text">Claim</span>
                   </button>
                 ) : m.claimed ? (
-                  <span className="text-[11px] text-white/40 shrink-0">Done</span>
+                  <span className="text-[11px] shrink-0">
+                    <span className="elix-silver-red-text opacity-45">Done</span>
+                  </span>
                 ) : null}
               </div>
               <div className="h-1.5 rounded-full bg-white/10 overflow-hidden mb-1.5">
@@ -102,12 +108,14 @@ export default function EngagementMissions() {
                   style={{ width: `${pct}%` }}
                 />
               </div>
-              <p className="text-[10px] text-white/50 tabular-nums">
-                {m.progress}/{m.goal_count} · {m.reward_xp} XP
-                {m.reward_promo_coins > 0
-                  ? ` · ${m.reward_promo_coins} Promo`
-                  : ""}
-                {m.reward_energy > 0 ? ` · ${m.reward_energy} Energy` : ""}
+              <p className="text-[10px] tabular-nums">
+                <span className="elix-silver-red-text opacity-55">
+                  {m.progress}/{m.goal_count} · {m.reward_xp} XP
+                  {m.reward_promo_coins > 0
+                    ? ` · ${m.reward_promo_coins} Promo`
+                    : ""}
+                  {m.reward_energy > 0 ? ` · ${m.reward_energy} Energy` : ""}
+                </span>
               </p>
             </div>
           );
@@ -119,7 +127,9 @@ export default function EngagementMissions() {
   return (
     <EngagementShell title="Missions" icon={Target}>
       {loading ? (
-        <div className="py-10 text-center text-white/50 text-sm">Loading...</div>
+        <div className="py-10 text-center text-sm">
+          <span className="elix-silver-red-text opacity-50">Loading...</span>
+        </div>
       ) : (
         <>
           <Section title="Daily" items={daily} />

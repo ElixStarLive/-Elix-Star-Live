@@ -158,46 +158,45 @@ export default function AIStudio() {
             <div className="w-24 h-24 rounded-2xl bg-[#121215] flex items-center justify-center">
               <Upload size={36} className="text-[#F5F5F7]" />
             </div>
-            <p className="text-white/50 text-sm text-center">Import a video to start editing with AI tools</p>
+            <p className="elix-silver-red-text text-sm text-center">Import a video to start editing with AI tools</p>
             <button
               onClick={openFilePicker}
-              className="px-6 py-3 rounded-full bg-[#FF3B3F] text-black font-bold text-sm flex items-center gap-2"
+              className="px-6 py-3 rounded-full bg-transparent border border-white/30 font-bold text-sm flex items-center gap-2 active:opacity-70"
             >
-              <Upload size={16} /> Select Video
+              <Upload size={16} className="text-[#F5F5F7]" />
+              <span className="elix-silver-red-text">Select Video</span>
             </button>
           </div>
         )}
       </div>
 
-      {/* Bottom Action Bar */}
+      {/* Bottom Action Bar — no solid red active fills; writing only */}
       <div className="flex items-center justify-around px-4 py-3 border-t border-white/5 flex-shrink-0">
         <button
           onClick={openFilePicker}
-          className="flex flex-col items-center gap-1"
+          className="flex flex-col items-center gap-1 active:opacity-70"
         >
-          <Upload size={16} className="text-white/60" />
-          <span className="text-[10px] text-white/40">Import</span>
+          <Upload size={16} className="text-[#F5F5F7]" />
+          <span className="elix-silver-red-text text-[10px]">Import</span>
         </button>
-        <button onClick={handleAutoEnhance} className="flex flex-col items-center gap-1">
+        <button onClick={handleAutoEnhance} className="flex flex-col items-center gap-1 active:opacity-70">
           <Sparkles size={16} className="text-[#F5F5F7]" />
-          <span className="text-[10px] text-[#F5F5F7]">Auto AI</span>
+          <span className="elix-silver-red-text text-[10px]">Auto AI</span>
         </button>
         <button
           onClick={openTools}
-          className="flex flex-col items-center gap-1"
+          className="flex flex-col items-center gap-1 active:opacity-70"
         >
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FF3B3F] to-[#FF3B3F] flex items-center justify-center shadow-lg shadow-[#FFFFFF]/20">
-            <Wand2 size={18} className="text-black" />
-          </div>
-          <span className="text-[10px] text-white/60">AI Tools</span>
+          <Wand2 size={18} className="text-[#F5F5F7]" />
+          <span className="elix-silver-red-text text-[10px]">AI Tools</span>
         </button>
-        <button onClick={handleReset} className="flex flex-col items-center gap-1">
-          <ArrowLeft size={16} className="text-white/60 rotate-[135deg]" />
-          <span className="text-[10px] text-white/40">Reset</span>
+        <button onClick={handleReset} className="flex flex-col items-center gap-1 active:opacity-70">
+          <ArrowLeft size={16} className="text-[#F5F5F7] rotate-[135deg]" />
+          <span className="elix-silver-red-text text-[10px]">Reset</span>
         </button>
-        <button onClick={handleExport} className="flex flex-col items-center gap-1">
-          <Share2 size={16} className="text-white/60" />
-          <span className="text-[10px] text-white/40">Export</span>
+        <button onClick={handleExport} className="flex flex-col items-center gap-1 active:opacity-70">
+          <Share2 size={16} className="text-[#F5F5F7]" />
+          <span className="elix-silver-red-text text-[10px]">Export</span>
         </button>
       </div>
 

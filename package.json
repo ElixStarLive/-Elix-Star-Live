@@ -10,7 +10,7 @@
   "scripts": {
     "setup:env": "node scripts/setup-env.mjs",
     "dev": "vite",
-    "dev:server": "npx tsx server/index.ts",
+    "dev:server": "node scripts/dev-server.mjs",
     "dev:all": "npx concurrently -n server,web -c blue,green \"npm run dev:server\" \"npm run dev\"",
     "build": "vite build --mode production",
     "build:store": "tsc -b && vite build --mode store",

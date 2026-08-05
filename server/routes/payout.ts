@@ -36,17 +36,76 @@ export async function handleGetCreatorBalance(req: Request, res: Response) {
        FROM elix_creator_balances WHERE user_id = $1`, [userId],
     );
     res.setHeader("Cache-Control", "private, no-store");
-    if (r.rows.length === 0) {
-      return res.json({ pending_coins: 0, available_coins: 0, locked_coins: 0, total_earned: 0, total_withdrawn: 0 });
+    const coinBal =
+      r.rows.length === 0
+        ? { pending_coins: 0, available_coins: 0, locked_coins: 0, total_earned: 0, total_withdrawn: 0 }
+        : {
+            pending_coins: Number(r.rows[0].pending_coins),
+            available_coins: Number(r.rows[0].available_coins),
+            locked_coins: Number(r.rows[0].locked_coins),
+            total_earned: Number(r.rows[0].total_earned),
+            total_withdrawn: Number(r.rows[0].total_withdrawn),
+          };
+
+    let gbp = {
+      pending_pence: 0,
+      available_pence: 0,
+      withdrawn_pence: 0,
+      reversed_pence: 0,
+      held_pence: 0,
+    };
+    try {
+      const g = await db.query(
+        `SELECT pending_pence, available_pence, withdrawn_pence, reversed_pence, held_pence
+           FROM elix_creator_wallet_gbp WHERE user_id = $1`,
+        [userId],
+      );
+      if (g.rows[0]) {
+        gbp = {
+          pending_pence: Number(g.rows[0].pending_pence) || 0,
+          available_pence: Number(g.rows[0].available_pence) || 0,
+          withdrawn_pence: Number(g.rows[0].withdrawn_pence) || 0,
+          reversed_pence: Number(g.rows[0].reversed_pence) || 0,
+          held_pence: Number(g.rows[0].held_pence) || 0,
+        };
+      }
+    } catch {
+      /* migration may not be applied yet */
     }
-    const b = r.rows[0];
-    return res.json({
-      pending_coins: Number(b.pending_coins),
-      available_coins: Number(b.available_coins),
-      locked_coins: Number(b.locked_coins),
-      total_earned: Number(b.total_earned),
-      total_withdrawn: Number(b.total_withdrawn),
-    });
+
+    let rewards = {
+      qualified_views_30d: 0,
+      current_reward_pence: 0,
+      next_milestone_views: null as number | null,
+      next_milestone_reward_pence: null as number | null,
+    };
+    try {
+      const { calculateCreatorRewardPence } = await import('../lib/monetisation/creatorRewardsMath');
+      const { loadMonetisationConfig } = await import('../lib/monetisation/config');
+      const cfg = await loadMonetisationConfig();
+      const qv = await db.query(
+        `SELECT COUNT(*)::bigint AS c FROM elix_qualified_video_views
+          WHERE creator_user_id = $1
+            AND first_qualified_at >= NOW() - interval '30 days'`,
+        [userId],
+      );
+      const qualified = Math.floor(Number(qv.rows[0]?.c) || 0);
+      const calc = calculateCreatorRewardPence(
+        qualified,
+        cfg.milestones,
+        cfg.rewardsMaxPencePerCreator,
+      );
+      rewards = {
+        qualified_views_30d: qualified,
+        current_reward_pence: calc.rewardPence,
+        next_milestone_views: calc.nextMilestoneViews,
+        next_milestone_reward_pence: calc.nextMilestoneRewardPence,
+      };
+    } catch {
+      /* optional until migration */
+    }
+
+    return res.json({ ...coinBal, gbp, rewards });
   } catch (err) {
     logger.error({ err }, 'Get creator balance error');
     return res.status(500).json({ error: 'Failed to get balance' });

@@ -43,3 +43,33 @@ export async function insertNotification(opts: {
   }
   return true;
 }
+
+/**
+ * Remove inbox "is live" rows for a room when the stream ends (or before a fresh one-shot notify).
+ * Does not touch live-share / DM / other notification types.
+ */
+export async function deleteLiveStartedNotificationsForRoom(roomName: string): Promise<number> {
+  const room = String(roomName || "").trim();
+  if (!room) return 0;
+  const pool = getPool();
+  if (!pool) return 0;
+  const livePath = `/live/${encodeURIComponent(room)}`;
+  const livePathRaw = `/live/${room}`;
+  try {
+    const r = await pool.query(
+      `DELETE FROM elix_notifications
+       WHERE type = 'live_started'
+         AND (
+           action_url = $1
+           OR action_url LIKE $2
+           OR action_url = $3
+           OR action_url LIKE $4
+         )`,
+      [livePath, `${livePath}?%`, livePathRaw, `${livePathRaw}?%`],
+    );
+    return Number(r.rowCount || 0);
+  } catch (err) {
+    logger.warn({ err, room }, "deleteLiveStartedNotificationsForRoom failed");
+    return 0;
+  }
+}

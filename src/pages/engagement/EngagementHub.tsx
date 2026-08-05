@@ -14,6 +14,7 @@ import {
 import { RoyceBackIcon } from "../../components/royce";
 import { showToast } from "../../lib/toast";
 import { apiEngagementHub } from "../../features/live/engagement/liveEngagementApi";
+import { SETTINGS_HOME } from "../../lib/settingsNav";
 
 type Hub = {
   promotional_coins: number;
@@ -84,7 +85,9 @@ export default function EngagementHub() {
   const [hub, setHub] = useState<Hub | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const goBack = useCallback(() => navigate(-1), [navigate]);
+  const exit = useCallback(() => {
+    navigate(SETTINGS_HOME, { replace: true });
+  }, [navigate]);
   const goDailyLogin = useCallback(() => navigate("/engagement/daily-login"), [navigate]);
   const openEngagementPath = useCallback((path: string) => navigate(path), [navigate]);
 
@@ -105,59 +108,71 @@ export default function EngagementHub() {
 
   return (
     <div className="page-above-bottom-nav bg-[#121215] text-white">
-      <div className="page-above-bottom-nav__inner">
+      <div className="page-above-bottom-nav__inner engagement-panel-writing">
         <div
           className="w-full shrink-0 bg-[#121215] z-10"
           style={{ paddingTop: "var(--topnav-anchor-top)" }}
         >
           <div
-            className="w-full px-3 flex items-center justify-between"
+            className="w-full px-3 flex items-center"
             style={{ minHeight: "var(--topnav-bar-height)" }}
           >
+            <div className="w-10 shrink-0" aria-hidden />
+            <div className="flex-1 flex items-center justify-center gap-2 min-w-0">
+              <Gift className="w-5 h-5 royce-icon-gold shrink-0" />
+              <h1 className="text-base font-semibold truncate">
+                <span className="elix-silver-red-text">Engagement Hub</span>
+              </h1>
+            </div>
             <button
               type="button"
-              onClick={goBack}
-              className="p-1"
-              aria-label="Back"
+              onClick={exit}
+              className="w-10 h-10 shrink-0 flex items-center justify-center"
+              aria-label="Close"
+              title="Close"
             >
               <RoyceBackIcon className="w-6 h-6 text-white" />
             </button>
-            <div className="flex items-center gap-2">
-              <Gift className="w-5 h-5 text-[#F5F5F7]" />
-              <h1 className="text-base font-semibold">Engagement Hub</h1>
-            </div>
-            <div className="w-8" />
           </div>
         </div>
 
         <div className="px-3 pb-6">
           {loading ? (
-            <div className="py-10 text-center text-white/50 text-sm">Loading...</div>
+            <div className="py-10 text-center text-sm">
+              <span className="elix-silver-red-text opacity-50">Loading...</span>
+            </div>
           ) : (
             <>
               <div className="rounded-2xl border border-[#E5E5E7]/30 bg-gradient-to-br from-[#1a1608] to-[#121215] p-4 mb-4">
-                <p className="text-xs uppercase tracking-wide text-[#F5F5F7] mb-2">
-                  {hub?.fan_tier || "Bronze Fan"} · Level {hub?.fan_level ?? 0}
+                <p className="text-xs uppercase tracking-wide mb-2">
+                  <span className="elix-silver-red-text">
+                    {hub?.fan_tier || "Bronze Fan"} · Level {hub?.fan_level ?? 0}
+                  </span>
                 </p>
                 <div className="grid grid-cols-3 gap-2 text-center">
                   <div>
-                    <p className="text-[10px] text-white/50">Promo</p>
+                    <p className="text-[10px]">
+                      <span className="elix-silver-red-text opacity-55">Promo</span>
+                    </p>
                     <p className="text-sm font-bold tabular-nums">
-                      {hub?.promotional_coins ?? 0}
+                      <span className="elix-silver-red-text">{hub?.promotional_coins ?? 0}</span>
                     </p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-white/50 flex items-center justify-center gap-0.5">
-                      <Zap className="w-3 h-3 text-[#F5F5F7]" /> Energy
+                    <p className="text-[10px] flex items-center justify-center gap-0.5">
+                      <Zap className="w-3 h-3 royce-icon-gold" />
+                      <span className="elix-silver-red-text opacity-55">Energy</span>
                     </p>
                     <p className="text-sm font-bold tabular-nums">
-                      {hub?.battle_energy ?? 0}
+                      <span className="elix-silver-red-text">{hub?.battle_energy ?? 0}</span>
                     </p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-white/50">XP</p>
+                    <p className="text-[10px]">
+                      <span className="elix-silver-red-text opacity-55">XP</span>
+                    </p>
                     <p className="text-sm font-bold tabular-nums">
-                      {hub?.total_xp ?? 0}
+                      <span className="elix-silver-red-text">{hub?.total_xp ?? 0}</span>
                     </p>
                   </div>
                 </div>
@@ -165,9 +180,11 @@ export default function EngagementHub() {
                   <button
                     type="button"
                     onClick={goDailyLogin}
-                    className="mt-3 w-full rounded-xl bg-[#FF3B3F]/20 border border-[#E5E5E7]/40 py-2 text-xs font-semibold text-[#F5F5F7]"
+                    className="mt-3 w-full rounded-xl bg-transparent border border-white/25 py-2 text-xs font-semibold active:opacity-70"
                   >
-                    Claim daily login · Day {hub.daily_login.streak_day}
+                    <span className="elix-silver-red-text">
+                      Claim daily login · Day {hub.daily_login.streak_day}
+                    </span>
                   </button>
                 ) : null}
               </div>
@@ -183,18 +200,20 @@ export default function EngagementHub() {
                       className="w-full flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3 text-left active:bg-white/5"
                     >
                       <span className="royce-glow-disc shrink-0 flex items-center justify-center w-9 h-9">
-                        <Icon className="w-[18px] h-[18px] text-[#F5F5F7]" />
+                        <Icon className="w-[18px] h-[18px] royce-icon-gold" />
                       </span>
                       <span className="flex-1 min-w-0">
-                        <span className="block text-[15px] text-white/90">
-                          {item.title}
-                          {item.path === "/engagement/missions" &&
-                          (hub?.missions_open ?? 0) > 0
-                            ? ` (${hub?.missions_open})`
-                            : ""}
+                        <span className="block text-[15px]">
+                          <span className="elix-silver-red-text">
+                            {item.title}
+                            {item.path === "/engagement/missions" &&
+                            (hub?.missions_open ?? 0) > 0
+                              ? ` (${hub?.missions_open})`
+                              : ""}
+                          </span>
                         </span>
-                        <span className="block text-[12px] text-white/45">
-                          {item.subtitle}
+                        <span className="block text-[12px]">
+                          <span className="elix-silver-red-text opacity-55">{item.subtitle}</span>
                         </span>
                       </span>
                       <ChevronRight size={16} className="text-white/30 shrink-0" />
@@ -202,11 +221,13 @@ export default function EngagementHub() {
                   );
                 })}
               </div>
-              <p className="mt-4 text-[11px] text-white/35 leading-relaxed">
-                Promotional Coins and Battle Energy are free rewards — separate from
-                Purchased Coins. LIVE side mission chips are progress hints; claim
-                rewards in this Hub or the LIVE Engagement drawer. Battle Predictor
-                League comes in Phase 2.
+              <p className="mt-4 text-[11px] leading-relaxed">
+                <span className="elix-silver-red-text opacity-55">
+                  Promotional Coins and Battle Energy are free rewards — separate from
+                  Purchased Coins. LIVE side mission chips are progress hints; claim
+                  rewards in this Hub or the LIVE Engagement drawer. Battle Predictor
+                  League comes in Phase 2.
+                </span>
               </p>
             </>
           )}

@@ -1,114 +1,26 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { RoyceBackIcon } from '../components/royce';
-import { Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { useVideoStore } from '../store/useVideoStore';
 import { trackScreenView } from '../lib/analytics';
 import EnhancedVideoPlayer from '../components/EnhancedVideoPlayer';
-import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
-import { usePullRevealStrip } from '../hooks/usePullRevealStrip';
-import { apiFetchProfiles } from '../features/feed/feedApi';
-import { apiLiveStreams } from '../lib/live';
-
-interface FollowingUser {
-  id: string;
-  username: string;
-  name: string;
-  avatar_url: string | null;
-  is_live: boolean;
-  stream_id?: string;
-  is_following?: boolean;
-}
+import { FeedStoryCirclesOverlay } from '../components/FeedStoryCirclesOverlay';
 
 export default function FollowingFeed() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const { friendVideos, fetchFriendVideos, friendsLoading: loading } = useVideoStore();
-  const followingIds = useVideoStore((s) => s.followingUsers);
-  const [followingUsers, setFollowingUsers] = useState<FollowingUser[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const pageRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const friendVideoIds = friendVideos.map((v) => v.id);
-  const { visible: circlesVisible, pullZoneProps } = usePullRevealStrip(pageRef);
 
   useEffect(() => {
     trackScreenView('following_feed');
     if (user?.id) {
-      loadData();
       fetchFriendVideos();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, fetchFriendVideos, followingIds?.join(',')]);
-
-  const loadData = async () => {
-    if (!user?.id) return;
-    try {
-      const [profilesResult, streamsResult] = await Promise.all([
-        apiFetchProfiles(),
-        apiLiveStreams().catch(() => ({ streams: [], error: null })),
-      ]);
-
-      const profilesBody = { profiles: profilesResult.profiles ?? [] };
-      const streamsBody = { streams: streamsResult.streams ?? [] };
-
-      const profiles = Array.isArray(profilesBody?.profiles) ? profilesBody.profiles : [];
-      const byId = new Map<string, Record<string, unknown>>();
-      for (const p of profiles) {
-        const id = String(p.user_id ?? p.userId ?? '');
-        if (!id) continue;
-        byId.set(id, p);
-      }
-
-      const streams = Array.isArray(streamsBody?.streams) ? streamsBody.streams : [];
-      const liveMap = new Map<string, string>();
-      for (const s of streams) {
-        const uid = String(s.user_id ?? s.userId ?? '');
-        const streamKey = String(s.stream_key ?? s.streamKey ?? s.room_id ?? uid);
-        if (uid && streamKey) liveMap.set(uid, streamKey);
-      }
-
-      const followingSet = new Set(followingIds || []);
-
-      const followingUsersList: FollowingUser[] = (followingIds || [])
-        .filter((id) => id && id !== user.id)
-        .map((id) => {
-          const p = byId.get(id);
-          return {
-            id,
-            username: String(p?.username ?? 'user'),
-            name: String(p?.display_name ?? p?.displayName ?? p?.username ?? 'User'),
-            avatar_url: (p?.avatar_url ?? p?.avatarUrl ?? null) as string | null,
-            is_live: liveMap.has(id),
-            stream_id: liveMap.get(id),
-            is_following: true,
-          };
-        });
-
-      const otherLiveUsers: FollowingUser[] = Array.from(liveMap.entries())
-        .filter(([uid]) => uid && uid !== user.id && !followingSet.has(uid))
-        .map(([uid, streamKey]) => {
-          const p = byId.get(uid);
-          return {
-            id: uid,
-            username: String(p?.username ?? 'user'),
-            name: String(p?.display_name ?? p?.displayName ?? p?.username ?? 'User'),
-            avatar_url: (p?.avatar_url ?? p?.avatarUrl ?? null) as string | null,
-            is_live: true,
-            stream_id: streamKey,
-            is_following: false,
-          };
-        });
-
-      const liveFollowers = followingUsersList.filter((u) => u.is_live);
-      const nonLiveFollowers = followingUsersList.filter((u) => !u.is_live);
-      const finalList = [...liveFollowers, ...otherLiveUsers, ...nonLiveFollowers];
-      setFollowingUsers(finalList);
-    } catch {
-      setFollowingUsers([]);
-    }
-  };
+  }, [user?.id, fetchFriendVideos]);
 
   const goSearch = useCallback(() => {
     navigate('/search');
@@ -120,11 +32,6 @@ export default function FollowingFeed() {
 
   const goDiscover = useCallback(() => {
     navigate('/discover');
-  }, [navigate]);
-
-  const openFollowingUser = useCallback((u: FollowingUser) => {
-    if (u.is_live) navigate(`/watch/${u.id}`);
-    else navigate(`/profile/${u.id}`);
   }, [navigate]);
 
   const handleScroll = useCallback(() => {
@@ -163,78 +70,18 @@ export default function FollowingFeed() {
   }, [friendVideoIds.length]);
 
   return (
-    <div ref={pageRef} className="app-live-column bg-[#121215] relative">
-      {!circlesVisible ? <div {...pullZoneProps} /> : null}
-      {/* Header — same size container as LIVE */}
-      <div
-        className="fixed left-0 right-0 z-[9999] flex justify-center pointer-events-none"
-        style={{ top: 'var(--topnav-anchor-top)' }}
-      >
-        <div
-          className="w-full max-w-[480px] px-3 flex items-center justify-between pointer-events-auto"
-          style={{ minHeight: 'var(--topnav-bar-height)' }}
-        >
-          <button onClick={goSearch} className="p-1" aria-label="Search">
-            <Search size={18} className="text-white" />
-          </button>
-          <h1 className="text-sm font-bold text-white">Following</h1>
-          <button onClick={goBack} title="Back" className="p-1">
-            <RoyceBackIcon />
-          </button>
-        </div>
-      </div>
+    <div ref={pageRef} className="app-live-column bg-black relative">
+      <FeedStoryCirclesOverlay
+        pageRef={pageRef}
+        topOffset="var(--topnav-anchor-top)"
+        initiallyVisible
+        followingFirst
+        title="Following"
+        onSearch={goSearch}
+        onBack={goBack}
+      />
 
-      {/* Circles — hidden until push down; same gesture as Friends */}
-      <div
-        className={`absolute left-0 right-0 z-20 pointer-events-none transition-[transform,opacity] duration-300 ease-out ${
-          circlesVisible
-            ? 'translate-y-0 opacity-100 overflow-visible'
-            : '-translate-y-[200%] opacity-0 invisible overflow-hidden pointer-events-none'
-        }`}
-        style={{
-          top: 'calc(var(--topnav-anchor-top) + var(--topnav-bar-height))',
-          paddingTop: '0.25rem',
-        }}
-        aria-hidden={!circlesVisible}
-      >
-        <div className="px-3 pb-2 pointer-events-auto">
-          <div
-            className="flex gap-3 overflow-x-auto overflow-y-hidden no-scrollbar pt-1"
-            style={{ WebkitOverflowScrolling: 'touch' }}
-          >
-            {followingUsers
-              .filter(
-                (u) =>
-                  u.id !== user?.id &&
-                  (u.name || u.username || '').trim().toLowerCase() !== 'user',
-              )
-              .map((u) => (
-                <button
-                  key={u.id}
-                  type="button"
-                  onClick={() => openFollowingUser(u)}
-                  className="flex-shrink-0 flex flex-col items-center gap-1"
-                  style={{ width: 95, minWidth: 95 }}
-                >
-                  <StoryGoldRingAvatar
-                    live={u.is_live}
-                    glow
-                    src={u.avatar_url || '/royce/default-avatar.svg'}
-                    alt={u.name || u.username}
-                  />
-                  <div className="text-[11px] text-white/80 truncate w-full text-center">
-                    {u.name || u.username}
-                  </div>
-                </button>
-              ))}
-          </div>
-        </div>
-      </div>
-
-      <div
-        className="w-full max-w-[480px] mx-auto flex-1 min-h-0 flex flex-col overflow-hidden"
-        style={{ paddingTop: 'calc(var(--topnav-anchor-top) + var(--topnav-bar-height))' }}
-      >
+      <div className="w-full max-w-[480px] mx-auto flex-1 min-h-0 flex flex-col overflow-hidden">
         <div
           ref={containerRef}
           className="flex-1 min-h-0 w-full overflow-y-scroll snap-y snap-mandatory relative overscroll-none bg-black"

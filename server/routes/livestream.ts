@@ -33,7 +33,7 @@ import {
 } from '../lib/valkey';
 import { bumpCacheLayer } from '../lib/cacheLayerMetrics';
 import { hasBattlePublishGrant, hasCohostPublishGrant, getCohostLayout } from '../websocket/index';
-import { insertNotification } from '../lib/notifications';
+import { insertNotification, deleteLiveStartedNotificationsForRoom } from '../lib/notifications';
 import { getFollowerIdsAsync } from './profiles';
 
 const STREAM_KEY_PREFIX = 'stream:';
@@ -132,6 +132,12 @@ export async function removeActiveStream(roomId: string, userId?: string): Promi
     }
     await dbEndLiveStream(roomId);
     await invalidateLiveStreamsListCache();
+    // Best-effort: drop "is live" inbox rows whenever the stream is removed.
+    try {
+      await deleteLiveStartedNotificationsForRoom(roomId);
+    } catch (err) {
+      logger.warn({ err, roomId }, "removeActiveStream: live notification cleanup skipped");
+    }
     return true;
   } catch (err) {
     logger.error({ err, roomId }, "removeActiveStream failed");
@@ -375,6 +381,8 @@ export async function handleLiveStart(req: Request, res: Response) {
     if (existing && existing.userId !== auth.userId) {
       return res.status(409).json({ error: 'Room is already live by another host.' });
     }
+    /** Reconnect / repeat /start while already live — do not spam followers again. */
+    const isReconnect = !!(existing && existing.userId === auth.userId);
 
     const startedAt = new Date().toISOString();
     await setActiveStream(roomName, auth.userId, startedAt, safeDisplayName);
@@ -396,25 +404,58 @@ export async function handleLiveStart(req: Request, res: Response) {
 
     await invalidateLiveStreamsListCache();
 
-    // Notify followers (capped) — best-effort, never blocks going live.
-    try {
-      const followers = await getFollowerIdsAsync(auth.userId);
-      const hostLabel = safeDisplayName || 'A creator you follow';
-      const targets = followers.slice(0, 200);
-      await Promise.all(
-        targets.map((followerId) =>
-          insertNotification({
-            userId: followerId,
-            type: 'live_started',
-            title: `${hostLabel} is live`,
-            body: 'Tap to watch now',
-            actionUrl: `/live/${encodeURIComponent(roomName)}`,
-            data: { path: `/live/${roomName}`, room_id: roomName },
-          }),
-        ),
-      );
-    } catch (err) {
-      logger.warn({ err, userId: auth.userId }, 'handleLiveStart: follower push skipped');
+    // One "is live" notification per go-live (not on reconnect). Share stays separate / multi.
+    if (!isReconnect) {
+      try {
+        // Clear any leftover duplicates from prior sessions for this room.
+        await deleteLiveStartedNotificationsForRoom(roomName);
+
+        const followers = await getFollowerIdsAsync(auth.userId);
+        const hostLabel = safeDisplayName || 'A creator you follow';
+        const targets = followers.slice(0, 200);
+        let hostAvatar = '';
+        try {
+          const { getPool } = await import('../lib/postgres');
+          const db = getPool();
+          if (db) {
+            const av = await db.query(
+              `SELECT COALESCE(
+                 NULLIF(p.avatar_url, ''),
+                 NULLIF(u.avatar_url, '')
+               ) AS avatar_url
+               FROM elix_auth_users u
+               LEFT JOIN profiles p ON p.user_id = u.id
+               WHERE u.id = $1
+               LIMIT 1`,
+              [auth.userId],
+            );
+            hostAvatar = String(av.rows?.[0]?.avatar_url || '').trim();
+          }
+        } catch { /* avatar optional */ }
+        const livePath = `/live/${encodeURIComponent(roomName)}`;
+        const actionUrl = hostAvatar
+          ? `${livePath}?avatar=${encodeURIComponent(hostAvatar)}`
+          : livePath;
+        await Promise.all(
+          targets.map((followerId) =>
+            insertNotification({
+              userId: followerId,
+              type: 'live_started',
+              title: `${hostLabel} is live`,
+              body: 'Tap to watch now',
+              actionUrl,
+              data: {
+                path: livePath,
+                room_id: roomName,
+                actor_id: auth.userId,
+                ...(hostAvatar ? { avatar_url: hostAvatar } : {}),
+              },
+            }),
+          ),
+        );
+      } catch (err) {
+        logger.warn({ err, userId: auth.userId }, 'handleLiveStart: follower push skipped');
+      }
     }
 
     const token = await createLiveToken({

@@ -137,7 +137,13 @@ export default function CreatorLoginDetails() {
           setError('Passwords do not match.');
           return;
         }
-        const res = await signUpWithPassword(trimmedEmail, password, trimmedUsername || undefined);
+        const displayName = trimmedUsername || trimmedEmail.split('@')[0];
+        const res = await signUpWithPassword(
+          trimmedEmail,
+          password,
+          trimmedUsername || undefined,
+          displayName,
+        );
         if (res.error) {
           setError(res.error);
           return;

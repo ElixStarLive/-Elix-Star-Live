@@ -702,6 +702,16 @@ export async function handleMembershipIAPComplete(req: Request, res: Response) {
       }
       await markAppleCreatorMembershipActive(creatorId, expectedProductId);
       if (upserted.created) {
+        // Creator GBP share posts only after verified store settlement
+        // (POST /api/admin/monetisation/settlements/subscription) — never invent fees.
+        logger.info(
+          {
+            creatorId,
+            subscriberId: user.sub,
+            externalTransactionId: verified.originalTransactionId,
+          },
+          "Membership created — awaiting verified settlement for 60/40 creator earnings",
+        );
         try {
           await insertNotification({
             userId: creatorId,
@@ -807,6 +817,14 @@ export async function handleMembershipIAPComplete(req: Request, res: Response) {
     }
 
     if (upserted.created) {
+      logger.info(
+        {
+          creatorId,
+          subscriberId: user.sub,
+          externalTransactionId: verified.latestOrderId || purchaseTokenHash,
+        },
+        "Membership created — awaiting verified settlement for 60/40 creator earnings",
+      );
       try {
         await insertNotification({
           userId: creatorId,

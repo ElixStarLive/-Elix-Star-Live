@@ -178,14 +178,12 @@ export default function AIToolsPanel({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
-                activeTab === tab.id
-                  ? 'bg-[#FF3B3F] text-black'
-                  : 'bg-[#121215] text-white/70 hover:text-white'
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-opacity border border-transparent ${
+                activeTab === tab.id ? 'opacity-100' : 'opacity-45'
               }`}
             >
               {tab.icon}
-              {tab.label}
+              <span className="elix-silver-red-text">{tab.label}</span>
             </button>
           ))}
         </div>
@@ -201,11 +199,11 @@ export default function AIToolsPanel({
                   <button
                     key={cat.id}
                     onClick={() => setFilterCategory(cat.id)}
-                    className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
-                      filterCategory === cat.id ? 'bg-[#FF3B3F]/20 text-[#F5F5F7]' : 'bg-[#121215] text-white/50'
+                    className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-opacity border border-transparent ${
+                      filterCategory === cat.id ? 'opacity-100' : 'opacity-45'
                     }`}
                   >
-                    {cat.label}
+                    <span className="elix-silver-red-text">{cat.label}</span>
                   </button>
                 ))}
               </div>
@@ -214,14 +212,12 @@ export default function AIToolsPanel({
                   <button
                     key={filter.id}
                     onClick={() => handleFilterSelect(filter)}
-                    className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${
-                      selectedFilter === filter.id
-                        ? 'bg-[#FF3B3F]/20 opacity-100'
-                        : 'bg-[#121215] hover:bg-[#121215]/80'
+                    className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-opacity border border-transparent ${
+                      selectedFilter === filter.id ? 'opacity-100' : 'opacity-45'
                     }`}
                   >
                     <span className="text-2xl">{filter.preview}</span>
-                    <span className="text-[10px] text-white/70 leading-tight text-center">{filter.name}</span>
+                    <span className="elix-silver-red-text text-[10px] leading-tight text-center">{filter.name}</span>
                   </button>
                 ))}
               </div>
@@ -248,11 +244,11 @@ export default function AIToolsPanel({
           {activeTab === 'enhance' && (
             <div className="space-y-4">
               <div className="flex gap-2">
-                <button onClick={handleAutoEnhance} className="flex-1 py-2 rounded-xl bg-[#FF3B3F] text-black text-xs font-bold flex items-center justify-center gap-1.5">
-                  <Wand2 size={14} /> Auto Enhance
+                <button onClick={handleAutoEnhance} className="flex-1 py-2 rounded-xl bg-transparent border border-white/30 text-xs font-bold flex items-center justify-center gap-1.5 active:opacity-70">
+                  <Wand2 size={14} className="text-[#F5F5F7]" /> <span className="elix-silver-red-text">Auto Enhance</span>
                 </button>
-                <button onClick={handleResetEnhance} className="flex-1 py-2 rounded-xl bg-[#121215] text-white/70 text-xs font-bold">
-                  Reset
+                <button onClick={handleResetEnhance} className="flex-1 py-2 rounded-xl bg-transparent border border-white/15 text-xs font-bold active:opacity-70">
+                  <span className="elix-silver-red-text">Reset</span>
                 </button>
               </div>
               {([
@@ -295,9 +291,10 @@ export default function AIToolsPanel({
               </div>
               <button
                 onClick={handleGenerateCaptions}
-                className="w-full py-2.5 rounded-xl bg-[#FF3B3F] text-black text-xs font-bold flex items-center justify-center gap-1.5"
+                className="w-full py-2.5 rounded-xl bg-transparent border border-white/30 text-xs font-bold flex items-center justify-center gap-1.5 active:opacity-70"
               >
-                <Sparkles size={14} /> Generate AI Captions & Hashtags
+                <Sparkles size={14} className="text-[#F5F5F7]" />
+                <span className="elix-silver-red-text">Generate AI Captions & Hashtags</span>
               </button>
               {captionSuggestions.length > 0 && (
                 <div className="space-y-2">
@@ -330,9 +327,9 @@ export default function AIToolsPanel({
                       <button
                         key={tag}
                         onClick={() => onCaptionSelect?.('', [tag])}
-                        className="px-2.5 py-1 rounded-full bg-[#FF3B3F]/10 text-[#F5F5F7] text-xs font-medium hover:bg-[#FF3B3F]/20 transition-colors"
+                        className="px-2.5 py-1 rounded-full bg-transparent border border-transparent text-xs font-medium active:opacity-70"
                       >
-                        #{tag}
+                        <span className="elix-silver-red-text">#{tag}</span>
                       </button>
                     ))}
                   </div>
@@ -348,9 +345,9 @@ export default function AIToolsPanel({
                 <span className="text-xs text-white/50">AI-ranked best frames</span>
                 <button
                   onClick={handleExtractThumbnails}
-                  className="px-3 py-1 rounded-full bg-[#FF3B3F]/20 text-[#F5F5F7] text-xs font-semibold"
+                  className="px-3 py-1 rounded-full bg-transparent border border-white/25 text-xs font-semibold active:opacity-70"
                 >
-                  Refresh
+                  <span className="elix-silver-red-text">Refresh</span>
                 </button>
               </div>
               {isLoadingThumbnails ? (
@@ -374,8 +371,8 @@ export default function AIToolsPanel({
                         <span className="text-white text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity">Use</span>
                       </div>
                       {i === 0 && (
-                        <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-[#FF3B3F] text-black text-[8px] font-bold">
-                          BEST
+                        <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-black/70 border border-white/30 text-[8px] font-bold">
+                          <span className="elix-silver-red-text">BEST</span>
                         </div>
                       )}
                       <div className="absolute bottom-1 right-1 px-1 py-0.5 rounded bg-black/60 text-white text-[8px]">
@@ -400,14 +397,12 @@ export default function AIToolsPanel({
                       setSelectedVoice(effect.id);
                       onVoiceEffectChange?.(effect.id);
                     }}
-                    className={`flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all ${
-                      selectedVoice === effect.id
-                        ? 'bg-[#FF3B3F]/20 opacity-100'
-                        : 'bg-[#121215] hover:bg-[#121215]/80'
+                    className={`flex flex-col items-center gap-1.5 p-3 rounded-xl transition-opacity border border-transparent ${
+                      selectedVoice === effect.id ? 'opacity-100' : 'opacity-45'
                     }`}
                   >
                     <span className="text-xl">{effect.icon}</span>
-                    <span className="text-[10px] text-white/70 text-center leading-tight">{effect.name}</span>
+                    <span className="elix-silver-red-text text-[10px] text-center leading-tight">{effect.name}</span>
                   </button>
                 ))}
               </div>
@@ -435,14 +430,16 @@ export default function AIToolsPanel({
               </div>
               <button
                 onClick={toggleSubtitles}
-                className={`w-full py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 ${
+                className={`w-full py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border active:opacity-70 ${
                   isSubtitling
-                    ? 'bg-white/20 text-white'
-                    : 'bg-[#FF3B3F] text-black'
+                    ? 'bg-transparent border-white/40'
+                    : 'bg-transparent border-white/30'
                 }`}
               >
-                <Subtitles size={14} />
-                {isSubtitling ? 'Stop Auto-Subtitles' : 'Start Auto-Subtitles'}
+                <Subtitles size={14} className="text-[#F5F5F7]" />
+                <span className="elix-silver-red-text">
+                  {isSubtitling ? 'Stop Auto-Subtitles' : 'Start Auto-Subtitles'}
+                </span>
               </button>
               <div>
                 <span className="text-xs text-white/50 block mb-2">Subtitle Style</span>
@@ -454,22 +451,19 @@ export default function AIToolsPanel({
                         setSelectedSubStyle(style.id);
                         onSubtitleStyleChange?.(style);
                       }}
-                      className={`p-3 rounded-xl text-left transition-all ${
-                        selectedSubStyle === style.id
-                          ? 'bg-[#FF3B3F]/20 opacity-100'
-                          : 'bg-[#121215]'
+                      className={`p-3 rounded-xl text-left transition-opacity border border-transparent ${
+                        selectedSubStyle === style.id ? 'opacity-100' : 'opacity-45'
                       }`}
                     >
                       <div
-                        className="text-sm font-bold mb-0.5 truncate"
+                        className="elix-silver-red-text text-sm font-bold mb-0.5 truncate"
                         style={{
                           fontFamily: style.fontFamily,
-                          color: style.color.startsWith('linear') ? '#FFFFFF' : style.color,
                         }}
                       >
                         {style.name}
                       </div>
-                      <div className="text-[10px] text-white/30">{style.animation} · {style.position}</div>
+                      <div className="elix-silver-red-text text-[10px] opacity-70">{style.animation} · {style.position}</div>
                     </button>
                   ))}
                 </div>
@@ -489,14 +483,12 @@ export default function AIToolsPanel({
                       setSelectedBg(opt.id);
                       onBackgroundChange?.(opt);
                     }}
-                    className={`flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all ${
-                      selectedBg === opt.id
-                        ? 'bg-[#FF3B3F]/20 opacity-100'
-                        : 'bg-[#121215] hover:bg-[#121215]/80'
+                    className={`flex flex-col items-center gap-1.5 p-3 rounded-xl transition-opacity border border-transparent ${
+                      selectedBg === opt.id ? 'opacity-100' : 'opacity-45'
                     }`}
                   >
                     <span className="text-xl">{opt.preview}</span>
-                    <span className="text-[10px] text-white/70 text-center leading-tight">{opt.name}</span>
+                    <span className="elix-silver-red-text text-[10px] text-center leading-tight">{opt.name}</span>
                   </button>
                 ))}
               </div>

@@ -1904,7 +1904,12 @@ export default function SpectatorLiveScreen() {
               >
                 <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm">
                   <span className="flex items-center justify-center w-full h-full relative z-[2]">
-                    <UserPlus size={20} className="text-[#F5F5F7] shrink-0" strokeWidth={2} />
+                    <UserPlus
+                      size={20}
+                      className="text-[#F5F5F7] shrink-0"
+                      strokeWidth={2}
+                      style={{ transform: 'translateX(0.5mm)' }}
+                    />
                   </span>
                 </div>
                 <span className="elix-silver-red-text text-[10px] font-semibold mt-0.5">
@@ -2558,10 +2563,10 @@ export default function SpectatorLiveScreen() {
                   </div>
                 </div>
                 {/* Line between user circles and action icons */}
-                <div className="mx-4 my-1 border-t border-[#E5E5E7]/45 flex-shrink-0" aria-hidden />
+                <div className="mx-4 border-t border-[#E5E5E7]/45 flex-shrink-0" aria-hidden />
                 <div className="flex-1 overflow-y-scroll overflow-x-hidden min-h-0 px-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#FF3B3F]/60 [&::-webkit-scrollbar-thumb]:rounded-full">
                   {/* Share creator's live: all links use /watch/{creatorStreamId} */}
-                  <div className="grid grid-cols-5 gap-y-3 gap-x-1.5 pt-4" style={{ marginTop: '6mm' }}>
+                  <div className="grid grid-cols-5 gap-y-3 gap-x-1.5 pt-0">
                     {[
                       { name: 'WhatsApp', icon: <MessageCircle size={22} className="text-white" />, action: () => { openExternalLink(`https://wa.me/?text=${encodeURIComponent('Watch this on Elix! ' + `${window.location.origin}/watch/${effectiveStreamId}`)}`); if (effectiveStreamId) { earnBattleEnergyQuiet('share', effectiveStreamId); void apiLiveEngagementProgress({ metric: 'shares', delta: 1, roomId: effectiveStreamId }).catch(() => {}); } setShowSharePanel(false); } },
                       { name: 'Facebook', icon: <Share2 size={22} className="text-white" />, action: () => { openExternalLink(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${window.location.origin}/watch/${effectiveStreamId}`)}`); if (effectiveStreamId) { earnBattleEnergyQuiet('share', effectiveStreamId); void apiLiveEngagementProgress({ metric: 'shares', delta: 1, roomId: effectiveStreamId }).catch(() => {}); } setShowSharePanel(false); } },

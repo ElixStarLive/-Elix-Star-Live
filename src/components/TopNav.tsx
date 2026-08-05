@@ -101,10 +101,8 @@ export const TopNav = () => {
                   title={tab.label}
                 >
                   <span
-                    className={`flex items-center gap-0.5 text-[10px] font-bold tracking-wide whitespace-nowrap leading-none ${
-                      active || ("primary" in tab && tab.primary)
-                        ? "text-gold-bright"
-                        : "text-gold-bright/50"
+                    className={`flex items-center gap-0.5 elix-silver-red-text text-[10px] font-bold tracking-wide whitespace-nowrap leading-none ${
+                      active || ("primary" in tab && tab.primary) ? '' : 'opacity-50'
                     }`}
                   >
                     {"live" in tab && tab.live ? (

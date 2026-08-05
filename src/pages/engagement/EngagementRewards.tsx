@@ -62,19 +62,25 @@ export default function EngagementRewards() {
   }) => (
     <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 mb-2">
       <div className="flex items-center justify-between gap-2 mb-0.5">
-        <span className="text-sm font-semibold text-white/90">{label}</span>
-        <span className="text-sm font-bold tabular-nums text-[#F5F5F7]">
-          {value}
+        <span className="text-sm font-semibold">
+          <span className="elix-silver-red-text">{label}</span>
+        </span>
+        <span className="text-sm font-bold tabular-nums">
+          <span className="elix-silver-red-text">{value}</span>
         </span>
       </div>
-      <p className="text-[11px] text-white/40">{note}</p>
+      <p className="text-[11px]">
+        <span className="elix-silver-red-text opacity-55">{note}</span>
+      </p>
     </div>
   );
 
   return (
     <EngagementShell title="Reward Wallet" icon={Wallet}>
       {loading ? (
-        <div className="py-10 text-center text-white/50 text-sm">Loading...</div>
+        <div className="py-10 text-center text-sm">
+          <span className="elix-silver-red-text opacity-50">Loading...</span>
+        </div>
       ) : (
         <>
           <Row
@@ -103,17 +109,20 @@ export default function EngagementRewards() {
           />
           <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 mb-2">
             <div className="flex items-center justify-between gap-2 mb-0.5">
-              <span className="text-sm font-semibold text-white/90 flex items-center gap-1">
-                <Zap className="w-3.5 h-3.5 text-[#F5F5F7]" /> Battle Energy
+              <span className="text-sm font-semibold flex items-center gap-1">
+                <Zap className="w-3.5 h-3.5 royce-icon-gold" />
+                <span className="elix-silver-red-text">Battle Energy</span>
               </span>
-              <span className="text-sm font-bold tabular-nums text-[#F5F5F7]">
-                {energy}
+              <span className="text-sm font-bold tabular-nums">
+                <span className="elix-silver-red-text">{energy}</span>
               </span>
             </div>
-            <p className="text-[11px] text-white/40">
-              {engagementFlags.battleEnergyEnabled
-                ? "Free LIVE boost power. Affects battle score only — never Diamonds."
-                : "Battle Energy disabled by config."}
+            <p className="text-[11px]">
+              <span className="elix-silver-red-text opacity-55">
+                {engagementFlags.battleEnergyEnabled
+                  ? "Free LIVE boost power. Affects battle score only — never Diamonds."
+                  : "Battle Energy disabled by config."}
+              </span>
             </p>
           </div>
           <Row
@@ -121,8 +130,10 @@ export default function EngagementRewards() {
             value={`${xp} XP · Lv ${level}`}
             note={`${tier} — progression only, not currency.`}
           />
-          <p className="mt-3 text-[11px] text-white/35 leading-relaxed">
-            Test coins stay local for UI testing and never appear here.
+          <p className="mt-3 text-[11px] leading-relaxed">
+            <span className="elix-silver-red-text opacity-55">
+              Test coins stay local for UI testing and never appear here.
+            </span>
           </p>
         </>
       )}

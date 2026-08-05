@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useEffect, useRef } from 'react';
-import { RoyceBackIcon, RoyceIcon } from '../components/royce';
+import { RoyceIcon } from '../components/royce';
 import { useNavigate } from 'react-router-dom';
 import { Search, TrendingUp, Hash, Users, Video as VideoIcon, Trophy, Music, Flame, Sparkles, Star, Zap, Heart, MessageCircle, Bookmark, Share2, MoreHorizontal } from 'lucide-react';
 import { trackEvent } from '../lib/analytics';
@@ -249,29 +249,22 @@ export default function Discover() {
     <div ref={pageRef} className="page-above-bottom-nav bg-[#121215] text-white relative">
       <div className="page-above-bottom-nav__inner">
 
-        {/* Header — same size container as STEM */}
+        {/* Strip chrome (Search / Explore / Back) + circles — comes down together, not over content */}
         <div
-          className="w-full shrink-0 bg-[#121215] z-10"
+          className="w-full shrink-0 z-10 bg-[#121215]"
           style={{ paddingTop: 'var(--topnav-anchor-top)' }}
         >
-          <div
-            className="w-full px-3 flex items-center justify-between"
-            style={{ minHeight: 'var(--topnav-bar-height)' }}
-          >
-            <button onClick={focusSearch} className="p-1" title="Search">
-              <Search size={18} className="text-white" />
-            </button>
-            <h1 className="text-sm font-bold text-white">Explore</h1>
-            <button onClick={goBack} className="p-1" title="Back">
-              <RoyceBackIcon />
-            </button>
-          </div>
-
-          {/* Stories — full panel width, scroll left/right (in flow, not over search) */}
-          <FeedStoryCirclesOverlay pageRef={pageRef} layout="inline" />
+          <FeedStoryCirclesOverlay
+            pageRef={pageRef}
+            layout="inline"
+            initiallyVisible
+            title="Explore"
+            onSearch={focusSearch}
+            onBack={goBack}
+          />
 
           {/* Search Bar */}
-          <div className="w-full px-3 mb-1.5 box-border">
+          <div className="w-full px-3 mb-1.5 box-border bg-[#121215]">
             <div className="w-full flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2 border border-white/10">
               <Search className="w-3.5 h-3.5 text-[#F5F5F7]/50 shrink-0" />
               <input
@@ -498,14 +491,12 @@ function TabButton({ active, onClick, icon, label }: { active: boolean; onClick:
   return (
     <button
       onClick={onClick}
-      className={`flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap transition-all border ${
-        active
-          ? 'bg-[#FF3B3F]/15 text-[#F5F5F7] border-[#E5E5E7]/30'
-          : 'text-white/40 hover:text-white/60 border-transparent'
+      className={`flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap transition-opacity border border-transparent ${
+        active ? 'opacity-100' : 'opacity-45'
       }`}
     >
       {icon}
-      {label}
+      <span className="elix-silver-red-text">{label}</span>
     </button>
   );
 }

@@ -228,8 +228,8 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
         {/* Line between user circles and action icons */}
         <div className="mx-4 border-t border-[#E5E5E7]/45 flex-shrink-0" aria-hidden />
 
-        {/* Action icons pinned to bottom of sheet */}
-        <div className="flex-1 overflow-y-scroll overflow-x-hidden min-h-0 px-4 pb-2 flex flex-col justify-end [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#FF3B3F]/60 [&::-webkit-scrollbar-thumb]:rounded-full" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.25) transparent' }}>
+        {/* Action icons flush under the line */}
+        <div className="flex-1 overflow-y-scroll overflow-x-hidden min-h-0 px-4 pb-2 flex flex-col [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#FF3B3F]/60 [&::-webkit-scrollbar-thumb]:rounded-full" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.25) transparent' }}>
           {showQrCode && (
             <div className="pt-2 pb-3 flex flex-col items-center gap-2 border-b border-white/10 mb-2">
               <div className="flex items-center justify-between w-full">
@@ -243,7 +243,7 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
               />
             </div>
           )}
-          <div className="grid grid-cols-5 gap-y-3 gap-x-1.5 pt-2 auto-rows-fr">
+          <div className="grid grid-cols-5 gap-y-3 gap-x-1.5 pt-0 auto-rows-fr">
             {socialPlatforms.map((item) => (
               <button
                 key={item.name}

@@ -95,7 +95,6 @@ export const BottomNav = () => {
             {NAV_ITEMS.map(({ path, label, Icon, center }) => {
               const active = isActiveRoute(location.pathname, path);
               const iconClass = "royce-icon-gold";
-              const labelClass = active || center ? "text-[#FFFFFF]" : "text-[#A7A7AD]";
               const size = ICON_SIZE;
 
               return (
@@ -128,7 +127,9 @@ export const BottomNav = () => {
                     )}
                   </span>
                   <span
-                    className={`text-[9px] font-semibold leading-none tracking-wide ${labelClass}`}
+                    className={`elix-silver-red-text text-[9px] font-semibold leading-none tracking-wide ${
+                      active || center ? '' : 'opacity-55'
+                    }`}
                     style={{ marginTop: "1mm" }}
                   >
                     {label}

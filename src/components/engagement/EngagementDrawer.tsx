@@ -163,23 +163,23 @@ export function EngagementDrawer({
         onTouchEnd={onTouchEnd}
         onClick={(e) => e.stopPropagation()}
       >
-        <header className="flex items-center gap-2 px-3 py-2.5 border-b border-white/10 shrink-0">
-          {/* Spacer keeps title centered; exit control sits on the right. */}
-          <div className="w-8 h-8 shrink-0" aria-hidden />
-          <h2 className="flex-1 text-center text-sm font-semibold text-white truncate">
-            {PANEL_TITLES[activePanel]}
+        <header className="flex items-center border-b border-white/10 shrink-0 px-2 py-2.5">
+          <div className="w-10 shrink-0" aria-hidden />
+          <h2 className="flex-1 text-center text-sm font-semibold truncate px-2">
+            <span className="elix-silver-red-text">{PANEL_TITLES[activePanel]}</span>
           </h2>
           <button
             type="button"
             onClick={backToHub}
-            className="p-1.5 rounded-md active:bg-white/10 shrink-0"
+            className="w-10 h-10 shrink-0 flex items-center justify-center rounded-md active:bg-white/10"
             aria-label={activePanel === "hub" ? "Close" : "Back"}
+            title={activePanel === "hub" ? "Close" : "Back"}
           >
             <RoyceBackIcon className="w-5 h-5 text-white" />
           </button>
         </header>
 
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 py-3">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 py-3 engagement-panel-writing">
           {activePanel === "hub" && (
             <HubBody
               onSelect={(id) => onPanelChange(id)}

@@ -13,10 +13,10 @@ import {
  */
 export function usePullRevealStrip(
   pageRef: RefObject<HTMLElement | null>,
-  opts?: { disabled?: boolean },
+  opts?: { disabled?: boolean; initiallyVisible?: boolean },
 ) {
   const disabled = !!opts?.disabled;
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(!!opts?.initiallyVisible);
   const touchStartYRef = useRef<number | null>(null);
 
   const onPullPointerDown = useCallback(

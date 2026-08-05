@@ -4,32 +4,36 @@ import { RoyceCloseIcon } from './royce';
 type SettingsOptionSheetProps = {
   children: React.ReactNode;
   onClose: () => void;
+  /** Optional title shown in the top bar (flush with close — no gap). */
+  title?: string;
 };
 
 /**
- * Full-height settings = LIVE top-bar tab column (LiveDiscover):
- * fixed full viewport host + max-w 480px × height 100%. Not a height patch.
+ * Full-height settings column.
+ * Close button is outside the drag handle so exit never fights swipe-to-dismiss.
  */
-export default function SettingsOptionSheet({ children, onClose }: SettingsOptionSheetProps) {
+export default function SettingsOptionSheet({ children, onClose, title }: SettingsOptionSheetProps) {
   const [dragY, setDragY] = React.useState(0);
   const [dragging, setDragging] = React.useState(false);
-  const dragStartRef = React.useRef<number | null>(null);
+  const dragStartY = React.useRef<number | null>(null);
 
-  const onDragStart = (e: React.PointerEvent) => {
-    dragStartRef.current = e.clientY;
+  const onHandlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    dragStartY.current = e.clientY;
     setDragging(true);
-    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+    e.currentTarget.setPointerCapture?.(e.pointerId);
   };
-  const onDragMove = (e: React.PointerEvent) => {
-    if (dragStartRef.current == null) return;
-    setDragY(Math.max(0, e.clientY - dragStartRef.current));
+
+  const onHandlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (dragStartY.current == null) return;
+    setDragY(Math.max(0, e.clientY - dragStartY.current));
   };
-  const onDragEnd = () => {
-    if (dragStartRef.current == null) return;
-    const shouldClose = dragY > 100;
-    dragStartRef.current = null;
+
+  const onHandlePointerEnd = () => {
+    if (dragStartY.current == null) return;
+    const close = dragY > 100;
+    dragStartY.current = null;
     setDragging(false);
-    if (shouldClose) onClose();
+    if (close) onClose();
     else setDragY(0);
   };
 
@@ -44,32 +48,45 @@ export default function SettingsOptionSheet({ children, onClose }: SettingsOptio
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div
-          className="relative flex-shrink-0 bg-[#121215] touch-none cursor-grab active:cursor-grabbing border-b border-white/[0.06]"
-          /* Fixed overlay ignores body safe padding; Android status bar often reports 0 inset — keep close tappable. */
-          style={{ paddingTop: 'calc(max(40px, calc(env(safe-area-inset-top, 0px) + 8px)) + 5mm)' }}
-          onPointerDown={onDragStart}
-          onPointerMove={onDragMove}
-          onPointerUp={onDragEnd}
-          onPointerCancel={onDragEnd}
+        <header
+          className="relative flex-shrink-0 bg-[#121215] border-b border-white/[0.06]"
+          style={{
+            paddingTop: 'env(safe-area-inset-top, 0px)',
+            minHeight: 'calc(env(safe-area-inset-top, 0px) + 44px)',
+          }}
         >
-          <div className="relative h-11">
-            <div className="w-11 h-1.5 bg-white/35 rounded-full absolute top-3 left-1/2 -translate-x-1/2" />
+          {/* Drag handle only — not the close control */}
+          <div
+            className="absolute left-1/2 -translate-x-1/2 top-[calc(env(safe-area-inset-top,0px)+6px)] z-10 touch-none cursor-grab active:cursor-grabbing py-2 px-6"
+            onPointerDown={onHandlePointerDown}
+            onPointerMove={onHandlePointerMove}
+            onPointerUp={onHandlePointerEnd}
+            onPointerCancel={onHandlePointerEnd}
+            aria-hidden
+          >
+            <div className="w-10 h-1 bg-white/35 rounded-full" />
+          </div>
+
+          <div className="h-11 flex items-center justify-between px-2 pt-2">
+            <div className="w-10 shrink-0" aria-hidden />
+            {title ? (
+              <h1 className="flex-1 text-center text-[13px] font-bold leading-none truncate px-2">
+                <span className="elix-silver-red-text">{title}</span>
+              </h1>
+            ) : (
+              <div className="flex-1" aria-hidden />
+            )}
             <button
               type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onClose();
-              }}
-              onPointerDown={(e) => e.stopPropagation()}
-              className="absolute top-1 right-2 z-30 p-1 rounded-full active:scale-90 transition-transform"
+              onClick={onClose}
+              className="w-10 h-10 shrink-0 flex items-center justify-center rounded-full active:scale-90 transition-transform"
               aria-label="Close"
               title="Close"
             >
               <RoyceCloseIcon size={20} />
             </button>
           </div>
-        </div>
+        </header>
         <div className="flex-1 min-h-0 overflow-hidden flex flex-col">{children}</div>
       </div>
     </div>

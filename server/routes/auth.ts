@@ -396,6 +396,8 @@ interface StoredUser {
   email: string;
   passwordHash: string;
   username: string;
+  /** Real name from signup (profiles.display_name / auth display_name). */
+  display_name: string;
   avatar_url: string;
   created_at: string;
   /** ISO timestamp when email was confirmed; null/undefined = unverified. */
@@ -413,6 +415,9 @@ async function ensureAuthUsersTable(): Promise<void> {
     // a deploy races ahead of migrate.
     await pool.query(
       `ALTER TABLE elix_auth_users ADD COLUMN IF NOT EXISTS email_confirmed_at TIMESTAMPTZ`,
+    );
+    await pool.query(
+      `ALTER TABLE elix_auth_users ADD COLUMN IF NOT EXISTS display_name TEXT`,
     );
     // Grandfather only rows that still lack a value (existing production accounts).
     await pool.query(
@@ -451,6 +456,7 @@ function rowToStoredUser(row: Record<string, unknown>): StoredUser {
     email: String(row.email ?? ''),
     passwordHash: String(row.password_hash ?? ''),
     username: String(row.username ?? ''),
+    display_name: String(row.display_name ?? row.username ?? ''),
     avatar_url: String(row.avatar_url ?? ''),
     created_at: row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at ?? new Date().toISOString()),
     email_confirmed_at,
@@ -462,7 +468,7 @@ async function dbFindUserByEmail(email: string): Promise<StoredUser | null> {
   if (!pool) return null;
   await ensureAuthUsersTable();
   const r = await pool.query(
-    `SELECT id, email, password_hash, username, avatar_url, created_at, email_confirmed_at
+    `SELECT id, email, password_hash, username, display_name, avatar_url, created_at, email_confirmed_at
        FROM elix_auth_users
       WHERE email_lower = $1
       LIMIT 1`,
@@ -478,7 +484,7 @@ async function dbFindUserByEmailOrUsername(identifier: string): Promise<StoredUs
   await ensureAuthUsersTable();
   const lower = identifier.toLowerCase();
   const emailResult = await pool.query(
-    `SELECT u.id, u.email, u.password_hash, u.username, u.avatar_url, u.created_at, u.email_confirmed_at
+    `SELECT u.id, u.email, u.password_hash, u.username, u.display_name, u.avatar_url, u.created_at, u.email_confirmed_at
        FROM elix_auth_users u
       WHERE u.email_lower = $1
       LIMIT 1`,
@@ -488,7 +494,7 @@ async function dbFindUserByEmailOrUsername(identifier: string): Promise<StoredUs
     return rowToStoredUser(emailResult.rows[0] as Record<string, unknown>);
   }
   const usernameResult = await pool.query(
-    `SELECT u.id, u.email, u.password_hash, u.username, u.avatar_url, u.created_at, u.email_confirmed_at
+    `SELECT u.id, u.email, u.password_hash, u.username, u.display_name, u.avatar_url, u.created_at, u.email_confirmed_at
        FROM elix_auth_users u
       WHERE LOWER(u.username) = $1
       ORDER BY u.created_at ASC
@@ -506,7 +512,7 @@ async function dbFindUserById(id: string): Promise<StoredUser | null> {
   if (!pool) return null;
   await ensureAuthUsersTable();
   const r = await pool.query(
-    `SELECT id, email, password_hash, username, avatar_url, created_at, email_confirmed_at
+    `SELECT id, email, password_hash, username, display_name, avatar_url, created_at, email_confirmed_at
        FROM elix_auth_users
       WHERE id = $1
       LIMIT 1`,
@@ -521,14 +527,15 @@ async function dbInsertUser(user: StoredUser): Promise<void> {
   if (!pool) return;
   await ensureAuthUsersTable();
   await pool.query(
-    `INSERT INTO elix_auth_users (id, email, email_lower, password_hash, username, avatar_url, created_at, email_confirmed_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+    `INSERT INTO elix_auth_users (id, email, email_lower, password_hash, username, display_name, avatar_url, created_at, email_confirmed_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
     [
       user.id,
       user.email,
       user.email.toLowerCase(),
       user.passwordHash,
       user.username,
+      user.display_name || user.username,
       user.avatar_url,
       user.created_at,
       user.email_confirmed_at,
@@ -565,25 +572,27 @@ async function dbRegisterUser(
     }
     await client.query(
       `INSERT INTO elix_auth_users
-         (id, email, email_lower, password_hash, username, avatar_url, created_at, email_confirmed_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+         (id, email, email_lower, password_hash, username, display_name, avatar_url, created_at, email_confirmed_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
       [
         user.id,
         user.email,
         user.email.toLowerCase(),
         user.passwordHash,
         user.username,
+        user.display_name || user.username,
         user.avatar_url,
         user.created_at,
         user.email_confirmed_at,
       ],
     );
+    const realDisplayName = (user.display_name || user.username || "").trim() || user.username;
     await client.query(
       `INSERT INTO profiles
          (user_id, username, display_name, avatar_url, level, created_at, updated_at)
        VALUES ($1, $2, $3, $4, 0, NOW(), NOW())
        ON CONFLICT (user_id) DO NOTHING`,
-      [user.id, user.username, user.username, user.avatar_url],
+      [user.id, user.username, realDisplayName, user.avatar_url],
     );
     // Starter coins + XP are a non-critical onboarding bonus. If those tables
     // are missing / drifted in this environment, the seed must NOT abort the
@@ -652,7 +661,7 @@ function toAuthUser(u: StoredUser): {
     email: u.email || '',
     user_metadata: {
       username: u.username || '',
-      full_name: u.username || '',
+      full_name: u.display_name || u.username || '',
       avatar_url: u.avatar_url || '',
     },
     // Empty string = unverified. Client treats truthy email_confirmed_at as confirmed.
@@ -772,6 +781,7 @@ export async function handleGuestLogin(_req: Request, res: Response) {
       email: 'guest@example.com',
       passwordHash: await hashPassword(crypto.randomUUID()),
       username: uname,
+      display_name: uname,
       avatar_url,
       created_at,
       email_confirmed_at: created_at,
@@ -788,7 +798,7 @@ export async function handleGuestLogin(_req: Request, res: Response) {
 export async function handleRegister(req: Request, res: Response) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   try {
-    const { email, password, username } = req.body ?? {};
+    const { email, password, username, displayName } = req.body ?? {};
     const e = typeof email === 'string' ? email.trim() : '';
     if (!e || !password) {
       return res.status(400).json({ error: 'Email and password are required.' });
@@ -799,7 +809,11 @@ export async function handleRegister(req: Request, res: Response) {
     if (!getPool()) return res.status(503).json({ error: 'Database not configured' });
     const id = crypto.randomUUID();
     const uname = typeof username === 'string' && username.trim() ? username.trim() : e.split('@')[0];
-    const avatar_url = `https://ui-avatars.com/api/?name=${encodeURIComponent(uname)}&background=random`;
+    const realName =
+      typeof displayName === 'string' && displayName.trim()
+        ? displayName.trim()
+        : uname;
+    const avatar_url = `https://ui-avatars.com/api/?name=${encodeURIComponent(realName)}&background=random`;
     const created_at = new Date().toISOString();
     // When transactional email is configured, leave the account unconfirmed and
     // require the verify link before login. Without a mail provider (local/dev),
@@ -810,6 +824,7 @@ export async function handleRegister(req: Request, res: Response) {
       email: e,
       passwordHash: await hashPassword(password),
       username: uname,
+      display_name: realName,
       avatar_url,
       created_at,
       email_confirmed_at: requireConfirm ? null : created_at,
@@ -1103,7 +1118,7 @@ async function dbFindUserByAppleSub(appleSub: string): Promise<StoredUser | null
   const pool = getPool();
   if (!pool) return null;
   const r = await pool.query(
-    `SELECT id, email, password_hash, username, avatar_url, created_at, email_confirmed_at
+    `SELECT id, email, password_hash, username, display_name, avatar_url, created_at, email_confirmed_at
        FROM elix_auth_users
       WHERE apple_sub = $1
       LIMIT 1`,
@@ -1183,6 +1198,7 @@ export async function handleAppleNative(req: Request, res: Response) {
         email: tokenEmail,
         passwordHash: await hashPassword(crypto.randomUUID()),
         username,
+        display_name: suppliedName || username,
         avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(suppliedName || username)}&background=random`,
         created_at: new Date().toISOString(),
         // Apple already verified this email claim.

@@ -9,7 +9,7 @@ export const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
   username: z.string().min(1).max(30).optional(),
-  displayName: z.string().max(100).optional(),
+  displayName: z.string().trim().min(1).max(100),
 });
 
 export const emailOnlySchema = z.object({

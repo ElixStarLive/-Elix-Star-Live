@@ -2678,7 +2678,10 @@ export function useLiveSpectatorController() {
   }, []);
 
   useEffect(() => {
-    if (!user?.id || !hostUserId) return;
+    if (!user?.id || !hostUserId) {
+      // Still try stream id when host meta lags behind join.
+      return;
+    }
     if (hostUserId === user.id) {
       setIsFollowing(false);
       return;
@@ -2688,7 +2691,8 @@ export function useLiveSpectatorController() {
       try {
         const { following: ids, error: followingErr } = await apiFetchFollowingIds(user.id);
         if (followingErr || cancelled) return;
-        if (!cancelled) setIsFollowing(ids.includes(hostUserId));
+        const hid = String(hostUserId);
+        if (!cancelled) setIsFollowing(ids.some((id) => String(id) === hid));
       } catch {
         if (!cancelled) setIsFollowing(false);
       }
@@ -2706,21 +2710,34 @@ export function useLiveSpectatorController() {
         navigate('/login', { state: { from: location.pathname } });
         return;
       }
-      const targetId = hostUserIdRef.current || hostUserId;
-      if (!targetId || targetId === user.id) return;
+      const targetId = String(hostUserIdRef.current || hostUserId || effectiveStreamId || '').trim();
+      if (!targetId || targetId === 'broadcast') {
+        showToast('Creator unavailable. Try again.');
+        return;
+      }
+      if (targetId === user.id) return;
+      if (isFollowing) {
+        // Already following — membership heart is already available.
+        return;
+      }
+      // Optimistic: reveal membership heart immediately; revert on failure.
+      setIsFollowing(true);
+      const prevFollowing = useVideoStore.getState().followingUsers;
+      if (!prevFollowing.includes(targetId)) {
+        useVideoStore.setState({ followingUsers: [...prevFollowing, targetId] });
+      }
       try {
-        const { error: followErr } = await apiToggleFollow(targetId, false);
-        if (followErr) throw new Error('follow failed');
-        setIsFollowing(true);
-        const prev = useVideoStore.getState().followingUsers;
-        if (!prev.includes(targetId)) {
-          useVideoStore.setState({ followingUsers: [...prev, targetId] });
-        }
+        const { ok, error: followErr } = await apiToggleFollow(targetId, false);
+        if (!ok || followErr) throw new Error(followErr || 'follow failed');
       } catch {
+        setIsFollowing(false);
+        useVideoStore.setState({
+          followingUsers: prevFollowing.filter((id) => id !== targetId),
+        });
         showToast('Could not follow. Try again.');
       }
     },
-    [user?.id, hostUserId, navigate, location.pathname],
+    [user?.id, hostUserId, effectiveStreamId, isFollowing, navigate, location.pathname],
   );
 
   useEffect(() => {

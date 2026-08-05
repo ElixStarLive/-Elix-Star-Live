@@ -2,11 +2,12 @@ import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, Lock, Eye, AlertTriangle, Ban, Flag, HelpCircle } from 'lucide-react';
 import SettingsOptionSheet from '../../components/SettingsOptionSheet';
+import { SETTINGS_HOME } from '../../lib/settingsNav';
 
 export default function SafetyCenter() {
   const navigate = useNavigate();
 
-  const goBack = useCallback(() => navigate(-1), [navigate]);
+  const exit = useCallback(() => navigate(SETTINGS_HOME, { replace: true }), [navigate]);
   const goBlocked = useCallback(() => navigate('/settings/blocked'), [navigate]);
   const goReport = useCallback(
     () => navigate('/report?type=support&id=support_ticket'),
@@ -18,7 +19,7 @@ export default function SafetyCenter() {
   const goSupport = useCallback(() => navigate('/support'), [navigate]);
 
   return (
-    <SettingsOptionSheet onClose={goBack}>
+    <SettingsOptionSheet onClose={exit}>
       <div className="w-full h-full overflow-hidden bg-[#121215] flex flex-col">
         <header className="flex items-center justify-center mb-2 px-4 pt-2">
           <h1 className="font-bold text-lg text-[#F5F5F7]">Safety Center</h1>

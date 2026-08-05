@@ -1,6 +1,4 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { RoyceBackIcon } from '../components/royce';
-import { Search } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import EnhancedVideoPlayer from "../components/EnhancedVideoPlayer";
 import { FeedStoryCirclesOverlay } from "../components/FeedStoryCirclesOverlay";
@@ -76,33 +74,11 @@ export default function StemFeed() {
     <div ref={pageRef} className="app-live-column bg-[#121215] relative">
       <FeedStoryCirclesOverlay
         pageRef={pageRef}
-        topOffset="calc(var(--topnav-anchor-top) + var(--topnav-bar-height))"
+        topOffset="var(--topnav-anchor-top)"
+        title="STEM"
+        onSearch={goSearch}
+        onBack={goBack}
       />
-      {/* Header — search + back only (no STEM title) */}
-      <div
-        className="fixed left-0 right-0 z-[9999] flex justify-center pointer-events-none"
-        style={{ top: "var(--topnav-anchor-top)" }}
-      >
-        <div
-          className="w-full max-w-[480px] px-3 flex items-center justify-between pointer-events-auto"
-          style={{ minHeight: "var(--topnav-bar-height)" }}
-        >
-          <button
-            onClick={goSearch}
-            className="p-1"
-            aria-label="Search"
-          >
-            <Search size={18} className="text-white" />
-          </button>
-          <button
-            onClick={goBack}
-            title="Back"
-            className="p-1"
-          >
-            <RoyceBackIcon />
-          </button>
-        </div>
-      </div>
 
       <div
         ref={containerRef}

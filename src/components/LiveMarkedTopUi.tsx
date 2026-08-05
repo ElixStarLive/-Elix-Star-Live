@@ -43,7 +43,7 @@ export function LiveFollowPill({
     return (
       <button
         type="button"
-        className="flex items-center justify-center gap-0.5 h-[28px] px-2.5 rounded-full bg-[#FF3B3F] shadow-[0_0_10px_rgba(255,59,92,0.45)] active:scale-95 transition-transform flex-shrink-0"
+        className="flex items-center justify-center gap-0.5 h-[28px] px-2.5 rounded-full bg-[#FF3B3F] shadow-[0_0_10px_rgba(255,59,92,0.45)] active:scale-95 transition-transform flex-shrink-0 elix-solid-red"
         onClick={onFollow}
         aria-label={label}
       >
@@ -55,7 +55,7 @@ export function LiveFollowPill({
   return (
     <button
       type="button"
-      className="col-start-1 row-start-1 z-20 relative flex items-center justify-center gap-0.5 self-stretch h-full rounded-full bg-[#FF3B3F] w-full"
+      className="col-start-1 row-start-1 z-20 relative flex items-center justify-center gap-0.5 self-stretch h-full rounded-full bg-[#FF3B3F] w-full elix-solid-red"
       onClick={onFollow}
       aria-label={label}
     >
@@ -68,7 +68,7 @@ export function LiveFollowPill({
 /**
  * Host profile block (photo 1-1): gold-glow avatar (same soft halo as LIVE icons),
  * name + blue verified, “N Likes • LIVE Pro”, Lv pill + Diamond tier,
- * Follow capsule stays visible; Join (membership heart) can sit beside it after follow.
+ * Follow capsule stays visible after follow; Join (membership heart) sits under it.
  * Does not touch the 3 MVP circles.
  */
 export function LiveHostProfileHeader({
@@ -167,7 +167,8 @@ export function LiveHostProfileHeader({
         </div>
       </div>
 
-      <div className="flex-shrink-0 self-center ml-1.5 flex items-center gap-1">
+      {/* Follow stays; membership heart capsule appears under it after follow */}
+      <div className="flex-shrink-0 self-center ml-1.5 flex flex-col items-center gap-1">
         {showFollow ? (
           <LiveFollowPill variant="photo" isFollowing={isFollowing} onFollow={onFollow} />
         ) : null}
@@ -188,7 +189,7 @@ export function LiveJoinPill({
   return (
     <button
       type="button"
-      className={`flex items-center justify-center gap-1 h-[28px] px-2.5 rounded-full active:scale-95 transition-transform ${
+      className={`flex items-center justify-center gap-1 h-[28px] px-2.5 rounded-full active:scale-95 transition-transform elix-solid-red ${
         hasJoinedToday
           ? 'bg-[#FF3B3F] border border-[#FF6B8A]'
           : 'bg-[#FF3B3F] border border-[#FF6B8A] shadow-[0_0_10px_rgba(255,59,92,0.55)]'

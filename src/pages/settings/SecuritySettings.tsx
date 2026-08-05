@@ -3,17 +3,18 @@ import { useNavigate } from "react-router-dom";
 import { ChevronRight, KeyRound, Shield } from "lucide-react";
 import SettingsOptionSheet from "../../components/SettingsOptionSheet";
 import { isPasswordResetEnabled } from "../../lib/authFeatures";
+import { SETTINGS_HOME } from "../../lib/settingsNav";
 
 export default function SecuritySettings() {
   const navigate = useNavigate();
   const showReset = isPasswordResetEnabled();
 
-  const goBack = useCallback(() => navigate(-1), [navigate]);
+  const exit = useCallback(() => navigate(SETTINGS_HOME, { replace: true }), [navigate]);
   const goForgotPassword = useCallback(() => navigate("/forgot-password"), [navigate]);
   const goBlocked = useCallback(() => navigate("/settings/blocked"), [navigate]);
 
   return (
-    <SettingsOptionSheet onClose={goBack}>
+    <SettingsOptionSheet onClose={exit}>
       <div className="w-full h-full overflow-hidden bg-[#121215] flex flex-col">
         <header className="flex items-center justify-center mb-2 px-4 pt-2">
           <h1 className="font-bold text-lg text-[#F5F5F7]">Security</h1>

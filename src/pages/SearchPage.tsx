@@ -207,20 +207,19 @@ export default function SearchPage() {
           transform: visible ? 'translateY(0)' : 'translateY(100%)',
           pointerEvents: visible ? 'auto' : 'none',
           boxShadow: '0 -8px 30px rgba(0,0,0,0.5)',
-          paddingTop: 'var(--topnav-anchor-top)',
+          paddingTop: 'env(safe-area-inset-top, 0px)',
           paddingBottom: 'var(--bottom-ui-reserve)',
         }}
       >
-          {/* Header — Live column */}
+          {/* Header — flush under safe area */}
           <div
-            className="flex items-center justify-between px-3"
-            style={{ minHeight: 'var(--topnav-bar-height)' }}
+            className="flex items-center justify-between px-3 h-10"
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
           >
             <div className="w-[26px]" />
             <div className="flex-1 flex justify-center">
-              <div className="w-8 h-[2px] rounded-full bg-[#FF3B3F]/30" />
+              <div className="w-8 h-[2px] rounded-full bg-white/30" />
             </div>
             <button type="button" onClick={closePanel} className="p-1" title="Back">
               <RoyceBackIcon />
@@ -250,7 +249,7 @@ export default function SearchPage() {
                   </button>
                 )}
               </form>
-              <button className="text-gold-metallic font-semibold text-xs" onClick={closePanel}>Cancel</button>
+                  <button className="elix-silver-red-text font-semibold text-xs" onClick={closePanel}>Cancel</button>
             </div>
           </div>
 
@@ -264,9 +263,11 @@ export default function SearchPage() {
                       key={cat}
                       type="button"
                       onClick={() => selectCategory(cat)}
-                      className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap border transition-colors ${activeCategory === cat ? 'bg-[#FF3B3F]/20 border-[#E5E5E7] text-[#F5F5F7]' : 'bg-[#121215] border-white/15 text-white/60'}`}
+                      className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap border border-transparent transition-opacity ${
+                        activeCategory === cat ? 'opacity-100' : 'opacity-45'
+                      }`}
                     >
-                      {cat}
+                      <span className="elix-silver-red-text">{cat}</span>
                     </button>
                   ))}
                 </div>

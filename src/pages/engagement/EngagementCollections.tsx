@@ -92,16 +92,23 @@ export default function EngagementCollections() {
   return (
     <EngagementShell title="Collections" icon={Layers}>
       {loading ? (
-        <p className="text-sm text-white/50 text-center py-10">Loading...</p>
+        <p className="text-sm text-center py-10">
+          <span className="elix-silver-red-text opacity-50">Loading...</span>
+        </p>
       ) : (
         <div className="flex flex-col gap-6">
           {engagementFlags.treasureHuntEnabled ? (
             <section>
-              <h2 className="text-sm font-semibold text-[#F5F5F7] mb-2 flex items-center gap-2">
-                <Map className="w-4 h-4" /> Treasure Hunt
+              <h2 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                <Map className="w-4 h-4 royce-icon-gold" />
+                <span className="elix-silver-red-text">Treasure Hunt</span>
               </h2>
               {chests.length === 0 ? (
-                <p className="text-xs text-white/40">No chests yet. Watch LIVE to find them.</p>
+                <p className="text-xs">
+                  <span className="elix-silver-red-text opacity-55">
+                    No chests yet. Watch LIVE to find them.
+                  </span>
+                </p>
               ) : (
                 <ul className="flex flex-col gap-2">
                   {chests.map((c) => (
@@ -110,10 +117,14 @@ export default function EngagementCollections() {
                       className="rounded-xl border border-white/10 bg-black/40 px-3 py-2 flex items-center justify-between gap-2"
                     >
                       <div>
-                        <p className="text-sm text-white">{c.title || "Chest"}</p>
-                        <p className="text-[10px] text-white/40">
-                          {c.rarity} · {c.status}
-                          {c.reward_label ? ` · ${c.reward_label}` : ""}
+                        <p className="text-sm">
+                          <span className="elix-silver-red-text">{c.title || "Chest"}</span>
+                        </p>
+                        <p className="text-[10px]">
+                          <span className="elix-silver-red-text opacity-55">
+                            {c.rarity} · {c.status}
+                            {c.reward_label ? ` · ${c.reward_label}` : ""}
+                          </span>
                         </p>
                       </div>
                       {c.status === "found" ? (
@@ -121,9 +132,9 @@ export default function EngagementCollections() {
                           type="button"
                           disabled={opening === c.id}
                           onClick={() => void openChest(c.id)}
-                          className="text-xs font-semibold text-[#F5F5F7] px-2 py-1 rounded border border-[#E5E5E7]/40 disabled:opacity-40"
+                          className="text-xs font-semibold px-2 py-1 rounded border border-white/30 bg-transparent disabled:opacity-40 active:opacity-70"
                         >
-                          Open
+                          <span className="elix-silver-red-text">Open</span>
                         </button>
                       ) : null}
                     </li>
@@ -135,11 +146,14 @@ export default function EngagementCollections() {
 
           {engagementFlags.stickerCollectionEnabled ? (
             <section>
-              <h2 className="text-sm font-semibold text-[#F5F5F7] mb-2 flex items-center gap-2">
-                <Gift className="w-4 h-4" /> Stickers
+              <h2 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                <Gift className="w-4 h-4 royce-icon-gold" />
+                <span className="elix-silver-red-text">Stickers</span>
               </h2>
               {sets.length === 0 ? (
-                <p className="text-xs text-white/40">No sticker sets yet.</p>
+                <p className="text-xs">
+                  <span className="elix-silver-red-text opacity-55">No sticker sets yet.</span>
+                </p>
               ) : (
                 <ul className="flex flex-col gap-2">
                   {sets.map((s) => (
@@ -147,10 +161,14 @@ export default function EngagementCollections() {
                       key={s.id}
                       className="rounded-xl border border-white/10 bg-black/40 px-3 py-2"
                     >
-                      <p className="text-sm text-white">{s.title}</p>
-                      <p className="text-[10px] text-white/40">
-                        {s.progress}/{s.total}
-                        {s.complete ? " · Complete" : ""}
+                      <p className="text-sm">
+                        <span className="elix-silver-red-text">{s.title}</span>
+                      </p>
+                      <p className="text-[10px]">
+                        <span className="elix-silver-red-text opacity-55">
+                          {s.progress}/{s.total}
+                          {s.complete ? " · Complete" : ""}
+                        </span>
                       </p>
                     </li>
                   ))}
@@ -161,12 +179,15 @@ export default function EngagementCollections() {
 
           {engagementFlags.creatorCollectionsEnabled ? (
             <section>
-              <h2 className="text-sm font-semibold text-[#F5F5F7] mb-2 flex items-center gap-2">
-                <Star className="w-4 h-4" /> Creator Cards
+              <h2 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                <Star className="w-4 h-4 royce-icon-gold" />
+                <span className="elix-silver-red-text">Creator Cards</span>
               </h2>
               {cards.length === 0 ? (
-                <p className="text-xs text-white/40">
-                  Watch creators on LIVE to unlock cards.
+                <p className="text-xs">
+                  <span className="elix-silver-red-text opacity-55">
+                    Watch creators on LIVE to unlock cards.
+                  </span>
                 </p>
               ) : (
                 <ul className="flex flex-col gap-2">
@@ -175,8 +196,12 @@ export default function EngagementCollections() {
                       key={`${c.creator_id}-${c.tier}`}
                       className="rounded-xl border border-white/10 bg-black/40 px-3 py-2"
                     >
-                      <p className="text-sm text-white capitalize">{c.tier} card</p>
-                      <p className="text-[10px] text-white/40 truncate">{c.creator_id}</p>
+                      <p className="text-sm capitalize">
+                        <span className="elix-silver-red-text">{c.tier} card</span>
+                      </p>
+                      <p className="text-[10px] truncate">
+                        <span className="elix-silver-red-text opacity-55">{c.creator_id}</span>
+                      </p>
                     </li>
                   ))}
                 </ul>

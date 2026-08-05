@@ -5,6 +5,10 @@
 
 import { getPool } from "./postgres";
 import { logger } from "./logger";
+import { createPaidCoinLot, consumeSettledNetForGift } from "./monetisation/paidCoinLots";
+import { loadMonetisationConfig, ruleSnapshotFromConfig } from "./monetisation/config";
+import { splitNetRevenue } from "./monetisation/moneyMath";
+import { postLedgerEntry } from "./monetisation/ledger";
 
 export async function neonGetCoinBalance(userId: string): Promise<number | null> {
   const pool = getPool();
@@ -108,6 +112,40 @@ export async function neonCreditIap(input: {
          updated_at = NOW()`,
       [input.userId, coins],
     );
+    // Paid coin lot for gift GBP attribution. Net stays unset until verified settlement.
+    try {
+      let grossPence = 0;
+      const priceR = await client.query(
+        `SELECT price FROM elix_coin_packages WHERE product_id = $1 OR id = $1 LIMIT 1`,
+        [input.productId],
+      );
+      if (priceR.rowCount) {
+        const { catalogGbpNumberToPence } = await import("./monetisation/moneyMath");
+        grossPence = catalogGbpNumberToPence(Number(priceR.rows[0].price));
+      }
+      await createPaidCoinLot(client, {
+        userId: input.userId,
+        provider: input.provider,
+        providerTransactionId: input.providerTransactionId,
+        productId: input.productId,
+        coins,
+        grossPence,
+        settled: false,
+      });
+      await client.query(
+        `INSERT INTO elix_processed_purchases (external_purchase_id, provider, product_id, user_id)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (external_purchase_id) DO NOTHING`,
+        [
+          `${input.provider}:${input.providerTransactionId}`,
+          input.provider,
+          input.productId,
+          input.userId,
+        ],
+      );
+    } catch (lotErr) {
+      logger.warn({ err: lotErr }, "paid coin lot create skipped");
+    }
     const balR = await client.query(
       `SELECT coin_balance::bigint AS b FROM elix_wallet_balances WHERE user_id = $1`,
       [input.userId],
@@ -484,6 +522,8 @@ export async function neonDebitGiftWithCreatorCredit(input: {
     }
 
     // Creator credit (same transaction). Idempotent via earn:{txid}.
+    // Coin Diamonds remain the operational gift share; GBP ledger posts only when
+    // settled paid-coin net revenue is attributable (never invent store fees).
     let credited = 0;
     if (input.creatorId && input.creatorId !== input.userId) {
       const c = Math.floor((coins * creatorGiftSharePct()) / 100);
@@ -507,6 +547,63 @@ export async function neonDebitGiftWithCreatorCredit(input: {
             [input.creatorId, c],
           );
           credited = c;
+
+          // Immutable GBP ledger when verified settlement net is available on lots.
+          try {
+            const cfg = await loadMonetisationConfig();
+            if (cfg.giftMonetisationEnabled) {
+              const attr = await consumeSettledNetForGift(client, input.userId, coins);
+              if (attr.settled && attr.netPence > 0) {
+                const split = splitNetRevenue(
+                  attr.netPence,
+                  cfg.giftCreatorPct,
+                  cfg.giftPlatformPct,
+                );
+                const ledger = await postLedgerEntry(client, {
+                  idempotencyKey: `paid_gift:${input.clientTransactionId}`,
+                  revenueSource: "PAID_GIFT",
+                  creatorUserId: input.creatorId,
+                  payerUserId: input.userId,
+                  giftId: input.giftId,
+                  liveRoomId: input.roomId,
+                  coinAmount: coins,
+                  coinSource: "paid",
+                  grossPence: attr.grossPence,
+                  appStoreDeductionPence: attr.appStoreDeductionPence,
+                  taxDeductionPence: attr.taxDeductionPence,
+                  processingDeductionPence: attr.processingDeductionPence,
+                  netRevenuePence: split.netPence,
+                  creatorPct: split.creatorPct,
+                  creatorAmountPence: split.creatorPence,
+                  platformPct: split.platformPct,
+                  platformAmountPence: split.platformPence,
+                  status: "pending",
+                  ruleSnapshot: ruleSnapshotFromConfig(cfg, {
+                    lot_ids: attr.lotIds,
+                    client_transaction_id: input.clientTransactionId,
+                  }),
+                });
+                if (ledger.id && !ledger.alreadyExisted) {
+                  await client.query(
+                    `UPDATE elix_creator_earnings
+                        SET amount_pence = $2, ledger_id = $3, rule_snapshot = $4::jsonb
+                      WHERE id = $1`,
+                    [
+                      earningId,
+                      split.creatorPence,
+                      ledger.id,
+                      JSON.stringify(ruleSnapshotFromConfig(cfg)),
+                    ],
+                  );
+                }
+              }
+            }
+          } catch (ledgerErr) {
+            logger.warn(
+              { err: ledgerErr, tx: input.clientTransactionId },
+              "paid gift GBP ledger skipped (coin Diamonds still credited)",
+            );
+          }
         }
       }
     }
@@ -740,21 +837,36 @@ export async function neonInsertPromotePurchase(row: {
 }): Promise<void> {
   const pool = getPool();
   if (!pool) throw new Error("DATABASE_UNAVAILABLE");
-  await pool.query(
-    `INSERT INTO elix_promote_purchases (user_id, provider, provider_transaction_id, product_id, content_type, content_id, goal, amount_gbp)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-     ON CONFLICT (provider_transaction_id) DO NOTHING`,
-    [
-      row.userId,
-      row.provider,
-      row.providerTransactionId,
-      row.productId,
-      row.contentType,
-      row.contentId,
-      row.goal,
-      row.amountGbp,
-    ],
-  );
+  const grossPence = Math.round(Math.max(0, Number(row.amountGbp) || 0) * 100);
+  const params = [
+    row.userId,
+    row.provider,
+    row.providerTransactionId,
+    row.productId,
+    row.contentType,
+    row.contentId,
+    row.goal,
+    row.amountGbp,
+    grossPence,
+  ];
+  try {
+    await pool.query(
+      `INSERT INTO elix_promote_purchases
+         (user_id, provider, provider_transaction_id, product_id, content_type, content_id, goal, amount_gbp, gross_pence, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'active')
+       ON CONFLICT (provider_transaction_id) DO NOTHING`,
+      params,
+    );
+  } catch (err) {
+    // Pre-migration fallback (columns not yet present).
+    logger.warn({ err }, "promote insert with gross_pence failed — falling back");
+    await pool.query(
+      `INSERT INTO elix_promote_purchases (user_id, provider, provider_transaction_id, product_id, content_type, content_id, goal, amount_gbp)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       ON CONFLICT (provider_transaction_id) DO NOTHING`,
+      params.slice(0, 8),
+    );
+  }
 }
 
 export async function neonInsertMembershipPurchase(row: {

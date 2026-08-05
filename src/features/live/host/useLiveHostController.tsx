@@ -453,21 +453,30 @@ export function useLiveHostController() {
         navigate('/login', { state: { from: location.pathname } });
         return;
       }
-      const targetId = effectiveStreamId;
-      if (!targetId || targetId === 'broadcast' || targetId === user.id) return;
+      const targetId = String(effectiveStreamId || '').trim();
+      if (!targetId || targetId === 'broadcast') {
+        showToast('Creator unavailable. Try again.');
+        return;
+      }
+      if (targetId === user.id) return;
+      if (isFollowing) return;
+      setIsFollowing(true);
+      const prevFollowing = useVideoStore.getState().followingUsers;
+      if (!prevFollowing.includes(targetId)) {
+        useVideoStore.setState({ followingUsers: [...prevFollowing, targetId] });
+      }
       try {
-        const { error } = await apiToggleFollow(targetId, false);
-        if (error) throw new Error('follow failed');
-        setIsFollowing(true);
-        const prev = useVideoStore.getState().followingUsers;
-        if (!prev.includes(targetId)) {
-          useVideoStore.setState({ followingUsers: [...prev, targetId] });
-        }
+        const { ok, error } = await apiToggleFollow(targetId, false);
+        if (!ok || error) throw new Error(error || 'follow failed');
       } catch {
+        setIsFollowing(false);
+        useVideoStore.setState({
+          followingUsers: prevFollowing.filter((id) => id !== targetId),
+        });
         showToast('Could not follow. Try again.');
       }
     },
-    [user?.id, effectiveStreamId, navigate, location.pathname],
+    [user?.id, effectiveStreamId, isFollowing, navigate, location.pathname],
   );
 
   useEffect(() => {
@@ -481,7 +490,8 @@ export function useLiveHostController() {
       try {
         const { following: ids, error } = await apiFetchFollowingIds(user.id);
         if (error || cancelled) return;
-        if (!cancelled) setIsFollowing(ids.includes(effectiveStreamId));
+        const tid = String(effectiveStreamId);
+        if (!cancelled) setIsFollowing(ids.some((id) => String(id) === tid));
       } catch {
         if (!cancelled) setIsFollowing(false);
       }

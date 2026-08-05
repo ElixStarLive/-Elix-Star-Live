@@ -3,9 +3,11 @@ import {
   handleGetProfile, handleListProfiles, handleGetProfileByUsername,
   handleGetFollowers, handleGetFollowing, handlePatchProfile,
   handleFollow, handleUnfollow, handleSeedProfile,
+  handleRegisterProfileView,
 } from "./profiles";
 import { validateBody } from "../middleware/validate";
 import { profilePatchSchema } from "../validation/schemas";
+import { requireAuth } from "../middleware/auth";
 
 const router = Router();
 router.get("/by-username/:username", handleGetProfileByUsername);
@@ -16,5 +18,6 @@ router.get("/:userId/following", handleGetFollowing);
 router.patch("/:userId", validateBody(profilePatchSchema), handlePatchProfile);
 router.post("/:userId/follow", handleFollow);
 router.post("/:userId/unfollow", handleUnfollow);
+router.post("/:userId/view", requireAuth, handleRegisterProfileView);
 router.post("/", handleSeedProfile);
 export default router;

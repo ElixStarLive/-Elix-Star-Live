@@ -444,13 +444,11 @@ export default function Shop() {
             <button
               key={f.key}
               onClick={() => selectFilter(f.key)}
-              className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border transition-colors ${
-                activeFilter === f.key
-                  ? 'bg-[#FF3B3F] text-black border-[#E5E5E7]'
-                  : 'bg-white/5 text-white/60 border-white/10'
+              className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border border-transparent transition-opacity ${
+                activeFilter === f.key ? 'opacity-100' : 'opacity-45'
               }`}
             >
-              {f.label}
+              <span className="elix-silver-red-text">{f.label}</span>
             </button>
           ))}
         </div>
@@ -463,8 +461,8 @@ export default function Shop() {
           <div className="flex-1 flex flex-col items-center justify-center py-20 gap-3">
             <Tag size={40} className="text-white/20" />
             <p className="text-white/40 text-sm">No items for sale yet</p>
-            <button onClick={openCreateListing} className="mt-2 px-5 py-2 rounded-xl bg-[#FF3B3F] text-black font-bold text-sm">
-              Sell Something
+            <button onClick={openCreateListing} className="mt-2 px-5 py-2 rounded-xl bg-transparent border border-white/30 font-bold text-sm active:opacity-70">
+              <span className="elix-silver-red-text">Sell Something</span>
             </button>
           </div>
         ) : (
@@ -546,9 +544,9 @@ export default function Shop() {
                       <button
                         type="button"
                         onClick={() => handleAddToCart({ id: item.id, title: item.title, price: item.price, image_url: item.image_url })}
-                        className="w-full mt-2 py-1.5 rounded-xl bg-[#FF3B3F] text-black font-extrabold text-[12px]"
+                        className="w-full mt-2 py-1.5 rounded-xl bg-transparent border border-white/30 font-extrabold text-[12px] active:opacity-70"
                       >
-                        Add to basket
+                        <span className="elix-silver-red-text">Add to basket</span>
                       </button>
                     )
                   )}

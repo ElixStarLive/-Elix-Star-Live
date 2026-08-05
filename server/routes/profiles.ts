@@ -31,6 +31,8 @@ export interface Profile {
   coins: number;
   level: number;
   isVerified: boolean;
+  /** Public unique viewer count (lifetime). */
+  uniqueProfileViews: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -238,6 +240,7 @@ async function loadProfileFromDb(userId: string): Promise<Profile | null> {
       coins: Number(r.coins) || 0,
       level: Number(r.level) || 1,
       isVerified: Boolean(r.is_verified),
+      uniqueProfileViews: Number(r.unique_profile_views) || 0,
       createdAt: toIsoTimestamp(r.created_at),
       updatedAt: toIsoTimestamp(r.updated_at),
     };
@@ -324,6 +327,7 @@ function isFallbackName(name: string): boolean {
 export async function getOrCreateProfile(userId: string, seed?: Partial<Profile>): Promise<Profile> {
   const cached = await getCachedProfile(userId);
   if (cached) {
+    if (typeof cached.uniqueProfileViews !== "number") cached.uniqueProfileViews = 0;
     if (seed) {
       let changed = false;
       if (seed.username && isFallbackName(cached.username)) { cached.username = seed.username; changed = true; }
@@ -373,6 +377,7 @@ export async function getOrCreateProfile(userId: string, seed?: Partial<Profile>
     coins: seed?.coins ?? 0,
     level: seed?.level ?? 1,
     isVerified: seed?.isVerified ?? false,
+    uniqueProfileViews: seed?.uniqueProfileViews ?? 0,
     createdAt: seed?.createdAt ?? now,
     updatedAt: now,
   };
@@ -480,7 +485,17 @@ export async function handleGetProfile(req: Request, res: Response): Promise<voi
     });
   }
   res.setHeader("Cache-Control", "private, no-store");
-  res.json({ profile });
+  const authUser = await lookupAuthUser(userId);
+  const email =
+    typeof authUser?.email === "string" && authUser.email.includes("@")
+      ? authUser.email
+      : "";
+  res.json({
+    profile: {
+      ...profile,
+      ...(email ? { email } : {}),
+    },
+  });
 }
 
 /** GET /api/profiles — list all known users/profiles */
@@ -1059,4 +1074,39 @@ export async function handleSeedProfile(req: Request, res: Response): Promise<vo
     avatarUrl,
   });
   res.status(201).json({ profile });
+}
+
+/**
+ * POST /api/profiles/:userId/view
+ * Auth required. Backend decides unique vs repeat. Concurrent-safe.
+ */
+export async function handleRegisterProfileView(req: Request, res: Response): Promise<void> {
+  const ownerId = String(req.params.userId || "").trim();
+  if (!ownerId) {
+    res.status(400).json({ error: "userId is required" });
+    return;
+  }
+  const viewerId = req.auth?.sub;
+  if (!viewerId) {
+    res.status(401).json({ error: "Not authenticated." });
+    return;
+  }
+
+  // Ensure owner profile row exists before counters update.
+  await getOrCreateProfileAsync(ownerId);
+
+  const { registerProfileView } = await import("../lib/profileViews");
+  const result = await registerProfileView(viewerId, ownerId);
+  if (!result) {
+    res.status(503).json({ error: "Could not register profile view" });
+    return;
+  }
+
+  res.setHeader("Cache-Control", "private, no-store");
+  res.status(200).json({
+    uniqueViews: result.uniqueViews,
+    isNewUniqueView: result.isNewUniqueView,
+    // totalVisits is analytics-only; returned for owner tooling / future dashboards, not for public UI.
+    totalVisits: result.totalVisits,
+  });
 }

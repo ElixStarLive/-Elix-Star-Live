@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { RoyceBackIcon } from './royce';
 import { StoryGoldRingAvatar } from './StoryGoldRingAvatar';
 import { useAuthStore } from '../store/useAuthStore';
+import { useVideoStore } from '../store/useVideoStore';
 import { apiFetchProfiles } from '../features/feed/feedApi';
 import { fetchActiveStories, type StoryItem, type StoryUserGroup } from '../lib/storiesApi';
 import { prepareFeedVideoEl } from '../lib/prepareLiveVideoEl';
@@ -102,14 +103,33 @@ type Props = {
    * `inline` — in-document full panel width row (Explore); does not cover search/tabs.
    */
   layout?: 'overlay' | 'inline';
+  /** Start with circles visible (Following). */
+  initiallyVisible?: boolean;
+  /** Put accounts the viewer follows first, then everyone else. */
+  followingFirst?: boolean;
+  /** Page name shown in the strip chrome (comes down with the strip, not on video). */
+  title?: string;
+  onSearch?: () => void;
+  onBack?: () => void;
 };
 
 /**
  * Friends-style story circles: hidden by default, push down to show, push up to hide.
+ * Search / title / back live on the strip panel — not over the video when tucked away.
  */
-export function FeedStoryCirclesOverlay({ pageRef, topOffset, layout = 'overlay' }: Props) {
+export function FeedStoryCirclesOverlay({
+  pageRef,
+  topOffset,
+  layout = 'overlay',
+  initiallyVisible = false,
+  followingFirst = false,
+  title,
+  onSearch,
+  onBack,
+}: Props) {
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const followingIds = useVideoStore((s) => s.followingUsers);
   const [suggestedUsers, setSuggestedUsers] = useState<SuggestedUser[]>([]);
   const [storyGroups, setStoryGroups] = useState<StoryUserGroup[]>([]);
   const [storyViewer, setStoryViewer] = useState<{
@@ -119,6 +139,7 @@ export function FeedStoryCirclesOverlay({ pageRef, topOffset, layout = 'overlay'
 
   const { visible, pullZoneProps } = usePullRevealStrip(pageRef, {
     disabled: !!storyViewer,
+    initiallyVisible,
   });
 
   const goUploadStory = useCallback(() => {
@@ -176,7 +197,8 @@ export function FeedStoryCirclesOverlay({ pageRef, topOffset, layout = 'overlay'
         );
 
         const rows = Array.isArray(profilesBody?.profiles) ? profilesBody.profiles : [];
-        const blocklist = ['', 'user', 'demo', 'test', 'unknown', 'anonymous', 'guest'];
+        const blocklist = new Set(['', 'user', 'demo', 'unknown', 'anonymous', 'guest']);
+        const followingSet = new Set(followingIds || []);
         const mapped: SuggestedUser[] = rows
           .map(
             (p: {
@@ -198,10 +220,18 @@ export function FeedStoryCirclesOverlay({ pageRef, topOffset, layout = 'overlay'
           .filter((p) => !!p.id && p.id !== user?.id)
           .filter((p) => {
             const name = (p.name || p.username || '').trim().toLowerCase();
-            return name !== '' && !blocklist.includes(name) && name.length >= 2;
+            return name !== '' && !blocklist.has(name) && name.length >= 2;
           });
 
-        mapped.sort((a, b) => (a.is_live === b.is_live ? 0 : a.is_live ? -1 : 1));
+        mapped.sort((a, b) => {
+          if (followingFirst) {
+            const aF = followingSet.has(a.id) ? 0 : 1;
+            const bF = followingSet.has(b.id) ? 0 : 1;
+            if (aF !== bF) return aF - bF;
+          }
+          if (a.is_live === b.is_live) return 0;
+          return a.is_live ? -1 : 1;
+        });
         setSuggestedUsers(mapped);
       } catch {
         /* intentionally empty */
@@ -209,7 +239,8 @@ export function FeedStoryCirclesOverlay({ pageRef, topOffset, layout = 'overlay'
     };
 
     void fetchUsers();
-  }, [user?.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, followingFirst, (followingIds || []).join(',')]);
 
   const ownStory = user?.id ? storyGroups.find((g) => g.userId === user.id) : undefined;
 
@@ -232,9 +263,36 @@ export function FeedStoryCirclesOverlay({ pageRef, topOffset, layout = 'overlay'
 
   const stripShown = visible && !storyViewer;
 
+  const goSearchDefault = useCallback(() => {
+    navigate('/search');
+  }, [navigate]);
+
+  const goBackDefault = useCallback(() => {
+    navigate(-1);
+  }, [navigate]);
+
+  const handleSearch = onSearch || goSearchDefault;
+  const handleBack = onBack || goBackDefault;
+  const showChrome = !!title;
+
+  const stripChrome = showChrome ? (
+    <div
+      className="w-full px-3 flex items-center justify-between pointer-events-auto"
+      style={{ minHeight: 'var(--topnav-bar-height)' }}
+    >
+      <button type="button" onClick={handleSearch} className="p-1" aria-label="Search">
+        <Search size={18} className="text-white" />
+      </button>
+      <h1 className="elix-silver-red-text text-sm font-bold drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">{title}</h1>
+      <button type="button" onClick={handleBack} className="p-1" title="Back">
+        <RoyceBackIcon />
+      </button>
+    </div>
+  ) : null;
+
   const circlesRow = (
     <div
-      className="w-full flex gap-3.5 overflow-x-auto overflow-y-visible no-scrollbar pb-0.5 min-h-[72px]"
+      className="w-full flex gap-3 overflow-x-auto overflow-y-visible no-scrollbar min-h-[78px]"
       style={{ WebkitOverflowScrolling: 'touch' }}
     >
       <button
@@ -243,13 +301,13 @@ export function FeedStoryCirclesOverlay({ pageRef, topOffset, layout = 'overlay'
           if (ownStory?.items?.length) openUserStory(ownStory.userId);
           else goUploadStory();
         }}
-        className="flex-shrink-0 flex flex-col items-center gap-1"
-        style={{ width: 72, minWidth: 72 }}
+        className="flex-shrink-0 flex flex-col items-center gap-0.5"
+        style={{ width: 80, minWidth: 80 }}
         title="Add story"
       >
-        <div className="relative overflow-visible" style={{ width: 52, height: 52 }}>
+        <div className="relative overflow-visible" style={{ width: 58, height: 58 }}>
           <StoryGoldRingAvatar
-            size={52}
+            size={58}
             glow
             src={user?.avatar || '/royce/default-avatar.svg'}
             alt={user?.username || 'You'}
@@ -272,7 +330,7 @@ export function FeedStoryCirclesOverlay({ pageRef, topOffset, layout = 'overlay'
             <Plus size={9} className="text-black" strokeWidth={3} />
           </span>
         </div>
-        <div className="text-[10px] text-white/80 truncate w-full text-center leading-tight">
+        <div className="elix-silver-red-text text-[10px] truncate w-full text-center leading-tight">
           {ownStory?.items?.length ? 'Your story' : 'Add story'}
         </div>
       </button>
@@ -283,17 +341,17 @@ export function FeedStoryCirclesOverlay({ pageRef, topOffset, layout = 'overlay'
             key={`story-${g.userId}`}
             type="button"
             onClick={() => openUserStory(g.userId)}
-            className="flex-shrink-0 flex flex-col items-center gap-1"
-            style={{ width: 72, minWidth: 72 }}
+            className="flex-shrink-0 flex flex-col items-center gap-0.5"
+            style={{ width: 80, minWidth: 80 }}
             title={g.displayName || g.username}
           >
             <StoryGoldRingAvatar
-              size={52}
+              size={58}
               glow
               src={g.avatar || '/royce/default-avatar.svg'}
               alt={g.displayName || g.username || ''}
             />
-            <div className="text-[10px] text-white/80 truncate w-full text-center leading-tight">
+            <div className="elix-silver-red-text text-[10px] truncate w-full text-center leading-tight">
               {g.displayName || g.username}
             </div>
           </button>
@@ -305,18 +363,18 @@ export function FeedStoryCirclesOverlay({ pageRef, topOffset, layout = 'overlay'
             key={u.id}
             type="button"
             onClick={() => openUserOrLive(u.id, !!u.is_live)}
-            className="flex-shrink-0 flex flex-col items-center gap-1"
-            style={{ width: 72, minWidth: 72 }}
+            className="flex-shrink-0 flex flex-col items-center gap-0.5"
+            style={{ width: 80, minWidth: 80 }}
           >
             <StoryGoldRingAvatar
-              size={52}
+              size={58}
               glow
               live={u.is_live}
               data-avatar-circle={u.is_live ? 'live' : undefined}
               src={u.avatar_url || '/royce/default-avatar.svg'}
               alt={u.name || u.username}
             />
-            <div className="text-[10px] text-white/80 truncate w-full text-center leading-tight">
+            <div className="elix-silver-red-text text-[10px] truncate w-full text-center leading-tight">
               {u.name || u.username}
             </div>
           </button>
@@ -394,11 +452,14 @@ export function FeedStoryCirclesOverlay({ pageRef, topOffset, layout = 'overlay'
         ) : null}
         <div
           className={`w-full shrink-0 overflow-hidden transition-[max-height,opacity] duration-300 ease-out ${
-            stripShown ? 'max-h-[96px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'
+            stripShown
+              ? 'max-h-[160px] opacity-100 bg-[#121215]'
+              : 'max-h-0 opacity-0 pointer-events-none'
           }`}
           aria-hidden={!stripShown}
         >
-          <div className="w-full px-3 pb-1 pointer-events-auto">{circlesRow}</div>
+          {stripChrome}
+          <div className="w-full px-3 pt-0 pb-1 pointer-events-auto">{circlesRow}</div>
         </div>
         {storyPlayer}
       </>
@@ -412,16 +473,17 @@ export function FeedStoryCirclesOverlay({ pageRef, topOffset, layout = 'overlay'
       <div
         className={`absolute left-0 right-0 z-20 pointer-events-none transition-[transform,opacity] duration-300 ease-out ${
           stripShown
-            ? 'translate-y-0 opacity-100 overflow-visible'
+            ? 'translate-y-0 opacity-100 overflow-visible bg-[#121215]'
             : '-translate-y-[200%] opacity-0 invisible overflow-hidden pointer-events-none'
         }`}
         style={{
           top: topOffset || 0,
-          paddingTop: topOffset ? '0.25rem' : 'max(0.5rem, env(safe-area-inset-top, 0px))',
+          paddingTop: topOffset ? 0 : 'env(safe-area-inset-top, 0px)',
         }}
         aria-hidden={!stripShown}
       >
-        <div className="px-4 pb-1 overflow-visible pointer-events-auto">{circlesRow}</div>
+        {stripChrome}
+        <div className="px-4 pt-0 pb-1 overflow-visible pointer-events-auto">{circlesRow}</div>
       </div>
 
       {storyPlayer}

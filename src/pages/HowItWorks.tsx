@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+  Banknote,
   BookOpen,
   Video,
   Radio,
@@ -38,7 +39,7 @@ export default function HowItWorks() {
         </header>
         <div className="overflow-y-auto min-h-0 px-4 pb-4">
           <p className="text-xs text-white/40 italic mb-4">
-            Full guide for fans and creators. Last updated: July 24, 2026
+            Full guide for fans and creators. Last updated: August 5, 2026
           </p>
           <div className="text-sm text-white/75 space-y-5 leading-6">
             <p>
@@ -155,8 +156,55 @@ export default function HowItWorks() {
                   <strong className="text-white/90">Test coins</strong> (if shown in non-store builds) are fake
                   and only for testing gift UI — never real balance or revenue.
                 </li>
-                <li>Creators can set up payout from Settings → Creator payout when eligible.</li>
+                <li>
+                  Only gifts paid with real purchased coins create creator earnings. Free, starter,
+                  promotional, bonus, QA and test coins create £0 creator payout.
+                </li>
+                <li>Creators manage payout from Settings → Creator payout when eligible.</li>
               </ul>
+            </Section>
+
+            <Section icon={<Banknote className="w-5 h-5" />} title="Creator monetisation (how you earn)">
+              <p className="mb-2 text-white/80">
+                Creators receive <strong className="text-white/90">60% of eligible net gift and creator-subscription
+                revenue</strong> received by Elix Star Live after applicable store fees, taxes, refunds,
+                chargebacks and processing deductions. Elix Star Live keeps 40% of that net revenue.
+              </p>
+              <ul className="list-disc pl-5 space-y-1.5">
+                <li>
+                  <strong className="text-white/90">Paid gifts</strong> — earnings go pending first, then become
+                  available after the settlement window. Withdrawals need verification and admin review.
+                </li>
+                <li>
+                  <strong className="text-white/90">Creator subscriptions</strong> — when a fan subscribes to you
+                  with a verified paid purchase, the same 60/40 net split applies. Benefits (badge, exclusive
+                  content, etc.) are decided by the backend entitlement status.
+                </li>
+                <li>
+                  <strong className="text-white/90">Promote Video</strong> — paid ads sold by Elix Star Live.
+                  Creators receive 0% of Promote revenue; it is platform advertising income only.
+                </li>
+                <li>
+                  <strong className="text-white/90">Creator Rewards (video views)</strong> — a separate monthly
+                  programme for large numbers of <em>qualified unique views</em>. One valid user can create only
+                  one qualified view per video. Watching the same video many times does not multiply rewards.
+                  Eligibility (followers, recent views, country, originality, anti-fraud) is enforced by the
+                  server. Monthly rewards follow published milestones up to a £1,000 maximum per creator per
+                  period.
+                </li>
+                <li>
+                  Likes, comments, follows, profile views and live joins are engagement metrics. They do not
+                  pay money by themselves. Live earnings come from paid gifts and subscriptions during streams.
+                </li>
+                <li>
+                  Refunds and chargebacks reverse related creator and platform shares via ledger entries. Money
+                  already withdrawn may create a recoverable balance under platform terms.
+                </li>
+              </ul>
+              <p className="mt-2 text-white/55 text-xs">
+                Video rewards use qualified unique views. Repeated watches by the same user do not create
+                additional qualified reward views. Full payout rules and balances: Settings → Creator payout.
+              </p>
             </Section>
 
             <Section icon={<Star className="w-5 h-5" />} title="Engagement Hub">

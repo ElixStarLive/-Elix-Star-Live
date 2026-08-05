@@ -62,28 +62,34 @@ export default function EngagementDailyLogin() {
   return (
     <EngagementShell title="Daily Login" icon={Calendar}>
       {loading ? (
-        <div className="py-10 text-center text-white/50 text-sm">Loading...</div>
+        <div className="py-10 text-center text-sm">
+          <span className="elix-silver-red-text opacity-50">Loading...</span>
+        </div>
       ) : (
         <div className="rounded-2xl border border-[#E5E5E7]/30 bg-gradient-to-br from-[#1a1608] to-[#121215] p-4">
-          <p className="text-xs text-[#F5F5F7] uppercase tracking-wide mb-1">
-            7-day streak
+          <p className="text-xs uppercase tracking-wide mb-1">
+            <span className="elix-silver-red-text">7-day streak</span>
           </p>
           <p className="text-2xl font-bold mb-2">
-            Day {daily?.streak_day ?? 1}
+            <span className="elix-silver-red-text">Day {daily?.streak_day ?? 1}</span>
           </p>
           {daily?.next_reward ? (
-            <p className="text-sm text-white/70 mb-4">
-              Next: {daily.next_reward.reward_label}
-              {daily.next_reward.reward_xp > 0
-                ? ` · ${daily.next_reward.reward_xp} XP`
-                : ""}
-              {daily.next_reward.reward_promo_coins > 0
-                ? ` · ${daily.next_reward.reward_promo_coins} Promo`
-                : ""}
+            <p className="text-sm mb-4">
+              <span className="elix-silver-red-text opacity-70">
+                Next: {daily.next_reward.reward_label}
+                {daily.next_reward.reward_xp > 0
+                  ? ` · ${daily.next_reward.reward_xp} XP`
+                  : ""}
+                {daily.next_reward.reward_promo_coins > 0
+                  ? ` · ${daily.next_reward.reward_promo_coins} Promo`
+                  : ""}
+              </span>
             </p>
           ) : daily?.claimed_today ? (
-            <p className="text-sm text-white/60 mb-4">
-              Already claimed today. Come back tomorrow.
+            <p className="text-sm mb-4">
+              <span className="elix-silver-red-text opacity-70">
+                Already claimed today. Come back tomorrow.
+              </span>
             </p>
           ) : null}
           <div className="grid grid-cols-7 gap-1.5 mb-4">
@@ -98,13 +104,15 @@ export default function EngagementDailyLogin() {
                   key={d}
                   className={`aspect-square rounded-lg flex items-center justify-center text-[11px] font-bold border ${
                     filled
-                      ? "bg-[#FF3B3F]/30 border-[#E5E5E7]/50 text-[#F5F5F7]"
+                      ? "bg-transparent border-white/40"
                       : current
-                        ? "bg-white/10 border-[#E5E5E7] text-white"
-                        : "bg-white/[0.03] border-white/10 text-white/40"
+                        ? "bg-white/10 border-white/50"
+                        : "bg-white/[0.03] border-white/10"
                   }`}
                 >
-                  {d}
+                  <span className={`elix-silver-red-text ${filled || current ? "" : "opacity-40"}`}>
+                    {d}
+                  </span>
                 </div>
               );
             })}
@@ -113,13 +121,17 @@ export default function EngagementDailyLogin() {
             type="button"
             disabled={!daily?.can_claim || busy}
             onClick={() => void claim()}
-            className="w-full rounded-xl py-2.5 text-sm font-semibold border border-[#E5E5E7]/50 bg-[#FF3B3F]/20 text-[#F5F5F7] disabled:opacity-40"
+            className="w-full rounded-xl py-2.5 text-sm font-semibold border border-white/30 bg-transparent disabled:opacity-40 active:opacity-70"
           >
-            {daily?.claimed_today ? "Claimed" : "Claim today"}
+            <span className="elix-silver-red-text">
+              {daily?.claimed_today ? "Claimed" : "Claim today"}
+            </span>
           </button>
-          <p className="mt-3 text-[11px] text-white/40">
-            Rewards are XP, Promotional Coins, or cosmetics only — never Purchased
-            Coins stakes.
+          <p className="mt-3 text-[11px]">
+            <span className="elix-silver-red-text opacity-55">
+              Rewards are XP, Promotional Coins, or cosmetics only — never Purchased
+              Coins stakes.
+            </span>
           </p>
         </div>
       )}

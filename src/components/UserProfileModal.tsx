@@ -19,6 +19,8 @@ interface User {
   username: string;
   name: string;
   avatar: string;
+  /** Account email when known (own profile from auth; others if API provides). */
+  email?: string;
   level?: number;
   isVerified?: boolean;
   followers: number;
@@ -75,14 +77,21 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
         const pUsername = typeof profile.username === 'string' ? profile.username : '';
         const pDisplayName = typeof profile.displayName === 'string' ? profile.displayName : '';
         const pAvatarUrl = typeof profile.avatarUrl === 'string' ? profile.avatarUrl : '';
+        const pEmail = typeof profile.email === 'string' ? profile.email : '';
+        const pLevel = typeof profile.level === 'number' ? profile.level : 1;
         const uname = pUsername || user.username || pDisplayName || 'user';
+        const ownEmail =
+          currentUser?.id === user.id && typeof currentUser?.email === 'string'
+            ? currentUser.email
+            : '';
         setProfileUser({
           id: user.id,
           username: uname,
-          // Never downgrade below the name/avatar already passed into the modal.
+          // Real account display name — never put this in the top header.
           name: pDisplayName || user.name || uname,
+          email: (pEmail.includes('@') ? pEmail : '') || ownEmail || user.email || '',
           avatar: pAvatarUrl || user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(uname)}`,
-          level: 1,
+          level: pLevel,
           isVerified: !!profile.isVerified,
           followers: followersCount ?? 0,
           following: followingCount ?? 0,
@@ -102,6 +111,18 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
   }, [onClose, navigate]);
 
   if (!isOpen) return null;
+
+  const realName = displayUser.name || displayUser.username || 'User';
+  /** Show only local part + @ (e.g. info@) — never the domain. */
+  const realEmail = (() => {
+    const full =
+      (isOwnProfile && currentUser?.email?.includes('@') ? currentUser.email : '') ||
+      (displayUser.email?.includes('@') ? displayUser.email : '') ||
+      '';
+    const trimmed = full.trim();
+    if (!trimmed.includes('@')) return '';
+    return `${trimmed.split('@')[0]}@`;
+  })();
 
   const handleMessage = async () => {
     onClose();
@@ -140,7 +161,7 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
         <div className="page-above-bottom-nav__inner bg-[#121215] flex flex-col">
           <header className="flex items-center justify-between px-4 pt-page-header pb-2 relative z-10">
             <div className="w-10" />
-            <h3 className="text-[12px] font-bold text-gold-metallic">Profile</h3>
+            <h3 className="text-[12px] font-bold text-gold-metallic">User Profile</h3>
             <button onClick={onClose} className="p-1" aria-label="Close profile">
               <RoyceCloseIcon />
             </button>
@@ -183,7 +204,7 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
             <Share2 size={20} className="stroke-gold-metallic" strokeWidth={2} />
           </button>
           <h3 className="text-[12px] font-bold text-gold-metallic absolute left-1/2 -translate-x-1/2 truncate max-w-[50%]">
-            {displayUser.username}
+            User Profile
           </h3>
           <button
             onClick={onClose}
@@ -201,16 +222,20 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
               <AvatarRing src={displayUser.avatar} alt={displayUser.name} size={80} />
             </div>
             <h2 className="text-lg font-bold text-white flex items-center gap-1.5">
-              @{displayUser.username}
+              {realName}
               {displayUser.isVerified && (
                 <span className="w-2 h-2 rounded-full bg-[#FFFFFF] flex-shrink-0" />
               )}
             </h2>
             <div className="mt-1 flex items-center gap-2">
-              <span className="text-sm text-white/80 font-medium">{displayUser.name}</span>
-              {displayUser.level != null && (
-                <LevelBadge level={displayUser.level} avatar={displayUser.avatar} layout="fixed" />
-              )}
+              {realEmail ? (
+                <span className="text-sm text-white/80 font-medium">{realEmail}</span>
+              ) : null}
+              <LevelBadge
+                level={displayUser.level ?? 1}
+                hideCircle
+                layout="fixed"
+              />
             </div>
 
             {/* Stats */}

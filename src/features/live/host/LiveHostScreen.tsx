@@ -1868,7 +1868,7 @@ export default function LiveHostScreen() {
                             likes={typeof activeLikes === 'number' && Number.isFinite(activeLikes) ? activeLikes : 0}
                             level={userLevel}
                             avatarSize={LIVE_TOP_AVATAR_RING_PX}
-                            showFollow={true}
+                            showFollow={!isBroadcast}
                             isFollowing={isFollowing}
                             onAvatarClick={() => {
                               void openMiniProfile(myCreatorName, undefined, { userId: user?.id, avatar: myAvatar, level: userLevel });
@@ -1878,7 +1878,7 @@ export default function LiveHostScreen() {
                             }}
                             onFollow={followCreatorLive}
                             joinSlot={
-                              // Host own-live: no Join capsule. Spectators get Join after Follow.
+                              // After Follow → membership heart (Join). Host own-live: no Join.
                               (!isBroadcast && isFollowing) ? (
                               <LiveJoinPill
                                 hasJoinedToday={hasJoinedToday}
@@ -2179,7 +2179,14 @@ export default function LiveHostScreen() {
                 onClick={sendSpectatorCohostRequest}
                 className={`${LIVE_BOTTOM_ICON_BTN} relative disabled:opacity-60`}
               >
-                <span className="flex items-center justify-center w-full h-full relative z-[2]"><UserPlus size={20} className="text-[#F5F5F7] shrink-0" strokeWidth={2} /></span>
+                <span className="flex items-center justify-center w-full h-full relative z-[2]">
+                  <UserPlus
+                    size={20}
+                    className="text-[#F5F5F7] shrink-0"
+                    strokeWidth={2}
+                    style={{ transform: 'translateX(0.5mm)' }}
+                  />
+                </span>
 </button>
               <button type="button" title="Send gift" onClick={openGiftPanel} className={`${LIVE_BOTTOM_ICON_BTN} relative`}>
                 <Gift size={20} className="text-[#F5F5F7] relative z-[2]" />
@@ -2217,7 +2224,14 @@ export default function LiveHostScreen() {
                     onClick={openSpectatorsPanel}
                     className={`${LIVE_BOTTOM_ICON_BTN} relative`}
                   >
-                    <span className="flex items-center justify-center w-full h-full relative z-[2]"><UserPlus size={20} className="text-[#F5F5F7] shrink-0" strokeWidth={2} /></span>
+                    <span className="flex items-center justify-center w-full h-full relative z-[2]">
+                      <UserPlus
+                        size={20}
+                        className="text-[#F5F5F7] shrink-0"
+                        strokeWidth={2}
+                        style={{ transform: 'translateX(0.5mm)' }}
+                      />
+                    </span>
 </button>
                   <span className="elix-silver-red-text text-[8px] font-medium">Co-Host</span>
                 </div>
@@ -3519,11 +3533,11 @@ export default function LiveHostScreen() {
             </div>
 
             {/* Line between user circles and action icons */}
-            <div className="mx-4 my-1 border-t border-[#E5E5E7]/45 flex-shrink-0" aria-hidden />
+            <div className="mx-4 border-t border-[#E5E5E7]/45 flex-shrink-0" aria-hidden />
 
             {/* Share options — same layout as ShareModal */}
             <div className="flex-1 overflow-y-scroll overflow-x-hidden min-h-0 px-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#FF3B3F]/60 [&::-webkit-scrollbar-thumb]:rounded-full">
-              <div className="grid grid-cols-5 gap-y-3 gap-x-1.5 pt-4" style={{ marginTop: '6mm' }}>
+              <div className="grid grid-cols-5 gap-y-3 gap-x-1.5 pt-0">
                 {[
                   { name: 'WhatsApp', icon: <MessageCircle size={22} className="text-white" />, action: shareWhatsApp },
                   { name: 'Facebook', icon: <Share2 size={22} className="text-white" />, action: shareFacebook },

@@ -11,6 +11,7 @@ import {
   FEED_FORYOU_CACHE_TTL_MS,
 } from "../lib/feedCacheValkey";
 import { bumpCacheLayer } from "../lib/cacheLayerMetrics";
+import { recordQualifiedRewardView } from "../lib/monetisation/qualifiedViews";
 
 const RATE_LIMIT_WINDOW = 60_000;
 const RATE_LIMIT_MAX_VIEWS = 120;
@@ -328,6 +329,28 @@ export async function handleTrackView(req: Request, res: Response) {
             );
           },
         );
+      }
+
+      // Creator Rewards: qualified unique views (logged-in only; DB unique on video+viewer).
+      try {
+        let creatorUserId = "";
+        const owner = await db.query(`SELECT user_id FROM videos WHERE id = $1 LIMIT 1`, [
+          videoId,
+        ]);
+        if (owner.rowCount) creatorUserId = String(owner.rows[0].user_id || "");
+        await recordQualifiedRewardView({
+          videoId: String(videoId),
+          viewerUserId: isNamedUser ? String(userId) : "",
+          creatorUserId,
+          watchSeconds: Math.floor(Number(watchTime) || 0),
+          rejectReason: !isNamedUser
+            ? "logged_out"
+            : creatorUserId && userId === creatorUserId
+              ? "self"
+              : null,
+        });
+      } catch (err: any) {
+        logger.warn({ err: err?.message }, "qualified reward view recording failed");
       }
     })();
   } catch (err: any) {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { RoyceCloseIcon } from '../components/royce';
 import { Share2, Menu, Lock, Play, Heart, Sparkles, LogOut, UserPlus, Bookmark, Grid3X3, ShoppingBag, Repeat2, ChevronDown, Search, Copy, MessageCircle, Check, TrendingUp, Flag, Settings } from 'lucide-react';
+import { LevelBadge } from '../components/LevelBadge';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { showToast } from '../lib/toast';
@@ -18,6 +19,7 @@ import {
   apiFetchProfileByUsername,
   apiFetchSavedVideos,
   apiFetchUserVideos,
+  apiRegisterProfileView,
   apiToggleFollow,
 } from '../features/feed/feedApi';
 import { sendDmToUser } from '../lib/chatMessages';
@@ -29,6 +31,7 @@ import {
   SHARE_PANEL_ITEM_WIDTH_PX,
 } from '../lib/sharePanelContacts';
 import { PROFILE_PAGE_AVATAR_PX } from '../lib/profileFrame';
+import { PROFILE_EXIT_TO } from '../lib/settingsNav';
 import { getVideoPosterUrl, resolveGridThumbnailUrl, resolveVideoPlaybackUrl } from '../lib/bunnyStorage';
 import { openExternalLink } from '../lib/platform';
 import { fetchActiveStories, type StoryUserGroup } from '../lib/storiesApi';
@@ -49,11 +52,15 @@ interface ProfileData {
   user_id: string;
   username: string;
   display_name: string | null;
+  /** Account email when available (own profile from auth; others only if API provides). */
+  email: string | null;
   avatar_url: string | null;
   bio: string | null;
   followers_count: number;
   following_count: number;
   likes_count: number;
+  /** Unique viewers — public profile counter from backend. */
+  unique_views: number;
   level?: number;
   is_creator?: boolean;
 }
@@ -95,9 +102,13 @@ export default function Profile() {
   const [resolvedUserId, setResolvedUserId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const headerCenterLabelRef = useRef<HTMLDivElement | null>(null);
+  /** Prevents duplicate register calls for the same owner within one mount cycle. */
+  const registeredViewOwnerRef = useRef<string | null>(null);
 
   const goBack = useCallback(() => {
-    navigate(-1);
+    // Own profile (tab): leave to For You. Other profiles: leave to For You too —
+    // never history.back() (that reopened Settings after Settings→Profile).
+    navigate(PROFILE_EXIT_TO);
   }, [navigate]);
 
   const goSettings = useCallback(() => {
@@ -155,10 +166,6 @@ export default function Profile() {
     const id = resolvedUserId || routeUserId || user?.id;
     if (id) navigate(`/profile/${id}/followers`);
   }, [navigate, resolvedUserId, routeUserId, user?.id]);
-
-  const openAvatarPicker = useCallback(() => {
-    fileInputRef.current?.click();
-  }, []);
 
   const tabVideos = useCallback(() => setActiveTab('videos'), []);
   const tabShop = useCallback(() => setActiveTab('shop'), []);
@@ -219,16 +226,24 @@ export default function Profile() {
   
   const _isFallback = (n: string | null | undefined) =>
     !n || /^User [0-9a-f]{8}$/i.test(n) || /^user_[0-9a-f]{8}$/i.test(n);
+  /** Real display name from account/profile — never put this in the top header. */
   const _rawDisplay = isOwnProfile
-    ? (profileData?.display_name || user?.name || profileData?.username || user?.email?.split('@')[0] || 'User')
+    ? (user?.name || profileData?.display_name || profileData?.username || user?.username || 'User')
     : (profileData?.display_name || profileData?.username || displayUserId || 'User');
   const displayName = _isFallback(_rawDisplay)
-    ? (profileData?.username || user?.username || user?.email?.split('@')[0] || _rawDisplay)
+    ? (user?.name || profileData?.display_name || profileData?.username || user?.username || _rawDisplay)
     : _rawDisplay;
   const rawUsername = isOwnProfile
-    ? (user?.email?.split('@')[0] || profileData?.username || 'user')
+    ? (profileData?.username || user?.username || user?.email?.split('@')[0] || 'user')
     : (profileData?.username || 'user');
   const displayUsername = (rawUsername || '').replace(/^@+/, '');
+  /** Local part + @ only (e.g. info@) — never show domain. */
+  const profileEmailLine = (() => {
+    const ownEmail = (isOwnProfile ? user?.email : null) || profileData?.email || '';
+    const trimmed = String(ownEmail).trim();
+    if (trimmed.includes('@')) return `${trimmed.split('@')[0]}@`;
+    return displayUsername ? `${displayUsername}@` : '';
+  })();
   const localAvatar = isOwnProfile && user?.id ? localStorage.getItem('elix_avatar_' + user.id) : null;
   const isHttpUrl = (s: string | null | undefined) => !!s && /^https?:\/\//i.test(s.trim());
   /** Prefer CDN/http URLs from server; avoid stale giant data: URLs in localStorage masking the real profile. */
@@ -360,11 +375,13 @@ export default function Profile() {
         user_id: effectiveUserId,
         username: user?.username || user?.email?.split('@')[0] || 'user',
         display_name: user?.name || user?.email?.split('@')[0] || 'User',
+        email: isOwnProfile ? (user?.email || null) : null,
         avatar_url: user?.avatar || null,
         bio: null,
         followers_count: 0,
         following_count: 0,
         likes_count: 0,
+        unique_views: 0,
         is_creator: false,
       };
 
@@ -381,10 +398,14 @@ export default function Profile() {
         displayName?: string;
         avatarUrl?: string;
         bio?: string;
+        email?: string;
         followers?: number;
         followers_count?: number;
         following?: number;
         following_count?: number;
+        uniqueProfileViews?: number;
+        unique_profile_views?: number;
+        level?: number;
         isVerified?: boolean;
       } | undefined;
       if (!p) {
@@ -397,11 +418,16 @@ export default function Profile() {
         user_id: p.userId || effectiveUserId,
         username: p.username || fallback.username,
         display_name: p.displayName || fallback.display_name,
+        email:
+          (typeof p.email === 'string' && p.email.includes('@') ? p.email : null) ||
+          (effectiveUserId === user?.id ? user?.email || null : null),
         avatar_url: p.avatarUrl || fallback.avatar_url,
         bio: p.bio || null,
         followers_count: Number(p.followers ?? p.followers_count) || 0,
         following_count: Number(p.following ?? p.following_count) || 0,
         likes_count: 0,
+        unique_views: Number(p.uniqueProfileViews ?? p.unique_profile_views) || 0,
+        level: Number(p.level) || 1,
         is_creator: p.isVerified || false,
       };
 
@@ -416,6 +442,20 @@ export default function Profile() {
 
       setProfileData(data);
       trackEvent('profile_view', { user_id: effectiveUserId, is_own: isOwnProfile });
+
+      // Backend registers unique viewers + total visits. Client never increments locally.
+      if (user?.id && registeredViewOwnerRef.current !== effectiveUserId) {
+        registeredViewOwnerRef.current = effectiveUserId;
+        void apiRegisterProfileView(effectiveUserId).then((reg) => {
+          if (reg.error) return;
+          setProfileData((prev) =>
+            prev && prev.user_id === effectiveUserId
+              ? { ...prev, unique_views: reg.uniqueViews }
+              : prev,
+          );
+        });
+      }
+
       if (!isOwnProfile && user?.id) {
         await checkFollowing(data.user_id);
       }
@@ -425,11 +465,13 @@ export default function Profile() {
           user_id: effectiveUserId,
           username: user?.username || user?.email?.split('@')[0] || 'user',
           display_name: user?.name || user?.email?.split('@')[0] || 'User',
+          email: user?.email || null,
           avatar_url: user?.avatar || null,
           bio: null,
           followers_count: 0,
           following_count: 0,
           likes_count: 0,
+          unique_views: 0,
           is_creator: false,
         } as ProfileData);
       } else {
@@ -678,7 +720,7 @@ export default function Profile() {
             <div className="min-w-0 text-center">
               <div
                 ref={headerCenterLabelRef}
-                className="text-[12px] font-bold text-gold-metallic truncate"
+                className="text-[16px] font-bold text-gold-metallic truncate"
               >
                 Profile
               </div>
@@ -712,7 +754,7 @@ export default function Profile() {
                 <AvatarRing src={displayAvatar} alt="Avatar" size={40} />
                 <div>
                   <p className="text-gold-metallic font-semibold text-sm">{displayName}</p>
-                  <p className="text-white text-xs">{displayUsername}</p>
+                  <p className="text-white text-xs">{profileEmailLine}</p>
                 </div>
               </div>
               <div className="py-2">
@@ -798,7 +840,7 @@ export default function Profile() {
 
                 {/* Share options — same layout as ShareModal */}
                 <div className="flex-1 overflow-y-scroll overflow-x-hidden min-h-0 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#FF3B3F]/60 [&::-webkit-scrollbar-thumb]:rounded-full">
-                  <div className="grid grid-cols-5 gap-y-3 gap-x-1.5 pt-3" style={{ marginTop: '5mm' }}>
+                  <div className="grid grid-cols-5 gap-y-3 gap-x-1.5 pt-0">
                     {[
                       { name: 'WhatsApp', icon: <MessageCircle size={22} className="text-white" />, action: () => openExternalLink(`https://wa.me/?text=${encodeURIComponent(`Check out ${displayName}'s profile on Elix! ${window.location.origin}/profile/${displayUserId}`)}`) },
                       { name: 'Facebook', icon: <Share2 size={22} className="text-white" />, action: () => openExternalLink(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${window.location.origin}/profile/${displayUserId}`)}`) },
@@ -830,9 +872,10 @@ export default function Profile() {
 
         <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain">
         {/* ═══ AVATAR ═══ */}
-        <div className="flex flex-col items-center mt-2 mb-3">
+        <div className="flex flex-col items-center mt-2 mb-3 overflow-visible">
           <div
-            className={`relative ${isOwnProfile || (profileStoryGroup?.items?.length ?? 0) > 0 ? 'cursor-pointer' : ''}`}
+            className={`relative overflow-visible ${isOwnProfile || (profileStoryGroup?.items?.length ?? 0) > 0 ? 'cursor-pointer' : ''}`}
+            style={{ width: PROFILE_PAGE_AVATAR_PX + 8, height: PROFILE_PAGE_AVATAR_PX + 8 }}
             onClick={() => {
               // Own profile: tap avatar → change profile photo (plus button is for stories).
               if (isOwnProfile) {
@@ -854,7 +897,7 @@ export default function Profile() {
             }}
           >
             <div
-              className="rounded-full p-[2px]"
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full p-[2px]"
               style={{
                 background:
                   (profileStoryGroup?.items?.length ?? 0) > 0
@@ -867,11 +910,14 @@ export default function Profile() {
             {isOwnProfile && (
               <button
                 type="button"
-                className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#FF3B3F] border-2 border-black text-black text-lg font-bold leading-none flex items-center justify-center"
+                className="profile-add-story-btn bottom-0 right-0 z-50"
                 title="Add story"
+                aria-label="Add story"
                 onClick={goUploadStoryFromRing}
               >
-                +
+                <span className="profile-add-story-btn__plus" aria-hidden>
+                  +
+                </span>
               </button>
             )}
           </div>
@@ -885,18 +931,9 @@ export default function Profile() {
           />
           {isUploadingAvatar && <div className="text-xs text-white/70 mt-1">Uploading...</div>}
           {avatarError && <div className="text-xs text-rose-300 mt-1">{avatarError}</div>}
-          {isOwnProfile && (
-            <button
-              type="button"
-              className="text-[10px] text-[#F5F5F7] mt-1 font-semibold"
-              onClick={openAvatarPicker}
-            >
-              Change photo
-            </button>
-          )}
         </div>
 
-        {/* ═══ NAME + USERNAME ═══ */}
+        {/* ═══ REAL NAME + REAL EMAIL + LEVEL ═══ */}
         <div className="flex flex-col items-center px-4" style={{ marginTop: '-6px' }}>
           <div className="flex items-center gap-2">
             <h1 className="text-[17px] font-extrabold text-gold-metallic tracking-tight">{displayName}</h1>
@@ -905,8 +942,36 @@ export default function Profile() {
                 <Sparkles size={10} className="text-black" />
               </span>
             )}
+            <button
+              type="button"
+              title="Copy profile link"
+              aria-label="Copy profile link"
+              className="p-0.5 active:opacity-70"
+              onClick={() => {
+                const id = displayUserId || effectiveUserId;
+                if (!id) {
+                  showToast('Could not copy link');
+                  return;
+                }
+                void navigator.clipboard
+                  .writeText(`${window.location.origin}/profile/${id}`)
+                  .then(() => showToast('Profile link copied!'))
+                  .catch(() => showToast('Could not copy link'));
+              }}
+            >
+              <Copy size={14} className="royce-icon-gold" strokeWidth={2.25} />
+            </button>
           </div>
-          <span className="text-[13px] text-white/80 font-medium">{displayUsername}</span>
+          <div className="mt-1 flex items-center gap-2">
+            {profileEmailLine ? (
+              <span className="text-[13px] text-white/80 font-medium">{profileEmailLine}</span>
+            ) : null}
+            <LevelBadge
+              level={profileData?.level ?? 1}
+              hideCircle
+              layout="fixed"
+            />
+          </div>
           {risingBadges.length > 0 && (
             <div className="flex flex-wrap justify-center gap-1.5 mt-2 max-w-[280px]">
               {risingBadges.slice(0, 6).map((b) => (
@@ -944,6 +1009,10 @@ export default function Profile() {
           <div className="flex flex-col items-center min-w-[60px]">
             <span className="text-[17px] font-extrabold text-white">{formatNumber(profileData?.likes_count || 0)}</span>
             <span className="text-[11px] text-white/40 font-medium">Likes</span>
+          </div>
+          <div className="flex flex-col items-center min-w-[60px]">
+            <span className="text-[17px] font-extrabold text-white">{formatNumber(profileData?.unique_views || 0)}</span>
+            <span className="text-[11px] text-white/40 font-medium">Views</span>
           </div>
         </div>
 
@@ -1003,7 +1072,7 @@ export default function Profile() {
         )}
 
         {/* ═══ ACTION BAR (scrollable) — compact so Edit Profile is visible ═══ */}
-        <div className="mt-2 border-b border-white/5">
+        <div className="mt-2 border-y border-[#FF3B3F]">
           <div className="flex justify-center overflow-x-auto no-scrollbar">
             <button onClick={goAiStudio} className="flex flex-col items-center gap-0.5 px-3 py-2 whitespace-nowrap">
               <span className="royce-glow-disc" style={{ width: 26, height: 26 }} aria-hidden>

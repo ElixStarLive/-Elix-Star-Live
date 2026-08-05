@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { RoyceBackIcon } from '../components/royce';
 import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -24,7 +24,7 @@ import {
 
 interface Notification {
   id: string;
-  type: 'like' | 'comment' | 'follow' | 'gift' | 'battle_invite' | 'system' | 'shop';
+  type: 'like' | 'comment' | 'follow' | 'gift' | 'battle_invite' | 'system' | 'shop' | 'live_started';
   actor_id: string;
   actor?: { username: string; avatar_url: string | null };
   title: string;
@@ -44,11 +44,31 @@ function normalizeNotificationType(value: unknown): Notification['type'] {
     value === 'gift' ||
     value === 'battle_invite' ||
     value === 'shop' ||
-    value === 'system'
+    value === 'system' ||
+    value === 'live_started'
   ) {
     return value;
   }
   return 'system';
+}
+
+/** Host user/room id from a live inbox notification action URL. */
+function liveHostIdFromActionUrl(actionUrl: string | null | undefined): string | null {
+  if (!actionUrl) return null;
+  try {
+    const path = actionUrl.startsWith('http')
+      ? new URL(actionUrl).pathname
+      : actionUrl.split('?')[0];
+    const m = path.match(/\/live\/([^/]+)/i);
+    return m?.[1] ? decodeURIComponent(m[1]) : null;
+  } catch {
+    return null;
+  }
+}
+
+function isLiveStartedNotification(n: Notification): boolean {
+  if (n.type === 'live_started') return true;
+  return /\bis live\b/i.test(n.title || '');
 }
 
 function toStringRecord(input?: Record<string, unknown>): Record<string, string | undefined> {
@@ -543,6 +563,42 @@ export default function Inbox() {
     return name !== '' && !blocklist.includes(name) && name.length >= 2;
   };
 
+  /** Avatars for live_started inbox rows (resolve host from /live/:id). */
+  const avatarByUserId = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const u of suggestedUsers) {
+      if (u.id && u.avatar_url) m.set(u.id, u.avatar_url);
+    }
+    for (const f of followers) {
+      if (f.user_id && f.avatar_url) m.set(f.user_id, f.avatar_url);
+    }
+    return m;
+  }, [suggestedUsers, followers]);
+
+  const resolveLiveNotifAvatar = useCallback(
+    (n: Notification): string => {
+      if (n.image_url) return n.image_url;
+      const fromData =
+        n.rawData?.avatar_url ||
+        n.rawData?.host_avatar ||
+        n.rawData?.image_url ||
+        '';
+      if (fromData) return fromData;
+      const action = n.action_url || '';
+      try {
+        const q = action.includes('?')
+          ? new URLSearchParams(action.slice(action.indexOf('?') + 1))
+          : null;
+        const fromQuery = q?.get('avatar') || q?.get('a') || '';
+        if (fromQuery) return decodeURIComponent(fromQuery);
+      } catch { /* ignore */ }
+      const hostId = liveHostIdFromActionUrl(n.action_url);
+      if (hostId && avatarByUserId.has(hostId)) return avatarByUserId.get(hostId) || '';
+      return '';
+    },
+    [avatarByUserId],
+  );
+
   const myNewFollowers = followers.filter(
     (f) =>
       f.user_id !== user?.id &&
@@ -978,21 +1034,37 @@ export default function Inbox() {
 
             {/* Battle / Co-host invites: not shown in Inbox — use banner on live page only */}
 
-            {/* System Notification — hide "check out this profile" / profile promo so inbox shows messages, not profile */}
+            {/* Live / system notifications — live rows use host profile photo, not Archive square */}
             {(activeFilter === 'main') && notifications
-                .filter(n => n.type === 'system' && !(n.body?.toLowerCase?.().includes('check out this profile') || n.action_url?.includes('/profile/' + currentUserId)))
-                .map(notif => (
-                <button key={notif.id} onClick={() => { if (notif.action_url) openActionUrl(notif.action_url); }} className="flex items-center gap-3 w-full text-left">
-                    <div className="w-12 h-12 rounded-full bg-[#121215] border border-[#E5E5E7]/40 flex items-center justify-center">
+                .filter(n => (n.type === 'system' || n.type === 'live_started') && !(n.body?.toLowerCase?.().includes('check out this profile') || n.action_url?.includes('/profile/' + currentUserId)))
+                .map(notif => {
+                const liveNotif = isLiveStartedNotification(notif);
+                const liveAvatar = liveNotif ? resolveLiveNotifAvatar(notif) : '';
+                const liveInitial = (notif.title || '?').replace(/\s+is live.*$/i, '').trim().charAt(0).toUpperCase() || '?';
+                return (
+                <button key={notif.id} onClick={() => { if (notif.action_url) openActionUrl(notif.action_url); }} className="flex items-center gap-3 w-full text-left py-2 px-2">
+                    {liveNotif ? (
+                      <div className="flex-shrink-0">
+                        <StoryGoldRingAvatar
+                          size={48}
+                          src={liveAvatar}
+                          alt={liveInitial}
+                          live
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-[#121215] border border-[#E5E5E7]/40 flex items-center justify-center flex-shrink-0">
                         <Archive className="w-6 h-6 stroke-gold-metallic" />
-                    </div>
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0">
                         <h3 className="font-bold text-sm text-gold-metallic">{notif.title}</h3>
                         <p className="text-gold-bright text-xs truncate">{notif.body}</p>
                     </div>
                     <span className="text-[10px] text-gold-bright">{notif.created_at ? formatTimeAgo(notif.created_at) : ''}</span>
                 </button>
-            ))}
+                );
+            })}
 
              {/* Starred empty state */}
              {activeFilter === 'starred' && (

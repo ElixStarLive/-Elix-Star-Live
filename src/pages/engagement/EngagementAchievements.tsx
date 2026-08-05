@@ -38,7 +38,9 @@ export default function EngagementAchievements() {
   return (
     <EngagementShell title="Achievements" icon={Trophy}>
       {loading ? (
-        <div className="py-10 text-center text-white/50 text-sm">Loading...</div>
+        <div className="py-10 text-center text-sm">
+          <span className="elix-silver-red-text opacity-50">Loading...</span>
+        </div>
       ) : (
         <div className="flex flex-col gap-2">
           {items.map((a) => {
@@ -51,18 +53,22 @@ export default function EngagementAchievements() {
                 key={a.id}
                 className={`rounded-xl border p-3 ${
                   a.unlocked
-                    ? "border-[#E5E5E7]/40 bg-[#FF3B3F]/10"
+                    ? "border-[#E5E5E7]/40 bg-white/[0.04]"
                     : "border-white/10 bg-white/[0.03]"
                 }`}
               >
                 <div className="flex items-start gap-2 mb-1.5">
                   <span className="text-xl leading-none">{a.icon}</span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-white/90">{a.name}</p>
-                    <p className="text-[11px] text-white/45">{a.description}</p>
+                    <p className="text-sm font-semibold">
+                      <span className="elix-silver-red-text">{a.name}</span>
+                    </p>
+                    <p className="text-[11px]">
+                      <span className="elix-silver-red-text opacity-55">{a.description}</span>
+                    </p>
                   </div>
-                  <span className="text-[10px] text-white/40 uppercase shrink-0">
-                    {a.rarity}
+                  <span className="text-[10px] uppercase shrink-0">
+                    <span className="elix-silver-red-text opacity-70">{a.rarity}</span>
                   </span>
                 </div>
                 <div className="h-1.5 rounded-full bg-white/10 overflow-hidden mb-1">
@@ -71,13 +77,15 @@ export default function EngagementAchievements() {
                     style={{ width: `${pct}%` }}
                   />
                 </div>
-                <p className="text-[10px] text-white/50 tabular-nums">
-                  {a.progress}/{a.goal_count}
-                  {a.reward_xp > 0 ? ` · ${a.reward_xp} XP` : ""}
-                  {a.reward_promo_coins > 0
-                    ? ` · ${a.reward_promo_coins} Promo`
-                    : ""}
-                  {a.unlocked ? " · Unlocked" : ""}
+                <p className="text-[10px] tabular-nums">
+                  <span className="elix-silver-red-text opacity-55">
+                    {a.progress}/{a.goal_count}
+                    {a.reward_xp > 0 ? ` · ${a.reward_xp} XP` : ""}
+                    {a.reward_promo_coins > 0
+                      ? ` · ${a.reward_promo_coins} Promo`
+                      : ""}
+                    {a.unlocked ? " · Unlocked" : ""}
+                  </span>
                 </p>
               </div>
             );
