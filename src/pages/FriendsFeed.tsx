@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { RoyceBackIcon } from '../components/royce';
-import { Search, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { RoyceBackIcon } from '../components/royce';
 import { useAuthStore } from '../store/useAuthStore';
 import { useVideoStore } from '../store/useVideoStore';
 import EnhancedVideoPlayer from '../components/EnhancedVideoPlayer';
@@ -131,15 +131,10 @@ export default function FriendsFeed() {
     itemIndex: number;
   } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const pageRef = useRef<HTMLDivElement>(null);
+  const touchStartYRef = useRef<number | null>(null);
+  const [storiesVisible, setStoriesVisible] = useState(false);
   const friendVideoIds = friendVideos.map((v) => v.id);
-
-  const goSearch = useCallback(() => {
-    navigate('/search');
-  }, [navigate]);
-
-  const goBack = useCallback(() => {
-    navigate(-1);
-  }, [navigate]);
 
   const goUploadStory = useCallback(() => {
     navigate('/upload?type=story');
@@ -231,14 +226,83 @@ export default function FriendsFeed() {
   }, [feedLen]);
 
   const handleScroll = () => {
-    if (!containerRef.current) return;
-    const scrollPos = containerRef.current.scrollTop;
-    const height = containerRef.current.clientHeight;
+    const el = containerRef.current;
+    if (!el) return;
+    const scrollPos = el.scrollTop;
+    const height = el.clientHeight;
     const index = Math.round(scrollPos / height);
     if (index >= 0 && index < feedLen) {
       setActiveIndex(index);
     }
   };
+
+  const onPullPointerDown = useCallback((e: React.PointerEvent) => {
+    if (storyViewer) return;
+    touchStartYRef.current = e.clientY;
+    try {
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {
+      /* ignore */
+    }
+  }, [storyViewer]);
+
+  const onPullPointerMove = useCallback((e: React.PointerEvent) => {
+    if (storyViewer) return;
+    const startY = touchStartYRef.current;
+    if (startY == null) return;
+    const dy = e.clientY - startY;
+    if (dy > 10) {
+      setStoriesVisible(true);
+      touchStartYRef.current = e.clientY;
+    } else if (dy < -10) {
+      setStoriesVisible(false);
+      touchStartYRef.current = e.clientY;
+    }
+  }, [storyViewer]);
+
+  const onPullPointerUp = useCallback(() => {
+    touchStartYRef.current = null;
+  }, []);
+
+  /** Whole-page capture: push down shows circles, push up hides (touch + mouse). */
+  useEffect(() => {
+    const root = pageRef.current;
+    if (!root) return;
+
+    let startY: number | null = null;
+
+    const onDown = (e: PointerEvent) => {
+      if (storyViewer) return;
+      startY = e.clientY;
+    };
+
+    const onMove = (e: PointerEvent) => {
+      if (storyViewer || startY == null) return;
+      const dy = e.clientY - startY;
+      if (dy > 10) {
+        setStoriesVisible(true);
+        startY = e.clientY;
+      } else if (dy < -10) {
+        setStoriesVisible(false);
+        startY = e.clientY;
+      }
+    };
+
+    const onUp = () => {
+      startY = null;
+    };
+
+    root.addEventListener('pointerdown', onDown, { capture: true });
+    root.addEventListener('pointermove', onMove, { capture: true });
+    root.addEventListener('pointerup', onUp, { capture: true });
+    root.addEventListener('pointercancel', onUp, { capture: true });
+    return () => {
+      root.removeEventListener('pointerdown', onDown, true);
+      root.removeEventListener('pointermove', onMove, true);
+      root.removeEventListener('pointerup', onUp, true);
+      root.removeEventListener('pointercancel', onUp, true);
+    };
+  }, [storyViewer]);
 
   const feedSlideKeys = friendVideoIds.join('|');
 
@@ -288,40 +352,36 @@ export default function FriendsFeed() {
 
   return (
     <div className="h-full min-h-0 w-full flex justify-center bg-[#121215]">
-      <div className="w-full max-w-[480px] h-full min-h-0 flex flex-col overflow-hidden mx-auto relative">
-        {/* Friends chrome — room for icon glow; close stays inside column */}
-        <div
-          className="flex-shrink-0 bg-[#121215] z-20 overflow-visible"
-          style={{ paddingTop: 'max(8px, env(safe-area-inset-top, 0px))' }}
-        >
-          <div className="px-4 h-11 flex items-center justify-between relative overflow-visible">
-            <button
-              type="button"
-              onClick={goSearch}
-              className="z-10 flex items-center justify-center"
-              aria-label="Search"
-            >
-              <span className="royce-tile" style={{ width: 26, height: 26 }} aria-hidden>
-                <Search size={18} className="royce-icon-gold block" strokeWidth={2.35} />
-              </span>
-            </button>
-            <h1 className="text-sm font-bold text-white absolute left-1/2 -translate-x-1/2 pointer-events-none">
-              Friends
-            </h1>
-            <button
-              type="button"
-              onClick={goBack}
-              title="Back"
-              className="z-10 flex items-center justify-center"
-            >
-              <RoyceBackIcon />
-            </button>
-          </div>
+      <div
+        ref={pageRef}
+        className="w-full max-w-[480px] h-full min-h-0 flex flex-col overflow-hidden mx-auto relative"
+      >
+        {/* Top pull zone — always catchable when circles are hidden */}
+        {!storiesVisible && !storyViewer ? (
+          <div
+            className="absolute inset-x-0 top-0 z-[35] h-[28%]"
+            style={{ touchAction: 'none' }}
+            onPointerDown={onPullPointerDown}
+            onPointerMove={onPullPointerMove}
+            onPointerUp={onPullPointerUp}
+            onPointerCancel={onPullPointerUp}
+            aria-hidden
+          />
+        ) : null}
 
-          {/* Story container — separate from friend video feed; always visible */}
-          <div className="px-4 pt-1 pb-3 overflow-visible flex-shrink-0">
+        {/* Story circles — hidden until push down from top */}
+        <div
+          className={`absolute top-0 left-0 right-0 z-20 pointer-events-none transition-[transform,opacity] duration-300 ease-out ${
+            storiesVisible && !storyViewer
+              ? 'translate-y-0 opacity-100 overflow-visible'
+              : '-translate-y-[200%] opacity-0 invisible overflow-hidden pointer-events-none'
+          }`}
+          style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top, 0px))' }}
+          aria-hidden={!(storiesVisible && !storyViewer)}
+        >
+          <div className="px-4 pb-1 overflow-visible pointer-events-auto">
             <div
-              className="flex gap-3.5 overflow-x-auto overflow-y-visible no-scrollbar py-2 min-h-[76px]"
+              className="flex gap-3.5 overflow-x-auto overflow-y-visible no-scrollbar pb-0.5 min-h-[72px]"
               style={{ WebkitOverflowScrolling: 'touch' }}
             >
               <button

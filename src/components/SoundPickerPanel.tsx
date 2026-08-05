@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Music, Pause, Play, Search } from 'lucide-react';
-import { RoyceCloseIcon } from './royce';
+import { ChevronLeft, Music, Pause, Play, Search } from 'lucide-react';
 import {
   fetchMusicPlaylists,
   searchLicensedTracks,
@@ -204,7 +203,7 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
             className="p-2 pointer-events-auto"
             aria-label="Close"
           >
-            <RoyceCloseIcon />
+            <ChevronLeft size={28} className="text-white drop-shadow-md" strokeWidth={2.5} />
           </button>
         ) : (
           <div className="w-10" />

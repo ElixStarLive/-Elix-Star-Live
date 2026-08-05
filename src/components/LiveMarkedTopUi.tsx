@@ -19,7 +19,7 @@ function formatLikesShort(count: number) {
 }
 
 /** Photo-style diamond badge label from host level (Diamond I…V). */
-export function liveDiamondTierLabel(level: number) {
+function liveDiamondTierLabel(level: number) {
   const n = typeof level === 'number' && Number.isFinite(level) && level > 0 ? Math.floor(level) : 1;
   const roman = ['I', 'II', 'III', 'IV', 'V'] as const;
   const idx = Math.min(roman.length - 1, Math.floor((Math.max(1, n) - 1) / 20));
@@ -118,7 +118,7 @@ export function LiveHostProfileHeader({
 
       <div className="flex flex-col justify-center min-w-0 gap-[2px]">
         <div className="flex items-center gap-1 min-w-0">
-          <span className="text-[#FFD54A] text-[12px] font-bold truncate max-w-[118px] leading-tight drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]">
+          <span className="elix-silver-red-text text-[12px] font-bold truncate max-w-[118px] leading-tight">
             {name}
           </span>
           <BadgeCheck
@@ -137,42 +137,37 @@ export function LiveHostProfileHeader({
             onLike(e);
           }}
         >
-          <span className="text-[#FFE8A3] text-[9px] font-semibold tabular-nums leading-none whitespace-nowrap drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+          <span className="elix-silver-red-text text-[9px] font-semibold tabular-nums leading-none whitespace-nowrap">
             {likesLabel} Likes
           </span>
-          <span className="text-[#FFE8A3]/70 text-[9px] leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">•</span>
-          <span className="text-[#FFE8A3] text-[9px] font-semibold leading-none whitespace-nowrap drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+          <span className="elix-silver-red-text text-[9px] leading-none">•</span>
+          <span className="elix-silver-red-text text-[9px] font-semibold leading-none whitespace-nowrap">
             LIVE Pro
           </span>
         </button>
         <div className="flex items-center gap-1 mt-[1px]">
           <span
-            className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-[2px] text-[8px] font-bold text-white leading-none"
+            className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-[2px] text-[8px] font-bold leading-none"
             style={{
               background: levelStyle.background,
               border: '1px solid rgba(255,255,255,0.35)',
               boxShadow: 'none',
             }}
           >
-            Lv.{safeLevel}
+            <span className="elix-silver-red-text">Lv.{safeLevel}</span>
           </span>
           <span
-            className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-[2px] text-[8px] font-bold text-white leading-none"
-            style={{
-              background: 'linear-gradient(90deg, #818CF8 0%, #E5E5E7 55%, #C4B5FD 100%)',
-              border: '1px solid rgba(255,255,255,0.35)',
-              boxShadow: 'none',
-            }}
+            className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-[2px] text-[8px] font-bold leading-none bg-black/35 backdrop-blur-sm border-0 shadow-none"
           >
-            <Gem size={9} className="text-white flex-shrink-0" strokeWidth={2.2} fill="#FFFFFF" />
-            <span className="text-white text-[8px] font-bold leading-none whitespace-nowrap">
+            <Gem size={9} className="flex-shrink-0" strokeWidth={2.2} />
+            <span className="elix-silver-red-text text-[8px] font-bold leading-none whitespace-nowrap">
               {liveDiamondTierLabel(safeLevel)}
             </span>
           </span>
         </div>
       </div>
 
-      <div className="flex-shrink-0 self-center ml-0.5 flex items-center gap-1" style={{ transform: 'translateX(-3mm)' }}>
+      <div className="flex-shrink-0 self-center ml-1.5 flex items-center gap-1">
         {showFollow ? (
           <LiveFollowPill variant="photo" isFollowing={isFollowing} onFollow={onFollow} />
         ) : null}
@@ -216,19 +211,19 @@ export function LiveJoinPill({
   );
 }
 
-/** Live ranking chips — transparent (no black fill). No glow. */
+/** Live ranking chips — same fill as live bottom icons (`bg-black/35 backdrop-blur-sm`). */
 const THIN_CAPSULE_STYLE: React.CSSProperties = {
-  background: 'transparent',
+  background: 'rgba(0, 0, 0, 0.35)',
   border: 'none',
   boxShadow: 'none',
-  backdropFilter: 'none',
-  WebkitBackdropFilter: 'none',
+  backdropFilter: 'blur(4px)',
+  WebkitBackdropFilter: 'blur(4px)',
 };
 
-/** Shared capsule title / subtitle — current white / grey. */
-const CAPSULE_TITLE = 'text-white text-[8px] font-bold whitespace-nowrap';
-const CAPSULE_SUB = 'text-[#A7A7AD] text-[6px] font-semibold whitespace-nowrap mt-[0.5px]';
-const CAPSULE_CHEVRON = 'text-white text-[8px] font-medium leading-none';
+/** Shared capsule title / subtitle — half silver / half red writing. */
+const CAPSULE_TITLE = 'elix-silver-red-text text-[8px] font-bold whitespace-nowrap';
+const CAPSULE_SUB = 'elix-silver-red-text text-[6px] font-semibold whitespace-nowrap mt-[0.5px]';
+const CAPSULE_CHEVRON = 'elix-silver-red-text text-[8px] font-medium leading-none';
 
 /** Same height / padding / round chip shape. */
 const THIN_CAPSULE_CLASS =

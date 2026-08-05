@@ -1868,7 +1868,7 @@ export default function LiveHostScreen() {
                             likes={typeof activeLikes === 'number' && Number.isFinite(activeLikes) ? activeLikes : 0}
                             level={userLevel}
                             avatarSize={LIVE_TOP_AVATAR_RING_PX}
-                            showFollow={!isBroadcast}
+                            showFollow={true}
                             isFollowing={isFollowing}
                             onAvatarClick={() => {
                               void openMiniProfile(myCreatorName, undefined, { userId: user?.id, avatar: myAvatar, level: userLevel });
@@ -2170,7 +2170,7 @@ export default function LiveHostScreen() {
                 >
                   <BarChart3 size={20} className="text-[#A7A7AD] relative z-[2]" strokeWidth={2.2} />
                 </button>
-                <span className="text-white/60 text-[8px] font-medium">Poll</span>
+                <span className="elix-silver-red-text text-[8px] font-medium">Poll</span>
               </div>
               <button
                 type="button"
@@ -2219,7 +2219,7 @@ export default function LiveHostScreen() {
                   >
                     <span className="flex items-center justify-center w-full h-full relative z-[2]"><UserPlus size={20} className="text-[#F5F5F7] shrink-0" strokeWidth={2} /></span>
 </button>
-                  <span className="text-white/60 text-[8px] font-medium">Co-Host</span>
+                  <span className="elix-silver-red-text text-[8px] font-medium">Co-Host</span>
                 </div>
               )}
               <div className="flex flex-col items-center gap-0.5">
@@ -2230,7 +2230,7 @@ export default function LiveHostScreen() {
                 >
                   <Users size={20} className="text-[#F5F5F7] relative z-[2]" />
 </button>
-                <span className="text-white/60 text-[8px] font-medium">Battle</span>
+                <span className="elix-silver-red-text text-[8px] font-medium">Battle</span>
               </div>
               {isBroadcast && (
                 <div className="flex flex-col items-center gap-0.5">
@@ -2242,20 +2242,20 @@ export default function LiveHostScreen() {
                   >
                     <BarChart3 size={20} className="text-[#A7A7AD] relative z-[2]" strokeWidth={2.2} />
                   </button>
-                  <span className="text-white/60 text-[8px] font-medium">Poll</span>
+                  <span className="elix-silver-red-text text-[8px] font-medium">Poll</span>
                 </div>
               )}
               <div className="flex flex-col items-center gap-0.5">
                 <button type="button" title="Share" onClick={openSharePanel} className={`${LIVE_BOTTOM_ICON_BTN} relative`}>
                   <Share2 size={20} className="text-[#F5F5F7] relative z-[2]" />
 </button>
-                <span className="text-white/60 text-[8px] font-medium">Share</span>
+                <span className="elix-silver-red-text text-[8px] font-medium">Share</span>
               </div>
               <div className="flex flex-col items-center gap-0.5">
                 <button type="button" title="More options" onClick={openMoreMenu} className={`${LIVE_BOTTOM_ICON_BTN} relative`}>
                   <MoreVertical size={20} className="text-[#F5F5F7] relative z-[2]" />
 </button>
-                <span className="text-white/60 text-[8px] font-medium">More</span>
+                <span className="elix-silver-red-text text-[8px] font-medium">More</span>
               </div>
               </div>
             </div>

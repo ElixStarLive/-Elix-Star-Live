@@ -445,7 +445,7 @@ export default function InlineLiveViewer({
   return (
     <div
       className={`relative w-full h-full bg-[#121215] cursor-pointer ${className}`}
-      style={{ background: "#1A1A1F" }}
+      style={{ background: "#121215" }}
       onClick={openWatch}
     >
       {/* ── Normal live: single full-bleed host ── */}

@@ -7,6 +7,8 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { NativeDialogProvider } from './components/NativeDialog'
 import { crashReporting } from './lib/crashReporting'
 import './index.css'
+/* force client full reload after hung vite */
+
 
 /* Native WebView: CSS hooks so phone layout can clear home bar without changing web. */
 if (typeof document !== 'undefined' && Capacitor.isNativePlatform()) {

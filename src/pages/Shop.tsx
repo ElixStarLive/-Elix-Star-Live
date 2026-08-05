@@ -502,7 +502,7 @@ export default function Shop() {
                           aria-label="Close menu"
                           onClick={closeItemMenu}
                         />
-                        <div className="absolute right-0 top-full mt-1 z-[4] min-w-[120px] rounded-xl bg-[#1A1A1F] border border-white/10 shadow-lg overflow-hidden">
+                        <div className="absolute right-0 top-full mt-1 z-[4] min-w-[120px] rounded-xl bg-[#121215] border border-white/10 shadow-lg overflow-hidden">
                           {isOwn ? (
                             <button
                               type="button"

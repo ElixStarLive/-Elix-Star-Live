@@ -3,11 +3,13 @@ import { RoyceBackIcon } from '../components/royce';
 import { Search } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import EnhancedVideoPlayer from "../components/EnhancedVideoPlayer";
+import { FeedStoryCirclesOverlay } from "../components/FeedStoryCirclesOverlay";
 import { useVideoStore } from "../store/useVideoStore";
 
 export default function StemFeed() {
   const navigate = useNavigate();
   const location = useLocation();
+  const pageRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -71,8 +73,12 @@ export default function StemFeed() {
   }, [stemVideos.length, activeIndex]);
 
   return (
-    <div className="app-live-column bg-[#121215]">
-      {/* Header — same vertical band as Live / For You */}
+    <div ref={pageRef} className="app-live-column bg-[#121215] relative">
+      <FeedStoryCirclesOverlay
+        pageRef={pageRef}
+        topOffset="calc(var(--topnav-anchor-top) + var(--topnav-bar-height))"
+      />
+      {/* Header — search + back only (no STEM title) */}
       <div
         className="fixed left-0 right-0 z-[9999] flex justify-center pointer-events-none"
         style={{ top: "var(--topnav-anchor-top)" }}
@@ -88,7 +94,6 @@ export default function StemFeed() {
           >
             <Search size={18} className="text-white" />
           </button>
-          <h1 className="text-sm font-bold text-white">STEM</h1>
           <button
             onClick={goBack}
             title="Back"

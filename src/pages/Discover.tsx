@@ -1,9 +1,10 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { RoyceBackIcon, RoyceIcon } from '../components/royce';
 import { useNavigate } from 'react-router-dom';
 import { Search, TrendingUp, Hash, Users, Video as VideoIcon, Trophy, Music, Flame, Sparkles, Star, Zap, Heart, MessageCircle, Bookmark, Share2, MoreHorizontal } from 'lucide-react';
 import { trackEvent } from '../lib/analytics';
 import { AvatarRing } from '../components/AvatarRing';
+import { FeedStoryCirclesOverlay } from '../components/FeedStoryCirclesOverlay';
 import { getVideoPosterUrl } from '../lib/bunnyStorage';
 import { isIndecentExploreCaption } from '../lib/suggestiveCaption';
 import { useVideoStore } from '../store/useVideoStore';
@@ -54,6 +55,7 @@ interface CreatorRanking {
 
 export default function Discover() {
   const navigate = useNavigate();
+  const pageRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<'trending' | 'search' | 'hashtags' | 'ranking'>('trending');
   const [searchQuery, setSearchQuery] = useState('');
   const [trendingVideos, setTrendingVideos] = useState<Video[]>([]);
@@ -244,7 +246,7 @@ export default function Discover() {
   }, [navigate]);
 
   return (
-    <div className="page-above-bottom-nav bg-[#121215] text-white">
+    <div ref={pageRef} className="page-above-bottom-nav bg-[#121215] text-white relative">
       <div className="page-above-bottom-nav__inner">
 
         {/* Header — same size container as STEM */}
@@ -265,38 +267,45 @@ export default function Discover() {
             </button>
           </div>
 
+          {/* Stories — full panel width, scroll left/right (in flow, not over search) */}
+          <FeedStoryCirclesOverlay pageRef={pageRef} layout="inline" />
+
           {/* Search Bar */}
-          <div className="mx-3 mb-1.5 flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2 border border-white/10">
-            <Search className="w-3.5 h-3.5 text-[#F5F5F7]/50 shrink-0" />
-            <input
-              id="discover-search"
-              type="text"
-              placeholder="Search videos, users, hashtags..."
-              value={searchQuery}
-              onChange={e => {
-                setSearchQuery(e.target.value);
-                if (e.target.value.length >= 2) setActiveTab('search');
-              }}
-              className="flex-1 bg-transparent outline-none text-[13px] text-gold-metallic placeholder-[#FFFFFF]/30"
-            />
-            {searchQuery && (
-              <button onClick={clearSearchQuery} className="p-0.5 rounded-full bg-[#121215] border border-white/15" title="Clear">
-                <span className="text-white/50 text-xs leading-none px-1">✕</span>
-              </button>
-            )}
+          <div className="w-full px-3 mb-1.5 box-border">
+            <div className="w-full flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2 border border-white/10">
+              <Search className="w-3.5 h-3.5 text-[#F5F5F7]/50 shrink-0" />
+              <input
+                id="discover-search"
+                type="text"
+                placeholder="Search videos, users, hashtags..."
+                value={searchQuery}
+                onChange={e => {
+                  setSearchQuery(e.target.value);
+                  if (e.target.value.length >= 2) setActiveTab('search');
+                }}
+                className="flex-1 min-w-0 bg-transparent outline-none text-[13px] text-gold-metallic placeholder-[#FFFFFF]/30"
+              />
+              {searchQuery && (
+                <button onClick={clearSearchQuery} className="p-0.5 rounded-full bg-[#121215] border border-white/15 shrink-0" title="Clear">
+                  <span className="text-white/50 text-xs leading-none px-1">✕</span>
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* Tabs */}
+          {/* Tabs — full panel width, scroll left/right */}
           {searchQuery.length < 2 && (
-            <div className="flex gap-1.5 px-3 pb-1.5 no-scrollbar overflow-x-auto">
-              <TabButton active={activeTab === 'trending'} onClick={tabTrending} icon={<Flame className="w-3 h-3" />} label="Trending" />
-              <TabButton active={false} onClick={goRisingStars} icon={<Trophy className="w-3 h-3" />} label="Rising" />
-              <TabButton active={activeTab === 'ranking'} onClick={tabRanking} icon={<Trophy className="w-3 h-3" />} label="Top 99" />
-              <TabButton active={activeTab === 'hashtags'} onClick={tabHashtags} icon={<Hash className="w-3 h-3" />} label="Tags" />
-              <TabButton active={false} onClick={searchMusic} icon={<Music className="w-3 h-3" />} label="Music" />
-              <TabButton active={false} onClick={searchComedy} icon={<Sparkles className="w-3 h-3" />} label="Comedy" />
-              <TabButton active={false} onClick={searchGaming} icon={<Zap className="w-3 h-3" />} label="Gaming" />
-              <TabButton active={false} onClick={searchDance} icon={<Star className="w-3 h-3" />} label="Dance" />
+            <div className="w-full px-3 pb-1.5 box-border">
+              <div className="w-full flex flex-nowrap gap-1.5 overflow-x-auto no-scrollbar">
+                <TabButton active={activeTab === 'trending'} onClick={tabTrending} icon={<Flame className="w-3 h-3" />} label="Trending" />
+                <TabButton active={false} onClick={goRisingStars} icon={<Trophy className="w-3 h-3" />} label="Rising" />
+                <TabButton active={activeTab === 'ranking'} onClick={tabRanking} icon={<Trophy className="w-3 h-3" />} label="Top 99" />
+                <TabButton active={activeTab === 'hashtags'} onClick={tabHashtags} icon={<Hash className="w-3 h-3" />} label="Tags" />
+                <TabButton active={false} onClick={searchMusic} icon={<Music className="w-3 h-3" />} label="Music" />
+                <TabButton active={false} onClick={searchComedy} icon={<Sparkles className="w-3 h-3" />} label="Comedy" />
+                <TabButton active={false} onClick={searchGaming} icon={<Zap className="w-3 h-3" />} label="Gaming" />
+                <TabButton active={false} onClick={searchDance} icon={<Star className="w-3 h-3" />} label="Dance" />
+              </div>
             </div>
           )}
         </div>
@@ -489,7 +498,7 @@ function TabButton({ active, onClick, icon, label }: { active: boolean; onClick:
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap transition-all border ${
+      className={`flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap transition-all border ${
         active
           ? 'bg-[#FF3B3F]/15 text-[#F5F5F7] border-[#E5E5E7]/30'
           : 'text-white/40 hover:text-white/60 border-transparent'

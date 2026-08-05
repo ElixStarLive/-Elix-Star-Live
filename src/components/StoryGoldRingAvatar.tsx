@@ -1,11 +1,10 @@
 import React from 'react';
-import { USER_CIRCLE_GLOW } from '../lib/userCircleGlow';
 
 /** TikTok-style live red (ring + badge). */
 const LIVE_RING_COLOR = '#FF3B3F';
 
 /**
- * User avatar circle — always shown, with same gold light as the close button.
+ * User avatar circle — half silver / half red ring (same as icon discs).
  * Live adds red ring + LIVE badge; never removes the circle.
  */
 export function StoryGoldRingAvatar({
@@ -14,7 +13,7 @@ export function StoryGoldRingAvatar({
   alt = '',
   live = false,
   className = '',
-  glow = true,
+  glow: _glow = true,
   innerDiameterAddMm: _innerDiameterAddMm = 0,
   innerTranslateYmm = 0,
   'data-avatar-circle': dataAvatarCircle,
@@ -24,14 +23,17 @@ export function StoryGoldRingAvatar({
   alt?: string;
   live?: boolean;
   className?: string;
-  /** Soft gold light (default on). */
+  /** Kept for call-site compatibility; ring is always half silver / half red. */
   glow?: boolean;
   innerDiameterAddMm?: number;
   innerTranslateYmm?: number;
   'data-avatar-circle'?: string;
 }) {
   const safeSize = typeof size === 'number' && Number.isFinite(size) && size > 0 ? Math.floor(size) : 56;
-  const ringPx = live ? Math.max(2, Math.min(3, Math.round(safeSize * 0.05))) : 0;
+  /** Always leave room for the half silver / half red ring (2px). Live may thicken. */
+  const elixRingPx = 2;
+  const liveRingPx = live ? Math.max(2, Math.min(3, Math.round(safeSize * 0.05))) : 0;
+  const ringPx = Math.max(elixRingPx, liveRingPx);
   const photoSize = Math.max(2, safeSize - ringPx * 2);
   const liveBadgeFont = Math.max(5, Math.round(safeSize * 0.11));
   const liveBadgePadX = Math.max(3, Math.round(safeSize * 0.08));
@@ -42,11 +44,10 @@ export function StoryGoldRingAvatar({
 
   return (
     <div
-      className={`relative flex-shrink-0 flex items-center justify-center rounded-full ${className}`}
+      className={`elix-profile-ring relative flex-shrink-0 flex items-center justify-center rounded-full ${className}`}
       style={{
         width: safeSize,
         height: safeSize,
-        boxShadow: glow ? USER_CIRCLE_GLOW : undefined,
       }}
       {...(dataAvatarCircle ? { 'data-avatar-circle': dataAvatarCircle } : {})}
     >

@@ -90,13 +90,13 @@ export const BottomNav = () => {
       aria-label="Main navigation"
     >
       <div className="flex justify-center pointer-events-none">
-        <div className="feed-column-width pointer-events-auto bg-black min-h-[var(--nav-height)]">
+        <div className="feed-column-width pointer-events-auto bg-[#121215] min-h-[var(--nav-height)]">
           <div className="flex items-center justify-around px-1 pt-1.5 pb-1">
             {NAV_ITEMS.map(({ path, label, Icon, center }) => {
               const active = isActiveRoute(location.pathname, path);
               const iconClass = "royce-icon-gold";
               const labelClass = active || center ? "text-[#FFFFFF]" : "text-[#A7A7AD]";
-              const size = center ? ICON_SIZE + 2 : ICON_SIZE;
+              const size = ICON_SIZE;
 
               return (
                 <button
@@ -106,21 +106,26 @@ export const BottomNav = () => {
                   title={label}
                   aria-label={label}
                   aria-current={active ? "page" : undefined}
-                  className={`flex flex-col items-center justify-center flex-1 min-w-0 gap-0.5 active:opacity-75 transition-opacity ${
-                    center ? "-mt-0.5" : ""
-                  }`}
+                  className="flex flex-col items-center justify-center flex-1 min-w-0 gap-0.5 active:opacity-75 transition-opacity"
                   style={{ WebkitTapHighlightColor: "transparent" }}
                 >
-                  <span
-                    className="royce-glow-disc"
-                    style={{ width: size + 12, height: size + 12 }}
-                    aria-hidden
-                  >
-                    <Icon
-                      size={size}
-                      strokeWidth={center ? 2.75 : active ? 2.35 : 2}
-                      className={iconClass}
-                    />
+                  <span className="royce-glow-disc" aria-hidden>
+                    {center ? (
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="relative z-[2] block" aria-hidden>
+                        <path
+                          d="M12 5v14M5 12h14"
+                          stroke="url(#elixSilverRed)"
+                          strokeWidth="2.75"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    ) : (
+                      <Icon
+                        size={size}
+                        strokeWidth={active ? 2.35 : 2}
+                        className={iconClass}
+                      />
+                    )}
                   </span>
                   <span
                     className={`text-[9px] font-semibold leading-none tracking-wide ${labelClass}`}

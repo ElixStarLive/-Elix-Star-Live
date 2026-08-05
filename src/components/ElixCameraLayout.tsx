@@ -5,7 +5,6 @@
  */
 
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { RoyceCloseIcon } from './royce';
 import { CaptureShutterButton } from './CaptureShutterButton';
 import { 
   X, 
@@ -16,6 +15,7 @@ import {
   Sparkles, 
   User, 
   ChevronDown,
+  ChevronLeft,
   Check,
   ZoomIn,
   ZoomOut,
@@ -293,35 +293,35 @@ export default function ElixCameraLayout({
   return (
     <div className="absolute inset-0 w-full h-full pointer-events-none">
 
-      {/* TOP BAR — Add sound center, close on the RIGHT */}
+      {/* TOP BAR — Add sound center, close on the RIGHT (aligned with right-rail icons) */}
       <div
-        className="absolute top-0 left-0 right-0 z-50 px-3 grid grid-cols-3 items-center pointer-events-auto"
+        className="absolute top-0 left-0 right-0 z-50 pl-3 pr-2 grid grid-cols-3 items-center pointer-events-auto"
         style={{ paddingTop: 'max(3rem, env(safe-area-inset-top))' }}
       >
         <div aria-hidden />
-        <div className="flex justify-center">
+        <div className="flex justify-center items-center">
           <button
             type="button"
             onClick={onSelectMusic}
-            className="flex items-center gap-1.5 h-8 px-3.5 rounded-full bg-black/55 border border-[#E5E5E7]/40 hover:scale-105 active:scale-95 transition-all relative"
+            className="flex items-center gap-1 h-6 px-2.5 rounded-full bg-black/55 border border-[#E5E5E7]/40 hover:scale-105 active:scale-95 transition-all relative"
             title="Add sound"
           >
             <Music
-              size={15}
+              size={13}
               className="text-[#F5F5F7] drop-shadow-[0_0_8px_rgba(139, 144, 152,1)]"
               strokeWidth={2}
             />
-            <span className="text-[#F5F5F7] text-[11px] font-semibold whitespace-nowrap drop-shadow-[0_0_8px_rgba(139, 144, 152,0.9)]">Add sound</span>
+            <span className="elix-silver-red-text text-[10px] font-semibold whitespace-nowrap">Add sound</span>
           </button>
         </div>
-        <div className="flex justify-end">
+        <div className="flex justify-end items-center h-6">
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 royce-glow-disc flex items-center justify-center hover:scale-110 transition-transform active:scale-95 -mr-[1mm]"
+            className="camera-rail-disc flex items-center justify-center hover:scale-110 transition-transform active:scale-95 mr-[1mm]"
             title="Close"
           >
-            <RoyceCloseIcon />
+            <ChevronLeft size={16} strokeWidth={2.35} className="text-[#F5F5F7] drop-shadow-[0_0_8px_rgba(139, 144, 152,1)] drop-shadow-[0_0_16px_rgba(139, 144, 152,0.6)]" />
           </button>
         </div>
       </div>
@@ -373,12 +373,12 @@ export default function ElixCameraLayout({
       {/* ══════════════════════════════════════════ */}
       {/* RIGHT SIDE VERTICAL CONTROLS */}
       {/* ══════════════════════════════════════════ */}
-      <div className="absolute right-2 top-[calc(env(safe-area-inset-top)+4.5rem)] pt-[9mm] pb-4 z-50 flex flex-col items-center justify-start gap-2.5 pointer-events-auto max-h-[85vh] overflow-y-auto scrollbar-hide">
+      <div className="camera-right-rail absolute right-2 top-[calc(env(safe-area-inset-top)+4.5rem)] pt-[9mm] pb-4 z-50 flex flex-col items-center justify-start gap-2.5 pointer-events-auto max-h-[85vh] overflow-y-auto scrollbar-hide">
         
         {/* Flip Camera */}
         <button
           onClick={onFlipCamera}
-          className="w-8 h-8 royce-glow-disc flex-shrink-0 flex items-center justify-center hover:scale-110 active:scale-90 transition-transform relative self-center"
+          className="w-8 h-8 camera-rail-disc flex-shrink-0 flex items-center justify-center hover:scale-110 active:scale-90 transition-transform relative self-center"
           title="Flip Camera"
         >
           <RefreshCw size={18} strokeWidth={1.5} className="text-[#F5F5F7] drop-shadow-[0_0_8px_rgba(139, 144, 152,1)] drop-shadow-[0_0_16px_rgba(139, 144, 152,0.6)]" />
@@ -387,7 +387,7 @@ export default function ElixCameraLayout({
         {/* Flash */}
         <button 
           onClick={onFlashToggle}
-          className="w-8 h-8 royce-glow-disc flex-shrink-0 flex items-center justify-center hover:scale-110 active:scale-90 transition-transform relative self-center"
+          className="w-8 h-8 camera-rail-disc flex-shrink-0 flex items-center justify-center hover:scale-110 active:scale-90 transition-transform relative self-center"
         >
           <Zap size={18} strokeWidth={1.5} className="text-[#F5F5F7] drop-shadow-[0_0_8px_rgba(139, 144, 152,1)] drop-shadow-[0_0_16px_rgba(139, 144, 152,0.6)]" fill={flashActive ? "#E5E5E7" : "none"} />
           {flashActive && (
@@ -400,7 +400,7 @@ export default function ElixCameraLayout({
         {/* Focus Lock */}
         <button 
           onClick={toggleFocusLock}
-          className="w-8 h-8 royce-glow-disc flex-shrink-0 flex items-center justify-center hover:scale-110 active:scale-90 transition-transform relative self-center"
+          className="w-8 h-8 camera-rail-disc flex-shrink-0 flex items-center justify-center hover:scale-110 active:scale-90 transition-transform relative self-center"
           title="Focus Lock"
         >
           <Crosshair size={18} strokeWidth={1.5} className="text-[#F5F5F7] drop-shadow-[0_0_8px_rgba(139, 144, 152,1)] drop-shadow-[0_0_16px_rgba(139, 144, 152,0.6)]" />
@@ -414,7 +414,7 @@ export default function ElixCameraLayout({
         <div className="w-8 h-[1px] bg-[#FF3B3F]/25 rounded-full"></div>
         <button 
           onClick={onTimerCycle}
-          className="w-8 h-8 royce-glow-disc flex-shrink-0 flex items-center justify-center hover:scale-110 active:scale-90 transition-transform relative self-center"
+          className="w-8 h-8 camera-rail-disc flex-shrink-0 flex items-center justify-center hover:scale-110 active:scale-90 transition-transform relative self-center"
         >
           <Clock size={18} strokeWidth={1.5} className="text-[#F5F5F7] drop-shadow-[0_0_8px_rgba(139, 144, 152,1)] drop-shadow-[0_0_16px_rgba(139, 144, 152,0.6)]" />
           {timerDelay > 0 && (
@@ -427,7 +427,7 @@ export default function ElixCameraLayout({
         {/* Effects / Filters */}
         <button 
           onClick={toggleEffectsPanel}
-          className={`w-8 h-8 royce-glow-disc flex-shrink-0 flex items-center justify-center hover:scale-110 active:scale-90 transition-transform relative self-center ${showEffectsPanel ? 'opacity-100' : 'opacity-80'}`}
+          className="w-8 h-8 camera-rail-disc flex-shrink-0 flex items-center justify-center hover:scale-110 active:scale-90 transition-transform relative self-center"
           title="Filters & Effects"
         >
           <Palette size={18} strokeWidth={1.5} className="text-[#F5F5F7] drop-shadow-[0_0_8px_rgba(139, 144, 152,1)] drop-shadow-[0_0_16px_rgba(139, 144, 152,0.6)]" />
@@ -437,7 +437,7 @@ export default function ElixCameraLayout({
         <button
           onClick={toggleBeautySlider}
           onDoubleClick={openBeautySlider}
-          className="w-8 h-8 royce-glow-disc flex-shrink-0 flex items-center justify-center hover:scale-110 active:scale-90 transition-transform relative self-center"
+          className="w-8 h-8 camera-rail-disc flex-shrink-0 flex items-center justify-center hover:scale-110 active:scale-90 transition-transform relative self-center"
         >
           <User size={18} strokeWidth={1.5} className="text-[#F5F5F7] drop-shadow-[0_0_8px_rgba(139, 144, 152,1)] drop-shadow-[0_0_16px_rgba(139, 144, 152,0.6)]" />
           {beautyEnabled && (
@@ -475,7 +475,7 @@ export default function ElixCameraLayout({
             const el = document.querySelector('.scrollbar-hide');
             if (el) el.scrollBy({ top: 100, behavior: 'smooth' });
           }}
-          className="w-8 h-8 royce-glow-disc flex-shrink-0 flex items-center justify-center hover:scale-110 active:scale-90 transition-transform relative self-center"
+          className="w-8 h-8 camera-rail-disc flex-shrink-0 flex items-center justify-center hover:scale-110 active:scale-90 transition-transform relative self-center"
           title="More options"
         >
           <ChevronDown size={18} strokeWidth={1.5} className="text-[#F5F5F7] drop-shadow-[0_0_8px_rgba(139, 144, 152,1)] drop-shadow-[0_0_16px_rgba(139, 144, 152,0.6)]" />
@@ -488,7 +488,7 @@ export default function ElixCameraLayout({
         {onZoomIn && (
           <button 
             onClick={onZoomIn}
-            className="w-8 h-8 royce-glow-disc flex-shrink-0 flex items-center justify-center hover:scale-110 active:scale-90 transition-transform relative self-center"
+            className="w-8 h-8 camera-rail-disc flex-shrink-0 flex items-center justify-center hover:scale-110 active:scale-90 transition-transform relative self-center"
             title="Zoom In"
           >
               <ZoomIn size={18} className="text-[#F5F5F7] drop-shadow-[0_0_8px_rgba(139, 144, 152,1)] drop-shadow-[0_0_16px_rgba(139, 144, 152,0.6)]" strokeWidth={1.5} />
@@ -499,7 +499,7 @@ export default function ElixCameraLayout({
         {onZoomOut && (
           <button 
             onClick={onZoomOut}
-            className="w-8 h-8 royce-glow-disc flex-shrink-0 flex items-center justify-center hover:scale-110 active:scale-90 transition-transform relative self-center"
+            className="w-8 h-8 camera-rail-disc flex-shrink-0 flex items-center justify-center hover:scale-110 active:scale-90 transition-transform relative self-center"
             title="Zoom Out"
           >
               <ZoomOut size={18} className="text-[#F5F5F7] drop-shadow-[0_0_8px_rgba(139, 144, 152,1)] drop-shadow-[0_0_16px_rgba(139, 144, 152,0.6)]" strokeWidth={1.5} />
@@ -510,7 +510,7 @@ export default function ElixCameraLayout({
         {(onZoomIn || onZoomOut) && (
           <button
             onClick={onZoomReset}
-            className="w-8 h-8 royce-glow-disc flex-shrink-0 flex items-center justify-center transition-all active:scale-90 hover:scale-110 self-center"
+            className="w-8 h-8 camera-rail-disc flex-shrink-0 flex items-center justify-center transition-all active:scale-90 hover:scale-110 self-center"
             title="Tap to reset zoom"
           >
               <span className="text-[#F5F5F7] text-[9px] font-bold drop-shadow-[0_0_6px_rgba(229, 229, 231,0.8)]">{zoomLevel.toFixed(1)}x</span>
@@ -520,7 +520,7 @@ export default function ElixCameraLayout({
         {/* AI Effects (Wand) */}
         <button 
           onClick={toggleEffectsPanel}
-          className={`w-8 h-8 royce-glow-disc flex-shrink-0 flex items-center justify-center hover:scale-110 active:scale-90 transition-transform relative self-center ${showEffectsPanel ? 'opacity-100' : 'opacity-80'}`}
+          className="w-8 h-8 camera-rail-disc flex-shrink-0 flex items-center justify-center hover:scale-110 active:scale-90 transition-transform relative self-center"
           title="AI Effects"
         >
           <Wand2 size={18} className="text-[#F5F5F7] drop-shadow-[0_0_8px_rgba(139, 144, 152,1)] drop-shadow-[0_0_16px_rgba(139, 144, 152,0.6)]" strokeWidth={1.5} />
@@ -529,7 +529,7 @@ export default function ElixCameraLayout({
         {/* CapCut AI Editor */}
         <button 
           onClick={toggleCapCutPanel}
-          className={`w-8 h-8 royce-glow-disc flex-shrink-0 flex items-center justify-center hover:scale-110 active:scale-90 transition-transform relative self-center ${showCapCutPanel ? 'opacity-100' : 'opacity-80'}`}
+          className="w-8 h-8 camera-rail-disc flex-shrink-0 flex items-center justify-center hover:scale-110 active:scale-90 transition-transform relative self-center"
           title="CapCut AI"
         >
           <Sparkles size={18} className="text-[#F5F5F7] drop-shadow-[0_0_8px_rgba(139, 144, 152,1)] drop-shadow-[0_0_16px_rgba(139, 144, 152,0.6)]" strokeWidth={1.5} />
@@ -832,7 +832,7 @@ export default function ElixCameraLayout({
                   <button
                     key={d}
                     onClick={() => setSelectedDuration(d)}
-                    className={`w-16 flex-shrink-0 snap-center text-xs font-bold py-1.5 text-center transition-all ${selectedDuration === d ? 'text-[#F5F5F7] drop-shadow-[0_0_8px_rgba(139, 144, 152,1)] drop-shadow-[0_0_16px_rgba(139, 144, 152,0.6)]' : 'text-[#F5F5F7]/40'}`}
+                    className={`w-16 flex-shrink-0 snap-center elix-silver-red-text text-xs font-bold py-1.5 text-center transition-all ${selectedDuration === d ? '' : 'opacity-40'}`}
                   >
                     {d}
                   </button>
@@ -895,7 +895,7 @@ export default function ElixCameraLayout({
                     <span className="royce-glow-disc w-9 h-9 group-active:scale-90 transition-transform" aria-hidden>
                       <ImagePlus size={18} className="royce-icon-gold" strokeWidth={2} />
                     </span>
-                    <span className="text-[#F5F5F7] text-[10px] font-bold drop-shadow-[0_0_8px_rgba(139, 144, 152,0.9)]">Upload</span>
+                    <span className="elix-silver-red-text text-[10px] font-bold">Upload</span>
                   </button>
                 ) : null}
                 <button
@@ -926,21 +926,20 @@ export default function ElixCameraLayout({
                 className="relative flex items-center justify-center gap-1.5 h-10 px-4 min-w-[80px] rounded-full"
               >
                 {selectedTab === 'post' ? <CaptureShutterButton size={18} /> : null}
-                <span className={`text-sm font-semibold ${selectedTab === 'post' ? 'text-[#F5F5F7] drop-shadow-[0_0_8px_rgba(139, 144, 152,1)]' : 'text-white/70'}`}>POST</span>
+                <span className={`elix-silver-red-text text-sm font-semibold ${selectedTab === 'post' ? '' : 'opacity-70'}`}>POST</span>
               </button>
               <button 
                 onClick={() => onCreateTab?.()}
                 className="relative flex items-center justify-center gap-1.5 h-10 px-4 min-w-[80px] rounded-full"
                 type="button"
               >
-                {selectedTab === 'create' ? <CaptureShutterButton size={18} /> : null}
-                <span className={`text-sm font-semibold ${selectedTab === 'create' ? 'text-[#F5F5F7] drop-shadow-[0_0_8px_rgba(139, 144, 152,1)]' : 'text-white/70'}`}>CREATE</span>
+                <span className={`elix-silver-red-text text-sm font-semibold ${selectedTab === 'create' ? '' : 'opacity-70'}`}>CREATE</span>
               </button>
               <button 
                 onClick={onLiveTab}
                 className="relative flex items-center justify-center h-10 px-6 min-w-[80px] rounded-full"
               >
-                <span className={`text-sm font-semibold ${selectedTab === 'live' ? 'text-[#F5F5F7] drop-shadow-[0_0_8px_rgba(139, 144, 152,1)]' : 'text-white/70'}`}>LIVE</span>
+                <span className={`elix-silver-red-text text-sm font-semibold ${selectedTab === 'live' ? '' : 'opacity-70'}`}>LIVE</span>
               </button>
             </div>
           </div>

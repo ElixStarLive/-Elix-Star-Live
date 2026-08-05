@@ -51,10 +51,10 @@
     --color-hover-red: #FF5A5F;
     --color-deep-red: #D91F2D;
     --color-dark-red: #B3131B;
-    --color-background: #0A0A0D;
+    --color-background: #121215;
     --color-surface: #121215;
-    --color-card: #1A1A1F;
-    --color-card-elevated: #1F1F26;
+    --color-card: #121215;
+    --color-card-elevated: #121215;
     --color-border: #2A2A31;
     --color-text: #FFFFFF;
     --color-text-muted: #A7A7AD;
@@ -929,6 +929,15 @@ video::-webkit-media-controls-overlay-enclosure,
   color: #FFFFFF;
 }
 
+/* Writing — half silver / half red (same split as icon rings) */
+.elix-silver-red-text {
+  background: linear-gradient(135deg, #E5E5E7 0%, #E5E5E7 50%, #FF3B3F 50%, #FF3B3F 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
 .stroke-gold-metallic {
   color: #E5E5E7;
   filter: none;
@@ -940,8 +949,8 @@ video::-webkit-media-controls-overlay-enclosure,
 }
 
 /*
- * Icon discs — same as before (round dark background + same colors).
- * Only change: no glow/light (no box-shadow / drop-shadow).
+ * Icon discs — half silver / half red RING + gray translucent fill.
+ * Default size is for right-side rails (smaller). Bottom nav stays larger below.
  */
 .royce-glow-disc,
 .royce-tile {
@@ -950,23 +959,111 @@ video::-webkit-media-controls-overlay-enclosure,
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  box-sizing: border-box;
   border-radius: 9999px;
   border: none !important;
-  background:
-    radial-gradient(
-      circle at center,
-      rgba(229, 229, 231, 0.22) 0%,
-      rgba(10, 10, 13, 0.85) 52%,
-      rgba(0, 0, 0, 0.2) 78%,
-      transparent 100%
-    );
+  /* Same lightness as Add sound pill (bg-black/50 + blur) */
+  background: rgba(0, 0, 0, 0.5) !important;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
   box-shadow: none;
 }
 
+.royce-glow-disc {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  max-width: 32px !important;
+  max-height: 32px !important;
+  aspect-ratio: 1 / 1;
+}
+
+/* Bottom nav — keep larger discs (do not shrink with right-side icons) */
+nav[aria-label="Main navigation"] .royce-glow-disc {
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  max-width: 40px !important;
+  max-height: 40px !important;
+}
+
+/* Capture shutter — no silver/red ring (bottom nav keeps rings only) */
+.capture-shutter-ring {
+  border: none !important;
+  background: transparent !important;
+}
+.capture-shutter-ring::before,
+.capture-shutter-ring::after {
+  content: none !important;
+  display: none !important;
+}
+.capture-shutter-ring > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Icon discs — translucent fill stays; silver/red RING off everywhere except bottom nav */
+.royce-glow-disc::before,
+.royce-tile::before {
+  content: none !important;
+  display: none !important;
+  background: none !important;
+}
+
+/* Bottom nav ONLY — keep half silver / half red circle rings */
+nav[aria-label="Main navigation"] .royce-glow-disc::before {
+  content: "" !important;
+  display: block !important;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 2px;
+  box-sizing: border-box;
+  background: linear-gradient(135deg, #E5E5E7 0%, #E5E5E7 50%, #FF3B3F 50%, #FF3B3F 100%);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.royce-glow-disc > *,
+.royce-tile > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* No stacked discs — if something wraps RoyceBackIcon inside another disc, kill the inner ring */
+.royce-glow-disc .royce-glow-disc,
+.royce-tile .royce-glow-disc {
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-width: none !important;
+  max-height: none !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.royce-glow-disc .royce-glow-disc::before,
+.royce-tile .royce-glow-disc::before {
+  content: none !important;
+  display: none !important;
+}
+
+/* Profile / chat avatars — no silver/red circle ring */
+.elix-profile-ring,
 .royce-avatar-glow {
+  box-sizing: border-box;
   border-radius: 9999px;
-  border: none;
-  box-shadow: none;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 /* Icon line — diagonal half silver / half red (same colors, no glow) */
@@ -1008,4 +1105,33 @@ svg.lucide.text-red-500 {
   stroke: url(#elixSilverRed) !important;
 }
 
-/* Create (+) uses same royce-glow-disc + half silver/half red stroke as other nav icons. */
+/* Camera create right rail — translucent disc only; do not touch icon stroke color */
+.camera-right-rail {
+  background: transparent !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+.camera-rail-disc {
+  position: relative;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  width: 26px !important;
+  height: 26px !important;
+  min-width: 26px !important;
+  min-height: 26px !important;
+  border-radius: 9999px;
+  border: none !important;
+  background: rgba(0, 0, 0, 0.55) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+}
+.camera-rail-disc::before,
+.camera-rail-disc::after {
+  content: none !important;
+  display: none !important;
+}

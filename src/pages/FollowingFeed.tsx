@@ -7,6 +7,7 @@ import { useVideoStore } from '../store/useVideoStore';
 import { trackScreenView } from '../lib/analytics';
 import EnhancedVideoPlayer from '../components/EnhancedVideoPlayer';
 import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
+import { usePullRevealStrip } from '../hooks/usePullRevealStrip';
 import { apiFetchProfiles } from '../features/feed/feedApi';
 import { apiLiveStreams } from '../lib/live';
 
@@ -27,8 +28,10 @@ export default function FollowingFeed() {
   const followingIds = useVideoStore((s) => s.followingUsers);
   const [followingUsers, setFollowingUsers] = useState<FollowingUser[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
+  const pageRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const friendVideoIds = friendVideos.map((v) => v.id);
+  const { visible: circlesVisible, pullZoneProps } = usePullRevealStrip(pageRef);
 
   useEffect(() => {
     trackScreenView('following_feed');
@@ -160,7 +163,8 @@ export default function FollowingFeed() {
   }, [friendVideoIds.length]);
 
   return (
-    <div className="app-live-column bg-[#121215]">
+    <div ref={pageRef} className="app-live-column bg-[#121215] relative">
+      {!circlesVisible ? <div {...pullZoneProps} /> : null}
       {/* Header — same size container as LIVE */}
       <div
         className="fixed left-0 right-0 z-[9999] flex justify-center pointer-events-none"
@@ -180,20 +184,37 @@ export default function FollowingFeed() {
         </div>
       </div>
 
+      {/* Circles — hidden until push down; same gesture as Friends */}
       <div
-        className="w-full max-w-[480px] mx-auto flex-1 min-h-0 flex flex-col overflow-hidden"
-        style={{ paddingTop: 'calc(var(--topnav-anchor-top) + var(--topnav-bar-height))' }}
+        className={`absolute left-0 right-0 z-20 pointer-events-none transition-[transform,opacity] duration-300 ease-out ${
+          circlesVisible
+            ? 'translate-y-0 opacity-100 overflow-visible'
+            : '-translate-y-[200%] opacity-0 invisible overflow-hidden pointer-events-none'
+        }`}
+        style={{
+          top: 'calc(var(--topnav-anchor-top) + var(--topnav-bar-height))',
+          paddingTop: '0.25rem',
+        }}
+        aria-hidden={!circlesVisible}
       >
-        <div className="w-full shrink-0 bg-[#121215] z-10 relative">
-          {/* Circles — Create, then followers who are live, then all other users who are live; scroll left */}
-          <div className="px-3 pb-2">
-            <div className="flex gap-3 overflow-x-auto overflow-y-hidden no-scrollbar pt-3" style={{ WebkitOverflowScrolling: 'touch' }}>
-              {followingUsers.filter((u) => u.id !== user?.id && (u.name || u.username || '').trim().toLowerCase() !== 'user').map((u) => (
+        <div className="px-3 pb-2 pointer-events-auto">
+          <div
+            className="flex gap-3 overflow-x-auto overflow-y-hidden no-scrollbar pt-1"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
+            {followingUsers
+              .filter(
+                (u) =>
+                  u.id !== user?.id &&
+                  (u.name || u.username || '').trim().toLowerCase() !== 'user',
+              )
+              .map((u) => (
                 <button
                   key={u.id}
                   type="button"
                   onClick={() => openFollowingUser(u)}
-                  className="flex-shrink-0 flex flex-col items-center gap-1" style={{ width: 95, minWidth: 95 }}
+                  className="flex-shrink-0 flex flex-col items-center gap-1"
+                  style={{ width: 95, minWidth: 95 }}
                 >
                   <StoryGoldRingAvatar
                     live={u.is_live}
@@ -201,13 +222,19 @@ export default function FollowingFeed() {
                     src={u.avatar_url || '/royce/default-avatar.svg'}
                     alt={u.name || u.username}
                   />
-                  <div className="text-[11px] text-white/80 truncate w-full text-center">{u.name || u.username}</div>
+                  <div className="text-[11px] text-white/80 truncate w-full text-center">
+                    {u.name || u.username}
+                  </div>
                 </button>
               ))}
-            </div>
           </div>
         </div>
+      </div>
 
+      <div
+        className="w-full max-w-[480px] mx-auto flex-1 min-h-0 flex flex-col overflow-hidden"
+        style={{ paddingTop: 'calc(var(--topnav-anchor-top) + var(--topnav-bar-height))' }}
+      >
         <div
           ref={containerRef}
           className="flex-1 min-h-0 w-full overflow-y-scroll snap-y snap-mandatory relative overscroll-none bg-black"

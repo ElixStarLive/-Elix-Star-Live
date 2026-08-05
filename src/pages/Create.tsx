@@ -30,7 +30,6 @@ import MediaEditorPanel, { type EditorTab, type FilterPreset, FILTER_PRESETS, EF
 import { bakeImage, bakeVideo, type EditOverlay } from '../lib/mediaBake';
 import { nativeShareUrl } from '../lib/platform';
 import { useAuthStore } from '../store/useAuthStore';
-import { RoyceCloseIcon } from '../components/royce';
 
 type CreateMode = 'upload' | 'post' | 'create' | 'live';
 
@@ -588,14 +587,7 @@ export default function Create() {
               className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-3 pointer-events-auto"
               style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 8px)' }}
             >
-              <button
-                type="button"
-                onClick={discardPreview}
-                className="w-9 h-9 flex items-center justify-center"
-                title="Back"
-              >
-                <ChevronLeft size={28} className="text-white drop-shadow-md" strokeWidth={2.5} />
-              </button>
+              <div className="w-9 h-9" aria-hidden />
               <button
                 type="button"
                 onClick={openSoundPicker}
@@ -623,11 +615,11 @@ export default function Create() {
               <button
                 type="button"
                 onClick={goFeedClose}
-                className="w-9 h-9 royce-glow-disc flex items-center justify-center"
+                className="w-9 h-9 flex items-center justify-center"
                 title="Close"
                 aria-label="Close"
               >
-                <RoyceCloseIcon size={18} />
+                <ChevronLeft size={28} className="text-white drop-shadow-md" strokeWidth={2.5} />
               </button>
             </div>
 
@@ -649,7 +641,7 @@ export default function Create() {
                   key={title}
                   type="button"
                   onClick={onClick}
-                  className="w-10 h-10 rounded-full bg-black/35 backdrop-blur-sm flex items-center justify-center"
+                  className="w-10 h-10 flex items-center justify-center"
                   title={title}
                 >
                   <Icon size={20} className="text-white drop-shadow-md" strokeWidth={2} />
@@ -658,7 +650,7 @@ export default function Create() {
               <button
                 type="button"
                 onClick={openUploadPicker}
-                className="w-10 h-10 rounded-full bg-black/35 backdrop-blur-sm flex items-center justify-center"
+                className="w-10 h-10 flex items-center justify-center"
                 title="More"
               >
                 <ChevronDown size={20} className="text-white drop-shadow-md" strokeWidth={2} />

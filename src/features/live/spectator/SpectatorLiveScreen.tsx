@@ -1890,7 +1890,7 @@ export default function SpectatorLiveScreen() {
                 <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm">
                   <BarChart3 size={20} className="text-[#A7A7AD] shrink-0" strokeWidth={2.2} />
                 </div>
-                <span className="text-[10px] font-semibold text-[#A7A7AD] mt-0.5">Poll</span>
+                <span className="elix-silver-red-text text-[10px] font-semibold mt-0.5">Poll</span>
               </button>
               {/* Co-host is a NORMAL-LIVE feature only. During a battle a
                   spectator can only watch, gift and comment — never co-host. */}
@@ -1907,7 +1907,7 @@ export default function SpectatorLiveScreen() {
                     <UserPlus size={20} className="text-[#F5F5F7] shrink-0" strokeWidth={2} />
                   </span>
                 </div>
-                <span className="text-[10px] font-semibold text-[#F5F5F7] mt-0.5">
+                <span className="elix-silver-red-text text-[10px] font-semibold mt-0.5">
                   {spectatorCoHostRequestSent ? 'Sent' : 'Co-host'}
                 </span>
               </button>
@@ -1924,7 +1924,7 @@ export default function SpectatorLiveScreen() {
                 <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm">
                   <Gift size={20} className="text-[#F5F5F7] relative z-[2]" />
                 </div>
-                <span className="text-[10px] font-semibold text-[#F5F5F7] mt-0.5">Gift</span>
+                <span className="elix-silver-red-text text-[10px] font-semibold mt-0.5">Gift</span>
               </button>
               <button
                 type="button"
@@ -1935,7 +1935,7 @@ export default function SpectatorLiveScreen() {
                 <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm">
                   <Share2 size={20} className="text-[#F5F5F7] relative z-[2]" />
                 </div>
-                <span className="text-[10px] font-semibold text-[#F5F5F7] mt-0.5">Share</span>
+                <span className="elix-silver-red-text text-[10px] font-semibold mt-0.5">Share</span>
               </button>
               <button
                 type="button"
@@ -1946,7 +1946,7 @@ export default function SpectatorLiveScreen() {
                 <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm">
                   <MoreVertical size={20} className="text-[#F5F5F7] relative z-[2]" />
                 </div>
-                <span className="text-[10px] font-semibold text-[#F5F5F7] mt-0.5">More</span>
+                <span className="elix-silver-red-text text-[10px] font-semibold mt-0.5">More</span>
               </button>
               </div>
             </div>

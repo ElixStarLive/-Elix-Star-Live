@@ -903,13 +903,13 @@ export default function Upload() {
                          key={title}
                          type="button"
                          onClick={onClick}
-                         className="w-10 h-10 rounded-full bg-black/35 backdrop-blur-sm flex items-center justify-center"
+                         className="w-10 h-10 flex items-center justify-center"
                          title={title}
                        >
                          <Icon size={20} className="text-white drop-shadow-md" strokeWidth={2} />
                        </button>
                      ))}
-                     <button type="button" onClick={openAITools} className="w-10 h-10 rounded-full bg-black/35 backdrop-blur-sm flex items-center justify-center" title="More">
+                     <button type="button" onClick={openAITools} className="w-10 h-10 flex items-center justify-center" title="More">
                        <ChevronDown size={20} className="text-white drop-shadow-md" strokeWidth={2} />
                      </button>
                    </div>
@@ -994,44 +994,41 @@ export default function Upload() {
                  </>
                ) : (
                  <>
-               {/* Preview Top Controls - centered sound icon; power lives in right vertical column */}
-               <div className="absolute top-[2%] left-0 right-0 z-20 flex items-center justify-center pointer-events-auto px-4">
-                 <button
-                   onClick={openMusicModal}
-                   className="flex items-center justify-center p-1"
-                   title={getSelectedLabel()}
-                 >
-                   <Music size={18} className="text-[#F5F5F7] drop-shadow-[0_0_8px_rgba(139, 144, 152,1)]" />
-                 </button>
-               </div>
-
-               <div className="absolute bottom-[22%] left-0 right-0 z-20 px-4 pointer-events-auto flex justify-center">
-                 <div className="bg-black/60 backdrop-blur-md border border-[#E5E5E7]/30 rounded-xl p-2.5 space-y-2 w-[75%] max-w-[280px]">
-                   <div>
-                     <label className="text-[10px] text-[#F5F5F7] font-semibold mb-1 block">Caption</label>
-                     <textarea
+               {/* Tiny caption / hashtags strip — drops from top after capture */}
+               <div
+                 className="absolute top-0 left-0 right-0 z-20 pointer-events-auto animate-in slide-in-from-top duration-300"
+                 style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}
+               >
+                 <div className="w-full rounded-none border-b border-[#E5E5E7]/25 bg-black/70 backdrop-blur-md px-3 py-1.5 space-y-1">
+                   <div className="flex items-center gap-1">
+                     <input
                        value={caption}
                        onChange={(e) => setCaption(e.target.value)}
-                       placeholder="Write something…"
-                       className="w-full bg-white/10 text-white placeholder-white/40 border border-[#E5E5E7]/40 rounded-lg px-3 py-2 text-sm outline-none resize-none h-10 focus:h-24 focus:border-[#E5E5E7] transition-all duration-300"
+                       placeholder="Caption…"
+                       className="flex-1 min-w-0 bg-white/10 text-white placeholder-white/40 border border-[#E5E5E7]/30 rounded-md px-2 py-1 text-[10px] outline-none h-7 focus:border-[#E5E5E7]/55"
                        aria-label="Caption"
                      />
+                     <button
+                       onClick={openMusicModal}
+                       className="flex items-center justify-center w-7 h-7 rounded-full bg-white/10 border border-[#E5E5E7]/25 shrink-0"
+                       title={getSelectedLabel()}
+                       type="button"
+                     >
+                       <Music size={12} className="text-[#F5F5F7]" />
+                     </button>
                    </div>
-                   <div>
-                     <label className="text-[10px] text-[#F5F5F7] font-semibold mb-1 block">Add Hashtags</label>
-                     <input
-                       value={hashtagsText}
-                       onChange={(e) => setHashtagsText(e.target.value)}
-                       placeholder="#fun #dance #viral"
-                       className="w-full bg-white/10 text-white placeholder-white/40 border border-[#E5E5E7]/40 rounded-lg px-3 py-2 text-sm outline-none h-10 focus:border-[#E5E5E7] transition-all duration-300"
-                       aria-label="Hashtags"
-                     />
-                   </div>
-                   <div className="flex items-center justify-between py-1">
-                     <div className="text-xs text-white font-semibold">Mute audio</div>
+                   <input
+                     value={hashtagsText}
+                     onChange={(e) => setHashtagsText(e.target.value)}
+                     placeholder="#hashtags"
+                     className="w-full bg-white/10 text-white placeholder-white/40 border border-[#E5E5E7]/30 rounded-md px-2 py-1 text-[10px] outline-none h-7 focus:border-[#E5E5E7]/55"
+                     aria-label="Hashtags"
+                   />
+                   <div className="flex items-center justify-between gap-2 pl-0.5">
+                     <span className="text-[9px] text-white/80 font-semibold">Mute</span>
                      <button
                        type="button"
-                       className={`w-11 h-6 rounded-full transition-colors ${
+                       className={`w-8 h-4 rounded-full transition-colors shrink-0 ${
                          postWithoutAudio ? 'bg-[#FF3B3F]' : 'bg-white/20'
                        }`}
                        onClick={() => {
@@ -1042,59 +1039,55 @@ export default function Upload() {
                        }}
                        aria-label="Toggle post without audio"
                      >
-                      <div
-                        className={`w-5 h-5 rounded-full bg-white shadow transition-transform ${
-                          postWithoutAudio ? 'translate-x-[22px]' : 'translate-x-[2px]'
-                        }`}
-                      />
-                    </button>
-                  </div>
-                  {/* Audio mix — only when a song is added: balance the video's own sound vs the song */}
-                  {selectedTrack && selectedAudioId.startsWith('track_') && !postWithoutAudio && (
-                    <div className="space-y-1.5 pt-1 border-t border-white/10">
-                      <div>
-                        <div className="flex items-center justify-between mb-0.5">
-                          <label className="text-[10px] text-[#F5F5F7] font-semibold">Original sound</label>
-                          <button
-                            type="button"
-                            onClick={toggleOriginalMute}
-                            className="text-[9px] font-bold text-white/60 px-1.5 py-0.5 rounded bg-white/10"
-                          >
-                            {originalVolume === 0 ? 'Muted' : 'Mute'}
-                          </button>
-                        </div>
-                        <input
-                          type="range" min={0} max={100} value={Math.round(originalVolume * 100)}
-                          onChange={(e) => setOriginalVolume(Number(e.target.value) / 100)}
-                          className="w-full accent-[#E5E5E7]"
-                          aria-label="Original sound volume"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] text-[#F5F5F7] font-semibold mb-0.5 block">Song volume</label>
-                        <input
-                          type="range" min={0} max={100} value={Math.round(musicVolume * 100)}
-                          onChange={(e) => setMusicVolume(Number(e.target.value) / 100)}
-                          className="w-full accent-[#E5E5E7]"
-                          aria-label="Song volume"
-                        />
-                      </div>
-                    </div>
-                  )}
-                  {/* Removed the 'Post' button from inside here to avoid confusion. It is at the bottom. */}
+                       <div
+                         className={`w-3.5 h-3.5 rounded-full bg-white shadow transition-transform ${
+                           postWithoutAudio ? 'translate-x-[14px]' : 'translate-x-[1px]'
+                         }`}
+                       />
+                     </button>
+                   </div>
+                   {selectedTrack && selectedAudioId.startsWith('track_') && !postWithoutAudio && (
+                     <div className="space-y-1 pt-0.5 border-t border-white/10">
+                       <div className="flex items-center gap-1">
+                         <label className="text-[8px] text-white/70 font-semibold shrink-0 w-10">Orig</label>
+                         <input
+                           type="range" min={0} max={100} value={Math.round(originalVolume * 100)}
+                           onChange={(e) => setOriginalVolume(Number(e.target.value) / 100)}
+                           className="flex-1 h-1 accent-[#E5E5E7]"
+                           aria-label="Original sound volume"
+                         />
+                         <button
+                           type="button"
+                           onClick={toggleOriginalMute}
+                           className="text-[8px] font-bold text-white/60 px-1 py-0.5 rounded bg-white/10 shrink-0"
+                         >
+                           {originalVolume === 0 ? 'Muted' : 'Mute'}
+                         </button>
+                       </div>
+                       <div className="flex items-center gap-1">
+                         <label className="text-[8px] text-white/70 font-semibold shrink-0 w-10">Song</label>
+                         <input
+                           type="range" min={0} max={100} value={Math.round(musicVolume * 100)}
+                           onChange={(e) => setMusicVolume(Number(e.target.value) / 100)}
+                           className="flex-1 h-1 accent-[#E5E5E7]"
+                           aria-label="Song volume"
+                         />
+                       </div>
+                     </div>
+                   )}
                    {postError ? (
-                     <div className="w-full px-3 py-2 rounded-lg bg-white/20/80 text-white text-xs">
+                     <div className="w-full px-1.5 py-1 rounded bg-white/20 text-white text-[9px]">
                        {postError}
-                       <button type="button" onClick={clearPostError} className="ml-2 underline">×</button>
+                       <button type="button" onClick={clearPostError} className="ml-1 underline">×</button>
                      </div>
                    ) : null}
                    {isPosting ? (
                      <div className="w-full">
-                       <div className="flex items-center justify-between text-xs text-white mb-1">
+                       <div className="flex items-center justify-between text-[9px] text-white mb-0.5">
                          <span>{postProgress < 100 ? 'Uploading…' : 'Finalizing…'}</span>
                          <span>{postProgress}%</span>
                        </div>
-                       <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
+                       <div className="h-1 bg-white/20 rounded-full overflow-hidden">
                          <div className="h-full bg-[#FFFFFF]" style={{ width: `${postProgress}%` }} />
                        </div>
                      </div>
@@ -1120,7 +1113,7 @@ export default function Upload() {
                     className="absolute right-[5%] bottom-[26%] flex flex-col items-center gap-1 z-30 pointer-events-auto group"
                     title="AI Studio"
                   >
-                    <span className="w-9 h-9 royce-glow-disc flex items-center justify-center group-hover:scale-110 transition-transform" aria-hidden>
+                    <span className="w-9 h-9 flex items-center justify-center group-hover:scale-110 transition-transform" aria-hidden>
                       <Wand2 size={18} className="royce-icon-gold" strokeWidth={2} />
                     </span>
                     <span className="text-[#F5F5F7] font-bold text-[10px] drop-shadow-[0_0_8px_rgba(139, 144, 152,0.9)]">AI Studio</span>
@@ -1133,7 +1126,7 @@ export default function Upload() {
                       className="flex flex-col items-center gap-1 group"
                       title="Retake"
                     >
-                      <span className="w-9 h-9 royce-glow-disc flex items-center justify-center group-hover:scale-110 transition-transform" aria-hidden>
+                      <span className="w-9 h-9 flex items-center justify-center group-hover:scale-110 transition-transform" aria-hidden>
                         <RotateCcw size={18} className="royce-icon-gold" strokeWidth={2} />
                       </span>
                       <span className="text-[#F5F5F7] font-bold text-[10px] drop-shadow-[0_0_8px_rgba(139, 144, 152,0.9)]">Retake</span>
@@ -1146,7 +1139,7 @@ export default function Upload() {
                       title={isStoryUpload ? 'Your Story' : 'Post'}
                       disabled={isPosting}
                     >
-                      <span className="w-11 h-11 royce-glow-disc flex items-center justify-center group-hover:scale-110 active:scale-95 transition-transform" aria-hidden>
+                      <span className="w-11 h-11 flex items-center justify-center group-hover:scale-110 active:scale-95 transition-transform" aria-hidden>
                         <Check size={18} className={`royce-icon-gold ${isPosting ? 'opacity-60' : ''}`} strokeWidth={2.5} />
                       </span>
                       <span className="text-[#F5F5F7] font-bold text-[10px] drop-shadow-[0_0_8px_rgba(139, 144, 152,0.9)]">
@@ -1329,40 +1322,40 @@ export default function Upload() {
                       </button>
                     </div>
                   ) : null}
-                  {/* Right side — every control uses the same round gold glow */}
-                  <div className="absolute top-0 right-[5%] bottom-0 flex flex-col items-center gap-3 py-2" style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}>
-                    <button type="button" onClick={goFeed} className="w-9 h-9 royce-glow-disc flex items-center justify-center" title="Close">
-                      <ChevronLeft size={18} className="royce-icon-gold" strokeWidth={2.5} />
+                  {/* Right side — icons only, no circle discs, no silver/red stroke rings */}
+                  <div className="absolute top-0 right-[5%] bottom-0 flex flex-col items-center gap-3 py-2 camera-right-rail" style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}>
+                    <button type="button" onClick={goFeed} className="w-9 h-9 flex items-center justify-center" title="Close">
+                      <ChevronLeft size={18} className="camera-rail-icon" strokeWidth={2.5} />
                     </button>
                     <button
                       type="button"
-                      className="w-9 h-9 royce-glow-disc flex items-center justify-center"
+                      className="w-9 h-9 flex items-center justify-center"
                       onClick={openMusicModal}
                       title="Add sound"
                     >
-                      <Music size={18} className="royce-icon-gold" strokeWidth={2} />
+                      <Music size={18} className="camera-rail-icon" strokeWidth={2} />
                     </button>
                     <button
                       type="button"
-                      className="w-9 h-9 royce-glow-disc flex items-center justify-center"
+                      className="w-9 h-9 flex items-center justify-center"
                       onClick={handleZoomOut}
                       title="Zoom out"
                       aria-label="Zoom out"
                     >
-                      <ZoomOut size={18} className="royce-icon-gold" strokeWidth={2} />
+                      <ZoomOut size={18} className="camera-rail-icon" strokeWidth={2} />
                     </button>
                     <button
                       type="button"
-                      className="w-9 h-9 royce-glow-disc flex items-center justify-center"
+                      className="w-9 h-9 flex items-center justify-center"
                       onClick={handleZoomIn}
                       title="Zoom in"
                       aria-label="Zoom in"
                     >
-                      <ZoomIn size={18} className="royce-icon-gold" strokeWidth={2} />
+                      <ZoomIn size={18} className="camera-rail-icon" strokeWidth={2} />
                     </button>
                     <button
                       type="button"
-                      className="w-9 h-9 royce-glow-disc flex items-center justify-center"
+                      className="w-9 h-9 flex items-center justify-center"
                       onClick={async () => {
                       try {
                         const currentStream = videoRef.current?.srcObject as MediaStream | null;
@@ -1382,11 +1375,11 @@ export default function Upload() {
                     }}
                       title="Flip Camera"
                     >
-                      <RefreshCw size={18} className="royce-icon-gold" strokeWidth={2} />
+                      <RefreshCw size={18} className="camera-rail-icon" strokeWidth={2} />
                     </button>
                     <button
                       type="button"
-                      className="w-9 h-9 royce-glow-disc flex items-center justify-center"
+                      className="w-9 h-9 flex items-center justify-center"
                       onClick={() => {
                         const next = cameraSpeed === 1 ? 0.5 : cameraSpeed === 0.5 ? 2 : 1;
                         setCameraSpeed(next);
@@ -1397,11 +1390,11 @@ export default function Upload() {
                       }}
                       title={`Speed ${cameraSpeed}x`}
                     >
-                      <span className="text-[#F5F5F7] font-bold text-xs">{cameraSpeed}x</span>
+                      <span className="text-white font-bold text-xs">{cameraSpeed}x</span>
                     </button>
                     <button
                       type="button"
-                      className="w-9 h-9 royce-glow-disc flex items-center justify-center"
+                      className="w-9 h-9 flex items-center justify-center"
                       onClick={() => {
                         setBeautyOn((v) => {
                           const next = !v;
@@ -1411,11 +1404,11 @@ export default function Upload() {
                       }}
                       title={beautyOn ? 'Beauty on' : 'Beauty off'}
                     >
-                      <Sparkles size={18} className={`royce-icon-gold ${beautyOn ? '' : 'opacity-50'}`} strokeWidth={2} />
+                      <Sparkles size={18} className={`camera-rail-icon ${beautyOn ? '' : 'opacity-50'}`} strokeWidth={2} />
                     </button>
                     <button
                       type="button"
-                      className="relative w-9 h-9 royce-glow-disc flex items-center justify-center"
+                      className="relative w-9 h-9 flex items-center justify-center"
                       onClick={() => {
                         const next = timerDelay === 0 ? 3 : timerDelay === 3 ? 10 : 0;
                         setTimerDelay(next);
@@ -1423,14 +1416,14 @@ export default function Upload() {
                       }}
                       title={timerDelay === 0 ? 'Timer off' : `Timer ${timerDelay}s`}
                     >
-                      <Clock size={18} className="royce-icon-gold" strokeWidth={2} />
+                      <Clock size={18} className="camera-rail-icon" strokeWidth={2} />
                       {timerDelay > 0 ? (
-                        <span className="absolute -bottom-0.5 text-[8px] font-bold text-[#F5F5F7]">{timerDelay}</span>
+                        <span className="absolute -bottom-0.5 text-[8px] font-bold text-white">{timerDelay}</span>
                       ) : null}
                     </button>
                     <button
                       type="button"
-                      className="w-9 h-9 royce-glow-disc flex items-center justify-center"
+                      className="w-9 h-9 flex items-center justify-center"
                       onClick={async () => {
                         const stream = videoRef.current?.srcObject as MediaStream | null;
                         const track = stream?.getVideoTracks()?.[0];
@@ -1451,15 +1444,15 @@ export default function Upload() {
                       }}
                       title={flashOn ? 'Flash on' : 'Flash off'}
                     >
-                      <Zap size={18} className="royce-icon-gold" strokeWidth={2} fill={flashOn ? '#E5E5E7' : 'none'} />
+                      <Zap size={18} className="camera-rail-icon" strokeWidth={2} fill={flashOn ? '#FFFFFF' : 'none'} />
                     </button>
                     <button
                       type="button"
-                      className="w-9 h-9 royce-glow-disc flex items-center justify-center"
+                      className="w-9 h-9 flex items-center justify-center"
                       onClick={goAiStudio}
                       title="AI Effects"
                     >
-                      <Wand2 size={18} className="royce-icon-gold" strokeWidth={2} />
+                      <Wand2 size={18} className="camera-rail-icon" strokeWidth={2} />
                     </button>
                   </div>
 
@@ -1486,15 +1479,15 @@ export default function Upload() {
                       </button>
                   </div>
 
-                  {/* Upload — same round glow as right-side icons */}
+                  {/* Upload — gallery, no circle disc */}
                   <button 
                     type="button"
                     className="absolute bottom-8 left-6 flex flex-col items-center gap-1 z-[1000] pointer-events-auto group"
                     onClick={handleFileUpload}
                     title="Upload from Gallery"
                   >
-                    <span className="royce-glow-disc w-9 h-9 group-active:scale-90 transition-transform" aria-hidden>
-                      <ImageIcon size={18} className="royce-icon-gold" strokeWidth={2} />
+                    <span className="w-9 h-9 flex items-center justify-center group-active:scale-90 transition-transform" aria-hidden>
+                      <ImageIcon size={18} className="camera-rail-icon" strokeWidth={2} />
                     </span>
                     <span className="text-[#F5F5F7] text-[10px] font-bold drop-shadow-[0_0_8px_rgba(139, 144, 152,0.9)]">Upload</span>
                   </button>
@@ -1515,60 +1508,6 @@ export default function Upload() {
           onPointerDown={(e) => e.stopPropagation()}
         >
           <div className="w-full max-w-[480px] mx-auto flex flex-col flex-1 min-h-0 h-full">
-            <div className="px-4 pb-3 grid grid-cols-2 gap-2.5 flex-shrink-0">
-              <button
-                type="button"
-                className={`min-h-[64px] px-3 py-3 rounded-2xl border text-left transition-colors active:scale-[0.98] ${
-                  selectedAudioId === 'original' && !postWithoutAudio
-                    ? 'bg-[#FF3B3F] border-[#E5E5E7] text-black shadow-[0_0_16px_rgba(229, 229, 231,0.35)]'
-                    : 'bg-[#1A1A1F] border-[#E5E5E7]/40 text-white'
-                }`}
-                onClick={() => {
-                  handleSelectMusic(ORIGINAL_SOUND_TRACK);
-                }}
-              >
-                <div className="text-sm font-bold leading-tight">Original Sound</div>
-                <div
-                  className={`text-[11px] mt-1 leading-snug ${
-                    selectedAudioId === 'original' && !postWithoutAudio ? 'text-black/65' : 'text-white/55'
-                  }`}
-                >
-                  Use mic audio from your clip
-                </div>
-              </button>
-              <button
-                type="button"
-                className={`min-h-[64px] px-3 py-3 rounded-2xl border text-left transition-colors active:scale-[0.98] ${
-                  postWithoutAudio || selectedAudioId === 'none'
-                    ? 'bg-[#FF3B3F] border-[#E5E5E7] text-black shadow-[0_0_16px_rgba(229, 229, 231,0.35)]'
-                    : 'bg-[#1A1A1F] border-[#E5E5E7]/40 text-white'
-                }`}
-                onClick={() => {
-                  if (previewAudioRef.current) {
-                    try {
-                      previewAudioRef.current.pause();
-                    } catch {
-                      /* ignore */
-                    }
-                  }
-                  setSelectedAudioId('none');
-                  setSelectedTrack(null);
-                  setPostWithoutAudio(true);
-                  trackEvent('upload_select_audio', { type: 'none' });
-                  setShowMusicModal(false);
-                  showToast('No audio');
-                }}
-              >
-                <div className="text-sm font-bold leading-tight">No audio</div>
-                <div
-                  className={`text-[11px] mt-1 leading-snug ${
-                    postWithoutAudio || selectedAudioId === 'none' ? 'text-black/65' : 'text-white/55'
-                  }`}
-                >
-                  Publish without sound
-                </div>
-              </button>
-            </div>
             <SoundPickerPanel
               layout="embedded"
               onClose={() => setShowMusicModal(false)}
