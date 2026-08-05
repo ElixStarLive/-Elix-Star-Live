@@ -1,0 +1,9 @@
+{
+  "coolifyLoggedIn": "no",
+  "stripeLoggedIn": "no",
+  "redeployTriggered": "no",
+  "radarEnabled": "no",
+  "appUuid": null,
+  "coolifyUrlHost": "app.coolify.io",
+  "stripeUrlHost": "dashboard.stripe.com"
+}
