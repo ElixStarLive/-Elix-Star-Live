@@ -495,18 +495,29 @@ export async function handleStripeConnectPayoutWebhook(
   if (
     event.type === "transfer.created" ||
     event.type === "transfer.updated" ||
-    event.type === "transfer.reversed"
+    event.type === "transfer.reversed" ||
+    event.type === "transfer.failed"
   ) {
     const transfer = event.data.object as Stripe.Transfer;
     const withdrawalId = transfer.metadata?.elix_withdrawal_id;
     if (!withdrawalId) return { ok: true };
-    if (event.type === "transfer.reversed" || transfer.reversed) {
+    // Stripe Transfer API emits created/updated/reversed (not transfer.paid).
+    // transfer.failed is handled defensively if Stripe ever emits it.
+    if (
+      event.type === "transfer.reversed" ||
+      event.type === "transfer.failed" ||
+      transfer.reversed
+    ) {
       await adminSetGbpWithdrawalStatus({
         withdrawalId,
         toStatus: "failed",
         adminUserId: "system:stripe_webhook",
-        note: "Transfer reversed",
-        failureReason: "transfer_reversed",
+        note:
+          event.type === "transfer.failed"
+            ? "Transfer failed"
+            : "Transfer reversed",
+        failureReason:
+          event.type === "transfer.failed" ? "transfer_failed" : "transfer_reversed",
         payoutProviderRef: transfer.id,
       });
       return { ok: true };
