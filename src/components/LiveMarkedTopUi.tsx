@@ -169,6 +169,16 @@ export function LiveHostProfileHeader({
             stroke="#FFFFFF"
             strokeWidth={1.6}
           />
+          {/* Follow / Join — same slot, immediately beside name (spectators only) */}
+          {showFollow ? (
+            <div className="flex-shrink-0 flex items-center justify-center ml-0.5 relative z-30">
+              {!isFollowing ? (
+                <LiveFollowPill variant="photo" isFollowing={false} onFollow={onFollow} />
+              ) : (
+                joinSlot ?? null
+              )}
+            </div>
+          ) : null}
         </div>
         <button
           type="button"
@@ -207,17 +217,6 @@ export function LiveHostProfileHeader({
           </span>
         </div>
       </div>
-
-      {/* Same slot: Follow until follow, then Join only — never both */}
-      {showFollow ? (
-        <div className="flex-shrink-0 self-center ml-1.5 flex items-center justify-center min-h-[28px]">
-          {!isFollowing ? (
-            <LiveFollowPill variant="photo" isFollowing={false} onFollow={onFollow} />
-          ) : (
-            joinSlot ?? null
-          )}
-        </div>
-      ) : null}
     </div>
   );
 }
