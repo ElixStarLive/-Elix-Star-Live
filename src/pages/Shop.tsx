@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { RoyceBackIcon } from '../components/royce';
+import { RoyceBackIcon, ShopBasketIcon } from '../components/royce';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/apiClient';
 import { useAuthStore } from '../store/useAuthStore';
-import { Plus, Camera, Tag, MessageCircle, Search, MoreVertical, ShoppingBag, X } from 'lucide-react';
+import { Plus, Camera, Tag, MessageCircle, Search, MoreVertical, X } from 'lucide-react';
 import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
 import { showToast } from '../lib/toast';
 import { bunnyUpload } from '../lib/bunnyStorage';
@@ -103,8 +103,13 @@ export default function Shop() {
     setMenuItemId(null);
   }, []);
 
-  const handleAddToCart = useCallback((item: { id: string; title: string; price: number; image_url: string | null }) => {
+  const handleAddToCart = useCallback((item: { id: string; title: string; price: number; image_url: string | null }, isOwn: boolean) => {
+    if (isOwn) {
+      showToast("You can't add your own listing to basket");
+      return;
+    }
     addToCart(item);
+    showToast('Added to basket');
   }, [addToCart]);
 
   const handleRemoveFromCart = useCallback((itemId: string) => {
@@ -385,7 +390,7 @@ export default function Shop() {
                 <Search size={18} className="text-white" />
               </button>
               <button onClick={openCart} className="p-1 relative" title="Basket">
-                <ShoppingBag size={18} className="text-white" />
+                <ShopBasketIcon size={18} active={cartItems.length > 0} className="text-white" />
                 {cartItems.length > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 min-w-[15px] h-[15px] px-1 rounded-full bg-[#FF3B3F] text-black text-[9px] font-extrabold flex items-center justify-center leading-none">
                     {cartItems.length}
@@ -525,30 +530,29 @@ export default function Shop() {
                     )}
                   </div>
                 </div>
-                <div className="border-t border-white/15 px-2.5 py-2">
+                <div className="border-t border-white/15 px-2.5 py-2 pr-10 relative">
                   <h3 className="text-sm font-bold text-gold-metallic truncate">{item.title}</h3>
                   <p className="text-base font-extrabold text-white mt-0.5">£{item.price.toFixed(2)}</p>
-                  {item.description && (
-                    <p className="text-[11px] text-white/40 mt-0.5 line-clamp-2">{item.description}</p>
-                  )}
-                  {!isOwn && (
-                    cartItems.some((c) => c.id === item.id) ? (
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveFromCart(item.id)}
-                        className="w-full mt-2 py-1.5 rounded-xl bg-white/10 text-[#F5F5F7] border border-[#E5E5E7]/40 font-extrabold text-[12px]"
-                      >
-                        In basket — Remove
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => handleAddToCart({ id: item.id, title: item.title, price: item.price, image_url: item.image_url })}
-                        className="w-full mt-2 py-1.5 rounded-xl bg-transparent border border-white/30 font-extrabold text-[12px] active:opacity-70"
-                      >
-                        <span className="elix-silver-red-text">Add to basket</span>
-                      </button>
-                    )
+                  {cartItems.some((c) => c.id === item.id) ? (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveFromCart(item.id)}
+                      className="absolute bottom-1.5 right-1.5 w-7 h-7 flex items-center justify-center rounded-full bg-[#FF3B3F]/15 border border-[#FF3B3F]/55"
+                      aria-label="Remove from basket"
+                      title="Remove from basket"
+                    >
+                      <ShopBasketIcon size={15} active className="text-[#FF3B3F]" />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleAddToCart({ id: item.id, title: item.title, price: item.price, image_url: item.image_url }, isOwn)}
+                      className="absolute bottom-1.5 right-1.5 w-7 h-7 flex items-center justify-center rounded-full bg-black/60 border border-white/15 active:opacity-70"
+                      aria-label="Add to basket"
+                      title="Add to basket"
+                    >
+                      <ShopBasketIcon size={15} className="text-white" />
+                    </button>
                   )}
                 </div>
               </div>
@@ -672,7 +676,7 @@ export default function Shop() {
 
                 {cartItems.length === 0 ? (
                   <div className="px-5 pb-8 pt-4 flex flex-col items-center gap-2">
-                    <ShoppingBag size={32} className="text-white/20" />
+                    <ShopBasketIcon size={32} className="text-white/25" />
                     <p className="text-white/40 text-sm">Your basket is empty</p>
                   </div>
                 ) : (

@@ -1,6 +1,6 @@
 import React from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, ShoppingBasket } from 'lucide-react';
 
 export { ROYCE_DEFAULT_AVATAR, ROYCE_ELIX_MARK, ROYCE_MEMBERSHIP } from '../lib/royceAssets';
 
@@ -54,4 +54,25 @@ export function RoyceBackIcon({ size = 18, className = '' }: RoyceNavIconProps) 
 
 export function RoyceCloseIcon(props: RoyceNavIconProps) {
   return <RoyceBackIcon {...props} />;
+}
+
+type ShopBasketIconProps = {
+  size?: number;
+  /** Filled basket — item already in cart. */
+  active?: boolean;
+  className?: string;
+};
+
+/** Wire shopping-basket glyph — readable on small shop card corners. */
+export function ShopBasketIcon({ size = 16, active = false, className = '' }: ShopBasketIconProps) {
+  return (
+    <ShoppingBasket
+      size={size}
+      strokeWidth={2.25}
+      className={className}
+      fill={active ? 'currentColor' : 'none'}
+      fillOpacity={active ? 0.22 : 0}
+      aria-hidden
+    />
+  );
 }
