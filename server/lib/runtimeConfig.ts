@@ -2,8 +2,8 @@
  * Load optional runtime config values from Neon (fallback when Coolify env missing).
  * Values are stored as plain text in DB (same trust boundary as DATABASE_URL holder).
  */
-import { getPool } from "../postgres";
-import { logger } from "../logger";
+import { getPool } from "./postgres";
+import { logger } from "./logger";
 
 const cache = new Map<string, { at: number; value: string }>();
 const CACHE_MS = 15_000;
