@@ -81,6 +81,10 @@ interface StickerOption {
   emoji: string;
 }
 
+/** Create camera duration strip — one visible; swipe left/right to change. */
+const CAMERA_DURATIONS = ['10m', '60s', '15s', 'PHOTO', 'TEXT'] as const;
+type CameraDuration = (typeof CAMERA_DURATIONS)[number];
+
 // Built-in creative options for the camera (filters, speeds, stickers).
 // These are static app constants — no backend table is required.
 const DEFAULT_CAMERA_FILTERS: CameraFilterOption[] = [
@@ -139,7 +143,31 @@ export default function ElixCameraLayout({
   onStory,
   isPosting = false,
 }: ElixCameraLayoutProps) {
-  const [selectedDuration, setSelectedDuration] = useState('60s');
+  const [selectedDuration, setSelectedDuration] = useState<CameraDuration>('60s');
+  const durationScrollRef = useRef<HTMLDivElement>(null);
+  const durationItemWidthPx = 64; // w-16 — one option visible at a time
+
+  const scrollDurationToIndex = useCallback((index: number, behavior: ScrollBehavior = 'smooth') => {
+    const el = durationScrollRef.current;
+    if (!el) return;
+    el.scrollTo({ left: index * durationItemWidthPx, behavior });
+  }, [durationItemWidthPx]);
+
+  useEffect(() => {
+    const startIdx = Math.max(0, CAMERA_DURATIONS.indexOf('60s'));
+    const t = window.setTimeout(() => scrollDurationToIndex(startIdx, 'auto'), 0);
+    return () => window.clearTimeout(t);
+  }, [scrollDurationToIndex]);
+
+  const onDurationScroll = useCallback(() => {
+    const el = durationScrollRef.current;
+    if (!el) return;
+    const idx = Math.round(el.scrollLeft / durationItemWidthPx);
+    const clamped = Math.max(0, Math.min(CAMERA_DURATIONS.length - 1, idx));
+    const next = CAMERA_DURATIONS[clamped];
+    if (next) setSelectedDuration(next);
+  }, [durationItemWidthPx]);
+
   const [focusLocked, setFocusLocked] = useState(false);
 
   const toggleFocusLock = useCallback(async () => {
@@ -199,8 +227,6 @@ export default function ElixCameraLayout({
   const [enhanceEnabled, setEnhanceEnabled] = useState(false);
 
   const textInputRef = useRef<HTMLInputElement>(null);
-
-  const durations = ['10m', '60s', '15s', 'PHOTO', 'TEXT'];
 
   // ═══════════════════════════════════════════════════
   // Apply CSS filters to the video element in real-time
@@ -821,22 +847,40 @@ export default function ElixCameraLayout({
       {!showEffectsPanel && !showCapCutPanel && !showStickerPicker && (
         <div className="absolute bottom-0 left-0 right-0 z-50 pointer-events-auto" style={{ paddingBottom: 'calc(max(3.5rem, env(safe-area-inset-bottom, 0px)) + 5mm)' }}>
 
-          {/* Duration Selector - short scroll */}
+          {/* Duration selector — one label visible; swipe left/right to change */}
           <div className="flex justify-center mb-4">
-            <div 
-              className="w-16 overflow-x-scroll scrollbar-hide snap-x snap-mandatory"
-              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-            >
-              <div className="flex w-max">
-                {durations.map((d) => (
-                  <button
-                    key={d}
-                    onClick={() => setSelectedDuration(d)}
-                    className={`w-16 flex-shrink-0 snap-center elix-silver-red-text text-xs font-bold py-1.5 text-center transition-all ${selectedDuration === d ? '' : 'opacity-40'}`}
-                  >
-                    {d}
-                  </button>
-                ))}
+            <div className="overflow-hidden" style={{ width: durationItemWidthPx }}>
+              <div
+                ref={durationScrollRef}
+                onScroll={onDurationScroll}
+                className="overflow-x-auto overflow-y-hidden overscroll-x-contain snap-x snap-mandatory no-scrollbar touch-pan-x"
+                style={{
+                  width: durationItemWidthPx,
+                  maxWidth: durationItemWidthPx,
+                  scrollbarWidth: 'none',
+                  msOverflowStyle: 'none',
+                  WebkitOverflowScrolling: 'touch',
+                }}
+                aria-label="Recording duration"
+              >
+                <div className="flex" style={{ width: durationItemWidthPx * CAMERA_DURATIONS.length }}>
+                  {CAMERA_DURATIONS.map((d, i) => (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => {
+                        setSelectedDuration(d);
+                        scrollDurationToIndex(i, 'smooth');
+                      }}
+                      className={`flex-shrink-0 snap-center elix-silver-red-text text-xs font-bold py-1.5 text-center ${
+                        selectedDuration === d ? '' : 'opacity-40'
+                      }`}
+                      style={{ width: durationItemWidthPx }}
+                    >
+                      {d}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
