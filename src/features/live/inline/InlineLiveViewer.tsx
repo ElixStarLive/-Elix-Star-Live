@@ -513,14 +513,6 @@ export default function InlineLiveViewer({
                 )}
               </div>
             </div>
-            <div className="absolute left-0 right-0 top-2 z-20 flex justify-center pointer-events-none">
-              <div className="flex items-center gap-1.5 bg-black/35 backdrop-blur-md rounded-full px-2.5 py-1 border border-white/12">
-                <span className="text-white text-[7px] font-black italic">VS</span>
-                <span className="text-white text-[11px] font-black tabular-nums">
-                  {formatTime(battle?.timeLeft ?? 0)}
-                </span>
-              </div>
-            </div>
             {!hasStream && placeholder}
           </div>
           {/* Bottom half of card — empty (chat zone), same idea as real battle */}
