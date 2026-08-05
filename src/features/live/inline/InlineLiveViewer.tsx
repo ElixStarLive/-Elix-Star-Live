@@ -9,7 +9,7 @@ import { apiLiveToken, LiveRoomLifecycle } from "../../../lib/live";
 import { bindLiveRoomWs } from "../ws/bindLiveRoomWs";
 import { bindLiveBattleWs } from "../ws/bindLiveBattleWs";
 import { bindLiveCohostWs } from "../ws/bindLiveCohostWs";
-import { INLINE_LIVE_PLACEHOLDER_AVATAR_PX, LIVE_BATTLE_VIDEO_HEIGHT } from "../../../lib/profileFrame";
+import { INLINE_LIVE_PLACEHOLDER_AVATAR_PX, LIVE_BATTLE_VIDEO_HEIGHT, LIVE_BATTLE_CHAT_HEIGHT } from "../../../lib/profileFrame";
 import {
   prepareLiveVideoEl,
   LIVE_WEBRTC_VIDEO_CLASS,
@@ -458,18 +458,16 @@ export default function InlineLiveViewer({
         </div>
       )}
 
-      {/* ── Battle: TOP HALF of card height (full width); left|right only inside that half ── */}
+      {/* ── Battle: video half (same height as live battle) + chat half (hidden until join) ── */}
       {mode === "battle" && (
-        <div className="absolute inset-0 bg-[#121215]" data-elix-foryou-battle-root="1">
-          {/* Explicit 50% HEIGHT — do not stretch full feed card */}
+        <div
+          className="absolute inset-0 flex flex-col bg-[#121215] overflow-hidden"
+          data-elix-foryou-battle-root="1"
+        >
           <div
-            className="absolute top-0 left-0 right-0 w-full overflow-hidden"
-            data-elix-foryou-battle="half-height"
-            style={{
-              height: "50%",
-              maxHeight: LIVE_BATTLE_VIDEO_HEIGHT,
-              minHeight: 0,
-            }}
+            className="relative w-full flex-none overflow-hidden"
+            data-elix-foryou-battle="video-half"
+            style={{ height: LIVE_BATTLE_VIDEO_HEIGHT, maxHeight: "50%" }}
           >
             <div className="absolute inset-0 flex flex-row w-full h-full">
               <div className="w-1/2 h-full relative bg-[#121215] overflow-hidden min-h-0">
@@ -512,12 +510,31 @@ export default function InlineLiveViewer({
             </div>
             {!hasStream && placeholder}
           </div>
-          {/* Bottom half of card — empty until user taps to join (no timer on preview) */}
+
+          {/* Chat half — reserves battle chat space; messages hidden until tap to join */}
           <div
-            className="absolute bottom-0 left-0 right-0 w-full bg-[#121215]"
-            style={{ height: "50%" }}
-            aria-hidden
-          />
+            className="relative flex-1 min-h-0 w-full flex flex-col bg-[#121215] border-t border-white/10"
+            data-elix-foryou-battle="chat-half"
+            style={{ minHeight: LIVE_BATTLE_CHAT_HEIGHT }}
+          >
+            <div
+              className="flex-1 min-h-0 overflow-hidden px-2 pt-2"
+              style={{ visibility: "hidden" }}
+              aria-hidden
+            >
+              {/* Chat messages stay hidden on For You until user joins /watch */}
+            </div>
+            <div className="flex-none px-3 pb-3 pt-1 pointer-events-none">
+              <p className="text-white font-bold text-sm truncate mb-1.5">{creatorName}</p>
+              <div className="flex items-center gap-2 mb-2">
+                <Radio size={14} className="text-white/60" />
+                <span className="text-white/70 text-xs font-semibold">Tap to join battle</span>
+              </div>
+              <div className="w-full rounded-full bg-white/5 border border-white/10 px-3 py-2 text-[11px] text-white/25">
+                Say something…
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -644,17 +661,13 @@ export default function InlineLiveViewer({
         </div>
       )}
 
-      {!isOffline && (
+      {!isOffline && mode !== "battle" && (
         <div className="absolute bottom-0 left-0 right-0 z-10 p-3 pb-safe bg-gradient-to-t from-black/80 to-transparent pt-12 pointer-events-none">
           <p className="text-white font-bold text-sm truncate mb-1">{creatorName}</p>
           <div className="flex items-center gap-2">
             <Radio size={14} className="text-white/60" />
             <span className="text-white/70 text-xs font-semibold">
-              {mode === "battle"
-                ? "Tap to join battle"
-                : mode === "cohost"
-                  ? "Tap to join co-host live"
-                  : "Tap to join live"}
+              {mode === "cohost" ? "Tap to join co-host live" : "Tap to join live"}
             </span>
           </div>
         </div>
