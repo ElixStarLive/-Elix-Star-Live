@@ -8,7 +8,9 @@
 | `714f6c5babde99132a88ff75389f1154f82d4874` | Migrate Connect onboarding to Accounts v2 recipient API |
 | `6f9ecf0128ba3bea73fc22f0d8eebb237fd0db3e` | Complete Stripe Connect test proof and enable dynamic Checkout methods |
 | `5e4b50017a3e5750c08abbe77015234823e6d127` | Isolate Connect proof reconcile to zero mismatches; dual webhook secrets |
-| _(pending push)_ | Fix PAYOUT_FAILURE creator restore + WITHDRAWAL reconcile; full failure webhook handlers |
+| `e1b98231080ba46e8e8b76a3c0fc745f8c7c4ea7` | Fix PAYOUT_FAILURE creator restore and WITHDRAWAL reconcile |
+
+Tip of `origin/main`: **`e1b98231080ba46e8e8b76a3c0fc745f8c7c4ea7`**
 
 Secret scan: no `sk_test_` / `sk_live_` / `whsec_` material values in commits. `.env` not committed.
 
@@ -46,13 +48,24 @@ Secret scan: no `sk_test_` / `sk_live_` / `whsec_` material values in commits. `
 - Reconcile: `docs/evidence/connect-proof-reconcile-elix_connect_proof-2026-08-05T19-11-19-440Z.json`
   - `ok: true`, `mismatchCount: 0`, DB `elix_connect_proof`
 
-## Production health (checked 2026-08-05T19:09Z)
+## Production health (re-checked 2026-08-05T19:15Z)
 
 ```json
-{"status":"ok","commit":"66da5bf780de3039bd97ec9fb5da0d153b5b7a55", ...}
+{"status":"ok","commit":"66da5bf780de3039bd97ec9fb5da0d153b5b7a55","timestamp":"2026-08-05T19:15:47.119Z"}
 ```
 
-Until Coolify redeploys `origin/main` tip and sets test webhook env, production items stay PARTIAL/MISSING.
+`origin/main` tip is `e1b9823…`. Production is still on `66da5bf…`. Until Coolify redeploys tip + sets test webhook env + migrate, production items stay PARTIAL/MISSING.
+
+## Phase B–F agent verification (2026-08-05)
+
+| Phase | Agent result | Gate |
+|-------|--------------|------|
+| B Coolify | Health ≠ tip; no Coolify access; cannot set env or migrate from here | **PARTIAL** / deploy **MISSING** |
+| C Express | Code path `dashboard: "express"` + Account Link in `payoutProvider.ts`; no browser TOS IDs | **PARTIAL** |
+| D GBP rail | Isolate sibling VERIFIED; deployed app rail not run on tip | **PARTIAL** |
+| E Apple/Google CSV | Admin Import report UI present; no official CSVs supplied | **MISSING** |
+| F For You / Rewards | Migrations apply on isolate; production activation not evidenced | **PARTIAL** |
+| G Radar / Tax | Checklist updated; Dashboard not filled; Tax off by design | Radar **PARTIAL**; Tax **MISSING** |
 
 ## Owner actions remaining (cannot be faked from code)
 

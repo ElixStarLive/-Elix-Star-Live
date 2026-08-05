@@ -3,6 +3,13 @@
 **Date:** 2026-08-05  
 **Rule:** Dashboard configuration only. Do not add Radar/Tax UI to the app unless explicitly requested.
 
+## Gate status
+
+| Item | Status |
+|------|--------|
+| Radar for Platforms (Dashboard) | **PARTIAL** — checklist ready; owner must enable and fill table below |
+| Stripe Tax / `automatic_tax` | **MISSING** (by design) until UK registration confirmed |
+
 ## Radar for Platforms (step 3 — owner Dashboard)
 
 Enable in Stripe Dashboard (test first, then live):
@@ -18,12 +25,12 @@ Enable in Stripe Dashboard (test first, then live):
 
 | Setting | Test mode | Live mode |
 |---------|-----------|-----------|
-| Radar enabled | _owner_ | _owner_ |
-| Radar for Platforms | _owner_ | _owner_ |
-| Default ML rules | _owner_ | _owner_ |
+| Radar enabled | _owner — not filled_ | _owner — not filled_ |
+| Radar for Platforms | _owner — not filled_ | _owner — not filled_ |
+| Default ML rules | _owner — not filled_ | _owner — not filled_ |
 | Custom rules (list) | _none yet_ | _none yet_ |
 
-**App code:** no Radar UI added (by design).
+**App code:** no Radar UI added (by design). Do **not** mark Radar **VERIFIED** until the table above is filled with real Dashboard settings.
 
 ## Tax (step 4 — blocked until registration)
 
