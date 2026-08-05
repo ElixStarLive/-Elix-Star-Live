@@ -1,0 +1,13 @@
+{
+  "startedAt": "2026-08-05T17:54:38.841Z",
+  "policy": "sk_test_only — never sk_live_",
+  "steps": [],
+  "env_modes": {
+    "STRIPE_SECRET_KEY": "live",
+    "STRIPE_SECRET_KEY_TEST": "missing",
+    "STRIPE_SECRET_KEY_LIVE": "missing",
+    "ELIX_STRIPE_CONNECT_MODE": "test"
+  },
+  "status": "BLOCKED",
+  "blocker": "No sk_test_ key available. Set STRIPE_SECRET_KEY_TEST=sk_test_… in Coolify/local (do not overwrite STRIPE_SECRET_KEY sk_live_)."
+}

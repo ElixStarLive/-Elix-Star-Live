@@ -6,6 +6,9 @@
  * - Manual/offline mark-paid must set payment_rail=manual_offline + audited note.
  * - Never invent success without Stripe response / webhook.
  * - Idempotency key = withdrawal id.
+ * - Never log secret key material.
+ * - Sandbox proof: set ELIX_STRIPE_CONNECT_MODE=test + STRIPE_SECRET_KEY_TEST=sk_test_…
+ * - Production: uses STRIPE_SECRET_KEY (or STRIPE_SECRET_KEY_LIVE); does not overwrite live.
  */
 import Stripe from "stripe";
 import { randomUUID } from "crypto";
@@ -13,10 +16,79 @@ import { getPool } from "../postgres";
 import { logger } from "../logger";
 import { adminSetGbpWithdrawalStatus } from "./gbpWithdrawals";
 
+export type StripeKeyMode = "test" | "live" | "none";
+export type StripeKeySource =
+  | "STRIPE_SECRET_KEY_TEST"
+  | "STRIPE_SECRET_KEY_LIVE"
+  | "STRIPE_SECRET_KEY"
+  | "none";
+
+/**
+ * Resolve Stripe secret for Connect without logging values.
+ * - test mode forced when ELIX_STRIPE_CONNECT_MODE=test (evidence / sandbox).
+ * - otherwise prefer LIVE dedicated var, then primary STRIPE_SECRET_KEY.
+ * - never prefers TEST over LIVE in normal production operation.
+ */
+export function resolveStripeSecretKey(opts?: {
+  forceTest?: boolean;
+}): {
+  key: string;
+  mode: StripeKeyMode;
+  source: StripeKeySource;
+} {
+  const forceTest =
+    opts?.forceTest === true ||
+    String(process.env.ELIX_STRIPE_CONNECT_MODE || "").trim().toLowerCase() === "test";
+
+  const testKey = (process.env.STRIPE_SECRET_KEY_TEST || "").trim();
+  const liveDedicated = (process.env.STRIPE_SECRET_KEY_LIVE || "").trim();
+  const primary = (process.env.STRIPE_SECRET_KEY || "").trim();
+
+  if (forceTest) {
+    if (testKey.startsWith("sk_test_")) {
+      return { key: testKey, mode: "test", source: "STRIPE_SECRET_KEY_TEST" };
+    }
+    if (primary.startsWith("sk_test_")) {
+      return { key: primary, mode: "test", source: "STRIPE_SECRET_KEY" };
+    }
+    return { key: "", mode: "none", source: "none" };
+  }
+
+  if (liveDedicated.startsWith("sk_live_") || liveDedicated.startsWith("sk_test_")) {
+    return {
+      key: liveDedicated,
+      mode: liveDedicated.startsWith("sk_test_") ? "test" : "live",
+      source: "STRIPE_SECRET_KEY_LIVE",
+    };
+  }
+  if (primary.startsWith("sk_live_") || primary.startsWith("sk_test_")) {
+    return {
+      key: primary,
+      mode: primary.startsWith("sk_test_") ? "test" : "live",
+      source: "STRIPE_SECRET_KEY",
+    };
+  }
+  // Staging-only fallback: dedicated test key when no primary/live configured.
+  if (testKey.startsWith("sk_test_")) {
+    return { key: testKey, mode: "test", source: "STRIPE_SECRET_KEY_TEST" };
+  }
+  return { key: "", mode: "none", source: "none" };
+}
+
 function getStripe(): Stripe | null {
-  const key = (process.env.STRIPE_SECRET_KEY || "").trim();
-  if (!key) return null;
-  return new Stripe(key, { apiVersion: "2025-01-27.acacia" as Stripe.LatestApiVersion });
+  const resolved = resolveStripeSecretKey();
+  if (!resolved.key) {
+    const forced =
+      String(process.env.ELIX_STRIPE_CONNECT_MODE || "").trim().toLowerCase() === "test";
+    if (forced) {
+      logger.warn(
+        { stripeMode: "none" },
+        "Stripe Connect test mode requires STRIPE_SECRET_KEY_TEST=sk_test_… (live key not used)",
+      );
+    }
+    return null;
+  }
+  return new Stripe(resolved.key, { apiVersion: "2025-01-27.acacia" as Stripe.LatestApiVersion });
 }
 
 export function isPayoutProviderConfigured(): boolean {
@@ -24,8 +96,12 @@ export function isPayoutProviderConfigured(): boolean {
 }
 
 export function isStripeTestMode(): boolean {
-  const key = (process.env.STRIPE_SECRET_KEY || "").trim();
-  return key.startsWith("sk_test_");
+  return resolveStripeSecretKey().mode === "test";
+}
+
+export function getStripeModeSafe(): { mode: StripeKeyMode; source: StripeKeySource } {
+  const r = resolveStripeSecretKey();
+  return { mode: r.mode, source: r.source };
 }
 
 export async function ensurePayoutAccountTables(): Promise<void> {

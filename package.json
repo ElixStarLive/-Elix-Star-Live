@@ -24,6 +24,7 @@
     "test:money:url": "vitest run --config vitest.money.config.ts",
     "test:money:sibling": "npx tsx server/scripts/runMoneyItNeonSibling.ts",
     "test:money:e2e-evidence": "npx tsx server/scripts/runMonetisationE2eSibling.ts",
+    "test:stripe:connect-proof": "npx tsx server/scripts/stripeConnectTestProof.ts",
     "smoke:prod:auth": "npx tsx server/scripts/productionSmokeAuth.ts",
     "fingerprint:db": "npx tsx server/scripts/coolifyDbIdentityFingerprint.ts",
     "migrate:status": "npx tsx server/scripts/migrationStatusCheck.ts",
