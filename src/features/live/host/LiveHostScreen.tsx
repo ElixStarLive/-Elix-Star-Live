@@ -135,7 +135,7 @@ import { parseLiveGiftGoal, type LiveGiftGoal } from '../../../lib/liveGiftGoal'
 import { liveStreamUiGiftTargetToServerBattleTarget, normalizeBattleGiftTarget } from '../../../lib/liveBattleGiftTarget';
 import { engagementFlags } from '../../../config/engagementFlags';
 import { earnBattleEnergyQuiet } from '../../../components/BattleEnergyBoostControls';
-import { apiLiveSendDailyHeart } from '../engagement/liveEngagementApi';
+import { apiLiveGetDailyHearts, apiLiveSendDailyHeart } from '../engagement/liveEngagementApi';
 import {
   EngagementDrawer,
   type EngagementPanel,
@@ -1887,46 +1887,82 @@ export default function LiveHostScreen() {
                                     return;
                                   }
                                   if (hasJoinedToday) {
+                                    showToast('Already sent today’s membership heart');
                                     setShowTeamStatus(true);
                                     return;
                                   }
                                   if (!user?.id || !effectiveStreamId) return;
-                                  const today = new Date().toISOString().split('T')[0];
-                                  const storageKey = `joined_stream_${effectiveStreamId}_${user.id}_${today}`;
-                                  localStorage.setItem(storageKey, 'true');
+                                  const creatorId = String(effectiveStreamId).trim();
+                                  if (!creatorId || creatorId === 'broadcast' || creatorId === user.id) return;
 
-                                  const heartKey = `my_heart_count_${effectiveStreamId}_${user.id}`;
-                                  const newCount = myHeartCount + 1;
-                                  localStorage.setItem(heartKey, newCount.toString());
-                                  setMyHeartCount(newCount);
-
-                                  setMemberCount((prev) => prev + 1);
-                                  setHasJoinedToday(true);
-                                  setShowTeamStatus(true);
-
-                                  const joinBannerId = Date.now().toString();
-                                  const newMessage: LiveMessage = {
-                                    id: joinBannerId,
-                                    username: 'You',
-                                    text: '❤️ Joined the team!',
-                                    level: userLevel,
-                                    isGift: false,
-                                    avatar: '/royce/elix-mark.svg',
-                                    isSystem: true,
-                                    membershipIcon: '/royce/membership.svg',
-                                  };
-                                  setMessages((prev) => appendCapped(prev, newMessage, LIVE_CHAT_MESSAGE_CAP));
-                                  window.setTimeout(() => {
-                                    setMessages((prev) => prev.filter((m) => m.id !== joinBannerId));
-                                  }, 5000);
-                                  spawnHeartFromClient(e.clientX, e.clientY, undefined, 'You', '/royce/elix-mark.svg');
-
-                                  if (!isBroadcast) {
-                                    try {
-                                      await apiLiveSendDailyHeart(effectiveStreamId);
-                                    } catch {
-                                      /* local join already applied */
+                                  try {
+                                    const { data: before } = await apiLiveGetDailyHearts(creatorId);
+                                    if (before?.hasSent) {
+                                      setHasJoinedToday(true);
+                                      const today0 = new Date().toISOString().split('T')[0];
+                                      localStorage.setItem(
+                                        `joined_stream_${effectiveStreamId}_${user.id}_${today0}`,
+                                        'true',
+                                      );
+                                      showToast('Already sent today’s membership heart');
+                                      setShowTeamStatus(true);
+                                      return;
                                     }
+                                  } catch {
+                                    /* continue */
+                                  }
+
+                                  try {
+                                    const { data: d, error } = await apiLiveSendDailyHeart(creatorId);
+                                    if (error) {
+                                      showToast('Could not send membership heart. Try again.');
+                                      return;
+                                    }
+                                    const already = d?.already === true;
+                                    if (!(d?.ok === true || already)) {
+                                      showToast('Could not send membership heart. Try again.');
+                                      return;
+                                    }
+
+                                    const today = new Date().toISOString().split('T')[0];
+                                    localStorage.setItem(
+                                      `joined_stream_${effectiveStreamId}_${user.id}_${today}`,
+                                      'true',
+                                    );
+                                    setHasJoinedToday(true);
+                                    setShowTeamStatus(true);
+                                    spawnHeartFromClient(
+                                      e.clientX,
+                                      e.clientY,
+                                      undefined,
+                                      'You',
+                                      '/royce/elix-mark.svg',
+                                    );
+
+                                    if (!already) {
+                                      const joinBannerId = Date.now().toString();
+                                      const newMessage: LiveMessage = {
+                                        id: joinBannerId,
+                                        username: 'You',
+                                        text: '❤️ Joined the team!',
+                                        level: userLevel,
+                                        isGift: false,
+                                        avatar: '/royce/elix-mark.svg',
+                                        isSystem: true,
+                                        membershipIcon: '/royce/membership.svg',
+                                      };
+                                      setMessages((prev) =>
+                                        appendCapped(prev, newMessage, LIVE_CHAT_MESSAGE_CAP),
+                                      );
+                                      window.setTimeout(() => {
+                                        setMessages((prev) => prev.filter((m) => m.id !== joinBannerId));
+                                      }, 5000);
+                                      showToast('Membership heart sent');
+                                    } else {
+                                      showToast('Already sent today’s membership heart');
+                                    }
+                                  } catch {
+                                    showToast('Could not send membership heart. Try again.');
                                   }
                                 }}
                               />

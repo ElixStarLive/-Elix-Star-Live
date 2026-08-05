@@ -2708,10 +2708,10 @@ export function useLiveSpectatorController() {
       }
       if (targetId === user.id) return;
       if (isFollowing) {
-        // Already following — membership heart is already available.
+        // Already following — Join (daily membership heart) is available in the same slot.
         return;
       }
-      // Optimistic: reveal membership heart immediately; revert on failure.
+      // Optimistic: reveal Join immediately; revert on failure.
       setIsFollowing(true);
       const prevFollowing = useVideoStore.getState().followingUsers;
       if (!prevFollowing.includes(targetId)) {
@@ -2729,6 +2729,123 @@ export function useLiveSpectatorController() {
       }
     },
     [user?.id, hostUserId, effectiveStreamId, isFollowing, navigate, location.pathname],
+  );
+
+  /** One membership heart per calendar day. Counts on creator membership stats (heart_days). */
+  const sendMembershipHeartJoin = useCallback(
+    async (e?: React.MouseEvent) => {
+      e?.stopPropagation();
+      if (!isFollowing) {
+        showToast('Follow first to give a membership heart');
+        return;
+      }
+      if (!user?.id) {
+        showToast('Log in to give a membership heart');
+        navigate('/login', { state: { from: location.pathname } });
+        return;
+      }
+      const creatorId = String(hostUserIdRef.current || hostUserId || '').trim();
+      if (!creatorId || creatorId === 'broadcast') {
+        showToast('Creator unavailable. Try again.');
+        return;
+      }
+      const token = useAuthStore.getState().session?.access_token;
+      if (!token) {
+        showToast('Log in to give a membership heart');
+        navigate('/login', { state: { from: location.pathname } });
+        return;
+      }
+
+      if (hasJoinedToday) {
+        showToast('Already sent today’s membership heart');
+        return;
+      }
+
+      // Prefer server truth so we never double-count a day.
+      try {
+        const { data: before } = await apiLiveGetDailyHearts(creatorId);
+        if (before?.hasSent) {
+          setHasJoinedToday(true);
+          const today = new Date().toISOString().split('T')[0];
+          if (effectiveStreamId) {
+            localStorage.setItem(`joined_stream_${effectiveStreamId}_${user.id}_${today}`, 'true');
+          }
+          showToast('Already sent today’s membership heart');
+          return;
+        }
+      } catch {
+        /* continue — POST will still enforce one-per-day */
+      }
+
+      const today = new Date().toISOString().split('T')[0];
+      const storageKey = effectiveStreamId
+        ? `joined_stream_${effectiveStreamId}_${user.id}_${today}`
+        : '';
+
+      try {
+        const { data: d, error } = await apiLiveSendDailyHeart(creatorId);
+        if (error) {
+          showToast('Could not send membership heart. Try again.');
+          return;
+        }
+        const already = d?.already === true;
+        const ok = d?.ok === true || already;
+        if (!ok) {
+          showToast('Could not send membership heart. Try again.');
+          return;
+        }
+
+        setHasJoinedToday(true);
+        if (storageKey) localStorage.setItem(storageKey, 'true');
+
+        if (e && typeof e.clientX === 'number' && typeof e.clientY === 'number') {
+          spawnHeartFromClient(e.clientX, e.clientY);
+        }
+
+        if (!already) {
+          const joinBannerId = Date.now().toString();
+          const newMessage: LiveMessage = {
+            id: joinBannerId,
+            username: viewerName,
+            text: '\u2764\ufe0f Joined the team!',
+            level: userLevel,
+            isGift: false,
+            avatar: viewerAvatar,
+            isSystem: true,
+            membershipIcon: '/royce/membership.svg',
+          };
+          setMessages((prev) => appendCapped(prev, newMessage, LIVE_CHAT_MESSAGE_CAP));
+          window.setTimeout(() => {
+            setMessages((prev) => prev.filter((m) => m.id !== joinBannerId));
+          }, 5000);
+          showToast('Membership heart sent');
+        } else {
+          showToast('Already sent today’s membership heart');
+        }
+
+        const { data: after } = await apiLiveGetDailyHearts(creatorId);
+        if (after) {
+          if (typeof after.todayCount === 'number') setDailyHeartCount(after.todayCount);
+          if (typeof after.totalCount === 'number') setMyHeartCount(after.totalCount);
+          if (after.hasSent) setHasJoinedToday(true);
+        }
+      } catch {
+        showToast('Could not send membership heart. Try again.');
+      }
+    },
+    [
+      isFollowing,
+      user?.id,
+      hostUserId,
+      effectiveStreamId,
+      hasJoinedToday,
+      navigate,
+      location.pathname,
+      spawnHeartFromClient,
+      viewerName,
+      viewerAvatar,
+      userLevel,
+    ],
   );
 
   useEffect(() => {
@@ -3127,6 +3244,7 @@ export function useLiveSpectatorController() {
     findCoHostVideoEl,
     floatingHearts,
     followHost,
+    sendMembershipHeartJoin,
     formatTime,
     giftGoal,
     giftKey,

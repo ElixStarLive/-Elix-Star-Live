@@ -684,13 +684,8 @@ export function useLiveHostController() {
       if (hasJoined) {
         setHasJoinedToday(true);
       }
-      
-      // Load total heart count
-      const heartKey = `my_heart_count_${effectiveStreamId}_${user.id}`;
-      const savedHearts = localStorage.getItem(heartKey);
-      if (savedHearts) {
-        setMyHeartCount(parseInt(savedHearts, 10));
-      }
+      // Personal join tally is only for watchers. While broadcasting, myHeartCount is
+      // creator total from apiLiveMembership — do not overwrite with local viewer key.
     }
   }, [user?.id, effectiveStreamId]);
 
@@ -2276,10 +2271,15 @@ export function useLiveHostController() {
 
   const _openMembershipBar = useCallback(() => {
     if (membershipTimerRef.current) clearTimeout(membershipTimerRef.current);
-    // Instead of opening the top bar, we now open the bottom sheet Fan Club
-    setShowFanClub(true);
+    // Host live: Membership capsule shows team heart counts (days each user joined).
+    // Watcher path: Fan Club / Super Fan Goal sheet.
+    if (isBroadcast) {
+      setShowTeamStatus(true);
+    } else {
+      setShowFanClub(true);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [closeMembershipBar]);
+  }, [closeMembershipBar, isBroadcast]);
   const [sessionContribution, setSessionContribution] = useState(0); // total coins gifted this session
   const [universeQueue, setUniverseQueue] = useState<UniverseTickerMessage[]>([]);
   const [currentUniverse, setCurrentUniverse] = useState<UniverseTickerMessage | null>(null);
