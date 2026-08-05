@@ -41,13 +41,6 @@ function sameId(a: string | null | undefined, b: string | null | undefined): boo
   return !!na && !!nb && na === nb;
 }
 
-function formatTime(sec: number): string {
-  const s = Math.max(0, Math.floor(sec || 0));
-  const m = Math.floor(s / 60);
-  const r = s % 60;
-  return `${m}:${r.toString().padStart(2, "0")}`;
-}
-
 /**
  * For You live slide: mirrors normal / co-host / battle layouts in real time
  * (LiveKit + ephemeral room WS). Tap joins `/watch/:streamKey` for full chat/scores.
