@@ -291,8 +291,10 @@ export async function reverseLedgerEntry(
     appStoreDeductionPence: Number(o.app_store_deduction_pence) || 0,
     taxDeductionPence: Number(o.tax_deduction_pence) || 0,
     processingDeductionPence: Number(o.processing_deduction_pence) || 0,
-      refundPence: extra.refundPence ?? (Number(o.refund_pence) || 0),
-      chargebackPence: extra.chargebackPence ?? (Number(o.chargeback_pence) || 0),
+    refundPence:
+      extra.refundPence != null ? extra.refundPence : Number(o.refund_pence) || 0,
+    chargebackPence:
+      extra.chargebackPence != null ? extra.chargebackPence : Number(o.chargeback_pence) || 0,
     netRevenuePence: Number(o.net_revenue_pence) || 0,
     creatorPct: Number(o.creator_pct) || 0,
     creatorAmountPence: -(Number(o.creator_amount_pence) || 0),
