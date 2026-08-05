@@ -47,9 +47,28 @@ creatorRouter.get("/payout-account", async (req, res) => {
     const { refreshPayoutAccountStatus, createOrGetPayoutAccount } = await import(
       "../lib/monetisation/payoutProvider"
     );
+    const { getPool } = await import("../lib/postgres");
     await refreshPayoutAccountStatus(payload.sub);
     const result = await createOrGetPayoutAccount(payload.sub);
-    return res.json(result);
+    const pool = getPool();
+    let payouts_enabled = false;
+    let verificationStatus = result.verificationStatus || "pending";
+    if (pool) {
+      const row = await pool.query(
+        `SELECT payouts_enabled, verification_status, charges_enabled
+           FROM elix_creator_payout_accounts WHERE creator_user_id = $1 LIMIT 1`,
+        [payload.sub],
+      );
+      if (row.rowCount) {
+        payouts_enabled = row.rows[0].payouts_enabled === true;
+        verificationStatus = String(row.rows[0].verification_status || verificationStatus);
+      }
+    }
+    return res.json({
+      ...result,
+      payouts_enabled,
+      verificationStatus,
+    });
   } catch (err) {
     logger.error({ err }, "payout-account get failed");
     return res.status(500).json({ error: "SERVER_ERROR" });

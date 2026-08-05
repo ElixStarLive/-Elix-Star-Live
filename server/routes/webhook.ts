@@ -30,11 +30,15 @@ function resolveStripeWebhookSecret(): string {
   return liveSecret;
 }
 
-/** Secrets to try for signature verification (env live/test, then Neon runtime fallback). */
+/** Secrets to try for signature verification. Production: live whsec only. */
 async function webhookSecretsToTry(): Promise<string[]> {
+  const isProd = process.env.NODE_ENV === "production";
+  const liveSecret = (process.env.STRIPE_WEBHOOK_SECRET || "").trim();
+  if (isProd) {
+    return liveSecret.startsWith("whsec_") ? [liveSecret] : [];
+  }
   const primary = resolveStripeWebhookSecret();
   const testSecret = (process.env.STRIPE_WEBHOOK_SECRET_TEST || "").trim();
-  const liveSecret = (process.env.STRIPE_WEBHOOK_SECRET || "").trim();
   const out: string[] = [];
   for (const s of [primary, liveSecret, testSecret]) {
     if (s.startsWith("whsec_") && !out.includes(s)) out.push(s);

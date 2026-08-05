@@ -78,11 +78,17 @@ function isNativeShellOrigin(origin: string): boolean {
 function resolveOrigin(req: Request): string {
   const headerOrigin =
     typeof req.headers.origin === "string" ? req.headers.origin.trim() : "";
+  const clientUrl = (process.env.CLIENT_URL || "").trim();
+  if (process.env.NODE_ENV === "production") {
+    if (!clientUrl.startsWith("https://") || /127\.0\.0\.1|localhost/i.test(clientUrl)) {
+      throw new Error("CLIENT_URL must be https:// public origin in production");
+    }
+    return clientUrl.replace(/\/$/, "");
+  }
   const origin =
     (headerOrigin && !isNativeShellOrigin(headerOrigin) && headerOrigin) ||
-    process.env.CLIENT_URL;
+    clientUrl;
   if (origin) return origin;
-  // Construct from request when behind proxy; require CLIENT_URL in production
   const host = req.headers.host || req.headers["x-forwarded-host"];
   const proto = req.headers["x-forwarded-proto"] === "https" ? "https" : "http";
   return host ? `${proto}://${host}` : "http://127.0.0.1:3000";
@@ -97,6 +103,12 @@ export async function createShopItemCheckout(req: Request, res: Response) {
   try {
     if (!stripe) {
       return res.status(500).json({ error: "Stripe is not configured" });
+    }
+    if (
+      process.env.NODE_ENV === "production" &&
+      !(process.env.STRIPE_SECRET_KEY || "").trim().startsWith("sk_live_")
+    ) {
+      return res.status(500).json({ error: "Stripe live key required in production" });
     }
 
     const authUserId = getAuthenticatedUserId(req);

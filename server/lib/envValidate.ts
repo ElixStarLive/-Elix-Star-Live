@@ -36,6 +36,22 @@ export function validateProductionEnvironment(): void {
     logger.fatal("STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET are required in production for shop checkout");
     process.exit(1);
   }
+  const stripeKey = process.env.STRIPE_SECRET_KEY.trim();
+  const stripeWhsec = process.env.STRIPE_WEBHOOK_SECRET.trim();
+  if (!stripeKey.startsWith("sk_live_")) {
+    logger.fatal("STRIPE_SECRET_KEY must be sk_live_… in production (test keys are not allowed)");
+    process.exit(1);
+  }
+  if (!stripeWhsec.startsWith("whsec_")) {
+    logger.fatal("STRIPE_WEBHOOK_SECRET must be whsec_… in production");
+    process.exit(1);
+  }
+  if (String(process.env.ELIX_STRIPE_CONNECT_MODE || "").trim().toLowerCase() === "test") {
+    logger.fatal(
+      "ELIX_STRIPE_CONNECT_MODE=test must not be set in production — remove it so Connect uses live keys",
+    );
+    process.exit(1);
+  }
 
   // Live streaming: fail fast so the app does not boot "healthy" while every
   // live token request fails at runtime.

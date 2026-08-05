@@ -113,8 +113,10 @@ export default function CreatorPayout() {
       setLedger(ledRes.ledger as LedgerRow[]);
       if (acctRes.data) {
         const d = acctRes.data;
-        const ready = d.charges_enabled === true || d.payouts_enabled === true || d.ok === true;
-        setConnectStatus(ready ? 'ready' : String(d.status || d.account_status || 'pending'));
+        const ready =
+          d.payouts_enabled === true ||
+          String(d.verificationStatus || d.verification_status || '') === 'verified';
+        setConnectStatus(ready ? 'ready' : String(d.status || d.account_status || d.verificationStatus || 'pending'));
       }
     } catch {
       showToast('Could not load payout info');
