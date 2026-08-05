@@ -96,6 +96,16 @@ async function main() {
   process.env.DATABASE_URL = siblingUrl;
   process.env.TEST_DATABASE_URL = siblingUrl;
   process.env.ALLOW_MONEY_IT_ON_URL = "1";
+  process.env.ELIX_SKIP_MIGRATION_CHECK = "1";
+
+  const { connectPostgres, getPool: getAppPool } = await import("../lib/postgres.ts");
+  await connectPostgres();
+  if (!getAppPool()) {
+    evidence.status = "FAILED";
+    evidence.blocker = "App pool failed to open on elix_money_it sibling";
+    await writeEvidence(evidence);
+    process.exit(1);
+  }
 
   const {
     resolveStripeSecretKey,

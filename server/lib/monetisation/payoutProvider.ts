@@ -91,6 +91,15 @@ function getStripe(): Stripe | null {
   return new Stripe(resolved.key, { apiVersion: "2025-01-27.acacia" as Stripe.LatestApiVersion });
 }
 
+/** Accounts v2 Connect APIs require a preview Stripe-Version. */
+function getStripeAccountsV2(): Stripe | null {
+  const resolved = resolveStripeSecretKey();
+  if (!resolved.key) return null;
+  return new Stripe(resolved.key, {
+    apiVersion: "2026-07-29.preview" as Stripe.LatestApiVersion,
+  });
+}
+
 export function isPayoutProviderConfigured(): boolean {
   return !!getStripe();
 }
@@ -116,8 +125,9 @@ export async function createOrGetPayoutAccount(creatorUserId: string): Promise<{
   error?: string;
 }> {
   const stripeClient = getStripe();
+  const stripeV2 = getStripeAccountsV2();
   const pool = getPool();
-  if (!stripeClient || !pool) return { ok: false, error: "provider_unavailable" };
+  if (!stripeClient || !stripeV2 || !pool) return { ok: false, error: "provider_unavailable" };
 
   const existing = await pool.query(
     `SELECT * FROM elix_creator_payout_accounts WHERE creator_user_id = $1 LIMIT 1`,
@@ -152,19 +162,43 @@ export async function createOrGetPayoutAccount(creatorUserId: string): Promise<{
   }
 
   try {
-    const account = await stripeClient.accounts.create({
-      type: "express",
-      country: "GB",
-      capabilities: { transfers: { requested: true } },
-      business_type: "individual",
+    // Accounts v2 marketplace recipient (Express dashboard). Do not use v1 type: express.
+    const account = await stripeV2.v2.core.accounts.create({
+      contact_email: `creator+${creatorUserId.slice(0, 32)}@elixstarlive.co.uk`,
+      display_name: `Elix creator ${creatorUserId.slice(0, 8)}`,
+      dashboard: "express",
+      identity: { country: "gb" },
+      defaults: {
+        responsibilities: {
+          fees_collector: "application",
+          losses_collector: "application",
+        },
+      },
+      configuration: {
+        recipient: {
+          capabilities: {
+            stripe_balance: {
+              stripe_transfers: { requested: true },
+            },
+          },
+        },
+      },
       metadata: { elix_creator_user_id: creatorUserId },
+      include: ["configuration.recipient", "identity", "requirements"],
     });
+
     const link = await stripeClient.accountLinks.create({
       account: account.id,
       refresh_url: `${process.env.CLIENT_URL || process.env.VITE_API_URL || "https://www.elixstarlive.co.uk"}/creator-payout?payout_refresh=1`,
       return_url: `${process.env.CLIENT_URL || process.env.VITE_API_URL || "https://www.elixstarlive.co.uk"}/creator-payout?payout_return=1`,
       type: "account_onboarding",
     });
+
+    const transfersStatus =
+      account.configuration?.recipient?.capabilities?.stripe_balance?.stripe_transfers
+        ?.status ?? null;
+    const payoutsEnabled = transfersStatus === "active";
+
     const id = `pac_${randomUUID()}`;
     await pool.query(
       `INSERT INTO elix_creator_payout_accounts
@@ -175,9 +209,9 @@ export async function createOrGetPayoutAccount(creatorUserId: string): Promise<{
         id,
         creatorUserId,
         account.id,
-        !!account.details_submitted,
-        !!account.charges_enabled,
-        !!account.payouts_enabled,
+        false,
+        false,
+        payoutsEnabled,
         link.url,
       ],
     );
@@ -199,6 +233,7 @@ export async function refreshPayoutAccountStatus(creatorUserId: string): Promise
   payoutsEnabled?: boolean;
 }> {
   const stripeClient = getStripe();
+  const stripeV2 = getStripeAccountsV2();
   const pool = getPool();
   if (!stripeClient || !pool) return { ok: false };
   const rowR = await pool.query(
@@ -208,13 +243,39 @@ export async function refreshPayoutAccountStatus(creatorUserId: string): Promise
   if (!rowR.rowCount) return { ok: false };
   const acctId = String(rowR.rows[0].provider_account_id);
   try {
-    const account = await stripeClient.accounts.retrieve(acctId);
-    const verified = !!account.payouts_enabled && !!account.details_submitted;
-    const status = account.requirements?.disabled_reason
-      ? "restricted"
-      : verified
-        ? "verified"
-        : "pending";
+    // Prefer Accounts v2 capability path; fall back to v1 retrieve for older accounts.
+    let payoutsEnabled = false;
+    let detailsSubmitted = false;
+    let chargesEnabled = false;
+    let status = "pending";
+    try {
+      if (!stripeV2) throw new Error("v2_unavailable");
+      const v2 = await stripeV2.v2.core.accounts.retrieve(acctId, {
+        include: ["configuration.recipient", "identity", "requirements"],
+      });
+      const transfersStatus =
+        v2.configuration?.recipient?.capabilities?.stripe_balance?.stripe_transfers
+          ?.status ?? "";
+      payoutsEnabled = transfersStatus === "active";
+      detailsSubmitted = !(v2.requirements as { entries?: unknown[] } | undefined)?.entries
+        ?.length;
+      status = (v2.requirements as { disabled_reason?: string | null } | undefined)
+        ?.disabled_reason
+        ? "restricted"
+        : payoutsEnabled
+          ? "verified"
+          : "pending";
+    } catch {
+      const account = await stripeClient.accounts.retrieve(acctId);
+      payoutsEnabled = !!account.payouts_enabled;
+      detailsSubmitted = !!account.details_submitted;
+      chargesEnabled = !!account.charges_enabled;
+      status = account.requirements?.disabled_reason
+        ? "restricted"
+        : payoutsEnabled && detailsSubmitted
+          ? "verified"
+          : "pending";
+    }
     await pool.query(
       `UPDATE elix_creator_payout_accounts SET
          verification_status = $2,
@@ -226,12 +287,12 @@ export async function refreshPayoutAccountStatus(creatorUserId: string): Promise
       [
         creatorUserId,
         status,
-        !!account.details_submitted,
-        !!account.charges_enabled,
-        !!account.payouts_enabled,
+        detailsSubmitted,
+        chargesEnabled,
+        payoutsEnabled,
       ],
     );
-    return { ok: true, verificationStatus: status, payoutsEnabled: !!account.payouts_enabled };
+    return { ok: true, verificationStatus: status, payoutsEnabled };
   } catch (err) {
     logger.warn({ err }, "refreshPayoutAccountStatus failed");
     return { ok: false };
