@@ -845,7 +845,7 @@ export default function ElixCameraLayout({
       {/* BOTTOM SECTION */}
       {/* ══════════════════════════════════════════ */}
       {!showEffectsPanel && !showCapCutPanel && !showStickerPicker && (
-        <div className="absolute bottom-0 left-0 right-0 z-50 pointer-events-auto" style={{ paddingBottom: 'calc(max(3.5rem, env(safe-area-inset-bottom, 0px)) + 5mm)' }}>
+        <div className="absolute bottom-0 left-0 right-0 z-50 pointer-events-auto" style={{ paddingBottom: 'calc(max(3.5rem, env(safe-area-inset-bottom, 0px)) + 8mm)' }}>
 
           {/* Duration selector — one label visible; swipe left/right to change */}
           <div className="flex justify-center mb-4">
