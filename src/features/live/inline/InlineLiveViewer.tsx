@@ -465,15 +465,20 @@ export default function InlineLiveViewer({
         </div>
       )}
 
-      {/* ── Battle: same half-height container as live battle (top videos, bottom empty/chat zone) ── */}
+      {/* ── Battle: lock VS panes to LIVE_BATTLE_VIDEO_HEIGHT (same as host/spectator battle) ── */}
       {mode === "battle" && (
-        <div className="absolute inset-0 flex flex-col bg-[#121215]">
+        <div className="absolute inset-0 bg-[#121215]" data-elix-foryou-battle-root="1">
           <div
-            className="relative w-full flex-none overflow-hidden"
-            style={{ height: LIVE_BATTLE_VIDEO_HEIGHT }}
+            className="absolute top-0 left-0 right-0 overflow-hidden shrink-0"
+            data-elix-foryou-battle="half"
+            style={{
+              height: LIVE_BATTLE_VIDEO_HEIGHT,
+              maxHeight: "50%",
+              flex: "0 0 auto",
+            }}
           >
             <div className="absolute inset-0 flex flex-row">
-              <div className="w-1/2 h-full relative bg-[#121215] overflow-hidden">
+              <div className="w-1/2 h-full relative bg-[#121215] overflow-hidden min-h-0">
                 <video
                   ref={hostVideoRef}
                   className={videoClass}
@@ -488,7 +493,7 @@ export default function InlineLiveViewer({
                   {creatorName}
                 </span>
               </div>
-              <div className="w-1/2 h-full relative bg-[#121215] overflow-hidden">
+              <div className="w-1/2 h-full relative bg-[#121215] overflow-hidden min-h-0">
                 <video
                   ref={opponentVideoRef}
                   className={videoClass}
@@ -521,8 +526,6 @@ export default function InlineLiveViewer({
             </div>
             {!hasStream && placeholder}
           </div>
-          {/* Lower half matches battle chat zone — empty on For You preview */}
-          <div className="flex-1 min-h-0 bg-[#121215]" aria-hidden />
         </div>
       )}
 
