@@ -111,6 +111,7 @@ import { getMembershipStatus, purchaseMembership } from '../../../lib/iap';
 import {
   apiLiveEngagementMissions,
   apiLiveGetDailyHearts,
+  apiLiveSendDailyHeart,
   apiLiveEngagementProgress,
   apiLiveEngagementWallet,
   apiLiveProgressionMe,
