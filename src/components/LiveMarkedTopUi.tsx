@@ -109,8 +109,7 @@ export function LiveFollowCapsule({ onFollow }: { onFollow: (e: React.MouseEvent
 /**
  * Host profile block (photo 1-1): gold-glow avatar (same soft halo as LIVE icons),
  * name + blue verified, “N Likes • LIVE Pro”, Lv pill + Diamond tier,
- * One action slot beside profile: Follow (not following) XOR Membership (following).
- * Same capsule design/layout on host + spectator — never both, never stacked.
+ * One action slot beside profile: Follow XOR Join — never both, never stacked.
  * Does not touch the 3 MVP circles.
  */
 export function LiveHostProfileHeader({
@@ -124,21 +123,21 @@ export function LiveHostProfileHeader({
   onAvatarClick,
   onLike,
   onFollow,
-  onMembership,
+  joinSlot,
 }: {
   name: string;
   avatar: string;
   likes: number;
   level: number;
   avatarSize: number;
-  /** true = show Follow / Membership action slot (spectators). */
+  /** true = show Follow / Join action slot (spectators). */
   showFollow: boolean;
   isFollowing?: boolean;
   onAvatarClick: () => void;
   onLike: (e: React.PointerEvent) => void;
   onFollow: (e: React.MouseEvent) => void;
-  /** Opens Membership VIP — shown in the same slot after follow. */
-  onMembership?: () => void;
+  /** Join (membership heart) — shown in the same slot after follow only. */
+  joinSlot?: React.ReactNode;
 }) {
   const safeLevel = typeof level === 'number' && Number.isFinite(level) && level > 0 ? Math.floor(level) : 1;
   const likesLabel = formatLikesShort(likes);
@@ -209,14 +208,14 @@ export function LiveHostProfileHeader({
         </div>
       </div>
 
-      {/* Same slot + same capsule chrome on spectator and host watchers */}
+      {/* Same slot: Follow until follow, then Join only — never both */}
       {showFollow ? (
-        <div className="flex-shrink-0 self-center ml-1.5 flex items-center justify-center min-h-[22px]">
+        <div className="flex-shrink-0 self-center ml-1.5 flex items-center justify-center min-h-[28px]">
           {!isFollowing ? (
-            <LiveFollowCapsule onFollow={onFollow} />
-          ) : onMembership ? (
-            <LiveMembershipVipCapsule onOpen={onMembership} />
-          ) : null}
+            <LiveFollowPill variant="photo" isFollowing={false} onFollow={onFollow} />
+          ) : (
+            joinSlot ?? null
+          )}
         </div>
       ) : null}
     </div>
