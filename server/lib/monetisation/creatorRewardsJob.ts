@@ -142,22 +142,21 @@ export async function closeCreatorRewardPeriod(periodId: string): Promise<{
       );
       const prev30 = Math.floor(Number(prevR.rows[0]?.c) || 0);
 
-      const { isAccountInGoodStanding, hasUnresolvedFraudFlag } = await import("./fraud");
-      const goodStanding = await isAccountInGoodStanding(creatorId);
-      const unresolvedFraud = await hasUnresolvedFraudFlag(creatorId);
+      const { evaluateCreatorEligibilityFlags } = await import("./fraud");
+      const flags = await evaluateCreatorEligibilityFlags(creatorId);
 
       const eligibility = evaluateCreatorRewardsEligibility({
         followers,
         prev30dQualifiedViews: prev30,
-        accountInGoodStanding: goodStanding,
-        countryEligible: true,
-        ageEligible: true,
-        publicAccountOk: true,
-        originalContentOk: true,
-        noSeriousViolations: goodStanding,
-        noUnresolvedFraud: !unresolvedFraud,
-        noManipulatedEngagement: !unresolvedFraud,
-        noPurchasedViewsOrFollowers: !unresolvedFraud,
+        accountInGoodStanding: flags.goodStanding,
+        countryEligible: flags.countryEligible,
+        ageEligible: flags.ageEligible,
+        publicAccountOk: flags.publicAccountOk,
+        originalContentOk: !flags.manualReviewHold,
+        noSeriousViolations: flags.goodStanding && !flags.unresolvedFraud,
+        noUnresolvedFraud: !flags.unresolvedFraud && !flags.manualReviewHold,
+        noManipulatedEngagement: !flags.suspiciousFollowers && !flags.unresolvedFraud,
+        noPurchasedViewsOrFollowers: !flags.suspiciousFollowers && !flags.unresolvedFraud,
         minFollowers: effectiveMinFollowers,
         minPrev30dQualifiedViews: effectiveMinPrev,
       });

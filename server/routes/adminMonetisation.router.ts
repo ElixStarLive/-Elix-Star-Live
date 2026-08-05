@@ -384,4 +384,159 @@ router.post(
   },
 );
 
+router.post("/withdrawals-gbp/:id/submit-provider", async (req: Request, res: Response) => {
+  const adminId = (req.authContext as NonNullable<typeof req.authContext>).userId;
+  const { submitWithdrawalToProvider } = await import("../lib/monetisation/payoutProvider");
+  const result = await submitWithdrawalToProvider({
+    withdrawalId: String(req.params.id),
+    adminUserId: adminId,
+  });
+  if (!result.ok) return res.status(400).json(result);
+  return res.json(result);
+});
+
+const manualPaidSchema = z.object({
+  note: z.string().min(8).max(1000),
+  externalReference: z.string().max(200).optional(),
+});
+
+router.post(
+  "/withdrawals-gbp/:id/mark-paid-manual",
+  validateBody(manualPaidSchema),
+  async (req: Request, res: Response) => {
+    const adminId = (req.authContext as NonNullable<typeof req.authContext>).userId;
+    const { markPaidManualOffline } = await import("../lib/monetisation/payoutProvider");
+    const result = await markPaidManualOffline({
+      withdrawalId: String(req.params.id),
+      adminUserId: adminId,
+      note: req.body.note,
+      externalReference: req.body.externalReference,
+    });
+    if (!result.ok) return res.status(400).json(result);
+    return res.json({ ok: true, payment_rail: "manual_offline" });
+  },
+);
+
+const importReportSchema = z.object({
+  store: z.enum(["apple", "google"]),
+  reportType: z.string().min(1).max(80),
+  reportPeriod: z.string().max(80).optional(),
+  sourceFilename: z.string().min(1).max(260),
+  csvText: z.string().min(10).max(5_000_000),
+});
+
+router.post(
+  "/financial-reports/import",
+  validateBody(importReportSchema),
+  async (req: Request, res: Response) => {
+    const adminId = (req.authContext as NonNullable<typeof req.authContext>).userId;
+    const { importStoreFinancialReport } = await import("../lib/monetisation/financialReports");
+    const result = await importStoreFinancialReport({
+      store: req.body.store,
+      reportType: req.body.reportType,
+      reportPeriod: req.body.reportPeriod,
+      sourceFilename: req.body.sourceFilename,
+      csvText: req.body.csvText,
+      importedBy: adminId,
+    });
+    if (!result.ok) return res.status(400).json(result);
+    return res.json(result);
+  },
+);
+
+router.get("/reports/dashboard", async (_req, res) => {
+  const pool = getPool();
+  if (!pool) return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+  try {
+    const [
+      unsettledLots,
+      settledLots,
+      unmatchedLines,
+      gifts,
+      subs,
+      promote,
+      rewards,
+      withdrawals,
+      failedPayouts,
+      refunds,
+      fraudOpen,
+      wallets,
+    ] = await Promise.all([
+      pool.query(
+        `SELECT COUNT(*)::int AS c, COALESCE(SUM(gross_pence),0)::bigint AS gross
+           FROM elix_paid_coin_lots WHERE settlement_status = 'pending_settlement'`,
+      ),
+      pool.query(
+        `SELECT COUNT(*)::int AS c, COALESCE(SUM(net_pence),0)::bigint AS net
+           FROM elix_paid_coin_lots WHERE settlement_status = 'settled'`,
+      ),
+      pool.query(
+        `SELECT COUNT(*)::int AS c FROM elix_store_financial_report_lines WHERE match_status = 'unmatched'`,
+      ).catch(() => ({ rows: [{ c: 0 }] })),
+      pool.query(
+        `SELECT COALESCE(SUM(creator_amount_pence),0)::bigint AS creator,
+                COALESCE(SUM(platform_amount_pence),0)::bigint AS platform
+           FROM elix_financial_ledger WHERE revenue_source = 'PAID_GIFT'`,
+      ),
+      pool.query(
+        `SELECT COALESCE(SUM(creator_amount_pence),0)::bigint AS creator,
+                COALESCE(SUM(platform_amount_pence),0)::bigint AS platform
+           FROM elix_financial_ledger WHERE revenue_source = 'CREATOR_SUBSCRIPTION'`,
+      ),
+      pool.query(
+        `SELECT COALESCE(SUM(platform_amount_pence),0)::bigint AS platform
+           FROM elix_financial_ledger WHERE revenue_source = 'PROMOTE_VIDEO'`,
+      ),
+      pool.query(
+        `SELECT status, COUNT(*)::int AS c, COALESCE(SUM(monthly_budget_pence),0)::bigint AS budget
+           FROM elix_creator_reward_periods GROUP BY status`,
+      ),
+      pool.query(
+        `SELECT status, payment_rail, COUNT(*)::int AS c,
+                COALESCE(SUM(amount_pence),0)::bigint AS pence
+           FROM elix_creator_withdrawals_gbp GROUP BY status, payment_rail`,
+      ),
+      pool.query(
+        `SELECT COUNT(*)::int AS c FROM elix_creator_withdrawals_gbp WHERE status = 'failed'`,
+      ),
+      pool.query(
+        `SELECT revenue_source, COUNT(*)::int AS c,
+                COALESCE(SUM(creator_amount_pence),0)::bigint AS creator
+           FROM elix_financial_ledger
+          WHERE revenue_source IN ('REFUND_REVERSAL','CHARGEBACK_REVERSAL')
+          GROUP BY revenue_source`,
+      ),
+      pool.query(
+        `SELECT COUNT(*)::int AS c FROM elix_fraud_reviews WHERE status IN ('open','under_review')`,
+      ).catch(() => ({ rows: [{ c: 0 }] })),
+      pool.query(
+        `SELECT COALESCE(SUM(pending_pence),0)::bigint AS pending,
+                COALESCE(SUM(available_pence),0)::bigint AS available,
+                COALESCE(SUM(held_pence),0)::bigint AS held,
+                COALESCE(SUM(withdrawn_pence),0)::bigint AS withdrawn,
+                COALESCE(SUM(reversed_pence),0)::bigint AS reversed
+           FROM elix_creator_wallet_gbp`,
+      ),
+    ]);
+    return res.json({
+      unsettled_purchases: unsettledLots.rows[0],
+      settled_paid_coin_lots: settledLots.rows[0],
+      unmatched_financial_report_lines: unmatchedLines.rows[0],
+      gifts: gifts.rows[0],
+      subscriptions: subs.rows[0],
+      promote: promote.rows[0],
+      rewards_periods: rewards.rows,
+      withdrawals: withdrawals.rows,
+      failed_payouts: failedPayouts.rows[0],
+      refunds_chargebacks: refunds.rows,
+      fraud_review_open: fraudOpen.rows[0],
+      wallets: wallets.rows[0],
+      currency: "GBP",
+    });
+  } catch (err) {
+    logger.error({ err }, "admin reports dashboard failed");
+    return res.status(500).json({ error: "SERVER_ERROR" });
+  }
+});
+
 export default router;

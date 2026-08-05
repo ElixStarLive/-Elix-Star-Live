@@ -22,6 +22,40 @@ creatorRouter.get("/payouts", handleGetCreatorPayouts);
 creatorRouter.post("/payout-method", handleSetPayoutMethod);
 creatorRouter.get("/payout-methods", handleGetPayoutMethods);
 
+creatorRouter.post("/payout-account/onboard", async (req, res) => {
+  try {
+    const { getTokenFromRequest, verifyAuthToken } = await import("./auth");
+    const token = getTokenFromRequest(req);
+    const payload = token ? verifyAuthToken(token) : null;
+    if (!payload) return res.status(401).json({ error: "Unauthorized" });
+    const { createOrGetPayoutAccount } = await import("../lib/monetisation/payoutProvider");
+    const result = await createOrGetPayoutAccount(payload.sub);
+    if (!result.ok) return res.status(400).json(result);
+    return res.json(result);
+  } catch (err) {
+    logger.error({ err }, "payout-account onboard failed");
+    return res.status(500).json({ error: "SERVER_ERROR" });
+  }
+});
+
+creatorRouter.get("/payout-account", async (req, res) => {
+  try {
+    const { getTokenFromRequest, verifyAuthToken } = await import("./auth");
+    const token = getTokenFromRequest(req);
+    const payload = token ? verifyAuthToken(token) : null;
+    if (!payload) return res.status(401).json({ error: "Unauthorized" });
+    const { refreshPayoutAccountStatus, createOrGetPayoutAccount } = await import(
+      "../lib/monetisation/payoutProvider"
+    );
+    await refreshPayoutAccountStatus(payload.sub);
+    const result = await createOrGetPayoutAccount(payload.sub);
+    return res.json(result);
+  } catch (err) {
+    logger.error({ err }, "payout-account get failed");
+    return res.status(500).json({ error: "SERVER_ERROR" });
+  }
+});
+
 const adminPayoutRouter = Router();
 adminPayoutRouter.get("/payouts", handleAdminListPayouts);
 adminPayoutRouter.post("/payout/:id/approve", handleAdminApprovePayout);

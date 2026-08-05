@@ -44,7 +44,10 @@ describe.skipIf(!RUN)("Monetisation DB integration", () => {
       for (const name of fs.readdirSync(dir).filter((f) => f.endsWith(".sql")).sort()) {
         if (applied.has(name)) continue;
         await client.query(fs.readFileSync(path.join(dir, name), "utf8"));
-        await client.query(`INSERT INTO elix_schema_migrations (filename) VALUES ($1)`, [name]);
+        await client.query(
+          `INSERT INTO elix_schema_migrations (filename) VALUES ($1) ON CONFLICT (filename) DO NOTHING`,
+          [name],
+        );
       }
     } finally {
       client.release();

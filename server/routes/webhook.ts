@@ -63,9 +63,18 @@ export async function handleStripeWebhook(req: Request, res: Response) {
         await handleSuccessfulPayment(session);
         break;
       }
+      case "transfer.created":
+      case "transfer.updated":
+      case "account.updated": {
+        const { handleStripeConnectPayoutWebhook } = await import(
+          "../lib/monetisation/payoutProvider"
+        );
+        await handleStripeConnectPayoutWebhook(event);
+        break;
+      }
       default:
-        // Stripe is shop-only here. Ignore non-shop/digital events.
-        logger.info({ eventType: event.type }, "Ignoring non-shop Stripe event");
+        // Shop checkout + Connect payout events only.
+        logger.info({ eventType: event.type }, "Ignoring unhandled Stripe event");
     }
 
     res.status(200).json({ received: true });

@@ -28,19 +28,24 @@ type MonetisationConfig = {
 export default function AdminMonetisation() {
   const [cfg, setCfg] = useState<MonetisationConfig | null>(null);
   const [report, setReport] = useState<Record<string, unknown> | null>(null);
+  const [dashboard, setDashboard] = useState<Record<string, unknown> | null>(null);
   const [withdrawals, setWithdrawals] = useState<Record<string, unknown>[]>([]);
   const [reconcileRuns, setReconcileRuns] = useState<Record<string, unknown>[]>([]);
   const [reason, setReason] = useState('Admin update');
   const [loading, setLoading] = useState(true);
+  const [csvText, setCsvText] = useState('');
+  const [csvStore, setCsvStore] = useState<'apple' | 'google'>('apple');
+  const [manualNote, setManualNote] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [c, r, w, rec] = await Promise.all([
+      const [c, r, w, rec, dash] = await Promise.all([
         request('/api/admin/monetisation/config'),
         request('/api/admin/monetisation/reports/summary'),
         request('/api/admin/monetisation/withdrawals-gbp'),
         request('/api/admin/monetisation/reconciliation'),
+        request('/api/admin/monetisation/reports/dashboard'),
       ]);
       setCfg(((c.data as Record<string, unknown>)?.config as MonetisationConfig) || null);
       setReport((r.data as Record<string, unknown>) || null);
@@ -54,6 +59,7 @@ export default function AdminMonetisation() {
           ? ((rec.data as Record<string, unknown>).runs as Record<string, unknown>[])
           : [],
       );
+      setDashboard((dash.data as Record<string, unknown>) || null);
     } catch {
       showToast('Failed to load monetisation admin');
     } finally {
@@ -106,6 +112,65 @@ export default function AdminMonetisation() {
       await load();
     } catch {
       showToast('Withdrawal update failed');
+    }
+  };
+
+  const submitProvider = async (id: string) => {
+    try {
+      const { error } = await request(
+        `/api/admin/monetisation/withdrawals-gbp/${encodeURIComponent(id)}/submit-provider`,
+        { method: 'POST', body: '{}' },
+      );
+      if (error) throw new Error(error.message);
+      showToast('Submitted to payout provider');
+      await load();
+    } catch {
+      showToast('Provider submit failed (sandbox Stripe required)');
+    }
+  };
+
+  const markManualOffline = async (id: string) => {
+    if (manualNote.trim().length < 8) {
+      showToast('Manual exception note required (min 8 chars)');
+      return;
+    }
+    try {
+      const { error } = await request(
+        `/api/admin/monetisation/withdrawals-gbp/${encodeURIComponent(id)}/mark-paid-manual`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ note: manualNote.trim() }),
+        },
+      );
+      if (error) throw new Error(error.message);
+      showToast('Marked paid as MANUAL_OFFLINE_EXCEPTION');
+      await load();
+    } catch {
+      showToast('Manual mark-paid failed');
+    }
+  };
+
+  const importReport = async () => {
+    if (csvText.trim().length < 10) {
+      showToast('Paste official report CSV first');
+      return;
+    }
+    try {
+      const { error } = await request('/api/admin/monetisation/financial-reports/import', {
+        method: 'POST',
+        body: JSON.stringify({
+          store: csvStore,
+          reportType: 'earnings',
+          sourceFilename: `${csvStore}-paste.csv`,
+          csvText,
+        }),
+      });
+      if (error) throw new Error(error.message);
+      showToast('Financial report imported');
+      setCsvText('');
+      await load();
+    } catch {
+      showToast('Report import failed');
     }
   };
 
@@ -232,10 +297,45 @@ export default function AdminMonetisation() {
         </section>
 
         <section className="space-y-3">
+          <h2 className="text-xl font-bold">Ops dashboard</h2>
+          <pre className="text-xs bg-black/40 border border-white/10 rounded-lg p-3 overflow-auto max-h-72">
+            {JSON.stringify(dashboard, null, 2)}
+          </pre>
+        </section>
+
+        <section className="space-y-3">
           <h2 className="text-xl font-bold">Revenue report</h2>
           <pre className="text-xs bg-black/40 border border-white/10 rounded-lg p-3 overflow-auto max-h-64">
             {JSON.stringify(report, null, 2)}
           </pre>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-xl font-bold">Financial report import</h2>
+          <p className="text-xs text-white/50">
+            Paste official Apple / Google earnings CSV. Commission is never invented — see docs/STORE_FINANCIAL_SETTLEMENT.md.
+          </p>
+          <select
+            className="bg-black/40 border border-white/10 rounded px-2 py-1 text-sm"
+            value={csvStore}
+            onChange={(e) => setCsvStore(e.target.value as 'apple' | 'google')}
+          >
+            <option value="apple">Apple</option>
+            <option value="google">Google</option>
+          </select>
+          <textarea
+            className="w-full h-28 bg-black/40 border border-white/10 rounded-lg p-2 text-xs font-mono"
+            value={csvText}
+            onChange={(e) => setCsvText(e.target.value)}
+            placeholder="Paste CSV…"
+          />
+          <button
+            type="button"
+            onClick={() => void importReport()}
+            className="px-3 py-2 rounded-lg bg-[#FF3B3F] text-black text-sm font-bold"
+          >
+            Import report
+          </button>
         </section>
 
         <section className="space-y-3">
@@ -256,6 +356,12 @@ export default function AdminMonetisation() {
 
         <section className="space-y-3">
           <h2 className="text-xl font-bold">GBP withdrawals</h2>
+          <input
+            className="w-full bg-black/40 border border-white/10 rounded px-2 py-1.5 text-xs"
+            placeholder="Manual offline exception note (required for manual paid)"
+            value={manualNote}
+            onChange={(e) => setManualNote(e.target.value)}
+          />
           <div className="space-y-2">
             {withdrawals.length === 0 ? (
               <p className="text-white/40 text-sm">No GBP withdrawals</p>
@@ -269,6 +375,7 @@ export default function AdminMonetisation() {
                   <span>{String(w.creator_user_id)}</span>
                   <span className="tabular-nums">{Number(w.amount_pence || 0)}p</span>
                   <span>{String(w.status)}</span>
+                  <span className="text-xs text-white/40">{String(w.payment_rail || 'none')}</span>
                   {['pending', 'approved', 'processing'].includes(String(w.status)) ? (
                     <>
                       <button
@@ -280,10 +387,17 @@ export default function AdminMonetisation() {
                       </button>
                       <button
                         type="button"
-                        className="px-2 py-1 rounded bg-white/10"
-                        onClick={() => void setWdStatus(String(w.id), 'paid')}
+                        className="px-2 py-1 rounded bg-[#FF3B3F] text-black font-bold"
+                        onClick={() => void submitProvider(String(w.id))}
                       >
-                        Mark paid
+                        Submit Stripe payout
+                      </button>
+                      <button
+                        type="button"
+                        className="px-2 py-1 rounded bg-white/10"
+                        onClick={() => void markManualOffline(String(w.id))}
+                      >
+                        Manual offline paid
                       </button>
                       <button
                         type="button"
