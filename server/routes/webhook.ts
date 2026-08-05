@@ -30,14 +30,21 @@ function resolveStripeWebhookSecret(): string {
   return liveSecret;
 }
 
-/** Secrets to try for signature verification (live first, then test). */
-function webhookSecretsToTry(): string[] {
+/** Secrets to try for signature verification (env live/test, then Neon runtime fallback). */
+async function webhookSecretsToTry(): Promise<string[]> {
   const primary = resolveStripeWebhookSecret();
   const testSecret = (process.env.STRIPE_WEBHOOK_SECRET_TEST || "").trim();
   const liveSecret = (process.env.STRIPE_WEBHOOK_SECRET || "").trim();
   const out: string[] = [];
   for (const s of [primary, liveSecret, testSecret]) {
     if (s.startsWith("whsec_") && !out.includes(s)) out.push(s);
+  }
+  try {
+    const { getRuntimeConfigValue } = await import("../lib/runtimeConfig");
+    const dbTest = (await getRuntimeConfigValue("STRIPE_WEBHOOK_SECRET_TEST")) || "";
+    if (dbTest.startsWith("whsec_") && !out.includes(dbTest)) out.push(dbTest);
+  } catch {
+    /* table may not exist pre-migrate */
   }
   return out;
 }
@@ -50,7 +57,7 @@ export async function handleStripeWebhook(req: Request, res: Response) {
 
   const isProd = process.env.NODE_ENV === "production";
   const sig = req.headers["stripe-signature"] as string | undefined;
-  const secrets = webhookSecretsToTry();
+  const secrets = await webhookSecretsToTry();
 
   let event: Stripe.Event;
 
