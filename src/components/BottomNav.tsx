@@ -28,8 +28,8 @@ function isActiveRoute(pathname: string, path: string): boolean {
 }
 
 /**
- * Main bottom tab bar — discs + half silver/violet rings restored.
- * Active tab uses Royal Violet; structure matches pre-theme chrome.
+ * Main bottom tab bar — metallic silver → white when selected.
+ * No purple on Home / Friends / Inbox / Profile.
  */
 export const BottomNav = () => {
   const navigate = useNavigate();
@@ -90,11 +90,12 @@ export const BottomNav = () => {
       aria-label="Main navigation"
     >
       <div className="flex justify-center pointer-events-none">
-        <div className="feed-column-width pointer-events-auto bg-transparent border-t border-[#2A2D33] min-h-[var(--nav-height)]">
+        <div className="feed-column-width pointer-events-auto bg-[rgba(20,20,20,0.38)] backdrop-blur-md border-t border-white/[0.14] min-h-[var(--nav-height)]">
           <div className="flex items-center justify-around px-1 pt-1.5 pb-1">
             {NAV_ITEMS.map(({ path, label, Icon, center }) => {
               const active = isActiveRoute(location.pathname, path);
               const size = ICON_SIZE;
+              const iconColor = active ? "#FFFFFF" : "#A7ABB2";
 
               return (
                 <button
@@ -112,7 +113,7 @@ export const BottomNav = () => {
                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="relative z-[2] block" aria-hidden>
                         <path
                           d="M12 5v14M5 12h14"
-                          stroke="url(#elixSilverViolet)"
+                          stroke="#E8EAED"
                           strokeWidth="2.75"
                           strokeLinecap="round"
                         />
@@ -121,24 +122,18 @@ export const BottomNav = () => {
                       <Icon
                         size={size}
                         strokeWidth={active ? 2.35 : 2}
-                        className={active ? "text-[#6F3FF5]" : "royce-icon-gold"}
-                        style={active ? { color: "#6F3FF5", stroke: "#6F3FF5" } : undefined}
+                        className="relative z-[2]"
+                        style={{ color: iconColor, stroke: iconColor }}
                       />
                     )}
                   </span>
                   <span
-                    className={`elix-silver-red-text text-[9px] font-semibold leading-none tracking-wide ${
-                      active || center ? "" : "opacity-55"
-                    }`}
+                    className="text-[9px] font-semibold leading-none tracking-wide"
                     style={{
                       marginTop: "1mm",
-                      ...(active
-                        ? {
-                            backgroundImage: "none",
-                            WebkitTextFillColor: "#6F3FF5",
-                            color: "#6F3FF5",
-                          }
-                        : undefined),
+                      color: active || center ? "#FFFFFF" : "#A7ABB2",
+                      WebkitTextFillColor: active || center ? "#FFFFFF" : "#A7ABB2",
+                      backgroundImage: "none",
                     }}
                   >
                     {label}

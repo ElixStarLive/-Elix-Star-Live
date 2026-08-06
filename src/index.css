@@ -37,35 +37,41 @@
 
 @layer base {
   :root {
-    /* Obsidian + Platinum silver + Royal Violet accents */
-    --color-primary: #6F3FF5;
-    --color-secondary: #D8D9DD;
-    --color-gold: #D8D9DD;
+    /* Owner system — one transparent dark UI; metallic silver; LIVE red only */
+    --color-primary: #E8EAED;
+    --color-secondary: #D1D4D8;
+    --color-gold: #E8EAED;
     --color-gold-bright: #FFFFFF;
-    --color-gold-light: #B8BDC9;
-    --color-gold-dark: #8B9098;
-    --color-gold-premium: #D8D9DD;
-    --color-rose: #6F3FF5;
-    --color-purple-bright: #8B5CFF;
-    --color-purple: #6F3FF5;
-    --color-purple-hover: #8B5CFF;
-    --color-purple-pressed: #5B2ED6;
+    --color-gold-light: #E8EAED;
+    --color-gold-dark: #A7ABB2;
+    --color-gold-premium: #E8EAED;
+    --color-rose: #FF2D55;
+    --color-purple-bright: #E8EAED;
+    --color-purple: #E8EAED;
+    --color-purple-hover: #FFFFFF;
+    --color-purple-pressed: #A7ABB2;
     --color-coin: #D9A62E;
-    --color-hover-red: #8B5CFF;
-    --color-deep-red: #5B2ED6;
-    --color-dark-red: #5B2ED6;
-    --color-hover-purple: #8B5CFF;
-    --color-pressed-purple: #5B2ED6;
-    /* Page shells clear — only wallpaper + sheet/nav glass */
-    --color-background: transparent;
-    --color-surface: transparent;
-    --color-card: rgba(255, 255, 255, 0.06);
-    --color-card-elevated: rgba(255, 255, 255, 0.06);
-    /* Single glass recipe = ShareModal / 3-dots panel */
-    --color-glass-bg: rgba(10, 10, 10, 0.72);
-    --color-glass-panel: rgba(10, 10, 10, 0.72);
-    --color-glass-border: #2A2D33;
-    --color-border: #2A2D33;
+    --color-hover-red: #FF2D55;
+    --color-deep-red: #FF2D55;
+    --color-dark-red: #FF2D55;
+    --color-hover-purple: #FFFFFF;
+    --color-pressed-purple: #A7ABB2;
+    --color-live: #FF2D55;
+    --color-icon: #E8EAED;
+    --color-icon-active: #FFFFFF;
+    --color-icon-inactive: #A7ABB2;
+    --color-icon-circle: rgba(8, 8, 10, 0.48);
+    --color-text: #FFFFFF;
+    --color-text-secondary: #D1D4D8;
+    /* One transparent dark background — entire app */
+    --color-background: rgba(20, 20, 20, 0.38);
+    --color-surface: rgba(20, 20, 20, 0.38);
+    --color-card: rgba(20, 20, 20, 0.38);
+    --color-card-elevated: rgba(20, 20, 20, 0.38);
+    --color-glass-bg: rgba(20, 20, 20, 0.38);
+    --color-glass-panel: rgba(20, 20, 20, 0.38);
+    --color-glass-border: rgba(255, 255, 255, 0.14);
+    --color-border: rgba(255, 255, 255, 0.14);
     --elix-app-bg: url('/elix-app-bg.png');
     --elix-glass-blur: blur(12px);
     --color-destructive: #D91F2D;
@@ -1135,15 +1141,15 @@ video::-webkit-media-controls-overlay-enclosure,
 /* Live transparent black glass — video shows through (exact design values) */
 /* Live transparent glass — match ShareModal / 3-dots panel */
 .elix-glass {
-  background: rgba(10, 10, 10, 0.72) !important;
-  border: 1px solid #2A2D33 !important;
+  background: rgba(20, 20, 20, 0.38) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   box-shadow: none !important;
 }
 .elix-glass-panel {
-  background: rgba(10, 10, 10, 0.72) !important;
-  border: 1px solid #2A2D33 !important;
+  background: rgba(20, 20, 20, 0.38) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   box-shadow: none !important;
@@ -1184,8 +1190,8 @@ video::-webkit-media-controls-overlay-enclosure,
   box-sizing: border-box;
   border-radius: 9999px;
   border: none !important;
-  /* Same lightness as Add sound pill (bg-black/50 + blur) */
-  background: rgba(0, 0, 0, 0.5) !important;
+  /* Same lightness as Add sound pill — owner icon circle */
+  background: rgba(8, 8, 10, 0.48) !important;
   -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
   box-shadow: none;
@@ -1252,7 +1258,7 @@ nav[aria-label="Main navigation"] .royce-glow-disc {
   background: none !important;
 }
 
-/* Bottom nav ONLY — half silver / half Royal Violet circle rings (restored contrast) */
+/* Bottom nav ONLY — silver ring (no purple) */
 nav[aria-label="Main navigation"] .royce-glow-disc::before {
   content: "" !important;
   display: block !important;
@@ -1261,7 +1267,7 @@ nav[aria-label="Main navigation"] .royce-glow-disc::before {
   border-radius: inherit;
   padding: 2px;
   box-sizing: border-box;
-  background: linear-gradient(135deg, #D8D9DD 0%, #D8D9DD 50%, #6F3FF5 50%, #6F3FF5 100%);
+  background: rgba(255, 255, 255, 0.14);
   -webkit-mask:
     linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
@@ -1280,11 +1286,11 @@ div.feed-column-width button[title] > span > span {
   background-clip: unset !important;
 }
 
-/* Active bottom-nav icon — Royal Violet */
+/* Active bottom-nav — brilliant white (not purple) */
 nav[aria-label="Main navigation"] button[aria-current="page"] .royce-icon-gold,
 nav[aria-label="Main navigation"] button[aria-current="page"] svg.lucide {
-  color: #6F3FF5 !important;
-  stroke: #6F3FF5 !important;
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
   fill: none !important;
   filter: none !important;
 }
@@ -1292,8 +1298,20 @@ nav[aria-label="Main navigation"] button[aria-current="page"] .elix-silver-red-t
   background-image: none !important;
   -webkit-background-clip: unset !important;
   background-clip: unset !important;
-  -webkit-text-fill-color: #6F3FF5 !important;
-  color: #6F3FF5 !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  color: #FFFFFF !important;
+}
+/* Inactive bottom-nav labels/icons — darker silver */
+nav[aria-label="Main navigation"] button:not([aria-current="page"]) .royce-icon-gold,
+nav[aria-label="Main navigation"] button:not([aria-current="page"]) svg.lucide {
+  color: #A7ABB2 !important;
+  stroke: #A7ABB2 !important;
+}
+nav[aria-label="Main navigation"] button:not([aria-current="page"]) .elix-silver-red-text {
+  background-image: none !important;
+  -webkit-text-fill-color: #A7ABB2 !important;
+  color: #A7ABB2 !important;
+  opacity: 1 !important;
 }
 
 .royce-glow-disc > *,
@@ -1461,7 +1479,7 @@ svg.lucide.fill-silver-full.royce-icon-gold {
   display: none !important;
 }
 
-/* ═══ FULL APP: clear pages (wallpaper) + same More Options glass on every sheet ═══ */
+/* ═══ Owner system: one transparent dark bg + silver UI; LIVE red only ═══ */
 html,
 body {
   background-color: #000000 !important;
@@ -1482,49 +1500,42 @@ body::before {
   position: relative;
   z-index: 1;
   background: transparent !important;
+  color: #FFFFFF;
 }
 
-/* Every page / shell / nav — CLEAR */
-.page-above-bottom-nav,
+/* One transparent dark background — pages + nav + sheets */
 .page-above-bottom-nav__inner,
 .bg-background,
 .bg-surface,
 .min-h-screen.bg-background,
-.min-h-screen.bg-transparent,
 .app-live-column,
-main.feed-column-width,
-.elix-live-room,
-.app-live-column-host,
 .bg-card,
 .bg-card-elevated,
 #root nav[aria-label="Main navigation"] .feed-column-width,
-#root nav[aria-label="Main navigation"] .feed-column-width[class*="bg-"],
 #root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
-#root .feed-column-width.h-\[var\(--topnav-bar-height\)\] {
-  background-color: transparent !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-/* Remapped dark fills on page content — CLEAR */
-#root [class*="bg-[rgba(0,0,0,0.35)]"],
-#root [class*="bg-[rgba(10,10,10,0.72)]"] {
-  background-color: transparent !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-/*
- * EVERY floating sheet = exact More Options / ShareModal glass.
- * (rounded-t sheet only — does not paint full pages)
- */
-#root [class*="rounded-t-2xl"][class*="bg-[rgba(10,10,10,0.72)]"],
-#root [class*="rounded-t-2xl"][class*="backdrop-blur"],
+#root .feed-column-width.h-\[var\(--topnav-bar-height\)\],
+#root [class*="rounded-t-2xl"][class*="bg-[rgba"],
 .bottom-sheet-above-nav,
 #root .elix-glass,
 #root .elix-glass-panel {
-  background-color: rgba(10, 10, 10, 0.72) !important;
+  background-color: rgba(20, 20, 20, 0.38) !important;
   backdrop-filter: blur(12px) !important;
   -webkit-backdrop-filter: blur(12px) !important;
-  border-color: #2A2D33;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+/* Outer frames / video paint stay clear */
+.page-above-bottom-nav,
+main.feed-column-width,
+.elix-live-room,
+.app-live-column-host {
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Remapped washes → same one transparent dark (no stacking darker recipes) */
+#root [class*="bg-[rgba(0,0,0,0.35)]"],
+#root [class*="bg-[rgba(10,10,10,0.72)]"] {
+  background-color: rgba(20, 20, 20, 0.38) !important;
 }

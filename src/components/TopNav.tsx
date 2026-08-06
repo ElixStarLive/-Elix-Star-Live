@@ -14,8 +14,8 @@ const TOP_TABS = [
 type TopTabPath = (typeof TOP_TABS)[number]["path"];
 
 /**
- * For You top tab bar — LIVE · STEM · Explore · Following · Shop · For You.
- * Structure restored; colors only follow premium theme.
+ * For You top tab bar — LIVE (#FF2D55) · STEM · Explore · Following · Shop · For You.
+ * Non-LIVE tabs: metallic silver → white when selected.
  */
 export const TopNav = () => {
   const navigate = useNavigate();
@@ -86,12 +86,13 @@ export const TopNav = () => {
       className="fixed left-0 right-0 z-[9999] flex justify-center pointer-events-none"
       style={{ top: "var(--topnav-anchor-top)" }}
     >
-      <div className="feed-column-width pointer-events-auto bg-transparent border-b border-[#2A2D33] min-h-[var(--topnav-bar-height)] h-[var(--topnav-bar-height)]">
+      <div className="feed-column-width pointer-events-auto bg-[rgba(20,20,20,0.38)] backdrop-blur-md border-b border-white/[0.14] min-h-[var(--topnav-bar-height)] h-[var(--topnav-bar-height)]">
         <div className="flex items-center h-full w-full px-1.5 gap-0.5">
           <div className="flex flex-1 items-center justify-between min-w-0 h-full flex-nowrap overflow-x-auto no-scrollbar gap-0">
             {TOP_TABS.map((tab) => {
               const isPrimary = "primary" in tab && tab.primary;
               const isLive = "live" in tab && tab.live;
+              const labelColor = isLive ? "#FF2D55" : isPrimary ? "#FFFFFF" : "#A7ABB2";
               return (
                 <button
                   key={tab.label}
@@ -107,38 +108,18 @@ export const TopNav = () => {
                       <Tv
                         size={11}
                         strokeWidth={2.25}
-                        className="shrink-0 -translate-y-[0.5mm] text-[#6F3FF5]"
-                        style={{ color: "#6F3FF5", stroke: "#6F3FF5" }}
+                        className="shrink-0 -translate-y-[0.5mm]"
+                        style={{ color: "#FF2D55", stroke: "#FF2D55" }}
                         aria-hidden
                       />
                     ) : null}
                     <span
-                      className={`text-[10px] font-bold tracking-wide ${
-                        isLive
-                          ? "text-[#6F3FF5]"
-                          : isPrimary
-                            ? "text-white"
-                            : "text-[#D8D9DD] opacity-70"
-                      }`}
-                      style={
-                        isLive
-                          ? {
-                              backgroundImage: "none",
-                              WebkitTextFillColor: "#6F3FF5",
-                              color: "#6F3FF5",
-                            }
-                          : isPrimary
-                            ? {
-                                backgroundImage: "none",
-                                WebkitTextFillColor: "#FFFFFF",
-                                color: "#FFFFFF",
-                              }
-                            : {
-                                backgroundImage: "none",
-                                WebkitTextFillColor: "#D8D9DD",
-                                color: "#D8D9DD",
-                              }
-                      }
+                      className="text-[10px] font-bold tracking-wide"
+                      style={{
+                        backgroundImage: "none",
+                        WebkitTextFillColor: labelColor,
+                        color: labelColor,
+                      }}
                     >
                       {tab.label}
                     </span>
@@ -155,7 +136,7 @@ export const TopNav = () => {
             style={{ WebkitTapHighlightColor: "transparent" }}
             aria-label="Search"
           >
-            <Search size={13} strokeWidth={2.25} className="text-gold-bright" />
+            <Search size={13} strokeWidth={2.25} style={{ color: "#E8EAED", stroke: "#E8EAED" }} />
           </button>
         </div>
       </div>
