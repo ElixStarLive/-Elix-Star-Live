@@ -1356,7 +1356,7 @@ nav[aria-label="Main navigation"] button[aria-current="page"] .elix-silver-red-t
   box-shadow: none !important;
 }
 
-/* Icon line — diagonal half silver / half red (same colors, no glow) */
+/* Icon line — silver only (purple reserved for accents) */
 svg.lucide {
   color: #D8D9DD !important;
   stroke: url(#elixSilverRed) !important;

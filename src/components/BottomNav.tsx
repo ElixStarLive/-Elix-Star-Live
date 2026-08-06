@@ -112,7 +112,7 @@ export const BottomNav = () => {
                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="relative z-[2] block" aria-hidden>
                         <path
                           d="M12 5v14M5 12h14"
-                          stroke="url(#elixSilverRed)"
+                          stroke="url(#elixSilverViolet)"
                           strokeWidth="2.75"
                           strokeLinecap="round"
                         />
