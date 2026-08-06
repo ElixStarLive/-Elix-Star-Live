@@ -86,7 +86,7 @@ export const TopNav = () => {
       className="fixed left-0 right-0 z-[9999] flex justify-center pointer-events-none"
       style={{ top: "var(--topnav-anchor-top)" }}
     >
-      <div className="feed-column-width pointer-events-auto bg-[rgba(0,0,0,0.35)] min-h-[var(--topnav-bar-height)] h-[var(--topnav-bar-height)]">
+      <div className="feed-column-width pointer-events-auto bg-[rgba(0,0,0,0.35)] border-b border-[#2A2D33] min-h-[var(--topnav-bar-height)] h-[var(--topnav-bar-height)]" style={{ backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)" }}>
         <div className="flex items-center h-full w-full px-1.5 gap-0.5">
           <div className="flex flex-1 items-center justify-between min-w-0 h-full flex-nowrap overflow-x-auto no-scrollbar gap-0">
             {TOP_TABS.map((tab) => {
@@ -107,15 +107,15 @@ export const TopNav = () => {
                       <Tv
                         size={11}
                         strokeWidth={2.25}
-                        className="shrink-0 -translate-y-[0.5mm] text-[#F0C86B]"
-                        style={{ color: "#F0C86B", stroke: "#F0C86B" }}
+                        className="shrink-0 -translate-y-[0.5mm] text-[#6F3FF5]"
+                        style={{ color: "#6F3FF5", stroke: "#6F3FF5" }}
                         aria-hidden
                       />
                     ) : null}
                     <span
                       className={`text-[10px] font-bold tracking-wide ${
                         isLive
-                          ? "text-[#F0C86B]"
+                          ? "text-[#6F3FF5]"
                           : isPrimary
                             ? "text-white"
                             : "text-[#D8D9DD] opacity-70"
@@ -124,8 +124,8 @@ export const TopNav = () => {
                         isLive
                           ? {
                               backgroundImage: "none",
-                              WebkitTextFillColor: "#F0C86B",
-                              color: "#F0C86B",
+                              WebkitTextFillColor: "#6F3FF5",
+                              color: "#6F3FF5",
                             }
                           : isPrimary
                             ? {

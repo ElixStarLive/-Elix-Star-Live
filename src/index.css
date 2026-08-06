@@ -37,25 +37,25 @@
 
 @layer base {
   :root {
-    /* Style guide — gold glass premium (exact hex from design) */
-    --color-primary: #F0C86B;
+    /* Obsidian glass + Royal Violet accents */
+    --color-primary: #6F3FF5;
     --color-secondary: #E5E7EB;
-    --color-gold: #F0C86B;
-    --color-gold-bright: #F6E4A6;
-    --color-gold-light: #F6E4A6;
-    --color-gold-dark: #D9D0B3;
-    --color-gold-premium: #F0C86B;
-    --color-rose: #F0C86B;
-    --color-purple-bright: #F6E4A6;
-    --color-purple: #F0C86B;
-    --color-purple-hover: #F6E4A6;
-    --color-purple-pressed: #C4A052;
-    --color-coin: #F0C86B;
-    --color-hover-red: #F6E4A6;
-    --color-deep-red: #C4A052;
-    --color-dark-red: #C4A052;
-    --color-hover-purple: #F6E4A6;
-    --color-pressed-purple: #C4A052;
+    --color-gold: #D8D9DD;
+    --color-gold-bright: #FFFFFF;
+    --color-gold-light: #B8BDC9;
+    --color-gold-dark: #8B9098;
+    --color-gold-premium: #D8D9DD;
+    --color-rose: #6F3FF5;
+    --color-purple-bright: #8B5CFF;
+    --color-purple: #6F3FF5;
+    --color-purple-hover: #8B5CFF;
+    --color-purple-pressed: #5B2ED6;
+    --color-coin: #D9A62E;
+    --color-hover-red: #8B5CFF;
+    --color-deep-red: #5B2ED6;
+    --color-dark-red: #5B2ED6;
+    --color-hover-purple: #8B5CFF;
+    --color-pressed-purple: #5B2ED6;
     --color-background: rgba(0, 0, 0, 0.35);
     --color-surface: rgba(0, 0, 0, 0.35);
     --color-card: rgba(255, 255, 255, 0.06);
@@ -956,9 +956,9 @@ video::-webkit-media-controls-overlay-enclosure,
 /* ═══ GLOBAL: writing = white → platinum silver only (purple is accent-only) ═══ */
 #root {
   --elix-write: linear-gradient(90deg, #ffffff 0%, #e5e7eb 55%, #b3b7bd 100%);
-  --elix-accent: #F0C86B;
-  --elix-accent-hover: #F6E4A6;
-  --elix-accent-pressed: #C4A052;
+  --elix-accent: #6F3FF5;
+  --elix-accent-hover: #8B5CFF;
+  --elix-accent-pressed: #5B2ED6;
 }
 
 /* Shrink-wrap gradient to glyphs — never stretch across flex-1 empty space */
@@ -991,23 +991,22 @@ video::-webkit-media-controls-overlay-enclosure,
 }
 
 /*
- * Primary Gold fills (#F0C86B) — style guide accent buttons.
- * Dark text on gold for contrast (Follow / CTAs).
+ * Royal Violet accent fills — white text on violet (Follow / CTAs).
  */
-#root :is(button, a, [role='button'])[class*='bg-[#F0C86B]']:not([class*='bg-[#F0C86B]/']),
+#root :is(button, a, [role='button'])[class*='bg-[#6F3FF5]']:not([class*='bg-[#6F3FF5]/']),
 #root :is(button, a, [role='button']).bg-primary,
 #root :is(button, a, [role='button']).elix-solid-red,
 #root :is(button, a, [role='button']).elix-solid-accent,
 #root :is(button, a, [role='button']).elix-accent,
 #root :is(button, a, [role='button'])[data-elix-accent='true'] {
-  background-color: #F0C86B !important;
+  background-color: #6F3FF5 !important;
   background-image: none !important;
   border-color: transparent !important;
-  color: #111111 !important;
-  -webkit-text-fill-color: #111111 !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
   box-shadow: none !important;
 }
-#root :is(button, a, [role='button'])[class*='bg-[#F0C86B]']:not([class*='bg-[#F0C86B]/']) :where(span, p, small, strong, b, label),
+#root :is(button, a, [role='button'])[class*='bg-[#6F3FF5]']:not([class*='bg-[#6F3FF5]/']) :where(span, p, small, strong, b, label),
 #root :is(button, a, [role='button']).bg-primary :where(span, p, small, strong, b, label),
 #root :is(button, a, [role='button']).elix-solid-red :where(span, p, small, strong, b, label),
 #root :is(button, a, [role='button']).elix-solid-accent :where(span, p, small, strong, b, label),
@@ -1016,40 +1015,40 @@ video::-webkit-media-controls-overlay-enclosure,
   background-image: none !important;
   -webkit-background-clip: unset !important;
   background-clip: unset !important;
-  -webkit-text-fill-color: #111111 !important;
-  color: #111111 !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  color: #FFFFFF !important;
 }
-#root :is(button, a, [role='button'])[class*='bg-[#F0C86B]']:hover,
+#root :is(button, a, [role='button'])[class*='bg-[#6F3FF5]']:hover,
 #root :is(button, a, [role='button']).bg-primary:hover,
 #root :is(button, a, [role='button']).elix-solid-accent:hover,
 #root :is(button, a, [role='button']).elix-accent:hover,
 #root :is(button, a, [role='button'])[data-elix-accent='true']:hover {
-  background-color: #F6E4A6 !important;
+  background-color: #8B5CFF !important;
 }
-#root :is(button, a, [role='button'])[class*='bg-[#F0C86B]']:active,
+#root :is(button, a, [role='button'])[class*='bg-[#6F3FF5]']:active,
 #root :is(button, a, [role='button']).bg-primary:active,
 #root :is(button, a, [role='button']).elix-solid-accent:active,
 #root :is(button, a, [role='button']).elix-accent:active,
 #root :is(button, a, [role='button'])[data-elix-accent='true']:active {
-  background-color: #C4A052 !important;
+  background-color: #5B2ED6 !important;
 }
 
-/* Soft gold tints stay glass */
-#root :is(button, a, [role='button'])[class*='bg-[#F0C86B]/'] {
-  background-color: rgba(240, 200, 107, 0.18) !important;
+/* Soft violet tints */
+#root :is(button, a, [role='button'])[class*='bg-[#6F3FF5]/'] {
+  background-color: rgba(111, 63, 245, 0.18) !important;
   box-shadow: none !important;
 }
 
-/* Progress bars + loaders — Primary Gold */
+/* Progress bars + loaders — Royal Violet */
 #root progress::-webkit-progress-value,
 #root .elix-progress-fill,
 #root [data-elix-progress] {
   background-color: var(--color-primary) !important;
 }
-#root .animate-spin.border-\[\#F0C86B\],
+#root .animate-spin.border-\[\#6F3FF5\],
 #root .elix-loader {
-  border-color: rgba(240, 200, 107, 0.25);
-  border-top-color: #F0C86B;
+  border-color: rgba(111, 63, 245, 0.25);
+  border-top-color: #6F3FF5;
 }
 
 /* Do not kill accent borders on Follow / Live / selected tabs */
@@ -1131,8 +1130,8 @@ video::-webkit-media-controls-overlay-enclosure,
   background-image: none !important;
   -webkit-background-clip: unset !important;
   background-clip: unset !important;
-  -webkit-text-fill-color: #111111 !important;
-  color: #111111 !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  color: #FFFFFF !important;
 }
 
 .stroke-gold-metallic {
@@ -1234,7 +1233,7 @@ nav[aria-label="Main navigation"] .royce-glow-disc {
   border-radius: inherit;
   padding: var(--shutter-ring, 4px);
   box-sizing: border-box;
-  background: linear-gradient(135deg, #D8D9DD 0%, #D8D9DD 50%, #F0C86B 50%, #F0C86B 100%);
+  background: linear-gradient(135deg, #D8D9DD 0%, #D8D9DD 50%, #6F3FF5 50%, #6F3FF5 100%);
   -webkit-mask:
     linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
@@ -1269,7 +1268,7 @@ nav[aria-label="Main navigation"] .royce-glow-disc::before {
   border-radius: inherit;
   padding: 2px;
   box-sizing: border-box;
-  background: linear-gradient(135deg, #D8D9DD 0%, #D8D9DD 50%, #F0C86B 50%, #F0C86B 100%);
+  background: linear-gradient(135deg, #D8D9DD 0%, #D8D9DD 50%, #6F3FF5 50%, #6F3FF5 100%);
   -webkit-mask:
     linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
@@ -1291,8 +1290,8 @@ div.feed-column-width button[title] > span > span {
 /* Active bottom-nav icon — Royal Violet */
 nav[aria-label="Main navigation"] button[aria-current="page"] .royce-icon-gold,
 nav[aria-label="Main navigation"] button[aria-current="page"] svg.lucide {
-  color: #F0C86B !important;
-  stroke: #F0C86B !important;
+  color: #6F3FF5 !important;
+  stroke: #6F3FF5 !important;
   fill: none !important;
   filter: none !important;
 }
@@ -1300,8 +1299,8 @@ nav[aria-label="Main navigation"] button[aria-current="page"] .elix-silver-red-t
   background-image: none !important;
   -webkit-background-clip: unset !important;
   background-clip: unset !important;
-  -webkit-text-fill-color: #F0C86B !important;
-  color: #F0C86B !important;
+  -webkit-text-fill-color: #6F3FF5 !important;
+  color: #6F3FF5 !important;
 }
 
 .royce-glow-disc > *,
@@ -1354,7 +1353,7 @@ nav[aria-label="Main navigation"] button[aria-current="page"] .elix-silver-red-t
   border-radius: inherit;
   padding: 2px;
   box-sizing: border-box;
-  background: linear-gradient(135deg, #D8D9DD 0%, #D8D9DD 50%, #F0C86B 50%, #F0C86B 100%);
+  background: linear-gradient(135deg, #D8D9DD 0%, #D8D9DD 50%, #6F3FF5 50%, #6F3FF5 100%);
   -webkit-mask:
     linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
@@ -1374,8 +1373,8 @@ nav[aria-label="Main navigation"] button[aria-current="page"] .elix-silver-red-t
   background: none;
   -webkit-background-clip: unset;
   background-clip: unset;
-  color: #F0C86B;
-  -webkit-text-fill-color: #F0C86B;
+  color: #6F3FF5;
+  -webkit-text-fill-color: #6F3FF5;
   pointer-events: none;
   user-select: none;
 }
@@ -1513,10 +1512,10 @@ nav[aria-label="Main navigation"] .feed-column-width,
 /* Active accents = Primary Gold */
 #root nav[aria-label="Main navigation"] button[aria-current="page"] svg,
 #root nav[aria-label="Main navigation"] button[aria-current="page"] .royce-icon-gold {
-  color: #F0C86B !important;
-  stroke: #F0C86B !important;
+  color: #6F3FF5 !important;
+  stroke: #6F3FF5 !important;
 }
 #root nav[aria-label="Main navigation"] button[aria-current="page"] span:last-child {
-  color: #F0C86B !important;
-  -webkit-text-fill-color: #F0C86B !important;
+  color: #6F3FF5 !important;
+  -webkit-text-fill-color: #6F3FF5 !important;
 }

@@ -435,7 +435,7 @@ export default function VideoFeed() {
   /*  Render                                                           */
   /* ================================================================ */
   return (
-    <div className="h-full min-h-0 w-full flex flex-col bg-black relative">
+    <div className="h-full min-h-0 w-full flex flex-col bg-transparent relative">
       {/* Fills main between fixed TopNav and BottomNav; each slide is one viewport tall */}
       <div
         ref={containerRef}
@@ -460,11 +460,11 @@ export default function VideoFeed() {
               <div
                 key={`live-${item.stream.streamKey}`}
                 data-feed-index={index}
-                className="h-full w-full shrink-0 snap-start flex flex-col items-center bg-black"
+                className="h-full w-full shrink-0 snap-start flex flex-col items-center bg-transparent"
                 style={slideStyle}
               >
-                <div className="w-full flex-1 min-h-0 relative overflow-hidden bg-black">
-                  <Suspense fallback={<div className="w-full h-full bg-black" />}>
+                <div className="w-full flex-1 min-h-0 relative overflow-hidden bg-transparent">
+                  <Suspense fallback={<div className="w-full h-full bg-transparent" />}>
                     <InlineLiveViewer
                       key={`foryou-live-${item.stream.streamKey}-v3`}
                       streamKey={item.stream.streamKey}
@@ -483,10 +483,10 @@ export default function VideoFeed() {
             <div
               key={`video-${item.videoId}`}
               data-feed-index={index}
-              className="h-full w-full shrink-0 snap-start flex flex-col items-center bg-black"
+              className="h-full w-full shrink-0 snap-start flex flex-col items-center bg-transparent"
               style={slideStyle}
             >
-              <div className="w-full flex-1 min-h-0 relative overflow-hidden bg-black">
+              <div className="w-full flex-1 min-h-0 relative overflow-hidden bg-transparent">
                 <EnhancedVideoPlayer
                   videoId={item.videoId}
                   isActive={activeIndex === index}
@@ -500,7 +500,7 @@ export default function VideoFeed() {
       {/* ---- Loading spinner ---- */}
       {loading && feedItems.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-8 h-8 border-2 border-[#F0C86B]/25 border-t-[#F0C86B] rounded-full animate-spin elix-loader" />
+          <div className="w-8 h-8 border-2 border-[#6F3FF5]/25 border-t-[#6F3FF5] rounded-full animate-spin elix-loader" />
         </div>
       )}
 
