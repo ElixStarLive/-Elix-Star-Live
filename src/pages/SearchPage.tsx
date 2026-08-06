@@ -4,7 +4,6 @@ import { Search as SearchIcon, X } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AvatarRing } from '../components/AvatarRing';
 import { TrendingSnapFeed } from '../components/TrendingSnapFeed';
-import { request } from '../lib/apiClient';
 import { resolveGridThumbnailUrl, resolveVideoPlaybackUrl } from '../lib/bunnyStorage';
 import { useVideoStore } from '../store/useVideoStore';
 import { apiFetchProfiles } from '../features/feed/feedApi';

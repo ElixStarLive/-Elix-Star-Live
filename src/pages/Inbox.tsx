@@ -276,13 +276,6 @@ export default function Inbox() {
     [navigate],
   );
 
-  const openUserProfile = useCallback(
-    (userId: string) => {
-      navigate(`/profile/${userId}`);
-    },
-    [navigate],
-  );
-
   const openUserOrLive = useCallback(
     (userId: string, isLive: boolean) => {
       navigate(isLive ? `/watch/${userId}` : `/profile/${userId}`);

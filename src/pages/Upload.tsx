@@ -5,7 +5,6 @@ import { setCachedCameraStream } from '../lib/cameraStream';
 import { RefreshCw, Zap, Clock, Music, Check, RotateCcw, ZoomIn, ZoomOut, Wand2, ChevronLeft, Image as ImageIcon, Type, Sparkles, X, LayoutGrid, Plus, Share2, Smile, Blend, ChevronDown } from 'lucide-react';
 import { useVideoStore } from '../store/useVideoStore';
 import {
-  ORIGINAL_SOUND_TRACK,
   resolvePlayableSoundUrl,
   type SoundTrack,
 } from '../lib/soundLibrary';
