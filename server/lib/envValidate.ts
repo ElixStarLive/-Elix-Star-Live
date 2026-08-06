@@ -73,22 +73,50 @@ export function validateProductionEnvironment(): void {
     );
     process.exit(1);
   }
+  // Apple IAP: production fail-closed (same posture as Google).
   const appleReady =
     !!process.env.APPLE_ISSUER_ID?.trim() &&
     !!process.env.APPLE_KEY_ID?.trim() &&
     !!process.env.APPLE_PRIVATE_KEY?.trim();
-  const appleConfigured =
-    !!process.env.APPLE_BUNDLE_ID?.trim() || process.env.APPLE_IAP_REQUIRED === "1";
   if (!appleReady) {
-    if (appleConfigured) {
-      logger.fatal(
-        "Apple IAP is configured (APPLE_BUNDLE_ID or APPLE_IAP_REQUIRED=1) but APPLE_ISSUER_ID / APPLE_KEY_ID / APPLE_PRIVATE_KEY are incomplete",
-      );
-      process.exit(1);
-    }
-    logger.warn(
-      "Apple IAP credentials incomplete (APPLE_ISSUER_ID / APPLE_KEY_ID / APPLE_PRIVATE_KEY) — iOS purchases will be rejected until set",
+    logger.fatal(
+      "APPLE_ISSUER_ID, APPLE_KEY_ID and APPLE_PRIVATE_KEY are required in production for App Store IAP verification",
     );
+    process.exit(1);
+  }
+  if (!process.env.APPLE_BUNDLE_ID?.trim()) {
+    logger.fatal("APPLE_BUNDLE_ID is required in production (must match App Store Connect)");
+    process.exit(1);
+  }
+  if (process.env.APPLE_IAP_REQUIRED !== "1") {
+    logger.fatal("APPLE_IAP_REQUIRED=1 is required in production so iOS purchases cannot be silently skipped");
+    process.exit(1);
+  }
+  if (!process.env.GOOGLE_RTDN_WEBHOOK_SECRET?.trim()) {
+    logger.fatal(
+      "GOOGLE_RTDN_WEBHOOK_SECRET is required in production for Play refund/void Real-time Developer Notifications",
+    );
+    process.exit(1);
+  }
+  if (!process.env.APPLE_IAP_NOTIFICATION_SECRET?.trim()) {
+    logger.fatal(
+      "APPLE_IAP_NOTIFICATION_SECRET is required in production for App Store Server Notifications V2",
+    );
+    process.exit(1);
+  }
+  const playPkg = (process.env.GOOGLE_PLAY_PACKAGE_NAME || "com.elixstarlive.app").trim();
+  if (playPkg !== "com.elixstarlive.app") {
+    logger.fatal(
+      `GOOGLE_PLAY_PACKAGE_NAME must be com.elixstarlive.app in production (got ${playPkg})`,
+    );
+    process.exit(1);
+  }
+  const appleBundle = process.env.APPLE_BUNDLE_ID.trim();
+  if (appleBundle !== "com.elixstarlive.app") {
+    logger.fatal(
+      `APPLE_BUNDLE_ID must be com.elixstarlive.app in production (got ${appleBundle})`,
+    );
+    process.exit(1);
   }
 
   if (process.env.ALLOW_LOADTEST_IN_PROD === "1") {
