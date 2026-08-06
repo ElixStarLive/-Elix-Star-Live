@@ -1461,7 +1461,7 @@ svg.lucide.fill-silver-full.royce-icon-gold {
   display: none !important;
 }
 
-/* ═══ CLEAR pages — wallpaper shows. ShareModal keeps its own glass in the component. ═══ */
+/* ═══ FULL APP: clear pages (wallpaper) + same More Options glass on every sheet ═══ */
 html,
 body {
   background-color: #000000 !important;
@@ -1484,32 +1484,19 @@ body::before {
   background: transparent !important;
 }
 
-/* ALL page shells CLEAR — no dark fill */
+/* Every page / shell / nav — CLEAR */
 .page-above-bottom-nav,
 .page-above-bottom-nav__inner,
 .bg-background,
 .bg-surface,
 .min-h-screen.bg-background,
+.min-h-screen.bg-transparent,
 .app-live-column,
 main.feed-column-width,
 .elix-live-room,
 .app-live-column-host,
 .bg-card,
-.bg-card-elevated {
-  background-color: transparent !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-/* Kill remapped dark washes on pages */
-#root [class*="bg-[rgba(0,0,0,0.35)]"],
-#root [class*="bg-[rgba(10,10,10,0.72)]"] {
-  background-color: transparent !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-/* Nav CLEAR over wallpaper */
+.bg-card-elevated,
 #root nav[aria-label="Main navigation"] .feed-column-width,
 #root nav[aria-label="Main navigation"] .feed-column-width[class*="bg-"],
 #root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
@@ -1519,15 +1506,25 @@ main.feed-column-width,
   -webkit-backdrop-filter: none !important;
 }
 
+/* Remapped dark fills on page content — CLEAR */
+#root [class*="bg-[rgba(0,0,0,0.35)]"],
+#root [class*="bg-[rgba(10,10,10,0.72)]"] {
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
 /*
- * ONLY the More Options / ShareModal sheet keeps glass — exact component recipe.
- * Higher specificity than the clear rule.
+ * EVERY floating sheet = exact More Options / ShareModal glass.
+ * (rounded-t sheet only — does not paint full pages)
  */
-#root [class*="rounded-t-2xl"][class*="backdrop-blur"][class*="bg-[rgba(10,10,10,0.72)]"],
-.bottom-sheet-above-nav[class*="backdrop-blur"],
+#root [class*="rounded-t-2xl"][class*="bg-[rgba(10,10,10,0.72)]"],
+#root [class*="rounded-t-2xl"][class*="backdrop-blur"],
+.bottom-sheet-above-nav,
 #root .elix-glass,
 #root .elix-glass-panel {
   background-color: rgba(10, 10, 10, 0.72) !important;
   backdrop-filter: blur(12px) !important;
   -webkit-backdrop-filter: blur(12px) !important;
+  border-color: #2A2D33;
 }

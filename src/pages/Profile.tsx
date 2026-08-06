@@ -740,7 +740,7 @@ export default function Profile() {
         {/* ═══ Account Menu Modal ═══ */}
         {showAccountMenu && (
           <div
-            className="fixed inset-0 z-[9999] bg-[rgba(10,10,10,0.72)] backdrop-blur-md flex items-end justify-center pb-[var(--bottom-nav-top)]"
+            className="fixed inset-0 z-[9999] bg-black/40 flex items-end justify-center pb-[var(--bottom-nav-top)]"
             onClick={() => setShowAccountMenu(false)}
           >
             <div 
