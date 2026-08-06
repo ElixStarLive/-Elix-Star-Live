@@ -46,7 +46,7 @@ export function LiveGiftGoalBar({ goal, onTap, showSend = true }: Props) {
         {done ? "✓" : `${remaining}`}
       </span>
       {showSend && !done && (
-        <span className="text-[8px] font-bold text-white bg-[#F0C86B] px-1.5 py-0.5 rounded-full flex-shrink-0">
+        <span className="text-[8px] font-bold text-white bg-[#6F3FF5] px-1.5 py-0.5 rounded-full flex-shrink-0">
           Send
         </span>
       )}

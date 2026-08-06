@@ -524,7 +524,7 @@ export default function Create() {
                     <CameraOff className="w-12 h-12 text-white/70 mx-auto mb-4" strokeWidth={1.5} />
                     <p className="text-white text-sm font-semibold mb-2">Camera Access Needed</p>
                     <p className="text-white/60 text-xs mb-5 leading-relaxed">{cameraError}</p>
-                    <button onClick={() => { setCameraError(null); setRetryCamera((c) => c + 1); }} className="px-6 py-2.5 rounded-full bg-[#F0C86B] text-white text-sm font-semibold active:scale-95 transition-transform">
+                    <button onClick={() => { setCameraError(null); setRetryCamera((c) => c + 1); }} className="px-6 py-2.5 rounded-full bg-[#6F3FF5] text-white text-sm font-semibold active:scale-95 transition-transform">
                       Try Again
                     </button>
                   </div>

@@ -169,7 +169,7 @@ export default function ReportModal({ isOpen, onClose, videoId, contentType, con
     <div className="fixed inset-0 z-[99999] flex items-end justify-center">
       <div className="absolute inset-0 bg-black/60 pointer-events-auto" onClick={onClose} />
 
-      <div className="relative w-full max-w-[480px] z-10 bg-[rgba(255,255,255,0.06)] backdrop-blur-md rounded-t-2xl p-4 pb-safe flex flex-col gap-1 shadow-2xl pointer-events-auto h-[40vh] max-h-[40vh] overflow-y-auto bottom-sheet-above-nav [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#F0C86B]/50 [&::-webkit-scrollbar-thumb]:rounded-full" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.25) transparent' }}>
+      <div className="relative w-full max-w-[480px] z-10 bg-[rgba(255,255,255,0.06)] backdrop-blur-md rounded-t-2xl p-4 pb-safe flex flex-col gap-1 shadow-2xl pointer-events-auto h-[40vh] max-h-[40vh] overflow-y-auto bottom-sheet-above-nav [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#6F3FF5]/50 [&::-webkit-scrollbar-thumb]:rounded-full" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.25) transparent' }}>
         <div className="flex justify-center mb-2">
           <div className="w-10 h-1 bg-white/20 rounded-full" />
         </div>
@@ -198,7 +198,7 @@ export default function ReportModal({ isOpen, onClose, videoId, contentType, con
 </div>
                   <span className="text-white/80 text-xs font-medium truncate">{reason.title}</span>
                 </div>
-                <div className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 ${selected ? 'border-[#D8D9DD] bg-[#F0C86B]' : 'border-white/20'}`}>
+                <div className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 ${selected ? 'border-[#D8D9DD] bg-[#6F3FF5]' : 'border-white/20'}`}>
                   {selected && (
                     <svg className="w-2.5 h-2.5 text-black" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -235,7 +235,7 @@ export default function ReportModal({ isOpen, onClose, videoId, contentType, con
             type="button"
             onClick={() => { void handleSubmit(); }}
             disabled={isSubmitting || !selectedReason}
-            className="flex-1 py-2.5 bg-[#F0C86B] text-white font-bold text-xs rounded-lg hover:brightness-110 disabled:opacity-40 transition"
+            className="flex-1 py-2.5 bg-[#6F3FF5] text-white font-bold text-xs rounded-lg hover:brightness-110 disabled:opacity-40 transition"
           >
             {isSubmitting ? 'Submitting...' : 'Submit'}
           </button>

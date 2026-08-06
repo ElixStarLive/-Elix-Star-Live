@@ -240,7 +240,7 @@ export default function MusicFeed() {
                   type="button"
                   disabled={!trackForSave}
                   onClick={toggleSaveTrack}
-                  className="bg-[#F0C86B] text-white elix-accent px-6 py-1.5 rounded-full font-semibold flex items-center gap-1.5 text-sm w-fit active:scale-95 transition-transform disabled:opacity-50"
+                  className="bg-[#6F3FF5] text-white elix-accent px-6 py-1.5 rounded-full font-semibold flex items-center gap-1.5 text-sm w-fit active:scale-95 transition-transform disabled:opacity-50"
                 >
                   <Bookmark
                     size={12}
@@ -276,7 +276,7 @@ export default function MusicFeed() {
                       onClick={() => selectPlaylist(pl.id)}
                       className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border ${
                         pl.id === activePlaylistId
-                          ? 'bg-[#F0C86B] border-[#D8D9DD] text-white elix-accent'
+                          ? 'bg-[#6F3FF5] border-[#D8D9DD] text-white elix-accent'
                           : 'border-[#D8D9DD]/35 text-white'
                       }`}
                     >
@@ -294,7 +294,7 @@ export default function MusicFeed() {
             <div className="grid grid-cols-3 gap-0.5 w-full">
               {videosLoading ? (
                 <div className="col-span-3 flex items-center justify-center min-h-[40vh]">
-                  <div className="w-8 h-8 border-2 border-[#F0C86B]/25 border-t-[#F0C86B] rounded-full animate-spin elix-loader" />
+                  <div className="w-8 h-8 border-2 border-[#6F3FF5]/25 border-t-[#6F3FF5] rounded-full animate-spin elix-loader" />
                 </div>
               ) : videos.length === 0 ? (
                 <div className="col-span-3 flex flex-col items-center justify-center min-h-[40vh] text-center opacity-60 px-6">

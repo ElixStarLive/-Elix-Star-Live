@@ -306,7 +306,7 @@ export default function LiveDiscover() {
         <div className="w-full max-w-[480px] mx-auto">
           {loading && creators.length === 0 ? (
             <div className="flex items-center justify-center py-32">
-              <div className="w-8 h-8 border-2 border-[#F0C86B]/25 border-t-[#F0C86B] rounded-full animate-spin elix-loader" />
+              <div className="w-8 h-8 border-2 border-[#6F3FF5]/25 border-t-[#6F3FF5] rounded-full animate-spin elix-loader" />
             </div>
           ) : creators.length > 0 ? (
             <div className="grid grid-cols-2 gap-1 px-1 pb-[env(safe-area-inset-bottom,20px)]">

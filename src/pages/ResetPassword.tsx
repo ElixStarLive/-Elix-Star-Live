@@ -124,7 +124,7 @@ export default function ResetPassword() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full bg-[#F0C86B] text-white font-bold rounded-xl py-3 text-sm disabled:opacity-60"
+            className="w-full bg-[#6F3FF5] text-white font-bold rounded-xl py-3 text-sm disabled:opacity-60"
           >
             {isSubmitting ? 'Updating...' : 'Reset Password'}
           </button>

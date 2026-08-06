@@ -73,7 +73,7 @@ export default function EngagementAchievements() {
                 </div>
                 <div className="h-1.5 rounded-full bg-white/10 overflow-hidden mb-1">
                   <div
-                    className="h-full rounded-full bg-[#F0C86B]"
+                    className="h-full rounded-full bg-[#6F3FF5]"
                     style={{ width: `${pct}%` }}
                   />
                 </div>

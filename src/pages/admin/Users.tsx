@@ -133,7 +133,7 @@ export default function AdminUsers() {
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => goProfile(user.id)}
-                        className="px-3 py-1 bg-[#F0C86B] rounded hover:bg-[#F0C86B] text-sm"
+                        className="px-3 py-1 bg-[#6F3FF5] rounded hover:bg-[#6F3FF5] text-sm"
                       >
                         View
                       </button>

@@ -129,7 +129,7 @@ export default function FollowList() {
       <div className="flex-1 overflow-y-auto px-4 pb-8">
         {loading ? (
           <div className="flex justify-center py-10">
-            <div className="w-6 h-6 border-2 border-[#F0C86B]/25 border-t-[#F0C86B] rounded-full animate-spin elix-loader" />
+            <div className="w-6 h-6 border-2 border-[#6F3FF5]/25 border-t-[#6F3FF5] rounded-full animate-spin elix-loader" />
           </div>
         ) : people.length === 0 ? (
           <p className="text-white/40 text-sm text-center py-10">
@@ -161,7 +161,7 @@ export default function FollowList() {
                       className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold active:scale-95 ${
                         following
                           ? 'bg-white/10 text-white border border-white/15'
-                          : 'bg-[#F0C86B] text-white elix-solid-accent'
+                          : 'bg-[#6F3FF5] text-white elix-solid-accent'
                       }`}
                     >
                       {following ? 'Following' : 'Follow'}

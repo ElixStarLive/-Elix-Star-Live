@@ -342,7 +342,7 @@ function MissionsBody() {
                     type="button"
                     disabled={claiming === m.id}
                     onClick={() => void claim(m.id)}
-                    className="shrink-0 rounded-lg bg-[#F0C86B]/25 border border-[#D8D9DD]/50 px-2 py-1 text-[10px] font-bold text-[#F5F5F7]"
+                    className="shrink-0 rounded-lg bg-[#6F3FF5]/25 border border-[#D8D9DD]/50 px-2 py-1 text-[10px] font-bold text-[#F5F5F7]"
                   >
                     Claim
                   </button>
@@ -353,7 +353,7 @@ function MissionsBody() {
                 )}
               </div>
               <div className="h-1.5 rounded-full bg-white/10 overflow-hidden mb-1">
-                <div className="h-full bg-[#F0C86B]" style={{ width: `${pct}%` }} />
+                <div className="h-full bg-[#6F3FF5]" style={{ width: `${pct}%` }} />
               </div>
               <p className="text-[10px] text-white/50 tabular-nums">
                 {m.progress}/{m.goal_count}
@@ -694,7 +694,7 @@ function AchievementsBody() {
               <span className="text-[10px] text-white/40 shrink-0">{status}</span>
             </div>
             <div className="h-1.5 rounded-full bg-white/10 overflow-hidden mb-1">
-              <div className="h-full bg-[#F0C86B]" style={{ width: `${pct}%` }} />
+              <div className="h-full bg-[#6F3FF5]" style={{ width: `${pct}%` }} />
             </div>
             <p className="text-[10px] text-white/50 tabular-nums">
               {a.progress}/{a.goal_count}
@@ -771,7 +771,7 @@ function DailyLoginBody() {
                 key={d}
                 className={`aspect-square rounded-lg flex items-center justify-center text-[10px] font-bold border ${
                   done
-                    ? "bg-[#F0C86B]/30 border-[#D8D9DD]/50 text-[#F5F5F7]"
+                    ? "bg-[#6F3FF5]/30 border-[#D8D9DD]/50 text-[#F5F5F7]"
                     : current
                       ? "bg-white/10 border-[#D8D9DD] text-white"
                       : "bg-white/[0.03] border-white/10 text-white/35"
@@ -944,7 +944,7 @@ function TreasureBody() {
                     type="button"
                     disabled={busy === c.id}
                     onClick={() => void openChest(c.id)}
-                    className="shrink-0 rounded-lg bg-[#F0C86B]/25 border border-[#D8D9DD]/50 px-2.5 py-1 text-[11px] font-bold text-[#F5F5F7]"
+                    className="shrink-0 rounded-lg bg-[#6F3FF5]/25 border border-[#D8D9DD]/50 px-2.5 py-1 text-[11px] font-bold text-[#F5F5F7]"
                   >
                     Open
                   </button>

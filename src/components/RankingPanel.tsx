@@ -218,7 +218,7 @@ export function RankingPanel({
             onClick={() => setTab(t.id)}
             className={`px-2.5 py-1 rounded-full text-[10px] font-bold whitespace-nowrap border transition-colors ${
               tab === t.id
-                ? 'bg-[#F0C86B] text-white elix-accent border-[#D8D9DD]'
+                ? 'bg-[#6F3FF5] text-white elix-accent border-[#D8D9DD]'
                 : 'bg-white/5 text-white/60 border-[#2A2D33]'
             }`}
           >
@@ -249,7 +249,7 @@ export function RankingPanel({
                     </p>
                   </div>
                   {isGiftGoalComplete(giftGoal) ? (
-                    <span className="text-[9px] font-bold text-white bg-[#F0C86B] px-2 py-1 rounded-full">Done</span>
+                    <span className="text-[9px] font-bold text-white bg-[#6F3FF5] px-2 py-1 rounded-full">Done</span>
                   ) : null}
                 </div>
                 <div className="h-1.5 rounded-full bg-white/10 overflow-hidden mb-2">
@@ -348,7 +348,7 @@ function CreatorRankingBody({
                 <Trophy className="w-6 h-6 text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.25)]" fill="currentColor" />
               </div>
               <AvatarRing src={rankings[0].avatar_url || ''} alt={rankings[0].display_name} size={64} />
-              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#F0C86B] text-white elix-accent text-xs font-black px-2 py-0.5 rounded-full border border-white">
+              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#6F3FF5] text-white elix-accent text-xs font-black px-2 py-0.5 rounded-full border border-white">
                 1
               </div>
             </div>

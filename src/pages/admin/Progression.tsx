@@ -265,7 +265,7 @@ export default function AdminProgression() {
           </button>
         </div>
 
-        <section className="rounded-xl border border-[#D8D9DD]/25 bg-[#F0C86B]/5 p-4 mb-6 text-sm text-white/70">
+        <section className="rounded-xl border border-[#D8D9DD]/25 bg-[#6F3FF5]/5 p-4 mb-6 text-sm text-white/70">
           <p className="font-semibold text-[#F5F5F7] mb-1">Engagement Phase 1 + 1.5 (live)</p>
           <p className="mb-2">
             Migrations through{" "}
@@ -484,7 +484,7 @@ export default function AdminProgression() {
                   <button
                     type="button"
                     disabled={busy}
-                    className="ml-auto px-3 py-1.5 rounded-lg bg-[#F0C86B] text-white text-xs font-semibold disabled:opacity-40"
+                    className="ml-auto px-3 py-1.5 rounded-lg bg-[#6F3FF5] text-white text-xs font-semibold disabled:opacity-40"
                     onClick={() => {
                       void (async () => {
                         setBusy(true);
@@ -761,7 +761,7 @@ export default function AdminProgression() {
           <button
             type="button"
             disabled={busy}
-            className="px-3 py-2 rounded-lg bg-[#F0C86B] text-white text-xs font-semibold disabled:opacity-40"
+            className="px-3 py-2 rounded-lg bg-[#6F3FF5] text-white text-xs font-semibold disabled:opacity-40"
             onClick={() => {
               void (async () => {
                 setBusy(true);
@@ -829,7 +829,7 @@ export default function AdminProgression() {
                   type="button"
                   disabled={busy}
                   onClick={() => void saveConfig(row)}
-                  className="py-2 rounded-lg bg-[#F0C86B] text-white text-xs font-semibold disabled:opacity-40"
+                  className="py-2 rounded-lg bg-[#6F3FF5] text-white text-xs font-semibold disabled:opacity-40"
                 >
                   Save
                 </button>
@@ -978,7 +978,7 @@ export default function AdminProgression() {
                   type="button"
                   disabled={busy}
                   onClick={() => void adjust("starter")}
-                  className="px-3 rounded-lg bg-[#F0C86B] text-white text-xs font-semibold disabled:opacity-40"
+                  className="px-3 rounded-lg bg-[#6F3FF5] text-white text-xs font-semibold disabled:opacity-40"
                 >
                   Adjust Starter
                 </button>

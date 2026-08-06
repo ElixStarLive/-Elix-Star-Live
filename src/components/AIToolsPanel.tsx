@@ -311,7 +311,7 @@ export default function AIToolsPanel({
                       </p>
                       <div className="flex items-center gap-1 mt-1">
                         <div className="h-1 flex-1 bg-white/10 rounded-full overflow-hidden">
-                          <div className="h-full bg-[#F0C86B] elix-progress-fill" style={{ width: `${s.score * 100}%` }} />
+                          <div className="h-full bg-[#6F3FF5] elix-progress-fill" style={{ width: `${s.score * 100}%` }} />
                         </div>
                         <span className="text-[10px] text-white/30">{Math.round(s.score * 100)}%</span>
                       </div>
@@ -352,7 +352,7 @@ export default function AIToolsPanel({
               </div>
               {isLoadingThumbnails ? (
                 <div className="flex items-center justify-center py-8">
-                  <div className="w-8 h-8 border-2 border-[#F0C86B]/25 border-t-[#F0C86B] rounded-full animate-spin elix-loader" />
+                  <div className="w-8 h-8 border-2 border-[#6F3FF5]/25 border-t-[#6F3FF5] rounded-full animate-spin elix-loader" />
                 </div>
               ) : thumbnails.length === 0 ? (
                 <div className="text-center py-8 text-white/30 text-sm">

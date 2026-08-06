@@ -336,7 +336,7 @@ export default function CreatorLoginDetails() {
               }}
               className={`flex-1 py-2 rounded-xl text-sm font-semibold border transition ${
                 mode === 'signin'
-                  ? 'bg-[#F0C86B] text-white elix-accent border-[#D8D9DD]'
+                  ? 'bg-[#6F3FF5] text-white elix-accent border-[#D8D9DD]'
                   : 'bg-transparent5 text-white border-white/10 hover:bg-transparent10'
               }`}
             >
@@ -352,7 +352,7 @@ export default function CreatorLoginDetails() {
               }}
               className={`flex-1 py-2 rounded-xl text-sm font-semibold border transition ${
                 mode === 'signup'
-                  ? 'bg-[#F0C86B] text-white elix-accent border-[#D8D9DD]'
+                  ? 'bg-[#6F3FF5] text-white elix-accent border-[#D8D9DD]'
                   : 'bg-transparent5 text-white border-white/10 hover:bg-transparent10'
               }`}
             >
@@ -446,7 +446,7 @@ export default function CreatorLoginDetails() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-[#F0C86B] text-white elix-accent font-bold rounded-xl py-3 text-sm disabled:opacity-60 shadow-[0_0_15px_rgba(230,179,106,0.3)] hover:shadow-[0_0_20px_rgba(230,179,106,0.5)] transition-all active:scale-[0.98]"
+              className="w-full bg-[#6F3FF5] text-white elix-accent font-bold rounded-xl py-3 text-sm disabled:opacity-60 shadow-[0_0_15px_rgba(230,179,106,0.3)] hover:shadow-[0_0_20px_rgba(230,179,106,0.5)] transition-all active:scale-[0.98]"
             >
               {isSubmitting ? 'Signing in...' : 'Log in'}
             </button>

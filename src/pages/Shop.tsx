@@ -390,7 +390,7 @@ export default function Shop() {
               <button onClick={openCart} className="p-1 relative" title="Basket">
                 <ShopBasketIcon size={18} active={cartItems.length > 0} className="text-white" />
                 {cartItems.length > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-[15px] h-[15px] px-1 rounded-full bg-[#F0C86B] text-white text-[9px] font-extrabold flex items-center justify-center leading-none">
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[15px] h-[15px] px-1 rounded-full bg-[#6F3FF5] text-white text-[9px] font-extrabold flex items-center justify-center leading-none">
                     {cartItems.length}
                   </span>
                 )}
@@ -458,7 +458,7 @@ export default function Shop() {
 
         {loading ? (
           <div className="flex-1 flex items-center justify-center py-20">
-            <div className="w-8 h-8 border-2 border-[#F0C86B]/25 border-t-[#F0C86B] rounded-full animate-spin elix-loader" />
+            <div className="w-8 h-8 border-2 border-[#6F3FF5]/25 border-t-[#6F3FF5] rounded-full animate-spin elix-loader" />
           </div>
         ) : items.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center py-20 gap-3">
@@ -535,11 +535,11 @@ export default function Shop() {
                     <button
                       type="button"
                       onClick={() => handleRemoveFromCart(item.id)}
-                      className="absolute bottom-1.5 right-1.5 w-7 h-7 flex items-center justify-center rounded-full bg-white/10 border border-[#F0C86B]/55"
+                      className="absolute bottom-1.5 right-1.5 w-7 h-7 flex items-center justify-center rounded-full bg-white/10 border border-[#6F3FF5]/55"
                       aria-label="Remove from basket"
                       title="Remove from basket"
                     >
-                      <ShopBasketIcon size={15} active className="text-[#F0C86B]" />
+                      <ShopBasketIcon size={15} active className="text-[#6F3FF5]" />
                     </button>
                   ) : (
                     <button

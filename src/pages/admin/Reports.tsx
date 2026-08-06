@@ -75,7 +75,7 @@ export default function AdminReports() {
           <button
             onClick={() => setFilter('pending')}
             className={`px-4 py-2 rounded-lg font-semibold ${
-              filter === 'pending' ? 'bg-[#F0C86B] text-white elix-accent' : 'bg-[rgba(255,255,255,0.06)] text-white'
+              filter === 'pending' ? 'bg-[#6F3FF5] text-white elix-accent' : 'bg-[rgba(255,255,255,0.06)] text-white'
             }`}
           >
             Pending ({reports.filter(r => r.status === 'pending').length})
@@ -83,7 +83,7 @@ export default function AdminReports() {
           <button
             onClick={() => setFilter('all')}
             className={`px-4 py-2 rounded-lg font-semibold ${
-              filter === 'all' ? 'bg-[#F0C86B] text-white elix-accent' : 'bg-[rgba(255,255,255,0.06)] text-white'
+              filter === 'all' ? 'bg-[#6F3FF5] text-white elix-accent' : 'bg-[rgba(255,255,255,0.06)] text-white'
             }`}
           >
             All
@@ -111,9 +111,9 @@ export default function AdminReports() {
                 <span
                   className={`px-3 py-1 rounded-full text-xs font-bold ${
                     report.status === 'pending'
-                      ? 'bg-[#F0C86B]'
+                      ? 'bg-[#6F3FF5]'
                       : report.status === 'resolved'
-                      ? 'bg-[#F0C86B]'
+                      ? 'bg-[#6F3FF5]'
                       : 'bg-[rgba(255,255,255,0.06)]'
                   }`}
                 >
@@ -132,7 +132,7 @@ export default function AdminReports() {
                   </button>
                   <button
                     onClick={() => handleResolve(report.id, 'warned')}
-                    className="px-4 py-2 bg-[#F0C86B] rounded hover:bg-[#F0C86B] flex items-center gap-2"
+                    className="px-4 py-2 bg-[#6F3FF5] rounded hover:bg-[#6F3FF5] flex items-center gap-2"
                   >
                     <Flag className="w-4 h-4" />
                     Warn User
@@ -146,7 +146,7 @@ export default function AdminReports() {
                   </button>
                   <button
                     onClick={() => openReportTarget(report.target_type, report.target_id)}
-                    className="px-4 py-2 bg-[#F0C86B] rounded hover:bg-[#F0C86B] flex items-center gap-2"
+                    className="px-4 py-2 bg-[#6F3FF5] rounded hover:bg-[#6F3FF5] flex items-center gap-2"
                   >
                     <Eye className="w-4 h-4" />
                     View

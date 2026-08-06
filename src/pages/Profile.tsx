@@ -1029,7 +1029,7 @@ export default function Profile() {
               className={`flex-1 max-w-[120px] py-2.5 rounded-md text-sm font-bold transition ${
                 isFollowing
                   ? 'bg-white/10 text-white border border-white/10'
-                  : 'bg-[#F0C86B] text-white elix-solid-accent'
+                  : 'bg-[#6F3FF5] text-white elix-solid-accent'
               }`}
             >
               {isFollowing ? 'Following' : 'Follow'}
@@ -1181,7 +1181,7 @@ export default function Profile() {
             <button
               type="button"
               onClick={goUploadStory}
-              className="px-3 py-1.5 rounded-md bg-[#F0C86B] text-white text-[11px] font-bold"
+              className="px-3 py-1.5 rounded-md bg-[#6F3FF5] text-white text-[11px] font-bold"
             >
               Post Story
             </button>
@@ -1193,7 +1193,7 @@ export default function Profile() {
           <div className="grid grid-cols-3 gap-[2px] px-3 pt-3 pb-2 flex-1">
             {videosLoading && videos.length === 0 ? (
               <div className="col-span-3 flex items-center justify-center py-16">
-                <div className="w-8 h-8 border-2 border-[#F0C86B]/25 border-t-[#F0C86B] rounded-full animate-spin elix-loader" />
+                <div className="w-8 h-8 border-2 border-[#6F3FF5]/25 border-t-[#6F3FF5] rounded-full animate-spin elix-loader" />
               </div>
             ) : (
               videos.map((video) => {
@@ -1274,7 +1274,7 @@ export default function Profile() {
         {/* ═══ SHOP ITEMS GRID ═══ */}
         {activeTab === 'shop' && videosLoading && shopItems.length === 0 && (
           <div className="flex-1 flex items-center justify-center py-16">
-            <div className="w-8 h-8 border-2 border-[#F0C86B]/25 border-t-[#F0C86B] rounded-full animate-spin elix-loader" />
+            <div className="w-8 h-8 border-2 border-[#6F3FF5]/25 border-t-[#6F3FF5] rounded-full animate-spin elix-loader" />
           </div>
         )}
         {activeTab === 'shop' && shopItems.length > 0 && (
@@ -1311,7 +1311,7 @@ export default function Profile() {
                   <button
                     type="button"
                     onClick={goUploadStory}
-                    className="px-3 py-1.5 rounded-md bg-[#F0C86B] text-white text-[11px] font-bold"
+                    className="px-3 py-1.5 rounded-md bg-[#6F3FF5] text-white text-[11px] font-bold"
                   >
                     Post Story
                   </button>
@@ -1328,7 +1328,7 @@ export default function Profile() {
             <ShoppingBag size={32} className="text-white/20" />
             <span className="text-white/30 text-sm">No items for sale</span>
             {isOwnProfile && (
-              <button onClick={goShop} className="mt-2 px-4 py-2 rounded-xl bg-[#F0C86B] text-white font-bold text-xs">
+              <button onClick={goShop} className="mt-2 px-4 py-2 rounded-xl bg-[#6F3FF5] text-white font-bold text-xs">
                 Start Selling
               </button>
             )}

@@ -236,7 +236,7 @@ export default function Register() {
             <div
               className={`mt-0.5 w-6 h-6 min-w-[24px] min-h-[24px] rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
                 acceptedTerms
-                  ? 'border-[#D8D9DD] bg-[#F0C86B]'
+                  ? 'border-[#D8D9DD] bg-[#6F3FF5]'
                   : 'border-white/30 bg-white/10'
               }`}
             >
@@ -281,7 +281,7 @@ export default function Register() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full bg-[#F0C86B] text-white font-bold rounded-xl py-3 xs:py-2.5 text-fluid-sm disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full bg-[#6F3FF5] text-white font-bold rounded-xl py-3 xs:py-2.5 text-fluid-sm disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {isSubmitting ? 'Creating account...' : 'Create account'}
           </button>

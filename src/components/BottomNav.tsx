@@ -121,8 +121,8 @@ export const BottomNav = () => {
                       <Icon
                         size={size}
                         strokeWidth={active ? 2.35 : 2}
-                        className={active ? "text-[#F0C86B]" : "royce-icon-gold"}
-                        style={active ? { color: "#F0C86B", stroke: "#F0C86B" } : undefined}
+                        className={active ? "text-[#6F3FF5]" : "royce-icon-gold"}
+                        style={active ? { color: "#6F3FF5", stroke: "#6F3FF5" } : undefined}
                       />
                     )}
                   </span>
@@ -135,8 +135,8 @@ export const BottomNav = () => {
                       ...(active
                         ? {
                             backgroundImage: "none",
-                            WebkitTextFillColor: "#F0C86B",
-                            color: "#F0C86B",
+                            WebkitTextFillColor: "#6F3FF5",
+                            color: "#6F3FF5",
                           }
                         : undefined),
                     }}
