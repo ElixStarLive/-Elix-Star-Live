@@ -81,11 +81,11 @@ export default function AdminUsers() {
   );
 
   if (loading) {
-    return <div className="min-h-screen bg-[#09090B] flex items-center justify-center text-white">Loading...</div>;
+    return <div className="min-h-screen bg-[rgba(0,0,0,0.35)] flex items-center justify-center text-white">Loading...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-[#09090B] text-white p-6">
+    <div className="min-h-screen bg-[rgba(0,0,0,0.35)] text-white p-6">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold mb-6">User Management</h1>
 

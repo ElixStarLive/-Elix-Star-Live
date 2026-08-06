@@ -37,7 +37,7 @@ export default function AdminPurchases() {
   }, [load]);
 
   return (
-    <div className="min-h-screen bg-[#09090B] text-white p-6">
+    <div className="min-h-screen bg-[rgba(0,0,0,0.35)] text-white p-6">
       <div className="max-w-5xl mx-auto">
         <button
           type="button"

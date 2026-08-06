@@ -208,10 +208,10 @@ export default function MusicFeed() {
   }, [playingId]);
 
   return (
-    <div className="page-above-bottom-nav bg-[#09090B] text-white">
+    <div className="page-above-bottom-nav bg-[rgba(0,0,0,0.35)] text-white">
       <audio ref={audioRef} preload="auto" onEnded={() => setPlayingId(null)} className="hidden" />
-      <div className="page-above-bottom-nav__inner bg-[#09090B] flex flex-col min-h-0">
-        <div className="w-full shrink-0 bg-[#09090B] z-10 border-b border-white/[0.06]">
+      <div className="page-above-bottom-nav__inner bg-[rgba(0,0,0,0.35)] flex flex-col min-h-0">
+        <div className="w-full shrink-0 bg-[rgba(0,0,0,0.35)] z-10 border-b border-white/[0.06]">
           <div className="px-3 pt-page-header pb-3 flex items-center justify-between relative">
             <button type="button" onClick={goSearch} className="p-1 z-10" aria-label="Search">
               <Search className="w-4 h-4 text-[#F5F5F7]" />
@@ -289,7 +289,7 @@ export default function MusicFeed() {
           ) : null}
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto w-full bg-[#09090B]">
+        <div className="flex-1 min-h-0 overflow-y-auto w-full bg-transparent">
           {songId ? (
             <div className="grid grid-cols-3 gap-0.5 w-full">
               {videosLoading ? (

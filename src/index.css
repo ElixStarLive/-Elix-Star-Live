@@ -1466,6 +1466,7 @@ svg.lucide.fill-silver-full.royce-icon-gold {
 }
 
 /* ═══ App-wide transparent page shells only (no accent/layout redesign) ═══ */
+.page-above-bottom-nav,
 .page-above-bottom-nav__inner,
 .app-live-column,
 .bg-background,
@@ -1480,13 +1481,21 @@ svg.lucide.fill-silver-full.royce-icon-gold {
   background-color: rgba(255, 255, 255, 0.06) !important;
   border-color: #2A2D33 !important;
 }
-/* For You main wraps <video> — never blur/paint over the player */
+/* For You / Friends main wraps <video> — keep parent clear so wallpaper + glass chrome match circles */
 main.feed-column-width {
   background-color: transparent !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
-nav[aria-label="Main navigation"] .feed-column-width {
+nav[aria-label="Main navigation"] .feed-column-width,
+nav[aria-label="Main navigation"] .feed-column-width[class*="bg-"] {
+  background-color: rgba(0, 0, 0, 0.35) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+/* Top bar same glass as story circles strip */
+.feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
+.feed-column-width.h-\[var\(--topnav-bar-height\)\] {
   background-color: rgba(0, 0, 0, 0.35) !important;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);

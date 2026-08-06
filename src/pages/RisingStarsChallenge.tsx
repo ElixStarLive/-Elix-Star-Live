@@ -170,7 +170,7 @@ export default function RisingStarsChallenge() {
   }, [challengeId, challenge?.title]);
 
   return (
-    <div className="page-above-bottom-nav bg-[#09090B] text-white">
+    <div className="page-above-bottom-nav bg-[rgba(0,0,0,0.35)] text-white">
       <div className="page-above-bottom-nav__inner">
         <div
           className="w-full shrink-0 bg-[#09090B] z-10"

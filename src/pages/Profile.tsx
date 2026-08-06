@@ -674,12 +674,12 @@ export default function Profile() {
   };
 
   if (!displayUserId) {
-     return <div className="bg-[#09090B] text-white flex items-center justify-center min-h-[50vh]">Loading...</div>;
+     return <div className="bg-[rgba(0,0,0,0.35)] text-white flex items-center justify-center min-h-[50vh]">Loading...</div>;
   }
 
   if (routeUserId && resolvedUserId === null && !loading) {
     return (
-      <div className="bg-[#09090B] text-white flex flex-col items-center justify-center min-h-[50vh] px-4">
+      <div className="bg-[rgba(0,0,0,0.35)] text-white flex flex-col items-center justify-center min-h-[50vh] px-4">
         <button onClick={goBack} className="absolute top-4 right-4 p-1" title="Close" aria-label="Close">
           <RoyceCloseIcon size={20} />
         </button>
@@ -691,7 +691,7 @@ export default function Profile() {
 
   if (!loading && !profileData && !isOwnProfile) {
     return (
-      <div className="bg-[#09090B] text-white flex flex-col items-center justify-center min-h-[50vh] px-4">
+      <div className="bg-[rgba(0,0,0,0.35)] text-white flex flex-col items-center justify-center min-h-[50vh] px-4">
         <button onClick={goBack} className="absolute top-4 right-4 p-1" title="Close" aria-label="Close">
           <RoyceCloseIcon size={20} />
         </button>
@@ -702,8 +702,8 @@ export default function Profile() {
   }
 
   return (
-    <div className="page-above-bottom-nav bg-[#09090B] text-white">
-      <div className="page-above-bottom-nav__inner bg-[#09090B]">
+    <div className="page-above-bottom-nav bg-[rgba(0,0,0,0.35)] text-white">
+      <div className="page-above-bottom-nav__inner bg-[rgba(0,0,0,0.35)]">
         {/* Small top header with Share + Exit buttons — same panel height as Inbox */}
         <header className="flex items-center justify-between px-4 pt-page-header pb-2 relative z-10">
           <button

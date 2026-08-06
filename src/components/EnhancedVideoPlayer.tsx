@@ -681,23 +681,6 @@ export default function EnhancedVideoPlayer({
   }, []);
 
   const handleVideoClick = (_e: React.MouseEvent) => {
-    if (isMuted && !muteAllSounds && videoRef.current) {
-      videoRef.current.muted = false;
-      videoRef.current.volume = videoVolume;
-      videoRef.current.removeAttribute('muted');
-      setIsMuted(false);
-      const a = audioRef.current;
-      if (a) {
-        a.muted = false;
-        a.volume = musicVolume;
-        void a.play().catch(() => {});
-      }
-      // User gesture — safe to play with sound on Android after autoplay started muted.
-      if (videoRef.current.paused) {
-        void videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
-      }
-    }
-
     if (isDoubleClick) {
       if (singleTapTimerRef.current) {
         clearTimeout(singleTapTimerRef.current);
@@ -712,8 +695,32 @@ export default function EnhancedVideoPlayer({
     setIsDoubleClick(true);
     setTimeout(() => setIsDoubleClick(false), 300);
 
+    // Capture mute state at tap time — first tap on a muted autoplay video must
+    // ONLY unmute (and ensure play). Scheduling togglePlay after unmute was
+    // pausing the video ~300ms later and leaving the stuck white play icon.
+    const shouldUnmuteOnly = isMuted && !muteAllSounds;
+
     singleTapTimerRef.current = setTimeout(() => {
       singleTapTimerRef.current = null;
+      const el = videoRef.current;
+      if (shouldUnmuteOnly && el) {
+        el.muted = false;
+        el.volume = videoVolume;
+        el.removeAttribute('muted');
+        setIsMuted(false);
+        const a = audioRef.current;
+        if (a) {
+          a.muted = false;
+          a.volume = musicVolume;
+          void a.play().catch(() => {});
+        }
+        if (el.paused) {
+          void el.play().then(() => setIsPlaying(true)).catch(() => {});
+        } else {
+          setIsPlaying(true);
+        }
+        return;
+      }
       togglePlay();
     }, 300);
   };
@@ -910,7 +917,7 @@ export default function EnhancedVideoPlayer({
     >
       {/* Video Element - iPhone 14 Pro Max: 6.7" Super Retina XDR, 2796×1290, 19.5:9, ~460ppi */}
       <div
-        className="absolute inset-0 flex items-center justify-center bg-[#09090B]"
+        className="absolute inset-0 flex items-center justify-center bg-transparent"
         style={{ margin: 0, padding: 0, gap: 0 }}
       >
         <div className="w-full h-full" style={{ margin: 0, padding: 0 }}>

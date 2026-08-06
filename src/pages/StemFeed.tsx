@@ -71,7 +71,7 @@ export default function StemFeed() {
   }, [stemVideos.length, activeIndex]);
 
   return (
-    <div ref={pageRef} className="app-live-column bg-[#09090B] relative">
+    <div ref={pageRef} className="app-live-column bg-transparent relative">
       <FeedStoryCirclesOverlay
         pageRef={pageRef}
         topOffset="var(--topnav-anchor-top)"
@@ -82,14 +82,14 @@ export default function StemFeed() {
 
       <div
         ref={containerRef}
-        className="flex-1 min-h-0 w-full overflow-y-scroll snap-y snap-mandatory relative bg-[#09090B]"
+        className="flex-1 min-h-0 w-full overflow-y-scroll snap-y snap-mandatory relative bg-transparent"
         style={{ scrollSnapType: "y mandatory" }}
         onScroll={handleScroll}
       >
       {stemVideos.map((video, index) => (
         <div
           key={`stem-${video.id}-${index}`}
-          className="h-full w-full shrink-0 snap-start flex flex-col items-center bg-[#09090B]"
+          className="h-full w-full shrink-0 snap-start flex flex-col items-center bg-transparent"
           style={{
             scrollSnapAlign: "start",
             scrollSnapStop: "always",
@@ -98,7 +98,7 @@ export default function StemFeed() {
             paddingBottom: "3mm",
           }}
         >
-          <div className="w-full max-w-[480px] flex-1 min-h-0 relative overflow-hidden bg-[#09090B]">
+          <div className="w-full max-w-[480px] flex-1 min-h-0 relative overflow-hidden bg-transparent">
             <EnhancedVideoPlayer
               videoId={video.id}
               isActive={activeIndex === index}

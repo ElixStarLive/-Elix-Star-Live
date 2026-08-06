@@ -70,7 +70,7 @@ export default function FollowingFeed() {
   }, [friendVideoIds.length]);
 
   return (
-    <div ref={pageRef} className="app-live-column bg-black relative">
+    <div ref={pageRef} className="app-live-column bg-transparent relative">
       <FeedStoryCirclesOverlay
         pageRef={pageRef}
         topOffset="var(--topnav-anchor-top)"
@@ -84,7 +84,7 @@ export default function FollowingFeed() {
       <div className="w-full max-w-[480px] mx-auto flex-1 min-h-0 flex flex-col overflow-hidden">
         <div
           ref={containerRef}
-          className="flex-1 min-h-0 w-full overflow-y-scroll snap-y snap-mandatory relative overscroll-none bg-black"
+          className="flex-1 min-h-0 w-full overflow-y-scroll snap-y snap-mandatory relative overscroll-none bg-transparent"
           style={{ scrollSnapType: 'y mandatory', WebkitOverflowScrolling: 'touch' }}
           onScroll={handleScroll}
         >
@@ -92,14 +92,14 @@ export default function FollowingFeed() {
             <div
               key={`following-${videoId}-${index}`}
               data-slide-index={index}
-              className="h-full w-full shrink-0 snap-start bg-black"
+              className="h-full w-full shrink-0 snap-start bg-transparent"
               style={{
                 height: '100%',
                 scrollSnapAlign: 'start',
                 scrollSnapStop: 'always',
               }}
             >
-              <div className="w-full h-full min-h-0 relative overflow-hidden bg-black">
+              <div className="w-full h-full min-h-0 relative overflow-hidden bg-transparent">
                 <EnhancedVideoPlayer
                   videoId={videoId}
                   isActive={activeIndex === index}
