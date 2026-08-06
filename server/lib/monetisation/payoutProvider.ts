@@ -162,7 +162,11 @@ export async function createOrGetPayoutAccount(creatorUserId: string): Promise<{
   }
 
   try {
-    // Accounts v2 marketplace recipient (Express dashboard). Do not use v1 type: express.
+    // Accounts v2 Express connected account for creator payouts.
+    // Live Stripe requires merchant.card_payments whenever recipient
+    // stripe_balance.stripe_transfers is requested (GB platform). Creators are
+    // still paid via platform transfers; card_payments is the capability Stripe
+    // mandates on the connected account record, not a separate checkout path.
     const account = await stripeV2.v2.core.accounts.create({
       contact_email: `creator+${creatorUserId.slice(0, 32)}@elixstarlive.co.uk`,
       display_name: `Elix creator ${creatorUserId.slice(0, 8)}`,
@@ -175,6 +179,11 @@ export async function createOrGetPayoutAccount(creatorUserId: string): Promise<{
         },
       },
       configuration: {
+        merchant: {
+          capabilities: {
+            card_payments: { requested: true },
+          },
+        },
         recipient: {
           capabilities: {
             stripe_balance: {
@@ -184,7 +193,12 @@ export async function createOrGetPayoutAccount(creatorUserId: string): Promise<{
         },
       },
       metadata: { elix_creator_user_id: creatorUserId },
-      include: ["configuration.recipient", "identity", "requirements"],
+      include: [
+        "configuration.merchant",
+        "configuration.recipient",
+        "identity",
+        "requirements",
+      ],
     });
 
     const link = await stripeClient.accountLinks.create({
@@ -251,12 +265,19 @@ export async function refreshPayoutAccountStatus(creatorUserId: string): Promise
     try {
       if (!stripeV2) throw new Error("v2_unavailable");
       const v2 = await stripeV2.v2.core.accounts.retrieve(acctId, {
-        include: ["configuration.recipient", "identity", "requirements"],
+        include: [
+          "configuration.merchant",
+          "configuration.recipient",
+          "identity",
+          "requirements",
+        ],
       });
       const transfersStatus =
         v2.configuration?.recipient?.capabilities?.stripe_balance?.stripe_transfers
           ?.status ?? "";
       payoutsEnabled = transfersStatus === "active";
+      chargesEnabled =
+        v2.configuration?.merchant?.capabilities?.card_payments?.status === "active";
       detailsSubmitted = !(v2.requirements as { entries?: unknown[] } | undefined)?.entries
         ?.length;
       status = (v2.requirements as { disabled_reason?: string | null } | undefined)
