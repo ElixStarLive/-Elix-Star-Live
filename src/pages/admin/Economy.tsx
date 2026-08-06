@@ -113,7 +113,7 @@ export default function AdminEconomy() {
                 </thead>
                 <tbody>
                   {packages.map((pkg) => (
-                    <tr key={pkg.id} className="hover:bg-[rgba(255,255,255,0.06)]/50">
+                    <tr key={pkg.id} className="hover:bg-[rgba(255,255,255,0.06)]">
                       <td className="px-4 py-3 font-semibold">{pkg.title}</td>
                       <td className="px-4 py-3">{pkg.coins.toLocaleString()}</td>
                       <td className="px-4 py-3">{pkg.price_display || '—'}</td>
@@ -145,7 +145,7 @@ export default function AdminEconomy() {
               </thead>
               <tbody>
                 {gifts.map(gift => (
-                  <tr key={gift.id} className="hover:bg-[rgba(255,255,255,0.06)]/50">
+                  <tr key={gift.id} className="hover:bg-[rgba(255,255,255,0.06)]">
                     <td className="px-4 py-3 font-semibold">{gift.name}</td>
                     <td className="px-4 py-3">
                       <span className="px-2 py-1 bg-[#FFFFFF] rounded text-xs">{gift.rarity}</span>
@@ -200,7 +200,7 @@ export default function AdminEconomy() {
               </thead>
               <tbody>
                 {boosters.map(booster => (
-                  <tr key={booster.id} className="hover:bg-[rgba(255,255,255,0.06)]/50">
+                  <tr key={booster.id} className="hover:bg-[rgba(255,255,255,0.06)]">
                     <td className="px-4 py-3 font-semibold">{booster.name}</td>
                     <td className="px-4 py-3 text-gray-400">{booster.effect_type}</td>
                     <td className="px-4 py-3 text-white font-bold">{booster.coin_cost}</td>

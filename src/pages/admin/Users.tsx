@@ -114,7 +114,7 @@ export default function AdminUsers() {
             </thead>
             <tbody>
               {filteredUsers.map(user => (
-                <tr key={user.id} className="hover:bg-[rgba(255,255,255,0.06)]/50">
+                <tr key={user.id} className="hover:bg-[rgba(255,255,255,0.06)]">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full overflow-hidden shrink-0">
