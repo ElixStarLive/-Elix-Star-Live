@@ -268,7 +268,7 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
                   ) : (
                     <button
                       onClick={onFollow}
-                      className="flex-1 h-9 flex items-center justify-center bg-[#6F3FF5] text-white rounded-xl font-semibold text-xs hover:bg-[#6F3FF5]/90 transition-colors"
+                      className="flex-1 h-9 flex items-center justify-center bg-[#F0C86B] text-white rounded-xl font-semibold text-xs hover:bg-[#F0C86B]/90 transition-colors"
                     >
                       Follow
                     </button>
@@ -334,7 +334,7 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
           {/* Video Feed */}
           <div className="mt-6 pt-4 border-t border-white/5">
             <div className="flex items-center gap-2 mb-3">
-              <div className="w-0.5 h-4 rounded-full bg-[#6F3FF5]/80" />
+              <div className="w-0.5 h-4 rounded-full bg-[#F0C86B]/80" />
               <span className="text-sm font-semibold text-white/90">Videos</span>
             </div>
             {userVideos.length > 0 ? (

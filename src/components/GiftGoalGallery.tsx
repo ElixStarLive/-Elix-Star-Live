@@ -159,7 +159,7 @@ export function GiftGoalGallery(props: Props) {
             className={[
               "px-2 py-0.5 rounded-full text-[9px] font-bold border active:scale-95 transition-all",
               targetCount === n
-                ? "bg-[#6F3FF5]/25 border-[#D8D9DD] text-[#F5F5F7]"
+                ? "bg-[#F0C86B]/25 border-[#D8D9DD] text-[#F5F5F7]"
                 : "bg-white/5 border-white/10 text-white/60",
             ].join(" ")}
           >

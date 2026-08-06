@@ -61,7 +61,7 @@ export function LiveFollowPill({
     return (
       <button
         type="button"
-        className="flex items-center justify-center gap-0.5 h-[28px] px-2.5 rounded-full bg-[#6F3FF5] shadow-[0_0_10px_rgba(111,63,245,0.45)] active:scale-95 transition-transform flex-shrink-0 elix-solid-accent"
+        className="flex items-center justify-center gap-0.5 h-[28px] px-2.5 rounded-full bg-[#F0C86B] shadow-[0_0_10px_rgba(111,63,245,0.45)] active:scale-95 transition-transform flex-shrink-0 elix-solid-accent"
         onClick={onFollow}
         aria-label={label}
       >
@@ -73,7 +73,7 @@ export function LiveFollowPill({
   return (
     <button
       type="button"
-      className="col-start-1 row-start-1 z-20 relative flex items-center justify-center gap-0.5 self-stretch h-full rounded-full bg-[#6F3FF5] w-full elix-solid-accent"
+      className="col-start-1 row-start-1 z-20 relative flex items-center justify-center gap-0.5 self-stretch h-full rounded-full bg-[#F0C86B] w-full elix-solid-accent"
       onClick={onFollow}
       aria-label={label}
     >
@@ -234,8 +234,8 @@ export function LiveJoinPill({
       type="button"
       className={`flex items-center justify-center gap-1 h-[28px] px-2.5 rounded-full active:scale-95 transition-transform elix-solid-accent ${
         hasJoinedToday
-          ? 'bg-[#6F3FF5] border border-[#8B5CFF]'
-          : 'bg-[#6F3FF5] border border-[#8B5CFF] shadow-[0_0_10px_rgba(111,63,245,0.55)]'
+          ? 'bg-[#F0C86B] border border-[#F6E4A6]'
+          : 'bg-[#F0C86B] border border-[#F6E4A6] shadow-[0_0_10px_rgba(111,63,245,0.55)]'
       }`}
       onClick={onJoin}
     >
@@ -245,8 +245,8 @@ export function LiveJoinPill({
           strokeWidth={2.5}
         />
         {!hasJoinedToday && (
-          <div className="absolute -top-1 -right-1 w-2 h-2 bg-white rounded-full flex items-center justify-center border border-[#6F3FF5]">
-            <span className="text-[#6F3FF5] text-[6px] font-bold leading-none">+</span>
+          <div className="absolute -top-1 -right-1 w-2 h-2 bg-white rounded-full flex items-center justify-center border border-[#F0C86B]">
+            <span className="text-[#F0C86B] text-[6px] font-bold leading-none">+</span>
           </div>
         )}
       </div>
@@ -497,7 +497,7 @@ export function LiveGiftComboColumn({
           onOpen?.();
         }
       }}
-      className="flex flex-col-reverse items-center gap-2 rounded-2xl px-2.5 py-2.5 border border-[#2A2D33] bg-[rgba(10,10,10,0.72)] backdrop-blur-md shadow-none active:scale-[0.98] transition-transform"
+      className="flex flex-col-reverse items-center gap-2 rounded-2xl px-2.5 py-2.5 border border-[#2A2D33] bg-[rgba(255,255,255,0.06)] backdrop-blur-md shadow-none active:scale-[0.98] transition-transform"
     >
       {stack.map((item, idx) => {
         const isActive = idx === stack.length - 1;

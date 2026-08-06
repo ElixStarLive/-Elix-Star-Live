@@ -298,7 +298,7 @@ export default function AdminRisingStars() {
               type="button"
               disabled={busy}
               onClick={() => void createSeason()}
-              className="w-full py-2 rounded-lg bg-[#6F3FF5] text-white font-semibold disabled:opacity-40"
+              className="w-full py-2 rounded-lg bg-[#F0C86B] text-white font-semibold disabled:opacity-40"
             >
               Create season
             </button>
@@ -443,7 +443,7 @@ export default function AdminRisingStars() {
               type="button"
               disabled={busy}
               onClick={() => void createChallenge()}
-              className="w-full py-2 rounded-lg bg-[#6F3FF5] text-white font-semibold disabled:opacity-40"
+              className="w-full py-2 rounded-lg bg-[#F0C86B] text-white font-semibold disabled:opacity-40"
             >
               Create challenge
             </button>

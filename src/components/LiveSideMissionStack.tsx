@@ -63,9 +63,9 @@ function GiftBoxIcon() {
       </defs>
       <rect x="3" y="7" width="10" height="7" rx="1.2" fill="url(#elixSideGift)" />
       <rect x="2.5" y="5" width="11" height="2.4" rx="0.6" fill="#FFF3C4" />
-      <rect x="7.2" y="5" width="1.6" height="9" fill="#6F3FF5" />
-      <path d="M8 5 C6.2 3.2 4.2 4.2 4.8 5.6" stroke="#6F3FF5" strokeWidth="1.2" fill="none" />
-      <path d="M8 5 C9.8 3.2 11.8 4.2 11.2 5.6" stroke="#6F3FF5" strokeWidth="1.2" fill="none" />
+      <rect x="7.2" y="5" width="1.6" height="9" fill="#F0C86B" />
+      <path d="M8 5 C6.2 3.2 4.2 4.2 4.8 5.6" stroke="#F0C86B" strokeWidth="1.2" fill="none" />
+      <path d="M8 5 C9.8 3.2 11.8 4.2 11.2 5.6" stroke="#F0C86B" strokeWidth="1.2" fill="none" />
     </svg>
   );
 }

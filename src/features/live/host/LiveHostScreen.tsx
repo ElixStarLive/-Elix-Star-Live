@@ -910,7 +910,7 @@ export default function LiveHostScreen() {
                   </>
                 )}
                 {isCamOff && !featuredHost && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)] z-[5]">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[rgba(255,255,255,0.06)] z-[5]">
                     {(user?.avatar || myAvatar) ? (
                       <img src={user?.avatar || myAvatar || ''} alt="" className="w-16 h-16 rounded-full border-2 border-[#D8D9DD]/40 object-cover object-center" />
                     ) : (
@@ -1037,7 +1037,7 @@ export default function LiveHostScreen() {
                         style={{ opacity: isCamOff ? 0 : 1, transform: 'scaleX(-1)', backgroundColor: '#09090B' }}
                       />
                       {isCamOff && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[rgba(10,10,10,0.72)] z-[5]">
+                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[rgba(255,255,255,0.06)] z-[5]">
                           {(user?.avatar || myAvatar) ? (
                             <img src={user?.avatar || myAvatar || ''} alt="" className="w-10 h-10 rounded-full object-cover" />
                           ) : (
@@ -1083,7 +1083,7 @@ export default function LiveHostScreen() {
                   const isSelected = !!selectedCohostGiftUserId && sameUserId(selectedCohostGiftUserId, host.userId);
                   return (
                     <>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[rgba(10,10,10,0.72)] z-[5]">
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[rgba(255,255,255,0.06)] z-[5]">
                         {host.avatar ? (
                           <img src={host.avatar} alt="" className="w-10 h-10 rounded-full object-cover object-center" />
                         ) : (
@@ -1264,7 +1264,7 @@ export default function LiveHostScreen() {
 
             {SPEED_CHALLENGE_ENABLED && speedChallengeResult && !speedChallengeActive && (
               <div className="absolute inset-x-0 bottom-24 z-[270] pointer-events-none flex items-center justify-center">
-                <div className="flex flex-col items-center gap-1 px-6 py-3 rounded-xl bg-[rgba(10,10,10,0.72)] backdrop-blur-md border border-[#2A2D33] shadow-[0_0_20px_rgba(0,0,0,0.6)]">
+                <div className="flex flex-col items-center gap-1 px-6 py-3 rounded-xl bg-[rgba(255,255,255,0.06)] backdrop-blur-md border border-[#2A2D33] shadow-[0_0_20px_rgba(0,0,0,0.6)]">
                   <span className="text-white text-[10px] font-bold uppercase tracking-widest">âš¡ Speed Challenge Result</span>
                   <span className="text-white text-lg font-black drop-shadow-[0_0_15px_rgba(230,179,106,0.8)] animate-bounce">{speedChallengeResult}</span>
                 </div>
@@ -1289,7 +1289,7 @@ export default function LiveHostScreen() {
                 >
 
                   {/* Battle score: tap bar to hide (keeps battle video + chat visible). Tap VS to show again. */}
-                  <div className={`relative z-20 w-full flex-none ${battleScoreBarHidden ? '' : 'bg-[rgba(10,10,10,0.72)] border-b border-[#2A2D33]'}`}>
+                  <div className={`relative z-20 w-full flex-none ${battleScoreBarHidden ? '' : 'bg-[rgba(255,255,255,0.06)] border-b border-[#2A2D33]'}`}>
                     {!battleScoreBarHidden ? (
                       <div
                         className="relative w-full overflow-hidden cursor-pointer pointer-events-auto"
@@ -1303,7 +1303,7 @@ export default function LiveHostScreen() {
                         <div className="absolute inset-0 flex">
                           <div
                             className="h-full transition-[width] duration-[1200ms] ease-out motion-reduce:transition-none"
-                            style={{ width: `${leftPct}%`, backgroundImage: 'linear-gradient(90deg, #6F3FF5, #FF1744, #C41E3A)' }}
+                            style={{ width: `${leftPct}%`, backgroundImage: 'linear-gradient(90deg, #F0C86B, #FF1744, #C41E3A)' }}
                           />
                           <div className="h-full flex-1 min-w-0" style={{ backgroundImage: 'linear-gradient(90deg, #1E90FF, #4169E1, #0047AB)' }} />
                         </div>
@@ -1348,7 +1348,7 @@ export default function LiveHostScreen() {
                         <div className="relative w-5 h-5 flex items-center justify-center flex-shrink-0">
                           <svg viewBox="0 0 40 44" className="absolute inset-0 w-full h-full drop-shadow-md">
                             <path d="M20 2 L36 10 L36 26 Q36 38 20 42 Q4 38 4 26 L4 10 Z" fill="url(#vsGrad2)" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5"/>
-                            <defs><linearGradient id="vsGrad2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#6F3FF5"/><stop offset="50%" stopColor="#5B2ED6"/><stop offset="100%" stopColor="#1E90FF"/></linearGradient></defs>
+                            <defs><linearGradient id="vsGrad2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#F0C86B"/><stop offset="50%" stopColor="#C4A052"/><stop offset="100%" stopColor="#1E90FF"/></linearGradient></defs>
                           </svg>
                           <span className="relative z-10 text-white text-[7px] font-black italic drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">VS</span>
                         </div>
@@ -1482,7 +1482,7 @@ export default function LiveHostScreen() {
                             </div>
                           )}
                           {!hasOpponentStream && !cameraOffPlayers['opponent'] && (
-                            <div className="absolute inset-0 z-[5] flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)]">
+                            <div className="absolute inset-0 z-[5] flex flex-col items-center justify-center gap-2 bg-[rgba(255,255,255,0.06)]">
                               {battleSlots[0].avatar ? (
                                 <img src={battleSlots[0].avatar} alt={battleSlots[0].name} className="w-16 h-16 rounded-full object-cover object-center" />
                               ) : (
@@ -1499,13 +1499,13 @@ export default function LiveHostScreen() {
                           )}
                         </div>
                       ) : battleSlots[0].status === 'invited' ? (
-                        <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)] border border-[#2A2D33]">
+                        <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[rgba(255,255,255,0.06)] border border-[#2A2D33]">
                           <img src={battleSlots[0].avatar} alt={battleSlots[0].name} className="w-12 h-12 rounded-full object-cover object-center opacity-60" />
-                          <div className="w-5 h-5 border-2 border-[#6F3FF5]/25 border-t-[#6F3FF5] rounded-full animate-spin elix-loader" />
+                          <div className="w-5 h-5 border-2 border-[#F0C86B]/25 border-t-[#F0C86B] rounded-full animate-spin elix-loader" />
                           <span className="text-white text-[10px] font-bold">Waiting...</span>
                         </div>
                       ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)] pointer-events-auto" onClick={(e) => { e.stopPropagation(); setShowViewerList(false); setIsFindCreatorsOpen(true); }}>
+                        <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[rgba(255,255,255,0.06)] pointer-events-auto" onClick={(e) => { e.stopPropagation(); setShowViewerList(false); setIsFindCreatorsOpen(true); }}>
                           <div className="w-12 h-12 rounded-full flex items-center justify-center">
                             <span className="text-white/30 text-2xl">+</span>
                           </div>
@@ -1611,13 +1611,13 @@ export default function LiveHostScreen() {
                             )}
                           </div>
                         ) : battleSlots[1].status === 'invited' ? (
-                          <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)] border border-[#2A2D33]">
+                          <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[rgba(255,255,255,0.06)] border border-[#2A2D33]">
                             <img src={battleSlots[1].avatar} alt={battleSlots[1].name} className="w-12 h-12 rounded-full object-cover object-center opacity-60" />
-                            <div className="w-5 h-5 border-2 border-[#6F3FF5]/25 border-t-[#6F3FF5] rounded-full animate-spin elix-loader" />
+                            <div className="w-5 h-5 border-2 border-[#F0C86B]/25 border-t-[#F0C86B] rounded-full animate-spin elix-loader" />
                             <span className="text-white text-[10px] font-bold">Waiting...</span>
                           </div>
                         ) : (
-                          <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)] pointer-events-auto" onClick={(e) => { e.stopPropagation(); setShowViewerList(false); setIsFindCreatorsOpen(true); }}>
+                          <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[rgba(255,255,255,0.06)] pointer-events-auto" onClick={(e) => { e.stopPropagation(); setShowViewerList(false); setIsFindCreatorsOpen(true); }}>
                             <div className="w-12 h-12 rounded-full flex items-center justify-center">
                               <span className="text-white/30 text-2xl">+</span>
                             </div>
@@ -1693,13 +1693,13 @@ export default function LiveHostScreen() {
                             )}
                           </div>
                         ) : battleSlots[2].status === 'invited' ? (
-                          <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)] border border-[#2A2D33]">
+                          <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[rgba(255,255,255,0.06)] border border-[#2A2D33]">
                             <img src={battleSlots[2].avatar} alt={battleSlots[2].name} className="w-12 h-12 rounded-full object-cover object-center opacity-60" />
-                            <div className="w-5 h-5 border-2 border-[#6F3FF5]/25 border-t-[#6F3FF5] rounded-full animate-spin elix-loader" />
+                            <div className="w-5 h-5 border-2 border-[#F0C86B]/25 border-t-[#F0C86B] rounded-full animate-spin elix-loader" />
                             <span className="text-white text-[10px] font-bold">Waiting...</span>
                           </div>
                         ) : (
-                          <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)] pointer-events-auto" onClick={(e) => { e.stopPropagation(); setShowViewerList(false); setIsFindCreatorsOpen(true); }}>
+                          <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[rgba(255,255,255,0.06)] pointer-events-auto" onClick={(e) => { e.stopPropagation(); setShowViewerList(false); setIsFindCreatorsOpen(true); }}>
                             <div className="w-12 h-12 rounded-full flex items-center justify-center">
                               <span className="text-white/30 text-2xl">+</span>
                             </div>
@@ -1778,7 +1778,7 @@ export default function LiveHostScreen() {
                       />
                     </div>
                     {isMvp && (
-                      <span className="absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#6F3FF5] text-white text-[6px] font-black leading-none tracking-wide">
+                      <span className="absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#F0C86B] text-white text-[6px] font-black leading-none tracking-wide">
                         MVP
                       </span>
                     )}
@@ -1816,7 +1816,7 @@ export default function LiveHostScreen() {
                       />
                     </div>
                     {isMvp && (
-                      <span className="absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#6F3FF5] text-white text-[6px] font-black leading-none tracking-wide">
+                      <span className="absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#F0C86B] text-white text-[6px] font-black leading-none tracking-wide">
                         MVP
                       </span>
                     )}
@@ -1969,7 +1969,7 @@ export default function LiveHostScreen() {
                             }
                           />
                           {currentUniverse && (
-                            <div className="mt-1 flex items-center gap-1 bg-[rgba(10,10,10,0.72)] rounded-full px-2.5 py-1 border border-[#D8D9DD]/80 shadow-sm pointer-events-auto relative z-20">
+                            <div className="mt-1 flex items-center gap-1 bg-[rgba(255,255,255,0.06)] rounded-full px-2.5 py-1 border border-[#D8D9DD]/80 shadow-sm pointer-events-auto relative z-20">
                               <span className="text-[#F5E6A8] text-[11px] font-bold whitespace-nowrap truncate max-w-[140px]">âœ¨ {universeText} âœ¨</span>
                             </div>
                           )}
@@ -1999,7 +1999,7 @@ export default function LiveHostScreen() {
                                   />
                                 </div>
                                 {isMvp && (
-                                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#6F3FF5] text-white text-[6px] font-black leading-none tracking-wide">
+                                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#F0C86B] text-white text-[6px] font-black leading-none tracking-wide">
                                     MVP
                                   </span>
                                 )}
@@ -2165,7 +2165,7 @@ export default function LiveHostScreen() {
                 type="button"
                 onClick={onComboButtonClick}
                 disabled={comboCount >= GIFT_COMBO_MAX}
-                className="w-[72px] h-[72px] rounded-full bg-gradient-to-b from-[#8B5CFF] to-[#6F3FF5] flex flex-col items-center justify-center active:scale-90 transition-transform shadow-[0_0_18px_rgba(111,63,245,0.55)] border-2 border-white/30 disabled:opacity-50"
+                className="w-[72px] h-[72px] rounded-full bg-gradient-to-b from-[#F6E4A6] to-[#F0C86B] flex flex-col items-center justify-center active:scale-90 transition-transform shadow-[0_0_18px_rgba(111,63,245,0.55)] border-2 border-white/30 disabled:opacity-50"
               >
                 {typeof lastSentGift.icon === 'string' && (lastSentGift.icon.startsWith('http') || lastSentGift.icon.startsWith('/')) ? (
                   <img src={lastSentGift.icon} alt="" className="w-7 h-7 object-contain mb-0.5" draggable={false} />
@@ -2399,7 +2399,7 @@ export default function LiveHostScreen() {
             onClick={closeFindCreatorsPanel}
           />
           <div
-            className="bg-[rgba(10,10,10,0.72)] backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl pointer-events-auto w-full relative z-10 overflow-hidden pb-safe"
+            className="bg-[rgba(255,255,255,0.06)] backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl pointer-events-auto w-full relative z-10 overflow-hidden pb-safe"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Drag handle */}
@@ -2498,7 +2498,7 @@ export default function LiveHostScreen() {
                 <button
                   type="button"
                   onClick={startMatchFromFindCreators}
-                  className="w-full py-2.5 bg-[#6F3FF5] text-white text-xs font-bold rounded-lg shadow-lg active:scale-95 transition-all flex items-center justify-center gap-1.5"
+                  className="w-full py-2.5 bg-[#F0C86B] text-white text-xs font-bold rounded-lg shadow-lg active:scale-95 transition-all flex items-center justify-center gap-1.5"
                 >
                   <Sword size={14} />
                   <span>Start Match</span>
@@ -2584,7 +2584,7 @@ export default function LiveHostScreen() {
                     (miniProfileFollowsThem === true ||
                       (miniProfileFollowsThem === undefined && followingUsers.includes(miniProfile.id)))
                       ? 'bg-white/10 text-white border border-[#2A2D33] font-bold'
-                      : 'bg-[#6F3FF5] text-white font-black hover:bg-[#6F3FF5]/90 elix-solid-accent'
+                      : 'bg-[#F0C86B] text-white font-black hover:bg-[#F0C86B]/90 elix-solid-accent'
                   }`}
                 >
                   {miniProfile?.id &&
@@ -2632,7 +2632,7 @@ export default function LiveHostScreen() {
             onClick={closeViewerList}
           />
           <div className="fixed bottom-0 left-0 right-0 z-[999999] pointer-events-auto max-w-[480px] mx-auto">
-            <div className="bg-[rgba(10,10,10,0.72)] backdrop-blur-md rounded-t-2xl h-[36vh] flex flex-col shadow-2xl overflow-hidden">
+            <div className="bg-[rgba(255,255,255,0.06)] backdrop-blur-md rounded-t-2xl h-[36vh] flex flex-col shadow-2xl overflow-hidden">
               <div className="flex justify-center pt-3 pb-1">
                 <div className="w-10 h-1 bg-white/20 rounded-full" />
               </div>
@@ -2689,7 +2689,7 @@ export default function LiveHostScreen() {
                                 />
                               </div>
                               {isMvp ? (
-                                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#6F3FF5] text-white text-[6px] font-black leading-none tracking-wide">
+                                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#F0C86B] text-white text-[6px] font-black leading-none tracking-wide">
                                   MVP
                                 </span>
                               ) : null}
@@ -2876,7 +2876,7 @@ export default function LiveHostScreen() {
           />
           <div className="fixed bottom-0 left-0 right-0 h-[40vh] z-[99999] pointer-events-auto max-w-[480px] mx-auto">
           <div
-            className="bg-[rgba(10,10,10,0.72)] backdrop-blur-md rounded-t-2xl p-3 pb-safe h-full flex flex-col shadow-2xl w-full overflow-hidden "
+            className="bg-[rgba(255,255,255,0.06)] backdrop-blur-md rounded-t-2xl p-3 pb-safe h-full flex flex-col shadow-2xl w-full overflow-hidden "
             onClick={(e) => e.stopPropagation()}
           >
             {/* Drag handle */}
@@ -2927,7 +2927,7 @@ export default function LiveHostScreen() {
                      <p className="text-white/30 text-[10px] text-center py-2">No membership hearts yet</p>
                    )}
                    {heartMembers.map((m, i) => (
-                     <div key={m.user_id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-[#6F3FF5]/5 border border-[#D8D9DD]/15">
+                     <div key={m.user_id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-[#F0C86B]/5 border border-[#D8D9DD]/15">
                        <div className="w-5 text-center font-bold text-[10px] text-[#F5F5F7]/60">{i + 1}</div>
                        <img src={m.avatar_url || '/royce/elix-mark.svg'} alt="" className="w-7 h-7 rounded-full object-cover border border-[#D8D9DD]/20" />
                        <div className="flex-1 min-w-0">
@@ -2955,7 +2955,7 @@ export default function LiveHostScreen() {
                      <p className="text-white/30 text-[10px] text-center py-2">No gifts yet</p>
                    )}
                    {topGifters.map((g, i) => (
-                     <div key={g.user_id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-[#6F3FF5]/5 border border-[#D8D9DD]/15">
+                     <div key={g.user_id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-[#F0C86B]/5 border border-[#D8D9DD]/15">
                        <div className="w-5 text-center font-bold text-[10px] text-[#F5F5F7]/60">{i + 1}</div>
                        <img src={g.avatar_url || '/royce/elix-mark.svg'} alt="" className="w-7 h-7 rounded-full object-cover border border-[#D8D9DD]/20" />
                        <div className="flex-1 min-w-0">
@@ -2982,7 +2982,7 @@ export default function LiveHostScreen() {
           />
           <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
           <div
-            className="bg-[rgba(10,10,10,0.72)] rounded-t-2xl p-3 pb-safe max-h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full"
+            className="bg-[rgba(255,255,255,0.06)] rounded-t-2xl p-3 pb-safe max-h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Drag handle */}
@@ -3002,7 +3002,7 @@ export default function LiveHostScreen() {
             <div className="flex-1 overflow-y-auto px-4 pb-4 no-scrollbar">
               <div className="flex flex-col gap-3">
                 {/* Subscription Banner */}
-                <div className="bg-gradient-to-r from-[#D8D9DD]/10 to-[#6F3FF5]/5 rounded-xl p-3 border border-[#D8D9DD]/20 relative overflow-hidden">
+                <div className="bg-gradient-to-r from-[#D8D9DD]/10 to-[#F0C86B]/5 rounded-xl p-3 border border-[#D8D9DD]/20 relative overflow-hidden">
                   <div className="relative z-10">
                     <div className="flex items-center justify-between mb-2">
                       <div>
@@ -3138,7 +3138,7 @@ export default function LiveHostScreen() {
             className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto"
           >
           <div
-            className="relative bg-[rgba(10,10,10,0.72)] rounded-t-2xl p-3 pb-safe h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full "
+            className="relative bg-[rgba(255,255,255,0.06)] rounded-t-2xl p-3 pb-safe h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full "
             onClick={(e) => e.stopPropagation()}
           >
             {areTestCoinsEnabled() && (
@@ -3279,7 +3279,7 @@ export default function LiveHostScreen() {
           />
           <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
             <div
-              className="bg-[rgba(10,10,10,0.72)] rounded-t-2xl p-3 pb-safe shadow-2xl w-full"
+              className="bg-[rgba(255,255,255,0.06)] rounded-t-2xl p-3 pb-safe shadow-2xl w-full"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-center mb-2">
@@ -3384,7 +3384,7 @@ export default function LiveHostScreen() {
                     <button
                       type="submit"
                       disabled={!testCoinsPwd}
-                      className="flex-1 py-2.5 rounded-xl bg-[#6F3FF5] text-white text-sm font-bold disabled:opacity-40"
+                      className="flex-1 py-2.5 rounded-xl bg-[#F0C86B] text-white text-sm font-bold disabled:opacity-40"
                     >
                       Unlock
                     </button>
@@ -3428,7 +3428,7 @@ export default function LiveHostScreen() {
                     <button
                       type="button"
                       onClick={addMaxTestCoinsAtOnce}
-                      className="py-1.5 rounded-lg text-xs font-bold transition-colors bg-[#6F3FF5]/30 text-[#F5F5F7] hover:bg-[#6F3FF5]/40 col-span-3"
+                      className="py-1.5 rounded-lg text-xs font-bold transition-colors bg-[#F0C86B]/30 text-[#F5F5F7] hover:bg-[#F0C86B]/40 col-span-3"
                     >
                       Max (100M) â€“ Charge at once
                     </button>
@@ -3444,7 +3444,7 @@ export default function LiveHostScreen() {
                     <button
                       type="submit"
                       disabled={!testCoinsAmount}
-                      className="flex-1 py-2.5 rounded-xl bg-[#6F3FF5] text-white text-sm font-bold disabled:opacity-40"
+                      className="flex-1 py-2.5 rounded-xl bg-[#F0C86B] text-white text-sm font-bold disabled:opacity-40"
                     >
                       Add Coins
                     </button>
@@ -3476,13 +3476,13 @@ export default function LiveHostScreen() {
               return acc;
             }, {}),
           ).map((g) => (
-            <span key={g.key} className="relative flex items-center justify-center w-11 h-11 rounded-full bg-[rgba(10,10,10,0.72)] border border-[#6F3FF5] shadow-2xl text-[#6F3FF5] animate-in zoom-in-50 duration-200">
+            <span key={g.key} className="relative flex items-center justify-center w-11 h-11 rounded-full bg-[rgba(255,255,255,0.06)] border border-[#F0C86B] shadow-2xl text-[#F0C86B] animate-in zoom-in-50 duration-200">
               <GloveIcon className="w-7 h-7" />
               {g.count > 1 && (
-                <span className="absolute -top-1 -right-1 text-[9px] font-black leading-none px-1 rounded-full bg-[#6F3FF5] text-white border border-black/40">{g.count}</span>
+                <span className="absolute -top-1 -right-1 text-[9px] font-black leading-none px-1 rounded-full bg-[#F0C86B] text-white border border-black/40">{g.count}</span>
               )}
               {g.multiplier > 0 && (
-                <span className="absolute -bottom-1 -right-1 text-[9px] font-black leading-none px-1 rounded-full bg-black text-[#6F3FF5] border border-[#6F3FF5]/60">x{g.multiplier}</span>
+                <span className="absolute -bottom-1 -right-1 text-[9px] font-black leading-none px-1 rounded-full bg-black text-[#F0C86B] border border-[#F0C86B]/60">x{g.multiplier}</span>
               )}
             </span>
           ))}
@@ -3493,7 +3493,7 @@ export default function LiveHostScreen() {
       {boosterCatches.length > 0 && (
         <div className="fixed inset-x-0 top-[30%] z-[100000] flex flex-col items-center gap-2 pointer-events-none px-4">
           {boosterCatches.map((c) => (
-            <div key={c.id} className="booster-catch-pop flex items-center gap-2 px-4 py-2 rounded-full bg-[rgba(10,10,10,0.72)] border border-[#D8D9DD] shadow-2xl">
+            <div key={c.id} className="booster-catch-pop flex items-center gap-2 px-4 py-2 rounded-full bg-[rgba(255,255,255,0.06)] border border-[#D8D9DD] shadow-2xl">
               <GloveIcon className="w-5 h-5 text-[#F5F5F7]" />
               <span className="text-[#F5F5F7] font-black text-base tracking-wide">x{c.multiplier} CAUGHT!</span>
               <span className="text-white font-bold text-sm">+{c.finalPoints}</span>
@@ -3522,7 +3522,7 @@ export default function LiveHostScreen() {
             onClick={closeSharePanel}
           />
           <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
-          <div className="bg-[rgba(10,10,10,0.72)] backdrop-blur-md rounded-t-2xl p-3 pb-safe flex flex-col shadow-2xl w-full h-[40vh] overflow-hidden ">
+          <div className="bg-[rgba(255,255,255,0.06)] backdrop-blur-md rounded-t-2xl p-3 pb-safe flex flex-col shadow-2xl w-full h-[40vh] overflow-hidden ">
             <div className="flex justify-center pt-0.5 pb-0.5">
               <div className="w-10 h-1 bg-white/20 rounded-full" />
             </div>
@@ -3645,7 +3645,7 @@ export default function LiveHostScreen() {
             <button
               type="button"
               onClick={() => { setShowModerationWarning(false); setModerationWarningMessage(''); }}
-              className="w-full py-2.5 rounded-lg bg-[#6F3FF5] text-white font-semibold"
+              className="w-full py-2.5 rounded-lg bg-[#F0C86B] text-white font-semibold"
             >
               OK
             </button>

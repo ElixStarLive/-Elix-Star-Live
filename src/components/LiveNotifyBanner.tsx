@@ -145,7 +145,7 @@ export function LiveNotifyBanner() {
       className="fixed left-0 right-0 top-0 z-[9999] flex justify-center px-3 pointer-events-none"
       style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 8px)' }}
     >
-      <div className="pointer-events-auto w-full max-w-[480px] flex items-center gap-2 rounded-full bg-[rgba(10,10,10,0.72)] border border-[#D8D9DD]/40 pl-1.5 pr-2 py-1 shadow-[0_8px_30px_rgba(0,0,0,0.55)]">
+      <div className="pointer-events-auto w-full max-w-[480px] flex items-center gap-2 rounded-full bg-[rgba(255,255,255,0.06)] border border-[#D8D9DD]/40 pl-1.5 pr-2 py-1 shadow-[0_8px_30px_rgba(0,0,0,0.55)]">
         <button
           type="button"
           onClick={openLiveWatch}

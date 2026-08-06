@@ -59,7 +59,7 @@ export default function AdminPurchases() {
             type="button"
             onClick={() => setTab("iap")}
             className={`px-3 py-1.5 rounded-full text-xs font-semibold ${
-              tab === "iap" ? "bg-[#6F3FF5] text-white elix-accent" : "bg-white/10"
+              tab === "iap" ? "bg-[#F0C86B] text-white elix-accent" : "bg-white/10"
             }`}
           >
             Coin IAP
@@ -68,7 +68,7 @@ export default function AdminPurchases() {
             type="button"
             onClick={() => setTab("shop")}
             className={`px-3 py-1.5 rounded-full text-xs font-semibold ${
-              tab === "shop" ? "bg-[#6F3FF5] text-white elix-accent" : "bg-white/10"
+              tab === "shop" ? "bg-[#F0C86B] text-white elix-accent" : "bg-white/10"
             }`}
           >
             Shop (Stripe)

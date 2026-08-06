@@ -264,7 +264,7 @@ export default function RisingStarsChallenge() {
                       type="button"
                       disabled={!selectedVideoId || busy}
                       onClick={() => void enter()}
-                      className="flex-1 py-2 rounded-xl bg-[#6F3FF5] text-white text-xs font-semibold disabled:opacity-40"
+                      className="flex-1 py-2 rounded-xl bg-[#F0C86B] text-white text-xs font-semibold disabled:opacity-40"
                     >
                       Submit entry
                     </button>
@@ -319,7 +319,7 @@ export default function RisingStarsChallenge() {
                           e.creator_user_id === user?.id
                         }
                         onClick={() => void vote(e.id)}
-                        className="px-3 py-1.5 rounded-lg bg-[#6F3FF5] text-white text-xs font-semibold disabled:opacity-40"
+                        className="px-3 py-1.5 rounded-lg bg-[#F0C86B] text-white text-xs font-semibold disabled:opacity-40"
                       >
                         Vote
                       </button>

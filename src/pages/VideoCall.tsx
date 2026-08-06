@@ -335,7 +335,7 @@ export default function VideoCall() {
       </div>
 
       {/* Controls */}
-      <div className="w-full bg-[rgba(10,10,10,0.72)] backdrop-blur-sm pb-10 pt-6 px-6 shrink-0">
+      <div className="w-full bg-[rgba(255,255,255,0.06)] backdrop-blur-sm pb-10 pt-6 px-6 shrink-0">
         <div className="flex items-center justify-center gap-6">
           <button
             type="button"

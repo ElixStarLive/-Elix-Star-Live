@@ -424,7 +424,7 @@ export default function InlineLiveViewer({
       <p className="text-white font-semibold text-base truncate max-w-[80%]">{creatorName}</p>
       {connecting && !isOffline ? (
         <>
-          <div className="w-8 h-8 border-2 border-[#6F3FF5]/25 border-t-[#6F3FF5] rounded-full animate-spin elix-loader" />
+          <div className="w-8 h-8 border-2 border-[#F0C86B]/25 border-t-[#F0C86B] rounded-full animate-spin elix-loader" />
           <span className="text-white/60 text-sm">Connecting to live...</span>
         </>
       ) : isOffline ? (

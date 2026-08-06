@@ -78,7 +78,7 @@ export default function LegalDMCA() {
             <p className="text-white font-medium mt-2">{dmcaEmail}</p>
             <div className="pt-3">
               <a
-                className="inline-flex items-center justify-center rounded-xl bg-[#6F3FF5] text-white font-bold px-4 py-2 text-sm"
+                className="inline-flex items-center justify-center rounded-xl bg-[#F0C86B] text-white font-bold px-4 py-2 text-sm"
                 href={`mailto:${dmcaEmail}?subject=DMCA%20Notice%20-%20ElixStarLive`}
               >
                 Email DMCA Agent

@@ -417,7 +417,7 @@ export default function ChatThread() {
 
             return (
               <div key={m.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm leading-snug break-words ${isMe ? 'bg-[rgba(10,10,10,0.72)] text-white rounded-tr-none border border-[#2A2D33]' : 'bg-[rgba(10,10,10,0.72)] text-white rounded-tl-none border border-[#2A2D33]'}`}>
+                <div className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm leading-snug break-words ${isMe ? 'bg-[rgba(255,255,255,0.06)] text-white rounded-tr-none border border-[#2A2D33]' : 'bg-[rgba(255,255,255,0.06)] text-white rounded-tl-none border border-[#2A2D33]'}`}>
                   {preview && preview.type === 'profile' ? (
                     <button
                       type="button"
@@ -483,7 +483,7 @@ export default function ChatThread() {
         </div>
 
         <div className="flex-shrink-0 p-4 bg-[rgba(0,0,0,0.35)] border-t border-white/10">
-          <form className="flex items-center gap-2 bg-[rgba(10,10,10,0.72)] rounded-full px-4 py-2" onSubmit={handleSend}>
+          <form className="flex items-center gap-2 bg-[rgba(255,255,255,0.06)] rounded-full px-4 py-2" onSubmit={handleSend}>
             <input
               value={draft}
               onChange={(e) => setDraft(e.target.value)}

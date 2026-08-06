@@ -90,7 +90,7 @@ export const BottomNav = () => {
       aria-label="Main navigation"
     >
       <div className="flex justify-center pointer-events-none">
-        <div className="feed-column-width pointer-events-auto bg-[rgba(0,0,0,0.35)] min-h-[var(--nav-height)]">
+        <div className="feed-column-width pointer-events-auto bg-[rgba(0,0,0,0.35)] border-t border-[#2A2D33] min-h-[var(--nav-height)]" style={{ backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
           <div className="flex items-center justify-around px-1 pt-1.5 pb-1">
             {NAV_ITEMS.map(({ path, label, Icon, center }) => {
               const active = isActiveRoute(location.pathname, path);
@@ -121,8 +121,8 @@ export const BottomNav = () => {
                       <Icon
                         size={size}
                         strokeWidth={active ? 2.35 : 2}
-                        className={active ? "text-[#6F3FF5]" : "royce-icon-gold"}
-                        style={active ? { color: "#6F3FF5", stroke: "#6F3FF5" } : undefined}
+                        className={active ? "text-[#F0C86B]" : "royce-icon-gold"}
+                        style={active ? { color: "#F0C86B", stroke: "#F0C86B" } : undefined}
                       />
                     )}
                   </span>
@@ -135,8 +135,8 @@ export const BottomNav = () => {
                       ...(active
                         ? {
                             backgroundImage: "none",
-                            WebkitTextFillColor: "#6F3FF5",
-                            color: "#6F3FF5",
+                            WebkitTextFillColor: "#F0C86B",
+                            color: "#F0C86B",
                           }
                         : undefined),
                     }}

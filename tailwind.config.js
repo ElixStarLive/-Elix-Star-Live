@@ -56,7 +56,7 @@ export default {
         },
       },
       fontFamily: {
-        sans: ["Inter", "Roboto", "sans-serif"],
+        sans: ["Poppins", "Inter", "Roboto", "sans-serif"],
       },
       borderRadius: {
         sm: "var(--radius-sm)",

@@ -437,7 +437,7 @@ export default function ElixCameraLayout({
           )}
         </button>
 
-        <div className="w-8 h-[1px] bg-[#6F3FF5]/25 rounded-full"></div>
+        <div className="w-8 h-[1px] bg-[#F0C86B]/25 rounded-full"></div>
         <button 
           onClick={onTimerCycle}
           className="w-8 h-8 camera-rail-disc flex-shrink-0 flex items-center justify-center hover:scale-110 active:scale-90 transition-transform relative self-center"
@@ -475,7 +475,7 @@ export default function ElixCameraLayout({
 
         {/* Beauty Slider (shows when tapped) */}
         {showBeautySlider && (
-          <div className="bg-[rgba(10,10,10,0.72)] backdrop-blur-sm rounded-full px-1 py-1.5 flex flex-col items-center gap-0.5 border border-[#D8D9DD]/20">
+          <div className="bg-[rgba(255,255,255,0.06)] backdrop-blur-sm rounded-full px-1 py-1.5 flex flex-col items-center gap-0.5 border border-[#D8D9DD]/20">
             <span className="text-[7px] text-[#F5F5F7] drop-shadow-[0_0_8px_rgba(139, 144, 152,1)] font-bold">{Math.round(beautyLevel * 100)}%</span>
             <input
               type="range"
@@ -508,7 +508,7 @@ export default function ElixCameraLayout({
         </button>
 
         {/* ── AI FEATURES SECTION ── */}
-        <div className="w-8 h-[1.5px] bg-[#6F3FF5]/30 rounded-full my-0.5"></div>
+        <div className="w-8 h-[1.5px] bg-[#F0C86B]/30 rounded-full my-0.5"></div>
 
         {/* Zoom In */}
         {onZoomIn && (
@@ -569,7 +569,7 @@ export default function ElixCameraLayout({
         <>
         <div className="absolute inset-0 z-[59] pointer-events-auto" onClick={() => setShowEffectsPanel(false)} aria-hidden />
         <div className="absolute bottom-0 left-0 right-0 z-[60] pointer-events-auto animate-in slide-in-from-bottom duration-300">
-          <div className="bg-[rgba(10,10,10,0.72)] backdrop-blur-xl rounded-t-2xl pb-safe">
+          <div className="bg-[rgba(255,255,255,0.06)] backdrop-blur-xl rounded-t-2xl pb-safe">
             {/* Header */}
             <div className="flex items-center justify-center px-4 pt-3 pb-2">
               <h3 className="text-[#F5F5F7] drop-shadow-[0_0_8px_rgba(139, 144, 152,1)] text-xs font-bold flex items-center gap-1.5">
@@ -611,7 +611,7 @@ export default function ElixCameraLayout({
                 onClick={() => setEnhanceEnabled(prev => !prev)}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all ${
                   enhanceEnabled
-                    ? 'bg-[#6F3FF5] text-white elix-accent'
+                    ? 'bg-[#F0C86B] text-white elix-accent'
                     : 'bg-white/10 text-white/60 border border-white/10'
                 }`}
               >
@@ -638,7 +638,7 @@ export default function ElixCameraLayout({
         <>
         <div className="absolute inset-0 z-[59] pointer-events-auto" onClick={() => setShowCapCutPanel(false)} aria-hidden />
         <div className="absolute bottom-0 left-0 right-0 z-[60] pointer-events-auto animate-in slide-in-from-bottom duration-300">
-          <div className="bg-[rgba(10,10,10,0.72)] backdrop-blur-xl rounded-t-2xl pb-safe">
+          <div className="bg-[rgba(255,255,255,0.06)] backdrop-blur-xl rounded-t-2xl pb-safe">
             {/* Header */}
             <div className="flex items-center justify-center px-4 pt-3 pb-2">
               <h3 className="text-[#F5F5F7] drop-shadow-[0_0_8px_rgba(139, 144, 152,1)] text-xs font-bold flex items-center gap-1.5">
@@ -660,7 +660,7 @@ export default function ElixCameraLayout({
                     onClick={() => onSpeedChange?.(opt.value)}
                     className={`flex-1 py-1.5 rounded-full text-xs font-bold transition-all ${
                       currentSpeed === opt.value
-                        ? 'bg-[#6F3FF5] text-white elix-accent shadow-lg shadow-[#FFFFFF]/30'
+                        ? 'bg-[#F0C86B] text-white elix-accent shadow-lg shadow-[#FFFFFF]/30'
                         : 'bg-white/10 text-white/60 border border-white/10'
                     }`}
                   >
@@ -768,8 +768,8 @@ export default function ElixCameraLayout({
       {/* TEXT INPUT OVERLAY */}
       {/* ══════════════════════════════════════════ */}
       {showTextInput && (
-        <div className="absolute inset-0 z-[70] bg-[rgba(10,10,10,0.72)] flex items-center justify-center pointer-events-auto" onClick={() => setShowTextInput(false)}>
-          <div className="w-[80%] max-w-xs bg-[rgba(10,10,10,0.72)] backdrop-blur-xl rounded-2xl border border-[#D8D9DD]/20 p-4" onClick={(e) => e.stopPropagation()}>
+        <div className="absolute inset-0 z-[70] bg-[rgba(255,255,255,0.06)] flex items-center justify-center pointer-events-auto" onClick={() => setShowTextInput(false)}>
+          <div className="w-[80%] max-w-xs bg-[rgba(255,255,255,0.06)] backdrop-blur-xl rounded-2xl border border-[#D8D9DD]/20 p-4" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-center mb-3">
               <h3 className="text-[#F5F5F7] drop-shadow-[0_0_8px_rgba(139, 144, 152,1)] text-xs font-bold">Add Text</h3>
             </div>
@@ -791,7 +791,7 @@ export default function ElixCameraLayout({
               </button>
               <button
                 onClick={() => setShowTextInput(false)}
-                className="flex-1 py-2 rounded-xl bg-[#6F3FF5] text-white elix-accent text-xs font-bold"
+                className="flex-1 py-2 rounded-xl bg-[#F0C86B] text-white elix-accent text-xs font-bold"
               >
                 Done
               </button>
@@ -807,7 +807,7 @@ export default function ElixCameraLayout({
         <>
         <div className="absolute inset-0 z-[69] pointer-events-auto" onClick={() => setShowStickerPicker(false)} aria-hidden />
         <div className="absolute bottom-0 left-0 right-0 z-[70] pointer-events-auto">
-          <div className="bg-[rgba(10,10,10,0.72)] backdrop-blur-xl rounded-t-2xl pb-safe">
+          <div className="bg-[rgba(255,255,255,0.06)] backdrop-blur-xl rounded-t-2xl pb-safe">
             <div className="flex items-center justify-center px-4 pt-3 pb-2">
               <h3 className="text-[#F5F5F7] drop-shadow-[0_0_8px_rgba(139, 144, 152,1)] text-xs font-bold">Stickers</h3>
             </div>

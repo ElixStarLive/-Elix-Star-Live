@@ -70,7 +70,7 @@ export default function MediaEditorPanel({
 
   return (
     <div className="absolute inset-x-0 bottom-0 z-[120] pointer-events-auto" role="dialog" aria-label={title}>
-      <div className="mx-auto w-full max-w-md rounded-t-2xl bg-[rgba(10,10,10,0.72)] backdrop-blur-md border-t border-white/10 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+14px)]">
+      <div className="mx-auto w-full max-w-md rounded-t-2xl bg-[rgba(255,255,255,0.06)] backdrop-blur-md border-t border-white/10 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+14px)]">
         <div className="flex items-center justify-between mb-3">
           <span className="text-white text-sm font-semibold">{title}</span>
           <button type="button" onClick={onClose} className="w-8 h-8 flex items-center justify-center" aria-label="Close">
@@ -85,7 +85,7 @@ export default function MediaEditorPanel({
                 key={p.id}
                 type="button"
                 onClick={() => onSelectFilter(p)}
-                className={`shrink-0 px-3 py-2 rounded-xl text-xs font-semibold border ${activeFilterId === p.id ? 'bg-[#6F3FF5] text-white elix-accent border-[#D8D9DD]' : 'bg-white/5 text-white/80 border-white/10'}`}
+                className={`shrink-0 px-3 py-2 rounded-xl text-xs font-semibold border ${activeFilterId === p.id ? 'bg-[#F0C86B] text-white elix-accent border-[#D8D9DD]' : 'bg-white/5 text-white/80 border-white/10'}`}
               >
                 {p.label}
               </button>
@@ -100,7 +100,7 @@ export default function MediaEditorPanel({
                 key={p.id}
                 type="button"
                 onClick={() => onSelectEffect(p)}
-                className={`shrink-0 px-3 py-2 rounded-xl text-xs font-semibold border ${activeEffectId === p.id ? 'bg-[#6F3FF5] text-white elix-accent border-[#D8D9DD]' : 'bg-white/5 text-white/80 border-white/10'}`}
+                className={`shrink-0 px-3 py-2 rounded-xl text-xs font-semibold border ${activeEffectId === p.id ? 'bg-[#F0C86B] text-white elix-accent border-[#D8D9DD]' : 'bg-white/5 text-white/80 border-white/10'}`}
               >
                 {p.label}
               </button>
@@ -133,7 +133,7 @@ export default function MediaEditorPanel({
               <button
                 type="button"
                 onClick={submitText}
-                className="ml-auto px-4 py-2 rounded-full bg-[#6F3FF5] text-white elix-accent text-xs font-bold active:scale-95 transition-transform"
+                className="ml-auto px-4 py-2 rounded-full bg-[#F0C86B] text-white elix-accent text-xs font-bold active:scale-95 transition-transform"
               >
                 Add
               </button>

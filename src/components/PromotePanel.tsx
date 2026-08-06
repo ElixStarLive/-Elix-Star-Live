@@ -132,7 +132,7 @@ export default function PromotePanel({ isOpen, onClose, contentType, content }: 
   return (
     <div className="fixed inset-0 z-[100000] flex items-end justify-center bg-black/50" onClick={onClose}>
       <div
-        className={`w-full max-w-[480px] bg-[rgba(10,10,10,0.72)] backdrop-blur-md rounded-t-2xl h-[38vh] max-h-[320px] overflow-hidden flex flex-col shadow-2xl animate-in slide-in-from-bottom ${!bottomNavHidden ? 'bottom-sheet-above-nav' : ''}`}
+        className={`w-full max-w-[480px] bg-[rgba(255,255,255,0.06)] backdrop-blur-md rounded-t-2xl h-[38vh] max-h-[320px] overflow-hidden flex flex-col shadow-2xl animate-in slide-in-from-bottom ${!bottomNavHidden ? 'bottom-sheet-above-nav' : ''}`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Drag handle */}
@@ -144,14 +144,14 @@ export default function PromotePanel({ isOpen, onClose, contentType, content }: 
           <h2 className="text-white font-bold text-sm">Promote</h2>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-3 py-2 space-y-3 min-h-0 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-[#6F3FF5]/50 [&::-webkit-scrollbar-thumb]:rounded-full">
+        <div className="flex-1 overflow-y-auto px-3 py-2 space-y-3 min-h-0 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-[#F0C86B]/50 [&::-webkit-scrollbar-thumb]:rounded-full">
           {/* Goal buttons + selected goal row */}
           <div className="flex gap-2">
             <button
               type="button"
               onClick={() => setBoostType('account')}
               className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                boostType === 'account' ? 'bg-[#6F3FF5] text-white elix-accent' : 'bg-white/5 text-white/70'
+                boostType === 'account' ? 'bg-[#F0C86B] text-white elix-accent' : 'bg-white/5 text-white/70'
               }`}
             >
               Boost account
@@ -161,7 +161,7 @@ export default function PromotePanel({ isOpen, onClose, contentType, content }: 
                 type="button"
                 onClick={() => setBoostType('live')}
                 className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                  boostType === 'live' ? 'bg-[#6F3FF5] text-white elix-accent' : 'bg-white/5 text-white/70'
+                  boostType === 'live' ? 'bg-[#F0C86B] text-white elix-accent' : 'bg-white/5 text-white/70'
                 }`}
               >
                 Boost LIVE
@@ -236,7 +236,7 @@ export default function PromotePanel({ isOpen, onClose, contentType, content }: 
             type="button"
             onClick={handlePay}
             disabled={isPaying}
-            className="px-5 py-2 rounded-lg bg-[#6F3FF5] text-white elix-accent font-bold text-xs hover:bg-[#6F3FF5]/90 active:scale-95 transition-all disabled:opacity-70"
+            className="px-5 py-2 rounded-lg bg-[#F0C86B] text-white elix-accent font-bold text-xs hover:bg-[#F0C86B]/90 active:scale-95 transition-all disabled:opacity-70"
           >
             {isPaying ? '...' : 'Pay'}
           </button>

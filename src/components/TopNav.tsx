@@ -107,15 +107,15 @@ export const TopNav = () => {
                       <Tv
                         size={11}
                         strokeWidth={2.25}
-                        className="shrink-0 -translate-y-[0.5mm] text-[#6F3FF5]"
-                        style={{ color: "#6F3FF5", stroke: "#6F3FF5" }}
+                        className="shrink-0 -translate-y-[0.5mm] text-[#F0C86B]"
+                        style={{ color: "#F0C86B", stroke: "#F0C86B" }}
                         aria-hidden
                       />
                     ) : null}
                     <span
                       className={`text-[10px] font-bold tracking-wide ${
                         isLive
-                          ? "text-[#6F3FF5]"
+                          ? "text-[#F0C86B]"
                           : isPrimary
                             ? "text-white"
                             : "text-[#D8D9DD] opacity-70"
@@ -124,8 +124,8 @@ export const TopNav = () => {
                         isLive
                           ? {
                               backgroundImage: "none",
-                              WebkitTextFillColor: "#6F3FF5",
-                              color: "#6F3FF5",
+                              WebkitTextFillColor: "#F0C86B",
+                              color: "#F0C86B",
                             }
                           : isPrimary
                             ? {

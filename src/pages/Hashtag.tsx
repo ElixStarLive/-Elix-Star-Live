@@ -65,7 +65,7 @@ export default function Hashtag() {
           <button onClick={goFeed} className="p-1 hover:brightness-125 transition" title="Back to For You">
             <RoyceBackIcon />
           </button>
-          <div className="w-16 h-16 bg-gradient-to-br from-[#6F3FF5] to-[#6F3FF5] rounded-full flex items-center justify-center">
+          <div className="w-16 h-16 bg-gradient-to-br from-[#F0C86B] to-[#F0C86B] rounded-full flex items-center justify-center">
             <Hash className="w-8 h-8 text-black" />
           </div>
           <div className="flex-1">

@@ -189,7 +189,7 @@ export default function RisingStars() {
                   onClick={() => setCategoryId("")}
                   className={`shrink-0 px-3 py-1.5 rounded-full text-xs border ${
                     !categoryId
-                      ? "bg-[#6F3FF5] text-white elix-accent border-[#D8D9DD]"
+                      ? "bg-[#F0C86B] text-white elix-accent border-[#D8D9DD]"
                       : "border-white/20 text-white/70"
                   }`}
                 >
@@ -202,7 +202,7 @@ export default function RisingStars() {
                     onClick={() => setCategoryId(c.id)}
                     className={`shrink-0 px-3 py-1.5 rounded-full text-xs border ${
                       categoryId === c.id
-                        ? "bg-[#6F3FF5] text-white elix-accent border-[#D8D9DD]"
+                        ? "bg-[#F0C86B] text-white elix-accent border-[#D8D9DD]"
                         : "border-white/20 text-white/70"
                     }`}
                   >
@@ -254,7 +254,7 @@ export default function RisingStars() {
                     type="button"
                     onClick={() => setTab(id)}
                     className={`flex-1 py-2 rounded-xl text-xs font-medium ${
-                      tab === id ? "bg-[#6F3FF5] text-white elix-accent" : "bg-white/10 text-white/70"
+                      tab === id ? "bg-[#F0C86B] text-white elix-accent" : "bg-white/10 text-white/70"
                     }`}
                   >
                     {label}

@@ -325,7 +325,7 @@ export function FeedStoryCirclesOverlay({
                 goUploadStory();
               }
             }}
-            className="absolute bottom-0 right-0 w-4 h-4 rounded-full bg-[#6F3FF5] border-2 border-black flex items-center justify-center z-10"
+            className="absolute bottom-0 right-0 w-4 h-4 rounded-full bg-[#F0C86B] border-2 border-black flex items-center justify-center z-10"
           >
             <Plus size={9} className="text-black" strokeWidth={3} />
           </span>
@@ -401,7 +401,7 @@ export function FeedStoryCirclesOverlay({
               className="h-0.5 flex-1 rounded-full overflow-hidden bg-white/25"
             >
               <div
-                className="h-full bg-[#6F3FF5] elix-progress-fill rounded-full"
+                className="h-full bg-[#F0C86B] elix-progress-fill rounded-full"
                 style={{
                   width:
                     i < storyViewer.itemIndex

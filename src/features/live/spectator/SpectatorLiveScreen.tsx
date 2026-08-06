@@ -534,7 +534,7 @@ export default function SpectatorLiveScreen() {
     return (
       <div className="fixed inset-0 bg-black flex justify-center">
         <div className="relative w-full max-w-[480px] h-full bg-[rgba(0,0,0,0.35)] flex flex-col items-center justify-center gap-4 p-6">
-          <div className="w-10 h-10 border-2 border-[#6F3FF5]/25 border-t-[#6F3FF5] rounded-full animate-spin elix-loader" />
+          <div className="w-10 h-10 border-2 border-[#F0C86B]/25 border-t-[#F0C86B] rounded-full animate-spin elix-loader" />
           <p className="text-white/60 text-sm">Checking stream...</p>
         </div>
       </div>
@@ -569,7 +569,7 @@ export default function SpectatorLiveScreen() {
             <button
               type="button"
               onClick={() => navigate('/feed', { replace: true })}
-              className="px-6 py-2.5 rounded-lg bg-[#6F3FF5] text-white elix-accent font-semibold"
+              className="px-6 py-2.5 rounded-lg bg-[#F0C86B] text-white elix-accent font-semibold"
             >
               Go back
             </button>
@@ -627,7 +627,7 @@ export default function SpectatorLiveScreen() {
               >
                 {/* Battle video half — score + videos + MVP inside height box (host-identical) */}
                 <div className="relative w-full flex-none flex flex-col overflow-hidden" style={{ height: LIVE_BATTLE_VIDEO_HEIGHT }}>
-                <div className={`relative z-20 w-full flex-none ${battleScoreBarHidden ? '' : 'bg-[rgba(10,10,10,0.72)] border-b border-[#2A2D33]'}`}>
+                <div className={`relative z-20 w-full flex-none ${battleScoreBarHidden ? '' : 'bg-[rgba(255,255,255,0.06)] border-b border-[#2A2D33]'}`}>
                   {!battleScoreBarHidden ? (
                     <div
                       className="relative w-full overflow-hidden cursor-pointer pointer-events-auto"
@@ -641,7 +641,7 @@ export default function SpectatorLiveScreen() {
                       <div className="absolute inset-0 flex">
                         <div
                           className="h-full transition-[width] duration-[1200ms] ease-out motion-reduce:transition-none"
-                          style={{ width: `${leftPct}%`, backgroundImage: 'linear-gradient(90deg, #6F3FF5, #FF1744, #C41E3A)' }}
+                          style={{ width: `${leftPct}%`, backgroundImage: 'linear-gradient(90deg, #F0C86B, #FF1744, #C41E3A)' }}
                         />
                         <div className="h-full flex-1 min-w-0" style={{ backgroundImage: 'linear-gradient(90deg, #1E90FF, #4169E1, #0047AB)' }} />
                       </div>
@@ -686,7 +686,7 @@ export default function SpectatorLiveScreen() {
                       <div className="relative w-5 h-5 flex items-center justify-center flex-shrink-0">
                         <svg viewBox="0 0 40 44" className="absolute inset-0 w-full h-full drop-shadow-md">
                           <path d="M20 2 L36 10 L36 26 Q36 38 20 42 Q4 38 4 26 L4 10 Z" fill="url(#vsGradSpectator)" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5"/>
-                          <defs><linearGradient id="vsGradSpectator" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#6F3FF5"/><stop offset="50%" stopColor="#5B2ED6"/><stop offset="100%" stopColor="#1E90FF"/></linearGradient></defs>
+                          <defs><linearGradient id="vsGradSpectator" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#F0C86B"/><stop offset="50%" stopColor="#C4A052"/><stop offset="100%" stopColor="#1E90FF"/></linearGradient></defs>
                         </svg>
                         <span className="relative z-10 text-white text-[7px] font-black italic drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">VS</span>
                       </div>
@@ -728,7 +728,7 @@ export default function SpectatorLiveScreen() {
                           style={{ opacity: hasStream ? 1 : 0, transition: 'opacity 0.4s ease' }}
                         />
                         {!hasStream && (
-                          <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)]">
+                          <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center gap-2 bg-[rgba(255,255,255,0.06)]">
                             {hostAvatar ? (
                               <img src={hostAvatar} alt="" className="w-16 h-16 rounded-full object-cover object-center" />
                             ) : (
@@ -772,7 +772,7 @@ export default function SpectatorLiveScreen() {
                           style={{ opacity: hasOpponentStream ? 1 : 0, transition: 'opacity 0.3s ease' }}
                         />
                         {!hasOpponentStream && (
-                          <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)]">
+                          <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center gap-2 bg-[rgba(255,255,255,0.06)]">
                             {spectatorBattle.opponentName ? (
                               <div className="w-16 h-16 rounded-full bg-[rgba(0,0,0,0.35)] flex items-center justify-center">
                                 <span className="text-2xl font-black text-[#F5F5F7]">{spectatorBattle.opponentName.charAt(0).toUpperCase()}</span>
@@ -904,7 +904,7 @@ export default function SpectatorLiveScreen() {
                             />
                           </div>
                           {isMvp && (
-                            <span className="absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#6F3FF5] text-white elix-accent text-[6px] font-black leading-none tracking-wide">
+                            <span className="absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#F0C86B] text-white elix-accent text-[6px] font-black leading-none tracking-wide">
                               MVP
                             </span>
                           )}
@@ -958,7 +958,7 @@ export default function SpectatorLiveScreen() {
                             />
                           </div>
                           {isMvp && (
-                            <span className="absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#6F3FF5] text-white elix-accent text-[6px] font-black leading-none tracking-wide">
+                            <span className="absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#F0C86B] text-white elix-accent text-[6px] font-black leading-none tracking-wide">
                               MVP
                             </span>
                           )}
@@ -991,7 +991,7 @@ export default function SpectatorLiveScreen() {
                   <div className="fixed inset-0 z-[200]" onClick={() => setShowOpponentPanel(false)}>
                     <div className="absolute inset-0 bg-black/35" />
                     <div
-                      className="absolute left-1/2 -translate-x-1/2 w-[calc(100%-24px)] max-w-[456px] bg-[rgba(10,10,10,0.72)] rounded-2xl overflow-hidden shadow-xl border border-[#2A2D33] animate-[slideInFromBottom_0.2s_ease-out]"
+                      className="absolute left-1/2 -translate-x-1/2 w-[calc(100%-24px)] max-w-[456px] bg-[rgba(255,255,255,0.06)] rounded-2xl overflow-hidden shadow-xl border border-[#2A2D33] animate-[slideInFromBottom_0.2s_ease-out]"
                       style={{ bottom: 'calc(70px + max(8px, env(safe-area-inset-bottom)))' }}
                       onClick={(e) => e.stopPropagation()}
                     >
@@ -1105,7 +1105,7 @@ export default function SpectatorLiveScreen() {
                     style={{ opacity: hostCamOff ? 0 : 1, backgroundColor: '#09090B' }}
                   />
                   {hostCamOff && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[rgba(10,10,10,0.72)] z-[5]">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[rgba(255,255,255,0.06)] z-[5]">
                       {hostAvatar ? (
                         <img src={hostAvatar} alt="" className="w-10 h-10 rounded-full object-cover" />
                       ) : (
@@ -1133,7 +1133,7 @@ export default function SpectatorLiveScreen() {
               return (
                 <>
                   {isCamOff && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[rgba(10,10,10,0.72)] z-[5]">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[rgba(255,255,255,0.06)] z-[5]">
                     {(viewerAvatar || user?.avatar) ? (
                       <img src={viewerAvatar || user?.avatar || ''} alt="" className="w-10 h-10 rounded-full object-cover object-center" />
                     ) : (
@@ -1192,7 +1192,7 @@ export default function SpectatorLiveScreen() {
               return (
                 <>
                   {camOff && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[rgba(10,10,10,0.72)] z-[5]">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[rgba(255,255,255,0.06)] z-[5]">
                     {h.avatar ? (
                       <img src={h.avatar} alt="" className="w-10 h-10 rounded-full object-cover object-center" />
                     ) : (
@@ -1391,7 +1391,7 @@ export default function SpectatorLiveScreen() {
                   </>
                 )}
                 {hostCamOff && !featuredLive && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)] z-[5]">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[rgba(255,255,255,0.06)] z-[5]">
                     {hostAvatar ? (
                       <img src={hostAvatar} alt="" className="w-16 h-16 rounded-full object-cover object-center border-2 border-[#D8D9DD]/40" />
                     ) : (
@@ -1419,7 +1419,7 @@ export default function SpectatorLiveScreen() {
                         <button
                           type="button"
                           onClick={() => navigate('/login', { state: { from: `/watch/${effectiveStreamId}` } })}
-                          className="mt-2 px-5 py-2.5 rounded-lg bg-[#6F3FF5] text-white elix-accent font-semibold text-sm"
+                          className="mt-2 px-5 py-2.5 rounded-lg bg-[#F0C86B] text-white elix-accent font-semibold text-sm"
                         >
                           Log in
                         </button>
@@ -1427,7 +1427,7 @@ export default function SpectatorLiveScreen() {
                     ) : (
                       <>
                         <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 border-2 border-[#6F3FF5]/25 border-t-[#6F3FF5] rounded-full animate-spin elix-loader" />
+                          <div className="w-4 h-4 border-2 border-[#F0C86B]/25 border-t-[#F0C86B] rounded-full animate-spin elix-loader" />
                           <span className="text-white/60 text-sm">Connecting to stream...</span>
                         </div>
                         {showRetryButton && (
@@ -1565,7 +1565,7 @@ export default function SpectatorLiveScreen() {
                             />
                           </div>
                           {isMvp && (
-                            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#6F3FF5] text-white elix-accent text-[6px] font-black leading-none tracking-wide">
+                            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#F0C86B] text-white elix-accent text-[6px] font-black leading-none tracking-wide">
                               MVP
                             </span>
                           )}
@@ -1775,7 +1775,7 @@ export default function SpectatorLiveScreen() {
                 type="button"
                 onClick={handleComboClick}
                 disabled={comboCount >= GIFT_COMBO_MAX}
-                className="w-[72px] h-[72px] rounded-full bg-gradient-to-b from-[#8B5CFF] to-[#6F3FF5] flex flex-col items-center justify-center active:scale-90 transition-transform shadow-[0_0_18px_rgba(111,63,245,0.55)] border-2 border-white/30 disabled:opacity-50"
+                className="w-[72px] h-[72px] rounded-full bg-gradient-to-b from-[#F6E4A6] to-[#F0C86B] flex flex-col items-center justify-center active:scale-90 transition-transform shadow-[0_0_18px_rgba(111,63,245,0.55)] border-2 border-white/30 disabled:opacity-50"
               >
                 {typeof lastSentGift.icon === 'string' && (lastSentGift.icon.startsWith('http') || lastSentGift.icon.startsWith('/')) ? (
                   <img src={lastSentGift.icon} alt="" className="w-7 h-7 object-contain mb-0.5" draggable={false} />
@@ -1918,13 +1918,13 @@ export default function SpectatorLiveScreen() {
                 return acc;
               }, {}),
             ).map((g) => (
-              <span key={g.key} className="relative flex items-center justify-center w-11 h-11 rounded-full bg-[rgba(10,10,10,0.72)] border border-[#6F3FF5] shadow-2xl text-[#6F3FF5] animate-in zoom-in-50 duration-200">
+              <span key={g.key} className="relative flex items-center justify-center w-11 h-11 rounded-full bg-[rgba(255,255,255,0.06)] border border-[#F0C86B] shadow-2xl text-[#F0C86B] animate-in zoom-in-50 duration-200">
                 <GloveIcon className="w-7 h-7" />
                 {g.count > 1 && (
-                  <span className="absolute -top-1 -right-1 text-[9px] font-black leading-none px-1 rounded-full bg-[#6F3FF5] text-white elix-accent border border-black/40">{g.count}</span>
+                  <span className="absolute -top-1 -right-1 text-[9px] font-black leading-none px-1 rounded-full bg-[#F0C86B] text-white elix-accent border border-black/40">{g.count}</span>
                 )}
                 {g.multiplier > 0 && (
-                  <span className="absolute -bottom-1 -right-1 text-[9px] font-black leading-none px-1 rounded-full bg-black text-[#6F3FF5] border border-[#6F3FF5]/60">x{g.multiplier}</span>
+                  <span className="absolute -bottom-1 -right-1 text-[9px] font-black leading-none px-1 rounded-full bg-black text-[#F0C86B] border border-[#F0C86B]/60">x{g.multiplier}</span>
                 )}
               </span>
             ))}
@@ -1935,7 +1935,7 @@ export default function SpectatorLiveScreen() {
         {boosterCatches.length > 0 && (
           <div className="fixed inset-x-0 top-[30%] z-[100000] flex flex-col items-center gap-2 pointer-events-none px-4">
             {boosterCatches.map((c) => (
-              <div key={c.id} className="booster-catch-pop flex items-center gap-2 px-4 py-2 rounded-full bg-[rgba(10,10,10,0.72)] border border-[#D8D9DD] shadow-2xl">
+              <div key={c.id} className="booster-catch-pop flex items-center gap-2 px-4 py-2 rounded-full bg-[rgba(255,255,255,0.06)] border border-[#D8D9DD] shadow-2xl">
                 <GloveIcon className="w-5 h-5 text-[#F5F5F7]" />
                 <span className="text-[#F5F5F7] font-black text-base tracking-wide">x{c.multiplier} CAUGHT!</span>
                 <span className="text-white font-bold text-sm">+{c.finalPoints}</span>
@@ -1960,7 +1960,7 @@ export default function SpectatorLiveScreen() {
              Join takes them to the live battle page as a player, not a spectator. */}
         {pendingBattleInvite && (
           <div className="fixed left-0 right-0 z-[100000] pointer-events-none flex justify-center px-3" style={{ top: 'calc(env(safe-area-inset-top, 0px) + 64px)' }}>
-            <div className="pointer-events-auto w-full max-w-[440px] flex items-center gap-2.5 py-1 px-2 rounded-full bg-[rgba(10,10,10,0.72)] backdrop-blur-md border border-[#D8D9DD]/40 shadow-2xl">
+            <div className="pointer-events-auto w-full max-w-[440px] flex items-center gap-2.5 py-1 px-2 rounded-full bg-[rgba(255,255,255,0.06)] backdrop-blur-md border border-[#D8D9DD]/40 shadow-2xl">
               <div
                 className="rounded-full overflow-hidden bg-[rgba(0,0,0,0.35)] flex-shrink-0"
                 style={{ width: SHARE_PANEL_AVATAR_PX, height: SHARE_PANEL_AVATAR_PX }}
@@ -1992,7 +1992,7 @@ export default function SpectatorLiveScreen() {
           <>
             <div className="fixed inset-0 z-[99998] bg-black/35 pointer-events-auto" onClick={() => { setShowCoHostPanel(false); }} />
             <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
-              <div className="bg-[rgba(10,10,10,0.72)] backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl overflow-hidden pb-safe" onClick={(e) => e.stopPropagation()}>
+              <div className="bg-[rgba(255,255,255,0.06)] backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl overflow-hidden pb-safe" onClick={(e) => e.stopPropagation()}>
                 <div className="flex justify-center pt-2 pb-1"><div className="w-10 h-1 bg-white/20 rounded-full" /></div>
                 <div className="flex items-center justify-center px-4 py-2">
                   <div className="flex items-center gap-1.5">
@@ -2048,7 +2048,7 @@ export default function SpectatorLiveScreen() {
                         type="button"
                         disabled={joinRequested || !user?.id}
                         onClick={() => { sendCohostJoinRequest(); }}
-                        className={`w-full py-3 rounded-xl font-bold text-sm ${joinRequested ? 'bg-white/10 text-white/40 cursor-not-allowed' : 'bg-[#6F3FF5] text-white elix-accent active:scale-95'}`}
+                        className={`w-full py-3 rounded-xl font-bold text-sm ${joinRequested ? 'bg-white/10 text-white/40 cursor-not-allowed' : 'bg-[#F0C86B] text-white elix-accent active:scale-95'}`}
                       >
                         {joinRequested ? 'Request sent' : 'Request to co-host'}
                       </button>
@@ -2070,7 +2070,7 @@ export default function SpectatorLiveScreen() {
             />
             <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
               <div
-                className="bg-[rgba(10,10,10,0.72)] rounded-t-2xl p-3 pb-safe h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full "
+                className="bg-[rgba(255,255,255,0.06)] rounded-t-2xl p-3 pb-safe h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full "
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex flex-col items-center justify-center pt-3 pb-1 gap-1.5">
@@ -2085,7 +2085,7 @@ export default function SpectatorLiveScreen() {
                 </div>
                 <div className="flex-1 overflow-y-auto px-4 pb-4 no-scrollbar">
                   <div className="flex flex-col gap-3">
-                    <div className="bg-gradient-to-r from-[#D8D9DD]/10 to-[#6F3FF5]/5 rounded-xl p-3 border border-[#D8D9DD]/20 relative overflow-hidden">
+                    <div className="bg-gradient-to-r from-[#D8D9DD]/10 to-[#F0C86B]/5 rounded-xl p-3 border border-[#D8D9DD]/20 relative overflow-hidden">
                       <div className="relative z-10">
                         <div className="flex items-center justify-between mb-2">
                           <div>
@@ -2148,7 +2148,7 @@ export default function SpectatorLiveScreen() {
                           >
                             <span className="group-hover:scale-110 transition-transform duration-200">{emoji}</span>
                             {!isMember && (
-                              <div className="absolute inset-0 bg-[rgba(10,10,10,0.72)] backdrop-blur-[1px] flex items-center justify-center">
+                              <div className="absolute inset-0 bg-[rgba(255,255,255,0.06)] backdrop-blur-[1px] flex items-center justify-center">
                                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-80"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                               </div>
                             )}
@@ -2189,7 +2189,7 @@ export default function SpectatorLiveScreen() {
                             <span className="text-[6px] text-[#F5F5F7]/50 font-bold uppercase">Upload</span>
                           </div>
                           {!isMember && (
-                            <div className="absolute inset-0 bg-[rgba(10,10,10,0.72)] backdrop-blur-[1px] flex items-center justify-center">
+                            <div className="absolute inset-0 bg-[rgba(255,255,255,0.06)] backdrop-blur-[1px] flex items-center justify-center">
                               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-80"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                             </div>
                           )}
@@ -2253,13 +2253,13 @@ export default function SpectatorLiveScreen() {
               onTouchMove={(e) => e.stopPropagation()}
             >
               {spectatorBattle?.active && (
-                <div className="px-3 pb-2 pt-1 flex items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)] rounded-t-xl">
+                <div className="px-3 pb-2 pt-1 flex items-center justify-center gap-2 bg-[rgba(255,255,255,0.06)] rounded-t-xl">
                   <div className="flex rounded-full overflow-hidden border border-[#D8D9DD]/40">
                     <button
                       type="button"
                       title="Gift left side"
                       onClick={() => setSpectatorGiftBattleTarget('host')}
-                      className={`px-4 py-1.5 text-[10px] font-bold transition-colors ${spectatorGiftBattleTarget === 'host' ? 'bg-[#6F3FF5]/90 text-white' : 'bg-[rgba(0,0,0,0.35)] text-white/70'}`}
+                      className={`px-4 py-1.5 text-[10px] font-bold transition-colors ${spectatorGiftBattleTarget === 'host' ? 'bg-[#F0C86B]/90 text-white' : 'bg-[rgba(0,0,0,0.35)] text-white/70'}`}
                     >
                       Left
                     </button>
@@ -2288,7 +2288,7 @@ export default function SpectatorLiveScreen() {
                             if (anyActive) return;
                             liveBoosterActivated({ multiplier: m });
                           }}
-                          className={`relative flex items-center justify-center w-9 h-9 rounded-full border transition-colors active:scale-90 ${isActive ? 'bg-[#6F3FF5] border-[#D8D9DD] text-white elix-accent' : anyActive ? 'bg-[rgba(0,0,0,0.35)] border-[#D8D9DD]/30 text-white/30' : 'bg-[rgba(0,0,0,0.35)] border-[#D8D9DD]/60 text-[#F5F5F7]'}`}
+                          className={`relative flex items-center justify-center w-9 h-9 rounded-full border transition-colors active:scale-90 ${isActive ? 'bg-[#F0C86B] border-[#D8D9DD] text-white elix-accent' : anyActive ? 'bg-[rgba(0,0,0,0.35)] border-[#D8D9DD]/30 text-white/30' : 'bg-[rgba(0,0,0,0.35)] border-[#D8D9DD]/60 text-[#F5F5F7]'}`}
                         >
                           <GloveIcon className="w-5 h-5" />
                           <span className="absolute -bottom-1 -right-1 text-[8px] font-black leading-none px-1 rounded-full bg-black text-[#F5F5F7] border border-[#D8D9DD]/60">x{m}</span>
@@ -2308,7 +2308,7 @@ export default function SpectatorLiveScreen() {
                             if (mistActive) return;
                             liveMistActivated({ target: spectatorGiftBattleTarget });
                           }}
-                          className={`flex items-center justify-center w-9 h-9 rounded-full border transition-colors active:scale-90 ${mistActive ? 'bg-[#6F3FF5] border-[#D8D9DD] text-white elix-accent' : 'bg-[rgba(0,0,0,0.35)] border-[#D8D9DD]/60 text-[#F5F5F7]'}`}
+                          className={`flex items-center justify-center w-9 h-9 rounded-full border transition-colors active:scale-90 ${mistActive ? 'bg-[#F0C86B] border-[#D8D9DD] text-white elix-accent' : 'bg-[rgba(0,0,0,0.35)] border-[#D8D9DD]/60 text-[#F5F5F7]'}`}
                         >
                           <CloudFog className="w-5 h-5" strokeWidth={2.25} />
                         </button>
@@ -2349,7 +2349,7 @@ export default function SpectatorLiveScreen() {
               onClick={() => setShowViewersPanel(false)}
             />
             <div className="fixed bottom-0 left-0 right-0 z-[999999] pointer-events-auto max-w-[480px] mx-auto">
-              <div className="bg-[rgba(10,10,10,0.72)] backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl overflow-hidden">
+              <div className="bg-[rgba(255,255,255,0.06)] backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl overflow-hidden">
                 <div className="flex justify-center pt-3 pb-1">
                   <div className="w-10 h-1 bg-white/20 rounded-full" />
                 </div>
@@ -2392,7 +2392,7 @@ export default function SpectatorLiveScreen() {
                             />
                           </div>
                           {isMvp ? (
-                            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#6F3FF5] text-white elix-accent text-[6px] font-black leading-none tracking-wide">
+                            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#F0C86B] text-white elix-accent text-[6px] font-black leading-none tracking-wide">
                               MVP
                             </span>
                           ) : null}
@@ -2428,7 +2428,7 @@ export default function SpectatorLiveScreen() {
               onClick={() => setShowSharePanel(false)}
             />
             <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
-              <div className="bg-[rgba(10,10,10,0.72)] backdrop-blur-md rounded-t-2xl p-3 pb-safe flex flex-col shadow-2xl w-full h-[40vh] overflow-hidden ">
+              <div className="bg-[rgba(255,255,255,0.06)] backdrop-blur-md rounded-t-2xl p-3 pb-safe flex flex-col shadow-2xl w-full h-[40vh] overflow-hidden ">
                 <div className="flex justify-center pt-0.5 pb-0.5">
                   <div className="w-10 h-1 bg-white/20 rounded-full" />
                 </div>
@@ -2560,7 +2560,7 @@ export default function SpectatorLiveScreen() {
             />
             <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
               <div
-                className="relative bg-[rgba(10,10,10,0.72)] rounded-t-2xl p-3 pb-safe h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full"
+                className="relative bg-[rgba(255,255,255,0.06)] rounded-t-2xl p-3 pb-safe h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full"
                 onClick={(e) => e.stopPropagation()}
               >
                 {areTestCoinsEnabled() && (
@@ -2729,7 +2729,7 @@ export default function SpectatorLiveScreen() {
                       <button
                         type="submit"
                         disabled={!testCoinsPwd}
-                        className="flex-1 py-2.5 rounded-xl bg-[#6F3FF5] text-white elix-accent text-sm font-bold disabled:opacity-40"
+                        className="flex-1 py-2.5 rounded-xl bg-[#F0C86B] text-white elix-accent text-sm font-bold disabled:opacity-40"
                       >
                         Unlock
                       </button>
@@ -2796,7 +2796,7 @@ export default function SpectatorLiveScreen() {
                           setShowTestCoinsModal(false);
                           // In memory-only mode, coins are persisted locally
                         }}
-                        className="py-1.5 rounded-lg text-xs font-bold transition-colors bg-[#6F3FF5]/30 text-[#F5F5F7] hover:bg-[#6F3FF5]/40 col-span-3"
+                        className="py-1.5 rounded-lg text-xs font-bold transition-colors bg-[#F0C86B]/30 text-[#F5F5F7] hover:bg-[#F0C86B]/40 col-span-3"
                       >
                         Max (100M) – Charge at once
                       </button>
@@ -2812,7 +2812,7 @@ export default function SpectatorLiveScreen() {
                       <button
                         type="submit"
                         disabled={!testCoinsAmount}
-                        className="flex-1 py-2.5 rounded-xl bg-[#6F3FF5] text-white elix-accent text-sm font-bold disabled:opacity-40"
+                        className="flex-1 py-2.5 rounded-xl bg-[#F0C86B] text-white elix-accent text-sm font-bold disabled:opacity-40"
                       >
                         Add Coins
                       </button>

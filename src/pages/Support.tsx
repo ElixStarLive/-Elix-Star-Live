@@ -103,7 +103,7 @@ export default function Support() {
     return (
       <SettingsOptionSheet onClose={goBack}>
         <div className="h-full flex flex-col items-center justify-center px-4 text-center">
-          <div className="w-16 h-16 bg-[#6F3FF5] rounded-full mx-auto mb-4 flex items-center justify-center">
+          <div className="w-16 h-16 bg-[#F0C86B] rounded-full mx-auto mb-4 flex items-center justify-center">
             <Send className="w-8 h-8 text-black" />
           </div>
           <h2 className="text-lg font-bold mb-1.5">Message Sent</h2>
@@ -161,7 +161,7 @@ export default function Support() {
           <button
             onClick={handleSubmitTicket}
             disabled={loading || !subject.trim() || !message.trim() || !email.trim()}
-            className="w-full py-3 bg-[#6F3FF5] text-white text-sm rounded-lg font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition"
+            className="w-full py-3 bg-[#F0C86B] text-white text-sm rounded-lg font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition"
           >
             {loading ? 'Sending...' : 'Send Message'}
           </button>
