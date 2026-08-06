@@ -56,15 +56,16 @@
     --color-dark-red: #5B2ED6;
     --color-hover-purple: #8B5CFF;
     --color-pressed-purple: #5B2ED6;
-    --color-background: #09090B;
-    --color-surface: #121317;
-    --color-card: #1B1E24;
-    --color-card-elevated: #242832;
+    --color-background: rgba(0, 0, 0, 0.35);
+    --color-surface: rgba(0, 0, 0, 0.35);
+    --color-card: rgba(255, 255, 255, 0.06);
+    --color-card-elevated: rgba(255, 255, 255, 0.06);
     /* Transparent black glass — live video stays visible behind UI */
     --color-glass-bg: rgba(0, 0, 0, 0.35);
-    --color-glass-panel: rgba(10, 10, 10, 0.72);
+    --color-glass-panel: rgba(255, 255, 255, 0.06);
     --color-glass-border: #2A2D33;
     --color-border: #2A2D33;
+    --elix-app-bg: url('/elix-app-bg.png');
     --color-destructive: #D91F2D;
     --shadow-luxury: 0 12px 40px rgba(0, 0, 0, 0.45);
     --radius-sm: 10px;
@@ -158,7 +159,13 @@
   }
 
   body {
-    @apply bg-background text-text font-sans antialiased overflow-hidden;
+    @apply text-text font-sans antialiased overflow-hidden;
+    background-color: #000000;
+    background-image: var(--elix-app-bg);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
     min-height: 100%;
     min-height: 100dvh;
     padding-top: var(--safe-top);
@@ -182,6 +189,11 @@
     min-height: 100%;
     min-height: 100dvh;
     overflow: hidden;
+    background-color: #000000;
+    background-image: var(--elix-app-bg);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
     /* Fluid base font: scales with viewport (320px → 414px+) */
     font-size: clamp(13px, calc(12px + 0.5vw), 17px);
   }
@@ -193,6 +205,7 @@
     min-height: 100dvh;
     overflow: hidden;
     position: relative;
+    background: transparent;
   }
 
   /* Prevent horizontal scroll on all devices */
@@ -1450,4 +1463,31 @@ svg.lucide.fill-silver-full.royce-icon-gold {
 .camera-rail-disc::after {
   content: none !important;
   display: none !important;
+}
+
+/* ═══ App-wide transparent page shells only (no accent/layout redesign) ═══ */
+.page-above-bottom-nav__inner,
+.app-live-column,
+.bg-background,
+.bg-surface,
+.min-h-screen.bg-background {
+  background-color: rgba(0, 0, 0, 0.35) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.bg-card,
+.bg-card-elevated {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+  border-color: #2A2D33 !important;
+}
+/* For You main wraps <video> — never blur/paint over the player */
+main.feed-column-width {
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+nav[aria-label="Main navigation"] .feed-column-width {
+  background-color: rgba(0, 0, 0, 0.35) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }

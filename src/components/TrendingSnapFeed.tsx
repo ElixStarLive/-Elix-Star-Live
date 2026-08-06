@@ -112,7 +112,7 @@ function VideoThumbnail({ video }: { video: Video }) {
   return (
     <button
       type="button"
-      className="relative aspect-[3/4] bg-black rounded-lg overflow-hidden cursor-pointer group"
+      className="relative aspect-[3/4] bg-transparent rounded-lg overflow-hidden cursor-pointer group"
       onClick={openVideo}
     >
       {/* Video underlay — shows when still is missing, broken, or nearly black */}
