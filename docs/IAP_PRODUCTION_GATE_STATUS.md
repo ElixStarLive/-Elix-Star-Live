@@ -13,7 +13,7 @@ Labels used only: **VERIFIED** | **FAILED** | **BLOCKED_EXTERNAL** | **NOT_CONFI
 | FINANCIAL SETTLEMENT REPORTS | **PENDING CLOSED-PERIOD STORE REPORTS** |
 | FULL IAP PRODUCTION-READY | **NO** |
 
-Production tip at check time: commit `d983682` (`/health`).
+Production tip at check time: commit `d983682` (`/health`). Fail-closed Apple/RTDN/ASN gates landed on `main` as `8e3ad61` — **do not redeploy until Coolify has Apple trio + `APPLE_IAP_REQUIRED=1` + RTDN/ASN secrets**, or boot will fatal.
 
 ---
 
@@ -22,7 +22,7 @@ Production tip at check time: commit `d983682` (`/health`).
 | # | Requirement | Status | Evidence / notes |
 |---|-------------|--------|------------------|
 | 1 | Production package name matches uploaded app | **VERIFIED** (code) / **BLOCKED_EXTERNAL** (Play Console upload match) | `android/app/build.gradle` `applicationId "com.elixstarlive.app"`; server default `GOOGLE_PLAY_PACKAGE_NAME\|\|"com.elixstarlive.app"`. Play Console listing of uploaded AAB package not accessible from agent. |
-| 2 | Version 1.0.486 / 533 signed with production identity | **VERIFIED** (version in gradle + AAB built) / **BLOCKED_EXTERNAL** (Play App Signing identity) | `versionName "1.0.486"`, `versionCode 533`; AAB built at `android/app/build/outputs/bundle/release/app-release.aab`. Play Console signing certificate fingerprint not verifiable here. |
+| 2 | Version 1.0.486 / 533 signed with production identity | **VERIFIED** (version strings historically) / **BLOCKED_EXTERNAL** (Play App Signing identity) | Checklist target `1.0.486` / `533` was built as `app-release.aab`. Tip now `1.0.487` / `534` after IAP gate harden (same package). Play Console signing certificate fingerprint not verifiable here. |
 | 3 | Every coin product Active in Play Console | **BLOCKED_EXTERNAL** | Agent has no Play Console access. Cannot assert Active. |
 | 4 | Product IDs match code exactly | **VERIFIED** (code inventory) / **BLOCKED_EXTERNAL** (Console) | Client `IAP_PRODUCTS` in `src/lib/iap.ts`: `coins100`, `coins500`, `coins500a`, `coins1000`, `coins5000`, `coins10000`, `coins50000`, `coins100000`, `coins150000`, `coins200000`, `coins350000`. Android uses `coins500a` for 500; `coins500` is iOS ASC id also listed. Console Active status unknown. |
 | 5 | No missing/renamed/obsolete IDs | **NOT_TESTED** | Code list is source of truth; Console orphan/missing SKUs unknown. `coins350000` is offered in app — must exist Active on Play if shipped. |
@@ -76,7 +76,7 @@ Production tip at check time: commit `d983682` (`/health`).
 | 4 | No localhost / sandbox-only verify fallback | **VERIFIED** (code paths) / **NOT_TESTED** (runtime) | Google uses Play API; Apple uses App Store Server API. No localhost verify path found for IAP. |
 | 5 | Secrets not in Git/logs/chat | **VERIFIED** (this report) | No secret values printed; `.env` not committed in this work. |
 | 6 | Startup + health checks | **VERIFIED** (health) / **NOT_TESTED** (boot log Apple fatals) | Health OK on `d983682`. New Apple/RTDN fatals need Coolify vars before next redeploy or boot will fail. |
-| 7 | Redacted evidence vars present | **PARTIAL** | Local redacted: Google JSON present; Apple trio missing; RTDN + Apple notif secrets present locally. Coolify redacted inventory **BLOCKED_EXTERNAL**. |
+| 7 | Redacted evidence vars present | **BLOCKED_EXTERNAL** (Coolify) / local sample only | Local redacted (names + present/len only): `GOOGLE_SERVICE_ACCOUNT_JSON` present; `GOOGLE_RTDN_WEBHOOK_SECRET` present; `APPLE_IAP_NOTIFICATION_SECRET` present; **Apple trio absent** (`APPLE_ISSUER_ID` / `APPLE_KEY_ID` / `APPLE_PRIVATE_KEY`); `APPLE_IAP_REQUIRED` unset. Coolify inventory not accessible. |
 
 ---
 
