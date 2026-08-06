@@ -7,12 +7,11 @@ import { platform } from './platform';
 import { useAuthStore } from '../store/useAuthStore';
 import { request } from './apiClient';
 
-// Product IDs — must match App Store Connect / Google Play Console
+// Product catalog — coin amounts by SKU. Store requests are platform-split below.
 export const IAP_PRODUCTS = {
   'coins100':    { coins: 100,    label: '100 Coins' },
-  // App Store Connect product (iOS). Android Play still uses coins500a.
-  'coins500':    { coins: 500,    label: '500 Coins' },
-  'coins500a':   { coins: 500,    label: '500 Coins' },
+  'coins500':    { coins: 500,    label: '500 Coins' },  // Apple App Store only
+  'coins500a':   { coins: 500,    label: '500 Coins' },  // Google Play only
   'coins1000':   { coins: 1000,   label: '1,000 Coins' },
   'coins5000':   { coins: 5000,   label: '5,000 Coins' },
   'coins10000':  { coins: 10000,  label: '10,000 Coins' },
@@ -22,6 +21,44 @@ export const IAP_PRODUCTS = {
   'coins200000': { coins: 200000, label: '200,000 Coins' },
   'coins350000': { coins: 350000, label: '350,000 Coins' },
 } as const;
+
+export type IAPProductId = keyof typeof IAP_PRODUCTS;
+export const IAP_PRODUCT_IDS = Object.keys(IAP_PRODUCTS) as IAPProductId[];
+
+/** Apple App Store coin SKUs only — never include Google-only IDs. */
+export const IOS_COIN_PRODUCT_IDS: IAPProductId[] = [
+  'coins100',
+  'coins500',
+  'coins1000',
+  'coins5000',
+  'coins10000',
+  'coins50000',
+  'coins100000',
+  'coins150000',
+  'coins200000',
+  'coins350000',
+];
+
+/** Google Play coin SKUs only — never include Apple-only IDs. */
+export const ANDROID_COIN_PRODUCT_IDS: IAPProductId[] = [
+  'coins100',
+  'coins500a',
+  'coins1000',
+  'coins5000',
+  'coins10000',
+  'coins50000',
+  'coins100000',
+  'coins150000',
+  'coins200000',
+  'coins350000',
+];
+
+/** Coin SKUs for the current native store only. */
+export function coinProductIdsForPlatform(): IAPProductId[] {
+  if (platform.isIOS) return [...IOS_COIN_PRODUCT_IDS];
+  if (platform.isAndroid) return [...ANDROID_COIN_PRODUCT_IDS];
+  return [];
+}
 
 // Promote boost product IDs (Apple IAP) — match goals: views £5, likes £10, profile £20, followers £30
 export const PROMOTE_PRODUCTS = {
@@ -33,9 +70,6 @@ export const PROMOTE_PRODUCTS = {
 
 export const PROMOTE_PRODUCT_IDS = Object.keys(PROMOTE_PRODUCTS) as PromoteProductId[];
 export type PromoteProductId = keyof typeof PROMOTE_PRODUCTS;
-
-export const IAP_PRODUCT_IDS = Object.keys(IAP_PRODUCTS) as IAPProductId[];
-export type IAPProductId = keyof typeof IAP_PRODUCTS;
 
 /** Shared iOS subscription SKU for all creator memberships (App Store Connect). */
 export const MEMBERSHIP_PRODUCT_ID = 'com.elixstarlive.membership';
@@ -147,10 +181,9 @@ export async function loadProducts(): Promise<IAPProduct[]> {
     const mod = await getPlugin();
     if (!mod) return [];
 
-    // coins500a exists on Google Play only — never request it from StoreKit.
-    const requestedIds = platform.isIOS
-      ? IAP_PRODUCT_IDS.filter((id) => id !== 'coins500a')
-      : [...IAP_PRODUCT_IDS];
+    // Strict store split: iOS → App Store SKUs only; Android → Play SKUs only.
+    const requestedIds = coinProductIdsForPlatform();
+    if (requestedIds.length === 0) return [];
 
     // StoreKit can return [] briefly after ASC metadata changes; retry before failing closed.
     let products: Array<{
