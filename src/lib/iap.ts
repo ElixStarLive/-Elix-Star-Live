@@ -356,6 +356,13 @@ export async function purchaseProduct(productId: IAPProductId): Promise<IAPPurch
     return { success: false, error: 'In-app purchases are only available in the app' };
   }
 
+  // Reject cross-store SKUs (e.g. coins500a on iOS, coins500 on Android).
+  const allowed = coinProductIdsForPlatform();
+  if (!allowed.includes(productId)) {
+    reportIapStage('wrong_store_sku', { productId, store: platform.isIOS ? 'ios' : 'android' });
+    return { success: false, error: 'This coin pack is not available on this store' };
+  }
+
   if (purchaseInProgress) {
     return { success: false, error: 'A purchase is already in progress' };
   }
