@@ -13,7 +13,15 @@ Labels used only: **VERIFIED** | **FAILED** | **BLOCKED_EXTERNAL** | **NOT_CONFI
 | FINANCIAL SETTLEMENT REPORTS | **PENDING CLOSED-PERIOD STORE REPORTS** |
 | FULL IAP PRODUCTION-READY | **NO** |
 
-Production tip at check time: commit `d983682` (`/health`). Fail-closed Apple/RTDN/ASN gates landed on `main` as `8e3ad61` — **do not redeploy until Coolify has Apple trio + `APPLE_IAP_REQUIRED=1` + RTDN/ASN secrets**, or boot will fatal.
+Production tip at check time: commit `d983682` (`/health`).
+
+Apple/RTDN gates were made **opt-in** after an initial fail-closed attempt caused Coolify to roll back the newer container. The corrected posture is:
+
+- **Boot-time**: fatal only when `APPLE_IAP_REQUIRED=1` is set AND Apple trio / bundle / notification secret are missing. When `APPLE_IAP_REQUIRED` is unset, boot succeeds and Android/web serve normally.
+- **Runtime**: iOS purchase verification (`fetchAppleTransaction`, `verifyAppleSubscription`) still returns `APPLE_CREDENTIALS_NOT_CONFIGURED` and refuses to credit any coins when Apple credentials are missing. Nothing is silently succeeded.
+- **RTDN / ASN endpoints**: return `503 not configured` when the shared secret is unset, so refund/void callbacks fail closed without preventing boot.
+
+Redeploy is safe whether or not Apple / RTDN secrets are present in Coolify — the app will not silently credit anything.
 
 ---
 
@@ -35,7 +43,7 @@ Production tip at check time: commit `d983682` (`/health`). Fail-closed Apple/RT
 | 12 | Test coins separate from paid | **VERIFIED** | Test-coin rules + separate state; IAP credits paid path only (`neonCreditIap` / paid lots). |
 | 13 | Real purchase on physical device (license tester) | **NOT_TESTED** | No device purchase performed this session. |
 | 14 | Prove purchase → verify → credit once → consume → no recredit | **NOT_TESTED** | No transaction ID / token hash / ledger row captured. |
-| 15 | RTDN for refunds/voids configured | **NOT_CONFIGURED** / **BLOCKED_EXTERNAL** | Code supports RTDN + optional OIDC. Console Pub/Sub topic + Coolify URL not proven. New prod boot requires `GOOGLE_RTDN_WEBHOOK_SECRET`. |
+| 15 | RTDN for refunds/voids configured | **NOT_CONFIGURED** / **BLOCKED_EXTERNAL** | Code supports RTDN + optional OIDC. Console Pub/Sub topic + Coolify URL not proven. Prod boot **does not** require `GOOGLE_RTDN_WEBHOOK_SECRET`; the RTDN endpoint returns `503 not configured` until it is set (fail-closed without blocking boot). |
 | 16 | RTDN valid accept / invalid reject | **VERIFIED** (code) / **NOT_TESTED** (live HTTP) | Secret compare + optional OIDC in `iapNotifications.ts`. No HTTP evidence this session. |
 | 17 | Refund/reversal ledger + reconcile | **VERIFIED** (code) / **NOT_TESTED** (live) | `neonReverseIapPurchase` on void notifications. No live refund event ID. |
 
@@ -52,7 +60,7 @@ Production tip at check time: commit `d983682` (`/health`). Fail-closed Apple/RT
 | 5 | Remove obsolete IDs | **NOT_TESTED** | |
 | 6 | Coolify Apple trio + `APPLE_IAP_REQUIRED=1` + notification secret | **NOT_CONFIGURED** (local) / **BLOCKED_EXTERNAL** (Coolify) | Local: Apple trio **absent**; `APPLE_IAP_REQUIRED` unset. Notification secret present locally. Coolify unknown. |
 | 7 | Key belongs to correct ASC + permissions | **BLOCKED_EXTERNAL** | |
-| 8 | Prod fail-closed without Apple credentials | **VERIFIED** (code after harden) | `envValidate` now fatals in production without Apple trio, `APPLE_BUNDLE_ID`, `APPLE_IAP_REQUIRED=1`, and `APPLE_IAP_NOTIFICATION_SECRET`. |
+| 8 | Prod fail-closed without Apple credentials | **VERIFIED** (runtime) | `fetchAppleTransaction`/`verifyAppleSubscription` return `APPLE_CREDENTIALS_NOT_CONFIGURED` → `handleVerifyPurchase` sets `isValid=false` → no credit. When owner opts in via `APPLE_IAP_REQUIRED=1`, boot also fatals if any Apple credential is missing. |
 | 9 | Verify bundle, product, JWS, env, status, revocation, dup | **VERIFIED** (server logic) / **NOT_TESTED** (live) | JWS verify, productId match, revocationDate reject, dedupe. |
 | 10 | Same txn cannot credit twice | **VERIFIED** (logic) / **NOT_TESTED** | |
 | 11 | Invalid/failed/refunded never credit | **VERIFIED** (logic) / **NOT_TESTED** | |
@@ -93,7 +101,7 @@ promote: com.elixstarlive.promote_views|likes|profile|followers
 
 ## Owner actions required before STORE-PROVEN = YES
 
-1. Coolify: set Apple trio, `APPLE_BUNDLE_ID=com.elixstarlive.app`, `APPLE_IAP_REQUIRED=1`, confirm Google JSON + RTDN + ASN secrets; redeploy.
+1. Coolify: set Apple trio, `APPLE_BUNDLE_ID=com.elixstarlive.app`, `APPLE_IAP_REQUIRED=1`, `APPLE_IAP_NOTIFICATION_SECRET`, confirm Google JSON + `GOOGLE_RTDN_WEBHOOK_SECRET`; redeploy. (Prior to setting `APPLE_IAP_REQUIRED=1`, iOS purchases already fail closed at runtime — see updated gate #8 above.)
 2. Play Console: activate every coin SKU above (incl. `coins350000` if shipping); confirm package `com.elixstarlive.app`; license-tester physical purchase; capture order ID + verify + ledger.
 3. App Store Connect: create/clear-for-sale matching IAPs; ASN V2 → `https://www.elixstarlive.co.uk/api/...` (exact route in `iapNotifications`); sandbox then production purchase proofs.
 4. Closed-period Apple/Google financial CSVs when issued → admin import.

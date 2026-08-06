@@ -73,37 +73,8 @@ export function validateProductionEnvironment(): void {
     );
     process.exit(1);
   }
-  // Apple IAP: production fail-closed (same posture as Google).
-  const appleReady =
-    !!process.env.APPLE_ISSUER_ID?.trim() &&
-    !!process.env.APPLE_KEY_ID?.trim() &&
-    !!process.env.APPLE_PRIVATE_KEY?.trim();
-  if (!appleReady) {
-    logger.fatal(
-      "APPLE_ISSUER_ID, APPLE_KEY_ID and APPLE_PRIVATE_KEY are required in production for App Store IAP verification",
-    );
-    process.exit(1);
-  }
-  if (!process.env.APPLE_BUNDLE_ID?.trim()) {
-    logger.fatal("APPLE_BUNDLE_ID is required in production (must match App Store Connect)");
-    process.exit(1);
-  }
-  if (process.env.APPLE_IAP_REQUIRED !== "1") {
-    logger.fatal("APPLE_IAP_REQUIRED=1 is required in production so iOS purchases cannot be silently skipped");
-    process.exit(1);
-  }
-  if (!process.env.GOOGLE_RTDN_WEBHOOK_SECRET?.trim()) {
-    logger.fatal(
-      "GOOGLE_RTDN_WEBHOOK_SECRET is required in production for Play refund/void Real-time Developer Notifications",
-    );
-    process.exit(1);
-  }
-  if (!process.env.APPLE_IAP_NOTIFICATION_SECRET?.trim()) {
-    logger.fatal(
-      "APPLE_IAP_NOTIFICATION_SECRET is required in production for App Store Server Notifications V2",
-    );
-    process.exit(1);
-  }
+  // Play package name: if explicitly set, must match the shipped app id.
+  // (Default falls back to the correct value, so unset is fine.)
   const playPkg = (process.env.GOOGLE_PLAY_PACKAGE_NAME || "com.elixstarlive.app").trim();
   if (playPkg !== "com.elixstarlive.app") {
     logger.fatal(
@@ -111,12 +82,60 @@ export function validateProductionEnvironment(): void {
     );
     process.exit(1);
   }
-  const appleBundle = process.env.APPLE_BUNDLE_ID.trim();
-  if (appleBundle !== "com.elixstarlive.app") {
-    logger.fatal(
-      `APPLE_BUNDLE_ID must be com.elixstarlive.app in production (got ${appleBundle})`,
+
+  // Apple IAP is opt-in via APPLE_IAP_REQUIRED=1. When opted-in, boot fails
+  // closed unless every Apple credential is present. When not opted-in, iOS
+  // purchase attempts still fail closed at runtime in appleIap.ts
+  // (`APPLE_CREDENTIALS_NOT_CONFIGURED`), so nothing can be silently credited —
+  // but the server is allowed to boot and serve Android/Web while iOS IAP
+  // is being finalised in App Store Connect + Coolify.
+  const appleRequired = process.env.APPLE_IAP_REQUIRED === "1";
+  const appleTrioReady =
+    !!process.env.APPLE_ISSUER_ID?.trim() &&
+    !!process.env.APPLE_KEY_ID?.trim() &&
+    !!process.env.APPLE_PRIVATE_KEY?.trim();
+  const appleBundle = (process.env.APPLE_BUNDLE_ID || "").trim();
+  const appleNotifSecret = !!process.env.APPLE_IAP_NOTIFICATION_SECRET?.trim();
+  if (appleRequired) {
+    if (!appleTrioReady) {
+      logger.fatal(
+        "APPLE_IAP_REQUIRED=1 but APPLE_ISSUER_ID / APPLE_KEY_ID / APPLE_PRIVATE_KEY are missing",
+      );
+      process.exit(1);
+    }
+    if (!appleBundle) {
+      logger.fatal("APPLE_IAP_REQUIRED=1 but APPLE_BUNDLE_ID is missing");
+      process.exit(1);
+    }
+    if (appleBundle !== "com.elixstarlive.app") {
+      logger.fatal(
+        `APPLE_BUNDLE_ID must be com.elixstarlive.app in production (got ${appleBundle})`,
+      );
+      process.exit(1);
+    }
+    if (!appleNotifSecret) {
+      logger.fatal(
+        "APPLE_IAP_REQUIRED=1 but APPLE_IAP_NOTIFICATION_SECRET is missing (needed for App Store Server Notifications V2)",
+      );
+      process.exit(1);
+    }
+  } else if (appleTrioReady || appleBundle || appleNotifSecret) {
+    logger.warn(
+      "Apple IAP env variables are set but APPLE_IAP_REQUIRED is not 1 — iOS purchases will be refused at runtime until you opt in explicitly",
     );
-    process.exit(1);
+  } else {
+    logger.warn(
+      "APPLE_IAP_REQUIRED is not 1 — iOS purchases will be refused at runtime (Android/web continue to serve)",
+    );
+  }
+
+  // Play refund/void RTDN: warn only. If the shared secret is not configured
+  // the RTDN endpoint rejects all callbacks (see iapNotifications.ts), which
+  // is the same fail-closed posture without preventing boot.
+  if (!process.env.GOOGLE_RTDN_WEBHOOK_SECRET?.trim()) {
+    logger.warn(
+      "GOOGLE_RTDN_WEBHOOK_SECRET is not set — Play refund/void notifications will be rejected until configured",
+    );
   }
 
   if (process.env.ALLOW_LOADTEST_IN_PROD === "1") {
