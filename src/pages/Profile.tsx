@@ -703,7 +703,7 @@ export default function Profile() {
 
   return (
     <div className="page-above-bottom-nav bg-transparent text-white">
-      <div className="page-above-bottom-nav__inner bg-[rgba(10,10,10,0.72)] backdrop-blur-md">
+      <div className="page-above-bottom-nav__inner bg-transparent">
         {/* Small top header with Share + Exit buttons — same panel height as Inbox */}
         <header className="flex items-center justify-between px-4 pt-page-header pb-2 relative z-10">
           <button

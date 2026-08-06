@@ -210,7 +210,7 @@ export default function MusicFeed() {
   return (
     <div className="page-above-bottom-nav bg-transparent text-white">
       <audio ref={audioRef} preload="auto" onEnded={() => setPlayingId(null)} className="hidden" />
-      <div className="page-above-bottom-nav__inner bg-[rgba(10,10,10,0.72)] backdrop-blur-md flex flex-col min-h-0">
+      <div className="page-above-bottom-nav__inner bg-transparent flex flex-col min-h-0">
         <div className="w-full shrink-0 bg-transparent z-10 border-b border-white/[0.06]">
           <div className="px-3 pt-page-header pb-3 flex items-center justify-between relative">
             <button type="button" onClick={goSearch} className="p-1 z-10" aria-label="Search">

@@ -1461,8 +1461,7 @@ svg.lucide.fill-silver-full.royce-icon-gold {
   display: none !important;
 }
 
-/* ═══ Exact ShareModal / More Options glass — ONE layer, not darker/lighter ═══ */
-/* ShareModal recipe: bg-[rgba(10,10,10,0.72)] backdrop-blur-md */
+/* ═══ CLEAR pages — wallpaper shows. ShareModal keeps its own glass in the component. ═══ */
 html,
 body {
   background-color: #000000 !important;
@@ -1485,63 +1484,49 @@ body::before {
   background: transparent !important;
 }
 
-/* Outer page frame clear — glass only on ONE inner surface (no stack) */
+/* ALL page shells CLEAR — no dark fill */
 .page-above-bottom-nav,
+.page-above-bottom-nav__inner,
 .bg-background,
 .bg-surface,
 .min-h-screen.bg-background,
 .app-live-column,
 main.feed-column-width,
 .elix-live-room,
-.app-live-column-host {
-  background-color: transparent !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-/* ONE page glass = exact More Options / ShareModal */
-.page-above-bottom-nav__inner {
-  background-color: rgba(10, 10, 10, 0.72) !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
-}
-
-/* Kill leftover nested washes so they cannot stack darker than ShareModal */
-#root [class*="bg-[rgba(0,0,0,0.35)]"] {
-  background-color: transparent !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
+.app-live-column-host,
 .bg-card,
 .bg-card-elevated {
   background-color: transparent !important;
-  border-color: #2A2D33 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
-/* Nav — exact same ShareModal glass */
+/* Kill remapped dark washes on pages */
+#root [class*="bg-[rgba(0,0,0,0.35)]"],
+#root [class*="bg-[rgba(10,10,10,0.72)]"] {
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Nav CLEAR over wallpaper */
 #root nav[aria-label="Main navigation"] .feed-column-width,
 #root nav[aria-label="Main navigation"] .feed-column-width[class*="bg-"],
 #root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
 #root .feed-column-width.h-\[var\(--topnav-bar-height\)\] {
-  background-color: rgba(10, 10, 10, 0.72) !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
-  border-color: #2A2D33;
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
-/* Sheets — leave ShareModal recipe intact (same values) */
-.bottom-sheet-above-nav,
+/*
+ * ONLY the More Options / ShareModal sheet keeps glass — exact component recipe.
+ * Higher specificity than the clear rule.
+ */
+#root [class*="rounded-t-2xl"][class*="backdrop-blur"][class*="bg-[rgba(10,10,10,0.72)]"],
+.bottom-sheet-above-nav[class*="backdrop-blur"],
 #root .elix-glass,
 #root .elix-glass-panel {
-  background-color: rgba(10, 10, 10, 0.72) !important;
-  border-color: #2A2D33 !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
-}
-
-/* Story strip — same glass */
-#root [class*="backdrop-blur-md"][class*="bg-[rgba(0,0,0,0.35)]"]:not(.page-above-bottom-nav):not(.page-above-bottom-nav__inner) {
   background-color: rgba(10, 10, 10, 0.72) !important;
   backdrop-filter: blur(12px) !important;
   -webkit-backdrop-filter: blur(12px) !important;
