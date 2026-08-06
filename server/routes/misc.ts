@@ -30,6 +30,10 @@ import {
   verifyAppleSubscription,
 } from '../lib/appleIap';
 import { insertNotification } from '../lib/notifications';
+import {
+  coinAmountForProviderProduct,
+  gateProviderProduct,
+} from '../lib/monetisation/storeProductCatalogs';
 
 const rateLimits = new Map<string, { count: number; timestamp: number }>();
 const MAX_LOCAL_RATE_ENTRIES = 20_000;
@@ -358,6 +362,19 @@ export async function handleVerifyPurchase(req: Request, res: Response) {
 
     const safeProvider = provider === 'google' ? 'google' : provider === 'apple' ? 'apple' : '';
     if (!safeProvider) return res.status(400).json({ error: `Unknown provider: ${provider}` });
+
+    const productGate = gateProviderProduct(safeProvider, String(packageId));
+    if (!productGate.ok) {
+      logger.warn(
+        { provider: safeProvider, packageId, code: productGate.code },
+        'IAP rejected — product not allowed for declared provider',
+      );
+      return res.status(400).json({
+        error: productGate.error,
+        code: productGate.code,
+      });
+    }
+
     const googlePurchaseToken = safeProvider === 'google' && typeof receipt === 'string' ? receipt.trim() : '';
     if (safeProvider === 'google' && !googlePurchaseToken) {
       return res.status(400).json({ error: 'Google purchase token is required' });
@@ -422,13 +439,23 @@ export async function handleVerifyPurchase(req: Request, res: Response) {
         return res.status(400).json({ error: 'Product ID mismatch' });
       }
     }
+    if (safeProvider === 'google' && verificationResponse.productId) {
+      if (String(verificationResponse.productId) !== String(packageId)) {
+        logger.warn(
+          { claimed: packageId, actual: verificationResponse.productId },
+          'Google IAP productId mismatch',
+        );
+        return res.status(400).json({ error: 'Product ID mismatch' });
+      }
+    }
 
     const coinMap = await dbLoadCoinMap();
-    const coins = coinMap[String(packageId)] || 0;
+    const catalogCoins = coinAmountForProviderProduct(safeProvider, String(packageId));
+    const coins = catalogCoins > 0 ? catalogCoins : coinMap[String(packageId)] || 0;
     if (coins <= 0) {
       // Receipt was valid but the product is not present in the coin_packages map.
       logger.warn(
-        { packageId, knownPackages: Object.keys(coinMap) },
+        { packageId, provider: safeProvider, knownPackages: Object.keys(coinMap) },
         'IAP verified but product missing from coin map — check coin_packages table',
       );
       return res.status(400).json({ error: 'Unknown coin package', code: 'unknown_package' });

@@ -2,76 +2,62 @@
  * Apple / Google In-App Purchase Service
  * Uses @capgo/native-purchases for StoreKit 2 (iOS) and Google Play Billing (Android).
  *
- * HARD RULE: iOS talks only to App Store SKUs. Android talks only to Play SKUs.
- * Never request or purchase the other store's product IDs.
+ * Catalogues are selected by native platform BEFORE any store API call.
+ * Apple and Google product ID lists are never merged for a store request.
  */
 
 import { platform } from './platform';
 import { useAuthStore } from '../store/useAuthStore';
 import { request } from './apiClient';
+import {
+  APPLE_IAP_PRODUCT_IDS,
+  APPLE_IAP_PRODUCTS,
+  GOOGLE_PLAY_PRODUCT_IDS,
+  GOOGLE_PLAY_PRODUCTS,
+  coinAmountForProviderProduct,
+  isProductAllowedForProvider,
+  storeCoinProductIdsForNativePlatform,
+  type StoreCoinProductId,
+  type StoreIapProvider,
+} from './storeProductCatalogs';
 
-/** Apple App Store coin packs only. */
-export const IOS_COIN_PRODUCTS = {
-  'coins100':    { coins: 100,    label: '100 Coins' },
-  'coins500':    { coins: 500,    label: '500 Coins' },
-  'coins1000':   { coins: 1000,   label: '1,000 Coins' },
-  'coins5000':   { coins: 5000,   label: '5,000 Coins' },
-  'coins10000':  { coins: 10000,  label: '10,000 Coins' },
-  'coins50000':  { coins: 50000,  label: '50,000 Coins' },
-  'coins100000': { coins: 100000, label: '100,000 Coins' },
-  'coins150000': { coins: 150000, label: '150,000 Coins' },
-  'coins200000': { coins: 200000, label: '200,000 Coins' },
-  'coins350000': { coins: 350000, label: '350,000 Coins' },
-} as const;
-
-/** Google Play coin packs only. */
-export const ANDROID_COIN_PRODUCTS = {
-  'coins100':    { coins: 100,    label: '100 Coins' },
-  'coins500a':   { coins: 500,    label: '500 Coins' },
-  'coins1000':   { coins: 1000,   label: '1,000 Coins' },
-  'coins5000':   { coins: 5000,   label: '5,000 Coins' },
-  'coins10000':  { coins: 10000,  label: '10,000 Coins' },
-  'coins50000':  { coins: 50000,  label: '50,000 Coins' },
-  'coins100000': { coins: 100000, label: '100,000 Coins' },
-  'coins150000': { coins: 150000, label: '150,000 Coins' },
-  'coins200000': { coins: 200000, label: '200,000 Coins' },
-  'coins350000': { coins: 350000, label: '350,000 Coins' },
-} as const;
-
-export type IosCoinProductId = keyof typeof IOS_COIN_PRODUCTS;
-export type AndroidCoinProductId = keyof typeof ANDROID_COIN_PRODUCTS;
-export type IAPProductId = IosCoinProductId | AndroidCoinProductId;
-
-export const IOS_COIN_PRODUCT_IDS = Object.keys(IOS_COIN_PRODUCTS) as IosCoinProductId[];
-export const ANDROID_COIN_PRODUCT_IDS = Object.keys(ANDROID_COIN_PRODUCTS) as AndroidCoinProductId[];
-
-/** @deprecated Use IOS_COIN_PRODUCTS / ANDROID_COIN_PRODUCTS — kept for coin-amount lookup only. */
-export const IAP_PRODUCTS: Record<string, { coins: number; label: string }> = {
-  ...IOS_COIN_PRODUCTS,
-  ...ANDROID_COIN_PRODUCTS,
+export {
+  APPLE_IAP_PRODUCT_IDS,
+  APPLE_IAP_PRODUCTS,
+  GOOGLE_PLAY_PRODUCT_IDS,
+  GOOGLE_PLAY_PRODUCTS,
+  storeCoinProductIdsForNativePlatform,
 };
 
+export type IAPProductId = StoreCoinProductId;
+
+function currentStoreProvider(): StoreIapProvider | null {
+  if (platform.isIOS) return 'apple';
+  if (platform.isAndroid) return 'google';
+  return null;
+}
+
+function nativePlatformKey(): 'ios' | 'android' | 'web' {
+  if (platform.isIOS) return 'ios';
+  if (platform.isAndroid) return 'android';
+  return 'web';
+}
+
 function coinAmountForSku(productId: string): number {
-  if (platform.isIOS) {
-    return IOS_COIN_PRODUCTS[productId as IosCoinProductId]?.coins ?? 0;
-  }
-  if (platform.isAndroid) {
-    return ANDROID_COIN_PRODUCTS[productId as AndroidCoinProductId]?.coins ?? 0;
-  }
-  return IAP_PRODUCTS[productId]?.coins ?? 0;
+  const provider = currentStoreProvider();
+  if (!provider) return 0;
+  return coinAmountForProviderProduct(provider, productId);
 }
 
 function isSkuForCurrentStore(productId: string): boolean {
-  if (platform.isIOS) return productId in IOS_COIN_PRODUCTS;
-  if (platform.isAndroid) return productId in ANDROID_COIN_PRODUCTS;
-  return false;
+  const provider = currentStoreProvider();
+  if (!provider) return false;
+  return isProductAllowedForProvider(provider, productId);
 }
 
-/** Coin SKUs for the current native store only. */
-export function coinProductIdsForPlatform(): IAPProductId[] {
-  if (platform.isIOS) return [...IOS_COIN_PRODUCT_IDS];
-  if (platform.isAndroid) return [...ANDROID_COIN_PRODUCT_IDS];
-  return [];
+/** Coin SKUs for the current native store — platform catalogue only. */
+export function coinProductIdsForPlatform(): readonly string[] {
+  return storeCoinProductIdsForNativePlatform(nativePlatformKey());
 }
 
 // Promote boost product IDs (Apple IAP) — match goals: views £5, likes £10, profile £20, followers £30
@@ -195,52 +181,50 @@ export async function loadProducts(): Promise<IAPProduct[]> {
     const mod = await getPlugin();
     if (!mod) return [];
 
-    // Strict store split: iOS → App Store SKUs only; Android → Play SKUs only.
-    const requestedIds = coinProductIdsForPlatform();
+    // Select the store catalogue first — never a merged/filtered list.
+    const requestedIds = [...storeCoinProductIdsForNativePlatform(nativePlatformKey())];
     if (requestedIds.length === 0) return [];
 
-    // StoreKit can return [] briefly after ASC metadata changes; retry before failing closed.
-    let products: Array<{
+    const { products } = await mod.NativePurchases.getProducts({
+      productIdentifiers: requestedIds,
+      productType: mod.PURCHASE_TYPE.INAPP,
+    });
+
+    if (!products || products.length === 0) {
+      reportIapStage('products_empty', {
+        requested: requestedIds,
+        store: currentStoreProvider(),
+      });
+      return [];
+    }
+
+    reportIapStage('products_loaded', {
+      count: products.length,
+      requested: requestedIds.length,
+      store: currentStoreProvider(),
+      ids: products.map((p: { identifier?: string; productIdentifier?: string }) =>
+        p.identifier || p.productIdentifier,
+      ),
+    });
+
+    return products.map((p: {
       identifier?: string;
       productIdentifier?: string;
       title?: string;
       description?: string;
       priceString?: string;
       priceAmountMicros?: number;
-    }> = [];
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      const res = await mod.NativePurchases.getProducts({
-        productIdentifiers: requestedIds,
-        productType: mod.PURCHASE_TYPE.INAPP,
-      });
-      products = res.products || [];
-      if (products.length > 0) break;
-      if (attempt < 3) {
-        reportIapStage('products_empty_retry', { attempt, requested: requestedIds });
-        await new Promise((r) => setTimeout(r, 800 * attempt));
-      }
-    }
-
-    if (!products || products.length === 0) {
-      // Empty here almost always means: product IDs not created/active in Play Console,
-      // app not installed from a Play track, or the build is signed with the wrong key.
-      reportIapStage('products_empty', { requested: requestedIds });
-    } else {
-      reportIapStage('products_loaded', {
-        count: products.length,
-        requested: requestedIds.length,
-        ids: products.map((p) => p.identifier || p.productIdentifier),
-      });
-    }
-
-    return products.map((p) => ({
-      id: p.identifier || p.productIdentifier || '',
-      title: p.title || '',
-      description: p.description || '',
-      price: p.priceString || `$${((p.priceAmountMicros || 0) / 1_000_000).toFixed(2)}`,
-      priceAmountMicros: p.priceAmountMicros || 0,
-      coins: coinAmountForSku(p.identifier || p.productIdentifier || ''),
-    }));
+    }) => {
+      const id = p.identifier || p.productIdentifier || '';
+      return {
+        id,
+        title: p.title || '',
+        description: p.description || '',
+        price: p.priceString || `$${((p.priceAmountMicros || 0) / 1_000_000).toFixed(2)}`,
+        priceAmountMicros: p.priceAmountMicros || 0,
+        coins: coinAmountForSku(id),
+      };
+    });
   } catch (err) {
     reportIapStage('load_products_error', { error: (err as { message?: string })?.message || String(err) });
     return [];
@@ -702,7 +686,14 @@ async function verifyAndCreditPurchase(
     const { session, user } = useAuthStore.getState();
     if (!session?.access_token || !user?.id) return { success: false, error: 'Not authenticated' };
 
-    const provider = platform.isIOS ? 'apple' : 'google';
+    const provider = currentStoreProvider();
+    if (!provider) {
+      return { success: false, error: 'Store provider unavailable' };
+    }
+    if (!isProductAllowedForProvider(provider, packageId)) {
+      reportIapStage('verify_rejected_wrong_store_sku', { packageId, provider });
+      return { success: false, error: 'Product ID not allowed for this store' };
+    }
 
     reportIapStage('verify_request', { packageId, provider, hasReceipt: !!receipt });
 
