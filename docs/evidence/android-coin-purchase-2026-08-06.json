@@ -1,0 +1,48 @@
+{
+  "status": "OK",
+  "windowHours": 72,
+  "limit": 5,
+  "countReturned": 1,
+  "rows": [
+    {
+      "ledger": {
+        "id": "63f62a37-3dd9-4c8c-9ec6-6a1ac9f837f7",
+        "userId": "37c3c371-b5c2-4e50-908f-8a7225ba7ba2",
+        "kind": "iap_purchase",
+        "provider": "google",
+        "coinsDelta": 100,
+        "providerTransactionId": "token_sha256:5ad6e50b452aaad8113fff6d93f153c20c45cbe5a7faef3589d42eda7930bb21",
+        "productId": "coins100",
+        "idempotencyKey": "iap:google:token_sha256:5ad6e50b452aaad8113fff6d93f153c20c45cbe5a7faef3589d42eda7930bb21",
+        "createdAt": "2026-08-06 01:18:52.892356+00",
+        "googleOrderId": "GPA.3372-2714-9629-19609",
+        "verificationVerified": true
+      },
+      "dedupe": {
+        "idempotencyKeyRowsInLedger": 1,
+        "externalPurchaseIdRowsInProcessed": 1
+      },
+      "paidCoinLot": {
+        "id": "lot:google:token_sha256:5ad6e50b452aaad8113fff6d93f153c20c45cbe5a7faef3589d42eda7930bb21",
+        "coinsOriginal": 100,
+        "coinsRemaining": 100,
+        "grossPence": 35,
+        "appStoreDeductionPence": 0,
+        "taxDeductionPence": 0,
+        "processingDeductionPence": 0,
+        "netPence": 35,
+        "settlementStatus": "settled",
+        "settledAt": "2026-08-06 01:18:52.914+00"
+      },
+      "wallet": {
+        "balanceBeforeCredit": 0,
+        "balanceAfterCredit": 100,
+        "currentBalance": 100
+      },
+      "nonPaidCoinChannels": {
+        "promotionalCoinBalance": "750",
+        "starterCoinBalance": "50000"
+      }
+    }
+  ]
+}
