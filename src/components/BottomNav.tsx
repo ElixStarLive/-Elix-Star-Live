@@ -28,9 +28,8 @@ function isActiveRoute(pathname: string, path: string): boolean {
 }
 
 /**
- * Main bottom tab bar — one clean navigation owner per control.
- * UI/layout/routes unchanged from production chrome.
- * Active icon = Royal Violet accent; inactive = silver.
+ * Main bottom tab bar — discs + half silver/violet rings restored.
+ * Active tab uses Royal Violet; structure matches pre-theme chrome.
  */
 export const BottomNav = () => {
   const navigate = useNavigate();
@@ -113,7 +112,7 @@ export const BottomNav = () => {
                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="relative z-[2] block" aria-hidden>
                         <path
                           d="M12 5v14M5 12h14"
-                          stroke={active ? "#6F3FF5" : "url(#elixSilverRed)"}
+                          stroke="url(#elixSilverRed)"
                           strokeWidth="2.75"
                           strokeLinecap="round"
                         />
@@ -128,8 +127,8 @@ export const BottomNav = () => {
                     )}
                   </span>
                   <span
-                    className={`text-[9px] font-semibold leading-none tracking-wide ${
-                      active ? "text-[#6F3FF5]" : "elix-silver-red-text opacity-55"
+                    className={`elix-silver-red-text text-[9px] font-semibold leading-none tracking-wide ${
+                      active || center ? "" : "opacity-55"
                     }`}
                     style={{
                       marginTop: "1mm",

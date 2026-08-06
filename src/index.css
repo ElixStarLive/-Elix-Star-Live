@@ -1217,7 +1217,7 @@ nav[aria-label="Main navigation"] .royce-glow-disc {
   background: none !important;
 }
 
-/* Bottom nav ONLY — silver ring chrome (purple is on the active icon only) */
+/* Bottom nav ONLY — half silver / half Royal Violet circle rings (restored contrast) */
 nav[aria-label="Main navigation"] .royce-glow-disc::before {
   content: "" !important;
   display: block !important;
@@ -1226,7 +1226,7 @@ nav[aria-label="Main navigation"] .royce-glow-disc::before {
   border-radius: inherit;
   padding: 2px;
   box-sizing: border-box;
-  background: linear-gradient(135deg, #FFFFFF 0%, #D8D9DD 50%, #B7BDC8 100%);
+  background: linear-gradient(135deg, #D8D9DD 0%, #D8D9DD 50%, #6F3FF5 50%, #6F3FF5 100%);
   -webkit-mask:
     linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
@@ -1234,6 +1234,15 @@ nav[aria-label="Main navigation"] .royce-glow-disc::before {
   mask-composite: exclude;
   pointer-events: none;
   z-index: 0;
+}
+
+/* Top nav — LIVE and all tab labels must stay visible (no clip wipe) */
+div.feed-column-width button[title] > span,
+div.feed-column-width button[aria-label] > span,
+div.feed-column-width button[title] > span > span {
+  background-image: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
 }
 
 /* Active bottom-nav icon — Royal Violet */

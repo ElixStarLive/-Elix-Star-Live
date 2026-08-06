@@ -14,8 +14,8 @@ const TOP_TABS = [
 type TopTabPath = (typeof TOP_TABS)[number]["path"];
 
 /**
- * For You top tab bar — one clean navigation owner per control.
- * UI/layout/routes unchanged from production For You chrome.
+ * For You top tab bar — LIVE · STEM · Explore · Following · Shop · For You.
+ * Structure restored; colors only follow premium theme.
  */
 export const TopNav = () => {
   const navigate = useNavigate();
@@ -90,7 +90,8 @@ export const TopNav = () => {
         <div className="flex items-center h-full w-full px-1.5 gap-0.5">
           <div className="flex flex-1 items-center justify-between min-w-0 h-full flex-nowrap overflow-x-auto no-scrollbar gap-0">
             {TOP_TABS.map((tab) => {
-              const active = tab.path === "/feed";
+              const isPrimary = "primary" in tab && tab.primary;
+              const isLive = "live" in tab && tab.live;
               return (
                 <button
                   key={tab.label}
@@ -99,16 +100,48 @@ export const TopNav = () => {
                   className="flex-shrink-0 flex items-center px-1 py-0 h-full active:opacity-70 transition-opacity focus:outline-none"
                   style={{ WebkitTapHighlightColor: "transparent" }}
                   title={tab.label}
+                  aria-label={tab.label}
                 >
-                  <span
-                    className={`flex items-center gap-0.5 elix-silver-red-text text-[10px] font-bold tracking-wide whitespace-nowrap leading-none ${
-                      active || ("primary" in tab && tab.primary) ? '' : 'opacity-50'
-                    }`}
-                  >
-                    {"live" in tab && tab.live ? (
-                      <Tv size={11} strokeWidth={2.25} className="shrink-0 -translate-y-[0.5mm]" />
+                  <span className="flex items-center gap-0.5 whitespace-nowrap leading-none">
+                    {isLive ? (
+                      <Tv
+                        size={11}
+                        strokeWidth={2.25}
+                        className="shrink-0 -translate-y-[0.5mm] text-[#6F3FF5]"
+                        style={{ color: "#6F3FF5", stroke: "#6F3FF5" }}
+                        aria-hidden
+                      />
                     ) : null}
-                    {tab.label}
+                    <span
+                      className={`text-[10px] font-bold tracking-wide ${
+                        isLive
+                          ? "text-[#6F3FF5]"
+                          : isPrimary
+                            ? "text-white"
+                            : "text-[#D8D9DD] opacity-70"
+                      }`}
+                      style={
+                        isLive
+                          ? {
+                              backgroundImage: "none",
+                              WebkitTextFillColor: "#6F3FF5",
+                              color: "#6F3FF5",
+                            }
+                          : isPrimary
+                            ? {
+                                backgroundImage: "none",
+                                WebkitTextFillColor: "#FFFFFF",
+                                color: "#FFFFFF",
+                              }
+                            : {
+                                backgroundImage: "none",
+                                WebkitTextFillColor: "#D8D9DD",
+                                color: "#D8D9DD",
+                              }
+                      }
+                    >
+                      {tab.label}
+                    </span>
                   </span>
                 </button>
               );
