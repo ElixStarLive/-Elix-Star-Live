@@ -191,7 +191,7 @@ export function RankingPanel({
 
   return (
     <div
-      className="bg-[#09090B]/95 backdrop-blur-md rounded-t-2xl p-3 pb-safe max-h-[40dvh] flex flex-col shadow-2xl w-full overflow-hidden h-full"
+      className="bg-[rgba(10,10,10,0.72)] backdrop-blur-md rounded-t-2xl p-3 pb-safe max-h-[40dvh] flex flex-col shadow-2xl w-full overflow-hidden h-full"
       onClick={(e) => e.stopPropagation()}
     >
       <div className="flex justify-center mb-2">
@@ -219,7 +219,7 @@ export function RankingPanel({
             className={`px-2.5 py-1 rounded-full text-[10px] font-bold whitespace-nowrap border transition-colors ${
               tab === t.id
                 ? 'bg-[#6F3FF5] text-white elix-accent border-[#D8D9DD]'
-                : 'bg-white/5 text-white/60 border-white/10'
+                : 'bg-white/5 text-white/60 border-[#2A2D33]'
             }`}
           >
             {t.label}

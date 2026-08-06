@@ -465,7 +465,7 @@ export default function InlineLiveViewer({
           data-elix-foryou-battle-root="1"
         >
           <div
-            className="relative w-full overflow-hidden border-b border-white/10"
+            className="relative w-full overflow-hidden border-b border-[#2A2D33]"
             data-elix-foryou-battle="video-half"
             style={{ flex: "1 1 50%", height: "50%", maxHeight: "50%", minHeight: 0 }}
           >
@@ -524,7 +524,7 @@ export default function InlineLiveViewer({
                 <Radio size={14} className="text-white/60" />
                 <span className="text-white/70 text-xs font-semibold">Tap to join battle</span>
               </div>
-              <div className="w-full rounded-full bg-white/5 border border-white/10 px-3 py-2 text-[11px] text-white/25">
+              <div className="w-full rounded-full bg-white/5 border border-[#2A2D33] px-3 py-2 text-[11px] text-white/25">
                 Say something…
               </div>
             </div>

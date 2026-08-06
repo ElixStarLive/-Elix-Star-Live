@@ -627,7 +627,7 @@ export default function SpectatorLiveScreen() {
               >
                 {/* Battle video half — score + videos + MVP inside height box (host-identical) */}
                 <div className="relative w-full flex-none flex flex-col overflow-hidden" style={{ height: LIVE_BATTLE_VIDEO_HEIGHT }}>
-                <div className={`relative z-20 w-full flex-none ${battleScoreBarHidden ? '' : 'bg-[#09090B]/95 border-b border-white/10'}`}>
+                <div className={`relative z-20 w-full flex-none ${battleScoreBarHidden ? '' : 'bg-[rgba(10,10,10,0.72)] border-b border-[#2A2D33]'}`}>
                   {!battleScoreBarHidden ? (
                     <div
                       className="relative w-full overflow-hidden cursor-pointer pointer-events-auto"
@@ -676,7 +676,7 @@ export default function SpectatorLiveScreen() {
                   <div className={`absolute left-0 right-0 z-30 flex justify-center m-0 p-0 ${battleScoreBarHidden ? 'top-0 pointer-events-auto' : 'top-full pointer-events-none'}`}>
                     <button
                       type="button"
-                      className="flex items-center gap-1.5 bg-black/35 backdrop-blur-md rounded-full px-2.5 py-1 border border-white/12 shadow-none pointer-events-auto"
+                      className="flex items-center gap-1.5 bg-black/35 backdrop-blur-md rounded-full px-2.5 py-1 border border-[#2A2D33] shadow-none pointer-events-auto"
                       onClick={(e) => {
                         e.stopPropagation();
                         if (battleScoreBarHidden) setBattleScoreBarHidden(false);
@@ -824,7 +824,7 @@ export default function SpectatorLiveScreen() {
                             />
                             <button
                               type="button"
-                              className="flex-1 min-h-0 w-full touch-manipulation cursor-pointer border-0 bg-transparent p-0 active:bg-white/5 border-t border-white/10"
+                              className="flex-1 min-h-0 w-full touch-manipulation cursor-pointer border-0 bg-transparent p-0 active:bg-white/5 border-t border-[#2A2D33]"
                               aria-label="Vote red team P3"
                               onClick={() => handleSpectatorVote('player3')}
                             />
@@ -838,7 +838,7 @@ export default function SpectatorLiveScreen() {
                             />
                             <button
                               type="button"
-                              className="flex-1 min-h-0 w-full touch-manipulation cursor-pointer border-0 bg-transparent p-0 active:bg-white/5 border-t border-white/10"
+                              className="flex-1 min-h-0 w-full touch-manipulation cursor-pointer border-0 bg-transparent p-0 active:bg-white/5 border-t border-[#2A2D33]"
                               aria-label="Vote blue team P4"
                               onClick={() => handleSpectatorVote('player4')}
                             />
@@ -989,9 +989,9 @@ export default function SpectatorLiveScreen() {
                 {/* Opponent profile panel — floating above bottom bar */}
                 {showOpponentPanel && spectatorBattle.opponentRoomId && (
                   <div className="fixed inset-0 z-[200]" onClick={() => setShowOpponentPanel(false)}>
-                    <div className="absolute inset-0 bg-black/40" />
+                    <div className="absolute inset-0 bg-black/35" />
                     <div
-                      className="absolute left-1/2 -translate-x-1/2 w-[calc(100%-24px)] max-w-[456px] bg-[#09090B] rounded-2xl overflow-hidden shadow-xl border border-white/10 animate-[slideInFromBottom_0.2s_ease-out]"
+                      className="absolute left-1/2 -translate-x-1/2 w-[calc(100%-24px)] max-w-[456px] bg-[#09090B] rounded-2xl overflow-hidden shadow-xl border border-[#2A2D33] animate-[slideInFromBottom_0.2s_ease-out]"
                       style={{ bottom: 'calc(70px + max(8px, env(safe-area-inset-bottom)))' }}
                       onClick={(e) => e.stopPropagation()}
                     >
@@ -1262,7 +1262,7 @@ export default function SpectatorLiveScreen() {
                       )}
                       {score > 0 && (
                         <div
-                          className={`h-4 flex items-center rounded-full text-[8px] font-bold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] relative z-0 bg-[#09090B]/40 backdrop-blur-md border border-white/10 ${lastGiftIcon ? '-ml-2 pl-3 pr-1.5' : 'px-1.5'}`}
+                          className={`h-4 flex items-center rounded-full text-[8px] font-bold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] relative z-0 bg-black/35 backdrop-blur-md border border-[#2A2D33] ${lastGiftIcon ? '-ml-2 pl-3 pr-1.5' : 'px-1.5'}`}
                         >
                           {formatCohostGiftScore(score)}
                         </div>
@@ -1796,7 +1796,7 @@ export default function SpectatorLiveScreen() {
           <div className="w-full max-w-[480px] px-3 pt-0 bg-transparent">
             <div className="flex items-end gap-2 w-full max-w-[480px] pointer-events-auto">
               <form
-                className="flex-1 flex items-center gap-2 bg-black/40 backdrop-blur-sm rounded-full px-3 py-2 border border-white/10 h-10 min-w-0"
+                className="flex-1 flex items-center gap-2 bg-black/35 backdrop-blur-sm rounded-full px-3 py-2 border border-[#2A2D33] h-10 min-w-0"
                 onSubmit={(e) => { e.preventDefault(); handleSendMessage(e); }}
               >
                 <input
@@ -1828,7 +1828,7 @@ export default function SpectatorLiveScreen() {
                 }}
                 className="flex flex-col items-center justify-center w-12 active:scale-95 transition-transform select-none flex-shrink-0"
               >
-                <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm">
+                <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm border border-[#2A2D33]">
                   <BarChart3 size={20} className="text-[#A7A7AD] shrink-0" strokeWidth={2.2} />
                 </div>
                 <span className="elix-silver-red-text text-[10px] font-semibold mt-0.5">Poll</span>
@@ -1843,7 +1843,7 @@ export default function SpectatorLiveScreen() {
                 onClick={() => { sendCohostJoinRequest(); }}
                 className="flex flex-col items-center justify-center w-12 active:scale-95 transition-transform select-none flex-shrink-0 disabled:opacity-60"
               >
-                <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm">
+                <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm border border-[#2A2D33]">
                   <span className="flex items-center justify-center w-full h-full relative z-[2]">
                     <UserPlus
                       size={20}
@@ -1867,7 +1867,7 @@ export default function SpectatorLiveScreen() {
                 }}
                 className="flex flex-col items-center justify-center w-12 active:scale-95 transition-transform select-none flex-shrink-0"
               >
-                <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm">
+                <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm border border-[#2A2D33]">
                   <Gift size={20} className="text-[#F5F5F7] relative z-[2]" />
                 </div>
                 <span className="elix-silver-red-text text-[10px] font-semibold mt-0.5">Gift</span>
@@ -1878,7 +1878,7 @@ export default function SpectatorLiveScreen() {
                 onClick={() => setShowSharePanel(true)}
                 className="flex flex-col items-center justify-center w-12 active:scale-95 transition-transform select-none flex-shrink-0"
               >
-                <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm">
+                <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm border border-[#2A2D33]">
                   <Share2 size={20} className="text-[#F5F5F7] relative z-[2]" />
                 </div>
                 <span className="elix-silver-red-text text-[10px] font-semibold mt-0.5">Share</span>
@@ -1889,7 +1889,7 @@ export default function SpectatorLiveScreen() {
                 onClick={() => setIsMoreMenuOpen(true)}
                 className="flex flex-col items-center justify-center w-12 active:scale-95 transition-transform select-none flex-shrink-0"
               >
-                <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm">
+                <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm border border-[#2A2D33]">
                   <MoreVertical size={20} className="text-[#F5F5F7] relative z-[2]" />
                 </div>
                 <span className="elix-silver-red-text text-[10px] font-semibold mt-0.5">More</span>
@@ -1918,7 +1918,7 @@ export default function SpectatorLiveScreen() {
                 return acc;
               }, {}),
             ).map((g) => (
-              <span key={g.key} className="relative flex items-center justify-center w-11 h-11 rounded-full bg-[#09090B]/90 border border-[#6F3FF5] shadow-2xl text-[#6F3FF5] animate-in zoom-in-50 duration-200">
+              <span key={g.key} className="relative flex items-center justify-center w-11 h-11 rounded-full bg-[rgba(10,10,10,0.72)] border border-[#6F3FF5] shadow-2xl text-[#6F3FF5] animate-in zoom-in-50 duration-200">
                 <GloveIcon className="w-7 h-7" />
                 {g.count > 1 && (
                   <span className="absolute -top-1 -right-1 text-[9px] font-black leading-none px-1 rounded-full bg-[#6F3FF5] text-white elix-accent border border-black/40">{g.count}</span>
@@ -1935,7 +1935,7 @@ export default function SpectatorLiveScreen() {
         {boosterCatches.length > 0 && (
           <div className="fixed inset-x-0 top-[30%] z-[100000] flex flex-col items-center gap-2 pointer-events-none px-4">
             {boosterCatches.map((c) => (
-              <div key={c.id} className="booster-catch-pop flex items-center gap-2 px-4 py-2 rounded-full bg-[#09090B]/90 border border-[#D8D9DD] shadow-2xl">
+              <div key={c.id} className="booster-catch-pop flex items-center gap-2 px-4 py-2 rounded-full bg-[rgba(10,10,10,0.72)] border border-[#D8D9DD] shadow-2xl">
                 <GloveIcon className="w-5 h-5 text-[#F5F5F7]" />
                 <span className="text-[#F5F5F7] font-black text-base tracking-wide">x{c.multiplier} CAUGHT!</span>
                 <span className="text-white font-bold text-sm">+{c.finalPoints}</span>
@@ -1960,7 +1960,7 @@ export default function SpectatorLiveScreen() {
              Join takes them to the live battle page as a player, not a spectator. */}
         {pendingBattleInvite && (
           <div className="fixed left-0 right-0 z-[100000] pointer-events-none flex justify-center px-3" style={{ top: 'calc(env(safe-area-inset-top, 0px) + 64px)' }}>
-            <div className="pointer-events-auto w-full max-w-[440px] flex items-center gap-2.5 py-1 px-2 rounded-full bg-[#09090B]/95 backdrop-blur-md border border-[#D8D9DD]/40 shadow-2xl">
+            <div className="pointer-events-auto w-full max-w-[440px] flex items-center gap-2.5 py-1 px-2 rounded-full bg-[rgba(10,10,10,0.72)] backdrop-blur-md border border-[#D8D9DD]/40 shadow-2xl">
               <div
                 className="rounded-full overflow-hidden bg-[#09090B] flex-shrink-0"
                 style={{ width: SHARE_PANEL_AVATAR_PX, height: SHARE_PANEL_AVATAR_PX }}
@@ -1990,9 +1990,9 @@ export default function SpectatorLiveScreen() {
         {/* ═══ CO-HOST PANEL — spectator Accept/Reject when creator invited, or Request to co-host. No layout control. */}
         {showCoHostPanel && (
           <>
-            <div className="fixed inset-0 z-[99998] bg-black/40 pointer-events-auto" onClick={() => { setShowCoHostPanel(false); }} />
+            <div className="fixed inset-0 z-[99998] bg-black/35 pointer-events-auto" onClick={() => { setShowCoHostPanel(false); }} />
             <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
-              <div className="bg-[#09090B]/95 backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl overflow-hidden pb-safe" onClick={(e) => e.stopPropagation()}>
+              <div className="bg-[rgba(10,10,10,0.72)] backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl overflow-hidden pb-safe" onClick={(e) => e.stopPropagation()}>
                 <div className="flex justify-center pt-2 pb-1"><div className="w-10 h-1 bg-white/20 rounded-full" /></div>
                 <div className="flex items-center justify-center px-4 py-2">
                   <div className="flex items-center gap-1.5">
@@ -2064,13 +2064,13 @@ export default function SpectatorLiveScreen() {
         {showFanClub && (
           <>
             <div
-              className="fixed inset-0 bg-black/40 pointer-events-auto"
+              className="fixed inset-0 bg-black/35 pointer-events-auto"
               style={{ zIndex: 99998 }}
               onClick={() => setShowFanClub(false)}
             />
             <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
               <div
-                className="bg-[#09090B]/95 rounded-t-2xl p-3 pb-safe h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full "
+                className="bg-[rgba(10,10,10,0.72)] rounded-t-2xl p-3 pb-safe h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full "
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex flex-col items-center justify-center pt-3 pb-1 gap-1.5">
@@ -2253,7 +2253,7 @@ export default function SpectatorLiveScreen() {
               onTouchMove={(e) => e.stopPropagation()}
             >
               {spectatorBattle?.active && (
-                <div className="px-3 pb-2 pt-1 flex items-center justify-center gap-2 bg-[#09090B]/95 rounded-t-xl">
+                <div className="px-3 pb-2 pt-1 flex items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)] rounded-t-xl">
                   <div className="flex rounded-full overflow-hidden border border-[#D8D9DD]/40">
                     <button
                       type="button"
@@ -2344,12 +2344,12 @@ export default function SpectatorLiveScreen() {
         {showViewersPanel && (
           <>
             <div
-              className="fixed inset-0 bg-black/40 pointer-events-auto"
+              className="fixed inset-0 bg-black/35 pointer-events-auto"
               style={{ zIndex: 99998 }}
               onClick={() => setShowViewersPanel(false)}
             />
             <div className="fixed bottom-0 left-0 right-0 z-[999999] pointer-events-auto max-w-[480px] mx-auto">
-              <div className="bg-[#09090B]/95 backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl overflow-hidden">
+              <div className="bg-[rgba(10,10,10,0.72)] backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl overflow-hidden">
                 <div className="flex justify-center pt-3 pb-1">
                   <div className="w-10 h-1 bg-white/20 rounded-full" />
                 </div>
@@ -2423,12 +2423,12 @@ export default function SpectatorLiveScreen() {
         {showSharePanel && (
           <>
             <div
-              className="fixed inset-0 bg-black/40 pointer-events-auto"
+              className="fixed inset-0 bg-black/35 pointer-events-auto"
               style={{ zIndex: 99998 }}
               onClick={() => setShowSharePanel(false)}
             />
             <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
-              <div className="bg-[#09090B]/95 backdrop-blur-md rounded-t-2xl p-3 pb-safe flex flex-col shadow-2xl w-full h-[40vh] overflow-hidden ">
+              <div className="bg-[rgba(10,10,10,0.72)] backdrop-blur-md rounded-t-2xl p-3 pb-safe flex flex-col shadow-2xl w-full h-[40vh] overflow-hidden ">
                 <div className="flex justify-center pt-0.5 pb-0.5">
                   <div className="w-10 h-1 bg-white/20 rounded-full" />
                 </div>
@@ -2554,13 +2554,13 @@ export default function SpectatorLiveScreen() {
         {isMoreMenuOpen && (
           <>
             <div
-              className="fixed inset-0 bg-black/40 pointer-events-auto"
+              className="fixed inset-0 bg-black/35 pointer-events-auto"
               style={{ zIndex: 99998 }}
               onClick={() => setIsMoreMenuOpen(false)}
             />
             <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
               <div
-                className="relative bg-[#09090B]/95 rounded-t-2xl p-3 pb-safe h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full"
+                className="relative bg-[rgba(10,10,10,0.72)] rounded-t-2xl p-3 pb-safe h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full"
                 onClick={(e) => e.stopPropagation()}
               >
                 {areTestCoinsEnabled() && (
@@ -2709,7 +2709,7 @@ export default function SpectatorLiveScreen() {
                       value={testCoinsPwd}
                       onChange={(e) => { setTestCoinsPwd(e.target.value); setTestCoinsError(''); }}
                       placeholder="Password"
-                      className="w-full bg-[#09090B] text-white text-sm rounded-xl px-4 py-3 border border-white/10 focus:border-[#D8D9DD]/60 focus:outline-none placeholder:text-white/30 mb-2"
+                      className="w-full bg-[#09090B] text-white text-sm rounded-xl px-4 py-3 border border-[#2A2D33] focus:border-[#D8D9DD]/60 focus:outline-none placeholder:text-white/30 mb-2"
                     />
                     <label className="flex items-center gap-2 mt-2 mb-2 cursor-pointer">
                       <input type="checkbox" checked={testCoinsSavePwd} onChange={(e) => setTestCoinsSavePwd(e.target.checked)} className="rounded border-white/30" />
@@ -2770,7 +2770,7 @@ export default function SpectatorLiveScreen() {
                       placeholder="Amount (e.g. 5000)"
                       min={1}
                       max={100000000}
-                      className="w-full bg-[#09090B] text-white text-sm rounded-xl px-4 py-3 border border-white/10 focus:border-[#D8D9DD]/60 focus:outline-none placeholder:text-white/30 mb-2"
+                      className="w-full bg-[#09090B] text-white text-sm rounded-xl px-4 py-3 border border-[#2A2D33] focus:border-[#D8D9DD]/60 focus:outline-none placeholder:text-white/30 mb-2"
                     />
                     {testCoinsError && (
                       <p className="text-white/60 text-xs mb-2">{testCoinsError}</p>
@@ -2828,7 +2828,7 @@ export default function SpectatorLiveScreen() {
         {showRankingPanel && (
           <>
             <div
-              className="fixed inset-0 bg-black/40 pointer-events-auto"
+              className="fixed inset-0 bg-black/35 pointer-events-auto"
               style={{ zIndex: 99998 }}
               onClick={() => setShowRankingPanel(false)}
             />

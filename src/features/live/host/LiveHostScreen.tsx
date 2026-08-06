@@ -147,7 +147,7 @@ import { useWalletStore } from '../../../store/useWalletStore';
 import { App as CapacitorApp } from '@capacitor/app';
 
 const LIVE_BOTTOM_ICON_BTN =
-  'w-10 h-10 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm border-0 shadow-none active:scale-95 transition-transform flex-shrink-0';
+  'w-10 h-10 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm border border-[#2A2D33] shadow-none active:scale-95 transition-transform flex-shrink-0';
 
 function AnimatedScore({ value, className = '', durationMs = 300, format }: { value: number; className?: string; durationMs?: number; format?: (n: number) => string }) {
   const [display, setDisplay] = useState(value);
@@ -1139,7 +1139,7 @@ export default function LiveHostScreen() {
                           )}
                           {score > 0 && (
                             <div
-                              className={`h-4 flex items-center rounded-full text-[8px] font-bold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] relative z-0 bg-[#09090B]/40 backdrop-blur-md border border-white/10 ${lastGiftIcon ? '-ml-2 pl-3 pr-1.5' : 'px-1.5'}`}
+                              className={`h-4 flex items-center rounded-full text-[8px] font-bold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] relative z-0 bg-black/35 backdrop-blur-md border border-[#2A2D33] ${lastGiftIcon ? '-ml-2 pl-3 pr-1.5' : 'px-1.5'}`}
                             >
                               {formatCountShort(score)}
                             </div>
@@ -1264,7 +1264,7 @@ export default function LiveHostScreen() {
 
             {SPEED_CHALLENGE_ENABLED && speedChallengeResult && !speedChallengeActive && (
               <div className="absolute inset-x-0 bottom-24 z-[270] pointer-events-none flex items-center justify-center">
-                <div className="flex flex-col items-center gap-1 px-6 py-3 rounded-xl bg-[#09090B]/70 backdrop-blur-md border border-white/15 shadow-[0_0_20px_rgba(0,0,0,0.6)]">
+                <div className="flex flex-col items-center gap-1 px-6 py-3 rounded-xl bg-[rgba(10,10,10,0.72)] backdrop-blur-md border border-[#2A2D33] shadow-[0_0_20px_rgba(0,0,0,0.6)]">
                   <span className="text-white text-[10px] font-bold uppercase tracking-widest">âš¡ Speed Challenge Result</span>
                   <span className="text-white text-lg font-black drop-shadow-[0_0_15px_rgba(230,179,106,0.8)] animate-bounce">{speedChallengeResult}</span>
                 </div>
@@ -1289,7 +1289,7 @@ export default function LiveHostScreen() {
                 >
 
                   {/* Battle score: tap bar to hide (keeps battle video + chat visible). Tap VS to show again. */}
-                  <div className={`relative z-20 w-full flex-none ${battleScoreBarHidden ? '' : 'bg-[#09090B]/95 border-b border-white/10'}`}>
+                  <div className={`relative z-20 w-full flex-none ${battleScoreBarHidden ? '' : 'bg-[rgba(10,10,10,0.72)] border-b border-[#2A2D33]'}`}>
                     {!battleScoreBarHidden ? (
                       <div
                         className="relative w-full overflow-hidden cursor-pointer pointer-events-auto"
@@ -1338,7 +1338,7 @@ export default function LiveHostScreen() {
                     <div className={`absolute left-0 right-0 z-30 flex justify-center m-0 p-0 ${battleScoreBarHidden ? 'top-0 pointer-events-auto' : 'top-full pointer-events-none'}`}>
                       <button
                         type="button"
-                        className="flex items-center gap-1.5 bg-black/35 backdrop-blur-md rounded-full px-2.5 py-1 border border-white/12 shadow-none pointer-events-auto"
+                        className="flex items-center gap-1.5 bg-black/35 backdrop-blur-md rounded-full px-2.5 py-1 border border-[#2A2D33] shadow-none pointer-events-auto"
                         onClick={(e) => {
                           e.stopPropagation();
                           if (battleScoreBarHidden) setBattleScoreBarHidden(false);
@@ -1505,7 +1505,7 @@ export default function LiveHostScreen() {
                           <span className="text-white text-[10px] font-bold">Waiting...</span>
                         </div>
                       ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[#09090B]/80 pointer-events-auto" onClick={(e) => { e.stopPropagation(); setShowViewerList(false); setIsFindCreatorsOpen(true); }}>
+                        <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)] pointer-events-auto" onClick={(e) => { e.stopPropagation(); setShowViewerList(false); setIsFindCreatorsOpen(true); }}>
                           <div className="w-12 h-12 rounded-full flex items-center justify-center">
                             <span className="text-white/30 text-2xl">+</span>
                           </div>
@@ -1562,7 +1562,7 @@ export default function LiveHostScreen() {
                           </div>
                         )}
                         <div 
-                          className={`h-4 flex items-center rounded-full text-[8px] font-bold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] relative z-0 bg-[#09090B]/40 backdrop-blur-md border border-white/10 ${lastGifts.opponent ? '-ml-2 pl-3 pr-1.5' : 'px-1.5'}`}
+                          className={`h-4 flex items-center rounded-full text-[8px] font-bold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] relative z-0 bg-black/35 backdrop-blur-md border border-[#2A2D33] ${lastGifts.opponent ? '-ml-2 pl-3 pr-1.5' : 'px-1.5'}`}
                         >
                           {battleSlots[0].status !== 'empty' ? battleSlots[0].name : 'P2'}
                         </div>
@@ -1617,7 +1617,7 @@ export default function LiveHostScreen() {
                             <span className="text-white text-[10px] font-bold">Waiting...</span>
                           </div>
                         ) : (
-                          <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[#09090B]/80 pointer-events-auto" onClick={(e) => { e.stopPropagation(); setShowViewerList(false); setIsFindCreatorsOpen(true); }}>
+                          <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)] pointer-events-auto" onClick={(e) => { e.stopPropagation(); setShowViewerList(false); setIsFindCreatorsOpen(true); }}>
                             <div className="w-12 h-12 rounded-full flex items-center justify-center">
                               <span className="text-white/30 text-2xl">+</span>
                             </div>
@@ -1699,7 +1699,7 @@ export default function LiveHostScreen() {
                             <span className="text-white text-[10px] font-bold">Waiting...</span>
                           </div>
                         ) : (
-                          <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[#09090B]/80 pointer-events-auto" onClick={(e) => { e.stopPropagation(); setShowViewerList(false); setIsFindCreatorsOpen(true); }}>
+                          <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)] pointer-events-auto" onClick={(e) => { e.stopPropagation(); setShowViewerList(false); setIsFindCreatorsOpen(true); }}>
                             <div className="w-12 h-12 rounded-full flex items-center justify-center">
                               <span className="text-white/30 text-2xl">+</span>
                             </div>
@@ -1969,7 +1969,7 @@ export default function LiveHostScreen() {
                             }
                           />
                           {currentUniverse && (
-                            <div className="mt-1 flex items-center gap-1 bg-[#09090B]/90 rounded-full px-2.5 py-1 border border-[#D8D9DD]/80 shadow-sm pointer-events-auto relative z-20">
+                            <div className="mt-1 flex items-center gap-1 bg-[rgba(10,10,10,0.72)] rounded-full px-2.5 py-1 border border-[#D8D9DD]/80 shadow-sm pointer-events-auto relative z-20">
                               <span className="text-[#F5E6A8] text-[11px] font-bold whitespace-nowrap truncate max-w-[140px]">âœ¨ {universeText} âœ¨</span>
                             </div>
                           )}
@@ -2189,7 +2189,7 @@ export default function LiveHostScreen() {
           {/* Spectator bar â€” watch + gift only. Never shown to a broadcasting host or a battle-playing creator. */}
           {!isCreatorParticipant && (
             <div className="flex items-end gap-2 w-full max-w-[480px] pointer-events-auto">
-              <form className="flex-1 flex items-center gap-2 bg-black/40 backdrop-blur-sm rounded-full px-3 py-2 border border-white/10 h-10 min-w-0" onSubmit={(e) => { e.preventDefault(); handleSendMessage(e); }}>
+              <form className="flex-1 flex items-center gap-2 bg-black/35 backdrop-blur-sm rounded-full px-3 py-2 border border-[#2A2D33] h-10 min-w-0" onSubmit={(e) => { e.preventDefault(); handleSendMessage(e); }}>
                 <input type="text" inputMode="text" enterKeyHint="send" autoComplete="off" placeholder="Say something..." className="bg-transparent text-white text-xs outline-none flex-1 placeholder:text-white/30 min-w-0" value={inputValue} onChange={(e) => setInputValue(e.target.value)} />
                 {inputValue.trim() && <button type="submit" title="Send message" className="text-[#F5F5F7] flex-shrink-0"><Send size={16} /></button>}
               </form>
@@ -2344,7 +2344,7 @@ export default function LiveHostScreen() {
       {showRankingPanel && (
         <>
           <div 
-            className="fixed inset-0 bg-black/40 pointer-events-auto" 
+            className="fixed inset-0 bg-black/35 pointer-events-auto" 
             style={{ zIndex: 99998 }}
             onClick={closeRankingPanel}
           />
@@ -2395,11 +2395,11 @@ export default function LiveHostScreen() {
       {isFindCreatorsOpen && (
         <div className="fixed inset-0 z-[99999] flex flex-col justify-end max-w-[480px] mx-auto" style={{ height: '100%' }}>
           <div 
-            className="absolute inset-0 bg-black/40 pointer-events-auto" 
+            className="absolute inset-0 bg-black/35 pointer-events-auto" 
             onClick={closeFindCreatorsPanel}
           />
           <div
-            className="bg-[#09090B]/95 backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl pointer-events-auto w-full relative z-10 overflow-hidden pb-safe"
+            className="bg-[rgba(10,10,10,0.72)] backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl pointer-events-auto w-full relative z-10 overflow-hidden pb-safe"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Drag handle */}
@@ -2517,7 +2517,7 @@ export default function LiveHostScreen() {
               onClick={closeMiniProfile}
             />
             <motion.div
-              className="bg-[#09090B] rounded-t-2xl border-t border-white/10 px-4 pt-4 pb-[calc(20px+env(safe-area-inset-bottom))] pointer-events-auto shadow-2xl relative z-10"
+              className="bg-[#09090B] rounded-t-2xl border-t border-[#2A2D33] px-4 pt-4 pb-[calc(20px+env(safe-area-inset-bottom))] pointer-events-auto shadow-2xl relative z-10"
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
@@ -2566,7 +2566,7 @@ export default function LiveHostScreen() {
                     )}
 
                     {miniProfile.donated != null && miniProfile.donated > 0 && (
-                      <div className="text-white text-[11px] font-bold mt-2 pt-2 border-t border-white/10">
+                      <div className="text-white text-[11px] font-bold mt-2 pt-2 border-t border-[#2A2D33]">
                         Donated: {formatCoinsShort(miniProfile.donated)} coins
                       </div>
                     )}
@@ -2583,7 +2583,7 @@ export default function LiveHostScreen() {
                     miniProfile?.id &&
                     (miniProfileFollowsThem === true ||
                       (miniProfileFollowsThem === undefined && followingUsers.includes(miniProfile.id)))
-                      ? 'bg-white/10 text-white border border-white/10 font-bold'
+                      ? 'bg-white/10 text-white border border-[#2A2D33] font-bold'
                       : 'bg-[#6F3FF5] text-white font-black hover:bg-[#6F3FF5]/90 elix-solid-accent'
                   }`}
                 >
@@ -2627,12 +2627,12 @@ export default function LiveHostScreen() {
       {showViewerList && (
         <>
           <div
-            className="fixed inset-0 bg-black/40 pointer-events-auto"
+            className="fixed inset-0 bg-black/35 pointer-events-auto"
             style={{ zIndex: 99998 }}
             onClick={closeViewerList}
           />
           <div className="fixed bottom-0 left-0 right-0 z-[999999] pointer-events-auto max-w-[480px] mx-auto">
-            <div className="bg-[#09090B]/95 backdrop-blur-md rounded-t-2xl h-[36vh] flex flex-col shadow-2xl overflow-hidden">
+            <div className="bg-[rgba(10,10,10,0.72)] backdrop-blur-md rounded-t-2xl h-[36vh] flex flex-col shadow-2xl overflow-hidden">
               <div className="flex justify-center pt-3 pb-1">
                 <div className="w-10 h-1 bg-white/20 rounded-full" />
               </div>
@@ -2870,13 +2870,13 @@ export default function LiveHostScreen() {
       {showTeamStatus && (
         <>
           <div 
-            className="fixed inset-0 bg-black/40 pointer-events-auto" 
+            className="fixed inset-0 bg-black/35 pointer-events-auto" 
             style={{ zIndex: 99998 }}
             onClick={closeTeamStatus}
           />
           <div className="fixed bottom-0 left-0 right-0 h-[40vh] z-[99999] pointer-events-auto max-w-[480px] mx-auto">
           <div
-            className="bg-[#09090B]/95 backdrop-blur-md rounded-t-2xl p-3 pb-safe h-full flex flex-col shadow-2xl w-full overflow-hidden "
+            className="bg-[rgba(10,10,10,0.72)] backdrop-blur-md rounded-t-2xl p-3 pb-safe h-full flex flex-col shadow-2xl w-full overflow-hidden "
             onClick={(e) => e.stopPropagation()}
           >
             {/* Drag handle */}
@@ -2976,13 +2976,13 @@ export default function LiveHostScreen() {
       {showFanClub && (
         <>
           <div 
-            className="fixed inset-0 bg-black/40 pointer-events-auto" 
+            className="fixed inset-0 bg-black/35 pointer-events-auto" 
             style={{ zIndex: 99998 }}
             onClick={closeFanClub}
           />
           <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
           <div
-            className="bg-[#09090B]/95 rounded-t-2xl p-3 pb-safe max-h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full"
+            className="bg-[rgba(10,10,10,0.72)] rounded-t-2xl p-3 pb-safe max-h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Drag handle */}
@@ -3130,7 +3130,7 @@ export default function LiveHostScreen() {
       {isMoreMenuOpen && (
         <>
           <div 
-            className="fixed inset-0 bg-black/40 pointer-events-auto" 
+            className="fixed inset-0 bg-black/35 pointer-events-auto" 
             style={{ zIndex: 99998 }}
             onClick={closeMoreMenu}
           />
@@ -3138,7 +3138,7 @@ export default function LiveHostScreen() {
             className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto"
           >
           <div
-            className="relative bg-[#09090B]/95 rounded-t-2xl p-3 pb-safe h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full "
+            className="relative bg-[rgba(10,10,10,0.72)] rounded-t-2xl p-3 pb-safe h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full "
             onClick={(e) => e.stopPropagation()}
           >
             {areTestCoinsEnabled() && (
@@ -3273,13 +3273,13 @@ export default function LiveHostScreen() {
       {showLiveEffectsPanel && (
         <>
           <div
-            className="fixed inset-0 bg-black/40 pointer-events-auto"
+            className="fixed inset-0 bg-black/35 pointer-events-auto"
             style={{ zIndex: 99998 }}
             onClick={closeLiveEffectsPanel}
           />
           <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
             <div
-              className="bg-[#09090B]/95 rounded-t-2xl p-3 pb-safe shadow-2xl w-full"
+              className="bg-[rgba(10,10,10,0.72)] rounded-t-2xl p-3 pb-safe shadow-2xl w-full"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-center mb-2">
@@ -3364,7 +3364,7 @@ export default function LiveHostScreen() {
                     value={testCoinsPwd}
                     onChange={(e) => { setTestCoinsPwd(e.target.value); setTestCoinsError(''); }}
                     placeholder="Password"
-                    className="w-full bg-[#09090B] text-white text-sm rounded-xl px-4 py-3 border border-white/10 focus:border-[#D8D9DD]/60 focus:outline-none placeholder:text-white/30 mb-2"
+                    className="w-full bg-[#09090B] text-white text-sm rounded-xl px-4 py-3 border border-[#2A2D33] focus:border-[#D8D9DD]/60 focus:outline-none placeholder:text-white/30 mb-2"
                   />
                   <label className="flex items-center gap-2 mt-2 mb-2 cursor-pointer">
                     <input type="checkbox" checked={testCoinsSavePwd} onChange={(e) => setTestCoinsSavePwd(e.target.checked)} className="rounded border-white/30" />
@@ -3409,7 +3409,7 @@ export default function LiveHostScreen() {
                     placeholder="Amount (e.g. 5000)"
                     min="1"
                     max="100000000"
-                    className="w-full bg-[#09090B] text-white text-sm rounded-xl px-4 py-3 border border-white/10 focus:border-[#D8D9DD]/60 focus:outline-none placeholder:text-white/30 mb-2"
+                    className="w-full bg-[#09090B] text-white text-sm rounded-xl px-4 py-3 border border-[#2A2D33] focus:border-[#D8D9DD]/60 focus:outline-none placeholder:text-white/30 mb-2"
                   />
                   {testCoinsError && (
                     <p className="text-white/60 text-xs mb-2">{testCoinsError}</p>
@@ -3476,7 +3476,7 @@ export default function LiveHostScreen() {
               return acc;
             }, {}),
           ).map((g) => (
-            <span key={g.key} className="relative flex items-center justify-center w-11 h-11 rounded-full bg-[#09090B]/90 border border-[#6F3FF5] shadow-2xl text-[#6F3FF5] animate-in zoom-in-50 duration-200">
+            <span key={g.key} className="relative flex items-center justify-center w-11 h-11 rounded-full bg-[rgba(10,10,10,0.72)] border border-[#6F3FF5] shadow-2xl text-[#6F3FF5] animate-in zoom-in-50 duration-200">
               <GloveIcon className="w-7 h-7" />
               {g.count > 1 && (
                 <span className="absolute -top-1 -right-1 text-[9px] font-black leading-none px-1 rounded-full bg-[#6F3FF5] text-white border border-black/40">{g.count}</span>
@@ -3493,7 +3493,7 @@ export default function LiveHostScreen() {
       {boosterCatches.length > 0 && (
         <div className="fixed inset-x-0 top-[30%] z-[100000] flex flex-col items-center gap-2 pointer-events-none px-4">
           {boosterCatches.map((c) => (
-            <div key={c.id} className="booster-catch-pop flex items-center gap-2 px-4 py-2 rounded-full bg-[#09090B]/90 border border-[#D8D9DD] shadow-2xl">
+            <div key={c.id} className="booster-catch-pop flex items-center gap-2 px-4 py-2 rounded-full bg-[rgba(10,10,10,0.72)] border border-[#D8D9DD] shadow-2xl">
               <GloveIcon className="w-5 h-5 text-[#F5F5F7]" />
               <span className="text-[#F5F5F7] font-black text-base tracking-wide">x{c.multiplier} CAUGHT!</span>
               <span className="text-white font-bold text-sm">+{c.finalPoints}</span>
@@ -3517,12 +3517,12 @@ export default function LiveHostScreen() {
       {showSharePanel && (
         <>
           <div 
-            className="fixed inset-0 bg-black/40 pointer-events-auto" 
+            className="fixed inset-0 bg-black/35 pointer-events-auto" 
             style={{ zIndex: 99998 }}
             onClick={closeSharePanel}
           />
           <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
-          <div className="bg-[#09090B]/95 backdrop-blur-md rounded-t-2xl p-3 pb-safe flex flex-col shadow-2xl w-full h-[40vh] overflow-hidden ">
+          <div className="bg-[rgba(10,10,10,0.72)] backdrop-blur-md rounded-t-2xl p-3 pb-safe flex flex-col shadow-2xl w-full h-[40vh] overflow-hidden ">
             <div className="flex justify-center pt-0.5 pb-0.5">
               <div className="w-10 h-1 bg-white/20 rounded-full" />
             </div>
@@ -3636,7 +3636,7 @@ export default function LiveHostScreen() {
       {/* Moderation warning (AI flag + assist; first detection only) */}
       {showModerationWarning && (
         <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/70" onClick={() => { setShowModerationWarning(false); setModerationWarningMessage(''); }}>
-          <div className="bg-[#09090B] border border-white/10 rounded-xl p-6 max-w-sm w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-[#09090B] border border-[#2A2D33] rounded-xl p-6 max-w-sm w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-2 mb-3">
               <AlertTriangle className="w-6 h-6 text-amber-500 flex-shrink-0" />
               <h3 className="font-semibold text-white">Safety reminder</h3>

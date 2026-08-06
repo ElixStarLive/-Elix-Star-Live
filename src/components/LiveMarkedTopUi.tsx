@@ -26,13 +26,13 @@ function liveDiamondTierLabel(level: number) {
   return `Diamond ${roman[idx]}`;
 }
 
-/** Live ranking chips — same fill as live bottom icons (`bg-black/35 backdrop-blur-sm`). */
+/** Live ranking chips — transparent black glass over video. */
 const THIN_CAPSULE_STYLE: React.CSSProperties = {
   background: 'rgba(0, 0, 0, 0.35)',
-  border: 'none',
+  border: '1px solid #2A2D33',
   boxShadow: 'none',
-  backdropFilter: 'blur(4px)',
-  WebkitBackdropFilter: 'blur(4px)',
+  backdropFilter: 'blur(8px)',
+  WebkitBackdropFilter: 'blur(8px)',
 };
 
 /** Shared capsule title / subtitle — half silver / half red writing. */
@@ -208,7 +208,7 @@ export function LiveHostProfileHeader({
             <span className="elix-silver-red-text">Lv.{safeLevel}</span>
           </span>
           <span
-            className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-[2px] text-[8px] font-bold leading-none bg-black/35 backdrop-blur-sm border-0 shadow-none"
+            className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-[2px] text-[8px] font-bold leading-none bg-black/35 backdrop-blur-sm border border-[#2A2D33] shadow-none"
           >
             <Gem size={9} className="flex-shrink-0" strokeWidth={2.2} />
             <span className="elix-silver-red-text text-[8px] font-bold leading-none whitespace-nowrap">
@@ -497,7 +497,7 @@ export function LiveGiftComboColumn({
           onOpen?.();
         }
       }}
-      className="flex flex-col-reverse items-center gap-2 rounded-2xl px-2.5 py-2.5 border border-[#FF2D85]/35 bg-[rgba(8,6,24,0.82)] backdrop-blur-md shadow-[0_0_18px_rgba(255,45,133,0.25)] active:scale-[0.98] transition-transform"
+      className="flex flex-col-reverse items-center gap-2 rounded-2xl px-2.5 py-2.5 border border-[#2A2D33] bg-[rgba(10,10,10,0.72)] backdrop-blur-md shadow-none active:scale-[0.98] transition-transform"
     >
       {stack.map((item, idx) => {
         const isActive = idx === stack.length - 1;
