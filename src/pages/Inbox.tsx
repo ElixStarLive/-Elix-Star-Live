@@ -634,8 +634,8 @@ export default function Inbox() {
   };
 
   return (
-    <div className="page-above-bottom-nav bg-transparent">
-      <div className="page-above-bottom-nav__inner bg-transparent flex flex-col min-h-0">
+    <div className="page-above-bottom-nav bg-[rgba(10,10,10,0.72)] backdrop-blur-md">
+      <div className="page-above-bottom-nav__inner bg-[rgba(10,10,10,0.72)] backdrop-blur-md flex flex-col min-h-0">
         {/* One full-page scroll — same fundal colour, no framed boxes */}
         <div className="flex-1 min-h-0 overflow-y-auto bg-[rgba(0,0,0,0.35)]">
         <div className="px-3 pt-page-header pb-1 flex items-center justify-between relative bg-[rgba(0,0,0,0.35)]">
@@ -1084,8 +1084,8 @@ export default function Inbox() {
 
       {/* Followers — full page on same fundal, no sheet box */}
       {showNewFollowersPanel && createPortal(
-        <div className="page-above-bottom-nav bg-transparent z-[101] pointer-events-auto">
-          <div className="page-above-bottom-nav__inner bg-transparent flex flex-col min-h-0">
+        <div className="page-above-bottom-nav bg-[rgba(10,10,10,0.72)] backdrop-blur-md z-[101] pointer-events-auto">
+          <div className="page-above-bottom-nav__inner bg-[rgba(10,10,10,0.72)] backdrop-blur-md flex flex-col min-h-0">
             <div className="flex-1 min-h-0 overflow-y-auto bg-[rgba(0,0,0,0.35)] new-followers-panel-scroll">
               <div className="px-3 pt-page-header pb-1 flex items-center justify-between relative bg-[rgba(0,0,0,0.35)]">
                 <div className="w-8" aria-hidden />

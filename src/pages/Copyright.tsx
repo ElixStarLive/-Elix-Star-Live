@@ -10,7 +10,7 @@ export default function Copyright() {
 
   return (
     <SettingsOptionSheet onClose={goBack}>
-      <div className="w-full h-full overflow-hidden bg-transparent text-white flex flex-col">
+      <div className="w-full h-full overflow-hidden bg-[rgba(10,10,10,0.72)] backdrop-blur-md text-white flex flex-col">
         <header className="flex items-center justify-center mb-4 px-4 pt-2">
           <h1 className="font-bold text-lg">Copyright Notice</h1>
         </header>

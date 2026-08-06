@@ -56,17 +56,17 @@
     --color-dark-red: #5B2ED6;
     --color-hover-purple: #8B5CFF;
     --color-pressed-purple: #5B2ED6;
-    /* Clear shells — wallpaper (html/body) shows through; glass only on chrome */
-    --color-background: transparent;
-    --color-surface: transparent;
+    /* 3-dots / ShareModal glass — same frosted panel across the app */
+    --color-background: rgba(10, 10, 10, 0.72);
+    --color-surface: rgba(10, 10, 10, 0.72);
     --color-card: rgba(255, 255, 255, 0.06);
     --color-card-elevated: rgba(255, 255, 255, 0.06);
-    /* Transparent black glass — live video stays visible behind UI */
-    --color-glass-bg: rgba(0, 0, 0, 0.35);
-    --color-glass-panel: rgba(255, 255, 255, 0.06);
+    --color-glass-bg: rgba(10, 10, 10, 0.72);
+    --color-glass-panel: rgba(10, 10, 10, 0.72);
     --color-glass-border: #2A2D33;
     --color-border: #2A2D33;
     --elix-app-bg: url('/elix-app-bg.png');
+    --elix-glass-blur: blur(12px);
     --color-destructive: #D91F2D;
     --shadow-luxury: 0 12px 40px rgba(0, 0, 0, 0.45);
     --radius-sm: 10px;
@@ -1132,11 +1132,12 @@ video::-webkit-media-controls-overlay-enclosure,
 }
 
 /* Live transparent black glass — video shows through (exact design values) */
+/* Live transparent glass — match ShareModal / 3-dots panel */
 .elix-glass {
-  background: rgba(0, 0, 0, 0.35) !important;
+  background: rgba(10, 10, 10, 0.72) !important;
   border: 1px solid #2A2D33 !important;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   box-shadow: none !important;
 }
 .elix-glass-panel {
@@ -1459,13 +1460,13 @@ svg.lucide.fill-silver-full.royce-icon-gold {
   display: none !important;
 }
 
-/* ═══ ENTIRE APP: clear containers + wallpaper; glass only on chrome ═══ */
+/* ═══ ENTIRE APP = same frosted glass as ShareModal / 3-dots panel ═══ */
 html,
 body {
   background-color: #000000 !important;
   background-image: none !important;
 }
-/* Fixed wallpaper layer — WebView-safe (body background-attachment:fixed fails / broken PNG looked black) */
+/* Wallpaper behind glass (WebView-safe fixed layer) */
 body::before {
   content: "";
   position: fixed;
@@ -1482,66 +1483,69 @@ body::before {
   z-index: 1;
   background: transparent !important;
 }
-/* Page / column shells must stay clear (Friends feed look) — no black wash */
+
+/*
+ * Page shells / surfaces — exact ShareModal recipe:
+ * bg-[rgba(10,10,10,0.72)] + backdrop-blur-md
+ */
 .page-above-bottom-nav,
 .page-above-bottom-nav__inner,
-.app-live-column,
-.app-live-column-host,
 .bg-background,
 .bg-surface,
 .min-h-screen.bg-background,
-main.feed-column-width {
+.app-live-column {
+  background-color: rgba(10, 10, 10, 0.72) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+}
+
+/* Unify remapped fills to the same 3-dots glass (do NOT force transparent) */
+#root [class*="bg-[rgba(0,0,0,0.35)]"],
+#root [class*="bg-[rgba(10,10,10,0.72)]"] {
+  background-color: rgba(10, 10, 10, 0.72) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.bg-card,
+.bg-card-elevated {
+  background-color: rgba(10, 10, 10, 0.72) !important;
+  border-color: #2A2D33 !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Top + bottom nav — same glass */
+#root nav[aria-label="Main navigation"] .feed-column-width,
+#root nav[aria-label="Main navigation"] .feed-column-width[class*="bg-"],
+#root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
+#root .feed-column-width.h-\[var\(--topnav-bar-height\)\] {
+  background-color: rgba(10, 10, 10, 0.72) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-color: #2A2D33;
+}
+
+/* Sheets / 3-dots / Creators panels */
+.bottom-sheet-above-nav,
+#root .elix-glass,
+#root .elix-glass-panel {
+  background-color: rgba(10, 10, 10, 0.72) !important;
+  border-color: #2A2D33 !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+}
+
+/*
+ * Video + live paint layers stay clear so media shows through glass chrome.
+ * Do not glass-wash the stream itself.
+ */
+main.feed-column-width,
+.elix-live-room,
+.elix-live-room .page-above-bottom-nav,
+.elix-live-room .page-above-bottom-nav__inner,
+.app-live-column-host {
   background-color: transparent !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-}
-/*
- * Prior glass remap painted rgba(0,0,0,0.35) on every container — stacks to solid black.
- * Clear those fills app-wide so wallpaper shows. Re-apply glass only where chrome needs it.
- */
-#root [class*="bg-[rgba(0,0,0,0.35)]"],
-#root [class*="bg-[rgba(10,10,10,0.72)]"] {
-  background-color: transparent !important;
-}
-.bg-card,
-.bg-card-elevated {
-  background-color: rgba(255, 255, 255, 0.06) !important;
-  border-color: #2A2D33 !important;
-}
-/* Bottom / top nav chrome — light glass over wallpaper (beat #root clear rule via #root + !important) */
-#root nav[aria-label="Main navigation"] .feed-column-width,
-#root nav[aria-label="Main navigation"] .feed-column-width[class*="bg-"] {
-  background-color: rgba(0, 0, 0, 0.35) !important;
-  backdrop-filter: blur(8px) !important;
-  -webkit-backdrop-filter: blur(8px) !important;
-  border-top: 1px solid #2A2D33;
-}
-#root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
-#root .feed-column-width.h-\[var\(--topnav-bar-height\)\] {
-  background-color: rgba(0, 0, 0, 0.35) !important;
-  backdrop-filter: blur(8px) !important;
-  -webkit-backdrop-filter: blur(8px) !important;
-}
-/* Story strip / any explicit blur glass chrome */
-#root [class*="backdrop-blur"][class*="bg-[rgba(0,0,0,0.35)]"],
-#root [class*="backdrop-blur"][class*="bg-[rgba(10,10,10,0.72)]"],
-#root .elix-glass {
-  background-color: rgba(0, 0, 0, 0.35) !important;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-.bottom-sheet-above-nav {
-  border-color: #2A2D33;
-}
-.elix-glass {
-  background: rgba(0, 0, 0, 0.35) !important;
-  border: 1px solid #2A2D33 !important;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-.elix-glass-panel {
-  background: rgba(255, 255, 255, 0.06) !important;
-  border: 1px solid #2A2D33 !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
 }

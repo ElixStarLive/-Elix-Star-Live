@@ -136,7 +136,7 @@ export default function RisingStars() {
   };
 
   return (
-    <div className="page-above-bottom-nav bg-transparent text-white">
+    <div className="page-above-bottom-nav bg-[rgba(10,10,10,0.72)] backdrop-blur-md text-white">
       <div className="page-above-bottom-nav__inner">
         <div
           className="w-full shrink-0 bg-[rgba(0,0,0,0.35)] z-10"

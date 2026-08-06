@@ -101,7 +101,7 @@ export default function AIStudio() {
   }, [combinedFilter]);
 
   return (
-    <div className="h-full min-h-0 w-full bg-transparent text-white flex flex-col overflow-hidden">
+    <div className="h-full min-h-0 w-full bg-[rgba(10,10,10,0.72)] backdrop-blur-md text-white flex flex-col overflow-hidden">
       {toast && (
         <div className="fixed top-16 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-md text-white text-sm px-4 py-2 rounded-xl z-[9999]">
           {toast}

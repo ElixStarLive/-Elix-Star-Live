@@ -85,7 +85,7 @@ export default function AdminWithdrawals() {
   };
 
   return (
-    <div className="min-h-screen bg-transparent text-white p-6">
+    <div className="min-h-screen bg-[rgba(10,10,10,0.72)] backdrop-blur-md text-white p-6">
       <div className="max-w-5xl mx-auto">
         <button
           type="button"

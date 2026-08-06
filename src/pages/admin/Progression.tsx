@@ -249,7 +249,7 @@ export default function AdminProgression() {
     "bg-[#0f1218] border border-white/10 rounded-lg px-3 py-2 text-sm text-white";
 
   return (
-    <div className="min-h-screen bg-transparent text-white p-6">
+    <div className="min-h-screen bg-[rgba(10,10,10,0.72)] backdrop-blur-md text-white p-6">
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold flex items-center gap-2">

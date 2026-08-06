@@ -59,11 +59,11 @@ export default function AdminReports() {
   };
 
   if (loading) {
-    return <div className="min-h-screen bg-transparent flex items-center justify-center text-white">Loading...</div>;
+    return <div className="min-h-screen bg-[rgba(10,10,10,0.72)] backdrop-blur-md flex items-center justify-center text-white">Loading...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-transparent text-white p-6">
+    <div className="min-h-screen bg-[rgba(10,10,10,0.72)] backdrop-blur-md text-white p-6">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold mb-6 flex items-center gap-3">
           <Flag className="w-8 h-8 text-white/70" />

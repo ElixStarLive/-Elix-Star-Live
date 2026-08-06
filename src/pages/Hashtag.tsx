@@ -57,7 +57,7 @@ export default function Hashtag() {
   }, [tag]);
 
   return (
-    <div className="h-full min-h-0 w-full bg-transparent text-white flex justify-center px-2">
+    <div className="h-full min-h-0 w-full bg-[rgba(10,10,10,0.72)] backdrop-blur-md text-white flex justify-center px-2">
       <div className="w-full max-w-[480px] h-full min-h-0 flex flex-col overflow-hidden bg-[rgba(0,0,0,0.35)]">
       {/* Header */}
       <div className="sticky top-0 z-10 px-4 py-6 bg-[rgba(0,0,0,0.35)]">
