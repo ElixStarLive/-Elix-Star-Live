@@ -111,7 +111,7 @@ export default function AdminWithdrawals() {
               onClick={() => setStatus(t)}
               className={`px-3 py-1 rounded-full text-xs font-semibold ${
                 status === t
-                  ? "bg-[#6F3FF5] text-white"
+                  ? "bg-[#6F3FF5] text-white elix-accent"
                   : "bg-white/10 text-white/70"
               }`}
             >

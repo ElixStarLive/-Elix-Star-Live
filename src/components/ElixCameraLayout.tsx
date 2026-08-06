@@ -611,7 +611,7 @@ export default function ElixCameraLayout({
                 onClick={() => setEnhanceEnabled(prev => !prev)}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all ${
                   enhanceEnabled
-                    ? 'bg-[#6F3FF5] text-white'
+                    ? 'bg-[#6F3FF5] text-white elix-accent'
                     : 'bg-white/10 text-white/60 border border-white/10'
                 }`}
               >
@@ -660,7 +660,7 @@ export default function ElixCameraLayout({
                     onClick={() => onSpeedChange?.(opt.value)}
                     className={`flex-1 py-1.5 rounded-full text-xs font-bold transition-all ${
                       currentSpeed === opt.value
-                        ? 'bg-[#6F3FF5] text-white shadow-lg shadow-[#FFFFFF]/30'
+                        ? 'bg-[#6F3FF5] text-white elix-accent shadow-lg shadow-[#FFFFFF]/30'
                         : 'bg-white/10 text-white/60 border border-white/10'
                     }`}
                   >
@@ -704,7 +704,7 @@ export default function ElixCameraLayout({
                   onClick={() => setEnhanceEnabled(prev => !prev)}
                   className={`flex flex-col items-center gap-0.5 p-1.5 rounded-xl border transition-all active:scale-95 ${
                     enhanceEnabled
-                      ? 'bg-[#6F3FF5]/20 border-[#D8D9DD]/40'
+                      ? 'bg-white/10 border-[#D8D9DD]/40'
                       : 'bg-white/5 border-white/10 hover:border-[#D8D9DD]/30'
                   }`}
                 >
@@ -791,7 +791,7 @@ export default function ElixCameraLayout({
               </button>
               <button
                 onClick={() => setShowTextInput(false)}
-                className="flex-1 py-2 rounded-xl bg-[#6F3FF5] text-white text-xs font-bold"
+                className="flex-1 py-2 rounded-xl bg-[#6F3FF5] text-white elix-accent text-xs font-bold"
               >
                 Done
               </button>
@@ -818,7 +818,7 @@ export default function ElixCameraLayout({
                   onClick={() => addSticker(option.emoji)}
                   className={`text-2xl p-1.5 rounded-xl transition-all active:scale-90 ${
                     activeStickers.includes(option.emoji) 
-                      ? 'bg-[#6F3FF5]/20 border border-[#D8D9DD]/40 scale-110' 
+                      ? 'bg-white/10 border border-[#D8D9DD]/40 scale-110' 
                       : 'bg-white/5 hover:bg-white/10'
                   }`}
                 >
@@ -956,7 +956,7 @@ export default function ElixCameraLayout({
           {/* Speed indicator when not 1x */}
           {currentSpeed !== 1 && (
             <div className="flex justify-center mb-2">
-              <div className="bg-[#6F3FF5]/20 px-3 py-0.5 rounded-full border border-[#D8D9DD]/30">
+              <div className="bg-white/10 px-3 py-0.5 rounded-full border border-[#D8D9DD]/30">
                 <span className="text-[#F5F5F7] drop-shadow-[0_0_8px_rgba(139, 144, 152,1)] text-[10px] font-bold">Speed: {currentSpeed}x</span>
               </div>
             </div>

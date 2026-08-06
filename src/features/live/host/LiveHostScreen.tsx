@@ -183,11 +183,11 @@ function AnimatedScore({ value, className = '', durationMs = 300, format }: { va
   return <span className={className}>{fmt(display)}</span>;
 }
 
-const _EMOJI_LIST = ['😀','😂','🥰','😍','🔥','💯','👏','🎉','❤️','💜','💙','⭐','🌟','✨','🙌','👑','💎','🚀','🎵','💃','🕺','😎','🤩','💪','🫶','💖'];
+const _EMOJI_LIST = ['ðŸ˜€','ðŸ˜‚','ðŸ¥°','ðŸ˜','ðŸ”¥','ðŸ’¯','ðŸ‘','ðŸŽ‰','â¤ï¸','ðŸ’œ','ðŸ’™','â­','ðŸŒŸ','âœ¨','ðŸ™Œ','ðŸ‘‘','ðŸ’Ž','ðŸš€','ðŸŽµ','ðŸ’ƒ','ðŸ•º','ðŸ˜Ž','ðŸ¤©','ðŸ’ª','ðŸ«¶','ðŸ’–'];
 
 import { useLiveHostController } from './useLiveHostController';
 
-/** Thin Live host UI shell — orchestration owns useLiveHostController. */
+/** Thin Live host UI shell â€” orchestration owns useLiveHostController. */
 export default function LiveHostScreen() {
   const {
     MAX_CO_HOSTS,
@@ -837,7 +837,7 @@ export default function LiveHostScreen() {
               if (now - last <= 320) handleComboClick();
             }}
           >
-            {/* Left: Host camera (or featured co-host) — 50% when co-hosts present, else full */}
+            {/* Left: Host camera (or featured co-host) â€” 50% when co-hosts present, else full */}
             <div
               className={`${hasAnyCoHost ? 'w-1/2 min-w-0 relative' : 'relative w-full h-full'} border border-[#C9A96E]/40 ${
                 (featuredHost ? isSpeakingUser(featuredHost.userId) : isSpeakingUser(user?.id))
@@ -1231,7 +1231,7 @@ export default function LiveHostScreen() {
           );
         })()}
 
-        {/* Battle Split Screen Overlay — shown whenever in battle mode */}
+        {/* Battle Split Screen Overlay â€” shown whenever in battle mode */}
         {isBattleMode && (location.pathname.startsWith('/live') || location.pathname.startsWith('/watch')) && (
           <div
             ref={battleSpectatorOverlayRef}
@@ -1265,7 +1265,7 @@ export default function LiveHostScreen() {
             {SPEED_CHALLENGE_ENABLED && speedChallengeResult && !speedChallengeActive && (
               <div className="absolute inset-x-0 bottom-24 z-[270] pointer-events-none flex items-center justify-center">
                 <div className="flex flex-col items-center gap-1 px-6 py-3 rounded-xl bg-[#09090B]/70 backdrop-blur-md border border-white/15 shadow-[0_0_20px_rgba(0,0,0,0.6)]">
-                  <span className="text-white text-[10px] font-bold uppercase tracking-widest">⚡ Speed Challenge Result</span>
+                  <span className="text-white text-[10px] font-bold uppercase tracking-widest">âš¡ Speed Challenge Result</span>
                   <span className="text-white text-lg font-black drop-shadow-[0_0_15px_rgba(230,179,106,0.8)] animate-bounce">{speedChallengeResult}</span>
                 </div>
               </div>
@@ -1334,7 +1334,7 @@ export default function LiveHostScreen() {
                     ) : (
                       <div className="w-full h-0" aria-hidden />
                     )}
-                    {/* Match timer — flush under battle score bar (0mm gap); SPEED beside timer when active */}
+                    {/* Match timer â€” flush under battle score bar (0mm gap); SPEED beside timer when active */}
                     <div className={`absolute left-0 right-0 z-30 flex justify-center m-0 p-0 ${battleScoreBarHidden ? 'top-0 pointer-events-auto' : 'top-full pointer-events-none'}`}>
                       <button
                         type="button"
@@ -1366,7 +1366,7 @@ export default function LiveHostScreen() {
                     </div>
                   </div>
 
-                  {/* Grid Container — ref for spectator tap→vote mapping */}
+                  {/* Grid Container â€” ref for spectator tapâ†’vote mapping */}
                   <div ref={battleVoteGridRef} className="flex-1 min-h-0 flex flex-col relative">
                     <BattleVfxOverlays
                       mistSide={
@@ -1378,7 +1378,7 @@ export default function LiveHostScreen() {
                       gloves={battleGloves}
                     />
                     <BattleTauntOverlays bursts={battleTauntBursts} opponentSide="opponent" />
-                    {/* Row 1: P1 & P2 — equal joined panes */}
+                    {/* Row 1: P1 & P2 â€” equal joined panes */}
                     <div className="flex flex-1 min-h-0 gap-0">
                       <div
                         className="flex-1 basis-0 min-w-0 h-full overflow-hidden relative bg-[#09090B] pointer-events-auto"
@@ -1412,7 +1412,7 @@ export default function LiveHostScreen() {
                           <span className="text-white font-bold text-[10px] truncate max-w-full px-1">{creatorName || user?.username || user?.name || 'Me'}</span>
                         </div>
                       )}
-                      {/* P1 close — top outer corner (top-left), away from VS timer */}
+                      {/* P1 close â€” top outer corner (top-left), away from VS timer */}
                       <div className="absolute top-3 left-1.5 z-40 pointer-events-auto">
                         <button
                           type="button"
@@ -1423,7 +1423,7 @@ export default function LiveHostScreen() {
                           <X size={14} strokeWidth={2.35} className="text-[#F5F5F7]" />
                         </button>
                       </div>
-                      {/* P1 mic + cam — icons only */}
+                      {/* P1 mic + cam â€” icons only */}
                       <div className="absolute bottom-3 right-1.5 z-40 pointer-events-auto flex items-end gap-2">
                         <button
                           type="button"
@@ -1501,7 +1501,7 @@ export default function LiveHostScreen() {
                       ) : battleSlots[0].status === 'invited' ? (
                         <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[#09090B]">
                           <img src={battleSlots[0].avatar} alt={battleSlots[0].name} className="w-12 h-12 rounded-full object-cover object-center opacity-60" />
-                          <div className="w-5 h-5 border-2 border-[#D8D9DD] border-t-transparent rounded-full animate-spin" />
+                          <div className="w-5 h-5 border-2 border-[#6F3FF5]/25 border-t-[#6F3FF5] rounded-full animate-spin elix-loader" />
                           <span className="text-white text-[10px] font-bold">Waiting...</span>
                         </div>
                       ) : (
@@ -1515,7 +1515,7 @@ export default function LiveHostScreen() {
 
                       {battleSlots[0].status !== 'empty' && (
                         <>
-                          {/* P2 close/remove — top outer corner (top-right), away from VS timer */}
+                          {/* P2 close/remove â€” top outer corner (top-right), away from VS timer */}
                           <div className="absolute top-3 right-1.5 z-10 pointer-events-auto">
                             <button
                               type="button"
@@ -1526,7 +1526,7 @@ export default function LiveHostScreen() {
                               <X size={14} className="text-[#F5F5F7]" strokeWidth={2.25} />
                             </button>
                           </div>
-                          {/* P2 mic + cam — icons only */}
+                          {/* P2 mic + cam â€” icons only */}
                           <div className="absolute bottom-3 left-1.5 z-10 pointer-events-auto flex items-end gap-2">
                             <button
                               type="button"
@@ -1578,7 +1578,7 @@ export default function LiveHostScreen() {
                     </div>
                   </div>
 
-                  {/* Row 2: P3 & P4 — only when 4 players, same joined container */}
+                  {/* Row 2: P3 & P4 â€” only when 4 players, same joined container */}
                   {is4Player && (
                     <div className="flex flex-1 min-h-0 gap-0">
                       <div
@@ -1613,7 +1613,7 @@ export default function LiveHostScreen() {
                         ) : battleSlots[1].status === 'invited' ? (
                           <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[#09090B]">
                             <img src={battleSlots[1].avatar} alt={battleSlots[1].name} className="w-12 h-12 rounded-full object-cover object-center opacity-60" />
-                            <div className="w-5 h-5 border-2 border-[#D8D9DD] border-t-transparent rounded-full animate-spin" />
+                            <div className="w-5 h-5 border-2 border-[#6F3FF5]/25 border-t-[#6F3FF5] rounded-full animate-spin elix-loader" />
                             <span className="text-white text-[10px] font-bold">Waiting...</span>
                           </div>
                         ) : (
@@ -1695,7 +1695,7 @@ export default function LiveHostScreen() {
                         ) : battleSlots[2].status === 'invited' ? (
                           <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[#09090B]">
                             <img src={battleSlots[2].avatar} alt={battleSlots[2].name} className="w-12 h-12 rounded-full object-cover object-center opacity-60" />
-                            <div className="w-5 h-5 border-2 border-[#D8D9DD] border-t-transparent rounded-full animate-spin" />
+                            <div className="w-5 h-5 border-2 border-[#6F3FF5]/25 border-t-[#6F3FF5] rounded-full animate-spin elix-loader" />
                             <span className="text-white text-[10px] font-bold">Waiting...</span>
                           </div>
                         ) : (
@@ -1758,7 +1758,7 @@ export default function LiveHostScreen() {
                 className="flex items-end gap-[0mm] min-w-0 flex-1 justify-start pointer-events-auto"
                 style={{ transform: `translateX(-${BATTLE_MVP_ROW_EDGE_OFFSET_MM}mm)` }}
                 onClick={openTopGiftersHost}
-                title="Top gifters — red side"
+                title="Top gifters â€” red side"
               >
                 {topMvpHostBattle.map((viewer, i) => {
                   const gifted = mvpGiftScoresHost[viewer.id] ?? 0;
@@ -1796,7 +1796,7 @@ export default function LiveHostScreen() {
                 className="flex items-end gap-[0mm] min-w-0 flex-1 justify-end pointer-events-auto"
                 style={{ transform: `translateX(${BATTLE_MVP_ROW_EDGE_OFFSET_MM}mm)` }}
                 onClick={openTopGiftersOpponent}
-                title="Top gifters — blue side"
+                title="Top gifters â€” blue side"
               >
                 {topMvpOpponentBattle.map((viewer, i) => {
                   const gifted = mvpGiftScoresOpponent[viewer.id] ?? 0;
@@ -1835,7 +1835,7 @@ export default function LiveHostScreen() {
             {SPEED_CHALLENGE_ENABLED && speedChallengeActive && (
               <div className="w-full px-3 py-2 flex items-center justify-center flex-none pointer-events-none mt-1 relative z-30" style={{ transform: 'translateY(-6mm)' }}>
                 <div className="flex items-center gap-3 px-5 py-1 rounded-full bg-[#B91C1C]/90 backdrop-blur-md border border-white/20 shadow-[0_0_15px_rgba(185,28,28,0.45)] animate-luxury-fade-in">
-                  <span className="text-white text-[9px] font-bold uppercase tracking-[0.1em]">⚡ Speed</span>
+                  <span className="text-white text-[9px] font-bold uppercase tracking-[0.1em]">âš¡ Speed</span>
                   <span className="text-white text-[14px] font-black tabular-nums">{speedChallengeTime}s</span>
                   {speedMultiplier > 1 && (
                     <span className="text-white text-[11px] font-black animate-pulse">x{speedMultiplier}</span>
@@ -1855,12 +1855,12 @@ export default function LiveHostScreen() {
           <div className="relative flex flex-col h-full pointer-events-none">
             {/* TOP AREA: Overlays (Top Bar & Floating Buttons) */}
             <div className="flex-[0_0_50dvh] relative pointer-events-none">
-              {/* Top Bar — always show creator layout for everyone */}
+              {/* Top Bar â€” always show creator layout for everyone */}
                 <div className="absolute top-0 left-0 right-0 z-[110] pointer-events-none">
                   <div className="px-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 6px)' }}>
                     <div className="flex items-start justify-between gap-2">
                       <div className="pointer-events-auto flex flex-col gap-2">
-                        {/* BROADCASTER INFO — photo profile (MVP circles untouched) */}
+                        {/* BROADCASTER INFO â€” photo profile (MVP circles untouched) */}
                         <div className="px-0 py-1 animate-luxury-fade-in relative">
                           <LiveHostProfileHeader
                             name={myCreatorName}
@@ -1887,7 +1887,7 @@ export default function LiveHostScreen() {
                                     return;
                                   }
                                   if (hasJoinedToday) {
-                                    showToast('Already sent today’s membership heart');
+                                    showToast('Already sent todayâ€™s membership heart');
                                     setShowTeamStatus(true);
                                     return;
                                   }
@@ -1904,7 +1904,7 @@ export default function LiveHostScreen() {
                                         `joined_stream_${effectiveStreamId}_${user.id}_${today0}`,
                                         'true',
                                       );
-                                      showToast('Already sent today’s membership heart');
+                                      showToast('Already sent todayâ€™s membership heart');
                                       setShowTeamStatus(true);
                                       return;
                                     }
@@ -1944,7 +1944,7 @@ export default function LiveHostScreen() {
                                       const newMessage: LiveMessage = {
                                         id: joinBannerId,
                                         username: 'You',
-                                        text: '❤️ Joined the team!',
+                                        text: 'â¤ï¸ Joined the team!',
                                         level: userLevel,
                                         isGift: false,
                                         avatar: '/royce/elix-mark.svg',
@@ -1959,7 +1959,7 @@ export default function LiveHostScreen() {
                                       }, 5000);
                                       showToast('Membership heart sent');
                                     } else {
-                                      showToast('Already sent today’s membership heart');
+                                      showToast('Already sent todayâ€™s membership heart');
                                     }
                                   } catch {
                                     showToast('Could not send membership heart. Try again.');
@@ -1970,7 +1970,7 @@ export default function LiveHostScreen() {
                           />
                           {currentUniverse && (
                             <div className="mt-1 flex items-center gap-1 bg-[#09090B]/90 rounded-full px-2.5 py-1 border border-[#D8D9DD]/80 shadow-sm pointer-events-auto relative z-20">
-                              <span className="text-[#F5E6A8] text-[11px] font-bold whitespace-nowrap truncate max-w-[140px]">✨ {universeText} ✨</span>
+                              <span className="text-[#F5E6A8] text-[11px] font-bold whitespace-nowrap truncate max-w-[140px]">âœ¨ {universeText} âœ¨</span>
                             </div>
                           )}
                         </div>
@@ -2037,7 +2037,7 @@ export default function LiveHostScreen() {
                         </button>
                       </div>
                     </div>
-                    {/* Capsules right-aligned — left clear for battle gloves */}
+                    {/* Capsules right-aligned â€” left clear for battle gloves */}
                     <LiveMarkedSubHeaderBar
                       rank={diamondLeagueRank}
                       onDiamond={openDailyRanking}
@@ -2056,7 +2056,7 @@ export default function LiveHostScreen() {
               </div>
             </div>
 
-            {/* MIDDLE ZONE: CHAT (Scrollable) — floating hearts only here, not over battle/video */}
+            {/* MIDDLE ZONE: CHAT (Scrollable) â€” floating hearts only here, not over battle/video */}
             <div
               className="chat-zone fixed left-0 right-0 z-[100] flex justify-center pointer-events-none"
               style={{
@@ -2130,7 +2130,7 @@ export default function LiveHostScreen() {
               </div>
             </div>
 
-      {/* Mission dock (combo button is separate — TikTok pink round tap) */}
+      {/* Mission dock (combo button is separate â€” TikTok pink round tap) */}
       <LiveComboMissionDock
         combo={null}
         mission={
@@ -2151,7 +2151,7 @@ export default function LiveHostScreen() {
         }
       />
 
-      {/* Combo — TikTok-style round combo tap (restored from Jul 16) */}
+      {/* Combo â€” TikTok-style round combo tap (restored from Jul 16) */}
       <AnimatePresence>
         {showComboButton && lastSentGift && (
           <motion.div
@@ -2186,7 +2186,7 @@ export default function LiveHostScreen() {
       >
         <div className="w-full max-w-[480px] mx-auto flex flex-col items-end gap-0">
         <div className="flex flex-col items-end">
-          {/* Spectator bar — watch + gift only. Never shown to a broadcasting host or a battle-playing creator. */}
+          {/* Spectator bar â€” watch + gift only. Never shown to a broadcasting host or a battle-playing creator. */}
           {!isCreatorParticipant && (
             <div className="flex items-end gap-2 w-full max-w-[480px] pointer-events-auto">
               <form className="flex-1 flex items-center gap-2 bg-black/40 backdrop-blur-sm rounded-full px-3 py-2 border border-white/10 h-10 min-w-0" onSubmit={(e) => { e.preventDefault(); handleSendMessage(e); }}>
@@ -2232,7 +2232,7 @@ export default function LiveHostScreen() {
             </div>
           )}
 
-          {/* Creator bottom bar (Co-Host, Battle, Share, More). Host and battle-playing creators — same icons, same bar. */}
+          {/* Creator bottom bar (Co-Host, Battle, Share, More). Host and battle-playing creators â€” same icons, same bar. */}
           {isCreatorParticipant && !currentGift && (
             <div className="flex items-end gap-2 w-full max-w-[480px] pointer-events-auto">
               <div className="flex items-end justify-center gap-3 flex-shrink-0 flex-1">
@@ -2247,7 +2247,7 @@ export default function LiveHostScreen() {
                 </button>
               )}
               {/* Co-Host belongs to NORMAL live only. During a battle it is hidden so
-                  it can never invite anyone as co-host into a match — battle creators
+                  it can never invite anyone as co-host into a match â€” battle creators
                   are invited from the Battle button / empty battle slots instead. */}
               {!isBattleMode && (
                 <div className="flex flex-col items-center gap-0.5">
@@ -2406,7 +2406,7 @@ export default function LiveHostScreen() {
             <div className="flex justify-center pt-2 pb-1">
               <div className="w-10 h-1 bg-white/20 rounded-full" />
             </div>
-            {/* Header — title centered */}
+            {/* Header â€” title centered */}
             <div className="flex items-center justify-center px-4 py-2 flex-shrink-0">
               <span className="text-white font-bold text-[13px]">Creators</span>
             </div>
@@ -2484,7 +2484,7 @@ export default function LiveHostScreen() {
                 ) : null}
                 {filteredCreators.length === 0 && creatorsLoadFailed ? (
                   <div className="py-6 flex justify-center">
-                    <button type="button" onClick={() => loadCreators()} className="px-3 py-1.5 rounded-lg bg-[#6F3FF5]/20 border border-[#D8D9DD]/40 text-[#F5F5F7] text-[10px] font-bold active:scale-95">
+                    <button type="button" onClick={() => loadCreators()} className="px-3 py-1.5 rounded-lg bg-white/10 border border-[#D8D9DD]/40 text-[#F5F5F7] text-[10px] font-bold active:scale-95">
                       Retry
                     </button>
                   </div>
@@ -2492,7 +2492,7 @@ export default function LiveHostScreen() {
               </div>
             </div>
 
-            {/* Start Match Button — host only: the server only accepts battle_create from the room owner */}
+            {/* Start Match Button â€” host only: the server only accepts battle_create from the room owner */}
             {isBroadcast && battleSlots.some(s => s.status === 'accepted') && (
               <div className="px-4 py-2 flex-shrink-0">
                 <button
@@ -2543,7 +2543,7 @@ export default function LiveHostScreen() {
                     </div>
                     {miniProfile.coins != null && (
                       <div className="text-white/70 text-[12px] font-bold">
-                        🪙 {formatCoinsShort(miniProfile.coins)}
+                        ðŸª™ {formatCoinsShort(miniProfile.coins)}
                       </div>
                     )}
                     
@@ -2584,7 +2584,7 @@ export default function LiveHostScreen() {
                     (miniProfileFollowsThem === true ||
                       (miniProfileFollowsThem === undefined && followingUsers.includes(miniProfile.id)))
                       ? 'bg-white/10 text-white border border-white/10 font-bold'
-                      : 'bg-[#6F3FF5] text-white font-black hover:bg-[#6F3FF5]/90'
+                      : 'bg-[#6F3FF5] text-white font-black hover:bg-[#6F3FF5]/90 elix-solid-accent'
                   }`}
                 >
                   {miniProfile?.id &&
@@ -2605,7 +2605,7 @@ export default function LiveHostScreen() {
                   Share
                 </button>
               </div>
-              {/* Moderator actions — only creator and mods see these */}
+              {/* Moderator actions â€” only creator and mods see these */}
               {(isBroadcast || (miniProfile?.id && moderators.has(user?.id || ''))) && miniProfile?.id && miniProfile.id !== user?.id && (
                 <div className="mt-2 grid grid-cols-2 gap-2">
                   {isBroadcast && (
@@ -2623,7 +2623,7 @@ export default function LiveHostScreen() {
         )}
       </AnimatePresence>
 
-      {/* ═══ VIEWER LIST: Top gifters (MVP) OR Join requests & Spectators (invite) ═══ */}
+      {/* â•â•â• VIEWER LIST: Top gifters (MVP) OR Join requests & Spectators (invite) â•â•â• */}
       {showViewerList && (
         <>
           <div
@@ -2640,9 +2640,9 @@ export default function LiveHostScreen() {
                 <h3 className="text-white font-bold text-sm">
                   {viewerListMode === 'topGifters'
                     ? topGiftersSide === 'host'
-                      ? 'Top gifters · Red'
+                      ? 'Top gifters Â· Red'
                       : topGiftersSide === 'opponent'
-                        ? 'Top gifters · Blue'
+                        ? 'Top gifters Â· Blue'
                         : 'Top viewers & gifters'
                     : 'Join requests & Spectators'}
                 </h3>
@@ -2658,7 +2658,7 @@ export default function LiveHostScreen() {
               <div className="flex-1 overflow-y-auto no-scrollbar px-4 pb-4 min-h-0">
                 {viewerListMode === 'topGifters' ? (
                   <>
-                    <p className="text-white/50 text-[10px] font-bold uppercase tracking-wider mb-1.5">MVP · Gift coins this live</p>
+                    <p className="text-white/50 text-[10px] font-bold uppercase tracking-wider mb-1.5">MVP Â· Gift coins this live</p>
                     {topGiftersForPanel.length > 0 ? (
                       topGiftersForPanel.map((v, i) => {
                         const gifted =
@@ -2722,7 +2722,7 @@ export default function LiveHostScreen() {
                 ) : (
                   <>
                 {pendingInvite && (
-                  <div className="mb-3 flex items-center gap-2.5 w-full py-1 px-2 rounded-full bg-[#6F3FF5]/10 border border-[#D8D9DD]/30">
+                  <div className="mb-3 flex items-center gap-2.5 w-full py-1 px-2 rounded-full bg-white/5 border border-[#D8D9DD]/30">
                     <div
                       className="rounded-full overflow-hidden bg-[#09090B] flex-shrink-0"
                       style={{ width: SHARE_PANEL_AVATAR_PX, height: SHARE_PANEL_AVATAR_PX }}
@@ -2748,7 +2748,7 @@ export default function LiveHostScreen() {
                 )}
 
                 {pendingCohostInvite && (
-                  <div className="mb-3 flex items-center gap-2.5 w-full py-1 px-2 rounded-full bg-[#6F3FF5]/10 border border-[#D8D9DD]/30">
+                  <div className="mb-3 flex items-center gap-2.5 w-full py-1 px-2 rounded-full bg-white/5 border border-[#D8D9DD]/30">
                     <div
                       className="rounded-full overflow-hidden bg-[#09090B] flex-shrink-0"
                       style={{ width: SHARE_PANEL_AVATAR_PX, height: SHARE_PANEL_AVATAR_PX }}
@@ -2847,7 +2847,7 @@ export default function LiveHostScreen() {
       
 
 
-      {/* ═══ JOIN ANIMATION OVERLAY ═══ */}
+      {/* â•â•â• JOIN ANIMATION OVERLAY â•â•â• */}
       {showJoinAnimation && (
         <div className="absolute inset-0 z-[99999] flex items-center justify-center pointer-events-none">
           <div className="flex flex-col items-center animate-in zoom-in-50 duration-300">
@@ -2866,7 +2866,7 @@ export default function LiveHostScreen() {
         </div>
       )}
 
-      {/* ═══ TEAM STATUS PANEL (Heart Icon) ═══ */}
+      {/* â•â•â• TEAM STATUS PANEL (Heart Icon) â•â•â• */}
       {showTeamStatus && (
         <>
           <div 
@@ -2919,7 +2919,7 @@ export default function LiveHostScreen() {
                  </div>
                </div>
 
-               {/* Heart senders — days each spectator gave a membership heart */}
+               {/* Heart senders â€” days each spectator gave a membership heart */}
                <div className="mt-3">
                  <h4 className="text-[#F5F5F7]/60 text-[9px] font-bold uppercase tracking-wider mb-2 px-1">Hearts Sent</h4>
                  <div className="space-y-1">
@@ -2972,7 +2972,7 @@ export default function LiveHostScreen() {
         </>
       )}
 
-      {/* ═══ SUPER FAN GOAL PANEL (Membership) ═══ */}
+      {/* â•â•â• SUPER FAN GOAL PANEL (Membership) â•â•â• */}
       {showFanClub && (
         <>
           <div 
@@ -3009,13 +3009,13 @@ export default function LiveHostScreen() {
                         <h3 className="text-gold-metallic font-bold text-xs">Membership</h3>
                         <p className="text-white/50 text-[9px]">Unlock photo stickers & exclusive perks</p>
                       </div>
-                      <div className="w-6 h-6 bg-[#6F3FF5]/20 rounded-full flex items-center justify-center border border-[#D8D9DD]/30">
+                      <div className="w-6 h-6 bg-white/10 rounded-full flex items-center justify-center border border-[#D8D9DD]/30">
                         <Heart className="w-2.5 h-2.5 text-[#F5F5F7] fill-[#FFFFFF] animate-pulse" />
                       </div>
                     </div>
                     
                     <div className="flex items-end gap-1 mb-2">
-                      <span className="text-lg font-black text-gold-metallic">£3.00</span>
+                      <span className="text-lg font-black text-gold-metallic">Â£3.00</span>
                       <span className="text-white/40 text-[10px] font-medium mb-0.5">/ month</span>
                     </div>
 
@@ -3046,7 +3046,7 @@ export default function LiveHostScreen() {
                       </div>
                       Photo Stickers
                     </h3>
-                    <span className="bg-[#6F3FF5]/10 text-[#F5F5F7] text-[7px] font-bold px-1.5 py-0.5 rounded-full border border-[#D8D9DD]/20">
+                    <span className="bg-white/5 text-[#F5F5F7] text-[7px] font-bold px-1.5 py-0.5 rounded-full border border-[#D8D9DD]/20">
                       {creatorStickers.length}/20
                     </span>
                   </div>
@@ -3157,7 +3157,7 @@ export default function LiveHostScreen() {
               <div className="w-10 h-1 bg-white/20 rounded-full" />
             </div>
 
-            {/* Content — icon on top, label under (same as Share / Effects) */}
+            {/* Content â€” icon on top, label under (same as Share / Effects) */}
             <div className="grid grid-cols-4 gap-y-4 gap-x-2 pt-1 pb-2 px-1">
 
               <button type="button" onClick={moreShare} className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform">
@@ -3300,7 +3300,7 @@ export default function LiveHostScreen() {
                     onClick={() => applyLiveFilterPreset(filter.css)}
                     className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl min-w-[56px] transition-all active:scale-95 ${
                       liveFilterCss === filter.css
-                        ? 'bg-[#6F3FF5]/20'
+                        ? 'bg-white/10'
                         : 'bg-white/5'
                     }`}
                   >
@@ -3317,7 +3317,7 @@ export default function LiveHostScreen() {
                     onClick={() => applyLiveFaceEffectPreset(fx)}
                     className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl min-w-[56px] transition-all active:scale-95 ${
                       activeLiveFaceEffect?.type === fx.type || (fx.type === 'none' && !activeLiveFaceEffect)
-                        ? 'bg-[#6F3FF5]/20'
+                        ? 'bg-white/10'
                         : 'bg-white/5'
                     }`}
                   >
@@ -3420,7 +3420,7 @@ export default function LiveHostScreen() {
                         key={amt}
                         type="button"
                         onClick={() => selectTestCoinsPreset(amt)}
-                        className="py-1.5 rounded-lg text-xs font-bold transition-colors bg-white/5 text-white/70 hover:bg-[#6F3FF5]/20"
+                        className="py-1.5 rounded-lg text-xs font-bold transition-colors bg-white/5 text-white/70 hover:bg-white/10"
                       >
                         {amt >= 1000 ? `${amt / 1000}K` : amt}
                       </button>
@@ -3430,7 +3430,7 @@ export default function LiveHostScreen() {
                       onClick={addMaxTestCoinsAtOnce}
                       className="py-1.5 rounded-lg text-xs font-bold transition-colors bg-[#6F3FF5]/30 text-[#F5F5F7] hover:bg-[#6F3FF5]/40 col-span-3"
                     >
-                      Max (100M) – Charge at once
+                      Max (100M) â€“ Charge at once
                     </button>
                   </div>
                   <div className="flex gap-2">
@@ -3459,10 +3459,10 @@ export default function LiveHostScreen() {
 
       {/* Full-screen Gift Overlay Animation */}
       <GiftAnimationOverlay streamId={effectiveStreamId} />
-      {/* Separate photo feed (cards + xN) — does not replace gift animation */}
+      {/* Separate photo feed (cards + xN) â€” does not replace gift animation */}
       <LiveGiftFeedStack streamId={effectiveStreamId} />
 
-      {/* POINT MULTIPLIER BOOSTER — a red boxing glove stays on the top-left, beside
+      {/* POINT MULTIPLIER BOOSTER â€” a red boxing glove stays on the top-left, beside
           the Weekly Ranking, for the whole active window (server ~30s) while it catches
           gifts. One glove per spectator; a badge shows how many gloves that spectator sent. */}
       {boosterActivations.length > 0 && (
@@ -3489,7 +3489,7 @@ export default function LiveHostScreen() {
         </div>
       )}
 
-      {/* Glove "caught" popup — server-synced to all clients when a gift is caught */}
+      {/* Glove "caught" popup â€” server-synced to all clients when a gift is caught */}
       {boosterCatches.length > 0 && (
         <div className="fixed inset-x-0 top-[30%] z-[100000] flex flex-col items-center gap-2 pointer-events-none px-4">
           {boosterCatches.map((c) => (
@@ -3502,7 +3502,7 @@ export default function LiveHostScreen() {
         </div>
       )}
 
-      {/* Gift video — default z 50000 so it is visible on creator (including battle).
+      {/* Gift video â€” default z 50000 so it is visible on creator (including battle).
           Combo/bottom icons use 50001+ so they stay above the gift. */}
       <GiftOverlay
         key={`gift-${giftKey}`}
@@ -3513,7 +3513,7 @@ export default function LiveHostScreen() {
         muted={false}
       />
       
-      {/* ═══ SHARE PANEL ═══ */}
+      {/* â•â•â• SHARE PANEL â•â•â• */}
       {showSharePanel && (
         <>
           <div 
@@ -3567,8 +3567,8 @@ export default function LiveHostScreen() {
             {/* Line between user circles and action icons */}
             <div className="mx-4 border-t border-[#D8D9DD]/45 flex-shrink-0" aria-hidden />
 
-            {/* Share options — same layout as ShareModal */}
-            <div className="flex-1 overflow-y-scroll overflow-x-hidden min-h-0 px-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#6F3FF5]/60 [&::-webkit-scrollbar-thumb]:rounded-full">
+            {/* Share options â€” same layout as ShareModal */}
+            <div className="flex-1 overflow-y-scroll overflow-x-hidden min-h-0 px-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#313845] [&::-webkit-scrollbar-thumb]:rounded-full">
               <div className="grid grid-cols-5 gap-y-3 gap-x-1.5 pt-0">
                 {[
                   { name: 'WhatsApp', icon: <MessageCircle size={22} className="text-white" />, action: shareWhatsApp },
@@ -3612,7 +3612,7 @@ export default function LiveHostScreen() {
         }}
       />
 
-      {/* Engagement Hub — side drawer only (battle screen unchanged) */}
+      {/* Engagement Hub â€” side drawer only (battle screen unchanged) */}
       <EngagementDrawer
         open={engagementOpen}
         activePanel={engagementPanel}
@@ -3631,7 +3631,7 @@ export default function LiveHostScreen() {
         contentType="live"
       />
 
-      {/* Battle invite overlay removed — invite is now shown inside the bottom panel */}
+      {/* Battle invite overlay removed â€” invite is now shown inside the bottom panel */}
 
       {/* Moderation warning (AI flag + assist; first detection only) */}
       {showModerationWarning && (

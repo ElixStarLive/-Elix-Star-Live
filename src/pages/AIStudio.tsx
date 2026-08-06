@@ -103,7 +103,7 @@ export default function AIStudio() {
   return (
     <div className="h-full min-h-0 w-full bg-[#09090B] text-white flex flex-col overflow-hidden">
       {toast && (
-        <div className="fixed top-16 left-1/2 -translate-x-1/2 bg-[#6F3FF5]/20 backdrop-blur-md text-white text-sm px-4 py-2 rounded-xl z-[9999]">
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-md text-white text-sm px-4 py-2 rounded-xl z-[9999]">
           {toast}
         </div>
       )}

@@ -43,7 +43,7 @@ export default function LiveAIFilters({ onFilterChange, currentFilter }: LiveAIF
                 onClick={() => onFilterChange(filter.css)}
                 className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl min-w-[56px] transition-all ${
                   currentFilter === filter.css
-                    ? 'bg-[#6F3FF5]/20 opacity-100'
+                    ? 'bg-white/10 opacity-100'
                     : 'bg-white/5'
                 }`}
               >

@@ -413,7 +413,7 @@ export default function InlineLiveViewer({
         </div>
       ) : (
         <div
-          className="rounded-full bg-[#6F3FF5]/20 flex items-center justify-center shrink-0"
+          className="rounded-full bg-white/10 flex items-center justify-center shrink-0"
           style={{ width: INLINE_LIVE_PLACEHOLDER_AVATAR_PX, height: INLINE_LIVE_PLACEHOLDER_AVATAR_PX }}
         >
           <span className="text-3xl font-bold text-[#F5F5F7]/80">
@@ -424,7 +424,7 @@ export default function InlineLiveViewer({
       <p className="text-white font-semibold text-base truncate max-w-[80%]">{creatorName}</p>
       {connecting && !isOffline ? (
         <>
-          <div className="w-8 h-8 border-2 border-[#D8D9DD] border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-[#6F3FF5]/25 border-t-[#6F3FF5] rounded-full animate-spin elix-loader" />
           <span className="text-white/60 text-sm">Connecting to live...</span>
         </>
       ) : isOffline ? (
@@ -551,7 +551,7 @@ export default function InlineLiveViewer({
                 {displayAvatar ? (
                   <img src={displayAvatar} alt="" className="w-16 h-16 rounded-full object-cover" />
                 ) : (
-                  <div className="w-16 h-16 rounded-full bg-[#6F3FF5]/20 flex items-center justify-center">
+                  <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center">
                     <span className="text-[#F5F5F7] font-bold text-2xl">
                       {(creatorName || "C").charAt(0).toUpperCase()}
                     </span>

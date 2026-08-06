@@ -229,7 +229,7 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
         <div className="mx-4 border-t border-[#D8D9DD]/45 flex-shrink-0" aria-hidden />
 
         {/* Action icons flush under the line */}
-        <div className="flex-1 overflow-y-scroll overflow-x-hidden min-h-0 px-4 pb-2 flex flex-col [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#6F3FF5]/60 [&::-webkit-scrollbar-thumb]:rounded-full" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.25) transparent' }}>
+        <div className="flex-1 overflow-y-scroll overflow-x-hidden min-h-0 px-4 pb-2 flex flex-col [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#313845] [&::-webkit-scrollbar-thumb]:rounded-full" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.25) transparent' }}>
           {showQrCode && (
             <div className="pt-2 pb-3 flex flex-col items-center gap-2 border-b border-white/10 mb-2">
               <div className="flex items-center justify-between w-full">

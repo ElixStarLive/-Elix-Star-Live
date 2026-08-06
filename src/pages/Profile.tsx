@@ -839,7 +839,7 @@ export default function Profile() {
                 <div className="border-t border-[#D8D9DD]/45 flex-shrink-0 mb-0" aria-hidden />
 
                 {/* Share options — same layout as ShareModal */}
-                <div className="flex-1 overflow-y-scroll overflow-x-hidden min-h-0 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#6F3FF5]/60 [&::-webkit-scrollbar-thumb]:rounded-full">
+                <div className="flex-1 overflow-y-scroll overflow-x-hidden min-h-0 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#313845] [&::-webkit-scrollbar-thumb]:rounded-full">
                   <div className="grid grid-cols-5 gap-y-3 gap-x-1.5 pt-0">
                     {[
                       { name: 'WhatsApp', icon: <MessageCircle size={22} className="text-white" />, action: () => openExternalLink(`https://wa.me/?text=${encodeURIComponent(`Check out ${displayName}'s profile on Elix! ${window.location.origin}/profile/${displayUserId}`)}`) },
@@ -977,7 +977,7 @@ export default function Profile() {
               {risingBadges.slice(0, 6).map((b) => (
                 <span
                   key={b.code}
-                  className="px-2 py-0.5 rounded-full text-[10px] bg-[#6F3FF5]/15 text-[#F5F5F7] border border-[#D8D9DD]/30"
+                  className="px-2 py-0.5 rounded-full text-[10px] bg-white/10 text-[#F5F5F7] border border-[#D8D9DD]/30"
                   title={b.title}
                 >
                   {b.title}
@@ -1029,7 +1029,7 @@ export default function Profile() {
               className={`flex-1 max-w-[120px] py-2.5 rounded-md text-sm font-bold transition ${
                 isFollowing
                   ? 'bg-white/10 text-white border border-white/10'
-                  : 'bg-[#6F3FF5] text-white'
+                  : 'bg-[#6F3FF5] text-white elix-solid-accent'
               }`}
             >
               {isFollowing ? 'Following' : 'Follow'}
@@ -1193,7 +1193,7 @@ export default function Profile() {
           <div className="grid grid-cols-3 gap-[2px] px-3 pt-3 pb-2 flex-1">
             {videosLoading && videos.length === 0 ? (
               <div className="col-span-3 flex items-center justify-center py-16">
-                <div className="w-8 h-8 border-2 border-[#D8D9DD] border-t-transparent rounded-full animate-spin" />
+                <div className="w-8 h-8 border-2 border-[#6F3FF5]/25 border-t-[#6F3FF5] rounded-full animate-spin elix-loader" />
               </div>
             ) : (
               videos.map((video) => {
@@ -1274,7 +1274,7 @@ export default function Profile() {
         {/* ═══ SHOP ITEMS GRID ═══ */}
         {activeTab === 'shop' && videosLoading && shopItems.length === 0 && (
           <div className="flex-1 flex items-center justify-center py-16">
-            <div className="w-8 h-8 border-2 border-[#D8D9DD] border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-[#6F3FF5]/25 border-t-[#6F3FF5] rounded-full animate-spin elix-loader" />
           </div>
         )}
         {activeTab === 'shop' && shopItems.length > 0 && (

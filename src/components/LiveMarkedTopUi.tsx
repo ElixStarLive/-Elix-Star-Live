@@ -61,7 +61,7 @@ export function LiveFollowPill({
     return (
       <button
         type="button"
-        className="flex items-center justify-center gap-0.5 h-[28px] px-2.5 rounded-full bg-[#6F3FF5] shadow-[0_0_10px_rgba(255,59,92,0.45)] active:scale-95 transition-transform flex-shrink-0 elix-solid-red"
+        className="flex items-center justify-center gap-0.5 h-[28px] px-2.5 rounded-full bg-[#6F3FF5] shadow-[0_0_10px_rgba(111,63,245,0.45)] active:scale-95 transition-transform flex-shrink-0 elix-solid-accent"
         onClick={onFollow}
         aria-label={label}
       >
@@ -73,7 +73,7 @@ export function LiveFollowPill({
   return (
     <button
       type="button"
-      className="col-start-1 row-start-1 z-20 relative flex items-center justify-center gap-0.5 self-stretch h-full rounded-full bg-[#6F3FF5] w-full elix-solid-red"
+      className="col-start-1 row-start-1 z-20 relative flex items-center justify-center gap-0.5 self-stretch h-full rounded-full bg-[#6F3FF5] w-full elix-solid-accent"
       onClick={onFollow}
       aria-label={label}
     >
@@ -232,10 +232,10 @@ export function LiveJoinPill({
   return (
     <button
       type="button"
-      className={`flex items-center justify-center gap-1 h-[28px] px-2.5 rounded-full active:scale-95 transition-transform elix-solid-red ${
+      className={`flex items-center justify-center gap-1 h-[28px] px-2.5 rounded-full active:scale-95 transition-transform elix-solid-accent ${
         hasJoinedToday
-          ? 'bg-[#6F3FF5] border border-[#FF6B8A]'
-          : 'bg-[#6F3FF5] border border-[#FF6B8A] shadow-[0_0_10px_rgba(255,59,92,0.55)]'
+          ? 'bg-[#6F3FF5] border border-[#8B5CFF]'
+          : 'bg-[#6F3FF5] border border-[#8B5CFF] shadow-[0_0_10px_rgba(111,63,245,0.55)]'
       }`}
       onClick={onJoin}
     >

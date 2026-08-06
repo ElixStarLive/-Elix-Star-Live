@@ -354,7 +354,7 @@ export default function ChatThread() {
               <button
                 type="button"
                 onClick={handleVideoCall}
-                className="p-2 rounded-full bg-[#09090B] border border-[#D8D9DD]/40 hover:bg-[#6F3FF5]/10 transition-colors"
+                className="p-2 rounded-full bg-[#09090B] border border-[#D8D9DD]/40 hover:bg-white/5 transition-colors"
                 aria-label="Video call"
               >
                 <Video className="w-5 h-5 text-white" />
@@ -417,7 +417,7 @@ export default function ChatThread() {
 
             return (
               <div key={m.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm leading-snug break-words ${isMe ? 'bg-[#6F3FF5] text-white rounded-tr-none' : 'bg-[#1F1F26] text-white rounded-tl-none'}`}>
+                <div className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm leading-snug break-words ${isMe ? 'bg-[#242832] text-white rounded-tr-none border border-[#313845]' : 'bg-[#1B1E24] text-white rounded-tl-none border border-[#313845]'}`}>
                   {preview && preview.type === 'profile' ? (
                     <button
                       type="button"

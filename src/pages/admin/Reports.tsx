@@ -75,7 +75,7 @@ export default function AdminReports() {
           <button
             onClick={() => setFilter('pending')}
             className={`px-4 py-2 rounded-lg font-semibold ${
-              filter === 'pending' ? 'bg-[#6F3FF5] text-white' : 'bg-[#2A2D35] text-white'
+              filter === 'pending' ? 'bg-[#6F3FF5] text-white elix-accent' : 'bg-[#2A2D35] text-white'
             }`}
           >
             Pending ({reports.filter(r => r.status === 'pending').length})
@@ -83,7 +83,7 @@ export default function AdminReports() {
           <button
             onClick={() => setFilter('all')}
             className={`px-4 py-2 rounded-lg font-semibold ${
-              filter === 'all' ? 'bg-[#6F3FF5] text-white' : 'bg-[#2A2D35] text-white'
+              filter === 'all' ? 'bg-[#6F3FF5] text-white elix-accent' : 'bg-[#2A2D35] text-white'
             }`}
           >
             All

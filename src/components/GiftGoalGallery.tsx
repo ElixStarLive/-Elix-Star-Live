@@ -134,7 +134,7 @@ export function GiftGoalGallery(props: Props) {
               className={[
                 "aspect-square rounded-lg border p-1 flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-all",
                 selectedGiftId === gift.id
-                  ? "border-[#D8D9DD] bg-[#6F3FF5]/15"
+                  ? "border-[#D8D9DD] bg-white/10"
                   : "border-[#D8D9DD]/15 bg-white/5 hover:bg-white/10",
               ].join(" ")}
             >

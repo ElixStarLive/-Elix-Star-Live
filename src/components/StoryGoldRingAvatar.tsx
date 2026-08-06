@@ -1,11 +1,10 @@
 import React from 'react';
 
-/** TikTok-style live red (ring + badge). */
+/** Live ring + LIVE badge — Royal Violet accent. */
 const LIVE_RING_COLOR = '#6F3FF5';
 
 /**
- * User avatar circle — half silver / half red ring (same as icon discs).
- * Live adds red ring + LIVE badge; never removes the circle.
+ * User avatar circle — silver chrome; Live adds violet ring + LIVE badge.
  */
 export function StoryGoldRingAvatar({
   size = 56,

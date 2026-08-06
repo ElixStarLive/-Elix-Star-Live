@@ -534,7 +534,7 @@ export default function SpectatorLiveScreen() {
     return (
       <div className="fixed inset-0 bg-black flex justify-center">
         <div className="relative w-full max-w-[480px] h-full bg-[#09090B] flex flex-col items-center justify-center gap-4 p-6">
-          <div className="w-10 h-10 border-2 border-[#D8D9DD] border-t-transparent rounded-full animate-spin" />
+          <div className="w-10 h-10 border-2 border-[#6F3FF5]/25 border-t-[#6F3FF5] rounded-full animate-spin elix-loader" />
           <p className="text-white/60 text-sm">Checking stream...</p>
         </div>
       </div>
@@ -561,7 +561,7 @@ export default function SpectatorLiveScreen() {
               <button
                 type="button"
                 onClick={() => { setStreamIsLive(null); setStreamRetryKey(k => k + 1); }}
-                className="px-6 py-2.5 rounded-lg bg-[#6F3FF5]/20 border border-[#D8D9DD]/50 text-[#F5F5F7] font-semibold"
+                className="px-6 py-2.5 rounded-lg bg-white/10 border border-[#D8D9DD]/50 text-[#F5F5F7] font-semibold"
               >
                 Retry connection
               </button>
@@ -569,7 +569,7 @@ export default function SpectatorLiveScreen() {
             <button
               type="button"
               onClick={() => navigate('/feed', { replace: true })}
-              className="px-6 py-2.5 rounded-lg bg-[#6F3FF5] text-white font-semibold"
+              className="px-6 py-2.5 rounded-lg bg-[#6F3FF5] text-white elix-accent font-semibold"
             >
               Go back
             </button>
@@ -904,7 +904,7 @@ export default function SpectatorLiveScreen() {
                             />
                           </div>
                           {isMvp && (
-                            <span className="absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#6F3FF5] text-white text-[6px] font-black leading-none tracking-wide">
+                            <span className="absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#6F3FF5] text-white elix-accent text-[6px] font-black leading-none tracking-wide">
                               MVP
                             </span>
                           )}
@@ -958,7 +958,7 @@ export default function SpectatorLiveScreen() {
                             />
                           </div>
                           {isMvp && (
-                            <span className="absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#6F3FF5] text-white text-[6px] font-black leading-none tracking-wide">
+                            <span className="absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#6F3FF5] text-white elix-accent text-[6px] font-black leading-none tracking-wide">
                               MVP
                             </span>
                           )}
@@ -1395,7 +1395,7 @@ export default function SpectatorLiveScreen() {
                     {hostAvatar ? (
                       <img src={hostAvatar} alt="" className="w-16 h-16 rounded-full object-cover object-center border-2 border-[#D8D9DD]/40" />
                     ) : (
-                      <div className="w-16 h-16 rounded-full bg-[#6F3FF5]/20 flex items-center justify-center border-2 border-[#D8D9DD]/40">
+                      <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center border-2 border-[#D8D9DD]/40">
                         <span className="text-[#F5F5F7] font-bold text-2xl">{hostName.slice(0, 1).toUpperCase()}</span>
                       </div>
                     )}
@@ -1408,7 +1408,7 @@ export default function SpectatorLiveScreen() {
                       {hostAvatar ? (
                         <img src={hostAvatar} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full bg-[#6F3FF5]/20 flex items-center justify-center">
+                        <div className="w-full h-full bg-white/10 flex items-center justify-center">
                           <span className="text-[#F5F5F7] font-bold text-3xl">{hostName.slice(0, 1).toUpperCase()}</span>
                         </div>
                       )}
@@ -1419,7 +1419,7 @@ export default function SpectatorLiveScreen() {
                         <button
                           type="button"
                           onClick={() => navigate('/login', { state: { from: `/watch/${effectiveStreamId}` } })}
-                          className="mt-2 px-5 py-2.5 rounded-lg bg-[#6F3FF5] text-white font-semibold text-sm"
+                          className="mt-2 px-5 py-2.5 rounded-lg bg-[#6F3FF5] text-white elix-accent font-semibold text-sm"
                         >
                           Log in
                         </button>
@@ -1427,7 +1427,7 @@ export default function SpectatorLiveScreen() {
                     ) : (
                       <>
                         <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 border-2 border-[#D8D9DD] border-t-transparent rounded-full animate-spin" />
+                          <div className="w-4 h-4 border-2 border-[#6F3FF5]/25 border-t-[#6F3FF5] rounded-full animate-spin elix-loader" />
                           <span className="text-white/60 text-sm">Connecting to stream...</span>
                         </div>
                         {showRetryButton && (
@@ -1440,7 +1440,7 @@ export default function SpectatorLiveScreen() {
                                 if (!hasStream) setShowRetryButton(true);
                               }, 8000);
                             }}
-                            className="mt-2 px-5 py-2 rounded-lg bg-[#6F3FF5]/20 border border-[#D8D9DD]/40 text-[#F5F5F7] text-sm font-medium"
+                            className="mt-2 px-5 py-2 rounded-lg bg-white/10 border border-[#D8D9DD]/40 text-[#F5F5F7] text-sm font-medium"
                           >
                             Tap to retry
                           </button>
@@ -1565,7 +1565,7 @@ export default function SpectatorLiveScreen() {
                             />
                           </div>
                           {isMvp && (
-                            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#6F3FF5] text-white text-[6px] font-black leading-none tracking-wide">
+                            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#6F3FF5] text-white elix-accent text-[6px] font-black leading-none tracking-wide">
                               MVP
                             </span>
                           )}
@@ -1921,7 +1921,7 @@ export default function SpectatorLiveScreen() {
               <span key={g.key} className="relative flex items-center justify-center w-11 h-11 rounded-full bg-[#09090B]/90 border border-[#6F3FF5] shadow-2xl text-[#6F3FF5] animate-in zoom-in-50 duration-200">
                 <GloveIcon className="w-7 h-7" />
                 {g.count > 1 && (
-                  <span className="absolute -top-1 -right-1 text-[9px] font-black leading-none px-1 rounded-full bg-[#6F3FF5] text-white border border-black/40">{g.count}</span>
+                  <span className="absolute -top-1 -right-1 text-[9px] font-black leading-none px-1 rounded-full bg-[#6F3FF5] text-white elix-accent border border-black/40">{g.count}</span>
                 )}
                 {g.multiplier > 0 && (
                   <span className="absolute -bottom-1 -right-1 text-[9px] font-black leading-none px-1 rounded-full bg-black text-[#6F3FF5] border border-[#6F3FF5]/60">x{g.multiplier}</span>
@@ -2048,7 +2048,7 @@ export default function SpectatorLiveScreen() {
                         type="button"
                         disabled={joinRequested || !user?.id}
                         onClick={() => { sendCohostJoinRequest(); }}
-                        className={`w-full py-3 rounded-xl font-bold text-sm ${joinRequested ? 'bg-white/10 text-white/40 cursor-not-allowed' : 'bg-[#6F3FF5] text-white active:scale-95'}`}
+                        className={`w-full py-3 rounded-xl font-bold text-sm ${joinRequested ? 'bg-white/10 text-white/40 cursor-not-allowed' : 'bg-[#6F3FF5] text-white elix-accent active:scale-95'}`}
                       >
                         {joinRequested ? 'Request sent' : 'Request to co-host'}
                       </button>
@@ -2092,7 +2092,7 @@ export default function SpectatorLiveScreen() {
                             <h3 className="text-gold-metallic font-bold text-xs">Membership</h3>
                             <p className="text-white/50 text-[9px]">Unlock photo stickers & exclusive perks</p>
                           </div>
-                          <div className="w-6 h-6 bg-[#6F3FF5]/20 rounded-full flex items-center justify-center border border-[#D8D9DD]/30">
+                          <div className="w-6 h-6 bg-white/10 rounded-full flex items-center justify-center border border-[#D8D9DD]/30">
                             <Heart className="w-2.5 h-2.5 text-[#F5F5F7] fill-[#FFFFFF] animate-pulse" />
                           </div>
                         </div>
@@ -2125,7 +2125,7 @@ export default function SpectatorLiveScreen() {
                           </div>
                           Photo Stickers
                         </h3>
-                        <span className="bg-[#6F3FF5]/10 text-[#F5F5F7] text-[7px] font-bold px-1.5 py-0.5 rounded-full border border-[#D8D9DD]/20">SUBSCRIBER ONLY</span>
+                        <span className="bg-white/5 text-[#F5F5F7] text-[7px] font-bold px-1.5 py-0.5 rounded-full border border-[#D8D9DD]/20">SUBSCRIBER ONLY</span>
                       </div>
                       <div className="grid grid-cols-4 gap-1">
                         {['🔥', '💎', '👑', '🚀', '💯', '🎉', '💖', '👀'].map((emoji, i) => (
@@ -2288,7 +2288,7 @@ export default function SpectatorLiveScreen() {
                             if (anyActive) return;
                             liveBoosterActivated({ multiplier: m });
                           }}
-                          className={`relative flex items-center justify-center w-9 h-9 rounded-full border transition-colors active:scale-90 ${isActive ? 'bg-[#6F3FF5] border-[#D8D9DD] text-white' : anyActive ? 'bg-[#09090B] border-[#D8D9DD]/30 text-white/30' : 'bg-[#09090B] border-[#D8D9DD]/60 text-[#F5F5F7]'}`}
+                          className={`relative flex items-center justify-center w-9 h-9 rounded-full border transition-colors active:scale-90 ${isActive ? 'bg-[#6F3FF5] border-[#D8D9DD] text-white elix-accent' : anyActive ? 'bg-[#09090B] border-[#D8D9DD]/30 text-white/30' : 'bg-[#09090B] border-[#D8D9DD]/60 text-[#F5F5F7]'}`}
                         >
                           <GloveIcon className="w-5 h-5" />
                           <span className="absolute -bottom-1 -right-1 text-[8px] font-black leading-none px-1 rounded-full bg-black text-[#F5F5F7] border border-[#D8D9DD]/60">x{m}</span>
@@ -2308,7 +2308,7 @@ export default function SpectatorLiveScreen() {
                             if (mistActive) return;
                             liveMistActivated({ target: spectatorGiftBattleTarget });
                           }}
-                          className={`flex items-center justify-center w-9 h-9 rounded-full border transition-colors active:scale-90 ${mistActive ? 'bg-[#6F3FF5] border-[#D8D9DD] text-white' : 'bg-[#09090B] border-[#D8D9DD]/60 text-[#F5F5F7]'}`}
+                          className={`flex items-center justify-center w-9 h-9 rounded-full border transition-colors active:scale-90 ${mistActive ? 'bg-[#6F3FF5] border-[#D8D9DD] text-white elix-accent' : 'bg-[#09090B] border-[#D8D9DD]/60 text-[#F5F5F7]'}`}
                         >
                           <CloudFog className="w-5 h-5" strokeWidth={2.25} />
                         </button>
@@ -2392,7 +2392,7 @@ export default function SpectatorLiveScreen() {
                             />
                           </div>
                           {isMvp ? (
-                            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#6F3FF5] text-white text-[6px] font-black leading-none tracking-wide">
+                            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#6F3FF5] text-white elix-accent text-[6px] font-black leading-none tracking-wide">
                               MVP
                             </span>
                           ) : null}
@@ -2505,7 +2505,7 @@ export default function SpectatorLiveScreen() {
                 </div>
                 {/* Line between user circles and action icons */}
                 <div className="mx-4 border-t border-[#D8D9DD]/45 flex-shrink-0" aria-hidden />
-                <div className="flex-1 overflow-y-scroll overflow-x-hidden min-h-0 px-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#6F3FF5]/60 [&::-webkit-scrollbar-thumb]:rounded-full">
+                <div className="flex-1 overflow-y-scroll overflow-x-hidden min-h-0 px-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#313845] [&::-webkit-scrollbar-thumb]:rounded-full">
                   {/* Share creator's live: all links use /watch/{creatorStreamId} */}
                   <div className="grid grid-cols-5 gap-y-3 gap-x-1.5 pt-0">
                     {[
@@ -2729,7 +2729,7 @@ export default function SpectatorLiveScreen() {
                       <button
                         type="submit"
                         disabled={!testCoinsPwd}
-                        className="flex-1 py-2.5 rounded-xl bg-[#6F3FF5] text-white text-sm font-bold disabled:opacity-40"
+                        className="flex-1 py-2.5 rounded-xl bg-[#6F3FF5] text-white elix-accent text-sm font-bold disabled:opacity-40"
                       >
                         Unlock
                       </button>
@@ -2781,7 +2781,7 @@ export default function SpectatorLiveScreen() {
                           key={amt}
                           type="button"
                           onClick={() => setTestCoinsAmount(String(amt))}
-                          className="py-1.5 rounded-lg text-xs font-bold transition-colors bg-white/5 text-white/70 hover:bg-[#6F3FF5]/20"
+                          className="py-1.5 rounded-lg text-xs font-bold transition-colors bg-white/5 text-white/70 hover:bg-white/10"
                         >
                           {amt.toLocaleString()}
                         </button>
@@ -2812,7 +2812,7 @@ export default function SpectatorLiveScreen() {
                       <button
                         type="submit"
                         disabled={!testCoinsAmount}
-                        className="flex-1 py-2.5 rounded-xl bg-[#6F3FF5] text-white text-sm font-bold disabled:opacity-40"
+                        className="flex-1 py-2.5 rounded-xl bg-[#6F3FF5] text-white elix-accent text-sm font-bold disabled:opacity-40"
                       >
                         Add Coins
                       </button>

@@ -149,7 +149,7 @@ export default function ReportModal({ isOpen, onClose, videoId, contentType, con
     return (
       <div className="fixed inset-0 z-[99999] bg-[#09090B] flex items-center justify-center p-4" onClick={onClose}>
         <div className="bg-[#09090B] rounded-2xl p-6 max-w-sm w-full text-center" onClick={(e) => e.stopPropagation()}>
-          <div className="w-16 h-16 bg-[#6F3FF5]/20 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
             <div className="w-8 h-8 bg-[#FFFFFF] rounded-full flex items-center justify-center">
               <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -190,7 +190,7 @@ export default function ReportModal({ isOpen, onClose, videoId, contentType, con
                 key={reason.id}
                 type="button"
                 onClick={() => setSelectedReason(reason.id)}
-                className={`w-full px-3 py-2 flex items-center justify-between rounded-lg transition-colors ${selected ? 'bg-[#6F3FF5]/10' : 'hover:bg-white/[0.03]'}`}
+                className={`w-full px-3 py-2 flex items-center justify-between rounded-lg transition-colors ${selected ? 'bg-white/5' : 'hover:bg-white/[0.03]'}`}
               >
                 <div className="flex items-center gap-2.5 min-w-0 flex-1">
                   <div className={`relative w-9 h-9 rounded-full bg-[#09090B] overflow-hidden flex items-center justify-center flex-shrink-0 shrink-0 ${selected ? 'opacity-100' : ''}`}>

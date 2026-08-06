@@ -151,7 +151,7 @@ export default function PromotePanel({ isOpen, onClose, contentType, content }: 
               type="button"
               onClick={() => setBoostType('account')}
               className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                boostType === 'account' ? 'bg-[#6F3FF5] text-white' : 'bg-white/5 text-white/70'
+                boostType === 'account' ? 'bg-[#6F3FF5] text-white elix-accent' : 'bg-white/5 text-white/70'
               }`}
             >
               Boost account
@@ -161,7 +161,7 @@ export default function PromotePanel({ isOpen, onClose, contentType, content }: 
                 type="button"
                 onClick={() => setBoostType('live')}
                 className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                  boostType === 'live' ? 'bg-[#6F3FF5] text-white' : 'bg-white/5 text-white/70'
+                  boostType === 'live' ? 'bg-[#6F3FF5] text-white elix-accent' : 'bg-white/5 text-white/70'
                 }`}
               >
                 Boost LIVE
@@ -174,13 +174,13 @@ export default function PromotePanel({ isOpen, onClose, contentType, content }: 
               <label
                 key={g.id}
                 className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-colors ${
-                  selectedGoal === g.id ? 'bg-[#6F3FF5]/20 border border-[#D8D9DD]/40' : 'bg-white/5'
+                  selectedGoal === g.id ? 'bg-white/10 border border-[#D8D9DD]/40' : 'bg-white/5'
                 }`}
               >
                 <input type="radio" name="goal" checked={selectedGoal === g.id} onChange={() => setSelectedGoal(g.id)} className="sr-only" />
                 <g.icon size={16} className="text-[#F5F5F7] flex-shrink-0" />
                 <span className="text-white text-xs font-medium flex-1 truncate">{g.label}</span>
-                {g.badge && <span className="text-[8px] font-bold text-[#F5F5F7] bg-[#6F3FF5]/20 px-1.5 py-0.5 rounded">New</span>}
+                {g.badge && <span className="text-[8px] font-bold text-[#F5F5F7] bg-white/10 px-1.5 py-0.5 rounded">New</span>}
               </label>
             ))}
           </div>
@@ -236,7 +236,7 @@ export default function PromotePanel({ isOpen, onClose, contentType, content }: 
             type="button"
             onClick={handlePay}
             disabled={isPaying}
-            className="px-5 py-2 rounded-lg bg-[#6F3FF5] text-white font-bold text-xs hover:bg-[#6F3FF5]/90 active:scale-95 transition-all disabled:opacity-70"
+            className="px-5 py-2 rounded-lg bg-[#6F3FF5] text-white elix-accent font-bold text-xs hover:bg-[#6F3FF5]/90 active:scale-95 transition-all disabled:opacity-70"
           >
             {isPaying ? '...' : 'Pay'}
           </button>

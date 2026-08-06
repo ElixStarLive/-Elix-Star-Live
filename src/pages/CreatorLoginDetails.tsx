@@ -311,7 +311,7 @@ export default function CreatorLoginDetails() {
                 }}
                 className="flex-shrink-0 w-14 flex flex-col items-center gap-1.5 group cursor-pointer opacity-60 hover:opacity-100"
               >
-                <div className="w-10 h-10 rounded-full bg-[#09090B] border border-[#D8D9DD]/40 flex items-center justify-center group-hover:bg-[#6F3FF5]/10 transition-colors relative">
+                <div className="w-10 h-10 rounded-full bg-[#09090B] border border-[#D8D9DD]/40 flex items-center justify-center group-hover:bg-white/5 transition-colors relative">
                   <span className="text-lg text-white/50 font-light relative z-[2]">+</span>
 </div>
                 <div className="text-center">
@@ -336,7 +336,7 @@ export default function CreatorLoginDetails() {
               }}
               className={`flex-1 py-2 rounded-xl text-sm font-semibold border transition ${
                 mode === 'signin'
-                  ? 'bg-[#6F3FF5] text-white border-[#D8D9DD]'
+                  ? 'bg-[#6F3FF5] text-white elix-accent border-[#D8D9DD]'
                   : 'bg-transparent5 text-white border-white/10 hover:bg-transparent10'
               }`}
             >
@@ -352,7 +352,7 @@ export default function CreatorLoginDetails() {
               }}
               className={`flex-1 py-2 rounded-xl text-sm font-semibold border transition ${
                 mode === 'signup'
-                  ? 'bg-[#6F3FF5] text-white border-[#D8D9DD]'
+                  ? 'bg-[#6F3FF5] text-white elix-accent border-[#D8D9DD]'
                   : 'bg-transparent5 text-white border-white/10 hover:bg-transparent10'
               }`}
             >
@@ -446,7 +446,7 @@ export default function CreatorLoginDetails() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-[#6F3FF5] text-white font-bold rounded-xl py-3 text-sm disabled:opacity-60 shadow-[0_0_15px_rgba(230,179,106,0.3)] hover:shadow-[0_0_20px_rgba(230,179,106,0.5)] transition-all active:scale-[0.98]"
+              className="w-full bg-[#6F3FF5] text-white elix-accent font-bold rounded-xl py-3 text-sm disabled:opacity-60 shadow-[0_0_15px_rgba(230,179,106,0.3)] hover:shadow-[0_0_20px_rgba(230,179,106,0.5)] transition-all active:scale-[0.98]"
             >
               {isSubmitting ? 'Signing in...' : 'Log in'}
             </button>

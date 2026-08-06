@@ -227,7 +227,7 @@ export default function CreatorPayout() {
       <div className="flex-1 overflow-y-auto px-4 pb-10 space-y-4">
         {loading ? (
           <div className="flex justify-center py-10">
-            <div className="w-6 h-6 border-2 border-[#D8D9DD] border-t-transparent rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-[#6F3FF5]/25 border-t-[#6F3FF5] rounded-full animate-spin elix-loader" />
           </div>
         ) : (
           <>
@@ -314,7 +314,7 @@ export default function CreatorPayout() {
                 type="button"
                 disabled={onboarding || connectStatus === 'ready'}
                 onClick={() => void startConnectOnboard()}
-                className="w-full py-2.5 rounded-lg bg-[#6F3FF5] text-white text-[12px] font-bold disabled:opacity-50"
+                className="w-full py-2.5 rounded-lg bg-[#6F3FF5] text-white elix-accent text-[12px] font-bold disabled:opacity-50"
               >
                 {connectStatus === 'ready' ? 'Stripe Connect ready' : onboarding ? 'Opening…' : 'Set up Stripe Connect'}
               </button>
@@ -340,14 +340,14 @@ export default function CreatorPayout() {
                 <button
                   type="button"
                   onClick={() => setMethodType('bank')}
-                  className={`flex-1 py-2 rounded-lg text-[11px] font-bold ${methodType === 'bank' ? 'bg-[#6F3FF5] text-white' : 'bg-white/10 text-white'}`}
+                  className={`flex-1 py-2 rounded-lg text-[11px] font-bold ${methodType === 'bank' ? 'bg-[#6F3FF5] text-white elix-accent' : 'bg-white/10 text-white'}`}
                 >
                   Bank
                 </button>
                 <button
                   type="button"
                   onClick={() => setMethodType('paypal')}
-                  className={`flex-1 py-2 rounded-lg text-[11px] font-bold ${methodType === 'paypal' ? 'bg-[#6F3FF5] text-white' : 'bg-white/10 text-white'}`}
+                  className={`flex-1 py-2 rounded-lg text-[11px] font-bold ${methodType === 'paypal' ? 'bg-[#6F3FF5] text-white elix-accent' : 'bg-white/10 text-white'}`}
                 >
                   PayPal
                 </button>
@@ -368,7 +368,7 @@ export default function CreatorPayout() {
                 type="button"
                 disabled={saving}
                 onClick={() => void saveMethod()}
-                className="w-full py-2.5 rounded-lg bg-[#6F3FF5] text-white text-[12px] font-bold disabled:opacity-50"
+                className="w-full py-2.5 rounded-lg bg-[#6F3FF5] text-white elix-accent text-[12px] font-bold disabled:opacity-50"
               >
                 {saving ? 'Saving...' : 'Save payout method'}
               </button>

@@ -401,7 +401,7 @@ export function FeedStoryCirclesOverlay({
               className="h-0.5 flex-1 rounded-full overflow-hidden bg-white/25"
             >
               <div
-                className="h-full bg-white rounded-full"
+                className="h-full bg-[#6F3FF5] elix-progress-fill rounded-full"
                 style={{
                   width:
                     i < storyViewer.itemIndex

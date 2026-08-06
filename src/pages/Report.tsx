@@ -133,7 +133,7 @@ export default function Report() {
               onClick={() => setSelectedReason(reason.id)}
               className={`w-full text-left px-4 py-4 rounded-xl transition ${
                 selectedReason === reason.id
-                  ? 'bg-[#6F3FF5]/20 border-2 border-[#D8D9DD]'
+                  ? 'bg-white/10 border-2 border-[#D8D9DD]'
                   : 'bg-white border-2 border-transparent hover:brightness-125'
               }`}
             >

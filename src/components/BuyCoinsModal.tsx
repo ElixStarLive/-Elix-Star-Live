@@ -127,7 +127,7 @@ export const BuyCoinsModal: React.FC<BuyCoinsModalProps> = ({ isOpen, onClose, o
                     key={product.id}
                     onClick={() => handleNativePurchase(product)}
                     disabled={nativeLoading === product.id}
-                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-white/[0.03] border border-white/10 hover:bg-[#6F3FF5]/10 transition-colors active:scale-[0.98] disabled:opacity-50"
+                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-white/[0.03] border border-white/10 hover:bg-white/5 transition-colors active:scale-[0.98] disabled:opacity-50"
                   >
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 rounded-full bg-[#09090B] border border-[#D8D9DD]/30 flex items-center justify-center">

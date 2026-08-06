@@ -112,7 +112,7 @@ export default function FriendsFeed() {
 
           {loading && friendVideoIds.length === 0 && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-8 h-8 border-2 border-[#D8D9DD] border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-2 border-[#6F3FF5]/25 border-t-[#6F3FF5] rounded-full animate-spin elix-loader" />
             </div>
           )}
 

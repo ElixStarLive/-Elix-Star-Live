@@ -427,7 +427,7 @@ function FanLevelBody() {
               key={t.name}
               className={`rounded-xl border px-3 py-2 flex justify-between ${
                 active
-                  ? "border-[#D8D9DD]/40 bg-[#6F3FF5]/10"
+                  ? "border-[#D8D9DD]/40 bg-white/5"
                   : "border-white/10 bg-white/[0.03]"
               }`}
             >
@@ -473,7 +473,7 @@ function MvpBody() {
             onClick={() => setPeriod(id)}
             className={`rounded-full px-2.5 py-1 text-[11px] font-semibold border ${
               period === id
-                ? "border-[#D8D9DD] bg-[#6F3FF5]/20 text-[#F5F5F7]"
+                ? "border-[#D8D9DD] bg-white/10 text-[#F5F5F7]"
                 : "border-white/15 text-white/60"
             }`}
           >
@@ -495,7 +495,7 @@ function MvpBody() {
                 key={`${r.rank}-${r.user_id}`}
                 className={`flex items-center gap-2 rounded-xl border px-2.5 py-2 ${
                   mine
-                    ? "border-[#D8D9DD]/40 bg-[#6F3FF5]/10"
+                    ? "border-[#D8D9DD]/40 bg-white/5"
                     : "border-white/10 bg-white/[0.03]"
                 }`}
               >
@@ -602,7 +602,7 @@ function BattleEnergyBody({ roomId }: { roomId: string }) {
             type="button"
             disabled={busy}
             onClick={() => void boost(n)}
-            className="flex-1 rounded-xl border border-[#D8D9DD]/40 bg-[#6F3FF5]/10 py-2 text-sm font-bold text-[#F5F5F7] active:scale-95 disabled:opacity-40"
+            className="flex-1 rounded-xl border border-[#D8D9DD]/40 bg-white/5 py-2 text-sm font-bold text-[#F5F5F7] active:scale-95 disabled:opacity-40"
           >
             +{n}
           </button>
@@ -612,7 +612,7 @@ function BattleEnergyBody({ roomId }: { roomId: string }) {
         type="button"
         disabled={busy}
         onClick={() => void boost(100)}
-        className="w-full rounded-xl border border-[#D8D9DD]/50 bg-[#6F3FF5]/20 py-2.5 text-sm font-semibold text-[#F5F5F7] disabled:opacity-40"
+        className="w-full rounded-xl border border-[#D8D9DD]/50 bg-white/10 py-2.5 text-sm font-semibold text-[#F5F5F7] disabled:opacity-40"
       >
         BOOST CREATOR
       </button>
@@ -681,7 +681,7 @@ function AchievementsBody() {
             key={a.id}
             className={`rounded-xl border p-2.5 ${
               a.unlocked
-                ? "border-[#D8D9DD]/40 bg-[#6F3FF5]/10"
+                ? "border-[#D8D9DD]/40 bg-white/5"
                 : "border-white/10 bg-white/[0.03]"
             }`}
           >
@@ -786,7 +786,7 @@ function DailyLoginBody() {
           type="button"
           disabled={!daily?.can_claim || busy}
           onClick={() => void claim()}
-          className="w-full rounded-xl py-2.5 text-sm font-semibold border border-[#D8D9DD]/50 bg-[#6F3FF5]/20 text-[#F5F5F7] disabled:opacity-40"
+          className="w-full rounded-xl py-2.5 text-sm font-semibold border border-[#D8D9DD]/50 bg-white/10 text-[#F5F5F7] disabled:opacity-40"
         >
           {daily?.claimed_today ? "Claimed today" : "Claim"}
         </button>
@@ -1030,7 +1030,7 @@ function StickersBody() {
                 key={st.id}
                 className={`w-10 h-10 rounded-lg border flex items-center justify-center text-lg ${
                   st.unlocked
-                    ? "border-[#D8D9DD]/40 bg-[#6F3FF5]/10"
+                    ? "border-[#D8D9DD]/40 bg-white/5"
                     : "border-white/10 bg-black/30 opacity-40"
                 }`}
                 title={st.name}
@@ -1100,7 +1100,7 @@ function CreatorCardsBody({ creatorId }: { creatorId?: string }) {
               key={t.tier}
               className={`rounded-xl border p-2.5 ${
                 have
-                  ? "border-[#D8D9DD]/40 bg-[#6F3FF5]/10"
+                  ? "border-[#D8D9DD]/40 bg-white/5"
                   : "border-white/10 bg-white/[0.03]"
               }`}
             >

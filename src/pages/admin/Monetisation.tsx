@@ -441,7 +441,7 @@ export default function AdminMonetisation() {
           <button
             type="button"
             onClick={() => void importReport()}
-            className="px-3 py-2 rounded-lg bg-[#6F3FF5] text-white text-sm font-bold"
+            className="px-3 py-2 rounded-lg bg-[#6F3FF5] text-white elix-accent text-sm font-bold"
           >
             Import report
           </button>
@@ -502,7 +502,7 @@ export default function AdminMonetisation() {
           <button
             type="button"
             onClick={() => void runManualSettlement()}
-            className="px-3 py-2 rounded-lg bg-[#6F3FF5] text-white text-sm font-bold"
+            className="px-3 py-2 rounded-lg bg-[#6F3FF5] text-white elix-accent text-sm font-bold"
           >
             Submit settlement
           </button>
@@ -514,7 +514,7 @@ export default function AdminMonetisation() {
             <button
               type="button"
               onClick={() => void runReconcile()}
-              className="px-3 py-2 rounded-lg bg-[#6F3FF5] text-white text-sm font-bold"
+              className="px-3 py-2 rounded-lg bg-[#6F3FF5] text-white elix-accent text-sm font-bold"
             >
               Run now
             </button>
@@ -548,7 +548,7 @@ export default function AdminMonetisation() {
                   </button>
                   <button
                     type="button"
-                    className="px-2 py-1 rounded bg-[#6F3FF5] text-white font-bold"
+                    className="px-2 py-1 rounded bg-[#6F3FF5] text-white elix-accent font-bold"
                     onClick={() => void setFraudOutcome(Number(fr.id), 'confirmed_fraud')}
                   >
                     Confirm fraud
@@ -565,7 +565,7 @@ export default function AdminMonetisation() {
             <button
               type="button"
               onClick={() => void runForYouSweep()}
-              className="px-3 py-2 rounded-lg bg-[#6F3FF5] text-white text-sm font-bold"
+              className="px-3 py-2 rounded-lg bg-[#6F3FF5] text-white elix-accent text-sm font-bold"
             >
               Run sweep
             </button>
@@ -681,7 +681,7 @@ export default function AdminMonetisation() {
                       </button>
                       <button
                         type="button"
-                        className="px-2 py-1 rounded bg-[#6F3FF5] text-white font-bold"
+                        className="px-2 py-1 rounded bg-[#6F3FF5] text-white elix-accent font-bold"
                         onClick={() => void submitProvider(String(w.id))}
                       >
                         Submit Stripe payout
@@ -734,7 +734,7 @@ function Field({
         />
         <button
           type="button"
-          className="px-2 py-1 rounded bg-[#6F3FF5] text-white text-xs font-bold"
+          className="px-2 py-1 rounded bg-[#6F3FF5] text-white elix-accent text-xs font-bold"
           onClick={() => onSave(draft)}
         >
           Save
@@ -757,7 +757,7 @@ function Toggle({
     <button
       type="button"
       onClick={onToggle}
-      className={`px-3 py-2 rounded-lg text-xs font-bold ${on ? 'bg-[#6F3FF5] text-white' : 'bg-white/10 text-white'}`}
+      className={`px-3 py-2 rounded-lg text-xs font-bold ${on ? 'bg-[#6F3FF5] text-white elix-accent' : 'bg-white/10 text-white'}`}
     >
       {label}: {on ? 'ON' : 'OFF'}
     </button>

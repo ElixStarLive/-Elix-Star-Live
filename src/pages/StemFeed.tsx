@@ -110,7 +110,7 @@ export default function StemFeed() {
 
       {stemLoading && stemVideos.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[1]">
-          <div className="w-8 h-8 border-2 border-[#D8D9DD] border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-[#6F3FF5]/25 border-t-[#6F3FF5] rounded-full animate-spin elix-loader" />
         </div>
       )}
 
@@ -127,7 +127,7 @@ export default function StemFeed() {
           </p>
           <button
             onClick={refreshStem}
-            className="px-5 py-2 bg-[#6F3FF5]/20 border border-[#D8D9DD]/40 rounded-full text-[#F5F5F7] text-sm font-bold pointer-events-auto active:scale-95 transition-transform"
+            className="px-5 py-2 bg-white/10 border border-[#D8D9DD]/40 rounded-full text-[#F5F5F7] text-sm font-bold pointer-events-auto active:scale-95 transition-transform"
           >
             Refresh
           </button>
