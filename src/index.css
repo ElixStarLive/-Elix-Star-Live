@@ -162,11 +162,7 @@
   body {
     @apply text-text font-sans antialiased overflow-hidden;
     background-color: #000000;
-    background-image: var(--elix-app-bg);
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    background-attachment: fixed;
+    background-image: none;
     min-height: 100%;
     min-height: 100dvh;
     padding-top: var(--safe-top);
@@ -191,10 +187,7 @@
     min-height: 100dvh;
     overflow: hidden;
     background-color: #000000;
-    background-image: var(--elix-app-bg);
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
+    background-image: none;
     /* Fluid base font: scales with viewport (320px → 414px+) */
     font-size: clamp(13px, calc(12px + 0.5vw), 17px);
   }
@@ -1470,13 +1463,23 @@ svg.lucide.fill-silver-full.royce-icon-gold {
 html,
 body {
   background-color: #000000 !important;
-  background-image: var(--elix-app-bg) !important;
-  background-size: cover !important;
-  background-position: center !important;
-  background-repeat: no-repeat !important;
-  background-attachment: fixed !important;
+  background-image: none !important;
+}
+/* Fixed wallpaper layer — WebView-safe (body background-attachment:fixed fails / broken PNG looked black) */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: var(--elix-app-bg);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 #root {
+  position: relative;
+  z-index: 1;
   background: transparent !important;
 }
 /* Page / column shells must stay clear (Friends feed look) — no black wash */
@@ -1505,16 +1508,16 @@ main.feed-column-width {
   background-color: rgba(255, 255, 255, 0.06) !important;
   border-color: #2A2D33 !important;
 }
-/* Bottom / top nav chrome — light glass over wallpaper (not opaque black) */
-nav[aria-label="Main navigation"] .feed-column-width,
-nav[aria-label="Main navigation"] .feed-column-width[class*="bg-"] {
+/* Bottom / top nav chrome — light glass over wallpaper (beat #root clear rule via #root + !important) */
+#root nav[aria-label="Main navigation"] .feed-column-width,
+#root nav[aria-label="Main navigation"] .feed-column-width[class*="bg-"] {
   background-color: rgba(0, 0, 0, 0.35) !important;
   backdrop-filter: blur(8px) !important;
   -webkit-backdrop-filter: blur(8px) !important;
   border-top: 1px solid #2A2D33;
 }
-.feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
-.feed-column-width.h-\[var\(--topnav-bar-height\)\] {
+#root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
+#root .feed-column-width.h-\[var\(--topnav-bar-height\)\] {
   background-color: rgba(0, 0, 0, 0.35) !important;
   backdrop-filter: blur(8px) !important;
   -webkit-backdrop-filter: blur(8px) !important;
