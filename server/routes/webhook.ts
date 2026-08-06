@@ -212,17 +212,45 @@ async function handleSuccessfulPayment(session: Stripe.Checkout.Session) {
         { itemId, buyerId: userId, sessionId: session.id, paymentIntent: session.payment_intent },
         "Double-sale: shop item already sold when this payment settled — refund required",
       );
-      void postAlertWebhook({
-        text: "Shop double-sale — buyer paid for an already-sold item and must be refunded",
-        severity: "critical",
-        context: {
-          itemId,
-          buyerId: userId || "",
-          sessionId: session.id,
-          paymentIntent: String(session.payment_intent || ""),
-          amountGbp,
-        },
-      });
+      const pi = session.payment_intent;
+      const paymentIntentId = typeof pi === "string" ? pi : pi?.id;
+      if (stripe && paymentIntentId) {
+        try {
+          await stripe.refunds.create(
+            { payment_intent: paymentIntentId, reason: "duplicate" },
+            { idempotencyKey: `shop-double-sale-refund-${session.id}-${itemId}` },
+          );
+          logger.info(
+            { itemId, sessionId: session.id, paymentIntentId },
+            "Double-sale auto-refund created",
+          );
+        } catch (refundErr) {
+          logger.error({ err: refundErr, itemId, sessionId: session.id }, "Double-sale refund failed");
+          void postAlertWebhook({
+            text: "Shop double-sale refund FAILED — manual refund required",
+            severity: "critical",
+            context: {
+              itemId,
+              buyerId: userId || "",
+              sessionId: session.id,
+              paymentIntent: paymentIntentId,
+              amountGbp,
+            },
+          });
+        }
+      } else {
+        void postAlertWebhook({
+          text: "Shop double-sale — buyer paid for an already-sold item and must be refunded",
+          severity: "critical",
+          context: {
+            itemId,
+            buyerId: userId || "",
+            sessionId: session.id,
+            paymentIntent: String(session.payment_intent || ""),
+            amountGbp,
+          },
+        });
+      }
       continue;
     }
     logger.info({ itemId, buyerId: userId }, "Shop item purchased");

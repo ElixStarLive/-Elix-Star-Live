@@ -44,30 +44,40 @@ creatorRouter.get("/payout-account", async (req, res) => {
     const token = getTokenFromRequest(req);
     const payload = token ? verifyAuthToken(token) : null;
     if (!payload) return res.status(401).json({ error: "Unauthorized" });
-    const { refreshPayoutAccountStatus, createOrGetPayoutAccount } = await import(
-      "../lib/monetisation/payoutProvider"
-    );
+    const { refreshPayoutAccountStatus } = await import("../lib/monetisation/payoutProvider");
     const { getPool } = await import("../lib/postgres");
-    await refreshPayoutAccountStatus(payload.sub);
-    const result = await createOrGetPayoutAccount(payload.sub);
     const pool = getPool();
-    let payouts_enabled = false;
-    let verificationStatus = result.verificationStatus || "pending";
-    if (pool) {
-      const row = await pool.query(
-        `SELECT payouts_enabled, verification_status, charges_enabled
-           FROM elix_creator_payout_accounts WHERE creator_user_id = $1 LIMIT 1`,
-        [payload.sub],
-      );
-      if (row.rowCount) {
-        payouts_enabled = row.rows[0].payouts_enabled === true;
-        verificationStatus = String(row.rows[0].verification_status || verificationStatus);
-      }
+    if (!pool) return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+
+    const existing = await pool.query(
+      `SELECT provider_account_id, payouts_enabled, verification_status, charges_enabled, onboarding_url
+         FROM elix_creator_payout_accounts WHERE creator_user_id = $1 LIMIT 1`,
+      [payload.sub],
+    );
+    if (!existing.rowCount) {
+      return res.json({
+        ok: true,
+        accountId: null,
+        onboardingUrl: null,
+        payouts_enabled: false,
+        verificationStatus: "none",
+      });
     }
+
+    await refreshPayoutAccountStatus(payload.sub);
+    const row = await pool.query(
+      `SELECT provider_account_id, payouts_enabled, verification_status, charges_enabled, onboarding_url
+         FROM elix_creator_payout_accounts WHERE creator_user_id = $1 LIMIT 1`,
+      [payload.sub],
+    );
+    const r = row.rows[0];
     return res.json({
-      ...result,
-      payouts_enabled,
-      verificationStatus,
+      ok: true,
+      accountId: r.provider_account_id,
+      onboardingUrl: r.onboarding_url,
+      payouts_enabled: r.payouts_enabled === true,
+      charges_enabled: r.charges_enabled === true,
+      verificationStatus: String(r.verification_status || "pending"),
     });
   } catch (err) {
     logger.error({ err }, "payout-account get failed");

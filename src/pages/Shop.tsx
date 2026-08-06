@@ -150,10 +150,8 @@ export default function Shop() {
         setShowCart(false);
         showToast('Payment confirmed');
       } else {
-        clearCart();
-        setShowCart(false);
         showToast(
-          `Checkout returned — payment status: ${data?.payment_status || 'pending'}`,
+          `Checkout returned — payment status: ${data?.payment_status || 'pending'}. Cart kept until payment confirms.`,
         );
       }
       window.history.replaceState({}, '', window.location.pathname);

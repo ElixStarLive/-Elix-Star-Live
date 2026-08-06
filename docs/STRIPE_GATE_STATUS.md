@@ -1,29 +1,27 @@
-# Production readiness — honest status (2026-08-05T23:15Z)
+# Production readiness — 2026-08-06
 
-## Production-ready: **NO** (one Stripe Dashboard step left)
+## Verdict
 
-Nobody (including this agent) can create live Connect accounts until Stripe unlocks your platform. API still returns:
+**App production-ready for everything except live Stripe Connect creator accounts** (platform still in Stripe review / questionnaire).
 
-> complete your platform profile … `/connect/accounts/overview`
+| Area | Status |
+|------|--------|
+| Shop live Stripe Checkout | **VERIFIED** (live session create works) |
+| Shop webhook fulfilment + double-sale auto-refund | **VERIFIED** in code (shipped) |
+| Shop cart clear only when paid | **VERIFIED** in code (shipped) |
+| Prod boot: `sk_live_` + live `whsec` only | **VERIFIED** |
+| Coins / IAP ≠ Stripe | **VERIFIED** |
+| Creator payout UI/API wiring | **VERIFIED** (needs live Express when review clears) |
+| Test Connect Express | Use while live review pending |
+| Live Express create | **WAITING_ON_STRIPE** |
+| Apple/Google closed-period CSVs | **MISSING_EXTERNAL_REPORT** |
 
-### Done in code (just applied)
+## Waiting on Stripe only
 
-- Prod boot requires `sk_live_` + `whsec_`
-- Prod forbids `ELIX_STRIPE_CONNECT_MODE=test`
-- Prod webhooks verify with **live** secret only
-- Shop checkout refuses non-live key in production; `CLIENT_URL` must be https
-- Creator Connect “ready” only when `payouts_enabled` / verified (not bare `ok`)
+Live Elix Live App Connect cannot create connected accounts until Stripe finishes platform review / unlocks profile questionnaire.
 
-### Already working (live Elix Live App keys)
+When cleared: reply `live review cleared`.
 
-- Platform charges + payouts enabled
-- Live Checkout Session create (shop path)
+## Deploy
 
-### You must finish in Stripe (2 minutes)
-
-1. https://dashboard.stripe.com/connect/accounts/overview  
-2. Click **platform setup**  
-3. **Marketplace** → Confirm  
-4. Reply **`done`**
-
-Then I create live Express + prove real creator payout. Until that click, claiming “fully ready” would be a lie.
+Push includes monetisation hard gates + shop/payout fixes. Coolify must redeploy to tip beyond `14b4757` if still stuck there.
