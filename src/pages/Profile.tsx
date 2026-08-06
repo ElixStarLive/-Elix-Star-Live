@@ -674,12 +674,12 @@ export default function Profile() {
   };
 
   if (!displayUserId) {
-     return <div className="bg-[#09090B] text-white flex items-center justify-center min-h-[50vh]">Loading...</div>;
+     return <div className="bg-[rgba(0,0,0,0.35)] text-white flex items-center justify-center min-h-[50vh]">Loading...</div>;
   }
 
   if (routeUserId && resolvedUserId === null && !loading) {
     return (
-      <div className="bg-[#09090B] text-white flex flex-col items-center justify-center min-h-[50vh] px-4">
+      <div className="bg-[rgba(0,0,0,0.35)] text-white flex flex-col items-center justify-center min-h-[50vh] px-4">
         <button onClick={goBack} className="absolute top-4 right-4 p-1" title="Close" aria-label="Close">
           <RoyceCloseIcon size={20} />
         </button>
@@ -691,7 +691,7 @@ export default function Profile() {
 
   if (!loading && !profileData && !isOwnProfile) {
     return (
-      <div className="bg-[#09090B] text-white flex flex-col items-center justify-center min-h-[50vh] px-4">
+      <div className="bg-[rgba(0,0,0,0.35)] text-white flex flex-col items-center justify-center min-h-[50vh] px-4">
         <button onClick={goBack} className="absolute top-4 right-4 p-1" title="Close" aria-label="Close">
           <RoyceCloseIcon size={20} />
         </button>
@@ -702,8 +702,8 @@ export default function Profile() {
   }
 
   return (
-    <div className="page-above-bottom-nav bg-[#09090B] text-white">
-      <div className="page-above-bottom-nav__inner bg-[#09090B]">
+    <div className="page-above-bottom-nav bg-[rgba(0,0,0,0.35)] text-white">
+      <div className="page-above-bottom-nav__inner bg-[rgba(0,0,0,0.35)]">
         {/* Small top header with Share + Exit buttons — same panel height as Inbox */}
         <header className="flex items-center justify-between px-4 pt-page-header pb-2 relative z-10">
           <button
@@ -740,11 +740,11 @@ export default function Profile() {
         {/* ═══ Account Menu Modal ═══ */}
         {showAccountMenu && (
           <div
-            className="fixed inset-0 z-[9999] bg-[#09090B]/70 flex items-end justify-center pb-[var(--bottom-nav-top)]"
+            className="fixed inset-0 z-[9999] bg-[rgba(10,10,10,0.72)] flex items-end justify-center pb-[var(--bottom-nav-top)]"
             onClick={() => setShowAccountMenu(false)}
           >
             <div 
-              className="w-full max-w-[480px] bg-[#09090B] rounded-t-2xl border-t border-white/10 pb-safe"
+              className="w-full max-w-[480px] bg-[rgba(0,0,0,0.35)] rounded-t-2xl border-t border-white/10 pb-safe"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-center px-5 pt-4 pb-3 border-b border-white/10">
@@ -785,7 +785,7 @@ export default function Profile() {
             onClick={() => setShowSharePanel(false)}
           >
             <div
-              className="w-full max-w-[480px] bg-[#09090B]/95 rounded-t-2xl max-h-[40dvh] flex flex-col overflow-hidden"
+              className="w-full max-w-[480px] bg-[rgba(10,10,10,0.72)] rounded-t-2xl max-h-[40dvh] flex flex-col overflow-hidden"
               style={{ boxShadow: '0 -4px 30px rgba(255,255,255,0.25)' }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -1204,7 +1204,7 @@ export default function Profile() {
                   key={video.id}
                   type="button"
                   onClick={() => goVideo(video.id)}
-                  className="aspect-[3/4] bg-[#09090B] relative group text-left rounded-xl overflow-hidden"
+                  className="aspect-[3/4] bg-[rgba(0,0,0,0.35)] relative group text-left rounded-xl overflow-hidden"
                 >
                   {playbackUrl ? (
                     <video

@@ -18,7 +18,7 @@ export default function LiveAIFilters({ onFilterChange, currentFilter }: LiveAIF
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="w-9 h-9 rounded-full bg-[#09090B] backdrop-blur-md flex items-center justify-center shadow-lg active:scale-95 transition-transform relative"
+        className="w-9 h-9 rounded-full bg-[rgba(0,0,0,0.35)] backdrop-blur-md flex items-center justify-center shadow-lg active:scale-95 transition-transform relative"
         title="AI Filters"
       >
         <Sparkles size={16} className={`relative z-[2] ${currentFilter !== 'none' ? 'text-[#F5F5F7]' : 'text-white/70'}`} />

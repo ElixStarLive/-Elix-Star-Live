@@ -49,8 +49,8 @@ const BADGE: Record<
   },
   elite: {
     label: 'Elite',
-    chip: 'bg-[#1B1E24] text-[#FFFFFF] border border-[#313845]',
-    glow: 'border-[#313845]/80 shadow-[0_0_10px_rgba(0,0,0,0.35)]',
+    chip: 'bg-[rgba(10,10,10,0.72)] text-[#FFFFFF] border border-[#2A2D33]',
+    glow: 'border-[#2A2D33]/80 shadow-[0_0_10px_rgba(0,0,0,0.35)]',
   },
 };
 

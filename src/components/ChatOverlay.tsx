@@ -172,7 +172,7 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
             ) : null}
 
             {activeModMenu === msg.id && isModerator && (
-              <div className="absolute left-20 -top-1 z-50 flex items-center gap-1 bg-[#09090B] border border-white/20 rounded-lg px-1 py-1 shadow-xl pointer-events-auto">
+              <div className="absolute left-20 -top-1 z-50 flex items-center gap-1 bg-[rgba(0,0,0,0.35)] border border-white/20 rounded-lg px-1 py-1 shadow-xl pointer-events-auto">
                 <button
                   type="button"
                   onClick={(e) => {

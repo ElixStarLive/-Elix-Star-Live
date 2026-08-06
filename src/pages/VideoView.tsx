@@ -33,7 +33,7 @@ export default function VideoView() {
 
   if (!videoId) {
     return (
-      <div className="min-h-[100dvh] bg-[#09090B] text-white p-4">
+      <div className="min-h-[100dvh] bg-[rgba(0,0,0,0.35)] text-white p-4">
         <button onClick={goBack} className="flex items-center gap-2 text-white/80">
           <RoyceBackIcon />
           Back
@@ -47,9 +47,9 @@ export default function VideoView() {
 
   if (loadPhase === 'loading' || (loadPhase === 'idle' && !video)) {
     return (
-      <div className="fixed inset-0 z-[9990] bg-[#09090B] flex justify-center">
+      <div className="fixed inset-0 z-[9990] bg-[rgba(0,0,0,0.35)] flex justify-center">
         <div
-          className="w-full max-w-[480px] relative overflow-hidden bg-[#09090B] h-viewport"
+          className="w-full max-w-[480px] relative overflow-hidden bg-[rgba(0,0,0,0.35)] h-viewport"
           style={{ marginTop: 0 }}
         >
           <div
@@ -77,9 +77,9 @@ export default function VideoView() {
 
   if (showMissing || !video) {
     return (
-      <div className="fixed inset-0 z-[9990] bg-[#09090B] flex justify-center">
+      <div className="fixed inset-0 z-[9990] bg-[rgba(0,0,0,0.35)] flex justify-center">
         <div
-          className="w-full max-w-[480px] relative overflow-hidden bg-[#09090B] h-viewport"
+          className="w-full max-w-[480px] relative overflow-hidden bg-[rgba(0,0,0,0.35)] h-viewport"
           style={{ marginTop: 0 }}
         >
           <div
@@ -113,8 +113,8 @@ export default function VideoView() {
   }
 
   return (
-    <div className="page-above-bottom-nav z-[9990] bg-[#09090B]">
-      <div className="page-above-bottom-nav__inner relative bg-[#09090B]">
+    <div className="page-above-bottom-nav z-[9990] bg-[rgba(0,0,0,0.35)]">
+      <div className="page-above-bottom-nav__inner relative bg-[rgba(0,0,0,0.35)]">
         <div
           className="absolute z-[250] pointer-events-auto"
           style={{

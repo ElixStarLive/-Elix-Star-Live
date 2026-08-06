@@ -56,11 +56,11 @@
     --color-dark-red: #5B2ED6;
     --color-hover-purple: #8B5CFF;
     --color-pressed-purple: #5B2ED6;
-    --color-background: #09090B;
-    --color-surface: #121317;
-    --color-card: #1B1E24;
-    --color-card-elevated: #242832;
-    /* Transparent black glass — live video stays visible behind UI */
+    --color-background: rgba(0, 0, 0, 0.35);
+    --color-surface: rgba(0, 0, 0, 0.35);
+    --color-card: rgba(10, 10, 10, 0.72);
+    --color-card-elevated: rgba(10, 10, 10, 0.72);
+    /* Transparent black glass — entire app (video/content shows through) */
     --color-glass-bg: rgba(0, 0, 0, 0.35);
     --color-glass-panel: rgba(10, 10, 10, 0.72);
     --color-glass-border: #2A2D33;
@@ -158,7 +158,8 @@
   }
 
   body {
-    @apply bg-background text-text font-sans antialiased overflow-hidden;
+    @apply text-text font-sans antialiased overflow-hidden;
+    background: #000000;
     min-height: 100%;
     min-height: 100dvh;
     padding-top: var(--safe-top);
@@ -182,6 +183,7 @@
     min-height: 100%;
     min-height: 100dvh;
     overflow: hidden;
+    background: #000000;
     /* Fluid base font: scales with viewport (320px → 414px+) */
     font-size: clamp(13px, calc(12px + 0.5vw), 17px);
   }
@@ -193,6 +195,9 @@
     min-height: 100dvh;
     overflow: hidden;
     position: relative;
+    background: rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
   }
 
   /* Prevent horizontal scroll on all devices */
@@ -320,7 +325,10 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    background: var(--color-background);
+    background: rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-color: #2A2D33;
   }
 
   /* Tab pages: pin content between screen top and top of home/bottom bar */
@@ -1450,4 +1458,37 @@ svg.lucide.fill-silver-full.royce-icon-gold {
 .camera-rail-disc::after {
   content: none !important;
   display: none !important;
+}
+
+
+/* ═══ ENTIRE APP glass surfaces (not live-only) ═══ */
+.page-above-bottom-nav,
+.page-above-bottom-nav__inner,
+.feed-column-width,
+nav[aria-label="Main navigation"] .feed-column-width,
+.min-h-screen.bg-background,
+.bg-background,
+.bg-surface {
+  background-color: rgba(0, 0, 0, 0.35) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.bg-card,
+.bg-card-elevated {
+  background-color: rgba(10, 10, 10, 0.72) !important;
+  border-color: #2A2D33 !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.elix-glass {
+  background: rgba(0, 0, 0, 0.35) !important;
+  border: 1px solid #2A2D33 !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.elix-glass-panel {
+  background: rgba(10, 10, 10, 0.72) !important;
+  border: 1px solid #2A2D33 !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }

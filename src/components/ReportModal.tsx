@@ -147,8 +147,8 @@ export default function ReportModal({ isOpen, onClose, videoId, contentType, con
 
   if (showSuccess) {
     return (
-      <div className="fixed inset-0 z-[99999] bg-[#09090B] flex items-center justify-center p-4" onClick={onClose}>
-        <div className="bg-[#09090B] rounded-2xl p-6 max-w-sm w-full text-center" onClick={(e) => e.stopPropagation()}>
+      <div className="fixed inset-0 z-[99999] bg-[rgba(0,0,0,0.35)] flex items-center justify-center p-4" onClick={onClose}>
+        <div className="bg-[rgba(0,0,0,0.35)] rounded-2xl p-6 max-w-sm w-full text-center" onClick={(e) => e.stopPropagation()}>
           <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
             <div className="w-8 h-8 bg-[#FFFFFF] rounded-full flex items-center justify-center">
               <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -169,13 +169,13 @@ export default function ReportModal({ isOpen, onClose, videoId, contentType, con
     <div className="fixed inset-0 z-[99999] flex items-end justify-center">
       <div className="absolute inset-0 bg-black/60 pointer-events-auto" onClick={onClose} />
 
-      <div className="relative w-full max-w-[480px] z-10 bg-[#09090B]/95 backdrop-blur-md rounded-t-2xl p-4 pb-safe flex flex-col gap-1 shadow-2xl pointer-events-auto h-[40vh] max-h-[40vh] overflow-y-auto bottom-sheet-above-nav [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#6F3FF5]/50 [&::-webkit-scrollbar-thumb]:rounded-full" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.25) transparent' }}>
+      <div className="relative w-full max-w-[480px] z-10 bg-[rgba(10,10,10,0.72)] backdrop-blur-md rounded-t-2xl p-4 pb-safe flex flex-col gap-1 shadow-2xl pointer-events-auto h-[40vh] max-h-[40vh] overflow-y-auto bottom-sheet-above-nav [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#6F3FF5]/50 [&::-webkit-scrollbar-thumb]:rounded-full" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.25) transparent' }}>
         <div className="flex justify-center mb-2">
           <div className="w-10 h-1 bg-white/20 rounded-full" />
         </div>
 
         <div className="flex items-center gap-2 mb-1 ml-[4mm]">
-          <div className="relative w-9 h-9 rounded-full bg-[#09090B] overflow-hidden flex items-center justify-center flex-shrink-0">
+          <div className="relative w-9 h-9 rounded-full bg-[rgba(0,0,0,0.35)] overflow-hidden flex items-center justify-center flex-shrink-0">
             <Flag className="relative z-[2] w-4 h-4 text-white/60" strokeWidth={1.8} />
 </div>
           <h3 className="text-white font-bold text-[13px] whitespace-nowrap">Report {getContentTypeLabel()}</h3>
@@ -193,7 +193,7 @@ export default function ReportModal({ isOpen, onClose, videoId, contentType, con
                 className={`w-full px-3 py-2 flex items-center justify-between rounded-lg transition-colors ${selected ? 'bg-white/5' : 'hover:bg-white/[0.03]'}`}
               >
                 <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                  <div className={`relative w-9 h-9 rounded-full bg-[#09090B] overflow-hidden flex items-center justify-center flex-shrink-0 shrink-0 ${selected ? 'opacity-100' : ''}`}>
+                  <div className={`relative w-9 h-9 rounded-full bg-[rgba(0,0,0,0.35)] overflow-hidden flex items-center justify-center flex-shrink-0 shrink-0 ${selected ? 'opacity-100' : ''}`}>
                     <IconComponent className={`relative z-[2] w-4 h-4 ${reason.color}`} strokeWidth={1.8} />
 </div>
                   <span className="text-white/80 text-xs font-medium truncate">{reason.title}</span>
@@ -214,7 +214,7 @@ export default function ReportModal({ isOpen, onClose, videoId, contentType, con
           <textarea
             value={additionalDetails}
             onChange={(e) => setAdditionalDetails(e.target.value)}
-            className="w-full bg-[#09090B]/40 border border-white/10 text-white rounded-lg p-2.5 text-xs focus:outline-none focus:border-white/20 resize-none leading-snug peer"
+            className="w-full bg-[rgba(0,0,0,0.35)]/40 border border-white/10 text-white rounded-lg p-2.5 text-xs focus:outline-none focus:border-white/20 resize-none leading-snug peer"
             rows={2}
             maxLength={500}
           />

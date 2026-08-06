@@ -224,7 +224,7 @@ export default function AdminRisingStars() {
     "w-full bg-[#0f1218] border border-white/10 rounded-lg px-3 py-2 text-sm text-white mb-2";
 
   return (
-    <div className="min-h-screen bg-[#09090B] text-white p-6">
+    <div className="min-h-screen bg-[rgba(0,0,0,0.35)] text-white p-6">
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold flex items-center gap-2">

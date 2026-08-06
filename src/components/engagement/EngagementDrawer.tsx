@@ -153,7 +153,7 @@ export function EngagementDrawer({
       />
       <div
         ref={panelRef}
-        className="absolute top-0 right-0 h-full pointer-events-auto flex flex-col bg-[#09090B] border-l border-white/10 shadow-2xl"
+        className="absolute top-0 right-0 h-full pointer-events-auto flex flex-col bg-[rgba(0,0,0,0.35)] border-l border-white/10 shadow-2xl"
         style={{
           width: "min(420px, 92vw)",
           paddingTop: "env(safe-area-inset-top, 0px)",
