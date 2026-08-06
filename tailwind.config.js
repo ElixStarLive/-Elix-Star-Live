@@ -21,13 +21,19 @@ export default {
         primary: "var(--color-primary)",
         secondary: "var(--color-secondary)",
         gold: {
-          DEFAULT: "#FFFFFF",
-          bright: "#FFFFFF",
-          light: "#A7A7AD",
-          dark: "#707070",
-          premium: "#F5F5F7",
+          DEFAULT: "var(--color-gold)",
+          bright: "var(--color-gold-bright)",
+          light: "var(--color-gold-light)",
+          dark: "var(--color-gold-dark)",
+          premium: "var(--color-gold-premium)",
         },
         rose: "var(--color-rose)",
+        purple: {
+          DEFAULT: "var(--color-purple)",
+          hover: "var(--color-purple-hover)",
+          pressed: "var(--color-purple-pressed)",
+          bright: "var(--color-purple-bright)",
+        },
         background: "var(--color-background)",
         surface: "var(--color-surface)",
         card: {
@@ -41,6 +47,8 @@ export default {
         "text-muted": "var(--color-text-muted)",
         "text-disabled": "var(--color-text-disabled)",
         "accent-blue": "var(--color-accent-blue)",
+        coin: "var(--color-coin)",
+        destructive: "var(--color-destructive)",
       },
       fontFamily: {
         sans: ["Inter", "Roboto", "sans-serif"],

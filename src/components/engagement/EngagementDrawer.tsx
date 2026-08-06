@@ -153,7 +153,7 @@ export function EngagementDrawer({
       />
       <div
         ref={panelRef}
-        className="absolute top-0 right-0 h-full pointer-events-auto flex flex-col bg-[#121215] border-l border-white/10 shadow-2xl"
+        className="absolute top-0 right-0 h-full pointer-events-auto flex flex-col bg-[#09090B] border-l border-white/10 shadow-2xl"
         style={{
           width: "min(420px, 92vw)",
           paddingTop: "env(safe-area-inset-top, 0px)",
@@ -223,7 +223,7 @@ function HubBody({ onSelect }: { onSelect: (id: EngagementPanel) => void }) {
 
   return (
     <>
-      <div className="rounded-2xl border border-[#E5E5E7]/30 bg-gradient-to-br from-[#1a1608] to-[#121215] p-3 mb-3">
+      <div className="rounded-2xl border border-[#D8D9DD]/30 bg-gradient-to-br from-[#1a1608] to-[#09090B] p-3 mb-3">
         <p className="text-[10px] uppercase tracking-wide text-[#F5F5F7] mb-1">
           {hub?.fan_tier || "Bronze Fan"} · Level {hub?.fan_level ?? 0}
         </p>
@@ -342,7 +342,7 @@ function MissionsBody() {
                     type="button"
                     disabled={claiming === m.id}
                     onClick={() => void claim(m.id)}
-                    className="shrink-0 rounded-lg bg-[#FF3B3F]/25 border border-[#E5E5E7]/50 px-2 py-1 text-[10px] font-bold text-[#F5F5F7]"
+                    className="shrink-0 rounded-lg bg-[#6F3FF5]/25 border border-[#D8D9DD]/50 px-2 py-1 text-[10px] font-bold text-[#F5F5F7]"
                   >
                     Claim
                   </button>
@@ -353,7 +353,7 @@ function MissionsBody() {
                 )}
               </div>
               <div className="h-1.5 rounded-full bg-white/10 overflow-hidden mb-1">
-                <div className="h-full bg-[#FF3B3F]" style={{ width: `${pct}%` }} />
+                <div className="h-full bg-[#6F3FF5]" style={{ width: `${pct}%` }} />
               </div>
               <p className="text-[10px] text-white/50 tabular-nums">
                 {m.progress}/{m.goal_count}
@@ -406,7 +406,7 @@ function FanLevelBody() {
 
   return (
     <>
-      <div className="rounded-2xl border border-[#E5E5E7]/30 bg-gradient-to-br from-[#1a1608] to-[#121215] p-3 mb-3">
+      <div className="rounded-2xl border border-[#D8D9DD]/30 bg-gradient-to-br from-[#1a1608] to-[#09090B] p-3 mb-3">
         <p className="text-[10px] text-[#F5F5F7] uppercase tracking-wide mb-1">
           {fan?.tier || "Bronze Fan"}
         </p>
@@ -427,7 +427,7 @@ function FanLevelBody() {
               key={t.name}
               className={`rounded-xl border px-3 py-2 flex justify-between ${
                 active
-                  ? "border-[#E5E5E7]/40 bg-[#FF3B3F]/10"
+                  ? "border-[#D8D9DD]/40 bg-[#6F3FF5]/10"
                   : "border-white/10 bg-white/[0.03]"
               }`}
             >
@@ -473,7 +473,7 @@ function MvpBody() {
             onClick={() => setPeriod(id)}
             className={`rounded-full px-2.5 py-1 text-[11px] font-semibold border ${
               period === id
-                ? "border-[#E5E5E7] bg-[#FF3B3F]/20 text-[#F5F5F7]"
+                ? "border-[#D8D9DD] bg-[#6F3FF5]/20 text-[#F5F5F7]"
                 : "border-white/15 text-white/60"
             }`}
           >
@@ -495,7 +495,7 @@ function MvpBody() {
                 key={`${r.rank}-${r.user_id}`}
                 className={`flex items-center gap-2 rounded-xl border px-2.5 py-2 ${
                   mine
-                    ? "border-[#E5E5E7]/40 bg-[#FF3B3F]/10"
+                    ? "border-[#D8D9DD]/40 bg-[#6F3FF5]/10"
                     : "border-white/10 bg-white/[0.03]"
                 }`}
               >
@@ -580,7 +580,7 @@ function BattleEnergyBody({ roomId }: { roomId: string }) {
 
   return (
     <>
-      <div className="rounded-2xl border border-[#E5E5E7]/30 bg-gradient-to-br from-[#1a1608] to-[#121215] p-3 mb-3">
+      <div className="rounded-2xl border border-[#D8D9DD]/30 bg-gradient-to-br from-[#1a1608] to-[#09090B] p-3 mb-3">
         <p className="text-[10px] text-[#F5F5F7] uppercase tracking-wide mb-1 flex items-center gap-1">
           <Zap className="w-3 h-3" /> Battle Energy
         </p>
@@ -602,7 +602,7 @@ function BattleEnergyBody({ roomId }: { roomId: string }) {
             type="button"
             disabled={busy}
             onClick={() => void boost(n)}
-            className="flex-1 rounded-xl border border-[#E5E5E7]/40 bg-[#FF3B3F]/10 py-2 text-sm font-bold text-[#F5F5F7] active:scale-95 disabled:opacity-40"
+            className="flex-1 rounded-xl border border-[#D8D9DD]/40 bg-[#6F3FF5]/10 py-2 text-sm font-bold text-[#F5F5F7] active:scale-95 disabled:opacity-40"
           >
             +{n}
           </button>
@@ -612,7 +612,7 @@ function BattleEnergyBody({ roomId }: { roomId: string }) {
         type="button"
         disabled={busy}
         onClick={() => void boost(100)}
-        className="w-full rounded-xl border border-[#E5E5E7]/50 bg-[#FF3B3F]/20 py-2.5 text-sm font-semibold text-[#F5F5F7] disabled:opacity-40"
+        className="w-full rounded-xl border border-[#D8D9DD]/50 bg-[#6F3FF5]/20 py-2.5 text-sm font-semibold text-[#F5F5F7] disabled:opacity-40"
       >
         BOOST CREATOR
       </button>
@@ -681,7 +681,7 @@ function AchievementsBody() {
             key={a.id}
             className={`rounded-xl border p-2.5 ${
               a.unlocked
-                ? "border-[#E5E5E7]/40 bg-[#FF3B3F]/10"
+                ? "border-[#D8D9DD]/40 bg-[#6F3FF5]/10"
                 : "border-white/10 bg-white/[0.03]"
             }`}
           >
@@ -694,7 +694,7 @@ function AchievementsBody() {
               <span className="text-[10px] text-white/40 shrink-0">{status}</span>
             </div>
             <div className="h-1.5 rounded-full bg-white/10 overflow-hidden mb-1">
-              <div className="h-full bg-[#FF3B3F]" style={{ width: `${pct}%` }} />
+              <div className="h-full bg-[#6F3FF5]" style={{ width: `${pct}%` }} />
             </div>
             <p className="text-[10px] text-white/50 tabular-nums">
               {a.progress}/{a.goal_count}
@@ -751,7 +751,7 @@ function DailyLoginBody() {
 
   return (
     <>
-      <div className="rounded-2xl border border-[#E5E5E7]/30 bg-gradient-to-br from-[#1a1608] to-[#121215] p-3 mb-3">
+      <div className="rounded-2xl border border-[#D8D9DD]/30 bg-gradient-to-br from-[#1a1608] to-[#09090B] p-3 mb-3">
         <p className="text-[10px] text-[#F5F5F7] uppercase tracking-wide mb-1">
           7-day streak
         </p>
@@ -771,9 +771,9 @@ function DailyLoginBody() {
                 key={d}
                 className={`aspect-square rounded-lg flex items-center justify-center text-[10px] font-bold border ${
                   done
-                    ? "bg-[#FF3B3F]/30 border-[#E5E5E7]/50 text-[#F5F5F7]"
+                    ? "bg-[#6F3FF5]/30 border-[#D8D9DD]/50 text-[#F5F5F7]"
                     : current
-                      ? "bg-white/10 border-[#E5E5E7] text-white"
+                      ? "bg-white/10 border-[#D8D9DD] text-white"
                       : "bg-white/[0.03] border-white/10 text-white/35"
                 }`}
               >
@@ -786,7 +786,7 @@ function DailyLoginBody() {
           type="button"
           disabled={!daily?.can_claim || busy}
           onClick={() => void claim()}
-          className="w-full rounded-xl py-2.5 text-sm font-semibold border border-[#E5E5E7]/50 bg-[#FF3B3F]/20 text-[#F5F5F7] disabled:opacity-40"
+          className="w-full rounded-xl py-2.5 text-sm font-semibold border border-[#D8D9DD]/50 bg-[#6F3FF5]/20 text-[#F5F5F7] disabled:opacity-40"
         >
           {daily?.claimed_today ? "Claimed today" : "Claim"}
         </button>
@@ -909,7 +909,7 @@ function TreasureBody() {
 
   return (
     <>
-      <div className="rounded-2xl border border-[#E5E5E7]/30 bg-gradient-to-br from-[#1a1608] to-[#121215] p-3 mb-3">
+      <div className="rounded-2xl border border-[#D8D9DD]/30 bg-gradient-to-br from-[#1a1608] to-[#09090B] p-3 mb-3">
         <p className="text-[10px] text-[#F5F5F7] uppercase tracking-wide mb-1">
           Treasure Hunt
         </p>
@@ -944,7 +944,7 @@ function TreasureBody() {
                     type="button"
                     disabled={busy === c.id}
                     onClick={() => void openChest(c.id)}
-                    className="shrink-0 rounded-lg bg-[#FF3B3F]/25 border border-[#E5E5E7]/50 px-2.5 py-1 text-[11px] font-bold text-[#F5F5F7]"
+                    className="shrink-0 rounded-lg bg-[#6F3FF5]/25 border border-[#D8D9DD]/50 px-2.5 py-1 text-[11px] font-bold text-[#F5F5F7]"
                   >
                     Open
                   </button>
@@ -1030,7 +1030,7 @@ function StickersBody() {
                 key={st.id}
                 className={`w-10 h-10 rounded-lg border flex items-center justify-center text-lg ${
                   st.unlocked
-                    ? "border-[#E5E5E7]/40 bg-[#FF3B3F]/10"
+                    ? "border-[#D8D9DD]/40 bg-[#6F3FF5]/10"
                     : "border-white/10 bg-black/30 opacity-40"
                 }`}
                 title={st.name}
@@ -1078,7 +1078,7 @@ function CreatorCardsBody({ creatorId }: { creatorId?: string }) {
 
   return (
     <>
-      <div className="rounded-2xl border border-[#E5E5E7]/30 bg-gradient-to-br from-[#1a1608] to-[#121215] p-3 mb-3">
+      <div className="rounded-2xl border border-[#D8D9DD]/30 bg-gradient-to-br from-[#1a1608] to-[#09090B] p-3 mb-3">
         <p className="text-[10px] text-[#F5F5F7] uppercase tracking-wide mb-1">
           Creator Collections
         </p>
@@ -1100,7 +1100,7 @@ function CreatorCardsBody({ creatorId }: { creatorId?: string }) {
               key={t.tier}
               className={`rounded-xl border p-2.5 ${
                 have
-                  ? "border-[#E5E5E7]/40 bg-[#FF3B3F]/10"
+                  ? "border-[#D8D9DD]/40 bg-[#6F3FF5]/10"
                   : "border-white/10 bg-white/[0.03]"
               }`}
             >

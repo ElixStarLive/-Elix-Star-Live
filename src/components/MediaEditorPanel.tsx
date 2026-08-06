@@ -29,7 +29,7 @@ export const EFFECT_PRESETS: FilterPreset[] = [
   { id: 'invert', label: 'Invert', css: 'invert(1) hue-rotate(180deg)' },
 ];
 
-const TEXT_COLORS = ['#FFFFFF', '#000000', '#F12C56', '#E5E5E7', '#00C2BE', '#7B5CFF', '#22C55E', '#F59E0B'];
+const TEXT_COLORS = ['#FFFFFF', '#000000', '#F12C56', '#D8D9DD', '#00C2BE', '#7B5CFF', '#22C55E', '#F59E0B'];
 
 const STICKERS = ['❤️', '🔥', '😂', '😍', '🎉', '⭐', '👑', '💎', '🌸', '✨', '💯', '🙌', '😎', '🥳', '💕', '🎶', '👀', '🤩', '💰', '🏆'];
 
@@ -70,7 +70,7 @@ export default function MediaEditorPanel({
 
   return (
     <div className="absolute inset-x-0 bottom-0 z-[120] pointer-events-auto" role="dialog" aria-label={title}>
-      <div className="mx-auto w-full max-w-md rounded-t-2xl bg-[#121215]/95 backdrop-blur-md border-t border-white/10 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+14px)]">
+      <div className="mx-auto w-full max-w-md rounded-t-2xl bg-[#09090B]/95 backdrop-blur-md border-t border-white/10 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+14px)]">
         <div className="flex items-center justify-between mb-3">
           <span className="text-white text-sm font-semibold">{title}</span>
           <button type="button" onClick={onClose} className="w-8 h-8 flex items-center justify-center" aria-label="Close">
@@ -85,7 +85,7 @@ export default function MediaEditorPanel({
                 key={p.id}
                 type="button"
                 onClick={() => onSelectFilter(p)}
-                className={`shrink-0 px-3 py-2 rounded-xl text-xs font-semibold border ${activeFilterId === p.id ? 'bg-[#FF3B3F] text-black border-[#E5E5E7]' : 'bg-white/5 text-white/80 border-white/10'}`}
+                className={`shrink-0 px-3 py-2 rounded-xl text-xs font-semibold border ${activeFilterId === p.id ? 'bg-[#6F3FF5] text-white border-[#D8D9DD]' : 'bg-white/5 text-white/80 border-white/10'}`}
               >
                 {p.label}
               </button>
@@ -100,7 +100,7 @@ export default function MediaEditorPanel({
                 key={p.id}
                 type="button"
                 onClick={() => onSelectEffect(p)}
-                className={`shrink-0 px-3 py-2 rounded-xl text-xs font-semibold border ${activeEffectId === p.id ? 'bg-[#FF3B3F] text-black border-[#E5E5E7]' : 'bg-white/5 text-white/80 border-white/10'}`}
+                className={`shrink-0 px-3 py-2 rounded-xl text-xs font-semibold border ${activeEffectId === p.id ? 'bg-[#6F3FF5] text-white border-[#D8D9DD]' : 'bg-white/5 text-white/80 border-white/10'}`}
               >
                 {p.label}
               </button>
@@ -117,7 +117,7 @@ export default function MediaEditorPanel({
               placeholder="Type your text..."
               maxLength={120}
               autoFocus
-              className="w-full bg-white/10 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm outline-none focus:border-[#E5E5E7]/60 placeholder:text-white/30"
+              className="w-full bg-white/10 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm outline-none focus:border-[#D8D9DD]/60 placeholder:text-white/30"
             />
             <div className="flex items-center gap-2 mt-3 flex-wrap">
               {TEXT_COLORS.map((c) => (
@@ -126,14 +126,14 @@ export default function MediaEditorPanel({
                   type="button"
                   onClick={() => setTextColor(c)}
                   aria-label={`Color ${c}`}
-                  className={`w-7 h-7 rounded-full border-2 ${textColor === c ? 'border-[#E5E5E7]' : 'border-white/20'}`}
+                  className={`w-7 h-7 rounded-full border-2 ${textColor === c ? 'border-[#D8D9DD]' : 'border-white/20'}`}
                   style={{ backgroundColor: c }}
                 />
               ))}
               <button
                 type="button"
                 onClick={submitText}
-                className="ml-auto px-4 py-2 rounded-full bg-[#FF3B3F] text-black text-xs font-bold active:scale-95 transition-transform"
+                className="ml-auto px-4 py-2 rounded-full bg-[#6F3FF5] text-white text-xs font-bold active:scale-95 transition-transform"
               >
                 Add
               </button>

@@ -103,7 +103,7 @@ export default function Support() {
     return (
       <SettingsOptionSheet onClose={goBack}>
         <div className="h-full flex flex-col items-center justify-center px-4 text-center">
-          <div className="w-16 h-16 bg-[#FF3B3F] rounded-full mx-auto mb-4 flex items-center justify-center">
+          <div className="w-16 h-16 bg-[#6F3FF5] rounded-full mx-auto mb-4 flex items-center justify-center">
             <Send className="w-8 h-8 text-black" />
           </div>
           <h2 className="text-lg font-bold mb-1.5">Message Sent</h2>
@@ -116,7 +116,7 @@ export default function Support() {
   if (showContactForm) {
     return (
       <SettingsOptionSheet onClose={goBack}>
-        <div className="w-full h-full overflow-hidden bg-[#121215] flex flex-col">
+        <div className="w-full h-full overflow-hidden bg-[#09090B] flex flex-col">
           <header className="flex items-center justify-center mb-2 px-4 pt-2">
             <h1 className="font-bold text-lg text-[#F5F5F7]">Contact Support</h1>
           </header>
@@ -129,7 +129,7 @@ export default function Support() {
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="your@email.com"
-              className="w-full bg-white/[0.06] rounded-lg px-3 py-2.5 outline-none text-sm text-white placeholder-white/35 border border-white/10 focus:border-[#E5E5E7] transition"
+              className="w-full bg-white/[0.06] rounded-lg px-3 py-2.5 outline-none text-sm text-white placeholder-white/35 border border-white/10 focus:border-[#D8D9DD] transition"
             />
           </div>
 
@@ -141,7 +141,7 @@ export default function Support() {
               onChange={e => setSubject(e.target.value)}
               placeholder="Brief description of your issue"
               maxLength={100}
-              className="w-full bg-white/[0.06] rounded-lg px-3 py-2.5 outline-none text-sm text-white placeholder-white/35 border border-white/10 focus:border-[#E5E5E7] transition"
+              className="w-full bg-white/[0.06] rounded-lg px-3 py-2.5 outline-none text-sm text-white placeholder-white/35 border border-white/10 focus:border-[#D8D9DD] transition"
             />
           </div>
 
@@ -153,7 +153,7 @@ export default function Support() {
               placeholder="Describe your issue in detail..."
               maxLength={1000}
               rows={6}
-              className="w-full bg-white/[0.06] rounded-lg px-3 py-2.5 outline-none text-sm text-white placeholder-white/35 border border-white/10 focus:border-[#E5E5E7] transition resize-none"
+              className="w-full bg-white/[0.06] rounded-lg px-3 py-2.5 outline-none text-sm text-white placeholder-white/35 border border-white/10 focus:border-[#D8D9DD] transition resize-none"
             />
             <p className="text-xs text-white/40 mt-1 text-right">{message.length}/1000</p>
           </div>
@@ -161,7 +161,7 @@ export default function Support() {
           <button
             onClick={handleSubmitTicket}
             disabled={loading || !subject.trim() || !message.trim() || !email.trim()}
-            className="w-full py-3 bg-[#FF3B3F] text-black text-sm rounded-lg font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition"
+            className="w-full py-3 bg-[#6F3FF5] text-white text-sm rounded-lg font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition"
           >
             {loading ? 'Sending...' : 'Send Message'}
           </button>
@@ -173,7 +173,7 @@ export default function Support() {
 
   return (
     <SettingsOptionSheet onClose={goBack}>
-      <div className="w-full h-full overflow-hidden bg-[#121215] flex flex-col">
+      <div className="w-full h-full overflow-hidden bg-[#09090B] flex flex-col">
         <header className="flex items-center justify-center mb-2 px-4 pt-2">
           <h1 className="font-bold text-lg text-[#F5F5F7]">Help &amp; Support</h1>
         </header>

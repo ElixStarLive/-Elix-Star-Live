@@ -157,8 +157,8 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
 
   if (isBlocked) {
     return (
-      <div className="page-above-bottom-nav bg-[#121215] text-white z-[10001]">
-        <div className="page-above-bottom-nav__inner bg-[#121215] flex flex-col">
+      <div className="page-above-bottom-nav bg-[#09090B] text-white z-[10001]">
+        <div className="page-above-bottom-nav__inner bg-[#09090B] flex flex-col">
           <header className="flex items-center justify-between px-4 pt-page-header pb-2 relative z-10">
             <div className="w-10" />
             <h3 className="text-[12px] font-bold text-gold-metallic">User Profile</h3>
@@ -192,8 +192,8 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
   }
 
   return (
-    <div className="page-above-bottom-nav bg-[#121215] text-white z-[10001]">
-      <div className="page-above-bottom-nav__inner bg-[#121215] flex flex-col">
+    <div className="page-above-bottom-nav bg-[#09090B] text-white z-[10001]">
+      <div className="page-above-bottom-nav__inner bg-[#09090B] flex flex-col">
         {/* Header — same full-screen shell as Profile page */}
         <header className="flex items-center justify-between px-4 pt-page-header pb-2 relative z-10 flex-shrink-0">
           <button
@@ -268,7 +268,7 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
                   ) : (
                     <button
                       onClick={onFollow}
-                      className="flex-1 h-9 flex items-center justify-center bg-[#FF3B3F] text-black rounded-xl font-semibold text-xs hover:bg-[#FF3B3F]/90 transition-colors"
+                      className="flex-1 h-9 flex items-center justify-center bg-[#6F3FF5] text-white rounded-xl font-semibold text-xs hover:bg-[#6F3FF5]/90 transition-colors"
                     >
                       Follow
                     </button>
@@ -334,7 +334,7 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
           {/* Video Feed */}
           <div className="mt-6 pt-4 border-t border-white/5">
             <div className="flex items-center gap-2 mb-3">
-              <div className="w-0.5 h-4 rounded-full bg-[#FF3B3F]/80" />
+              <div className="w-0.5 h-4 rounded-full bg-[#6F3FF5]/80" />
               <span className="text-sm font-semibold text-white/90">Videos</span>
             </div>
             {userVideos.length > 0 ? (

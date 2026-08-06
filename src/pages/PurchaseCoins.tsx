@@ -152,10 +152,10 @@ export default function PurchaseCoins() {
   };
 
   return (
-    <div className="h-full min-h-0 w-full bg-[#121215] text-white flex justify-center px-2">
-      <div className="w-full max-w-[480px] h-full min-h-0 flex flex-col overflow-hidden bg-[#121215]">
+    <div className="h-full min-h-0 w-full bg-[#09090B] text-white flex justify-center px-2">
+      <div className="w-full max-w-[480px] h-full min-h-0 flex flex-col overflow-hidden bg-[#09090B]">
         {/* Header */}
-        <div className="sticky top-0 bg-[#121215] z-10 px-4 py-4 border-b border-transparent flex items-center justify-between">
+        <div className="sticky top-0 bg-[#09090B] z-10 px-4 py-4 border-b border-transparent flex items-center justify-between">
           <button onClick={goFeed} className="p-2 hover:brightness-125 rounded-full transition" title="Back">
             <RoyceBackIcon />
           </button>
@@ -187,7 +187,7 @@ export default function PurchaseCoins() {
                   key={product.id}
                   onClick={() => handleNativePurchase(product)}
                   disabled={loading}
-                  className="w-full p-6 rounded-2xl transition relative overflow-hidden bg-white/5 border-2 border-transparent hover:border-[#E5E5E7]/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full p-6 rounded-2xl transition relative overflow-hidden bg-white/5 border-2 border-transparent hover:border-[#D8D9DD]/40 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <div className="flex items-center justify-between">
                     <div className="text-left">

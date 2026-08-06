@@ -211,7 +211,7 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
       </div>
 
       <div className="px-4 pb-2 flex-shrink-0">
-        <div className="flex items-center gap-2 px-3 py-2 rounded-full border border-[#E5E5E7]/25 bg-[#121215]">
+        <div className="flex items-center gap-2 px-3 py-2 rounded-full border border-[#D8D9DD]/25 bg-[#09090B]">
           <Search className="w-4 h-4 text-white/50 flex-shrink-0" strokeWidth={2} />
           <input
             type="search"
@@ -240,8 +240,8 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
                 }}
                 className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border pointer-events-auto ${
                   active
-                    ? 'bg-[#FF3B3F] border-[#E5E5E7] text-black'
-                    : 'border-[#E5E5E7]/35 text-white'
+                    ? 'bg-[#6F3FF5] border-[#D8D9DD] text-white'
+                    : 'border-[#D8D9DD]/35 text-white'
                 }`}
               >
                 {pl.name}
@@ -258,14 +258,14 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
             onClick={(e) => pickTrack(ORIGINAL_SOUND_TRACK, e)}
             className="w-full px-2 py-2.5 flex items-center gap-2 active:brightness-125 transition-colors text-left pointer-events-auto"
           >
-            <div className="w-10 h-10 rounded-md flex-shrink-0 bg-[#1F1F26] border border-[#E5E5E7]/20 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-md flex-shrink-0 bg-[#1F1F26] border border-[#D8D9DD]/20 flex items-center justify-center">
               <Music className="w-4 h-4 text-[#F5F5F7]" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-white text-sm font-medium">Original Sound</p>
               <p className="text-white/50 text-xs">Use mic audio from your clip</p>
             </div>
-            <span className="min-h-[32px] min-w-[48px] px-3 py-1.5 rounded-full bg-[#FF3B3F] text-black text-[10px] font-bold flex items-center justify-center">
+            <span className="min-h-[32px] min-w-[48px] px-3 py-1.5 rounded-full bg-[#6F3FF5] text-white text-[10px] font-bold flex items-center justify-center">
               Use
             </span>
           </button>
@@ -291,7 +291,7 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
               onClick={(e) => pickTrack(track, e)}
               title={`Use ${track.title}`}
             >
-              <div className="w-10 h-10 rounded-md overflow-hidden flex-shrink-0 bg-[#1F1F26] border border-[#E5E5E7]/20">
+              <div className="w-10 h-10 rounded-md overflow-hidden flex-shrink-0 bg-[#1F1F26] border border-[#D8D9DD]/20">
                 {track.coverUrl ? (
                   <img src={track.coverUrl} alt="" className="w-full h-full object-cover" draggable={false} />
                 ) : (
@@ -327,7 +327,7 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
               <button
                 type="button"
                 onClick={(e) => pickTrack(track, e)}
-                className="min-h-[32px] min-w-[48px] px-3 py-1.5 rounded-full bg-[#FF3B3F] text-black text-[10px] font-bold pointer-events-auto"
+                className="min-h-[32px] min-w-[48px] px-3 py-1.5 rounded-full bg-[#6F3FF5] text-white text-[10px] font-bold pointer-events-auto"
               >
                 Use
               </button>
@@ -355,7 +355,7 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
       }}
     >
       <div
-        className="bg-[#121215]/95 backdrop-blur-md w-full max-w-[480px] rounded-t-2xl overflow-hidden flex flex-col h-[70vh] max-h-[70dvh] shadow-2xl animate-in slide-in-from-bottom duration-300 pointer-events-auto"
+        className="bg-[#09090B]/95 backdrop-blur-md w-full max-w-[480px] rounded-t-2xl overflow-hidden flex flex-col h-[70vh] max-h-[70dvh] shadow-2xl animate-in slide-in-from-bottom duration-300 pointer-events-auto"
         onClick={(e) => e.stopPropagation()}
         onPointerDown={(e) => e.stopPropagation()}
       >

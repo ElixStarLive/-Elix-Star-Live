@@ -99,7 +99,7 @@ export const PremiumSidebarButton = ({
           className={`w-7 h-7 stroke-[2px] transition-all duration-200 ${
             isActive ? GOLD_ICON : 'text-gold-bright/60'
           }`}
-          style={isActive && !iconSrc ? { fill: '#E5E5E7' } : { fill: 'transparent' }}
+          style={isActive && !iconSrc ? { fill: '#D8D9DD' } : { fill: 'transparent' }}
         />
       )}
     </button>
@@ -910,7 +910,7 @@ export default function EnhancedVideoPlayer({
     >
       {/* Video Element - iPhone 14 Pro Max: 6.7" Super Retina XDR, 2796×1290, 19.5:9, ~460ppi */}
       <div
-        className="absolute inset-0 flex items-center justify-center bg-[#121215]"
+        className="absolute inset-0 flex items-center justify-center bg-[#09090B]"
         style={{ margin: 0, padding: 0, gap: 0 }}
       >
         <div className="w-full h-full" style={{ margin: 0, padding: 0 }}>
@@ -945,7 +945,7 @@ export default function EnhancedVideoPlayer({
             <div
               className={
                 duetLayoutMode === 'overlay'
-                  ? 'absolute bottom-3 right-3 z-[2] w-[34%] aspect-[9/16] rounded-xl overflow-hidden border-2 border-[#E5E5E7] shadow-lg bg-black'
+                  ? 'absolute bottom-3 right-3 z-[2] w-[34%] aspect-[9/16] rounded-xl overflow-hidden border-2 border-[#D8D9DD] shadow-lg bg-black'
                   : 'absolute right-0 top-0 w-1/2 h-full bg-black'
               }
               data-duet-pane="you"
@@ -984,12 +984,12 @@ export default function EnhancedVideoPlayer({
 
 
         {videoError && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#121215] z-10 gap-3">
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#09090B] z-10 gap-3">
             <span className="text-white/50 text-sm">Video processing...</span>
             <button
               type="button"
               onClick={retryVideoPlayback}
-              className="px-4 py-1.5 bg-[#FF3B3F]/20 border border-[#E5E5E7]/40 rounded-lg text-[#F5F5F7] text-xs font-medium"
+              className="px-4 py-1.5 bg-[#6F3FF5]/20 border border-[#D8D9DD]/40 rounded-lg text-[#F5F5F7] text-xs font-medium"
             >
               Tap to retry
             </button>
@@ -1049,7 +1049,7 @@ export default function EnhancedVideoPlayer({
             }
           >
             <div
-              className="h-full rounded-full bg-gradient-to-r from-[#E5E5E7] via-[#00c2be] to-[#E5E5E7] relative overflow-hidden"
+              className="h-full rounded-full bg-gradient-to-r from-[#D8D9DD] via-[#00c2be] to-[#D8D9DD] relative overflow-hidden"
               style={{
                 width: `${duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0}%`,
                 boxShadow: scrubbing ? '0 0 10px rgba(255,255,255,0.25)' : 'none',
@@ -1293,7 +1293,7 @@ export default function EnhancedVideoPlayer({
         <div className="fixed inset-0 z-modals flex items-end justify-center">
           <div className="absolute inset-0 pointer-events-auto" onClick={closeMoreMenu} />
           <div
-            className="bg-[#121215]/95 rounded-t-2xl max-h-[40dvh] flex flex-col shadow-2xl pointer-events-auto w-full max-w-[480px] relative z-10 bottom-sheet-above-nav"
+            className="bg-[#09090B]/95 rounded-t-2xl max-h-[40dvh] flex flex-col shadow-2xl pointer-events-auto w-full max-w-[480px] relative z-10 bottom-sheet-above-nav"
             style={{ boxShadow: '0 -4px 30px rgba(255,255,255,0.25)' }}
             onClick={(e) => e.stopPropagation()}
           >

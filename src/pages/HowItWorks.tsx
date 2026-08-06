@@ -30,7 +30,7 @@ export default function HowItWorks() {
 
   return (
     <SettingsOptionSheet onClose={goBack}>
-      <div className="w-full h-full overflow-hidden bg-[#121215] text-white flex flex-col">
+      <div className="w-full h-full overflow-hidden bg-[#09090B] text-white flex flex-col">
         <header className="flex items-center justify-center mb-3 px-4 pt-2">
           <h1 className="font-bold text-lg flex items-center gap-2">
             <BookOpen className="w-5 h-5 text-[#F5F5F7]" />
@@ -306,7 +306,7 @@ export default function HowItWorks() {
               <button
                 type="button"
                 onClick={goEngagement}
-                className="w-full py-3 bg-[#FF3B3F] text-black rounded-xl font-bold active:opacity-90 transition"
+                className="w-full py-3 bg-[#6F3FF5] text-white rounded-xl font-bold active:opacity-90 transition"
               >
                 Open Engagement Hub
               </button>

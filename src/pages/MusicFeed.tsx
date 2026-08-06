@@ -208,10 +208,10 @@ export default function MusicFeed() {
   }, [playingId]);
 
   return (
-    <div className="page-above-bottom-nav bg-[#121215] text-white">
+    <div className="page-above-bottom-nav bg-[#09090B] text-white">
       <audio ref={audioRef} preload="auto" onEnded={() => setPlayingId(null)} className="hidden" />
-      <div className="page-above-bottom-nav__inner bg-[#121215] flex flex-col min-h-0">
-        <div className="w-full shrink-0 bg-[#121215] z-10 border-b border-white/[0.06]">
+      <div className="page-above-bottom-nav__inner bg-[#09090B] flex flex-col min-h-0">
+        <div className="w-full shrink-0 bg-[#09090B] z-10 border-b border-white/[0.06]">
           <div className="px-3 pt-page-header pb-3 flex items-center justify-between relative">
             <button type="button" onClick={goSearch} className="p-1 z-10" aria-label="Search">
               <Search className="w-4 h-4 text-[#F5F5F7]" />
@@ -225,7 +225,7 @@ export default function MusicFeed() {
           </div>
 
           <div className="px-3 pb-3">
-            <div className="p-4 rounded-2xl bg-[#121215] flex gap-4 w-full">
+            <div className="p-4 rounded-2xl bg-[#09090B] flex gap-4 w-full">
               <div className="w-14 h-14 rounded-lg overflow-hidden flex items-center justify-center shrink-0 royce-tile bg-[#1F1F26]">
                 {selectedTrack?.coverUrl ? (
                   <img src={selectedTrack.coverUrl} alt="" className="w-full h-full object-cover" />
@@ -240,7 +240,7 @@ export default function MusicFeed() {
                   type="button"
                   disabled={!trackForSave}
                   onClick={toggleSaveTrack}
-                  className="bg-[#FF3B3F] text-black px-6 py-1.5 rounded-full font-semibold flex items-center gap-1.5 text-sm w-fit active:scale-95 transition-transform disabled:opacity-50"
+                  className="bg-[#6F3FF5] text-white px-6 py-1.5 rounded-full font-semibold flex items-center gap-1.5 text-sm w-fit active:scale-95 transition-transform disabled:opacity-50"
                 >
                   <Bookmark
                     size={12}
@@ -256,7 +256,7 @@ export default function MusicFeed() {
           {!songId ? (
             <>
               <div className="px-3 pb-2">
-                <div className="flex items-center gap-2 px-3 py-2 rounded-full border border-[#E5E5E7]/25 bg-[#121215]">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-full border border-[#D8D9DD]/25 bg-[#09090B]">
                   <Search className="w-4 h-4 text-white/50 flex-shrink-0" />
                   <input
                     type="search"
@@ -276,8 +276,8 @@ export default function MusicFeed() {
                       onClick={() => selectPlaylist(pl.id)}
                       className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border ${
                         pl.id === activePlaylistId
-                          ? 'bg-[#FF3B3F] border-[#E5E5E7] text-black'
-                          : 'border-[#E5E5E7]/35 text-white'
+                          ? 'bg-[#6F3FF5] border-[#D8D9DD] text-white'
+                          : 'border-[#D8D9DD]/35 text-white'
                       }`}
                     >
                       {pl.name}
@@ -289,12 +289,12 @@ export default function MusicFeed() {
           ) : null}
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto w-full bg-[#121215]">
+        <div className="flex-1 min-h-0 overflow-y-auto w-full bg-[#09090B]">
           {songId ? (
             <div className="grid grid-cols-3 gap-0.5 w-full">
               {videosLoading ? (
                 <div className="col-span-3 flex items-center justify-center min-h-[40vh]">
-                  <div className="w-8 h-8 border-2 border-[#E5E5E7] border-t-transparent rounded-full animate-spin" />
+                  <div className="w-8 h-8 border-2 border-[#D8D9DD] border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : videos.length === 0 ? (
                 <div className="col-span-3 flex flex-col items-center justify-center min-h-[40vh] text-center opacity-60 px-6">
@@ -305,7 +305,7 @@ export default function MusicFeed() {
                 videos.map((video) => (
                   <div
                     key={video.id}
-                    className="aspect-[3/4] bg-[#121215] relative cursor-pointer"
+                    className="aspect-[3/4] bg-[#09090B] relative cursor-pointer"
                     onClick={() => openVideoFromSound(video.id)}
                   >
                     <video
@@ -335,7 +335,7 @@ export default function MusicFeed() {
                     onClick={() => openTrack(track.id)}
                     className="flex items-center gap-2 flex-1 min-w-0 text-left"
                   >
-                    <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0 bg-[#1F1F26] border border-[#E5E5E7]/20">
+                    <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0 bg-[#1F1F26] border border-[#D8D9DD]/20">
                       {track.coverUrl ? (
                         <img src={track.coverUrl} alt="" className="w-full h-full object-cover" />
                       ) : (

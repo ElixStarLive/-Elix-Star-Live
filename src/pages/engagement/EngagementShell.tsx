@@ -21,10 +21,10 @@ export function EngagementShell({
   }, [navigate, backTo]);
 
   return (
-    <div className="page-above-bottom-nav bg-[#121215] text-white">
+    <div className="page-above-bottom-nav bg-[#09090B] text-white">
       <div className="page-above-bottom-nav__inner engagement-panel-writing">
         <div
-          className="w-full shrink-0 bg-[#121215] z-10"
+          className="w-full shrink-0 bg-[#09090B] z-10"
           style={{ paddingTop: "var(--topnav-anchor-top)" }}
         >
           <div

@@ -41,7 +41,7 @@ export function CyclingRankBadge({ onOpen, className = '', showChevron = true }:
   return (
     <button
       type="button"
-      className={`flex items-center gap-1 bg-black/75 rounded-full px-2.5 py-1 border border-[#E5E5E7]/80 shadow-[0_0_8px_rgba(229, 229, 231,0.35)] cursor-pointer active:scale-95 transition-transform ${className}`}
+      className={`flex items-center gap-1 bg-black/75 rounded-full px-2.5 py-1 border border-[#D8D9DD]/80 shadow-[0_0_8px_rgba(229, 229, 231,0.35)] cursor-pointer active:scale-95 transition-transform ${className}`}
       onClick={(e) => {
         e.stopPropagation();
         onOpen(slot.tab);

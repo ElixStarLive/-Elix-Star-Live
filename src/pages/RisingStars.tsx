@@ -136,10 +136,10 @@ export default function RisingStars() {
   };
 
   return (
-    <div className="page-above-bottom-nav bg-[#121215] text-white">
+    <div className="page-above-bottom-nav bg-[#09090B] text-white">
       <div className="page-above-bottom-nav__inner">
         <div
-          className="w-full shrink-0 bg-[#121215] z-10"
+          className="w-full shrink-0 bg-[#09090B] z-10"
           style={{ paddingTop: "var(--topnav-anchor-top)" }}
         >
           <div
@@ -166,7 +166,7 @@ export default function RisingStars() {
             </div>
           ) : (
             <>
-              <div className="rounded-2xl border border-[#E5E5E7]/30 bg-gradient-to-br from-[#1a1608] to-[#121215] p-4 mb-4">
+              <div className="rounded-2xl border border-[#D8D9DD]/30 bg-gradient-to-br from-[#1a1608] to-[#09090B] p-4 mb-4">
                 <div className="flex items-center gap-2 mb-1">
                   <Star className="w-4 h-4 text-[#F5F5F7]" />
                   <span className="text-xs uppercase tracking-wide text-[#F5F5F7]">
@@ -189,7 +189,7 @@ export default function RisingStars() {
                   onClick={() => setCategoryId("")}
                   className={`shrink-0 px-3 py-1.5 rounded-full text-xs border ${
                     !categoryId
-                      ? "bg-[#FF3B3F] text-black border-[#E5E5E7]"
+                      ? "bg-[#6F3FF5] text-white border-[#D8D9DD]"
                       : "border-white/20 text-white/70"
                   }`}
                 >
@@ -202,7 +202,7 @@ export default function RisingStars() {
                     onClick={() => setCategoryId(c.id)}
                     className={`shrink-0 px-3 py-1.5 rounded-full text-xs border ${
                       categoryId === c.id
-                        ? "bg-[#FF3B3F] text-black border-[#E5E5E7]"
+                        ? "bg-[#6F3FF5] text-white border-[#D8D9DD]"
                         : "border-white/20 text-white/70"
                     }`}
                   >
@@ -254,7 +254,7 @@ export default function RisingStars() {
                     type="button"
                     onClick={() => setTab(id)}
                     className={`flex-1 py-2 rounded-xl text-xs font-medium ${
-                      tab === id ? "bg-[#FF3B3F] text-black" : "bg-white/10 text-white/70"
+                      tab === id ? "bg-[#6F3FF5] text-white" : "bg-white/10 text-white/70"
                     }`}
                   >
                     {label}
@@ -276,7 +276,7 @@ export default function RisingStars() {
                         onClick={() => openChallenge(ch.id)}
                         className="w-full text-left rounded-xl border border-white/10 bg-white/5 p-3 flex items-center gap-3"
                       >
-                        <div className="w-10 h-10 rounded-full bg-[#FF3B3F]/15 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-full bg-[#6F3FF5]/15 flex items-center justify-center">
                           <Music className="w-5 h-5 text-[#F5F5F7]" />
                         </div>
                         <div className="flex-1 min-w-0">

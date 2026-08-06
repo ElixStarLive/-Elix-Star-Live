@@ -246,12 +246,12 @@ export default function Discover() {
   }, [navigate]);
 
   return (
-    <div ref={pageRef} className="page-above-bottom-nav bg-[#121215] text-white relative">
+    <div ref={pageRef} className="page-above-bottom-nav bg-[#09090B] text-white relative">
       <div className="page-above-bottom-nav__inner">
 
         {/* Strip chrome (Search / Explore / Back) + circles — comes down together, not over content */}
         <div
-          className="w-full shrink-0 z-10 bg-[#121215]"
+          className="w-full shrink-0 z-10 bg-[#09090B]"
           style={{ paddingTop: 'var(--topnav-anchor-top)' }}
         >
           <FeedStoryCirclesOverlay
@@ -264,7 +264,7 @@ export default function Discover() {
           />
 
           {/* Search Bar */}
-          <div className="w-full px-3 mb-1.5 box-border bg-[#121215]">
+          <div className="w-full px-3 mb-1.5 box-border bg-[#09090B]">
             <div className="w-full flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2 border border-white/10">
               <Search className="w-3.5 h-3.5 text-[#F5F5F7]/50 shrink-0" />
               <input
@@ -279,7 +279,7 @@ export default function Discover() {
                 className="flex-1 min-w-0 bg-transparent outline-none text-[13px] text-gold-metallic placeholder-[#FFFFFF]/30"
               />
               {searchQuery && (
-                <button onClick={clearSearchQuery} className="p-0.5 rounded-full bg-[#121215] border border-white/15 shrink-0" title="Clear">
+                <button onClick={clearSearchQuery} className="p-0.5 rounded-full bg-[#09090B] border border-white/15 shrink-0" title="Clear">
                   <span className="text-white/50 text-xs leading-none px-1">✕</span>
                 </button>
               )}
@@ -304,12 +304,12 @@ export default function Discover() {
         </div>
 
         {/* ═══ CONTENT — full width, no card chrome on trending feed ═══ */}
-        <div className="flex-1 min-h-0 overflow-y-auto w-full bg-[#121215] pb-24">
+        <div className="flex-1 min-h-0 overflow-y-auto w-full bg-[#09090B] pb-24">
 
           {/* Loading */}
           {loading && (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
-              <div className="w-7 h-7 border-2 border-[#E5E5E7]/20 border-t-[#FFFFFF] rounded-full animate-spin" />
+              <div className="w-7 h-7 border-2 border-[#D8D9DD]/20 border-t-[#FFFFFF] rounded-full animate-spin" />
               <p className="text-white/30 text-xs">Loading...</p>
             </div>
           )}
@@ -583,7 +583,7 @@ function VideoThumbnail({ video, variant = 'grid' }: { video: Video; variant?: '
     <div
       ref={containerRef}
       className={`relative overflow-hidden w-full ${
-        feed ? 'h-full min-h-0 rounded-none border-0 bg-black' : 'aspect-[9/16] rounded-xl bg-[#121215] border border-white/10'
+        feed ? 'h-full min-h-0 rounded-none border-0 bg-black' : 'aspect-[9/16] rounded-xl bg-[#09090B] border border-white/10'
       }`}
     >
       <div
@@ -695,7 +695,7 @@ function UserSearchResult({ user }: { user: User }) {
       </div>
       <span
         onClick={handleFollow}
-        className={`px-3.5 py-1.5 rounded-lg font-bold text-[11px] ${followed ? 'bg-white/10 text-white/60' : 'bg-[#FF3B3F] text-black'}`}
+        className={`px-3.5 py-1.5 rounded-lg font-bold text-[11px] ${followed ? 'bg-white/10 text-white/60' : 'bg-[#6F3FF5] text-white'}`}
       >
         {followed ? 'Following' : 'Follow'}
       </span>
@@ -716,7 +716,7 @@ function HashtagItem({ hashtag, index }: { hashtag: Hashtag; index: number }) {
       onClick={openHashtag}
       className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition text-left"
     >
-      <div className="w-9 h-9 bg-[#FF3B3F]/10 rounded-xl flex items-center justify-center shrink-0">
+      <div className="w-9 h-9 bg-[#6F3FF5]/10 rounded-xl flex items-center justify-center shrink-0">
         <Hash className="w-4 h-4 text-[#F5F5F7]" />
       </div>
       <div className="flex-1 min-w-0">

@@ -249,7 +249,7 @@ export default function AdminProgression() {
     "bg-[#0f1218] border border-white/10 rounded-lg px-3 py-2 text-sm text-white";
 
   return (
-    <div className="min-h-screen bg-[#121215] text-white p-6">
+    <div className="min-h-screen bg-[#09090B] text-white p-6">
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -265,7 +265,7 @@ export default function AdminProgression() {
           </button>
         </div>
 
-        <section className="rounded-xl border border-[#E5E5E7]/25 bg-[#FF3B3F]/5 p-4 mb-6 text-sm text-white/70">
+        <section className="rounded-xl border border-[#D8D9DD]/25 bg-[#6F3FF5]/5 p-4 mb-6 text-sm text-white/70">
           <p className="font-semibold text-[#F5F5F7] mb-1">Engagement Phase 1 + 1.5 (live)</p>
           <p className="mb-2">
             Migrations through{" "}
@@ -484,7 +484,7 @@ export default function AdminProgression() {
                   <button
                     type="button"
                     disabled={busy}
-                    className="ml-auto px-3 py-1.5 rounded-lg bg-[#FF3B3F] text-black text-xs font-semibold disabled:opacity-40"
+                    className="ml-auto px-3 py-1.5 rounded-lg bg-[#6F3FF5] text-white text-xs font-semibold disabled:opacity-40"
                     onClick={() => {
                       void (async () => {
                         setBusy(true);
@@ -761,7 +761,7 @@ export default function AdminProgression() {
           <button
             type="button"
             disabled={busy}
-            className="px-3 py-2 rounded-lg bg-[#FF3B3F] text-black text-xs font-semibold disabled:opacity-40"
+            className="px-3 py-2 rounded-lg bg-[#6F3FF5] text-white text-xs font-semibold disabled:opacity-40"
             onClick={() => {
               void (async () => {
                 setBusy(true);
@@ -829,7 +829,7 @@ export default function AdminProgression() {
                   type="button"
                   disabled={busy}
                   onClick={() => void saveConfig(row)}
-                  className="py-2 rounded-lg bg-[#FF3B3F] text-black text-xs font-semibold disabled:opacity-40"
+                  className="py-2 rounded-lg bg-[#6F3FF5] text-white text-xs font-semibold disabled:opacity-40"
                 >
                   Save
                 </button>
@@ -978,7 +978,7 @@ export default function AdminProgression() {
                   type="button"
                   disabled={busy}
                   onClick={() => void adjust("starter")}
-                  className="px-3 rounded-lg bg-[#FF3B3F] text-black text-xs font-semibold disabled:opacity-40"
+                  className="px-3 rounded-lg bg-[#6F3FF5] text-white text-xs font-semibold disabled:opacity-40"
                 >
                   Adjust Starter
                 </button>

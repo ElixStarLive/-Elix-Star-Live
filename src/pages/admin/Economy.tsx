@@ -81,11 +81,11 @@ export default function AdminEconomy() {
   };
 
   if (loading) {
-    return <div className="min-h-screen bg-[#121215] flex items-center justify-center text-white">Loading...</div>;
+    return <div className="min-h-screen bg-[#09090B] flex items-center justify-center text-white">Loading...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-[#121215] text-white p-6">
+    <div className="min-h-screen bg-[#09090B] text-white p-6">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold mb-8 flex items-center gap-3">
           <DollarSign className="w-8 h-8 text-white" />
@@ -98,7 +98,7 @@ export default function AdminEconomy() {
             <Package className="w-6 h-6 text-white" />
             Coin Packages ({packages.length})
           </h2>
-          <div className="bg-[#121215] rounded-lg overflow-hidden">
+          <div className="bg-[#09090B] rounded-lg overflow-hidden">
             {packages.length === 0 ? (
               <p className="text-gray-400 p-6">No coin packages found in coin_packages.</p>
             ) : (
@@ -132,7 +132,7 @@ export default function AdminEconomy() {
             <Gift className="w-6 h-6 text-pink-500" />
             Gifts Catalog ({gifts.length})
           </h2>
-          <div className="bg-[#121215] rounded-lg overflow-hidden">
+          <div className="bg-[#09090B] rounded-lg overflow-hidden">
             <table className="w-full">
               <thead className="bg-[#2A2D35]">
                 <tr>
@@ -154,7 +154,7 @@ export default function AdminEconomy() {
                     <td className="px-4 py-3">
                       <span
                         className={`px-2 py-1 rounded text-xs ${
-                          gift.is_active ? 'bg-[#FF3B3F]' : 'bg-[#2A2D35]'
+                          gift.is_active ? 'bg-[#6F3FF5]' : 'bg-[#2A2D35]'
                         }`}
                       >
                         {gift.is_active ? 'Active' : 'Inactive'}
@@ -170,7 +170,7 @@ export default function AdminEconomy() {
                             updateGiftPrice(gift.id, parsed);
                           }
                         }}
-                        className="px-3 py-1 bg-[#FF3B3F] text-black rounded hover:bg-[#FF3B3F]/90 text-sm"
+                        className="px-3 py-1 bg-[#6F3FF5] text-white rounded hover:bg-[#6F3FF5]/90 text-sm"
                       >
                         Edit Price
                       </button>
@@ -188,7 +188,7 @@ export default function AdminEconomy() {
             <Zap className="w-6 h-6 text-white" />
             Boosters Catalog ({boosters.length})
           </h2>
-          <div className="bg-[#121215] rounded-lg overflow-hidden">
+          <div className="bg-[#09090B] rounded-lg overflow-hidden">
             <table className="w-full">
               <thead className="bg-[#2A2D35]">
                 <tr>
@@ -207,7 +207,7 @@ export default function AdminEconomy() {
                     <td className="px-4 py-3">
                       <span
                         className={`px-2 py-1 rounded text-xs ${
-                          booster.is_active ? 'bg-[#FF3B3F]' : 'bg-[#2A2D35]'
+                          booster.is_active ? 'bg-[#6F3FF5]' : 'bg-[#2A2D35]'
                         }`}
                       >
                         {booster.is_active ? 'Active' : 'Inactive'}

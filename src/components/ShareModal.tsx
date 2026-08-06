@@ -179,7 +179,7 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
       onClick={onClose}
     >
       <div
-        className="bg-[#121215]/95 backdrop-blur-md w-full max-w-[480px] rounded-t-2xl overflow-hidden flex flex-col h-[calc(38vh-13mm)] shadow-2xl"
+        className="bg-[#09090B]/95 backdrop-blur-md w-full max-w-[480px] rounded-t-2xl overflow-hidden flex flex-col h-[calc(38vh-13mm)] shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-center px-4 pt-0.5 pb-0.5">
@@ -187,7 +187,7 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
         </div>
         <div className="flex items-center justify-between gap-2 px-4 pb-0.5 flex-shrink-0">
           <h3 className="text-[#F5F5F7] font-bold whitespace-nowrap text-sm">Share to</h3>
-          <div className="flex-none w-[120px] bg-white/5 rounded-lg px-2 py-0.5 flex items-center gap-2 border border-[#E5E5E7]/35">
+          <div className="flex-none w-[120px] bg-white/5 rounded-lg px-2 py-0.5 flex items-center gap-2 border border-[#D8D9DD]/35">
             <Search className="w-3.5 h-3.5 text-[#F5F5F7]" />
             <input
               value={shareQuery}
@@ -226,10 +226,10 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
         </div>
 
         {/* Line between user circles and action icons */}
-        <div className="mx-4 border-t border-[#E5E5E7]/45 flex-shrink-0" aria-hidden />
+        <div className="mx-4 border-t border-[#D8D9DD]/45 flex-shrink-0" aria-hidden />
 
         {/* Action icons flush under the line */}
-        <div className="flex-1 overflow-y-scroll overflow-x-hidden min-h-0 px-4 pb-2 flex flex-col [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#FF3B3F]/60 [&::-webkit-scrollbar-thumb]:rounded-full" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.25) transparent' }}>
+        <div className="flex-1 overflow-y-scroll overflow-x-hidden min-h-0 px-4 pb-2 flex flex-col [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#6F3FF5]/60 [&::-webkit-scrollbar-thumb]:rounded-full" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.25) transparent' }}>
           {showQrCode && (
             <div className="pt-2 pb-3 flex flex-col items-center gap-2 border-b border-white/10 mb-2">
               <div className="flex items-center justify-between w-full">

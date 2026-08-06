@@ -66,7 +66,7 @@ export default function EngagementDailyLogin() {
           <span className="elix-silver-red-text opacity-50">Loading...</span>
         </div>
       ) : (
-        <div className="rounded-2xl border border-[#E5E5E7]/30 bg-gradient-to-br from-[#1a1608] to-[#121215] p-4">
+        <div className="rounded-2xl border border-[#D8D9DD]/30 bg-gradient-to-br from-[#1a1608] to-[#09090B] p-4">
           <p className="text-xs uppercase tracking-wide mb-1">
             <span className="elix-silver-red-text">7-day streak</span>
           </p>

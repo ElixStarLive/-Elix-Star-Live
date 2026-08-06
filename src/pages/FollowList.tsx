@@ -116,7 +116,7 @@ export default function FollowList() {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-[#121215] flex flex-col max-w-[480px] mx-auto">
+    <div className="fixed inset-0 z-[100] bg-[#09090B] flex flex-col max-w-[480px] mx-auto">
       <div className="flex items-center justify-between px-3 pt-[max(12px,env(safe-area-inset-top))] pb-2">
         <button type="button" onClick={goBack} aria-label="Back">
           <RoyceBackIcon />
@@ -129,7 +129,7 @@ export default function FollowList() {
       <div className="flex-1 overflow-y-auto px-4 pb-8">
         {loading ? (
           <div className="flex justify-center py-10">
-            <div className="w-6 h-6 border-2 border-[#E5E5E7] border-t-transparent rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-[#D8D9DD] border-t-transparent rounded-full animate-spin" />
           </div>
         ) : people.length === 0 ? (
           <p className="text-white/40 text-sm text-center py-10">
@@ -161,7 +161,7 @@ export default function FollowList() {
                       className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold active:scale-95 ${
                         following
                           ? 'bg-white/10 text-white border border-white/15'
-                          : 'bg-[#FF3B3F] text-black'
+                          : 'bg-[#6F3FF5] text-white'
                       }`}
                     >
                       {following ? 'Following' : 'Follow'}

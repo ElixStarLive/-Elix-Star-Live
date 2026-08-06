@@ -7,8 +7,8 @@ export default function LegalAudio() {
   const goBack = useCallback(() => navigate(-1), [navigate]);
 
   return (
-    <div className="bg-[#121215] text-white flex justify-center px-2">
-      <div className="w-full max-w-[480px] rounded-3xl overflow-hidden bg-[#121215] flex flex-col overflow-y-auto p-4 pb-20">
+    <div className="bg-[#09090B] text-white flex justify-center px-2">
+      <div className="w-full max-w-[480px] rounded-3xl overflow-hidden bg-[#09090B] flex flex-col overflow-y-auto p-4 pb-20">
         <header className="flex items-center justify-between mb-4">
           <button onClick={goBack} aria-label="Back" title="Back">
             <RoyceBackIcon />

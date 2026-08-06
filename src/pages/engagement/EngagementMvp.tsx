@@ -73,7 +73,7 @@ export default function EngagementMvp() {
                 key={`${r.rank}-${r.user_id}`}
                 className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 ${
                   mine
-                    ? "border-[#E5E5E7]/40 bg-white/[0.04]"
+                    ? "border-[#D8D9DD]/40 bg-white/[0.04]"
                     : "border-white/10 bg-white/[0.03]"
                 }`}
               >

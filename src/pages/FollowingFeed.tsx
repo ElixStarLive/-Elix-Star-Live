@@ -111,7 +111,7 @@ export default function FollowingFeed() {
 
           {loading && friendVideoIds.length === 0 && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-8 h-8 border-2 border-[#E5E5E7] border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-2 border-[#D8D9DD] border-t-transparent rounded-full animate-spin" />
             </div>
           )}
 
@@ -121,7 +121,7 @@ export default function FollowingFeed() {
               <p className="text-xs text-white/30 mb-4">Follow people to see their videos here</p>
               <button
                 onClick={goDiscover}
-                className="px-5 py-2 bg-[#FF3B3F] text-black rounded-full text-sm font-bold"
+                className="px-5 py-2 bg-[#6F3FF5] text-white rounded-full text-sm font-bold"
               >
                 Discover people
               </button>

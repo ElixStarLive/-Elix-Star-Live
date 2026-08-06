@@ -37,34 +37,40 @@
 
 @layer base {
   :root {
-    /* Black + Silver + Red */
-    --color-primary: #FF3B3F;
-    --color-secondary: #E5E5E7;
-    --color-gold: #E5E5E7;
-    --color-gold-bright: #F5F5F7;
-    --color-gold-light: #C9CCD1;
+    /* Obsidian + Platinum silver + Royal Violet accents */
+    --color-primary: #6F3FF5;
+    --color-secondary: #D8D9DD;
+    --color-gold: #D8D9DD;
+    --color-gold-bright: #FFFFFF;
+    --color-gold-light: #B7BDC8;
     --color-gold-dark: #8B9098;
-    --color-gold-premium: #F5F5F7;
-    --color-rose: #FF3B3F;
-    --color-purple-bright: #E5E5E7;
+    --color-gold-premium: #D8D9DD;
+    --color-rose: #6F3FF5;
+    --color-purple-bright: #8B5CFF;
+    --color-purple: #6F3FF5;
+    --color-purple-hover: #8B5CFF;
+    --color-purple-pressed: #5B2ED6;
     --color-coin: #D9A62E;
-    --color-hover-red: #FF5A5F;
-    --color-deep-red: #D91F2D;
-    --color-dark-red: #B3131B;
-    --color-background: #121215;
-    --color-surface: #121215;
-    --color-card: #121215;
-    --color-card-elevated: #121215;
-    --color-border: #2A2A31;
+    --color-hover-red: #8B5CFF;
+    --color-deep-red: #5B2ED6;
+    --color-dark-red: #5B2ED6;
+    --color-hover-purple: #8B5CFF;
+    --color-pressed-purple: #5B2ED6;
+    --color-background: #09090B;
+    --color-surface: #121317;
+    --color-card: #1B1E24;
+    --color-card-elevated: #242832;
+    --color-border: #313845;
     --color-text: #FFFFFF;
-    --color-text-muted: #A7A7AD;
+    --color-text-muted: #B7BDC8;
     --color-text-disabled: #707070;
-    --color-live: #FF3B3F;
+    --color-live: #6F3FF5;
     --color-success: #22C55E;
-    --color-accent-blue: #C9CCD1;
-    --color-accent-blue-light: #E5E5E7;
+    --color-accent-blue: #B7BDC8;
+    --color-accent-blue-light: #D8D9DD;
     --color-glass-bg: rgba(255, 255, 255, 0.04);
     --color-glass-border: rgba(255, 255, 255, 0.08);
+    --color-destructive: #D91F2D;
     --shadow-luxury: 0 12px 40px rgba(0, 0, 0, 0.45);
     --radius-sm: 10px;
     --radius-md: 12px;
@@ -922,16 +928,16 @@ video::-webkit-media-controls-overlay-enclosure,
 }
 
 .text-gold-metallic {
-  background-image: var(--elix-write, linear-gradient(90deg, #e5e5e7 0%, #e5e5e7 45%, #ff3b3f 55%, #ff3b3f 100%));
+  background-image: var(--elix-write, linear-gradient(90deg, #d8d9dd 0%, #d8d9dd 45%, #6f3ff5 55%, #6f3ff5 100%));
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   color: transparent;
 }
 
-/* ═══ GLOBAL: all writing = silver → red (POST · CREATE · LIVE) ═══ */
+/* ═══ GLOBAL: all writing = silver → violet (POST · CREATE · LIVE) ═══ */
 #root {
-  --elix-write: linear-gradient(90deg, #e5e5e7 0%, #e5e5e7 45%, #ff3b3f 55%, #ff3b3f 100%);
+  --elix-write: linear-gradient(90deg, #d8d9dd 0%, #d8d9dd 45%, #6f3ff5 55%, #6f3ff5 100%);
 }
 
 /* Shrink-wrap gradient to glyphs — never stretch across flex-1 empty space */
@@ -952,9 +958,9 @@ video::-webkit-media-controls-overlay-enclosure,
 #root button > :where(span, p, label, strong, em, b, small),
 #root [class*='text-white'],
 #root [class*='text-gold'],
-#root [class*='text-[#F5F5F7]'],
 #root [class*='text-[#FFFFFF]'],
-#root [class*='text-[#E5E5E7]'],
+#root [class*='text-[#FFFFFF]'],
+#root [class*='text-[#D8D9DD]'],
 #root [class*='text-[#A7A7AD]'] {
   background-image: var(--elix-write);
   -webkit-background-clip: text;
@@ -965,16 +971,18 @@ video::-webkit-media-controls-overlay-enclosure,
 
 /*
  * GLOBAL: no solid red press / select fills.
- * Solid bg-[#FF3B3F] buttons -> transparent; text children keep silver-red.
- * Opt out with .elix-solid-red (Follow / Join capsules).
+ * Solid bg-[#6F3FF5] / bg-primary buttons -> transparent; text children keep silver-violet.
+ * Opt out with .elix-solid-red / .elix-solid-accent (Follow / Join / Live capsules).
  */
-#root :is(button, a, [role='button'])[class*='bg-[#FF3B3F]']:not([class*='bg-[#FF3B3F]/']):not(.elix-solid-red) {
+#root :is(button, a, [role='button'])[class*='bg-[#6F3FF5]']:not([class*='bg-[#6F3FF5]/']):not(.elix-solid-red):not(.elix-solid-accent),
+#root :is(button, a, [role='button']).bg-primary:not(.elix-solid-red):not(.elix-solid-accent) {
   background-color: transparent !important;
   background-image: none !important;
   border-color: rgba(255, 255, 255, 0.28) !important;
   box-shadow: none !important;
 }
-#root :is(button, a, [role='button'])[class*='bg-[#FF3B3F]']:not([class*='bg-[#FF3B3F]/']):not(.elix-solid-red) :where(span, p, small, strong, b, label) {
+#root :is(button, a, [role='button'])[class*='bg-[#6F3FF5]']:not([class*='bg-[#6F3FF5]/']):not(.elix-solid-red):not(.elix-solid-accent) :where(span, p, small, strong, b, label),
+#root :is(button, a, [role='button']).bg-primary:not(.elix-solid-red):not(.elix-solid-accent) :where(span, p, small, strong, b, label) {
   background-image: var(--elix-write) !important;
   -webkit-background-clip: text !important;
   background-clip: text !important;
@@ -982,28 +990,53 @@ video::-webkit-media-controls-overlay-enclosure,
   color: transparent !important;
 }
 
-/* Soft red / selected tints — strip the red wash, keep writing */
-#root :is(button, a, [role='button'])[class*='bg-[#FF3B3F]/'],
-#root :is(button, a, [role='button'])[class*='hover:bg-[#FF3B3F]'],
-#root :is(button, a, [role='button'])[class*='active:bg-[#FF3B3F]'] {
+/* Soft accent / selected tints — strip the wash, keep writing */
+#root :is(button, a, [role='button'])[class*='bg-[#6F3FF5]/'],
+#root :is(button, a, [role='button'])[class*='hover:bg-[#6F3FF5]'],
+#root :is(button, a, [role='button'])[class*='active:bg-[#6F3FF5]'],
+#root :is(button, a, [role='button'])[class*='bg-[#6F3FF5]/'] {
   background-color: transparent !important;
   box-shadow: none !important;
 }
 
-/* Red / gold chip borders on press — kill them; writing is the only signal */
-#root :is(button, a, [role='button'])[class*='border-[#FF3B3F]'],
-#root :is(button, a, [role='button'])[class*='border-[#E5E5E7]'],
+/* Interactive solid accent capsules (Follow / Join / Live) */
+#root :is(button, a, [role='button']).elix-solid-red,
+#root :is(button, a, [role='button']).elix-solid-accent {
+  background-color: var(--color-primary) !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+#root :is(button, a, [role='button']).elix-solid-red:hover,
+#root :is(button, a, [role='button']).elix-solid-accent:hover {
+  background-color: var(--color-purple-hover) !important;
+}
+#root :is(button, a, [role='button']).elix-solid-red:active,
+#root :is(button, a, [role='button']).elix-solid-accent:active {
+  background-color: var(--color-purple-pressed) !important;
+}
+#root :is(button, a, [role='button']).elix-solid-red :where(span, p, small, strong, b, label),
+#root :is(button, a, [role='button']).elix-solid-accent :where(span, p, small, strong, b, label) {
+  background-image: none !important;
+  -webkit-text-fill-color: #ffffff !important;
+  color: #ffffff !important;
+}
+
+/* Accent / silver chip borders on press — kill them; writing is the only signal */
+#root :is(button, a, [role='button'])[class*='border-[#6F3FF5]'],
+#root :is(button, a, [role='button'])[class*='border-[#D8D9DD]'],
+#root :is(button, a, [role='button'])[class*='border-[#6F3FF5]'],
 #root :is(button, a, [role='button'])[class*='border-red'] {
   border-color: transparent !important;
   box-shadow: none !important;
   outline: none !important;
 }
 
-/* Active / pressed: no fill chrome — writing stays silver-red */
+/* Active / pressed: no fill chrome — writing stays silver-violet */
 #root :is(button, a, [role='button']).elix-chip-active,
 #root :is(button, a, [role='button'])[aria-pressed='true'],
 #root :is(button, a, [role='button'])[aria-current='true'],
-#root :is(button, a, [role='button']):active:not(.elix-solid-red) {
+#root :is(button, a, [role='button']):active:not(.elix-solid-red):not(.elix-solid-accent) {
   background-color: transparent !important;
   box-shadow: none !important;
   outline: none !important;
@@ -1015,8 +1048,8 @@ video::-webkit-media-controls-overlay-enclosure,
   background-image: none !important;
   -webkit-background-clip: unset !important;
   background-clip: unset !important;
-  -webkit-text-fill-color: #f5f5f7 !important;
-  color: #f5f5f7 !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  color: #FFFFFF !important;
 }
 
 /* SVG / icons keep strokes */
@@ -1044,7 +1077,7 @@ video::-webkit-media-controls-overlay-enclosure,
 #root .engagement-panel-writing :where(h1, h2, h3, h4, p, label, small, strong, em, b, li),
 #root .engagement-panel-writing button > :where(span:not(:has(svg))),
 #root .engagement-panel-writing [class*="text-white"],
-#root .engagement-panel-writing [class*="text-[#F5F5F7]"] {
+#root .engagement-panel-writing [class*="text-[#FFFFFF]"] {
   background-image: var(--elix-write) !important;
   -webkit-background-clip: text !important;
   background-clip: text !important;
@@ -1062,18 +1095,20 @@ video::-webkit-media-controls-overlay-enclosure,
   -webkit-text-fill-color: unset !important;
 }
 
-/* Kept solid red fills (shutter / follow / join) — readable dark text */
+/* Kept solid accent fills (Follow / Join / Live) — white text on violet */
 #root .elix-solid-red,
-#root .elix-solid-red :where(span, p, small, strong, b, label) {
+#root .elix-solid-accent,
+#root .elix-solid-red :where(span, p, small, strong, b, label),
+#root .elix-solid-accent :where(span, p, small, strong, b, label) {
   background-image: none !important;
   -webkit-background-clip: unset !important;
   background-clip: unset !important;
-  -webkit-text-fill-color: #121215 !important;
-  color: #121215 !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  color: #FFFFFF !important;
 }
 
 .stroke-gold-metallic {
-  color: #e5e5e7;
+  color: #D8D9DD;
   filter: none;
 }
 
@@ -1155,7 +1190,7 @@ nav[aria-label="Main navigation"] .royce-glow-disc::before {
   border-radius: inherit;
   padding: 2px;
   box-sizing: border-box;
-  background: linear-gradient(135deg, #E5E5E7 0%, #E5E5E7 50%, #FF3B3F 50%, #FF3B3F 100%);
+  background: linear-gradient(135deg, #D8D9DD 0%, #D8D9DD 50%, #6F3FF5 50%, #6F3FF5 100%);
   -webkit-mask:
     linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
@@ -1205,7 +1240,7 @@ nav[aria-label="Main navigation"] .royce-glow-disc::before {
   justify-content: center;
   flex-shrink: 0;
   box-sizing: border-box;
-  background: #121215;
+  background: #09090B;
   overflow: visible;
 }
 .profile-add-story-btn::before {
@@ -1215,7 +1250,7 @@ nav[aria-label="Main navigation"] .royce-glow-disc::before {
   border-radius: inherit;
   padding: 2px;
   box-sizing: border-box;
-  background: linear-gradient(135deg, #E5E5E7 0%, #E5E5E7 50%, #FF3B3F 50%, #FF3B3F 100%);
+  background: linear-gradient(135deg, #D8D9DD 0%, #D8D9DD 50%, #6F3FF5 50%, #6F3FF5 100%);
   -webkit-mask:
     linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
@@ -1232,7 +1267,7 @@ nav[aria-label="Main navigation"] .royce-glow-disc::before {
   font-weight: 800;
   line-height: 1;
   width: max-content;
-  background: linear-gradient(90deg, #E5E5E7 0%, #E5E5E7 42%, #FF3B3F 58%, #FF3B3F 100%);
+  background: linear-gradient(90deg, #D8D9DD 0%, #D8D9DD 42%, #6F3FF5 58%, #6F3FF5 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -1252,7 +1287,7 @@ nav[aria-label="Main navigation"] .royce-glow-disc::before {
 
 /* Icon line — diagonal half silver / half red (same colors, no glow) */
 svg.lucide {
-  color: #E5E5E7 !important;
+  color: #D8D9DD !important;
   stroke: url(#elixSilverRed) !important;
   stroke-width: 2;
   fill: none !important;
@@ -1268,9 +1303,9 @@ svg.lucide[fill]:not([fill="none"]):not(.fill-red-500):not(.fill-silver-full) {
 
 svg.lucide.fill-red-500,
 svg.lucide.text-red-500 {
-  color: #FF3B3F !important;
-  fill: #FF3B3F !important;
-  stroke: #FF3B3F !important;
+  color: #6F3FF5 !important;
+  fill: #6F3FF5 !important;
+  stroke: #6F3FF5 !important;
   filter: none !important;
 }
 
@@ -1278,9 +1313,9 @@ svg.lucide.text-red-500 {
 svg.lucide.fill-silver-full,
 .royce-icon-gold.fill-silver-full,
 svg.lucide.fill-silver-full.royce-icon-gold {
-  color: #E5E5E7 !important;
-  fill: #E5E5E7 !important;
-  stroke: #E5E5E7 !important;
+  color: #D8D9DD !important;
+  fill: #D8D9DD !important;
+  stroke: #D8D9DD !important;
   filter: none !important;
 }
 
@@ -1288,7 +1323,7 @@ svg.lucide.fill-silver-full.royce-icon-gold {
 .bottom-nav-icon,
 .royce-icon-muted,
 .stroke-gold-metallic {
-  color: #E5E5E7 !important;
+  color: #D8D9DD !important;
   stroke: url(#elixSilverRed) !important;
   fill: none !important;
 }

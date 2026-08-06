@@ -170,10 +170,10 @@ export default function RisingStarsChallenge() {
   }, [challengeId, challenge?.title]);
 
   return (
-    <div className="page-above-bottom-nav bg-[#121215] text-white">
+    <div className="page-above-bottom-nav bg-[#09090B] text-white">
       <div className="page-above-bottom-nav__inner">
         <div
-          className="w-full shrink-0 bg-[#121215] z-10"
+          className="w-full shrink-0 bg-[#09090B] z-10"
           style={{ paddingTop: "var(--topnav-anchor-top)" }}
         >
           <div
@@ -232,7 +232,7 @@ export default function RisingStarsChallenge() {
               </div>
 
               {user && ["open", "voting"].includes(challenge.status) && (
-                <div className="rounded-2xl border border-[#E5E5E7]/25 bg-[#1a1608] p-4 mb-4">
+                <div className="rounded-2xl border border-[#D8D9DD]/25 bg-[#1a1608] p-4 mb-4">
                   <div className="flex items-center gap-2 mb-2">
                     <Video className="w-4 h-4 text-[#F5F5F7]" />
                     <span className="text-sm font-semibold">Enter with your video</span>
@@ -243,7 +243,7 @@ export default function RisingStarsChallenge() {
                   <select
                     value={selectedVideoId}
                     onChange={(e) => setSelectedVideoId(e.target.value)}
-                    className="w-full bg-[#121215] border border-white/10 rounded-xl px-3 py-2 text-sm mb-2"
+                    className="w-full bg-[#09090B] border border-white/10 rounded-xl px-3 py-2 text-sm mb-2"
                   >
                     <option value="">Select a video…</option>
                     {myVideos.map((v) => (
@@ -264,7 +264,7 @@ export default function RisingStarsChallenge() {
                       type="button"
                       disabled={!selectedVideoId || busy}
                       onClick={() => void enter()}
-                      className="flex-1 py-2 rounded-xl bg-[#FF3B3F] text-black text-xs font-semibold disabled:opacity-40"
+                      className="flex-1 py-2 rounded-xl bg-[#6F3FF5] text-white text-xs font-semibold disabled:opacity-40"
                     >
                       Submit entry
                     </button>
@@ -319,7 +319,7 @@ export default function RisingStarsChallenge() {
                           e.creator_user_id === user?.id
                         }
                         onClick={() => void vote(e.id)}
-                        className="px-3 py-1.5 rounded-lg bg-[#FF3B3F] text-black text-xs font-semibold disabled:opacity-40"
+                        className="px-3 py-1.5 rounded-lg bg-[#6F3FF5] text-white text-xs font-semibold disabled:opacity-40"
                       >
                         Vote
                       </button>

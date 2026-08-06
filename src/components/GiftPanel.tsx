@@ -201,7 +201,7 @@ export function GiftPanel({
 
   const goalBorder = (giftId: string, fallback?: string) =>
     highlightGiftId === giftId
-      ? "border-[#E5E5E7]/80 ring-1 ring-[#E5E5E7]/40"
+      ? "border-[#D8D9DD]/80 ring-1 ring-[#D8D9DD]/40"
       : fallback;
 
   const handleGiftTap = useCallback(
@@ -219,7 +219,7 @@ export function GiftPanel({
   return (
     <div
       ref={panelRef}
-      className="bg-[#121215]/95 rounded-t-2xl p-3 pb-safe max-h-[40dvh] overflow-y-auto overflow-x-hidden overscroll-y-contain touch-pan-y no-scrollbar shadow-2xl w-full relative z-[99999]"
+      className="bg-[#09090B]/95 rounded-t-2xl p-3 pb-safe max-h-[40dvh] overflow-y-auto overflow-x-hidden overscroll-y-contain touch-pan-y no-scrollbar shadow-2xl w-full relative z-[99999]"
       style={{ touchAction: "pan-y" }}
       onTouchMove={(e) => {
         // Keep gift panel vertical-only; do not let horizontal pans move the live page.

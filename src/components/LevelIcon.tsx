@@ -35,8 +35,8 @@ function NeonLevelDiamond({
 }) {
   const uid = useId().replace(/:/g, '');
   const fillId = `lvl-dia-fill-${uid}`;
-  const royalPink = '#FF3B3F';
-  const softPink = '#FFB6D9';
+  const royalPink = '#6F3FF5';
+  const softPink = '#B7BDC8';
   const white = '#FFFFFF';
 
   return (
@@ -52,8 +52,8 @@ function NeonLevelDiamond({
         <linearGradient id={fillId} x1="18%" y1="8%" x2="82%" y2="92%">
           {rainbow ? (
             <>
-              <stop offset="0%" stopColor="#FF8AD4" />
-              <stop offset="45%" stopColor="#FF3B3F" />
+              <stop offset="0%" stopColor="#D8D9DD" />
+              <stop offset="45%" stopColor="#6F3FF5" />
               <stop offset="100%" stopColor="#FFFFFF" />
             </>
           ) : (
@@ -159,7 +159,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
           flexShrink: 0,
         }}
       >
-        <NeonLevelDiamond size={diamondSize} stroke="#FF3B3F" rainbow={prestige} />
+        <NeonLevelDiamond size={diamondSize} stroke="#6F3FF5" rainbow={prestige} />
       </div>
 
       {/* Number RIGHT — solid white, no text glow */}

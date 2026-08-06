@@ -85,7 +85,7 @@ export default function AdminWithdrawals() {
   };
 
   return (
-    <div className="min-h-screen bg-[#121215] text-white p-6">
+    <div className="min-h-screen bg-[#09090B] text-white p-6">
       <div className="max-w-5xl mx-auto">
         <button
           type="button"
@@ -111,7 +111,7 @@ export default function AdminWithdrawals() {
               onClick={() => setStatus(t)}
               className={`px-3 py-1 rounded-full text-xs font-semibold ${
                 status === t
-                  ? "bg-[#FF3B3F] text-black"
+                  ? "bg-[#6F3FF5] text-white"
                   : "bg-white/10 text-white/70"
               }`}
             >

@@ -48,7 +48,7 @@ export default function EngagementFanLevel() {
         </div>
       ) : (
         <>
-          <div className="rounded-2xl border border-[#E5E5E7]/30 bg-gradient-to-br from-[#1a1608] to-[#121215] p-4 mb-4">
+          <div className="rounded-2xl border border-[#D8D9DD]/30 bg-gradient-to-br from-[#1a1608] to-[#09090B] p-4 mb-4">
             <p className="text-xs uppercase tracking-wide mb-1">
               <span className="elix-silver-red-text">{fan?.tier || "Bronze Fan"}</span>
             </p>
@@ -81,7 +81,7 @@ export default function EngagementFanLevel() {
                   key={t.name}
                   className={`rounded-xl border px-3 py-2.5 flex items-center justify-between ${
                     active
-                      ? "border-[#E5E5E7]/40 bg-white/[0.04]"
+                      ? "border-[#D8D9DD]/40 bg-white/[0.04]"
                       : "border-white/10 bg-white/[0.03]"
                   }`}
                 >

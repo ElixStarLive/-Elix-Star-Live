@@ -81,16 +81,16 @@ export default function AdminUsers() {
   );
 
   if (loading) {
-    return <div className="min-h-screen bg-[#121215] flex items-center justify-center text-white">Loading...</div>;
+    return <div className="min-h-screen bg-[#09090B] flex items-center justify-center text-white">Loading...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-[#121215] text-white p-6">
+    <div className="min-h-screen bg-[#09090B] text-white p-6">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold mb-6">User Management</h1>
 
         {/* Search */}
-        <div className="mb-6 flex items-center gap-4 bg-[#121215] rounded-lg px-4 py-3">
+        <div className="mb-6 flex items-center gap-4 bg-[#09090B] rounded-lg px-4 py-3">
           <Search className="w-5 h-5 text-white" />
           <input
             type="text"
@@ -102,7 +102,7 @@ export default function AdminUsers() {
         </div>
 
         {/* Users Table */}
-        <div className="bg-[#121215] rounded-lg overflow-hidden">
+        <div className="bg-[#09090B] rounded-lg overflow-hidden">
           <table className="w-full">
             <thead className="bg-[#2A2D35]">
               <tr>
@@ -133,7 +133,7 @@ export default function AdminUsers() {
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => goProfile(user.id)}
-                        className="px-3 py-1 bg-[#FF3B3F] rounded hover:bg-[#FF3B3F] text-sm"
+                        className="px-3 py-1 bg-[#6F3FF5] rounded hover:bg-[#6F3FF5] text-sm"
                       >
                         View
                       </button>

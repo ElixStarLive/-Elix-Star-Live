@@ -59,11 +59,11 @@ export default function AdminReports() {
   };
 
   if (loading) {
-    return <div className="min-h-screen bg-[#121215] flex items-center justify-center text-white">Loading...</div>;
+    return <div className="min-h-screen bg-[#09090B] flex items-center justify-center text-white">Loading...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-[#121215] text-white p-6">
+    <div className="min-h-screen bg-[#09090B] text-white p-6">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold mb-6 flex items-center gap-3">
           <Flag className="w-8 h-8 text-white/70" />
@@ -75,7 +75,7 @@ export default function AdminReports() {
           <button
             onClick={() => setFilter('pending')}
             className={`px-4 py-2 rounded-lg font-semibold ${
-              filter === 'pending' ? 'bg-[#FF3B3F] text-black' : 'bg-[#2A2D35] text-white'
+              filter === 'pending' ? 'bg-[#6F3FF5] text-white' : 'bg-[#2A2D35] text-white'
             }`}
           >
             Pending ({reports.filter(r => r.status === 'pending').length})
@@ -83,7 +83,7 @@ export default function AdminReports() {
           <button
             onClick={() => setFilter('all')}
             className={`px-4 py-2 rounded-lg font-semibold ${
-              filter === 'all' ? 'bg-[#FF3B3F] text-black' : 'bg-[#2A2D35] text-white'
+              filter === 'all' ? 'bg-[#6F3FF5] text-white' : 'bg-[#2A2D35] text-white'
             }`}
           >
             All
@@ -93,7 +93,7 @@ export default function AdminReports() {
         {/* Reports List */}
         <div className="space-y-4">
           {reports.map(report => (
-            <div key={report.id} className="bg-[#121215] rounded-lg p-6">
+            <div key={report.id} className="bg-[#09090B] rounded-lg p-6">
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <div className="flex items-center gap-3 mb-2">
@@ -111,9 +111,9 @@ export default function AdminReports() {
                 <span
                   className={`px-3 py-1 rounded-full text-xs font-bold ${
                     report.status === 'pending'
-                      ? 'bg-[#FF3B3F]'
+                      ? 'bg-[#6F3FF5]'
                       : report.status === 'resolved'
-                      ? 'bg-[#FF3B3F]'
+                      ? 'bg-[#6F3FF5]'
                       : 'bg-[#2A2D35]'
                   }`}
                 >
@@ -132,7 +132,7 @@ export default function AdminReports() {
                   </button>
                   <button
                     onClick={() => handleResolve(report.id, 'warned')}
-                    className="px-4 py-2 bg-[#FF3B3F] rounded hover:bg-[#FF3B3F] flex items-center gap-2"
+                    className="px-4 py-2 bg-[#6F3FF5] rounded hover:bg-[#6F3FF5] flex items-center gap-2"
                   >
                     <Flag className="w-4 h-4" />
                     Warn User
@@ -146,7 +146,7 @@ export default function AdminReports() {
                   </button>
                   <button
                     onClick={() => openReportTarget(report.target_type, report.target_id)}
-                    className="px-4 py-2 bg-[#FF3B3F] rounded hover:bg-[#FF3B3F] flex items-center gap-2"
+                    className="px-4 py-2 bg-[#6F3FF5] rounded hover:bg-[#6F3FF5] flex items-center gap-2"
                   >
                     <Eye className="w-4 h-4" />
                     View

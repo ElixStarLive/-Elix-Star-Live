@@ -22,7 +22,7 @@ export function LiveGiftGoalBar({ goal, onTap, showSend = true }: Props) {
     <button
       type="button"
       onClick={onTap}
-      className="pointer-events-auto flex items-center gap-2 max-w-[min(240px,72vw)] px-2 py-1.5 rounded-full bg-[#121215]/85 border border-[#E5E5E7]/35 backdrop-blur-md active:scale-[0.98] transition-transform shadow-lg"
+      className="pointer-events-auto flex items-center gap-2 max-w-[min(240px,72vw)] px-2 py-1.5 rounded-full bg-[#09090B]/85 border border-[#D8D9DD]/35 backdrop-blur-md active:scale-[0.98] transition-transform shadow-lg"
     >
       {goal.giftIcon ? (
         <img
@@ -37,7 +37,7 @@ export function LiveGiftGoalBar({ goal, onTap, showSend = true }: Props) {
         </p>
         <div className="h-1 rounded-full bg-white/15 overflow-hidden mt-0.5">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-[#E5E5E7] to-[#E5E5E7] transition-all duration-500"
+            className="h-full rounded-full bg-gradient-to-r from-[#D8D9DD] to-[#D8D9DD] transition-all duration-500"
             style={{ width: `${pct}%` }}
           />
         </div>
@@ -46,7 +46,7 @@ export function LiveGiftGoalBar({ goal, onTap, showSend = true }: Props) {
         {done ? "✓" : `${remaining}`}
       </span>
       {showSend && !done && (
-        <span className="text-[8px] font-bold text-black bg-[#FF3B3F] px-1.5 py-0.5 rounded-full flex-shrink-0">
+        <span className="text-[8px] font-bold text-white bg-[#6F3FF5] px-1.5 py-0.5 rounded-full flex-shrink-0">
           Send
         </span>
       )}

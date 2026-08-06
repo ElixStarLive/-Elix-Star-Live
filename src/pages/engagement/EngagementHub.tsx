@@ -107,10 +107,10 @@ export default function EngagementHub() {
   }, []);
 
   return (
-    <div className="page-above-bottom-nav bg-[#121215] text-white">
+    <div className="page-above-bottom-nav bg-[#09090B] text-white">
       <div className="page-above-bottom-nav__inner engagement-panel-writing">
         <div
-          className="w-full shrink-0 bg-[#121215] z-10"
+          className="w-full shrink-0 bg-[#09090B] z-10"
           style={{ paddingTop: "var(--topnav-anchor-top)" }}
         >
           <div
@@ -143,7 +143,7 @@ export default function EngagementHub() {
             </div>
           ) : (
             <>
-              <div className="rounded-2xl border border-[#E5E5E7]/30 bg-gradient-to-br from-[#1a1608] to-[#121215] p-4 mb-4">
+              <div className="rounded-2xl border border-[#D8D9DD]/30 bg-gradient-to-br from-[#1a1608] to-[#09090B] p-4 mb-4">
                 <p className="text-xs uppercase tracking-wide mb-2">
                   <span className="elix-silver-red-text">
                     {hub?.fan_tier || "Bronze Fan"} · Level {hub?.fan_level ?? 0}

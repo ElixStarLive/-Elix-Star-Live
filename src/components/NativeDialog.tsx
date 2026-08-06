@@ -64,7 +64,7 @@ export function NativeDialogProvider({ children }: { children: React.ReactNode }
           onClick={(e) => { if (e.target === e.currentTarget) handleCancel(); }}
         >
           <div
-            className="w-full max-w-[320px] bg-[#121215] rounded-2xl overflow-hidden shadow-2xl border border-white/10"
+            className="w-full max-w-[320px] bg-[#09090B] rounded-2xl overflow-hidden shadow-2xl border border-white/10"
             role="alertdialog"
             aria-modal="true"
           >
@@ -84,7 +84,7 @@ export function NativeDialogProvider({ children }: { children: React.ReactNode }
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') handleConfirm(); }}
-                  className="w-full px-3 py-2.5 bg-black/40 border border-white/20 rounded-xl text-white text-sm placeholder:text-white/30 outline-none focus:border-[#E5E5E7]/60"
+                  className="w-full px-3 py-2.5 bg-black/40 border border-white/20 rounded-xl text-white text-sm placeholder:text-white/30 outline-none focus:border-[#D8D9DD]/60"
                   autoFocus
                 />
               </div>

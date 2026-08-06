@@ -112,7 +112,7 @@ export default function FriendsFeed() {
 
           {loading && friendVideoIds.length === 0 && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-8 h-8 border-2 border-[#E5E5E7] border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-2 border-[#D8D9DD] border-t-transparent rounded-full animate-spin" />
             </div>
           )}
 
@@ -123,7 +123,7 @@ export default function FriendsFeed() {
               <button
                 type="button"
                 onClick={goUploadStory}
-                className="px-5 py-2 bg-[#FF3B3F] text-black rounded-full text-sm font-bold mb-3"
+                className="px-5 py-2 bg-[#6F3FF5] text-white rounded-full text-sm font-bold mb-3"
               >
                 Add story
               </button>

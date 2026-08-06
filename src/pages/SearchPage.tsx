@@ -232,7 +232,7 @@ export default function SearchPage() {
                 <input 
                   type="text" 
                   placeholder="Search" 
-                  className="w-full bg-[#121215] text-gold-metallic placeholder-[#FFFFFF]/40 rounded-full py-0.5 pl-9 pr-9 text-sm focus:outline-none border border-white/15 focus:border-white/40"
+                  className="w-full bg-[#09090B] text-gold-metallic placeholder-[#FFFFFF]/40 rounded-full py-0.5 pl-9 pr-9 text-sm focus:outline-none border border-white/15 focus:border-white/40"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   autoFocus
@@ -315,7 +315,7 @@ export default function SearchPage() {
                           <video
                             src={resolveVideoPlaybackUrl(v.url) || undefined}
                             poster={resolveGridThumbnailUrl(v.thumbnail, v.url) || undefined}
-                            className="w-16 h-22 rounded-lg object-cover bg-[#121215] border border-[#E5E5E7]/20"
+                            className="w-16 h-22 rounded-lg object-cover bg-[#09090B] border border-[#D8D9DD]/20"
                             muted
                             playsInline
                             preload="auto"

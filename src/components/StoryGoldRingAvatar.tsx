@@ -1,7 +1,7 @@
 import React from 'react';
 
 /** TikTok-style live red (ring + badge). */
-const LIVE_RING_COLOR = '#FF3B3F';
+const LIVE_RING_COLOR = '#6F3FF5';
 
 /**
  * User avatar circle — half silver / half red ring (same as icon discs).
