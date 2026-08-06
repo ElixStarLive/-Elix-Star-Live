@@ -1,17 +1,19 @@
 /**
  * Apple / Google In-App Purchase Service
  * Uses @capgo/native-purchases for StoreKit 2 (iOS) and Google Play Billing (Android).
+ *
+ * HARD RULE: iOS talks only to App Store SKUs. Android talks only to Play SKUs.
+ * Never request or purchase the other store's product IDs.
  */
 
 import { platform } from './platform';
 import { useAuthStore } from '../store/useAuthStore';
 import { request } from './apiClient';
 
-// Product catalog — coin amounts by SKU. Store requests are platform-split below.
-export const IAP_PRODUCTS = {
+/** Apple App Store coin packs only. */
+export const IOS_COIN_PRODUCTS = {
   'coins100':    { coins: 100,    label: '100 Coins' },
-  'coins500':    { coins: 500,    label: '500 Coins' },  // Apple App Store only
-  'coins500a':   { coins: 500,    label: '500 Coins' },  // Google Play only
+  'coins500':    { coins: 500,    label: '500 Coins' },
   'coins1000':   { coins: 1000,   label: '1,000 Coins' },
   'coins5000':   { coins: 5000,   label: '5,000 Coins' },
   'coins10000':  { coins: 10000,  label: '10,000 Coins' },
@@ -22,36 +24,48 @@ export const IAP_PRODUCTS = {
   'coins350000': { coins: 350000, label: '350,000 Coins' },
 } as const;
 
-export type IAPProductId = keyof typeof IAP_PRODUCTS;
-export const IAP_PRODUCT_IDS = Object.keys(IAP_PRODUCTS) as IAPProductId[];
+/** Google Play coin packs only. */
+export const ANDROID_COIN_PRODUCTS = {
+  'coins100':    { coins: 100,    label: '100 Coins' },
+  'coins500a':   { coins: 500,    label: '500 Coins' },
+  'coins1000':   { coins: 1000,   label: '1,000 Coins' },
+  'coins5000':   { coins: 5000,   label: '5,000 Coins' },
+  'coins10000':  { coins: 10000,  label: '10,000 Coins' },
+  'coins50000':  { coins: 50000,  label: '50,000 Coins' },
+  'coins100000': { coins: 100000, label: '100,000 Coins' },
+  'coins150000': { coins: 150000, label: '150,000 Coins' },
+  'coins200000': { coins: 200000, label: '200,000 Coins' },
+  'coins350000': { coins: 350000, label: '350,000 Coins' },
+} as const;
 
-/** Apple App Store coin SKUs only — never include Google-only IDs. */
-export const IOS_COIN_PRODUCT_IDS: IAPProductId[] = [
-  'coins100',
-  'coins500',
-  'coins1000',
-  'coins5000',
-  'coins10000',
-  'coins50000',
-  'coins100000',
-  'coins150000',
-  'coins200000',
-  'coins350000',
-];
+export type IosCoinProductId = keyof typeof IOS_COIN_PRODUCTS;
+export type AndroidCoinProductId = keyof typeof ANDROID_COIN_PRODUCTS;
+export type IAPProductId = IosCoinProductId | AndroidCoinProductId;
 
-/** Google Play coin SKUs only — never include Apple-only IDs. */
-export const ANDROID_COIN_PRODUCT_IDS: IAPProductId[] = [
-  'coins100',
-  'coins500a',
-  'coins1000',
-  'coins5000',
-  'coins10000',
-  'coins50000',
-  'coins100000',
-  'coins150000',
-  'coins200000',
-  'coins350000',
-];
+export const IOS_COIN_PRODUCT_IDS = Object.keys(IOS_COIN_PRODUCTS) as IosCoinProductId[];
+export const ANDROID_COIN_PRODUCT_IDS = Object.keys(ANDROID_COIN_PRODUCTS) as AndroidCoinProductId[];
+
+/** @deprecated Use IOS_COIN_PRODUCTS / ANDROID_COIN_PRODUCTS — kept for coin-amount lookup only. */
+export const IAP_PRODUCTS: Record<string, { coins: number; label: string }> = {
+  ...IOS_COIN_PRODUCTS,
+  ...ANDROID_COIN_PRODUCTS,
+};
+
+function coinAmountForSku(productId: string): number {
+  if (platform.isIOS) {
+    return IOS_COIN_PRODUCTS[productId as IosCoinProductId]?.coins ?? 0;
+  }
+  if (platform.isAndroid) {
+    return ANDROID_COIN_PRODUCTS[productId as AndroidCoinProductId]?.coins ?? 0;
+  }
+  return IAP_PRODUCTS[productId]?.coins ?? 0;
+}
+
+function isSkuForCurrentStore(productId: string): boolean {
+  if (platform.isIOS) return productId in IOS_COIN_PRODUCTS;
+  if (platform.isAndroid) return productId in ANDROID_COIN_PRODUCTS;
+  return false;
+}
 
 /** Coin SKUs for the current native store only. */
 export function coinProductIdsForPlatform(): IAPProductId[] {
@@ -225,7 +239,7 @@ export async function loadProducts(): Promise<IAPProduct[]> {
       description: p.description || '',
       price: p.priceString || `$${((p.priceAmountMicros || 0) / 1_000_000).toFixed(2)}`,
       priceAmountMicros: p.priceAmountMicros || 0,
-      coins: IAP_PRODUCTS[(p.identifier || p.productIdentifier) as IAPProductId]?.coins ?? 0,
+      coins: coinAmountForSku(p.identifier || p.productIdentifier || ''),
     }));
   } catch (err) {
     reportIapStage('load_products_error', { error: (err as { message?: string })?.message || String(err) });
@@ -325,7 +339,7 @@ export async function reconcileOwnedCoinPurchases(): Promise<number> {
       const productId = String(purchase.productIdentifier || '');
       const transactionId = String(purchase.transactionId || '');
       const receipt = purchase.receipt || purchase.purchaseToken || '';
-      if (!(productId in IAP_PRODUCTS) || !receipt || !transactionId) continue;
+      if (!isSkuForCurrentStore(productId) || !receipt || !transactionId) continue;
 
       reportIapStage('reconcile_found_owned', { productId });
       const verified = await verifyAndCreditPurchase(productId as IAPProductId, transactionId, receipt);
@@ -356,9 +370,8 @@ export async function purchaseProduct(productId: IAPProductId): Promise<IAPPurch
     return { success: false, error: 'In-app purchases are only available in the app' };
   }
 
-  // Reject cross-store SKUs (e.g. coins500a on iOS, coins500 on Android).
-  const allowed = coinProductIdsForPlatform();
-  if (!allowed.includes(productId)) {
+  // Reject wrong-store SKUs.
+  if (!isSkuForCurrentStore(productId)) {
     reportIapStage('wrong_store_sku', { productId, store: platform.isIOS ? 'ios' : 'android' });
     return { success: false, error: 'This coin pack is not available on this store' };
   }
@@ -439,7 +452,7 @@ export async function purchaseProduct(productId: IAPProductId): Promise<IAPPurch
       success: true,
       transactionId,
       receipt,
-      coins: IAP_PRODUCTS[productId]?.coins ?? 0,
+      coins: coinAmountForSku(productId),
       newBalance: verifyResult.newBalance,
     };
   } catch (err) {
@@ -779,7 +792,7 @@ export async function restorePurchases(): Promise<{
       const receipt = purchase.receipt || purchase.purchaseToken || '';
       if (!productId || !transactionId) continue;
 
-      if (productId in IAP_PRODUCTS) {
+      if (isSkuForCurrentStore(productId)) {
         const credited = await verifyAndCreditPurchase(productId as IAPProductId, transactionId, receipt);
         if (credited.success) {
           restoredCoins += 1;
