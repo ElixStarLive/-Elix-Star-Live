@@ -107,7 +107,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Quick Actions */}
-        <div className="bg-[#09090B] rounded-lg p-6">
+        <div className="bg-[rgba(0,0,0,0.35)] rounded-lg p-6">
           <h2 className="text-xl font-bold mb-4">Quick Actions</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <ActionButton href="/admin/users" label="Manage Users" onClick={goAdminPath} />

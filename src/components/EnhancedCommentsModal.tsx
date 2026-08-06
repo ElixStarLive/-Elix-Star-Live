@@ -382,7 +382,7 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
       onClick={onClose}
     >
       <div
-        className="bg-[#09090B]/95 rounded-t-2xl p-3 pb-safe h-1/2 w-full max-w-[480px] shadow-2xl flex flex-col bottom-sheet-above-nav"
+        className="bg-[rgba(10,10,10,0.72)] rounded-t-2xl p-3 pb-safe h-1/2 w-full max-w-[480px] shadow-2xl flex flex-col bottom-sheet-above-nav"
         style={{ boxShadow: '0 -4px 30px rgba(255,255,255,0.25)' }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -435,7 +435,7 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
                 placeholder="Add a comment..."
-                className="flex-1 bg-[#09090B] text-white px-3 py-2 rounded-lg border border-white/10 focus:border-secondary outline-none text-sm"
+                className="flex-1 bg-[rgba(0,0,0,0.35)] text-white px-3 py-2 rounded-lg border border-white/10 focus:border-secondary outline-none text-sm"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();

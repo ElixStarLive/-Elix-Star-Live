@@ -108,8 +108,8 @@ export default function Report() {
 
   return (
     <SettingsOptionSheet onClose={goBack}>
-      <div className="w-full h-full min-h-0 flex flex-col overflow-hidden bg-[#09090B]">
-      <div className="sticky top-0 bg-[#09090B] z-10 px-4 py-4 border-b border-transparent flex items-center justify-center">
+      <div className="w-full h-full min-h-0 flex flex-col overflow-hidden bg-[rgba(0,0,0,0.35)]">
+      <div className="sticky top-0 bg-[rgba(0,0,0,0.35)] z-10 px-4 py-4 border-b border-transparent flex items-center justify-center">
         <h1 className="text-lg font-bold">{isGeneralSupport ? 'Report a problem' : `Report ${contentType}`}</h1>
       </div>
 

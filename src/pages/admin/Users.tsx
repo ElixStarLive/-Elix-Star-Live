@@ -90,7 +90,7 @@ export default function AdminUsers() {
         <h1 className="text-3xl font-bold mb-6">User Management</h1>
 
         {/* Search */}
-        <div className="mb-6 flex items-center gap-4 bg-[#09090B] rounded-lg px-4 py-3">
+        <div className="mb-6 flex items-center gap-4 bg-[rgba(0,0,0,0.35)] rounded-lg px-4 py-3">
           <Search className="w-5 h-5 text-white" />
           <input
             type="text"
@@ -102,9 +102,9 @@ export default function AdminUsers() {
         </div>
 
         {/* Users Table */}
-        <div className="bg-[#09090B] rounded-lg overflow-hidden">
+        <div className="bg-[rgba(0,0,0,0.35)] rounded-lg overflow-hidden">
           <table className="w-full">
-            <thead className="bg-[#242832]">
+            <thead className="bg-[rgba(255,255,255,0.06)]">
               <tr>
                 <th className="px-4 py-3 text-left">User</th>
                 <th className="px-4 py-3 text-left">Email</th>
@@ -114,7 +114,7 @@ export default function AdminUsers() {
             </thead>
             <tbody>
               {filteredUsers.map(user => (
-                <tr key={user.id} className="hover:bg-[#242832]/50">
+                <tr key={user.id} className="hover:bg-[rgba(255,255,255,0.06)]/50">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full overflow-hidden shrink-0">

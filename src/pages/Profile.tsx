@@ -740,11 +740,11 @@ export default function Profile() {
         {/* ═══ Account Menu Modal ═══ */}
         {showAccountMenu && (
           <div
-            className="fixed inset-0 z-[9999] bg-[#09090B]/70 flex items-end justify-center pb-[var(--bottom-nav-top)]"
+            className="fixed inset-0 z-[9999] bg-[rgba(10,10,10,0.72)] flex items-end justify-center pb-[var(--bottom-nav-top)]"
             onClick={() => setShowAccountMenu(false)}
           >
             <div 
-              className="w-full max-w-[480px] bg-[#09090B] rounded-t-2xl border-t border-white/10 pb-safe"
+              className="w-full max-w-[480px] bg-[rgba(0,0,0,0.35)] rounded-t-2xl border-t border-white/10 pb-safe"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-center px-5 pt-4 pb-3 border-b border-white/10">
@@ -785,7 +785,7 @@ export default function Profile() {
             onClick={() => setShowSharePanel(false)}
           >
             <div
-              className="w-full max-w-[480px] bg-[#09090B]/95 rounded-t-2xl max-h-[40dvh] flex flex-col overflow-hidden"
+              className="w-full max-w-[480px] bg-[rgba(10,10,10,0.72)] rounded-t-2xl max-h-[40dvh] flex flex-col overflow-hidden"
               style={{ boxShadow: '0 -4px 30px rgba(255,255,255,0.25)' }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -1204,7 +1204,7 @@ export default function Profile() {
                   key={video.id}
                   type="button"
                   onClick={() => goVideo(video.id)}
-                  className="aspect-[3/4] bg-[#09090B] relative group text-left rounded-xl overflow-hidden"
+                  className="aspect-[3/4] bg-[rgba(0,0,0,0.35)] relative group text-left rounded-xl overflow-hidden"
                 >
                   {playbackUrl ? (
                     <video
@@ -1365,7 +1365,7 @@ export default function Profile() {
 
       {storyViewerOpen && profileStoryGroup?.items?.[storyViewerIndex] && (
         <div
-          className="fixed inset-0 z-[10060] bg-black flex justify-center"
+          className="fixed inset-0 z-[10060] bg-[rgba(0,0,0,0.35)] flex justify-center"
           onClick={() => {
             if (storyViewerIndex + 1 < profileStoryGroup.items.length) {
               setStoryViewerIndex((i) => i + 1);
@@ -1374,7 +1374,7 @@ export default function Profile() {
             }
           }}
         >
-          <div className="relative w-full max-w-[480px] h-full min-h-0 overflow-hidden bg-black">
+          <div className="relative w-full max-w-[480px] h-full min-h-0 overflow-hidden bg-transparent">
             <button
               type="button"
               className="absolute top-[calc(env(safe-area-inset-top,0px)+12px)] left-3 z-10 text-white text-sm font-bold px-2 py-1"

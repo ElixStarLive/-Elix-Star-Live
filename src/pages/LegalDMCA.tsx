@@ -9,7 +9,7 @@ export default function LegalDMCA() {
 
   return (
     <div className="bg-[rgba(0,0,0,0.35)] text-white flex justify-center px-2">
-      <div className="w-full max-w-[480px] rounded-3xl overflow-hidden bg-[#09090B] flex flex-col overflow-y-auto p-4 pb-20">
+      <div className="w-full max-w-[480px] rounded-3xl overflow-hidden bg-[rgba(0,0,0,0.35)] flex flex-col overflow-y-auto p-4 pb-20">
         <header className="flex items-center justify-between mb-4">
           <button onClick={goBack} aria-label="Back" title="Back">
             <RoyceBackIcon />

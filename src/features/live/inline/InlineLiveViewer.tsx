@@ -403,7 +403,7 @@ export default function InlineLiveViewer({
   const displayAvatar = creatorAvatar || "";
 
   const placeholder = (
-    <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#09090B] gap-4 pointer-events-none z-[1]">
+    <div className="absolute inset-0 flex flex-col items-center justify-center bg-[rgba(0,0,0,0.35)] gap-4 pointer-events-none z-[1]">
       {displayAvatar ? (
         <div
           className="rounded-full overflow-hidden shrink-0"
@@ -437,7 +437,7 @@ export default function InlineLiveViewer({
 
   return (
     <div
-      className={`relative w-full h-full bg-[#09090B] cursor-pointer ${className}`}
+      className={`relative w-full h-full bg-[rgba(0,0,0,0.35)] cursor-pointer ${className}`}
       style={{ background: "#09090B" }}
       onClick={openWatch}
     >
@@ -461,7 +461,7 @@ export default function InlineLiveViewer({
       {/* ── Battle: 50% video / 50% chat of the For You card (chat messages hidden until join) ── */}
       {mode === "battle" && (
         <div
-          className="absolute inset-0 flex flex-col bg-[#09090B] overflow-hidden"
+          className="absolute inset-0 flex flex-col bg-[rgba(0,0,0,0.35)] overflow-hidden"
           data-elix-foryou-battle-root="1"
         >
           <div
@@ -470,7 +470,7 @@ export default function InlineLiveViewer({
             style={{ flex: "1 1 50%", height: "50%", maxHeight: "50%", minHeight: 0 }}
           >
             <div className="absolute inset-0 flex flex-row w-full h-full">
-              <div className="w-1/2 h-full relative bg-[#09090B] overflow-hidden min-h-0">
+              <div className="w-1/2 h-full relative bg-[rgba(0,0,0,0.35)] overflow-hidden min-h-0">
                 <video
                   ref={hostVideoRef}
                   className={videoClass}
@@ -485,7 +485,7 @@ export default function InlineLiveViewer({
                   {creatorName}
                 </span>
               </div>
-              <div className="w-1/2 h-full relative bg-[#09090B] overflow-hidden min-h-0">
+              <div className="w-1/2 h-full relative bg-[rgba(0,0,0,0.35)] overflow-hidden min-h-0">
                 <video
                   ref={opponentVideoRef}
                   className={videoClass}
@@ -512,7 +512,7 @@ export default function InlineLiveViewer({
           </div>
 
           <div
-            className="relative w-full flex flex-col bg-[#09090B] overflow-hidden"
+            className="relative w-full flex flex-col bg-[rgba(0,0,0,0.35)] overflow-hidden"
             data-elix-foryou-battle="chat-half"
             style={{ flex: "1 1 50%", height: "50%", maxHeight: "50%", minHeight: 0 }}
           >
@@ -535,7 +535,7 @@ export default function InlineLiveViewer({
       {/* ── Co-host: host left + live tiles right (same idea as live stream) ── */}
       {mode === "cohost" && (
         <div className="absolute inset-0 flex flex-row">
-          <div className="w-1/2 h-full relative bg-[#09090B] overflow-hidden">
+          <div className="w-1/2 h-full relative bg-[rgba(0,0,0,0.35)] overflow-hidden">
             <video
               ref={hostVideoRef}
               className={videoClass}
@@ -547,7 +547,7 @@ export default function InlineLiveViewer({
               style={{ opacity: hasStream ? 1 : 0, backgroundColor: "#09090B" }}
             />
             {!hasStream && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[#09090B] z-[1]">
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[rgba(0,0,0,0.35)] z-[1]">
                 {displayAvatar ? (
                   <img src={displayAvatar} alt="" className="w-16 h-16 rounded-full object-cover" />
                 ) : (
@@ -568,7 +568,7 @@ export default function InlineLiveViewer({
                 return (
                   <div
                     key={`empty-${i}`}
-                    className="relative min-h-0 overflow-hidden rounded-none border border-[#D8D9DD]/25 bg-[#09090B] flex flex-col items-center justify-center"
+                    className="relative min-h-0 overflow-hidden rounded-none border border-[#D8D9DD]/25 bg-[rgba(0,0,0,0.35)] flex flex-col items-center justify-center"
                   >
                     <span className="text-white/30 text-lg font-light">+</span>
                     <span className="text-white/30 text-[8px] font-semibold">Add</span>
@@ -578,13 +578,13 @@ export default function InlineLiveViewer({
               return (
                 <div
                   key={h.userId}
-                  className="relative min-h-0 overflow-hidden rounded-none border border-[#D8D9DD]/35 bg-[#09090B]"
+                  className="relative min-h-0 overflow-hidden rounded-none border border-[#D8D9DD]/35 bg-[rgba(0,0,0,0.35)]"
                 >
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 z-[1] bg-[#09090B]">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 z-[1] bg-[rgba(0,0,0,0.35)]">
                     {h.avatar ? (
                       <img src={h.avatar} alt="" className="w-8 h-8 rounded-full object-cover" />
                     ) : (
-                      <div className="w-8 h-8 rounded-full bg-[#09090B] flex items-center justify-center border border-[#D8D9DD]/40">
+                      <div className="w-8 h-8 rounded-full bg-[rgba(0,0,0,0.35)] flex items-center justify-center border border-[#D8D9DD]/40">
                         <span className="text-[#F5F5F7]/70 text-xs font-bold">
                           {(h.name || "?").charAt(0)}
                         </span>

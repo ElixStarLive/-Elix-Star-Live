@@ -264,7 +264,7 @@ export default function LiveDiscover() {
   }, []);
 
   return (
-    <div className="app-live-column bg-[#09090B]">
+    <div className="app-live-column bg-[rgba(0,0,0,0.35)]">
       {/* Header inside column — close stays within max-w container */}
       <div
         className="flex-shrink-0 w-full px-3 flex items-center justify-between z-20"
@@ -314,11 +314,11 @@ export default function LiveDiscover() {
                 <div
                   key={c.id}
                   ref={(el) => setCardRef(c.id, el)}
-                  className={`relative overflow-hidden bg-black ${
+                  className={`relative overflow-hidden bg-transparent ${
                     i === 0 && creators.length > 2 ? 'col-span-2 aspect-[2/1.2]' : 'aspect-[3/4]'
                   }`}
                 >
-                  <Suspense fallback={<div className="absolute inset-0 bg-[#09090B]" />}>
+                  <Suspense fallback={<div className="absolute inset-0 bg-[rgba(0,0,0,0.35)]" />}>
                     <InlineLiveViewer
                       streamKey={c.id}
                       isActive={activeIds.has(c.id)}

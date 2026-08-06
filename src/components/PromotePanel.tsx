@@ -132,7 +132,7 @@ export default function PromotePanel({ isOpen, onClose, contentType, content }: 
   return (
     <div className="fixed inset-0 z-[100000] flex items-end justify-center bg-black/50" onClick={onClose}>
       <div
-        className={`w-full max-w-[480px] bg-[#09090B]/95 backdrop-blur-md rounded-t-2xl h-[38vh] max-h-[320px] overflow-hidden flex flex-col shadow-2xl animate-in slide-in-from-bottom ${!bottomNavHidden ? 'bottom-sheet-above-nav' : ''}`}
+        className={`w-full max-w-[480px] bg-[rgba(10,10,10,0.72)] backdrop-blur-md rounded-t-2xl h-[38vh] max-h-[320px] overflow-hidden flex flex-col shadow-2xl animate-in slide-in-from-bottom ${!bottomNavHidden ? 'bottom-sheet-above-nav' : ''}`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Drag handle */}
@@ -187,7 +187,7 @@ export default function PromotePanel({ isOpen, onClose, contentType, content }: 
 
           {/* Content preview - compact */}
           <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-white/5">
-            <div className="w-9 h-9 rounded-lg overflow-hidden bg-[#09090B] flex-shrink-0">
+            <div className="w-9 h-9 rounded-lg overflow-hidden bg-[rgba(0,0,0,0.35)] flex-shrink-0">
               {content?.thumbnail ? (
                 <img src={content.thumbnail} alt="" className="w-full h-full object-cover" />
               ) : (
@@ -221,7 +221,7 @@ export default function PromotePanel({ isOpen, onClose, contentType, content }: 
         </div>
 
         {/* Bottom payment bar - compact */}
-        <div className="flex items-center justify-between px-3 py-2 border-t border-white/10 bg-[#09090B] flex-shrink-0">
+        <div className="flex items-center justify-between px-3 py-2 border-t border-white/10 bg-[rgba(0,0,0,0.35)] flex-shrink-0">
           <div>
             {panelMessage ? (
               <p className="text-white/60/90 text-xs max-w-[200px]">{panelMessage}</p>

@@ -109,7 +109,7 @@ export const BuyCoinsModal: React.FC<BuyCoinsModalProps> = ({ isOpen, onClose, o
         className="fixed left-0 right-0 z-[999999] pointer-events-auto max-w-[480px] mx-auto"
         style={{ bottom: 'var(--bottom-nav-top)' }}
       >
-        <div className="bg-[#09090B]/95 backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl overflow-hidden">
+        <div className="bg-[rgba(10,10,10,0.72)] backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl overflow-hidden">
           <div className="flex justify-center pt-2 pb-1">
             <div className="w-10 h-1 bg-white/20 rounded-full" />
           </div>
@@ -130,7 +130,7 @@ export const BuyCoinsModal: React.FC<BuyCoinsModalProps> = ({ isOpen, onClose, o
                     className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-white/[0.03] border border-white/10 hover:bg-white/5 transition-colors active:scale-[0.98] disabled:opacity-50"
                   >
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-[#09090B] border border-[#D8D9DD]/30 flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-full bg-[rgba(0,0,0,0.35)] border border-[#D8D9DD]/30 flex items-center justify-center">
                         <Sparkles className="w-3.5 h-3.5 text-[#F5F5F7]" strokeWidth={1.8} />
                       </div>
                       <div className="text-left">

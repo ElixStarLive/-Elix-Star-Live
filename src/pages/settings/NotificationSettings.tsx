@@ -18,7 +18,7 @@ export default function NotificationSettings() {
 
   return (
     <SettingsOptionSheet onClose={exit}>
-      <div className="w-full h-full overflow-hidden bg-[#09090B] flex flex-col">
+      <div className="w-full h-full overflow-hidden bg-[rgba(0,0,0,0.35)] flex flex-col">
         <header className="flex items-center justify-center mb-2 px-4 pt-2">
           <h1 className="font-bold text-lg text-[#F5F5F7]">Notifications</h1>
         </header>

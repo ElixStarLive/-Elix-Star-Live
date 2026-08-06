@@ -1465,10 +1465,23 @@ svg.lucide.fill-silver-full.royce-icon-gold {
   display: none !important;
 }
 
-/* ═══ App-wide transparent page shells only (no accent/layout redesign) ═══ */
+/* ═══ ENTIRE APP transparent glass chrome (backgrounds only) ═══ */
+html,
+body {
+  background-color: #000000 !important;
+  background-image: var(--elix-app-bg) !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-attachment: fixed !important;
+}
+#root {
+  background: transparent !important;
+}
 .page-above-bottom-nav,
 .page-above-bottom-nav__inner,
 .app-live-column,
+.app-live-column-host,
 .bg-background,
 .bg-surface,
 .min-h-screen.bg-background {
@@ -1481,7 +1494,7 @@ svg.lucide.fill-silver-full.royce-icon-gold {
   background-color: rgba(255, 255, 255, 0.06) !important;
   border-color: #2A2D33 !important;
 }
-/* For You / Friends main wraps <video> — keep parent clear so wallpaper + glass chrome match circles */
+/* Video parents stay clear so stream/media paint; wallpaper still under chrome */
 main.feed-column-width {
   background-color: transparent !important;
   backdrop-filter: none !important;
@@ -1492,11 +1505,29 @@ nav[aria-label="Main navigation"] .feed-column-width[class*="bg-"] {
   background-color: rgba(0, 0, 0, 0.35) !important;
   backdrop-filter: blur(8px) !important;
   -webkit-backdrop-filter: blur(8px) !important;
+  border-top: 1px solid #2A2D33;
 }
-/* Top bar same glass as story circles strip */
 .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
 .feed-column-width.h-\[var\(--topnav-bar-height\)\] {
   background-color: rgba(0, 0, 0, 0.35) !important;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+}
+/* Sheets / panels that still used solid Obsidian */
+.bottom-sheet-above-nav,
+[class*="rounded-t-2xl"][class*="bg-\[rgba(0,0,0,0.35)\]"],
+[class*="rounded-t-2xl"][class*="bg-\[rgba(10,10,10,0.72)\]"] {
+  border-color: #2A2D33;
+}
+.elix-glass {
+  background: rgba(0, 0, 0, 0.35) !important;
+  border: 1px solid #2A2D33 !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.elix-glass-panel {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid #2A2D33 !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }

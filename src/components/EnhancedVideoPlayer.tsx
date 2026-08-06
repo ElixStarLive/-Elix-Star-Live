@@ -991,7 +991,7 @@ export default function EnhancedVideoPlayer({
 
 
         {videoError && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#09090B] z-10 gap-3">
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[rgba(0,0,0,0.35)] z-10 gap-3">
             <span className="text-white/50 text-sm">Video processing...</span>
             <button
               type="button"
@@ -1300,7 +1300,7 @@ export default function EnhancedVideoPlayer({
         <div className="fixed inset-0 z-modals flex items-end justify-center">
           <div className="absolute inset-0 pointer-events-auto" onClick={closeMoreMenu} />
           <div
-            className="bg-[#09090B]/95 rounded-t-2xl max-h-[40dvh] flex flex-col shadow-2xl pointer-events-auto w-full max-w-[480px] relative z-10 bottom-sheet-above-nav"
+            className="bg-[rgba(10,10,10,0.72)] rounded-t-2xl max-h-[40dvh] flex flex-col shadow-2xl pointer-events-auto w-full max-w-[480px] relative z-10 bottom-sheet-above-nav"
             style={{ boxShadow: '0 -4px 30px rgba(255,255,255,0.25)' }}
             onClick={(e) => e.stopPropagation()}
           >

@@ -12,7 +12,7 @@ export default function Guidelines() {
 
   return (
     <SettingsOptionSheet onClose={goBack}>
-      <div className="w-full h-full overflow-hidden bg-[#09090B] text-white flex flex-col">
+      <div className="w-full h-full overflow-hidden bg-[rgba(0,0,0,0.35)] text-white flex flex-col">
         <header className="flex items-center justify-center mb-4 px-4 pt-2">
           <h1 className="font-bold text-lg">Community Guidelines</h1>
         </header>

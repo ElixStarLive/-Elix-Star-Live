@@ -215,7 +215,7 @@ export default function CreatorPayout() {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-[#09090B] flex flex-col max-w-[480px] mx-auto">
+    <div className="fixed inset-0 z-[100] bg-[rgba(0,0,0,0.35)] flex flex-col max-w-[480px] mx-auto">
       <div className="flex items-center justify-between px-3 pt-[max(12px,env(safe-area-inset-top))] pb-2">
         <button type="button" onClick={exit} aria-label="Back">
           <RoyceBackIcon />

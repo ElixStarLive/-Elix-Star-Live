@@ -200,7 +200,7 @@ export function RankingPanel({
 
       <div className="flex justify-between items-center mb-2 flex-shrink-0">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-[#09090B] flex items-center justify-center border border-[#D8D9DD]/40">
+          <div className="w-8 h-8 rounded-full bg-[rgba(0,0,0,0.35)] flex items-center justify-center border border-[#D8D9DD]/40">
             <HeaderIcon className="w-4 h-4 text-[#F5F5F7]" fill="currentColor" />
           </div>
           <div>
