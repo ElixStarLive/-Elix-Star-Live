@@ -50,7 +50,7 @@ function splitCsvLine(line: string): string[] {
 
 function parseMoneyToPence(raw: string | undefined): number {
   if (!raw) return 0;
-  const cleaned = String(raw).replace(/[^0-9.\-]/g, "");
+  const cleaned = String(raw).replace(/[^0-9.-]/g, "");
   if (!cleaned) return 0;
   try {
     return gbpStringToPence(cleaned);
