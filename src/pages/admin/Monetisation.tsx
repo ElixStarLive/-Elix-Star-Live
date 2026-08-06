@@ -284,14 +284,14 @@ export default function AdminMonetisation() {
 
   if (loading || !cfg) {
     return (
-      <div className="min-h-screen bg-[rgba(10,10,10,0.72)] backdrop-blur-md flex items-center justify-center text-white">
+      <div className="min-h-screen bg-transparent flex items-center justify-center text-white">
         Loading...
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[rgba(10,10,10,0.72)] backdrop-blur-md text-white p-6">
+    <div className="min-h-screen bg-transparent text-white p-6">
       <div className="max-w-7xl mx-auto space-y-8">
         <h1 className="text-3xl font-bold flex items-center gap-3">
           <Banknote className="w-8 h-8" />

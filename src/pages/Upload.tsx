@@ -725,13 +725,13 @@ export default function Upload() {
   };
 
   return (
-    <div className="fixed inset-0 h-[100dvh] w-full bg-[rgba(0,0,0,0.35)] overflow-hidden flex justify-center">
+    <div className="fixed inset-0 h-[100dvh] w-full bg-transparent overflow-hidden flex justify-center">
       <div className={`w-full max-w-[480px] flex flex-col items-center h-full relative ${recordedVideoUrl ? 'justify-end' : 'justify-start'}`}>
       {toast && <div className="fixed top-16 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-md text-white text-sm px-4 py-2 rounded-xl z-[9999]">{toast}</div>}
       {/* PREVIEW MODE */}
        {recordedVideoUrl ? (
          <>
-           <div className="relative z-10 w-full mx-auto h-[100dvh] bg-[rgba(0,0,0,0.35)] flex flex-col items-center justify-center">
+           <div className="relative z-10 w-full mx-auto h-[100dvh] bg-transparent flex flex-col items-center justify-center">
               {duetSourceVideoUrl ? (
                 <div
                   className="absolute top-0 left-0 right-0 w-full overflow-hidden bg-black"
@@ -1187,7 +1187,7 @@ export default function Upload() {
         /* CAMERA MODE */
         <>
           {/* Container Principal */}
-          <div className="relative z-10 w-full h-[100dvh] mb-0 pointer-events-none bg-[rgba(0,0,0,0.35)] shadow-2xl overflow-hidden">
+          <div className="relative z-10 w-full h-[100dvh] mb-0 pointer-events-none bg-transparent shadow-2xl overflow-hidden">
               {/* Duet: split (half/half) or overlay (full original + your face on top) */}
               {duetSourceVideoUrl ? (
                 <div
@@ -1260,7 +1260,7 @@ export default function Upload() {
               ) : null}
 
               {cameraError && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center z-[5] bg-[rgba(0,0,0,0.35)] text-white p-6 text-center">
+                <div className="absolute inset-0 flex flex-col items-center justify-center z-[5] bg-transparent text-white p-6 text-center">
                   <div className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center mb-3">
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M21 21H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3l2-3h6l2 3h3a2 2 0 0 1 2 2v9.34"/><path d="M14.12 14.12A3 3 0 1 1 9.88 9.88"/></svg>
                   </div>
@@ -1499,7 +1499,7 @@ export default function Upload() {
       {/* Above camera hit-layer + preview chrome — works in record and after capture */}
       {showMusicModal ? (
         <div
-          className="fixed inset-0 z-[10050] bg-[rgba(0,0,0,0.35)] flex flex-col pt-6 pointer-events-auto"
+          className="fixed inset-0 z-[10050] bg-transparent flex flex-col pt-6 pointer-events-auto"
           role="dialog"
           aria-modal="true"
           aria-label="Add sound"

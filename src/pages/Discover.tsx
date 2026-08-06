@@ -246,12 +246,12 @@ export default function Discover() {
   }, [navigate]);
 
   return (
-    <div ref={pageRef} className="page-above-bottom-nav bg-[rgba(10,10,10,0.72)] backdrop-blur-md text-white relative">
+    <div ref={pageRef} className="page-above-bottom-nav bg-transparent text-white relative">
       <div className="page-above-bottom-nav__inner">
 
         {/* Strip chrome (Search / Explore / Back) + circles — comes down together, not over content */}
         <div
-          className="w-full shrink-0 z-10 bg-[rgba(0,0,0,0.35)]"
+          className="w-full shrink-0 z-10 bg-transparent"
           style={{ paddingTop: 'var(--topnav-anchor-top)' }}
         >
           <FeedStoryCirclesOverlay
@@ -264,7 +264,7 @@ export default function Discover() {
           />
 
           {/* Search Bar */}
-          <div className="w-full px-3 mb-1.5 box-border bg-[rgba(0,0,0,0.35)]">
+          <div className="w-full px-3 mb-1.5 box-border bg-transparent">
             <div className="w-full flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2 border border-white/10">
               <Search className="w-3.5 h-3.5 text-[#F5F5F7]/50 shrink-0" />
               <input
@@ -279,7 +279,7 @@ export default function Discover() {
                 className="flex-1 min-w-0 bg-transparent outline-none text-[13px] text-gold-metallic placeholder-[#FFFFFF]/30"
               />
               {searchQuery && (
-                <button onClick={clearSearchQuery} className="p-0.5 rounded-full bg-[rgba(0,0,0,0.35)] border border-white/15 shrink-0" title="Clear">
+                <button onClick={clearSearchQuery} className="p-0.5 rounded-full bg-transparent border border-white/15 shrink-0" title="Clear">
                   <span className="text-white/50 text-xs leading-none px-1">✕</span>
                 </button>
               )}
@@ -304,7 +304,7 @@ export default function Discover() {
         </div>
 
         {/* ═══ CONTENT — full width, no card chrome on trending feed ═══ */}
-        <div className="flex-1 min-h-0 overflow-y-auto w-full bg-[rgba(0,0,0,0.35)] pb-24">
+        <div className="flex-1 min-h-0 overflow-y-auto w-full bg-transparent pb-24">
 
           {/* Loading */}
           {loading && (
@@ -583,7 +583,7 @@ function VideoThumbnail({ video, variant = 'grid' }: { video: Video; variant?: '
     <div
       ref={containerRef}
       className={`relative overflow-hidden w-full ${
-        feed ? 'h-full min-h-0 rounded-none border-0 bg-transparent' : 'aspect-[9/16] rounded-xl bg-[rgba(0,0,0,0.35)] border border-white/10'
+        feed ? 'h-full min-h-0 rounded-none border-0 bg-transparent' : 'aspect-[9/16] rounded-xl bg-transparent border border-white/10'
       }`}
     >
       <div

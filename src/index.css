@@ -56,11 +56,12 @@
     --color-dark-red: #5B2ED6;
     --color-hover-purple: #8B5CFF;
     --color-pressed-purple: #5B2ED6;
-    /* 3-dots / ShareModal glass — same frosted panel across the app */
-    --color-background: rgba(10, 10, 10, 0.72);
-    --color-surface: rgba(10, 10, 10, 0.72);
+    /* Page shells clear — only wallpaper + sheet/nav glass */
+    --color-background: transparent;
+    --color-surface: transparent;
     --color-card: rgba(255, 255, 255, 0.06);
     --color-card-elevated: rgba(255, 255, 255, 0.06);
+    /* Single glass recipe = ShareModal / 3-dots panel */
     --color-glass-bg: rgba(10, 10, 10, 0.72);
     --color-glass-panel: rgba(10, 10, 10, 0.72);
     --color-glass-border: #2A2D33;
@@ -1460,13 +1461,13 @@ svg.lucide.fill-silver-full.royce-icon-gold {
   display: none !important;
 }
 
-/* ═══ ENTIRE APP = same frosted glass as ShareModal / 3-dots panel ═══ */
+/* ═══ Exact ShareModal / More Options glass — ONE layer, not darker/lighter ═══ */
+/* ShareModal recipe: bg-[rgba(10,10,10,0.72)] backdrop-blur-md */
 html,
 body {
   background-color: #000000 !important;
   background-image: none !important;
 }
-/* Wallpaper behind glass (WebView-safe fixed layer) */
 body::before {
   content: "";
   position: fixed;
@@ -1484,38 +1485,41 @@ body::before {
   background: transparent !important;
 }
 
-/*
- * Page shells / surfaces — exact ShareModal recipe:
- * bg-[rgba(10,10,10,0.72)] + backdrop-blur-md
- */
+/* Outer page frame clear — glass only on ONE inner surface (no stack) */
 .page-above-bottom-nav,
-.page-above-bottom-nav__inner,
 .bg-background,
 .bg-surface,
 .min-h-screen.bg-background,
-.app-live-column {
+.app-live-column,
+main.feed-column-width,
+.elix-live-room,
+.app-live-column-host {
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* ONE page glass = exact More Options / ShareModal */
+.page-above-bottom-nav__inner {
   background-color: rgba(10, 10, 10, 0.72) !important;
   backdrop-filter: blur(12px) !important;
   -webkit-backdrop-filter: blur(12px) !important;
 }
 
-/* Unify remapped fills to the same 3-dots glass (do NOT force transparent) */
-#root [class*="bg-[rgba(0,0,0,0.35)]"],
-#root [class*="bg-[rgba(10,10,10,0.72)]"] {
-  background-color: rgba(10, 10, 10, 0.72) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+/* Kill leftover nested washes so they cannot stack darker than ShareModal */
+#root [class*="bg-[rgba(0,0,0,0.35)]"] {
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 .bg-card,
 .bg-card-elevated {
-  background-color: rgba(10, 10, 10, 0.72) !important;
+  background-color: transparent !important;
   border-color: #2A2D33 !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
 }
 
-/* Top + bottom nav — same glass */
+/* Nav — exact same ShareModal glass */
 #root nav[aria-label="Main navigation"] .feed-column-width,
 #root nav[aria-label="Main navigation"] .feed-column-width[class*="bg-"],
 #root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
@@ -1526,7 +1530,7 @@ body::before {
   border-color: #2A2D33;
 }
 
-/* Sheets / 3-dots / Creators panels */
+/* Sheets — leave ShareModal recipe intact (same values) */
 .bottom-sheet-above-nav,
 #root .elix-glass,
 #root .elix-glass-panel {
@@ -1536,16 +1540,9 @@ body::before {
   -webkit-backdrop-filter: blur(12px) !important;
 }
 
-/*
- * Video + live paint layers stay clear so media shows through glass chrome.
- * Do not glass-wash the stream itself.
- */
-main.feed-column-width,
-.elix-live-room,
-.elix-live-room .page-above-bottom-nav,
-.elix-live-room .page-above-bottom-nav__inner,
-.app-live-column-host {
-  background-color: transparent !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+/* Story strip — same glass */
+#root [class*="backdrop-blur-md"][class*="bg-[rgba(0,0,0,0.35)]"]:not(.page-above-bottom-nav):not(.page-above-bottom-nav__inner) {
+  background-color: rgba(10, 10, 10, 0.72) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
 }

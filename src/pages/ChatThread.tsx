@@ -331,7 +331,7 @@ export default function ChatThread() {
 
   if (isSystemThread) {
     return (
-      <div className="min-h-full min-h-0 flex flex-col bg-[rgba(0,0,0,0.35)] text-white p-4">
+      <div className="min-h-full min-h-0 flex flex-col bg-transparent text-white p-4">
         <header className="flex items-center gap-4 mb-4 flex-shrink-0">
           <button type="button" onClick={goInbox} className="p-1 rounded-lg active:bg-white/10" aria-label="Back to inbox">
             <ArrowLeft />
@@ -345,16 +345,16 @@ export default function ChatThread() {
 
   return (
     <div
-      className="fixed left-0 right-0 flex flex-col w-full max-w-[480px] mx-auto bg-[rgba(0,0,0,0.35)] text-white z-[1]"
+      className="fixed left-0 right-0 flex flex-col w-full max-w-[480px] mx-auto bg-transparent text-white z-[1]"
       style={{ top: 0, bottom: 'var(--bottom-ui-reserve)' }}
     >
-        <header className="flex-shrink-0 flex items-center gap-2 px-4 py-3 border-b border-white/10 bg-[rgba(0,0,0,0.35)]">
+        <header className="flex-shrink-0 flex items-center gap-2 px-4 py-3 border-b border-white/10 bg-transparent">
           <div className="flex w-12 shrink-0 items-center justify-start">
             {otherUser && (
               <button
                 type="button"
                 onClick={handleVideoCall}
-                className="p-2 rounded-full bg-[rgba(0,0,0,0.35)] border border-[#D8D9DD]/40 hover:bg-white/5 transition-colors"
+                className="p-2 rounded-full bg-transparent border border-[#D8D9DD]/40 hover:bg-white/5 transition-colors"
                 aria-label="Video call"
               >
                 <Video className="w-5 h-5 text-white" />
@@ -379,7 +379,7 @@ export default function ChatThread() {
         </header>
 
         {liveUsers.length > 0 && (
-          <div className="flex-shrink-0 border-b border-white/10 bg-[rgba(0,0,0,0.35)]">
+          <div className="flex-shrink-0 border-b border-white/10 bg-transparent">
             <div className="flex gap-3 overflow-x-auto overflow-y-hidden no-scrollbar px-3 py-2" style={{ WebkitOverflowScrolling: 'touch' }}>
               {liveUsers.map((u) => (
                 <button
@@ -482,7 +482,7 @@ export default function ChatThread() {
           })}
         </div>
 
-        <div className="flex-shrink-0 p-4 bg-[rgba(0,0,0,0.35)] border-t border-white/10">
+        <div className="flex-shrink-0 p-4 bg-transparent border-t border-white/10">
           <form className="flex items-center gap-2 bg-[rgba(255,255,255,0.06)] rounded-full px-4 py-2" onSubmit={handleSend}>
             <input
               value={draft}

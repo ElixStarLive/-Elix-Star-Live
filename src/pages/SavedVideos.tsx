@@ -97,8 +97,8 @@ export default function SavedVideos() {
   };
 
   return (
-    <div className="h-full min-h-0 w-full bg-[rgba(10,10,10,0.72)] backdrop-blur-md text-white flex justify-center px-2">
-      <div className="w-full max-w-[480px] h-full min-h-0 flex flex-col overflow-y-auto bg-[rgba(0,0,0,0.35)]">
+    <div className="h-full min-h-0 w-full bg-transparent text-white flex justify-center px-2">
+      <div className="w-full max-w-[480px] h-full min-h-0 flex flex-col overflow-y-auto bg-transparent">
         <div className="p-4 flex items-center gap-4">
           <button onClick={goBack} className="p-1">
             <RoyceBackIcon />
@@ -126,7 +126,7 @@ export default function SavedVideos() {
               {videos.map((video) => (
                 <div
                   key={video.id}
-                  className="aspect-[3/4] bg-[rgba(0,0,0,0.35)] relative cursor-pointer group"
+                  className="aspect-[3/4] bg-transparent relative cursor-pointer group"
                   onClick={() => openVideo(video.id)}
                 >
                   {video.thumbnail_url ? (

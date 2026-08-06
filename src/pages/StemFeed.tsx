@@ -116,7 +116,7 @@ export default function StemFeed() {
 
       {!stemLoading && stemVideos.length === 0 && (
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-[1]">
-          <div className="w-20 h-20 rounded-full bg-[rgba(0,0,0,0.35)] border border-white/10 flex items-center justify-center mb-4">
+          <div className="w-20 h-20 rounded-full bg-transparent border border-white/10 flex items-center justify-center mb-4">
             <span className="text-3xl">🔥</span>
           </div>
           <p className="text-white/60 font-semibold text-base mb-1">

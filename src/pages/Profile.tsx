@@ -674,12 +674,12 @@ export default function Profile() {
   };
 
   if (!displayUserId) {
-     return <div className="bg-[rgba(10,10,10,0.72)] backdrop-blur-md text-white flex items-center justify-center min-h-[50vh]">Loading...</div>;
+     return <div className="bg-transparent text-white flex items-center justify-center min-h-[50vh]">Loading...</div>;
   }
 
   if (routeUserId && resolvedUserId === null && !loading) {
     return (
-      <div className="bg-[rgba(10,10,10,0.72)] backdrop-blur-md text-white flex flex-col items-center justify-center min-h-[50vh] px-4">
+      <div className="bg-transparent text-white flex flex-col items-center justify-center min-h-[50vh] px-4">
         <button onClick={goBack} className="absolute top-4 right-4 p-1" title="Close" aria-label="Close">
           <RoyceCloseIcon size={20} />
         </button>
@@ -691,7 +691,7 @@ export default function Profile() {
 
   if (!loading && !profileData && !isOwnProfile) {
     return (
-      <div className="bg-[rgba(10,10,10,0.72)] backdrop-blur-md text-white flex flex-col items-center justify-center min-h-[50vh] px-4">
+      <div className="bg-transparent text-white flex flex-col items-center justify-center min-h-[50vh] px-4">
         <button onClick={goBack} className="absolute top-4 right-4 p-1" title="Close" aria-label="Close">
           <RoyceCloseIcon size={20} />
         </button>
@@ -702,7 +702,7 @@ export default function Profile() {
   }
 
   return (
-    <div className="page-above-bottom-nav bg-[rgba(10,10,10,0.72)] backdrop-blur-md text-white">
+    <div className="page-above-bottom-nav bg-transparent text-white">
       <div className="page-above-bottom-nav__inner bg-[rgba(10,10,10,0.72)] backdrop-blur-md">
         {/* Small top header with Share + Exit buttons — same panel height as Inbox */}
         <header className="flex items-center justify-between px-4 pt-page-header pb-2 relative z-10">
@@ -744,7 +744,7 @@ export default function Profile() {
             onClick={() => setShowAccountMenu(false)}
           >
             <div 
-              className="w-full max-w-[480px] bg-[rgba(0,0,0,0.35)] rounded-t-2xl border-t border-white/10 pb-safe"
+              className="w-full max-w-[480px] bg-transparent rounded-t-2xl border-t border-white/10 pb-safe"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-center px-5 pt-4 pb-3 border-b border-white/10">
@@ -1204,7 +1204,7 @@ export default function Profile() {
                   key={video.id}
                   type="button"
                   onClick={() => goVideo(video.id)}
-                  className="aspect-[3/4] bg-[rgba(0,0,0,0.35)] relative group text-left rounded-xl overflow-hidden"
+                  className="aspect-[3/4] bg-transparent relative group text-left rounded-xl overflow-hidden"
                 >
                   {playbackUrl ? (
                     <video
@@ -1365,7 +1365,7 @@ export default function Profile() {
 
       {storyViewerOpen && profileStoryGroup?.items?.[storyViewerIndex] && (
         <div
-          className="fixed inset-0 z-[10060] bg-[rgba(0,0,0,0.35)] flex justify-center"
+          className="fixed inset-0 z-[10060] bg-transparent flex justify-center"
           onClick={() => {
             if (storyViewerIndex + 1 < profileStoryGroup.items.length) {
               setStoryViewerIndex((i) => i + 1);

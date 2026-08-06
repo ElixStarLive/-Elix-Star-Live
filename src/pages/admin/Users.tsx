@@ -81,16 +81,16 @@ export default function AdminUsers() {
   );
 
   if (loading) {
-    return <div className="min-h-screen bg-[rgba(10,10,10,0.72)] backdrop-blur-md flex items-center justify-center text-white">Loading...</div>;
+    return <div className="min-h-screen bg-transparent flex items-center justify-center text-white">Loading...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-[rgba(10,10,10,0.72)] backdrop-blur-md text-white p-6">
+    <div className="min-h-screen bg-transparent text-white p-6">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold mb-6">User Management</h1>
 
         {/* Search */}
-        <div className="mb-6 flex items-center gap-4 bg-[rgba(0,0,0,0.35)] rounded-lg px-4 py-3">
+        <div className="mb-6 flex items-center gap-4 bg-transparent rounded-lg px-4 py-3">
           <Search className="w-5 h-5 text-white" />
           <input
             type="text"
@@ -102,7 +102,7 @@ export default function AdminUsers() {
         </div>
 
         {/* Users Table */}
-        <div className="bg-[rgba(0,0,0,0.35)] rounded-lg overflow-hidden">
+        <div className="bg-transparent rounded-lg overflow-hidden">
           <table className="w-full">
             <thead className="bg-[rgba(255,255,255,0.06)]">
               <tr>

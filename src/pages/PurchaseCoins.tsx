@@ -152,10 +152,10 @@ export default function PurchaseCoins() {
   };
 
   return (
-    <div className="h-full min-h-0 w-full bg-[rgba(10,10,10,0.72)] backdrop-blur-md text-white flex justify-center px-2">
-      <div className="w-full max-w-[480px] h-full min-h-0 flex flex-col overflow-hidden bg-[rgba(0,0,0,0.35)]">
+    <div className="h-full min-h-0 w-full bg-transparent text-white flex justify-center px-2">
+      <div className="w-full max-w-[480px] h-full min-h-0 flex flex-col overflow-hidden bg-transparent">
         {/* Header */}
-        <div className="sticky top-0 bg-[rgba(0,0,0,0.35)] z-10 px-4 py-4 border-b border-transparent flex items-center justify-between">
+        <div className="sticky top-0 bg-transparent z-10 px-4 py-4 border-b border-transparent flex items-center justify-between">
           <button onClick={goFeed} className="p-2 hover:brightness-125 rounded-full transition" title="Back">
             <RoyceBackIcon />
           </button>

@@ -241,8 +241,8 @@ export default function CreatorLoginDetails() {
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-[rgba(0,0,0,0.35)] text-white flex justify-center">
-      <div className="w-full max-w-[480px] h-full bg-[rgba(0,0,0,0.35)] flex flex-col overflow-y-auto p-4">
+    <div className="fixed inset-0 z-[9999] bg-transparent text-white flex justify-center">
+      <div className="w-full max-w-[480px] h-full bg-transparent flex flex-col overflow-y-auto p-4">
         {/* Header — logo + title centered, close button on the right */}
         <header className="flex items-center justify-between mb-5">
           <div className="w-9 flex-shrink-0" />
@@ -277,7 +277,7 @@ export default function CreatorLoginDetails() {
                       <AvatarRing src={acc.avatar || `https://ui-avatars.com/api/?name=${acc.username}&background=random`} alt={acc.username} size={40} />
                       {isActive && (
                         <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#FFFFFF] rounded-full border-[1.5px] border-black flex items-center justify-center">
-                          <div className="w-1 h-1 bg-[rgba(0,0,0,0.35)] rounded-full" />
+                          <div className="w-1 h-1 bg-transparent rounded-full" />
                         </div>
                       )}
                       {!isActive && (
@@ -311,7 +311,7 @@ export default function CreatorLoginDetails() {
                 }}
                 className="flex-shrink-0 w-14 flex flex-col items-center gap-1.5 group cursor-pointer opacity-60 hover:opacity-100"
               >
-                <div className="w-10 h-10 rounded-full bg-[rgba(0,0,0,0.35)] border border-[#D8D9DD]/40 flex items-center justify-center group-hover:bg-white/5 transition-colors relative">
+                <div className="w-10 h-10 rounded-full bg-transparent border border-[#D8D9DD]/40 flex items-center justify-center group-hover:bg-white/5 transition-colors relative">
                   <span className="text-lg text-white/50 font-light relative z-[2]">+</span>
 </div>
                 <div className="text-center">
@@ -372,7 +372,7 @@ export default function CreatorLoginDetails() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-[rgba(0,0,0,0.35)] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-white/40/20 outline-none focus:border-[#D8D9DD]/50 transition-all"
+                  className="w-full bg-transparent border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-white/40/20 outline-none focus:border-[#D8D9DD]/50 transition-all"
                   placeholder="name@example.com"
                   autoComplete="email"
                   required
@@ -393,7 +393,7 @@ export default function CreatorLoginDetails() {
                     // Ensure we are in signin mode if user types here
                     if (mode !== 'signin') setMode('signin');
                   }}
-                  className="w-full bg-[rgba(0,0,0,0.35)] border border-white/10 rounded-xl pl-10 pr-10 py-3 text-sm text-white placeholder-white/40/20 outline-none focus:border-[#D8D9DD]/50 transition-all"
+                  className="w-full bg-transparent border border-white/10 rounded-xl pl-10 pr-10 py-3 text-sm text-white placeholder-white/40/20 outline-none focus:border-[#D8D9DD]/50 transition-all"
                   placeholder="Enter your password"
                   autoComplete="current-password"
                   required
@@ -463,7 +463,7 @@ export default function CreatorLoginDetails() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-[rgba(0,0,0,0.35)] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-white/40/20 outline-none focus:border-[#D8D9DD]/50 transition-all"
+                  className="w-full bg-transparent border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-white/40/20 outline-none focus:border-[#D8D9DD]/50 transition-all"
                   placeholder="name@example.com"
                 />
               </div>
@@ -477,7 +477,7 @@ export default function CreatorLoginDetails() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-[rgba(0,0,0,0.35)] border border-white/10 rounded-xl pl-10 pr-10 py-3 text-sm text-white placeholder-white/40/20 outline-none focus:border-[#D8D9DD]/50 transition-all"
+                  className="w-full bg-transparent border border-white/10 rounded-xl pl-10 pr-10 py-3 text-sm text-white placeholder-white/40/20 outline-none focus:border-[#D8D9DD]/50 transition-all"
                   placeholder="Enter password to save"
                 />
                 <button

@@ -157,7 +157,7 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
 
   if (isBlocked) {
     return (
-      <div className="page-above-bottom-nav bg-[rgba(10,10,10,0.72)] backdrop-blur-md text-white z-[10001]">
+      <div className="page-above-bottom-nav bg-transparent text-white z-[10001]">
         <div className="page-above-bottom-nav__inner bg-[rgba(10,10,10,0.72)] backdrop-blur-md flex flex-col">
           <header className="flex items-center justify-between px-4 pt-page-header pb-2 relative z-10">
             <div className="w-10" />
@@ -192,7 +192,7 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
   }
 
   return (
-    <div className="page-above-bottom-nav bg-[rgba(10,10,10,0.72)] backdrop-blur-md text-white z-[10001]">
+    <div className="page-above-bottom-nav bg-transparent text-white z-[10001]">
       <div className="page-above-bottom-nav__inner bg-[rgba(10,10,10,0.72)] backdrop-blur-md flex flex-col">
         {/* Header — same full-screen shell as Profile page */}
         <header className="flex items-center justify-between px-4 pt-page-header pb-2 relative z-10 flex-shrink-0">

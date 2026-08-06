@@ -116,7 +116,7 @@ export default function Support() {
   if (showContactForm) {
     return (
       <SettingsOptionSheet onClose={goBack}>
-        <div className="w-full h-full overflow-hidden bg-[rgba(10,10,10,0.72)] backdrop-blur-md flex flex-col">
+        <div className="w-full h-full overflow-hidden bg-transparent flex flex-col">
           <header className="flex items-center justify-center mb-2 px-4 pt-2">
             <h1 className="font-bold text-lg text-[#F5F5F7]">Contact Support</h1>
           </header>
@@ -173,7 +173,7 @@ export default function Support() {
 
   return (
     <SettingsOptionSheet onClose={goBack}>
-      <div className="w-full h-full overflow-hidden bg-[rgba(10,10,10,0.72)] backdrop-blur-md flex flex-col">
+      <div className="w-full h-full overflow-hidden bg-transparent flex flex-col">
         <header className="flex items-center justify-center mb-2 px-4 pt-2">
           <h1 className="font-bold text-lg text-[#F5F5F7]">Help &amp; Support</h1>
         </header>
