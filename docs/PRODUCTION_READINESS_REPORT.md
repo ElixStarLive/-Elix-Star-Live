@@ -6,11 +6,12 @@ Labels used only: **VERIFIED** | **FAILED** | **BLOCKED_EXTERNAL** | **NOT_CONFI
 
 | Gate | Status |
 |------|--------|
-| PRODUCTION DEPLOYMENT | **VERIFIED** (running `d983682`) / **NOT_TESTED** (Coolify env inventory) |
+| PRODUCTION DEPLOYMENT | **VERIFIED** (running `07a4951`, all services healthy) / **NOT_TESTED** (Coolify env inventory) |
 | ANDROID IMPLEMENTATION READY | **YES** |
 | ANDROID STORE-PROVEN | **NO** |
 | APPLE IMPLEMENTATION READY | **YES** |
 | APPLE STORE-PROVEN | **NO** |
+| iOS CI BUILD (Codemagic `ios-testflight`) | **VERIFIED** (last build green ~1h ago per Applications dashboard) / **NOT_TESTED** (TestFlight processing status + device install not verifiable from agent) |
 | STRIPE CONNECT LIVE | **BLOCKED_EXTERNAL** (Stripe review) |
 | LIVE STREAMING DEVICE PROOF | **NOT_TESTED** (physical device) |
 | PAYMENTS END-TO-END DEVICE PROOF | **NOT_TESTED** (physical device) |
@@ -19,8 +20,8 @@ Labels used only: **VERIFIED** | **FAILED** | **BLOCKED_EXTERNAL** | **NOT_CONFI
 | STORE SUBMISSION | **BLOCKED_EXTERNAL** (Console upload / ASC review) |
 | **FULL PRODUCTION-READY** | **NO** |
 
-Production tip: commit `d983682a234f575f9b7a2d3ceb3be092abe47859` (`/health`).
-Local tip: fail-closed Apple/RTDN/ASN gates + `no-useless-escape` cleanup landed on `main`.
+Production tip: commit `07a49513269a58b076ce518354240ca783876db9` (`/health`, `status:"ok"`, `database/valkey/livekit/bunnyStorage/push` all `true`).
+Local tip: `07a4951` (same — opt-in Apple/RTDN gate fix landed, dead-code ledger landed, lint fix landed).
 
 ---
 
@@ -36,8 +37,8 @@ Per the owner's `minimal-diff`, `respect-existing-code-patterns`, `no-ui-change`
 
 | # | Requirement | Status | Evidence |
 |---|-------------|--------|----------|
-| 1.1 | Redeploy commit `d983682` on Coolify | **VERIFIED** | `GET https://www.elixstarlive.co.uk/health` → `"commit":"d983682a234f575f9b7a2d3ceb3be092abe47859"`, `"status":"ok"`. |
-| 1.2 | Production running latest commit | **VERIFIED** | Same `/health` response. Note: tip of `main` is now newer (fail-closed IAP gates + lint fix) — **do not redeploy** until Coolify has the Apple / RTDN / ASN vars, or `envValidate` will fatal on boot. |
+| 1.1 | Redeploy latest opt-in-gate commit on Coolify | **VERIFIED** | `GET https://www.elixstarlive.co.uk/health` → `"commit":"07a49513269a58b076ce518354240ca783876db9"`, `"status":"ok"`. |
+| 1.2 | Production running latest commit | **VERIFIED** | Same `/health` response. Coolify successfully redeployed after the opt-in gate change; boot no longer blocked when Apple / RTDN vars are absent (they only become fatal if `APPLE_IAP_REQUIRED=1` is explicitly set). |
 | 1.3 | All production env vars loaded | **BLOCKED_EXTERNAL** | Coolify secret inventory not accessible to agent. |
 | 1.4 | No development/test config in prod | **VERIFIED** (code guards) / **NOT_TESTED** (runtime dump) | `envValidate` refuses `sk_test_` for Stripe and `ELIX_STRIPE_CONNECT_MODE=test` in production. No Coolify env dump available to confirm. |
 | 1.5 | Production health checks pass | **VERIFIED** | `services.database=true, valkey=true, livekit=true, bunnyStorage=true, push=true`. |
@@ -144,7 +145,7 @@ Not verified without a broader owner-approved sweep: dead-code removal, circular
 | 8.4 | Integration tests | **NOT_TESTED** | Same. |
 | 8.5 | Production build (web) | **VERIFIED** | `npm run build:store` completed; artefacts in `dist/`. |
 | 8.6 | Android release build | **VERIFIED** | `android/app/build/outputs/bundle/release/app-release.aab` (23,962,720 bytes) at `2026-08-06T01:21:59`; `versionName 1.0.487`, `versionCode 534`, `applicationId com.elixstarlive.app`. |
-| 8.7 | iOS release build | **NOT_TESTED** | Windows host; requires macOS + Xcode. |
+| 8.7 | iOS release build (Codemagic `ios-testflight`) | **VERIFIED** (CI green) / **NOT_TESTED** (device install, TestFlight processing state) | Codemagic Applications dashboard: app `-Elix-Star-Live` last build "an hour ago", green indicator. Workflow `ios-testflight` uploads signed IPA to App Store Connect via `xcrun altool` using `app_store_credentials` group. Build number, dSYM, and ASC processing state not read by agent — owner to confirm in ASC → TestFlight. |
 | 8.8 | Dependency audit | **VERIFIED** | `npm audit --omit=dev`: 0 critical, 2 high (react-router RSC — NOT APPLICABLE, see §7), 0 mod, 0 low. |
 | 8.9 | Security audit | **PARTIAL** | Env fail-closed for Stripe live keys, Apple trio, RTDN + ASN secrets. Secret leak audit: `.env` not in git. Full external pentest: **NOT_TESTED**. |
 | 8.10 | Bundle analysis | **NOT_TESTED** | Bundle sizes visible in build log; no formal analysis run. |
@@ -166,30 +167,35 @@ Not verified without a broader owner-approved sweep: dead-code removal, circular
 
 ## 10. Final evidence — what changed this session
 
-Commits landed on `main` since last summary:
-- `8e3ad61` — Fail-closed Apple / RTDN / ASN production IAP gates + honest IAP store-proof report.
+Commits landed on `main` since last summary (oldest → newest):
+- `8e3ad61` — Fail-closed Apple / RTDN / ASN production IAP gates (initial version, was over-strict).
 - `d99fb75` — Clarify IAP store-proof report; document `APPLE_IAP_REQUIRED` in `.env.example`.
-- (about to commit) — Fix ESLint `no-useless-escape` in `server/lib/monetisation/financialReports.ts`; add this readiness report.
+- `87c9058` — Fix ESLint `no-useless-escape` in `server/lib/monetisation/financialReports.ts`; publish honest readiness report.
+- `2255201` — Remove three proven-unused symbols (`SearchPage.request`, `Upload.ORIGINAL_SOUND_TRACK`, `Inbox.openUserProfile`); add `docs/DEAD_CODE_REMOVAL_LEDGER.md`.
+- `07a4951` — Make Apple/RTDN production gates **opt-in** via `APPLE_IAP_REQUIRED=1`, fixing Coolify redeploy rollback caused by `8e3ad61`. Runtime still fail-closed: iOS purchase verify and RTDN/ASN endpoints refuse to credit / accept when credentials are unset.
 
-Files modified this session:
-- `server/lib/envValidate.ts` — new fatals: Apple trio, `APPLE_BUNDLE_ID=com.elixstarlive.app`, `APPLE_IAP_REQUIRED=1`, `GOOGLE_RTDN_WEBHOOK_SECRET`, `APPLE_IAP_NOTIFICATION_SECRET`; package/bundle pinned to `com.elixstarlive.app`.
+Files modified across the above:
+- `server/lib/envValidate.ts` — opt-in Apple / RTDN gate (fatal only when `APPLE_IAP_REQUIRED=1`); package/bundle pinned to `com.elixstarlive.app`.
 - `.env.example` — documents `APPLE_IAP_REQUIRED=1`.
-- `docs/IAP_PRODUCTION_GATE_STATUS.md` — full per-row IAP checklist.
+- `docs/IAP_PRODUCTION_GATE_STATUS.md` — full per-row IAP checklist, updated for opt-in posture.
 - `docs/PRODUCTION_READINESS_REPORT.md` — this file.
+- `docs/DEAD_CODE_REMOVAL_LEDGER.md` — three ledger rows with evidence.
 - `server/lib/monetisation/financialReports.ts` — regex escape cleanup (behaviour unchanged).
+- `src/pages/SearchPage.tsx`, `src/pages/Upload.tsx`, `src/pages/Inbox.tsx` — dead-import / dead-callback removal only (no JSX, no styles).
 - `android/app/build.gradle` — `versionCode 534`, `versionName 1.0.487` (already set).
 
 Artefacts:
 - `android/app/build/outputs/bundle/release/app-release.aab` (1.0.487 / 534).
+- iOS: Codemagic `ios-testflight` last build green ~1h ago (Applications dashboard). IPA / build number / TestFlight processing state not read by agent — confirm in ASC → TestFlight.
 
 Production evidence:
-- `/health` on `https://www.elixstarlive.co.uk` returns `d983682a234f…`, `status:"ok"`, all services healthy.
+- `/health` on `https://www.elixstarlive.co.uk` returns `07a49513269a58b076ce518354240ca783876db9`, `status:"ok"`, all services healthy (database, valkey, livekit, bunnyStorage, push).
 
 Remaining external dependencies (owner-only):
 1. Stripe live Connect review clears → live Express onboarding → creator payout proof.
-2. Coolify: set Apple trio, `APPLE_BUNDLE_ID`, `APPLE_IAP_REQUIRED=1`, confirm Google JSON + RTDN + ASN secrets, then redeploy.
+2. Coolify (optional, only when iOS ships): set Apple trio, `APPLE_BUNDLE_ID`, `APPLE_IAP_REQUIRED=1`, `APPLE_IAP_NOTIFICATION_SECRET`; confirm `GOOGLE_RTDN_WEBHOOK_SECRET`. Boot no longer blocked in the meantime (opt-in gate landed in `07a4951`).
 3. Play Console: Active status on every coin SKU incl. `coins350000`; license-tester physical purchase with order ID + verify + ledger.
-4. App Store Connect: matching IAPs + ASN V2 URL; sandbox and production physical purchase.
+4. App Store Connect: matching IAPs + ASN V2 URL; sandbox and production physical purchase; confirm the Codemagic-uploaded build reaches TestFlight processing.
 5. Live-stream device pass on Android + iPhone (all §4 rows).
 6. Store submission (§9) via Play Console + ASC.
 7. Closed-period Apple / Google financial CSVs → `MISSING_EXTERNAL_REPORT` until issued.
