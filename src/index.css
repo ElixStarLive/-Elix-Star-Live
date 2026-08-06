@@ -991,64 +991,56 @@ video::-webkit-media-controls-overlay-enclosure,
 }
 
 /*
- * Purple fills only for opt-in accents (Follow / Live / selected tabs / toggles).
- * Other bg-[#F0C86B] buttons become silver chrome (no purple wash).
+ * Primary Gold fills (#F0C86B) — style guide accent buttons.
+ * Dark text on gold for contrast (Follow / CTAs).
  */
-#root :is(button, a, [role='button'])[class*='bg-[#F0C86B]']:not([class*='bg-[#F0C86B]/']):not(.elix-solid-red):not(.elix-solid-accent):not(.elix-accent):not([data-elix-accent='true']),
-#root :is(button, a, [role='button']).bg-primary:not(.elix-solid-red):not(.elix-solid-accent):not(.elix-accent):not([data-elix-accent='true']) {
-  background-color: #1B1E24 !important;
-  background-image: none !important;
-  border: 1px solid #313845 !important;
-  box-shadow: none !important;
-}
-#root :is(button, a, [role='button'])[class*='bg-[#F0C86B]']:not([class*='bg-[#F0C86B]/']):not(.elix-solid-red):not(.elix-solid-accent):not(.elix-accent):not([data-elix-accent='true']) :where(span, p, small, strong, b, label),
-#root :is(button, a, [role='button']).bg-primary:not(.elix-solid-red):not(.elix-solid-accent):not(.elix-accent):not([data-elix-accent='true']) :where(span, p, small, strong, b, label) {
-  background-image: none !important;
-  -webkit-background-clip: unset !important;
-  background-clip: unset !important;
-  -webkit-text-fill-color: #FFFFFF !important;
-  color: #FFFFFF !important;
-}
-
-/* Soft purple tints on non-accent controls — strip wash */
-#root :is(button, a, [role='button'])[class*='bg-[#F0C86B]/']:not(.elix-solid-red):not(.elix-solid-accent):not(.elix-accent):not([data-elix-accent='true']) {
-  background-color: rgba(255, 255, 255, 0.06) !important;
-  box-shadow: none !important;
-}
-
-/* Interactive solid accent capsules (Follow / Live / selected tab / toggle ON) */
+#root :is(button, a, [role='button'])[class*='bg-[#F0C86B]']:not([class*='bg-[#F0C86B]/']),
+#root :is(button, a, [role='button']).bg-primary,
 #root :is(button, a, [role='button']).elix-solid-red,
 #root :is(button, a, [role='button']).elix-solid-accent,
 #root :is(button, a, [role='button']).elix-accent,
 #root :is(button, a, [role='button'])[data-elix-accent='true'] {
-  background-color: var(--color-primary) !important;
+  background-color: #F0C86B !important;
   background-image: none !important;
   border-color: transparent !important;
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
+  color: #111111 !important;
+  -webkit-text-fill-color: #111111 !important;
+  box-shadow: none !important;
 }
-#root :is(button, a, [role='button']).elix-solid-red:hover,
-#root :is(button, a, [role='button']).elix-solid-accent:hover,
-#root :is(button, a, [role='button']).elix-accent:hover,
-#root :is(button, a, [role='button'])[data-elix-accent='true']:hover {
-  background-color: var(--color-purple-hover) !important;
-}
-#root :is(button, a, [role='button']).elix-solid-red:active,
-#root :is(button, a, [role='button']).elix-solid-accent:active,
-#root :is(button, a, [role='button']).elix-accent:active,
-#root :is(button, a, [role='button'])[data-elix-accent='true']:active {
-  background-color: var(--color-purple-pressed) !important;
-}
+#root :is(button, a, [role='button'])[class*='bg-[#F0C86B]']:not([class*='bg-[#F0C86B]/']) :where(span, p, small, strong, b, label),
+#root :is(button, a, [role='button']).bg-primary :where(span, p, small, strong, b, label),
 #root :is(button, a, [role='button']).elix-solid-red :where(span, p, small, strong, b, label),
 #root :is(button, a, [role='button']).elix-solid-accent :where(span, p, small, strong, b, label),
 #root :is(button, a, [role='button']).elix-accent :where(span, p, small, strong, b, label),
 #root :is(button, a, [role='button'])[data-elix-accent='true'] :where(span, p, small, strong, b, label) {
   background-image: none !important;
-  -webkit-text-fill-color: #ffffff !important;
-  color: #ffffff !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: #111111 !important;
+  color: #111111 !important;
+}
+#root :is(button, a, [role='button'])[class*='bg-[#F0C86B]']:hover,
+#root :is(button, a, [role='button']).bg-primary:hover,
+#root :is(button, a, [role='button']).elix-solid-accent:hover,
+#root :is(button, a, [role='button']).elix-accent:hover,
+#root :is(button, a, [role='button'])[data-elix-accent='true']:hover {
+  background-color: #F6E4A6 !important;
+}
+#root :is(button, a, [role='button'])[class*='bg-[#F0C86B]']:active,
+#root :is(button, a, [role='button']).bg-primary:active,
+#root :is(button, a, [role='button']).elix-solid-accent:active,
+#root :is(button, a, [role='button']).elix-accent:active,
+#root :is(button, a, [role='button'])[data-elix-accent='true']:active {
+  background-color: #C4A052 !important;
 }
 
-/* Progress bars + loaders — Royal Violet accent only */
+/* Soft gold tints stay glass */
+#root :is(button, a, [role='button'])[class*='bg-[#F0C86B]/'] {
+  background-color: rgba(240, 200, 107, 0.18) !important;
+  box-shadow: none !important;
+}
+
+/* Progress bars + loaders — Primary Gold */
 #root progress::-webkit-progress-value,
 #root .elix-progress-fill,
 #root [data-elix-progress] {
@@ -1056,7 +1048,7 @@ video::-webkit-media-controls-overlay-enclosure,
 }
 #root .animate-spin.border-\[\#F0C86B\],
 #root .elix-loader {
-  border-color: rgba(111, 63, 245, 0.25);
+  border-color: rgba(240, 200, 107, 0.25);
   border-top-color: #F0C86B;
 }
 
@@ -1132,14 +1124,15 @@ video::-webkit-media-controls-overlay-enclosure,
 
 /* Kept solid accent fills (Follow / Join / Live) — white text on violet */
 #root .elix-solid-red,
+#root .elix-solid-red,
 #root .elix-solid-accent,
 #root .elix-solid-red :where(span, p, small, strong, b, label),
 #root .elix-solid-accent :where(span, p, small, strong, b, label) {
   background-image: none !important;
   -webkit-background-clip: unset !important;
   background-clip: unset !important;
-  -webkit-text-fill-color: #FFFFFF !important;
-  color: #FFFFFF !important;
+  -webkit-text-fill-color: #111111 !important;
+  color: #111111 !important;
 }
 
 .stroke-gold-metallic {
