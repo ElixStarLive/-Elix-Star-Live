@@ -1,0 +1,92 @@
+{
+  "at": "2026-08-06T18:44:31.653Z",
+  "age": {
+    "status": 200,
+    "errors": null,
+    "socialMedia": true
+  },
+  "baseTerritory": "USA",
+  "freePoint": "eyJzIjoiNjc5NDc4MTQ3MyIsInQiOiJHQlIiLCJwIjoiMTAwMDAifQ",
+  "setFreePrice": {
+    "status": 404,
+    "j": {
+      "errors": [
+        {
+          "id": "4752e196-391f-4c5f-9fa6-b0acdad95075",
+          "status": "404",
+          "code": "NOT_FOUND",
+          "title": "The specified resource does not exist",
+          "detail": "The path provided does not match a defined resource type."
+        }
+      ]
+    }
+  },
+  "shotSource": "https://is1-ssl.mzstatic.com/image/thumb/oTJFWzIsDjzqmhdQDOZJ4w/1242x2688bb.png",
+  "createIphoneSet": {
+    "status": 201,
+    "id": "5aeed0e9-acbf-45f8-be69-0230e35db910"
+  },
+  "reserveIphone": {
+    "status": 201,
+    "id": "396eda98-3e32-4dd4-bd64-5f3b4b8ca2c4"
+  },
+  "upload_0": 200,
+  "commitIphone": {
+    "status": 200,
+    "j": {
+      "data": {
+        "type": "appScreenshots",
+        "id": "396eda98-3e32-4dd4-bd64-5f3b4b8ca2c4",
+        "attributes": {
+          "fileSize": 113242,
+          "fileName": "iphone65.png",
+          "sourceFileChecksum": null,
+          "imageAsset": null,
+          "assetToken": "PurpleSource211/v4/90/d8/b5/90d8b504-8db0-e3c8-960c-37037479f9ea/iphone65.png",
+          "assetType": "SCREENSHOT",
+          "uploadOperations": [
+            {
+              "method": "PUT",
+              "url": "https://northamerica-1.object-storage.apple.com/itmspod11-assets-massilia-200001/PurpleSource211/v4/90/d8/b5/90d8b504-8db0-e3c8-960c-37037479f9ea/ttywvvQvNMwYMqC3nA-OUuCCm6Ez6vVXoLW_IOgpkgk_U003d-1786041875985?partNumber=1&uploadId=df3b8cd0-91c6-11f1-8aff-7ac1db00705b&apple-asset-repo-correlation-key=H7FPCUUS7FRWPMENH7DRBYTDYI&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20260806T184436Z&X-Amz-SignedHeaders=host&X-Amz-Credential=PKIAI0ZGNAD8WKMSOOX0%2F20260806%2Fnorthamerica-1%2Fs3%2Faws4_request&X-Amz-Expires=604800&X-Amz-Signature=86e29c6a04b38b2df3976e89856eb0ab05ca97b4fbff46819199be92682ad3b9",
+              "length": 113242,
+              "offset": 0,
+              "requestHeaders": [
+                {
+                  "name": "Content-Type",
+                  "value": "image/png"
+                }
+              ]
+            }
+          ],
+          "assetDeliveryState": {
+            "errors": [],
+            "warnings": null,
+            "state": "UPLOAD_COMPLETE"
+          }
+        },
+        "links": {
+          "self": "https://api.appstoreconnect.apple.com/v1/appScreenshots/396eda98-3e32-4dd4-bd64-5f3b4b8ca2c4"
+        }
+      },
+      "links": {
+        "self": "https://api.appstoreconnect.apple.com/v1/appScreenshots/396eda98-3e32-4dd4-bd64-5f3b4b8ca2c4"
+      }
+    }
+  },
+  "createIpadSet": {
+    "status": 201,
+    "id": "39dd1048-5846-4125-9c0a-a63aaff5a0a8"
+  },
+  "coinStates": [
+    "coins100:READY_TO_SUBMIT",
+    "coins1000:READY_TO_SUBMIT",
+    "coins10000:READY_TO_SUBMIT",
+    "coins100000:READY_TO_SUBMIT",
+    "coins150000:READY_TO_SUBMIT",
+    "coins200000:READY_TO_SUBMIT",
+    "coins350000:READY_TO_SUBMIT",
+    "coins500:READY_TO_SUBMIT",
+    "coins5000:READY_TO_SUBMIT",
+    "coins50000:READY_TO_SUBMIT"
+  ]
+}

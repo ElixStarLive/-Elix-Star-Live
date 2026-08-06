@@ -147,37 +147,52 @@ export async function loadProducts(): Promise<IAPProduct[]> {
     const mod = await getPlugin();
     if (!mod) return [];
 
-    const { products } = await mod.NativePurchases.getProducts({
-      productIdentifiers: [...IAP_PRODUCT_IDS],
-      productType: mod.PURCHASE_TYPE.INAPP,
-    });
+    // coins500a exists on Google Play only — never request it from StoreKit.
+    const requestedIds = platform.isIOS
+      ? IAP_PRODUCT_IDS.filter((id) => id !== 'coins500a')
+      : [...IAP_PRODUCT_IDS];
 
-    if (!products || products.length === 0) {
-      // Empty here almost always means: product IDs not created/active in Play Console,
-      // app not installed from a Play track, or the build is signed with the wrong key.
-      reportIapStage('products_empty', { requested: [...IAP_PRODUCT_IDS] });
-    } else {
-      reportIapStage('products_loaded', {
-        count: products.length,
-        requested: IAP_PRODUCT_IDS.length,
-        ids: products.map((p: { identifier?: string; productIdentifier?: string }) => p.identifier || p.productIdentifier),
-      });
-    }
-
-    return products.map((p: {
+    // StoreKit can return [] briefly after ASC metadata changes; retry before failing closed.
+    let products: Array<{
       identifier?: string;
       productIdentifier?: string;
       title?: string;
       description?: string;
       priceString?: string;
       priceAmountMicros?: number;
-    }) => ({
-      id: p.identifier || p.productIdentifier,
+    }> = [];
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      const res = await mod.NativePurchases.getProducts({
+        productIdentifiers: requestedIds,
+        productType: mod.PURCHASE_TYPE.INAPP,
+      });
+      products = res.products || [];
+      if (products.length > 0) break;
+      if (attempt < 3) {
+        reportIapStage('products_empty_retry', { attempt, requested: requestedIds });
+        await new Promise((r) => setTimeout(r, 800 * attempt));
+      }
+    }
+
+    if (!products || products.length === 0) {
+      // Empty here almost always means: product IDs not created/active in Play Console,
+      // app not installed from a Play track, or the build is signed with the wrong key.
+      reportIapStage('products_empty', { requested: requestedIds });
+    } else {
+      reportIapStage('products_loaded', {
+        count: products.length,
+        requested: requestedIds.length,
+        ids: products.map((p) => p.identifier || p.productIdentifier),
+      });
+    }
+
+    return products.map((p) => ({
+      id: p.identifier || p.productIdentifier || '',
       title: p.title || '',
       description: p.description || '',
-      price: p.priceString || `$${(p.priceAmountMicros / 1_000_000).toFixed(2)}`,
+      price: p.priceString || `$${((p.priceAmountMicros || 0) / 1_000_000).toFixed(2)}`,
       priceAmountMicros: p.priceAmountMicros || 0,
-      coins: IAP_PRODUCTS[p.identifier as IAPProductId]?.coins ?? 0,
+      coins: IAP_PRODUCTS[(p.identifier || p.productIdentifier) as IAPProductId]?.coins ?? 0,
     }));
   } catch (err) {
     reportIapStage('load_products_error', { error: (err as { message?: string })?.message || String(err) });
