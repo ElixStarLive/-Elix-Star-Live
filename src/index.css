@@ -1124,20 +1124,36 @@ video::-webkit-media-controls-overlay-enclosure,
   filter: none;
 }
 
-/* Live transparent black glass — video shows through */
+/* Live transparent black glass — video shows through (exact design values) */
 .elix-glass {
   background: rgba(0, 0, 0, 0.35) !important;
-  border-color: #2A2D33 !important;
+  border: 1px solid #2A2D33 !important;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   box-shadow: none !important;
 }
 .elix-glass-panel {
   background: rgba(10, 10, 10, 0.72) !important;
-  border-color: #2A2D33 !important;
+  border: 1px solid #2A2D33 !important;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   box-shadow: none !important;
+}
+
+/* Live room shell must never paint solid page black over the stream */
+.elix-live-room .bg-black\/35,
+.elix-live-room .bg-\[\#09090B\]\/40 {
+  background-color: rgba(0, 0, 0, 0.35) !important;
+  border-color: #2A2D33 !important;
+}
+.elix-live-room .bg-\[rgba\(10\,10\,10\,0\.72\)\],
+.elix-live-room .bg-\[\#09090B\]\/95,
+.elix-live-room .bg-\[\#09090B\]\/90,
+.elix-live-room .bg-\[\#09090B\]\/85,
+.elix-live-room .bg-\[\#09090B\]\/80,
+.elix-live-room .bg-\[\#09090B\]\/70 {
+  background-color: rgba(10, 10, 10, 0.72) !important;
+  border-color: #2A2D33 !important;
 }
 
 .border-gold-metallic {

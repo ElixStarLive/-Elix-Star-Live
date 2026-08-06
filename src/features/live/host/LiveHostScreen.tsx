@@ -803,15 +803,15 @@ export default function LiveHostScreen() {
 
   return (
     <div
-      className="fixed inset-0 flex justify-center bg-black z-[9990] transition-transform duration-[250ms] ease-out"
+      className="elix-live-room fixed inset-0 flex justify-center bg-black z-[9990] transition-transform duration-[250ms] ease-out"
       style={{ transform: pageExiting ? 'translateX(100%)' : undefined }}
     >
-      <div className="relative w-full max-w-[480px] h-full bg-[#09090B] overflow-hidden border-none">
+      <div className="relative w-full max-w-[480px] h-full bg-transparent overflow-hidden border-none">
         <div className="h-full w-full relative">
         <audio ref={roomRemoteAudioRef} autoPlay playsInline className="hidden" />
         <audio ref={opponentRemoteAudioRef} autoPlay playsInline className="hidden" />
-        {/* BACKGROUND: VIDEO AREA (Unified frame) */}
-        <div className="absolute inset-0 z-0 bg-[#09090B] overflow-hidden">
+        {/* BACKGROUND: VIDEO AREA — transparent so glass UI shows video through */}
+        <div className="absolute inset-0 z-0 bg-transparent overflow-hidden">
           <div className="video-zone relative w-full h-full">
             <div ref={stageRef} className="relative w-full h-full">
             {/* Base Video Layer */}
@@ -910,7 +910,7 @@ export default function LiveHostScreen() {
                   </>
                 )}
                 {isCamOff && !featuredHost && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[#09090B] z-[5]">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)] z-[5]">
                     {(user?.avatar || myAvatar) ? (
                       <img src={user?.avatar || myAvatar || ''} alt="" className="w-16 h-16 rounded-full border-2 border-[#D8D9DD]/40 object-cover object-center" />
                     ) : (
@@ -1037,7 +1037,7 @@ export default function LiveHostScreen() {
                         style={{ opacity: isCamOff ? 0 : 1, transform: 'scaleX(-1)', backgroundColor: '#09090B' }}
                       />
                       {isCamOff && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[#09090B] z-[5]">
+                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[rgba(10,10,10,0.72)] z-[5]">
                           {(user?.avatar || myAvatar) ? (
                             <img src={user?.avatar || myAvatar || ''} alt="" className="w-10 h-10 rounded-full object-cover" />
                           ) : (
@@ -1083,7 +1083,7 @@ export default function LiveHostScreen() {
                   const isSelected = !!selectedCohostGiftUserId && sameUserId(selectedCohostGiftUserId, host.userId);
                   return (
                     <>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[#09090B] z-[5]">
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[rgba(10,10,10,0.72)] z-[5]">
                         {host.avatar ? (
                           <img src={host.avatar} alt="" className="w-10 h-10 rounded-full object-cover object-center" />
                         ) : (
@@ -1482,7 +1482,7 @@ export default function LiveHostScreen() {
                             </div>
                           )}
                           {!hasOpponentStream && !cameraOffPlayers['opponent'] && (
-                            <div className="absolute inset-0 z-[5] flex flex-col items-center justify-center gap-2 bg-[#09090B]">
+                            <div className="absolute inset-0 z-[5] flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)]">
                               {battleSlots[0].avatar ? (
                                 <img src={battleSlots[0].avatar} alt={battleSlots[0].name} className="w-16 h-16 rounded-full object-cover object-center" />
                               ) : (
@@ -1499,7 +1499,7 @@ export default function LiveHostScreen() {
                           )}
                         </div>
                       ) : battleSlots[0].status === 'invited' ? (
-                        <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[#09090B]">
+                        <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)] border border-[#2A2D33]">
                           <img src={battleSlots[0].avatar} alt={battleSlots[0].name} className="w-12 h-12 rounded-full object-cover object-center opacity-60" />
                           <div className="w-5 h-5 border-2 border-[#6F3FF5]/25 border-t-[#6F3FF5] rounded-full animate-spin elix-loader" />
                           <span className="text-white text-[10px] font-bold">Waiting...</span>
@@ -1611,7 +1611,7 @@ export default function LiveHostScreen() {
                             )}
                           </div>
                         ) : battleSlots[1].status === 'invited' ? (
-                          <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[#09090B]">
+                          <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)] border border-[#2A2D33]">
                             <img src={battleSlots[1].avatar} alt={battleSlots[1].name} className="w-12 h-12 rounded-full object-cover object-center opacity-60" />
                             <div className="w-5 h-5 border-2 border-[#6F3FF5]/25 border-t-[#6F3FF5] rounded-full animate-spin elix-loader" />
                             <span className="text-white text-[10px] font-bold">Waiting...</span>
@@ -1693,7 +1693,7 @@ export default function LiveHostScreen() {
                             )}
                           </div>
                         ) : battleSlots[2].status === 'invited' ? (
-                          <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[#09090B]">
+                          <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)] border border-[#2A2D33]">
                             <img src={battleSlots[2].avatar} alt={battleSlots[2].name} className="w-12 h-12 rounded-full object-cover object-center opacity-60" />
                             <div className="w-5 h-5 border-2 border-[#6F3FF5]/25 border-t-[#6F3FF5] rounded-full animate-spin elix-loader" />
                             <span className="text-white text-[10px] font-bold">Waiting...</span>

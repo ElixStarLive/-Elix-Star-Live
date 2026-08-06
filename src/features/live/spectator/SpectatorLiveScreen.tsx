@@ -581,12 +581,12 @@ export default function SpectatorLiveScreen() {
 
   return (
     <div
-      className="fixed inset-0 flex justify-center transition-transform duration-[250ms] ease-out"
+      className="elix-live-room fixed inset-0 flex justify-center bg-black transition-transform duration-[250ms] ease-out"
       style={{ transform: pageExiting ? 'translateX(100%)' : undefined }}
     >
-      <div className="relative w-full max-w-[480px] h-full overflow-hidden flex flex-col">
+      <div className="relative w-full max-w-[480px] h-full overflow-hidden flex flex-col bg-transparent">
 
-        {/* Video container: fixed between top creator bar and bottom spectator bar; black background behind the live video. */}
+        {/* Video container: transparent shell — glass overlays sit on top of live video */}
         {/* Video container */}
         {(() => {
           const myUserId = user?.id || '';
@@ -728,7 +728,7 @@ export default function SpectatorLiveScreen() {
                           style={{ opacity: hasStream ? 1 : 0, transition: 'opacity 0.4s ease' }}
                         />
                         {!hasStream && (
-                          <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center gap-2 bg-[#09090B]">
+                          <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)]">
                             {hostAvatar ? (
                               <img src={hostAvatar} alt="" className="w-16 h-16 rounded-full object-cover object-center" />
                             ) : (
@@ -772,7 +772,7 @@ export default function SpectatorLiveScreen() {
                           style={{ opacity: hasOpponentStream ? 1 : 0, transition: 'opacity 0.3s ease' }}
                         />
                         {!hasOpponentStream && (
-                          <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center gap-2 bg-[#09090B]">
+                          <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)]">
                             {spectatorBattle.opponentName ? (
                               <div className="w-16 h-16 rounded-full bg-[#09090B] flex items-center justify-center">
                                 <span className="text-2xl font-black text-[#F5F5F7]">{spectatorBattle.opponentName.charAt(0).toUpperCase()}</span>
@@ -991,7 +991,7 @@ export default function SpectatorLiveScreen() {
                   <div className="fixed inset-0 z-[200]" onClick={() => setShowOpponentPanel(false)}>
                     <div className="absolute inset-0 bg-black/35" />
                     <div
-                      className="absolute left-1/2 -translate-x-1/2 w-[calc(100%-24px)] max-w-[456px] bg-[#09090B] rounded-2xl overflow-hidden shadow-xl border border-[#2A2D33] animate-[slideInFromBottom_0.2s_ease-out]"
+                      className="absolute left-1/2 -translate-x-1/2 w-[calc(100%-24px)] max-w-[456px] bg-[rgba(10,10,10,0.72)] rounded-2xl overflow-hidden shadow-xl border border-[#2A2D33] animate-[slideInFromBottom_0.2s_ease-out]"
                       style={{ bottom: 'calc(70px + max(8px, env(safe-area-inset-bottom)))' }}
                       onClick={(e) => e.stopPropagation()}
                     >
@@ -1105,7 +1105,7 @@ export default function SpectatorLiveScreen() {
                     style={{ opacity: hostCamOff ? 0 : 1, backgroundColor: '#09090B' }}
                   />
                   {hostCamOff && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[#09090B] z-[5]">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[rgba(10,10,10,0.72)] z-[5]">
                       {hostAvatar ? (
                         <img src={hostAvatar} alt="" className="w-10 h-10 rounded-full object-cover" />
                       ) : (
@@ -1133,7 +1133,7 @@ export default function SpectatorLiveScreen() {
               return (
                 <>
                   {isCamOff && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[#09090B] z-[5]">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[rgba(10,10,10,0.72)] z-[5]">
                     {(viewerAvatar || user?.avatar) ? (
                       <img src={viewerAvatar || user?.avatar || ''} alt="" className="w-10 h-10 rounded-full object-cover object-center" />
                     ) : (
@@ -1192,7 +1192,7 @@ export default function SpectatorLiveScreen() {
               return (
                 <>
                   {camOff && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[#09090B] z-[5]">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[rgba(10,10,10,0.72)] z-[5]">
                     {h.avatar ? (
                       <img src={h.avatar} alt="" className="w-10 h-10 rounded-full object-cover object-center" />
                     ) : (
@@ -1391,7 +1391,7 @@ export default function SpectatorLiveScreen() {
                   </>
                 )}
                 {hostCamOff && !featuredLive && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[#09090B] z-[5]">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)] z-[5]">
                     {hostAvatar ? (
                       <img src={hostAvatar} alt="" className="w-16 h-16 rounded-full object-cover object-center border-2 border-[#D8D9DD]/40" />
                     ) : (
