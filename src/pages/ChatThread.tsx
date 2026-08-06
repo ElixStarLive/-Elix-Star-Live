@@ -483,7 +483,7 @@ export default function ChatThread() {
         </div>
 
         <div className="flex-shrink-0 p-4 bg-[#09090B] border-t border-white/10">
-          <form className="flex items-center gap-2 bg-[#1F1F26] rounded-full px-4 py-2" onSubmit={handleSend}>
+          <form className="flex items-center gap-2 bg-[#1B1E24] rounded-full px-4 py-2" onSubmit={handleSend}>
             <input
               value={draft}
               onChange={(e) => setDraft(e.target.value)}

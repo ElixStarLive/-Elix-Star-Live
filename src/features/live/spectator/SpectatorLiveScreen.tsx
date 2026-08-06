@@ -686,7 +686,7 @@ export default function SpectatorLiveScreen() {
                       <div className="relative w-5 h-5 flex items-center justify-center flex-shrink-0">
                         <svg viewBox="0 0 40 44" className="absolute inset-0 w-full h-full drop-shadow-md">
                           <path d="M20 2 L36 10 L36 26 Q36 38 20 42 Q4 38 4 26 L4 10 Z" fill="url(#vsGradSpectator)" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5"/>
-                          <defs><linearGradient id="vsGradSpectator" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#6F3FF5"/><stop offset="50%" stopColor="#8B0000"/><stop offset="100%" stopColor="#1E90FF"/></linearGradient></defs>
+                          <defs><linearGradient id="vsGradSpectator" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#6F3FF5"/><stop offset="50%" stopColor="#5B2ED6"/><stop offset="100%" stopColor="#1E90FF"/></linearGradient></defs>
                         </svg>
                         <span className="relative z-10 text-white text-[7px] font-black italic drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">VS</span>
                       </div>
@@ -1775,7 +1775,7 @@ export default function SpectatorLiveScreen() {
                 type="button"
                 onClick={handleComboClick}
                 disabled={comboCount >= GIFT_COMBO_MAX}
-                className="w-[72px] h-[72px] rounded-full bg-gradient-to-b from-[#FF5A7A] to-[#FF2D55] flex flex-col items-center justify-center active:scale-90 transition-transform shadow-[0_0_18px_rgba(255,45,85,0.55)] border-2 border-white/30 disabled:opacity-50"
+                className="w-[72px] h-[72px] rounded-full bg-gradient-to-b from-[#8B5CFF] to-[#6F3FF5] flex flex-col items-center justify-center active:scale-90 transition-transform shadow-[0_0_18px_rgba(111,63,245,0.55)] border-2 border-white/30 disabled:opacity-50"
               >
                 {typeof lastSentGift.icon === 'string' && (lastSentGift.icon.startsWith('http') || lastSentGift.icon.startsWith('/')) ? (
                   <img src={lastSentGift.icon} alt="" className="w-7 h-7 object-contain mb-0.5" draggable={false} />

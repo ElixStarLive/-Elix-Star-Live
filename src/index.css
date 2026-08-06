@@ -42,7 +42,7 @@
     --color-secondary: #D8D9DD;
     --color-gold: #D8D9DD;
     --color-gold-bright: #FFFFFF;
-    --color-gold-light: #B7BDC8;
+    --color-gold-light: #B8BDC9;
     --color-gold-dark: #8B9098;
     --color-gold-premium: #D8D9DD;
     --color-rose: #6F3FF5;
@@ -62,14 +62,16 @@
     --color-card-elevated: #242832;
     --color-border: #313845;
     --color-text: #FFFFFF;
-    --color-text-muted: #B7BDC8;
-    --color-text-disabled: #707070;
+    --color-text-muted: #B8BDC9;
+    --color-text-disabled: #7A808C;
     /* Live button / rings use accent purple; keep semantic success separate */
     --color-live: #6F3FF5;
     --color-success: #00E676;
-    --color-accent-blue: #B7BDC8;
+    --color-accent-blue: #B8BDC9;
     --color-accent-blue-light: #D8D9DD;
-    --color-glass-bg: rgba(255, 255, 255, 0.04);
+    /* Glass panels — same feel as live mock (depth, no layout change) */
+    --color-glass-bg: rgba(10, 10, 14, 0.65);
+    --color-glass-panel: rgba(28, 28, 36, 0.65);
     --color-glass-border: rgba(255, 255, 255, 0.08);
     --color-destructive: #D91F2D;
     --shadow-luxury: 0 12px 40px rgba(0, 0, 0, 0.45);
@@ -326,7 +328,7 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    background: var(--color-surface);
+    background: var(--color-background);
   }
 
   /* Tab pages: pin content between screen top and top of home/bottom bar */

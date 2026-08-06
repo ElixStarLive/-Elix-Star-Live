@@ -226,7 +226,7 @@ export default function MusicFeed() {
 
           <div className="px-3 pb-3">
             <div className="p-4 rounded-2xl bg-[#09090B] flex gap-4 w-full">
-              <div className="w-14 h-14 rounded-lg overflow-hidden flex items-center justify-center shrink-0 royce-tile bg-[#1F1F26]">
+              <div className="w-14 h-14 rounded-lg overflow-hidden flex items-center justify-center shrink-0 royce-tile bg-[#1B1E24]">
                 {selectedTrack?.coverUrl ? (
                   <img src={selectedTrack.coverUrl} alt="" className="w-full h-full object-cover" />
                 ) : (
@@ -335,7 +335,7 @@ export default function MusicFeed() {
                     onClick={() => openTrack(track.id)}
                     className="flex items-center gap-2 flex-1 min-w-0 text-left"
                   >
-                    <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0 bg-[#1F1F26] border border-[#D8D9DD]/20">
+                    <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0 bg-[#1B1E24] border border-[#D8D9DD]/20">
                       {track.coverUrl ? (
                         <img src={track.coverUrl} alt="" className="w-full h-full object-cover" />
                       ) : (

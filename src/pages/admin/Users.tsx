@@ -104,7 +104,7 @@ export default function AdminUsers() {
         {/* Users Table */}
         <div className="bg-[#09090B] rounded-lg overflow-hidden">
           <table className="w-full">
-            <thead className="bg-[#2A2D35]">
+            <thead className="bg-[#242832]">
               <tr>
                 <th className="px-4 py-3 text-left">User</th>
                 <th className="px-4 py-3 text-left">Email</th>
@@ -114,7 +114,7 @@ export default function AdminUsers() {
             </thead>
             <tbody>
               {filteredUsers.map(user => (
-                <tr key={user.id} className="hover:bg-[#2A2D35]/50">
+                <tr key={user.id} className="hover:bg-[#242832]/50">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full overflow-hidden shrink-0">

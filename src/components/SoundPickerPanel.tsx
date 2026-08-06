@@ -258,7 +258,7 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
             onClick={(e) => pickTrack(ORIGINAL_SOUND_TRACK, e)}
             className="w-full px-2 py-2.5 flex items-center gap-2 active:brightness-125 transition-colors text-left pointer-events-auto"
           >
-            <div className="w-10 h-10 rounded-md flex-shrink-0 bg-[#1F1F26] border border-[#D8D9DD]/20 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-md flex-shrink-0 bg-[#1B1E24] border border-[#D8D9DD]/20 flex items-center justify-center">
               <Music className="w-4 h-4 text-[#F5F5F7]" />
             </div>
             <div className="flex-1 min-w-0">
@@ -291,7 +291,7 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
               onClick={(e) => pickTrack(track, e)}
               title={`Use ${track.title}`}
             >
-              <div className="w-10 h-10 rounded-md overflow-hidden flex-shrink-0 bg-[#1F1F26] border border-[#D8D9DD]/20">
+              <div className="w-10 h-10 rounded-md overflow-hidden flex-shrink-0 bg-[#1B1E24] border border-[#D8D9DD]/20">
                 {track.coverUrl ? (
                   <img src={track.coverUrl} alt="" className="w-full h-full object-cover" draggable={false} />
                 ) : (

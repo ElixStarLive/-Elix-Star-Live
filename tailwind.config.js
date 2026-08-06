@@ -49,6 +49,11 @@ export default {
         "accent-blue": "var(--color-accent-blue)",
         coin: "var(--color-coin)",
         destructive: "var(--color-destructive)",
+        glass: {
+          DEFAULT: "var(--color-glass-bg)",
+          panel: "var(--color-glass-panel)",
+          border: "var(--color-glass-border)",
+        },
       },
       fontFamily: {
         sans: ["Inter", "Roboto", "sans-serif"],
