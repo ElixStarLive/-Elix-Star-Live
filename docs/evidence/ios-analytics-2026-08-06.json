@@ -1,0 +1,1465 @@
+{
+  "status": "OK",
+  "atUtc": "2026-08-06T02:31:26.320Z",
+  "windowHours": 12,
+  "summary": {
+    "iosEventsCount": 66,
+    "iapDebugEventsCount": 35,
+    "iosByStage": {
+      "video_view": 54,
+      "billing_init": 5,
+      "products_empty": 4,
+      "video_like_toggle": 2,
+      "app_open": 1
+    },
+    "iosByUser": {
+      "80f9639c-b7d5-4f3b-8362-0b0fcdd69816": 66
+    }
+  },
+  "iosEventsSample": {
+    "rows": [
+      {
+        "id": "12308",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "dc5981b9-2c63-422f-98fc-a9a7b7458a5d",
+          "platform": "ios",
+          "timestamp": "2026-08-06T01:16:43.992Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 01:16:44.00925+00"
+      },
+      {
+        "id": "12307",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "db3f871d-cf8a-4276-94c4-76735c6c5c29",
+          "platform": "ios",
+          "timestamp": "2026-08-06T01:16:41.894Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 01:16:41.917596+00"
+      },
+      {
+        "id": "12306",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "dc5981b9-2c63-422f-98fc-a9a7b7458a5d",
+          "platform": "ios",
+          "timestamp": "2026-08-06T01:16:40.791Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 01:16:40.835713+00"
+      },
+      {
+        "id": "12305",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "dc5981b9-2c63-422f-98fc-a9a7b7458a5d",
+          "platform": "ios",
+          "timestamp": "2026-08-06T01:16:37.940Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 01:16:37.959544+00"
+      },
+      {
+        "id": "12304",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "iap_debug",
+        "properties": {
+          "stage": "products_empty",
+          "platform": "ios",
+          "requested": [
+            "coins100",
+            "coins500",
+            "coins500a",
+            "coins1000",
+            "coins5000",
+            "coins10000",
+            "coins50000",
+            "coins100000",
+            "coins150000",
+            "coins200000",
+            "coins350000"
+          ]
+        },
+        "created_at": "2026-08-06 01:15:28.994295+00"
+      },
+      {
+        "id": "12303",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "iap_debug",
+        "properties": {
+          "stage": "billing_init",
+          "platform": "ios",
+          "supported": true
+        },
+        "created_at": "2026-08-06 01:15:28.950984+00"
+      },
+      {
+        "id": "12295",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "iap_debug",
+        "properties": {
+          "stage": "products_empty",
+          "platform": "ios",
+          "requested": [
+            "coins100",
+            "coins500",
+            "coins500a",
+            "coins1000",
+            "coins5000",
+            "coins10000",
+            "coins50000",
+            "coins100000",
+            "coins150000",
+            "coins200000",
+            "coins350000"
+          ]
+        },
+        "created_at": "2026-08-06 01:06:42.963783+00"
+      },
+      {
+        "id": "12294",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "iap_debug",
+        "properties": {
+          "stage": "billing_init",
+          "platform": "ios",
+          "supported": true
+        },
+        "created_at": "2026-08-06 01:06:42.922382+00"
+      },
+      {
+        "id": "12293",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "iap_debug",
+        "properties": {
+          "stage": "products_empty",
+          "platform": "ios",
+          "requested": [
+            "coins100",
+            "coins500",
+            "coins500a",
+            "coins1000",
+            "coins5000",
+            "coins10000",
+            "coins50000",
+            "coins100000",
+            "coins150000",
+            "coins200000",
+            "coins350000"
+          ]
+        },
+        "created_at": "2026-08-06 01:06:36.697525+00"
+      },
+      {
+        "id": "12292",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "iap_debug",
+        "properties": {
+          "stage": "billing_init",
+          "platform": "ios",
+          "supported": true
+        },
+        "created_at": "2026-08-06 01:06:36.652196+00"
+      },
+      {
+        "id": "12291",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "iap_debug",
+        "properties": {
+          "stage": "products_empty",
+          "platform": "ios",
+          "requested": [
+            "coins100",
+            "coins500",
+            "coins500a",
+            "coins1000",
+            "coins5000",
+            "coins10000",
+            "coins50000",
+            "coins100000",
+            "coins150000",
+            "coins200000",
+            "coins350000"
+          ]
+        },
+        "created_at": "2026-08-06 01:06:17.538929+00"
+      },
+      {
+        "id": "12290",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "iap_debug",
+        "properties": {
+          "stage": "billing_init",
+          "platform": "ios",
+          "supported": true
+        },
+        "created_at": "2026-08-06 01:06:17.015356+00"
+      },
+      {
+        "id": "12289",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "dc5981b9-2c63-422f-98fc-a9a7b7458a5d",
+          "platform": "ios",
+          "timestamp": "2026-08-06T01:06:02.029Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 01:06:02.063277+00"
+      },
+      {
+        "id": "12288",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "db3f871d-cf8a-4276-94c4-76735c6c5c29",
+          "platform": "ios",
+          "timestamp": "2026-08-06T01:06:01.697Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 01:06:01.715615+00"
+      },
+      {
+        "id": "12287",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "7de6ef97-400a-4d41-8334-71ceebd283a9",
+          "platform": "ios",
+          "timestamp": "2026-08-06T01:06:00.965Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 01:06:00.996852+00"
+      },
+      {
+        "id": "12286",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "db3f871d-cf8a-4276-94c4-76735c6c5c29",
+          "platform": "ios",
+          "timestamp": "2026-08-06T01:06:00.329Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 01:06:00.40195+00"
+      },
+      {
+        "id": "12285",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "dc5981b9-2c63-422f-98fc-a9a7b7458a5d",
+          "platform": "ios",
+          "timestamp": "2026-08-06T01:05:57.698Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 01:05:57.739242+00"
+      },
+      {
+        "id": "12275",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "dc5981b9-2c63-422f-98fc-a9a7b7458a5d",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:58:14.532Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:58:14.555109+00"
+      },
+      {
+        "id": "12274",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "vid_83821663-0467-4475-8118-bad7baccb003",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:35.721Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:35.739406+00"
+      },
+      {
+        "id": "12273",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "vid_76bb29b8-8bed-44ff-9894-5cffe08ba263",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:35.156Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:35.176936+00"
+      },
+      {
+        "id": "12272",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "vid_12706ab9-7465-4a60-b95d-5af101627eed",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:34.592Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:34.6145+00"
+      },
+      {
+        "id": "12271",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "vid_cea3911c-51bd-4f25-8d11-f431d2986ccb",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:33.951Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:33.974021+00"
+      },
+      {
+        "id": "12270",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "a9f18842-d044-4872-b450-9d54ec4645c8",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:33.274Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:33.295078+00"
+      },
+      {
+        "id": "12269",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "7de6ef97-400a-4d41-8334-71ceebd283a9",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:32.819Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:32.837532+00"
+      },
+      {
+        "id": "12268",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "db3f871d-cf8a-4276-94c4-76735c6c5c29",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:32.330Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:32.350853+00"
+      },
+      {
+        "id": "12267",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "dc5981b9-2c63-422f-98fc-a9a7b7458a5d",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:31.294Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:31.316713+00"
+      },
+      {
+        "id": "12266",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "db3f871d-cf8a-4276-94c4-76735c6c5c29",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:30.857Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:30.877425+00"
+      },
+      {
+        "id": "12265",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "7de6ef97-400a-4d41-8334-71ceebd283a9",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:30.388Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:30.405396+00"
+      },
+      {
+        "id": "12264",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "a9f18842-d044-4872-b450-9d54ec4645c8",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:30.093Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:30.116482+00"
+      },
+      {
+        "id": "12263",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "vid_cea3911c-51bd-4f25-8d11-f431d2986ccb",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:29.795Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:29.82651+00"
+      },
+      {
+        "id": "12262",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "vid_12706ab9-7465-4a60-b95d-5af101627eed",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:29.192Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:29.224529+00"
+      },
+      {
+        "id": "12261",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "vid_76bb29b8-8bed-44ff-9894-5cffe08ba263",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:28.891Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:28.9242+00"
+      },
+      {
+        "id": "12260",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "vid_83821663-0467-4475-8118-bad7baccb003",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:28.558Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:28.577574+00"
+      },
+      {
+        "id": "12259",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "vid_96a00c67-78bb-463a-aff6-682847bcae31",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:28.194Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:28.217111+00"
+      },
+      {
+        "id": "12258",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "vid_rw_9cfd41ba-b080-4619-a35c-b59ceb7726e4",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:25.668Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:25.691071+00"
+      },
+      {
+        "id": "12257",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "vid_96a00c67-78bb-463a-aff6-682847bcae31",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:25.233Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:25.257854+00"
+      },
+      {
+        "id": "12256",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "vid_83821663-0467-4475-8118-bad7baccb003",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:24.430Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:24.454136+00"
+      },
+      {
+        "id": "12255",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "vid_76bb29b8-8bed-44ff-9894-5cffe08ba263",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:23.931Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:23.954197+00"
+      },
+      {
+        "id": "12254",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "vid_12706ab9-7465-4a60-b95d-5af101627eed",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:23.460Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:23.47836+00"
+      },
+      {
+        "id": "12253",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_like_toggle",
+        "properties": {
+          "next": false,
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "vid_cea3911c-51bd-4f25-8d11-f431d2986ccb",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:22.479Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:22.497612+00"
+      },
+      {
+        "id": "12252",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_like_toggle",
+        "properties": {
+          "next": true,
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "vid_cea3911c-51bd-4f25-8d11-f431d2986ccb",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:22.183Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:22.202169+00"
+      },
+      {
+        "id": "12251",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "vid_cea3911c-51bd-4f25-8d11-f431d2986ccb",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:20.838Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:20.858035+00"
+      },
+      {
+        "id": "12250",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "a9f18842-d044-4872-b450-9d54ec4645c8",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:20.140Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:20.160606+00"
+      },
+      {
+        "id": "12249",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "vid_cea3911c-51bd-4f25-8d11-f431d2986ccb",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:19.640Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:19.663354+00"
+      },
+      {
+        "id": "12248",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "vid_12706ab9-7465-4a60-b95d-5af101627eed",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:19.304Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:19.333855+00"
+      },
+      {
+        "id": "12247",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "vid_76bb29b8-8bed-44ff-9894-5cffe08ba263",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:18.942Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:18.966314+00"
+      },
+      {
+        "id": "12246",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "vid_83821663-0467-4475-8118-bad7baccb003",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:17.770Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:17.792051+00"
+      },
+      {
+        "id": "12245",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "vid_96a00c67-78bb-463a-aff6-682847bcae31",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:16.021Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:16.042469+00"
+      },
+      {
+        "id": "12244",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "vid_83821663-0467-4475-8118-bad7baccb003",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:15.059Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:15.080387+00"
+      },
+      {
+        "id": "12243",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "vid_76bb29b8-8bed-44ff-9894-5cffe08ba263",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:14.557Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:14.576502+00"
+      },
+      {
+        "id": "12242",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "vid_12706ab9-7465-4a60-b95d-5af101627eed",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:14.192Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:14.219859+00"
+      },
+      {
+        "id": "12241",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "vid_cea3911c-51bd-4f25-8d11-f431d2986ccb",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:13.821Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:13.842768+00"
+      },
+      {
+        "id": "12240",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "a9f18842-d044-4872-b450-9d54ec4645c8",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:12.987Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:13.023793+00"
+      },
+      {
+        "id": "12239",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "7de6ef97-400a-4d41-8334-71ceebd283a9",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:11.682Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:11.704403+00"
+      },
+      {
+        "id": "12238",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "a9f18842-d044-4872-b450-9d54ec4645c8",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:11.351Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:11.372312+00"
+      },
+      {
+        "id": "12237",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "vid_cea3911c-51bd-4f25-8d11-f431d2986ccb",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:10.315Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:10.340081+00"
+      },
+      {
+        "id": "12236",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "a9f18842-d044-4872-b450-9d54ec4645c8",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:09.184Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:09.23303+00"
+      },
+      {
+        "id": "12235",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "7de6ef97-400a-4d41-8334-71ceebd283a9",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:07.485Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:07.506721+00"
+      },
+      {
+        "id": "12234",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "a9f18842-d044-4872-b450-9d54ec4645c8",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:57:06.548Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:57:06.570848+00"
+      },
+      {
+        "id": "12233",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "7de6ef97-400a-4d41-8334-71ceebd283a9",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:56:57.334Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:56:57.354966+00"
+      },
+      {
+        "id": "12232",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "a9f18842-d044-4872-b450-9d54ec4645c8",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:56:56.599Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:56:56.626602+00"
+      },
+      {
+        "id": "12231",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "7de6ef97-400a-4d41-8334-71ceebd283a9",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:56:55.236Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:56:55.272135+00"
+      },
+      {
+        "id": "12230",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "db3f871d-cf8a-4276-94c4-76735c6c5c29",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:56:54.636Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:56:54.704132+00"
+      },
+      {
+        "id": "12229",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "video_view",
+        "properties": {
+          "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+          "videoId": "dc5981b9-2c63-422f-98fc-a9a7b7458a5d",
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:56:53.257Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:56:53.329833+00"
+      },
+      {
+        "id": "12228",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "iap_debug",
+        "properties": {
+          "stage": "billing_init",
+          "platform": "ios",
+          "supported": true
+        },
+        "created_at": "2026-08-06 00:56:53.291483+00"
+      },
+      {
+        "id": "12227",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "app_open",
+        "properties": {
+          "user_id": null,
+          "platform": "ios",
+          "timestamp": "2026-08-06T00:56:53.050Z",
+          "session_id": "1785977812995_lg0tek9ix",
+          "app_version": "1.0.2"
+        },
+        "created_at": "2026-08-06 00:56:53.283921+00"
+      }
+    ]
+  },
+  "iapDebugEventsSample": {
+    "rows": [
+      {
+        "id": "12336",
+        "user_id": "37c3c371-b5c2-4e50-908f-8a7225ba7ba2",
+        "event": "iap_debug",
+        "properties": {
+          "stage": "billing_init",
+          "platform": "android",
+          "supported": false
+        },
+        "created_at": "2026-08-06 01:21:31.486868+00"
+      },
+      {
+        "id": "12332",
+        "user_id": "37c3c371-b5c2-4e50-908f-8a7225ba7ba2",
+        "event": "iap_debug",
+        "properties": {
+          "ids": [
+            "coins100",
+            "coins1000",
+            "coins10000",
+            "coins100000",
+            "coins150000",
+            "coins5000",
+            "coins50000",
+            "coins500a"
+          ],
+          "count": 8,
+          "stage": "products_loaded",
+          "platform": "android",
+          "requested": 11
+        },
+        "created_at": "2026-08-06 01:19:06.259091+00"
+      },
+      {
+        "id": "12331",
+        "user_id": "37c3c371-b5c2-4e50-908f-8a7225ba7ba2",
+        "event": "iap_debug",
+        "properties": {
+          "stage": "billing_init",
+          "platform": "android",
+          "supported": true
+        },
+        "created_at": "2026-08-06 01:19:04.9186+00"
+      },
+      {
+        "id": "12330",
+        "user_id": "37c3c371-b5c2-4e50-908f-8a7225ba7ba2",
+        "event": "iap_debug",
+        "properties": {
+          "stage": "reconcile_credited",
+          "platform": "android",
+          "productId": "coins100"
+        },
+        "created_at": "2026-08-06 01:18:57.853584+00"
+      },
+      {
+        "id": "12329",
+        "user_id": "37c3c371-b5c2-4e50-908f-8a7225ba7ba2",
+        "event": "iap_debug",
+        "properties": {
+          "stage": "consumed",
+          "platform": "android"
+        },
+        "created_at": "2026-08-06 01:18:57.852809+00"
+      },
+      {
+        "id": "12328",
+        "user_id": "37c3c371-b5c2-4e50-908f-8a7225ba7ba2",
+        "event": "iap_debug",
+        "properties": {
+          "stage": "reconcile_credited",
+          "platform": "android",
+          "productId": "coins100"
+        },
+        "created_at": "2026-08-06 01:18:57.852369+00"
+      },
+      {
+        "id": "12327",
+        "user_id": "37c3c371-b5c2-4e50-908f-8a7225ba7ba2",
+        "event": "iap_debug",
+        "properties": {
+          "error": "Failed to consume purchase: Server error, please try again.",
+          "stage": "consume_error",
+          "platform": "android"
+        },
+        "created_at": "2026-08-06 01:18:57.852057+00"
+      },
+      {
+        "id": "12326",
+        "user_id": "37c3c371-b5c2-4e50-908f-8a7225ba7ba2",
+        "event": "iap_debug",
+        "properties": {
+          "stage": "verify_request",
+          "platform": "android",
+          "provider": "google",
+          "packageId": "coins100",
+          "hasReceipt": true
+        },
+        "created_at": "2026-08-06 01:18:52.629134+00"
+      },
+      {
+        "id": "12325",
+        "user_id": "37c3c371-b5c2-4e50-908f-8a7225ba7ba2",
+        "event": "iap_debug",
+        "properties": {
+          "stage": "reconcile_found_owned",
+          "platform": "android",
+          "productId": "coins100"
+        },
+        "created_at": "2026-08-06 01:18:52.619806+00"
+      },
+      {
+        "id": "12324",
+        "user_id": "37c3c371-b5c2-4e50-908f-8a7225ba7ba2",
+        "event": "iap_debug",
+        "properties": {
+          "stage": "reconcile_found_owned",
+          "platform": "android",
+          "productId": "coins100"
+        },
+        "created_at": "2026-08-06 01:18:52.496845+00"
+      },
+      {
+        "id": "12323",
+        "user_id": "37c3c371-b5c2-4e50-908f-8a7225ba7ba2",
+        "event": "iap_debug",
+        "properties": {
+          "stage": "verify_request",
+          "platform": "android",
+          "provider": "google",
+          "packageId": "coins100",
+          "hasReceipt": true
+        },
+        "created_at": "2026-08-06 01:18:52.491048+00"
+      },
+      {
+        "id": "12322",
+        "user_id": "37c3c371-b5c2-4e50-908f-8a7225ba7ba2",
+        "event": "iap_debug",
+        "properties": {
+          "stage": "purchase_start",
+          "platform": "android",
+          "productId": "coins100"
+        },
+        "created_at": "2026-08-06 01:17:39.696605+00"
+      },
+      {
+        "id": "12321",
+        "user_id": "37c3c371-b5c2-4e50-908f-8a7225ba7ba2",
+        "event": "iap_debug",
+        "properties": {
+          "error": "Purchase is not purchased",
+          "stage": "retry_failed",
+          "platform": "android",
+          "productId": "coins1000"
+        },
+        "created_at": "2026-08-06 01:17:38.724339+00"
+      },
+      {
+        "id": "12320",
+        "user_id": "37c3c371-b5c2-4e50-908f-8a7225ba7ba2",
+        "event": "iap_debug",
+        "properties": {
+          "msg": "Purchase is not purchased",
+          "stage": "already_owned_recovering",
+          "platform": "android",
+          "productId": "coins1000"
+        },
+        "created_at": "2026-08-06 01:17:31.178157+00"
+      },
+      {
+        "id": "12319",
+        "user_id": "37c3c371-b5c2-4e50-908f-8a7225ba7ba2",
+        "event": "iap_debug",
+        "properties": {
+          "stage": "purchase_start",
+          "platform": "android",
+          "productId": "coins1000"
+        },
+        "created_at": "2026-08-06 01:17:16.630867+00"
+      },
+      {
+        "id": "12318",
+        "user_id": "37c3c371-b5c2-4e50-908f-8a7225ba7ba2",
+        "event": "iap_debug",
+        "properties": {
+          "ids": [
+            "coins100",
+            "coins500a",
+            "coins1000",
+            "coins5000",
+            "coins10000",
+            "coins50000",
+            "coins100000",
+            "coins150000"
+          ],
+          "count": 8,
+          "stage": "products_loaded",
+          "platform": "android",
+          "requested": 11
+        },
+        "created_at": "2026-08-06 01:17:14.366954+00"
+      },
+      {
+        "id": "12317",
+        "user_id": "37c3c371-b5c2-4e50-908f-8a7225ba7ba2",
+        "event": "iap_debug",
+        "properties": {
+          "stage": "billing_init",
+          "platform": "android",
+          "supported": true
+        },
+        "created_at": "2026-08-06 01:17:11.468033+00"
+      },
+      {
+        "id": "12304",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "iap_debug",
+        "properties": {
+          "stage": "products_empty",
+          "platform": "ios",
+          "requested": [
+            "coins100",
+            "coins500",
+            "coins500a",
+            "coins1000",
+            "coins5000",
+            "coins10000",
+            "coins50000",
+            "coins100000",
+            "coins150000",
+            "coins200000",
+            "coins350000"
+          ]
+        },
+        "created_at": "2026-08-06 01:15:28.994295+00"
+      },
+      {
+        "id": "12303",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "iap_debug",
+        "properties": {
+          "stage": "billing_init",
+          "platform": "ios",
+          "supported": true
+        },
+        "created_at": "2026-08-06 01:15:28.950984+00"
+      },
+      {
+        "id": "12297",
+        "user_id": "37c3c371-b5c2-4e50-908f-8a7225ba7ba2",
+        "event": "iap_debug",
+        "properties": {
+          "stage": "billing_init",
+          "platform": "android",
+          "supported": true
+        },
+        "created_at": "2026-08-06 01:14:15.431849+00"
+      },
+      {
+        "id": "12295",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "iap_debug",
+        "properties": {
+          "stage": "products_empty",
+          "platform": "ios",
+          "requested": [
+            "coins100",
+            "coins500",
+            "coins500a",
+            "coins1000",
+            "coins5000",
+            "coins10000",
+            "coins50000",
+            "coins100000",
+            "coins150000",
+            "coins200000",
+            "coins350000"
+          ]
+        },
+        "created_at": "2026-08-06 01:06:42.963783+00"
+      },
+      {
+        "id": "12294",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "iap_debug",
+        "properties": {
+          "stage": "billing_init",
+          "platform": "ios",
+          "supported": true
+        },
+        "created_at": "2026-08-06 01:06:42.922382+00"
+      },
+      {
+        "id": "12293",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "iap_debug",
+        "properties": {
+          "stage": "products_empty",
+          "platform": "ios",
+          "requested": [
+            "coins100",
+            "coins500",
+            "coins500a",
+            "coins1000",
+            "coins5000",
+            "coins10000",
+            "coins50000",
+            "coins100000",
+            "coins150000",
+            "coins200000",
+            "coins350000"
+          ]
+        },
+        "created_at": "2026-08-06 01:06:36.697525+00"
+      },
+      {
+        "id": "12292",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "iap_debug",
+        "properties": {
+          "stage": "billing_init",
+          "platform": "ios",
+          "supported": true
+        },
+        "created_at": "2026-08-06 01:06:36.652196+00"
+      },
+      {
+        "id": "12291",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "iap_debug",
+        "properties": {
+          "stage": "products_empty",
+          "platform": "ios",
+          "requested": [
+            "coins100",
+            "coins500",
+            "coins500a",
+            "coins1000",
+            "coins5000",
+            "coins10000",
+            "coins50000",
+            "coins100000",
+            "coins150000",
+            "coins200000",
+            "coins350000"
+          ]
+        },
+        "created_at": "2026-08-06 01:06:17.538929+00"
+      },
+      {
+        "id": "12290",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "iap_debug",
+        "properties": {
+          "stage": "billing_init",
+          "platform": "ios",
+          "supported": true
+        },
+        "created_at": "2026-08-06 01:06:17.015356+00"
+      },
+      {
+        "id": "12278",
+        "user_id": "37c3c371-b5c2-4e50-908f-8a7225ba7ba2",
+        "event": "iap_debug",
+        "properties": {
+          "stage": "billing_init",
+          "platform": "android",
+          "supported": true
+        },
+        "created_at": "2026-08-06 01:05:40.553791+00"
+      },
+      {
+        "id": "12228",
+        "user_id": "80f9639c-b7d5-4f3b-8362-0b0fcdd69816",
+        "event": "iap_debug",
+        "properties": {
+          "stage": "billing_init",
+          "platform": "ios",
+          "supported": true
+        },
+        "created_at": "2026-08-06 00:56:53.291483+00"
+      },
+      {
+        "id": "12069",
+        "user_id": "37c3c371-b5c2-4e50-908f-8a7225ba7ba2",
+        "event": "iap_debug",
+        "properties": {
+          "stage": "billing_init",
+          "platform": "android",
+          "supported": true
+        },
+        "created_at": "2026-08-05 14:43:42.143177+00"
+      },
+      {
+        "id": "12060",
+        "user_id": null,
+        "event": "iap_debug",
+        "properties": {
+          "stage": "billing_init",
+          "platform": "android",
+          "supported": true
+        },
+        "created_at": "2026-08-05 14:38:46.231496+00"
+      },
+      {
+        "id": "12044",
+        "user_id": "37c3c371-b5c2-4e50-908f-8a7225ba7ba2",
+        "event": "iap_debug",
+        "properties": {
+          "stage": "billing_init",
+          "platform": "android",
+          "supported": true
+        },
+        "created_at": "2026-08-05 14:37:53.925552+00"
+      },
+      {
+        "id": "12042",
+        "user_id": null,
+        "event": "iap_debug",
+        "properties": {
+          "stage": "billing_init",
+          "platform": "android",
+          "supported": true
+        },
+        "created_at": "2026-08-05 14:37:06.819357+00"
+      },
+      {
+        "id": "12040",
+        "user_id": null,
+        "event": "iap_debug",
+        "properties": {
+          "stage": "billing_init",
+          "platform": "android",
+          "supported": true
+        },
+        "created_at": "2026-08-05 14:34:26.625082+00"
+      },
+      {
+        "id": "12038",
+        "user_id": null,
+        "event": "iap_debug",
+        "properties": {
+          "stage": "billing_init",
+          "platform": "android",
+          "supported": true
+        },
+        "created_at": "2026-08-05 14:34:09.409351+00"
+      },
+      {
+        "id": "12031",
+        "user_id": null,
+        "event": "iap_debug",
+        "properties": {
+          "stage": "billing_init",
+          "platform": "android",
+          "supported": true
+        },
+        "created_at": "2026-08-05 14:32:09.012871+00"
+      }
+    ]
+  },
+  "anyEventTotalsInWindow": {
+    "rows": [
+      {
+        "event": "video_view",
+        "c": 230
+      },
+      {
+        "event": "iap_debug",
+        "c": 35
+      },
+      {
+        "event": "app_open",
+        "c": 35
+      },
+      {
+        "event": "profile_view",
+        "c": 3
+      },
+      {
+        "event": "app_error",
+        "c": 2
+      },
+      {
+        "event": "video_like_toggle",
+        "c": 2
+      },
+      {
+        "event": "client_error",
+        "c": 2
+      }
+    ]
+  }
+}

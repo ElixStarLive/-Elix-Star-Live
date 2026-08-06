@@ -1,0 +1,158 @@
+{
+  "status": "OK",
+  "bundleId": "com.elixstarlive.app",
+  "appId": "6794781473",
+  "totals": {
+    "iapV2Products": 14,
+    "subscriptionGroups": 1,
+    "subscriptions": 1
+  },
+  "clientExpected": {
+    "coinProductIds": [
+      "coins100",
+      "coins500",
+      "coins500a",
+      "coins1000",
+      "coins5000",
+      "coins10000",
+      "coins50000",
+      "coins100000",
+      "coins150000",
+      "coins200000",
+      "coins350000"
+    ],
+    "promoteProductIds": [
+      "com.elixstarlive.promote_views",
+      "com.elixstarlive.promote_likes",
+      "com.elixstarlive.promote_profile",
+      "com.elixstarlive.promote_followers"
+    ],
+    "membershipProductId": "com.elixstarlive.membership"
+  },
+  "clientVsAsc": {
+    "coinIdsMissingFromAsc": [
+      "coins500a"
+    ],
+    "promoteIdsMissingFromAsc": [],
+    "membershipPresent": true,
+    "extraAscProductIds": []
+  },
+  "inAppPurchasesV2": [
+    {
+      "id": "6797675268",
+      "productId": "coins100",
+      "name": "100 Coins",
+      "type": "CONSUMABLE",
+      "state": "MISSING_METADATA"
+    },
+    {
+      "id": "6797676375",
+      "productId": "coins1000",
+      "name": "1000 Coins",
+      "type": "CONSUMABLE",
+      "state": "MISSING_METADATA"
+    },
+    {
+      "id": "6797676715",
+      "productId": "coins10000",
+      "name": "10000 Coins",
+      "type": "CONSUMABLE",
+      "state": "MISSING_METADATA"
+    },
+    {
+      "id": "6797677046",
+      "productId": "coins100000",
+      "name": "100000 Coins",
+      "type": "CONSUMABLE",
+      "state": "MISSING_METADATA"
+    },
+    {
+      "id": "6797677185",
+      "productId": "coins150000",
+      "name": "150000 Coins",
+      "type": "CONSUMABLE",
+      "state": "MISSING_METADATA"
+    },
+    {
+      "id": "6797677520",
+      "productId": "coins200000",
+      "name": "200000 Coins",
+      "type": "CONSUMABLE",
+      "state": "MISSING_METADATA"
+    },
+    {
+      "id": "6797679404",
+      "productId": "coins350000",
+      "name": "350000 Coins",
+      "type": "CONSUMABLE",
+      "state": "MISSING_METADATA"
+    },
+    {
+      "id": "6797667462",
+      "productId": "coins500",
+      "name": "500 Coins",
+      "type": "CONSUMABLE",
+      "state": "MISSING_METADATA"
+    },
+    {
+      "id": "6797676586",
+      "productId": "coins5000",
+      "name": "5000 Coins",
+      "type": "CONSUMABLE",
+      "state": "MISSING_METADATA"
+    },
+    {
+      "id": "6797676851",
+      "productId": "coins50000",
+      "name": "50000 Coins",
+      "type": "CONSUMABLE",
+      "state": "MISSING_METADATA"
+    },
+    {
+      "id": "6797695067",
+      "productId": "com.elixstarlive.promote_followers",
+      "name": "Promote Followers",
+      "type": "CONSUMABLE",
+      "state": "MISSING_METADATA"
+    },
+    {
+      "id": "6797694471",
+      "productId": "com.elixstarlive.promote_likes",
+      "name": "Promote Likes",
+      "type": "CONSUMABLE",
+      "state": "MISSING_METADATA"
+    },
+    {
+      "id": "6797694819",
+      "productId": "com.elixstarlive.promote_profile",
+      "name": "Promote Profile",
+      "type": "CONSUMABLE",
+      "state": "MISSING_METADATA"
+    },
+    {
+      "id": "6797694450",
+      "productId": "com.elixstarlive.promote_views",
+      "name": "Promote Views",
+      "type": "CONSUMABLE",
+      "state": "MISSING_METADATA"
+    }
+  ],
+  "subscriptionGroups": [
+    {
+      "id": "22284667",
+      "referenceName": "Creator Membership",
+      "subscriptionIds": [
+        "6797688890"
+      ]
+    }
+  ],
+  "subscriptions": [
+    {
+      "id": "6797688890",
+      "productId": "com.elixstarlive.membership",
+      "name": "Creator Membership Monthly",
+      "state": "MISSING_METADATA",
+      "period": "ONE_MONTH"
+    }
+  ]
+}

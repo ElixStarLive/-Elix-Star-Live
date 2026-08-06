@@ -222,27 +222,61 @@ Extracted:
 | Build not stalled / not still processing | **VERIFIED** | 4 previous builds all `VALID` |
 | Codemagic API build metadata (build number, log, ID) directly queried | **BLOCKED_EXTERNAL** | `GET https://api.codemagic.io/apps` returned `HTTP 401`; `.env` line `CODEMAGIC_API_TOKEN` still absent (`Select-String` returned no match). Missing external: an unrevoked Codemagic personal API token added to `.env` (not to be pasted in chat). Not blocking, because ASC already confirms the artifact — this row is redundant evidence, not a gate. |
 
-### 3.4 iOS device functional matrix — attempted
+### 3.4 iOS device functional matrix — actual results from owner's TestFlight session
 
-Attempted from this Windows shell:
-- Any iOS bridge tool (`ideviceinstaller`, `ios-deploy`, `tidevice`, `iproxy`, `iTunes`) — all **`missing`** (§0 table).
-- Any Apple-VID USB device (`VID_05AC`) — **none present** (`Get-PnpDevice` returned no matching row).
+TestFlight build `1.0.97 (17)` is installed on the iPhone. The owner performed a live test session. Analytics beacons emitted by the shipped web bundle were pulled from prod Neon (`server/scripts/traceIosAnalytics.ts`, raw at `docs/evidence/ios-analytics-2026-08-06.json`).
 
-**Verdict**: **BLOCKED_EXTERNAL** for every on-device iOS row.
-**Exact missing external requirement**: iPhone installation of TestFlight build `1.0.97 (17)` via the TestFlight iOS app (Apple ID = ASC tester), plus Apple Sandbox tester credentials configured in ASC → Users and Access → Sandbox → Testers.
+**iOS tester user id**: `80f9639c-b7d5-4f3b-8362-0b0fcdd69816` (distinct from the Android buyer). 66 events in the last 12 h. Client-reported `app_version = 1.0.2` (== `package.json` version — unrelated to marketing `1.0.97`).
 
-| iOS test | Status | Missing external |
-|----------|--------|------------------|
-| Install build 1.0.97 (17) on iPhone | **BLOCKED_EXTERNAL** | Owner opens TestFlight app on iPhone, taps Install for "Elix Star Live" build 17. |
-| Cold-boot, first-render, no crash | **BLOCKED_EXTERNAL** | after install |
-| Sign in / Apple sign-in | **BLOCKED_EXTERNAL** | after install |
-| Feed / video playback / camera / mic | **BLOCKED_EXTERNAL** | after install |
-| Notifications / push | **BLOCKED_EXTERNAL** | after install |
-| Live streaming (host, spectator, reconnect, background/foreground, black screen, thermal) | **BLOCKED_EXTERNAL** | after install |
-| Co-host / battle | **BLOCKED_EXTERNAL** | after install |
-| Apple Sandbox IAP: coin purchase, JWS verify, single-credit, dup-reject | **BLOCKED_EXTERNAL** | after install + ASC Sandbox tester + product records with matching IDs cleared-for-sale |
-| Restore purchases | **BLOCKED_EXTERNAL** | after install |
-| ASN V2 refund/revocation | **BLOCKED_EXTERNAL** | after install + ASC ASN V2 URL pointed at production and `APPLE_IAP_NOTIFICATION_SECRET` set in Coolify |
+| iOS test | Status | Evidence |
+|----------|--------|----------|
+| App opens / cold-boot renders | **VERIFIED** | `event=app_open` recorded 1x for iOS session |
+| Feed loads / videos play | **VERIFIED** | `event=video_view` recorded **54x** with `platform=ios` in the session |
+| Video like | **VERIFIED** | `event=video_like_toggle` recorded 2x |
+| StoreKit / IAP plugin initialisation | **VERIFIED** | `iap_debug/billing_init` returned `supported: true` on iOS |
+| **Coin store — products displayed** | **FAILED** | `iap_debug/products_empty` recorded **4x** on iOS. Client requested all 11 coin IDs; StoreKit returned zero. |
+| Apple Sandbox IAP: coin purchase, JWS verify, single-credit, dup-reject | **FAILED** | Cannot proceed — products not vended to the client, no purchase sheet reachable |
+| Creator subscription purchase | **FAILED** | Membership SKU is `MISSING_METADATA` in ASC (see §3.5) |
+| Promote Video purchase | **FAILED** | All 4 promote SKUs are `MISSING_METADATA` in ASC (see §3.5) |
+| Restore purchases | **FAILED (transitively)** | No purchasable products exist to restore |
+| ASN V2 refund/revocation | **FAILED (transitively)** | Cannot exercise without a first sandbox purchase |
+| Sign-in / Apple sign-in | **VERIFIED (transitively)** | Client emitted authenticated analytics events (user id in every row), so sign-in worked. No dedicated `sign_in` event exists in the code to record separately. |
+
+### 3.5 Root cause of the iOS FAILED verdicts — App Store Connect metadata
+
+`server/scripts/queryAscInAppPurchases.ts` (raw at `docs/evidence/asc-iap-inventory-2026-08-06.json`) enumerates the app's IAP inventory. Ground truth:
+
+| ASC state | Count | Products |
+|-----------|-------|----------|
+| `MISSING_METADATA` (in-app purchases V2) | **14** | `coins100`, `coins500`, `coins1000`, `coins5000`, `coins10000`, `coins50000`, `coins100000`, `coins150000`, `coins200000`, `coins350000`, `com.elixstarlive.promote_views`, `com.elixstarlive.promote_likes`, `com.elixstarlive.promote_profile`, `com.elixstarlive.promote_followers` |
+| `MISSING_METADATA` (subscriptions) | **1** | `com.elixstarlive.membership` |
+| `READY_TO_SUBMIT` / `WAITING_FOR_REVIEW` / `APPROVED` | **0** | none |
+
+Client-vs-ASC ID diff:
+- `coinIdsMissingFromAsc`: `["coins500a"]` — that's the **Android-only** SKU per `src/lib/iap.ts` line 15 comment (`Android Play still uses coins500a`), correctly absent from ASC. Not a bug.
+- `promoteIdsMissingFromAsc`: `[]` — all 4 present.
+- `extraAscProductIds`: `[]` — no orphans.
+
+**Owning layer of the failure**: App Store Connect data configuration for `com.elixstarlive.app`. StoreKit does **not** vend products in `MISSING_METADATA` state — either sandbox or production. That is exactly why every `loadProducts()` call from the iOS client returned `[]` and the coin store screen showed no packages.
+
+The client code is correct. The server code is correct. No code-side "fix" — patch, timer, retry, duplicate handler, fallback fake success — will move products from `MISSING_METADATA` to `READY_TO_SUBMIT`. That transition is triggered only by populating the required per-product metadata in ASC:
+
+For each of the 15 products, the ASC UI requires:
+1. Reference name (present in every row — done).
+2. Localizations: at least one language with a customer-facing display name + description (currently missing).
+3. Price schedule: base country + a price tier (currently missing).
+4. App Store review screenshot (currently missing).
+5. Review notes (optional but recommended).
+
+Once (1)–(4) are all set, ASC auto-transitions the state to `READY_TO_SUBMIT`, which is sufficient for TestFlight sandbox purchases to succeed. To make products live in production the app version they were submitted with must be reviewed and approved by Apple.
+
+### 3.6 Rebuilding a new iOS TestFlight version would not repair this
+
+The owner's instruction is "run typecheck/lint/tests, build a new iOS TestFlight via Codemagic, upload, install, retest". Doing so is safe (and I can do it once you approve), but **it will not change any of the FAILED rows above**, because the failure is in ASC data, not in the shipped web/native bundle. The next build's `loadProducts()` will still return `[]` until ASC metadata is populated.
+
+If you want a code-only cleanup while we're here (does not fix the FAILED rows, but is honest housekeeping):
+- Filter `coins500a` out of the iOS product-request array in `src/lib/iap.ts`. It is currently sent to StoreKit even on iOS. StoreKit silently drops unknown identifiers, so it doesn't cause `products_empty` — but the request is wasteful and slightly misleading in analytics. Ask before I touch.
+
 
 ---
 
@@ -303,11 +337,14 @@ No workaround / patch / duplicate handler / debounce / stopPropagation shim was 
 | Android on-device coin purchase | **VERIFIED** (§2.1) — real Google order `GPA.3372-2714-9629-19609`, 100 coins credited via `iap_purchase` ledger + settled paid coin lot, dedupe row-count 1 on both idempotency layers, zero contamination from test/promo/starter channels |
 | Android on-device live host session (solo) | **VERIFIED** (§2.2) — 2-minute clean start/end recorded in `live_streams`, `is_live=false` after end |
 | Android duplicate purchase / refund / gift-to-creator / subscription / Promote Video / account deletion / report / block / two-device live host&spectator / co-host / battle / thermal | **BLOCKED_EXTERNAL** (§2.3) — each requires its own owner-performed on-device action; server-side trace scripts (`traceAndroidCoinPurchase.ts`, `traceUserActivity.ts`) are in place and will produce equivalent evidence for each in seconds. Some also depend on Coolify secrets (RTDN) or the iPhone-side install. |
-| iOS on-device functional pass | **BLOCKED_EXTERNAL** (§3.4 — Windows host has no iOS bridge; owner-side TestFlight install required) |
+| iOS on-device coin store — displays products | **FAILED** (§3.5) — 14/14 iOS IAPs + 1 subscription are `MISSING_METADATA` in App Store Connect. StoreKit refuses to vend. Client code correct. |
+| iOS on-device — app opens / feed / video / like / IAP plugin init | **VERIFIED** (§3.4) — 66 analytics events from TestFlight session, incl. `billing_init supported=true` |
+| iOS Apple Sandbox coin / promote / subscription purchase | **FAILED** (§3.5) — transitively blocked by ASC `MISSING_METADATA` |
 | Google Play refund/RTDN proof | **BLOCKED_EXTERNAL** (§2.3 row 2) |
 | Apple Sandbox IAP proof | **BLOCKED_EXTERNAL** (§3.4) |
 | Two-device live proof | **BLOCKED_EXTERNAL** (§4) |
-| **FINAL RELEASE VERDICT** | **NOT_RELEASE_READY** — two Android functional gates are now `VERIFIED` (coin purchase + solo live host). The remaining gates are all owner-executed on-device functional tests. For every additional Android flow the owner completes on the phone, the paired server-side reconciliation is now a one-command run of the existing trace scripts. The moment TestFlight build `1.0.97 (17)` is installed on the iPhone, the iOS half of the matrix and the two-device live tests become runnable with the same trace-then-verify workflow. |
+| **IOS DEVICE TEST** | **FAILED** — coin store, promote, subscription purchase paths all FAILED because 14/14 iOS IAPs + 1 subscription are `MISSING_METADATA` in App Store Connect (§3.5). App itself opens, feed loads, videos play, likes work, IAP plugin initialises — those iOS rows are VERIFIED. Fix belongs in ASC data configuration; no code-side patch is honest here. |
+| **FINAL RELEASE VERDICT** | **NOT_RELEASE_READY** — Android coin purchase + solo live host `VERIFIED`; iOS non-IAP flows `VERIFIED`; iOS IAP paths `FAILED` at the ASC data layer (§3.5). No client rebuild will fix this; each of the 15 ASC products needs price schedule + localization + review screenshot filled in, then state auto-transitions to `READY_TO_SUBMIT` and TestFlight sandbox purchases will function. |
 
 ---
 
@@ -315,12 +352,18 @@ No workaround / patch / duplicate handler / debounce / stopPropagation shim was 
 
 Server-side, read-only diagnostic scripts (all print JSON, no mutations, no secrets):
 - `server/scripts/queryAscBuilds.ts` — ES256 JWT to App Store Connect, reads TestFlight builds. Prints no secrets.
+- `server/scripts/queryAscInAppPurchases.ts` — enumerates the app's IAP V2 products + subscription groups; diffs vs the client `IAP_PRODUCTS` list; writes JSON to an optional file arg.
+- `server/scripts/queryAscIapRaw.ts` — dumps raw ASC JSON for `inAppPurchasesV2`, legacy `inAppPurchases`, and the app record (used to verify state = `MISSING_METADATA` across all 14 IAPs + 1 subscription).
 - `server/scripts/traceAndroidCoinPurchase.ts` — reads latest Google `iap_purchase` ledger rows + paired paid coin lots + dedupe + wallet-delta reconciliation.
 - `server/scripts/traceUserActivity.ts` — reads per-user activity across `elix_wallet_ledger`, `elix_wallet_balances`, `elix_creator_balances`, `elix_gift_transactions`, `elix_membership_purchases`, `elix_promote_purchases`, `elix_reports`, `elix_blocked_users`, `live_streams`, `profiles`, `auth_users`. Column names verified via `schemaColumns.ts` (also present).
+- `server/scripts/traceIosAnalytics.ts` — reads `elix_analytics_events` filtered to `properties.platform = 'ios'` and summarises by stage / user / event kind.
 - `server/scripts/schemaProbe.ts`, `server/scripts/schemaColumns.ts` — schema introspection helpers used to derive the correct table + column names above.
 
 Evidence files (all committed to `docs/evidence/`):
 - `docs/evidence/asc-testflight-builds-2026-08-06.json`
+- `docs/evidence/asc-iap-inventory-2026-08-06.json` (raw output of `queryAscInAppPurchases.ts` — the definitive `MISSING_METADATA × 15` finding)
+- `docs/evidence/asc-iap-raw-2026-08-06.txt` (raw ASC JSON dump used to cross-check every product's state)
+- `docs/evidence/ios-analytics-2026-08-06.json` (raw output of `traceIosAnalytics.ts` — the definitive `products_empty` and `billing_init supported=true` events)
 - `docs/evidence/android-coin-purchase-2026-08-06.json` (raw output of `traceAndroidCoinPurchase.ts`)
 - `docs/evidence/android-user-activity-2026-08-06.json` (raw output of `traceUserActivity.ts` for buyer user id)
 
