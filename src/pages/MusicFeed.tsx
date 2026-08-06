@@ -208,9 +208,9 @@ export default function MusicFeed() {
   }, [playingId]);
 
   return (
-    <div className="page-above-bottom-nav bg-[rgba(0,0,0,0.35)] text-white">
+    <div className="page-above-bottom-nav bg-transparent text-white">
       <audio ref={audioRef} preload="auto" onEnded={() => setPlayingId(null)} className="hidden" />
-      <div className="page-above-bottom-nav__inner bg-[rgba(0,0,0,0.35)] flex flex-col min-h-0">
+      <div className="page-above-bottom-nav__inner bg-transparent flex flex-col min-h-0">
         <div className="w-full shrink-0 bg-[rgba(0,0,0,0.35)] z-10 border-b border-white/[0.06]">
           <div className="px-3 pt-page-header pb-3 flex items-center justify-between relative">
             <button type="button" onClick={goSearch} className="p-1 z-10" aria-label="Search">

@@ -369,7 +369,7 @@ export default function Shop() {
   ] as const;
 
   return (
-    <div className="page-above-bottom-nav bg-[rgba(0,0,0,0.35)] text-white">
+    <div className="page-above-bottom-nav bg-transparent text-white">
       <div className="page-above-bottom-nav__inner">
         {/* Header — same size container as STEM */}
         <div

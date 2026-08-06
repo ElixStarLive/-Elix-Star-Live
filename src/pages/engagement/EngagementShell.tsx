@@ -21,7 +21,7 @@ export function EngagementShell({
   }, [navigate, backTo]);
 
   return (
-    <div className="page-above-bottom-nav bg-[rgba(0,0,0,0.35)] text-white">
+    <div className="page-above-bottom-nav bg-transparent text-white">
       <div className="page-above-bottom-nav__inner engagement-panel-writing">
         <div
           className="w-full shrink-0 bg-[rgba(0,0,0,0.35)] z-10"

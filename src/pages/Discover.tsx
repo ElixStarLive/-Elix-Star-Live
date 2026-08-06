@@ -246,7 +246,7 @@ export default function Discover() {
   }, [navigate]);
 
   return (
-    <div ref={pageRef} className="page-above-bottom-nav bg-[rgba(0,0,0,0.35)] text-white relative">
+    <div ref={pageRef} className="page-above-bottom-nav bg-transparent text-white relative">
       <div className="page-above-bottom-nav__inner">
 
         {/* Strip chrome (Search / Explore / Back) + circles — comes down together, not over content */}

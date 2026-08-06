@@ -359,7 +359,7 @@ function App() {
   }
 
   return (
-    <div className="fixed inset-0 w-full h-[100dvh] flex flex-col bg-background text-text font-sans overflow-hidden">
+    <div className="fixed inset-0 w-full h-[100dvh] flex flex-col bg-transparent text-text font-sans overflow-hidden">
       <OfflineBanner />
       <IncomingCallModal />
       <LiveNotifyBanner />

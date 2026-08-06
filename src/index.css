@@ -56,8 +56,9 @@
     --color-dark-red: #5B2ED6;
     --color-hover-purple: #8B5CFF;
     --color-pressed-purple: #5B2ED6;
-    --color-background: rgba(0, 0, 0, 0.35);
-    --color-surface: rgba(0, 0, 0, 0.35);
+    /* Clear shells — wallpaper (html/body) shows through; glass only on chrome */
+    --color-background: transparent;
+    --color-surface: transparent;
     --color-card: rgba(255, 255, 255, 0.06);
     --color-card-elevated: rgba(255, 255, 255, 0.06);
     /* Transparent black glass — live video stays visible behind UI */
@@ -1465,7 +1466,7 @@ svg.lucide.fill-silver-full.royce-icon-gold {
   display: none !important;
 }
 
-/* ═══ ENTIRE APP transparent glass chrome (backgrounds only) ═══ */
+/* ═══ ENTIRE APP: clear containers + wallpaper; glass only on chrome ═══ */
 html,
 body {
   background-color: #000000 !important;
@@ -1478,28 +1479,33 @@ body {
 #root {
   background: transparent !important;
 }
+/* Page / column shells must stay clear (Friends feed look) — no black wash */
 .page-above-bottom-nav,
 .page-above-bottom-nav__inner,
 .app-live-column,
 .app-live-column-host,
 .bg-background,
 .bg-surface,
-.min-h-screen.bg-background {
-  background-color: rgba(0, 0, 0, 0.35) !important;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+.min-h-screen.bg-background,
+main.feed-column-width {
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+/*
+ * Prior glass remap painted rgba(0,0,0,0.35) on every container — stacks to solid black.
+ * Clear those fills app-wide so wallpaper shows. Re-apply glass only where chrome needs it.
+ */
+#root [class*="bg-[rgba(0,0,0,0.35)]"],
+#root [class*="bg-[rgba(10,10,10,0.72)]"] {
+  background-color: transparent !important;
 }
 .bg-card,
 .bg-card-elevated {
   background-color: rgba(255, 255, 255, 0.06) !important;
   border-color: #2A2D33 !important;
 }
-/* Video parents stay clear so stream/media paint; wallpaper still under chrome */
-main.feed-column-width {
-  background-color: transparent !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
+/* Bottom / top nav chrome — light glass over wallpaper (not opaque black) */
 nav[aria-label="Main navigation"] .feed-column-width,
 nav[aria-label="Main navigation"] .feed-column-width[class*="bg-"] {
   background-color: rgba(0, 0, 0, 0.35) !important;
@@ -1510,13 +1516,18 @@ nav[aria-label="Main navigation"] .feed-column-width[class*="bg-"] {
 .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
 .feed-column-width.h-\[var\(--topnav-bar-height\)\] {
   background-color: rgba(0, 0, 0, 0.35) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+/* Story strip / any explicit blur glass chrome */
+#root [class*="backdrop-blur"][class*="bg-[rgba(0,0,0,0.35)]"],
+#root [class*="backdrop-blur"][class*="bg-[rgba(10,10,10,0.72)]"],
+#root .elix-glass {
+  background-color: rgba(0, 0, 0, 0.35) !important;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
-/* Sheets / panels that still used solid Obsidian */
-.bottom-sheet-above-nav,
-[class*="rounded-t-2xl"][class*="bg-\[rgba(0,0,0,0.35)\]"],
-[class*="rounded-t-2xl"][class*="bg-\[rgba(10,10,10,0.72)\]"] {
+.bottom-sheet-above-nav {
   border-color: #2A2D33;
 }
 .elix-glass {

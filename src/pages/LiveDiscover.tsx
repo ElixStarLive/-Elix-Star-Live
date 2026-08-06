@@ -264,7 +264,7 @@ export default function LiveDiscover() {
   }, []);
 
   return (
-    <div className="app-live-column bg-[rgba(0,0,0,0.35)]">
+    <div className="app-live-column bg-transparent">
       {/* Header inside column — close stays within max-w container */}
       <div
         className="flex-shrink-0 w-full px-3 flex items-center justify-between z-20"
