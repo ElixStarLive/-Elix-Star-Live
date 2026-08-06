@@ -9,8 +9,8 @@ android {
         applicationId "com.elixstarlive.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 537
-        versionName "1.0.490"
+        versionCode 538
+        versionName "1.0.491"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

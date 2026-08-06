@@ -1176,12 +1176,30 @@ nav[aria-label="Main navigation"] .royce-glow-disc {
   max-height: 40px !important;
 }
 
-/* Capture shutter — no silver/red ring (bottom nav keeps rings only) */
+/* Capture shutter — half silver / half Royal Violet outer ring (restored) */
 .capture-shutter-ring {
+  position: relative;
   border: none !important;
   background: transparent !important;
+  box-sizing: border-box;
 }
-.capture-shutter-ring::before,
+.capture-shutter-ring::before {
+  content: "" !important;
+  display: block !important;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: var(--shutter-ring, 4px);
+  box-sizing: border-box;
+  background: linear-gradient(135deg, #D8D9DD 0%, #D8D9DD 50%, #6F3FF5 50%, #6F3FF5 100%);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 0;
+}
 .capture-shutter-ring::after {
   content: none !important;
   display: none !important;
