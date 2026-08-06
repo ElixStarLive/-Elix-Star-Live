@@ -914,23 +914,48 @@ export const useVideoStore = create<VideoStore>()(
         }
       },
 
-      // Analytics
+      // Analytics — one public view per viewer per video (scroll-back must not +1 again)
       incrementViews: async (videoId) => {
         const state = get();
         const video = state.getVideoById(videoId);
         if (!video) return;
 
-        const newViews = video.stats.views + 1;
-        const updatedStats = { ...video.stats, views: newViews };
-        const viewsUpdate = (v: Video) => v.id === videoId ? { ...v, stats: updatedStats } : v;
-        set({
-          videos: state.videos.map(viewsUpdate),
-          friendVideos: state.friendVideos.map(viewsUpdate),
-        });
+        const SESSION_KEY = 'elix_viewed_videos_v1';
+        let viewed = new Set<string>();
+        try {
+          const raw = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(SESSION_KEY) : null;
+          if (raw) {
+            const arr = JSON.parse(raw) as unknown;
+            if (Array.isArray(arr)) viewed = new Set(arr.map(String));
+          }
+        } catch {
+          viewed = new Set();
+        }
+        if (viewed.has(videoId)) return;
+
+        viewed.add(videoId);
+        try {
+          if (typeof sessionStorage !== 'undefined') {
+            sessionStorage.setItem(SESSION_KEY, JSON.stringify([...viewed].slice(-500)));
+          }
+        } catch {
+          /* ignore quota */
+        }
 
         try {
-          await apiTrackFeedView(videoId);
-          // View tracking is best-effort; local count already updated for UX.
+          const { ok, counted } = await apiTrackFeedView(videoId);
+          if (!ok || !counted) return;
+
+          const latest = get().getVideoById(videoId);
+          if (!latest) return;
+          const newViews = latest.stats.views + 1;
+          const updatedStats = { ...latest.stats, views: newViews };
+          const viewsUpdate = (v: Video) =>
+            v.id === videoId ? { ...v, stats: updatedStats } : v;
+          set((s) => ({
+            videos: s.videos.map(viewsUpdate),
+            friendVideos: s.friendVideos.map(viewsUpdate),
+          }));
           await refreshVideoFypStatus(videoId, updatedStats);
         } catch {
           /* view analytics must not block feed */

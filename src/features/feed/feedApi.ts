@@ -206,13 +206,16 @@ export async function apiToggleCommentLike(
 
 export async function apiTrackFeedView(
   videoId: string,
-): Promise<{ ok: boolean; error: string | null }> {
-  const { error } = await request('/api/feed/track-view', {
-    method: 'POST',
-    body: JSON.stringify({ videoId }),
-  });
-  if (error) return { ok: false, error: error.message };
-  return { ok: true, error: null };
+): Promise<{ ok: boolean; counted: boolean; error: string | null }> {
+  const { data, error } = await request<{ accepted?: boolean; counted?: boolean }>(
+    '/api/feed/track-view',
+    {
+      method: 'POST',
+      body: JSON.stringify({ videoId }),
+    },
+  );
+  if (error) return { ok: false, counted: false, error: error.message };
+  return { ok: true, counted: data?.counted === true, error: null };
 }
 
 export async function apiFetchVideoComments(

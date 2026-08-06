@@ -271,26 +271,46 @@ export async function handleTrackView(req: Request, res: Response) {
       return res.status(400).json({ error: "Invalid watch time" });
     }
 
-    res.status(202).json({ accepted: true });
-
-    // De-duplicate the public view counter: count at most one view per viewer
-    // per video (a logged-in user by id, otherwise by ip hash). Replays and
-    // scroll-backs still record analytics rows but no longer inflate `views`.
+    // One viewer = one public view per video (scroll-back must not inflate views).
     const isNamedUser = !!userId && userId !== "anonymous";
-    const viewerCol = isNamedUser ? "user_id" : "ip_hash";
-    const viewerVal = isNamedUser ? userId : ipHash;
-    void (async () => {
-      let isFirstView = true;
+    const viewerKey = isNamedUser ? `u:${userId}` : `ip:${ipHash}`;
+    let counted = false;
+
+    try {
+      const uniq = await db.query(
+        `INSERT INTO video_view_counters (video_id, viewer_key)
+         VALUES ($1, $2)
+         ON CONFLICT (video_id, viewer_key) DO NOTHING
+         RETURNING video_id`,
+        [String(videoId), viewerKey],
+      );
+      counted = (uniq.rowCount ?? 0) > 0;
+      if (counted) {
+        await db.query(`UPDATE videos SET views = views + 1 WHERE id = $1`, [videoId]);
+      }
+    } catch (err: any) {
+      // Fallback if migration not applied yet: prior-row check on video_views.
+      logger.warn({ err: err?.message }, "video_view_counters insert failed; falling back");
       try {
+        const viewerCol = isNamedUser ? "user_id" : "ip_hash";
+        const viewerVal = isNamedUser ? userId : ipHash;
         const prior = await db.query(
           `SELECT 1 FROM video_views WHERE video_id = $1 AND ${viewerCol} = $2 LIMIT 1`,
           [videoId, viewerVal],
         );
-        isFirstView = (prior.rowCount ?? 0) === 0;
-      } catch (err: any) {
-        logger.warn({ err: err?.message }, "track view dedup check failed");
+        counted = (prior.rowCount ?? 0) === 0;
+        if (counted) {
+          await db.query(`UPDATE videos SET views = views + 1 WHERE id = $1`, [videoId]);
+        }
+      } catch (err2: any) {
+        logger.warn({ err: err2?.message }, "track view dedup fallback failed");
       }
+    }
 
+    res.status(200).json({ accepted: true, counted });
+
+    const isFirstView = counted;
+    void (async () => {
       try {
         await db.query(
           `INSERT INTO video_views (id, user_id, video_id, watch_time_seconds, video_duration_seconds, completed, ip_hash, created_at)
@@ -308,17 +328,6 @@ export async function handleTrackView(req: Request, res: Response) {
         );
       } catch (err: any) {
         logger.warn({ err: err?.message }, "Failed to insert video_views row after track view");
-      }
-
-      if (isFirstView) {
-        db.query(`UPDATE videos SET views = views + 1 WHERE id = $1`, [videoId]).catch(
-          (err: any) => {
-            logger.warn(
-              { err: err?.message },
-              "Failed to increment video views in DB after track view",
-            );
-          },
-        );
       }
 
       // Creator Rewards: qualified unique views (logged-in only; DB unique on video+viewer).
