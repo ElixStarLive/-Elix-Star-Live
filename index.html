@@ -11,9 +11,6 @@
     <meta name="theme-color" content="#000000" />
     <meta name="format-detection" content="telephone=no" />
     <title>Elix Star Live v1.5</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <script type="text/javascript">
       (function (l) {
         if (l.search[1] === '/') {
@@ -31,38 +28,38 @@
     </script>
     <script src="/env.js"></script>
   </head>
-  <body style="margin:0;background:#000000;color:#fff">
+  <body style="margin:0;background:#09090B;color:#fff">
     <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
       <defs>
         <linearGradient id="rg" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stop-color="#FFFFFF"/>
-          <stop offset="50%" stop-color="#E5E7EB"/>
-          <stop offset="100%" stop-color="#B3B7BD"/>
+          <stop offset="50%" stop-color="#D8D9DD"/>
+          <stop offset="100%" stop-color="#B8BDC9"/>
         </linearGradient>
-        <!-- Default icon stroke: silver. Gold is accents only (active nav / live / follow). -->
+        <!-- Default icon stroke: silver only. Purple is accents only (active nav / live / follow). -->
         <linearGradient id="elixSilverRed" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stop-color="#FFFFFF"/>
-          <stop offset="50%" stop-color="#E5E7EB"/>
-          <stop offset="100%" stop-color="#B3B7BD"/>
+          <stop offset="50%" stop-color="#D8D9DD"/>
+          <stop offset="100%" stop-color="#B8BDC9"/>
         </linearGradient>
         <linearGradient id="elixSilverRedHoriz" x1="0%" y1="0%" x2="100%" y2="0%">
           <stop offset="0%" stop-color="#FFFFFF"/>
-          <stop offset="100%" stop-color="#E5E7EB"/>
+          <stop offset="100%" stop-color="#D8D9DD"/>
         </linearGradient>
         <linearGradient id="elixAccent" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stop-color="#5B2ED6"/>
           <stop offset="100%" stop-color="#8B5CFF"/>
         </linearGradient>
         <linearGradient id="elixSilverViolet" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#E5E7EB"/>
-          <stop offset="48%" stop-color="#E5E7EB"/>
+          <stop offset="0%" stop-color="#D8D9DD"/>
+          <stop offset="48%" stop-color="#D8D9DD"/>
           <stop offset="52%" stop-color="#6F3FF5"/>
           <stop offset="100%" stop-color="#6F3FF5"/>
         </linearGradient>
       </defs>
     </svg>
-    <div id="root" style="min-height:100dvh;background:transparent"></div>
-    <div id="app-splash" style="position:fixed;inset:0;z-index:999999;display:flex;align-items:center;justify-content:center;background:#000000;flex-direction:column;gap:16px;transition:opacity 0.3s ease-out">
+    <div id="root" style="min-height:100dvh;background:#09090B"></div>
+    <div id="app-splash" style="position:fixed;inset:0;z-index:999999;display:flex;align-items:center;justify-content:center;background:#09090B;flex-direction:column;gap:16px;transition:opacity 0.3s ease-out">
       <img src="/elix-logo.png" alt="" width="140" height="140" style="animation:pulse 1.5s ease-in-out infinite" />
       <div style="width:40px;height:40px;border:2px solid #6F3FF5;border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite;margin-top:8px"></div>
       <style>@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.8;transform:scale(.95)}}</style>

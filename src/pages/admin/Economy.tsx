@@ -81,11 +81,11 @@ export default function AdminEconomy() {
   };
 
   if (loading) {
-    return <div className="min-h-screen bg-[rgba(0,0,0,0.35)] flex items-center justify-center text-white">Loading...</div>;
+    return <div className="min-h-screen bg-[#09090B] flex items-center justify-center text-white">Loading...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-[rgba(0,0,0,0.35)] text-white p-6">
+    <div className="min-h-screen bg-[#09090B] text-white p-6">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold mb-8 flex items-center gap-3">
           <DollarSign className="w-8 h-8 text-white" />
@@ -98,12 +98,12 @@ export default function AdminEconomy() {
             <Package className="w-6 h-6 text-white" />
             Coin Packages ({packages.length})
           </h2>
-          <div className="bg-[rgba(0,0,0,0.35)] rounded-lg overflow-hidden">
+          <div className="bg-[#09090B] rounded-lg overflow-hidden">
             {packages.length === 0 ? (
               <p className="text-gray-400 p-6">No coin packages found in coin_packages.</p>
             ) : (
               <table className="w-full">
-                <thead className="bg-[rgba(255,255,255,0.06)]">
+                <thead className="bg-[#242832]">
                   <tr>
                     <th className="px-4 py-3 text-left">Package</th>
                     <th className="px-4 py-3 text-left">Coins</th>
@@ -113,7 +113,7 @@ export default function AdminEconomy() {
                 </thead>
                 <tbody>
                   {packages.map((pkg) => (
-                    <tr key={pkg.id} className="hover:bg-[rgba(255,255,255,0.06)]/50">
+                    <tr key={pkg.id} className="hover:bg-[#242832]/50">
                       <td className="px-4 py-3 font-semibold">{pkg.title}</td>
                       <td className="px-4 py-3">{pkg.coins.toLocaleString()}</td>
                       <td className="px-4 py-3">{pkg.price_display || '—'}</td>
@@ -132,9 +132,9 @@ export default function AdminEconomy() {
             <Gift className="w-6 h-6 text-pink-500" />
             Gifts Catalog ({gifts.length})
           </h2>
-          <div className="bg-[rgba(0,0,0,0.35)] rounded-lg overflow-hidden">
+          <div className="bg-[#09090B] rounded-lg overflow-hidden">
             <table className="w-full">
-              <thead className="bg-[rgba(255,255,255,0.06)]">
+              <thead className="bg-[#242832]">
                 <tr>
                   <th className="px-4 py-3 text-left">Gift</th>
                   <th className="px-4 py-3 text-left">Rarity</th>
@@ -145,7 +145,7 @@ export default function AdminEconomy() {
               </thead>
               <tbody>
                 {gifts.map(gift => (
-                  <tr key={gift.id} className="hover:bg-[rgba(255,255,255,0.06)]/50">
+                  <tr key={gift.id} className="hover:bg-[#242832]/50">
                     <td className="px-4 py-3 font-semibold">{gift.name}</td>
                     <td className="px-4 py-3">
                       <span className="px-2 py-1 bg-[#FFFFFF] rounded text-xs">{gift.rarity}</span>
@@ -154,7 +154,7 @@ export default function AdminEconomy() {
                     <td className="px-4 py-3">
                       <span
                         className={`px-2 py-1 rounded text-xs ${
-                          gift.is_active ? 'bg-[#6F3FF5] elix-accent' : 'bg-[rgba(255,255,255,0.06)]'
+                          gift.is_active ? 'bg-[#6F3FF5] elix-accent' : 'bg-[#242832]'
                         }`}
                       >
                         {gift.is_active ? 'Active' : 'Inactive'}
@@ -188,9 +188,9 @@ export default function AdminEconomy() {
             <Zap className="w-6 h-6 text-white" />
             Boosters Catalog ({boosters.length})
           </h2>
-          <div className="bg-[rgba(0,0,0,0.35)] rounded-lg overflow-hidden">
+          <div className="bg-[#09090B] rounded-lg overflow-hidden">
             <table className="w-full">
-              <thead className="bg-[rgba(255,255,255,0.06)]">
+              <thead className="bg-[#242832]">
                 <tr>
                   <th className="px-4 py-3 text-left">Booster</th>
                   <th className="px-4 py-3 text-left">Effect</th>
@@ -200,14 +200,14 @@ export default function AdminEconomy() {
               </thead>
               <tbody>
                 {boosters.map(booster => (
-                  <tr key={booster.id} className="hover:bg-[rgba(255,255,255,0.06)]/50">
+                  <tr key={booster.id} className="hover:bg-[#242832]/50">
                     <td className="px-4 py-3 font-semibold">{booster.name}</td>
                     <td className="px-4 py-3 text-gray-400">{booster.effect_type}</td>
                     <td className="px-4 py-3 text-white font-bold">{booster.coin_cost}</td>
                     <td className="px-4 py-3">
                       <span
                         className={`px-2 py-1 rounded text-xs ${
-                          booster.is_active ? 'bg-[#6F3FF5] elix-accent' : 'bg-[rgba(255,255,255,0.06)]'
+                          booster.is_active ? 'bg-[#6F3FF5] elix-accent' : 'bg-[#242832]'
                         }`}
                       >
                         {booster.is_active ? 'Active' : 'Inactive'}

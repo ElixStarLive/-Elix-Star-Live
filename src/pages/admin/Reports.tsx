@@ -59,11 +59,11 @@ export default function AdminReports() {
   };
 
   if (loading) {
-    return <div className="min-h-screen bg-[rgba(0,0,0,0.35)] flex items-center justify-center text-white">Loading...</div>;
+    return <div className="min-h-screen bg-[#09090B] flex items-center justify-center text-white">Loading...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-[rgba(0,0,0,0.35)] text-white p-6">
+    <div className="min-h-screen bg-[#09090B] text-white p-6">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold mb-6 flex items-center gap-3">
           <Flag className="w-8 h-8 text-white/70" />
@@ -75,7 +75,7 @@ export default function AdminReports() {
           <button
             onClick={() => setFilter('pending')}
             className={`px-4 py-2 rounded-lg font-semibold ${
-              filter === 'pending' ? 'bg-[#6F3FF5] text-white elix-accent' : 'bg-[rgba(255,255,255,0.06)] text-white'
+              filter === 'pending' ? 'bg-[#6F3FF5] text-white elix-accent' : 'bg-[#242832] text-white'
             }`}
           >
             Pending ({reports.filter(r => r.status === 'pending').length})
@@ -83,7 +83,7 @@ export default function AdminReports() {
           <button
             onClick={() => setFilter('all')}
             className={`px-4 py-2 rounded-lg font-semibold ${
-              filter === 'all' ? 'bg-[#6F3FF5] text-white elix-accent' : 'bg-[rgba(255,255,255,0.06)] text-white'
+              filter === 'all' ? 'bg-[#6F3FF5] text-white elix-accent' : 'bg-[#242832] text-white'
             }`}
           >
             All
@@ -93,7 +93,7 @@ export default function AdminReports() {
         {/* Reports List */}
         <div className="space-y-4">
           {reports.map(report => (
-            <div key={report.id} className="bg-[rgba(0,0,0,0.35)] rounded-lg p-6">
+            <div key={report.id} className="bg-[#09090B] rounded-lg p-6">
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <div className="flex items-center gap-3 mb-2">
@@ -114,7 +114,7 @@ export default function AdminReports() {
                       ? 'bg-[#6F3FF5]'
                       : report.status === 'resolved'
                       ? 'bg-[#6F3FF5]'
-                      : 'bg-[rgba(255,255,255,0.06)]'
+                      : 'bg-[#242832]'
                   }`}
                 >
                   {report.status}
@@ -139,7 +139,7 @@ export default function AdminReports() {
                   </button>
                   <button
                     onClick={() => handleResolve(report.id, 'no_action')}
-                    className="px-4 py-2 bg-[rgba(255,255,255,0.06)] rounded hover:bg-[rgba(255,255,255,0.06)] flex items-center gap-2"
+                    className="px-4 py-2 bg-[#242832] rounded hover:bg-[#242832] flex items-center gap-2"
                   >
                     <CheckCircle className="w-4 h-4" />
                     No Action

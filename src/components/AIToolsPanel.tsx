@@ -162,7 +162,7 @@ export default function AIToolsPanel({
   return (
     <div className="fixed inset-0 z-[500] flex items-end justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative w-full max-w-[480px] bg-[rgba(0,0,0,0.35)] rounded-t-2xl overflow-hidden animate-in slide-in-from-bottom duration-300" style={{ maxHeight: '70dvh' }}>
+      <div className="relative w-full max-w-[480px] bg-[#09090B] rounded-t-2xl overflow-hidden animate-in slide-in-from-bottom duration-300" style={{ maxHeight: '70dvh' }}>
         
         {/* Header */}
         <div className="flex items-center justify-center px-4 py-3 ">
@@ -286,7 +286,7 @@ export default function AIToolsPanel({
                   value={captionInput}
                   onChange={e => setCaptionInput(e.target.value)}
                   placeholder="Dance video with friends at sunset..."
-                  className="w-full bg-[rgba(0,0,0,0.35)] text-white text-sm rounded-xl px-3 py-2 border border-white/10 resize-none h-20 outline-none focus:border-[#D8D9DD]/50"
+                  className="w-full bg-[#09090B] text-white text-sm rounded-xl px-3 py-2 border border-white/10 resize-none h-20 outline-none focus:border-[#D8D9DD]/50"
                 />
               </div>
               <button
@@ -303,7 +303,7 @@ export default function AIToolsPanel({
                     <button
                       key={i}
                       onClick={() => onCaptionSelect?.(s.caption, s.hashtags)}
-                      className="w-full text-left p-3 rounded-xl bg-[rgba(0,0,0,0.35)] hover:bg-[rgba(255,255,255,0.06)] transition-colors"
+                      className="w-full text-left p-3 rounded-xl bg-[#09090B] hover:bg-[#09090B]/70 transition-colors"
                     >
                       <p className="text-white text-sm mb-1">{s.caption}</p>
                       <p className="text-[#F5F5F7] text-xs">
@@ -418,7 +418,7 @@ export default function AIToolsPanel({
                   <select
                     value={subLang}
                     onChange={e => setSubLang(e.target.value)}
-                    className="w-full bg-[rgba(0,0,0,0.35)] text-white text-sm rounded-xl px-3 py-2.5 border border-white/10 outline-none appearance-none"
+                    className="w-full bg-[#09090B] text-white text-sm rounded-xl px-3 py-2.5 border border-white/10 outline-none appearance-none"
                     title="Subtitle language"
                   >
                     {SUBTITLE_LANGUAGES.map(l => (

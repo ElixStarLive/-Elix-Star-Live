@@ -132,7 +132,7 @@ export default function EnhancedLikesModal({ isOpen, onClose, videoId, likes }: 
   return (
     <div className="fixed inset-0 z-modals bg-black/60 flex items-end" onClick={onClose}>
       <div
-        className="w-full h-[80vh] bg-[rgba(0,0,0,0.35)] rounded-t-2xl flex flex-col border-t border-transparent bottom-sheet-above-nav"
+        className="w-full h-[80vh] bg-[#09090B] rounded-t-2xl flex flex-col border-t border-transparent bottom-sheet-above-nav"
         style={{animation: 'slide-up 0.3s ease-out'}}
         onClick={(e) => e.stopPropagation()}
       >
@@ -152,7 +152,7 @@ export default function EnhancedLikesModal({ isOpen, onClose, videoId, likes }: 
               placeholder="Search users..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-[rgba(0,0,0,0.35)] text-white rounded-lg px-4 py-2 text-sm focus:outline-none focus:bg-white border-none"
+              className="w-full bg-[#09090B] text-white rounded-lg px-4 py-2 text-sm focus:outline-none focus:bg-white border-none"
             />
             {searchTerm && (
               <button
@@ -172,7 +172,7 @@ export default function EnhancedLikesModal({ isOpen, onClose, videoId, likes }: 
                 className={`px-3 py-1 rounded-full text-sm transition-colors ${
                   filter === filterType
                     ? 'bg-[#6F3FF5] text-white elix-accent'
-                    : 'bg-[rgba(0,0,0,0.35)] text-white/80 hover:brightness-125'
+                    : 'bg-[#09090B] text-white/80 hover:brightness-125'
                 }`}
               >
                 {filterType.charAt(0).toUpperCase() + filterType.slice(1)}
@@ -185,7 +185,7 @@ export default function EnhancedLikesModal({ isOpen, onClose, videoId, likes }: 
         <div className="flex-1 overflow-y-auto">
           {filteredLikes.length === 0 ? (
             <div className="text-center py-8">
-              <div className="w-12 h-12 bg-[rgba(0,0,0,0.35)] rounded-full flex items-center justify-center mx-auto mb-3">
+              <div className="w-12 h-12 bg-[#09090B] rounded-full flex items-center justify-center mx-auto mb-3">
                 <UserPlus className="w-6 h-6 text-white/60" />
               </div>
               <p className="text-white/60">No users found</p>
@@ -229,7 +229,7 @@ export default function EnhancedLikesModal({ isOpen, onClose, videoId, likes }: 
                           {user.isFollowing ? (
                             <button
                               onClick={() => handleFollowToggle(user.id)}
-                              className="px-3 py-1.5 bg-[rgba(0,0,0,0.35)] text-white rounded-lg hover:brightness-125 transition-colors text-sm"
+                              className="px-3 py-1.5 bg-[#09090B] text-white rounded-lg hover:brightness-125 transition-colors text-sm"
                             >
                               <UserMinus size={14} className="inline mr-1" />
                               Following
@@ -246,7 +246,7 @@ export default function EnhancedLikesModal({ isOpen, onClose, videoId, likes }: 
                           
                           <button
                             onClick={() => handleMessage(user)}
-                            className="p-2 bg-[rgba(0,0,0,0.35)] text-white rounded-lg hover:brightness-125 transition-colors"
+                            className="p-2 bg-[#09090B] text-white rounded-lg hover:brightness-125 transition-colors"
                           >
                             <MessageCircle size={14} />
                           </button>
@@ -262,7 +262,7 @@ export default function EnhancedLikesModal({ isOpen, onClose, videoId, likes }: 
                         </button>
                         
                         {showUserOptions === user.id && (
-                          <div className="absolute top-full right-0 mt-1 bg-[rgba(0,0,0,0.35)] rounded-lg shadow-xl border border-transparent z-10 min-w-[160px]">
+                          <div className="absolute top-full right-0 mt-1 bg-[#09090B] rounded-lg shadow-xl border border-transparent z-10 min-w-[160px]">
                             <button
                               onClick={() => handleMessage(user)}
                               className="w-full flex items-center gap-3 px-3 py-2 text-white hover:bg-transparent transition-colors text-left text-sm"

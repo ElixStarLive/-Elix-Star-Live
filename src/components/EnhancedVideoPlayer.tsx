@@ -910,7 +910,7 @@ export default function EnhancedVideoPlayer({
     >
       {/* Video Element - iPhone 14 Pro Max: 6.7" Super Retina XDR, 2796×1290, 19.5:9, ~460ppi */}
       <div
-        className="absolute inset-0 flex items-center justify-center bg-[rgba(0,0,0,0.35)]"
+        className="absolute inset-0 flex items-center justify-center bg-[#09090B]"
         style={{ margin: 0, padding: 0, gap: 0 }}
       >
         <div className="w-full h-full" style={{ margin: 0, padding: 0 }}>
@@ -984,7 +984,7 @@ export default function EnhancedVideoPlayer({
 
 
         {videoError && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[rgba(0,0,0,0.35)] z-10 gap-3">
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#09090B] z-10 gap-3">
             <span className="text-white/50 text-sm">Video processing...</span>
             <button
               type="button"
@@ -1293,7 +1293,7 @@ export default function EnhancedVideoPlayer({
         <div className="fixed inset-0 z-modals flex items-end justify-center">
           <div className="absolute inset-0 pointer-events-auto" onClick={closeMoreMenu} />
           <div
-            className="bg-[rgba(255,255,255,0.06)] rounded-t-2xl max-h-[40dvh] flex flex-col shadow-2xl pointer-events-auto w-full max-w-[480px] relative z-10 bottom-sheet-above-nav"
+            className="bg-[#09090B]/95 rounded-t-2xl max-h-[40dvh] flex flex-col shadow-2xl pointer-events-auto w-full max-w-[480px] relative z-10 bottom-sheet-above-nav"
             style={{ boxShadow: '0 -4px 30px rgba(255,255,255,0.25)' }}
             onClick={(e) => e.stopPropagation()}
           >

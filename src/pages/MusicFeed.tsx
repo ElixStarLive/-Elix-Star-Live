@@ -208,10 +208,10 @@ export default function MusicFeed() {
   }, [playingId]);
 
   return (
-    <div className="page-above-bottom-nav bg-[rgba(0,0,0,0.35)] text-white">
+    <div className="page-above-bottom-nav bg-[#09090B] text-white">
       <audio ref={audioRef} preload="auto" onEnded={() => setPlayingId(null)} className="hidden" />
-      <div className="page-above-bottom-nav__inner bg-[rgba(0,0,0,0.35)] flex flex-col min-h-0">
-        <div className="w-full shrink-0 bg-[rgba(0,0,0,0.35)] z-10 border-b border-white/[0.06]">
+      <div className="page-above-bottom-nav__inner bg-[#09090B] flex flex-col min-h-0">
+        <div className="w-full shrink-0 bg-[#09090B] z-10 border-b border-white/[0.06]">
           <div className="px-3 pt-page-header pb-3 flex items-center justify-between relative">
             <button type="button" onClick={goSearch} className="p-1 z-10" aria-label="Search">
               <Search className="w-4 h-4 text-[#F5F5F7]" />
@@ -225,8 +225,8 @@ export default function MusicFeed() {
           </div>
 
           <div className="px-3 pb-3">
-            <div className="p-4 rounded-2xl bg-[rgba(0,0,0,0.35)] flex gap-4 w-full">
-              <div className="w-14 h-14 rounded-lg overflow-hidden flex items-center justify-center shrink-0 royce-tile bg-[rgba(255,255,255,0.06)]">
+            <div className="p-4 rounded-2xl bg-[#09090B] flex gap-4 w-full">
+              <div className="w-14 h-14 rounded-lg overflow-hidden flex items-center justify-center shrink-0 royce-tile bg-[#1B1E24]">
                 {selectedTrack?.coverUrl ? (
                   <img src={selectedTrack.coverUrl} alt="" className="w-full h-full object-cover" />
                 ) : (
@@ -256,7 +256,7 @@ export default function MusicFeed() {
           {!songId ? (
             <>
               <div className="px-3 pb-2">
-                <div className="flex items-center gap-2 px-3 py-2 rounded-full border border-[#D8D9DD]/25 bg-[rgba(0,0,0,0.35)]">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-full border border-[#D8D9DD]/25 bg-[#09090B]">
                   <Search className="w-4 h-4 text-white/50 flex-shrink-0" />
                   <input
                     type="search"
@@ -289,7 +289,7 @@ export default function MusicFeed() {
           ) : null}
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto w-full bg-[rgba(0,0,0,0.35)]">
+        <div className="flex-1 min-h-0 overflow-y-auto w-full bg-[#09090B]">
           {songId ? (
             <div className="grid grid-cols-3 gap-0.5 w-full">
               {videosLoading ? (
@@ -305,7 +305,7 @@ export default function MusicFeed() {
                 videos.map((video) => (
                   <div
                     key={video.id}
-                    className="aspect-[3/4] bg-[rgba(0,0,0,0.35)] relative cursor-pointer"
+                    className="aspect-[3/4] bg-[#09090B] relative cursor-pointer"
                     onClick={() => openVideoFromSound(video.id)}
                   >
                     <video
@@ -335,7 +335,7 @@ export default function MusicFeed() {
                     onClick={() => openTrack(track.id)}
                     className="flex items-center gap-2 flex-1 min-w-0 text-left"
                   >
-                    <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0 bg-[rgba(255,255,255,0.06)] border border-[#D8D9DD]/20">
+                    <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0 bg-[#1B1E24] border border-[#D8D9DD]/20">
                       {track.coverUrl ? (
                         <img src={track.coverUrl} alt="" className="w-full h-full object-cover" />
                       ) : (

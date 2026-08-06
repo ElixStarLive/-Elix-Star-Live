@@ -357,7 +357,7 @@ export default function ElixCameraLayout({
       {/* ══════════════════════════════════════════ */}
       {activeFilter !== 'none' && (
         <div className="absolute top-0 left-3 z-50 pointer-events-auto" style={{ paddingTop: 'max(5.5rem, calc(env(safe-area-inset-top) + 3rem))' }}>
-          <div className="bg-[rgba(0,0,0,0.35)]/50 backdrop-blur-sm px-2 py-1 rounded-full flex items-center gap-1.5 border border-[#D8D9DD]/20">
+          <div className="bg-[#09090B]/50 backdrop-blur-sm px-2 py-1 rounded-full flex items-center gap-1.5 border border-[#D8D9DD]/20">
             <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cameraFilters.find(f => f.id === activeFilter)?.color }} />
           <span className="text-[#F5F5F7] drop-shadow-[0_0_8px_rgba(139, 144, 152,1)] text-[9px] font-semibold">{cameraFilters.find(f => f.id === activeFilter)?.name}</span>
             <button onClick={() => setActiveFilter('none')} className="ml-0.5" title="Remove filter">
@@ -372,7 +372,7 @@ export default function ElixCameraLayout({
       {/* ══════════════════════════════════════════ */}
       {textOverlay && (
         <div className="absolute top-1/3 left-0 right-0 z-40 flex justify-center pointer-events-auto">
-          <button onClick={() => setTextOverlay('')} title="Remove text" className="bg-[rgba(0,0,0,0.35)]/40 backdrop-blur-sm px-4 py-2 rounded-lg">
+          <button onClick={() => setTextOverlay('')} title="Remove text" className="bg-[#09090B]/40 backdrop-blur-sm px-4 py-2 rounded-lg">
             <p className="text-white text-xl font-bold text-center drop-shadow-lg">{textOverlay}</p>
           </button>
         </div>
@@ -475,7 +475,7 @@ export default function ElixCameraLayout({
 
         {/* Beauty Slider (shows when tapped) */}
         {showBeautySlider && (
-          <div className="bg-[rgba(255,255,255,0.06)] backdrop-blur-sm rounded-full px-1 py-1.5 flex flex-col items-center gap-0.5 border border-[#D8D9DD]/20">
+          <div className="bg-[#09090B]/60 backdrop-blur-sm rounded-full px-1 py-1.5 flex flex-col items-center gap-0.5 border border-[#D8D9DD]/20">
             <span className="text-[7px] text-[#F5F5F7] drop-shadow-[0_0_8px_rgba(139, 144, 152,1)] font-bold">{Math.round(beautyLevel * 100)}%</span>
             <input
               type="range"
@@ -569,7 +569,7 @@ export default function ElixCameraLayout({
         <>
         <div className="absolute inset-0 z-[59] pointer-events-auto" onClick={() => setShowEffectsPanel(false)} aria-hidden />
         <div className="absolute bottom-0 left-0 right-0 z-[60] pointer-events-auto animate-in slide-in-from-bottom duration-300">
-          <div className="bg-[rgba(255,255,255,0.06)] backdrop-blur-xl rounded-t-2xl pb-safe">
+          <div className="bg-[#09090B]/90 backdrop-blur-xl rounded-t-2xl pb-safe">
             {/* Header */}
             <div className="flex items-center justify-center px-4 pt-3 pb-2">
               <h3 className="text-[#F5F5F7] drop-shadow-[0_0_8px_rgba(139, 144, 152,1)] text-xs font-bold flex items-center gap-1.5">
@@ -620,7 +620,7 @@ export default function ElixCameraLayout({
               </button>
               <button
                 onClick={() => { setActiveFilter('none'); setEnhanceEnabled(false); }}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-[rgba(0,0,0,0.35)] text-[#F5F5F7] drop-shadow-[0_0_8px_rgba(139, 144, 152,1)] border border-[#D8D9DD]/40"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-[#09090B] text-[#F5F5F7] drop-shadow-[0_0_8px_rgba(139, 144, 152,1)] border border-[#D8D9DD]/40"
               >
                 <RotateCcw size={10} />
                 Reset All
@@ -638,7 +638,7 @@ export default function ElixCameraLayout({
         <>
         <div className="absolute inset-0 z-[59] pointer-events-auto" onClick={() => setShowCapCutPanel(false)} aria-hidden />
         <div className="absolute bottom-0 left-0 right-0 z-[60] pointer-events-auto animate-in slide-in-from-bottom duration-300">
-          <div className="bg-[rgba(255,255,255,0.06)] backdrop-blur-xl rounded-t-2xl pb-safe">
+          <div className="bg-[#09090B]/90 backdrop-blur-xl rounded-t-2xl pb-safe">
             {/* Header */}
             <div className="flex items-center justify-center px-4 pt-3 pb-2">
               <h3 className="text-[#F5F5F7] drop-shadow-[0_0_8px_rgba(139, 144, 152,1)] text-xs font-bold flex items-center gap-1.5">
@@ -768,8 +768,8 @@ export default function ElixCameraLayout({
       {/* TEXT INPUT OVERLAY */}
       {/* ══════════════════════════════════════════ */}
       {showTextInput && (
-        <div className="absolute inset-0 z-[70] bg-[rgba(255,255,255,0.06)] flex items-center justify-center pointer-events-auto" onClick={() => setShowTextInput(false)}>
-          <div className="w-[80%] max-w-xs bg-[rgba(255,255,255,0.06)] backdrop-blur-xl rounded-2xl border border-[#D8D9DD]/20 p-4" onClick={(e) => e.stopPropagation()}>
+        <div className="absolute inset-0 z-[70] bg-[#09090B]/60 flex items-center justify-center pointer-events-auto" onClick={() => setShowTextInput(false)}>
+          <div className="w-[80%] max-w-xs bg-[#09090B]/90 backdrop-blur-xl rounded-2xl border border-[#D8D9DD]/20 p-4" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-center mb-3">
               <h3 className="text-[#F5F5F7] drop-shadow-[0_0_8px_rgba(139, 144, 152,1)] text-xs font-bold">Add Text</h3>
             </div>
@@ -807,7 +807,7 @@ export default function ElixCameraLayout({
         <>
         <div className="absolute inset-0 z-[69] pointer-events-auto" onClick={() => setShowStickerPicker(false)} aria-hidden />
         <div className="absolute bottom-0 left-0 right-0 z-[70] pointer-events-auto">
-          <div className="bg-[rgba(255,255,255,0.06)] backdrop-blur-xl rounded-t-2xl pb-safe">
+          <div className="bg-[#09090B]/90 backdrop-blur-xl rounded-t-2xl pb-safe">
             <div className="flex items-center justify-center px-4 pt-3 pb-2">
               <h3 className="text-[#F5F5F7] drop-shadow-[0_0_8px_rgba(139, 144, 152,1)] text-xs font-bold">Stickers</h3>
             </div>

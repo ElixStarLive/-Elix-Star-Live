@@ -107,10 +107,10 @@ export default function EngagementHub() {
   }, []);
 
   return (
-    <div className="page-above-bottom-nav bg-[rgba(0,0,0,0.35)] text-white">
+    <div className="page-above-bottom-nav bg-[#09090B] text-white">
       <div className="page-above-bottom-nav__inner engagement-panel-writing">
         <div
-          className="w-full shrink-0 bg-[rgba(0,0,0,0.35)] z-10"
+          className="w-full shrink-0 bg-[#09090B] z-10"
           style={{ paddingTop: "var(--topnav-anchor-top)" }}
         >
           <div

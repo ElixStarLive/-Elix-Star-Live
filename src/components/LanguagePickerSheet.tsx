@@ -10,7 +10,7 @@ export default function LanguagePickerSheet({ onClose }: Props) {
   return (
     <div className="fixed inset-0 z-[10000] flex items-end justify-center" role="dialog" aria-label={t('settings.chooseLanguage')}>
       <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden />
-      <div className="relative w-full max-w-md bg-[rgba(0,0,0,0.35)] rounded-t-2xl border-t border-white/10 max-h-[70vh] flex flex-col">
+      <div className="relative w-full max-w-md bg-[#09090B] rounded-t-2xl border-t border-white/10 max-h-[70vh] flex flex-col">
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
           <span className="text-[13px] font-bold text-[#F5F5F7]">{t('settings.chooseLanguage')}</span>
           <button type="button" onClick={onClose} className="p-1 rounded-full active:scale-90 transition-transform" aria-label="Close">

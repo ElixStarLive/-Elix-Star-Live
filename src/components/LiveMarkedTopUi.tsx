@@ -497,7 +497,7 @@ export function LiveGiftComboColumn({
           onOpen?.();
         }
       }}
-      className="flex flex-col-reverse items-center gap-2 rounded-2xl px-2.5 py-2.5 border border-[#2A2D33] bg-[rgba(255,255,255,0.06)] backdrop-blur-md shadow-none active:scale-[0.98] transition-transform"
+      className="flex flex-col-reverse items-center gap-2 rounded-2xl px-2.5 py-2.5 border border-[#2A2D33] bg-[rgba(10,10,10,0.72)] backdrop-blur-md shadow-none active:scale-[0.98] transition-transform"
     >
       {stack.map((item, idx) => {
         const isActive = idx === stack.length - 1;

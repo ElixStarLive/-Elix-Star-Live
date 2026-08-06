@@ -82,9 +82,9 @@ export default function BlockedAccounts() {
 
   return (
     <SettingsOptionSheet onClose={exit}>
-      <div className="w-full h-full overflow-hidden bg-[rgba(0,0,0,0.35)] flex flex-col">
+      <div className="w-full h-full overflow-hidden bg-[#09090B] flex flex-col">
         {/* Header */}
-        <div className="sticky top-0 bg-[rgba(0,0,0,0.35)] z-10 px-4 pt-3 pb-3 border-b border-white/[0.06]">
+        <div className="sticky top-0 bg-[#09090B] z-10 px-4 pt-3 pb-3 border-b border-white/[0.06]">
         <div className="flex items-center justify-center mb-3">
           <h1 className="text-lg font-bold text-[#F5F5F7]">Blocked Accounts</h1>
         </div>

@@ -70,7 +70,7 @@ export default function MediaEditorPanel({
 
   return (
     <div className="absolute inset-x-0 bottom-0 z-[120] pointer-events-auto" role="dialog" aria-label={title}>
-      <div className="mx-auto w-full max-w-md rounded-t-2xl bg-[rgba(255,255,255,0.06)] backdrop-blur-md border-t border-white/10 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+14px)]">
+      <div className="mx-auto w-full max-w-md rounded-t-2xl bg-[#09090B]/95 backdrop-blur-md border-t border-white/10 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+14px)]">
         <div className="flex items-center justify-between mb-3">
           <span className="text-white text-sm font-semibold">{title}</span>
           <button type="button" onClick={onClose} className="w-8 h-8 flex items-center justify-center" aria-label="Close">

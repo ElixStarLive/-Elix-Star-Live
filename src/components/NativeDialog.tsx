@@ -64,7 +64,7 @@ export function NativeDialogProvider({ children }: { children: React.ReactNode }
           onClick={(e) => { if (e.target === e.currentTarget) handleCancel(); }}
         >
           <div
-            className="w-full max-w-[320px] bg-[rgba(0,0,0,0.35)] rounded-2xl overflow-hidden shadow-2xl border border-white/10"
+            className="w-full max-w-[320px] bg-[#09090B] rounded-2xl overflow-hidden shadow-2xl border border-white/10"
             role="alertdialog"
             aria-modal="true"
           >

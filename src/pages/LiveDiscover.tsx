@@ -264,7 +264,7 @@ export default function LiveDiscover() {
   }, []);
 
   return (
-    <div className="app-live-column bg-[rgba(0,0,0,0.35)]">
+    <div className="app-live-column bg-[#09090B]">
       {/* Header inside column — close stays within max-w container */}
       <div
         className="flex-shrink-0 w-full px-3 flex items-center justify-between z-20"
@@ -318,7 +318,7 @@ export default function LiveDiscover() {
                     i === 0 && creators.length > 2 ? 'col-span-2 aspect-[2/1.2]' : 'aspect-[3/4]'
                   }`}
                 >
-                  <Suspense fallback={<div className="absolute inset-0 bg-[rgba(0,0,0,0.35)]" />}>
+                  <Suspense fallback={<div className="absolute inset-0 bg-[#09090B]" />}>
                     <InlineLiveViewer
                       streamKey={c.id}
                       isActive={activeIds.has(c.id)}

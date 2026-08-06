@@ -30,7 +30,7 @@ export default function HowItWorks() {
 
   return (
     <SettingsOptionSheet onClose={goBack}>
-      <div className="w-full h-full overflow-hidden bg-[rgba(0,0,0,0.35)] text-white flex flex-col">
+      <div className="w-full h-full overflow-hidden bg-[#09090B] text-white flex flex-col">
         <header className="flex items-center justify-center mb-3 px-4 pt-2">
           <h1 className="font-bold text-lg flex items-center gap-2">
             <BookOpen className="w-5 h-5 text-[#F5F5F7]" />

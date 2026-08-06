@@ -62,7 +62,7 @@ export default function ResetPassword() {
 
   if (success) {
     return (
-      <div className="bg-[rgba(0,0,0,0.35)] text-white flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-[#09090B] text-white flex items-center justify-center p-4 overflow-y-auto">
         <div className="w-full max-w-[420px] bg-white/5 border border-white/10 rounded-2xl p-6 text-center">
           <CheckCircle className="w-12 h-12 text-white mx-auto mb-4" />
           <h1 className="text-xl font-bold mb-2">Password Reset!</h1>
@@ -75,7 +75,7 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="bg-[rgba(0,0,0,0.35)] text-white flex items-center justify-center p-4 overflow-y-auto">
+    <div className="bg-[#09090B] text-white flex items-center justify-center p-4 overflow-y-auto">
       <div className="w-full max-w-[420px] bg-white/5 border border-white/10 rounded-2xl p-6">
         <h1 className="text-2xl font-bold mb-2">Reset Password</h1>
         <p className="text-sm text-white/60 mb-6">Enter your new password below.</p>

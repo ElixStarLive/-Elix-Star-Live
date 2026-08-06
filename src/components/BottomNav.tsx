@@ -90,7 +90,7 @@ export const BottomNav = () => {
       aria-label="Main navigation"
     >
       <div className="flex justify-center pointer-events-none">
-        <div className="feed-column-width pointer-events-auto bg-[rgba(0,0,0,0.35)] border-t border-[#2A2D33] min-h-[var(--nav-height)]" style={{ backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
+        <div className="feed-column-width pointer-events-auto bg-[#09090B] min-h-[var(--nav-height)]">
           <div className="flex items-center justify-around px-1 pt-1.5 pb-1">
             {NAV_ITEMS.map(({ path, label, Icon, center }) => {
               const active = isActiveRoute(location.pathname, path);

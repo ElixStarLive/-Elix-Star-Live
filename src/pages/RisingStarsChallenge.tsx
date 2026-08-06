@@ -170,10 +170,10 @@ export default function RisingStarsChallenge() {
   }, [challengeId, challenge?.title]);
 
   return (
-    <div className="page-above-bottom-nav bg-[rgba(0,0,0,0.35)] text-white">
+    <div className="page-above-bottom-nav bg-[#09090B] text-white">
       <div className="page-above-bottom-nav__inner">
         <div
-          className="w-full shrink-0 bg-[rgba(0,0,0,0.35)] z-10"
+          className="w-full shrink-0 bg-[#09090B] z-10"
           style={{ paddingTop: "var(--topnav-anchor-top)" }}
         >
           <div
@@ -243,7 +243,7 @@ export default function RisingStarsChallenge() {
                   <select
                     value={selectedVideoId}
                     onChange={(e) => setSelectedVideoId(e.target.value)}
-                    className="w-full bg-[rgba(0,0,0,0.35)] border border-white/10 rounded-xl px-3 py-2 text-sm mb-2"
+                    className="w-full bg-[#09090B] border border-white/10 rounded-xl px-3 py-2 text-sm mb-2"
                   >
                     <option value="">Select a video…</option>
                     {myVideos.map((v) => (

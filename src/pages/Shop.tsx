@@ -369,11 +369,11 @@ export default function Shop() {
   ] as const;
 
   return (
-    <div className="page-above-bottom-nav bg-[rgba(0,0,0,0.35)] text-white">
+    <div className="page-above-bottom-nav bg-[#09090B] text-white">
       <div className="page-above-bottom-nav__inner">
         {/* Header — same size container as STEM */}
         <div
-          className="w-full shrink-0 bg-[rgba(0,0,0,0.35)] z-10 border-b border-white/5"
+          className="w-full shrink-0 bg-[#09090B] z-10 border-b border-white/5"
           style={{ paddingTop: 'var(--topnav-anchor-top)' }}
         >
           <div
@@ -503,7 +503,7 @@ export default function Shop() {
                           aria-label="Close menu"
                           onClick={closeItemMenu}
                         />
-                        <div className="absolute right-0 top-full mt-1 z-[4] min-w-[120px] rounded-xl bg-[rgba(0,0,0,0.35)] border border-white/10 shadow-lg overflow-hidden">
+                        <div className="absolute right-0 top-full mt-1 z-[4] min-w-[120px] rounded-xl bg-[#09090B] border border-white/10 shadow-lg overflow-hidden">
                           {isOwn ? (
                             <button
                               type="button"
@@ -569,7 +569,7 @@ export default function Shop() {
             {/* Anchor the modal exactly to the top of the bottom bar (no extra gap). */}
             <div className="fixed left-0 right-0 z-[9999] pointer-events-auto max-w-[480px] mx-auto fixed-above-bottom-nav">
               <div
-                className="w-full bg-[rgba(0,0,0,0.35)] rounded-t-3xl pb-safe"
+                className="w-full bg-[#09090B] rounded-t-3xl pb-safe"
                 style={{ maxHeight: '80dvh', boxShadow: '0 -4px 30px rgba(255,255,255,0.25)' }}
                 onClick={e => e.stopPropagation()}
               >
@@ -627,7 +627,7 @@ export default function Shop() {
                 <select
                   value={newCategory}
                   onChange={e => setNewCategory(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm mb-4 focus:outline-none focus:border-[#D8D9DD] [&>option]:bg-[rgba(0,0,0,0.35)] [&>option]:text-white"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm mb-4 focus:outline-none focus:border-[#D8D9DD] [&>option]:bg-[#09090B] [&>option]:text-white"
                   aria-label="Category"
                 >
                   <option value="clothing">Clothing</option>
@@ -658,7 +658,7 @@ export default function Shop() {
             />
             <div className="fixed left-0 right-0 z-[9999] pointer-events-auto max-w-[480px] mx-auto fixed-above-bottom-nav">
               <div
-                className="w-full bg-[rgba(0,0,0,0.35)] rounded-t-3xl pb-safe"
+                className="w-full bg-[#09090B] rounded-t-3xl pb-safe"
                 style={{ maxHeight: '80dvh', boxShadow: '0 -4px 30px rgba(255,255,255,0.25)' }}
                 onClick={e => e.stopPropagation()}
               >

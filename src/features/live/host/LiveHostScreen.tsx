@@ -910,11 +910,11 @@ export default function LiveHostScreen() {
                   </>
                 )}
                 {isCamOff && !featuredHost && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[rgba(255,255,255,0.06)] z-[5]">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)] z-[5]">
                     {(user?.avatar || myAvatar) ? (
                       <img src={user?.avatar || myAvatar || ''} alt="" className="w-16 h-16 rounded-full border-2 border-[#D8D9DD]/40 object-cover object-center" />
                     ) : (
-                      <div className="w-16 h-16 rounded-full border-2 border-[#D8D9DD]/40 bg-[rgba(0,0,0,0.35)] flex items-center justify-center">
+                      <div className="w-16 h-16 rounded-full border-2 border-[#D8D9DD]/40 bg-[#09090B] flex items-center justify-center">
                         <span className="text-2xl font-black text-[#F5F5F7]/60">{(creatorName || user?.username || 'Me').charAt(0).toUpperCase()}</span>
                       </div>
                     )}
@@ -961,11 +961,11 @@ export default function LiveHostScreen() {
                   style={viewerHasStream ? {} : { display: 'none' }}
                 />
                 {!viewerHasStream && (
-                  <div className="w-full h-full bg-[rgba(0,0,0,0.35)] flex flex-col items-center justify-center relative">
+                  <div className="w-full h-full bg-[#09090B] flex flex-col items-center justify-center relative">
                     {myAvatar ? (
                       <img src={myAvatar} alt="" className="w-28 h-28 rounded-full object-cover object-center mb-4 opacity-80" />
                     ) : (
-                      <div className="w-28 h-28 rounded-full bg-[rgba(0,0,0,0.35)] flex items-center justify-center mb-4">
+                      <div className="w-28 h-28 rounded-full bg-[#09090B] flex items-center justify-center mb-4">
                         <span className="text-4xl font-black text-[#F5F5F7]/60">{creatorName.charAt(0).toUpperCase()}</span>
                       </div>
                     )}
@@ -998,7 +998,7 @@ export default function LiveHostScreen() {
             )}
 
             {isBroadcast && cameraError && (
-              <div className="absolute inset-0 flex items-center justify-center bg-[rgba(0,0,0,0.35)] text-white font-bold">
+              <div className="absolute inset-0 flex items-center justify-center bg-[#09090B] text-white font-bold">
                 {cameraError}
               </div>
             )}
@@ -1037,11 +1037,11 @@ export default function LiveHostScreen() {
                         style={{ opacity: isCamOff ? 0 : 1, transform: 'scaleX(-1)', backgroundColor: '#09090B' }}
                       />
                       {isCamOff && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[rgba(255,255,255,0.06)] z-[5]">
+                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[rgba(10,10,10,0.72)] z-[5]">
                           {(user?.avatar || myAvatar) ? (
                             <img src={user?.avatar || myAvatar || ''} alt="" className="w-10 h-10 rounded-full object-cover" />
                           ) : (
-                            <div className="w-10 h-10 rounded-full bg-[rgba(0,0,0,0.35)] flex items-center justify-center">
+                            <div className="w-10 h-10 rounded-full bg-[#09090B] flex items-center justify-center">
                               <span className="text-[#F5F5F7]/60 text-sm font-bold">{(creatorName || 'Me').charAt(0)}</span>
                             </div>
                           )}
@@ -1083,11 +1083,11 @@ export default function LiveHostScreen() {
                   const isSelected = !!selectedCohostGiftUserId && sameUserId(selectedCohostGiftUserId, host.userId);
                   return (
                     <>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[rgba(255,255,255,0.06)] z-[5]">
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[rgba(10,10,10,0.72)] z-[5]">
                         {host.avatar ? (
                           <img src={host.avatar} alt="" className="w-10 h-10 rounded-full object-cover object-center" />
                         ) : (
-                          <div className="w-10 h-10 rounded-full bg-[rgba(0,0,0,0.35)] flex items-center justify-center">
+                          <div className="w-10 h-10 rounded-full bg-[#09090B] flex items-center justify-center">
                             <span className="text-[#F5F5F7]/60 text-sm font-bold">{(host.name || '?').charAt(0)}</span>
                           </div>
                         )}
@@ -1133,7 +1133,7 @@ export default function LiveHostScreen() {
                       {(lastGiftIcon || score > 0) && (
                         <div className="absolute bottom-0.5 right-0.5 z-10 flex items-center pointer-events-none">
                           {lastGiftIcon && (
-                            <div className="w-5 h-5 rounded-full bg-[rgba(0,0,0,0.35)] border border-[#D8D9DD]/40 overflow-hidden flex items-center justify-center drop-shadow-md z-10 relative">
+                            <div className="w-5 h-5 rounded-full bg-[#09090B] border border-[#D8D9DD]/40 overflow-hidden flex items-center justify-center drop-shadow-md z-10 relative">
                               <img src={lastGiftIcon} alt="gift" className="w-full h-full object-cover" />
                             </div>
                           )}
@@ -1163,7 +1163,7 @@ export default function LiveHostScreen() {
                     >
                       <X size={14} strokeWidth={2.35} className="text-[#F5F5F7]" />
                     </button>
-                    <div className="w-12 h-12 rounded-full overflow-hidden bg-[rgba(0,0,0,0.35)]">
+                    <div className="w-12 h-12 rounded-full overflow-hidden bg-[#09090B]">
                       {slot.host.avatar ? <img src={slot.host.avatar} alt="" className="w-full h-full object-cover opacity-60" /> : <div className="w-full h-full flex items-center justify-center text-[#F5F5F7]/60 text-base font-bold">{(slot.host.name || '?').charAt(0)}</div>}
                     </div>
                     <p className="text-white/60 text-[9px] font-bold mt-0.5 truncate max-w-[95%] text-center">{slot.host.name}</p>
@@ -1181,7 +1181,7 @@ export default function LiveHostScreen() {
                     >
                       <X size={14} strokeWidth={2.35} className="text-[#F5F5F7]" />
                     </button>
-                    <div className="w-10 h-10 rounded-full overflow-hidden bg-[rgba(0,0,0,0.35)]">
+                    <div className="w-10 h-10 rounded-full overflow-hidden bg-[#09090B]">
                       {slot.host.avatar ? <img src={slot.host.avatar} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[#F5F5F7] text-sm font-bold">{(slot.host.name || '?').charAt(0)}</div>}
                     </div>
                     <p className="text-white text-[8px] font-bold mt-0.5 truncate max-w-[95%] text-center">{slot.host.name}</p>
@@ -1218,7 +1218,7 @@ export default function LiveHostScreen() {
                             openGiftPanelForCohost(cellHost.userId);
                           }
                         }}
-                        className={`relative bg-[rgba(0,0,0,0.35)] flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 border border-[#C9A96E]/40 ${cellSpeaking ? 'elix-speaking-pulse' : ''} ${cellHost && !isBattleMode ? 'cursor-pointer' : ''}`}
+                        className={`relative bg-[#09090B] flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 border border-[#C9A96E]/40 ${cellSpeaking ? 'elix-speaking-pulse' : ''} ${cellHost && !isBattleMode ? 'cursor-pointer' : ''}`}
                       >
                         {renderCoHostCell(slot)}
                       </div>
@@ -1264,7 +1264,7 @@ export default function LiveHostScreen() {
 
             {SPEED_CHALLENGE_ENABLED && speedChallengeResult && !speedChallengeActive && (
               <div className="absolute inset-x-0 bottom-24 z-[270] pointer-events-none flex items-center justify-center">
-                <div className="flex flex-col items-center gap-1 px-6 py-3 rounded-xl bg-[rgba(255,255,255,0.06)] backdrop-blur-md border border-[#2A2D33] shadow-[0_0_20px_rgba(0,0,0,0.6)]">
+                <div className="flex flex-col items-center gap-1 px-6 py-3 rounded-xl bg-[rgba(10,10,10,0.72)] backdrop-blur-md border border-[#2A2D33] shadow-[0_0_20px_rgba(0,0,0,0.6)]">
                   <span className="text-white text-[10px] font-bold uppercase tracking-widest">âš¡ Speed Challenge Result</span>
                   <span className="text-white text-lg font-black drop-shadow-[0_0_15px_rgba(230,179,106,0.8)] animate-bounce">{speedChallengeResult}</span>
                 </div>
@@ -1289,7 +1289,7 @@ export default function LiveHostScreen() {
                 >
 
                   {/* Battle score: tap bar to hide (keeps battle video + chat visible). Tap VS to show again. */}
-                  <div className={`relative z-20 w-full flex-none ${battleScoreBarHidden ? '' : 'bg-[rgba(255,255,255,0.06)] border-b border-[#2A2D33]'}`}>
+                  <div className={`relative z-20 w-full flex-none ${battleScoreBarHidden ? '' : 'bg-[rgba(10,10,10,0.72)] border-b border-[#2A2D33]'}`}>
                     {!battleScoreBarHidden ? (
                       <div
                         className="relative w-full overflow-hidden cursor-pointer pointer-events-auto"
@@ -1381,7 +1381,7 @@ export default function LiveHostScreen() {
                     {/* Row 1: P1 & P2 â€” equal joined panes */}
                     <div className="flex flex-1 min-h-0 gap-0">
                       <div
-                        className="flex-1 basis-0 min-w-0 h-full overflow-hidden relative bg-[rgba(0,0,0,0.35)] pointer-events-auto"
+                        className="flex-1 basis-0 min-w-0 h-full overflow-hidden relative bg-[#09090B] pointer-events-auto"
                       >
                       <video ref={bindHostCameraPreview} className={`w-full h-full object-cover transform scale-x-[-1] ${LIVE_WEBRTC_VIDEO_CLASS}`} autoPlay playsInline muted controls={false} poster={LIVE_VIDEO_TRANSPARENT_POSTER} style={isCamOff ? { opacity: 0 } : undefined} />
                       {isBroadcast && activeFaceARGift && (
@@ -1401,11 +1401,11 @@ export default function LiveHostScreen() {
                         />
                       )}
                       {isCamOff && (
-                        <div className="absolute inset-0 z-[5] flex flex-col items-center justify-center gap-1 bg-[rgba(0,0,0,0.35)]">
+                        <div className="absolute inset-0 z-[5] flex flex-col items-center justify-center gap-1 bg-[#09090B]">
                           {(user?.avatar || myAvatar) ? (
                             <img src={user?.avatar || myAvatar || ''} alt="" className="w-12 h-12 rounded-full object-cover object-center" />
                           ) : (
-                            <div className="w-12 h-12 rounded-full bg-[rgba(0,0,0,0.35)] flex items-center justify-center">
+                            <div className="w-12 h-12 rounded-full bg-[#09090B] flex items-center justify-center">
                               <span className="text-lg font-black text-[#F5F5F7]/60">{(creatorName || user?.username || 'Me').charAt(0).toUpperCase()}</span>
                             </div>
                           )}
@@ -1448,7 +1448,7 @@ export default function LiveHostScreen() {
                       </div>
                       {lastGifts.host && (
                         <div className="absolute bottom-1 left-1 z-20 pointer-events-none flex items-center">
-                          <div className="w-5 h-5 rounded-full bg-[rgba(0,0,0,0.35)] border border-[#D8D9DD]/40 overflow-hidden flex items-center justify-center drop-shadow-md">
+                          <div className="w-5 h-5 rounded-full bg-[#09090B] border border-[#D8D9DD]/40 overflow-hidden flex items-center justify-center drop-shadow-md">
                             <img src={lastGifts.host} alt="gift" className="w-full h-full object-cover" />
                           </div>
                         </div>
@@ -1464,17 +1464,17 @@ export default function LiveHostScreen() {
                       )}
                     </div>
                     <div
-                      className="flex-1 basis-0 min-w-0 h-full overflow-hidden relative bg-[rgba(0,0,0,0.35)] pointer-events-auto"
+                      className="flex-1 basis-0 min-w-0 h-full overflow-hidden relative bg-[#09090B] pointer-events-auto"
                     >
                       {battleSlots[0].status === 'accepted' ? (
-                        <div className="w-full h-full relative bg-[rgba(0,0,0,0.35)]">
+                        <div className="w-full h-full relative bg-[#09090B]">
                           <video ref={(el) => { opponentVideoRef.current = el; if (el) prepareLiveVideoEl(el); }} className={`absolute inset-0 w-full h-full object-cover z-10 ${LIVE_WEBRTC_VIDEO_CLASS}`} autoPlay playsInline muted controls={false} poster={LIVE_VIDEO_TRANSPARENT_POSTER} style={cameraOffPlayers['opponent'] ? { display: 'none' } : undefined} />
                           {cameraOffPlayers['opponent'] && (
-                            <div className="absolute inset-0 z-[11] flex flex-col items-center justify-center gap-2 bg-[rgba(0,0,0,0.35)]">
+                            <div className="absolute inset-0 z-[11] flex flex-col items-center justify-center gap-2 bg-[#09090B]">
                               {battleSlots[0].avatar ? (
                                 <img src={battleSlots[0].avatar} alt="" className="w-16 h-16 rounded-full object-cover object-center" />
                               ) : (
-                                <div className="w-16 h-16 rounded-full bg-[rgba(0,0,0,0.35)] flex items-center justify-center">
+                                <div className="w-16 h-16 rounded-full bg-[#09090B] flex items-center justify-center">
                                   <span className="text-2xl font-black text-[#F5F5F7]/60">{(battleSlots[0].name || 'P').charAt(0).toUpperCase()}</span>
                                 </div>
                               )}
@@ -1482,11 +1482,11 @@ export default function LiveHostScreen() {
                             </div>
                           )}
                           {!hasOpponentStream && !cameraOffPlayers['opponent'] && (
-                            <div className="absolute inset-0 z-[5] flex flex-col items-center justify-center gap-2 bg-[rgba(255,255,255,0.06)]">
+                            <div className="absolute inset-0 z-[5] flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)]">
                               {battleSlots[0].avatar ? (
                                 <img src={battleSlots[0].avatar} alt={battleSlots[0].name} className="w-16 h-16 rounded-full object-cover object-center" />
                               ) : (
-                                <div className="w-16 h-16 rounded-full bg-[rgba(0,0,0,0.35)] flex items-center justify-center">
+                                <div className="w-16 h-16 rounded-full bg-[#09090B] flex items-center justify-center">
                                   <span className="text-2xl font-black text-[#F5F5F7]">{(battleSlots[0].name || 'P').charAt(0).toUpperCase()}</span>
                                 </div>
                               )}
@@ -1499,13 +1499,13 @@ export default function LiveHostScreen() {
                           )}
                         </div>
                       ) : battleSlots[0].status === 'invited' ? (
-                        <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[rgba(255,255,255,0.06)] border border-[#2A2D33]">
+                        <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)] border border-[#2A2D33]">
                           <img src={battleSlots[0].avatar} alt={battleSlots[0].name} className="w-12 h-12 rounded-full object-cover object-center opacity-60" />
                           <div className="w-5 h-5 border-2 border-[#6F3FF5]/25 border-t-[#6F3FF5] rounded-full animate-spin elix-loader" />
                           <span className="text-white text-[10px] font-bold">Waiting...</span>
                         </div>
                       ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[rgba(255,255,255,0.06)] pointer-events-auto" onClick={(e) => { e.stopPropagation(); setShowViewerList(false); setIsFindCreatorsOpen(true); }}>
+                        <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)] pointer-events-auto" onClick={(e) => { e.stopPropagation(); setShowViewerList(false); setIsFindCreatorsOpen(true); }}>
                           <div className="w-12 h-12 rounded-full flex items-center justify-center">
                             <span className="text-white/30 text-2xl">+</span>
                           </div>
@@ -1557,7 +1557,7 @@ export default function LiveHostScreen() {
                         onClick={(e) => { e.stopPropagation(); openMiniProfile(battleSlots[0].name); }}
                       >
                         {lastGifts.opponent && (
-                          <div className="w-5 h-5 rounded-full bg-[rgba(0,0,0,0.35)] border border-[#D8D9DD]/40 overflow-hidden flex items-center justify-center drop-shadow-md z-10 relative">
+                          <div className="w-5 h-5 rounded-full bg-[#09090B] border border-[#D8D9DD]/40 overflow-hidden flex items-center justify-center drop-shadow-md z-10 relative">
                             <img src={lastGifts.opponent} alt="gift" className="w-full h-full object-cover" />
                           </div>
                         )}
@@ -1582,17 +1582,17 @@ export default function LiveHostScreen() {
                   {is4Player && (
                     <div className="flex flex-1 min-h-0 gap-0">
                       <div
-                        className="flex-1 basis-0 min-w-0 h-full overflow-hidden relative bg-[rgba(0,0,0,0.35)] pointer-events-auto"
+                        className="flex-1 basis-0 min-w-0 h-full overflow-hidden relative bg-[#09090B] pointer-events-auto"
                       >
                         {battleSlots[1].status === 'accepted' ? (
-                          <div className="w-full h-full relative bg-[rgba(0,0,0,0.35)]">
+                          <div className="w-full h-full relative bg-[#09090B]">
                             <video ref={(el) => { player3VideoRef.current = el; if (el) prepareLiveVideoEl(el); }} className={`w-full h-full object-cover ${LIVE_WEBRTC_VIDEO_CLASS}`} autoPlay playsInline muted controls={false} poster={LIVE_VIDEO_TRANSPARENT_POSTER} style={player3VideoRef.current?.srcObject && !cameraOffPlayers['player3'] ? {} : { display: 'none' }} />
                             {cameraOffPlayers['player3'] && (
-                              <div className="absolute inset-0 z-[11] flex flex-col items-center justify-center gap-1 bg-[rgba(0,0,0,0.35)]">
+                              <div className="absolute inset-0 z-[11] flex flex-col items-center justify-center gap-1 bg-[#09090B]">
                                 {battleSlots[1].avatar ? (
                                   <img src={battleSlots[1].avatar} alt="" className="w-12 h-12 rounded-full object-cover object-center" />
                                 ) : (
-                                  <div className="w-12 h-12 rounded-full bg-[rgba(0,0,0,0.35)] flex items-center justify-center">
+                                  <div className="w-12 h-12 rounded-full bg-[#09090B] flex items-center justify-center">
                                     <span className="text-lg font-black text-[#F5F5F7]/60">{(battleSlots[1].name || '?').charAt(0).toUpperCase()}</span>
                                   </div>
                                 )}
@@ -1611,13 +1611,13 @@ export default function LiveHostScreen() {
                             )}
                           </div>
                         ) : battleSlots[1].status === 'invited' ? (
-                          <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[rgba(255,255,255,0.06)] border border-[#2A2D33]">
+                          <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)] border border-[#2A2D33]">
                             <img src={battleSlots[1].avatar} alt={battleSlots[1].name} className="w-12 h-12 rounded-full object-cover object-center opacity-60" />
                             <div className="w-5 h-5 border-2 border-[#6F3FF5]/25 border-t-[#6F3FF5] rounded-full animate-spin elix-loader" />
                             <span className="text-white text-[10px] font-bold">Waiting...</span>
                           </div>
                         ) : (
-                          <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[rgba(255,255,255,0.06)] pointer-events-auto" onClick={(e) => { e.stopPropagation(); setShowViewerList(false); setIsFindCreatorsOpen(true); }}>
+                          <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)] pointer-events-auto" onClick={(e) => { e.stopPropagation(); setShowViewerList(false); setIsFindCreatorsOpen(true); }}>
                             <div className="w-12 h-12 rounded-full flex items-center justify-center">
                               <span className="text-white/30 text-2xl">+</span>
                             </div>
@@ -1643,7 +1643,7 @@ export default function LiveHostScreen() {
                         onClick={(e) => { e.stopPropagation(); openMiniProfile(battleSlots[1].name); }}
                       >
                         {lastGifts.player3 && (
-                          <div className="w-5 h-5 rounded-full bg-[rgba(0,0,0,0.35)] border border-[#D8D9DD]/40 overflow-hidden flex items-center justify-center drop-shadow-md z-10 relative">
+                          <div className="w-5 h-5 rounded-full bg-[#09090B] border border-[#D8D9DD]/40 overflow-hidden flex items-center justify-center drop-shadow-md z-10 relative">
                             <img src={lastGifts.player3} alt="gift" className="w-full h-full object-cover" />
                           </div>
                         )}
@@ -1664,17 +1664,17 @@ export default function LiveHostScreen() {
                         )}
                       </div>
                       <div
-                        className="flex-1 basis-0 min-w-0 h-full overflow-hidden relative bg-[rgba(0,0,0,0.35)] pointer-events-auto"
+                        className="flex-1 basis-0 min-w-0 h-full overflow-hidden relative bg-[#09090B] pointer-events-auto"
                       >
                         {battleSlots[2].status === 'accepted' ? (
-                          <div className="w-full h-full relative bg-[rgba(0,0,0,0.35)]">
+                          <div className="w-full h-full relative bg-[#09090B]">
                             <video ref={(el) => { player4VideoRef.current = el; if (el) prepareLiveVideoEl(el); }} className={`w-full h-full object-cover ${LIVE_WEBRTC_VIDEO_CLASS}`} autoPlay playsInline muted controls={false} poster={LIVE_VIDEO_TRANSPARENT_POSTER} style={player4VideoRef.current?.srcObject && !cameraOffPlayers['player4'] ? {} : { display: 'none' }} />
                             {cameraOffPlayers['player4'] && (
-                              <div className="absolute inset-0 z-[11] flex flex-col items-center justify-center gap-1 bg-[rgba(0,0,0,0.35)]">
+                              <div className="absolute inset-0 z-[11] flex flex-col items-center justify-center gap-1 bg-[#09090B]">
                                 {battleSlots[2].avatar ? (
                                   <img src={battleSlots[2].avatar} alt="" className="w-12 h-12 rounded-full object-cover object-center" />
                                 ) : (
-                                  <div className="w-12 h-12 rounded-full bg-[rgba(0,0,0,0.35)] flex items-center justify-center">
+                                  <div className="w-12 h-12 rounded-full bg-[#09090B] flex items-center justify-center">
                                     <span className="text-lg font-black text-[#F5F5F7]/60">{(battleSlots[2].name || '?').charAt(0).toUpperCase()}</span>
                                   </div>
                                 )}
@@ -1693,13 +1693,13 @@ export default function LiveHostScreen() {
                             )}
                           </div>
                         ) : battleSlots[2].status === 'invited' ? (
-                          <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[rgba(255,255,255,0.06)] border border-[#2A2D33]">
+                          <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)] border border-[#2A2D33]">
                             <img src={battleSlots[2].avatar} alt={battleSlots[2].name} className="w-12 h-12 rounded-full object-cover object-center opacity-60" />
                             <div className="w-5 h-5 border-2 border-[#6F3FF5]/25 border-t-[#6F3FF5] rounded-full animate-spin elix-loader" />
                             <span className="text-white text-[10px] font-bold">Waiting...</span>
                           </div>
                         ) : (
-                          <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[rgba(255,255,255,0.06)] pointer-events-auto" onClick={(e) => { e.stopPropagation(); setShowViewerList(false); setIsFindCreatorsOpen(true); }}>
+                          <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)] pointer-events-auto" onClick={(e) => { e.stopPropagation(); setShowViewerList(false); setIsFindCreatorsOpen(true); }}>
                             <div className="w-12 h-12 rounded-full flex items-center justify-center">
                               <span className="text-white/30 text-2xl">+</span>
                             </div>
@@ -1726,7 +1726,7 @@ export default function LiveHostScreen() {
                         onClick={(e) => { e.stopPropagation(); openMiniProfile(battleSlots[2].name); }}
                       >
                         {lastGifts.player4 && (
-                          <div className="w-5 h-5 rounded-full bg-[rgba(0,0,0,0.35)] border border-[#D8D9DD]/40 overflow-hidden flex items-center justify-center drop-shadow-md z-10 relative">
+                          <div className="w-5 h-5 rounded-full bg-[#09090B] border border-[#D8D9DD]/40 overflow-hidden flex items-center justify-center drop-shadow-md z-10 relative">
                             <img src={lastGifts.player4} alt="gift" className="w-full h-full object-cover" />
                           </div>
                         )}
@@ -1969,7 +1969,7 @@ export default function LiveHostScreen() {
                             }
                           />
                           {currentUniverse && (
-                            <div className="mt-1 flex items-center gap-1 bg-[rgba(255,255,255,0.06)] rounded-full px-2.5 py-1 border border-[#D8D9DD]/80 shadow-sm pointer-events-auto relative z-20">
+                            <div className="mt-1 flex items-center gap-1 bg-[rgba(10,10,10,0.72)] rounded-full px-2.5 py-1 border border-[#D8D9DD]/80 shadow-sm pointer-events-auto relative z-20">
                               <span className="text-[#F5E6A8] text-[11px] font-bold whitespace-nowrap truncate max-w-[140px]">âœ¨ {universeText} âœ¨</span>
                             </div>
                           )}
@@ -2240,7 +2240,7 @@ export default function LiveHostScreen() {
                 <button 
                   type="button" 
                   onClick={triggerRematch}  
-                  className="px-4 h-10 rounded-full bg-[rgba(0,0,0,0.35)] backdrop-blur-md flex items-center justify-center shadow-lg active:scale-95 transition-transform"
+                  className="px-4 h-10 rounded-full bg-[#09090B] backdrop-blur-md flex items-center justify-center shadow-lg active:scale-95 transition-transform"
                 >
                   <RefreshCw size={20} className="text-[#F5F5F7] mr-2" />
                   <span className="text-[#F5F5F7] text-xs font-bold">Rematch</span>
@@ -2399,7 +2399,7 @@ export default function LiveHostScreen() {
             onClick={closeFindCreatorsPanel}
           />
           <div
-            className="bg-[rgba(255,255,255,0.06)] backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl pointer-events-auto w-full relative z-10 overflow-hidden pb-safe"
+            className="bg-[rgba(10,10,10,0.72)] backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl pointer-events-auto w-full relative z-10 overflow-hidden pb-safe"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Drag handle */}
@@ -2517,7 +2517,7 @@ export default function LiveHostScreen() {
               onClick={closeMiniProfile}
             />
             <motion.div
-              className="bg-[rgba(0,0,0,0.35)] rounded-t-2xl border-t border-[#2A2D33] px-4 pt-4 pb-[calc(20px+env(safe-area-inset-bottom))] pointer-events-auto shadow-2xl relative z-10"
+              className="bg-[#09090B] rounded-t-2xl border-t border-[#2A2D33] px-4 pt-4 pb-[calc(20px+env(safe-area-inset-bottom))] pointer-events-auto shadow-2xl relative z-10"
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
@@ -2632,7 +2632,7 @@ export default function LiveHostScreen() {
             onClick={closeViewerList}
           />
           <div className="fixed bottom-0 left-0 right-0 z-[999999] pointer-events-auto max-w-[480px] mx-auto">
-            <div className="bg-[rgba(255,255,255,0.06)] backdrop-blur-md rounded-t-2xl h-[36vh] flex flex-col shadow-2xl overflow-hidden">
+            <div className="bg-[rgba(10,10,10,0.72)] backdrop-blur-md rounded-t-2xl h-[36vh] flex flex-col shadow-2xl overflow-hidden">
               <div className="flex justify-center pt-3 pb-1">
                 <div className="w-10 h-1 bg-white/20 rounded-full" />
               </div>
@@ -2724,7 +2724,7 @@ export default function LiveHostScreen() {
                 {pendingInvite && (
                   <div className="mb-3 flex items-center gap-2.5 w-full py-1 px-2 rounded-full bg-white/5 border border-[#D8D9DD]/30">
                     <div
-                      className="rounded-full overflow-hidden bg-[rgba(0,0,0,0.35)] flex-shrink-0"
+                      className="rounded-full overflow-hidden bg-[#09090B] flex-shrink-0"
                       style={{ width: SHARE_PANEL_AVATAR_PX, height: SHARE_PANEL_AVATAR_PX }}
                     >
                       {pendingInvite.hostAvatar ? (
@@ -2750,7 +2750,7 @@ export default function LiveHostScreen() {
                 {pendingCohostInvite && (
                   <div className="mb-3 flex items-center gap-2.5 w-full py-1 px-2 rounded-full bg-white/5 border border-[#D8D9DD]/30">
                     <div
-                      className="rounded-full overflow-hidden bg-[rgba(0,0,0,0.35)] flex-shrink-0"
+                      className="rounded-full overflow-hidden bg-[#09090B] flex-shrink-0"
                       style={{ width: SHARE_PANEL_AVATAR_PX, height: SHARE_PANEL_AVATAR_PX }}
                     >
                       {pendingCohostInvite.hostAvatar ? (
@@ -2876,7 +2876,7 @@ export default function LiveHostScreen() {
           />
           <div className="fixed bottom-0 left-0 right-0 h-[40vh] z-[99999] pointer-events-auto max-w-[480px] mx-auto">
           <div
-            className="bg-[rgba(255,255,255,0.06)] backdrop-blur-md rounded-t-2xl p-3 pb-safe h-full flex flex-col shadow-2xl w-full overflow-hidden "
+            className="bg-[rgba(10,10,10,0.72)] backdrop-blur-md rounded-t-2xl p-3 pb-safe h-full flex flex-col shadow-2xl w-full overflow-hidden "
             onClick={(e) => e.stopPropagation()}
           >
             {/* Drag handle */}
@@ -2982,7 +2982,7 @@ export default function LiveHostScreen() {
           />
           <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
           <div
-            className="bg-[rgba(255,255,255,0.06)] rounded-t-2xl p-3 pb-safe max-h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full"
+            className="bg-[rgba(10,10,10,0.72)] rounded-t-2xl p-3 pb-safe max-h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Drag handle */}
@@ -3041,7 +3041,7 @@ export default function LiveHostScreen() {
                 <div className="bg-white/5 rounded-xl p-3 border border-[#D8D9DD]/20">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-gold-metallic font-bold text-[10px] flex items-center gap-1">
-                      <div className="w-4 h-4 rounded-full bg-[rgba(0,0,0,0.35)] flex items-center justify-center border border-[#D8D9DD]/40">
+                      <div className="w-4 h-4 rounded-full bg-[#09090B] flex items-center justify-center border border-[#D8D9DD]/40">
                         <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                       </div>
                       Photo Stickers
@@ -3138,7 +3138,7 @@ export default function LiveHostScreen() {
             className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto"
           >
           <div
-            className="relative bg-[rgba(255,255,255,0.06)] rounded-t-2xl p-3 pb-safe h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full "
+            className="relative bg-[rgba(10,10,10,0.72)] rounded-t-2xl p-3 pb-safe h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full "
             onClick={(e) => e.stopPropagation()}
           >
             {areTestCoinsEnabled() && (
@@ -3279,7 +3279,7 @@ export default function LiveHostScreen() {
           />
           <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
             <div
-              className="bg-[rgba(255,255,255,0.06)] rounded-t-2xl p-3 pb-safe shadow-2xl w-full"
+              className="bg-[rgba(10,10,10,0.72)] rounded-t-2xl p-3 pb-safe shadow-2xl w-full"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-center mb-2">
@@ -3343,7 +3343,7 @@ export default function LiveHostScreen() {
             style={{ zIndex: 100001 }}
           >
             <div
-              className="bg-[rgba(0,0,0,0.35)] rounded-2xl p-5 mx-6 w-full max-w-xs shadow-2xl border border-[#D8D9DD]/30 pointer-events-auto"
+              className="bg-[#09090B] rounded-2xl p-5 mx-6 w-full max-w-xs shadow-2xl border border-[#D8D9DD]/30 pointer-events-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center gap-2 mb-4">
@@ -3364,7 +3364,7 @@ export default function LiveHostScreen() {
                     value={testCoinsPwd}
                     onChange={(e) => { setTestCoinsPwd(e.target.value); setTestCoinsError(''); }}
                     placeholder="Password"
-                    className="w-full bg-[rgba(0,0,0,0.35)] text-white text-sm rounded-xl px-4 py-3 border border-[#2A2D33] focus:border-[#D8D9DD]/60 focus:outline-none placeholder:text-white/30 mb-2"
+                    className="w-full bg-[#09090B] text-white text-sm rounded-xl px-4 py-3 border border-[#2A2D33] focus:border-[#D8D9DD]/60 focus:outline-none placeholder:text-white/30 mb-2"
                   />
                   <label className="flex items-center gap-2 mt-2 mb-2 cursor-pointer">
                     <input type="checkbox" checked={testCoinsSavePwd} onChange={(e) => setTestCoinsSavePwd(e.target.checked)} className="rounded border-white/30" />
@@ -3409,7 +3409,7 @@ export default function LiveHostScreen() {
                     placeholder="Amount (e.g. 5000)"
                     min="1"
                     max="100000000"
-                    className="w-full bg-[rgba(0,0,0,0.35)] text-white text-sm rounded-xl px-4 py-3 border border-[#2A2D33] focus:border-[#D8D9DD]/60 focus:outline-none placeholder:text-white/30 mb-2"
+                    className="w-full bg-[#09090B] text-white text-sm rounded-xl px-4 py-3 border border-[#2A2D33] focus:border-[#D8D9DD]/60 focus:outline-none placeholder:text-white/30 mb-2"
                   />
                   {testCoinsError && (
                     <p className="text-white/60 text-xs mb-2">{testCoinsError}</p>
@@ -3476,7 +3476,7 @@ export default function LiveHostScreen() {
               return acc;
             }, {}),
           ).map((g) => (
-            <span key={g.key} className="relative flex items-center justify-center w-11 h-11 rounded-full bg-[rgba(255,255,255,0.06)] border border-[#6F3FF5] shadow-2xl text-[#6F3FF5] animate-in zoom-in-50 duration-200">
+            <span key={g.key} className="relative flex items-center justify-center w-11 h-11 rounded-full bg-[rgba(10,10,10,0.72)] border border-[#6F3FF5] shadow-2xl text-[#6F3FF5] animate-in zoom-in-50 duration-200">
               <GloveIcon className="w-7 h-7" />
               {g.count > 1 && (
                 <span className="absolute -top-1 -right-1 text-[9px] font-black leading-none px-1 rounded-full bg-[#6F3FF5] text-white border border-black/40">{g.count}</span>
@@ -3493,7 +3493,7 @@ export default function LiveHostScreen() {
       {boosterCatches.length > 0 && (
         <div className="fixed inset-x-0 top-[30%] z-[100000] flex flex-col items-center gap-2 pointer-events-none px-4">
           {boosterCatches.map((c) => (
-            <div key={c.id} className="booster-catch-pop flex items-center gap-2 px-4 py-2 rounded-full bg-[rgba(255,255,255,0.06)] border border-[#D8D9DD] shadow-2xl">
+            <div key={c.id} className="booster-catch-pop flex items-center gap-2 px-4 py-2 rounded-full bg-[rgba(10,10,10,0.72)] border border-[#D8D9DD] shadow-2xl">
               <GloveIcon className="w-5 h-5 text-[#F5F5F7]" />
               <span className="text-[#F5F5F7] font-black text-base tracking-wide">x{c.multiplier} CAUGHT!</span>
               <span className="text-white font-bold text-sm">+{c.finalPoints}</span>
@@ -3522,7 +3522,7 @@ export default function LiveHostScreen() {
             onClick={closeSharePanel}
           />
           <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
-          <div className="bg-[rgba(255,255,255,0.06)] backdrop-blur-md rounded-t-2xl p-3 pb-safe flex flex-col shadow-2xl w-full h-[40vh] overflow-hidden ">
+          <div className="bg-[rgba(10,10,10,0.72)] backdrop-blur-md rounded-t-2xl p-3 pb-safe flex flex-col shadow-2xl w-full h-[40vh] overflow-hidden ">
             <div className="flex justify-center pt-0.5 pb-0.5">
               <div className="w-10 h-1 bg-white/20 rounded-full" />
             </div>
@@ -3636,7 +3636,7 @@ export default function LiveHostScreen() {
       {/* Moderation warning (AI flag + assist; first detection only) */}
       {showModerationWarning && (
         <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/70" onClick={() => { setShowModerationWarning(false); setModerationWarningMessage(''); }}>
-          <div className="bg-[rgba(0,0,0,0.35)] border border-[#2A2D33] rounded-xl p-6 max-w-sm w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-[#09090B] border border-[#2A2D33] rounded-xl p-6 max-w-sm w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-2 mb-3">
               <AlertTriangle className="w-6 h-6 text-amber-500 flex-shrink-0" />
               <h3 className="font-semibold text-white">Safety reminder</h3>

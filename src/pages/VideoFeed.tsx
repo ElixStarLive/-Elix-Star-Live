@@ -435,7 +435,7 @@ export default function VideoFeed() {
   /*  Render                                                           */
   /* ================================================================ */
   return (
-    <div className="h-full min-h-0 w-full flex flex-col bg-transparent relative">
+    <div className="h-full min-h-0 w-full flex flex-col bg-black relative">
       {/* Fills main between fixed TopNav and BottomNav; each slide is one viewport tall */}
       <div
         ref={containerRef}
@@ -460,11 +460,11 @@ export default function VideoFeed() {
               <div
                 key={`live-${item.stream.streamKey}`}
                 data-feed-index={index}
-                className="h-full w-full shrink-0 snap-start flex flex-col items-center bg-transparent"
+                className="h-full w-full shrink-0 snap-start flex flex-col items-center bg-black"
                 style={slideStyle}
               >
-                <div className="w-full flex-1 min-h-0 relative overflow-hidden bg-transparent">
-                  <Suspense fallback={<div className="w-full h-full bg-transparent" />}>
+                <div className="w-full flex-1 min-h-0 relative overflow-hidden bg-black">
+                  <Suspense fallback={<div className="w-full h-full bg-black" />}>
                     <InlineLiveViewer
                       key={`foryou-live-${item.stream.streamKey}-v3`}
                       streamKey={item.stream.streamKey}
@@ -483,10 +483,10 @@ export default function VideoFeed() {
             <div
               key={`video-${item.videoId}`}
               data-feed-index={index}
-              className="h-full w-full shrink-0 snap-start flex flex-col items-center bg-transparent"
+              className="h-full w-full shrink-0 snap-start flex flex-col items-center bg-black"
               style={slideStyle}
             >
-              <div className="w-full flex-1 min-h-0 relative overflow-hidden bg-transparent">
+              <div className="w-full flex-1 min-h-0 relative overflow-hidden bg-black">
                 <EnhancedVideoPlayer
                   videoId={item.videoId}
                   isActive={activeIndex === index}

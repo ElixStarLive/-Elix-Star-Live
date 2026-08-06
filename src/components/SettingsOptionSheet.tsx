@@ -49,7 +49,7 @@ export default function SettingsOptionSheet({ children, onClose, title }: Settin
         onClick={(e) => e.stopPropagation()}
       >
         <header
-          className="relative flex-shrink-0 bg-[rgba(0,0,0,0.35)] border-b border-white/[0.06]"
+          className="relative flex-shrink-0 bg-[#09090B] border-b border-white/[0.06]"
           style={{
             paddingTop: 'env(safe-area-inset-top, 0px)',
             minHeight: 'calc(env(safe-area-inset-top, 0px) + 44px)',

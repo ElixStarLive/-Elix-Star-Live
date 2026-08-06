@@ -211,7 +211,7 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
       </div>
 
       <div className="px-4 pb-2 flex-shrink-0">
-        <div className="flex items-center gap-2 px-3 py-2 rounded-full border border-[#D8D9DD]/25 bg-[rgba(0,0,0,0.35)]">
+        <div className="flex items-center gap-2 px-3 py-2 rounded-full border border-[#D8D9DD]/25 bg-[#09090B]">
           <Search className="w-4 h-4 text-white/50 flex-shrink-0" strokeWidth={2} />
           <input
             type="search"
@@ -258,7 +258,7 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
             onClick={(e) => pickTrack(ORIGINAL_SOUND_TRACK, e)}
             className="w-full px-2 py-2.5 flex items-center gap-2 active:brightness-125 transition-colors text-left pointer-events-auto"
           >
-            <div className="w-10 h-10 rounded-md flex-shrink-0 bg-[rgba(255,255,255,0.06)] border border-[#D8D9DD]/20 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-md flex-shrink-0 bg-[#1B1E24] border border-[#D8D9DD]/20 flex items-center justify-center">
               <Music className="w-4 h-4 text-[#F5F5F7]" />
             </div>
             <div className="flex-1 min-w-0">
@@ -291,7 +291,7 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
               onClick={(e) => pickTrack(track, e)}
               title={`Use ${track.title}`}
             >
-              <div className="w-10 h-10 rounded-md overflow-hidden flex-shrink-0 bg-[rgba(255,255,255,0.06)] border border-[#D8D9DD]/20">
+              <div className="w-10 h-10 rounded-md overflow-hidden flex-shrink-0 bg-[#1B1E24] border border-[#D8D9DD]/20">
                 {track.coverUrl ? (
                   <img src={track.coverUrl} alt="" className="w-full h-full object-cover" draggable={false} />
                 ) : (
@@ -355,7 +355,7 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
       }}
     >
       <div
-        className="bg-[rgba(255,255,255,0.06)] backdrop-blur-md w-full max-w-[480px] rounded-t-2xl overflow-hidden flex flex-col h-[70vh] max-h-[70dvh] shadow-2xl animate-in slide-in-from-bottom duration-300 pointer-events-auto"
+        className="bg-[#09090B]/95 backdrop-blur-md w-full max-w-[480px] rounded-t-2xl overflow-hidden flex flex-col h-[70vh] max-h-[70dvh] shadow-2xl animate-in slide-in-from-bottom duration-300 pointer-events-auto"
         onClick={(e) => e.stopPropagation()}
         onPointerDown={(e) => e.stopPropagation()}
       >

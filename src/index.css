@@ -37,9 +37,9 @@
 
 @layer base {
   :root {
-    /* Obsidian glass + Royal Violet accents */
+    /* Obsidian + Platinum silver + Royal Violet accents */
     --color-primary: #6F3FF5;
-    --color-secondary: #E5E7EB;
+    --color-secondary: #D8D9DD;
     --color-gold: #D8D9DD;
     --color-gold-bright: #FFFFFF;
     --color-gold-light: #B8BDC9;
@@ -56,24 +56,20 @@
     --color-dark-red: #5B2ED6;
     --color-hover-purple: #8B5CFF;
     --color-pressed-purple: #5B2ED6;
-    --color-background: rgba(0, 0, 0, 0.35);
-    --color-surface: rgba(0, 0, 0, 0.35);
-    --color-card: rgba(255, 255, 255, 0.06);
-    --color-card-elevated: rgba(255, 255, 255, 0.06);
-    /* Transparent black bg + white glass overlay — entire app */
+    --color-background: #09090B;
+    --color-surface: #121317;
+    --color-card: #1B1E24;
+    --color-card-elevated: #242832;
+    /* Transparent black glass — live video stays visible behind UI */
     --color-glass-bg: rgba(0, 0, 0, 0.35);
-    --color-glass-panel: rgba(255, 255, 255, 0.06);
+    --color-glass-panel: rgba(10, 10, 10, 0.72);
     --color-glass-border: #2A2D33;
     --color-border: #2A2D33;
-    --color-text: #FFFFFF;
-    --color-text-muted: #B3B7BD;
-    --color-text-disabled: #B3B7BD;
     --color-destructive: #D91F2D;
     --shadow-luxury: 0 12px 40px rgba(0, 0, 0, 0.45);
     --radius-sm: 10px;
     --radius-md: 12px;
     --radius-lg: 16px;
-    --elix-app-bg: url('/elix-app-bg.png');
 
     /* ═══ RESPONSIVE SPACING TOKENS ═══ */
     --safe-top: env(safe-area-inset-top, 0px);
@@ -162,14 +158,7 @@
   }
 
   body {
-    @apply text-text font-sans antialiased overflow-hidden;
-    /* Full-app blurred wallpaper under glass chrome (style guide) */
-    background-color: #000000;
-    background-image: var(--elix-app-bg);
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    background-attachment: fixed;
+    @apply bg-background text-text font-sans antialiased overflow-hidden;
     min-height: 100%;
     min-height: 100dvh;
     padding-top: var(--safe-top);
@@ -193,11 +182,6 @@
     min-height: 100%;
     min-height: 100dvh;
     overflow: hidden;
-    background-color: #000000;
-    background-image: var(--elix-app-bg);
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
     /* Fluid base font: scales with viewport (320px → 414px+) */
     font-size: clamp(13px, calc(12px + 0.5vw), 17px);
   }
@@ -209,7 +193,6 @@
     min-height: 100dvh;
     overflow: hidden;
     position: relative;
-    background: transparent;
   }
 
   /* Prevent horizontal scroll on all devices */
@@ -337,10 +320,7 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    background: rgba(0, 0, 0, 0.35);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border-color: #2A2D33;
+    background: var(--color-background);
   }
 
   /* Tab pages: pin content between screen top and top of home/bottom bar */
@@ -363,9 +343,6 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    background: rgba(0, 0, 0, 0.35);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
   }
 
   .pt-page-header {
@@ -955,7 +932,7 @@ video::-webkit-media-controls-overlay-enclosure,
 
 /* ═══ GLOBAL: writing = white → platinum silver only (purple is accent-only) ═══ */
 #root {
-  --elix-write: linear-gradient(90deg, #ffffff 0%, #e5e7eb 55%, #b3b7bd 100%);
+  --elix-write: linear-gradient(90deg, #ffffff 0%, #d8d9dd 55%, #b7bdc8 100%);
   --elix-accent: #6F3FF5;
   --elix-accent-hover: #8B5CFF;
   --elix-accent-pressed: #5B2ED6;
@@ -991,55 +968,64 @@ video::-webkit-media-controls-overlay-enclosure,
 }
 
 /*
- * Royal Violet accent fills — white text on violet (Follow / CTAs).
+ * Purple fills only for opt-in accents (Follow / Live / selected tabs / toggles).
+ * Other bg-[#6F3FF5] buttons become silver chrome (no purple wash).
  */
-#root :is(button, a, [role='button'])[class*='bg-[#6F3FF5]']:not([class*='bg-[#6F3FF5]/']),
-#root :is(button, a, [role='button']).bg-primary,
-#root :is(button, a, [role='button']).elix-solid-red,
-#root :is(button, a, [role='button']).elix-solid-accent,
-#root :is(button, a, [role='button']).elix-accent,
-#root :is(button, a, [role='button'])[data-elix-accent='true'] {
-  background-color: #6F3FF5 !important;
+#root :is(button, a, [role='button'])[class*='bg-[#6F3FF5]']:not([class*='bg-[#6F3FF5]/']):not(.elix-solid-red):not(.elix-solid-accent):not(.elix-accent):not([data-elix-accent='true']),
+#root :is(button, a, [role='button']).bg-primary:not(.elix-solid-red):not(.elix-solid-accent):not(.elix-accent):not([data-elix-accent='true']) {
+  background-color: #1B1E24 !important;
   background-image: none !important;
-  border-color: transparent !important;
-  color: #FFFFFF !important;
-  -webkit-text-fill-color: #FFFFFF !important;
+  border: 1px solid #313845 !important;
   box-shadow: none !important;
 }
-#root :is(button, a, [role='button'])[class*='bg-[#6F3FF5]']:not([class*='bg-[#6F3FF5]/']) :where(span, p, small, strong, b, label),
-#root :is(button, a, [role='button']).bg-primary :where(span, p, small, strong, b, label),
-#root :is(button, a, [role='button']).elix-solid-red :where(span, p, small, strong, b, label),
-#root :is(button, a, [role='button']).elix-solid-accent :where(span, p, small, strong, b, label),
-#root :is(button, a, [role='button']).elix-accent :where(span, p, small, strong, b, label),
-#root :is(button, a, [role='button'])[data-elix-accent='true'] :where(span, p, small, strong, b, label) {
+#root :is(button, a, [role='button'])[class*='bg-[#6F3FF5]']:not([class*='bg-[#6F3FF5]/']):not(.elix-solid-red):not(.elix-solid-accent):not(.elix-accent):not([data-elix-accent='true']) :where(span, p, small, strong, b, label),
+#root :is(button, a, [role='button']).bg-primary:not(.elix-solid-red):not(.elix-solid-accent):not(.elix-accent):not([data-elix-accent='true']) :where(span, p, small, strong, b, label) {
   background-image: none !important;
   -webkit-background-clip: unset !important;
   background-clip: unset !important;
   -webkit-text-fill-color: #FFFFFF !important;
   color: #FFFFFF !important;
 }
-#root :is(button, a, [role='button'])[class*='bg-[#6F3FF5]']:hover,
-#root :is(button, a, [role='button']).bg-primary:hover,
-#root :is(button, a, [role='button']).elix-solid-accent:hover,
-#root :is(button, a, [role='button']).elix-accent:hover,
-#root :is(button, a, [role='button'])[data-elix-accent='true']:hover {
-  background-color: #8B5CFF !important;
-}
-#root :is(button, a, [role='button'])[class*='bg-[#6F3FF5]']:active,
-#root :is(button, a, [role='button']).bg-primary:active,
-#root :is(button, a, [role='button']).elix-solid-accent:active,
-#root :is(button, a, [role='button']).elix-accent:active,
-#root :is(button, a, [role='button'])[data-elix-accent='true']:active {
-  background-color: #5B2ED6 !important;
-}
 
-/* Soft violet tints */
-#root :is(button, a, [role='button'])[class*='bg-[#6F3FF5]/'] {
-  background-color: rgba(111, 63, 245, 0.18) !important;
+/* Soft purple tints on non-accent controls — strip wash */
+#root :is(button, a, [role='button'])[class*='bg-[#6F3FF5]/']:not(.elix-solid-red):not(.elix-solid-accent):not(.elix-accent):not([data-elix-accent='true']) {
+  background-color: rgba(255, 255, 255, 0.06) !important;
   box-shadow: none !important;
 }
 
-/* Progress bars + loaders — Royal Violet */
+/* Interactive solid accent capsules (Follow / Live / selected tab / toggle ON) */
+#root :is(button, a, [role='button']).elix-solid-red,
+#root :is(button, a, [role='button']).elix-solid-accent,
+#root :is(button, a, [role='button']).elix-accent,
+#root :is(button, a, [role='button'])[data-elix-accent='true'] {
+  background-color: var(--color-primary) !important;
+  background-image: none !important;
+  border-color: transparent !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+#root :is(button, a, [role='button']).elix-solid-red:hover,
+#root :is(button, a, [role='button']).elix-solid-accent:hover,
+#root :is(button, a, [role='button']).elix-accent:hover,
+#root :is(button, a, [role='button'])[data-elix-accent='true']:hover {
+  background-color: var(--color-purple-hover) !important;
+}
+#root :is(button, a, [role='button']).elix-solid-red:active,
+#root :is(button, a, [role='button']).elix-solid-accent:active,
+#root :is(button, a, [role='button']).elix-accent:active,
+#root :is(button, a, [role='button'])[data-elix-accent='true']:active {
+  background-color: var(--color-purple-pressed) !important;
+}
+#root :is(button, a, [role='button']).elix-solid-red :where(span, p, small, strong, b, label),
+#root :is(button, a, [role='button']).elix-solid-accent :where(span, p, small, strong, b, label),
+#root :is(button, a, [role='button']).elix-accent :where(span, p, small, strong, b, label),
+#root :is(button, a, [role='button'])[data-elix-accent='true'] :where(span, p, small, strong, b, label) {
+  background-image: none !important;
+  -webkit-text-fill-color: #ffffff !important;
+  color: #ffffff !important;
+}
+
+/* Progress bars + loaders — Royal Violet accent only */
 #root progress::-webkit-progress-value,
 #root .elix-progress-fill,
 #root [data-elix-progress] {
@@ -1123,7 +1109,6 @@ video::-webkit-media-controls-overlay-enclosure,
 
 /* Kept solid accent fills (Follow / Join / Live) — white text on violet */
 #root .elix-solid-red,
-#root .elix-solid-red,
 #root .elix-solid-accent,
 #root .elix-solid-red :where(span, p, small, strong, b, label),
 #root .elix-solid-accent :where(span, p, small, strong, b, label) {
@@ -1148,7 +1133,7 @@ video::-webkit-media-controls-overlay-enclosure,
   box-shadow: none !important;
 }
 .elix-glass-panel {
-  background: rgba(255, 255, 255, 0.06) !important;
+  background: rgba(10, 10, 10, 0.72) !important;
   border: 1px solid #2A2D33 !important;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -1161,14 +1146,13 @@ video::-webkit-media-controls-overlay-enclosure,
   background-color: rgba(0, 0, 0, 0.35) !important;
   border-color: #2A2D33 !important;
 }
-.elix-live-room .bg-\[rgba\(255\,255\,255\,0\.06\)\],
 .elix-live-room .bg-\[rgba\(10\,10\,10\,0\.72\)\],
 .elix-live-room .bg-\[\#09090B\]\/95,
 .elix-live-room .bg-\[\#09090B\]\/90,
 .elix-live-room .bg-\[\#09090B\]\/85,
 .elix-live-room .bg-\[\#09090B\]\/80,
 .elix-live-room .bg-\[\#09090B\]\/70 {
-  background-color: rgba(255, 255, 255, 0.06) !important;
+  background-color: rgba(10, 10, 10, 0.72) !important;
   border-color: #2A2D33 !important;
 }
 
@@ -1466,56 +1450,4 @@ svg.lucide.fill-silver-full.royce-icon-gold {
 .camera-rail-disc::after {
   content: none !important;
   display: none !important;
-}
-
-
-/* ═══ ENTIRE APP glass surfaces (style guide) ═══ */
-html,
-body {
-  background-color: #000000 !important;
-  background-image: var(--elix-app-bg) !important;
-  background-size: cover !important;
-  background-position: center !important;
-  background-repeat: no-repeat !important;
-  background-attachment: fixed !important;
-}
-.page-above-bottom-nav__inner,
-.feed-column-width,
-nav[aria-label="Main navigation"] .feed-column-width,
-.min-h-screen.bg-background,
-.bg-background,
-.bg-surface {
-  background-color: rgba(0, 0, 0, 0.35) !important;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-color: #2A2D33;
-}
-.bg-card,
-.bg-card-elevated {
-  background-color: rgba(255, 255, 255, 0.06) !important;
-  border-color: #2A2D33 !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-.elix-glass {
-  background: rgba(0, 0, 0, 0.35) !important;
-  border: 1px solid #2A2D33 !important;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-}
-.elix-glass-panel {
-  background: rgba(255, 255, 255, 0.06) !important;
-  border: 1px solid #2A2D33 !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-/* Active accents = Primary Gold */
-#root nav[aria-label="Main navigation"] button[aria-current="page"] svg,
-#root nav[aria-label="Main navigation"] button[aria-current="page"] .royce-icon-gold {
-  color: #6F3FF5 !important;
-  stroke: #6F3FF5 !important;
-}
-#root nav[aria-label="Main navigation"] button[aria-current="page"] span:last-child {
-  color: #6F3FF5 !important;
-  -webkit-text-fill-color: #6F3FF5 !important;
 }
