@@ -369,8 +369,8 @@ export default function Shop() {
   ] as const;
 
   return (
-    <div className="page-above-bottom-nav elix-page-glass text-white z-[1]">
-      <div className="page-above-bottom-nav__inner elix-settings-write flex flex-col min-h-0">
+    <div className="page-above-bottom-nav bg-transparent text-white">
+      <div className="page-above-bottom-nav__inner">
         {/* Header — Search + Live left corner (as before); close right */}
         <header className="flex items-center justify-between px-4 pt-page-header pb-2 relative z-20">
           <div className="flex items-center gap-3 z-10">
