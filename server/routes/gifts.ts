@@ -65,6 +65,15 @@ export async function handleSendGift(req: Request, res: Response) {
       gift_source === "promo_coins" ||
       gift_source === "promotional";
 
+    // TEST COINS are WS battle-score / animation only — never REST money settlement.
+    if (gift_source === "test_coins") {
+      return res.status(400).json({
+        error: "Test coins cannot be settled as money. Use live battle gift flow only.",
+        origin: "test_coins",
+        financialValueGbp: 0,
+      });
+    }
+
     const battleTargetRaw = battleTarget ?? battle_target;
     const cohostTargetRaw = cohostTargetUserId ?? cohost_target_user_id;
     const clientAnimationUrl =

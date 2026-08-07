@@ -1,10 +1,8 @@
-/** Local test coins — isolated from real wallet / IAP / Stripe (gift UI testing only). */
+/** Local test coins — BATTLE GAME SCORE + gift animation only. Never real money / IAP / Stripe. */
 
 /**
- * Test coins stay available in all app builds (password-gated in live UI).
- * They never create creator revenue — server treats giftSource=test_coins as
- * animation + optional battle score only (see server/websocket/testCoinsPolicy.ts).
- *
+ * Test coins = BATTLE GAME SCORE + animation only (£0 money).
+ * Password-gated spectator/admin mint. Never creator revenue / IAP / Stripe.
  * Optional kill-switch for store builds: VITE_ALLOW_TEST_COINS=0
  */
 export function areTestCoinsEnabled(): boolean {

@@ -1,14 +1,23 @@
 /**
- * Test-coin gifts never touch wallet / IAP / Stripe / creator earnings.
+ * TEST COINS = BATTLE GAME SCORE ONLY. Not a financial asset.
  *
  * Allowed:
- * - gift animation broadcast (test new gifts / upload QA)
- * - live battle match points (VS bar) so they can help in battle
+ * - gift animation broadcast (when used as a gift)
+ * - battle / VS scoreboard points so they can help win the Battle
  *
- * Forbidden:
+ * Forbidden (always £0):
  * - wallet debit/credit
- * - creator earnings / revenue
- * - gift goals that count as paid progression
+ * - creator revenue / 60% earnings
+ * - platform financial revenue / 40%
+ * - GBP balance / Stripe payout / withdrawal
+ * - paidCoinLots / Apple IAP / Google Play settlement
+ * - paid gift-goal progression treated as money
+ *
+ * Separate systems (do not merge):
+ * - LIVE LIKE TAP → +1 like per tap, unlimited, £0, no battle score
+ * - BATTLE SCREEN TAP → +5 battle points once per unique viewer per battle, £0
+ * - TEST-COIN GIFT → animation + battle score, £0 money
+ * - REAL PAID-COIN GIFT → animation + battle score + eligible creator revenue
  */
 export function isTestCoinsGiftSource(data: {
   giftSource?: unknown;
@@ -18,12 +27,9 @@ export function isTestCoinsGiftSource(data: {
 }
 
 /**
- * True when running in production. Retained for reference and for any future
- * money-path gating. NOTE: this no longer blocks test-coin BATTLE SCORE —
- * test coins add battle points + animation like the free tap vote and never
- * touch money, so battle-only scoring is allowed in every environment. Money
- * (wallet / earnings / revenue / paid gift goals) is still test-coin-blocked
- * by the gift handler and REST path, not by this flag.
+ * True when running in production. Retained for reference / future money-path gating.
+ * Does NOT block test-coin BATTLE SCORE — money separation is enforced in the gift
+ * handler and REST path (test coins never credit earnings).
  */
 export function isProductionTestCoinsBlocked(
   nodeEnv: string | undefined = process.env.NODE_ENV,
@@ -32,17 +38,9 @@ export function isProductionTestCoinsBlocked(
 }
 
 /**
- * Whether a test-coin gift may apply BATTLE SCORE + ANIMATION only.
+ * Whether a test-coin gift may apply BATTLE SCORE + ANIMATION only (£0 money).
  *
- * Test coins behave exactly like the free tap vote: they add VS/battle points
- * and play the gift animation, but they NEVER touch the wallet, creator
- * earnings, revenue, or paid gift-goal progression (that money separation is
- * enforced in the gift handler / REST path, not here). Because no money is ever
- * involved, battle-only scoring is safe in every environment — including
- * production — so gift QA works against the real backend. Client test-coin UI is
- * password-gated and allowed on Capacitor native (including store AAB shells)
- * for QA; pure web store builds stay blocked. Operators keep a hard kill-switch
- * via ALLOW_TEST_COINS_BATTLE_SCORE=0.
+ * Kill-switch: ALLOW_TEST_COINS_BATTLE_SCORE=0|false|off
  */
 export function canAcceptTestCoinsBattleScore(
   _nodeEnv: string | undefined = process.env.NODE_ENV,

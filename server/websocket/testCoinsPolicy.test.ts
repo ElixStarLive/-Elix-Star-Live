@@ -26,9 +26,7 @@ describe("testCoinsPolicy", () => {
     expect(isProductionTestCoinsBlocked("development")).toBe(false);
     expect(isProductionTestCoinsBlocked(undefined)).toBe(false);
 
-    // Test coins behave like the free tap vote: battle points + animation only,
-    // never money. So battle scoring is allowed in production too, enabling gift
-    // QA against the real backend.
+    // TEST COINS = battle score + animation only, never money.
     const prev = process.env.ALLOW_TEST_COINS_BATTLE_SCORE;
     delete process.env.ALLOW_TEST_COINS_BATTLE_SCORE;
     expect(canAcceptTestCoinsBattleScore("production")).toBe(true);
@@ -56,5 +54,16 @@ describe("testCoinsPolicy", () => {
     expect(blockBranch).not.toContain("addMvpPoints");
     expect(blockBranch).not.toContain("neonCreditCreatorEarning");
     expect(blockBranch).not.toContain("INSERT INTO elix_gift");
+  });
+
+  it("accepted test-coin gift path scores battle and never money APIs", () => {
+    const start = handlersSrc.indexOf("if (isTestCoinsGiftSource(data))");
+    const end = handlersSrc.indexOf("const verified = await verifyGiftTransaction", start);
+    const branch = handlersSrc.slice(start, end);
+    expect(branch).toContain("addBattleScoreForTarget");
+    expect(branch).toContain("financialValueGbp: 0");
+    expect(branch).toContain('origin: "test_coins"');
+    expect(branch).not.toContain("neonCreditCreatorEarning");
+    expect(branch).not.toContain("paidCoinLots");
   });
 });

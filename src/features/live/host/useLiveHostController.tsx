@@ -52,18 +52,6 @@ import {
   playBattleTauntSound,
   type TauntBurst,
 } from '../../../lib/battleTaunts';
-import {
-  addTestGiftXp,
-  debitTestCoinsForGift,
-  displayBalanceAfterTestSpend,
-  getPersistedTestCoinsBalance,
-  getSpendableGiftBalance,
-  getTestLevel,
-  resolveGiftUiBalance,
-  shouldUseTestCoinsForGifts,
-  areTestCoinsEnabled,
-} from '../../../lib/testCoins';
-import { authorizeTestCoinIssue, mintTestCoinsViaServer } from '../../../lib/testCoinIssueApi';
 import { GiftOverlay } from '../../../components/GiftOverlay';
 import GiftAnimationOverlay, { pushLocalGiftPill } from '../../../components/GiftAnimationOverlay';
 import { ChatOverlay } from '../../../components/ChatOverlay';
@@ -125,7 +113,7 @@ import {
   cohostRequestSend,
 } from '../cohost/liveCohostActions';
 import { liveChatSend, liveHeartSend } from '../chat/liveChatActions';
-import { liveGiftGoalClear, liveGiftGoalSet, liveGiftSentWs } from '../gifts/liveGiftWsActions';
+import { liveGiftGoalClear, liveGiftGoalSet } from '../gifts/liveGiftWsActions';
 import { liveStreamStart } from '../room/liveRoomActions';
 import { apiFetchWallet } from '../../wallet/walletApi';
 import {
@@ -298,7 +286,7 @@ export function useLiveHostController() {
     if (!user?.id) return;
     if (giftSource === 'paid_coins') {
       walletCoinBalanceRef.current = storePaidBalance;
-      setCoinBalance(resolveGiftUiBalance(storePaidBalance, user.id));
+      setCoinBalance(Math.max(0, storePaidBalance));
     } else if (giftSource === 'starter_coins') {
       setStarterCoinBalance(storeStarterBalance);
     } else if (giftSource === 'promotional_coins') {
@@ -346,13 +334,6 @@ export function useLiveHostController() {
   const [pageExiting, setPageExiting] = useState(false);
   const [spectatorCoHostRequestSent, setSpectatorCoHostRequestSent] = useState(false);
   const [moderationWarningMessage, setModerationWarningMessage] = useState('');
-  const [showTestCoinsModal, setShowTestCoinsModal] = useState(false);
-  const [testCoinsStep, setTestCoinsStep] = useState<'password' | 'amount'>('password');
-  const [testCoinsPwd, setTestCoinsPwd] = useState('');
-  const [testCoinsError, setTestCoinsError] = useState('');
-  const [testCoinsAmount, setTestCoinsAmount] = useState('');
-  const [testCoinsBusy, setTestCoinsBusy] = useState(false);
-  const testCoinsPwdRef = useRef<HTMLInputElement>(null);
   const [showViewerList, setShowViewerList] = useState(false);
   /** MVP / supporters → top gifters; UserPlus / co-host request → invite spectators. */
   const [viewerListMode, setViewerListMode] = useState<'spectators' | 'topGifters'>('spectators');
@@ -577,7 +558,7 @@ export function useLiveHostController() {
             ? Math.max(0, wallet.balances.paid)
             : 0;
         walletCoinBalanceRef.current = walletBal;
-        setCoinBalance(resolveGiftUiBalance(walletBal, user.id));
+        setCoinBalance(Math.max(0, walletBal));
         const p = (progression.data?.progression ?? null) as Record<string, unknown> | null;
         const starter = Math.max(0, Number(p?.starter_coin_balance) || 0);
         setStarterCoinBalance(starter);
@@ -601,21 +582,14 @@ export function useLiveHostController() {
         }
         const serverLevel = Math.max(0, Number(p?.current_level) || 0);
         const serverXp = Math.max(0, Number(p?.total_xp) || 0);
-        // While testing with test coins, show the local simulated level if it's
-        // higher (local-only, never real progression).
-        const testLvl = shouldUseTestCoinsForGifts(user.id) ? getTestLevel(user.id) : 0;
-        const resolvedLevel = Math.max(serverLevel, testLvl, Number(user.level) || 0);
+        const resolvedLevel = Math.max(serverLevel, Number(user.level) || 0);
         setUserLevel(resolvedLevel);
         if (serverLevel > 0) updateUser({ level: serverLevel });
         setUserXP(serverXp);
       })
       .catch(() => {
         if (cancelled) return;
-        if (shouldUseTestCoinsForGifts(user.id)) {
-          setCoinBalance(getPersistedTestCoinsBalance(user.id));
-        } else {
-          showToast('Could not load wallet balance');
-        }
+        showToast('Could not load wallet balance');
       });
     return () => { cancelled = true; };
   }, [user?.id, user?.level, updateUser]);
@@ -659,15 +633,6 @@ export function useLiveHostController() {
   useEffect(() => {
     // Title is set at stream start via POST /api/live/start; no DB update needed here
   }, [creatorName, isBroadcast, isMyStreamLive, effectiveStreamId, user?.id]);
-
-  useEffect(() => {
-    if (showTestCoinsModal) {
-      // Always re-auth via server password — no client-side unlock persistence.
-      setTestCoinsStep('password');
-      setTestCoinsPwd('');
-      setTestCoinsError('');
-    }
-  }, [showTestCoinsModal]);
 
   useEffect(() => {
     if (user?.id && effectiveStreamId) {
@@ -2282,23 +2247,13 @@ export function useLiveHostController() {
 
   useEffect(() => {
     if (!showGiftPanel || !user?.id) return;
-    const testBal = getPersistedTestCoinsBalance(user.id);
-    if (testBal > 0) {
-      setCoinBalance(testBal);
-      void apiFetchWallet().then(({ balances, error: walletErr }) => {
-        if (!walletErr && balances) {
-          walletCoinBalanceRef.current = Math.max(0, balances.paid);
-        }
-      });
-    } else {
-      void apiFetchWallet().then(({ balances, error: walletErr }) => {
-        if (!walletErr && balances) {
-          const walletBal = Math.max(0, balances.paid);
-          walletCoinBalanceRef.current = walletBal;
-          setCoinBalance(walletBal);
-        }
-      });
-    }
+    void apiFetchWallet().then(({ balances, error: walletErr }) => {
+      if (!walletErr && balances) {
+        const walletBal = Math.max(0, balances.paid);
+        walletCoinBalanceRef.current = walletBal;
+        setCoinBalance(walletBal);
+      }
+    });
     apiLiveProgressionMe().then(({ data, error }) => {
       if (!error && data?.progression) {
         const progression = data.progression as Record<string, unknown>;
@@ -4552,10 +4507,9 @@ export function useLiveHostController() {
     if (!gift) return;
     if (isCreatorParticipant && (!selectedCohostGiftUserId || isBattleMode)) return;
 
-    const usedTestCoins = Boolean(user?.id && shouldUseTestCoinsForGifts(user.id));
-    const spendable = usedTestCoins
-      ? getSpendableGiftBalance(coinBalance, user?.id)
-      : giftSource === 'starter_coins'
+    // Host never uses test coins — always real wallet / starter / promo.
+    const spendable =
+      giftSource === 'starter_coins'
         ? starterCoinBalance
         : giftSource === 'promotional_coins'
           ? promotionalCoinBalance
@@ -4569,35 +4523,7 @@ export function useLiveHostController() {
       let newLevel = userLevel;
       let giftTransactionId: string | null = null;
 
-      if (usedTestCoins) {
-        const debit = debitTestCoinsForGift((user as NonNullable<typeof user>).id, gift.coins);
-        if (debit.ok === false) {
-          showToast(`Not enough coins (have ${debit.balance.toLocaleString()}, need ${gift.coins.toLocaleString()})`);
-          return;
-        }
-        setCoinBalance(
-          displayBalanceAfterTestSpend(debit.newBalance, walletCoinBalanceRef.current),
-        );
-        // Test-only: drive a LOCAL level using the same curve as the server so
-        // the level visibly climbs while testing. Never sent to the server.
-        const sim = addTestGiftXp((user as NonNullable<typeof user>).id, gift.coins);
-        // Test XP is local-only — never persist into auth store.
-        if (sim.level > userLevel) {
-          setUserLevel(sim.level);
-          newLevel = sim.level;
-          const levelBannerId = `levelup-${Date.now()}`;
-          setMessages((prev) => appendCapped(prev, {
-              id: levelBannerId,
-              username: isBroadcast ? creatorName : viewerName,
-              text: `reached Level ${sim.level}`,
-              level: sim.level,
-              isGift: false,
-              avatar: isBroadcast ? myAvatar : viewerAvatar,
-              isSystem: true,
-            }, LIVE_CHAT_MESSAGE_CAP));
-        }
-        setUserXP(sim.totalXp);
-      } else if (user?.id) {
+      if (user?.id) {
         try {
           const idsForBattleGiftRest = battleStreamIdsRef.current;
           const restBattleTarget =
@@ -4657,7 +4583,7 @@ export function useLiveHostController() {
           } else if (result.newBalance != null) {
             const nextWallet = Math.max(0, Number(result.newBalance));
             walletCoinBalanceRef.current = nextWallet;
-            setCoinBalance(resolveGiftUiBalance(nextWallet, user?.id));
+            setCoinBalance(nextWallet);
           }
           if (result.newLevel != null) {
             const updatedLevel = Number(result.newLevel);
@@ -4730,15 +4656,8 @@ export function useLiveHostController() {
         }
       }
       setShowGiftPanel(false);
-      // Test coins are local-only — never inflate gifts mission bar.
-      if (!usedTestCoins) {
-        setMissionGiftsSent((n) => n + 1);
-      }
-
-      // Track session contribution for membership (real gifts only — never test coins).
-      if (!usedTestCoins) {
-        setSessionContribution(prev => prev + gift.coins);
-      }
+      setMissionGiftsSent((n) => n + 1);
+      setSessionContribution(prev => prev + gift.coins);
 
       maybeEnqueueUniverse(gift.name, viewerName);
 
@@ -4759,41 +4678,7 @@ export function useLiveHostController() {
       };
       setMessages(prev => appendCapped(prev, giftMsg, LIVE_CHAT_MESSAGE_CAP));
 
-      // Test coins only on WS. Paid gifts: server already broadcasts gift_sent.
-      if (usedTestCoins) {
-        const wsVideo =
-          gift.video && gift.video.trim()
-            ? preferPlayableGiftVideoUrl(
-                gift.video.startsWith('http://') || gift.video.startsWith('https://')
-                  ? gift.video.trim()
-                  : resolveGiftAssetUrl(gift.video.startsWith('/') ? gift.video : `/${gift.video}`),
-              )
-            : null;
-        liveGiftSentWs( {
-          giftId: gift.id,
-          giftName: gift.name,
-          username: isBroadcast ? creatorName : viewerName,
-          coins: gift.coins,
-          gift_icon: gift.icon || '🎁',
-          quantity: 1,
-          level: newLevel,
-          avatar: giftMsg.avatar,
-          video: wsVideo,
-          animation_url: wsVideo,
-          transactionId: null,
-          giftSource: 'test_coins',
-          battleTarget: serverBattleTarget,
-          creator_name: hostName || 'Creator',
-          ...(!isBroadcast && { host_user_id: effectiveStreamId }),
-          ...(!isBattleMode && selectedCohostGiftUserId
-            ? {
-                cohostTargetUserId: selectedCohostGiftUserId,
-                cohost_target_user_id: selectedCohostGiftUserId,
-              }
-            : {}),
-        });
-      }
-      
+      // Paid gifts: server already broadcasts gift_sent.
 
       // Handle Combo Logic
       setLastSentGift(gift);
@@ -4864,10 +4749,9 @@ export function useLiveHostController() {
       if (isCreatorParticipant && (!selectedCohostGiftUserId || isBattleMode)) return;
       if (comboCount >= GIFT_COMBO_MAX) return;
 
-      const usedTestCoins = Boolean(user?.id && shouldUseTestCoinsForGifts(user.id));
-      const spendable = usedTestCoins
-        ? getSpendableGiftBalance(coinBalance, user?.id)
-        : giftSource === 'starter_coins'
+      // Host never uses test coins — always real wallet / starter / promo.
+      const spendable =
+        giftSource === 'starter_coins'
           ? starterCoinBalance
           : giftSource === 'promotional_coins'
             ? promotionalCoinBalance
@@ -4879,16 +4763,7 @@ export function useLiveHostController() {
 
       let newLevel = userLevel;
       let giftTransactionId: string | null = null;
-      if (usedTestCoins) {
-        const debit = debitTestCoinsForGift((user as NonNullable<typeof user>).id, lastSentGift.coins);
-        if (!debit.ok) {
-          showToast("Not enough coins!");
-          return;
-        }
-        setCoinBalance(
-          displayBalanceAfterTestSpend(debit.newBalance, walletCoinBalanceRef.current),
-        );
-      } else if (user?.id) {
+      if (user?.id) {
         try {
           const comboPlayableVideo =
             lastSentGift.video && lastSentGift.video.trim()
@@ -4951,7 +4826,7 @@ export function useLiveHostController() {
           } else if (result.newBalance != null) {
             const nextWallet = Math.max(0, Number(result.newBalance));
             walletCoinBalanceRef.current = nextWallet;
-            setCoinBalance(resolveGiftUiBalance(nextWallet, user?.id));
+            setCoinBalance(nextWallet);
           }
           if (result.newLevel != null) {
             newLevel = Number(result.newLevel);
@@ -4992,10 +4867,7 @@ export function useLiveHostController() {
         return;
       }
 
-      // Track session contribution for membership (real gifts only — never test coins).
-      if (!usedTestCoins) {
-        setSessionContribution(prev => prev + lastSentGift.coins);
-      }
+      setSessionContribution(prev => prev + lastSentGift.coins);
 
       maybeEnqueueUniverse(lastSentGift.name, viewerName);
 
@@ -5039,56 +4911,7 @@ export function useLiveHostController() {
       };
       setMessages(prev => appendCapped(prev, giftMsg, LIVE_CHAT_MESSAGE_CAP));
 
-      const idsForBattleGiftCombo = battleStreamIdsRef.current;
-      const serverBattleTargetCombo =
-        isBattleMode
-          ? liveStreamUiGiftTargetToServerBattleTarget(giftTarget, {
-              isBroadcast,
-              isBattleJoiner,
-              effectiveStreamId,
-              hostRoomId: idsForBattleGiftCombo?.hostRoomId ?? '',
-              opponentRoomId: idsForBattleGiftCombo?.opponentRoomId ?? '',
-            })
-          : undefined;
-
-      if (usedTestCoins) {
-        const comboWsVideo =
-          lastSentGift.video && lastSentGift.video.trim()
-            ? preferPlayableGiftVideoUrl(
-                lastSentGift.video.startsWith('http://') || lastSentGift.video.startsWith('https://')
-                  ? lastSentGift.video.trim()
-                  : resolveGiftAssetUrl(
-                      lastSentGift.video.startsWith('/')
-                        ? lastSentGift.video
-                        : `/${lastSentGift.video}`,
-                    ),
-              )
-            : null;
-        liveGiftSentWs( {
-          giftId: lastSentGift.id,
-          giftName: lastSentGift.name,
-          username: isBroadcast ? creatorName : viewerName,
-          coins: lastSentGift.coins,
-          gift_icon: lastSentGift.icon || '🎁',
-          quantity: 1,
-          level: newLevel,
-          avatar: giftMsg.avatar,
-          video: comboWsVideo,
-          animation_url: comboWsVideo,
-          transactionId: null,
-          giftSource: 'test_coins',
-          battleTarget: serverBattleTargetCombo,
-          creator_name: hostName || 'Creator',
-          ...(!isBroadcast && { host_user_id: effectiveStreamId }),
-          ...(!isBattleMode && selectedCohostGiftUserId
-            ? {
-                cohostTargetUserId: selectedCohostGiftUserId,
-                cohost_target_user_id: selectedCohostGiftUserId,
-              }
-            : {}),
-        });
-      }
-
+      // Paid gifts: server already broadcasts gift_sent.
 
       // Handle Combo Logic
       setComboCount((prev) => {
@@ -5361,114 +5184,6 @@ export function useLiveHostController() {
   const closePromotePanel = useCallback(() => {
     setShowPromotePanel(false);
   }, []);
-
-  const openTestCoinsModal = useCallback(() => {
-    if (!user?.isAdmin) {
-      showToast('Not available');
-      setIsMoreMenuOpen(false);
-      return;
-    }
-    setShowTestCoinsModal(true);
-    setTestCoinsStep('password');
-    setTestCoinsPwd('');
-    setTestCoinsError('');
-    setTestCoinsAmount('');
-    setIsMoreMenuOpen(false);
-  }, [user?.isAdmin]);
-
-  const closeTestCoinsModal = useCallback(() => {
-    setShowTestCoinsModal(false);
-    setTestCoinsPwd('');
-  }, []);
-
-  const selectTestCoinsPreset = useCallback((amt: number) => {
-    setTestCoinsAmount(String(amt));
-    setTestCoinsError('');
-  }, []);
-
-  const addMaxTestCoinsAtOnce = useCallback(async () => {
-    if (!user?.isAdmin || !testCoinsPwd) {
-      setTestCoinsError('Admin password required');
-      return;
-    }
-    setTestCoinsBusy(true);
-    try {
-      const result = await mintTestCoinsViaServer(user?.id, testCoinsPwd, 100000000);
-      if (result.ok === false) {
-        setTestCoinsError(result.error === 'FORBIDDEN' ? 'Access denied' : result.error);
-        return;
-      }
-      setCoinBalance(result.balance);
-      showToast(`+${result.minted.toLocaleString()} test added`);
-      setShowTestCoinsModal(false);
-      setTestCoinsPwd('');
-    } finally {
-      setTestCoinsBusy(false);
-    }
-  }, [user?.id, user?.isAdmin, testCoinsPwd]);
-
-  const submitTestCoinsAmount = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user?.isAdmin) {
-      setTestCoinsError('Access denied');
-      return;
-    }
-    const amount = parseInt(testCoinsAmount, 10);
-    if (!amount || amount <= 0) {
-      setTestCoinsError('Enter a valid amount');
-      return;
-    }
-    if (amount > 100000000) {
-      setTestCoinsError('Max 100,000,000 per top-up');
-      return;
-    }
-    if (!testCoinsPwd) {
-      setTestCoinsStep('password');
-      setTestCoinsError('Enter password again');
-      return;
-    }
-    setTestCoinsBusy(true);
-    try {
-      const result = await mintTestCoinsViaServer(user?.id, testCoinsPwd, amount);
-      if (result.ok === false) {
-        setTestCoinsError(result.error === 'FORBIDDEN' ? 'Access denied' : result.error);
-        if (result.status === 403) setTestCoinsStep('password');
-        return;
-      }
-      setCoinBalance(result.balance);
-      showToast(`+${result.minted.toLocaleString()} test added`);
-      setShowTestCoinsModal(false);
-      setTestCoinsPwd('');
-    } finally {
-      setTestCoinsBusy(false);
-    }
-  }, [testCoinsAmount, testCoinsPwd, user?.id, user?.isAdmin]);
-
-  const submitTestCoinsPasswordUnlock = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user?.isAdmin) {
-      setTestCoinsError('Access denied');
-      setTestCoinsPwd('');
-      return;
-    }
-    if (!testCoinsPwd.trim()) {
-      setTestCoinsError('Enter password');
-      return;
-    }
-    setTestCoinsBusy(true);
-    try {
-      const result = await authorizeTestCoinIssue(testCoinsPwd);
-      if (result.ok === false) {
-        setTestCoinsError(result.error === 'FORBIDDEN' ? 'Wrong password or not authorised' : result.error);
-        setTestCoinsPwd('');
-        return;
-      }
-      setTestCoinsError('');
-      setTestCoinsStep('amount');
-    } finally {
-      setTestCoinsBusy(false);
-    }
-  }, [testCoinsPwd, user?.isAdmin]);
 
   const openLiveEffectsPanel = useCallback(() => {
     setShowLiveEffectsPanel(true);
@@ -5974,7 +5689,6 @@ export function useLiveHostController() {
     MAX_CO_HOSTS,
     PROMOTE_LIKES_THRESHOLD_LIVE,
     SPEED_CHALLENGE_ENABLED,
-    testCoinsBusy,
     _PROMOTE_LIKES_THRESHOLD_BATTLE,
     _allSlotsAccepted,
     _anySlotFilled,
@@ -6025,7 +5739,6 @@ export function useLiveHostController() {
     activeViewers,
     activeViewersRef,
     addLiveLikes,
-    addMaxTestCoinsAtOnce,
     allFilledAccepted,
     applyLiveFaceEffectPreset,
     applyLiveFilterPreset,
@@ -6093,7 +5806,6 @@ export function useLiveHostController() {
     closeReportModal,
     closeSharePanel,
     closeTeamStatus,
-    closeTestCoinsModal,
     closeViewerList,
     coHostCameraOff,
     coHostTimersRef,
@@ -6271,7 +5983,6 @@ export function useLiveHostController() {
     openSharePanel,
     openSpectatorPoll,
     openSpectatorsPanel,
-    openTestCoinsModal,
     openTopGiftersAll,
     openTopGiftersHost,
     openTopGiftersOpponent,
@@ -6321,7 +6032,6 @@ export function useLiveHostController() {
     roseCountRef,
     saveGiftGoal,
     seenChatMsgIdRef,
-    selectTestCoinsPreset,
     selectedCohostGiftUserId,
     selfUserIdRef,
     sendShareToFollower,
@@ -6447,7 +6157,6 @@ export function useLiveHostController() {
     setShowRankingPanel,
     setShowSharePanel,
     setShowTeamStatus,
-    setShowTestCoinsModal,
     setShowViewerList,
     setSpeakingIds,
     setSpectatorCoHostRequestSent,
@@ -6459,10 +6168,6 @@ export function useLiveHostController() {
     setSpeedMultiplier,
     setStarterCoinBalance,
     setStickerUploading,
-    setTestCoinsAmount,
-    setTestCoinsError,
-    setTestCoinsPwd,
-    setTestCoinsStep,
     setTopGifters,
     setTopGiftersSide,
     setTotalGiftCoins,
@@ -6489,7 +6194,6 @@ export function useLiveHostController() {
     showRankingPanel,
     showSharePanel,
     showTeamStatus,
-    showTestCoinsModal,
     showViewerList,
     sideMissions,
     sideSupporters,
@@ -6519,13 +6223,6 @@ export function useLiveHostController() {
     storePaidBalance,
     storePromoBalance,
     storeStarterBalance,
-    submitTestCoinsAmount,
-    submitTestCoinsPasswordUnlock,
-    testCoinsAmount,
-    testCoinsError,
-    testCoinsPwd,
-    testCoinsPwdRef,
-    testCoinsStep,
     toggleBattle,
     toggleCam,
     toggleCoHostCamera,

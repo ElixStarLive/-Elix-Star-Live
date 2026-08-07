@@ -27,8 +27,6 @@ import {
   UserPlus,
   X,
   Sword,
-  Coins,
-  Lock,
   Flag,
   Camera,
   CameraOff,
@@ -52,19 +50,9 @@ import {
   playBattleTauntSound,
   type TauntBurst,
 } from '../../../lib/battleTaunts';
-import {
-  addTestGiftXp,
-  debitTestCoinsForGift,
-  displayBalanceAfterTestSpend,
-  getPersistedTestCoinsBalance,
-  getSpendableGiftBalance,
-  getTestLevel,
-  resolveGiftUiBalance,
-  shouldUseTestCoinsForGifts,
-  areTestCoinsEnabled,
-} from '../../../lib/testCoins';
 import { GiftOverlay } from '../../../components/GiftOverlay';
-import GiftAnimationOverlay, { pushLocalGiftPill } from '../../../components/GiftAnimationOverlay';
+import GiftAnimationOverlay from '../../../components/GiftAnimationOverlay';
+import { LiveGiftFeedStack } from '../../../components/LiveGiftFeedStack';
 import { ChatOverlay } from '../../../components/ChatOverlay';
 import { FaceARGift } from '../../../components/FaceARGift';
 import { useLivePromoStore } from '../../../store/useLivePromoStore';
@@ -191,7 +179,6 @@ export default function LiveHostScreen() {
     MAX_CO_HOSTS,
     PROMOTE_LIKES_THRESHOLD_LIVE,
     SPEED_CHALLENGE_ENABLED,
-    testCoinsBusy,
     _PROMOTE_LIKES_THRESHOLD_BATTLE,
     _allSlotsAccepted,
     _anySlotFilled,
@@ -242,7 +229,6 @@ export default function LiveHostScreen() {
     activeViewers,
     activeViewersRef,
     addLiveLikes,
-    addMaxTestCoinsAtOnce,
     allFilledAccepted,
     applyLiveFaceEffectPreset,
     applyLiveFilterPreset,
@@ -310,7 +296,6 @@ export default function LiveHostScreen() {
     closeReportModal,
     closeSharePanel,
     closeTeamStatus,
-    closeTestCoinsModal,
     closeViewerList,
     coHostCameraOff,
     coHostTimersRef,
@@ -488,7 +473,6 @@ export default function LiveHostScreen() {
     openSharePanel,
     openSpectatorPoll,
     openSpectatorsPanel,
-    openTestCoinsModal,
     openTopGiftersAll,
     openTopGiftersHost,
     openTopGiftersOpponent,
@@ -538,7 +522,6 @@ export default function LiveHostScreen() {
     roseCountRef,
     saveGiftGoal,
     seenChatMsgIdRef,
-    selectTestCoinsPreset,
     selectedCohostGiftUserId,
     selfUserIdRef,
     sendShareToFollower,
@@ -664,7 +647,6 @@ export default function LiveHostScreen() {
     setShowRankingPanel,
     setShowSharePanel,
     setShowTeamStatus,
-    setShowTestCoinsModal,
     setShowViewerList,
     setSpeakingIds,
     setSpectatorCoHostRequestSent,
@@ -676,10 +658,6 @@ export default function LiveHostScreen() {
     setSpeedMultiplier,
     setStarterCoinBalance,
     setStickerUploading,
-    setTestCoinsAmount,
-    setTestCoinsError,
-    setTestCoinsPwd,
-    setTestCoinsStep,
     setTopGifters,
     setTopGiftersSide,
     setTotalGiftCoins,
@@ -706,7 +684,6 @@ export default function LiveHostScreen() {
     showRankingPanel,
     showSharePanel,
     showTeamStatus,
-    showTestCoinsModal,
     showViewerList,
     sideMissions,
     sideSupporters,
@@ -736,13 +713,6 @@ export default function LiveHostScreen() {
     storePaidBalance,
     storePromoBalance,
     storeStarterBalance,
-    submitTestCoinsAmount,
-    submitTestCoinsPasswordUnlock,
-    testCoinsAmount,
-    testCoinsError,
-    testCoinsPwd,
-    testCoinsPwdRef,
-    testCoinsStep,
     toggleBattle,
     toggleCam,
     toggleCoHostCamera,
@@ -2322,7 +2292,7 @@ export default function LiveHostScreen() {
               onGiftSourceChange={setGiftSource}
               onRechargeSuccess={(newBalance) => {
                 walletCoinBalanceRef.current = Math.max(0, Number(newBalance) || 0);
-                setCoinBalance(resolveGiftUiBalance(walletCoinBalanceRef.current, user?.id));
+                setCoinBalance(walletCoinBalanceRef.current);
               }}
               onWeeklyRanking={openWeeklyRankingFromGift}
               onMembership={openMembershipFromGift}
@@ -3135,17 +3105,6 @@ export default function LiveHostScreen() {
             className="relative bg-[rgba(10,10,10,0.72)] rounded-t-2xl p-3 pb-safe h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full "
             onClick={(e) => e.stopPropagation()}
           >
-            {areTestCoinsEnabled() && user?.isAdmin && (
-              <button
-                type="button"
-                onClick={openTestCoinsModal}
-                className="absolute top-2.5 right-3 z-10 w-4 h-4 p-0 m-0 flex items-center justify-center"
-                aria-hidden="true"
-                tabIndex={-1}
-              >
-                <span className="w-1 h-1 rounded-full bg-white/20" />
-              </button>
-            )}
             {/* Drag handle */}
             <div className="flex justify-center mb-2">
               <div className="w-10 h-1 bg-white/20 rounded-full" />
@@ -3325,131 +3284,10 @@ export default function LiveHostScreen() {
         </>
       )}
 
-      {areTestCoinsEnabled() && user?.isAdmin && showTestCoinsModal && (
-        <>
-          <div
-            className="fixed inset-0 bg-black/60 pointer-events-auto"
-            style={{ zIndex: 100000 }}
-            onClick={closeTestCoinsModal}
-          />
-          <div
-            className="fixed inset-0 flex items-center justify-center pointer-events-none"
-            style={{ zIndex: 100001 }}
-          >
-            <div
-              className="bg-[rgba(0,0,0,0.35)] rounded-2xl p-5 mx-6 w-full max-w-xs shadow-2xl border border-[#D8D9DD]/30 pointer-events-auto"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center gap-2 mb-4">
-                <Lock className="w-5 h-5 text-[#F5F5F7]" />
-                <span className="text-white font-bold text-base">
-                  {testCoinsStep === 'password' ? 'Enter Password' : 'Add Test'}
-                </span>
-              </div>
 
-              {testCoinsStep === 'password' && (
-                <form
-                  onSubmit={(e) => { void submitTestCoinsPasswordUnlock(e); }}
-                >
-                  <input
-                    ref={testCoinsPwdRef}
-                    type="password"
-                    autoFocus
-                    value={testCoinsPwd}
-                    onChange={(e) => { setTestCoinsPwd(e.target.value); setTestCoinsError(''); }}
-                    placeholder="Password"
-                    className="w-full bg-[rgba(0,0,0,0.35)] text-white text-sm rounded-xl px-4 py-3 border border-[#2A2D33] focus:border-[#D8D9DD]/60 focus:outline-none placeholder:text-white/30 mb-2"
-                  />
-                  {testCoinsError && (
-                    <p className="text-white/60 text-xs mb-2">{testCoinsError}</p>
-                  )}
-                  <div className="flex gap-2 mt-3">
-                    <button
-                      type="button"
-                      onClick={closeTestCoinsModal}
-                      className="flex-1 py-2.5 rounded-xl bg-white/5 text-white/60 text-sm font-bold"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={!testCoinsPwd || testCoinsBusy}
-                      className="flex-1 py-2.5 rounded-xl bg-[#6F3FF5] text-white text-sm font-bold disabled:opacity-40"
-                    >
-                      Unlock
-                    </button>
-                  </div>
-                </form>
-              )}
-
-              {testCoinsStep === 'amount' && (
-                <form
-                  onSubmit={(e) => { void submitTestCoinsAmount(e); }}
-                >
-                  <p className="text-white/40 text-xs mb-3">These coins are for testing only and have no real value.</p>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Coins className="w-4 h-4 text-[#D9A62E]" />
-                    <span className="text-white/60 text-xs">Current: {coinBalance.toLocaleString()}</span>
-                  </div>
-                  <input
-                    type="number"
-                    autoFocus
-                    value={testCoinsAmount}
-                    onChange={(e) => { setTestCoinsAmount(e.target.value); setTestCoinsError(''); }}
-                    placeholder="Amount (e.g. 5000)"
-                    min="1"
-                    max="100000000"
-                    className="w-full bg-[rgba(0,0,0,0.35)] text-white text-sm rounded-xl px-4 py-3 border border-[#2A2D33] focus:border-[#D8D9DD]/60 focus:outline-none placeholder:text-white/30 mb-2"
-                  />
-                  {testCoinsError && (
-                    <p className="text-white/60 text-xs mb-2">{testCoinsError}</p>
-                  )}
-                  <div className="grid grid-cols-3 gap-1.5 mb-3">
-                    {[1000, 5000, 10000, 25000, 50000, 100000].map(amt => (
-                      <button
-                        key={amt}
-                        type="button"
-                        onClick={() => selectTestCoinsPreset(amt)}
-                        className="py-1.5 rounded-lg text-xs font-bold transition-colors bg-white/5 text-white/70 hover:bg-white/10"
-                      >
-                        {amt >= 1000 ? `${amt / 1000}K` : amt}
-                      </button>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={() => { void addMaxTestCoinsAtOnce(); }}
-                      disabled={testCoinsBusy}
-                      className="py-1.5 rounded-lg text-xs font-bold transition-colors bg-[#6F3FF5]/30 text-[#F5F5F7] hover:bg-[#6F3FF5]/40 col-span-3 disabled:opacity-40"
-                    >
-                      Max (100M) â€“ Charge at once
-                    </button>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={closeTestCoinsModal}
-                      className="flex-1 py-2.5 rounded-xl bg-white/5 text-white/60 text-sm font-bold"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={!testCoinsAmount || testCoinsBusy}
-                      className="flex-1 py-2.5 rounded-xl bg-[#6F3FF5] text-white text-sm font-bold disabled:opacity-40"
-                    >
-                      Add Coins
-                    </button>
-                  </div>
-                </form>
-              )}
-            </div>
-          </div>
-        </>
-      )}
-
-
-      {/* Full-screen Gift Overlay Animation — original red banner only (no duplicate feed stack) */}
       <GiftAnimationOverlay streamId={effectiveStreamId} />
+      {/* Separate photo feed (cards + xN) — does not replace gift video animation */}
+      <LiveGiftFeedStack streamId={effectiveStreamId} />
 
       {/* POINT MULTIPLIER BOOSTER â€” a red boxing glove stays on the top-left, beside
           the Weekly Ranking, for the whole active window (server ~30s) while it catches

@@ -40,8 +40,9 @@ describe("Money and economy safety contracts", () => {
 
   it("test coins add battle score + animation only and never touch money", () => {
     // Test coins are gated by canAcceptTestCoinsBattleScore (with a kill switch)
-    // and behave like the free tap vote: battle points + animation, never money.
+    // and behave as BATTLE GAME SCORE only: battle points + animation, never money.
     expect(testCoins).toContain("canAcceptTestCoinsBattleScore");
+    expect(testCoins).toContain("BATTLE GAME SCORE ONLY");
     expect(handlers).toContain("test_coins_blocked");
 
     // The test-coin branch of gift_sent must NEVER credit the wallet, creator
@@ -51,10 +52,55 @@ describe("Money and economy safety contracts", () => {
     const end = handlers.indexOf("const verified = await verifyGiftTransaction", start);
     expect(end).toBeGreaterThan(start);
     const testCoinBranch = handlers.slice(start, end);
+    // Score YES
+    expect(testCoinBranch).toContain("addBattleScoreForTarget");
+    expect(testCoinBranch).toContain("broadcastToRoom");
+    expect(testCoinBranch).toContain('giftSource: "test_coins"');
+    expect(testCoinBranch).toContain("financialValueGbp: 0");
+    // Money NO
     expect(testCoinBranch).not.toContain("neonCreditCreatorEarning");
     expect(testCoinBranch).not.toContain("neonDebitGift");
     expect(testCoinBranch).not.toContain("incrementGiftGoal");
     expect(testCoinBranch).not.toContain("recordCreatorGiftProgress");
+    expect(testCoinBranch).not.toContain("paidCoinLots");
+    expect(testCoinBranch).not.toContain("createPaidCoinLot");
+    expect(testCoinBranch).not.toContain("settlePaidCoinLot");
+    expect(testCoinBranch).not.toContain("stripe");
+  });
+
+  it("battle screen tap awards +5 once per unique viewer per battle (£0)", () => {
+    const start = handlers.indexOf('case "battle_spectator_vote"');
+    expect(start).toBeGreaterThan(-1);
+    const end = handlers.indexOf('case "battle_end"', start);
+    expect(end).toBeGreaterThan(start);
+    const voteBranch = handlers.slice(start, end);
+    expect(voteBranch).toContain("battle_vote_once:");
+    expect(voteBranch).toContain("valkeySetNx");
+    expect(voteBranch).toContain("already_awarded");
+    expect(voteBranch).toContain("addBattleScoreForTarget");
+    expect(voteBranch).toContain("financialValueGbp: 0");
+    expect(voteBranch).not.toContain("tapCount % 3");
+    expect(voteBranch).not.toContain("neonCreditCreatorEarning");
+  });
+
+  it("REST gift send rejects test_coins so money settlement cannot run", () => {
+    expect(gifts).toContain('gift_source === "test_coins"');
+    const start = gifts.indexOf('gift_source === "test_coins"');
+    expect(start).toBeGreaterThan(-1);
+    const rejectBlock = gifts.slice(start, start + 280);
+    expect(rejectBlock).toContain("financialValueGbp: 0");
+    expect(rejectBlock).toContain("status(400)");
+  });
+
+  it("live likes (heart_sent) stay separate from battle score and money", () => {
+    const start = handlers.indexOf('case "heart_sent"');
+    expect(start).toBeGreaterThan(-1);
+    const end = handlers.indexOf('case "gift_sent"', start);
+    expect(end).toBeGreaterThan(start);
+    const heartBranch = handlers.slice(start, end);
+    expect(heartBranch).toContain('type: "like"');
+    expect(heartBranch).not.toContain("addBattleScoreForTarget");
+    expect(heartBranch).not.toContain("neonCreditCreatorEarning");
   });
 
   it("Stripe webhook stays shop-scoped in source", () => {

@@ -29,7 +29,7 @@ import {
   revokeCohostPublish,
   getCohostLayout,
 } from "./index";
-import { valkeyDel, valkeySet, valkeySetNx, valkeyGet, valkeyHincrby, valkeyExpire } from "../lib/valkey";
+import { valkeyDel, valkeySet, valkeySetNx, valkeyGet } from "../lib/valkey";
 import { randomUUID } from "crypto";
 import {
   clearGiftGoal,
@@ -225,8 +225,9 @@ export async function handleMessage(
         if (!(await wsRateCheck(client.userId, "gift", 50, 5_000))) break;
         const { transactionId } = data;
 
-        // TEST COINS: never payments / wallet / goals / earnings.
-        // Animation + battle VS points only (like free tap vote) — not revenue.
+        // TEST COINS = BATTLE GAME SCORE ONLY (£0 money).
+        // Animation + battle VS points. NEVER wallet / earnings / 60-40 / Stripe /
+        // payout / paidCoinLots / IAP settlement / gift-goal paid progression.
         if (isTestCoinsGiftSource(data)) {
           if (!canAcceptTestCoinsBattleScore()) {
             sendToClient(client, "gift_ack", {
@@ -293,7 +294,7 @@ export async function handleMessage(
               sendToUserGlobal(testCohostTarget, "gift_sent", testPayload);
             }
           } catch { /* non-fatal */ }
-          // Match/VS points only — never wallet, earnings, or gift goals.
+          // Battle scoreboard only — financialValueGbp is always 0 for test coins.
           try {
             const testBattle = await getBattleFromStore(client.roomId);
             if (testBattle && testBattle.status === "ACTIVE" && testPoints > 0) {
@@ -307,6 +308,8 @@ export async function handleMessage(
           sendToClient(client, "gift_ack", {
             transactionId: null,
             status: "test",
+            financialValueGbp: 0,
+            origin: "test_coins",
             timestamp: Date.now(),
           });
           break;
@@ -568,7 +571,8 @@ export async function handleMessage(
       }
 
       case "battle_spectator_vote": {
-        // GAMEPLAY ONLY: every 3 screen taps = +5 Battle points. £0 revenue.
+        // GAMEPLAY ONLY: +5 Battle points once per unique viewer per battle.
+        // Same viewer cannot add another +5 by tapping again. £0 revenue.
         // Rate-limited; creators in the match cannot self-score via taps.
         if (!(await wsRateCheck(client.userId, "spectator_vote", 120, 60_000))) break;
         const voteRoom = client.roomId;
@@ -586,30 +590,27 @@ export async function handleMessage(
         if (participantIds.includes(client.userId)) break;
         const voteTarget =
           data.target === "host" ? "host" : "opponent";
-        const tapKey = `battle_taps:${voteBattle.id}:${client.userId}`;
-        const tapCount = await valkeyHincrby(tapKey, "count", 1);
-        await valkeyExpire(tapKey, 600);
-        // Award +5 only on every 3rd tap (3→+5, 6→+5, …). Not coins. Not money.
-        if (tapCount > 0 && tapCount % 3 === 0) {
-          await addBattleScoreForTarget(voteRoom, voteTarget as "host" | "opponent", 5);
-          sendToClient(client, "battle_vote_ack", {
-            target: voteTarget,
-            points: 5,
-            taps: tapCount,
-            status: "ok",
-            origin: "battle_tap",
-            financialValueGbp: 0,
-          });
-        } else {
+        // One award per (battle, viewer). TTL covers the battle window.
+        const onceKey = `battle_vote_once:${voteBattle.id}:${client.userId}`;
+        const firstTap = await valkeySetNx(onceKey, voteTarget, 600_000);
+        if (!firstTap) {
           sendToClient(client, "battle_vote_ack", {
             target: voteTarget,
             points: 0,
-            taps: tapCount,
-            status: "tap_counted",
+            status: "already_awarded",
             origin: "battle_tap",
             financialValueGbp: 0,
           });
+          break;
         }
+        await addBattleScoreForTarget(voteRoom, voteTarget as "host" | "opponent", 5);
+        sendToClient(client, "battle_vote_ack", {
+          target: voteTarget,
+          points: 5,
+          status: "ok",
+          origin: "battle_tap",
+          financialValueGbp: 0,
+        });
         break;
       }
 
