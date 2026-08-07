@@ -11,6 +11,7 @@ import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
 import { trackEvent } from '../lib/analytics';
 import ReportModal from '../components/ReportModal';
 import PromotePanel from '../components/PromotePanel';
+import SettingsOptionSheet from '../components/SettingsOptionSheet';
 import { useVideoStore } from '../store/useVideoStore';
 import {
   apiFetchFollowingIds,
@@ -702,8 +703,8 @@ export default function Profile() {
   }
 
   return (
-    <div className="page-above-bottom-nav bg-transparent text-white z-[1]">
-      <div className="page-above-bottom-nav__inner bg-transparent flex flex-col min-h-0">
+    <div className="page-above-bottom-nav elix-page-glass text-white z-[1]">
+      <div className="page-above-bottom-nav__inner elix-settings-write flex flex-col min-h-0">
         {/* Small top header with Share + Exit buttons — same panel height as Inbox */}
         <header className="flex items-center justify-between px-4 pt-page-header pb-2 relative z-10">
           <button
@@ -720,7 +721,7 @@ export default function Profile() {
             <div className="min-w-0 text-center">
               <div
                 ref={headerCenterLabelRef}
-                className="text-[16px] font-bold text-gold-metallic truncate"
+                className="text-[16px] font-bold text-white truncate"
               >
                 Profile
               </div>
@@ -737,136 +738,131 @@ export default function Profile() {
           </button>
         </header>
 
-        {/* ═══ Account Menu Modal ═══ */}
+        {/* ═══ Account Menu — full-page sheet ═══ */}
         {showAccountMenu && (
-          <div
-            className="fixed inset-0 z-[9999] bg-black/40 flex items-end justify-center pb-[var(--bottom-nav-top)]"
-            onClick={() => setShowAccountMenu(false)}
-          >
-            <div 
-              className="w-full max-w-[480px] bg-transparent rounded-t-2xl border border-black pb-safe"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-center px-5 pt-4 pb-3 border-b border-white/10">
-                <h3 className="text-white font-bold text-base">Account</h3>
-              </div>
-              <div className="px-5 py-4 flex items-center gap-3 border-b border-white/5">
+          <SettingsOptionSheet onClose={closeAccountMenu} title="Account">
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 pt-2 pb-[3mm]">
+              <div className="px-2.5 py-3 flex items-center gap-3">
                 <AvatarRing src={displayAvatar} alt="Avatar" size={40} />
                 <div>
-                  <p className="text-gold-metallic font-semibold text-sm">{displayName}</p>
-                  <p className="text-white text-xs">{profileEmailLine}</p>
+                  <div className="text-[#E6E9EE] font-semibold text-sm">{displayName}</div>
+                  <div className="text-[#8B9099] text-xs">{profileEmailLine}</div>
                 </div>
               </div>
-              <div className="py-2">
-                <button onClick={goSettings} className="w-full flex items-center gap-3 px-5 py-3 hover:bg-white/5 transition-colors">
-                  <Menu size={20} className="text-white/70" />
-                  <span className="text-white text-sm font-medium">Settings</span>
-                </button>
-                <button onClick={() => { void goLoginAfterSignOut(); }} className="w-full flex items-center gap-3 px-5 py-3 hover:bg-white/5 transition-colors">
-                  <UserPlus size={20} className="text-white" />
-                  <span className="text-white text-sm font-medium">Switch Account</span>
-                </button>
-                <button onClick={() => { void goLoginAfterSignOut(); }} className="w-full flex items-center gap-3 px-5 py-3 hover:bg-white/5 transition-colors">
-                  <LogOut size={20} className="text-white/60" />
-                  <span className="text-white/60 text-sm font-medium">Log Out</span>
-                </button>
-              </div>
-              <div className="px-5 pb-4 pt-1">
-                <button onClick={closeAccountMenu} className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-white/60 text-sm font-semibold">Cancel</button>
-              </div>
+              <button
+                type="button"
+                onClick={goSettings}
+                className="w-full flex items-center gap-3 px-2.5 py-2.5 active:bg-white/5 rounded-md text-left"
+              >
+                <span className="royce-glow-disc shrink-0" style={{ width: 36, height: 36 }} aria-hidden>
+                  <Settings size={18} className="royce-icon-gold" />
+                </span>
+                <span className="text-[15px] text-[#E6E9EE]">Settings</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => { void goLoginAfterSignOut(); }}
+                className="w-full flex items-center gap-3 px-2.5 py-2.5 active:bg-white/5 rounded-md text-left"
+              >
+                <span className="royce-glow-disc shrink-0" style={{ width: 36, height: 36 }} aria-hidden>
+                  <UserPlus size={18} className="royce-icon-gold" />
+                </span>
+                <span className="text-[15px] text-[#E6E9EE]">Switch Account</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => { void goLoginAfterSignOut(); }}
+                className="w-full flex items-center gap-3 px-2.5 py-2.5 active:bg-white/5 rounded-md text-left"
+              >
+                <span className="royce-glow-disc shrink-0" style={{ width: 36, height: 36 }} aria-hidden>
+                  <LogOut size={18} className="royce-icon-gold" />
+                </span>
+                <span className="text-[15px] text-[#8B9099]">Log Out</span>
+              </button>
             </div>
-          </div>
+          </SettingsOptionSheet>
         )}
 
-        {/* ═══ Share Panel ═══ */}
+        {/* ═══ Share Panel — full-page sheet ═══ */}
         {showSharePanel && (
-          <div
-            className="fixed inset-0 z-[9999] bg-black/60 flex items-end justify-center pb-[var(--bottom-nav-top)]"
-            onClick={() => setShowSharePanel(false)}
-          >
-            <div
-              className="w-full max-w-[480px] elix-glass rounded-t-2xl max-h-[40dvh] flex flex-col overflow-hidden border border-black"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex justify-center pt-1 pb-0.5">
-                <div className="w-10 h-1 bg-white/20 rounded-full" />
-              </div>
-              <div className="flex items-center justify-between gap-2 px-4 pb-0.5">
-                <h3 className="text-gold-metallic font-bold text-sm">Share to</h3>
-                <div className="flex-none w-[120px] bg-white/5 rounded-lg px-2 py-0.5 flex items-center gap-2 border border-[#D8D9DD]/20">
-                  <Search className="w-3.5 h-3.5 text-[#F5F5F7]/40" />
-                  <input placeholder="Search..." value={shareQuery ?? ''} onChange={(e) => setShareQuery(e.target.value)} className="bg-transparent text-white text-xs outline-none w-full placeholder:text-white/20" />
+          <SettingsOptionSheet onClose={() => setShowSharePanel(false)} title="Share to">
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 pt-2 pb-[3mm]">
+              <div className="px-2.5 pb-2">
+                <div className="w-full rounded-md border border-white/10 px-2 py-1.5 flex items-center gap-2">
+                  <Search className="w-3.5 h-3.5 text-[#8B9099]" />
+                  <input
+                    placeholder="Search..."
+                    value={shareQuery ?? ''}
+                    onChange={(e) => setShareQuery(e.target.value)}
+                    className="bg-transparent text-white text-xs outline-none w-full placeholder:text-[#8B9099]"
+                  />
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-4">
-                {/* Share to followers */}
-                <div className="w-full overflow-hidden shrink-0 mb-0">
-                  <div className="flex gap-3 overflow-x-auto pt-2 pb-3 no-scrollbar items-center px-4">
-                    {shareFollowers.filter((f) => (f.username || '').toLowerCase().includes((shareQuery || '').toLowerCase())).map((f) => (
-                      <button
-                        key={f.user_id}
-                        className="flex-shrink-0 flex flex-col items-center gap-1 active:scale-95 transition-transform"
-                        style={{ width: SHARE_PANEL_ITEM_WIDTH_PX, minWidth: SHARE_PANEL_ITEM_WIDTH_PX }}
-                        onClick={() => sendShareTo(f.user_id)}
-                      >
-                        <div className="relative flex flex-col items-center gap-1" style={{ width: SHARE_PANEL_ITEM_WIDTH_PX, minWidth: SHARE_PANEL_ITEM_WIDTH_PX }}>
-                          <div
-                            className="rounded-full overflow-hidden bg-[#1A1A1F] flex-shrink-0"
-                            style={{ width: SHARE_PANEL_AVATAR_PX, height: SHARE_PANEL_AVATAR_PX }}
-                          >
-                            <img
-                              src={f.avatar_url || '/royce/default-avatar.svg'}
-                              alt={f.username || 'User'}
-                              className="h-full w-full object-cover object-center"
-                              draggable={false}
-                            />
-                          </div>
-                          {shareSent.has(f.user_id) && (
-                            <div className="absolute bottom-0 right-0 w-4 h-4 bg-[#FFFFFF] rounded-full flex items-center justify-center border-2 border-[#1C1E24]">
-                              <Check size={8} className="text-black" />
-                            </div>
-                          )}
-                          <span className="text-white/80 text-[11px] font-medium truncate w-full text-center">{shareSent.has(f.user_id) ? 'Sent' : f.username || 'User'}</span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Line between user circles and action icons */}
-                <div className="border-t border-[#D8D9DD]/45 flex-shrink-0 mb-0" aria-hidden />
-
-                {/* Share options — same layout as ShareModal */}
-                <div className="flex-1 overflow-y-scroll overflow-x-hidden min-h-0 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#313845] [&::-webkit-scrollbar-thumb]:rounded-full">
-                  <div className="grid grid-cols-5 gap-y-3 gap-x-1.5 pt-0">
-                    {[
-                      { name: 'WhatsApp', icon: <MessageCircle size={22} className="text-white" />, action: () => openExternalLink(`https://wa.me/?text=${encodeURIComponent(`Check out ${displayName}'s profile on Elix! ${window.location.origin}/profile/${displayUserId}`)}`) },
-                      { name: 'Facebook', icon: <Share2 size={22} className="text-white" />, action: () => openExternalLink(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${window.location.origin}/profile/${displayUserId}`)}`) },
-                      { name: 'Twitter', icon: <Share2 size={22} className="text-white" />, action: () => openExternalLink(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out ${displayName} on Elix!`)}&url=${encodeURIComponent(`${window.location.origin}/profile/${displayUserId}`)}`) },
-                      { name: 'Copy Link', icon: <Copy size={22} className="text-white" />, action: () => { navigator.clipboard.writeText(`${window.location.origin}/profile/${displayUserId}`).then(() => showToast('Profile link copied!')).catch(() => showToast('Could not copy link')); } },
-                      { name: 'Promote', icon: <TrendingUp size={22} className="text-white" />, action: () => { setShowSharePanel(false); setShowPromotePanel(true); } },
-                      { name: 'Report', icon: <Flag size={22} className="text-white/60" />, isRed: true, action: () => { setShowSharePanel(false); setShowReportModal(true); } },
-                    ].map((item) => (
-                      <button key={item.name} onClick={item.action} className="flex flex-col items-center gap-1 active:scale-95 transition-transform">
+              <div className="flex gap-3 overflow-x-auto pt-2 pb-3 no-scrollbar items-center px-2">
+                {shareFollowers
+                  .filter((f) => (f.username || '').toLowerCase().includes((shareQuery || '').toLowerCase()))
+                  .map((f) => (
+                    <button
+                      key={f.user_id}
+                      type="button"
+                      className="flex-shrink-0 flex flex-col items-center gap-1 active:scale-95 transition-transform"
+                      style={{ width: SHARE_PANEL_ITEM_WIDTH_PX, minWidth: SHARE_PANEL_ITEM_WIDTH_PX }}
+                      onClick={() => sendShareTo(f.user_id)}
+                    >
+                      <div className="relative flex flex-col items-center gap-1" style={{ width: SHARE_PANEL_ITEM_WIDTH_PX, minWidth: SHARE_PANEL_ITEM_WIDTH_PX }}>
                         <div
-                          className={`relative royce-glow-disc flex-shrink-0 ${item.name === 'Report' ? 'translate-y-0.5' : ''}`}
-                          style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }}
+                          className="rounded-full overflow-hidden bg-[#1A1A1F] flex-shrink-0"
+                          style={{ width: SHARE_PANEL_AVATAR_PX, height: SHARE_PANEL_AVATAR_PX }}
                         >
-                          {React.cloneElement((item.icon as React.ReactElement), {
-                            className: 'royce-icon-gold',
-                            size: SHARE_PANEL_ACTION_ICON_PX,
-                            strokeWidth: 2,
-                          })}
+                          <img
+                            src={f.avatar_url || '/royce/default-avatar.svg'}
+                            alt={f.username || 'User'}
+                            className="h-full w-full object-cover object-center"
+                            draggable={false}
+                          />
                         </div>
-                        <span className={`text-[8px] font-semibold truncate w-full text-center ${(item as { isRed?: boolean }).isRed ? 'text-white/60/70' : 'text-white/70'}`}>{item.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                        {shareSent.has(f.user_id) && (
+                          <div className="absolute bottom-0 right-0 w-4 h-4 bg-[#FFFFFF] rounded-full flex items-center justify-center border-2 border-[#1C1E24]">
+                            <Check size={8} className="text-black" />
+                          </div>
+                        )}
+                        <span className="text-[#C8CDD5] text-[11px] font-medium truncate w-full text-center">
+                          {shareSent.has(f.user_id) ? 'Sent' : f.username || 'User'}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+              </div>
+
+              <div className="border-t border-white/10 mb-2" aria-hidden />
+
+              <div className="grid grid-cols-5 gap-y-3 gap-x-1.5 px-1">
+                {[
+                  { name: 'WhatsApp', icon: <MessageCircle size={22} className="text-white" />, action: () => openExternalLink(`https://wa.me/?text=${encodeURIComponent(`Check out ${displayName}'s profile on Elix! ${window.location.origin}/profile/${displayUserId}`)}`) },
+                  { name: 'Facebook', icon: <Share2 size={22} className="text-white" />, action: () => openExternalLink(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${window.location.origin}/profile/${displayUserId}`)}`) },
+                  { name: 'Twitter', icon: <Share2 size={22} className="text-white" />, action: () => openExternalLink(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out ${displayName} on Elix!`)}&url=${encodeURIComponent(`${window.location.origin}/profile/${displayUserId}`)}`) },
+                  { name: 'Copy Link', icon: <Copy size={22} className="text-white" />, action: () => { navigator.clipboard.writeText(`${window.location.origin}/profile/${displayUserId}`).then(() => showToast('Profile link copied!')).catch(() => showToast('Could not copy link')); } },
+                  { name: 'Promote', icon: <TrendingUp size={22} className="text-white" />, action: () => { setShowSharePanel(false); setShowPromotePanel(true); } },
+                  { name: 'Report', icon: <Flag size={22} className="text-white/60" />, isRed: true, action: () => { setShowSharePanel(false); setShowReportModal(true); } },
+                ].map((item) => (
+                  <button key={item.name} type="button" onClick={item.action} className="flex flex-col items-center gap-1 active:scale-95 transition-transform">
+                    <div
+                      className={`relative royce-glow-disc flex-shrink-0 ${item.name === 'Report' ? 'translate-y-0.5' : ''}`}
+                      style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }}
+                    >
+                      {React.cloneElement((item.icon as React.ReactElement), {
+                        className: 'royce-icon-gold',
+                        size: SHARE_PANEL_ACTION_ICON_PX,
+                        strokeWidth: 2,
+                      })}
+                    </div>
+                    <span className={`text-[8px] font-semibold truncate w-full text-center ${(item as { isRed?: boolean }).isRed ? 'text-[#8B9099]' : 'text-[#C8CDD5]'}`}>{item.name}</span>
+                  </button>
+                ))}
               </div>
             </div>
-          </div>
+          </SettingsOptionSheet>
         )}
 
         <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain">
@@ -1075,7 +1071,7 @@ export default function Profile() {
         )}
 
         {/* ═══ ACTION BAR (scrollable) — compact so Edit Profile is visible ═══ */}
-        <div className="mt-2 border-y border-white/10">
+        <div className="mt-2">
           <div className="flex justify-center overflow-x-auto no-scrollbar">
             <button onClick={goAiStudio} className="flex flex-col items-center gap-0.5 px-3 py-2 whitespace-nowrap">
               <span className="royce-glow-disc" style={{ width: 26, height: 26 }} aria-hidden>
