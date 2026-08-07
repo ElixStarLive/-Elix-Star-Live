@@ -77,6 +77,11 @@
     --elix-icon-glow-on:
       drop-shadow(0 0 4px rgba(230, 233, 238, 0.32))
       drop-shadow(0 0 8px rgba(230, 233, 238, 0.14));
+    /* Shared icon disc — round circle behind every line icon */
+    --elix-icon-disc-bg: rgba(26, 28, 33, 0.78);
+    --elix-icon-disc-border: rgba(230, 233, 238, 0.22);
+    --elix-icon-disc-shadow: 0 0 8px rgba(230, 233, 238, 0.14);
+    --elix-icon-disc-pad: 6px;
     --elix-accent: #E6E9EE;
     --elix-accent-light: #FFFFFF;
     --elix-avatar-ring: #E6E9EE;
@@ -1317,6 +1322,24 @@ video::-webkit-media-controls-overlay-enclosure,
     var(--elix-elevated-shadow);
 }
 
+/* SHARED PANEL OWNER — same More-sheet panel language for all elevated sheets */
+.bottom-sheet,
+.bottom-sheet-small,
+.bottom-sheet-above-nav {
+  background-color: transparent;
+  background-image: var(--elix-panel-fill);
+  background-size: auto, var(--elix-fundal-size);
+  background-position: 0 0, var(--elix-fundal-position);
+  background-repeat: no-repeat, no-repeat;
+  background-attachment: scroll, var(--elix-fundal-attachment);
+  border: 1px solid var(--elix-border);
+  backdrop-filter: var(--elix-glass-blur);
+  -webkit-backdrop-filter: var(--elix-glass-blur);
+  box-shadow:
+    var(--elix-elevated-inset),
+    var(--elix-elevated-shadow);
+}
+
 .elix-glass,
 .elix-glass-panel {
   background-color: transparent;
@@ -1341,19 +1364,10 @@ video::-webkit-media-controls-overlay-enclosure,
   box-shadow: 0 0 12px rgba(230, 233, 238, 0.18);
 }
 
-/* Live room overlays — blue-charcoal glass, never plain black */
+/* Live room dimmers — shared glass tokens (not per-screen colour hacks) */
 .elix-live-room .bg-black\/35,
 .elix-live-room .bg-\[\#09090B\]\/40 {
-  background-color: rgba(8, 10, 14, 0.65) !important;
-  border-color: var(--elix-border) !important;
-}
-.elix-live-room .bg-\[rgba\(10\,10\,10\,0\.72\)\],
-.elix-live-room .bg-\[\#09090B\]\/95,
-.elix-live-room .bg-\[\#09090B\]\/90,
-.elix-live-room .bg-\[\#09090B\]\/85,
-.elix-live-room .bg-\[\#09090B\]\/80,
-.elix-live-room .bg-\[\#09090B\]\/70 {
-  background-color: rgba(18, 20, 25, 0.65) !important;
+  background-color: var(--elix-bg-glass) !important;
   border-color: var(--elix-border) !important;
 }
 
@@ -1363,8 +1377,8 @@ video::-webkit-media-controls-overlay-enclosure,
 }
 
 /*
- * Icon discs — half silver / half red RING + gray translucent fill.
- * Default size is for right-side rails (smaller). Bottom nav stays larger below.
+ * SHARED ICON DISC OWNER — round circle behind icons (same language app-wide).
+ * Use .royce-glow-disc / .royce-tile wrappers, or standalone svg.lucide disc below.
  */
 .royce-glow-disc,
 .royce-tile {
@@ -1375,12 +1389,11 @@ video::-webkit-media-controls-overlay-enclosure,
   flex-shrink: 0;
   box-sizing: border-box;
   border-radius: 9999px;
-  border: none !important;
-  /* Same lightness as Add sound pill — owner icon circle */
-  background: rgba(8, 8, 10, 0.48) !important;
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-  box-shadow: none;
+  border: 1px solid var(--elix-icon-disc-border) !important;
+  background: var(--elix-icon-disc-bg) !important;
+  -webkit-backdrop-filter: var(--elix-glass-blur);
+  backdrop-filter: var(--elix-glass-blur);
+  box-shadow: var(--elix-icon-disc-shadow);
 }
 
 .royce-glow-disc {
@@ -1588,10 +1601,10 @@ nav[aria-label="Main navigation"] button:not([aria-current="page"]) .elix-silver
   box-shadow: var(--elix-avatar-glow) !important;
 }
 
-/* ═══ SHARED ICON GLOW OWNER — soft silver light around line icons ═══
-   NORMAL: #E6E9EE + --elix-icon-glow
-   ACTIVE: #FFFFFF + --elix-icon-glow-on
-   Semantic LIVE/error/success keep no silver glow. */
+/* ═══ SHARED ICON OWNER — silver stroke + soft glow + round disc ═══
+   NORMAL: #E6E9EE + --elix-icon-glow + disc
+   ACTIVE: #FFFFFF + --elix-icon-glow-on + disc
+   Semantic LIVE/error/success: colour only, no silver glow/disc. */
 svg.lucide,
 .royce-icon-gold,
 .bottom-nav-icon,
@@ -1602,6 +1615,26 @@ svg.lucide,
   stroke-width: 2;
   fill: none !important;
   filter: var(--elix-icon-glow) !important;
+  box-sizing: content-box;
+  padding: var(--elix-icon-disc-pad);
+  border-radius: 9999px;
+  border: 1px solid var(--elix-icon-disc-border);
+  background: var(--elix-icon-disc-bg);
+  box-shadow: var(--elix-icon-disc-shadow);
+}
+
+/* Wrapper already draws the disc — icon stays sharp inside, no double circle */
+.royce-glow-disc svg.lucide,
+.royce-glow-disc .royce-icon-gold,
+.royce-tile svg.lucide,
+.royce-tile .royce-icon-gold,
+.camera-rail-disc svg.lucide,
+.camera-rail-disc .royce-icon-gold,
+.capture-shutter-ring svg.lucide {
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 svg.lucide.fill-current,
@@ -1628,7 +1661,7 @@ button[aria-pressed="true"] .royce-icon-gold,
   filter: var(--elix-icon-glow-on) !important;
 }
 
-/* Semantic: LIVE / error / danger — sharp, no silver glow */
+/* Semantic: LIVE / error / danger — sharp, no silver glow/disc */
 svg.lucide.fill-red-500,
 svg.lucide.text-red-500,
 svg.lucide.text-rose-500,
@@ -1639,24 +1672,36 @@ svg.lucide.text-destructive,
   fill: #D91F2D !important;
   stroke: #D91F2D !important;
   filter: none !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
-/* Semantic: success — sharp, no silver glow */
+/* Semantic: success — sharp, no silver glow/disc */
 svg.lucide.text-emerald-500,
 svg.lucide.text-green-500 {
   color: #22C55E !important;
   fill: #22C55E !important;
   stroke: #22C55E !important;
   filter: none !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
-/* Semantic: warning — sharp, no silver glow */
+/* Semantic: warning — sharp, no silver glow/disc */
 svg.lucide.text-amber-500,
 svg.lucide.text-yellow-500 {
   color: #F59E0B !important;
   fill: #F59E0B !important;
   stroke: #F59E0B !important;
   filter: none !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 /* Saved bookmark — solid silver + normal glow */
@@ -1788,10 +1833,7 @@ body {
     var(--elix-elevated-shadow);
 }
 
-/* LEVEL 2 — sheets / cards over fundal */
-#root .bottom-sheet,
-#root .bottom-sheet-small,
-#root .bottom-sheet-above-nav,
+/* LEVEL 2 — cards / surfaces over fundal */
 #root .bg-card,
 #root .bg-surface {
   background-color: transparent;
@@ -1887,8 +1929,7 @@ body {
 #root .bg-\[\#09090B\]\/90,
 #root .bg-\[\#09090B\]\/95,
 #root [class*="bg-[rgba(0,0,0"],
-#root [class*="bg-[rgba(10,10,10"],
 #root [class*="bg-[rgba(20,20,20"] {
-  background-color: var(--elix-surface);
+  background-color: var(--elix-panel);
   border-color: var(--elix-border);
 }

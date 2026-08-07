@@ -734,7 +734,7 @@ export default function SpectatorLiveScreen() {
                           style={{ opacity: hasStream ? 1 : 0, transition: 'opacity 0.4s ease' }}
                         />
                         {!hasStream && (
-                          <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)]">
+                          <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center gap-2 elix-panel">
                             {hostAvatar ? (
                               <img src={hostAvatar} alt="" className="w-16 h-16 rounded-full object-cover object-center" />
                             ) : (
@@ -999,7 +999,7 @@ export default function SpectatorLiveScreen() {
                   <div className="fixed inset-0 z-[200]" onClick={() => setShowOpponentPanel(false)}>
                     <div className="absolute inset-0 bg-black/35" />
                     <div
-                      className="absolute left-1/2 -translate-x-1/2 w-[calc(100%-24px)] max-w-[456px] bg-[rgba(10,10,10,0.72)] rounded-2xl overflow-hidden shadow-xl border border-[#2A2D33] animate-[slideInFromBottom_0.2s_ease-out]"
+                      className="absolute left-1/2 -translate-x-1/2 w-[calc(100%-24px)] max-w-[456px] elix-panel rounded-2xl overflow-hidden shadow-xl border border-[#2A2D33] animate-[slideInFromBottom_0.2s_ease-out]"
                       style={{ bottom: 'calc(70px + max(8px, env(safe-area-inset-bottom)))' }}
                       onClick={(e) => e.stopPropagation()}
                     >
@@ -1113,7 +1113,7 @@ export default function SpectatorLiveScreen() {
                     style={{ opacity: hostCamOff ? 0 : 1, backgroundColor: '#080A0E' }}
                   />
                   {hostCamOff && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[rgba(10,10,10,0.72)] z-[5]">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 elix-panel z-[5]">
                       {hostAvatar ? (
                         <img src={hostAvatar} alt="" className="w-10 h-10 rounded-full object-cover" />
                       ) : (
@@ -1141,7 +1141,7 @@ export default function SpectatorLiveScreen() {
               return (
                 <>
                   {isCamOff && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[rgba(10,10,10,0.72)] z-[5]">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 elix-panel z-[5]">
                     {(viewerAvatar || user?.avatar) ? (
                       <img src={viewerAvatar || user?.avatar || ''} alt="" className="w-10 h-10 rounded-full object-cover object-center" />
                     ) : (
@@ -1200,7 +1200,7 @@ export default function SpectatorLiveScreen() {
               return (
                 <>
                   {camOff && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[rgba(10,10,10,0.72)] z-[5]">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 elix-panel z-[5]">
                     {h.avatar ? (
                       <img src={h.avatar} alt="" className="w-10 h-10 rounded-full object-cover object-center" />
                     ) : (
@@ -1399,7 +1399,7 @@ export default function SpectatorLiveScreen() {
                   </>
                 )}
                 {hostCamOff && !featuredLive && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)] z-[5]">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 elix-panel z-[5]">
                     {hostAvatar ? (
                       <img src={hostAvatar} alt="" className="w-16 h-16 rounded-full object-cover object-center border-2 border-[#D8D9DD]/40" />
                     ) : (
@@ -1925,7 +1925,7 @@ export default function SpectatorLiveScreen() {
                 return acc;
               }, {}),
             ).map((g) => (
-              <span key={g.key} className="relative flex items-center justify-center w-11 h-11 rounded-full bg-[rgba(10,10,10,0.72)] border border-[#E6E9EE] shadow-2xl text-[#E6E9EE] animate-in zoom-in-50 duration-200">
+              <span key={g.key} className="relative flex items-center justify-center w-11 h-11 rounded-full elix-panel border border-[#E6E9EE] shadow-2xl text-[#E6E9EE] animate-in zoom-in-50 duration-200">
                 <GloveIcon className="w-7 h-7" />
                 {g.count > 1 && (
                   <span className="absolute -top-1 -right-1 text-[9px] font-black leading-none px-1 rounded-full bg-[#E6E9EE] text-white elix-accent border border-black/40">{g.count}</span>
@@ -1942,7 +1942,7 @@ export default function SpectatorLiveScreen() {
         {boosterCatches.length > 0 && (
           <div className="fixed inset-x-0 top-[30%] z-[100000] flex flex-col items-center gap-2 pointer-events-none px-4">
             {boosterCatches.map((c) => (
-              <div key={c.id} className="booster-catch-pop flex items-center gap-2 px-4 py-2 rounded-full bg-[rgba(10,10,10,0.72)] border border-[#D8D9DD] shadow-2xl">
+              <div key={c.id} className="booster-catch-pop flex items-center gap-2 px-4 py-2 rounded-full elix-panel border border-[#D8D9DD] shadow-2xl">
                 <GloveIcon className="w-5 h-5 text-[#F5F5F7]" />
                 <span className="text-[#F5F5F7] font-black text-base tracking-wide">x{c.multiplier} CAUGHT!</span>
                 <span className="text-white font-bold text-sm">+{c.finalPoints}</span>
@@ -1967,7 +1967,7 @@ export default function SpectatorLiveScreen() {
              Join takes them to the live battle page as a player, not a spectator. */}
         {pendingBattleInvite && (
           <div className="fixed left-0 right-0 z-[100000] pointer-events-none flex justify-center px-3" style={{ top: 'calc(env(safe-area-inset-top, 0px) + 64px)' }}>
-            <div className="pointer-events-auto w-full max-w-[440px] flex items-center gap-2.5 py-1 px-2 rounded-full bg-[rgba(10,10,10,0.72)] backdrop-blur-md border border-[#D8D9DD]/40 shadow-2xl">
+            <div className="pointer-events-auto w-full max-w-[440px] flex items-center gap-2.5 py-1 px-2 rounded-full elix-panel backdrop-blur-md border border-[#D8D9DD]/40 shadow-2xl">
               <div
                 className="rounded-full overflow-hidden bg-[rgba(0,0,0,0.35)] flex-shrink-0"
                 style={{ width: SHARE_PANEL_AVATAR_PX, height: SHARE_PANEL_AVATAR_PX }}
@@ -1999,7 +1999,7 @@ export default function SpectatorLiveScreen() {
           <>
             <div className="fixed inset-0 z-[99998] bg-black/35 pointer-events-auto" onClick={() => { setShowCoHostPanel(false); }} />
             <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
-              <div className="bg-[rgba(10,10,10,0.72)] backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl overflow-hidden pb-safe" onClick={(e) => e.stopPropagation()}>
+              <div className="elix-panel backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl overflow-hidden pb-safe" onClick={(e) => e.stopPropagation()}>
                 <div className="flex justify-center pt-2 pb-1"><div className="w-10 h-1 bg-white/20 rounded-full" /></div>
                 <div className="flex items-center justify-center px-4 py-2">
                   <div className="flex items-center gap-1.5">
@@ -2077,7 +2077,7 @@ export default function SpectatorLiveScreen() {
             />
             <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
               <div
-                className="bg-[rgba(10,10,10,0.72)] rounded-t-2xl p-3 pb-safe h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full "
+                className="elix-panel rounded-t-2xl p-3 pb-safe h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full "
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex flex-col items-center justify-center pt-3 pb-1 gap-1.5">
@@ -2260,7 +2260,7 @@ export default function SpectatorLiveScreen() {
               onTouchMove={(e) => e.stopPropagation()}
             >
               {spectatorBattle?.active && (
-                <div className="px-3 pb-2 pt-1 flex items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)] rounded-t-xl">
+                <div className="px-3 pb-2 pt-1 flex items-center justify-center gap-2 elix-panel rounded-t-xl">
                   <div className="flex rounded-full overflow-hidden border border-[#D8D9DD]/40">
                     <button
                       type="button"
@@ -2356,7 +2356,7 @@ export default function SpectatorLiveScreen() {
               onClick={() => setShowViewersPanel(false)}
             />
             <div className="fixed bottom-0 left-0 right-0 z-[999999] pointer-events-auto max-w-[480px] mx-auto">
-              <div className="bg-[rgba(10,10,10,0.72)] backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl overflow-hidden">
+              <div className="elix-panel backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl overflow-hidden">
                 <div className="flex justify-center pt-3 pb-1">
                   <div className="w-10 h-1 bg-white/20 rounded-full" />
                 </div>
@@ -2435,7 +2435,7 @@ export default function SpectatorLiveScreen() {
               onClick={() => setShowSharePanel(false)}
             />
             <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
-              <div className="bg-[rgba(10,10,10,0.72)] backdrop-blur-md rounded-t-2xl p-3 pb-safe flex flex-col shadow-2xl w-full h-[40vh] overflow-hidden ">
+              <div className="elix-panel backdrop-blur-md rounded-t-2xl p-3 pb-safe flex flex-col shadow-2xl w-full h-[40vh] overflow-hidden ">
                 <div className="flex justify-center pt-0.5 pb-0.5">
                   <div className="w-10 h-1 bg-white/20 rounded-full" />
                 </div>
@@ -2567,7 +2567,7 @@ export default function SpectatorLiveScreen() {
             />
             <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
               <div
-                className="relative bg-[rgba(10,10,10,0.72)] rounded-t-2xl p-3 pb-safe h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full"
+                className="relative elix-panel rounded-t-2xl p-3 pb-safe h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full"
                 onClick={(e) => e.stopPropagation()}
               >
                 {areTestCoinsEnabled() && user?.isAdmin && (

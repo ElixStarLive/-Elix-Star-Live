@@ -303,7 +303,7 @@ export default function AIToolsPanel({
                     <button
                       key={i}
                       onClick={() => onCaptionSelect?.(s.caption, s.hashtags)}
-                      className="w-full text-left p-3 rounded-xl bg-[rgba(0,0,0,0.35)] hover:bg-[rgba(10,10,10,0.72)] transition-colors"
+                      className="w-full text-left p-3 rounded-xl bg-[rgba(0,0,0,0.35)] hover:elix-panel transition-colors"
                     >
                       <p className="text-white text-sm mb-1">{s.caption}</p>
                       <p className="text-[#F5F5F7] text-xs">

@@ -29,7 +29,7 @@ export function IncomingCallModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-[rgba(10,10,10,0.72)] backdrop-blur-md flex items-center justify-center">
+    <div className="fixed inset-0 z-[100] elix-panel backdrop-blur-md flex items-center justify-center">
       <div className="bg-[rgba(0,0,0,0.35)] rounded-3xl p-8 max-w-sm w-full mx-4 text-center shadow-2xl">
         {remoteUser.avatar ? (
           <AvatarRing src={remoteUser.avatar} alt={remoteUser.username} size={96} className="mx-auto mb-4" />
