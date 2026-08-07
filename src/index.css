@@ -1502,7 +1502,9 @@ body::before {
   background: transparent !important;
 }
 
-/* Every page frame + every chrome surface uses the same tint */
+/* Every page frame + every chrome surface uses the same tint.
+   Includes: Profile/Inbox/Shop/Settings-style sheets, Engagement, Login, Register,
+   AuthCallback, VideoView, VideoCall, all admin pages, top nav, home nav, all sheets. */
 .page-above-bottom-nav__inner,
 .app-live-column,
 #root nav[aria-label="Main navigation"] .feed-column-width,
@@ -1510,7 +1512,9 @@ body::before {
 #root .feed-column-width.h-\[var\(--topnav-bar-height\)\],
 #root .bottom-sheet,
 #root .bottom-sheet-small,
-#root .bottom-sheet-above-nav {
+#root .bottom-sheet-above-nav,
+#root .min-h-screen.bg-transparent,
+#root .min-h-\[100dvh\].bg-transparent {
   background-color: rgba(12, 10, 12, 0.72) !important;
   border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
   backdrop-filter: blur(12px) !important;
