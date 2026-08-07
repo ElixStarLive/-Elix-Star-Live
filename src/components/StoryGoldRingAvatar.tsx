@@ -75,7 +75,7 @@ export function StoryGoldRingAvatar({
           className="pointer-events-none absolute bottom-0 left-1/2 z-[20] -translate-x-1/2 translate-y-1/2 whitespace-nowrap font-bold leading-none"
           style={{
             backgroundColor: SILVER_RING,
-            color: '#0B0B0C',
+            color: '#080A0E',
             fontSize: liveBadgeFont,
             padding: `${liveBadgePadY}px ${liveBadgePadX}px`,
             borderRadius: liveBadgeRadius,

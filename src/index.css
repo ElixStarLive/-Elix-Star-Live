@@ -38,15 +38,16 @@
 @layer base {
   :root {
     /* ═══════════════════════════════════════════════════════════════════
-       ELIX GLOBAL THEME — one source of truth (2026-08-07)
-       Charcoal + glass + silver + white. Reference-locked palette.
-       Every surface, page, chrome and LIVE room references these tokens.
+       ELIX GLOBAL THEME — one source of truth (reference-locked)
+       Blue-charcoal near-black + transparent glass + cold silver.
+       NOT plain black. NOT “black + silver.”
+       FUNDAL #080A0E + glass rgba(8,10,14,0.65) | SILVER #E6E9EE | WHITE #FFFFFF
        ═══════════════════════════════════════════════════════════════════ */
 
-    /* Named theme tokens (semantic) */
-    --elix-bg: #0B0B0C;                          /* solid base under glass */
-    --elix-bg-glass: rgba(8, 10, 14, 0.65);      /* main app background — glass tint */
-    --elix-raised: #121215;                       /* raised solid surface (near-black) */
+    /* Named theme tokens (semantic) — exact from style guide */
+    --elix-bg: #080A0E;                          /* solid blue-charcoal fundal under glass */
+    --elix-bg-glass: rgba(8, 10, 14, 0.65);      /* main glass layer over fundal */
+    --elix-raised: #121419;                       /* solid raise ≈ surface RGB (18,20,25) */
     --elix-surface: rgba(18, 20, 25, 0.65);       /* cards / page frames / sheets */
     --elix-panel: rgba(26, 28, 33, 0.65);         /* elevated: nav, modals, menus, floating controls */
     --elix-glass: rgba(26, 28, 33, 0.65);         /* alias of --elix-panel for legacy references */
@@ -57,7 +58,7 @@
     --elix-icon-primary: #E6E9EE;
     --elix-icon-inactive: #8B9099;
     --elix-icon-active: #FFFFFF;
-    --elix-accent: #E6E9EE;                       /* silver accent (replaces champagne) */
+    --elix-accent: #E6E9EE;                       /* cold silver accent */
     --elix-accent-light: #FFFFFF;
     --elix-avatar-ring: #E6E9EE;
     --elix-glass-blur: blur(12px);
@@ -216,7 +217,7 @@
     min-height: 100%;
     min-height: 100dvh;
     overflow: hidden;
-    background-color: #000000;
+    background-color: #080A0E;
     background-image: none;
     /* Fluid base font: scales with viewport (320px → 414px+) */
     font-size: clamp(13px, calc(12px + 0.5vw), 17px);
@@ -1505,9 +1506,10 @@ svg.lucide.fill-silver-full.royce-icon-gold {
 }
 
 /* ═══ Global theme contract ═══
-   Base = solid --elix-bg (#0B0B0C). No wallpaper — reference locks uniform charcoal.
-   Chrome (top/bottom nav) = --elix-panel (elevated glass).
-   Page frames / panels / cards / sheets = --elix-surface (glass).
+   FUNDAL = solid --elix-bg (#080A0E blue-charcoal). Not plain black.
+   Glass layer = --elix-bg-glass rgba(8,10,14,0.65) on chrome/content where needed.
+   Chrome (top/bottom nav) = --elix-panel rgba(26,28,33,0.65).
+   Cards / sheets = --elix-surface rgba(18,20,25,0.65).
    Video/LIVE keeps its own content visible: live column host stays transparent. */
 html,
 body {
@@ -1520,7 +1522,8 @@ body::before {
 }
 #root,
 .elix-app-shell {
-  background: var(--elix-bg) !important;
+  background-color: var(--elix-bg) !important;
+  background-image: none !important;
 }
 .app-live-column-host {
   background: transparent !important;
