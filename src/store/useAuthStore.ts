@@ -274,6 +274,14 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
         if (m.includes("aborted")) {
           return { error: "aborted" };
         }
+        if (/^http_5\d\d$/i.test(message.trim()) || /\bhttp_5\d\d\b/i.test(m)) {
+          return {
+            error: "Sign-in is temporarily unavailable. Please try again in a moment.",
+          };
+        }
+        if (/^http_\d+$/i.test(message.trim())) {
+          return { error: "Sign-in failed. Please check your details and try again." };
+        }
         return { error: message };
       }
       if (result.kind !== "session") {
@@ -355,6 +363,18 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
         }
         if (m.includes("aborted")) {
           return { error: "aborted", needsEmailConfirmation: false };
+        }
+        if (/^http_5\d\d$/i.test(message.trim()) || /\bhttp_5\d\d\b/i.test(m)) {
+          return {
+            error: "Sign-up is temporarily unavailable. Please try again in a moment.",
+            needsEmailConfirmation: false,
+          };
+        }
+        if (/^http_\d+$/i.test(message.trim())) {
+          return {
+            error: "Could not create account. Please check your details and try again.",
+            needsEmailConfirmation: false,
+          };
         }
         return { error: message, needsEmailConfirmation: false };
       }

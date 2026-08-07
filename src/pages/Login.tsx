@@ -244,9 +244,6 @@ export default function Login() {
               Forgot your password?
             </Link>
           ) : null}
-          <Link to="/register" className="block text-fluid-sm text-white hover:underline">
-            Don&apos;t have an account? Sign up
-          </Link>
           <div className="mx-auto max-w-[280px] space-y-0.5 text-[11px] leading-relaxed tracking-wide text-white/45">
             <p>Created by Andrei Ionut Berica</p>
             <p>© 2026 · Owner &amp; Developer · All rights reserved.</p>
