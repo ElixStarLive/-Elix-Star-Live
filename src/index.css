@@ -1481,8 +1481,8 @@ svg.lucide.fill-silver-full.royce-icon-gold {
   display: none !important;
 }
 
-/* ═══ Owner system: feed glass + phone column; Live/Battle UI left alone ═══
-   Body black kills white browser page only. Do NOT remap .elix-live-room. */
+/* ═══ Owner: no opaque page washes (no white, no solid black pages). ═══
+   html/body #000 only so the browser never flashes white. Do NOT remap .elix-live-room. */
 html,
 body {
   background-color: #000000 !important;
@@ -1506,7 +1506,7 @@ body::before {
   background-image: none !important;
 }
 
-/* More Options glass — feed sheets + top/bottom nav only (NOT live/battle) */
+/* More Options glass — sheets + nav chrome only (NOT live/battle) */
 #root [class*="rounded-t-2xl"][class*="bg-[rgba"]:not(.elix-live-room *),
 #root [class*="rounded-t-2xl"][class*="bg-[#09090B"]:not(.elix-live-room *),
 .bottom-sheet,
@@ -1524,9 +1524,8 @@ body::before {
   -webkit-backdrop-filter: blur(12px) !important;
 }
 
-/* Kill white strip under home bar (safe-area + bottom border) */
 #root nav[aria-label="Main navigation"] {
-  background-color: #000000 !important;
+  background-color: transparent !important;
 }
 #root nav[aria-label="Main navigation"] .feed-column-width {
   border-bottom: none !important;
@@ -1547,7 +1546,7 @@ main.feed-column-width,
   background-image: none !important;
 }
 
-/* Live/Battle room keeps solid black shell — original battle UI */
+/* Live/Battle room only — leave battle alone */
 .elix-live-room,
 #root .elix-live-room {
   background-color: #000000 !important;

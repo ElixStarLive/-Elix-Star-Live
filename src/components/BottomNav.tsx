@@ -86,7 +86,7 @@ export const BottomNav = () => {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-[10002] pointer-events-none bg-black"
+      className="fixed inset-x-0 bottom-0 z-[10002] pointer-events-none bg-transparent"
       aria-label="Main navigation"
     >
       <div className="flex justify-center pointer-events-none">
