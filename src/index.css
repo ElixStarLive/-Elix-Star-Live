@@ -2148,3 +2148,16 @@ body,
   -webkit-backdrop-filter: none !important;
 }
 
+/* Auth forms — kill round disc on every field icon (last wins) */
+#root .elix-auth-form svg.lucide,
+#root .elix-auth-form svg.elix-auth-icon,
+#root svg.lucide.elix-auth-icon {
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+

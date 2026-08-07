@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { isAppleSignInEnabled, isPasswordResetEnabled } from '../lib/authFeatures';
-import { Eye, EyeOff, Lock, Mail, Check, User } from 'lucide-react';
+import { Eye, EyeOff, Mail, Check, User } from 'lucide-react';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -122,7 +122,7 @@ export default function Login() {
           <div className="space-y-2">
             <label className="text-fluid-sm text-white/70">Email or Username</label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 xs:w-3.5 xs:h-3.5 text-white/50" />
+              <Mail className="elix-auth-icon absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 xs:w-3.5 xs:h-3.5 text-white/50" />
               <input
                 type="text"
                 value={email}
@@ -138,13 +138,12 @@ export default function Login() {
           <div className="space-y-2">
             <label className="text-fluid-sm text-white/70">Password</label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 xs:w-3.5 xs:h-3.5 text-white/50" />
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-white/10 border border-white/10 rounded-xl pl-10 xs:pl-9 pr-10 xs:pr-9 py-3 xs:py-2.5 text-fluid-sm text-white outline-none focus:border-[#D8D9DD]/50 placeholder:text-white/40"
-                placeholder="••••••••"
+                className="w-full bg-white/10 border border-white/10 rounded-xl pl-3 pr-10 xs:pr-9 py-3 xs:py-2.5 text-fluid-sm text-white outline-none focus:border-[#D8D9DD]/50 placeholder:text-white/40"
+                placeholder="Password"
                 autoComplete="current-password"
                 required
               />
@@ -153,7 +152,7 @@ export default function Login() {
                 onClick={() => setShowPassword((v) => !v)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white"
               >
-                {showPassword ? <EyeOff className="w-4 h-4 xs:w-3.5 xs:h-3.5" /> : <Eye className="w-4 h-4 xs:w-3.5 xs:h-3.5" />}
+                {showPassword ? <EyeOff className="elix-auth-icon w-4 h-4 xs:w-3.5 xs:h-3.5" /> : <Eye className="elix-auth-icon w-4 h-4 xs:w-3.5 xs:h-3.5" />}
               </button>
             </div>
           </div>
@@ -202,7 +201,7 @@ export default function Login() {
             onClick={goRegister}
             className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-white/8 hover:bg-white/15 text-white text-sm font-semibold py-2.5 border border-white/15 transition"
           >
-            <User className="w-4 h-4" />
+            <User className="elix-auth-icon w-4 h-4" />
             Sign up
           </button>
         </div>
