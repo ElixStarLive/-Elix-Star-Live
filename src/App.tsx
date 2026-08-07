@@ -382,9 +382,9 @@ function App() {
         className={cn(
           "flex-1 feed-column-width min-h-0 overflow-auto",
           showBottomNav && !isFullScreen && "pt-topbar pb-[var(--bottom-ui-reserve)]",
-          /* For You: sit above solid black home bar (panel contour) */
-          showBottomNav && isFeedWithTopBar && "pt-topbar pb-nav",
-          showBottomNav && isFeedNoTopBar && "pt-safe pb-nav",
+          /* Browser/feed: video under transparent chrome (shell stays clear) */
+          showBottomNav && isFeedWithTopBar && "pt-0 pb-0",
+          showBottomNav && isFeedNoTopBar && "pt-0 pb-0",
           showBottomNav && isFullScreen && !isFeedFullScreen && "pt-[3mm]",
           !showBottomNav && "pt-[3mm]",
         )}

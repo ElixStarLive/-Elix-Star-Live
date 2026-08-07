@@ -1481,11 +1481,19 @@ svg.lucide.fill-silver-full.royce-icon-gold {
   display: none !important;
 }
 
-/* ═══ Owner system: stable black page + clear sheet panels ═══
-   Do NOT force nav transparent — bottom bar is a solid black panel (feed reference).
-   Do NOT full-bleed browser to 100vw — keep feed column. */
-html,
-body {
+/* ═══ Browser: real transparent chrome (shell + navs + page) ═══
+   Shell was already bg-transparent; black body/nav/padding made it look opaque.
+   Native app keeps solid black base + solid home bar. */
+html:not(.native-app) {
+  --feed-column-max-width: 100vw;
+}
+html:not(.native-app),
+html:not(.native-app) body {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+html.native-app,
+html.native-app body {
   background-color: #000000 !important;
   background-image: none !important;
 }
@@ -1500,7 +1508,6 @@ body::before {
   color: #FFFFFF;
 }
 
-/* App shell clear over video — letterbox is body black, not white */
 #root > .elix-app-shell,
 .elix-app-shell {
   background: transparent !important;
@@ -1508,7 +1515,7 @@ body::before {
   background-image: none !important;
 }
 
-/* Bottom sheets / More Options: glass + solid BLACK contour only (not pages/nav) */
+/* Bottom sheets / More Options: glass + solid BLACK contour */
 #root [class*="rounded-t-2xl"][class*="bg-[rgba"],
 #root [class*="rounded-t-2xl"][class*="bg-[#09090B"],
 .bottom-sheet,
@@ -1521,8 +1528,20 @@ body::before {
   box-shadow: none !important;
 }
 
-/* Bottom home bar = solid black panel with black top contour (match feed screenshot) */
-#root nav[aria-label="Main navigation"] .feed-column-width {
+/* Browser: top + bottom nav fully transparent — video shows through */
+html:not(.native-app) #root nav[aria-label="Main navigation"] .feed-column-width,
+html:not(.native-app) #root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
+html:not(.native-app) #root .feed-column-width.h-\[var\(--topnav-bar-height\)\] {
+  background-color: transparent !important;
+  background-image: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Native: solid black home bar */
+html.native-app #root nav[aria-label="Main navigation"] .feed-column-width {
   background-color: #000000 !important;
   background-image: none !important;
   border-top: 1px solid #000000 !important;
@@ -1532,7 +1551,7 @@ body::before {
   -webkit-backdrop-filter: none !important;
 }
 
-/* Top tabs stay clear over video */
+/* Top tabs clear over video (all platforms) */
 #root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
 #root .feed-column-width.h-\[var\(--topnav-bar-height\)\] {
   background-color: transparent !important;
@@ -1543,7 +1562,6 @@ body::before {
   -webkit-backdrop-filter: none !important;
 }
 
-/* Outer frames / video paint stay fully clear */
 .page-above-bottom-nav,
 .page-above-bottom-nav__inner,
 main.feed-column-width,
