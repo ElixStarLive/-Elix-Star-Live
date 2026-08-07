@@ -73,7 +73,6 @@
     /* Panel contour — solid black so sheets read as panels (More Options 1:1) */
     --color-glass-border: #000000;
     --color-border: #000000;
-    --elix-app-bg: url('/elix-app-bg.png');
     --elix-glass-blur: blur(12px);
     --color-destructive: #D91F2D;
     --shadow-luxury: 0 12px 40px rgba(0, 0, 0, 0.45);
@@ -1484,113 +1483,22 @@ svg.lucide.fill-silver-full.royce-icon-gold {
   display: none !important;
 }
 
-/* ═══ Owner: all pages fully transparent — same as home bottom nav. ═══
-   No wallpaper, no gradient, no video behind. Pages just clear.
-   BottomNav.tsx not touched. Create #09090B left alone. */
+/* ═══ App transparency contract ═══
+   Every page frame is transparent — same as home bottom nav.
+   No wallpaper, no gradient, no video underlay, no negation-chain patches.
+   BottomNav.tsx not touched. Create camera not touched. */
 html,
 body {
-  background-color: transparent !important;
+  background: transparent !important;
   background-image: none !important;
 }
 body::before {
   content: none !important;
   display: none !important;
 }
-#root {
-  position: relative;
-  z-index: 1;
-  background: transparent !important;
-  color: #FFFFFF;
-}
-
-#root > .elix-app-shell,
-.elix-app-shell {
-  background: transparent !important;
-  background-color: transparent !important;
-  background-image: none !important;
-}
-
-#root {
-  --elix-home-glass: rgba(0, 0, 0, 0.35);
-}
-
-/* ALL page shells — fully transparent like home bottom nav (no border, no fill) */
-.page-above-bottom-nav,
-.page-above-bottom-nav__inner,
+#root,
+.elix-app-shell,
 .app-live-column-host,
-.app-live-column,
-main.feed-column-width,
-#root .bg-background,
-#root .bg-surface,
-#root .min-h-screen,
-#root .min-h-\[100dvh\],
-#root .elix-glass:not(.bottom-sheet):not(.bottom-sheet-small):not(.bottom-sheet-above-nav):not([class*="rounded-t-2xl"]),
-#root .elix-glass-panel:not(.bottom-sheet):not([class*="rounded-t-2xl"]) {
-  background-color: transparent !important;
-  background-image: none !important;
-  border: none !important;
-  box-shadow: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-/* Bottom sheets only keep Home glass (More Options style) */
-#root .bottom-sheet,
-#root .bottom-sheet-small,
-#root .bottom-sheet-above-nav,
-#root [class*="rounded-t-2xl"][class*="bg-"]:not(.elix-live-room):not(.elix-live-room *),
-#root [class*="rounded-t-2xl"].elix-glass:not(.elix-live-room *),
-#root [class*="bg-[rgba(10,10,10"]:not(.elix-live-room):not(.elix-live-room *),
-#root [class*="bg-[rgba(20,20,20"]:not(.elix-live-room):not(.elix-live-room *),
-#root [class*="bg-[rgba(0,0,0,0.72"]:not(.elix-live-room):not(.elix-live-room *),
-#root [class*="bg-[rgba(0,0,0,0.38"]:not(.elix-live-room):not(.elix-live-room *) {
-  background-color: var(--elix-home-glass) !important;
-  background-image: none !important;
-  border-color: #000000 !important;
-  box-shadow: none !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
-}
-
-/* Home bottom nav + top feed bar — fully transparent (match) */
-#root nav[aria-label="Main navigation"],
-#root nav[aria-label="Main navigation"] .feed-column-width,
-#root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
-#root .feed-column-width.h-\[var\(--topnav-bar-height\)\] {
-  background-color: transparent !important;
-  background-image: none !important;
-  border: none !important;
-  box-shadow: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-#root .fixed.inset-0[class*="bg-black\/"]:not(.elix-live-room):not(.elix-live-room *),
-#root .absolute.inset-0[class*="bg-black\/"]:not(.elix-live-room):not(.elix-live-room *),
-#root .fixed.inset-0.bg-black\/40:not(.elix-live-room *),
-#root .fixed.inset-0.bg-black\/50:not(.elix-live-room *),
-#root .fixed.inset-0.bg-black\/60:not(.elix-live-room *),
-#root .fixed.inset-0.bg-black\/70:not(.elix-live-room *),
-#root .absolute.inset-0.bg-black\/40:not(.elix-live-room *),
-#root .absolute.inset-0.bg-black\/50:not(.elix-live-room *),
-#root .absolute.inset-0.bg-black\/60:not(.elix-live-room *),
-#root .absolute.inset-0.bg-black\/70:not(.elix-live-room *) {
-  background-color: transparent !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-.elix-live-room,
-#root .elix-live-room {
-  background-color: transparent !important;
-  background-image: none !important;
-}
-
-#root .elix-live-room [class*="rounded-t-2xl"] {
-  background-color: var(--elix-home-glass) !important;
-  background-image: none !important;
-  border-color: #000000 !important;
-  box-shadow: none !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
+.app-live-column {
+  background: transparent !important;
 }
