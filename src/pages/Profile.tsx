@@ -744,7 +744,7 @@ export default function Profile() {
             onClick={() => setShowAccountMenu(false)}
           >
             <div 
-              className="w-full max-w-[480px] bg-[rgba(20,20,20,0.38)] rounded-t-2xl border-t border-white/[0.14] pb-safe"
+              className="w-full max-w-[480px] bg-[rgba(20,20,20,0.38)] rounded-t-2xl border border-black pb-safe"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-center px-5 pt-4 pb-3 border-b border-white/10">
@@ -785,7 +785,7 @@ export default function Profile() {
             onClick={() => setShowSharePanel(false)}
           >
             <div
-              className="w-full max-w-[480px] elix-glass rounded-t-2xl max-h-[40dvh] flex flex-col overflow-hidden"
+              className="w-full max-w-[480px] elix-glass rounded-t-2xl max-h-[40dvh] flex flex-col overflow-hidden border border-black"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-center pt-1 pb-0.5">

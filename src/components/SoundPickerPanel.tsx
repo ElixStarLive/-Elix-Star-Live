@@ -355,7 +355,7 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
       }}
     >
       <div
-        className="bg-[rgba(10,10,10,0.72)] backdrop-blur-md w-full max-w-[480px] rounded-t-2xl overflow-hidden flex flex-col h-[70vh] max-h-[70dvh] shadow-2xl animate-in slide-in-from-bottom duration-300 pointer-events-auto"
+        className="bg-[rgba(10,10,10,0.72)] backdrop-blur-md w-full max-w-[480px] rounded-t-2xl overflow-hidden flex flex-col h-[70vh] max-h-[70dvh] border border-black animate-in slide-in-from-bottom duration-300 pointer-events-auto"
         onClick={(e) => e.stopPropagation()}
         onPointerDown={(e) => e.stopPropagation()}
       >

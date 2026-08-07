@@ -162,7 +162,7 @@ export default function AIToolsPanel({
   return (
     <div className="fixed inset-0 z-[500] flex items-end justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative w-full max-w-[480px] bg-[rgba(0,0,0,0.35)] rounded-t-2xl overflow-hidden animate-in slide-in-from-bottom duration-300" style={{ maxHeight: '70dvh' }}>
+      <div className="relative w-full max-w-[480px] bg-[rgba(0,0,0,0.35)] rounded-t-2xl overflow-hidden border border-black animate-in slide-in-from-bottom duration-300" style={{ maxHeight: '70dvh' }}>
         
         {/* Header */}
         <div className="flex items-center justify-center px-4 py-3 ">

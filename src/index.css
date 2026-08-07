@@ -70,8 +70,9 @@
     --color-card-elevated: rgba(0, 0, 0, 0.35);
     --color-glass-bg: rgba(0, 0, 0, 0.35);
     --color-glass-panel: rgba(0, 0, 0, 0.35);
-    --color-glass-border: rgba(255, 255, 255, 0.14);
-    --color-border: rgba(255, 255, 255, 0.14);
+    /* Panel contour — solid black so sheets read as panels (More Options 1:1) */
+    --color-glass-border: #000000;
+    --color-border: #000000;
     --elix-app-bg: url('/elix-app-bg.png');
     --elix-glass-blur: blur(12px);
     --color-destructive: #D91F2D;
@@ -1142,14 +1143,14 @@ video::-webkit-media-controls-overlay-enclosure,
 /* Live transparent glass — match ShareModal / 3-dots panel */
 .elix-glass {
   background: rgba(0, 0, 0, 0.35) !important;
-  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  border: 1px solid #000000 !important;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   box-shadow: none !important;
 }
 .elix-glass-panel {
   background: rgba(0, 0, 0, 0.35) !important;
-  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  border: 1px solid #000000 !important;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   box-shadow: none !important;
@@ -1514,7 +1515,7 @@ body::before {
   background-image: none !important;
 }
 
-/* CLEAR glass for pages/sheets — nav bars stay fully transparent (video shows through) */
+/* CLEAR glass sheets + solid BLACK contour (panel edge like More Options reference) */
 .page-above-bottom-nav__inner,
 .bg-background,
 .bg-surface,
@@ -1523,11 +1524,15 @@ body::before {
 .bg-card,
 .bg-card-elevated,
 #root [class*="rounded-t-2xl"][class*="bg-[rgba"],
+#root [class*="rounded-t-2xl"][class*="bg-[#09090B"],
+#root [class*="rounded-t-2xl"][class*="elix-glass"],
+.bottom-sheet,
+.bottom-sheet-small,
 .bottom-sheet-above-nav,
 #root .elix-glass,
 #root .elix-glass-panel {
   background-color: rgba(0, 0, 0, 0.35) !important;
-  border-color: rgba(255, 255, 255, 0.14) !important;
+  border: 1px solid #000000 !important;
   box-shadow: none !important;
 }
 

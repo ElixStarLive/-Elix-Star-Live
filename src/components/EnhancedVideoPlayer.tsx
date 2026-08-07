@@ -1300,7 +1300,7 @@ export default function EnhancedVideoPlayer({
         <div className="fixed inset-0 z-modals flex items-end justify-center">
           <div className="absolute inset-0 pointer-events-auto" onClick={closeMoreMenu} />
           <div
-            className="elix-glass rounded-t-2xl max-h-[40dvh] flex flex-col pointer-events-auto w-full max-w-[480px] relative z-10 bottom-sheet-above-nav"
+            className="elix-glass rounded-t-2xl max-h-[40dvh] flex flex-col pointer-events-auto w-full max-w-[480px] relative z-10 bottom-sheet-above-nav border border-black"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
