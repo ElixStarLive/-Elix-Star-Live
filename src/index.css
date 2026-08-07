@@ -1529,13 +1529,12 @@ main.feed-column-width,
   -webkit-backdrop-filter: none !important;
 }
 
-/* Home glass — nav + sheets only */
+/* Home glass — sheets + top nav only (NOT bottom home menu bar) */
 #root .elix-glass,
 #root .elix-glass-panel,
 #root .bottom-sheet,
 #root .bottom-sheet-small,
 #root .bottom-sheet-above-nav,
-#root nav[aria-label="Main navigation"] .feed-column-width,
 #root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
 #root .feed-column-width.h-\[var\(--topnav-bar-height\)\],
 #root [class*="rounded-t-2xl"][class*="bg-"]:not(.elix-live-room):not(.elix-live-room *),
@@ -1551,11 +1550,15 @@ main.feed-column-width,
   -webkit-backdrop-filter: blur(12px) !important;
 }
 
-#root nav[aria-label="Main navigation"] {
-  background-color: transparent !important;
-}
+/* Home menu bar — fully transparent */
+#root nav[aria-label="Main navigation"],
 #root nav[aria-label="Main navigation"] .feed-column-width {
-  border-bottom: none !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 #root .fixed.inset-0[class*="bg-black\/"]:not(.elix-live-room):not(.elix-live-room *),
