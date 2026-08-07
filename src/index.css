@@ -1363,11 +1363,8 @@ video::-webkit-media-controls-overlay-enclosure,
   box-shadow: none;
 }
 
-/* SHARED PANEL OWNER — one full-page wash+fundal for all sheets (not 20 cards) */
-.elix-full-page-panel,
-.bottom-sheet,
-.bottom-sheet-small,
-.bottom-sheet-above-nav {
+/* SHARED PANEL OWNER — full-page sheets ONLY (Settings / legal). Compact action sheets keep their own size. */
+.elix-full-page-panel {
   background-color: transparent;
   background-image: var(--elix-page-fill);
   background-size: var(--elix-fundal-size), var(--elix-fundal-size);
@@ -1397,30 +1394,21 @@ video::-webkit-media-controls-overlay-enclosure,
 }
 
 /*
- * Sheet hosts + sheet bodies → one full page above the bottom nav.
- * Same transparent fundal page as Settings — not 10 half-height cards.
+ * Full-page sheet hosts only (SettingsOptionSheet).
+ * Do NOT stretch More / Share / Gift / Promote compact sheets.
  */
-#root .fixed.bottom-0.left-0.right-0.z-\[99999\],
-#root .fixed.inset-x-0.bottom-0.z-\[99999\],
-#root .fixed.bottom-0.left-0.right-0.z-\[100\],
-#root .fixed.inset-0.z-\[99999\] > .elix-panel.rounded-t-2xl,
-#root .fixed.inset-0.z-modals > .elix-panel.rounded-t-2xl {
+#root .elix-sheet-host,
+#root .fixed.bottom-0.left-0.right-0.z-\[99999\]:has(> .elix-full-page-panel),
+#root .fixed.inset-x-0.bottom-0.z-\[99999\]:has(> .elix-full-page-panel) {
   top: 0 !important;
   bottom: var(--bottom-ui-reserve) !important;
   height: auto !important;
   max-height: none !important;
 }
 
-#root .fixed.bottom-0.left-0.right-0.z-\[99999\] > .elix-panel,
-#root .fixed.bottom-0.left-0.right-0.z-\[99999\] > .elix-glass,
 #root .fixed.bottom-0.left-0.right-0.z-\[99999\] > .elix-full-page-panel,
-#root .fixed.inset-x-0.bottom-0.z-\[99999\] > .elix-panel,
-#root .fixed.inset-x-0.bottom-0.z-\[99999\] > .elix-glass,
-#root .elix-panel.rounded-t-2xl,
-#root .elix-glass.rounded-t-2xl,
-#root .elix-panel.elix-full-page-panel,
-#root .bottom-sheet,
-#root .bottom-sheet-small {
+#root .fixed.inset-x-0.bottom-0.z-\[99999\] > .elix-full-page-panel,
+#root .elix-panel.elix-full-page-panel {
   height: 100% !important;
   max-height: none !important;
   min-height: 0;
@@ -1434,6 +1422,40 @@ video::-webkit-media-controls-overlay-enclosure,
   box-shadow: none !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+}
+
+/* Compact action sheets (More / Share / Comments / Gift / Promote) — original size, not full page */
+#root .elix-glass.rounded-t-2xl,
+#root .elix-panel.rounded-t-2xl:not(.elix-full-page-panel),
+#root .bottom-sheet-above-nav.elix-glass,
+#root .bottom-sheet-above-nav.elix-panel {
+  height: auto !important;
+  max-height: 40dvh !important;
+  border-radius: 1rem 1rem 0 0 !important;
+  background-color: transparent !important;
+  background-image: var(--elix-page-fill) !important;
+  background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
+  background-position: var(--elix-fundal-position), var(--elix-fundal-position) !important;
+  background-repeat: no-repeat, no-repeat !important;
+  border: 1px solid var(--elix-border) !important;
+  box-shadow: var(--elix-elevated-shadow) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Comments / Likes keep their taller authored heights */
+#root .elix-glass.rounded-t-2xl.h-1\/2 {
+  max-height: 50% !important;
+  height: 50% !important;
+}
+#root .bottom-sheet-above-nav.h-\[80vh\] {
+  max-height: 80vh !important;
+  height: 80vh !important;
+}
+#root .elix-panel.rounded-t-2xl.h-\[38vh\],
+#root .elix-panel.rounded-t-2xl.max-h-\[320px\] {
+  max-height: 320px !important;
+  height: 38vh !important;
 }
 
 /* Chips / pills keep compact panel look — not full page */
