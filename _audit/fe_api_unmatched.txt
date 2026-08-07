@@ -1,3 +1,0 @@
-/api/admin/reports${queryParam}
-/api/engagement/creator-cards${q}
-/api/media/public/${storagePath}

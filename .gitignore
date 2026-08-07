@@ -112,9 +112,5 @@ android/**/*.keystore
 # Local AAB inspection dump — build artifact, never commit
 _aab_peek/
 
-# Local audit / reference scratch — never commit
-_audit/
-_live_rebuild_ref/
-
 # VarAlign local store (machine-local variable-tracking data)
 .varmem/*

@@ -15,8 +15,6 @@ export default [
       "ios/App/App/public/",
       "Elix Star Live/",
       "_aab_peek/",
-      "_audit/",
-      "_live_rebuild_ref/",
       "assets/",
       "*.config.js",
       "*.config.ts",
@@ -53,9 +51,6 @@ export default [
     files: ["scripts/**/*.{js,mjs}", "server/scripts/**/*.{js,mjs}"],
     languageOptions: {
       globals: { ...globals.node, __ENV: "readonly" },
-    },
-    rules: {
-      "no-regex-spaces": "off",
     },
   },
   {
