@@ -1481,19 +1481,11 @@ svg.lucide.fill-silver-full.royce-icon-gold {
   display: none !important;
 }
 
-/* ═══ Browser: real transparent chrome (shell + navs + page) ═══
-   Shell was already bg-transparent; black body/nav/padding made it look opaque.
-   Native app keeps solid black base + solid home bar. */
-html:not(.native-app) {
-  --feed-column-max-width: 100vw;
-}
-html:not(.native-app),
-html:not(.native-app) body {
-  background-color: transparent !important;
-  background-image: none !important;
-}
-html.native-app,
-html.native-app body {
+/* ═══ Owner system: More Options glass everywhere + phone column + no white browser page ═══
+   Glass = rgba(0,0,0,0.35) + black contour + blur (see home/video through panels).
+   Feed stays 480px — never stretch to 100vw. Body black kills browser white only. */
+html,
+body {
   background-color: #000000 !important;
   background-image: none !important;
 }
@@ -1515,51 +1507,26 @@ body::before {
   background-image: none !important;
 }
 
-/* Bottom sheets / More Options: glass + solid BLACK contour */
+/* One glass recipe = More Options panel (home contour visible through) */
 #root [class*="rounded-t-2xl"][class*="bg-[rgba"],
 #root [class*="rounded-t-2xl"][class*="bg-[#09090B"],
+#root [class*="rounded-t-2xl"][class*="bg-[#09090B]/"],
 .bottom-sheet,
 .bottom-sheet-small,
 .bottom-sheet-above-nav,
 #root .elix-glass,
-#root .elix-glass-panel {
+#root .elix-glass-panel,
+#root nav[aria-label="Main navigation"] .feed-column-width,
+#root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
+#root .feed-column-width.h-\[var\(--topnav-bar-height\)\],
+.elix-live-room [class*="rounded-t-2xl"],
+.elix-live-room [class*="bg-[rgba(10,10,10"],
+.elix-live-room [class*="bg-[rgba(0,0,0"] {
   background-color: rgba(0, 0, 0, 0.35) !important;
   border: 1px solid #000000 !important;
   box-shadow: none !important;
-}
-
-/* Browser: top + bottom nav fully transparent — video shows through */
-html:not(.native-app) #root nav[aria-label="Main navigation"] .feed-column-width,
-html:not(.native-app) #root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
-html:not(.native-app) #root .feed-column-width.h-\[var\(--topnav-bar-height\)\] {
-  background-color: transparent !important;
-  background-image: none !important;
-  border-color: transparent !important;
-  box-shadow: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-/* Native: solid black home bar */
-html.native-app #root nav[aria-label="Main navigation"] .feed-column-width {
-  background-color: #000000 !important;
-  background-image: none !important;
-  border-top: 1px solid #000000 !important;
-  border-color: #000000 !important;
-  box-shadow: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-/* Top tabs clear over video (all platforms) */
-#root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
-#root .feed-column-width.h-\[var\(--topnav-bar-height\)\] {
-  background-color: transparent !important;
-  background-image: none !important;
-  border-color: transparent !important;
-  box-shadow: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
 }
 
 .page-above-bottom-nav,
