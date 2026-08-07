@@ -39,18 +39,18 @@
   :root {
     /* ═══════════════════════════════════════════════════════════════════
        ELIX GLOBAL THEME — one source of truth (2026-08-07)
-       Monochrome dark glass. No strong accent (purple/red/gold/pink/blue/green).
+       Warm dark luxury. No strong accent (purple/red/gold/pink/blue/green).
        Every surface, page, chrome and LIVE room references these tokens.
        ═══════════════════════════════════════════════════════════════════ */
 
     /* Named theme tokens (semantic) */
-    --elix-bg: #121214;
-    --elix-glass: rgba(22, 20, 22, 0.68);
-    --elix-glass-light: rgba(30, 28, 30, 0.58);
+    --elix-bg: #211B1A;                       /* underlying app background */
+    --elix-surface: rgba(34, 28, 27, 0.58);   /* page frames / panels / cards / sheets */
+    --elix-glass: rgba(22, 20, 22, 0.68);     /* top nav + bottom nav chrome */
     --elix-border: rgba(255, 255, 255, 0.10);
     --elix-text-primary: #FFFFFF;
     --elix-text-secondary: #D0D2D6;
-    --elix-icon-primary: #E8EAED;
+    --elix-icon-primary: #E6E9EE;
     --elix-icon-inactive: #A8ACB3;
     --elix-icon-active: #FFFFFF;
     --elix-glass-blur: blur(12px);
@@ -83,10 +83,10 @@
     --color-text-secondary: var(--elix-text-secondary);
     --color-background: var(--elix-bg);
     --color-surface: var(--elix-bg);
-    --color-card: var(--elix-glass-light);
-    --color-card-elevated: var(--elix-glass);
+    --color-card: var(--elix-surface);
+    --color-card-elevated: var(--elix-surface);
     --color-glass-bg: var(--elix-glass);
-    --color-glass-panel: var(--elix-glass-light);
+    --color-glass-panel: var(--elix-surface);
     --color-glass-border: var(--elix-border);
     --color-border: var(--elix-border);
     --color-destructive: var(--elix-icon-primary);
@@ -1496,17 +1496,14 @@ svg.lucide.fill-silver-full.royce-icon-gold {
 }
 
 /* ═══ Global theme contract ═══
-   Base = owner wallpaper (/elix-app-bg.png), fixed & full-bleed.
-   Every panel/sheet/nav/card uses --elix-glass so the wallpaper shows through.
+   Base = solid warm dark #211B1A. No wallpaper.
+   Chrome (top/bottom nav) = --elix-glass (darker).
+   Page frames / panels / cards / sheets = --elix-surface (lighter).
    Video/LIVE keeps its own content visible: outer shells stay transparent. */
 html,
 body {
   background-color: var(--elix-bg) !important;
-  background-image: url('/elix-app-bg.png') !important;
-  background-size: cover !important;
-  background-position: center center !important;
-  background-repeat: no-repeat !important;
-  background-attachment: fixed !important;
+  background-image: none !important;
 }
 body::before {
   content: none !important;
@@ -1518,15 +1515,23 @@ body::before {
   background: transparent !important;
 }
 
-/* Every container uses the same theme glass + border + backlight.
-   Covers: page frames, top nav, home nav, all sheets, cards, panels, popovers,
-   engagement/live/settings/admin/auth pages, LIVE co-host tiles, chat, gift stack.
-   Create camera excluded (bg-[#09090B] not matched here). */
-.page-above-bottom-nav__inner,
-.app-live-column,
+/* Chrome: top nav + home bottom nav (darker glass) */
 #root nav[aria-label="Main navigation"] .feed-column-width,
 #root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
-#root .feed-column-width.h-\[var\(--topnav-bar-height\)\],
+#root .feed-column-width.h-\[var\(--topnav-bar-height\)\] {
+  background-color: var(--elix-glass) !important;
+  border-top: 1px solid var(--elix-border) !important;
+  backdrop-filter: var(--elix-glass-blur) !important;
+  -webkit-backdrop-filter: var(--elix-glass-blur) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 0 40px rgba(255, 255, 255, 0.04) !important;
+}
+
+/* Every content surface: pages, panels, cards, sheets, popovers, LIVE tiles.
+   Create camera excluded (bg-[#09090B] not in this list). */
+.page-above-bottom-nav__inner,
+.app-live-column,
 #root .bottom-sheet,
 #root .bottom-sheet-small,
 #root .bottom-sheet-above-nav,
@@ -1552,7 +1557,7 @@ body::before {
 #root .bg-white\/\[0\.03\],
 #root .bg-white\/5,
 #root .bg-white\/10 {
-  background-color: var(--elix-glass) !important;
+  background-color: var(--elix-surface) !important;
   border-top: 1px solid var(--elix-border) !important;
   backdrop-filter: var(--elix-glass-blur) !important;
   -webkit-backdrop-filter: var(--elix-glass-blur) !important;
