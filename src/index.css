@@ -1344,33 +1344,23 @@ video::-webkit-media-controls-overlay-enclosure,
 }
 
 .elix-surface {
+  /* Nested piece — CLEAR. One full-page fill lives on page owners only. */
   background-color: transparent;
-  background-image: var(--elix-surface-fill);
-  background-size: var(--elix-fundal-size), var(--elix-fundal-size);
-  background-position: var(--elix-fundal-position), var(--elix-fundal-position);
-  background-repeat: no-repeat, no-repeat;
-  background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment);
+  background-image: none;
   border: 1px solid var(--elix-border);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  box-shadow:
-    var(--elix-elevated-inset),
-    var(--elix-elevated-shadow);
+  box-shadow: none;
 }
 
 .elix-panel {
+  /* Nested piece — CLEAR. Full-page sheet rules paint ONE wash+fundal. */
   background-color: transparent;
-  background-image: var(--elix-panel-fill);
-  background-size: var(--elix-fundal-size), var(--elix-fundal-size);
-  background-position: var(--elix-fundal-position), var(--elix-fundal-position);
-  background-repeat: no-repeat, no-repeat;
-  background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment);
+  background-image: none;
   border: 1px solid var(--elix-border);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  box-shadow:
-    var(--elix-elevated-inset),
-    var(--elix-elevated-shadow);
+  box-shadow: none;
 }
 
 /* SHARED PANEL OWNER — one full-page wash+fundal for all sheets (not 20 cards) */
@@ -1435,11 +1425,11 @@ video::-webkit-media-controls-overlay-enclosure,
   max-height: none !important;
   min-height: 0;
   border-radius: 0 !important;
-  background-color: var(--elix-bg) !important;
+  background-color: transparent !important;
   background-image: var(--elix-page-fill) !important;
-  background-size: var(--elix-fundal-size) !important;
-  background-position: var(--elix-fundal-position) !important;
-  background-repeat: no-repeat !important;
+  background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
+  background-position: var(--elix-fundal-position), var(--elix-fundal-position) !important;
+  background-repeat: no-repeat, no-repeat !important;
   border: none !important;
   box-shadow: none !important;
   backdrop-filter: none !important;
@@ -1459,18 +1449,13 @@ video::-webkit-media-controls-overlay-enclosure,
 
 .elix-glass,
 .elix-glass-panel {
-  background-color: var(--elix-bg);
-  background-image: var(--elix-panel-fill);
-  background-size: var(--elix-fundal-size);
-  background-position: var(--elix-fundal-position);
-  background-repeat: no-repeat;
-  background-attachment: var(--elix-fundal-attachment);
+  /* Nested glass — CLEAR. Full-page owners paint ONE wash+fundal. */
+  background-color: transparent;
+  background-image: none;
   border: 1px solid var(--elix-border);
-  backdrop-filter: var(--elix-glass-blur);
-  -webkit-backdrop-filter: var(--elix-glass-blur);
-  box-shadow:
-    var(--elix-elevated-inset),
-    var(--elix-elevated-shadow);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
 }
 
 /* Cold-silver primary CTA (Follow etc.) */
@@ -1942,63 +1927,47 @@ body {
   background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment);
 }
 
-/* LEVEL 3 — bottom / top nav: restore fundal panel chrome (do not clear) */
+/* LEVEL 3 — top / home bar: same ONE page fill (not separate mini boxes) */
 #root nav[aria-label="Main navigation"] .feed-column-width,
 #root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
 #root .feed-column-width.h-\[var\(--topnav-bar-height\)\] {
   background-color: transparent;
-  background-image: var(--elix-panel-fill);
+  background-image: var(--elix-page-fill);
   background-size: var(--elix-fundal-size), var(--elix-fundal-size);
   background-position: var(--elix-fundal-position), var(--elix-fundal-position);
   background-repeat: no-repeat, no-repeat;
   background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment);
   border-color: var(--elix-border);
   border-top: 1px solid var(--elix-border);
-  backdrop-filter: var(--elix-glass-blur);
-  -webkit-backdrop-filter: var(--elix-glass-blur);
-  box-shadow:
-    var(--elix-elevated-inset),
-    var(--elix-elevated-shadow);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
 }
 
-/* LEVEL 2 — cards / surfaces over fundal */
+/*
+ * Nested cards / surfaces — CLEAR always.
+ * ONE full-page wash+fundal only. Icons + writing on top. NOT 20 mini fundal boxes.
+ */
 #root .bg-card,
-#root .bg-surface {
-  background-color: transparent;
-  background-image: var(--elix-surface-fill);
-  background-size: var(--elix-fundal-size);
-  background-position: var(--elix-fundal-position);
-  background-repeat: no-repeat;
-  background-attachment: var(--elix-fundal-attachment);
-  border-color: var(--elix-border);
-  backdrop-filter: var(--elix-glass-blur);
-  -webkit-backdrop-filter: var(--elix-glass-blur);
-  box-shadow: var(--elix-elevated-inset);
-}
-
-/* Existing faint white card washes → LEVEL 2 surface over fundal */
+#root .bg-surface,
+#root .elix-surface,
+#root .bg-white\/\[0\.03\],
 #root .bg-white\/\[0\.04\],
 #root .bg-white\/\[0\.05\],
-#root .bg-white\/5 {
-  background-color: transparent;
-  background-image: var(--elix-surface-fill);
-  background-size: var(--elix-fundal-size);
-  background-position: var(--elix-fundal-position);
-  background-repeat: no-repeat;
-  background-attachment: var(--elix-fundal-attachment);
-  border-color: var(--elix-border);
-  backdrop-filter: var(--elix-glass-blur);
-  -webkit-backdrop-filter: var(--elix-glass-blur);
+#root .bg-white\/5,
+#root .bg-white\/10,
+#root .bg-white\/\[0\.1\] {
+  background-color: transparent !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
 }
 
-/* Battle chrome stays on shared surface tokens (visual only) */
+/* Battle chrome — border only; no per-slot fundal pieces */
 .elix-battle-slot {
   background-color: transparent;
-  background-image: var(--elix-surface-fill);
-  background-size: var(--elix-fundal-size);
-  background-position: var(--elix-fundal-position);
-  background-repeat: no-repeat;
-  background-attachment: var(--elix-fundal-attachment);
+  background-image: none;
   border: 1px solid var(--elix-border);
 }
 
@@ -2007,11 +1976,11 @@ body {
 }
 .elix-battle-score-guest {
   background-color: transparent;
-  background-image: var(--elix-panel-fill);
+  background-image: none;
 }
 .elix-battle-score-wrap {
-  background-color: var(--elix-surface-solid);
-  background-image: var(--elix-surface-fill);
+  background-color: transparent;
+  background-image: none;
   border: 1px solid var(--elix-border);
   border-bottom: 1px solid var(--elix-border);
 }
@@ -2135,6 +2104,7 @@ body,
 #root .app-live-column.elix-full-page-panel,
 #root .app-live-column.elix-page-glass,
 #root .elix-full-page-panel,
+#root .page-above-bottom-nav,
 #root .page-above-bottom-nav.elix-page-glass,
 #root .elix-page-glass {
   background-color: transparent !important;
@@ -2146,5 +2116,11 @@ body,
   box-shadow: none !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+}
+
+/* Nested content wrappers — clear; do not re-paint fundal pieces */
+#root .page-above-bottom-nav__inner {
+  background-color: transparent !important;
+  background-image: none !important;
 }
 
