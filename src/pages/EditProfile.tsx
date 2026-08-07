@@ -188,9 +188,10 @@ export default function EditProfile() {
       {/* Header */}
       <div className="flex-shrink-0 px-4 py-3 flex items-center justify-between bg-transparent">
         <button
+          type="button"
           onClick={handleSave}
           disabled={loading}
-          className="px-4 py-1.5 rounded-full elix-silver-cta text-sm font-semibold disabled:opacity-50 transition"
+          className="px-4 py-1.5 rounded-full text-sm font-semibold disabled:opacity-50 transition bg-white/10 border border-white/25 text-white"
         >
           {loading ? 'Saving...' : 'Save'}
         </button>
@@ -207,9 +208,9 @@ export default function EditProfile() {
             </div>
             <label
               htmlFor="avatar-upload"
-              className="absolute bottom-0 right-0 w-8 h-8 bg-[#E6E9EE] rounded-full flex items-center justify-center cursor-pointer hover:scale-110 transition shadow-lg !text-black"
+              className="absolute bottom-0 right-0 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer hover:scale-110 transition shadow-lg bg-white/15 border border-white/25"
             >
-              <Camera className="w-4 h-4 text-black" />
+              <Camera className="w-4 h-4 text-white" />
             </label>
             <input
               id="avatar-upload"

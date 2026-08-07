@@ -1458,12 +1458,23 @@ video::-webkit-media-controls-overlay-enclosure,
   box-shadow: none;
 }
 
-/* Cold-silver primary CTA (Follow etc.) */
+/* Cold-silver primary CTA (Follow / Save) — dark text on silver; never inherit sheet white */
 .elix-silver-cta {
-  background-image: var(--elix-silver-write);
-  color: #080A0E;
+  background-color: #E6E9EE !important;
+  background-image: var(--elix-silver-write) !important;
+  color: #080A0E !important;
+  -webkit-text-fill-color: #080A0E !important;
   border: 1px solid rgba(255, 255, 255, 0.40);
   box-shadow: 0 0 12px rgba(230, 233, 238, 0.18);
+}
+#root .elix-settings-write .elix-silver-cta,
+#root .elix-full-page-panel .elix-silver-cta,
+#root .app-live-column.elix-page-glass .elix-silver-cta,
+#root button.elix-silver-cta {
+  background-color: #E6E9EE !important;
+  background-image: var(--elix-silver-write) !important;
+  color: #080A0E !important;
+  -webkit-text-fill-color: #080A0E !important;
 }
 
 /* Live room dimmers — shared glass tokens (not per-screen colour hacks) */
