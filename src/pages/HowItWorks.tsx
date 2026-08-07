@@ -15,6 +15,7 @@ import {
   Clapperboard,
 } from 'lucide-react';
 import SettingsOptionSheet from '../components/SettingsOptionSheet';
+import { SETTINGS_HOME } from '../lib/settingsNav';
 
 /**
  * In-app product guide — explains how Elix Star Live works for creators and fans.
@@ -23,25 +24,21 @@ import SettingsOptionSheet from '../components/SettingsOptionSheet';
 export default function HowItWorks() {
   const navigate = useNavigate();
 
-  const goBack = useCallback(() => navigate(-1), [navigate]);
+  const exit = useCallback(() => navigate(SETTINGS_HOME, { replace: true }), [navigate]);
   const goEngagement = useCallback(() => navigate('/engagement'), [navigate]);
   const goSupport = useCallback(() => navigate('/support'), [navigate]);
   const goGuidelines = useCallback(() => navigate('/guidelines'), [navigate]);
 
   return (
-    <SettingsOptionSheet onClose={goBack}>
-      <div className="w-full h-full overflow-hidden bg-transparent text-white flex flex-col">
-        <header className="flex items-center justify-center mb-3 px-4 pt-2">
-          <h1 className="font-bold text-lg flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-[#F5F5F7]" />
-            How the app works
-          </h1>
-        </header>
-        <div className="overflow-y-auto min-h-0 px-4 pb-4">
-          <p className="text-xs text-white/40 italic mb-4">
-            Full guide for fans and creators. Last updated: August 5, 2026
-          </p>
-          <div className="text-sm text-white/75 space-y-5 leading-6">
+    <SettingsOptionSheet onClose={exit} title="How the app works">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 pt-2 pb-[3mm] text-white">
+          <div className="flex items-center gap-2 px-1 mb-3">
+            <BookOpen className="w-4 h-4 text-[#E6E9EE] shrink-0" aria-hidden />
+            <div className="text-xs text-[#8B9099] italic">
+              Full guide for fans and creators. Last updated: August 5, 2026
+            </div>
+          </div>
+          <div className="text-sm text-[#C8CDD5] space-y-5 leading-6 px-1">
             <p>
               Elix Star Live is a short-video and live streaming app. Watch the For You feed, go LIVE,
               battle other creators, send gifts, and grow through the Engagement Hub — without mixing
@@ -51,26 +48,26 @@ export default function HowItWorks() {
             <Section icon={<Clapperboard className="w-5 h-5" />} title="Main tabs">
               <ul className="list-disc pl-5 space-y-1.5">
                 <li>
-                  <strong className="text-white/90">Home / For You</strong> — scroll videos. Tap a creator
+                  <strong className="text-[#E6E9EE]">Home / For You</strong> — scroll videos. Tap a creator
                   to open their profile. Like, comment, save, share, and duet from the side controls.
                 </li>
                 <li>
-                  <strong className="text-white/90">Friends</strong> — people you follow and friend activity,
+                  <strong className="text-[#E6E9EE]">Friends</strong> — people you follow and friend activity,
                   including stories when available.
                 </li>
                 <li>
-                  <strong className="text-white/90">Create (+)</strong> — open the camera to record a clip,
+                  <strong className="text-[#E6E9EE]">Create (+)</strong> — open the camera to record a clip,
                   add sound, filters, then post or share as a story.
                 </li>
                 <li>
-                  <strong className="text-white/90">Inbox</strong> — messages, activity, and invite alerts.
+                  <strong className="text-[#E6E9EE]">Inbox</strong> — messages, activity, and invite alerts.
                 </li>
                 <li>
-                  <strong className="text-white/90">Profile</strong> — your videos, likes, followers, settings,
+                  <strong className="text-[#E6E9EE]">Profile</strong> — your videos, likes, followers, settings,
                   shop entry points, and creator tools.
                 </li>
                 <li>
-                  <strong className="text-white/90">Live Discover</strong> — browse who is live now and tap
+                  <strong className="text-[#E6E9EE]">Live Discover</strong> — browse who is live now and tap
                   to join as a spectator.
                 </li>
               </ul>
@@ -82,12 +79,12 @@ export default function HowItWorks() {
                   Record or upload a clip from Create / Upload. Add a caption and hashtags before you post.
                 </li>
                 <li>
-                  <strong className="text-white/90">Add sound</strong> — open Add sound, tap Play to preview
+                  <strong className="text-[#E6E9EE]">Add sound</strong> — open Add sound, tap Play to preview
                   a licensed track, then Use to attach it. Original Sound keeps your mic audio. No audio
                   posts without sound.
                 </li>
                 <li>
-                  <strong className="text-white/90">Duet</strong> — from a video, start a duet. Choose{' '}
+                  <strong className="text-[#E6E9EE]">Duet</strong> — from a video, start a duet. Choose{' '}
                   <em>Split</em> (half and half) or <em>On top</em> (full original with your face over it),
                   then record and post.
                 </li>
@@ -98,7 +95,7 @@ export default function HowItWorks() {
             <Section icon={<Radio className="w-5 h-5" />} title="Going LIVE & watching">
               <ul className="list-disc pl-5 space-y-1.5">
                 <li>
-                  <strong className="text-white/90">Start LIVE</strong> from Create / Live. Viewers join from
+                  <strong className="text-[#E6E9EE]">Start LIVE</strong> from Create / Live. Viewers join from
                   Live Discover or your share link.
                 </li>
                 <li>
@@ -106,16 +103,16 @@ export default function HowItWorks() {
                   activities while the stream runs.
                 </li>
                 <li>
-                  <strong className="text-white/90">Co-host</strong> — invite a spectator from Join requests &amp;
+                  <strong className="text-[#E6E9EE]">Co-host</strong> — invite a spectator from Join requests &amp;
                   Spectators, or accept when someone requests to join. Accept / Reject live in that panel
                   (not a separate popup).
                 </li>
                 <li>
-                  <strong className="text-white/90">Poll</strong> — creators can run a live poll; viewers vote
+                  <strong className="text-[#E6E9EE]">Poll</strong> — creators can run a live poll; viewers vote
                   from the live controls.
                 </li>
                 <li>
-                  <strong className="text-white/90">Share</strong> — invite friends into the room from the
+                  <strong className="text-[#E6E9EE]">Share</strong> — invite friends into the room from the
                   share panel.
                 </li>
               </ul>
@@ -136,7 +133,7 @@ export default function HowItWorks() {
                   side by side (or 4-player when more join).
                 </li>
                 <li>
-                  <strong className="text-white/90">Battle Energy</strong> boosts battle play — it never
+                  <strong className="text-[#E6E9EE]">Battle Energy</strong> boosts battle play — it never
                   creates Diamonds or real money.
                 </li>
               </ul>
@@ -145,15 +142,15 @@ export default function HowItWorks() {
             <Section icon={<Gift className="w-5 h-5" />} title="Gifts, coins & shop">
               <ul className="list-disc pl-5 space-y-1.5">
                 <li>
-                  <strong className="text-white/90">Coins (in the app)</strong> — buy with Google Play / Apple
+                  <strong className="text-[#E6E9EE]">Coins (in the app)</strong> — buy with Google Play / Apple
                   in-app purchase on mobile. Used for gifts and in-app digital spend.
                 </li>
                 <li>
-                  <strong className="text-white/90">Shop</strong> — physical / shop checkout uses Stripe on
+                  <strong className="text-[#E6E9EE]">Shop</strong> — physical / shop checkout uses Stripe on
                   web-style shop flows only. Shop is separate from in-app coin IAP.
                 </li>
                 <li>
-                  <strong className="text-white/90">Test coins</strong> (if shown in non-store builds) are fake
+                  <strong className="text-[#E6E9EE]">Test coins</strong> (if shown in non-store builds) are fake
                   and only for testing gift UI — never real balance or revenue.
                 </li>
                 <li>
@@ -165,27 +162,27 @@ export default function HowItWorks() {
             </Section>
 
             <Section icon={<Banknote className="w-5 h-5" />} title="Creator monetisation (how you earn)">
-              <p className="mb-2 text-white/80">
-                Creators receive <strong className="text-white/90">60% of eligible net gift and creator-subscription
+              <p className="mb-2">
+                Creators receive <strong className="text-[#E6E9EE]">60% of eligible net gift and creator-subscription
                 revenue</strong> received by Elix Star Live after applicable store fees, taxes, refunds,
                 chargebacks and processing deductions. Elix Star Live keeps 40% of that net revenue.
               </p>
               <ul className="list-disc pl-5 space-y-1.5">
                 <li>
-                  <strong className="text-white/90">Paid gifts</strong> — earnings go pending first, then become
+                  <strong className="text-[#E6E9EE]">Paid gifts</strong> — earnings go pending first, then become
                   available after the settlement window. Withdrawals need verification and admin review.
                 </li>
                 <li>
-                  <strong className="text-white/90">Creator subscriptions</strong> — when a fan subscribes to you
+                  <strong className="text-[#E6E9EE]">Creator subscriptions</strong> — when a fan subscribes to you
                   with a verified paid purchase, the same 60/40 net split applies. Benefits (badge, exclusive
                   content, etc.) are decided by the backend entitlement status.
                 </li>
                 <li>
-                  <strong className="text-white/90">Promote Video</strong> — paid ads sold by Elix Star Live.
+                  <strong className="text-[#E6E9EE]">Promote Video</strong> — paid ads sold by Elix Star Live.
                   Creators receive 0% of Promote revenue; it is platform advertising income only.
                 </li>
                 <li>
-                  <strong className="text-white/90">Creator Rewards (video views)</strong> — a separate monthly
+                  <strong className="text-[#E6E9EE]">Creator Rewards (video views)</strong> — a separate monthly
                   programme for large numbers of <em>qualified unique views</em>. One valid user can create only
                   one qualified view per video. Watching the same video many times does not multiply rewards.
                   Eligibility (followers, recent views, country, originality, anti-fraud) is enforced by the
@@ -201,7 +198,7 @@ export default function HowItWorks() {
                   already withdrawn may create a recoverable balance under platform terms.
                 </li>
               </ul>
-              <p className="mt-2 text-white/55 text-xs">
+              <p className="mt-2 text-xs text-[#8B9099]">
                 Video rewards use qualified unique views. Repeated watches by the same user do not create
                 additional qualified reward views. Full payout rules and balances: Settings → Creator payout.
               </p>
@@ -214,42 +211,42 @@ export default function HowItWorks() {
               </p>
               <ul className="list-disc pl-5 space-y-1.5">
                 <li>
-                  <strong className="text-white/90">Daily / Weekly Missions</strong> — complete goals and claim
+                  <strong className="text-[#E6E9EE]">Daily / Weekly Missions</strong> — complete goals and claim
                   rewards (Goals &amp; claims).
                 </li>
                 <li>
-                  <strong className="text-white/90">Treasure Hunt</strong> — find hidden chests for engagement
+                  <strong className="text-[#E6E9EE]">Treasure Hunt</strong> — find hidden chests for engagement
                   rewards.
                 </li>
                 <li>
-                  <strong className="text-white/90">Sticker Collection</strong> — complete sticker sets.
+                  <strong className="text-[#E6E9EE]">Sticker Collection</strong> — complete sticker sets.
                 </li>
                 <li>
-                  <strong className="text-white/90">Creator Collections</strong> — collectible creator cards.
+                  <strong className="text-[#E6E9EE]">Creator Collections</strong> — collectible creator cards.
                 </li>
                 <li>
-                  <strong className="text-white/90">Fan Level</strong> — earn XP and climb fan tiers (e.g. Bronze
+                  <strong className="text-[#E6E9EE]">Fan Level</strong> — earn XP and climb fan tiers (e.g. Bronze
                   Fan).
                 </li>
                 <li>
-                  <strong className="text-white/90">MVP Leaderboard</strong> — LIVE / Today / Week top supporters.
+                  <strong className="text-[#E6E9EE]">MVP Leaderboard</strong> — LIVE / Today / Week top supporters.
                 </li>
                 <li>
-                  <strong className="text-white/90">Battle Energy</strong> — boost Fan Energy for battles; not
+                  <strong className="text-[#E6E9EE]">Battle Energy</strong> — boost Fan Energy for battles; not
                   Diamonds.
                 </li>
                 <li>
-                  <strong className="text-white/90">Achievements</strong> — permanent unlocks for milestones.
+                  <strong className="text-[#E6E9EE]">Achievements</strong> — permanent unlocks for milestones.
                 </li>
                 <li>
-                  <strong className="text-white/90">Daily Login</strong> — 7-day streak rewards.
+                  <strong className="text-[#E6E9EE]">Daily Login</strong> — 7-day streak rewards.
                 </li>
                 <li>
-                  <strong className="text-white/90">Reward Wallet</strong> — separated balances (promo, energy,
+                  <strong className="text-[#E6E9EE]">Reward Wallet</strong> — separated balances (promo, energy,
                   XP, purchased) so they stay clear and do not mix with real cash incorrectly.
                 </li>
               </ul>
-              <p className="mt-2 text-white/55 text-xs">
+              <p className="mt-2 text-xs text-[#8B9099]">
                 Hub stats (Promo, Energy, XP, Fan Level) update as you watch, gift, complete missions, and
                 claim daily login.
               </p>
@@ -258,17 +255,17 @@ export default function HowItWorks() {
             <Section icon={<Crown className="w-5 h-5" />} title="Ranking & membership">
               <ul className="list-disc pl-5 space-y-1.5">
                 <li>
-                  Live capsules such as <strong className="text-white/90">Diamond League</strong>,{' '}
-                  <strong className="text-white/90">Weekly Ranking</strong>, and{' '}
-                  <strong className="text-white/90">Membership VIP</strong> open ranking or membership panels
+                  Live capsules such as <strong className="text-[#E6E9EE]">Diamond League</strong>,{' '}
+                  <strong className="text-[#E6E9EE]">Weekly Ranking</strong>, and{' '}
+                  <strong className="text-[#E6E9EE]">Membership VIP</strong> open ranking or membership panels
                   from the live header.
                 </li>
                 <li>
-                  <strong className="text-white/90">Rising Stars</strong> — challenges and creator spotlight
+                  <strong className="text-[#E6E9EE]">Rising Stars</strong> — challenges and creator spotlight
                   programs when available from Discover / Rising Stars.
                 </li>
                 <li>
-                  <strong className="text-white/90">+ Join / Follow</strong> on a live — follow the host so you
+                  <strong className="text-[#E6E9EE]">+ Join / Follow</strong> on a live — follow the host so you
                   see them again in Friends / Following.
                 </li>
               </ul>
@@ -326,7 +323,6 @@ export default function HowItWorks() {
               </button>
             </div>
           </div>
-        </div>
       </div>
     </SettingsOptionSheet>
   );
@@ -344,7 +340,7 @@ function Section({
   return (
     <div>
       <h2 className="flex items-center gap-2 text-white font-semibold text-base mb-2">
-        <span className="text-[#F5F5F7] flex-shrink-0">{icon}</span>
+        <span className="text-[#E6E9EE] flex-shrink-0">{icon}</span>
         {title}
       </h2>
       {children}

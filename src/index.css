@@ -1072,9 +1072,21 @@ video::-webkit-media-controls-overlay-enclosure,
 }
 #root .elix-settings-write h1,
 #root .elix-full-page-panel h1,
-#root .app-live-column.elix-page-glass h1 {
+#root .app-live-column.elix-page-glass h1,
+#root .elix-settings-write h2,
+#root .elix-full-page-panel h2,
+#root .app-live-column.elix-page-glass h2 {
   -webkit-text-fill-color: #FFFFFF !important;
   color: #FFFFFF !important;
+}
+
+/* Guide / legal body copy inside sheets — solid glyphs only (no clip ghost doubles) */
+#root .elix-full-page-panel :is(p, li, span, strong, em, b, i, small, a, label, h1, h2, h3),
+#root .elix-settings-write :is(p, li, span, strong, em, b, i, small, a, label, h1, h2, h3),
+#root .app-live-column.elix-page-glass :is(p, li, span, strong, em, b, i, small, a, label, h1, h2, h3) {
+  background-image: none !important;
+  -webkit-background-clip: border-box !important;
+  background-clip: border-box !important;
 }
 
 /* Form labels + controls — always solid (never clip) */

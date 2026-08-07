@@ -42,7 +42,8 @@ export default function SettingsOptionSheet({ children, onClose, title }: Settin
       className="app-live-column-host z-[9999]"
       style={{ bottom: 'var(--bottom-ui-reserve)' }}
     >
-      <div className="absolute inset-0 bg-transparent" onClick={onClose} aria-hidden />
+      {/* Opaque fundal catcher — never let Settings / prior page writing show through */}
+      <div className="absolute inset-0 elix-page-glass" onClick={onClose} aria-hidden />
       <div
         className="app-live-column elix-page-glass elix-full-page-panel elix-settings-write text-white"
         style={{
