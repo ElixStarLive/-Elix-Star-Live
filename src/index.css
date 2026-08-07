@@ -1755,6 +1755,16 @@ svg.lucide,
   stroke: #E8EAED !important;
 }
 
+/* STEM / Friends story strip — Search icon line only, no round disc */
+#root .feed-story-strip svg.lucide {
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
 /* Wrapper already draws the disc — icon stays sharp inside, no double circle */
 .royce-glow-disc svg.lucide,
 .royce-glow-disc .royce-icon-gold,
