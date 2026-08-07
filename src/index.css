@@ -78,15 +78,21 @@
     --elix-divider: rgba(255, 255, 255, 0.09);
     --elix-silver-write: linear-gradient(135deg, #FFFFFF 0%, #E6E9EE 55%, #C8CDD5 100%);
     --elix-battle-fill: linear-gradient(90deg, #8B9099 0%, #C8CDD5 45%, #E6E9EE 75%, #FFFFFF 100%);
-    /* Cool blue-charcoal depth under glass — still reads near-black, not flat fill */
-    --elix-fundal-depth:
-      radial-gradient(ellipse 140% 90% at 50% -20%, rgba(26, 28, 33, 0.55) 0%, transparent 55%),
-      radial-gradient(ellipse 100% 80% at 110% 100%, rgba(18, 20, 25, 0.42) 0%, transparent 50%),
-      radial-gradient(ellipse 80% 60% at -10% 85%, rgba(14, 16, 22, 0.38) 0%, transparent 48%),
-      linear-gradient(168deg, #0A0C12 0%, #080A0E 40%, #080A0E 70%, #090B10 100%);
-    --elix-page-fill: linear-gradient(var(--elix-bg-glass), var(--elix-bg-glass));
-    --elix-surface-fill: linear-gradient(var(--elix-surface), var(--elix-surface));
-    --elix-panel-fill: linear-gradient(var(--elix-panel), var(--elix-panel));
+    /* Cosmic blue-charcoal fundal — one shared field under all glass containers */
+    --elix-fundal-image: url('/elix-fundal-cosmic.png');
+    --elix-fundal-depth: var(--elix-fundal-image);
+    --elix-page-fill:
+      linear-gradient(var(--elix-bg-glass), var(--elix-bg-glass)),
+      var(--elix-fundal-image);
+    --elix-surface-fill:
+      linear-gradient(var(--elix-surface), var(--elix-surface)),
+      var(--elix-fundal-image);
+    --elix-panel-fill:
+      linear-gradient(var(--elix-panel), var(--elix-panel)),
+      var(--elix-fundal-image);
+    --elix-fundal-size: cover;
+    --elix-fundal-position: center;
+    --elix-fundal-attachment: scroll;
     --elix-elevated-inset: inset 0 1px 0 rgba(255, 255, 255, 0.06);
     --elix-elevated-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
 
@@ -403,9 +409,12 @@
     display: flex;
     justify-content: center;
     overflow: hidden;
-    /* LEVEL 1 — page glass over shell depth (not solid base fill) */
+    /* LEVEL 1 — page glass over cosmic fundal */
     background-color: transparent;
     background-image: var(--elix-page-fill);
+    background-size: auto, var(--elix-fundal-size);
+    background-position: 0 0, var(--elix-fundal-position);
+    background-repeat: no-repeat, no-repeat;
   }
 
   .page-above-bottom-nav__inner {
@@ -1238,15 +1247,23 @@ video::-webkit-media-controls-overlay-enclosure,
   filter: none;
 }
 
-/* Shared surface / panel glass — LEVEL 2 + LEVEL 3 compositing */
+/* Shared surface / panel glass — LEVEL 2 + LEVEL 3 over cosmic fundal */
 .elix-page-glass {
   background-color: transparent;
   background-image: var(--elix-page-fill);
+  background-size: auto, var(--elix-fundal-size);
+  background-position: 0 0, var(--elix-fundal-position);
+  background-repeat: no-repeat, no-repeat;
+  background-attachment: scroll, var(--elix-fundal-attachment);
 }
 
 .elix-surface {
-  background-color: var(--elix-surface-solid);
+  background-color: transparent;
   background-image: var(--elix-surface-fill);
+  background-size: auto, var(--elix-fundal-size);
+  background-position: 0 0, var(--elix-fundal-position);
+  background-repeat: no-repeat, no-repeat;
+  background-attachment: scroll, var(--elix-fundal-attachment);
   border: 1px solid var(--elix-border);
   backdrop-filter: var(--elix-glass-blur);
   -webkit-backdrop-filter: var(--elix-glass-blur);
@@ -1256,8 +1273,12 @@ video::-webkit-media-controls-overlay-enclosure,
 }
 
 .elix-panel {
-  background-color: var(--elix-panel-solid);
+  background-color: transparent;
   background-image: var(--elix-panel-fill);
+  background-size: auto, var(--elix-fundal-size);
+  background-position: 0 0, var(--elix-fundal-position);
+  background-repeat: no-repeat, no-repeat;
+  background-attachment: scroll, var(--elix-fundal-attachment);
   border: 1px solid var(--elix-border);
   backdrop-filter: var(--elix-glass-blur);
   -webkit-backdrop-filter: var(--elix-glass-blur);
@@ -1268,8 +1289,12 @@ video::-webkit-media-controls-overlay-enclosure,
 
 .elix-glass,
 .elix-glass-panel {
-  background-color: var(--elix-panel-solid);
+  background-color: transparent;
   background-image: var(--elix-panel-fill);
+  background-size: auto, var(--elix-fundal-size);
+  background-position: 0 0, var(--elix-fundal-position);
+  background-repeat: no-repeat, no-repeat;
+  background-attachment: scroll, var(--elix-fundal-attachment);
   border: 1px solid var(--elix-border);
   backdrop-filter: var(--elix-glass-blur);
   -webkit-backdrop-filter: var(--elix-glass-blur);
@@ -1612,14 +1637,14 @@ svg.lucide.fill-silver-full.royce-icon-gold {
   display: none !important;
 }
 
-/* ═══ Global theme contract — CENTRAL COMPOSITING (reference depth) ═══
-   LEVEL 0 BASE:    #080A0E (body / #root only)
-   SHELL DEPTH:     cool near-black variation under glass
-   LEVEL 1 PAGE:    rgba(8,10,14,0.65) over shell
-   LEVEL 2 SURFACE: #121419 + rgba(18,20,25,0.65)
-   LEVEL 3 PANEL:   #1A1C21 + rgba(26,28,33,0.65)
+/* ═══ Global theme contract — COSMIC FUNDAL + GLASS LAYERS ═══
+   LEVEL 0 BASE:    #080A0E
+   FUNDAL IMAGE:    /elix-fundal-cosmic.png (shared under all containers)
+   LEVEL 1 PAGE:    rgba(8,10,14,0.65) over fundal
+   LEVEL 2 SURFACE: rgba(18,20,25,0.65) over fundal
+   LEVEL 3 PANEL:   rgba(26,28,33,0.65) over fundal
    BORDER:          rgba(255,255,255,0.10)
-   Do NOT flatten page/shell to one solid fill. */
+*/
 
 html,
 body {
@@ -1632,23 +1657,31 @@ body {
   background-image: none;
 }
 
-/* SHELL — depth owner (glass composites against this) */
+/* SHELL — cosmic fundal owner */
 .elix-app-shell,
 .elix-fundal-glass {
   background-color: var(--elix-bg);
-  background-image: var(--elix-fundal-depth);
+  background-image: var(--elix-fundal-image);
+  background-size: var(--elix-fundal-size);
+  background-position: var(--elix-fundal-position);
+  background-repeat: no-repeat;
+  background-attachment: var(--elix-fundal-attachment);
 }
 
-/* Live room keeps deepest base behind video (no decorative depth wash on stream) */
+/* Live room keeps deepest base behind video (no fundal over stream) */
 .elix-live-room {
   background-color: var(--elix-bg);
   background-image: none;
 }
 
-/* LEVEL 1 — page glass over shell depth */
+/* LEVEL 1 — page glass over cosmic fundal */
 .page-above-bottom-nav {
   background-color: transparent;
   background-image: var(--elix-page-fill);
+  background-size: auto, var(--elix-fundal-size);
+  background-position: 0 0, var(--elix-fundal-position);
+  background-repeat: no-repeat, no-repeat;
+  background-attachment: scroll, var(--elix-fundal-attachment);
 }
 
 .page-above-bottom-nav__inner {
@@ -1663,18 +1696,26 @@ body {
   background-image: none;
 }
 
-/* Settings / sheet pages — LEVEL 1 page glass (must not stay fully transparent) */
+/* Settings / sheet pages — LEVEL 1 page glass over fundal */
 .app-live-column.elix-page-glass {
   background-color: transparent;
   background-image: var(--elix-page-fill);
+  background-size: auto, var(--elix-fundal-size);
+  background-position: 0 0, var(--elix-fundal-position);
+  background-repeat: no-repeat, no-repeat;
+  background-attachment: scroll, var(--elix-fundal-attachment);
 }
 
-/* LEVEL 3 — nav / elevated panel — must visibly differ from page */
+/* LEVEL 3 — nav / elevated panel over fundal */
 #root nav[aria-label="Main navigation"] .feed-column-width,
 #root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
 #root .feed-column-width.h-\[var\(--topnav-bar-height\)\] {
-  background-color: var(--elix-panel-solid);
+  background-color: transparent;
   background-image: var(--elix-panel-fill);
+  background-size: auto, var(--elix-fundal-size);
+  background-position: 0 0, var(--elix-fundal-position);
+  background-repeat: no-repeat, no-repeat;
+  background-attachment: scroll, var(--elix-fundal-attachment);
   border-color: var(--elix-border);
   border-top: 1px solid var(--elix-border);
   backdrop-filter: var(--elix-glass-blur);
@@ -1684,26 +1725,34 @@ body {
     var(--elix-elevated-shadow);
 }
 
-/* LEVEL 2 — sheets / cards */
+/* LEVEL 2 — sheets / cards over fundal */
 #root .bottom-sheet,
 #root .bottom-sheet-small,
 #root .bottom-sheet-above-nav,
 #root .bg-card,
 #root .bg-surface {
-  background-color: var(--elix-surface-solid);
+  background-color: transparent;
   background-image: var(--elix-surface-fill);
+  background-size: auto, var(--elix-fundal-size);
+  background-position: 0 0, var(--elix-fundal-position);
+  background-repeat: no-repeat, no-repeat;
+  background-attachment: scroll, var(--elix-fundal-attachment);
   border-color: var(--elix-border);
   backdrop-filter: var(--elix-glass-blur);
   -webkit-backdrop-filter: var(--elix-glass-blur);
   box-shadow: var(--elix-elevated-inset);
 }
 
-/* Existing faint white card washes → LEVEL 2 surface glass (shared utility, not pages) */
+/* Existing faint white card washes → LEVEL 2 surface over fundal */
 #root .bg-white\/\[0\.04\],
 #root .bg-white\/\[0\.05\],
 #root .bg-white\/5 {
-  background-color: var(--elix-surface-solid);
+  background-color: transparent;
   background-image: var(--elix-surface-fill);
+  background-size: auto, var(--elix-fundal-size);
+  background-position: 0 0, var(--elix-fundal-position);
+  background-repeat: no-repeat, no-repeat;
+  background-attachment: scroll, var(--elix-fundal-attachment);
   border-color: var(--elix-border);
   backdrop-filter: var(--elix-glass-blur);
   -webkit-backdrop-filter: var(--elix-glass-blur);
@@ -1711,8 +1760,12 @@ body {
 
 /* Battle chrome stays on shared surface tokens (visual only) */
 .elix-battle-slot {
-  background-color: var(--elix-surface-solid);
+  background-color: transparent;
   background-image: var(--elix-surface-fill);
+  background-size: auto, var(--elix-fundal-size);
+  background-position: 0 0, var(--elix-fundal-position);
+  background-repeat: no-repeat, no-repeat;
+  background-attachment: scroll, var(--elix-fundal-attachment);
   border: 1px solid var(--elix-border);
 }
 
