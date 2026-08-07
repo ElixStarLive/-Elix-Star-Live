@@ -86,7 +86,7 @@ export const TopNav = () => {
       className="fixed left-0 right-0 z-[9999] flex justify-center pointer-events-none"
       style={{ top: "var(--topnav-anchor-top)" }}
     >
-      <div className="feed-column-width pointer-events-auto bg-[rgba(20,20,20,0.38)] border-b border-white/[0.14] min-h-[var(--topnav-bar-height)] h-[var(--topnav-bar-height)]">
+      <div className="feed-column-width pointer-events-auto bg-transparent border-b border-transparent min-h-[var(--topnav-bar-height)] h-[var(--topnav-bar-height)]">
         <div className="flex items-center h-full w-full px-1.5 gap-0.5">
           <div className="flex flex-1 items-center justify-between min-w-0 h-full flex-nowrap overflow-x-auto no-scrollbar gap-0">
             {TOP_TABS.map((tab) => {

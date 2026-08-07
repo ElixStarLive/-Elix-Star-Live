@@ -382,8 +382,7 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
       onClick={onClose}
     >
       <div
-        className="bg-[rgba(10,10,10,0.72)] rounded-t-2xl p-3 pb-safe h-1/2 w-full max-w-[480px] shadow-2xl flex flex-col bottom-sheet-above-nav"
-        style={{ boxShadow: '0 -4px 30px rgba(255,255,255,0.25)' }}
+        className="elix-glass rounded-t-2xl p-3 pb-safe h-1/2 w-full max-w-[480px] flex flex-col bottom-sheet-above-nav"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-2">

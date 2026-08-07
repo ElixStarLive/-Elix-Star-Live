@@ -570,7 +570,7 @@ export default function Shop() {
             <div className="fixed left-0 right-0 z-[9999] pointer-events-auto max-w-[480px] mx-auto fixed-above-bottom-nav">
               <div
                 className="w-full bg-transparent rounded-t-3xl pb-safe"
-                style={{ maxHeight: '80dvh', boxShadow: '0 -4px 30px rgba(255,255,255,0.25)' }}
+                style={{ maxHeight: '80dvh', boxShadow: 'none' }}
                 onClick={e => e.stopPropagation()}
               >
               <div className="flex items-center justify-center pt-3 pb-1">
@@ -659,7 +659,7 @@ export default function Shop() {
             <div className="fixed left-0 right-0 z-[9999] pointer-events-auto max-w-[480px] mx-auto fixed-above-bottom-nav">
               <div
                 className="w-full bg-transparent rounded-t-3xl pb-safe"
-                style={{ maxHeight: '80dvh', boxShadow: '0 -4px 30px rgba(255,255,255,0.25)' }}
+                style={{ maxHeight: '80dvh', boxShadow: 'none' }}
                 onClick={e => e.stopPropagation()}
               >
                 <div className="flex items-center justify-center pt-3 pb-1">

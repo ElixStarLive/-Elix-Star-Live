@@ -359,7 +359,10 @@ function App() {
   }
 
   return (
-    <div className="fixed inset-0 w-full h-[100dvh] flex flex-col bg-transparent text-text font-sans overflow-hidden">
+    <div
+      className="elix-app-shell fixed inset-0 w-full h-[100dvh] flex flex-col bg-transparent text-text font-sans overflow-hidden"
+      style={{ backgroundColor: 'transparent', backgroundImage: 'none' }}
+    >
       <OfflineBanner />
       <IncomingCallModal />
       <LiveNotifyBanner />
@@ -379,9 +382,9 @@ function App() {
         className={cn(
           "flex-1 feed-column-width min-h-0 overflow-auto",
           showBottomNav && !isFullScreen && "pt-topbar pb-[var(--bottom-ui-reserve)]",
-          /* For You (Play 41 / 1.0.12 snapshot): sit above bottom nav */
-          showBottomNav && isFeedWithTopBar && "pt-topbar pb-nav",
-          showBottomNav && isFeedNoTopBar && "pt-safe pb-nav",
+          /* Feed: full-bleed under transparent top/bottom nav (video shows through) */
+          showBottomNav && isFeedWithTopBar && "pt-0 pb-0",
+          showBottomNav && isFeedNoTopBar && "pt-0 pb-0",
           showBottomNav && isFullScreen && !isFeedFullScreen && "pt-[3mm]",
           !showBottomNav && "pt-[3mm]",
         )}

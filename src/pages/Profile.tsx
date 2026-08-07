@@ -785,8 +785,7 @@ export default function Profile() {
             onClick={() => setShowSharePanel(false)}
           >
             <div
-              className="w-full max-w-[480px] bg-[rgba(10,10,10,0.72)] backdrop-blur-md rounded-t-2xl max-h-[40dvh] flex flex-col overflow-hidden"
-              style={{ boxShadow: '0 -4px 30px rgba(255,255,255,0.25)' }}
+              className="w-full max-w-[480px] elix-glass rounded-t-2xl max-h-[40dvh] flex flex-col overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-center pt-1 pb-0.5">

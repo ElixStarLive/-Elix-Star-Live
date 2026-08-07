@@ -105,6 +105,7 @@ export default function FriendsFeed() {
                   videoId={videoId}
                   isActive={activeIndex === index}
                   onVideoEnd={() => handleVideoEnd(index)}
+                  edgeToBottomNav
                 />
               </div>
             </div>

@@ -104,6 +104,7 @@ export default function FollowingFeed() {
                   videoId={videoId}
                   isActive={activeIndex === index}
                   onVideoEnd={() => handleVideoEnd(index)}
+                  edgeToBottomNav
                 />
               </div>
             </div>

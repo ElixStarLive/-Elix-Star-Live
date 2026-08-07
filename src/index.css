@@ -63,13 +63,13 @@
     --color-icon-circle: rgba(8, 8, 10, 0.48);
     --color-text: #FFFFFF;
     --color-text-secondary: #D1D4D8;
-    /* One transparent dark background — entire app */
-    --color-background: rgba(20, 20, 20, 0.38);
-    --color-surface: rgba(20, 20, 20, 0.38);
-    --color-card: rgba(20, 20, 20, 0.38);
-    --color-card-elevated: rgba(20, 20, 20, 0.38);
-    --color-glass-bg: rgba(20, 20, 20, 0.38);
-    --color-glass-panel: rgba(20, 20, 20, 0.38);
+    /* Clear transparent glass — video shows through (not milky, not solid dark) */
+    --color-background: rgba(0, 0, 0, 0.35);
+    --color-surface: rgba(0, 0, 0, 0.35);
+    --color-card: rgba(0, 0, 0, 0.35);
+    --color-card-elevated: rgba(0, 0, 0, 0.35);
+    --color-glass-bg: rgba(0, 0, 0, 0.35);
+    --color-glass-panel: rgba(0, 0, 0, 0.35);
     --color-glass-border: rgba(255, 255, 255, 0.14);
     --color-border: rgba(255, 255, 255, 0.14);
     --elix-app-bg: url('/elix-app-bg.png');
@@ -1141,14 +1141,14 @@ video::-webkit-media-controls-overlay-enclosure,
 /* Live transparent black glass — video shows through (exact design values) */
 /* Live transparent glass — match ShareModal / 3-dots panel */
 .elix-glass {
-  background: rgba(20, 20, 20, 0.38) !important;
+  background: rgba(0, 0, 0, 0.35) !important;
   border: 1px solid rgba(255, 255, 255, 0.14) !important;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   box-shadow: none !important;
 }
 .elix-glass-panel {
-  background: rgba(20, 20, 20, 0.38) !important;
+  background: rgba(0, 0, 0, 0.35) !important;
   border: 1px solid rgba(255, 255, 255, 0.14) !important;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -1479,22 +1479,17 @@ svg.lucide.fill-silver-full.royce-icon-gold {
   display: none !important;
 }
 
-/* ═══ Owner system: transparent dark UI over transparent bg image (no city buildings) ═══ */
+/* ═══ Owner system: CLEAR transparent shell (video shows through) ═══
+   html/body MUST stay solid black — transparent here = browser default WHITE
+   letterbox. Shell / main / nav stay transparent so video shows through UI. */
 html,
 body {
-  background-color: transparent !important;
+  background-color: #000000 !important;
   background-image: none !important;
 }
 body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background-image: var(--elix-app-bg); /* transparent PNG — not city buildings */
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  content: none !important;
+  display: none !important;
 }
 #root {
   position: relative;
@@ -1503,7 +1498,15 @@ body::before {
   color: #FFFFFF;
 }
 
-/* One transparent dark background — colour only (no blur panel / no layout change) */
+/* App shell the inspector pointed at — always fully clear */
+#root > .elix-app-shell,
+.elix-app-shell {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* CLEAR glass for pages/sheets — nav bars stay fully transparent (video shows through) */
 .page-above-bottom-nav__inner,
 .bg-background,
 .bg-surface,
@@ -1511,18 +1514,29 @@ body::before {
 .app-live-column,
 .bg-card,
 .bg-card-elevated,
-#root nav[aria-label="Main navigation"] .feed-column-width,
-#root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
-#root .feed-column-width.h-\[var\(--topnav-bar-height\)\],
 #root [class*="rounded-t-2xl"][class*="bg-[rgba"],
 .bottom-sheet-above-nav,
 #root .elix-glass,
 #root .elix-glass-panel {
-  background-color: rgba(20, 20, 20, 0.38) !important;
+  background-color: rgba(0, 0, 0, 0.35) !important;
   border-color: rgba(255, 255, 255, 0.14) !important;
+  box-shadow: none !important;
 }
 
-/* Outer frames / video paint stay clear — layout unchanged */
+/* Top + bottom nav: fully transparent — no dark/white wash over video */
+#root nav[aria-label="Main navigation"],
+#root nav[aria-label="Main navigation"] .feed-column-width,
+#root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
+#root .feed-column-width.h-\[var\(--topnav-bar-height\)\] {
+  background-color: transparent !important;
+  background-image: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Outer frames / video paint stay fully clear */
 .page-above-bottom-nav,
 main.feed-column-width,
 .elix-live-room,
@@ -1530,8 +1544,13 @@ main.feed-column-width,
   background-color: transparent !important;
 }
 
-/* Remapped washes → same one transparent dark (no stacking darker recipes) */
-#root [class*="bg-[rgba(0,0,0,0.35)]"],
-#root [class*="bg-[rgba(10,10,10,0.72)]"] {
-  background-color: rgba(20, 20, 20, 0.38) !important;
+/* Kill milky white / gray washes on panels → clear glass (not nav) */
+#root [class*="bg-[rgba(0,0,0,0.35)]"]:not(nav):not(nav *),
+#root [class*="bg-[rgba(10,10,10,0.72)]"],
+#root [class*="bg-[rgba(20,20,20,0.38)]"],
+#root [class*="bg-white/"],
+#root [class*="bg-[#121215]"],
+#root [class*="bg-[#111113]"],
+#root [class*="bg-[#0A0A0D]"] {
+  background-color: rgba(0, 0, 0, 0.35) !important;
 }

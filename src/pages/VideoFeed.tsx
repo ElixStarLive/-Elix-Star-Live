@@ -491,6 +491,7 @@ export default function VideoFeed() {
                   videoId={item.videoId}
                   isActive={activeIndex === index}
                   onVideoEnd={() => handleVideoEnd(index)}
+                  edgeToBottomNav
                 />
               </div>
             </div>

@@ -179,7 +179,7 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
       onClick={onClose}
     >
       <div
-        className="bg-[rgba(20,20,20,0.38)] backdrop-blur-md w-full max-w-[480px] rounded-t-2xl overflow-hidden flex flex-col h-[calc(38vh-13mm)] shadow-2xl border border-white/[0.14]"
+        className="bg-[rgba(0,0,0,0.35)] backdrop-blur-md w-full max-w-[480px] rounded-t-2xl overflow-hidden flex flex-col h-[calc(38vh-13mm)] border border-white/[0.14]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-center px-4 pt-0.5 pb-0.5">

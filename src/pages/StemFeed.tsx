@@ -103,6 +103,7 @@ export default function StemFeed() {
               videoId={video.id}
               isActive={activeIndex === index}
               onVideoEnd={() => handleVideoEnd(index)}
+              edgeToBottomNav
             />
           </div>
         </div>
