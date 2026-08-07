@@ -1514,7 +1514,7 @@ body::before {
   --elix-home-glass: rgba(0, 0, 0, 0.35);
 }
 
-/* ALL page shells — fully transparent like home bottom nav */
+/* ALL page shells — fully transparent like home bottom nav (no border, no fill) */
 .page-above-bottom-nav,
 .page-above-bottom-nav__inner,
 .app-live-column-host,
@@ -1528,7 +1528,7 @@ main.feed-column-width,
 #root .elix-glass-panel:not(.bottom-sheet):not([class*="rounded-t-2xl"]) {
   background-color: transparent !important;
   background-image: none !important;
-  border-color: transparent !important;
+  border: none !important;
   box-shadow: none !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
