@@ -269,8 +269,8 @@ export default function Register() {
             Already have an account? Sign in
           </Link>
           <div className="mx-auto max-w-[280px] space-y-0.5 text-[11px] leading-relaxed tracking-wide text-white/45">
-            <p>© 2026 Andrei Ionut Berica</p>
-            <p>Owner &amp; Developer · All rights reserved.</p>
+            <p>Created by Andrei Ionut Berica</p>
+            <p>© 2026 · Owner &amp; Developer · All rights reserved.</p>
           </div>
         </div>
       </div>
