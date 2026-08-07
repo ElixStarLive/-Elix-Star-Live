@@ -39,7 +39,7 @@ export default function SettingsOptionSheet({ children, onClose, title }: Settin
 
   return (
     <div
-      className="app-live-column-host z-[9999]"
+      className="app-live-column-host elix-sheet-host z-[9999]"
       style={{ bottom: 'var(--bottom-ui-reserve)' }}
     >
       {/* Opaque fundal catcher — never let Settings / prior page writing show through */}

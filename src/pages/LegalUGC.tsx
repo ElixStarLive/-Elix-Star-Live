@@ -1,24 +1,17 @@
 import React, { useCallback } from 'react';
-import { RoyceBackIcon } from '../components/royce';
 import { useNavigate } from 'react-router-dom';
+import SettingsOptionSheet from '../components/SettingsOptionSheet';
+import { SETTINGS_HOME } from '../lib/settingsNav';
 
 export default function LegalUGC() {
   const navigate = useNavigate();
-  const goBack = useCallback(() => navigate(-1), [navigate]);
+  const exit = useCallback(() => navigate(SETTINGS_HOME, { replace: true }), [navigate]);
   const goDmca = useCallback(() => navigate('/legal/dmca'), [navigate]);
 
   return (
-    <div className="bg-transparent text-white flex justify-center px-2">
-      <div className="w-full max-w-[480px] rounded-3xl overflow-hidden bg-transparent flex flex-col overflow-y-auto p-4 pb-20">
-        <header className="flex items-center justify-between mb-4">
-          <button onClick={goBack} aria-label="Back" title="Back">
-            <RoyceBackIcon />
-          </button>
-          <h1 className="font-bold text-lg">User-Generated Content Policy</h1>
-          <div className="w-6" />
-        </header>
-
-        <div className="text-sm text-white/75 space-y-5 leading-6">
+    <SettingsOptionSheet onClose={exit} title="User-Generated Content Policy">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 pt-2 pb-[3mm] text-white">
+        <div className="text-sm text-[#C8CDD5] space-y-5 leading-6 px-1">
           <Section title="About UGC">
             <p>
               Elix Star Live is a user-generated content (UGC) platform. Users create, upload,
@@ -83,7 +76,7 @@ export default function LegalUGC() {
           </Section>
         </div>
       </div>
-    </div>
+    </SettingsOptionSheet>
   );
 }
 

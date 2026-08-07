@@ -92,14 +92,14 @@ export default function Report() {
 
   if (submitted) {
     return (
-      <SettingsOptionSheet onClose={goBack}>
+      <SettingsOptionSheet onClose={goBack} title="Report">
         <div className="flex-1 flex items-center justify-center px-4">
           <div className="text-center">
             <div className="w-20 h-20 bg-[#FFFFFF] rounded-full mx-auto mb-4 flex items-center justify-center">
               <CheckCircle className="w-10 h-10 text-white" />
             </div>
-            <h2 className="text-2xl font-bold mb-2">Report Submitted</h2>
-            <p className="text-white/60">Thank you for helping keep our community safe.</p>
+            <h2 className="text-2xl font-bold mb-2 text-white">Report Submitted</h2>
+            <p className="text-[#8B9099]">Thank you for helping keep our community safe.</p>
           </div>
         </div>
       </SettingsOptionSheet>
@@ -107,38 +107,32 @@ export default function Report() {
   }
 
   return (
-    <SettingsOptionSheet onClose={goBack}>
-      <div className="w-full h-full min-h-0 flex flex-col overflow-hidden bg-transparent">
-      <div className="sticky top-0 bg-transparent z-10 px-4 py-4 border-b border-transparent flex items-center justify-center">
-        <h1 className="text-lg font-bold">{isGeneralSupport ? 'Report a problem' : `Report ${contentType}`}</h1>
-      </div>
-
-      <div className="px-4 py-6 flex-1 overflow-y-auto">
-        {/* Icon */}
-        <div className="text-center mb-6">
-          <div className="w-16 h-16 bg-white/10 rounded-full mx-auto mb-3 flex items-center justify-center">
-            <Flag className="w-8 h-8 text-white/70" />
+    <SettingsOptionSheet onClose={goBack} title={isGeneralSupport ? 'Report a problem' : `Report ${contentType}`}>
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 pt-2 pb-[3mm]">
+        <div className="text-center mb-6 px-1">
+          <div className="w-16 h-16 rounded-full mx-auto mb-3 flex items-center justify-center border border-white/10">
+            <Flag className="w-8 h-8 text-[#E6E9EE]" />
           </div>
-          <h2 className="text-xl font-bold mb-2">Why are you reporting this?</h2>
-          <p className="text-sm text-white/60">
+          <h2 className="text-xl font-bold mb-2 text-white">Why are you reporting this?</h2>
+          <p className="text-sm text-[#8B9099]">
             Your report is anonymous and helps us maintain a safe community
           </p>
         </div>
 
-        {/* Reasons */}
         <div className="space-y-2 mb-6">
           {reasons.map(reason => (
             <button
               key={reason.id}
+              type="button"
               onClick={() => setSelectedReason(reason.id)}
-              className={`w-full text-left px-4 py-4 rounded-xl transition ${
+              className={`w-full text-left px-4 py-4 rounded-xl transition border ${
                 selectedReason === reason.id
-                  ? 'bg-white/10 border-2 border-[#D8D9DD]'
-                  : 'bg-white border-2 border-transparent hover:brightness-125'
+                  ? 'border-[#D8D9DD] bg-white/10'
+                  : 'border-white/10 active:bg-white/5'
               }`}
             >
               <div className="flex items-center justify-between">
-                <span className="font-semibold">{reason.label}</span>
+                <span className="font-semibold text-[#E6E9EE]">{reason.label}</span>
                 {selectedReason === reason.id && (
                   <div className="w-6 h-6 bg-[#FFFFFF] rounded-full flex items-center justify-center">
                     <CheckCircle className="w-4 h-4 text-black" />
@@ -149,9 +143,8 @@ export default function Report() {
           ))}
         </div>
 
-        {/* Additional Details */}
-        <div className="mb-6">
-          <label className="block text-sm font-semibold mb-2">
+        <div className="mb-6 px-1">
+          <label className="block text-sm font-semibold mb-2 text-[#C8CDD5]">
             Additional details (optional)
           </label>
           <textarea
@@ -160,20 +153,19 @@ export default function Report() {
             placeholder="Provide more context to help us understand the issue..."
             maxLength={500}
             rows={4}
-            className="w-full bg-white rounded-xl px-4 py-3 outline-none text-white placeholder-white/40 border border-transparent focus:border-[#D8D9DD] transition resize-none"
+            className="w-full rounded-xl px-4 py-3 outline-none text-white placeholder:text-[#8B9099] border border-white/10 focus:border-[#D8D9DD] transition resize-none"
           />
-          <p className="text-xs text-white/40 mt-1 text-right">{details.length}/500</p>
+          <div className="text-xs text-[#8B9099] mt-1 text-right">{details.length}/500</div>
         </div>
 
-        {/* Submit */}
         <button
+          type="button"
           onClick={handleSubmit}
           disabled={!selectedReason || loading}
-          className="w-full py-4 bg-white/20 text-white rounded-xl font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition"
+          className="w-full py-4 bg-white/20 text-white rounded-xl font-bold disabled:opacity-40 disabled:cursor-not-allowed active:opacity-90 transition"
         >
           {loading ? 'Submitting...' : 'Submit Report'}
         </button>
-      </div>
       </div>
     </SettingsOptionSheet>
   );

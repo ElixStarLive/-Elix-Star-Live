@@ -2,6 +2,7 @@ import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { platform } from '../lib/platform';
 import SettingsOptionSheet from '../components/SettingsOptionSheet';
+import { SETTINGS_HOME } from '../lib/settingsNav';
 
 /**
  * In-app Terms of Service for Elix Star Live.
@@ -12,17 +13,13 @@ import SettingsOptionSheet from '../components/SettingsOptionSheet';
 export default function Terms() {
   const navigate = useNavigate();
 
-  const goBack = useCallback(() => navigate(-1), [navigate]);
+  const exit = useCallback(() => navigate(SETTINGS_HOME, { replace: true }), [navigate]);
 
   return (
-    <SettingsOptionSheet onClose={goBack}>
-      <div className="w-full h-full overflow-hidden bg-transparent text-white flex flex-col">
-        <header className="flex items-center justify-center mb-4 px-4 pt-2">
-          <h1 className="font-bold text-lg">Terms of Service</h1>
-        </header>
-        <div className="overflow-y-auto min-h-0 px-4 pb-3">
-          <p className="text-xs text-white/40 italic mb-4">Last updated: July 23, 2026</p>
-          <div className="text-sm text-white/75 space-y-5 leading-6">
+    <SettingsOptionSheet onClose={exit} title="Terms of Service">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 pt-2 pb-[3mm] text-white">
+          <div className="text-xs text-[#8B9099] italic mb-4 px-1">Last updated: July 23, 2026</div>
+          <div className="text-sm text-[#C8CDD5] space-y-5 leading-6 px-1">
           <Section title="1. About the Service">
             <p>
               Elix Star Live is operated by <span className="text-white font-medium">Elix Star Live Ltd</span>
@@ -385,7 +382,6 @@ export default function Terms() {
             </p>
           </Section>
           </div>
-        </div>
       </div>
     </SettingsOptionSheet>
   );

@@ -1903,6 +1903,21 @@ body {
   background-image: none;
 }
 
+/*
+ * Settings / guide / legal sheets — host itself is opaque cosmic fundal.
+ * Prevents prior-page writing (Settings list) from showing through.
+ * Live rooms keep .app-live-column-host without .elix-sheet-host.
+ */
+#root .app-live-column-host.elix-sheet-host {
+  isolation: isolate;
+  background-color: var(--elix-bg) !important;
+  background-image: var(--elix-fundal-image) !important;
+  background-size: var(--elix-fundal-size) !important;
+  background-position: var(--elix-fundal-position) !important;
+  background-repeat: no-repeat !important;
+  background-attachment: var(--elix-fundal-attachment) !important;
+}
+
 /* Settings / sheet pages — LEVEL 1 page glass over fundal */
 .app-live-column.elix-page-glass {
   background-color: transparent;

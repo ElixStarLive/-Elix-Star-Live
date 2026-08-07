@@ -2,23 +2,20 @@ import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Shield, Users, Heart, AlertTriangle, Eye, Ban } from 'lucide-react';
 import SettingsOptionSheet from '../components/SettingsOptionSheet';
+import { SETTINGS_HOME } from '../lib/settingsNav';
 
 export default function Guidelines() {
   const navigate = useNavigate();
 
-  const goBack = useCallback(() => navigate(-1), [navigate]);
+  const exit = useCallback(() => navigate(SETTINGS_HOME, { replace: true }), [navigate]);
   const goReport = useCallback(() => navigate('/report'), [navigate]);
-  const goSettings = useCallback(() => navigate('/settings'), [navigate]);
+  const goSettings = useCallback(() => navigate(SETTINGS_HOME, { replace: true }), [navigate]);
 
   return (
-    <SettingsOptionSheet onClose={goBack}>
-      <div className="w-full h-full overflow-hidden bg-transparent text-white flex flex-col">
-        <header className="flex items-center justify-center mb-4 px-4 pt-2">
-          <h1 className="font-bold text-lg">Community Guidelines</h1>
-        </header>
-        <div className="overflow-y-auto min-h-0 px-4 pb-3">
-          <p className="text-xs text-white/40 italic mb-4">Last updated: February 4, 2026</p>
-          <div className="text-sm text-white/75 space-y-5 leading-6">
+    <SettingsOptionSheet onClose={exit} title="Community Guidelines">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 pt-2 pb-[3mm] text-white">
+          <div className="text-xs text-[#8B9099] italic mb-4 px-1">Last updated: February 4, 2026</div>
+          <div className="text-sm text-[#C8CDD5] space-y-5 leading-6 px-1">
             <p>
               Elix Star is built on creativity, respect, and authenticity. These guidelines help keep
               our community safe and welcoming for everyone.
@@ -104,7 +101,6 @@ export default function Guidelines() {
               </button>
             </div>
           </div>
-        </div>
       </div>
     </SettingsOptionSheet>
   );
@@ -122,7 +118,7 @@ function Section({
   return (
     <div>
       <h2 className="flex items-center gap-2 text-white font-semibold text-base mb-2">
-        <span className="text-[#F5F5F7] flex-shrink-0">{icon}</span>
+        <span className="text-[#E6E9EE] flex-shrink-0">{icon}</span>
         {title}
       </h2>
       {children}

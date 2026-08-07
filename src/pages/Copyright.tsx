@@ -1,22 +1,18 @@
 import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SettingsOptionSheet from '../components/SettingsOptionSheet';
+import { SETTINGS_HOME } from '../lib/settingsNav';
 
 export default function Copyright() {
   const navigate = useNavigate();
 
-  const goBack = useCallback(() => navigate(-1), [navigate]);
+  const exit = useCallback(() => navigate(SETTINGS_HOME, { replace: true }), [navigate]);
   const goDmca = useCallback(() => navigate('/legal/dmca'), [navigate]);
 
   return (
-    <SettingsOptionSheet onClose={goBack}>
-      <div className="w-full h-full overflow-hidden bg-transparent text-white flex flex-col">
-        <header className="flex items-center justify-center mb-4 px-4 pt-2">
-          <h1 className="font-bold text-lg">Copyright Notice</h1>
-        </header>
-
-        <div className="overflow-y-auto min-h-0 px-4 pb-3 text-sm text-white/75 space-y-5 leading-6">
-          <p>© 2026 Elix Star Live Ltd. All rights reserved.</p>
+    <SettingsOptionSheet onClose={exit} title="Copyright Notice">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 pt-2 pb-[3mm] text-sm text-[#C8CDD5] space-y-5 leading-6">
+          <p className="px-1">© 2026 Elix Star Live Ltd. All rights reserved.</p>
 
           <Section title="Ownership">
             <p>
@@ -64,7 +60,6 @@ export default function Copyright() {
               <span className="text-white font-medium">dmca@elixstarlive.com</span>.
             </p>
           </Section>
-        </div>
       </div>
     </SettingsOptionSheet>
   );
@@ -72,7 +67,7 @@ export default function Copyright() {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div>
+    <div className="px-1">
       <h2 className="text-white font-semibold text-base mb-2">{title}</h2>
       {children}
     </div>

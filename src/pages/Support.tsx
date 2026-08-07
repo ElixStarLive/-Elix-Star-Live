@@ -5,6 +5,7 @@ import { trackEvent } from '../lib/analytics';
 import { showToast } from '../lib/toast';
 import SettingsOptionSheet from '../components/SettingsOptionSheet';
 import { apiCreateReport, apiGetCurrentUserId } from '../features/safety/safetyApi';
+import { SETTINGS_HOME } from '../lib/settingsNav';
 
 const FAQ_ITEMS = [
   {
@@ -52,13 +53,14 @@ export default function Support() {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  const goBack = useCallback(() => navigate(-1), [navigate]);
+  const exit = useCallback(() => navigate(SETTINGS_HOME, { replace: true }), [navigate]);
   const goSafety = useCallback(() => navigate('/settings/safety'), [navigate]);
   const goGuidelines = useCallback(() => navigate('/guidelines'), [navigate]);
   const goTerms = useCallback(() => navigate('/terms'), [navigate]);
   const goPrivacy = useCallback(() => navigate('/privacy'), [navigate]);
   const goCopyright = useCallback(() => navigate('/copyright'), [navigate]);
   const openContactForm = useCallback(() => setShowContactForm(true), []);
+  const closeContactForm = useCallback(() => setShowContactForm(false), []);
 
   const handleSubmitTicket = async () => {
     if (!subject.trim() || !message.trim() || !email.trim()) {
@@ -90,7 +92,7 @@ export default function Support() {
 
       setSubmitted(true);
       setTimeout(() => {
-        goBack();
+        exit();
       }, 2000);
     } catch {
       showToast('Failed to submit. Please try again.');
@@ -101,13 +103,13 @@ export default function Support() {
 
   if (submitted) {
     return (
-      <SettingsOptionSheet onClose={goBack}>
-        <div className="h-full flex flex-col items-center justify-center px-4 text-center">
+      <SettingsOptionSheet onClose={exit} title="Help & Support">
+        <div className="flex-1 min-h-0 flex flex-col items-center justify-center px-4 text-center">
           <div className="w-16 h-16 bg-[#E6E9EE] rounded-full mx-auto mb-4 flex items-center justify-center">
             <Send className="w-8 h-8 text-black" />
           </div>
-          <h2 className="text-lg font-bold mb-1.5">Message Sent</h2>
-          <p className="text-sm text-white/60">We will get back to you within 24 hours.</p>
+          <h2 className="text-lg font-bold mb-1.5 text-white">Message Sent</h2>
+          <p className="text-sm text-[#8B9099]">We will get back to you within 24 hours.</p>
         </div>
       </SettingsOptionSheet>
     );
@@ -115,56 +117,53 @@ export default function Support() {
 
   if (showContactForm) {
     return (
-      <SettingsOptionSheet onClose={goBack}>
-        <div className="w-full h-full overflow-hidden bg-transparent flex flex-col">
-          <header className="flex items-center justify-center mb-2 px-4 pt-2">
-            <h1 className="font-bold text-lg text-[#F5F5F7]">Contact Support</h1>
-          </header>
+      <SettingsOptionSheet onClose={closeContactForm} title="Contact Support">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 pt-2 pb-[3mm]">
+          <div className="px-1 space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-[#C8CDD5] mb-1.5">Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="your@email.com"
+                className="w-full rounded-lg px-3 py-2.5 outline-none text-sm text-white placeholder:text-[#8B9099] border border-white/10 focus:border-[#D8D9DD] transition"
+              />
+            </div>
 
-          <div className="px-4 py-2 space-y-4 overflow-y-auto min-h-0 pb-4">
-          <div>
-            <label className="block text-sm font-semibold text-white/70 mb-1.5">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="your@email.com"
-              className="w-full bg-white/[0.06] rounded-lg px-3 py-2.5 outline-none text-sm text-white placeholder-white/35 border border-white/10 focus:border-[#D8D9DD] transition"
-            />
-          </div>
+            <div>
+              <label className="block text-sm font-semibold text-[#C8CDD5] mb-1.5">Subject</label>
+              <input
+                type="text"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                placeholder="Brief description of your issue"
+                maxLength={100}
+                className="w-full rounded-lg px-3 py-2.5 outline-none text-sm text-white placeholder:text-[#8B9099] border border-white/10 focus:border-[#D8D9DD] transition"
+              />
+            </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-white/70 mb-1.5">Subject</label>
-            <input
-              type="text"
-              value={subject}
-              onChange={e => setSubject(e.target.value)}
-              placeholder="Brief description of your issue"
-              maxLength={100}
-              className="w-full bg-white/[0.06] rounded-lg px-3 py-2.5 outline-none text-sm text-white placeholder-white/35 border border-white/10 focus:border-[#D8D9DD] transition"
-            />
-          </div>
+            <div>
+              <label className="block text-sm font-semibold text-[#C8CDD5] mb-1.5">Message</label>
+              <textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Describe your issue in detail..."
+                maxLength={1000}
+                rows={6}
+                className="w-full rounded-lg px-3 py-2.5 outline-none text-sm text-white placeholder:text-[#8B9099] border border-white/10 focus:border-[#D8D9DD] transition resize-none"
+              />
+              <div className="text-xs text-[#8B9099] mt-1 text-right">{message.length}/1000</div>
+            </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-white/70 mb-1.5">Message</label>
-            <textarea
-              value={message}
-              onChange={e => setMessage(e.target.value)}
-              placeholder="Describe your issue in detail..."
-              maxLength={1000}
-              rows={6}
-              className="w-full bg-white/[0.06] rounded-lg px-3 py-2.5 outline-none text-sm text-white placeholder-white/35 border border-white/10 focus:border-[#D8D9DD] transition resize-none"
-            />
-            <p className="text-xs text-white/40 mt-1 text-right">{message.length}/1000</p>
-          </div>
-
-          <button
-            onClick={handleSubmitTicket}
-            disabled={loading || !subject.trim() || !message.trim() || !email.trim()}
-            className="w-full py-3 bg-[#E6E9EE] text-white text-sm rounded-lg font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition"
-          >
-            {loading ? 'Sending...' : 'Send Message'}
-          </button>
+            <button
+              type="button"
+              onClick={() => { void handleSubmitTicket(); }}
+              disabled={loading || !subject.trim() || !message.trim() || !email.trim()}
+              className="w-full py-3 bg-[#E6E9EE] text-white text-sm rounded-lg font-bold disabled:opacity-40 disabled:cursor-not-allowed active:opacity-90 transition"
+            >
+              {loading ? 'Sending...' : 'Send Message'}
+            </button>
           </div>
         </div>
       </SettingsOptionSheet>
@@ -172,101 +171,92 @@ export default function Support() {
   }
 
   return (
-    <SettingsOptionSheet onClose={goBack}>
-      <div className="w-full h-full overflow-hidden bg-transparent flex flex-col">
-        <header className="flex items-center justify-center mb-2 px-4 pt-2">
-          <h1 className="font-bold text-lg text-[#F5F5F7]">Help &amp; Support</h1>
-        </header>
+    <SettingsOptionSheet onClose={exit} title="Help & Support">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 pt-2 pb-[3mm]">
+        <div className="flex flex-col gap-0 max-w-full min-h-full">
+          <S t="Quick Links" />
+          <R
+            ic={<MessageCircle size={14} />}
+            t="Contact Support"
+            d="Send a message to our support team."
+            fn={openContactForm}
+          />
+          <R
+            ic={<Shield size={14} />}
+            t="Safety Center"
+            d="Safety tools and reporting resources."
+            fn={goSafety}
+          />
+          <R
+            ic={<Book size={14} />}
+            t="Community Guidelines"
+            d="Read what content is allowed."
+            fn={goGuidelines}
+          />
 
-      <div className="px-4 py-1 flex-1 overflow-y-auto pb-4 space-y-4">
-        <Section title="Quick Links">
-          <ListRow
-            icon={<MessageCircle size={18} />}
-            label="Contact Support"
-            helper="Send a message to our support team."
-            onClick={openContactForm}
-          />
-          <ListRow
-            icon={<Shield size={18} />}
-            label="Safety Center"
-            helper="Safety tools and reporting resources."
-            onClick={goSafety}
-          />
-          <ListRow
-            icon={<Book size={18} />}
-            label="Community Guidelines"
-            helper="Read what content is allowed."
-            onClick={goGuidelines}
-          />
-        </Section>
+          <S t="Frequently Asked Questions" />
+          {FAQ_ITEMS.map((item) => (
+            <FAQItem key={item.question} question={item.question} answer={item.answer} />
+          ))}
 
-        <Section title="Frequently Asked Questions">
-          <div className="space-y-0.5">
-            {FAQ_ITEMS.map((item) => (
-              <FAQItem key={item.question} question={item.question} answer={item.answer} />
-            ))}
+          <S t="Legal" />
+          <R t="Terms of Service" fn={goTerms} />
+          <R t="Privacy Policy" fn={goPrivacy} />
+          <R t="Copyright Policy" fn={goCopyright} />
+
+          <div className="mt-3.5 px-2.5 py-3 text-center">
+            <Mail className="w-5 h-5 text-[#E6E9EE] mx-auto mb-2" />
+            <div className="text-sm text-[#C8CDD5] mb-1">Email us directly</div>
+            <a
+              href="mailto:support@elixstarlive.co.uk"
+              className="text-sm text-[#E6E9EE]"
+            >
+              support@elixstarlive.co.uk
+            </a>
           </div>
-        </Section>
-
-        <Section title="Legal">
-          <ListRow label="Terms of Service" onClick={goTerms} />
-          <ListRow label="Privacy Policy" onClick={goPrivacy} />
-          <ListRow label="Copyright Policy" onClick={goCopyright} />
-        </Section>
-
-        <div className="p-4 rounded-xl border border-white/10 bg-white/[0.04] text-center">
-          <Mail className="w-5 h-5 text-[#F5F5F7] mx-auto mb-2" />
-          <p className="text-sm text-white/75 mb-1">Email us directly</p>
-          <a
-            href="mailto:support@elixstarlive.co.uk"
-            className="text-sm text-white/90 hover:underline"
-          >
-            support@elixstarlive.co.uk
-          </a>
         </div>
-      </div>
       </div>
     </SettingsOptionSheet>
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function S({ t }: { t: string }) {
   return (
-    <div>
-      <p className="text-xs text-white/35 uppercase tracking-[0.12em] mb-1.5 px-1 font-semibold">{title}</p>
-      {children}
+    <div className="mt-3.5 mb-1 px-1 text-[10px] uppercase tracking-[0.12em] text-[#8B9099] leading-none">
+      {t}
     </div>
   );
 }
 
-function ListRow({
-  icon,
-  label,
-  helper,
-  onClick,
+function R({
+  ic,
+  t,
+  d,
+  fn,
 }: {
-  icon?: React.ReactNode;
-  label: string;
-  helper?: string;
-  onClick: () => void;
+  ic?: React.ReactNode;
+  t: string;
+  d?: string;
+  fn: () => void;
 }) {
   return (
     <button
-      onClick={onClick}
-      className="w-full flex items-center gap-3 px-2.5 py-2.5 active:bg-white/5 text-left rounded-lg"
+      type="button"
+      onClick={fn}
+      className="w-full flex items-center gap-3 px-2.5 py-2.5 active:bg-white/5 text-left rounded-md"
     >
-      {icon && (
+      {ic ? (
         <span
           className="royce-glow-disc shrink-0 [&_svg]:size-[18px]"
           style={{ width: '36px', height: '36px' }}
         >
-          <span className="royce-icon-gold">{icon}</span>
+          <span className="royce-icon-gold">{ic}</span>
         </span>
-      )}
-      <div className="flex-1 min-w-0">
-        <p className="text-[15px] leading-tight text-white/85">{label}</p>
-        {helper && <p className="text-xs text-white/45 mt-0.5">{helper}</p>}
-      </div>
+      ) : null}
+      <span className="flex-1 min-w-0">
+        <span className="block text-[15px] leading-tight text-[#E6E9EE]">{t}</span>
+        {d ? <span className="block text-xs text-[#8B9099] mt-0.5">{d}</span> : null}
+      </span>
       <ChevronRight size={16} className="text-white/30 shrink-0" />
     </button>
   );
@@ -276,19 +266,20 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="rounded-lg overflow-hidden">
+    <div>
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between gap-2.5 px-2.5 py-2.5 active:bg-white/5 transition text-left"
+        className="w-full flex items-center justify-between gap-2.5 px-2.5 py-2.5 active:bg-white/5 transition text-left rounded-md"
       >
-        <span className="text-sm text-white/85 pr-2">{question}</span>
-        <HelpCircle className={`w-4 h-4 text-white/45 flex-shrink-0 transition ${isOpen ? 'rotate-180' : ''}`} />
+        <span className="text-sm text-[#E6E9EE] pr-2">{question}</span>
+        <HelpCircle className={`w-4 h-4 text-[#8B9099] flex-shrink-0 transition ${isOpen ? 'rotate-180' : ''}`} />
       </button>
-      {isOpen && (
-        <div className="px-2.5 pb-2.5 text-[13px] leading-relaxed text-white/65">
+      {isOpen ? (
+        <div className="px-2.5 pb-2.5 text-[13px] leading-relaxed text-[#C8CDD5]">
           {answer}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

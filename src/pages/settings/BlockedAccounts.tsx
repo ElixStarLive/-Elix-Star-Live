@@ -81,37 +81,31 @@ export default function BlockedAccounts() {
   );
 
   return (
-    <SettingsOptionSheet onClose={exit}>
-      <div className="w-full h-full overflow-hidden bg-transparent flex flex-col">
-        {/* Header */}
-        <div className="sticky top-0 bg-transparent z-10 px-4 pt-3 pb-3 border-b border-white/[0.06]">
-        <div className="flex items-center justify-center mb-3">
-          <h1 className="text-lg font-bold text-[#F5F5F7]">Blocked Accounts</h1>
-        </div>
-
-        {/* Search */}
-        <div className="flex items-center gap-3 bg-white/[0.06] border border-white/10 rounded-full px-4 py-2.5">
-          <Search className="w-5 h-5 text-white/50 shrink-0" />
+    <SettingsOptionSheet onClose={exit} title="Blocked Accounts">
+      <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+        <div className="flex-shrink-0 px-3 pt-2 pb-3 border-b border-white/10">
+        <div className="flex items-center gap-3 rounded-full px-4 py-2.5 border border-white/10">
+          <Search className="w-5 h-5 text-[#8B9099] shrink-0" />
           <input
             type="text"
             placeholder="Search blocked users..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="flex-1 bg-transparent outline-none text-sm text-white placeholder-white/40"
+            className="flex-1 bg-transparent outline-none text-sm text-white placeholder:text-[#8B9099]"
           />
         </div>
       </div>
 
       {/* Blocked Users List */}
-      <div className="px-4 py-4 overflow-y-auto min-h-0 pb-3">
+      <div className="px-3 py-4 overflow-y-auto min-h-0 pb-3 flex-1">
         {loading ? (
-          <div className="text-center py-12 text-white/40">Loading...</div>
+          <div className="text-center py-12 text-[#8B9099]">Loading...</div>
         ) : (
           <div className="space-y-2.5">
             {filteredUsers.map(block => (
               <div
                 key={block.blocked_user_id}
-                className="flex items-center gap-3 p-3 bg-white/[0.05] border border-white/10 rounded-xl"
+                className="flex items-center gap-3 p-3 rounded-xl border border-white/10"
               >
                 <AvatarRing
                   src={block.avatar_url || `https://ui-avatars.com/api/?name=${block.username || 'U'}`}

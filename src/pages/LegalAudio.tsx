@@ -1,23 +1,16 @@
 import React, { useCallback } from 'react';
-import { RoyceBackIcon } from '../components/royce';
 import { useNavigate } from 'react-router-dom';
+import SettingsOptionSheet from '../components/SettingsOptionSheet';
+import { SETTINGS_HOME } from '../lib/settingsNav';
 
 export default function LegalAudio() {
   const navigate = useNavigate();
-  const goBack = useCallback(() => navigate(-1), [navigate]);
+  const exit = useCallback(() => navigate(SETTINGS_HOME, { replace: true }), [navigate]);
 
   return (
-    <div className="bg-transparent text-white flex justify-center px-2">
-      <div className="w-full max-w-[480px] rounded-3xl overflow-hidden bg-transparent flex flex-col overflow-y-auto p-4 pb-20">
-        <header className="flex items-center justify-between mb-4">
-          <button onClick={goBack} aria-label="Back" title="Back">
-            <RoyceBackIcon />
-          </button>
-          <h1 className="font-bold text-lg">Audio & Music Disclaimer</h1>
-          <div className="w-6" />
-        </header>
-
-        <div className="text-sm text-white/75 space-y-5 leading-6">
+    <SettingsOptionSheet onClose={exit} title="Audio & Music Disclaimer">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 pt-2 pb-[3mm] text-white">
+        <div className="text-sm text-[#C8CDD5] space-y-5 leading-6 px-1">
           <Section title="Audio Content">
             <p>
               Audio used within Elix Star Live falls into the following categories:
@@ -64,7 +57,7 @@ export default function LegalAudio() {
           </Section>
         </div>
       </div>
-    </div>
+    </SettingsOptionSheet>
   );
 }
 
