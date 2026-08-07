@@ -2059,7 +2059,9 @@ body {
 #root .bg-\[\#09090B\]\/95,
 #root [class*="bg-[rgba(0,0,0"],
 #root [class*="bg-[rgba(20,20,20"] {
-  background-color: var(--elix-panel);
+  /* Transparent wash — see profile/video under; icons on top */
+  background-color: var(--elix-panel-wash) !important;
+  background-image: none !important;
   border-color: var(--elix-border);
 }
 
