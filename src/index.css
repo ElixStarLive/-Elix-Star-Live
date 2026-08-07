@@ -230,7 +230,7 @@
     min-height: 100dvh;
     overflow: hidden;
     position: relative;
-    background: transparent;
+    background: #080A0E;
   }
 
   /* Prevent horizontal scroll on all devices */
