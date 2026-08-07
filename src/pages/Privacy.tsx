@@ -9,14 +9,10 @@ export default function Privacy() {
   const goSettings = useCallback(() => navigate('/settings'), [navigate]);
 
   return (
-    <SettingsOptionSheet onClose={goBack}>
-      <div className="w-full h-full overflow-hidden bg-transparent text-white flex flex-col">
-        <header className="flex items-center justify-center mb-4 px-4 pt-2">
-          <h1 className="font-bold text-lg">Privacy Policy</h1>
-        </header>
-        <div className="overflow-y-auto min-h-0 px-4 pb-3">
-          <p className="text-xs text-white/40 italic mb-4">Last updated: February 20, 2026</p>
-          <div className="text-sm text-white/75 space-y-5 leading-6">
+    <SettingsOptionSheet onClose={goBack} title="Privacy Policy">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 pt-2 pb-[3mm] text-white">
+          <div className="text-xs text-[#8B9099] italic mb-4 px-1">Last updated: February 20, 2026</div>
+          <div className="text-sm text-[#C8CDD5] space-y-5 leading-6 px-1">
           <p>
             Elix Star Live Ltd ("we", "us", "our"), registered in England and Wales, operates
             the Elix Star Live application. This Privacy Policy explains how we collect, use,
@@ -187,13 +183,12 @@ export default function Privacy() {
             <button
               type="button"
               onClick={goSettings}
-              className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-sm font-medium transition"
+              className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-sm font-medium transition text-[#E6E9EE]"
             >
               Go to Settings
             </button>
           </div>
           </div>
-        </div>
       </div>
     </SettingsOptionSheet>
   );
@@ -202,7 +197,7 @@ export default function Privacy() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <h2 className="text-white font-semibold text-base mb-2">{title}</h2>
+      <div className="text-[#E6E9EE] font-semibold text-base mb-2">{title}</div>
       {children}
     </div>
   );

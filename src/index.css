@@ -1365,6 +1365,20 @@ video::-webkit-media-controls-overlay-enclosure,
   max-height: none;
 }
 
+/* SettingsOptionSheet / Privacy / Safety — one edge-to-edge page, no floating card frame */
+#root .app-live-column.elix-full-page-panel,
+#root .app-live-column.elix-page-glass {
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  background-color: var(--elix-bg) !important;
+  background-image: var(--elix-page-fill) !important;
+  background-size: var(--elix-fundal-size) !important;
+  background-position: var(--elix-fundal-position) !important;
+  background-repeat: no-repeat !important;
+}
+
 /*
  * Sheet hosts + sheet bodies → one full page above the bottom nav.
  * Same transparent fundal page as Settings — not 10 half-height cards.

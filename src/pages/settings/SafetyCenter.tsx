@@ -19,116 +19,107 @@ export default function SafetyCenter() {
   const goSupport = useCallback(() => navigate('/support'), [navigate]);
 
   return (
-    <SettingsOptionSheet onClose={exit}>
-      <div className="w-full h-full overflow-hidden bg-transparent flex flex-col">
-        <header className="flex items-center justify-center mb-2 px-4 pt-2">
-          <h1 className="font-bold text-lg text-[#F5F5F7]">Safety Center</h1>
-        </header>
+    <SettingsOptionSheet onClose={exit} title="Safety Center">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 pt-2 pb-[3mm]">
+        <div className="flex flex-col gap-0 max-w-full min-h-full">
+          <S t="Quick Actions" />
+          <R
+            ic={<Ban size={14} />}
+            t="Blocked Accounts"
+            d="Manage users you've blocked."
+            fn={goBlocked}
+          />
+          <R
+            ic={<Flag size={14} />}
+            t="Report a Problem"
+            d="Report users or content violating guidelines."
+            fn={goReport}
+          />
 
-        <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4 space-y-4">
-          <Section title="Quick Actions">
-            <OptionRow
-              icon={<Ban size={18} />}
-              title="Blocked Accounts"
-              description="Manage users you've blocked."
-              onClick={goBlocked}
-            />
-            <OptionRow
-              icon={<Flag size={18} />}
-              title="Report a Problem"
-              description="Report users or content violating guidelines."
-              onClick={goReport}
-            />
-          </Section>
+          <S t="Privacy Controls" />
+          <R
+            ic={<Lock size={14} />}
+            t="Account Privacy"
+            d="Control who can see your content."
+            fn={goEditProfile}
+          />
+          <R
+            ic={<Eye size={14} />}
+            t="Data & Personalization"
+            d="Manage how your data is used."
+            fn={goPrivacy}
+          />
 
-          <Section title="Privacy Controls">
-            <OptionRow
-              icon={<Lock size={18} />}
-              title="Account Privacy"
-              description="Control who can see your content."
-              onClick={goEditProfile}
-            />
-            <OptionRow
-              icon={<Eye size={18} />}
-              title="Data & Personalization"
-              description="Manage how your data is used."
-              onClick={goPrivacy}
-            />
-          </Section>
+          <S t="Resources" />
+          <R
+            ic={<AlertTriangle size={14} />}
+            t="Community Guidelines"
+            d="Read what is allowed on Elix Star."
+            fn={goGuidelines}
+          />
+          <R
+            ic={<HelpCircle size={14} />}
+            t="Safety Tips"
+            d="Open online safety best practices."
+            fn={goGuidelines}
+          />
 
-          <Section title="Resources">
-            <OptionRow
-              icon={<AlertTriangle size={18} />}
-              title="Community Guidelines"
-              description="Read what is allowed on Elix Star."
-              onClick={goGuidelines}
-            />
-            <OptionRow
-              icon={<HelpCircle size={18} />}
-              title="Safety Tips"
-              description="Open online safety best practices."
-              onClick={goGuidelines}
-            />
-          </Section>
-
-          <div className="rounded-xl px-4 py-3 border border-white/10">
-            <div className="text-sm font-bold text-white">Need Immediate Help?</div>
-            <div className="text-xs text-[#C8CDD5] mt-1 leading-relaxed">
-              If you or someone you know is in immediate danger, contact emergency services.
-            </div>
-            <div className="text-xs text-[#8B9099] mt-2">US: 911&nbsp;&nbsp;|&nbsp;&nbsp;UK: 999&nbsp;&nbsp;|&nbsp;&nbsp;EU: 112</div>
+          <div className="mt-3.5 mb-1 px-1 text-[10px] uppercase tracking-[0.12em] text-[#8B9099] leading-none">
+            Need Immediate Help?
+          </div>
+          <div className="px-2.5 py-2.5 text-xs text-[#C8CDD5] leading-relaxed">
+            If you or someone you know is in immediate danger, contact emergency services.
+            <div className="text-[#8B9099] mt-2">US: 911&nbsp;&nbsp;|&nbsp;&nbsp;UK: 999&nbsp;&nbsp;|&nbsp;&nbsp;EU: 112</div>
           </div>
 
-          <Section title="Support">
-            <OptionRow
-              icon={<HelpCircle size={18} />}
-              title="Contact Support"
-              description="Send us a message and we will respond."
-              onClick={goSupport}
-            />
-          </Section>
+          <S t="Support" />
+          <R
+            ic={<HelpCircle size={14} />}
+            t="Contact Support"
+            d="Send us a message and we will respond."
+            fn={goSupport}
+          />
         </div>
       </div>
     </SettingsOptionSheet>
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function S({ t }: { t: string }) {
   return (
-    <div>
-      <div className="text-xs text-[#8B9099] uppercase tracking-[0.12em] mb-1.5 px-1 font-semibold">{title}</div>
-      <div className="space-y-0.5">{children}</div>
+    <div className="mt-3.5 mb-1 px-1 text-[10px] uppercase tracking-[0.12em] text-[#8B9099] leading-none">
+      {t}
     </div>
   );
 }
 
-function OptionRow({
-  icon,
-  title,
-  description,
-  onClick,
+function R({
+  ic,
+  t,
+  d,
+  fn,
 }: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  onClick: () => void;
+  ic: React.ReactNode;
+  t: string;
+  d: string;
+  fn: () => void;
 }) {
   return (
     <button
       type="button"
-      onClick={onClick}
-      className="w-full flex items-center gap-3 px-2.5 py-2.5 active:bg-white/5 text-left rounded-lg"
+      onClick={fn}
+      className="w-full flex items-center gap-3 px-2.5 py-2.5 active:bg-white/5 text-left rounded-md"
     >
       <span
         className="royce-glow-disc shrink-0 [&_svg]:size-[18px]"
         style={{ width: '36px', height: '36px' }}
       >
-        <span className="royce-icon-gold">{icon}</span>
+        <span className="royce-icon-gold">{ic}</span>
       </span>
-      <div className="flex-1 min-w-0">
-        <p className="text-[15px] leading-tight text-white/85">{title}</p>
-        <p className="text-xs text-white/45 mt-0.5">{description}</p>
-      </div>
+      <span className="flex-1 min-w-0">
+        <span className="block text-[15px] leading-tight text-[#E6E9EE]">{t}</span>
+        <span className="block text-xs text-[#8B9099] mt-0.5">{d}</span>
+      </span>
       <ChevronRight size={16} className="text-white/30 shrink-0" />
     </button>
   );
