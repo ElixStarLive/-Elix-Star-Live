@@ -315,7 +315,7 @@ function InputField({
 }) {
   return (
     <div>
-      <label className="block text-sm font-semibold text-[#C8CDD5] mb-1.5">{label}</label>
+      <div className="block text-sm font-semibold text-[#C8CDD5] mb-1.5">{label}</div>
       <input
         type="text"
         value={value}
@@ -343,7 +343,7 @@ function TextAreaField({
 }) {
   return (
     <div>
-      <label className="block text-sm font-semibold text-[#C8CDD5] mb-1.5">{label}</label>
+      <div className="block text-sm font-semibold text-[#C8CDD5] mb-1.5">{label}</div>
       <textarea
         value={value}
         onChange={e => onChange(e.target.value)}

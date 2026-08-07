@@ -1016,15 +1016,19 @@ video::-webkit-media-controls-overlay-enclosure,
   color: transparent;
 }
 
-/* ═══ GLOBAL: writing = warm white → soft warm gray. Accent = champagne (theme). ═══ */
+/* ═══ GLOBAL writing tokens ═══
+   Gradient clip is OPT-IN only (.elix-silver-red-text / .text-gold-metallic).
+   Applying clip to every label/span creates a FIXED WebKit ghost layer
+   (Edit Profile Username/Display Name/Bio doubles while scrolling). */
 #root {
   --elix-write: linear-gradient(90deg, #FFFFFF 0%, #E6E9EE 55%, #C8CDD5 100%);
   --elix-accent-hover: var(--elix-accent-light);
   --elix-accent-pressed: var(--elix-accent);
 }
 
-/* Shrink-wrap gradient to glyphs — never stretch across flex-1 empty space */
-.elix-silver-red-text {
+/* Opt-in gradient glyphs — shrink-wrap to text, never on form labels */
+.elix-silver-red-text,
+.text-gold-metallic {
   display: inline-block;
   width: max-content;
   max-width: 100%;
@@ -1035,51 +1039,19 @@ video::-webkit-media-controls-overlay-enclosure,
   color: transparent !important;
 }
 
-.elix-silver-red-text,
-#root :where(h1, h2, h3, h4, h5, h6, p, label, legend, a, li, th, td, small, strong, em, b),
-#root :where(span):not(:has(> svg)):not([class*='bg-[']),
-#root button > :where(span, p, label, strong, em, b, small),
-#root [class*='text-white'],
-#root [class*='text-gold'],
-#root [class*='text-[#FFFFFF]'],
-#root [class*='text-[#FFFFFF]'],
-#root [class*='text-[#D8D9DD]'],
-#root [class*='text-[#A7A7AD]'] {
-  background-image: var(--elix-write);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-}
-
 /*
- * Settings + full-page panels — solid writing only.
- * background-clip:text on scroll columns creates a FIXED ghost layer.
+ * Full-page / settings sheets — solid writing only (no clip, no fixed ghost).
+ * Also forces any leftover .elix-silver-red-text inside sheets to solid.
  */
 #root .elix-settings-write,
 #root .elix-full-page-panel,
 #root .app-live-column.elix-page-glass,
-#root .elix-settings-write :where(h1, h2, h3, h4, h5, h6, p, label, legend, a, li, th, td, small, strong, em, b, span),
-#root .elix-full-page-panel :where(h1, h2, h3, h4, h5, h6, p, label, legend, a, li, th, td, small, strong, em, b, span),
-#root .app-live-column.elix-page-glass :where(h1, h2, h3, h4, h5, h6, p, label, legend, a, li, th, td, small, strong, em, b, span),
-#root .elix-settings-write button > :where(span, p, label, strong, em, b, small),
-#root .elix-full-page-panel button > :where(span, p, label, strong, em, b, small),
-#root .app-live-column.elix-page-glass button > :where(span, p, label, strong, em, b, small),
 #root .elix-settings-write .elix-silver-red-text,
 #root .elix-full-page-panel .elix-silver-red-text,
 #root .app-live-column.elix-page-glass .elix-silver-red-text,
-#root .elix-settings-write [class*='text-white'],
-#root .elix-full-page-panel [class*='text-white'],
-#root .app-live-column.elix-page-glass [class*='text-white'],
-#root .elix-settings-write [class*='text-[#FFFFFF]'],
-#root .elix-full-page-panel [class*='text-[#FFFFFF]'],
-#root .app-live-column.elix-page-glass [class*='text-[#FFFFFF]'],
-#root .elix-settings-write [class*='text-[#D8D9DD]'],
-#root .elix-full-page-panel [class*='text-[#D8D9DD]'],
-#root .app-live-column.elix-page-glass [class*='text-[#D8D9DD]'],
-#root .elix-settings-write [class*='text-[#A7A7AD]'],
-#root .elix-full-page-panel [class*='text-[#A7A7AD]'],
-#root .app-live-column.elix-page-glass [class*='text-[#A7A7AD]'] {
+#root .elix-settings-write .text-gold-metallic,
+#root .elix-full-page-panel .text-gold-metallic,
+#root .app-live-column.elix-page-glass .text-gold-metallic {
   background-image: none !important;
   -webkit-background-clip: border-box !important;
   background-clip: border-box !important;
@@ -1099,14 +1071,23 @@ video::-webkit-media-controls-overlay-enclosure,
   color: #C8CDD5 !important;
 }
 #root .elix-settings-write h1,
-#root .elix-settings-write h1 .elix-silver-red-text,
 #root .elix-full-page-panel h1,
 #root .app-live-column.elix-page-glass h1 {
   -webkit-text-fill-color: #FFFFFF !important;
   color: #FFFFFF !important;
 }
 
-/* Form controls — NEVER use background-clip text (causes ghost/duplicate glyphs) */
+/* Form labels + controls — always solid (never clip) */
+#root label,
+#root .elix-settings-write label,
+#root .elix-full-page-panel label,
+#root .app-live-column.elix-page-glass label {
+  background-image: none !important;
+  -webkit-background-clip: border-box !important;
+  background-clip: border-box !important;
+  -webkit-text-fill-color: #C8CDD5 !important;
+  color: #C8CDD5 !important;
+}
 #root input,
 #root textarea,
 #root select,
@@ -1126,8 +1107,8 @@ video::-webkit-media-controls-overlay-enclosure,
 }
 #root label {
   background-image: none !important;
-  -webkit-background-clip: unset !important;
-  background-clip: unset !important;
+  -webkit-background-clip: border-box !important;
+  background-clip: border-box !important;
   -webkit-text-fill-color: #C8CDD5 !important;
   color: #C8CDD5 !important;
 }
