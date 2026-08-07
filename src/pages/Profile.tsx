@@ -990,7 +990,7 @@ export default function Profile() {
 
 
         {/* ═══ STATS ROW ═══ */}
-        <div className="mx-4 mt-4 elix-surface rounded-xl">
+        <div className="mx-4 mt-4">
           <div className="flex items-center justify-center gap-6 px-4 py-3">
           <button
             type="button"
