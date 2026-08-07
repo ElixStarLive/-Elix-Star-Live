@@ -1424,39 +1424,13 @@ video::-webkit-media-controls-overlay-enclosure,
   -webkit-backdrop-filter: none !important;
 }
 
-/*
- * Compact action sheets — same WIDTH as home nav (feed-column-width).
- * ONE line only (top). No full box border. Heights stay from each component.
- */
+/* Compact sheets (Share / More / Comments / Gift): NO size/border overrides — component layout only.
+   Transparent wash only so video/profile shows through; icons sit on top. */
 #root .elix-glass.rounded-t-2xl,
 #root .elix-panel.rounded-t-2xl:not(.elix-full-page-panel),
-#root .bottom-sheet-above-nav.elix-glass,
-#root .bottom-sheet-above-nav.elix-panel,
 #root .bottom-sheet-above-nav {
-  width: min(var(--feed-column-max-width), calc(100vw - var(--safe-left) - var(--safe-right))) !important;
-  max-width: var(--feed-column-max-width) !important;
-  margin-left: auto !important;
-  margin-right: auto !important;
-  border: none !important;
-  border-top: 1px solid var(--elix-border) !important;
-  border-left: none !important;
-  border-right: none !important;
-  border-bottom: none !important;
-  background-color: transparent !important;
-  background-image: var(--elix-page-fill) !important;
-  background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
-  background-position: var(--elix-fundal-position), var(--elix-fundal-position) !important;
-  background-repeat: no-repeat, no-repeat !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  box-shadow: none !important;
-}
-
-/* One line in panel — kill extra header dividers inside compact sheets */
-#root .elix-glass.rounded-t-2xl > .border-b,
-#root .elix-panel.rounded-t-2xl:not(.elix-full-page-panel) > .border-b,
-#root .bottom-sheet-above-nav > .border-b {
-  border-bottom: none !important;
+  background-image: none !important;
+  background-color: var(--elix-panel-wash) !important;
 }
 
 /* Chips / pills keep compact panel look — not full page */
@@ -2043,12 +2017,9 @@ body {
 #root .bg-black\/40,
 #root .bg-\[\#09090B\]\/40,
 #root .bg-\[\#09090B\]\/50 {
-  background-color: transparent !important;
-  background-image: var(--elix-page-fill) !important;
-  background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
-  background-position: var(--elix-fundal-position), var(--elix-fundal-position) !important;
-  background-repeat: no-repeat, no-repeat !important;
-  background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment) !important;
+  /* Transparent wash only — see video/profile under; icons on top */
+  background-color: var(--elix-panel-wash) !important;
+  background-image: none !important;
 }
 
 #root .bg-black\/45,
@@ -2070,12 +2041,8 @@ body {
 #root .bg-\[\#09090B\]\/95,
 #root [class*="bg-[rgba(0,0,0"],
 #root [class*="bg-[rgba(20,20,20"] {
-  background-color: transparent !important;
-  background-image: var(--elix-page-fill) !important;
-  background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
-  background-position: var(--elix-fundal-position), var(--elix-fundal-position) !important;
-  background-repeat: no-repeat, no-repeat !important;
-  background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment) !important;
+  background-color: var(--elix-panel-wash) !important;
+  background-image: none !important;
   border-color: var(--elix-border);
 }
 

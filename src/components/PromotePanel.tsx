@@ -132,7 +132,7 @@ export default function PromotePanel({ isOpen, onClose, contentType, content }: 
   return (
     <div className="fixed inset-0 z-[100000] flex items-end justify-center bg-black/50" onClick={onClose}>
       <div
-        className={`w-full feed-column-width elix-panel backdrop-blur-md rounded-t-2xl h-[38vh] max-h-[320px] overflow-hidden flex flex-col animate-in slide-in-from-bottom ${!bottomNavHidden ? 'bottom-sheet-above-nav' : ''}`}
+        className={`w-full max-w-[480px] elix-panel backdrop-blur-md rounded-t-2xl h-[38vh] max-h-[320px] overflow-hidden flex flex-col border border-black animate-in slide-in-from-bottom ${!bottomNavHidden ? 'bottom-sheet-above-nav' : ''}`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Drag handle */}
