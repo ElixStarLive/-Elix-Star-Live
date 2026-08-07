@@ -39,9 +39,9 @@ export default function SettingsOptionSheet({ children, onClose, title }: Settin
 
   return (
     <div className="app-live-column-host z-[9999]">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden />
+      <div className="absolute inset-0 bg-transparent" onClick={onClose} aria-hidden />
       <div
-        className="app-live-column text-white"
+        className="app-live-column elix-glass text-white"
         style={{
           transform: `translateY(${dragY}px)`,
           transition: dragging ? 'none' : 'transform 0.22s ease',
@@ -49,7 +49,7 @@ export default function SettingsOptionSheet({ children, onClose, title }: Settin
         onClick={(e) => e.stopPropagation()}
       >
         <header
-          className="relative flex-shrink-0 bg-[rgba(0,0,0,0.35)] border-b border-white/[0.06]"
+          className="relative flex-shrink-0 bg-transparent border-b border-black"
           style={{
             paddingTop: 'env(safe-area-inset-top, 0px)',
             minHeight: 'calc(env(safe-area-inset-top, 0px) + 44px)',
