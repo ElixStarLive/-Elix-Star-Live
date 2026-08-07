@@ -192,7 +192,7 @@
 
   body {
     @apply text-text font-sans antialiased overflow-hidden;
-    background-color: transparent;
+    background-color: #080A0E;
     background-image: none;
     min-height: 100%;
     min-height: 100dvh;
@@ -1179,11 +1179,11 @@ video::-webkit-media-controls-overlay-enclosure,
     0 0 40px rgba(255, 255, 255, 0.04) !important;
 }
 
-/* Live room shell must never paint solid page black over the stream */
+/* Live room overlays — blue-charcoal glass, never plain black */
 .elix-live-room .bg-black\/35,
 .elix-live-room .bg-\[\#09090B\]\/40 {
-  background-color: rgba(0, 0, 0, 0.35) !important;
-  border-color: #2A2D33 !important;
+  background-color: rgba(8, 10, 14, 0.65) !important;
+  border-color: var(--elix-border) !important;
 }
 .elix-live-room .bg-\[rgba\(10\,10\,10\,0\.72\)\],
 .elix-live-room .bg-\[\#09090B\]\/95,
@@ -1191,8 +1191,8 @@ video::-webkit-media-controls-overlay-enclosure,
 .elix-live-room .bg-\[\#09090B\]\/85,
 .elix-live-room .bg-\[\#09090B\]\/80,
 .elix-live-room .bg-\[\#09090B\]\/70 {
-  background-color: rgba(10, 10, 10, 0.72) !important;
-  border-color: #2A2D33 !important;
+  background-color: rgba(18, 20, 25, 0.65) !important;
+  border-color: var(--elix-border) !important;
 }
 
 .border-gold-metallic {
@@ -1378,7 +1378,7 @@ nav[aria-label="Main navigation"] button:not([aria-current="page"]) .elix-silver
   justify-content: center;
   flex-shrink: 0;
   box-sizing: border-box;
-  background: #09090B;
+  background: #080A0E;
   overflow: visible;
 }
 .profile-add-story-btn::before {
@@ -1588,4 +1588,63 @@ body::before {
 .elix-battle-score-wrap {
   background-color: var(--elix-bg-glass) !important;
   border-bottom: 1px solid var(--elix-border) !important;
+}
+
+/* ═══ NO PLAIN BLACK ═══
+   Map leftover black / near-black fills to blue-charcoal + glass.
+   Fundal #080A0E | glass rgba(8,10,14,0.65) | surface rgba(18,20,25,0.65) | panel rgba(26,28,33,0.65)
+*/
+#root .bg-black,
+#root .bg-\[\#000\],
+#root .bg-\[\#000000\],
+#root .bg-\[\#09090B\],
+#root .bg-\[\#0A0A0A\],
+#root .bg-\[\#0B0B0C\],
+#root .bg-\[\#111111\],
+#root .bg-\[\#121212\] {
+  background-color: var(--elix-bg) !important;
+}
+
+#root .bg-black\/20,
+#root .bg-black\/25,
+#root .bg-black\/30,
+#root .bg-black\/35,
+#root .bg-black\/40,
+#root .bg-\[\#09090B\]\/40,
+#root .bg-\[\#09090B\]\/50 {
+  background-color: rgba(8, 10, 14, 0.65) !important;
+}
+
+#root .bg-black\/45,
+#root .bg-black\/50,
+#root .bg-black\/55,
+#root .bg-black\/60,
+#root .bg-black\/65,
+#root .bg-black\/70,
+#root .bg-black\/72,
+#root .bg-black\/75,
+#root .bg-black\/80,
+#root .bg-black\/85,
+#root .bg-black\/90,
+#root .bg-\[\#09090B\]\/60,
+#root .bg-\[\#09090B\]\/70,
+#root .bg-\[\#09090B\]\/80,
+#root .bg-\[\#09090B\]\/85,
+#root .bg-\[\#09090B\]\/90,
+#root .bg-\[\#09090B\]\/95,
+#root [class*="bg-[rgba(0,0,0"],
+#root [class*="bg-[rgba(10,10,10"],
+#root [class*="bg-[rgba(20,20,20"] {
+  background-color: var(--elix-surface) !important;
+  border-color: var(--elix-border);
+}
+
+/* Solid near-black hex leftovers on inline styles / common wrappers */
+#root [style*="background-color: #09090B"],
+#root [style*="background-color:#09090B"],
+#root [style*="background: #09090B"],
+#root [style*="background:#09090B"],
+#root [style*="backgroundColor: '#09090B'"],
+#root [style*='backgroundColor: "#09090B"'] {
+  background-color: var(--elix-bg) !important;
 }
