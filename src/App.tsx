@@ -140,7 +140,7 @@ function LiveStreamGuard() {
 // Loading fallback for lazy-loaded routes
 function PageLoader() {
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center text-white p-4">
+    <div className="min-h-screen bg-black flex flex-col items-center justify-center text-white p-4">
       <div className="w-16 h-16 border-4 border-secondary border-t-transparent rounded-full animate-spin mb-4" />
       <p className="text-white/70">Loading...</p>
     </div>
@@ -339,7 +339,7 @@ function App() {
   // Show loading while checking auth
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="w-10 h-10 border-2 border-[#6F3FF5]/25 border-t-[#6F3FF5] rounded-full animate-spin elix-loader" />
       </div>
     );
