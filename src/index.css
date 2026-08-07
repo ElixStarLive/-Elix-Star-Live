@@ -1481,9 +1481,8 @@ svg.lucide.fill-silver-full.royce-icon-gold {
   display: none !important;
 }
 
-/* ═══ Owner system: More Options glass everywhere + phone column + no white browser page ═══
-   Glass = rgba(0,0,0,0.35) + black contour + blur (see home/video through panels).
-   Feed stays 480px — never stretch to 100vw. Body black kills browser white only. */
+/* ═══ Owner system: feed glass + phone column; Live/Battle UI left alone ═══
+   Body black kills white browser page only. Do NOT remap .elix-live-room. */
 html,
 body {
   background-color: #000000 !important;
@@ -1507,21 +1506,17 @@ body::before {
   background-image: none !important;
 }
 
-/* One glass recipe = More Options panel (home contour visible through) */
-#root [class*="rounded-t-2xl"][class*="bg-[rgba"],
-#root [class*="rounded-t-2xl"][class*="bg-[#09090B"],
-#root [class*="rounded-t-2xl"][class*="bg-[#09090B]/"],
+/* More Options glass — feed sheets + top/bottom nav only (NOT live/battle) */
+#root [class*="rounded-t-2xl"][class*="bg-[rgba"]:not(.elix-live-room *),
+#root [class*="rounded-t-2xl"][class*="bg-[#09090B"]:not(.elix-live-room *),
 .bottom-sheet,
 .bottom-sheet-small,
-.bottom-sheet-above-nav,
+.bottom-sheet-above-nav:not(.elix-live-room *),
 #root .elix-glass,
 #root .elix-glass-panel,
 #root nav[aria-label="Main navigation"] .feed-column-width,
 #root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
-#root .feed-column-width.h-\[var\(--topnav-bar-height\)\],
-.elix-live-room [class*="rounded-t-2xl"],
-.elix-live-room [class*="bg-[rgba(10,10,10"],
-.elix-live-room [class*="bg-[rgba(0,0,0"] {
+#root .feed-column-width.h-\[var\(--topnav-bar-height\)\] {
   background-color: rgba(0, 0, 0, 0.35) !important;
   border: 1px solid #000000 !important;
   box-shadow: none !important;
@@ -1532,10 +1527,12 @@ body::before {
 .page-above-bottom-nav,
 .page-above-bottom-nav__inner,
 main.feed-column-width,
-.elix-live-room,
-.elix-live-room.bg-black,
-#root .elix-live-room,
 .app-live-column-host {
   background-color: transparent !important;
-  background-image: none !important;
+}
+
+/* Live/Battle room keeps solid black shell — original battle UI */
+.elix-live-room,
+#root .elix-live-room {
+  background-color: #000000 !important;
 }

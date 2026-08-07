@@ -803,7 +803,7 @@ export default function LiveHostScreen() {
 
   return (
     <div
-      className="elix-live-room fixed inset-0 flex justify-center bg-transparent z-[9990] transition-transform duration-[250ms] ease-out"
+      className="elix-live-room fixed inset-0 flex justify-center bg-black z-[9990] transition-transform duration-[250ms] ease-out"
       style={{ transform: pageExiting ? 'translateX(100%)' : undefined }}
     >
       <div className="relative w-full max-w-[480px] h-full bg-transparent overflow-hidden border-none">
