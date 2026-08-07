@@ -70,13 +70,13 @@ export function displayBalanceAfterTestSpend(
   return Math.max(0, realWalletBalance);
 }
 
-export function addPersistedTestCoins(userId: string | undefined, amount: number): number {
-  if (!testCoinsAllowed()) return 0;
-  const add = Math.max(0, Math.floor(amount));
-  const current = getPersistedTestCoinsBalance(userId);
-  const newBalance = current + add;
-  persistTestCoinsBalance(userId, newBalance);
-  return newBalance;
+/**
+ * Client-side mint is forbidden. Issuance must go through
+ * POST /api/test-coins/mint (admin + server password).
+ * Kept as a no-op so legacy call sites cannot inflate TEST balance locally.
+ */
+export function addPersistedTestCoins(userId: string | undefined, _amount: number): number {
+  return getPersistedTestCoinsBalance(userId);
 }
 
 export type DebitTestCoinsResult =

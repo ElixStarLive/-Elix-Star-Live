@@ -56,7 +56,6 @@ import {
   type TauntBurst,
 } from '../../../lib/battleTaunts';
 import {
-  addPersistedTestCoins,
   addTestGiftXp,
   debitTestCoinsForGift,
   displayBalanceAfterTestSpend,
@@ -67,6 +66,7 @@ import {
   shouldUseTestCoinsForGifts,
   areTestCoinsEnabled,
 } from '../../../lib/testCoins';
+import { authorizeTestCoinIssue, mintTestCoinsViaServer } from '../../../lib/testCoinIssueApi';
 import { GiftOverlay } from '../../../components/GiftOverlay';
 import GiftAnimationOverlay, { pushLocalGiftPill } from '../../../components/GiftAnimationOverlay';
 import { LiveGiftFeedStack } from '../../../components/LiveGiftFeedStack';
@@ -303,14 +303,11 @@ export function useLiveSpectatorController() {
 
   const [showTestCoinsModal, setShowTestCoinsModal] = useState(false);
   const [testCoinsStep, setTestCoinsStep] = useState<'password' | 'amount'>('password');
-  const TEST_COINS_PWD_KEY = 'elix_test_coins_pwd_saved';
-  const TEST_COINS_VERIFIED_KEY = 'elix_test_coins_verified';
   const [testCoinsPwd, setTestCoinsPwd] = useState('');
   const [testCoinsAmount, setTestCoinsAmount] = useState('');
   const [testCoinsError, setTestCoinsError] = useState('');
-  const [testCoinsSavePwd, setTestCoinsSavePwd] = useState(!!(typeof localStorage !== 'undefined' && localStorage.getItem(TEST_COINS_PWD_KEY)));
+  const [testCoinsBusy, setTestCoinsBusy] = useState(false);
   const testCoinsPwdRef = useRef<HTMLInputElement>(null);
-  const TEST_COINS_HASH = '169a9bfc269089e14090ad2e393b17e945d798598c33993bcab5feef93e68508';
   const [currentGift, setCurrentGift] = useState<{video: string; battleSide?: 'host' | 'opponent' | null} | null>(null);
   const [giftQueue, setGiftQueue] = useState<{video: string; battleSide?: 'host' | 'opponent' | null}[]>([]);
   const [shareQuery, setShareQuery] = useState('');
@@ -810,13 +807,13 @@ export function useLiveSpectatorController() {
   // Stay on the host stream during battle. Dual LiveKit already shows both
   // creators — navigating away mixes WS/LiveKit rooms and kills the live.
 
-  // Tap vote goes to BATTLE SCORE only (server-scored) — never to the like
-  // counter under the profile. +5 once per full match, resets next match.
+  // Tap vote → BATTLE SCORE only (server-scored). Every 3 taps = +5; unlimited.
+  // Never creator revenue / wallet. Server is authoritative (handlers.ts).
   const handleSpectatorVote = useCallback((target: 'host' | 'opponent' | 'player3' | 'player4') => {
     if (!spectatorBattle?.active || spectatorBattle.status !== 'ACTIVE') return;
-    if (spectatorBattleVoteRemainingRef.current <= 0) return;
     if (!websocket.isConnected()) return;
-    spectatorBattleVoteRemainingRef.current = 0;
+    battleScreenTapCountRef.current += 1;
+    setBattleScreenTapCount(battleScreenTapCountRef.current);
     try {
       if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(12);
     } catch {
@@ -1735,17 +1732,118 @@ export function useLiveSpectatorController() {
   }, [user?.id, user?.level, updateUser]);
 
   useEffect(() => {
-    if (showTestCoinsModal) {
-      const verified = localStorage.getItem(TEST_COINS_VERIFIED_KEY);
-      const ts = verified ? parseInt(verified, 10) : NaN;
-      if (ts && Date.now() - ts < 24 * 60 * 60 * 1000) {
-        setTestCoinsStep('amount');
-      } else {
-        setTestCoinsStep('password');
-        setTimeout(() => testCoinsPwdRef.current?.focus(), 100);
-      }
+    if (showTestCoinsModal && testCoinsStep === 'password') {
+      setTimeout(() => testCoinsPwdRef.current?.focus(), 100);
     }
-  }, [showTestCoinsModal]);
+  }, [showTestCoinsModal, testCoinsStep]);
+
+  const openTestCoinsModal = useCallback(() => {
+    if (!user?.isAdmin) {
+      showToast('Not available');
+      setIsMoreMenuOpen(false);
+      return;
+    }
+    setShowTestCoinsModal(true);
+    setTestCoinsStep('password');
+    setTestCoinsPwd('');
+    setTestCoinsError('');
+    setTestCoinsAmount('');
+    setIsMoreMenuOpen(false);
+  }, [user?.isAdmin]);
+
+  const closeTestCoinsModal = useCallback(() => {
+    setShowTestCoinsModal(false);
+    setTestCoinsPwd('');
+  }, []);
+
+  const selectTestCoinsPreset = useCallback((amt: number) => {
+    setTestCoinsAmount(String(amt));
+    setTestCoinsError('');
+  }, []);
+
+  const addMaxTestCoinsAtOnce = useCallback(async () => {
+    if (!user?.isAdmin || !testCoinsPwd) {
+      setTestCoinsError('Admin password required');
+      return;
+    }
+    setTestCoinsBusy(true);
+    try {
+      const result = await mintTestCoinsViaServer(user?.id, testCoinsPwd, 100000000);
+      if (result.ok === false) {
+        setTestCoinsError(result.error === 'FORBIDDEN' ? 'Access denied' : result.error);
+        return;
+      }
+      setCoinBalance(result.balance);
+      showToast(`+${result.minted.toLocaleString()} test added`);
+      setShowTestCoinsModal(false);
+      setTestCoinsPwd('');
+    } finally {
+      setTestCoinsBusy(false);
+    }
+  }, [user?.id, user?.isAdmin, testCoinsPwd]);
+
+  const submitTestCoinsAmount = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user?.isAdmin) {
+      setTestCoinsError('Access denied');
+      return;
+    }
+    const amount = parseInt(testCoinsAmount, 10);
+    if (!amount || amount <= 0) {
+      setTestCoinsError('Enter a valid amount');
+      return;
+    }
+    if (amount > 100000000) {
+      setTestCoinsError('Max 100,000,000 per top-up');
+      return;
+    }
+    if (!testCoinsPwd) {
+      setTestCoinsStep('password');
+      setTestCoinsError('Enter password again');
+      return;
+    }
+    setTestCoinsBusy(true);
+    try {
+      const result = await mintTestCoinsViaServer(user?.id, testCoinsPwd, amount);
+      if (result.ok === false) {
+        setTestCoinsError(result.error === 'FORBIDDEN' ? 'Access denied' : result.error);
+        if (result.status === 403) setTestCoinsStep('password');
+        return;
+      }
+      setCoinBalance(result.balance);
+      showToast(`+${result.minted.toLocaleString()} test added`);
+      setShowTestCoinsModal(false);
+      setTestCoinsPwd('');
+    } finally {
+      setTestCoinsBusy(false);
+    }
+  }, [testCoinsAmount, testCoinsPwd, user?.id, user?.isAdmin]);
+
+  const submitTestCoinsPasswordUnlock = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user?.isAdmin) {
+      setTestCoinsError('Access denied');
+      setTestCoinsPwd('');
+      return;
+    }
+    if (!testCoinsPwd.trim()) {
+      setTestCoinsError('Enter password');
+      return;
+    }
+    setTestCoinsBusy(true);
+    try {
+      const result = await authorizeTestCoinIssue(testCoinsPwd);
+      if (result.ok === false) {
+        setTestCoinsError(result.error === 'FORBIDDEN' ? 'Wrong password or not authorised' : result.error);
+        setTestCoinsPwd('');
+        return;
+      }
+      setTestCoinsError('');
+      setTestCoinsStep('amount');
+    } finally {
+      setTestCoinsBusy(false);
+    }
+  }, [testCoinsPwd, user?.isAdmin]);
 
   useEffect(() => {
     if (!showGiftPanel || !user?.id) return;
@@ -3191,9 +3289,6 @@ export function useLiveSpectatorController() {
 
   return {
     SPEED_CHALLENGE_ENABLED,
-    TEST_COINS_HASH,
-    TEST_COINS_PWD_KEY,
-    TEST_COINS_VERIFIED_KEY,
     _dailyHeartCount,
     _lastBattleScoreUpdateTraceSigRef,
     _myHeartCount,
@@ -3433,7 +3528,6 @@ export function useLiveSpectatorController() {
     setTestCoinsAmount,
     setTestCoinsError,
     setTestCoinsPwd,
-    setTestCoinsSavePwd,
     setTestCoinsStep,
     setUserLevel,
     setUserXP,
@@ -3479,11 +3573,17 @@ export function useLiveSpectatorController() {
     streamRetryKey,
     syncMvpSlots,
     syncMvpSlotsRef,
+    addMaxTestCoinsAtOnce,
+    closeTestCoinsModal,
+    openTestCoinsModal,
+    selectTestCoinsPreset,
+    submitTestCoinsAmount,
+    submitTestCoinsPasswordUnlock,
     testCoinsAmount,
+    testCoinsBusy,
     testCoinsError,
     testCoinsPwd,
     testCoinsPwdRef,
-    testCoinsSavePwd,
     testCoinsStep,
     toggleCam,
     toggleFeaturedUser,

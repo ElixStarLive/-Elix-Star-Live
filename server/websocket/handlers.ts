@@ -29,7 +29,7 @@ import {
   revokeCohostPublish,
   getCohostLayout,
 } from "./index";
-import { valkeyDel, valkeySet, valkeySetNx, valkeyGet } from "../lib/valkey";
+import { valkeyDel, valkeySet, valkeySetNx, valkeyGet, valkeyHincrby, valkeyExpire } from "../lib/valkey";
 import { randomUUID } from "crypto";
 import {
   clearGiftGoal,
@@ -568,10 +568,9 @@ export async function handleMessage(
       }
 
       case "battle_spectator_vote": {
-        // Each spectator awards +5 exactly ONCE per full match (claim keyed by
-        // battle id, so the next match resets it). Enforced server-side so a
-        // forged loop cannot inject unlimited free battle score.
-        if (!(await wsRateCheck(client.userId, "spectator_vote", 5, 60_000))) break;
+        // GAMEPLAY ONLY: every 3 screen taps = +5 Battle points. £0 revenue.
+        // Rate-limited; creators in the match cannot self-score via taps.
+        if (!(await wsRateCheck(client.userId, "spectator_vote", 120, 60_000))) break;
         const voteRoom = client.roomId;
         const voteBattle = await getBattleFromStore(voteRoom);
         if (!voteBattle || voteBattle.status !== "ACTIVE") break;
@@ -584,26 +583,33 @@ export async function handleMessage(
           (participantId): participantId is string =>
             typeof participantId === "string" && participantId.length > 0,
         );
-        // Creators publish and compete; only spectators may cast the +5 vote.
         if (participantIds.includes(client.userId)) break;
-        const voteClaimKey = `battle_vote:${voteBattle.id}:${client.userId}`;
-        const firstVote = await valkeySetNx(voteClaimKey, "1", 600_000);
-        if (!firstVote) {
-          sendToClient(client, "battle_vote_ack", {
-            target: null,
-            points: 0,
-            status: "already_voted",
-          });
-          break;
-        }
         const voteTarget =
           data.target === "host" ? "host" : "opponent";
-        await addBattleScoreForTarget(voteRoom, voteTarget as "host" | "opponent", 5);
-        sendToClient(client, "battle_vote_ack", {
-          target: voteTarget,
-          points: 5,
-          status: "ok",
-        });
+        const tapKey = `battle_taps:${voteBattle.id}:${client.userId}`;
+        const tapCount = await valkeyHincrby(tapKey, "count", 1);
+        await valkeyExpire(tapKey, 600);
+        // Award +5 only on every 3rd tap (3→+5, 6→+5, …). Not coins. Not money.
+        if (tapCount > 0 && tapCount % 3 === 0) {
+          await addBattleScoreForTarget(voteRoom, voteTarget as "host" | "opponent", 5);
+          sendToClient(client, "battle_vote_ack", {
+            target: voteTarget,
+            points: 5,
+            taps: tapCount,
+            status: "ok",
+            origin: "battle_tap",
+            financialValueGbp: 0,
+          });
+        } else {
+          sendToClient(client, "battle_vote_ack", {
+            target: voteTarget,
+            points: 0,
+            taps: tapCount,
+            status: "tap_counted",
+            origin: "battle_tap",
+            financialValueGbp: 0,
+          });
+        }
         break;
       }
 

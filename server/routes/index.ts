@@ -20,7 +20,12 @@ import progressionRouter from "./progression.router";
 import adminProgressionRouter from "./adminProgression.router";
 import adminMonetisationRouter from "./adminMonetisation.router";
 import engagementRouter from "./engagement.router";
-import { handleGetTestCoinBalance, handleMintTestCoins, handleSpendTestCoinsForScore } from "./testCoins";
+import {
+  handleGetTestCoinBalance,
+  handleAuthorizeTestCoins,
+  handleMintTestCoins,
+  handleSpendTestCoinsForScore,
+} from "./testCoins";
 
 export function mountRoutes(app: Express): void {
   app.use("/api/auth", authRouter);
@@ -47,15 +52,12 @@ export function mountRoutes(app: Express): void {
   app.use("/api/stories", storiesRouter);
   app.use("/api/media", mediaRouter);
 
-  // Test coins — isolated in-memory balance for gift testing only (never real money).
-  // Never mounted in production: the shipped store build does not use these routes
-  // (client test coins live in localStorage), so exposing a mint endpoint on the
-  // live backend would be an unnecessary abuse surface.
-  if (process.env.NODE_ENV !== "production") {
-    app.get("/api/test-coins/balance", handleGetTestCoinBalance);
-    app.post("/api/test-coins/mint", handleMintTestCoins);
-    app.post("/api/test-coins/score", handleSpendTestCoinsForScore);
-  }
+  // Test-coin ISSUE — mounted in all envs. Mint requires admin + server password.
+  // Gameplay spend of already-issued test coins stays client-local (giftSource=test_coins).
+  app.get("/api/test-coins/balance", handleGetTestCoinBalance);
+  app.post("/api/test-coins/authorize", handleAuthorizeTestCoins);
+  app.post("/api/test-coins/mint", handleMintTestCoins);
+  app.post("/api/test-coins/score", handleSpendTestCoinsForScore);
 
   // Misc (analytics, block, report, notifications, IAP, refunds, etc.)
   app.use("/api", miscRouter);

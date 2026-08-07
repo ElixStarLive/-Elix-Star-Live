@@ -53,7 +53,6 @@ import {
   type TauntBurst,
 } from '../../../lib/battleTaunts';
 import {
-  addPersistedTestCoins,
   addTestGiftXp,
   debitTestCoinsForGift,
   displayBalanceAfterTestSpend,
@@ -193,9 +192,7 @@ export default function LiveHostScreen() {
     MAX_CO_HOSTS,
     PROMOTE_LIKES_THRESHOLD_LIVE,
     SPEED_CHALLENGE_ENABLED,
-    TEST_COINS_HASH,
-    TEST_COINS_PWD_KEY,
-    TEST_COINS_VERIFIED_KEY,
+    testCoinsBusy,
     _PROMOTE_LIKES_THRESHOLD_BATTLE,
     _allSlotsAccepted,
     _anySlotFilled,
@@ -683,7 +680,6 @@ export default function LiveHostScreen() {
     setTestCoinsAmount,
     setTestCoinsError,
     setTestCoinsPwd,
-    setTestCoinsSavePwd,
     setTestCoinsStep,
     setTopGifters,
     setTopGiftersSide,
@@ -747,7 +743,6 @@ export default function LiveHostScreen() {
     testCoinsError,
     testCoinsPwd,
     testCoinsPwdRef,
-    testCoinsSavePwd,
     testCoinsStep,
     toggleBattle,
     toggleCam,
@@ -3141,7 +3136,7 @@ export default function LiveHostScreen() {
             className="relative bg-[rgba(10,10,10,0.72)] rounded-t-2xl p-3 pb-safe h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full "
             onClick={(e) => e.stopPropagation()}
           >
-            {areTestCoinsEnabled() && (
+            {areTestCoinsEnabled() && user?.isAdmin && (
               <button
                 type="button"
                 onClick={openTestCoinsModal}
@@ -3331,7 +3326,7 @@ export default function LiveHostScreen() {
         </>
       )}
 
-      {areTestCoinsEnabled() && showTestCoinsModal && (
+      {areTestCoinsEnabled() && user?.isAdmin && showTestCoinsModal && (
         <>
           <div
             className="fixed inset-0 bg-black/60 pointer-events-auto"
@@ -3366,10 +3361,6 @@ export default function LiveHostScreen() {
                     placeholder="Password"
                     className="w-full bg-[rgba(0,0,0,0.35)] text-white text-sm rounded-xl px-4 py-3 border border-[#2A2D33] focus:border-[#D8D9DD]/60 focus:outline-none placeholder:text-white/30 mb-2"
                   />
-                  <label className="flex items-center gap-2 mt-2 mb-2 cursor-pointer">
-                    <input type="checkbox" checked={testCoinsSavePwd} onChange={(e) => setTestCoinsSavePwd(e.target.checked)} className="rounded border-white/30" />
-                    <span className="text-white/60 text-xs">Save password (stay unlocked 24h)</span>
-                  </label>
                   {testCoinsError && (
                     <p className="text-white/60 text-xs mb-2">{testCoinsError}</p>
                   )}
@@ -3383,7 +3374,7 @@ export default function LiveHostScreen() {
                     </button>
                     <button
                       type="submit"
-                      disabled={!testCoinsPwd}
+                      disabled={!testCoinsPwd || testCoinsBusy}
                       className="flex-1 py-2.5 rounded-xl bg-[#6F3FF5] text-white text-sm font-bold disabled:opacity-40"
                     >
                       Unlock
@@ -3427,8 +3418,9 @@ export default function LiveHostScreen() {
                     ))}
                     <button
                       type="button"
-                      onClick={addMaxTestCoinsAtOnce}
-                      className="py-1.5 rounded-lg text-xs font-bold transition-colors bg-[#6F3FF5]/30 text-[#F5F5F7] hover:bg-[#6F3FF5]/40 col-span-3"
+                      onClick={() => { void addMaxTestCoinsAtOnce(); }}
+                      disabled={testCoinsBusy}
+                      className="py-1.5 rounded-lg text-xs font-bold transition-colors bg-[#6F3FF5]/30 text-[#F5F5F7] hover:bg-[#6F3FF5]/40 col-span-3 disabled:opacity-40"
                     >
                       Max (100M) â€“ Charge at once
                     </button>
@@ -3443,7 +3435,7 @@ export default function LiveHostScreen() {
                     </button>
                     <button
                       type="submit"
-                      disabled={!testCoinsAmount}
+                      disabled={!testCoinsAmount || testCoinsBusy}
                       className="flex-1 py-2.5 rounded-xl bg-[#6F3FF5] text-white text-sm font-bold disabled:opacity-40"
                     >
                       Add Coins

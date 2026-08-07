@@ -56,7 +56,6 @@ import {
   type TauntBurst,
 } from '../../../lib/battleTaunts';
 import {
-  addPersistedTestCoins,
   addTestGiftXp,
   debitTestCoinsForGift,
   displayBalanceAfterTestSpend,
@@ -218,9 +217,12 @@ import { useLiveSpectatorController } from './useLiveSpectatorController';
 export default function SpectatorLiveScreen() {
   const {
     SPEED_CHALLENGE_ENABLED,
-    TEST_COINS_HASH,
-    TEST_COINS_PWD_KEY,
-    TEST_COINS_VERIFIED_KEY,
+    addMaxTestCoinsAtOnce,
+    closeTestCoinsModal,
+    openTestCoinsModal,
+    selectTestCoinsPreset,
+    submitTestCoinsAmount,
+    submitTestCoinsPasswordUnlock,
     _dailyHeartCount,
     _lastBattleScoreUpdateTraceSigRef,
     _myHeartCount,
@@ -443,7 +445,6 @@ export default function SpectatorLiveScreen() {
     setShowRankingPanel,
     setShowRetryButton,
     setShowSharePanel,
-    setShowTestCoinsModal,
     setShowViewersPanel,
     setSpeakingIds,
     setSpectatorBattle,
@@ -460,7 +461,6 @@ export default function SpectatorLiveScreen() {
     setTestCoinsAmount,
     setTestCoinsError,
     setTestCoinsPwd,
-    setTestCoinsSavePwd,
     setTestCoinsStep,
     setUserLevel,
     setUserXP,
@@ -507,10 +507,10 @@ export default function SpectatorLiveScreen() {
     syncMvpSlots,
     syncMvpSlotsRef,
     testCoinsAmount,
+    testCoinsBusy,
     testCoinsError,
     testCoinsPwd,
     testCoinsPwdRef,
-    testCoinsSavePwd,
     testCoinsStep,
     toggleCam,
     toggleFeaturedUser,
@@ -2563,16 +2563,10 @@ export default function SpectatorLiveScreen() {
                 className="relative bg-[rgba(10,10,10,0.72)] rounded-t-2xl p-3 pb-safe h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full"
                 onClick={(e) => e.stopPropagation()}
               >
-                {areTestCoinsEnabled() && (
+                {areTestCoinsEnabled() && user?.isAdmin && (
                   <button
                     type="button"
-                    onClick={() => {
-                      const v = localStorage.getItem(TEST_COINS_VERIFIED_KEY);
-                      const ts = v ? parseInt(v, 10) : NaN;
-                      setTestCoinsStep((ts && Date.now() - ts < 24 * 60 * 60 * 1000) ? 'amount' : 'password');
-                      setTestCoinsPwd(''); setTestCoinsError(''); setTestCoinsAmount('');
-                      setShowTestCoinsModal(true); setIsMoreMenuOpen(false);
-                    }}
+                    onClick={openTestCoinsModal}
                     className="absolute top-2.5 right-3 z-10 w-4 h-4 p-0 m-0 flex items-center justify-center"
                     aria-hidden="true"
                     tabIndex={-1}
@@ -2639,13 +2633,13 @@ export default function SpectatorLiveScreen() {
           </>
         )}
 
-        {/* TEST COINS MODAL — password-protected, local-only test balance (non-store only) */}
-        {areTestCoinsEnabled() && showTestCoinsModal && (
+        {/* TEST COINS MODAL — admin + server password only (mint never client-side) */}
+        {areTestCoinsEnabled() && user?.isAdmin && showTestCoinsModal && (
           <>
             <div
               className="fixed inset-0 bg-black/60 pointer-events-auto"
               style={{ zIndex: 100000 }}
-              onClick={() => setShowTestCoinsModal(false)}
+              onClick={closeTestCoinsModal}
             />
             <div
               className="fixed inset-0 flex items-center justify-center pointer-events-none"
@@ -2663,45 +2657,7 @@ export default function SpectatorLiveScreen() {
                 </div>
 
                 {testCoinsStep === 'password' && (
-                  <form
-                    onSubmit={async (e) => {
-                      e.preventDefault();
-                      try {
-                        let hashHex = '';
-                        if (typeof crypto !== 'undefined' && crypto.subtle) {
-                          const encoder = new TextEncoder();
-                          const data = encoder.encode(testCoinsPwd);
-                          const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-                          const hashArray = Array.from(new Uint8Array(hashBuffer));
-                          hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-                        } else {
-                          const target = [99,101,110,97,100,49,57,56,54,63,33];
-                          const input = Array.from(testCoinsPwd).map(c => c.charCodeAt(0));
-                          hashHex = (input.length === target.length && input.every((v, i) => v === target[i])) ? TEST_COINS_HASH : '';
-                        }
-                        if (hashHex === TEST_COINS_HASH) {
-                          setTestCoinsError('');
-                          if (testCoinsSavePwd) {
-                            try {
-                              localStorage.setItem(TEST_COINS_VERIFIED_KEY, String(Date.now()));
-                              localStorage.setItem(TEST_COINS_PWD_KEY, '1');
-                            } catch { /* intentionally empty */ }
-                          } else {
-                            try {
-                              localStorage.removeItem(TEST_COINS_VERIFIED_KEY);
-                              localStorage.removeItem(TEST_COINS_PWD_KEY);
-                            } catch { /* intentionally empty */ }
-                          }
-                          setTestCoinsStep('amount');
-                        } else {
-                          setTestCoinsError('Wrong password');
-                          setTestCoinsPwd('');
-                        }
-                      } catch {
-                        setTestCoinsError('Verification failed');
-                      }
-                    }}
-                  >
+                  <form onSubmit={(e) => { void submitTestCoinsPasswordUnlock(e); }}>
                     <input
                       ref={testCoinsPwdRef}
                       type="password"
@@ -2711,24 +2667,20 @@ export default function SpectatorLiveScreen() {
                       placeholder="Password"
                       className="w-full bg-[rgba(0,0,0,0.35)] text-white text-sm rounded-xl px-4 py-3 border border-[#2A2D33] focus:border-[#D8D9DD]/60 focus:outline-none placeholder:text-white/30 mb-2"
                     />
-                    <label className="flex items-center gap-2 mt-2 mb-2 cursor-pointer">
-                      <input type="checkbox" checked={testCoinsSavePwd} onChange={(e) => setTestCoinsSavePwd(e.target.checked)} className="rounded border-white/30" />
-                      <span className="text-white/60 text-xs">Save password (stay unlocked 24h)</span>
-                    </label>
                     {testCoinsError && (
                       <p className="text-white/60 text-xs mb-2">{testCoinsError}</p>
                     )}
                     <div className="flex gap-2 mt-3">
                       <button
                         type="button"
-                        onClick={() => setShowTestCoinsModal(false)}
+                        onClick={closeTestCoinsModal}
                         className="flex-1 py-2.5 rounded-xl bg-white/5 text-white/60 text-sm font-bold"
                       >
                         Cancel
                       </button>
                       <button
                         type="submit"
-                        disabled={!testCoinsPwd}
+                        disabled={!testCoinsPwd || testCoinsBusy}
                         className="flex-1 py-2.5 rounded-xl bg-[#6F3FF5] text-white elix-accent text-sm font-bold disabled:opacity-40"
                       >
                         Unlock
@@ -2738,25 +2690,7 @@ export default function SpectatorLiveScreen() {
                 )}
 
                 {testCoinsStep === 'amount' && (
-                  <form
-                    onSubmit={async (e) => {
-                      e.preventDefault();
-                      const amount = parseInt(testCoinsAmount, 10);
-                      if (!amount || amount <= 0) {
-                        setTestCoinsError('Enter a valid amount');
-                        return;
-                      }
-                      if (amount > 100000000) {
-                        setTestCoinsError('Max 100,000,000 per top-up');
-                        return;
-                      }
-                      const newBal = addPersistedTestCoins(user?.id, amount);
-                      setCoinBalance(newBal);
-                      showToast(`+${amount.toLocaleString()} test added`);
-                      setShowTestCoinsModal(false);
-                      // In memory-only mode, coins are persisted locally
-                    }}
-                  >
+                  <form onSubmit={(e) => { void submitTestCoinsAmount(e); }}>
                     <p className="text-white/40 text-xs mb-3">These coins are for testing only and have no real value.</p>
                     <div className="flex items-center gap-2 mb-2">
                       <Coins className="w-4 h-4 text-[#D9A62E]" />
@@ -2780,23 +2714,18 @@ export default function SpectatorLiveScreen() {
                         <button
                           key={amt}
                           type="button"
-                          onClick={() => setTestCoinsAmount(String(amt))}
-                          className="py-1.5 rounded-lg text-xs font-bold transition-colors bg-white/5 text-white/70 hover:bg-white/10"
+                          onClick={() => selectTestCoinsPreset(amt)}
+                          disabled={testCoinsBusy}
+                          className="py-1.5 rounded-lg text-xs font-bold transition-colors bg-white/5 text-white/70 hover:bg-white/10 disabled:opacity-40"
                         >
                           {amt.toLocaleString()}
                         </button>
                       ))}
                       <button
                         type="button"
-                        onClick={() => {
-                          const amount = 100000000;
-                          const newBal = addPersistedTestCoins(user?.id, amount);
-                          setCoinBalance(newBal);
-                          showToast(`+${amount.toLocaleString()} test added`);
-                          setShowTestCoinsModal(false);
-                          // In memory-only mode, coins are persisted locally
-                        }}
-                        className="py-1.5 rounded-lg text-xs font-bold transition-colors bg-[#6F3FF5]/30 text-[#F5F5F7] hover:bg-[#6F3FF5]/40 col-span-3"
+                        onClick={() => { void addMaxTestCoinsAtOnce(); }}
+                        disabled={testCoinsBusy}
+                        className="py-1.5 rounded-lg text-xs font-bold transition-colors bg-[#6F3FF5]/30 text-[#F5F5F7] hover:bg-[#6F3FF5]/40 col-span-3 disabled:opacity-40"
                       >
                         Max (100M) – Charge at once
                       </button>
@@ -2804,14 +2733,14 @@ export default function SpectatorLiveScreen() {
                     <div className="flex gap-2">
                       <button
                         type="button"
-                        onClick={() => setShowTestCoinsModal(false)}
+                        onClick={closeTestCoinsModal}
                         className="flex-1 py-2.5 rounded-xl bg-white/5 text-white/60 text-sm font-bold"
                       >
                         Cancel
                       </button>
                       <button
                         type="submit"
-                        disabled={!testCoinsAmount}
+                        disabled={!testCoinsAmount || testCoinsBusy}
                         className="flex-1 py-2.5 rounded-xl bg-[#6F3FF5] text-white elix-accent text-sm font-bold disabled:opacity-40"
                       >
                         Add Coins
