@@ -222,13 +222,28 @@
     --page-header-top: max(40px, calc(env(safe-area-inset-top, 0px) + 8px));
   }
 
-  /* Same width for For You top bar, video container, and bottom bar
-     (fixed bars use 100vw − safe insets so they match in-flow main column) */
+  /* Same width for For You top bar, video container, and bottom home bar */
   .feed-column-width {
+    box-sizing: border-box;
     width: min(var(--feed-column-max-width), calc(100vw - var(--safe-left) - var(--safe-right)));
     max-width: var(--feed-column-max-width);
     margin-left: auto;
     margin-right: auto;
+  }
+
+  /* Main video column — never stretch wider than top/home bars */
+  #root main.feed-column-width {
+    align-self: center;
+    width: min(var(--feed-column-max-width), calc(100vw - var(--safe-left) - var(--safe-right)));
+    max-width: var(--feed-column-max-width);
+  }
+
+  /* Top bar + home bar — exact same width token as video column */
+  #root nav[aria-label="Main navigation"] .feed-column-width,
+  #root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
+  #root .feed-column-width.h-\[var\(--topnav-bar-height\)\] {
+    width: min(var(--feed-column-max-width), calc(100vw - var(--safe-left) - var(--safe-right)));
+    max-width: var(--feed-column-max-width);
   }
 
   body {
