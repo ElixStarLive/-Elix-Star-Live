@@ -1484,9 +1484,9 @@ svg.lucide.fill-silver-full.royce-icon-gold {
 }
 
 /* ═══ App transparency contract ═══
-   Every page frame is transparent — same as home bottom nav.
-   No wallpaper, no gradient, no video underlay, no negation-chain patches.
-   BottomNav.tsx not touched. Create camera not touched. */
+   Outer shells clear. Every page frame carries one glass tint so all pages
+   read identical over whatever is behind. BottomNav.tsx not touched.
+   Create camera not touched. */
 html,
 body {
   background: transparent !important;
@@ -1498,7 +1498,12 @@ body::before {
 }
 #root,
 .elix-app-shell,
-.app-live-column-host,
-.app-live-column {
+.app-live-column-host {
   background: transparent !important;
+}
+
+/* Page frames: single tint applied everywhere Profile / Inbox / Settings / Shop live */
+.page-above-bottom-nav__inner,
+.app-live-column {
+  background-color: rgba(12, 10, 12, 0.58) !important;
 }
