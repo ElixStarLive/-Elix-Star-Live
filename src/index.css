@@ -1524,6 +1524,16 @@ body::before {
   -webkit-backdrop-filter: blur(12px) !important;
 }
 
+/* Kill white strip under home bar (safe-area + bottom border) */
+#root nav[aria-label="Main navigation"] {
+  background-color: #000000 !important;
+}
+#root nav[aria-label="Main navigation"] .feed-column-width {
+  border-bottom: none !important;
+  border-bottom-width: 0 !important;
+  border-bottom-color: transparent !important;
+}
+
 .page-above-bottom-nav,
 .page-above-bottom-nav__inner,
 main.feed-column-width,

@@ -1046,7 +1046,7 @@ export default function EnhancedVideoPlayer({
           }}
         >
           <div
-            className={`w-full rounded-full bg-white/20 overflow-hidden pointer-events-none transition-[height,box-shadow] duration-150 ease-out ${
+            className={`w-full rounded-full bg-white/10 overflow-hidden pointer-events-none transition-[height,box-shadow] duration-150 ease-out ${
               scrubbing ? 'h-3.5 shadow-inner' : 'h-[3px]'
             }`}
             style={
