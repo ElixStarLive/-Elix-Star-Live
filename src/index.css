@@ -169,7 +169,7 @@
 
   body {
     @apply text-text font-sans antialiased overflow-hidden;
-    background-color: transparent;
+    background-color: #000000;
     background-image: none;
     min-height: 100%;
     min-height: 100dvh;
@@ -194,7 +194,7 @@
     min-height: 100%;
     min-height: 100dvh;
     overflow: hidden;
-    background-color: transparent;
+    background-color: #000000;
     background-image: none;
     /* Fluid base font: scales with viewport (320px → 414px+) */
     font-size: clamp(13px, calc(12px + 0.5vw), 17px);
@@ -1480,19 +1480,11 @@ svg.lucide.fill-silver-full.royce-icon-gold {
   display: none !important;
 }
 
-/* ═══ Owner system: browser = no opaque page frame ═══
-   Desktop was painting black/white letterbox around the 480px column.
-   Browser: full-width feed + transparent page. Native app keeps solid base. */
-html:not(.native-app) {
-  --feed-column-max-width: 100vw;
-}
-html:not(.native-app),
-html:not(.native-app) body {
-  background-color: transparent !important;
-  background-image: none !important;
-}
-html.native-app,
-html.native-app body {
+/* ═══ Owner system: stable black page + clear sheet panels ═══
+   Do NOT force nav transparent — bottom bar is a solid black panel (feed reference).
+   Do NOT full-bleed browser to 100vw — keep feed column. */
+html,
+body {
   background-color: #000000 !important;
   background-image: none !important;
 }
@@ -1507,7 +1499,7 @@ body::before {
   color: #FFFFFF;
 }
 
-/* App shell the inspector pointed at — always fully clear */
+/* App shell clear over video — letterbox is body black, not white */
 #root > .elix-app-shell,
 .elix-app-shell {
   background: transparent !important;
@@ -1515,17 +1507,9 @@ body::before {
   background-image: none !important;
 }
 
-/* CLEAR glass sheets + solid BLACK contour (panel edge like More Options reference) */
-.page-above-bottom-nav__inner,
-.bg-background,
-.bg-surface,
-.min-h-screen.bg-background,
-.app-live-column,
-.bg-card,
-.bg-card-elevated,
+/* Bottom sheets / More Options: glass + solid BLACK contour only (not pages/nav) */
 #root [class*="rounded-t-2xl"][class*="bg-[rgba"],
 #root [class*="rounded-t-2xl"][class*="bg-[#09090B"],
-#root [class*="rounded-t-2xl"][class*="elix-glass"],
 .bottom-sheet,
 .bottom-sheet-small,
 .bottom-sheet-above-nav,
@@ -1536,9 +1520,18 @@ body::before {
   box-shadow: none !important;
 }
 
-/* Top + bottom nav: fully transparent — no dark/white wash over video */
-#root nav[aria-label="Main navigation"],
-#root nav[aria-label="Main navigation"] .feed-column-width,
+/* Bottom home bar = solid black panel with black top contour (match feed screenshot) */
+#root nav[aria-label="Main navigation"] .feed-column-width {
+  background-color: #000000 !important;
+  background-image: none !important;
+  border-top: 1px solid #000000 !important;
+  border-color: #000000 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Top tabs stay clear over video */
 #root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
 #root .feed-column-width.h-\[var\(--topnav-bar-height\)\] {
   background-color: transparent !important;
@@ -1555,15 +1548,4 @@ main.feed-column-width,
 .elix-live-room,
 .app-live-column-host {
   background-color: transparent !important;
-}
-
-/* Kill milky white / gray washes on panels → clear glass (not nav) */
-#root [class*="bg-[rgba(0,0,0,0.35)]"]:not(nav):not(nav *),
-#root [class*="bg-[rgba(10,10,10,0.72)]"],
-#root [class*="bg-[rgba(20,20,20,0.38)]"],
-#root [class*="bg-white/"],
-#root [class*="bg-[#121215]"],
-#root [class*="bg-[#111113]"],
-#root [class*="bg-[#0A0A0D]"] {
-  background-color: rgba(0, 0, 0, 0.35) !important;
 }
