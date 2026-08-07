@@ -1081,13 +1081,35 @@ video::-webkit-media-controls-overlay-enclosure,
   -webkit-text-fill-color: unset !important;
   color: inherit !important;
 }
-/* Solid secondary/tertiary utility colours — no gradient ghost layer */
-#root [class*='text-[#8B9099]'],
+/* Solid secondary/tertiary utility colours — must stay VISIBLE (no transparent ghost) */
+#root [class*='text-[#8B9099]'] {
+  background-image: none !important;
+  -webkit-background-clip: border-box !important;
+  background-clip: border-box !important;
+  -webkit-text-fill-color: #8B9099 !important;
+  color: #8B9099 !important;
+}
 #root [class*='text-[#C8CDD5]'] {
   background-image: none !important;
-  -webkit-background-clip: unset !important;
-  background-clip: unset !important;
-  -webkit-text-fill-color: unset !important;
+  -webkit-background-clip: border-box !important;
+  background-clip: border-box !important;
+  -webkit-text-fill-color: #C8CDD5 !important;
+  color: #C8CDD5 !important;
+}
+#root [class*='text-[#E6E9EE]'] {
+  background-image: none !important;
+  -webkit-background-clip: border-box !important;
+  background-clip: border-box !important;
+  -webkit-text-fill-color: #E6E9EE !important;
+  color: #E6E9EE !important;
+}
+/* Opacity white utilities — keep glyph fill opaque at the stated alpha via solid white */
+#root [class*='text-white/'] {
+  background-image: none !important;
+  -webkit-background-clip: border-box !important;
+  background-clip: border-box !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  color: #FFFFFF !important;
 }
 
 /*

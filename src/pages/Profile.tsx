@@ -965,7 +965,7 @@ export default function Profile() {
           </div>
           <div className="mt-1 flex items-center gap-2">
             {profileEmailLine ? (
-              <span className="text-[13px] text-white/80 font-medium">{profileEmailLine}</span>
+              <span className="text-[13px] text-[#C8CDD5] font-medium">{profileEmailLine}</span>
             ) : null}
             <LevelBadge
               level={profileData?.level ?? 1}
@@ -998,7 +998,7 @@ export default function Profile() {
             onClick={goFollowingList}
           >
             <span className="text-[17px] font-extrabold text-white">{formatNumber(profileData?.following_count || 0)}</span>
-            <span className="text-[11px] text-[#C8CDD5] font-medium">Following</span>
+            <span className="text-[11px] text-[#E6E9EE] font-medium">Following</span>
           </button>
           <button
             type="button"
@@ -1006,15 +1006,15 @@ export default function Profile() {
             onClick={goFollowersList}
           >
             <span className="text-[17px] font-extrabold text-white">{formatNumber(profileData?.followers_count || 0)}</span>
-            <span className="text-[11px] text-[#C8CDD5] font-medium">Followers</span>
+            <span className="text-[11px] text-[#E6E9EE] font-medium">Followers</span>
           </button>
           <div className="flex flex-col items-center min-w-[60px]">
             <span className="text-[17px] font-extrabold text-white">{formatNumber(profileData?.likes_count || 0)}</span>
-            <span className="text-[11px] text-[#C8CDD5] font-medium">Likes</span>
+            <span className="text-[11px] text-[#E6E9EE] font-medium">Likes</span>
           </div>
           <div className="flex flex-col items-center min-w-[60px]">
             <span className="text-[17px] font-extrabold text-white">{formatNumber(profileData?.unique_views || 0)}</span>
-            <span className="text-[11px] text-[#C8CDD5] font-medium">Views</span>
+            <span className="text-[11px] text-[#E6E9EE] font-medium">Views</span>
           </div>
           </div>
         </div>
