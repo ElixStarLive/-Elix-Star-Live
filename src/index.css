@@ -1481,13 +1481,17 @@ svg.lucide.fill-silver-full.royce-icon-gold {
   display: none !important;
 }
 
-/* ═══ Owner: every panel = Home glass (picture). Not only More/top. ═══
-   html/body #000 only kills browser white. Do NOT remap .elix-live-room.
-   Do NOT touch Create camera locked surfaces (leave #09090B alone there). */
+/* ═══ Owner: FULL APP = Home glass (same as top/bottom nav). ═══
+   Wallpaper under glass so Inbox/Profile/Settings read clear like For You.
+   Do NOT remap .elix-live-room shell. Do NOT touch Create #09090B. */
 html,
 body {
   background-color: #000000 !important;
-  background-image: none !important;
+  background-image: var(--elix-app-bg) !important;
+  background-size: cover !important;
+  background-position: center center !important;
+  background-repeat: no-repeat !important;
+  background-attachment: fixed !important;
 }
 body::before {
   content: none !important;
@@ -1507,12 +1511,24 @@ body::before {
   background-image: none !important;
 }
 
-/* Home glass token — same as For You top/bottom nav */
+/* Home glass token — identical for nav + every panel */
 #root {
   --elix-home-glass: rgba(0, 0, 0, 0.35);
 }
 
-/* EVERY panel / sheet / drawer / nav chrome — same Home glass (not only More/top) */
+/* Outer shells stay clear so wallpaper/video shows; never solid page wash */
+.page-above-bottom-nav,
+.app-live-column-host,
+main.feed-column-width,
+#root .bg-background,
+#root .bg-surface,
+#root .min-h-screen,
+#root .min-h-\[100dvh\] {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* Page columns + nav + sheets — Home glass AFTER clear shells (wins over bg-transparent) */
 #root .elix-glass,
 #root .elix-glass-panel,
 #root .bottom-sheet,
@@ -1521,6 +1537,8 @@ body::before {
 #root nav[aria-label="Main navigation"] .feed-column-width,
 #root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
 #root .feed-column-width.h-\[var\(--topnav-bar-height\)\],
+#root .page-above-bottom-nav__inner,
+#root .app-live-column,
 #root [class*="rounded-t-2xl"][class*="bg-"]:not(.elix-live-room):not(.elix-live-room *),
 #root [class*="bg-[rgba(10,10,10"]:not(.elix-live-room):not(.elix-live-room *),
 #root [class*="bg-[rgba(20,20,20"]:not(.elix-live-room):not(.elix-live-room *),
@@ -1542,34 +1560,25 @@ body::before {
   border-bottom: none !important;
 }
 
-/* Page columns — same Home glass as top/bottom nav (video shows through) */
-.page-above-bottom-nav,
-.app-live-column-host,
-main.feed-column-width,
-#root .bg-background,
-#root .bg-surface,
-#root .min-h-screen,
-#root .min-h-\[100dvh\] {
+/* Kill opaque black sheet scrims (Comments-style) — clear like More Options */
+#root .fixed.inset-0[class*="bg-black\/"]:not(.elix-live-room):not(.elix-live-room *),
+#root .fixed.inset-0.bg-black\/40:not(.elix-live-room *),
+#root .fixed.inset-0.bg-black\/50:not(.elix-live-room *),
+#root .fixed.inset-0.bg-black\/60:not(.elix-live-room *),
+#root .fixed.inset-0.bg-black\/70:not(.elix-live-room *) {
   background-color: transparent !important;
-  background-image: none !important;
-}
-
-.page-above-bottom-nav__inner,
-.app-live-column {
-  background-color: var(--elix-home-glass) !important;
-  background-image: none !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
-  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 /* Live/Battle room shell stays black — battle tiles untouched */
 .elix-live-room,
 #root .elix-live-room {
   background-color: #000000 !important;
+  background-image: none !important;
 }
 
-/* Live bottom sheets / panels — same Home glass as top/bottom nav */
+/* Live bottom sheets / panels — same Home glass */
 #root .elix-live-room .elix-glass,
 #root .elix-live-room .elix-glass-panel,
 #root .elix-live-room [class*="rounded-t-2xl"] {
