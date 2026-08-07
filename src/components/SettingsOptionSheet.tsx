@@ -38,7 +38,10 @@ export default function SettingsOptionSheet({ children, onClose, title }: Settin
   };
 
   return (
-    <div className="app-live-column-host z-[9999]">
+    <div
+      className="app-live-column-host z-[9999]"
+      style={{ bottom: 'var(--bottom-ui-reserve)' }}
+    >
       <div className="absolute inset-0 bg-transparent" onClick={onClose} aria-hidden />
       <div
         className="app-live-column bg-transparent text-white"
