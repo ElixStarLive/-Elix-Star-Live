@@ -38,19 +38,21 @@
 @layer base {
   :root {
     /* ═══════════════════════════════════════════════════════════════════
-       ELIX GLOBAL THEME — one source of truth (reference-locked)
-       Blue-charcoal near-black + transparent glass + cold silver.
-       NOT plain black. NOT “black + silver.”
-       FUNDAL #080A0E + glass rgba(8,10,14,0.65) | SILVER #E6E9EE | WHITE #FFFFFF
+       ELIX GLOBAL THEME — LOCKED TO REFERENCE PICTURE (1-1)
+       Background glass: rgba(8,10,14,0.65) over solid #080A0E
+       Surface glass:    rgba(18,20,25,0.65)
+       Panel glass:      rgba(26,28,33,0.65)
+       Border:           rgba(255,255,255,0.10)
+       Silver:           #E6E9EE | White: #FFFFFF
+       NEVER #000000. NEVER plain black.
        ═══════════════════════════════════════════════════════════════════ */
 
-    /* Named theme tokens (semantic) — exact from style guide */
-    --elix-bg: #080A0E;                          /* solid blue-charcoal fundal under glass */
-    --elix-bg-glass: rgba(8, 10, 14, 0.65);      /* main glass layer over fundal */
-    --elix-raised: #121419;                       /* solid raise ≈ surface RGB (18,20,25) */
-    --elix-surface: rgba(18, 20, 25, 0.65);       /* cards / page frames / sheets */
-    --elix-panel: rgba(26, 28, 33, 0.65);         /* elevated: nav, modals, menus, floating controls */
-    --elix-glass: rgba(26, 28, 33, 0.65);         /* alias of --elix-panel for legacy references */
+    --elix-bg: #080A0E;
+    --elix-bg-glass: rgba(8, 10, 14, 0.65);
+    --elix-raised: #121419;
+    --elix-surface: rgba(18, 20, 25, 0.65);
+    --elix-panel: rgba(26, 28, 33, 0.65);
+    --elix-glass: rgba(26, 28, 33, 0.65);
     --elix-border: rgba(255, 255, 255, 0.10);
     --elix-text-primary: #FFFFFF;
     --elix-text-secondary: #C8CDD5;
@@ -58,10 +60,11 @@
     --elix-icon-primary: #E6E9EE;
     --elix-icon-inactive: #8B9099;
     --elix-icon-active: #FFFFFF;
-    --elix-accent: #E6E9EE;                       /* cold silver accent */
+    --elix-accent: #E6E9EE;
     --elix-accent-light: #FFFFFF;
     --elix-avatar-ring: #E6E9EE;
     --elix-glass-blur: blur(12px);
+    --elix-fundal-deep: #080A0E;
 
     /* Legacy token compatibility — all wired to the theme above. */
     --color-primary: var(--elix-icon-primary);
@@ -1505,10 +1508,13 @@ svg.lucide.fill-silver-full.royce-icon-gold {
   display: none !important;
 }
 
-/* ═══ Global theme contract ═══
-   One full underlay under ALL UI (exact reference 1-1):
-   solid fundal #080A0E + glass wash rgba(8,10,14,0.65).
-   Never plain black. Never transparent over black. */
+/* ═══ Global theme contract — PICTURE 1-1 ═══
+   Solid base #080A0E
+   + Background glass rgba(8,10,14,0.65) on every page shell
+   + Panel glass rgba(26,28,33,0.65) on top/bottom nav
+   + Surface glass rgba(18,20,25,0.65) on sheets/cards
+   + Border rgba(255,255,255,0.10)
+   NEVER #000 / #09090B pitch black. */
 html,
 body {
   background-color: #080A0E !important;
@@ -1519,72 +1525,58 @@ body::before {
   display: none !important;
 }
 
-/* Full clear glass panel under every screen / live room */
 #root,
 .elix-app-shell,
 .elix-live-room,
-.elix-fundal-glass {
+.elix-fundal-glass,
+.page-above-bottom-nav,
+.page-above-bottom-nav__inner,
+#root .min-h-screen.bg-transparent,
+#root .min-h-\[100dvh\].bg-transparent {
   background-color: #080A0E !important;
   background-image: linear-gradient(rgba(8, 10, 14, 0.65), rgba(8, 10, 14, 0.65)) !important;
+  border-top: none !important;
+  box-shadow: none !important;
 }
 
-/* Video only stays clear so the stream shows — not the page chrome */
+/* Video stream only — clear */
 .app-live-column-host,
 .app-live-column {
   background: transparent !important;
   background-image: none !important;
 }
 
-/* Page shells sit on the fundal glass underlay */
-.page-above-bottom-nav,
-.page-above-bottom-nav__inner,
-#root .min-h-screen.bg-transparent,
-#root .min-h-\[100dvh\].bg-transparent {
-  background-color: transparent !important;
-  background-image: none !important;
-  border-top: none !important;
-  box-shadow: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-/* Chrome: top nav + home bottom nav (panel glass) */
+/* Top + bottom nav = Panel glass (picture) */
 #root nav[aria-label="Main navigation"] .feed-column-width,
 #root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
 #root .feed-column-width.h-\[var\(--topnav-bar-height\)\] {
-  background-color: var(--elix-panel) !important;
-  border-color: var(--elix-border) !important;
-  border-top: 1px solid var(--elix-border) !important;
-  backdrop-filter: var(--elix-glass-blur) !important;
-  -webkit-backdrop-filter: var(--elix-glass-blur) !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    0 0 40px rgba(255, 255, 255, 0.04) !important;
+  background-color: rgba(26, 28, 33, 0.65) !important;
+  background-image: none !important;
+  border-color: rgba(255, 255, 255, 0.10) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.10) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
 }
 
-/* Raised cards / sheets / popovers only — not full-page fundal */
+/* Sheets / cards = Surface glass (picture) */
 #root .bottom-sheet,
 #root .bottom-sheet-small,
 #root .bottom-sheet-above-nav {
-  background-color: var(--elix-surface) !important;
-  border-top: 1px solid var(--elix-border) !important;
-  backdrop-filter: var(--elix-glass-blur) !important;
-  -webkit-backdrop-filter: var(--elix-glass-blur) !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    0 0 40px rgba(255, 255, 255, 0.04) !important;
+  background-color: rgba(18, 20, 25, 0.65) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.10) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
 }
 
-/* Battle empty / invite slot — opaque charcoal + surface glass (not black) */
+/* Battle empty slot = Surface glass over deep fundal */
 .elix-battle-slot {
   background-color: #121419 !important;
   background-image: linear-gradient(rgba(18, 20, 25, 0.65), rgba(18, 20, 25, 0.65)) !important;
   border: 1px solid rgba(255, 255, 255, 0.10) !important;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
 }
 
-/* Battle score bar — cold silver vs blue-charcoal (not pink/blue) */
 .elix-battle-score-host {
   background-image: linear-gradient(90deg, #FFFFFF 0%, #E6E9EE 55%, #C8CDD5 100%) !important;
 }
@@ -1592,14 +1584,11 @@ body::before {
   background-image: linear-gradient(90deg, #121419 0%, #080A0E 100%) !important;
 }
 .elix-battle-score-wrap {
-  background-color: var(--elix-bg-glass) !important;
-  border-bottom: 1px solid var(--elix-border) !important;
+  background-color: rgba(8, 10, 14, 0.65) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10) !important;
 }
 
-/* ═══ NO PLAIN BLACK ═══
-   Map leftover black / near-black fills to blue-charcoal + glass.
-   Fundal #080A0E | glass rgba(8,10,14,0.65) | surface rgba(18,20,25,0.65) | panel rgba(26,28,33,0.65)
-*/
+/* Kill every leftover plain black → picture background glass */
 #root .bg-black,
 #root .bg-\[\#000\],
 #root .bg-\[\#000000\],
@@ -1607,8 +1596,10 @@ body::before {
 #root .bg-\[\#0A0A0A\],
 #root .bg-\[\#0B0B0C\],
 #root .bg-\[\#111111\],
-#root .bg-\[\#121212\] {
-  background-color: var(--elix-bg) !important;
+#root .bg-\[\#121212\],
+#root .bg-\[\#1A1C21\] {
+  background-color: #080A0E !important;
+  background-image: linear-gradient(rgba(8, 10, 14, 0.65), rgba(8, 10, 14, 0.65)) !important;
 }
 
 #root .bg-black\/20,
@@ -1641,16 +1632,6 @@ body::before {
 #root [class*="bg-[rgba(0,0,0"],
 #root [class*="bg-[rgba(10,10,10"],
 #root [class*="bg-[rgba(20,20,20"] {
-  background-color: var(--elix-surface) !important;
-  border-color: var(--elix-border);
-}
-
-/* Solid near-black hex leftovers on inline styles / common wrappers */
-#root [style*="background-color: #09090B"],
-#root [style*="background-color:#09090B"],
-#root [style*="background: #09090B"],
-#root [style*="background:#09090B"],
-#root [style*="backgroundColor: '#09090B'"],
-#root [style*='backgroundColor: "#09090B"'] {
-  background-color: var(--elix-bg) !important;
+  background-color: rgba(18, 20, 25, 0.65) !important;
+  border-color: rgba(255, 255, 255, 0.10);
 }
