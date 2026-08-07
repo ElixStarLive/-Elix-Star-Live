@@ -1373,7 +1373,7 @@ video::-webkit-media-controls-overlay-enclosure,
     var(--elix-elevated-shadow);
 }
 
-/* Full-page sheets ONLY (Settings / legal). Compact Share/More/Comments keep component sizes. */
+/* Full-page settings/legal sheets only — component heights for Share/More/Comments stay untouched */
 .elix-full-page-panel {
   background-color: transparent;
   background-image: var(--elix-page-fill);
@@ -1389,9 +1389,20 @@ video::-webkit-media-controls-overlay-enclosure,
   max-height: none;
 }
 
-/* SettingsOptionSheet / Privacy / Safety — one edge-to-edge page, no floating card frame */
+#root .elix-sheet-host {
+  top: 0 !important;
+  bottom: var(--bottom-ui-reserve) !important;
+  height: auto !important;
+  max-height: none !important;
+}
+
+#root .elix-panel.elix-full-page-panel,
+#root .elix-sheet-host .elix-full-page-panel,
 #root .app-live-column.elix-full-page-panel,
 #root .app-live-column.elix-page-glass {
+  height: 100% !important;
+  max-height: none !important;
+  min-height: 0;
   border: none !important;
   border-radius: 0 !important;
   box-shadow: none !important;
@@ -1401,46 +1412,11 @@ video::-webkit-media-controls-overlay-enclosure,
   background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
   background-position: var(--elix-fundal-position), var(--elix-fundal-position) !important;
   background-repeat: no-repeat, no-repeat !important;
-}
-
-/* Settings sheet host — full page only */
-#root .elix-sheet-host {
-  top: 0 !important;
-  bottom: var(--bottom-ui-reserve) !important;
-  height: auto !important;
-  max-height: none !important;
-}
-
-#root .elix-panel.elix-full-page-panel,
-#root .elix-sheet-host .elix-full-page-panel {
-  height: 100% !important;
-  max-height: none !important;
-  min-height: 0;
-  border-radius: 0 !important;
-  background-color: transparent !important;
-  background-image: var(--elix-page-fill) !important;
-  background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
-  background-position: var(--elix-fundal-position), var(--elix-fundal-position) !important;
-  background-repeat: no-repeat, no-repeat !important;
-  border: none !important;
-  box-shadow: none !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
 
-/*
- * Compact panels (Share / More / Comments / Gift / Promote / Report / Likes):
- * Do NOT force height/width/border — layout stays as each component defines.
- * Transparent wash only so content under shows; icons on top.
- */
-#root .elix-glass.rounded-t-2xl,
-#root .elix-panel.rounded-t-2xl:not(.elix-full-page-panel),
-#root .bottom-sheet-above-nav {
-  background-color: var(--elix-panel-wash) !important;
-  background-image: none !important;
-}
-
-/* Chips / pills keep compact panel look — not full page */
+/* Pills / chips — never stretch to full page */
 #root .elix-panel.rounded-full,
 #root span.elix-panel,
 #root .booster-catch-pop.elix-panel {
@@ -1455,10 +1431,10 @@ video::-webkit-media-controls-overlay-enclosure,
 .elix-glass-panel {
   background-color: var(--elix-bg);
   background-image: var(--elix-panel-fill);
-  background-size: var(--elix-fundal-size);
-  background-position: var(--elix-fundal-position);
-  background-repeat: no-repeat;
-  background-attachment: var(--elix-fundal-attachment);
+  background-size: var(--elix-fundal-size), var(--elix-fundal-size);
+  background-position: var(--elix-fundal-position), var(--elix-fundal-position);
+  background-repeat: no-repeat, no-repeat;
+  background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment);
   border: 1px solid var(--elix-border);
   backdrop-filter: var(--elix-glass-blur);
   -webkit-backdrop-filter: var(--elix-glass-blur);
@@ -1467,21 +1443,17 @@ video::-webkit-media-controls-overlay-enclosure,
     var(--elix-elevated-shadow);
 }
 
-/* Cold-silver primary CTA — dark text on silver (readable Save/Follow) */
-.elix-silver-cta {
+/* Silver CTA — dark text on silver */
+.elix-silver-cta,
+#root .elix-settings-write .elix-silver-cta,
+#root .elix-full-page-panel .elix-silver-cta,
+#root button.elix-silver-cta {
   background-color: #E6E9EE !important;
   background-image: var(--elix-silver-write) !important;
   color: #080A0E !important;
   -webkit-text-fill-color: #080A0E !important;
   border: 1px solid rgba(255, 255, 255, 0.40);
   box-shadow: 0 0 12px rgba(230, 233, 238, 0.18);
-}
-#root .elix-settings-write .elix-silver-cta,
-#root .elix-full-page-panel .elix-silver-cta,
-#root button.elix-silver-cta {
-  color: #080A0E !important;
-  -webkit-text-fill-color: #080A0E !important;
-  background-image: var(--elix-silver-write) !important;
 }
 
 /* Live room dimmers — shared glass tokens (not per-screen colour hacks) */
@@ -1962,44 +1934,23 @@ body {
   box-shadow: none;
 }
 
-/* LEVEL 2 — cards / surfaces over fundal */
+/* Nested cards — clear (one page wash only; no mini fundal boxes) */
 #root .bg-card,
-#root .bg-surface {
-  background-color: transparent;
-  background-image: var(--elix-surface-fill);
-  background-size: var(--elix-fundal-size);
-  background-position: var(--elix-fundal-position);
-  background-repeat: no-repeat;
-  background-attachment: var(--elix-fundal-attachment);
-  border-color: var(--elix-border);
-  backdrop-filter: var(--elix-glass-blur);
-  -webkit-backdrop-filter: var(--elix-glass-blur);
-  box-shadow: var(--elix-elevated-inset);
-}
-
-/* Existing faint white card washes → LEVEL 2 surface over fundal */
+#root .bg-surface,
 #root .bg-white\/\[0\.04\],
 #root .bg-white\/\[0\.05\],
 #root .bg-white\/5 {
   background-color: transparent;
-  background-image: var(--elix-surface-fill);
-  background-size: var(--elix-fundal-size);
-  background-position: var(--elix-fundal-position);
-  background-repeat: no-repeat;
-  background-attachment: var(--elix-fundal-attachment);
+  background-image: none;
   border-color: var(--elix-border);
-  backdrop-filter: var(--elix-glass-blur);
-  -webkit-backdrop-filter: var(--elix-glass-blur);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
 }
 
-/* Battle chrome stays on shared surface tokens (visual only) */
 .elix-battle-slot {
   background-color: transparent;
-  background-image: var(--elix-surface-fill);
-  background-size: var(--elix-fundal-size);
-  background-position: var(--elix-fundal-position);
-  background-repeat: no-repeat;
-  background-attachment: var(--elix-fundal-attachment);
+  background-image: none;
   border: 1px solid var(--elix-border);
 }
 
@@ -2059,9 +2010,8 @@ body {
 #root .bg-\[\#09090B\]\/95,
 #root [class*="bg-[rgba(0,0,0"],
 #root [class*="bg-[rgba(20,20,20"] {
-  /* Transparent wash — see profile/video under; icons on top */
-  background-color: var(--elix-panel-wash) !important;
-  background-image: none !important;
+  background-color: var(--elix-panel-wash);
+  background-image: none;
   border-color: var(--elix-border);
 }
 
@@ -2119,11 +2069,12 @@ body,
   color: #FFFFFF !important;
 }
 
-/* Every sheet / tab page — ONE continuous wash+fundal panel under writing */
+/* Page owners — ONE wash+fundal under writing */
 #root .elix-sheet-host > .elix-page-glass,
 #root .app-live-column.elix-full-page-panel,
 #root .app-live-column.elix-page-glass,
 #root .elix-full-page-panel,
+#root .page-above-bottom-nav,
 #root .page-above-bottom-nav.elix-page-glass,
 #root .elix-page-glass {
   background-color: transparent !important;
