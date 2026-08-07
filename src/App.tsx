@@ -21,7 +21,6 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { OfflineBanner } from "./components/OfflineBanner";
 import { IncomingCallModal } from "./components/IncomingCallModal";
 import { LiveNotifyBanner } from "./components/LiveNotifyBanner";
-import AppGlassBackdrop from "./components/AppGlassBackdrop";
 import { subscribeToIncomingCalls } from "./lib/callService";
 import { websocket } from "./lib/websocket";
 
@@ -379,10 +378,9 @@ function App() {
         aria-hidden
       />
       <TopNav />
-      {isAuthenticated ? <AppGlassBackdrop /> : null}
       <main
         className={cn(
-          "relative z-[1] flex-1 feed-column-width min-h-0 overflow-auto",
+          "flex-1 feed-column-width min-h-0 overflow-auto",
           showBottomNav && !isFullScreen && "pt-topbar pb-[var(--bottom-ui-reserve)]",
           /* Browser/feed: video under transparent chrome (shell stays clear) */
           showBottomNav && isFeedWithTopBar && "pt-0 pb-0",

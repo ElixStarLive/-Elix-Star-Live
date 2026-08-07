@@ -1484,19 +1484,12 @@ svg.lucide.fill-silver-full.royce-icon-gold {
   display: none !important;
 }
 
-/* ═══ Owner: remove BLACK UNDER PAGE so Home glass can show. ═══
-   Under-page is NOT solid #000. Glass only on nav + sheets + settings column.
-   Do NOT remap .elix-live-room shell. Do NOT touch Create #09090B. */
+/* ═══ Owner: pages transparent. No black under-page. No video backdrop patches. ═══
+   Glass only on top/bottom nav + sheets. Live/Battle shell left alone. */
 html,
 body {
   background-color: transparent !important;
-  background-image:
-    radial-gradient(120% 70% at 50% -10%, rgba(255, 255, 255, 0.10) 0%, transparent 52%),
-    linear-gradient(180deg, #16161c 0%, #0a0a0e 55%, #050508 100%) !important;
-  background-size: cover !important;
-  background-position: center center !important;
-  background-repeat: no-repeat !important;
-  background-attachment: fixed !important;
+  background-image: none !important;
 }
 body::before {
   content: none !important;
@@ -1520,11 +1513,11 @@ body::before {
   --elix-home-glass: rgba(0, 0, 0, 0.35);
 }
 
-/* NO black page wash — columns clear (elix-glass still wins when present) */
+/* Pages fully transparent — no wash */
 .page-above-bottom-nav,
-.page-above-bottom-nav__inner:not(.elix-glass),
+.page-above-bottom-nav__inner,
 .app-live-column-host,
-.app-live-column:not(.elix-glass),
+.app-live-column,
 main.feed-column-width,
 #root .bg-background,
 #root .bg-surface,
@@ -1536,7 +1529,7 @@ main.feed-column-width,
   -webkit-backdrop-filter: none !important;
 }
 
-/* Home glass ONLY on nav + sheets + explicit .elix-glass (Settings) */
+/* Home glass — nav + sheets only */
 #root .elix-glass,
 #root .elix-glass-panel,
 #root .bottom-sheet,
@@ -1565,7 +1558,6 @@ main.feed-column-width,
   border-bottom: none !important;
 }
 
-/* Kill black UNDER overlays (fixed OR absolute) */
 #root .fixed.inset-0[class*="bg-black\/"]:not(.elix-live-room):not(.elix-live-room *),
 #root .absolute.inset-0[class*="bg-black\/"]:not(.elix-live-room):not(.elix-live-room *),
 #root .fixed.inset-0.bg-black\/40:not(.elix-live-room *),
@@ -1581,14 +1573,12 @@ main.feed-column-width,
   -webkit-backdrop-filter: none !important;
 }
 
-/* Live/Battle room shell stays black — battle tiles untouched */
 .elix-live-room,
 #root .elix-live-room {
   background-color: #000000 !important;
   background-image: none !important;
 }
 
-/* Live bottom sheets — same Home glass */
 #root .elix-live-room .elix-glass,
 #root .elix-live-room .elix-glass-panel,
 #root .elix-live-room [class*="rounded-t-2xl"] {
