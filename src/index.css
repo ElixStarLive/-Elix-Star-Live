@@ -345,9 +345,11 @@
     right: 0;
     bottom: var(--bottom-ui-reserve);
     left: 0;
+    z-index: 1;
     display: flex;
     justify-content: center;
     overflow: hidden;
+    background: transparent !important;
   }
 
   .page-above-bottom-nav__inner {
@@ -358,7 +360,8 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    background-color: transparent;
+    background-color: transparent !important;
+    background-image: none !important;
   }
 
   .pt-page-header {

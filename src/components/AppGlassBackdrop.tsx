@@ -19,14 +19,22 @@ function shouldHideBackdrop(pathname: string): boolean {
 }
 
 /**
- * Plays the last For You video under Profile / Inbox / Settings / Shop / etc.
- * Home glass only reads as transparent when real video sits under the page.
+ * For You video under Profile / Inbox / Settings / Shop.
+ * Page must stay clear (no black wash) or this never shows.
  */
 export default function AppGlassBackdrop() {
   const location = useLocation();
   const videos = useVideoStore((s) => s.videos);
+  const fetchVideos = useVideoStore((s) => s.fetchVideos);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const hidden = shouldHideBackdrop(location.pathname);
+
+  useEffect(() => {
+    if (hidden) return;
+    if (videos.length === 0) {
+      void fetchVideos().catch(() => undefined);
+    }
+  }, [hidden, videos.length, fetchVideos]);
 
   const video = useMemo(() => {
     if (!videos.length) return null;
@@ -62,7 +70,7 @@ export default function AppGlassBackdrop() {
       className="fixed inset-0 z-0 flex justify-center pointer-events-none overflow-hidden"
       aria-hidden
     >
-      <div className="relative w-full max-w-[480px] h-full">
+      <div className="relative w-full max-w-[480px] h-full bg-transparent">
         <video
           ref={videoRef}
           className="absolute inset-0 w-full h-full object-cover"
