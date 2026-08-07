@@ -38,19 +38,19 @@
 @layer base {
   :root {
     /* ═══════════════════════════════════════════════════════════════════
-       ELIX GLOBAL THEME — OPAQUE COSMIC FUNDAL (owner 2026-08-07)
-       One shared fundal everywhere. No transparent glass. No video bleed
-       through chrome. Depth = border/shadow only, not alpha.
+       ELIX GLOBAL THEME — FUNDAL + ONE FULL TRANSPARENT PANEL (owner)
+       Layer 0: cosmic fundal image
+       Layer 1: ONE continuous dark transparent wash over fundal
+                (readable writing — NOT 20 section cards)
+       Layer 2: writing / icons
 
-       BASE / PAGE / SURFACE / PANEL FILL: same --elix-fundal-image
-       SOLID FALLBACKS: #080A0E / #121419 / #1A1C21 (opaque)
-       BORDER: rgba(255,255,255,0.10)
-       SILVER: #E6E9EE
-       NEVER transparent chrome over video.
+       Live rooms stay clear (no wash over video).
        ═══════════════════════════════════════════════════════════════════ */
 
     --elix-bg: #080A0E;
-    --elix-bg-glass: #080A0E;
+    /* One full-page transparent panel wash (under writing, over fundal) */
+    --elix-panel-wash: rgba(8, 10, 14, 0.78);
+    --elix-bg-glass: var(--elix-panel-wash);
     --elix-raised: #121419;
     --elix-surface-solid: #121419;
     --elix-panel-solid: #1A1C21;
@@ -86,12 +86,18 @@
     --elix-divider: rgba(255, 255, 255, 0.09);
     --elix-silver-write: linear-gradient(135deg, #FFFFFF 0%, #E6E9EE 55%, #C8CDD5 100%);
     --elix-battle-fill: linear-gradient(90deg, #8B9099 0%, #C8CDD5 45%, #E6E9EE 75%, #FFFFFF 100%);
-    /* One opaque cosmic fundal — page / surface / panel share the same field */
+    /* Fundal image = layer 0. Page/surface/panel fills = wash + fundal (ONE panel). */
     --elix-fundal-image: url('/elix-fundal-cosmic.png');
     --elix-fundal-depth: var(--elix-fundal-image);
-    --elix-page-fill: var(--elix-fundal-image);
-    --elix-surface-fill: var(--elix-fundal-image);
-    --elix-panel-fill: var(--elix-fundal-image);
+    --elix-page-fill:
+      linear-gradient(var(--elix-panel-wash), var(--elix-panel-wash)),
+      var(--elix-fundal-image);
+    --elix-surface-fill:
+      linear-gradient(var(--elix-panel-wash), var(--elix-panel-wash)),
+      var(--elix-fundal-image);
+    --elix-panel-fill:
+      linear-gradient(var(--elix-panel-wash), var(--elix-panel-wash)),
+      var(--elix-fundal-image);
     --elix-fundal-size: cover;
     --elix-fundal-position: center;
     --elix-fundal-attachment: scroll;
@@ -1323,57 +1329,57 @@ video::-webkit-media-controls-overlay-enclosure,
   filter: none;
 }
 
-/* Shared surface / panel glass — LEVEL 2 + LEVEL 3 over cosmic fundal */
+/* Shared surface / panel — ONE wash + fundal (layer 1 over layer 0) */
 .elix-page-glass {
-  background-color: var(--elix-bg);
+  background-color: transparent;
   background-image: var(--elix-page-fill);
-  background-size: var(--elix-fundal-size);
-  background-position: var(--elix-fundal-position);
-  background-repeat: no-repeat;
-  background-attachment: var(--elix-fundal-attachment);
+  background-size: var(--elix-fundal-size), var(--elix-fundal-size);
+  background-position: var(--elix-fundal-position), var(--elix-fundal-position);
+  background-repeat: no-repeat, no-repeat;
+  background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment);
 }
 
 .elix-surface {
-  background-color: var(--elix-bg);
+  background-color: transparent;
   background-image: var(--elix-surface-fill);
-  background-size: var(--elix-fundal-size);
-  background-position: var(--elix-fundal-position);
-  background-repeat: no-repeat;
-  background-attachment: var(--elix-fundal-attachment);
+  background-size: var(--elix-fundal-size), var(--elix-fundal-size);
+  background-position: var(--elix-fundal-position), var(--elix-fundal-position);
+  background-repeat: no-repeat, no-repeat;
+  background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment);
   border: 1px solid var(--elix-border);
-  backdrop-filter: var(--elix-glass-blur);
-  -webkit-backdrop-filter: var(--elix-glass-blur);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   box-shadow:
     var(--elix-elevated-inset),
     var(--elix-elevated-shadow);
 }
 
 .elix-panel {
-  background-color: var(--elix-bg);
+  background-color: transparent;
   background-image: var(--elix-panel-fill);
-  background-size: var(--elix-fundal-size);
-  background-position: var(--elix-fundal-position);
-  background-repeat: no-repeat;
-  background-attachment: var(--elix-fundal-attachment);
+  background-size: var(--elix-fundal-size), var(--elix-fundal-size);
+  background-position: var(--elix-fundal-position), var(--elix-fundal-position);
+  background-repeat: no-repeat, no-repeat;
+  background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment);
   border: 1px solid var(--elix-border);
-  backdrop-filter: var(--elix-glass-blur);
-  -webkit-backdrop-filter: var(--elix-glass-blur);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   box-shadow:
     var(--elix-elevated-inset),
     var(--elix-elevated-shadow);
 }
 
-/* SHARED PANEL OWNER — full-page fundal surface (Settings language) for all sheets */
+/* SHARED PANEL OWNER — one full-page wash+fundal for all sheets (not 20 cards) */
 .elix-full-page-panel,
 .bottom-sheet,
 .bottom-sheet-small,
 .bottom-sheet-above-nav {
-  background-color: var(--elix-bg);
+  background-color: transparent;
   background-image: var(--elix-page-fill);
-  background-size: var(--elix-fundal-size);
-  background-position: var(--elix-fundal-position);
-  background-repeat: no-repeat;
-  background-attachment: var(--elix-fundal-attachment);
+  background-size: var(--elix-fundal-size), var(--elix-fundal-size);
+  background-position: var(--elix-fundal-position), var(--elix-fundal-position);
+  background-repeat: no-repeat, no-repeat;
+  background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment);
   border: none;
   border-radius: 0;
   backdrop-filter: none;
@@ -1389,11 +1395,11 @@ video::-webkit-media-controls-overlay-enclosure,
   border-radius: 0 !important;
   box-shadow: none !important;
   outline: none !important;
-  background-color: var(--elix-bg) !important;
+  background-color: transparent !important;
   background-image: var(--elix-page-fill) !important;
-  background-size: var(--elix-fundal-size) !important;
-  background-position: var(--elix-fundal-position) !important;
-  background-repeat: no-repeat !important;
+  background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
+  background-position: var(--elix-fundal-position), var(--elix-fundal-position) !important;
+  background-repeat: no-repeat, no-repeat !important;
 }
 
 /*
@@ -1886,14 +1892,14 @@ body {
   background-image: none;
 }
 
-/* LEVEL 1 — page glass over cosmic fundal */
+/* LEVEL 1 — page glass: ONE wash + fundal under writing */
 .page-above-bottom-nav {
   background-color: transparent;
   background-image: var(--elix-page-fill);
-  background-size: var(--elix-fundal-size);
-  background-position: var(--elix-fundal-position);
-  background-repeat: no-repeat;
-  background-attachment: var(--elix-fundal-attachment);
+  background-size: var(--elix-fundal-size), var(--elix-fundal-size);
+  background-position: var(--elix-fundal-position), var(--elix-fundal-position);
+  background-repeat: no-repeat, no-repeat;
+  background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment);
 }
 
 .page-above-bottom-nav__inner {
@@ -1909,9 +1915,8 @@ body {
 }
 
 /*
- * Settings / guide / legal sheets — host itself is opaque cosmic fundal.
- * Prevents prior-page writing (Settings list) from showing through.
- * Live rooms keep .app-live-column-host without .elix-sheet-host.
+ * Sheet host = layer 0 fundal only.
+ * Column (.elix-page-glass) = layer 1 wash + fundal (ONE full panel under writing).
  */
 #root .app-live-column-host.elix-sheet-host {
   isolation: isolate;
@@ -1927,10 +1932,10 @@ body {
 .app-live-column.elix-page-glass {
   background-color: transparent;
   background-image: var(--elix-page-fill);
-  background-size: var(--elix-fundal-size);
-  background-position: var(--elix-fundal-position);
-  background-repeat: no-repeat;
-  background-attachment: var(--elix-fundal-attachment);
+  background-size: var(--elix-fundal-size), var(--elix-fundal-size);
+  background-position: var(--elix-fundal-position), var(--elix-fundal-position);
+  background-repeat: no-repeat, no-repeat;
+  background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment);
 }
 
 /* LEVEL 3 — bottom / top nav: clear chrome so shell fundal is one continuous page */
@@ -2049,9 +2054,9 @@ body {
 
 /*
  * ═══════════════════════════════════════════════════════════════════
- * SHARED OWNER — full-page fundal + no white boxes (app-wide)
- * One place. Not per-page patches. Applies to every sheet / form /
- * container that sits on the cosmic fundal.
+ * SHARED OWNER — full-page fundal + ONE transparent panel (app-wide)
+ * Layer 0 fundal · Layer 1 --elix-page-fill wash · Layer 2 writing
+ * Not per-page. Not 20 section cards.
  * ═══════════════════════════════════════════════════════════════════
  */
 html,
@@ -2101,19 +2106,18 @@ body,
   color: #FFFFFF !important;
 }
 
-/* Every settings / guide / legal sheet — one continuous fundal page */
-#root .elix-sheet-host,
+/* Every sheet / tab page — ONE continuous wash+fundal panel under writing */
 #root .elix-sheet-host > .elix-page-glass,
 #root .app-live-column.elix-full-page-panel,
 #root .app-live-column.elix-page-glass,
 #root .elix-full-page-panel,
-#root .page-above-bottom-nav.elix-page-glass {
-  background-color: var(--elix-bg) !important;
-  background-image: var(--elix-fundal-image) !important;
-  background-size: var(--elix-fundal-size) !important;
-  background-position: var(--elix-fundal-position) !important;
-  background-repeat: no-repeat !important;
-  border: none !important;
+#root .page-above-bottom-nav.elix-page-glass,
+#root .elix-page-glass {
+  background-color: transparent !important;
+  background-image: var(--elix-page-fill) !important;
+  background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
+  background-position: var(--elix-fundal-position), var(--elix-fundal-position) !important;
+  background-repeat: no-repeat, no-repeat !important;
   border-radius: 0 !important;
   box-shadow: none !important;
   backdrop-filter: none !important;
