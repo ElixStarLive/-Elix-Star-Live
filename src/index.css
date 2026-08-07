@@ -69,6 +69,14 @@
     --elix-icon-primary: #E6E9EE;
     --elix-icon-inactive: #8B9099;
     --elix-icon-active: #FFFFFF;
+    --elix-icon-glow-soft: rgba(230, 233, 238, 0.22);
+    --elix-icon-glow-active: rgba(230, 233, 238, 0.32);
+    --elix-icon-glow:
+      drop-shadow(0 0 3px rgba(230, 233, 238, 0.22))
+      drop-shadow(0 0 6px rgba(230, 233, 238, 0.10));
+    --elix-icon-glow-on:
+      drop-shadow(0 0 4px rgba(230, 233, 238, 0.32))
+      drop-shadow(0 0 8px rgba(230, 233, 238, 0.14));
     --elix-accent: #E6E9EE;
     --elix-accent-light: #FFFFFF;
     --elix-avatar-ring: #E6E9EE;
@@ -1464,13 +1472,13 @@ div.feed-column-width button[title] > span > span {
   background-clip: unset !important;
 }
 
-/* Active bottom-nav — brilliant white (not purple) */
+/* Active bottom-nav — brilliant white + active silver glow */
 nav[aria-label="Main navigation"] button[aria-current="page"] .royce-icon-gold,
 nav[aria-label="Main navigation"] button[aria-current="page"] svg.lucide {
-  color: #FFFFFF !important;
-  stroke: #FFFFFF !important;
+  color: var(--elix-icon-active) !important;
+  stroke: var(--elix-icon-active) !important;
   fill: none !important;
-  filter: none !important;
+  filter: var(--elix-icon-glow-on) !important;
 }
 nav[aria-label="Main navigation"] button[aria-current="page"] .elix-silver-red-text {
   background-image: none !important;
@@ -1479,11 +1487,12 @@ nav[aria-label="Main navigation"] button[aria-current="page"] .elix-silver-red-t
   -webkit-text-fill-color: #FFFFFF !important;
   color: #FFFFFF !important;
 }
-/* Inactive bottom-nav labels/icons — secondary silver-grey */
+/* Inactive bottom-nav — silver icons + normal glow */
 nav[aria-label="Main navigation"] button:not([aria-current="page"]) .royce-icon-gold,
 nav[aria-label="Main navigation"] button:not([aria-current="page"]) svg.lucide {
-  color: #C8CDD5 !important;
-  stroke: #C8CDD5 !important;
+  color: var(--elix-icon-primary) !important;
+  stroke: var(--elix-icon-primary) !important;
+  filter: var(--elix-icon-glow) !important;
 }
 nav[aria-label="Main navigation"] button:not([aria-current="page"]) .elix-silver-red-text {
   background-image: none !important;
@@ -1579,53 +1588,85 @@ nav[aria-label="Main navigation"] button:not([aria-current="page"]) .elix-silver
   box-shadow: var(--elix-avatar-glow) !important;
 }
 
-/* Icon line — silver only (purple reserved for accents) */
-svg.lucide {
-  color: var(--elix-icon-primary) !important;
-  stroke: url(#elixSilverRed) !important;
-  stroke-width: 2;
-  fill: none !important;
-  filter: none !important;
-}
-
-svg.lucide.fill-current,
-svg.lucide.fill-gold-bright,
-svg.lucide[fill]:not([fill="none"]):not(.fill-red-500):not(.fill-silver-full) {
-  fill: none !important;
-  stroke: url(#elixSilverRed) !important;
-}
-
-svg.lucide.fill-red-500,
-svg.lucide.text-red-500 {
-  color: #D91F2D !important;
-  fill: #D91F2D !important;
-  stroke: #D91F2D !important;
-  filter: none !important;
-}
-
-/* Saved bookmark — solid silver fill so saved state is obvious */
-svg.lucide.fill-silver-full,
-.royce-icon-gold.fill-silver-full,
-svg.lucide.fill-silver-full.royce-icon-gold {
-  color: var(--elix-icon-primary) !important;
-  fill: var(--elix-icon-primary) !important;
-  stroke: var(--elix-icon-primary) !important;
-  filter: none !important;
-}
-
+/* ═══ SHARED ICON GLOW OWNER — soft silver light around line icons ═══
+   NORMAL: #E6E9EE + --elix-icon-glow
+   ACTIVE: #FFFFFF + --elix-icon-glow-on
+   Semantic LIVE/error/success keep no silver glow. */
+svg.lucide,
 .royce-icon-gold,
 .bottom-nav-icon,
 .royce-icon-muted,
 .stroke-gold-metallic {
   color: var(--elix-icon-primary) !important;
   stroke: url(#elixSilverRed) !important;
+  stroke-width: 2;
   fill: none !important;
+  filter: var(--elix-icon-glow) !important;
 }
 
+svg.lucide.fill-current,
+svg.lucide.fill-gold-bright,
+svg.lucide[fill]:not([fill="none"]):not(.fill-red-500):not(.fill-silver-full),
 .royce-icon-gold.fill-current,
 .royce-icon-gold.fill-gold-bright {
   fill: none !important;
   stroke: url(#elixSilverRed) !important;
+  filter: var(--elix-icon-glow) !important;
+}
+
+/* Active / selected icons — white + stronger silver glow */
+button[aria-current="page"] svg.lucide,
+button[aria-current="page"] .royce-icon-gold,
+button[aria-pressed="true"] svg.lucide,
+button[aria-pressed="true"] .royce-icon-gold,
+[aria-selected="true"] svg.lucide,
+[aria-selected="true"] .royce-icon-gold,
+.elix-icon-active svg.lucide,
+.elix-icon-active .royce-icon-gold {
+  color: var(--elix-icon-active) !important;
+  stroke: var(--elix-icon-active) !important;
+  filter: var(--elix-icon-glow-on) !important;
+}
+
+/* Semantic: LIVE / error / danger — sharp, no silver glow */
+svg.lucide.fill-red-500,
+svg.lucide.text-red-500,
+svg.lucide.text-rose-500,
+svg.lucide.text-destructive,
+.royce-icon-gold.text-red-500,
+.royce-icon-gold.fill-red-500 {
+  color: #D91F2D !important;
+  fill: #D91F2D !important;
+  stroke: #D91F2D !important;
+  filter: none !important;
+}
+
+/* Semantic: success — sharp, no silver glow */
+svg.lucide.text-emerald-500,
+svg.lucide.text-green-500 {
+  color: #22C55E !important;
+  fill: #22C55E !important;
+  stroke: #22C55E !important;
+  filter: none !important;
+}
+
+/* Semantic: warning — sharp, no silver glow */
+svg.lucide.text-amber-500,
+svg.lucide.text-yellow-500 {
+  color: #F59E0B !important;
+  fill: #F59E0B !important;
+  stroke: #F59E0B !important;
+  filter: none !important;
+}
+
+/* Saved bookmark — solid silver + normal glow */
+svg.lucide.fill-silver-full,
+.royce-icon-gold.fill-silver-full,
+svg.lucide.fill-silver-full.royce-icon-gold {
+  color: var(--elix-icon-primary) !important;
+  fill: var(--elix-icon-primary) !important;
+  stroke: var(--elix-icon-primary) !important;
+  filter: var(--elix-icon-glow) !important;
 }
 
 /* Camera create right rail — translucent disc only; do not touch icon stroke color */
