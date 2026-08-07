@@ -1506,7 +1506,7 @@ body::before {
   background-image: none !important;
 }
 
-/* More Options glass — sheets + nav chrome only (NOT live/battle) */
+/* More Options glass — sheets + top nav only (NOT home bottom bar, NOT live/battle) */
 #root [class*="rounded-t-2xl"][class*="bg-[rgba"]:not(.elix-live-room *),
 #root [class*="rounded-t-2xl"][class*="bg-[#09090B"]:not(.elix-live-room *),
 .bottom-sheet,
@@ -1514,7 +1514,6 @@ body::before {
 .bottom-sheet-above-nav:not(.elix-live-room *),
 #root .elix-glass,
 #root .elix-glass-panel,
-#root nav[aria-label="Main navigation"] .feed-column-width,
 #root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
 #root .feed-column-width.h-\[var\(--topnav-bar-height\)\] {
   background-color: rgba(0, 0, 0, 0.35) !important;
@@ -1524,13 +1523,18 @@ body::before {
   -webkit-backdrop-filter: blur(12px) !important;
 }
 
+/* Home bottom nav — solid black everywhere (Sound, Profile, Feed, all tabs) */
 #root nav[aria-label="Main navigation"] {
-  background-color: transparent !important;
+  background-color: #000000 !important;
 }
 #root nav[aria-label="Main navigation"] .feed-column-width {
+  background-color: #000000 !important;
+  background-image: none !important;
+  border: none !important;
   border-bottom: none !important;
-  border-bottom-width: 0 !important;
-  border-bottom-color: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 .page-above-bottom-nav,
