@@ -3,7 +3,7 @@ import { RoyceBackIcon, ShopBasketIcon } from '../components/royce';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/apiClient';
 import { useAuthStore } from '../store/useAuthStore';
-import { Plus, Camera, Tag, MessageCircle, Search, MoreVertical, X } from 'lucide-react';
+import { Camera, Tag, MessageCircle, MoreVertical, X } from 'lucide-react';
 import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
 import { showToast } from '../lib/toast';
 import { bunnyUpload } from '../lib/bunnyStorage';
@@ -380,25 +380,34 @@ export default function Shop() {
             className="w-full px-3 flex items-center justify-between"
             style={{ minHeight: 'var(--topnav-bar-height)' }}
           >
-            <div className="flex items-center gap-1">
-              <button onClick={openCreateListing} className="p-1" title="Sell item">
-                <Plus size={18} className="text-white" />
-              </button>
-              <button onClick={goSearch} className="p-1" title="Search">
-                <Search size={18} className="text-white" />
-              </button>
-              <button onClick={openCart} className="p-1 relative" title="Basket">
-                <ShopBasketIcon size={18} active={cartItems.length > 0} className="text-white" />
-                {cartItems.length > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-[15px] h-[15px] px-1 rounded-full bg-[#E6E9EE] text-white text-[9px] font-extrabold flex items-center justify-center leading-none">
-                    {cartItems.length}
-                  </span>
-                )}
-              </button>
-            </div>
+            <div className="w-10" aria-hidden />
             <h1 className="text-sm font-bold text-white">Shop</h1>
-            <button onClick={goBack} className="p-1" title="Back">
+            <button type="button" onClick={goBack} className="p-1" title="Back" aria-label="Back">
               <RoyceBackIcon />
+            </button>
+          </div>
+          {/* Second panel — text actions only (no blank icons) */}
+          <div className="w-full px-3 pb-2 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={openCreateListing}
+              className="flex-1 py-2 rounded-md bg-white/10 border border-white/10 text-center text-[12px] font-bold text-white active:opacity-70"
+            >
+              Add products
+            </button>
+            <button
+              type="button"
+              onClick={openCart}
+              className="flex-1 py-2 rounded-md bg-white/10 border border-white/10 text-center text-[12px] font-bold text-white active:opacity-70"
+            >
+              Basket{cartItems.length > 0 ? ` (${cartItems.length})` : ''}
+            </button>
+            <button
+              type="button"
+              onClick={goSearch}
+              className="flex-1 py-2 rounded-md bg-white/10 border border-white/10 text-center text-[12px] font-bold text-white active:opacity-70"
+            >
+              Search
             </button>
           </div>
         </div>
@@ -528,28 +537,26 @@ export default function Shop() {
                     )}
                   </div>
                 </div>
-                <div className="border-t border-white/15 px-2.5 py-2 pr-10 relative">
+                <div className="border-t border-white/15 px-2.5 py-2">
                   <h3 className="text-sm font-bold text-gold-metallic truncate">{item.title}</h3>
                   <p className="text-base font-extrabold text-white mt-0.5">£{item.price.toFixed(2)}</p>
+                </div>
+                <div className="border-t border-white/10 px-2.5 py-2">
                   {cartItems.some((c) => c.id === item.id) ? (
                     <button
                       type="button"
                       onClick={() => handleRemoveFromCart(item.id)}
-                      className="absolute bottom-1.5 right-1.5 w-7 h-7 flex items-center justify-center rounded-full bg-white/10 border border-[#E6E9EE]/55"
-                      aria-label="Remove from basket"
-                      title="Remove from basket"
+                      className="w-full py-1.5 rounded-md bg-white/10 border border-white/15 text-center text-[11px] font-bold text-white active:opacity-70"
                     >
-                      <ShopBasketIcon size={15} active className="text-[#E6E9EE]" />
+                      Remove from basket
                     </button>
                   ) : (
                     <button
                       type="button"
                       onClick={() => handleAddToCart({ id: item.id, title: item.title, price: item.price, image_url: item.image_url }, isOwn)}
-                      className="absolute bottom-1.5 right-1.5 w-7 h-7 flex items-center justify-center rounded-full bg-black/60 border border-white/15 active:opacity-70"
-                      aria-label="Add to basket"
-                      title="Add to basket"
+                      className="w-full py-1.5 rounded-md bg-white/10 border border-white/15 text-center text-[11px] font-bold text-white active:opacity-70"
                     >
-                      <ShopBasketIcon size={15} className="text-white" />
+                      Add to basket
                     </button>
                   )}
                 </div>
