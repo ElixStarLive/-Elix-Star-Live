@@ -51,15 +51,31 @@ export default defineConfig(({ mode }) => ({
     host: true,
     cors: true,
     proxy: {
+      // Local backend needs Valkey; when it is down, proxy to production so login works.
+      // Strip localhost Origin — production currently 500s on that Origin header.
       '/api': {
-        target: 'http://localhost:8080',
+        target: 'https://www.elixstarlive.co.uk',
         changeOrigin: true,
+        secure: true,
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq) => {
+            proxyReq.removeHeader('origin');
+            proxyReq.setHeader('origin', 'https://www.elixstarlive.co.uk');
+            proxyReq.setHeader('referer', 'https://www.elixstarlive.co.uk/');
+          });
+        },
       },
-      // WebSocket for live rooms — backend serves ws on port 8080
       '/live': {
-        target: 'http://localhost:8080',
+        target: 'https://www.elixstarlive.co.uk',
         changeOrigin: true,
+        secure: true,
         ws: true,
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq) => {
+            proxyReq.removeHeader('origin');
+            proxyReq.setHeader('origin', 'https://www.elixstarlive.co.uk');
+          });
+        },
       },
     },
   },
