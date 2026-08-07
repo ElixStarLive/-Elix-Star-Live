@@ -1484,16 +1484,30 @@ svg.lucide.fill-silver-full.royce-icon-gold {
   display: none !important;
 }
 
-/* ═══ Owner: all pages fully transparent — same as home bottom nav. ═══
-   Bottom nav left alone (already clear). No video patches. Create #09090B left alone. */
+/* ═══ Owner: static shell underlay + transparent pages (NO video). ═══
+   Underlay is the only thing behind clear pages. BottomNav.tsx not touched.
+   Create #09090B left alone. Live stream still covers underlay when playing. */
 html,
 body {
-  background-color: transparent !important;
+  background-color: #050508 !important;
   background-image: none !important;
 }
+/* Real behind-layer — not For You, not a route hack */
 body::before {
-  content: none !important;
-  display: none !important;
+  content: "" !important;
+  display: block !important;
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+  background-color: #050508 !important;
+  background-image:
+    radial-gradient(ellipse 130% 90% at 50% -25%, rgba(111, 63, 245, 0.28), transparent 58%),
+    radial-gradient(ellipse 85% 55% at 100% 100%, rgba(217, 31, 45, 0.14), transparent 52%),
+    radial-gradient(ellipse 70% 45% at 0% 85%, rgba(216, 217, 221, 0.07), transparent 48%),
+    linear-gradient(180deg, #0c0c12 0%, #050508 48%, #000000 100%) !important;
+  background-repeat: no-repeat !important;
+  background-size: cover !important;
 }
 #root {
   position: relative;
@@ -1507,6 +1521,22 @@ body::before {
   background: transparent !important;
   background-color: transparent !important;
   background-image: none !important;
+}
+
+/* Shell underlay (App) — same atmosphere as body::before, for WebView reliability */
+.elix-shell-underlay {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: #050508;
+  background-image:
+    radial-gradient(ellipse 130% 90% at 50% -25%, rgba(111, 63, 245, 0.28), transparent 58%),
+    radial-gradient(ellipse 85% 55% at 100% 100%, rgba(217, 31, 45, 0.14), transparent 52%),
+    radial-gradient(ellipse 70% 45% at 0% 85%, rgba(216, 217, 221, 0.07), transparent 48%),
+    linear-gradient(180deg, #0c0c12 0%, #050508 48%, #000000 100%);
+  background-repeat: no-repeat;
+  background-size: cover;
 }
 
 #root {

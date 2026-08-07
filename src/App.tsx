@@ -361,8 +361,9 @@ function App() {
   return (
     <div
       className="elix-app-shell fixed inset-0 w-full h-[100dvh] flex flex-col bg-transparent text-text font-sans overflow-hidden"
-      style={{ backgroundColor: 'transparent', backgroundImage: 'none' }}
     >
+      {/* Static underlay only — no video. Pages stay transparent over this. */}
+      <div className="elix-shell-underlay" aria-hidden />
       <OfflineBanner />
       <IncomingCallModal />
       <LiveNotifyBanner />
