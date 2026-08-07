@@ -73,8 +73,8 @@ export default function SettingsOptionSheet({ children, onClose, title }: Settin
           <div className="h-11 flex items-center justify-between px-2 pt-2">
             <div className="w-10 shrink-0" aria-hidden />
             {title ? (
-              <h1 className="flex-1 text-center text-[13px] font-bold leading-none truncate px-2">
-                <span className="elix-silver-red-text">{title}</span>
+              <h1 className="flex-1 text-center text-[13px] font-bold leading-none truncate px-2 text-white">
+                {title}
               </h1>
             ) : (
               <div className="flex-1" aria-hidden />

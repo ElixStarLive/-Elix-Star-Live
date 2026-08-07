@@ -106,112 +106,96 @@ export default function Settings() {
           <span className="royce-icon-gold">{ic}</span>
         </span>
       )}
-      <span className="flex-1 min-w-0">
-        <span className="elix-silver-red-text text-[15px] leading-tight">{t}</span>
-      </span>
+      <span className="flex-1 min-w-0 text-[15px] leading-tight text-[#E6E9EE]">{t}</span>
       {v ? (
-        <span className="elix-silver-red-text text-[12px] tabular-nums shrink-0">{v}</span>
+        <span className="text-[12px] tabular-nums shrink-0 text-[#C8CDD5]">{v}</span>
       ) : null}
       <ChevronRight size={16} className="text-white/30 shrink-0" />
     </button>
   );
 
   const S = ({ t }: { t: string }) => (
-    <p className="mt-3.5 mb-1 px-1 leading-none">
-      <span className="text-[10px] uppercase tracking-[0.12em] text-[#8B9099]">{t}</span>
-    </p>
-  );
-
-  const G = ({ children }: { children: React.ReactNode }) => (
-    <div className="elix-surface rounded-xl overflow-hidden">{children}</div>
+    <div className="mt-3.5 mb-1 px-1 text-[10px] uppercase tracking-[0.12em] text-[#8B9099] leading-none">
+      {t}
+    </div>
   );
 
   return (
     <SettingsOptionSheet onClose={exitSettings} title={t('settings.title')}>
-      {/* Logo + menu — title lives in sheet top bar with close (no gap) */}
+      {/* One full-page list — no per-section cards */}
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 pt-2 pb-[3mm]">
         <div className="flex flex-col gap-0 max-w-full min-h-full">
           <div className="flex flex-col items-center pb-3">
             <img src="/elix-logo.png" alt="Elix Star Live" className="w-20 h-20 object-contain" />
           </div>
           <S t={t('settings.section.account')} />
-          <G>
-            <R ic={<User size={14} />} t={t('settings.editProfile')} fn={goEditProfile} />
-            <R ic={<Lock size={14} />} t={t('settings.privacy')} fn={goSafety} />
-            <R ic={<Shield size={14} />} t={t('settings.security')} fn={goSecurity} />
-            <R ic={<Trash2 size={14} />} t={t('settings.deleteAccount')} fn={handleDeleteAccount} />
-            <R ic={<Wallet size={14} />} t="Creator payout" fn={goPayout} />
-            {engagementFlags.engagementHubEnabled ? (
-              <R ic={<Gift size={14} />} t="Engagement Hub" fn={goEngagement} />
-            ) : null}
-            {user?.isAdmin ? (
-              <R ic={<LayoutDashboard size={14} />} t="Admin" fn={goAdmin} />
-            ) : null}
-          </G>
+          <R ic={<User size={14} />} t={t('settings.editProfile')} fn={goEditProfile} />
+          <R ic={<Lock size={14} />} t={t('settings.privacy')} fn={goSafety} />
+          <R ic={<Shield size={14} />} t={t('settings.security')} fn={goSecurity} />
+          <R ic={<Trash2 size={14} />} t={t('settings.deleteAccount')} fn={handleDeleteAccount} />
+          <R ic={<Wallet size={14} />} t="Creator payout" fn={goPayout} />
+          {engagementFlags.engagementHubEnabled ? (
+            <R ic={<Gift size={14} />} t="Engagement Hub" fn={goEngagement} />
+          ) : null}
+          {user?.isAdmin ? (
+            <R ic={<LayoutDashboard size={14} />} t="Admin" fn={goAdmin} />
+          ) : null}
 
           <S t={t('settings.section.preferences')} />
-          <G>
-            <R ic={<Bell size={14} />} t={t('settings.notifications')} fn={goNotifications} />
-            <R
-              ic={<Radio size={14} />}
-              t={t('settings.liveNotifications')}
-              v={liveNotifications ? t('common.on') : t('common.off')}
-              fn={() => setLiveNotifications(!liveNotifications)}
-            />
-            <R
-              ic={muteAllSounds ? <VolumeX size={14} /> : <Volume2 size={14} />}
-              t="Mute all sounds"
-              v={muteAllSounds ? t('common.on') : t('common.off')}
-              fn={() => {
-                const next = !muteAllSounds;
-                setMuteAllSounds(next);
-                showToast(next ? 'All app sounds muted' : 'App sounds on');
-              }}
-            />
-            <R ic={<Moon size={14} />} t={t('settings.darkMode')} v={t('common.on')} fn={() => showToast(t('toast.darkModeAlwaysOn'))} />
-            <R ic={<Globe size={14} />} t={t('settings.language')} v={LANGUAGE_SHORT[lang]} fn={() => setLangOpen(true)} />
-          </G>
+          <R ic={<Bell size={14} />} t={t('settings.notifications')} fn={goNotifications} />
+          <R
+            ic={<Radio size={14} />}
+            t={t('settings.liveNotifications')}
+            v={liveNotifications ? t('common.on') : t('common.off')}
+            fn={() => setLiveNotifications(!liveNotifications)}
+          />
+          <R
+            ic={muteAllSounds ? <VolumeX size={14} /> : <Volume2 size={14} />}
+            t="Mute all sounds"
+            v={muteAllSounds ? t('common.on') : t('common.off')}
+            fn={() => {
+              const next = !muteAllSounds;
+              setMuteAllSounds(next);
+              showToast(next ? 'All app sounds muted' : 'App sounds on');
+            }}
+          />
+          <R ic={<Moon size={14} />} t={t('settings.darkMode')} v={t('common.on')} fn={() => showToast(t('toast.darkModeAlwaysOn'))} />
+          <R ic={<Globe size={14} />} t={t('settings.language')} v={LANGUAGE_SHORT[lang]} fn={() => setLangOpen(true)} />
 
           <S t={t('settings.section.content')} />
-          <G>
-            <R ic={<Video size={14} />} t={t('settings.videoQuality')} v={t('common.auto')} fn={() => showToast(t('toast.videoQualityAuto'))} />
-            <R ic={<Heart size={14} />} t={t('settings.likedVideos')} fn={goLikedVideos} />
-            <R ic={<Bookmark size={14} />} t="Saved videos" fn={goSaved} />
-          </G>
+          <R ic={<Video size={14} />} t={t('settings.videoQuality')} v={t('common.auto')} fn={() => showToast(t('toast.videoQualityAuto'))} />
+          <R ic={<Heart size={14} />} t={t('settings.likedVideos')} fn={goLikedVideos} />
+          <R ic={<Bookmark size={14} />} t="Saved videos" fn={goSaved} />
 
           <S t={t('settings.section.safety')} />
-          <G>
-            <R ic={<Ban size={14} />} t={t('settings.blockedAccounts')} fn={goBlocked} />
-            <R ic={<Shield size={14} />} t={t('settings.safetyCenter')} fn={goSafety} />
-          </G>
+          <R ic={<Ban size={14} />} t={t('settings.blockedAccounts')} fn={goBlocked} />
+          <R ic={<Shield size={14} />} t={t('settings.safetyCenter')} fn={goSafety} />
 
           <S t={t('settings.section.support')} />
-          <G>
-            <R ic={<BookOpen size={14} />} t="How the app works" fn={goHowItWorks} />
-            <R ic={<HelpCircle size={14} />} t={t('settings.helpSupport')} fn={goSupport} />
-          </G>
+          <R ic={<BookOpen size={14} />} t="How the app works" fn={goHowItWorks} />
+          <R ic={<HelpCircle size={14} />} t={t('settings.helpSupport')} fn={goSupport} />
 
           <div className="grid grid-cols-3 gap-1 mt-auto pt-4 px-0.5">
             <button
               type="button"
               onClick={goTerms}
-              className="text-[12px] py-2 rounded-md active:bg-white/5 text-center leading-tight"
+              className="text-[12px] py-2 rounded-md active:bg-white/5 text-center leading-tight text-[#E6E9EE]"
             >
-              <span className="elix-silver-red-text">{t('common.terms')}</span>
+              {t('common.terms')}
             </button>
             <button
               type="button"
               onClick={goPrivacy}
-              className="text-[12px] py-2 rounded-md active:bg-white/5 text-center leading-tight"
+              className="text-[12px] py-2 rounded-md active:bg-white/5 text-center leading-tight text-[#E6E9EE]"
             >
-              <span className="elix-silver-red-text">{t('common.privacy')}</span>
+              {t('common.privacy')}
             </button>
             <button
               type="button"
               onClick={goGuidelines}
-              className="text-[12px] py-2 rounded-md active:bg-white/5 text-center leading-tight"
+              className="text-[12px] py-2 rounded-md active:bg-white/5 text-center leading-tight text-[#E6E9EE]"
             >
-              <span className="elix-silver-red-text">{t('common.guidelines')}</span>
+              {t('common.guidelines')}
             </button>
           </div>
 
@@ -219,21 +203,21 @@ export default function Settings() {
             <button
               type="button"
               onClick={handleLogout}
-              className="flex items-center gap-1.5 py-1.5 text-[13px] active:bg-white/5 px-2.5 rounded-md"
+              className="flex items-center gap-1.5 py-1.5 text-[13px] active:bg-white/5 px-2.5 rounded-md text-[#E6E9EE]"
             >
-              <LogOut size={15} className="royce-icon-gold" /> <span className="elix-silver-red-text">{t('common.logout')}</span>
+              <LogOut size={15} className="royce-icon-gold" /> {t('common.logout')}
             </button>
             <button
               type="button"
               onClick={handleDeleteAccount}
-              className="flex items-center gap-1.5 py-1.5 text-[13px] active:bg-white/20/10 px-2.5 rounded-md"
+              className="flex items-center gap-1.5 py-1.5 text-[13px] active:bg-white/20/10 px-2.5 rounded-md text-[#E6E9EE]"
             >
-              <Trash2 size={15} className="royce-icon-gold" /> <span className="elix-silver-red-text">{t('common.delete')}</span>
+              <Trash2 size={15} className="royce-icon-gold" /> {t('common.delete')}
             </button>
           </div>
-          <p className="text-center text-[9px] pt-1.5 pb-0.5">
-            <span className="elix-silver-red-text opacity-40">v1.0.0</span>
-          </p>
+          <div className="text-center text-[9px] pt-1.5 pb-0.5 text-[#8B9099] opacity-40">
+            v1.0.0
+          </div>
         </div>
       </div>
       {langOpen && <LanguagePickerSheet onClose={() => setLangOpen(false)} />}
