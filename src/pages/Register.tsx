@@ -264,10 +264,13 @@ export default function Register() {
           </button>
         </form>
 
-        <div className="mt-6 xs:mt-4 text-center">
+        <div className="mt-6 xs:mt-4 text-center space-y-2">
           <Link to="/login" className="text-fluid-sm text-white hover:underline">
             Already have an account? Sign in
           </Link>
+          <p className="text-fluid-sm text-white/50">
+            Created by Andrei Ionut Berica — Owner / Developer
+          </p>
         </div>
       </div>
     </div>
