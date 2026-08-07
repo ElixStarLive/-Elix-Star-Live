@@ -64,11 +64,11 @@ export function CyclingRankBadge({ onOpen, className = '', showChevron = true }:
           );
         })}
       </span>
-      <span className="text-[#F5E6A8] text-[11px] font-bold whitespace-nowrap drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)] min-w-[7.5rem] text-left">
+      <span className="text-[#E6E9EE] text-[11px] font-bold whitespace-nowrap drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)] min-w-[7.5rem] text-left">
         {slot.label}
       </span>
       {showChevron ? (
-        <span className="text-[#F5E6A8]/90 text-[11px]">&gt;</span>
+        <span className="text-[#E6E9EE]/90 text-[11px]">&gt;</span>
       ) : null}
     </button>
   );

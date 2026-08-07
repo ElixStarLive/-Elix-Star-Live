@@ -155,7 +155,7 @@ export function LiveSideMissionStack({
         minHeight: '88px',
         borderRadius: '12px 0 0 12px',
         background: 'rgba(8, 10, 28, 0.88)',
-        border: '1px solid rgba(255,255,255,0.12)',
+        border: '1px solid var(--elix-border)',
         borderRight: 'none',
         boxShadow: 'none',
         backdropFilter: 'blur(8px)',

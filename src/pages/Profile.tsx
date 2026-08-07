@@ -900,7 +900,7 @@ export default function Profile() {
               style={{
                 background:
                   (profileStoryGroup?.items?.length ?? 0) > 0
-                    ? 'linear-gradient(135deg, #D8D9DD, #F5E6A8, #D8D9DD)'
+                    ? 'linear-gradient(135deg, #E6E9EE, #FFFFFF, #E6E9EE)'
                     : 'transparent',
               }}
             >

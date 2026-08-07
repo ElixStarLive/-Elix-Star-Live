@@ -36,7 +36,7 @@ function NeonLevelDiamond({
   const uid = useId().replace(/:/g, '');
   const fillId = `lvl-dia-fill-${uid}`;
   const royalPink = '#6F3FF5';
-  const softPink = '#B7BDC8';
+  const softPink = '#E6E9EE';
   const white = '#FFFFFF';
 
   return (

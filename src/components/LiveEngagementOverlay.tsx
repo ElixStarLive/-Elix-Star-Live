@@ -182,7 +182,7 @@ export function LiveEngagementOverlay({
                           <p className="text-[8px] text-[#F5F5F7] truncate">{row.title}</p>
                         ) : null}
                       </div>
-                      <span className="text-[10px] font-bold text-[#F5E6A8] tabular-nums">{row.score}</span>
+                      <span className="text-[10px] font-bold text-[#E6E9EE] tabular-nums">{row.score}</span>
                     </div>
                   ))
                 )}
@@ -196,12 +196,12 @@ export function LiveEngagementOverlay({
         <div className="pointer-events-none fixed inset-0 z-[100] flex items-start justify-center pt-[28%] max-w-[480px] mx-auto">
           <div className="px-4 py-3 rounded-2xl bg-[rgba(10,10,10,0.72)] border border-[#D8D9DD]/50 shadow-[0_0_24px_rgba(229, 229, 231,0.35)]">
             {milestoneFlash ? (
-              <p className="text-[#F5E6A8] text-sm font-black text-center">
+              <p className="text-[#E6E9EE] text-sm font-black text-center">
                 {milestoneFlash.milestones.map((m) => `${m}m`).join(", ")} streak!
                 {milestoneFlash.title ? ` · ${milestoneFlash.title}` : ""}
               </p>
             ) : (
-              <p className="text-[#F5E6A8] text-sm font-black text-center">
+              <p className="text-[#E6E9EE] text-sm font-black text-center">
                 Community Stage {stageFlash} unlocked!
               </p>
             )}

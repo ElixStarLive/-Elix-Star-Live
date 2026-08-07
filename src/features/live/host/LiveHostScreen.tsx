@@ -1934,7 +1934,7 @@ export default function LiveHostScreen() {
                           />
                           {currentUniverse && (
                             <div className="mt-1 flex items-center gap-1 bg-[rgba(10,10,10,0.72)] rounded-full px-2.5 py-1 border border-[#D8D9DD]/80 shadow-sm pointer-events-auto relative z-20">
-                              <span className="text-[#F5E6A8] text-[11px] font-bold whitespace-nowrap truncate max-w-[140px]">âœ¨ {universeText} âœ¨</span>
+                              <span className="text-[#E6E9EE] text-[11px] font-bold whitespace-nowrap truncate max-w-[140px]">âœ¨ {universeText} âœ¨</span>
                             </div>
                           )}
                         </div>

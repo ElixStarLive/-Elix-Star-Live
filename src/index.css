@@ -39,23 +39,27 @@
   :root {
     /* ═══════════════════════════════════════════════════════════════════
        ELIX GLOBAL THEME — one source of truth (2026-08-07)
-       Near-black neutral charcoal + champagne accent.
+       Charcoal + glass + silver + white. Reference-locked palette.
        Every surface, page, chrome and LIVE room references these tokens.
        ═══════════════════════════════════════════════════════════════════ */
 
     /* Named theme tokens (semantic) */
-    --elix-bg: #0B0B0C;                        /* main app background (near-black neutral) */
-    --elix-raised: #121212;                    /* raised surface / cards (solid) */
-    --elix-surface: rgba(18, 18, 18, 0.72);    /* transparent panels / page frames / sheets */
-    --elix-glass: rgba(11, 11, 12, 0.82);      /* navigation + header chrome */
-    --elix-border: rgba(255, 255, 255, 0.12);
-    --elix-text-primary: #F5F5F3;              /* warm white writing */
-    --elix-text-secondary: #AAA9A6;
-    --elix-icon-primary: #F5F5F3;
-    --elix-icon-inactive: #B5B5B2;
+    --elix-bg: #0B0B0C;                          /* solid base under glass */
+    --elix-bg-glass: rgba(8, 10, 14, 0.65);      /* main app background — glass tint */
+    --elix-raised: #121215;                       /* raised solid surface (near-black) */
+    --elix-surface: rgba(18, 20, 25, 0.65);       /* cards / page frames / sheets */
+    --elix-panel: rgba(26, 28, 33, 0.65);         /* elevated: nav, modals, menus, floating controls */
+    --elix-glass: rgba(26, 28, 33, 0.65);         /* alias of --elix-panel for legacy references */
+    --elix-border: rgba(255, 255, 255, 0.10);
+    --elix-text-primary: #FFFFFF;
+    --elix-text-secondary: #C8CDD5;
+    --elix-text-tertiary: #8B9099;
+    --elix-icon-primary: #E6E9EE;
+    --elix-icon-inactive: #8B9099;
     --elix-icon-active: #FFFFFF;
-    --elix-accent: #D8BE91;                    /* champagne — selected icons / accent */
-    --elix-accent-light: #E9D8B8;
+    --elix-accent: #E6E9EE;                       /* silver accent (replaces champagne) */
+    --elix-accent-light: #FFFFFF;
+    --elix-avatar-ring: #E6E9EE;
     --elix-glass-blur: blur(12px);
 
     /* Legacy token compatibility — all wired to the theme above. */
@@ -84,6 +88,7 @@
     --color-icon-circle: rgba(8, 8, 10, 0.48);
     --color-text: var(--elix-text-primary);
     --color-text-secondary: var(--elix-text-secondary);
+    --color-text-tertiary: var(--elix-text-tertiary);
     --color-background: var(--elix-bg);
     --color-surface: var(--elix-raised);
     --color-card: var(--elix-surface);
@@ -959,7 +964,7 @@ video::-webkit-media-controls-overlay-enclosure,
 }
 
 .text-gold-metallic {
-  background-image: var(--elix-write, linear-gradient(90deg, #ffffff 0%, #d8d9dd 55%, #b7bdc8 100%));
+  background-image: var(--elix-write, linear-gradient(90deg, #FFFFFF 0%, #E6E9EE 55%, #C8CDD5 100%));
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -968,7 +973,7 @@ video::-webkit-media-controls-overlay-enclosure,
 
 /* ═══ GLOBAL: writing = warm white → soft warm gray. Accent = champagne (theme). ═══ */
 #root {
-  --elix-write: linear-gradient(90deg, #F5F5F3 0%, #E6E4DD 55%, #C8C6BF 100%);
+  --elix-write: linear-gradient(90deg, #FFFFFF 0%, #E6E9EE 55%, #C8CDD5 100%);
   --elix-accent-hover: var(--elix-accent-light);
   --elix-accent-pressed: var(--elix-accent);
 }
@@ -1319,16 +1324,16 @@ nav[aria-label="Main navigation"] button[aria-current="page"] .elix-silver-red-t
   -webkit-text-fill-color: #FFFFFF !important;
   color: #FFFFFF !important;
 }
-/* Inactive bottom-nav labels/icons — darker silver */
+/* Inactive bottom-nav labels/icons — muted tertiary */
 nav[aria-label="Main navigation"] button:not([aria-current="page"]) .royce-icon-gold,
 nav[aria-label="Main navigation"] button:not([aria-current="page"]) svg.lucide {
-  color: #A7ABB2 !important;
-  stroke: #A7ABB2 !important;
+  color: var(--elix-icon-inactive) !important;
+  stroke: var(--elix-icon-inactive) !important;
 }
 nav[aria-label="Main navigation"] button:not([aria-current="page"]) .elix-silver-red-text {
   background-image: none !important;
-  -webkit-text-fill-color: #A7ABB2 !important;
-  color: #A7ABB2 !important;
+  -webkit-text-fill-color: var(--elix-icon-inactive) !important;
+  color: var(--elix-icon-inactive) !important;
   opacity: 1 !important;
 }
 
@@ -1419,7 +1424,7 @@ nav[aria-label="Main navigation"] button:not([aria-current="page"]) .elix-silver
 
 /* Icon line — silver only (purple reserved for accents) */
 svg.lucide {
-  color: #D8D9DD !important;
+  color: var(--elix-icon-primary) !important;
   stroke: url(#elixSilverRed) !important;
   stroke-width: 2;
   fill: none !important;
@@ -1445,9 +1450,9 @@ svg.lucide.text-red-500 {
 svg.lucide.fill-silver-full,
 .royce-icon-gold.fill-silver-full,
 svg.lucide.fill-silver-full.royce-icon-gold {
-  color: #D8D9DD !important;
-  fill: #D8D9DD !important;
-  stroke: #D8D9DD !important;
+  color: var(--elix-icon-primary) !important;
+  fill: var(--elix-icon-primary) !important;
+  stroke: var(--elix-icon-primary) !important;
   filter: none !important;
 }
 
@@ -1455,7 +1460,7 @@ svg.lucide.fill-silver-full.royce-icon-gold {
 .bottom-nav-icon,
 .royce-icon-muted,
 .stroke-gold-metallic {
-  color: #D8D9DD !important;
+  color: var(--elix-icon-primary) !important;
   stroke: url(#elixSilverRed) !important;
   fill: none !important;
 }
