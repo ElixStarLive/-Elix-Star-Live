@@ -369,50 +369,49 @@ export default function Shop() {
   ] as const;
 
   return (
-    <div className="page-above-bottom-nav bg-transparent text-white">
-      <div className="page-above-bottom-nav__inner">
-        {/* Header — same size container as STEM */}
-        <div
-          className="w-full shrink-0 bg-transparent z-10 border-b border-white/5"
-          style={{ paddingTop: 'var(--topnav-anchor-top)' }}
-        >
-          <div
-            className="w-full px-3 flex items-center justify-between"
-            style={{ minHeight: 'var(--topnav-bar-height)' }}
-          >
-            <div className="w-10" aria-hidden />
-            <h1 className="text-sm font-bold text-white">Shop</h1>
-            <button type="button" onClick={goBack} className="p-1" title="Back" aria-label="Back">
-              <RoyceBackIcon />
-            </button>
-          </div>
-          {/* Second panel — text actions only (no blank icons) */}
-          <div className="w-full px-3 pb-2 flex items-center gap-2">
+    <div className="page-above-bottom-nav elix-page-glass text-white z-[1]">
+      <div className="page-above-bottom-nav__inner elix-settings-write flex flex-col min-h-0">
+        {/* Header — same fundal / panel look as Profile & Inbox */}
+        <header className="flex items-center justify-between px-4 pt-page-header pb-2 relative z-20">
+          <div className="w-10" aria-hidden />
+          <h1 className="pointer-events-none text-[16px] font-bold text-white absolute left-1/2 -translate-x-1/2">
+            Shop
+          </h1>
+          <button type="button" onClick={goBack} className="relative z-20 p-1" title="Back" aria-label="Back">
+            <RoyceBackIcon />
+          </button>
+        </header>
+
+        {/* Action writing — separate from All / Clothing / Accessories filters */}
+        <div className="mt-1">
+          <div className="flex justify-center overflow-x-auto no-scrollbar">
             <button
               type="button"
               onClick={openCreateListing}
-              className="flex-1 py-2 rounded-md bg-white/10 border border-white/10 text-center text-[12px] font-bold text-white active:opacity-70"
+              className="flex flex-col items-center gap-0.5 px-3 py-2 whitespace-nowrap"
             >
-              Add products
+              <span className="text-[11px] font-bold text-white">Add products</span>
             </button>
             <button
               type="button"
               onClick={openCart}
-              className="flex-1 py-2 rounded-md bg-white/10 border border-white/10 text-center text-[12px] font-bold text-white active:opacity-70"
+              className="flex flex-col items-center gap-0.5 px-3 py-2 whitespace-nowrap"
             >
-              Basket{cartItems.length > 0 ? ` (${cartItems.length})` : ''}
+              <span className="text-[11px] font-bold text-white">
+                Basket{cartItems.length > 0 ? ` (${cartItems.length})` : ''}
+              </span>
             </button>
             <button
               type="button"
               onClick={goSearch}
-              className="flex-1 py-2 rounded-md bg-white/10 border border-white/10 text-center text-[12px] font-bold text-white active:opacity-70"
+              className="flex flex-col items-center gap-0.5 px-3 py-2 whitespace-nowrap"
             >
-              Search
+              <span className="text-[11px] font-bold text-white">Search</span>
             </button>
           </div>
         </div>
 
-        {/* Live now circles — between header and filter bar */}
+        {/* Live now circles — between actions and filter bar */}
         {liveUsers.length > 0 && (
           <div className="px-3 pt-2 pb-1">
             <div className="flex items-center justify-between mb-1">
@@ -450,7 +449,7 @@ export default function Shop() {
           </div>
         )}
 
-        {/* Filter bar (All / Clothing / ...) */}
+        {/* Filter bar only (All / Clothing / ...) — not mixed with Basket / Add products */}
         <div className="flex gap-2 px-3 py-3 overflow-x-auto no-scrollbar">
           {filters.map(f => (
             <button
@@ -541,12 +540,12 @@ export default function Shop() {
                   <h3 className="text-sm font-bold text-gold-metallic truncate">{item.title}</h3>
                   <p className="text-base font-extrabold text-white mt-0.5">£{item.price.toFixed(2)}</p>
                 </div>
-                <div className="border-t border-white/10 px-2.5 py-2">
+                <div className="px-2.5 pb-2">
                   {cartItems.some((c) => c.id === item.id) ? (
                     <button
                       type="button"
                       onClick={() => handleRemoveFromCart(item.id)}
-                      className="w-full py-1.5 rounded-md bg-white/10 border border-white/15 text-center text-[11px] font-bold text-white active:opacity-70"
+                      className="w-full py-1.5 text-center text-[11px] font-bold text-white active:opacity-70"
                     >
                       Remove from basket
                     </button>
@@ -554,7 +553,7 @@ export default function Shop() {
                     <button
                       type="button"
                       onClick={() => handleAddToCart({ id: item.id, title: item.title, price: item.price, image_url: item.image_url }, isOwn)}
-                      className="w-full py-1.5 rounded-md bg-white/10 border border-white/15 text-center text-[11px] font-bold text-white active:opacity-70"
+                      className="w-full py-1.5 text-center text-[11px] font-bold text-white active:opacity-70"
                     >
                       Add to basket
                     </button>
