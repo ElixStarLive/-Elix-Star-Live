@@ -51,7 +51,7 @@ export function StoryGoldRingAvatar({
         style={{
           boxSizing: 'border-box',
           border: `2px solid ${SILVER_RING}`,
-          background: '#1A1A1F',
+          background: '#121419',
         }}
       >
         {safeSrc ? (

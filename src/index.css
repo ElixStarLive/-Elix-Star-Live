@@ -38,18 +38,27 @@
 @layer base {
   :root {
     /* ═══════════════════════════════════════════════════════════════════
-       ELIX GLOBAL THEME — LOCKED TO REFERENCE PICTURE (1-1)
-       Background glass: rgba(8,10,14,0.65) over solid #080A0E
-       Surface glass:    rgba(18,20,25,0.65)
-       Panel glass:      rgba(26,28,33,0.65)
-       Border:           rgba(255,255,255,0.10)
-       Silver:           #E6E9EE | White: #FFFFFF
-       NEVER #000000. NEVER plain black.
+       ELIX GLOBAL THEME — REFERENCE RENDER LOCK (owner 2026-08-07)
+       Visible depth requires DIFFERENT RGB levels (glass over same RGB = invisible).
+
+       SOLID BASE:    #080A0E
+       SURFACE RGB:   #121419
+       PANEL RGB:     #1A1C21
+       BG GLASS:      rgba(8,10,14,0.65)
+       SURFACE GLASS: rgba(18,20,25,0.65)
+       PANEL GLASS:   rgba(26,28,33,0.65)
+       BORDER:        rgba(255,255,255,0.10)
+       SILVER:        #E6E9EE
+       WHITE:         #FFFFFF
+       TEXT 2/3:      #C8CDD5 / #8B9099
+       NEVER #000 / #0B0B0C / #121212 as page base.
        ═══════════════════════════════════════════════════════════════════ */
 
     --elix-bg: #080A0E;
     --elix-bg-glass: rgba(8, 10, 14, 0.65);
     --elix-raised: #121419;
+    --elix-surface-solid: #121419;
+    --elix-panel-solid: #1A1C21;
     --elix-surface: rgba(18, 20, 25, 0.65);
     --elix-panel: rgba(26, 28, 33, 0.65);
     --elix-glass: rgba(26, 28, 33, 0.65);
@@ -63,6 +72,7 @@
     --elix-accent: #E6E9EE;
     --elix-accent-light: #FFFFFF;
     --elix-avatar-ring: #E6E9EE;
+    --elix-avatar-glow: 0 0 3px 0 rgba(230, 233, 238, 0.28);
     --elix-glass-blur: blur(12px);
     --elix-fundal-deep: #080A0E;
 
@@ -1417,15 +1427,15 @@ nav[aria-label="Main navigation"] button:not([aria-current="page"]) .elix-silver
   user-select: none;
 }
 
-/* User circles — silver ring flush on the photo (exact #E6E9EE). Never gap/inset. */
+/* User circles — sharp #E6E9EE ring + subtle halo (NOT large white bloom) */
 .elix-profile-ring,
 .royce-avatar-glow {
   box-sizing: border-box;
   border-radius: 9999px;
   border: 2px solid var(--elix-avatar-ring, #E6E9EE) !important;
-  background: #1A1A1F !important;
+  background: #121419 !important;
   overflow: hidden;
-  box-shadow: 0 0 6px 0 rgba(230, 233, 238, 0.35);
+  box-shadow: var(--elix-avatar-glow) !important;
 }
 
 /* Icon line — silver only (purple reserved for accents) */
@@ -1508,23 +1518,23 @@ svg.lucide.fill-silver-full.royce-icon-gold {
   display: none !important;
 }
 
-/* ═══ Global theme contract — PICTURE 1-1 ═══
-   Solid base #080A0E
-   + Background glass rgba(8,10,14,0.65) on every page shell
-   + Panel glass rgba(26,28,33,0.65) on top/bottom nav
-   + Surface glass rgba(18,20,25,0.65) on sheets/cards
-   + Border rgba(255,255,255,0.10)
-   NEVER #000 / #09090B pitch black. */
+/* ═══ Global theme contract — RENDERED DEPTH (reference) ═══
+   LEVEL 1 PAGE:   solid #080A0E
+   LEVEL 2 CARDS:  solid #121419 (+ surface glass when translucent)
+   LEVEL 3 PANELS: solid #1A1C21 (+ panel glass when translucent)
+   Border: rgba(255,255,255,0.10)
+   Do NOT paint page with same-RGB rgba wash (invisible / flat black). */
 html,
 body {
   background-color: #080A0E !important;
-  background-image: linear-gradient(rgba(8, 10, 14, 0.65), rgba(8, 10, 14, 0.65)) !important;
+  background-image: none !important;
 }
 body::before {
   content: none !important;
   display: none !important;
 }
 
+/* LEVEL 1 — page / shell / live room */
 #root,
 .elix-app-shell,
 .elix-live-room,
@@ -1534,7 +1544,7 @@ body::before {
 #root .min-h-screen.bg-transparent,
 #root .min-h-\[100dvh\].bg-transparent {
   background-color: #080A0E !important;
-  background-image: linear-gradient(rgba(8, 10, 14, 0.65), rgba(8, 10, 14, 0.65)) !important;
+  background-image: none !important;
   border-top: none !important;
   box-shadow: none !important;
 }
@@ -1546,12 +1556,12 @@ body::before {
   background-image: none !important;
 }
 
-/* Top + bottom nav = Panel glass (picture) */
+/* LEVEL 3 — top + bottom nav = PANEL solid #1A1C21 (visibly above page) */
 #root nav[aria-label="Main navigation"] .feed-column-width,
 #root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
 #root .feed-column-width.h-\[var\(--topnav-bar-height\)\] {
-  background-color: rgba(26, 28, 33, 0.65) !important;
-  background-image: none !important;
+  background-color: #1A1C21 !important;
+  background-image: linear-gradient(rgba(26, 28, 33, 0.65), rgba(26, 28, 33, 0.65)) !important;
   border-color: rgba(255, 255, 255, 0.10) !important;
   border-top: 1px solid rgba(255, 255, 255, 0.10) !important;
   backdrop-filter: blur(12px) !important;
@@ -1559,18 +1569,19 @@ body::before {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
 }
 
-/* Sheets / cards = Surface glass (picture) */
+/* LEVEL 2 — sheets / cards = SURFACE solid #121419 */
 #root .bottom-sheet,
 #root .bottom-sheet-small,
 #root .bottom-sheet-above-nav {
-  background-color: rgba(18, 20, 25, 0.65) !important;
+  background-color: #121419 !important;
+  background-image: linear-gradient(rgba(18, 20, 25, 0.65), rgba(18, 20, 25, 0.65)) !important;
   border-top: 1px solid rgba(255, 255, 255, 0.10) !important;
   backdrop-filter: blur(12px) !important;
   -webkit-backdrop-filter: blur(12px) !important;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
 }
 
-/* Battle empty slot = Surface glass over deep fundal */
+/* Battle empty slot — LEVEL 2 surface (not pitch black) */
 .elix-battle-slot {
   background-color: #121419 !important;
   background-image: linear-gradient(rgba(18, 20, 25, 0.65), rgba(18, 20, 25, 0.65)) !important;
@@ -1584,11 +1595,11 @@ body::before {
   background-image: linear-gradient(90deg, #121419 0%, #080A0E 100%) !important;
 }
 .elix-battle-score-wrap {
-  background-color: rgba(8, 10, 14, 0.65) !important;
+  background-color: #121419 !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.10) !important;
 }
 
-/* Kill every leftover plain black → picture background glass */
+/* Kill plain black / warm near-black → cool base #080A0E (NOT panel) */
 #root .bg-black,
 #root .bg-\[\#000\],
 #root .bg-\[\#000000\],
@@ -1596,10 +1607,9 @@ body::before {
 #root .bg-\[\#0A0A0A\],
 #root .bg-\[\#0B0B0C\],
 #root .bg-\[\#111111\],
-#root .bg-\[\#121212\],
-#root .bg-\[\#1A1C21\] {
+#root .bg-\[\#121212\] {
   background-color: #080A0E !important;
-  background-image: linear-gradient(rgba(8, 10, 14, 0.65), rgba(8, 10, 14, 0.65)) !important;
+  background-image: none !important;
 }
 
 #root .bg-black\/20,

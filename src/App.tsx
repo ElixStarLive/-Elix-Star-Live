@@ -363,7 +363,7 @@ function App() {
       className="elix-app-shell fixed inset-0 w-full h-[100dvh] flex flex-col text-text font-sans overflow-hidden"
       style={{
         backgroundColor: '#080A0E',
-        backgroundImage: 'linear-gradient(rgba(8, 10, 14, 0.65), rgba(8, 10, 14, 0.65))',
+        backgroundImage: 'none',
       }}
     >
       <OfflineBanner />
