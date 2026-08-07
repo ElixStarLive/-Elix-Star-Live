@@ -1938,17 +1938,23 @@ body {
   background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment);
 }
 
-/* LEVEL 3 — bottom / top nav: clear chrome so shell fundal is one continuous page */
+/* LEVEL 3 — bottom / top nav: restore fundal panel chrome (do not clear) */
 #root nav[aria-label="Main navigation"] .feed-column-width,
 #root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
 #root .feed-column-width.h-\[var\(--topnav-bar-height\)\] {
-  background-color: transparent !important;
-  background-image: none !important;
+  background-color: transparent;
+  background-image: var(--elix-panel-fill);
+  background-size: var(--elix-fundal-size), var(--elix-fundal-size);
+  background-position: var(--elix-fundal-position), var(--elix-fundal-position);
+  background-repeat: no-repeat, no-repeat;
+  background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment);
   border-color: var(--elix-border);
   border-top: 1px solid var(--elix-border);
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  box-shadow: none !important;
+  backdrop-filter: var(--elix-glass-blur);
+  -webkit-backdrop-filter: var(--elix-glass-blur);
+  box-shadow:
+    var(--elix-elevated-inset),
+    var(--elix-elevated-shadow);
 }
 
 /* LEVEL 2 — cards / surfaces over fundal */
