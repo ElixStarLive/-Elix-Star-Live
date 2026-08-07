@@ -14,63 +14,64 @@ export default function SecuritySettings() {
   const goBlocked = useCallback(() => navigate("/settings/blocked"), [navigate]);
 
   return (
-    <SettingsOptionSheet onClose={exit}>
-      <div className="w-full h-full overflow-hidden bg-transparent flex flex-col">
-        <header className="flex items-center justify-center mb-2 px-4 pt-2">
-          <h1 className="font-bold text-lg text-[#F5F5F7]">Security</h1>
-        </header>
-        <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4 space-y-3">
+    <SettingsOptionSheet onClose={exit} title="Security">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 pt-2 pb-[3mm]">
+        <div className="flex flex-col gap-0 max-w-full min-h-full">
           {showReset ? (
-            <Row
-              icon={<KeyRound size={18} />}
-              title="Password"
-              description="Reset your password via email."
-              onClick={goForgotPassword}
+            <R
+              ic={<KeyRound size={14} />}
+              t="Password"
+              d="Reset your password via email."
+              fn={goForgotPassword}
             />
           ) : (
-            <p className="text-xs text-white/40 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
-              Password reset is unavailable until transactional email is
-              configured on the server.
-            </p>
+            <div className="px-2.5 py-2.5 text-xs text-[#8B9099] leading-relaxed">
+              Password reset is unavailable until transactional email is configured on the server.
+            </div>
           )}
-          <Row
-            icon={<Shield size={18} />}
-            title="Blocked accounts"
-            description="Manage people you have blocked."
-            onClick={goBlocked}
+          <R
+            ic={<Shield size={14} />}
+            t="Blocked accounts"
+            d="Manage people you have blocked."
+            fn={goBlocked}
           />
-          <p className="text-xs text-white/40 pt-2">
+          <div className="px-2.5 pt-3 text-xs text-[#8B9099]">
             Two-factor authentication is not available yet.
-          </p>
+          </div>
         </div>
       </div>
     </SettingsOptionSheet>
   );
 }
 
-function Row({
-  icon,
-  title,
-  description,
-  onClick,
+function R({
+  ic,
+  t,
+  d,
+  fn,
 }: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  onClick: () => void;
+  ic: React.ReactNode;
+  t: string;
+  d: string;
+  fn: () => void;
 }) {
   return (
     <button
       type="button"
-      onClick={onClick}
-      className="w-full flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-left"
+      onClick={fn}
+      className="w-full flex items-center gap-3 px-2.5 py-2.5 active:bg-white/5 text-left rounded-md"
     >
-      <span className="text-[#F5F5F7]">{icon}</span>
-      <span className="flex-1 min-w-0">
-        <span className="block text-sm font-semibold text-white">{title}</span>
-        <span className="block text-xs text-white/50 mt-0.5">{description}</span>
+      <span
+        className="royce-glow-disc shrink-0 [&_svg]:size-[18px]"
+        style={{ width: "36px", height: "36px" }}
+      >
+        <span className="royce-icon-gold">{ic}</span>
       </span>
-      <ChevronRight size={16} className="text-white/30" />
+      <span className="flex-1 min-w-0">
+        <span className="block text-[15px] leading-tight text-[#E6E9EE]">{t}</span>
+        <span className="block text-xs text-[#8B9099] mt-0.5">{d}</span>
+      </span>
+      <ChevronRight size={16} className="text-white/30 shrink-0" />
     </button>
   );
 }
