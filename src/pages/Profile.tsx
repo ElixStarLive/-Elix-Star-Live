@@ -39,7 +39,6 @@ import { fetchActiveStories, type StoryUserGroup } from '../lib/storiesApi';
 import { subscribeVideoCollection } from '../lib/videoCollectionEvents';
 import { apiRisingStarsUserBadges } from '../features/risingStars/risingStarsApi';
 import { apiShopItemsByUser } from '../features/shop/shopApi';
-import { apiLiveSendDailyHeart } from '../features/live/engagement/liveEngagementApi';
 
 interface Video {
   id: string;
@@ -107,9 +106,8 @@ export default function Profile() {
   const registeredViewOwnerRef = useRef<string | null>(null);
 
   const goBack = useCallback(() => {
-    // Own profile (tab): leave to For You. Other profiles: leave to For You too —
-    // never history.back() (that reopened Settings after Settings→Profile).
-    navigate(PROFILE_EXIT_TO);
+    // Named exit only — never history.back() (reopens Settings after Settings→Profile).
+    navigate(PROFILE_EXIT_TO, { replace: true });
   }, [navigate]);
 
   const goSettings = useCallback(() => {
@@ -153,7 +151,7 @@ export default function Profile() {
 
   const goVideo = useCallback(
     (videoId: string) => {
-      navigate(`/video/${videoId}`);
+      navigate(`/video/${videoId}`, { state: { fromProfile: true } });
     },
     [navigate],
   );
@@ -706,18 +704,18 @@ export default function Profile() {
     <div className="page-above-bottom-nav elix-page-glass text-white z-[1]">
       <div className="page-above-bottom-nav__inner elix-settings-write flex flex-col min-h-0">
         {/* Small top header with Share + Exit buttons — same panel height as Inbox */}
-        <header className="flex items-center justify-between px-4 pt-page-header pb-2 relative z-10">
+        <header className="flex items-center justify-between px-4 pt-page-header pb-2 relative z-20">
           <button
             type="button"
             onClick={openSharePanel}
             title="Share profile"
-            className="p-1"
+            className="relative z-20 p-1"
           >
             <span className="royce-glow-disc" style={{ width: 34, height: 34 }} aria-hidden>
               <Share2 size={18} className="royce-icon-gold" strokeWidth={2} />
             </span>
           </button>
-          <div className="flex-1 flex items-center justify-center min-w-0 px-2">
+          <div className="pointer-events-none flex-1 flex items-center justify-center min-w-0 px-2">
             <div className="min-w-0 text-center">
               <div
                 ref={headerCenterLabelRef}
@@ -729,10 +727,14 @@ export default function Profile() {
           </div>
           <button
             type="button"
-            onClick={goBack}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              goBack();
+            }}
             title="Close"
             aria-label="Close"
-            className="p-1"
+            className="relative z-20 p-1"
           >
             <RoyceCloseIcon size={20} />
           </button>
@@ -1020,7 +1022,7 @@ export default function Profile() {
           <p className="text-center text-[13px] text-white/70 mt-3 px-8 leading-relaxed">{profileData.bio}</p>
         )}
 
-        {/* ═══ FOLLOW / APPRECIATE / MESSAGE (other user) ═══ */}
+        {/* ═══ FOLLOW / MESSAGE (other user) — no Appreciate / love on profile ═══ */}
         {!isOwnProfile && (
           <div className="flex items-center justify-center gap-2 mt-4 px-6">
             <button
@@ -1032,29 +1034,6 @@ export default function Profile() {
               }`}
             >
               {isFollowing ? 'Following' : 'Follow'}
-            </button>
-            <button
-              type="button"
-              onClick={async () => {
-                if (!user?.id || !effectiveUserId) {
-                  showToast('Log in to appreciate');
-                  return;
-                }
-                try {
-                  const { data, error } = await apiLiveSendDailyHeart(effectiveUserId);
-                  if (error) {
-                    showToast('Could not send appreciate');
-                    return;
-                  }
-                  showToast(data?.already ? 'Already appreciated today' : 'Appreciate sent!');
-                } catch {
-                  showToast('Could not send appreciate');
-                }
-              }}
-              className="flex-1 max-w-[120px] py-2.5 bg-white/10 border border-white/10 rounded-md text-sm font-bold text-white flex items-center justify-center gap-1"
-            >
-              <Heart size={14} className="text-[#F5F5F7]" fill="#D8D9DD" />
-              Appreciate
             </button>
             <button
               onClick={() => { void openThread(); }}

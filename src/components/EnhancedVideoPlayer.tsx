@@ -163,6 +163,7 @@ export default function EnhancedVideoPlayer({
   const navigate = useNavigate();
   const location = useLocation();
   const feedSourceLabel = location.pathname === '/friends' ? 'Friends' : undefined;
+  const fromProfile = Boolean((location.state as { fromProfile?: boolean } | null)?.fromProfile);
   const { muteAllSounds } = useSettingsStore();
   const { 
     videos: _videos, 
@@ -1089,7 +1090,8 @@ export default function EnhancedVideoPlayer({
         }}
       >
         
-        {/* Profile — red live ring + red LIVE pill when creator is live */}
+        {/* Profile — red live ring + red LIVE pill when creator is live (hidden on profile-origin) */}
+        {!fromProfile ? (
         <button
           type="button"
           onClick={handleProfileClick}
@@ -1104,7 +1106,9 @@ export default function EnhancedVideoPlayer({
             live={creatorIsLive}
           />
         </button>
+        ) : null}
 
+        {!fromProfile ? (
         <button
           type="button"
           onClick={handleLike}
@@ -1118,6 +1122,7 @@ export default function EnhancedVideoPlayer({
           )}
           <span className={GOLD_COUNT}>{formatNumber(Math.max(0, video.stats.likes))}</span>
         </button>
+        ) : null}
 
         <button
           type="button"

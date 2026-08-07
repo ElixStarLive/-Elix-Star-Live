@@ -107,7 +107,7 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
 
   const openVideoFromGrid = useCallback((videoId: string) => {
     onClose();
-    navigate(`/video/${videoId}`);
+    navigate(`/video/${videoId}`, { state: { fromProfile: true } });
   }, [onClose, navigate]);
 
   if (!isOpen) return null;
@@ -157,12 +157,22 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
 
   if (isBlocked) {
     return (
-      <div className="page-above-bottom-nav bg-transparent text-white z-[10001]">
+      <div className="page-above-bottom-nav bg-transparent text-white z-[10003]">
         <div className="page-above-bottom-nav__inner bg-transparent flex flex-col">
-          <header className="flex items-center justify-between px-4 pt-page-header pb-2 relative z-10">
+          <header className="flex items-center justify-between px-4 pt-page-header pb-2 relative z-20">
             <div className="w-10" />
-            <h3 className="text-[12px] font-bold text-gold-metallic">User Profile</h3>
-            <button onClick={onClose} className="p-1" aria-label="Close profile">
+            <h3 className="pointer-events-none text-[12px] font-bold text-gold-metallic">User Profile</h3>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onClose();
+              }}
+              className="relative z-20 p-1"
+              aria-label="Close profile"
+              title="Close"
+            >
               <RoyceCloseIcon />
             </button>
           </header>
@@ -192,24 +202,31 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
   }
 
   return (
-    <div className="page-above-bottom-nav bg-transparent text-white z-[10001]">
+    <div className="page-above-bottom-nav bg-transparent text-white z-[10003]">
       <div className="page-above-bottom-nav__inner bg-transparent flex flex-col">
         {/* Header — same full-screen shell as Profile page */}
-        <header className="flex items-center justify-between px-4 pt-page-header pb-2 relative z-10 flex-shrink-0">
+        <header className="flex items-center justify-between px-4 pt-page-header pb-2 relative z-20 flex-shrink-0">
           <button
+            type="button"
             onClick={handleShareProfile}
-            className="p-1"
+            className="relative z-20 p-1"
             aria-label="Share profile"
           >
             <Share2 size={20} className="stroke-gold-metallic" strokeWidth={2} />
           </button>
-          <h3 className="text-[12px] font-bold text-gold-metallic absolute left-1/2 -translate-x-1/2 truncate max-w-[50%]">
+          <h3 className="pointer-events-none text-[12px] font-bold text-gold-metallic absolute left-1/2 -translate-x-1/2 truncate max-w-[50%]">
             User Profile
           </h3>
           <button
-            onClick={onClose}
-            className="p-1"
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onClose();
+            }}
+            className="relative z-20 p-1"
             aria-label="Close profile"
+            title="Close"
           >
             <RoyceCloseIcon />
           </button>
