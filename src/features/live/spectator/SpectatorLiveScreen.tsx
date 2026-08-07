@@ -904,7 +904,7 @@ export default function SpectatorLiveScreen() {
                           className="relative flex flex-col items-center max-w-[42px]"
                           style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
                         >
-                          <div className={isMvp ? 'rounded-full shadow-[0_0_3px_0_rgba(230,233,238,0.28)]' : 'rounded-full'}>
+                          <div className={isMvp ? 'rounded-full shadow-[0_0_3px_0_rgba(230,233,238,0.30)]' : 'rounded-full'}>
                             <AvatarRing
                               src={resolveCircleAvatar(slot.avatar, label)}
                               alt={label}
@@ -958,7 +958,7 @@ export default function SpectatorLiveScreen() {
                           className="relative flex flex-col items-center max-w-[42px]"
                           style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
                         >
-                          <div className={isMvp ? 'rounded-full shadow-[0_0_3px_0_rgba(230,233,238,0.28)]' : 'rounded-full'}>
+                          <div className={isMvp ? 'rounded-full shadow-[0_0_3px_0_rgba(230,233,238,0.30)]' : 'rounded-full'}>
                             <AvatarRing
                               src={resolveCircleAvatar(slot.avatar, label)}
                               alt={label}
@@ -1565,7 +1565,7 @@ export default function SpectatorLiveScreen() {
                           key={`spectator-top-mvp-${slot.id}`}
                           className="relative"
                         >
-                          <div className={isMvp ? 'rounded-full shadow-[0_0_3px_0_rgba(230,233,238,0.28)]' : 'rounded-full'}>
+                          <div className={isMvp ? 'rounded-full shadow-[0_0_3px_0_rgba(230,233,238,0.30)]' : 'rounded-full'}>
                             <AvatarRing
                               src={resolveCircleAvatar(slot.avatar, slot.name)}
                               alt={slot.name || ''}
@@ -2391,7 +2391,7 @@ export default function SpectatorLiveScreen() {
                       >
                         <span className="text-white/30 text-xs font-bold w-5 text-right">{i + 1}</span>
                         <div className="relative flex-shrink-0">
-                          <div className={isMvp ? 'rounded-full shadow-[0_0_3px_0_rgba(230,233,238,0.28)]' : 'rounded-full'}>
+                          <div className={isMvp ? 'rounded-full shadow-[0_0_3px_0_rgba(230,233,238,0.30)]' : 'rounded-full'}>
                             <AvatarRing
                               src={resolveCircleAvatar(v.avatar, label)}
                               alt={label}

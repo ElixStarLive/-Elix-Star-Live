@@ -118,8 +118,12 @@ export default function Settings() {
 
   const S = ({ t }: { t: string }) => (
     <p className="mt-3.5 mb-1 px-1 leading-none">
-      <span className="elix-silver-red-text text-[10px] uppercase tracking-[0.12em]">{t}</span>
+      <span className="text-[10px] uppercase tracking-[0.12em] text-[#8B9099]">{t}</span>
     </p>
+  );
+
+  const G = ({ children }: { children: React.ReactNode }) => (
+    <div className="elix-surface rounded-xl overflow-hidden">{children}</div>
   );
 
   return (
@@ -131,51 +135,61 @@ export default function Settings() {
             <img src="/elix-logo.png" alt="Elix Star Live" className="w-20 h-20 object-contain" />
           </div>
           <S t={t('settings.section.account')} />
-          <R ic={<User size={14} />} t={t('settings.editProfile')} fn={goEditProfile} />
-          <R ic={<Lock size={14} />} t={t('settings.privacy')} fn={goSafety} />
-          <R ic={<Shield size={14} />} t={t('settings.security')} fn={goSecurity} />
-          <R ic={<Trash2 size={14} />} t={t('settings.deleteAccount')} fn={handleDeleteAccount} />
-          <R ic={<Wallet size={14} />} t="Creator payout" fn={goPayout} />
-          {engagementFlags.engagementHubEnabled ? (
-            <R ic={<Gift size={14} />} t="Engagement Hub" fn={goEngagement} />
-          ) : null}
-          {user?.isAdmin ? (
-            <R ic={<LayoutDashboard size={14} />} t="Admin" fn={goAdmin} />
-          ) : null}
+          <G>
+            <R ic={<User size={14} />} t={t('settings.editProfile')} fn={goEditProfile} />
+            <R ic={<Lock size={14} />} t={t('settings.privacy')} fn={goSafety} />
+            <R ic={<Shield size={14} />} t={t('settings.security')} fn={goSecurity} />
+            <R ic={<Trash2 size={14} />} t={t('settings.deleteAccount')} fn={handleDeleteAccount} />
+            <R ic={<Wallet size={14} />} t="Creator payout" fn={goPayout} />
+            {engagementFlags.engagementHubEnabled ? (
+              <R ic={<Gift size={14} />} t="Engagement Hub" fn={goEngagement} />
+            ) : null}
+            {user?.isAdmin ? (
+              <R ic={<LayoutDashboard size={14} />} t="Admin" fn={goAdmin} />
+            ) : null}
+          </G>
 
           <S t={t('settings.section.preferences')} />
-          <R ic={<Bell size={14} />} t={t('settings.notifications')} fn={goNotifications} />
-          <R
-            ic={<Radio size={14} />}
-            t={t('settings.liveNotifications')}
-            v={liveNotifications ? t('common.on') : t('common.off')}
-            fn={() => setLiveNotifications(!liveNotifications)}
-          />
-          <R
-            ic={muteAllSounds ? <VolumeX size={14} /> : <Volume2 size={14} />}
-            t="Mute all sounds"
-            v={muteAllSounds ? t('common.on') : t('common.off')}
-            fn={() => {
-              const next = !muteAllSounds;
-              setMuteAllSounds(next);
-              showToast(next ? 'All app sounds muted' : 'App sounds on');
-            }}
-          />
-          <R ic={<Moon size={14} />} t={t('settings.darkMode')} v={t('common.on')} fn={() => showToast(t('toast.darkModeAlwaysOn'))} />
-          <R ic={<Globe size={14} />} t={t('settings.language')} v={LANGUAGE_SHORT[lang]} fn={() => setLangOpen(true)} />
+          <G>
+            <R ic={<Bell size={14} />} t={t('settings.notifications')} fn={goNotifications} />
+            <R
+              ic={<Radio size={14} />}
+              t={t('settings.liveNotifications')}
+              v={liveNotifications ? t('common.on') : t('common.off')}
+              fn={() => setLiveNotifications(!liveNotifications)}
+            />
+            <R
+              ic={muteAllSounds ? <VolumeX size={14} /> : <Volume2 size={14} />}
+              t="Mute all sounds"
+              v={muteAllSounds ? t('common.on') : t('common.off')}
+              fn={() => {
+                const next = !muteAllSounds;
+                setMuteAllSounds(next);
+                showToast(next ? 'All app sounds muted' : 'App sounds on');
+              }}
+            />
+            <R ic={<Moon size={14} />} t={t('settings.darkMode')} v={t('common.on')} fn={() => showToast(t('toast.darkModeAlwaysOn'))} />
+            <R ic={<Globe size={14} />} t={t('settings.language')} v={LANGUAGE_SHORT[lang]} fn={() => setLangOpen(true)} />
+          </G>
 
           <S t={t('settings.section.content')} />
-          <R ic={<Video size={14} />} t={t('settings.videoQuality')} v={t('common.auto')} fn={() => showToast(t('toast.videoQualityAuto'))} />
-          <R ic={<Heart size={14} />} t={t('settings.likedVideos')} fn={goLikedVideos} />
-          <R ic={<Bookmark size={14} />} t="Saved videos" fn={goSaved} />
+          <G>
+            <R ic={<Video size={14} />} t={t('settings.videoQuality')} v={t('common.auto')} fn={() => showToast(t('toast.videoQualityAuto'))} />
+            <R ic={<Heart size={14} />} t={t('settings.likedVideos')} fn={goLikedVideos} />
+            <R ic={<Bookmark size={14} />} t="Saved videos" fn={goSaved} />
+          </G>
 
           <S t={t('settings.section.safety')} />
-          <R ic={<Ban size={14} />} t={t('settings.blockedAccounts')} fn={goBlocked} />
-          <R ic={<Shield size={14} />} t={t('settings.safetyCenter')} fn={goSafety} />
+          <G>
+            <R ic={<Ban size={14} />} t={t('settings.blockedAccounts')} fn={goBlocked} />
+            <R ic={<Shield size={14} />} t={t('settings.safetyCenter')} fn={goSafety} />
+          </G>
 
           <S t={t('settings.section.support')} />
-          <R ic={<BookOpen size={14} />} t="How the app works" fn={goHowItWorks} />
-          <R ic={<HelpCircle size={14} />} t={t('settings.helpSupport')} fn={goSupport} />
+          <G>
+            <R ic={<BookOpen size={14} />} t="How the app works" fn={goHowItWorks} />
+            <R ic={<HelpCircle size={14} />} t={t('settings.helpSupport')} fn={goSupport} />
+          </G>
 
           <div className="grid grid-cols-3 gap-1 mt-auto pt-4 px-0.5">
             <button
@@ -201,7 +215,7 @@ export default function Settings() {
             </button>
           </div>
 
-          <div className="mt-3 pt-2.5 flex items-center justify-center gap-6 border-t border-white/[0.06]">
+          <div className="mt-3 pt-2.5 flex items-center justify-center gap-6 border-t border-white/10">
             <button
               type="button"
               onClick={handleLogout}

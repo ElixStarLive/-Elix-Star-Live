@@ -44,7 +44,7 @@ export default function SettingsOptionSheet({ children, onClose, title }: Settin
     >
       <div className="absolute inset-0 bg-transparent" onClick={onClose} aria-hidden />
       <div
-        className="app-live-column bg-transparent text-white"
+        className="app-live-column elix-page-glass text-white"
         style={{
           transform: `translateY(${dragY}px)`,
           transition: dragging ? 'none' : 'transform 0.22s ease',
@@ -52,7 +52,7 @@ export default function SettingsOptionSheet({ children, onClose, title }: Settin
         onClick={(e) => e.stopPropagation()}
       >
         <header
-          className="relative flex-shrink-0 bg-transparent border-b border-black"
+          className="relative flex-shrink-0 bg-transparent border-b border-white/10"
           style={{
             paddingTop: 'env(safe-area-inset-top, 0px)',
             minHeight: 'calc(env(safe-area-inset-top, 0px) + 44px)',

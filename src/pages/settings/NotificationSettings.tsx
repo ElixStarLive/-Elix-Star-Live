@@ -61,7 +61,7 @@ function ToggleRow({
     <button
       type="button"
       onClick={onToggle}
-      className="w-full flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-left"
+      className="w-full flex items-center gap-3 rounded-xl elix-surface px-4 py-3 text-left"
     >
       <span className="flex-1 min-w-0">
         <span className="block text-sm font-semibold text-white">{title}</span>

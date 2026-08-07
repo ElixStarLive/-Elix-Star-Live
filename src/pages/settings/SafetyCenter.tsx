@@ -71,12 +71,12 @@ export default function SafetyCenter() {
             />
           </Section>
 
-          <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
-            <p className="text-sm font-bold text-gold-bright/90">Need Immediate Help?</p>
-            <p className="text-xs text-gold-bright/60 mt-1 leading-relaxed">
+          <div className="elix-surface rounded-xl px-4 py-3">
+            <p className="text-sm font-bold text-white">Need Immediate Help?</p>
+            <p className="text-xs text-[#C8CDD5] mt-1 leading-relaxed">
               If you or someone you know is in immediate danger, contact emergency services.
             </p>
-            <p className="text-xs text-gold-bright/50 mt-2">US: 911&nbsp;&nbsp;|&nbsp;&nbsp;UK: 999&nbsp;&nbsp;|&nbsp;&nbsp;EU: 112</p>
+            <p className="text-xs text-[#8B9099] mt-2">US: 911&nbsp;&nbsp;|&nbsp;&nbsp;UK: 999&nbsp;&nbsp;|&nbsp;&nbsp;EU: 112</p>
           </div>
 
           <Section title="Support">
@@ -96,8 +96,8 @@ export default function SafetyCenter() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="text-xs text-white/35 uppercase tracking-[0.12em] mb-1.5 px-1 font-semibold">{title}</p>
-      <div className="space-y-0.5">{children}</div>
+      <p className="text-xs text-[#8B9099] uppercase tracking-[0.12em] mb-1.5 px-1 font-semibold">{title}</p>
+      <div className="elix-surface rounded-xl overflow-hidden space-y-0.5">{children}</div>
     </div>
   );
 }

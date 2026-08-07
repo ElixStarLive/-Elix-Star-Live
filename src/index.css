@@ -72,20 +72,23 @@
     --elix-accent: #E6E9EE;
     --elix-accent-light: #FFFFFF;
     --elix-avatar-ring: #E6E9EE;
-    --elix-avatar-glow: 0 0 3px 0 rgba(230, 233, 238, 0.28);
+    --elix-avatar-glow: 0 0 3px 0 rgba(230, 233, 238, 0.30);
     --elix-glass-blur: blur(12px);
     --elix-fundal-deep: #080A0E;
-    /* Near-black cool charcoal depth only — glass composites against this, not flat fill */
+    --elix-divider: rgba(255, 255, 255, 0.09);
+    --elix-silver-write: linear-gradient(135deg, #FFFFFF 0%, #E6E9EE 55%, #C8CDD5 100%);
+    --elix-battle-fill: linear-gradient(90deg, #8B9099 0%, #C8CDD5 45%, #E6E9EE 75%, #FFFFFF 100%);
+    /* Cool blue-charcoal depth under glass — still reads near-black, not flat fill */
     --elix-fundal-depth:
-      radial-gradient(ellipse 130% 85% at 50% -25%, rgba(26, 28, 33, 0.34) 0%, transparent 58%),
-      radial-gradient(ellipse 95% 75% at 105% 105%, rgba(18, 20, 25, 0.28) 0%, transparent 52%),
-      radial-gradient(ellipse 75% 55% at -5% 90%, rgba(16, 18, 22, 0.24) 0%, transparent 48%),
-      linear-gradient(168deg, #090B10 0%, #080A0E 38%, #080A0E 72%, #090B0F 100%);
+      radial-gradient(ellipse 140% 90% at 50% -20%, rgba(26, 28, 33, 0.55) 0%, transparent 55%),
+      radial-gradient(ellipse 100% 80% at 110% 100%, rgba(18, 20, 25, 0.42) 0%, transparent 50%),
+      radial-gradient(ellipse 80% 60% at -10% 85%, rgba(14, 16, 22, 0.38) 0%, transparent 48%),
+      linear-gradient(168deg, #0A0C12 0%, #080A0E 40%, #080A0E 70%, #090B10 100%);
     --elix-page-fill: linear-gradient(var(--elix-bg-glass), var(--elix-bg-glass));
     --elix-surface-fill: linear-gradient(var(--elix-surface), var(--elix-surface));
     --elix-panel-fill: linear-gradient(var(--elix-panel), var(--elix-panel));
     --elix-elevated-inset: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-    --elix-elevated-shadow: 0 8px 24px rgba(0, 0, 0, 0.32);
+    --elix-elevated-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
 
     /* Legacy token compatibility — all wired to the theme above. */
     --color-primary: var(--elix-icon-primary);
@@ -1196,13 +1199,20 @@ video::-webkit-media-controls-overlay-enclosure,
 }
 
 /* Shared surface / panel glass — LEVEL 2 + LEVEL 3 compositing */
+.elix-page-glass {
+  background-color: transparent;
+  background-image: var(--elix-page-fill);
+}
+
 .elix-surface {
   background-color: var(--elix-surface-solid);
   background-image: var(--elix-surface-fill);
   border: 1px solid var(--elix-border);
   backdrop-filter: var(--elix-glass-blur);
   -webkit-backdrop-filter: var(--elix-glass-blur);
-  box-shadow: var(--elix-elevated-inset);
+  box-shadow:
+    var(--elix-elevated-inset),
+    var(--elix-elevated-shadow);
 }
 
 .elix-panel {
@@ -1211,7 +1221,9 @@ video::-webkit-media-controls-overlay-enclosure,
   border: 1px solid var(--elix-border);
   backdrop-filter: var(--elix-glass-blur);
   -webkit-backdrop-filter: var(--elix-glass-blur);
-  box-shadow: var(--elix-elevated-inset);
+  box-shadow:
+    var(--elix-elevated-inset),
+    var(--elix-elevated-shadow);
 }
 
 .elix-glass,
@@ -1224,6 +1236,14 @@ video::-webkit-media-controls-overlay-enclosure,
   box-shadow:
     var(--elix-elevated-inset),
     var(--elix-elevated-shadow);
+}
+
+/* Cold-silver primary CTA (Follow etc.) */
+.elix-silver-cta {
+  background-image: var(--elix-silver-write);
+  color: #080A0E;
+  border: 1px solid rgba(255, 255, 255, 0.40);
+  box-shadow: 0 0 12px rgba(230, 233, 238, 0.18);
 }
 
 /* Live room overlays — blue-charcoal glass, never plain black */
@@ -1372,16 +1392,16 @@ nav[aria-label="Main navigation"] button[aria-current="page"] .elix-silver-red-t
   -webkit-text-fill-color: #FFFFFF !important;
   color: #FFFFFF !important;
 }
-/* Inactive bottom-nav labels/icons — muted tertiary */
+/* Inactive bottom-nav labels/icons — secondary silver-grey */
 nav[aria-label="Main navigation"] button:not([aria-current="page"]) .royce-icon-gold,
 nav[aria-label="Main navigation"] button:not([aria-current="page"]) svg.lucide {
-  color: var(--elix-icon-inactive) !important;
-  stroke: var(--elix-icon-inactive) !important;
+  color: #C8CDD5 !important;
+  stroke: #C8CDD5 !important;
 }
 nav[aria-label="Main navigation"] button:not([aria-current="page"]) .elix-silver-red-text {
   background-image: none !important;
-  -webkit-text-fill-color: var(--elix-icon-inactive) !important;
-  color: var(--elix-icon-inactive) !important;
+  -webkit-text-fill-color: #C8CDD5 !important;
+  color: #C8CDD5 !important;
   opacity: 1 !important;
 }
 
@@ -1603,7 +1623,13 @@ body {
   background-image: none;
 }
 
-/* LEVEL 3 — nav / elevated panel */
+/* Settings / sheet pages — LEVEL 1 page glass (must not stay fully transparent) */
+.app-live-column.elix-page-glass {
+  background-color: transparent;
+  background-image: var(--elix-page-fill);
+}
+
+/* LEVEL 3 — nav / elevated panel — must visibly differ from page */
 #root nav[aria-label="Main navigation"] .feed-column-width,
 #root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
 #root .feed-column-width.h-\[var\(--topnav-bar-height\)\] {
@@ -1613,7 +1639,9 @@ body {
   border-top: 1px solid var(--elix-border);
   backdrop-filter: var(--elix-glass-blur);
   -webkit-backdrop-filter: var(--elix-glass-blur);
-  box-shadow: var(--elix-elevated-inset);
+  box-shadow:
+    var(--elix-elevated-inset),
+    var(--elix-elevated-shadow);
 }
 
 /* LEVEL 2 — sheets / cards */
@@ -1649,13 +1677,16 @@ body {
 }
 
 .elix-battle-score-host {
-  background-image: linear-gradient(90deg, #FFFFFF 0%, #E6E9EE 55%, #C8CDD5 100%);
+  background-image: var(--elix-battle-fill);
 }
 .elix-battle-score-guest {
-  background-image: linear-gradient(90deg, #121419 0%, #080A0E 100%);
+  background-color: transparent;
+  background-image: var(--elix-panel-fill);
 }
 .elix-battle-score-wrap {
   background-color: var(--elix-surface-solid);
+  background-image: var(--elix-surface-fill);
+  border: 1px solid var(--elix-border);
   border-bottom: 1px solid var(--elix-border);
 }
 

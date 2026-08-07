@@ -990,14 +990,15 @@ export default function Profile() {
 
 
         {/* ═══ STATS ROW ═══ */}
-        <div className="flex items-center justify-center gap-6 mt-4 px-4">
+        <div className="mx-4 mt-4 elix-surface rounded-xl">
+          <div className="flex items-center justify-center gap-6 px-4 py-3">
           <button
             type="button"
             className="flex flex-col items-center min-w-[60px] active:opacity-80"
             onClick={goFollowingList}
           >
             <span className="text-[17px] font-extrabold text-white">{formatNumber(profileData?.following_count || 0)}</span>
-            <span className="text-[11px] text-white/40 font-medium">Following</span>
+            <span className="text-[11px] text-[#C8CDD5] font-medium">Following</span>
           </button>
           <button
             type="button"
@@ -1005,15 +1006,16 @@ export default function Profile() {
             onClick={goFollowersList}
           >
             <span className="text-[17px] font-extrabold text-white">{formatNumber(profileData?.followers_count || 0)}</span>
-            <span className="text-[11px] text-white/40 font-medium">Followers</span>
+            <span className="text-[11px] text-[#C8CDD5] font-medium">Followers</span>
           </button>
           <div className="flex flex-col items-center min-w-[60px]">
             <span className="text-[17px] font-extrabold text-white">{formatNumber(profileData?.likes_count || 0)}</span>
-            <span className="text-[11px] text-white/40 font-medium">Likes</span>
+            <span className="text-[11px] text-[#C8CDD5] font-medium">Likes</span>
           </div>
           <div className="flex flex-col items-center min-w-[60px]">
             <span className="text-[17px] font-extrabold text-white">{formatNumber(profileData?.unique_views || 0)}</span>
-            <span className="text-[11px] text-white/40 font-medium">Views</span>
+            <span className="text-[11px] text-[#C8CDD5] font-medium">Views</span>
+          </div>
           </div>
         </div>
 
@@ -1030,7 +1032,7 @@ export default function Profile() {
               className={`flex-1 max-w-[120px] py-2.5 rounded-md text-sm font-bold transition ${
                 isFollowing
                   ? 'bg-white/10 text-white border border-white/10'
-                  : 'bg-[#E6E9EE] text-white elix-solid-accent'
+                  : 'elix-silver-cta'
               }`}
             >
               {isFollowing ? 'Following' : 'Follow'}
@@ -1073,7 +1075,7 @@ export default function Profile() {
         )}
 
         {/* ═══ ACTION BAR (scrollable) — compact so Edit Profile is visible ═══ */}
-        <div className="mt-2 border-y border-[#E6E9EE]">
+        <div className="mt-2 border-y border-white/10">
           <div className="flex justify-center overflow-x-auto no-scrollbar">
             <button onClick={goAiStudio} className="flex flex-col items-center gap-0.5 px-3 py-2 whitespace-nowrap">
               <span className="royce-glow-disc" style={{ width: 26, height: 26 }} aria-hidden>
