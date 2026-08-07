@@ -1933,23 +1933,17 @@ body {
   background-attachment: var(--elix-fundal-attachment);
 }
 
-/* LEVEL 3 — nav / elevated panel over fundal */
+/* LEVEL 3 — bottom / top nav: clear chrome so shell fundal is one continuous page */
 #root nav[aria-label="Main navigation"] .feed-column-width,
 #root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
 #root .feed-column-width.h-\[var\(--topnav-bar-height\)\] {
-  background-color: transparent;
-  background-image: var(--elix-panel-fill);
-  background-size: var(--elix-fundal-size);
-  background-position: var(--elix-fundal-position);
-  background-repeat: no-repeat;
-  background-attachment: var(--elix-fundal-attachment);
+  background-color: transparent !important;
+  background-image: none !important;
   border-color: var(--elix-border);
   border-top: 1px solid var(--elix-border);
-  backdrop-filter: var(--elix-glass-blur);
-  -webkit-backdrop-filter: var(--elix-glass-blur);
-  box-shadow:
-    var(--elix-elevated-inset),
-    var(--elix-elevated-shadow);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
 }
 
 /* LEVEL 2 — cards / surfaces over fundal */
@@ -2052,3 +2046,77 @@ body {
   background-color: var(--elix-panel);
   border-color: var(--elix-border);
 }
+
+/*
+ * ═══════════════════════════════════════════════════════════════════
+ * SHARED OWNER — full-page fundal + no white boxes (app-wide)
+ * One place. Not per-page patches. Applies to every sheet / form /
+ * container that sits on the cosmic fundal.
+ * ═══════════════════════════════════════════════════════════════════
+ */
+html,
+body,
+#root {
+  color-scheme: dark;
+}
+
+/* Native controls never paint opaque white */
+#root :is(input, textarea, select),
+#root :is(input, textarea, select).bg-white,
+#root :is(input, textarea, select)[class*='bg-white'] {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  caret-color: #FFFFFF !important;
+  border-color: var(--elix-border) !important;
+  box-shadow: none !important;
+  color-scheme: dark !important;
+}
+
+#root :is(input, textarea, select)::placeholder {
+  color: #8B9099 !important;
+  -webkit-text-fill-color: #8B9099 !important;
+  opacity: 1 !important;
+}
+
+/* Autofill must not revive white / yellow boxes */
+#root :is(input, textarea, select):-webkit-autofill,
+#root :is(input, textarea, select):-webkit-autofill:hover,
+#root :is(input, textarea, select):-webkit-autofill:focus {
+  -webkit-text-fill-color: #FFFFFF !important;
+  caret-color: #FFFFFF !important;
+  transition: background-color 99999s ease-out;
+  box-shadow: 0 0 0 1000px transparent inset !important;
+  background-color: transparent !important;
+}
+
+/* Option / date pickers stay dark */
+#root option,
+#root optgroup {
+  background-color: var(--elix-bg) !important;
+  color: #FFFFFF !important;
+}
+
+/* Every settings / guide / legal sheet — one continuous fundal page */
+#root .elix-sheet-host,
+#root .elix-sheet-host > .elix-page-glass,
+#root .app-live-column.elix-full-page-panel,
+#root .app-live-column.elix-page-glass,
+#root .elix-full-page-panel,
+#root .page-above-bottom-nav.elix-page-glass {
+  background-color: var(--elix-bg) !important;
+  background-image: var(--elix-fundal-image) !important;
+  background-size: var(--elix-fundal-size) !important;
+  background-position: var(--elix-fundal-position) !important;
+  background-repeat: no-repeat !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
