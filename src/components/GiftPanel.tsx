@@ -219,7 +219,7 @@ export function GiftPanel({
   return (
     <div
       ref={panelRef}
-      className="elix-panel rounded-t-2xl p-3 pb-safe max-h-[40dvh] overflow-y-auto overflow-x-hidden overscroll-y-contain touch-pan-y no-scrollbar shadow-2xl w-full relative z-[99999]"
+      className="elix-panel rounded-t-2xl p-3 pb-safe max-h-[40dvh] overflow-y-auto overflow-x-hidden overscroll-y-contain touch-pan-y no-scrollbar w-full feed-column-width relative z-[99999] bottom-sheet-above-nav"
       style={{ touchAction: "pan-y" }}
       onTouchMove={(e) => {
         // Keep gift panel vertical-only; do not let horizontal pans move the live page.

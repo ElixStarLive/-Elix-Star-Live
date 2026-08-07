@@ -1425,14 +1425,23 @@ video::-webkit-media-controls-overlay-enclosure,
 }
 
 /*
- * Compact action sheets (More / Comments / Gift / Promote / Report):
- * SIZE ONLY — do not override height / max-height / width.
- * Each component keeps its own Tailwind size (e.g. h-1/2, max-h-[40dvh]).
+ * Compact action sheets — same WIDTH as home nav (feed-column-width).
+ * ONE line only (top). No full box border. Heights stay from each component.
  */
 #root .elix-glass.rounded-t-2xl,
 #root .elix-panel.rounded-t-2xl:not(.elix-full-page-panel),
 #root .bottom-sheet-above-nav.elix-glass,
-#root .bottom-sheet-above-nav.elix-panel {
+#root .bottom-sheet-above-nav.elix-panel,
+#root .bottom-sheet-above-nav {
+  width: min(var(--feed-column-max-width), calc(100vw - var(--safe-left) - var(--safe-right))) !important;
+  max-width: var(--feed-column-max-width) !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  border: none !important;
+  border-top: 1px solid var(--elix-border) !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
   background-color: transparent !important;
   background-image: var(--elix-page-fill) !important;
   background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
@@ -1440,6 +1449,14 @@ video::-webkit-media-controls-overlay-enclosure,
   background-repeat: no-repeat, no-repeat !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+
+/* One line in panel — kill extra header dividers inside compact sheets */
+#root .elix-glass.rounded-t-2xl > .border-b,
+#root .elix-panel.rounded-t-2xl:not(.elix-full-page-panel) > .border-b,
+#root .bottom-sheet-above-nav > .border-b {
+  border-bottom: none !important;
 }
 
 /* Chips / pills keep compact panel look — not full page */

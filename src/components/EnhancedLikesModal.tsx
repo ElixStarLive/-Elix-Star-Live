@@ -132,7 +132,7 @@ export default function EnhancedLikesModal({ isOpen, onClose, videoId, likes }: 
   return (
     <div className="fixed inset-0 z-modals bg-black/60 flex items-end" onClick={onClose}>
       <div
-        className="w-full h-[80vh] bg-[rgba(0,0,0,0.35)] rounded-t-2xl flex flex-col border border-black bottom-sheet-above-nav"
+        className="w-full feed-column-width h-[80vh] bg-[rgba(0,0,0,0.35)] rounded-t-2xl flex flex-col bottom-sheet-above-nav"
         style={{animation: 'slide-up 0.3s ease-out'}}
         onClick={(e) => e.stopPropagation()}
       >
