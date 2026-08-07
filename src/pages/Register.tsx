@@ -264,13 +264,14 @@ export default function Register() {
           </button>
         </form>
 
-        <div className="mt-6 xs:mt-4 text-center space-y-2">
+        <div className="mt-6 xs:mt-4 text-center space-y-2 px-1">
           <Link to="/login" className="text-fluid-sm text-white hover:underline">
             Already have an account? Sign in
           </Link>
-          <p className="text-fluid-sm text-white/50">
-            © 2026 Andrei Ionut Berica · Owner &amp; Developer. All rights reserved.
-          </p>
+          <div className="mx-auto max-w-[280px] space-y-0.5 text-[11px] leading-relaxed tracking-wide text-white/45">
+            <p>© 2026 Andrei Ionut Berica</p>
+            <p>Owner &amp; Developer · All rights reserved.</p>
+          </div>
         </div>
       </div>
     </div>
