@@ -153,7 +153,7 @@ export default function Report() {
             placeholder="Provide more context to help us understand the issue..."
             maxLength={500}
             rows={4}
-            className="w-full rounded-xl px-4 py-3 outline-none text-white placeholder:text-[#8B9099] border border-white/10 focus:border-[#D8D9DD] transition resize-none"
+            className="w-full rounded-xl px-4 py-3 outline-none text-white placeholder:text-[#8B9099] bg-transparent border border-white/10 focus:border-[#D8D9DD] transition resize-none"
           />
           <div className="text-xs text-[#8B9099] mt-1 text-right">{details.length}/500</div>
         </div>

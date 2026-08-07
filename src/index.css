@@ -1105,11 +1105,14 @@ video::-webkit-media-controls-overlay-enclosure,
 #root select,
 #root input::placeholder,
 #root textarea::placeholder {
+  background-color: transparent !important;
   background-image: none !important;
   -webkit-background-clip: border-box !important;
   background-clip: border-box !important;
   -webkit-text-fill-color: #FFFFFF !important;
   color: #FFFFFF !important;
+  border-color: var(--elix-border);
+  caret-color: #FFFFFF;
 }
 #root input::placeholder,
 #root textarea::placeholder {
@@ -1248,14 +1251,16 @@ video::-webkit-media-controls-overlay-enclosure,
   outline: none !important;
 }
 
-/* Form fields stay solid */
+/* Form fields — never white browser chrome; transparent over fundal */
 #root :where(input, textarea, select),
 #root :where(input, textarea, select) * {
+  background-color: transparent !important;
   background-image: none !important;
   -webkit-background-clip: unset !important;
   background-clip: unset !important;
   -webkit-text-fill-color: #FFFFFF !important;
   color: #FFFFFF !important;
+  color-scheme: dark;
 }
 
 /* SVG / icons keep strokes */
