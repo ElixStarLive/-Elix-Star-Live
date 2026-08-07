@@ -1424,38 +1424,22 @@ video::-webkit-media-controls-overlay-enclosure,
   -webkit-backdrop-filter: none !important;
 }
 
-/* Compact action sheets (More / Share / Comments / Gift / Promote) — original size, not full page */
+/*
+ * Compact action sheets (More / Comments / Gift / Promote / Report):
+ * SIZE ONLY — do not override height / max-height / width.
+ * Each component keeps its own Tailwind size (e.g. h-1/2, max-h-[40dvh]).
+ */
 #root .elix-glass.rounded-t-2xl,
 #root .elix-panel.rounded-t-2xl:not(.elix-full-page-panel),
 #root .bottom-sheet-above-nav.elix-glass,
 #root .bottom-sheet-above-nav.elix-panel {
-  height: auto !important;
-  max-height: 40dvh !important;
-  border-radius: 1rem 1rem 0 0 !important;
   background-color: transparent !important;
   background-image: var(--elix-page-fill) !important;
   background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
   background-position: var(--elix-fundal-position), var(--elix-fundal-position) !important;
   background-repeat: no-repeat, no-repeat !important;
-  border: 1px solid var(--elix-border) !important;
-  box-shadow: var(--elix-elevated-shadow) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-}
-
-/* Comments / Likes keep their taller authored heights */
-#root .elix-glass.rounded-t-2xl.h-1\/2 {
-  max-height: 50% !important;
-  height: 50% !important;
-}
-#root .bottom-sheet-above-nav.h-\[80vh\] {
-  max-height: 80vh !important;
-  height: 80vh !important;
-}
-#root .elix-panel.rounded-t-2xl.h-\[38vh\],
-#root .elix-panel.rounded-t-2xl.max-h-\[320px\] {
-  max-height: 320px !important;
-  height: 38vh !important;
 }
 
 /* Chips / pills keep compact panel look — not full page */
