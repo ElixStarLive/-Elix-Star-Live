@@ -1,10 +1,11 @@
 import React from 'react';
 
-/** Live ring + LIVE badge — Royal Violet accent. */
-const LIVE_RING_COLOR = '#E6E9EE';
+/** Live badge + ring — silver accent (exact theme). */
+const SILVER_RING = '#E6E9EE';
 
 /**
- * User avatar circle — silver chrome; Live adds violet ring + LIVE badge.
+ * User avatar circle — silver ring flush on the photo (no gap).
+ * Live adds LIVE badge below; ring stays the same tight silver border.
  */
 export function StoryGoldRingAvatar({
   size = 56,
@@ -22,18 +23,13 @@ export function StoryGoldRingAvatar({
   alt?: string;
   live?: boolean;
   className?: string;
-  /** Kept for call-site compatibility; ring is always half silver / half red. */
+  /** Kept for call-site compatibility. */
   glow?: boolean;
   innerDiameterAddMm?: number;
   innerTranslateYmm?: number;
   'data-avatar-circle'?: string;
 }) {
   const safeSize = typeof size === 'number' && Number.isFinite(size) && size > 0 ? Math.floor(size) : 56;
-  /** Always leave room for the half silver / half red ring (2px). Live may thicken. */
-  const elixRingPx = 2;
-  const liveRingPx = live ? Math.max(2, Math.min(3, Math.round(safeSize * 0.05))) : 0;
-  const ringPx = Math.max(elixRingPx, liveRingPx);
-  const photoSize = Math.max(2, safeSize - ringPx * 2);
   const liveBadgeFont = Math.max(5, Math.round(safeSize * 0.11));
   const liveBadgePadX = Math.max(3, Math.round(safeSize * 0.08));
   const liveBadgePadY = Math.max(1, Math.round(safeSize * 0.02));
@@ -43,7 +39,7 @@ export function StoryGoldRingAvatar({
 
   return (
     <div
-      className={`elix-profile-ring relative flex-shrink-0 flex items-center justify-center rounded-full ${className}`}
+      className={`relative flex-shrink-0 ${className}`}
       style={{
         width: safeSize,
         height: safeSize,
@@ -51,12 +47,11 @@ export function StoryGoldRingAvatar({
       {...(dataAvatarCircle ? { 'data-avatar-circle': dataAvatarCircle } : {})}
     >
       <div
-        className="rounded-full overflow-hidden bg-[#1A1A1F] flex-shrink-0"
+        className="elix-profile-ring absolute inset-0 rounded-full overflow-hidden"
         style={{
-          width: photoSize,
-          height: photoSize,
-          transform: innerTranslateYmm !== 0 ? `translateY(${innerTranslateYmm}mm)` : undefined,
-          zIndex: 1,
+          boxSizing: 'border-box',
+          border: `2px solid ${SILVER_RING}`,
+          background: '#1A1A1F',
         }}
       >
         {safeSrc ? (
@@ -64,6 +59,9 @@ export function StoryGoldRingAvatar({
             src={safeSrc}
             alt={alt}
             className="block w-full h-full object-cover object-center"
+            style={{
+              transform: innerTranslateYmm !== 0 ? `translateY(${innerTranslateYmm}mm)` : undefined,
+            }}
             draggable={false}
           />
         ) : (
@@ -73,28 +71,18 @@ export function StoryGoldRingAvatar({
         )}
       </div>
       {live ? (
-        <>
-          <div
-            className="pointer-events-none absolute inset-0 rounded-full"
-            style={{
-              boxSizing: 'border-box',
-              border: `${ringPx}px solid ${LIVE_RING_COLOR}`,
-              zIndex: 2,
-            }}
-            aria-hidden
-          />
-          <div
-            className="pointer-events-none absolute bottom-0 left-1/2 z-[20] -translate-x-1/2 translate-y-1/2 whitespace-nowrap font-bold leading-none text-white"
-            style={{
-              backgroundColor: LIVE_RING_COLOR,
-              fontSize: liveBadgeFont,
-              padding: `${liveBadgePadY}px ${liveBadgePadX}px`,
-              borderRadius: liveBadgeRadius,
-            }}
-          >
-            LIVE
-          </div>
-        </>
+        <div
+          className="pointer-events-none absolute bottom-0 left-1/2 z-[20] -translate-x-1/2 translate-y-1/2 whitespace-nowrap font-bold leading-none"
+          style={{
+            backgroundColor: SILVER_RING,
+            color: '#0B0B0C',
+            fontSize: liveBadgeFont,
+            padding: `${liveBadgePadY}px ${liveBadgePadX}px`,
+            borderRadius: liveBadgeRadius,
+          }}
+        >
+          LIVE
+        </div>
       ) : null}
     </div>
   );

@@ -11,8 +11,10 @@ interface AvatarRingProps {
   onClick?: (e: React.MouseEvent) => void;
 }
 
+const SILVER_RING = '#E6E9EE';
+
 /**
- * User avatar circle — half silver / half red ring (same as icon discs).
+ * User avatar circle — silver ring flush on the photo (same as story circles).
  * Do not remove the circle.
  */
 export function AvatarRing({ src, alt = '', size, className = '', onClick }: AvatarRingProps) {
@@ -22,24 +24,22 @@ export function AvatarRing({ src, alt = '', size, className = '', onClick }: Ava
 
   return (
     <div
-      className={`elix-profile-ring relative flex-shrink-0 rounded-full ${onClick ? 'cursor-pointer' : ''} ${className}`}
+      className={`elix-profile-ring relative flex-shrink-0 rounded-full overflow-hidden ${onClick ? 'cursor-pointer' : ''} ${className}`}
       style={{
         width: safeSize,
         height: safeSize,
+        boxSizing: 'border-box',
+        border: `2px solid ${SILVER_RING}`,
+        background: '#1A1A1F',
       }}
       onClick={onClick}
     >
-      <div
-        className="w-full h-full rounded-full overflow-hidden bg-[#1A1A1F]"
-        style={{ width: '100%', height: '100%' }}
-      >
-        <img
-          src={imgSrc}
-          alt={safeAlt}
-          className="block w-full h-full object-cover object-center"
-          draggable={false}
-        />
-      </div>
+      <img
+        src={imgSrc}
+        alt={safeAlt}
+        className="block w-full h-full object-cover object-center"
+        draggable={false}
+      />
     </div>
   );
 }

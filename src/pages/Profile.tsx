@@ -896,7 +896,9 @@ export default function Profile() {
             }}
           >
             <div
-              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full p-[2px]"
+              className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full ${
+                (profileStoryGroup?.items?.length ?? 0) > 0 ? 'p-[2px]' : ''
+              }`}
               style={{
                 background:
                   (profileStoryGroup?.items?.length ?? 0) > 0

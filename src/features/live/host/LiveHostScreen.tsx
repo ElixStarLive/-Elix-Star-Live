@@ -1734,7 +1734,7 @@ export default function LiveHostScreen() {
                     className="relative flex flex-col items-center max-w-[42px]"
                     style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
                   >
-                    <div className={isMvp ? 'rounded-full ring-2 ring-[#D8D9DD] p-[1px] shadow-[0_0_6px_rgba(229, 229, 231,0.55)]' : 'rounded-full'}>
+                    <div className={isMvp ? 'rounded-full shadow-[0_0_6px_rgba(230,233,238,0.55)]' : 'rounded-full'}>
                       <AvatarRing
                         src={resolveCircleAvatar(viewer.avatar, label)}
                         alt={label}
@@ -1772,7 +1772,7 @@ export default function LiveHostScreen() {
                     className="relative flex flex-col items-center max-w-[42px]"
                     style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
                   >
-                    <div className={isMvp ? 'rounded-full ring-2 ring-[#D8D9DD] p-[1px] shadow-[0_0_6px_rgba(229, 229, 231,0.55)]' : 'rounded-full'}>
+                    <div className={isMvp ? 'rounded-full shadow-[0_0_6px_rgba(230,233,238,0.55)]' : 'rounded-full'}>
                       <AvatarRing
                         src={resolveCircleAvatar(viewer.avatar, label)}
                         alt={label}
@@ -1955,7 +1955,7 @@ export default function LiveHostScreen() {
                                 key={`top-viewers-${viewer.id}`}
                                 className="relative"
                               >
-                                <div className={isMvp ? 'rounded-full ring-2 ring-[#D8D9DD] p-[1px] shadow-[0_0_6px_rgba(229, 229, 231,0.55)]' : 'rounded-full'}>
+                                <div className={isMvp ? 'rounded-full shadow-[0_0_6px_rgba(230,233,238,0.55)]' : 'rounded-full'}>
                                   <AvatarRing
                                     src={resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username)}
                                     alt={viewer.displayName || viewer.username || ''}
@@ -2645,7 +2645,7 @@ export default function LiveHostScreen() {
                           >
                             <span className="text-white/30 text-xs font-bold w-5 text-right flex-shrink-0">{i + 1}</span>
                             <div className="relative flex-shrink-0">
-                              <div className={isMvp ? 'rounded-full ring-2 ring-[#D8D9DD] p-[1px] shadow-[0_0_6px_rgba(229, 229, 231,0.55)]' : 'rounded-full'}>
+                              <div className={isMvp ? 'rounded-full shadow-[0_0_6px_rgba(230,233,238,0.55)]' : 'rounded-full'}>
                                 <AvatarRing
                                   src={resolveCircleAvatar(v.avatar, displayName)}
                                   alt={displayName}

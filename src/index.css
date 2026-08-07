@@ -1413,13 +1413,15 @@ nav[aria-label="Main navigation"] button:not([aria-current="page"]) .elix-silver
   user-select: none;
 }
 
+/* User circles — silver ring flush on the photo (exact #E6E9EE). Never gap/inset. */
 .elix-profile-ring,
 .royce-avatar-glow {
   box-sizing: border-box;
   border-radius: 9999px;
-  border: none !important;
-  background: transparent !important;
-  box-shadow: none !important;
+  border: 2px solid var(--elix-avatar-ring, #E6E9EE) !important;
+  background: #1A1A1F !important;
+  overflow: hidden;
+  box-shadow: 0 0 6px 0 rgba(230, 233, 238, 0.35);
 }
 
 /* Icon line — silver only (purple reserved for accents) */
