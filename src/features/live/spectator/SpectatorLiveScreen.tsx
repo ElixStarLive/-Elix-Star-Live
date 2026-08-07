@@ -532,7 +532,7 @@ export default function SpectatorLiveScreen() {
 
   if (spectatorGate === 'loading') {
     return (
-      <div className="fixed inset-0 bg-black flex justify-center">
+      <div className="fixed inset-0 bg-transparent flex justify-center">
         <div className="relative w-full max-w-[480px] h-full bg-[rgba(0,0,0,0.35)] flex flex-col items-center justify-center gap-4 p-6">
           <div className="w-10 h-10 border-2 border-[#6F3FF5]/25 border-t-[#6F3FF5] rounded-full animate-spin elix-loader" />
           <p className="text-white/60 text-sm">Checking stream...</p>
@@ -543,7 +543,7 @@ export default function SpectatorLiveScreen() {
 
   if (spectatorGate === 'offline') {
     return (
-      <div className="fixed inset-0 bg-black flex justify-center">
+      <div className="fixed inset-0 bg-transparent flex justify-center">
         <div className="relative w-full max-w-[480px] h-full bg-[rgba(0,0,0,0.35)] flex flex-col items-center justify-center gap-4 p-6">
           <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center">
             <span className="text-3xl">{streamEndedReceived ? '🔴' : '📡'}</span>
@@ -581,7 +581,7 @@ export default function SpectatorLiveScreen() {
 
   return (
     <div
-      className="elix-live-room fixed inset-0 flex justify-center bg-black transition-transform duration-[250ms] ease-out"
+      className="elix-live-room fixed inset-0 flex justify-center bg-transparent transition-transform duration-[250ms] ease-out"
       style={{ transform: pageExiting ? 'translateX(100%)' : undefined }}
     >
       <div className="relative w-full max-w-[480px] h-full overflow-hidden flex flex-col bg-transparent">

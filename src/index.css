@@ -1575,7 +1575,7 @@ main.feed-column-width,
 
 .elix-live-room,
 #root .elix-live-room {
-  background-color: #000000 !important;
+  background-color: transparent !important;
   background-image: none !important;
 }
 
