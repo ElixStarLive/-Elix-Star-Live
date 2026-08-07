@@ -438,7 +438,7 @@ export default function InlineLiveViewer({
   return (
     <div
       className={`relative w-full h-full bg-[rgba(0,0,0,0.35)] cursor-pointer ${className}`}
-      style={{ background: "#09090B" }}
+      style={{ background: "#080A0E" }}
       onClick={openWatch}
     >
       {/* ── Normal live: single full-bleed host ── */}
@@ -452,7 +452,7 @@ export default function InlineLiveViewer({
             muted
             controls={false}
             poster={LIVE_VIDEO_TRANSPARENT_POSTER}
-            style={{ opacity: hasStream ? 1 : 0, transition: "opacity 0.35s ease", backgroundColor: "#09090B" }}
+            style={{ opacity: hasStream ? 1 : 0, transition: "opacity 0.35s ease", backgroundColor: "#080A0E" }}
           />
           {!hasStream && placeholder}
         </div>
@@ -479,7 +479,7 @@ export default function InlineLiveViewer({
                   muted
                   controls={false}
                   poster={LIVE_VIDEO_TRANSPARENT_POSTER}
-                  style={{ backgroundColor: "#09090B" }}
+                  style={{ backgroundColor: "#080A0E" }}
                 />
                 <span className="absolute bottom-1 left-1 z-10 text-white/80 text-[8px] font-bold bg-black/50 rounded px-1 truncate max-w-[90%]">
                   {creatorName}
@@ -494,7 +494,7 @@ export default function InlineLiveViewer({
                   muted
                   controls={false}
                   poster={LIVE_VIDEO_TRANSPARENT_POSTER}
-                  style={{ backgroundColor: "#09090B" }}
+                  style={{ backgroundColor: "#080A0E" }}
                 />
                 {!battle?.opponentName ? (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 pointer-events-none z-[1]">
@@ -544,7 +544,7 @@ export default function InlineLiveViewer({
               muted
               controls={false}
               poster={LIVE_VIDEO_TRANSPARENT_POSTER}
-              style={{ opacity: hasStream ? 1 : 0, backgroundColor: "#09090B" }}
+              style={{ opacity: hasStream ? 1 : 0, backgroundColor: "#080A0E" }}
             />
             {!hasStream && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[rgba(0,0,0,0.35)] z-[1]">
@@ -616,7 +616,7 @@ export default function InlineLiveViewer({
                     muted
                     controls={false}
                     poster={LIVE_VIDEO_TRANSPARENT_POSTER}
-                    style={{ backgroundColor: "#09090B" }}
+                    style={{ backgroundColor: "#080A0E" }}
                   />
                   <span className="absolute bottom-0.5 left-0.5 z-[3] text-white/80 text-[7px] font-bold bg-black/50 rounded px-0.5 truncate max-w-[95%]">
                     {h.name}
