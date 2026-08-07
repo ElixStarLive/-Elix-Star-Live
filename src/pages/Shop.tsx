@@ -371,9 +371,28 @@ export default function Shop() {
   return (
     <div className="page-above-bottom-nav elix-page-glass text-white z-[1]">
       <div className="page-above-bottom-nav__inner elix-settings-write flex flex-col min-h-0">
-        {/* Header — same fundal / panel look as Profile & Inbox */}
+        {/* Header — Search + Live left corner (as before); close right */}
         <header className="flex items-center justify-between px-4 pt-page-header pb-2 relative z-20">
-          <div className="w-10" aria-hidden />
+          <div className="flex items-center gap-3 z-10">
+            <button
+              type="button"
+              onClick={goSearch}
+              className="text-[12px] font-bold text-white active:opacity-70"
+              title="Search"
+              aria-label="Search"
+            >
+              Search
+            </button>
+            <button
+              type="button"
+              onClick={goLiveDiscover}
+              className="text-[12px] font-bold text-white active:opacity-70"
+              title="Live"
+              aria-label="Live"
+            >
+              Live
+            </button>
+          </div>
           <h1 className="pointer-events-none text-[16px] font-bold text-white absolute left-1/2 -translate-x-1/2">
             Shop
           </h1>
@@ -382,36 +401,7 @@ export default function Shop() {
           </button>
         </header>
 
-        {/* Action writing — separate from All / Clothing / Accessories filters */}
-        <div className="mt-1">
-          <div className="flex justify-center overflow-x-auto no-scrollbar">
-            <button
-              type="button"
-              onClick={openCreateListing}
-              className="flex flex-col items-center gap-0.5 px-3 py-2 whitespace-nowrap"
-            >
-              <span className="text-[11px] font-bold text-white">Add products</span>
-            </button>
-            <button
-              type="button"
-              onClick={openCart}
-              className="flex flex-col items-center gap-0.5 px-3 py-2 whitespace-nowrap"
-            >
-              <span className="text-[11px] font-bold text-white">
-                Basket{cartItems.length > 0 ? ` (${cartItems.length})` : ''}
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={goSearch}
-              className="flex flex-col items-center gap-0.5 px-3 py-2 whitespace-nowrap"
-            >
-              <span className="text-[11px] font-bold text-white">Search</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Live now circles — between actions and filter bar */}
+        {/* Live now circles — between header and filter bar */}
         {liveUsers.length > 0 && (
           <div className="px-3 pt-2 pb-1">
             <div className="flex items-center justify-between mb-1">
@@ -449,8 +439,24 @@ export default function Shop() {
           </div>
         )}
 
-        {/* Filter bar only (All / Clothing / ...) — not mixed with Basket / Add products */}
+        {/* Same line: Add products / Basket + All / Clothing / Electronics / Accessories */}
         <div className="flex gap-2 px-3 py-3 overflow-x-auto no-scrollbar">
+          <button
+            type="button"
+            onClick={openCreateListing}
+            className="px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border border-transparent"
+          >
+            <span className="elix-silver-red-text">Add products</span>
+          </button>
+          <button
+            type="button"
+            onClick={openCart}
+            className="px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border border-transparent"
+          >
+            <span className="elix-silver-red-text">
+              Basket{cartItems.length > 0 ? ` (${cartItems.length})` : ''}
+            </span>
+          </button>
           {filters.map(f => (
             <button
               key={f.key}
