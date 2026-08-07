@@ -53,6 +53,8 @@ router.get("/notifications", async (req, res) => {
   res.setHeader("Cache-Control", "private, no-store");
   const { getTokenFromRequest, verifyAuthToken } = await import("./auth");
   const { getPool } = await import("../lib/postgres");
+  const { dbGetLiveStreams } = await import("../lib/postgres");
+  const { pruneEndedLiveStartedNotifications } = await import("../lib/notifications");
   const { logger } = await import("../lib/logger");
   const token = getTokenFromRequest(req);
   const payload = token ? verifyAuthToken(token) : null;
@@ -60,6 +62,18 @@ router.get("/notifications", async (req, res) => {
   const db = getPool();
   if (!db) return res.status(503).json({ error: "Database not available", notifications: [] });
   try {
+    // Ended lives (QA probe, crashed hosts, etc.) must not linger in Inbox.
+    try {
+      const liveRows = await dbGetLiveStreams();
+      const active = new Set<string>();
+      for (const row of liveRows) {
+        if (row.stream_key) active.add(String(row.stream_key).trim());
+        if (row.user_id) active.add(String(row.user_id).trim());
+      }
+      await pruneEndedLiveStartedNotifications(active);
+    } catch (pruneErr) {
+      logger.warn({ err: pruneErr }, "GET /notifications: live prune skipped");
+    }
     const r = await db.query(
       `SELECT id, user_id, type, title, body, action_url, read, created_at
        FROM elix_notifications WHERE user_id = $1 ORDER BY created_at DESC LIMIT 50`,

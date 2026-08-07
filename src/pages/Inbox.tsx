@@ -21,6 +21,7 @@ import {
   apiMarkNotificationsRead,
   apiToggleInboxFollow,
 } from '../features/notifications/notificationsApi';
+import { apiLiveStreams } from '../lib/live/liveApi';
 
 interface Notification {
   id: string;
@@ -326,8 +327,30 @@ export default function Inbox() {
       try {
         const { rows } = await apiListNotifications();
         if (cancelled) return;
+        let activeLiveIds = new Set<string>();
+        try {
+          const { streams } = await apiLiveStreams();
+          for (const raw of streams) {
+            const s = raw as Record<string, unknown>;
+            const room = String(s.room_id ?? s.stream_key ?? '').trim();
+            const uid = String(s.user_id ?? '').trim();
+            if (room) activeLiveIds.add(room);
+            if (uid) activeLiveIds.add(uid);
+          }
+        } catch {
+          activeLiveIds = new Set();
+        }
         setNotifications(rows
           .filter((n: { type?: string }) => n.type !== 'battle_invite' && n.type !== 'cohost_invite' && n.type !== 'battle_accepted' && n.type !== 'cohost_accepted')
+          .filter((n: { type?: string; title?: string; action_url?: string }) => {
+            // Ended lives must not stay in Inbox (QA probe / stale "is live").
+            const isLiveRow =
+              n.type === 'live_started' || /\bis live\b/i.test(String(n.title || ''));
+            if (!isLiveRow) return true;
+            const hostId = liveHostIdFromActionUrl(n.action_url);
+            if (!hostId) return false;
+            return activeLiveIds.has(hostId);
+          })
           .map((n: { type?: string; id?: string; title?: string; body?: string; is_read?: boolean; read?: boolean; created_at?: string; action_url?: string; data?: Record<string, unknown> }) => ({
           id: n.id,
           type: normalizeNotificationType(n.type),
