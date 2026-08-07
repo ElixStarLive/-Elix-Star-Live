@@ -16,6 +16,7 @@ import {
 import { platform } from "../lib/platform";
 import { apiLiveStreams, connectLiveFeedPresence, createLiveRoomEndMonitor } from "../lib/live";
 import { apiFetchProfileById as apiFeedFetchProfileById } from "../features/feed/feedApi";
+import { rememberFeedVideoId } from "../components/AppGlassBackdrop";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -328,6 +329,14 @@ export default function VideoFeed() {
     ...visibleLiveStreams.map((stream): FeedItem => ({ kind: "live", stream })),
     ...videos.map((v): FeedItem => ({ kind: "video", videoId: v.id })),
   ];
+
+  /* Remember active For You VOD so Profile/Inbox glass has video under it */
+  useEffect(() => {
+    const item = feedItems[activeIndex];
+    if (item?.kind === "video" && item.videoId) {
+      rememberFeedVideoId(item.videoId);
+    }
+  }, [activeIndex, feedItems]);
 
   /* ---- Active slide: IntersectionObserver (only the most visible slide plays audio/video) ---- */
   const feedKey = [

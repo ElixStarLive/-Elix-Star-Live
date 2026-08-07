@@ -1517,11 +1517,11 @@ body::before {
   --elix-home-glass: rgba(0, 0, 0, 0.35);
 }
 
-/* NO black page wash — columns clear so under-page shows through */
+/* NO black page wash — columns clear (elix-glass still wins when present) */
 .page-above-bottom-nav,
-.page-above-bottom-nav__inner,
+.page-above-bottom-nav__inner:not(.elix-glass),
 .app-live-column-host,
-.app-live-column,
+.app-live-column:not(.elix-glass),
 main.feed-column-width,
 #root .bg-background,
 #root .bg-surface,

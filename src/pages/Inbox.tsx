@@ -658,7 +658,7 @@ export default function Inbox() {
 
   return (
     <div className="page-above-bottom-nav bg-transparent">
-      <div className="page-above-bottom-nav__inner bg-transparent flex flex-col min-h-0">
+      <div className="page-above-bottom-nav__inner elix-glass flex flex-col min-h-0">
         {/* One full-page scroll — same fundal colour, no framed boxes */}
         <div className="flex-1 min-h-0 overflow-y-auto bg-transparent">
         <div className="px-3 pt-page-header pb-1 flex items-center justify-between relative bg-transparent">
