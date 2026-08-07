@@ -767,15 +767,15 @@ export default function LiveHostScreen() {
 
   return (
     <div
-      className="elix-live-room fixed inset-0 flex justify-center bg-transparent z-[9990] transition-transform duration-[250ms] ease-out"
+      className="elix-live-room elix-fundal-glass fixed inset-0 flex justify-center z-[9990] transition-transform duration-[250ms] ease-out"
       style={{ transform: pageExiting ? 'translateX(100%)' : undefined }}
     >
-      <div className="relative w-full max-w-[480px] h-full bg-transparent overflow-hidden border-none">
+      <div className="relative w-full max-w-[480px] h-full overflow-hidden border-none elix-fundal-glass">
         <div className="h-full w-full relative">
         <audio ref={roomRemoteAudioRef} autoPlay playsInline className="hidden" />
         <audio ref={opponentRemoteAudioRef} autoPlay playsInline className="hidden" />
-        {/* BACKGROUND: VIDEO AREA — transparent so glass UI shows video through */}
-        <div className="absolute inset-0 z-0 bg-transparent overflow-hidden">
+        {/* BACKGROUND under video — fundal glass (never black) */}
+        <div className="absolute inset-0 z-0 elix-fundal-glass overflow-hidden">
           <div className="video-zone relative w-full h-full">
             <div ref={stageRef} className="relative w-full h-full">
             {/* Base Video Layer */}
@@ -846,7 +846,7 @@ export default function LiveHostScreen() {
                       muted
                       controls={false}
                       poster={LIVE_VIDEO_TRANSPARENT_POSTER}
-                      style={{ backgroundColor: '#09090B' }}
+                      style={{ backgroundColor: '#080A0E' }}
                     />
                     <div className="absolute top-1 left-1 z-20 flex items-center gap-1 pointer-events-auto">
                       <button
@@ -998,7 +998,7 @@ export default function LiveHostScreen() {
                         muted
                         controls={false}
                         poster={LIVE_VIDEO_TRANSPARENT_POSTER}
-                        style={{ opacity: isCamOff ? 0 : 1, transform: 'scaleX(-1)', backgroundColor: '#09090B' }}
+                        style={{ opacity: isCamOff ? 0 : 1, transform: 'scaleX(-1)', backgroundColor: '#080A0E' }}
                       />
                       {isCamOff && (
                         <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[rgba(10,10,10,0.72)] z-[5]">

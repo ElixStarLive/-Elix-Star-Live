@@ -532,7 +532,7 @@ export default function SpectatorLiveScreen() {
 
   if (spectatorGate === 'loading') {
     return (
-      <div className="fixed inset-0 bg-transparent flex justify-center">
+      <div className="fixed inset-0 elix-fundal-glass flex justify-center">
         <div className="relative w-full max-w-[480px] h-full bg-[rgba(0,0,0,0.35)] flex flex-col items-center justify-center gap-4 p-6">
           <div className="w-10 h-10 border-2 border-[#E6E9EE]/25 border-t-[#E6E9EE] rounded-full animate-spin elix-loader" />
           <p className="text-white/60 text-sm">Checking stream...</p>
@@ -543,7 +543,7 @@ export default function SpectatorLiveScreen() {
 
   if (spectatorGate === 'offline') {
     return (
-      <div className="fixed inset-0 bg-transparent flex justify-center">
+      <div className="fixed inset-0 elix-fundal-glass flex justify-center">
         <div className="relative w-full max-w-[480px] h-full bg-[rgba(0,0,0,0.35)] flex flex-col items-center justify-center gap-4 p-6">
           <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center">
             <span className="text-3xl">{streamEndedReceived ? '🔴' : '📡'}</span>
@@ -581,10 +581,10 @@ export default function SpectatorLiveScreen() {
 
   return (
     <div
-      className="elix-live-room fixed inset-0 flex justify-center bg-transparent transition-transform duration-[250ms] ease-out"
+      className="elix-live-room elix-fundal-glass fixed inset-0 flex justify-center transition-transform duration-[250ms] ease-out"
       style={{ transform: pageExiting ? 'translateX(100%)' : undefined }}
     >
-      <div className="relative w-full max-w-[480px] h-full overflow-hidden flex flex-col bg-transparent">
+      <div className="relative w-full max-w-[480px] h-full overflow-hidden flex flex-col elix-fundal-glass">
 
         {/* Video container: transparent shell — glass overlays sit on top of live video */}
         {/* Video container */}
@@ -1110,7 +1110,7 @@ export default function SpectatorLiveScreen() {
                     muted
                     controls={false}
                     poster={LIVE_VIDEO_TRANSPARENT_POSTER}
-                    style={{ opacity: hostCamOff ? 0 : 1, backgroundColor: '#09090B' }}
+                    style={{ opacity: hostCamOff ? 0 : 1, backgroundColor: '#080A0E' }}
                   />
                   {hostCamOff && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[rgba(10,10,10,0.72)] z-[5]">
@@ -1162,7 +1162,7 @@ export default function SpectatorLiveScreen() {
                     style={{
                       opacity: isCamOff ? 0 : 1,
                       transition: 'opacity 0.3s ease',
-                      backgroundColor: '#09090B',
+                      backgroundColor: '#080A0E',
                     }}
                   />
                   <button
@@ -1249,7 +1249,7 @@ export default function SpectatorLiveScreen() {
                     style={{
                       opacity: camOff ? 0 : 1,
                       transition: 'opacity 0.3s ease',
-                      backgroundColor: '#09090B',
+                      backgroundColor: '#080A0E',
                     }}
                   />
                   <button
@@ -1368,7 +1368,7 @@ export default function SpectatorLiveScreen() {
                   style={{
                     opacity: featuredLive ? 0 : (hasStream && !hostCamOff ? 1 : 0),
                     transition: 'opacity 0.4s ease',
-                    backgroundColor: '#09090B',
+                    backgroundColor: '#080A0E',
                     pointerEvents: featuredLive ? 'none' : undefined,
                   }}
                 />
@@ -1382,7 +1382,7 @@ export default function SpectatorLiveScreen() {
                       muted
                       controls={false}
                       poster={LIVE_VIDEO_TRANSPARENT_POSTER}
-                      style={{ backgroundColor: '#09090B' }}
+                      style={{ backgroundColor: '#080A0E' }}
                     />
                     <button
                       type="button"

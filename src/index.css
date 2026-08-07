@@ -1506,31 +1506,36 @@ svg.lucide.fill-silver-full.royce-icon-gold {
 }
 
 /* ═══ Global theme contract ═══
-   FUNDAL = solid --elix-bg (#080A0E blue-charcoal). Not plain black.
-   Glass layer = --elix-bg-glass rgba(8,10,14,0.65).
-   Cards / sheets = --elix-surface rgba(18,20,25,0.65).
-   Chrome (nav) = --elix-panel rgba(26,28,33,0.65).
-   LIVE video column stays transparent so camera/stream shows through. */
+   One full underlay under ALL UI (exact reference 1-1):
+   solid fundal #080A0E + glass wash rgba(8,10,14,0.65).
+   Never plain black. Never transparent over black. */
 html,
 body {
-  background-color: var(--elix-bg) !important;
-  background-image: none !important;
+  background-color: #080A0E !important;
+  background-image: linear-gradient(rgba(8, 10, 14, 0.65), rgba(8, 10, 14, 0.65)) !important;
 }
 body::before {
   content: none !important;
   display: none !important;
 }
+
+/* Full clear glass panel under every screen / live room */
 #root,
-.elix-app-shell {
-  background-color: var(--elix-bg) !important;
-  background-image: none !important;
+.elix-app-shell,
+.elix-live-room,
+.elix-fundal-glass {
+  background-color: #080A0E !important;
+  background-image: linear-gradient(rgba(8, 10, 14, 0.65), rgba(8, 10, 14, 0.65)) !important;
 }
+
+/* Video only stays clear so the stream shows — not the page chrome */
 .app-live-column-host,
 .app-live-column {
   background: transparent !important;
+  background-image: none !important;
 }
 
-/* Page shells sit on fundal — do NOT paint them as cards */
+/* Page shells sit on the fundal glass underlay */
 .page-above-bottom-nav,
 .page-above-bottom-nav__inner,
 #root .min-h-screen.bg-transparent,
@@ -1570,12 +1575,13 @@ body::before {
     0 0 40px rgba(255, 255, 255, 0.04) !important;
 }
 
-/* Battle empty / invite slot — surface glass over fundal (matches reference) */
+/* Battle empty / invite slot — opaque charcoal + surface glass (not black) */
 .elix-battle-slot {
-  background-color: var(--elix-surface) !important;
-  border: 1px solid var(--elix-border) !important;
-  backdrop-filter: var(--elix-glass-blur);
-  -webkit-backdrop-filter: var(--elix-glass-blur);
+  background-color: #121419 !important;
+  background-image: linear-gradient(rgba(18, 20, 25, 0.65), rgba(18, 20, 25, 0.65)) !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 /* Battle score bar — cold silver vs blue-charcoal (not pink/blue) */
