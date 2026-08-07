@@ -1142,22 +1142,18 @@ video::-webkit-media-controls-overlay-enclosure,
   filter: none;
 }
 
-/* One app-wide glass tint — used by every panel, sheet, top nav, bottom nav, page frame */
-.elix-glass {
-  background: rgba(12, 10, 12, 0.72) !important;
-  border: none !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow: none !important;
-}
+/* One app-wide glass tint — used by every panel, sheet, top nav, bottom nav, page frame.
+   Backlight = subtle inset top highlight + soft outer halo (premium glass look). */
+.elix-glass,
 .elix-glass-panel {
   background: rgba(12, 10, 12, 0.72) !important;
   border: none !important;
   border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  box-shadow: none !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 0 40px rgba(255, 255, 255, 0.04) !important;
 }
 
 /* Live room shell must never paint solid page black over the stream */
@@ -1502,9 +1498,10 @@ body::before {
   background: transparent !important;
 }
 
-/* Every page frame + every chrome surface uses the same tint.
-   Includes: Profile/Inbox/Shop/Settings-style sheets, Engagement, Login, Register,
-   AuthCallback, VideoView, VideoCall, all admin pages, top nav, home nav, all sheets. */
+/* Every page frame + every chrome surface uses the same tint + backlight.
+   Backlight = inset top highlight (edge lit) + soft outer halo (ambient glow).
+   Covers: Profile/Inbox/Shop/Settings-style sheets, Engagement, Login, Register,
+   AuthCallback, VideoView, VideoCall, admin pages, top nav, home nav, all sheets. */
 .page-above-bottom-nav__inner,
 .app-live-column,
 #root nav[aria-label="Main navigation"] .feed-column-width,
@@ -1519,4 +1516,7 @@ body::before {
   border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
   backdrop-filter: blur(12px) !important;
   -webkit-backdrop-filter: blur(12px) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 0 40px rgba(255, 255, 255, 0.04) !important;
 }
