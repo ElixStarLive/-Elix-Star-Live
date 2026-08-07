@@ -1496,13 +1496,17 @@ svg.lucide.fill-silver-full.royce-icon-gold {
 }
 
 /* ═══ Global theme contract ═══
-   Base page bg = #121214. Every panel/sheet/nav/card uses --elix-glass.
-   Video/LIVE keeps its content visible: outer shells stay transparent
-   so glass sits over the video. Non-video pages sit over #121214 base. */
+   Base = owner wallpaper (/elix-app-bg.png), fixed & full-bleed.
+   Every panel/sheet/nav/card uses --elix-glass so the wallpaper shows through.
+   Video/LIVE keeps its own content visible: outer shells stay transparent. */
 html,
 body {
   background-color: var(--elix-bg) !important;
-  background-image: none !important;
+  background-image: url('/elix-app-bg.png') !important;
+  background-size: cover !important;
+  background-position: center center !important;
+  background-repeat: no-repeat !important;
+  background-attachment: fixed !important;
 }
 body::before {
   content: none !important;
