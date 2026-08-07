@@ -1481,8 +1481,9 @@ svg.lucide.fill-silver-full.royce-icon-gold {
   display: none !important;
 }
 
-/* ═══ Owner: no opaque page washes (no white, no solid black pages). ═══
-   html/body #000 only so the browser never flashes white. Do NOT remap .elix-live-room. */
+/* ═══ Owner: every panel = Home glass (picture). Not only More/top. ═══
+   html/body #000 only kills browser white. Do NOT remap .elix-live-room.
+   Do NOT touch Create camera locked surfaces (leave #09090B alone there). */
 html,
 body {
   background-color: #000000 !important;
@@ -1506,19 +1507,29 @@ body::before {
   background-image: none !important;
 }
 
-/* Home glass chrome — top + bottom nav + sheets (same as For You). No solid black bars. NOT live/battle. */
-#root [class*="rounded-t-2xl"][class*="bg-[rgba"]:not(.elix-live-room *),
-#root [class*="rounded-t-2xl"][class*="bg-[#09090B"]:not(.elix-live-room *),
-.bottom-sheet,
-.bottom-sheet-small,
-.bottom-sheet-above-nav:not(.elix-live-room *),
+/* Home glass token — same as For You top/bottom nav */
+#root {
+  --elix-home-glass: rgba(0, 0, 0, 0.35);
+}
+
+/* EVERY panel / sheet / drawer / nav chrome — same Home glass (not only More/top) */
 #root .elix-glass,
 #root .elix-glass-panel,
+#root .bottom-sheet,
+#root .bottom-sheet-small,
+#root .bottom-sheet-above-nav,
 #root nav[aria-label="Main navigation"] .feed-column-width,
 #root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
-#root .feed-column-width.h-\[var\(--topnav-bar-height\)\] {
-  background-color: rgba(0, 0, 0, 0.35) !important;
-  border: 1px solid #000000 !important;
+#root .feed-column-width.h-\[var\(--topnav-bar-height\)\],
+#root [class*="rounded-t-2xl"][class*="bg-"]:not(.elix-live-room):not(.elix-live-room *),
+#root [class*="bg-[rgba(10,10,10"]:not(.elix-live-room):not(.elix-live-room *),
+#root [class*="bg-[rgba(20,20,20"]:not(.elix-live-room):not(.elix-live-room *),
+#root [class*="bg-[rgba(0,0,0,0.72"]:not(.elix-live-room):not(.elix-live-room *),
+#root [class*="bg-[rgba(0,0,0,0.38"]:not(.elix-live-room):not(.elix-live-room *),
+#root [class*="bg-[rgba(0,0,0,0.35)"][class*="rounded"]:not(.elix-live-room):not(.elix-live-room *) {
+  background-color: var(--elix-home-glass) !important;
+  background-image: none !important;
+  border-color: #000000 !important;
   box-shadow: none !important;
   backdrop-filter: blur(12px) !important;
   -webkit-backdrop-filter: blur(12px) !important;
@@ -1531,6 +1542,7 @@ body::before {
   border-bottom: none !important;
 }
 
+/* Pages themselves — clear, no solid black/white page wash */
 .page-above-bottom-nav,
 .page-above-bottom-nav__inner,
 .app-live-column,
