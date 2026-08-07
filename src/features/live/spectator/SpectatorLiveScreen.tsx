@@ -68,7 +68,6 @@ import {
 } from '../../../lib/testCoins';
 import { GiftOverlay } from '../../../components/GiftOverlay';
 import GiftAnimationOverlay, { pushLocalGiftPill } from '../../../components/GiftAnimationOverlay';
-import { LiveGiftFeedStack } from '../../../components/LiveGiftFeedStack';
 import { ChatOverlay } from '../../../components/ChatOverlay';
 import { AvatarRing } from '../../../components/AvatarRing';
 import { LevelBadge } from '../../../components/LevelBadge';
@@ -1899,10 +1898,8 @@ export default function SpectatorLiveScreen() {
           </div>
         </div>
 
-        {/* GIFT ANIMATION OVERLAY */}
+        {/* GIFT ANIMATION OVERLAY — original red banner only (no duplicate feed stack) */}
         <GiftAnimationOverlay streamId={effectiveStreamId} />
-        {/* Separate photo feed (cards + xN) — does not replace gift animation */}
-        <LiveGiftFeedStack streamId={effectiveStreamId} />
 
         {/* POINT MULTIPLIER BOOSTER — a red boxing glove stays on the top-left, beside
             the Weekly Ranking, for the whole active window (server ~30s) while it catches

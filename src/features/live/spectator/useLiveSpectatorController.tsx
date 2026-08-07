@@ -69,7 +69,6 @@ import {
 import { authorizeTestCoinIssue, mintTestCoinsViaServer } from '../../../lib/testCoinIssueApi';
 import { GiftOverlay } from '../../../components/GiftOverlay';
 import GiftAnimationOverlay, { pushLocalGiftPill } from '../../../components/GiftAnimationOverlay';
-import { LiveGiftFeedStack } from '../../../components/LiveGiftFeedStack';
 import { ChatOverlay } from '../../../components/ChatOverlay';
 import { AvatarRing } from '../../../components/AvatarRing';
 import { LevelBadge } from '../../../components/LevelBadge';

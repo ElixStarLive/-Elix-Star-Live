@@ -71,12 +71,17 @@ export function displayBalanceAfterTestSpend(
 }
 
 /**
- * Client-side mint is forbidden. Issuance must go through
- * POST /api/test-coins/mint (admin + server password).
- * Kept as a no-op so legacy call sites cannot inflate TEST balance locally.
+ * Mirror helper for TEST origin localStorage balance after server mint.
+ * UI mint must still go through POST /api/test-coins/mint (admin + password).
+ * Do not use this to invent a second mint path in the UI.
  */
-export function addPersistedTestCoins(userId: string | undefined, _amount: number): number {
-  return getPersistedTestCoinsBalance(userId);
+export function addPersistedTestCoins(userId: string | undefined, amount: number): number {
+  if (!testCoinsAllowed()) return 0;
+  const add = Math.max(0, Math.floor(amount));
+  const current = getPersistedTestCoinsBalance(userId);
+  const newBalance = current + add;
+  persistTestCoinsBalance(userId, newBalance);
+  return newBalance;
 }
 
 export type DebitTestCoinsResult =

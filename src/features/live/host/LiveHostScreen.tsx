@@ -65,7 +65,6 @@ import {
 } from '../../../lib/testCoins';
 import { GiftOverlay } from '../../../components/GiftOverlay';
 import GiftAnimationOverlay, { pushLocalGiftPill } from '../../../components/GiftAnimationOverlay';
-import { LiveGiftFeedStack } from '../../../components/LiveGiftFeedStack';
 import { ChatOverlay } from '../../../components/ChatOverlay';
 import { FaceARGift } from '../../../components/FaceARGift';
 import { useLivePromoStore } from '../../../store/useLivePromoStore';
@@ -3449,10 +3448,8 @@ export default function LiveHostScreen() {
       )}
 
 
-      {/* Full-screen Gift Overlay Animation */}
+      {/* Full-screen Gift Overlay Animation — original red banner only (no duplicate feed stack) */}
       <GiftAnimationOverlay streamId={effectiveStreamId} />
-      {/* Separate photo feed (cards + xN) â€” does not replace gift animation */}
-      <LiveGiftFeedStack streamId={effectiveStreamId} />
 
       {/* POINT MULTIPLIER BOOSTER â€” a red boxing glove stays on the top-left, beside
           the Weekly Ranking, for the whole active window (server ~30s) while it catches
