@@ -1563,8 +1563,20 @@ main.feed-column-width,
   box-shadow: none !important;
 }
 
-/* Live/Battle room only — leave battle alone */
+/* Live/Battle room shell stays black — battle tiles untouched */
 .elix-live-room,
 #root .elix-live-room {
   background-color: #000000 !important;
+}
+
+/* Live bottom sheets / panels — same Home glass as top/bottom nav */
+#root .elix-live-room .elix-glass,
+#root .elix-live-room .elix-glass-panel,
+#root .elix-live-room [class*="rounded-t-2xl"] {
+  background-color: var(--elix-home-glass) !important;
+  background-image: none !important;
+  border-color: #000000 !important;
+  box-shadow: none !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
 }

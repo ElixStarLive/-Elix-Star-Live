@@ -2523,7 +2523,8 @@ export function useLiveHostController() {
     if (player3VideoRef.current) { player3VideoRef.current.srcObject = null; }
     if (player4VideoRef.current) { player4VideoRef.current.srcObject = null; }
     setShowViewerList(false);
-    setIsFindCreatorsOpen(true);
+    // Creators panel stays closed — host opens it via Add creator / Explore only.
+    setIsFindCreatorsOpen(false);
     battleCreate({ hostName: creatorName });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isBattleMode, location.search, location.pathname, navigate, endBattleCleanup, creatorName, exitBattleMode, isBattleJoiner]);
@@ -5500,9 +5501,9 @@ export function useLiveHostController() {
 
   const openBattleChrome = useCallback(() => {
     setShowViewerList(false);
-    if (!isBattleMode) toggleBattle();
-    else setIsFindCreatorsOpen(true);
-  }, [isBattleMode, toggleBattle]);
+    setIsFindCreatorsOpen(false);
+    toggleBattle();
+  }, [toggleBattle]);
 
   const closeFindCreatorsPanel = useCallback(() => {
     (document.activeElement as HTMLElement)?.blur();
