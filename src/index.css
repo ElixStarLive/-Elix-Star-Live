@@ -1142,17 +1142,16 @@ video::-webkit-media-controls-overlay-enclosure,
   filter: none;
 }
 
-/* Live transparent black glass — video shows through (exact design values) */
-/* Live transparent glass — match ShareModal / 3-dots panel */
+/* One app-wide glass tint — used by every panel, sheet, top nav, bottom nav, page frame */
 .elix-glass {
-  background: rgba(0, 0, 0, 0.35) !important;
+  background: rgba(12, 10, 12, 0.58) !important;
   border: 1px solid #000000 !important;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   box-shadow: none !important;
 }
 .elix-glass-panel {
-  background: rgba(0, 0, 0, 0.35) !important;
+  background: rgba(12, 10, 12, 0.58) !important;
   border: 1px solid #000000 !important;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -1483,10 +1482,9 @@ svg.lucide.fill-silver-full.royce-icon-gold {
   display: none !important;
 }
 
-/* ═══ App transparency contract ═══
-   Outer shells clear. Every page frame carries one glass tint so all pages
-   read identical over whatever is behind. BottomNav.tsx not touched.
-   Create camera not touched. */
+/* ═══ App tint contract ═══
+   One color everywhere: page frames, top nav, home bottom nav, all sheets/panels.
+   Outer shells stay clear so tint sits over whatever is behind. Create camera not touched. */
 html,
 body {
   background: transparent !important;
@@ -1502,8 +1500,16 @@ body::before {
   background: transparent !important;
 }
 
-/* Page frames: single tint applied everywhere Profile / Inbox / Settings / Shop live */
+/* Every page frame + every chrome surface uses the same tint */
 .page-above-bottom-nav__inner,
-.app-live-column {
+.app-live-column,
+#root nav[aria-label="Main navigation"] .feed-column-width,
+#root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
+#root .feed-column-width.h-\[var\(--topnav-bar-height\)\],
+#root .bottom-sheet,
+#root .bottom-sheet-small,
+#root .bottom-sheet-above-nav {
   background-color: rgba(12, 10, 12, 0.58) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
 }
