@@ -38,30 +38,25 @@
 @layer base {
   :root {
     /* ═══════════════════════════════════════════════════════════════════
-       ELIX GLOBAL THEME — REFERENCE RENDER LOCK (owner 2026-08-07)
-       Visible depth requires DIFFERENT RGB levels (glass over same RGB = invisible).
+       ELIX GLOBAL THEME — OPAQUE COSMIC FUNDAL (owner 2026-08-07)
+       One shared fundal everywhere. No transparent glass. No video bleed
+       through chrome. Depth = border/shadow only, not alpha.
 
-       SOLID BASE:    #080A0E
-       SURFACE RGB:   #121419
-       PANEL RGB:     #1A1C21
-       BG GLASS:      rgba(8,10,14,0.65)
-       SURFACE GLASS: rgba(18,20,25,0.65)
-       PANEL GLASS:   rgba(26,28,33,0.65)
-       BORDER:        rgba(255,255,255,0.10)
-       SILVER:        #E6E9EE
-       WHITE:         #FFFFFF
-       TEXT 2/3:      #C8CDD5 / #8B9099
-       NEVER #000 / #0B0B0C / #121212 as page base.
+       BASE / PAGE / SURFACE / PANEL FILL: same --elix-fundal-image
+       SOLID FALLBACKS: #080A0E / #121419 / #1A1C21 (opaque)
+       BORDER: rgba(255,255,255,0.10)
+       SILVER: #E6E9EE
+       NEVER transparent chrome over video.
        ═══════════════════════════════════════════════════════════════════ */
 
     --elix-bg: #080A0E;
-    --elix-bg-glass: rgba(8, 10, 14, 0.65);
+    --elix-bg-glass: #080A0E;
     --elix-raised: #121419;
     --elix-surface-solid: #121419;
     --elix-panel-solid: #1A1C21;
-    --elix-surface: rgba(18, 20, 25, 0.65);
-    --elix-panel: rgba(26, 28, 33, 0.65);
-    --elix-glass: rgba(26, 28, 33, 0.65);
+    --elix-surface: #121419;
+    --elix-panel: #1A1C21;
+    --elix-glass: #1A1C21;
     --elix-border: rgba(255, 255, 255, 0.10);
     --elix-text-primary: #FFFFFF;
     --elix-text-secondary: #C8CDD5;
@@ -77,8 +72,8 @@
     --elix-icon-glow-on:
       drop-shadow(0 0 4px rgba(230, 233, 238, 0.32))
       drop-shadow(0 0 8px rgba(230, 233, 238, 0.14));
-    /* Shared icon disc — round circle behind every line icon */
-    --elix-icon-disc-bg: rgba(26, 28, 33, 0.78);
+    /* Shared icon disc — opaque round circle behind every line icon */
+    --elix-icon-disc-bg: #1A1C21;
     --elix-icon-disc-border: rgba(230, 233, 238, 0.22);
     --elix-icon-disc-shadow: 0 0 8px rgba(230, 233, 238, 0.14);
     --elix-icon-disc-pad: 6px;
@@ -86,23 +81,17 @@
     --elix-accent-light: #FFFFFF;
     --elix-avatar-ring: #E6E9EE;
     --elix-avatar-glow: 0 0 3px 0 rgba(230, 233, 238, 0.30);
-    --elix-glass-blur: blur(12px);
+    --elix-glass-blur: none;
     --elix-fundal-deep: #080A0E;
     --elix-divider: rgba(255, 255, 255, 0.09);
     --elix-silver-write: linear-gradient(135deg, #FFFFFF 0%, #E6E9EE 55%, #C8CDD5 100%);
     --elix-battle-fill: linear-gradient(90deg, #8B9099 0%, #C8CDD5 45%, #E6E9EE 75%, #FFFFFF 100%);
-    /* Cosmic blue-charcoal fundal — one shared field under all glass containers */
+    /* One opaque cosmic fundal — page / surface / panel share the same field */
     --elix-fundal-image: url('/elix-fundal-cosmic.png');
     --elix-fundal-depth: var(--elix-fundal-image);
-    --elix-page-fill:
-      linear-gradient(var(--elix-bg-glass), var(--elix-bg-glass)),
-      var(--elix-fundal-image);
-    --elix-surface-fill:
-      linear-gradient(var(--elix-surface), var(--elix-surface)),
-      var(--elix-fundal-image);
-    --elix-panel-fill:
-      linear-gradient(var(--elix-panel), var(--elix-panel)),
-      var(--elix-fundal-image);
+    --elix-page-fill: var(--elix-fundal-image);
+    --elix-surface-fill: var(--elix-fundal-image);
+    --elix-panel-fill: var(--elix-fundal-image);
     --elix-fundal-size: cover;
     --elix-fundal-position: center;
     --elix-fundal-attachment: scroll;
@@ -132,7 +121,7 @@
     --color-icon: var(--elix-icon-primary);
     --color-icon-active: var(--elix-icon-active);
     --color-icon-inactive: var(--elix-icon-inactive);
-    --color-icon-circle: rgba(8, 8, 10, 0.48);
+    --color-icon-circle: var(--elix-icon-disc-bg);
     --color-text: var(--elix-text-primary);
     --color-text-secondary: var(--elix-text-secondary);
     --color-text-tertiary: var(--elix-text-tertiary);
@@ -425,9 +414,9 @@
     /* LEVEL 1 — page glass over cosmic fundal */
     background-color: transparent;
     background-image: var(--elix-page-fill);
-    background-size: auto, var(--elix-fundal-size);
-    background-position: 0 0, var(--elix-fundal-position);
-    background-repeat: no-repeat, no-repeat;
+    background-size: var(--elix-fundal-size);
+    background-position: var(--elix-fundal-position);
+    background-repeat: no-repeat;
   }
 
   .page-above-bottom-nav__inner {
@@ -1284,21 +1273,21 @@ video::-webkit-media-controls-overlay-enclosure,
 
 /* Shared surface / panel glass — LEVEL 2 + LEVEL 3 over cosmic fundal */
 .elix-page-glass {
-  background-color: transparent;
+  background-color: var(--elix-bg);
   background-image: var(--elix-page-fill);
-  background-size: auto, var(--elix-fundal-size);
-  background-position: 0 0, var(--elix-fundal-position);
-  background-repeat: no-repeat, no-repeat;
-  background-attachment: scroll, var(--elix-fundal-attachment);
+  background-size: var(--elix-fundal-size);
+  background-position: var(--elix-fundal-position);
+  background-repeat: no-repeat;
+  background-attachment: var(--elix-fundal-attachment);
 }
 
 .elix-surface {
-  background-color: transparent;
+  background-color: var(--elix-bg);
   background-image: var(--elix-surface-fill);
-  background-size: auto, var(--elix-fundal-size);
-  background-position: 0 0, var(--elix-fundal-position);
-  background-repeat: no-repeat, no-repeat;
-  background-attachment: scroll, var(--elix-fundal-attachment);
+  background-size: var(--elix-fundal-size);
+  background-position: var(--elix-fundal-position);
+  background-repeat: no-repeat;
+  background-attachment: var(--elix-fundal-attachment);
   border: 1px solid var(--elix-border);
   backdrop-filter: var(--elix-glass-blur);
   -webkit-backdrop-filter: var(--elix-glass-blur);
@@ -1308,12 +1297,12 @@ video::-webkit-media-controls-overlay-enclosure,
 }
 
 .elix-panel {
-  background-color: transparent;
+  background-color: var(--elix-bg);
   background-image: var(--elix-panel-fill);
-  background-size: auto, var(--elix-fundal-size);
-  background-position: 0 0, var(--elix-fundal-position);
-  background-repeat: no-repeat, no-repeat;
-  background-attachment: scroll, var(--elix-fundal-attachment);
+  background-size: var(--elix-fundal-size);
+  background-position: var(--elix-fundal-position);
+  background-repeat: no-repeat;
+  background-attachment: var(--elix-fundal-attachment);
   border: 1px solid var(--elix-border);
   backdrop-filter: var(--elix-glass-blur);
   -webkit-backdrop-filter: var(--elix-glass-blur);
@@ -1326,12 +1315,12 @@ video::-webkit-media-controls-overlay-enclosure,
 .bottom-sheet,
 .bottom-sheet-small,
 .bottom-sheet-above-nav {
-  background-color: transparent;
+  background-color: var(--elix-bg);
   background-image: var(--elix-panel-fill);
-  background-size: auto, var(--elix-fundal-size);
-  background-position: 0 0, var(--elix-fundal-position);
-  background-repeat: no-repeat, no-repeat;
-  background-attachment: scroll, var(--elix-fundal-attachment);
+  background-size: var(--elix-fundal-size);
+  background-position: var(--elix-fundal-position);
+  background-repeat: no-repeat;
+  background-attachment: var(--elix-fundal-attachment);
   border: 1px solid var(--elix-border);
   backdrop-filter: var(--elix-glass-blur);
   -webkit-backdrop-filter: var(--elix-glass-blur);
@@ -1342,12 +1331,12 @@ video::-webkit-media-controls-overlay-enclosure,
 
 .elix-glass,
 .elix-glass-panel {
-  background-color: transparent;
+  background-color: var(--elix-bg);
   background-image: var(--elix-panel-fill);
-  background-size: auto, var(--elix-fundal-size);
-  background-position: 0 0, var(--elix-fundal-position);
-  background-repeat: no-repeat, no-repeat;
-  background-attachment: scroll, var(--elix-fundal-attachment);
+  background-size: var(--elix-fundal-size);
+  background-position: var(--elix-fundal-position);
+  background-repeat: no-repeat;
+  background-attachment: var(--elix-fundal-attachment);
   border: 1px solid var(--elix-border);
   backdrop-filter: var(--elix-glass-blur);
   -webkit-backdrop-filter: var(--elix-glass-blur);
@@ -1745,13 +1734,10 @@ svg.lucide.fill-silver-full.royce-icon-gold {
   display: none !important;
 }
 
-/* ═══ Global theme contract — COSMIC FUNDAL + GLASS LAYERS ═══
+/* ═══ Global theme contract — ONE OPAQUE COSMIC FUNDAL ═══
    LEVEL 0 BASE:    #080A0E
-   FUNDAL IMAGE:    /elix-fundal-cosmic.png (shared under all containers)
-   LEVEL 1 PAGE:    rgba(8,10,14,0.65) over fundal
-   LEVEL 2 SURFACE: rgba(18,20,25,0.65) over fundal
-   LEVEL 3 PANEL:   rgba(26,28,33,0.65) over fundal
-   BORDER:          rgba(255,255,255,0.10)
+   FUNDAL IMAGE:    /elix-fundal-cosmic.png (shared by page/surface/panel)
+   NO transparent glass. Chrome does not show video through.
 */
 
 html,
@@ -1786,10 +1772,10 @@ body {
 .page-above-bottom-nav {
   background-color: transparent;
   background-image: var(--elix-page-fill);
-  background-size: auto, var(--elix-fundal-size);
-  background-position: 0 0, var(--elix-fundal-position);
-  background-repeat: no-repeat, no-repeat;
-  background-attachment: scroll, var(--elix-fundal-attachment);
+  background-size: var(--elix-fundal-size);
+  background-position: var(--elix-fundal-position);
+  background-repeat: no-repeat;
+  background-attachment: var(--elix-fundal-attachment);
 }
 
 .page-above-bottom-nav__inner {
@@ -1808,10 +1794,10 @@ body {
 .app-live-column.elix-page-glass {
   background-color: transparent;
   background-image: var(--elix-page-fill);
-  background-size: auto, var(--elix-fundal-size);
-  background-position: 0 0, var(--elix-fundal-position);
-  background-repeat: no-repeat, no-repeat;
-  background-attachment: scroll, var(--elix-fundal-attachment);
+  background-size: var(--elix-fundal-size);
+  background-position: var(--elix-fundal-position);
+  background-repeat: no-repeat;
+  background-attachment: var(--elix-fundal-attachment);
 }
 
 /* LEVEL 3 — nav / elevated panel over fundal */
@@ -1820,10 +1806,10 @@ body {
 #root .feed-column-width.h-\[var\(--topnav-bar-height\)\] {
   background-color: transparent;
   background-image: var(--elix-panel-fill);
-  background-size: auto, var(--elix-fundal-size);
-  background-position: 0 0, var(--elix-fundal-position);
-  background-repeat: no-repeat, no-repeat;
-  background-attachment: scroll, var(--elix-fundal-attachment);
+  background-size: var(--elix-fundal-size);
+  background-position: var(--elix-fundal-position);
+  background-repeat: no-repeat;
+  background-attachment: var(--elix-fundal-attachment);
   border-color: var(--elix-border);
   border-top: 1px solid var(--elix-border);
   backdrop-filter: var(--elix-glass-blur);
@@ -1838,10 +1824,10 @@ body {
 #root .bg-surface {
   background-color: transparent;
   background-image: var(--elix-surface-fill);
-  background-size: auto, var(--elix-fundal-size);
-  background-position: 0 0, var(--elix-fundal-position);
-  background-repeat: no-repeat, no-repeat;
-  background-attachment: scroll, var(--elix-fundal-attachment);
+  background-size: var(--elix-fundal-size);
+  background-position: var(--elix-fundal-position);
+  background-repeat: no-repeat;
+  background-attachment: var(--elix-fundal-attachment);
   border-color: var(--elix-border);
   backdrop-filter: var(--elix-glass-blur);
   -webkit-backdrop-filter: var(--elix-glass-blur);
@@ -1854,10 +1840,10 @@ body {
 #root .bg-white\/5 {
   background-color: transparent;
   background-image: var(--elix-surface-fill);
-  background-size: auto, var(--elix-fundal-size);
-  background-position: 0 0, var(--elix-fundal-position);
-  background-repeat: no-repeat, no-repeat;
-  background-attachment: scroll, var(--elix-fundal-attachment);
+  background-size: var(--elix-fundal-size);
+  background-position: var(--elix-fundal-position);
+  background-repeat: no-repeat;
+  background-attachment: var(--elix-fundal-attachment);
   border-color: var(--elix-border);
   backdrop-filter: var(--elix-glass-blur);
   -webkit-backdrop-filter: var(--elix-glass-blur);
@@ -1867,10 +1853,10 @@ body {
 .elix-battle-slot {
   background-color: transparent;
   background-image: var(--elix-surface-fill);
-  background-size: auto, var(--elix-fundal-size);
-  background-position: 0 0, var(--elix-fundal-position);
-  background-repeat: no-repeat, no-repeat;
-  background-attachment: scroll, var(--elix-fundal-attachment);
+  background-size: var(--elix-fundal-size);
+  background-position: var(--elix-fundal-position);
+  background-repeat: no-repeat;
+  background-attachment: var(--elix-fundal-attachment);
   border: 1px solid var(--elix-border);
 }
 
