@@ -1496,14 +1496,19 @@ svg.lucide.fill-silver-full.royce-icon-gold {
 }
 
 /* ═══ Global theme contract ═══
-   Base = solid warm dark #211B1A. No wallpaper.
+   Base = owner wallpaper (/elix-app-bg.png) over --elix-bg (#211B1A fallback).
+   Wallpaper provides the light that shows through transparent panels.
    Chrome (top/bottom nav) = --elix-glass (darker).
    Page frames / panels / cards / sheets = --elix-surface (lighter).
    Video/LIVE keeps its own content visible: outer shells stay transparent. */
 html,
 body {
   background-color: var(--elix-bg) !important;
-  background-image: none !important;
+  background-image: url('/elix-app-bg.png') !important;
+  background-size: cover !important;
+  background-position: center center !important;
+  background-repeat: no-repeat !important;
+  background-attachment: fixed !important;
 }
 body::before {
   content: none !important;
