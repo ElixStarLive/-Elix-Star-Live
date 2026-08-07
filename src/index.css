@@ -273,9 +273,13 @@
     min-height: 100dvh;
     overflow: hidden;
     position: relative;
-    /* LEVEL 0 — deepest solid under the shell */
-    background-color: var(--elix-bg);
-    background-image: none;
+    /* Always: cosmic fundal + black transparent wash under icons/writing */
+    background-color: transparent;
+    background-image: var(--elix-page-fill);
+    background-size: var(--elix-fundal-size), var(--elix-fundal-size);
+    background-position: var(--elix-fundal-position), var(--elix-fundal-position);
+    background-repeat: no-repeat, no-repeat;
+    background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment);
   }
 
   /* Prevent horizontal scroll on all devices */
@@ -2012,7 +2016,7 @@ body {
   border-bottom: 1px solid var(--elix-border);
 }
 
-/* Locked palette: plain black utilities resolve to theme base / surface glass */
+/* Locked palette: black utilities keep FUNDAL + black transparent wash — never strip fundal */
 #root .bg-black,
 #root .bg-\[\#000\],
 #root .bg-\[\#000000\],
@@ -2021,8 +2025,12 @@ body {
 #root .bg-\[\#0B0B0C\],
 #root .bg-\[\#111111\],
 #root .bg-\[\#121212\] {
-  background-color: var(--elix-bg);
-  background-image: none;
+  background-color: transparent !important;
+  background-image: var(--elix-page-fill) !important;
+  background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
+  background-position: var(--elix-fundal-position), var(--elix-fundal-position) !important;
+  background-repeat: no-repeat, no-repeat !important;
+  background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment) !important;
 }
 
 #root .bg-black\/20,
@@ -2032,7 +2040,12 @@ body {
 #root .bg-black\/40,
 #root .bg-\[\#09090B\]\/40,
 #root .bg-\[\#09090B\]\/50 {
-  background-color: var(--elix-bg-glass);
+  background-color: transparent !important;
+  background-image: var(--elix-page-fill) !important;
+  background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
+  background-position: var(--elix-fundal-position), var(--elix-fundal-position) !important;
+  background-repeat: no-repeat, no-repeat !important;
+  background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment) !important;
 }
 
 #root .bg-black\/45,
@@ -2054,7 +2067,12 @@ body {
 #root .bg-\[\#09090B\]\/95,
 #root [class*="bg-[rgba(0,0,0"],
 #root [class*="bg-[rgba(20,20,20"] {
-  background-color: var(--elix-panel);
+  background-color: transparent !important;
+  background-image: var(--elix-page-fill) !important;
+  background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
+  background-position: var(--elix-fundal-position), var(--elix-fundal-position) !important;
+  background-repeat: no-repeat, no-repeat !important;
+  background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment) !important;
   border-color: var(--elix-border);
 }
 
