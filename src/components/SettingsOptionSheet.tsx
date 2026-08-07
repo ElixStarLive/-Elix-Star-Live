@@ -44,7 +44,7 @@ export default function SettingsOptionSheet({ children, onClose, title }: Settin
     >
       <div className="absolute inset-0 bg-transparent" onClick={onClose} aria-hidden />
       <div
-        className="app-live-column elix-page-glass text-white"
+        className="app-live-column elix-page-glass elix-settings-write text-white"
         style={{
           ...(dragY > 0 || dragging ? { transform: `translateY(${dragY}px)` } : null),
           transition: dragging ? 'none' : 'transform 0.22s ease',
