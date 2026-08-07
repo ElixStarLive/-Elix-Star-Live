@@ -703,7 +703,7 @@ export default function Profile() {
 
   return (
     <div className="page-above-bottom-nav bg-transparent text-white">
-      <div className="page-above-bottom-nav__inner bg-[rgba(20,20,20,0.38)] backdrop-blur-md">
+      <div className="page-above-bottom-nav__inner bg-[rgba(20,20,20,0.38)]">
         {/* Small top header with Share + Exit buttons — same panel height as Inbox */}
         <header className="flex items-center justify-between px-4 pt-page-header pb-2 relative z-10">
           <button
@@ -744,7 +744,7 @@ export default function Profile() {
             onClick={() => setShowAccountMenu(false)}
           >
             <div 
-              className="w-full max-w-[480px] bg-transparent rounded-t-2xl border-t border-white/10 pb-safe"
+              className="w-full max-w-[480px] bg-[rgba(20,20,20,0.38)] rounded-t-2xl border-t border-white/[0.14] pb-safe"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-center px-5 pt-4 pb-3 border-b border-white/10">

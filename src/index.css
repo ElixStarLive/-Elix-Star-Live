@@ -1503,7 +1503,7 @@ body::before {
   color: #FFFFFF;
 }
 
-/* One transparent dark background — pages + nav + sheets */
+/* One transparent dark background — colour only (no blur panel / no layout change) */
 .page-above-bottom-nav__inner,
 .bg-background,
 .bg-surface,
@@ -1519,19 +1519,15 @@ body::before {
 #root .elix-glass,
 #root .elix-glass-panel {
   background-color: rgba(20, 20, 20, 0.38) !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
   border-color: rgba(255, 255, 255, 0.14) !important;
 }
 
-/* Outer frames / video paint stay clear */
+/* Outer frames / video paint stay clear — layout unchanged */
 .page-above-bottom-nav,
 main.feed-column-width,
 .elix-live-room,
 .app-live-column-host {
   background-color: transparent !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
 }
 
 /* Remapped washes → same one transparent dark (no stacking darker recipes) */
