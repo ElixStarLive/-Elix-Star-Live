@@ -122,7 +122,7 @@ export function LiveEngagementOverlay({
                       className="relative overflow-hidden rounded-xl border border-[#2A2D33] bg-white/5 px-3 py-2.5 text-left disabled:opacity-90 active:scale-[0.99]"
                     >
                       <div
-                        className="absolute inset-y-0 left-0 bg-[#6F3FF5]/25"
+                        className="absolute inset-y-0 left-0 bg-[#E6E9EE]/25"
                         style={{ width: hasVoted || ended ? `${pct}%` : "0%" }}
                       />
                       <div className="relative flex justify-between gap-2">

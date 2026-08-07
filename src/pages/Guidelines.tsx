@@ -88,7 +88,7 @@ export default function Guidelines() {
               <button
                 type="button"
                 onClick={goReport}
-                className="w-full py-3 bg-[#6F3FF5] text-white rounded-xl font-bold hover:opacity-90 transition"
+                className="w-full py-3 bg-[#E6E9EE] text-white rounded-xl font-bold hover:opacity-90 transition"
               >
                 Report a Violation
               </button>

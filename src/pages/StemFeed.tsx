@@ -111,7 +111,7 @@ export default function StemFeed() {
 
       {stemLoading && stemVideos.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[1]">
-          <div className="w-8 h-8 border-2 border-[#6F3FF5]/25 border-t-[#6F3FF5] rounded-full animate-spin elix-loader" />
+          <div className="w-8 h-8 border-2 border-[#E6E9EE]/25 border-t-[#E6E9EE] rounded-full animate-spin elix-loader" />
         </div>
       )}
 

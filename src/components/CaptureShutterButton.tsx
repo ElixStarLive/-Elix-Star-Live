@@ -41,7 +41,7 @@ export function CaptureShutterButton({
       aria-hidden
     >
       <span
-        className={recording ? 'rounded-[4px] bg-[#6F3FF5]' : 'rounded-full bg-[#6F3FF5]'}
+        className={recording ? 'rounded-[4px] bg-[#E6E9EE]' : 'rounded-full bg-[#E6E9EE]'}
         style={{ width: inner, height: inner, position: 'relative', zIndex: 1 }}
       />
     </span>

@@ -1009,16 +1009,16 @@ video::-webkit-media-controls-overlay-enclosure,
 
 /*
  * Purple fills only for opt-in accents (Follow / Live / selected tabs / toggles).
- * Other bg-[#6F3FF5] buttons become silver chrome (no purple wash).
+ * Other bg-[#E6E9EE] buttons become silver chrome (no purple wash).
  */
-#root :is(button, a, [role='button'])[class*='bg-[#6F3FF5]']:not([class*='bg-[#6F3FF5]/']):not(.elix-solid-red):not(.elix-solid-accent):not(.elix-accent):not([data-elix-accent='true']),
+#root :is(button, a, [role='button'])[class*='bg-[#E6E9EE]']:not([class*='bg-[#E6E9EE]/']):not(.elix-solid-red):not(.elix-solid-accent):not(.elix-accent):not([data-elix-accent='true']),
 #root :is(button, a, [role='button']).bg-primary:not(.elix-solid-red):not(.elix-solid-accent):not(.elix-accent):not([data-elix-accent='true']) {
   background-color: #1B1E24 !important;
   background-image: none !important;
   border: 1px solid #313845 !important;
   box-shadow: none !important;
 }
-#root :is(button, a, [role='button'])[class*='bg-[#6F3FF5]']:not([class*='bg-[#6F3FF5]/']):not(.elix-solid-red):not(.elix-solid-accent):not(.elix-accent):not([data-elix-accent='true']) :where(span, p, small, strong, b, label),
+#root :is(button, a, [role='button'])[class*='bg-[#E6E9EE]']:not([class*='bg-[#E6E9EE]/']):not(.elix-solid-red):not(.elix-solid-accent):not(.elix-accent):not([data-elix-accent='true']) :where(span, p, small, strong, b, label),
 #root :is(button, a, [role='button']).bg-primary:not(.elix-solid-red):not(.elix-solid-accent):not(.elix-accent):not([data-elix-accent='true']) :where(span, p, small, strong, b, label) {
   background-image: none !important;
   -webkit-background-clip: unset !important;
@@ -1028,7 +1028,7 @@ video::-webkit-media-controls-overlay-enclosure,
 }
 
 /* Soft purple tints on non-accent controls — strip wash */
-#root :is(button, a, [role='button'])[class*='bg-[#6F3FF5]/']:not(.elix-solid-red):not(.elix-solid-accent):not(.elix-accent):not([data-elix-accent='true']) {
+#root :is(button, a, [role='button'])[class*='bg-[#E6E9EE]/']:not(.elix-solid-red):not(.elix-solid-accent):not(.elix-accent):not([data-elix-accent='true']) {
   background-color: rgba(255, 255, 255, 0.06) !important;
   box-shadow: none !important;
 }
@@ -1071,10 +1071,10 @@ video::-webkit-media-controls-overlay-enclosure,
 #root [data-elix-progress] {
   background-color: var(--color-primary) !important;
 }
-#root .animate-spin.border-\[\#6F3FF5\],
+#root .animate-spin.border-\[\#E6E9EE\],
 #root .elix-loader {
   border-color: rgba(111, 63, 245, 0.25);
-  border-top-color: #6F3FF5;
+  border-top-color: #E6E9EE;
 }
 
 /* Do not kill accent borders on Follow / Live / selected tabs */
@@ -1255,7 +1255,7 @@ nav[aria-label="Main navigation"] .royce-glow-disc {
   border-radius: inherit;
   padding: var(--shutter-ring, 4px);
   box-sizing: border-box;
-  background: linear-gradient(135deg, #D8D9DD 0%, #D8D9DD 50%, #6F3FF5 50%, #6F3FF5 100%);
+  background: linear-gradient(135deg, #D8D9DD 0%, #D8D9DD 50%, #E6E9EE 50%, #E6E9EE 100%);
   -webkit-mask:
     linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
@@ -1387,7 +1387,7 @@ nav[aria-label="Main navigation"] button:not([aria-current="page"]) .elix-silver
   border-radius: inherit;
   padding: 2px;
   box-sizing: border-box;
-  background: linear-gradient(135deg, #D8D9DD 0%, #D8D9DD 50%, #6F3FF5 50%, #6F3FF5 100%);
+  background: linear-gradient(135deg, #D8D9DD 0%, #D8D9DD 50%, #E6E9EE 50%, #E6E9EE 100%);
   -webkit-mask:
     linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
@@ -1407,8 +1407,8 @@ nav[aria-label="Main navigation"] button:not([aria-current="page"]) .elix-silver
   background: none;
   -webkit-background-clip: unset;
   background-clip: unset;
-  color: #6F3FF5;
-  -webkit-text-fill-color: #6F3FF5;
+  color: #E6E9EE;
+  -webkit-text-fill-color: #E6E9EE;
   pointer-events: none;
   user-select: none;
 }

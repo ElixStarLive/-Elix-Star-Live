@@ -437,7 +437,7 @@ export default function ElixCameraLayout({
           )}
         </button>
 
-        <div className="w-8 h-[1px] bg-[#6F3FF5]/25 rounded-full"></div>
+        <div className="w-8 h-[1px] bg-[#E6E9EE]/25 rounded-full"></div>
         <button 
           onClick={onTimerCycle}
           className="w-8 h-8 camera-rail-disc flex-shrink-0 flex items-center justify-center hover:scale-110 active:scale-90 transition-transform relative self-center"
@@ -508,7 +508,7 @@ export default function ElixCameraLayout({
         </button>
 
         {/* ── AI FEATURES SECTION ── */}
-        <div className="w-8 h-[1.5px] bg-[#6F3FF5]/30 rounded-full my-0.5"></div>
+        <div className="w-8 h-[1.5px] bg-[#E6E9EE]/30 rounded-full my-0.5"></div>
 
         {/* Zoom In */}
         {onZoomIn && (
@@ -611,7 +611,7 @@ export default function ElixCameraLayout({
                 onClick={() => setEnhanceEnabled(prev => !prev)}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all ${
                   enhanceEnabled
-                    ? 'bg-[#6F3FF5] text-white elix-accent'
+                    ? 'bg-[#E6E9EE] text-white elix-accent'
                     : 'bg-white/10 text-white/60 border border-white/10'
                 }`}
               >
@@ -660,7 +660,7 @@ export default function ElixCameraLayout({
                     onClick={() => onSpeedChange?.(opt.value)}
                     className={`flex-1 py-1.5 rounded-full text-xs font-bold transition-all ${
                       currentSpeed === opt.value
-                        ? 'bg-[#6F3FF5] text-white elix-accent shadow-lg shadow-[#FFFFFF]/30'
+                        ? 'bg-[#E6E9EE] text-white elix-accent shadow-lg shadow-[#FFFFFF]/30'
                         : 'bg-white/10 text-white/60 border border-white/10'
                     }`}
                   >
@@ -791,7 +791,7 @@ export default function ElixCameraLayout({
               </button>
               <button
                 onClick={() => setShowTextInput(false)}
-                className="flex-1 py-2 rounded-xl bg-[#6F3FF5] text-white elix-accent text-xs font-bold"
+                className="flex-1 py-2 rounded-xl bg-[#E6E9EE] text-white elix-accent text-xs font-bold"
               >
                 Done
               </button>

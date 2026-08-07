@@ -1267,7 +1267,7 @@ export default function LiveHostScreen() {
                         <div className="absolute inset-0 flex">
                           <div
                             className="h-full transition-[width] duration-[1200ms] ease-out motion-reduce:transition-none"
-                            style={{ width: `${leftPct}%`, backgroundImage: 'linear-gradient(90deg, #6F3FF5, #FF1744, #C41E3A)' }}
+                            style={{ width: `${leftPct}%`, backgroundImage: 'linear-gradient(90deg, #E6E9EE, #FF1744, #C41E3A)' }}
                           />
                           <div className="h-full flex-1 min-w-0" style={{ backgroundImage: 'linear-gradient(90deg, #1E90FF, #4169E1, #0047AB)' }} />
                         </div>
@@ -1312,7 +1312,7 @@ export default function LiveHostScreen() {
                         <div className="relative w-5 h-5 flex items-center justify-center flex-shrink-0">
                           <svg viewBox="0 0 40 44" className="absolute inset-0 w-full h-full drop-shadow-md">
                             <path d="M20 2 L36 10 L36 26 Q36 38 20 42 Q4 38 4 26 L4 10 Z" fill="url(#vsGrad2)" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5"/>
-                            <defs><linearGradient id="vsGrad2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#6F3FF5"/><stop offset="50%" stopColor="#5B2ED6"/><stop offset="100%" stopColor="#1E90FF"/></linearGradient></defs>
+                            <defs><linearGradient id="vsGrad2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#E6E9EE"/><stop offset="50%" stopColor="#E6E9EE"/><stop offset="100%" stopColor="#1E90FF"/></linearGradient></defs>
                           </svg>
                           <span className="relative z-10 text-white text-[7px] font-black italic drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">VS</span>
                         </div>
@@ -1465,7 +1465,7 @@ export default function LiveHostScreen() {
                       ) : battleSlots[0].status === 'invited' ? (
                         <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)] border border-[#2A2D33]">
                           <img src={battleSlots[0].avatar} alt={battleSlots[0].name} className="w-12 h-12 rounded-full object-cover object-center opacity-60" />
-                          <div className="w-5 h-5 border-2 border-[#6F3FF5]/25 border-t-[#6F3FF5] rounded-full animate-spin elix-loader" />
+                          <div className="w-5 h-5 border-2 border-[#E6E9EE]/25 border-t-[#E6E9EE] rounded-full animate-spin elix-loader" />
                           <span className="text-white text-[10px] font-bold">Waiting...</span>
                         </div>
                       ) : (
@@ -1577,7 +1577,7 @@ export default function LiveHostScreen() {
                         ) : battleSlots[1].status === 'invited' ? (
                           <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)] border border-[#2A2D33]">
                             <img src={battleSlots[1].avatar} alt={battleSlots[1].name} className="w-12 h-12 rounded-full object-cover object-center opacity-60" />
-                            <div className="w-5 h-5 border-2 border-[#6F3FF5]/25 border-t-[#6F3FF5] rounded-full animate-spin elix-loader" />
+                            <div className="w-5 h-5 border-2 border-[#E6E9EE]/25 border-t-[#E6E9EE] rounded-full animate-spin elix-loader" />
                             <span className="text-white text-[10px] font-bold">Waiting...</span>
                           </div>
                         ) : (
@@ -1659,7 +1659,7 @@ export default function LiveHostScreen() {
                         ) : battleSlots[2].status === 'invited' ? (
                           <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)] border border-[#2A2D33]">
                             <img src={battleSlots[2].avatar} alt={battleSlots[2].name} className="w-12 h-12 rounded-full object-cover object-center opacity-60" />
-                            <div className="w-5 h-5 border-2 border-[#6F3FF5]/25 border-t-[#6F3FF5] rounded-full animate-spin elix-loader" />
+                            <div className="w-5 h-5 border-2 border-[#E6E9EE]/25 border-t-[#E6E9EE] rounded-full animate-spin elix-loader" />
                             <span className="text-white text-[10px] font-bold">Waiting...</span>
                           </div>
                         ) : (
@@ -1742,7 +1742,7 @@ export default function LiveHostScreen() {
                       />
                     </div>
                     {isMvp && (
-                      <span className="absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#6F3FF5] text-white text-[6px] font-black leading-none tracking-wide">
+                      <span className="absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#E6E9EE] text-white text-[6px] font-black leading-none tracking-wide">
                         MVP
                       </span>
                     )}
@@ -1780,7 +1780,7 @@ export default function LiveHostScreen() {
                       />
                     </div>
                     {isMvp && (
-                      <span className="absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#6F3FF5] text-white text-[6px] font-black leading-none tracking-wide">
+                      <span className="absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#E6E9EE] text-white text-[6px] font-black leading-none tracking-wide">
                         MVP
                       </span>
                     )}
@@ -1963,7 +1963,7 @@ export default function LiveHostScreen() {
                                   />
                                 </div>
                                 {isMvp && (
-                                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#6F3FF5] text-white text-[6px] font-black leading-none tracking-wide">
+                                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#E6E9EE] text-white text-[6px] font-black leading-none tracking-wide">
                                     MVP
                                   </span>
                                 )}
@@ -2129,7 +2129,7 @@ export default function LiveHostScreen() {
                 type="button"
                 onClick={onComboButtonClick}
                 disabled={comboCount >= GIFT_COMBO_MAX}
-                className="w-[72px] h-[72px] rounded-full bg-gradient-to-b from-[#8B5CFF] to-[#6F3FF5] flex flex-col items-center justify-center active:scale-90 transition-transform shadow-[0_0_18px_rgba(111,63,245,0.55)] border-2 border-white/30 disabled:opacity-50"
+                className="w-[72px] h-[72px] rounded-full bg-gradient-to-b from-[#FFFFFF] to-[#E6E9EE] flex flex-col items-center justify-center active:scale-90 transition-transform shadow-[0_0_18px_rgba(111,63,245,0.55)] border-2 border-white/30 disabled:opacity-50"
               >
                 {typeof lastSentGift.icon === 'string' && (lastSentGift.icon.startsWith('http') || lastSentGift.icon.startsWith('/')) ? (
                   <img src={lastSentGift.icon} alt="" className="w-7 h-7 object-contain mb-0.5" draggable={false} />
@@ -2462,7 +2462,7 @@ export default function LiveHostScreen() {
                 <button
                   type="button"
                   onClick={startMatchFromFindCreators}
-                  className="w-full py-2.5 bg-[#6F3FF5] text-white text-xs font-bold rounded-lg shadow-lg active:scale-95 transition-all flex items-center justify-center gap-1.5"
+                  className="w-full py-2.5 bg-[#E6E9EE] text-white text-xs font-bold rounded-lg shadow-lg active:scale-95 transition-all flex items-center justify-center gap-1.5"
                 >
                   <Sword size={14} />
                   <span>Start Match</span>
@@ -2548,7 +2548,7 @@ export default function LiveHostScreen() {
                     (miniProfileFollowsThem === true ||
                       (miniProfileFollowsThem === undefined && followingUsers.includes(miniProfile.id)))
                       ? 'bg-white/10 text-white border border-[#2A2D33] font-bold'
-                      : 'bg-[#6F3FF5] text-white font-black hover:bg-[#6F3FF5]/90 elix-solid-accent'
+                      : 'bg-[#E6E9EE] text-white font-black hover:bg-[#E6E9EE]/90 elix-solid-accent'
                   }`}
                 >
                   {miniProfile?.id &&
@@ -2653,7 +2653,7 @@ export default function LiveHostScreen() {
                                 />
                               </div>
                               {isMvp ? (
-                                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#6F3FF5] text-white text-[6px] font-black leading-none tracking-wide">
+                                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#E6E9EE] text-white text-[6px] font-black leading-none tracking-wide">
                                   MVP
                                 </span>
                               ) : null}
@@ -2891,7 +2891,7 @@ export default function LiveHostScreen() {
                      <p className="text-white/30 text-[10px] text-center py-2">No membership hearts yet</p>
                    )}
                    {heartMembers.map((m, i) => (
-                     <div key={m.user_id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-[#6F3FF5]/5 border border-[#D8D9DD]/15">
+                     <div key={m.user_id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-[#E6E9EE]/5 border border-[#D8D9DD]/15">
                        <div className="w-5 text-center font-bold text-[10px] text-[#F5F5F7]/60">{i + 1}</div>
                        <img src={m.avatar_url || '/royce/elix-mark.svg'} alt="" className="w-7 h-7 rounded-full object-cover border border-[#D8D9DD]/20" />
                        <div className="flex-1 min-w-0">
@@ -2919,7 +2919,7 @@ export default function LiveHostScreen() {
                      <p className="text-white/30 text-[10px] text-center py-2">No gifts yet</p>
                    )}
                    {topGifters.map((g, i) => (
-                     <div key={g.user_id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-[#6F3FF5]/5 border border-[#D8D9DD]/15">
+                     <div key={g.user_id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-[#E6E9EE]/5 border border-[#D8D9DD]/15">
                        <div className="w-5 text-center font-bold text-[10px] text-[#F5F5F7]/60">{i + 1}</div>
                        <img src={g.avatar_url || '/royce/elix-mark.svg'} alt="" className="w-7 h-7 rounded-full object-cover border border-[#D8D9DD]/20" />
                        <div className="flex-1 min-w-0">
@@ -2966,7 +2966,7 @@ export default function LiveHostScreen() {
             <div className="flex-1 overflow-y-auto px-4 pb-4 no-scrollbar">
               <div className="flex flex-col gap-3">
                 {/* Subscription Banner */}
-                <div className="bg-gradient-to-r from-[#D8D9DD]/10 to-[#6F3FF5]/5 rounded-xl p-3 border border-[#D8D9DD]/20 relative overflow-hidden">
+                <div className="bg-gradient-to-r from-[#D8D9DD]/10 to-[#E6E9EE]/5 rounded-xl p-3 border border-[#D8D9DD]/20 relative overflow-hidden">
                   <div className="relative z-10">
                     <div className="flex items-center justify-between mb-2">
                       <div>
@@ -3303,13 +3303,13 @@ export default function LiveHostScreen() {
               return acc;
             }, {}),
           ).map((g) => (
-            <span key={g.key} className="relative flex items-center justify-center w-11 h-11 rounded-full bg-[rgba(10,10,10,0.72)] border border-[#6F3FF5] shadow-2xl text-[#6F3FF5] animate-in zoom-in-50 duration-200">
+            <span key={g.key} className="relative flex items-center justify-center w-11 h-11 rounded-full bg-[rgba(10,10,10,0.72)] border border-[#E6E9EE] shadow-2xl text-[#E6E9EE] animate-in zoom-in-50 duration-200">
               <GloveIcon className="w-7 h-7" />
               {g.count > 1 && (
-                <span className="absolute -top-1 -right-1 text-[9px] font-black leading-none px-1 rounded-full bg-[#6F3FF5] text-white border border-black/40">{g.count}</span>
+                <span className="absolute -top-1 -right-1 text-[9px] font-black leading-none px-1 rounded-full bg-[#E6E9EE] text-white border border-black/40">{g.count}</span>
               )}
               {g.multiplier > 0 && (
-                <span className="absolute -bottom-1 -right-1 text-[9px] font-black leading-none px-1 rounded-full bg-black text-[#6F3FF5] border border-[#6F3FF5]/60">x{g.multiplier}</span>
+                <span className="absolute -bottom-1 -right-1 text-[9px] font-black leading-none px-1 rounded-full bg-black text-[#E6E9EE] border border-[#E6E9EE]/60">x{g.multiplier}</span>
               )}
             </span>
           ))}
@@ -3472,7 +3472,7 @@ export default function LiveHostScreen() {
             <button
               type="button"
               onClick={() => { setShowModerationWarning(false); setModerationWarningMessage(''); }}
-              className="w-full py-2.5 rounded-lg bg-[#6F3FF5] text-white font-semibold"
+              className="w-full py-2.5 rounded-lg bg-[#E6E9EE] text-white font-semibold"
             >
               OK
             </button>

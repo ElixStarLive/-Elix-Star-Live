@@ -238,7 +238,7 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
                 }}
                 className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border pointer-events-auto ${
                   active
-                    ? 'bg-[#6F3FF5] border-[#D8D9DD] text-white elix-accent'
+                    ? 'bg-[#E6E9EE] border-[#D8D9DD] text-white elix-accent'
                     : 'border-[#D8D9DD]/35 text-white'
                 }`}
               >
@@ -263,7 +263,7 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
               <p className="text-white text-sm font-medium">Original Sound</p>
               <p className="text-white/50 text-xs">Use mic audio from your clip</p>
             </div>
-            <span className="min-h-[32px] min-w-[48px] px-3 py-1.5 rounded-full bg-[#6F3FF5] text-white elix-accent text-[10px] font-bold flex items-center justify-center">
+            <span className="min-h-[32px] min-w-[48px] px-3 py-1.5 rounded-full bg-[#E6E9EE] text-white elix-accent text-[10px] font-bold flex items-center justify-center">
               Use
             </span>
           </button>
@@ -325,7 +325,7 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
               <button
                 type="button"
                 onClick={(e) => pickTrack(track, e)}
-                className="min-h-[32px] min-w-[48px] px-3 py-1.5 rounded-full bg-[#6F3FF5] text-white elix-accent text-[10px] font-bold pointer-events-auto"
+                className="min-h-[32px] min-w-[48px] px-3 py-1.5 rounded-full bg-[#E6E9EE] text-white elix-accent text-[10px] font-bold pointer-events-auto"
               >
                 Use
               </button>

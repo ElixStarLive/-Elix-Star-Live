@@ -104,7 +104,7 @@ export default function EngagementMissions() {
               </div>
               <div className="h-1.5 rounded-full bg-white/10 overflow-hidden mb-1.5">
                 <div
-                  className="h-full rounded-full bg-[#6F3FF5]"
+                  className="h-full rounded-full bg-[#E6E9EE]"
                   style={{ width: `${pct}%` }}
                 />
               </div>

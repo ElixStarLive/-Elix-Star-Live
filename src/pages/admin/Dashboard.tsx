@@ -151,7 +151,7 @@ function ActionButton({ href, label, onClick }: { href: string; label: string; o
     <button
       type="button"
       onClick={() => onClick?.(href)}
-      className="px-4 py-3 bg-[#6F3FF5] text-white rounded-lg font-semibold hover:bg-[#6F3FF5]/90 transition text-center"
+      className="px-4 py-3 bg-[#E6E9EE] text-white rounded-lg font-semibold hover:bg-[#E6E9EE]/90 transition text-center"
     >
       {label}
     </button>

@@ -306,7 +306,7 @@ export default function HowItWorks() {
               <button
                 type="button"
                 onClick={goEngagement}
-                className="w-full py-3 bg-[#6F3FF5] text-white rounded-xl font-bold active:opacity-90 transition"
+                className="w-full py-3 bg-[#E6E9EE] text-white rounded-xl font-bold active:opacity-90 transition"
               >
                 Open Engagement Hub
               </button>

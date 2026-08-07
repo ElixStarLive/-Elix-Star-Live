@@ -838,7 +838,7 @@ export default function Inbox() {
                                     <p className="font-semibold text-sm text-gold-bright truncate flex items-center gap-1.5">
                                       {conv.otherUser?.display_name || conv.otherUser?.username || 'User'}
                                       {conv.hasUnread ? (
-                                        <span className="inline-block w-2 h-2 rounded-full bg-[#6F3FF5] flex-shrink-0" title="Unread" aria-label="Unread messages" />
+                                        <span className="inline-block w-2 h-2 rounded-full bg-[#E6E9EE] flex-shrink-0" title="Unread" aria-label="Unread messages" />
                                       ) : null}
                                     </p>
                                     <p className="text-gold-bright/60 text-xs truncate">{conv.lastMessage || 'No messages yet'}</p>

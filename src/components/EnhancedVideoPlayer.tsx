@@ -996,7 +996,7 @@ export default function EnhancedVideoPlayer({
             <button
               type="button"
               onClick={retryVideoPlayback}
-              className="px-4 py-1.5 bg-[#6F3FF5] text-white rounded-lg text-xs font-medium elix-solid-accent"
+              className="px-4 py-1.5 bg-[#E6E9EE] text-white rounded-lg text-xs font-medium elix-solid-accent"
             >
               Tap to retry
             </button>

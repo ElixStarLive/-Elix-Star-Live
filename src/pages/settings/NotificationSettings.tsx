@@ -69,7 +69,7 @@ function ToggleRow({
       </span>
       <span
         className={`text-xs font-bold px-2 py-1 rounded-full ${
-          value ? "bg-[#6F3FF5] text-white elix-accent" : "bg-white/10 text-white/50"
+          value ? "bg-[#E6E9EE] text-white elix-accent" : "bg-white/10 text-white/50"
         }`}
       >
         {value ? "On" : "Off"}

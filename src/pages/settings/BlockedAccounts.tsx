@@ -124,7 +124,7 @@ export default function BlockedAccounts() {
                 </div>
                 <button
                   onClick={() => unblockUser(block.blocked_user_id)}
-                  className="px-4 py-2 bg-[#6F3FF5] text-white rounded-full text-sm font-semibold hover:brightness-110 transition shrink-0"
+                  className="px-4 py-2 bg-[#E6E9EE] text-white rounded-full text-sm font-semibold hover:brightness-110 transition shrink-0"
                 >
                   Unblock
                 </button>

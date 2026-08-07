@@ -47,7 +47,7 @@ export default function ForgotPassword() {
           </p>
           <Link
             to="/login"
-            className="inline-block w-full bg-[#6F3FF5] text-white font-bold rounded-xl py-3 text-sm text-center"
+            className="inline-block w-full bg-[#E6E9EE] text-white font-bold rounded-xl py-3 text-sm text-center"
           >
             Back to Login
           </Link>
@@ -95,7 +95,7 @@ export default function ForgotPassword() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full bg-[#6F3FF5] text-white font-bold rounded-xl py-3 text-sm disabled:opacity-60"
+            className="w-full bg-[#E6E9EE] text-white font-bold rounded-xl py-3 text-sm disabled:opacity-60"
           >
             {isSubmitting ? 'Sending...' : 'Send Reset Link'}
           </button>

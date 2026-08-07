@@ -85,7 +85,7 @@ export default function MediaEditorPanel({
                 key={p.id}
                 type="button"
                 onClick={() => onSelectFilter(p)}
-                className={`shrink-0 px-3 py-2 rounded-xl text-xs font-semibold border ${activeFilterId === p.id ? 'bg-[#6F3FF5] text-white elix-accent border-[#D8D9DD]' : 'bg-white/5 text-white/80 border-white/10'}`}
+                className={`shrink-0 px-3 py-2 rounded-xl text-xs font-semibold border ${activeFilterId === p.id ? 'bg-[#E6E9EE] text-white elix-accent border-[#D8D9DD]' : 'bg-white/5 text-white/80 border-white/10'}`}
               >
                 {p.label}
               </button>
@@ -100,7 +100,7 @@ export default function MediaEditorPanel({
                 key={p.id}
                 type="button"
                 onClick={() => onSelectEffect(p)}
-                className={`shrink-0 px-3 py-2 rounded-xl text-xs font-semibold border ${activeEffectId === p.id ? 'bg-[#6F3FF5] text-white elix-accent border-[#D8D9DD]' : 'bg-white/5 text-white/80 border-white/10'}`}
+                className={`shrink-0 px-3 py-2 rounded-xl text-xs font-semibold border ${activeEffectId === p.id ? 'bg-[#E6E9EE] text-white elix-accent border-[#D8D9DD]' : 'bg-white/5 text-white/80 border-white/10'}`}
               >
                 {p.label}
               </button>
@@ -133,7 +133,7 @@ export default function MediaEditorPanel({
               <button
                 type="button"
                 onClick={submitText}
-                className="ml-auto px-4 py-2 rounded-full bg-[#6F3FF5] text-white elix-accent text-xs font-bold active:scale-95 transition-transform"
+                className="ml-auto px-4 py-2 rounded-full bg-[#E6E9EE] text-white elix-accent text-xs font-bold active:scale-95 transition-transform"
               >
                 Add
               </button>

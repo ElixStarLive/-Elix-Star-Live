@@ -1,7 +1,7 @@
 import React from 'react';
 
 /** Live ring + LIVE badge — Royal Violet accent. */
-const LIVE_RING_COLOR = '#6F3FF5';
+const LIVE_RING_COLOR = '#E6E9EE';
 
 /**
  * User avatar circle — silver chrome; Live adds violet ring + LIVE badge.

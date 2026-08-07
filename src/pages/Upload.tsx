@@ -785,7 +785,7 @@ export default function Upload() {
                       onClick={setDuetSplit}
                       className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
                         duetLayout === 'split'
-                          ? 'bg-[#6F3FF5] text-white elix-accent border-[#D8D9DD]'
+                          ? 'bg-[#E6E9EE] text-white elix-accent border-[#D8D9DD]'
                           : 'bg-black/55 text-[#F5F5F7] border-[#D8D9DD]/70'
                       }`}
                     >
@@ -796,7 +796,7 @@ export default function Upload() {
                       onClick={setDuetOverlay}
                       className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
                         duetLayout === 'overlay'
-                          ? 'bg-[#6F3FF5] text-white elix-accent border-[#D8D9DD]'
+                          ? 'bg-[#E6E9EE] text-white elix-accent border-[#D8D9DD]'
                           : 'bg-black/55 text-[#F5F5F7] border-[#D8D9DD]/70'
                       }`}
                     >
@@ -947,7 +947,7 @@ export default function Upload() {
                            <span>{postProgress}%</span>
                          </div>
                          <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
-                           <div className="h-full bg-[#6F3FF5] elix-progress-fill" style={{ width: `${postProgress}%` }} />
+                           <div className="h-full bg-[#E6E9EE] elix-progress-fill" style={{ width: `${postProgress}%` }} />
                          </div>
                        </div>
                      ) : null}
@@ -1028,7 +1028,7 @@ export default function Upload() {
                      <button
                        type="button"
                        className={`w-8 h-4 rounded-full transition-colors shrink-0 ${
-                         postWithoutAudio ? 'bg-[#6F3FF5]' : 'bg-white/20'
+                         postWithoutAudio ? 'bg-[#E6E9EE]' : 'bg-white/20'
                        }`}
                        onClick={() => {
                          const next = !postWithoutAudio;
@@ -1087,7 +1087,7 @@ export default function Upload() {
                          <span>{postProgress}%</span>
                        </div>
                        <div className="h-1 bg-white/20 rounded-full overflow-hidden">
-                         <div className="h-full bg-[#6F3FF5] elix-progress-fill" style={{ width: `${postProgress}%` }} />
+                         <div className="h-full bg-[#E6E9EE] elix-progress-fill" style={{ width: `${postProgress}%` }} />
                        </div>
                      </div>
                    ) : null}
@@ -1281,7 +1281,7 @@ export default function Upload() {
                       // Increment retry counter to force useEffect re-run
                       setCameraRetry(prev => prev + 1);
                     }}
-                    className="px-5 py-2.5 rounded-full bg-[#6F3FF5] text-white elix-accent text-sm font-semibold active:scale-95 transition-transform pointer-events-auto"
+                    className="px-5 py-2.5 rounded-full bg-[#E6E9EE] text-white elix-accent text-sm font-semibold active:scale-95 transition-transform pointer-events-auto"
                   >
                     Try Again
                   </button>
@@ -1300,7 +1300,7 @@ export default function Upload() {
                         onClick={setDuetSplit}
                         className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
                           duetLayout === 'split'
-                            ? 'bg-[#6F3FF5] text-white elix-accent border-[#D8D9DD]'
+                            ? 'bg-[#E6E9EE] text-white elix-accent border-[#D8D9DD]'
                             : 'bg-black/55 text-[#F5F5F7] border-[#D8D9DD]/70'
                         }`}
                         title="Side by side"
@@ -1312,7 +1312,7 @@ export default function Upload() {
                         onClick={setDuetOverlay}
                         className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
                           duetLayout === 'overlay'
-                            ? 'bg-[#6F3FF5] text-white elix-accent border-[#D8D9DD]'
+                            ? 'bg-[#E6E9EE] text-white elix-accent border-[#D8D9DD]'
                             : 'bg-black/55 text-[#F5F5F7] border-[#D8D9DD]/70'
                         }`}
                         title="Your face on top of full video"

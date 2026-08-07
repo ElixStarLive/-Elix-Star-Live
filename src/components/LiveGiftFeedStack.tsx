@@ -39,7 +39,7 @@ const BADGE: Record<
 > = {
   top_gifter: {
     label: 'Top Gifter',
-    chip: 'bg-[#6F3FF5] text-white',
+    chip: 'bg-[#E6E9EE] text-white',
     glow: 'border-[#D8D9DD]/50 shadow-[0_0_10px_rgba(229, 229, 231,0.45)]',
   },
   vip: {

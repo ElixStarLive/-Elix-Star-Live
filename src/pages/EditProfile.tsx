@@ -190,7 +190,7 @@ export default function EditProfile() {
         <button
           onClick={handleSave}
           disabled={loading}
-          className="px-4 py-1.5 rounded-full bg-[#6F3FF5] text-white text-sm font-semibold disabled:opacity-50 hover:brightness-110 transition"
+          className="px-4 py-1.5 rounded-full bg-[#E6E9EE] text-white text-sm font-semibold disabled:opacity-50 hover:brightness-110 transition"
         >
           {loading ? 'Saving...' : 'Save'}
         </button>
@@ -207,7 +207,7 @@ export default function EditProfile() {
             </div>
             <label
               htmlFor="avatar-upload"
-              className="absolute bottom-0 right-0 w-8 h-8 bg-[#6F3FF5] rounded-full flex items-center justify-center cursor-pointer hover:scale-110 transition shadow-lg"
+              className="absolute bottom-0 right-0 w-8 h-8 bg-[#E6E9EE] rounded-full flex items-center justify-center cursor-pointer hover:scale-110 transition shadow-lg"
             >
               <Camera className="w-4 h-4 text-black" />
             </label>

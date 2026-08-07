@@ -154,7 +154,7 @@ export default function AdminEconomy() {
                     <td className="px-4 py-3">
                       <span
                         className={`px-2 py-1 rounded text-xs ${
-                          gift.is_active ? 'bg-[#6F3FF5] elix-accent' : 'bg-[rgba(255,255,255,0.06)]'
+                          gift.is_active ? 'bg-[#E6E9EE] elix-accent' : 'bg-[rgba(255,255,255,0.06)]'
                         }`}
                       >
                         {gift.is_active ? 'Active' : 'Inactive'}
@@ -170,7 +170,7 @@ export default function AdminEconomy() {
                             updateGiftPrice(gift.id, parsed);
                           }
                         }}
-                        className="px-3 py-1 bg-[#6F3FF5] text-white elix-accent rounded hover:bg-[#6F3FF5]/90 text-sm"
+                        className="px-3 py-1 bg-[#E6E9EE] text-white elix-accent rounded hover:bg-[#E6E9EE]/90 text-sm"
                       >
                         Edit Price
                       </button>
@@ -207,7 +207,7 @@ export default function AdminEconomy() {
                     <td className="px-4 py-3">
                       <span
                         className={`px-2 py-1 rounded text-xs ${
-                          booster.is_active ? 'bg-[#6F3FF5] elix-accent' : 'bg-[rgba(255,255,255,0.06)]'
+                          booster.is_active ? 'bg-[#E6E9EE] elix-accent' : 'bg-[rgba(255,255,255,0.06)]'
                         }`}
                       >
                         {booster.is_active ? 'Active' : 'Inactive'}

@@ -695,7 +695,7 @@ function UserSearchResult({ user }: { user: User }) {
       </div>
       <span
         onClick={handleFollow}
-        className={`px-3.5 py-1.5 rounded-lg font-bold text-[11px] ${followed ? 'bg-white/10 text-white/60' : 'bg-[#6F3FF5] text-white elix-solid-accent'}`}
+        className={`px-3.5 py-1.5 rounded-lg font-bold text-[11px] ${followed ? 'bg-white/10 text-white/60' : 'bg-[#E6E9EE] text-white elix-solid-accent'}`}
       >
         {followed ? 'Following' : 'Follow'}
       </span>
