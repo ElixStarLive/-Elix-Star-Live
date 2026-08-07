@@ -1144,15 +1144,17 @@ video::-webkit-media-controls-overlay-enclosure,
 
 /* One app-wide glass tint — used by every panel, sheet, top nav, bottom nav, page frame */
 .elix-glass {
-  background: rgba(12, 10, 12, 0.58) !important;
-  border: 1px solid #000000 !important;
+  background: rgba(12, 10, 12, 0.72) !important;
+  border: none !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   box-shadow: none !important;
 }
 .elix-glass-panel {
-  background: rgba(12, 10, 12, 0.58) !important;
-  border: 1px solid #000000 !important;
+  background: rgba(12, 10, 12, 0.72) !important;
+  border: none !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   box-shadow: none !important;
@@ -1509,7 +1511,8 @@ body::before {
 #root .bottom-sheet,
 #root .bottom-sheet-small,
 #root .bottom-sheet-above-nav {
-  background-color: rgba(12, 10, 12, 0.58) !important;
+  background-color: rgba(12, 10, 12, 0.72) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
   backdrop-filter: blur(12px) !important;
   -webkit-backdrop-filter: blur(12px) !important;
 }
