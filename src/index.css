@@ -1765,6 +1765,16 @@ svg.lucide,
   filter: none !important;
 }
 
+/* Login / Sign up — field icons line only (mail ≠ lock disc mess) */
+#root .elix-auth-form svg.lucide {
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
 /* Wrapper already draws the disc — icon stays sharp inside, no double circle */
 .royce-glow-disc svg.lucide,
 .royce-glow-disc .royce-icon-gold,
