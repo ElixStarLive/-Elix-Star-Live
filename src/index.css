@@ -39,41 +39,44 @@
   :root {
     /* ═══════════════════════════════════════════════════════════════════
        ELIX GLOBAL THEME — one source of truth (2026-08-07)
-       Warm dark luxury. No strong accent (purple/red/gold/pink/blue/green).
+       Near-black neutral charcoal + champagne accent.
        Every surface, page, chrome and LIVE room references these tokens.
        ═══════════════════════════════════════════════════════════════════ */
 
     /* Named theme tokens (semantic) */
-    --elix-bg: #211B1A;                       /* underlying app background */
-    --elix-surface: rgba(34, 28, 27, 0.58);   /* page frames / panels / cards / sheets */
-    --elix-glass: rgba(22, 20, 22, 0.68);     /* top nav + bottom nav chrome */
-    --elix-border: rgba(255, 255, 255, 0.10);
-    --elix-text-primary: #FFFFFF;
-    --elix-text-secondary: #D0D2D6;
-    --elix-icon-primary: #E6E9EE;
-    --elix-icon-inactive: #A8ACB3;
+    --elix-bg: #0B0B0C;                        /* main app background (near-black neutral) */
+    --elix-raised: #121212;                    /* raised surface / cards (solid) */
+    --elix-surface: rgba(18, 18, 18, 0.72);    /* transparent panels / page frames / sheets */
+    --elix-glass: rgba(11, 11, 12, 0.82);      /* navigation + header chrome */
+    --elix-border: rgba(255, 255, 255, 0.12);
+    --elix-text-primary: #F5F5F3;              /* warm white writing */
+    --elix-text-secondary: #AAA9A6;
+    --elix-icon-primary: #F5F5F3;
+    --elix-icon-inactive: #B5B5B2;
     --elix-icon-active: #FFFFFF;
+    --elix-accent: #D8BE91;                    /* champagne — selected icons / accent */
+    --elix-accent-light: #E9D8B8;
     --elix-glass-blur: blur(12px);
 
     /* Legacy token compatibility — all wired to the theme above. */
     --color-primary: var(--elix-icon-primary);
     --color-secondary: var(--elix-text-secondary);
-    --color-gold: var(--elix-icon-primary);
-    --color-gold-bright: var(--elix-icon-active);
-    --color-gold-light: var(--elix-icon-primary);
-    --color-gold-dark: var(--elix-icon-inactive);
-    --color-gold-premium: var(--elix-icon-primary);
+    --color-gold: var(--elix-accent);
+    --color-gold-bright: var(--elix-accent-light);
+    --color-gold-light: var(--elix-accent-light);
+    --color-gold-dark: var(--elix-accent);
+    --color-gold-premium: var(--elix-accent-light);
     --color-rose: var(--elix-icon-primary);
-    --color-purple-bright: var(--elix-icon-primary);
-    --color-purple: var(--elix-icon-primary);
-    --color-purple-hover: var(--elix-icon-active);
-    --color-purple-pressed: var(--elix-icon-inactive);
-    --color-coin: var(--elix-icon-primary);
+    --color-purple-bright: var(--elix-accent-light);
+    --color-purple: var(--elix-accent);
+    --color-purple-hover: var(--elix-accent-light);
+    --color-purple-pressed: var(--elix-accent);
+    --color-coin: var(--elix-accent);
     --color-hover-red: var(--elix-icon-active);
     --color-deep-red: var(--elix-icon-primary);
     --color-dark-red: var(--elix-icon-inactive);
-    --color-hover-purple: var(--elix-icon-active);
-    --color-pressed-purple: var(--elix-icon-inactive);
+    --color-hover-purple: var(--elix-accent-light);
+    --color-pressed-purple: var(--elix-accent);
     --color-live: var(--elix-icon-primary);
     --color-icon: var(--elix-icon-primary);
     --color-icon-active: var(--elix-icon-active);
@@ -82,9 +85,9 @@
     --color-text: var(--elix-text-primary);
     --color-text-secondary: var(--elix-text-secondary);
     --color-background: var(--elix-bg);
-    --color-surface: var(--elix-bg);
+    --color-surface: var(--elix-raised);
     --color-card: var(--elix-surface);
-    --color-card-elevated: var(--elix-surface);
+    --color-card-elevated: var(--elix-raised);
     --color-glass-bg: var(--elix-glass);
     --color-glass-panel: var(--elix-surface);
     --color-glass-border: var(--elix-border);
@@ -963,12 +966,11 @@ video::-webkit-media-controls-overlay-enclosure,
   color: transparent;
 }
 
-/* ═══ GLOBAL: writing = white → platinum silver. Accent = monochrome (theme). ═══ */
+/* ═══ GLOBAL: writing = warm white → soft warm gray. Accent = champagne (theme). ═══ */
 #root {
-  --elix-write: linear-gradient(90deg, #ffffff 0%, #d8d9dd 55%, #b7bdc8 100%);
-  --elix-accent: var(--elix-icon-primary);
-  --elix-accent-hover: var(--elix-icon-active);
-  --elix-accent-pressed: var(--elix-icon-inactive);
+  --elix-write: linear-gradient(90deg, #F5F5F3 0%, #E6E4DD 55%, #C8C6BF 100%);
+  --elix-accent-hover: var(--elix-accent-light);
+  --elix-accent-pressed: var(--elix-accent);
 }
 
 /* Shrink-wrap gradient to glyphs — never stretch across flex-1 empty space */
