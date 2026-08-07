@@ -318,14 +318,14 @@ export default function CreatorPayout() {
               <button
                 type="button"
                 onClick={() => setMethodType('bank')}
-                className={`flex-1 py-2 rounded-lg text-[11px] font-bold ${methodType === 'bank' ? 'bg-[#E6E9EE] text-white elix-accent' : 'bg-white/10 text-white'}`}
+                className={`flex-1 py-2 rounded-lg text-[11px] font-bold border ${methodType === 'bank' ? 'bg-white/10 border-[#E6E9EE]/45 text-white' : 'bg-transparent border-white/10 text-[#C8CDD5]'}`}
               >
                 Bank
               </button>
               <button
                 type="button"
                 onClick={() => setMethodType('paypal')}
-                className={`flex-1 py-2 rounded-lg text-[11px] font-bold ${methodType === 'paypal' ? 'bg-[#E6E9EE] text-white elix-accent' : 'bg-white/10 text-white'}`}
+                className={`flex-1 py-2 rounded-lg text-[11px] font-bold border ${methodType === 'paypal' ? 'bg-white/10 border-[#E6E9EE]/45 text-white' : 'bg-transparent border-white/10 text-[#C8CDD5]'}`}
               >
                 PayPal
               </button>
@@ -347,7 +347,7 @@ export default function CreatorPayout() {
                 type="button"
                 disabled={saving}
                 onClick={() => void saveMethod()}
-                className="w-full py-2.5 rounded-lg bg-[#E6E9EE] text-white elix-accent text-[12px] font-bold disabled:opacity-50"
+                className="w-full py-2.5 rounded-lg bg-white/10 border border-white/10 text-[#E6E9EE] text-[12px] font-bold disabled:opacity-50"
               >
                 {saving ? 'Saving...' : 'Save payout method'}
               </button>
