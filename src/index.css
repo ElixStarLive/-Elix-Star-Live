@@ -1507,10 +1507,10 @@ svg.lucide.fill-silver-full.royce-icon-gold {
 
 /* ═══ Global theme contract ═══
    FUNDAL = solid --elix-bg (#080A0E blue-charcoal). Not plain black.
-   Glass layer = --elix-bg-glass rgba(8,10,14,0.65) on chrome/content where needed.
-   Chrome (top/bottom nav) = --elix-panel rgba(26,28,33,0.65).
+   Glass layer = --elix-bg-glass rgba(8,10,14,0.65).
    Cards / sheets = --elix-surface rgba(18,20,25,0.65).
-   Video/LIVE keeps its own content visible: live column host stays transparent. */
+   Chrome (nav) = --elix-panel rgba(26,28,33,0.65).
+   LIVE video column stays transparent so camera/stream shows through. */
 html,
 body {
   background-color: var(--elix-bg) !important;
@@ -1525,15 +1525,30 @@ body::before {
   background-color: var(--elix-bg) !important;
   background-image: none !important;
 }
-.app-live-column-host {
+.app-live-column-host,
+.app-live-column {
   background: transparent !important;
 }
 
-/* Chrome: top nav + home bottom nav (darker glass) */
+/* Page shells sit on fundal — do NOT paint them as cards */
+.page-above-bottom-nav,
+.page-above-bottom-nav__inner,
+#root .min-h-screen.bg-transparent,
+#root .min-h-\[100dvh\].bg-transparent {
+  background-color: transparent !important;
+  background-image: none !important;
+  border-top: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Chrome: top nav + home bottom nav (panel glass) */
 #root nav[aria-label="Main navigation"] .feed-column-width,
 #root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
 #root .feed-column-width.h-\[var\(--topnav-bar-height\)\] {
-  background-color: var(--elix-glass) !important;
+  background-color: var(--elix-panel) !important;
+  border-color: var(--elix-border) !important;
   border-top: 1px solid var(--elix-border) !important;
   backdrop-filter: var(--elix-glass-blur) !important;
   -webkit-backdrop-filter: var(--elix-glass-blur) !important;
@@ -1542,35 +1557,10 @@ body::before {
     0 0 40px rgba(255, 255, 255, 0.04) !important;
 }
 
-/* Every content surface: pages, panels, cards, sheets, popovers, LIVE tiles.
-   Create camera excluded (bg-[#09090B] not in this list). */
-.page-above-bottom-nav__inner,
-.app-live-column,
+/* Raised cards / sheets / popovers only — not full-page fundal */
 #root .bottom-sheet,
 #root .bottom-sheet-small,
-#root .bottom-sheet-above-nav,
-#root .min-h-screen.bg-transparent,
-#root .min-h-\[100dvh\].bg-transparent,
-#root [class*="bg-[rgba(10,10,10"],
-#root [class*="bg-[rgba(20,20,20"],
-#root [class*="bg-[rgba(0,0,0,0.72"],
-#root [class*="bg-[rgba(0,0,0,0.38"],
-#root [class*="bg-[rgba(0,0,0,0.35"],
-#root .bg-\[\#1A1A1F\],
-#root .bg-black\/35,
-#root .bg-black\/40,
-#root .bg-black\/45,
-#root .bg-black\/50,
-#root .bg-black\/55,
-#root .bg-black\/60,
-#root .bg-black\/65,
-#root .bg-black\/70,
-#root .bg-black\/72,
-#root .bg-black\/75,
-#root .bg-black\/80,
-#root .bg-white\/\[0\.03\],
-#root .bg-white\/5,
-#root .bg-white\/10 {
+#root .bottom-sheet-above-nav {
   background-color: var(--elix-surface) !important;
   border-top: 1px solid var(--elix-border) !important;
   backdrop-filter: var(--elix-glass-blur) !important;
@@ -1578,4 +1568,24 @@ body::before {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 0 40px rgba(255, 255, 255, 0.04) !important;
+}
+
+/* Battle empty / invite slot — surface glass over fundal (matches reference) */
+.elix-battle-slot {
+  background-color: var(--elix-surface) !important;
+  border: 1px solid var(--elix-border) !important;
+  backdrop-filter: var(--elix-glass-blur);
+  -webkit-backdrop-filter: var(--elix-glass-blur);
+}
+
+/* Battle score bar — cold silver vs blue-charcoal (not pink/blue) */
+.elix-battle-score-host {
+  background-image: linear-gradient(90deg, #FFFFFF 0%, #E6E9EE 55%, #C8CDD5 100%) !important;
+}
+.elix-battle-score-guest {
+  background-image: linear-gradient(90deg, #121419 0%, #080A0E 100%) !important;
+}
+.elix-battle-score-wrap {
+  background-color: var(--elix-bg-glass) !important;
+  border-bottom: 1px solid var(--elix-border) !important;
 }

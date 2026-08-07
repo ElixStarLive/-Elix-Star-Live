@@ -627,7 +627,7 @@ export default function SpectatorLiveScreen() {
               >
                 {/* Battle video half — score + videos + MVP inside height box (host-identical) */}
                 <div className="relative w-full flex-none flex flex-col overflow-hidden" style={{ height: LIVE_BATTLE_VIDEO_HEIGHT }}>
-                <div className={`relative z-20 w-full flex-none ${battleScoreBarHidden ? '' : 'bg-[rgba(10,10,10,0.72)] border-b border-[#2A2D33]'}`}>
+                <div className={`relative z-20 w-full flex-none ${battleScoreBarHidden ? '' : 'elix-battle-score-wrap'}`}>
                   {!battleScoreBarHidden ? (
                     <div
                       className="relative w-full overflow-hidden cursor-pointer pointer-events-auto"
@@ -640,10 +640,10 @@ export default function SpectatorLiveScreen() {
                     >
                       <div className="absolute inset-0 flex">
                         <div
-                          className="h-full transition-[width] duration-[1200ms] ease-out motion-reduce:transition-none"
-                          style={{ width: `${leftPct}%`, backgroundImage: 'linear-gradient(90deg, #E6E9EE, #FF1744, #C41E3A)' }}
+                          className="elix-battle-score-host h-full transition-[width] duration-[1200ms] ease-out motion-reduce:transition-none"
+                          style={{ width: `${leftPct}%` }}
                         />
-                        <div className="h-full flex-1 min-w-0" style={{ backgroundImage: 'linear-gradient(90deg, #1E90FF, #4169E1, #0047AB)' }} />
+                        <div className="elix-battle-score-guest h-full flex-1 min-w-0" />
                       </div>
                       <div className="relative z-10 flex h-full min-h-[16px] items-center justify-between gap-1.5 px-2 pointer-events-none leading-none">
                         <div className={`flex min-w-0 flex-1 flex-col items-start justify-center gap-0 ${hideRedScore ? 'opacity-0' : ''}`}>
@@ -676,7 +676,13 @@ export default function SpectatorLiveScreen() {
                   <div className={`absolute left-0 right-0 z-30 flex justify-center m-0 p-0 ${battleScoreBarHidden ? 'top-0 pointer-events-auto' : 'top-full pointer-events-none'}`}>
                     <button
                       type="button"
-                      className="flex items-center gap-1.5 bg-black/35 backdrop-blur-md rounded-full px-2.5 py-1 border border-[#2A2D33] shadow-none pointer-events-auto"
+                      className="flex items-center gap-1.5 rounded-full px-2.5 py-1 pointer-events-auto"
+                      style={{
+                        backgroundColor: 'var(--elix-panel)',
+                        border: '1px solid var(--elix-border)',
+                        backdropFilter: 'var(--elix-glass-blur)',
+                        WebkitBackdropFilter: 'var(--elix-glass-blur)',
+                      }}
                       onClick={(e) => {
                         e.stopPropagation();
                         if (battleScoreBarHidden) setBattleScoreBarHidden(false);
@@ -686,7 +692,7 @@ export default function SpectatorLiveScreen() {
                       <div className="relative w-5 h-5 flex items-center justify-center flex-shrink-0">
                         <svg viewBox="0 0 40 44" className="absolute inset-0 w-full h-full drop-shadow-md">
                           <path d="M20 2 L36 10 L36 26 Q36 38 20 42 Q4 38 4 26 L4 10 Z" fill="url(#vsGradSpectator)" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5"/>
-                          <defs><linearGradient id="vsGradSpectator" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#E6E9EE"/><stop offset="50%" stopColor="#E6E9EE"/><stop offset="100%" stopColor="#1E90FF"/></linearGradient></defs>
+                          <defs><linearGradient id="vsGradSpectator" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#FFFFFF"/><stop offset="50%" stopColor="#E6E9EE"/><stop offset="100%" stopColor="#C8CDD5"/></linearGradient></defs>
                         </svg>
                         <span className="relative z-10 text-white text-[7px] font-black italic drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">VS</span>
                       </div>
@@ -772,21 +778,23 @@ export default function SpectatorLiveScreen() {
                           style={{ opacity: hasOpponentStream ? 1 : 0, transition: 'opacity 0.3s ease' }}
                         />
                         {!hasOpponentStream && (
-                          <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)]">
+                          <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center gap-2 elix-battle-slot">
                             {spectatorBattle.opponentName ? (
-                              <div className="w-16 h-16 rounded-full bg-[rgba(0,0,0,0.35)] flex items-center justify-center">
-                                <span className="text-2xl font-black text-[#F5F5F7]">{spectatorBattle.opponentName.charAt(0).toUpperCase()}</span>
+                              <div className="w-16 h-16 rounded-full bg-[rgba(8,10,14,0.65)] flex items-center justify-center border border-[var(--elix-border)]">
+                                <span className="text-2xl font-black text-[#E6E9EE]">{spectatorBattle.opponentName.charAt(0).toUpperCase()}</span>
                               </div>
                             ) : (
-                              <div className="w-16 h-16 rounded-full bg-[rgba(0,0,0,0.35)] flex items-center justify-center">
-                                <span className="text-2xl font-black text-[#F5F5F7]">O</span>
+                              <div className="w-16 h-16 rounded-full bg-[rgba(8,10,14,0.65)] flex items-center justify-center border border-[var(--elix-border)]">
+                                <span className="text-2xl font-black text-[#E6E9EE]">+</span>
                               </div>
                             )}
-                            <span className="text-white text-xs font-bold truncate max-w-[90%]">{spectatorBattle.opponentName || 'Opponent'}</span>
-                            <div className="flex items-center gap-1">
-                              <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                              <span className="text-white text-[10px] font-bold">Connecting...</span>
-                            </div>
+                            <span className="text-[#C8CDD5] text-xs font-bold truncate max-w-[90%]">{spectatorBattle.opponentName || 'Invite creator'}</span>
+                            {spectatorBattle.opponentName ? (
+                              <div className="flex items-center gap-1">
+                                <span className="w-2 h-2 rounded-full bg-[#E6E9EE] animate-pulse" />
+                                <span className="text-[#8B9099] text-[10px] font-bold">Connecting...</span>
+                              </div>
+                            ) : null}
                           </div>
                         )}
                         {lastOpponentGift && (

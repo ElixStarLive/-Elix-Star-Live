@@ -1253,7 +1253,7 @@ export default function LiveHostScreen() {
                 >
 
                   {/* Battle score: tap bar to hide (keeps battle video + chat visible). Tap VS to show again. */}
-                  <div className={`relative z-20 w-full flex-none ${battleScoreBarHidden ? '' : 'bg-[rgba(10,10,10,0.72)] border-b border-[#2A2D33]'}`}>
+                  <div className={`relative z-20 w-full flex-none ${battleScoreBarHidden ? '' : 'elix-battle-score-wrap'}`}>
                     {!battleScoreBarHidden ? (
                       <div
                         className="relative w-full overflow-hidden cursor-pointer pointer-events-auto"
@@ -1266,10 +1266,10 @@ export default function LiveHostScreen() {
                       >
                         <div className="absolute inset-0 flex">
                           <div
-                            className="h-full transition-[width] duration-[1200ms] ease-out motion-reduce:transition-none"
-                            style={{ width: `${leftPct}%`, backgroundImage: 'linear-gradient(90deg, #E6E9EE, #FF1744, #C41E3A)' }}
+                            className="elix-battle-score-host h-full transition-[width] duration-[1200ms] ease-out motion-reduce:transition-none"
+                            style={{ width: `${leftPct}%` }}
                           />
-                          <div className="h-full flex-1 min-w-0" style={{ backgroundImage: 'linear-gradient(90deg, #1E90FF, #4169E1, #0047AB)' }} />
+                          <div className="elix-battle-score-guest h-full flex-1 min-w-0" />
                         </div>
                         <div className="relative z-10 flex h-full min-h-[16px] items-center justify-between gap-1.5 px-2 pointer-events-none leading-none">
                           <div className={`flex min-w-0 flex-1 flex-col items-start justify-center gap-0 ${hideRedScore ? 'opacity-0' : ''}`}>
@@ -1302,7 +1302,13 @@ export default function LiveHostScreen() {
                     <div className={`absolute left-0 right-0 z-30 flex justify-center m-0 p-0 ${battleScoreBarHidden ? 'top-0 pointer-events-auto' : 'top-full pointer-events-none'}`}>
                       <button
                         type="button"
-                        className="flex items-center gap-1.5 bg-black/35 backdrop-blur-md rounded-full px-2.5 py-1 border border-[#2A2D33] shadow-none pointer-events-auto"
+                        className="flex items-center gap-1.5 rounded-full px-2.5 py-1 pointer-events-auto"
+                        style={{
+                          backgroundColor: 'var(--elix-panel)',
+                          border: '1px solid var(--elix-border)',
+                          backdropFilter: 'var(--elix-glass-blur)',
+                          WebkitBackdropFilter: 'var(--elix-glass-blur)',
+                        }}
                         onClick={(e) => {
                           e.stopPropagation();
                           if (battleScoreBarHidden) setBattleScoreBarHidden(false);
@@ -1312,7 +1318,7 @@ export default function LiveHostScreen() {
                         <div className="relative w-5 h-5 flex items-center justify-center flex-shrink-0">
                           <svg viewBox="0 0 40 44" className="absolute inset-0 w-full h-full drop-shadow-md">
                             <path d="M20 2 L36 10 L36 26 Q36 38 20 42 Q4 38 4 26 L4 10 Z" fill="url(#vsGrad2)" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5"/>
-                            <defs><linearGradient id="vsGrad2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#E6E9EE"/><stop offset="50%" stopColor="#E6E9EE"/><stop offset="100%" stopColor="#1E90FF"/></linearGradient></defs>
+                            <defs><linearGradient id="vsGrad2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#FFFFFF"/><stop offset="50%" stopColor="#E6E9EE"/><stop offset="100%" stopColor="#C8CDD5"/></linearGradient></defs>
                           </svg>
                           <span className="relative z-10 text-white text-[7px] font-black italic drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">VS</span>
                         </div>
@@ -1463,17 +1469,17 @@ export default function LiveHostScreen() {
                           )}
                         </div>
                       ) : battleSlots[0].status === 'invited' ? (
-                        <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)] border border-[#2A2D33]">
+                        <div className="w-full h-full flex flex-col items-center justify-center gap-2 elix-battle-slot border border-[var(--elix-border)]">
                           <img src={battleSlots[0].avatar} alt={battleSlots[0].name} className="w-12 h-12 rounded-full object-cover object-center opacity-60" />
                           <div className="w-5 h-5 border-2 border-[#E6E9EE]/25 border-t-[#E6E9EE] rounded-full animate-spin elix-loader" />
                           <span className="text-white text-[10px] font-bold">Waiting...</span>
                         </div>
                       ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)] pointer-events-auto" onClick={(e) => { e.stopPropagation(); setShowViewerList(false); setIsFindCreatorsOpen(true); }}>
-                          <div className="w-12 h-12 rounded-full flex items-center justify-center">
-                            <span className="text-white/30 text-2xl">+</span>
+                        <div className="w-full h-full flex flex-col items-center justify-center gap-2 elix-battle-slot pointer-events-auto" onClick={(e) => { e.stopPropagation(); setShowViewerList(false); setIsFindCreatorsOpen(true); }}>
+                          <div className="w-12 h-12 rounded-full flex items-center justify-center border border-[var(--elix-border)]">
+                            <span className="text-[#E6E9EE] text-2xl">+</span>
                           </div>
-                          <span className="text-white/40 text-[10px] font-bold">Add creator</span>
+                          <span className="text-[#C8CDD5] text-[10px] font-bold">Add creator</span>
                         </div>
                       )}
 
@@ -1575,17 +1581,17 @@ export default function LiveHostScreen() {
                             )}
                           </div>
                         ) : battleSlots[1].status === 'invited' ? (
-                          <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)] border border-[#2A2D33]">
-                            <img src={battleSlots[1].avatar} alt={battleSlots[1].name} className="w-12 h-12 rounded-full object-cover object-center opacity-60" />
-                            <div className="w-5 h-5 border-2 border-[#E6E9EE]/25 border-t-[#E6E9EE] rounded-full animate-spin elix-loader" />
-                            <span className="text-white text-[10px] font-bold">Waiting...</span>
+                          <div className="w-full h-full flex flex-col items-center justify-center gap-2 elix-battle-slot border border-[var(--elix-border)]">
+                          <img src={battleSlots[1].avatar} alt={battleSlots[1].name} className="w-12 h-12 rounded-full object-cover object-center opacity-60" />
+                          <div className="w-5 h-5 border-2 border-[#E6E9EE]/25 border-t-[#E6E9EE] rounded-full animate-spin elix-loader" />
+                          <span className="text-white text-[10px] font-bold">Waiting...</span>
                           </div>
                         ) : (
-                          <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)] pointer-events-auto" onClick={(e) => { e.stopPropagation(); setShowViewerList(false); setIsFindCreatorsOpen(true); }}>
-                            <div className="w-12 h-12 rounded-full flex items-center justify-center">
-                              <span className="text-white/30 text-2xl">+</span>
+                          <div className="w-full h-full flex flex-col items-center justify-center gap-2 elix-battle-slot pointer-events-auto" onClick={(e) => { e.stopPropagation(); setShowViewerList(false); setIsFindCreatorsOpen(true); }}>
+                            <div className="w-12 h-12 rounded-full flex items-center justify-center border border-[var(--elix-border)]">
+                              <span className="text-[#E6E9EE] text-2xl">+</span>
                             </div>
-                            <span className="text-white/40 text-[10px] font-bold">Add creator</span>
+                            <span className="text-[#C8CDD5] text-[10px] font-bold">Add creator</span>
                           </div>
                         )}
 
@@ -1657,17 +1663,17 @@ export default function LiveHostScreen() {
                             )}
                           </div>
                         ) : battleSlots[2].status === 'invited' ? (
-                          <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)] border border-[#2A2D33]">
-                            <img src={battleSlots[2].avatar} alt={battleSlots[2].name} className="w-12 h-12 rounded-full object-cover object-center opacity-60" />
-                            <div className="w-5 h-5 border-2 border-[#E6E9EE]/25 border-t-[#E6E9EE] rounded-full animate-spin elix-loader" />
-                            <span className="text-white text-[10px] font-bold">Waiting...</span>
+                          <div className="w-full h-full flex flex-col items-center justify-center gap-2 elix-battle-slot border border-[var(--elix-border)]">
+                          <img src={battleSlots[2].avatar} alt={battleSlots[2].name} className="w-12 h-12 rounded-full object-cover object-center opacity-60" />
+                          <div className="w-5 h-5 border-2 border-[#E6E9EE]/25 border-t-[#E6E9EE] rounded-full animate-spin elix-loader" />
+                          <span className="text-white text-[10px] font-bold">Waiting...</span>
                           </div>
                         ) : (
-                          <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-[rgba(10,10,10,0.72)] pointer-events-auto" onClick={(e) => { e.stopPropagation(); setShowViewerList(false); setIsFindCreatorsOpen(true); }}>
-                            <div className="w-12 h-12 rounded-full flex items-center justify-center">
-                              <span className="text-white/30 text-2xl">+</span>
+                          <div className="w-full h-full flex flex-col items-center justify-center gap-2 elix-battle-slot pointer-events-auto" onClick={(e) => { e.stopPropagation(); setShowViewerList(false); setIsFindCreatorsOpen(true); }}>
+                            <div className="w-12 h-12 rounded-full flex items-center justify-center border border-[var(--elix-border)]">
+                              <span className="text-[#E6E9EE] text-2xl">+</span>
                             </div>
-                            <span className="text-white/40 text-[10px] font-bold">Add creator</span>
+                            <span className="text-[#C8CDD5] text-[10px] font-bold">Add creator</span>
                           </div>
                         )}
 
