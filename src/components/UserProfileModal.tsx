@@ -288,16 +288,22 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
                     {showMoreOptions && (
                       <div className="absolute top-full right-0 mt-2 w-40 elix-glass rounded-xl shadow-xl border border-black z-50 overflow-hidden py-1">
                         <button
+                          type="button"
                           onClick={handleReportUser}
-                          className="w-full px-4 py-2.5 text-left text-xs text-white/90 hover:bg-white/5 flex items-center gap-2"
+                          className="w-full px-4 py-2.5 text-left text-xs hover:bg-white/5 flex items-center gap-2"
+                          style={{ color: '#FFFFFF', WebkitTextFillColor: '#FFFFFF', backgroundImage: 'none' }}
                         >
-                          <Flag size={14} /> Report
+                          <Flag size={14} className="shrink-0" />
+                          <span style={{ color: '#FFFFFF', WebkitTextFillColor: '#FFFFFF', backgroundImage: 'none' }}>Report</span>
                         </button>
                         <button
+                          type="button"
                           onClick={handleBlockUser}
-                          className="w-full px-4 py-2.5 text-left text-xs text-white/60/90 hover:bg-white/5 flex items-center gap-2 border-t border-white/5"
+                          className="w-full px-4 py-2.5 text-left text-xs hover:bg-white/5 flex items-center gap-2 border-t border-white/5"
+                          style={{ color: '#FFFFFF', WebkitTextFillColor: '#FFFFFF', backgroundImage: 'none' }}
                         >
-                          <Ban size={14} /> Block
+                          <Ban size={14} className="shrink-0" />
+                          <span style={{ color: '#FFFFFF', WebkitTextFillColor: '#FFFFFF', backgroundImage: 'none' }}>Block</span>
                         </button>
                       </div>
                     )}
