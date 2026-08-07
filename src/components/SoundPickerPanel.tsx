@@ -73,7 +73,6 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
       cancelled = true;
       stopPreview();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -116,7 +115,6 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
       a.removeEventListener('timeupdate', onTimeUpdate);
       stopPreview();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const visibleTracks = useMemo(() => {

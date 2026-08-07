@@ -2,9 +2,6 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useAuthStore } from './useAuthStore';
 import {
-  refreshVideoFypStatus,
-} from '../lib/fypEligibility';
-import {
   trackLike,
   trackComment,
   trackShare,
@@ -575,7 +572,6 @@ export const useVideoStore = create<VideoStore>()(
               /* non-critical analytics */
             });
           }
-          await refreshVideoFypStatus(videoId, updatedStats);
         } catch {
           const originalLikes = video.stats.likes;
           const revert = (v: Video) => v.id === videoId
@@ -747,7 +743,6 @@ export const useVideoStore = create<VideoStore>()(
 
         try {
           await trackShare(videoId);
-          await refreshVideoFypStatus(videoId, updatedStats);
         } catch {
           set((s) => ({
             videos: s.videos.map(revertShare),
@@ -757,7 +752,6 @@ export const useVideoStore = create<VideoStore>()(
         }
       },
 
-      // Comment actions – persist to server, refresh FYP eligibility
       addComment: async (videoId, commentData) => {
         const state = get();
         const video = state.getVideoById(videoId);
@@ -813,7 +807,6 @@ export const useVideoStore = create<VideoStore>()(
           void trackComment(videoId, commentData.text).catch(() => {
             /* non-critical analytics */
           });
-          await refreshVideoFypStatus(videoId, updatedStats);
         } catch {
           /* revert optimistic update on failure */
           set(s => ({
@@ -949,14 +942,12 @@ export const useVideoStore = create<VideoStore>()(
           const latest = get().getVideoById(videoId);
           if (!latest) return;
           const newViews = latest.stats.views + 1;
-          const updatedStats = { ...latest.stats, views: newViews };
           const viewsUpdate = (v: Video) =>
-            v.id === videoId ? { ...v, stats: updatedStats } : v;
+            v.id === videoId ? { ...v, stats: { ...v.stats, views: newViews } } : v;
           set((s) => ({
             videos: s.videos.map(viewsUpdate),
             friendVideos: s.friendVideos.map(viewsUpdate),
           }));
-          await refreshVideoFypStatus(videoId, updatedStats);
         } catch {
           /* view analytics must not block feed */
         }

@@ -9,10 +9,6 @@ interface AvatarRingProps {
   size: number;
   className?: string;
   onClick?: (e: React.MouseEvent) => void;
-  /** Soft glow around the circle. Ignored — ring is always half silver / half red. */
-  glow?: boolean;
-  /** @deprecated kept for call-site compatibility */
-  simple?: boolean;
 }
 
 /**

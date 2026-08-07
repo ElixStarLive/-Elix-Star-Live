@@ -11,13 +11,8 @@ export function areTestCoinsEnabled(): boolean {
   return true;
 }
 
-/** @deprecated use areTestCoinsEnabled — kept for call sites that checked store mode only */
-function testCoinsAllowed(): boolean {
-  return areTestCoinsEnabled();
-}
-
 export function getPersistedTestCoinsBalance(userId: string | undefined): number {
-  if (!testCoinsAllowed()) return 0;
+  if (!areTestCoinsEnabled()) return 0;
   if (!userId || typeof localStorage === 'undefined') return 0;
   try {
     const v = localStorage.getItem(`elix_test_coins_balance_${userId}`);
@@ -28,7 +23,7 @@ export function getPersistedTestCoinsBalance(userId: string | undefined): number
 }
 
 export function persistTestCoinsBalance(userId: string | undefined, balance: number): void {
-  if (!testCoinsAllowed()) return;
+  if (!areTestCoinsEnabled()) return;
   if (!userId || typeof localStorage === 'undefined') return;
   try {
     localStorage.setItem(`elix_test_coins_balance_${userId}`, String(Math.max(0, balance)));
@@ -39,12 +34,12 @@ export function persistTestCoinsBalance(userId: string | undefined, balance: num
 
 /** When test coins exist, gifts spend from test balance only — never the real wallet. */
 export function shouldUseTestCoinsForGifts(userId: string | undefined): boolean {
-  if (!testCoinsAllowed()) return false;
+  if (!areTestCoinsEnabled()) return false;
   return getPersistedTestCoinsBalance(userId) > 0;
 }
 
 export function resolveGiftUiBalance(walletBalance: number, userId: string | undefined): number {
-  if (!testCoinsAllowed()) return Math.max(0, walletBalance);
+  if (!areTestCoinsEnabled()) return Math.max(0, walletBalance);
   const test = getPersistedTestCoinsBalance(userId);
   if (test > 0) return test;
   return Math.max(0, walletBalance);
@@ -63,7 +58,7 @@ export function displayBalanceAfterTestSpend(
   testBalanceAfterDebit: number,
   realWalletBalance: number,
 ): number {
-  if (!testCoinsAllowed()) return Math.max(0, realWalletBalance);
+  if (!areTestCoinsEnabled()) return Math.max(0, realWalletBalance);
   if (testBalanceAfterDebit > 0) return testBalanceAfterDebit;
   return Math.max(0, realWalletBalance);
 }
@@ -74,7 +69,7 @@ export function displayBalanceAfterTestSpend(
  * Do not use this to invent a second mint path in the UI.
  */
 export function addPersistedTestCoins(userId: string | undefined, amount: number): number {
-  if (!testCoinsAllowed()) return 0;
+  if (!areTestCoinsEnabled()) return 0;
   const add = Math.max(0, Math.floor(amount));
   const current = getPersistedTestCoinsBalance(userId);
   const newBalance = current + add;
@@ -90,7 +85,7 @@ export function debitTestCoinsForGift(
   userId: string | undefined,
   amount: number,
 ): DebitTestCoinsResult {
-  if (!testCoinsAllowed()) return { ok: false as const, balance: 0 };
+  if (!areTestCoinsEnabled()) return { ok: false as const, balance: 0 };
   const coins = Math.max(0, Math.floor(amount));
   const current = getPersistedTestCoinsBalance(userId);
   if (current < coins) return { ok: false as const, balance: current };
@@ -131,7 +126,7 @@ export function addTestGiftXp(
   userId: string | undefined,
   coinsSpent: number,
 ): { totalXp: number; level: number } {
-  if (!testCoinsAllowed()) return { totalXp: 0, level: 0 };
+  if (!areTestCoinsEnabled()) return { totalXp: 0, level: 0 };
   const gain = Math.max(0, Math.floor(coinsSpent));
   const totalXp = getPersistedTestXp(userId) + gain;
   if (userId && typeof localStorage !== 'undefined') {

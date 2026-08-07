@@ -154,7 +154,7 @@ export function LiveHostProfileHeader({
         }}
         aria-label="Open profile"
       >
-        <AvatarRing src={avatar} alt={name} size={avatarSize} glow={false} />
+        <AvatarRing src={avatar} alt={name} size={avatarSize} />
       </button>
 
       <div className="flex flex-col justify-center min-w-0 gap-[2px]">

@@ -47,10 +47,6 @@ interface GiftOverlayProps {
   videoSrc: string | null;
   previewSrc?: string | null;
   onEnded: () => void;
-  /** @deprecated Prefer battleSide — kept for call-site compatibility. */
-  splitSides?: boolean;
-  /** @deprecated */
-  splitStyle?: React.CSSProperties;
   isBattleMode?: boolean;
   /** In battle: play big gift only on receiving side (host=left/red, opponent=right/blue). */
   battleSide?: BattleGiftSide | null;
@@ -127,8 +123,6 @@ export function GiftOverlay({
   videoSrc,
   previewSrc: _previewSrc,
   onEnded,
-  splitSides: _splitSides = false,
-  splitStyle: _splitStyle,
   isBattleMode = false,
   battleSide = null,
   muted = true,
