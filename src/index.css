@@ -1480,21 +1480,15 @@ svg.lucide.fill-silver-full.royce-icon-gold {
 }
 
 /* ═══ Owner system: one transparent dark bg + silver UI; LIVE red only ═══ */
+/* No city wallpaper behind pages — solid black only (stops buildings showing through) */
 html,
 body {
   background-color: #000000 !important;
   background-image: none !important;
 }
 body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background-image: var(--elix-app-bg);
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  content: none !important;
+  display: none !important;
 }
 #root {
   position: relative;
