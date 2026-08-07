@@ -17,12 +17,9 @@ export default function NotificationSettings() {
   const exit = useCallback(() => navigate(SETTINGS_HOME, { replace: true }), [navigate]);
 
   return (
-    <SettingsOptionSheet onClose={exit}>
-      <div className="w-full h-full overflow-hidden bg-transparent flex flex-col">
-        <header className="flex items-center justify-center mb-2 px-4 pt-2">
-          <h1 className="font-bold text-lg text-[#F5F5F7]">Notifications</h1>
-        </header>
-        <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4 space-y-3">
+    <SettingsOptionSheet onClose={exit} title="Notifications">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 pt-2 pb-[3mm]">
+        <div className="flex flex-col gap-0 max-w-full min-h-full">
           <ToggleRow
             title="App notifications"
             description="General in-app notification preference (saved on this device)."
@@ -35,11 +32,11 @@ export default function NotificationSettings() {
             value={liveNotifications}
             onToggle={() => setLiveNotifications(!liveNotifications)}
           />
-          <p className="text-xs text-white/40 flex items-start gap-2 pt-2">
-            <Bell size={14} className="mt-0.5 flex-shrink-0" />
-            Preferences are stored locally on this device. Push delivery also
-            requires device permission.
-          </p>
+          <div className="px-2.5 pt-3 text-xs text-[#8B9099] flex items-start gap-2 leading-relaxed">
+            <Bell size={14} className="mt-0.5 flex-shrink-0 royce-icon-gold" />
+            Preferences are stored locally on this device. Push delivery also requires device
+            permission.
+          </div>
         </div>
       </div>
     </SettingsOptionSheet>
@@ -61,15 +58,15 @@ function ToggleRow({
     <button
       type="button"
       onClick={onToggle}
-      className="w-full flex items-center gap-3 px-4 py-3 text-left active:bg-white/5 rounded-md"
+      className="w-full flex items-center gap-3 px-2.5 py-2.5 text-left active:bg-white/5 rounded-md"
     >
       <span className="flex-1 min-w-0">
-        <span className="block text-sm font-semibold text-white">{title}</span>
-        <span className="block text-xs text-white/50 mt-0.5">{description}</span>
+        <span className="block text-[15px] leading-tight text-[#E6E9EE]">{title}</span>
+        <span className="block text-xs text-[#8B9099] mt-0.5">{description}</span>
       </span>
       <span
-        className={`text-xs font-bold px-2 py-1 rounded-full ${
-          value ? "bg-[#E6E9EE] text-white elix-accent" : "bg-white/10 text-white/50"
+        className={`text-xs font-bold px-2 py-1 rounded-full shrink-0 ${
+          value ? "bg-[#E6E9EE] text-white elix-accent" : "bg-white/10 text-[#8B9099]"
         }`}
       >
         {value ? "On" : "Off"}

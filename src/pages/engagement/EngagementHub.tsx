@@ -11,8 +11,8 @@ import {
   Wallet,
   ChevronRight,
 } from "lucide-react";
-import { RoyceBackIcon } from "../../components/royce";
 import { showToast } from "../../lib/toast";
+import SettingsOptionSheet from "../../components/SettingsOptionSheet";
 import { apiEngagementHub } from "../../features/live/engagement/liveEngagementApi";
 import { SETTINGS_HOME } from "../../lib/settingsNav";
 
@@ -107,132 +107,91 @@ export default function EngagementHub() {
   }, []);
 
   return (
-    <div className="page-above-bottom-nav bg-transparent text-white">
-      <div className="page-above-bottom-nav__inner engagement-panel-writing">
-        <div
-          className="w-full shrink-0 bg-transparent z-10"
-          style={{ paddingTop: "var(--topnav-anchor-top)" }}
-        >
-          <div
-            className="w-full px-3 flex items-center"
-            style={{ minHeight: "var(--topnav-bar-height)" }}
-          >
-            <div className="w-10 shrink-0" aria-hidden />
-            <div className="flex-1 flex items-center justify-center gap-2 min-w-0">
-              <Gift className="w-5 h-5 royce-icon-gold shrink-0" />
-              <h1 className="text-base font-semibold truncate">
-                <span className="elix-silver-red-text">Engagement Hub</span>
-              </h1>
-            </div>
-            <button
-              type="button"
-              onClick={exit}
-              className="w-10 h-10 shrink-0 flex items-center justify-center"
-              aria-label="Close"
-              title="Close"
-            >
-              <RoyceBackIcon className="w-6 h-6 text-white" />
-            </button>
-          </div>
-        </div>
-
-        <div className="px-3 pb-6">
-          {loading ? (
-            <div className="py-10 text-center text-sm">
-              <span className="elix-silver-red-text opacity-50">Loading...</span>
-            </div>
-          ) : (
-            <>
-              <div className="rounded-2xl border border-[#D8D9DD]/30 bg-gradient-to-br from-[#1a1608] to-[#09090B] p-4 mb-4">
-                <p className="text-xs uppercase tracking-wide mb-2">
-                  <span className="elix-silver-red-text">
-                    {hub?.fan_tier || "Bronze Fan"} · Level {hub?.fan_level ?? 0}
-                  </span>
-                </p>
-                <div className="grid grid-cols-3 gap-2 text-center">
-                  <div>
-                    <p className="text-[10px]">
-                      <span className="elix-silver-red-text opacity-55">Promo</span>
-                    </p>
-                    <p className="text-sm font-bold tabular-nums">
-                      <span className="elix-silver-red-text">{hub?.promotional_coins ?? 0}</span>
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] flex items-center justify-center gap-0.5">
-                      <Zap className="w-3 h-3 royce-icon-gold" />
-                      <span className="elix-silver-red-text opacity-55">Energy</span>
-                    </p>
-                    <p className="text-sm font-bold tabular-nums">
-                      <span className="elix-silver-red-text">{hub?.battle_energy ?? 0}</span>
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[10px]">
-                      <span className="elix-silver-red-text opacity-55">XP</span>
-                    </p>
-                    <p className="text-sm font-bold tabular-nums">
-                      <span className="elix-silver-red-text">{hub?.total_xp ?? 0}</span>
-                    </p>
+    <SettingsOptionSheet onClose={exit} title="Engagement Hub">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 pt-2 pb-[3mm]">
+        {loading ? (
+          <div className="py-10 text-center text-sm text-[#8B9099]">Loading...</div>
+        ) : (
+          <div className="flex flex-col gap-0 max-w-full min-h-full">
+            <div className="px-2.5 py-2">
+              <div className="text-[10px] uppercase tracking-[0.12em] text-[#8B9099] mb-2">
+                {hub?.fan_tier || "Bronze Fan"} · Level {hub?.fan_level ?? 0}
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div>
+                  <div className="text-[10px] text-[#8B9099]">Promo</div>
+                  <div className="text-sm font-bold tabular-nums text-[#E6E9EE]">
+                    {hub?.promotional_coins ?? 0}
                   </div>
                 </div>
-                {hub?.daily_login?.can_claim ? (
-                  <button
-                    type="button"
-                    onClick={goDailyLogin}
-                    className="mt-3 w-full rounded-xl bg-transparent border border-white/25 py-2 text-xs font-semibold active:opacity-70"
-                  >
-                    <span className="elix-silver-red-text">
-                      Claim daily login · Day {hub.daily_login.streak_day}
-                    </span>
-                  </button>
-                ) : null}
+                <div>
+                  <div className="text-[10px] text-[#8B9099] flex items-center justify-center gap-0.5">
+                    <Zap className="w-3 h-3 royce-icon-gold" /> Energy
+                  </div>
+                  <div className="text-sm font-bold tabular-nums text-[#E6E9EE]">
+                    {hub?.battle_energy ?? 0}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-[#8B9099]">XP</div>
+                  <div className="text-sm font-bold tabular-nums text-[#E6E9EE]">
+                    {hub?.total_xp ?? 0}
+                  </div>
+                </div>
               </div>
+              {hub?.daily_login?.can_claim ? (
+                <button
+                  type="button"
+                  onClick={goDailyLogin}
+                  className="mt-3 w-full rounded-md border border-white/15 py-2 text-xs font-semibold text-[#E6E9EE] active:opacity-70"
+                >
+                  Claim daily login · Day {hub.daily_login.streak_day}
+                </button>
+              ) : null}
+            </div>
 
-              <div className="flex flex-col gap-2">
-                {LINKS.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <button
-                      key={item.path}
-                      type="button"
-                      onClick={() => openEngagementPath(item.path)}
-                      className="w-full flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3 text-left active:bg-white/5"
-                    >
-                      <span className="royce-glow-disc shrink-0 flex items-center justify-center w-9 h-9">
-                        <Icon className="w-[18px] h-[18px] royce-icon-gold" />
-                      </span>
-                      <span className="flex-1 min-w-0">
-                        <span className="block text-[15px]">
-                          <span className="elix-silver-red-text">
-                            {item.title}
-                            {item.path === "/engagement/missions" &&
-                            (hub?.missions_open ?? 0) > 0
-                              ? ` (${hub?.missions_open})`
-                              : ""}
-                          </span>
-                        </span>
-                        <span className="block text-[12px]">
-                          <span className="elix-silver-red-text opacity-55">{item.subtitle}</span>
-                        </span>
-                      </span>
-                      <ChevronRight size={16} className="text-white/30 shrink-0" />
-                    </button>
-                  );
-                })}
-              </div>
-              <p className="mt-4 text-[11px] leading-relaxed">
-                <span className="elix-silver-red-text opacity-55">
-                  Promotional Coins and Battle Energy are free rewards — separate from
-                  Purchased Coins. LIVE side mission chips are progress hints; claim
-                  rewards in this Hub or the LIVE Engagement drawer. Battle Predictor
-                  League comes in Phase 2.
-                </span>
-              </p>
-            </>
-          )}
-        </div>
+            {LINKS.map((item) => {
+              const Icon = item.icon;
+              const titleExtra =
+                item.path === "/engagement/missions" && (hub?.missions_open ?? 0) > 0
+                  ? ` (${hub?.missions_open})`
+                  : "";
+              return (
+                <button
+                  key={item.path}
+                  type="button"
+                  onClick={() => openEngagementPath(item.path)}
+                  className="w-full flex items-center gap-3 px-2.5 py-2.5 text-left active:bg-white/5 rounded-md"
+                >
+                  <span
+                    className="royce-glow-disc shrink-0 [&_svg]:size-[18px]"
+                    style={{ width: "36px", height: "36px" }}
+                  >
+                    <Icon className="royce-icon-gold" />
+                  </span>
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-[15px] leading-tight text-[#E6E9EE]">
+                      {item.title}
+                      {titleExtra}
+                    </span>
+                    <span className="block text-xs text-[#8B9099] mt-0.5">{item.subtitle}</span>
+                  </span>
+                  <ChevronRight size={16} className="text-white/30 shrink-0" />
+                </button>
+              );
+            })}
+
+            <div className="mt-4 px-2.5 text-[11px] leading-relaxed text-[#8B9099]">
+              Promotional Coins and Battle Energy are free rewards — separate from Purchased Coins.
+              LIVE side mission chips are progress hints; claim rewards in this Hub or the LIVE
+              Engagement drawer. Battle Predictor League comes in Phase 2.
+            </div>
+            <div className="px-2.5 pt-2 pb-1 flex items-center gap-1.5 text-[10px] text-[#8B9099]">
+              <Gift size={12} className="royce-icon-gold" /> Engagement rewards
+            </div>
+          </div>
+        )}
       </div>
-    </div>
+    </SettingsOptionSheet>
   );
 }
