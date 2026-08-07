@@ -378,11 +378,12 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
 
   return (
     <div
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-modals flex items-end justify-center"
+      className="fixed inset-0 z-modals flex items-end justify-center"
       onClick={onClose}
     >
+      <div className="absolute inset-0 pointer-events-auto" onClick={onClose} />
       <div
-        className="elix-glass rounded-t-2xl p-3 pb-safe h-1/2 w-full max-w-[480px] flex flex-col bottom-sheet-above-nav border border-black"
+        className="elix-glass rounded-t-2xl p-3 pb-safe h-1/2 w-full max-w-[480px] flex flex-col pointer-events-auto relative z-10 bottom-sheet-above-nav border border-black"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-2">
