@@ -1484,12 +1484,17 @@ svg.lucide.fill-silver-full.royce-icon-gold {
   display: none !important;
 }
 
-/* ═══ Owner: all pages fully transparent — same as home bottom nav. ═══
-   Bottom nav left alone (already clear). No video patches. Create #09090B left alone. */
+/* ═══ Owner: all pages transparent — one static wallpaper behind everything. ═══
+   Wallpaper: /elix-app-bg.png (deep black, subtle top glow). No video. No gradient.
+   BottomNav.tsx not touched. Create #09090B left alone. */
 html,
 body {
-  background-color: transparent !important;
-  background-image: none !important;
+  background-color: #000000 !important;
+  background-image: url('/elix-app-bg.png') !important;
+  background-size: cover !important;
+  background-position: center center !important;
+  background-repeat: no-repeat !important;
+  background-attachment: fixed !important;
 }
 body::before {
   content: none !important;
