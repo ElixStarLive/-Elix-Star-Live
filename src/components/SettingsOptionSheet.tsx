@@ -41,7 +41,7 @@ export default function SettingsOptionSheet({ children, onClose, title }: Settin
     <div className="app-live-column-host z-[9999]">
       <div className="absolute inset-0 bg-transparent" onClick={onClose} aria-hidden />
       <div
-        className="app-live-column elix-glass text-white"
+        className="app-live-column bg-transparent text-white"
         style={{
           transform: `translateY(${dragY}px)`,
           transition: dragging ? 'none' : 'transform 0.22s ease',

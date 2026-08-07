@@ -1484,8 +1484,8 @@ svg.lucide.fill-silver-full.royce-icon-gold {
   display: none !important;
 }
 
-/* ═══ Owner: pages transparent. No black under-page. No video backdrop patches. ═══
-   Glass only on top/bottom nav + sheets. Live/Battle shell left alone. */
+/* ═══ Owner: all pages fully transparent — same as home bottom nav. ═══
+   Bottom nav left alone (already clear). No video patches. Create #09090B left alone. */
 html,
 body {
   background-color: transparent !important;
@@ -1513,7 +1513,7 @@ body::before {
   --elix-home-glass: rgba(0, 0, 0, 0.35);
 }
 
-/* Pages fully transparent — no wash */
+/* ALL page shells — fully transparent like home bottom nav */
 .page-above-bottom-nav,
 .page-above-bottom-nav__inner,
 .app-live-column-host,
@@ -1522,22 +1522,23 @@ main.feed-column-width,
 #root .bg-background,
 #root .bg-surface,
 #root .min-h-screen,
-#root .min-h-\[100dvh\] {
+#root .min-h-\[100dvh\],
+#root .elix-glass:not(.bottom-sheet):not(.bottom-sheet-small):not(.bottom-sheet-above-nav):not([class*="rounded-t-2xl"]),
+#root .elix-glass-panel:not(.bottom-sheet):not([class*="rounded-t-2xl"]) {
   background-color: transparent !important;
   background-image: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
 
-/* Home glass — sheets + top nav only (NOT bottom home menu bar) */
-#root .elix-glass,
-#root .elix-glass-panel,
+/* Bottom sheets only keep Home glass (More Options style) */
 #root .bottom-sheet,
 #root .bottom-sheet-small,
 #root .bottom-sheet-above-nav,
-#root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
-#root .feed-column-width.h-\[var\(--topnav-bar-height\)\],
 #root [class*="rounded-t-2xl"][class*="bg-"]:not(.elix-live-room):not(.elix-live-room *),
+#root [class*="rounded-t-2xl"].elix-glass:not(.elix-live-room *),
 #root [class*="bg-[rgba(10,10,10"]:not(.elix-live-room):not(.elix-live-room *),
 #root [class*="bg-[rgba(20,20,20"]:not(.elix-live-room):not(.elix-live-room *),
 #root [class*="bg-[rgba(0,0,0,0.72"]:not(.elix-live-room):not(.elix-live-room *),
@@ -1550,9 +1551,11 @@ main.feed-column-width,
   -webkit-backdrop-filter: blur(12px) !important;
 }
 
-/* Home menu bar — fully transparent */
+/* Home bottom nav + top feed bar — fully transparent (match) */
 #root nav[aria-label="Main navigation"],
-#root nav[aria-label="Main navigation"] .feed-column-width {
+#root nav[aria-label="Main navigation"] .feed-column-width,
+#root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
+#root .feed-column-width.h-\[var\(--topnav-bar-height\)\] {
   background-color: transparent !important;
   background-image: none !important;
   border: none !important;
@@ -1582,8 +1585,6 @@ main.feed-column-width,
   background-image: none !important;
 }
 
-#root .elix-live-room .elix-glass,
-#root .elix-live-room .elix-glass-panel,
 #root .elix-live-room [class*="rounded-t-2xl"] {
   background-color: var(--elix-home-glass) !important;
   background-image: none !important;
