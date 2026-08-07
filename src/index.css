@@ -37,44 +37,59 @@
 
 @layer base {
   :root {
-    /* Owner system — one transparent dark UI; metallic silver; LIVE red only */
-    --color-primary: #E8EAED;
-    --color-secondary: #D1D4D8;
-    --color-gold: #E8EAED;
-    --color-gold-bright: #FFFFFF;
-    --color-gold-light: #E8EAED;
-    --color-gold-dark: #A7ABB2;
-    --color-gold-premium: #E8EAED;
-    --color-rose: #FF2D55;
-    --color-purple-bright: #E8EAED;
-    --color-purple: #E8EAED;
-    --color-purple-hover: #FFFFFF;
-    --color-purple-pressed: #A7ABB2;
-    --color-coin: #D9A62E;
-    --color-hover-red: #FF2D55;
-    --color-deep-red: #FF2D55;
-    --color-dark-red: #FF2D55;
-    --color-hover-purple: #FFFFFF;
-    --color-pressed-purple: #A7ABB2;
-    --color-live: #FF2D55;
-    --color-icon: #E8EAED;
-    --color-icon-active: #FFFFFF;
-    --color-icon-inactive: #A7ABB2;
-    --color-icon-circle: rgba(8, 8, 10, 0.48);
-    --color-text: #FFFFFF;
-    --color-text-secondary: #D1D4D8;
-    /* Page base = solid black (never milky/white page wash) */
-    --color-background: #000000;
-    --color-surface: #000000;
-    --color-card: rgba(0, 0, 0, 0.35);
-    --color-card-elevated: rgba(0, 0, 0, 0.35);
-    --color-glass-bg: rgba(0, 0, 0, 0.35);
-    --color-glass-panel: rgba(0, 0, 0, 0.35);
-    /* Panel contour — solid black so sheets read as panels (More Options 1:1) */
-    --color-glass-border: #000000;
-    --color-border: #000000;
+    /* ═══════════════════════════════════════════════════════════════════
+       ELIX GLOBAL THEME — one source of truth (2026-08-07)
+       Monochrome dark glass. No strong accent (purple/red/gold/pink/blue/green).
+       Every surface, page, chrome and LIVE room references these tokens.
+       ═══════════════════════════════════════════════════════════════════ */
+
+    /* Named theme tokens (semantic) */
+    --elix-bg: #121214;
+    --elix-glass: rgba(22, 20, 22, 0.68);
+    --elix-glass-light: rgba(30, 28, 30, 0.58);
+    --elix-border: rgba(255, 255, 255, 0.10);
+    --elix-text-primary: #FFFFFF;
+    --elix-text-secondary: #D0D2D6;
+    --elix-icon-primary: #E8EAED;
+    --elix-icon-inactive: #A8ACB3;
+    --elix-icon-active: #FFFFFF;
     --elix-glass-blur: blur(12px);
-    --color-destructive: #D91F2D;
+
+    /* Legacy token compatibility — all wired to the theme above. */
+    --color-primary: var(--elix-icon-primary);
+    --color-secondary: var(--elix-text-secondary);
+    --color-gold: var(--elix-icon-primary);
+    --color-gold-bright: var(--elix-icon-active);
+    --color-gold-light: var(--elix-icon-primary);
+    --color-gold-dark: var(--elix-icon-inactive);
+    --color-gold-premium: var(--elix-icon-primary);
+    --color-rose: var(--elix-icon-primary);
+    --color-purple-bright: var(--elix-icon-primary);
+    --color-purple: var(--elix-icon-primary);
+    --color-purple-hover: var(--elix-icon-active);
+    --color-purple-pressed: var(--elix-icon-inactive);
+    --color-coin: var(--elix-icon-primary);
+    --color-hover-red: var(--elix-icon-active);
+    --color-deep-red: var(--elix-icon-primary);
+    --color-dark-red: var(--elix-icon-inactive);
+    --color-hover-purple: var(--elix-icon-active);
+    --color-pressed-purple: var(--elix-icon-inactive);
+    --color-live: var(--elix-icon-primary);
+    --color-icon: var(--elix-icon-primary);
+    --color-icon-active: var(--elix-icon-active);
+    --color-icon-inactive: var(--elix-icon-inactive);
+    --color-icon-circle: rgba(8, 8, 10, 0.48);
+    --color-text: var(--elix-text-primary);
+    --color-text-secondary: var(--elix-text-secondary);
+    --color-background: var(--elix-bg);
+    --color-surface: var(--elix-bg);
+    --color-card: var(--elix-glass-light);
+    --color-card-elevated: var(--elix-glass);
+    --color-glass-bg: var(--elix-glass);
+    --color-glass-panel: var(--elix-glass-light);
+    --color-glass-border: var(--elix-border);
+    --color-border: var(--elix-border);
+    --color-destructive: var(--elix-icon-primary);
     --shadow-luxury: 0 12px 40px rgba(0, 0, 0, 0.45);
     --radius-sm: 10px;
     --radius-md: 12px;
@@ -948,12 +963,12 @@ video::-webkit-media-controls-overlay-enclosure,
   color: transparent;
 }
 
-/* ═══ GLOBAL: writing = white → platinum silver only (purple is accent-only) ═══ */
+/* ═══ GLOBAL: writing = white → platinum silver. Accent = monochrome (theme). ═══ */
 #root {
   --elix-write: linear-gradient(90deg, #ffffff 0%, #d8d9dd 55%, #b7bdc8 100%);
-  --elix-accent: #6F3FF5;
-  --elix-accent-hover: #8B5CFF;
-  --elix-accent-pressed: #5B2ED6;
+  --elix-accent: var(--elix-icon-primary);
+  --elix-accent-hover: var(--elix-icon-active);
+  --elix-accent-pressed: var(--elix-icon-inactive);
 }
 
 /* Shrink-wrap gradient to glyphs — never stretch across flex-1 empty space */
@@ -1142,15 +1157,15 @@ video::-webkit-media-controls-overlay-enclosure,
   filter: none;
 }
 
-/* One app-wide glass tint — used by every panel, sheet, top nav, bottom nav, page frame.
+/* One app-wide glass tint — every panel, sheet, top nav, bottom nav, page frame.
    Backlight = subtle inset top highlight + soft outer halo (premium glass look). */
 .elix-glass,
 .elix-glass-panel {
-  background: rgba(12, 10, 12, 0.72) !important;
+  background: var(--elix-glass) !important;
   border: none !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid var(--elix-border) !important;
+  backdrop-filter: var(--elix-glass-blur);
+  -webkit-backdrop-filter: var(--elix-glass-blur);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 0 40px rgba(255, 255, 255, 0.04) !important;
@@ -1480,12 +1495,13 @@ svg.lucide.fill-silver-full.royce-icon-gold {
   display: none !important;
 }
 
-/* ═══ App tint contract ═══
-   One color everywhere: page frames, top nav, home bottom nav, all sheets/panels.
-   Outer shells stay clear so tint sits over whatever is behind. Create camera not touched. */
+/* ═══ Global theme contract ═══
+   Base page bg = #121214. Every panel/sheet/nav/card uses --elix-glass.
+   Video/LIVE keeps its content visible: outer shells stay transparent
+   so glass sits over the video. Non-video pages sit over #121214 base. */
 html,
 body {
-  background: transparent !important;
+  background-color: var(--elix-bg) !important;
   background-image: none !important;
 }
 body::before {
@@ -1498,10 +1514,10 @@ body::before {
   background: transparent !important;
 }
 
-/* Every container in the app uses the same tint + backlight.
+/* Every container uses the same theme glass + border + backlight.
    Covers: page frames, top nav, home nav, all sheets, cards, panels, popovers,
-   modal scrims, engagement/live/settings/admin/auth pages. Create camera excluded
-   (uses bg-[#09090B] which is not in this list). */
+   engagement/live/settings/admin/auth pages, LIVE co-host tiles, chat, gift stack.
+   Create camera excluded (bg-[#09090B] not matched here). */
 .page-above-bottom-nav__inner,
 .app-live-column,
 #root nav[aria-label="Main navigation"] .feed-column-width,
@@ -1532,10 +1548,10 @@ body::before {
 #root .bg-white\/\[0\.03\],
 #root .bg-white\/5,
 #root .bg-white\/10 {
-  background-color: rgba(12, 10, 12, 0.72) !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
+  background-color: var(--elix-glass) !important;
+  border-top: 1px solid var(--elix-border) !important;
+  backdrop-filter: var(--elix-glass-blur) !important;
+  -webkit-backdrop-filter: var(--elix-glass-blur) !important;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 0 40px rgba(255, 255, 255, 0.04) !important;
