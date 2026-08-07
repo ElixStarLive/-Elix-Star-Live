@@ -1730,6 +1730,31 @@ svg.lucide,
   box-shadow: var(--elix-icon-disc-shadow);
 }
 
+/* Top bar LIVE + Search — line icons only, no round disc */
+#root .feed-column-width.h-\[var\(--topnav-bar-height\)\] svg.lucide,
+#root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\] svg.lucide {
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+#root .feed-column-width.h-\[var\(--topnav-bar-height\)\] button[title="LIVE"] svg.lucide,
+#root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\] button[title="LIVE"] svg.lucide,
+#root .feed-column-width.h-\[var\(--topnav-bar-height\)\] button[aria-label="LIVE"] svg.lucide,
+#root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\] button[aria-label="LIVE"] svg.lucide {
+  color: #FF2D55 !important;
+  stroke: #FF2D55 !important;
+}
+#root .feed-column-width.h-\[var\(--topnav-bar-height\)\] button[title="Search"] svg.lucide,
+#root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\] button[title="Search"] svg.lucide,
+#root .feed-column-width.h-\[var\(--topnav-bar-height\)\] button[aria-label="Search"] svg.lucide,
+#root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\] button[aria-label="Search"] svg.lucide {
+  color: #E8EAED !important;
+  stroke: #E8EAED !important;
+}
+
 /* Wrapper already draws the disc — icon stays sharp inside, no double circle */
 .royce-glow-disc svg.lucide,
 .royce-glow-disc .royce-icon-gold,
