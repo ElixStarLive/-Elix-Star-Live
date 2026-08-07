@@ -269,7 +269,10 @@ export default function Register() {
             Already have an account? Sign in
           </Link>
           <p className="text-fluid-sm text-white/50">
-            Created by Andrei Ionut Berica — Owner / Developer
+            Built by Andrei Ionut Berica · Owner &amp; Developer
+          </p>
+          <p className="text-fluid-sm text-white/40">
+            © 2026 Andrei Ionut Berica. All rights reserved.
           </p>
         </div>
       </div>
