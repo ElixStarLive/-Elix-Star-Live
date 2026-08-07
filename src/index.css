@@ -1498,10 +1498,10 @@ body::before {
   background: transparent !important;
 }
 
-/* Every page frame + every chrome surface uses the same tint + backlight.
-   Backlight = inset top highlight (edge lit) + soft outer halo (ambient glow).
-   Covers: Profile/Inbox/Shop/Settings-style sheets, Engagement, Login, Register,
-   AuthCallback, VideoView, VideoCall, admin pages, top nav, home nav, all sheets. */
+/* Every container in the app uses the same tint + backlight.
+   Covers: page frames, top nav, home nav, all sheets, cards, panels, popovers,
+   modal scrims, engagement/live/settings/admin/auth pages. Create camera excluded
+   (uses bg-[#09090B] which is not in this list). */
 .page-above-bottom-nav__inner,
 .app-live-column,
 #root nav[aria-label="Main navigation"] .feed-column-width,
@@ -1511,7 +1511,27 @@ body::before {
 #root .bottom-sheet-small,
 #root .bottom-sheet-above-nav,
 #root .min-h-screen.bg-transparent,
-#root .min-h-\[100dvh\].bg-transparent {
+#root .min-h-\[100dvh\].bg-transparent,
+#root [class*="bg-[rgba(10,10,10"],
+#root [class*="bg-[rgba(20,20,20"],
+#root [class*="bg-[rgba(0,0,0,0.72"],
+#root [class*="bg-[rgba(0,0,0,0.38"],
+#root [class*="bg-[rgba(0,0,0,0.35"],
+#root .bg-\[\#1A1A1F\],
+#root .bg-black\/35,
+#root .bg-black\/40,
+#root .bg-black\/45,
+#root .bg-black\/50,
+#root .bg-black\/55,
+#root .bg-black\/60,
+#root .bg-black\/65,
+#root .bg-black\/70,
+#root .bg-black\/72,
+#root .bg-black\/75,
+#root .bg-black\/80,
+#root .bg-white\/\[0\.03\],
+#root .bg-white\/5,
+#root .bg-white\/10 {
   background-color: rgba(12, 10, 12, 0.72) !important;
   border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
   backdrop-filter: blur(12px) !important;
