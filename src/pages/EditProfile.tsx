@@ -190,11 +190,11 @@ export default function EditProfile() {
         <button
           onClick={handleSave}
           disabled={loading}
-          className="px-4 py-1.5 rounded-full bg-[#E6E9EE] text-white text-sm font-semibold disabled:opacity-50 hover:brightness-110 transition"
+          className="px-4 py-1.5 rounded-full elix-silver-cta text-sm font-semibold disabled:opacity-50 transition"
         >
           {loading ? 'Saving...' : 'Save'}
         </button>
-        <h1 className="text-lg font-bold text-center flex-1 text-gold-bright">Edit Profile</h1>
+        <h1 className="text-lg font-bold text-center flex-1 text-white">Edit Profile</h1>
         <div className="w-[64px]" aria-hidden />
       </div>
 
@@ -207,7 +207,7 @@ export default function EditProfile() {
             </div>
             <label
               htmlFor="avatar-upload"
-              className="absolute bottom-0 right-0 w-8 h-8 bg-[#E6E9EE] rounded-full flex items-center justify-center cursor-pointer hover:scale-110 transition shadow-lg"
+              className="absolute bottom-0 right-0 w-8 h-8 bg-[#E6E9EE] rounded-full flex items-center justify-center cursor-pointer hover:scale-110 transition shadow-lg !text-black"
             >
               <Camera className="w-4 h-4 text-black" />
             </label>
@@ -222,11 +222,11 @@ export default function EditProfile() {
           <button 
             type="button"
             onClick={openAvatarPicker}
-            className="text-sm font-semibold text-gold-bright/80 hover:text-gold-bright transition"
+            className="text-sm font-semibold text-[#C8CDD5] hover:text-white transition"
           >
             Change Photo
           </button>
-          {uploading && <p className="text-xs text-gold-bright/60">Uploading...</p>}
+          {uploading && <p className="text-xs text-[#8B9099]">Uploading...</p>}
         </div>
 
         {/* Form Fields */}
@@ -315,14 +315,14 @@ function InputField({
 }) {
   return (
     <div>
-      <label className="block text-sm font-semibold text-gold-bright/80 mb-1.5">{label}</label>
+      <label className="block text-sm font-semibold text-[#C8CDD5] mb-1.5">{label}</label>
       <input
         type="text"
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         maxLength={maxLength}
-        className="w-full bg-white/[0.06] rounded-lg px-3 py-2.5 outline-none text-sm leading-tight text-gold-bright placeholder:text-gold-bright/35 border border-white/10 focus:border-[#D8D9DD]/50 focus:outline-none transition"
+        className="w-full elix-surface rounded-lg px-3 py-2.5 outline-none text-sm leading-tight text-white placeholder:text-[#8B9099] focus:border-[#E6E9EE]/50 focus:outline-none transition"
       />
     </div>
   );
@@ -343,17 +343,17 @@ function TextAreaField({
 }) {
   return (
     <div>
-      <label className="block text-sm font-semibold text-gold-bright/80 mb-1.5">{label}</label>
+      <label className="block text-sm font-semibold text-[#C8CDD5] mb-1.5">{label}</label>
       <textarea
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         maxLength={maxLength}
         rows={3}
-        className="w-full bg-white/[0.06] rounded-lg px-3 py-2.5 outline-none text-sm leading-relaxed text-gold-bright placeholder:text-gold-bright/35 border border-white/10 focus:border-[#D8D9DD]/50 focus:outline-none transition resize-none"
+        className="w-full elix-surface rounded-lg px-3 py-2.5 outline-none text-sm leading-relaxed text-white placeholder:text-[#8B9099] focus:border-[#E6E9EE]/50 focus:outline-none transition resize-none"
       />
       {maxLength && (
-        <p className="text-[11px] text-gold-bright/40 mt-1 text-right leading-none">
+        <p className="text-[11px] text-[#8B9099] mt-1 text-right leading-none">
           {value.length}/{maxLength}
         </p>
       )}
@@ -365,7 +365,7 @@ function Divider({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-3 py-1.5">
       <div className="flex-1 h-px bg-white/10"></div>
-      <span className="text-xs text-gold-bright/50 font-semibold uppercase tracking-wider">{label}</span>
+      <span className="text-xs text-[#8B9099] font-semibold uppercase tracking-wider">{label}</span>
       <div className="flex-1 h-px bg-white/10"></div>
     </div>
   );

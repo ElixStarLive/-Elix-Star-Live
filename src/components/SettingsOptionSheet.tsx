@@ -46,7 +46,7 @@ export default function SettingsOptionSheet({ children, onClose, title }: Settin
       <div
         className="app-live-column elix-page-glass text-white"
         style={{
-          transform: `translateY(${dragY}px)`,
+          ...(dragY > 0 || dragging ? { transform: `translateY(${dragY}px)` } : null),
           transition: dragging ? 'none' : 'transform 0.22s ease',
         }}
         onClick={(e) => e.stopPropagation()}

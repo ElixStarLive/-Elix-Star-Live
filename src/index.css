@@ -1041,6 +1041,46 @@ video::-webkit-media-controls-overlay-enclosure,
   color: transparent;
 }
 
+/* Form controls — NEVER use background-clip text (causes ghost/duplicate glyphs) */
+#root input,
+#root textarea,
+#root select,
+#root input::placeholder,
+#root textarea::placeholder {
+  background-image: none !important;
+  -webkit-background-clip: border-box !important;
+  background-clip: border-box !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  color: #FFFFFF !important;
+}
+#root input::placeholder,
+#root textarea::placeholder {
+  -webkit-text-fill-color: #8B9099 !important;
+  color: #8B9099 !important;
+  opacity: 1;
+}
+#root label {
+  background-image: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: #C8CDD5 !important;
+  color: #C8CDD5 !important;
+}
+/* Icon-only labels (e.g. avatar camera disc) keep their own colour */
+#root label[for='avatar-upload'],
+#root label.absolute {
+  -webkit-text-fill-color: unset !important;
+  color: inherit !important;
+}
+/* Solid secondary/tertiary utility colours — no gradient ghost layer */
+#root [class*='text-[#8B9099]'],
+#root [class*='text-[#C8CDD5]'] {
+  background-image: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: unset !important;
+}
+
 /*
  * Purple fills only for opt-in accents (Follow / Live / selected tabs / toggles).
  * Other bg-[#E6E9EE] buttons become silver chrome (no purple wash).
