@@ -359,13 +359,7 @@ function App() {
   }
 
   return (
-    <div
-      className="elix-app-shell fixed inset-0 w-full h-[100dvh] flex flex-col text-text font-sans overflow-hidden"
-      style={{
-        backgroundColor: '#080A0E',
-        backgroundImage: 'none',
-      }}
-    >
+    <div className="elix-app-shell fixed inset-0 w-full h-[100dvh] flex flex-col text-text font-sans overflow-hidden">
       <OfflineBanner />
       <IncomingCallModal />
       <LiveNotifyBanner />
