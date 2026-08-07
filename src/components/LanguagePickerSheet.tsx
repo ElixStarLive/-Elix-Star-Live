@@ -1,39 +1,41 @@
 import { Check } from 'lucide-react';
-import { RoyceCloseIcon } from './royce';
 import { LANGUAGES, useT } from '../lib/i18n';
+import SettingsOptionSheet from './SettingsOptionSheet';
 
 type Props = { onClose: () => void };
 
+/**
+ * Full-page language picker — shared SettingsOptionSheet (close on right).
+ * Covers Settings completely; no half-sheet peek of the list behind.
+ */
 export default function LanguagePickerSheet({ onClose }: Props) {
   const { t, lang, setLang } = useT();
 
   return (
-    <div className="fixed inset-0 z-[10000] flex items-end justify-center" role="dialog" aria-label={t('settings.chooseLanguage')}>
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden />
-      <div className="relative w-full max-w-md bg-[rgba(0,0,0,0.35)] rounded-t-2xl border border-black max-h-[70vh] flex flex-col">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
-          <span className="text-[13px] font-bold text-[#F5F5F7]">{t('settings.chooseLanguage')}</span>
-          <button type="button" onClick={onClose} className="p-1 rounded-full active:scale-90 transition-transform" aria-label="Close">
-            <RoyceCloseIcon size={18} />
-          </button>
-        </div>
-        <div className="flex-1 overflow-y-auto overscroll-contain px-2 py-2 pb-[calc(env(safe-area-inset-bottom,0px)+12px)]">
+    <SettingsOptionSheet onClose={onClose} title={t('settings.chooseLanguage')}>
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 pt-2 pb-[3mm]">
+        <div className="flex flex-col gap-0 max-w-full min-h-full">
           {LANGUAGES.map((l) => (
             <button
               key={l.code}
               type="button"
-              onClick={() => { setLang(l.code); onClose(); }}
-              className="w-full flex items-center gap-3 px-3 py-3 rounded-md active:bg-white/5 text-left"
+              onClick={() => {
+                setLang(l.code);
+                onClose();
+              }}
+              className="w-full flex items-center gap-3 px-2.5 py-2.5 rounded-md active:bg-white/5 text-left"
             >
-              <span className="flex-1 text-[15px] text-white/85">
+              <span className="flex-1 text-[15px] text-[#E6E9EE]">
                 {l.label}
-                {l.english !== l.label && <span className="text-white/40 text-[12px]"> · {l.english}</span>}
+                {l.english !== l.label ? (
+                  <span className="text-[#8B9099] text-[12px]"> · {l.english}</span>
+                ) : null}
               </span>
-              {lang === l.code && <Check size={18} className="text-[#F5F5F7] shrink-0" />}
+              {lang === l.code ? <Check size={18} className="text-[#E6E9EE] shrink-0" /> : null}
             </button>
           ))}
         </div>
       </div>
-    </div>
+    </SettingsOptionSheet>
   );
 }
