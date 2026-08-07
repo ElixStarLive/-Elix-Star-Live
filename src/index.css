@@ -420,9 +420,9 @@
     /* LEVEL 1 — page glass over cosmic fundal */
     background-color: transparent;
     background-image: var(--elix-page-fill);
-    background-size: var(--elix-fundal-size);
-    background-position: var(--elix-fundal-position);
-    background-repeat: no-repeat;
+    background-size: var(--elix-fundal-size), var(--elix-fundal-size);
+    background-position: var(--elix-fundal-position), var(--elix-fundal-position);
+    background-repeat: no-repeat, no-repeat;
   }
 
   .page-above-bottom-nav__inner {
