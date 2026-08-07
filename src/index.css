@@ -1533,6 +1533,9 @@ body::before {
 .page-above-bottom-nav__inner,
 main.feed-column-width,
 .elix-live-room,
+.elix-live-room.bg-black,
+#root .elix-live-room,
 .app-live-column-host {
   background-color: transparent !important;
+  background-image: none !important;
 }
