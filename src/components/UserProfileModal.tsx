@@ -158,7 +158,7 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
   if (isBlocked) {
     return (
       <div className="page-above-bottom-nav bg-transparent text-white z-[10001]">
-        <div className="page-above-bottom-nav__inner bg-transparent flex flex-col">
+        <div className="page-above-bottom-nav__inner elix-glass flex flex-col">
           <header className="flex items-center justify-between px-4 pt-page-header pb-2 relative z-10">
             <div className="w-10" />
             <h3 className="text-[12px] font-bold text-gold-metallic">User Profile</h3>
@@ -193,7 +193,7 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
 
   return (
     <div className="page-above-bottom-nav bg-transparent text-white z-[10001]">
-      <div className="page-above-bottom-nav__inner bg-transparent flex flex-col">
+      <div className="page-above-bottom-nav__inner elix-glass flex flex-col">
         {/* Header — same full-screen shell as Profile page */}
         <header className="flex items-center justify-between px-4 pt-page-header pb-2 relative z-10 flex-shrink-0">
           <button
@@ -286,7 +286,7 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
                   >
                     <MoreHorizontal size={18} strokeWidth={2} />
                     {showMoreOptions && (
-                      <div className="absolute top-full right-0 mt-2 w-40 bg-[#25262b] rounded-xl shadow-xl border border-white/10 z-50 overflow-hidden py-1">
+                      <div className="absolute top-full right-0 mt-2 w-40 elix-glass rounded-xl shadow-xl border border-black z-50 overflow-hidden py-1">
                         <button
                           onClick={handleReportUser}
                           className="w-full px-4 py-2.5 text-left text-xs text-white/90 hover:bg-white/5 flex items-center gap-2"

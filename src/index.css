@@ -1542,10 +1542,8 @@ body::before {
   border-bottom: none !important;
 }
 
-/* Pages themselves — clear, no solid black/white page wash */
+/* Page columns — same Home glass as top/bottom nav (video shows through) */
 .page-above-bottom-nav,
-.page-above-bottom-nav__inner,
-.app-live-column,
 .app-live-column-host,
 main.feed-column-width,
 #root .bg-background,
@@ -1554,6 +1552,15 @@ main.feed-column-width,
 #root .min-h-\[100dvh\] {
   background-color: transparent !important;
   background-image: none !important;
+}
+
+.page-above-bottom-nav__inner,
+.app-live-column {
+  background-color: var(--elix-home-glass) !important;
+  background-image: none !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  box-shadow: none !important;
 }
 
 /* Live/Battle room only — leave battle alone */
