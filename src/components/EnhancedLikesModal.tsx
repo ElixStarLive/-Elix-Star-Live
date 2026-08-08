@@ -7,7 +7,8 @@ import { request } from '../lib/apiClient';
 import { showToast } from '../lib/toast';
 import { AvatarRing } from './AvatarRing';
 import { navigateToDmWithUser } from '../lib/openDmThread';
-import { apiBlockUser, apiCreateReport, apiGetCurrentUserId } from '../features/safety/safetyApi';
+import { apiCreateReport, apiGetCurrentUserId } from '../features/safety/safetyApi';
+import { useSafetyStore } from '../store/useSafetyStore';
 
 interface LikeUser {
   id: string;
@@ -104,9 +105,9 @@ export default function EnhancedLikesModal({ isOpen, onClose, videoId, likes }: 
   const handleBlockUser = async (user: LikeUser) => {
     const { userId } = await apiGetCurrentUserId();
     if (!userId) { showToast('Please sign in'); return; }
-    const { error } = await apiBlockUser(user.id);
-    if (!error) { showToast('User blocked'); onClose(); }
-    else showToast('Failed to block user');
+    useSafetyStore.getState().blockUser(user.id);
+    showToast('User blocked');
+    onClose();
   };
 
   const formatNumber = (num: number) => {

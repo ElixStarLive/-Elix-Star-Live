@@ -27,6 +27,17 @@ import { getVideoPosterUrl, resolveVideoPlaybackUrl } from '../lib/bunnyStorage'
 import { resolveSoundTrackPlaybackUrl } from '../lib/soundLibrary';
 import { isStemExtraCaption } from '../lib/suggestiveCaption';
 import { publishVideoCollection } from '../lib/videoCollectionEvents';
+import { useSafetyStore } from './useSafetyStore';
+
+function isCreatorBlocked(userId: string | undefined | null): boolean {
+  const id = String(userId || '').trim();
+  if (!id) return false;
+  return useSafetyStore.getState().isBlocked(id);
+}
+
+function withoutBlockedCreators(list: Video[]): Video[] {
+  return list.filter((v) => !isCreatorBlocked(v.user?.id));
+}
 
 async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 2000): Promise<T> {
   for (let i = 0; i <= retries; i++) {
@@ -262,6 +273,8 @@ interface VideoStore {
   getVideoById: (videoId: string) => Video | undefined;
   addVideo: (video: Video) => void;
   removeVideo: (videoId: string) => void;
+  /** Drop every feed video from a blocked creator (For You / Friends / STEM). */
+  removeVideosByCreator: (userId: string) => void;
   updateVideo: (videoId: string, updates: Partial<Video>) => void;
   deleteVideo: (videoId: string) => Promise<void>;
   
@@ -386,7 +399,7 @@ export const useVideoStore = create<VideoStore>()(
               })
             : [];
 
-          const mappedVideos: Video[] = sourceVideos.map(toClientVideo);
+          const mappedVideos: Video[] = withoutBlockedCreators(sourceVideos.map(toClientVideo));
 
           /* For You = /api/feed/foryou (ranked stages). Do not merge friends-only here. */
           set({
@@ -428,8 +441,9 @@ export const useVideoStore = create<VideoStore>()(
               return !url.includes('/stories/');
             })
             .map((v) => mapRawVideoRowToClientVideo(v, likedSet, savedSet, followingSet));
+          const filtered = withoutBlockedCreators(mapped);
           set({
-            videos: [...videos, ...mapped],
+            videos: [...videos, ...filtered],
             forYouPage: nextPage,
             forYouHasMore: Boolean(pageJson?.hasMore),
             loading: false,
@@ -469,7 +483,9 @@ export const useVideoStore = create<VideoStore>()(
               !seen.has(x.id) &&
               isStemExtraCaption(x.description, x.hashtags),
           );
-          const stemList = [...topTrending, ...extraPool.slice(0, 20)].slice(0, 55);
+          const stemList = withoutBlockedCreators(
+            [...topTrending, ...extraPool.slice(0, 20)].slice(0, 55),
+          );
 
           set({ stemVideos: stemList, stemLoading: false });
         } catch {
@@ -510,8 +526,10 @@ export const useVideoStore = create<VideoStore>()(
           const savedSet = new Set(savedVideos);
           const followingSet = new Set(followingUsers);
 
-          const mappedVideos: Video[] = apiVideos.map((v: unknown) =>
-            mapRawVideoRowToClientVideo(v, likedSet, savedSet, followingSet),
+          const mappedVideos: Video[] = withoutBlockedCreators(
+            apiVideos.map((v: unknown) =>
+              mapRawVideoRowToClientVideo(v, likedSet, savedSet, followingSet),
+            ),
           );
           set({ friendVideos: mappedVideos, friendsLoading: false });
         } catch {
@@ -528,6 +546,16 @@ export const useVideoStore = create<VideoStore>()(
       removeVideo: (videoId) => set((state) => ({
         videos: state.videos.filter(video => video.id !== videoId)
       })),
+
+      removeVideosByCreator: (userId) => {
+        const id = String(userId || '').trim();
+        if (!id) return;
+        set((state) => ({
+          videos: state.videos.filter((v) => v.user?.id !== id),
+          friendVideos: state.friendVideos.filter((v) => v.user?.id !== id),
+          stemVideos: state.stemVideos.filter((v) => v.user?.id !== id),
+        }));
+      },
       
       updateVideo: (videoId, updates) => set((state) => {
         const upd = (video: Video) => video.id === videoId ? { ...video, ...updates } : video;

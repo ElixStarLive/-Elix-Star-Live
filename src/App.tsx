@@ -24,6 +24,7 @@ import { LiveNotifyBanner } from "./components/LiveNotifyBanner";
 import { subscribeToIncomingCalls } from "./lib/callService";
 import { websocket } from "./lib/websocket";
 import { useSoundLibraryPlayerStore } from "./store/useSoundLibraryPlayerStore";
+import { useSafetyStore } from "./store/useSafetyStore";
 
 
 // Lazy-loaded page components for code splitting
@@ -192,6 +193,13 @@ function App() {
       return unsub;
     }
   }, []);
+
+  // After login, sync blocked users and purge their videos from For You / feeds.
+  const authUserId = useAuthStore((s) => s.user?.id);
+  useEffect(() => {
+    if (!authUserId) return;
+    void useSafetyStore.getState().hydrateBlockedFromServer();
+  }, [authUserId]);
 
   useEffect(() => {
     // Failsafe: if loading takes too long (e.g. auth hanging), force stop loading

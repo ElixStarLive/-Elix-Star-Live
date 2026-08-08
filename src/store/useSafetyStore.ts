@@ -1,13 +1,26 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { apiBlockUser, apiUnblockUser } from '../features/safety/safetyApi';
+import {
+  apiBlockUser,
+  apiListBlockedUsers,
+  apiUnblockUser,
+} from '../features/safety/safetyApi';
 
 type SafetyStore = {
   blockedUserIds: string[];
   blockUser: (userId: string) => void;
   unblockUser: (userId: string) => void;
   isBlocked: (userId: string) => boolean;
+  /** Sync blocked ids from server (call after login). */
+  hydrateBlockedFromServer: () => Promise<void>;
 };
+
+function purgeCreatorFromFeeds(userId: string) {
+  // Lazy import avoids circular init with useVideoStore.
+  void import('./useVideoStore').then(({ useVideoStore }) => {
+    useVideoStore.getState().removeVideosByCreator(userId);
+  });
+}
 
 export const useSafetyStore = create<SafetyStore>()(
   persist(
@@ -17,8 +30,12 @@ export const useSafetyStore = create<SafetyStore>()(
         const id = userId.trim();
         if (!id) return;
         const current = get().blockedUserIds;
-        if (current.includes(id)) return;
+        if (current.includes(id)) {
+          purgeCreatorFromFeeds(id);
+          return;
+        }
         set({ blockedUserIds: [...current, id] });
+        purgeCreatorFromFeeds(id);
         apiBlockUser(id).then((res) => {
           if (!res.ok) {
             set({ blockedUserIds: get().blockedUserIds.filter((x) => x !== id) });
@@ -45,8 +62,27 @@ export const useSafetyStore = create<SafetyStore>()(
         if (!id) return false;
         return get().blockedUserIds.includes(id);
       },
+      hydrateBlockedFromServer: async () => {
+        try {
+          const { rows, error } = await apiListBlockedUsers();
+          if (error) return;
+          const ids = rows
+            .map((r) =>
+              String(
+                (r as { blocked_user_id?: string; blockedUserId?: string }).blocked_user_id ||
+                  (r as { blockedUserId?: string }).blockedUserId ||
+                  '',
+              ).trim(),
+            )
+            .filter(Boolean);
+          const unique = Array.from(new Set(ids));
+          set({ blockedUserIds: unique });
+          for (const id of unique) purgeCreatorFromFeeds(id);
+        } catch {
+          /* keep persisted local list */
+        }
+      },
     }),
     { name: 'elix_safety_v1' }
   )
 );
-

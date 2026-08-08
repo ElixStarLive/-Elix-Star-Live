@@ -10,6 +10,7 @@ import {
   apiUnblockUser,
 } from '../../features/safety/safetyApi';
 import { SETTINGS_HOME } from '../../lib/settingsNav';
+import { useSafetyStore } from '../../store/useSafetyStore';
 
 interface BlockedUser {
   blocked_user_id: string;
@@ -70,6 +71,10 @@ export default function BlockedAccounts() {
       const { error } = await apiUnblockUser(blockedUserId);
       if (error) throw error;
       setBlockedUsers(prev => prev.filter(b => b.blocked_user_id !== blockedUserId));
+      // Keep For You filter in sync (do not re-add videos until next feed refresh).
+      useSafetyStore.setState((s) => ({
+        blockedUserIds: s.blockedUserIds.filter((id) => id !== blockedUserId),
+      }));
     } catch {
       showToast('Failed to unblock user');
     }
