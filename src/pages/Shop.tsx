@@ -815,7 +815,7 @@ export default function Shop() {
                       <button
                         onClick={handleCheckoutCart}
                         disabled={checkingOut}
-                        className="w-full py-3 rounded-xl bg-gradient-to-r from-[#D8D9DD] to-[#D8D9DD] text-black font-bold text-sm disabled:opacity-50"
+                        className="w-full py-3 rounded-xl bg-[#1A1C21] border border-white/15 text-[#F5F5F7] font-bold text-sm disabled:opacity-50"
                       >
                         {checkingOut ? 'Starting checkout…' : 'Checkout with Stripe'}
                       </button>
