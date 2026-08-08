@@ -580,30 +580,37 @@ export default function Shop() {
           </div>
         )}
 
-        {/* Create Listing Modal */}
+        {/* Create Listing — separate opaque panel (products behind stay hidden) */}
         {showCreate && (
           <>
             <div
-              className="fixed inset-0 z-[9998] bg-black/70"
+              className="fixed inset-0 z-[9998] bg-black/85"
               onClick={closeCreateListing}
+              aria-hidden
             />
-            {/* Anchor the modal exactly to the top of the bottom bar (no extra gap). */}
-            <div className="fixed left-0 right-0 z-[9999] pointer-events-auto max-w-[480px] mx-auto fixed-above-bottom-nav">
+            <div className="fixed left-0 right-0 z-[9999] pointer-events-auto max-w-[480px] mx-auto fixed-above-bottom-nav top-[var(--safe-top,0px)] bottom-[var(--bottom-nav-top)] flex flex-col justify-end">
               <div
-                className="w-full bg-transparent rounded-t-3xl pb-safe"
-                style={{ maxHeight: '80dvh', boxShadow: 'none' }}
+                className="w-full elix-panel rounded-t-3xl pb-safe border border-black flex flex-col min-h-0"
+                style={{ maxHeight: '85dvh', height: '85dvh' }}
                 onClick={e => e.stopPropagation()}
+                role="dialog"
+                aria-modal="true"
+                aria-label="Sell an Item"
               >
-              <div className="flex items-center justify-center pt-3 pb-1">
+              <div className="flex items-center justify-center pt-3 pb-1 shrink-0">
                 <div className="w-10 h-1 rounded-full bg-white/20" />
               </div>
-              <div className="flex items-center justify-center px-5 pb-3">
+              <div className="flex items-center justify-between px-5 pb-3 shrink-0">
                 <h3 className="text-gold-metallic font-bold text-base">Sell an Item</h3>
+                <button type="button" onClick={closeCreateListing} className="p-1" title="Back" aria-label="Close sell panel">
+                  <RoyceBackIcon />
+                </button>
               </div>
-              <div className="overflow-y-auto px-5 pb-6" style={{ maxHeight: 'calc(80dvh - 70px)' }}>
+              <div className="overflow-y-auto px-5 pb-6 flex-1 min-h-0">
                 <button
+                  type="button"
                   onClick={() => document.getElementById('shop-image-input')?.click()}
-                  className="w-full aspect-video rounded-xl border-2 border-dashed border-[#D8D9DD]/40 flex flex-col items-center justify-center gap-2 mb-4 overflow-hidden"
+                  className="w-full aspect-video rounded-xl border-2 border-dashed border-[#D8D9DD]/40 bg-black/40 flex flex-col items-center justify-center gap-2 mb-4 overflow-hidden"
                 >
                   {newImagePreview ? (
                     <img src={newImagePreview} alt="Preview" className="w-full h-full object-cover" />
@@ -648,7 +655,7 @@ export default function Shop() {
                 <select
                   value={newCategory}
                   onChange={e => setNewCategory(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm mb-4 focus:outline-none focus:border-[#D8D9DD] [&>option]:bg-transparent [&>option]:text-white"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm mb-4 focus:outline-none focus:border-[#D8D9DD] [&>option]:bg-[#1A1C21] [&>option]:text-white"
                   aria-label="Category"
                 >
                   <option value="clothing">Clothing</option>
@@ -658,6 +665,7 @@ export default function Shop() {
                 </select>
 
                 <button
+                  type="button"
                   onClick={handleCreateListing}
                   disabled={creating || !newTitle.trim() || !newPrice.trim()}
                   className="w-full py-3 rounded-xl bg-gradient-to-r from-[#D8D9DD] to-[#D8D9DD] text-black font-bold text-sm disabled:opacity-50"
