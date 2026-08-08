@@ -17,10 +17,16 @@ import { videoUploadService } from '../lib/videoUpload';
 import { api } from '../lib/apiClient';
 import { useAuthStore } from '../store/useAuthStore';
 import AIToolsPanel from '../components/AIToolsPanel';
+import MediaEditorPanel, {
+  type EditorTab,
+  type FilterPreset,
+  FILTER_PRESETS,
+  EFFECT_PRESETS,
+} from '../components/MediaEditorPanel';
 import { takeCachedRecordedMedia } from '../lib/recordedMediaCache';
 import { DUET_STAGE_HEIGHT } from '../lib/profileFrame';
 import { nativeShareUrl } from '../lib/platform';
-import { bakeImage, bakeVideo, canBakeVideo } from '../lib/mediaBake';
+import { bakeImage, bakeVideo, canBakeVideo, type EditOverlay } from '../lib/mediaBake';
 
 export default function Upload() {
   const navigate = useNavigate();
@@ -57,6 +63,14 @@ export default function Upload() {
   const [showAITools, setShowAITools] = useState(false);
   const [activeFilter, setActiveFilter] = useState('none');
   const [activeEnhance, setActiveEnhance] = useState('none');
+  /** Story compose editor — same panel as Create (filters / effects / text / stickers). */
+  const [editorTab, setEditorTab] = useState<EditorTab | null>(null);
+  const [filterPreset, setFilterPreset] = useState<FilterPreset>(FILTER_PRESETS[0]);
+  const [effectPreset, setEffectPreset] = useState<FilterPreset>(EFFECT_PRESETS[0]);
+  const [overlays, setOverlays] = useState<EditOverlay[]>([]);
+  const mediaWrapRef = useRef<HTMLDivElement>(null);
+  const dragIdRef = useRef<string | null>(null);
+  const [mediaWidth, setMediaWidth] = useState(360);
   /** Selected AI thumbnail data URL — uploaded as real thumb (not preview-only). */
   const [selectedThumbnailDataUrl, setSelectedThumbnailDataUrl] = useState<string | null>(null);
   /** Voice FX is baked into video via mediaBake + VoiceProcessor when the runtime can re-encode. */
@@ -74,6 +88,15 @@ export default function Upload() {
 
   const duetParam = searchParams.get('duet');
   const isStoryUpload = searchParams.get('type') === 'story';
+  const composeFilterCss = [
+    filterPreset.css,
+    effectPreset.css,
+    activeFilter !== 'none' ? activeFilter : '',
+    activeEnhance !== 'none' ? activeEnhance : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .trim();
 
   const goLoginFromUpload = useCallback(() => {
     navigate('/login', { state: { from: '/upload' } });
@@ -101,6 +124,22 @@ export default function Upload() {
 
   const openAITools = useCallback(() => {
     setShowAITools(true);
+  }, []);
+
+  const openTextEditor = useCallback(() => {
+    setEditorTab('text');
+  }, []);
+  const openStickersEditor = useCallback(() => {
+    setEditorTab('stickers');
+  }, []);
+  const openEffectsEditor = useCallback(() => {
+    setEditorTab('effects');
+  }, []);
+  const openFiltersEditor = useCallback(() => {
+    setEditorTab('filters');
+  }, []);
+  const closeEditorPanel = useCallback(() => {
+    setEditorTab(null);
   }, []);
 
   const clearPostError = useCallback(() => {
@@ -149,6 +188,40 @@ export default function Upload() {
   const ZOOM_STEP = 0.25;
   const handleZoomIn = () => setZoomLevel((z) => Math.min(ZOOM_MAX, z + ZOOM_STEP));
   const handleZoomOut = () => setZoomLevel((z) => Math.max(ZOOM_MIN, z - ZOOM_STEP));
+
+  useEffect(() => {
+    const el = mediaWrapRef.current;
+    if (!el || !recordedVideoUrl) return;
+    const update = () => setMediaWidth(el.clientWidth || 360);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [recordedVideoUrl]);
+
+  const genOverlayId = () => `ov_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
+  const handleAddText = (text: string, color: string) =>
+    setOverlays((p) => [...p, { id: genOverlayId(), kind: 'text', value: text, xPct: 0.5, yPct: 0.5, color, sizePct: 0.07 }]);
+  const handleAddSticker = (emoji: string) =>
+    setOverlays((p) => [...p, { id: genOverlayId(), kind: 'sticker', value: emoji, xPct: 0.5, yPct: 0.5, color: '#FFFFFF', sizePct: 0.14 }]);
+  const removeOverlay = (id: string) => setOverlays((p) => p.filter((o) => o.id !== id));
+  const onOverlayPointerDown = (e: React.PointerEvent, id: string) => {
+    dragIdRef.current = id;
+    (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
+  };
+  const onOverlayPointerMove = (e: React.PointerEvent) => {
+    const id = dragIdRef.current;
+    if (!id) return;
+    const rect = mediaWrapRef.current?.getBoundingClientRect();
+    if (!rect || rect.width === 0 || rect.height === 0) return;
+    const xPct = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+    const yPct = Math.min(1, Math.max(0, (e.clientY - rect.top) / rect.height));
+    setOverlays((p) => p.map((o) => (o.id === id ? { ...o, xPct, yPct } : o)));
+  };
+  const onOverlayPointerUp = (e: React.PointerEvent) => {
+    dragIdRef.current = null;
+    (e.currentTarget as Element).releasePointerCapture?.(e.pointerId);
+  };
 
   type _UploadMusic = {
     id: string;
@@ -553,16 +626,19 @@ export default function Upload() {
       setIsPosting(true);
 
       try {
-        const filterCss = [activeFilter !== 'none' ? activeFilter : '', activeEnhance !== 'none' ? activeEnhance : '']
+        const filterCss = [
+          composeFilterCss,
+        ]
           .filter(Boolean)
           .join(' ');
         const sourceUrl = recordedVideoUrl || URL.createObjectURL(blob);
         const ownsTempUrl = !recordedVideoUrl;
         const wantsVoice = Boolean(selectedVoiceEffect && selectedVoiceEffect !== 'none');
+        const wantsOverlays = overlays.length > 0;
         try {
           if (mediaKind === 'image' || mimeType.startsWith('image/')) {
-            if (filterCss) {
-              const bakedUrl = await bakeImage(sourceUrl, filterCss, []);
+            if (filterCss || wantsOverlays) {
+              const bakedUrl = await bakeImage(sourceUrl, filterCss, overlays);
               if (bakedUrl && bakedUrl !== sourceUrl) {
                 blob = await fetch(bakedUrl).then((r) => r.blob());
                 mimeType = blob.type || 'image/jpeg';
@@ -572,9 +648,9 @@ export default function Upload() {
             if (wantsVoice) {
               showToast('Voice effect applies to video only — not in uploaded image');
             }
-          } else if (filterCss || wantsVoice) {
+          } else if (filterCss || wantsVoice || wantsOverlays) {
             if (canBakeVideo()) {
-              const bakedUrl = await bakeVideo(sourceUrl, filterCss, [], wantsVoice ? selectedVoiceEffect : undefined);
+              const bakedUrl = await bakeVideo(sourceUrl, filterCss, overlays, wantsVoice ? selectedVoiceEffect : undefined);
               if (bakedUrl && bakedUrl !== sourceUrl) {
                 blob = await fetch(bakedUrl).then((r) => r.blob());
                 mimeType = blob.type || 'video/webm';
@@ -704,6 +780,10 @@ export default function Upload() {
       setMediaKind('video');
       setSelectedThumbnailDataUrl(null);
       setSelectedVoiceEffect('none');
+      setFilterPreset(FILTER_PRESETS[0]);
+      setEffectPreset(EFFECT_PRESETS[0]);
+      setOverlays([]);
+      setEditorTab(null);
   };
 
   const handleFileUpload = () => {
@@ -730,7 +810,7 @@ export default function Upload() {
       {/* PREVIEW MODE */}
        {recordedVideoUrl ? (
          <>
-           <div className="relative z-10 w-full mx-auto h-[100dvh] bg-black flex flex-col items-center justify-center">
+           <div className="relative z-10 w-full mx-auto h-[100dvh] bg-black flex flex-col items-center justify-center" ref={mediaWrapRef}>
               {duetSourceVideoUrl ? (
                 <div
                   className="absolute top-0 left-0 right-0 w-full overflow-hidden bg-black"
@@ -772,7 +852,7 @@ export default function Upload() {
                       loop
                       muted
                       playsInline
-                      style={{ filter: activeFilter !== 'none' || activeEnhance !== 'none' ? [activeFilter !== 'none' ? activeFilter : '', activeEnhance !== 'none' ? activeEnhance : ''].filter(Boolean).join(' ') : undefined }}
+                      style={{ filter: composeFilterCss || undefined }}
                     />
                   </div>
                   <div
@@ -808,7 +888,7 @@ export default function Upload() {
                   src={recordedVideoUrl}
                   alt=""
                   className="w-full h-full object-cover z-0"
-                  style={{ filter: activeFilter !== 'none' || activeEnhance !== 'none' ? [activeFilter !== 'none' ? activeFilter : '', activeEnhance !== 'none' ? activeEnhance : ''].filter(Boolean).join(' ') : undefined }}
+                  style={{ filter: composeFilterCss || undefined }}
                   draggable={false}
               />
               ) : (
@@ -821,9 +901,41 @@ export default function Upload() {
                   loop
                   muted
                   playsInline
-                  style={{ filter: activeFilter !== 'none' || activeEnhance !== 'none' ? [activeFilter !== 'none' ? activeFilter : '', activeEnhance !== 'none' ? activeEnhance : ''].filter(Boolean).join(' ') : undefined }}
+                  style={{ filter: composeFilterCss || undefined }}
               />
               )}
+
+               {recordedVideoUrl && overlays.length > 0 ? (
+                 <div className="absolute inset-0 z-[10] pointer-events-none">
+                   {overlays.map((o) => {
+                     const fontPx = Math.max(12, Math.round(o.sizePct * (mediaWidth || 360)));
+                     return (
+                       <div
+                         key={o.id}
+                         role="button"
+                         tabIndex={0}
+                         onPointerDown={(e) => onOverlayPointerDown(e, o.id)}
+                         onPointerMove={onOverlayPointerMove}
+                         onPointerUp={onOverlayPointerUp}
+                         onDoubleClick={() => removeOverlay(o.id)}
+                         title="Drag to move · double-tap to remove"
+                         className="absolute -translate-x-1/2 -translate-y-1/2 select-none pointer-events-auto touch-none cursor-move whitespace-nowrap"
+                         style={{
+                           left: `${o.xPct * 100}%`,
+                           top: `${o.yPct * 100}%`,
+                           fontSize: `${fontPx}px`,
+                           color: o.kind === 'text' ? o.color : undefined,
+                           fontWeight: 700,
+                           textShadow: o.kind === 'text' ? '0 1px 3px rgba(0,0,0,0.55)' : undefined,
+                           lineHeight: 1,
+                         }}
+                       >
+                         {o.value}
+                       </div>
+                     );
+                   })}
+                 </div>
+               ) : null}
                
                {/* Story compose = Instagram/TikTok style (Your Story / Next). Video post keeps caption form. */}
                {isStoryUpload ? (
@@ -893,10 +1005,10 @@ export default function Upload() {
                        { Icon: LayoutGrid, title: 'Layout', onClick: handleFileUpload },
                        { Icon: ImageIcon, title: 'Media', onClick: handleFileUpload },
                        { Icon: Music, title: 'Audio', onClick: openMusicModal },
-                       { Icon: Type, title: 'Text', onClick: openAITools },
-                       { Icon: Smile, title: 'Stickers', onClick: openAITools },
-                       { Icon: Sparkles, title: 'Effects', onClick: openAITools },
-                       { Icon: Blend, title: 'Filters', onClick: openAITools },
+                       { Icon: Type, title: 'Text', onClick: openTextEditor },
+                       { Icon: Smile, title: 'Stickers', onClick: openStickersEditor },
+                       { Icon: Sparkles, title: 'Effects', onClick: openEffectsEditor },
+                       { Icon: Blend, title: 'Filters', onClick: openFiltersEditor },
                      ].map(({ Icon, title, onClick }) => (
                        <button
                          key={title}
@@ -1151,6 +1263,20 @@ export default function Upload() {
                  </>
                )}
                </div>
+
+              {/* Story compose editor (filters / effects / text / stickers) */}
+              {editorTab ? (
+                <MediaEditorPanel
+                  tab={editorTab}
+                  activeFilterId={filterPreset.id}
+                  activeEffectId={effectPreset.id}
+                  onSelectFilter={setFilterPreset}
+                  onSelectEffect={setEffectPreset}
+                  onAddText={handleAddText}
+                  onAddSticker={handleAddSticker}
+                  onClose={closeEditorPanel}
+                />
+              ) : null}
 
               {/* AI Tools Panel */}
               <AIToolsPanel
