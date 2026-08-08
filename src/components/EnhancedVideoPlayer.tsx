@@ -1308,6 +1308,7 @@ export default function EnhancedVideoPlayer({
         isOpen={showUserProfile}
         onClose={() => setShowUserProfile(false)}
         user={video.user}
+        onFollow={handleFollow}
       />
       
             {isMoreMenuOpen && (

@@ -119,19 +119,23 @@ export default function SoundLibraryView({
 
   const featuredTrack = useMemo(() => {
     const id = featuredTrackId || playingId;
-    if (!id) return null;
-    if (id === ORIGINAL_SOUND_TRACK.id) return ORIGINAL_SOUND_TRACK;
-    return (
-      allTracks.find((t) => t.id === id) ||
-      searchResults.find((t) => t.id === id) ||
-      visibleTracks.find((t) => t.id === id) ||
-      null
-    );
+    if (id && id !== ORIGINAL_SOUND_TRACK.id) {
+      const found =
+        allTracks.find((t) => t.id === id) ||
+        searchResults.find((t) => t.id === id) ||
+        visibleTracks.find((t) => t.id === id) ||
+        null;
+      if (found) return found;
+    }
+    // Always show licensed cover art (first track in list) — never an empty note.
+    return visibleTracks[0] ?? null;
   }, [featuredTrackId, playingId, allTracks, searchResults, visibleTracks]);
 
   const headerTitle = featuredTrack?.title || 'Sound';
   const headerArtist = featuredTrack?.artist || 'Licensed playlists';
-  const trackIsSaved = Boolean(featuredTrack && savedIds.has(featuredTrack.id));
+  const trackIsSaved = Boolean(
+    featuredTrack && (savedIds.has(featuredTrack.id) || isSoundSaved(featuredTrack.id)),
+  );
 
   useEffect(() => {
     if (!featuredTrack?.id) return;
@@ -146,7 +150,7 @@ export default function SoundLibraryView({
 
   const toggleSaveTrack = useCallback(() => {
     if (!featuredTrack || featuredTrack.id === ORIGINAL_SOUND_TRACK.id) {
-      showToast('Open a track first');
+      showToast('No track to save');
       return;
     }
     const nowSaved = toggleSavedSound(featuredTrack);

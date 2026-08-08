@@ -12,6 +12,7 @@ import { api } from '../lib/apiClient';
 import { navigateToDmWithUser } from '../lib/openDmThread';
 import { getVideoPosterUrl, resolveGridThumbnailUrl, resolveVideoPlaybackUrl } from '../lib/bunnyStorage';
 import { apiSetBlockUserAction } from '../features/safety/safetyApi';
+import { apiFetchFollowingIds } from '../features/feed/feedApi';
 
 interface User {
   id: string;
@@ -35,7 +36,8 @@ interface UserProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
   user: User;
-  onFollow: () => void;
+  /** Optional — when omitted, modal uses store toggleFollow. */
+  onFollow?: () => void;
 }
 
 export default function UserProfileModal({ isOpen, onClose, user, onFollow }: UserProfileModalProps) {
@@ -44,7 +46,10 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
   const [showMoreOptions, setShowMoreOptions] = useState(false);
   const [profileUser, setProfileUser] = useState<User | null>(null);
 
-  const { videos } = useVideoStore();
+  const videos = useVideoStore((s) => s.videos);
+  const followingUsers = useVideoStore((s) => s.followingUsers);
+  const toggleFollow = useVideoStore((s) => s.toggleFollow);
+  const setUserFollowing = useVideoStore((s) => s.setUserFollowing);
   const { user: currentUser, session: _session } = useAuthStore();
   const blockedUserIds = useSafetyStore((s) => s.blockedUserIds);
   const blockUser = useSafetyStore((s) => s.blockUser);
@@ -57,6 +62,16 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
   const userVideos = videos.filter(video => video.user.id === user.id);
   const isOwnProfile = currentUser?.id === user.id;
   const isBlocked = blockedUserIds.includes(user.id);
+  const isFollowingUser = followingUsers.includes(user.id);
+
+  const handleFollowToggle = useCallback(() => {
+    if (!user?.id || isOwnProfile) return;
+    if (onFollow) {
+      onFollow();
+      return;
+    }
+    void toggleFollow(user.id);
+  }, [user?.id, isOwnProfile, onFollow, toggleFollow]);
 
   useEffect(() => {
     if (!isOpen || !user?.id) return;
@@ -68,11 +83,24 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
         if (cancelled || !body) return;
         // API returns { profile: { username, displayName, avatarUrl, isVerified, ... } } (camelCase).
         const profile = (body as { profile?: Record<string, unknown> })?.profile ?? body;
-        const [{ count: followersCount }, { count: followingCount }] = await Promise.all([
+        const countsPromise = Promise.all([
           api.profiles.getFollowerCount(user.id),
           api.profiles.getFollowingCount(user.id),
         ]);
+        const followPromise =
+          currentUser?.id && currentUser.id !== user.id
+            ? apiFetchFollowingIds(currentUser.id)
+            : Promise.resolve({ following: [] as string[], error: null as string | null });
+
+        const [[{ count: followersCount }, { count: followingCount }], followResult] =
+          await Promise.all([countsPromise, followPromise]);
         if (cancelled) return;
+
+        if (currentUser?.id && currentUser.id !== user.id && !followResult.error) {
+          const follows = followResult.following.some((id) => String(id) === String(user.id));
+          setUserFollowing(user.id, follows, 0);
+        }
+
         const pUsername = typeof profile.username === 'string' ? profile.username : '';
         const pDisplayName = typeof profile.displayName === 'string' ? profile.displayName : '';
         const pAvatarUrl = typeof profile.avatarUrl === 'string' ? profile.avatarUrl : '';
@@ -94,7 +122,6 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
           isVerified: !!profile.isVerified,
           followers: followersCount ?? 0,
           following: followingCount ?? 0,
-          isFollowing: user.isFollowing,
         });
       } catch {
         if (!cancelled) setProfileUser(null);
@@ -170,8 +197,18 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
 
   if (isBlocked) {
     return (
-      <div className="page-above-bottom-nav bg-transparent text-white z-[10003]">
+      <div
+        className="page-above-bottom-nav bg-transparent text-white"
+        style={{ zIndex: 100020, bottom: 'var(--bottom-nav-top)' }}
+      >
         <div className="page-above-bottom-nav__inner bg-transparent flex flex-col">
+          <div
+            className="flex justify-center pt-0.5 pb-1 flex-shrink-0"
+            aria-hidden
+            style={{ transform: 'translateY(0.6mm)' }}
+          >
+            <div className="w-10 h-1 rounded-full bg-white/25" />
+          </div>
           <header className="flex items-center justify-between px-4 pt-page-header pb-2 relative z-20">
             <button
               type="button"
@@ -207,11 +244,12 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
                 You have blocked @{displayUser.username}. You will no longer see their content.
               </p>
               <button
+                type="button"
                 onClick={async () => {
                   await apiSetBlockUserAction(user.id, 'unblock').catch(() => null);
                   unblockUser(user.id);
                 }}
-                className="px-4 py-2 bg-white text-white rounded-lg hover:bg-white transition-colors"
+                className="px-4 py-2.5 rounded-lg bg-white/10 text-white font-bold text-sm border border-[#2A2D33] hover:bg-white/15 active:scale-95 transition"
               >
                 Unblock User
               </button>
@@ -223,9 +261,19 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
   }
 
   return (
-    <div className="page-above-bottom-nav bg-transparent text-white z-[10003]">
+    <div
+      className="page-above-bottom-nav bg-transparent text-white"
+      style={{ zIndex: 100020, bottom: 'var(--bottom-nav-top)' }}
+    >
       <div className="page-above-bottom-nav__inner bg-transparent flex flex-col">
         {/* Header — Search + Close only (home TopNav hidden while open) */}
+        <div
+          className="flex justify-center pt-0.5 pb-1 flex-shrink-0"
+          aria-hidden
+          style={{ transform: 'translateY(0.6mm)' }}
+        >
+          <div className="w-10 h-1 rounded-full bg-white/25" />
+        </div>
         <header className="flex items-center justify-between px-4 pt-page-header pb-2 relative z-20 flex-shrink-0">
           <button
             type="button"
@@ -260,7 +308,7 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
             <div className="mb-3">
               <AvatarRing src={displayUser.avatar} alt={displayUser.name} size={80} />
             </div>
-            <h2 className="text-lg font-bold text-white flex items-center gap-1.5">
+            <h2 className="text-lg font-bold text-white flex items-center gap-1.5 -translate-y-[2mm]">
               {realName}
               {displayUser.isVerified && (
                 <span className="w-2 h-2 rounded-full bg-[#FFFFFF] flex-shrink-0" />
@@ -274,6 +322,7 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
                 level={displayUser.level ?? 1}
                 hideCircle
                 layout="fixed"
+                className="translate-y-[0.5mm]"
               />
             </div>
 
@@ -297,17 +346,20 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
             <div className="flex items-center gap-2 mt-4 mx-auto w-full max-w-[300px]">
               {!isOwnProfile && (
                 <>
-                  {displayUser.isFollowing ? (
+                  {isFollowingUser ? (
                     <button
-                      onClick={onFollow}
-                      className="flex-1 h-9 flex items-center justify-center bg-white/10 text-white rounded-xl font-semibold text-xs hover:bg-white/15 transition-colors"
+                      type="button"
+                      onClick={handleFollowToggle}
+                      className="flex-1 h-9 flex items-center justify-center bg-white/10 rounded-xl font-semibold text-xs hover:bg-white/15 transition-colors text-red-500"
+                      style={{ color: '#D91F2D', WebkitTextFillColor: '#D91F2D', backgroundImage: 'none' }}
                     >
-                      Following
+                      Unfollow
                     </button>
                   ) : (
                     <button
-                      onClick={onFollow}
-                      className="flex-1 h-9 flex items-center justify-center bg-[#E6E9EE] text-white rounded-xl font-semibold text-xs hover:bg-[#E6E9EE]/90 transition-colors"
+                      type="button"
+                      onClick={handleFollowToggle}
+                      className="flex-1 h-9 flex items-center justify-center bg-white/10 text-white rounded-xl font-semibold text-xs hover:bg-white/15 transition-colors"
                     >
                       Follow
                     </button>

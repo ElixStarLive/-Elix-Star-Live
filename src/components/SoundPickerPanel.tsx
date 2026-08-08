@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import SoundLibraryView from './SoundLibraryView';
 import { type SoundTrack } from '../lib/soundLibrary';
 import { useSoundLibraryPlayerStore } from '../store/useSoundLibraryPlayerStore';
@@ -11,7 +12,7 @@ type Props = {
 };
 
 /**
- * Create / Upload Add sound — same DOM shell as MusicFeed (/music).
+ * Create / Upload Add sound — same full Sound page as /music (portaled to body).
  */
 export default function SoundPickerPanel({ onClose, onPick }: Props) {
   const stopLibraryPlayer = useSoundLibraryPlayerStore((s) => s.stop);
@@ -36,8 +37,8 @@ export default function SoundPickerPanel({ onClose, onPick }: Props) {
     [onClose, onPick, stopLibraryPlayer],
   );
 
-  // Exact same structure as pages/MusicFeed.tsx — do not invent another shell.
-  return (
+  // Portal out of Create/Upload overflow/transform so the panel is truly full-screen.
+  return createPortal(
     <div
       className="page-above-bottom-nav text-white"
       style={{ bottom: 'var(--bottom-nav-top)', zIndex: 10050 }}
@@ -46,12 +47,9 @@ export default function SoundPickerPanel({ onClose, onPick }: Props) {
       aria-label="Sound"
     >
       <div className="page-above-bottom-nav__inner bg-transparent flex flex-col min-h-0">
-        <SoundLibraryView
-          mode="pick"
-          onBack={close}
-          onPick={handlePick}
-        />
+        <SoundLibraryView mode="pick" onBack={close} onPick={handlePick} />
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
