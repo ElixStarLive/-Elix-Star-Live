@@ -243,11 +243,10 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
               />
             </div>
           )}
-          <div className="grid grid-cols-5 gap-x-0 gap-y-2 pt-0">
+          <div className="grid grid-cols-5 gap-y-3 gap-x-1.5 pt-0 auto-rows-fr">
             {socialPlatforms.map((item) => (
               <button
                 key={item.name}
-                type="button"
                 onClick={() => item.action()}
                 className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
               >
@@ -269,12 +268,11 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
               return (
                 <button
                   key={item.name}
-                  type="button"
                   onClick={() => item.action()}
                   className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
                 >
                   <div
-                    className="relative royce-glow-disc flex-shrink-0"
+                    className={`relative royce-glow-disc flex-shrink-0 ${item.name === 'Report' ? 'translate-y-0.5' : ''}`}
                     style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }}
                   >
                     {React.cloneElement(item.icon as React.ReactElement, {
@@ -283,7 +281,7 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
                       strokeWidth: 2,
                     })}
                   </div>
-                  <span className={`text-[8px] font-semibold truncate w-full text-center ${isRed ? 'text-white/60' : 'text-white/70'}`}>{item.name}</span>
+                  <span className={`text-[8px] font-semibold truncate w-full text-center ${isRed ? 'text-white/60/70' : 'text-white/70'}`}>{item.name}</span>
                 </button>
               );
             })}

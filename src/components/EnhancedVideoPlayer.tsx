@@ -1435,11 +1435,11 @@ export default function EnhancedVideoPlayer({
                   <button type="button" onClick={() => setShowQrCodeInMore(false)} className="text-[#F5F5F7] text-xs font-semibold">Close</button>
                 </div>
               )}
-              <div className="grid grid-cols-4 gap-x-0 gap-y-2">
+              <div className="grid grid-cols-4 gap-y-4 gap-x-2">
                 <button
                   type="button"
                   onClick={moreCopyLink}
-                  className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
+                  className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
                   <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                     <Copy size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />
@@ -1449,7 +1449,7 @@ export default function EnhancedVideoPlayer({
                 <button
                   type="button"
                   onClick={moreDownload}
-                  className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
+                  className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
                   <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                     <Download size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />
@@ -1459,7 +1459,7 @@ export default function EnhancedVideoPlayer({
                 <button
                   type="button"
                   onClick={moreDuet}
-                  className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
+                  className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
                   <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                     <Users2 size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />
@@ -1469,7 +1469,7 @@ export default function EnhancedVideoPlayer({
                 <button
                   type="button"
                   onClick={moreToggleQr}
-                  className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
+                  className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
                   <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                     <QrCode size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />
@@ -1480,7 +1480,7 @@ export default function EnhancedVideoPlayer({
                   <button
                     type="button"
                     onClick={() => { void handleDeleteVideo(); }}
-                    className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
+                    className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                   >
                     <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                       <Trash2 size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />
@@ -1491,7 +1491,7 @@ export default function EnhancedVideoPlayer({
                 <button
                   type="button"
                   onClick={moreShare}
-                  className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
+                  className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
                   <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                     <Share2 size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />
@@ -1501,7 +1501,7 @@ export default function EnhancedVideoPlayer({
                 <button
                   type="button"
                   onClick={moreSave}
-                  className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
+                  className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
                   <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                     <Bookmark
@@ -1515,7 +1515,7 @@ export default function EnhancedVideoPlayer({
                 <button
                   type="button"
                   onClick={moreFollow}
-                  className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
+                  className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
                   <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                     {video.isFollowing
@@ -1536,7 +1536,7 @@ export default function EnhancedVideoPlayer({
                 <button
                   type="button"
                   onClick={morePromote}
-                  className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
+                  className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
                   <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                     <TrendingUp size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />
@@ -1546,7 +1546,7 @@ export default function EnhancedVideoPlayer({
                 <button
                   type="button"
                   onClick={moreReport}
-                  className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
+                  className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
                   <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                     <Flag size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />

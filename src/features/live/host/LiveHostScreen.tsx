@@ -1838,24 +1838,7 @@ export default function LiveHostScreen() {
                             likes={typeof activeLikes === 'number' && Number.isFinite(activeLikes) ? activeLikes : 0}
                             level={userLevel}
                             avatarSize={LIVE_TOP_AVATAR_RING_PX}
-                            showFollow={
-                              /* Same Follow pill as spectator — on creator/battle host only; never edit spectator. */
-                              !user?.id ||
-                              (isBattleMode
-                                ? Boolean(
-                                    (() => {
-                                      const opp = String(
-                                        opponentStreamKey || battleSlots[0]?.userId || '',
-                                      ).trim();
-                                      return opp && opp !== String(user.id);
-                                    })(),
-                                  )
-                                : Boolean(
-                                    effectiveStreamId &&
-                                      effectiveStreamId !== 'broadcast' &&
-                                      String(effectiveStreamId) !== String(user.id),
-                                  ))
-                            }
+                            showFollow={!isBroadcast}
                             isFollowing={isFollowing}
                             onAvatarClick={() => {
                               void openMiniProfile(myCreatorName, undefined, { userId: user?.id, avatar: myAvatar, level: userLevel });
@@ -3419,7 +3402,7 @@ export default function LiveHostScreen() {
 
             {/* Share options â€” same layout as ShareModal */}
             <div className="flex-1 overflow-y-scroll overflow-x-hidden min-h-0 px-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#313845] [&::-webkit-scrollbar-thumb]:rounded-full">
-              <div className="grid grid-cols-5 gap-x-0 gap-y-2 pt-0">
+              <div className="grid grid-cols-5 gap-y-3 gap-x-1.5 pt-0">
                 {[
                   { name: 'WhatsApp', icon: <MessageCircle size={22} className="text-white" />, action: shareWhatsApp },
                   { name: 'Facebook', icon: <Share2 size={22} className="text-white" />, action: shareFacebook },
@@ -3427,14 +3410,9 @@ export default function LiveHostScreen() {
                   { name: 'Promote', icon: <TrendingUp size={22} className="text-white" />, action: sharePromote },
                   { name: 'Report', icon: <Flag size={22} className="text-white/60" />, isRed: true, action: shareReport },
                 ].map((item) => (
-                  <button
-                    key={item.name}
-                    type="button"
-                    onClick={item.action}
-                    className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
-                  >
+                  <button key={item.name} onClick={item.action} className="flex flex-col items-center gap-1 active:scale-95 transition-transform">
                     <div
-                      className="relative royce-glow-disc flex-shrink-0"
+                      className={`relative royce-glow-disc flex-shrink-0 ${item.name === 'Report' ? 'translate-y-0.5' : ''}`}
                       style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }}
                     >
                       {React.cloneElement((item.icon as React.ReactElement), {
@@ -3443,13 +3421,7 @@ export default function LiveHostScreen() {
                         strokeWidth: 2,
                       })}
                     </div>
-                    <span
-                      className={`text-[8px] font-semibold truncate w-full text-center ${
-                        (item as { isRed?: boolean }).isRed ? 'text-white/60' : 'text-white/70'
-                      }`}
-                    >
-                      {item.name}
-                    </span>
+                    <span className={`text-[8px] font-semibold truncate w-full text-center ${(item as { isRed?: boolean }).isRed ? 'text-white/60/70' : 'text-white/70'}`}>{item.name}</span>
                   </button>
                 ))}
               </div>
