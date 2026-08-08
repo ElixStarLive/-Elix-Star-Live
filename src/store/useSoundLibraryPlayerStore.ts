@@ -40,13 +40,31 @@ function hardStopAudio() {
 function onTimeUpdate() {
   if (!audioEl || !clipRange) return;
   if (audioEl.currentTime >= clipRange.end) {
-    // One preview pass only — do not loop or queue other tracks.
-    useSoundLibraryPlayerStore.getState().stop();
+    // Loop this one song only — never advance to another track.
+    try {
+      audioEl.currentTime = clipRange.start;
+      void audioEl.play().catch(() => {
+        useSoundLibraryPlayerStore.getState().stop();
+      });
+    } catch {
+      useSoundLibraryPlayerStore.getState().stop();
+    }
   }
 }
 
 function onEnded() {
-  useSoundLibraryPlayerStore.getState().stop();
+  if (!audioEl || !clipRange) {
+    useSoundLibraryPlayerStore.getState().stop();
+    return;
+  }
+  try {
+    audioEl.currentTime = clipRange.start;
+    void audioEl.play().catch(() => {
+      useSoundLibraryPlayerStore.getState().stop();
+    });
+  } catch {
+    useSoundLibraryPlayerStore.getState().stop();
+  }
 }
 
 async function startTrack(track: SoundTrack): Promise<void> {

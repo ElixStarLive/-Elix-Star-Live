@@ -107,8 +107,9 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
       const clip = clipRef.current;
       if (!clip) return;
       if (clip.end > clip.start && a.currentTime >= clip.end) {
-        // Preview once — stop at clip end (do not keep looping after listen).
-        stopPreview();
+        // Loop this one preview only until pause / Use / close.
+        a.currentTime = clip.start;
+        void a.play().catch(() => {});
       }
     };
     a.addEventListener('timeupdate', onTimeUpdate);
@@ -188,7 +189,20 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
         ref={audioRef}
         preload="auto"
         playsInline
-        onEnded={() => setPlayingId(null)}
+        onEnded={() => {
+          const a = audioRef.current;
+          const clip = clipRef.current;
+          if (a && clip) {
+            try {
+              a.currentTime = clip.start;
+              void a.play().catch(() => setPlayingId(null));
+              return;
+            } catch {
+              /* fall through */
+            }
+          }
+          setPlayingId(null);
+        }}
         className="hidden"
       />
       <div className="flex items-center justify-between px-4 py-3 flex-shrink-0">
