@@ -487,7 +487,6 @@ export default function Shop() {
             {items.map(item => {
               const isOwn = item.user_id === user?.id;
               const menuOpen = menuItemId === item.id;
-              const inBasket = cartItems.some((c) => c.id === item.id);
               return (
               <div key={item.id} className="bg-white/5 rounded-2xl overflow-hidden border border-white/5 relative">
                 <div className="relative">
@@ -518,13 +517,13 @@ export default function Shop() {
                           aria-label="Close menu"
                           onClick={closeItemMenu}
                         />
-                        <div className="absolute right-0 top-full mt-1 z-[4] min-w-[120px] rounded-xl bg-transparent border border-white/10 shadow-lg overflow-hidden">
+                        <div className="absolute right-0 top-full mt-1 z-[4] min-w-[120px] rounded-xl bg-[#1A1C21] border border-white/15 shadow-lg overflow-hidden">
                           {isOwn ? (
                             <button
                               type="button"
                               disabled={removingId === item.id}
                               onClick={() => handleRemoveItem(item)}
-                              className="w-full text-left px-3 py-2 text-xs font-semibold text-red-400 hover:bg-white/5 disabled:opacity-50"
+                              className="w-full text-left px-3 py-2 text-xs font-semibold text-[#F5F5F7] hover:bg-white/5 disabled:opacity-50"
                             >
                               {removingId === item.id ? 'Removing…' : 'Remove'}
                             </button>
@@ -533,23 +532,11 @@ export default function Shop() {
                               <button
                                 type="button"
                                 onClick={() => handleMessageSeller(item.user_id)}
-                                className="w-full text-left px-3 py-2 text-xs font-semibold text-white/80 hover:bg-white/5 flex items-center gap-1.5"
+                                className="w-full text-left px-3 py-2 text-xs font-semibold text-[#F5F5F7] hover:bg-white/5 flex items-center gap-1.5"
                               >
                                 <MessageCircle size={12} className="text-[#F5F5F7]" />
                                 Message
                               </button>
-                              {inBasket ? (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    handleRemoveFromCart(item.id);
-                                    closeItemMenu();
-                                  }}
-                                  className="w-full text-left px-3 py-2 text-xs font-semibold text-red-400 hover:bg-white/5"
-                                >
-                                  Delete
-                                </button>
-                              ) : null}
                             </>
                           )}
                         </div>
@@ -713,10 +700,10 @@ export default function Shop() {
                           <button
                             type="button"
                             onClick={() => handleRemoveFromCart(ci.id)}
-                            className="p-1.5 rounded-full bg-white/5 border border-white/10"
-                            aria-label={`Remove ${ci.title}`}
+                            className="px-2.5 py-1.5 rounded-lg bg-[#1A1C21] border border-white/15 text-[11px] font-semibold text-[#F5F5F7] active:opacity-70 shrink-0"
+                            aria-label={`Remove ${ci.title} from basket`}
                           >
-                            <X size={14} className="text-white/70" />
+                            Remove
                           </button>
                         </div>
                       ))}
