@@ -6,8 +6,10 @@ import { useAuthStore } from '../store/useAuthStore';
 import { fetchThreadMessages, sendThreadMessage } from '../lib/chatMessages';
 import { apiListChatThreads, apiMarkThreadRead } from '../features/chat/chatApi';
 import { websocket } from '../lib/websocket';
+import { AvatarRing } from '../components/AvatarRing';
 import { LevelBadge } from '../components/LevelBadge';
 import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
+import { CHAT_LEVEL_PILL_SIZE_PX, CHAT_PROFILE_RING_PX } from '../lib/profileFrame';
 import { initiateCall } from '../lib/callService';
 import { showToast } from '../lib/toast';
 import { getVideoPosterUrl } from '../lib/bunnyStorage';
@@ -369,12 +371,22 @@ export default function ChatThread() {
             <button
               type="button"
               onClick={() => openProfile(otherUser.user_id)}
-              className="min-w-0 flex-1 active:opacity-90"
+              className="min-w-0 flex-1 flex items-center justify-center gap-1.5 active:opacity-90"
               aria-label={`Open ${otherUser.username}'s profile`}
             >
-              <span className="block truncate text-center font-bold text-sm text-[#F5F5F7]">
+              <AvatarRing
+                src={otherUser.avatar_url || ''}
+                alt={otherUser.username}
+                size={CHAT_PROFILE_RING_PX}
+              />
+              <span className="min-w-0 truncate font-bold text-sm text-[#F5F5F7]">
                 {otherUser.username}
               </span>
+              <LevelBadge
+                level={otherUser.level || 1}
+                size={CHAT_LEVEL_PILL_SIZE_PX}
+                hideCircle
+              />
             </button>
           ) : (
             <span className="flex-1 text-center font-bold text-sm text-[#F5F5F7]">Chat</span>
@@ -391,25 +403,6 @@ export default function ChatThread() {
             </button>
           </div>
         </header>
-
-        {otherUser && (
-          <div className="flex-shrink-0 flex justify-center px-3 pb-2">
-            <button
-              type="button"
-              onClick={() => openProfile(otherUser.user_id)}
-              className="active:opacity-90"
-              aria-label={`Open ${otherUser.username}'s profile`}
-            >
-              <LevelBadge
-                level={otherUser.level || 1}
-                avatar={otherUser.avatar_url || ''}
-                name={otherUser.username}
-                layout="fixed"
-                circleSize={36}
-              />
-            </button>
-          </div>
-        )}
 
         <div className="mx-4 border-t border-[#D8D9DD]/45 flex-shrink-0" aria-hidden />
 
