@@ -348,6 +348,9 @@ export default function ChatThread() {
       className="fixed inset-0 flex flex-col w-full max-w-[480px] mx-auto bg-transparent text-white z-[1]"
       style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
     >
+        <div className="flex justify-center pt-2 pb-2 flex-shrink-0" aria-hidden>
+          <div className="w-10 h-1 rounded-full bg-white/25" />
+        </div>
         <header className="flex-shrink-0 flex items-center gap-2 px-3 py-2.5 bg-transparent">
           <div className="flex w-11 shrink-0 items-center justify-start">
             {otherUser && (
