@@ -113,9 +113,7 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
       const clip = clipRef.current;
       if (!clip) return;
       if (clip.end > clip.start && a.currentTime >= clip.end) {
-        // Loop this one preview only until pause / Use / close.
-        a.currentTime = clip.start;
-        void a.play().catch(() => {});
+        stopPreview();
       }
     };
     a.addEventListener('timeupdate', onTimeUpdate);
@@ -196,18 +194,7 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
         preload="auto"
         playsInline
         onEnded={() => {
-          const a = audioRef.current;
-          const clip = clipRef.current;
-          if (a && clip) {
-            try {
-              a.currentTime = clip.start;
-              void a.play().catch(() => setPlayingId(null));
-              return;
-            } catch {
-              /* fall through */
-            }
-          }
-          setPlayingId(null);
+          stopPreview();
         }}
         className="hidden"
       />

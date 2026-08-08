@@ -12,46 +12,23 @@ import { useSettingsStore } from './useSettingsStore';
 
 /**
  * Sound Library (/music) preview only.
- * One tapped song may loop while on Sound. Must be silent the moment you leave.
+ * Plays once on tap — no continuous loop. Silent when you leave.
  */
 
 let audioEl: HTMLAudioElement | null = null;
 let playGen = 0;
-/** When false, loop handlers must never call play() (blocks leave races). */
 let playbackAllowed = false;
 let clipRange: { start: number; end: number } | null = null;
 
 function onTimeUpdate(this: HTMLAudioElement) {
   if (!playbackAllowed || this !== audioEl || !clipRange) return;
-  if (this.currentTime < clipRange.end) return;
-  const gen = playGen;
-  const start = clipRange.start;
-  try {
-    this.currentTime = start;
-  } catch {
+  if (this.currentTime >= clipRange.end) {
     useSoundLibraryPlayerStore.getState().stop();
-    return;
   }
-  if (!playbackAllowed || gen !== playGen || this !== audioEl || !clipRange) return;
-  void this.play().catch(() => {
-    if (gen === playGen) useSoundLibraryPlayerStore.getState().stop();
-  });
 }
 
 function onEnded(this: HTMLAudioElement) {
-  if (!playbackAllowed || this !== audioEl || !clipRange) return;
-  const gen = playGen;
-  const start = clipRange.start;
-  try {
-    this.currentTime = start;
-  } catch {
-    useSoundLibraryPlayerStore.getState().stop();
-    return;
-  }
-  if (!playbackAllowed || gen !== playGen || this !== audioEl || !clipRange) return;
-  void this.play().catch(() => {
-    if (gen === playGen) useSoundLibraryPlayerStore.getState().stop();
-  });
+  useSoundLibraryPlayerStore.getState().stop();
 }
 
 function ensureAudio(): HTMLAudioElement {
@@ -85,7 +62,6 @@ function hardStopAudio() {
   playbackAllowed = false;
   clipRange = null;
   discardAudioEl();
-  // Also kill picker / Upload detached Audio if any still running.
   stopAllSoundPreviews();
 }
 
@@ -127,7 +103,6 @@ async function startTrack(track: SoundTrack): Promise<void> {
     a.volume = 1;
     await playAudioClip(a, playable, start, () => gen !== playGen);
     if (gen !== playGen || a !== audioEl) {
-      // Always silence THIS element — stop() may have nulled audioEl already.
       stopSoundPreview(a);
       return;
     }
