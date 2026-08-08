@@ -513,20 +513,44 @@ if (!fs.existsSync(indexPath)) {
   );
 }
 
+// Static file serving with correct cache headers per file type:
+//
+//   /assets/*  — Vite output, content-hashed filenames. Safe to cache forever
+//                with `immutable` because a content change means a new URL.
+//   Everything else (index.html, manifest.json, env.js, root icons) — MUST
+//                revalidate on every request so a new deploy actually reaches
+//                the browser. Without this, browsers pin an old index.html
+//                (which still references old hashed asset URLs) and the site
+//                appears "stuck on the old build" after a deploy.
 app.use(
   express.static(distPath, {
-    maxAge: process.env.NODE_ENV === "production" ? "1d" : 0,
-    immutable: process.env.NODE_ENV === "production",
     etag: true,
+    setHeaders: (res, filePath) => {
+      const rel = filePath.slice(distPath.length).replace(/\\/g, "/");
+      const isHashedAsset = /^\/assets\//.test(rel);
+      if (isHashedAsset) {
+        res.setHeader(
+          "Cache-Control",
+          "public, max-age=31536000, immutable",
+        );
+      } else {
+        res.setHeader("Cache-Control", "no-cache");
+      }
+    },
   }),
 );
 
 // ── SPA fallback ─────────────────────────────────────────────────
+// Every unknown route must serve a fresh index.html with the current asset
+// hashes. `no-cache` allows the browser to keep a copy but forces revalidation
+// with the origin using ETag, so a new deploy is picked up on the next
+// navigation instead of 24 hours later.
 const indexExists = fs.existsSync(indexPath);
 app.use((req, res) => {
   if (process.env.NODE_ENV !== "production")
     console.log(`Serving fallback for ${req.url}`);
   if (indexExists) {
+    res.setHeader("Cache-Control", "no-cache");
     res.sendFile(indexPath);
   } else {
     res
