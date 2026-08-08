@@ -420,16 +420,13 @@ export default function Create() {
         return;
       }
     } catch { /* fallback */ }
-    // Soft zoom = preview frame size (not image scale/crop)
-    setZoomLevel(Math.max(0.5, Math.min(newZoom, 1)));
+    // Soft zoom = scale image inside fixed container
+    setZoomLevel(Math.max(0.5, Math.min(newZoom, 3)));
   };
 
-  const handleZoomIn = async () => await applyZoom(zoomLevel + (hwZoomRange ? 0.5 : 0.1));
-  const handleZoomOut = async () => await applyZoom(Math.max(zoomLevel - (hwZoomRange ? 0.5 : 0.1), hwZoomRange?.min ?? 0.5));
+  const handleZoomIn = async () => await applyZoom(zoomLevel + 0.5);
+  const handleZoomOut = async () => await applyZoom(Math.max(zoomLevel - 0.5, hwZoomRange?.min ?? 0.5));
   const handleZoomReset = async () => { await applyZoom(hwZoomRange?.min ?? 1); showToastMsg('Zoom reset'); };
-  const previewFramePct = hwZoomRange
-    ? '100%'
-    : `${Math.round(Math.min(1, Math.max(0.5, zoomLevel)) * 100)}%`;
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 2) {
@@ -445,7 +442,7 @@ export default function Create() {
       const dy = e.touches[0].clientY - e.touches[1].clientY;
       const dist = Math.sqrt(dx * dx + dy * dy);
       const scale = dist / pinchStartDistRef.current;
-      const maxZoom = hwZoomRange?.max ?? 1;
+      const maxZoom = hwZoomRange?.max ?? 3;
       const minZoom = hwZoomRange?.min ?? 0.5;
       const newZoom = Math.max(minZoom, Math.min(pinchStartZoomRef.current * scale, maxZoom));
       await applyZoom(parseFloat(newZoom.toFixed(1)));
@@ -680,15 +677,7 @@ export default function Create() {
               <video ref={previewVideoRef} src={previewUrl} className={`w-full h-full ${previewObjectClass} bg-black`} autoPlay loop playsInline muted={originalVolume <= 0.001} onPlay={() => setIsPreviewPlaying(true)} onPause={() => setIsPreviewPlaying(false)} style={combinedFilter ? { filter: combinedFilter } : undefined} />
             )
           ) : (
-            <div className="w-full h-full bg-[#09090B] relative flex items-center justify-center" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
-              <div
-                className="relative overflow-hidden"
-                style={{
-                  width: previewFramePct,
-                  height: previewFramePct,
-                  transition: 'width 0.2s ease-out, height 0.2s ease-out',
-                }}
-              >
+            <div className="w-full h-full bg-[#09090B] relative flex items-center justify-center overflow-hidden" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
               <video
                 ref={(el) => {
                   videoRef.current = el;
@@ -698,11 +687,13 @@ export default function Create() {
                 autoPlay muted playsInline controls={false}
                 poster={LIVE_VIDEO_TRANSPARENT_POSTER}
                 style={{
-                  transform: isFrontCamera ? 'scaleX(-1)' : undefined,
+                  transform: isFrontCamera
+                    ? (hwZoomRange ? 'scaleX(-1)' : `scale(${zoomLevel}) scaleX(-1)`)
+                    : (hwZoomRange ? undefined : `scale(${zoomLevel})`),
                   transformOrigin: 'center center',
+                  transition: 'transform 0.2s ease-out',
                 }}
               />
-              </div>
               {cameraError && (
                 <div className="absolute inset-0 flex items-center justify-center bg-[#09090B] z-[100]">
                   <div className="text-center p-5 max-w-[280px]">
