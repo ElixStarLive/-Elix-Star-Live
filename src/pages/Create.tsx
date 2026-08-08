@@ -660,20 +660,25 @@ export default function Create() {
             )
           ) : (
             <div className="w-full h-full bg-[#09090B] relative flex items-center justify-center overflow-hidden" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
-              <video
-                ref={(el) => {
-                  videoRef.current = el;
-                  if (el) prepareLiveVideoEl(el);
-                }}
-                className={`w-full h-full object-cover bg-black ${LIVE_WEBRTC_VIDEO_CLASS} ${cameraError ? 'hidden' : ''}`}
-                autoPlay muted playsInline controls={false}
-                poster={LIVE_VIDEO_TRANSPARENT_POSTER}
+              <div
+                className="absolute inset-0"
                 style={{
-                  transform: `scale(${isFrontCamera ? -zoomLevel : zoomLevel}, ${zoomLevel})`,
+                  transform: zoomLevel === 1 ? undefined : `scale(${zoomLevel})`,
                   transformOrigin: 'center center',
                   transition: 'transform 0.2s ease-out',
                 }}
-              />
+              >
+                <video
+                  ref={(el) => {
+                    videoRef.current = el;
+                    if (el) prepareLiveVideoEl(el);
+                  }}
+                  className={`w-full h-full object-cover bg-black ${LIVE_WEBRTC_VIDEO_CLASS} ${cameraError ? 'hidden' : ''}`}
+                  autoPlay muted playsInline controls={false}
+                  poster={LIVE_VIDEO_TRANSPARENT_POSTER}
+                  style={isFrontCamera ? { transform: 'scaleX(-1)' } : undefined}
+                />
+              </div>
               {cameraError && (
                 <div className="absolute inset-0 flex items-center justify-center bg-[#09090B] z-[100]">
                   <div className="text-center p-5 max-w-[280px]">

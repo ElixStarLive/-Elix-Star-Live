@@ -212,10 +212,16 @@ export default function Upload() {
   const ZOOM_MIN = 0.5;
   const ZOOM_MAX = 3;
   const ZOOM_STEP = 0.25;
-  /** Zoom = size only. Front mirror is separate axis sign — never flips when zooming. */
   const handleZoomIn = () => setZoomLevel((z) => Math.min(ZOOM_MAX, Math.round((z + ZOOM_STEP) * 100) / 100));
   const handleZoomOut = () => setZoomLevel((z) => Math.max(ZOOM_MIN, Math.round((z - ZOOM_STEP) * 100) / 100));
-  const imageZoomTransform = `scale(${cameraFacing === 'user' ? -zoomLevel : zoomLevel}, ${zoomLevel})`;
+  /** Mirror on the video only; zoom on a wrapper — never combine into scale(-z, z). */
+  const mirrorStyle: React.CSSProperties | undefined =
+    cameraFacing === 'user' ? { transform: 'scaleX(-1)' } : undefined;
+  const zoomWrapperStyle: React.CSSProperties = {
+    transform: zoomLevel === 1 ? undefined : `scale(${zoomLevel})`,
+    transformOrigin: 'center center',
+    transition: 'transform 0.2s ease-out',
+  };
 
   const attachCameraStream = useCallback(async (facing: 'user' | 'environment') => {
     try {
@@ -1439,37 +1445,41 @@ export default function Upload() {
                     }
                     data-duet-pane="you"
                   >
-                    <video
-                      ref={videoRef}
-                      autoPlay
-                      playsInline
-                      muted
-                      className={`absolute inset-0 w-full h-full object-cover z-0 bg-black ${cameraError ? 'hidden' : ''}`}
-                      style={{
-                        transform: imageZoomTransform,
-                        transformOrigin: 'center center',
-                        transition: 'transform 0.2s ease-out',
-                        filter: beautyOn ? 'brightness(1.08) contrast(1.05) saturate(1.12)' : undefined,
-                      }}
-                    />
+                    <div className="absolute inset-0 overflow-hidden bg-black">
+                      <div className="absolute inset-0" style={zoomWrapperStyle}>
+                        <video
+                          ref={videoRef}
+                          autoPlay
+                          playsInline
+                          muted
+                          className={`absolute inset-0 w-full h-full object-cover ${cameraError ? 'hidden' : ''}`}
+                          style={{
+                            ...mirrorStyle,
+                            filter: beautyOn ? 'brightness(1.08) contrast(1.05) saturate(1.12)' : undefined,
+                          }}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
               ) : (
                 <>
-              {/* Full-frame camera only — never half-screen */}
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className={`absolute inset-0 w-full h-full object-cover z-0 bg-black ${cameraError ? 'hidden' : ''}`}
-                style={{
-                  transform: imageZoomTransform,
-                  transformOrigin: 'center center',
-                  transition: 'transform 0.2s ease-out',
-                  filter: beautyOn ? 'brightness(1.08) contrast(1.05) saturate(1.12)' : undefined,
-                }}
-              />
+              {/* Full-frame: zoom wrapper + mirror on video (separate) */}
+              <div className="absolute inset-0 z-0 overflow-hidden bg-black">
+                <div className="absolute inset-0" style={zoomWrapperStyle}>
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className={`absolute inset-0 w-full h-full object-cover ${cameraError ? 'hidden' : ''}`}
+                    style={{
+                      ...mirrorStyle,
+                      filter: beautyOn ? 'brightness(1.08) contrast(1.05) saturate(1.12)' : undefined,
+                    }}
+                  />
+                </div>
+              </div>
                 </>
               )}
               {countdown !== null ? (
