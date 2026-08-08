@@ -938,8 +938,8 @@ export default function Upload() {
                       onClick={setDuetSplit}
                       className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
                         duetLayout === 'split'
-                          ? 'bg-[#E6E9EE] text-white elix-accent border-[#D8D9DD]'
-                          : 'bg-black/55 text-[#F5F5F7] border-[#D8D9DD]/70'
+                          ? 'bg-black/55 text-[#F5F5F7] border-[#D8D9DD]'
+                          : 'bg-black/55 text-[#F5F5F7] border-[#D8D9DD]/40'
                       }`}
                     >
                       Split
@@ -949,8 +949,8 @@ export default function Upload() {
                       onClick={setDuetOverlay}
                       className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
                         duetLayout === 'overlay'
-                          ? 'bg-[#E6E9EE] text-white elix-accent border-[#D8D9DD]'
-                          : 'bg-black/55 text-[#F5F5F7] border-[#D8D9DD]/70'
+                          ? 'bg-black/55 text-[#F5F5F7] border-[#D8D9DD]'
+                          : 'bg-black/55 text-[#F5F5F7] border-[#D8D9DD]/40'
                       }`}
                     >
                       On top
@@ -1525,8 +1525,8 @@ export default function Upload() {
                         onClick={setDuetSplit}
                         className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
                           duetLayout === 'split'
-                            ? 'bg-[#E6E9EE] text-white elix-accent border-[#D8D9DD]'
-                            : 'bg-black/55 text-[#F5F5F7] border-[#D8D9DD]/70'
+                            ? 'bg-black/55 text-[#F5F5F7] border-[#D8D9DD]'
+                            : 'bg-black/55 text-[#F5F5F7] border-[#D8D9DD]/40'
                         }`}
                         title="Side by side"
                       >
@@ -1537,8 +1537,8 @@ export default function Upload() {
                         onClick={setDuetOverlay}
                         className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
                           duetLayout === 'overlay'
-                            ? 'bg-[#E6E9EE] text-white elix-accent border-[#D8D9DD]'
-                            : 'bg-black/55 text-[#F5F5F7] border-[#D8D9DD]/70'
+                            ? 'bg-black/55 text-[#F5F5F7] border-[#D8D9DD]'
+                            : 'bg-black/55 text-[#F5F5F7] border-[#D8D9DD]/40'
                         }`}
                         title="Your face on top of full video"
                       >
