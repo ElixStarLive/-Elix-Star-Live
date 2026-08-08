@@ -35,7 +35,13 @@ import { api } from '../lib/apiClient';
 import { nativeConfirm } from './NativeDialog';
 import { downloadVideoWithoutMusic } from '../lib/videoDownloadClient';
 import { getVideoPosterUrl } from '../lib/bunnyStorage';
-import { resolvePlayableSoundUrl, resolveSoundTrackPlaybackUrl, stopSoundPreview } from '../lib/soundLibrary';
+import { resolvePlayableSoundUrl, resolveSoundTrackPlaybackUrl } from '../lib/soundLibrary';
+import {
+  claimFeedMediaPlayer,
+  isFeedMediaPlayerActive,
+  registerFeedMediaPlayer,
+  releaseFeedMediaPlayer,
+} from '../lib/feedMediaGate';
 import { StoryGoldRingAvatar } from './StoryGoldRingAvatar';
 import {
   SHARE_PANEL_ACTION_DISC_PX,
@@ -296,8 +302,9 @@ export default function EnhancedVideoPlayer({
     };
   }, [scrubbing, seekFromClientX]);
   
-  // Video playback controls
+  // Video playback controls — only the active For You slide may play sound.
   const togglePlay = useCallback(() => {
+    if (!isActiveRef.current || !isFeedMediaPlayerActive(videoId)) return;
     if (isPlaying) {
       videoRef.current?.pause();
       duetOriginalRef.current?.pause();
@@ -306,11 +313,13 @@ export default function EnhancedVideoPlayer({
       videoRef.current?.play()?.catch(() => {});
       if (isDuetLayout && duetOriginalSrc) duetOriginalRef.current?.play()?.catch(() => {});
       if (!effectiveMuted && audioRef.current) {
+        audioRef.current.muted = false;
+        audioRef.current.volume = musicVolume;
         audioRef.current.play()?.catch(() => {});
       }
     }
     setIsPlaying(prev => !prev);
-  }, [effectiveMuted, isDuetLayout, isPlaying, duetOriginalSrc]);
+  }, [effectiveMuted, isDuetLayout, isPlaying, duetOriginalSrc, musicVolume, videoId]);
 
   // Video event handlers
   useEffect(() => {
@@ -358,50 +367,89 @@ export default function EnhancedVideoPlayer({
     const a = audioRef.current;
     if (!a) return;
     const onTimeUpdate = () => {
-      if (!shouldPlayRef.current) return;
+      if (!shouldPlayRef.current || !isActiveRef.current || !isFeedMediaPlayerActive(videoId)) return;
       const clip = musicClipRef.current;
       if (!clip || clip.end <= clip.start) return;
       if (a.currentTime >= clip.end) {
         a.currentTime = clip.start;
-        if (!a.paused && !a.muted && shouldPlayRef.current) {
+        if (!a.paused && !a.muted && shouldPlayRef.current && isFeedMediaPlayerActive(videoId)) {
           a.play().catch(() => {});
         }
       }
     };
     a.addEventListener('timeupdate', onTimeUpdate);
     return () => a.removeEventListener('timeupdate', onTimeUpdate);
+  }, [videoId]);
+
+  /** Hard-silence this slide — pause + mute. Does not clear music src (avoids re-play races). */
+  const hardSilenceLocal = useCallback(() => {
+    shouldPlayRef.current = false;
+    musicPlayGenRef.current += 1;
+    musicClipRef.current = null;
+    const v = videoRef.current;
+    if (v) {
+      try {
+        v.pause();
+        v.muted = true;
+        v.defaultMuted = true;
+        v.volume = 0;
+        v.setAttribute('muted', '');
+      } catch {
+        /* ignore */
+      }
+    }
+    const a = audioRef.current;
+    if (a) {
+      try {
+        a.pause();
+        a.muted = true;
+        a.volume = 0;
+      } catch {
+        /* ignore */
+      }
+    }
+    const d = duetOriginalRef.current;
+    if (d) {
+      try {
+        d.pause();
+        d.muted = true;
+      } catch {
+        /* ignore */
+      }
+    }
+    setIsPlaying(false);
   }, []);
+
+  // Register with feed gate — any other active slide silences us immediately on scroll.
+  useEffect(() => {
+    return registerFeedMediaPlayer(videoId, hardSilenceLocal);
+  }, [videoId, hardSilenceLocal]);
 
   // Auto-play based on visibility.
   // Android: start at the intended mute state — muted→unmute after play paints the stuck white play icon.
   // iOS/web: try muted first, then unmute when allowed.
   useEffect(() => {
-    /** Hard-stop helper — mutes and pauses every media element this player owns */
     const stopAll = () => {
-      shouldPlayRef.current = false;
-      musicPlayGenRef.current += 1;
-      musicClipRef.current = null;
-      const v = videoRef.current;
-      if (v) { try { v.pause(); v.muted = true; } catch { void 0; } }
-      const a = audioRef.current;
-      if (a) stopSoundPreview(a);
-      const d = duetOriginalRef.current;
-      if (d) { try { d.pause(); d.muted = true; } catch { void 0; } }
+      hardSilenceLocal();
     };
 
     if (isActive) {
+      claimFeedMediaPlayer(videoId);
       setVideoError(false);
       retryCountRef.current = 0;
       retryingRef.current = false;
       shouldPlayRef.current = true;
 
+      const stillMine = () =>
+        shouldPlayRef.current && isActiveRef.current && isFeedMediaPlayerActive(videoId);
+
       const runPlay = (videoEl: HTMLVideoElement) => {
-        if (!shouldPlayRef.current) return;
+        if (!stillMine()) return;
         videoEl.volume = videoVolume;
 
         const finishOk = (actuallyMuted: boolean) => {
-          if (!shouldPlayRef.current) {
-            try { videoEl.pause(); videoEl.muted = true; } catch { void 0; }
+          if (!stillMine()) {
+            try { videoEl.pause(); videoEl.muted = true; videoEl.volume = 0; } catch { void 0; }
             return;
           }
           setIsPlaying(true);
@@ -421,7 +469,7 @@ export default function EnhancedVideoPlayer({
             .play()
             .then(() => finishOk(true))
             .catch(() => {
-              if (!shouldPlayRef.current) return;
+              if (!stillMine()) return;
               void videoEl.play().then(() => finishOk(true)).catch(() => {});
             });
           return;
@@ -431,12 +479,18 @@ export default function EnhancedVideoPlayer({
         videoEl.muted = true;
         videoEl.play()
           .then(() => {
-            if (!shouldPlayRef.current) {
-              try { videoEl.pause(); videoEl.muted = true; } catch { void 0; }
+            if (!stillMine()) {
+              try { videoEl.pause(); videoEl.muted = true; videoEl.volume = 0; } catch { void 0; }
               return;
             }
             setIsPlaying(true);
-            if (!muteAllSounds) {
+            // When a licensed track is attached, keep the video element muted —
+            // soundtrack plays on the separate <audio> so scroll-away can kill it cleanly.
+            if (_hasMusicTrack) {
+              videoEl.muted = true;
+              videoEl.volume = 0;
+              setIsMuted(true);
+            } else if (!muteAllSounds) {
               videoEl.muted = false;
               videoEl.volume = videoVolume;
               setIsMuted(false);
@@ -445,11 +499,11 @@ export default function EnhancedVideoPlayer({
             }
           })
           .catch(() => {
-            if (!shouldPlayRef.current) return;
+            if (!stillMine()) return;
             videoEl.muted = true;
             videoEl.play().then(() => {
-              if (!shouldPlayRef.current) {
-                try { videoEl.pause(); videoEl.muted = true; } catch { void 0; }
+              if (!stillMine()) {
+                try { videoEl.pause(); videoEl.muted = true; videoEl.volume = 0; } catch { void 0; }
                 return;
               }
               setIsPlaying(true);
@@ -460,7 +514,7 @@ export default function EnhancedVideoPlayer({
 
       const tryPlay = () => {
         const el = videoRef.current;
-        if (!el || !shouldPlayRef.current) return;
+        if (!el || !stillMine()) return;
         stripVideoMediaChrome(el);
         // Ensure src is attached — Android often never fires canplay if we only wait.
         if (video?.url && !el.currentSrc) {
@@ -474,7 +528,7 @@ export default function EnhancedVideoPlayer({
             el.removeEventListener('canplay', onReady);
             el.removeEventListener('loadeddata', onReady);
             el.removeEventListener('playing', onReady);
-            if (!shouldPlayRef.current) return;
+            if (!stillMine()) return;
             runPlay(el);
           };
           el.addEventListener('canplay', onReady);
@@ -486,7 +540,7 @@ export default function EnhancedVideoPlayer({
       const timer = setTimeout(tryPlay, 50);
       const retryTimer = platform.isAndroid
         ? setTimeout(() => {
-            if (!shouldPlayRef.current) return;
+            if (!stillMine()) return;
             const el = videoRef.current;
             if (!el) return;
             if (!el.paused && !el.ended) {
@@ -498,7 +552,7 @@ export default function EnhancedVideoPlayer({
         : null;
       const retryTimer2 = platform.isAndroid
         ? setTimeout(() => {
-            if (!shouldPlayRef.current) return;
+            if (!stillMine()) return;
             const el = videoRef.current;
             if (!el) return;
             if (!el.paused && !el.ended) {
@@ -516,7 +570,7 @@ export default function EnhancedVideoPlayer({
       if (duetEl && isDuetLayout && duetOriginalSrc) {
         duetEl.muted = true;
         void duetEl.play().then(() => {
-          if (!shouldPlayRef.current) {
+          if (!stillMine()) {
             try { duetEl.pause(); duetEl.muted = true; } catch { void 0; }
           }
         });
@@ -540,10 +594,16 @@ export default function EnhancedVideoPlayer({
               resolveSoundTrackPlaybackUrl(video.music.previewUrl || '');
             if (
               !previewSrc ||
-              !shouldPlayRef.current ||
+              !stillMine() ||
               musicGen !== musicPlayGenRef.current
             ) {
-              stopSoundPreview(audio);
+              try {
+                audio.pause();
+                audio.muted = true;
+                audio.volume = 0;
+              } catch {
+                /* ignore */
+              }
               return;
             }
             if (audio.src !== previewSrc) {
@@ -551,14 +611,28 @@ export default function EnhancedVideoPlayer({
               audio.load();
             }
             const startPlay = () => {
-              if (!shouldPlayRef.current || musicGen !== musicPlayGenRef.current) {
-                stopSoundPreview(audio);
+              if (!stillMine() || musicGen !== musicPlayGenRef.current) {
+                try {
+                  audio.pause();
+                  audio.muted = true;
+                  audio.volume = 0;
+                } catch {
+                  /* ignore */
+                }
                 return;
               }
               try { audio.currentTime = clipStart; } catch { /* ignore */ }
+              audio.muted = false;
+              audio.volume = musicVolume;
               void audio.play().then(() => {
-                if (!shouldPlayRef.current || musicGen !== musicPlayGenRef.current) {
-                  stopSoundPreview(audio);
+                if (!stillMine() || musicGen !== musicPlayGenRef.current) {
+                  try {
+                    audio.pause();
+                    audio.muted = true;
+                    audio.volume = 0;
+                  } catch {
+                    /* ignore */
+                  }
                 }
               });
             };
@@ -568,7 +642,15 @@ export default function EnhancedVideoPlayer({
         }
       } else {
         musicClipRef.current = null;
-        if (audio) stopSoundPreview(audio);
+        if (audio) {
+          try {
+            audio.pause();
+            audio.muted = true;
+            audio.volume = 0;
+          } catch {
+            /* ignore */
+          }
+        }
       }
 
       return () => {
@@ -576,14 +658,16 @@ export default function EnhancedVideoPlayer({
         if (retryTimer) clearTimeout(retryTimer);
         if (retryTimer2) clearTimeout(retryTimer2);
         if (singleTapTimerRef.current) { clearTimeout(singleTapTimerRef.current); singleTapTimerRef.current = null; }
+        releaseFeedMediaPlayer(videoId);
         stopAll();
       };
     } else {
+      releaseFeedMediaPlayer(videoId);
       stopAll();
       setIsPlaying(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [incrementViews, isActive, isDuetLayout, muteAllSounds, originalVideo, video?.url, video?.music?.previewUrl, video?.music?.clipStartSeconds, video?.music?.clipEndSeconds, videoId, volume]);
+  }, [incrementViews, isActive, isDuetLayout, muteAllSounds, originalVideo, video?.url, video?.music?.previewUrl, video?.music?.clipStartSeconds, video?.music?.clipEndSeconds, videoId, volume, hardSilenceLocal, _hasMusicTrack, musicVolume, videoVolume]);
 
   // Pause when tab/app is hidden; resume current slide when visible again (only if still active)
   useEffect(() => {
@@ -617,10 +701,10 @@ export default function EnhancedVideoPlayer({
           }
         }
         setIsPlaying(false);
-      } else if (shouldPlayRef.current) {
+      } else if (shouldPlayRef.current && isActiveRef.current && isFeedMediaPlayerActive(videoId)) {
         const v = videoRef.current;
         if (v) {
-          if (platform.isAndroid) {
+          if (platform.isAndroid || _hasMusicTrack) {
             v.muted = true;
             v.setAttribute('muted', '');
           }
@@ -638,11 +722,17 @@ export default function EnhancedVideoPlayer({
         }
         const d = duetOriginalRef.current;
         if (d) void d.play().catch(() => {});
+        const a = audioRef.current;
+        if (a && _hasMusicTrack && !muteAllSounds) {
+          a.muted = false;
+          a.volume = musicVolume;
+          void a.play().catch(() => {});
+        }
       }
     };
     document.addEventListener('visibilitychange', onVisibility);
     return () => document.removeEventListener('visibilitychange', onVisibility);
-  }, [muteAllSounds]);
+  }, [muteAllSounds, videoId, _hasMusicTrack, musicVolume]);
 
   useEffect(() => {
     if (!muteAllSounds) return;
@@ -712,17 +802,26 @@ export default function EnhancedVideoPlayer({
 
     singleTapTimerRef.current = setTimeout(() => {
       singleTapTimerRef.current = null;
+      if (!isActiveRef.current || !isFeedMediaPlayerActive(videoId)) return;
       const el = videoRef.current;
       if (shouldUnmuteOnly && el) {
-        el.muted = false;
-        el.volume = videoVolume;
-        el.removeAttribute('muted');
-        setIsMuted(false);
-        const a = audioRef.current;
-        if (a) {
-          a.muted = false;
-          a.volume = musicVolume;
-          void a.play().catch(() => {});
+        if (_hasMusicTrack) {
+          // Soundtrack lives on <audio> — keep video muted so scroll-away can kill sound cleanly.
+          el.muted = true;
+          el.volume = 0;
+          el.setAttribute('muted', '');
+          setIsMuted(false);
+          const a = audioRef.current;
+          if (a && !muteAllSounds) {
+            a.muted = false;
+            a.volume = musicVolume;
+            void a.play().catch(() => {});
+          }
+        } else {
+          el.muted = false;
+          el.volume = videoVolume;
+          el.removeAttribute('muted');
+          setIsMuted(false);
         }
         if (el.paused) {
           void el.play().then(() => setIsPlaying(true)).catch(() => {});
