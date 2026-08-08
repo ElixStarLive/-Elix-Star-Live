@@ -2165,14 +2165,20 @@ body,
   filter: none !important;
 }
 
-/* More Options — SIDE lines only off; keep handle + title separator */
+/* More Options — fundal panel fill (same as Share / elix-panel); side lines off */
 #root .elix-more-options-sheet,
 #root .elix-glass.elix-more-options-sheet {
+  background-color: transparent;
+  background-image: var(--elix-panel-fill);
+  background-size: var(--elix-fundal-size), var(--elix-fundal-size);
+  background-position: var(--elix-fundal-position), var(--elix-fundal-position);
+  background-repeat: no-repeat, no-repeat;
   border-left: none !important;
   border-right: none !important;
   border-bottom: none !important;
   box-shadow: none !important;
   outline: none !important;
+  overflow: hidden;
 }
 
 /* Feed column — side frame lines only */
