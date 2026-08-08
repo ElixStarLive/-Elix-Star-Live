@@ -199,11 +199,11 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
         </div>
 
         {/* Share to followers */}
-        <div className="flex gap-3 overflow-x-auto overflow-y-hidden pt-2 pb-3 flex-shrink-0 px-4 no-scrollbar">
+        <div className="flex gap-2 overflow-x-auto overflow-y-hidden pt-1 pb-1.5 flex-shrink-0 px-3 no-scrollbar">
           {filteredFollowers.map((f) => (
             <button
               key={f.user_id}
-              className="flex-shrink-0 flex flex-col items-center gap-1 active:scale-95 transition-transform"
+              className="flex-shrink-0 flex flex-col items-center gap-0.5 active:scale-95 transition-transform"
               style={{ width: SHARE_PANEL_ITEM_WIDTH_PX, minWidth: SHARE_PANEL_ITEM_WIDTH_PX }}
               onClick={() => sendShareTo(f.user_id)}
             >
@@ -228,11 +228,11 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
         {/* Line between user circles and action icons */}
         <div className="mx-4 border-t border-[#D8D9DD]/45 flex-shrink-0" aria-hidden />
 
-        {/* Action icons flush under the line */}
-        <div className="flex-1 overflow-y-scroll overflow-x-hidden min-h-0 px-4 pb-2 flex flex-col [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#313845] [&::-webkit-scrollbar-thumb]:rounded-full" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.25) transparent' }}>
+        {/* Action icons — auto-aligned tight grid, fills panel */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 px-2 pb-1 flex flex-col justify-start [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#313845] [&::-webkit-scrollbar-thumb]:rounded-full" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.25) transparent' }}>
           {showQrCode && (
-            <div className="pt-2 pb-3 flex flex-col items-center gap-2 border-b border-white/10 mb-2">
-              <div className="flex items-center justify-between w-full">
+            <div className="pt-1 pb-2 flex flex-col items-center gap-1 border-b border-white/10 mb-1">
+              <div className="flex items-center justify-between w-full px-1">
                 <span className="text-white/80 text-sm font-medium">Scan to open video</span>
                 <button type="button" onClick={closeQrCode} className="text-white/70 hover:text-white text-xs px-2 py-1 rounded">Close</button>
               </div>
@@ -243,16 +243,16 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
               />
             </div>
           )}
-          <div className="grid grid-cols-5 gap-x-0 gap-y-2 pt-0">
+          <div className="grid grid-cols-5 gap-0 place-items-center content-start w-full auto-rows-fr pt-0.5">
             {socialPlatforms.map((item) => (
               <button
                 key={item.name}
                 type="button"
                 onClick={() => item.action()}
-                className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
+                className="flex w-full flex-col items-center justify-center gap-0 py-0.5 active:scale-95 transition-transform"
               >
                 <div
-                  className="relative royce-glow-disc flex-shrink-0"
+                  className="relative royce-glow-disc share-action-disc flex items-center justify-center flex-shrink-0"
                   style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }}
                 >
                   {React.cloneElement(item.icon as React.ReactElement, {
@@ -261,7 +261,7 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
                     strokeWidth: 2,
                   })}
                 </div>
-                <span className="text-[8px] font-semibold text-white/70 truncate w-full text-center">{item.name}</span>
+                <span className="text-[8px] font-semibold text-white/70 truncate w-full text-center leading-none mt-0">{item.name}</span>
               </button>
             ))}
             {actionItems.map((item) => {
@@ -271,10 +271,10 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
                   key={item.name}
                   type="button"
                   onClick={() => item.action()}
-                  className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
+                  className="flex w-full flex-col items-center justify-center gap-0 py-0.5 active:scale-95 transition-transform"
                 >
                   <div
-                    className="relative royce-glow-disc flex-shrink-0"
+                    className="relative royce-glow-disc share-action-disc flex items-center justify-center flex-shrink-0"
                     style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }}
                   >
                     {React.cloneElement(item.icon as React.ReactElement, {
@@ -283,7 +283,7 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
                       strokeWidth: 2,
                     })}
                   </div>
-                  <span className={`text-[8px] font-semibold truncate w-full text-center ${isRed ? 'text-white/60' : 'text-white/70'}`}>{item.name}</span>
+                  <span className={`text-[8px] font-semibold truncate w-full text-center leading-none mt-0 ${isRed ? 'text-white/60' : 'text-white/70'}`}>{item.name}</span>
                 </button>
               );
             })}
