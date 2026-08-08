@@ -27,6 +27,7 @@ import { type SoundTrack } from '../lib/soundLibrary';
 import SoundPickerPanel from '../components/SoundPickerPanel';
 import ElixCameraLayout from '../components/ElixCameraLayout';
 import MediaEditorPanel, { type EditorTab, type FilterPreset, FILTER_PRESETS, EFFECT_PRESETS, StoryFxOverlay } from '../components/MediaEditorPanel';
+import AIToolsPanel from '../components/AIToolsPanel';
 import { bakeImage, bakeVideo, type EditOverlay } from '../lib/mediaBake';
 import { nativeShareMedia } from '../lib/platform';
 import { useAuthStore } from '../store/useAuthStore';
@@ -64,9 +65,22 @@ export default function Create() {
   const [editorTab, setEditorTab] = useState<EditorTab | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [mediaWidth, setMediaWidth] = useState(0);
+  const [previewFit, setPreviewFit] = useState<'cover' | 'contain'>('cover');
+  const [showAITools, setShowAITools] = useState(false);
+  const [aiFilterCss, setAiFilterCss] = useState('none');
+  const [aiEnhanceCss, setAiEnhanceCss] = useState('none');
   const mediaWrapRef = useRef<HTMLDivElement>(null);
   const dragIdRef = useRef<string | null>(null);
-  const combinedFilter = `${filterPreset.css} ${effectPreset.css}`.trim();
+  const combinedFilter = [
+    filterPreset.css,
+    effectPreset.css,
+    aiFilterCss !== 'none' ? aiFilterCss : '',
+    aiEnhanceCss !== 'none' ? aiEnhanceCss : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .trim();
+  const previewObjectClass = previewFit === 'contain' ? 'object-contain' : 'object-cover';
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -167,8 +181,42 @@ export default function Create() {
     return () => ro.disconnect();
   }, [previewUrl]);
 
+  const openMediaPicker = useCallback((accept: string) => {
+    const input = fileInputRef.current;
+    if (!input) return;
+    input.accept = accept;
+    input.click();
+  }, []);
+
   const openUploadPicker = useCallback(() => {
-    fileInputRef.current?.click();
+    openMediaPicker('video/*,image/*');
+  }, [openMediaPicker]);
+
+  const openImagePicker = useCallback(() => {
+    openMediaPicker('image/*');
+  }, [openMediaPicker]);
+
+  const openVideoPicker = useCallback(() => {
+    openMediaPicker('video/*');
+  }, [openMediaPicker]);
+
+  const openGalleryPicker = useCallback(() => {
+    openMediaPicker('video/*,image/*');
+  }, [openMediaPicker]);
+
+  const togglePreviewLayout = useCallback(() => {
+    setPreviewFit((prev) => {
+      const next = prev === 'cover' ? 'contain' : 'cover';
+      window.setTimeout(() => {
+        setToast(next === 'cover' ? 'Layout: Fill' : 'Layout: Fit');
+        window.setTimeout(() => setToast(null), 1400);
+      }, 0);
+      return next;
+    });
+  }, []);
+
+  const openMoreTools = useCallback(() => {
+    setShowAITools(true);
   }, []);
 
   const flipCamera = useCallback(() => {
@@ -188,6 +236,23 @@ export default function Create() {
   const goFeedClose = useCallback(() => {
     navigate('/feed');
   }, [navigate]);
+
+  const closeComposeToCamera = useCallback(() => {
+    setPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+    setPreviewKind('video');
+    setIsPreviewPlaying(false);
+    setFilterPreset(FILTER_PRESETS[0]);
+    setEffectPreset(EFFECT_PRESETS[0]);
+    setOverlays([]);
+    setEditorTab(null);
+    setAiFilterCss('none');
+    setAiEnhanceCss('none');
+    setPreviewFit('cover');
+    setShowAITools(false);
+  }, []);
 
   const openSoundPicker = useCallback(() => {
     setIsSoundOpen(true);
@@ -349,6 +414,9 @@ export default function Create() {
     setEffectPreset(EFFECT_PRESETS[0]);
     setOverlays([]);
     setEditorTab(null);
+    setAiFilterCss('none');
+    setAiEnhanceCss('none');
+    setPreviewFit('cover');
   };
 
   const discardPreview = () => {
@@ -359,6 +427,7 @@ export default function Create() {
     setPreviewKind('video');
     setIsPreviewPlaying(false);
     resetEdits();
+    setShowAITools(false);
   };
 
   const genOverlayId = () => `ov_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
@@ -503,9 +572,9 @@ export default function Create() {
         <div className="absolute inset-0 z-[5]" ref={mediaWrapRef}>
           {previewUrl ? (
             previewKind === 'image' ? (
-              <img src={previewUrl} alt="" className="w-full h-full object-cover" draggable={false} style={combinedFilter ? { filter: combinedFilter } : undefined} />
+              <img src={previewUrl} alt="" className={`w-full h-full ${previewObjectClass} bg-black`} draggable={false} style={combinedFilter ? { filter: combinedFilter } : undefined} />
             ) : (
-              <video ref={previewVideoRef} src={previewUrl} className="w-full h-full object-cover" autoPlay loop muted playsInline onPlay={() => setIsPreviewPlaying(true)} onPause={() => setIsPreviewPlaying(false)} style={combinedFilter ? { filter: combinedFilter } : undefined} />
+              <video ref={previewVideoRef} src={previewUrl} className={`w-full h-full ${previewObjectClass} bg-black`} autoPlay loop muted playsInline onPlay={() => setIsPreviewPlaying(true)} onPause={() => setIsPreviewPlaying(false)} style={combinedFilter ? { filter: combinedFilter } : undefined} />
             )
           ) : (
             <div className="w-full h-full bg-[#09090B] relative flex items-center justify-center" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
@@ -626,10 +695,10 @@ export default function Create() {
               </button>
               <button
                 type="button"
-                onClick={goFeedClose}
+                onClick={closeComposeToCamera}
                 className="camera-rail-disc flex items-center justify-center"
-                title="Close"
-                aria-label="Close"
+                title="Back"
+                aria-label="Back"
               >
                 <ChevronLeft size={14} className="text-white drop-shadow-md" strokeWidth={2.5} />
               </button>
@@ -641,9 +710,9 @@ export default function Create() {
             >
               {[
                 { Icon: Share2, title: 'Share', onClick: () => { void handleShare(); } },
-                { Icon: LayoutGrid, title: 'Layout', onClick: openUploadPicker },
-                { Icon: ImageIcon, title: 'Media', onClick: openUploadPicker },
-                { Icon: Video, title: 'Video', onClick: openUploadPicker },
+                { Icon: LayoutGrid, title: 'Layout', onClick: togglePreviewLayout },
+                { Icon: ImageIcon, title: 'Media', onClick: openImagePicker },
+                { Icon: Video, title: 'Video', onClick: openVideoPicker },
                 { Icon: Type, title: 'Text', onClick: openTextEditor },
                 { Icon: Smile, title: 'Stickers', onClick: openStickersEditor },
                 { Icon: Sparkles, title: 'Effects', onClick: openEffectsEditor },
@@ -661,7 +730,7 @@ export default function Create() {
               ))}
               <button
                 type="button"
-                onClick={openUploadPicker}
+                onClick={openMoreTools}
                 className="camera-rail-disc flex items-center justify-center"
                 title="More"
               >
@@ -677,17 +746,22 @@ export default function Create() {
                 <ChevronDown size={12} className="text-white/80" />
               </span>
               <div className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-full bg-black/45 backdrop-blur-md">
-                <button type="button" onClick={openUploadPicker} className="camera-rail-disc flex items-center justify-center" title="Gallery">
+                <button type="button" onClick={openGalleryPicker} className="camera-rail-disc flex items-center justify-center" title="Gallery">
                   <LayoutGrid size={14} className="text-white" strokeWidth={2} />
                 </button>
-                <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white flex-shrink-0 bg-black">
+                <button
+                  type="button"
+                  onClick={openGalleryPicker}
+                  className="w-10 h-10 rounded-full overflow-hidden border-2 border-white flex-shrink-0 bg-black"
+                  title="Replace media"
+                >
                   {previewKind === 'image' ? (
                     <img src={previewUrl} alt="" className="w-full h-full object-cover" draggable={false} />
                   ) : (
                     <video src={previewUrl} className="w-full h-full object-cover" muted playsInline />
                   )}
-                </div>
-                <button type="button" onClick={openUploadPicker} className="camera-rail-disc flex items-center justify-center" title="Upload">
+                </button>
+                <button type="button" onClick={openGalleryPicker} className="camera-rail-disc flex items-center justify-center" title="Upload">
                   <Upload size={14} className="text-white" strokeWidth={2.5} />
                 </button>
               </div>
@@ -768,6 +842,15 @@ export default function Create() {
             onClose={closeEditorPanel}
           />
         )}
+
+        <AIToolsPanel
+          isOpen={showAITools}
+          onClose={() => setShowAITools(false)}
+          videoUrl={previewUrl}
+          videoRef={previewVideoRef}
+          onFilterChange={(css) => setAiFilterCss(css)}
+          onEnhanceChange={(css) => setAiEnhanceCss(css)}
+        />
 
         {isExporting && (
           <div className="absolute inset-0 z-[130] flex items-center justify-center bg-black/50">

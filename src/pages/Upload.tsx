@@ -31,7 +31,7 @@ import { bakeImage, bakeVideo, canBakeVideo, type EditOverlay } from '../lib/med
 
 export default function Upload() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { muteAllSounds } = useSettingsStore();
   const authUser = useAuthStore((s) => s.user);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -69,9 +69,11 @@ export default function Upload() {
   const [filterPreset, setFilterPreset] = useState<FilterPreset>(FILTER_PRESETS[0]);
   const [effectPreset, setEffectPreset] = useState<FilterPreset>(EFFECT_PRESETS[0]);
   const [overlays, setOverlays] = useState<EditOverlay[]>([]);
+  const [previewFit, setPreviewFit] = useState<'cover' | 'contain'>('cover');
   const mediaWrapRef = useRef<HTMLDivElement>(null);
   const dragIdRef = useRef<string | null>(null);
   const [mediaWidth, setMediaWidth] = useState(360);
+  const previewObjectClass = previewFit === 'contain' ? 'object-contain' : 'object-cover';
   /** Selected AI thumbnail data URL — uploaded as real thumb (not preview-only). */
   const [selectedThumbnailDataUrl, setSelectedThumbnailDataUrl] = useState<string | null>(null);
   /** Voice FX is baked into video via mediaBake + VoiceProcessor when the runtime can re-encode. */
@@ -142,6 +144,21 @@ export default function Upload() {
   const closeEditorPanel = useCallback(() => {
     setEditorTab(null);
   }, []);
+
+  const togglePreviewLayout = useCallback(() => {
+    setPreviewFit((prev) => {
+      const next = prev === 'cover' ? 'contain' : 'cover';
+      showToast(next === 'cover' ? 'Layout: Fill' : 'Layout: Fit');
+      return next;
+    });
+  }, []);
+
+  const goNextFromStory = useCallback(() => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('type');
+    setSearchParams(next, { replace: true });
+    showToast('Add a caption, then Post');
+  }, [searchParams, setSearchParams]);
 
   const clearPostError = useCallback(() => {
     setPostError(null);
@@ -785,17 +802,27 @@ export default function Upload() {
       setEffectPreset(EFFECT_PRESETS[0]);
       setOverlays([]);
       setEditorTab(null);
+      setPreviewFit('cover');
   };
 
-  const handleFileUpload = () => {
+  const handleFileUpload = (accept?: string) => {
+    const acceptValue =
+      typeof accept === 'string' && (accept.includes('/') || accept.includes('*'))
+        ? accept
+        : isStoryUpload
+          ? 'video/*,image/*'
+          : 'video/*';
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = isStoryUpload ? 'video/*,image/*' : 'video/*';
+    input.accept = acceptValue;
     input.onchange = (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
         const url = URL.createObjectURL(file);
-        setRecordedVideoUrl(url);
+        setRecordedVideoUrl((prev) => {
+          if (prev) URL.revokeObjectURL(prev);
+          return url;
+        });
         setMediaKind(file.type.startsWith('image/') ? 'image' : 'video');
         const blob = file.slice(0, file.size, file.type);
         setChunks([blob]);
@@ -803,6 +830,11 @@ export default function Upload() {
     };
     input.click();
   };
+
+  const openImagePicker = () => handleFileUpload('image/*');
+  const openVideoPicker = () => handleFileUpload('video/*');
+  const openGalleryPicker = () => handleFileUpload(isStoryUpload ? 'video/*,image/*' : 'video/*');
+
 
   return (
     <div className="fixed inset-0 h-[100dvh] w-full bg-transparent overflow-hidden flex justify-center">
@@ -888,7 +920,7 @@ export default function Upload() {
               <img
                   src={recordedVideoUrl}
                   alt=""
-                  className="w-full h-full object-cover z-0"
+                  className={`w-full h-full ${previewObjectClass} z-0 bg-black`}
                   style={{ filter: composeFilterCss || undefined }}
                   draggable={false}
               />
@@ -896,7 +928,7 @@ export default function Upload() {
               <video
                   ref={videoRef}
                   src={recordedVideoUrl}
-                  className="w-full h-full object-cover z-0"
+                  className={`w-full h-full ${previewObjectClass} z-0 bg-black`}
                   controls={false}
                   autoPlay
                   loop
@@ -1018,8 +1050,8 @@ export default function Upload() {
                          else if (result === 'copied') showToast('Link copied');
                          else if (result === 'unavailable') showToast('Could not share');
                        } },
-                       { Icon: LayoutGrid, title: 'Layout', onClick: handleFileUpload },
-                       { Icon: ImageIcon, title: 'Media', onClick: handleFileUpload },
+                       { Icon: LayoutGrid, title: 'Layout', onClick: togglePreviewLayout },
+                       { Icon: ImageIcon, title: 'Media', onClick: openImagePicker },
                        { Icon: Music, title: 'Audio', onClick: openMusicModal },
                        { Icon: Type, title: 'Text', onClick: openTextEditor },
                        { Icon: Smile, title: 'Stickers', onClick: openStickersEditor },
@@ -1049,17 +1081,22 @@ export default function Upload() {
                        <ChevronDown size={12} className="text-white/80" />
                      </span>
                      <div className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-full bg-black/45 backdrop-blur-md">
-                       <button type="button" onClick={handleFileUpload} className="camera-rail-disc flex items-center justify-center" title="Gallery">
+                       <button type="button" onClick={openGalleryPicker} className="camera-rail-disc flex items-center justify-center" title="Gallery">
                          <LayoutGrid size={14} className="text-white" strokeWidth={2} />
                        </button>
-                       <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white flex-shrink-0 bg-black">
+                       <button
+                         type="button"
+                         onClick={openGalleryPicker}
+                         className="w-10 h-10 rounded-full overflow-hidden border-2 border-white flex-shrink-0 bg-black"
+                         title="Replace media"
+                       >
                          {mediaKind === 'image' ? (
                            <img src={recordedVideoUrl || undefined} alt="" className="w-full h-full object-cover" draggable={false} />
                          ) : (
                            <video src={recordedVideoUrl || undefined} className="w-full h-full object-cover" muted playsInline />
                          )}
-                       </div>
-                       <button type="button" onClick={handleFileUpload} className="camera-rail-disc flex items-center justify-center" title="Upload">
+                       </button>
+                       <button type="button" onClick={openGalleryPicker} className="camera-rail-disc flex items-center justify-center" title="Upload">
                          <Upload size={14} className="text-white" strokeWidth={2.5} />
                        </button>
                      </div>
@@ -1110,7 +1147,7 @@ export default function Upload() {
                        </button>
                        <button
                          type="button"
-                         onClick={handlePost}
+                         onClick={goNextFromStory}
                          disabled={isPosting}
                          className="flex-1 h-12 rounded-full bg-[#F12C56] flex items-center justify-center active:scale-[0.98] transition-transform disabled:opacity-60"
                        >
