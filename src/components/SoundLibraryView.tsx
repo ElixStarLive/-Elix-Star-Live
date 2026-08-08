@@ -200,7 +200,7 @@ export default function SoundLibraryView({
   }, []);
 
   return (
-    <div className={`bg-transparent text-white flex flex-col min-h-0 flex-1 h-full ${className}`}>
+    <div className={`elix-panel text-white flex flex-col min-h-0 flex-1 h-full ${className}`}>
       <div
         className="flex justify-center pt-0.5 pb-1 flex-shrink-0"
         aria-hidden

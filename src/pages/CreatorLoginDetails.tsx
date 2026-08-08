@@ -242,7 +242,7 @@ export default function CreatorLoginDetails() {
 
   return (
     <div className="fixed inset-0 z-[9999] bg-transparent text-white flex justify-center">
-      <div className="w-full max-w-[480px] h-full bg-transparent flex flex-col overflow-y-auto p-4">
+      <div className="w-full max-w-[480px] h-full elix-panel flex flex-col overflow-y-auto p-4">
         {/* Header — logo + title centered, close button on the right */}
         <header className="flex items-center justify-between mb-5">
           <div className="w-9 flex-shrink-0" />
