@@ -3,7 +3,7 @@ import { RoyceBackIcon, ShopBasketIcon } from '../components/royce';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/apiClient';
 import { useAuthStore } from '../store/useAuthStore';
-import { Camera, Tag, MessageCircle, MoreVertical, Minus, Plus } from 'lucide-react';
+import { Camera, Tag, MessageCircle, MoreVertical, ChevronLeft, ChevronRight } from 'lucide-react';
 import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
 import { showToast } from '../lib/toast';
 import { bunnyUpload } from '../lib/bunnyStorage';
@@ -748,7 +748,7 @@ export default function Shop() {
                               className="w-7 h-7 rounded-full bg-[#1A1C21] border border-white/15 flex items-center justify-center active:opacity-70"
                               aria-label={`Less ${ci.title}`}
                             >
-                              <Minus size={14} className="text-[#F5F5F7]" />
+                              <ChevronLeft size={16} className="text-[#F5F5F7]" />
                             </button>
                             <span className="min-w-[1.5rem] text-center text-xs font-bold text-[#F5F5F7] tabular-nums">
                               {qty}
@@ -760,7 +760,7 @@ export default function Shop() {
                               aria-label={`More ${ci.title}`}
                               disabled={qty >= 99}
                             >
-                              <Plus size={14} className="text-[#F5F5F7]" />
+                              <ChevronRight size={16} className="text-[#F5F5F7]" />
                             </button>
                           </div>
                         </div>
