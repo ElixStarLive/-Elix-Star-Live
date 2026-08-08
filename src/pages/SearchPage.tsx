@@ -259,13 +259,6 @@ export default function SearchPage() {
                     <X size={14} />
                   </button>
                 )}
-                <button
-                  type="button"
-                  className="elix-silver-red-text font-semibold text-xs shrink-0"
-                  onClick={closePanel}
-                >
-                  Cancel
-                </button>
               </form>
               <div className="mt-1 border-b border-[#D8D9DD]/45" aria-hidden />
             </div>
