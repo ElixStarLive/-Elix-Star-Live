@@ -1076,7 +1076,6 @@ export default function Upload() {
                        } },
                        { Icon: LayoutGrid, title: 'Layout', onClick: togglePreviewLayout },
                        { Icon: ImageIcon, title: 'Media', onClick: openImagePicker },
-                       { Icon: Music, title: 'Audio', onClick: openSoundMixPanel },
                        { Icon: Type, title: 'Text', onClick: openTextEditor },
                        { Icon: Smile, title: 'Stickers', onClick: openStickersEditor },
                        { Icon: Sparkles, title: 'Effects', onClick: openEffectsEditor },
@@ -1526,18 +1525,26 @@ export default function Upload() {
                       </button>
                     </div>
                   ) : null}
+                  {/* Add sound — center top pill (not on right rail) */}
+                  <div
+                    className="absolute top-0 left-0 right-0 z-30 flex items-center justify-center pointer-events-none"
+                    style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}
+                  >
+                    <button
+                      type="button"
+                      onClick={openMusicModal}
+                      className="elix-sound-pill pointer-events-auto flex items-center gap-1 h-6 px-2.5 rounded-full border border-[#D8D9DD]/40"
+                      style={{ background: 'rgba(0, 0, 0, 0.55)' }}
+                      title="Add sound"
+                    >
+                      <Music size={13} className="text-[#F5F5F7] shrink-0" strokeWidth={2} />
+                      <span className="elix-silver-red-text text-[10px] font-semibold whitespace-nowrap">Add sound</span>
+                    </button>
+                  </div>
                   {/* Right side — icons only, no circle discs, no silver/red stroke rings */}
                   <div className="absolute top-0 right-[5%] bottom-0 flex flex-col items-center gap-3 py-2 camera-right-rail" style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}>
                     <button type="button" onClick={goFeed} className="w-9 h-9 flex items-center justify-center" title="Close">
                       <ChevronLeft size={18} className="camera-rail-icon" strokeWidth={2.5} />
-                    </button>
-                    <button
-                      type="button"
-                      className="w-9 h-9 flex items-center justify-center"
-                      onClick={openMusicModal}
-                      title="Add sound"
-                    >
-                      <Music size={18} className="camera-rail-icon" strokeWidth={2} />
                     </button>
                     <button
                       type="button"
