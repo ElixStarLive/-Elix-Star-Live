@@ -3,34 +3,97 @@ import { X } from 'lucide-react';
 
 export type EditorTab = 'filters' | 'effects' | 'text' | 'stickers';
 
-export type FilterPreset = { id: string; label: string; css: string };
+/** Optional canvas / preview FX layer baked with the grade. */
+export type StoryFxKind =
+  | 'beauty'
+  | 'glow'
+  | 'golden'
+  | 'cinematic'
+  | 'neon'
+  | 'clarity'
+  | 'blush'
+  | 'frost'
+  | 'aura';
 
-/** Color-grade presets (Filters tab). */
+export type FilterPreset = {
+  id: string;
+  label: string;
+  css: string;
+  fx?: StoryFxKind | null;
+};
+
+/** Modern color grades (Filters tab) — creator-app looks, not vintage camera kits. */
 export const FILTER_PRESETS: FilterPreset[] = [
-  { id: 'none', label: 'Normal', css: '' },
-  { id: 'vivid', label: 'Vivid', css: 'saturate(1.5) contrast(1.1)' },
-  { id: 'warm', label: 'Warm', css: 'sepia(0.25) saturate(1.3) brightness(1.05)' },
-  { id: 'cool', label: 'Cool', css: 'hue-rotate(-12deg) saturate(1.2) brightness(1.02)' },
-  { id: 'mono', label: 'Mono', css: 'grayscale(1) contrast(1.05)' },
-  { id: 'sepia', label: 'Sepia', css: 'sepia(0.75)' },
-  { id: 'fade', label: 'Fade', css: 'contrast(0.9) brightness(1.1) saturate(0.85)' },
-  { id: 'bright', label: 'Bright', css: 'brightness(1.15) saturate(1.1)' },
+  { id: 'none', label: 'Original', css: '' },
+  { id: 'clean', label: 'Clean', css: 'contrast(1.08) brightness(1.04) saturate(1.06)' },
+  { id: 'vivid', label: 'Vivid', css: 'saturate(1.45) contrast(1.12) brightness(1.03)' },
+  { id: 'golden', label: 'Golden', css: 'saturate(1.28) contrast(1.08) brightness(1.06) sepia(0.08)' },
+  { id: 'cool', label: 'Ice', css: 'saturate(1.05) contrast(1.12) brightness(1.03) hue-rotate(-14deg)' },
+  { id: 'bold', label: 'Bold', css: 'contrast(1.22) saturate(1.25) brightness(0.98)' },
+  { id: 'soft', label: 'Soft', css: 'brightness(1.1) contrast(0.94) saturate(1.12)' },
+  { id: 'night', label: 'Night', css: 'brightness(0.88) contrast(1.2) saturate(1.15) hue-rotate(8deg)' },
 ];
 
-/** Stylized looks (Effects tab) — also implemented as CSS filter chains. */
+/**
+ * Story Effects — modern Reels/TikTok-style looks.
+ * CSS grade + optional FX layer (glow / wash / vignette) previewed and baked.
+ */
 export const EFFECT_PRESETS: FilterPreset[] = [
-  { id: 'none', label: 'None', css: '' },
-  { id: 'noir', label: 'Noir', css: 'grayscale(1) contrast(1.35) brightness(0.95)' },
-  { id: 'dreamy', label: 'Dreamy', css: 'blur(0.6px) brightness(1.12) saturate(1.15)' },
-  { id: 'glow', label: 'Glow', css: 'brightness(1.2) saturate(1.4) contrast(0.95)' },
-  { id: 'soft', label: 'Soft', css: 'brightness(1.08) contrast(0.92) saturate(1.05)' },
-  { id: 'pop', label: 'Pop', css: 'saturate(1.65) contrast(1.18) brightness(1.03)' },
-  { id: 'sunset', label: 'Sunset', css: 'sepia(0.35) saturate(1.45) hue-rotate(-12deg) brightness(1.05)' },
-  { id: 'neon', label: 'Neon', css: 'saturate(1.85) contrast(1.22) brightness(1.06) hue-rotate(18deg)' },
-  { id: 'vintage', label: 'Vintage', css: 'sepia(0.4) contrast(1.15) saturate(1.2)' },
-  { id: 'cold', label: 'Cold', css: 'hue-rotate(-25deg) saturate(1.3) contrast(1.1)' },
-  { id: 'sharp', label: 'Sharp', css: 'contrast(1.3) saturate(1.2)' },
-  { id: 'invert', label: 'Invert', css: 'invert(1) hue-rotate(180deg)' },
+  { id: 'none', label: 'None', css: '', fx: null },
+  {
+    id: 'beauty',
+    label: 'Beauty',
+    css: 'brightness(1.1) contrast(0.92) saturate(1.14)',
+    fx: 'beauty',
+  },
+  {
+    id: 'glow',
+    label: 'Soft Glow',
+    css: 'brightness(1.12) contrast(0.94) saturate(1.18)',
+    fx: 'glow',
+  },
+  {
+    id: 'blush',
+    label: 'Blush',
+    css: 'brightness(1.08) contrast(0.95) saturate(1.2)',
+    fx: 'blush',
+  },
+  {
+    id: 'golden-hour',
+    label: 'Golden Hour',
+    css: 'saturate(1.32) contrast(1.08) brightness(1.06)',
+    fx: 'golden',
+  },
+  {
+    id: 'cinema',
+    label: 'Cinema',
+    css: 'saturate(1.35) contrast(1.18) brightness(0.96) hue-rotate(-8deg)',
+    fx: 'cinematic',
+  },
+  {
+    id: 'clarity',
+    label: 'Clarity',
+    css: 'contrast(1.18) brightness(1.03) saturate(1.08)',
+    fx: 'clarity',
+  },
+  {
+    id: 'frost',
+    label: 'Frost',
+    css: 'saturate(0.92) contrast(1.12) brightness(1.05) hue-rotate(-18deg)',
+    fx: 'frost',
+  },
+  {
+    id: 'neon-night',
+    label: 'Neon Night',
+    css: 'saturate(1.55) contrast(1.2) brightness(0.92) hue-rotate(16deg)',
+    fx: 'neon',
+  },
+  {
+    id: 'aura',
+    label: 'Aura',
+    css: 'saturate(1.4) contrast(1.1) brightness(1.02) hue-rotate(22deg)',
+    fx: 'aura',
+  },
 ];
 
 const TEXT_COLORS = ['#FFFFFF', '#000000', '#F12C56', '#D8D9DD', '#00C2BE', '#7B5CFF', '#22C55E', '#F59E0B'];
@@ -47,6 +110,159 @@ type Props = {
   onAddSticker: (emoji: string) => void;
   onClose: () => void;
 };
+
+/** Live preview wash / glow layer — matches baked FX (no layout chrome). */
+export function StoryFxOverlay({ fx }: { fx?: StoryFxKind | null }) {
+  if (!fx) return null;
+
+  if (fx === 'beauty' || fx === 'glow') {
+    return (
+      <div className="absolute inset-0 pointer-events-none z-[9]" aria-hidden>
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(ellipse at 50% 32%, rgba(255,236,225,0.28) 0%, rgba(255,210,200,0.1) 42%, transparent 72%)',
+          }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(ellipse at center, transparent 40%, rgba(18,10,16,0.32) 100%)',
+          }}
+        />
+      </div>
+    );
+  }
+
+  if (fx === 'blush') {
+    return (
+      <div className="absolute inset-0 pointer-events-none z-[9]" aria-hidden>
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(ellipse at 50% 45%, rgba(255,140,160,0.22) 0%, rgba(255,180,190,0.08) 50%, transparent 75%)',
+            mixBlendMode: 'soft-light',
+          }}
+        />
+      </div>
+    );
+  }
+
+  if (fx === 'golden') {
+    return (
+      <div className="absolute inset-0 pointer-events-none z-[9]" aria-hidden>
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'linear-gradient(145deg, rgba(255,176,80,0.22) 0%, rgba(255,140,50,0.06) 48%, rgba(255,90,40,0.18) 100%)',
+            mixBlendMode: 'soft-light',
+          }}
+        />
+      </div>
+    );
+  }
+
+  if (fx === 'cinematic') {
+    return (
+      <div className="absolute inset-0 pointer-events-none z-[9]" aria-hidden>
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'linear-gradient(180deg, rgba(0,40,55,0.18) 0%, transparent 35%, transparent 65%, rgba(40,15,0,0.22) 100%)',
+            mixBlendMode: 'soft-light',
+          }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,0.35) 100%)',
+          }}
+        />
+      </div>
+    );
+  }
+
+  if (fx === 'clarity') {
+    return (
+      <div className="absolute inset-0 pointer-events-none z-[9]" aria-hidden>
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(ellipse at center, rgba(255,255,255,0.06) 0%, transparent 55%)',
+            mixBlendMode: 'overlay',
+          }}
+        />
+      </div>
+    );
+  }
+
+  if (fx === 'frost') {
+    return (
+      <div className="absolute inset-0 pointer-events-none z-[9]" aria-hidden>
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'linear-gradient(160deg, rgba(160,210,255,0.2) 0%, rgba(120,180,230,0.06) 50%, rgba(200,230,255,0.14) 100%)',
+            mixBlendMode: 'soft-light',
+          }}
+        />
+      </div>
+    );
+  }
+
+  if (fx === 'neon') {
+    return (
+      <div className="absolute inset-0 pointer-events-none z-[9]" aria-hidden>
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'linear-gradient(135deg, rgba(0,220,255,0.16) 0%, transparent 40%, rgba(255,40,160,0.18) 100%)',
+            mixBlendMode: 'screen',
+          }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(ellipse at center, transparent 42%, rgba(10,0,30,0.4) 100%)',
+          }}
+        />
+      </div>
+    );
+  }
+
+  if (fx === 'aura') {
+    return (
+      <div className="absolute inset-0 pointer-events-none z-[9]" aria-hidden>
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(ellipse at 50% 40%, rgba(180,120,255,0.2) 0%, rgba(255,80,180,0.1) 45%, transparent 70%)',
+            mixBlendMode: 'screen',
+          }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            boxShadow: 'inset 0 0 80px rgba(160,80,255,0.28), inset 0 0 160px rgba(255,60,160,0.12)',
+          }}
+        />
+      </div>
+    );
+  }
+
+  return null;
+}
 
 export default function MediaEditorPanel({
   tab,

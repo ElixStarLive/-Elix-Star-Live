@@ -26,7 +26,7 @@ import { setCachedRecordedMedia } from '../lib/recordedMediaCache';
 import { type SoundTrack } from '../lib/soundLibrary';
 import SoundPickerPanel from '../components/SoundPickerPanel';
 import ElixCameraLayout from '../components/ElixCameraLayout';
-import MediaEditorPanel, { type EditorTab, type FilterPreset, FILTER_PRESETS, EFFECT_PRESETS } from '../components/MediaEditorPanel';
+import MediaEditorPanel, { type EditorTab, type FilterPreset, FILTER_PRESETS, EFFECT_PRESETS, StoryFxOverlay } from '../components/MediaEditorPanel';
 import { bakeImage, bakeVideo, type EditOverlay } from '../lib/mediaBake';
 import { nativeShareUrl } from '../lib/platform';
 import { useAuthStore } from '../store/useAuthStore';
@@ -404,11 +404,11 @@ export default function Create() {
 
   const exportEditedMedia = async (): Promise<string> => {
     if (!previewUrl) return '';
-    if (!combinedFilter && overlays.length === 0) return previewUrl;
+    if (!combinedFilter && overlays.length === 0 && !effectPreset.fx) return previewUrl;
     try {
       return previewKind === 'image'
-        ? await bakeImage(previewUrl, combinedFilter, overlays)
-        : await bakeVideo(previewUrl, combinedFilter, overlays);
+        ? await bakeImage(previewUrl, combinedFilter, overlays, effectPreset.fx)
+        : await bakeVideo(previewUrl, combinedFilter, overlays, undefined, effectPreset.fx);
     } catch {
       return previewUrl;
     }
@@ -533,6 +533,10 @@ export default function Create() {
             </div>
           )}
         </div>
+
+        {previewUrl ? (
+          <StoryFxOverlay fx={effectPreset.fx} />
+        ) : null}
 
         {previewUrl && overlays.length > 0 && (
           <div className="absolute inset-0 z-[10] pointer-events-none">

@@ -22,6 +22,118 @@ export type EditOverlay = {
   sizePct: number;
 };
 
+export type StoryFxKind =
+  | 'beauty'
+  | 'glow'
+  | 'golden'
+  | 'cinematic'
+  | 'neon'
+  | 'clarity'
+  | 'blush'
+  | 'frost'
+  | 'aura';
+
+/** Modern story FX layers (glow / wash / vignette) — baked after CSS grade. */
+export function drawStoryFx(
+  ctx: CanvasRenderingContext2D,
+  fx: StoryFxKind | null | undefined,
+  width: number,
+  height: number,
+): void {
+  if (!fx) return;
+  ctx.save();
+
+  if (fx === 'beauty' || fx === 'glow') {
+    const g = ctx.createRadialGradient(width * 0.5, height * 0.32, 0, width * 0.5, height * 0.4, Math.max(width, height) * 0.72);
+    g.addColorStop(0, 'rgba(255,236,225,0.26)');
+    g.addColorStop(0.45, 'rgba(255,210,200,0.1)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, width, height);
+    const v = ctx.createRadialGradient(width / 2, height / 2, Math.min(width, height) * 0.38, width / 2, height / 2, Math.max(width, height) * 0.78);
+    v.addColorStop(0, 'rgba(0,0,0,0)');
+    v.addColorStop(1, 'rgba(18,10,16,0.3)');
+    ctx.fillStyle = v;
+    ctx.fillRect(0, 0, width, height);
+  } else if (fx === 'blush') {
+    const g = ctx.createRadialGradient(width * 0.5, height * 0.45, 0, width * 0.5, height * 0.5, Math.max(width, height) * 0.65);
+    g.addColorStop(0, 'rgba(255,140,160,0.2)');
+    g.addColorStop(0.55, 'rgba(255,180,190,0.08)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.globalCompositeOperation = 'soft-light';
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, width, height);
+  } else if (fx === 'golden') {
+    const g = ctx.createLinearGradient(0, 0, width, height);
+    g.addColorStop(0, 'rgba(255,176,80,0.2)');
+    g.addColorStop(0.5, 'rgba(255,140,50,0.06)');
+    g.addColorStop(1, 'rgba(255,90,40,0.16)');
+    ctx.globalCompositeOperation = 'soft-light';
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, width, height);
+  } else if (fx === 'cinematic') {
+    const g = ctx.createLinearGradient(0, 0, 0, height);
+    g.addColorStop(0, 'rgba(0,40,55,0.18)');
+    g.addColorStop(0.35, 'rgba(0,0,0,0)');
+    g.addColorStop(0.65, 'rgba(0,0,0,0)');
+    g.addColorStop(1, 'rgba(40,15,0,0.22)');
+    ctx.globalCompositeOperation = 'soft-light';
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, width, height);
+    ctx.globalCompositeOperation = 'source-over';
+    const v = ctx.createRadialGradient(width / 2, height / 2, Math.min(width, height) * 0.4, width / 2, height / 2, Math.max(width, height) * 0.8);
+    v.addColorStop(0, 'rgba(0,0,0,0)');
+    v.addColorStop(1, 'rgba(0,0,0,0.34)');
+    ctx.fillStyle = v;
+    ctx.fillRect(0, 0, width, height);
+  } else if (fx === 'clarity') {
+    const g = ctx.createRadialGradient(width / 2, height / 2, 0, width / 2, height / 2, Math.max(width, height) * 0.55);
+    g.addColorStop(0, 'rgba(255,255,255,0.07)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.globalCompositeOperation = 'overlay';
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, width, height);
+  } else if (fx === 'frost') {
+    const g = ctx.createLinearGradient(0, 0, width, height);
+    g.addColorStop(0, 'rgba(160,210,255,0.18)');
+    g.addColorStop(0.5, 'rgba(120,180,230,0.06)');
+    g.addColorStop(1, 'rgba(200,230,255,0.14)');
+    ctx.globalCompositeOperation = 'soft-light';
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, width, height);
+  } else if (fx === 'neon') {
+    const g = ctx.createLinearGradient(0, 0, width, height);
+    g.addColorStop(0, 'rgba(0,220,255,0.16)');
+    g.addColorStop(0.45, 'rgba(0,0,0,0)');
+    g.addColorStop(1, 'rgba(255,40,160,0.18)');
+    ctx.globalCompositeOperation = 'screen';
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, width, height);
+    ctx.globalCompositeOperation = 'source-over';
+    const v = ctx.createRadialGradient(width / 2, height / 2, Math.min(width, height) * 0.4, width / 2, height / 2, Math.max(width, height) * 0.85);
+    v.addColorStop(0, 'rgba(0,0,0,0)');
+    v.addColorStop(1, 'rgba(10,0,30,0.38)');
+    ctx.fillStyle = v;
+    ctx.fillRect(0, 0, width, height);
+  } else if (fx === 'aura') {
+    const g = ctx.createRadialGradient(width * 0.5, height * 0.4, 0, width * 0.5, height * 0.45, Math.max(width, height) * 0.7);
+    g.addColorStop(0, 'rgba(180,120,255,0.2)');
+    g.addColorStop(0.45, 'rgba(255,80,180,0.1)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.globalCompositeOperation = 'screen';
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, width, height);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.strokeStyle = 'rgba(180,100,255,0.18)';
+    ctx.lineWidth = Math.max(24, Math.round(Math.min(width, height) * 0.06));
+    ctx.beginPath();
+    ctx.ellipse(width / 2, height / 2, width * 0.42, height * 0.42, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
 /** True when the runtime can re-encode video (needed to bake edits into video). */
 export function canBakeVideo(): boolean {
   try {
@@ -60,13 +172,14 @@ function drawOverlays(
   }
 }
 
-/** Bake filter + overlays into an image; returns a new object URL. */
+/** Bake filter + FX + overlays into an image; returns a new object URL. */
 export async function bakeImage(
   srcUrl: string,
   filterCss: string,
   overlays: EditOverlay[],
+  fx?: StoryFxKind | null,
 ): Promise<string> {
-  if (!filterCss && overlays.length === 0) return srcUrl;
+  if (!filterCss && overlays.length === 0 && !fx) return srcUrl;
   const img = new Image();
   img.crossOrigin = 'anonymous';
   await new Promise<void>((resolve, reject) => {
@@ -84,6 +197,7 @@ export async function bakeImage(
   if (filterCss) ctx.filter = filterCss;
   ctx.drawImage(img, 0, 0, w, h);
   ctx.filter = 'none';
+  drawStoryFx(ctx, fx, w, h);
   drawOverlays(ctx, overlays, w, h);
   const blob: Blob | null = await new Promise((resolve) =>
     canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.92),
@@ -106,9 +220,10 @@ export async function bakeVideo(
   filterCss: string,
   overlays: EditOverlay[],
   voiceEffectId?: string,
+  fx?: StoryFxKind | null,
 ): Promise<string> {
   const wantsVoice = Boolean(voiceEffectId && voiceEffectId !== 'none');
-  if (!filterCss && overlays.length === 0 && !wantsVoice) return srcUrl;
+  if (!filterCss && overlays.length === 0 && !wantsVoice && !fx) return srcUrl;
   if (!canBakeVideo()) return srcUrl;
 
   const video = document.createElement('video') as CaptureVideo;
@@ -178,6 +293,7 @@ export async function bakeVideo(
     if (filterCss) ctx.filter = filterCss;
     ctx.drawImage(video, 0, 0, w, h);
     ctx.filter = 'none';
+    drawStoryFx(ctx, fx, w, h);
     drawOverlays(ctx, overlays, w, h);
     rafId = requestAnimationFrame(renderFrame);
   };

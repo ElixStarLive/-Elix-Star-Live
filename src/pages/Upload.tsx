@@ -22,6 +22,7 @@ import MediaEditorPanel, {
   type FilterPreset,
   FILTER_PRESETS,
   EFFECT_PRESETS,
+  StoryFxOverlay,
 } from '../components/MediaEditorPanel';
 import { takeCachedRecordedMedia } from '../lib/recordedMediaCache';
 import { DUET_STAGE_HEIGHT } from '../lib/profileFrame';
@@ -637,8 +638,8 @@ export default function Upload() {
         const wantsOverlays = overlays.length > 0;
         try {
           if (mediaKind === 'image' || mimeType.startsWith('image/')) {
-            if (filterCss || wantsOverlays) {
-              const bakedUrl = await bakeImage(sourceUrl, filterCss, overlays);
+            if (filterCss || wantsOverlays || effectPreset.fx) {
+              const bakedUrl = await bakeImage(sourceUrl, filterCss, overlays, effectPreset.fx);
               if (bakedUrl && bakedUrl !== sourceUrl) {
                 blob = await fetch(bakedUrl).then((r) => r.blob());
                 mimeType = blob.type || 'image/jpeg';
@@ -648,9 +649,9 @@ export default function Upload() {
             if (wantsVoice) {
               showToast('Voice effect applies to video only — not in uploaded image');
             }
-          } else if (filterCss || wantsVoice || wantsOverlays) {
+          } else if (filterCss || wantsVoice || wantsOverlays || effectPreset.fx) {
             if (canBakeVideo()) {
-              const bakedUrl = await bakeVideo(sourceUrl, filterCss, overlays, wantsVoice ? selectedVoiceEffect : undefined);
+              const bakedUrl = await bakeVideo(sourceUrl, filterCss, overlays, wantsVoice ? selectedVoiceEffect : undefined, effectPreset.fx);
               if (bakedUrl && bakedUrl !== sourceUrl) {
                 blob = await fetch(bakedUrl).then((r) => r.blob());
                 mimeType = blob.type || 'video/webm';
@@ -904,6 +905,8 @@ export default function Upload() {
                   style={{ filter: composeFilterCss || undefined }}
               />
               )}
+
+               {recordedVideoUrl ? <StoryFxOverlay fx={effectPreset.fx} /> : null}
 
                {recordedVideoUrl && overlays.length > 0 ? (
                  <div className="absolute inset-0 z-[10] pointer-events-none">
