@@ -261,6 +261,17 @@ export default function HowItWorks() {
                   from the live header.
                 </li>
                 <li>
+                  <strong className="text-[#E6E9EE]">Top 99 / Weekly Ranking</strong> (Explore) ranks creators by
+                  real paid-coin gifts received this week. Test coins, starter coins, and promotional coins do
+                  not add to Top 99.
+                </li>
+                <li>
+                  <strong className="text-[#E6E9EE]">Private account</strong> — if your account is set to private,
+                  you do not appear on Top 99, and gifts you send as a private gifter do not add to Top 99
+                  scores or levels. Public paid gifts from non-private accounts still count toward ranking
+                  when they create real creator earnings.
+                </li>
+                <li>
                   <strong className="text-[#E6E9EE]">Rising Stars</strong> — challenges and creator spotlight
                   programs when available from Discover / Rising Stars.
                 </li>
