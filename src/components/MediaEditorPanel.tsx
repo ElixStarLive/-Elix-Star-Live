@@ -96,7 +96,7 @@ export const EFFECT_PRESETS: FilterPreset[] = [
   },
 ];
 
-const TEXT_COLORS = ['#FFFFFF', '#000000', '#F12C56', '#D8D9DD', '#00C2BE', '#7B5CFF', '#22C55E', '#F59E0B'];
+const TEXT_COLORS = ['#E6E9EE', '#000000', '#F12C56', '#D8D9DD', '#00C2BE', '#7B5CFF', '#22C55E', '#F59E0B'];
 
 const STICKERS = ['❤️', '🔥', '😂', '😍', '🎉', '⭐', '👑', '💎', '🌸', '✨', '💯', '🙌', '😎', '🥳', '💕', '🎶', '👀', '🤩', '💰', '🏆'];
 
@@ -110,6 +110,11 @@ type Props = {
   onAddSticker: (emoji: string) => void;
   onClose: () => void;
 };
+
+const chipIdle =
+  'shrink-0 px-3 py-2 rounded-xl text-xs font-semibold border bg-black/40 text-[#C8CDD5] border-[#D8D9DD]/35';
+const chipActive =
+  'shrink-0 px-3 py-2 rounded-xl text-xs font-semibold border bg-black/70 text-[#E6E9EE] border-[#F12C56]';
 
 /** Live preview wash / glow layer — matches baked FX (no layout chrome). */
 export function StoryFxOverlay({ fx }: { fx?: StoryFxKind | null }) {
@@ -292,9 +297,9 @@ export default function MediaEditorPanel({
     <div className="absolute inset-x-0 bottom-0 z-[120] pointer-events-auto" role="dialog" aria-label={title}>
       <div className="mx-auto w-full max-w-md rounded-t-2xl elix-panel backdrop-blur-md border border-black px-4 pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+14px)]">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-white text-sm font-semibold">{title}</span>
+          <span className="text-[#E6E9EE] text-sm font-semibold">{title}</span>
           <button type="button" onClick={onClose} className="w-8 h-8 flex items-center justify-center" aria-label="Close">
-            <X size={18} className="text-white/80" />
+            <X size={18} className="text-[#C8CDD5]" />
           </button>
         </div>
 
@@ -305,7 +310,7 @@ export default function MediaEditorPanel({
                 key={p.id}
                 type="button"
                 onClick={() => onSelectFilter(p)}
-                className={`shrink-0 px-3 py-2 rounded-xl text-xs font-semibold border ${activeFilterId === p.id ? 'bg-[#E6E9EE] text-white elix-accent border-[#D8D9DD]' : 'bg-white/5 text-white/80 border-white/10'}`}
+                className={activeFilterId === p.id ? chipActive : chipIdle}
               >
                 {p.label}
               </button>
@@ -320,7 +325,7 @@ export default function MediaEditorPanel({
                 key={p.id}
                 type="button"
                 onClick={() => onSelectEffect(p)}
-                className={`shrink-0 px-3 py-2 rounded-xl text-xs font-semibold border ${activeEffectId === p.id ? 'bg-[#E6E9EE] text-white elix-accent border-[#D8D9DD]' : 'bg-white/5 text-white/80 border-white/10'}`}
+                className={activeEffectId === p.id ? chipActive : chipIdle}
               >
                 {p.label}
               </button>
@@ -337,7 +342,7 @@ export default function MediaEditorPanel({
               placeholder="Type your text..."
               maxLength={120}
               autoFocus
-              className="w-full bg-white/10 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm outline-none focus:border-[#D8D9DD]/60 placeholder:text-white/30"
+              className="w-full bg-black/45 border border-[#D8D9DD]/35 rounded-xl px-3 py-2.5 text-[#E6E9EE] text-sm outline-none focus:border-[#D8D9DD]/60 placeholder:text-[#8B9099]"
             />
             <div className="flex items-center gap-2 mt-3 flex-wrap">
               {TEXT_COLORS.map((c) => (
@@ -346,14 +351,14 @@ export default function MediaEditorPanel({
                   type="button"
                   onClick={() => setTextColor(c)}
                   aria-label={`Color ${c}`}
-                  className={`w-7 h-7 rounded-full border-2 ${textColor === c ? 'border-[#D8D9DD]' : 'border-white/20'}`}
+                  className={`w-7 h-7 rounded-full border-2 ${textColor === c ? 'border-[#F12C56]' : 'border-[#D8D9DD]/40'}`}
                   style={{ backgroundColor: c }}
                 />
               ))}
               <button
                 type="button"
                 onClick={submitText}
-                className="ml-auto px-4 py-2 rounded-full bg-[#E6E9EE] text-white elix-accent text-xs font-bold active:scale-95 transition-transform"
+                className="ml-auto px-4 py-2 rounded-full bg-black/70 text-[#E6E9EE] border border-[#F12C56] text-xs font-bold active:scale-95 transition-transform"
               >
                 Add
               </button>
@@ -368,7 +373,7 @@ export default function MediaEditorPanel({
                 key={s}
                 type="button"
                 onClick={() => { onAddSticker(s); onClose(); }}
-                className="aspect-square rounded-xl bg-white/5 flex items-center justify-center text-2xl active:scale-90 transition-transform"
+                className="aspect-square rounded-xl bg-black/40 border border-[#D8D9DD]/25 flex items-center justify-center text-2xl active:scale-90 transition-transform"
               >
                 {s}
               </button>
