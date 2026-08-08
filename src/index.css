@@ -1755,6 +1755,15 @@ svg.lucide,
   stroke: #E8EAED !important;
 }
 
+/* Create — Add sound: line note only, no round black disc */
+#root button[title="Add sound"] svg.lucide {
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
 /* STEM / Friends story strip — Search icon line only, no round disc */
 #root .feed-story-strip svg.lucide {
   padding: 0 !important;

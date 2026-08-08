@@ -35,7 +35,7 @@ export const LevelBadge: React.FC<LevelBadgeProps> = ({
       : LEVEL_BADGE_RING_PX;
   const pillSize =
     typeof size === 'number' && Number.isFinite(size)
-      ? Math.max(16, Math.floor(size))
+      ? Math.max(12, Math.floor(size))
       : LEVEL_BADGE_PILL_PX;
 
   return (

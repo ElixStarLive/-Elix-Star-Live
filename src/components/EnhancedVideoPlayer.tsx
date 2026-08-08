@@ -1079,7 +1079,7 @@ export default function EnhancedVideoPlayer({
     >
       {/* Video Element - iPhone 14 Pro Max: 6.7" Super Retina XDR, 2796×1290, 19.5:9, ~460ppi */}
       <div
-        className="absolute inset-0 flex items-center justify-center bg-transparent"
+        className="absolute inset-0 flex items-center justify-center bg-black"
         style={{ margin: 0, padding: 0, gap: 0 }}
       >
         <div className="w-full h-full" style={{ margin: 0, padding: 0 }}>
@@ -1420,6 +1420,7 @@ export default function EnhancedVideoPlayer({
             </button>
           ))}
         </div>
+
 
         {video.location && (
           <div className="flex items-center gap-1 elix-silver-red-text text-xs mb-0 w-full justify-start opacity-80">

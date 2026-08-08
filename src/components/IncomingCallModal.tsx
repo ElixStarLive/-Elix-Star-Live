@@ -48,7 +48,8 @@ export function IncomingCallModal() {
           <button
             onClick={handleReject}
             title="Decline call"
-            className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center shadow-lg active:scale-95 transition-transform"
+            aria-label="Decline call"
+            className="w-16 h-16 rounded-full bg-[#EF4444] flex items-center justify-center shadow-lg active:scale-95 transition-transform"
           >
             <PhoneOff className="w-7 h-7 text-white" />
           </button>
@@ -56,7 +57,8 @@ export function IncomingCallModal() {
           <button
             onClick={handleAccept}
             title="Accept call"
-            className="w-16 h-16 rounded-full bg-[#FFFFFF] flex items-center justify-center shadow-lg active:scale-95 transition-transform animate-pulse"
+            aria-label="Accept call"
+            className="w-16 h-16 rounded-full bg-[#22C55E] flex items-center justify-center shadow-lg active:scale-95 transition-transform animate-pulse"
           >
             <Phone className="w-7 h-7 text-white" />
           </button>

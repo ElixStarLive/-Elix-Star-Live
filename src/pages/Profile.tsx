@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { RoyceCloseIcon } from '../components/royce';
-import { Share2, Lock, Play, Heart, Sparkles, LogOut, UserPlus, Bookmark, Grid3X3, ShoppingBag, Repeat2, ChevronDown, Search, Copy, MessageCircle, Check, TrendingUp, Flag, Settings } from 'lucide-react';
+import { Share2, Lock, Play, Heart, Sparkles, LogOut, UserPlus, Bookmark, Grid3X3, ShoppingBag, Repeat2, Search, Copy, MessageCircle, Check, TrendingUp, Flag, Settings } from 'lucide-react';
 import { LevelBadge } from '../components/LevelBadge';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
@@ -1092,13 +1092,12 @@ export default function Profile() {
           <button
             type="button"
             onClick={tabVideos}
-            className={`flex-1 pb-2.5 pt-2.5 flex items-center justify-center gap-0.5 border-b-2 transition-colors ${
+            className={`flex-1 pb-2.5 pt-2.5 flex justify-center border-b-2 transition-colors ${
               activeTab === 'videos' ? 'border-white text-white' : 'border-transparent text-white/30'
             }`}
             aria-label="Videos"
           >
             <Grid3X3 size={18} className="royce-icon-gold" />
-            <ChevronDown size={12} className="royce-icon-gold" />
           </button>
           <button
             type="button"

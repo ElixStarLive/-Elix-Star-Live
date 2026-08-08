@@ -450,7 +450,7 @@ export function FeedStoryCirclesOverlay({
         <div
           className={`w-full shrink-0 overflow-hidden transition-[max-height,opacity] duration-300 ease-out feed-story-strip ${
             stripShown
-              ? 'max-h-[160px] opacity-100 bg-black'
+              ? 'max-h-[160px] opacity-100'
               : 'max-h-0 opacity-0 pointer-events-none'
           }`}
           aria-hidden={!stripShown}
@@ -470,7 +470,7 @@ export function FeedStoryCirclesOverlay({
       <div
         className={`absolute left-0 right-0 z-20 pointer-events-none transition-[transform,opacity] duration-300 ease-out feed-story-strip ${
           stripShown
-            ? 'translate-y-0 opacity-100 overflow-visible bg-black'
+            ? 'translate-y-0 opacity-100 overflow-visible'
             : '-translate-y-[200%] opacity-0 invisible overflow-hidden pointer-events-none'
         }`}
         style={{

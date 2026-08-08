@@ -730,7 +730,7 @@ export default function Upload() {
       {/* PREVIEW MODE */}
        {recordedVideoUrl ? (
          <>
-           <div className="relative z-10 w-full mx-auto h-[100dvh] bg-transparent flex flex-col items-center justify-center">
+           <div className="relative z-10 w-full mx-auto h-[100dvh] bg-black flex flex-col items-center justify-center">
               {duetSourceVideoUrl ? (
                 <div
                   className="absolute top-0 left-0 right-0 w-full overflow-hidden bg-black"
@@ -994,16 +994,16 @@ export default function Upload() {
                  <>
                {/* Tiny caption / hashtags strip — drops from top after capture */}
                <div
-                 className="absolute top-0 left-0 right-0 z-20 pointer-events-auto animate-in slide-in-from-top duration-300"
+                 className="absolute top-0 left-0 right-0 z-20 pointer-events-auto animate-in slide-in-from-top duration-300 elix-panel border-b border-black"
                  style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}
                >
-                 <div className="w-full rounded-none border-b border-[#D8D9DD]/25 bg-black/70 backdrop-blur-md px-3 py-1.5 space-y-1">
+                 <div className="w-full rounded-none px-3 py-1.5 space-y-1">
                    <div className="flex items-center gap-1">
                      <input
                        value={caption}
                        onChange={(e) => setCaption(e.target.value)}
                        placeholder="Caption…"
-                       className="flex-1 min-w-0 bg-white/10 text-white placeholder-white/40 border border-[#D8D9DD]/30 rounded-md px-2 py-1 text-[10px] outline-none h-7 focus:border-[#D8D9DD]/55"
+                       className="flex-1 min-w-0 bg-white/10 text-[#F5F5F7] placeholder:text-[#F5F5F7] border border-[#D8D9DD]/30 rounded-md px-2 py-1 text-xs font-medium outline-none h-7 focus:border-[#D8D9DD]/55"
                        aria-label="Caption"
                      />
                      <button
@@ -1019,7 +1019,7 @@ export default function Upload() {
                      value={hashtagsText}
                      onChange={(e) => setHashtagsText(e.target.value)}
                      placeholder="#hashtags"
-                     className="w-full bg-white/10 text-white placeholder-white/40 border border-[#D8D9DD]/30 rounded-md px-2 py-1 text-[10px] outline-none h-7 focus:border-[#D8D9DD]/55"
+                     className="w-full bg-white/10 text-[#F5F5F7] placeholder:text-[#F5F5F7] border border-[#D8D9DD]/30 rounded-md px-2 py-1 text-xs font-medium outline-none h-7 focus:border-[#D8D9DD]/55"
                      aria-label="Hashtags"
                    />
                    <div className="flex items-center justify-between gap-2 pl-0.5">

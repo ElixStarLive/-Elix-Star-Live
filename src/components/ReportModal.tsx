@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { AlertTriangle, Flag, Ban, EyeOff, MessageSquare, UserMinus } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { showToast } from '../lib/toast';
@@ -146,8 +147,12 @@ export default function ReportModal({ isOpen, onClose, videoId, contentType, con
   };
 
   if (showSuccess) {
-    return (
-      <div className="fixed inset-0 z-[99999] bg-[rgba(0,0,0,0.35)] flex items-center justify-center p-4" onClick={onClose}>
+    return createPortal(
+      <div
+        className="fixed inset-0 flex items-center justify-center p-4"
+        style={{ zIndex: 100100 }}
+        onClick={onClose}
+      >
         <div className="bg-[rgba(0,0,0,0.35)] rounded-2xl p-6 max-w-sm w-full text-center" onClick={(e) => e.stopPropagation()}>
           <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
             <div className="w-8 h-8 bg-[#FFFFFF] rounded-full flex items-center justify-center">
@@ -161,12 +166,13 @@ export default function ReportModal({ isOpen, onClose, videoId, contentType, con
             Thank you for helping keep our community safe. We'll review your report and take appropriate action.
           </p>
         </div>
-      </div>
+      </div>,
+      document.body,
     );
   }
 
-  return (
-    <div className="fixed inset-0 z-[99999] flex items-end justify-center">
+  return createPortal(
+    <div className="fixed inset-0 flex items-end justify-center" style={{ zIndex: 100100 }}>
       <div className="absolute inset-0 bg-black/60 pointer-events-auto" onClick={onClose} />
 
       <div className="relative w-full max-w-[480px] z-10 elix-panel backdrop-blur-md rounded-t-2xl p-4 pb-safe flex flex-col gap-1 border border-black pointer-events-auto h-[40vh] max-h-[40vh] overflow-y-auto bottom-sheet-above-nav [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#E6E9EE]/50 [&::-webkit-scrollbar-thumb]:rounded-full" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.25) transparent' }}>
@@ -241,6 +247,7 @@ export default function ReportModal({ isOpen, onClose, videoId, contentType, con
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

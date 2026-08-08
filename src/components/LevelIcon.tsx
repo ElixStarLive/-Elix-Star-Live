@@ -119,11 +119,15 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
 
   /** Chip height — use explicit `size` when set so avatar circle can grow independently. */
   const chipH = sizeProvided
-    ? Math.max(16, Math.round(rawSize))
+    ? Math.max(12, Math.round(rawSize))
     : Math.max(20, Math.round(circleSize * 0.78));
-  const numberPx = Math.max(10, Math.round(chipH * 0.58));
-  /** Diamond must stay large enough to read at MVP list sizes. */
-  const diamondSize = Math.max(16, Math.round(chipH * 0.95));
+  const compact = chipH <= 18;
+  const numberPx = Math.max(compact ? 8 : 10, Math.round(chipH * (compact ? 0.55 : 0.58)));
+  /** Diamond scales down on compact chips (comments); full size elsewhere. */
+  const diamondSize = Math.max(
+    compact ? 10 : 16,
+    Math.round(chipH * (compact ? 0.72 : 0.95)),
+  );
   /** Solid white number — readable on every tier background with no backlight. */
   const numberColor = '#FFFFFF';
 
@@ -133,8 +137,8 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
         position: 'relative',
         zIndex: 1,
         height: chipH,
-        minWidth: Math.round(diamondSize + numberPx * 1.35 + 10),
-        borderRadius: 6,
+        minWidth: Math.round(diamondSize + numberPx * (compact ? 1.15 : 1.35) + (compact ? 4 : 10)),
+        borderRadius: compact ? Math.round(chipH / 2) : 6,
         background,
         border: '1px solid rgba(255,255,255,0.35)',
         boxShadow: 'none',
@@ -142,8 +146,8 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
         alignItems: 'center',
         justifyContent: 'flex-start',
         gap: 0,
-        paddingLeft: 2,
-        paddingRight: 8,
+        paddingLeft: compact ? 1 : 2,
+        paddingRight: compact ? 4 : 8,
         flexShrink: 0,
         overflow: 'visible',
       }}
@@ -173,7 +177,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
           lineHeight: 1,
           whiteSpace: 'nowrap',
           fontVariantNumeric: 'tabular-nums',
-          paddingLeft: 4,
+          paddingLeft: compact ? 2 : 4,
         }}
       >
         {safeLevel}

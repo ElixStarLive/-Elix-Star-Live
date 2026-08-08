@@ -413,62 +413,6 @@ export function useLiveHostController() {
   const heartFloatAvatar = isBroadcast ? (user?.avatar || myAvatar || '') : viewerAvatar;
   const universeGiftLabel = 'Universe';
 
-  const followCreatorLive = useCallback(
-    async (e?: React.MouseEvent) => {
-      e?.stopPropagation();
-      if (!user?.id) {
-        showToast('Log in to follow');
-        navigate('/login', { state: { from: location.pathname } });
-        return;
-      }
-      const targetId = String(effectiveStreamId || '').trim();
-      if (!targetId || targetId === 'broadcast') {
-        showToast('Creator unavailable. Try again.');
-        return;
-      }
-      if (targetId === user.id) return;
-      if (isFollowing) return;
-      setIsFollowing(true);
-      const prevFollowing = useVideoStore.getState().followingUsers;
-      if (!prevFollowing.includes(targetId)) {
-        useVideoStore.setState({ followingUsers: [...prevFollowing, targetId] });
-      }
-      try {
-        const { ok, error } = await apiToggleFollow(targetId, false);
-        if (!ok || error) throw new Error(error || 'follow failed');
-      } catch {
-        setIsFollowing(false);
-        useVideoStore.setState({
-          followingUsers: prevFollowing.filter((id) => id !== targetId),
-        });
-        showToast('Could not follow. Try again.');
-      }
-    },
-    [user?.id, effectiveStreamId, isFollowing, navigate, location.pathname],
-  );
-
-  useEffect(() => {
-    if (!user?.id || isBroadcast || !effectiveStreamId) return;
-    if (effectiveStreamId === user.id || effectiveStreamId === 'broadcast') {
-      setIsFollowing(false);
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      try {
-        const { following: ids, error } = await apiFetchFollowingIds(user.id);
-        if (error || cancelled) return;
-        const tid = String(effectiveStreamId);
-        if (!cancelled) setIsFollowing(ids.some((id) => String(id) === tid));
-      } catch {
-        if (!cancelled) setIsFollowing(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.id, isBroadcast, effectiveStreamId]);
-
   useEffect(() => {
     const creatorId = isBroadcast ? (user?.id || '') : effectiveStreamId;
     if (!creatorId || creatorId === 'broadcast') {
@@ -1670,6 +1614,79 @@ export function useLiveHostController() {
   const [hasOpponentStream, setHasOpponentStream] = useState(false);
   useEffect(() => { hasOpponentStreamRef.current = hasOpponentStream; }, [hasOpponentStream]);
   const [opponentStreamKey, setOpponentStreamKey] = useState<string | null>(null);
+
+  const followCreatorLive = useCallback(
+    async (e?: React.MouseEvent) => {
+      e?.stopPropagation();
+      if (!user?.id) {
+        showToast('Log in to follow');
+        navigate('/login', { state: { from: location.pathname } });
+        return;
+      }
+      // Battle live: follow the opponent. Creator/viewer live: follow stream host.
+      const battleOpp = isBattleMode
+        ? String(opponentStreamKey || battleSlots[0]?.userId || '').trim()
+        : '';
+      const targetId = (
+        battleOpp && battleOpp !== user.id ? battleOpp : String(effectiveStreamId || '').trim()
+      );
+      if (!targetId || targetId === 'broadcast') {
+        showToast('Creator unavailable. Try again.');
+        return;
+      }
+      if (targetId === user.id) return;
+      if (isFollowing) return;
+      setIsFollowing(true);
+      const prevFollowing = useVideoStore.getState().followingUsers;
+      if (!prevFollowing.includes(targetId)) {
+        useVideoStore.setState({ followingUsers: [...prevFollowing, targetId] });
+      }
+      try {
+        const { ok, error } = await apiToggleFollow(targetId, false);
+        if (!ok || error) throw new Error(error || 'follow failed');
+      } catch {
+        setIsFollowing(false);
+        useVideoStore.setState({
+          followingUsers: prevFollowing.filter((id) => id !== targetId),
+        });
+        showToast('Could not follow. Try again.');
+      }
+    },
+    [user?.id, effectiveStreamId, isFollowing, navigate, location.pathname, isBattleMode, opponentStreamKey, battleSlots],
+  );
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const battleOpp = isBattleMode
+      ? String(opponentStreamKey || battleSlots[0]?.userId || '').trim()
+      : '';
+    const tid = (
+      battleOpp && battleOpp !== user.id ? battleOpp : String(effectiveStreamId || '').trim()
+    );
+    // Skip self / unavailable — same rule as spectator Follow slot
+    if (!tid || tid === 'broadcast' || tid === user.id) {
+      setIsFollowing(false);
+      return;
+    }
+    // Non-battle broadcaster has no other creator to follow in this slot
+    if (isBroadcast && !isBattleMode) {
+      setIsFollowing(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { following: ids, error } = await apiFetchFollowingIds(user.id);
+        if (error || cancelled) return;
+        if (!cancelled) setIsFollowing(ids.some((id) => String(id) === tid));
+      } catch {
+        if (!cancelled) setIsFollowing(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, isBroadcast, effectiveStreamId, isBattleMode, opponentStreamKey, battleSlots]);
 
   /** Start / rematch with EVERY accepted creator seat (opponent + P3 + P4). */
   const startBattleWithAcceptedCreators = useCallback(() => {
@@ -5176,6 +5193,22 @@ export function useLiveHostController() {
     setShowSharePanel(false);
   }, [effectiveStreamId, recordLiveShareProgress]);
 
+  const shareRepostLive = useCallback(async () => {
+    const url = `${typeof window !== 'undefined' ? window.location.origin : 'https://www.elixstarlive.co.uk'}/live/${effectiveStreamId}`;
+    const ok = await nativeShareUrl({
+      title: 'Repost live on Elix',
+      text: `Watch this LIVE on Elix!`,
+      url,
+    });
+    if (ok) {
+      recordLiveShareProgress();
+      showToast('Live ready to repost');
+    } else {
+      showToast('Could not open repost share');
+    }
+    setShowSharePanel(false);
+  }, [effectiveStreamId, recordLiveShareProgress]);
+
   const sharePromote = useCallback(() => {
     setShowSharePanel(false);
     setShowPromotePanel(true);
@@ -6180,6 +6213,7 @@ export function useLiveHostController() {
     shareFacebook,
     shareFollowers,
     sharePromote,
+    shareRepostLive,
     shareQuery,
     shareReport,
     shareSentTo,

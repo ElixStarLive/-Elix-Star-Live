@@ -9,7 +9,6 @@ import { websocket } from '../lib/websocket';
 import { AvatarRing } from '../components/AvatarRing';
 import { LevelBadge } from '../components/LevelBadge';
 import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
-import { CHAT_LEVEL_PILL_SIZE_PX, CHAT_PROFILE_RING_PX } from '../lib/profileFrame';
 import { initiateCall } from '../lib/callService';
 import { showToast } from '../lib/toast';
 import { getVideoPosterUrl } from '../lib/bunnyStorage';
@@ -214,13 +213,14 @@ export default function ChatThread() {
             // Navigate with the room key (stream_key/room_id) so tapping actually joins the live.
             const roomKey = String(s.stream_key ?? s.streamKey ?? s.room_id ?? s.roomId ?? s.id ?? '');
             const userId = String(s.user_id ?? s.userId ?? s.hostUserId ?? '');
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const p = byId.get(userId) as any;
+            const p = byId.get(userId) as Record<string, unknown> | undefined;
             return {
               roomKey,
               userId,
-              name: (p?.display_name || p?.displayName || p?.username || s.display_name || s.title || 'Live') as string,
-              avatar: (p?.avatar_url || p?.avatarUrl || '/royce/default-avatar.svg') as string,
+              name: String(
+                p?.display_name || p?.displayName || p?.username || s.display_name || s.title || 'Live',
+              ),
+              avatar: String(p?.avatar_url || p?.avatarUrl || '/royce/default-avatar.svg'),
             };
           })
           .filter((x) => x.roomKey && x.userId !== user?.id && !seen.has(x.roomKey) && seen.add(x.roomKey));
@@ -255,11 +255,41 @@ export default function ChatThread() {
           if (thread) {
             const row = thread as Record<string, unknown>;
             const other = (row.otherUser ?? {}) as Record<string, unknown>;
+            const otherId =
+              row.user1_id === user?.id ? String(row.user2_id ?? '') : String(row.user1_id ?? '');
             setOtherUser({
-              user_id: row.user1_id === user?.id ? String(row.user2_id ?? '') : String(row.user1_id ?? ''),
+              user_id: otherId,
               username: String(other.display_name ?? other.username ?? row.other_username ?? 'User'),
               avatar_url: (other.avatar_url ?? row.other_avatar ?? null) as string | null,
+              level: 1,
             });
+            if (otherId) {
+              void apiFetchProfileById(otherId)
+                .then(({ body }) => {
+                  if (!body) return;
+                  const p = (body as { profile?: {
+                    username?: string;
+                    displayName?: string;
+                    avatarUrl?: string;
+                    level?: number;
+                  } }).profile;
+                  if (!p) return;
+                  const level = Number(p.level);
+                  setOtherUser((prev) => {
+                    if (!prev || prev.user_id !== otherId) return prev;
+                    return {
+                      ...prev,
+                      username:
+                        (typeof p.displayName === 'string' && p.displayName.trim()) ||
+                        (typeof p.username === 'string' && p.username.trim()) ||
+                        prev.username,
+                      avatar_url: typeof p.avatarUrl === 'string' ? p.avatarUrl : prev.avatar_url,
+                      level: Number.isFinite(level) && level > 0 ? Math.floor(level) : prev.level || 1,
+                    };
+                  });
+                })
+                .catch(() => undefined);
+            }
           }
         }
       } catch {
@@ -354,51 +384,66 @@ export default function ChatThread() {
           <div className="w-10 h-1 rounded-full bg-white/25" />
         </div>
         <header className="flex-shrink-0 flex items-center gap-2 px-3 py-2.5 bg-transparent">
+          <div className="flex w-11 shrink-0 items-center justify-start">
+            {otherUser && (
+              <button
+                type="button"
+                onClick={handleVideoCall}
+                className="w-10 h-10 rounded-full flex items-center justify-center bg-white/[0.06] border border-white/15 active:scale-95 transition-transform"
+                aria-label="Video call"
+                title="Video call"
+              >
+                <Video className="w-5 h-5 text-[#F5F5F7]" strokeWidth={2} />
+              </button>
+            )}
+          </div>
           {otherUser ? (
             <button
               type="button"
               onClick={() => openProfile(otherUser.user_id)}
-              className="min-w-0 flex-1 flex items-center justify-start gap-2 active:opacity-90"
+              className="min-w-0 flex-1 flex justify-center active:opacity-90"
               aria-label={`Open ${otherUser.username}'s profile`}
             >
               <AvatarRing
                 src={otherUser.avatar_url || ''}
                 alt={otherUser.username}
-                size={CHAT_PROFILE_RING_PX}
+                size={48}
               />
-              <LevelBadge
-                level={otherUser.level || 1}
-                size={CHAT_LEVEL_PILL_SIZE_PX}
-                hideCircle
-              />
-              <span className="min-w-0 truncate text-left font-bold text-sm text-[#F5F5F7]">
+            </button>
+          ) : (
+            <span className="flex-1" />
+          )}
+          <div className="flex w-11 shrink-0 items-center justify-end">
+            <button
+              type="button"
+              onClick={goInbox}
+              className="w-10 h-10 rounded-full flex items-center justify-center active:scale-95 transition-transform"
+              aria-label="Back to inbox"
+              title="Back"
+            >
+              <RoyceBackIcon />
+            </button>
+          </div>
+        </header>
+
+        {otherUser ? (
+          <div className="flex-shrink-0 flex justify-center px-3 pb-2">
+            <button
+              type="button"
+              onClick={() => openProfile(otherUser.user_id)}
+              className="min-w-0 max-w-full active:opacity-90"
+              aria-label={`Open ${otherUser.username}'s profile`}
+            >
+              <span className="block truncate text-center font-bold text-sm text-[#F5F5F7]">
                 {otherUser.username}
               </span>
             </button>
-          ) : (
-            <span className="flex-1 text-left font-bold text-sm text-[#F5F5F7]">Chat</span>
-          )}
-          {otherUser && (
-            <button
-              type="button"
-              onClick={handleVideoCall}
-              className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center bg-white/[0.06] border border-white/15 active:scale-95 transition-transform"
-              aria-label="Video call"
-              title="Video call"
-            >
-              <Video className="w-5 h-5 text-[#F5F5F7]" strokeWidth={2} />
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={goInbox}
-            className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center active:scale-95 transition-transform"
-            aria-label="Back to inbox"
-            title="Back"
-          >
-            <RoyceBackIcon />
-          </button>
-        </header>
+          </div>
+        ) : (
+          <div className="flex-shrink-0 flex justify-center px-3 pb-2">
+            <span className="font-bold text-sm text-[#F5F5F7]">Chat</span>
+          </div>
+        )}
 
         <div className="mx-4 border-t border-[#D8D9DD]/45 flex-shrink-0" aria-hidden />
 
@@ -430,6 +475,16 @@ export default function ChatThread() {
           )}
           {messages.map((m) => {
             const isMe = m.sender_id === user?.id;
+            const senderName = isMe
+              ? (user?.name || user?.username || 'You')
+              : (otherUser?.username || 'User');
+            const senderAvatar = isMe
+              ? (user?.avatar || '')
+              : (otherUser?.avatar_url || '');
+            const senderLevel = isMe
+              ? (user?.level || 1)
+              : (otherUser?.level || 1);
+            const senderId = isMe ? user?.id : otherUser?.user_id;
             const appMatch = m.text.match(APP_LINK_RE);
             // Always render a tappable card for shared video/live/profile links.
             // Use the fetched preview (thumbnail, name) when ready, else a minimal
@@ -442,8 +497,26 @@ export default function ChatThread() {
               : null;
 
             return (
-              <div key={m.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm leading-snug break-words ${isMe ? 'bg-[rgba(255,255,255,0.06)] text-white rounded-tr-none border border-[#2A2D33]' : 'bg-[rgba(255,255,255,0.06)] text-white rounded-tl-none border border-[#2A2D33]'}`}>
+              <div key={m.id} className="flex flex-col gap-1 items-start">
+                <button
+                  type="button"
+                  onClick={() => senderId && openProfile(senderId)}
+                  className="flex items-center gap-2 min-w-0 self-start active:opacity-90"
+                  aria-label={`Open ${senderName}'s profile`}
+                >
+                  <LevelBadge
+                    level={senderLevel}
+                    avatar={senderAvatar}
+                    name={senderName}
+                    layout="fixed"
+                    circleSize={30}
+                    size={16}
+                  />
+                  <span className="text-[#F5F5F7] font-semibold text-[11px] leading-none truncate">
+                    {senderName}
+                  </span>
+                </button>
+                <div className="max-w-[80%] rounded-2xl px-4 py-2 text-sm leading-snug break-words bg-transparent text-white rounded-tl-none border border-white/25">
                   {preview && preview.type === 'profile' ? (
                     <button
                       type="button"

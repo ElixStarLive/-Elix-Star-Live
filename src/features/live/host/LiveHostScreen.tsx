@@ -672,6 +672,7 @@ export default function LiveHostScreen() {
     sharePromote,
     shareQuery,
     shareReport,
+    shareRepostLive,
     shareSentTo,
     shareWhatsApp,
     showComboButton,
@@ -3407,6 +3408,7 @@ export default function LiveHostScreen() {
                   { name: 'WhatsApp', icon: <MessageCircle size={22} className="text-white" />, action: shareWhatsApp },
                   { name: 'Facebook', icon: <Share2 size={22} className="text-white" />, action: shareFacebook },
                   { name: 'Copy Link', icon: <Copy size={22} className="text-white" />, action: shareCopyLink },
+                  { name: 'Repost live', icon: <RefreshCw size={22} className="text-white" />, action: () => void shareRepostLive() },
                   { name: 'Promote', icon: <TrendingUp size={22} className="text-white" />, action: sharePromote },
                   { name: 'Report', icon: <Flag size={22} className="text-white/60" />, isRed: true, action: shareReport },
                 ].map((item) => (

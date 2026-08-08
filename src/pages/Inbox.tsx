@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { RoyceBackIcon } from '../components/royce';
 import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -6,9 +6,11 @@ import { apiDeleteChatThread, apiListChatThreads } from '../features/chat/chatAp
 import { useAuthStore } from '../store/useAuthStore';
 import { useVideoStore } from '../store/useVideoStore';
 import { nativeConfirm } from '../components/NativeDialog';
-import { Heart, UserPlus, Search, ShoppingBag, Archive, ChevronRight, Trash2, Share2 } from 'lucide-react';
+import { Heart, UserPlus, Search, ShoppingBag, Archive, ChevronRight, Trash2 } from 'lucide-react';
 import { AvatarRing } from '../components/AvatarRing';
+import { LevelBadge } from '../components/LevelBadge';
 import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
+import { CHAT_LEVEL_PILL_SIZE_PX, CHAT_PROFILE_RING_PX } from '../lib/profileFrame';
 import { showToast } from '../lib/toast';
 import { websocket } from '../lib/websocket';
 import {
@@ -21,6 +23,7 @@ import {
   apiMarkNotificationsRead,
   apiToggleInboxFollow,
 } from '../features/notifications/notificationsApi';
+import { apiFetchProfiles } from '../features/feed/feedApi';
 import { apiLiveStreams } from '../lib/live/liveApi';
 import { isGenuineAppUser } from '../lib/genuineUser';
 
@@ -28,7 +31,6 @@ interface Notification {
   id: string;
   type: 'like' | 'comment' | 'follow' | 'gift' | 'battle_invite' | 'system' | 'shop' | 'live_started';
   actor_id: string;
-  actor?: { username: string; avatar_url: string | null };
   title: string;
   body: string | null;
   image_url: string | null;
@@ -36,6 +38,26 @@ interface Notification {
   is_read: boolean;
   created_at: string;
   rawData?: Record<string, string | undefined>;
+}
+
+function isFollowNotification(n: { type?: string; title?: string; body?: string }): boolean {
+  if (n.type === 'follow') return true;
+  const text = `${n.title || ''} ${n.body || ''}`.toLowerCase();
+  return (
+    text.includes('new follower') ||
+    text.includes('started following') ||
+    text.includes('follow you') ||
+    text.includes('follows you')
+  );
+}
+
+function inboxMessagePreview(raw: string | undefined | null): string {
+  const t = String(raw || '').trim();
+  if (!t) return 'No messages yet';
+  if (/\/(watch|live)\//i.test(t)) return 'Shared a live';
+  if (/\/video\//i.test(t)) return 'Shared a video';
+  if (/\/profile\//i.test(t)) return 'Shared a profile';
+  return t;
 }
 
 function normalizeNotificationType(value: unknown): Notification['type'] {
@@ -130,6 +152,7 @@ interface LiveShareRequestItem {
   host_avatar: string;
   sharer_name: string;
   sharer_avatar: string;
+  sharer_level: number;
   created_at: string;
 }
 
@@ -173,25 +196,6 @@ export default function Inbox() {
   const [iFollowIds, setIFollowIds] = useState<Set<string>>(() => new Set());
   const [activityItems, setActivityItems] = useState<ActivityItem[]>([]);
   const [liveShareRequests, setLiveShareRequests] = useState<LiveShareRequestItem[]>([]);
-  const deletedThreadIdsRef = useRef<Set<string>>(new Set());
-
-  const INBOX_DELETED_KEY = () => `elix_inbox_deleted_${currentUserId || ''}`;
-  const getDeletedThreadIds = (): Set<string> => {
-    if (typeof localStorage === 'undefined' || !currentUserId) return new Set();
-    try {
-      const raw = localStorage.getItem(INBOX_DELETED_KEY());
-      if (!raw) return new Set();
-      const arr = JSON.parse(raw) as string[];
-      return new Set(Array.isArray(arr) ? arr : []);
-    } catch { return new Set(); }
-  };
-  const addDeletedThreadId = (id: string) => {
-    const set = getDeletedThreadIds();
-    set.add(id);
-    deletedThreadIdsRef.current = set;
-    try { localStorage.setItem(INBOX_DELETED_KEY(), JSON.stringify([...set])); } catch { /* intentionally empty */ }
-  };
-
 
   useEffect(() => {
     setCurrentUserId(user?.id ?? null);
@@ -201,10 +205,13 @@ export default function Inbox() {
     if (!currentUserId) return;
     try {
       const { ids, error } = await apiListMyFollowingIds(currentUserId);
-      if (error) return;
+      if (error) {
+        showToast(error);
+        return;
+      }
       setIFollowIds(new Set(ids));
     } catch {
-      /* ignore */
+      showToast('Could not load following list');
     }
   }, [currentUserId]);
 
@@ -278,6 +285,21 @@ export default function Inbox() {
     [navigate],
   );
 
+  const deleteConversation = useCallback(async (conversationId: string) => {
+    const ok = await nativeConfirm('Delete this conversation? Messages will be removed.', 'Delete Conversation');
+    if (!ok) return;
+    try {
+      const { ok: deleted, error: delError } = await apiDeleteChatThread(conversationId);
+      if (!deleted || delError) {
+        showToast(delError || 'Could not delete');
+        return;
+      }
+      setConversations((prev) => prev.filter((c) => c.id !== conversationId));
+    } catch {
+      showToast('Could not delete');
+    }
+  }, []);
+
   const openUserOrLive = useCallback(
     (userId: string, isLive: boolean) => {
       navigate(isLive ? `/watch/${userId}` : `/profile/${userId}`);
@@ -323,11 +345,14 @@ export default function Inbox() {
   useEffect(() => {
     if (!currentUserId) return;
     let cancelled = false;
-    deletedThreadIdsRef.current = getDeletedThreadIds();
     const fetchNotifications = async () => {
       try {
-        const { rows } = await apiListNotifications();
+        const { rows, error: listError } = await apiListNotifications();
         if (cancelled) return;
+        if (listError) {
+          showToast(listError);
+          return;
+        }
         let activeLiveIds = new Set<string>();
         try {
           const { streams } = await apiLiveStreams();
@@ -343,8 +368,9 @@ export default function Inbox() {
         }
         setNotifications(rows
           .filter((n: { type?: string }) => n.type !== 'battle_invite' && n.type !== 'cohost_invite' && n.type !== 'battle_accepted' && n.type !== 'cohost_accepted')
+          .filter((n: { type?: string; title?: string; body?: string }) => !isFollowNotification(n))
           .filter((n: { type?: string; title?: string; action_url?: string }) => {
-            // Ended lives must not stay in Inbox (QA probe / stale "is live").
+            // Ended lives must not stay in Inbox.
             const isLiveRow =
               n.type === 'live_started' || /\bis live\b/i.test(String(n.title || ''));
             if (!isLiveRow) return true;
@@ -352,7 +378,7 @@ export default function Inbox() {
             if (!hostId) return false;
             return activeLiveIds.has(hostId);
           })
-          .map((n: { type?: string; id?: string; title?: string; body?: string; is_read?: boolean; read?: boolean; created_at?: string; action_url?: string; data?: Record<string, unknown> }) => ({
+          .map((n: { type?: string; id?: string; title?: string; body?: string; is_read?: boolean; created_at?: string; action_url?: string; data?: Record<string, unknown> }) => ({
           id: n.id,
           type: normalizeNotificationType(n.type),
           actor_id: typeof n.data?.actor_id === 'string' ? n.data.actor_id : '',
@@ -366,22 +392,23 @@ export default function Inbox() {
                 : typeof n.data?.avatar_url === 'string'
                   ? n.data.avatar_url
                   : null,
-          // Server returns action_url at the top level (server/lib/notifications.ts),
-          // not under data — read it there first so notification taps navigate.
-          action_url: n.action_url ?? (n.data?.action_url as string | undefined) ?? null,
-          is_read: n.is_read ?? n.read ?? false,
+          action_url: typeof n.action_url === 'string' ? n.action_url : null,
+          is_read: !!n.is_read,
           created_at: n.created_at,
           rawData: toStringRecord(n.data),
         })));
-        // Mark unread notifications as read once the inbox has loaded them.
         const unreadIds = rows
-          .filter((n: { read?: boolean; is_read?: boolean; id?: string }) => !(n.is_read ?? n.read) && n.id)
+          .filter((n: { is_read?: boolean; id?: string }) => !n.is_read && n.id)
           .map((n: { id: string }) => n.id)
           .slice(0, 100);
         if (unreadIds.length > 0) {
-          void apiMarkNotificationsRead(unreadIds).catch(() => undefined);
+          void apiMarkNotificationsRead(unreadIds).then(({ ok, error }) => {
+            if (!ok && error) showToast(error);
+          });
         }
-      } catch { /* ignore */ }
+      } catch {
+        if (!cancelled) showToast('Could not load notifications');
+      }
     };
     const fetchConversations = async () => {
       try {
@@ -414,12 +441,14 @@ export default function Inbox() {
         const filtered = mapped.filter((c) => {
           const name = (c.otherUser?.display_name || c.otherUser?.username || '').trim().toLowerCase();
           if (name === 'user' || name === '') return false;
-          if (getDeletedThreadIds().has(c.id)) return false;
           return true;
         });
         setConversations(filtered);
       } catch {
-        if (!cancelled) setConversations([]);
+        if (!cancelled) {
+          setConversations([]);
+          showToast('Could not load messages');
+        }
       }
     };
     const fetchFollowers = async () => {
@@ -443,7 +472,7 @@ export default function Inbox() {
             avatar_url: (p.avatar_url != null ? String(p.avatar_url) : null) as string | null,
           }))
           .filter((p) => p.user_id && p.user_id !== currentUserId);
-        setFollowers(list.length > 0 ? list : ids.filter((id) => id !== currentUserId).map((user_id) => ({ user_id, username: 'user', display_name: null, avatar_url: null })));
+        setFollowers(list);
       } catch {
         if (!cancelled) setFollowers([]);
       }
@@ -511,16 +540,34 @@ export default function Inbox() {
           return;
         }
         setLiveShareRequests(
-          raw.map((row: Record<string, unknown>) => ({
-            sharer_id: String(row.sharer_id ?? ''),
-            stream_key: String(row.stream_key ?? ''),
-            host_user_id: String(row.host_user_id ?? ''),
-            host_name: String(row.host_name ?? ''),
-            host_avatar: String(row.host_avatar ?? ''),
-            sharer_name: String(row.sharer_name ?? ''),
-            sharer_avatar: String(row.sharer_avatar ?? ''),
-            created_at: String(row.created_at ?? ''),
-          })),
+          await (async () => {
+            const base = raw.map((row: Record<string, unknown>) => ({
+              sharer_id: String(row.sharer_id ?? ''),
+              stream_key: String(row.stream_key ?? ''),
+              host_user_id: String(row.host_user_id ?? ''),
+              host_name: String(row.host_name ?? ''),
+              host_avatar: String(row.host_avatar ?? ''),
+              sharer_name: String(row.sharer_name ?? ''),
+              sharer_avatar: String(row.sharer_avatar ?? ''),
+              sharer_level: 1,
+              created_at: String(row.created_at ?? ''),
+            }));
+            try {
+              const { profiles } = await apiFetchProfiles();
+              const levelById = new Map<string, number>();
+              for (const p of profiles as Record<string, unknown>[]) {
+                const id = String(p.user_id ?? p.userId ?? '');
+                const level = Number(p.level);
+                if (id && Number.isFinite(level) && level > 0) levelById.set(id, Math.floor(level));
+              }
+              return base.map((row) => ({
+                ...row,
+                sharer_level: levelById.get(row.sharer_id) || 1,
+              }));
+            } catch {
+              return base;
+            }
+          })(),
         );
       } catch {
         if (!cancelled) setLiveShareRequests([]);
@@ -594,14 +641,6 @@ export default function Inbox() {
         n.rawData?.image_url ||
         '';
       if (fromData) return fromData;
-      const action = n.action_url || '';
-      try {
-        const q = action.includes('?')
-          ? new URLSearchParams(action.slice(action.indexOf('?') + 1))
-          : null;
-        const fromQuery = q?.get('avatar') || q?.get('a') || '';
-        if (fromQuery) return decodeURIComponent(fromQuery);
-      } catch { /* ignore */ }
       const hostId = liveHostIdFromActionUrl(n.action_url);
       if (hostId && avatarByUserId.has(hostId)) return avatarByUserId.get(hostId) || '';
       return '';
@@ -628,10 +667,7 @@ export default function Inbox() {
   const followerIdSet = new Set(followersListForUi.map((f) => f.user_id));
   const suggestedUsersNotFollowers = suggestedUsers.filter((u) => u.id && !followerIdSet.has(u.id));
 
-  const activitySummaryCount =
-    activityItems.length > 0
-      ? activityItems.length
-      : notifications.filter((n) => n.type === 'like' || n.type === 'comment').length;
+  const activitySummaryCount = activityItems.length;
 
   const activityLine = (a: ActivityItem): string => {
     if (a.kind === 'like') return 'Liked your video';
@@ -685,7 +721,6 @@ export default function Inbox() {
                         src={
                             myNewFollowers[0]?.avatar_url ||
                             user?.avatar ||
-                            (user?.id && typeof localStorage !== 'undefined' ? localStorage.getItem('elix_avatar_' + user.id) : null) ||
                             '/royce/default-avatar.svg'
                         }
                     />
@@ -740,9 +775,6 @@ export default function Inbox() {
             <button onClick={filterUnread} className={`px-2 py-1.5 text-xs font-bold whitespace-nowrap bg-transparent border-0 ${activeFilter === 'unread' ? 'text-gold-bright' : 'text-gold-bright/45'}`}>Unread</button>
             <button onClick={filterStarred} className={`px-2 py-1.5 text-xs font-bold whitespace-nowrap bg-transparent border-0 ${activeFilter === 'starred' ? 'text-gold-bright' : 'text-gold-bright/45'}`}>Starred</button>
             <button onClick={filterActivity} className={`px-2 py-1.5 text-xs font-bold whitespace-nowrap bg-transparent border-0 ${activeFilter === 'activity' ? 'text-gold-bright' : 'text-gold-bright/45'}`}>Activity</button>
-            <div className="ml-auto stroke-gold-metallic text-gold-bright">
-                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
-            </div>
         </div>
 
         {/* List Content — continues same scroll / same fundal */}
@@ -770,7 +802,7 @@ export default function Inbox() {
                 <ChevronRight className="w-5 h-5 text-[#F5F5F7]/70 flex-shrink-0" />
             </button>
 
-            {/* Activity - golden circle from Music Icon (likes, comments) */}
+            {/* Activity — likes / comments entry */}
             <button onClick={filterActivity} className="flex items-center gap-3 w-full text-left py-2 px-2 bg-transparent">
                 <div className="relative w-12 h-12 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0 royce-tile">
 <Heart className="w-6 h-6 royce-icon-gold relative z-10" strokeWidth={2.25} />
@@ -821,7 +853,7 @@ export default function Inbox() {
             {/* Messages (Inbox) — show right after Activity so inbox = messages */}
             <div className="space-y-1 pt-2">
                 <h3 className="font-bold text-sm text-gold-metallic px-1 pb-2">Messages</h3>
-                {conversations.length === 0 ? (
+                {conversations.length === 0 && liveShareRequests.length === 0 ? (
                     <p className="text-gold-bright/50 text-xs px-1 py-2">No messages yet</p>
                 ) : (
                     conversations.map((conv) => (
@@ -835,25 +867,14 @@ export default function Inbox() {
                                         <span className="inline-block w-2 h-2 rounded-full bg-[#E6E9EE] flex-shrink-0" title="Unread" aria-label="Unread messages" />
                                       ) : null}
                                     </p>
-                                    <p className="text-gold-bright/60 text-xs truncate">{conv.lastMessage || 'No messages yet'}</p>
+                                    <p className="text-gold-bright/60 text-xs truncate">{inboxMessagePreview(conv.lastMessage)}</p>
                                 </div>
                             </div>
                             <button
                                 type="button"
-                                onClick={async (e) => {
+                                onClick={(e) => {
                                     e.stopPropagation();
-                                    const ok = await nativeConfirm('Delete this conversation? Messages will be removed.', 'Delete Conversation');
-                                    if (!ok) return;
-                                    try {
-                                      const { ok, error: delError } = await apiDeleteChatThread(conv.id);
-                                      if (!ok || delError) showToast('Could not delete');
-                                      else {
-                                        addDeletedThreadId(conv.id);
-                                        setConversations((prev) => prev.filter((c) => c.id !== conv.id));
-                                      }
-                                    } catch {
-                                      showToast('Could not delete');
-                                    }
+                                    void deleteConversation(conv.id);
                                 }}
                                 className="w-10 h-10 rounded-full bg-transparent border border-[#D8D9DD]/40 flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform hover:border-[#D8D9DD]/50 hover:bg-transparent"
                                 title="Delete conversation"
@@ -864,6 +885,35 @@ export default function Inbox() {
                         </div>
                     ))
                 )}
+                {liveShareRequests.map((row) => {
+                  const who = row.sharer_name?.trim() || 'Someone';
+                  const hostLabel = row.host_name?.trim() || 'a creator';
+                  return (
+                    <button
+                      key={`live-share-${row.sharer_id}_${row.stream_key}`}
+                      type="button"
+                      onClick={() => {
+                        if (row.stream_key) openWatchStream(row.stream_key);
+                      }}
+                      className="flex items-center gap-3 w-full text-left py-2 px-2 bg-transparent"
+                    >
+                      <LevelBadge
+                        level={row.sharer_level || 1}
+                        avatar={row.sharer_avatar || ''}
+                        name={who}
+                        layout="fixed"
+                        circleSize={CHAT_PROFILE_RING_PX}
+                        size={CHAT_LEVEL_PILL_SIZE_PX}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm text-gold-bright truncate">{who}</p>
+                        <p className="text-gold-bright/70 text-xs truncate">
+                          Shared {hostLabel}&apos;s live · Tap to watch
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
             </div>
             </>
             )}
@@ -886,29 +936,18 @@ export default function Inbox() {
                                     <p className="font-semibold text-sm text-gold-bright truncate">{conv.otherUser?.display_name || conv.otherUser?.username || 'User'}</p>
                                     <p className="text-gold-bright/60 text-xs truncate">
                                       {(conv.unreadCount ?? 0) > 1
-                                        ? `${conv.unreadCount} unread · ${conv.lastMessage || 'Tap to open'}`
+                                        ? `${conv.unreadCount} unread · ${inboxMessagePreview(conv.lastMessage)}`
                                         : conv.lastMessage
-                                          ? `Unread · ${conv.lastMessage}`
+                                          ? `Unread · ${inboxMessagePreview(conv.lastMessage)}`
                                           : 'Unread — tap to open'}
                                     </p>
                                 </div>
                             </div>
                             <button
                                 type="button"
-                                onClick={async (e) => {
+                                onClick={(e) => {
                                     e.stopPropagation();
-                                    const ok = await nativeConfirm('Delete this conversation? Messages will be removed.', 'Delete Conversation');
-                                    if (!ok) return;
-                                    try {
-                                      const { ok, error: delError } = await apiDeleteChatThread(conv.id);
-                                      if (!ok || delError) showToast('Could not delete');
-                                      else {
-                                        addDeletedThreadId(conv.id);
-                                        setConversations((prev) => prev.filter((c) => c.id !== conv.id));
-                                      }
-                                    } catch {
-                                      showToast('Could not delete');
-                                    }
+                                    void deleteConversation(conv.id);
                                 }}
                                 className="w-10 h-10 rounded-full bg-transparent border border-[#D8D9DD]/40 flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform hover:border-[#D8D9DD]/50 hover:bg-transparent"
                                 title="Delete conversation"
@@ -922,12 +961,12 @@ export default function Inbox() {
             </div>
             )}
 
-            {/* Requests — live shares from people you don’t follow (Main stays for people you follow / DMs) */}
+            {/* Requests — same live shares (non-following) also listed under Messages */}
             {activeFilter === 'requests' && (
             <div className="space-y-1 pt-2">
                 <h3 className="font-bold text-sm text-gold-metallic px-1 pb-2">Requests</h3>
                 <p className="text-gold-bright/45 text-[11px] px-1 pb-3 leading-snug">
-                  People who shared a live with you show here when you don’t follow them yet, so your main inbox stays clear.
+                  Live shares from people you don’t follow yet.
                 </p>
                 {liveShareRequests.length === 0 ? (
                     <p className="text-gold-bright/50 text-xs px-1 py-2">No live shares right now.</p>
@@ -944,16 +983,14 @@ export default function Inbox() {
                           }}
                           className="flex items-center gap-3 w-full text-left py-2.5 px-2 bg-transparent"
                         >
-                          <div className="w-12 h-12 rounded-full bg-transparent border border-[#D8D9DD]/40 flex items-center justify-center flex-shrink-0 overflow-hidden relative">
-                            {row.sharer_avatar ? (
-                              <img src={row.sharer_avatar} alt="" className="w-full h-full object-cover" />
-                            ) : (
-                              <span className="text-[#F5F5F7] font-bold text-lg">{who.replace('@', '').charAt(0).toUpperCase()}</span>
-                            )}
-                            <span className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-transparent border border-[#D8D9DD]/50 flex items-center justify-center">
-                              <Share2 className="w-2.5 h-2.5 text-[#F5F5F7]" strokeWidth={2.5} />
-                            </span>
-                          </div>
+                          <LevelBadge
+                            level={row.sharer_level || 1}
+                            avatar={row.sharer_avatar || ''}
+                            name={who}
+                            layout="fixed"
+                            circleSize={CHAT_PROFILE_RING_PX}
+                            size={CHAT_LEVEL_PILL_SIZE_PX}
+                          />
                           <div className="flex-1 min-w-0">
                             <p className="font-semibold text-sm text-gold-bright truncate">{who}</p>
                             <p className="text-gold-bright/70 text-xs truncate">
@@ -967,10 +1004,10 @@ export default function Inbox() {
             </div>
             )}
 
-            {/* Activity — likes, comments, saves on your videos (API); legacy notifications as fallback */}
+            {/* Activity — likes, comments, saves, mentions from /api/activity */}
             {activeFilter === 'activity' && (
               <>
-                {activityItems.length === 0 && notifications.filter((n) => n.type === 'like' || n.type === 'comment').length === 0 ? (
+                {activityItems.length === 0 ? (
                   <div className="py-8 text-center text-gold-bright/50 text-sm px-2">
                     No activity yet. When someone likes, comments on, saves your video, or @mentions you, it will show here.
                   </div>
@@ -1001,51 +1038,15 @@ export default function Inbox() {
                         </button>
                       );
                     })}
-                    {activityItems.length === 0 &&
-                      notifications
-                        .filter((n) => n.type === 'like' || n.type === 'comment')
-                        .map((notif) => {
-                          const actorName =
-                            notif.rawData?.actor_display_name ||
-                            (notif.rawData?.actor_username ? `@${notif.rawData.actor_username}` : null) ||
-                            notif.title ||
-                            'Someone';
-                          const actionUrl = notif.action_url || notif.rawData?.action_url;
-                          return (
-                            <button
-                              key={notif.id}
-                              type="button"
-                              onClick={() => {
-                                if (actionUrl) openActionUrl(actionUrl);
-                              }}
-                              className="flex items-center gap-3 w-full text-left py-2.5 px-2 bg-transparent"
-                            >
-                              <div className="w-12 h-12 rounded-full bg-transparent border border-[#D8D9DD]/40 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                                {notif.image_url || notif.rawData?.avatar_url ? (
-                                  <img src={notif.image_url || notif.rawData?.avatar_url} alt="" className="w-full h-full object-cover" />
-                                ) : (
-                                  <span className="text-[#F5F5F7] font-bold text-lg">{(actorName || '?').replace('@', '').charAt(0).toUpperCase()}</span>
-                                )}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-sm text-gold-bright truncate">{actorName}</p>
-                                <p className="text-gold-bright/70 text-xs truncate">
-                                  {notif.type === 'like' ? 'liked your video' : 'commented on your video'}
-                                  {actionUrl && ' · Tap to view'}
-                                </p>
-                              </div>
-                            </button>
-                          );
-                        })}
                   </div>
                 )}
               </>
             )}
 
-            {/* Battle / Co-host invites: not shown in Inbox — use banner on live page only */}
-
-            {/* Live / system notifications — live rows use host profile photo, not Archive square */}
+            {/* Live / system notifications — never followers (New followers hub) or like/comment (Activity) */}
             {(activeFilter === 'main') && notifications
+                .filter(n => !isFollowNotification(n))
+                .filter(n => n.type !== 'like' && n.type !== 'comment')
                 .filter(n => (n.type === 'system' || n.type === 'live_started') && !(n.body?.toLowerCase?.().includes('check out this profile') || n.action_url?.includes('/profile/' + currentUserId)))
                 .map(notif => {
                 const liveNotif = isLiveStartedNotification(notif);

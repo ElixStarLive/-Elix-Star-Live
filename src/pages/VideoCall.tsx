@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AvatarRing } from '../components/AvatarRing';
 import {
+  Phone,
   PhoneOff,
   Mic,
   MicOff,
@@ -9,8 +10,10 @@ import {
   VideoOff,
   SwitchCamera,
 } from 'lucide-react';
+import { RoyceCloseIcon } from '../components/royce';
 import { useCallStore } from '../store/useCallStore';
-import { endCall as sendCallEnded, getCallRoomName } from '../lib/callService';
+import { endCall as sendCallEnded, getCallRoomName, acceptCall } from '../lib/callService';
+import { ensureDmThread } from '../lib/chatMessages';
 import { LiveKitSession, LiveKitTrack } from '../lib/liveKitSession';
 import { showToast } from '../lib/toast';
 import { apiLiveTokenWithIdentity } from '../lib/live';
@@ -54,7 +57,40 @@ export default function VideoCall() {
     }
   }, []);
 
-  const goBackAfterCall = useCallback(() => navigate(-1), [navigate]);
+  const exitToMessages = useCallback(async (otherUserId: string | null | undefined) => {
+    if (otherUserId) {
+      const { threadId, error } = await ensureDmThread(otherUserId);
+      if (threadId) {
+        navigate(`/inbox/${encodeURIComponent(threadId)}`, { replace: true });
+        return;
+      }
+      showToast(error || 'Could not open chat');
+    }
+    navigate('/inbox', { replace: true });
+  }, [navigate]);
+
+  const endCallAndReturnToMessages = useCallback(async () => {
+    const otherId = remoteUser?.id ?? useCallStore.getState().remoteUser?.id ?? null;
+    sessionRef.current?.disconnect();
+    sessionRef.current = null;
+    stopLocalMedia();
+    setRemoteHasVideo(false);
+    try {
+      if (callId) {
+        await sendCallEnded(callId);
+      }
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Could not signal call end';
+      showToast(msg);
+    }
+    useCallStore.getState().reset();
+    await exitToMessages(otherId);
+  }, [callId, remoteUser?.id, stopLocalMedia, exitToMessages]);
+
+  const handleAccept = useCallback(async () => {
+    if (!callId) return;
+    await acceptCall(callId);
+  }, [callId]);
 
   useEffect(() => {
     if (!callId || !remoteUser) return;
@@ -135,7 +171,7 @@ export default function VideoCall() {
         if (cancelled) return;
         if (track.kind === LiveKitTrack.Kind.Video && remoteVideoRef.current) {
           track.attach(remoteVideoRef.current);
-          void remoteVideoRef.current.play().catch(() => {});
+          void remoteVideoRef.current.play().catch(() => undefined);
           setRemoteHasVideo(true);
         } else if (track.kind === LiveKitTrack.Kind.Audio) {
           track.attach();
@@ -197,14 +233,15 @@ export default function VideoCall() {
 
   useEffect(() => {
     if (status === 'ended') {
+      const otherId = remoteUser?.id ?? null;
       const timer = setTimeout(() => {
         stopLocalMedia();
         useCallStore.getState().reset();
-        goBackAfterCall();
+        void exitToMessages(otherId);
       }, 3000);
       return () => clearTimeout(timer);
     }
-  }, [status, goBackAfterCall, stopLocalMedia]);
+  }, [status, remoteUser?.id, exitToMessages, stopLocalMedia]);
 
   const switchCamera = useCallback(async () => {
     if (!localStream) return;
@@ -245,27 +282,21 @@ export default function VideoCall() {
   if (!callId || !remoteUser) {
     return (
       <div className="min-h-[100dvh] h-[100dvh] w-full bg-transparent flex justify-center text-white overflow-hidden">
-        <div className="w-full max-w-[480px] mx-auto flex items-center justify-center px-4">
+        <div className="w-full max-w-[480px] mx-auto relative flex items-center justify-center px-4">
+          <button
+            type="button"
+            onClick={() => void exitToMessages(null)}
+            className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full flex items-center justify-center bg-white/[0.06] border border-white/15 active:scale-95 transition-transform"
+            aria-label="Close"
+            title="Close"
+          >
+            <RoyceCloseIcon size={20} />
+          </button>
           <p>No active call</p>
         </div>
       </div>
     );
   }
-
-  const handleHangup = async () => {
-    sessionRef.current?.disconnect();
-    sessionRef.current = null;
-    stopLocalMedia();
-    setRemoteHasVideo(false);
-    useCallStore.getState().setStatus('ended');
-    try {
-      if (callId) {
-        await sendCallEnded(callId);
-      } else {
-        useCallStore.getState().reset();
-      }
-    } catch { /* best-effort cleanup */ }
-  };
 
   const statusLabel =
     status === 'outgoing'
@@ -283,7 +314,16 @@ export default function VideoCall() {
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-transparent pb-[var(--bottom-ui-reserve)]">
       {/* Same width column as BottomNav (max-w-[480px] centered) — full-bleed bg on sides */}
-      <div className="flex flex-1 min-h-0 flex-col w-full max-w-[480px] mx-auto">
+      <div className="flex flex-1 min-h-0 flex-col w-full max-w-[480px] mx-auto relative">
+      <button
+        type="button"
+        onClick={() => void endCallAndReturnToMessages()}
+        className="absolute top-4 right-4 z-[60] w-10 h-10 rounded-full flex items-center justify-center bg-white/[0.06] border border-white/15 active:scale-95 transition-transform"
+        aria-label="Close"
+        title="Close"
+      >
+        <RoyceCloseIcon size={20} />
+      </button>
       {/* Remote video (full screen) */}
       <div className="flex-1 min-h-0 relative w-full">
         <video
@@ -341,7 +381,7 @@ export default function VideoCall() {
             type="button"
             onClick={toggleAudio}
             className={`w-14 h-14 rounded-full flex items-center justify-center ${
-              isAudioMuted ? 'bg-white/20/80' : 'bg-white/20'
+              isAudioMuted ? 'bg-white/40' : 'bg-white/20'
             }`}
           >
             {isAudioMuted ? (
@@ -355,7 +395,7 @@ export default function VideoCall() {
             type="button"
             onClick={toggleVideo}
             className={`w-14 h-14 rounded-full flex items-center justify-center ${
-              isVideoOff ? 'bg-white/20/80' : 'bg-white/20'
+              isVideoOff ? 'bg-white/40' : 'bg-white/20'
             }`}
           >
             {isVideoOff ? (
@@ -374,11 +414,24 @@ export default function VideoCall() {
             <SwitchCamera className="w-6 h-6 text-white" />
           </button>
 
+          {status === 'incoming' && (
+            <button
+              type="button"
+              onClick={() => void handleAccept()}
+              title="Accept call"
+              aria-label="Accept call"
+              className="w-16 h-16 rounded-full bg-[#22C55E] flex items-center justify-center shadow-lg active:scale-95 transition-transform"
+            >
+              <Phone className="w-7 h-7 text-white" />
+            </button>
+          )}
+
           <button
             type="button"
-            onClick={handleHangup}
+            onClick={() => void endCallAndReturnToMessages()}
             title="End call"
-            className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center shadow-lg"
+            aria-label="End call"
+            className="w-16 h-16 rounded-full bg-[#EF4444] flex items-center justify-center shadow-lg active:scale-95 transition-transform"
           >
             <PhoneOff className="w-7 h-7 text-white" />
           </button>

@@ -969,7 +969,6 @@ export default function ElixCameraLayout({
                 onClick={onPostTab}
                 className="relative flex items-center justify-center gap-1.5 h-10 px-4 min-w-[80px] rounded-full"
               >
-                {selectedTab === 'post' ? <CaptureShutterButton size={18} /> : null}
                 <span className={`elix-silver-red-text text-sm font-semibold ${selectedTab === 'post' ? '' : 'opacity-70'}`}>POST</span>
               </button>
               <button 
