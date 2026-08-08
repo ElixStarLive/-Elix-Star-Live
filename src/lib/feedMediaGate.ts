@@ -59,3 +59,15 @@ export function releaseFeedMediaPlayer(playerId: string): void {
 export function isFeedMediaPlayerActive(playerId: string): boolean {
   return activePlayerId === String(playerId || '').trim();
 }
+
+/** Hard-stop every registered feed player (leave For You / nothing visible). */
+export function silenceAllFeedMediaPlayers(): void {
+  activePlayerId = null;
+  for (const stop of stoppers.values()) {
+    try {
+      stop();
+    } catch {
+      /* ignore */
+    }
+  }
+}

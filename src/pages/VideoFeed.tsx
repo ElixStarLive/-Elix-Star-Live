@@ -6,6 +6,7 @@ const InlineLiveViewer = React.lazy(() => import("../components/InlineLiveViewer
 import EnhancedVideoPlayer from "../components/EnhancedVideoPlayer";
 import { useVideoStore } from "../store/useVideoStore";
 import { useAuthStore } from "../store/useAuthStore";
+import { silenceAllFeedMediaPlayers } from "../lib/feedMediaGate";
 import {
   isGenericLiveCreatorName,
   isUiAvatarsUrl,
@@ -316,6 +317,13 @@ export default function VideoFeed() {
     }
   }, [location.pathname, fetchLiveStreams, fetchVideos]);
 
+  /* Leave For You → hard-stop every feed video/audio immediately */
+  useEffect(() => {
+    return () => {
+      silenceAllFeedMediaPlayers();
+    };
+  }, []);
+
   /* ---- All live streams visible on For You (everyone) ---- */
   const visibleLiveStreams = liveStreams;
 
@@ -352,7 +360,12 @@ export default function VideoFeed() {
           bestIdx = idx;
         }
       });
-      if (bestRatio < 0.01) return;
+      if (bestRatio < 0.15) {
+        // Nothing on screen — stop background playback
+        setActiveIndex(-1);
+        silenceAllFeedMediaPlayers();
+        return;
+      }
       setActiveIndex((prev) => (prev === bestIdx ? prev : bestIdx));
     };
 
