@@ -45,6 +45,12 @@ export function stopSoundPreview(audio: HTMLAudioElement | null | undefined): vo
   } catch {
     /* ignore */
   }
+  try {
+    audio.muted = true;
+    audio.volume = 0;
+  } catch {
+    /* ignore */
+  }
   const hls = hlsByAudio.get(audio);
   if (hls) {
     try {
@@ -56,6 +62,7 @@ export function stopSoundPreview(audio: HTMLAudioElement | null | undefined): vo
   }
   try {
     audio.removeAttribute("src");
+    audio.srcObject = null;
     // Clear MediaSource / residual buffer so nothing keeps audibling after leave.
     audio.load();
   } catch {
@@ -199,6 +206,12 @@ export async function playAudioClip(
   if (isCancelled?.()) {
     stopSoundPreview(audio);
     throw new Error("cancelled");
+  }
+  try {
+    audio.muted = false;
+    if (audio.volume <= 0) audio.volume = 1;
+  } catch {
+    /* ignore */
   }
   await audio.play();
 }

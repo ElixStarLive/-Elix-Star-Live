@@ -298,6 +298,21 @@ function App() {
     }
   }, [location.pathname]);
 
+  // Also kill library audio if app backgrounds while not on Sound.
+  useEffect(() => {
+    const killIfLeftSound = () => {
+      if (!window.location.pathname.startsWith("/music")) {
+        useSoundLibraryPlayerStore.getState().stop();
+      }
+    };
+    document.addEventListener("visibilitychange", killIfLeftSound);
+    window.addEventListener("pagehide", killIfLeftSound);
+    return () => {
+      document.removeEventListener("visibilitychange", killIfLeftSound);
+      window.removeEventListener("pagehide", killIfLeftSound);
+    };
+  }, []);
+
   // Back button handled by useDeepLinks hook in deepLinks.ts
 
   // Realtime DM/cohost via Node/WebSocket backend.
