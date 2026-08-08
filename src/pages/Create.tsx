@@ -275,8 +275,9 @@ export default function Create() {
     input.click();
   }, []);
 
+  /** Create Upload — story photos from phone (POST tab goes to /upload for video posts). */
   const openUploadPicker = useCallback(() => {
-    openMediaPicker('video/*,image/*');
+    openMediaPicker('image/*');
   }, [openMediaPicker]);
 
   const openImagePicker = useCallback(() => {
@@ -288,7 +289,7 @@ export default function Create() {
   }, [openMediaPicker]);
 
   const openGalleryPicker = useCallback(() => {
-    openMediaPicker('video/*,image/*');
+    openMediaPicker('image/*');
   }, [openMediaPicker]);
 
   const togglePreviewLayout = useCallback(() => {
@@ -356,9 +357,10 @@ export default function Create() {
     setMusicVolume(0.7);
   }, []);
 
+  /** POST = upload/post flow (not camera). CREATE = record story/video. LIVE = go live. */
   const selectPostTab = useCallback(() => {
-    setMode('post');
-  }, []);
+    navigate('/upload');
+  }, [navigate]);
 
   const selectCreateTab = useCallback(() => {
     setMode('create');
@@ -857,7 +859,7 @@ export default function Create() {
                     <video src={previewUrl} className="w-full h-full object-cover" muted playsInline />
                   )}
                 </button>
-                <button type="button" onClick={openGalleryPicker} className="camera-rail-disc flex items-center justify-center" title="Upload">
+                <button type="button" onClick={openUploadPicker} className="camera-rail-disc flex items-center justify-center" title="Upload">
                   <Upload size={14} className="text-white" strokeWidth={2.5} />
                 </button>
               </div>

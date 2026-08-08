@@ -833,7 +833,7 @@ export default function Upload() {
       typeof accept === 'string' && (accept.includes('/') || accept.includes('*'))
         ? accept
         : isStoryUpload
-          ? 'video/*,image/*'
+          ? 'image/*'
           : 'video/*';
     const input = document.createElement('input');
     input.type = 'file';
@@ -856,7 +856,8 @@ export default function Upload() {
 
   const openImagePicker = () => handleFileUpload('image/*');
   const openVideoPicker = () => handleFileUpload('video/*');
-  const openGalleryPicker = () => handleFileUpload(isStoryUpload ? 'video/*,image/*' : 'video/*');
+  /** Story Upload = photos from phone; video post Upload = videos. */
+  const openGalleryPicker = () => handleFileUpload(isStoryUpload ? 'image/*' : 'video/*');
 
 
   return (
