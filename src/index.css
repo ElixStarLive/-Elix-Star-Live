@@ -2358,22 +2358,28 @@ body,
   background-repeat: no-repeat, no-repeat;
 }
 
-/* For You — fundal on app-width feed column only (not full-screen shell) */
+/* For You — same app-width panel fundal as Inbox (not full-screen shell) */
 #root .elix-app-shell.elix-feed-chrome-shell {
   background-image: none !important;
   background-color: var(--elix-bg) !important;
 }
 
-#root .elix-feed-chrome-shell main.feed-column-width {
-  background-image: var(--elix-feed-chrome-fill) !important;
+#root .elix-feed-chrome-shell main.feed-column-width,
+#root .elix-feed-chrome-shell .elix-feed-video-stage,
+#root .elix-feed-chrome-shell .feed-story-strip,
+#root .elix-feed-chrome-shell .elix-home-top-bar .feed-column-width,
+#root .elix-feed-chrome-shell nav[aria-label="Main navigation"] .feed-column-width {
+  background-color: transparent !important;
+  background-image: var(--elix-panel-fill) !important;
   background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
   background-position: var(--elix-fundal-position), var(--elix-fundal-position) !important;
   background-repeat: no-repeat, no-repeat !important;
 }
 
-/* Feed story strip on For You */
-#root .elix-feed-chrome-shell .feed-story-strip {
-  background-image: var(--elix-feed-chrome-fill) !important;
+/* Feed video stage — panel fundal under video (app column width) */
+#root .elix-feed-video-stage {
+  background-color: transparent !important;
+  background-image: var(--elix-panel-fill) !important;
   background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
   background-position: var(--elix-fundal-position), var(--elix-fundal-position) !important;
   background-repeat: no-repeat, no-repeat !important;
