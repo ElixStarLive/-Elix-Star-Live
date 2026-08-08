@@ -15,7 +15,7 @@ export default function SearchPage() {
   const [matchedUsers, setMatchedUsers] = useState<{ id: string; username: string; name: string; avatar: string }[]>([]);
   const [matchedVideos, setMatchedVideos] = useState<{ id: string; description: string; thumbnail: string; url: string; username: string; hashtags: string[] }[]>([]);
   const [searching, setSearching] = useState(false);
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(true);
   const [_recentSearches, setRecentSearches] = useState<string[]>([]);
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const panelRef = useRef<HTMLDivElement>(null);
@@ -101,10 +101,6 @@ export default function SearchPage() {
     }
     navigate({ pathname: location.pathname, search: params.toString() ? `?${params.toString()}` : '' }, { replace: true });
   }, [query, location.pathname, location.search, navigate]);
-
-  useEffect(() => {
-    requestAnimationFrame(() => setVisible(true));
-  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -202,7 +198,7 @@ export default function SearchPage() {
       {/* Panel — Live column size */}
       <div
         ref={panelRef}
-        className="app-live-column transition-transform duration-250 ease-out"
+        className="app-live-column transition-transform duration-200 ease-out"
         style={{
           transform: visible ? 'translateY(0)' : 'translateY(100%)',
           pointerEvents: visible ? 'auto' : 'none',
