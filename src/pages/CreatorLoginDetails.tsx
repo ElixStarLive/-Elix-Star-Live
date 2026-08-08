@@ -243,21 +243,20 @@ export default function CreatorLoginDetails() {
   return (
     <div className="fixed inset-0 z-[9999] bg-transparent text-white flex justify-center">
       <div className="w-full max-w-[480px] h-full elix-panel flex flex-col overflow-y-auto p-4">
-        {/* Header — logo + title centered, close button on the right */}
-        <header className="flex items-center justify-between mb-5">
-          <div className="w-9 flex-shrink-0" />
-          <div className="flex flex-col items-center">
-            <img src="/elix-logo.png" alt="Elix Star Live" className="w-16 h-16 object-contain" />
-            <h1 className="font-bold text-base mt-1">Creator Login Details</h1>
-          </div>
+        {/* Header — logo + title centered, close button top-right */}
+        <header className="relative flex flex-col items-center mb-5 pt-[max(0px,env(safe-area-inset-top))]">
           <button
             type="button"
             onClick={goBack}
-            className="w-9 h-9 flex items-center justify-center flex-shrink-0 active:scale-90 transition-transform"
+            className="absolute top-[max(0px,env(safe-area-inset-top))] right-0 w-9 h-9 flex items-center justify-center flex-shrink-0 active:scale-90 transition-transform z-10"
             aria-label="Close"
           >
             <RoyceCloseIcon size={20} />
           </button>
+          <div className="flex flex-col items-center">
+            <img src="/elix-logo.png" alt="Elix Star Live" className="w-16 h-16 object-contain" />
+            <h1 className="font-bold text-base mt-1">Creator Login Details</h1>
+          </div>
         </header>
 
         {/* Saved Accounts Switcher (Visible always if there are saved accounts) */}
