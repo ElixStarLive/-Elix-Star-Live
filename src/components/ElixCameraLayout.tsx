@@ -570,7 +570,7 @@ export default function ElixCameraLayout({
         <>
         <div className="absolute inset-0 z-[59] pointer-events-auto" onClick={() => setShowEffectsPanel(false)} aria-hidden />
         <div className="absolute bottom-0 left-0 right-0 z-[60] pointer-events-auto animate-in slide-in-from-bottom duration-300">
-          <div className="bg-[#09090B]/90 backdrop-blur-xl rounded-t-2xl pb-safe">
+          <div className="elix-panel rounded-t-2xl pb-safe border-x-0 border-b-0">
             {/* Header */}
             <div className="flex items-center justify-center px-4 pt-3 pb-2">
               <h3 className="text-[#F5F5F7] drop-shadow-[0_0_8px_rgba(139, 144, 152,1)] text-xs font-bold flex items-center gap-1.5">
@@ -639,7 +639,7 @@ export default function ElixCameraLayout({
         <>
         <div className="absolute inset-0 z-[59] pointer-events-auto" onClick={() => setShowCapCutPanel(false)} aria-hidden />
         <div className="absolute bottom-0 left-0 right-0 z-[60] pointer-events-auto animate-in slide-in-from-bottom duration-300">
-          <div className="bg-[#09090B]/90 backdrop-blur-xl rounded-t-2xl pb-safe">
+          <div className="elix-panel rounded-t-2xl pb-safe border-x-0 border-b-0">
             {/* Header */}
             <div className="flex items-center justify-center px-4 pt-3 pb-2">
               <h3 className="text-[#F5F5F7] drop-shadow-[0_0_8px_rgba(139, 144, 152,1)] text-xs font-bold flex items-center gap-1.5">
