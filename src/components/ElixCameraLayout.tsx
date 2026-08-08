@@ -330,11 +330,10 @@ export default function ElixCameraLayout({
             type="button"
             onClick={onSelectMusic}
             className="elix-sound-pill flex items-center gap-1 h-6 px-2.5 rounded-full border border-[#D8D9DD]/40 hover:scale-105 active:scale-95 transition-all relative"
-            style={{ background: 'rgba(0, 0, 0, 0.55)' }}
             title="Add sound"
           >
             <Music
-              size={13}
+              size={10}
               className="text-[#F5F5F7] drop-shadow-[0_0_8px_rgba(139, 144, 152,1)]"
               strokeWidth={2}
             />

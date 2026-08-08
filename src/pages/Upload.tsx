@@ -1015,10 +1015,9 @@ export default function Upload() {
                        type="button"
                        onClick={openSoundMixPanel}
                        className="elix-sound-pill flex items-center gap-1 max-w-[58%] h-[26px] px-2.5 rounded-full border border-[#D8D9DD]/40"
-                       style={{ background: 'rgba(0, 0, 0, 0.55)' }}
                        title={getSelectedLabel() || 'Add sound'}
                      >
-                       <Music size={12} className="text-[#F5F5F7] shrink-0" strokeWidth={2} />
+                       <Music size={10} className="text-[#F5F5F7] shrink-0" strokeWidth={2} />
                        <span className="text-[#F5F5F7] text-[10px] font-semibold truncate">
                          {selectedTrack?.title || 'Add sound'}
                        </span>
@@ -1534,10 +1533,9 @@ export default function Upload() {
                       type="button"
                       onClick={openMusicModal}
                       className="elix-sound-pill pointer-events-auto flex items-center gap-1 h-6 px-2.5 rounded-full border border-[#D8D9DD]/40"
-                      style={{ background: 'rgba(0, 0, 0, 0.55)' }}
                       title="Add sound"
                     >
-                      <Music size={13} className="text-[#F5F5F7] shrink-0" strokeWidth={2} />
+                      <Music size={10} className="text-[#F5F5F7] shrink-0" strokeWidth={2} />
                       <span className="elix-silver-red-text text-[10px] font-semibold whitespace-nowrap">Add sound</span>
                     </button>
                   </div>
@@ -1590,7 +1588,7 @@ export default function Upload() {
                     </button>
                     <button
                       type="button"
-                      className="w-9 h-9 flex items-center justify-center"
+                      className="camera-rail-disc flex items-center justify-center"
                       onClick={() => {
                         const next = cameraSpeed === 1 ? 0.5 : cameraSpeed === 0.5 ? 2 : 1;
                         setCameraSpeed(next);
@@ -1601,7 +1599,7 @@ export default function Upload() {
                       }}
                       title={`Speed ${cameraSpeed}x`}
                     >
-                      <span className="text-white font-bold text-xs">{cameraSpeed}x</span>
+                      <span className="text-[#F5F5F7] text-[9px] font-bold">{cameraSpeed}x</span>
                     </button>
                     <button
                       type="button"
