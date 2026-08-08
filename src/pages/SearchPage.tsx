@@ -19,6 +19,7 @@ export default function SearchPage() {
   const [_recentSearches, setRecentSearches] = useState<string[]>([]);
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const panelRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const touchStart = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const { videos, fetchVideos } = useVideoStore();
 
@@ -210,27 +211,36 @@ export default function SearchPage() {
           paddingBottom: 'var(--bottom-ui-reserve)',
         }}
       >
-          {/* Header — flush under safe area */}
+          {/* Header — search icon top-left, panel name Search, back right */}
           <div
-            className="flex items-center justify-between px-3 h-10"
+            className="flex flex-col shrink-0"
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
           >
-            <div className="w-[26px]" />
-            <div className="flex-1 flex justify-center">
-              <div className="w-8 h-[2px] rounded-full bg-white/30" />
+            <div className="flex justify-center pt-0.5 pb-1" aria-hidden>
+              <div className="w-10 h-1 rounded-full bg-white/25" />
             </div>
-            <button type="button" onClick={closePanel} className="p-1" title="Back">
-              <RoyceBackIcon />
-            </button>
-          </div>
-
-          {/* Search — icon only (no pill fundal) + name, separator under */}
-          <div className="px-3 pb-0">
-            <div className="flex items-center gap-2">
-              <form onSubmit={handleSearch} className="flex-1 relative flex items-center gap-2 min-w-0">
-                <SearchIcon size={18} className="shrink-0 text-[#F5F5F7]" aria-hidden />
+            <div className="relative flex items-center justify-between px-3 h-10">
+              <button
+                type="button"
+                className="p-1 z-10"
+                aria-label="Search"
+                title="Search"
+                onClick={() => searchInputRef.current?.focus()}
+              >
+                <SearchIcon size={18} className="text-[#F5F5F7]" />
+              </button>
+              <h1 className="absolute left-1/2 -translate-x-1/2 text-sm font-bold text-gold-metallic pointer-events-none">
+                Search
+              </h1>
+              <button type="button" onClick={closePanel} className="p-1 z-10" title="Back" aria-label="Back">
+                <RoyceBackIcon />
+              </button>
+            </div>
+            <div className="px-3 pb-0">
+              <form onSubmit={handleSearch} className="flex items-center gap-2 min-w-0">
                 <input
+                  ref={searchInputRef}
                   type="text"
                   placeholder="Search"
                   aria-label="Search"
@@ -249,12 +259,16 @@ export default function SearchPage() {
                     <X size={14} />
                   </button>
                 )}
+                <button
+                  type="button"
+                  className="elix-silver-red-text font-semibold text-xs shrink-0"
+                  onClick={closePanel}
+                >
+                  Cancel
+                </button>
               </form>
-              <button type="button" className="elix-silver-red-text font-semibold text-xs shrink-0" onClick={closePanel}>
-                Cancel
-              </button>
+              <div className="mt-1 border-b border-[#D8D9DD]/45" aria-hidden />
             </div>
-            <div className="mt-1 border-b border-[#D8D9DD]/45" aria-hidden />
           </div>
 
           {/* Results */}
