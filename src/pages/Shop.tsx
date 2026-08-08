@@ -3,7 +3,7 @@ import { RoyceBackIcon, ShopBasketIcon } from '../components/royce';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/apiClient';
 import { useAuthStore } from '../store/useAuthStore';
-import { Camera, Tag, MessageCircle, MoreVertical, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Camera, Tag, MessageCircle, MoreVertical, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
 import { showToast } from '../lib/toast';
 import { bunnyUpload } from '../lib/bunnyStorage';
@@ -364,16 +364,21 @@ export default function Shop() {
   }, [contactSeller]);
 
   const handleRemoveItem = async (item: ShopItem) => {
-    if (!user?.id || item.user_id !== user.id || removingId) return;
+    if (!user?.id || removingId) return;
+    if (item.user_id !== user.id) {
+      showToast("You can only delete your own listings");
+      setMenuItemId(null);
+      return;
+    }
     setRemovingId(item.id);
     setMenuItemId(null);
     try {
       const { error } = await api.shop.deleteItem(item.id);
       if (error) throw error;
       setItems((prev) => prev.filter((i) => i.id !== item.id));
-      showToast('Item removed');
+      showToast('Item deleted');
     } catch {
-      showToast('Failed to remove item');
+      showToast('Failed to delete item');
     } finally {
       setRemovingId(null);
     }
@@ -537,27 +542,30 @@ export default function Shop() {
                           onClick={closeItemMenu}
                         />
                         <div className="absolute right-0 top-full mt-1 z-[4] min-w-[120px] rounded-xl bg-[#1A1C21] border border-white/15 shadow-lg overflow-hidden">
-                          {isOwn ? (
-                            <button
-                              type="button"
-                              disabled={removingId === item.id}
-                              onClick={() => handleRemoveItem(item)}
-                              className="w-full text-left px-3 py-2 text-xs font-semibold text-[#F5F5F7] hover:bg-white/5 disabled:opacity-50"
-                            >
-                              {removingId === item.id ? 'Removing…' : 'Remove'}
-                            </button>
-                          ) : (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => handleMessageSeller(item.user_id)}
-                                className="w-full text-left px-3 py-2 text-xs font-semibold text-[#F5F5F7] hover:bg-white/5 flex items-center gap-1.5"
-                              >
-                                <MessageCircle size={12} className="text-[#F5F5F7]" />
-                                Message
-                              </button>
-                            </>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (isOwn) {
+                                setMenuItemId(null);
+                                showToast("You can't message yourself");
+                                return;
+                              }
+                              handleMessageSeller(item.user_id);
+                            }}
+                            className="w-full text-left px-3 py-2 text-xs font-semibold text-[#F5F5F7] hover:bg-white/5 flex items-center gap-1.5"
+                          >
+                            <MessageCircle size={12} className="text-[#F5F5F7]" />
+                            Message
+                          </button>
+                          <button
+                            type="button"
+                            disabled={removingId === item.id}
+                            onClick={() => void handleRemoveItem(item)}
+                            className="w-full text-left px-3 py-2 text-xs font-semibold text-[#F5F5F7] hover:bg-white/5 flex items-center gap-1.5 disabled:opacity-50"
+                          >
+                            <Trash2 size={12} className="text-[#F5F5F7]" />
+                            {removingId === item.id ? 'Deleting…' : 'Delete'}
+                          </button>
                         </div>
                       </>
                     )}
@@ -571,7 +579,7 @@ export default function Shop() {
                         isOwn,
                       );
                     }}
-                    className="absolute bottom-1.5 left-1.5 z-[2] w-8 h-8 rounded-full bg-black/55 border border-white/10 flex items-center justify-center active:opacity-70"
+                    className="absolute bottom-1.5 right-1.5 z-[2] w-8 h-8 rounded-full bg-black/55 border border-white/10 flex items-center justify-center active:opacity-70"
                     aria-label="Add to basket"
                   >
                     <ShopBasketIcon size={16} className="text-[#F5F5F7]" />
