@@ -28,7 +28,7 @@ import SoundPickerPanel from '../components/SoundPickerPanel';
 import ElixCameraLayout from '../components/ElixCameraLayout';
 import MediaEditorPanel, { type EditorTab, type FilterPreset, FILTER_PRESETS, EFFECT_PRESETS, StoryFxOverlay } from '../components/MediaEditorPanel';
 import { bakeImage, bakeVideo, type EditOverlay } from '../lib/mediaBake';
-import { nativeShareUrl } from '../lib/platform';
+import { nativeShareMedia } from '../lib/platform';
 import { useAuthStore } from '../store/useAuthStore';
 
 type CreateMode = 'upload' | 'post' | 'create' | 'live';
@@ -387,19 +387,26 @@ export default function Create() {
   };
 
   const handleShare = async () => {
+    if (!previewUrl) {
+      showToastMsg('Nothing to share yet');
+      return;
+    }
+    let blob: Blob | null = null;
     try {
-      if (previewUrl && typeof navigator !== 'undefined' && typeof navigator.canShare === 'function') {
-        const resp = await fetch(previewUrl);
-        const blob = await resp.blob();
-        const file = new File([blob], previewKind === 'image' ? 'elixstar.jpg' : 'elixstar.webm', { type: blob.type || (previewKind === 'image' ? 'image/jpeg' : 'video/webm') });
-        if (navigator.canShare({ files: [file] })) {
-          await navigator.share({ files: [file], title: 'Elix Star Live' });
-          return;
-        }
-      }
-    } catch { /* fall through to link share */ }
-    const ok = await nativeShareUrl({ title: 'Elix Star Live', text: 'Made with Elix Star Live', url: 'https://www.elixstarlive.co.uk' });
-    if (!ok) showToastMsg('Sharing not available');
+      blob = await fetch(previewUrl).then((r) => r.blob());
+    } catch {
+      blob = null;
+    }
+    const result = await nativeShareMedia({
+      title: 'Elix Star Live',
+      text: 'Made with Elix Star Live',
+      url: 'https://www.elixstarlive.co.uk',
+      blob,
+      filename: previewKind === 'image' ? 'elixstar.jpg' : 'elixstar.webm',
+    });
+    if (result === 'shared') showToastMsg('Shared');
+    else if (result === 'copied') showToastMsg('Link copied');
+    else if (result === 'unavailable') showToastMsg('Sharing not available');
   };
 
   const exportEditedMedia = async (): Promise<string> => {

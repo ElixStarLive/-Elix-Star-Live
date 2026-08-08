@@ -26,7 +26,7 @@ import MediaEditorPanel, {
 } from '../components/MediaEditorPanel';
 import { takeCachedRecordedMedia } from '../lib/recordedMediaCache';
 import { DUET_STAGE_HEIGHT } from '../lib/profileFrame';
-import { nativeShareUrl } from '../lib/platform';
+import { nativeShareMedia } from '../lib/platform';
 import { bakeImage, bakeVideo, canBakeVideo, type EditOverlay } from '../lib/mediaBake';
 
 export default function Upload() {
@@ -997,13 +997,26 @@ export default function Upload() {
                    >
                      {[
                        { Icon: Share2, title: 'Share', onClick: async () => {
-                         if (!recordedVideoUrl) return;
-                         const ok = await nativeShareUrl({
+                         if (!recordedVideoUrl) {
+                           showToast('Nothing to share yet');
+                           return;
+                         }
+                         let blob: Blob | null = null;
+                         try {
+                           blob = await fetch(recordedVideoUrl).then((r) => r.blob());
+                         } catch {
+                           blob = null;
+                         }
+                         const result = await nativeShareMedia({
                            title: 'Elix Star Live',
-                           text: caption || 'Check out my clip',
-                           url: typeof window !== 'undefined' ? window.location.origin : recordedVideoUrl,
+                           text: caption || 'Made with Elix Star Live',
+                           url: 'https://www.elixstarlive.co.uk',
+                           blob,
+                           filename: mediaKind === 'image' ? 'elixstar.jpg' : 'elixstar.webm',
                          });
-                         showToast(ok ? 'Shared' : 'Could not share');
+                         if (result === 'shared') showToast('Shared');
+                         else if (result === 'copied') showToast('Link copied');
+                         else if (result === 'unavailable') showToast('Could not share');
                        } },
                        { Icon: LayoutGrid, title: 'Layout', onClick: handleFileUpload },
                        { Icon: ImageIcon, title: 'Media', onClick: handleFileUpload },
