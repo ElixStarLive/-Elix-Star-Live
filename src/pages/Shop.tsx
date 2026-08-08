@@ -700,22 +700,56 @@ export default function Shop() {
               onClick={closeCart}
             >
               <div
-                className="w-full elix-panel rounded-t-3xl pb-safe border border-black"
+                className="w-full rounded-t-3xl pb-safe border border-black overflow-hidden"
                 style={{
                   maxHeight: '80dvh',
                   backgroundColor: 'var(--elix-bg)',
-                  backgroundImage: 'var(--elix-page-fill)',
-                  backgroundSize: 'var(--elix-fundal-size), var(--elix-fundal-size)',
-                  backgroundPosition: 'var(--elix-fundal-position), var(--elix-fundal-position)',
-                  backgroundRepeat: 'no-repeat, no-repeat',
+                  backgroundImage: 'var(--elix-fundal-image)',
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat',
                 }}
                 onClick={e => e.stopPropagation()}
               >
                 <div className="flex items-center justify-center pt-3 pb-1">
                   <div className="w-10 h-1 rounded-full bg-white/20" />
                 </div>
-                <div className="flex items-center justify-center px-5 pb-3">
+                <div className="relative flex items-center justify-center px-5 pb-3 min-h-[2rem]">
                   <h3 className="text-gold-metallic font-bold text-base">Your basket</h3>
+                  {cartItems.length === 1 ? (
+                    <div className="absolute right-5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleCartQtyMinus(
+                            cartItems[0].id,
+                            Math.max(1, Math.floor(Number(cartItems[0].quantity) || 1)),
+                          )
+                        }
+                        className="w-7 h-7 rounded-full bg-[#1A1C21] border border-white/15 flex items-center justify-center active:opacity-70"
+                        aria-label={`Less ${cartItems[0].title}`}
+                      >
+                        <ChevronLeft size={16} className="text-[#F5F5F7]" />
+                      </button>
+                      <span className="min-w-[1.5rem] text-center text-xs font-bold text-[#F5F5F7] tabular-nums">
+                        {Math.max(1, Math.floor(Number(cartItems[0].quantity) || 1))}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleCartQtyPlus(
+                            cartItems[0].id,
+                            Math.max(1, Math.floor(Number(cartItems[0].quantity) || 1)),
+                          )
+                        }
+                        className="w-7 h-7 rounded-full bg-[#1A1C21] border border-white/15 flex items-center justify-center active:opacity-70"
+                        aria-label={`More ${cartItems[0].title}`}
+                        disabled={Math.max(1, Math.floor(Number(cartItems[0].quantity) || 1)) >= 99}
+                      >
+                        <ChevronRight size={16} className="text-[#F5F5F7]" />
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
 
                 {cartItems.length === 0 ? (
@@ -729,7 +763,7 @@ export default function Shop() {
                       {cartItems.map((ci) => {
                         const qty = Math.max(1, Math.floor(Number(ci.quantity) || 1));
                         return (
-                        <div key={ci.id} className="relative flex items-center gap-3 py-2 pr-[5.5rem] border-b border-white/5">
+                        <div key={ci.id} className="flex items-center gap-3 py-2 border-b border-white/5">
                           {ci.image_url ? (
                             <img src={ci.image_url} alt={ci.title} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
                           ) : (
@@ -741,30 +775,33 @@ export default function Shop() {
                             <p className="text-sm font-semibold text-white truncate">{ci.title}</p>
                             <p className="text-sm font-extrabold text-gold-metallic">
                               £{(Number(ci.price) * qty).toFixed(2)}
+                              {qty > 1 ? ` × ${qty}` : ''}
                             </p>
                           </div>
-                          <div className="absolute top-2 right-0 flex items-center gap-1">
-                            <button
-                              type="button"
-                              onClick={() => handleCartQtyMinus(ci.id, qty)}
-                              className="w-7 h-7 rounded-full bg-[#1A1C21] border border-white/15 flex items-center justify-center active:opacity-70"
-                              aria-label={`Less ${ci.title}`}
-                            >
-                              <ChevronLeft size={16} className="text-[#F5F5F7]" />
-                            </button>
-                            <span className="min-w-[1.5rem] text-center text-xs font-bold text-[#F5F5F7] tabular-nums">
-                              {qty}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => handleCartQtyPlus(ci.id, qty)}
-                              className="w-7 h-7 rounded-full bg-[#1A1C21] border border-white/15 flex items-center justify-center active:opacity-70"
-                              aria-label={`More ${ci.title}`}
-                              disabled={qty >= 99}
-                            >
-                              <ChevronRight size={16} className="text-[#F5F5F7]" />
-                            </button>
-                          </div>
+                          {cartItems.length > 1 ? (
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => handleCartQtyMinus(ci.id, qty)}
+                                className="w-7 h-7 rounded-full bg-[#1A1C21] border border-white/15 flex items-center justify-center active:opacity-70"
+                                aria-label={`Less ${ci.title}`}
+                              >
+                                <ChevronLeft size={16} className="text-[#F5F5F7]" />
+                              </button>
+                              <span className="min-w-[1.5rem] text-center text-xs font-bold text-[#F5F5F7] tabular-nums">
+                                {qty}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleCartQtyPlus(ci.id, qty)}
+                                className="w-7 h-7 rounded-full bg-[#1A1C21] border border-white/15 flex items-center justify-center active:opacity-70"
+                                aria-label={`More ${ci.title}`}
+                                disabled={qty >= 99}
+                              >
+                                <ChevronRight size={16} className="text-[#F5F5F7]" />
+                              </button>
+                            </div>
+                          ) : null}
                         </div>
                         );
                       })}
