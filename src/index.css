@@ -1755,20 +1755,19 @@ svg.lucide,
   stroke: #E8EAED !important;
 }
 
-/* Create / compose — sound pill: transparent capsule; note icon line only (no round black disc) */
-#root .elix-sound-pill,
-#root button[title="Add sound"] {
-  background: transparent !important;
-  background-color: transparent !important;
-  background-image: none !important;
-}
+/* Add sound pill: keep capsule fill; strip round black disc from Music icon only */
 #root .elix-sound-pill svg.lucide,
 #root button[title="Add sound"] svg.lucide {
   padding: 0 !important;
   border: none !important;
   border-radius: 0 !important;
   background: transparent !important;
+  background-color: transparent !important;
   box-shadow: none !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
 }
 
 /* Story / user circle strip — same fundal as home bottom nav */
