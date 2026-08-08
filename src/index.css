@@ -1755,7 +1755,14 @@ svg.lucide,
   stroke: #E8EAED !important;
 }
 
-/* Create — Add sound: line note only, no round black disc */
+/* Create / compose — sound pill: transparent capsule; note icon line only (no round black disc) */
+#root .elix-sound-pill,
+#root button[title="Add sound"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+#root .elix-sound-pill svg.lucide,
 #root button[title="Add sound"] svg.lucide {
   padding: 0 !important;
   border: none !important;
