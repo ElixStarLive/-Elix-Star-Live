@@ -36,12 +36,6 @@ import { nativeConfirm } from './NativeDialog';
 import { downloadVideoWithoutMusic } from '../lib/videoDownloadClient';
 import { getVideoPosterUrl } from '../lib/bunnyStorage';
 import { resolvePlayableSoundUrl, resolveSoundTrackPlaybackUrl } from '../lib/soundLibrary';
-import {
-  claimFeedMediaPlayer,
-  isFeedMediaPlayerActive,
-  registerFeedMediaPlayer,
-  releaseFeedMediaPlayer,
-} from '../lib/feedMediaGate';
 import { StoryGoldRingAvatar } from './StoryGoldRingAvatar';
 import {
   SHARE_PANEL_ACTION_DISC_PX,
@@ -302,9 +296,9 @@ export default function EnhancedVideoPlayer({
     };
   }, [scrubbing, seekFromClientX]);
   
-  // Video playback controls — only the active For You slide may play sound.
+  // Video playback controls — only the active For You slide may respond.
   const togglePlay = useCallback(() => {
-    if (!isActiveRef.current || !isFeedMediaPlayerActive(videoId)) return;
+    if (!isActiveRef.current) return;
     if (isPlaying) {
       videoRef.current?.pause();
       duetOriginalRef.current?.pause();
@@ -319,7 +313,7 @@ export default function EnhancedVideoPlayer({
       }
     }
     setIsPlaying(prev => !prev);
-  }, [effectiveMuted, isDuetLayout, isPlaying, duetOriginalSrc, musicVolume, videoId]);
+  }, [effectiveMuted, isDuetLayout, isPlaying, duetOriginalSrc, musicVolume]);
 
   // Video event handlers
   useEffect(() => {
@@ -367,12 +361,12 @@ export default function EnhancedVideoPlayer({
     const a = audioRef.current;
     if (!a) return;
     const onTimeUpdate = () => {
-      if (!shouldPlayRef.current || !isActiveRef.current || !isFeedMediaPlayerActive(videoId)) return;
+      if (!shouldPlayRef.current || !isActiveRef.current) return;
       const clip = musicClipRef.current;
       if (!clip || clip.end <= clip.start) return;
       if (a.currentTime >= clip.end) {
         a.currentTime = clip.start;
-        if (!a.paused && !a.muted && shouldPlayRef.current && isFeedMediaPlayerActive(videoId)) {
+        if (!a.paused && !a.muted && shouldPlayRef.current) {
           a.play().catch(() => {});
         }
       }
@@ -381,8 +375,15 @@ export default function EnhancedVideoPlayer({
     return () => a.removeEventListener('timeupdate', onTimeUpdate);
   }, [videoId]);
 
-  /** Hard-silence this slide — pause + mute. Does not clear music src (avoids re-play races). */
-  const hardSilenceLocal = useCallback(() => {
+  /**
+   * Stop this slide's media. Called ONLY by the autoplay effect's own cleanup
+   * (isActive true → false, unmount, dep change). No external gate needed:
+   * only one slide has isActive=true, and React's cleanup runs on every
+   * transition, so the departing slide is always responsible for silencing
+   * itself. Guards `shouldPlayRef`/`musicPlayGenRef` so any in-flight async
+   * play promise sees "not mine anymore" and bails.
+   */
+  const stopThisSlide = useCallback(() => {
     shouldPlayRef.current = false;
     musicPlayGenRef.current += 1;
     musicClipRef.current = null;
@@ -420,183 +421,190 @@ export default function EnhancedVideoPlayer({
     setIsPlaying(false);
   }, []);
 
-  // Register with feed gate — any other active slide silences us immediately on scroll.
-  useEffect(() => {
-    return registerFeedMediaPlayer(videoId, hardSilenceLocal);
-  }, [videoId, hardSilenceLocal]);
-
   // Auto-play based on visibility.
   // Android: start at the intended mute state — muted→unmute after play paints the stuck white play icon.
   // iOS/web: try muted first, then unmute when allowed.
   useEffect(() => {
-    const stopAll = () => {
-      hardSilenceLocal();
-    };
+    if (!isActive) return;
 
-    if (isActive) {
-      claimFeedMediaPlayer(videoId);
-      setVideoError(false);
-      retryCountRef.current = 0;
-      retryingRef.current = false;
-      shouldPlayRef.current = true;
+    setVideoError(false);
+    retryCountRef.current = 0;
+    retryingRef.current = false;
+    shouldPlayRef.current = true;
 
-      const stillMine = () =>
-        shouldPlayRef.current && isActiveRef.current && isFeedMediaPlayerActive(videoId);
+    const stillMine = () =>
+      shouldPlayRef.current && isActiveRef.current;
 
-      const runPlay = (videoEl: HTMLVideoElement) => {
-        if (!stillMine()) return;
-        videoEl.volume = videoVolume;
+    const runPlay = (videoEl: HTMLVideoElement) => {
+      if (!stillMine()) return;
+      videoEl.volume = videoVolume;
 
-        const finishOk = (actuallyMuted: boolean) => {
+      const finishOk = (actuallyMuted: boolean) => {
+        if (!stillMine()) {
+          try { videoEl.pause(); videoEl.muted = true; videoEl.volume = 0; } catch { void 0; }
+          return;
+        }
+        setIsPlaying(true);
+        setIsMuted(actuallyMuted);
+      };
+
+      if (platform.isAndroid) {
+        // Always autoplay muted on Android WebView. Unmute only on user tap
+        // (handleVideoClick) — muted→unmute without a gesture paints the white play icon.
+        prepareFeedVideoEl(videoEl, { muted: true });
+        videoEl.muted = true;
+        videoEl.defaultMuted = true;
+        videoEl.setAttribute('muted', '');
+        const markPlaying = () => finishOk(true);
+        videoEl.addEventListener('playing', markPlaying, { once: true });
+        void videoEl
+          .play()
+          .then(() => finishOk(true))
+          .catch(() => {
+            if (!stillMine()) return;
+            void videoEl.play().then(() => finishOk(true)).catch(() => {});
+          });
+        return;
+      }
+
+      prepareFeedVideoEl(videoEl, { muted: true });
+      videoEl.muted = true;
+      videoEl.play()
+        .then(() => {
           if (!stillMine()) {
             try { videoEl.pause(); videoEl.muted = true; videoEl.volume = 0; } catch { void 0; }
             return;
           }
           setIsPlaying(true);
-          setIsMuted(actuallyMuted);
-        };
-
-        if (platform.isAndroid) {
-          // Always autoplay muted on Android WebView. Unmute only on user tap
-          // (handleVideoClick) — muted→unmute without a gesture paints the white play icon.
-          prepareFeedVideoEl(videoEl, { muted: true });
+          // When a licensed track is attached, keep the video element muted —
+          // the soundtrack plays on the separate <audio>, so cleanup can stop
+          // audio independently of video.
+          if (_hasMusicTrack) {
+            videoEl.muted = true;
+            videoEl.volume = 0;
+            setIsMuted(true);
+          } else if (!muteAllSounds) {
+            videoEl.muted = false;
+            videoEl.volume = videoVolume;
+            setIsMuted(false);
+          } else {
+            setIsMuted(true);
+          }
+        })
+        .catch(() => {
+          if (!stillMine()) return;
           videoEl.muted = true;
-          videoEl.defaultMuted = true;
-          videoEl.setAttribute('muted', '');
-          const markPlaying = () => finishOk(true);
-          videoEl.addEventListener('playing', markPlaying, { once: true });
-          void videoEl
-            .play()
-            .then(() => finishOk(true))
-            .catch(() => {
-              if (!stillMine()) return;
-              void videoEl.play().then(() => finishOk(true)).catch(() => {});
-            });
-          return;
-        }
-
-        prepareFeedVideoEl(videoEl, { muted: true });
-        videoEl.muted = true;
-        videoEl.play()
-          .then(() => {
+          videoEl.play().then(() => {
             if (!stillMine()) {
               try { videoEl.pause(); videoEl.muted = true; videoEl.volume = 0; } catch { void 0; }
               return;
             }
             setIsPlaying(true);
-            // When a licensed track is attached, keep the video element muted —
-            // soundtrack plays on the separate <audio> so scroll-away can kill it cleanly.
-            if (_hasMusicTrack) {
-              videoEl.muted = true;
-              videoEl.volume = 0;
-              setIsMuted(true);
-            } else if (!muteAllSounds) {
-              videoEl.muted = false;
-              videoEl.volume = videoVolume;
-              setIsMuted(false);
-            } else {
-              setIsMuted(true);
-            }
-          })
-          .catch(() => {
-            if (!stillMine()) return;
-            videoEl.muted = true;
-            videoEl.play().then(() => {
-              if (!stillMine()) {
-                try { videoEl.pause(); videoEl.muted = true; videoEl.volume = 0; } catch { void 0; }
-                return;
-              }
-              setIsPlaying(true);
-              setIsMuted(true);
-            }).catch(() => {});
-          });
-      };
-
-      const tryPlay = () => {
-        const el = videoRef.current;
-        if (!el || !stillMine()) return;
-        stripVideoMediaChrome(el);
-        // Ensure src is attached — Android often never fires canplay if we only wait.
-        if (video?.url && !el.currentSrc) {
-          el.src = video.url;
-        }
-        // ALWAYS attempt play immediately. Waiting only for readyState>=2 leaves
-        // Android WebView stuck forever (never buffers without a play() call).
-        runPlay(el);
-        if (el.readyState < 2) {
-          const onReady = () => {
-            el.removeEventListener('canplay', onReady);
-            el.removeEventListener('loadeddata', onReady);
-            el.removeEventListener('playing', onReady);
-            if (!stillMine()) return;
-            runPlay(el);
-          };
-          el.addEventListener('canplay', onReady);
-          el.addEventListener('loadeddata', onReady);
-          el.addEventListener('playing', onReady);
-        }
-      };
-
-      const timer = setTimeout(tryPlay, 50);
-      const retryTimer = platform.isAndroid
-        ? setTimeout(() => {
-            if (!stillMine()) return;
-            const el = videoRef.current;
-            if (!el) return;
-            if (!el.paused && !el.ended) {
-              setIsPlaying(true);
-              return;
-            }
-            runPlay(el);
-          }, 400)
-        : null;
-      const retryTimer2 = platform.isAndroid
-        ? setTimeout(() => {
-            if (!stillMine()) return;
-            const el = videoRef.current;
-            if (!el) return;
-            if (!el.paused && !el.ended) {
-              setIsPlaying(true);
-              return;
-            }
-            runPlay(el);
-          }, 1200)
-        : null;
-
-      incrementViews(videoId);
-      trackEvent('video_view', { videoId });
-
-      const duetEl = duetOriginalRef.current;
-      if (duetEl && isDuetLayout && duetOriginalSrc) {
-        duetEl.muted = true;
-        void duetEl.play().then(() => {
-          if (!stillMine()) {
-            try { duetEl.pause(); duetEl.muted = true; } catch { void 0; }
-          }
+            setIsMuted(true);
+          }).catch(() => {});
         });
-      }
+    };
 
-      const audio = audioRef.current;
-      if (audio && video?.music?.previewUrl) {
-        const clipStart = Math.max(0, video.music.clipStartSeconds ?? 0);
-        const clipEnd = Math.max(
-          clipStart + 5,
-          video.music.clipEndSeconds ?? clipStart + 60,
-        );
-        musicClipRef.current = { start: clipStart, end: clipEnd };
-        audio.muted = muteAllSounds;
-        audio.volume = musicVolume;
-        if (!muteAllSounds) {
-          const musicGen = ++musicPlayGenRef.current;
-          void (async () => {
-            const previewSrc =
-              (await resolvePlayableSoundUrl(video.music.previewUrl || '')) ||
-              resolveSoundTrackPlaybackUrl(video.music.previewUrl || '');
-            if (
-              !previewSrc ||
-              !stillMine() ||
-              musicGen !== musicPlayGenRef.current
-            ) {
+    const tryPlay = () => {
+      const el = videoRef.current;
+      if (!el || !stillMine()) return;
+      stripVideoMediaChrome(el);
+      // Ensure src is attached — Android often never fires canplay if we only wait.
+      if (video?.url && !el.currentSrc) {
+        el.src = video.url;
+      }
+      // ALWAYS attempt play immediately. Waiting only for readyState>=2 leaves
+      // Android WebView stuck forever (never buffers without a play() call).
+      runPlay(el);
+      if (el.readyState < 2) {
+        const onReady = () => {
+          el.removeEventListener('canplay', onReady);
+          el.removeEventListener('loadeddata', onReady);
+          el.removeEventListener('playing', onReady);
+          if (!stillMine()) return;
+          runPlay(el);
+        };
+        el.addEventListener('canplay', onReady);
+        el.addEventListener('loadeddata', onReady);
+        el.addEventListener('playing', onReady);
+      }
+    };
+
+    const timer = setTimeout(tryPlay, 50);
+    const retryTimer = platform.isAndroid
+      ? setTimeout(() => {
+          if (!stillMine()) return;
+          const el = videoRef.current;
+          if (!el) return;
+          if (!el.paused && !el.ended) {
+            setIsPlaying(true);
+            return;
+          }
+          runPlay(el);
+        }, 400)
+      : null;
+    const retryTimer2 = platform.isAndroid
+      ? setTimeout(() => {
+          if (!stillMine()) return;
+          const el = videoRef.current;
+          if (!el) return;
+          if (!el.paused && !el.ended) {
+            setIsPlaying(true);
+            return;
+          }
+          runPlay(el);
+        }, 1200)
+      : null;
+
+    incrementViews(videoId);
+    trackEvent('video_view', { videoId });
+
+    const duetEl = duetOriginalRef.current;
+    if (duetEl && isDuetLayout && duetOriginalSrc) {
+      duetEl.muted = true;
+      void duetEl.play().then(() => {
+        if (!stillMine()) {
+          try { duetEl.pause(); duetEl.muted = true; } catch { void 0; }
+        }
+      });
+    }
+
+    const audio = audioRef.current;
+    if (audio && video?.music?.previewUrl) {
+      const clipStart = Math.max(0, video.music.clipStartSeconds ?? 0);
+      const clipEnd = Math.max(
+        clipStart + 5,
+        video.music.clipEndSeconds ?? clipStart + 60,
+      );
+      musicClipRef.current = { start: clipStart, end: clipEnd };
+      audio.muted = muteAllSounds;
+      audio.volume = musicVolume;
+      if (!muteAllSounds) {
+        const musicGen = ++musicPlayGenRef.current;
+        void (async () => {
+          const previewSrc =
+            (await resolvePlayableSoundUrl(video.music.previewUrl || '')) ||
+            resolveSoundTrackPlaybackUrl(video.music.previewUrl || '');
+          if (
+            !previewSrc ||
+            !stillMine() ||
+            musicGen !== musicPlayGenRef.current
+          ) {
+            try {
+              audio.pause();
+              audio.muted = true;
+              audio.volume = 0;
+            } catch {
+              /* ignore */
+            }
+            return;
+          }
+          if (audio.src !== previewSrc) {
+            audio.src = previewSrc;
+            audio.load();
+          }
+          const startPlay = () => {
+            if (!stillMine() || musicGen !== musicPlayGenRef.current) {
               try {
                 audio.pause();
                 audio.muted = true;
@@ -606,11 +614,10 @@ export default function EnhancedVideoPlayer({
               }
               return;
             }
-            if (audio.src !== previewSrc) {
-              audio.src = previewSrc;
-              audio.load();
-            }
-            const startPlay = () => {
+            try { audio.currentTime = clipStart; } catch { /* ignore */ }
+            audio.muted = false;
+            audio.volume = musicVolume;
+            void audio.play().then(() => {
               if (!stillMine() || musicGen !== musicPlayGenRef.current) {
                 try {
                   audio.pause();
@@ -619,55 +626,38 @@ export default function EnhancedVideoPlayer({
                 } catch {
                   /* ignore */
                 }
-                return;
               }
-              try { audio.currentTime = clipStart; } catch { /* ignore */ }
-              audio.muted = false;
-              audio.volume = musicVolume;
-              void audio.play().then(() => {
-                if (!stillMine() || musicGen !== musicPlayGenRef.current) {
-                  try {
-                    audio.pause();
-                    audio.muted = true;
-                    audio.volume = 0;
-                  } catch {
-                    /* ignore */
-                  }
-                }
-              });
-            };
-            if (audio.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) startPlay();
-            else audio.addEventListener('canplay', startPlay, { once: true });
-          })();
-        }
-      } else {
-        musicClipRef.current = null;
-        if (audio) {
-          try {
-            audio.pause();
-            audio.muted = true;
-            audio.volume = 0;
-          } catch {
-            /* ignore */
-          }
+            });
+          };
+          if (audio.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) startPlay();
+          else audio.addEventListener('canplay', startPlay, { once: true });
+        })();
+      }
+    } else {
+      musicClipRef.current = null;
+      if (audio) {
+        try {
+          audio.pause();
+          audio.muted = true;
+          audio.volume = 0;
+        } catch {
+          /* ignore */
         }
       }
-
-      return () => {
-        clearTimeout(timer);
-        if (retryTimer) clearTimeout(retryTimer);
-        if (retryTimer2) clearTimeout(retryTimer2);
-        if (singleTapTimerRef.current) { clearTimeout(singleTapTimerRef.current); singleTapTimerRef.current = null; }
-        releaseFeedMediaPlayer(videoId);
-        stopAll();
-      };
-    } else {
-      releaseFeedMediaPlayer(videoId);
-      stopAll();
-      setIsPlaying(false);
     }
+
+    // Cleanup runs on: isActive true→false, unmount, or any dep change.
+    // It is the ONLY thing responsible for silencing this slide when it stops
+    // being the active one — no external gate needed.
+    return () => {
+      clearTimeout(timer);
+      if (retryTimer) clearTimeout(retryTimer);
+      if (retryTimer2) clearTimeout(retryTimer2);
+      if (singleTapTimerRef.current) { clearTimeout(singleTapTimerRef.current); singleTapTimerRef.current = null; }
+      stopThisSlide();
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [incrementViews, isActive, isDuetLayout, muteAllSounds, originalVideo, video?.url, video?.music?.previewUrl, video?.music?.clipStartSeconds, video?.music?.clipEndSeconds, videoId, volume, hardSilenceLocal, _hasMusicTrack, musicVolume, videoVolume]);
+  }, [incrementViews, isActive, isDuetLayout, muteAllSounds, originalVideo, video?.url, video?.music?.previewUrl, video?.music?.clipStartSeconds, video?.music?.clipEndSeconds, videoId, volume, stopThisSlide, _hasMusicTrack, musicVolume, videoVolume]);
 
   // Pause when tab/app is hidden; resume current slide when visible again (only if still active)
   useEffect(() => {
@@ -701,7 +691,7 @@ export default function EnhancedVideoPlayer({
           }
         }
         setIsPlaying(false);
-      } else if (shouldPlayRef.current && isActiveRef.current && isFeedMediaPlayerActive(videoId)) {
+      } else if (shouldPlayRef.current && isActiveRef.current) {
         const v = videoRef.current;
         if (v) {
           if (platform.isAndroid || _hasMusicTrack) {
@@ -732,13 +722,13 @@ export default function EnhancedVideoPlayer({
     };
     document.addEventListener('visibilitychange', onVisibility);
     return () => document.removeEventListener('visibilitychange', onVisibility);
-  }, [muteAllSounds, videoId, _hasMusicTrack, musicVolume]);
+  }, [muteAllSounds, _hasMusicTrack, musicVolume]);
 
   // Pause the active slide when a panel/modal is layered over it (Comments,
-  // Share, More Options, Report, Promote, Likes list, User Profile). Prevents
-  // the video and its music from playing "in the background" while the user
-  // is interacting with something on top of the feed. Resumes on close if the
-  // slide is still the active gate holder.
+  // Share, More Options, Report, Promote, Likes list, User Profile). While a
+  // panel is open we mark `shouldPlayRef=false` so every async play callback
+  // (video, music, duet) sees "not playing" and bails. On close we restore
+  // `shouldPlayRef=true` and resume playback if this slide is still active.
   useEffect(() => {
     if (!isActive) return;
     const anyPanelOpen =
@@ -753,7 +743,7 @@ export default function EnhancedVideoPlayer({
     const a = audioRef.current;
     const d = duetOriginalRef.current;
     if (anyPanelOpen) {
-      // Invalidate any in-flight async music promise so it can't restart audio.
+      shouldPlayRef.current = false;
       musicPlayGenRef.current += 1;
       if (v) { try { v.pause(); v.muted = true; v.volume = 0; } catch { void 0; } }
       if (a) { try { a.pause(); a.muted = true; a.volume = 0; } catch { void 0; } }
@@ -761,8 +751,9 @@ export default function EnhancedVideoPlayer({
       setIsPlaying(false);
       return;
     }
-    if (!shouldPlayRef.current) return;
-    if (!isFeedMediaPlayerActive(videoId)) return;
+    // Panels all closed — resume playback on this still-active slide.
+    if (!isActiveRef.current) return;
+    shouldPlayRef.current = true;
     if (v) {
       if (platform.isAndroid || _hasMusicTrack) {
         v.muted = true;
@@ -788,7 +779,6 @@ export default function EnhancedVideoPlayer({
     showPromotePanel,
     isMoreMenuOpen,
     isActive,
-    videoId,
     _hasMusicTrack,
     muteAllSounds,
     musicVolume,
@@ -863,7 +853,7 @@ export default function EnhancedVideoPlayer({
 
     singleTapTimerRef.current = setTimeout(() => {
       singleTapTimerRef.current = null;
-      if (!isActiveRef.current || !isFeedMediaPlayerActive(videoId)) return;
+      if (!isActiveRef.current) return;
       const el = videoRef.current;
       if (shouldUnmuteOnly && el) {
         if (_hasMusicTrack) {
@@ -1023,6 +1013,7 @@ export default function EnhancedVideoPlayer({
   }, [closeMoreMenu, videoId]);
 
   const retryVideoSrc = useCallback(() => {
+    if (!isActiveRef.current || !shouldPlayRef.current) return;
     const el = videoRef.current;
     if (el && video.url) {
       el.src = video.url;
