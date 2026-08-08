@@ -570,17 +570,17 @@ export default function ElixCameraLayout({
         <>
         <div className="absolute inset-0 z-[59] pointer-events-auto" onClick={() => setShowEffectsPanel(false)} aria-hidden />
         <div className="absolute bottom-0 left-0 right-0 z-[60] pointer-events-auto animate-in slide-in-from-bottom duration-300">
-          <div className="elix-panel rounded-t-2xl pb-safe border-x-0 border-b-0">
-            {/* Header */}
-            <div className="flex items-center justify-center px-4 pt-3 pb-2">
-              <h3 className="text-[#F5F5F7] drop-shadow-[0_0_8px_rgba(139, 144, 152,1)] text-xs font-bold flex items-center gap-1.5">
-                <Palette size={12} />
-                Filters & Effects
-              </h3>
+          <div className="elix-more-options-sheet rounded-t-2xl pb-safe overflow-hidden">
+            {/* Header — identical to More Options */}
+            <div className="flex flex-col px-4 pt-2 pb-3 border-b border-white/10">
+              <div className="flex justify-center pb-2" aria-hidden>
+                <div className="w-10 h-1 rounded-full bg-white/25" />
+              </div>
+              <span className="text-[#F5F5F7] font-bold text-sm text-center">Filters & Effects</span>
             </div>
 
             {/* Filter Grid */}
-            <div className="px-3 pb-3">
+            <div className="px-3 pb-3 pt-3">
               <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                 {cameraFilters.map(filter => (
                   <button
@@ -639,17 +639,17 @@ export default function ElixCameraLayout({
         <>
         <div className="absolute inset-0 z-[59] pointer-events-auto" onClick={() => setShowCapCutPanel(false)} aria-hidden />
         <div className="absolute bottom-0 left-0 right-0 z-[60] pointer-events-auto animate-in slide-in-from-bottom duration-300">
-          <div className="elix-panel rounded-t-2xl pb-safe border-x-0 border-b-0">
-            {/* Header */}
-            <div className="flex items-center justify-center px-4 pt-3 pb-2">
-              <h3 className="text-[#F5F5F7] drop-shadow-[0_0_8px_rgba(139, 144, 152,1)] text-xs font-bold flex items-center gap-1.5">
-                <Sparkles size={12} />
-                CapCut AI Tools
-              </h3>
+          <div className="elix-more-options-sheet rounded-t-2xl pb-safe overflow-hidden">
+            {/* Header — identical to More Options */}
+            <div className="flex flex-col px-4 pt-2 pb-3 border-b border-white/10">
+              <div className="flex justify-center pb-2" aria-hidden>
+                <div className="w-10 h-1 rounded-full bg-white/25" />
+              </div>
+              <span className="text-[#F5F5F7] font-bold text-sm text-center">CapCut AI Tools</span>
             </div>
 
             {/* Speed Control */}
-            <div className="px-4 pb-3">
+            <div className="px-4 pb-3 pt-3">
               <p className="text-[#F5F5F7] drop-shadow-[0_0_8px_rgba(139, 144, 152,1)]/80 text-[9px] font-semibold uppercase tracking-wider mb-2 flex items-center gap-1">
                 <Gauge size={9} />
                 Recording Speed

@@ -162,14 +162,14 @@ export default function AIToolsPanel({
   return (
     <div className="fixed inset-0 z-[500] flex items-end justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative w-full max-w-[480px] bg-[rgba(0,0,0,0.35)] rounded-t-2xl overflow-hidden border border-black animate-in slide-in-from-bottom duration-300" style={{ maxHeight: '70dvh' }}>
+      <div className="relative w-full max-w-[480px] elix-more-options-sheet rounded-t-2xl overflow-hidden animate-in slide-in-from-bottom duration-300" style={{ maxHeight: '70dvh' }}>
         
-        {/* Header */}
-        <div className="flex items-center justify-center px-4 py-3 ">
-          <div className="flex items-center gap-2">
-            <Wand2 size={18} className="text-[#F5F5F7]" />
-            <span className="text-white font-bold text-sm">AI Studio</span>
+        {/* Header — identical to More Options */}
+        <div className="flex flex-col px-4 pt-2 pb-3 border-b border-white/10">
+          <div className="flex justify-center pb-2" aria-hidden>
+            <div className="w-10 h-1 rounded-full bg-white/25" />
           </div>
+          <span className="text-[#F5F5F7] font-bold text-sm text-center">AI Studio</span>
         </div>
 
         {/* Tab Bar */}

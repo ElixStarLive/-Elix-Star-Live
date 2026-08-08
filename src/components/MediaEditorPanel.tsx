@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { X } from 'lucide-react';
 
 export type EditorTab = 'filters' | 'effects' | 'text' | 'stickers';
+
 
 /** Optional canvas / preview FX layer baked with the grade. */
 export type StoryFxKind =
@@ -294,15 +294,17 @@ export default function MediaEditorPanel({
   };
 
   return (
-    <div className="absolute inset-x-0 bottom-0 z-[120] pointer-events-auto" role="dialog" aria-label={title}>
-      <div className="mx-auto w-full max-w-md rounded-t-2xl elix-panel backdrop-blur-md border border-black px-4 pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+14px)]">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-[#E6E9EE] text-sm font-semibold">{title}</span>
-          <button type="button" onClick={onClose} className="w-8 h-8 flex items-center justify-center" aria-label="Close">
-            <X size={18} className="text-[#C8CDD5]" />
-          </button>
+    <div className="absolute inset-0 z-[120] pointer-events-auto" role="dialog" aria-label={title}>
+      <div className="absolute inset-0" onClick={onClose} aria-hidden />
+      <div className="absolute inset-x-0 bottom-0 mx-auto w-full max-w-[480px] elix-more-options-sheet rounded-t-2xl pb-[calc(env(safe-area-inset-bottom,0px)+14px)] pointer-events-auto overflow-hidden">
+        <div className="flex flex-col px-4 pt-2 pb-3 border-b border-white/10">
+          <div className="flex justify-center pb-2" aria-hidden>
+            <div className="w-10 h-1 rounded-full bg-white/25" />
+          </div>
+          <span className="text-[#F5F5F7] font-bold text-sm text-center">{title}</span>
         </div>
 
+        <div className="px-4 pt-3">
         {tab === 'filters' && (
           <div className="flex gap-2.5 overflow-x-auto pb-1">
             {FILTER_PRESETS.map((p) => (
@@ -380,6 +382,7 @@ export default function MediaEditorPanel({
             ))}
           </div>
         )}
+        </div>
       </div>
     </div>
   );
