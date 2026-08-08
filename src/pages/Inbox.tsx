@@ -61,9 +61,10 @@ function inboxMessagePreview(raw: string | undefined | null): string {
 }
 
 function normalizeNotificationType(value: unknown): Notification['type'] {
+  // Activity owns likes/comments — map legacy video_* rows so Main never shows them as Archive "system".
+  if (value === 'like' || value === 'video_like') return 'like';
+  if (value === 'comment' || value === 'video_comment') return 'comment';
   if (
-    value === 'like' ||
-    value === 'comment' ||
     value === 'follow' ||
     value === 'gift' ||
     value === 'battle_invite' ||
@@ -829,13 +830,11 @@ export default function Inbox() {
                       onClick={() => { if (a.video_id) openVideo(a.video_id); }}
                       className="flex items-center gap-2.5 w-full text-left py-1.5 px-2 bg-transparent"
                     >
-                      <div className="w-9 h-9 rounded-full bg-transparent border border-[#D8D9DD]/30 flex items-center justify-center flex-shrink-0 overflow-hidden relative" style={{ transform: 'translateY(4mm)' }}>
-                        {a.actor_avatar_url ? (
-                          <img src={a.actor_avatar_url} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <span className="text-[#F5F5F7] font-bold text-sm">{actorName.replace('@', '').charAt(0).toUpperCase()}</span>
-                        )}
-                      </div>
+                      <AvatarRing
+                        src={a.actor_avatar_url || ''}
+                        alt={actorName}
+                        size={36}
+                      />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs text-gold-bright truncate"><span className="font-semibold">{actorName}</span> <span className="text-gold-bright/60">{activityLine(a)}</span></p>
                       </div>
@@ -1024,13 +1023,11 @@ export default function Inbox() {
                           }}
                           className="flex items-center gap-3 w-full text-left py-2.5 px-2 bg-transparent"
                         >
-                          <div className="w-12 h-12 rounded-full bg-transparent border border-[#D8D9DD]/40 flex items-center justify-center flex-shrink-0 overflow-hidden relative" style={{ transform: 'translateY(4mm)' }}>
-                            {a.actor_avatar_url ? (
-                              <img src={a.actor_avatar_url} alt="" className="w-full h-full object-cover" />
-                            ) : (
-                              <span className="text-[#F5F5F7] font-bold text-lg">{actorName.replace('@', '').charAt(0).toUpperCase()}</span>
-                            )}
-                          </div>
+                          <AvatarRing
+                            src={a.actor_avatar_url || ''}
+                            alt={actorName}
+                            size={48}
+                          />
                           <div className="flex-1 min-w-0">
                             <p className="font-semibold text-sm text-gold-bright truncate">{actorName}</p>
                             <p className="text-gold-bright/70 text-xs truncate">{activityLine(a)}{a.video_id ? ' · Tap to view' : ''}</p>

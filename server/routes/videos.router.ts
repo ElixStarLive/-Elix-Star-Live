@@ -8,7 +8,6 @@ import {
 } from "../services/audioScan";
 import { clearCachedAudioScanResult, getCachedAudioScanResult } from "../lib/audioScanValkey";
 import { fetchVoiceOnlyVideoBuffer, isSafeMediaUrl } from "../services/videoDownload";
-import { insertNotification } from "../lib/notifications";
 
 const router = Router();
 
@@ -321,22 +320,8 @@ router.post("/:id/like", async (req, res) => {
     );
     if ((ins.rowCount ?? 0) > 0) {
       await db.query(`UPDATE videos SET likes = likes + 1 WHERE id = $1`, [req.params.id]).catch((e) => logger.warn({ err: e }, "like counter increment failed"));
-      try {
-        const owner = await db.query(`SELECT user_id FROM videos WHERE id = $1 LIMIT 1`, [req.params.id]);
-        const ownerId = owner.rows[0]?.user_id ? String(owner.rows[0].user_id) : "";
-        if (ownerId && ownerId !== payload.sub) {
-          await insertNotification({
-            userId: ownerId,
-            type: "video_like",
-            title: "New like",
-            body: "Someone liked your video.",
-            actionUrl: `/video/${encodeURIComponent(req.params.id)}`,
-            data: { path: `/video/${req.params.id}`, video_id: req.params.id, actor_id: payload.sub },
-          });
-        }
-      } catch (e) {
-        logger.warn({ err: e, videoId: req.params.id }, "like notification skipped");
-      }
+      // Likes belong in Inbox Activity via GET /api/activity (real actor name + avatar).
+      // Do not insert anonymous "New like" / "Someone liked" notification rows.
     }
     return res.json({ ok: true });
   } catch (err) {
@@ -466,20 +451,8 @@ router.post("/:id/comments", async (req, res) => {
       [id, req.params.id, payload.sub, text.trim(), parentId || null],
     );
     await db.query(`UPDATE videos SET comments = comments + 1 WHERE id = $1`, [req.params.id]).catch((e) => logger.warn({ err: e }, "comment counter increment failed"));
-    if (ownerId && ownerId !== payload.sub) {
-      try {
-        await insertNotification({
-          userId: ownerId,
-          type: "video_comment",
-          title: "New comment",
-          body: text.trim().slice(0, 80),
-          actionUrl: `/video/${encodeURIComponent(req.params.id)}`,
-          data: { path: `/video/${req.params.id}`, video_id: req.params.id, actor_id: payload.sub },
-        });
-      } catch (e) {
-        logger.warn({ err: e, videoId: req.params.id }, "comment notification skipped");
-      }
-    }
+    // Comments belong in Inbox Activity via GET /api/activity (real actor name + avatar).
+    // Do not insert anonymous "New comment" notification rows on Main.
     const r = await db.query(
       `SELECT c.id, c.video_id, c.user_id, c.text, c.parent_id, c.created_at,
               p.username, p.display_name, p.avatar_url
