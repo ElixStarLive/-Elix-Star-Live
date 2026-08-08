@@ -103,8 +103,8 @@
     --elix-feed-chrome-fill:
       linear-gradient(var(--elix-panel-wash), var(--elix-panel-wash)),
       var(--elix-feed-chrome-fundal);
-    --elix-fundal-size: cover;
-    --elix-fundal-position: center;
+    --elix-fundal-size: 100% auto;
+    --elix-fundal-position: top center;
     --elix-fundal-attachment: scroll;
     --elix-elevated-inset: inset 0 1px 0 rgba(255, 255, 255, 0.06);
     --elix-elevated-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
@@ -293,13 +293,9 @@
     min-height: 100dvh;
     overflow: hidden;
     position: relative;
-    /* Fundal + black transparent wash; icons/writing on top */
+    /* Full-bleed host — fundal is app-column width only */
     background-color: transparent;
-    background-image: var(--elix-page-fill);
-    background-size: var(--elix-fundal-size), var(--elix-fundal-size);
-    background-position: var(--elix-fundal-position), var(--elix-fundal-position);
-    background-repeat: no-repeat, no-repeat;
-    background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment);
+    background-image: none;
   }
 
   /* Prevent horizontal scroll on all devices */
@@ -441,12 +437,9 @@
     display: flex;
     justify-content: center;
     overflow: hidden;
-    /* LEVEL 1 — page glass over cosmic fundal */
+    /* Full-bleed host only — fundal lives on app-width __inner */
     background-color: transparent;
-    background-image: var(--elix-page-fill);
-    background-size: var(--elix-fundal-size), var(--elix-fundal-size);
-    background-position: var(--elix-fundal-position), var(--elix-fundal-position);
-    background-repeat: no-repeat, no-repeat;
+    background-image: none;
   }
 
   .page-above-bottom-nav__inner {
@@ -457,8 +450,12 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    /* Panel fundal exactly app column width */
     background-color: transparent;
-    background-image: none;
+    background-image: var(--elix-panel-fill);
+    background-size: var(--elix-fundal-size), var(--elix-fundal-size);
+    background-position: var(--elix-fundal-position), var(--elix-fundal-position);
+    background-repeat: no-repeat, no-repeat;
   }
 
   .pt-page-header {
@@ -1955,11 +1952,11 @@ svg.lucide.fill-silver-full.royce-icon-gold {
   display: none !important;
 }
 
-/* ═══ Global theme contract — PANEL FUNDAL UNDER ALL CONTAINERS ═══
-   LEVEL 0 BASE:    #080A0E
-   FUNDAL IMAGE:    /elix-fundal-cosmic.png (shared by page/surface/panel)
-   Shell + every panel container use --elix-panel-fill under writing.
-   Live video stages stay clear/black (no fundal over stream).
+/* ═══ Global theme contract — PANEL FUNDAL = APP COLUMN WIDTH ═══
+   LEVEL 0 BASE:    #080A0E (full screen shell — solid only)
+   FUNDAL IMAGE:    /elix-fundal-cosmic.png on app-width containers only
+   (feed-column / page __inner / panels — NOT full viewport)
+   Live video stages stay clear/black.
 */
 
 html,
@@ -1973,8 +1970,12 @@ body {
   background-image: none;
 }
 
-/* SHELL — panel fundal under the whole app */
-.elix-app-shell,
+/* SHELL — solid base only; fundal is app-width, not full screen */
+.elix-app-shell {
+  background-color: var(--elix-bg);
+  background-image: none;
+}
+
 .elix-fundal-glass {
   background-color: var(--elix-bg);
   background-image: var(--elix-panel-fill);
@@ -1992,19 +1993,19 @@ body {
   background-image: none !important;
 }
 
-/* LEVEL 1 — page glass: ONE wash + fundal under writing */
+/* LEVEL 1 — page host clear; fundal on app-width __inner */
 .page-above-bottom-nav {
   background-color: transparent;
-  background-image: var(--elix-page-fill);
-  background-size: var(--elix-fundal-size), var(--elix-fundal-size);
-  background-position: var(--elix-fundal-position), var(--elix-fundal-position);
-  background-repeat: no-repeat, no-repeat;
-  background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment);
+  background-image: none;
 }
 
 .page-above-bottom-nav__inner {
   background-color: transparent;
-  background-image: none;
+  background-image: var(--elix-panel-fill);
+  background-size: var(--elix-fundal-size), var(--elix-fundal-size);
+  background-position: var(--elix-fundal-position), var(--elix-fundal-position);
+  background-repeat: no-repeat, no-repeat;
+  background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment);
 }
 
 /* Video stream columns stay clear so LiveKit media is unobstructed */
@@ -2015,17 +2016,13 @@ body {
 }
 
 /*
- * Sheet host = layer 0 fundal only.
- * Column (.elix-page-glass) = layer 1 wash + fundal (ONE full panel under writing).
+ * Sheet host = solid full-bleed base.
+ * Column (.elix-page-glass) = panel fundal at app column width.
  */
 #root .app-live-column-host.elix-sheet-host {
   isolation: isolate;
   background-color: var(--elix-bg) !important;
-  background-image: var(--elix-fundal-image) !important;
-  background-size: var(--elix-fundal-size) !important;
-  background-position: var(--elix-fundal-position) !important;
-  background-repeat: no-repeat !important;
-  background-attachment: var(--elix-fundal-attachment) !important;
+  background-image: none !important;
 }
 
 /* Settings / sheet pages — LEVEL 1 page glass over fundal */
@@ -2194,13 +2191,12 @@ body,
   color: #FFFFFF !important;
 }
 
-/* Page + panel containers — panel fundal under all of them */
+/* App-width containers — panel fundal exactly column width (not full screen) */
 #root .elix-sheet-host > .elix-page-glass,
 #root .app-live-column.elix-full-page-panel,
 #root .app-live-column.elix-page-glass,
 #root .elix-full-page-panel,
-#root .page-above-bottom-nav,
-#root .page-above-bottom-nav.elix-page-glass,
+#root .page-above-bottom-nav__inner,
 #root .elix-page-glass,
 #root .elix-panel,
 #root .elix-glass,
@@ -2212,7 +2208,7 @@ body,
 #root .elix-home-top-bar .feed-column-width,
 #root nav[aria-label="Main navigation"] .feed-column-width,
 #root .feed-story-strip,
-#root .elix-app-shell {
+#root main.feed-column-width {
   background-color: transparent !important;
   background-image: var(--elix-panel-fill) !important;
   background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
@@ -2222,12 +2218,21 @@ body,
   -webkit-backdrop-filter: none !important;
 }
 
+/* Full-bleed hosts stay clear so fundal is not oversized */
+#root .elix-app-shell,
+#root .page-above-bottom-nav {
+  background-image: none !important;
+  background-color: var(--elix-bg) !important;
+}
+
+#root .page-above-bottom-nav {
+  background-color: transparent !important;
+}
+
 #root .elix-sheet-host > .elix-page-glass,
 #root .app-live-column.elix-full-page-panel,
 #root .app-live-column.elix-page-glass,
 #root .elix-full-page-panel,
-#root .page-above-bottom-nav,
-#root .page-above-bottom-nav.elix-page-glass,
 #root .elix-page-glass {
   border-radius: 0 !important;
   box-shadow: none !important;
@@ -2285,9 +2290,10 @@ body,
   background-repeat: no-repeat, no-repeat !important;
 }
 
-/* User profile panel — same For You chrome fundal */
-#root .elix-user-panel.page-above-bottom-nav,
-#root .page-above-bottom-nav.elix-user-panel {
+/* User profile panel — fundal on app-width inner */
+#root .elix-user-panel.page-above-bottom-nav > .page-above-bottom-nav__inner,
+#root .page-above-bottom-nav.elix-user-panel > .page-above-bottom-nav__inner,
+#root .elix-user-panel .page-above-bottom-nav__inner {
   background-image: var(--elix-feed-chrome-fill) !important;
   background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
   background-position: var(--elix-fundal-position), var(--elix-fundal-position) !important;
@@ -2352,12 +2358,17 @@ body,
   background-repeat: no-repeat, no-repeat;
 }
 
-/* For You feed shell — new fundal behind feed only */
+/* For You — fundal on app-width feed column only (not full-screen shell) */
 #root .elix-app-shell.elix-feed-chrome-shell {
-  background-image: var(--elix-feed-chrome-fundal) !important;
-  background-size: var(--elix-fundal-size) !important;
-  background-position: var(--elix-fundal-position) !important;
-  background-repeat: no-repeat !important;
+  background-image: none !important;
+  background-color: var(--elix-bg) !important;
+}
+
+#root .elix-feed-chrome-shell main.feed-column-width {
+  background-image: var(--elix-feed-chrome-fill) !important;
+  background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
+  background-position: var(--elix-fundal-position), var(--elix-fundal-position) !important;
+  background-repeat: no-repeat, no-repeat !important;
 }
 
 /* Feed story strip on For You */
