@@ -1955,10 +1955,11 @@ svg.lucide.fill-silver-full.royce-icon-gold {
   display: none !important;
 }
 
-/* ═══ Global theme contract — ONE OPAQUE COSMIC FUNDAL ═══
+/* ═══ Global theme contract — PANEL FUNDAL UNDER ALL CONTAINERS ═══
    LEVEL 0 BASE:    #080A0E
    FUNDAL IMAGE:    /elix-fundal-cosmic.png (shared by page/surface/panel)
-   NO transparent glass. Chrome does not show video through.
+   Shell + every panel container use --elix-panel-fill under writing.
+   Live video stages stay clear/black (no fundal over stream).
 */
 
 html,
@@ -1968,25 +1969,27 @@ body {
 }
 
 #root {
-  background-color: var(--elix-bg);
+  background-color: transparent;
   background-image: none;
 }
 
-/* SHELL — cosmic fundal owner */
+/* SHELL — panel fundal under the whole app */
 .elix-app-shell,
 .elix-fundal-glass {
   background-color: var(--elix-bg);
-  background-image: var(--elix-fundal-image);
-  background-size: var(--elix-fundal-size);
-  background-position: var(--elix-fundal-position);
-  background-repeat: no-repeat;
-  background-attachment: var(--elix-fundal-attachment);
+  background-image: var(--elix-panel-fill);
+  background-size: var(--elix-fundal-size), var(--elix-fundal-size);
+  background-position: var(--elix-fundal-position), var(--elix-fundal-position);
+  background-repeat: no-repeat, no-repeat;
+  background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment);
 }
 
 /* Live room keeps deepest base behind video (no fundal over stream) */
-.elix-live-room {
-  background-color: var(--elix-bg);
-  background-image: none;
+.elix-live-room,
+#root .elix-live-room,
+#root .elix-live-room.elix-fundal-glass {
+  background-color: var(--elix-bg) !important;
+  background-image: none !important;
 }
 
 /* LEVEL 1 — page glass: ONE wash + fundal under writing */
@@ -2191,7 +2194,34 @@ body,
   color: #FFFFFF !important;
 }
 
-/* Page owners — ONE wash+fundal under writing */
+/* Page + panel containers — panel fundal under all of them */
+#root .elix-sheet-host > .elix-page-glass,
+#root .app-live-column.elix-full-page-panel,
+#root .app-live-column.elix-page-glass,
+#root .elix-full-page-panel,
+#root .page-above-bottom-nav,
+#root .page-above-bottom-nav.elix-page-glass,
+#root .elix-page-glass,
+#root .elix-panel,
+#root .elix-glass,
+#root .elix-glass-panel,
+#root .elix-surface,
+#root .elix-more-options-sheet,
+#root .elix-share-sheet,
+#root .elix-user-panel,
+#root .elix-home-top-bar .feed-column-width,
+#root nav[aria-label="Main navigation"] .feed-column-width,
+#root .feed-story-strip,
+#root .elix-app-shell {
+  background-color: transparent !important;
+  background-image: var(--elix-panel-fill) !important;
+  background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
+  background-position: var(--elix-fundal-position), var(--elix-fundal-position) !important;
+  background-repeat: no-repeat, no-repeat !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
 #root .elix-sheet-host > .elix-page-glass,
 #root .app-live-column.elix-full-page-panel,
 #root .app-live-column.elix-page-glass,
@@ -2199,15 +2229,22 @@ body,
 #root .page-above-bottom-nav,
 #root .page-above-bottom-nav.elix-page-glass,
 #root .elix-page-glass {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Solid panel colour utilities → same panel fundal (not flat boxes) */
+#root .bg-\[\#1A1C21\],
+#root .bg-\[\#121419\],
+#root .bg-\[var\(--elix-panel\)\],
+#root .bg-\[var\(--elix-panel-solid\)\],
+#root .bg-\[var\(--elix-surface\)\],
+#root .bg-\[var\(--elix-surface-solid\)\] {
   background-color: transparent !important;
-  background-image: var(--elix-page-fill) !important;
+  background-image: var(--elix-panel-fill) !important;
   background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
   background-position: var(--elix-fundal-position), var(--elix-fundal-position) !important;
   background-repeat: no-repeat, no-repeat !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
 }
 
 /* Auth forms — kill round disc on every field icon (last wins) */
