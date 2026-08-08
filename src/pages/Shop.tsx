@@ -487,6 +487,7 @@ export default function Shop() {
             {items.map(item => {
               const isOwn = item.user_id === user?.id;
               const menuOpen = menuItemId === item.id;
+              const inBasket = cartItems.some((c) => c.id === item.id);
               return (
               <div key={item.id} className="bg-white/5 rounded-2xl overflow-hidden border border-white/5 relative">
                 <div className="relative">
@@ -528,14 +529,28 @@ export default function Shop() {
                               {removingId === item.id ? 'Removing…' : 'Remove'}
                             </button>
                           ) : (
-                            <button
-                              type="button"
-                              onClick={() => handleMessageSeller(item.user_id)}
-                              className="w-full text-left px-3 py-2 text-xs font-semibold text-white/80 hover:bg-white/5 flex items-center gap-1.5"
-                            >
-                              <MessageCircle size={12} className="text-[#F5F5F7]" />
-                              Message
-                            </button>
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => handleMessageSeller(item.user_id)}
+                                className="w-full text-left px-3 py-2 text-xs font-semibold text-white/80 hover:bg-white/5 flex items-center gap-1.5"
+                              >
+                                <MessageCircle size={12} className="text-[#F5F5F7]" />
+                                Message
+                              </button>
+                              {inBasket ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    handleRemoveFromCart(item.id);
+                                    closeItemMenu();
+                                  }}
+                                  className="w-full text-left px-3 py-2 text-xs font-semibold text-red-400 hover:bg-white/5"
+                                >
+                                  Delete
+                                </button>
+                              ) : null}
+                            </>
                           )}
                         </div>
                       </>
@@ -547,23 +562,13 @@ export default function Shop() {
                   <p className="text-base font-extrabold text-white mt-0.5">£{item.price.toFixed(2)}</p>
                 </div>
                 <div className="px-2.5 pb-2">
-                  {cartItems.some((c) => c.id === item.id) ? (
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveFromCart(item.id)}
-                      className="w-full py-1.5 text-center text-[11px] font-bold text-red-400 active:opacity-70"
-                    >
-                      Delete
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => handleAddToCart({ id: item.id, title: item.title, price: item.price, image_url: item.image_url }, isOwn)}
-                      className="w-full py-1.5 text-center text-[11px] font-bold text-white active:opacity-70"
-                    >
-                      Add to basket
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleAddToCart({ id: item.id, title: item.title, price: item.price, image_url: item.image_url }, isOwn)}
+                    className="w-full py-1.5 text-center text-[11px] font-bold text-white active:opacity-70"
+                  >
+                    Add to basket
+                  </button>
                 </div>
               </div>
               );
@@ -708,10 +713,10 @@ export default function Shop() {
                           <button
                             type="button"
                             onClick={() => handleRemoveFromCart(ci.id)}
-                            className="px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[11px] font-bold text-red-400 active:opacity-70"
-                            aria-label={`Delete ${ci.title}`}
+                            className="p-1.5 rounded-full bg-white/5 border border-white/10"
+                            aria-label={`Remove ${ci.title}`}
                           >
-                            Delete
+                            <X size={14} className="text-white/70" />
                           </button>
                         </div>
                       ))}
