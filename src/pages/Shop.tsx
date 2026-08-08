@@ -727,7 +727,7 @@ export default function Shop() {
                       {cartItems.map((ci) => {
                         const qty = Math.max(1, Math.floor(Number(ci.quantity) || 1));
                         return (
-                        <div key={ci.id} className="flex items-center gap-3 py-2 border-b border-white/5">
+                        <div key={ci.id} className="flex items-start gap-3 py-2 border-b border-white/5">
                           {ci.image_url ? (
                             <img src={ci.image_url} alt={ci.title} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
                           ) : (
@@ -735,13 +735,13 @@ export default function Shop() {
                               <Tag size={16} className="text-white/20" />
                             </div>
                           )}
-                          <div className="flex-1 min-w-0">
+                          <div className="flex-1 min-w-0 pt-0.5">
                             <p className="text-sm font-semibold text-white truncate">{ci.title}</p>
                             <p className="text-sm font-extrabold text-gold-metallic">
                               £{(Number(ci.price) * qty).toFixed(2)}
                             </p>
                           </div>
-                          <div className="flex items-center gap-1 shrink-0">
+                          <div className="flex items-center gap-1 shrink-0 self-start">
                             <button
                               type="button"
                               onClick={() => handleCartQtyMinus(ci.id, qty)}
