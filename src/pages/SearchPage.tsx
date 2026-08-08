@@ -225,31 +225,36 @@ export default function SearchPage() {
             </button>
           </div>
 
-          {/* Search bar — STEM column padding (px-3) */}
-          <div className="px-3 pb-0.5">
+          {/* Search — icon only (no pill fundal) + name, separator under */}
+          <div className="px-3 pb-0">
             <div className="flex items-center gap-2">
-              <form onSubmit={handleSearch} className="flex-1 relative">
-                <input 
-                  type="text" 
-                  placeholder="Search" 
-                  className="w-full bg-transparent text-gold-metallic placeholder-[#FFFFFF]/40 rounded-full py-0.5 pl-9 pr-9 text-sm focus:outline-none border border-white/15 focus:border-white/40"
+              <form onSubmit={handleSearch} className="flex-1 relative flex items-center gap-2 min-w-0">
+                <SearchIcon size={18} className="shrink-0 text-[#F5F5F7]" aria-hidden />
+                <input
+                  type="text"
+                  placeholder="Search"
+                  aria-label="Search"
+                  className="w-full min-w-0 bg-transparent text-gold-metallic placeholder-[#FFFFFF]/40 py-1 text-sm focus:outline-none border-0 rounded-none"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   autoFocus
                 />
-                <SearchIcon size={10} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#F5F5F7]" />
                 {query && (
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={clearQuery}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#F5F5F7]/60"
+                    className="shrink-0 text-[#F5F5F7]/60 p-0.5"
+                    aria-label="Clear search"
                   >
-                    <X size={10} />
+                    <X size={14} />
                   </button>
                 )}
               </form>
-                  <button className="elix-silver-red-text font-semibold text-xs" onClick={closePanel}>Cancel</button>
+              <button type="button" className="elix-silver-red-text font-semibold text-xs shrink-0" onClick={closePanel}>
+                Cancel
+              </button>
             </div>
+            <div className="mt-1 border-b border-[#D8D9DD]/45" aria-hidden />
           </div>
 
           {/* Results */}
