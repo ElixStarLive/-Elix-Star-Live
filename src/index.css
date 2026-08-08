@@ -1892,17 +1892,35 @@ svg.lucide.fill-silver-full.royce-icon-gold {
   filter: var(--elix-icon-glow) !important;
 }
 
-/* Camera create right rail — translucent disc only; do not touch icon stroke color */
+/* Camera right rail — all icons same: transparent (no black disc), smaller line glyphs */
 .camera-right-rail {
   background: transparent !important;
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
-/* Right rail glyphs only — smaller; do not move layout */
-.camera-right-rail svg.lucide,
-.camera-right-rail .camera-rail-icon {
+#root .camera-right-rail svg.lucide,
+#root .camera-right-rail .camera-rail-icon,
+#root .camera-right-rail .camera-rail-disc svg.lucide {
   width: 14px !important;
   height: 14px !important;
+  min-width: 14px !important;
+  min-height: 14px !important;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  box-sizing: content-box !important;
+}
+#root .camera-right-rail .camera-rail-disc,
+#root .camera-right-rail button {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 .camera-rail-disc {
   position: relative;

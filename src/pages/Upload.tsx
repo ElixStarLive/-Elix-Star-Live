@@ -1590,7 +1590,7 @@ export default function Upload() {
                     </button>
                     <button
                       type="button"
-                      className="camera-rail-disc flex items-center justify-center"
+                      className="w-9 h-9 flex items-center justify-center"
                       onClick={() => {
                         const next = cameraSpeed === 1 ? 0.5 : cameraSpeed === 0.5 ? 2 : 1;
                         setCameraSpeed(next);
