@@ -12,7 +12,8 @@ type Props = {
 };
 
 /**
- * Create / Upload Add sound — same full Sound page as /music (portaled to body).
+ * Create / Upload Add sound — full-viewport Sound panel (no bottom-nav gap).
+ * Create has POST/CREATE/LIVE, not BottomNav — panel must cover to the bottom.
  */
 export default function SoundPickerPanel({ onClose, onPick }: Props) {
   const stopLibraryPlayer = useSoundLibraryPlayerStore((s) => s.stop);
@@ -37,17 +38,17 @@ export default function SoundPickerPanel({ onClose, onPick }: Props) {
     [onClose, onPick, stopLibraryPlayer],
   );
 
-  // Portal out of Create/Upload overflow/transform so the panel is truly full-screen.
   return createPortal(
     <div
-      className="page-above-bottom-nav text-white"
-      style={{ bottom: 'var(--bottom-nav-top)', zIndex: 10050 }}
+      className="fixed inset-0 z-[10050] elix-fundal-glass flex justify-center pointer-events-auto text-white"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       role="dialog"
       aria-modal="true"
       aria-label="Sound"
     >
-      <div className="page-above-bottom-nav__inner bg-transparent flex flex-col min-h-0">
-        <SoundLibraryView mode="pick" onBack={close} onPick={handlePick} />
+      <div className="absolute inset-0 elix-page-glass pointer-events-none" aria-hidden />
+      <div className="relative w-full max-w-[480px] h-full min-h-0 flex flex-col">
+        <SoundLibraryView mode="pick" onBack={close} onPick={handlePick} className="h-full" />
       </div>
     </div>,
     document.body,
