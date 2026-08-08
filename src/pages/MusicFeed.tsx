@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { RoyceBackIcon } from '../components/royce';
 import { Music, Pause, Play, Search, Bookmark } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -8,12 +8,10 @@ import {
   searchLicensedTracks,
   isSoundSaved,
   toggleSavedSound,
-  resolvePlayableSoundUrl,
-  playAudioClip,
-  stopSoundPreview,
   type MusicPlaylist,
   type SoundTrack,
 } from '../lib/soundLibrary';
+import { useSoundLibraryPlayerStore } from '../store/useSoundLibraryPlayerStore';
 
 function formatClip(start: number, end: number) {
   const total = Math.max(0, Math.floor(end - start));
@@ -24,14 +22,11 @@ function formatClip(start: number, end: number) {
 
 /**
  * Sound page — licensed tracks / playlists only.
- * Route `/music/:songId` selects a track; it never loads user videos.
+ * Preview stops when you leave this page (never continues on For You).
  */
 export default function MusicFeed() {
   const navigate = useNavigate();
   const { songId } = useParams();
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const clipRef = useRef<{ start: number; end: number } | null>(null);
-  const previewGenRef = useRef(0);
 
   const [playlists, setPlaylists] = useState<MusicPlaylist[]>([]);
   const [activePlaylistId, setActivePlaylistId] = useState<string | null>(null);
@@ -39,9 +34,12 @@ export default function MusicFeed() {
   const [search, setSearch] = useState('');
   const [searchResults, setSearchResults] = useState<SoundTrack[]>([]);
   const [searching, setSearching] = useState(false);
-  const [playingId, setPlayingId] = useState<string | null>(null);
-  const [previewLoadingId, setPreviewLoadingId] = useState<string | null>(null);
   const [savedIds, setSavedIds] = useState<Set<string>>(() => new Set());
+
+  const playingId = useSoundLibraryPlayerStore((s) => s.playingId);
+  const previewLoadingId = useSoundLibraryPlayerStore((s) => s.loadingId);
+  const toggleTrack = useSoundLibraryPlayerStore((s) => s.toggleTrack);
+  const stopLibraryPlayer = useSoundLibraryPlayerStore((s) => s.stop);
 
   useEffect(() => {
     let cancelled = false;
@@ -84,24 +82,6 @@ export default function MusicFeed() {
     };
   }, [search]);
 
-  useEffect(() => {
-    const a = audioRef.current;
-    if (!a) return;
-    const onTimeUpdate = () => {
-      const clip = clipRef.current;
-      if (!clip || clip.end <= clip.start) return;
-      if (a.currentTime >= clip.end) {
-        a.currentTime = clip.start;
-        void a.play().catch(() => {});
-      }
-    };
-    a.addEventListener('timeupdate', onTimeUpdate);
-    return () => {
-      a.removeEventListener('timeupdate', onTimeUpdate);
-      a.pause();
-    };
-  }, []);
-
   const allTracks = useMemo(
     () => playlists.flatMap((p) => p.tracks),
     [playlists],
@@ -122,6 +102,13 @@ export default function MusicFeed() {
     return pl?.tracks ?? [];
   }, [search, searchResults, playlists, activePlaylistId]);
 
+  // Always stop library sound when leaving Sound (For You / anywhere else).
+  useEffect(() => {
+    return () => {
+      useSoundLibraryPlayerStore.getState().stop();
+    };
+  }, []);
+
   const headerTrack = selectedTrack;
   const headerTitle = headerTrack?.title || 'Sound';
   const headerArtist = headerTrack?.artist || 'Licensed playlists';
@@ -138,22 +125,14 @@ export default function MusicFeed() {
     });
   }, [headerTrack?.id]);
 
-  const stopPreview = useCallback(() => {
-    previewGenRef.current += 1;
-    stopSoundPreview(audioRef.current);
-    clipRef.current = null;
-    setPlayingId(null);
-    setPreviewLoadingId(null);
-  }, []);
-
   const goSearch = useCallback(() => {
     navigate('/search');
   }, [navigate]);
 
   const goBack = useCallback(() => {
-    stopPreview();
+    stopLibraryPlayer();
     navigate(-1);
-  }, [navigate, stopPreview]);
+  }, [navigate, stopLibraryPlayer]);
 
   const toggleSaveTrack = useCallback(() => {
     if (!headerTrack) {
@@ -181,57 +160,11 @@ export default function MusicFeed() {
     [navigate],
   );
 
-  const togglePreview = useCallback(
-    async (track: SoundTrack) => {
-      const a = audioRef.current;
-      if (!a) return;
-
-      if (playingId === track.id) {
-        stopPreview();
-        return;
-      }
-
-      const sourceUrl =
-        (track.url && track.url.trim()) ||
-        (track.id ? `/api/music/tracks/${encodeURIComponent(track.id)}/preview` : '');
-      if (!sourceUrl) {
-        showToast('Preview unavailable for this track');
-        return;
-      }
-
-      const gen = ++previewGenRef.current;
-      setPreviewLoadingId(track.id);
-      try {
-        a.pause();
-      } catch {
-        /* ignore */
-      }
-
-      const playable = await resolvePlayableSoundUrl(sourceUrl);
-      if (gen !== previewGenRef.current) return;
-      if (!playable) {
-        setPreviewLoadingId(null);
-        showToast('Preview unavailable for this track');
-        return;
-      }
-
-      const start = Math.max(0, track.clipStartSeconds || 0);
-      const end = Math.max(start, track.clipEndSeconds || start + 30);
-      clipRef.current = { start, end };
-      try {
-        await playAudioClip(a, playable, start);
-        if (gen !== previewGenRef.current) return;
-        setPlayingId(track.id);
-        setPreviewLoadingId(null);
-      } catch {
-        if (gen !== previewGenRef.current) return;
-        clipRef.current = null;
-        setPlayingId(null);
-        setPreviewLoadingId(null);
-        showToast('Could not play — tap play again');
-      }
+  const onTogglePreview = useCallback(
+    (track: SoundTrack) => {
+      void toggleTrack(track);
     },
-    [playingId, stopPreview],
+    [toggleTrack],
   );
 
   return (
@@ -239,13 +172,6 @@ export default function MusicFeed() {
       className="page-above-bottom-nav bg-transparent text-white"
       style={{ bottom: 'var(--bottom-nav-top)' }}
     >
-      <audio
-        ref={audioRef}
-        preload="auto"
-        playsInline
-        onEnded={() => setPlayingId(null)}
-        className="hidden"
-      />
       <div className="page-above-bottom-nav__inner bg-transparent flex flex-col min-h-0">
         <div
           className="flex justify-center pt-0.5 pb-1 flex-shrink-0"
@@ -382,10 +308,10 @@ export default function MusicFeed() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => void togglePreview(track)}
+                    onClick={() => onTogglePreview(track)}
                     disabled={isLoading}
                     className="w-9 h-9 royce-glow-disc flex items-center justify-center flex-shrink-0 disabled:opacity-50"
-                    aria-label={isPlaying ? 'Pause preview' : 'Play preview'}
+                    aria-label={isPlaying ? 'Pause' : 'Play'}
                   >
                     {isPlaying ? (
                       <Pause className="w-3.5 h-3.5 text-white" />
