@@ -743,7 +743,7 @@ export default function Shop() {
                           </div>
                           <div
                             className="flex items-center gap-1 shrink-0 self-start"
-                            style={{ transform: 'translateY(-20mm)' }}
+                            style={{ transform: 'translateY(-10mm)' }}
                           >
                             <button
                               type="button"
