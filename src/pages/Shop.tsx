@@ -81,6 +81,7 @@ export default function Shop() {
   }, [navigate]);
 
   const openCreateListing = useCallback(() => {
+    setShowCart(false);
     setShowCreate(true);
   }, []);
 
@@ -89,6 +90,7 @@ export default function Shop() {
   }, []);
 
   const openCart = useCallback(() => {
+    setShowCreate(false);
     setShowCart(true);
   }, []);
 
@@ -504,6 +506,8 @@ export default function Shop() {
             {items.map(item => {
               const isOwn = item.user_id === user?.id;
               const menuOpen = menuItemId === item.id;
+              const cartLine = cartItems.find((c) => c.id === item.id);
+              const qty = cartLine ? Math.max(1, Math.floor(Number(cartLine.quantity) || 1)) : 0;
               return (
               <div key={item.id} className="bg-white/5 rounded-2xl overflow-hidden border border-white/5 relative">
                 <div className="relative">
@@ -514,7 +518,37 @@ export default function Shop() {
                       <Tag size={28} className="text-white/20" />
                     </div>
                   )}
-                  <div className="absolute top-0 right-0 z-[2] pt-0.5 pr-0.5">
+                  <div className="absolute top-0 right-0 z-[2] pt-0.5 pr-0.5 flex items-start gap-0.5">
+                    {qty > 0 ? (
+                      <div className="flex items-center gap-0.5 rounded-full bg-black/55 border border-white/10 px-0.5 py-0.5">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCartQtyMinus(item.id, qty);
+                          }}
+                          className="w-6 h-6 flex items-center justify-center active:opacity-70"
+                          aria-label={`Less ${item.title}`}
+                        >
+                          <ChevronLeft size={14} className="text-[#F5F5F7]" />
+                        </button>
+                        <span className="min-w-[1rem] text-center text-[10px] font-bold text-[#F5F5F7] tabular-nums">
+                          {qty}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCartQtyPlus(item.id, qty);
+                          }}
+                          className="w-6 h-6 flex items-center justify-center active:opacity-70"
+                          aria-label={`More ${item.title}`}
+                          disabled={qty >= 99}
+                        >
+                          <ChevronRight size={14} className="text-[#F5F5F7]" />
+                        </button>
+                      </div>
+                    ) : null}
                     <button
                       type="button"
                       onClick={(e) => {
@@ -584,12 +618,12 @@ export default function Shop() {
         {showCreate && (
           <>
             <div
-              className="fixed inset-0 z-[9998] bg-black/85"
+              className="fixed inset-0 z-[10050] bg-black/85"
               onClick={closeCreateListing}
               aria-hidden
             />
             <div
-              className="fixed left-0 right-0 z-[9999] pointer-events-auto max-w-[480px] mx-auto fixed-above-bottom-nav top-[var(--safe-top,0px)] bottom-[var(--bottom-nav-top)] flex flex-col justify-end"
+              className="fixed left-0 right-0 z-[10051] pointer-events-auto max-w-[480px] mx-auto fixed-above-bottom-nav top-[var(--safe-top,0px)] bottom-[var(--bottom-nav-top)] flex flex-col justify-end"
               onClick={closeCreateListing}
             >
               <div
@@ -690,11 +724,11 @@ export default function Shop() {
         {showCart && (
           <>
             <div
-              className="fixed inset-0 z-[9998] bg-black/70"
+              className="fixed inset-0 z-[10050] bg-black/70"
               onClick={closeCart}
             />
             <div
-              className="fixed left-0 right-0 z-[9999] pointer-events-auto max-w-[480px] mx-auto fixed-above-bottom-nav"
+              className="fixed left-0 right-0 z-[10051] pointer-events-auto max-w-[480px] mx-auto fixed-above-bottom-nav"
               onClick={closeCart}
             >
               <div
@@ -727,7 +761,7 @@ export default function Shop() {
                       {cartItems.map((ci) => {
                         const qty = Math.max(1, Math.floor(Number(ci.quantity) || 1));
                         return (
-                        <div key={ci.id} className="relative flex items-start gap-3 py-2 pr-[5.5rem] border-b border-white/5">
+                        <div key={ci.id} className="flex items-center gap-3 py-2 border-b border-white/5">
                           {ci.image_url ? (
                             <img src={ci.image_url} alt={ci.title} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
                           ) : (
@@ -739,29 +773,8 @@ export default function Shop() {
                             <p className="text-sm font-semibold text-white truncate">{ci.title}</p>
                             <p className="text-sm font-extrabold text-gold-metallic">
                               £{(Number(ci.price) * qty).toFixed(2)}
+                              {qty > 1 ? ` × ${qty}` : ''}
                             </p>
-                          </div>
-                          <div className="absolute top-2 right-0 flex items-center gap-1" style={{ transform: 'translateY(-5mm)' }}>
-                            <button
-                              type="button"
-                              onClick={() => handleCartQtyMinus(ci.id, qty)}
-                              className="w-7 h-7 rounded-full bg-[#1A1C21] border border-white/15 flex items-center justify-center active:opacity-70"
-                              aria-label={`Less ${ci.title}`}
-                            >
-                              <ChevronLeft size={16} className="text-[#F5F5F7]" />
-                            </button>
-                            <span className="min-w-[1.5rem] text-center text-xs font-bold text-[#F5F5F7] tabular-nums">
-                              {qty}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => handleCartQtyPlus(ci.id, qty)}
-                              className="w-7 h-7 rounded-full bg-[#1A1C21] border border-white/15 flex items-center justify-center active:opacity-70"
-                              aria-label={`More ${ci.title}`}
-                              disabled={qty >= 99}
-                            >
-                              <ChevronRight size={16} className="text-[#F5F5F7]" />
-                            </button>
                           </div>
                         </div>
                         );
