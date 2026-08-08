@@ -11,7 +11,7 @@ type Props = {
 };
 
 /**
- * Create / Upload Add sound — same SoundLibraryView as /music (1:1).
+ * Create / Upload — same full Sound panel as /music (SoundLibraryView only).
  */
 export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: Props) {
   const stopLibraryPlayer = useSoundLibraryPlayerStore((s) => s.stop);
@@ -33,22 +33,24 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
   );
 
   const body = (
-    <SoundLibraryView mode="pick" onBack={close} onPick={handlePick} className="pointer-events-auto" />
+    <SoundLibraryView mode="pick" onBack={close} onPick={handlePick} className="pointer-events-auto h-full" />
   );
 
   if (layout === 'embedded') {
     return (
-      <div className="flex flex-col flex-1 min-h-0 pointer-events-auto relative z-10">{body}</div>
+      <div className="flex flex-col flex-1 min-h-0 pointer-events-auto relative z-10 h-full">{body}</div>
     );
   }
 
+  // Full-screen Sound panel — same footprint as /music, not a half sheet.
   return (
     <div
-      className="fixed inset-0 z-[10050] bg-black/40 flex items-end justify-center animate-in fade-in duration-200 pointer-events-auto"
+      className="fixed inset-0 z-[10050] bg-transparent flex flex-col pointer-events-auto animate-in fade-in duration-200"
       onClick={close}
     >
       <div
-        className="elix-panel backdrop-blur-md w-full max-w-[480px] rounded-t-2xl overflow-hidden flex flex-col h-[92dvh] max-h-[92dvh] border border-black animate-in slide-in-from-bottom duration-300 pointer-events-auto"
+        className="flex-1 min-h-0 w-full max-w-[480px] mx-auto flex flex-col bg-transparent pointer-events-auto"
+        style={{ paddingBottom: 'var(--bottom-ui-reserve, 0px)' }}
         onClick={(e) => e.stopPropagation()}
         onPointerDown={(e) => e.stopPropagation()}
       >
