@@ -46,8 +46,7 @@ export default function SoundPickerPanel({ onClose, onPick }: Props) {
       aria-modal="true"
       aria-label="Sound"
     >
-      <div className="absolute inset-0 elix-page-glass pointer-events-none" aria-hidden />
-      <div className="relative w-full max-w-[480px] h-full min-h-0 flex flex-col overflow-hidden">
+      <div className="relative w-full max-w-[480px] h-full min-h-0 flex flex-col overflow-hidden bg-transparent">
         <SoundLibraryView mode="pick" onBack={close} onPick={handlePick} className="h-full" />
       </div>
     </div>,
