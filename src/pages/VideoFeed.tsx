@@ -6,7 +6,6 @@ const InlineLiveViewer = React.lazy(() => import("../components/InlineLiveViewer
 import EnhancedVideoPlayer from "../components/EnhancedVideoPlayer";
 import { useVideoStore } from "../store/useVideoStore";
 import { useAuthStore } from "../store/useAuthStore";
-import { silenceAllFeedMediaPlayers } from "../lib/feedMediaGate";
 import {
   isGenericLiveCreatorName,
   isUiAvatarsUrl,
@@ -317,13 +316,6 @@ export default function VideoFeed() {
     }
   }, [location.pathname, fetchLiveStreams, fetchVideos]);
 
-  /* Leave For You → hard-stop every feed video/audio immediately */
-  useEffect(() => {
-    return () => {
-      silenceAllFeedMediaPlayers();
-    };
-  }, []);
-
   /* ---- All live streams visible on For You (everyone) ---- */
   const visibleLiveStreams = liveStreams;
 
@@ -337,21 +329,20 @@ export default function VideoFeed() {
     ...videos.map((v): FeedItem => ({ kind: "video", videoId: v.id })),
   ];
 
-  /* ---- Active slide: play ONLY when mostly on screen; scroll away → stop ---- */
+  /* ---- Active slide: IntersectionObserver (only the most visible slide plays audio/video) ---- */
   const feedKey = [
     ...visibleLiveStreams.map((s) => s.streamKey),
     ...videos.map((v) => v.id),
   ].join("|");
 
-  /** Slide must fill most of the viewport before it is "watched" and allowed to play. */
-  const WATCH_RATIO = 0.55;
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || feedItems.length === 0) return;
 
-  const applyActiveFromRatios = useCallback(
-    (ratios: Map<Element, number>) => {
-      const container = containerRef.current;
-      if (!container) return;
+    const ratios = new Map<Element, number>();
+    const pickActive = () => {
       const slides = container.querySelectorAll("[data-feed-index]");
-      let bestIdx = -1;
+      let bestIdx = 0;
       let bestRatio = -1;
       slides.forEach((el) => {
         const idx = parseInt(el.getAttribute("data-feed-index") || "0", 10);
@@ -361,30 +352,9 @@ export default function VideoFeed() {
           bestIdx = idx;
         }
       });
-      // Scrolling / not watching — stop every feed player
-      if (bestIdx < 0 || bestRatio < WATCH_RATIO) {
-        setActiveIndex((prev) => {
-          if (prev !== -1) silenceAllFeedMediaPlayers();
-          return -1;
-        });
-        return;
-      }
-      setActiveIndex((prev) => {
-        if (prev === bestIdx) return prev;
-        // Leaving previous slide — hard stop before new one starts
-        silenceAllFeedMediaPlayers();
-        return bestIdx;
-      });
-    },
-    [],
-  );
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container || feedItems.length === 0) return;
-
-    const ratios = new Map<Element, number>();
-    const pickActive = () => applyActiveFromRatios(ratios);
+      if (bestRatio < 0.01) return;
+      setActiveIndex((prev) => (prev === bestIdx ? prev : bestIdx));
+    };
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -396,7 +366,7 @@ export default function VideoFeed() {
       {
         root: container,
         rootMargin: "0px",
-        threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.55, 0.6, 0.7, 0.8, 0.9, 1],
+        threshold: [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1],
       },
     );
 
@@ -409,23 +379,29 @@ export default function VideoFeed() {
 
     return () => observer.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [feedKey, applyActiveFromRatios]);
+  }, [feedKey]);
 
   const handleScroll = () => {
+    if (!containerRef.current) return;
     const container = containerRef.current;
-    if (!container) return;
+    const children = container.querySelectorAll("[data-feed-index]");
     const containerRect = container.getBoundingClientRect();
-    const ch = containerRect.height || 1;
-    const ratios = new Map<Element, number>();
-    container.querySelectorAll("[data-feed-index]").forEach((child) => {
+    const centerY = containerRect.top + containerRect.height / 2;
+    let bestIndex = 0;
+    let bestDist = Infinity;
+    children.forEach((child) => {
       const rect = child.getBoundingClientRect();
-      const visible = Math.max(
-        0,
-        Math.min(rect.bottom, containerRect.bottom) - Math.max(rect.top, containerRect.top),
-      );
-      ratios.set(child, visible / ch);
+      const childCenter = rect.top + rect.height / 2;
+      const dist = Math.abs(childCenter - centerY);
+      const idx = parseInt(child.getAttribute("data-feed-index") || "0", 10);
+      if (dist < bestDist) {
+        bestDist = dist;
+        bestIndex = idx;
+      }
     });
-    applyActiveFromRatios(ratios);
+    if (bestIndex >= 0 && bestIndex < feedItems.length) {
+      setActiveIndex((prev) => (prev === bestIndex ? prev : bestIndex));
+    }
   };
 
   const handleVideoEnd = (index: number) => {

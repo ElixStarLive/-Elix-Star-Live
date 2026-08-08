@@ -344,21 +344,7 @@ export default function EnhancedVideoPlayer({
       onVideoEnd?.();
     };
 
-    const handlePlay = () => {
-      // Kill background play: only the active For You slide may run.
-      if (!isActiveRef.current || !isFeedMediaPlayerActive(videoId) || !shouldPlayRef.current) {
-        try {
-          videoElement.pause();
-          videoElement.muted = true;
-          videoElement.volume = 0;
-        } catch {
-          /* ignore */
-        }
-        setIsPlaying(false);
-        return;
-      }
-      setIsPlaying(true);
-    };
+    const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false);
 
     videoElement.addEventListener('timeupdate', handleTimeUpdate);
@@ -374,7 +360,7 @@ export default function EnhancedVideoPlayer({
       videoElement.removeEventListener('play', handlePlay);
       videoElement.removeEventListener('pause', handlePause);
     };
-  }, [onProgress, onVideoEnd, videoId]);
+  }, [onProgress, onVideoEnd]);
 
   // Loop licensed music within Epidemic highlight clip (TikTok-style segment only).
   useEffect(() => {
@@ -682,64 +668,6 @@ export default function EnhancedVideoPlayer({
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [incrementViews, isActive, isDuetLayout, muteAllSounds, originalVideo, video?.url, video?.music?.previewUrl, video?.music?.clipStartSeconds, video?.music?.clipEndSeconds, videoId, volume, hardSilenceLocal, _hasMusicTrack, musicVolume, videoVolume]);
-
-  // Pause while a sheet covers the video (not watching); resume when closed if still active.
-  useEffect(() => {
-    const covered =
-      isMoreMenuOpen || showShareModal || showComments || showLikes || showUserProfile;
-    if (!isActive) return;
-    if (covered) {
-      const v = videoRef.current;
-      if (v) {
-        try {
-          v.pause();
-          v.muted = true;
-        } catch {
-          /* ignore */
-        }
-      }
-      const a = audioRef.current;
-      if (a) {
-        try {
-          a.pause();
-          a.muted = true;
-        } catch {
-          /* ignore */
-        }
-      }
-      if (duetOriginalRef.current) {
-        try {
-          duetOriginalRef.current.pause();
-          duetOriginalRef.current.muted = true;
-        } catch {
-          /* ignore */
-        }
-      }
-      setIsPlaying(false);
-      return;
-    }
-    if (!shouldPlayRef.current || !isFeedMediaPlayerActive(videoId)) return;
-    const v = videoRef.current;
-    if (!v) return;
-    void v.play().catch(() => {});
-    if (_hasMusicTrack && audioRef.current && !muteAllSounds) {
-      const a = audioRef.current;
-      a.muted = false;
-      a.volume = musicVolume;
-      void a.play().catch(() => {});
-    }
-  }, [
-    isMoreMenuOpen,
-    showShareModal,
-    showComments,
-    showLikes,
-    showUserProfile,
-    isActive,
-    videoId,
-    _hasMusicTrack,
-    muteAllSounds,
-    musicVolume,
-  ]);
 
   // Pause when tab/app is hidden; resume current slide when visible again (only if still active)
   useEffect(() => {
