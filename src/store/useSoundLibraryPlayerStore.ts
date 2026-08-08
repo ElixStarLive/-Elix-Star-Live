@@ -14,15 +14,18 @@ import { useSettingsStore } from './useSettingsStore';
 /**
  * Sound Library (/music) preview only.
  * Plays once on tap — no continuous loop. Silent when you leave.
+ * Must never touch For You feed soundtrack audio.
  */
 
 let audioEl: HTMLAudioElement | null = null;
 let playGen = 0;
+/** When true, any in-flight startTrack/playAudioClip must abort and stay silent. */
+let forceSilent = true;
 let playbackAllowed = false;
 let clipRange: { start: number; end: number } | null = null;
 
 function onTimeUpdate(this: HTMLAudioElement) {
-  if (!playbackAllowed || this !== audioEl || !clipRange) return;
+  if (forceSilent || !playbackAllowed || this !== audioEl || !clipRange) return;
   if (this.currentTime >= clipRange.end) {
     useSoundLibraryPlayerStore.getState().stop();
   }
@@ -61,14 +64,19 @@ function discardAudioEl() {
   unregisterSoundPreviewAudio(el);
 }
 
-/** Cancel in-flight play() races, kill singleton + every registered/orphan preview. */
+/** Cancel in-flight play() races, kill library singleton + registered previews only. */
 function hardStopAudio() {
+  forceSilent = true;
   playbackAllowed = false;
   clipRange = null;
   const el = audioEl;
   if (el) stopSoundPreview(el);
   stopAllSoundPreviews();
   discardAudioEl();
+}
+
+function isStartCancelled(gen: number): boolean {
+  return forceSilent || gen !== playGen;
 }
 
 async function startTrack(track: SoundTrack): Promise<void> {
@@ -79,6 +87,8 @@ async function startTrack(track: SoundTrack): Promise<void> {
 
   const gen = ++playGen;
   hardStopAudio();
+  // Allow this generation only — stop() sets forceSilent again.
+  forceSilent = false;
   const a = ensureAudio();
   useSoundLibraryPlayerStore.setState({ loadingId: track.id, playingId: null });
 
@@ -92,7 +102,7 @@ async function startTrack(track: SoundTrack): Promise<void> {
   }
 
   const playable = await resolvePlayableSoundUrl(sourceUrl);
-  if (gen !== playGen) {
+  if (isStartCancelled(gen)) {
     stopSoundPreview(a);
     return;
   }
@@ -107,9 +117,10 @@ async function startTrack(track: SoundTrack): Promise<void> {
   try {
     a.muted = false;
     a.volume = 1;
-    await playAudioClip(a, playable, start, () => gen !== playGen);
-    if (gen !== playGen || a !== audioEl) {
+    await playAudioClip(a, playable, start, () => isStartCancelled(gen));
+    if (isStartCancelled(gen) || a !== audioEl) {
       stopSoundPreview(a);
+      useSoundLibraryPlayerStore.setState({ playingId: null, loadingId: null });
       return;
     }
     playbackAllowed = true;
@@ -117,7 +128,7 @@ async function startTrack(track: SoundTrack): Promise<void> {
     useSoundLibraryPlayerStore.setState({ playingId: track.id, loadingId: null });
   } catch (err) {
     stopSoundPreview(a);
-    if (gen !== playGen || (err instanceof Error && err.message === 'cancelled')) {
+    if (isStartCancelled(gen) || (err instanceof Error && err.message === 'cancelled')) {
       useSoundLibraryPlayerStore.setState({ playingId: null, loadingId: null });
       return;
     }
@@ -138,6 +149,7 @@ export const useSoundLibraryPlayerStore = create<SoundLibraryPlayerState>((set, 
   loadingId: null,
 
   stop: () => {
+    forceSilent = true;
     playGen += 1;
     hardStopAudio();
     set({ playingId: null, loadingId: null });

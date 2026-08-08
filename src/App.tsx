@@ -291,10 +291,12 @@ function App() {
       document.removeEventListener("visibilitychange", handleVisibility);
   }, []);
 
-  // Stop Sound *library* preview when leaving /music — and on every non-music route
-  // (Create Add sound is portaled; unmount also stops). Never nuke For You video audio.
+  // Stop Sound *library* preview only when leaving /music.
+  // Never stop on every route (that was nuking For You soundtrack audio → music "started again").
   useEffect(() => {
-    useSoundLibraryPlayerStore.getState().stop();
+    if (!location.pathname.startsWith("/music")) {
+      useSoundLibraryPlayerStore.getState().stop();
+    }
   }, [location.pathname]);
 
   useEffect(() => {

@@ -932,7 +932,7 @@ export default function EnhancedVideoPlayer({
         style={{ margin: 0, padding: 0, gap: 0 }}
       >
         <div className="w-full h-full" style={{ margin: 0, padding: 0 }}>
-        <audio ref={audioRef} preload="auto" className="hidden" />
+        <audio ref={audioRef} preload="auto" className="hidden" data-elix-feed-music="1" />
         {isDuetLayout && duetOriginalSrc ? (
           <div
             className="absolute top-0 left-0 right-0 w-full overflow-hidden bg-black"

@@ -41,6 +41,8 @@ const hlsByAudio = new WeakMap<HTMLAudioElement, Hls>();
 const previewAudioRegistry = new Set<HTMLAudioElement>();
 
 export function registerSoundPreviewAudio(audio: HTMLAudioElement): void {
+  // Never put For You soundtrack into the library preview kill list.
+  if (audio.dataset?.elixFeedMusic === "1") return;
   previewAudioRegistry.add(audio);
 }
 
@@ -91,28 +93,24 @@ export function stopSoundPreview(audio: HTMLAudioElement | null | undefined): vo
   }
 }
 
-function isLibraryOrPreviewAudioSrc(src: string): boolean {
-  if (!src) return false;
-  return /\/api\/music\/tracks\/|epidemicsound|epidemic.?sound|\/preview/i.test(src);
-}
-
 /**
- * Hard-stop every registered sound preview (library singleton, picker, Upload bg),
- * plus any detached audio element still playing a music/preview URL.
+ * Hard-stop registered sound library / picker / Upload previews only.
+ * Never touch For You feed soundtrack audio (Epidemic URLs on video slides) —
+ * sweeping those was restarting feed music after leave (in-flight play() / remount).
  */
 export function stopAllSoundPreviews(): void {
   for (const audio of [...previewAudioRegistry]) {
+    // Feed soundtrack must never be registered; skip if it somehow was.
+    if (audio.dataset?.elixFeedMusic === "1") continue;
     stopSoundPreview(audio);
   }
   if (typeof document === "undefined") return;
   try {
-    document.querySelectorAll("audio").forEach((node) => {
+    document.querySelectorAll("audio[data-elix-sound-preview='1']").forEach((node) => {
       const el = node as HTMLAudioElement;
-      const src = String(el.currentSrc || el.src || "");
-      if (el.dataset.elixSoundPreview === "1" || isLibraryOrPreviewAudioSrc(src)) {
-        stopSoundPreview(el);
-        previewAudioRegistry.delete(el);
-      }
+      if (el.dataset.elixFeedMusic === "1") return;
+      stopSoundPreview(el);
+      previewAudioRegistry.delete(el);
     });
   } catch {
     /* ignore */
