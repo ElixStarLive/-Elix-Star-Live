@@ -1417,15 +1417,15 @@ export default function EnhancedVideoPlayer({
             className="elix-more-options-sheet rounded-t-2xl max-h-[40dvh] flex flex-col pointer-events-auto w-full max-w-[480px] relative z-10 bottom-sheet-above-nav overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex flex-col px-3 pt-1.5 pb-1.5 border-b border-white/10">
-              <div className="flex justify-center pb-1" aria-hidden>
+            <div className="flex flex-col px-4 pt-2 pb-3 border-b border-white/10">
+              <div className="flex justify-center pb-2" aria-hidden>
                 <div className="w-10 h-1 rounded-full bg-white/25" />
               </div>
               <span className="text-[#F5F5F7] font-bold text-sm text-center">More Options</span>
             </div>
-            <div className="px-2 pt-1 pb-2 overflow-y-auto overflow-x-hidden min-h-0 flex-1">
+            <div className="p-4 overflow-y-auto overflow-x-hidden min-h-0 flex-1">
               {showQrCodeInMore && (
-                <div className="mb-2 p-2 rounded-xl bg-white/5 border border-white/10 flex flex-col items-center gap-1">
+                <div className="mb-3 p-3 rounded-xl bg-white/5 border border-white/10 flex flex-col items-center gap-2">
                   <span className="text-white/80 text-sm font-medium">Scan to open video</span>
                   <img
                     src={`https://api.qrserver.com/v1/create-qr-code/?size=112x112&data=${encodeURIComponent(videoPageUrl)}`}
@@ -1435,13 +1435,13 @@ export default function EnhancedVideoPlayer({
                   <button type="button" onClick={() => setShowQrCodeInMore(false)} className="text-[#F5F5F7] text-xs font-semibold">Close</button>
                 </div>
               )}
-              <div className="grid grid-cols-4 gap-0 place-items-center content-start w-full auto-rows-fr">
+              <div className="grid grid-cols-4 gap-x-0 gap-y-2">
                 <button
                   type="button"
                   onClick={moreCopyLink}
-                  className="flex w-full flex-col items-center justify-center gap-0 py-0.5 active:scale-95 transition-transform"
+                  className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
                 >
-                  <span className="royce-glow-disc share-action-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
+                  <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                     <Copy size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />
                   </span>
                   <span className="text-[10px] font-semibold text-[#F5F5F7]">Copy Link</span>
@@ -1449,9 +1449,9 @@ export default function EnhancedVideoPlayer({
                 <button
                   type="button"
                   onClick={moreDownload}
-                  className="flex w-full flex-col items-center justify-center gap-0 py-0.5 active:scale-95 transition-transform"
+                  className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
                 >
-                  <span className="royce-glow-disc share-action-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
+                  <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                     <Download size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />
                   </span>
                   <span className="text-[10px] font-semibold text-[#F5F5F7]">Download</span>
@@ -1459,9 +1459,9 @@ export default function EnhancedVideoPlayer({
                 <button
                   type="button"
                   onClick={moreDuet}
-                  className="flex w-full flex-col items-center justify-center gap-0 py-0.5 active:scale-95 transition-transform"
+                  className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
                 >
-                  <span className="royce-glow-disc share-action-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
+                  <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                     <Users2 size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />
                   </span>
                   <span className="text-[10px] font-semibold text-[#F5F5F7]">Duet</span>
@@ -1469,9 +1469,9 @@ export default function EnhancedVideoPlayer({
                 <button
                   type="button"
                   onClick={moreToggleQr}
-                  className="flex w-full flex-col items-center justify-center gap-0 py-0.5 active:scale-95 transition-transform"
+                  className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
                 >
-                  <span className="royce-glow-disc share-action-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
+                  <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                     <QrCode size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />
                   </span>
                   <span className="text-[10px] font-semibold text-[#F5F5F7]">QR Code</span>
@@ -1480,9 +1480,9 @@ export default function EnhancedVideoPlayer({
                   <button
                     type="button"
                     onClick={() => { void handleDeleteVideo(); }}
-                    className="flex w-full flex-col items-center justify-center gap-0 py-0.5 active:scale-95 transition-transform"
+                    className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
                   >
-                    <span className="royce-glow-disc share-action-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
+                    <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                       <Trash2 size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />
                     </span>
                     <span className="text-[10px] font-semibold text-[#F5F5F7]">Delete video</span>
@@ -1491,9 +1491,9 @@ export default function EnhancedVideoPlayer({
                 <button
                   type="button"
                   onClick={moreShare}
-                  className="flex w-full flex-col items-center justify-center gap-0 py-0.5 active:scale-95 transition-transform"
+                  className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
                 >
-                  <span className="royce-glow-disc share-action-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
+                  <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                     <Share2 size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />
                   </span>
                   <span className="text-[10px] font-semibold text-[#F5F5F7]">Share</span>
@@ -1501,9 +1501,9 @@ export default function EnhancedVideoPlayer({
                 <button
                   type="button"
                   onClick={moreSave}
-                  className="flex w-full flex-col items-center justify-center gap-0 py-0.5 active:scale-95 transition-transform"
+                  className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
                 >
-                  <span className="royce-glow-disc share-action-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
+                  <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                     <Bookmark
                       size={SHARE_PANEL_ACTION_ICON_PX}
                       className={video.isSaved ? 'fill-silver-full' : 'royce-icon-gold'}
@@ -1515,9 +1515,9 @@ export default function EnhancedVideoPlayer({
                 <button
                   type="button"
                   onClick={moreFollow}
-                  className="flex w-full flex-col items-center justify-center gap-0 py-0.5 active:scale-95 transition-transform"
+                  className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
                 >
-                  <span className="royce-glow-disc share-action-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
+                  <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                     {video.isFollowing
                       ? <UserMinus size={SHARE_PANEL_ACTION_ICON_PX} className="text-red-500" strokeWidth={2} />
                       : <UserPlus size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />}
@@ -1536,9 +1536,9 @@ export default function EnhancedVideoPlayer({
                 <button
                   type="button"
                   onClick={morePromote}
-                  className="flex w-full flex-col items-center justify-center gap-0 py-0.5 active:scale-95 transition-transform"
+                  className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
                 >
-                  <span className="royce-glow-disc share-action-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
+                  <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                     <TrendingUp size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />
                   </span>
                   <span className="text-[10px] font-semibold text-[#F5F5F7]">Promote</span>
@@ -1546,9 +1546,9 @@ export default function EnhancedVideoPlayer({
                 <button
                   type="button"
                   onClick={moreReport}
-                  className="flex w-full flex-col items-center justify-center gap-0 py-0.5 active:scale-95 transition-transform"
+                  className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
                 >
-                  <span className="royce-glow-disc share-action-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
+                  <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                     <Flag size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />
                   </span>
                   <span className="text-[10px] font-semibold text-[#F5F5F7]">Report</span>

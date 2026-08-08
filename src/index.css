@@ -48,8 +48,8 @@
        ═══════════════════════════════════════════════════════════════════ */
 
     --elix-bg: #080A0E;
-    /* Glass wash over fundal — under writing/icons, full panel */
-    --elix-panel-wash: rgba(8, 10, 14, 0.65);
+    /* Transparent under writing — fundal stays visible (no dark box) */
+    --elix-panel-wash: rgba(8, 10, 14, 0);
     --elix-bg-glass: var(--elix-panel-wash);
     --elix-raised: #121419;
     --elix-surface-solid: #121419;
@@ -1458,36 +1458,6 @@ video::-webkit-media-controls-overlay-enclosure,
     var(--elix-elevated-shadow);
 }
 
-/* More Options sheet — fundal + full-panel glass wash (original size) */
-#root .elix-more-options-sheet {
-  background-color: transparent;
-  background-image: var(--elix-panel-fill);
-  background-size: var(--elix-fundal-size), var(--elix-fundal-size);
-  background-position: var(--elix-fundal-position), var(--elix-fundal-position);
-  background-repeat: no-repeat, no-repeat;
-  border: none;
-  box-shadow: none;
-  overflow: hidden;
-  width: 100%;
-  max-width: 480px;
-}
-
-/* LEVEL 3 — top / home bar: same fundal as app shell */
-#root nav[aria-label="Main navigation"] .feed-column-width,
-#root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
-#root .feed-column-width.h-\[var\(--topnav-bar-height\)\] {
-  background-color: transparent;
-  background-image: var(--elix-page-fill);
-  background-size: var(--elix-fundal-size), var(--elix-fundal-size);
-  background-position: var(--elix-fundal-position), var(--elix-fundal-position);
-  background-repeat: no-repeat, no-repeat;
-  background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment);
-  border: none;
-  box-shadow: none;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
-
 /* Silver CTA — dark text on silver */
 .elix-silver-cta,
 #root .elix-settings-write .elix-silver-cta,
@@ -1541,17 +1511,6 @@ video::-webkit-media-controls-overlay-enclosure,
   max-width: 32px !important;
   max-height: 32px !important;
   aspect-ratio: 1 / 1;
-}
-
-/* Share + More Options — same width/height on every action disc (auto-align grid) */
-.elix-panel .share-action-disc.royce-glow-disc,
-.elix-more-options-sheet .share-action-disc.royce-glow-disc {
-  width: 44px !important;
-  height: 44px !important;
-  min-width: 44px !important;
-  min-height: 44px !important;
-  max-width: 44px !important;
-  max-height: 44px !important;
 }
 
 /* Bottom nav — keep larger discs (do not shrink with right-side icons) */
@@ -1816,38 +1775,6 @@ svg.lucide,
   filter: none !important;
 }
 
-/* Create — Add sound Music icon: line only, no round disc */
-#root button[title="Add sound"] > svg.lucide {
-  padding: 0 !important;
-  border: none !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
-
-/* Chat thread — Send icon: line only, no white disc/glow */
-#root button[title="Send message"] > svg.lucide {
-  padding: 0 !important;
-  border: none !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  filter: none !important;
-  width: 18px !important;
-  height: 18px !important;
-}
-
-/* Sound page — Save bookmark sits inside one round button disc */
-#root button[title="Save"] > svg.lucide,
-#root button[title="Saved"] > svg.lucide {
-  padding: 0 !important;
-  border: none !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  filter: none !important;
-}
-
 /* Wrapper already draws the disc — icon stays sharp inside, no double circle */
 .royce-glow-disc svg.lucide,
 .royce-glow-disc .royce-icon-gold,
@@ -1987,7 +1914,7 @@ body {
   background-image: none;
 }
 
-/* SHELL — cosmic fundal owner (no border) */
+/* SHELL — cosmic fundal owner */
 .elix-app-shell,
 .elix-fundal-glass {
   background-color: var(--elix-bg);
@@ -1996,9 +1923,6 @@ body {
   background-position: var(--elix-fundal-position);
   background-repeat: no-repeat;
   background-attachment: var(--elix-fundal-attachment);
-  border: none;
-  box-shadow: none;
-  outline: none;
 }
 
 /* Live room keeps deepest base behind video (no fundal over stream) */
@@ -2051,6 +1975,27 @@ body {
   background-position: var(--elix-fundal-position), var(--elix-fundal-position);
   background-repeat: no-repeat, no-repeat;
   background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment);
+}
+
+/* LEVEL 3 — top / home bar: fundal; no left/right side lines */
+#root nav[aria-label="Main navigation"] .feed-column-width,
+#root .elix-home-top-bar .feed-column-width,
+#root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
+#root .feed-column-width.h-\[var\(--topnav-bar-height\)\] {
+  background-color: transparent;
+  background-image: var(--elix-page-fill);
+  background-size: var(--elix-fundal-size), var(--elix-fundal-size);
+  background-position: var(--elix-fundal-position), var(--elix-fundal-position);
+  background-repeat: no-repeat, no-repeat;
+  background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment);
+  border-left: none !important;
+  border-right: none !important;
+  border-top: 1px solid var(--elix-border);
+  border-bottom: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 /* Nested cards — clear (one page wash only; no mini fundal boxes) */
@@ -2126,7 +2071,9 @@ body {
 #root .bg-\[\#09090B\]\/80,
 #root .bg-\[\#09090B\]\/85,
 #root .bg-\[\#09090B\]\/90,
-#root .bg-\[\#09090B\]\/95 {
+#root .bg-\[\#09090B\]\/95,
+#root [class*="bg-[rgba(0,0,0"],
+#root [class*="bg-[rgba(20,20,20"] {
   background-color: var(--elix-panel-wash);
   background-image: none;
   border-color: var(--elix-border);
@@ -2216,5 +2163,22 @@ body,
   background-color: transparent !important;
   box-shadow: none !important;
   filter: none !important;
+}
+
+/* More Options — SIDE lines only off; keep handle + title separator */
+#root .elix-more-options-sheet,
+#root .elix-glass.elix-more-options-sheet {
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Feed column — side frame lines only */
+#root .feed-column-width,
+#root main.feed-column-width {
+  border-left: none !important;
+  border-right: none !important;
 }
 
