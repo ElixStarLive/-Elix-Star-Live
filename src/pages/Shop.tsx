@@ -3,7 +3,7 @@ import { RoyceBackIcon, ShopBasketIcon } from '../components/royce';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/apiClient';
 import { useAuthStore } from '../store/useAuthStore';
-import { Camera, Tag, MessageCircle, MoreVertical } from 'lucide-react';
+import { Camera, Tag, MessageCircle, MoreVertical, Minus, Plus } from 'lucide-react';
 import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
 import { showToast } from '../lib/toast';
 import { bunnyUpload } from '../lib/bunnyStorage';
@@ -56,6 +56,7 @@ export default function Shop() {
   const cartItems = useCartStore((s) => s.items);
   const addToCart = useCartStore((s) => s.add);
   const removeFromCart = useCartStore((s) => s.remove);
+  const setCartQuantity = useCartStore((s) => s.setQuantity);
   const clearCart = useCartStore((s) => s.clear);
   const cartUnitCount = useCartStore((s) => s.totalUnits());
   const [showCart, setShowCart] = useState(false);
@@ -132,6 +133,18 @@ export default function Shop() {
   const handleRemoveFromCart = useCallback((itemId: string) => {
     removeFromCart(itemId);
   }, [removeFromCart]);
+
+  const handleCartQtyMinus = useCallback((itemId: string, qty: number) => {
+    if (qty <= 1) {
+      removeFromCart(itemId);
+      return;
+    }
+    setCartQuantity(itemId, qty - 1);
+  }, [removeFromCart, setCartQuantity]);
+
+  const handleCartQtyPlus = useCallback((itemId: string, qty: number) => {
+    setCartQuantity(itemId, qty + 1);
+  }, [setCartQuantity]);
 
   useEffect(() => {
     return () => {
@@ -768,9 +781,30 @@ export default function Shop() {
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold text-white truncate">{ci.title}</p>
                             <p className="text-sm font-extrabold text-gold-metallic">
-                              £{Number(ci.price).toFixed(2)}
-                              {qty > 1 ? ` × ${qty}` : ''}
+                              £{(Number(ci.price) * qty).toFixed(2)}
                             </p>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => handleCartQtyMinus(ci.id, qty)}
+                              className="w-7 h-7 rounded-full bg-[#1A1C21] border border-white/15 flex items-center justify-center active:opacity-70"
+                              aria-label={`Less ${ci.title}`}
+                            >
+                              <Minus size={14} className="text-[#F5F5F7]" />
+                            </button>
+                            <span className="min-w-[1.5rem] text-center text-xs font-bold text-[#F5F5F7] tabular-nums">
+                              {qty}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleCartQtyPlus(ci.id, qty)}
+                              className="w-7 h-7 rounded-full bg-[#1A1C21] border border-white/15 flex items-center justify-center active:opacity-70"
+                              aria-label={`More ${ci.title}`}
+                              disabled={qty >= 99}
+                            >
+                              <Plus size={14} className="text-[#F5F5F7]" />
+                            </button>
                           </div>
                           <div className="relative flex-shrink-0">
                             <button

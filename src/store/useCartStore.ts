@@ -16,6 +16,7 @@ interface CartState {
   items: CartItem[];
   add: (item: Omit<CartItem, 'quantity'> & { quantity?: number }) => void;
   remove: (id: string) => void;
+  setQuantity: (id: string, quantity: number) => void;
   clear: () => void;
   has: (id: string) => boolean;
   totalUnits: () => number;
@@ -58,6 +59,17 @@ export const useCartStore = create<CartState>()(
           };
         }),
       remove: (id) => set((state) => ({ items: state.items.filter((i) => i.id !== id) })),
+      setQuantity: (id, quantity) =>
+        set((state) => {
+          const q = Math.floor(Number(quantity));
+          if (!Number.isFinite(q) || q < 1) {
+            return { items: state.items.filter((i) => i.id !== id) };
+          }
+          const next = Math.min(MAX_QTY, q);
+          return {
+            items: state.items.map((i) => (i.id === id ? { ...i, quantity: next } : i)),
+          };
+        }),
       clear: () => set({ items: [] }),
       has: (id) => get().items.some((i) => i.id === id),
       totalUnits: () => get().items.reduce((sum, i) => sum + clampQty(i.quantity), 0),
