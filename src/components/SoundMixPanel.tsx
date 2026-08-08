@@ -13,6 +13,10 @@ type Props = {
   addedSoundTitle?: string | null;
   onChooseSound: () => void;
   onClearSound?: () => void;
+  /** Pick a phone image as own backdrop behind the video. */
+  hasOwnBackground?: boolean;
+  onChooseBackground?: () => void;
+  onClearBackground?: () => void;
 };
 
 /**
@@ -32,6 +36,9 @@ export default function SoundMixPanel({
   addedSoundTitle,
   onChooseSound,
   onClearSound,
+  hasOwnBackground = false,
+  onChooseBackground,
+  onClearBackground,
 }: Props) {
   if (!isOpen) return null;
 
@@ -134,6 +141,38 @@ export default function SoundMixPanel({
               ) : null}
             </div>
           </div>
+
+          {/* Own background — phone image behind video */}
+          {onChooseBackground ? (
+            <div className="space-y-2">
+              <span className="text-[#E6E9EE] text-xs font-semibold">Own background</span>
+              <p className="text-[10px] text-[#8B9099]">
+                {hasOwnBackground ? 'Your image is behind the video' : 'Add a photo from your phone as backdrop'}
+              </p>
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onChooseBackground();
+                  }}
+                  className="flex-1 h-9 rounded-full border border-[#D8D9DD]/40 text-[#E6E9EE] text-xs font-bold"
+                >
+                  {hasOwnBackground ? 'Change background' : 'Add background'}
+                </button>
+                {hasOwnBackground && onClearBackground ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClearBackground();
+                    }}
+                    className="h-9 px-3 rounded-full border border-[#F12C56]/50 text-[#E6E9EE] text-xs font-bold"
+                  >
+                    Remove
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

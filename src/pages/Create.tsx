@@ -77,6 +77,7 @@ export default function Create() {
   const [showAITools, setShowAITools] = useState(false);
   const [aiFilterCss, setAiFilterCss] = useState('none');
   const [aiEnhanceCss, setAiEnhanceCss] = useState('none');
+  const [ownBgUrl, setOwnBgUrl] = useState<string | null>(null);
   const mediaWrapRef = useRef<HTMLDivElement>(null);
   const dragIdRef = useRef<string | null>(null);
   const combinedFilter = [
@@ -88,9 +89,11 @@ export default function Create() {
     .filter(Boolean)
     .join(' ')
     .trim();
-  const previewObjectClass = previewFit === 'contain' ? 'object-contain' : 'object-cover';
+  const previewObjectClass =
+    ownBgUrl || previewFit === 'contain' ? 'object-contain' : 'object-cover';
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bgInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const previewVideoRef = useRef<HTMLVideoElement>(null);
   const backgroundAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -346,6 +349,29 @@ export default function Create() {
 
   const openSoundMixPanel = useCallback(() => {
     setIsSoundMixOpen(true);
+  }, []);
+
+  const openOwnBackgroundPicker = useCallback(() => {
+    bgInputRef.current?.click();
+  }, []);
+
+  const clearOwnBackground = useCallback(() => {
+    setOwnBgUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+  }, []);
+
+  const handleOwnBgSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setOwnBgUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(file);
+    });
+    setToast('Background added');
+    window.setTimeout(() => setToast(null), 1500);
+    e.target.value = '';
   }, []);
 
   const clearSelectedSound = useCallback((e?: React.SyntheticEvent) => {
@@ -652,16 +678,32 @@ export default function Create() {
             e.target.value = '';
           }}
         />
+        <input
+          ref={bgInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          aria-label="Select own background"
+          onChange={handleOwnBgSelect}
+        />
 
         <div className="absolute inset-0 z-[5]" ref={mediaWrapRef}>
+          {ownBgUrl ? (
+            <img
+              src={ownBgUrl}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover z-0"
+              draggable={false}
+            />
+          ) : null}
           {previewUrl ? (
             previewKind === 'image' ? (
-              <img src={previewUrl} alt="" className={`w-full h-full ${previewObjectClass} bg-black`} draggable={false} style={combinedFilter ? { filter: combinedFilter } : undefined} />
+              <img src={previewUrl} alt="" className={`relative z-[1] w-full h-full ${previewObjectClass} ${ownBgUrl ? 'bg-transparent' : 'bg-black'}`} draggable={false} style={combinedFilter ? { filter: combinedFilter } : undefined} />
             ) : (
-              <video ref={previewVideoRef} src={previewUrl} className={`w-full h-full ${previewObjectClass} bg-black`} autoPlay loop playsInline muted={originalVolume <= 0.001} onPlay={() => setIsPreviewPlaying(true)} onPause={() => setIsPreviewPlaying(false)} style={combinedFilter ? { filter: combinedFilter } : undefined} />
+              <video ref={previewVideoRef} src={previewUrl} className={`relative z-[1] w-full h-full ${previewObjectClass} ${ownBgUrl ? 'bg-transparent' : 'bg-black'}`} autoPlay loop playsInline muted={originalVolume <= 0.001} onPlay={() => setIsPreviewPlaying(true)} onPause={() => setIsPreviewPlaying(false)} style={combinedFilter ? { filter: combinedFilter } : undefined} />
             )
           ) : (
-            <div className="w-full h-full bg-[#09090B] relative flex items-center justify-center overflow-hidden" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
+            <div className={`w-full h-full relative flex items-center justify-center overflow-hidden z-[1] ${ownBgUrl ? 'bg-transparent' : 'bg-[#09090B]'}`} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
               <div
                 className="absolute inset-0"
                 style={{
@@ -675,7 +717,7 @@ export default function Create() {
                     videoRef.current = el;
                     if (el) prepareLiveVideoEl(el);
                   }}
-                  className={`w-full h-full object-cover bg-black ${LIVE_WEBRTC_VIDEO_CLASS} ${cameraError ? 'hidden' : ''}`}
+                  className={`w-full h-full ${ownBgUrl ? 'object-contain bg-transparent' : 'object-cover bg-black'} ${LIVE_WEBRTC_VIDEO_CLASS} ${cameraError ? 'hidden' : ''}`}
                   autoPlay muted playsInline controls={false}
                   poster={LIVE_VIDEO_TRANSPARENT_POSTER}
                 />
@@ -960,6 +1002,9 @@ export default function Create() {
               setSelectedSound(null);
               setMusicVolume(0.7);
             }}
+            hasOwnBackground={Boolean(ownBgUrl)}
+            onChooseBackground={openOwnBackgroundPicker}
+            onClearBackground={clearOwnBackground}
           />
         ) : null}
 

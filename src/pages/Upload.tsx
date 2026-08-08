@@ -61,6 +61,7 @@ export default function Upload() {
   // Audio mix (0..1) applied when a song is added: original = the video's own sound, music = the added song.
   const [originalVolume, setOriginalVolume] = useState(1);
   const [musicVolume, setMusicVolume] = useState(0.7);
+  const [ownBgUrl, setOwnBgUrl] = useState<string | null>(null);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   const backgroundAudioRef = useRef<HTMLAudioElement | null>(null);
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -76,7 +77,8 @@ export default function Upload() {
   const mediaWrapRef = useRef<HTMLDivElement>(null);
   const dragIdRef = useRef<string | null>(null);
   const [mediaWidth, setMediaWidth] = useState(360);
-  const previewObjectClass = previewFit === 'contain' ? 'object-contain' : 'object-cover';
+  const previewObjectClass =
+    ownBgUrl || previewFit === 'contain' ? 'object-contain' : 'object-cover';
   /** Selected AI thumbnail data URL — uploaded as real thumb (not preview-only). */
   const [selectedThumbnailDataUrl, setSelectedThumbnailDataUrl] = useState<string | null>(null);
   /** Voice FX is baked into video via mediaBake + VoiceProcessor when the runtime can re-encode. */
@@ -876,6 +878,29 @@ export default function Upload() {
   /** Story Upload = photos from phone; video post Upload = videos. */
   const openGalleryPicker = () => handleFileUpload(isStoryUpload ? 'image/*' : 'video/*');
 
+  const openOwnBackgroundPicker = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      setOwnBgUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return URL.createObjectURL(file);
+      });
+      showToast('Background added');
+    };
+    input.click();
+  };
+
+  const clearOwnBackground = () => {
+    setOwnBgUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+  };
+
 
   return (
     <div className="fixed inset-0 h-[100dvh] w-full bg-transparent overflow-hidden flex justify-center">
@@ -885,6 +910,14 @@ export default function Upload() {
        {recordedVideoUrl ? (
          <>
            <div className="relative z-10 w-full mx-auto h-[100dvh] bg-black flex flex-col items-center justify-center" ref={mediaWrapRef}>
+              {ownBgUrl ? (
+                <img
+                  src={ownBgUrl}
+                  alt=""
+                  className="absolute inset-0 w-full h-full object-cover z-0"
+                  draggable={false}
+                />
+              ) : null}
               {duetSourceVideoUrl ? (
                 <div
                   className="absolute top-0 left-0 right-0 w-full overflow-hidden bg-black"
@@ -961,7 +994,7 @@ export default function Upload() {
               <img
                   src={recordedVideoUrl}
                   alt=""
-                  className={`w-full h-full ${previewObjectClass} z-0 bg-black`}
+                  className={`relative z-[1] w-full h-full ${previewObjectClass} ${ownBgUrl ? 'bg-transparent' : 'bg-black'}`}
                   style={{ filter: composeFilterCss || undefined }}
                   draggable={false}
               />
@@ -969,7 +1002,7 @@ export default function Upload() {
               <video
                   ref={videoRef}
                   src={recordedVideoUrl}
-                  className={`w-full h-full ${previewObjectClass} z-0 bg-black`}
+                  className={`relative z-[1] w-full h-full ${previewObjectClass} ${ownBgUrl ? 'bg-transparent' : 'bg-black'}`}
                   controls={false}
                   autoPlay
                   loop
@@ -1303,7 +1336,7 @@ export default function Upload() {
 
                   {/* Upload — round glow like other icons (not black square) */}
                   <button
-                    onClick={handleFileUpload}
+                    onClick={openGalleryPicker}
                     className="absolute bottom-[7%] left-[5%] flex flex-col items-center gap-1 z-30 pointer-events-auto group"
                     title="Upload"
                   >
@@ -1409,6 +1442,14 @@ export default function Upload() {
         <>
           {/* Container Principal */}
           <div className="relative z-10 w-full h-[100dvh] mb-0 pointer-events-none bg-transparent shadow-2xl overflow-hidden">
+              {ownBgUrl ? (
+                <img
+                  src={ownBgUrl}
+                  alt=""
+                  className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
+                  draggable={false}
+                />
+              ) : null}
               {/* Duet: split (half/half) or overlay (full original + your face on top) */}
               {duetSourceVideoUrl ? (
                 <div
@@ -1462,14 +1503,14 @@ export default function Upload() {
               ) : (
                 <>
               {/* Full-frame: zoom only — no front mirror */}
-              <div className="absolute inset-0 z-0 overflow-hidden bg-black">
+              <div className={`absolute inset-0 z-0 overflow-hidden ${ownBgUrl ? 'bg-transparent' : 'bg-black'}`}>
                 <div className="absolute inset-0" style={zoomWrapperStyle}>
                   <video
                     ref={videoRef}
                     autoPlay
                     playsInline
                     muted
-                    className={`absolute inset-0 w-full h-full object-cover bg-black ${cameraError ? 'hidden' : ''}`}
+                    className={`absolute inset-0 w-full h-full ${ownBgUrl ? 'object-contain bg-transparent' : 'object-cover bg-black'} ${cameraError ? 'hidden' : ''}`}
                     style={{
                       filter: beautyOn ? 'brightness(1.08) contrast(1.05) saturate(1.12)' : undefined,
                     }}
@@ -1715,7 +1756,7 @@ export default function Upload() {
                   <button 
                     type="button"
                     className="absolute bottom-8 left-6 flex flex-col items-center gap-1 z-[1000] pointer-events-auto group"
-                    onClick={handleFileUpload}
+                    onClick={openGalleryPicker}
                     title="Upload from Gallery"
                   >
                     <span className="w-9 h-9 flex items-center justify-center group-active:scale-90 transition-transform" aria-hidden>
@@ -1747,6 +1788,9 @@ export default function Upload() {
             setSelectedAudioId('original');
             setMusicVolume(0.7);
           }}
+          hasOwnBackground={Boolean(ownBgUrl)}
+          onChooseBackground={openOwnBackgroundPicker}
+          onClearBackground={clearOwnBackground}
         />
       ) : null}
       {showMusicModal ? (
