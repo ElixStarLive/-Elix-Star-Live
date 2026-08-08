@@ -23,7 +23,6 @@ import { IncomingCallModal } from "./components/IncomingCallModal";
 import { LiveNotifyBanner } from "./components/LiveNotifyBanner";
 import { subscribeToIncomingCalls } from "./lib/callService";
 import { websocket } from "./lib/websocket";
-import { silenceAllHtmlMedia } from "./lib/soundLibrary";
 import { useSoundLibraryPlayerStore } from "./store/useSoundLibraryPlayerStore";
 
 
@@ -292,27 +291,28 @@ function App() {
       document.removeEventListener("visibilitychange", handleVisibility);
   }, []);
 
-  // Sound library / any leftover media must never keep playing after leaving Sound.
+  // Stop Sound *library* preview only when leaving /music — never nuke For You video/audio
+  // (that was restarting feed music after an in-flight play()).
   useEffect(() => {
     if (!location.pathname.startsWith("/music")) {
       useSoundLibraryPlayerStore.getState().stop();
-      silenceAllHtmlMedia();
     }
   }, [location.pathname]);
 
-  // Also kill media if app backgrounds while not on Sound.
   useEffect(() => {
-    const killIfLeftSound = () => {
-      if (!window.location.pathname.startsWith("/music")) {
+    const stopLibraryOnHide = () => {
+      if (document.visibilityState === "hidden") {
         useSoundLibraryPlayerStore.getState().stop();
-        silenceAllHtmlMedia();
       }
     };
-    document.addEventListener("visibilitychange", killIfLeftSound);
-    window.addEventListener("pagehide", killIfLeftSound);
+    const stopLibraryOnPageHide = () => {
+      useSoundLibraryPlayerStore.getState().stop();
+    };
+    document.addEventListener("visibilitychange", stopLibraryOnHide);
+    window.addEventListener("pagehide", stopLibraryOnPageHide);
     return () => {
-      document.removeEventListener("visibilitychange", killIfLeftSound);
-      window.removeEventListener("pagehide", killIfLeftSound);
+      document.removeEventListener("visibilitychange", stopLibraryOnHide);
+      window.removeEventListener("pagehide", stopLibraryOnPageHide);
     };
   }, []);
 

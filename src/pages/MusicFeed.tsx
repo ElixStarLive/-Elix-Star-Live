@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import SoundLibraryView from '../components/SoundLibraryView';
-import { silenceAllHtmlMedia } from '../lib/soundLibrary';
 import { useSoundLibraryPlayerStore } from '../store/useSoundLibraryPlayerStore';
 
 /**
@@ -15,13 +14,11 @@ export default function MusicFeed() {
   useEffect(() => {
     return () => {
       useSoundLibraryPlayerStore.getState().stop();
-      silenceAllHtmlMedia();
     };
   }, []);
 
   const goBack = useCallback(() => {
     stopLibraryPlayer();
-    silenceAllHtmlMedia();
     navigate(-1);
   }, [navigate, stopLibraryPlayer]);
 

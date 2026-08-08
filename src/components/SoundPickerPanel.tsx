@@ -1,6 +1,6 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import SoundLibraryView from './SoundLibraryView';
-import { silenceAllHtmlMedia, type SoundTrack } from '../lib/soundLibrary';
+import { type SoundTrack } from '../lib/soundLibrary';
 import { useSoundLibraryPlayerStore } from '../store/useSoundLibraryPlayerStore';
 
 type Props = {
@@ -16,16 +16,20 @@ type Props = {
 export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: Props) {
   const stopLibraryPlayer = useSoundLibraryPlayerStore((s) => s.stop);
 
+  useEffect(() => {
+    return () => {
+      useSoundLibraryPlayerStore.getState().stop();
+    };
+  }, []);
+
   const close = useCallback(() => {
     stopLibraryPlayer();
-    silenceAllHtmlMedia();
     onClose();
   }, [onClose, stopLibraryPlayer]);
 
   const handlePick = useCallback(
     (track: SoundTrack) => {
       stopLibraryPlayer();
-      silenceAllHtmlMedia();
       onPick(track);
       onClose();
     },
@@ -42,7 +46,6 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
     );
   }
 
-  // Full-screen Sound panel — same footprint as /music, not a half sheet.
   return (
     <div
       className="fixed inset-0 z-[10050] bg-transparent flex flex-col pointer-events-auto animate-in fade-in duration-200"

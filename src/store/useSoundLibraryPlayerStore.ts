@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import {
   playAudioClip,
   registerSoundPreviewAudio,
+  unregisterSoundPreviewAudio,
   resolvePlayableSoundUrl,
   stopAllSoundPreviews,
   stopSoundPreview,
@@ -56,6 +57,7 @@ function discardAudioEl() {
     /* ignore */
   }
   stopSoundPreview(el);
+  unregisterSoundPreviewAudio(el);
 }
 
 function hardStopAudio() {

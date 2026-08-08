@@ -186,6 +186,13 @@ export default function SoundLibraryView({
     [toggleTrack],
   );
 
+  // Always stop library preview when this panel unmounts (leave Sound / close Add sound).
+  useEffect(() => {
+    return () => {
+      useSoundLibraryPlayerStore.getState().stop();
+    };
+  }, []);
+
   return (
     <div className={`bg-transparent text-white flex flex-col min-h-0 flex-1 ${className}`}>
       <div
