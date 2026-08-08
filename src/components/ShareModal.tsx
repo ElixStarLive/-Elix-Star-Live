@@ -243,16 +243,16 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
               />
             </div>
           )}
-          <div className="grid grid-cols-5 gap-x-2 gap-y-3 pt-1 w-full justify-items-center">
+          <div className="grid grid-cols-5 gap-x-0 gap-y-2 pt-0">
             {socialPlatforms.map((item) => (
               <button
                 key={item.name}
                 type="button"
                 onClick={() => item.action()}
-                className="flex w-full min-w-0 flex-col items-center gap-1.5 active:scale-95 transition-transform"
+                className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
               >
                 <div
-                  className="royce-glow-disc flex items-center justify-center flex-shrink-0"
+                  className="relative royce-glow-disc flex-shrink-0"
                   style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }}
                 >
                   {React.cloneElement(item.icon as React.ReactElement, {
@@ -261,9 +261,7 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
                     strokeWidth: 2,
                   })}
                 </div>
-                <span className="text-[8px] font-semibold text-white/70 w-full text-center leading-tight min-h-[2.2em] px-0.5 line-clamp-2">
-                  {item.name}
-                </span>
+                <span className="text-[8px] font-semibold text-white/70 truncate w-full text-center">{item.name}</span>
               </button>
             ))}
             {actionItems.map((item) => {
@@ -273,10 +271,10 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
                   key={item.name}
                   type="button"
                   onClick={() => item.action()}
-                  className="flex w-full min-w-0 flex-col items-center gap-1.5 active:scale-95 transition-transform"
+                  className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
                 >
                   <div
-                    className="royce-glow-disc flex items-center justify-center flex-shrink-0"
+                    className="relative royce-glow-disc flex-shrink-0"
                     style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }}
                   >
                     {React.cloneElement(item.icon as React.ReactElement, {
@@ -285,13 +283,7 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
                       strokeWidth: 2,
                     })}
                   </div>
-                  <span
-                    className={`text-[8px] font-semibold w-full text-center leading-tight min-h-[2.2em] px-0.5 line-clamp-2 ${
-                      isRed ? 'text-white/60' : 'text-white/70'
-                    }`}
-                  >
-                    {item.name}
-                  </span>
+                  <span className={`text-[8px] font-semibold truncate w-full text-center ${isRed ? 'text-white/60' : 'text-white/70'}`}>{item.name}</span>
                 </button>
               );
             })}

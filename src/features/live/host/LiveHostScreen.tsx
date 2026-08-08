@@ -3419,7 +3419,7 @@ export default function LiveHostScreen() {
 
             {/* Share options â€” same layout as ShareModal */}
             <div className="flex-1 overflow-y-scroll overflow-x-hidden min-h-0 px-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#313845] [&::-webkit-scrollbar-thumb]:rounded-full">
-              <div className="grid grid-cols-5 gap-x-2 gap-y-3 pt-1 w-full justify-items-center">
+              <div className="grid grid-cols-5 gap-x-0 gap-y-2 pt-0">
                 {[
                   { name: 'WhatsApp', icon: <MessageCircle size={22} className="text-white" />, action: shareWhatsApp },
                   { name: 'Facebook', icon: <Share2 size={22} className="text-white" />, action: shareFacebook },
@@ -3431,10 +3431,10 @@ export default function LiveHostScreen() {
                     key={item.name}
                     type="button"
                     onClick={item.action}
-                    className="flex w-full min-w-0 flex-col items-center gap-1.5 active:scale-95 transition-transform"
+                    className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
                   >
                     <div
-                      className="royce-glow-disc flex items-center justify-center flex-shrink-0"
+                      className="relative royce-glow-disc flex-shrink-0"
                       style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }}
                     >
                       {React.cloneElement((item.icon as React.ReactElement), {
@@ -3444,7 +3444,7 @@ export default function LiveHostScreen() {
                       })}
                     </div>
                     <span
-                      className={`text-[8px] font-semibold w-full text-center leading-tight min-h-[2.2em] px-0.5 line-clamp-2 ${
+                      className={`text-[8px] font-semibold truncate w-full text-center ${
                         (item as { isRed?: boolean }).isRed ? 'text-white/60' : 'text-white/70'
                       }`}
                     >
