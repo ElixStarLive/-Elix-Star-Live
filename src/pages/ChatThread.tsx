@@ -533,7 +533,7 @@ export default function ChatThread() {
               disabled={!draft.trim()}
               title="Send message"
               aria-label="Send message"
-              className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center bg-[#F5F5F7] text-black disabled:opacity-40 active:scale-95 transition-transform"
+              className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center bg-transparent text-[#F5F5F7] disabled:opacity-40 active:scale-95 transition-transform"
             >
               <Send size={16} strokeWidth={2.25} />
             </button>
