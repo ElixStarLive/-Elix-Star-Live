@@ -191,6 +191,10 @@ export async function fetchTrackHighlights(
   return result;
 }
 
+/**
+ * Resolve a playable Epidemic URL for in-app preview.
+ * Try progressive `/stream` first (browse/preview access), then MP3 `/download`.
+ */
 export async function resolvePreviewDownloadUrl(
   trackId: string,
 ): Promise<{ url: string; expires: string }> {
@@ -199,17 +203,32 @@ export async function resolvePreviewDownloadUrl(
   if (cached) {
     const parsed = JSON.parse(cached) as { url: string; expires: string };
     const expiresMs = Date.parse(parsed.expires);
-    if (Number.isFinite(expiresMs) && expiresMs > Date.now() + 60_000) {
+    if (Number.isFinite(expiresMs) && expiresMs > Date.now() + 60_000 && parsed.url) {
       return parsed;
     }
   }
 
-  const data = await epidemicFetch<{ url: string; expires: string }>(
+  const tryPaths = [
+    `/v0/tracks/${encodeURIComponent(trackId)}/stream`,
     `/v0/tracks/${encodeURIComponent(trackId)}/download?quality=normal&format=mp3`,
-  );
-  const ttlMs = previewCacheTtlMs(data.expires);
-  await valkeySet(cacheKey, JSON.stringify(data), ttlMs);
-  return data;
+  ] as const;
+
+  let lastErr: unknown = null;
+  for (const path of tryPaths) {
+    try {
+      const data = await epidemicFetch<{ url: string; expires: string }>(path);
+      if (data?.url) {
+        const ttlMs = previewCacheTtlMs(data.expires || "");
+        await valkeySet(cacheKey, JSON.stringify(data), ttlMs);
+        return data;
+      }
+    } catch (err) {
+      lastErr = err;
+      logger.warn({ err, trackId, path }, "Epidemic preview source failed; trying next");
+    }
+  }
+
+  throw lastErr instanceof Error ? lastErr : new Error("MUSIC_PREVIEW_UNAVAILABLE");
 }
 
 /** Curated picker list for upload flow — first collection + free-tier tracks. */

@@ -23,8 +23,6 @@ export function resolveSoundTrackPlaybackUrl(url: string): string {
   return apiUrl(url);
 }
 
-const previewSignedUrlCache = new Map<string, { url: string; expiresAt: number }>();
-
 /** Extract Epidemic track id from our preview proxy path (relative or absolute). */
 export function extractMusicPreviewTrackId(url: string): string | null {
   if (!url) return null;
@@ -34,9 +32,8 @@ export function extractMusicPreviewTrackId(url: string): string | null {
 
 /**
  * Resolve a URL that `<audio>` can actually play.
- * Our `/api/music/tracks/:id/preview` endpoint 302-redirects to a short-lived
- * Epidemic CDN URL — many WebViews (and some browsers) fail to play that via
- * redirect. Fetch `?format=json` and use the signed URL directly instead.
+ * Epidemic previews are always served via our same-origin proxy
+ * (`/api/music/tracks/:id/preview`) so WebViews never depend on CDN redirects.
  */
 export async function resolvePlayableSoundUrl(url: string): Promise<string> {
   const resolved = resolveSoundTrackPlaybackUrl(url);
@@ -45,23 +42,10 @@ export async function resolvePlayableSoundUrl(url: string): Promise<string> {
   const trackId = extractMusicPreviewTrackId(resolved);
   if (!trackId) return resolved;
 
-  const cached = previewSignedUrlCache.get(trackId);
-  if (cached && cached.expiresAt > Date.now() + 15_000) {
-    return cached.url;
-  }
-
-  const path = `/api/music/tracks/${encodeURIComponent(trackId)}/preview?format=json`;
-  const { data, error } = await request<{ previewUrl?: string; expires?: string }>(path);
-  const previewUrl = typeof data?.previewUrl === "string" ? data.previewUrl.trim() : "";
-  if (error || !previewUrl) return "";
-
-  let expiresAt = Date.now() + 4 * 60_000;
-  if (data?.expires) {
-    const parsed = Date.parse(data.expires);
-    if (Number.isFinite(parsed)) expiresAt = parsed;
-  }
-  previewSignedUrlCache.set(trackId, { url: previewUrl, expiresAt });
-  return previewUrl;
+  // Bust caches that stored dead CDN URLs; always hit our proxy.
+  return resolveSoundTrackPlaybackUrl(
+    `/api/music/tracks/${encodeURIComponent(trackId)}/preview`,
+  );
 }
 
 /** Load src, seek to clip start, then play (avoids currentTime-before-ready failures). */

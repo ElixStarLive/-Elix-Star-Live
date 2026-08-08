@@ -304,7 +304,7 @@ export async function handleMusicTrackPreview(req: Request, res: Response) {
   }
 
   try {
-    const download = await resolvePreviewDownloadUrl(trackId);
+    const preview = await resolvePreviewDownloadUrl(trackId);
     const userId = req.ip || "anonymous";
     void reportTrackPreviewed(String(userId), trackId);
 
@@ -312,16 +312,54 @@ export async function handleMusicTrackPreview(req: Request, res: Response) {
       req.query.format === "json" ||
       req.headers.accept?.includes("application/json");
     if (wantsJson) {
+      // Upstream CDN URL for tooling; clients should play the proxy path (no format=json).
       return res.status(200).json({
-        previewUrl: download.url,
-        expires: download.expires,
+        previewUrl: preview.url,
+        proxyPath: previewProxyPath(trackId),
+        expires: preview.expires,
       });
     }
 
-    res.setHeader("Cache-Control", "private, max-age=300");
-    return res.redirect(302, download.url);
+    // Pipe Epidemic audio through our API (same-origin for <audio>).
+    const upstream = await fetch(preview.url, {
+      signal: AbortSignal.timeout(30_000),
+      headers: { Accept: "audio/*,*/*;q=0.9" },
+    });
+    if (!upstream.ok) {
+      logger.error(
+        { trackId, status: upstream.status },
+        "Epidemic upstream preview fetch failed",
+      );
+      return res.status(502).json({ error: "MUSIC_PREVIEW_UNAVAILABLE" });
+    }
+
+    const contentType = upstream.headers.get("content-type") || "audio/mpeg";
+    res.status(200);
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("Cache-Control", "private, max-age=120");
+    const len = upstream.headers.get("content-length");
+    if (len) res.setHeader("Content-Length", len);
+
+    const body = upstream.body;
+    if (!body) {
+      return res.status(502).json({ error: "MUSIC_PREVIEW_UNAVAILABLE" });
+    }
+
+    const { Readable } = await import("node:stream");
+    const nodeStream = Readable.fromWeb(body as import("stream/web").ReadableStream);
+    nodeStream.on("error", (err) => {
+      logger.error({ err, trackId }, "Epidemic preview proxy stream error");
+      if (!res.headersSent) {
+        res.status(502).json({ error: "MUSIC_PREVIEW_UNAVAILABLE" });
+      } else {
+        res.destroy(err);
+      }
+    });
+    nodeStream.pipe(res);
   } catch (err) {
     logger.error({ err, trackId }, "handleMusicTrackPreview failed");
-    return res.status(502).json({ error: "MUSIC_PREVIEW_UNAVAILABLE" });
+    if (!res.headersSent) {
+      return res.status(502).json({ error: "MUSIC_PREVIEW_UNAVAILABLE" });
+    }
   }
 }
