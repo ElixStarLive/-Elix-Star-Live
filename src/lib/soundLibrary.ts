@@ -1,5 +1,6 @@
 import { apiUrl } from "./api";
 import { request } from "./apiClient";
+import Hls from "hls.js";
 
 export type SoundTrack = {
   id: string;
@@ -30,10 +31,34 @@ export function extractMusicPreviewTrackId(url: string): string | null {
   return m?.[1] ? decodeURIComponent(m[1]) : null;
 }
 
+function isHlsUrl(url: string): boolean {
+  return /\.m3u8(\?|$)/i.test(url) || /\/hls\//i.test(url);
+}
+
+const hlsByAudio = new WeakMap<HTMLAudioElement, Hls>();
+
+/** Tear down any HLS instance attached to this audio element. */
+export function stopSoundPreview(audio: HTMLAudioElement | null | undefined): void {
+  if (!audio) return;
+  try {
+    audio.pause();
+  } catch {
+    /* ignore */
+  }
+  const hls = hlsByAudio.get(audio);
+  if (hls) {
+    try {
+      hls.destroy();
+    } catch {
+      /* ignore */
+    }
+    hlsByAudio.delete(audio);
+  }
+}
+
 /**
- * Resolve a URL that `<audio>` can actually play.
- * Epidemic previews are always served via our same-origin proxy
- * (`/api/music/tracks/:id/preview`) so WebViews never depend on CDN redirects.
+ * Resolve a URL that `<audio>` / HLS can play.
+ * Asks the server for the Epidemic upstream URL (MP3 or HLS).
  */
 export async function resolvePlayableSoundUrl(url: string): Promise<string> {
   const resolved = resolveSoundTrackPlaybackUrl(url);
@@ -42,47 +67,116 @@ export async function resolvePlayableSoundUrl(url: string): Promise<string> {
   const trackId = extractMusicPreviewTrackId(resolved);
   if (!trackId) return resolved;
 
-  // Bust caches that stored dead CDN URLs; always hit our proxy.
-  return resolveSoundTrackPlaybackUrl(
-    `/api/music/tracks/${encodeURIComponent(trackId)}/preview`,
-  );
+  const path = `/api/music/tracks/${encodeURIComponent(trackId)}/preview?format=json`;
+  const { data, error } = await request<{
+    previewUrl?: string;
+    proxyPath?: string;
+    format?: "mp3" | "hls";
+  }>(path);
+  if (error) return "";
+
+  const previewUrl = typeof data?.previewUrl === "string" ? data.previewUrl.trim() : "";
+  if (previewUrl) return previewUrl;
+
+  const proxy =
+    typeof data?.proxyPath === "string" && data.proxyPath.trim()
+      ? data.proxyPath.trim()
+      : `/api/music/tracks/${encodeURIComponent(trackId)}/preview`;
+  return resolveSoundTrackPlaybackUrl(proxy);
 }
 
-/** Load src, seek to clip start, then play (avoids currentTime-before-ready failures). */
+async function attachHls(audio: HTMLAudioElement, src: string): Promise<void> {
+  stopSoundPreview(audio);
+
+  if (Hls.isSupported()) {
+    const hls = new Hls({
+      enableWorker: true,
+      maxBufferLength: 30,
+    });
+    hlsByAudio.set(audio, hls);
+    await new Promise<void>((resolve, reject) => {
+      let settled = false;
+      const done = (err?: Error) => {
+        if (settled) return;
+        settled = true;
+        if (err) reject(err);
+        else resolve();
+      };
+      hls.on(Hls.Events.MANIFEST_PARSED, () => done());
+      hls.on(Hls.Events.ERROR, (_event, data) => {
+        if (data?.fatal) done(new Error(data.type || "hls_fatal"));
+      });
+      hls.loadSource(src);
+      hls.attachMedia(audio);
+    });
+    return;
+  }
+
+  if (audio.canPlayType("application/vnd.apple.mpegurl")) {
+    audio.src = src;
+    await new Promise<void>((resolve, reject) => {
+      let settled = false;
+      const done = (err?: Error) => {
+        if (settled) return;
+        settled = true;
+        audio.removeEventListener("loadedmetadata", onReady);
+        audio.removeEventListener("error", onErr);
+        if (err) reject(err);
+        else resolve();
+      };
+      const onReady = () => done();
+      const onErr = () => done(new Error("audio_load_failed"));
+      audio.addEventListener("loadedmetadata", onReady);
+      audio.addEventListener("error", onErr);
+      audio.load();
+    });
+    return;
+  }
+
+  throw new Error("hls_unsupported");
+}
+
+/** Load src, seek to clip start, then play (MP3 or Epidemic HLS). */
 export async function playAudioClip(
   audio: HTMLAudioElement,
   src: string,
   clipStartSeconds = 0,
 ): Promise<void> {
   if (!src) throw new Error("no_audio_src");
-  audio.pause();
-  if (audio.src !== src) {
-    audio.src = src;
-  }
-  audio.load();
 
-  await new Promise<void>((resolve, reject) => {
-    let settled = false;
-    const done = (err?: Error) => {
-      if (settled) return;
-      settled = true;
-      audio.removeEventListener("canplay", onReady);
-      audio.removeEventListener("loadedmetadata", onReady);
-      audio.removeEventListener("error", onErr);
-      if (err) reject(err);
-      else resolve();
-    };
-    const onReady = () => done();
-    const onErr = () => done(new Error("audio_load_failed"));
-    audio.addEventListener("canplay", onReady);
-    audio.addEventListener("loadedmetadata", onReady);
-    audio.addEventListener("error", onErr);
-    if (audio.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) done();
-  });
+  if (isHlsUrl(src)) {
+    await attachHls(audio, src);
+  } else {
+    stopSoundPreview(audio);
+    audio.pause();
+    if (audio.src !== src) {
+      audio.src = src;
+    }
+    audio.load();
+
+    await new Promise<void>((resolve, reject) => {
+      let settled = false;
+      const done = (err?: Error) => {
+        if (settled) return;
+        settled = true;
+        audio.removeEventListener("canplay", onReady);
+        audio.removeEventListener("loadedmetadata", onReady);
+        audio.removeEventListener("error", onErr);
+        if (err) reject(err);
+        else resolve();
+      };
+      const onReady = () => done();
+      const onErr = () => done(new Error("audio_load_failed"));
+      audio.addEventListener("canplay", onReady);
+      audio.addEventListener("loadedmetadata", onReady);
+      audio.addEventListener("error", onErr);
+      if (audio.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) done();
+    });
+  }
 
   const start = Math.max(0, clipStartSeconds || 0);
   try {
-    if (Number.isFinite(start)) audio.currentTime = start;
+    if (Number.isFinite(start) && start > 0) audio.currentTime = start;
   } catch {
     /* ignore seek errors */
   }

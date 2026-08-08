@@ -6,6 +6,7 @@ import {
   ORIGINAL_SOUND_TRACK,
   resolvePlayableSoundUrl,
   playAudioClip,
+  stopSoundPreview,
   type MusicPlaylist,
   type SoundTrack,
 } from '../lib/soundLibrary';
@@ -41,10 +42,10 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
 
   const stopPreview = () => {
     previewGenRef.current += 1;
+    stopSoundPreview(audioRef.current);
     const a = audioRef.current;
     if (a) {
       try {
-        a.pause();
         a.removeAttribute('src');
         a.load();
       } catch {

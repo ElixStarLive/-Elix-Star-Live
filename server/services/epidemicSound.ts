@@ -193,24 +193,28 @@ export async function fetchTrackHighlights(
 
 /**
  * Resolve a playable Epidemic URL for in-app preview.
- * Try progressive `/stream` first (browse/preview access), then MP3 `/download`.
+ * Prefer MP3 download when allowed; fall back to HLS `/stream` for browse preview.
  */
 export async function resolvePreviewDownloadUrl(
   trackId: string,
-): Promise<{ url: string; expires: string }> {
+): Promise<{ url: string; expires: string; format: "mp3" | "hls" }> {
   const cacheKey = previewCacheKey(trackId);
   const cached = await valkeyGet(cacheKey);
   if (cached) {
-    const parsed = JSON.parse(cached) as { url: string; expires: string };
+    const parsed = JSON.parse(cached) as { url: string; expires: string; format?: "mp3" | "hls" };
     const expiresMs = Date.parse(parsed.expires);
     if (Number.isFinite(expiresMs) && expiresMs > Date.now() + 60_000 && parsed.url) {
-      return parsed;
+      return {
+        url: parsed.url,
+        expires: parsed.expires,
+        format: parsed.format || (/\.m3u8(\?|$)/i.test(parsed.url) ? "hls" : "mp3"),
+      };
     }
   }
 
   const tryPaths = [
-    `/v0/tracks/${encodeURIComponent(trackId)}/stream`,
     `/v0/tracks/${encodeURIComponent(trackId)}/download?quality=normal&format=mp3`,
+    `/v0/tracks/${encodeURIComponent(trackId)}/stream`,
   ] as const;
 
   let lastErr: unknown = null;
@@ -218,9 +222,11 @@ export async function resolvePreviewDownloadUrl(
     try {
       const data = await epidemicFetch<{ url: string; expires: string }>(path);
       if (data?.url) {
+        const format: "mp3" | "hls" = /\.m3u8(\?|$)/i.test(data.url) ? "hls" : "mp3";
+        const payload = { url: data.url, expires: data.expires || "", format };
         const ttlMs = previewCacheTtlMs(data.expires || "");
-        await valkeySet(cacheKey, JSON.stringify(data), ttlMs);
-        return data;
+        await valkeySet(cacheKey, JSON.stringify(payload), ttlMs);
+        return payload;
       }
     } catch (err) {
       lastErr = err;

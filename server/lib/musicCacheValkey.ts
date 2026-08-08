@@ -18,7 +18,7 @@ export function musicCacheKey(kind: string, id: string): string {
 }
 
 export function previewCacheKey(trackId: string): string {
-  return `elix:music:preview:${trackId}`;
+  return `elix:music:preview:v2:${trackId}`;
 }
 
 /** TTL until shortly before Epidemic download URL expires. */

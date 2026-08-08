@@ -312,15 +312,21 @@ export async function handleMusicTrackPreview(req: Request, res: Response) {
       req.query.format === "json" ||
       req.headers.accept?.includes("application/json");
     if (wantsJson) {
-      // Upstream CDN URL for tooling; clients should play the proxy path (no format=json).
       return res.status(200).json({
         previewUrl: preview.url,
         proxyPath: previewProxyPath(trackId),
         expires: preview.expires,
+        format: preview.format,
       });
     }
 
-    // Pipe Epidemic audio through our API (same-origin for <audio>).
+    // HLS playlists must be loaded from the CDN URL (segment paths are relative).
+    if (preview.format === "hls" || /\.m3u8(\?|$)/i.test(preview.url)) {
+      res.setHeader("Cache-Control", "private, max-age=60");
+      return res.redirect(302, preview.url);
+    }
+
+    // Pipe progressive MP3 through our API (same-origin for <audio>).
     const upstream = await fetch(preview.url, {
       signal: AbortSignal.timeout(30_000),
       headers: { Accept: "audio/*,*/*;q=0.9" },
