@@ -124,7 +124,7 @@ export default function AIStudio() {
   }, [bgUrl, combinedFilter]);
 
   return (
-    <div className="fixed inset-0 z-[60] h-[100dvh] w-full elix-page-glass text-white overflow-hidden">
+    <div className="h-full min-h-0 w-full elix-page-glass text-white flex flex-col overflow-hidden">
       {toast && (
         <div className="fixed top-16 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-md text-white text-sm px-4 py-2 rounded-xl z-[9999]">
           {toast}
@@ -135,8 +135,22 @@ export default function AIStudio() {
       <input ref={bgInputRef} type="file" accept="image/*" className="hidden" onChange={handleBgSelect} title="Select background" />
       <canvas ref={canvasRef} className="hidden" />
 
-      {/* Video / background — full viewport to the top */}
-      <div className={`absolute inset-0 flex items-center justify-center overflow-hidden ${videoUrl ? 'bg-black' : ''}`}>
+      {/* Header */}
+      <header className="flex items-center justify-between px-4 py-3 flex-shrink-0">
+        <button onClick={handleExport} className="p-1" title="Export frame">
+          <Download size={16} className="text-white/70" />
+        </button>
+        <div className="flex items-center gap-2">
+          <Wand2 size={15} className="text-[#F5F5F7]" />
+          <span className="text-white font-bold text-sm">AI Studio</span>
+        </div>
+        <button onClick={goBack} className="p-1">
+          <RoyceBackIcon />
+        </button>
+      </header>
+
+      {/* Video Area — optional own background behind video */}
+      <div className={`flex-1 relative flex items-center justify-center overflow-hidden ${videoUrl ? 'bg-black' : ''}`}>
         {bgUrl ? (
           <img
             src={bgUrl}
@@ -195,22 +209,8 @@ export default function AIStudio() {
         )}
       </div>
 
-      {/* Header overlays top */}
-      <header className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
-        <button onClick={handleExport} className="p-1" title="Export frame">
-          <Download size={16} className="text-white/70" />
-        </button>
-        <div className="flex items-center gap-2">
-          <Wand2 size={15} className="text-[#F5F5F7]" />
-          <span className="text-white font-bold text-sm">AI Studio</span>
-        </div>
-        <button onClick={goBack} className="p-1">
-          <RoyceBackIcon />
-        </button>
-      </header>
-
       {/* Bottom Action Bar — no solid red active fills; writing only */}
-      <div className="absolute bottom-0 left-0 right-0 z-20 flex items-center justify-around px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] border-t border-white/5">
+      <div className="flex items-center justify-around px-4 py-3 border-t border-white/5 flex-shrink-0">
         <button
           onClick={openFilePicker}
           className="flex flex-col items-center gap-1 active:opacity-70"

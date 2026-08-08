@@ -350,7 +350,6 @@ function App() {
     location.pathname === "/create" ||
     location.pathname.startsWith("/create/") ||
     location.pathname === "/upload" ||
-    location.pathname === "/ai-studio" ||
     location.pathname === "/login" ||
     location.pathname === "/register" ||
     // Active DM thread — full chat chrome, no tab bar under the composer

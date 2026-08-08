@@ -26,6 +26,7 @@ import MediaEditorPanel, {
   StoryFxOverlay,
 } from '../components/MediaEditorPanel';
 import { takeCachedRecordedMedia } from '../lib/recordedMediaCache';
+import { DUET_STAGE_HEIGHT } from '../lib/profileFrame';
 import { nativeShareMedia } from '../lib/platform';
 import { bakeImage, bakeVideo, canBakeVideo, type EditOverlay } from '../lib/mediaBake';
 
@@ -886,7 +887,8 @@ export default function Upload() {
            <div className="relative z-10 w-full mx-auto h-[100dvh] bg-black flex flex-col items-center justify-center" ref={mediaWrapRef}>
               {duetSourceVideoUrl ? (
                 <div
-                  className="absolute inset-0 w-full h-full overflow-hidden bg-black"
+                  className="absolute top-0 left-0 right-0 w-full overflow-hidden bg-black"
+                  style={{ height: DUET_STAGE_HEIGHT }}
                   data-duet-container="preview"
                   data-duet-layout={duetLayout}
                 >
@@ -1410,7 +1412,8 @@ export default function Upload() {
               {/* Duet: split (half/half) or overlay (full original + your face on top) */}
               {duetSourceVideoUrl ? (
                 <div
-                  className="absolute inset-0 w-full h-full overflow-hidden bg-black"
+                  className="absolute top-0 left-0 right-0 w-full overflow-hidden bg-black"
+                  style={{ height: DUET_STAGE_HEIGHT }}
                   data-duet-container="record"
                   data-duet-layout={duetLayout}
                 >
