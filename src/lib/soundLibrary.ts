@@ -84,32 +84,11 @@ export function stopSoundPreview(audio: HTMLAudioElement | null | undefined): vo
 
 /**
  * Hard-stop every registered sound preview (library singleton, picker, Upload bg).
- * Does not touch For You video `<audio>` (those are not registered).
  */
 export function stopAllSoundPreviews(): void {
   for (const audio of [...previewAudioRegistry]) {
     stopSoundPreview(audio);
   }
-}
-
-/**
- * Nuclear silence — library previews, detached Audio, every DOM `<audio>`, and mute/pause every `<video>`.
- * Used when leaving Sound so nothing (video soundtrack or anything else) keeps playing.
- */
-export function silenceAllHtmlMedia(): void {
-  stopAllSoundPreviews();
-  if (typeof document === "undefined") return;
-  document.querySelectorAll("audio").forEach((el) => {
-    stopSoundPreview(el);
-  });
-  document.querySelectorAll("video").forEach((el) => {
-    try {
-      el.pause();
-      el.muted = true;
-    } catch {
-      /* ignore */
-    }
-  });
 }
 
 /**
