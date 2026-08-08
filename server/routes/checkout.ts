@@ -186,12 +186,17 @@ export async function createShopItemCheckout(req: Request, res: Response) {
     );
     const origin = resolveOrigin(req);
 
+    // Collect shipping so Clearpay (Afterpay UK) can appear for eligible GBP shop orders.
+    // Do not hardcode payment_method_types — enable Afterpay/Clearpay in Stripe Dashboard.
     const session = await stripe.checkout.sessions.create({
       line_items: lineItems,
       mode: "payment",
       success_url: `${origin}/shop?purchase=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/shop?purchase=cancelled`,
       client_reference_id: authUserId,
+      shipping_address_collection: {
+        allowed_countries: ["GB"],
+      },
       metadata: {
         type: "shop_item",
         userId: authUserId,
