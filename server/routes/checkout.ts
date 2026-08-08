@@ -197,6 +197,15 @@ export async function createShopItemCheckout(req: Request, res: Response) {
       shipping_address_collection: {
         allowed_countries: ["GB"],
       },
+      custom_text: {
+        submit: {
+          message:
+            "Elix Live App will contribute 1% of your purchase to help people in need. Card and Clearpay may appear when eligible.",
+        },
+        shipping_address: {
+          message: "Delivery address is required for shop orders. Clearpay may be offered for eligible UK orders.",
+        },
+      },
       metadata: {
         type: "shop_item",
         userId: authUserId,
@@ -206,6 +215,8 @@ export async function createShopItemCheckout(req: Request, res: Response) {
         itemIds: validItems.map((it) => it.id).join(","),
         itemQtys: capped.map((l) => String(l.quantity)).join(","),
         itemTitle: validItems[0].title.slice(0, 200),
+        charity_pledge_percent: "1",
+        payment_methods_note: "clearpay_eligible_when_enabled",
       },
     });
 

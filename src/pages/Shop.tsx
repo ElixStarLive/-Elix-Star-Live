@@ -825,7 +825,7 @@ export default function Shop() {
                         {checkingOut ? 'Starting checkout…' : 'Checkout with Stripe'}
                       </button>
                       <p className="text-[10px] text-white/40 text-center mt-2">
-                        Shop orders are paid with Stripe. Eligible shop refunds are handled via Stripe/support only — not as digital coins. Digital coin purchases are separate and non-refundable.
+                        Pay with card or Clearpay (when eligible) via Stripe. Elix Live App will contribute 1% of your purchase to help people in need. Eligible shop refunds are handled via Stripe/support only — not as digital coins. Digital coin purchases are separate and non-refundable.
                       </p>
                     </div>
                   </>
