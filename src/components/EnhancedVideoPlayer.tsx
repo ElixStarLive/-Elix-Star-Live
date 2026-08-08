@@ -1435,73 +1435,73 @@ export default function EnhancedVideoPlayer({
                   <button type="button" onClick={() => setShowQrCodeInMore(false)} className="text-[#F5F5F7] text-xs font-semibold">Close</button>
                 </div>
               )}
-              <div className="grid grid-cols-4 gap-y-4 gap-x-2">
+              <div className="grid grid-cols-4 gap-x-2 gap-y-4 w-full justify-items-center">
                 <button
                   type="button"
                   onClick={moreCopyLink}
-                  className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
+                  className="flex w-full min-w-0 flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
                   <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                     <Copy size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />
                   </span>
-                  <span className="text-[10px] font-semibold text-[#F5F5F7]">Copy Link</span>
+                  <span className="text-[10px] font-semibold text-[#F5F5F7] w-full text-center leading-tight min-h-[2.2em] px-0.5 line-clamp-2">Copy Link</span>
                 </button>
                 <button
                   type="button"
                   onClick={moreDownload}
-                  className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
+                  className="flex w-full min-w-0 flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
                   <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                     <Download size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />
                   </span>
-                  <span className="text-[10px] font-semibold text-[#F5F5F7]">Download</span>
+                  <span className="text-[10px] font-semibold text-[#F5F5F7] w-full text-center leading-tight min-h-[2.2em] px-0.5 line-clamp-2">Download</span>
                 </button>
                 <button
                   type="button"
                   onClick={moreDuet}
-                  className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
+                  className="flex w-full min-w-0 flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
                   <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                     <Users2 size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />
                   </span>
-                  <span className="text-[10px] font-semibold text-[#F5F5F7]">Duet</span>
+                  <span className="text-[10px] font-semibold text-[#F5F5F7] w-full text-center leading-tight min-h-[2.2em] px-0.5 line-clamp-2">Duet</span>
                 </button>
                 <button
                   type="button"
                   onClick={moreToggleQr}
-                  className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
+                  className="flex w-full min-w-0 flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
                   <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                     <QrCode size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />
                   </span>
-                  <span className="text-[10px] font-semibold text-[#F5F5F7]">QR Code</span>
+                  <span className="text-[10px] font-semibold text-[#F5F5F7] w-full text-center leading-tight min-h-[2.2em] px-0.5 line-clamp-2">QR Code</span>
                 </button>
                 {isOwnVideo && (
                   <button
                     type="button"
                     onClick={() => { void handleDeleteVideo(); }}
-                    className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
+                    className="flex w-full min-w-0 flex-col items-center gap-1.5 active:scale-95 transition-transform"
                   >
                     <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                       <Trash2 size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />
                     </span>
-                    <span className="text-[10px] font-semibold text-[#F5F5F7]">Delete video</span>
+                    <span className="text-[10px] font-semibold text-[#F5F5F7] w-full text-center leading-tight min-h-[2.2em] px-0.5 line-clamp-2">Delete video</span>
                   </button>
                 )}
                 <button
                   type="button"
                   onClick={moreShare}
-                  className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
+                  className="flex w-full min-w-0 flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
                   <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                     <Share2 size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />
                   </span>
-                  <span className="text-[10px] font-semibold text-[#F5F5F7]">Share</span>
+                  <span className="text-[10px] font-semibold text-[#F5F5F7] w-full text-center leading-tight min-h-[2.2em] px-0.5 line-clamp-2">Share</span>
                 </button>
                 <button
                   type="button"
                   onClick={moreSave}
-                  className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
+                  className="flex w-full min-w-0 flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
                   <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                     <Bookmark
@@ -1510,12 +1510,12 @@ export default function EnhancedVideoPlayer({
                       strokeWidth={2}
                     />
                   </span>
-                  <span className="text-[10px] font-semibold text-[#F5F5F7]">{video.isSaved ? 'Unsave' : 'Save'}</span>
+                  <span className="text-[10px] font-semibold text-[#F5F5F7] w-full text-center leading-tight min-h-[2.2em] px-0.5 line-clamp-2">{video.isSaved ? 'Unsave' : 'Save'}</span>
                 </button>
                 <button
                   type="button"
                   onClick={moreFollow}
-                  className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
+                  className="flex w-full min-w-0 flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
                   <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                     {video.isFollowing
@@ -1523,7 +1523,7 @@ export default function EnhancedVideoPlayer({
                       : <UserPlus size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />}
                   </span>
                   <span
-                    className={`text-[10px] font-semibold ${video.isFollowing ? 'text-red-500' : 'text-[#F5F5F7]'}`}
+                    className={`text-[10px] font-semibold w-full text-center leading-tight min-h-[2.2em] px-0.5 line-clamp-2 ${video.isFollowing ? 'text-red-500' : 'text-[#F5F5F7]'}`}
                     style={
                       video.isFollowing
                         ? { color: '#D91F2D', WebkitTextFillColor: '#D91F2D', backgroundImage: 'none' }
@@ -1536,22 +1536,22 @@ export default function EnhancedVideoPlayer({
                 <button
                   type="button"
                   onClick={morePromote}
-                  className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
+                  className="flex w-full min-w-0 flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
                   <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                     <TrendingUp size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />
                   </span>
-                  <span className="text-[10px] font-semibold text-[#F5F5F7]">Promote</span>
+                  <span className="text-[10px] font-semibold text-[#F5F5F7] w-full text-center leading-tight min-h-[2.2em] px-0.5 line-clamp-2">Promote</span>
                 </button>
                 <button
                   type="button"
                   onClick={moreReport}
-                  className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
+                  className="flex w-full min-w-0 flex-col items-center gap-1.5 active:scale-95 transition-transform"
                 >
                   <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                     <Flag size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />
                   </span>
-                  <span className="text-[10px] font-semibold text-[#F5F5F7]">Report</span>
+                  <span className="text-[10px] font-semibold text-[#F5F5F7] w-full text-center leading-tight min-h-[2.2em] px-0.5 line-clamp-2">Report</span>
                 </button>
               </div>
             </div>
