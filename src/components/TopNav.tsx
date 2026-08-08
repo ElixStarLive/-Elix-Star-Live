@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Search, Tv } from "lucide-react";
 
@@ -16,10 +16,24 @@ type TopTabPath = (typeof TOP_TABS)[number]["path"];
 /**
  * For You top tab bar — LIVE (#FF2D55) · STEM · Explore · Following · Shop · For You.
  * Non-LIVE tabs: metallic silver → white when selected.
+ * Hidden while User Profile overlay is open (Search/Close live on that header).
  */
 export const TopNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [userProfileOpen, setUserProfileOpen] = useState(false);
+
+  useEffect(() => {
+    const sync = () =>
+      setUserProfileOpen(document.body.hasAttribute("data-user-profile-open"));
+    sync();
+    const mo = new MutationObserver(sync);
+    mo.observe(document.body, {
+      attributes: true,
+      attributeFilter: ["data-user-profile-open"],
+    });
+    return () => mo.disconnect();
+  }, []);
 
   const goLive = useCallback(() => {
     navigate("/live", { replace: true });
@@ -81,9 +95,13 @@ export const TopNav = () => {
     return null;
   }
 
+  if (userProfileOpen) {
+    return null;
+  }
+
   return (
     <div
-      className="fixed left-0 right-0 z-[9999] flex justify-center pointer-events-none"
+      className="elix-home-top-bar fixed left-0 right-0 z-[9999] flex justify-center pointer-events-none"
       style={{ top: "var(--topnav-anchor-top)" }}
     >
       <div className="feed-column-width pointer-events-auto bg-transparent min-h-[var(--topnav-bar-height)] h-[var(--topnav-bar-height)]">

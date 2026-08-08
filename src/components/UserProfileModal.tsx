@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { RoyceCloseIcon } from './royce';
-import { Share2, Ban, Play, MoreHorizontal, Flag } from 'lucide-react';
+import { Ban, Play, MoreHorizontal, Flag, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useVideoStore } from '../store/useVideoStore';
 import { useAuthStore } from '../store/useAuthStore';
@@ -8,7 +8,6 @@ import { AvatarRing } from './AvatarRing';
 import { LevelBadge } from './LevelBadge';
 import { useSafetyStore } from '../store/useSafetyStore';
 import ReportModal from './ReportModal';
-import { showToast } from '../lib/toast';
 import { api } from '../lib/apiClient';
 import { navigateToDmWithUser } from '../lib/openDmThread';
 import { getVideoPosterUrl, resolveGridThumbnailUrl, resolveVideoPlaybackUrl } from '../lib/bunnyStorage';
@@ -105,9 +104,23 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, user.id]);
 
+  /* Hide home TopNav while this profile is open (stacking keeps TopNav visible otherwise). */
+  useEffect(() => {
+    if (!isOpen) return;
+    document.body.setAttribute('data-user-profile-open', '1');
+    return () => {
+      document.body.removeAttribute('data-user-profile-open');
+    };
+  }, [isOpen]);
+
   const openVideoFromGrid = useCallback((videoId: string) => {
     onClose();
     navigate(`/video/${videoId}`, { state: { fromProfile: true } });
+  }, [onClose, navigate]);
+
+  const goSearch = useCallback(() => {
+    onClose();
+    navigate('/search');
   }, [onClose, navigate]);
 
   if (!isOpen) return null;
@@ -160,7 +173,15 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
       <div className="page-above-bottom-nav bg-transparent text-white z-[10003]">
         <div className="page-above-bottom-nav__inner bg-transparent flex flex-col">
           <header className="flex items-center justify-between px-4 pt-page-header pb-2 relative z-20">
-            <div className="w-10" />
+            <button
+              type="button"
+              onClick={goSearch}
+              className="relative z-20 p-1"
+              aria-label="Search"
+              title="Search"
+            >
+              <Search size={20} className="stroke-gold-metallic" strokeWidth={2} />
+            </button>
             <h3 className="pointer-events-none text-[12px] font-bold text-gold-metallic">User Profile</h3>
             <button
               type="button"
@@ -204,15 +225,16 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
   return (
     <div className="page-above-bottom-nav bg-transparent text-white z-[10003]">
       <div className="page-above-bottom-nav__inner bg-transparent flex flex-col">
-        {/* Header — same full-screen shell as Profile page */}
+        {/* Header — Search + Close only (home TopNav hidden while open) */}
         <header className="flex items-center justify-between px-4 pt-page-header pb-2 relative z-20 flex-shrink-0">
           <button
             type="button"
-            onClick={handleShareProfile}
+            onClick={goSearch}
             className="relative z-20 p-1"
-            aria-label="Share profile"
+            aria-label="Search"
+            title="Search"
           >
-            <Share2 size={20} className="stroke-gold-metallic" strokeWidth={2} />
+            <Search size={20} className="stroke-gold-metallic" strokeWidth={2} />
           </button>
           <h3 className="pointer-events-none text-[12px] font-bold text-gold-metallic absolute left-1/2 -translate-x-1/2 truncate max-w-[50%]">
             User Profile
@@ -428,18 +450,4 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
       />
     </div>
   );
-
-  function handleShareProfile() {
-    const profileUrl = `${window.location.origin}/profile/${displayUser.username}`;
-    if (navigator.share) {
-      navigator.share({
-        title: `Check out ${displayUser.name}'s profile`,
-        text: `Check out ${displayUser.name} (@${displayUser.username}) on Elix Star${displayUser.bio ? ` - ${displayUser.bio}` : ''}`,
-        url: profileUrl,
-      });
-    } else {
-      navigator.clipboard.writeText(profileUrl);
-      showToast('Profile link copied to clipboard!');
-    }
-  }
 }
