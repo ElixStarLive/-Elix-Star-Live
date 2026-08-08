@@ -44,6 +44,29 @@ let _feedFetchPromise: Promise<void> | null = null;
 const likeInFlight = new Set<string>();
 /** In-memory only — not persisted. Prevents duplicate save/unsave POSTs per video. */
 const saveInFlight = new Set<string>();
+/** In-memory only — not persisted. Prevents duplicate follow/unfollow POSTs per user. */
+const followInFlight = new Set<string>();
+
+/** One mapper for video.isFollowing + user.isFollowing (+ optional follower count). */
+function applyUserFollowing(
+  list: Video[],
+  userId: string,
+  isFollowing: boolean,
+  followerDelta: number,
+): Video[] {
+  return list.map((video) => {
+    if (video.user.id !== userId) return video;
+    return {
+      ...video,
+      isFollowing,
+      user: {
+        ...video.user,
+        isFollowing,
+        followers: Math.max(0, video.user.followers + followerDelta),
+      },
+    };
+  });
+}
 
 function mapRawVideoRowToClientVideo(
   // Backend feed rows are dynamically shaped; the mapper narrows fields defensively below.
@@ -251,7 +274,9 @@ interface VideoStore {
   getSavedVideos: () => Video[];
   
   // Follow actions
-  toggleFollow: (userId: string) => void;
+  /** Hydrate or set follow flags for a user across all feed lists (followerDelta 0 = hydrate). */
+  setUserFollowing: (userId: string, isFollowing: boolean, followerDelta?: number) => void;
+  toggleFollow: (userId: string) => void | Promise<void>;
   getFollowingUsers: () => User[];
   
   // Share actions
@@ -647,73 +672,53 @@ export const useVideoStore = create<VideoStore>()(
         return videos.filter(video => savedVideos.includes(video.id));
       },
 
-      // Follow actions
+      // Follow actions — followingUsers is the only source of truth; video flags mirror it.
+      setUserFollowing: (userId, isFollowing, followerDelta = 0) => {
+        set((s) => {
+          const has = s.followingUsers.includes(userId);
+          const followingUsers = isFollowing
+            ? has
+              ? s.followingUsers
+              : [...s.followingUsers, userId]
+            : s.followingUsers.filter((id) => id !== userId);
+          return {
+            followingUsers,
+            videos: applyUserFollowing(s.videos, userId, isFollowing, followerDelta),
+            friendVideos: applyUserFollowing(s.friendVideos, userId, isFollowing, followerDelta),
+            stemVideos: applyUserFollowing(s.stemVideos, userId, isFollowing, followerDelta),
+          };
+        });
+      },
+
       toggleFollow: async (userId) => {
-        const state = get();
-        const wasFollowing = state.followingUsers.includes(userId);
-
-        const revert = () => {
-          set((s) => {
-            const followUpdate = (video: Video) => video.user.id === userId
-              ? {
-                  ...video,
-                  isFollowing: wasFollowing,
-                  user: {
-                    ...video.user,
-                    followers: wasFollowing ? video.user.followers + 1 : Math.max(0, video.user.followers - 1),
-                  },
-                }
-              : video;
-            const followingUsers = wasFollowing ? [...s.followingUsers, userId] : s.followingUsers.filter(id => id !== userId);
-            return {
-              videos: s.videos.map(followUpdate),
-              friendVideos: s.friendVideos.map(followUpdate),
-              followingUsers
-            };
-          });
-        };
-
         const authUser = useAuthStore.getState().user;
         if (!authUser?.id) {
           showToast('Please sign in to follow');
           return;
         }
         if (authUser.id === userId) return;
+        if (followInFlight.has(userId)) return;
 
-        // Optimistic update
-        set((s) => {
-          const newFollowingUsers = s.followingUsers.includes(userId)
-            ? s.followingUsers.filter(id => id !== userId)
-            : [...s.followingUsers, userId];
-          const followUpdate = (video: Video) => video.user.id === userId
-            ? {
-                ...video,
-                isFollowing: !video.isFollowing,
-                user: {
-                  ...video.user,
-                  followers: video.isFollowing ? video.user.followers - 1 : video.user.followers + 1
-                }
-              }
-            : video;
-          return {
-            videos: s.videos.map(followUpdate),
-            friendVideos: s.friendVideos.map(followUpdate),
-            followingUsers: newFollowingUsers
-          };
-        });
+        const wasFollowing = get().followingUsers.includes(userId);
+        const nextFollowing = !wasFollowing;
+        followInFlight.add(userId);
+        get().setUserFollowing(userId, nextFollowing, nextFollowing ? 1 : -1);
 
         try {
           const { ok, error: followError } = await apiToggleFollow(userId, wasFollowing);
-          if (!ok || followError) throw new Error('Follow request failed');
-          // Analytics best-effort — follow already succeeded on the server.
-          if (!wasFollowing) {
+          if (!ok || followError) throw new Error(followError || 'Follow request failed');
+          if (nextFollowing) {
             void trackFollow(userId).catch(() => {
               /* non-critical analytics */
             });
           }
         } catch {
-          revert();
-          showToast('Couldn’t follow. Please try again.');
+          get().setUserFollowing(userId, wasFollowing, wasFollowing ? 1 : -1);
+          showToast(
+            wasFollowing ? 'Couldn’t unfollow. Please try again.' : 'Couldn’t follow. Please try again.',
+          );
+        } finally {
+          followInFlight.delete(userId);
         }
       },
 
