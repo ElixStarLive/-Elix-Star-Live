@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft, Music, Pause, Play, Search } from 'lucide-react';
+import { Music, Pause, Play, Search } from 'lucide-react';
+import { RoyceBackIcon } from './royce';
 import {
   fetchMusicPlaylists,
   searchLicensedTracks,
@@ -187,6 +188,25 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
     onClose();
   };
 
+  const featuredTrack = useMemo(() => {
+    if (playingId) {
+      return (
+        visibleTracks.find((t) => t.id === playingId) ||
+        (ORIGINAL_SOUND_TRACK.id === playingId ? ORIGINAL_SOUND_TRACK : null)
+      );
+    }
+    return null;
+  }, [playingId, visibleTracks]);
+
+  const headerTitle = featuredTrack?.title || 'Add sound';
+  const headerArtist = featuredTrack?.artist || 'Licensed playlists';
+
+  const closePanel = (e?: React.SyntheticEvent) => {
+    e?.stopPropagation();
+    stopPreview();
+    onClose();
+  };
+
   const inner = (
     <>
       <audio
@@ -198,62 +218,75 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
         }}
         className="hidden"
       />
-      <div className="flex items-center justify-between px-3 pt-page-header pb-3 flex-shrink-0 relative">
-        <div className="w-8" />
-        <div className="flex items-center gap-2 absolute left-1/2 -translate-x-1/2">
-          <Music className="w-4 h-4 text-[#F5F5F7]" strokeWidth={2} />
-          <p className="text-sm font-bold text-gold-metallic">Add sound</p>
-        </div>
-        {layout === 'embedded' ? (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              stopPreview();
-              onClose();
-            }}
-            className="p-1 pointer-events-auto z-10"
-            aria-label="Close"
-          >
-            <ChevronLeft size={28} className="text-white drop-shadow-md" strokeWidth={2.5} />
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              stopPreview();
-              onClose();
-            }}
-            className="p-1 pointer-events-auto z-10"
-            aria-label="Close"
-          >
-            <ChevronLeft size={22} className="text-[#F5F5F7]" strokeWidth={2.5} />
-          </button>
-        )}
+
+      {/* Full Sound-page chrome (same panels as /music) */}
+      <div
+        className="flex justify-center pt-0.5 pb-1 flex-shrink-0"
+        aria-hidden
+        style={{ transform: 'translateY(0.6mm)' }}
+      >
+        <div className="w-10 h-1 rounded-full bg-white/25" />
       </div>
 
-      <div className="px-4 pb-1.5 flex-shrink-0">
-        <div className="flex items-center gap-1.5 h-7 px-2.5 rounded-full border border-white/12 bg-white/[0.05]">
-          <Search className="w-3 h-3 text-white/40 flex-shrink-0" strokeWidth={2} />
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search songs"
-            className="flex-1 min-w-0 bg-transparent text-white text-[11px] leading-none outline-none placeholder:text-white/35"
-          />
+      <header className="w-full shrink-0 bg-transparent z-10 border-b border-white/[0.06]">
+        <div className="px-3 pt-page-header pb-3 flex items-center justify-between relative">
+          <div className="w-8" />
+          <h1 className="text-sm font-bold text-gold-metallic absolute left-1/2 -translate-x-1/2">
+            Add sound
+          </h1>
+          <button type="button" onClick={closePanel} className="p-1 z-10 pointer-events-auto" title="Back" aria-label="Back">
+            <RoyceBackIcon />
+          </button>
         </div>
-        {previewError ? (
-          <p className="mt-1.5 text-[11px] text-[#F5F5F7]/80 px-1">{previewError}</p>
-        ) : null}
-      </div>
 
-      {!search.trim() && playlists.length > 0 ? (
-        <div className="px-3 pb-3 flex gap-2 overflow-x-auto flex-shrink-0 scrollbar-hide">
-          {playlists.map((pl) => {
-            const active = pl.id === activePlaylistId;
-            return (
+        <div className="px-3 pb-3">
+          <div className="p-4 rounded-2xl bg-transparent flex gap-4 w-full">
+            <div className="w-14 h-14 rounded-full overflow-hidden flex items-center justify-center shrink-0 royce-tile bg-[rgba(255,255,255,0.06)]">
+              {featuredTrack?.coverUrl ? (
+                <img src={featuredTrack.coverUrl} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <Music size={22} className="royce-icon-gold" strokeWidth={2.25} />
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-sm font-semibold mb-0.5 truncate">{headerTitle}</h2>
+              <p className="text-white/60 text-xs mb-2 truncate">{headerArtist}</p>
+              <button
+                type="button"
+                disabled={!featuredTrack}
+                onClick={(e) => {
+                  if (!featuredTrack) return;
+                  pickTrack(featuredTrack, e);
+                }}
+                title="Use"
+                aria-label="Use"
+                className="h-7 px-5 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/15 active:scale-95 transition-transform disabled:opacity-50 border-0 shadow-none w-fit text-[10px] font-bold text-[#F5F5F7] pointer-events-auto"
+              >
+                Use
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="px-4 pb-1.5">
+          <div className="flex items-center gap-1.5 h-7 px-2.5 rounded-full border border-white/12 bg-white/[0.05]">
+            <Search className="w-3 h-3 text-white/40 flex-shrink-0" strokeWidth={2} />
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search songs"
+              className="flex-1 min-w-0 bg-transparent text-white text-[11px] leading-none outline-none placeholder:text-white/35"
+            />
+          </div>
+          {previewError ? (
+            <p className="mt-1.5 text-[11px] text-[#F5F5F7]/80 px-1">{previewError}</p>
+          ) : null}
+        </div>
+
+        {!search.trim() && playlists.length > 0 ? (
+          <div className="px-3 pb-3 flex gap-2 overflow-x-auto scrollbar-hide">
+            {playlists.map((pl) => (
               <button
                 key={pl.id}
                 type="button"
@@ -262,19 +295,19 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
                   setActivePlaylistId(pl.id);
                 }}
                 className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border pointer-events-auto ${
-                  active
+                  pl.id === activePlaylistId
                     ? 'bg-white/10 border-[#D8D9DD]/50 text-white'
                     : 'border-[#D8D9DD]/35 text-white'
                 }`}
               >
                 {pl.name}
               </button>
-            );
-          })}
-        </div>
-      ) : null}
+            ))}
+          </div>
+        ) : null}
+      </header>
 
-      <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-3 overscroll-contain">
+      <div className="flex-1 min-h-0 overflow-y-auto w-full bg-transparent px-2 pb-6 overscroll-contain">
         {!search.trim() ? (
           <div className="w-full px-2 py-2 flex items-center gap-2 pointer-events-auto">
             <button
@@ -306,10 +339,7 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
           const isPlaying = playingId === track.id;
           const isLoading = previewLoadingId === track.id;
           return (
-            <div
-              key={track.id}
-              className="w-full px-2 py-2 flex items-center gap-2 pointer-events-auto"
-            >
+            <div key={track.id} className="w-full px-2 py-2 flex items-center gap-2 pointer-events-auto">
               <button
                 type="button"
                 className="flex items-center gap-2 flex-1 min-w-0 text-left"
@@ -377,7 +407,7 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
       }}
     >
       <div
-        className="elix-panel backdrop-blur-md w-full max-w-[480px] rounded-t-2xl overflow-hidden flex flex-col h-[70vh] max-h-[70dvh] border border-black animate-in slide-in-from-bottom duration-300 pointer-events-auto"
+        className="elix-panel backdrop-blur-md w-full max-w-[480px] rounded-t-2xl overflow-hidden flex flex-col h-[92dvh] max-h-[92dvh] border border-black animate-in slide-in-from-bottom duration-300 pointer-events-auto"
         onClick={(e) => e.stopPropagation()}
         onPointerDown={(e) => e.stopPropagation()}
       >
