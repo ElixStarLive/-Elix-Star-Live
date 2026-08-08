@@ -64,6 +64,7 @@ export default function Create() {
   const [flashEnabled, setFlashEnabled] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [_isLandscapeStream, setIsLandscapeStream] = useState(false);
+  const [cameraObjectFit, setCameraObjectFit] = useState<'cover' | 'contain'>('contain');
   const [retryCamera, setRetryCamera] = useState(0);
 
   // ─── Compose editor (filters / effects / text / stickers) ───
@@ -135,10 +136,23 @@ export default function Create() {
 
         stopStream();
         let nextStream: MediaStream;
+        const videoConstraints: MediaTrackConstraints = {
+          facingMode: { ideal: isFrontCamera ? 'user' : 'environment' },
+          width: { ideal: 1080 },
+          height: { ideal: 1920 },
+          aspectRatio: { ideal: 9 / 16 },
+        };
         try {
-          nextStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: isFrontCamera ? 'user' : 'environment' }, audio: false });
+          nextStream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio: false });
         } catch {
-          nextStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          try {
+            nextStream = await navigator.mediaDevices.getUserMedia({
+              video: { facingMode: isFrontCamera ? 'user' : 'environment' },
+              audio: false,
+            });
+          } catch {
+            nextStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          }
         }
         if (cancelled) { nextStream.getTracks().forEach((t) => t.stop()); return; }
 
@@ -148,7 +162,10 @@ export default function Create() {
         streamRef.current = nextStream;
         const track = videoTracks[0];
         const settings = track.getSettings();
-        setIsLandscapeStream((settings.width || 0) > (settings.height || 0));
+        const w = settings.width || 0;
+        const h = settings.height || 0;
+        setIsLandscapeStream(w > h);
+        setCameraObjectFit(w > h ? 'contain' : 'cover');
 
         if (videoRef.current) {
           videoRef.current.srcObject = nextStream;
@@ -662,13 +679,13 @@ export default function Create() {
                   videoRef.current = el;
                   if (el) prepareLiveVideoEl(el);
                 }}
-                className={`w-full h-full object-cover ${LIVE_WEBRTC_VIDEO_CLASS} ${cameraError ? 'hidden' : ''}`}
+                className={`w-full h-full ${cameraObjectFit === 'contain' ? 'object-contain' : 'object-cover'} bg-black ${LIVE_WEBRTC_VIDEO_CLASS} ${cameraError ? 'hidden' : ''}`}
                 autoPlay muted playsInline controls={false}
                 poster={LIVE_VIDEO_TRANSPARENT_POSTER}
                 style={{
                   transform: isFrontCamera
-                    ? `scale(${zoomLevel}) scaleX(-1)`
-                    : `scale(${zoomLevel})`,
+                    ? (zoomLevel === 1 ? 'scaleX(-1)' : `scale(${zoomLevel}) scaleX(-1)`)
+                    : (zoomLevel === 1 ? undefined : `scale(${zoomLevel})`),
                   transformOrigin: 'center center',
                   transition: 'transform 0.2s ease-out',
                 }}
