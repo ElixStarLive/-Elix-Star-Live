@@ -669,9 +669,7 @@ export default function Create() {
                 autoPlay muted playsInline controls={false}
                 poster={LIVE_VIDEO_TRANSPARENT_POSTER}
                 style={{
-                  transform: isFrontCamera
-                    ? (zoomLevel === 1 ? 'scaleX(-1)' : `scale(${zoomLevel}) scaleX(-1)`)
-                    : (zoomLevel === 1 ? undefined : `scale(${zoomLevel})`),
+                  transform: `scale(${isFrontCamera ? -zoomLevel : zoomLevel}, ${zoomLevel})`,
                   transformOrigin: 'center center',
                   transition: 'transform 0.2s ease-out',
                 }}

@@ -212,14 +212,10 @@ export default function Upload() {
   const ZOOM_MIN = 0.5;
   const ZOOM_MAX = 3;
   const ZOOM_STEP = 0.25;
-  /** Zoom scales video pixels only. Frame stays full size — never half-screen. */
+  /** Zoom = size only. Front mirror is separate axis sign — never flips when zooming. */
   const handleZoomIn = () => setZoomLevel((z) => Math.min(ZOOM_MAX, Math.round((z + ZOOM_STEP) * 100) / 100));
   const handleZoomOut = () => setZoomLevel((z) => Math.max(ZOOM_MIN, Math.round((z - ZOOM_STEP) * 100) / 100));
-  const imageZoomTransform = (() => {
-    const mirror = cameraFacing === 'user' ? 'scaleX(-1)' : '';
-    const zoom = zoomLevel === 1 ? '' : `scale(${zoomLevel})`;
-    return [zoom, mirror].filter(Boolean).join(' ') || undefined;
-  })();
+  const imageZoomTransform = `scale(${cameraFacing === 'user' ? -zoomLevel : zoomLevel}, ${zoomLevel})`;
 
   const attachCameraStream = useCallback(async (facing: 'user' | 'environment') => {
     try {
