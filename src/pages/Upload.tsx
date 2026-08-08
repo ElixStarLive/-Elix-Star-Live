@@ -1495,22 +1495,10 @@ export default function Upload() {
 
       {/* Above camera hit-layer + preview chrome — works in record and after capture */}
       {showMusicModal ? (
-        <div
-          className="fixed inset-0 z-[10050] bg-transparent flex flex-col pt-6 pointer-events-auto"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Add sound"
-          onClick={(e) => e.stopPropagation()}
-          onPointerDown={(e) => e.stopPropagation()}
-        >
-          <div className="w-full max-w-[480px] mx-auto flex flex-col flex-1 min-h-0 h-full">
-            <SoundPickerPanel
-              layout="embedded"
-              onClose={() => setShowMusicModal(false)}
-              onPick={handleSelectMusic}
-            />
-          </div>
-        </div>
+        <SoundPickerPanel
+          onClose={() => setShowMusicModal(false)}
+          onPick={handleSelectMusic}
+        />
       ) : null}
       </div>
     </div>

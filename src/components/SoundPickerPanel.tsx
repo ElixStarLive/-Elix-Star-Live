@@ -6,14 +6,15 @@ import { useSoundLibraryPlayerStore } from '../store/useSoundLibraryPlayerStore'
 type Props = {
   onClose: () => void;
   onPick: (track: SoundTrack) => void;
-  /** bottom sheet (Create) vs embedded (Upload) */
+  /** Kept for Create/Upload call sites — both use the same full Sound page shell. */
   layout?: 'sheet' | 'embedded';
 };
 
 /**
- * Create / Upload — same full Sound panel as /music (SoundLibraryView only).
+ * Create / Upload Add sound — identical full Sound page as /music.
+ * Opaque fundal so camera / Create chrome never shows through.
  */
-export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: Props) {
+export default function SoundPickerPanel({ onClose, onPick }: Props) {
   const stopLibraryPlayer = useSoundLibraryPlayerStore((s) => s.stop);
 
   useEffect(() => {
@@ -36,28 +37,28 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
     [onClose, onPick, stopLibraryPlayer],
   );
 
-  const body = (
-    <SoundLibraryView mode="pick" onBack={close} onPick={handlePick} className="pointer-events-auto h-full" />
-  );
-
-  if (layout === 'embedded') {
-    return (
-      <div className="flex flex-col flex-1 min-h-0 pointer-events-auto relative z-10 h-full">{body}</div>
-    );
-  }
-
   return (
     <div
-      className="fixed inset-0 z-[10050] bg-transparent flex flex-col pointer-events-auto animate-in fade-in duration-200"
-      onClick={close}
+      className="fixed inset-0 z-[10050] elix-fundal-glass flex justify-center pointer-events-auto"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Sound"
     >
+      {/* Same page shell as MusicFeed (/music) */}
       <div
-        className="flex-1 min-h-0 w-full max-w-[480px] mx-auto flex flex-col bg-transparent pointer-events-auto"
-        style={{ paddingBottom: 'var(--bottom-ui-reserve, 0px)' }}
+        className="page-above-bottom-nav text-white w-full max-w-[480px] flex flex-col min-h-0"
+        style={{ bottom: 'var(--bottom-nav-top)' }}
         onClick={(e) => e.stopPropagation()}
         onPointerDown={(e) => e.stopPropagation()}
       >
-        {body}
+        <div className="page-above-bottom-nav__inner bg-transparent flex flex-col min-h-0 h-full">
+          <SoundLibraryView
+            mode="pick"
+            onBack={close}
+            onPick={handlePick}
+            className="pointer-events-auto h-full"
+          />
+        </div>
       </div>
     </div>
   );
