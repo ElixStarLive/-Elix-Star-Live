@@ -835,19 +835,20 @@ export default function Upload() {
                      <button
                        type="button"
                        onClick={goCreate}
-                       className="w-9 h-9 flex items-center justify-center"
+                       className="camera-rail-disc flex items-center justify-center"
                        title="Back"
                      >
-                       <ChevronLeft size={28} className="text-white drop-shadow-md" strokeWidth={2.5} />
+                       <ChevronLeft size={14} className="text-white drop-shadow-md" strokeWidth={2.5} />
                      </button>
                      <button
                        type="button"
                        onClick={openMusicModal}
-                       className="flex items-center gap-1.5 max-w-[58%] px-3 py-1.5 rounded-full bg-black/50 backdrop-blur-md"
+                       className="flex items-center gap-1 max-w-[58%] h-[26px] px-2.5 rounded-full border border-[#D8D9DD]/40"
+                       style={{ background: 'rgba(0, 0, 0, 0.55)' }}
                        title={getSelectedLabel()}
                      >
-                       <Music size={14} className="text-white shrink-0" />
-                       <span className="text-white text-xs font-semibold truncate">
+                       <Music size={12} className="text-white shrink-0" strokeWidth={2} />
+                       <span className="text-white text-[10px] font-semibold truncate">
                          {selectedTrack?.title || 'Add sound'}
                        </span>
                        {(selectedTrack || selectedAudioId.startsWith('track_')) ? (
@@ -868,16 +869,16 @@ export default function Upload() {
                            }}
                            className="ml-0.5"
                          >
-                           <X size={14} className="text-white/80" />
+                           <X size={12} className="text-white/80" />
                          </span>
                        ) : null}
                      </button>
-                     <div className="w-9 h-9" aria-hidden />
+                     <div className="w-[26px] h-[26px]" aria-hidden />
                    </div>
 
                    <div
-                     className="absolute right-2 z-30 flex flex-col items-center gap-3.5 pointer-events-auto"
-                     style={{ top: 'calc(env(safe-area-inset-top, 0px) + 56px)' }}
+                     className="absolute right-2 z-30 flex flex-col items-center gap-2 pointer-events-auto"
+                     style={{ top: 'calc(env(safe-area-inset-top, 0px) + 52px)' }}
                    >
                      {[
                        { Icon: Share2, title: 'Share', onClick: async () => {
@@ -901,35 +902,37 @@ export default function Upload() {
                          key={title}
                          type="button"
                          onClick={onClick}
-                         className="w-10 h-10 flex items-center justify-center"
+                         className="camera-rail-disc flex items-center justify-center"
                          title={title}
                        >
-                         <Icon size={20} className="text-white drop-shadow-md" strokeWidth={2} />
+                         <Icon size={14} className="text-white drop-shadow-md" strokeWidth={2} />
                        </button>
                      ))}
-                     <button type="button" onClick={openAITools} className="w-10 h-10 flex items-center justify-center" title="More">
-                       <ChevronDown size={20} className="text-white drop-shadow-md" strokeWidth={2} />
+                     <button type="button" onClick={openAITools} className="camera-rail-disc flex items-center justify-center" title="More">
+                       <ChevronDown size={14} className="text-white drop-shadow-md" strokeWidth={2} />
                      </button>
                    </div>
 
                    <div
-                     className="absolute left-0 right-0 z-30 flex flex-col items-center gap-3 px-4 pointer-events-auto"
+                     className="absolute left-0 right-0 z-30 flex flex-col items-center gap-2.5 px-4 pointer-events-auto"
                      style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' }}
                    >
-                     <ChevronDown size={16} className="text-white/70" />
-                     <div className="flex items-center gap-3 px-3 py-2 rounded-2xl bg-black/45 backdrop-blur-md">
-                       <button type="button" onClick={handleFileUpload} className="w-9 h-9 flex items-center justify-center" title="Gallery">
-                         <LayoutGrid size={20} className="text-white" strokeWidth={2} />
+                     <span className="camera-rail-disc flex items-center justify-center" aria-hidden>
+                       <ChevronDown size={12} className="text-white/80" />
+                     </span>
+                     <div className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-full bg-black/45 backdrop-blur-md">
+                       <button type="button" onClick={handleFileUpload} className="camera-rail-disc flex items-center justify-center" title="Gallery">
+                         <LayoutGrid size={14} className="text-white" strokeWidth={2} />
                        </button>
-                       <div className="w-12 h-12 rounded-xl overflow-hidden border-[3px] border-white flex-shrink-0 bg-black">
+                       <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white flex-shrink-0 bg-black">
                          {mediaKind === 'image' ? (
                            <img src={recordedVideoUrl || undefined} alt="" className="w-full h-full object-cover" draggable={false} />
                          ) : (
                            <video src={recordedVideoUrl || undefined} className="w-full h-full object-cover" muted playsInline />
                          )}
                        </div>
-                       <button type="button" onClick={handleFileUpload} className="w-9 h-9 flex items-center justify-center" title="Add">
-                         <Plus size={22} className="text-white" strokeWidth={2.5} />
+                       <button type="button" onClick={handleFileUpload} className="camera-rail-disc flex items-center justify-center" title="Add">
+                         <Plus size={14} className="text-white" strokeWidth={2.5} />
                        </button>
                      </div>
 
