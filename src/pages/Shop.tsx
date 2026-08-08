@@ -514,7 +514,7 @@ export default function Shop() {
                       <Tag size={28} className="text-white/20" />
                     </div>
                   )}
-                  <div className="absolute top-1.5 right-1.5 z-[2]">
+                  <div className="absolute top-0 right-0 z-[2] pt-0.5 pr-0.5">
                     <button
                       type="button"
                       onClick={(e) => {
@@ -580,7 +580,7 @@ export default function Shop() {
           </div>
         )}
 
-        {/* Create Listing — separate opaque panel (products behind stay hidden) */}
+        {/* Create Listing — separate opaque panel; close by tapping outside */}
         {showCreate && (
           <>
             <div
@@ -588,10 +588,21 @@ export default function Shop() {
               onClick={closeCreateListing}
               aria-hidden
             />
-            <div className="fixed left-0 right-0 z-[9999] pointer-events-auto max-w-[480px] mx-auto fixed-above-bottom-nav top-[var(--safe-top,0px)] bottom-[var(--bottom-nav-top)] flex flex-col justify-end">
+            <div
+              className="fixed left-0 right-0 z-[9999] pointer-events-auto max-w-[480px] mx-auto fixed-above-bottom-nav top-[var(--safe-top,0px)] bottom-[var(--bottom-nav-top)] flex flex-col justify-end"
+              onClick={closeCreateListing}
+            >
               <div
                 className="w-full elix-panel rounded-t-3xl pb-safe border border-black flex flex-col min-h-0"
-                style={{ maxHeight: '85dvh', height: '85dvh' }}
+                style={{
+                  maxHeight: '85dvh',
+                  height: '85dvh',
+                  backgroundColor: 'var(--elix-bg)',
+                  backgroundImage: 'var(--elix-page-fill)',
+                  backgroundSize: 'var(--elix-fundal-size), var(--elix-fundal-size)',
+                  backgroundPosition: 'var(--elix-fundal-position), var(--elix-fundal-position)',
+                  backgroundRepeat: 'no-repeat, no-repeat',
+                }}
                 onClick={e => e.stopPropagation()}
                 role="dialog"
                 aria-modal="true"
@@ -600,11 +611,8 @@ export default function Shop() {
               <div className="flex items-center justify-center pt-3 pb-1 shrink-0">
                 <div className="w-10 h-1 rounded-full bg-white/20" />
               </div>
-              <div className="flex items-center justify-between px-5 pb-3 shrink-0">
+              <div className="flex items-center justify-center px-5 pb-3 shrink-0">
                 <h3 className="text-gold-metallic font-bold text-base">Sell an Item</h3>
-                <button type="button" onClick={closeCreateListing} className="p-1" title="Back" aria-label="Close sell panel">
-                  <RoyceBackIcon />
-                </button>
               </div>
               <div className="overflow-y-auto px-5 pb-6 flex-1 min-h-0">
                 <button
