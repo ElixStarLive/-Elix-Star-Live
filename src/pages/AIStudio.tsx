@@ -124,7 +124,7 @@ export default function AIStudio() {
   }, [bgUrl, combinedFilter]);
 
   return (
-    <div className="h-full min-h-0 w-full elix-page-glass text-white flex flex-col overflow-hidden">
+    <div className="fixed top-0 bottom-0 left-1/2 -translate-x-1/2 z-[60] h-[100dvh] w-full max-w-[480px] elix-page-glass text-white flex flex-col overflow-hidden">
       {toast && (
         <div className="fixed top-16 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-md text-white text-sm px-4 py-2 rounded-xl z-[9999]">
           {toast}
