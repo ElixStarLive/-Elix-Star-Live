@@ -2163,16 +2163,31 @@ body,
   filter: none !important;
 }
 
-/* More Options sheet — no left/right side frame lines (keep header handle + title sep) */
-#root .elix-more-options-sheet,
-#root .elix-glass.elix-more-options-sheet {
-  border-left: 0 !important;
-  border-right: 0 !important;
-  border-left-width: 0 !important;
-  border-right-width: 0 !important;
-  border-left-color: transparent !important;
-  border-right-color: transparent !important;
+/* More Options — no decorative frame lines (elix-glass removed; no border at all) */
+#root .elix-more-options-sheet {
+  border: none !important;
+  border-width: 0 !important;
+  border-color: transparent !important;
   box-shadow: none !important;
   outline: none !important;
+  background-color: var(--elix-bg) !important;
+  background-image: var(--elix-panel-fill) !important;
+  background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
+  background-position: var(--elix-fundal-position), var(--elix-fundal-position) !important;
+  background-repeat: no-repeat, no-repeat !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Feed column + top/home bars — kill every frame line on the chrome column */
+#root .feed-column-width,
+#root main.feed-column-width,
+#root nav[aria-label="Main navigation"] .feed-column-width,
+#root .elix-home-top-bar .feed-column-width {
+  border: none !important;
+  border-width: 0 !important;
+  border-color: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
 }
 
