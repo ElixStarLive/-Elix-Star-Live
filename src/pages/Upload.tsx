@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { CaptureShutterButton } from '../components/CaptureShutterButton';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { setCachedCameraStream } from '../lib/cameraStream';
-import { RefreshCw, Zap, Clock, Music, Check, RotateCcw, ZoomIn, ZoomOut, Wand2, ChevronLeft, Image as ImageIcon, Type, Sparkles, X, LayoutGrid, Upload, Share2, Smile, Blend, ChevronDown } from 'lucide-react';
+import { RefreshCw, Zap, Clock, Music, Check, RotateCcw, ZoomIn, ZoomOut, Wand2, ChevronLeft, Image as ImageIcon, Type, Sparkles, X, LayoutGrid, Upload as UploadIcon, Share2, Smile, Blend, ChevronDown } from 'lucide-react';
 import { useVideoStore } from '../store/useVideoStore';
 import {
   resolvePlayableSoundUrl,
@@ -1119,7 +1119,7 @@ export default function Upload() {
                          )}
                        </button>
                        <button type="button" onClick={openGalleryPicker} className="camera-rail-disc flex items-center justify-center" title="Upload">
-                         <Upload size={14} className="text-white" strokeWidth={2.5} />
+                         <UploadIcon size={14} className="text-white" strokeWidth={2.5} />
                        </button>
                      </div>
 
