@@ -13,7 +13,7 @@ import {
   Smile,
   Sparkles,
   Blend,
-  Plus,
+  Upload,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { setCachedCameraStream } from '../lib/cameraStream';
@@ -676,8 +676,8 @@ export default function Create() {
                     <video src={previewUrl} className="w-full h-full object-cover" muted playsInline />
                   )}
                 </div>
-                <button type="button" onClick={openUploadPicker} className="camera-rail-disc flex items-center justify-center" title="Add">
-                  <Plus size={14} className="text-white" strokeWidth={2.5} />
+                <button type="button" onClick={openUploadPicker} className="camera-rail-disc flex items-center justify-center" title="Upload">
+                  <Upload size={14} className="text-white" strokeWidth={2.5} />
                 </button>
               </div>
 

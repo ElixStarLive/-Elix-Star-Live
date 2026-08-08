@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { CaptureShutterButton } from '../components/CaptureShutterButton';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { setCachedCameraStream } from '../lib/cameraStream';
-import { RefreshCw, Zap, Clock, Music, Check, RotateCcw, ZoomIn, ZoomOut, Wand2, ChevronLeft, Image as ImageIcon, Type, Sparkles, X, LayoutGrid, Plus, Share2, Smile, Blend, ChevronDown } from 'lucide-react';
+import { RefreshCw, Zap, Clock, Music, Check, RotateCcw, ZoomIn, ZoomOut, Wand2, ChevronLeft, Image as ImageIcon, Type, Sparkles, X, LayoutGrid, Upload, Share2, Smile, Blend, ChevronDown } from 'lucide-react';
 import { useVideoStore } from '../store/useVideoStore';
 import {
   resolvePlayableSoundUrl,
@@ -931,8 +931,8 @@ export default function Upload() {
                            <video src={recordedVideoUrl || undefined} className="w-full h-full object-cover" muted playsInline />
                          )}
                        </div>
-                       <button type="button" onClick={handleFileUpload} className="camera-rail-disc flex items-center justify-center" title="Add">
-                         <Plus size={14} className="text-white" strokeWidth={2.5} />
+                       <button type="button" onClick={handleFileUpload} className="camera-rail-disc flex items-center justify-center" title="Upload">
+                         <Upload size={14} className="text-white" strokeWidth={2.5} />
                        </button>
                      </div>
 
