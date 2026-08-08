@@ -676,7 +676,6 @@ export default function Create() {
                   className={`w-full h-full object-cover bg-black ${LIVE_WEBRTC_VIDEO_CLASS} ${cameraError ? 'hidden' : ''}`}
                   autoPlay muted playsInline controls={false}
                   poster={LIVE_VIDEO_TRANSPARENT_POSTER}
-                  style={isFrontCamera ? { transform: 'scaleX(-1)' } : undefined}
                 />
               </div>
               {cameraError && (

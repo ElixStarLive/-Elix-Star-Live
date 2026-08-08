@@ -214,9 +214,7 @@ export default function Upload() {
   const ZOOM_STEP = 0.25;
   const handleZoomIn = () => setZoomLevel((z) => Math.min(ZOOM_MAX, Math.round((z + ZOOM_STEP) * 100) / 100));
   const handleZoomOut = () => setZoomLevel((z) => Math.max(ZOOM_MIN, Math.round((z - ZOOM_STEP) * 100) / 100));
-  /** Mirror on the video only; zoom on a wrapper — never combine into scale(-z, z). */
-  const mirrorStyle: React.CSSProperties | undefined =
-    cameraFacing === 'user' ? { transform: 'scaleX(-1)' } : undefined;
+  /** Zoom only — no front mirror (true image, same as back — not flipped selfie). */
   const zoomWrapperStyle: React.CSSProperties = {
     transform: zoomLevel === 1 ? undefined : `scale(${zoomLevel})`,
     transformOrigin: 'center center',
@@ -1452,9 +1450,8 @@ export default function Upload() {
                           autoPlay
                           playsInline
                           muted
-                          className={`absolute inset-0 w-full h-full object-cover ${cameraError ? 'hidden' : ''}`}
+                          className={`absolute inset-0 w-full h-full object-cover bg-black ${cameraError ? 'hidden' : ''}`}
                           style={{
-                            ...mirrorStyle,
                             filter: beautyOn ? 'brightness(1.08) contrast(1.05) saturate(1.12)' : undefined,
                           }}
                         />
@@ -1464,7 +1461,7 @@ export default function Upload() {
                 </div>
               ) : (
                 <>
-              {/* Full-frame: zoom wrapper + mirror on video (separate) */}
+              {/* Full-frame: zoom only — no front mirror */}
               <div className="absolute inset-0 z-0 overflow-hidden bg-black">
                 <div className="absolute inset-0" style={zoomWrapperStyle}>
                   <video
@@ -1472,9 +1469,8 @@ export default function Upload() {
                     autoPlay
                     playsInline
                     muted
-                    className={`absolute inset-0 w-full h-full object-cover ${cameraError ? 'hidden' : ''}`}
+                    className={`absolute inset-0 w-full h-full object-cover bg-black ${cameraError ? 'hidden' : ''}`}
                     style={{
-                      ...mirrorStyle,
                       filter: beautyOn ? 'brightness(1.08) contrast(1.05) saturate(1.12)' : undefined,
                     }}
                   />
