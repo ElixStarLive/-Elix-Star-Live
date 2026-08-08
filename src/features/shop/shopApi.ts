@@ -26,7 +26,7 @@ export async function apiShopCheckoutSessionStatus(sessionId: string): Promise<{
 }
 
 export async function apiShopCheckout(payload: {
-  items: { id: string }[];
+  items: { id: string; quantity?: number }[];
 }): Promise<{ data: Record<string, unknown> | null; error: string | null }> {
   const { data, error } = await request<Record<string, unknown>>('/api/shop/checkout', {
     method: 'POST',

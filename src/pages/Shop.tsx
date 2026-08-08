@@ -3,7 +3,7 @@ import { RoyceBackIcon, ShopBasketIcon } from '../components/royce';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/apiClient';
 import { useAuthStore } from '../store/useAuthStore';
-import { Camera, Tag, MessageCircle, MoreVertical, X } from 'lucide-react';
+import { Camera, Tag, MessageCircle, MoreVertical } from 'lucide-react';
 import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
 import { showToast } from '../lib/toast';
 import { bunnyUpload } from '../lib/bunnyStorage';
@@ -48,6 +48,7 @@ export default function Shop() {
   const [newImagePreview, setNewImagePreview] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [menuItemId, setMenuItemId] = useState<string | null>(null);
+  const [cartMenuItemId, setCartMenuItemId] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const previewUrlRef = useRef<string | null>(null);
 
@@ -55,9 +56,13 @@ export default function Shop() {
   const addToCart = useCartStore((s) => s.add);
   const removeFromCart = useCartStore((s) => s.remove);
   const clearCart = useCartStore((s) => s.clear);
+  const cartUnitCount = useCartStore((s) => s.totalUnits());
   const [showCart, setShowCart] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
-  const cartTotal = cartItems.reduce((sum, i) => sum + (Number(i.price) || 0), 0);
+  const cartTotal = cartItems.reduce(
+    (sum, i) => sum + (Number(i.price) || 0) * Math.max(1, Math.floor(Number(i.quantity) || 1)),
+    0,
+  );
 
   const goBack = useCallback(() => {
     navigate(-1);
@@ -103,13 +108,22 @@ export default function Shop() {
     setMenuItemId(null);
   }, []);
 
+  const closeCartItemMenu = useCallback(() => {
+    setCartMenuItemId(null);
+  }, []);
+
+  const toggleCartItemMenu = useCallback((itemId: string, menuOpen: boolean) => {
+    setCartMenuItemId(menuOpen ? null : itemId);
+  }, []);
+
   const handleAddToCart = useCallback((item: { id: string; title: string; price: number; image_url: string | null }, isOwn: boolean) => {
     if (isOwn) {
       showToast("You can't add your own listing to basket");
       return;
     }
     addToCart(item);
-    showToast('Added to basket');
+    const qty = useCartStore.getState().items.find((i) => i.id === item.id)?.quantity ?? 1;
+    showToast(qty > 1 ? `Basket: ${qty}` : 'Added to basket');
   }, [addToCart]);
 
   const handleRemoveFromCart = useCallback((itemId: string) => {
@@ -312,7 +326,10 @@ export default function Shop() {
     setCheckingOut(true);
     try {
       const { data, error } = await apiShopCheckout({
-        items: cartItems.map((i) => ({ id: i.id })),
+        items: cartItems.map((i) => ({
+          id: i.id,
+          quantity: Math.max(1, Math.floor(Number(i.quantity) || 1)),
+        })),
       });
       if (error) throw new Error(error || 'Checkout failed');
       if (data?.url) {
@@ -454,7 +471,7 @@ export default function Shop() {
             className="px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border border-transparent"
           >
             <span className="elix-silver-red-text">
-              Basket{cartItems.length > 0 ? ` (${cartItems.length})` : ''}
+              Basket{cartUnitCount > 0 ? ` (${cartUnitCount})` : ''}
             </span>
           </button>
           {filters.map(f => (
@@ -671,8 +688,8 @@ export default function Shop() {
                 </div>
                 <div className="flex items-center justify-between px-5 pb-3">
                   <h3 className="text-gold-metallic font-bold text-base">Your basket</h3>
-                  <button onClick={closeCart} className="p-1" aria-label="Close basket">
-                    <X size={18} className="text-white/70" />
+                  <button type="button" onClick={closeCart} className="p-1" title="Back" aria-label="Close basket">
+                    <RoyceBackIcon />
                   </button>
                 </div>
 
@@ -684,8 +701,11 @@ export default function Shop() {
                 ) : (
                   <>
                     <div className="overflow-y-auto px-5" style={{ maxHeight: 'calc(80dvh - 190px)' }}>
-                      {cartItems.map((ci) => (
-                        <div key={ci.id} className="flex items-center gap-3 py-2 border-b border-white/5">
+                      {cartItems.map((ci) => {
+                        const qty = Math.max(1, Math.floor(Number(ci.quantity) || 1));
+                        const cartMenuOpen = cartMenuItemId === ci.id;
+                        return (
+                        <div key={ci.id} className="flex items-center gap-3 py-2 border-b border-white/5 relative">
                           {ci.image_url ? (
                             <img src={ci.image_url} alt={ci.title} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
                           ) : (
@@ -695,18 +715,46 @@ export default function Shop() {
                           )}
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold text-white truncate">{ci.title}</p>
-                            <p className="text-sm font-extrabold text-gold-metallic">£{Number(ci.price).toFixed(2)}</p>
+                            <p className="text-sm font-extrabold text-gold-metallic">
+                              £{Number(ci.price).toFixed(2)}
+                              {qty > 1 ? ` × ${qty}` : ''}
+                            </p>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveFromCart(ci.id)}
-                            className="px-2.5 py-1.5 rounded-lg bg-[#1A1C21] border border-white/15 text-[11px] font-semibold text-[#F5F5F7] active:opacity-70 shrink-0"
-                            aria-label={`Remove ${ci.title} from basket`}
-                          >
-                            Remove
-                          </button>
+                          <div className="relative flex-shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => toggleCartItemMenu(ci.id, cartMenuOpen)}
+                              className="p-1.5 rounded-full bg-white/5 border border-white/10"
+                              aria-label={`Options for ${ci.title}`}
+                            >
+                              <MoreVertical size={14} className="text-[#F5F5F7]" />
+                            </button>
+                            {cartMenuOpen ? (
+                              <>
+                                <button
+                                  type="button"
+                                  className="fixed inset-0 z-[3]"
+                                  aria-label="Close menu"
+                                  onClick={closeCartItemMenu}
+                                />
+                                <div className="absolute right-0 top-full mt-1 z-[4] min-w-[120px] rounded-xl bg-[#1A1C21] border border-white/15 shadow-lg overflow-hidden">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      handleRemoveFromCart(ci.id);
+                                      closeCartItemMenu();
+                                    }}
+                                    className="w-full text-left px-3 py-2 text-xs font-semibold text-[#F5F5F7] hover:bg-white/5"
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              </>
+                            ) : null}
+                          </div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
 
                     <div className="px-5 pt-3 pb-5">

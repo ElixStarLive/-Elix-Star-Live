@@ -116,15 +116,32 @@ export async function createShopItemCheckout(req: Request, res: Response) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    // Accept a single itemId (legacy) or a basket of items. Dedupe and cap.
+    // Accept a single itemId (legacy) or a basket of items with optional quantity.
     const body = req.body ?? {};
-    const rawIds: string[] = Array.isArray(body.items)
-      ? body.items.map((i: { id?: unknown }) => String(i?.id ?? "")).filter(Boolean)
-      : typeof body.itemId === "string" && body.itemId
-        ? [body.itemId]
-        : [];
-    const itemIds = Array.from(new Set(rawIds)).slice(0, 10);
-    if (itemIds.length === 0) {
+    type BasketLine = { id: string; quantity: number };
+    const clampQty = (n: unknown) => {
+      const q = Math.floor(Number(n));
+      if (!Number.isFinite(q) || q < 1) return 1;
+      return Math.min(99, q);
+    };
+    const lines: BasketLine[] = [];
+    if (Array.isArray(body.items)) {
+      for (const raw of body.items) {
+        const id = String(raw?.id ?? "").trim();
+        if (!id) continue;
+        const quantity = clampQty(raw?.quantity);
+        const existing = lines.find((l) => l.id === id);
+        if (existing) {
+          existing.quantity = clampQty(existing.quantity + quantity);
+        } else {
+          lines.push({ id, quantity });
+        }
+      }
+    } else if (typeof body.itemId === "string" && body.itemId) {
+      lines.push({ id: body.itemId, quantity: clampQty(body.quantity) });
+    }
+    const capped = lines.slice(0, 10);
+    if (capped.length === 0) {
       return res.status(400).json({ error: "itemId or items required" });
     }
 
@@ -136,18 +153,19 @@ export async function createShopItemCheckout(req: Request, res: Response) {
     }
 
     // Validate every item server-side (same rules as single-item purchase).
-    const items = await Promise.all(itemIds.map((id) => dbGetShopItemById(id)));
+    const items = await Promise.all(capped.map((l) => dbGetShopItemById(l.id)));
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
+      const line = capped[i];
       if (!item || !item.is_active) {
-        return res.status(404).json({ error: "An item is no longer available", itemId: itemIds[i] });
+        return res.status(404).json({ error: "An item is no longer available", itemId: line.id });
       }
       if (item.user_id === authUserId) {
-        return res.status(400).json({ error: "Cannot buy your own item", itemId: itemIds[i] });
+        return res.status(400).json({ error: "Cannot buy your own item", itemId: line.id });
       }
       if (!item.price || item.price <= 0) {
-        return res.status(400).json({ error: "An item has no valid price", itemId: itemIds[i] });
+        return res.status(400).json({ error: "An item has no valid price", itemId: line.id });
       }
       lineItems.push({
         price_data: {
@@ -159,7 +177,7 @@ export async function createShopItemCheckout(req: Request, res: Response) {
           },
           unit_amount: Math.round(item.price * 100),
         },
-        quantity: 1,
+        quantity: line.quantity,
       });
     }
 
@@ -181,6 +199,7 @@ export async function createShopItemCheckout(req: Request, res: Response) {
         itemId: validItems[0].id,
         sellerId: validItems[0].user_id,
         itemIds: validItems.map((it) => it.id).join(","),
+        itemQtys: capped.map((l) => String(l.quantity)).join(","),
         itemTitle: validItems[0].title.slice(0, 200),
       },
     });
