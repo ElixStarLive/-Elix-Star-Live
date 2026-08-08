@@ -398,7 +398,12 @@ function App() {
   }
 
   return (
-    <div className="elix-app-shell fixed inset-0 w-full h-[100dvh] flex flex-col text-text font-sans overflow-hidden">
+    <div
+      className={cn(
+        "elix-app-shell fixed inset-0 w-full h-[100dvh] flex flex-col text-text font-sans overflow-hidden",
+        (location.pathname === "/feed" || location.pathname === "/") && "elix-feed-chrome-shell",
+      )}
+    >
       <OfflineBanner />
       <IncomingCallModal />
       <LiveNotifyBanner />

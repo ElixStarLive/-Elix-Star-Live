@@ -198,7 +198,7 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
   if (isBlocked) {
     return (
       <div
-        className="page-above-bottom-nav bg-transparent text-white"
+        className="page-above-bottom-nav elix-user-panel bg-transparent text-white"
         style={{ zIndex: 100020, bottom: 'var(--bottom-nav-top)' }}
       >
         <div className="page-above-bottom-nav__inner bg-transparent flex flex-col">
@@ -262,7 +262,7 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
 
   return (
     <div
-      className="page-above-bottom-nav bg-transparent text-white"
+      className="page-above-bottom-nav elix-user-panel bg-transparent text-white"
       style={{ zIndex: 100020, bottom: 'var(--bottom-nav-top)' }}
     >
       <div className="page-above-bottom-nav__inner bg-transparent flex flex-col">
