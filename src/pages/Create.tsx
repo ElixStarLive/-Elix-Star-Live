@@ -25,12 +25,18 @@ import {
 import { setCachedRecordedMedia } from '../lib/recordedMediaCache';
 import { type SoundTrack } from '../lib/soundLibrary';
 import SoundPickerPanel from '../components/SoundPickerPanel';
+import SoundMixPanel from '../components/SoundMixPanel';
 import ElixCameraLayout from '../components/ElixCameraLayout';
 import MediaEditorPanel, { type EditorTab, type FilterPreset, FILTER_PRESETS, EFFECT_PRESETS, StoryFxOverlay } from '../components/MediaEditorPanel';
 import AIToolsPanel from '../components/AIToolsPanel';
 import { bakeImage, bakeVideo, type EditOverlay } from '../lib/mediaBake';
 import { nativeShareMedia } from '../lib/platform';
 import { useAuthStore } from '../store/useAuthStore';
+import {
+  resolvePlayableSoundUrl,
+  registerSoundPreviewAudio,
+  stopSoundPreview,
+} from '../lib/soundLibrary';
 
 type CreateMode = 'upload' | 'post' | 'create' | 'live';
 
@@ -41,7 +47,10 @@ export default function Create() {
   const authUser = useAuthStore((s) => s.user);
   const [mode, setMode] = useState<CreateMode>('create');
   const [isSoundOpen, setIsSoundOpen] = useState(false);
+  const [isSoundMixOpen, setIsSoundMixOpen] = useState(false);
   const [selectedSound, setSelectedSound] = useState<Sound | null>(null);
+  const [originalVolume, setOriginalVolume] = useState(1);
+  const [musicVolume, setMusicVolume] = useState(0.7);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewKind, setPreviewKind] = useState<'video' | 'image'>('video');
   const [isRecording, setIsRecording] = useState(false);
@@ -85,6 +94,7 @@ export default function Create() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const previewVideoRef = useRef<HTMLVideoElement>(null);
+  const backgroundAudioRef = useRef<HTMLAudioElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const keepStreamOnUnmountRef = useRef(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -181,6 +191,83 @@ export default function Create() {
     return () => ro.disconnect();
   }, [previewUrl]);
 
+  // Preview: original video volume (compose only).
+  useEffect(() => {
+    const el = previewVideoRef.current;
+    if (!el || !previewUrl || previewKind !== 'video') return;
+    const vol = Math.max(0, Math.min(1, originalVolume));
+    el.muted = vol <= 0.001;
+    el.volume = vol <= 0.001 ? 0 : vol;
+  }, [originalVolume, previewUrl, previewKind]);
+
+  // Preview: added sound track under compose.
+  useEffect(() => {
+    let cancelled = false;
+    const killBg = () => {
+      const a = backgroundAudioRef.current;
+      if (!a) return;
+      stopSoundPreview(a);
+      backgroundAudioRef.current = null;
+    };
+
+    const track = selectedSound;
+    const shouldPlay =
+      !!previewUrl &&
+      !!track &&
+      track.id !== 'original' &&
+      !!track.url;
+
+    if (!shouldPlay) {
+      killBg();
+      return;
+    }
+
+    killBg();
+    const start = Math.max(0, track.clipStartSeconds || 0);
+    const end = Math.max(start, track.clipEndSeconds || start + 30);
+
+    void (async () => {
+      const playable = await resolvePlayableSoundUrl(track.url);
+      if (cancelled || !playable) return;
+      const audio = new Audio();
+      registerSoundPreviewAudio(audio);
+      audio.preload = 'auto';
+      audio.loop = true;
+      audio.dataset.elixSoundPreview = '1';
+      audio.volume = Math.max(0, Math.min(1, musicVolume));
+      audio.src = playable;
+      audio.ontimeupdate = () => {
+        if (cancelled) return;
+        if (end > start && audio.currentTime >= end) {
+          try { audio.currentTime = start; } catch { /* ignore */ }
+        }
+      };
+      backgroundAudioRef.current = audio;
+      const onReady = () => {
+        if (cancelled) {
+          stopSoundPreview(audio);
+          return;
+        }
+        try { audio.currentTime = start; } catch { /* ignore */ }
+        void audio.play().catch(() => { /* gesture may be required */ });
+      };
+      audio.addEventListener('canplay', onReady, { once: true });
+      audio.load();
+    })();
+
+    return () => {
+      cancelled = true;
+      killBg();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewUrl, selectedSound?.id, selectedSound?.url]);
+
+  useEffect(() => {
+    if (backgroundAudioRef.current) {
+      backgroundAudioRef.current.volume = Math.max(0, Math.min(1, musicVolume));
+    }
+  }, [musicVolume]);
+
   const openMediaPicker = useCallback((accept: string) => {
     const input = fileInputRef.current;
     if (!input) return;
@@ -255,12 +342,18 @@ export default function Create() {
   }, []);
 
   const openSoundPicker = useCallback(() => {
+    setIsSoundMixOpen(false);
     setIsSoundOpen(true);
+  }, []);
+
+  const openSoundMixPanel = useCallback(() => {
+    setIsSoundMixOpen(true);
   }, []);
 
   const clearSelectedSound = useCallback((e?: React.SyntheticEvent) => {
     e?.stopPropagation();
     setSelectedSound(null);
+    setMusicVolume(0.7);
   }, []);
 
   const selectPostTab = useCallback(() => {
@@ -497,6 +590,8 @@ export default function Create() {
       const url = await exportEditedMedia();
       setCachedRecordedMedia(url || previewUrl, previewKind, {
         sound: selectedSound && selectedSound.id !== 'original' ? selectedSound : null,
+        originalVolume: Math.max(0, Math.min(1, originalVolume)),
+        musicVolume: Math.max(0, Math.min(1, musicVolume)),
       });
       navigate('/upload?type=story');
     } finally {
@@ -511,6 +606,8 @@ export default function Create() {
       const url = await exportEditedMedia();
       setCachedRecordedMedia(url || previewUrl, previewKind, {
         sound: selectedSound && selectedSound.id !== 'original' ? selectedSound : null,
+        originalVolume: Math.max(0, Math.min(1, originalVolume)),
+        musicVolume: Math.max(0, Math.min(1, musicVolume)),
       });
       navigate('/upload');
     } finally {
@@ -574,7 +671,7 @@ export default function Create() {
             previewKind === 'image' ? (
               <img src={previewUrl} alt="" className={`w-full h-full ${previewObjectClass} bg-black`} draggable={false} style={combinedFilter ? { filter: combinedFilter } : undefined} />
             ) : (
-              <video ref={previewVideoRef} src={previewUrl} className={`w-full h-full ${previewObjectClass} bg-black`} autoPlay loop muted playsInline onPlay={() => setIsPreviewPlaying(true)} onPause={() => setIsPreviewPlaying(false)} style={combinedFilter ? { filter: combinedFilter } : undefined} />
+              <video ref={previewVideoRef} src={previewUrl} className={`w-full h-full ${previewObjectClass} bg-black`} autoPlay loop playsInline muted={originalVolume <= 0.001} onPlay={() => setIsPreviewPlaying(true)} onPause={() => setIsPreviewPlaying(false)} style={combinedFilter ? { filter: combinedFilter } : undefined} />
             )
           ) : (
             <div className="w-full h-full bg-[#09090B] relative flex items-center justify-center" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
@@ -670,14 +767,14 @@ export default function Create() {
               <div className="w-[26px] h-[26px]" aria-hidden />
               <button
                 type="button"
-                onClick={openSoundPicker}
+                onClick={openSoundMixPanel}
                 className="flex items-center gap-1 max-w-[58%] h-[26px] px-2.5 rounded-full border border-[#D8D9DD]/40"
                 style={{ background: 'rgba(0, 0, 0, 0.55)' }}
-                title={selectedSound?.title || 'Add sound'}
+                title={selectedSound?.title || 'Sound'}
               >
                 <Music size={12} className="text-white shrink-0" strokeWidth={2} />
                 <span className="text-white text-[10px] font-semibold truncate">
-                  {selectedSound?.title || 'Add sound'}
+                  {selectedSound?.title || 'Sound'}
                 </span>
                 {selectedSound ? (
                   <span
@@ -858,12 +955,32 @@ export default function Create() {
           </div>
         )}
 
+        {isSoundMixOpen ? (
+          <SoundMixPanel
+            isOpen={isSoundMixOpen}
+            onClose={() => setIsSoundMixOpen(false)}
+            originalVolume={originalVolume}
+            musicVolume={musicVolume}
+            onOriginalVolumeChange={setOriginalVolume}
+            onMusicVolumeChange={setMusicVolume}
+            hasOriginalAudio={previewKind === 'video'}
+            hasAddedSound={Boolean(selectedSound && selectedSound.id !== 'original')}
+            addedSoundTitle={selectedSound?.title}
+            onChooseSound={openSoundPicker}
+            onClearSound={() => {
+              setSelectedSound(null);
+              setMusicVolume(0.7);
+            }}
+          />
+        ) : null}
+
         {isSoundOpen ? (
           <SoundPickerPanel
             onClose={() => setIsSoundOpen(false)}
             onPick={(sound) => {
               setSelectedSound(sound);
               setIsSoundOpen(false);
+              setIsSoundMixOpen(true);
             }}
           />
         ) : null}

@@ -8,6 +8,8 @@ export type CachedRecordedMedia = {
   hashtags?: string;
   /** Selected Add-sound track from Create (applied on Upload). */
   sound?: SoundTrack | null;
+  originalVolume?: number;
+  musicVolume?: number;
 };
 
 let cached: CachedRecordedMedia | null = null;
@@ -15,7 +17,13 @@ let cached: CachedRecordedMedia | null = null;
 export function setCachedRecordedMedia(
   url: string,
   kind: 'video' | 'image',
-  extra?: { caption?: string; hashtags?: string; sound?: SoundTrack | null },
+  extra?: {
+    caption?: string;
+    hashtags?: string;
+    sound?: SoundTrack | null;
+    originalVolume?: number;
+    musicVolume?: number;
+  },
 ): void {
   cached = {
     url,
@@ -23,6 +31,8 @@ export function setCachedRecordedMedia(
     caption: extra?.caption,
     hashtags: extra?.hashtags,
     sound: extra?.sound ?? null,
+    originalVolume: extra?.originalVolume,
+    musicVolume: extra?.musicVolume,
   };
 }
 

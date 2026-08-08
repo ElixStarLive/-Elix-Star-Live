@@ -11,6 +11,7 @@ import {
   type SoundTrack,
 } from '../lib/soundLibrary';
 import SoundPickerPanel from '../components/SoundPickerPanel';
+import SoundMixPanel from '../components/SoundMixPanel';
 import { trackEvent } from '../lib/analytics';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { videoUploadService } from '../lib/videoUpload';
@@ -47,6 +48,7 @@ export default function Upload() {
   const [cameraRetry, setCameraRetry] = useState(0);
   const [recordedVideoUrl, setRecordedVideoUrl] = useState<string | null>(null);
   const [showMusicModal, setShowMusicModal] = useState(false);
+  const [showSoundMix, setShowSoundMix] = useState(false);
   const [selectedAudioId, setSelectedAudioId] = useState<string>('original');
   const [postWithoutAudio, setPostWithoutAudio] = useState(false);
   const [caption, setCaption] = useState('');
@@ -122,7 +124,12 @@ export default function Upload() {
   }, [navigate]);
 
   const openMusicModal = useCallback(() => {
+    setShowSoundMix(false);
     setShowMusicModal(true);
+  }, []);
+
+  const openSoundMixPanel = useCallback(() => {
+    setShowSoundMix(true);
   }, []);
 
   const openAITools = useCallback(() => {
@@ -284,6 +291,7 @@ export default function Upload() {
       trackEvent('upload_select_audio', { type: 'library', trackId: track.id, title: track.title });
     }
     setShowMusicModal(false);
+    setShowSoundMix(true);
     showToast(track?.id === 'original' || !track?.id ? 'Original sound' : `Sound: ${track.title}`);
   };
 
@@ -306,6 +314,12 @@ export default function Upload() {
       setSelectedTrack(cached.sound);
       setSelectedAudioId(`track_${cached.sound.id}`);
       setPostWithoutAudio(false);
+    }
+    if (typeof cached.originalVolume === 'number') {
+      setOriginalVolume(Math.max(0, Math.min(1, cached.originalVolume)));
+    }
+    if (typeof cached.musicVolume === 'number') {
+      setMusicVolume(Math.max(0, Math.min(1, cached.musicVolume)));
     }
     void fetch(cached.url)
       .then((r) => r.blob())
@@ -595,6 +609,15 @@ export default function Upload() {
       backgroundAudioRef.current.volume = Math.max(0, Math.min(1, musicVolume));
     }
   }, [musicVolume]);
+
+  // Preview: original video volume.
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el || !recordedVideoUrl || mediaKind !== 'video') return;
+    const vol = Math.max(0, Math.min(1, originalVolume));
+    el.muted = vol <= 0.001;
+    el.volume = vol <= 0.001 ? 0 : vol;
+  }, [originalVolume, recordedVideoUrl, mediaKind]);
 
   const handlePost = async () => {
       if (isPosting) return;
@@ -932,8 +955,8 @@ export default function Upload() {
                   controls={false}
                   autoPlay
                   loop
-                  muted
                   playsInline
+                  muted={originalVolume <= 0.001}
                   style={{ filter: composeFilterCss || undefined }}
               />
               )}
@@ -989,14 +1012,14 @@ export default function Upload() {
                      </button>
                      <button
                        type="button"
-                       onClick={openMusicModal}
+                       onClick={openSoundMixPanel}
                        className="flex items-center gap-1 max-w-[58%] h-[26px] px-2.5 rounded-full border border-[#D8D9DD]/40"
                        style={{ background: 'rgba(0, 0, 0, 0.55)' }}
                        title={getSelectedLabel()}
                      >
                        <Music size={12} className="text-white shrink-0" strokeWidth={2} />
                        <span className="text-white text-[10px] font-semibold truncate">
-                         {selectedTrack?.title || 'Add sound'}
+                         {selectedTrack?.title || 'Sound'}
                        </span>
                        {(selectedTrack || selectedAudioId.startsWith('track_')) ? (
                          <span
@@ -1052,7 +1075,7 @@ export default function Upload() {
                        } },
                        { Icon: LayoutGrid, title: 'Layout', onClick: togglePreviewLayout },
                        { Icon: ImageIcon, title: 'Media', onClick: openImagePicker },
-                       { Icon: Music, title: 'Audio', onClick: openMusicModal },
+                       { Icon: Music, title: 'Audio', onClick: openSoundMixPanel },
                        { Icon: Type, title: 'Text', onClick: openTextEditor },
                        { Icon: Smile, title: 'Stickers', onClick: openStickersEditor },
                        { Icon: Sparkles, title: 'Effects', onClick: openEffectsEditor },
@@ -1678,6 +1701,25 @@ export default function Upload() {
       )}
 
       {/* Above camera hit-layer + preview chrome — works in record and after capture */}
+      {showSoundMix ? (
+        <SoundMixPanel
+          isOpen={showSoundMix}
+          onClose={() => setShowSoundMix(false)}
+          originalVolume={originalVolume}
+          musicVolume={musicVolume}
+          onOriginalVolumeChange={setOriginalVolume}
+          onMusicVolumeChange={setMusicVolume}
+          hasOriginalAudio={mediaKind === 'video'}
+          hasAddedSound={Boolean(selectedTrack && selectedAudioId.startsWith('track_'))}
+          addedSoundTitle={selectedTrack?.title}
+          onChooseSound={openMusicModal}
+          onClearSound={() => {
+            setSelectedTrack(null);
+            setSelectedAudioId('original');
+            setMusicVolume(0.7);
+          }}
+        />
+      ) : null}
       {showMusicModal ? (
         <SoundPickerPanel
           onClose={() => setShowMusicModal(false)}
