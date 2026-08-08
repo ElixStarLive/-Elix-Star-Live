@@ -2299,17 +2299,29 @@ body,
   background-repeat: no-repeat, no-repeat !important;
 }
 
-/* Home top + bottom nav — opaque app-width fundal (short bars need fill, not 100% auto crop) */
+/* Home top + bottom nav — cut a denser theme slice (not flat 100% stretch) */
 #root .elix-home-top-bar .feed-column-width,
 #root .elix-feed-chrome-shell .elix-home-top-bar .feed-column-width,
 #root nav[aria-label="Main navigation"] .feed-column-width,
 #root .elix-feed-chrome-shell nav[aria-label="Main navigation"] .feed-column-width {
   background-color: var(--elix-bg) !important;
   background-image: var(--elix-panel-fill) !important;
-  background-size: 100% 100%, 100% 100% !important;
-  background-position: center, center !important;
+  /* Zoom + crop so metallic waves / perforations read clearly in short bars */
+  background-size: 200% auto, 200% auto !important;
   background-repeat: no-repeat, no-repeat !important;
   background-attachment: scroll, scroll !important;
+}
+
+/* Top bar — cut from upper wave band */
+#root .elix-home-top-bar .feed-column-width,
+#root .elix-feed-chrome-shell .elix-home-top-bar .feed-column-width {
+  background-position: center 28%, center 28% !important;
+}
+
+/* Bottom bar — cut from lower wave band (more theme in the home bar) */
+#root nav[aria-label="Main navigation"] .feed-column-width,
+#root .elix-feed-chrome-shell nav[aria-label="Main navigation"] .feed-column-width {
+  background-position: center 72%, center 72% !important;
 }
 
 /* Light accent lines along the top of the home bar */
