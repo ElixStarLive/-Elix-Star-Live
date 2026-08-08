@@ -1,63 +1,36 @@
 /**
- * Share / lists: drop ONLY the demo handles the owner named.
- * Real users stay. No broad junk wipe.
+ * Owner allowlist — ONLY these accounts stay in Share / Inbox circles / suggestions.
+ * Everyone else is removed.
  *
- * Named: proxy, user 180, name, unique, qaban, qandroi,
- *        crd, sgtashy / sgtahy / stashy, dankiel
+ * Keep: Elix Star Live, Anya Emily, admin account, daniel, crd star, Sandra Monica
  */
 
-const NAMED_EXACT = new Set([
-  'proxy',
-  'unique',
-  'name',
-  'qaban',
-  'qandroi',
-  'qandroid',
-  'user 180',
-  'user_180',
-  'user180',
-  'crd',
-  'sgtashy',
-  'sgtahy',
-  'stashy',
-  'dankiel',
+function compactLabel(s: string): string {
+  return String(s || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[_\s.-]+/g, '');
+}
+
+const ALLOWED_COMPACT = new Set([
+  'elixstarlive',
+  'anyaemily',
+  'admin',
+  'adminaccount',
+  'admn',
+  'admnaccount',
+  'daniel',
+  'crdstar',
+  'sandramonica',
+  'sandamonica',
 ]);
 
-/** user 180 / user_180 / user-180 / user180 */
-const USER_180 = /^user[\s_-]*180$/i;
-
-/** proxy / proxy_ / proxyuser… */
-const PROXY_JUNK = /^proxy([\s_-]|$)/i;
-
-/** unique / unique_ / uniqueuser… */
-const UNIQUE_JUNK = /^unique([\s_-]|$)/i;
-
-/** literal handle "name" or name_… */
-const NAME_JUNK = /^name([\s_-]|$)/i;
-
-/** qaban / qandroi / qandroid… */
-const QA_DEVICE_JUNK = /^(qaban|qandroi|qandroid)([\s_-]|$)/i;
-
-/** crd / crd_… */
-const CRD_JUNK = /^crd([\s_-]|$)/i;
-
-/** sgtashy / sgtahy / stashy… */
-const STASHY_JUNK = /^(sgtashy|sgtahy|stashy)([\s_-]|$)/i;
-
-/** dankiel… */
-const DANKIEL_JUNK = /^dankiel([\s_-]|$)/i;
-
-function looksLikeNamedFake(part: string): boolean {
-  if (!part) return false;
-  if (NAMED_EXACT.has(part)) return true;
-  if (USER_180.test(part)) return true;
-  if (PROXY_JUNK.test(part)) return true;
-  if (UNIQUE_JUNK.test(part)) return true;
-  if (NAME_JUNK.test(part)) return true;
-  if (QA_DEVICE_JUNK.test(part)) return true;
-  if (CRD_JUNK.test(part)) return true;
-  if (STASHY_JUNK.test(part)) return true;
-  if (DANKIEL_JUNK.test(part)) return true;
+function isAllowedLabel(part: string): boolean {
+  const c = compactLabel(part);
+  if (!c) return false;
+  if (ALLOWED_COMPACT.has(c)) return true;
+  // Allow slight handle variants: daniel123 → no; daniel_ok → no.
+  // Only exact compact match or known phrase prefixes that equal a keep name.
   return false;
 }
 
@@ -65,14 +38,12 @@ export function isGenuineAppUser(username: string, userId = '', displayName = ''
   const id = String(userId || '').trim();
   if (!id) return false;
 
-  const handle = String(username || '').trim().toLowerCase();
-  const display = String(displayName || '').trim().toLowerCase();
+  const handle = String(username || '').trim();
+  const display = String(displayName || '').trim();
   if (!handle && !display) return false;
 
-  for (const part of [handle, display]) {
-    if (!part) continue;
-    if (looksLikeNamedFake(part)) return false;
-  }
-
-  return true;
+  // Pass if username OR display name is on the owner keep list
+  if (handle && isAllowedLabel(handle)) return true;
+  if (display && isAllowedLabel(display)) return true;
+  return false;
 }

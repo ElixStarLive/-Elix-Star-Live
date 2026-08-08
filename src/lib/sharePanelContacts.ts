@@ -43,14 +43,9 @@ export async function fetchAllSharePanelContacts(
 
       const rawUsername = String(p.username ?? '').trim();
       const rawDisplay = String(p.display_name ?? p.displayName ?? '').trim();
-      if (!isGenuineAppUser(rawUsername || rawDisplay, user_id, rawDisplay)) continue;
-      if (rawUsername && !isGenuineAppUser(rawUsername, user_id, rawDisplay)) continue;
-      if (rawDisplay && !isGenuineAppUser(rawDisplay, user_id, rawDisplay)) continue;
+      if (!isGenuineAppUser(rawUsername, user_id, rawDisplay)) continue;
 
-      const label =
-        rawDisplay && isGenuineAppUser(rawDisplay, user_id, rawDisplay)
-          ? rawDisplay
-          : rawUsername || rawDisplay;
+      const label = rawDisplay || rawUsername;
       if (!label) continue;
 
       dedup.set(user_id, {
