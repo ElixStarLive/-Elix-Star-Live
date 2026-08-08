@@ -1541,32 +1541,32 @@ export default function Upload() {
                       <span className="elix-silver-red-text text-[10px] font-semibold whitespace-nowrap">Add sound</span>
                     </button>
                   </div>
-                  {/* Right side — icons only, no circle discs, no silver/red stroke rings */}
+                  {/* Right side — same dark round fill as Add sound on every icon */}
                   <div className="absolute top-0 right-[5%] bottom-0 flex flex-col items-center gap-3 py-2 camera-right-rail" style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}>
-                    <button type="button" onClick={goFeed} className="w-9 h-9 flex items-center justify-center" title="Close">
-                      <ChevronLeft size={18} className="camera-rail-icon" strokeWidth={2.5} />
+                    <button type="button" onClick={goFeed} className="camera-rail-disc flex items-center justify-center" title="Close">
+                      <ChevronLeft size={14} className="camera-rail-icon" strokeWidth={2.5} />
                     </button>
                     <button
                       type="button"
-                      className="w-9 h-9 flex items-center justify-center"
+                      className="camera-rail-disc flex items-center justify-center"
                       onClick={handleZoomOut}
                       title="Zoom out"
                       aria-label="Zoom out"
                     >
-                      <ZoomOut size={18} className="camera-rail-icon" strokeWidth={2} />
+                      <ZoomOut size={14} className="camera-rail-icon" strokeWidth={2} />
                     </button>
                     <button
                       type="button"
-                      className="w-9 h-9 flex items-center justify-center"
+                      className="camera-rail-disc flex items-center justify-center"
                       onClick={handleZoomIn}
                       title="Zoom in"
                       aria-label="Zoom in"
                     >
-                      <ZoomIn size={18} className="camera-rail-icon" strokeWidth={2} />
+                      <ZoomIn size={14} className="camera-rail-icon" strokeWidth={2} />
                     </button>
                     <button
                       type="button"
-                      className="w-9 h-9 flex items-center justify-center"
+                      className="camera-rail-disc flex items-center justify-center"
                       onClick={async () => {
                       try {
                         const currentStream = videoRef.current?.srcObject as MediaStream | null;
@@ -1586,11 +1586,11 @@ export default function Upload() {
                     }}
                       title="Flip Camera"
                     >
-                      <RefreshCw size={18} className="camera-rail-icon" strokeWidth={2} />
+                      <RefreshCw size={14} className="camera-rail-icon" strokeWidth={2} />
                     </button>
                     <button
                       type="button"
-                      className="w-9 h-9 flex items-center justify-center"
+                      className="camera-rail-disc flex items-center justify-center"
                       onClick={() => {
                         const next = cameraSpeed === 1 ? 0.5 : cameraSpeed === 0.5 ? 2 : 1;
                         setCameraSpeed(next);
@@ -1605,7 +1605,7 @@ export default function Upload() {
                     </button>
                     <button
                       type="button"
-                      className="w-9 h-9 flex items-center justify-center"
+                      className="camera-rail-disc flex items-center justify-center"
                       onClick={() => {
                         setBeautyOn((v) => {
                           const next = !v;
@@ -1615,11 +1615,11 @@ export default function Upload() {
                       }}
                       title={beautyOn ? 'Beauty on' : 'Beauty off'}
                     >
-                      <Sparkles size={18} className={`camera-rail-icon ${beautyOn ? '' : 'opacity-50'}`} strokeWidth={2} />
+                      <Sparkles size={14} className={`camera-rail-icon ${beautyOn ? '' : 'opacity-50'}`} strokeWidth={2} />
                     </button>
                     <button
                       type="button"
-                      className="relative w-9 h-9 flex items-center justify-center"
+                      className="relative camera-rail-disc flex items-center justify-center"
                       onClick={() => {
                         const next = timerDelay === 0 ? 3 : timerDelay === 3 ? 10 : 0;
                         setTimerDelay(next);
@@ -1627,14 +1627,14 @@ export default function Upload() {
                       }}
                       title={timerDelay === 0 ? 'Timer off' : `Timer ${timerDelay}s`}
                     >
-                      <Clock size={18} className="camera-rail-icon" strokeWidth={2} />
+                      <Clock size={14} className="camera-rail-icon" strokeWidth={2} />
                       {timerDelay > 0 ? (
                         <span className="absolute -bottom-0.5 text-[8px] font-bold text-white">{timerDelay}</span>
                       ) : null}
                     </button>
                     <button
                       type="button"
-                      className="w-9 h-9 flex items-center justify-center"
+                      className="camera-rail-disc flex items-center justify-center"
                       onClick={async () => {
                         const stream = videoRef.current?.srcObject as MediaStream | null;
                         const track = stream?.getVideoTracks()?.[0];
@@ -1655,15 +1655,15 @@ export default function Upload() {
                       }}
                       title={flashOn ? 'Flash on' : 'Flash off'}
                     >
-                      <Zap size={18} className="camera-rail-icon" strokeWidth={2} fill={flashOn ? '#FFFFFF' : 'none'} />
+                      <Zap size={14} className="camera-rail-icon" strokeWidth={2} fill={flashOn ? '#FFFFFF' : 'none'} />
                     </button>
                     <button
                       type="button"
-                      className="w-9 h-9 flex items-center justify-center"
+                      className="camera-rail-disc flex items-center justify-center"
                       onClick={goAiStudio}
                       title="AI Effects"
                     >
-                      <Wand2 size={18} className="camera-rail-icon" strokeWidth={2} />
+                      <Wand2 size={14} className="camera-rail-icon" strokeWidth={2} />
                     </button>
                   </div>
 

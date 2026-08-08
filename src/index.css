@@ -1892,9 +1892,20 @@ svg.lucide.fill-silver-full.royce-icon-gold {
   filter: var(--elix-icon-glow) !important;
 }
 
-/* Camera right rail — all icons same: transparent (no black disc), smaller line glyphs */
+/* Camera right rail — same dark fill as Add sound pill; glyphs line-only (no lucide disc) */
 .camera-right-rail {
   background: transparent !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+#root .camera-right-rail button,
+#root .camera-right-rail .camera-rail-disc {
+  background: rgba(0, 0, 0, 0.55) !important;
+  background-color: rgba(0, 0, 0, 0.55) !important;
+  background-image: none !important;
+  border: none !important;
+  border-radius: 9999px !important;
+  box-shadow: none !important;
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
@@ -1913,14 +1924,6 @@ svg.lucide.fill-silver-full.royce-icon-gold {
   background-image: none !important;
   box-shadow: none !important;
   box-sizing: content-box !important;
-}
-#root .camera-right-rail .camera-rail-disc,
-#root .camera-right-rail button {
-  background: transparent !important;
-  background-color: transparent !important;
-  background-image: none !important;
-  border: none !important;
-  box-shadow: none !important;
 }
 .camera-rail-disc {
   position: relative;
