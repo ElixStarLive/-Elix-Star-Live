@@ -734,6 +734,67 @@ export default function EnhancedVideoPlayer({
     return () => document.removeEventListener('visibilitychange', onVisibility);
   }, [muteAllSounds, videoId, _hasMusicTrack, musicVolume]);
 
+  // Pause the active slide when a panel/modal is layered over it (Comments,
+  // Share, More Options, Report, Promote, Likes list, User Profile). Prevents
+  // the video and its music from playing "in the background" while the user
+  // is interacting with something on top of the feed. Resumes on close if the
+  // slide is still the active gate holder.
+  useEffect(() => {
+    if (!isActive) return;
+    const anyPanelOpen =
+      showComments ||
+      showShareModal ||
+      showLikes ||
+      showUserProfile ||
+      showReportModal ||
+      showPromotePanel ||
+      isMoreMenuOpen;
+    const v = videoRef.current;
+    const a = audioRef.current;
+    const d = duetOriginalRef.current;
+    if (anyPanelOpen) {
+      // Invalidate any in-flight async music promise so it can't restart audio.
+      musicPlayGenRef.current += 1;
+      if (v) { try { v.pause(); v.muted = true; v.volume = 0; } catch { void 0; } }
+      if (a) { try { a.pause(); a.muted = true; a.volume = 0; } catch { void 0; } }
+      if (d) { try { d.pause(); d.muted = true; } catch { void 0; } }
+      setIsPlaying(false);
+      return;
+    }
+    if (!shouldPlayRef.current) return;
+    if (!isFeedMediaPlayerActive(videoId)) return;
+    if (v) {
+      if (platform.isAndroid || _hasMusicTrack) {
+        v.muted = true;
+        v.setAttribute('muted', '');
+      } else if (!muteAllSounds) {
+        v.muted = false;
+        v.volume = videoVolume;
+      }
+      void v.play().then(() => setIsPlaying(true)).catch(() => {});
+    }
+    if (a && _hasMusicTrack && !muteAllSounds) {
+      a.muted = false;
+      a.volume = musicVolume;
+      void a.play().catch(() => {});
+    }
+    if (d) void d.play().catch(() => {});
+  }, [
+    showComments,
+    showShareModal,
+    showLikes,
+    showUserProfile,
+    showReportModal,
+    showPromotePanel,
+    isMoreMenuOpen,
+    isActive,
+    videoId,
+    _hasMusicTrack,
+    muteAllSounds,
+    musicVolume,
+    videoVolume,
+  ]);
+
   useEffect(() => {
     if (!muteAllSounds) return;
     setIsMuted(true);
@@ -802,7 +863,7 @@ export default function EnhancedVideoPlayer({
 
     singleTapTimerRef.current = setTimeout(() => {
       singleTapTimerRef.current = null;
-      if (!isActiveRef.current) return;
+      if (!isActiveRef.current || !isFeedMediaPlayerActive(videoId)) return;
       const el = videoRef.current;
       if (shouldUnmuteOnly && el) {
         if (_hasMusicTrack) {
