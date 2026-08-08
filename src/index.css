@@ -48,8 +48,8 @@
        ═══════════════════════════════════════════════════════════════════ */
 
     --elix-bg: #080A0E;
-    /* One full-page transparent panel wash (under writing, over fundal) */
-    --elix-panel-wash: rgba(8, 10, 14, 0.78);
+    /* Transparent under writing — fundal stays visible (no dark box) */
+    --elix-panel-wash: rgba(8, 10, 14, 0);
     --elix-bg-glass: var(--elix-panel-wash);
     --elix-raised: #121419;
     --elix-surface-solid: #121419;
