@@ -40,8 +40,11 @@ export default function SoundPickerPanel({ onClose, onPick }: Props) {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[10050] elix-fundal-glass flex justify-center pointer-events-auto text-white"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      className="fixed inset-0 z-[10050] flex justify-center pointer-events-auto text-white"
+      style={{
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        backgroundColor: 'var(--elix-bg)',
+      }}
       role="dialog"
       aria-modal="true"
       aria-label="Sound"

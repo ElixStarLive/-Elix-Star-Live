@@ -1976,13 +1976,10 @@ body {
   background-image: none;
 }
 
+/* Full-bleed glass host — solid base only (no duplicate full-page fundal) */
 .elix-fundal-glass {
   background-color: var(--elix-bg);
-  background-image: var(--elix-panel-fill);
-  background-size: var(--elix-fundal-size), var(--elix-fundal-size);
-  background-position: var(--elix-fundal-position), var(--elix-fundal-position);
-  background-repeat: no-repeat, no-repeat;
-  background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment);
+  background-image: none;
 }
 
 /* Live room keeps deepest base behind video (no fundal over stream) */
@@ -2192,12 +2189,10 @@ body,
 }
 
 /* App-width containers — panel fundal exactly column width (not full screen) */
-#root .elix-sheet-host > .elix-page-glass,
 #root .app-live-column.elix-full-page-panel,
 #root .app-live-column.elix-page-glass,
 #root .elix-full-page-panel,
 #root .page-above-bottom-nav__inner,
-#root .elix-page-glass,
 #root .elix-panel,
 #root .elix-glass,
 #root .elix-glass-panel,
@@ -2208,7 +2203,9 @@ body,
 #root .elix-home-top-bar .feed-column-width,
 #root nav[aria-label="Main navigation"] .feed-column-width,
 #root .feed-story-strip,
-#root main.feed-column-width {
+#root main.feed-column-width,
+#root .elix-page-glass.max-w-\[480px\],
+#root .app-live-column.elix-page-glass {
   background-color: transparent !important;
   background-image: var(--elix-panel-fill) !important;
   background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
@@ -2218,9 +2215,13 @@ body,
   -webkit-backdrop-filter: none !important;
 }
 
-/* Full-bleed hosts stay clear so fundal is not oversized */
+/* Full-bleed hosts / backdrops — solid only (kill duplicate full-page fundal) */
 #root .elix-app-shell,
-#root .page-above-bottom-nav {
+#root .page-above-bottom-nav,
+#root .elix-fundal-glass,
+#root .elix-sheet-host > .elix-page-glass:not(.app-live-column),
+#root .elix-sheet-host > .absolute.inset-0,
+#root .fixed.inset-0.elix-page-glass {
   background-image: none !important;
   background-color: var(--elix-bg) !important;
 }
