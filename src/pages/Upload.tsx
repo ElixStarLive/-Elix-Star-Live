@@ -212,10 +212,7 @@ export default function Upload() {
   const ZOOM_MIN = 0.5;
   const ZOOM_MAX = 3;
   const ZOOM_STEP = 0.25;
-  /**
-   * Zoom ONLY scales the <video> pixels inside a fixed full-size frame.
-   * Never changes container width/height.
-   */
+  /** Zoom scales video pixels only. Frame stays full size — never half-screen. */
   const handleZoomIn = () => setZoomLevel((z) => Math.min(ZOOM_MAX, Math.round((z + ZOOM_STEP) * 100) / 100));
   const handleZoomOut = () => setZoomLevel((z) => Math.max(ZOOM_MIN, Math.round((z - ZOOM_STEP) * 100) / 100));
   const imageZoomTransform = (() => {
@@ -223,40 +220,16 @@ export default function Upload() {
     const zoom = zoomLevel === 1 ? '' : `scale(${zoomLevel})`;
     return [zoom, mirror].filter(Boolean).join(' ') || undefined;
   })();
-  /** Live camera fit: contain avoids “big head” crop from landscape streams in the phone column. */
-  const [cameraObjectFit, setCameraObjectFit] = useState<'cover' | 'contain'>('contain');
 
   const attachCameraStream = useCallback(async (facing: 'user' | 'environment') => {
-    const videoConstraints: MediaTrackConstraints = {
-      facingMode: { ideal: facing },
-      width: { ideal: 1080 },
-      height: { ideal: 1920 },
-      aspectRatio: { ideal: 9 / 16 },
-    };
-    let stream: MediaStream;
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio: true });
+      return await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: facing },
+        audio: true,
+      });
     } catch {
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints });
-      } catch {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: facing },
-          audio: true,
-        }).catch(() => navigator.mediaDevices.getUserMedia({ video: { facingMode: facing } }));
-      }
+      return navigator.mediaDevices.getUserMedia({ video: { facingMode: facing } });
     }
-    const track = stream.getVideoTracks()[0];
-    if (track) {
-      const s = track.getSettings();
-      const w = s.width || 0;
-      const h = s.height || 0;
-      // Landscape (typical desktop webcam) → contain so face isn’t cropped to a giant head.
-      setCameraObjectFit(w > h ? 'contain' : 'cover');
-    } else {
-      setCameraObjectFit('contain');
-    }
-    return stream;
   }, []);
 
   useEffect(() => {
@@ -423,11 +396,6 @@ export default function Upload() {
           stream = await attachCameraStream('user');
         } catch {
           stream = await navigator.mediaDevices.getUserMedia({ video: true });
-          const track = stream.getVideoTracks()[0];
-          if (track) {
-            const s = track.getSettings();
-            setCameraObjectFit((s.width || 0) > (s.height || 0) ? 'contain' : 'cover');
-          }
         }
 
         if (stream.getVideoTracks().length === 0) {
@@ -1480,7 +1448,7 @@ export default function Upload() {
                       autoPlay
                       playsInline
                       muted
-                      className={`absolute inset-0 w-full h-full z-0 ${cameraObjectFit === 'contain' ? 'object-contain' : 'object-cover'} bg-black ${cameraError ? 'hidden' : ''}`}
+                      className={`absolute inset-0 w-full h-full object-cover z-0 bg-black ${cameraError ? 'hidden' : ''}`}
                       style={{
                         transform: imageZoomTransform,
                         transformOrigin: 'center center',
@@ -1492,13 +1460,13 @@ export default function Upload() {
                 </div>
               ) : (
                 <>
-              {/* Fixed full-frame camera — zoom scales pixels only, never the frame size */}
+              {/* Full-frame camera only — never half-screen */}
               <video
                 ref={videoRef}
                 autoPlay
                 playsInline
                 muted
-                className={`absolute inset-0 w-full h-full z-0 ${cameraObjectFit === 'contain' ? 'object-contain' : 'object-cover'} bg-black ${cameraError ? 'hidden' : ''}`}
+                className={`absolute inset-0 w-full h-full object-cover z-0 bg-black ${cameraError ? 'hidden' : ''}`}
                 style={{
                   transform: imageZoomTransform,
                   transformOrigin: 'center center',
