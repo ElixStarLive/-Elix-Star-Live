@@ -610,10 +610,10 @@ export default function ElixCameraLayout({
             <div className="px-4 pb-4 flex items-center gap-3">
               <button
                 onClick={() => setEnhanceEnabled(prev => !prev)}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all ${
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all border ${
                   enhanceEnabled
-                    ? 'bg-[#E6E9EE] text-white elix-accent'
-                    : 'bg-white/10 text-white/60 border border-white/10'
+                    ? 'bg-black/70 text-[#E6E9EE] border-[#F12C56]'
+                    : 'bg-black/40 text-[#C8CDD5] border-[#D8D9DD]/35'
                 }`}
               >
                 <Star size={10} />
@@ -621,7 +621,7 @@ export default function ElixCameraLayout({
               </button>
               <button
                 onClick={() => { setActiveFilter('none'); setEnhanceEnabled(false); }}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-[#09090B] text-[#F5F5F7] drop-shadow-[0_0_8px_rgba(139, 144, 152,1)] border border-[#D8D9DD]/40"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-black/40 text-[#C8CDD5] border border-[#D8D9DD]/35"
               >
                 <RotateCcw size={10} />
                 Reset All
@@ -659,10 +659,10 @@ export default function ElixCameraLayout({
                   <button
                     key={opt.value}
                     onClick={() => onSpeedChange?.(opt.value)}
-                    className={`flex-1 py-1.5 rounded-full text-xs font-bold transition-all ${
+                    className={`flex-1 py-1.5 rounded-full text-xs font-bold transition-all border ${
                       currentSpeed === opt.value
-                        ? 'bg-[#E6E9EE] text-white elix-accent shadow-lg shadow-[#FFFFFF]/30'
-                        : 'bg-white/10 text-white/60 border border-white/10'
+                        ? 'bg-black/70 text-[#E6E9EE] border-[#F12C56]'
+                        : 'bg-black/40 text-[#C8CDD5] border-[#D8D9DD]/35'
                     }`}
                   >
                     {opt.label}
@@ -792,7 +792,7 @@ export default function ElixCameraLayout({
               </button>
               <button
                 onClick={() => setShowTextInput(false)}
-                className="flex-1 py-2 rounded-xl bg-[#E6E9EE] text-white elix-accent text-xs font-bold"
+                className="flex-1 py-2 rounded-xl bg-black/70 text-[#E6E9EE] border border-[#F12C56] text-xs font-bold"
               >
                 Done
               </button>
