@@ -26,6 +26,13 @@ const JUNK_EXACT = new Set([
   'admin',
   'null',
   'undefined',
+  // Seeded demo brand shells (not real people)
+  'elix star',
+  'elixstar',
+  'elix star live',
+  'elixstarlive',
+  'demo user',
+  'demouser',
 ]);
 
 /** Seeded / ephemeral handle patterns (lt_*, explore*, unique_*, test*, …). */
@@ -33,7 +40,7 @@ const JUNK_HANDLE =
   /^(lt|live|guest|viewer|test|tests|testing|user|demo|sample|fake|unique|explore|explorer|exploring|elixstar|elix_test|qa|bot)([_-]|$)/i;
 
 const JUNK_PHRASE =
-  /\b(test\s*user|john\s*doe|jane\s*doe|dummy|placeholder|fake\s*user)\b/i;
+  /\b(test\s*user|demo\s*user|john\s*doe|jane\s*doe|dummy|placeholder|fake\s*user)\b/i;
 
 export function isGenuineAppUser(username: string, userId = '', displayName = ''): boolean {
   const id = String(userId || '').trim();
