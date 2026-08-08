@@ -510,9 +510,9 @@ export default function Shop() {
               <div key={item.id} className="bg-white/5 rounded-2xl overflow-hidden border border-white/5 relative">
                 <div className="relative">
                   {item.image_url ? (
-                    <img src={item.image_url} alt={item.title} className="w-full aspect-[4/3] object-cover" />
+                    <img src={item.image_url} alt={item.title} className="w-full aspect-square object-cover" />
                   ) : (
-                    <div className="w-full aspect-[4/3] bg-white/5 flex items-center justify-center">
+                    <div className="w-full aspect-square bg-white/5 flex items-center justify-center">
                       <Tag size={28} className="text-white/20" />
                     </div>
                   )}
@@ -562,19 +562,24 @@ export default function Shop() {
                       </>
                     )}
                   </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAddToCart(
+                        { id: item.id, title: item.title, price: item.price, image_url: item.image_url },
+                        isOwn,
+                      );
+                    }}
+                    className="absolute bottom-1.5 left-1.5 z-[2] w-8 h-8 rounded-full bg-black/55 border border-white/10 flex items-center justify-center active:opacity-70"
+                    aria-label="Add to basket"
+                  >
+                    <ShopBasketIcon size={16} className="text-[#F5F5F7]" />
+                  </button>
                 </div>
                 <div className="border-t border-white/15 px-2.5 py-2">
                   <h3 className="text-sm font-bold text-gold-metallic truncate">{item.title}</h3>
                   <p className="text-base font-extrabold text-white mt-0.5">£{item.price.toFixed(2)}</p>
-                </div>
-                <div className="px-2.5 pb-2">
-                  <button
-                    type="button"
-                    onClick={() => handleAddToCart({ id: item.id, title: item.title, price: item.price, image_url: item.image_url }, isOwn)}
-                    className="w-full py-1.5 text-center text-[11px] font-bold text-white active:opacity-70"
-                  >
-                    Add to basket
-                  </button>
                 </div>
               </div>
               );
