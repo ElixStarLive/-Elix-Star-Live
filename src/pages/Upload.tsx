@@ -209,14 +209,14 @@ export default function Upload() {
 
   const { addVideo: _addVideo, fetchVideos } = useVideoStore();
 
-  const ZOOM_MIN = 0.5;
+  const ZOOM_MIN = 1;
   const ZOOM_MAX = 3;
   const ZOOM_STEP = 0.25;
+  /** Zoom in only from full frame. Never scale below 1 — that shrinks the container look. */
   const handleZoomIn = () => setZoomLevel((z) => Math.min(ZOOM_MAX, Math.round((z + ZOOM_STEP) * 100) / 100));
   const handleZoomOut = () => setZoomLevel((z) => Math.max(ZOOM_MIN, Math.round((z - ZOOM_STEP) * 100) / 100));
-  /** Zoom only — no front mirror (true image, same as back — not flipped selfie). */
   const zoomWrapperStyle: React.CSSProperties = {
-    transform: zoomLevel === 1 ? undefined : `scale(${zoomLevel})`,
+    transform: zoomLevel <= 1 ? undefined : `scale(${Math.min(ZOOM_MAX, zoomLevel)})`,
     transformOrigin: 'center center',
     transition: 'transform 0.2s ease-out',
   };

@@ -403,9 +403,11 @@ export default function Create() {
     } catch { showToastMsg('Flash not supported'); }
   };
 
-  /** Soft zoom — same on front and back: scale image inside fixed container. */
+  /** Soft zoom — clamp at full frame (1). Never scale below 1 (shrinks container look). */
+  const ZOOM_MIN = 1;
+  const ZOOM_MAX = 3;
   const applyZoom = (newZoom: number) => {
-    setZoomLevel(Math.max(0.5, Math.min(newZoom, 3)));
+    setZoomLevel(Math.max(ZOOM_MIN, Math.min(newZoom, ZOOM_MAX)));
   };
 
   const handleZoomIn = () => applyZoom(zoomLevel + 0.5);
@@ -426,7 +428,7 @@ export default function Create() {
       const dy = e.touches[0].clientY - e.touches[1].clientY;
       const dist = Math.sqrt(dx * dx + dy * dy);
       const scale = dist / pinchStartDistRef.current;
-      const newZoom = Math.max(0.5, Math.min(pinchStartZoomRef.current * scale, 3));
+      const newZoom = Math.max(ZOOM_MIN, Math.min(pinchStartZoomRef.current * scale, ZOOM_MAX));
       applyZoom(parseFloat(newZoom.toFixed(1)));
     }
   };
@@ -663,7 +665,7 @@ export default function Create() {
               <div
                 className="absolute inset-0"
                 style={{
-                  transform: zoomLevel === 1 ? undefined : `scale(${zoomLevel})`,
+                  transform: zoomLevel <= 1 ? undefined : `scale(${Math.min(3, zoomLevel)})`,
                   transformOrigin: 'center center',
                   transition: 'transform 0.2s ease-out',
                 }}
