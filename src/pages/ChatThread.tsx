@@ -348,7 +348,7 @@ export default function ChatThread() {
       className="fixed inset-0 flex flex-col w-full max-w-[480px] mx-auto bg-transparent text-white z-[1]"
       style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
     >
-        <header className="flex-shrink-0 flex items-center gap-2 px-3 py-2.5 border-b border-white/10 bg-transparent">
+        <header className="flex-shrink-0 flex items-center gap-2 px-3 py-2.5 bg-transparent">
           <div className="flex w-11 shrink-0 items-center justify-start">
             {otherUser && (
               <button
@@ -366,17 +366,10 @@ export default function ChatThread() {
             <button
               type="button"
               onClick={() => openProfile(otherUser.user_id)}
-              className="flex min-w-0 flex-1 items-center justify-center gap-2.5 active:opacity-90"
+              className="min-w-0 flex-1 active:opacity-90"
               aria-label={`Open ${otherUser.username}'s profile`}
             >
-              <LevelBadge
-                level={otherUser.level || 1}
-                avatar={otherUser.avatar_url || ''}
-                name={otherUser.username}
-                layout="fixed"
-                circleSize={36}
-              />
-              <span className="truncate max-w-[55%] text-center font-bold text-sm text-[#F5F5F7]">
+              <span className="block truncate text-center font-bold text-sm text-[#F5F5F7]">
                 {otherUser.username}
               </span>
             </button>
@@ -395,6 +388,27 @@ export default function ChatThread() {
             </button>
           </div>
         </header>
+
+        {otherUser && (
+          <div className="flex-shrink-0 flex justify-center px-3 pb-2">
+            <button
+              type="button"
+              onClick={() => openProfile(otherUser.user_id)}
+              className="active:opacity-90"
+              aria-label={`Open ${otherUser.username}'s profile`}
+            >
+              <LevelBadge
+                level={otherUser.level || 1}
+                avatar={otherUser.avatar_url || ''}
+                name={otherUser.username}
+                layout="fixed"
+                circleSize={36}
+              />
+            </button>
+          </div>
+        )}
+
+        <div className="mx-4 border-t border-[#D8D9DD]/45 flex-shrink-0" aria-hidden />
 
         {liveUsers.length > 0 && (
           <div className="flex-shrink-0 border-b border-white/10 bg-transparent">
