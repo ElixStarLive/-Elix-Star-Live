@@ -551,9 +551,9 @@ export default function Shop() {
                     <button
                       type="button"
                       onClick={() => handleRemoveFromCart(item.id)}
-                      className="w-full py-1.5 text-center text-[11px] font-bold text-white active:opacity-70"
+                      className="w-full py-1.5 text-center text-[11px] font-bold text-red-400 active:opacity-70"
                     >
-                      Remove from basket
+                      Delete
                     </button>
                   ) : (
                     <button
@@ -708,10 +708,10 @@ export default function Shop() {
                           <button
                             type="button"
                             onClick={() => handleRemoveFromCart(ci.id)}
-                            className="p-1.5 rounded-full bg-white/5 border border-white/10"
-                            aria-label={`Remove ${ci.title}`}
+                            className="px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[11px] font-bold text-red-400 active:opacity-70"
+                            aria-label={`Delete ${ci.title}`}
                           >
-                            <X size={14} className="text-white/70" />
+                            Delete
                           </button>
                         </div>
                       ))}
