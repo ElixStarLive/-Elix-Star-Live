@@ -4,14 +4,17 @@ import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { AvatarRing } from '../components/AvatarRing';
+import { isPasswordResetEnabled } from '../lib/authFeatures';
 
 export default function CreatorLoginDetails() {
   const navigate = useNavigate();
   const { user, signInWithPassword, signUpWithPassword, signOut, resendSignupConfirmation } = useAuthStore();
   const [saveDetails, setSaveDetails] = useState(false);
+  const showPasswordReset = isPasswordResetEnabled();
 
   const goBack = useCallback(() => navigate(-1), [navigate]);
   const goProfile = useCallback(() => navigate('/profile', { replace: true }), [navigate]);
+  const goForgotPassword = useCallback(() => navigate('/forgot-password'), [navigate]);
 
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   // Force signin mode if users shouldn't create accounts here
@@ -428,6 +431,25 @@ export default function CreatorLoginDetails() {
               <label htmlFor="save-login" className="text-xs text-white/60 cursor-pointer select-none">Save login info</label>
             </div>
 
+            {showPasswordReset ? (
+              <div className="flex flex-col gap-1.5 pt-1">
+                <button
+                  type="button"
+                  onClick={goForgotPassword}
+                  className="text-left text-xs text-white/60 hover:text-white hover:underline"
+                >
+                  Reset password
+                </button>
+                <button
+                  type="button"
+                  onClick={goForgotPassword}
+                  className="text-left text-xs text-white/60 hover:text-white hover:underline"
+                >
+                  Recover account
+                </button>
+              </div>
+            ) : null}
+
             {error && <div className="text-xs text-rose-300">{error}</div>}
             {info && <div className="text-xs text-white/70">{info}</div>}
 
@@ -524,6 +546,25 @@ export default function CreatorLoginDetails() {
               </div>
               <label htmlFor="save-login-user" className="text-xs text-white/60 cursor-pointer select-none">Save login info</label>
             </div>
+
+            {showPasswordReset ? (
+              <div className="flex flex-col gap-1.5 pt-1">
+                <button
+                  type="button"
+                  onClick={goForgotPassword}
+                  className="text-left text-xs text-white/60 hover:text-white hover:underline"
+                >
+                  Reset password
+                </button>
+                <button
+                  type="button"
+                  onClick={goForgotPassword}
+                  className="text-left text-xs text-white/60 hover:text-white hover:underline"
+                >
+                  Recover account
+                </button>
+              </div>
+            ) : null}
 
             <button
               className="w-full bg-transparent10 border border-white/10 rounded-xl py-3 text-sm font-semibold hover:bg-white/5 transition-colors"
