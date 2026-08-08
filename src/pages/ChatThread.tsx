@@ -7,8 +7,9 @@ import { fetchThreadMessages, sendThreadMessage } from '../lib/chatMessages';
 import { apiListChatThreads, apiMarkThreadRead } from '../features/chat/chatApi';
 import { websocket } from '../lib/websocket';
 import { AvatarRing } from '../components/AvatarRing';
+import { LevelBadge } from '../components/LevelBadge';
 import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
-import { CHAT_PROFILE_RING_PX } from '../lib/profileFrame';
+import { CHAT_LEVEL_PILL_SIZE_PX, CHAT_PROFILE_RING_PX } from '../lib/profileFrame';
 import { initiateCall } from '../lib/callService';
 import { showToast } from '../lib/toast';
 import { getVideoPosterUrl } from '../lib/bunnyStorage';
@@ -364,6 +365,11 @@ export default function ChatThread() {
                 src={otherUser.avatar_url || ''}
                 alt={otherUser.username}
                 size={CHAT_PROFILE_RING_PX}
+              />
+              <LevelBadge
+                level={otherUser.level || 1}
+                size={CHAT_LEVEL_PILL_SIZE_PX}
+                hideCircle
               />
               <span className="min-w-0 truncate text-left font-bold text-sm text-[#F5F5F7]">
                 {otherUser.username}
