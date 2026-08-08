@@ -150,8 +150,9 @@ export default function MusicFeed() {
   }, [headerTrack]);
 
   const selectPlaylist = useCallback((playlistId: string) => {
+    stopLibraryPlayer();
     setActivePlaylistId(playlistId);
-  }, []);
+  }, [stopLibraryPlayer]);
 
   const openTrack = useCallback(
     (trackId: string) => {

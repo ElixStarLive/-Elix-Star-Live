@@ -37,7 +37,7 @@ function isHlsUrl(url: string): boolean {
 
 const hlsByAudio = new WeakMap<HTMLAudioElement, Hls>();
 
-/** Tear down any HLS instance attached to this audio element. */
+/** Tear down any HLS instance attached to this audio element and silence it. */
 export function stopSoundPreview(audio: HTMLAudioElement | null | undefined): void {
   if (!audio) return;
   try {
@@ -53,6 +53,13 @@ export function stopSoundPreview(audio: HTMLAudioElement | null | undefined): vo
       /* ignore */
     }
     hlsByAudio.delete(audio);
+  }
+  try {
+    audio.removeAttribute("src");
+    // Clear MediaSource / residual buffer so nothing keeps audibling after leave.
+    audio.load();
+  } catch {
+    /* ignore */
   }
 }
 
@@ -141,17 +148,21 @@ export async function playAudioClip(
   audio: HTMLAudioElement,
   src: string,
   clipStartSeconds = 0,
+  isCancelled?: () => boolean,
 ): Promise<void> {
   if (!src) throw new Error("no_audio_src");
+  if (isCancelled?.()) {
+    stopSoundPreview(audio);
+    throw new Error("cancelled");
+  }
 
   if (isHlsUrl(src)) {
     await attachHls(audio, src);
   } else {
     stopSoundPreview(audio);
+    if (isCancelled?.()) throw new Error("cancelled");
     audio.pause();
-    if (audio.src !== src) {
-      audio.src = src;
-    }
+    audio.src = src;
     audio.load();
 
     await new Promise<void>((resolve, reject) => {
@@ -174,11 +185,20 @@ export async function playAudioClip(
     });
   }
 
+  if (isCancelled?.()) {
+    stopSoundPreview(audio);
+    throw new Error("cancelled");
+  }
+
   const start = Math.max(0, clipStartSeconds || 0);
   try {
     if (Number.isFinite(start) && start > 0) audio.currentTime = start;
   } catch {
     /* ignore seek errors */
+  }
+  if (isCancelled?.()) {
+    stopSoundPreview(audio);
+    throw new Error("cancelled");
   }
   await audio.play();
 }

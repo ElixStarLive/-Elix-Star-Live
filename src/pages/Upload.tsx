@@ -6,6 +6,7 @@ import { RefreshCw, Zap, Clock, Music, Check, RotateCcw, ZoomIn, ZoomOut, Wand2,
 import { useVideoStore } from '../store/useVideoStore';
 import {
   resolvePlayableSoundUrl,
+  stopSoundPreview,
   type SoundTrack,
 } from '../lib/soundLibrary';
 import SoundPickerPanel from '../components/SoundPickerPanel';
@@ -172,19 +173,12 @@ export default function Upload() {
 
   const handleSelectMusic = (track: SoundTrack) => {
     if (previewAudioRef.current) {
-      try {
-        previewAudioRef.current.pause();
-        previewAudioRef.current.src = '';
-      } catch {
-        /* ignore */
-      }
+      stopSoundPreview(previewAudioRef.current);
+      previewAudioRef.current = null;
     }
     if (backgroundAudioRef.current) {
-      try {
-        backgroundAudioRef.current.pause();
-      } catch {
-        /* ignore */
-      }
+      stopSoundPreview(backgroundAudioRef.current);
+      backgroundAudioRef.current = null;
     }
     if (!track?.id || track.id === 'original' || track.id === '0') {
       setSelectedTrack(null);
@@ -204,11 +198,8 @@ export default function Upload() {
   useEffect(() => {
     if (!showMusicModal) return;
     if (backgroundAudioRef.current) {
-      try {
-        backgroundAudioRef.current.pause();
-      } catch {
-        /* ignore */
-      }
+      stopSoundPreview(backgroundAudioRef.current);
+      backgroundAudioRef.current = null;
     }
   }, [showMusicModal]);
 
@@ -431,8 +422,16 @@ export default function Upload() {
   };
 
   // Audio Preview Logic for Recorded Video — resolve signed Epidemic URL (no 302).
+  // Only while editing a clip on Upload (create flow). Must stop when leaving Upload.
   useEffect(() => {
       let cancelled = false;
+      const killBg = () => {
+        const a = backgroundAudioRef.current;
+        if (!a) return;
+        stopSoundPreview(a);
+        backgroundAudioRef.current = null;
+      };
+
       const shouldPlayTrack =
         !!recordedVideoUrl &&
         !muteAllSounds &&
@@ -440,23 +439,17 @@ export default function Upload() {
         selectedAudioId.startsWith('track_');
 
       if (!shouldPlayTrack) {
-        if (backgroundAudioRef.current) {
-          try { backgroundAudioRef.current.pause(); } catch { /* ignore */ }
-        }
+        killBg();
         return;
       }
 
       const track = selectedTrack;
       if (!track?.url) {
-        if (backgroundAudioRef.current) {
-          try { backgroundAudioRef.current.pause(); } catch { /* ignore */ }
-        }
+        killBg();
         return;
       }
 
-      if (backgroundAudioRef.current) {
-        try { backgroundAudioRef.current.pause(); } catch { /* ignore */ }
-      }
+      killBg();
 
       const start = Math.max(0, track.clipStartSeconds || 0);
       const end = Math.max(start, track.clipEndSeconds || start + 30);
@@ -473,6 +466,7 @@ export default function Upload() {
         audio.volume = Math.max(0, Math.min(1, musicVolume));
         audio.src = playable;
         audio.ontimeupdate = () => {
+          if (cancelled) return;
           if (end > start && audio.currentTime >= end) {
             audio.currentTime = start;
             void audio.play().catch(() => {});
@@ -480,7 +474,10 @@ export default function Upload() {
         };
         backgroundAudioRef.current = audio;
         const onReady = () => {
-          if (cancelled) return;
+          if (cancelled) {
+            stopSoundPreview(audio);
+            return;
+          }
           try { audio.currentTime = start; } catch { /* ignore */ }
           void audio.play().catch(() => {
             if (!cancelled) showToast('Tap video to hear sound');
@@ -492,9 +489,7 @@ export default function Upload() {
 
       return () => {
         cancelled = true;
-        if (backgroundAudioRef.current) {
-          try { backgroundAudioRef.current.pause(); } catch { /* ignore */ }
-        }
+        killBg();
       };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [muteAllSounds, postWithoutAudio, recordedVideoUrl, selectedAudioId, selectedTrack]);

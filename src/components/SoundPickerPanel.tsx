@@ -107,8 +107,8 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
       const clip = clipRef.current;
       if (!clip) return;
       if (clip.end > clip.start && a.currentTime >= clip.end) {
-        a.currentTime = clip.start;
-        void a.play().catch(() => {});
+        // Preview once — stop at clip end (do not keep looping after listen).
+        stopPreview();
       }
     };
     a.addEventListener('timeupdate', onTimeUpdate);
@@ -138,14 +138,13 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
 
     const gen = ++previewGenRef.current;
     setPreviewLoadingId(track.id);
-    try {
-      a.pause();
-    } catch {
-      /* ignore */
-    }
+    stopSoundPreview(a);
 
     const playable = await resolvePlayableSoundUrl(track.url || '');
-    if (gen !== previewGenRef.current) return;
+    if (gen !== previewGenRef.current) {
+      stopSoundPreview(a);
+      return;
+    }
     if (!playable) {
       setPreviewLoadingId(null);
       setPreviewError('Preview unavailable for this track');
@@ -156,12 +155,18 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
     const end = Math.max(start, track.clipEndSeconds || start + 30);
     clipRef.current = { start, end };
     try {
-      await playAudioClip(a, playable, start);
-      if (gen !== previewGenRef.current) return;
+      await playAudioClip(a, playable, start, () => gen !== previewGenRef.current);
+      if (gen !== previewGenRef.current) {
+        stopPreview();
+        return;
+      }
       setPlayingId(track.id);
       setPreviewLoadingId(null);
-    } catch {
-      if (gen !== previewGenRef.current) return;
+    } catch (err) {
+      if (gen !== previewGenRef.current || (err instanceof Error && err.message === 'cancelled')) {
+        stopPreview();
+        return;
+      }
       clipRef.current = null;
       setPlayingId(null);
       setPreviewLoadingId(null);

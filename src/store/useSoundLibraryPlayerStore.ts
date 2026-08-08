@@ -9,8 +9,8 @@ import { showToast } from '../lib/toast';
 import { useSettingsStore } from './useSettingsStore';
 
 /**
- * Sound Library preview player — one track only.
- * Must stop when leaving the Sound page (For You / anywhere else).
+ * Sound Library (/music) preview only.
+ * Plays when the user taps play. Stops on leave — never continues on For You.
  */
 
 let audioEl: HTMLAudioElement | null = null;
@@ -32,32 +32,21 @@ function ensureAudio(): HTMLAudioElement {
   return audioEl;
 }
 
+function hardStopAudio() {
+  clipRange = null;
+  if (audioEl) stopSoundPreview(audioEl);
+}
+
 function onTimeUpdate() {
   if (!audioEl || !clipRange) return;
   if (audioEl.currentTime >= clipRange.end) {
-    // Loop this track’s clip only — never advance to other songs.
-    try {
-      audioEl.currentTime = clipRange.start;
-      void audioEl.play().catch(() => {});
-    } catch {
-      useSoundLibraryPlayerStore.getState().stop();
-    }
+    // One preview pass only — do not loop or queue other tracks.
+    useSoundLibraryPlayerStore.getState().stop();
   }
 }
 
 function onEnded() {
-  if (!audioEl || !clipRange) {
-    useSoundLibraryPlayerStore.getState().stop();
-    return;
-  }
-  try {
-    audioEl.currentTime = clipRange.start;
-    void audioEl.play().catch(() => {
-      useSoundLibraryPlayerStore.getState().stop();
-    });
-  } catch {
-    useSoundLibraryPlayerStore.getState().stop();
-  }
+  useSoundLibraryPlayerStore.getState().stop();
 }
 
 async function startTrack(track: SoundTrack): Promise<void> {
@@ -69,7 +58,8 @@ async function startTrack(track: SoundTrack): Promise<void> {
   const a = ensureAudio();
   const gen = ++playGen;
   clipRange = null;
-  useSoundLibraryPlayerStore.setState({ loadingId: track.id });
+  hardStopAudio();
+  useSoundLibraryPlayerStore.setState({ loadingId: track.id, playingId: null });
 
   const sourceUrl =
     (track.url && track.url.trim()) ||
@@ -81,7 +71,10 @@ async function startTrack(track: SoundTrack): Promise<void> {
   }
 
   const playable = await resolvePlayableSoundUrl(sourceUrl);
-  if (gen !== playGen) return;
+  if (gen !== playGen) {
+    hardStopAudio();
+    return;
+  }
   if (!playable) {
     useSoundLibraryPlayerStore.setState({ loadingId: null, playingId: null });
     showToast('Preview unavailable for this track');
@@ -91,13 +84,21 @@ async function startTrack(track: SoundTrack): Promise<void> {
   const start = Math.max(0, track.clipStartSeconds || 0);
   const end = Math.max(start + 5, track.clipEndSeconds || start + 60);
   try {
-    await playAudioClip(a, playable, start);
-    if (gen !== playGen) return;
+    await playAudioClip(a, playable, start, () => gen !== playGen);
+    if (gen !== playGen) {
+      hardStopAudio();
+      return;
+    }
     clipRange = { start, end };
     useSoundLibraryPlayerStore.setState({ playingId: track.id, loadingId: null });
-  } catch {
-    if (gen !== playGen) return;
+  } catch (err) {
+    if (gen !== playGen || (err instanceof Error && err.message === 'cancelled')) {
+      hardStopAudio();
+      useSoundLibraryPlayerStore.setState({ playingId: null, loadingId: null });
+      return;
+    }
     clipRange = null;
+    hardStopAudio();
     useSoundLibraryPlayerStore.setState({ playingId: null, loadingId: null });
     showToast('Could not play — tap play again');
   }
@@ -116,8 +117,7 @@ export const useSoundLibraryPlayerStore = create<SoundLibraryPlayerState>((set, 
 
   stop: () => {
     playGen += 1;
-    clipRange = null;
-    if (audioEl) stopSoundPreview(audioEl);
+    hardStopAudio();
     set({ playingId: null, loadingId: null });
   },
 

@@ -23,6 +23,7 @@ import { IncomingCallModal } from "./components/IncomingCallModal";
 import { LiveNotifyBanner } from "./components/LiveNotifyBanner";
 import { subscribeToIncomingCalls } from "./lib/callService";
 import { websocket } from "./lib/websocket";
+import { useSoundLibraryPlayerStore } from "./store/useSoundLibraryPlayerStore";
 
 
 // Lazy-loaded page components for code splitting
@@ -289,6 +290,13 @@ function App() {
     return () =>
       document.removeEventListener("visibilitychange", handleVisibility);
   }, []);
+
+  // Sound library preview must never leak onto For You / other pages.
+  useEffect(() => {
+    if (!location.pathname.startsWith("/music")) {
+      useSoundLibraryPlayerStore.getState().stop();
+    }
+  }, [location.pathname]);
 
   // Back button handled by useDeepLinks hook in deepLinks.ts
 
