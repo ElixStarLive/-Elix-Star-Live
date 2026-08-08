@@ -1755,15 +1755,7 @@ svg.lucide,
   stroke: #E8EAED !important;
 }
 
-/* Add sound pill: fundal capsule; Music glyph only — no round black disc on the icon */
-#root .elix-sound-pill {
-  background-color: var(--elix-bg) !important;
-  background-image: var(--elix-page-fill) !important;
-  background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
-  background-position: var(--elix-fundal-position), var(--elix-fundal-position) !important;
-  background-repeat: no-repeat, no-repeat !important;
-  background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment) !important;
-}
+/* Add sound pill: capsule fill stays; strip round black disc from Music icon only */
 #root .elix-sound-pill svg.lucide,
 #root button[title="Add sound"] svg.lucide {
   padding: 0 !important;
@@ -1905,6 +1897,12 @@ svg.lucide.fill-silver-full.royce-icon-gold {
   background: transparent !important;
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
+}
+/* Right rail glyphs only — smaller; do not move layout */
+.camera-right-rail svg.lucide,
+.camera-right-rail .camera-rail-icon {
+  width: 14px !important;
+  height: 14px !important;
 }
 .camera-rail-disc {
   position: relative;

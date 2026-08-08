@@ -771,6 +771,7 @@ export default function Create() {
                 type="button"
                 onClick={openSoundMixPanel}
                 className="elix-sound-pill flex items-center gap-1 max-w-[58%] h-[26px] px-2.5 rounded-full border border-[#D8D9DD]/40"
+                style={{ background: 'rgba(0, 0, 0, 0.55)' }}
                 title={selectedSound?.title || 'Add sound'}
               >
                 <Music size={10} className="text-[#F5F5F7] shrink-0" strokeWidth={2} />
