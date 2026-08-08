@@ -38,6 +38,7 @@ export default function Upload() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const cameraFacingRef = useRef<'user' | 'environment'>('user');
+  const [cameraFacing, setCameraFacing] = useState<'user' | 'environment'>('user');
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [chunks, setChunks] = useState<Blob[]>([]);
@@ -211,10 +212,13 @@ export default function Upload() {
   const ZOOM_MIN = 0.5;
   const ZOOM_MAX = 3;
   const ZOOM_STEP = 0.25;
-  /** Zoom scales the image inside a fixed full-size container (does not resize the frame). */
+  /** Soft zoom — same front/back: scale image inside fixed container. Front mirrors only. */
   const handleZoomIn = () => setZoomLevel((z) => Math.min(ZOOM_MAX, Math.round((z + ZOOM_STEP) * 100) / 100));
   const handleZoomOut = () => setZoomLevel((z) => Math.max(ZOOM_MIN, Math.round((z - ZOOM_STEP) * 100) / 100));
-  const imageZoomTransform = `scale(${zoomLevel}) scaleX(-1)`;
+  const imageZoomTransform =
+    cameraFacing === 'user'
+      ? `scale(${zoomLevel}) scaleX(-1)`
+      : `scale(${zoomLevel})`;
 
   useEffect(() => {
     const el = mediaWrapRef.current;
@@ -1586,6 +1590,8 @@ export default function Upload() {
                           await videoRef.current.play();
                         }
                         cameraFacingRef.current = newFacing;
+                        setCameraFacing(newFacing);
+                        setZoomLevel(1);
                       } catch { showToast('Cannot flip camera'); }
                     }}
                       title="Flip Camera"

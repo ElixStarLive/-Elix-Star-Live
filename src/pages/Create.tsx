@@ -64,7 +64,6 @@ export default function Create() {
   const [flashEnabled, setFlashEnabled] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [_isLandscapeStream, setIsLandscapeStream] = useState(false);
-  const [hwZoomRange, setHwZoomRange] = useState<{ min: number; max: number } | null>(null);
   const [retryCamera, setRetryCamera] = useState(0);
 
   // ─── Compose editor (filters / effects / text / stickers) ───
@@ -150,11 +149,6 @@ export default function Create() {
         const track = videoTracks[0];
         const settings = track.getSettings();
         setIsLandscapeStream((settings.width || 0) > (settings.height || 0));
-        try {
-          const caps = track.getCapabilities?.() as { zoom?: { min: number; max: number } };
-          if (caps?.zoom) { setHwZoomRange({ min: caps.zoom.min, max: caps.zoom.max }); await track.applyConstraints({ advanced: [{ zoom: caps.zoom.min } as unknown as MediaTrackConstraintSet] }); }
-          else { setHwZoomRange(null); }
-        } catch { setHwZoomRange(null); }
 
         if (videoRef.current) {
           videoRef.current.srcObject = nextStream;
@@ -406,27 +400,14 @@ export default function Create() {
     } catch { showToastMsg('Flash not supported'); }
   };
 
-  const applyZoom = async (newZoom: number) => {
-    const stream = streamRef.current;
-    if (!stream) return;
-    const track = stream.getVideoTracks()[0];
-    if (!track) return;
-    try {
-      const caps = track.getCapabilities?.() as { zoom?: { min: number; max: number } };
-      if (caps?.zoom) {
-        const clamped = Math.max(caps.zoom.min, Math.min(newZoom, caps.zoom.max));
-        await track.applyConstraints({ advanced: [{ zoom: clamped } as unknown as MediaTrackConstraintSet] });
-        setZoomLevel(clamped);
-        return;
-      }
-    } catch { /* fallback */ }
-    // Soft zoom = scale image inside fixed container
+  /** Soft zoom — same on front and back: scale image inside fixed container. */
+  const applyZoom = (newZoom: number) => {
     setZoomLevel(Math.max(0.5, Math.min(newZoom, 3)));
   };
 
-  const handleZoomIn = async () => await applyZoom(zoomLevel + 0.5);
-  const handleZoomOut = async () => await applyZoom(Math.max(zoomLevel - 0.5, hwZoomRange?.min ?? 0.5));
-  const handleZoomReset = async () => { await applyZoom(hwZoomRange?.min ?? 1); showToastMsg('Zoom reset'); };
+  const handleZoomIn = () => applyZoom(zoomLevel + 0.5);
+  const handleZoomOut = () => applyZoom(zoomLevel - 0.5);
+  const handleZoomReset = () => { applyZoom(1); showToastMsg('Zoom reset'); };
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 2) {
@@ -436,16 +417,14 @@ export default function Create() {
       pinchStartZoomRef.current = zoomLevel;
     }
   };
-  const handleTouchMove = async (e: React.TouchEvent) => {
+  const handleTouchMove = (e: React.TouchEvent) => {
     if (e.touches.length === 2 && pinchStartDistRef.current !== null) {
       const dx = e.touches[0].clientX - e.touches[1].clientX;
       const dy = e.touches[0].clientY - e.touches[1].clientY;
       const dist = Math.sqrt(dx * dx + dy * dy);
       const scale = dist / pinchStartDistRef.current;
-      const maxZoom = hwZoomRange?.max ?? 3;
-      const minZoom = hwZoomRange?.min ?? 0.5;
-      const newZoom = Math.max(minZoom, Math.min(pinchStartZoomRef.current * scale, maxZoom));
-      await applyZoom(parseFloat(newZoom.toFixed(1)));
+      const newZoom = Math.max(0.5, Math.min(pinchStartZoomRef.current * scale, 3));
+      applyZoom(parseFloat(newZoom.toFixed(1)));
     }
   };
   const handleTouchEnd = () => { pinchStartDistRef.current = null; };
@@ -688,8 +667,8 @@ export default function Create() {
                 poster={LIVE_VIDEO_TRANSPARENT_POSTER}
                 style={{
                   transform: isFrontCamera
-                    ? (hwZoomRange ? 'scaleX(-1)' : `scale(${zoomLevel}) scaleX(-1)`)
-                    : (hwZoomRange ? undefined : `scale(${zoomLevel})`),
+                    ? `scale(${zoomLevel}) scaleX(-1)`
+                    : `scale(${zoomLevel})`,
                   transformOrigin: 'center center',
                   transition: 'transform 0.2s ease-out',
                 }}
