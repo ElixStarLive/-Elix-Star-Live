@@ -93,6 +93,26 @@ export function stopAllSoundPreviews(): void {
 }
 
 /**
+ * Nuclear silence — library previews, detached Audio, every DOM `<audio>`, and mute/pause every `<video>`.
+ * Used when leaving Sound so nothing (video soundtrack or anything else) keeps playing.
+ */
+export function silenceAllHtmlMedia(): void {
+  stopAllSoundPreviews();
+  if (typeof document === "undefined") return;
+  document.querySelectorAll("audio").forEach((el) => {
+    stopSoundPreview(el);
+  });
+  document.querySelectorAll("video").forEach((el) => {
+    try {
+      el.pause();
+      el.muted = true;
+    } catch {
+      /* ignore */
+    }
+  });
+}
+
+/**
  * Resolve a URL that `<audio>` / HLS can play.
  * Asks the server for the Epidemic upstream URL (MP3 or HLS).
  */

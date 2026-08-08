@@ -23,7 +23,7 @@ import { IncomingCallModal } from "./components/IncomingCallModal";
 import { LiveNotifyBanner } from "./components/LiveNotifyBanner";
 import { subscribeToIncomingCalls } from "./lib/callService";
 import { websocket } from "./lib/websocket";
-import { stopAllSoundPreviews } from "./lib/soundLibrary";
+import { silenceAllHtmlMedia } from "./lib/soundLibrary";
 import { useSoundLibraryPlayerStore } from "./store/useSoundLibraryPlayerStore";
 
 
@@ -292,20 +292,20 @@ function App() {
       document.removeEventListener("visibilitychange", handleVisibility);
   }, []);
 
-  // Sound library preview must never leak onto For You / other pages.
+  // Sound library / any leftover media must never keep playing after leaving Sound.
   useEffect(() => {
     if (!location.pathname.startsWith("/music")) {
       useSoundLibraryPlayerStore.getState().stop();
-      stopAllSoundPreviews();
+      silenceAllHtmlMedia();
     }
   }, [location.pathname]);
 
-  // Also kill library audio if app backgrounds while not on Sound.
+  // Also kill media if app backgrounds while not on Sound.
   useEffect(() => {
     const killIfLeftSound = () => {
       if (!window.location.pathname.startsWith("/music")) {
         useSoundLibraryPlayerStore.getState().stop();
-        stopAllSoundPreviews();
+        silenceAllHtmlMedia();
       }
     };
     document.addEventListener("visibilitychange", killIfLeftSound);

@@ -12,6 +12,7 @@ import {
   type SoundTrack,
 } from '../lib/soundLibrary';
 import { useSoundLibraryPlayerStore } from '../store/useSoundLibraryPlayerStore';
+import { silenceAllHtmlMedia } from '../lib/soundLibrary';
 
 function formatClip(start: number, end: number) {
   const total = Math.max(0, Math.floor(end - start));
@@ -102,10 +103,11 @@ export default function MusicFeed() {
     return pl?.tracks ?? [];
   }, [search, searchResults, playlists, activePlaylistId]);
 
-  // Always stop library sound when leaving Sound (For You / anywhere else).
+  // Always stop library + any HTML media when leaving Sound (For You / anywhere else).
   useEffect(() => {
     return () => {
       useSoundLibraryPlayerStore.getState().stop();
+      silenceAllHtmlMedia();
     };
   }, []);
 
@@ -131,6 +133,7 @@ export default function MusicFeed() {
 
   const goBack = useCallback(() => {
     stopLibraryPlayer();
+    silenceAllHtmlMedia();
     navigate(-1);
   }, [navigate, stopLibraryPlayer]);
 

@@ -35,7 +35,7 @@ import { api } from '../lib/apiClient';
 import { nativeConfirm } from './NativeDialog';
 import { downloadVideoWithoutMusic } from '../lib/videoDownloadClient';
 import { getVideoPosterUrl } from '../lib/bunnyStorage';
-import { resolvePlayableSoundUrl, resolveSoundTrackPlaybackUrl } from '../lib/soundLibrary';
+import { resolvePlayableSoundUrl, resolveSoundTrackPlaybackUrl, stopSoundPreview } from '../lib/soundLibrary';
 import { StoryGoldRingAvatar } from './StoryGoldRingAvatar';
 import {
   SHARE_PANEL_ACTION_DISC_PX,
@@ -130,6 +130,7 @@ export default function EnhancedVideoPlayer({
   const duetOriginalRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const musicClipRef = useRef<{ start: number; end: number } | null>(null);
+  const musicPlayGenRef = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const progressTrackRef = useRef<HTMLDivElement>(null);
   const isActiveRef = useRef(isActive);
@@ -357,11 +358,12 @@ export default function EnhancedVideoPlayer({
     const a = audioRef.current;
     if (!a) return;
     const onTimeUpdate = () => {
+      if (!shouldPlayRef.current) return;
       const clip = musicClipRef.current;
       if (!clip || clip.end <= clip.start) return;
       if (a.currentTime >= clip.end) {
         a.currentTime = clip.start;
-        if (!a.paused && !a.muted) {
+        if (!a.paused && !a.muted && shouldPlayRef.current) {
           a.play().catch(() => {});
         }
       }
@@ -377,10 +379,12 @@ export default function EnhancedVideoPlayer({
     /** Hard-stop helper — mutes and pauses every media element this player owns */
     const stopAll = () => {
       shouldPlayRef.current = false;
+      musicPlayGenRef.current += 1;
+      musicClipRef.current = null;
       const v = videoRef.current;
       if (v) { try { v.pause(); v.muted = true; } catch { void 0; } }
       const a = audioRef.current;
-      if (a) { try { a.pause(); a.muted = true; a.currentTime = 0; } catch { void 0; } }
+      if (a) stopSoundPreview(a);
       const d = duetOriginalRef.current;
       if (d) { try { d.pause(); d.muted = true; } catch { void 0; } }
     };
@@ -529,27 +533,32 @@ export default function EnhancedVideoPlayer({
         audio.muted = muteAllSounds;
         audio.volume = musicVolume;
         if (!muteAllSounds) {
+          const musicGen = ++musicPlayGenRef.current;
           void (async () => {
             const previewSrc =
               (await resolvePlayableSoundUrl(video.music.previewUrl || '')) ||
               resolveSoundTrackPlaybackUrl(video.music.previewUrl || '');
-            if (!previewSrc || !shouldPlayRef.current) return;
+            if (
+              !previewSrc ||
+              !shouldPlayRef.current ||
+              musicGen !== musicPlayGenRef.current
+            ) {
+              stopSoundPreview(audio);
+              return;
+            }
             if (audio.src !== previewSrc) {
               audio.src = previewSrc;
               audio.load();
             }
             const startPlay = () => {
-              if (!shouldPlayRef.current) return;
+              if (!shouldPlayRef.current || musicGen !== musicPlayGenRef.current) {
+                stopSoundPreview(audio);
+                return;
+              }
               try { audio.currentTime = clipStart; } catch { /* ignore */ }
               void audio.play().then(() => {
-                if (!shouldPlayRef.current) {
-                  try {
-                    audio.pause();
-                    audio.muted = true;
-                    audio.currentTime = clipStart;
-                  } catch {
-                    void 0;
-                  }
+                if (!shouldPlayRef.current || musicGen !== musicPlayGenRef.current) {
+                  stopSoundPreview(audio);
                 }
               });
             };
@@ -559,6 +568,7 @@ export default function EnhancedVideoPlayer({
         }
       } else {
         musicClipRef.current = null;
+        if (audio) stopSoundPreview(audio);
       }
 
       return () => {
@@ -733,8 +743,9 @@ export default function EnhancedVideoPlayer({
 
   const handleFollow = useCallback(() => {
     if (!video?.user?.id) return;
-    toggleFollow(video.user.id);
-    trackEvent('video_follow_toggle', { videoId, userId: video.user.id, next: !video.isFollowing });
+    const next = !video.isFollowing;
+    void toggleFollow(video.user.id);
+    trackEvent('video_follow_toggle', { videoId, userId: video.user.id, next });
   }, [video?.user?.id, video?.isFollowing, videoId, toggleFollow]);
 
   const handleShare = useCallback(() => {
@@ -1297,14 +1308,13 @@ export default function EnhancedVideoPlayer({
         isOpen={showUserProfile}
         onClose={() => setShowUserProfile(false)}
         user={video.user}
-        onFollow={handleFollow}
       />
       
             {isMoreMenuOpen && (
         <div className="fixed inset-0 z-modals flex items-end justify-center">
           <div className="absolute inset-0 pointer-events-auto" onClick={closeMoreMenu} />
           <div
-            className="elix-glass elix-more-options-sheet rounded-t-2xl max-h-[40dvh] flex flex-col pointer-events-auto w-full max-w-[480px] relative z-10 bottom-sheet-above-nav"
+            className="elix-more-options-sheet rounded-t-2xl max-h-[40dvh] flex flex-col pointer-events-auto w-full max-w-[480px] relative z-10 bottom-sheet-above-nav overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex flex-col px-4 pt-2 pb-3 border-b border-white/10">
@@ -1409,10 +1419,19 @@ export default function EnhancedVideoPlayer({
                 >
                   <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                     {video.isFollowing
-                      ? <UserMinus size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />
+                      ? <UserMinus size={SHARE_PANEL_ACTION_ICON_PX} className="text-red-500" strokeWidth={2} />
                       : <UserPlus size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />}
                   </span>
-                  <span className="text-[10px] font-semibold text-[#F5F5F7]">{video.isFollowing ? 'Unfollow' : 'Follow'}</span>
+                  <span
+                    className={`text-[10px] font-semibold ${video.isFollowing ? 'text-red-500' : 'text-[#F5F5F7]'}`}
+                    style={
+                      video.isFollowing
+                        ? { color: '#D91F2D', WebkitTextFillColor: '#D91F2D', backgroundImage: 'none' }
+                        : undefined
+                    }
+                  >
+                    {video.isFollowing ? 'Unfollow' : 'Follow'}
+                  </span>
                 </button>
                 <button
                   type="button"
