@@ -741,7 +741,7 @@ export default function Shop() {
                               £{(Number(ci.price) * qty).toFixed(2)}
                             </p>
                           </div>
-                          <div className="absolute top-2 right-0 flex items-center gap-1">
+                          <div className="absolute top-2 right-0 flex items-center gap-1" style={{ transform: 'translateY(-5mm)' }}>
                             <button
                               type="button"
                               onClick={() => handleCartQtyMinus(ci.id, qty)}
