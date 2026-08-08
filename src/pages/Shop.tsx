@@ -48,8 +48,6 @@ export default function Shop() {
   const [newImagePreview, setNewImagePreview] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [menuItemId, setMenuItemId] = useState<string | null>(null);
-  const [cartMenuItemId, setCartMenuItemId] = useState<string | null>(null);
-  const [createMenuOpen, setCreateMenuOpen] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const previewUrlRef = useRef<string | null>(null);
 
@@ -83,12 +81,10 @@ export default function Shop() {
   }, [navigate]);
 
   const openCreateListing = useCallback(() => {
-    setCreateMenuOpen(false);
     setShowCreate(true);
   }, []);
 
   const closeCreateListing = useCallback(() => {
-    setCreateMenuOpen(false);
     setShowCreate(false);
   }, []);
 
@@ -112,14 +108,6 @@ export default function Shop() {
     setMenuItemId(null);
   }, []);
 
-  const closeCartItemMenu = useCallback(() => {
-    setCartMenuItemId(null);
-  }, []);
-
-  const toggleCartItemMenu = useCallback((itemId: string, menuOpen: boolean) => {
-    setCartMenuItemId(menuOpen ? null : itemId);
-  }, []);
-
   const handleAddToCart = useCallback((item: { id: string; title: string; price: number; image_url: string | null }, isOwn: boolean) => {
     if (isOwn) {
       showToast("You can't add your own listing to basket");
@@ -129,10 +117,6 @@ export default function Shop() {
     const qty = useCartStore.getState().items.find((i) => i.id === item.id)?.quantity ?? 1;
     showToast(qty > 1 ? `Basket: ${qty}` : 'Added to basket');
   }, [addToCart]);
-
-  const handleRemoveFromCart = useCallback((itemId: string) => {
-    removeFromCart(itemId);
-  }, [removeFromCart]);
 
   const handleCartQtyMinus = useCallback((itemId: string, qty: number) => {
     if (qty <= 1) {
@@ -627,41 +611,8 @@ export default function Shop() {
               <div className="flex items-center justify-center pt-3 pb-1 shrink-0">
                 <div className="w-10 h-1 rounded-full bg-white/20" />
               </div>
-              <div className="flex items-center justify-between px-5 pb-3 shrink-0">
+              <div className="flex items-center justify-center px-5 pb-3 shrink-0">
                 <h3 className="text-gold-metallic font-bold text-base">Sell an Item</h3>
-                <div className="relative flex-shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setCreateMenuOpen((o) => !o)}
-                    className="p-1.5 rounded-full bg-white/5 border border-white/10"
-                    aria-label="Sell panel options"
-                    aria-expanded={createMenuOpen}
-                  >
-                    <MoreVertical size={14} className="text-[#F5F5F7]" />
-                  </button>
-                  {createMenuOpen ? (
-                    <>
-                      <button
-                        type="button"
-                        className="fixed inset-0 z-[3]"
-                        aria-label="Close menu"
-                        onClick={() => setCreateMenuOpen(false)}
-                      />
-                      <div className="absolute right-0 top-full mt-1 z-[4] min-w-[120px] rounded-xl bg-[#1A1C21] border border-white/15 shadow-lg overflow-hidden">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setCreateMenuOpen(false);
-                            closeCreateListing();
-                          }}
-                          className="w-full text-left px-3 py-2 text-xs font-semibold text-[#F5F5F7] hover:bg-white/5"
-                        >
-                          Close
-                        </button>
-                      </div>
-                    </>
-                  ) : null}
-                </div>
               </div>
               <div className="overflow-y-auto px-5 pb-6 flex-1 min-h-0">
                 <button
@@ -742,20 +693,27 @@ export default function Shop() {
               className="fixed inset-0 z-[9998] bg-black/70"
               onClick={closeCart}
             />
-            <div className="fixed left-0 right-0 z-[9999] pointer-events-auto max-w-[480px] mx-auto fixed-above-bottom-nav">
+            <div
+              className="fixed left-0 right-0 z-[9999] pointer-events-auto max-w-[480px] mx-auto fixed-above-bottom-nav"
+              onClick={closeCart}
+            >
               <div
-                className="w-full bg-transparent rounded-t-3xl pb-safe"
-                style={{ maxHeight: '80dvh', boxShadow: 'none' }}
+                className="w-full elix-panel rounded-t-3xl pb-safe border border-black"
+                style={{
+                  maxHeight: '80dvh',
+                  backgroundColor: 'var(--elix-bg)',
+                  backgroundImage: 'var(--elix-page-fill)',
+                  backgroundSize: 'var(--elix-fundal-size), var(--elix-fundal-size)',
+                  backgroundPosition: 'var(--elix-fundal-position), var(--elix-fundal-position)',
+                  backgroundRepeat: 'no-repeat, no-repeat',
+                }}
                 onClick={e => e.stopPropagation()}
               >
                 <div className="flex items-center justify-center pt-3 pb-1">
                   <div className="w-10 h-1 rounded-full bg-white/20" />
                 </div>
-                <div className="flex items-center justify-between px-5 pb-3">
+                <div className="flex items-center justify-center px-5 pb-3">
                   <h3 className="text-gold-metallic font-bold text-base">Your basket</h3>
-                  <button type="button" onClick={closeCart} className="p-1" title="Back" aria-label="Close basket">
-                    <RoyceBackIcon />
-                  </button>
                 </div>
 
                 {cartItems.length === 0 ? (
@@ -768,9 +726,8 @@ export default function Shop() {
                     <div className="overflow-y-auto px-5" style={{ maxHeight: 'calc(80dvh - 190px)' }}>
                       {cartItems.map((ci) => {
                         const qty = Math.max(1, Math.floor(Number(ci.quantity) || 1));
-                        const cartMenuOpen = cartMenuItemId === ci.id;
                         return (
-                        <div key={ci.id} className="flex items-center gap-3 py-2 border-b border-white/5 relative">
+                        <div key={ci.id} className="flex items-center gap-3 py-2 border-b border-white/5">
                           {ci.image_url ? (
                             <img src={ci.image_url} alt={ci.title} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
                           ) : (
@@ -805,38 +762,6 @@ export default function Shop() {
                             >
                               <Plus size={14} className="text-[#F5F5F7]" />
                             </button>
-                          </div>
-                          <div className="relative flex-shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => toggleCartItemMenu(ci.id, cartMenuOpen)}
-                              className="p-1.5 rounded-full bg-white/5 border border-white/10"
-                              aria-label={`Options for ${ci.title}`}
-                            >
-                              <MoreVertical size={14} className="text-[#F5F5F7]" />
-                            </button>
-                            {cartMenuOpen ? (
-                              <>
-                                <button
-                                  type="button"
-                                  className="fixed inset-0 z-[3]"
-                                  aria-label="Close menu"
-                                  onClick={closeCartItemMenu}
-                                />
-                                <div className="absolute right-0 top-full mt-1 z-[4] min-w-[120px] rounded-xl bg-[#1A1C21] border border-white/15 shadow-lg overflow-hidden">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      handleRemoveFromCart(ci.id);
-                                      closeCartItemMenu();
-                                    }}
-                                    className="w-full text-left px-3 py-2 text-xs font-semibold text-[#F5F5F7] hover:bg-white/5"
-                                  >
-                                    Remove
-                                  </button>
-                                </div>
-                              </>
-                            ) : null}
                           </div>
                         </div>
                         );
