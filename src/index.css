@@ -1775,17 +1775,6 @@ svg.lucide,
   border-bottom: 1px solid var(--elix-border);
 }
 
-/* Feed bottom writing (name / caption / hashtags) — same fundal as home bottom nav */
-#root .elix-feed-desc-fundal {
-  background-color: var(--elix-bg);
-  background-image: var(--elix-page-fill);
-  background-size: var(--elix-fundal-size), var(--elix-fundal-size);
-  background-position: var(--elix-fundal-position), var(--elix-fundal-position);
-  background-repeat: no-repeat, no-repeat;
-  background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment);
-  border: 1px solid var(--elix-border);
-}
-
 /* STEM / Friends story strip — Search icon line only, no round disc */
 #root .feed-story-strip svg.lucide {
   padding: 0 !important;

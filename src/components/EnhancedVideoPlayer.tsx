@@ -1368,9 +1368,10 @@ export default function EnhancedVideoPlayer({
 
       {/* Bottom Info — name / music / views / description — above home bar */}
       <div
-        className="absolute z-[10] pointer-events-none flex flex-col items-stretch gap-0.5 elix-feed-desc-fundal rounded-md px-2 py-1.5 w-fit max-w-[calc(100%-80px)]"
+        className="absolute z-[10] pointer-events-none flex flex-col items-stretch gap-0.5"
         style={{
           left: '3mm',
+          right: '72px',
           bottom: chromeBottom,
         }}
       >
