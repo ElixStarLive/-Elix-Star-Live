@@ -6,7 +6,7 @@ import {
   Bookmark,
   Flag,
   UserPlus,
-  UserMinus,
+  User,
   Download,
   QrCode,
   Trash2,
@@ -1571,17 +1571,10 @@ export default function EnhancedVideoPlayer({
                 >
                   <span className="royce-glow-disc flex items-center justify-center" style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }} aria-hidden>
                     {video.isFollowing
-                      ? <UserMinus size={SHARE_PANEL_ACTION_ICON_PX} className="text-red-500" strokeWidth={2} />
+                      ? <User size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />
                       : <UserPlus size={SHARE_PANEL_ACTION_ICON_PX} className="royce-icon-gold" strokeWidth={2} />}
                   </span>
-                  <span
-                    className={`text-[10px] font-semibold ${video.isFollowing ? 'text-red-500' : 'text-[#F5F5F7]'}`}
-                    style={
-                      video.isFollowing
-                        ? { color: '#D91F2D', WebkitTextFillColor: '#D91F2D', backgroundImage: 'none' }
-                        : undefined
-                    }
-                  >
+                  <span className="text-[10px] font-semibold text-[#F5F5F7]">
                     {video.isFollowing ? 'Unfollow' : 'Follow'}
                   </span>
                 </button>
