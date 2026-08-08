@@ -291,12 +291,10 @@ function App() {
       document.removeEventListener("visibilitychange", handleVisibility);
   }, []);
 
-  // Stop Sound *library* preview only when leaving /music — never nuke For You video/audio
-  // (that was restarting feed music after an in-flight play()).
+  // Stop Sound *library* preview when leaving /music — and on every non-music route
+  // (Create Add sound is portaled; unmount also stops). Never nuke For You video audio.
   useEffect(() => {
-    if (!location.pathname.startsWith("/music")) {
-      useSoundLibraryPlayerStore.getState().stop();
-    }
+    useSoundLibraryPlayerStore.getState().stop();
   }, [location.pathname]);
 
   useEffect(() => {

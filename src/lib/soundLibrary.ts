@@ -52,6 +52,15 @@ export function unregisterSoundPreviewAudio(audio: HTMLAudioElement): void {
 export function stopSoundPreview(audio: HTMLAudioElement | null | undefined): void {
   if (!audio) return;
   try {
+    // Kill loop / restart handlers (Upload preview used to re-play on timeupdate).
+    audio.ontimeupdate = null;
+    audio.onended = null;
+    audio.oncanplay = null;
+    audio.onloadedmetadata = null;
+  } catch {
+    /* ignore */
+  }
+  try {
     audio.pause();
   } catch {
     /* ignore */
@@ -82,12 +91,31 @@ export function stopSoundPreview(audio: HTMLAudioElement | null | undefined): vo
   }
 }
 
+function isLibraryOrPreviewAudioSrc(src: string): boolean {
+  if (!src) return false;
+  return /\/api\/music\/tracks\/|epidemicsound|epidemic.?sound|\/preview/i.test(src);
+}
+
 /**
- * Hard-stop every registered sound preview (library singleton, picker, Upload bg).
+ * Hard-stop every registered sound preview (library singleton, picker, Upload bg),
+ * plus any detached audio element still playing a music/preview URL.
  */
 export function stopAllSoundPreviews(): void {
   for (const audio of [...previewAudioRegistry]) {
     stopSoundPreview(audio);
+  }
+  if (typeof document === "undefined") return;
+  try {
+    document.querySelectorAll("audio").forEach((node) => {
+      const el = node as HTMLAudioElement;
+      const src = String(el.currentSrc || el.src || "");
+      if (el.dataset.elixSoundPreview === "1" || isLibraryOrPreviewAudioSrc(src)) {
+        stopSoundPreview(el);
+        previewAudioRegistry.delete(el);
+      }
+    });
+  } catch {
+    /* ignore */
   }
 }
 

@@ -37,6 +37,7 @@ function ensureAudio(): HTMLAudioElement {
     audioEl = new Audio();
     audioEl.preload = 'auto';
     audioEl.setAttribute('playsinline', 'true');
+    audioEl.dataset.elixSoundPreview = '1';
     audioEl.addEventListener('timeupdate', onTimeUpdate);
     audioEl.addEventListener('ended', onEnded);
     registerSoundPreviewAudio(audioEl);
@@ -60,11 +61,14 @@ function discardAudioEl() {
   unregisterSoundPreviewAudio(el);
 }
 
+/** Cancel in-flight play() races, kill singleton + every registered/orphan preview. */
 function hardStopAudio() {
   playbackAllowed = false;
   clipRange = null;
-  discardAudioEl();
+  const el = audioEl;
+  if (el) stopSoundPreview(el);
   stopAllSoundPreviews();
+  discardAudioEl();
 }
 
 async function startTrack(track: SoundTrack): Promise<void> {

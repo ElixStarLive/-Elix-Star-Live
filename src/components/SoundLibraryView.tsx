@@ -191,7 +191,9 @@ export default function SoundLibraryView({
   );
 
   // Always stop library preview when this panel unmounts (leave Sound / close Add sound).
+  // Also kill any orphan still playing when the panel opens.
   useEffect(() => {
+    useSoundLibraryPlayerStore.getState().stop();
     return () => {
       useSoundLibraryPlayerStore.getState().stop();
     };

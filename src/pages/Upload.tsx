@@ -465,13 +465,15 @@ export default function Upload() {
         registerSoundPreviewAudio(audio);
         audio.preload = 'auto';
         audio.loop = false;
+        audio.dataset.elixSoundPreview = '1';
         audio.volume = Math.max(0, Math.min(1, musicVolume));
         audio.src = playable;
+        // Play once through the clip — never restart (was looping forever and leaking).
         audio.ontimeupdate = () => {
           if (cancelled) return;
           if (end > start && audio.currentTime >= end) {
-            audio.currentTime = start;
-            void audio.play().catch(() => {});
+            stopSoundPreview(audio);
+            if (backgroundAudioRef.current === audio) backgroundAudioRef.current = null;
           }
         };
         backgroundAudioRef.current = audio;
