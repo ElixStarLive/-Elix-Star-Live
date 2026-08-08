@@ -1,7 +1,9 @@
 import { create } from 'zustand';
 import {
   playAudioClip,
+  registerSoundPreviewAudio,
   resolvePlayableSoundUrl,
+  stopAllSoundPreviews,
   stopSoundPreview,
   type SoundTrack,
 } from '../lib/soundLibrary';
@@ -18,38 +20,36 @@ let playGen = 0;
 /** When false, loop handlers must never call play() (blocks leave races). */
 let playbackAllowed = false;
 let clipRange: { start: number; end: number } | null = null;
-let listenersBound = false;
 
-function onTimeUpdate() {
-  if (!playbackAllowed || !audioEl || !clipRange) return;
-  if (audioEl.currentTime < clipRange.end) return;
+function onTimeUpdate(this: HTMLAudioElement) {
+  if (!playbackAllowed || this !== audioEl || !clipRange) return;
+  if (this.currentTime < clipRange.end) return;
   const gen = playGen;
   const start = clipRange.start;
   try {
-    audioEl.currentTime = start;
+    this.currentTime = start;
   } catch {
     useSoundLibraryPlayerStore.getState().stop();
     return;
   }
-  // Re-check after seek — stop() may have run mid-handler.
-  if (!playbackAllowed || gen !== playGen || !clipRange) return;
-  void audioEl.play().catch(() => {
+  if (!playbackAllowed || gen !== playGen || this !== audioEl || !clipRange) return;
+  void this.play().catch(() => {
     if (gen === playGen) useSoundLibraryPlayerStore.getState().stop();
   });
 }
 
-function onEnded() {
-  if (!playbackAllowed || !audioEl || !clipRange) return;
+function onEnded(this: HTMLAudioElement) {
+  if (!playbackAllowed || this !== audioEl || !clipRange) return;
   const gen = playGen;
   const start = clipRange.start;
   try {
-    audioEl.currentTime = start;
+    this.currentTime = start;
   } catch {
     useSoundLibraryPlayerStore.getState().stop();
     return;
   }
-  if (!playbackAllowed || gen !== playGen || !clipRange) return;
-  void audioEl.play().catch(() => {
+  if (!playbackAllowed || gen !== playGen || this !== audioEl || !clipRange) return;
+  void this.play().catch(() => {
     if (gen === playGen) useSoundLibraryPlayerStore.getState().stop();
   });
 }
@@ -59,26 +59,34 @@ function ensureAudio(): HTMLAudioElement {
     audioEl = new Audio();
     audioEl.preload = 'auto';
     audioEl.setAttribute('playsinline', 'true');
-  }
-  if (!listenersBound && audioEl) {
-    listenersBound = true;
     audioEl.addEventListener('timeupdate', onTimeUpdate);
     audioEl.addEventListener('ended', onEnded);
+    registerSoundPreviewAudio(audioEl);
   }
   return audioEl;
+}
+
+function discardAudioEl() {
+  const el = audioEl;
+  audioEl = null;
+  clipRange = null;
+  playbackAllowed = false;
+  if (!el) return;
+  try {
+    el.removeEventListener('timeupdate', onTimeUpdate);
+    el.removeEventListener('ended', onEnded);
+  } catch {
+    /* ignore */
+  }
+  stopSoundPreview(el);
 }
 
 function hardStopAudio() {
   playbackAllowed = false;
   clipRange = null;
-  if (!audioEl) return;
-  try {
-    audioEl.muted = true;
-    audioEl.volume = 0;
-  } catch {
-    /* ignore */
-  }
-  stopSoundPreview(audioEl);
+  discardAudioEl();
+  // Also kill picker / Upload detached Audio if any still running.
+  stopAllSoundPreviews();
 }
 
 async function startTrack(track: SoundTrack): Promise<void> {
@@ -87,9 +95,9 @@ async function startTrack(track: SoundTrack): Promise<void> {
     return;
   }
 
-  const a = ensureAudio();
   const gen = ++playGen;
   hardStopAudio();
+  const a = ensureAudio();
   useSoundLibraryPlayerStore.setState({ loadingId: track.id, playingId: null });
 
   const sourceUrl =
@@ -103,7 +111,7 @@ async function startTrack(track: SoundTrack): Promise<void> {
 
   const playable = await resolvePlayableSoundUrl(sourceUrl);
   if (gen !== playGen) {
-    hardStopAudio();
+    stopSoundPreview(a);
     return;
   }
   if (!playable) {
@@ -115,24 +123,23 @@ async function startTrack(track: SoundTrack): Promise<void> {
   const start = Math.max(0, track.clipStartSeconds || 0);
   const end = Math.max(start + 5, track.clipEndSeconds || start + 60);
   try {
-    // Unmute only for this intentional start; stop() forces mute again.
     a.muted = false;
     a.volume = 1;
     await playAudioClip(a, playable, start, () => gen !== playGen);
-    if (gen !== playGen) {
-      hardStopAudio();
+    if (gen !== playGen || a !== audioEl) {
+      // Always silence THIS element — stop() may have nulled audioEl already.
+      stopSoundPreview(a);
       return;
     }
     playbackAllowed = true;
     clipRange = { start, end };
     useSoundLibraryPlayerStore.setState({ playingId: track.id, loadingId: null });
   } catch (err) {
+    stopSoundPreview(a);
     if (gen !== playGen || (err instanceof Error && err.message === 'cancelled')) {
-      hardStopAudio();
       useSoundLibraryPlayerStore.setState({ playingId: null, loadingId: null });
       return;
     }
-    hardStopAudio();
     useSoundLibraryPlayerStore.setState({ playingId: null, loadingId: null });
     showToast('Could not play — tap play again');
   }

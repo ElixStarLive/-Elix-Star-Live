@@ -6,6 +6,7 @@ import {
   ORIGINAL_SOUND_TRACK,
   resolvePlayableSoundUrl,
   playAudioClip,
+  registerSoundPreviewAudio,
   stopSoundPreview,
   type MusicPlaylist,
   type SoundTrack,
@@ -74,6 +75,11 @@ export default function SoundPickerPanel({ onClose, onPick, layout = 'sheet' }: 
       cancelled = true;
       stopPreview();
     };
+  }, []);
+
+  useEffect(() => {
+    const el = audioRef.current;
+    if (el) registerSoundPreviewAudio(el);
   }, []);
 
   useEffect(() => {

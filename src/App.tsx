@@ -23,6 +23,7 @@ import { IncomingCallModal } from "./components/IncomingCallModal";
 import { LiveNotifyBanner } from "./components/LiveNotifyBanner";
 import { subscribeToIncomingCalls } from "./lib/callService";
 import { websocket } from "./lib/websocket";
+import { stopAllSoundPreviews } from "./lib/soundLibrary";
 import { useSoundLibraryPlayerStore } from "./store/useSoundLibraryPlayerStore";
 
 
@@ -295,6 +296,7 @@ function App() {
   useEffect(() => {
     if (!location.pathname.startsWith("/music")) {
       useSoundLibraryPlayerStore.getState().stop();
+      stopAllSoundPreviews();
     }
   }, [location.pathname]);
 
@@ -303,6 +305,7 @@ function App() {
     const killIfLeftSound = () => {
       if (!window.location.pathname.startsWith("/music")) {
         useSoundLibraryPlayerStore.getState().stop();
+        stopAllSoundPreviews();
       }
     };
     document.addEventListener("visibilitychange", killIfLeftSound);

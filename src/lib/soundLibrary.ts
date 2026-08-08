@@ -37,6 +37,17 @@ function isHlsUrl(url: string): boolean {
 
 const hlsByAudio = new WeakMap<HTMLAudioElement, Hls>();
 
+/** All library / picker / upload preview elements (including detached `new Audio()`). */
+const previewAudioRegistry = new Set<HTMLAudioElement>();
+
+export function registerSoundPreviewAudio(audio: HTMLAudioElement): void {
+  previewAudioRegistry.add(audio);
+}
+
+export function unregisterSoundPreviewAudio(audio: HTMLAudioElement): void {
+  previewAudioRegistry.delete(audio);
+}
+
 /** Tear down any HLS instance attached to this audio element and silence it. */
 export function stopSoundPreview(audio: HTMLAudioElement | null | undefined): void {
   if (!audio) return;
@@ -62,11 +73,22 @@ export function stopSoundPreview(audio: HTMLAudioElement | null | undefined): vo
   }
   try {
     audio.removeAttribute("src");
+    audio.src = "";
     audio.srcObject = null;
     // Clear MediaSource / residual buffer so nothing keeps audibling after leave.
     audio.load();
   } catch {
     /* ignore */
+  }
+}
+
+/**
+ * Hard-stop every registered sound preview (library singleton, picker, Upload bg).
+ * Does not touch For You video `<audio>` (those are not registered).
+ */
+export function stopAllSoundPreviews(): void {
+  for (const audio of [...previewAudioRegistry]) {
+    stopSoundPreview(audio);
   }
 }
 
@@ -158,6 +180,7 @@ export async function playAudioClip(
   isCancelled?: () => boolean,
 ): Promise<void> {
   if (!src) throw new Error("no_audio_src");
+  registerSoundPreviewAudio(audio);
   if (isCancelled?.()) {
     stopSoundPreview(audio);
     throw new Error("cancelled");
@@ -213,7 +236,24 @@ export async function playAudioClip(
   } catch {
     /* ignore */
   }
-  await audio.play();
+  if (isCancelled?.()) {
+    stopSoundPreview(audio);
+    throw new Error("cancelled");
+  }
+  try {
+    await audio.play();
+  } catch (err) {
+    if (isCancelled?.()) {
+      stopSoundPreview(audio);
+      throw new Error("cancelled");
+    }
+    throw err;
+  }
+  // Leave can land during play() — silence immediately if cancelled mid-start.
+  if (isCancelled?.()) {
+    stopSoundPreview(audio);
+    throw new Error("cancelled");
+  }
 }
 
 export type SoundCatalogResponse = {

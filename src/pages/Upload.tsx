@@ -6,6 +6,7 @@ import { RefreshCw, Zap, Clock, Music, Check, RotateCcw, ZoomIn, ZoomOut, Wand2,
 import { useVideoStore } from '../store/useVideoStore';
 import {
   resolvePlayableSoundUrl,
+  registerSoundPreviewAudio,
   stopSoundPreview,
   type SoundTrack,
 } from '../lib/soundLibrary';
@@ -461,6 +462,7 @@ export default function Upload() {
           return;
         }
         const audio = new Audio();
+        registerSoundPreviewAudio(audio);
         audio.preload = 'auto';
         audio.loop = false;
         audio.volume = Math.max(0, Math.min(1, musicVolume));
