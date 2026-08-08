@@ -2241,3 +2241,45 @@ body,
   border-right: none !important;
 }
 
+/* Sound mix — two red potentiometer lines (original + added) */
+#root input.elix-sound-pot[type='range'] {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  background: transparent !important;
+  cursor: pointer;
+}
+#root input.elix-sound-pot[type='range']::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 9999px;
+  background: #F12C56 !important;
+  border: none;
+}
+#root input.elix-sound-pot[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  width: 16px;
+  height: 16px;
+  margin-top: -6px;
+  border-radius: 9999px;
+  background: #F5F5F7 !important;
+  border: 2px solid #F12C56 !important;
+  box-shadow: none;
+}
+#root input.elix-sound-pot[type='range']::-moz-range-track {
+  height: 4px;
+  border-radius: 9999px;
+  background: #F12C56 !important;
+  border: none;
+}
+#root input.elix-sound-pot[type='range']::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: #F5F5F7 !important;
+  border: 2px solid #F12C56 !important;
+}
+#root input.elix-sound-pot[type='range']:disabled::-webkit-slider-runnable-track,
+#root input.elix-sound-pot[type='range']:disabled::-moz-range-track {
+  background: rgba(241, 44, 86, 0.35) !important;
+}
+

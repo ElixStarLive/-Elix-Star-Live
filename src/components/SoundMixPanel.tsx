@@ -18,6 +18,7 @@ type Props = {
 /**
  * Separate sound mix sheet — same header as More Options
  * (top decoration pill + centered title).
+ * Two potentiometer lines: original video + added sound (red tracks so they stay visible).
  */
 export default function SoundMixPanel({
   isOpen,
@@ -37,6 +38,9 @@ export default function SoundMixPanel({
   const origMuted = originalVolume <= 0.001;
   const musicMuted = musicVolume <= 0.001;
 
+  const potClass =
+    'elix-sound-pot w-full h-2 disabled:opacity-40';
+
   return (
     <div className="absolute inset-0 z-[125] pointer-events-auto" role="dialog" aria-label="Sound">
       <div className="absolute inset-0" onClick={onClose} aria-hidden />
@@ -49,7 +53,7 @@ export default function SoundMixPanel({
         </div>
 
         <div className="px-4 pt-4 pb-2 space-y-5">
-          {/* Line 1 — original video sound */}
+          {/* Line 1 — original video sound potentiometer */}
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
               <span className="text-[#E6E9EE] text-xs font-semibold">Original video</span>
@@ -69,7 +73,7 @@ export default function SoundMixPanel({
               disabled={!hasOriginalAudio}
               value={Math.round(Math.max(0, Math.min(1, originalVolume)) * 100)}
               onChange={(e) => onOriginalVolumeChange(Number(e.target.value) / 100)}
-              className="w-full h-1.5 accent-[#D8D9DD] disabled:opacity-40"
+              className={potClass}
               aria-label="Original video sound volume"
             />
             {!hasOriginalAudio ? (
@@ -77,7 +81,7 @@ export default function SoundMixPanel({
             ) : null}
           </div>
 
-          {/* Line 2 — added track */}
+          {/* Line 2 — added sound potentiometer (always show the line) */}
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
               <span className="text-[#E6E9EE] text-xs font-semibold truncate">
@@ -93,19 +97,19 @@ export default function SoundMixPanel({
                 </button>
               ) : null}
             </div>
-            {hasAddedSound ? (
-              <input
-                type="range"
-                min={0}
-                max={100}
-                value={Math.round(Math.max(0, Math.min(1, musicVolume)) * 100)}
-                onChange={(e) => onMusicVolumeChange(Number(e.target.value) / 100)}
-                className="w-full h-1.5 accent-[#D8D9DD]"
-                aria-label="Added sound volume"
-              />
-            ) : (
+            <input
+              type="range"
+              min={0}
+              max={100}
+              disabled={!hasAddedSound}
+              value={Math.round(Math.max(0, Math.min(1, hasAddedSound ? musicVolume : 0)) * 100)}
+              onChange={(e) => onMusicVolumeChange(Number(e.target.value) / 100)}
+              className={potClass}
+              aria-label="Added sound volume"
+            />
+            {!hasAddedSound ? (
               <p className="text-[10px] text-[#8B9099]">Add a track to mix with the video</p>
-            )}
+            ) : null}
             <div className="flex items-center gap-2 pt-1">
               <button
                 type="button"
