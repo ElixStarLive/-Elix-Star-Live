@@ -7,9 +7,8 @@ import { fetchThreadMessages, sendThreadMessage } from '../lib/chatMessages';
 import { apiListChatThreads, apiMarkThreadRead } from '../features/chat/chatApi';
 import { websocket } from '../lib/websocket';
 import { AvatarRing } from '../components/AvatarRing';
-import { LevelBadge } from '../components/LevelBadge';
 import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
-import { CHAT_LEVEL_PILL_SIZE_PX, CHAT_PROFILE_RING_PX } from '../lib/profileFrame';
+import { CHAT_PROFILE_RING_PX } from '../lib/profileFrame';
 import { initiateCall } from '../lib/callService';
 import { showToast } from '../lib/toast';
 import { getVideoPosterUrl } from '../lib/bunnyStorage';
@@ -354,24 +353,11 @@ export default function ChatThread() {
           <div className="w-10 h-1 rounded-full bg-white/25" />
         </div>
         <header className="flex-shrink-0 flex items-center gap-2 px-3 py-2.5 bg-transparent">
-          <div className="flex w-11 shrink-0 items-center justify-start">
-            {otherUser && (
-              <button
-                type="button"
-                onClick={handleVideoCall}
-                className="w-10 h-10 rounded-full flex items-center justify-center bg-white/[0.06] border border-white/15 active:scale-95 transition-transform"
-                aria-label="Video call"
-                title="Video call"
-              >
-                <Video className="w-5 h-5 text-[#F5F5F7]" strokeWidth={2} />
-              </button>
-            )}
-          </div>
           {otherUser ? (
             <button
               type="button"
               onClick={() => openProfile(otherUser.user_id)}
-              className="min-w-0 flex-1 flex items-center justify-center gap-1.5 active:opacity-90"
+              className="min-w-0 flex-1 flex items-center justify-start gap-2 active:opacity-90"
               aria-label={`Open ${otherUser.username}'s profile`}
             >
               <AvatarRing
@@ -379,29 +365,33 @@ export default function ChatThread() {
                 alt={otherUser.username}
                 size={CHAT_PROFILE_RING_PX}
               />
-              <span className="min-w-0 truncate font-bold text-sm text-[#F5F5F7]">
+              <span className="min-w-0 truncate text-left font-bold text-sm text-[#F5F5F7]">
                 {otherUser.username}
               </span>
-              <LevelBadge
-                level={otherUser.level || 1}
-                size={CHAT_LEVEL_PILL_SIZE_PX}
-                hideCircle
-              />
             </button>
           ) : (
-            <span className="flex-1 text-center font-bold text-sm text-[#F5F5F7]">Chat</span>
+            <span className="flex-1 text-left font-bold text-sm text-[#F5F5F7]">Chat</span>
           )}
-          <div className="flex w-11 shrink-0 items-center justify-end">
+          {otherUser && (
             <button
               type="button"
-              onClick={goInbox}
-              className="w-10 h-10 rounded-full flex items-center justify-center active:scale-95 transition-transform"
-              aria-label="Back to inbox"
-              title="Back"
+              onClick={handleVideoCall}
+              className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center bg-white/[0.06] border border-white/15 active:scale-95 transition-transform"
+              aria-label="Video call"
+              title="Video call"
             >
-              <RoyceBackIcon />
+              <Video className="w-5 h-5 text-[#F5F5F7]" strokeWidth={2} />
             </button>
-          </div>
+          )}
+          <button
+            type="button"
+            onClick={goInbox}
+            className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center active:scale-95 transition-transform"
+            aria-label="Back to inbox"
+            title="Back"
+          >
+            <RoyceBackIcon />
+          </button>
         </header>
 
         <div className="mx-4 border-t border-[#D8D9DD]/45 flex-shrink-0" aria-hidden />
