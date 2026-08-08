@@ -3,14 +3,15 @@ import { RoyceBackIcon } from '../components/royce';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Upload, Play, Wand2, Download, Share2, Sparkles } from 'lucide-react';
 import AIToolsPanel from '../components/AIToolsPanel';
-import { enhanceSettingsToCss, autoEnhance } from '../lib/ai/enhance';
 
 export default function AIStudio() {
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bgInputRef = useRef<HTMLInputElement>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [bgUrl, setBgUrl] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showTools, setShowTools] = useState(false);
   const [filterCss, setFilterCss] = useState('none');
@@ -24,6 +25,10 @@ export default function AIStudio() {
 
   const openFilePicker = useCallback(() => {
     fileInputRef.current?.click();
+  }, []);
+
+  const openBgPicker = useCallback(() => {
+    bgInputRef.current?.click();
   }, []);
 
   const openTools = useCallback(() => {
@@ -49,7 +54,17 @@ export default function AIStudio() {
     const url = URL.createObjectURL(file);
     setVideoUrl(url);
     setIsPlaying(true);
+    e.target.value = '';
   }, [videoUrl]);
+
+  const handleBgSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (bgUrl) URL.revokeObjectURL(bgUrl);
+    setBgUrl(URL.createObjectURL(file));
+    showToast('Background added');
+    e.target.value = '';
+  }, [bgUrl]);
 
   const togglePlayback = useCallback(() => {
     const v = videoRef.current;
@@ -60,13 +75,6 @@ export default function AIStudio() {
       v.pause();
       setIsPlaying(false);
     }
-  }, []);
-
-  const handleAutoEnhance = useCallback(() => {
-    if (!videoRef.current) return;
-    const settings = autoEnhance(videoRef.current);
-    setEnhanceCss(enhanceSettingsToCss(settings));
-    showToast('AI Auto-Enhanced');
   }, []);
 
   const handleExport = useCallback(async () => {
@@ -80,6 +88,21 @@ export default function AIStudio() {
     canvas.height = video.videoHeight || 1920;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+
+    if (bgUrl) {
+      await new Promise<void>((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          const scale = Math.max(canvas.width / img.width, canvas.height / img.height);
+          const w = img.width * scale;
+          const h = img.height * scale;
+          ctx.drawImage(img, (canvas.width - w) / 2, (canvas.height - h) / 2, w, h);
+          resolve();
+        };
+        img.onerror = () => resolve();
+        img.src = bgUrl;
+      });
+    }
 
     if (combinedFilter) ctx.filter = combinedFilter;
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -98,10 +121,10 @@ export default function AIStudio() {
     } catch {
       showToast('Export failed');
     }
-  }, [combinedFilter]);
+  }, [bgUrl, combinedFilter]);
 
   return (
-    <div className="h-full min-h-0 w-full bg-transparent text-white flex flex-col overflow-hidden">
+    <div className="h-full min-h-0 w-full elix-page-glass text-white flex flex-col overflow-hidden">
       {toast && (
         <div className="fixed top-16 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-md text-white text-sm px-4 py-2 rounded-xl z-[9999]">
           {toast}
@@ -109,6 +132,7 @@ export default function AIStudio() {
       )}
 
       <input ref={fileInputRef} type="file" accept="video/*" className="hidden" onChange={handleFileSelect} title="Select video" />
+      <input ref={bgInputRef} type="file" accept="image/*" className="hidden" onChange={handleBgSelect} title="Select background" />
       <canvas ref={canvasRef} className="hidden" />
 
       {/* Header */}
@@ -125,14 +149,22 @@ export default function AIStudio() {
         </button>
       </header>
 
-      {/* Video Area */}
-      <div className="flex-1 relative bg-transparent flex items-center justify-center overflow-hidden">
+      {/* Video Area — optional own background behind video */}
+      <div className={`flex-1 relative flex items-center justify-center overflow-hidden ${videoUrl ? 'bg-black' : ''}`}>
+        {bgUrl ? (
+          <img
+            src={bgUrl}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover z-0"
+            draggable={false}
+          />
+        ) : null}
         {videoUrl ? (
           <>
             <video
               ref={videoRef}
               src={videoUrl}
-              className="w-full h-full object-contain"
+              className="relative z-[1] w-full h-full object-contain"
               autoPlay
               loop
               playsInline
@@ -154,7 +186,7 @@ export default function AIStudio() {
             </button>
           </>
         ) : (
-          <div className="flex flex-col items-center gap-4 p-8">
+          <div className="relative z-[1] flex flex-col items-center gap-4 p-8">
             <div className="w-24 h-24 rounded-2xl bg-transparent flex items-center justify-center">
               <Upload size={36} className="text-[#F5F5F7]" />
             </div>
@@ -165,6 +197,13 @@ export default function AIStudio() {
             >
               <Upload size={16} className="text-[#F5F5F7]" />
               <span className="elix-silver-red-text">Select Video</span>
+            </button>
+            <button
+              type="button"
+              onClick={openBgPicker}
+              className="px-6 py-3 rounded-full bg-transparent border border-white/30 font-bold text-sm flex items-center gap-2 active:opacity-70"
+            >
+              <span className="elix-silver-red-text">{bgUrl ? 'Change background' : 'Add background'}</span>
             </button>
           </div>
         )}
@@ -179,9 +218,14 @@ export default function AIStudio() {
           <Upload size={16} className="text-[#F5F5F7]" />
           <span className="elix-silver-red-text text-[10px]">Import</span>
         </button>
-        <button onClick={handleAutoEnhance} className="flex flex-col items-center gap-1 active:opacity-70">
+        <button
+          type="button"
+          onClick={openBgPicker}
+          className="flex flex-col items-center gap-1 active:opacity-70"
+          title="Add your own background"
+        >
           <Sparkles size={16} className="text-[#F5F5F7]" />
-          <span className="elix-silver-red-text text-[10px]">Auto AI</span>
+          <span className="elix-silver-red-text text-[10px]">Background</span>
         </button>
         <button
           onClick={openTools}
