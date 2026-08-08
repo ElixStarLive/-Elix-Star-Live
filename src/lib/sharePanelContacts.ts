@@ -1,4 +1,5 @@
 import { request } from './apiClient';
+import { isGenuineAppUser } from './genuineUser';
 
 /** Horizontal share strip — round avatar diameter (Create + users). +2mm vs prior 28px. */
 export const SHARE_PANEL_AVATAR_PX = 36;
@@ -18,80 +19,101 @@ export type SharePanelContact = {
   avatar_url: string | null;
 };
 
-const JUNK_EXACT = new Set([
-  '',
-  'user',
-  'demo',
-  'test',
-  'testuser',
-  'unknown',
-  'anonymous',
-  'guest',
-  'viewer',
-  'live',
-]);
-
-/** Drop LiveKit / test / ephemeral labels — share strip is real accounts only. */
+/** @deprecated use isGenuineAppUser — kept for existing imports */
 export function isRealShareContact(username: string, userId = ''): boolean {
-  const name = String(username || '').trim().toLowerCase();
-  const id = String(userId || '').trim().toLowerCase();
-  if (!id || name.length < 2) return false;
-  if (JUNK_EXACT.has(name)) return false;
-  // lt_1784… LiveKit-style junk, user_*, test*, guest*, live_*
-  if (/^(lt|live|guest|viewer|test|user)[_-]/.test(name)) return false;
-  if (/^testuser/.test(name)) return false;
-  if (/^user[_-]/.test(name)) return false;
-  // UUID / hex dump used as a display name
-  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-/.test(name)) return false;
-  if (/^[0-9a-f]{16,}$/.test(name)) return false;
-  return true;
+  return isGenuineAppUser(username, userId);
 }
 
-function pickShareLabel(p: Record<string, unknown>): string {
-  const username = String(p.username ?? '').trim();
-  const display = String(p.display_name ?? p.displayName ?? '').trim();
-  if (display && isRealShareContact(display, String(p.user_id ?? p.id ?? ''))) return display;
-  if (username) return username;
-  return display || 'User';
+type ProfileRow = {
+  user_id: string;
+  username: string;
+  display_name: string | null;
+  avatar_url: string | null;
+};
+
+function toContact(row: ProfileRow): SharePanelContact | null {
+  const user_id = String(row.user_id || '').trim();
+  const username = String(row.username || '').trim();
+  const display = String(row.display_name || '').trim();
+  if (!isGenuineAppUser(username, user_id, display)) return null;
+  const label = display && isGenuineAppUser(display, user_id, display) ? display : username;
+  if (!label) return null;
+  return {
+    user_id,
+    username: label,
+    avatar_url: row.avatar_url != null ? String(row.avatar_url) : null,
+  };
+}
+
+async function fetchFollowerProfiles(userId: string): Promise<ProfileRow[]> {
+  const { data, error } = await request<{ follower_profiles?: ProfileRow[] }>(
+    `/api/profiles/${encodeURIComponent(userId)}/followers`,
+  );
+  if (error) return [];
+  return Array.isArray(data?.follower_profiles) ? data.follower_profiles : [];
+}
+
+async function fetchFollowingProfiles(userId: string): Promise<ProfileRow[]> {
+  const { data, error } = await request<{ following?: string[] }>(
+    `/api/profiles/${encodeURIComponent(userId)}/following`,
+  );
+  if (error) return [];
+  const ids = Array.isArray(data?.following) ? data.following.map(String) : [];
+  if (ids.length === 0) return [];
+
+  // Resolve from directory once, then keep only following ids (never dump whole directory to UI).
+  const { data: dir, error: dirErr } = await request<{ profiles?: Record<string, unknown>[] }>(
+    '/api/profiles',
+  );
+  if (dirErr) return [];
+  const list = Array.isArray(dir?.profiles) ? dir.profiles : [];
+  const byId = new Map<string, ProfileRow>();
+  for (const p of list) {
+    const id = String(p.user_id ?? p.id ?? '');
+    if (!id) continue;
+    byId.set(id, {
+      user_id: id,
+      username: String(p.username ?? ''),
+      display_name:
+        p.display_name != null
+          ? String(p.display_name)
+          : p.displayName != null
+            ? String(p.displayName)
+            : null,
+      avatar_url:
+        p.avatar_url != null
+          ? String(p.avatar_url)
+          : p.avatarUrl != null
+            ? String(p.avatarUrl)
+            : null,
+    });
+  }
+  return ids.slice(0, 200).map((id) => {
+    const hit = byId.get(id);
+    if (hit) return hit;
+    return { user_id: id, username: '', display_name: null, avatar_url: null };
+  });
 }
 
 /**
- * Real platform profiles for share panels (Create + feed + live share).
- * Excludes current user, LiveKit junk (lt_*), test/guest/live aliases.
+ * Share strip contacts = people you follow + people who follow you.
+ * Never the full /api/profiles dump (that was filling Share with explore/John Doe/test junk).
  */
-export async function fetchAllSharePanelContacts(excludeUserId: string | undefined): Promise<SharePanelContact[]> {
+export async function fetchAllSharePanelContacts(
+  excludeUserId: string | undefined,
+): Promise<SharePanelContact[]> {
+  if (!excludeUserId) return [];
   try {
-    const { data, error } = await request<{ profiles: Record<string, unknown>[] }>('/api/profiles');
-    if (error) throw new Error('Failed to load profiles');
-    const list = Array.isArray(data?.profiles) ? data.profiles : [];
-    const mapped = list
-      .map((p: Record<string, unknown>) => {
-        const user_id = String(p.user_id ?? p.id ?? '');
-        const rawUsername = String(p.username ?? '').trim();
-        const rawDisplay = String(p.display_name ?? p.displayName ?? '').trim();
-        return {
-          user_id,
-          rawUsername,
-          rawDisplay,
-          username: pickShareLabel(p),
-          avatar_url:
-            p.avatar_url != null
-              ? String(p.avatar_url)
-              : p.avatarUrl != null
-                ? String(p.avatarUrl)
-                : null,
-        };
-      })
-      .filter((p) => {
-        if (!p.user_id || p.user_id === excludeUserId) return false;
-        // Both handle and display must pass — blocks lt_* even if display looks fine.
-        const handleOk = !p.rawUsername || isRealShareContact(p.rawUsername, p.user_id);
-        const displayOk = !p.rawDisplay || isRealShareContact(p.rawDisplay, p.user_id);
-        return handleOk && displayOk && isRealShareContact(p.username, p.user_id);
-      })
-      .map(({ user_id, username, avatar_url }) => ({ user_id, username, avatar_url }));
+    const [followers, following] = await Promise.all([
+      fetchFollowerProfiles(excludeUserId),
+      fetchFollowingProfiles(excludeUserId),
+    ]);
     const dedup = new Map<string, SharePanelContact>();
-    for (const p of mapped) dedup.set(p.user_id, p);
+    for (const row of [...followers, ...following]) {
+      if (!row?.user_id || row.user_id === excludeUserId) continue;
+      const contact = toContact(row);
+      if (contact) dedup.set(contact.user_id, contact);
+    }
     return Array.from(dedup.values());
   } catch {
     return [];

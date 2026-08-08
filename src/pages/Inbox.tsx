@@ -22,6 +22,7 @@ import {
   apiToggleInboxFollow,
 } from '../features/notifications/notificationsApi';
 import { apiLiveStreams } from '../lib/live/liveApi';
+import { isGenuineAppUser } from '../lib/genuineUser';
 
 interface Notification {
   id: string;
@@ -458,7 +459,6 @@ export default function Inbox() {
         setLiveUserIds(liveSet);
 
         const rows = profiles;
-        const blocklist = ['', 'user', 'demo', 'test', 'unknown', 'anonymous', 'guest'];
         const mapped: SuggestedUser[] = rows
           .map((p: { user_id: string; userId: string; username?: string; display_name?: string; displayName?: string; avatar_url?: string; avatarUrl?: string }) => ({
             id: p.user_id || p.userId,
@@ -468,10 +468,7 @@ export default function Inbox() {
             is_live: liveSet.has(p.user_id || p.userId),
           }))
           .filter((p) => !!p.id && p.id !== currentUserId)
-          .filter((p) => {
-            const name = (p.name || p.username || '').trim().toLowerCase();
-            return name !== '' && !blocklist.includes(name) && name.length >= 2;
-          });
+          .filter((p) => isGenuineAppUser(p.username, p.id, p.name));
 
         mapped.sort((a, b) => (a.is_live === b.is_live ? 0 : a.is_live ? -1 : 1));
         setSuggestedUsers(mapped);
@@ -573,11 +570,8 @@ export default function Inbox() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserId, location.pathname]);
 
-  const isRealUser = (f: FollowerProfile) => {
-    const name = (f.display_name || f.username || '').trim().toLowerCase();
-    const blocklist = ['', 'user', 'demo', 'test', 'unknown', 'anonymous', 'guest'];
-    return name !== '' && !blocklist.includes(name) && name.length >= 2;
-  };
+  const isRealUser = (f: FollowerProfile) =>
+    isGenuineAppUser(f.username || '', f.user_id || '', f.display_name || '');
 
   /** Avatars for live_started inbox rows (resolve host from /live/:id). */
   const avatarByUserId = useMemo(() => {

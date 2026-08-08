@@ -10,6 +10,7 @@ import { fetchActiveStories, type StoryItem, type StoryUserGroup } from '../lib/
 import { prepareFeedVideoEl } from '../lib/prepareLiveVideoEl';
 import { apiLiveStreams } from '../lib/live';
 import { usePullRevealStrip } from '../hooks/usePullRevealStrip';
+import { isGenuineAppUser } from '../lib/genuineUser';
 
 interface SuggestedUser {
   id: string;
@@ -197,7 +198,6 @@ export function FeedStoryCirclesOverlay({
         );
 
         const rows = Array.isArray(profilesBody?.profiles) ? profilesBody.profiles : [];
-        const blocklist = new Set(['', 'user', 'demo', 'unknown', 'anonymous', 'guest']);
         const followingSet = new Set(followingIds || []);
         const mapped: SuggestedUser[] = rows
           .map(
@@ -218,10 +218,7 @@ export function FeedStoryCirclesOverlay({
             }),
           )
           .filter((p) => !!p.id && p.id !== user?.id)
-          .filter((p) => {
-            const name = (p.name || p.username || '').trim().toLowerCase();
-            return name !== '' && !blocklist.has(name) && name.length >= 2;
-          });
+          .filter((p) => isGenuineAppUser(p.username, p.id, p.name));
 
         mapped.sort((a, b) => {
           if (followingFirst) {
