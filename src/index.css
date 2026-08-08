@@ -88,8 +88,8 @@
     --elix-battle-fill: linear-gradient(90deg, #8B9099 0%, #C8CDD5 45%, #E6E9EE 75%, #FFFFFF 100%);
     /* Fundal image = layer 0. Page/surface/panel fills = wash + fundal (ONE panel). */
     --elix-fundal-image: url('/elix-fundal-cosmic.png');
-    /* For You + home/bottom nav + Share / More Options / user panel only */
-    --elix-feed-chrome-fundal: url('/elix-fundal-foryou.png');
+    /* Same app-wide fundal (For You chrome + panels) */
+    --elix-feed-chrome-fundal: var(--elix-fundal-image);
     --elix-fundal-depth: var(--elix-fundal-image);
     --elix-page-fill:
       linear-gradient(var(--elix-panel-wash), var(--elix-panel-wash)),
