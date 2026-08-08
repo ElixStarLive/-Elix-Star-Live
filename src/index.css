@@ -2161,3 +2161,9 @@ body,
   filter: none !important;
 }
 
+/* More Options sheet — remove left/right side lines only */
+#root .elix-more-options-sheet {
+  border-left: none !important;
+  border-right: none !important;
+}
+

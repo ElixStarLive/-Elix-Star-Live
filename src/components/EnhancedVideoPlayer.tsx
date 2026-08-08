@@ -1304,10 +1304,13 @@ export default function EnhancedVideoPlayer({
         <div className="fixed inset-0 z-modals flex items-end justify-center">
           <div className="absolute inset-0 pointer-events-auto" onClick={closeMoreMenu} />
           <div
-            className="elix-glass rounded-t-2xl max-h-[40dvh] flex flex-col pointer-events-auto w-full max-w-[480px] relative z-10 bottom-sheet-above-nav border border-black"
+            className="elix-glass elix-more-options-sheet rounded-t-2xl max-h-[40dvh] flex flex-col pointer-events-auto w-full max-w-[480px] relative z-10 bottom-sheet-above-nav"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex flex-col px-4 pt-3 pb-3">
+            <div className="flex flex-col px-4 pt-2 pb-3 border-b border-white/10">
+              <div className="flex justify-center pb-2" aria-hidden>
+                <div className="w-10 h-1 rounded-full bg-white/25" />
+              </div>
               <span className="text-[#F5F5F7] font-bold text-sm text-center">More Options</span>
             </div>
             <div className="p-4 overflow-y-auto overflow-x-hidden min-h-0 flex-1">
