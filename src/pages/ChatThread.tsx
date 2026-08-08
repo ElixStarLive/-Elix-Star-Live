@@ -345,34 +345,52 @@ export default function ChatThread() {
 
   return (
     <div
-      className="fixed left-0 right-0 flex flex-col w-full max-w-[480px] mx-auto bg-transparent text-white z-[1]"
-      style={{ top: 0, bottom: 'var(--bottom-ui-reserve)' }}
+      className="fixed inset-0 flex flex-col w-full max-w-[480px] mx-auto bg-transparent text-white z-[1]"
+      style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
     >
-        <header className="flex-shrink-0 flex items-center gap-2 px-4 py-3 border-b border-white/10 bg-transparent">
-          <div className="flex w-12 shrink-0 items-center justify-start">
+        <header className="flex-shrink-0 flex items-center gap-2 px-3 py-2.5 border-b border-white/10 bg-transparent">
+          <div className="flex w-11 shrink-0 items-center justify-start">
             {otherUser && (
               <button
                 type="button"
                 onClick={handleVideoCall}
-                className="p-2 rounded-full bg-transparent border border-[#D8D9DD]/40 hover:bg-white/5 transition-colors"
+                className="w-10 h-10 rounded-full flex items-center justify-center bg-white/[0.06] border border-white/15 active:scale-95 transition-transform"
                 aria-label="Video call"
+                title="Video call"
               >
-                <Video className="w-5 h-5 text-white" />
+                <Video className="w-5 h-5 text-[#F5F5F7]" strokeWidth={2} />
               </button>
             )}
           </div>
           {otherUser ? (
-            <div className="flex min-w-0 flex-1 items-center justify-center gap-3">
-              <div className="flex-shrink-0">
-                <LevelBadge level={otherUser.level || 1} avatar={otherUser.avatar_url || ''} layout="fixed" />
-              </div>
-              <span className="truncate text-center font-bold text-sm">{otherUser.username}</span>
-            </div>
+            <button
+              type="button"
+              onClick={() => openProfile(otherUser.user_id)}
+              className="flex min-w-0 flex-1 items-center justify-center gap-2.5 active:opacity-90"
+              aria-label={`Open ${otherUser.username}'s profile`}
+            >
+              <LevelBadge
+                level={otherUser.level || 1}
+                avatar={otherUser.avatar_url || ''}
+                name={otherUser.username}
+                layout="fixed"
+                circleSize={36}
+              />
+              <span className="truncate max-w-[55%] text-center font-bold text-sm text-[#F5F5F7]">
+                {otherUser.username}
+              </span>
+            </button>
           ) : (
-            <span className="flex-1 text-center font-bold text-lg">Chat</span>
+            <span className="flex-1 text-center font-bold text-sm text-[#F5F5F7]">Chat</span>
           )}
-          <div className="flex w-12 shrink-0 items-center justify-end">
-            <button type="button" onClick={goInbox} className="p-1 rounded-lg active:bg-white/10" aria-label="Back to inbox">
+          <div className="flex w-11 shrink-0 items-center justify-end">
+            <button
+              type="button"
+              onClick={goInbox}
+              className="w-10 h-10 rounded-full flex items-center justify-center active:scale-95 transition-transform"
+              aria-label="Back to inbox"
+              title="Back"
+            >
               <RoyceBackIcon />
             </button>
           </div>
@@ -398,9 +416,11 @@ export default function ChatThread() {
         )}
 
         <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3 scroll-smooth">
-          {loading && <div className="text-center text-white/40 text-sm">Loading messages...</div>}
+          {loading && <div className="text-center text-white/40 text-sm py-8">Loading messages...</div>}
           {!loading && messages.length === 0 && (
-            <div className="text-center text-white/40 text-sm mt-10">Start the conversation!</div>
+            <div className="h-full min-h-[40vh] flex items-center justify-center">
+              <p className="text-center text-white/45 text-sm px-6">Start the conversation!</p>
+            </div>
           )}
           {messages.map((m) => {
             const isMe = m.sender_id === user?.id;
@@ -482,16 +502,26 @@ export default function ChatThread() {
           })}
         </div>
 
-        <div className="flex-shrink-0 p-4 bg-transparent border-t border-white/10">
-          <form className="flex items-center gap-2 bg-[rgba(255,255,255,0.06)] rounded-full px-4 py-2" onSubmit={handleSend}>
+        <div
+          className="flex-shrink-0 px-3 pt-2 bg-transparent border-t border-white/10"
+          style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom, 0px))' }}
+        >
+          <form className="flex items-center gap-2 rounded-full px-3 py-2 border border-white/15 bg-white/[0.06]" onSubmit={handleSend}>
             <input
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              className="flex-1 bg-transparent outline-none text-sm text-white placeholder-white/40"
+              className="flex-1 min-w-0 bg-transparent outline-none text-sm text-white placeholder-white/40"
               placeholder="Type a message..."
+              aria-label="Message"
             />
-            <button type="submit" disabled={!draft.trim()} className="p-2 bg-[#FFFFFF] rounded-full text-black disabled:opacity-50 disabled:bg-gray-600">
-              <Send size={16} />
+            <button
+              type="submit"
+              disabled={!draft.trim()}
+              title="Send message"
+              aria-label="Send message"
+              className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center bg-[#F5F5F7] text-black disabled:opacity-40 active:scale-95 transition-transform"
+            >
+              <Send size={16} strokeWidth={2.25} />
             </button>
           </form>
         </div>

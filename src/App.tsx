@@ -351,7 +351,11 @@ function App() {
     location.pathname.startsWith("/create/") ||
     location.pathname === "/upload" ||
     location.pathname === "/login" ||
-    location.pathname === "/register";
+    location.pathname === "/register" ||
+    // Active DM thread — full chat chrome, no tab bar under the composer
+    /^\/inbox\/[^/]+$/.test(location.pathname) ||
+    location.pathname === "/call" ||
+    location.pathname.startsWith("/call/");
   const showBottomNav = isAuthenticated && !isNavHidden;
 
   // Public routes that don't require authentication
