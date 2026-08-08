@@ -209,10 +209,12 @@ export default function Upload() {
   const { addVideo: _addVideo, fetchVideos } = useVideoStore();
 
   const ZOOM_MIN = 0.5;
-  const ZOOM_MAX = 3;
-  const ZOOM_STEP = 0.25;
-  const handleZoomIn = () => setZoomLevel((z) => Math.min(ZOOM_MAX, z + ZOOM_STEP));
-  const handleZoomOut = () => setZoomLevel((z) => Math.max(ZOOM_MIN, z - ZOOM_STEP));
+  const ZOOM_MAX = 1;
+  const ZOOM_STEP = 0.1;
+  /** Preview frame size (0.5–1) — resizes the video container, does not scale/crop the image. */
+  const handleZoomIn = () => setZoomLevel((z) => Math.min(ZOOM_MAX, Math.round((z + ZOOM_STEP) * 100) / 100));
+  const handleZoomOut = () => setZoomLevel((z) => Math.max(ZOOM_MIN, Math.round((z - ZOOM_STEP) * 100) / 100));
+  const previewFramePct = `${Math.round(Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoomLevel)) * 100)}%`;
 
   useEffect(() => {
     const el = mediaWrapRef.current;
@@ -1433,7 +1435,7 @@ export default function Upload() {
                       muted
                       className={`absolute inset-0 w-full h-full object-cover z-0 ${cameraError ? 'hidden' : ''}`}
                       style={{
-                        transform: `scale(${zoomLevel}) scaleX(-1)`,
+                        transform: 'scaleX(-1)',
                         transformOrigin: 'center center',
                         filter: beautyOn ? 'brightness(1.08) contrast(1.05) saturate(1.12)' : undefined,
                       }}
@@ -1442,19 +1444,30 @@ export default function Upload() {
                 </div>
               ) : (
                 <>
-              {/* Camera Preview Layer (non-duet) */}
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className={`absolute inset-0 w-full h-full object-cover z-0 ${cameraError ? 'hidden' : ''}`}
-                style={{
-                  transform: `scale(${zoomLevel}) scaleX(-1)`,
-                  transformOrigin: 'center center',
-                  filter: beautyOn ? 'brightness(1.08) contrast(1.05) saturate(1.12)' : undefined,
-                }}
-              />
+              {/* Camera Preview — zoom resizes the frame, not the image pixels */}
+              <div className="absolute inset-0 z-0 flex items-center justify-center bg-transparent">
+                <div
+                  className="relative overflow-hidden bg-black"
+                  style={{
+                    width: previewFramePct,
+                    height: previewFramePct,
+                    transition: 'width 0.2s ease-out, height 0.2s ease-out',
+                  }}
+                >
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className={`absolute inset-0 w-full h-full object-cover ${cameraError ? 'hidden' : ''}`}
+                    style={{
+                      transform: 'scaleX(-1)',
+                      transformOrigin: 'center center',
+                      filter: beautyOn ? 'brightness(1.08) contrast(1.05) saturate(1.12)' : undefined,
+                    }}
+                  />
+                </div>
+              </div>
                 </>
               )}
               {countdown !== null ? (
