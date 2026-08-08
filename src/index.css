@@ -1977,7 +1977,7 @@ body {
   background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment);
 }
 
-/* LEVEL 3 — top / home bar: fundal, no border frame lines */
+/* LEVEL 3 — top / home bar: fundal; no left/right side lines */
 #root nav[aria-label="Main navigation"] .feed-column-width,
 #root .elix-home-top-bar .feed-column-width,
 #root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
@@ -1988,8 +1988,10 @@ body {
   background-position: var(--elix-fundal-position), var(--elix-fundal-position);
   background-repeat: no-repeat, no-repeat;
   background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment);
-  border: none !important;
-  border-color: transparent !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-top: 1px solid var(--elix-border);
+  border-bottom: none !important;
   box-shadow: none !important;
   outline: none !important;
   backdrop-filter: none;
@@ -2163,31 +2165,20 @@ body,
   filter: none !important;
 }
 
-/* More Options — no decorative frame lines (elix-glass removed; no border at all) */
-#root .elix-more-options-sheet {
-  border: none !important;
-  border-width: 0 !important;
-  border-color: transparent !important;
+/* More Options — SIDE lines only off; keep handle + title separator */
+#root .elix-more-options-sheet,
+#root .elix-glass.elix-more-options-sheet {
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
   box-shadow: none !important;
   outline: none !important;
-  background-color: var(--elix-bg) !important;
-  background-image: var(--elix-panel-fill) !important;
-  background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
-  background-position: var(--elix-fundal-position), var(--elix-fundal-position) !important;
-  background-repeat: no-repeat, no-repeat !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
 }
 
-/* Feed column + top/home bars — kill every frame line on the chrome column */
+/* Feed column — side frame lines only */
 #root .feed-column-width,
-#root main.feed-column-width,
-#root nav[aria-label="Main navigation"] .feed-column-width,
-#root .elix-home-top-bar .feed-column-width {
-  border: none !important;
-  border-width: 0 !important;
-  border-color: transparent !important;
-  outline: none !important;
-  box-shadow: none !important;
+#root main.feed-column-width {
+  border-left: none !important;
+  border-right: none !important;
 }
 
