@@ -2149,20 +2149,15 @@ body {
   background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment);
 }
 
-/* LEVEL 3 — top / home bar: fundal; no left/right side lines */
-#root nav[aria-label="Main navigation"] .feed-column-width,
+/* LEVEL 3 — top tab row clear; bottom nav keeps chrome fill via rules below */
 #root .elix-home-top-bar .feed-column-width,
 #root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
 #root .feed-column-width.h-\[var\(--topnav-bar-height\)\] {
   background-color: transparent;
-  background-image: var(--elix-page-fill);
-  background-size: var(--elix-fundal-size), var(--elix-fundal-size);
-  background-position: var(--elix-fundal-position), var(--elix-fundal-position);
-  background-repeat: no-repeat, no-repeat;
-  background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment);
+  background-image: none;
   border-left: none !important;
   border-right: none !important;
-  border-top: 1px solid var(--elix-border);
+  border-top: none !important;
   border-bottom: none !important;
   box-shadow: none !important;
   outline: none !important;
@@ -2429,18 +2424,44 @@ body,
   background-repeat: no-repeat, no-repeat !important;
 }
 
-/* Home top + bottom nav — your fundal picture only (app width, no fake lines) */
+/* Home top bar — full-bleed panel from screen top through status + LIVE…For You tabs (not a floating banner strip) */
+#root .elix-home-top-bar,
+#root .elix-feed-chrome-shell .elix-home-top-bar {
+  left: 0;
+  right: 0;
+  width: 100%;
+  max-width: none;
+  background-color: var(--elix-bg) !important;
+  background-image: var(--elix-feed-chrome-fill) !important;
+  background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
+  background-position: var(--elix-fundal-position), var(--elix-fundal-position) !important;
+  background-repeat: no-repeat, no-repeat !important;
+  background-attachment: scroll !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Inner tab row stays clear — fundal lives on the full-width top panel */
 #root .elix-home-top-bar .feed-column-width,
-#root .elix-feed-chrome-shell .elix-home-top-bar .feed-column-width,
+#root .elix-feed-chrome-shell .elix-home-top-bar .feed-column-width {
+  position: relative;
+  overflow: hidden;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Bottom home bar — keep fundal on the app-width column */
 #root nav[aria-label="Main navigation"] .feed-column-width,
 #root .elix-feed-chrome-shell nav[aria-label="Main navigation"] .feed-column-width {
   position: relative;
   overflow: hidden;
   background-color: var(--elix-bg) !important;
-  background-image: var(--elix-fundal-image) !important;
-  background-size: 100% auto !important;
-  background-position: top center !important;
-  background-repeat: no-repeat !important;
+  background-image: var(--elix-feed-chrome-fill) !important;
+  background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
+  background-position: var(--elix-fundal-position), var(--elix-fundal-position) !important;
+  background-repeat: no-repeat, no-repeat !important;
   background-attachment: scroll !important;
 }
 

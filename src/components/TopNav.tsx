@@ -101,8 +101,8 @@ export const TopNav = () => {
 
   return (
     <div
-      className="elix-home-top-bar fixed left-0 right-0 z-[9999] flex justify-center pointer-events-none"
-      style={{ top: "var(--topnav-anchor-top)" }}
+      className="elix-home-top-bar fixed inset-x-0 top-0 z-[9999] flex justify-center pointer-events-none"
+      style={{ paddingTop: "var(--safe-top)" }}
     >
       <div className="feed-column-width pointer-events-auto bg-transparent min-h-[var(--topnav-bar-height)] h-[var(--topnav-bar-height)]">
         <div className="flex items-center h-full w-full px-1.5 gap-0.5">
