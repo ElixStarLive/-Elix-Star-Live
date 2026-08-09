@@ -715,7 +715,9 @@ export default function Create() {
                 <video
                   ref={(el) => {
                     videoRef.current = el;
-                    if (el) prepareLiveVideoEl(el);
+                    // Only prepare once a stream is attached — preparing empty
+                    // used to hide the element and leave Create permanently black.
+                    if (el?.srcObject) prepareLiveVideoEl(el);
                   }}
                   className={`w-full h-full ${ownBgUrl ? 'object-contain bg-transparent' : 'object-cover bg-black'} ${LIVE_WEBRTC_VIDEO_CLASS} ${cameraError ? 'hidden' : ''}`}
                   autoPlay muted playsInline controls={false}

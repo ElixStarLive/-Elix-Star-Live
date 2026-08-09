@@ -189,12 +189,46 @@ export function prepareLiveVideoEl(el: HTMLVideoElement | null | undefined): voi
   if (!el.getAttribute('poster')) {
     el.setAttribute('poster', LIVE_VIDEO_TRANSPARENT_POSTER);
   }
+
+  const stream = el.srcObject instanceof MediaStream ? el.srcObject : null;
+  const streamKey = stream?.id || '';
+  const flagged = el as HTMLVideoElement & {
+    __elixLiveKickBound?: boolean;
+    __elixPreparedStreamId?: string;
+  };
+
+  // Refs often fire before srcObject is attached (Create / Live). Hiding then
+  // never re-running reveal leaves a permanent black camera.
+  if (!streamKey) {
+    flagged.__elixPreparedStreamId = undefined;
+    void el.play().catch(() => {});
+    return;
+  }
+
+  const sameStream = flagged.__elixPreparedStreamId === streamKey;
+  const stuckHidden = el.style.visibility === 'hidden';
+  const hasFrame = el.videoWidth > 0 || el.readyState >= 2;
+
+  // Same stream already showing — only kick play (do not re-hide).
+  if (sameStream && !stuckHidden && hasFrame) {
+    void el.play().catch(() => {});
+    return;
+  }
+
+  // Same stream stuck hidden/paused after a prior hide cycle — force visible.
+  if (sameStream && stuckHidden && hasFrame) {
+    el.style.visibility = 'visible';
+    void el.play().catch(() => {});
+    return;
+  }
+
+  flagged.__elixPreparedStreamId = streamKey;
+
   hideVideoUntilPlaying(el);
   const kick = () => {
     void el.play().catch(() => {});
   };
   kick();
-  const flagged = el as HTMLVideoElement & { __elixLiveKickBound?: boolean };
   if (el.readyState < 2 && !flagged.__elixLiveKickBound) {
     flagged.__elixLiveKickBound = true;
     el.addEventListener('loadeddata', kick, { once: true });
