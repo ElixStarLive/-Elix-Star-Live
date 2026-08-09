@@ -74,6 +74,7 @@ export default function StemFeed() {
     <div ref={pageRef} className="app-live-column bg-transparent relative">
       <FeedStoryCirclesOverlay
         pageRef={pageRef}
+        initiallyVisible
         title="STEM"
         onSearch={goSearch}
         onBack={goBack}

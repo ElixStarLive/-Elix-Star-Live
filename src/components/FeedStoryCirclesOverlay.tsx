@@ -473,20 +473,23 @@ export function FeedStoryCirclesOverlay({
       {!visible && !storyViewer ? <div {...pullZoneProps} /> : null}
 
       {/*
-        Fixed to the real screen top (under battery/time). Body already pads content
-        with --safe-top — absolute top:0 only hit the padded column, which looked like
-        a short fundal banner with video/gap above. Do not add a second topOffset here.
+        Fixed under status bar, but fundal width = app column (same as video/bottom nav).
+        Open on STEM / Following / Friends; push up hides rings to watch video.
       */}
       <div
-        className={`fixed inset-x-0 top-0 z-[20] pointer-events-none transition-[transform,opacity] duration-300 ease-out feed-story-strip ${
+        className={`fixed inset-x-0 top-0 z-[20] flex justify-center pointer-events-none transition-[transform,opacity] duration-300 ease-out ${
           stripShown
-            ? 'translate-y-0 opacity-100 overflow-visible'
-            : '-translate-y-[120%] opacity-0 invisible overflow-hidden pointer-events-none'
+            ? 'translate-y-0 opacity-100'
+            : '-translate-y-[120%] opacity-0 invisible pointer-events-none'
         }`}
-        style={{ paddingTop: 'var(--safe-top)' }}
         aria-hidden={!stripShown}
       >
-        <div className="feed-column-width mx-auto w-full">
+        <div
+          className={`feed-column-width w-full feed-story-strip ${
+            stripShown ? 'overflow-visible' : 'overflow-hidden'
+          }`}
+          style={{ paddingTop: 'var(--safe-top)' }}
+        >
           {stripChrome}
           <div className="px-4 pt-0 pb-1 overflow-visible pointer-events-auto">{circlesRow}</div>
         </div>

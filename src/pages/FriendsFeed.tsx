@@ -76,6 +76,7 @@ export default function FriendsFeed() {
     <div ref={pageRef} className="app-live-column bg-transparent relative">
       <FeedStoryCirclesOverlay
         pageRef={pageRef}
+        initiallyVisible
         title="Friends"
         onSearch={goSearch}
         onBack={goBack}
