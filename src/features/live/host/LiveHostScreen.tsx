@@ -2238,14 +2238,17 @@ export default function LiveHostScreen() {
 
 {/* BOTTOM RIGHT: Action buttons (same area as before, aligned right) */}
       <div
-        className={`bottom-zone pointer-events-auto px-3 pt-0 flex flex-col items-end fixed left-0 right-0 bottom-0 z-[50002] justify-end ${isBattleMode ? 'elix-battle-lower-fundal' : 'bg-transparent'}`}
-        style={{ paddingBottom: LIVE_BOTTOM_ACTION_PADDING }}
+        className="bottom-zone pointer-events-none fixed left-0 right-0 bottom-0 z-[50002] flex justify-center"
       >
-        <div className="w-full max-w-[480px] mx-auto flex flex-col items-end gap-0">
-        <div className="flex flex-col items-end">
+        <div
+          className={`pointer-events-auto w-full max-w-[480px] px-3 pt-0 flex flex-col items-stretch justify-end ${isBattleMode ? 'elix-battle-lower-fundal' : 'bg-transparent'}`}
+          style={{ paddingBottom: LIVE_BOTTOM_ACTION_PADDING }}
+        >
+        <div className="w-full flex flex-col items-stretch gap-0">
+        <div className="flex flex-col items-stretch w-full">
           {/* Spectator bar â€” watch + gift only. Never shown to a broadcasting host or a battle-playing creator. */}
           {!isCreatorParticipant && (
-            <div className="flex items-end gap-2 w-full max-w-[480px] pointer-events-auto">
+            <div className="flex items-end gap-2 w-full pointer-events-auto">
               <form className="flex-1 flex items-center gap-2 bg-black/35 backdrop-blur-sm rounded-full px-3 py-2 border border-[#2A2D33] h-10 min-w-0" onSubmit={(e) => { e.preventDefault(); handleSendMessage(e); }}>
                 <input type="text" inputMode="text" enterKeyHint="send" autoComplete="off" placeholder="Say something..." className="bg-transparent text-white text-xs outline-none flex-1 placeholder:text-white/30 min-w-0" value={inputValue} onChange={(e) => setInputValue(e.target.value)} />
                 {inputValue.trim() && <button type="submit" title="Send message" className="text-[#F5F5F7] flex-shrink-0"><Send size={16} /></button>}
@@ -2291,7 +2294,7 @@ export default function LiveHostScreen() {
 
           {/* Creator bottom bar: Co-Host+Battle (solo) or Invite+Start game (battle setup); Share/More always. */}
           {isCreatorParticipant && !currentGift && (
-            <div className="flex items-end gap-2 w-full max-w-[480px] pointer-events-auto">
+            <div className="flex items-end gap-2 w-full pointer-events-auto">
               <div className="flex items-end justify-center gap-3 flex-shrink-0 flex-1">
               {isBattleMode && battleWinner && isBroadcast && (
                 <button 
@@ -2394,6 +2397,7 @@ export default function LiveHostScreen() {
               </div>
             </div>
           )}
+        </div>
         </div>
         </div>
       </div>
