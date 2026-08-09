@@ -2630,6 +2630,7 @@ export default function LiveHostScreen() {
                         level={typeof miniProfile.level === 'number' ? miniProfile.level : userLevel}
                         layout="fixed"
                         hideCircle
+                        size={14}
                       />
                     </div>
                     {miniProfile.coins != null && (

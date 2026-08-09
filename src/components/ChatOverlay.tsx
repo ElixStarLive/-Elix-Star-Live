@@ -1,7 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { LevelBadge } from './LevelBadge';
-import { LEVEL_BADGE_RING_PX } from '../lib/profileFrame';
 import { Trash2, Ban, Shield, Heart } from 'lucide-react';
+
+/** Live chat only — shorter level chip than feed/profile defaults. */
+const LIVE_CHAT_RING_PX = 20;
+const LIVE_CHAT_PILL_PX = 14;
 
 interface Message {
   id: string;
@@ -116,7 +119,7 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
             >
               <div 
                 className="flex-shrink-0 cursor-pointer relative z-10 flex items-center justify-center"
-                style={{ height: LEVEL_BADGE_RING_PX }}
+                style={{ height: LIVE_CHAT_RING_PX }}
                 onClick={(e) => {
                   e.stopPropagation();
                   if (onProfileTap) onProfileTap(msg.username);
@@ -127,6 +130,8 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
                   layout="fixed"
                   avatar={typeof msg.avatar === 'string' ? msg.avatar : undefined}
                   name={typeof msg.username === 'string' ? msg.username : undefined}
+                  circleSize={LIVE_CHAT_RING_PX}
+                  size={LIVE_CHAT_PILL_PX}
                 />
               </div>
               <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
@@ -163,7 +168,7 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
             {(msg.stickerUrl || (!msg.isSystem && typeof msg.text === 'string' && msg.text)) ? (
               <div
                 className="min-w-0"
-                style={{ paddingLeft: LEVEL_BADGE_RING_PX + 4 + Math.max(18, Math.round(LEVEL_BADGE_RING_PX * 0.78)) + 12 }}
+                style={{ paddingLeft: LIVE_CHAT_RING_PX + 4 + LIVE_CHAT_PILL_PX + 12 }}
               >
                 {msg.stickerUrl ? (
                   <img src={msg.stickerUrl} alt="sticker" className="w-16 h-16 object-contain rounded-lg" />
