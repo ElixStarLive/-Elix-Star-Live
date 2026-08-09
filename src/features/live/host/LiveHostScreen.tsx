@@ -777,8 +777,8 @@ export default function LiveHostScreen() {
         <div className="h-full w-full relative">
         <audio ref={roomRemoteAudioRef} autoPlay playsInline className="hidden" />
         <audio ref={opponentRemoteAudioRef} autoPlay playsInline className="hidden" />
-        {/* BACKGROUND under video — fundal glass (never black) */}
-        <div className="absolute inset-0 z-0 elix-fundal-glass overflow-hidden">
+        {/* Live video layer — clear under stream (no fundal wallpaper over camera) */}
+        <div className="absolute inset-0 z-0 overflow-hidden bg-transparent">
           <div className="video-zone relative w-full h-full">
             <div ref={stageRef} className="relative w-full h-full">
             {/* Base Video Layer */}
@@ -795,7 +795,7 @@ export default function LiveHostScreen() {
           );
           return (
           <div
-            className={hasAnyCoHost ? 'absolute inset-x-0 z-[25] flex flex-row' : 'relative w-full h-full'}
+            className={hasAnyCoHost ? 'absolute inset-x-0 z-[25] flex flex-row' : 'absolute inset-0 w-full h-full'}
             style={hasAnyCoHost ? { top: 'calc(90px + 6mm)', height: 'calc(36dvh + 10mm)', filter: liveFilterCss !== 'none' ? liveFilterCss : undefined } : { filter: liveFilterCss !== 'none' ? liveFilterCss : undefined }}
             onPointerDown={isCreatorParticipant ? undefined : (e) => {
               if (e.target instanceof Element) {
@@ -811,7 +811,9 @@ export default function LiveHostScreen() {
           >
             {/* Left: Host camera (or featured co-host) â€” 50% when co-hosts present, else full */}
             <div
-              className={`${hasAnyCoHost ? 'w-1/2 min-w-0 relative' : 'relative w-full h-full'} border border-[#C9A96E]/40 ${
+              className={`${hasAnyCoHost ? 'w-1/2 min-w-0 relative' : 'absolute inset-0 w-full h-full'} ${
+                hasAnyCoHost ? 'border border-[#C9A96E]/40' : ''
+              } ${
                 (featuredHost ? isSpeakingUser(featuredHost.userId) : isSpeakingUser(user?.id))
                   ? 'elix-speaking-pulse'
                   : ''
@@ -829,7 +831,7 @@ export default function LiveHostScreen() {
               <>
                 <video
                   ref={bindHostCameraPreview}
-                  className={`w-full h-full object-cover ${LIVE_WEBRTC_VIDEO_CLASS}`}
+                  className={`absolute inset-0 w-full h-full object-cover ${LIVE_WEBRTC_VIDEO_CLASS}`}
                   autoPlay
                   playsInline
                   muted
@@ -839,8 +841,6 @@ export default function LiveHostScreen() {
                     transform: 'scaleX(-1)',
                     opacity: featuredHost || isCamOff ? 0 : 1,
                     transition: 'opacity 0.3s ease',
-                    position: featuredHost ? 'absolute' : undefined,
-                    inset: featuredHost ? 0 : undefined,
                     pointerEvents: featuredHost ? 'none' : undefined,
                   } : undefined}
                 />
@@ -1834,11 +1834,8 @@ export default function LiveHostScreen() {
                 <div
                   className="absolute top-0 left-0 right-0 z-[110] pointer-events-none elix-live-top-chrome"
                   style={{
-                    backgroundColor: 'var(--elix-bg)',
-                    backgroundImage: 'var(--elix-fundal-image)',
-                    backgroundSize: '100% auto',
-                    backgroundPosition: 'top center',
-                    backgroundRepeat: 'no-repeat',
+                    backgroundColor: 'transparent',
+                    backgroundImage: 'none',
                   }}
                 >
                   <div className="px-3 pb-1.5" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 6px)' }}>
@@ -2078,7 +2075,7 @@ export default function LiveHostScreen() {
               }}
             >
               <div
-                className="w-full max-w-[480px] relative min-w-0 overflow-x-hidden elix-fundal-glass"
+                className="w-full max-w-[480px] relative min-w-0 overflow-x-hidden bg-transparent"
                 style={{
                   height: isBattleMode ? LIVE_BATTLE_CHAT_HEIGHT : 'calc(25dvh + 2cm + 4mm)',
                   maxHeight: isBattleMode ? LIVE_BATTLE_CHAT_HEIGHT : 'calc(25dvh + 2cm + 4mm)',

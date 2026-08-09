@@ -1346,7 +1346,7 @@ export default function SpectatorLiveScreen() {
               <div ref={spectatorStageRef} className="relative flex w-full h-full min-h-0 flex-row overflow-hidden rounded-none">
               {/* Left: host video (or featured co-host) — tap/double-tap to like (Aprecieri); hearts render in chat panel */}
               <div
-                className={`touch-manipulation overflow-hidden rounded-none min-w-0 relative border border-[#C9A96E]/40 ${showGrid || spectatorBattle?.active ? 'w-1/2' : 'w-full'} ${bigSpeaking ? 'elix-speaking-pulse' : ''}`}
+                className={`touch-manipulation overflow-hidden rounded-none min-w-0 relative ${showGrid || spectatorBattle?.active ? 'w-1/2 border border-[#C9A96E]/40' : 'w-full'} ${bigSpeaking ? 'elix-speaking-pulse' : ''}`}
                 onPointerDown={(e) => {
                   if (e.target instanceof Element) {
                     const interactive = e.target.closest('button, a, input, textarea, select, [role="button"]');
@@ -1510,11 +1510,8 @@ export default function SpectatorLiveScreen() {
         <div
           className="absolute top-0 left-0 right-0 z-[110] pointer-events-none overflow-hidden elix-live-top-chrome"
           style={{
-            backgroundColor: 'var(--elix-bg)',
-            backgroundImage: 'var(--elix-fundal-image)',
-            backgroundSize: '100% auto',
-            backgroundPosition: 'top center',
-            backgroundRepeat: 'no-repeat',
+            backgroundColor: 'transparent',
+            backgroundImage: 'none',
           }}
         >
           <div className="px-3 pb-1.5" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 6px)' }}>
@@ -1676,7 +1673,7 @@ export default function SpectatorLiveScreen() {
           }}
         >
           <div
-            className="w-full max-w-[480px] relative min-w-0 overflow-x-hidden elix-fundal-glass"
+            className="w-full max-w-[480px] relative min-w-0 overflow-x-hidden bg-transparent"
             style={{
               height: spectatorBattle?.active ? LIVE_BATTLE_CHAT_HEIGHT : 'calc(25dvh + 2cm + 4mm)',
               maxHeight: spectatorBattle?.active ? LIVE_BATTLE_CHAT_HEIGHT : 'calc(25dvh + 2cm + 4mm)',
