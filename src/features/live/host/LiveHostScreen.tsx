@@ -9,6 +9,7 @@ import {
 } from '../../../lib/prepareLiveVideoEl';
 import {
   Send,
+  Play,
   Search,
   Heart,
   MessageCircle,
@@ -471,6 +472,7 @@ export default function LiveHostScreen() {
     openGiftPanelIfSpectator,
     openLiveEffectsPanel,
     openMembershipFromGift,
+    openBattlePartnerMiniProfile,
     openMiniProfile,
     openMoreMenu,
     openSharePanel,
@@ -759,6 +761,7 @@ export default function LiveHostScreen() {
     viewerListMode,
     viewerName,
     viewerVideoRef,
+    watchMiniProfileLive,
     votePoll,
     walletCoinBalanceRef,
     engagementState,
@@ -1515,6 +1518,18 @@ export default function LiveHostScreen() {
                         </div>
                       )}
 
+                      {battleSlots[0].status === 'accepted' && battleSlots[0].userId ? (
+                        <button
+                          type="button"
+                          className="absolute inset-0 z-[8] border-0 bg-transparent p-0"
+                          aria-label={`Open ${battleSlots[0].name || 'creator'} profile`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openBattlePartnerMiniProfile(0);
+                          }}
+                        />
+                      ) : null}
+
                       {battleSlots[0].status !== 'empty' && (
                         <>
                           {/* P2 close/remove â€” top outer corner (top-right), away from VS timer */}
@@ -1555,8 +1570,8 @@ export default function LiveHostScreen() {
                       )}
 
                       <div 
-                        className="absolute bottom-1 right-1 flex items-center cursor-pointer hover:scale-105 transition-transform active:scale-95 pointer-events-auto"
-                        onClick={(e) => { e.stopPropagation(); openMiniProfile(battleSlots[0].name); }}
+                        className="absolute bottom-1 right-1 flex items-center cursor-pointer hover:scale-105 transition-transform active:scale-95 pointer-events-auto z-20"
+                        onClick={(e) => { e.stopPropagation(); openBattlePartnerMiniProfile(0); }}
                       >
                         {lastGifts.opponent.length > 0 && (
                           <div className="flex items-center">
@@ -1641,6 +1656,18 @@ export default function LiveHostScreen() {
                           </div>
                         )}
 
+                        {battleSlots[1].status === 'accepted' && battleSlots[1].userId ? (
+                          <button
+                            type="button"
+                            className="absolute inset-0 z-[8] border-0 bg-transparent p-0"
+                            aria-label={`Open ${battleSlots[1].name || 'creator'} profile`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openBattlePartnerMiniProfile(1);
+                            }}
+                          />
+                        ) : null}
+
                         {battleSlots[1].status !== 'empty' && (
                           <div className="absolute top-1 right-1 z-10 pointer-events-auto flex items-end gap-1.5">
                             <button type="button" className="elix-live-tile-ctrl flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95" onClick={(e) => { e.stopPropagation(); togglePlayerMute('player3'); }}>
@@ -1655,8 +1682,8 @@ export default function LiveHostScreen() {
                       )}
 
                       <div 
-                        className="absolute bottom-1 left-1 flex items-center cursor-pointer hover:scale-105 transition-transform active:scale-95 pointer-events-auto"
-                        onClick={(e) => { e.stopPropagation(); openMiniProfile(battleSlots[1].name); }}
+                        className="absolute bottom-1 left-1 flex items-center cursor-pointer hover:scale-105 transition-transform active:scale-95 pointer-events-auto z-20"
+                        onClick={(e) => { e.stopPropagation(); openBattlePartnerMiniProfile(1); }}
                       >
                         {lastGifts.player3.length > 0 && (
                           <div className="flex items-center">
@@ -1737,6 +1764,18 @@ export default function LiveHostScreen() {
                           </div>
                         )}
 
+                        {battleSlots[2].status === 'accepted' && battleSlots[2].userId ? (
+                          <button
+                            type="button"
+                            className="absolute inset-0 z-[8] border-0 bg-transparent p-0"
+                            aria-label={`Open ${battleSlots[2].name || 'creator'} profile`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openBattlePartnerMiniProfile(2);
+                            }}
+                          />
+                        ) : null}
+
                         {battleSlots[2].status !== 'empty' && (
                           <div className="absolute top-1 right-1 z-10 pointer-events-auto flex items-end gap-1.5">
                             <button type="button" className="elix-live-tile-ctrl flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95" onClick={(e) => { e.stopPropagation(); togglePlayerMute('player4'); }}>
@@ -1751,9 +1790,9 @@ export default function LiveHostScreen() {
                       )}
 
                       <div 
-                        className="absolute bottom-1 right-1 flex items-center cursor-pointer hover:scale-105 transition-transform active:scale-95 pointer-events-auto"
+                        className="absolute bottom-1 right-1 flex items-center cursor-pointer hover:scale-105 transition-transform active:scale-95 pointer-events-auto z-20"
                         style={{ right: '2.5rem' }}
-                        onClick={(e) => { e.stopPropagation(); openMiniProfile(battleSlots[2].name); }}
+                        onClick={(e) => { e.stopPropagation(); openBattlePartnerMiniProfile(2); }}
                       >
                         {lastGifts.player4.length > 0 && (
                           <div className="flex items-center">
@@ -2746,6 +2785,17 @@ export default function LiveHostScreen() {
                 <button type="button" onClick={miniProfileShareClick} className="h-10 rounded-lg bg-white/10 text-white text-[11px] font-bold hover:bg-white/20 active:scale-95 transition-all">
                   Share
                 </button>
+                {miniProfile?.liveStreamKey &&
+                  !(miniProfile?.id && user?.id && miniProfile.id === user.id) && (
+                  <button
+                    type="button"
+                    onClick={watchMiniProfileLive}
+                    className="h-10 rounded-lg bg-white text-black text-[11px] font-black hover:bg-white/90 active:scale-95 transition-all flex items-center justify-center gap-1"
+                  >
+                    <Play size={12} className="text-black" fill="black" />
+                    Watch LIVE
+                  </button>
+                )}
               </div>
               {/* Moderator actions â€” only creator and mods see these */}
               {(isBroadcast || (miniProfile?.id && moderators.has(user?.id || ''))) && miniProfile?.id && miniProfile.id !== user?.id && (

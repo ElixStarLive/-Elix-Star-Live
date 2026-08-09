@@ -755,6 +755,8 @@ export function useLiveSpectatorController() {
   const spectatorLiveKitHandlersRef = useRef<LiveKitSessionHandlers>({});
   const [hasOpponentStream, setHasOpponentStream] = useState(false);
   const [showOpponentPanel, setShowOpponentPanel] = useState(false);
+  /** Which battle half opened the bottom partner panel. */
+  const [battleSidePanel, setBattleSidePanel] = useState<'host' | 'opponent' | null>(null);
   const [lastOpponentGift, setLastOpponentGift] = useState<string[]>([]);
   const [lastHostGift, setLastHostGift] = useState<string[]>([]);
   /** Tap a co-host tile to gift them (null = gift goes to the stream host). */
@@ -765,7 +767,12 @@ export function useLiveSpectatorController() {
     displayName: string; username: string; avatarUrl: string;
     followers: number; following: number; level: number; bio: string;
   } | null>(null);
+  const [hostBattleProfile, setHostBattleProfile] = useState<{
+    displayName: string; username: string; avatarUrl: string;
+    followers: number; following: number; level: number; bio: string;
+  } | null>(null);
   const opponentProfileFetchedRef = useRef('');
+  const hostBattleProfileFetchedRef = useRef('');
   /** One +5 PK vote per spectator per full match — resets when a new match goes ACTIVE. */
   const spectatorBattleVoteRemainingRef = useRef(1);
   const prevSpectatorBattleActiveRef = useRef(false);
@@ -782,26 +789,31 @@ export function useLiveSpectatorController() {
     prevSpectatorBattleActiveRef.current = active;
   }, [spectatorBattle?.active, spectatorBattle?.status, effectiveStreamId]);
 
-  const _openOpponentPanel = useCallback(() => {
-    const oppId = battleStreamIds?.opponentUserId;
-    if (!oppId) return;
+  const openBattleSidePanel = useCallback((side: 'host' | 'opponent') => {
+    const uid =
+      side === 'opponent'
+        ? battleStreamIds?.opponentUserId
+        : battleStreamIds?.hostUserId || hostUserIdRef.current || hostUserId || '';
+    if (!uid) return;
+    setBattleSidePanel(side);
     setShowOpponentPanel(true);
-    if (opponentProfileFetchedRef.current === oppId) return;
-    opponentProfileFetchedRef.current = oppId;
+    const fetchedRef = side === 'opponent' ? opponentProfileFetchedRef : hostBattleProfileFetchedRef;
+    if (fetchedRef.current === uid) return;
+    fetchedRef.current = uid;
     (async () => {
       try {
-        const { body, error } = await apiFetchProfileById(oppId);
+        const { body, error } = await apiFetchProfileById(uid);
         if (error || !body) return;
         const p = (body?.profile || body?.data || {}) as Record<string, unknown>;
         const displayName =
           (typeof p.displayName === 'string' && p.displayName) ||
           (typeof p.username === 'string' && p.username) ||
-          spectatorBattle?.opponentName ||
-          'Opponent';
+          (side === 'opponent' ? spectatorBattle?.opponentName : hostName) ||
+          (side === 'opponent' ? 'Opponent' : 'Creator');
         const username = typeof p.username === 'string' ? p.username : '';
         const avatarUrl = typeof p.avatarUrl === 'string' ? p.avatarUrl : '';
         const bio = typeof p.bio === 'string' ? p.bio : '';
-        setOpponentProfile({
+        const profile = {
           displayName,
           username,
           avatarUrl,
@@ -809,10 +821,22 @@ export function useLiveSpectatorController() {
           following: Number(p.followingCount ?? p.following ?? 0),
           level: Number(p.level ?? 0),
           bio,
-        });
+        };
+        if (side === 'opponent') setOpponentProfile(profile);
+        else setHostBattleProfile(profile);
       } catch { /* non-fatal */ }
     })();
-  }, [battleStreamIds?.opponentUserId, spectatorBattle?.opponentName]);
+  }, [
+    battleStreamIds?.opponentUserId,
+    battleStreamIds?.hostUserId,
+    hostUserId,
+    hostName,
+    spectatorBattle?.opponentName,
+  ]);
+
+  const _openOpponentPanel = useCallback(() => {
+    openBattleSidePanel('opponent');
+  }, [openBattleSidePanel]);
 
   // Stay on the host stream during battle. Dual LiveKit already shows both
   // creators — navigating away mixes WS/LiveKit rooms and kills the live.
@@ -830,7 +854,10 @@ export function useLiveSpectatorController() {
       /* ignore */
     }
     battleSpectatorVote({ target });
-  }, [spectatorBattle?.active, spectatorBattle?.status]);
+    if (target === 'host' || target === 'opponent') {
+      openBattleSidePanel(target);
+    }
+  }, [spectatorBattle?.active, spectatorBattle?.status, openBattleSidePanel]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -3374,6 +3401,8 @@ export function useLiveSpectatorController() {
     _lastBattleScoreUpdateTraceSigRef,
     _myHeartCount,
     _openOpponentPanel,
+    openBattleSidePanel,
+    battleSidePanel,
     _setModerators,
     _setSelectedSpectatorUserId,
     _startCoHosting,
@@ -3489,6 +3518,7 @@ export function useLiveSpectatorController() {
     opponentLifecycleRef,
     opponentLkRoomRef,
     opponentProfile,
+    hostBattleProfile,
     opponentProfileFetchedRef,
     opponentVideoRef,
     pageExiting,
@@ -3588,6 +3618,7 @@ export function useLiveSpectatorController() {
     setShowFanClub,
     setShowGiftPanel,
     setShowOpponentPanel,
+    setBattleSidePanel,
     setShowPromotePanel,
     setShowRankingPanel,
     setShowRetryButton,

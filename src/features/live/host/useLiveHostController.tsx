@@ -2199,7 +2199,19 @@ export function useLiveHostController() {
   const [floatingHearts, setFloatingHearts] = useState<
     Array<{ id: string; x: number; y: number; dx: number; rot: number; size: number; color: string; username?: string; avatar?: string }>
   >([]);
-  const [miniProfile, setMiniProfile] = useState<null | { id?: string; username: string; avatar: string; level: number | null; coins?: number; donated?: number; bio?: string; followers_count?: number; following_count?: number }>(null);
+  const [miniProfile, setMiniProfile] = useState<null | {
+    id?: string;
+    username: string;
+    avatar: string;
+    level: number | null;
+    coins?: number;
+    donated?: number;
+    bio?: string;
+    followers_count?: number;
+    following_count?: number;
+    /** When set (battle partner), bottom sheet shows Watch LIVE → /watch/:key */
+    liveStreamKey?: string;
+  }>(null);
   /** Synced from GET /following when panel user id is known; used so Follow matches server (does not touch host top-bar isFollowing). */
   const [miniProfileFollowsThem, setMiniProfileFollowsThem] = useState<boolean | undefined>(undefined);
   const [_showMembershipBar, _setShowMembershipBar] = useState(false);
@@ -5697,14 +5709,22 @@ export function useLiveHostController() {
   const openMiniProfile = async (
     username: string,
     coins?: number,
-    opts?: { userId?: string; avatar?: string; level?: number | null },
+    opts?: { userId?: string; avatar?: string; level?: number | null; liveStreamKey?: string },
   ) => {
     const avatar = opts?.avatar ?? (username === myCreatorName
       ? myAvatar
       : `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=121212&color=FFFFFF`);
     const level = opts?.level ?? (username === myCreatorName ? userLevel : null);
     const donated = username === myCreatorName ? sessionContribution : 0;
-    setMiniProfile({ username, avatar, level, coins, donated, id: opts?.userId });
+    setMiniProfile({
+      username,
+      avatar,
+      level,
+      coins,
+      donated,
+      id: opts?.userId,
+      liveStreamKey: opts?.liveStreamKey,
+    });
     try {
       if (opts?.userId) {
         const { body, error } = await apiFetchProfileById(opts.userId);
@@ -5720,6 +5740,7 @@ export function useLiveHostController() {
             level: Number(prof.level) || prev.level,
             followers_count: Number(prof.followers) || 0,
             following_count: Number(prof.following) || 0,
+            liveStreamKey: opts.liveStreamKey ?? prev.liveStreamKey,
           } : prev);
           return;
         }
@@ -5740,10 +5761,38 @@ export function useLiveHostController() {
           level: Number.isFinite(resolvedLevel) ? resolvedLevel : prev.level,
           followers_count: Number.isFinite(resolvedFollowers) ? resolvedFollowers : 0,
           following_count: Number.isFinite(resolvedFollowing) ? resolvedFollowing : 0,
+          liveStreamKey: opts?.liveStreamKey ?? prev.liveStreamKey,
         } : prev);
       }
     } catch { /* keep what we have */ }
   };
+
+  /** Battle pane tap: open the other creator's bottom profile (host↔opponent same). */
+  const openBattlePartnerMiniProfile = useCallback((slotIndex: 0 | 1 | 2) => {
+    const slot = battleSlotsRef.current[slotIndex];
+    if (!slot?.userId || slot.status !== 'accepted') return;
+    if (user?.id && sameUserId(slot.userId, user.id)) return;
+    const ids = battleStreamIdsRef.current;
+    let liveStreamKey = slot.userId;
+    if (ids) {
+      if (slot.userId === ids.opponentUserId) {
+        liveStreamKey = ids.opponentRoomId || ids.opponentUserId || slot.userId;
+      } else if (slot.userId === ids.hostUserId) {
+        liveStreamKey = ids.hostRoomId || ids.hostUserId || slot.userId;
+      } else if (slot.userId === ids.player3UserId) {
+        liveStreamKey = ids.player3UserId;
+      } else if (slot.userId === ids.player4UserId) {
+        liveStreamKey = ids.player4UserId;
+      }
+    } else if (slotIndex === 0 && opponentStreamKey) {
+      liveStreamKey = opponentStreamKey;
+    }
+    void openMiniProfile(slot.name || 'Creator', undefined, {
+      userId: slot.userId,
+      avatar: slot.avatar || undefined,
+      liveStreamKey,
+    });
+  }, [user?.id, opponentStreamKey]);
 
   const openViewerMiniProfile = useCallback((
     displayName: string,
@@ -5760,6 +5809,18 @@ export function useLiveHostController() {
     closeMiniProfile();
     navigate(`/profile/${miniProfile.id ?? miniProfile.username}`);
   }, [miniProfile, navigate]);
+
+  const watchMiniProfileLive = useCallback(() => {
+    if (!miniProfile?.liveStreamKey) return;
+    const key = String(miniProfile.liveStreamKey).trim();
+    if (!key) return;
+    if (user?.id && sameUserId(key, user.id)) {
+      showToast("That's your live");
+      return;
+    }
+    closeMiniProfile();
+    navigate(`/watch/${key}`);
+  }, [miniProfile, navigate, user?.id]);
 
   const handleMiniProfileFollowToggle = useCallback(async () => {
     if (!miniProfile) return;
@@ -6216,6 +6277,7 @@ export function useLiveHostController() {
     navigate,
     onComboButtonClick,
     openBattleChrome,
+    openBattlePartnerMiniProfile,
     openCoHostGiftFromGrid,
     openDailyRanking,
     openEngagementFromMore,
@@ -6515,6 +6577,7 @@ export function useLiveHostController() {
     viewerListMode,
     viewerName,
     viewerVideoRef,
+    watchMiniProfileLive,
     votePoll,
     walletCoinBalanceRef,
     engagementState,

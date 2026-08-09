@@ -227,6 +227,7 @@ export default function SpectatorLiveScreen() {
     _lastBattleScoreUpdateTraceSigRef,
     _myHeartCount,
     _openOpponentPanel,
+    battleSidePanel,
     _setModerators,
     _setSelectedSpectatorUserId,
     _startCoHosting,
@@ -342,6 +343,7 @@ export default function SpectatorLiveScreen() {
     opponentLifecycleRef,
     opponentLkRoomRef,
     opponentProfile,
+    hostBattleProfile,
     opponentProfileFetchedRef,
     opponentVideoRef,
     pageExiting,
@@ -441,6 +443,7 @@ export default function SpectatorLiveScreen() {
     setShowFanClub,
     setShowGiftPanel,
     setShowOpponentPanel,
+    setBattleSidePanel,
     setShowPromotePanel,
     setShowRankingPanel,
     setShowRetryButton,
@@ -1039,40 +1042,70 @@ export default function SpectatorLiveScreen() {
                   </div>
                 )}
 
-                {/* Opponent profile panel — floating above bottom bar */}
-                {showOpponentPanel && spectatorBattle.opponentRoomId && (
-                  <div className="fixed inset-0 z-[200]" onClick={() => setShowOpponentPanel(false)}>
+                {/* Battle partner profile panel — host or opponent half tap */}
+                {showOpponentPanel && battleSidePanel && (
+                  <div
+                    className="fixed inset-0 z-[200]"
+                    onClick={() => {
+                      setShowOpponentPanel(false);
+                      setBattleSidePanel(null);
+                    }}
+                  >
                     <div className="absolute inset-0 bg-black/35" />
                     <div
                       className="absolute left-1/2 -translate-x-1/2 w-[calc(100%-24px)] max-w-[456px] elix-panel rounded-2xl overflow-hidden shadow-xl border border-[#2A2D33] animate-[slideInFromBottom_0.2s_ease-out]"
                       style={{ bottom: 'calc(70px + max(8px, env(safe-area-inset-bottom)))' }}
                       onClick={(e) => e.stopPropagation()}
                     >
+                      {(() => {
+                        const side = battleSidePanel;
+                        const profile = side === 'opponent' ? opponentProfile : hostBattleProfile;
+                        const fallbackName =
+                          side === 'opponent'
+                            ? spectatorBattle.opponentName || 'Opponent'
+                            : hostName || 'Creator';
+                        const watchRoomId =
+                          side === 'opponent'
+                            ? spectatorBattle.opponentRoomId || battleStreamIds?.opponentUserId
+                            : battleStreamIds?.hostRoomId ||
+                              battleStreamIds?.hostUserId ||
+                              hostUserId ||
+                              effectiveStreamId;
+                        const profileUid =
+                          side === 'opponent'
+                            ? battleStreamIds?.opponentUserId
+                            : battleStreamIds?.hostUserId || hostUserId;
+                        const alreadyWatching =
+                          !!watchRoomId &&
+                          (watchRoomId === effectiveStreamId ||
+                            watchRoomId === hostUserId ||
+                            watchRoomId === battleStreamIds?.hostRoomId);
+                        return (
                       <div className="px-3.5 py-3 flex items-center gap-3">
-                        {(opponentProfile?.avatarUrl) ? (
-                          <img src={opponentProfile.avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                        {(profile?.avatarUrl) ? (
+                          <img src={profile.avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
                         ) : (
                           <div className="w-10 h-10 rounded-full bg-[rgba(0,0,0,0.35)] flex items-center justify-center flex-shrink-0">
                             <span className="text-sm font-black text-[#F5F5F7]">
-                              {(opponentProfile?.displayName || spectatorBattle.opponentName || 'O').charAt(0).toUpperCase()}
+                              {(profile?.displayName || fallbackName || 'C').charAt(0).toUpperCase()}
                             </span>
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
                           <h3 className="text-white font-bold text-sm truncate leading-tight">
-                            {opponentProfile?.displayName || spectatorBattle.opponentName || 'Opponent'}
+                            {profile?.displayName || fallbackName}
                           </h3>
                           <div className="flex items-center gap-1.5 text-[10px] text-white/50 leading-tight mt-0.5">
-                            {opponentProfile?.username && <span>@{opponentProfile.username}</span>}
-                            {opponentProfile && (
+                            {profile?.username && <span>@{profile.username}</span>}
+                            {profile && (
                               <>
                                 <span>·</span>
-                                <span className="text-white/70 font-semibold">{opponentProfile.followers >= 1000 ? `${(opponentProfile.followers / 1000).toFixed(1)}K` : opponentProfile.followers}</span>
+                                <span className="text-white/70 font-semibold">{profile.followers >= 1000 ? `${(profile.followers / 1000).toFixed(1)}K` : profile.followers}</span>
                                 <span>followers</span>
-                                {opponentProfile.level > 0 && (
+                                {profile.level > 0 && (
                                   <LevelBadge
-                                    level={opponentProfile.level}
-                                    avatar={opponentProfile.avatarUrl}
+                                    level={profile.level}
+                                    avatar={profile.avatarUrl}
                                     layout="fixed"
                                   />
                                 )}
@@ -1081,30 +1114,32 @@ export default function SpectatorLiveScreen() {
                           </div>
                         </div>
                         <div className="flex gap-2 flex-shrink-0">
+                          {watchRoomId && !(side === 'host' && alreadyWatching) ? (
                           <button
                             type="button"
                             className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#FFFFFF] active:scale-95 transition-transform"
                             onClick={(e) => {
                               e.stopPropagation();
-                              const roomId = spectatorBattle.opponentRoomId;
                               setShowOpponentPanel(false);
-                              if (roomId) {
-                                window.location.href = `/watch/${roomId}`;
+                              setBattleSidePanel(null);
+                              if (watchRoomId) {
+                                window.location.href = `/watch/${watchRoomId}`;
                               }
                             }}
                           >
                             <Play size={12} className="text-black" fill="black" />
                             <span className="text-black font-bold text-[11px] whitespace-nowrap">Watch LIVE</span>
                           </button>
-                          {battleStreamIds?.opponentUserId && (
+                          ) : null}
+                          {profileUid && (
                             <button
                               type="button"
                               className="flex items-center px-3 py-2 rounded-full border border-[#D8D9DD]/40 active:scale-95 transition-transform"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                const uid = battleStreamIds.opponentUserId;
                                 setShowOpponentPanel(false);
-                                navigate(`/profile/${uid}`);
+                                setBattleSidePanel(null);
+                                navigate(`/profile/${profileUid}`);
                               }}
                             >
                               <span className="text-[#F5F5F7] font-bold text-[11px]">Profile</span>
@@ -1112,6 +1147,8 @@ export default function SpectatorLiveScreen() {
                           )}
                         </div>
                       </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 )}
