@@ -298,7 +298,7 @@ export function GiftGoalGallery(props: Props) {
           type="button"
           disabled={!selectedGift || saving}
           onClick={onSave}
-          className="flex-1 py-2 bg-gradient-to-r from-[#D8D9DD] to-[#D8D9DD] text-black font-bold text-[10px] uppercase tracking-wide rounded-xl active:scale-[0.98] transition-all disabled:opacity-50"
+          className="flex-1 py-2 rounded-xl border border-[#2A2D33] bg-black/50 elix-silver-red-text font-bold text-[10px] uppercase tracking-wide active:scale-[0.98] transition-all disabled:opacity-50"
         >
           {saving ? "Saving..." : "Set Goal"}
         </button>
