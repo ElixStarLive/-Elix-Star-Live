@@ -648,7 +648,7 @@ export function LiveComboMissionDock({
   return (
     <div
       className="fixed left-0 right-0 z-[50060] flex justify-center pointer-events-none"
-      style={{ bottom: 'calc(58px + max(2px, env(safe-area-inset-bottom, 0px)))' }}
+      style={{ bottom: 'calc(58px + 6mm + max(2px, env(safe-area-inset-bottom, 0px)))' }}
     >
       <div className="w-full max-w-[480px] mx-auto relative h-0 pointer-events-none">
         <div
