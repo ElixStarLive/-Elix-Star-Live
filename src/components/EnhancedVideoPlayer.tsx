@@ -1452,6 +1452,7 @@ export default function EnhancedVideoPlayer({
         onClose={() => setShowUserProfile(false)}
         user={video.user}
         onFollow={handleFollow}
+        isLiveHint={creatorIsLive}
       />
       
             {isMoreMenuOpen && (

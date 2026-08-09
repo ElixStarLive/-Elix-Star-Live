@@ -4,7 +4,7 @@ import { Ban, Play, MoreHorizontal, Flag, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useVideoStore } from '../store/useVideoStore';
 import { useAuthStore } from '../store/useAuthStore';
-import { AvatarRing } from './AvatarRing';
+import { StoryGoldRingAvatar } from './StoryGoldRingAvatar';
 import { LevelBadge } from './LevelBadge';
 import { useSafetyStore } from '../store/useSafetyStore';
 import ReportModal from './ReportModal';
@@ -13,6 +13,7 @@ import { navigateToDmWithUser } from '../lib/openDmThread';
 import { getVideoPosterUrl, resolveGridThumbnailUrl, resolveVideoPlaybackUrl } from '../lib/bunnyStorage';
 import { apiSetBlockUserAction } from '../features/safety/safetyApi';
 import { apiFetchFollowingIds } from '../features/feed/feedApi';
+import { apiLiveStreams, findLiveWatchTarget } from '../lib/live';
 
 interface User {
   id: string;
@@ -38,13 +39,16 @@ interface UserProfileModalProps {
   user: User;
   /** Optional — when omitted, modal uses store toggleFollow. */
   onFollow?: () => void;
+  /** Optional hint from feed (For You) when creator is already known live. */
+  isLiveHint?: boolean;
 }
 
-export default function UserProfileModal({ isOpen, onClose, user, onFollow }: UserProfileModalProps) {
+export default function UserProfileModal({ isOpen, onClose, user, onFollow, isLiveHint = false }: UserProfileModalProps) {
   const navigate = useNavigate();
   const [showReportModal, setShowReportModal] = useState(false);
   const [showMoreOptions, setShowMoreOptions] = useState(false);
   const [profileUser, setProfileUser] = useState<User | null>(null);
+  const [liveWatchKey, setLiveWatchKey] = useState<string | null>(null);
 
   const videos = useVideoStore((s) => s.videos);
   const followingUsers = useVideoStore((s) => s.followingUsers);
@@ -63,6 +67,14 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
   const isOwnProfile = currentUser?.id === user.id;
   const isBlocked = blockedUserIds.includes(user.id);
   const isFollowingUser = followingUsers.includes(user.id);
+  const isLiveNow = !!liveWatchKey && !isOwnProfile;
+
+  const handleJoinLive = useCallback(() => {
+    const key = String(liveWatchKey || user.id || '').trim();
+    if (!key) return;
+    onClose();
+    navigate(`/watch/${encodeURIComponent(key)}`);
+  }, [liveWatchKey, user.id, onClose, navigate]);
 
   const handleFollowToggle = useCallback(() => {
     if (!user?.id || isOwnProfile) return;
@@ -76,30 +88,37 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
   useEffect(() => {
     if (!isOpen || !user?.id) return;
     setProfileUser(null);
+    setLiveWatchKey(isLiveHint ? String(user.id) : null);
     let cancelled = false;
     (async () => {
       try {
-        const { data: body } = await api.profiles.get(user.id);
-        if (cancelled || !body) return;
-        // API returns { profile: { username, displayName, avatarUrl, isVerified, ... } } (camelCase).
-        const profile = (body as { profile?: Record<string, unknown> })?.profile ?? body;
+        const livePromise = apiLiveStreams().catch(() => ({ streams: [] as unknown[], error: null }));
+        const profilePromise = api.profiles.get(user.id).catch(() => ({ data: null }));
         const countsPromise = Promise.all([
-          api.profiles.getFollowerCount(user.id),
-          api.profiles.getFollowingCount(user.id),
+          api.profiles.getFollowerCount(user.id).catch(() => ({ count: 0 })),
+          api.profiles.getFollowingCount(user.id).catch(() => ({ count: 0 })),
         ]);
         const followPromise =
           currentUser?.id && currentUser.id !== user.id
             ? apiFetchFollowingIds(currentUser.id)
             : Promise.resolve({ following: [] as string[], error: null as string | null });
 
-        const [[{ count: followersCount }, { count: followingCount }], followResult] =
-          await Promise.all([countsPromise, followPromise]);
+        const [liveResult, profileRes, [{ count: followersCount }, { count: followingCount }], followResult] =
+          await Promise.all([livePromise, profilePromise, countsPromise, followPromise]);
         if (cancelled) return;
+
+        const watchTarget = findLiveWatchTarget(liveResult.streams || [], user.id);
+        setLiveWatchKey(watchTarget || (isLiveHint ? String(user.id) : null));
 
         if (currentUser?.id && currentUser.id !== user.id && !followResult.error) {
           const follows = followResult.following.some((id) => String(id) === String(user.id));
           setUserFollowing(user.id, follows, 0);
         }
+
+        const body = profileRes?.data;
+        if (!body) return;
+        // API returns { profile: { username, displayName, avatarUrl, isVerified, ... } } (camelCase).
+        const profile = (body as { profile?: Record<string, unknown> })?.profile ?? body;
 
         const pUsername = typeof profile.username === 'string' ? profile.username : '';
         const pDisplayName = typeof profile.displayName === 'string' ? profile.displayName : '';
@@ -124,12 +143,15 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
           following: followingCount ?? 0,
         });
       } catch {
-        if (!cancelled) setProfileUser(null);
+        if (!cancelled) {
+          setProfileUser(null);
+          if (!isLiveHint) setLiveWatchKey(null);
+        }
       }
     })();
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, user.id]);
+  }, [isOpen, user.id, isLiveHint]);
 
   /* Hide home TopNav while this profile is open (stacking keeps TopNav visible otherwise). */
   useEffect(() => {
@@ -305,8 +327,13 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
         <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain px-5 pb-safe">
           {/* Profile Header */}
           <div className="flex flex-col items-center mb-4">
-            <div className="mb-3">
-              <AvatarRing src={displayUser.avatar} alt={displayUser.name} size={80} />
+            <div className="mb-3 overflow-visible">
+              <StoryGoldRingAvatar
+                size={80}
+                src={displayUser.avatar}
+                alt={displayUser.name}
+                live={!!liveWatchKey}
+              />
             </div>
             <h2 className="text-lg font-bold text-white flex items-center gap-1.5 -translate-y-[2mm]">
               {realName}
@@ -343,9 +370,19 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
             </div>
 
             {/* Action Buttons */}
-            <div className="flex items-center gap-2 mt-4 mx-auto w-full max-w-[300px]">
+            <div className="flex flex-col gap-2 mt-4 mx-auto w-full max-w-[300px]">
+              {isLiveNow && (
+                <button
+                  type="button"
+                  onClick={handleJoinLive}
+                  className="w-full h-9 flex items-center justify-center gap-1.5 bg-white text-black rounded-xl font-semibold text-xs hover:bg-white/90 active:scale-95 transition-colors"
+                >
+                  <Play size={12} className="text-black" fill="black" />
+                  Join Live
+                </button>
+              )}
               {!isOwnProfile && (
-                <>
+                <div className="flex items-center gap-2 w-full">
                   {isFollowingUser ? (
                     <button
                       type="button"
@@ -399,7 +436,7 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow }: Us
                       </div>
                     )}
                   </button>
-                </>
+                </div>
               )}
             </div>
 

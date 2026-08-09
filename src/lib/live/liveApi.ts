@@ -90,3 +90,21 @@ export function collectLiveUserIds(streams: unknown[]): Set<string> {
   }
   return out;
 }
+
+/** Best /watch/:streamId target for a user who is currently live. */
+export function findLiveWatchTarget(streams: unknown[], userId: string): string | null {
+  const uid = String(userId || '').trim();
+  if (!uid) return null;
+  for (const raw of streams || []) {
+    if (!raw || typeof raw !== 'object') continue;
+    const s = raw as Record<string, unknown>;
+    const hosts = [s.hostUserId, s.userId, s.user_id]
+      .map((v) => (v != null ? String(v).trim() : ''))
+      .filter(Boolean);
+    if (!hosts.includes(uid)) continue;
+    const key =
+      s.stream_key ?? s.streamKey ?? s.room_id ?? s.roomId ?? s.hostUserId ?? s.userId ?? s.user_id;
+    if (key != null && String(key).trim()) return String(key).trim();
+  }
+  return null;
+}

@@ -5,6 +5,7 @@ export {
   apiLiveTokenWithIdentity,
   apiLiveStreams,
   collectLiveUserIds,
+  findLiveWatchTarget,
   type LiveKitCreds,
 } from './liveApi';
 export { LiveRoomLifecycle, type LiveRole, type LiveRoomConnectOptions } from './liveRoomLifecycle';
