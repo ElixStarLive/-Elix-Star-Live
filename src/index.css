@@ -717,28 +717,28 @@ video::-webkit-media-controls-overlay-enclosure,
   border-width: 2px !important;
 }
 
-/* Co-host squares — tiny equal cut on every corner (not a hexagon tile).
-   Cuts + grid gap make the space between squares read like a hexagon. */
+/* Co-host squares — equal corner cuts (not full hexagon tiles).
+   Meeting cuts + grid gap form a hexagon in the space between squares. */
 .elix-cohost-cut-corner {
   -webkit-clip-path: polygon(
-    4px 0,
-    calc(100% - 4px) 0,
-    100% 4px,
-    100% calc(100% - 4px),
-    calc(100% - 4px) 100%,
-    4px 100%,
-    0 calc(100% - 4px),
-    0 4px
+    1.5mm 0,
+    calc(100% - 1.5mm) 0,
+    100% 1.5mm,
+    100% calc(100% - 1.5mm),
+    calc(100% - 1.5mm) 100%,
+    1.5mm 100%,
+    0 calc(100% - 1.5mm),
+    0 1.5mm
   );
   clip-path: polygon(
-    4px 0,
-    calc(100% - 4px) 0,
-    100% 4px,
-    100% calc(100% - 4px),
-    calc(100% - 4px) 100%,
-    4px 100%,
-    0 calc(100% - 4px),
-    0 4px
+    1.5mm 0,
+    calc(100% - 1.5mm) 0,
+    100% 1.5mm,
+    100% calc(100% - 1.5mm),
+    calc(100% - 1.5mm) 100%,
+    1.5mm 100%,
+    0 calc(100% - 1.5mm),
+    0 1.5mm
   );
 }
 

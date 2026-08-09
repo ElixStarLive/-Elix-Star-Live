@@ -1460,7 +1460,7 @@ export default function SpectatorLiveScreen() {
                 : { top: '0px', bottom: '0px' }
               }
             >
-              <div ref={spectatorStageRef} className={`relative flex w-full h-full min-h-0 flex-row overflow-hidden rounded-none${showGrid || spectatorBattle?.active ? ' gap-[2px]' : ''}`}>
+              <div ref={spectatorStageRef} className={`relative flex w-full h-full min-h-0 flex-row overflow-hidden rounded-none${showGrid || spectatorBattle?.active ? ' gap-[0.5mm]' : ''}`}>
               {/* Left: host video (or featured co-host) — tap/double-tap to like (Aprecieri); hearts render in chat panel */}
               <div
                 className={`touch-manipulation overflow-hidden rounded-none min-w-0 relative ${showGrid || spectatorBattle?.active ? 'w-1/2 border border-[#D8D9DD]/45 elix-cohost-cut-corner' : 'w-full'} ${bigSpeaking ? 'elix-speaking-pulse' : ''}`}
@@ -1585,7 +1585,7 @@ export default function SpectatorLiveScreen() {
 
               {/* Right: 8-slot co-host grid — same as creator */}
               {showGrid && (
-                <div className="w-1/2 h-full grid grid-cols-2 grid-rows-4 gap-[2px] bg-transparent">
+                <div className="w-1/2 h-full grid grid-cols-2 grid-rows-4 gap-[0.5mm] bg-transparent">
                   {slots.slice(0, 8).map((slot, i) => {
                     const cellSpeaking =
                       (slot.type === 'host_main' && (isSpeakingUser(hostIdForSpeak) || isSpeakingUser(effectiveStreamId))) ||
