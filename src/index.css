@@ -2189,15 +2189,14 @@ body {
 .elix-battle-lower-fundal {
   background-color: transparent;
   background-image: var(--elix-panel-fill);
-  background-size: var(--elix-fundal-size), var(--elix-fundal-size);
-  background-position: var(--elix-fundal-position), var(--elix-fundal-position);
+  background-size: cover, cover;
+  background-position: center top, center top;
   background-repeat: no-repeat, no-repeat;
-  background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment);
 }
 .elix-battle-slot {
   border: 1px solid var(--elix-border);
 }
-/* Beat .elix-fundal-glass solid base inside live room */
+/* Beat .elix-fundal-glass solid base inside live room — cover full area (no black mid gap) */
 #root .elix-live-room .elix-battle-room-fundal,
 #root .elix-live-room .elix-battle-lower-fundal,
 #root .elix-live-room .elix-battle-chat-fundal,
@@ -2205,10 +2204,18 @@ body {
 #root .elix-live-room .elix-battle-slot {
   background-color: transparent !important;
   background-image: var(--elix-panel-fill) !important;
-  background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
-  background-position: var(--elix-fundal-position), var(--elix-fundal-position) !important;
+  background-size: cover, cover !important;
+  background-position: center top, center top !important;
   background-repeat: no-repeat, no-repeat !important;
-  background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment) !important;
+  background-attachment: scroll, scroll !important;
+}
+/* Battle top chrome — same fundal as creator column (host + spectator identical) */
+#root .elix-live-room .elix-battle-top-fundal {
+  background-color: transparent !important;
+  background-image: var(--elix-panel-fill) !important;
+  background-size: cover, cover !important;
+  background-position: center top, center top !important;
+  background-repeat: no-repeat, no-repeat !important;
 }
 /* Battle MVP strip — fundal BEHIND circles only (never covers AvatarRing) */
 .elix-battle-mvp-row,
@@ -2227,10 +2234,9 @@ body {
   pointer-events: none;
   background-color: transparent;
   background-image: var(--elix-panel-fill);
-  background-size: var(--elix-fundal-size), var(--elix-fundal-size);
-  background-position: var(--elix-fundal-position), var(--elix-fundal-position);
+  background-size: cover, cover;
+  background-position: center top, center top;
   background-repeat: no-repeat, no-repeat;
-  background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment);
 }
 .elix-battle-mvp-row > * {
   position: relative;
@@ -2243,11 +2249,20 @@ body {
 }
 
 .elix-battle-score-host {
-  background-image: var(--elix-battle-fill);
+  background-color: transparent !important;
+  background-image: var(--elix-battle-fill) !important;
 }
 .elix-battle-score-guest {
-  background-color: transparent;
-  background-image: var(--elix-battle-fill-guest);
+  background-color: transparent !important;
+  background-image: var(--elix-battle-fill-guest) !important;
+}
+#root .elix-live-room .elix-battle-score-host {
+  background-color: transparent !important;
+  background-image: var(--elix-battle-fill) !important;
+}
+#root .elix-live-room .elix-battle-score-guest {
+  background-color: transparent !important;
+  background-image: var(--elix-battle-fill-guest) !important;
 }
 .elix-battle-score-wrap {
   background-color: transparent;

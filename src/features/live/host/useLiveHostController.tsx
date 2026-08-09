@@ -102,7 +102,7 @@ import {
   battleJoin,
   battleSpectatorVote,
 } from '../battle/liveBattleActions';
-import { applyBattleTickTime, normalizeBattleScores, normalizeBattleWinner } from '../battle/liveBattleScore';
+import { applyBattleTickTime, applyBattleWinStreak, normalizeBattleScores, normalizeBattleWinner } from '../battle/liveBattleScore';
 import { runBattleInviteAccept, runBattleInviteDecline } from '../battle/liveBattleInviteHandshake';
 import {
   cohostInviteAccept,
@@ -1650,6 +1650,15 @@ export function useLiveHostController() {
   const [player3Score, setPlayer3Score] = useState(0);
   const [player4Score, setPlayer4Score] = useState(0);
   const [battleWinner, setBattleWinner] = useState<'me' | 'opponent' | 'player3' | 'player4' | 'draw' | null>(null);
+  /** Server team result (red=host / blue=opponent) for pane WIN/LOSS + streak labels. */
+  const [battleTeamWinner, setBattleTeamWinner] = useState<'host' | 'opponent' | 'draw' | null>(null);
+  /** Consecutive wins per team (red=host, blue=opponent). Win +1, loss → 0, draw keeps. */
+  const [battleWinStreak, setBattleWinStreak] = useState<{ host: number; opponent: number }>({ host: 0, opponent: 0 });
+  const battleWinStreakRef = useRef(battleWinStreak);
+  useEffect(() => {
+    battleWinStreakRef.current = battleWinStreak;
+  }, [battleWinStreak]);
+  const battleStreakCountedForEndRef = useRef(false);
   const battleScoresRef = useRef({ myScore: 0, opponentScore: 0, player3Score: 0, player4Score: 0 });
   useEffect(() => {
     battleScoresRef.current = { myScore, opponentScore, player3Score, player4Score };
@@ -2463,6 +2472,7 @@ export function useLiveHostController() {
     setPlayer3Score(0);
     setPlayer4Score(0);
     setBattleWinner(null);
+    setBattleTeamWinner(null);
     setBattleCountdown(null);
     setHasOpponentStream(false);
     setOpponentStreamKey(null);
@@ -2486,6 +2496,7 @@ export function useLiveHostController() {
     battleTapScoreRemainingRef.current = 5;
     prevBattleSyncStatusRef.current = null;
     battleStreamIdsRef.current = null;
+    battleStreakCountedForEndRef.current = false;
     battleTripleTapRef.current = { target: null, lastTapAt: 0, count: 0 };
     setMiniProfile(null);
     setSpeedChallengeActive(false);
@@ -2559,6 +2570,7 @@ export function useLiveHostController() {
     battleServerTotalsRef.current = { h: 0, o: 0, p3: 0, p4: 0 };
     setBattleServerTotals({ h: 0, o: 0, p3: 0, p4: 0 });
     setBattleWinner(null);
+    setBattleTeamWinner(null);
     setGiftTarget('me');
     setBattleCountdown(null);
     setHasOpponentStream(false);
@@ -2645,6 +2657,7 @@ export function useLiveHostController() {
       setPlayer3Score(0);
       setPlayer4Score(0);
         setBattleWinner(null);
+    setBattleTeamWinner(null);
         setGiftTarget('me');
       setBattleCountdown(null);
       const params = new URLSearchParams(location.search);
@@ -4107,6 +4120,13 @@ export function useLiveHostController() {
       const role = battleRoleRef.current || (isBattleJoiner ? 'opponent' : (isBroadcast ? 'host' : null));
       // Server endBattle: winner is red team (host) vs blue (opponent) or draw — not individual P3/P4.
       setBattleWinner(normalizeBattleWinner(winner, role));
+      const teamWinner =
+        winner === 'host' || winner === 'opponent' || winner === 'draw' ? winner : 'draw';
+      setBattleTeamWinner(teamWinner);
+      if (!battleStreakCountedForEndRef.current) {
+        battleStreakCountedForEndRef.current = true;
+        setBattleWinStreak((prev) => applyBattleWinStreak(prev, teamWinner));
+      }
       if (winner === 'host') {
         playBattleTauntSound('win');
         pushBattleTaunt(createTauntBurst('host', 'win'));
@@ -5448,6 +5468,8 @@ export function useLiveHostController() {
     battleServerTotalsRef.current = { h: 0, o: 0, p3: 0, p4: 0 };
     setBattleServerTotals({ h: 0, o: 0, p3: 0, p4: 0 });
     setBattleWinner(null);
+    setBattleTeamWinner(null);
+    battleStreakCountedForEndRef.current = false;
     setBattleCountdown(null);
     reachedThresholdsRef.current.clear();
     roseCountRef.current = 0;
@@ -5845,6 +5867,7 @@ export function useLiveHostController() {
     battleServerTotalsRef.current = { h: 0, o: 0, p3: 0, p4: 0 };
     setBattleServerTotals({ h: 0, o: 0, p3: 0, p4: 0 });
     setBattleWinner(null);
+    setBattleTeamWinner(null);
     battleFreeTapUsedRef.current = false;
     battleTapScoreRemainingRef.current = 5;
     setBattleTime(0);
@@ -5857,6 +5880,17 @@ export function useLiveHostController() {
     setBattleTime(0);
     const winner = determine4PlayerWinner();
     setBattleWinner(winner);
+    const teamWinner =
+      winner === 'me' || winner === 'player3'
+        ? 'host'
+        : winner === 'opponent' || winner === 'player4'
+          ? 'opponent'
+          : 'draw';
+    setBattleTeamWinner(teamWinner);
+    if (!battleStreakCountedForEndRef.current) {
+      battleStreakCountedForEndRef.current = true;
+      setBattleWinStreak((prev) => applyBattleWinStreak(prev, teamWinner));
+    }
   };
 
   // Team totals for bar: always server host + P3 (red) vs server opponent + P4 (blue) — do not use role-swapped myScore.
@@ -5963,6 +5997,8 @@ export function useLiveHostController() {
     battleTripleTapRef,
     battleVoteGridRef,
     battleWinner,
+    battleTeamWinner,
+    battleWinStreak,
     bindHostCameraPreview,
     blockMiniProfileUser,
     blueTeamScore,

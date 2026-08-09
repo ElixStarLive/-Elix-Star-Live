@@ -132,7 +132,7 @@ import {
   battleGetState,
   battleSpectatorVote,
 } from '../battle/liveBattleActions';
-import { applyBattleTickTime } from '../battle/liveBattleScore';
+import { applyBattleTickTime, applyBattleWinStreak } from '../battle/liveBattleScore';
 import { runBattleInviteAccept, runBattleInviteDecline } from '../battle/liveBattleInviteHandshake';
 import { cohostRequestSend } from '../cohost/liveCohostActions';
 import { liveChatSend, liveHeartSend } from '../chat/liveChatActions';
@@ -567,6 +567,10 @@ export function useLiveSpectatorController() {
   } | null>(null);
   const spectatorBattleRef = useRef(spectatorBattle);
   spectatorBattleRef.current = spectatorBattle;
+  const [battleWinStreak, setBattleWinStreak] = useState<{ host: number; opponent: number }>({ host: 0, opponent: 0 });
+  const battleWinStreakRef = useRef(battleWinStreak);
+  battleWinStreakRef.current = battleWinStreak;
+  const battleStreakCountedForEndRef = useRef(false);
   const _lastBattleScoreUpdateTraceSigRef = useRef('');
 
   // SPEED CHALLENGE (spectator) — auto unlock only; appears alone (not in More).
@@ -2352,6 +2356,7 @@ export function useLiveSpectatorController() {
         if (!prevBattle?.active || prevBattle.status === 'ENDED') {
           resetSpectatorSpeed();
         }
+        battleStreakCountedForEndRef.current = false;
         setSpectatorBattle((prev) => ({
           active: true,
           status,
@@ -2367,8 +2372,9 @@ export function useLiveSpectatorController() {
           winner: undefined,
         }));
       } else if (rawStatus === 'ENDED') {
+        // Keep active so WIN/LOSS overlay can show until the brief end banner clears.
         setSpectatorBattle((prev) =>
-          prev ? { ...prev, active: false, status: 'ENDED' } : null,
+          prev ? { ...prev, active: true, status: 'ENDED' } : null,
         );
         resetSpectatorSpeed();
         setTimeout(() => setSpectatorBattle(null), 2500);
@@ -2461,12 +2467,19 @@ export function useLiveSpectatorController() {
         playBattleTauntSound('win');
         pushBattleTaunt(createTauntBurst('opponent', 'win'));
       }
+      const teamWinner =
+        winner === 'host' || winner === 'opponent' || winner === 'draw' ? winner : 'draw';
+      if (!battleStreakCountedForEndRef.current) {
+        battleStreakCountedForEndRef.current = true;
+        setBattleWinStreak((prev) => applyBattleWinStreak(prev, teamWinner));
+      }
       const labels = battleTeamLabelsFromPayload(data);
       setSpectatorBattle((prevState) => {
         if (!prevState) return null;
         return {
           ...prevState,
-          active: false,
+          // Keep active so WIN/LOSS + streak overlay stays visible for the end banner.
+          active: true,
           status: 'ENDED',
           hostScore: h,
           opponentScore: o,
@@ -3588,6 +3601,7 @@ export function useLiveSpectatorController() {
     spawnHeartFromClient,
     speakingIds,
     spectatorBattle,
+    battleWinStreak,
     spectatorBattleRef,
     spectatorBattleVoteRemainingRef,
     spectatorChatHeartsRef,

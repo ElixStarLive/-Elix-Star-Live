@@ -484,6 +484,7 @@ export default function SpectatorLiveScreen() {
     spawnHeartFromClient,
     speakingIds,
     spectatorBattle,
+    battleWinStreak,
     spectatorBattleRef,
     spectatorBattleVoteRemainingRef,
     spectatorChatHeartsRef,
@@ -824,15 +825,27 @@ export default function SpectatorLiveScreen() {
                     </div>
                     {spectatorBattle.winner && (
                       <div className="absolute inset-0 z-[8] pointer-events-none flex flex-row gap-0">
-                        <div className="flex-1 basis-0 min-w-0 h-full flex items-center justify-center">
+                        <div className="flex-1 basis-0 min-w-0 h-full flex flex-col items-center justify-center gap-0.5">
                           <span className={`text-sm font-black drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)] ${spectatorBattle.winner === 'host' ? 'text-white' : spectatorBattle.winner === 'draw' ? 'text-white' : 'text-white/60'}`}>
                             {spectatorBattle.winner === 'host' ? 'WIN' : spectatorBattle.winner === 'draw' ? 'DRAW' : 'LOSS'}
                           </span>
+                          {spectatorBattle.winner === 'host' && battleWinStreak.host > 0 ? (
+                            <span className="text-[10px] font-black text-white tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">×{battleWinStreak.host}</span>
+                          ) : null}
+                          {spectatorBattle.winner === 'opponent' ? (
+                            <span className="text-[10px] font-black text-white/70 tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">0</span>
+                          ) : null}
                         </div>
-                        <div className="flex-1 basis-0 min-w-0 h-full flex items-center justify-center">
+                        <div className="flex-1 basis-0 min-w-0 h-full flex flex-col items-center justify-center gap-0.5">
                           <span className={`text-sm font-black drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)] ${spectatorBattle.winner === 'opponent' ? 'text-white' : spectatorBattle.winner === 'draw' ? 'text-white' : 'text-white/60'}`}>
                             {spectatorBattle.winner === 'opponent' ? 'WIN' : spectatorBattle.winner === 'draw' ? 'DRAW' : 'LOSS'}
                           </span>
+                          {spectatorBattle.winner === 'opponent' && battleWinStreak.opponent > 0 ? (
+                            <span className="text-[10px] font-black text-white tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">×{battleWinStreak.opponent}</span>
+                          ) : null}
+                          {spectatorBattle.winner === 'host' ? (
+                            <span className="text-[10px] font-black text-white/70 tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">0</span>
+                          ) : null}
                         </div>
                       </div>
                     )}
@@ -1524,11 +1537,15 @@ export default function SpectatorLiveScreen() {
 
         {/* CREATOR TOP BAR — only connection to creator page: spectator has access to full creator top bar (avatar, name, likes, Follow, Weekly Ranking, Membership, viewer count, close). Rest is single video + spectator's own bottom bar. */}
         <div
-          className="absolute top-0 left-0 right-0 z-[110] pointer-events-none overflow-hidden elix-live-top-chrome"
-          style={{
-            backgroundColor: 'transparent',
-            backgroundImage: 'none',
-          }}
+          className={`absolute top-0 left-0 right-0 z-[110] pointer-events-none overflow-hidden elix-live-top-chrome ${spectatorBattle?.active ? 'elix-battle-top-fundal' : ''}`}
+          style={
+            spectatorBattle?.active
+              ? undefined
+              : {
+                  backgroundColor: 'transparent',
+                  backgroundImage: 'none',
+                }
+          }
         >
           <div className="px-3 pb-1.5" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 6px)' }}>
             <div className="flex items-start justify-between gap-2">

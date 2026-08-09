@@ -59,3 +59,15 @@ export function normalizeBattleWinner(
   if (winner === 'opponent') return role === 'opponent' ? 'me' : 'opponent';
   return 'draw';
 }
+
+/** Consecutive win streak: win increments, loss resets to 0, draw keeps both. */
+export function applyBattleWinStreak(
+  prev: { host: number; opponent: number },
+  winner: unknown,
+): { host: number; opponent: number } {
+  const host = Math.max(0, Math.floor(Number(prev.host) || 0));
+  const opponent = Math.max(0, Math.floor(Number(prev.opponent) || 0));
+  if (winner === 'host') return { host: host + 1, opponent: 0 };
+  if (winner === 'opponent') return { host: 0, opponent: opponent + 1 };
+  return { host, opponent };
+}

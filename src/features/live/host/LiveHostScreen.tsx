@@ -265,6 +265,8 @@ export default function LiveHostScreen() {
     battleTripleTapRef,
     battleVoteGridRef,
     battleWinner,
+    battleTeamWinner,
+    battleWinStreak,
     bindHostCameraPreview,
     blockMiniProfileUser,
     blueTeamScore,
@@ -1440,10 +1442,16 @@ export default function LiveHostScreen() {
 
 
                       {battleWinner && (
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                          <span className={`text-sm font-black drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)] ${battleWinner === 'me' ? 'text-white' : battleWinner === 'draw' ? 'text-white' : 'text-white/60'}`}>
-                            {battleWinner === 'me' ? 'WIN' : battleWinner === 'draw' ? 'DRAW' : 'LOSS'}
+                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none gap-0.5">
+                          <span className={`text-sm font-black drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)] ${battleTeamWinner === 'host' ? 'text-white' : battleTeamWinner === 'draw' ? 'text-white' : 'text-white/60'}`}>
+                            {battleTeamWinner === 'host' ? 'WIN' : battleTeamWinner === 'draw' ? 'DRAW' : 'LOSS'}
                           </span>
+                          {battleTeamWinner === 'host' && battleWinStreak.host > 0 ? (
+                            <span className="text-[10px] font-black text-white tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">×{battleWinStreak.host}</span>
+                          ) : null}
+                          {battleTeamWinner === 'opponent' ? (
+                            <span className="text-[10px] font-black text-white/70 tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">0</span>
+                          ) : null}
                         </div>
                       )}
                     </div>
@@ -1557,10 +1565,16 @@ export default function LiveHostScreen() {
                       </div>
 
                       {battleWinner && (
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                          <span className={`text-sm font-black drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)] ${battleWinner === 'opponent' ? 'text-white' : battleWinner === 'draw' ? 'text-white' : 'text-white/60'}`}>
-                            {battleWinner === 'opponent' ? 'WIN' : battleWinner === 'draw' ? 'DRAW' : 'LOSS'}
+                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none gap-0.5">
+                          <span className={`text-sm font-black drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)] ${battleTeamWinner === 'opponent' ? 'text-white' : battleTeamWinner === 'draw' ? 'text-white' : 'text-white/60'}`}>
+                            {battleTeamWinner === 'opponent' ? 'WIN' : battleTeamWinner === 'draw' ? 'DRAW' : 'LOSS'}
                           </span>
+                          {battleTeamWinner === 'opponent' && battleWinStreak.opponent > 0 ? (
+                            <span className="text-[10px] font-black text-white tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">×{battleWinStreak.opponent}</span>
+                          ) : null}
+                          {battleTeamWinner === 'host' ? (
+                            <span className="text-[10px] font-black text-white/70 tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">0</span>
+                          ) : null}
                         </div>
                       )}
                     </div>
@@ -1644,10 +1658,16 @@ export default function LiveHostScreen() {
                       </div>
 
                       {battleWinner && (
-                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <span className={`text-sm font-black drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)] ${battleWinner === 'me' ? 'text-white' : battleWinner === 'draw' ? 'text-white' : 'text-white/60'}`}>
-                              {battleWinner === 'me' ? 'WIN' : battleWinner === 'draw' ? 'DRAW' : 'LOSS'}
+                          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none gap-0.5">
+                            <span className={`text-sm font-black drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)] ${battleTeamWinner === 'host' ? 'text-white' : battleTeamWinner === 'draw' ? 'text-white' : 'text-white/60'}`}>
+                              {battleTeamWinner === 'host' ? 'WIN' : battleTeamWinner === 'draw' ? 'DRAW' : 'LOSS'}
                             </span>
+                            {battleTeamWinner === 'host' && battleWinStreak.host > 0 ? (
+                              <span className="text-[10px] font-black text-white tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">×{battleWinStreak.host}</span>
+                            ) : null}
+                            {battleTeamWinner === 'opponent' ? (
+                              <span className="text-[10px] font-black text-white/70 tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">0</span>
+                            ) : null}
                           </div>
                         )}
                       </div>
@@ -1727,10 +1747,16 @@ export default function LiveHostScreen() {
                       </div>
 
                       {battleWinner && (
-                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <span className={`text-sm font-black drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)] ${battleWinner === 'opponent' ? 'text-white' : battleWinner === 'draw' ? 'text-white' : 'text-white/60'}`}>
-                              {battleWinner === 'opponent' ? 'WIN' : battleWinner === 'draw' ? 'DRAW' : 'LOSS'}
+                          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none gap-0.5">
+                            <span className={`text-sm font-black drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)] ${battleTeamWinner === 'opponent' ? 'text-white' : battleTeamWinner === 'draw' ? 'text-white' : 'text-white/60'}`}>
+                              {battleTeamWinner === 'opponent' ? 'WIN' : battleTeamWinner === 'draw' ? 'DRAW' : 'LOSS'}
                             </span>
+                            {battleTeamWinner === 'opponent' && battleWinStreak.opponent > 0 ? (
+                              <span className="text-[10px] font-black text-white tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">×{battleWinStreak.opponent}</span>
+                            ) : null}
+                            {battleTeamWinner === 'host' ? (
+                              <span className="text-[10px] font-black text-white/70 tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">0</span>
+                            ) : null}
                           </div>
                         )}
                       </div>
@@ -1849,11 +1875,15 @@ export default function LiveHostScreen() {
             <div className="flex-[0_0_50dvh] relative pointer-events-none">
               {/* Top Bar â€” always show creator layout for everyone */}
                 <div
-                  className="absolute top-0 left-0 right-0 z-[110] pointer-events-none elix-live-top-chrome"
-                  style={{
-                    backgroundColor: 'transparent',
-                    backgroundImage: 'none',
-                  }}
+                  className={`absolute top-0 left-0 right-0 z-[110] pointer-events-none elix-live-top-chrome ${isBattleMode ? 'elix-battle-top-fundal' : ''}`}
+                  style={
+                    isBattleMode
+                      ? undefined
+                      : {
+                          backgroundColor: 'transparent',
+                          backgroundImage: 'none',
+                        }
+                  }
                 >
                   <div className="px-3 pb-1.5" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 6px)' }}>
                     <div className="flex items-start justify-between gap-2">
