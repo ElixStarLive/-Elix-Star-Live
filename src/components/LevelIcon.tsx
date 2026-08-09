@@ -138,7 +138,7 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
         zIndex: 1,
         height: chipH,
         minWidth: Math.round(diamondSize + numberPx * (compact ? 1.15 : 1.35) + (compact ? 4 : 10)),
-        borderRadius: compact ? Math.round(chipH / 2) : 6,
+        borderRadius: Math.round(chipH / 2),
         background,
         border: '1px solid rgba(255,255,255,0.35)',
         boxShadow: 'none',
