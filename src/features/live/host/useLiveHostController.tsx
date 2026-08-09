@@ -5881,11 +5881,7 @@ export function useLiveHostController() {
     const winner = determine4PlayerWinner();
     setBattleWinner(winner);
     const teamWinner =
-      winner === 'me' || winner === 'player3'
-        ? 'host'
-        : winner === 'opponent' || winner === 'player4'
-          ? 'opponent'
-          : 'draw';
+      winner === 'me' ? 'host' : winner === 'opponent' ? 'opponent' : 'draw';
     setBattleTeamWinner(teamWinner);
     if (!battleStreakCountedForEndRef.current) {
       battleStreakCountedForEndRef.current = true;
