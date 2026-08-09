@@ -2181,10 +2181,12 @@ body {
   box-shadow: none;
 }
 
-/* Battle empty slots + stage — same cosmic fundal as app panels (not solid black) */
+/* Battle empty slots + stage + chat + full room lower — same cosmic fundal as app (not solid black) */
 .elix-battle-slot,
 .elix-battle-stage-fundal,
-.elix-battle-chat-fundal {
+.elix-battle-chat-fundal,
+.elix-battle-room-fundal,
+.elix-battle-lower-fundal {
   background-color: transparent;
   background-image: var(--elix-panel-fill);
   background-size: var(--elix-fundal-size), var(--elix-fundal-size);
@@ -2194,6 +2196,19 @@ body {
 }
 .elix-battle-slot {
   border: 1px solid var(--elix-border);
+}
+/* Beat .elix-fundal-glass solid base inside live room */
+#root .elix-live-room .elix-battle-room-fundal,
+#root .elix-live-room .elix-battle-lower-fundal,
+#root .elix-live-room .elix-battle-chat-fundal,
+#root .elix-live-room .elix-battle-stage-fundal,
+#root .elix-live-room .elix-battle-slot {
+  background-color: transparent !important;
+  background-image: var(--elix-panel-fill) !important;
+  background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
+  background-position: var(--elix-fundal-position), var(--elix-fundal-position) !important;
+  background-repeat: no-repeat, no-repeat !important;
+  background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment) !important;
 }
 /* Battle MVP / invite profile rings — fundal fill, not solid black */
 #root .elix-live-room .elix-battle-stage-fundal .elix-profile-ring {

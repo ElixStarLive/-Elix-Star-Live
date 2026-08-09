@@ -584,7 +584,15 @@ export default function SpectatorLiveScreen() {
       className="elix-live-room elix-fundal-glass fixed inset-0 flex justify-center transition-transform duration-[250ms] ease-out"
       style={{ transform: pageExiting ? 'translateX(100%)' : undefined }}
     >
-      <div className="relative w-full max-w-[480px] h-full overflow-hidden overflow-x-hidden flex flex-col elix-fundal-glass">
+      <div className={`relative w-full max-w-[480px] h-full overflow-hidden overflow-x-hidden flex flex-col ${spectatorBattle?.active ? 'elix-battle-room-fundal' : 'elix-fundal-glass'}`}>
+
+        {spectatorBattle?.active ? (
+          <div
+            className="elix-battle-lower-fundal pointer-events-none absolute inset-x-0 bottom-0 z-[1]"
+            style={{ top: 'calc(env(safe-area-inset-top, 0px) + 112px - 0.5mm + 44dvh - 3mm)' }}
+            aria-hidden
+          />
+        ) : null}
 
         {/* Video container: transparent shell — glass overlays sit on top of live video */}
         {/* Video container */}
@@ -773,7 +781,9 @@ export default function SpectatorLiveScreen() {
                         )}
                       </div>
                       <div
-                        className="flex-1 basis-0 min-w-0 h-full overflow-hidden relative bg-[rgba(0,0,0,0.35)]"
+                        className={`flex-1 basis-0 min-w-0 h-full overflow-hidden relative ${
+                          hasOpponentStream ? 'bg-[rgba(0,0,0,0.35)]' : 'bg-transparent'
+                        }`}
                       >
                         <video
                           ref={opponentVideoRef}
@@ -1817,10 +1827,10 @@ export default function SpectatorLiveScreen() {
 
 {/* Bottom bar — above gift video so Gift/Invite/Share/More stay tappable */}
         <div
-          className="fixed left-0 right-0 bottom-0 z-[50002] pointer-events-auto flex justify-center"
+          className={`fixed left-0 right-0 bottom-0 z-[50002] pointer-events-auto flex justify-center ${spectatorBattle?.active ? 'elix-battle-lower-fundal' : ''}`}
           style={{ paddingBottom: LIVE_BOTTOM_ACTION_PADDING }}
         >
-          <div className="w-full max-w-[480px] px-3 pt-0 bg-transparent">
+          <div className={`w-full max-w-[480px] px-3 pt-0 ${spectatorBattle?.active ? '' : 'bg-transparent'}`}>
             <div className="flex items-end gap-2 w-full max-w-[480px] pointer-events-auto">
               <form
                 className="flex-1 flex items-center gap-2 bg-black/35 backdrop-blur-sm rounded-full px-3 py-2 border border-[#2A2D33] h-10 min-w-0"

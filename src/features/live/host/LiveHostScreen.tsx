@@ -773,8 +773,15 @@ export default function LiveHostScreen() {
       className="elix-live-room elix-fundal-glass fixed inset-0 flex justify-center z-[9990] transition-transform duration-[250ms] ease-out"
       style={{ transform: pageExiting ? 'translateX(100%)' : undefined }}
     >
-      <div className="relative w-full max-w-[480px] h-full overflow-hidden overflow-x-hidden border-none elix-fundal-glass">
+      <div className={`relative w-full max-w-[480px] h-full overflow-hidden overflow-x-hidden border-none ${isBattleMode ? 'elix-battle-room-fundal' : 'elix-fundal-glass'}`}>
         <div className="h-full w-full relative">
+        {isBattleMode ? (
+          <div
+            className="elix-battle-lower-fundal pointer-events-none absolute inset-x-0 bottom-0 z-[1]"
+            style={{ top: 'calc(env(safe-area-inset-top, 0px) + 112px - 0.5mm + 44dvh - 3mm)' }}
+            aria-hidden
+          />
+        ) : null}
         <audio ref={roomRemoteAudioRef} autoPlay playsInline className="hidden" />
         <audio ref={opponentRemoteAudioRef} autoPlay playsInline className="hidden" />
         {/* Live video layer — clear under stream (no fundal wallpaper over camera) */}
@@ -1441,7 +1448,11 @@ export default function LiveHostScreen() {
                       )}
                     </div>
                     <div
-                      className="flex-1 basis-0 min-w-0 h-full overflow-hidden relative bg-[rgba(0,0,0,0.35)] pointer-events-auto"
+                      className={`flex-1 basis-0 min-w-0 h-full overflow-hidden relative pointer-events-auto ${
+                        battleSlots[0].status === 'empty' || battleSlots[0].status === 'invited'
+                          ? 'bg-transparent'
+                          : 'bg-[rgba(0,0,0,0.35)]'
+                      }`}
                     >
                       {battleSlots[0].status === 'accepted' ? (
                         <div className="w-full h-full relative bg-[rgba(0,0,0,0.35)]">
@@ -2191,7 +2202,7 @@ export default function LiveHostScreen() {
 
 {/* BOTTOM RIGHT: Action buttons (same area as before, aligned right) */}
       <div
-        className="bottom-zone pointer-events-auto bg-transparent px-3 pt-0 flex flex-col items-end fixed left-0 right-0 bottom-0 z-[50002] justify-end"
+        className={`bottom-zone pointer-events-auto px-3 pt-0 flex flex-col items-end fixed left-0 right-0 bottom-0 z-[50002] justify-end ${isBattleMode ? 'elix-battle-lower-fundal' : 'bg-transparent'}`}
         style={{ paddingBottom: LIVE_BOTTOM_ACTION_PADDING }}
       >
         <div className="w-full max-w-[480px] mx-auto flex flex-col items-end gap-0">
