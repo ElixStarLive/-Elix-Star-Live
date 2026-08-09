@@ -1954,14 +1954,15 @@ svg.lucide,
   min-height: 0 !important;
 }
 
-/* Story / user circle strip — full-bleed under status bar (STEM / Following / Friends) */
+/* Story strip — app-column width; fill full strip HEIGHT (no short cropped banner) */
 #root .feed-story-strip {
   background-color: #080A0E !important;
   background-image:
-    linear-gradient(rgba(8, 10, 14, 0.78), rgba(8, 10, 14, 0.78)),
+    linear-gradient(rgba(8, 10, 14, 0.82), rgba(8, 10, 14, 0.82)),
     var(--elix-fundal-image) !important;
-  background-size: cover, cover !important;
-  background-position: center top, center top !important;
+  /* Stretch to the strip box — ban height-cropped banner stripe */
+  background-size: 100% 100%, 100% 100% !important;
+  background-position: center center, center center !important;
   background-repeat: no-repeat, no-repeat !important;
   background-attachment: scroll, scroll !important;
   border-bottom: 1px solid var(--elix-border);
@@ -2699,14 +2700,14 @@ body,
   background-repeat: no-repeat, no-repeat !important;
 }
 
-/* Story strip in feed chrome — keep sealed cover (do not re-apply banner crop) */
+/* Story strip in feed chrome — same full-box fill (no height banner crop) */
 #root .elix-feed-chrome-shell .feed-story-strip {
   background-color: #080A0E !important;
   background-image:
-    linear-gradient(rgba(8, 10, 14, 0.72), rgba(8, 10, 14, 0.72)),
+    linear-gradient(rgba(8, 10, 14, 0.82), rgba(8, 10, 14, 0.82)),
     var(--elix-fundal-image) !important;
-  background-size: cover, cover !important;
-  background-position: center top, center top !important;
+  background-size: 100% 100%, 100% 100% !important;
+  background-position: center center, center center !important;
   background-repeat: no-repeat, no-repeat !important;
 }
 
