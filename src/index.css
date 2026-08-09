@@ -2210,13 +2210,36 @@ body {
   background-repeat: no-repeat, no-repeat !important;
   background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment) !important;
 }
-/* Battle MVP / invite profile rings — fundal fill, not solid black */
-#root .elix-live-room .elix-battle-stage-fundal .elix-profile-ring {
-  background-color: transparent !important;
-  background-image: var(--elix-panel-fill) !important;
-  background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
-  background-position: var(--elix-fundal-position), var(--elix-fundal-position) !important;
-  background-repeat: no-repeat, no-repeat !important;
+/* Battle MVP strip — fundal BEHIND circles only (never covers AvatarRing) */
+.elix-battle-mvp-row,
+#root .elix-live-room .elix-battle-mvp-row {
+  position: relative;
+  isolation: isolate;
+  min-height: 56px;
+  background: none !important;
+  background-image: none !important;
+}
+.elix-battle-mvp-row::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: transparent;
+  background-image: var(--elix-panel-fill);
+  background-size: var(--elix-fundal-size), var(--elix-fundal-size);
+  background-position: var(--elix-fundal-position), var(--elix-fundal-position);
+  background-repeat: no-repeat, no-repeat;
+  background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment);
+}
+.elix-battle-mvp-row > * {
+  position: relative;
+  z-index: 1;
+}
+/* Keep MVP avatar rings as normal photo rings — do NOT paint fundal over faces */
+#root .elix-live-room .elix-battle-mvp-row .elix-profile-ring {
+  background-color: #121419 !important;
+  background-image: none !important;
 }
 
 .elix-battle-score-host {

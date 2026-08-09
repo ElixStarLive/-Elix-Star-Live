@@ -1741,7 +1741,12 @@ export default function LiveHostScreen() {
             );
           })()}
 
-            <div className="absolute bottom-1 left-0 right-0 px-3 py-2 flex items-center justify-between flex-none pointer-events-none relative z-[120] overflow-x-hidden w-full max-w-full" style={{ transform: 'translateY(1mm)' }}>
+            {/* MVP under cameras — fixed above chat fundal (z-110 > chat z-100) */}
+            <div
+              className="elix-battle-mvp-row fixed left-0 right-0 z-[110] flex justify-center pointer-events-none"
+              style={{ top: 'calc(env(safe-area-inset-top, 0px) + 112px - 0.5mm + 44dvh - 3mm)' }}
+            >
+              <div className="w-full max-w-[480px] px-3 py-1.5 flex items-end justify-between overflow-x-hidden">
               <div
                 className="flex items-end gap-[0mm] min-w-0 flex-1 justify-start pointer-events-auto overflow-hidden"
                 onClick={openTopGiftersHost}
@@ -1815,6 +1820,7 @@ export default function LiveHostScreen() {
                   </div>
                   );
                 })}
+              </div>
               </div>
             </div>
 
