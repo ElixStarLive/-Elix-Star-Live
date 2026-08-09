@@ -823,7 +823,7 @@ export default function LiveHostScreen() {
             {/* Left: Host camera (or featured co-host) â€” 50% when co-hosts present, else full */}
             <div
               className={`${hasAnyCoHost ? 'w-1/2 min-w-0 relative elix-cohost-cut-corner' : 'absolute inset-0 w-full h-full'} ${
-                hasAnyCoHost ? 'border border-[#C9A96E]/40' : ''
+                hasAnyCoHost ? 'border border-[#D8D9DD]/45' : ''
               } ${
                 (featuredHost ? isSpeakingUser(featuredHost.userId) : isSpeakingUser(user?.id))
                   ? 'elix-speaking-pulse'
@@ -1201,7 +1201,7 @@ export default function LiveHostScreen() {
                             openGiftPanelForCohost(cellHost.userId);
                           }
                         }}
-                        className={`relative elix-cohost-cut-corner bg-transparent flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 border border-[#C9A96E]/40 ${cellSpeaking ? 'elix-speaking-pulse' : ''} ${cellHost && !isBattleMode ? 'cursor-pointer' : ''}`}
+                        className={`relative elix-cohost-cut-corner bg-transparent flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 border border-[#D8D9DD]/45 ${cellSpeaking ? 'elix-speaking-pulse' : ''} ${cellHost && !isBattleMode ? 'cursor-pointer' : ''}`}
                       >
                         {renderCoHostCell(slot)}
                       </div>

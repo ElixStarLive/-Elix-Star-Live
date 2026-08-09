@@ -1448,7 +1448,7 @@ export default function SpectatorLiveScreen() {
               <div ref={spectatorStageRef} className={`relative flex w-full h-full min-h-0 flex-row overflow-hidden rounded-none${showGrid || spectatorBattle?.active ? ' gap-[2px]' : ''}`}>
               {/* Left: host video (or featured co-host) — tap/double-tap to like (Aprecieri); hearts render in chat panel */}
               <div
-                className={`touch-manipulation overflow-hidden rounded-none min-w-0 relative ${showGrid || spectatorBattle?.active ? 'w-1/2 border border-[#C9A96E]/40 elix-cohost-cut-corner' : 'w-full'} ${bigSpeaking ? 'elix-speaking-pulse' : ''}`}
+                className={`touch-manipulation overflow-hidden rounded-none min-w-0 relative ${showGrid || spectatorBattle?.active ? 'w-1/2 border border-[#D8D9DD]/45 elix-cohost-cut-corner' : 'w-full'} ${bigSpeaking ? 'elix-speaking-pulse' : ''}`}
                 onPointerDown={(e) => {
                   if (e.target instanceof Element) {
                     const interactive = e.target.closest('button, a, input, textarea, select, [role="button"]');
@@ -1595,7 +1595,7 @@ export default function SpectatorLiveScreen() {
                             setShowGiftPanel(true);
                           }
                         }}
-                        className={`relative elix-cohost-cut-corner bg-transparent flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 border border-[#C9A96E]/40 ${cellSpeaking ? 'elix-speaking-pulse' : ''} ${liveHost ? 'cursor-pointer' : ''}`}
+                        className={`relative elix-cohost-cut-corner bg-transparent flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 border border-[#D8D9DD]/45 ${cellSpeaking ? 'elix-speaking-pulse' : ''} ${liveHost ? 'cursor-pointer' : ''}`}
                       >
                         {renderSlot(slot)}
                       </div>
