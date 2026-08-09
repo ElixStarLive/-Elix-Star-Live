@@ -1839,7 +1839,7 @@ export default function LiveHostScreen() {
                             likes={typeof activeLikes === 'number' && Number.isFinite(activeLikes) ? activeLikes : 0}
                             level={userLevel}
                             avatarSize={LIVE_TOP_AVATAR_RING_PX}
-                            showFollow={true}
+                            showFollow={!isBroadcast}
                             isFollowing={isFollowing}
                             onAvatarClick={() => {
                               void openMiniProfile(myCreatorName, undefined, { userId: user?.id, avatar: myAvatar, level: userLevel });
@@ -2015,8 +2015,7 @@ export default function LiveHostScreen() {
                       onMembership={_openMembershipBar}
                       onWeeklyRanking={openWeeklyRanking}
                       onExplore={openFindCreatorsFromHeader}
-                      showFollow={!isFollowing}
-                      onFollow={followCreatorLive}
+                      showFollow={false}
                       showMembership={true}
                     />
                   </div>
