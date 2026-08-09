@@ -2241,7 +2241,7 @@ body {
 #root .elix-live-room .elix-battle-slot,
 #root .elix-live-room .elix-live-chat-fundal,
 #root .elix-live-room .elix-live-lower-fundal {
-  background-color: var(--elix-fundal-deep) !important;
+  background-color: transparent !important;
   background-image: var(--elix-panel-fill) !important;
   background-size: cover, cover !important;
   background-position: center top, center top !important;
