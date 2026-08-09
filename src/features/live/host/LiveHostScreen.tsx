@@ -2513,19 +2513,6 @@ export default function LiveHostScreen() {
                   <span className="elix-silver-red-text text-[8px] font-medium">Co-Host</span>
                 </div>
               )}
-              {!isBattleMode && isBroadcast && (
-                <div className="flex flex-col items-center gap-0.5">
-                  <button
-                    type="button"
-                    title="Layout"
-                    onClick={() => setShowCohostLayoutPicker(true)}
-                    className={`${LIVE_BOTTOM_ICON_BTN} relative`}
-                  >
-                    <LayoutGrid size={20} className="text-[#F5F5F7] relative z-[2]" strokeWidth={2} />
-                  </button>
-                  <span className="elix-silver-red-text text-[8px] font-medium">Layout</span>
-                </div>
-              )}
               {/* Enter battle (solo live). Once in battle setup, Battle is replaced by Invite + Start game. */}
               {!isBattleMode && (
                 <div className="flex flex-col items-center gap-0.5">
