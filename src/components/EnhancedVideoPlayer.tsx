@@ -211,10 +211,7 @@ export default function EnhancedVideoPlayer({
 
   useEffect(() => {
     const uid = video?.user?.id;
-    // Live ring on video sidebar — For You only (not STEM / Following / Friends).
-    const onForYou =
-      location.pathname === '/feed' || location.pathname === '/' || location.pathname.startsWith('/video/');
-    if (!isActive || !uid || !onForYou) {
+    if (!isActive || !uid) {
       setCreatorIsLive(false);
       return;
     }
@@ -222,6 +219,7 @@ export default function EnhancedVideoPlayer({
     apiLiveStreams()
       .then(({ streams }) => {
         if (cancelled) return;
+        // Host user id only — live ring only when that creator is actually on air.
         setCreatorIsLive(isUserLive(streams || [], String(uid)));
       })
       .catch(() => {
@@ -230,7 +228,7 @@ export default function EnhancedVideoPlayer({
     return () => {
       cancelled = true;
     };
-  }, [isActive, video?.user?.id, location.pathname]);
+  }, [isActive, video?.user?.id]);
 
   const seekAllTo = useCallback(
     (seconds: number) => {
