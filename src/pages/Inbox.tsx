@@ -806,7 +806,7 @@ export default function Inbox() {
             {/* Activity — likes / comments entry */}
             <button onClick={filterActivity} className="flex items-center gap-3 w-full text-left py-2 px-2 bg-transparent">
                 <div className="relative w-12 h-12 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0 royce-tile">
-<Heart className="w-6 h-6 royce-icon-gold relative z-10" strokeWidth={2.25} />
+                    <Heart className="w-6 h-6 text-red-500 relative z-10" strokeWidth={2.25} />
                 </div>
                 <div className="flex-1 min-w-0">
                     <h3 className="font-bold text-sm text-gold-metallic">Activity</h3>
