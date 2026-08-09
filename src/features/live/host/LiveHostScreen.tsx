@@ -1844,7 +1844,8 @@ export default function LiveHostScreen() {
                             likes={typeof activeLikes === 'number' && Number.isFinite(activeLikes) ? activeLikes : 0}
                             level={userLevel}
                             avatarSize={LIVE_TOP_AVATAR_RING_PX}
-                            showFollow={!isBroadcast}
+                            /* Same Follow → Join slot as spectator top bar */
+                            showFollow
                             isFollowing={isFollowing}
                             onAvatarClick={() => {
                               void openMiniProfile(myCreatorName, undefined, { userId: user?.id, avatar: myAvatar, level: userLevel });
@@ -1852,7 +1853,10 @@ export default function LiveHostScreen() {
                             onLike={(e) => {
                               handleLikeTap(e);
                             }}
-                            onFollow={followCreatorLive}
+                            onFollow={(e) => {
+                              e.stopPropagation();
+                              followCreatorLive(e);
+                            }}
                             joinSlot={
                               <LiveJoinPill
                                 hasJoinedToday={hasJoinedToday}
@@ -2020,7 +2024,12 @@ export default function LiveHostScreen() {
                       onMembership={_openMembershipBar}
                       onWeeklyRanking={openWeeklyRanking}
                       onExplore={openFindCreatorsFromHeader}
-                      showFollow={false}
+                      /* Same capsule row as spectator: Follow Creator + Membership VIP */
+                      showFollow={!isFollowing}
+                      onFollow={(e) => {
+                        e.stopPropagation();
+                        followCreatorLive(e);
+                      }}
                       showMembership={true}
                     />
                   </div>
