@@ -112,6 +112,10 @@ import {
   cohostRequestDecline,
   cohostRequestSend,
 } from '../cohost/liveCohostActions';
+import {
+  DEFAULT_COHOST_LAYOUT_ID,
+  type CohostLayoutId,
+} from '../cohost/cohostLayoutPresets';
 import { liveChatSend, liveHeartSend } from '../chat/liveChatActions';
 import { liveGiftGoalClear, liveGiftGoalSet } from '../gifts/liveGiftWsActions';
 import { liveStreamStart } from '../room/liveRoomActions';
@@ -1028,6 +1032,9 @@ export function useLiveHostController() {
     _streamKey?: string;
   };
   const [coHosts, setCoHosts] = useState<CoHost[]>([]);
+  /** Host-chosen co-host stage layout (pill presets); synced to spectators. */
+  const [cohostLayoutId, setCohostLayoutId] = useState<CohostLayoutId>(DEFAULT_COHOST_LAYOUT_ID);
+  const cohostLayoutIdRef = useRef<CohostLayoutId>(DEFAULT_COHOST_LAYOUT_ID);
   const [hostSearchQuery, _setHostSearchQuery] = useState('');
   /** Co-host userId shown on the left big screen (null = host). */
   const [featuredUserId, setFeaturedUserId] = useState<string | null>(null);
@@ -1046,7 +1053,8 @@ export function useLiveHostController() {
     isBroadcastRef.current = isBroadcast;
     selfUserIdRef.current = user?.id ?? null;
     featuredUserIdRef.current = featuredUserId;
-  }, [coHosts, isBroadcast, user?.id, featuredUserId]);
+    cohostLayoutIdRef.current = cohostLayoutId;
+  }, [coHosts, isBroadcast, user?.id, featuredUserId, cohostLayoutId]);
 
   // Broadcast co-host layout to room so spectators see same layout (single source of truth; no duplicate userIds)
   useEffect(() => {
@@ -1057,9 +1065,17 @@ export function useLiveHostController() {
       coHosts: list,
       hostUserId: user.id,
       featuredUserId: featuredUserId || null,
+      layoutId: cohostLayoutId,
     };
     cohostLayoutSync(payload);
-  }, [isBroadcast, effectiveStreamId, user?.id, coHosts, featuredUserId]);
+  }, [isBroadcast, effectiveStreamId, user?.id, coHosts, featuredUserId, cohostLayoutId]);
+
+  // Solo preset is for empty seats — if seats open while solo is selected, switch to default stack.
+  useEffect(() => {
+    if (coHosts.length > 0 && cohostLayoutId === 'solo_big') {
+      setCohostLayoutId(DEFAULT_COHOST_LAYOUT_ID);
+    }
+  }, [coHosts.length, cohostLayoutId]);
 
   // Drop featured big-screen target if that co-host leaves.
   useEffect(() => {
@@ -3594,7 +3610,12 @@ export function useLiveHostController() {
       // Creator: push layout to server as soon as we connect so spectators who join later get creator layout
       if (isBroadcastRef.current && effectiveStreamId && user?.id) {
         const list = coHostsRef.current.map((h) => ({ id: h.id, userId: h.userId, name: h.name, avatar: h.avatar, status: h.status }));
-        cohostLayoutSync({ roomId: effectiveStreamId, coHosts: list, hostUserId: user.id });
+        cohostLayoutSync({
+          roomId: effectiveStreamId,
+          coHosts: list,
+          hostUserId: user.id,
+          layoutId: cohostLayoutIdRef.current,
+        });
       }
 
       // Opponent: once connected to the room, tell the server we're joining the battle
@@ -3698,7 +3719,12 @@ export function useLiveHostController() {
       // So new spectators get current co-host layout
       if (isBroadcastRef.current && effectiveStreamId && user?.id) {
         const list = coHostsRef.current.map((h) => ({ id: h.id, userId: h.userId, name: h.name, avatar: h.avatar, status: h.status }));
-        cohostLayoutSync({ roomId: effectiveStreamId, coHosts: list, hostUserId: user.id });
+        cohostLayoutSync({
+          roomId: effectiveStreamId,
+          coHosts: list,
+          hostUserId: user.id,
+          layoutId: cohostLayoutIdRef.current,
+        });
       }
     };
 
@@ -6125,6 +6151,8 @@ export function useLiveHostController() {
     coHostsRef,
     cohostGiftScores,
     cohostLastGifts,
+    cohostLayoutId,
+    setCohostLayoutId,
     coinBalance,
     comboCount,
     comboStack,

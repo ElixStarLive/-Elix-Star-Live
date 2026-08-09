@@ -103,6 +103,11 @@ import { bindLiveBattleInviteWs } from '../ws/bindLiveBattleInviteWs';
 import { bindLiveRoomWs } from '../ws/bindLiveRoomWs';
 import { bindLiveCohostWs } from '../ws/bindLiveCohostWs';
 import {
+  DEFAULT_COHOST_LAYOUT_ID,
+  parseCohostLayoutId,
+  type CohostLayoutId,
+} from '../cohost/cohostLayoutPresets';
+import {
   BATTLE_TILE_GIFT_STACK_CAP,
   normalizeBattleGiftTarget,
 } from '../../../lib/liveBattleGiftTarget';
@@ -995,6 +1000,7 @@ export function useLiveSpectatorController() {
   // ═══════════════════════════════════════════════════
   type SpectatorCoHost = { id: string; userId: string; name: string; avatar: string; status: string };
   const [spectatorCoHosts, setSpectatorCoHosts] = useState<SpectatorCoHost[]>([]);
+  const [cohostLayoutId, setCohostLayoutId] = useState<CohostLayoutId>(DEFAULT_COHOST_LAYOUT_ID);
   const coHostVideoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
   const [selectedSpectatorUserId, _setSelectedSpectatorUserId] = useState<string | null>(null);
   const currentMainTrackRef = useRef<import('livekit-client').Track | null>(null);
@@ -2587,6 +2593,8 @@ export function useLiveSpectatorController() {
       } else if (data.featuredUserId === null) {
         setFeaturedUserId(null);
       }
+      const layoutParsed = parseCohostLayoutId(data.layoutId);
+      if (layoutParsed) setCohostLayoutId(layoutParsed);
     };
 
     const handleCohostRequestAccepted = (data) => {
@@ -3677,6 +3685,7 @@ export function useLiveSpectatorController() {
     spectatorChatHeartsRef,
     spectatorCoHostRequestSent,
     spectatorCoHosts,
+    cohostLayoutId,
     spectatorGate,
     spectatorGiftBattleTarget,
     spectatorLifecycleRef,

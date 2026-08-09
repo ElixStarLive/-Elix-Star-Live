@@ -120,6 +120,9 @@ import { parseLiveGiftGoal, type LiveGiftGoal } from '../../../lib/liveGiftGoal'
 import { liveStreamUiGiftTargetToServerBattleTarget, normalizeBattleGiftTarget } from '../../../lib/liveBattleGiftTarget';
 import { engagementFlags } from '../../../config/engagementFlags';
 import { earnBattleEnergyQuiet } from '../../../components/BattleEnergyBoostControls';
+import { CohostLayoutChooser } from '../cohost/CohostLayoutChooser';
+import { COHOST_LAYOUT_THUMBS } from '../cohost/cohostLayoutPresets';
+import { isClassicStackLayout } from '../cohost/cohostLayoutSlots';
 import { apiLiveGetDailyHearts, apiLiveMembership, apiLiveSendDailyHeart } from '../engagement/liveEngagementApi';
 import { liveChatSend } from '../chat/liveChatActions';
 import {
@@ -307,6 +310,8 @@ export default function LiveHostScreen() {
     coHostsRef,
     cohostGiftScores,
     cohostLastGifts,
+    cohostLayoutId,
+    setCohostLayoutId,
     coinBalance,
     comboCount,
     comboStack,
@@ -822,10 +827,31 @@ export default function LiveHostScreen() {
                 h.status === 'pending_accept') &&
               !sameUserId(h.userId, user?.id),
           );
+          const useClassicStack = !hasAnyCoHost || isClassicStackLayout(cohostLayoutId);
+          const layoutThumb = COHOST_LAYOUT_THUMBS[cohostLayoutId];
+          const hostGridArea = layoutThumb.cells.find((c) => c.kind === 'h')?.area;
+          const seatAreas = layoutThumb.cells.filter((c) => c.kind === 's').map((c) => c.area);
           return (
           <div
-            className={hasAnyCoHost ? 'absolute inset-x-0 z-[25] flex flex-row gap-[2px]' : 'absolute inset-0 w-full h-full'}
-            style={hasAnyCoHost ? { top: 'calc(90px + 6mm)', height: 'calc(36dvh + 10mm)', filter: liveFilterCss !== 'none' ? liveFilterCss : undefined } : { filter: liveFilterCss !== 'none' ? liveFilterCss : undefined }}
+            className={
+              hasAnyCoHost
+                ? useClassicStack
+                  ? 'absolute inset-x-0 z-[25] flex flex-row gap-[2px]'
+                  : 'absolute inset-x-0 z-[25] grid'
+                : 'absolute inset-0 w-full h-full'
+            }
+            style={
+              hasAnyCoHost
+                ? {
+                    top: 'calc(90px + 6mm)',
+                    height: 'calc(36dvh + 10mm)',
+                    filter: liveFilterCss !== 'none' ? liveFilterCss : undefined,
+                    ...(useClassicStack
+                      ? {}
+                      : { gridTemplate: layoutThumb.grid, gap: '2px' }),
+                  }
+                : { filter: liveFilterCss !== 'none' ? liveFilterCss : undefined }
+            }
             onPointerDown={isCreatorParticipant ? undefined : (e) => {
               if (e.target instanceof Element) {
                 const interactive = e.target.closest('button, a, input, textarea, select, [role="button"]');
@@ -838,13 +864,24 @@ export default function LiveHostScreen() {
               if (now - last <= 320) handleComboClick();
             }}
           >
-            {/* Left: Host camera (or featured co-host) â€” 50% when co-hosts present, else full */}
+            {/* Host camera (or featured co-host) */}
             <div
-              className={`${hasAnyCoHost ? 'w-1/2 min-w-0 relative elix-cohost-cut-corner' : 'absolute inset-0 w-full h-full'} ${
+              className={`${
+                hasAnyCoHost
+                  ? useClassicStack
+                    ? 'w-1/2 min-w-0 relative elix-cohost-pill bg-black/35'
+                    : 'min-w-0 relative elix-cohost-pill bg-black/35'
+                  : 'absolute inset-0 w-full h-full'
+              } ${
                 (featuredHost ? isSpeakingUser(featuredHost.userId) : isSpeakingUser(user?.id))
                   ? 'elix-speaking-pulse'
                   : ''
               }`}
+              style={
+                hasAnyCoHost && !useClassicStack && hostGridArea
+                  ? { gridArea: hostGridArea }
+                  : undefined
+              }
               onPointerDown={isBroadcast ? (e) => {
                 if (e.target instanceof Element && e.target.closest('button, a, input, textarea, select, [role="button"]')) return;
                 handleLikeTap(e);
@@ -1003,7 +1040,7 @@ export default function LiveHostScreen() {
             )}
             </div>
 
-            {/* Right: co-host 8-slot grid */}
+            {/* Co-host seats */}
             {hasAnyCoHost && (() => {
               // Self is in the big box unless a co-host is featured (then host moves to a small tile).
               const list = coHosts.filter(h => !sameUserId(h.userId, user?.id));
@@ -1016,10 +1053,11 @@ export default function LiveHostScreen() {
                 : liveList;
               const invitedPending = list.filter(h => h.status === 'invited' || h.status === 'pending_accept');
               const smallSlots: Array<{ type: 'host_main' | 'live' | 'invited' | 'pending' | 'empty'; host?: (typeof coHosts)[0] }> = [];
-              if (featured) smallSlots.push({ type: 'host_main' });
+              if (featured && useClassicStack) smallSlots.push({ type: 'host_main' });
               restLive.forEach(h => smallSlots.push({ type: 'live', host: h }));
               invitedPending.forEach(h => smallSlots.push({ type: h.status === 'invited' ? 'invited' : 'pending', host: h }));
-              while (smallSlots.length < 8) smallSlots.push({ type: 'empty' });
+              while (smallSlots.length < seatAreas.length) smallSlots.push({ type: 'empty' });
+              const seatsForLayout = smallSlots.slice(0, seatAreas.length);
 
               const renderCoHostCell = (slot: { type: 'host_main' | 'live' | 'invited' | 'pending' | 'empty'; host?: (typeof coHosts)[0] }) => {
                 if (slot.type === 'host_main') {
@@ -1193,9 +1231,9 @@ export default function LiveHostScreen() {
                 );
               };
 
-              return (
+              return useClassicStack ? (
                 <div className="w-1/2 h-full grid grid-cols-2 grid-rows-4 gap-[2px] bg-transparent">
-                  {smallSlots.slice(0, 8).map((slot, i) => {
+                  {seatsForLayout.slice(0, 8).map((slot, i) => {
                     const cellHost = slot.type === 'live' ? slot.host : undefined;
                     const cellSpeaking =
                       (slot.type === 'host_main' && isSpeakingUser(user?.id)) ||
@@ -1213,13 +1251,43 @@ export default function LiveHostScreen() {
                             openGiftPanelForCohost(cellHost.userId);
                           }
                         }}
-                        className={`relative elix-cohost-cut-corner bg-black/35 flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 ${cellSpeaking ? 'elix-speaking-pulse' : ''} ${cellHost && !isBattleMode ? 'cursor-pointer' : ''}`}
+                        className={`relative elix-cohost-pill bg-black/35 flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 ${cellSpeaking ? 'elix-speaking-pulse' : ''} ${cellHost && !isBattleMode ? 'cursor-pointer' : ''}`}
                       >
                         {renderCoHostCell(slot)}
                       </div>
                     );
                   })}
                 </div>
+              ) : (
+                <>
+                  {seatsForLayout.map((slot, i) => {
+                    const cellHost = slot.type === 'live' ? slot.host : undefined;
+                    const cellSpeaking =
+                      (slot.type === 'host_main' && isSpeakingUser(user?.id)) ||
+                      (!!cellHost && isSpeakingUser(cellHost.userId));
+                    const area = seatAreas[i];
+                    if (!area) return null;
+                    return (
+                      <div
+                        key={`seat-${i}`}
+                        role={cellHost && !isBattleMode ? 'button' : undefined}
+                        tabIndex={cellHost && !isBattleMode ? 0 : undefined}
+                        onClick={() => { if (cellHost) openCoHostGiftFromGrid(cellHost.userId); }}
+                        onKeyDown={(e) => {
+                          if (!cellHost || isBattleMode) return;
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            openGiftPanelForCohost(cellHost.userId);
+                          }
+                        }}
+                        style={{ gridArea: area }}
+                        className={`relative elix-cohost-pill bg-black/35 flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 ${cellSpeaking ? 'elix-speaking-pulse' : ''} ${cellHost && !isBattleMode ? 'cursor-pointer' : ''}`}
+                      >
+                        {renderCoHostCell(slot)}
+                      </div>
+                    );
+                  })}
+                </>
               );
             })()}
           </div>
@@ -2892,6 +2960,9 @@ export default function LiveHostScreen() {
                 </h3>
               </div>
               <div className="flex-1 overflow-y-auto no-scrollbar px-4 pb-4 min-h-0">
+                {viewerListMode !== 'topGifters' ? (
+                  <CohostLayoutChooser value={cohostLayoutId} onChange={setCohostLayoutId} />
+                ) : null}
                 {viewerListMode === 'topGifters' ? (
                   <>
                     <p className="text-white/50 text-[10px] font-bold uppercase tracking-wider mb-1.5">MVP Â· Gift coins this live</p>

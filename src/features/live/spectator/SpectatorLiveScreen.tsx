@@ -113,6 +113,8 @@ import {
 } from '../../../components/LiveSideMissionStack';
 import { websocket } from '../../../lib/websocket';
 import { cohostInviteAccept } from '../cohost/liveCohostActions';
+import { COHOST_LAYOUT_THUMBS } from '../cohost/cohostLayoutPresets';
+import { isClassicStackLayout } from '../cohost/cohostLayoutSlots';
 import { liveBoosterActivated, liveMistActivated } from '../room/liveRoomActions';
 import { normalizeBattleGiftTarget } from '../../../lib/liveBattleGiftTarget';
 import { parseLiveGiftGoal, type LiveGiftGoal } from '../../../lib/liveGiftGoal';
@@ -262,6 +264,7 @@ export default function SpectatorLiveScreen() {
     coHostVideoRefs,
     cohostGiftScores,
     cohostLastGifts,
+    cohostLayoutId,
     cohostState,
     coinBalance,
     comboCount,
@@ -1203,13 +1206,19 @@ export default function SpectatorLiveScreen() {
 
           type SlotType = { type: 'host_main' | 'self' | 'live' | 'invited' | 'pending' | 'empty'; host?: typeof spectatorCoHosts[0] };
 
+          const useClassicStack = !showGrid || isClassicStackLayout(cohostLayoutId);
+          const layoutThumb = COHOST_LAYOUT_THUMBS[cohostLayoutId];
+          const hostGridArea = layoutThumb.cells.find((c) => c.kind === 'h')?.area;
+          const seatAreas = layoutThumb.cells.filter((c) => c.kind === 's').map((c) => c.area);
+          const seatCap = useClassicStack ? 8 : Math.max(seatAreas.length, 1);
+
           const buildSlots = (): SlotType[] => {
             const slots: SlotType[] = [];
             const liveOthers = externalCoHosts.filter(h => h.userId !== myUserId && (h.status === 'live' || h.status === 'accepted'));
             const featured = featuredUserId
               ? liveOthers.find((h) => sameUserId(h.userId, featuredUserId)) || null
               : null;
-            if (featured) slots.push({ type: 'host_main' });
+            if (featured && useClassicStack) slots.push({ type: 'host_main' });
             if (isCoHosting && !(featured && sameUserId(myUserId, featured.userId))) {
               slots.push({ type: 'self' });
             }
@@ -1219,8 +1228,8 @@ export default function SpectatorLiveScreen() {
             const invitedPending = externalCoHosts.filter(h => h.userId !== myUserId && (h.status === 'invited' || h.status === 'pending_accept'));
             restLive.forEach(h => slots.push({ type: 'live', host: h }));
             invitedPending.forEach(h => slots.push({ type: h.status === 'invited' ? 'invited' : 'pending', host: h }));
-            while (slots.length < 8) slots.push({ type: 'empty' });
-            return slots;
+            while (slots.length < seatCap) slots.push({ type: 'empty' });
+            return slots.slice(0, seatCap);
           };
 
           const renderSlot = (slot: SlotType) => {
@@ -1455,16 +1464,41 @@ export default function SpectatorLiveScreen() {
 
           return (
             <div
-              className={`absolute left-0 right-0 z-0 bg-transparent flex flex-row overflow-hidden rounded-none`}
+              className={`absolute left-0 right-0 z-0 bg-transparent overflow-hidden rounded-none`}
               style={(showGrid || spectatorBattle?.active)
                 ? { top: 'calc(env(safe-area-inset-top, 0px) + 78px + 6mm)', height: 'calc(36dvh + 10mm)' }
                 : { top: '0px', bottom: '0px' }
               }
             >
-              <div ref={spectatorStageRef} className={`relative flex w-full h-full min-h-0 flex-row overflow-hidden rounded-none${showGrid || spectatorBattle?.active ? ' gap-[2px]' : ''}`}>
-              {/* Left: host video (or featured co-host) — tap/double-tap to like (Aprecieri); hearts render in chat panel */}
               <div
-                className={`touch-manipulation overflow-hidden rounded-none min-w-0 relative ${showGrid || spectatorBattle?.active ? 'w-1/2 elix-cohost-cut-corner' : 'w-full'} ${bigSpeaking ? 'elix-speaking-pulse' : ''}`}
+                ref={spectatorStageRef}
+                className={
+                  showGrid
+                    ? useClassicStack
+                      ? 'relative flex w-full h-full min-h-0 flex-row overflow-hidden rounded-none gap-[2px]'
+                      : 'relative grid w-full h-full min-h-0 overflow-hidden rounded-none'
+                    : 'relative flex w-full h-full min-h-0 flex-row overflow-hidden rounded-none'
+                }
+                style={
+                  showGrid && !useClassicStack
+                    ? { gridTemplate: layoutThumb.grid, gap: '2px' }
+                    : undefined
+                }
+              >
+              {/* Left/main: host video (or featured co-host) — tap/double-tap to like (Aprecieri); hearts render in chat panel */}
+              <div
+                className={`touch-manipulation overflow-hidden rounded-none min-w-0 relative ${
+                  showGrid
+                    ? useClassicStack
+                      ? 'w-1/2 elix-cohost-pill'
+                      : 'elix-cohost-pill'
+                    : 'w-full'
+                } ${bigSpeaking ? 'elix-speaking-pulse' : ''}`}
+                style={
+                  showGrid && !useClassicStack && hostGridArea
+                    ? { gridArea: hostGridArea }
+                    : undefined
+                }
                 onPointerDown={(e) => {
                   if (e.target instanceof Element) {
                     const interactive = e.target.closest('button, a, input, textarea, select, [role="button"]');
@@ -1584,8 +1618,8 @@ export default function SpectatorLiveScreen() {
                 })()}
               </div>
 
-              {/* Right: 8-slot co-host grid — same as creator */}
-              {showGrid && (
+              {/* Co-host seats — classic stack or layout grid */}
+              {showGrid && (useClassicStack ? (
                 <div className="w-1/2 h-full grid grid-cols-2 grid-rows-4 gap-[2px] bg-transparent">
                   {slots.slice(0, 8).map((slot, i) => {
                     const cellSpeaking =
@@ -1611,14 +1645,50 @@ export default function SpectatorLiveScreen() {
                             setShowGiftPanel(true);
                           }
                         }}
-                        className={`relative elix-cohost-cut-corner bg-black/35 flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 ${cellSpeaking ? 'elix-speaking-pulse' : ''} ${liveHost ? 'cursor-pointer' : ''}`}
+                        className={`relative elix-cohost-pill bg-black/35 flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 ${cellSpeaking ? 'elix-speaking-pulse' : ''} ${liveHost ? 'cursor-pointer' : ''}`}
                       >
                         {renderSlot(slot)}
                       </div>
                     );
                   })}
                 </div>
-              )}
+              ) : (
+                <>
+                  {slots.map((slot, i) => {
+                    const cellSpeaking =
+                      (slot.type === 'host_main' && (isSpeakingUser(hostIdForSpeak) || isSpeakingUser(effectiveStreamId))) ||
+                      (slot.type === 'self' && isSpeakingUser(user?.id)) ||
+                      (slot.type === 'live' && !!slot.host && isSpeakingUser(slot.host.userId));
+                    const liveHost = slot.type === 'live' ? slot.host : undefined;
+                    const area = seatAreas[i];
+                    if (!area) return null;
+                    return (
+                      <div
+                        key={`seat-${i}`}
+                        role={liveHost ? 'button' : undefined}
+                        tabIndex={liveHost ? 0 : undefined}
+                        onClick={() => {
+                          if (!liveHost || spectatorBattle?.active) return;
+                          setSelectedCohostGiftUserId(liveHost.userId);
+                          setShowGiftPanel(true);
+                        }}
+                        onKeyDown={(e) => {
+                          if (!liveHost || spectatorBattle?.active) return;
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setSelectedCohostGiftUserId(liveHost.userId);
+                            setShowGiftPanel(true);
+                          }
+                        }}
+                        style={{ gridArea: area }}
+                        className={`relative elix-cohost-pill bg-black/35 flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 ${cellSpeaking ? 'elix-speaking-pulse' : ''} ${liveHost ? 'cursor-pointer' : ''}`}
+                      >
+                        {renderSlot(slot)}
+                      </div>
+                    );
+                  })}
+                </>
+              ))}
               </div>
             </div>
           );
