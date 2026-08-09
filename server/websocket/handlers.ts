@@ -1141,7 +1141,7 @@ export async function handleMessage(
         if (!giftId) break;
         const targetCount = Math.max(
           1,
-          Math.min(9999, Math.floor(Number(data?.targetCount) || 1)),
+          Math.min(20_000, Math.floor(Number(data?.targetCount) || 1)),
         );
         const goal = {
           giftId,

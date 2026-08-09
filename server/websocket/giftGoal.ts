@@ -18,7 +18,7 @@ function key(roomId: string): string {
 function normalizeGoal(raw: Record<string, unknown>): StoredGiftGoal | null {
   const giftId = typeof raw.giftId === "string" ? raw.giftId.trim() : "";
   if (!giftId) return null;
-  const targetCount = Math.max(1, Math.min(9999, Math.floor(Number(raw.targetCount) || 1)));
+  const targetCount = Math.max(1, Math.min(20_000, Math.floor(Number(raw.targetCount) || 1)));
   const currentCount = Math.max(
     0,
     Math.min(targetCount, Math.floor(Number(raw.currentCount) || 0)),

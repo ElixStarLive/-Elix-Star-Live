@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Gift, Target } from "lucide-react";
+import { ChevronLeft, ChevronRight, Gift, Target } from "lucide-react";
 import {
   fetchGiftsFromDatabase,
   resolveGiftAssetUrl,
@@ -26,11 +26,19 @@ type ReadonlyProps = {
 
 type Props = PickerProps | ReadonlyProps;
 
-const GOAL_TARGETS = [10, 25, 50, 100, 200];
+const GOAL_COUNT_MIN = 1;
+const GOAL_COUNT_MAX = 20_000;
+const GIFTS_PER_PAGE = 4;
+
+function clampGoalCount(n: number) {
+  if (!Number.isFinite(n)) return GOAL_COUNT_MIN;
+  return Math.max(GOAL_COUNT_MIN, Math.min(GOAL_COUNT_MAX, Math.floor(n)));
+}
 
 export function GiftGoalGallery(props: Props) {
   const [gifts, setGifts] = useState<GiftItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [giftPage, setGiftPage] = useState(0);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -48,8 +56,14 @@ export function GiftGoalGallery(props: Props) {
   }, []);
 
   const galleryGifts = useMemo(
-    () => [...gifts].sort((a, b) => a.coins - b.coins).slice(0, 16),
+    () => [...gifts].sort((a, b) => a.coins - b.coins),
     [gifts],
+  );
+  const giftPageCount = Math.max(1, Math.ceil(galleryGifts.length / GIFTS_PER_PAGE));
+  const safeGiftPage = Math.min(giftPage, giftPageCount - 1);
+  const pageGifts = galleryGifts.slice(
+    safeGiftPage * GIFTS_PER_PAGE,
+    safeGiftPage * GIFTS_PER_PAGE + GIFTS_PER_PAGE,
   );
 
   if (props.mode === "readonly") {
@@ -111,6 +125,7 @@ export function GiftGoalGallery(props: Props) {
   } = props;
 
   const selectedGift = galleryGifts.find((g) => g.id === selectedGiftId) ?? null;
+  const safeTargetCount = clampGoalCount(targetCount);
 
   return (
     <div className="bg-white/5 rounded-xl p-3 border border-[#D8D9DD]/20">
@@ -125,52 +140,91 @@ export function GiftGoalGallery(props: Props) {
       {loading ? (
         <p className="text-white/40 text-[9px] text-center py-4">Loading gifts...</p>
       ) : (
-        <div className="grid grid-cols-4 gap-1.5 mb-2">
-          {galleryGifts.map((gift) => (
-            <button
-              key={gift.id}
-              type="button"
-              onClick={() => onSelectGift(gift)}
-              className={[
-                "aspect-square rounded-lg border p-1 flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-all",
-                selectedGiftId === gift.id
-                  ? "border-[#D8D9DD] bg-white/10"
-                  : "border-[#D8D9DD]/15 bg-white/5 hover:bg-white/10",
-              ].join(" ")}
-            >
-              <img
-                src={resolveGiftAssetUrl(gift.icon)}
-                alt=""
-                className="w-full h-full object-contain pointer-events-none"
-                draggable={false}
-              />
-              <span className="text-[7px] text-white/80 truncate w-full text-center">{gift.name}</span>
-            </button>
-          ))}
+        <div className="flex items-center gap-1 mb-2">
+          <button
+            type="button"
+            title="Previous gifts"
+            disabled={safeGiftPage <= 0}
+            onClick={() => setGiftPage((p) => Math.max(0, p - 1))}
+            className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full border border-[#2A2D33] bg-black/35 active:scale-95 disabled:opacity-35"
+          >
+            <ChevronLeft size={16} className="text-[#F5F5F7]" strokeWidth={2.4} />
+          </button>
+          <div className="grid grid-cols-4 gap-1.5 flex-1 min-w-0">
+            {pageGifts.map((gift) => (
+              <button
+                key={gift.id}
+                type="button"
+                onClick={() => onSelectGift(gift)}
+                className={[
+                  "aspect-square rounded-lg border p-1 flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-all",
+                  selectedGiftId === gift.id
+                    ? "border-[#D8D9DD] bg-white/10"
+                    : "border-[#D8D9DD]/15 bg-white/5 hover:bg-white/10",
+                ].join(" ")}
+              >
+                <img
+                  src={resolveGiftAssetUrl(gift.icon)}
+                  alt=""
+                  className="w-full h-full object-contain pointer-events-none"
+                  draggable={false}
+                />
+                <span className="text-[7px] text-white/80 truncate w-full text-center">{gift.name}</span>
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            title="Next gifts"
+            disabled={safeGiftPage >= giftPageCount - 1}
+            onClick={() => setGiftPage((p) => Math.min(giftPageCount - 1, p + 1))}
+            className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full border border-[#2A2D33] bg-black/35 active:scale-95 disabled:opacity-35"
+          >
+            <ChevronRight size={16} className="text-[#F5F5F7]" strokeWidth={2.4} />
+          </button>
         </div>
       )}
 
-      <div className="flex flex-wrap gap-1.5 mb-2">
-        {GOAL_TARGETS.map((n) => (
-          <button
-            key={n}
-            type="button"
-            onClick={() => onTargetCountChange(n)}
-            className={[
-              "px-2 py-0.5 rounded-full text-[9px] font-bold border active:scale-95 transition-all",
-              targetCount === n
-                ? "bg-[#E6E9EE]/25 border-[#D8D9DD] text-[#F5F5F7]"
-                : "bg-white/5 border-white/10 text-white/60",
-            ].join(" ")}
-          >
-            {n}
-          </button>
-        ))}
+      <div className="flex items-center justify-center gap-2 mb-2">
+        <button
+          type="button"
+          title="Decrease goal count"
+          disabled={safeTargetCount <= GOAL_COUNT_MIN}
+          onClick={() => onTargetCountChange(clampGoalCount(safeTargetCount - 1))}
+          className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full border border-[#2A2D33] bg-black/35 active:scale-95 disabled:opacity-35"
+        >
+          <ChevronLeft size={16} className="text-[#F5F5F7]" strokeWidth={2.4} />
+        </button>
+        <input
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          aria-label="Gift goal count"
+          value={String(safeTargetCount)}
+          onChange={(e) => {
+            const digits = e.target.value.replace(/\D/g, "");
+            if (!digits) {
+              onTargetCountChange(GOAL_COUNT_MIN);
+              return;
+            }
+            onTargetCountChange(clampGoalCount(Number(digits)));
+          }}
+          className="w-[72px] h-8 text-center rounded-full border border-[#D8D9DD] bg-transparent text-[#F5F5F7] text-[11px] font-bold tabular-nums outline-none"
+        />
+        <button
+          type="button"
+          title="Increase goal count"
+          disabled={safeTargetCount >= GOAL_COUNT_MAX}
+          onClick={() => onTargetCountChange(clampGoalCount(safeTargetCount + 1))}
+          className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full border border-[#2A2D33] bg-black/35 active:scale-95 disabled:opacity-35"
+        >
+          <ChevronRight size={16} className="text-[#F5F5F7]" strokeWidth={2.4} />
+        </button>
       </div>
 
       {selectedGift && (
         <p className="text-white/50 text-[8px] mb-2 text-center">
-          Goal: {targetCount} × {selectedGift.name} ({selectedGift.coins.toLocaleString()} coins each)
+          Goal: {safeTargetCount} × {selectedGift.name} ({selectedGift.coins.toLocaleString()} coins each)
         </p>
       )}
 

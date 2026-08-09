@@ -11,7 +11,7 @@ export function parseLiveGiftGoal(data: unknown): LiveGiftGoal | null {
   const d = data as Record<string, unknown>;
   const giftId = typeof d.giftId === "string" ? d.giftId.trim() : "";
   if (!giftId) return null;
-  const targetCount = Math.max(1, Math.min(9999, Math.floor(Number(d.targetCount) || 1)));
+  const targetCount = Math.max(1, Math.min(20_000, Math.floor(Number(d.targetCount) || 1)));
   const currentCount = Math.max(0, Math.min(targetCount, Math.floor(Number(d.currentCount) || 0)));
   return {
     giftId,
