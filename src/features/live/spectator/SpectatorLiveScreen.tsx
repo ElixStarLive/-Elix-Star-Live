@@ -1322,8 +1322,6 @@ export default function SpectatorLiveScreen() {
               const lastGiftIcon =
                 Object.entries(cohostLastGifts).find(([id]) => sameUserId(id, h.userId))?.[1] ||
                 undefined;
-              const isSelected =
-                !!selectedCohostGiftUserId && sameUserId(selectedCohostGiftUserId, h.userId);
               return (
                 <>
                   {camOff && (
@@ -1403,9 +1401,6 @@ export default function SpectatorLiveScreen() {
                         </div>
                       )}
                     </div>
-                  )}
-                  {isSelected && (
-                    <div className="absolute inset-0 z-[5] pointer-events-none border-2 border-[#D8D9DD]" />
                   )}
                 </>
               );

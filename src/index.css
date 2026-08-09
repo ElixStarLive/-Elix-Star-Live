@@ -717,24 +717,34 @@ video::-webkit-media-controls-overlay-enclosure,
   border-width: 2px !important;
 }
 
-/* Co-host tiles — connected flush grid, no corner cuts, thin silver edge */
+/* Co-host tiles — small fixed cut corners, no silver border lines */
 .elix-cohost-cut-corner {
+  --elix-cohost-cut: 1.5mm;
+  --elix-cohost-cut-path: polygon(
+    var(--elix-cohost-cut) 0,
+    calc(100% - var(--elix-cohost-cut)) 0,
+    100% var(--elix-cohost-cut),
+    100% calc(100% - var(--elix-cohost-cut)),
+    calc(100% - var(--elix-cohost-cut)) 100%,
+    var(--elix-cohost-cut) 100%,
+    0 calc(100% - var(--elix-cohost-cut)),
+    0 var(--elix-cohost-cut)
+  );
   position: relative;
   isolation: isolate;
-  border-radius: 0 !important;
-  -webkit-clip-path: none !important;
-  clip-path: none !important;
   border: none !important;
-  box-shadow: inset 0 0 0 1px rgba(216, 217, 221, 0.85) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  -webkit-clip-path: var(--elix-cohost-cut-path);
+  clip-path: var(--elix-cohost-cut-path);
 }
 .elix-cohost-cut-corner::after {
   content: none;
   display: none;
 }
 .elix-cohost-cut-corner.elix-speaking-pulse {
-  box-shadow:
-    inset 0 0 0 1.5px rgba(245, 245, 247, 1),
-    0 0 6px rgba(229, 229, 231, 0.55) !important;
+  box-shadow: none !important;
+  filter: drop-shadow(0 0 6px rgba(229, 229, 231, 0.55));
 }
 
 /* Premium Glow Pulse */

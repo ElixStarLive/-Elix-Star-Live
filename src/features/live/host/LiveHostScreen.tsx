@@ -1079,7 +1079,6 @@ export default function LiveHostScreen() {
                   const lastGiftIcon =
                     Object.entries(cohostLastGifts).find(([id]) => sameUserId(id, host.userId))?.[1] ||
                     undefined;
-                  const isSelected = !!selectedCohostGiftUserId && sameUserId(selectedCohostGiftUserId, host.userId);
                   return (
                     <>
                       <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 elix-panel z-[5]">
@@ -1144,9 +1143,6 @@ export default function LiveHostScreen() {
                             </div>
                           )}
                         </div>
-                      )}
-                      {isSelected && (
-                        <div className="absolute inset-0 z-[5] pointer-events-none border-2 border-[#D8D9DD]" />
                       )}
                     </>
                   );
