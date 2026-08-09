@@ -5597,7 +5597,7 @@ export function useLiveHostController() {
       avatar: viewer.avatar,
       streamKey: viewer.id,
     });
-    setShowViewerList(false);
+    // Keep spectators panel open so creator can invite more than one.
   }, []);
 
   const openCoHostGiftFromGrid = useCallback((userId: string) => {

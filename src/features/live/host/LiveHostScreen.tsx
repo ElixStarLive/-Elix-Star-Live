@@ -818,7 +818,7 @@ export default function LiveHostScreen() {
           );
           return (
           <div
-            className={hasAnyCoHost ? 'absolute inset-x-0 z-[25] flex flex-row gap-[0.5mm]' : 'absolute inset-0 w-full h-full'}
+            className={hasAnyCoHost ? 'absolute inset-x-0 z-[25] flex flex-row gap-0' : 'absolute inset-0 w-full h-full'}
             style={hasAnyCoHost ? { top: 'calc(90px + 6mm)', height: 'calc(36dvh + 10mm)', filter: liveFilterCss !== 'none' ? liveFilterCss : undefined } : { filter: liveFilterCss !== 'none' ? liveFilterCss : undefined }}
             onPointerDown={isCreatorParticipant ? undefined : (e) => {
               if (e.target instanceof Element) {
@@ -835,8 +835,6 @@ export default function LiveHostScreen() {
             {/* Left: Host camera (or featured co-host) â€” 50% when co-hosts present, else full */}
             <div
               className={`${hasAnyCoHost ? 'w-1/2 min-w-0 relative elix-cohost-cut-corner' : 'absolute inset-0 w-full h-full'} ${
-                hasAnyCoHost ? 'border border-[#D8D9DD]/45' : ''
-              } ${
                 (featuredHost ? isSpeakingUser(featuredHost.userId) : isSpeakingUser(user?.id))
                   ? 'elix-speaking-pulse'
                   : ''
@@ -1194,7 +1192,7 @@ export default function LiveHostScreen() {
               };
 
               return (
-                <div className="w-1/2 h-full grid grid-cols-2 grid-rows-4 gap-[0.5mm] bg-transparent">
+                <div className="w-1/2 h-full grid grid-cols-2 grid-rows-4 gap-0 bg-transparent">
                   {smallSlots.slice(0, 8).map((slot, i) => {
                     const cellHost = slot.type === 'live' ? slot.host : undefined;
                     const cellSpeaking =
@@ -1213,7 +1211,7 @@ export default function LiveHostScreen() {
                             openGiftPanelForCohost(cellHost.userId);
                           }
                         }}
-                        className={`relative elix-cohost-cut-corner bg-transparent flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 border border-[#D8D9DD]/45 ${cellSpeaking ? 'elix-speaking-pulse' : ''} ${cellHost && !isBattleMode ? 'cursor-pointer' : ''}`}
+                        className={`relative elix-cohost-cut-corner bg-transparent flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 ${cellSpeaking ? 'elix-speaking-pulse' : ''} ${cellHost && !isBattleMode ? 'cursor-pointer' : ''}`}
                       >
                         {renderCoHostCell(slot)}
                       </div>
@@ -2174,7 +2172,7 @@ export default function LiveHostScreen() {
                         ) : null}
                         <button
                           type="button"
-                          title="Join requests"
+                          title="Spectators"
                           onClick={openSpectatorsPanel}
                           className="flex items-center gap-1.5 px-0 py-1 rounded-full bg-transparent border-0 active:scale-95 transition-transform pointer-events-auto"
                           style={{ marginRight: '1mm' }}
@@ -2543,7 +2541,7 @@ export default function LiveHostScreen() {
         </>
       )}
 
-      {/* Co-host panel opener → Join requests only (no spectator list). */}
+      {/* Co-host panel opener → spectators list + join requests (invite from panel). */}
 
       {/* Weekly Ranking Panel */}
       {showRankingPanel && (
@@ -2859,7 +2857,7 @@ export default function LiveHostScreen() {
         )}
       </AnimatePresence>
 
-      {/* ═══ VIEWER LIST: Top gifters (MVP) OR Join requests only ═══ */}
+      {/* ═══ VIEWER LIST: Top gifters (MVP) OR spectators + join requests (invite to co-host) ═══ */}
       {showViewerList && (
         <>
           <div
@@ -2878,11 +2876,7 @@ export default function LiveHostScreen() {
                   <span className="text-white/60 text-xs font-semibold tabular-nums">
                     {viewerListMode === 'topGifters'
                       ? formatCountShort(topGiftersForPanel.length)
-                      : formatCountShort(
-                          (pendingInvite ? 1 : 0) +
-                            (pendingCohostInvite ? 1 : 0) +
-                            (pendingJoinRequest ? 1 : 0),
-                        )}
+                      : formatCountShort(activeViewers.length)}
                   </span>
                 </div>
                 <h3 className="text-[#F5F5F7] font-bold text-sm text-center w-full">
@@ -2892,7 +2886,7 @@ export default function LiveHostScreen() {
                       : topGiftersSide === 'opponent'
                         ? 'Top gifters · Blue'
                         : 'Top viewers & gifters'
-                    : 'Join requests'}
+                    : 'Spectators'}
                 </h3>
               </div>
               <div className="flex-1 overflow-y-auto no-scrollbar px-4 pb-4 min-h-0">
@@ -3040,12 +3034,75 @@ export default function LiveHostScreen() {
                   </div>
                 )}
 
-                {!pendingInvite && !pendingCohostInvite && !pendingJoinRequest ? (
-                  <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <UserPlus className="w-7 h-7 text-white/10 mb-2" />
-                    <p className="text-white/50 text-sm">No join requests</p>
-                  </div>
-                ) : null}
+                {(() => {
+                  const inviteable = activeViewers.filter((v) => {
+                    if (!v?.id) return false;
+                    if (sameUserId(v.id, user?.id) || sameUserId(v.id, effectiveStreamId)) return false;
+                    if (coHosts.some((h) => sameUserId(h.userId, v.id))) return false;
+                    if (pendingJoinRequest && sameUserId(pendingJoinRequest.requesterId, v.id)) return false;
+                    return true;
+                  });
+                  if (inviteable.length === 0 && !pendingInvite && !pendingCohostInvite && !pendingJoinRequest) {
+                    return (
+                      <div className="flex flex-col items-center justify-center py-8 text-center">
+                        <UserPlus className="w-7 h-7 text-white/10 mb-2" />
+                        <p className="text-white/50 text-sm">No spectators yet</p>
+                        <p className="text-white/30 text-xs mt-1">Viewers in this live will show here to invite</p>
+                      </div>
+                    );
+                  }
+                  if (inviteable.length === 0) return null;
+                  return (
+                    <>
+                      {(pendingInvite || pendingCohostInvite || pendingJoinRequest) ? (
+                        <p className="text-white/50 text-[10px] font-bold uppercase tracking-wider mb-1.5 mt-1">Spectators</p>
+                      ) : null}
+                      {inviteable.map((v) => {
+                        const displayName = liveViewerLabel(v);
+                        const alreadyInvited = coHosts.some(
+                          (h) => sameUserId(h.userId, v.id) && (h.status === 'invited' || h.status === 'pending_accept'),
+                        );
+                        return (
+                          <div
+                            key={`spec-${v.id}`}
+                            className="mb-2 flex items-center gap-2.5 w-full py-1 px-2 rounded-full bg-white/5 border border-[#D8D9DD]/30"
+                          >
+                            <AvatarRing
+                              src={resolveCircleAvatar(v.avatar, displayName)}
+                              alt={displayName}
+                              size={SHARE_PANEL_AVATAR_PX}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-white text-sm font-semibold truncate">{displayName}</p>
+                              <p className="text-white/40 text-[10px] font-medium">
+                                {alreadyInvited ? 'Invite sent' : 'Watching'}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              disabled={alreadyInvited || isBattleMode || coHosts.length >= MAX_CO_HOSTS}
+                              onClick={(ev) => {
+                                ev.preventDefault();
+                                ev.stopPropagation();
+                                inviteCoHostFromViewer({
+                                  id: v.id,
+                                  name: displayName,
+                                  avatar: typeof v.avatar === 'string' ? v.avatar : undefined,
+                                });
+                              }}
+                              className="px-2 py-1 rounded-full bg-[#E6E9EE] flex items-center justify-center gap-0.5 flex-shrink-0 active:scale-95 disabled:opacity-50"
+                            >
+                              <UserPlus size={9} className="text-black shrink-0" strokeWidth={2} />
+                              <span className="text-black text-[9px] font-bold">
+                                {alreadyInvited ? 'Sent' : 'Invite'}
+                              </span>
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </>
+                  );
+                })()}
                   </>
                 )}
               </div>
