@@ -28,24 +28,34 @@ type Props = PickerProps | ReadonlyProps;
 
 const GOAL_COUNT_MIN = 1;
 const GOAL_COUNT_MAX = 20_000;
-const GIFTS_PER_PAGE = 4;
 
 function clampGoalCount(n: number) {
   if (!Number.isFinite(n)) return GOAL_COUNT_MIN;
   return Math.max(GOAL_COUNT_MIN, Math.min(GOAL_COUNT_MAX, Math.floor(n)));
 }
 
+function giftPanelSort(a: GiftItem, b: GiftItem) {
+  const typeRank = (t: GiftItem["giftType"]) =>
+    t === "universe" ? 0 : t === "big" ? 1 : t === "small" ? 2 : 3;
+  const tr = typeRank(a.giftType) - typeRank(b.giftType);
+  if (tr !== 0) return tr;
+  return a.coins - b.coins;
+}
+
 export function GiftGoalGallery(props: Props) {
   const [gifts, setGifts] = useState<GiftItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [giftPage, setGiftPage] = useState(0);
 
   React.useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    // Same catalog source as GiftPanel — include every panel gift.
     fetchGiftsFromDatabase()
       .then((items) => {
-        if (!cancelled) setGifts(items.filter((g) => g.isActive));
+        if (!cancelled) setGifts(items);
+      })
+      .catch(() => {
+        if (!cancelled) setGifts([]);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -55,16 +65,7 @@ export function GiftGoalGallery(props: Props) {
     };
   }, []);
 
-  const galleryGifts = useMemo(
-    () => [...gifts].sort((a, b) => a.coins - b.coins),
-    [gifts],
-  );
-  const giftPageCount = Math.max(1, Math.ceil(galleryGifts.length / GIFTS_PER_PAGE));
-  const safeGiftPage = Math.min(giftPage, giftPageCount - 1);
-  const pageGifts = galleryGifts.slice(
-    safeGiftPage * GIFTS_PER_PAGE,
-    safeGiftPage * GIFTS_PER_PAGE + GIFTS_PER_PAGE,
-  );
+  const galleryGifts = useMemo(() => [...gifts].sort(giftPanelSort), [gifts]);
 
   if (props.mode === "readonly") {
     const { goal, onSend } = props;
@@ -139,49 +140,34 @@ export function GiftGoalGallery(props: Props) {
 
       {loading ? (
         <p className="text-white/40 text-[9px] text-center py-4">Loading gifts...</p>
+      ) : galleryGifts.length === 0 ? (
+        <p className="text-white/40 text-[9px] text-center py-4">No gifts available</p>
       ) : (
-        <div className="flex items-center gap-1 mb-2">
-          <button
-            type="button"
-            title="Previous gifts"
-            disabled={safeGiftPage <= 0}
-            onClick={() => setGiftPage((p) => Math.max(0, p - 1))}
-            className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full border border-[#2A2D33] bg-black/35 active:scale-95 disabled:opacity-35"
-          >
-            <ChevronLeft size={16} className="text-[#F5F5F7]" strokeWidth={2.4} />
-          </button>
-          <div className="grid grid-cols-4 gap-1.5 flex-1 min-w-0">
-            {pageGifts.map((gift) => (
-              <button
-                key={gift.id}
-                type="button"
-                onClick={() => onSelectGift(gift)}
-                className={[
-                  "aspect-square rounded-lg border p-1 flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-all",
-                  selectedGiftId === gift.id
-                    ? "border-[#D8D9DD] bg-white/10"
-                    : "border-[#D8D9DD]/15 bg-white/5 hover:bg-white/10",
-                ].join(" ")}
-              >
-                <img
-                  src={resolveGiftAssetUrl(gift.icon)}
-                  alt=""
-                  className="w-full h-full object-contain pointer-events-none"
-                  draggable={false}
-                />
-                <span className="text-[7px] text-white/80 truncate w-full text-center">{gift.name}</span>
-              </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            title="Next gifts"
-            disabled={safeGiftPage >= giftPageCount - 1}
-            onClick={() => setGiftPage((p) => Math.min(giftPageCount - 1, p + 1))}
-            className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full border border-[#2A2D33] bg-black/35 active:scale-95 disabled:opacity-35"
-          >
-            <ChevronRight size={16} className="text-[#F5F5F7]" strokeWidth={2.4} />
-          </button>
+        <div
+          className="grid grid-cols-4 gap-1.5 mb-2 overflow-y-auto overflow-x-hidden touch-pan-y overscroll-contain"
+          style={{ maxHeight: "168px" }}
+        >
+          {galleryGifts.map((gift) => (
+            <button
+              key={gift.id}
+              type="button"
+              onClick={() => onSelectGift(gift)}
+              className={[
+                "aspect-square rounded-lg border p-1 flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-all",
+                selectedGiftId === gift.id
+                  ? "border-[#D8D9DD] bg-white/10"
+                  : "border-[#D8D9DD]/15 bg-white/5 hover:bg-white/10",
+              ].join(" ")}
+            >
+              <img
+                src={resolveGiftAssetUrl(gift.icon)}
+                alt=""
+                className="w-full h-full object-contain pointer-events-none"
+                draggable={false}
+              />
+              <span className="text-[7px] text-white/80 truncate w-full text-center">{gift.name}</span>
+            </button>
+          ))}
         </div>
       )}
 
