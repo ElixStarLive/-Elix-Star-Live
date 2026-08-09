@@ -33,11 +33,12 @@ export const LIVE_BATTLE_VIDEO_HEIGHT = 'calc(44dvh - 3mm)' as const;
 /** Duet record/playback stage — battle height + 3cm taller. */
 export const DUET_STAGE_HEIGHT = 'calc(44dvh - 3mm + 3cm)' as const;
 
-/** Battle-mode chat scroll area — shorter + sits lower. */
-export const LIVE_BATTLE_CHAT_HEIGHT = 'calc(20dvh + 1cm)' as const;
+/** Battle-mode chat — taller: bottom stays above action row, top under MVP / battle cameras. */
+export const LIVE_BATTLE_CHAT_HEIGHT =
+  'calc(56dvh - env(safe-area-inset-top, 0px) - 164px + 3.5mm - max(2px, env(safe-area-inset-bottom, 0px)))' as const;
 
-/** Nudge battle chat toward bottom bar (clears MVP row). */
-export const LIVE_BATTLE_CHAT_SHIFT_Y = '3mm' as const;
+/** No downward nudge — chat top sits under MVP rings (bottom anchor unchanged). */
+export const LIVE_BATTLE_CHAT_SHIFT_Y = '0mm' as const;
 
 /** Red animated ring thickness (px) around live avatars. */
 export const LIVE_AVATAR_RING_THICKNESS_PX = 3.5;
