@@ -6,6 +6,14 @@ import { resolveGiftAssetUrl } from '../lib/giftsCatalog';
 import { GIFT_COMBO_MAX } from '../lib/giftsCatalog';
 import type { LiveGiftGoal } from '../lib/liveGiftGoal';
 
+/** Real gift coins received (elix_creator_earnings kind=gift) required for LIVE Pro. */
+export const LIVE_PRO_GIFT_COIN_THRESHOLD = 1_000_000;
+
+export function isLiveProFromGiftReach(totalGiftCoins: number): boolean {
+  const n = typeof totalGiftCoins === 'number' && Number.isFinite(totalGiftCoins) ? totalGiftCoins : 0;
+  return n >= LIVE_PRO_GIFT_COIN_THRESHOLD;
+}
+
 function formatLikesShort(count: number) {
   const c = typeof count === 'number' && Number.isFinite(count) ? count : 0;
   if (c >= 1_000_000) {
@@ -102,7 +110,7 @@ export function LiveFollowCapsule({ onFollow }: { onFollow: (e: React.MouseEvent
 
 /**
  * Host profile block (photo 1-1): gold-glow avatar (same soft halo as LIVE icons),
- * name + blue verified, “N Likes • LIVE Pro”.
+ * name + blue verified, “N Likes • LIVE” or “LIVE Pro” only when earned (1M gift coins).
  * Level / Diamond tier live in the bottom creator panel (tap avatar), not here.
  * One action slot beside name: Follow first → after Follow, Join (membership).
  * One big oval covers avatar + name + Join — round on the circle side.
@@ -116,6 +124,7 @@ export function LiveHostProfileHeader({
   avatarSize,
   showFollow,
   isFollowing = false,
+  isLivePro = false,
   onAvatarClick,
   onLike,
   onFollow,
@@ -129,6 +138,8 @@ export function LiveHostProfileHeader({
   /** true = show Follow → Join action slot (spectators). */
   showFollow: boolean;
   isFollowing?: boolean;
+  /** Earned badge — only after real gift reach (1M gift coins). Never free. */
+  isLivePro?: boolean;
   onAvatarClick: () => void;
   onLike: (e: React.PointerEvent) => void;
   onFollow: (e: React.MouseEvent) => void;
@@ -197,7 +208,7 @@ export function LiveHostProfileHeader({
           </span>
           <span className="elix-silver-red-text text-[9px] leading-none">•</span>
           <span className="elix-silver-red-text text-[9px] font-semibold leading-none whitespace-nowrap">
-            LIVE Pro
+            {isLivePro ? 'LIVE Pro' : 'LIVE'}
           </span>
         </button>
       </div>

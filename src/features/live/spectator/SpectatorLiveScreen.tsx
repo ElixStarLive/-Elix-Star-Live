@@ -107,6 +107,7 @@ import {
   LiveHostProfileHeader,
   LiveJoinPill,
   LiveMarkedSubHeaderBar,
+  isLiveProFromGiftReach,
 } from '../../../components/LiveMarkedTopUi';
 import {
   LiveSideMissionStack,
@@ -311,6 +312,7 @@ export default function SpectatorLiveScreen() {
     hostSmallVideoRef,
     hostUserId,
     hostUserIdRef,
+    hostTotalGiftCoins,
     inputValue,
     isCamOff,
     isChatVisible,
@@ -1719,6 +1721,7 @@ export default function SpectatorLiveScreen() {
                   avatarSize={LIVE_TOP_AVATAR_RING_PX}
                   showFollow={!user?.id || !hostUserId || user.id !== hostUserId}
                   isFollowing={isFollowing}
+                  isLivePro={isLiveProFromGiftReach(hostTotalGiftCoins)}
                   onAvatarClick={() => navigate(`/profile/${hostUserId}`)}
                   onLike={(e) => {
                     handleLikeTap(e);

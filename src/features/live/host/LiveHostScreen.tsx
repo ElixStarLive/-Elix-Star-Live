@@ -112,6 +112,7 @@ import {
   LiveHostProfileHeader,
   LiveJoinPill,
   LiveMarkedSubHeaderBar,
+  isLiveProFromGiftReach,
 } from '../../../components/LiveMarkedTopUi';
 import {
   LiveSideMissionStack,
@@ -2081,6 +2082,7 @@ export default function LiveHostScreen() {
                             avatarSize={LIVE_TOP_AVATAR_RING_PX}
                             showFollow={!isBroadcast}
                             isFollowing={isFollowing}
+                            isLivePro={isLiveProFromGiftReach(totalGiftCoins)}
                             onAvatarClick={() => {
                               void openMiniProfile(myCreatorName, undefined, { userId: user?.id, avatar: myAvatar, level: userLevel });
                             }}

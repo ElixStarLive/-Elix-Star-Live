@@ -117,6 +117,7 @@ import { getMembershipStatus, purchaseMembership } from '../../../lib/iap';
 import {
   apiLiveEngagementMissions,
   apiLiveGetDailyHearts,
+  apiLiveMembership,
   apiLiveSendDailyHeart,
   apiLiveEngagementProgress,
   apiLiveEngagementWallet,
@@ -547,6 +548,8 @@ export function useLiveSpectatorController() {
   const [hasJoinedToday, setHasJoinedToday] = useState(false);
   const [_myHeartCount, setMyHeartCount] = useState(0);
   const [_dailyHeartCount, setDailyHeartCount] = useState(0);
+  /** Host lifetime real gift coins — gates LIVE Pro badge (1M threshold). */
+  const [hostTotalGiftCoins, setHostTotalGiftCoins] = useState(0);
   const dailyHeartFetchedRef = useRef(false);
 
   useEffect(() => {
@@ -561,6 +564,30 @@ export function useLiveSpectatorController() {
       }
     }).catch(() => {});
   }, [hostUserId]);
+
+  useEffect(() => {
+    const creatorId = String(hostUserId || effectiveStreamId || '').trim();
+    if (!creatorId) {
+      setHostTotalGiftCoins(0);
+      return;
+    }
+    let cancelled = false;
+    const load = () => {
+      apiLiveMembership(creatorId)
+        .then(({ data: d }) => {
+          if (cancelled || !d) return;
+          const n = typeof d.totalGiftCoins === 'number' ? d.totalGiftCoins : 0;
+          setHostTotalGiftCoins(Number.isFinite(n) ? Math.max(0, n) : 0);
+        })
+        .catch(() => {});
+    };
+    load();
+    const interval = window.setInterval(load, 60_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [hostUserId, effectiveStreamId]);
 
   // ═══════════════════════════════════════════════════
   // BATTLE STATE (spectator sees host's battle status)
@@ -3520,6 +3547,7 @@ export function useLiveSpectatorController() {
     hostSmallVideoRef,
     hostUserId,
     hostUserIdRef,
+    hostTotalGiftCoins,
     inputValue,
     isCamOff,
     isChatVisible,
