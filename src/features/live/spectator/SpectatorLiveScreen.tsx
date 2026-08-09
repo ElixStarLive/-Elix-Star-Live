@@ -887,7 +887,7 @@ export default function SpectatorLiveScreen() {
                     </div>
                   </div>
 
-                <div className="absolute bottom-1 left-0 right-0 px-3 py-1.5 flex items-center justify-between flex-none z-30 pointer-events-none overflow-x-hidden w-full max-w-full" style={{ transform: 'translateY(1mm)' }}>
+                <div className="absolute bottom-1 left-0 right-0 px-3 py-1.5 flex items-center justify-between flex-none z-[120] pointer-events-none overflow-x-hidden w-full max-w-full" style={{ transform: 'translateY(1mm)' }}>
                   <div
                     className="flex items-end gap-[0mm] min-w-0 flex-1 justify-start pointer-events-auto overflow-hidden"
                     title="Top gifters — red side"

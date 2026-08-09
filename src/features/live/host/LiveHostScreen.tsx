@@ -1741,7 +1741,7 @@ export default function LiveHostScreen() {
             );
           })()}
 
-            <div className="absolute bottom-1 left-0 right-0 px-3 py-2 flex items-center justify-between flex-none pointer-events-none relative z-30 overflow-x-hidden w-full max-w-full" style={{ transform: 'translateY(1mm)' }}>
+            <div className="absolute bottom-1 left-0 right-0 px-3 py-2 flex items-center justify-between flex-none pointer-events-none relative z-[120] overflow-x-hidden w-full max-w-full" style={{ transform: 'translateY(1mm)' }}>
               <div
                 className="flex items-end gap-[0mm] min-w-0 flex-1 justify-start pointer-events-auto overflow-hidden"
                 onClick={openTopGiftersHost}
