@@ -1,9 +1,8 @@
 import React from 'react';
-import { BadgeCheck, Gem, Heart, Plus } from 'lucide-react';
+import { BadgeCheck, Heart, Plus } from 'lucide-react';
 import { AvatarRing } from './AvatarRing';
 import type { GiftUiItem } from '../lib/giftsCatalog';
 import { GIFT_COMBO_MAX } from '../lib/giftsCatalog';
-import { getLevelAccentStyle } from '../lib/levelColors';
 
 function formatLikesShort(count: number) {
   const c = typeof count === 'number' && Number.isFinite(count) ? count : 0;
@@ -16,14 +15,6 @@ function formatLikesShort(count: number) {
     return `${Number.isInteger(k) ? Math.trunc(k) : k}K`;
   }
   return String(c);
-}
-
-/** Photo-style diamond badge label from host level (Diamond I…V). */
-function liveDiamondTierLabel(level: number) {
-  const n = typeof level === 'number' && Number.isFinite(level) && level > 0 ? Math.floor(level) : 1;
-  const roman = ['I', 'II', 'III', 'IV', 'V'] as const;
-  const idx = Math.min(roman.length - 1, Math.floor((Math.max(1, n) - 1) / 20));
-  return `Diamond ${roman[idx]}`;
 }
 
 /** Live ranking chips — transparent black glass over video. */
@@ -108,7 +99,8 @@ export function LiveFollowCapsule({ onFollow }: { onFollow: (e: React.MouseEvent
 
 /**
  * Host profile block (photo 1-1): gold-glow avatar (same soft halo as LIVE icons),
- * name + blue verified, “N Likes • LIVE Pro”, Lv pill + Diamond tier,
+ * name + blue verified, “N Likes • LIVE Pro”.
+ * Level / Diamond tier live in the bottom creator panel (tap avatar), not here.
  * One action slot beside profile: Follow XOR Join — never both, never stacked.
  * Does not touch the 3 MVP circles.
  */
@@ -116,7 +108,7 @@ export function LiveHostProfileHeader({
   name,
   avatar,
   likes,
-  level,
+  level: _level,
   avatarSize,
   showFollow,
   isFollowing = false,
@@ -139,9 +131,7 @@ export function LiveHostProfileHeader({
   /** Join (membership heart) — shown in the same slot after follow only. */
   joinSlot?: React.ReactNode;
 }) {
-  const safeLevel = typeof level === 'number' && Number.isFinite(level) && level > 0 ? Math.floor(level) : 1;
   const likesLabel = formatLikesShort(likes);
-  const levelStyle = getLevelAccentStyle(safeLevel);
 
   return (
     <div className="flex items-center gap-1.5 min-w-0 pointer-events-auto">
@@ -196,26 +186,6 @@ export function LiveHostProfileHeader({
             LIVE Pro
           </span>
         </button>
-        <div className="flex items-center gap-1 mt-[1px]">
-          <span
-            className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-[2px] text-[8px] font-bold leading-none"
-            style={{
-              background: levelStyle.background,
-              border: '1px solid rgba(255,255,255,0.35)',
-              boxShadow: 'none',
-            }}
-          >
-            <span className="elix-silver-red-text">Lv.{safeLevel}</span>
-          </span>
-          <span
-            className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-[2px] text-[8px] font-bold leading-none bg-black/35 backdrop-blur-sm border border-[#2A2D33] shadow-none"
-          >
-            <Gem size={9} className="flex-shrink-0" strokeWidth={2.2} />
-            <span className="elix-silver-red-text text-[8px] font-bold leading-none whitespace-nowrap">
-              {liveDiamondTierLabel(safeLevel)}
-            </span>
-          </span>
-        </div>
       </div>
     </div>
   );

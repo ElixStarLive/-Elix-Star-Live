@@ -2495,7 +2495,7 @@ export default function LiveHostScreen() {
               onClick={closeMiniProfile}
             />
             <motion.div
-              className="bg-[rgba(0,0,0,0.35)] rounded-t-2xl border-t border-[#2A2D33] px-4 pt-4 pb-[calc(20px+env(safe-area-inset-bottom))] pointer-events-auto shadow-2xl relative z-10"
+              className="elix-panel rounded-t-2xl border-t border-[#2A2D33] px-4 pt-4 pb-[calc(20px+env(safe-area-inset-bottom))] pointer-events-auto shadow-2xl relative z-10"
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
