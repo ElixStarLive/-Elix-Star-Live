@@ -76,7 +76,6 @@ export default function FriendsFeed() {
     <div ref={pageRef} className="app-live-column bg-transparent relative">
       <FeedStoryCirclesOverlay
         pageRef={pageRef}
-        topOffset="var(--topnav-anchor-top)"
         title="Friends"
         onSearch={goSearch}
         onBack={goBack}

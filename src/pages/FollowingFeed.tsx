@@ -73,7 +73,6 @@ export default function FollowingFeed() {
     <div ref={pageRef} className="app-live-column bg-transparent relative">
       <FeedStoryCirclesOverlay
         pageRef={pageRef}
-        topOffset="var(--topnav-anchor-top)"
         initiallyVisible
         followingFirst
         title="Following"

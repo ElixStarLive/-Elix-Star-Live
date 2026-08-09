@@ -472,21 +472,24 @@ export function FeedStoryCirclesOverlay({
     <>
       {!visible && !storyViewer ? <div {...pullZoneProps} /> : null}
 
+      {/*
+        Fixed to the real screen top (under battery/time). Body already pads content
+        with --safe-top — absolute top:0 only hit the padded column, which looked like
+        a short fundal banner with video/gap above. Do not add a second topOffset here.
+      */}
       <div
-        className={`absolute left-0 right-0 z-20 pointer-events-none transition-[transform,opacity] duration-300 ease-out feed-story-strip ${
+        className={`fixed inset-x-0 top-0 z-[20] pointer-events-none transition-[transform,opacity] duration-300 ease-out feed-story-strip ${
           stripShown
             ? 'translate-y-0 opacity-100 overflow-visible'
-            : '-translate-y-[200%] opacity-0 invisible overflow-hidden pointer-events-none'
+            : '-translate-y-[120%] opacity-0 invisible overflow-hidden pointer-events-none'
         }`}
-        style={{
-          /* Always flush to screen top so fundal goes under battery/time; pad content only */
-          top: 0,
-          paddingTop: topOffset || 'var(--safe-top)',
-        }}
+        style={{ paddingTop: 'var(--safe-top)' }}
         aria-hidden={!stripShown}
       >
-        {stripChrome}
-        <div className="px-4 pt-0 pb-1 overflow-visible pointer-events-auto">{circlesRow}</div>
+        <div className="feed-column-width mx-auto w-full">
+          {stripChrome}
+          <div className="px-4 pt-0 pb-1 overflow-visible pointer-events-auto">{circlesRow}</div>
+        </div>
       </div>
 
       {storyPlayer}

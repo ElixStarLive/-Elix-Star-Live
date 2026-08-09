@@ -1954,17 +1954,18 @@ svg.lucide,
   min-height: 0 !important;
 }
 
-/* Story / user circle strip — full cover fundal under status bar (not a top banner crop) */
+/* Story / user circle strip — full-bleed under status bar (STEM / Following / Friends) */
 #root .feed-story-strip {
   background-color: #080A0E !important;
   background-image:
-    linear-gradient(rgba(8, 10, 14, 0.72), rgba(8, 10, 14, 0.72)),
+    linear-gradient(rgba(8, 10, 14, 0.78), rgba(8, 10, 14, 0.78)),
     var(--elix-fundal-image) !important;
   background-size: cover, cover !important;
   background-position: center top, center top !important;
   background-repeat: no-repeat, no-repeat !important;
   background-attachment: scroll, scroll !important;
   border-bottom: 1px solid var(--elix-border);
+  isolation: isolate;
 }
 
 /* STEM / Friends story strip — Search icon line only, no round disc */

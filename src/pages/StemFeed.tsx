@@ -74,7 +74,6 @@ export default function StemFeed() {
     <div ref={pageRef} className="app-live-column bg-transparent relative">
       <FeedStoryCirclesOverlay
         pageRef={pageRef}
-        topOffset="var(--topnav-anchor-top)"
         title="STEM"
         onSearch={goSearch}
         onBack={goBack}
