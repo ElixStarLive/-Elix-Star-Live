@@ -1954,15 +1954,12 @@ svg.lucide,
   min-height: 0 !important;
 }
 
-/* Story strip — app-column width; fill full strip HEIGHT (no short cropped banner) */
+/* Story strip (STEM / Following / Friends rings) — same app fundal as panels, not a designed banner */
 #root .feed-story-strip {
-  background-color: #080A0E !important;
-  background-image:
-    linear-gradient(rgba(8, 10, 14, 0.82), rgba(8, 10, 14, 0.82)),
-    var(--elix-fundal-image) !important;
-  /* Stretch to the strip box — ban height-cropped banner stripe */
-  background-size: 100% 100%, 100% 100% !important;
-  background-position: center center, center center !important;
+  background-color: var(--elix-bg) !important;
+  background-image: var(--elix-panel-fill) !important;
+  background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
+  background-position: var(--elix-fundal-position), var(--elix-fundal-position) !important;
   background-repeat: no-repeat, no-repeat !important;
   background-attachment: scroll, scroll !important;
   border-bottom: 1px solid var(--elix-border);
@@ -2218,12 +2215,10 @@ body {
   background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment);
 }
 
-/* LEVEL 3 — top tab row clear; bottom nav keeps chrome fill via rules below */
+/* LEVEL 3 — kill decorative borders on top tab column (fundal comes from elix-home-top-bar rules) */
 #root .elix-home-top-bar .feed-column-width,
 #root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\],
 #root .feed-column-width.h-\[var\(--topnav-bar-height\)\] {
-  background-color: transparent;
-  background-image: none;
   border-left: none !important;
   border-right: none !important;
   border-top: none !important;
@@ -2632,7 +2627,7 @@ body,
   filter: none !important;
 }
 
-/* Home top bar — flush to screen top under battery/time; cover fill (not banner stripe) */
+/* For You top bar — same app fundal tokens (elix-fundal-cosmic), app-column only */
 #root .elix-home-top-bar,
 #root .elix-feed-chrome-shell .elix-home-top-bar {
   left: 0;
@@ -2640,25 +2635,23 @@ body,
   top: 0;
   width: 100%;
   max-width: none;
-  background-color: #080A0E !important;
-  background-image:
-    linear-gradient(rgba(8, 10, 14, 0.72), rgba(8, 10, 14, 0.72)),
-    var(--elix-fundal-image) !important;
-  background-size: cover, cover !important;
-  background-position: center top, center top !important;
-  background-repeat: no-repeat, no-repeat !important;
-  background-attachment: scroll, scroll !important;
+  background-color: transparent !important;
+  background-image: none !important;
   border: none !important;
   box-shadow: none !important;
 }
 
-/* Inner tab row stays clear — fundal lives on the full-width top panel */
+/* Fundal on the app-width column (same as bottom nav), not a full-bleed invented banner */
 #root .elix-home-top-bar .feed-column-width,
 #root .elix-feed-chrome-shell .elix-home-top-bar .feed-column-width {
   position: relative;
   overflow: hidden;
-  background-color: transparent !important;
-  background-image: none !important;
+  background-color: var(--elix-bg) !important;
+  background-image: var(--elix-feed-chrome-fill) !important;
+  background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
+  background-position: var(--elix-fundal-position), var(--elix-fundal-position) !important;
+  background-repeat: no-repeat, no-repeat !important;
+  background-attachment: scroll !important;
   border: none !important;
   box-shadow: none !important;
 }
@@ -2700,14 +2693,12 @@ body,
   background-repeat: no-repeat, no-repeat !important;
 }
 
-/* Story strip in feed chrome — same full-box fill (no height banner crop) */
+/* Story strip in feed chrome — same panel fundal tokens as STEM / Following / Friends */
 #root .elix-feed-chrome-shell .feed-story-strip {
-  background-color: #080A0E !important;
-  background-image:
-    linear-gradient(rgba(8, 10, 14, 0.82), rgba(8, 10, 14, 0.82)),
-    var(--elix-fundal-image) !important;
-  background-size: 100% 100%, 100% 100% !important;
-  background-position: center center, center center !important;
+  background-color: var(--elix-bg) !important;
+  background-image: var(--elix-panel-fill) !important;
+  background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
+  background-position: var(--elix-fundal-position), var(--elix-fundal-position) !important;
   background-repeat: no-repeat, no-repeat !important;
 }
 
