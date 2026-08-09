@@ -818,7 +818,7 @@ export default function LiveHostScreen() {
           );
           return (
           <div
-            className={hasAnyCoHost ? 'absolute inset-x-0 z-[25] flex flex-row gap-0' : 'absolute inset-0 w-full h-full'}
+            className={hasAnyCoHost ? 'absolute inset-x-0 z-[25] flex flex-row gap-[2px]' : 'absolute inset-0 w-full h-full'}
             style={hasAnyCoHost ? { top: 'calc(90px + 6mm)', height: 'calc(36dvh + 10mm)', filter: liveFilterCss !== 'none' ? liveFilterCss : undefined } : { filter: liveFilterCss !== 'none' ? liveFilterCss : undefined }}
             onPointerDown={isCreatorParticipant ? undefined : (e) => {
               if (e.target instanceof Element) {
@@ -834,7 +834,7 @@ export default function LiveHostScreen() {
           >
             {/* Left: Host camera (or featured co-host) â€” 50% when co-hosts present, else full */}
             <div
-              className={`${hasAnyCoHost ? 'w-1/2 min-w-0 relative elix-cohost-cut-corner' : 'absolute inset-0 w-full h-full'} ${
+              className={`${hasAnyCoHost ? 'w-1/2 min-w-0 relative' : 'absolute inset-0 w-full h-full'} ${
                 (featuredHost ? isSpeakingUser(featuredHost.userId) : isSpeakingUser(user?.id))
                   ? 'elix-speaking-pulse'
                   : ''
@@ -1192,7 +1192,7 @@ export default function LiveHostScreen() {
               };
 
               return (
-                <div className="w-1/2 h-full grid grid-cols-2 grid-rows-4 gap-0 bg-transparent">
+                <div className="w-1/2 h-full grid grid-cols-2 grid-rows-4 gap-[2px] bg-transparent">
                   {smallSlots.slice(0, 8).map((slot, i) => {
                     const cellHost = slot.type === 'live' ? slot.host : undefined;
                     const cellSpeaking =

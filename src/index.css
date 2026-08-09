@@ -717,36 +717,44 @@ video::-webkit-media-controls-overlay-enclosure,
   border-width: 2px !important;
 }
 
-/* Co-host squares — equal corner cuts meet with gap:0 so joints form hexagons.
-   Thin silver edge via inset shadow (follows clip; no separate gold/silver box ring). */
+/* Co-host tiles — cut corners + thin silver edge along the EXACT cut path.
+   Small gap so tiles read separate; cuts still form hexagon joints. */
 .elix-cohost-cut-corner {
+  --elix-cohost-cut-path: polygon(
+    5% 0%,
+    95% 0%,
+    100% 5%,
+    100% 95%,
+    95% 100%,
+    5% 100%,
+    0% 95%,
+    0% 5%
+  );
+  position: relative;
+  isolation: isolate;
   border: none !important;
-  box-shadow: inset 0 0 0 1px rgba(216, 217, 221, 0.5);
-  -webkit-clip-path: polygon(
-    1.5mm 0,
-    calc(100% - 1.5mm) 0,
-    100% 1.5mm,
-    100% calc(100% - 1.5mm),
-    calc(100% - 1.5mm) 100%,
-    1.5mm 100%,
-    0 calc(100% - 1.5mm),
-    0 1.5mm
-  );
-  clip-path: polygon(
-    1.5mm 0,
-    calc(100% - 1.5mm) 0,
-    100% 1.5mm,
-    100% calc(100% - 1.5mm),
-    calc(100% - 1.5mm) 100%,
-    1.5mm 100%,
-    0 calc(100% - 1.5mm),
-    0 1.5mm
-  );
+  box-shadow: none !important;
+  -webkit-clip-path: var(--elix-cohost-cut-path);
+  clip-path: var(--elix-cohost-cut-path);
+}
+/* Thin silver ring (outer cut − tiny inset) — not a thick bar */
+.elix-cohost-cut-corner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  background-color: transparent;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath fill-rule='evenodd' fill='%23D8D9DD' fill-opacity='0.75' d='M5 0H95L100 5V95L95 100H5L0 95V5L5 0ZM5.7 0.7H94.3L99.3 5.7V94.3L94.3 99.3H5.7L0.7 94.3V5.7L5.7 0.7Z'/%3E%3C/svg%3E");
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+.elix-cohost-cut-corner.elix-speaking-pulse::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath fill-rule='evenodd' fill='%23F5F5F7' fill-opacity='0.95' d='M5 0H95L100 5V95L95 100H5L0 95V5L5 0ZM5.7 0.7H94.3L99.3 5.7V94.3L94.3 99.3H5.7L0.7 94.3V5.7L5.7 0.7Z'/%3E%3C/svg%3E");
+  filter: drop-shadow(0 0 4px rgba(229, 229, 231, 0.75));
 }
 .elix-cohost-cut-corner.elix-speaking-pulse {
-  box-shadow:
-    inset 0 0 0 1.5px rgba(245, 245, 247, 0.95),
-    0 0 12px 2px rgba(229, 229, 231, 0.55);
+  box-shadow: none !important;
 }
 
 /* Premium Glow Pulse */

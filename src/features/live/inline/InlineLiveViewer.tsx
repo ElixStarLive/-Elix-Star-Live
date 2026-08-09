@@ -581,7 +581,7 @@ export default function InlineLiveViewer({
               </div>
             )}
           </div>
-          <div className="w-1/2 h-full grid grid-cols-2 grid-rows-4 gap-0 p-0 bg-transparent">
+          <div className="w-1/2 h-full grid grid-cols-2 grid-rows-4 gap-[2px] p-0 bg-transparent">
             {Array.from({ length: 8 }).map((_, i) => {
               const h = liveCohosts[i];
               if (!h) {
