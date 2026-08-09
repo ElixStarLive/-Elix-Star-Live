@@ -610,7 +610,13 @@ export default function SpectatorLiveScreen() {
       className="elix-live-room elix-fundal-glass fixed inset-0 flex justify-center transition-transform duration-[250ms] ease-out"
       style={{ transform: pageExiting ? 'translateX(100%)' : undefined }}
     >
-      <div className={`relative w-full max-w-[480px] h-full overflow-hidden overflow-x-hidden flex flex-col ${spectatorBattle?.active ? 'elix-battle-room-fundal' : 'elix-fundal-glass'}`}>
+      <div className={`relative w-full max-w-[480px] h-full overflow-hidden overflow-x-hidden flex flex-col ${
+        spectatorBattle?.active
+          ? 'elix-battle-room-fundal'
+          : hasCoHostLowerFundal
+            ? 'elix-live-chat-fundal'
+            : 'elix-fundal-glass'
+      }`}>
 
         {spectatorBattle?.active ? (
           <div
@@ -621,7 +627,7 @@ export default function SpectatorLiveScreen() {
         ) : hasCoHostLowerFundal ? (
           <div
             className="elix-live-chat-fundal pointer-events-none absolute inset-x-0 bottom-0 z-[1]"
-            style={{ top: 'calc(90px + 6mm + 36dvh + 10mm)' }}
+            style={{ top: 'calc(env(safe-area-inset-top, 0px) + 78px)' }}
             aria-hidden
           />
         ) : null}
