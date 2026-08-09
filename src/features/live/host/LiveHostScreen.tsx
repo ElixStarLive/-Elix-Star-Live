@@ -2608,21 +2608,29 @@ export default function LiveHostScreen() {
               onClick={closeMiniProfile}
             />
             <motion.div
-              className="elix-panel rounded-t-2xl border-t border-[#2A2D33] px-4 pt-4 pb-[calc(20px+env(safe-area-inset-bottom))] pointer-events-auto shadow-2xl relative z-10"
+              className="elix-panel rounded-t-2xl border-t border-[#2A2D33] px-4 pt-2 pb-[calc(28px+env(safe-area-inset-bottom))] pointer-events-auto shadow-2xl relative z-10 min-h-[42vh]"
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
             >
+              <div className="flex justify-center pb-2" aria-hidden>
+                <div className="w-10 h-1 rounded-full bg-white/25" />
+              </div>
+              <h3 className="text-center text-[13px] font-bold elix-silver-red-text mb-2">
+                User Profile
+              </h3>
+              <div className="border-t border-[#D8D9DD]/45 mb-4" aria-hidden />
+
               <div className="flex items-start justify-between">
-                <div className="flex items-start gap-3 min-w-0">
-                  <div className="relative -mt-4 flex-shrink-0">
-                    <AvatarRing src={typeof miniProfile.avatar === 'string' ? miniProfile.avatar : ''} alt={typeof miniProfile.username === 'string' ? miniProfile.username : 'User'} size={56} />
+                <div className="flex items-start gap-3.5 min-w-0">
+                  <div className="relative flex-shrink-0">
+                    <AvatarRing src={typeof miniProfile.avatar === 'string' ? miniProfile.avatar : ''} alt={typeof miniProfile.username === 'string' ? miniProfile.username : 'User'} size={72} />
                   </div>
                   <div className="min-w-0 pt-1">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <div className="text-white font-black text-[16px] truncate">{typeof miniProfile.username === 'string' ? miniProfile.username : 'User'}</div>
+                      <div className="text-white font-black text-[18px] truncate">{typeof miniProfile.username === 'string' ? miniProfile.username : 'User'}</div>
                       {miniProfile?.id && moderators.has(miniProfile.id) && (
                         <User className="w-3.5 h-3.5 text-[#F5F5F7] flex-shrink-0" strokeWidth={2.25} aria-hidden />
                       )}
@@ -2634,17 +2642,17 @@ export default function LiveHostScreen() {
                       />
                     </div>
                     {miniProfile.coins != null && (
-                      <div className="text-white/70 text-[12px] font-bold">
-                        ðŸª™ {formatCoinsShort(miniProfile.coins)}
+                      <div className="text-white/70 text-[13px] font-bold mt-0.5">
+                        {formatCoinsShort(miniProfile.coins)}
                       </div>
                     )}
                     
-                    <div className="flex items-center gap-3 mt-1 text-[10px] text-white/50">
+                    <div className="flex items-center gap-3 mt-2 text-[11px] text-white/50">
                       <div className="flex items-center gap-1">
                         <span className="text-white font-bold tabular-nums">{formatCountShort(miniProfile.followers_count ?? 0)}</span>
                         <span>Followers</span>
                       </div>
-                      <div className="w-px h-2 bg-white/20" />
+                      <div className="w-px h-2.5 bg-white/20" />
                       <div className="flex items-center gap-1">
                         <span className="text-white font-bold tabular-nums">{formatCountShort(miniProfile.following_count ?? 0)}</span>
                         <span>Following</span>
@@ -2652,13 +2660,13 @@ export default function LiveHostScreen() {
                     </div>
 
                     {miniProfile.bio && (
-                      <div className="mt-2 text-[11px] text-white/80 leading-snug line-clamp-2">
+                      <div className="mt-3 text-[12px] text-white/80 leading-snug line-clamp-3">
                         {miniProfile.bio}
                       </div>
                     )}
 
                     {miniProfile.donated != null && miniProfile.donated > 0 && (
-                      <div className="text-white text-[11px] font-bold mt-2 pt-2 border-t border-[#2A2D33]">
+                      <div className="text-white text-[12px] font-bold mt-3 pt-2 border-t border-[#2A2D33]">
                         Donated: {formatCoinsShort(miniProfile.donated)} coins
                       </div>
                     )}
@@ -2666,12 +2674,12 @@ export default function LiveHostScreen() {
                 </div>
               </div>
 
-              <div className="mt-5 grid grid-cols-4 gap-2">
+              <div className="mt-6 grid grid-cols-4 gap-2">
                 {!(miniProfile?.id && user?.id && miniProfile.id === user.id) && (
                 <button
                   type="button"
                   onClick={miniProfileFollowClick}
-                  className={`h-9 rounded-lg text-[11px] active:scale-95 transition-all ${
+                  className={`h-10 rounded-lg text-[11px] active:scale-95 transition-all ${
                     miniProfile?.id &&
                     (miniProfileFollowsThem === true ||
                       (miniProfileFollowsThem === undefined && followingUsers.includes(miniProfile.id)))
@@ -2689,11 +2697,11 @@ export default function LiveHostScreen() {
                 <button 
                   type="button" 
                   onClick={goMiniProfileFromMini}
-                  className="h-9 rounded-lg bg-white/10 text-white text-[11px] font-bold hover:bg-white/20 active:scale-95 transition-all"
+                  className="h-10 rounded-lg bg-white/10 text-white text-[11px] font-bold hover:bg-white/20 active:scale-95 transition-all"
                 >
                   Profile
                 </button>
-                <button type="button" onClick={miniProfileShareClick} className="h-9 rounded-lg bg-white/10 text-white text-[11px] font-bold hover:bg-white/20 active:scale-95 transition-all">
+                <button type="button" onClick={miniProfileShareClick} className="h-10 rounded-lg bg-white/10 text-white text-[11px] font-bold hover:bg-white/20 active:scale-95 transition-all">
                   Share
                 </button>
               </div>
@@ -2701,11 +2709,11 @@ export default function LiveHostScreen() {
               {(isBroadcast || (miniProfile?.id && moderators.has(user?.id || ''))) && miniProfile?.id && miniProfile.id !== user?.id && (
                 <div className="mt-2 grid grid-cols-2 gap-2">
                   {isBroadcast && (
-                    <button type="button" onClick={toggleMiniProfileModerator} className={`h-9 rounded-lg text-[11px] font-bold active:scale-95 transition-all ${miniProfile?.id && moderators.has(miniProfile.id) ? 'bg-purple-950/50 text-white/70 border border-purple-900/50' : 'bg-purple-600 text-white'}`}>
+                    <button type="button" onClick={toggleMiniProfileModerator} className={`h-10 rounded-lg text-[11px] font-bold active:scale-95 transition-all ${miniProfile?.id && moderators.has(miniProfile.id) ? 'bg-purple-950/50 text-white/70 border border-purple-900/50' : 'bg-purple-600 text-white'}`}>
                       {miniProfile?.id && moderators.has(miniProfile.id) ? 'Remove Mod' : 'Make Mod'}
                     </button>
                   )}
-                  <button type="button" onClick={() => { void blockMiniProfileUser(); }} className="h-9 rounded-lg bg-black/50 text-white/60 text-[11px] font-bold border border-white/20/50 hover:bg-white/10/50 active:scale-95 transition-all">
+                  <button type="button" onClick={() => { void blockMiniProfileUser(); }} className="h-10 rounded-lg bg-black/50 text-white/60 text-[11px] font-bold border border-white/20/50 hover:bg-white/10/50 active:scale-95 transition-all">
                     Block
                   </button>
                 </div>
