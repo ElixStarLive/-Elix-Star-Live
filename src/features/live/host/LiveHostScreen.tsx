@@ -834,7 +834,7 @@ export default function LiveHostScreen() {
           >
             {/* Left: Host camera (or featured co-host) â€” 50% when co-hosts present, else full */}
             <div
-              className={`${hasAnyCoHost ? 'w-1/2 min-w-0 relative' : 'absolute inset-0 w-full h-full'} ${
+              className={`${hasAnyCoHost ? 'w-1/2 min-w-0 relative elix-cohost-cut-corner' : 'absolute inset-0 w-full h-full'} ${
                 (featuredHost ? isSpeakingUser(featuredHost.userId) : isSpeakingUser(user?.id))
                   ? 'elix-speaking-pulse'
                   : ''
