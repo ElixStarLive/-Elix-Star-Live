@@ -133,7 +133,6 @@ import ReportModal from '../../../components/ReportModal';
 import PromotePanel from '../../../components/PromotePanel';
 import { GiftPanel } from '../../../components/GiftPanel';
 import { GiftGoalGallery } from '../../../components/GiftGoalGallery';
-import { LiveGiftGoalBar } from '../../../components/LiveGiftGoalBar';
 import { LiveEngagementOverlay } from '../../../components/LiveEngagementOverlay';
 import { useLiveEngagement } from '../../../hooks/useLiveEngagement';
 import { RankingPanel } from '../../../components/RankingPanel';
@@ -157,7 +156,7 @@ import {
   apiLiveStickerDelete,
   apiLiveStickers,
 } from '../engagement/liveEngagementApi';
-import { parseLiveGiftGoal, type LiveGiftGoal } from '../../../lib/liveGiftGoal';
+import { parseLiveGiftGoal, type LiveGiftGoal, isGiftGoalComplete, playGiftGoalReachedSound } from '../../../lib/liveGiftGoal';
 import { liveStreamUiGiftTargetToServerBattleTarget, normalizeBattleGiftTarget } from '../../../lib/liveBattleGiftTarget';
 import { engagementFlags } from '../../../config/engagementFlags';
 import { earnBattleEnergyQuiet } from '../../../components/BattleEnergyBoostControls';
@@ -248,6 +247,8 @@ export function useLiveHostController() {
   const { giftsCatalog, giftsCatalogRef, seenGiftTxnRef, setGiftsCatalog } = useLiveGiftsCatalog();
   // Dedup chat_message (room broadcast + owner-global fallback deliver once each).
   const seenChatMsgIdRef = useRef<Set<string>>(new Set());
+  /** One "joined the stream" banner per user for the whole live session (not per reconnect). */
+  const joinAnnouncedRef = useRef<Set<string>>(new Set());
   const setPromo = useLivePromoStore((s) => s.setPromo);
   const { user, updateUser } = useAuthStore();
   const followingUsers = useVideoStore((s) => s.followingUsers);
@@ -1696,6 +1697,10 @@ export function useLiveHostController() {
   /** Start / rematch with EVERY accepted creator seat (opponent + P3 + P4). */
   const startBattleWithAcceptedCreators = useCallback(() => {
     const accepted = battleSlots.filter((s) => s.status === 'accepted' && s.userId);
+    if (accepted.length === 0) {
+      showToast('Invite a creator first');
+      return;
+    }
     const opp = accepted[0];
     const p3 = accepted[1];
     const p4 = accepted[2];
@@ -2101,7 +2106,7 @@ export function useLiveHostController() {
 
   const [giftGoal, setGiftGoal] = useState<LiveGiftGoal | null>(null);
   const [goalPick, setGoalPick] = useState<GiftUiItem | null>(null);
-  const [goalTargetCount, setGoalTargetCount] = useState(50);
+  const [goalTargetCount, setGoalTargetCount] = useState(1);
   const [goalSaving, setGoalSaving] = useState(false);
 
   const saveGiftGoal = useCallback(() => {
@@ -3148,10 +3153,10 @@ export function useLiveHostController() {
           Number.isFinite(Number(profile.level)) && Number(profile.level) >= 0
             ? Math.floor(Number(profile.level))
             : 1;
-        if (!resolvedUsername && !resolvedDisplayName && !resolvedAvatar) return;
+        if (!resolvedUsername && !resolvedDisplayName) return;
         const nextIdentity = {
-          username: resolvedUsername || resolvedDisplayName || `user_${viewerId.slice(0, 8)}`,
-          displayName: resolvedDisplayName || resolvedUsername || `User ${viewerId.slice(0, 8)}`,
+          username: resolvedUsername || resolvedDisplayName,
+          displayName: resolvedDisplayName || resolvedUsername,
           avatar: resolvedAvatar,
           level: resolvedLevel,
         };
@@ -3434,6 +3439,10 @@ export function useLiveHostController() {
       }
       setActiveViewers(viewers);
       setViewerCount(viewers.length);
+      // Seed announced set only — never wipe (reconnect room_state must not re-allow banners).
+      for (const v of viewers) {
+        if (v.id) joinAnnouncedRef.current.add(String(v.id));
+      }
       needsIdentityLookup.forEach((uid) => maybeResolveViewerIdentity(uid));
 
       // Creator: push layout to server as soon as we connect so spectators who join later get creator layout
@@ -3457,6 +3466,8 @@ export function useLiveHostController() {
       if (data.user_id === user?.id) return;
       const joinName = data.username || 'User';
       const uid = typeof data.user_id === 'string' ? data.user_id : String(data.user_id ?? '');
+      // No stable id → cannot dedupe; skip banner (viewer list still updates below if needed).
+      if (!uid) return;
       const cached = uid ? viewerIdentityCacheRef.current.get(uid) : undefined;
       const wsLevel = Number(data.level);
       const initialLevel =
@@ -3465,8 +3476,29 @@ export function useLiveHostController() {
           : Number.isFinite(wsLevel) && wsLevel >= 0
             ? Math.floor(wsLevel)
             : 1;
+      // One join banner per user for the whole live session (reconnect / double emit / leave-rejoin).
+      if (joinAnnouncedRef.current.has(uid)) {
+        setActiveViewers(prev => {
+          if (prev.some(v => String(v.id) === uid)) return prev;
+          return appendCapped(prev, {
+            id: uid,
+            username: cached?.username || joinName,
+            displayName: cached?.displayName || (typeof data.display_name === 'string' ? data.display_name : joinName),
+            level: initialLevel,
+            avatar: cached?.avatar || (typeof data.avatar_url === 'string' ? data.avatar_url : ''),
+            country: data.country || '',
+            joinedAt: Date.now(),
+            isActive: true,
+            chatFrequency: 0,
+            supportDays: 0,
+            lastVisitDaysAgo: 0,
+          }, LIVE_VIEWER_CAP);
+        });
+        return;
+      }
+      joinAnnouncedRef.current.add(uid);
       setActiveViewers(prev => {
-        if (prev.some(v => v.id === uid)) return prev;
+        if (prev.some(v => String(v.id) === uid)) return prev;
         return appendCapped(prev, {
           id: uid,
           username: cached?.username || joinName,
@@ -3481,15 +3513,20 @@ export function useLiveHostController() {
           lastVisitDaysAgo: 0,
         }, LIVE_VIEWER_CAP);
       });
-      const joinMsgId = `join-${Date.now()}`;
-      setMessages(prev => appendCapped(prev, {
-        id: joinMsgId,
-        username: joinName,
-        text: 'joined the stream',
-        isSystem: true,
-        level: initialLevel,
-        avatar: typeof data.avatar_url === 'string' ? data.avatar_url : '',
-      }, LIVE_CHAT_MESSAGE_CAP));
+      const joinMsgId = `join-${uid}`;
+      setMessages(prev => {
+        if (prev.some((m) => m.id === joinMsgId || (m.isSystem === true && m.text === 'joined the stream' && m.username === joinName))) {
+          return prev;
+        }
+        return appendCapped(prev, {
+          id: joinMsgId,
+          username: joinName,
+          text: 'joined the stream',
+          isSystem: true,
+          level: initialLevel,
+          avatar: typeof data.avatar_url === 'string' ? data.avatar_url : '',
+        }, LIVE_CHAT_MESSAGE_CAP);
+      });
       if (uid && initialLevel <= 1) {
         void apiFetchProfileById(uid).then(({ body }) => {
           if (!mounted) return;
@@ -3522,6 +3559,7 @@ export function useLiveHostController() {
     const handleUserLeft = (data) => {
       if (!mounted) return;
       const leftId = data.user_id != null ? String(data.user_id) : '';
+      // Keep leftId in joinAnnouncedRef so leave/rejoin does not show the banner again this live.
       setActiveViewers(prev => prev.filter(v => String(v.id) !== leftId));
       setViewerCount(prev => Math.max(0, prev - 1));
       if (!leftId) return;
@@ -4023,7 +4061,15 @@ export function useLiveHostController() {
         return;
       }
       const parsed = parseLiveGiftGoal(data);
-      if (parsed) setGiftGoal(parsed);
+      if (parsed) {
+        setGiftGoal((prev) => {
+          const wasDone = prev ? isGiftGoalComplete(prev) : false;
+          if (!wasDone && isGiftGoalComplete(parsed)) {
+            playGiftGoalReachedSound();
+          }
+          return parsed;
+        });
+      }
     };
 
     const unbindRoomWs = bindLiveRoomWs({
@@ -4306,6 +4352,7 @@ export function useLiveHostController() {
       unbindBattleInviteWs();
       unbindCohostWs();
       unbindModerationWs();
+      joinAnnouncedRef.current.clear();
       // Do NOT disconnect here — unstable handler deps were dropping the host WS
       // mid-battle and server treated that as "host left" → stream_ended.
     };
@@ -5141,6 +5188,11 @@ export function useLiveHostController() {
 
   const openWeeklyRanking = useCallback(() => {
     setRankingInitialTab('weekly');
+    setShowRankingPanel(true);
+  }, []);
+
+  const openGiftGoalPanel = useCallback(() => {
+    setRankingInitialTab('goal');
     setShowRankingPanel(true);
   }, []);
 
@@ -6037,6 +6089,7 @@ export function useLiveHostController() {
     openTopGiftersPanel,
     openViewerMiniProfile,
     openWeeklyRanking,
+    openGiftGoalPanel,
     openWeeklyRankingFromGift,
     opponentCreatorName,
     opponentLifecycleRef,
