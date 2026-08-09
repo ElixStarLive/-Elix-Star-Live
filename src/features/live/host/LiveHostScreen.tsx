@@ -3731,7 +3731,7 @@ export default function LiveHostScreen() {
               <div className="flex justify-center pb-2" aria-hidden>
                 <div className="w-10 h-1 rounded-full bg-white/25" />
               </div>
-              <div className="absolute left-2 top-0 flex items-center gap-1 z-10">
+              <div className="absolute left-2 top-0 flex items-center gap-1 z-10" style={{ transform: 'translateY(1mm)' }}>
                 <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center flex-shrink-0">
                   <Search className="w-3.5 h-3.5 text-white/30" />
                 </div>
@@ -3771,7 +3771,7 @@ export default function LiveHostScreen() {
             <div className="mx-4 border-t border-[#D8D9DD]/45 flex-shrink-0" aria-hidden />
 
             {/* Action icons only — 4mm below the line */}
-            <div className="flex-1 overflow-y-scroll overflow-x-hidden min-h-0 px-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#313845] [&::-webkit-scrollbar-thumb]:rounded-full" style={{ paddingTop: '4mm' }}>
+            <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 px-4 no-scrollbar" style={{ paddingTop: '3mm', scrollbarWidth: 'none' }}>
               <div className="grid grid-cols-5 gap-y-3 gap-x-1.5 pt-0">
                 {[
                   { name: 'WhatsApp', icon: <MessageCircle size={22} className="text-white" />, action: shareWhatsApp },

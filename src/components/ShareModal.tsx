@@ -194,7 +194,7 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
           <div className="flex justify-center pb-2" aria-hidden>
             <div className="w-10 h-1 rounded-full bg-white/25 flex-shrink-0" />
           </div>
-          <div className="absolute left-4 top-0 flex items-center gap-1 z-10">
+          <div className="absolute left-4 top-0 flex items-center gap-1 z-10" style={{ transform: 'translateY(1mm)' }}>
             <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center flex-shrink-0 border border-[#D8D9DD]/35">
               <Search className="w-3.5 h-3.5 text-[#F5F5F7]" />
             </div>
@@ -234,8 +234,8 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
         {/* Line between user circles and action icons */}
         <div className="mx-4 border-t border-[#D8D9DD]/45 flex-shrink-0" aria-hidden />
 
-        {/* Action icons flush under the line */}
-        <div className="flex-1 overflow-y-scroll overflow-x-hidden min-h-0 px-4 pb-2 flex flex-col [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#313845] [&::-webkit-scrollbar-thumb]:rounded-full" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.25) transparent' }}>
+        {/* Action icons under the line — no visible scrollbar */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 px-4 pb-2 flex flex-col no-scrollbar" style={{ scrollbarWidth: 'none' }}>
           {showQrCode && (
             <div className="pt-2 pb-3 flex flex-col items-center gap-2 border-b border-white/10 mb-2">
               <div className="flex items-center justify-between w-full">
@@ -249,7 +249,7 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
               />
             </div>
           )}
-          <div className="grid grid-cols-5 gap-y-3 gap-x-1.5 pt-0 auto-rows-fr">
+          <div className="grid grid-cols-5 gap-y-3 gap-x-1.5 auto-rows-fr" style={{ paddingTop: '3mm' }}>
             {socialPlatforms.map((item) => (
               <button
                 key={item.name}
