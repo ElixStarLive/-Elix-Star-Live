@@ -122,6 +122,7 @@ import {
   apiFetchProfileByUsername,
   apiToggleFollow,
 } from '../../feed/feedApi';
+import { isGenericLiveCreatorName, profileToLiveDisplay } from '../../../lib/liveCreatorDisplay';
 import {
   fetchAllSharePanelContacts,
   SHARE_PANEL_ACTION_DISC_PX,
@@ -623,23 +624,88 @@ export function useLiveHostController() {
     avatar_url?: string;
   }[]>([]);
 
+  /** Membership API sometimes returns empty names → UI showed user_id.slice(0,8) like "ea72ee76". */
+  const membershipNameMissing = useCallback((name: string | undefined, userId: string) => {
+    const n = String(name || '').trim();
+    if (!n) return true;
+    if (isGenericLiveCreatorName(n)) return true;
+    if (userId && (n === userId || n === userId.slice(0, 8))) return true;
+    return false;
+  }, []);
+
+  const enrichMembershipPeople = useCallback(
+    async <T extends { user_id: string; username?: string; avatar_url?: string }>(people: T[]): Promise<T[]> => {
+      if (!Array.isArray(people) || people.length === 0) return people;
+      const next = people.map((p) => ({ ...p }));
+      await Promise.all(
+        next.map(async (p, i) => {
+          if (!membershipNameMissing(p.username, p.user_id) && p.avatar_url) return;
+          try {
+            const { body, error } = await apiFetchProfileById(p.user_id);
+            if (error || !body) return;
+            const { name, avatar } = profileToLiveDisplay(body);
+            const resolvedName =
+              name && !membershipNameMissing(name, p.user_id) ? name : '';
+            if (!resolvedName && !avatar) return;
+            next[i] = {
+              ...p,
+              username: resolvedName || p.username,
+              avatar_url: (avatar && avatar.trim()) || p.avatar_url,
+            };
+          } catch {
+            /* keep existing row */
+          }
+        }),
+      );
+      return next;
+    },
+    [membershipNameMissing],
+  );
+
+  const applyMembershipStats = useCallback(
+    async (d: Record<string, unknown>) => {
+      if (typeof d.todayHearts === 'number') setDailyHeartCount(d.todayHearts);
+      if (typeof d.totalHearts === 'number') setMyHeartCount(d.totalHearts);
+      if (typeof d.totalGiftCoins === 'number') setTotalGiftCoins(d.totalGiftCoins);
+      if (Array.isArray(d.topGifters)) {
+        const raw = d.topGifters as {
+          user_id: string;
+          total_coins: number;
+          username?: string;
+          avatar_url?: string;
+        }[];
+        setTopGifters(raw);
+        void enrichMembershipPeople(raw).then((enriched) => setTopGifters(enriched));
+      }
+      if (Array.isArray(d.heartMembers)) {
+        const raw = d.heartMembers as {
+          user_id: string;
+          heart_days: number;
+          username?: string;
+          avatar_url?: string;
+        }[];
+        setHeartMembers(raw);
+        void enrichMembershipPeople(raw).then((enriched) => setHeartMembers(enriched));
+      }
+    },
+    [enrichMembershipPeople],
+  );
+
   // Fetch membership stats for creator (hearts + real gift coins / top supporters)
   useEffect(() => {
     if (!user?.id) return;
     const fetchStats = () => {
-      apiLiveMembership(user.id).then(({ data: d }) => {
-        if (!d) return;
-        if (typeof d.todayHearts === 'number') setDailyHeartCount(d.todayHearts);
-        if (typeof d.totalHearts === 'number') setMyHeartCount(d.totalHearts);
-        if (typeof d.totalGiftCoins === 'number') setTotalGiftCoins(d.totalGiftCoins);
-        if (Array.isArray(d.topGifters)) setTopGifters(d.topGifters);
-        if (Array.isArray(d.heartMembers)) setHeartMembers(d.heartMembers);
-      }).catch(() => {});
+      apiLiveMembership(user.id)
+        .then(({ data: d }) => {
+          if (!d) return;
+          void applyMembershipStats(d);
+        })
+        .catch(() => {});
     };
     fetchStats();
     const interval = setInterval(fetchStats, 30000);
     return () => clearInterval(interval);
-  }, [user?.id]);
+  }, [user?.id, applyMembershipStats]);
 
   const [creatorQuery, setCreatorQuery] = useState('');
   const [creators, setCreators] = useState<{ id: string; streamKey: string; name: string; username: string; followers: string; avatar: string; isLive: boolean }[]>([]);
@@ -2096,18 +2162,14 @@ export function useLiveHostController() {
       void apiLiveMembership(user.id)
         .then(({ data: d }) => {
           if (!d) return;
-          if (typeof d.todayHearts === 'number') setDailyHeartCount(d.todayHearts);
-          if (typeof d.totalHearts === 'number') setMyHeartCount(d.totalHearts);
-          if (typeof d.totalGiftCoins === 'number') setTotalGiftCoins(d.totalGiftCoins);
-          if (Array.isArray(d.topGifters)) setTopGifters(d.topGifters);
-          if (Array.isArray(d.heartMembers)) setHeartMembers(d.heartMembers);
+          void applyMembershipStats(d);
         })
         .catch(() => {});
     };
     refresh();
     const interval = window.setInterval(refresh, 5000);
     return () => window.clearInterval(interval);
-  }, [showTeamStatus, user?.id]);
+  }, [showTeamStatus, user?.id, applyMembershipStats]);
   const [showJoinAnimation, setShowJoinAnimation] = useState(false);
   const [_showEmojiPicker, _setShowEmojiPicker] = useState(false);
   const [_membershipHeartActive, _setMembershipHeartActive] = useState(false);
@@ -4524,7 +4586,7 @@ export function useLiveHostController() {
     if (topGifters.length > 0) {
       return topGifters.slice(0, 3).map((g) => ({
         id: g.user_id,
-        name: g.username || g.user_id.slice(0, 8),
+        name: g.username || 'Supporter',
         avatar: g.avatar_url || '',
         points: g.total_coins,
       }));
@@ -5846,6 +5908,7 @@ export function useLiveHostController() {
     _startBattleWithCreator,
     _universeDurationSeconds,
     acceptBattleInvite,
+    applyMembershipStats,
     acceptBattleInviteClick,
     acceptCohostInvite,
     acceptCohostInviteClick,

@@ -217,6 +217,7 @@ export default function LiveHostScreen() {
     _startBattleWithCreator,
     _universeDurationSeconds,
     acceptBattleInvite,
+    applyMembershipStats,
     acceptBattleInviteClick,
     acceptCohostInvite,
     acceptCohostInviteClick,
@@ -1933,13 +1934,11 @@ export default function LiveHostScreen() {
                                       '/royce/elix-mark.svg',
                                     );
 
-                                    // Refresh team heart counts immediately.
+                                    // Refresh team heart counts immediately (with real profile names).
                                     void apiLiveMembership(user.id)
                                       .then(({ data: stats }) => {
                                         if (!stats) return;
-                                        if (typeof stats.todayHearts === 'number') setDailyHeartCount(stats.todayHearts);
-                                        if (typeof stats.totalHearts === 'number') setMyHeartCount(stats.totalHearts);
-                                        if (Array.isArray(stats.heartMembers)) setHeartMembers(stats.heartMembers);
+                                        void applyMembershipStats(stats);
                                       })
                                       .catch(() => {});
 
@@ -2940,7 +2939,7 @@ export default function LiveHostScreen() {
                        <div className="w-5 text-center font-bold text-[10px] text-[#F5F5F7]/60">{i + 1}</div>
                        <img src={m.avatar_url || '/royce/elix-mark.svg'} alt="" className="w-7 h-7 rounded-full object-cover border border-[#D8D9DD]/20" />
                        <div className="flex-1 min-w-0">
-                         <div className="text-[10px] font-bold text-white truncate">{m.username || m.user_id.slice(0, 8)}</div>
+                         <div className="text-[10px] font-bold text-white truncate">{m.username || 'Member'}</div>
                        </div>
                        <div className="text-[#FF6A3D] text-[10px] font-bold whitespace-nowrap tabular-nums">
                          {m.heart_days} {m.heart_days === 1 ? 'heart' : 'hearts'}
@@ -2968,7 +2967,7 @@ export default function LiveHostScreen() {
                        <div className="w-5 text-center font-bold text-[10px] text-[#F5F5F7]/60">{i + 1}</div>
                        <img src={g.avatar_url || '/royce/elix-mark.svg'} alt="" className="w-7 h-7 rounded-full object-cover border border-[#D8D9DD]/20" />
                        <div className="flex-1 min-w-0">
-                         <div className="text-[10px] font-bold text-white truncate">{g.username || g.user_id.slice(0, 8)}</div>
+                         <div className="text-[10px] font-bold text-white truncate">{g.username || 'Supporter'}</div>
                        </div>
                        <div className="text-[#D9A62E] text-[10px] font-bold whitespace-nowrap">{g.total_coins.toLocaleString()} coins</div>
                      </div>
