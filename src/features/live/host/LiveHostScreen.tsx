@@ -2985,38 +2985,40 @@ export default function LiveHostScreen() {
                 <div className="flex justify-center pb-2" aria-hidden>
                   <div className="w-10 h-1 rounded-full bg-white/25" />
                 </div>
-                <div className="absolute left-2 top-2 flex items-center gap-1 z-10">
-                  <Users size={12} className="text-white/50" />
-                  <span className="text-white/60 text-xs font-semibold tabular-nums">
+                <div className="relative flex items-center justify-center min-h-[28px]">
+                  <div className="absolute left-0 inset-y-0 flex items-center gap-1 z-10">
+                    <Users size={12} className="text-white/50" />
+                    <span className="text-white/60 text-xs font-semibold tabular-nums">
+                      {viewerListMode === 'topGifters'
+                        ? formatCountShort(topGiftersForPanel.length)
+                        : formatCountShort(activeViewers.length)}
+                    </span>
+                  </div>
+                  <h3 className="text-[#F5F5F7] font-bold text-sm text-center w-full px-10">
                     {viewerListMode === 'topGifters'
-                      ? formatCountShort(topGiftersForPanel.length)
-                      : formatCountShort(activeViewers.length)}
-                  </span>
+                      ? topGiftersSide === 'host'
+                        ? 'Top gifters · Red'
+                        : topGiftersSide === 'opponent'
+                          ? 'Top gifters · Blue'
+                          : 'Top viewers & gifters'
+                      : 'Spectators'}
+                  </h3>
+                  {viewerListMode !== 'topGifters' ? (
+                    <button
+                      type="button"
+                      title="Layout"
+                      aria-label="Layout"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowViewerList(false);
+                        setShowCohostLayoutPicker(true);
+                      }}
+                      className="absolute right-0 inset-y-0 z-10 flex items-center justify-center px-1.5 active:scale-95"
+                    >
+                      <LayoutGrid size={18} className="text-[#F5F5F7]" strokeWidth={2.2} />
+                    </button>
+                  ) : null}
                 </div>
-                {viewerListMode !== 'topGifters' ? (
-                  <button
-                    type="button"
-                    title="Layout"
-                    aria-label="Layout"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowViewerList(false);
-                      setShowCohostLayoutPicker(true);
-                    }}
-                    className="absolute right-2 top-2 z-10 flex items-center justify-center p-1.5 rounded-full active:scale-95"
-                  >
-                    <LayoutGrid size={16} className="text-[#F5F5F7]" strokeWidth={2.2} />
-                  </button>
-                ) : null}
-                <h3 className="text-[#F5F5F7] font-bold text-sm text-center w-full">
-                  {viewerListMode === 'topGifters'
-                    ? topGiftersSide === 'host'
-                      ? 'Top gifters · Red'
-                      : topGiftersSide === 'opponent'
-                        ? 'Top gifters · Blue'
-                        : 'Top viewers & gifters'
-                    : 'Spectators'}
-                </h3>
               </div>
               <div className="flex-1 overflow-y-auto no-scrollbar px-4 pb-4 min-h-0">
                 {viewerListMode === 'topGifters' ? (
