@@ -5,6 +5,7 @@ export {
   apiLiveTokenWithIdentity,
   apiLiveStreams,
   collectLiveUserIds,
+  isUserLive,
   findLiveWatchTarget,
   type LiveKitCreds,
 } from './liveApi';

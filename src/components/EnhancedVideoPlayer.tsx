@@ -49,7 +49,7 @@ import {
 } from '../lib/profileFrame';
 import { platform } from '../lib/platform';
 import { prepareFeedVideoEl, stripVideoMediaChrome } from '../lib/prepareLiveVideoEl';
-import { apiLiveStreams, collectLiveUserIds } from '../lib/live';
+import { apiLiveStreams, isUserLive } from '../lib/live';
 
 const VIDEO_SIDEBAR_AVATAR = 38;
 /** Description-row creator circle only: +1mm each side. Level pill stays {@link LEVEL_BADGE_PILL_PX}. */
@@ -211,7 +211,10 @@ export default function EnhancedVideoPlayer({
 
   useEffect(() => {
     const uid = video?.user?.id;
-    if (!isActive || !uid) {
+    // Live ring on video sidebar — For You only (not STEM / Following / Friends).
+    const onForYou =
+      location.pathname === '/feed' || location.pathname === '/' || location.pathname.startsWith('/video/');
+    if (!isActive || !uid || !onForYou) {
       setCreatorIsLive(false);
       return;
     }
@@ -219,8 +222,7 @@ export default function EnhancedVideoPlayer({
     apiLiveStreams()
       .then(({ streams }) => {
         if (cancelled) return;
-        const liveIds = collectLiveUserIds(streams || []);
-        setCreatorIsLive(liveIds.has(String(uid)));
+        setCreatorIsLive(isUserLive(streams || [], String(uid)));
       })
       .catch(() => {
         if (!cancelled) setCreatorIsLive(false);
@@ -228,7 +230,7 @@ export default function EnhancedVideoPlayer({
     return () => {
       cancelled = true;
     };
-  }, [isActive, video?.user?.id]);
+  }, [isActive, video?.user?.id, location.pathname]);
 
   const seekAllTo = useCallback(
     (seconds: number) => {
