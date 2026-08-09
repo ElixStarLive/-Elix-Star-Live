@@ -1065,15 +1065,25 @@ export async function handleMessage(
             await grantCohostPublish(roomId, uid);
           }
         }
-        await setCohostLayout(roomId, coHosts, hostUserId);
+        await setCohostLayout(
+          roomId,
+          coHosts,
+          hostUserId,
+          typeof data.layoutId === "string" ? data.layoutId : null,
+        );
         const featuredUserId =
           typeof data.featuredUserId === "string" && data.featuredUserId.trim()
             ? data.featuredUserId.trim()
             : null;
+        const layoutId =
+          typeof data.layoutId === "string" && data.layoutId.trim()
+            ? data.layoutId.trim()
+            : undefined;
         broadcastToRoom(roomId, "cohost_layout_sync", {
           coHosts,
           hostUserId,
           featuredUserId,
+          ...(layoutId ? { layoutId } : {}),
         });
         break;
       }

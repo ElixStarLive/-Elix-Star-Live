@@ -293,7 +293,7 @@ export async function markTransactionProcessed(
 
 export async function getCohostLayout(
   roomId: string,
-): Promise<{ coHosts: unknown[]; hostUserId: string } | null> {
+): Promise<{ coHosts: unknown[]; hostUserId: string; layoutId?: string } | null> {
   if (!isValkeyConfigured()) return null;
   const val = await valkeyGet(`cohost:${roomId}`);
   if (val) {
@@ -310,11 +310,18 @@ export async function setCohostLayout(
   roomId: string,
   coHosts: unknown[],
   hostUserId: string,
+  layoutId?: string | null,
 ): Promise<void> {
   if (!isValkeyConfigured()) return;
   await valkeySet(
     `cohost:${roomId}`,
-    JSON.stringify({ coHosts, hostUserId }),
+    JSON.stringify({
+      coHosts,
+      hostUserId,
+      ...(typeof layoutId === 'string' && layoutId.trim()
+        ? { layoutId: layoutId.trim() }
+        : {}),
+    }),
     3_600_000,
   );
 }
@@ -1155,6 +1162,9 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
         sendToClient(client, "cohost_layout_sync", {
           coHosts: lastCohost.coHosts,
           hostUserId: lastCohost.hostUserId,
+          ...(typeof lastCohost.layoutId === "string" && lastCohost.layoutId
+            ? { layoutId: lastCohost.layoutId }
+            : {}),
         });
       }
 

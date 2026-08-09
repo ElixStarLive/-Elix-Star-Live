@@ -24,7 +24,8 @@ export type CohostLayoutPreset = {
 
 export const COHOST_LAYOUT_PRESETS: CohostLayoutPreset[] = [
   { id: 'solo_big', label: 'Solo', guestSlots: 0 },
-  { id: 'big_left_stack', label: 'Left + stack', guestSlots: 8 },
+  /** Classic 1 big + 8 seats — default co-host stage. */
+  { id: 'big_left_stack', label: 'Normal', guestSlots: 8 },
   { id: 'two_top_eight', label: 'Two + eight', guestSlots: 9 },
   { id: 'banner_eight', label: 'Banner + eight', guestSlots: 8 },
   { id: 'grid_3x3', label: '3×3', guestSlots: 8 },

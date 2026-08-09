@@ -13,10 +13,7 @@ type Props = {
 /** Horizontal wireframe picker — host chooses co-host stage layout. */
 export function CohostLayoutChooser({ value, onChange }: Props) {
   return (
-    <div className="mb-3 flex-shrink-0">
-      <p className="text-white/50 text-[10px] font-bold uppercase tracking-wider mb-1.5 px-0.5">
-        Layout
-      </p>
+    <div className="flex-shrink-0">
       <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
         {COHOST_LAYOUT_PRESETS.map((preset) => {
           const thumb = COHOST_LAYOUT_THUMBS[preset.id];
@@ -29,14 +26,14 @@ export function CohostLayoutChooser({ value, onChange }: Props) {
               aria-label={preset.label}
               aria-pressed={selected}
               onClick={() => onChange(preset.id)}
-              className={`flex-shrink-0 w-[52px] h-[78px] rounded-[14px] p-1.5 flex flex-col items-stretch justify-center transition-transform active:scale-95 ${
+              className={`flex-shrink-0 w-[58px] rounded-[14px] p-1.5 flex flex-col items-stretch gap-1 transition-transform active:scale-95 ${
                 selected
                   ? 'bg-white/10 ring-2 ring-[#F5F5F7] ring-offset-1 ring-offset-black/40'
                   : 'bg-white/[0.04] ring-1 ring-white/15'
               }`}
             >
               <div
-                className="flex-1 w-full min-h-0 grid"
+                className="w-full h-[58px] min-h-0 grid"
                 style={{ gridTemplate: thumb.grid, gap: '2px' }}
                 aria-hidden
               >
@@ -50,6 +47,13 @@ export function CohostLayoutChooser({ value, onChange }: Props) {
                   />
                 ))}
               </div>
+              <span
+                className={`text-center text-[8px] font-bold leading-tight truncate px-0.5 ${
+                  selected ? 'text-[#F5F5F7]' : 'text-white/55'
+                }`}
+              >
+                {preset.label}
+              </span>
             </button>
           );
         })}

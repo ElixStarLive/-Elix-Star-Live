@@ -1070,7 +1070,7 @@ export function useLiveHostController() {
     cohostLayoutSync(payload);
   }, [isBroadcast, effectiveStreamId, user?.id, coHosts, featuredUserId, cohostLayoutId]);
 
-  // Solo preset is for empty seats — if seats open while solo is selected, switch to default stack.
+  // Inviting seats while on Solo → switch to Normal (1 big + 8). Choosing Solo clears seats (see selectCohostLayout).
   useEffect(() => {
     if (coHosts.length > 0 && cohostLayoutId === 'solo_big') {
       setCohostLayoutId(DEFAULT_COHOST_LAYOUT_ID);
@@ -1262,12 +1262,13 @@ export function useLiveHostController() {
     void el.play().catch(() => {});
   }, []);
 
-  /** Host big-table X: clear every co-host seat and return to solo live layout. */
+  /** Host big-table X: clear every co-host seat and return to solo live — stay on this broadcast (never /feed). */
   const endCoHostMode = useCallback(() => {
-    if (coHosts.length === 0 && !featuredUserId) return;
+    if (coHosts.length === 0 && !featuredUserId && cohostLayoutId === 'solo_big') return;
     setCoHosts([]);
     setFeaturedUserId(null);
     setSelectedCohostGiftUserId(null);
+    setCohostLayoutId('solo_big');
     // Next paint: grid unmounts — put host camera back on the full live preview.
     window.requestAnimationFrame(() => restoreHostCameraPreview());
     setMessages((prev) =>
@@ -1282,7 +1283,20 @@ export function useLiveHostController() {
         LIVE_CHAT_MESSAGE_CAP,
       ),
     );
-  }, [coHosts.length, featuredUserId, restoreHostCameraPreview]);
+  }, [coHosts.length, featuredUserId, cohostLayoutId, restoreHostCameraPreview]);
+
+  /** Spectators panel layout buttons — Solo clears seats and stays on normal live. */
+  const selectCohostLayout = useCallback(
+    (id: CohostLayoutId) => {
+      if (id === 'solo_big') {
+        endCoHostMode();
+        setCohostLayoutId('solo_big');
+        return;
+      }
+      setCohostLayoutId(id);
+    },
+    [endCoHostMode],
+  );
 
   const toggleCoHostMute = (hostId: string) => {
     setCoHosts(prev => prev.map(h => {
@@ -5267,7 +5281,7 @@ export function useLiveHostController() {
           h.status === 'pending_accept') &&
         !sameUserId(h.userId, user?.id),
     );
-    if (isBroadcast && (hasCoHostSeats || featuredUserId)) {
+    if (isBroadcast && (hasCoHostSeats || featuredUserId || cohostLayoutId !== 'solo_big')) {
       endCoHostMode();
       return;
     }
@@ -5289,6 +5303,7 @@ export function useLiveHostController() {
     coHosts,
     featuredUserId,
     user?.id,
+    cohostLayoutId,
     endCoHostMode,
   ]);
 
@@ -6152,6 +6167,7 @@ export function useLiveHostController() {
     cohostGiftScores,
     cohostLastGifts,
     cohostLayoutId,
+    selectCohostLayout,
     setCohostLayoutId,
     coinBalance,
     comboCount,

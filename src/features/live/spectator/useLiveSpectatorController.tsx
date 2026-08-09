@@ -1130,15 +1130,6 @@ export function useLiveSpectatorController() {
     new URLSearchParams(location.search).get('cohost') === '1' &&
     cohostState.fromCohostInvite === true;
 
-  // Spectators should not create their own co-host layout; co-hosting is controlled by the creator's room.
-  // We intentionally do NOT auto-start co-hosting on ?cohost=1 for the spectator route.
-  // Spectators on ?cohost=1 stay on watch page; no auto co-host start.
-  useEffect(() => {
-    if (isCoHostFromUrl) {
-      // Optional: could show a one-time toast that co-host is request-only from here.
-    }
-  }, [isCoHostFromUrl, effectiveStreamId, location.pathname]);
-
   const _startCoHosting = async () => {
     try {
       setIsCoHosting(true);
@@ -1183,6 +1174,38 @@ export function useLiveSpectatorController() {
 
   // Host removed this co-host from the table — leave publish mode.
   const wasCohostSeatedRef = useRef(false);
+
+  /** Leave the co-host seat but keep watching this live (never /feed). */
+  const exitCohostStayWatching = useCallback(() => {
+    stopCoHosting();
+    wasCohostSeatedRef.current = false;
+    if (user?.id) {
+      setSpectatorCoHosts((prev) => prev.filter((h) => !sameUserId(h.userId, user.id)));
+      if (featuredUserId && sameUserId(featuredUserId, user.id)) {
+        setFeaturedUserId(null);
+      }
+    }
+    const params = new URLSearchParams(location.search);
+    if (params.has('cohost')) {
+      params.delete('cohost');
+      navigate(
+        {
+          pathname: location.pathname,
+          search: params.toString() ? `?${params.toString()}` : '',
+        },
+        { replace: true, state: {} },
+      );
+    }
+    showToast('Left co-host');
+  }, [
+    stopCoHosting,
+    user?.id,
+    featuredUserId,
+    location.pathname,
+    location.search,
+    navigate,
+  ]);
+
   useEffect(() => {
     if (!user?.id) return;
     const stillSeated = spectatorCoHosts.some(
@@ -3394,6 +3417,11 @@ export function useLiveSpectatorController() {
 
   const leaveStreamWithSlide = useCallback(() => {
     if (pageExiting) return;
+    // Co-host close ends seat only — stay on this watch live (same as host ending co-host stays on broadcast).
+    if (isCoHosting) {
+      exitCohostStayWatching();
+      return;
+    }
     setPageExiting(true);
     window.setTimeout(() => {
       websocket.disconnect();
@@ -3403,7 +3431,7 @@ export function useLiveSpectatorController() {
       }
       navigate('/feed', { replace: true });
     }, 250);
-  }, [pageExiting, coHostStream, navigate]);
+  }, [pageExiting, isCoHosting, exitCohostStayWatching, coHostStream, navigate]);
 
 
   const spectatorGate =
@@ -3697,6 +3725,7 @@ export function useLiveSpectatorController() {
     startSpeedChallenge,
     stageFlash,
     starterCoinBalance,
+    exitCohostStayWatching,
     stopCoHosting,
     streamEndedReceived,
     streamIsLive,

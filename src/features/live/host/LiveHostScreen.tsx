@@ -34,6 +34,7 @@ import {
   Timer,
   BarChart3,
   ArrowLeftRight,
+  LayoutGrid,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { FILTER_PRESETS } from '../../../lib/ai/filters';
@@ -311,7 +312,7 @@ export default function LiveHostScreen() {
     cohostGiftScores,
     cohostLastGifts,
     cohostLayoutId,
-    setCohostLayoutId,
+    selectCohostLayout,
     coinBalance,
     comboCount,
     comboStack,
@@ -776,6 +777,8 @@ export default function LiveHostScreen() {
     startPoll,
     endPoll,
   } = useLiveHostController();
+
+  const [showCohostLayoutPicker, setShowCohostLayoutPicker] = useState(false);
 
   // Cosmic fundal behind chat/bottom ONLY in co-host or battle — never normal solo live.
   const hasCoHostLowerFundal =
@@ -2508,6 +2511,19 @@ export default function LiveHostScreen() {
                   <span className="elix-silver-red-text text-[8px] font-medium">Co-Host</span>
                 </div>
               )}
+              {!isBattleMode && isBroadcast && (
+                <div className="flex flex-col items-center gap-0.5">
+                  <button
+                    type="button"
+                    title="Layout"
+                    onClick={() => setShowCohostLayoutPicker(true)}
+                    className={`${LIVE_BOTTOM_ICON_BTN} relative`}
+                  >
+                    <LayoutGrid size={20} className="text-[#F5F5F7] relative z-[2]" strokeWidth={2} />
+                  </button>
+                  <span className="elix-silver-red-text text-[8px] font-medium">Layout</span>
+                </div>
+              )}
               {/* Enter battle (solo live). Once in battle setup, Battle is replaced by Invite + Start game. */}
               {!isBattleMode && (
                 <div className="flex flex-col items-center gap-0.5">
@@ -2927,6 +2943,32 @@ export default function LiveHostScreen() {
         )}
       </AnimatePresence>
 
+      {/* ═══ CO-HOST LAYOUT PICKER (host only — not inside Spectators) ═══ */}
+      {showCohostLayoutPicker && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/35 pointer-events-auto"
+            style={{ zIndex: 99998 }}
+            onClick={() => setShowCohostLayoutPicker(false)}
+          />
+          <div className="fixed bottom-0 left-0 right-0 z-[999999] pointer-events-auto max-w-[480px] mx-auto">
+            <div className="elix-panel backdrop-blur-md rounded-t-2xl flex flex-col shadow-2xl overflow-hidden px-4 pt-2 pb-4">
+              <div className="flex justify-center pb-2" aria-hidden>
+                <div className="w-10 h-1 rounded-full bg-white/25" />
+              </div>
+              <h3 className="text-[#F5F5F7] font-bold text-sm text-center w-full mb-2">Layout</h3>
+              <CohostLayoutChooser
+                value={cohostLayoutId}
+                onChange={(id) => {
+                  selectCohostLayout(id);
+                  setShowCohostLayoutPicker(false);
+                }}
+              />
+            </div>
+          </div>
+        </>
+      )}
+
       {/* ═══ VIEWER LIST: Top gifters (MVP) OR spectators + join requests (invite to co-host) ═══ */}
       {showViewerList && (
         <>
@@ -2949,6 +2991,21 @@ export default function LiveHostScreen() {
                       : formatCountShort(activeViewers.length)}
                   </span>
                 </div>
+                {viewerListMode !== 'topGifters' ? (
+                  <button
+                    type="button"
+                    title="Layout"
+                    aria-label="Layout"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowViewerList(false);
+                      setShowCohostLayoutPicker(true);
+                    }}
+                    className="absolute right-2 top-2 z-10 flex items-center justify-center p-1.5 rounded-full active:scale-95"
+                  >
+                    <LayoutGrid size={16} className="text-[#F5F5F7]" strokeWidth={2.2} />
+                  </button>
+                ) : null}
                 <h3 className="text-[#F5F5F7] font-bold text-sm text-center w-full">
                   {viewerListMode === 'topGifters'
                     ? topGiftersSide === 'host'
@@ -2960,12 +3017,9 @@ export default function LiveHostScreen() {
                 </h3>
               </div>
               <div className="flex-1 overflow-y-auto no-scrollbar px-4 pb-4 min-h-0">
-                {viewerListMode !== 'topGifters' ? (
-                  <CohostLayoutChooser value={cohostLayoutId} onChange={setCohostLayoutId} />
-                ) : null}
                 {viewerListMode === 'topGifters' ? (
                   <>
-                    <p className="text-white/50 text-[10px] font-bold uppercase tracking-wider mb-1.5">MVP Â· Gift coins this live</p>
+                    <p className="text-white/50 text-[10px] font-bold uppercase tracking-wider mb-1.5">MVP · Gift coins this live</p>
                     {topGiftersForPanel.length > 0 ? (
                       topGiftersForPanel.map((v, i) => {
                         const gifted =
