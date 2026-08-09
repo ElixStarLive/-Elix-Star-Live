@@ -29,6 +29,8 @@ import { openExternalLink, nativeShareUrl } from '../lib/platform';
 import { showToast } from '../lib/toast';
 import { trackShare } from '../lib/interactionTracker';
 import { sendDmToUser } from '../lib/chatMessages';
+import { StoryGoldRingAvatar } from './StoryGoldRingAvatar';
+import { apiLiveStreams, collectLiveUserIds } from '../lib/live';
 
 interface ShareModalProps {
   isOpen: boolean;
@@ -62,13 +64,19 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
   const [shareQuery, setShareQuery] = useState('');
   const [followers, setFollowers] = useState<{ user_id: string; username: string; avatar_url: string | null }[]>([]);
   const [sentTo, setSentTo] = useState<Set<string>>(new Set());
+  const [liveUserIds, setLiveUserIds] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
     if (!isOpen) return;
     let cancelled = false;
     (async () => {
-      const rows = await fetchAllSharePanelContacts(user?.id);
-      if (!cancelled) setFollowers(rows);
+      const [rows, liveResult] = await Promise.all([
+        fetchAllSharePanelContacts(user?.id),
+        apiLiveStreams().catch(() => ({ streams: [] as unknown[], error: null })),
+      ]);
+      if (cancelled) return;
+      setFollowers(rows);
+      setLiveUserIds(collectLiveUserIds(liveResult.streams || []));
     })();
     return () => {
       cancelled = true;
@@ -182,20 +190,23 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
         className="elix-panel elix-share-sheet w-full max-w-[480px] rounded-t-2xl overflow-hidden flex flex-col h-[calc(38vh-13mm)] border border-black"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-center px-4 pt-0.5 pb-0.5">
-          <div className="w-10 h-1 bg-white/20 rounded-full flex-shrink-0" />
-        </div>
-        <div className="flex items-center justify-between gap-2 px-4 pb-0.5 flex-shrink-0">
-          <h3 className="text-[#F5F5F7] font-bold whitespace-nowrap text-sm">Share to</h3>
-          <div className="flex-none w-[120px] bg-white/5 rounded-lg px-2 py-0.5 flex items-center gap-2 border border-[#D8D9DD]/35">
-            <Search className="w-3.5 h-3.5 text-[#F5F5F7]" />
+        <div className="relative flex flex-col px-4 pt-0.5 pb-2 border-b border-white/10 flex-shrink-0">
+          <div className="flex justify-center pb-2" aria-hidden>
+            <div className="w-10 h-1 rounded-full bg-white/25 flex-shrink-0" />
+          </div>
+          <div className="absolute left-4 top-0 flex items-center gap-1 z-10">
+            <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center flex-shrink-0 border border-[#D8D9DD]/35">
+              <Search className="w-3.5 h-3.5 text-[#F5F5F7]" />
+            </div>
             <input
               value={shareQuery}
               onChange={(e) => setShareQuery(e.target.value)}
               placeholder="Search..."
-              className="bg-transparent text-[#F5F5F7]/90 text-xs outline-none w-full placeholder:text-[#F5F5F7]/45"
+              className="bg-transparent text-[#F5F5F7]/90 text-xs outline-none w-[72px] placeholder:text-[#F5F5F7]/45"
+              aria-label="Search"
             />
           </div>
+          <h3 className="text-[#F5F5F7] font-bold text-sm text-center w-full">Share to</h3>
         </div>
 
         {/* Share to followers */}
@@ -203,21 +214,16 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
           {filteredFollowers.map((f) => (
             <button
               key={f.user_id}
-              className="flex-shrink-0 flex flex-col items-center gap-1 active:scale-95 transition-transform"
+              className="flex-shrink-0 flex flex-col items-center gap-1 active:scale-95 transition-transform overflow-visible"
               style={{ width: SHARE_PANEL_ITEM_WIDTH_PX, minWidth: SHARE_PANEL_ITEM_WIDTH_PX }}
               onClick={() => sendShareTo(f.user_id)}
             >
-              <div
-                className="rounded-full overflow-hidden bg-[#1A1A1F] flex-shrink-0"
-                style={{ width: SHARE_PANEL_AVATAR_PX, height: SHARE_PANEL_AVATAR_PX }}
-              >
-                <img
-                  src={f.avatar_url || '/royce/default-avatar.svg'}
-                  alt={f.username}
-                  className="h-full w-full object-cover object-center"
-                  draggable={false}
-                />
-              </div>
+              <StoryGoldRingAvatar
+                size={SHARE_PANEL_AVATAR_PX}
+                src={f.avatar_url || '/royce/default-avatar.svg'}
+                alt={f.username}
+                live={liveUserIds.has(f.user_id)}
+              />
               <span className="text-white/80 text-[11px] font-medium truncate w-full text-center">
                 {sentTo.has(f.user_id) ? 'Sent' : f.username || 'User'}
               </span>
@@ -272,7 +278,7 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
                   className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
                 >
                   <div
-                    className={`relative royce-glow-disc flex-shrink-0 ${item.name === 'Report' ? 'translate-y-0.5' : ''}`}
+                    className="relative royce-glow-disc flex-shrink-0"
                     style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }}
                   >
                     {React.cloneElement(item.icon as React.ReactElement, {

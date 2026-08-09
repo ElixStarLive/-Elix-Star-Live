@@ -81,6 +81,7 @@ import {
   apiLiveEnd,
   apiLiveToken,
   apiLiveStreams,
+  collectLiveUserIds,
   LiveRoomLifecycle,
 } from '../../../lib/live';
 import type {
@@ -2477,6 +2478,7 @@ export function useLiveHostController() {
   const [shareQuery, setShareQuery] = useState('');
   const [shareFollowers, setShareFollowers] = useState<{ user_id: string; username: string; avatar_url: string | null }[]>([]);
   const [shareSentTo, setShareSentTo] = useState<Set<string>>(new Set());
+  const [shareLiveUserIds, setShareLiveUserIds] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
     if (!showSharePanel) {
@@ -2485,8 +2487,13 @@ export function useLiveHostController() {
     }
     let cancelled = false;
     (async () => {
-      const rows = await fetchAllSharePanelContacts(user?.id);
-      if (!cancelled) setShareFollowers(rows);
+      const [rows, liveResult] = await Promise.all([
+        fetchAllSharePanelContacts(user?.id),
+        apiLiveStreams().catch(() => ({ streams: [] as unknown[], error: null })),
+      ]);
+      if (cancelled) return;
+      setShareFollowers(rows);
+      setShareLiveUserIds(collectLiveUserIds(liveResult.streams || []));
     })();
     return () => {
       cancelled = true;
@@ -6536,6 +6543,7 @@ export function useLiveHostController() {
     shareCopyLink,
     shareFacebook,
     shareFollowers,
+    shareLiveUserIds,
     sharePromote,
     shareRepostLive,
     shareQuery,

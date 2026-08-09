@@ -8,7 +8,7 @@ import { useVideoStore } from '../store/useVideoStore';
 import { apiFetchProfiles } from '../features/feed/feedApi';
 import { fetchActiveStories, type StoryItem, type StoryUserGroup } from '../lib/storiesApi';
 import { prepareFeedVideoEl } from '../lib/prepareLiveVideoEl';
-import { apiLiveStreams } from '../lib/live';
+import { apiLiveStreams, collectLiveUserIds } from '../lib/live';
 import { usePullRevealStrip } from '../hooks/usePullRevealStrip';
 import { isGenuineAppUser } from '../lib/genuineUser';
 
@@ -184,20 +184,7 @@ export function FeedStoryCirclesOverlay({
         ]);
         const profilesBody = { profiles: profilesResult.profiles ?? [] };
         const liveBody = { streams: liveResult.streams ?? [] };
-        const liveSet = new Set(
-          (liveBody?.streams || [])
-            .flatMap((s: Record<string, unknown>) => [
-              s.hostUserId,
-              s.userId,
-              s.user_id,
-              s.stream_key,
-              s.streamKey,
-              s.room_id,
-              s.roomId,
-            ])
-            .filter(Boolean)
-            .map((v: unknown) => String(v)),
-        );
+        const liveSet = collectLiveUserIds(liveBody.streams || []);
         setLiveUserIds(liveSet);
 
         const rows = Array.isArray(profilesBody?.profiles) ? profilesBody.profiles : [];

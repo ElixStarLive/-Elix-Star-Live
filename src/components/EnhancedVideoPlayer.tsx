@@ -49,7 +49,7 @@ import {
 } from '../lib/profileFrame';
 import { platform } from '../lib/platform';
 import { prepareFeedVideoEl, stripVideoMediaChrome } from '../lib/prepareLiveVideoEl';
-import { apiLiveStreams } from '../lib/live';
+import { apiLiveStreams, collectLiveUserIds } from '../lib/live';
 
 const VIDEO_SIDEBAR_AVATAR = 38;
 /** Description-row creator circle only: +1mm each side. Level pill stays {@link LEVEL_BADGE_PILL_PX}. */
@@ -219,11 +219,7 @@ export default function EnhancedVideoPlayer({
     apiLiveStreams()
       .then(({ streams }) => {
         if (cancelled) return;
-        const liveIds = new Set(
-          (streams || []).map((s: { user_id?: string; userId?: string }) =>
-            String(s.user_id || s.userId || ''),
-          ).filter(Boolean),
-        );
+        const liveIds = collectLiveUserIds(streams || []);
         setCreatorIsLive(liveIds.has(String(uid)));
       })
       .catch(() => {

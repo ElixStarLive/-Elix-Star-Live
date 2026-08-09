@@ -70,6 +70,7 @@ import GiftAnimationOverlay from '../../../components/GiftAnimationOverlay';
 import { LiveGiftFeedStack } from '../../../components/LiveGiftFeedStack';
 import { ChatOverlay } from '../../../components/ChatOverlay';
 import { AvatarRing } from '../../../components/AvatarRing';
+import { StoryGoldRingAvatar } from '../../../components/StoryGoldRingAvatar';
 import { LevelBadge } from '../../../components/LevelBadge';
 import {
   BATTLE_MVP_ROW_EDGE_OFFSET_MM,
@@ -482,6 +483,7 @@ export default function SpectatorLiveScreen() {
     setViewerCount,
     setViewersList,
     shareContacts,
+    shareLiveUserIds,
     shareQuery,
     showCoHostPanel,
     showComboButton,
@@ -2652,7 +2654,7 @@ export default function SpectatorLiveScreen() {
                     {shareContacts.filter(c => c.name.toLowerCase().includes(shareQuery.toLowerCase())).map((u) => (
                       <button
                         key={u.id}
-                        className="flex-shrink-0 flex flex-col items-center gap-1 active:scale-95 transition-transform"
+                        className="flex-shrink-0 flex flex-col items-center gap-1 active:scale-95 transition-transform overflow-visible"
                         style={{ width: SHARE_PANEL_ITEM_WIDTH_PX, minWidth: SHARE_PANEL_ITEM_WIDTH_PX }}
                         onClick={async () => {
                           setShowSharePanel(false);
@@ -2690,17 +2692,12 @@ export default function SpectatorLiveScreen() {
                           }
                         }}
                       >
-                        <div
-                          className="rounded-full overflow-hidden bg-[#1A1A1F] flex-shrink-0"
-                          style={{ width: SHARE_PANEL_AVATAR_PX, height: SHARE_PANEL_AVATAR_PX }}
-                        >
-                          <img
-                            src={u.avatar || '/royce/default-avatar.svg'}
-                            alt={u.name}
-                            className="h-full w-full object-cover object-center"
-                            draggable={false}
-                          />
-                        </div>
+                        <StoryGoldRingAvatar
+                          size={SHARE_PANEL_AVATAR_PX}
+                          src={u.avatar || '/royce/default-avatar.svg'}
+                          alt={u.name}
+                          live={shareLiveUserIds.has(u.id)}
+                        />
                         <span className="text-white/80 text-[11px] font-medium truncate w-full text-center">{u.name}</span>
                       </button>
                     ))}

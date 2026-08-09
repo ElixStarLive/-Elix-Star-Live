@@ -58,6 +58,7 @@ import { ChatOverlay } from '../../../components/ChatOverlay';
 import { FaceARGift } from '../../../components/FaceARGift';
 import { useLivePromoStore } from '../../../store/useLivePromoStore';
 import { AvatarRing } from '../../../components/AvatarRing';
+import { StoryGoldRingAvatar } from '../../../components/StoryGoldRingAvatar';
 import { LevelBadge } from '../../../components/LevelBadge';
 import {
   LIVE_MVP_PROFILE_RING_PX,
@@ -681,6 +682,7 @@ export default function LiveHostScreen() {
     shareCopyLink,
     shareFacebook,
     shareFollowers,
+    shareLiveUserIds,
     sharePromote,
     shareQuery,
     shareReport,
@@ -3750,21 +3752,16 @@ export default function LiveHostScreen() {
               {shareFollowers.filter(f => f.username?.toLowerCase().includes(shareQuery.toLowerCase())).map((f) => (
                 <button
                   key={f.user_id}
-                  className="flex-shrink-0 flex flex-col items-center gap-1 active:scale-95 transition-transform"
+                  className="flex-shrink-0 flex flex-col items-center gap-1 active:scale-95 transition-transform overflow-visible"
                   style={{ width: SHARE_PANEL_ITEM_WIDTH_PX, minWidth: SHARE_PANEL_ITEM_WIDTH_PX }}
                   onClick={() => sendShareToFollower(f.user_id)}
                 >
-                  <div
-                    className="rounded-full overflow-hidden bg-[#1A1A1F] flex-shrink-0"
-                    style={{ width: SHARE_PANEL_AVATAR_PX, height: SHARE_PANEL_AVATAR_PX }}
-                  >
-                    <img
-                      src={f.avatar_url || '/royce/default-avatar.svg'}
-                      alt={f.username}
-                      className="h-full w-full object-cover object-center"
-                      draggable={false}
-                    />
-                  </div>
+                  <StoryGoldRingAvatar
+                    size={SHARE_PANEL_AVATAR_PX}
+                    src={f.avatar_url || '/royce/default-avatar.svg'}
+                    alt={f.username}
+                    live={shareLiveUserIds.has(f.user_id)}
+                  />
                   <span className="text-white/80 text-[11px] font-medium truncate w-full text-center">{shareSentTo.has(f.user_id) ? 'Sent' : f.username || 'User'}</span>
                 </button>
               ))}

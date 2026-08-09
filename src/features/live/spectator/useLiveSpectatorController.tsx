@@ -131,7 +131,7 @@ import {
 } from '../../feed/feedApi';
 import type { Room } from 'livekit-client';
 import { RoomEvent, ConnectionState } from 'livekit-client';
-import { apiLiveStreams, apiLiveToken, LiveRoomLifecycle } from '../../../lib/live';
+import { apiLiveStreams, apiLiveToken, collectLiveUserIds, LiveRoomLifecycle } from '../../../lib/live';
 import { giftSendErrorToast } from '../../../lib/giftSend';
 import { sendLivePaidGift } from '../gifts/sendLiveGift';
 import { useLiveGiftsCatalog } from '../hooks/useLiveGiftsCatalog';
@@ -327,6 +327,7 @@ export function useLiveSpectatorController() {
   const [giftQueue, setGiftQueue] = useState<{video: string; battleSide?: 'host' | 'opponent' | null}[]>([]);
   const [shareQuery, setShareQuery] = useState('');
   const [shareContacts, setShareContacts] = useState<{ id: string; name: string; avatar: string }[]>([]);
+  const [shareLiveUserIds, setShareLiveUserIds] = useState<Set<string>>(() => new Set());
   const [lastSentGift, setLastSentGift] = useState<GiftUiItem | null>(null);
   const [comboCount, setComboCount] = useState(0);
   const [showComboButton, setShowComboButton] = useState(false);
@@ -2893,19 +2894,24 @@ export function useLiveSpectatorController() {
     let cancelled = false;
     (async () => {
       try {
-        const rows = await fetchAllSharePanelContacts(user?.id);
+        const [rows, liveResult] = await Promise.all([
+          fetchAllSharePanelContacts(user?.id),
+          apiLiveStreams().catch(() => ({ streams: [] as unknown[], error: null })),
+        ]);
         const mapped = rows.map((r) => ({
           id: r.user_id,
           name: r.username,
           avatar: r.avatar_url || '',
         }));
-        if (!cancelled) setShareContacts(mapped);
+        if (cancelled) return;
+        setShareContacts(mapped);
+        setShareLiveUserIds(collectLiveUserIds(liveResult.streams || []));
       } catch { /* intentionally empty */ }
     })();
     return () => {
       cancelled = true;
     };
-  }, [user?.id]);
+  }, [user?.id, showSharePanel]);
 
   // Gift queue processor
   const [giftKey, setGiftKey] = useState(0);
@@ -3718,6 +3724,7 @@ export function useLiveSpectatorController() {
     setViewerCount,
     setViewersList,
     shareContacts,
+    shareLiveUserIds,
     shareQuery,
     showCoHostPanel,
     showComboButton,

@@ -69,3 +69,24 @@ export async function apiLiveStreams(): Promise<{
   const raw = data?.streams ?? data?.data ?? [];
   return { streams: Array.isArray(raw) ? raw : [], error: null };
 }
+
+/** User / host / room ids currently on air (for avatar live rings). */
+export function collectLiveUserIds(streams: unknown[]): Set<string> {
+  const out = new Set<string>();
+  for (const raw of streams || []) {
+    if (!raw || typeof raw !== 'object') continue;
+    const s = raw as Record<string, unknown>;
+    for (const v of [
+      s.hostUserId,
+      s.userId,
+      s.user_id,
+      s.stream_key,
+      s.streamKey,
+      s.room_id,
+      s.roomId,
+    ]) {
+      if (v != null && String(v).trim()) out.add(String(v));
+    }
+  }
+  return out;
+}
