@@ -1089,6 +1089,7 @@ export function useLiveSpectatorController() {
 
   const _startCoHosting = async () => {
     try {
+      setIsCoHosting(true);
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'user' },
         audio: { echoCancellation: true, noiseSuppression: true },
@@ -1096,7 +1097,6 @@ export function useLiveSpectatorController() {
       const audioTrack = stream.getAudioTracks()[0];
       if (audioTrack) audioTrack.enabled = false;
       setCoHostStream(stream);
-      setIsCoHosting(true);
 
       if (myVideoRef.current) {
         myVideoRef.current.srcObject = stream;
@@ -1111,6 +1111,7 @@ export function useLiveSpectatorController() {
         isSystem: true,
       }, LIVE_CHAT_MESSAGE_CAP));
     } catch {
+      setIsCoHosting(false);
       showToast('Camera access denied');
     }
   };
@@ -1536,6 +1537,8 @@ export function useLiveSpectatorController() {
     if (!spectatorSession.connected || !isCoHostFromUrl) return;
     let mounted = true;
     const lifecycle = spectatorLifecycleRef.current;
+    // Flip layout to split immediately; camera publish can finish after.
+    setIsCoHosting(true);
     (async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -1552,10 +1555,10 @@ export function useLiveSpectatorController() {
         await lifecycle.publishFromStream(stream);
         await lifecycle.liveKit?.setMicEnabled(false);
         setCoHostStream(stream);
-        setIsCoHosting(true);
         showToast('You are co-hosting. Unmute to speak.');
       } catch (e) {
         console.warn('[LiveKit] Co-host publish failed:', e);
+        if (mounted) setIsCoHosting(false);
         showToast('Could not start camera. Host will not see your video.');
       }
     })();
@@ -2463,8 +2466,10 @@ export function useLiveSpectatorController() {
     const handleHeartSent = (data) => {
       if (!mounted) return;
       if (typeof data.live_likes === 'number' && Number.isFinite(data.live_likes)) {
-        setActiveLikes(Math.max(0, data.live_likes));
-        return;
+        // Authoritative room total — every spectator converges to the same number.
+        setActiveLikes((prev) => Math.max(prev, Math.max(0, data.live_likes)));
+      } else if (data.user_id !== user?.id) {
+        setActiveLikes((prev) => prev + 1);
       }
       if (data.user_id === user?.id) return;
       const layer = spectatorChatHeartsRef.current;
@@ -2475,7 +2480,6 @@ export function useLiveSpectatorController() {
         const y = h * (0.18 + Math.random() * 0.58);
         spawnHeartAt(x, y, undefined, typeof data.username === 'string' ? data.username : undefined, typeof data.avatar === 'string' ? data.avatar : undefined);
       }
-      setActiveLikes((prev) => prev + 1);
     };
 
     // Spectators only join and leave; they never send or bring their own layout. Layout is from the app (creator); server sends it on join, spectator only receives and displays it.

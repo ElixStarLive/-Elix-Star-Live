@@ -781,9 +781,14 @@ export default function LiveHostScreen() {
             <div ref={stageRef} className="relative w-full h-full">
             {/* Base Video Layer */}
         {!isBattleMode && (() => {
+          // Include invited/pending so split layout appears when a seat opens —
+          // not only after accept/live (which left full-screen until a re-tap).
           const hasAnyCoHost = coHosts.some(
             (h) =>
-              (h.status === 'live' || h.status === 'accepted') &&
+              (h.status === 'live' ||
+                h.status === 'accepted' ||
+                h.status === 'invited' ||
+                h.status === 'pending_accept') &&
               !sameUserId(h.userId, user?.id),
           );
           return (

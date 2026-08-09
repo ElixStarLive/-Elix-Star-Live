@@ -7,6 +7,7 @@
  *
  * SHARED state (Valkey — consistent across all workers/instances):
  *   room:members:{roomId}         — SET of userIds in room (viewer count = SCARD)
+ *   room:meta:{roomId}            — HASH live_likes (shared like total)
  *   txn:{transactionId}           — dedup key
  *   cohost:{roomId}               — JSON of cohost layout
  *   wsrl:{userId}:{event}         — rate limit sorted set
@@ -39,6 +40,8 @@ import {
   valkeySmembers,
   valkeySetNx,
   valkeyExpire,
+  valkeyHincrby,
+  valkeyHget,
 } from "../lib/valkey";
 import { getPool } from "../lib/postgres";
 import { createCoalescedWriter } from "../lib/coalescedWriter";
@@ -320,6 +323,42 @@ export async function deleteCohostLayout(roomId: string): Promise<void> {
   if (!isValkeyConfigured()) return;
   await valkeyDel(`cohost:${roomId}`);
   await clearCohostPublishGrants(roomId);
+}
+
+// ── Room live likes (shared total for creator + all spectators) ───
+// One authoritative counter per room so every client shows the same number.
+const LIVE_LIKES_TTL_SEC = 6 * 3600;
+const localLiveLikes = new Map<string, number>();
+
+export async function getRoomLiveLikes(roomId: string): Promise<number> {
+  if (!roomId) return 0;
+  if (isValkeyConfigured()) {
+    const raw = await valkeyHget(`room:meta:${roomId}`, "live_likes");
+    if (raw != null) {
+      const n = Number(raw);
+      if (Number.isFinite(n) && n >= 0) {
+        const v = Math.floor(n);
+        localLiveLikes.set(roomId, v);
+        return v;
+      }
+    }
+  }
+  return localLiveLikes.get(roomId) || 0;
+}
+
+export async function incrementRoomLiveLikes(roomId: string): Promise<number> {
+  if (!roomId) return 0;
+  if (isValkeyConfigured()) {
+    const next = await valkeyHincrby(`room:meta:${roomId}`, "live_likes", 1);
+    if (next > 0) {
+      void valkeyExpire(`room:meta:${roomId}`, LIVE_LIKES_TTL_SEC);
+      localLiveLikes.set(roomId, next);
+      return next;
+    }
+  }
+  const next = (localLiveLikes.get(roomId) || 0) + 1;
+  localLiveLikes.set(roomId, next);
+  return next;
 }
 
 // ── Co-host publish grants (host-authorized) ─────────────────────
@@ -1106,7 +1145,10 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
         user_count: memberCount,
       });
 
-      sendToClient(client, "room_state", { viewers });
+      sendToClient(client, "room_state", {
+        viewers,
+        live_likes: await getRoomLiveLikes(roomId),
+      });
 
       const lastCohost = await getCohostLayout(roomId);
       if (lastCohost) {

@@ -103,6 +103,7 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
         {messages.map((msg, idx) => (
           <div
             key={typeof msg.id === 'string' ? msg.id : `msg-${idx}`}
+            data-live-chat-msg="1"
             className="flex flex-col gap-1 animate-in slide-in-from-left-2 duration-200 relative"
             onPointerDown={() => startLongPress(msg.id)}
             onPointerUp={cancelLongPress}
@@ -143,7 +144,10 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
                 )}
                 <span 
                     className="text-white font-semibold text-[11px] leading-none cursor-pointer hover:underline whitespace-nowrap" 
-                    onClick={() => onProfileTap?.(String(msg.username ?? ''))}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onProfileTap?.(String(msg.username ?? ''));
+                    }}
                 >
                   {typeof msg.username === 'string' ? msg.username : 'User'}
                 </span>

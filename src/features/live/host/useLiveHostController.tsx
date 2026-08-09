@@ -3999,7 +3999,7 @@ export function useLiveHostController() {
     const handleHeartSent = (data) => {
       if (!mounted) return;
       if (typeof data.live_likes === 'number' && Number.isFinite(data.live_likes)) {
-        setLiveLikes(Math.max(0, data.live_likes));
+        setLiveLikes((prev) => Math.max(prev, Math.max(0, data.live_likes)));
       } else if (data.user_id !== user?.id) {
         addLiveLikes(1);
       }

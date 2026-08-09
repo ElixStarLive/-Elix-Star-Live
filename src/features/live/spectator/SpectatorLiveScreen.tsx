@@ -596,7 +596,15 @@ export default function SpectatorLiveScreen() {
           const liveCoHosts = externalCoHosts.filter(
             (h) => h.status === 'live' || h.status === 'accepted',
           );
-          const showGrid = isCoHosting || liveCoHosts.length > 0;
+          // Show split layout as soon as join starts (?cohost=1) or any seat exists —
+          // do not wait for publish/layout sync (that left full-screen until a re-tap).
+          const showGrid =
+            isCoHosting ||
+            isCoHostFromUrl ||
+            liveCoHosts.length > 0 ||
+            externalCoHosts.some(
+              (h) => h.status === 'invited' || h.status === 'pending_accept',
+            );
 
           /* ═══ BATTLE MODE: creator-identical 50/50 split layout ═══ */
           if (spectatorBattle?.active) {
@@ -1695,7 +1703,9 @@ export default function SpectatorLiveScreen() {
               onPointerDown={(e) => {
                 e.stopPropagation();
                 if (e.target instanceof Element) {
-                  const interactive = e.target.closest('button, a, input, textarea, select, [role="button"]');
+                  const interactive = e.target.closest(
+                    'button, a, input, textarea, select, [role="button"], [data-live-chat-msg]',
+                  );
                   if (interactive) return;
                 }
                 handleLikeTap(e);
@@ -1709,18 +1719,11 @@ export default function SpectatorLiveScreen() {
                 isModerator={isModerator}
                 onLike={handleLikeTap}
                 onProfileTap={(username) => {
+                  // Stay on live. Navigating to /profile or /search was removing
+                  // spectators from the stream when they tapped chat while liking.
                   const name = String(username || '').trim();
                   if (!name) return;
-                  const hostId = hostUserIdRef.current || hostUserId;
-                  if (hostId && (name === hostName || name.toLowerCase() === hostName.toLowerCase())) {
-                    navigate(`/profile/${hostId}`);
-                    return;
-                  }
-                  if (user?.id && (name === user.username || name === user.name)) {
-                    navigate(`/profile/${user.id}`);
-                    return;
-                  }
-                  navigate(`/search?q=${encodeURIComponent(name)}`);
+                  showToast(`@${name}`);
                 }}
               />
               ) : null}

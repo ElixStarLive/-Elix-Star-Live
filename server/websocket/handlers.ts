@@ -1,4 +1,4 @@
-import { Client, broadcastToRoom, sendToClient, sendToUserGlobal } from "./index";
+import { Client, broadcastToRoom, sendToClient, sendToUserGlobal, incrementRoomLiveLikes } from "./index";
 import { logger } from "../lib/logger";
 import {
   createBattle,
@@ -198,12 +198,16 @@ export async function handleMessage(
 
       case "heart_sent":
         if (!(await wsRateCheck(client.userId, "heart", 30, 2_000))) break;
-        broadcastToRoom(client.roomId, "heart_sent", {
-          user_id: client.userId,
-          username: data?.username || client.username,
-          avatar: data?.avatar || "",
-          timestamp: new Date().toISOString(),
-        });
+        {
+          const liveLikes = await incrementRoomLiveLikes(client.roomId);
+          broadcastToRoom(client.roomId, "heart_sent", {
+            user_id: client.userId,
+            username: data?.username || client.username,
+            avatar: data?.avatar || "",
+            live_likes: liveLikes,
+            timestamp: new Date().toISOString(),
+          });
+        }
         void recordEngagementAction({
           roomId: client.roomId,
           userId: client.userId,
